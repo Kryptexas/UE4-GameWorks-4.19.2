@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -91,7 +91,7 @@ inline Simd4i operator&(const Simd4i& v, const ComplementExpr<Simd4i>& complemen
 // operator implementations
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Simd4i operator==(const Simd4i& v0, const Simd4i& v1)
+Simd4i operator == (const Simd4i& v0, const Simd4i& v1)
 {
 	return _mm_cmpeq_epi32(v0, v1);
 }
@@ -136,22 +136,22 @@ Simd4i operator>>(const Simd4i& v, int shift)
 	return _mm_srli_epi32(v, shift);
 }
 
-Simd4i operator+(const Simd4i& v)
+Simd4i operator + (const Simd4i& v)
 {
 	return v;
 }
 
-Simd4i operator+(const Simd4i& v0, const Simd4i& v1)
+Simd4i operator + (const Simd4i& v0, const Simd4i& v1)
 {
 	return _mm_add_epi32(v0, v1);
 }
 
-Simd4i operator-(const Simd4i& v)
+Simd4i operator - (const Simd4i& v)
 {
 	return _mm_sub_epi32(_mm_setzero_si128(), v);
 }
 
-Simd4i operator-(const Simd4i& v0, const Simd4i& v1)
+Simd4i operator - (const Simd4i& v0, const Simd4i& v1)
 {
 	return _mm_sub_epi32(v0, v1);
 }
@@ -208,22 +208,22 @@ Simd4i select(const Simd4i& mask, const Simd4i& v0, const Simd4i& v1)
 
 int allEqual(const Simd4i& v0, const Simd4i& v1)
 {
-	return allTrue(operator==(v0, v1));
+	return allTrue(operator == (v0, v1));
 }
 
 int allEqual(const Simd4i& v0, const Simd4i& v1, Simd4i& outMask)
 {
-	return allTrue(outMask = operator==(v0, v1));
+	return allTrue(outMask = operator == (v0, v1));
 }
 
 int anyEqual(const Simd4i& v0, const Simd4i& v1)
 {
-	return anyTrue(operator==(v0, v1));
+	return anyTrue(operator == (v0, v1));
 }
 
 int anyEqual(const Simd4i& v0, const Simd4i& v1, Simd4i& outMask)
 {
-	return anyTrue(outMask = operator==(v0, v1));
+	return anyTrue(outMask = operator == (v0, v1));
 }
 
 int allGreater(const Simd4i& v0, const Simd4i& v1)

@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -64,7 +64,7 @@ Simd4fLoad3Factory::operator Simd4f() const
 {
 #if 0
 	float32x2_t xy = vld1_f32(ptr);
-	float32x2_t zz = vld1_dup_f32(ptr+2);
+	float32x2_t zz = vld1_dup_f32(ptr + 2);
 	return vcombine_f32(xy, zz);
 #else
 	float fltArray[] = { ptr[0], ptr[1], ptr[2], 0.0 };
@@ -76,7 +76,7 @@ Simd4fLoad3SetWFactory::operator Simd4f() const
 {
 #if 0
 	float32x2_t xy = vld1_f32(ptr);
-	float32x2_t zz = vld1_dup_f32(ptr+2);
+	float32x2_t zz = vld1_dup_f32(ptr + 2);
 	return vcombine_f32(xy, zz);
 #else
 	float fltArray[] = { ptr[0], ptr[1], ptr[2], w };
@@ -121,28 +121,28 @@ ProductExpr::operator Simd4f() const
 	return vmulq_f32(v0.f4, v1.f4);
 }
 
-Simd4f operator+(const ProductExpr& p, const Simd4f& v)
+Simd4f operator + (const ProductExpr& p, const Simd4f& v)
 {
 	return vmlaq_f32(v.f4, p.v0.f4, p.v1.f4);
 }
 
-Simd4f operator+(const Simd4f& v, const ProductExpr& p)
+Simd4f operator + (const Simd4f& v, const ProductExpr& p)
 {
 	return vmlaq_f32(v.f4, p.v0.f4, p.v1.f4);
 }
 
-Simd4f operator+(const ProductExpr& p0, const ProductExpr& p1)
+Simd4f operator + (const ProductExpr& p0, const ProductExpr& p1)
 {
 	// cast calls operator Simd4f() which evaluates the other ProductExpr
 	return vmlaq_f32(static_cast<Simd4f>(p0).f4, p1.v0.f4, p1.v1.f4);
 }
 
-Simd4f operator-(const Simd4f& v, const ProductExpr& p)
+Simd4f operator - (const Simd4f& v, const ProductExpr& p)
 {
 	return vmlsq_f32(v.f4, p.v0.f4, p.v1.f4);
 }
 
-Simd4f operator-(const ProductExpr& p0, const ProductExpr& p1)
+Simd4f operator - (const ProductExpr& p0, const ProductExpr& p1)
 {
 	// cast calls operator Simd4f() which evaluates the other ProductExpr
 	return vmlsq_f32(static_cast<Simd4f>(p0).f4, p1.v0.f4, p1.v1.f4);
@@ -152,7 +152,7 @@ Simd4f operator-(const ProductExpr& p0, const ProductExpr& p1)
 // operator implementations
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Simd4f operator==(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator == (const Simd4f& v0, const Simd4f& v1)
 {
 	return vceqq_f32(v0.f4, v1.f4);
 }
@@ -162,7 +162,7 @@ Simd4f operator<(const Simd4f& v0, const Simd4f& v1)
 	return vcltq_f32(v0.f4, v1.f4);
 }
 
-Simd4f operator<=(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator <= (const Simd4f& v0, const Simd4f& v1)
 {
 	return vcleq_f32(v0.f4, v1.f4);
 }
@@ -172,7 +172,7 @@ Simd4f operator>(const Simd4f& v0, const Simd4f& v1)
 	return vcgtq_f32(v0.f4, v1.f4);
 }
 
-Simd4f operator>=(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator >= (const Simd4f& v0, const Simd4f& v1)
 {
 	return vcgeq_f32(v0.f4, v1.f4);
 }
@@ -217,22 +217,22 @@ Simd4f operator>>(const Simd4f& v, const Simd4f& shift)
 	return vshlq_u32(v.u4, vnegq_s32(shift.i4));
 }
 
-Simd4f operator+(const Simd4f& v)
+Simd4f operator + (const Simd4f& v)
 {
 	return v;
 }
 
-Simd4f operator+(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator + (const Simd4f& v0, const Simd4f& v1)
 {
 	return vaddq_f32(v0.f4, v1.f4);
 }
 
-Simd4f operator-(const Simd4f& v)
+Simd4f operator - (const Simd4f& v)
 {
 	return vnegq_f32(v.f4);
 }
 
-Simd4f operator-(const Simd4f& v0, const Simd4f& v1)
+Simd4f operator - (const Simd4f& v0, const Simd4f& v1)
 {
 	return vsubq_f32(v0.f4, v1.f4);
 }
@@ -341,7 +341,7 @@ Simd4f recip(const Simd4f& v)
 {
 	Simd4f r = vrecpeq_f32(v.f4);
 	// n+1 newton iterations because initial approximation is crude
-	for(int i = 0; i <= n; ++i)
+	for (int i = 0; i <= n; ++i)
 		r = vrecpsq_f32(v.f4, r.f4) * r;
 	return r;
 }
@@ -361,7 +361,7 @@ Simd4f rsqrt(const Simd4f& v)
 {
 	Simd4f r = vrsqrteq_f32(v.f4);
 	// n+1 newton iterations because initial approximation is crude
-	for(int i = 0; i <= n; ++i)
+	for (int i = 0; i <= n; ++i)
 		r = vrsqrtsq_f32(vmulq_f32(v.f4, r.f4), r.f4) * r;
 	return r;
 }
@@ -379,7 +379,7 @@ Simd4f exp2(const Simd4f& v)
 	Simd4i ix = vsubq_s32(vcvtq_s32_f32(fx.f4), vreinterpretq_s32_u32(vshrq_n_u32(fx.u4, 31)));
 	fx = x - vcvtq_f32_s32(ix.i4);
 
-	// exp2(fx) ~ 1 + 2*P(fx) / (Q(fx) - P(fx))
+	// exp2(fx) ~ 1 + 2 * P(fx) / (Q(fx) - P(fx))
 
 	Simd4f fx2 = fx * fx;
 

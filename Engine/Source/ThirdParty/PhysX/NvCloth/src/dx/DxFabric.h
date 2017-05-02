@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2015 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -85,7 +85,8 @@ public:
 	DxBatchedVector<DxTether> mTethers;
 	float mTetherLengthScale;
 
-	Vector<uint16_t>::Type mTriangles;
+	DxBatchedVector<uint32_t> mTriangles; //data stored is actually uint16_t
+	int mNumTriangles;
 
 	Vector<uint32_t>::Type mFirstConstraintInPhase;
 	Vector<uint32_t>::Type mNumConstraintsInPhase;

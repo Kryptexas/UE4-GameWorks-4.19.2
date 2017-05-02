@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -44,7 +44,7 @@ struct CuCollision
 		uint32_t mSpheres;
 		uint32_t mCones;
 
-		__device__ friend ShapeMask& operator&=(ShapeMask& left, const ShapeMask& right)
+		__device__ friend ShapeMask& operator &= (ShapeMask& left, const ShapeMask& right)
 		{
 			left.mSpheres = left.mSpheres & right.mSpheres;
 			left.mCones = left.mCones & right.mCones;
@@ -144,7 +144,7 @@ namespace
 // initializes one pointer past data!
 __device__ void allocate(CuCollision::CollisionData& data)
 {
-	if(threadIdx.x < 15)
+	if (threadIdx.x < 15)
 	{
 		Pointer<Shared, float>* ptr = &data.mSphereX;
 		ptr[threadIdx.x] = *ptr + threadIdx.x * gClothData.mNumCapsules +
@@ -155,12 +155,12 @@ __device__ void allocate(CuCollision::CollisionData& data)
 __device__ void generateSpheres(CuCollision::CollisionData& data, float alpha)
 {
 	// interpolate spheres and transpose
-	if(threadIdx.x < gClothData.mNumSpheres * 4)
+	if (threadIdx.x < gClothData.mNumSpheres * 4)
 	{
 		float start = __ldg(gFrameData.mStartCollisionSpheres + threadIdx.x);
 		float target = __ldg(gFrameData.mTargetCollisionSpheres + threadIdx.x);
 		float value = start + (target - start) * alpha;
-		if(threadIdx.x % 4 == 3)
+		if (threadIdx.x % 4 == 3)
 			value = max(value, 0.0f);
 		int32_t j = threadIdx.x % 4 * gClothData.mNumSpheres + threadIdx.x / 4;
 		data.mSphereX[j] = value;
@@ -172,7 +172,7 @@ __device__ void generateSpheres(CuCollision::CollisionData& data, float alpha)
 __device__ void generateCones(CuCollision::CollisionData& data, Pointer<Shared, const uint32_t> iIt)
 {
 	// generate cones
-	if(threadIdx.x < gClothData.mNumCapsules)
+	if (threadIdx.x < gClothData.mNumCapsules)
 	{
 		uint32_t firstIndex = iIt[0];
 		uint32_t secondIndex = iIt[1];
@@ -198,7 +198,7 @@ __device__ void generateCones(CuCollision::CollisionData& data, Pointer<Shared, 
 		float invAxisLength = rsqrtf(sqrAxisLength);
 		float invConeLength = rsqrtf(sqrConeLength);
 
-		if(sqrConeLength <= 0.0f)
+		if (sqrConeLength <= 0.0f)
 			invAxisLength = invConeLength = 0.0f;
 
 		float axisLength = sqrAxisLength * invAxisLength;
@@ -228,14 +228,14 @@ __device__ CuCollision::CuCollision(Pointer<Shared, uint32_t> scratchPtr)
 	int32_t numCapsules4 = 4 * gClothData.mNumCapsules;
 	int32_t numConvexes = gClothData.mNumConvexes;
 
-	if(threadIdx.x < 3)
+	if (threadIdx.x < 3)
 	{
 		(&mCapsuleIndices)[threadIdx.x] = scratchPtr + threadIdx.x * numCapsules2;
 		(&mShapeGrid)[-14 * int32_t(threadIdx.x)] = scratchPtr + numCapsules4 + numConvexes;
 	}
 
 	Pointer<Shared, uint32_t> indexPtr = scratchPtr + threadIdx.x;
-	if(threadIdx.x < numCapsules2)
+	if (threadIdx.x < numCapsules2)
 	{
 		uint32_t index = (&gClothData.mCapsuleIndices->first)[threadIdx.x];
 		*indexPtr = index;
@@ -246,10 +246,10 @@ __device__ CuCollision::CuCollision(Pointer<Shared, uint32_t> scratchPtr)
 	}
 	indexPtr += numCapsules4;
 
-	if(threadIdx.x < numConvexes)
+	if (threadIdx.x < numConvexes)
 		*indexPtr = gClothData.mConvexMasks[threadIdx.x];
 
-	if(gClothData.mEnableContinuousCollision || gClothData.mFrictionScale > 0.0f)
+	if (gClothData.mEnableContinuousCollision || gClothData.mFrictionScale > 0.0f)
 	{
 		allocate(mPrevData);
 
@@ -267,19 +267,19 @@ __device__ void CuCollision::operator()(CurrentT& current, PreviousT& previous, 
 {
 	ProfileDetailZone zone(cloth::CuProfileZoneIds::COLLIDE);
 
-	// if(current.w > 0) current.w = previous.w (see SwSolverKernel::computeBounds())
-	for(int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
+	// if (current.w > 0) current.w = previous.w (see SwSolverKernel::computeBounds())
+	for (int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
 	{
-		if(current(i, 3) > 0.0f)
+		if (current(i, 3) > 0.0f)
 			current(i, 3) = previous(i, 3);
 	}
 
 	collideConvexes(current, previous, alpha);
 	collideTriangles(current, alpha);
 
-	if(buildAcceleration(current, alpha))
+	if (buildAcceleration(current, alpha))
 	{
-		if(gClothData.mEnableContinuousCollision)
+		if (gClothData.mEnableContinuousCollision)
 			collideContinuousCapsules(current, previous);
 		else
 			collideCapsules(current, previous);
@@ -293,12 +293,12 @@ __device__ void CuCollision::operator()(CurrentT& current, PreviousT& previous, 
 
 	__syncthreads();
 
-	if(gClothData.mEnableContinuousCollision || gClothData.mFrictionScale > 0.0f)
+	if (gClothData.mEnableContinuousCollision || gClothData.mFrictionScale > 0.0f)
 	{
 		// store current collision data for next iteration
 		Pointer<Shared, float> dstIt = mPrevData.mSphereX + threadIdx.x;
 		Pointer<Shared, const float> srcIt = mCurData.mSphereX + threadIdx.x;
-		for(; dstIt < mCurData.mSphereX; dstIt += blockDim.x, srcIt += blockDim.x)
+		for (; dstIt < mCurData.mSphereX; dstIt += blockDim.x, srcIt += blockDim.x)
 			*dstIt = *srcIt;
 	}
 
@@ -308,7 +308,7 @@ __device__ void CuCollision::operator()(CurrentT& current, PreviousT& previous, 
 // build per-axis mask arrays of spheres on the right/left of grid cell
 __device__ void CuCollision::buildSphereAcceleration(const CollisionData& data)
 {
-	if(threadIdx.x >= 192)
+	if (threadIdx.x >= 192)
 		return;
 
 	int32_t sphereIdx = threadIdx.x & 31;
@@ -324,14 +324,14 @@ __device__ void CuCollision::buildSphereAcceleration(const CollisionData& data)
 	axisIdx += (uint32_t(signi) >> 31) * 3;
 	Pointer<Shared, uint32_t> dst = mShapeGrid + sGridSize * axisIdx;
 	// #pragma unroll
-	for(int32_t i = 0; i < sGridSize; ++i, ++index)
+	for (int32_t i = 0; i < sGridSize; ++i, ++index)
 		dst[i] |= __ballot(int32_t(index) <= 0);
 }
 
 // generate cone masks from sphere masks
 __device__ void CuCollision::buildConeAcceleration()
 {
-	if(threadIdx.x >= 192)
+	if (threadIdx.x >= 192)
 		return;
 
 	int32_t coneIdx = threadIdx.x & 31;
@@ -344,20 +344,20 @@ __device__ void CuCollision::buildConeAcceleration()
 	Pointer<Shared, uint32_t> dst = src + 6 * sGridSize;
 
 	// #pragma unroll
-	for(int32_t i = 0; i < sGridSize; ++i)
+	for (int32_t i = 0; i < sGridSize; ++i)
 		dst[i] |= __ballot(src[i] & sphereMask);
 }
 
 // convert right/left mask arrays into single overlap array
 __device__ void CuCollision::mergeAcceleration()
 {
-	if(threadIdx.x < sGridSize * 12)
+	if (threadIdx.x < sGridSize * 12)
 	{
 		Pointer<Shared, uint32_t> dst = mShapeGrid + threadIdx.x;
-		if(!(gClothData.mEnableContinuousCollision || threadIdx.x * 43 & 1024))
+		if (!(gClothData.mEnableContinuousCollision || threadIdx.x * 43 & 1024))
 			*dst &= dst[sGridSize * 3]; // above is same as 'threadIdx.x/24 & 1'
 
-		// mask garbage bits from build*Acceleration
+		// mask garbage bits from build * Acceleration
 		int32_t shapeIdx = threadIdx.x >= sGridSize * 6; // spheres=0, cones=1
 		*dst &= (1 << (&gClothData.mNumSpheres)[shapeIdx]) - 1;
 	}
@@ -413,12 +413,12 @@ __device__ float computeParticleBounds(const CurrentT& current, Pointer<Shared, 
 	int32_t threadIdxInAxis = threadIdx.x - axis * numThreadsPerAxis;
 	int laneIdx = threadIdx.x & 31;
 
-	if(threadIdxInAxis < numThreadsPerAxis)
+	if (threadIdxInAxis < numThreadsPerAxis)
 	{
 		typename CurrentT::ConstPointerType posIt = current[axis];
 		int32_t i = min(threadIdxInAxis, gClothData.mNumParticles - 1);
 		float minX = posIt[i], maxX = minX;
-		while(i += numThreadsPerAxis, i < gClothData.mNumParticles)
+		while (i += numThreadsPerAxis, i < gClothData.mNumParticles)
 		{
 			float posX = posIt[i];
 			minX = min(minX, posX);
@@ -436,7 +436,7 @@ __device__ float computeParticleBounds(const CurrentT& current, Pointer<Shared, 
 		minX = min(minX, __shfl_down(minX, 16));
 		maxX = max(maxX, __shfl_down(maxX, 16));
 
-		if(!laneIdx)
+		if (!laneIdx)
 		{
 			Pointer<Shared, float> dst = buffer - threadIdx.x + (threadIdxInAxis >> 5) + (axis << 6);
 			dst[0] = maxX;
@@ -446,14 +446,14 @@ __device__ float computeParticleBounds(const CurrentT& current, Pointer<Shared, 
 
 	__syncthreads();
 
-	if(threadIdx.x >= 192)
+	if (threadIdx.x >= 192)
 		return 0.0f;
 
 	float value = *buffer;
-	if(laneIdx >= (numThreadsPerAxis >> 5))
+	if (laneIdx >= (numThreadsPerAxis >> 5))
 		value = -FLT_MAX;
 
-	// blockDim.x <= 3*512, increase to 3*1024 by adding a shfl by 16
+	// blockDim.x <= 3 * 512, increase to 3 * 1024 by adding a shfl by 16
 	assert(numThreadsPerAxis <= 16 * 32);
 
 	value = max(value, __shfl_down(value, 1));
@@ -465,7 +465,7 @@ __device__ float computeParticleBounds(const CurrentT& current, Pointer<Shared, 
 template <typename CurrentT>
 __device__ float computeParticleBounds(const CurrentT& current, Pointer<Shared, float> buffer)
 {
-	if(threadIdx.x >= 192)
+	if (threadIdx.x >= 192)
 		return 0.0f;
 
 	int32_t axisIdx = threadIdx.x >> 6; // x, y, or z
@@ -477,7 +477,7 @@ __device__ float computeParticleBounds(const CurrentT& current, Pointer<Shared, 
 	pIt += min(threadIdx.x & 31, gClothData.mNumParticles - 1);
 
 	*buffer = *pIt * signf;
-	while(pIt += 32, pIt < pEnd)
+	while (pIt += 32, pIt < pEnd)
 		*buffer = max(*buffer, *pIt * signf);
 
 	return mergeBounds(buffer);
@@ -496,20 +496,20 @@ __device__ bool CuCollision::buildAcceleration(const CurrentT& current, float al
 	float curParticleBounds = computeParticleBounds(current, buffer);
 	int32_t warpIdx = threadIdx.x >> 5;
 
-	if(!gClothData.mNumSpheres)
+	if (!gClothData.mNumSpheres)
 	{
-		if(threadIdx.x < 192 && !(threadIdx.x & 31))
+		if (threadIdx.x < 192 && !(threadIdx.x & 31))
 			gFrameData.mParticleBounds[warpIdx] = curParticleBounds;
 		return false;
 	}
 
 	generateSpheres(mCurData, alpha);
 
-	if(threadIdx.x < 192)
+	if (threadIdx.x < 192)
 	{
 		float sphereBounds = computeSphereBounds(mCurData, buffer);
 		float particleBounds = curParticleBounds;
-		if(gClothData.mEnableContinuousCollision)
+		if (gClothData.mEnableContinuousCollision)
 		{
 			sphereBounds = max(sphereBounds, computeSphereBounds(mPrevData, buffer));
 			float prevParticleBounds = gFrameData.mParticleBounds[warpIdx];
@@ -520,7 +520,7 @@ __device__ bool CuCollision::buildAcceleration(const CurrentT& current, float al
 		float expandedBounds = bounds + abs(bounds) * 1e-4f;
 
 		// store bounds data in shared memory
-		if(!(threadIdx.x & 31))
+		if (!(threadIdx.x & 31))
 		{
 			mGridScale[warpIdx] = expandedBounds;
 			gFrameData.mParticleBounds[warpIdx] = curParticleBounds;
@@ -529,19 +529,19 @@ __device__ bool CuCollision::buildAcceleration(const CurrentT& current, float al
 
 	__syncthreads(); // mGridScale raw hazard
 
-	if(threadIdx.x < 3)
+	if (threadIdx.x < 3)
 	{
 		float negativeLower = mGridScale[threadIdx.x * 2 + 1];
 		float edgeLength = mGridScale[threadIdx.x * 2] + negativeLower;
 		float divisor = max(edgeLength, FLT_EPSILON);
 		mGridScale[threadIdx.x] = __fdividef(sGridSize - 1e-3, divisor);
 		mGridBias[threadIdx.x] = negativeLower * mGridScale[threadIdx.x];
-		if(edgeLength < 0.0f)
+		if (edgeLength < 0.0f)
 			mGridScale[0] = 0.0f; // mark empty intersection
 	}
 
 	// initialize sphere *and* cone grid to 0
-	if(threadIdx.x < 2 * 6 * sGridSize)
+	if (threadIdx.x < 2 * 6 * sGridSize)
 		mShapeGrid[threadIdx.x] = 0;
 
 	__syncthreads(); // mGridScale raw hazard
@@ -550,10 +550,10 @@ __device__ bool CuCollision::buildAcceleration(const CurrentT& current, float al
 	// continuous collision might need it in next iteration
 	generateCones(mCurData, mCapsuleIndices + 2 * threadIdx.x);
 
-	if(mGridScale[0] == 0.0f)
+	if (mGridScale[0] == 0.0f)
 		return false; // early out for empty intersection
 
-	if(gClothData.mEnableContinuousCollision)
+	if (gClothData.mEnableContinuousCollision)
 		buildSphereAcceleration(mPrevData);
 	buildSphereAcceleration(mCurData);
 	__syncthreads(); // mCurData raw hazard
@@ -638,7 +638,7 @@ __device__ int32_t CuCollision::collideCapsules(const CurPos& curPos, float3& de
 	bool frictionEnabled = gClothData.mFrictionScale > 0.0f;
 
 	// cone collision
-	for(; shapeMask.mCones; shapeMask.mCones &= shapeMask.mCones - 1)
+	for (; shapeMask.mCones; shapeMask.mCones &= shapeMask.mCones - 1)
 	{
 		int32_t j = __ffs(shapeMask.mCones) - 1;
 
@@ -658,7 +658,7 @@ __device__ int32_t CuCollision::collideCapsules(const CurPos& curPos, float3& de
 		Pointer<Shared, const uint32_t> mIt = mCapsuleMasks + 2 * j;
 		uint32_t bothMask = mIt[1];
 
-		if(sqrDistance > radius * radius)
+		if (sqrDistance > radius * radius)
 		{
 			shapeMask.mSpheres &= ~bothMask;
 			continue;
@@ -679,7 +679,7 @@ __device__ int32_t CuCollision::collideCapsules(const CurPos& curPos, float3& de
 		shapeMask.mSpheres &= ~(firstMask & leftMask - 1);
 		shapeMask.mSpheres &= ~(secondMask & rightMask - 1);
 
-		if(!leftMask && !rightMask)
+		if (!leftMask && !rightMask)
 		{
 			deltaX = deltaX - base * axisX;
 			deltaY = deltaY - base * axisY;
@@ -692,7 +692,7 @@ __device__ int32_t CuCollision::collideCapsules(const CurPos& curPos, float3& de
 			delta.y = delta.y + deltaY * scale;
 			delta.z = delta.z + deltaZ * scale;
 
-			if(frictionEnabled)
+			if (frictionEnabled)
 			{
 				int32_t s0 = mCapsuleIndices[2 * j];
 				int32_t s1 = mCapsuleIndices[2 * j + 1];
@@ -719,7 +719,7 @@ __device__ int32_t CuCollision::collideCapsules(const CurPos& curPos, float3& de
 	}
 
 	// sphere collision
-	for(; shapeMask.mSpheres; shapeMask.mSpheres &= shapeMask.mSpheres - 1)
+	for (; shapeMask.mSpheres; shapeMask.mSpheres &= shapeMask.mSpheres - 1)
 	{
 		int32_t j = __ffs(shapeMask.mSpheres) - 1;
 
@@ -730,7 +730,7 @@ __device__ int32_t CuCollision::collideCapsules(const CurPos& curPos, float3& de
 		float sqrDistance = FLT_EPSILON + deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
 		float relDistance = rsqrtf(sqrDistance) * mCurData.mSphereW[j];
 
-		if(relDistance > 1.0f)
+		if (relDistance > 1.0f)
 		{
 			float scale = relDistance - 1.0f;
 
@@ -738,7 +738,7 @@ __device__ int32_t CuCollision::collideCapsules(const CurPos& curPos, float3& de
 			delta.y = delta.y + deltaY * scale;
 			delta.z = delta.z + deltaZ * scale;
 
-			if(frictionEnabled)
+			if (frictionEnabled)
 			{
 				velocity.x += mCurData.mSphereX[j] - mPrevData.mSphereX[j];
 				velocity.y += mCurData.mSphereY[j] - mPrevData.mSphereY[j];
@@ -767,7 +767,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 	bool frictionEnabled = gClothData.mFrictionScale > 0.0f;
 
 	// cone collision
-	for(; shapeMask.mCones; shapeMask.mCones &= shapeMask.mCones - 1)
+	for (; shapeMask.mCones; shapeMask.mCones &= shapeMask.mCones - 1)
 	{
 		int32_t j = __ffs(shapeMask.mCones) - 1;
 
@@ -823,7 +823,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 		// which is already handled by discrete collision.
 		hasCollision = hasCollision && minusA < -FLT_EPSILON;
 
-		if(hasCollision)
+		if (hasCollision)
 		{
 			float deltaX = prevX - curX;
 			float deltaY = prevY - curY;
@@ -862,14 +862,14 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 			float base = dot + slope * sqrDistance * invDistance;
 			float scale = base * invHalfLength;
 
-			if(abs(scale) < 1.0f)
+			if (abs(scale) < 1.0f)
 			{
 				deltaX = deltaX + deltaScaledAxisX * scale;
 				deltaY = deltaY + deltaScaledAxisY * scale;
 				deltaZ = deltaZ + deltaScaledAxisZ * scale;
 
 				// reduce ccd impulse if (clamped) particle trajectory stays in cone skin,
-				// i.e. scale by exp2(-k) or 1/(1+k) with k = (tmin - toi) / (1 - toi)
+				// i.e. scale by exp2(-k) or 1/(1 + k) with k = (tmin - toi) / (1 - toi)
 				float minusK = __fdividef(sqrtD, minusA * oneMinusToi);
 				oneMinusToi = __fdividef(oneMinusToi, 1.f - minusK);
 
@@ -896,7 +896,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 		uint32_t cullMask = bothMask & (hasCollision | hasContact) - 1;
 		shapeMask.mSpheres &= ~cullMask;
 
-		if(!hasContact)
+		if (!hasContact)
 			continue;
 
 		float invDistance = curSqrDistance > 0.0f ? rsqrtf(curSqrDistance) : 0.0f;
@@ -913,7 +913,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 		cullMask = (firstMask & leftMask - 1) | (secondMask & rightMask - 1);
 		shapeMask.mSpheres &= ~cullMask | hasCollision - 1;
 
-		if(!leftMask && !rightMask)
+		if (!leftMask && !rightMask)
 		{
 			float deltaX = curX - base * curAxisX;
 			float deltaY = curY - base * curAxisY;
@@ -926,7 +926,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 			delta.y = delta.y + deltaY * scale;
 			delta.z = delta.z + deltaZ * scale;
 
-			if(frictionEnabled)
+			if (frictionEnabled)
 			{
 				int32_t s0 = mCapsuleIndices[2 * j];
 				int32_t s1 = mCapsuleIndices[2 * j + 1];
@@ -953,7 +953,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 	}
 
 	// sphere collision
-	for(; shapeMask.mSpheres; shapeMask.mSpheres &= shapeMask.mSpheres - 1)
+	for (; shapeMask.mSpheres; shapeMask.mSpheres &= shapeMask.mSpheres - 1)
 	{
 		int32_t j = __ffs(shapeMask.mSpheres) - 1;
 
@@ -991,7 +991,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 		// which is already handled by discrete collision.
 		hasCollision = hasCollision && minusA < -FLT_EPSILON;
 
-		if(hasCollision)
+		if (hasCollision)
 		{
 			float deltaX = prevX - curX;
 			float deltaY = prevY - curY;
@@ -1000,7 +1000,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 			float oneMinusToi = 1.0f - toi;
 
 			// reduce ccd impulse if (clamped) particle trajectory stays in cone skin,
-			// i.e. scale by exp2(-k) or 1/(1+k) with k = (tmin - toi) / (1 - toi)
+			// i.e. scale by exp2(-k) or 1/(1 + k) with k = (tmin - toi) / (1 - toi)
 			float minusK = __fdividef(sqrtD, minusA * oneMinusToi);
 			oneMinusToi = __fdividef(oneMinusToi, 1 - minusK);
 
@@ -1017,7 +1017,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 
 		float relDistance = rsqrtf(sqrDistance) * curRadius;
 
-		if(relDistance > 1.0f)
+		if (relDistance > 1.0f)
 		{
 			float scale = relDistance - 1.0f;
 
@@ -1025,7 +1025,7 @@ CuCollision::collideCapsules(const PrevPos& prevPos, CurPos& curPos, float3& del
 			delta.y = delta.y + curY * scale;
 			delta.z = delta.z + curZ * scale;
 
-			if(frictionEnabled)
+			if (frictionEnabled)
 			{
 				velocity.x += mCurData.mSphereX[j] - mPrevData.mSphereX[j];
 				velocity.y += mCurData.mSphereY[j] - mPrevData.mSphereY[j];
@@ -1088,16 +1088,16 @@ __device__ void CuCollision::collideCapsules(CurrentT& current, PreviousT& previ
 	bool frictionEnabled = gClothData.mFrictionScale > 0.0f;
 	bool massScaleEnabled = gClothData.mCollisionMassScale > 0.0f;
 
-	for(int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
 	{
 		typename CurrentT::VectorType curPos = current(i);
 
 		float3 delta, velocity;
-		if(int32_t numCollisions = collideCapsules(curPos, delta, velocity))
+		if (int32_t numCollisions = collideCapsules(curPos, delta, velocity))
 		{
 			float scale = __fdividef(1.0f, numCollisions);
 
-			if(frictionEnabled)
+			if (frictionEnabled)
 			{
 				typename PreviousT::VectorType prevPos = previous(i);
 				float3 frictionImpulse = calcFrictionImpulse(prevPos, curPos, velocity, scale, delta);
@@ -1115,7 +1115,7 @@ __device__ void CuCollision::collideCapsules(CurrentT& current, PreviousT& previ
 
 			current(i) = curPos;
 
-			if(massScaleEnabled)
+			if (massScaleEnabled)
 			{
 				float deltaLengthSq = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
 				float massScale = 1.0f + gClothData.mCollisionMassScale * deltaLengthSq;
@@ -1138,9 +1138,9 @@ __device__ float3 lerp(const ParticleDataT& particleData, const int4& indices, c
 	posZ = particleData(indices.z);
 
 	float3 result;
-	result.x = posX.x*weights.x + posY.x*weights.y + posZ.x*weights.z;
-	result.y = posX.y*weights.x + posY.y*weights.y + posZ.y*weights.z;
-	result.z = posX.z*weights.x + posY.z*weights.y + posZ.z*weights.z;
+	result.x = posX.x * weights.x + posY.x * weights.y + posZ.x * weights.z;
+	result.y = posX.y * weights.x + posY.y * weights.y + posZ.y * weights.z;
+	result.z = posX.z * weights.x + posY.z * weights.y + posZ.z * weights.z;
 	return result;
 }
 
@@ -1186,14 +1186,14 @@ __device__ void CuCollision::collideVirtualCapsules(CurrentT& current, PreviousT
 {
 	const uint32_t* __restrict setSizeIt = gClothData.mVirtualParticleSetSizesBegin;
 
-	if(!setSizeIt)
+	if (!setSizeIt)
 		return;
 
-	if(gClothData.mEnableContinuousCollision)
+	if (gClothData.mEnableContinuousCollision)
 	{
 		// copied from mergeAcceleration
 		Pointer<Shared, uint32_t> dst = mShapeGrid + threadIdx.x;
-		if(!(threadIdx.x * 43 & 1024) && threadIdx.x < sGridSize * 12)
+		if (!(threadIdx.x * 43 & 1024) && threadIdx.x < sGridSize * 12)
 			*dst &= dst[sGridSize * 3];
 		__syncthreads(); // mShapeGrid raw hazard
 	}
@@ -1207,12 +1207,12 @@ __device__ void CuCollision::collideVirtualCapsules(CurrentT& current, PreviousT
 	bool frictionEnabled = gClothData.mFrictionScale > 0.0f;
 	bool massScaleEnabled = gClothData.mCollisionMassScale > 0.0f;
 
-	for(; setSizeIt != setSizeEnd; ++setSizeIt)
+	for (; setSizeIt != setSizeEnd; ++setSizeIt)
 	{
 		__syncthreads();
 
 		const uint16_t* __restrict indicesIt = indicesEnd + threadIdx.x * 4;
-		for(indicesEnd += *setSizeIt * 4; indicesIt < indicesEnd; indicesIt += blockDim.x * 4)
+		for (indicesEnd += *setSizeIt * 4; indicesIt < indicesEnd; indicesIt += blockDim.x * 4)
 		{
 			int4 indices = make_int4(indicesIt[0], indicesIt[1], indicesIt[2], indicesIt[3]);
 
@@ -1228,7 +1228,7 @@ __device__ void CuCollision::collideVirtualCapsules(CurrentT& current, PreviousT
 
 #endif
 			float3 delta, velocity;
-			if(int32_t numCollisions = collideCapsules(curPos, delta, velocity))
+			if (int32_t numCollisions = collideCapsules(curPos, delta, velocity))
 			{
 				float scale = __fdividef(1.0f, numCollisions);
 				float wscale = weights.w * scale;
@@ -1240,7 +1240,7 @@ __device__ void CuCollision::collideVirtualCapsules(CurrentT& current, PreviousT
 				apply(current[1], indices, weights, delta.y * wscale);
 				apply(current[2], indices, weights, delta.z * wscale);
 #endif
-				if(frictionEnabled)
+				if (frictionEnabled)
 				{
 #if NEW_LERP_AND_APPLY
 					float3 prevPos = lerp(previous, indices, weights);
@@ -1262,7 +1262,7 @@ __device__ void CuCollision::collideVirtualCapsules(CurrentT& current, PreviousT
 #endif
 				}
 
-				if(massScaleEnabled)
+				if (massScaleEnabled)
 				{
 					float deltaLengthSq = (delta.x * delta.x + delta.y * delta.y + delta.z * delta.z) * scale * scale;
 					float invMassScale = __fdividef(1.0f, 1.0f + gClothData.mCollisionMassScale * deltaLengthSq);
@@ -1288,17 +1288,17 @@ __device__ void CuCollision::collideContinuousCapsules(CurrentT& current, Previo
 	bool frictionEnabled = gClothData.mFrictionScale > 0.0f;
 	bool massScaleEnabled = gClothData.mCollisionMassScale > 0.0f;
 
-	for(int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
 	{
 		typename PreviousT::VectorType prevPos = previous(i);
 		typename CurrentT::VectorType curPos = current(i);
 
 		float3 delta, velocity;
-		if(int32_t numCollisions = collideCapsules(prevPos, curPos, delta, velocity))
+		if (int32_t numCollisions = collideCapsules(prevPos, curPos, delta, velocity))
 		{
 			float scale = __fdividef(1.0f, numCollisions);
 
-			if(frictionEnabled)
+			if (frictionEnabled)
 			{
 				float3 frictionImpulse = calcFrictionImpulse(prevPos, curPos, velocity, scale, delta);
 
@@ -1315,7 +1315,7 @@ __device__ void CuCollision::collideContinuousCapsules(CurrentT& current, Previo
 
 			current(i) = curPos;
 
-			if(massScaleEnabled)
+			if (massScaleEnabled)
 			{
 				float deltaLengthSq = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
 				float massScale = 1.0f + gClothData.mCollisionMassScale * deltaLengthSq;
@@ -1340,7 +1340,7 @@ __device__ int32_t CuCollision::collideConvexes(const CurPos& positions, float3&
 	int32_t numCollisions = 0;
 	Pointer<Shared, const uint32_t> cIt = mConvexMasks;
 	Pointer<Shared, const uint32_t> cEnd = cIt + gClothData.mNumConvexes;
-	for(; cIt != cEnd; ++cIt)
+	for (; cIt != cEnd; ++cIt)
 	{
 		uint32_t mask = *cIt;
 
@@ -1348,15 +1348,15 @@ __device__ int32_t CuCollision::collideConvexes(const CurPos& positions, float3&
 		float maxDist = planeW[maxIndex] + positions.z * planeZ[maxIndex] + positions.y * planeY[maxIndex] +
 		                positions.x * planeX[maxIndex];
 
-		while((maxDist < 0.0f) && (mask &= mask - 1))
+		while ((maxDist < 0.0f) && (mask &= mask - 1))
 		{
 			int32_t i = __ffs(mask) - 1;
 			float dist = planeW[i] + positions.z * planeZ[i] + positions.y * planeY[i] + positions.x * planeX[i];
-			if(dist > maxDist)
+			if (dist > maxDist)
 				maxDist = dist, maxIndex = i;
 		}
 
-		if(maxDist < 0.0f)
+		if (maxDist < 0.0f)
 		{
 			delta.x -= planeX[maxIndex] * maxDist;
 			delta.y -= planeY[maxIndex] * maxDist;
@@ -1372,11 +1372,11 @@ __device__ int32_t CuCollision::collideConvexes(const CurPos& positions, float3&
 template <typename CurrentT, typename PreviousT>
 __device__ void CuCollision::collideConvexes(CurrentT& current, PreviousT& previous, float alpha)
 {
-	if(!gClothData.mNumConvexes)
+	if (!gClothData.mNumConvexes)
 		return;
 
 	// interpolate planes and transpose
-	if(threadIdx.x < gClothData.mNumPlanes * 4)
+	if (threadIdx.x < gClothData.mNumPlanes * 4)
 	{
 		float start = gFrameData.mStartCollisionPlanes[threadIdx.x];
 		float target = gFrameData.mTargetCollisionPlanes[threadIdx.x];
@@ -1388,16 +1388,16 @@ __device__ void CuCollision::collideConvexes(CurrentT& current, PreviousT& previ
 
 	bool frictionEnabled = gClothData.mFrictionScale > 0.0f;
 
-	for(int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
 	{
 		typename CurrentT::VectorType curPos = current(i);
 
 		float3 delta;
-		if(int32_t numCollisions = collideConvexes(curPos, delta))
+		if (int32_t numCollisions = collideConvexes(curPos, delta))
 		{
 			float scale = __fdividef(1.0f, numCollisions);
 
-			if(frictionEnabled)
+			if (frictionEnabled)
 			{
 				typename PreviousT::VectorType prevPos = previous(i);
 
@@ -1484,7 +1484,7 @@ __device__ void CuCollision::collideTriangles(CurrentT& current, int32_t i)
 	float normalX, normalY, normalZ, normalD = 0.0f;
 	float minSqrLength = FLT_MAX;
 
-	for(; tIt != tEnd; ++tIt)
+	for (; tIt != tEnd; ++tIt)
 	{
 		float dx = posX - tIt->baseX;
 		float dy = posY - tIt->baseY;
@@ -1500,7 +1500,7 @@ __device__ void CuCollision::collideTriangles(CurrentT& current, int32_t i)
 		s = t > 0.0f ? s * tIt->det : deltaDotEdge0 * tIt->edge0InvSqrLength;
 		t = s > 0.0f ? t * tIt->det : deltaDotEdge1 * tIt->edge1InvSqrLength;
 
-		if(s + t > 1.0f)
+		if (s + t > 1.0f)
 		{
 			s = (tIt->edge1SqrLength - tIt->edge0DotEdge1 + deltaDotEdge0 - deltaDotEdge1) * tIt->denom;
 		}
@@ -1514,10 +1514,10 @@ __device__ void CuCollision::collideTriangles(CurrentT& current, int32_t i)
 
 		float sqrLength = dx * dx + dy * dy + dz * dz;
 
-		if(0.0f > deltaDotNormal)
+		if (0.0f > deltaDotNormal)
 			sqrLength *= 1.0001f;
 
-		if(sqrLength < minSqrLength)
+		if (sqrLength < minSqrLength)
 		{
 			normalX = tIt->normalX;
 			normalY = tIt->normalY;
@@ -1527,7 +1527,7 @@ __device__ void CuCollision::collideTriangles(CurrentT& current, int32_t i)
 		}
 	}
 
-	if(normalD < 0.0f)
+	if (normalD < 0.0f)
 	{
 		current(i, 0) = posX - normalX * normalD;
 		current(i, 1) = posY - normalY * normalD;
@@ -1543,11 +1543,11 @@ static const int32_t sTrianglePadding = sizeof(TriangleData) / sizeof(float) - 9
 template <typename CurrentT>
 __device__ void CuCollision::collideTriangles(CurrentT& current, float alpha)
 {
-	if(!gClothData.mNumCollisionTriangles)
+	if (!gClothData.mNumCollisionTriangles)
 		return;
 
 	// interpolate triangle vertices and store in shared memory
-	for(int32_t i = threadIdx.x, n = gClothData.mNumCollisionTriangles * 9; i < n; i += blockDim.x)
+	for (int32_t i = threadIdx.x, n = gClothData.mNumCollisionTriangles * 9; i < n; i += blockDim.x)
 	{
 		float start = gFrameData.mStartCollisionTriangles[i];
 		float target = gFrameData.mTargetCollisionTriangles[i];
@@ -1558,14 +1558,14 @@ __device__ void CuCollision::collideTriangles(CurrentT& current, float alpha)
 
 	__syncthreads();
 
-	for(int32_t i = threadIdx.x; i < gClothData.mNumCollisionTriangles; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < gClothData.mNumCollisionTriangles; i += blockDim.x)
 	{
 		reinterpret_cast<TriangleData*>(generic(mCurData.mSphereX))[i].initialize();
 	}
 
 	__syncthreads();
 
-	for(int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
+	for (int32_t i = threadIdx.x; i < gClothData.mNumParticles; i += blockDim.x)
 		collideTriangles(current, i);
 
 	__syncthreads();

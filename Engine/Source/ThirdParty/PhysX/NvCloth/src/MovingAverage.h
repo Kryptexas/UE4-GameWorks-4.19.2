@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -78,7 +78,7 @@ struct MovingAverage
 	{
 		n = std::min(n, mSize);
 
-		if(mData.empty() || mData.back().mValue != value)
+		if (mData.empty() || mData.back().mValue != value)
 		{
 			Element element = { n, value };
 			mData.pushBack(element);
@@ -98,7 +98,7 @@ struct MovingAverage
 
 		float sum = 0.0f;
 		Vector<Element>::Type::ConstIterator it = mData.begin(), end = mData.end();
-		for(; it != end; ++it)
+		for (; it != end; ++it)
 			sum += it->mCount * it->mValue;
 
 		// linear weight ramps at both ends for smoother average
@@ -106,11 +106,11 @@ struct MovingAverage
 		float ramp = 0.0f, temp = 0.0f;
 		uint32_t countLo = (it = mData.begin())->mCount;
 		uint32_t countHi = (--end)->mCount;
-		for(uint32_t i = 0; i < n; ++i)
+		for (uint32_t i = 0; i < n; ++i)
 		{
-			if(i == countLo)
+			if (i == countLo)
 				countLo += (++it)->mCount;
-			if(i == countHi)
+			if (i == countHi)
 				countHi += (--end)->mCount;
 
 			temp += it->mValue + end->mValue;
@@ -126,13 +126,13 @@ struct MovingAverage
 	void trim()
 	{
 		Vector<Element>::Type::Iterator it = mData.begin();
-		for(uint32_t k = mSize; k < mCount; it += k <= mCount)
+		for (uint32_t k = mSize; k < mCount; it += k <= mCount)
 		{
 			k += it->mCount;
 			it->mCount = k - mCount;
 		}
 
-		if(it != mData.begin())
+		if (it != mData.begin())
 		{
 			Vector<Element>::Type tmp;
 			tmp.assign(it, mData.end());

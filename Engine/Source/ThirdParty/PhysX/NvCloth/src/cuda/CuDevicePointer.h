@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -90,53 +90,53 @@ class CuDevicePointer
 	}
 
 	// operators
-	CuDevicePointer operator+(const ptrdiff_t& rhs) const
+	CuDevicePointer operator + (const ptrdiff_t& rhs) const
 	{
 		return CuDevicePointer(mPointer + rhs);
 	}
-	CuDevicePointer operator-(const ptrdiff_t& rhs) const
+	CuDevicePointer operator - (const ptrdiff_t& rhs) const
 	{
 		return CuDevicePointer(mPointer - rhs);
 	}
-	CuDevicePointer& operator++(void)
+	CuDevicePointer& operator ++ (void)
 	{
 		++mPointer;
 		return *this;
 	}
-	CuDevicePointer operator++(int)
+	CuDevicePointer operator ++ (int)
 	{
 		CuDevicePointer copy(*this);
 		++(*this);
 		return copy;
 	}
-	CuDevicePointer& operator--(void)
+	CuDevicePointer& operator -- (void)
 	{
 		--mPointer;
 		return *this;
 	}
-	CuDevicePointer operator--(int)
+	CuDevicePointer operator -- (int)
 	{
 		CuDevicePointer copy(*this);
 		--(*this);
 		return copy;
 	}
-	CuDevicePointer& operator+=(ptrdiff_t rhs)
+	CuDevicePointer& operator += (ptrdiff_t rhs)
 	{
 		mPointer += rhs;
 		return *this;
 	}
-	CuDevicePointer& operator-=(ptrdiff_t rhs)
+	CuDevicePointer& operator -= (ptrdiff_t rhs)
 	{
 		mPointer -= rhs;
 		return *this;
 	}
-	ptrdiff_t operator-(const CuDevicePointer& rhs) const
+	ptrdiff_t operator - (const CuDevicePointer& rhs) const
 	{
 		return mPointer - rhs.mPointer;
 	}
 
 	template <typename U>
-	bool operator==(const CuDevicePointer<U>& other) const
+	bool operator == (const CuDevicePointer<U>& other) const
 	{
 		return mPointer == other.mPointer;
 	}
@@ -185,12 +185,12 @@ class CuDeviceReference
 		return CuDevicePointer<T>(mPointer);
 	}
 
-	CuDeviceReference& operator=(const T& v)
+	CuDeviceReference& operator = (const T& v)
 	{
 		checkSuccess(cuMemcpyHtoD(CUdeviceptr(mPointer), &v, sizeof(T)));
 		return *this;
 	}
-	CuDeviceReference& operator=(const CuDeviceReference& ref)
+	CuDeviceReference& operator = (const CuDeviceReference& ref)
 	{
 		checkSuccess(cuMemcpyDtoD(CUdeviceptr(mPointer), CUdeviceptr(ref.mPointer), sizeof(T)));
 		return *this;

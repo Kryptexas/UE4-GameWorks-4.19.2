@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -41,7 +41,7 @@ void initialize(Cloth& cloth, const physx::PxVec4* pIt, const physx::PxVec4* pEn
 {
 	// initialize particles bounding box
 	physx::PxVec4 lower = physx::PxVec4(FLT_MAX), upper = -lower;
-	for(; pIt != pEnd; ++pIt)
+	for (; pIt != pEnd; ++pIt)
 	{
 		lower = lower.minimum(*pIt);
 		upper = upper.maximum(*pIt);

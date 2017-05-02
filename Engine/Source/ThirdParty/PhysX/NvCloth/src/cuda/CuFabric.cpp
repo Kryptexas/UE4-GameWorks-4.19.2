@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -65,7 +65,7 @@ cloth::CuFabric::CuFabric(CuFactory& factory, uint32_t numParticles, Range<const
 
 	NV_CLOTH_ASSERT(sets.back() == restvalues.size());
 	NV_CLOTH_ASSERT(restvalues.size() * 2 == indices.size());
-	NV_CLOTH_ASSERT(restvalues.size() == stiffnessValues.size() || stiffnessValues.size()==0);
+	NV_CLOTH_ASSERT(restvalues.size() == stiffnessValues.size() || stiffnessValues.size() == 0);
 	NV_CLOTH_ASSERT(mNumParticles > *shdfnd::maxElement(indices.begin(), indices.end()));
 
 	// copy to device, add leading zero
@@ -80,7 +80,7 @@ cloth::CuFabric::CuFabric(CuFactory& factory, uint32_t numParticles, Range<const
 
 	const uint32_t* it = indices.begin();
 	const uint32_t* end = indices.end();
-	for(; it != end; ++it, ++dIt)
+	for (; it != end; ++it, ++dIt)
 		*dIt = uint16_t(*it);
 
 	// copy to device vector in one go
@@ -91,7 +91,7 @@ cloth::CuFabric::CuFabric(CuFactory& factory, uint32_t numParticles, Range<const
 	CuDevicePointer<const float> devRestvalues = mRestvalues.begin();
 	CuDevicePointer<const float> devStiffnessValues = mStiffnessValues.begin();
 	CuDevicePointer<const uint16_t> devIndices = mIndices.begin();
-	for(const uint32_t* pIt = phaseIndices.begin(); pIt != phaseIndices.end(); ++pIt)
+	for (const uint32_t* pIt = phaseIndices.begin(); pIt != phaseIndices.end(); ++pIt)
 	{
 		uint32_t setIndex = *pIt;
 		uint32_t firstIndex = setIndex ? sets[setIndex - 1] : 0;
@@ -109,7 +109,7 @@ cloth::CuFabric::CuFabric(CuFactory& factory, uint32_t numParticles, Range<const
 	float inverseScale = 1 / (mTetherLengthScale + FLT_EPSILON);
 	Vector<CuTether>::Type tethers;
 	tethers.reserve(anchors.size());
-	for(; !anchors.empty(); anchors.popFront(), tetherLengths.popFront())
+	for (; !anchors.empty(); anchors.popFront(), tetherLengths.popFront())
 	{
 		tethers.pushBack(CuTether(uint16_t(anchors.front()), uint16_t(tetherLengths.front() * inverseScale + 0.5f)));
 	}
@@ -121,7 +121,7 @@ cloth::CuFabric::CuFabric(CuFactory& factory, uint32_t numParticles, Range<const
 
 	it = triangles.begin();
 	end = triangles.end();
-	for(; it != end; ++it, ++dIt)
+	for (; it != end; ++it, ++dIt)
 		*dIt = uint16_t(*it);
 
 	mTriangles.assign(hostIndices.begin(), hostIndices.end());
@@ -195,7 +195,7 @@ void cloth::CuFabric::scaleRestvalues(float scale)
 	mFactory.copyToHost(mRestvalues.begin().get(), mRestvalues.end().get(), restvalues.begin());
 
 	Vector<float>::Type::Iterator rIt, rEnd = restvalues.end();
-	for(rIt = restvalues.begin(); rIt != rEnd; ++rIt)
+	for (rIt = restvalues.begin(); rIt != rEnd; ++rIt)
 		*rIt *= scale;
 
 	mRestvalues = restvalues;

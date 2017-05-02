@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -108,7 +108,7 @@ inline Scalar4f operator&<Scalar4f>(const Scalar4f& v, const ComplementExpr<Scal
 // operator implementations
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-inline Scalar4f operator==(const Scalar4f& v0, const Scalar4f& v1)
+inline Scalar4f operator == (const Scalar4f& v0, const Scalar4f& v1)
 {
 	return Scalar4f(v0.f4[0] == v1.f4[0], v0.f4[1] == v1.f4[1], v0.f4[2] == v1.f4[2], v0.f4[3] == v1.f4[3]);
 }
@@ -118,7 +118,7 @@ inline Scalar4f operator<(const Scalar4f& v0, const Scalar4f& v1)
 	return Scalar4f(v0.f4[0] < v1.f4[0], v0.f4[1] < v1.f4[1], v0.f4[2] < v1.f4[2], v0.f4[3] < v1.f4[3]);
 }
 
-inline Scalar4f operator<=(const Scalar4f& v0, const Scalar4f& v1)
+inline Scalar4f operator <= (const Scalar4f& v0, const Scalar4f& v1)
 {
 	return Scalar4f(v0.f4[0] <= v1.f4[0], v0.f4[1] <= v1.f4[1], v0.f4[2] <= v1.f4[2], v0.f4[3] <= v1.f4[3]);
 }
@@ -128,7 +128,7 @@ inline Scalar4f operator>(const Scalar4f& v0, const Scalar4f& v1)
 	return Scalar4f(v0.f4[0] > v1.f4[0], v0.f4[1] > v1.f4[1], v0.f4[2] > v1.f4[2], v0.f4[3] > v1.f4[3]);
 }
 
-inline Scalar4f operator>=(const Scalar4f& v0, const Scalar4f& v1)
+inline Scalar4f operator >= (const Scalar4f& v0, const Scalar4f& v1)
 {
 	return Scalar4f(v0.f4[0] >= v1.f4[0], v0.f4[1] >= v1.f4[1], v0.f4[2] >= v1.f4[2], v0.f4[3] >= v1.f4[3]);
 }
@@ -163,22 +163,22 @@ inline Scalar4f operator>>(const Scalar4f& v, int shift)
 	return Scalar4f(v.u4[0] >> shift, v.u4[1] >> shift, v.u4[2] >> shift, v.u4[3] >> shift);
 }
 
-inline Scalar4f operator+(const Scalar4f& v)
+inline Scalar4f operator + (const Scalar4f& v)
 {
 	return v;
 }
 
-inline Scalar4f operator+(const Scalar4f& v0, const Scalar4f& v1)
+inline Scalar4f operator + (const Scalar4f& v0, const Scalar4f& v1)
 {
 	return Scalar4f(v0.f4[0] + v1.f4[0], v0.f4[1] + v1.f4[1], v0.f4[2] + v1.f4[2], v0.f4[3] + v1.f4[3]);
 }
 
-inline Scalar4f operator-(const Scalar4f& v)
+inline Scalar4f operator - (const Scalar4f& v)
 {
 	return Scalar4f(-v.f4[0], -v.f4[1], -v.f4[2], -v.f4[3]);
 }
 
-inline Scalar4f operator-(const Scalar4f& v0, const Scalar4f& v1)
+inline Scalar4f operator - (const Scalar4f& v0, const Scalar4f& v1)
 {
 	return Scalar4f(v0.f4[0] - v1.f4[0], v0.f4[1] - v1.f4[1], v0.f4[2] - v1.f4[2], v0.f4[3] - v1.f4[3]);
 }

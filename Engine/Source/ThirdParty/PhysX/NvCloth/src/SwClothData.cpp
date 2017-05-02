@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -44,7 +44,7 @@ cloth::SwClothData::SwClothData(SwCloth& cloth, const SwFabric& fabric)
 
 	const float* center = array(cloth.mParticleBoundsCenter);
 	const float* extent = array(cloth.mParticleBoundsHalfExtent);
-	for(uint32_t i = 0; i < 3; ++i)
+	for (uint32_t i = 0; i < 3; ++i)
 	{
 		mCurBounds[i] = center[i] - extent[i];
 		mCurBounds[i + 3] = center[i] + extent[i];

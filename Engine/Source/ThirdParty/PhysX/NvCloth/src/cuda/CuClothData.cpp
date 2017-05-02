@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -79,7 +79,7 @@ cloth::CuClothData::CuClothData(CuCloth& cloth)
 	mSelfCollisionIndices = cloth.mSelfCollisionIndices.empty() ? 0 : cloth.mSelfCollisionIndices.begin().get();
 	mNumSelfCollisionIndices = mSelfCollisionIndices ? uint32_t(cloth.mSelfCollisionIndices.size()) : mNumParticles;
 
-	if(!cloth.mSelfCollisionData.empty())
+	if (!cloth.mSelfCollisionData.empty())
 	{
 		uint32_t keySize = 2 * mNumSelfCollisionIndices;
 		uint32_t particleSize = 4 * mNumParticles;
@@ -124,17 +124,17 @@ cloth::CuFrameData::CuFrameData(CuCloth& cloth, uint32_t numSharedPositions, con
 	stiffness = gSimd4fOne - exp2(logStiffness * stiffnessExponent);
 	mDragCoefficient = array(stiffness)[0];
 	mLiftCoefficient = array(stiffness)[1];
-	for(int i = 0; i < 9; ++i)
+	for (int i = 0; i < 9; ++i)
 		mRotation[i] = array(state.mRotationMatrix[i / 3])[i % 3];
 
 	mTargetMotionConstraints = 0;
-	if(!cloth.mMotionConstraints.mStart.empty())
+	if (!cloth.mMotionConstraints.mStart.empty())
 	{
 		mTargetMotionConstraints = array(*cloth.mMotionConstraints.mStart.begin().get());
 	}
 
 	mStartMotionConstraints = mTargetMotionConstraints;
-	if(!cloth.mMotionConstraints.mTarget.empty())
+	if (!cloth.mMotionConstraints.mTarget.empty())
 	{
 		mTargetMotionConstraints = array(*cloth.mMotionConstraints.mTarget.begin().get());
 	}
@@ -142,13 +142,13 @@ cloth::CuFrameData::CuFrameData(CuCloth& cloth, uint32_t numSharedPositions, con
 	mHostMotionConstraints = array(*getDevicePointer(cloth.mMotionConstraints.mHostCopy));
 
 	mTargetSeparationConstraints = 0;
-	if(!cloth.mSeparationConstraints.mStart.empty())
+	if (!cloth.mSeparationConstraints.mStart.empty())
 	{
 		mTargetSeparationConstraints = array(*cloth.mSeparationConstraints.mStart.begin().get());
 	}
 
 	mStartSeparationConstraints = mTargetSeparationConstraints;
-	if(!cloth.mSeparationConstraints.mTarget.empty())
+	if (!cloth.mSeparationConstraints.mTarget.empty())
 	{
 		mTargetSeparationConstraints = array(*cloth.mSeparationConstraints.mTarget.begin().get());
 	}
@@ -156,7 +156,7 @@ cloth::CuFrameData::CuFrameData(CuCloth& cloth, uint32_t numSharedPositions, con
 	mHostSeparationConstraints = array(*getDevicePointer(cloth.mSeparationConstraints.mHostCopy));
 
 	mParticleAccelerations = 0;
-	if(!cloth.mParticleAccelerations.empty())
+	if (!cloth.mParticleAccelerations.empty())
 	{
 		mParticleAccelerations = array(*cloth.mParticleAccelerations.begin().get());
 	}
@@ -164,7 +164,7 @@ cloth::CuFrameData::CuFrameData(CuCloth& cloth, uint32_t numSharedPositions, con
 	mHostParticleAccelerations = array(*getDevicePointer(cloth.mParticleAccelerationsHostCopy));
 
 	mRestPositions = 0;
-	if(!cloth.mRestPositions.empty())
+	if (!cloth.mRestPositions.empty())
 	{
 		mRestPositions = array(*cloth.mRestPositions.begin().get());
 	}
@@ -172,22 +172,22 @@ cloth::CuFrameData::CuFrameData(CuCloth& cloth, uint32_t numSharedPositions, con
 	mStartCollisionSpheres = array(*getDevicePointer(cloth.mStartCollisionSpheres));
 	mTargetCollisionSpheres = array(*getDevicePointer(cloth.mTargetCollisionSpheres));
 
-	if(!mTargetCollisionSpheres)
+	if (!mTargetCollisionSpheres)
 		mTargetCollisionSpheres = mStartCollisionSpheres;
 
 	mStartCollisionPlanes = array(*getDevicePointer(cloth.mStartCollisionPlanes));
 	mTargetCollisionPlanes = array(*getDevicePointer(cloth.mTargetCollisionPlanes));
 
-	if(!mTargetCollisionPlanes)
+	if (!mTargetCollisionPlanes)
 		mTargetCollisionPlanes = mStartCollisionPlanes;
 
 	mStartCollisionTriangles = array(*getDevicePointer(cloth.mStartCollisionTriangles));
 	mTargetCollisionTriangles = array(*getDevicePointer(cloth.mTargetCollisionTriangles));
 
-	if(!mTargetCollisionTriangles)
+	if (!mTargetCollisionTriangles)
 		mTargetCollisionTriangles = mStartCollisionTriangles;
 
-	for(uint32_t i = 0; i < 3; ++i)
+	for (uint32_t i = 0; i < 3; ++i)
 	{
 		float c = array(cloth.mParticleBoundsCenter)[i];
 		float r = array(cloth.mParticleBoundsHalfExtent)[i];

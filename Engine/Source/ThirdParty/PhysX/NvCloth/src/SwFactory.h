@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -48,7 +48,7 @@ class SwFactory : public Factory
 {
   public:
 	typedef SwFabric FabricType;
-	typedef ClothImpl<SwCloth> ImplType;
+	typedef SwCloth ClothType;
 
 	SwFactory();
 	virtual ~SwFactory();

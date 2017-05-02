@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -78,7 +78,7 @@ struct SwInterCollisionData
 	void* mUserData;
 };
 
-template <typename Simd4f>
+template <typename T4f>
 class SwInterCollision
 {
 
@@ -93,24 +93,24 @@ class SwInterCollision
 	static size_t estimateTemporaryMemory(SwInterCollisionData* cloths, uint32_t n);
 
   private:
-	SwInterCollision& operator=(const SwInterCollision&); // not implemented
+	SwInterCollision& operator = (const SwInterCollision&); // not implemented
 
 	static size_t getBufferSize(uint32_t);
 
 	void collideParticles(const uint32_t* keys, uint32_t firstColumnSize, const uint32_t* sortedIndices,
 	                      uint32_t numParticles, uint32_t collisionDistance);
 
-	Simd4f& getParticle(uint32_t index);
+	T4f& getParticle(uint32_t index);
 
 	// better wrap these in a struct
 	void collideParticle(uint32_t index);
 
-	Simd4f mParticle;
-	Simd4f mImpulse;
+	T4f mParticle;
+	T4f mImpulse;
 
-	Simd4f mCollisionDistance;
-	Simd4f mCollisionSquareDistance;
-	Simd4f mStiffness;
+	T4f mCollisionDistance;
+	T4f mCollisionSquareDistance;
+	T4f mStiffness;
 
 	uint16_t mClothIndex;
 	uint32_t mClothMask;
@@ -136,6 +136,15 @@ class SwInterCollision
 	mutable uint32_t mNumTests;
 	mutable uint32_t mNumCollisions;
 };
+
+
+//explicit template instantiation declaration
+#if NV_SIMD_SIMD
+extern template class SwInterCollision<Simd4f>;
+#endif
+#if NV_SIMD_SCALAR
+extern template class SwInterCollision<Scalar4f>;
+#endif
 
 } // namespace cloth
 

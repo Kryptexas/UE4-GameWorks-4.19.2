@@ -30,6 +30,10 @@ SET(NVCLOTH_PLATFORM_SOURCE_FILES
 	
 	#${PROJECT_ROOT_DIR}/src/dx/DxSolverKernelBlob.h
 	#${PROJECT_ROOT_DIR}/src/dx/DxSortKernel.inc
+	#${PROJECT_ROOT_DIR}/src/neon/NeonCollision.cpp
+	#${PROJECT_ROOT_DIR}/src/neon/NeonSelfCollision.cpp
+	#${PROJECT_ROOT_DIR}/src/neon/NeonSolverKernel.cpp
+	#${PROJECT_ROOT_DIR}/src/neon/SwCollisionHelpers.h
 )
 
 SET(NVCLOTH_AVX_SOURCE_FILES
