@@ -54,6 +54,7 @@ namespace physx
 		virtual TJointType* allocateObject(PxRepXInstantiationArgs&) { return NULL; }
 	};
 
+#if PX_SUPPORT_EXTERN_TEMPLATE
 	// explicit template instantiations declarations
 	extern template struct PxJointRepXSerializer<PxD6Joint>;
 	extern template struct PxJointRepXSerializer<PxDistanceJoint>;
@@ -61,6 +62,7 @@ namespace physx
 	extern template struct PxJointRepXSerializer<PxPrismaticJoint>;
 	extern template struct PxJointRepXSerializer<PxRevoluteJoint>;
 	extern template struct PxJointRepXSerializer<PxSphericalJoint>;
+#endif
 
 #if !PX_DOXYGEN
 } // namespace physx

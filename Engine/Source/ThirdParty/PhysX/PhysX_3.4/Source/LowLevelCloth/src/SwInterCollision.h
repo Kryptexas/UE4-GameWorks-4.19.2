@@ -139,12 +139,14 @@ class SwInterCollision
 	mutable uint32_t mNumCollisions;
 };
 
+#if PX_SUPPORT_EXTERN_TEMPLATE
 //explicit template instantiation declaration
 #if NV_SIMD_SIMD
 extern template class SwInterCollision<Simd4f>;
 #endif
 #if NV_SIMD_SCALAR
 extern template class SwInterCollision<Scalar4f>;
+#endif
 #endif
 
 } // namespace cloth

@@ -56,11 +56,13 @@ namespace physx
 		virtual TVehicleType* allocateObject( PxRepXInstantiationArgs& ) { return NULL; }
 	};
 
+#if PX_SUPPORT_EXTERN_TEMPLATE
 	// explicit template instantiation declarations
 	extern template struct PxVehicleRepXSerializer<PxVehicleDrive4W>;
 	extern template struct PxVehicleRepXSerializer<PxVehicleDriveTank>;
 	extern template struct PxVehicleRepXSerializer<PxVehicleDriveNW>;
 	extern template struct PxVehicleRepXSerializer<PxVehicleNoDrive>;
+#endif
 
 }
 

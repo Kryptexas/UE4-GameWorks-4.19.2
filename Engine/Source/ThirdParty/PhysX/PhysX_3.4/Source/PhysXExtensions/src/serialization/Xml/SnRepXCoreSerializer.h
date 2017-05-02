@@ -143,9 +143,11 @@ namespace physx
 		virtual TParticleType* allocateObject(PxRepXInstantiationArgs&) { return NULL; }
 	};
 
+#if PX_SUPPORT_EXTERN_TEMPLATE
 	// explicit template instantiations declarations
 	extern template struct PxParticleRepXSerializer<PxParticleSystem>;
 	extern template struct PxParticleRepXSerializer<PxParticleFluid>;
+#endif
 #endif
 
 #if !PX_DOXYGEN

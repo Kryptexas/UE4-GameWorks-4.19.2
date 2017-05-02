@@ -229,12 +229,14 @@ namespace Gu {
 		friend struct RTreePage;
 	} PX_ALIGN_SUFFIX(16);
 
+#if PX_SUPPORT_EXTERN_TEMPLATE
 	//explicit template instantiation declaration
 	extern template
 	void RTree::traverseRay<0>(const PxVec3&, const PxVec3&, const PxU32, PxU32*, Gu::RTree::CallbackRaycast*, const PxVec3*, PxF32) const;
 	
 	extern template
 	void RTree::traverseRay<1>(const PxVec3&, const PxVec3&, const PxU32, PxU32*, Gu::RTree::CallbackRaycast*, const PxVec3*, PxF32) const;
+#endif
 
 #if PX_VC
 #pragma warning(pop)
