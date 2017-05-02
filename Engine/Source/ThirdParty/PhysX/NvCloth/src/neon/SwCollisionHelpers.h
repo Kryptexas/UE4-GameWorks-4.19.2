@@ -33,7 +33,7 @@
 #include <arm_neon.h>
 #endif
 
-namespace physx
+namespace nv
 {
 namespace cloth
 {
