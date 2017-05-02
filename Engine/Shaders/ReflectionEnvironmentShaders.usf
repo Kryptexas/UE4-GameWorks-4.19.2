@@ -248,7 +248,16 @@ float4 SampleCubemap(float3 Coordinates)
 	return SampleCubemap(Coordinates, SourceMipIndex);
 }
 
+void DownsamplePS_Mobile(
+	FScreenVertexOutput Input,
+	out float4 OutColor : SV_Target0
+)
+{
+	float2 ScaledUVs = Input.UV * 2 - 1;
+	float3 CubeCoordinates = GetCubemapVector(ScaledUVs);
 
+	OutColor = SampleCubemap(CubeCoordinates);
+}
 
 void FilterPS(
 	FScreenVertexOutput Input,

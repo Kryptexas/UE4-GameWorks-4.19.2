@@ -97,7 +97,8 @@ public:
 	
 	virtual void HandleMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context) override
 	{
-		if (Context->GetMessageType() == MessageType::StaticStruct()->GetFName())
+		UStruct* Struct = MessageType::StaticStruct();
+		if (Struct && Context->GetMessageType() == Struct->GetFName())
 		{
 			(Handler->*Func)(*static_cast<const MessageType*>(Context->GetMessage()), Context);
 		}	

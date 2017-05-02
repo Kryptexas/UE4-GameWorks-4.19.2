@@ -431,8 +431,14 @@ public:
 		return PrimitiveFadingOutLODMap[PrimIndex];
 	}
 
+	bool IsNodeHidden(const int32 PrimIndex) const
+	{
+		return HiddenChildPrimitiveMap.IsValidIndex(PrimIndex) && HiddenChildPrimitiveMap[PrimIndex];
+	}
+
 	TBitArray<>	PrimitiveFadingLODMap;
 	TBitArray<>	PrimitiveFadingOutLODMap;
+	TBitArray<>	HiddenChildPrimitiveMap;
 	float		TemporalLODSyncTime;
 	uint16		UpdateCount;
 };

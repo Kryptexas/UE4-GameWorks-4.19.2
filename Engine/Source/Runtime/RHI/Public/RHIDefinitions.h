@@ -34,7 +34,7 @@ enum EShaderPlatform
 	SP_PS4				= 2,
 	/** Used when running in Feature Level ES2 in OpenGL. */
 	SP_OPENGL_PCES2		= 3,
-	SP_XBOXONE			= 4,
+	SP_XBOXONE_D3D12    = 4,
 	SP_PCD3D_SM4		= 5,
 	SP_OPENGL_SM5		= 6,
 	/** Used when running in Feature Level ES2 in D3D11. */
@@ -62,8 +62,9 @@ enum EShaderPlatform
 	SP_SWITCH				= 26,
 	SP_SWITCH_FORWARD		= 27,
 	SP_METAL_MRT_MAC	= 28,
+	SP_XBOXONE_D3D11    = 29,
 
-	SP_NumPlatforms		= 29,
+	SP_NumPlatforms		= 30,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -750,7 +751,7 @@ inline bool IsMetalPlatform(const EShaderPlatform Platform)
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PS4 || Platform == SP_XBOXONE;
+	return Platform == SP_PS4 || Platform == SP_XBOXONE_D3D12 || Platform == SP_XBOXONE_D3D11;
 }
 
 inline bool IsVulkanPlatform(const EShaderPlatform Platform)
@@ -777,7 +778,8 @@ inline bool IsD3DPlatform(const EShaderPlatform Platform, bool bIncludeXboxOne)
 	case SP_PCD3D_ES3_1:
 	case SP_PCD3D_ES2:
 		return true;
-	case SP_XBOXONE:
+	case SP_XBOXONE_D3D12:
+	case SP_XBOXONE_D3D11:
 		return bIncludeXboxOne;
 	default:
 		break;
@@ -793,7 +795,8 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_PCD3D_SM5:
 	case SP_OPENGL_SM5:
 	case SP_PS4:
-	case SP_XBOXONE:
+	case SP_XBOXONE_D3D12:
+	case SP_XBOXONE_D3D11:
 	case SP_OPENGL_ES31_EXT:
 	case SP_METAL_SM5:
 	case SP_VULKAN_SM5:
@@ -803,7 +806,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
 	case SP_OPENGL_SM4_MAC:
-    case SP_METAL_MRT:
+	case SP_METAL_MRT:
     case SP_METAL_MRT_MAC:
 	case SP_METAL_SM4:
 		return ERHIFeatureLevel::SM4;
@@ -876,7 +879,7 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 
 inline bool RHISupportsShaderCompression(const EShaderPlatform Platform)
 {
-	return Platform != SP_XBOXONE; // Handled automatically with hardware decompress
+	return ( Platform != SP_XBOXONE_D3D12) && ( Platform != SP_XBOXONE_D3D11 ); // Handled automatically with hardware decompress
 }
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)

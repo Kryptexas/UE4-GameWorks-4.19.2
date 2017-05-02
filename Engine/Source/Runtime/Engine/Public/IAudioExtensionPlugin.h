@@ -127,8 +127,13 @@ public:
 	{
 	}
 
-	/** Apply the spatialization settings for the source. */
-	virtual void SetSpatializationSettings(const uint32 SourceId, USpatializationPluginSourceSettingsBase* InSettings)
+	/** Called when a source is assigned to a voice. */
+	virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, USpatializationPluginSourceSettingsBase* InSettings)
+	{
+	}
+
+	/** Called when a source is done playing and is released. */
+	virtual void OnReleaseSource(const uint32 SourceId)
 	{
 	}
 
@@ -181,8 +186,13 @@ public:
 	{
 	}
 
-	/** Apply the occlusion settings for the source. */
-	virtual void SetOcclusionSettings(const uint32 SourceId, UOcclusionPluginSourceSettingsBase* InSettings)
+	/** Called when a source is assigned to a voice. */
+	virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, UOcclusionPluginSourceSettingsBase* InSettings)
+	{
+	}
+
+	/** Called when a source is done playing and is released. */
+	virtual void OnReleaseSource(const uint32 SourceId)
 	{
 	}
 
@@ -198,7 +208,7 @@ class ENGINE_API UReverbPluginSourceSettingsBase : public UObject
 {
 	GENERATED_BODY()
 };
-
+ 
 class IAudioReverb
 {
 public:
@@ -212,10 +222,11 @@ public:
 	{
 	}
 
-	/** Apply the reverb settings for the source. */
-	virtual void SetReverbSettings(const uint32 SourceId, const uint32 AudioComponentUserId, UReverbPluginSourceSettingsBase* InSettings)
-	{
-	}
+	/** Called when a source is assigned to a voice. */
+	virtual void OnInitSource(const uint32 SourceId, const FName& AudioComponentUserId, UReverbPluginSourceSettingsBase* InSettings) = 0;
+
+	/** Called when a source is done playing and is released. */
+	virtual void OnReleaseSource(const uint32 SourceId) = 0;
 
 	virtual class FSoundEffectSubmix* GetEffectSubmix(class USoundSubmix* Submix) = 0;
 

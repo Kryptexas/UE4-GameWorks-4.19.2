@@ -181,9 +181,6 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void CheckForErrors() override;
-
-	// Test if editor needs to update mobile's reflection captures. 
-	static bool MobileSkyCapturesNeedForcedUpdate(UWorld* WorldToUpdate);
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
@@ -289,10 +286,6 @@ protected:
 	FRenderCommandFence ReleaseResourcesFence;
 
 	FSkyLightSceneProxy* SceneProxy;
-
-	/** Indicate that the sky capture update was required from load, 
-		used to trigger updates that have been delayed by shader compilation. */
-	bool bSkyCaptureRequiredFromLoad;
 
 	/** 
 	 * List of sky captures that need to be recaptured.

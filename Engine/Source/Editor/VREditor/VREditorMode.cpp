@@ -871,10 +871,14 @@ void UVREditorMode::TransitionWorld(UWorld* NewWorld)
 	UISystem->TransitionWorld(NewWorld);
 }
 
-void UVREditorMode::LeftSimulateInEditor()
+void UVREditorMode::LeftSimulateInEditor(UWorld* SimulateWorld)
 {
-	GetWorld()->GetWorldSettings()->WorldToMeters = SavedWorldToMetersScaleForPIE;
-	WorldInteraction->SetWorldToMetersScale(SavedWorldToMetersScaleForPIE);
+	if (SimulateWorld != nullptr)
+	{
+		const float SimulateWorldToMeters = SimulateWorld->GetWorldSettings()->WorldToMeters;
+		GetWorld()->GetWorldSettings()->WorldToMeters = SimulateWorldToMeters;
+		WorldInteraction->SetWorldToMetersScale(SimulateWorldToMeters);
+	}
 }
 
 void UVREditorMode::StartViewport(TSharedPtr<SLevelViewport> Viewport)

@@ -185,7 +185,7 @@ public:
 	 */
 	const FMovieSceneTemplateGenerationLedger& GetLedger() const
 	{
-		return Ledger;
+		return TemplateLedger;
 	}
 
 private:
@@ -210,7 +210,7 @@ public:
 private:
 
 	UPROPERTY()
-	FMovieSceneTemplateGenerationLedger Ledger;
+	FMovieSceneTemplateGenerationLedger TemplateLedger;
 
 public:
 

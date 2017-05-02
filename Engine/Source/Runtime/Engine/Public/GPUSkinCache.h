@@ -46,6 +46,7 @@ class FGPUBaseSkinVertexFactory;
 class FMorphVertexBuffer;
 class FSkeletalMeshObjectGPUSkin;
 struct FSkelMeshSection;
+struct FVertexBufferAndSRV;
 
 // Can the skin cache be used (ie shaders added, etc)
 extern ENGINE_API bool IsGPUSkinCacheAvailable();
@@ -121,24 +122,32 @@ public:
 
 	struct FAllocation
 	{
-		enum
+		static uint64 CalulateRequiredMemory(uint32 NumFloatsRequired)
 		{
-			NUM_BUFFERS = 3,
-		};
+			return sizeof(float) * (uint64)NumFloatsRequired * NUM_BUFFERS;
+		}
 
-		// Output of the GPU skinning (ie Pos, Normals)
-		FRWBuffer RWBuffers[NUM_BUFFERS];
-
-		int32 CurrentIndex;
-		int32 PreviousIndex;
-
-		uint32 NumFloatsRequired;
-
-		FAllocation()
-			: CurrentIndex(0)
-			, PreviousIndex(0)
-			, NumFloatsRequired(0)
+		FAllocation(uint32 InNumFloatsRequired)
+			: NumFloatsRequired(InNumFloatsRequired)
 		{
+			for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
+			{
+				RWBuffers[Index].Initialize(sizeof(float), NumFloatsRequired, PF_R32_FLOAT, BUF_Static);
+				Revisions[Index] = 0;
+				BoneBuffers[Index] = nullptr;
+			}
+		}
+
+		void Release(TArray<FUnorderedAccessViewRHIParamRef>& InBuffersToTransition)
+		{
+			for (uint32 i = 0; i < NUM_BUFFERS; i++)
+			{
+				FRWBuffer& RWBuffer = RWBuffers[i];
+				if (RWBuffer.UAV.IsValid())
+				{
+					InBuffersToTransition.Remove(RWBuffer.UAV);
+				}
+			}
 		}
 
 		~FAllocation()
@@ -149,11 +158,62 @@ public:
 			}
 		}
 
-		void Advance()
+		FRWBuffer* Find(const FVertexBufferAndSRV& BoneBuffer, uint32 Revision)
 		{
-			PreviousIndex = CurrentIndex;
-			CurrentIndex = (CurrentIndex + 1) % NUM_BUFFERS;
+			for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
+			{
+				if (Revisions[Index] == Revision && BoneBuffers[Index] == &BoneBuffer)
+				{
+					return &RWBuffers[Index];
+				}
+			}
+
+			return nullptr;
 		}
+
+		void Advance(const FVertexBufferAndSRV& BoneBuffer1, uint32 Revision1, const FVertexBufferAndSRV& BoneBuffer2, uint32 Revision2)
+		{
+			const FVertexBufferAndSRV* InBoneBuffers[2] = { &BoneBuffer1 , &BoneBuffer2 };
+			uint32 InRevisions[2] = { Revision1 , Revision2 };
+
+			for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
+			{
+				bool Needed = false;
+				for (int32 i = 0; i < 2; ++i)
+				{
+					if (Revisions[Index] == InRevisions[i] && BoneBuffers[Index] == InBoneBuffers[i])
+					{
+						Needed = true;
+					}
+				}
+
+				if (!Needed)
+				{
+					Revisions[Index] = Revision1;
+					BoneBuffers[Index] = &BoneBuffer1;
+					break;
+				}
+			}
+		}
+
+		uint64 GetNumBytes()
+		{
+			return CalulateRequiredMemory(NumFloatsRequired);
+		}
+
+	private:
+		enum
+		{
+			NUM_BUFFERS = 2,
+		};
+
+		uint32 NumFloatsRequired;
+
+		// Output of the GPU skinning (ie Pos, Normals)
+		FRWBuffer RWBuffers[NUM_BUFFERS];
+
+		uint32 Revisions[NUM_BUFFERS];
+		const FVertexBufferAndSRV* BoneBuffers[NUM_BUFFERS];
 	};
 
 	ENGINE_API void TransitionAllToReadable(FRHICommandList& RHICmdList);

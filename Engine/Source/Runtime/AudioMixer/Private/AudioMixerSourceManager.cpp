@@ -302,6 +302,22 @@ namespace Audio
 			SubmixSendItem.Value.Submix->RemoveSourceVoice(MixerSources[SourceId]);
 		}
 
+		// Notify plugin effects
+		if (SourceInfo.bUseHRTFSpatializer)
+		{
+			MixerDevice->SpatializationPluginInterface->OnReleaseSource(SourceId);
+		}
+
+		if (SourceInfo.bUseOcclusionPlugin)
+		{
+			MixerDevice->OcclusionInterface->OnReleaseSource(SourceId);
+		}
+
+		if (SourceInfo.bUseReverbPlugin)
+		{
+			MixerDevice->ReverbPluginInterface->OnReleaseSource(SourceId);
+		}
+
 		// Delete the source effects
 		SourceInfo.SourceEffectChainId = INDEX_NONE;
 		ResetSourceEffectChain(SourceId);
@@ -461,25 +477,24 @@ namespace Audio
 			// Initialize the number of per-source LPF filters based on input channels
 			SourceInfo.LowPassFilters.AddDefaulted(InitParams.NumInputChannels);
 
-			// Setup the spatialization settings preset
-			if (InitParams.SpatializationPluginSettings != nullptr)
+			// Create the spatialization plugin source effect
+			if (InitParams.bUseHRTFSpatialization)
 			{
-				MixerDevice->SpatializationPluginInterface->SetSpatializationSettings(SourceId, InitParams.SpatializationPluginSettings);
+				MixerDevice->SpatializationPluginInterface->OnInitSource(SourceId, InitParams.AudioComponentUserID, 
+					InitParams.SpatializationPluginSettings);
 			}
 
-			// Setup the occlusion settings preset
+			// Create the occlusion plugin source effect
 			if (InitParams.OcclusionPluginSettings != nullptr)
 			{
-				MixerDevice->OcclusionInterface->SetOcclusionSettings(SourceId, InitParams.OcclusionPluginSettings);
-
+				MixerDevice->OcclusionInterface->OnInitSource(SourceId, InitParams.AudioComponentUserID, InitParams.OcclusionPluginSettings);
 				SourceInfo.bUseOcclusionPlugin = true;
 			}
 
-			// Setup the reverb settings preset
+			// Create the reverb plugin source effect
 			if (InitParams.ReverbPluginSettings != nullptr)
 			{
-				MixerDevice->ReverbPluginInterface->SetReverbSettings(SourceId, InitParams.AudioComponentUserID, InitParams.ReverbPluginSettings);
-
+				MixerDevice->ReverbPluginInterface->OnInitSource(SourceId, InitParams.AudioComponentUserID, InitParams.ReverbPluginSettings);
 				SourceInfo.bUseReverbPlugin = true;
 			}
 

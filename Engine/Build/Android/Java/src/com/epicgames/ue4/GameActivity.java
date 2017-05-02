@@ -405,7 +405,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			}
 		}
 
-		//Check for target sdk.  If less than 23 than warn that permission handling is not used.
+		//Check for target sdk.  If 23 or higher then warn that permission handling may mean features don't work if user denies them.
 		int targetSdkVersion = 0;
 		try 
 		{
@@ -417,9 +417,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			Log.debug(e.getMessage());
 		}
 
-		if(targetSdkVersion < 23) //23 is the API level (Marshmallow) where runtime permission handling is available 
+		if (ANDROID_BUILD_VERSION >= 23 && targetSdkVersion >= 23) //23 is the API level (Marshmallow) where runtime permission handling is available
 		{
-			Log.debug("Target SDK is lower than 23.  This may cause issues if permissions are denied by the user." );				
+			Log.debug("Target SDK is " + targetSdkVersion + ".  This may cause issues if permissions are denied by the user." );				
 		}
 
 

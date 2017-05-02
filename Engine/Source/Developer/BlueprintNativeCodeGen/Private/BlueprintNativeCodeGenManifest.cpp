@@ -431,7 +431,8 @@ FString FBlueprintNativeCodeGenPaths::RuntimeSourceDir(ESourceFileType SourceTyp
 //------------------------------------------------------------------------------
 FString FBlueprintNativeCodeGenPaths::RuntimeModuleFile(ESourceFileType SourceType) const
 {
-	return FPaths::Combine(*RuntimeSourceDir(SourceType), *RuntimeModuleName()) + BlueprintNativeCodeGenManifestImpl::GetSourceFileExt(SourceType);
+	// use the "cpp" (private) directory for the header too (which acts as a PCH)
+	return FPaths::Combine(*RuntimeSourceDir(ESourceFileType::CppFile), *RuntimeModuleName()) + BlueprintNativeCodeGenManifestImpl::GetSourceFileExt(SourceType);
 }
 
 //------------------------------------------------------------------------------

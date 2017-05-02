@@ -81,7 +81,7 @@ protected:
 	virtual void EnteredSimulateInEditor() {};
 	
 	/** Give child class a chance to act on leaving simulate mode */
-	virtual void LeftSimulateInEditor() {};
+	virtual void LeftSimulateInEditor(UWorld* SimulateWorld) {};
 
 	/** The collection of extensions that is owning this extension */
 	UEditorWorldExtensionCollection* OwningExtensionsCollection;

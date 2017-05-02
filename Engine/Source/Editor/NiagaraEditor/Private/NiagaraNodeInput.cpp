@@ -189,7 +189,7 @@ bool UNiagaraNodeInput::VerifyNodeRenameTextCommit(const FText& NewText, UNiagar
 				// This should still allow case changes b/c we test to make sure that they aren't referencing the same node.
 				if (bIsSame == false && Node->Input.GetName().IsEqual(NewName, ENameCase::IgnoreCase))
 				{
-					OutErrorMessage = FText::Format(LOCTEXT("NiagaraInputNameSameWarn", "\"{0}\" is the name of another parameter."), FText::FromName(NewName));
+					OutErrorMessage = FText::Format(LOCTEXT("NiagaraInputNameSameParameterWarn", "\"{0}\" is the name of another parameter."), FText::FromName(NewName));
 					return false;
 				}
 			}
@@ -211,7 +211,7 @@ bool UNiagaraNodeInput::VerifyNodeRenameTextCommit(const FText& NewText, UNiagar
 
 					if (Output.GetName().IsEqual(NewName, ENameCase::IgnoreCase))
 					{
-						OutErrorMessage = FText::Format(LOCTEXT("NiagaraInputNameSameWarn", "\"{0}\" is the name of another attribute. Hit \"Escape\" to cancel edit."), FText::FromName(NewName));
+						OutErrorMessage = FText::Format(LOCTEXT("NiagaraInputNameSameAttributeWarn", "\"{0}\" is the name of another attribute. Hit \"Escape\" to cancel edit."), FText::FromName(NewName));
 						return false;
 					}
 				}

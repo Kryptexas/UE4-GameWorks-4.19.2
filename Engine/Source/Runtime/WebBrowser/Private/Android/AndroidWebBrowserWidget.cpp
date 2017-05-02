@@ -8,15 +8,43 @@
 #include "AndroidWindow.h"
 #include "AndroidJava.h"
 #include "Async.h"
+#include "ScopeLock.h"
 
 // For UrlDecode
 #include "Http.h"
 
 #include <jni.h>
 
+FCriticalSection SAndroidWebBrowserWidget::WebControlsCS;
+TMap<jlong, TWeakPtr<SAndroidWebBrowserWidget>> SAndroidWebBrowserWidget::AllWebControls;
+
+TSharedPtr<SAndroidWebBrowserWidget> SAndroidWebBrowserWidget::GetWidgetPtr(JNIEnv* JEnv, jobject Jobj)
+{
+	FScopeLock L(&WebControlsCS);
+
+	jclass Class = JEnv->GetObjectClass(Jobj);
+	jmethodID JMethod = JEnv->GetMethodID(Class, "GetNativePtr", "()J");
+	check(JMethod != nullptr);
+
+	int64 ObjAddr = JEnv->CallLongMethod(Jobj, JMethod);
+
+	TWeakPtr<SAndroidWebBrowserWidget> WebControl = AllWebControls.FindRef(ObjAddr);
+	return (WebControl.IsValid()) ? WebControl.Pin() : TSharedPtr<SAndroidWebBrowserWidget>();
+}
+
+SAndroidWebBrowserWidget::~SAndroidWebBrowserWidget()
+{
+	FScopeLock L(&WebControlsCS);
+	AllWebControls.Remove(reinterpret_cast<jlong>(this));
+}
 
 void SAndroidWebBrowserWidget::Construct(const FArguments& Args)
 {
+	{
+		FScopeLock L(&WebControlsCS);
+		AllWebControls.Add(reinterpret_cast<jlong>(this), StaticCastSharedRef<SAndroidWebBrowserWidget>(AsShared()));
+	}
+
 	WebBrowserWindowPtr = Args._WebBrowserWindow;
 	HistorySize = 0;
 	HistoryPosition = 0;
@@ -97,6 +125,7 @@ void SAndroidWebBrowserWidget::Reload()
 void SAndroidWebBrowserWidget::Close()
 {
 	JWebView->CallMethod<void>(JWebView_Close.GetValue());
+	WebBrowserWindowPtr.Reset();
 }
 
 void SAndroidWebBrowserWidget::GoBack()
@@ -134,28 +163,31 @@ jbyteArray SAndroidWebBrowserWidget::HandleShouldInterceptRequest(jstring JUrl)
 	{
 		AsyncTask(ENamedThreads::GameThread, [Url, Position, this]()
 		{
-			TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
-			if (BrowserWindow.IsValid())
+			if (WebBrowserWindowPtr.IsValid())
 			{
-				FString Origin = Url.Left(Position);
-				FString Message = Url.RightChop(Position + FAndroidJSScripting::JSMessageTag.Len());
-
-				TArray<FString> Params;
-				Message.ParseIntoArray(Params, TEXT("/"), false);
-				if (Params.Num() > 0)
+				TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
+				if (BrowserWindow.IsValid())
 				{
-					for(int I=0; I<Params.Num(); I++)
+					FString Origin = Url.Left(Position);
+					FString Message = Url.RightChop(Position + FAndroidJSScripting::JSMessageTag.Len());
+
+					TArray<FString> Params;
+					Message.ParseIntoArray(Params, TEXT("/"), false);
+					if (Params.Num() > 0)
 					{
-						Params[I] = FPlatformHttp::UrlDecode(Params[I]);
-					}
+						for (int I = 0; I < Params.Num(); I++)
+						{
+							Params[I] = FPlatformHttp::UrlDecode(Params[I]);
+						}
 
-					FString Command = Params[0];
-					Params.RemoveAt(0,1);
-					BrowserWindow->OnJsMessageReceived(Command, Params, Origin);
-				}
-				else
-				{
-					GLog->Logf(ELogVerbosity::Error,TEXT("Invalid message from browser view: %s"), *Message);
+						FString Command = Params[0];
+						Params.RemoveAt(0, 1);
+						BrowserWindow->OnJsMessageReceived(Command, Params, Origin);
+					}
+					else
+					{
+						GLog->Logf(ELogVerbosity::Error, TEXT("Invalid message from browser view: %s"), *Message);
+					}
 				}
 			}
 		});
@@ -163,11 +195,14 @@ jbyteArray SAndroidWebBrowserWidget::HandleShouldInterceptRequest(jstring JUrl)
 	}
 	else
 	{
-		TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
-		if (BrowserWindow.IsValid() && BrowserWindow->OnLoadUrl().IsBound())
+		if (WebBrowserWindowPtr.IsValid())
 		{
-			FString Method = TEXT(""); // We don't support passing anything but the requested URL
-			bOverrideResponse = BrowserWindow->OnLoadUrl().Execute(Method, Url, Response);
+			TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
+			if (BrowserWindow.IsValid() && BrowserWindow->OnLoadUrl().IsBound())
+			{
+				FString Method = TEXT(""); // We don't support passing anything but the requested URL
+				bOverrideResponse = BrowserWindow->OnLoadUrl().Execute(Method, Url, Response);
+			}
 		}
 	}
 
@@ -190,16 +225,19 @@ bool SAndroidWebBrowserWidget::HandleShouldOverrideUrlLoading(jstring JUrl)
 	JEnv->ReleaseStringUTFChars(JUrl, JUrlChars);
 	bool Retval = false;
 
-	TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
-	if (BrowserWindow.IsValid())
+	if (WebBrowserWindowPtr.IsValid())
 	{
-		if (BrowserWindow->OnBeforeBrowse().IsBound() )
+		TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
+		if (BrowserWindow.IsValid())
 		{
-			FWebNavigationRequest RequestDetails;
-			RequestDetails.bIsRedirect = false;
-			RequestDetails.bIsMainFrame = true; // shouldOverrideUrlLoading is only called on the main frame
+			if (BrowserWindow->OnBeforeBrowse().IsBound())
+			{
+				FWebNavigationRequest RequestDetails;
+				RequestDetails.bIsRedirect = false;
+				RequestDetails.bIsMainFrame = true; // shouldOverrideUrlLoading is only called on the main frame
 
-			Retval = BrowserWindow->OnBeforeBrowse().Execute(Url, RequestDetails);
+				Retval = BrowserWindow->OnBeforeBrowse().Execute(Url, RequestDetails);
+			}
 		}
 	}
 	return Retval;
@@ -208,27 +246,30 @@ bool SAndroidWebBrowserWidget::HandleShouldOverrideUrlLoading(jstring JUrl)
 bool SAndroidWebBrowserWidget::HandleJsDialog(TSharedPtr<IWebBrowserDialog>& Dialog)
 {
 	bool Retval = false;
-	TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
-	if (BrowserWindow.IsValid() && BrowserWindow->OnShowDialog().IsBound() )
+	if (WebBrowserWindowPtr.IsValid())
 	{
-		EWebBrowserDialogEventResponse EventResponse = BrowserWindow->OnShowDialog().Execute(TWeakPtr<IWebBrowserDialog>(Dialog));
-		switch (EventResponse)
+		TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
+		if (BrowserWindow.IsValid() && BrowserWindow->OnShowDialog().IsBound())
 		{
-		case EWebBrowserDialogEventResponse::Handled:
-			Retval = true;
-			break;
-		case EWebBrowserDialogEventResponse::Continue:
-			Dialog->Continue(true, (Dialog->GetType() == EWebBrowserDialogType::Prompt)?Dialog->GetDefaultPrompt():FText::GetEmpty());
-			Retval = true;
-			break;
-		case EWebBrowserDialogEventResponse::Ignore:
-			Dialog->Continue(false);
-			Retval = true;
-			break;
-		case EWebBrowserDialogEventResponse::Unhandled:
-		default:
-			Retval = false;
-			break;
+			EWebBrowserDialogEventResponse EventResponse = BrowserWindow->OnShowDialog().Execute(TWeakPtr<IWebBrowserDialog>(Dialog));
+			switch (EventResponse)
+			{
+			case EWebBrowserDialogEventResponse::Handled:
+				Retval = true;
+				break;
+			case EWebBrowserDialogEventResponse::Continue:
+				Dialog->Continue(true, (Dialog->GetType() == EWebBrowserDialogType::Prompt) ? Dialog->GetDefaultPrompt() : FText::GetEmpty());
+				Retval = true;
+				break;
+			case EWebBrowserDialogEventResponse::Ignore:
+				Dialog->Continue(false);
+				Retval = true;
+				break;
+			case EWebBrowserDialogEventResponse::Unhandled:
+			default:
+				Retval = false;
+				break;
+			}
 		}
 	}
 	return Retval;
@@ -242,10 +283,13 @@ void SAndroidWebBrowserWidget::HandleReceivedTitle(jstring JTitle)
 	FString Title = UTF8_TO_TCHAR(JTitleChars);
 	JEnv->ReleaseStringUTFChars(JTitle, JTitleChars);
 
-	TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
-	if (BrowserWindow.IsValid())
+	if (WebBrowserWindowPtr.IsValid())
 	{
-		BrowserWindow->SetTitle(Title);
+		TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
+		if (BrowserWindow.IsValid())
+		{
+			BrowserWindow->SetTitle(Title);
+		}
 	}
 }
 
@@ -260,10 +304,13 @@ void SAndroidWebBrowserWidget::HandlePageLoad(jstring JUrl, bool bIsLoading, int
 	FString Url = UTF8_TO_TCHAR(JUrlChars);
 	JEnv->ReleaseStringUTFChars(JUrl, JUrlChars);
 
-	TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
-	if (BrowserWindow.IsValid())
+	if (WebBrowserWindowPtr.IsValid())
 	{
-		BrowserWindow->NotifyDocumentLoadingStateChange(Url, bIsLoading);
+		TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
+		if (BrowserWindow.IsValid())
+		{
+			BrowserWindow->NotifyDocumentLoadingStateChange(Url, bIsLoading);
+		}
 	}
 }
 
@@ -275,10 +322,13 @@ void SAndroidWebBrowserWidget::HandleReceivedError(jint ErrorCode, jstring /* ig
 	FString Url = UTF8_TO_TCHAR(JUrlChars);
 	JEnv->ReleaseStringUTFChars(JUrl, JUrlChars);
 
-	TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
-	if (BrowserWindow.IsValid())
+	if (WebBrowserWindowPtr.IsValid())
 	{
-		BrowserWindow->NotifyDocumentError(Url, ErrorCode);
+		TSharedPtr<FAndroidWebBrowserWindow> BrowserWindow = WebBrowserWindowPtr.Pin();
+		if (BrowserWindow.IsValid())
+		{
+			BrowserWindow->NotifyDocumentError(Url, ErrorCode);
+		}
 	}
 }
 
@@ -286,58 +336,108 @@ void SAndroidWebBrowserWidget::HandleReceivedError(jint ErrorCode, jstring /* ig
 
 JNI_METHOD jbyteArray Java_com_epicgames_ue4_WebViewControl_00024ViewClient_shouldInterceptRequestImpl(JNIEnv* JEnv, jobject Client, jstring JUrl)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	check(Widget != nullptr);
-	return Widget->HandleShouldInterceptRequest(JUrl);
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		return Widget->HandleShouldInterceptRequest(JUrl);
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 JNI_METHOD jboolean Java_com_epicgames_ue4_WebViewControl_00024ViewClient_shouldOverrideUrlLoading(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jstring JUrl)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	check(Widget != nullptr);
-	return Widget->HandleShouldOverrideUrlLoading(JUrl);
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		return Widget->HandleShouldOverrideUrlLoading(JUrl);
+	}
+	else
+	{
+		return false;
+	}
 }
 
 JNI_METHOD void Java_com_epicgames_ue4_WebViewControl_00024ViewClient_onPageLoad(JNIEnv* JEnv, jobject Client, jstring JUrl, jboolean bIsLoading, jint HistorySize, jint HistoryPosition)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	check(Widget != nullptr);
-	Widget->HandlePageLoad(JUrl, bIsLoading, HistorySize, HistoryPosition);
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		Widget->HandlePageLoad(JUrl, bIsLoading, HistorySize, HistoryPosition);
+	}
 }
 
 JNI_METHOD void Java_com_epicgames_ue4_WebViewControl_00024ViewClient_onReceivedError(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jint ErrorCode, jstring Description, jstring JUrl)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	check(Widget != nullptr);
-	Widget->HandleReceivedError(ErrorCode, Description, JUrl);
+	// @HSL_BEGIN - Josh.May - 4/17/2017 - Added safer SAndroidWebBrowserWidget lookups
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		Widget->HandleReceivedError(ErrorCode, Description, JUrl);
+	}
 }
 
 JNI_METHOD jboolean Java_com_epicgames_ue4_WebViewControl_00024ChromeClient_onJsAlert(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jstring JUrl, jstring Message, jobject Result)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	return Widget->HandleJsDialog(EWebBrowserDialogType::Alert, JUrl, Message, Result);
+	// @HSL_BEGIN - Josh.May - 4/17/2017 - Added safer SAndroidWebBrowserWidget lookups
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		return Widget->HandleJsDialog(EWebBrowserDialogType::Alert, JUrl, Message, Result);
+	}
+	else
+	{
+		return false;
+	}
 }
 
 JNI_METHOD jboolean Java_com_epicgames_ue4_WebViewControl_00024ChromeClient_onJsBeforeUnload(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jstring JUrl, jstring Message, jobject Result)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	return Widget->HandleJsDialog(EWebBrowserDialogType::Unload, JUrl, Message, Result);
+	// @HSL_BEGIN - Josh.May - 4/17/2017 - Added safer SAndroidWebBrowserWidget lookups
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		return Widget->HandleJsDialog(EWebBrowserDialogType::Unload, JUrl, Message, Result);
+	}
+	else
+	{
+		return false;
+	}
 }
 
 JNI_METHOD jboolean Java_com_epicgames_ue4_WebViewControl_00024ChromeClient_onJsConfirm(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jstring JUrl, jstring Message, jobject Result)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	return Widget->HandleJsDialog(EWebBrowserDialogType::Confirm, JUrl, Message, Result);
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		return Widget->HandleJsDialog(EWebBrowserDialogType::Confirm, JUrl, Message, Result);
+	}
+	else
+	{
+		return false;
+	}
 }
 
 JNI_METHOD jboolean Java_com_epicgames_ue4_WebViewControl_00024ChromeClient_onJsPrompt(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jstring JUrl, jstring Message, jstring DefaultValue, jobject Result)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	return Widget->HandleJsPrompt(JUrl, Message, DefaultValue, Result);
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		return Widget->HandleJsPrompt(JUrl, Message, DefaultValue, Result);
+	}
+	else
+	{
+		return false;
+	}
 }
 
 JNI_METHOD void Java_com_epicgames_ue4_WebViewControl_00024ChromeClient_onReceivedTitle(JNIEnv* JEnv, jobject Client, jobject /* ignore */, jstring Title)
 {
-	SAndroidWebBrowserWidget* Widget=SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
-	Widget->HandleReceivedTitle(Title);
+	TSharedPtr<SAndroidWebBrowserWidget> Widget = SAndroidWebBrowserWidget::GetWidgetPtr(JEnv, Client);
+	if (Widget.IsValid())
+	{
+		Widget->HandleReceivedTitle(Title);
+	}
 }

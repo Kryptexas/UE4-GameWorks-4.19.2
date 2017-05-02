@@ -2222,7 +2222,6 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 #if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
 				if (GIsInitialLoad && !ImportLinker && ImportPackage->HasAnyPackageFlags(PKG_CompiledIn) && !bDynamicImport)
 				{
-					check(ImportPackage->GetName().StartsWith(TEXT("/Script/"))); // sanity check though doesn't really matter; we just need to correctly identify compiled in things.
 					// OuterMostNonPackageIndex is used here because if it is a CDO or subobject, etc, we wait for the outermost thing that is not a package
 					bFireIfNoArcsAdded = !GetGEDLBootNotificationManager().AddWaitingPackage(this, OuterMostImport.ObjectName, Linker->Imp(OuterMostNonPackageIndex).ObjectName, FPackageIndex::FromImport(LocalImportIndex));
 				}
@@ -2248,8 +2247,20 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 					check(ImportLinker->AsyncRoot != this);
 					check(!Import.OuterIndex.IsNull());
 					check(Import.OuterIndex.IsImport());
-					FName OuterName = Import.OuterIndex == OuterMostIndex ? NAME_None : // if the outer is the package, then that is just a null outer in the export table
-						Linker->Imp(Import.OuterIndex).ObjectName;
+
+					TArray<FName, TInlineAllocator<8> > OuterNames;
+
+					{
+						FPackageIndex WorkingOuter = Import.OuterIndex;
+						while (WorkingOuter != OuterMostIndex)
+						{
+							check(WorkingOuter.IsImport());
+							FObjectImport& WorkingImport = Linker->Imp(WorkingOuter);
+							OuterNames.Add(WorkingImport.ObjectName);
+							WorkingOuter = WorkingImport.OuterIndex;
+						}
+					}
+					FName OuterName = OuterNames.Num() ? OuterNames[0] : NAME_None;
 
 					FPackageIndex LocalExportIndex;
 					for (auto It = ImportLinker->AsyncRoot->ObjectNameToImportOrExport.CreateKeyIterator(Import.ObjectName); It; ++It)
@@ -2258,16 +2269,26 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 						if (PotentialExport.IsExport())
 						{
 							FObjectExport& Export = ImportLinker->Exp(PotentialExport);
-							// this logic might not cover all cases
-							bool bMatch = false;
-							if (Export.OuterIndex.IsNull())
+							bool bMatch = true;
+							int32 Index = 0;
+
 							{
-								bMatch = OuterName == NAME_None;
-							}
-							else
-							{
-								check(Export.OuterIndex.IsExport());
-								bMatch = ImportLinker->Exp(Export.OuterIndex).ObjectName == OuterName;
+								FPackageIndex WorkingOuter = Export.OuterIndex;
+								while (WorkingOuter.IsExport() && Index < OuterNames.Num())
+								{
+									FObjectExport& WorkingExport = ImportLinker->Exp(WorkingOuter);
+									if (OuterNames[Index] != WorkingExport.ObjectName)
+									{
+										bMatch = false;
+										break;
+									}
+									Index++;
+									WorkingOuter = WorkingExport.OuterIndex;
+								}
+								if (Index < OuterNames.Num() || WorkingOuter.IsExport())
+								{
+									bMatch = false;
+								}
 							}
 							if (bMatch)
 							{

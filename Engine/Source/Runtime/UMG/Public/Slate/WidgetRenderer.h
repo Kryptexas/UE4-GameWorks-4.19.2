@@ -32,6 +32,7 @@ public:
 	bool GetIsPrepassNeeded() const { return bPrepassNeeded; }
 	void SetIsPrepassNeeded(bool bInPrepassNeeded) { bPrepassNeeded = bInPrepassNeeded; }
 	void SetShouldClearTarget(bool bShouldClear) { bClearTarget = bShouldClear; }
+	bool GetUseGammaCorrection() const { return bUseGammaSpace; }
 
 	ISlate3DRenderer* GetSlateRenderer();
 

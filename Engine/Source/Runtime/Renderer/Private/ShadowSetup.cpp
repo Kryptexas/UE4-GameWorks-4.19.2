@@ -800,6 +800,12 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 					}
 				}
 
+				// Respect HLOD visibility which can hide child LOD primitives
+				if (CurrentView.ViewState && CurrentView.ViewState->HLODVisibilityState.IsNodeHidden(PrimitiveId))
+				{
+					continue;
+				}
+
 				// Compute the subject primitive's view relevance since it wasn't cached
 				// Update the main view's PrimitiveViewRelevanceMap
 				ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(&CurrentView);

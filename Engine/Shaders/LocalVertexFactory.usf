@@ -108,7 +108,7 @@ struct FVertexFactoryInput
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
 	#if GPUSKIN_PASS_THROUGH
 		// These must match GPUSkinVertexFactory.usf
-		float2	TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX] : ATTRIBUTE5;
+		float2	TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX] : ATTRIBUTE4;
 		#if NUM_MATERIAL_TEXCOORDS_VERTEX > 4
 			#error Too many texture coordinate sets defined on GPUSkin vertex input. Max: 4.
 		#endif

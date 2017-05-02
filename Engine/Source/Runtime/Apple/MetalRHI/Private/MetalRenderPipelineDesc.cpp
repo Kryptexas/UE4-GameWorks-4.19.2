@@ -251,15 +251,17 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 			tessellationDesc.TessellationControlPointIndexBufferIndex = UINT_MAX;
 			tessellationDesc.DomainVertexDescriptor = PipelineDescriptor.vertexDescriptor;
 			
+			// Disambiguated function name.
+			NSString* Name = [NSString stringWithFormat:@"Main_%0.8x_%0.8x", BSS->VertexShader->SourceLen, BSS->VertexShader->SourceCRC];
 			if (FunctionConstants.Num())
 			{
 				MTLFunctionConstantValues* constantValues = [[MTLFunctionConstantValues new] autorelease];
 				[constantValues setConstantValues:FunctionConstants.GetData() type:MTLDataTypeUInt withRange:NSMakeRange(0, FunctionConstants.Num())];
-				computeFunction = [[BSS->VertexShader->Library newFunctionWithName:@"Main" constantValues:constantValues error:&Error] autorelease];
+				computeFunction = [[BSS->VertexShader->Library newFunctionWithName:Name constantValues:constantValues error:&Error] autorelease];
 			}
 			else
 			{
-				computeFunction = [[BSS->VertexShader->Library newFunctionWithName:@"Main"] autorelease];
+				computeFunction = [[BSS->VertexShader->Library newFunctionWithName:Name] autorelease];
 			}
 			
 			if (computeFunction == nil)

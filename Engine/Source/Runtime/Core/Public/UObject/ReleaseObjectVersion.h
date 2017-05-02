@@ -37,6 +37,9 @@ struct CORE_API FReleaseObjectVersion
 		// Change FMovieSceneEventParameters::StructType to be a string asset reference from a TWeakObjectPtr<UScriptStruct>
 		EventSectionParameterStringAssetRef,
 
+		// Remove serialized irradiance map data from skylight.
+		SkyLightRemoveMobileIrradianceMap,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

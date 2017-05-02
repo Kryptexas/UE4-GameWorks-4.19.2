@@ -28,8 +28,7 @@
 
 // So outside callers can override this
 #ifndef USE_STATIC_ROOT_SIGNATURE
-	// Make sure this is in sync with the overrides!
-	#define USE_STATIC_ROOT_SIGNATURE	PLATFORM_XBOXONE
+	#define USE_STATIC_ROOT_SIGNATURE 0
 #endif
 
 // How many residency packets can be in flight before the rendering thread

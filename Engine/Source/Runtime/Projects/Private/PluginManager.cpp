@@ -442,7 +442,7 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						if (Comparison != EVersionComparison::Neither)
 						{
 							FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
-							if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "The '{0}' plugin was designed for a different version of the engine. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
+							if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "'{0}' plugin was designed for a different version of the engine. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
 							{
 								Plugin->bEnabled = false;
 								AllEnabledPlugins.Remove(Plugin->Name);
@@ -458,7 +458,7 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				else if (Plugin->bEnabled && Plugin->Descriptor.CompatibleChangelist != 0 && FEngineVersion::CompatibleWith().HasChangelist() && Plugin->Descriptor.CompatibleChangelist != FEngineVersion::CompatibleWith().GetChangelist())
 				{
 					FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
-					if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "'{0}' was designed for a different version of the game. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
+					if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "'{0}' plugin was designed for a different version of the engine. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
 					{
 						Plugin->bEnabled = false;
 						AllEnabledPlugins.Remove(Plugin->Name);

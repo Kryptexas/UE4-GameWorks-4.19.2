@@ -113,6 +113,14 @@ class ENGINE_API UExponentialHeightFogComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Albedo"))
 	FColor VolumetricFogAlbedo;
 
+	/** 
+	 * Light emitted by height fog.  This is a density so more light is emitted the further you are looking through the fog.
+	 * In most cases skylight is a better choice, however right now volumetric fog does not support precomputed lighting, 
+	 * So stationary skylights are unshadowed and static skylights don't affect volumetric fog at all.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Emissive"))
+	FLinearColor VolumetricFogEmissive;
+
 	/** Scales the height fog particle extinction amount used by volumetric fog.  Values larger than 1 cause fog particles everywhere absorb more light. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VolumetricFog, meta=(DisplayName = "Extinction Scale", UIMin = ".1", UIMax = "10"))
 	float VolumetricFogExtinctionScale;
@@ -185,6 +193,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
 	void SetVolumetricFogAlbedo(FColor NewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
+	void SetVolumetricFogEmissive(FLinearColor NewValue);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|VolumetricFog")
 	void SetVolumetricFogDistance(float NewValue);

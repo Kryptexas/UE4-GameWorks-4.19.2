@@ -315,6 +315,11 @@ FGraphicsPipelineStateRHIRef FD3D12DynamicRHI::RHICreateGraphicsPipelineState(co
 
 	FD3D12HighLevelGraphicsPipelineStateDesc GraphicsDesc = {};
 
+	// Zero the RTV array - this is necessary to prevent uninitialized memory affecting the PSO cache hash generation
+	// Note that the above GraphicsDesc = {} does not clear down the array, probably because it's a TStaticArray rather 
+	// than a standard C array. 
+	FMemory::Memzero(&GraphicsDesc.RTVFormats[0], sizeof(GraphicsDesc.RTVFormats[0]) * GraphicsDesc.RTVFormats.Num());
+
 	GraphicsDesc.BoundShaderState = FD3D12DynamicRHI::ResourceCast(BoundShaderState.GetReference());
 	GraphicsDesc.BlendState = &FD3D12DynamicRHI::ResourceCast(Initializer.BlendState)->Desc;
 	GraphicsDesc.RasterizerState = &FD3D12DynamicRHI::ResourceCast(Initializer.RasterizerState)->Desc;

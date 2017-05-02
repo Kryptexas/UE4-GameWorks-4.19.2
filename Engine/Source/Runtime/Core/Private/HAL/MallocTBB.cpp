@@ -7,6 +7,9 @@
 #include "HAL/MallocTBB.h"
 #include "Math/UnrealMathUtility.h"
 #include "HAL/UnrealMemory.h"
+#if PLATFORM_MAC
+#include "Templates/AlignmentTemplates.h"
+#endif
 
 // Only use for supported platforms
 #if PLATFORM_SUPPORTS_TBB && TBB_ALLOCATOR_ALLOWED
@@ -37,6 +40,11 @@ void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 	MEM_TIME(MemTime -= FPlatformTime::Seconds());
 
 	void* NewPtr = NULL;
+#if PLATFORM_MAC
+	// macOS expects all allocations to be aligned to 16 bytes, but TBBs default alignment is 8, so on Mac we always have to use scalable_aligned_malloc
+	Alignment = AlignArbitrary(FMath::Max((uint32)16, Alignment), (uint32)16);
+	NewPtr = scalable_aligned_malloc(Size, Alignment);
+#else
 	if( Alignment != DEFAULT_ALIGNMENT )
 	{
 		Alignment = FMath::Max(Size >= 16 ? (uint32)16 : (uint32)8, Alignment);
@@ -46,6 +54,7 @@ void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 	{
 		NewPtr = scalable_malloc( Size );
 	}
+#endif
 
 	if( !NewPtr && Size )
 	{
@@ -78,6 +87,11 @@ void* FMallocTBB::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 	}
 #endif
 	void* NewPtr = NULL;
+#if PLATFORM_MAC
+	// macOS expects all allocations to be aligned to 16 bytes, but TBBs default alignment is 8, so on Mac we always have to use scalable_aligned_realloc
+	Alignment = AlignArbitrary(FMath::Max((uint32)16, Alignment), (uint32)16);
+	NewPtr = scalable_aligned_realloc(Ptr, NewSize, Alignment);
+#else
 	if (Alignment != DEFAULT_ALIGNMENT)
 	{
 		Alignment = FMath::Max(NewSize >= 16 ? (uint32)16 : (uint32)8, Alignment);
@@ -87,6 +101,7 @@ void* FMallocTBB::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 	{
 		NewPtr = scalable_realloc(Ptr, NewSize);
 	}
+#endif
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if (NewPtr && NewSize > OldSize )
 	{

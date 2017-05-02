@@ -180,7 +180,7 @@ private:
 	class USoundBase* Sound;
 
 	uint64 AudioComponentID;
-	uint64 AudioComponentUserID;
+	FName AudioComponentUserID;
 	uint32 OwnerID;
 	
 	FName AudioComponentName;
@@ -189,7 +189,7 @@ private:
 public:
 
 	uint64 GetAudioComponentID() const { return AudioComponentID; }
-	uint64 GetAudioComponentUserID() const { return AudioComponentUserID; }
+	FName GetAudioComponentUserID() const { return AudioComponentUserID; }
 	void SetAudioComponent(UAudioComponent* Component);
 	FString GetAudioComponentName() const;
 	FString GetOwnerName() const;

@@ -616,9 +616,8 @@ void UClothingAsset::BuildSelfCollisionData()
 		return;
 	}
 
-	// We can inflate here by close to half, because we're only trying to make it so the spheres
-	// can't pass through the network of other spheres.
-	const float SCRadius = ClothConfig.SelfCollisionRadius * 1.4f;
+	// Scale by the asset cull scale.
+	const float SCRadius = ClothConfig.SelfCollisionRadius * ClothConfig.SelfCollisionCullScale;
 	const float SCRadiusSq = SCRadius * SCRadius;
 
 	for(FClothLODData& Lod : LodData)

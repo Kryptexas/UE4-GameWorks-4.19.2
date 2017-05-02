@@ -31,7 +31,7 @@ public:
 	uint32 bEnableAutoVREditMode : 1;
 
 	// Which hand should have the primary interactor laser on it
-	UPROPERTY(Category = "General", EditAnywhere)
+	UPROPERTY(EditAnywhere, config, Category = "General")
 	EInteractorHand InteractorHand;
 
 	/** Show the movement grid for orientation while moving through the world */

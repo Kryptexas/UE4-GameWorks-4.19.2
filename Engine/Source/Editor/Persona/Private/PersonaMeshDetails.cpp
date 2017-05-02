@@ -3086,7 +3086,7 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 			.ShowPublicViewControl(false)
 			.HideNameArea(true)
 			.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &FPersonaMeshDetails::IsClothingPanelEnabled))
-			.OnFinishedChangingProperties(FOnFinishedChangingProperties::FDelegate::CreateSP(this, &FPersonaMeshDetails::OnFinishedChangingClothingProperties))
+			.OnFinishedChangingProperties(FOnFinishedChangingProperties::FDelegate::CreateSP(this, &FPersonaMeshDetails::OnFinishedChangingClothingProperties, ElementIndex))
 		]
 	];
 
@@ -3461,8 +3461,23 @@ bool FPersonaMeshDetails::IsClothingPanelEnabled() const
 	return !GEditor->bIsSimulatingInEditor && !GEditor->PlayWorld;
 }
 
-void FPersonaMeshDetails::OnFinishedChangingClothingProperties(const FPropertyChangedEvent& Event)
+void FPersonaMeshDetails::OnFinishedChangingClothingProperties(const FPropertyChangedEvent& Event, int32 InAssetIndex)
 {
+	if(Event.ChangeType != EPropertyChangeType::Interactive)
+	{
+		if(Event.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionRadius) ||
+			Event.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionCullScale))
+		{
+			USkeletalMesh* CurrentMesh = GetPersonaToolkit()->GetMesh();
+			if(CurrentMesh->MeshClothingAssets.IsValidIndex(InAssetIndex))
+			{
+				UClothingAsset* Asset = CastChecked<UClothingAsset>(CurrentMesh->MeshClothingAssets[InAssetIndex]);
+
+				Asset->BuildSelfCollisionData();
+			}
+		}
+	}
+
 	if(UDebugSkelMeshComponent* PreviewComponent = GetPersonaToolkit()->GetPreviewMeshComponent())
 	{
 		// Reregister our preview component to apply the change

@@ -23,6 +23,10 @@
 
 #include "HardwareInfo.h"
 
+#if PLATFORM_ANDROID
+#include <jni.h>
+#endif
+
 #ifndef GL_STEREO
 #define GL_STEREO			0x0C33
 #endif
@@ -197,7 +201,29 @@ void FOpenGLDynamicRHI::RHIEndScene()
 	ResourceTableFrameCounter = INDEX_NONE;
 }
 
+#if PLATFORM_ANDROID
 
+JNI_METHOD void Java_com_epicgames_ue4_MediaPlayer14_nativeClearCachedAttributeState(JNIEnv* jenv, jobject thiz, jint PositionAttrib, jint TexCoordsAttrib)
+{
+	FOpenGLContextState& ContextState = PrivateOpenGLDevicePtr->GetContextStateForCurrentContext();
+
+	// update vertex attributes state
+	ContextState.VertexAttrs[PositionAttrib].bEnabled = false;
+	ContextState.VertexAttrs[PositionAttrib].Stride = -1;
+
+	ContextState.VertexAttrs[TexCoordsAttrib].bEnabled = false;
+	ContextState.VertexAttrs[TexCoordsAttrib].Stride = -1;
+
+	// make sure the texture is set again
+	ContextState.ActiveTexture = 0;
+	ContextState.Textures[0].Texture = nullptr;
+	ContextState.Textures[0].Target = 0;
+
+	// restore previous program
+	FOpenGL::BindProgramPipeline(ContextState.Program);
+}
+
+#endif
 
 bool GDisableOpenGLDebugOutput = false;
 

@@ -40,8 +40,6 @@ static bool IsRetainedRenderingEnabled()
 
 SRetainerWidget::SRetainerWidget()
 	: CachedWindowToDesktopTransform(0, 0)
-	// Use slate's gamma correction for mobile, as HW sRGB writes are not supported.
-	, WidgetRenderer( GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1 )
 	, DynamicEffect(nullptr)
 {
 }
@@ -54,7 +52,18 @@ SRetainerWidget::~SRetainerWidget()
 		OnRetainerModeChangedDelegate.RemoveAll( this );
 #endif
 	}
-	
+}
+
+void SRetainerWidget::InitWidgetRenderer()
+{
+	// Use slate's gamma correction for dynamic materials on mobile, as HW sRGB writes are not supported.
+	bool bUseGammaCorrection = (DynamicEffect != nullptr) ? GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1 : true;
+
+	if (!WidgetRenderer.IsValid() || WidgetRenderer->GetUseGammaCorrection() != bUseGammaCorrection)
+	{
+		WidgetRenderer = MakeShareable(new FWidgetRenderer(bUseGammaCorrection));
+		WidgetRenderer->SetIsPrepassNeeded(false);
+	}
 }
 
 void SRetainerWidget::Construct(const FArguments& InArgs)
@@ -65,8 +74,8 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 	
 	// Use HW sRGB correction for RT, ensuring it is linearised on read by material shaders
 	// since SRetainerWidget::OnPaint renders the RT with gamma correction.
-	RenderTarget->SRGB = true;
-	RenderTarget->TargetGamma = 2.2f;
+	RenderTarget->SRGB = false;
+	RenderTarget->TargetGamma = 1.0f;
 	RenderTarget->ClearColor = FLinearColor::Transparent;
 
 	SurfaceBrush.SetResourceObject(RenderTarget);
@@ -74,8 +83,7 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 	Window = SNew(SVirtualWindow);
 	Window->SetShouldResolveDeferred(false);
 	HitTestGrid = MakeShareable(new FHittestGrid());
-
-	WidgetRenderer.SetIsPrepassNeeded(false);
+	InitWidgetRenderer();
 
 	MyWidget = InArgs._Content.Widget;
 	Phase = InArgs._Phase;
@@ -180,6 +188,7 @@ void SRetainerWidget::SetEffectMaterial(UMaterialInterface* EffectMaterial)
 		DynamicEffect = nullptr;
 		SurfaceBrush.SetResourceObject(RenderTarget);
 	}
+	InitWidgetRenderer();
 }
 
 void SRetainerWidget::SetTextureParameter(FName TextureParameter)
@@ -269,10 +278,15 @@ void SRetainerWidget::PaintRetainedContent(float DeltaTime)
 			{
 				if ( MyWidget->GetVisibility().IsVisible() )
 				{
+					bool bDynamicMaterialInUse = (DynamicEffect != nullptr);
 					if ( RenderTarget->GetSurfaceWidth() != RenderTargetWidth ||
-						 RenderTarget->GetSurfaceHeight() != RenderTargetHeight )
+						 RenderTarget->GetSurfaceHeight() != RenderTargetHeight ||
+						 RenderTarget->SRGB != bDynamicMaterialInUse
+						)
 					{
 						const bool bForceLinearGamma = false;
+						RenderTarget->TargetGamma = bDynamicMaterialInUse ? 2.2f : 1.0f;
+						RenderTarget->SRGB = bDynamicMaterialInUse;
 						RenderTarget->InitCustomFormat(RenderTargetWidth, RenderTargetHeight, PF_B8G8R8A8, bForceLinearGamma);
 						RenderTarget->UpdateResourceImmediate();
 					}
@@ -285,9 +299,9 @@ void SRetainerWidget::PaintRetainedContent(float DeltaTime)
 					// Update the surface brush to match the latest size.
 					SurfaceBrush.ImageSize = DrawSize;
 
-					WidgetRenderer.ViewOffset = -ViewOffset;
+					WidgetRenderer->ViewOffset = -ViewOffset;
 
-					WidgetRenderer.DrawWindow(
+					WidgetRenderer->DrawWindow(
 						RenderTarget,
 						HitTestGrid.ToSharedRef(),
 						Window.ToSharedRef(),
@@ -332,7 +346,8 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 			// Retainer widget uses premultiplied alpha, so premultiply the color by the alpha to respect opacity.
 			const FLinearColor PremultipliedColorAndOpacity(ComputedColorAndOpacity*ComputedColorAndOpacity.A);
 
-			if ( DynamicEffect )
+			const bool bDynamicMaterialInUse = (DynamicEffect != nullptr);
+			if (bDynamicMaterialInUse)
 			{
 				DynamicEffect->SetTextureParameterValue(DynamicEffectTextureParameter, RenderTarget);
 			}
@@ -343,7 +358,7 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 				AllottedGeometry.ToPaintGeometry(),
 				&SurfaceBrush,
 				MyClippingRect,
-				ESlateDrawEffect::PreMultipliedAlpha,
+				bDynamicMaterialInUse ? ESlateDrawEffect::PreMultipliedAlpha : ESlateDrawEffect::PreMultipliedAlpha | ESlateDrawEffect::NoGamma,
 				FLinearColor(PremultipliedColorAndOpacity.R, PremultipliedColorAndOpacity.G, PremultipliedColorAndOpacity.B, PremultipliedColorAndOpacity.A)
 				);
 			
@@ -352,7 +367,7 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 
 			// Any deferred painted elements of the retainer should be drawn directly by the main renderer, not rendered into the render target,
 			// as most of those sorts of things will break the rendering rect, things like tooltips, and popup menus.
-			for ( auto& DeferredPaint : WidgetRenderer.DeferredPaints )
+			for ( auto& DeferredPaint :WidgetRenderer->DeferredPaints )
 			{
 				OutDrawElements.QueueDeferredPainting(DeferredPaint->Copy(Args));
 			}

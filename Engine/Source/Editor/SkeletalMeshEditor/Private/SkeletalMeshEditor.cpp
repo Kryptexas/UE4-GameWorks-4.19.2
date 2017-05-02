@@ -321,7 +321,7 @@ void FSkeletalMeshEditor::FillMeshClickMenu(FMenuBuilder& MenuBuilder, HActor* H
 			Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &FSkeletalMeshEditor::CanCreateClothing, LodIndex, SectionIndex);
 
 			MenuBuilder.AddSubMenu(
-				LOCTEXT("MeshClickMenu_CreateClothing_ToolTip", "Create Clothing Asset from Section"),
+				LOCTEXT("MeshClickMenu_CreateClothing_Label", "Create Clothing Asset from Section"),
 				LOCTEXT("MeshClickMenu_CreateClothing_ToolTip", "Create a new clothing asset using the selected section as a simulation mesh"),
 				FNewMenuDelegate::CreateSP(this, &FSkeletalMeshEditor::FillCreateClothingMenu, LodIndex, SectionIndex),
 				Action,

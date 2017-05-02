@@ -843,7 +843,9 @@ public class AndroidPlatform : Platform
 
     public override void Deploy(ProjectParams Params, DeploymentContext SC)
     {
-        foreach (var DeviceName in Params.DeviceNames)
+		var AppArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllArchitectures();
+
+		foreach (var DeviceName in Params.DeviceNames)
         {
             string DeviceArchitecture = GetBestDeviceArchitecture(Params, DeviceName);
             string GPUArchitecture = GetBestGPUArchitecture(Params, DeviceName);
@@ -856,9 +858,7 @@ public class AndroidPlatform : Platform
             {
                 string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
 				string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
-				List<string> Architectures = new List<string>();
-                Architectures.Add(DeviceArchitecture);
-                Deploy.SetAndroidPluginData(Architectures, CollectPluginDataPaths(SC));
+				Deploy.SetAndroidPluginData(AppArchitectures, CollectPluginDataPaths(SC));
                 Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, true);
             }
 

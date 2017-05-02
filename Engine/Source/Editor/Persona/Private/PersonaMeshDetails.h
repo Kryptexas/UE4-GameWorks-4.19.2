@@ -531,7 +531,7 @@ private:
 	bool IsClothingPanelEnabled() const;
 
 	// Callback after the clothing details are changed
-	void OnFinishedChangingClothingProperties(const FPropertyChangedEvent& Event);
+	void OnFinishedChangingClothingProperties(const FPropertyChangedEvent& Event, int32 InAssetIndex);
 
 	/* Generate slate UI for Clothing category */
 	void CustomizeClothingProperties(class IDetailLayoutBuilder& DetailLayout, class IDetailCategoryBuilder& ClothingFilesCategory);

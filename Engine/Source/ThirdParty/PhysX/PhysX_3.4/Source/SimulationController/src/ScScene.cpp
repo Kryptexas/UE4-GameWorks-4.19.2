@@ -6424,6 +6424,24 @@ void Sc::Scene::finishBroadPhase(PxU32 ccdPass, PxBaseTask* continuation)
 
 	{
 		PX_PROFILE_ZONE("Sim.processNewOverlaps", getContextId());
+
+		{
+			//KS - these functions call "registerInActors", while OverlapFilterTask reads the list of interactions
+			//in an actor. This could lead to a race condition and a crash if they occur at the same time, so we 
+			//serialize these operations
+			PX_PROFILE_ZONE("Sim.processNewOverlaps.createOverlapsNoShapeInteractions", getContextId());
+			for (PxU32 i = Bp::VolumeBuckets::ePARTICLE; i < Bp::VolumeBuckets::eCOUNT; ++i)
+			{
+
+				PxU32 createdOverlapCount;
+				const Bp::AABBOverlap* PX_RESTRICT p = aabbMgr->getCreatedOverlaps(i, createdOverlapCount);
+
+
+				mLLContext->getSimStats().mNbNewPairs += createdOverlapCount;
+				mNPhaseCore->onOverlapCreated(p, createdOverlapCount, ccdPass, bpPairs);
+			}
+		}
+
 		{
 			
 			PxU32 createdOverlapCount;
@@ -6465,19 +6483,7 @@ void Sc::Scene::finishBroadPhase(PxU32 ccdPass, PxBaseTask* continuation)
 
 		mPreallocateContactManagers.removeReference();
 
-		{
-			PX_PROFILE_ZONE("Sim.processNewOverlaps.createOverlapsNoShapeInteractions", getContextId());
-			for (PxU32 i = Bp::VolumeBuckets::ePARTICLE; i < Bp::VolumeBuckets::eCOUNT; ++i)
-			{
-
-				PxU32 createdOverlapCount;
-				const Bp::AABBOverlap* PX_RESTRICT p = aabbMgr->getCreatedOverlaps(i, createdOverlapCount);
-
-
-				mLLContext->getSimStats().mNbNewPairs += createdOverlapCount;
-				mNPhaseCore->onOverlapCreated(p, createdOverlapCount, ccdPass, bpPairs);
-			}
-		}		
+			
 	}	
 }
 
