@@ -442,6 +442,8 @@ namespace local
 			return mFreeHalfEdges.getFreeItem();
 		}
 
+		PX_FORCE_INLINE PxU32 getNbHullVerts() { return mOutputNumVertices; }
+
 	protected:
 		friend class physx::QuickHullConvexHullLib;
 
@@ -451,7 +453,8 @@ namespace local
 		PxVec3					mInteriorPoint;		// interior point for int/ext tests
 
 		PxU32					mMaxVertices;		// maximum number of vertices (can be different as we may add vertices during the cleanup
-		PxU32					mNumVertices;		// actual number of vertices
+		PxU32					mNumVertices;		// actual number of input vertices
+		PxU32					mOutputNumVertices;	// num vertices of the computed hull
 
 		QuickHullVertex*		mVerticesList;		// vertices list preallocated
 		MemBlock<QuickHullHalfEdge, false>	mFreeHalfEdges;	// free half edges
@@ -658,7 +661,7 @@ namespace local
 	//////////////////////////////////////////////////////////////////////////
 
 	QuickHull::QuickHull(const PxCookingParams& params, const PxConvexMeshDesc& desc)
-		: mCookingParams(params), mConvexDesc(desc), mVerticesList(NULL), mNumHullFaces(0), mPrecomputedMinMax(false),
+		: mCookingParams(params), mConvexDesc(desc), mOutputNumVertices(0), mVerticesList(NULL), mNumHullFaces(0), mPrecomputedMinMax(false),
 		mTolerance(-1.0f), mPlaneTolerance(-1.0f)
 	{
 	}
@@ -1131,11 +1134,13 @@ namespace local
 			PX_ASSERT(eyeFace);
 			if (!addPointToHull(eyeVtx, *eyeFace))
 			{
+				mOutputNumVertices = numVerts;
 				// we hit the polygons hard limit
 				return QuickHullResult::ePOLYGONS_LIMIT_REACHED;
 			}
 			numVerts++;
 		}
+		mOutputNumVertices = numVerts;
 
 		// vertex limit has been reached. We did not stopped the iteration, since we
 		// will use the produced hull to compute OBB from it and use the planes
@@ -1797,7 +1802,15 @@ PxConvexMeshCookingResult::Enum QuickHullConvexHullLib::createConvexHull()
 		res = PxConvexMeshCookingResult::eSUCCESS;		
 		break;
 	case local::QuickHullResult::ePOLYGONS_LIMIT_REACHED:
-		res = PxConvexMeshCookingResult::ePOLYGONS_LIMIT_REACHED;
+		if(mQuickHull->getNbHullVerts() > mConvexMeshDesc.vertexLimit)
+		{
+			// expand the hull
+			if(mConvexMeshDesc.flags & PxConvexFlag::ePLANE_SHIFTING)
+				res = expandHull();
+			else
+				res = expandHullOBB();
+		}
+		res = PxConvexMeshCookingResult::ePOLYGONS_LIMIT_REACHED;		
 		break;
 	case local::QuickHullResult::eVERTEX_LIMIT_REACHED:
 		{

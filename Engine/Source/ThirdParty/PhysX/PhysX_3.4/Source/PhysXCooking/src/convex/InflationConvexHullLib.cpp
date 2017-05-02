@@ -705,6 +705,11 @@ ConvexHullLibResult::ErrorCode InflationConvexHullLib::calchull(const PxVec3* ve
 	if ((rc == ConvexHullLibResult::eFAILURE) || (rc == ConvexHullLibResult::eZERO_AREA_TEST_FAILED))
 		return rc;
 
+	// If we hit polygons hard limit we terminate the hull calculation
+	// User should try to simplify the hull or use quantization or the quickhull
+	if(triangles.size() > 255)
+		return ConvexHullLibResult::eFAILURE;
+
 	// if vertex limit reached construct the hullOut from the expanded planes
 	if(rc == ConvexHullLibResult::eVERTEX_LIMIT_REACHED)
 	{
