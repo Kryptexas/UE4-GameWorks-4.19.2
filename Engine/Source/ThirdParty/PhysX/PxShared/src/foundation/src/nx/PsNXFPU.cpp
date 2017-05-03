@@ -20,12 +20,10 @@ physx::shdfnd::FPUGuard::FPUGuard()
 	fegetenv(reinterpret_cast<fenv_t*>(mControlWords));
 	fesetenv(FE_DFL_ENV);
 
-	//!!!NX  doesn't support fedisableexcept
-	// need to explicitly disable exceptions because fesetenv does not modify
-	// the sse control word on 32bit linux (64bit is fine, but do it here just be sure)
+	// NX does not seem to support fedisableexcept
 	//fedisableexcept(FE_ALL_EXCEPT);
 
-	fesetround(FE_TONEAREST); //!!!NX  keep until this is the default mode
+	fesetround(FE_TONEAREST);  // since this does not seem to be the default mode
 }
 
 physx::shdfnd::FPUGuard::~FPUGuard()
@@ -35,13 +33,13 @@ physx::shdfnd::FPUGuard::~FPUGuard()
 
 PX_FOUNDATION_API void physx::shdfnd::enableFPExceptions()
 {
-	feclearexcept(FE_ALL_EXCEPT);
-	//!!!NX  doesn't support feenableexcept
+	// NX does not seem to support feenableexcept
+	//feclearexcept(FE_ALL_EXCEPT);
 	//feenableexcept(FE_INVALID|FE_DIVBYZERO|FE_OVERFLOW);	
 }
 
 PX_FOUNDATION_API void physx::shdfnd::disableFPExceptions()
 {
-	//!!!NX  doesn't support fedisableexcept
+	// NX does not seem to support fedisableexcept
 	//fedisableexcept(FE_ALL_EXCEPT);
 }

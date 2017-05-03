@@ -349,16 +349,11 @@ ThreadPriority::Enum ThreadImpl::getPriority(Id tID)
 
 PxU32 ThreadImpl::getNbPhysicalCores()
 {
-	return 2;
-
-	//!!!NX  nn::os::GetThreadAvailableCoreMask() returns 7 which indicates 3 available cores, however, using the third one can result in the devkit shutting down unexpectedly
-	//       after a while without any error message when running all unit tests
-
-	/*nn::Bit64 mask = nn::os::GetThreadAvailableCoreMask();
+	nn::Bit64 mask = nn::os::GetThreadAvailableCoreMask();
 	PX_ASSERT(mask > 0);
 
 	const uint32_t count = bitCount(static_cast<const uint32_t>(mask));
-	return count;*/
+	return count;
 }
 
 

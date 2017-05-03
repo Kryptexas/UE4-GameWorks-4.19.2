@@ -24,7 +24,7 @@
 #include <math.h>
 #include <float.h>
 
-#include <nn/cstd/cstd_CMath.h>
+#include "nn/cstd/cstd_CMath.h"
 
 #if !PX_DOXYGEN
 namespace physx
@@ -92,7 +92,7 @@ namespace intrinsics
 	/*!
 	Sets \c count bytes starting at \c dst to zero.
 	*/
-	PX_FORCE_INLINE void* memZero(void* dest, uint32_t count)
+	PX_FORCE_INLINE void* memZero(void* PX_RESTRICT dest, uint32_t count)
 	{
 		return memset(dest, 0, count);
 	}
@@ -100,7 +100,7 @@ namespace intrinsics
 	/*!
 	Sets \c count bytes starting at \c dst to \c c.
 	*/
-	PX_FORCE_INLINE void* memSet(void* dest, int32_t c, uint32_t count)
+	PX_FORCE_INLINE void* memSet(void* PX_RESTRICT dest, int32_t c, uint32_t count)
 	{
 		return memset(dest, c, count);
 	}
@@ -108,7 +108,7 @@ namespace intrinsics
 	/*!
 	Copies \c count bytes from \c src to \c dst. User memMove if regions overlap.
 	*/
-	PX_FORCE_INLINE void* memCopy(void* dest, const void* src, uint32_t count)
+	PX_FORCE_INLINE void* memCopy(void* PX_RESTRICT dest, const void* PX_RESTRICT src, uint32_t count)
 	{
 		return memcpy(dest, src, count);
 	}
@@ -116,7 +116,7 @@ namespace intrinsics
 	/*!
 	Copies \c count bytes from \c src to \c dst. Supports overlapping regions.
 	*/
-	PX_FORCE_INLINE void* memMove(void* dest, const void* src, uint32_t count)
+	PX_FORCE_INLINE void* memMove(void* PX_RESTRICT dest, const void* PX_RESTRICT src, uint32_t count)
 	{
 		return memmove(dest, src, count);
 	}
@@ -124,10 +124,10 @@ namespace intrinsics
 	/*!
 	Set 128B to zero starting at \c dst+offset. Must be aligned.
 	*/
-	PX_FORCE_INLINE void memZero128(void* dest, uint32_t offset = 0)
+	PX_FORCE_INLINE void memZero128(void* PX_RESTRICT dest, uint32_t offset = 0)
 	{
 		PX_ASSERT(((size_t(dest)+offset) & 0x7f) == 0);
-		memSet((char*)dest+offset, 0, 128);
+		memSet((char* PX_RESTRICT)dest+offset, 0, 128);
 	}
 
 #if !PX_DOXYGEN
