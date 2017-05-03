@@ -79,6 +79,7 @@
     <Compile Include="SlackWriter.cs" />
     <Compile Include="Stats.cs" />
     <Compile Include="WerReport.cs" />
+    <Compile Include="XmlHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj">
