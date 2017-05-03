@@ -21,7 +21,7 @@ REM Generate projects here
 rmdir /s /q compiler\vc14switch-cmake\
 mkdir compiler\vc14switch-cmake\
 pushd compiler\vc14switch-cmake\
-cmake ..\cmake\switch -G "Visual Studio 14 2015" -DTARGET_BUILD_PLATFORM=SWITCH -DPX_OUTPUT_LIB_DIR=%PX_OUTPUT_ROOT%\Lib\vc14switch-cmake -DCMAKE_TOOLCHAIN_FILE="%CMAKE_MODULE_PATH%\switch\SwitchToolchain.txt" -DCMAKE_GENERATOR_PLATFORM=SWITCH
+cmake ..\cmake\switch -G "Visual Studio 14 2015" -DTARGET_BUILD_PLATFORM=SWITCH -DPX_OUTPUT_LIB_DIR=%PX_OUTPUT_ROOT%\Lib\vc14switch-cmake -DCMAKE_TOOLCHAIN_FILE="%CMAKE_MODULE_PATH%\Switch\SwitchToolchain.cmake" -DCMAKE_GENERATOR_PLATFORM=SWITCH
 popd
 
 GOTO :End
