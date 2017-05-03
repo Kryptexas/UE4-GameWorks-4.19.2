@@ -719,8 +719,7 @@ static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSam
 	// Extract the Context
 	FPostprocessContext& Context = BloomDownSampleArray.Context;
 
-	const bool bUseFFTBloom = (Context.View.FinalPostProcessSettings.BloomConvolutionTexture != nullptr  
-		&& Context.View.FinalPostProcessSettings.BloomMethod == EBloomMethod::BM_FFT
+	const bool bUseFFTBloom = (Context.View.FinalPostProcessSettings.BloomMethod == EBloomMethod::BM_FFT
 		&& Context.View.FeatureLevel >= ERHIFeatureLevel::SM5);
 
 	// Extract the downsample array.

@@ -781,6 +781,14 @@ public:
 	UPROPERTY(globalconfig)
 	FStringAssetReference DefaultBokehTextureName;
 
+	/** Texture used to bloom when using FFT, mimics characteristic bloom produced in a camera from a signle bright source */
+	UPROPERTY()
+	class UTexture2D* DefaultBloomKernelTexture;
+
+	/** @todo document */
+	UPROPERTY(globalconfig)
+	FStringAssetReference DefaultBloomKernelTextureName;
+
 	/** The material used to render wireframe meshes. */
 	UPROPERTY()
 	class UMaterial* WireframeMaterial;

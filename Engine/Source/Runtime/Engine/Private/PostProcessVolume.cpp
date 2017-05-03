@@ -141,18 +141,14 @@ bool APostProcessVolume::CanEditChange(const UProperty* InProperty) const
 				return (Settings.BloomMethod == EBloomMethod::BM_SOG);
 			}
 
-			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, BloomConvolutionTexture))
-			{
-				return (Settings.BloomMethod == EBloomMethod::BM_FFT);
-			}
-
 			// Parameters that are only of use with the bloom texture based fft
-			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, BloomConvolutionSize) ||
+			if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, BloomConvolutionTexture) ||
+				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, BloomConvolutionSize) ||
 				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, BloomConvolutionCenterUV) ||
 				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, BloomConvolutionPreFilter) ||
 				PropertyName == GET_MEMBER_NAME_STRING_CHECKED(FPostProcessSettings, BloomConvolutionBufferScale))
 			{
-				return (Settings.BloomMethod == EBloomMethod::BM_FFT && Settings.bOverride_BloomConvolutionTexture);
+				return (Settings.BloomMethod == EBloomMethod::BM_FFT);
 			}
 
 		}

@@ -716,9 +716,7 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category="Lens|Bloom", AdvancedDisplay, meta=(editcondition = "bOverride_Bloom6Tint", DisplayName = "#6 Tint", HideAlphaChannel))
 	FLinearColor Bloom6Tint;
 
-	/**
-	* Texture that defines the convolution for bloom.
-	*/
+	/** Texture to replace default convolution bloom kernel */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lens|Bloom", meta = (editcondition = "bOverride_BloomConvolutionTexture", DisplayName = "Convolution Kernel"))
 	class UTexture2D* BloomConvolutionTexture;
 
@@ -1261,7 +1259,7 @@ struct FPostProcessSettings
 		Bloom6Size = 64.0f;
 		BloomConvolutionSize = 1.f;
 		BloomConvolutionCenterUV = FVector2D(0.5f, 0.5f);
-		BloomConvolutionPreFilter = FVector(0.f, -1.f, 1.f);
+		BloomConvolutionPreFilter = FVector(7.f, 15000.f, 15.f);
 		BloomConvolutionBufferScale = 0.133f;
 		BloomDirtMaskIntensity = 0.0f;
 		BloomDirtMaskTint = FLinearColor(0.5f, 0.5f, 0.5f);

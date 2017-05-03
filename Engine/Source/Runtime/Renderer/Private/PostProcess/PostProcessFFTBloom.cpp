@@ -777,6 +777,12 @@ FSceneRenderTargetItem* FRCPassFFTBloom::InitDomainAndGetKernel(FRenderingCompos
 	// The kernel parameters on the FinalPostProcess.  
 
 	UTexture2D* BloomConvolutionTexture = PPSettings.BloomConvolutionTexture;
+	
+	if (BloomConvolutionTexture == nullptr)
+	{
+		BloomConvolutionTexture = GEngine->DefaultBloomKernelTexture;
+	}
+
 	const float BloomConvolutionSize    = PPSettings.BloomConvolutionSize;
 	const FVector2D CenterUV            = PPSettings.BloomConvolutionCenterUV;
 	const float ClampedBloomConvolutionBufferScale = FMath::Clamp(PPSettings.BloomConvolutionBufferScale, 0.f, 1.f);
@@ -1042,7 +1048,14 @@ FPooledRenderTargetDesc FRCPassFFTBloom::ComputeOutputDesc(EPassOutputId InPassO
 bool FRCPassFFTBloom::HasValidPhysicalKernel(FPostprocessContext& Context)
 {
 	const FViewInfo& View = Context.View;
+
 	UTexture2D* BloomConvolutionTexture = View.FinalPostProcessSettings.BloomConvolutionTexture;
+
+	// Fall back to the default bloom texture if provided.
+	if (BloomConvolutionTexture == nullptr)
+	{
+		BloomConvolutionTexture = GEngine->DefaultBloomKernelTexture;
+	}
 
 	bool bValidSetup = (BloomConvolutionTexture != nullptr && BloomConvolutionTexture->Resource != nullptr);
 

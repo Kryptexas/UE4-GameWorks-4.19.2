@@ -1657,6 +1657,11 @@ void UEngine::InitializeObjectReferences()
 		DefaultBokehTexture = LoadObject<UTexture2D>(NULL, *DefaultBokehTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
+	if (DefaultBloomKernelTexture == NULL)
+	{
+		DefaultBloomKernelTexture = LoadObject<UTexture2D>(NULL, *DefaultBloomKernelTextureName.ToString(), NULL, LOAD_None, NULL);
+	}
+
 	if( PreIntegratedSkinBRDFTexture == NULL )
 	{
 		PreIntegratedSkinBRDFTexture = LoadObject<UTexture2D>(NULL, *PreIntegratedSkinBRDFTextureName.ToString(), NULL, LOAD_None, NULL);
