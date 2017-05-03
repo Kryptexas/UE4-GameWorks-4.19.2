@@ -244,33 +244,20 @@ void FProjectManager::ClearSupportedTargetPlatformsForCurrentProject()
 	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
 }
 
-void FProjectManager::GetEnabledPlugins(TArray<FString>& OutPluginNames) const
+bool FProjectManager::IsNonDefaultPluginEnabled() const
 {
-	// Get the default list of plugin names
-	GetDefaultEnabledPlugins(OutPluginNames, true);
+	TSet<FString> EnabledPlugins;
 
-	// Modify that with the list of plugins in the project file
-	const FProjectDescriptor *Project = GetCurrentProject();
-	if(Project != NULL)
+	if (CurrentProject.IsValid())
 	{
-		for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
+		for (const FPluginReferenceDescriptor& PluginReference : CurrentProject->Plugins)
 		{
-			if(Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget()))
+			if (PluginReference.bEnabled)
 			{
-				OutPluginNames.AddUnique(Plugin.Name);
-			}
-			else
-			{
-				OutPluginNames.Remove(Plugin.Name);
+				EnabledPlugins.Add(PluginReference.Name);
 			}
 		}
 	}
-}
-
-bool FProjectManager::IsNonDefaultPluginEnabled() const
-{
-	TArray<FString> EnabledPlugins;
-	GetEnabledPlugins(EnabledPlugins);
 
 	for(const FPluginStatus& Plugin: IPluginManager::Get().QueryStatusForAllPlugins())
 	{

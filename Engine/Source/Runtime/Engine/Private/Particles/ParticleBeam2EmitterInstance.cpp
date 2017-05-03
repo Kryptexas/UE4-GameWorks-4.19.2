@@ -1176,11 +1176,7 @@ FDynamicEmitterDataBase* FParticleBeam2EmitterInstance::GetDynamicData(bool bSel
 		{
 			FString ErrorMessage = 
 				FString::Printf(TEXT("BeamEmitter with too much data: %s"),
-					Component ? 
-						Component->Template ? 
-							*(Component->Template->GetName()) :
-							TEXT("No template") :
-						TEXT("No component"));
+					Component->Template ? *Component->Template->GetName() : TEXT("No template"));
 			FColor ErrorColor(255,0,0);
 			GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
 			UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);

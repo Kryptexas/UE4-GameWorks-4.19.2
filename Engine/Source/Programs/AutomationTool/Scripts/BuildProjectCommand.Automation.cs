@@ -127,6 +127,13 @@ public partial class Project : CommandUtils
 			}
 		}
 
+		// Additional compile arguments
+		string AdditionalArgs = "";
+		if (Params.MapFile)
+		{
+			AdditionalArgs += " -mapfile";
+		}
+
 		// Setup cooked targets
 		if (Params.HasClientCookedTargets && (TargetMask & ProjectBuildTargets.ClientCooked) == ProjectBuildTargets.ClientCooked)
 		{
@@ -138,7 +145,7 @@ public partial class Project : CommandUtils
 				{
                     string ScriptPluginArgs = GetBlueprintPluginPathArgument(Params, true, ClientPlatformType);
                     CrashReportPlatforms.Add(ClientPlatformType);
-					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
+					Agenda.AddTargets(Params.ClientCookedTargets.ToArray(), ClientPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"" + AdditionalArgs);
 				}
 			}
 		}
@@ -152,7 +159,7 @@ public partial class Project : CommandUtils
 				{
                     string ScriptPluginArgs = GetBlueprintPluginPathArgument(Params, false, ServerPlatformType);
                     CrashReportPlatforms.Add(ServerPlatformType);
-					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
+					Agenda.AddTargets(Params.ServerCookedTargets.ToArray(), ServerPlatformType, BuildConfig, Params.CodeBasedUprojectPath, InAddArgs: ScriptPluginArgs + " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"" + AdditionalArgs);
 				}
 			}
 		}

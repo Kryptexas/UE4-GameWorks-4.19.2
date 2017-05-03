@@ -84,9 +84,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	FORCEINLINE static void MemoryBarrier()
 	{
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		OSMemoryBarrier();
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		__sync_synchronize();
 	}
 
 	static void PumpMessages(bool bFromMainLoop);

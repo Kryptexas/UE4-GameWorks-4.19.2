@@ -21,7 +21,7 @@
 #include "ScenePrivate.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
-#include "LightPropagationVolumeBlendable.h"
+#include "LightPropagationVolumeSettings.h"
 #include "PipelineStateCache.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLpvReadUniformBufferParameters,TEXT("LpvRead"));

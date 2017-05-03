@@ -1239,7 +1239,7 @@ UObject* FKismetCompilerUtilities::CheckPropertyNameOnScope(UStruct* Scope, cons
 
 	if (Scope && !Scope->IsA<UFunction>() && (UBlueprintGeneratedClass::GetUberGraphFrameName() != PropertyName))
 	{
-		if (auto Field = FindField<UProperty>(Scope ? Scope->GetSuperStruct() : nullptr, *NameStr))
+		if (auto Field = FindField<UProperty>(Scope->GetSuperStruct(), *NameStr))
 		{
 			return Field;
 		}

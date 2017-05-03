@@ -272,7 +272,7 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 					if ( OverrideFunc == NULL )
 					{
 						IconOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Function_16x"));
-						if ( ActionIn->EdGraph != NULL && ActionIn->EdGraph->IsA(UAnimationGraph::StaticClass()) )
+						if ( ActionIn->EdGraph->IsA(UAnimationGraph::StaticClass()) )
 						{
 							ToolTipOut = LOCTEXT("AnimationGraph_Tooltip", "Animation Graph");
 						}
@@ -737,15 +737,15 @@ private:
 	{
 		if (FBlueprintEditorUtils::IsPinTypeValid(InNewPinType))
 		{
-			FName VarName = VariableProperty->GetFName();
-
-			if (VarName != NAME_None)
+			if (VariableProperty)
 			{
-				// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
-				BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->GetLastPinTypeUsed() = InNewPinType;
+				FName VarName = VariableProperty->GetFName();
 
-				if (VariableProperty)
+				if (VarName != NAME_None)
 				{
+					// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
+					BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->GetLastPinTypeUsed() = InNewPinType;
+
 					if (UFunction* LocalVariableScope = Cast<UFunction>(VariableProperty->GetOuter()))
 					{
 						FBlueprintEditorUtils::ChangeLocalVariableType(BlueprintObj, LocalVariableScope, VarName, InNewPinType);
@@ -1353,16 +1353,13 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		UEdGraph* Graph = DelegateAction->EdGraph;
 		if ((Graph != NULL) && (Graph->bAllowDeletion || Graph->bAllowRenaming))
 		{
-			if (Graph)
-			{
-				FGraphDisplayInfo DisplayInfo;
-				Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
+			FGraphDisplayInfo DisplayInfo;
+			Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
-				// Check if the name is unchanged
-				if( NewText.EqualTo( DisplayInfo.PlainName ) )
-				{
-					return;
-				}
+			// Check if the name is unchanged
+			if( NewText.EqualTo( DisplayInfo.PlainName ) )
+			{
+				return;
 			}
 
 			// Make sure we aren't renaming the graph into something that already exists

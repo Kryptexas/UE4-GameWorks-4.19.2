@@ -491,7 +491,7 @@ void FGameplayDebuggerCanvasContext::MoveToNewLine()
 
 void FGameplayDebuggerCanvasContext::MeasureString(const FString& String, float& OutSizeX, float& OutSizeY) const
 {
-	OutSizeX = OutSizeX = 0.0f;
+	OutSizeX = OutSizeY = 0.0f;
 
 	UCanvas* CanvasOb = Canvas.Get();
 	if (CanvasOb)

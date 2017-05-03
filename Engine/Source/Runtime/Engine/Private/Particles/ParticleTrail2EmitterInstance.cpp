@@ -1432,7 +1432,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 						FString ErrorMessage = 
 							FString::Printf(TEXT("Ribbon with too many particles: %5d vs. %5d, %s"), 
 								ActiveParticles, LocalMaxParticleInTrailCount,
-								Component ? Component->Template ? *(Component->Template->GetName()) : TEXT("No template") : TEXT("No component"));
+								Component->Template ? *Component->Template->GetName() : TEXT("No template"));
 						FColor ErrorColor(255,0,0);
 						GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
 						UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);
@@ -2776,8 +2776,7 @@ bool FParticleRibbonEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBas
 					FString ErrorMessage = 
 						FString::Printf(TEXT("RIBBON: GetDynamicData -- TriangleCount == %d (APC = %4d) for PSys %s"),
 							TriangleCount, ActiveParticles, 
-							Component ? (Component->Template ? *Component->Template->GetName() : 
-							TEXT("No Template")) : TEXT("No Component"));
+							Component->Template ? *Component->Template->GetName() : TEXT("No Template"));
 					FColor ErrorColor(255,0,0);
 					GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
 					UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);
@@ -4126,8 +4125,7 @@ bool FParticleAnimTrailEmitterInstance::FillReplayData( FDynamicEmitterReplayDat
 				FString ErrorMessage = 
 					FString::Printf(TEXT("ANIMTRAIL: GetDynamicData -- TriangleCount == 0 (APC = %4d) for PSys %s"),
 					ActiveParticles, 
-					Component ? (Component->Template ? *Component->Template->GetName() : 
-					TEXT("No Template")) : TEXT("No Component"));
+					Component->Template ? *Component->Template->GetName() : TEXT("No Template"));
 				FColor ErrorColor(255,0,0);
 				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
 				UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);

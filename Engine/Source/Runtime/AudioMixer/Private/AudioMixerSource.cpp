@@ -154,7 +154,7 @@ namespace Audio
 			InitParams.DebugName = InWaveInstance->GetName();
 
 			bool bIsDebug = false;
-			FString WaveInstanceName = WaveInstance->GetName();
+			FString WaveInstanceName = WaveInstance->GetName(); //-V595
 			FString TestName = GEngine->GetAudioDeviceManager()->GetAudioMixerDebugSoundName();
 			if (WaveInstanceName.Contains(TestName))
 			{

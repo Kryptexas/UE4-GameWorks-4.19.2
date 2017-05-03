@@ -28,13 +28,14 @@ UnFbx::FBXImportOptions *JSONToFbxOption(TSharedPtr<FJsonValue> OptionJsonValue,
 	if (!OptionObj.IsValid())
 	{
 		return nullptr;
-	}
-	UnFbx::FBXImportOptions *Option = new UnFbx::FBXImportOptions();
+	}	
 
 	if (!OptionObj->TryGetStringField("OptionName", OptionName))
 	{
 		return nullptr;
 	}
+
+	UnFbx::FBXImportOptions *Option = new UnFbx::FBXImportOptions();
 
 	OptionObj->TryGetBoolField("bImportScene", Option->bImportScene);
 	OptionObj->TryGetBoolField("bImportMaterials", Option->bImportMaterials);

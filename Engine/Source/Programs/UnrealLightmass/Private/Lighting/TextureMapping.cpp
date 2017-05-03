@@ -3166,7 +3166,7 @@ void FStaticLightingSystem::CalculateIndirectLightingTextureMapping(
 		while (TextureMapping->NumOutstandingCacheTasks > 0);
 
 		TArray<FCacheIndirectTaskDescription*> CompletedCILTasks;
-		TextureMapping->CompletedCacheIndirectLightingTasks.PopAll<TArray<FCacheIndirectTaskDescription*>, FCacheIndirectTaskDescription*>(CompletedCILTasks);
+		TextureMapping->CompletedCacheIndirectLightingTasks.PopAll(CompletedCILTasks);
 		check(CompletedCILTasks.Num() == NumTasksSubmitted);
 
 		int32 NextRecordId = 0;
@@ -3259,7 +3259,7 @@ void FStaticLightingSystem::CalculateIndirectLightingTextureMapping(
 			}
 
 			TArray<FInterpolateIndirectTaskDescription*> CompletedTasks;
-			TextureMapping->CompletedInterpolationTasks.PopAll<TArray<FInterpolateIndirectTaskDescription*>, FInterpolateIndirectTaskDescription*>(CompletedTasks);
+			TextureMapping->CompletedInterpolationTasks.PopAll(CompletedTasks);
 			check(CompletedTasks.Num() == NumIILTasksSubmitted);
 
 			for (int32 TaskIndex = 0; TaskIndex < CompletedTasks.Num(); TaskIndex++)

@@ -63,6 +63,8 @@ FORCEINLINE typename TEnableIf<TIsZeroConstructType<ElementType>::Value>::Type D
  * Destructs a single item in memory.
  *
  * @param	Elements	A pointer to the item to destruct.
+ *
+ * @note: This function is optimized for values of T, and so will not dynamically dispatch destructor calls if T's destructor is virtual.
  */
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TIsTriviallyDestructible<ElementType>::Value>::Type DestructItem(ElementType* Element)
@@ -85,6 +87,8 @@ FORCEINLINE typename TEnableIf<TIsTriviallyDestructible<ElementType>::Value>::Ty
  *
  * @param	Elements	A pointer to the first item to destruct.
  * @param	Count		The number of elements to destruct.
+ *
+ * @note: This function is optimized for values of T, and so will not dynamically dispatch destructor calls if T's destructor is virtual.
  */
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TIsTriviallyDestructible<ElementType>::Value>::Type DestructItems(ElementType* Element, int32 Count)

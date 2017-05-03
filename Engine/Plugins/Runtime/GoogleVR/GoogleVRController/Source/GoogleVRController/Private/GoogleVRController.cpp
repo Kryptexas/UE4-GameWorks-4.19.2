@@ -47,6 +47,8 @@ static void GetAdbPath(FString& OutADBPath);
 static bool IsPlayInEditor();
 #endif
 
+DEFINE_LOG_CATEGORY(LogGoogleVRController);
+
 class FGoogleVRControllerPlugin : public IGoogleVRControllerPlugin
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS

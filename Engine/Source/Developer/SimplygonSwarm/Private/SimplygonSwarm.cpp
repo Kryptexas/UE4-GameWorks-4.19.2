@@ -225,7 +225,7 @@ public:
 			{
 				UE_LOG(LogSimplygonSwarm, Error , TEXT("Could not find zip file for uploading %s"), *ZipFileName);
 				FailedDelegate.ExecuteIfBound(InJobGUID, TEXT("Could not find zip file for uploading"));
-				return;
+				return; //-V773
 			}
 
 			FSwarmTaskkData TaskData;

@@ -1084,7 +1084,7 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 	}
 	else
 	{
-		SrcSize = InputDesc->Extent;
+		SrcSize = InputDesc->Extent; //-V595
 		//	uint32 ScaleFactor = View.ViewRect.Width() / SrcSize.X;
 		//	SrcRect = View.ViewRect / ScaleFactor;
 		// TODO: This won't work with scaled views.

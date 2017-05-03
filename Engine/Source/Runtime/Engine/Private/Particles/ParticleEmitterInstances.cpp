@@ -1776,7 +1776,7 @@ void FParticleEmitterInstance::CheckSpawnCount(int32 InNewCount, int32 InMaxCoun
 				InMaxCount, 
 				(float)(InMaxCount * 4 * SizeScalar) / 1024.0f,
 				InNewCount - ActiveParticles,
-				Component ? Component->Template ? *(Component->Template->GetPathName()) : TEXT("No template") : TEXT("No component"));
+				Component->Template ? *Component->Template->GetPathName() : TEXT("No template"));
 			FColor ErrorColor(255,255,0);
 			if (GEngine->OnScreenDebugMessageExists((uint64)(0x8000000 | (PTRINT)this)) == false)
 			{

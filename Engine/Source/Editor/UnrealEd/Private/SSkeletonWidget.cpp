@@ -1398,10 +1398,7 @@ void SBasePoseViewport::SetSkeleton(USkeleton* Skeleton)
 				//Place the camera at a good viewer position
 				FVector NewPosition = Client->GetViewLocation();
 				NewPosition.Normalize();
-				if(PreviewSkeletalMesh)
-				{
-					NewPosition *= (PreviewSkeletalMesh->GetImportedBounds().SphereRadius*1.5f);
-				}
+				NewPosition *= (PreviewSkeletalMesh->GetImportedBounds().SphereRadius*1.5f);
 				Client->SetViewLocation(NewPosition);
 			}
 			else

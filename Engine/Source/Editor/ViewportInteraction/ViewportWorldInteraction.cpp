@@ -3611,8 +3611,7 @@ FVector UViewportWorldInteraction::SnapLocation(const bool bLocalSpaceSnapping, 
 		FTransform DesiredGizmoTransform = GizmoStartTransform;
 		DesiredGizmoTransform.SetLocation( DesiredGizmoLocation );
 
-		FVector LocationOffset = FVector::ZeroVector;
-		LocationOffset = FindTransformGizmoAlignPoint(GizmoStartTransform, DesiredGizmoTransform, bShouldConstrainMovement, AlignAxes);
+		FVector LocationOffset = FindTransformGizmoAlignPoint(GizmoStartTransform, DesiredGizmoTransform, bShouldConstrainMovement, AlignAxes);
 		
 		if (!LocationOffset.IsZero())
 		{

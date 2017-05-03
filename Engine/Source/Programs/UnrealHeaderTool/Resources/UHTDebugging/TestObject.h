@@ -49,6 +49,9 @@ public:
 	UPROPERTY()
 	TSet<int32> TestSet;
 
+	UPROPERTY()
+	UObject* const ConstPointerProperty;
+
 	UFUNCTION()
 	void CodeGenTestForEnumClasses(ECppEnum Val);
 

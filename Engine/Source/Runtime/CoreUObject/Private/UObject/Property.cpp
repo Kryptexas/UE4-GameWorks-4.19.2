@@ -1264,7 +1264,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 							Warn->Logf(ELogVerbosity::Warning, TEXT("%s"), *ImportErrors[ErrorIndex]);
 						}
 					}
-					else if ((Result == NULL && ArrayProperty == nullptr) || Result == Str)
+					else if (Result == Str)
 					{
 						Warn->Logf(ELogVerbosity::Warning, TEXT("Invalid property value in defaults: %s"), Start);
 					}

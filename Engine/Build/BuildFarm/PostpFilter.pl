@@ -7,6 +7,9 @@ select(STDERR);
 $| = 1;
 select($previous_handle);
 
+# keep track of whether to output messages
+my $output_enabled = 1;
+
 # read everything from stdin
 while(<>)
 {
@@ -27,7 +30,20 @@ while(<>)
 	{
 		s/^\[[0-9.:-]+\]\[\s*\d+\]//;
 	}
-	
+
+	# look for a special marker to disable output
+	$output_enabled-- if /<-- Suspend Log Parsing -->/i;
+
 	# output the line
-	print $_;
+	if($output_enabled > 0)
+	{
+		print $_;
+	}
+	else
+	{
+		print "\n";
+	}
+
+	# look for a special marker to re-enable output
+	$output_enabled++ if /<-- Resume Log Parsing -->/i;
 }

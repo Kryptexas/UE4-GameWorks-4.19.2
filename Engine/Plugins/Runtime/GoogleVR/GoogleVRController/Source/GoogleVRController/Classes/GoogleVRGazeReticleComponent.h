@@ -25,7 +25,7 @@
 class UGoogleVRPointerInputComponent;
 class UCameraComponent;
 
-DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRGazeReticle, Log, All);
+GOOGLEVRCONTROLLER_API DECLARE_LOG_CATEGORY_EXTERN(LogGoogleVRGazeReticle, Log, All);
 
 /**
  * GoogleVRGazeReticleComponent is a customizable reticle used to interact with

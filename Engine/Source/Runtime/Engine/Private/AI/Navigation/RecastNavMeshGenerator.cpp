@@ -962,7 +962,7 @@ FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent* Component, FRecastG
 	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
 	if (PrimComp && PrimComp->IsNavigationRelevant() && (PrimComp->HasCustomNavigableGeometry() != EHasCustomNavigableGeometry::DontExport))
 	{
-		if (PrimComp->HasCustomNavigableGeometry() && !PrimComp->DoCustomNavigableGeometryExport(GeomExport)) 
+		if ((PrimComp->HasCustomNavigableGeometry() != EHasCustomNavigableGeometry::Type::No) && !PrimComp->DoCustomNavigableGeometryExport(GeomExport))
 		{
 			bHasData = true;
 		}
@@ -3646,7 +3646,7 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 	
 	if (DetourMesh != nullptr && DetourMesh->isEmpty() == false)
 	{
-		const int32 NumLayers = DetourMesh != nullptr ? DetourMesh->getTileCountAt(TileX, TileY) : 0;
+		const int32 NumLayers = DetourMesh->getTileCountAt(TileX, TileY);
 
 		if (NumLayers > 0)
 		{

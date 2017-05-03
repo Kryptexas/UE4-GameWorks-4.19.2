@@ -404,14 +404,11 @@ void FCinematicShotTrackEditor::NewTake(UMovieSceneCinematicShotSection* Section
 			UMovieSceneCinematicShotTrack* CinematicShotTrack = FindOrCreateCinematicShotTrack();
 			CinematicShotTrack->RemoveSection(*Section);
 
-			if (NewShot != nullptr)
-			{
-				NewShot->SetStartTime(NewShotStartTime);
-				NewShot->SetEndTime(NewShotEndTime);
-				NewShot->Parameters.StartOffset = NewShotStartOffset;
-				NewShot->Parameters.TimeScale = NewShotTimeScale;
-				NewShot->SetPreRollTime(NewShotPrerollTime);
-			}
+			NewShot->SetStartTime(NewShotStartTime);
+			NewShot->SetEndTime(NewShotEndTime);
+			NewShot->Parameters.StartOffset = NewShotStartOffset;
+			NewShot->Parameters.TimeScale = NewShotTimeScale;
+			NewShot->SetPreRollTime(NewShotPrerollTime);
 
 			GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemsChanged );
 		}

@@ -295,7 +295,7 @@ void FNiagaraSimulation::ResetSimulation()
 	SpawnRate = PinnedProps->SpawnRate;
 
 	//Check for various failure conditions and bail.
-	if (!PinnedProps || !PinnedProps->UpdateScriptProps.Script || !PinnedProps->SpawnScriptProps.Script)
+	if (!PinnedProps->UpdateScriptProps.Script || !PinnedProps->SpawnScriptProps.Script)
 	{
 		//TODO - Arbitrary named scripts. Would need some base functionality for Spawn/Udpate to be called that can be overriden in BPs for emitters with custom scripts.
 		UE_LOG(LogNiagara, Error, TEXT("Emitter cannot be enabled because it's doesn't have both an update and spawn script."), *PinnedProps->GetFullName());
@@ -631,14 +631,13 @@ void FNiagaraSimulation::PreTick()
 {
 	const UNiagaraEmitterProperties* PinnedProps = EmitterHandle->GetInstance();
 
-	const FNiagaraEventScriptProperties &EventHandlerProps = PinnedProps->EventHandlerScriptProps;
-
-
 	if (!PinnedProps || !bIsEnabled || !bDataInterfacesEnabled || !bHasValidPropertiesAndScripts
 		|| TickState == NTS_Suspended || TickState == NTS_Dead)
 	{
 		return;
 	}
+
+	const FNiagaraEventScriptProperties &EventHandlerProps = PinnedProps->EventHandlerScriptProps;
 
 	if (ExternalSpawnFunctionTable.Num() == 0 && PinnedProps->SpawnScriptProps.Script != nullptr && PinnedProps->SpawnScriptProps.Script->DataInterfaceInfo.Num() != 0)
 	{
@@ -711,11 +710,12 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 	SimpleTimer TickTime;
 
 	const UNiagaraEmitterProperties* PinnedProps = EmitterHandle->GetInstance();
-	const FNiagaraEventScriptProperties &EventHandlerProps = PinnedProps->EventHandlerScriptProps;
 	if (!PinnedProps || !bIsEnabled || !bDataInterfacesEnabled || !bHasValidPropertiesAndScripts || TickState == NTS_Suspended || TickState == NTS_Dead)
 	{
 		return;
 	}
+
+	const FNiagaraEventScriptProperties &EventHandlerProps = PinnedProps->EventHandlerScriptProps;
 
 	Age += DeltaSeconds;
 

@@ -204,7 +204,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 			int32 BoneIndex = InRequiredBones[i];
 
 			// See if this is a physics bone..
-			int32 BodyIndex = PhysicsAsset ? PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)) : INDEX_NONE;
+			int32 BodyIndex = PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
 			// need to update back to physX so that physX knows where it was after blending
 #if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
 			bool bUpdatePhysics = false;
@@ -220,11 +220,8 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 				{
 					UE_LOG(LogPhysics, Warning, TEXT("%s(Mesh %s, PhysicsAsset %s)"), 
 						*GetName(), *GetNameSafe(SkeletalMesh), *GetNameSafe(PhysicsAsset));
-					if ( PhysicsAsset )
-					{
-						UE_LOG(LogPhysics, Warning, TEXT(" - # of BodySetup (%d), # of Bodies (%d), Invalid BodyIndex(%d)"), 
-							PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num(), BodyIndex);
-					}
+					UE_LOG(LogPhysics, Warning, TEXT(" - # of BodySetup (%d), # of Bodies (%d), Invalid BodyIndex(%d)"), 
+						PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num(), BodyIndex);
 					continue;
 				}
 #endif

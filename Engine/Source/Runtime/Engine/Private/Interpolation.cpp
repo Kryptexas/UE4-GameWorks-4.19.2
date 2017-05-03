@@ -8059,7 +8059,7 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 						{
 							SoundInst->PlayAudioComp->bAllowSpatialization = false;
 						}
-						else if (Actor)
+						else
 						{
 							if (bAttach && Actor->GetRootComponent())
 							{

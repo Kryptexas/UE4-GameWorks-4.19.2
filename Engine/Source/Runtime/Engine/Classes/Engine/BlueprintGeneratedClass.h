@@ -722,10 +722,8 @@ public:
 	{
 		return bHasInstrumentation; 
 	}
-	virtual const FCustomPropertyListNode* GetCustomPropertyListForPostConstruction() const override
-	{
-		return CustomPropertyListForPostConstruction.Num() > 0 ? *CustomPropertyListForPostConstruction.GetData() : nullptr;
-	}
+
+	virtual void InitPropertiesFromCustomList(uint8* DataPtr, const uint8* DefaultDataPtr) override;
 
 protected:
 
@@ -733,6 +731,35 @@ protected:
 	virtual FGuid FindPropertyGuidFromName(const FName InName) const override;
 	virtual bool ArePropertyGuidsAvailable() const override;
 	// End UClass interface
+
+	/**
+	* Returns a linked list of properties with default values that differ from the parent default object. If non-NULL, only these properties will
+	* be copied post-construction. Otherwise, all properties will be copied to the new instance, even if the default value matches the inherited default value.
+	*/
+	const FCustomPropertyListNode* GetCustomPropertyListForPostConstruction() const
+	{
+		return CustomPropertyListForPostConstruction.Num() > 0 ? *CustomPropertyListForPostConstruction.GetData() : nullptr;
+	}
+
+	/**
+	* Helper method to assist with initializing object properties from an explicit list.
+	*
+	* @param	InPropertyList		only these properties will be copied from defaults
+	* @param	InStruct			the current scope for which the given property list applies
+	* @param	DataPtr				destination address (where to start copying values to)
+	* @param	DefaultDataPtr		source address (where to start copying the defaults data from)
+	*/
+	static void InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr);
+
+	/**
+	* Helper method to assist with initializing from an array property with an explicit item list.
+	*
+	* @param	ArrayProperty		the array property for which the given property list applies
+	* @param	InPropertyList		only these properties (indices) will be copied from defaults
+	* @param	DataPtr				destination address (where to start copying values to)
+	* @param	DefaultDataPtr		source address (where to start copying the defaults data from)
+	*/
+	static void InitArrayPropertyFromCustomList(const UArrayProperty* ArrayProperty, const FCustomPropertyListNode* InPropertyList, uint8* DataPtr, const uint8* DefaultDataPtr);
 
 public:
 
@@ -792,4 +819,6 @@ private:
 	TIndirectArray<FCustomPropertyListNode> CustomPropertyListForPostConstruction;
 	/** In some cases UObject::ConditionalPostLoad() code calls PostLoadDefaultObject() on a class that's still being serialized. */
 	FCriticalSection SerializeAndPostLoadCritical;
+	/** Flag to make sure the custom property list has been initialized */
+	bool bCustomPropertyListForPostConstructionInitialized;
 };

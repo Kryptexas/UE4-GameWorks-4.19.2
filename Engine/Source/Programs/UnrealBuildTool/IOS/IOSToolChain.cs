@@ -184,6 +184,7 @@ namespace UnrealBuildTool
 			// 			}
 
 			Result += " -Wall -Werror";
+			Result += " -Wdelete-non-virtual-dtor";
 
 			if (CompileEnvironment.bEnableShadowVariableWarnings)
 			{

@@ -10,7 +10,6 @@ using Microsoft.Win32;
 using System.Reflection;
 using System.Diagnostics;
 using UnrealBuildTool;
-using Tools.DotNETCommon.CaselessDictionary;
 
 namespace AutomationTool
 {
@@ -33,7 +32,7 @@ namespace AutomationTool
 	{
 		#region Fields
 				
-		private CaselessDictionary<Type> ScriptCommands;
+		private Dictionary<string, Type> ScriptCommands;
 #if DEBUG
 		const string BuildConfig = "Debug";
 #else
@@ -88,7 +87,7 @@ namespace AutomationTool
 
 			// Instantiate all the automation classes for interrogation
 			Log.TraceVerbose("Creating commands.");
-			ScriptCommands = new CaselessDictionary<Type>();
+			ScriptCommands = new Dictionary<string, Type>(StringComparer.InvariantCultureIgnoreCase);
 			foreach (var CompiledScripts in ScriptAssemblies)
 			{
 				try
@@ -333,7 +332,7 @@ namespace AutomationTool
 
 		#region Properties
 
-		public CaselessDictionary<Type> Commands
+		public Dictionary<string, Type> Commands
 		{
 			get { return ScriptCommands; }
 		}

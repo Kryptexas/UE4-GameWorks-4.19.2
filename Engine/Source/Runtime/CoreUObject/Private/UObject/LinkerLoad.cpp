@@ -2254,6 +2254,20 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 							);
 					}
 
+					// Go through the depend map of the linker to find out what exports are referencing this import
+					const FPackageIndex ImportPackageIndex = FPackageIndex::FromImport(ImportIndex);
+					for (int32 CurrentExportIndex = 0; CurrentExportIndex < DependsMap.Num(); ++CurrentExportIndex)
+					{
+						const TArray<FPackageIndex>& DependsList = DependsMap[CurrentExportIndex];
+						if (DependsList.Contains(ImportPackageIndex))
+						{
+							TokenizedMessage->AddToken(FTextToken::Create(
+								FText::Format(LOCTEXT("ImportFailureExportReference", "Referenced by export {ExportClass}"),
+									FText::FromName(GetExportClassName(CurrentExportIndex)))));
+							TokenizedMessage->AddToken(FAssetNameToken::Create(GetExportPathName(CurrentExportIndex)));
+						}
+					}
+
 					// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
 					UObject* ClassPackage = FindObject<UPackage>(nullptr, *Import.ClassPackage.ToString());
 					UClass* FindClass = ClassPackage ? FindObject<UClass>(ClassPackage, *OriginalImport.ClassName.ToString()) : nullptr;
@@ -4220,7 +4234,7 @@ void FLinkerLoad::DetachExport( int32 i )
 	{
 		const FLinkerLoad* ActualLinker = E.Object->GetLinker();
 		// TODO: verify the condition
-		const bool DynamicType = !ActualLinker && E.Object 
+		const bool DynamicType = !ActualLinker
 			&& (E.Object->HasAnyFlags(RF_Dynamic)
 			|| (E.Object->GetClass()->HasAnyFlags(RF_Dynamic) && E.Object->HasAnyFlags(RF_ClassDefaultObject) ));
 		if ((ActualLinker != this) && !DynamicType)

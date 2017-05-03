@@ -215,6 +215,10 @@ public:
 		Commands.Add(this);
 	}
 
+	virtual ~FAudioMixerCommand()
+	{
+	}
+
 	// Return the name of the test
 	const FString& GetName() const { return Name; }
 
@@ -247,7 +251,7 @@ TArray<FAudioMixerCommand*> FAudioMixerCommand::Commands;
 * FRunAudioDevice
 ************************************************************************/
 
-class FRunAudioDevice : public FAudioMixerCommand
+class FRunAudioDevice final : public FAudioMixerCommand
 {
 public:
 	FRunAudioDevice()
@@ -314,7 +318,7 @@ FRunAudioDevice RunAudioDevice;
 * FPlaySoundWave2D
 ************************************************************************/
 
-class FPlaySoundWave2D : public FAudioMixerCommand
+class FPlaySoundWave2D final : public FAudioMixerCommand
 {
 public:
 	FPlaySoundWave2D()
@@ -395,7 +399,7 @@ FPlaySoundWave2D PlaySoundWave2D;
 * FPlaySoundWaveLooping2D
 ************************************************************************/
 
-class FPlaySoundWaveLooping2D : public FAudioMixerCommand
+class FPlaySoundWaveLooping2D final : public FAudioMixerCommand
 {
 public:
 	FPlaySoundWaveLooping2D()
@@ -470,7 +474,7 @@ FPlaySoundWaveLooping2D PlaySoundWaveLooping2D;
 * FPlayRealTimeSoundWaveLooping2D
 ************************************************************************/
 
-class FPlayRealTimeSoundWaveLooping2D : public FAudioMixerCommand
+class FPlayRealTimeSoundWaveLooping2D final : public FAudioMixerCommand
 {
 public:
 	FPlayRealTimeSoundWaveLooping2D()
@@ -552,7 +556,7 @@ FPlayRealTimeSoundWaveLooping2D PlayRealTimeSoundWaveLooping2D;
 * FPlaySoundWaveLooping2DPitched
 ************************************************************************/
 
-class FPlaySoundWaveLooping2DPitched : public FAudioMixerCommand
+class FPlaySoundWaveLooping2DPitched final : public FAudioMixerCommand
 {
 public:
 	FPlaySoundWaveLooping2DPitched()
@@ -668,7 +672,7 @@ FPlaySoundWaveLooping2DPitched PlaySoundWaveLooping2DPitched;
 * FPlaySoundWaveLooping2DPitched
 ************************************************************************/
 
-class FPlaySoundWaveLooping3DPitched : public FAudioMixerCommand
+class FPlaySoundWaveLooping3DPitched final : public FAudioMixerCommand
 {
 public:
 

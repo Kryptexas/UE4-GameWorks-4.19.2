@@ -446,7 +446,7 @@ public:
 					if (FMessageDialog::Open(EAppMsgType::OkCancel,
 						FText::Format(
 						NSLOCTEXT("UnrealEd", "LandscapeMoveToStreamingLevel_SharedResources", "The following items must be moved out of the persistent level and into a package that can be shared between multiple levels:\n\n{0}"),
-						FText::FromString(MsgBoxList))))
+						FText::FromString(MsgBoxList))) == EAppReturnType::Type::Ok)
 					{
 						FString Path = Landscape->GetOutermost()->GetName() + TEXT("_sharedassets/");
 						bool bSucceed = ObjectTools::RenameObjects(RenameObjects, false, TEXT(""), Path);

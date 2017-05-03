@@ -270,7 +270,7 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 	check(LODLevel);
 	FVector OwnerScale(1.0f);
 	const FTransform& OwnerTM = Owner->Component->GetAsyncComponentToWorld();
-	if ((bApplyOwnerScale == true) && Owner->Component)
+	if (bApplyOwnerScale == true)
 	{
 		OwnerScale = OwnerTM.GetScale3D();
 	}

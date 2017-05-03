@@ -6716,7 +6716,7 @@ void FSequencer::BindCommands()
 
 			UPackage* EditedPackage = EditedSequence->GetOutermost();
 
-			return ((EditedSequence != nullptr) && (EditedPackage->FileSize != 0) && EditedPackage->IsDirty());
+			return ((EditedPackage->FileSize != 0) && EditedPackage->IsDirty());
 		})
 	);
 

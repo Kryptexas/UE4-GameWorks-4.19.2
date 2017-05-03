@@ -5302,7 +5302,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 				DebugDrawPhysicsAsset(ViewIndex, Collector, ViewFamily.EngineShowFlags);
 			}
 
-			if (EngineShowFlags.MassProperties && DebugMassData.Num() > 0 && MeshObject)
+			if (EngineShowFlags.MassProperties && DebugMassData.Num() > 0)
 			{
 				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 				const TArray<FTransform>& ComponentSpaceTransforms = *MeshObject->GetComponentSpaceTransforms();

@@ -819,7 +819,7 @@ void MeshPaintHelpers::FillVertexColors(UMeshComponent* MeshComponent, const FCo
 		// allocated, and potentially accessing the UStaticMesh.
 		Mesh->ReleaseResourcesFence.Wait();
 
-		if (Mesh && Mesh->LODInfo.Num() > 0)
+		if (Mesh->LODInfo.Num() > 0)
 		{
 			RecreateRenderStateContext = MakeUnique<FSkeletalMeshComponentRecreateRenderStateContext>(Mesh);
 			const int32 NumLods = Mesh->LODInfo.Num();

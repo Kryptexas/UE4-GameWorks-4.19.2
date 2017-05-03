@@ -408,8 +408,8 @@ namespace Audio
 
 	bool FEpicSynth1Voice::CreatePatch(const FPatchId PatchId, const ESynth1PatchSource PatchSource, const TArray<FSynth1PatchCable>& PatchCables, const bool bEnableByDefault)
 	{
-		FModulationMatrix* ModMatrix = &ParentSynth->ModMatrix;
-		if (DynamicPatches.Contains(PatchId.Id) || !ModMatrix)
+		FModulationMatrix& ModMatrix = ParentSynth->ModMatrix;
+		if (DynamicPatches.Contains(PatchId.Id))
 		{
 			return false;
 		}
@@ -431,7 +431,7 @@ namespace Audio
 		}
 		DynamicPatches.Add(PatchId.Id, NewPatch);
 
-		ModMatrix->AddPatch(VoiceId, NewPatch.Get());
+		ModMatrix.AddPatch(VoiceId, NewPatch.Get());
 
 		return true;
 	}

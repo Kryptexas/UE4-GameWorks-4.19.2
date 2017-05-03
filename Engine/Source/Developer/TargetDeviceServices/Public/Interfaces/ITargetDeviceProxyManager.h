@@ -79,6 +79,6 @@ public:
 
 public:
 
-	/** Virtual constructor. */
-	~ITargetDeviceProxyManager() { }
+	/** Virtual destructor. */
+	virtual ~ITargetDeviceProxyManager() { }
 };

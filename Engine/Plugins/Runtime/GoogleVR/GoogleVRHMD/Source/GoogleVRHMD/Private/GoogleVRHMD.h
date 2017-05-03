@@ -29,8 +29,6 @@
 #include "GoogleVRSplash.h"
 #include "Containers/Queue.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
-
 #define LOG_VIEWER_DATA_FOR_GENERATION 0
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS

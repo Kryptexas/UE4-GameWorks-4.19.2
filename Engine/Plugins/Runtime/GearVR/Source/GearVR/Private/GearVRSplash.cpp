@@ -133,7 +133,7 @@ void FGearVRSplash::Tick(float DeltaTime)
 			{
 				FRenderSplashInfo& Splash = RenderSplashScreens[i];
 				// Let update only each 2nd frame if rotation is needed
-				if ((!Splash.Desc.DeltaRotation.Equals(FQuat::Identity) && DeltaSecondsHighFreq > 2.f * DisplayRefreshRate))
+				if (!Splash.Desc.DeltaRotation.Equals(FQuat::Identity) && DeltaSecondsHighFreq > 2.f * DisplayRefreshRate)
 				{
 					if (pCurrentFrame)
 					{

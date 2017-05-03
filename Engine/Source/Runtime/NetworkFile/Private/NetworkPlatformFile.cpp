@@ -23,6 +23,8 @@
 #include "HAL/IPlatformFileModule.h"
 #include "UniquePtr.h"
 
+#include "Object.h"
+
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	#include "Developer/PackageDependencyInfo/Public/PackageDependencyInfo.h"
 #endif	//WITH_UNREAL_DEVELOPER_TOOLS
@@ -61,7 +63,7 @@ ITransport *CreateTransportForHostAddress(const FString &HostIp )
 
 	if ( HostIp.StartsWith(TEXT("http://")))
 	{
-#if ENABLE_HTTP_FOR_NFS
+#if ENABLE_HTTP_FOR_NF
 		return new FHTTPTransport();
 #endif
 	}
@@ -157,10 +159,13 @@ bool FNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, const TCHAR*
 
 bool FNetworkPlatformFile::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out)
 {
-	if ( FinishedAsyncNetworkReadUnsolicitedFiles )
 	{
-		delete FinishedAsyncNetworkReadUnsolicitedFiles;
-		FinishedAsyncNetworkReadUnsolicitedFiles = NULL;
+		FScopeLock ScopeLock(&SynchronizationObject);
+		if ( FinishedAsyncNetworkReadUnsolicitedFiles )
+		{
+			delete FinishedAsyncNetworkReadUnsolicitedFiles;
+			FinishedAsyncNetworkReadUnsolicitedFiles = NULL;
+		}
 	}
 	
 	return Transport->SendPayloadAndReceiveResponse( In, Out );
@@ -364,6 +369,7 @@ FNetworkPlatformFile::~FNetworkPlatformFile()
 {
 	if (!GIsRequestingExit) // the socket subsystem is probably already gone, so it will crash if we clean up
 	{
+		FScopeLock ScopeLock(&SynchronizationObject);
 		if ( FinishedAsyncNetworkReadUnsolicitedFiles )
 		{
 			delete FinishedAsyncNetworkReadUnsolicitedFiles; // wait here for any async unsolicited files to finish reading being read from the network 
@@ -1083,41 +1089,31 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 	float ThisTime;
 	StartTime = FPlatformTime::Seconds();
 
-	{
-		FScopeLock ScopeLock(&SynchronizationObject);
-		// have we already cached this file? 
-		if (CachedLocalFiles.Find(Filename) != NULL)
-		{
-			return;
-		}
-	}
-
-	if ( FinishedAsyncNetworkReadUnsolicitedFiles )
-	{
-		delete FinishedAsyncNetworkReadUnsolicitedFiles; // wait here for any async unsolicited files to finish reading being read from the network 
-		FinishedAsyncNetworkReadUnsolicitedFiles = NULL;
-	}
-	if( FinishedAsyncWriteUnsolicitedFiles)
-	{
-		delete FinishedAsyncWriteUnsolicitedFiles; // wait here for any async unsolicited files to finish writing to disk
-		FinishedAsyncWriteUnsolicitedFiles = NULL;
-	}
-	
-
-
-
 	FScopeLock ScopeLock(&SynchronizationObject);
-
-	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
-	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Lock and wait for old async writes %6.2fms"), ThisTime);
-
-	// have we already cached this file? (test again, since some other thread might have done this between waits)
+	// have we already cached this file? 
 	if (CachedLocalFiles.Find(Filename) != NULL)
 	{
 		return;
 	}
+
+
+	if (FinishedAsyncNetworkReadUnsolicitedFiles)
+	{
+		delete FinishedAsyncNetworkReadUnsolicitedFiles; // wait here for any async unsolicited files to finish reading being read from the network 
+		FinishedAsyncNetworkReadUnsolicitedFiles = NULL;
+	}
+	if (FinishedAsyncWriteUnsolicitedFiles)
+	{
+		delete FinishedAsyncWriteUnsolicitedFiles; // wait here for any async unsolicited files to finish writing to disk
+		FinishedAsyncWriteUnsolicitedFiles = NULL;
+	}
+
+	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
+	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Lock and wait for old async writes %6.2fms"), ThisTime);
+
 	// even if an error occurs later, we still want to remember not to try again
 	CachedLocalFiles.Add(Filename);
+	UE_LOG(LogNetworkPlatformFile, Warning, TEXT("Cached file %s"), *Filename)
 
 	StartTime = FPlatformTime::Seconds();
 
@@ -1268,6 +1264,8 @@ void FNetworkPlatformFile::PerformHeartbeat()
 	// send the filename over (cast away const here because we know this << will not modify the string)
 	FNetworkFileArchive Payload(NFS_Messages::Heartbeat);
 
+	
+
 	// send the filename over
 	FArrayReader Response;
 	if (!SendPayloadAndReceiveResponse(Payload, Response))
@@ -1282,13 +1280,37 @@ void FNetworkPlatformFile::PerformHeartbeat()
 	// delete any outdated files from the client
 	// @todo: This may need a critical section around all calls to LowLevel in the other functions
 	// because we don't want to delete files while other threads are using them!
+
+	TArray<FString> PackageNames;
 	for (int32 FileIndex = 0; FileIndex < UpdatedFiles.Num(); FileIndex++)
 	{
-		UE_LOG(LogNetworkPlatformFile, Log, TEXT("Server updated file '%s', deleting local copy"), *UpdatedFiles[FileIndex]);
-		if (InnerPlatformFile->DeleteFile(*UpdatedFiles[FileIndex]) == false)
+		// clean up the linkers for this package
+		FString LocalFileName = UpdatedFiles[FileIndex];
+		ConvertServerFilenameToClientFilename( LocalFileName );
+
+		UE_LOG(LogNetworkPlatformFile, Log, TEXT("Server updated file '%s', deleting local copy %s"), *UpdatedFiles[FileIndex], *LocalFileName);
+
+		FString PackageName;
+		if ( FPackageName::TryConvertFilenameToLongPackageName(LocalFileName, PackageName) )
+		{
+			PackageNames.Add(PackageName );
+		}
+		else
+		{
+			UE_LOG(LogNetworkPlatformFile, Log, TEXT("Unable to convert filename to package name %s"), *LocalFileName);
+		}
+
+		if (InnerPlatformFile->FileExists( *LocalFileName ) && InnerPlatformFile->DeleteFile(*LocalFileName) == false)
 		{
 			UE_LOG(LogNetworkPlatformFile, Error, TEXT("Failed to delete %s, someone is probably accessing without FNetworkPlatformFile, or we need better thread protection"), *UpdatedFiles[FileIndex]);
 		}
+		CachedLocalFiles.Remove(LocalFileName);
+		ServerFiles.AddFileOrDirectory(LocalFileName, FDateTime::UtcNow());
+	}
+
+	if ( PackageNames.Num() > 0 )
+	{
+		FCoreUObjectDelegates::NetworkFileRequestPackageReload.ExecuteIfBound(PackageNames);
 	}
 }
 
@@ -1303,6 +1325,47 @@ void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& Filena
 	else if (FilenameToConvert.StartsWith(InServerGameDir))
 	{
 		FilenameToConvert = FilenameToConvert.Replace(*InServerGameDir, *(FPaths::GameDir()));
+	}
+}
+
+void FNetworkPlatformFile::Tick() 
+{
+	// try send a heart beat every 5 seconds as long as we are not async loading
+	static double StartTime = FPlatformTime::Seconds();
+
+	bool bShouldPerformHeartbeat = true;
+	if ((FPlatformTime::Seconds() - StartTime) > 5.0f )
+	{
+
+
+		if (IsAsyncLoading() && bShouldPerformHeartbeat)
+		{
+			bShouldPerformHeartbeat = false;
+		}
+
+		{
+			FScopeLock S(&SynchronizationObject);
+			if (FinishedAsyncNetworkReadUnsolicitedFiles && bShouldPerformHeartbeat)
+			{
+				if ( FinishedAsyncNetworkReadUnsolicitedFiles->IsReady() )
+				{
+					delete FinishedAsyncNetworkReadUnsolicitedFiles;
+					FinishedAsyncNetworkReadUnsolicitedFiles = nullptr;
+				}
+				else
+				{
+					bShouldPerformHeartbeat = false;
+				}
+			}
+		}
+
+		if ( bShouldPerformHeartbeat )
+		{
+			StartTime = FPlatformTime::Seconds();
+
+			//DeleteLoaders();
+			PerformHeartbeat();
+		}
 	}
 }
 

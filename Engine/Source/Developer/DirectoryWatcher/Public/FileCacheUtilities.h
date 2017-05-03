@@ -7,7 +7,7 @@
 
 class FWildcardString;
 
-DEFINE_LOG_CATEGORY_STATIC(LogFileCache, Log, All);
+DIRECTORYWATCHER_API DECLARE_LOG_CATEGORY_EXTERN(LogFileCache, Log, All);
 
 namespace DirectoryWatcher
 {

@@ -118,7 +118,7 @@ private:
 	ILauncherProfilePtr Profile;
 
 	// Holds the worker's current status.
-	ELauncherWorkerStatus::Type Status;
+	volatile ELauncherWorkerStatus::Type Status;
 
 	// Holds the first task in the task chain.
 	TSharedPtr<FLauncherTask> TaskChain;

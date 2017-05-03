@@ -17,7 +17,7 @@
 
 #include "ModuleManager.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRTransition2D, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogGoogleVRTransition2D, Log, All);
 
 class FGoogleVRTransition2DModule : public IModuleInterface
 {

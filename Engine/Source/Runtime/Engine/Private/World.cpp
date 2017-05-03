@@ -600,7 +600,7 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 		// We're duplicating the world, also duplicate UObjects which are map data but don't have the UWorld in their Outer chain.  There are two cases:
 		// 1) legacy lightmap textures and MapBuildData object will be in the same package as the UWorld
 		// 2) MapBuildData will be in a separate package with lightmap textures underneath it
-		if (PersistentLevel && PersistentLevel->MapBuildData)
+		if (PersistentLevel->MapBuildData)
 		{
 			UPackage* BuildDataPackage = MyPackage;
 			FName NewMapBuildDataName = PersistentLevel->MapBuildData->GetFName();
@@ -3320,14 +3320,17 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 			UE_LOG(LogWorld, Warning, TEXT("*** WARNING - PATHS MAY NOT BE VALID ***"));
 		}
 
-		// Lock the level.
-		if(IsPreviewWorld())
+		if (GEngine != NULL)
 		{
-			UE_LOG(LogWorld, Verbose,  TEXT("Bringing preview %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
-		}
-		else
-		{
-			UE_LOG(LogWorld, Log,  TEXT("Bringing %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
+			// Lock the level.
+			if (IsPreviewWorld())
+			{
+				UE_LOG(LogWorld, Verbose, TEXT("Bringing preview %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0, false)), *FDateTime::Now().ToString());
+			}
+			else
+			{
+				UE_LOG(LogWorld, Log, TEXT("Bringing %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0, false)), *FDateTime::Now().ToString());
+			}
 		}
 
 		// Initialize network actors and start execution.
@@ -6081,17 +6084,23 @@ void UWorld::SetGameState(AGameStateBase* NewGameState)
 	GameState = NewGameState;
 
 	// Set the GameState on the LevelCollection it's associated with.
-	const ULevel* const CachedLevel = NewGameState->GetLevel();
-	FLevelCollection* const FoundCollection = NewGameState ? CachedLevel->GetCachedLevelCollection() : nullptr;
-	if (FoundCollection)
+	if (NewGameState != nullptr)
 	{
-		FoundCollection->SetGameState(NewGameState);
-
-		// For now the static levels use the same GameState as the source dynamic levels.
-		if (FoundCollection->GetType() == ELevelCollectionType::DynamicSourceLevels)
+	    const ULevel* const CachedLevel = NewGameState->GetLevel();
+		if(CachedLevel != nullptr)
 		{
-			FLevelCollection& StaticLevels = FindOrAddCollectionByType(ELevelCollectionType::StaticLevels);
-			StaticLevels.SetGameState(NewGameState);
+	        FLevelCollection* const FoundCollection = CachedLevel->GetCachedLevelCollection();
+	        if (FoundCollection)
+	        {
+		        FoundCollection->SetGameState(NewGameState);
+        
+		        // For now the static levels use the same GameState as the source dynamic levels.
+		        if (FoundCollection->GetType() == ELevelCollectionType::DynamicSourceLevels)
+		        {
+			        FLevelCollection& StaticLevels = FindOrAddCollectionByType(ELevelCollectionType::StaticLevels);
+			        StaticLevels.SetGameState(NewGameState);
+		        }
+	        }
 		}
 	}
 }

@@ -80,6 +80,7 @@
     <Compile Include="ProjectUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScriptCompiler.cs" />
+    <Compile Include="ThreadPoolWorkQueue.cs" />
     <Compile Include="UBTUtils.cs" />
     <Compile Include="UE4Build.cs" />
     <Compile Include="Utils.cs" />

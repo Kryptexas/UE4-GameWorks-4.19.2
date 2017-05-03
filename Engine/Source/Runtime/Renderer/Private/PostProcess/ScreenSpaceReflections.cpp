@@ -549,7 +549,7 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 	{
 		{
 			FRenderingCompositeOutputRef HistoryInput;
-			if( ViewState && ViewState->SSRHistoryRT && !Context.View.bCameraCut )
+			if( ViewState->SSRHistoryRT && !Context.View.bCameraCut )
 			{
 				HistoryInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( ViewState->SSRHistoryRT ) );
 			}
@@ -568,13 +568,10 @@ void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInf
 			Context.FinalOutput = FRenderingCompositeOutputRef( TemporalAAPass );
 		}
 
-		if( ViewState )
-		{
-			FRenderingCompositePass* HistoryOutput = Context.Graph.RegisterPass( new FRCPassPostProcessOutput( &ViewState->SSRHistoryRT ) );
-			HistoryOutput->SetInput( ePId_Input0, Context.FinalOutput );
+		FRenderingCompositePass* HistoryOutput = Context.Graph.RegisterPass( new FRCPassPostProcessOutput( &ViewState->SSRHistoryRT ) );
+		HistoryOutput->SetInput( ePId_Input0, Context.FinalOutput );
 
-			Context.FinalOutput = FRenderingCompositeOutputRef( HistoryOutput );
-		}
+		Context.FinalOutput = FRenderingCompositeOutputRef( HistoryOutput );
 	}
 
 	{

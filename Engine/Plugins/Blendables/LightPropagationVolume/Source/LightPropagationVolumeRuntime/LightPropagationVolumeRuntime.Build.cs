@@ -11,6 +11,7 @@ public class LightPropagationVolumeRuntime : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",           // FBlendableManager
+				"Renderer"
 //				"RHI",
 //				"RenderCore",
 //				"ShaderCore",

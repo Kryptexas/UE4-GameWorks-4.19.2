@@ -27,15 +27,35 @@ WCHAR* ReadResourceString(HMODULE ModuleHandle, LPCWSTR Name)
 	return Result;
 }
 
-int InstallMissingPrerequisites(const WCHAR* BaseDirectory)
+bool TryLoadDll(const WCHAR* ExecDirectory, const WCHAR* Name)
+{
+	// Try to load it from the system path
+	if (LoadLibrary(Name) != nullptr)
+	{
+		return true;
+	}
+
+	// Try to load it from the application directory
+	WCHAR AppLocalPath[MAX_PATH];
+	PathCombine(AppLocalPath, ExecDirectory, Name);
+	if (LoadLibrary(AppLocalPath) != nullptr)
+	{
+		return true;
+	}
+
+	// Otherwise fail
+	return false;
+}
+
+int InstallMissingPrerequisites(const WCHAR* BaseDirectory, const WCHAR* ExecDirectory)
 {
 	// Look for missing prerequisites
 	WCHAR MissingPrerequisites[1024] = { 0, };
-	if(LoadLibrary(L"MSVCP140.DLL") == NULL || LoadLibrary(L"ucrtbase.dll") == NULL)
+	if(!TryLoadDll(ExecDirectory, L"MSVCP140.DLL") || !TryLoadDll(ExecDirectory, L"ucrtbase.dll"))
 	{
 		wcscat_s(MissingPrerequisites, TEXT("Microsoft Visual C++ 2015 Runtime\n"));
 	}
-	if(LoadLibrary(L"XINPUT1_3.DLL") == NULL)
+	if(!TryLoadDll(ExecDirectory, L"XINPUT1_3.DLL"))
 	{
 		wcscat_s(MissingPrerequisites, TEXT("DirectX Runtime\n"));
 	}
@@ -107,7 +127,7 @@ int SpawnTarget(WCHAR* CmdLine)
 		WCHAR* Buffer = new WCHAR[wcslen(CmdLine) + 50];
 		wsprintf(Buffer, L"Couldn't start:\n%s\nCreateProcess() returned %x.", CmdLine, ErrorCode);
 		MessageBoxW(NULL, Buffer, NULL, MB_OK);
-		delete Buffer;
+		delete[] Buffer;
 
 		return 9005;
 	}
@@ -143,18 +163,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, TCHAR* CmdLine
 		return 9000;
 	}
 
+	// Get the directory containing the target to be executed
+	WCHAR* TempExecDirectory = new WCHAR[wcslen(BaseDirectory) + wcslen(ExecFile) + 20];
+	wsprintf(TempExecDirectory, L"%s\\%s", BaseDirectory, ExecFile);
+	WCHAR ExecDirectory[MAX_PATH];
+	PathCanonicalize(ExecDirectory, TempExecDirectory);
+	delete[] TempExecDirectory;
+	PathRemoveFileSpec(ExecDirectory);
+
 	// Create a full command line for the program to run
 	WCHAR* BaseArgs = ReadResourceString(hInstance, MAKEINTRESOURCE(IDI_EXEC_ARGS));
 	WCHAR* ChildCmdLine = new WCHAR[wcslen(BaseDirectory) + wcslen(ExecFile) + wcslen(BaseArgs) + wcslen(CmdLine) + 20];
 	wsprintf(ChildCmdLine, L"\"%s\\%s\" %s %s", BaseDirectory, ExecFile, BaseArgs, CmdLine);
-	delete BaseArgs;
-	delete ExecFile;
+	delete[] BaseArgs;
+	delete[] ExecFile;
 
 	// Install the prerequisites
-	int ExitCode = InstallMissingPrerequisites(BaseDirectory);
+	int ExitCode = InstallMissingPrerequisites(BaseDirectory, ExecDirectory);
 	if(ExitCode != 0)
 	{
-		delete ChildCmdLine;
+		delete[] ChildCmdLine;
 		return ExitCode;
 	}
 
@@ -162,10 +190,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, TCHAR* CmdLine
 	ExitCode = SpawnTarget(ChildCmdLine);
 	if(ExitCode != 0)
 	{
-		delete ChildCmdLine;
+		delete[] ChildCmdLine;
 		return ExitCode;
 	}
 
-	delete ChildCmdLine;
+	delete[] ChildCmdLine;
 	return ExitCode;
 }

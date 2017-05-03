@@ -6,7 +6,9 @@
 #include "ViewportInteractionAssetContainer.generated.h"
 
 // Forward declarations
+class UMaterialInterface;
 class USoundBase;
+class UStaticMesh;
 
 /**
  * Asset container for viewport interaction.

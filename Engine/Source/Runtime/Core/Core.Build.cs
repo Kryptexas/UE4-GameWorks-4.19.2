@@ -12,6 +12,8 @@ public class Core : ModuleRules
 
 		SharedPCHHeaderFile = "Public/CoreSharedPCH.h";
 
+		bAddDefaultIncludePaths = false;
+
 		PublicIncludePaths.AddRange(
 			new string[] {
 				"Runtime/Core/Public",

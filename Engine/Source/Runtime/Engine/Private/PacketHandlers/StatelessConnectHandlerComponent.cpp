@@ -211,7 +211,7 @@ void StatelessConnectHandlerComponent::SendConnectChallenge(FString ClientAddres
 	{
 		FBitWriter ChallengePacket(HANDSHAKE_PACKET_SIZE_BITS + 1 /* Termination bit */);
 		uint8 bHandshakePacket = 1;
-		float Timestamp = (Driver != nullptr ? Driver->Time : -1.f);
+		float Timestamp = Driver->Time;
 		uint8 Cookie[20];
 
 		GenerateCookie(ClientAddress, ActiveSecret, Timestamp, Cookie);

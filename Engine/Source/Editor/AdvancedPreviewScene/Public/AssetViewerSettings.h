@@ -107,8 +107,7 @@ struct FPreviewSceneProfile
 		if (EnvironmentCubeMap == nullptr)
 		{
 			// Load cube map from stored path
-			UObject* LoadedObject = nullptr;
-			LoadedObject = LoadObject<UObject>(nullptr, *EnvironmentCubeMapPath);
+			UObject* LoadedObject = LoadObject<UObject>(nullptr, *EnvironmentCubeMapPath);
 			while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(LoadedObject))
 			{
 				LoadedObject = Redirector->DestinationObject;

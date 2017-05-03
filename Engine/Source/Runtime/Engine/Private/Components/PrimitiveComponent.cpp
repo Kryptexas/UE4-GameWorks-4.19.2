@@ -1779,7 +1779,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 					ensureMsgf(IsRegistered(), TEXT("%s MovedComponent %s not initialized deleteme %d"),*Actor->GetName(), *GetName(), Actor->IsPendingKill());
 				}
 				else
-				{
+				{ //-V523
 					ensureMsgf(IsRegistered(), TEXT("MovedComponent %s not initialized"), *GetFullName());
 				}
 			}

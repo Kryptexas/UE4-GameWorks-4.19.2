@@ -25,7 +25,7 @@
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/ScreenSpaceReflections.h"
 #include "LightRendering.h"
-#include "LightPropagationVolumeBlendable.h"
+#include "LightPropagationVolumeSettings.h"
 #include "PipelineStateCache.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Reflection Environment"), Stat_GPU_ReflectionEnvironment, STATGROUP_GPU);

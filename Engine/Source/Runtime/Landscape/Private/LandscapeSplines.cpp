@@ -998,10 +998,7 @@ void ULandscapeSplinesComponent::RemoveForeignMeshComponent(ULandscapeSplineSegm
 		verifySlow(SegmentData->MeshComponents.RemoveSingle(Component) == 1);
 		if (SegmentData->MeshComponents.Num() == 0)
 		{
-			if (SegmentData != nullptr)
-			{
-				verifySlow(ForeignWorldSplineData->ForeignSplineSegmentData.RemoveSingle(*SegmentData) == 1);
-			}
+			verifySlow(ForeignWorldSplineData->ForeignSplineSegmentData.RemoveSingle(*SegmentData) == 1);
 
 			if (ForeignWorldSplineData->IsEmpty())
 			{

@@ -70,7 +70,7 @@ public:
 		const UConsoleSettings* ConsoleSettings = GetDefault<UConsoleSettings>();
 
 		// can be optimized
-		int32 NewIdx = Sink.AddZeroed(1);
+		int32 NewIdx = Sink.AddDefaulted();
 		FAutoCompleteCommand& Cmd = Sink[NewIdx];
 		Cmd.Command = Name;
 
@@ -204,7 +204,16 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 				FuncName = FString(TEXT("ce ")) + FuncName;
 			}
 
-			const int32 NewIdx = AutoCompleteList.AddDefaulted();
+			int32 Idx = 0;
+			for (; Idx < AutoCompleteList.Num(); ++Idx)
+			{
+				if (AutoCompleteList[Idx].Command.ToLower() == FuncName)
+				{
+					break;
+				}
+			}
+
+			const int32 NewIdx = (Idx < AutoCompleteList.Num()) ? Idx : AutoCompleteList.AddDefaulted();
 			AutoCompleteList[NewIdx].Command = FuncName;
 			AutoCompleteList[NewIdx].Color = ConsoleSettings->AutoCompleteCommandColor;
 
@@ -217,7 +226,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 				UProperty *Prop = *PropIt;
 				Desc += FString::Printf(TEXT("%s[%s] "),*Prop->GetName(),*Prop->GetCPPType());
 			}
-			AutoCompleteList[NewIdx].Desc = Desc;
+			AutoCompleteList[NewIdx].Desc = Desc + AutoCompleteList[NewIdx].Desc;
 		}
 	}
 
@@ -279,16 +288,24 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 	// stat commands
 	{
 		const TSet<FName>& StatGroupNames = FStatGroupGameThreadNotifier::Get().StatGroupNames;
-
-		int32 NewIdx = AutoCompleteList.AddDefaulted(StatGroupNames.Num());
 		for (const FName& StatGroupName : StatGroupNames)
 		{
 			FString Command = FString(TEXT("Stat "));
 			Command += StatGroupName.ToString().RightChop(sizeof("STATGROUP_") - 1);
+			const FString CommandLower = Command.ToLower();
 
-			AutoCompleteList[NewIdx].Command = Command;
-			AutoCompleteList[NewIdx].Color = ConsoleSettings->AutoCompleteCommandColor;
-			NewIdx++;
+			int32 Idx = 0;
+			for (; Idx < AutoCompleteList.Num(); ++Idx)
+			{
+				if (AutoCompleteList[Idx].Command.ToLower() == CommandLower)
+				{
+					break;
+				}
+			}
+
+			Idx = (Idx < AutoCompleteList.Num()) ? Idx : AutoCompleteList.AddDefaulted();
+			AutoCompleteList[Idx].Command = Command;
+			AutoCompleteList[Idx].Color = ConsoleSettings->AutoCompleteCommandColor;
 		}
 	}
 #endif
@@ -308,7 +325,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 				FText LocName;
 				FEngineShowFlags::FindShowFlagDisplayName(InName, LocName);
 				
-				int32 NewIdx = AutoCompleteList.AddZeroed(1);
+				int32 NewIdx = AutoCompleteList.AddDefaulted();
 				AutoCompleteList[NewIdx].Command = TEXT("show ") + InName;
 				AutoCompleteList[NewIdx].Desc = FString::Printf(TEXT("(toggles the %s showflag)"),*LocName.ToString());
 				AutoCompleteList[NewIdx].Color = GetDefault<UConsoleSettings>()->AutoCompleteCommandColor;

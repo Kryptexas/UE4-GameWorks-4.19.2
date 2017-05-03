@@ -34,7 +34,7 @@ FTokenData* FClassMetaData::FindTokenData( UProperty* Prop )
 		{
 			OuterClass = Cast<UClass>(Outer);
 
-			if (Result == nullptr && OuterClass != nullptr && OuterClass->GetSuperClass() != OuterClass)
+			if (OuterClass != nullptr && OuterClass->GetSuperClass() != OuterClass)
 			{
 				OuterClass = OuterClass->GetSuperClass();
 			}

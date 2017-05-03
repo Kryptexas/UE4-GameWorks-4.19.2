@@ -1750,10 +1750,10 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	bool bAllWindowsHidden = !bHasFocus && GEditor->AreAllWindowsHidden();
 	if( !bAllWindowsHidden )
 	{
-		FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
-		if (PixelInspectorModule != nullptr && PixelInspectorModule->IsPixelInspectorEnable())
+		FPixelInspectorModule& PixelInspectorModule = FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+		if (PixelInspectorModule.IsPixelInspectorEnable())
 		{
-			PixelInspectorModule->ReadBackSync();
+			PixelInspectorModule.ReadBackSync();
 		}
 
 		// Render view parents, then view children.
@@ -7009,10 +7009,7 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 		{
 			*OutError = TEXT("Error encountered.");
 		}
-	}
 
-	if (bNeedPieStart)
-	{
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand);
 	}
 #endif

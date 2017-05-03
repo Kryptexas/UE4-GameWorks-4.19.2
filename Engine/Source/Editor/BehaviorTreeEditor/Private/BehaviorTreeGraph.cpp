@@ -912,7 +912,7 @@ void UBehaviorTreeGraph::CreateBTFromGraph(UBehaviorTreeGraphNode* RootEdNode)
 	BTGraphHelpers::CollectDecorators(BTAsset, RootEdNode, BTAsset->RootDecorators, BTAsset->RootDecoratorOps, false, NULL, &DummyIndex, 0, 0);
 
 	// connect tree nodes
-	BTGraphHelpers::CreateChildren(BTAsset, BTAsset->RootNode, RootEdNode, &ExecutionIndex, TreeDepth + 1);
+	BTGraphHelpers::CreateChildren(BTAsset, BTAsset->RootNode, RootEdNode, &ExecutionIndex, TreeDepth + 1); //-V595
 
 	// mark root level nodes
 	BTGraphHelpers::ClearRootLevelFlags(this);

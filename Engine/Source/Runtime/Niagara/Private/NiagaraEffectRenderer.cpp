@@ -62,9 +62,6 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererLights::GenerateVertexData(const F
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraGenLights);
 
-	FNiagaraDynamicDataLights *DynamicData = new FNiagaraDynamicDataLights;
-
-
 	SimpleTimer VertexDataTimer;
 
 	//I'm not a great fan of pulling scalar components out to a structured vert buffer like this.
@@ -78,6 +75,8 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererLights::GenerateVertexData(const F
 	{
 		return nullptr;
 	}
+
+	FNiagaraDynamicDataLights *DynamicData = new FNiagaraDynamicDataLights;
 
 	DynamicData->LightArray.Empty();
 

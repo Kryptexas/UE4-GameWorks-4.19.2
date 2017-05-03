@@ -9,14 +9,14 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
-using Tools.DotNETCommon.XmlHandler;
 using UnrealBuildTool;
 using System.Runtime.CompilerServices;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Tools.DotNETCommon;
-using Tools.DotNETCommon.CaselessDictionary;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace AutomationTool
 {
@@ -1460,7 +1460,39 @@ namespace AutomationTool
 		/// <returns></returns>
 		public static UnrealBuildTool.BuildManifest ReadManifest(string ManifestName)
 		{
-			return XmlHandler.ReadXml<UnrealBuildTool.BuildManifest>(ManifestName);
+			// Create a new default instance of the type
+			UnrealBuildTool.BuildManifest Instance = new UnrealBuildTool.BuildManifest();
+			XmlReader XmlStream = null;
+			try
+			{
+				// Use the default reader settings if none are passed in
+				XmlReaderSettings ReaderSettings = new XmlReaderSettings();
+				ReaderSettings.CloseInput = true;
+				ReaderSettings.IgnoreComments = true;
+
+				// Get the xml data stream to read from
+				XmlStream = XmlReader.Create( ManifestName, ReaderSettings );
+
+				// Creates an instance of the XmlSerializer class so we can read the settings object
+				XmlSerializer ObjectReader = new XmlSerializer( typeof( UnrealBuildTool.BuildManifest ) );
+
+				// Create an object from the xml data
+				Instance = ( UnrealBuildTool.BuildManifest )ObjectReader.Deserialize( XmlStream );
+			}
+			catch( Exception Ex )
+			{
+				Debug.WriteLine( Ex.Message );
+			}
+			finally
+			{
+				if( XmlStream != null )
+				{
+					// Done with the file so close it
+					XmlStream.Close();
+				}
+			}
+
+			return Instance;
 		}
 
 		private static void CloneDirectoryRecursiveWorker(string SourcePathBase, string TargetPathBase, List<string> ClonedFiles, bool bIncremental = false)

@@ -28,6 +28,7 @@ class MESHPAINT_API IMeshPainter
 {
 public:
 	IMeshPainter();
+	virtual ~IMeshPainter();
 
 	/** Renders ray widgets for the active viewport interactors */
 	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) = 0;

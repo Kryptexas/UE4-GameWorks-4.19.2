@@ -29,5 +29,16 @@
 			"Name": "OnlineSubsystemOculus",
 			"LoadingPolicy": "Always"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemUtils",
+			"Enabled": true
+		}
 	]
+
 }

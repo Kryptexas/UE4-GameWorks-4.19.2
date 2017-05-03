@@ -97,7 +97,7 @@ void UParty::OnLogoutComplete(int32 LocalUserNum, bool bWasSuccessful)
 					}
 					else
 					{
-						UE_LOG(LogParty, Log, TEXT("[%s] Removed - Invalid party Id"));
+						UE_LOG(LogParty, Log, TEXT("Removed - Invalid party Id"));
 					}
 					Party->HandleRemovedFromParty(EMemberExitedReason::Left);
 				}

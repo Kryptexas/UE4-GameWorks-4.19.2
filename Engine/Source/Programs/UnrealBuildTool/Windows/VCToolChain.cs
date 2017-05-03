@@ -14,11 +14,13 @@ namespace UnrealBuildTool
 	class VCToolChain : UEToolChain
 	{
 		WindowsCompiler Compiler;
+		bool bWithStaticAnalyzer;
 
-		public VCToolChain(CppPlatform CppPlatform, WindowsCompiler Compiler)
+		public VCToolChain(CppPlatform CppPlatform, WindowsCompiler Compiler, bool bWithStaticAnalyzer)
 			: base(CppPlatform)
 		{
 			this.Compiler = Compiler;
+			this.bWithStaticAnalyzer = bWithStaticAnalyzer;
 		}
 
 		static void AddDefinition(List<string> Arguments, string Definition)
@@ -169,7 +171,7 @@ namespace UnrealBuildTool
 			// NOTE re: clang: the arguments for clang-cl can be found at http://llvm.org/viewvc/llvm-project/cfe/trunk/include/clang/Driver/CLCompatOptions.td?view=markup
 			// This will show the cl.exe options that map to clang.exe ones, which ones are ignored and which ones are unsupported.
 
-			if (CompileEnvironment.bEnableCodeAnalysis)
+			if (bWithStaticAnalyzer)
 			{
 				Arguments.Add("/analyze");
 

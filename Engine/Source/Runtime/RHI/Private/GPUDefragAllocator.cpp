@@ -1362,11 +1362,8 @@ void FGPUDefragAllocator::PartialDefragmentationSlow(FRelocationStats& Stats, do
 		}
 		else
 		{
-			if (!BestChunk)
-			{
-				//1. Merge with chunk from the end of the pool (well-fitting)
-				BestChunk = FindAny(FreeChunk);
-			}			
+			//1. Merge with chunk from the end of the pool (well-fitting)
+			BestChunk = FindAny(FreeChunk);
 		}
 
 		if (BestChunk)
@@ -1453,25 +1450,21 @@ void FGPUDefragAllocator::FullDefragmentation(FRelocationStats& Stats)
 	FMemoryChunk* FreeChunk = FirstFreeChunk;
 	while (FreeChunk)
 	{
-		FMemoryChunk* BestChunk = nullptr;
+		// Try merging with a used chunk adjacent to hole (to make that hole larger).
+		FMemoryChunk* BestChunk = FindAdjacentToHole(FreeChunk);
+
 		if (!BestChunk)
 		{
-			// Try merging with a used chunk adjacent to hole (to make that hole larger).
-			BestChunk = FindAdjacentToHole(FreeChunk);
+			// Try merging with chunk from the end of the pool (well-fitting)
+			BestChunk = FindAny(FreeChunk);
 
 			if (!BestChunk)
 			{
-				// Try merging with chunk from the end of the pool (well-fitting)
-				BestChunk = FindAny(FreeChunk);
-
-				if (!BestChunk)
+				// Try merging with Right, if it fits (brute-force downshifting)
+				BestChunk = FindAdjacent(FreeChunk->NextChunk, true);
+				if (BestChunk)
 				{
-					// Try merging with Right, if it fits (brute-force downshifting)
-					BestChunk = FindAdjacent(FreeChunk->NextChunk, true);
-					if (BestChunk)
-					{
-						Stats.NumBytesDownShifted += BestChunk->Size;
-					}
+					Stats.NumBytesDownShifted += BestChunk->Size;
 				}
 			}
 		}
@@ -1722,7 +1715,7 @@ bool FGPUDefragAllocator::GetTextureMemoryVisualizeData(FColor* TextureData, int
 		CurrentType = ChunkType;
 		CurrentChunk = Chunk;
 		NumBytes += Chunk->Size;
-		Chunk = Chunk ? Chunk->NextChunk : nullptr;
+		Chunk = Chunk->NextChunk;
 	}
 
 	// Fill rest of pixels with black.

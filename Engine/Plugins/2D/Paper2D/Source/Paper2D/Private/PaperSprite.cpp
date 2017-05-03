@@ -785,18 +785,10 @@ void UPaperSprite::RebuildCollisionData()
 	switch (SpriteCollisionDomain)
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
-		BodySetup = nullptr;
-		if (BodySetup == nullptr)
-		{
-			BodySetup = NewObject<UBodySetup>(this);
-		}
+		BodySetup = NewObject<UBodySetup>(this);
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
-		BodySetup = nullptr;
-		if (BodySetup == nullptr)
-		{
-			BodySetup = NewObject<UBodySetup2D>(this);
-		}
+		BodySetup = NewObject<UBodySetup2D>(this);
 		break;
 	case ESpriteCollisionMode::None:
 		BodySetup = nullptr;

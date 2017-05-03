@@ -41,6 +41,12 @@ namespace AutomationTool
 		public string Arguments;
 
 		/// <summary>
+		/// Whether to allow using the parallel executor for this compile
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public bool AllowParallelExecutor = true;
+
+		/// <summary>
 		/// Tag to be applied to build products of this task
 		/// </summary>
 		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
@@ -61,6 +67,11 @@ namespace AutomationTool
 		/// Mapping of receipt filename to its corresponding tag name
 		/// </summary>
 		Dictionary<UE4Build.BuildTarget, string> TargetToTagName = new Dictionary<UE4Build.BuildTarget,string>();
+
+		/// <summary>
+		/// Whether to allow using the parallel executor for this job
+		/// </summary>
+		bool bAllowParallelExecutor = true;
 
 		/// <summary>
 		/// Constructor
@@ -84,7 +95,16 @@ namespace AutomationTool
 				return false;
 			}
 
+			if(Targets.Count > 0)
+			{
+				if(!bAllowParallelExecutor || !CompileTask.Parameters.AllowParallelExecutor)
+				{
+					return false;
+				}
+			}
+
 			CompileTaskParameters Parameters = CompileTask.Parameters;
+			bAllowParallelExecutor &= Parameters.AllowParallelExecutor;
 
 			UE4Build.BuildTarget Target = new UE4Build.BuildTarget { TargetName = Parameters.Target, Platform = Parameters.Platform, Config = Parameters.Configuration, UBTArgs = "-nobuilduht " + (Parameters.Arguments ?? "") };
 			if(!String.IsNullOrEmpty(Parameters.Tag))
@@ -114,7 +134,7 @@ namespace AutomationTool
             UE4Build Builder = new UE4Build(Job.OwnerCommand);
 			try
 			{
-				bool bCanUseParallelExecutor = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64);	// parallel executor is only available on Windows as of 2016-09-22
+				bool bCanUseParallelExecutor = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 && bAllowParallelExecutor);	// parallel executor is only available on Windows as of 2016-09-22
 				Builder.Build(Agenda, InDeleteBuildProducts: null, InUpdateVersionFiles: false, InForceNoXGE: false, InUseParallelExecutor: bCanUseParallelExecutor, InTargetToManifest: TargetToManifest);
 			}
 			catch (CommandUtils.CommandFailedException)

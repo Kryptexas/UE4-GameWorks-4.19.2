@@ -248,6 +248,7 @@ FD3D11Texture2DSet* FD3D11Texture2DSet::D3D11CreateTexture2DSet(
 		ovrResult res = ovr_GetTextureSwapChainBufferDX(OvrSession, InTextureSet, i, IID_PPV_ARGS(pD3DTexture.GetInitReference()));
 		if (!OVR_SUCCESS(res))
 		{
+			delete NewTextureSet;
 			UE_LOG(LogHMD, Error, TEXT("ovr_GetTextureSwapChainBufferDX failed, error = %d"), int(res));
 			return nullptr;
 		}

@@ -18,7 +18,7 @@
 #include "GlobalShader.h"
 #include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
-#include "LightPropagationVolumeBlendable.h"
+#include "LightPropagationVolumeSettings.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("LPV"), Stat_GPU_LPV, STATGROUP_GPU);
 
@@ -1163,7 +1163,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, LpvInjectDirectionalLightRSM);
 
-		SetVplInjectionConstants(ProjectedShadowInfo, LightProxy );
+		SetVplInjectionConstants(ProjectedShadowInfo, LightProxy ); //-V595
 
 		TShaderMapRef<FLpvInject_GenerateVplListsCS> Shader(View.ShaderMap);
 		RHICmdList.SetComputeShader(Shader->GetComputeShader());

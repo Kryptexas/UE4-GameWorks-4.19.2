@@ -25,7 +25,7 @@ PRAGMA_POP
 
 
 /** finds any group of ops than can be merged into a single compound operation. Mad for example. */
-class ir_merge_op_visitor : ir_hierarchical_visitor
+class ir_merge_op_visitor final : ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* state;
 	bool assign_has_expressions;
@@ -46,6 +46,10 @@ public:
 		progress = false;
 		assign_array_to_add = NULL;
 		expr_depth = 0;
+	}
+
+	virtual ~ir_merge_op_visitor()
+	{
 	}
 
 	virtual ir_visitor_status visit_enter(ir_expression* expr)

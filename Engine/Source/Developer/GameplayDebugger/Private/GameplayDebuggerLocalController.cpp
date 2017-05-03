@@ -397,7 +397,7 @@ void UGameplayDebuggerLocalController::BindInput(UInputComponent& InputComponent
 		const int32 NumExtentions = bSimulateMode ? 0 : CachedReplicator->GetNumExtensions();
 		for (int32 Idx = 0; Idx < NumExtentions; Idx++)
 		{
-			TSharedRef<FGameplayDebuggerExtension> Extension = CachedReplicator->GetExtension(Idx);
+			TSharedRef<FGameplayDebuggerExtension> Extension = CachedReplicator->GetExtension(Idx); //-V595
 			const int32 NumInputHandlers = Extension->GetNumInputHandlers();
 
 			for (int32 HandlerIdx = 0; HandlerIdx < NumInputHandlers; HandlerIdx++)

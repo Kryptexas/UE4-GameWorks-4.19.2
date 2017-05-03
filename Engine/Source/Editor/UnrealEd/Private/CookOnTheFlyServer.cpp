@@ -539,7 +539,7 @@ DECLARE_CYCLE_STAT(TEXT("Tick cooking"), STAT_TickCooker, STATGROUP_Cooking);
 struct FRecompileRequest
 {
 	struct FShaderRecompileData RecompileData;
-	bool bComplete;
+	volatile bool bComplete;
 };
 
 
@@ -856,9 +856,10 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 	// start the listening thread
 	FFileRequestDelegate FileRequestDelegate(FFileRequestDelegate::CreateUObject(this, &UCookOnTheFlyServer::HandleNetworkFileServerFileRequest));
 	FRecompileShadersDelegate RecompileShadersDelegate(FRecompileShadersDelegate::CreateUObject(this, &UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders));
+	FSandboxPathDelegate SandboxPathDelegate(FSandboxPathDelegate::CreateUObject(this, &UCookOnTheFlyServer::HandleNetworkGetSandboxPath));
 
 	INetworkFileServer *TcpFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
-		.CreateNetworkFileServer(true, BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, ENetworkFileServerProtocol::NFSP_Tcp);
+		.CreateNetworkFileServer(true, BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, &SandboxPathDelegate, &FileModifiedDelegate, ENetworkFileServerProtocol::NFSP_Tcp);
 	if ( TcpFileServer )
 	{
 		NetworkFileServers.Add(TcpFileServer);
@@ -867,7 +868,7 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 	// cookonthefly server for html5 -- NOTE: if this is crashing COTF servers, please ask for Nick.Shin (via Josh.Adams)
 #if 1
 	INetworkFileServer *HttpFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
-		.CreateNetworkFileServer(true, BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, ENetworkFileServerProtocol::NFSP_Http);
+		.CreateNetworkFileServer(true, BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, &SandboxPathDelegate, &FileModifiedDelegate, ENetworkFileServerProtocol::NFSP_Http);
 	if ( HttpFileServer )
 	{
 		NetworkFileServers.Add( HttpFileServer );
@@ -2205,7 +2206,6 @@ void UCookOnTheFlyServer::PostLoadPackageFixup(UPackage* Package)
 		return;
 	}
 
-
 	if (Package->ContainsMap())
 	{
 		// load sublevels
@@ -2236,18 +2236,9 @@ void UCookOnTheFlyServer::PostLoadPackageFixup(UPackage* Package)
 
 			for (const FString& PackageName : NewPackagesToCook)
 			{
-#if 0 // old way keeping for reference in case there are issues
-				FString Filename;
-				if (FPackageName::DoesPackageExist(PackageName, nullptr, &Filename))
-				{
-					FString StandardFilename = FPaths::ConvertRelativePathToFull(Filename);
-					FPaths::MakeStandardFilename(StandardFilename);
-					FName StandardPackageFName = FName(*StandardFilename);
-#else
 				FName StandardPackageFName = GetCachedStandardPackageFileFName(FName(*PackageName));
 				if (StandardPackageFName != NAME_None)
 				{
-#endif
 					if (IsChildCooker())
 					{
 						check(IsCookByTheBookMode());
@@ -2526,6 +2517,20 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 	{
 		return;
 	}
+	if (Package->HasAnyPackageFlags(PKG_PlayInEditor | PKG_ContainsScript | PKG_CompiledIn) == true && !GetClass()->HasAnyClassFlags(CLASS_DefaultConfig | CLASS_Config))
+	{
+		return;
+	}
+
+	if (Package == GetTransientPackage())
+	{
+		return;
+	}
+
+	if ( FPackageName::IsMemoryPackage(Package->GetName()))
+	{
+		return;
+	}
 
 	if ( !bIsSavingPackage )
 	{
@@ -2540,6 +2545,7 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 		if ( PackageFFileName == NAME_None )
 		{
 			ClearPackageFilenameCacheForPackage( Package );
+			return;
 		}
 
 		// find all packages which depend on this one
@@ -2547,22 +2553,44 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 
 		UE_LOG(LogCook, Verbose, TEXT("Modification detected to package %s"), *PackageFFileName.ToString());
 
-		if ( CurrentCookMode == ECookMode::CookByTheBookFromTheEditor )
+		if ( IsCookingInEditor() )
 		{
-			TArray<FName> CookedPlatforms;
-			// if we have already cooked this package and we have made changes then recook ;)
-			if ( CookedPackages.GetCookedPlatforms(PackageFFileName, CookedPlatforms) )
+			if ( IsCookByTheBookMode() )
 			{
-				if (IsCookByTheBookRunning())
+				TArray<FName> CookedPlatforms;
+				// if we have already cooked this package and we have made changes then recook ;)
+				if ( CookedPackages.GetCookedPlatforms(PackageFFileName, CookedPlatforms) )
 				{
-					// if this package was previously cooked and we are doing a cook by the book 
-					// we need to recook this package before finishing cook by the book
-					CookRequests.EnqueueUnique(FFilePlatformRequest(PackageFFileName, CookedPlatforms));
+					if (IsCookByTheBookRunning())
+					{
+						// if this package was previously cooked and we are doing a cook by the book 
+						// we need to recook this package before finishing cook by the book
+						CookRequests.EnqueueUnique(FFilePlatformRequest(PackageFFileName, CookedPlatforms));
+					}
+					else
+					{
+						CookByTheBookOptions->PreviousCookRequests.Add(FFilePlatformRequest(PackageFFileName, CookedPlatforms));
+					}
 				}
-				else
+			}
+			else if ( IsCookOnTheFlyMode() )
+			{
+				if ( FileModifiedDelegate.IsBound() ) 
 				{
-					CookByTheBookOptions->PreviousCookRequests.Add(FFilePlatformRequest(PackageFFileName, CookedPlatforms));
+					const FString PackageName = PackageFFileName.ToString();
+					FileModifiedDelegate.Broadcast(PackageName);
+					if ( PackageName.EndsWith(".uasset") || PackageName.EndsWith(".umap"))
+					{
+						FileModifiedDelegate.Broadcast( FPaths::ChangeExtension(PackageName, TEXT(".uexp")) );
+						FileModifiedDelegate.Broadcast( FPaths::ChangeExtension(PackageName, TEXT(".ubulk")) );
+						FileModifiedDelegate.Broadcast( FPaths::ChangeExtension(PackageName, TEXT(".ufont")) );
+					}
 				}
+			}
+			else
+			{
+				// this is here if we add a new mode and don't implement this it will crash instead of doing undesireable behaviour 
+				check( true);
 			}
 		}
 		CookedPackages.RemoveFile( PackageFFileName );
@@ -2625,11 +2653,6 @@ const TArray<FName>& UCookOnTheFlyServer::GetFullPackageDependencies(const FName
 	TArray<FName>* PackageDependencies = CachedFullPackageDependencies.Find(PackageName);
 	if ( !PackageDependencies )
 	{
-		if ( PackageName.ToString().Contains( TEXT("/Game/Sounds/Class/Interior")))
-		{
-			static int i =0; 
-			++i;
-		}
 
 		static const FName NAME_CircularReference(TEXT("CircularReference"));
 		static int32 UniqueArrayCounter = 0;
@@ -2648,27 +2671,27 @@ const TArray<FName>& UCookOnTheFlyServer::GetFullPackageDependencies(const FName
 		TArray<FName> ChildDependencies;
 		if ( AssetRegistry->GetDependencies(PackageName, ChildDependencies, EAssetRegistryDependencyType::All) )
 		{
-		TArray<FName> Dependencies = ChildDependencies;
-		Dependencies.AddUnique(PackageName);
-		for ( const FName& ChildDependency : ChildDependencies)
-		{
-			const TArray<FName>& ChildPackageDependencies = GetFullPackageDependencies(ChildDependency);
-			for ( const FName& ChildPackageDependency : ChildPackageDependencies )
+			TArray<FName> Dependencies = ChildDependencies;
+			Dependencies.AddUnique(PackageName);
+			for ( const FName& ChildDependency : ChildDependencies)
 			{
-						if ( ChildPackageDependency == CircularReferenceArrayName )
-						{
-							continue;
-						}
-						if ( ChildPackageDependency.GetComparisonIndex() == NAME_CircularReference.GetComparisonIndex() )
-						{
-							// add our self to the package which we are circular referencing
-							TArray<FName>& TempCircularReference = CachedFullPackageDependencies.FindChecked(ChildPackageDependency);
-							TempCircularReference.AddUnique(PackageName); // add this package name so that it's dependencies get fixed up when the outer loop returns
-						}
+				const TArray<FName>& ChildPackageDependencies = GetFullPackageDependencies(ChildDependency);
+				for ( const FName& ChildPackageDependency : ChildPackageDependencies )
+				{
+							if ( ChildPackageDependency == CircularReferenceArrayName )
+							{
+								continue;
+							}
+							if ( ChildPackageDependency.GetComparisonIndex() == NAME_CircularReference.GetComparisonIndex() )
+							{
+								// add our self to the package which we are circular referencing
+								TArray<FName>& TempCircularReference = CachedFullPackageDependencies.FindChecked(ChildPackageDependency);
+								TempCircularReference.AddUnique(PackageName); // add this package name so that it's dependencies get fixed up when the outer loop returns
+							}
 
-				Dependencies.AddUnique(ChildPackageDependency);
+					Dependencies.AddUnique(ChildPackageDependency);
+				}
 			}
-		}
 
 			// all these packages referenced us apparently so fix them all up
 			const TArray<FName>& PackagesForFixup = CachedFullPackageDependencies.FindChecked(CircularReferenceArrayName);
@@ -2690,11 +2713,11 @@ const TArray<FName>& UCookOnTheFlyServer::GetFullPackageDependencies(const FName
 			}
 			CachedFullPackageDependencies.Remove(CircularReferenceArrayName);
 
-		PackageDependencies = CachedFullPackageDependencies.Find(PackageName);
-		check(PackageDependencies);
+			PackageDependencies = CachedFullPackageDependencies.Find(PackageName);
+			check(PackageDependencies);
 
-		Swap(*PackageDependencies, Dependencies);
-	}
+			Swap(*PackageDependencies, Dependencies);
+		}
 		else
 		{
 			PackageDependencies = CachedFullPackageDependencies.Find(PackageName);
@@ -5869,42 +5892,6 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 		}
 	}
 
-	if ((FilesInPath.Num() == 0) || bCookAll)
-	{
-		TArray<FString> Tokens;
-		Tokens.Empty(2);
-		Tokens.Add(FString("*") + FPackageName::GetAssetPackageExtension());
-		Tokens.Add(FString("*") + FPackageName::GetMapPackageExtension());
-
-		uint8 PackageFilter = NORMALIZE_DefaultFlags | NORMALIZE_ExcludeEnginePackages;
-		if ( bMapsOnly )
-		{
-			PackageFilter |= NORMALIZE_ExcludeContentPackages;
-		}
-
-		if ( bNoDev )
-		{
-			PackageFilter |= NORMALIZE_ExcludeDeveloperPackages;
-		}
-
-		// assume the first token is the map wildcard/pathname
-		TArray<FString> Unused;
-		for ( int32 TokenIndex = 0; TokenIndex < Tokens.Num(); TokenIndex++ )
-		{
-			TArray<FString> TokenFiles;
-			if ( !NormalizePackageNames( Unused, TokenFiles, Tokens[TokenIndex], PackageFilter) )
-			{
-				UE_LOG(LogCook, Display, TEXT("No packages found for parameter %i: '%s'"), TokenIndex, *Tokens[TokenIndex]);
-				continue;
-			}
-
-			for (int32 TokenFileIndex = 0; TokenFileIndex < TokenFiles.Num(); ++TokenFileIndex)
-			{
-				AddFileToCook( FilesInPath, TokenFiles[TokenFileIndex]);
-			}
-		}
-	}
-
 	if (!(FilesToCookFlags & ECookByTheBookOptions::NoDefaultMaps))
 	{
 		// make sure we cook the default maps
@@ -5955,6 +5942,42 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 				{
 					AddFileToCook(FilesInPath, Obj);
 				}
+			}
+		}
+	}
+
+	if ((FilesInPath.Num() == 0) || bCookAll)
+	{
+		TArray<FString> Tokens;
+		Tokens.Empty(2);
+		Tokens.Add(FString("*") + FPackageName::GetAssetPackageExtension());
+		Tokens.Add(FString("*") + FPackageName::GetMapPackageExtension());
+
+		uint8 PackageFilter = NORMALIZE_DefaultFlags | NORMALIZE_ExcludeEnginePackages;
+		if ( bMapsOnly )
+		{
+			PackageFilter |= NORMALIZE_ExcludeContentPackages;
+		}
+
+		if ( bNoDev )
+		{
+			PackageFilter |= NORMALIZE_ExcludeDeveloperPackages;
+		}
+
+		// assume the first token is the map wildcard/pathname
+		TArray<FString> Unused;
+		for ( int32 TokenIndex = 0; TokenIndex < Tokens.Num(); TokenIndex++ )
+		{
+			TArray<FString> TokenFiles;
+			if ( !NormalizePackageNames( Unused, TokenFiles, Tokens[TokenIndex], PackageFilter) )
+			{
+				UE_LOG(LogCook, Display, TEXT("No packages found for parameter %i: '%s'"), TokenIndex, *Tokens[TokenIndex]);
+				continue;
+			}
+
+			for (int32 TokenFileIndex = 0; TokenFileIndex < TokenFiles.Num(); ++TokenFileIndex)
+			{
+				AddFileToCook( FilesInPath, TokenFiles[TokenFileIndex]);
 			}
 		}
 	}
@@ -7355,6 +7378,11 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 
 }
 
+
+FString UCookOnTheFlyServer::HandleNetworkGetSandboxPath()
+{
+	return SandboxFile->GetSandboxDirectory();
+}
 
 void UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders(const FShaderRecompileData& RecompileData)
 {

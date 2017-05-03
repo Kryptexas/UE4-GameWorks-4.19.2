@@ -162,7 +162,8 @@ namespace UnrealBuildTool
 		bool bGenerateIntelliSenseData = true;
 
 		/// True if we should include documentation in the generated projects
-		bool IncludeDocumentation = true;
+		[XmlConfigFile]
+		bool bIncludeDocumentation = true;
 
 		/// True if all documentation languages should be included in generated projects, otherwise only "INT" will be included
 		bool bAllDocumentationLanguages = false;
@@ -171,29 +172,29 @@ namespace UnrealBuildTool
 		public static bool bUsePrecompiled = false;
 
 		/// True if we should include engine source in the generated solution
-		protected bool IncludeEngineSource = true;
+		protected bool bIncludeEngineSource = true;
 
 		/// True if shader source files should be included in the generated projects
-		bool IncludeShaderSource = true;
+		bool bIncludeShaderSource = true;
 
 		/// True if build system files should be included
-		bool IncludeBuildSystemFiles = true;
+		bool bIncludeBuildSystemFiles = true;
 
 		/// True if we should include config files (.ini files) in the generated project
-		bool IncludeConfigFiles = true;
+		bool bIncludeConfigFiles = true;
 
 		/// True if we should include localization files (.int/.kor/etc files) in the generated project
-		bool IncludeLocalizationFiles = false;
+		bool bIncludeLocalizationFiles = false;
 
         /// True if we should include template files (.template files) in the generated project
-        bool IncludeTemplateFiles = true;
+        bool bIncludeTemplateFiles = true;
 
 		/// True if we should include program projects in the generated solution
 		protected bool IncludeEnginePrograms = true;
 
 		/// True if we should reflect "Source" sub-directories on disk in the master project as master project directories.
 		/// This arguably adds some visual clutter to the master project, but is truer to the on-disk file organization.
-		bool KeepSourceSubDirectories = true;
+		bool bKeepSourceSubDirectories = true;
 
 		/// Relative path to the directory where the master project file will be saved to
 		public static DirectoryReference MasterProjectPath = UnrealBuildTool.RootDirectory; // We'll save the master project to our "root" folder
@@ -255,6 +256,7 @@ namespace UnrealBuildTool
 		public ProjectFileGenerator(FileReference InOnlyGameProject)
 		{
 			OnlyGameProject = InOnlyGameProject;
+			XmlConfig.ApplyTo(this);
 		}
 
 		/// <summary>
@@ -481,7 +483,7 @@ namespace UnrealBuildTool
 				List<Tuple<ProjectFile, string>> DebugProjectFiles = new List<Tuple<ProjectFile, string>>();
 
 				// Place projects into root level solution folders
-				if ( IncludeEngineSource )
+				if ( bIncludeEngineSource )
 				{
 					// If we're still missing an engine project because we don't have any targets for it, make one up.
 					if( EngineProject == null )
@@ -501,7 +503,7 @@ namespace UnrealBuildTool
 						RootFolder.AddSubFolder( "Engine" ).ChildProjects.Add( EngineProject );
 
 						// Engine config files
-						if( IncludeConfigFiles )
+						if( bIncludeConfigFiles )
 						{
 							AddEngineConfigFiles( EngineProject );
 							if( IncludeEnginePrograms )
@@ -515,18 +517,18 @@ namespace UnrealBuildTool
 						AddEngineExtrasFiles(EngineProject);
 
 						// Engine localization files
-						if( IncludeLocalizationFiles )
+						if( bIncludeLocalizationFiles )
 						{
 							AddEngineLocalizationFiles( EngineProject );
 						}
 
 						// Engine template files
-						if (IncludeTemplateFiles)
+						if (bIncludeTemplateFiles)
 						{
 							AddEngineTemplateFiles( EngineProject );
 						}
 
-						if( IncludeShaderSource )
+						if( bIncludeShaderSource )
 						{
 							Log.TraceVerbose( "Adding shader source code..." );
 
@@ -534,14 +536,14 @@ namespace UnrealBuildTool
 							AddEngineShaderSource( EngineProject );
 						}
 
-						if( IncludeBuildSystemFiles )
+						if( bIncludeBuildSystemFiles )
 						{
 							Log.TraceVerbose( "Adding build system files..." );
 
 							AddEngineBuildFiles( EngineProject );
 						}
 
-						if( IncludeDocumentation )
+						if( bIncludeDocumentation )
 						{
 							AddEngineDocumentation( EngineProject );
 						}
@@ -863,12 +865,12 @@ namespace UnrealBuildTool
 
 				bool bInstalledEngineWithSource = UnrealBuildTool.IsEngineInstalled() && DirectoryReference.Exists(UnrealBuildTool.EngineSourceDirectory);
 
-				IncludeEngineSource = bAlwaysIncludeEngineModules || bInstalledEngineWithSource;
-				IncludeDocumentation = false;
-				IncludeBuildSystemFiles = false;
-				IncludeShaderSource = true;
-				IncludeTemplateFiles = false;
-				IncludeConfigFiles = true;
+				bIncludeEngineSource = bAlwaysIncludeEngineModules || bInstalledEngineWithSource;
+				bIncludeDocumentation = false;
+				bIncludeBuildSystemFiles = false;
+				bIncludeShaderSource = true;
+				bIncludeTemplateFiles = false;
+				bIncludeConfigFiles = true;
 				IncludeEnginePrograms = bAlwaysIncludeEngineModules;
 			}
 			else
@@ -890,7 +892,7 @@ namespace UnrealBuildTool
 				// @todo projectfiles: We have engine localization files, but should we also add GAME localization files?
 
 				// Game config files
-				if( IncludeConfigFiles )
+				if( bIncludeConfigFiles )
 				{
 					DirectoryReference GameConfigDirectory = DirectoryReference.Combine(GameProjectDirectory, "Config");
 					if( DirectoryReference.Exists(GameConfigDirectory) )
@@ -901,7 +903,7 @@ namespace UnrealBuildTool
 				}
 
 				// Game build files
-				if( IncludeBuildSystemFiles )
+				if( bIncludeBuildSystemFiles )
 				{
 					var GameBuildDirectory = DirectoryReference.Combine(GameProjectDirectory, "Build");
 					if( DirectoryReference.Exists(GameBuildDirectory) )
@@ -1124,7 +1126,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				if( !KeepSourceSubDirectories )
+				if( !bKeepSourceSubDirectories )
 				{
 					if( SubFolder.FolderName.Equals( "Source", StringComparison.InvariantCultureIgnoreCase ) )
 					{
@@ -1324,7 +1326,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		private void AddEngineProgramConfigFiles( Dictionary<string, ProjectFile> ProgramProjects )
 		{
-			if( IncludeConfigFiles )
+			if( bIncludeConfigFiles )
 			{
 				foreach( KeyValuePair<string, ProjectFile> ProjectFolderAndFile in ProgramProjects )
 				{
@@ -1527,7 +1529,7 @@ namespace UnrealBuildTool
 				bool IsEngineModule = CurModuleFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
 				bool IsThirdPartyModule = CurModuleFile.IsUnderDirectory(EngineSourceThirdPartyDirectory);
 
-				if( IsEngineModule && !IncludeEngineSource )
+				if( IsEngineModule && !bIncludeEngineSource )
 				{
 					// We were asked to exclude engine modules from the generated projects
 					WantProjectFileForModule = false;
@@ -1583,7 +1585,7 @@ namespace UnrealBuildTool
 			ProjectFile.AddFileToProject(PluginFileName, BaseFolder);
 
 			// Add plugin config files if we have any
-			if( IncludeConfigFiles )
+			if( bIncludeConfigFiles )
 			{
 				DirectoryReference PluginConfigFolder = DirectoryReference.Combine(PluginFileName.Directory, "Config");
 				if(DirectoryReference.Exists(PluginConfigFolder))
@@ -1690,7 +1692,7 @@ namespace UnrealBuildTool
 					}
 					else if(TargetFilePath.IsUnderDirectory(UnrealBuildTool.EngineSourceDirectory))
 					{
-						WantProjectFileForTarget = IncludeEngineSource;
+						WantProjectFileForTarget = bIncludeEngineSource;
 					}
 				}
 

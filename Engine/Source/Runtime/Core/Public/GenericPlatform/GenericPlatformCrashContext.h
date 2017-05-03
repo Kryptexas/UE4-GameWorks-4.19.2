@@ -118,6 +118,8 @@ public:
 	/** Default constructor. */
 	FGenericCrashContext();
 
+	virtual ~FGenericCrashContext() { }
+
 	/** Serializes all data to the buffer. */
 	void SerializeContentToBuffer();
 

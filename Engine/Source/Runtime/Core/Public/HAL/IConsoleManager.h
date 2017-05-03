@@ -620,6 +620,9 @@ struct CORE_API IConsoleManager
 		return *Singleton;
 	}
 
+protected:
+	virtual ~IConsoleManager() { }
+
 private:
 	/** Singleton for the console manager **/
 	static IConsoleManager* Singleton;

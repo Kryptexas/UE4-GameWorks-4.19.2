@@ -4513,7 +4513,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			{
 				bool bCalculateLODLevel = 
 					(bOverrideLODMethod == true) ? (LODMethod == PARTICLESYSTEMLODMETHOD_Automatic) : 
-						(Template ? (Template->LODMethod == PARTICLESYSTEMLODMETHOD_Automatic) : false);
+						(Template->LODMethod == PARTICLESYSTEMLODMETHOD_Automatic);
 				if (bCalculateLODLevel == true)
 				{
 					FVector EffectPosition = GetComponentLocation();

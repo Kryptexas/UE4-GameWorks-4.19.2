@@ -292,9 +292,9 @@ namespace UnrealBuildTool
 				case ModuleHostType.Program:
 					return TargetType == TargetType.Program;
                 case ModuleHostType.ServerOnly:
-                    return TargetType != TargetType.Client;
+                    return TargetType != TargetType.Program && TargetType != TargetType.Client;
                 case ModuleHostType.ClientOnly:
-                    return TargetType != TargetType.Server;
+                    return TargetType != TargetType.Program && TargetType != TargetType.Server;
             }
 
 			return false;

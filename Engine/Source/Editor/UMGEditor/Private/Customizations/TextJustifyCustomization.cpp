@@ -84,7 +84,7 @@ void FTextJustifyCustomization::HandleCheckStateChanged(ECheckBoxState InCheckbo
 ECheckBoxState FTextJustifyCustomization::GetCheckState(TSharedRef<IPropertyHandle> PropertyHandle, ETextJustify::Type ForAlignment) const
 {
 	uint8 Value;
-	if ( PropertyHandle->GetValue(Value) )
+	if ( PropertyHandle->GetValue(Value) == FPropertyAccess::Result::Success)
 	{
 		return Value == ForAlignment ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}

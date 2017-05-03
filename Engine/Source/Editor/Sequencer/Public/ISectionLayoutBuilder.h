@@ -10,6 +10,8 @@
 class ISectionLayoutBuilder
 {
 public:
+	virtual ~ISectionLayoutBuilder() { }
+
 	/** 
 	 * Pushes a new category onto the layout.  If there is a current category, this category will appear as a child of the current category
 	 *

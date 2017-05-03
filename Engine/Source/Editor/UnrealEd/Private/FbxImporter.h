@@ -205,7 +205,7 @@ struct FBXImportOptions
 	static void ResetOptions(FBXImportOptions *OptionsToReset)
 	{
 		check(OptionsToReset != nullptr);
-		FMemory::Memzero(OptionsToReset, sizeof(OptionsToReset));
+		FMemory::Memzero(OptionsToReset, sizeof(*OptionsToReset));
 	}
 };
 

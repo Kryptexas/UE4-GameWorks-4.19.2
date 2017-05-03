@@ -28,6 +28,7 @@ struct ENGINE_API FWeightedRandomSampler
 {
 public:
 	FWeightedRandomSampler();
+	virtual ~FWeightedRandomSampler() { }
 
 	/** Gets the weight of all elements and returns their sum. */
 	virtual float GetWeights(TArray<float>& OutWeights) = 0;

@@ -35,7 +35,7 @@ void FSkeletonNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	UEditorSkeletonNotifyObj* EdObj = NULL;
 	for(int i = 0; i < SelectedObjects.Num(); ++i)
 	{
-		UObject* Obj = SelectedObjects[0].Get();
+		UObject* Obj = SelectedObjects[i].Get();
 		EdObj = Cast<UEditorSkeletonNotifyObj>(Obj);
 		if(EdObj)
 		{

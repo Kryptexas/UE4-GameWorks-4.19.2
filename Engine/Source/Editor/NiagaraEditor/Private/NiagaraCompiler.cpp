@@ -556,7 +556,7 @@ ENiagaraScriptCompileStatus FNiagaraEditorModule::CompileScript(UNiagaraScript* 
 	FNiagaraCompileResults Results;
 	FHlslNiagaraCompiler Compiler;
 
-	if (ScriptToCompile && ScriptToCompile->Usage == ENiagaraScriptUsage::EffectScript)
+	if (ScriptToCompile->Usage == ENiagaraScriptUsage::EffectScript)
 	{
 		ENiagaraScriptCompileStatus Status = CompileEffectScript(ScriptToCompile, OutGraphLevelErrorMessages);
 		Graph->MarkOtherSynchronized(ScriptToCompile->ChangeId);

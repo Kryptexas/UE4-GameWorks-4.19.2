@@ -199,6 +199,10 @@ public:
 	{
 	}
 
+	virtual ~FUniqueNetIdWrapper()
+	{
+	}
+
 	/** Assignment operator */
 	FUniqueNetIdWrapper& operator=(const FUniqueNetIdWrapper& Other)
 	{

@@ -65,12 +65,15 @@ struct CORE_API FAndroidPlatformAtomics
 		return __sync_val_compare_and_swap(Dest, Comperand, Exchange);
 	}
 
-#if PLATFORM_64BITS
 	static FORCEINLINE int64 InterlockedCompareExchange( volatile int64* Dest, int64 Exchange, int64 Comperand )
 	{
 		return __sync_val_compare_and_swap(Dest, Comperand, Exchange);
 	}
-#endif
+
+	static FORCEINLINE int64 AtomicRead64(volatile const int64* Src)
+	{
+		return InterlockedCompareExchange((volatile int64*)Src, 0, 0);
+	}
 
 	static FORCEINLINE void* InterlockedCompareExchangePointer( void** Dest, void* Exchange, void* Comperand )
 	{

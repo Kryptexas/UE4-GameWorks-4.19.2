@@ -463,8 +463,6 @@ void SAssetViewItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 				DragDropOp->ResetToDefaultToolTip();
 			}
 		}
-
-		bDraggedOver = false;
 	}
 
 	bDraggedOver = false;

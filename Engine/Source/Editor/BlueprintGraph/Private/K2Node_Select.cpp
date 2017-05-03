@@ -117,7 +117,7 @@ public:
 				LiteralTerm->Type = IndexTerm->Type;
 				LiteralTerm->bIsLiteral = true;
 				const UEnum* NodeEnum = SelectNode->GetEnum();
-				LiteralTerm->Name = NodeEnum ? OptionPins[OptionIdx]->PinName : FString::Printf(TEXT("%d"), OptionIdx);
+				LiteralTerm->Name = NodeEnum ? OptionPins[OptionIdx]->PinName : FString::Printf(TEXT("%d"), OptionIdx); //-V595
 
 				if (!CompilerContext.GetSchema()->DefaultValueSimpleValidation(LiteralTerm->Type, LiteralTerm->Name, LiteralTerm->Name, nullptr, FText()))
 				{

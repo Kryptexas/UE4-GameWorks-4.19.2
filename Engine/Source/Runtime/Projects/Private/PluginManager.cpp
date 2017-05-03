@@ -350,35 +350,6 @@ public:
 	}
 };
 
-bool FPluginManager::IsPluginSupportedByCurrentTarget(TSharedRef<FPlugin> Plugin) const
-{
-	bool bSupported = false;
-	if (Plugin->GetDescriptor().Modules.Num())
-	{
-		for (const FModuleDescriptor& Module : Plugin->GetDescriptor().Modules)
-		{
-			// Programs support only program type plugins
-			// Non-program targets don't support from plugins
-#if IS_PROGRAM
-			if (Module.Type == EHostType::Program)
-			{
-				bSupported = true;
-			}
-#else
-			if (Module.Type != EHostType::Program)
-			{
-				bSupported = true;
-			}
-#endif
-		}
-	}
-	else
-	{
-		bSupported = true;
-	}
-	return bSupported;
-}
-
 bool FPluginManager::ConfigureEnabledPlugins()
 {
 	if(!bHaveConfiguredEnabledPlugins)
@@ -386,138 +357,55 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		// Don't need to run this again
 		bHaveConfiguredEnabledPlugins = true;
 
-		// If a current project is set, check that we know about any plugin that's explicitly enabled
-		const FProjectDescriptor *Project = IProjectManager::Get().GetCurrentProject();
-		const bool bHasProjectFile = Project != nullptr;
-
 		// Get all the enabled plugin names
-		TArray< FString > EnabledPluginNames;
+		TArray<FString> InitialPluginNames;
+		TMap<FString, const FPluginReferenceDescriptor*> NameToPluginReference;
 #if IS_PROGRAM
 		// Programs can also define the list of enabled plugins in ini
-		GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
+		GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), InitialPluginNames, GEngineIni);
 #endif
 #if !IS_PROGRAM || HACK_HEADER_GENERATOR
 		if (!FParse::Param(FCommandLine::Get(), TEXT("NoEnginePlugins")))
 		{
-			FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
-		}
-#endif
-
-		// Build a set from the array
-		TSet< FString > AllEnabledPlugins;
-		AllEnabledPlugins.Append(MoveTemp(EnabledPluginNames));
-
-		// Enable all the plugins by name
-		for (const TPair<FString, TSharedRef< FPlugin >> PluginPair : AllPlugins)
-		{
-			const TSharedRef<FPlugin>& Plugin = PluginPair.Value;
-			if (AllEnabledPlugins.Contains(Plugin->Name))
+			// Find all the plugin references in the project file
+			const FProjectDescriptor* ProjectDescriptor = IProjectManager::Get().GetCurrentProject();
+			if (ProjectDescriptor != nullptr)
 			{
-#if IS_PROGRAM
-				Plugin->bEnabled = !bHasProjectFile || IsPluginSupportedByCurrentTarget(Plugin);
-				if (!Plugin->bEnabled)
+				for (const FPluginReferenceDescriptor& PluginReference : ProjectDescriptor->Plugins)
 				{
-					AllEnabledPlugins.Remove(Plugin->Name);
+					NameToPluginReference.FindOrAdd(PluginReference.Name) = &PluginReference;
 				}
-#else
-				Plugin->bEnabled = true;
-#endif
+			}
 
-				if (Plugin->bEnabled && FPlatformMisc::ShouldDisablePluginAtRuntime(Plugin->Name))
+			// Get the default list of plugin names
+			for (const TPair<FString, TSharedRef<FPlugin>>& PluginPair : AllPlugins)
+			{
+				const FPluginReferenceDescriptor* PluginReference = NameToPluginReference.FindRef(PluginPair.Key);
+				if ((PluginReference == nullptr && PluginPair.Value->Descriptor.bEnabledByDefault) || (PluginReference != nullptr && PluginReference->bEnabled))
 				{
-					Plugin->bEnabled = false;
-					AllEnabledPlugins.Remove(Plugin->Name);
-				}
-
-				if (Plugin->bEnabled && Plugin->Descriptor.EngineVersion.Len() > 0)
-				{
-					FEngineVersion Version;
-					if (!FEngineVersion::Parse(Plugin->Descriptor.EngineVersion, Version))
-					{
-						UE_LOG(LogPluginManager, Warning, TEXT("Engine version string in %s could not be parsed (\"%s\")"), *Plugin->FileName, *Plugin->Descriptor.EngineVersion);
-					}
-					else
-					{
-						EVersionComparison Comparison = FEngineVersion::GetNewest(FEngineVersion::CompatibleWith(), Version, nullptr);
-						if (Comparison != EVersionComparison::Neither)
-						{
-							FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
-							if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "The '{0}' plugin was designed for a different version of the engine. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
-							{
-								Plugin->bEnabled = false;
-								AllEnabledPlugins.Remove(Plugin->Name);
-								UE_LOG(LogPluginManager, Log, TEXT("Disabled plugin '%s' due to incompatibility"), *Plugin->FileName);
-							}
-							else
-							{
-								UE_LOG(LogPluginManager, Log, TEXT("Enabled plugin '%s' despite being built for CL %d"), *Plugin->FileName, Plugin->Descriptor.CompatibleChangelist);
-							}
-						}
-					}
-				}
-				else if (Plugin->bEnabled && Plugin->Descriptor.CompatibleChangelist != 0 && FEngineVersion::CompatibleWith().HasChangelist() && Plugin->Descriptor.CompatibleChangelist != FEngineVersion::CompatibleWith().GetChangelist())
-				{
-					FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
-					if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "'{0}' was designed for a different version of the game. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
-					{
-						Plugin->bEnabled = false;
-						AllEnabledPlugins.Remove(Plugin->Name);
-						UE_LOG(LogPluginManager, Log, TEXT("Disabled plugin '%s' due to incompatibility"), *Plugin->FileName);
-					}
-					else
-					{
-						UE_LOG(LogPluginManager, Log, TEXT("Enabled plugin '%s' despite being built for CL %d"), *Plugin->FileName, Plugin->Descriptor.CompatibleChangelist);
-					}
+					InitialPluginNames.Add(PluginPair.Key);
 				}
 			}
 		}
-
-		if (bHasProjectFile)
-		{
-			// Take a copy of the Project's plugins as we may remove some
-			TArray<FPluginReferenceDescriptor> PluginsCopy = Project->Plugins;
-			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
-			{
-				bool bShouldBeEnabled = Plugin.bEnabled && Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget());
-				if (bShouldBeEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional
-#if IS_PROGRAM
-					 && AllEnabledPlugins.Contains(Plugin.Name) // skip if this is a program and the plugin is not enabled
 #endif
-					)
+
+		// Enable all the plugins
+		TSet<FString> EnabledPluginNames;
+		for (const FString& PluginName : InitialPluginNames)
+		{
+			const FPluginReferenceDescriptor* EnabledPluginReference = NameToPluginReference.FindRef(PluginName);
+			if (EnabledPluginReference == nullptr)
+			{
+				if (!ConfigureEnabledPlugin(FPluginReferenceDescriptor(PluginName, true), EnabledPluginNames))
 				{
-					if (FApp::IsUnattended())
-					{
-						UE_LOG(LogPluginManager, Error, TEXT("This project requires the '%s' plugin. Install it and try again, or remove it from the project's required plugin list."), *Plugin.Name);
-						return false;
-					}
-
-					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
-					if(Plugin.MarketplaceURL.Len() > 0)
-					{
-						if(FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("PluginMissingError", "This project requires the {0} plugin.\n\nWould you like to download it from the the Marketplace?"), FText::FromString(Plugin.Name)), &Caption) == EAppReturnType::Yes)
-						{
-							FString Error;
-							FPlatformProcess::LaunchURL(*Plugin.MarketplaceURL, nullptr, &Error);
-							if(Error.Len() > 0) FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Error));
-							return false;
-						}
-					}
-					else
-					{
-						FString Description = (Plugin.Description.Len() > 0) ? FString::Printf(TEXT("\n\n%s"), *Plugin.Description) : FString();
-						FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("PluginRequiredError", "This project requires the {0} plugin. {1}"), FText::FromString(Plugin.Name), FText::FromString(Description)), &Caption);
-						
-						if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("PluginMissingDisable", "Would you like to disable {0}? You will no longer be able to open any assets created using it."), FText::FromString(Plugin.Name)), &Caption) == EAppReturnType::No)
-						{
-							return false;
-						}
-
-						FText FailReason;
-						if (!IProjectManager::Get().SetPluginEnabled(*Plugin.Name, false, FailReason))
-						{
-							FMessageDialog::Open(EAppMsgType::Ok, FailReason);
-						}
-					}
+					return false;
+				}
+			}
+			else
+			{
+				if (!ConfigureEnabledPlugin(*EnabledPluginReference, EnabledPluginNames))
+				{
+					return false;
 				}
 			}
 		}
@@ -525,58 +413,31 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		// If we made it here, we have all the required plugins
 		bHaveAllRequiredPlugins = true;
 
+		// Mount all the enabled plugins
 		for(const TPair<FString, TSharedRef<FPlugin>>& PluginPair: AllPlugins)
 		{
-			const TSharedRef<FPlugin>& Plugin = PluginPair.Value;
-			if (Plugin->bEnabled)
+			const FPlugin& Plugin = *PluginPair.Value;
+			if (Plugin.bEnabled)
 			{
-				// Add the plugin binaries directory
-				const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin->FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
-				FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject);
-
-#if !IS_MONOLITHIC
-				// Only check this when in a non-monolithic build where modules could be in separate binaries
-				if (Project != NULL && Project->Modules.Num() == 0)
-				{
-					// Content only project - check whether any plugins are incompatible and offer to disable instead of trying to build them later
-					TArray<FString> IncompatibleFiles;
-					if (!FModuleDescriptor::CheckModuleCompatibility(Plugin->Descriptor.Modules, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject, IncompatibleFiles))
-					{
-						// Ask whether to disable plugin if incompatible
-						FText Caption(LOCTEXT("IncompatiblePluginCaption", "Plugin missing or incompatible"));
-						if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginText", "Missing or incompatible modules in {0} plugin - would you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(Plugin->Name)), &Caption) == EAppReturnType::No)
-						{
-							return false;
-						}
-
-						FText FailReason;
-						if (!IProjectManager::Get().SetPluginEnabled(*Plugin->Name, false, FailReason))
-						{
-							FMessageDialog::Open(EAppMsgType::Ok, FailReason);
-						}
-					}
-				}
-#endif //!IS_MONOLITHIC
-
-			// Build the list of content folders
-				if (Plugin->Descriptor.bCanContainContent)
+				// Build the list of content folders
+				if (Plugin.Descriptor.bCanContainContent)
 				{
 					if (FConfigFile* EngineConfigFile = GConfig->Find(GEngineIni, false))
 					{
 						if (FConfigSection* CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
 						{
-							CoreSystemSection->AddUnique("Paths", Plugin->GetContentDir());
+							CoreSystemSection->AddUnique("Paths", Plugin.GetContentDir());
 						}
 					}
 				}
 
 				// Load <PluginName>.ini config file if it exists
-				FString PluginConfigDir = FPaths::GetPath(Plugin->FileName) / TEXT("Config/");
+				FString PluginConfigDir = FPaths::GetPath(Plugin.FileName) / TEXT("Config/");
 				FString EngineConfigDir = FPaths::EngineConfigDir();
 				FString SourceConfigDir = FPaths::SourceConfigDir();
 
 				// Load Engine plugins out of BasePluginName.ini and the engine directory, game plugins out of DefaultPluginName.ini
-				if (Plugin->LoadedFrom == EPluginLoadedFrom::Engine)
+				if (Plugin.LoadedFrom == EPluginLoadedFrom::Engine)
 				{
 					EngineConfigDir = PluginConfigDir;
 				}
@@ -585,11 +446,11 @@ bool FPluginManager::ConfigureEnabledPlugins()
 					SourceConfigDir = PluginConfigDir;
 				}
 
-				FString PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()), *Plugin->Name);
+				FString PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()), *Plugin.Name);
 				FConfigFile& PluginConfig = GConfig->Add(PluginConfigFilename, FConfigFile());
 
 				// This will write out an ini to PluginConfigFilename
-				if (!FConfigCacheIni::LoadExternalIniFile(PluginConfig, *Plugin->Name, *EngineConfigDir, *SourceConfigDir, true, nullptr, false, true))
+				if (!FConfigCacheIni::LoadExternalIniFile(PluginConfig, *Plugin.Name, *EngineConfigDir, *SourceConfigDir, true, nullptr, false, true))
 				{
 					// Nothing to add, remove from map
 					GConfig->Remove(PluginConfigFilename);
@@ -617,7 +478,6 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						}
 					}
 				}
-
 			}
 		}
 
@@ -656,6 +516,237 @@ bool FPluginManager::ConfigureEnabledPlugins()
 	return bHaveAllRequiredPlugins;
 }
 
+bool FPluginManager::ConfigureEnabledPlugin(const FPluginReferenceDescriptor& FirstReference, TSet<FString>& EnabledPluginNames)
+{
+	if (!EnabledPluginNames.Contains(FirstReference.Name))
+	{
+		// Set of plugin names we've added to the queue for processing
+		TSet<FString> NewPluginNames;
+		NewPluginNames.Add(FirstReference.Name);
+
+		// Queue of plugin references to consider
+		TArray<const FPluginReferenceDescriptor*> NewPluginReferences;
+		NewPluginReferences.Add(&FirstReference);
+
+		// Loop through the queue of plugin references that need to be enabled, queuing more items as we go
+		TArray<TSharedRef<FPlugin>> NewPlugins;
+		for (int32 Idx = 0; Idx < NewPluginReferences.Num(); Idx++)
+		{
+			const FPluginReferenceDescriptor& Reference = *NewPluginReferences[Idx];
+
+			// Check if the plugin is required for this platform
+			if(!Reference.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) || !Reference.IsEnabledForTarget(FPlatformMisc::GetUBTTarget()))
+			{
+				UE_LOG(LogPluginManager, Verbose, TEXT("Ignoring plugin '%s' for platform/configuration"), *Reference.Name);
+				continue;
+			}
+
+			// Find the plugin being enabled
+			TSharedRef<FPlugin>* PluginPtr = AllPlugins.Find(Reference.Name);
+			if (PluginPtr == nullptr)
+			{
+				// Ignore any optional plugins
+				if (Reference.bOptional)
+				{
+					UE_LOG(LogPluginManager, Verbose, TEXT("Ignored optional reference to '%s' plugin; plugin was not found."), *Reference.Name);
+					continue;
+				}
+
+				// If we're in unattended mode, don't open any windows
+				if (FApp::IsUnattended())
+				{
+					UE_LOG(LogPluginManager, Error, TEXT("This project requires the '%s' plugin. Install it and try again, or remove it from the project's required plugin list."), *Reference.Name);
+					return false;
+				}
+
+#if !IS_MONOLITHIC
+				// Try to download it from the marketplace
+				if (Reference.MarketplaceURL.Len() > 0 && PromptToDownloadPlugin(Reference.Name, Reference.MarketplaceURL))
+				{
+					UE_LOG(LogPluginManager, Display, TEXT("Downloading '%s' plugin from marketplace (%s)."), *Reference.Name, *Reference.MarketplaceURL);
+					return false;
+				}
+
+				// Prompt to disable it in the project file, if possible
+				if (PromptToDisableMissingPlugin(FirstReference.Name, Reference.Name))
+				{
+					UE_LOG(LogPluginManager, Display, TEXT("Disabled plugin '%s', continuing."), *FirstReference.Name);
+					return true;
+				}
+#endif
+
+				// Unable to continue
+				UE_LOG(LogPluginManager, Error, TEXT("Unable to load plugin '%s'. Aborting."), *Reference.Name);
+				return false;
+			}
+
+			// Check the plugin is not disabled by the platform
+			FPlugin& Plugin = PluginPtr->Get();
+
+			// Allow the platform to disable it
+			if (FPlatformMisc::ShouldDisablePluginAtRuntime(Plugin.Name))
+			{
+				UE_LOG(LogPluginManager, Verbose, TEXT("Plugin '%s' was disabled by platform."), *Reference.Name);
+				continue;
+			}
+
+#if !IS_MONOLITHIC
+			// Mount the binaries directory, and check the modules are valid
+			if (Plugin.Descriptor.Modules.Num() > 0)
+			{
+				// Mount the binaries directory
+				const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin.FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
+				FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin.LoadedFrom == EPluginLoadedFrom::GameProject);
+
+				// Check if the modules are valid
+				TArray<FString> IncompatibleFiles;
+				if (!FModuleDescriptor::CheckModuleCompatibility(Plugin.Descriptor.Modules, Plugin.LoadedFrom == EPluginLoadedFrom::GameProject, IncompatibleFiles))
+				{
+					if (PromptToDisableIncompatiblePlugin(FirstReference.Name, Reference.Name))
+					{
+						UE_LOG(LogPluginManager, Display, TEXT("Disabled plugin '%s', continuing."), *FirstReference.Name);
+						return true;
+					}
+				}
+			}
+
+			// Check the declared engine version. This is a soft requirement, so allow the user to skip over it.
+			if (!IsPluginCompatible(Plugin) && !PromptToLoadIncompatiblePlugin(Plugin, FirstReference.Name))
+			{
+				UE_LOG(LogPluginManager, Display, TEXT("Skipping load of '%s'."), *Plugin.Name);
+				return true;
+			}
+#endif
+
+			// Add references to all its dependencies
+			for (const FPluginReferenceDescriptor& NextReference : Plugin.Descriptor.Plugins)
+			{
+				if (!EnabledPluginNames.Contains(NextReference.Name) && !NewPluginNames.Contains(NextReference.Name))
+				{
+					NewPluginNames.Add(NextReference.Name);
+					NewPluginReferences.Add(&NextReference);
+				}
+			}
+
+			// Add the plugin
+			NewPlugins.Add(*PluginPtr);
+		}
+
+		// Mark all the plugins as enabled
+		for (TSharedRef<FPlugin>& NewPlugin : NewPlugins)
+		{
+			NewPlugin->bEnabled = true;
+			EnabledPluginNames.Add(NewPlugin->Name);
+		}
+	}
+	return true;
+}
+
+bool FPluginManager::PromptToDownloadPlugin(const FString& PluginName, const FString& MarketplaceURL)
+{
+	FText Caption = FText::Format(LOCTEXT("DownloadPluginCaption", "Missing {0} Plugin"), FText::FromString(PluginName));
+	FText Message = FText::Format(LOCTEXT("DownloadPluginMessage", "This project requires the {0} plugin.\n\nWould you like to download it from the Unreal Engine Marketplace?"), FText::FromString(PluginName));
+	if(FMessageDialog::Open(EAppMsgType::YesNo, Message, &Caption) == EAppReturnType::Yes)
+	{
+		FString Error;
+		FPlatformProcess::LaunchURL(*MarketplaceURL, nullptr, &Error);
+		if (Error.Len() == 0)
+		{
+			return true;
+		}
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Error));
+	}
+	return false;
+}
+
+bool FPluginManager::PromptToDisableMissingPlugin(const FString& PluginName, const FString& MissingPluginName)
+{
+	FText Message;
+	if (PluginName == MissingPluginName)
+	{
+		Message = FText::Format(LOCTEXT("DisablePluginMessage", "This project requires the '{0}' plugin, which could not be found.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName));
+	}
+	else
+	{
+		Message = FText::Format(LOCTEXT("DisablePluginMessage", "This project requires the '{0}' plugin, which has a missing dependency on the '{1}' plugin.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName), FText::FromString(MissingPluginName));
+	}
+
+	FText Caption(LOCTEXT("DisablePluginCaption", "Missing Plugin"));
+	return PromptToDisablePlugin(Caption, Message, PluginName);
+}
+
+bool FPluginManager::PromptToDisableIncompatiblePlugin(const FString& PluginName, const FString& IncompatiblePluginName)
+{
+	FText Message;
+	if (PluginName == IncompatiblePluginName)
+	{
+		Message = FText::Format(LOCTEXT("DisablePluginMessage", "This project requires the '{0}' plugin, which is not compatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName));
+	}
+	else
+	{
+		Message = FText::Format(LOCTEXT("DisablePluginMessage", "This project requires the '{0}' plugin, which has a dependency on the '{1}' plugin, which is not compatible with the current engine version.\n\nWould you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(PluginName), FText::FromString(IncompatiblePluginName));
+	}
+
+	FText Caption(LOCTEXT("DisablePluginCaption", "Missing Plugin"));
+	return PromptToDisablePlugin(Caption, Message, PluginName);
+}
+
+bool FPluginManager::PromptToDisablePlugin(const FText& Caption, const FText& Message, const FString& PluginName)
+{
+	// Check we have a project file. If this is a missing engine/program plugin referenced by something, we can't disable it through this method.
+	if (IProjectManager::Get().GetCurrentProject() != nullptr)
+	{
+		if (FMessageDialog::Open(EAppMsgType::YesNo, Message, &Caption) == EAppReturnType::Yes)
+		{
+			FText FailReason;
+			if (IProjectManager::Get().SetPluginEnabled(*PluginName, false, FailReason))
+			{
+				return true;
+			}
+			FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+		}
+	}
+	return false;
+}
+
+bool FPluginManager::IsPluginCompatible(const FPlugin& Plugin)
+{
+	if (Plugin.Descriptor.EngineVersion.Len() > 0)
+	{
+		FEngineVersion Version;
+		if (!FEngineVersion::Parse(Plugin.Descriptor.EngineVersion, Version))
+		{
+			UE_LOG(LogPluginManager, Warning, TEXT("Engine version string in %s could not be parsed (\"%s\")"), *Plugin.FileName, *Plugin.Descriptor.EngineVersion);
+			return true;
+		}
+
+		EVersionComparison Comparison = FEngineVersion::GetNewest(FEngineVersion::CompatibleWith(), Version, nullptr);
+		if (Comparison != EVersionComparison::Neither)
+		{
+			UE_LOG(LogPluginManager, Warning, TEXT("Plugin '%s' is not compatible with the current engine version (%s)"), *Plugin.Name, *Plugin.Descriptor.EngineVersion);
+			return false;
+		}
+	}
+	return true;
+}
+
+bool FPluginManager::PromptToLoadIncompatiblePlugin(const FPlugin& Plugin, const FString& ReferencingPluginName)
+{
+	// Format the message dependning on whether the plugin is referenced directly, or as a dependency
+	FText Message;
+	if (Plugin.Name == ReferencingPluginName)
+	{
+		Message = FText::Format(LOCTEXT("LoadIncompatiblePlugin", "The '{0}' plugin was designed for build {1}. Attempt to load it anyway?"), FText::FromString(Plugin.Name), FText::FromString(Plugin.Descriptor.EngineVersion));
+	}
+	else
+	{
+		Message = FText::Format(LOCTEXT("LoadIncompatibleDependencyPlugin", "The '{0}' plugin is required by the '{1}' plugin, but was designed for build {2}. Attempt to load it anyway?"), FText::FromString(Plugin.Name), FText::FromString(ReferencingPluginName), FText::FromString(Plugin.Descriptor.EngineVersion));
+	}
+
+	FText Caption = FText::Format(LOCTEXT("IncompatiblePluginCaption", "'{0}' is Incompatible"), FText::FromString(Plugin.Name));
+	return FMessageDialog::Open(EAppMsgType::YesNo, Message, &Caption) == EAppReturnType::Yes;
+}
+
 TSharedPtr<FPlugin> FPluginManager::FindPluginInstance(const FString& Name)
 {
 	const TSharedRef<FPlugin>* Instance = AllPlugins.Find(Name);
@@ -671,56 +762,56 @@ TSharedPtr<FPlugin> FPluginManager::FindPluginInstance(const FString& Name)
 
 
 static bool TryLoadModulesForPlugin( const FPlugin& Plugin, const ELoadingPhase::Type LoadingPhase )
-		{
-			TMap<FName, EModuleLoadResult> ModuleLoadFailures;
+{
+	TMap<FName, EModuleLoadResult> ModuleLoadFailures;
 	FModuleDescriptor::LoadModulesForPhase(LoadingPhase, Plugin.Descriptor.Modules, ModuleLoadFailures);
 
-			FText FailureMessage;
-			for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
-			{
-				const FName ModuleNameThatFailedToLoad = FailureIt.Key();
-				const EModuleLoadResult FailureReason = FailureIt.Value();
+	FText FailureMessage;
+	for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
+	{
+		const FName ModuleNameThatFailedToLoad = FailureIt.Key();
+		const EModuleLoadResult FailureReason = FailureIt.Value();
 
-				if( FailureReason != EModuleLoadResult::Success )
-				{
+		if( FailureReason != EModuleLoadResult::Success )
+		{
 			const FText PluginNameText = FText::FromString(Plugin.Name);
-					const FText TextModuleName = FText::FromName(FailureIt.Key());
+			const FText TextModuleName = FText::FromName(FailureIt.Key());
 
-					if ( FailureReason == EModuleLoadResult::FileNotFound )
-					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
-					}
-					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
-					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
-					}
-					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
-					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
-					}
-					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
-					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could not be initialized successfully after it was loaded."), PluginNameText, TextModuleName );
-					}
-					else 
-					{
-						ensure(0);	// If this goes off, the error handling code should be updated for the new enum values!
-						FailureMessage = FText::Format( LOCTEXT("PluginGenericLoadFailure", "Plugin '{0}' failed to load because module '{1}' could not be loaded for an unspecified reason.  This plugin's functionality will not be available.  Please report this error."), PluginNameText, TextModuleName );
-					}
-
-					// Don't need to display more than one module load error per plugin that failed to load
-					break;
-				}
-			}
-
-			if( !FailureMessage.IsEmpty() )
+			if ( FailureReason == EModuleLoadResult::FileNotFound )
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
-				return false;
+				FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
 			}
+			else if ( FailureReason == EModuleLoadResult::FileIncompatible )
+			{
+				FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
+			}
+			else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
+			{
+				FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
+			}
+			else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
+			{
+				FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could not be initialized successfully after it was loaded."), PluginNameText, TextModuleName );
+			}
+			else 
+			{
+				ensure(0);	// If this goes off, the error handling code should be updated for the new enum values!
+				FailureMessage = FText::Format( LOCTEXT("PluginGenericLoadFailure", "Plugin '{0}' failed to load because module '{1}' could not be loaded for an unspecified reason.  This plugin's functionality will not be available.  Please report this error."), PluginNameText, TextModuleName );
+			}
+
+			// Don't need to display more than one module load error per plugin that failed to load
+			break;
+		}
+	}
+
+	if( !FailureMessage.IsEmpty() )
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
+		return false;
+	}
 
 	return true;
-		}
+}
 
 bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
 {

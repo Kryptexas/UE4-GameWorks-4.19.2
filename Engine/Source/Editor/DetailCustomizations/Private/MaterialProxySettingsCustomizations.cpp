@@ -67,7 +67,6 @@ void FMaterialProxySettingsCustomizations::CustomizeChildren(TSharedRef<IPropert
 	{
 		// Handle special property cases (done inside the loop to maintain order according to the struct
 		if (Iter.Value() == DiffuseTextureSizeHandle 
-			|| Iter.Value() == DiffuseTextureSizeHandle
 			|| Iter.Value() == NormalTextureSizeHandle
 			|| Iter.Value() == MetallicTextureSizeHandle
 			|| Iter.Value() == RoughnessTextureSizeHandle

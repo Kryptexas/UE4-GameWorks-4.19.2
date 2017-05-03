@@ -34,6 +34,8 @@ enum EMaterialForceCastFlags
 class FMaterialCompiler
 {
 public:
+	virtual ~FMaterialCompiler() { }
+
 	// sets internal state CurrentShaderFrequency 
 	// @param OverrideShaderFrequency SF_NumFrequencies to not override
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) = 0;

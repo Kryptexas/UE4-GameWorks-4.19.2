@@ -390,11 +390,20 @@ public:
 	}
 
 	/**
-	* Called during cooking. Must return all objects that will be Preload()ed when this is serialized at load time
+	* Called during cooking. Must return all objects that will be Preload()ed when this is serialized at load time. Only used by the EDL.
 	*
 	* @param	OutDeps				all objects that will be preloaded when this is serialized at load time
 	*/
 	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps);
+
+	/**
+	* Called during cooking. Returns a list of objects. The packages containing those objects will be prestreamed, when the package containing this is loaded. Only used by the EDL.
+	*
+	* @param	OutPrestream				all objects that will be prestreamed when this packages is streamed
+	*/
+	virtual void GetPrestreamPackages(TArray<UObject*>& OutPrestream)
+	{
+	}
 
 	/**
 	*	Update the list of classes that we should exclude from dedicated server builds

@@ -677,7 +677,7 @@ bool FOSVRHMD::IsHeadTrackingAllowed() const
     if (GIsEditor)
     {
         UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
-        bool ret = /*Session->IsActive() && */(!EdEngine || (GEnableVREditorHacks || EdEngine->bUseVRPreviewForPlayWorld) || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) && GEngine->IsStereoscopic3D();
+        bool ret = /*Session->IsActive() && */(!EdEngine || (GEnableVREditorHacks || EdEngine->bUseVRPreviewForPlayWorld) || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) && GEngine && GEngine->IsStereoscopic3D();
         return ret;
     }
 #endif

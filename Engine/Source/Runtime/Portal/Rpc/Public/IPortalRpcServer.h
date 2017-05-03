@@ -24,5 +24,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	~IPortalRpcServer() { }
+	virtual ~IPortalRpcServer() { }
 };

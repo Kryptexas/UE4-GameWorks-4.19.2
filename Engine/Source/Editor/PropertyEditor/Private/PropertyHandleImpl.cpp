@@ -272,11 +272,11 @@ FString FPropertyValueImpl::GetPropertyValueArray() const
 					{
 						String = FString::Printf( TEXT("%(%d)"), FScriptArrayHelper::Num(Addr) );
 					}
-					else if ( NodeProperty != nullptr && Cast<USetProperty>(NodeProperty) != nullptr )	
+					else if ( Cast<USetProperty>(NodeProperty) != nullptr )	
 					{
 						String = FString::Printf( TEXT("%(%d)"), FScriptSetHelper::Num(Addr) );
 					}
-					else if (NodeProperty != nullptr && Cast<UMapProperty>(NodeProperty) != nullptr)
+					else if (Cast<UMapProperty>(NodeProperty) != nullptr)
 					{
 						String = FString::Printf(TEXT("%(%d)"), FScriptMapHelper::Num(Addr));
 					}

@@ -115,7 +115,7 @@ FPrecomputedLightVolumeData::~FPrecomputedLightVolumeData()
 static void LoadVolumeLightSamples(FArchive& Ar, int32 ArchiveNumSHSamples, TArray<FVolumeLightingSample>& Samples)
 {
 	// If it's the same number as what is currently compiled
-	if (ArchiveNumSHSamples == NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS)
+	if (ArchiveNumSHSamples == NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS) //-V517
 	{
 		Ar << Samples;		
 	}

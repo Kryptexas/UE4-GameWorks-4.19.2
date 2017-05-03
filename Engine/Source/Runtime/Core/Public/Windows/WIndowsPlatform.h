@@ -71,8 +71,6 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 
 #define PLATFORM_SUPPORTS_STACK_SYMBOLS						1
 
-// Intrinsics for 64-bit atomics on Windows platform requires Windows Vista or higher (WINVER>=0x0600)
-#define PLATFORM_HAS_64BIT_ATOMICS							(WINVER >= 0x600)
 // Intrinsics for 128-bit atomics on Windows platform requires Windows 8 or higher (WINVER>=0x0602)
 // http://msdn.microsoft.com/en-us/library/windows/desktop/hh972640.aspx
 #define PLATFORM_HAS_128BIT_ATOMICS							(!HACK_HEADER_GENERATOR && PLATFORM_64BITS && (WINVER >= 0x602))

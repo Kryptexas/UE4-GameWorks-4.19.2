@@ -356,11 +356,8 @@ bool FLinkerPlaceholderBase::AddReferencingPropertyValue(const UObjectProperty* 
 		check(PropertyChain.IsValid());
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
-		if (ReferencingContainer != nullptr)
-		{
-			ReferencingContainers.FindOrAdd(ReferencingContainer).Add(PropertyChain);
-		}
-		return (ReferencingContainer != nullptr);
+		ReferencingContainers.FindOrAdd(ReferencingContainer).Add(PropertyChain);
+		return true;
 	}
 	else
 	{

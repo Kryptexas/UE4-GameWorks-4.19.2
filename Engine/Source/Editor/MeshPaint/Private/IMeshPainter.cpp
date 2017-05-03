@@ -27,6 +27,10 @@ IMeshPainter::IMeshPainter()
 	FMeshPainterCommands::Register();
 }
 
+IMeshPainter::~IMeshPainter()
+{
+}
+
 void IMeshPainter::RenderInteractors(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI, bool bRenderVertices, ESceneDepthPriorityGroup DepthGroup/* = SDPG_World*/)
 {
 	TArray<MeshPaintHelpers::FPaintRay> PaintRays;
@@ -90,7 +94,7 @@ void IMeshPainter::UnregisterCommands(TSharedRef<FUICommandList> CommandList)
 bool IMeshPainter::Paint(FViewport* Viewport, const FVector& InCameraOrigin, const FVector& InRayOrigin, const FVector& InRayDirection)
 {
 	// Determine paint action according to whether or not shift is held down
-	const EMeshPaintAction PaintAction = (Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::LeftShift)) ? EMeshPaintAction::Erase : EMeshPaintAction::Paint;
+	const EMeshPaintAction PaintAction = (Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift)) ? EMeshPaintAction::Erase : EMeshPaintAction::Paint;
 	
 	const float PaintStrength = Viewport->IsPenActive() ? Viewport->GetTabletPressure() : 1.f;
 	// Handle internal painting functionality

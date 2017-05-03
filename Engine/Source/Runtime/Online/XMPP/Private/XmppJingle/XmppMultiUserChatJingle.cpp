@@ -293,7 +293,7 @@ public:
 
 		if (bIsOwner && bWasSuccessful)
 		{
-			Muc.InternalConfigureRoom(RoomId, FXmppRoomConfig(*RoomCreateConfig), EConfigureRoomTypeJingle::UseCreateCallback);
+			Muc.InternalConfigureRoom(RoomId, FXmppRoomConfig(*RoomCreateConfig), EConfigureRoomTypeJingle::UseCreateCallback); //-V595
 		}
 		else
 		{

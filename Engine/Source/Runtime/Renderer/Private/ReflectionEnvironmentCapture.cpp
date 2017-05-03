@@ -1522,7 +1522,7 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 				// Clean up the proxy now that the rendering thread is done with it
 				delete ReflectionProxy;
 			});
-		}
+		} //-V773
 	}
 }
 

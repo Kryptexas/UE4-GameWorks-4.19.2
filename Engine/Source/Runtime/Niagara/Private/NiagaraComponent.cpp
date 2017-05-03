@@ -468,7 +468,7 @@ FNiagaraVariable* UNiagaraComponent::CopyOnWriteParameter(FGuid ParameterId)
 
 	// Add if the existing override variable doesn't exist, make one and force invalidation to happen so it 
 	// propagates through to the effects.
-	if (ExistingVar == nullptr && SrcVariable != nullptr)
+	if (ExistingVar == nullptr)
 	{
 		int32 AddIndex = EffectParameterLocalOverrides.Add(*SrcVariable);
 		ExistingVar = &EffectParameterLocalOverrides[AddIndex];
@@ -508,7 +508,7 @@ FNiagaraVariable* UNiagaraComponent::CopyOnWriteParameter(FName VarName, FNiagar
 
 	// Add if the existing override variable doesn't exist, make one and force invalidation to happen so it 
 	// propagates through to the effects.
-	if (ExistingVar == nullptr && SrcVariable != nullptr)
+	if (ExistingVar == nullptr)
 	{
 		int32 AddIndex = EffectParameterLocalOverrides.Add(*SrcVariable);
 		ExistingVar = &EffectParameterLocalOverrides[AddIndex];
@@ -668,7 +668,7 @@ FNiagaraScriptDataInterfaceInfo* UNiagaraComponent::CopyOnWriteDataInterface(FNa
 		return nullptr;
 	}
 
-	if (SrcVariable->DataInterface == nullptr || !SrcVariable->DataInterface->GetClass()->IsChildOf(RequiredClass))
+	if (!SrcVariable->DataInterface->GetClass()->IsChildOf(RequiredClass))
 	{
 		UE_LOG(LogNiagara, Warning, TEXT("%s FNiagaraScriptDataInterfaceInfo exists, but class is %s, not %s."), *VarName.ToString(), *SrcVariable->DataInterface->GetClass()->GetName(), *RequiredClass->GetName());
 		return nullptr;
@@ -676,7 +676,7 @@ FNiagaraScriptDataInterfaceInfo* UNiagaraComponent::CopyOnWriteDataInterface(FNa
 
 	bool bInvalidate = false;
 	FNiagaraScriptDataInterfaceInfo* ExistingVar = GetLocalOverrideDataInterface(SrcVariable->Id);
-	if (ExistingVar == nullptr && SrcVariable != nullptr)
+	if (ExistingVar == nullptr)
 	{
 		int32 AddIndex = EffectDataInterfaceLocalOverrides.AddDefaulted();
 		ExistingVar = &EffectDataInterfaceLocalOverrides[AddIndex];
@@ -684,12 +684,12 @@ FNiagaraScriptDataInterfaceInfo* UNiagaraComponent::CopyOnWriteDataInterface(FNa
 		bInvalidate = true;
 	}
 
-	if (ExistingVar != nullptr && ExistingVar->DataInterface->GetClass() != SrcVariable->DataInterface->GetClass())
+	if (ExistingVar->DataInterface->GetClass() != SrcVariable->DataInterface->GetClass())
 	{
 		SrcVariable->CopyTo(ExistingVar, this);
 	}
 
-	if (ExistingVar != nullptr && ExistingVar->Name != SrcVariable->Name)
+	if (ExistingVar->Name != SrcVariable->Name)
 	{
 		ExistingVar->Name = SrcVariable->Name;
 	}

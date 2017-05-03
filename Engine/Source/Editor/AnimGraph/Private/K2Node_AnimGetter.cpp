@@ -63,7 +63,7 @@ void UK2Node_AnimGetter::GetMenuActions(FBlueprintActionDatabaseRegistrar& Actio
 	const UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(ActionRegistrar.GetActionKeyFilter());
 	if(AnimBlueprint && ActionRegistrar.IsOpenForRegistration(AnimBlueprint))
 	{
-		UClass* BPClass = (AnimBlueprint) ? *AnimBlueprint->ParentClass : UAnimInstance::StaticClass();
+		UClass* BPClass = *AnimBlueprint->ParentClass;
 		while(BPClass && !BPClass->HasAnyClassFlags(CLASS_Native))
 		{
 			BPClass = BPClass->GetSuperClass();

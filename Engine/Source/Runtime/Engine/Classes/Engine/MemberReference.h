@@ -159,7 +159,7 @@ public:
 		if ((ParentAsClass != NULL) && (SelfScope != NULL))
 		{
 #if WITH_EDITOR
-			UBlueprint::GetGuidFromClassByFieldName<TFieldType>((ParentAsClass ? ParentAsClass : SelfScope), MemberName, MemberGuid);
+			UBlueprint::GetGuidFromClassByFieldName<TFieldType>((ParentAsClass), MemberName, MemberGuid);
 #endif
 			SetGivenSelfScope(MemberName, MemberGuid, ParentAsClass, SelfScope);
 		}

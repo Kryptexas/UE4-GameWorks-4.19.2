@@ -44,7 +44,7 @@ namespace
 	FORCEINLINE UBlackboardComponent* GetBlackboard(UBTNode& BTNode)
 	{
 		check(BTNode.GetOuter());
-		check(BTNode.GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint) || Cast<UDynamicClass>(BTNode.GetClass()) && "This function call is valid only for BP-implemented BT nodes");
+		checkf(BTNode.GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint) || Cast<UDynamicClass>(BTNode.GetClass()), TEXT("This function call is valid only for BP-implemented BT nodes"));
 		check(Cast<UBehaviorTreeComponent>(BTNode.GetOuter()));
 
 		return ((UBehaviorTreeComponent*)BTNode.GetOuter())->GetBlackboardComponent();
@@ -54,7 +54,7 @@ namespace
 UBehaviorTreeComponent* UBTFunctionLibrary::GetOwnerComponent(UBTNode* NodeOwner)
 {
 	check(NodeOwner);
-	check(NodeOwner->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint) && "This function call is valid only for BP-implemented BT nodes");
+	checkf(NodeOwner->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint), TEXT("This function call is valid only for BP-implemented BT nodes"));
 	check(NodeOwner->GetOuter());
 
 	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter());

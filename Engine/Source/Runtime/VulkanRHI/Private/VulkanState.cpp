@@ -115,8 +115,8 @@ namespace VulkanRHI
 		{
 			// get the unique key
 			uint64 StencilBitMask =
-				(State.failOp << 0) | (State.passOp << 3) | (State.depthFailOp << 6) |
-				(State.compareOp << 9) | (State.compareMask << 12) | (State.writeMask << 20);
+				(((uint64)State.failOp) << 0) | (((uint64)State.passOp) << 3) | (((uint64)State.depthFailOp) << 6) |
+				(((uint64)State.compareOp) << 9) | (((uint64)State.compareMask) << 12) | (((uint64)State.writeMask) << 20);
 
 			uint8* Key = SettingsToUniqueKeyMap.Find(StencilBitMask);
 			if (Key == NULL)

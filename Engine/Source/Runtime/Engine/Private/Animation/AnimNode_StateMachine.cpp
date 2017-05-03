@@ -431,7 +431,7 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 			}
 
 			// Push the transition onto the stack
-			const FAnimationTransitionBetweenStates& ReferenceTransition = GetTransitionInfo(PotentialTransition.TransitionRule->TransitionIndex);
+			const FAnimationTransitionBetweenStates& ReferenceTransition = GetTransitionInfo(PotentialTransition.TransitionRule->TransitionIndex); //-V595
 			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextState, ExistingWeightOfNextState, PreviousTransitionForNextState, PreviousState, ReferenceTransition);
 			if (NewTransition && PotentialTransition.TransitionRule)
 			{

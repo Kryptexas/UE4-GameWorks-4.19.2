@@ -960,11 +960,7 @@ bool FTranslationDataManager::SaveSelectedTranslations(TArray<UTranslationUnit*>
 					FString UploadFilePath = FPaths::GameSavedDir() / "Temp" / CultureName / ManifestAndArchiveName + ".po";
 					FFileHelper::SaveStringToFile(PortableObjectDom.ToString(), *UploadFilePath);
 
-					FGuid LocalizationTargetGuid;
-					if (LocalizationTarget)
-					{
-						LocalizationTargetGuid = LocalizationTarget->Settings.Guid;
-					}
+					FGuid LocalizationTargetGuid = LocalizationTarget->Settings.Guid;
 
 					ILocalizationServiceProvider& Provider = ILocalizationServiceModule::Get().GetProvider();
 					TSharedRef<FUploadLocalizationTargetFile, ESPMode::ThreadSafe> UploadTargetFileOp = ILocalizationServiceOperation::Create<FUploadLocalizationTargetFile>();

@@ -59,7 +59,7 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 			{
 				if (GEditor->PlayWorld && !GEditor->bIsSimulatingInEditor)
 				{
-					CurrentVREditorMode->TogglePIEAndVREditor();
+					CurrentVREditorMode->TogglePIEAndVREditor(); //-V595
 				}
 
 				EnableVREditor( false, false );

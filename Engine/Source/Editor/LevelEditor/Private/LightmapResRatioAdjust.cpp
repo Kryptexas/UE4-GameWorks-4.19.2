@@ -171,7 +171,7 @@ bool FLightmapResRatioAdjustSettings::ApplyRatioAdjustment()
 				{
 					bConvertIt = false;
 				}
-				else if( SMComp->GetWorld() && SMComp->GetWorld()->WorldType == EWorldType::EditorPreview && SMComp->GetWorld()->WorldType != EWorldType::Inactive )
+				else if( SMComp->GetWorld() && (SMComp->GetWorld()->WorldType == EWorldType::EditorPreview || SMComp->GetWorld()->WorldType == EWorldType::Inactive) )
 				{
 					// Don't do objects with an editor preview or inactive world
 					bConvertIt = false;

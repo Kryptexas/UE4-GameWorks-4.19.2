@@ -1341,7 +1341,7 @@ void UInstancedStaticMeshComponent::ReleasePerInstanceRenderData()
 			// Resource will either be released here or by scene proxy on the render thread, whoever gets executed last
 			delete InCleanupRenderDataPtr;
 		});
-	}
+	} //-V773
 }
 
 void UInstancedStaticMeshComponent::PropagateLightingScenarioChange()

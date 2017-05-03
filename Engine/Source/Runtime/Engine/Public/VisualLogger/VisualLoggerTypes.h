@@ -247,7 +247,7 @@ public:
 		FVisualLogEntry Entry;
 	};
 
-
+	virtual ~FVisualLogDevice() { }
 	virtual void Serialize(const UObject* LogOwner, FName OwnerName, FName InOwnerClassName, const FVisualLogEntry& LogEntry) = 0;
 	virtual void Cleanup(bool bReleaseMemory = false) { /* Empty */ }
 	virtual void StartRecordingToFile(float TImeStamp) { /* Empty */ }
@@ -300,6 +300,8 @@ struct IVisualLoggerEditorInterface
 class FVisualLogExtensionInterface
 {
 public:
+	virtual ~FVisualLogExtensionInterface() { }
+
 	virtual void ResetData(IVisualLoggerEditorInterface* EdInterface) = 0;
 	virtual void DrawData(IVisualLoggerEditorInterface* EdInterface, UCanvas* Canvas) = 0;
 

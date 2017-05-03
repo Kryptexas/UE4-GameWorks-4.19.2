@@ -87,7 +87,7 @@ class ir_scalarize_visitor2 : public ir_hierarchical_visitor
 	{
 	}
 
-	~ir_scalarize_visitor2()
+	virtual ~ir_scalarize_visitor2()
 	{
 	}
 

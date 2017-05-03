@@ -81,7 +81,7 @@ FMalloc* FWindowsPlatformMemory::BaseAllocator()
 	_CrtSetAllocHook(WindowsAllocHook);
 #endif // ENABLE_WIN_ALLOC_TRACKING
 
-	if (FORCE_ANSI_ALLOCATOR)
+	if (FORCE_ANSI_ALLOCATOR) //-V517
 	{
 		AllocatorToUse = EMemoryAllocatorToUse::Ansi;
 	}

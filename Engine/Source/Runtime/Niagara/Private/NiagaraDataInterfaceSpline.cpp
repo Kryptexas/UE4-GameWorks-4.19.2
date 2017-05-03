@@ -361,8 +361,7 @@ bool UNiagaraDataInterfaceSpline::PreSimulationTick(FNiagaraEffectInstance* Effe
 	TransformInverseTransposed = FMatrix::Identity;
 	if (Source)
 	{
-		USplineComponent* SourceComp = nullptr;
-		SourceComp = Source->FindComponentByClass<USplineComponent>();
+		USplineComponent* SourceComp = Source->FindComponentByClass<USplineComponent>();
 
 		if (SourceComp)
 		{

@@ -27,6 +27,8 @@ public:
 	 */
 	FEngineLoop();
 
+	virtual ~FEngineLoop() { }
+
 public:
 
 	/**

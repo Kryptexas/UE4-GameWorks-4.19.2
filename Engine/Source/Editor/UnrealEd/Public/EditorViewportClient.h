@@ -126,6 +126,7 @@ struct FViewportCursorLocation
 {
 public:
 	UNREALED_API FViewportCursorLocation( const FSceneView* View, FEditorViewportClient* InViewportClient, int32 X, int32 Y );
+	UNREALED_API virtual ~FViewportCursorLocation();
 
 	const FVector&		GetOrigin()			const	{ return Origin; }
 	const FVector&		GetDirection()		const	{ return Direction; }
@@ -144,6 +145,7 @@ struct FViewportClick : public FViewportCursorLocation
 {
 public:
 	UNREALED_API FViewportClick( const FSceneView* View, FEditorViewportClient* ViewportClient, FKey InKey, EInputEvent InEvent, int32 X, int32 Y );
+	UNREALED_API virtual ~FViewportClick();
 
 	/** @return The 2D screenspace cursor position of the mouse when it was clicked. */
 	const FIntPoint&	GetClickPos()	const	{ return GetCursorPos(); }

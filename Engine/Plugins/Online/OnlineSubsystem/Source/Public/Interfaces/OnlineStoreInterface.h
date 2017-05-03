@@ -230,6 +230,8 @@ class IOnlineStore
 {
 public:
 
+	virtual ~IOnlineStore() { }
+
 	/**
 	 * Search for what purchases are available
 	 *

@@ -231,6 +231,8 @@ public:
 		}
 	}
 
+	/** Platform file can override this to get a regular tick from the engine */
+	virtual void Tick() { }
 	/** Gets the platform file wrapped by this file. */
 	virtual IPlatformFile* GetLowerLevel() = 0;
 	/** Sets the platform file wrapped by this file. */
@@ -290,6 +292,8 @@ public:
 	class FDirectoryVisitor
 	{
 	public:
+		virtual ~FDirectoryVisitor() { }
+
 		/** 
 		 * Callback for a single file or a directory in a directory iteration.
 		 * @param FilenameOrDirectory		If bIsDirectory is true, this is a directory (with no trailing path delimiter), otherwise it is a file name.
@@ -303,6 +307,7 @@ public:
 	class FDirectoryStatVisitor
 	{
 	public:
+		virtual ~FDirectoryStatVisitor() { }
 		/** 
 		 * Callback for a single file or a directory in a directory iteration.
 		 * @param FilenameOrDirectory		If bIsDirectory is true, this is a directory (with no trailing path delimiter), otherwise it is a file name.
@@ -415,6 +420,8 @@ public:
 	class IFileServerMessageHandler
 	{
 	public:
+		virtual ~IFileServerMessageHandler() { }
+
 		/** Subclass fills out an archive to send to the server */
 		virtual void FillPayload(FArchive& Payload) = 0;
 

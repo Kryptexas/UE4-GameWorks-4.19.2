@@ -166,7 +166,7 @@ public:
 			return 0.0f;
 		}
 
-		return Dimensions.X / Dimensions.Y;
+		return (float)(Dimensions.X) / Dimensions.Y;
 	}
 
 public:

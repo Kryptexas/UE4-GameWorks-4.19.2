@@ -2789,7 +2789,7 @@ void UClass::DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName
 	// PVS-Studio justifiably complains about this cast, but we expect this to work because we 'know' that 
 	// we're coming from the UClass constructor that is used when 'statically linked'. V580 disables 
 	// a warning that indicates this is an 'odd explicit type casting'.
-	const TCHAR* InClassConfigName = *(TCHAR**)&ClassConfigName; //-V580
+	const TCHAR* InClassConfigName = *(TCHAR**)&ClassConfigName; //-V580 //-V641
 	ClassConfigName = InClassConfigName;
 
 	// Propagate inherited flags.

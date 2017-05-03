@@ -1100,7 +1100,7 @@ class ir_gen_vvm_visitor : public ir_hierarchical_visitor
 	{
 	}
 
-	~ir_gen_vvm_visitor()
+	virtual ~ir_gen_vvm_visitor()
 	{
 		for (int32 i = 0; i < ordered_ops.Num(); ++i)
 		{

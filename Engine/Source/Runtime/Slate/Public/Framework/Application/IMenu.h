@@ -16,6 +16,7 @@ class IMenu
 public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMenuDismissed, TSharedRef<IMenu> /*DismissedMenu*/);
 
+	virtual ~IMenu() { }
 	virtual EPopupMethod GetPopupMethod() const = 0;
 	virtual TSharedPtr<SWindow> GetParentWindow() const = 0;
 	virtual TSharedPtr<SWindow> GetOwnedWindow() const = 0;

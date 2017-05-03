@@ -99,7 +99,7 @@ namespace UAudio
 	* This callback class is used to get event notifications on buffer end (when a buffer has finished processing).
 	* This is used to signal the I/O thread that it can request another buffer from the user callback.
 	*/
-	class FXAudio2VoiceCallback : public IXAudio2VoiceCallback
+	class FXAudio2VoiceCallback final : public IXAudio2VoiceCallback
 	{
 	public:
 		FXAudio2VoiceCallback()
@@ -107,7 +107,7 @@ namespace UAudio
 		{
 		}
 
-		~FXAudio2VoiceCallback()
+		virtual ~FXAudio2VoiceCallback()
 		{
 		}
 

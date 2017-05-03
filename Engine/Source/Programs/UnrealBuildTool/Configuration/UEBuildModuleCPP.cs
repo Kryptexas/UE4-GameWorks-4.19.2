@@ -160,11 +160,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bSkipDefinitionsForCompileEnvironment = false;
 
-		public int FindNumberOfGeneratedCppFiles()
+		public IEnumerable<string> FindGeneratedCppFiles()
 		{
-			return ((null == GeneratedCodeDirectory) || !DirectoryReference.Exists(GeneratedCodeDirectory)) ? 0
-				 : (DirectoryReference.EnumerateFiles(GeneratedCodeDirectory, "*.generated.*.cpp", SearchOption.AllDirectories).Count()
-				  + DirectoryReference.EnumerateFiles(GeneratedCodeDirectory, "*.generated.cpp", SearchOption.AllDirectories).Count());
+			return ((null == GeneratedCodeDirectory) || !DirectoryReference.Exists(GeneratedCodeDirectory))
+				? Enumerable.Empty<string>()
+				: DirectoryReference.EnumerateFiles(GeneratedCodeDirectory, "*.generated.cpp", SearchOption.TopDirectoryOnly).Select((Dir) => Dir.FullName);
 		}
 
 		protected override void GetReferencedDirectories(HashSet<DirectoryReference> Directories)
@@ -522,7 +522,7 @@ namespace UnrealBuildTool
 			if (bModuleUsesUnityBuild)
 			{
 				CPPFilesToCompile = Unity.GenerateUnityCPPs(Target, CPPFilesToCompile, CompileEnvironment, Name);
-				LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(Target, ToolChain, CompileEnvironment, ModuleCompileEnvironment, CPPFilesToCompile, Name, ActionGraph).ObjectFiles);
+				LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(Target, ToolChain, CompileEnvironment, ModuleCompileEnvironment, CPPFilesToCompile, ActionGraph).ObjectFiles);
 			}
 			else
 			{
@@ -544,6 +544,7 @@ namespace UnrealBuildTool
 					}
 
 					// Compile all the generated files
+					List<FileItem> GeneratedFileItems = new List<FileItem>();
 					foreach (string GeneratedFilename in GeneratedFiles)
 					{
 						FileItem GeneratedCppFileItem = FileItem.GetItemByPath(GeneratedFilename);
@@ -551,7 +552,17 @@ namespace UnrealBuildTool
 						CachePCHUsageForModuleSourceFile(CompileEnvironment, GeneratedCppFileItem);
 
 						// @todo ubtmake: Check for ALL other places where we might be injecting .cpp or .rc files for compiling without caching CachedCPPIncludeInfo first (anything platform specific?)
-						LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(GeneratedCPPCompileEnvironment, new List<FileItem> { GeneratedCppFileItem }, Name, ActionGraph).ObjectFiles);
+						GeneratedFileItems.Add(GeneratedCppFileItem);
+					}
+
+					if (bModuleUsesUnityBuild)
+					{
+						GeneratedFileItems = Unity.GenerateUnityCPPs(Target, GeneratedFileItems, GeneratedCPPCompileEnvironment, Name + ".generated");
+						LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(Target, ToolChain, GeneratedCPPCompileEnvironment, ModuleCompileEnvironment, GeneratedFileItems, ActionGraph).ObjectFiles);
+					}
+					else
+					{
+						LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(GeneratedCPPCompileEnvironment, GeneratedFileItems, Name, ActionGraph).ObjectFiles);
 					}
 				}
 			}
@@ -669,7 +680,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Compiles the provided CPP unity files. Will
 		/// </summary>
-		private CPPOutput CompileUnityFilesWithToolChain(ReadOnlyTargetRules Target, UEToolChain ToolChain, CppCompileEnvironment CompileEnvironment, CppCompileEnvironment ModuleCompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
+		private CPPOutput CompileUnityFilesWithToolChain(ReadOnlyTargetRules Target, UEToolChain ToolChain, CppCompileEnvironment CompileEnvironment, CppCompileEnvironment ModuleCompileEnvironment, List<FileItem> SourceFiles, ActionGraph ActionGraph)
 		{
 			List<FileItem> NormalFiles = new List<FileItem>();
 			List<FileItem> AdaptiveFiles = new List<FileItem>();

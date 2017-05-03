@@ -637,7 +637,6 @@ void FAbcImporter::TraverseAbcHierarchy(const Alembic::Abc::IObject& InObject, T
 	{
 		// Push back this object for the Hierarchy
 		TArray<TSharedPtr<FAbcTransformObject>> NewObjectHierarchy = InObjectHierarchy;
-		NewObjectHierarchy = InObjectHierarchy;
 
 		// Only add handled objects to ensure we have valid objects in the hierarchies
 		if (bHandled && AbcImporterUtilities::IsType<Alembic::AbcGeom::IXform>(ObjectMetaData))
@@ -881,8 +880,7 @@ const TArray<UStaticMesh*> FAbcImporter::ImportAsStaticMesh(UObject* InParent, E
 		// Only merged samples if there are any
 		if (Samples.Num())
 		{
-			FAbcMeshSample* MergedSample = nullptr;
-			MergedSample = AbcImporterUtilities::MergeMeshSamples(Samples);
+			FAbcMeshSample* MergedSample = AbcImporterUtilities::MergeMeshSamples(Samples);
 			FRawMesh RawMesh;
 			GenerateRawMeshFromSample(MergedSample, RawMesh);
 

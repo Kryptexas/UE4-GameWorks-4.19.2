@@ -24,7 +24,6 @@ void FDiskCacheInterface::Init(FString &filename)
 	mMapAddress = 0;
 	mCurrentFileMapSize = 0;
 	mCurrentOffset = 0;
-	mCacheExists = false;
 	mInErrorState = false;
 
 	mFileName = filename;
@@ -36,10 +35,17 @@ void FDiskCacheInterface::Init(FString &filename)
 	else
 	{
 		WIN32_FIND_DATA fileData;
-		FindFirstFile(mFileName.GetCharArray().GetData(), &fileData);
-		if (GetLastError() == ERROR_FILE_NOT_FOUND)
+		HANDLE Handle = FindFirstFile(mFileName.GetCharArray().GetData(), &fileData);
+		if (Handle == INVALID_HANDLE_VALUE)
 		{
-			mCacheExists = false;
+			if (GetLastError() == ERROR_FILE_NOT_FOUND)
+			{
+				mCacheExists = false;
+			}
+		}
+		else
+		{
+			FindClose(Handle);
 		}
 	}
 	bool fileFound = mCacheExists;

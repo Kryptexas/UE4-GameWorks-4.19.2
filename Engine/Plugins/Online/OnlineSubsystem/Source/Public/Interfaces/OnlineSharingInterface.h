@@ -126,6 +126,7 @@ DECLARE_DELEGATE_ThreeParams(FOnRequestCurrentPermissionsComplete, int32 /*Local
 class IOnlineSharing
 {
 public:
+	virtual ~IOnlineSharing() { }
 
 	///////////////////////////////////////////////////////////
 	// PERMISSIONS

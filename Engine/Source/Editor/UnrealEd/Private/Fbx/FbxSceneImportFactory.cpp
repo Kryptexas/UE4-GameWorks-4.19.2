@@ -1085,9 +1085,7 @@ FFeedbackContext*	Warn
 	AnimSequenceImportData->FbxSceneImportDataReference = ReimportData;
 
 	//Get the scene root node
-	FbxNode* RootNodeToImport = nullptr;
-	RootNodeToImport = FbxImporter->Scene->GetRootNode();
-
+	FbxNode* RootNodeToImport = FbxImporter->Scene->GetRootNode();
 	
 	// For animation and static mesh we assume there is at lease one interesting node by default
 	int32 InterestingNodeCount = 1;
@@ -2234,17 +2232,18 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, TArray<void*
 	NewObject = FFbxImporter->ImportStaticMeshAsSingle(Pkg, Nodes, StaticMeshFName, Flags, StaticMeshImportData, Cast<UStaticMesh>(InMesh), LODIndex);
 
 	OutNodeInfo->AttributeInfo->SetOriginalImportPath(PackageName);
-	OutNodeInfo->AttributeInfo->SetOriginalFullImportName(NewObject->GetPathName());
 
 	if (NewObject)
 	{
+		OutNodeInfo->AttributeInfo->SetOriginalFullImportName(NewObject->GetPathName());
+
 		NodeIndex++;
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("NodeIndex"), NodeIndex);
 		Args.Add(TEXT("ArrayLength"), Total);
 		GWarn->StatusUpdate(NodeIndex, Total, FText::Format(NSLOCTEXT("UnrealEd", "Importingf", "Importing ({NodeIndex} of {ArrayLength})"), Args));
 	}
-	else if(Pkg != nullptr)
+	else
 	{
 		Pkg->RemoveFromRoot();
 		Pkg->ConditionalBeginDestroy();

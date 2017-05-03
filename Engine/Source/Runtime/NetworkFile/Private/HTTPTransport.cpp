@@ -2,7 +2,7 @@
 
 #include "HTTPTransport.h"
 
-#if ENABLE_HTTP_FOR_NFS
+#if ENABLE_HTTP_FOR_NF
 
 #include "Serialization/BufferArchive.h"
 #include "NetworkMessage.h"

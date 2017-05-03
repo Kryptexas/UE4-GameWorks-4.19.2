@@ -4435,7 +4435,6 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 						{
 							check(!Variable->type->is_array());
 							check(Variable->semantic);
-							check(Variable->semantic);
 							int attributeIndex = -1;
 #if PLATFORM_WINDOWS
 							sscanf_s(Variable->semantic, "[[ attribute(ATTRIBUTE%d) ]]", &attributeIndex);
@@ -4454,7 +4453,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
  								{
  									instance_id = Variable;
 								}
-								else if (!Variable->semantic || strcmp(Variable->semantic, "SV_POSITION") != 0)
+								else if (strcmp(Variable->semantic, "SV_POSITION") != 0)
 								{
 									// @todo Error about the ignored variables - audit to ensure only SV_Position is duplicated
 									_mesa_glsl_error(ParseState, "Unhandled input variable %s [[%s]] found in tessellation shader.\n", Variable->name, Variable->semantic);

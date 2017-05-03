@@ -22,5 +22,11 @@
 			"Name": "OnlineSubsystemAmazon",
 			"LoadingPolicy": "Always"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		}
 	]
 }

@@ -713,11 +713,13 @@ static FString CustomThunkFunctionPostfix(FBlueprintCompiledStatement& Statement
 
 FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext& EmitterContext, FBlueprintCompiledStatement& Statement, bool bInline, FString PostFix)
 {
+	check(Statement.FunctionToCall != nullptr);
+
 	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
 	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
 	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
 	const bool bAnyInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
-	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
+	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
 	const bool bNativeEvent = FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false);
 
 	const UClass* CurrentClass = EmitterContext.GetCurrentlyGeneratedClass();

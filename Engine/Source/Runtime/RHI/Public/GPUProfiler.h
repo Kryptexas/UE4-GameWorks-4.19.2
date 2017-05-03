@@ -219,6 +219,10 @@ struct RHI_API FGPUProfiler
 	{
 	}
 
+	virtual ~FGPUProfiler()
+	{
+	}
+
 	void RegisterGPUWork(uint32 NumPrimitives = 0, uint32 NumVertices = 0)
 	{
 		if (bTrackingEvents && CurrentEventNode)

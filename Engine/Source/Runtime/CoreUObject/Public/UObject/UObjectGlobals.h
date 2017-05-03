@@ -937,26 +937,6 @@ private:
 	 */
 	static void InitProperties(UObject* Obj, UClass* DefaultsClass, UObject* DefaultData, bool bCopyTransientsFromClassDefaults);
 
-	/**
-	 * Helper method to assist with initializing object properties from an explicit list.
-	 * 
-	 * @param	InPropertyList		only these properties will be copied from defaults
-	 * @param	InStruct			the current scope for which the given property list applies
-	 * @param	DataPtr				destination address (where to start copying values to)
-	 * @param	DefaultDataPtr		source address (where to start copying the defaults data from)
-	 */
-	static void InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr);
-
-	/**
-	* Helper method to assist with initializing from an array property with an explicit item list.
-	*
-	* @param	ArrayProperty		the array property for which the given property list applies
-	* @param	InPropertyList		only these properties (indices) will be copied from defaults
-	* @param	DataPtr				destination address (where to start copying values to)
-	* @param	DefaultDataPtr		source address (where to start copying the defaults data from)
-	*/
-	static void InitArrayPropertyFromCustomList(const UArrayProperty* ArrayProperty, const FCustomPropertyListNode* InPropertyList, uint8* DataPtr, const uint8* DefaultDataPtr);
-
 	bool IsInstancingAllowed() const;
 
 	/**
@@ -1701,6 +1681,7 @@ public:
 		}
 	}
 
+	virtual ~FReferenceCollector() { }
 	/**
 	 * If true archetype references should not be added to this collector.
 	 */
@@ -1846,6 +1827,10 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	/** Called by ReloadPackage during package reloading. It will be called several times for different phases of fix-up to allow custom code to handle updating objects as needed */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageReloaded, EPackageReloadPhase, FPackageReloadedEvent*);
 	static FOnPackageReloaded OnPackageReloaded;
+
+	/** Called when a package reload request is received from a network file server */
+	DECLARE_DELEGATE_OneParam(FNetworkFileRequestPackageReload, const TArray<FString>& /*PackageNames*/);
+	static FNetworkFileRequestPackageReload NetworkFileRequestPackageReload;
 
 #if WITH_EDITOR
 	// Callback for all object modifications

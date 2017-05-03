@@ -10,7 +10,7 @@ class FSlateD3DIndexBuffer
 {
 public:
 	FSlateD3DIndexBuffer();
-	~FSlateD3DIndexBuffer();
+	virtual ~FSlateD3DIndexBuffer();
 
 	/** Initializes the index buffers resource. */
 	virtual void CreateBuffer();

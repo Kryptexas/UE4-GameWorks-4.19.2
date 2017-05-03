@@ -89,8 +89,10 @@ EVisibility SPropertyEditorColor::GetVisibilityForOpaqueDisplay() const
 		{
 			OpaqueDisplayVisibility = EVisibility::Collapsed;
 		}
-
-		OpaqueDisplayVisibility = EVisibility::Visible;
+		else
+		{
+			OpaqueDisplayVisibility = EVisibility::Visible;
+		}
 	}
 
 	return OpaqueDisplayVisibility;

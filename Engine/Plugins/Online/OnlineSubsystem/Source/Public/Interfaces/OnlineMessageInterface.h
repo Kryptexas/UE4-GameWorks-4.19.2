@@ -199,6 +199,8 @@ class IOnlineMessage
 
 public:
 
+	virtual ~IOnlineMessage() { }
+
 	/**
 	 * Enumerate list of available message headers from user's inbox
 	 *

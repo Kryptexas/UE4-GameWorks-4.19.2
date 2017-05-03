@@ -532,8 +532,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 		AssetDataToDelete.Add(AssetRegistryModule.Get().GetAssetByObjectPath(FName(*(MeshInfo->GetFullImportName()))));
 	}
 
-	FbxNode* RootNodeToImport = nullptr;
-	RootNodeToImport = FbxImporter->Scene->GetRootNode();
+	FbxNode* RootNodeToImport = FbxImporter->Scene->GetRootNode();
 
 	AllNewAssets.Empty();
 	AssetToSyncContentBrowser.Empty();

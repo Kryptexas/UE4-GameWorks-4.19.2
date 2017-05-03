@@ -18,8 +18,8 @@ class FNetworkFileServerClientConnectionHTTP : public FNetworkFileServerClientCo
 
 public:
 	FNetworkFileServerClientConnectionHTTP(const FFileRequestDelegate& InFileRequestDelegate,
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
-		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate,InActiveTargetPlatforms)
+		const FRecompileShadersDelegate& InRecompileShadersDelegate, const FSandboxPathDelegate& SandboxFileDelegate, FOnFileModifiedDelegate* OnFileModifiedCallback, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate, SandboxFileDelegate, OnFileModifiedCallback,InActiveTargetPlatforms)
 	{
 	}
 
@@ -83,6 +83,8 @@ FNetworkFileServerHttp::FNetworkFileServerHttp(
 	int32 InPort,
 	const FFileRequestDelegate* InFileRequestDelegate,
 	const FRecompileShadersDelegate* InRecompileShadersDelegate,
+	const FSandboxPathDelegate* InSandboxPathDelegate,
+	FOnFileModifiedDelegate* InOnFileModifiedCallback,
 	const TArray<ITargetPlatform*>& InActiveTargetPlatforms
 	)
 	:ActiveTargetPlatforms(InActiveTargetPlatforms)
@@ -104,6 +106,12 @@ FNetworkFileServerHttp::FNetworkFileServerHttp(
 	{
 		RecompileShadersDelegate = *InRecompileShadersDelegate;
 	}
+
+	if ( InSandboxPathDelegate && InSandboxPathDelegate->IsBound())
+	{
+		SandboxPathDelegate = *InSandboxPathDelegate;
+	}
+	OnFileModifiedCallback = InOnFileModifiedCallback;
 
 
 	StopRequested.Reset();
@@ -250,7 +258,7 @@ FNetworkFileServerHttp::~FNetworkFileServerHttp()
 
 FNetworkFileServerClientConnectionHTTP* FNetworkFileServerHttp::CreateNewConnection()
 {
-	return new FNetworkFileServerClientConnectionHTTP(FileRequestDelegate,RecompileShadersDelegate,ActiveTargetPlatforms);
+	return new FNetworkFileServerClientConnectionHTTP(FileRequestDelegate,RecompileShadersDelegate,SandboxPathDelegate, OnFileModifiedCallback,ActiveTargetPlatforms);
 }
 
 // Have a similar process function for the normal tcp connection.

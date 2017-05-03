@@ -26,16 +26,17 @@ typedef TCHAR* PTCHAR;
 #pragma warning(push)
 #pragma warning(disable : 4263) // 'function' : member function does not override any base class virtual member function
 #pragma warning(disable : 4264) // 'virtual_function' : no override available for virtual member function from base 'cla
+#pragma warning(disable : 4265) // 'class' : class has virtual functions, but destructor is not virtual
 #if USING_CODE_ANALYSIS
 	#pragma warning(disable:6509)  // Invalid annotation: 'return' cannot be referenced in some contexts
 	#pragma warning(disable:6101)  // Returning uninitialized memory '*lpdwExitCode'.  A successful path through the function does not set the named _Out_ parameter.
 	#pragma warning(disable:28204) // 'Func' has an override at 'file' and only the override is annotated for _Param_(N): when an override is annotated, the base (this function) should be similarly annotated.
 #endif
 #include <streams.h>
-#pragma warning(pop)
-
 #include <dshow.h>
 #include <initguid.h>
+#pragma warning(pop)
+
 #include "HideWindowsPlatformTypes.h"
 
 #include "CapturePin.h"

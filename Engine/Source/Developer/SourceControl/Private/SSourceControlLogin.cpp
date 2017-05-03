@@ -179,7 +179,7 @@ FReply SSourceControlLogin::OnAcceptSettings()
 	}
 
 	FSourceControlModule& SourceControlModule = FSourceControlModule::Get();
-	if(!SourceControlModule.GetProvider().Login(FString(), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateSP(this, &SSourceControlLogin::SourceControlOperationComplete)))
+	if(SourceControlModule.GetProvider().Login(FString(), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateSP(this, &SSourceControlLogin::SourceControlOperationComplete)) == ECommandResult::Type::Failed)
 	{
 		DisplayConnectionError();
 		ConnectionState = ELoginConnectionState::Disconnected;

@@ -6,6 +6,7 @@
 class IPropertyTableCellPresenter
 {
 public:
+	virtual ~IPropertyTableCellPresenter() { }
 
 	virtual TSharedRef< class SWidget > ConstructDisplayWidget() = 0;
 

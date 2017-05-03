@@ -6,7 +6,7 @@
 
 class ITransport;
 
-#if ENABLE_HTTP_FOR_NFS
+#if ENABLE_HTTP_FOR_NF
 #include "ITransport.h"
 
 #if !PLATFORM_HTML5

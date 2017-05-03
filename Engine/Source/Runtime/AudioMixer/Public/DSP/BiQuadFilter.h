@@ -34,7 +34,7 @@ namespace Audio
 			float Output = A0 * InSample + A1 * X_Z1 + A2 * X_Z2 - B1 * Y_Z1 - B2 * Y_Z2;
 
 			// Clamp the output to 0.0 if in sub-normal float region
-			UnderflowClamp(Output);
+			Output = UnderflowClamp(Output);
 
 			// Apply the z-transforms
 			Y_Z2 = Y_Z1;

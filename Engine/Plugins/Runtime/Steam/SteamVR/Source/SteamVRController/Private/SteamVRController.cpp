@@ -575,10 +575,6 @@ private:
 		if (SteamVRPlugin == nullptr)
 		{
 			SteamVRPlugin = &FModuleManager::LoadModuleChecked<ISteamVRPlugin>(TEXT("SteamVR"));
-			if (SteamVRPlugin == nullptr)
-			{
-				return nullptr;
-			}
 		}
 
 		return SteamVRPlugin->GetVRSystem();

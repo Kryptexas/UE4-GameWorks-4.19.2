@@ -106,6 +106,8 @@ struct FMergeCompleteData
 class IMeshMerging
 {
 public:
+	virtual ~IMeshMerging() { }
+
 	virtual void ProxyLOD(const TArray<struct FMeshMergeData>& InData,
 		const struct FMeshProxySettings& InProxySettings,
 		const TArray<struct FFlattenMaterial>& InputMaterials,

@@ -340,7 +340,7 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(UObje
 				return false;
 			}
 
-			return true;
+			return true; //-V773
 		}
 	}
 
@@ -439,7 +439,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 
 					GEngine->GameViewport->OnScreenshotCaptured().Broadcast(OutSize.X, OutSize.Y, OutColorData);
 #endif
-				}
+				} //-V773
 
 				FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
 				if ( LatentActionManager.FindExistingAction<FTakeScreenshotAfterTimeLatentAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )

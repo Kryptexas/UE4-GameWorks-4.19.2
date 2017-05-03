@@ -1721,7 +1721,7 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 
 	FSettings* CurrentSettings = GetSettings();
 
-	if ((!CurrentSettings->IsStereoEnabled() && !CurrentSettings->Flags.bHeadTrackingEnforced))
+	if (!CurrentSettings->IsStereoEnabled() && !CurrentSettings->Flags.bHeadTrackingEnforced)
 	{
 		return;
 	}

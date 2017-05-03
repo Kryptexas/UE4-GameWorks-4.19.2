@@ -1286,12 +1286,9 @@ void UPlayerInput::FinishProcessingPlayerInput()
 	// finished processing input for this frame, clean up for next update
 	for (TMap<FKey,FKeyState>::TIterator It(KeyStateMap); It; ++It)
 	{
-		FKeyState* const KeyState = &It.Value();
-		if (KeyState)
-		{
-			KeyState->bDownPrevious = KeyState->bDown;
-			KeyState->bConsumed = false;
-		}
+		FKeyState& KeyState = It.Value();
+		KeyState.bDownPrevious = KeyState.bDown;
+		KeyState.bConsumed = false;
 	}
 }
 

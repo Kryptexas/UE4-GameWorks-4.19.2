@@ -22,8 +22,6 @@
 	#define TARRAY_RANGED_FOR_CHECKS 1
 #endif
 
-#define AGRESSIVE_ARRAY_FORCEINLINE
-
 /**
  * Generic iterator which can operate on types that expose the following:
  * - A type called ElementType representing the contained type.
@@ -379,7 +377,7 @@ public:
 	 *
 	 * @param InitList The initializer_list to copy from.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator=(std::initializer_list<InElementType> InitList)
+	TArray& operator=(std::initializer_list<InElementType> InitList)
 	{
 		DestructItems(GetData(), ArrayNum);
 		// This is not strictly legal, as std::initializer_list's iterators are not guaranteed to be pointers, but
@@ -398,7 +396,7 @@ public:
 	 * @param Other The source array to assign from.
 	 */
 	template<typename OtherAllocator>
-	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator=(const TArray<ElementType, OtherAllocator>& Other)
+	TArray& operator=(const TArray<ElementType, OtherAllocator>& Other)
 	{
 		DestructItems(GetData(), ArrayNum);
 		CopyToEmpty(Other.GetData(), Other.Num(), ArrayMax, 0);
@@ -411,7 +409,7 @@ public:
 	 *
 	 * @param Other The source array to assign from.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator=(const TArray& Other)
+	TArray& operator=(const TArray& Other)
 	{
 		if (this != &Other)
 		{
@@ -522,7 +520,7 @@ public:
 	 *                   at the end of the array in the number of elements.
 	 */
 	template <typename OtherElementType>
-	AGRESSIVE_ARRAY_FORCEINLINE TArray(TArray<OtherElementType, Allocator>&& Other, int32 ExtraSlack)
+	TArray(TArray<OtherElementType, Allocator>&& Other, int32 ExtraSlack)
 	{
 		// We don't implement move semantics for general OtherAllocators, as there's no way
 		// to tell if they're compatible with the current one.  Probably going to be a pretty
@@ -536,7 +534,7 @@ public:
 	 *
 	 * @param Other Array to assign and move from.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator=(TArray&& Other)
+	TArray& operator=(TArray&& Other)
 	{
 		if (this != &Other)
 		{
@@ -547,7 +545,7 @@ public:
 	}
 
 	/** Destructor. */
-	AGRESSIVE_ARRAY_FORCEINLINE ~TArray()
+	~TArray()
 	{
 		DestructItems(GetData(), ArrayNum);
 
@@ -813,7 +811,7 @@ public:
 	 * @returns Index of the found element. INDEX_NONE otherwise.
 	 * @see FindLast, FindLastByPredicate
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE int32 Find(const ElementType& Item) const
+	int32 Find(const ElementType& Item) const
 	{
 		const ElementType* RESTRICT Start = GetData();
 		for (const ElementType* RESTRICT Data = Start, *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
@@ -901,7 +899,7 @@ public:
 	 * @returns Index to the first matching element, or INDEX_NONE if none is found.
 	 */
 	template <typename KeyType>
-	AGRESSIVE_ARRAY_FORCEINLINE int32 IndexOfByKey(const KeyType& Key) const
+	int32 IndexOfByKey(const KeyType& Key) const
 	{
 		const ElementType* RESTRICT Start = GetData();
 		for (const ElementType* RESTRICT Data = Start, *RESTRICT DataEnd = Start + ArrayNum; Data != DataEnd; ++Data)
@@ -921,7 +919,7 @@ public:
 	 * @returns Index to the first matching element, or INDEX_NONE if none is found.
 	 */
 	template <typename Predicate>
-	AGRESSIVE_ARRAY_FORCEINLINE int32 IndexOfByPredicate(Predicate Pred) const
+	int32 IndexOfByPredicate(Predicate Pred) const
 	{
 		const ElementType* RESTRICT Start = GetData();
 		for (const ElementType* RESTRICT Data = Start, *RESTRICT DataEnd = Start + ArrayNum; Data != DataEnd; ++Data)
@@ -957,7 +955,7 @@ public:
 	 * @see Find
 	 */
 	template <typename KeyType>
-	AGRESSIVE_ARRAY_FORCEINLINE ElementType* FindByKey(const KeyType& Key)
+	ElementType* FindByKey(const KeyType& Key)
 	{
 		for (ElementType* RESTRICT Data = GetData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
@@ -990,7 +988,7 @@ public:
 	 * @see FilterByPredicate, ContainsByPredicate
 	 */
 	template <typename Predicate>
-	AGRESSIVE_ARRAY_FORCEINLINE ElementType* FindByPredicate(Predicate Pred)
+	ElementType* FindByPredicate(Predicate Pred)
 	{
 		for (ElementType* RESTRICT Data = GetData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
@@ -1032,7 +1030,7 @@ public:
 	 * @see ContainsByPredicate, FilterByPredicate, FindByPredicate
 	 */
 	template <typename ComparisonType>
-	AGRESSIVE_ARRAY_FORCEINLINE bool Contains(const ComparisonType& Item) const
+	bool Contains(const ComparisonType& Item) const
 	{
 		for (const ElementType* RESTRICT Data = GetData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{
@@ -1063,7 +1061,7 @@ public:
 	 * @param OtherArray Array to compare.
 	 * @returns True if this array is the same as OtherArray. False otherwise.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE bool operator==(const TArray& OtherArray) const
+	bool operator==(const TArray& OtherArray) const
 	{
 		int32 Count = Num();
 
@@ -1456,7 +1454,7 @@ public:
 	}
 
 private:
-	AGRESSIVE_ARRAY_FORCEINLINE void RemoveAtSwapImpl(int32 Index, int32 Count = 1, bool bAllowShrinking = true)
+	void RemoveAtSwapImpl(int32 Index, int32 Count = 1, bool bAllowShrinking = true)
 	{
 		if (Count)
 		{
@@ -1529,7 +1527,7 @@ public:
 	 *
 	 * @param NewSize The expected usage size after calling this function.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE void Reset(int32 NewSize = 0)
+	void Reset(int32 NewSize = 0)
 	{
 		// If we have space to hold the excepted size, then don't reallocate
 		if (NewSize <= ArrayMax)
@@ -1548,7 +1546,7 @@ public:
 	 *
 	 * @param Slack (Optional) The expected usage size after empty operation. Default is 0.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE void Empty(int32 Slack = 0)
+	void Empty(int32 Slack = 0)
 	{
 		DestructItems(GetData(), ArrayNum);
 
@@ -1603,7 +1601,7 @@ public:
 	 *
 	 * @param NewNum New size of the array.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE void SetNumUninitialized(int32 NewNum, bool bAllowShrinking = true)
+	void SetNumUninitialized(int32 NewNum, bool bAllowShrinking = true)
 	{
 		if (NewNum > Num())
 		{
@@ -1634,7 +1632,7 @@ public:
 	 * @see Add, Insert
 	 */
 	template <typename OtherElementType, typename OtherAllocator>
-	AGRESSIVE_ARRAY_FORCEINLINE void Append(const TArray<OtherElementType, OtherAllocator>& Source)
+	void Append(const TArray<OtherElementType, OtherAllocator>& Source)
 	{
 		check((void*)this != (void*)&Source);
 
@@ -1660,7 +1658,7 @@ public:
 	 * @see Add, Insert
 	 */
 	template <typename OtherElementType, typename OtherAllocator>
-	AGRESSIVE_ARRAY_FORCEINLINE void Append(TArray<OtherElementType, OtherAllocator>&& Source)
+	void Append(TArray<OtherElementType, OtherAllocator>&& Source)
 	{
 		check((void*)this != (void*)&Source);
 
@@ -1687,7 +1685,7 @@ public:
 	 * @param Count The number of elements to insert from Ptr.
 	 * @see Add, Insert
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE void Append(const ElementType* Ptr, int32 Count)
+	void Append(const ElementType* Ptr, int32 Count)
 	{
 		check(Ptr != nullptr);
 
@@ -1717,7 +1715,7 @@ public:
 	 *
 	 * @param Other The array to append.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator+=(TArray&& Other)
+	TArray& operator+=(TArray&& Other)
 	{
 		Append(MoveTemp(Other));
 		return *this;
@@ -1729,7 +1727,7 @@ public:
 	 *
 	 * @param Other The array to append.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator+=(const TArray& Other)
+	TArray& operator+=(const TArray& Other)
 	{
 		Append(Other);
 		return *this;
@@ -1740,7 +1738,7 @@ public:
 	 *
 	 * @param InitList The initializer list to append.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE TArray& operator+=(std::initializer_list<ElementType> InitList)
+	TArray& operator+=(std::initializer_list<ElementType> InitList)
 	{
 		Append(InitList);
 		return *this;
@@ -1805,7 +1803,7 @@ public:
 	 * @return Index to the first of the new items.
 	 * @see Add, AddDefaulted, AddUnique, Append, Insert
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE int32 AddZeroed(int32 Count = 1)
+	int32 AddZeroed(int32 Count = 1)
 	{
 		const int32 Index = AddUninitialized(Count);
 		FMemory::Memzero((uint8*)AllocatorInstance.GetAllocation() + Index*sizeof(ElementType), Count*sizeof(ElementType));
@@ -1820,7 +1818,7 @@ public:
 	 * @return Index to the first of the new items.
 	 * @see Add, AddZeroed, AddUnique, Append, Insert
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE int32 AddDefaulted(int32 Count = 1)
+	int32 AddDefaulted(int32 Count = 1)
 	{
 		const int32 Index = AddUninitialized(Count);
 		DefaultConstructItems<ElementType>((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count);
@@ -1836,7 +1834,7 @@ private:
 	 * @returns Index of the element in the array.
 	 */
 	template <typename ArgsType>
-	AGRESSIVE_ARRAY_FORCEINLINE int32 AddUniqueImpl(ArgsType&& Args)
+	int32 AddUniqueImpl(ArgsType&& Args)
 	{
 		int32 Index;
 		if (Find(Args, Index))
@@ -1889,7 +1887,7 @@ public:
 	 * @param Element The element to fill array with.
 	 * @param Number The number of elements that the array should be able to contain after allocation.
 	 */
-	AGRESSIVE_ARRAY_FORCEINLINE void Init(const ElementType& Element, int32 Number)
+	void Init(const ElementType& Element, int32 Number)
 	{
 		Empty(Number);
 		for (int32 Index = 0; Index < Number; ++Index)
@@ -2313,7 +2311,7 @@ private:
 	 *                   default.
 	 */
 	template <typename OtherElementType>
-	AGRESSIVE_ARRAY_FORCEINLINE void CopyToEmpty(const OtherElementType* OtherData, int32 OtherNum, int32 PrevMax, int32 ExtraSlack)
+	void CopyToEmpty(const OtherElementType* OtherData, int32 OtherNum, int32 PrevMax, int32 ExtraSlack)
 	{
 		checkSlow(ExtraSlack >= 0);
 		ArrayNum = OtherNum;

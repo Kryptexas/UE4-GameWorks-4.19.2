@@ -1288,8 +1288,11 @@ void FAnimMontageInstance::InitializeBlend(const FAlphaBlend& InAlphaBlend)
 
 void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 {
-	UE_LOG(LogAnimMontage, Verbose, TEXT("Montage.Stop Before: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+	if (Montage)
+	{
+		UE_LOG(LogAnimMontage, Verbose, TEXT("Montage.Stop Before: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 			*Montage->GetName(), GetDesiredWeight(), GetWeight());
+	}
 
 	// overwrite bInterrupted if it hasn't already interrupted
 	// once interrupted, you don't go back to non-interrupted
@@ -1342,8 +1345,11 @@ void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 		bPlaying = false;
 	}
 
-	UE_LOG(LogAnimMontage, Verbose, TEXT("Montage.Stop After: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+	if (Montage != nullptr)
+	{
+		UE_LOG(LogAnimMontage, Verbose, TEXT("Montage.Stop After: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 			*Montage->GetName(), GetDesiredWeight(), GetWeight());
+	}
 }
 
 void FAnimMontageInstance::Pause()

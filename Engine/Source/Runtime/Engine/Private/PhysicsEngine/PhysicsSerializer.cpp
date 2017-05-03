@@ -39,7 +39,8 @@ FByteBulkData* UPhysicsSerializer::GetBinaryData(FName Format, const TArray<FBod
 #if WITH_EDITOR
 #if WITH_PHYSX
 		TArray<uint8> OutData;
-		FDerivedDataPhysXBinarySerializer* DerivedPhysXSerializer = new FDerivedDataPhysXBinarySerializer(Format, Bodies, BodySetups, PhysicalMaterials, FGuid::NewGuid()); //TODO: Maybe it's worth adding this to the DDC. For now there's a lot of complexity with the guid invalidation so I've left it out.
+		// Changed from raw pointer to unique pointer to fix static analysis warning, but unclear if this code path is used anymore.
+		TUniquePtr<FDerivedDataPhysXBinarySerializer> DerivedPhysXSerializer(new FDerivedDataPhysXBinarySerializer(Format, Bodies, BodySetups, PhysicalMaterials, FGuid::NewGuid())); //TODO: Maybe it's worth adding this to the DDC. For now there's a lot of complexity with the guid invalidation so I've left it out.
 		if (DerivedPhysXSerializer->CanBuild())
 		{
 

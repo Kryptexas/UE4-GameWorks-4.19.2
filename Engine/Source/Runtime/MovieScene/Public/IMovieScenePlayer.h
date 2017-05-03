@@ -53,6 +53,7 @@ struct EMovieSceneViewportParams
 class IMovieScenePlayer
 {
 public:
+	virtual ~IMovieScenePlayer() { }
 
 	/**
 	 * Access the evaluation template that we are playing back

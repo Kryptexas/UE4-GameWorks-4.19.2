@@ -33,6 +33,11 @@ public:
 	static FInputBindingManager& Get();
 
 	/**
+	 * Virtual destructor
+	 */
+	virtual ~FInputBindingManager() { }
+
+	/**
 	 * Returns a list of all known input contexts
 	 *
 	 * @param OutInputContexts	The generated list of contexts

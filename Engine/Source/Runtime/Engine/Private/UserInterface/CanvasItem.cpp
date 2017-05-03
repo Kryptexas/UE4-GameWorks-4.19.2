@@ -436,7 +436,7 @@ void FCanvasTileItem::Draw( class FCanvas* InCanvas )
 
 		FLinearColor ActualColor = Color;
 		ActualColor.A *= InCanvas->AlphaModulate;
-		const FTexture* FinalTexture = Texture ? Texture : GWhiteTexture;	
+		const FTexture* FinalTexture = Texture;
 		FBatchedElements* BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, FinalTexture, BlendMode);
 		FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
 
@@ -541,7 +541,7 @@ void FCanvasBorderItem::Draw( class FCanvas* InCanvas )
 
 		FLinearColor ActualColor = Color;
 		ActualColor.A *= InCanvas->AlphaModulate;
-		const FTexture* const CornersTexture = BorderTexture ? BorderTexture : GWhiteTexture;	
+		const FTexture* const CornersTexture = BorderTexture;
 		const FTexture* const BackTexture = BackgroundTexture ? BackgroundTexture : GWhiteTexture;
 		const FTexture* const LeftTexture = BorderLeftTexture ? BorderLeftTexture : GWhiteTexture;
 		const FTexture* const RightTexture = BorderRightTexture ? BorderRightTexture : GWhiteTexture;

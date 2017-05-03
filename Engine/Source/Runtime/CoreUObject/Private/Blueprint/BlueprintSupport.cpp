@@ -1135,7 +1135,7 @@ void FLinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 				{
 					uint32 InternalLoadFlags = LoadFlags & (LOAD_NoVerify | LOAD_NoWarn | LOAD_Quiet);
 					// make sure LoadAllObjects() is called for this package
-					LoadPackageInternal(/*Outer =*/nullptr, *SourceLinker->Filename, InternalLoadFlags, this);
+					LoadPackageInternal(/*Outer =*/nullptr, *SourceLinker->Filename, InternalLoadFlags, this); //-V595
 				}
 
 				if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(Import.XObject))

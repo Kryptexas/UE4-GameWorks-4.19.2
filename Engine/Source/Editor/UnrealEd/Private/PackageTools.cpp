@@ -933,6 +933,9 @@ namespace PackageTools
 			}
 		}
 
+		// Remove double-slashes
+		SanitizedName.ReplaceInline(TEXT("//"), TEXT("/"));
+
 		return SanitizedName;
 	}
 }
@@ -940,5 +943,3 @@ namespace PackageTools
 #undef LOCTEXT_NAMESPACE
 
 // EOF
-
-

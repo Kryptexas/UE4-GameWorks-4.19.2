@@ -70,6 +70,10 @@ namespace UnrealBuildTool
 		{
 		}
 
+		public virtual void FinalizeOutput(ReadOnlyTargetRules Target, List<FileItem> OutputItems, ActionGraph ActionGraph)
+		{
+		}
+
 		/// <summary>
 		/// Adds a build product and its associated debug file to a receipt.
 		/// </summary>

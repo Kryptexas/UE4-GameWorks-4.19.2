@@ -49,6 +49,11 @@ public:
 	IPlatformFile* GetPlatformFile( const TCHAR* Name );
 
 	/**
+	 * calls Tick on the platform files in the TopmostPlatformFile chain
+	 */
+	void TickActivePlatformFile();
+
+	/**
 	* Permorms additional initialization when the new async IO is enabled.
 	*/
 	void InitializeNewAsyncIO();

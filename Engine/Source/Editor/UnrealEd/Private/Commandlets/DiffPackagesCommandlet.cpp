@@ -544,29 +544,31 @@ bool UDiffPackagesCommandlet::Initialize( const TCHAR* Parms )
 			break;
 			//@}
 
-			if ( FilesInPath.Num() > 0 )
-			{
-				// this means that the location/package name that the user specified is an existing file...
-				// eventually we'll probably allow this but for simplicity's sake, at this point it's an error
-				SET_WARN_COLOR(COLOR_RED);
-				UE_LOG(LogDiffPackagesCommandlet, Error, TEXT("Merge target file already exists: %s.  Overwriting an existing file via merging is now allowed!"), *FilesInPath[0]);
-				bResult = false;
-				break;
-			}
+			/*
+				if ( FilesInPath.Num() > 0 )
+				{
+					// this means that the location/package name that the user specified is an existing file...
+					// eventually we'll probably allow this but for simplicity's sake, at this point it's an error
+					SET_WARN_COLOR(COLOR_RED);
+					UE_LOG(LogDiffPackagesCommandlet, Error, TEXT("Merge target file already exists: %s.  Overwriting an existing file via merging is now allowed!"), *FilesInPath[0]);
+					bResult = false;
+					break;
+				}
 
-			MergePackage = CreatePackage(NULL, TEXT("MergePackage"));
-			// diff all properties if we are merging ?
-			// todo: ??
-			//		bDiffAllProps = true;
-			//		bDiffNonEditProps = true;
-			SET_WARN_COLOR_AND_BACKGROUND(COLOR_RED, COLOR_WHITE);
-			UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("\n"));
-			UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("=============================================================================="));
-			UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("WARNING: Merge functionality is not finished! (It only copies from Package 1!)"));
-			UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("=============================================================================="));
-			UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("\n"));
-			CLEAR_WARN_COLOR();
-			//@todo - validation
+				MergePackage = CreatePackage(NULL, TEXT("MergePackage"));
+				// diff all properties if we are merging ?
+				// todo: ??
+				//		bDiffAllProps = true;
+				//		bDiffNonEditProps = true;
+				SET_WARN_COLOR_AND_BACKGROUND(COLOR_RED, COLOR_WHITE);
+				UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("\n"));
+				UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("=============================================================================="));
+				UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("WARNING: Merge functionality is not finished! (It only copies from Package 1!)"));
+				UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("=============================================================================="));
+				UE_LOG(LogDiffPackagesCommandlet, Warning, TEXT("\n"));
+				CLEAR_WARN_COLOR();
+				//@todo - validation
+			*/
 		}
 		else
 		{
@@ -1523,7 +1525,7 @@ EObjectDiff UDiffPackagesCommandlet::CompareNativePropertyValues( UObject* ObjA,
 			// If we have no common base and the values from ObjA & ObjB are different, mark it as a conflict
 			else if ( PropertyDataA && PropertyDataB )
 			{
-				FString ObjectPathName = ObjA ? ObjA->GetFullName(Packages[0]) : ObjB->GetFullName(Packages[1]);
+				FString ObjectPathName = ObjA->GetFullName(Packages[0]);
 // 				CurrentPropertyComparison.DiffType = OD_ABConflict;
 // 				AppendComparisonResultText(PropDiff.DiffText, FString::Printf(TEXT("(%s) %s::%s"), GetDiffTypeText(PropDiff.DiffType,NumPackages), *ObjectPathName, *PropName));
 // 				AppendComparisonResultText(PropDiff.DiffText, FString::Printf(TEXT("     %s: %s"), *PackageFilenames[0], *PropTextA));

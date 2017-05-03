@@ -2541,7 +2541,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 	*/
 }
 
-struct FConvertHalfToFloatUniformAndSamples : public ir_rvalue_visitor
+struct FConvertHalfToFloatUniformAndSamples final : public ir_rvalue_visitor
 {
 	struct FPair
 	{
@@ -2565,6 +2565,10 @@ struct FConvertHalfToFloatUniformAndSamples : public ir_rvalue_visitor
 		bIsMaster(true),
 		bConvertUniforms(bInConvertUniforms),
 		bConvertSamples(bInConvertSamples)
+	{
+	}
+
+	virtual ~FConvertHalfToFloatUniformAndSamples()
 	{
 	}
 
@@ -2712,13 +2716,15 @@ void FMetalCodeBackend::ConvertHalfToFloatUniformsAndSamples(exec_list* ir, _mes
 	}
 }
 
-struct FMetalBreakPrecisionChangesVisitor : public ir_rvalue_visitor
+struct FMetalBreakPrecisionChangesVisitor final : public ir_rvalue_visitor
 {
 	_mesa_glsl_parse_state* State;
 
 	std::map<ir_rvalue*, ir_variable*> ReplacedVars;
 
 	FMetalBreakPrecisionChangesVisitor(_mesa_glsl_parse_state* InState) : State(InState) {}
+
+	virtual ~FMetalBreakPrecisionChangesVisitor() { }
 
 	void ConvertBlock(exec_list* instructions)
 	{
@@ -2822,7 +2828,7 @@ void FMetalCodeBackend::BreakPrecisionChangesVisitor(exec_list* ir, _mesa_glsl_p
 	Visitor.run(ir);
 }
 
-struct FDeReferencePackedVarsVisitor : public ir_rvalue_visitor
+struct FDeReferencePackedVarsVisitor final : public ir_rvalue_visitor
 {
 	_mesa_glsl_parse_state* State;
 	int ExpressionDepth;
@@ -2830,6 +2836,10 @@ struct FDeReferencePackedVarsVisitor : public ir_rvalue_visitor
 	FDeReferencePackedVarsVisitor(_mesa_glsl_parse_state* InState)
 		: State(InState)
 		, ExpressionDepth(0)
+	{
+	}
+
+	virtual ~FDeReferencePackedVarsVisitor()
 	{
 	}
 

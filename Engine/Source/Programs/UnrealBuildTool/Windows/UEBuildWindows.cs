@@ -38,6 +38,27 @@ namespace UnrealBuildTool
 	}
 
 	/// <summary>
+	/// Which static analyzer to use
+	/// </summary>
+	public enum WindowsStaticAnalyzer
+	{
+		/// <summary>
+		/// Do not perform static analysis
+		/// </summary>
+		None,
+
+		/// <summary>
+		/// Use the built-in Visual C++ static analyzer
+		/// </summary>
+		VisualCpp,
+
+		/// <summary>
+		/// Use PVS-Studio for static analysis
+		/// </summary>
+		PVSStudio,
+	}
+
+	/// <summary>
 	/// Windows-specific target settings
 	/// </summary>
 	public class WindowsTargetRules
@@ -74,6 +95,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		[ConfigFile(ConfigHierarchyType.Game, "/Script/EngineSettings.GeneralProjectSettings", "ProjectName")]
 		public string ProductName;
+
+		/// <summary>
+		/// The static analyzer to use
+		/// </summary>
+		[CommandLine("-StaticAnalyzer")]
+		public WindowsStaticAnalyzer StaticAnalyzer = WindowsStaticAnalyzer.None;
 
 		/// VS2015 updated some of the CRT definitions but not all of the Windows SDK has been updated to match.
 		/// Microsoft provides legacy_stdio_definitions library to enable building with VS2015 until they fix everything up.
@@ -151,6 +178,11 @@ namespace UnrealBuildTool
 		public string ProductName
 		{
 			get { return Inner.ProductName; }
+		}
+
+		public WindowsStaticAnalyzer StaticAnalyzer
+		{
+			get { return Inner.StaticAnalyzer; }
 		}
 
 		public bool bNeedsLegacyStdioDefinitionsLib
@@ -246,6 +278,18 @@ namespace UnrealBuildTool
 			if (Target.WindowsPlatform.Compiler == WindowsCompiler.Default)
 			{
 				Target.WindowsPlatform.Compiler = GetDefaultCompiler();
+			}
+
+			// Disable linking if we're using a static analyzer
+			if(Target.WindowsPlatform.StaticAnalyzer != WindowsStaticAnalyzer.None)
+			{
+				Target.bDisableLinking = true;
+			}
+
+			// Disable PCHs for PVS studio
+			if(Target.WindowsPlatform.StaticAnalyzer == WindowsStaticAnalyzer.PVSStudio)
+			{
+				Target.bUsePCHFiles = false;
 			}
 
 			// Override PCH settings
@@ -933,7 +977,18 @@ namespace UnrealBuildTool
 		/// <returns>New toolchain instance.</returns>
 		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
 		{
-			return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler);
+			if (Target.WindowsPlatform.StaticAnalyzer == WindowsStaticAnalyzer.PVSStudio)
+			{
+				return new PVSToolChain(CppPlatform, Target.WindowsPlatform.Compiler);
+			}
+			else if(Target.WindowsPlatform.StaticAnalyzer == WindowsStaticAnalyzer.VisualCpp)
+			{
+				return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler, true);
+			}
+			else
+			{
+				return new VCToolChain(CppPlatform, Target.WindowsPlatform.Compiler, false);
+			}
 		}
 
 		/// <summary>

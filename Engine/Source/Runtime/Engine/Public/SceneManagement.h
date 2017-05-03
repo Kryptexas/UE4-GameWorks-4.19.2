@@ -599,6 +599,10 @@ public:
 	{
 	}
 
+	virtual ~FLightCacheInterface()
+	{
+	}
+
 	// @param LightSceneProxy must not be 0
 	virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const = 0;
 
@@ -1410,6 +1414,10 @@ public:
 		View(InView)
 	{}
 
+	virtual ~FPrimitiveDrawInterface()
+	{
+	}
+
 	virtual bool IsHitTesting() = 0;
 	virtual void SetHitProxy(HHitProxy* HitProxy) = 0;
 
@@ -1476,6 +1484,7 @@ public:
 class FStaticPrimitiveDrawInterface
 {
 public:
+	virtual ~FStaticPrimitiveDrawInterface() { }
 	virtual void SetHitProxy(HHitProxy* HitProxy) = 0;
 	virtual void DrawMesh(
 		const FMeshBatch& Mesh,

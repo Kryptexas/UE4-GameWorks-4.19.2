@@ -144,7 +144,7 @@ bool FAudioDeviceManager::CreateAudioDevice(bool bCreateNewDevice, FCreateAudioD
 	++NumActiveAudioDevices;
 
 	const UAudioSettings* AudioSettings = GetDefault<UAudioSettings>();
-	if (!OutResults.AudioDevice->Init(AudioSettings->GetQualityLevelSettings(GEngine->GetGameUserSettings()->GetAudioQualityLevel()).MaxChannels))
+	if (!OutResults.AudioDevice->Init(AudioSettings->GetQualityLevelSettings(GEngine->GetGameUserSettings()->GetAudioQualityLevel()).MaxChannels)) //-V595
 	{
 		ShutdownAudioDevice(OutResults.Handle);
 		OutResults = FCreateAudioDeviceResults();

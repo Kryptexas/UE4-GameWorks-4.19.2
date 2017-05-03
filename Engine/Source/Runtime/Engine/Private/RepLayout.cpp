@@ -1118,7 +1118,7 @@ void FRepLayout::MergeChangeList_r(
 
 			const uint8* NewData = ( uint8* )Array->GetData();
 
-			TArray< FHandleToCmdIndex >& ArrayHandleToCmdIndex = ActiveIterator1 ? *ActiveIterator1->HandleToCmdIndex[Cmd.RelativeHandle - 1].HandleToCmdIndex : *ActiveIterator2->HandleToCmdIndex[Cmd.RelativeHandle - 1].HandleToCmdIndex;
+			TArray< FHandleToCmdIndex >& ArrayHandleToCmdIndex = ActiveIterator1 ? *ActiveIterator1->HandleToCmdIndex[Cmd.RelativeHandle - 1].HandleToCmdIndex : *ActiveIterator2->HandleToCmdIndex[Cmd.RelativeHandle - 1].HandleToCmdIndex; //-V595
 
 			if ( !ActiveIterator1 )
 			{

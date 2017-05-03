@@ -1697,17 +1697,14 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 		return CompilerError(Compiler, GetRequirements());
 	}
 
-	if (Texture)
+	if (!TextureIsValid(Texture))
 	{
-		if (!TextureIsValid(Texture))
-		{
-			return CompilerError(Compiler, GetRequirements());
-		}
+		return CompilerError(Compiler, GetRequirements());
+	}
 
-		if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("TextureSampleParameter")), Texture, SamplerType))
-		{
-			return INDEX_NONE;
-		}
+	if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("TextureSampleParameter")), Texture, SamplerType))
+	{
+		return INDEX_NONE;
 	}
 
 	if (!ParameterName.IsValid() || ParameterName.IsNone())
@@ -7488,7 +7485,7 @@ int32 UMaterialExpressionFontSample::Compile(class FMaterialCompiler* Compiler, 
 		if( !Texture )
 		{
 			UE_LOG(LogMaterial, Log, TEXT("Invalid font texture. Using default texture"));
-			Texture = Texture = GEngine->DefaultTexture;
+			Texture = GEngine->DefaultTexture;
 		}
 		check(Texture);
 
@@ -7595,7 +7592,7 @@ int32 UMaterialExpressionFontSampleParameter::Compile(class FMaterialCompiler* C
 		if( !Texture )
 		{
 			UE_LOG(LogMaterial, Log, TEXT("Invalid font texture. Using default texture"));
-			Texture = Texture = GEngine->DefaultTexture;
+			Texture = GEngine->DefaultTexture;
 		}
 		check(Texture);
 

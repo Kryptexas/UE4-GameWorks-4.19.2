@@ -581,39 +581,42 @@ public:
 			check(!Term->Type.IsContainer() || CoerceProperty);
 
 			// Additional Validation, since we cannot trust custom k2nodes
-			const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
-			if (CoerceProperty && ensure(Schema) && ensure(CurrentCompilerContext) && !bSecialCaseSelf)
+			if (CoerceProperty && ensure(Schema) && ensure(CurrentCompilerContext))
 			{
-				FEdGraphPinType TrueType;
-				const bool bValidProperty = Schema->ConvertPropertyToPinType(CoerceProperty, TrueType);
-
-				auto AreTypesBinaryCompatible = [](const FEdGraphPinType& TypeA, const FEdGraphPinType& TypeB) -> bool
-				{
-					if (TypeA.PinCategory != TypeB.PinCategory)
-					{
-						return false;
-					}
-					if ((TypeA.bIsMap != TypeB.bIsMap)
-						|| (TypeA.bIsSet != TypeB.bIsSet)
-						|| (TypeA.bIsArray != TypeB.bIsArray)
-						|| (TypeA.bIsWeakPointer != TypeB.bIsWeakPointer))
-					{
-						return false;
-					}
-					if (TypeA.PinCategory == UEdGraphSchema_K2::PC_Struct)
-					{
-						if (TypeA.PinSubCategoryObject != TypeB.PinSubCategoryObject)
-						{
-							return false;
-						}
-					}
-					return true;
-				};
-
-				if (!bValidProperty || !AreTypesBinaryCompatible(Term->Type, TrueType))
-				{
-					const FString ErrorMessage = FString::Printf(TEXT("ICE: The type of property %s doesn't match a term. @@"), *CoerceProperty->GetPathName());
-					CurrentCompilerContext->MessageLog.Error(*ErrorMessage, Term->SourcePin);
+			    const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
+				if(!bSecialCaseSelf)
+			    {
+				    FEdGraphPinType TrueType;
+				    const bool bValidProperty = Schema->ConvertPropertyToPinType(CoerceProperty, TrueType);
+    
+				    auto AreTypesBinaryCompatible = [](const FEdGraphPinType& TypeA, const FEdGraphPinType& TypeB) -> bool
+				    {
+					    if (TypeA.PinCategory != TypeB.PinCategory)
+					    {
+						    return false;
+					    }
+					    if ((TypeA.bIsMap != TypeB.bIsMap)
+						    || (TypeA.bIsSet != TypeB.bIsSet)
+						    || (TypeA.bIsArray != TypeB.bIsArray)
+						    || (TypeA.bIsWeakPointer != TypeB.bIsWeakPointer))
+					    {
+						    return false;
+					    }
+					    if (TypeA.PinCategory == UEdGraphSchema_K2::PC_Struct)
+					    {
+						    if (TypeA.PinSubCategoryObject != TypeB.PinSubCategoryObject)
+						    {
+							    return false;
+						    }
+					    }
+					    return true;
+				    };
+    
+				    if (!bValidProperty || !AreTypesBinaryCompatible(Term->Type, TrueType))
+				    {
+					    const FString ErrorMessage = FString::Printf(TEXT("ICE: The type of property %s doesn't match a term. @@"), *CoerceProperty->GetPathName());
+					    CurrentCompilerContext->MessageLog.Error(*ErrorMessage, Term->SourcePin);
+				    }
 				}
 			}
 
@@ -1816,7 +1819,7 @@ public:
 				{
 					CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 					FCodeSkipInfo CodeSkipInfo(FCodeSkipInfo::InstrumentedDelegateFixup, Statement.TargetLabel->TargetLabel, &Statement);
-					if (Statement.TargetLabel && Statement.TargetLabel->FunctionToCall)
+					if (Statement.TargetLabel->FunctionToCall)
 					{
 						CodeSkipInfo.DelegateName = Statement.TargetLabel->FunctionToCall->GetFName();
 					}

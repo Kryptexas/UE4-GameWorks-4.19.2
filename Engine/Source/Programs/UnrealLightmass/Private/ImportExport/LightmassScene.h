@@ -85,6 +85,7 @@ protected:
 class FLight : public FLightData
 {
 public:
+	virtual ~FLight() { }
 
 	virtual void			Import( class FLightmassImporter& Importer );
 

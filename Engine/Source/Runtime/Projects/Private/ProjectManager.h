@@ -10,7 +10,7 @@ struct FProjectDescriptor;
 /**
  * ProjectAndPluginManager manages available code and content extensions (both loaded and not loaded.)
  */
-class FProjectManager : public IProjectManager
+class FProjectManager final : public IProjectManager
 {
 public:
 	FProjectManager();
@@ -29,7 +29,6 @@ public:
 	virtual void ClearSupportedTargetPlatformsForProject(const FString& FilePath) override;
 	virtual void ClearSupportedTargetPlatformsForCurrentProject() override;
 	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() override { return OnTargetPlatformsForCurrentProjectChangedEvent; }
-	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const override;
 	virtual bool IsNonDefaultPluginEnabled() const override;
 	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason, const FString& MarketplaceURL) override;
 	virtual void UpdateAdditionalPluginDirectory(const FString& Dir, const bool bAddOrRemove) override;

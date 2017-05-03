@@ -165,7 +165,7 @@ void AVREditorRadialFloatingUI::Reset()
 		}
 	}
 
-	for (TSharedPtr<SWidget> SlateWidget : SlateWidgets)
+	for (TSharedPtr<SWidget> &SlateWidget : SlateWidgets)
 	{
 		SlateWidget = nullptr;
 	}
@@ -208,7 +208,7 @@ void AVREditorRadialFloatingUI::Destroyed()
 	CentralWidgetComponent->SetSlateWidget(nullptr);
 	CentralWidgetComponent = nullptr;
 
-	for(TSharedPtr<SWidget> SlateWidget : SlateWidgets)
+	for(TSharedPtr<SWidget> &SlateWidget : SlateWidgets)
 	{
 		SlateWidget = nullptr;
 	}

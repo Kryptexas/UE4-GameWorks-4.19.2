@@ -151,11 +151,14 @@ void AGroupActor::GroupApplyDelta(const FVector& InDrag, const FRotator& InRot, 
 {
 	for(int32 ActorIndex=0; ActorIndex<GroupActors.Num(); ++ActorIndex)
 	{
-		// Check that we've not got a parent attachment within the group/selection
-		const bool bCanApplyDelta = !ActorHasParentInGroup(GroupActors, GroupActors[ActorIndex]) && !ActorHasParentInSelection(GroupActors[ActorIndex]);
-		if(bCanApplyDelta && GroupActors[ActorIndex] != NULL )
+		if (GroupActors[ActorIndex] != NULL)
 		{
-			GEditor->ApplyDeltaToActor( GroupActors[ActorIndex], true, &InDrag, &InRot, &InScale );
+			// Check that we've not got a parent attachment within the group/selection
+			const bool bCanApplyDelta = !ActorHasParentInGroup(GroupActors, GroupActors[ActorIndex]) && !ActorHasParentInSelection(GroupActors[ActorIndex]);
+			if(bCanApplyDelta)
+			{
+				GEditor->ApplyDeltaToActor(GroupActors[ActorIndex], true, &InDrag, &InRot, &InScale);
+			}
 		}
 	}
 	for(int32 SubGroupIndex=0; SubGroupIndex<SubGroups.Num(); ++SubGroupIndex)

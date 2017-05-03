@@ -719,7 +719,7 @@ ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(uint32 DeviceId) const
 
 bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation )
 {
-	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || Hand < EControllerHand::Left || Hand > EControllerHand::Right)
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || Hand < EControllerHand::Left || Hand > EControllerHand::Right) //-V547
 	{
 		return false;
 	}
@@ -730,7 +730,7 @@ bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 Controlle
 
 ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(int32 ControllerIndex, EControllerHand DeviceHand) const
 {
-	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || DeviceHand < EControllerHand::Left || DeviceHand > EControllerHand::Right)
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || DeviceHand < EControllerHand::Left || DeviceHand > EControllerHand::Right) //-V547
 	{
 		return ETrackingStatus::NotTracked;
 	}

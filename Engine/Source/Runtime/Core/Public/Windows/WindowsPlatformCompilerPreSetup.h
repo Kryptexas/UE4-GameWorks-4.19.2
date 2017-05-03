@@ -76,6 +76,17 @@
 			_Pragma("clang diagnostic pop")
 	#endif // PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
 
+	#ifndef PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
+		#define PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS \
+			_Pragma("clang diagnostic push") \
+			_Pragma("clang diagnostic ignored \"-Wdelete-non-virtual-dtor\"")
+	#endif // PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
+
+	#ifndef PRAGMA_ENABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
+		#define PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS \
+			_Pragma("clang diagnostic pop")
+	#endif // PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
+
 	#ifndef PRAGMA_POP
 		#define PRAGMA_POP \
 			_Pragma("clang diagnostic pop")
@@ -126,6 +137,17 @@
 			__pragma(warning(pop))
 	#endif // PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS
 
+	#ifndef PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
+		#define PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS \
+			__pragma(warning(push)) \
+			__pragma(warning(disable:4265))
+	#endif // PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
+
+	#ifndef PRAGMA_ENABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
+		#define PRAGMA_ENABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS \
+			__pragma(warning(pop))
+	#endif // PRAGMA_ENABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
+
 	#ifndef PRAGMA_POP
 		#define PRAGMA_POP \
 			__pragma(warning(pop))
@@ -143,6 +165,7 @@
 			__pragma(warning(disable: 6101))  /* Returning uninitialized memory '<expr>'.  A successful path through the function does not set the named _Out_ parameter. */ \
 			__pragma(warning(disable: 6308))  /* 'realloc' might return null pointer: assigning null pointer to 'X', which is passed as an argument to 'realloc', will cause the original memory block to be leaked. */ \
 			__pragma(warning(disable: 6326))  /* Potential comparison of a constant with another constant. */ \
+			__pragma(warning(disable: 6340))  /* Mismatch on sign: Incorrect type passed as parameter in call to function. */ \
 			__pragma(warning(disable: 6385))  /* Reading invalid data from '<ptr>':  the readable size is '<num1>' bytes, but '<num2>' bytes may be read. */ \
 			__pragma(warning(disable: 6386))  /* Buffer overrun while writing to '<ptr>':  the writable size is '<num1>' bytes, but '<num2>' bytes might be written. */ \
 			__pragma(warning(disable: 28182)) /* Dereferencing NULL pointer. '<ptr1>' contains the same NULL value as '<ptr2>' did. */ \
@@ -150,11 +173,13 @@
 			__pragma(warning(disable: 28252)) /* Inconsistent annotation for '<func>': return/function has '<annotation>' on the prior instance. */ \
 			__pragma(warning(disable: 28253)) /* Inconsistent annotation for '<func>': _Param_(<num>) has '<annotation>' on the prior instance. */ \
 			PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS \
-			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS \
+			PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
 	#endif
 
 	#ifndef THIRD_PARTY_INCLUDES_END
 		#define THIRD_PARTY_INCLUDES_END \
+			PRAGMA_ENABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS \
 			PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS \
 			PRAGMA_ENABLE_UNDEFINED_IDENTIFIER_WARNINGS \
 			__pragma(warning(pop))

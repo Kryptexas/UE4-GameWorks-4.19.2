@@ -133,7 +133,7 @@ private:
 		}
 
 		CurrentStepIndex = StepIndex;
-		float Milliseconds = Result.NextWait.GetTicks() / ETimespan::TicksPerMillisecond;
+		float Milliseconds = (float)(Result.NextWait.GetTicks()) / ETimespan::TicksPerMillisecond;
 		float Delay = FMath::Max(SMALL_NUMBER, (Milliseconds / 1000) * Configuration->ExecutionSpeedMultiplier);
 		
 		if (LastDelay < KINDA_SMALL_NUMBER)

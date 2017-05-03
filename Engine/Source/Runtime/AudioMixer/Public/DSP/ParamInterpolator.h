@@ -17,7 +17,7 @@ namespace Audio
 	public:
 
 		FParamInterpolator();
-		~FParamInterpolator();
+		virtual ~FParamInterpolator();
 
 		/** Initialize the value. */
 		void InitValue(const float InValue);

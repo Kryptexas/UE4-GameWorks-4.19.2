@@ -112,7 +112,7 @@ void DebugLeakTest()
 		{
 			DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "LeakTest::NewInt8" ), Stat_LeakTest_NewInt8, STATGROUP_Quick );
 			int8* Leak = new int8[1000 * 1000];
-		}
+		} //-V773
 
 
 		if (GFrameCounter < 250)
@@ -127,7 +127,7 @@ void DebugLeakTest()
 					int8* IntAlloc = new int8[112233];
 					int8* LeakTask = new int8[100000];
 					delete[] IntAlloc;
-				}
+				} //-V773
 			};
 
 			for (int32 Index = 0; Index < 40; ++Index)
@@ -145,7 +145,7 @@ void DebugLeakTest()
 					int8* IntAlloc = new int8[223311];
 					int8* LeakTask = new int8[100000];
 					delete[] IntAlloc;
-				}
+				} //-V773
 
 				TStatId GetStatId() const
 				{
@@ -166,7 +166,7 @@ void DebugLeakTest()
 			int8* IntAlloc = new int8[331122];
 			int8* LeakTask = new int8[100000];
 			delete[] IntAlloc;
-		}
+		} //-V773
 
 		if (GIsRequestingExit)
 		{

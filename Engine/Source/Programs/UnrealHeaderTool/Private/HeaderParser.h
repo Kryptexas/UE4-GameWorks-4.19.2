@@ -412,7 +412,7 @@ protected:
 	// Constructor.
 	FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefile);
 
-	~FHeaderParser()
+	virtual ~FHeaderParser()
 	{
 		if ( FScriptLocation::Compiler == this )
 		{

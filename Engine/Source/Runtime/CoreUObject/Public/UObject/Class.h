@@ -2297,10 +2297,13 @@ public:
 	}
 
 	/**
-	 * Override to return a linked list of properties with default values that differ from the parent default object. If non-NULL, only these properties will 
-	 * be copied post-construction. Otherwise, all properties will be copied to the new instance, even if the default value matches the inherited default value.
-	 */
-	virtual const FCustomPropertyListNode* GetCustomPropertyListForPostConstruction() const { return nullptr; }
+	* Helper method to assist with initializing object properties from an explicit list.
+	*
+	* @param	InStruct			the current scope for which the given property list applies
+	* @param	DataPtr				destination address (where to start copying values to)
+	* @param	DefaultDataPtr		source address (where to start copying the defaults data from)
+	*/
+	virtual void InitPropertiesFromCustomList(uint8* DataPtr, const uint8* DefaultDataPtr) {}
 
 	/**
 	* Get the name of the CDO for the this class

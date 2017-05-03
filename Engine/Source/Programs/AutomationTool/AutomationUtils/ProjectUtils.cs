@@ -7,7 +7,6 @@ using System.Text;
 using System.IO;
 using UnrealBuildTool;
 using System.Diagnostics;
-using Tools.DotNETCommon.CaselessDictionary;
 using Tools.DotNETCommon;
 using System.Reflection;
 
@@ -69,7 +68,7 @@ namespace AutomationTool
 	/// </summary>
 	public class ProjectUtils
 	{
-		private static CaselessDictionary<ProjectProperties> PropertiesCache = new CaselessDictionary<ProjectProperties>();
+		private static Dictionary<string, ProjectProperties> PropertiesCache = new Dictionary<string, ProjectProperties>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
 		/// Gets a short project name (QAGame, Elemental, etc)

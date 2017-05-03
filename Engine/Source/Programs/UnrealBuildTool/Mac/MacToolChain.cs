@@ -134,6 +134,7 @@ namespace UnrealBuildTool
 			}
 
 			Result += " -Wall -Werror";
+			Result += " -Wdelete-non-virtual-dtor";
 			//Result += " -Wsign-compare"; // fed up of not seeing the signed/unsigned warnings we get on Windows - lets enable them here too.
 
 			Result += " -Wno-unused-variable";

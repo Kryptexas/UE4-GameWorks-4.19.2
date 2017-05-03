@@ -7,7 +7,6 @@ using System.IO;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Tools.DotNETCommon.CaselessDictionary;
 using System.Reflection;
 using System.Collections;
 
@@ -32,7 +31,6 @@ namespace AutomationTool
 			: base(Format, Args) { }
 	}
 
-    [Flags]
     public enum P4LineEnd
     {
         Local = 0,
@@ -45,9 +43,10 @@ namespace AutomationTool
     [Flags]
     public enum P4SubmitOption
     {
-        SubmitUnchanged = 0,
-        RevertUnchanged = 1,
-        LeaveUnchanged = 2,
+        SubmitUnchanged = 1,
+        RevertUnchanged = 2,
+        LeaveUnchanged = 4,
+		Reopen = 8
     }
 
     [Flags]
@@ -1049,7 +1048,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CommandsToExecute">Commands to execute</param>
 		/// <param name="Commands">Commands</param>
-		internal static void InitP4Support(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
+		internal static void InitP4Support(List<CommandInfo> CommandsToExecute, Dictionary<string, Type> Commands)
 		{
 			// Init AllowSubmit
 			// If we do not specify on the commandline if submitting is allowed or not, this is 
@@ -1090,7 +1089,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CommandsToExecute">List of commands to be executed.</param>
 		/// <param name="Commands">Commands.</param>
-		private static void CheckIfCommandsRequireP4(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands, out bool bRequireP4, out bool bRequireCL)
+		private static void CheckIfCommandsRequireP4(List<CommandInfo> CommandsToExecute, Dictionary<string, Type> Commands, out bool bRequireP4, out bool bRequireCL)
 		{
 			bRequireP4 = false;
 			bRequireCL = false;
@@ -3056,9 +3055,9 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Output">P4 command output (must be a form).</param>
 		/// <returns>Parsed output.</returns>
-		public CaselessDictionary<string> ParseTaggedP4Output(string Output)
+		public Dictionary<string, string> ParseTaggedP4Output(string Output)
 		{
-			var Tags = new CaselessDictionary<string>();
+			var Tags = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 			var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
             string DelayKey = "";
             int DelayIndex = 0;
@@ -3156,8 +3155,8 @@ namespace AutomationTool
         /// <returns></returns>
         private static object ParseEnumValues(string ValueText, Type EnumType)
         {
-            ValueText = ValueText.Replace(' ', ',');
-            return Enum.Parse(EnumType, ValueText, true);
+			ValueText = new Regex("[+ ]").Replace(ValueText, ",");
+			return Enum.Parse(EnumType, ValueText, true);
         }
 
 		/// <summary>
@@ -3313,7 +3312,7 @@ namespace AutomationTool
             SpecInput += "Host: " + ClientSpec.Host + Environment.NewLine;
             SpecInput += "Root: " + ClientSpec.RootPath + Environment.NewLine;
             SpecInput += "Options: " + ClientSpec.Options.ToString().ToLowerInvariant().Replace(",", "") + Environment.NewLine;
-            SpecInput += "SubmitOptions: " + ClientSpec.SubmitOptions.ToString().ToLowerInvariant().Replace(",", "") + Environment.NewLine;
+            SpecInput += "SubmitOptions: " + ClientSpec.SubmitOptions.ToString().ToLowerInvariant().Replace(", ", "+") + Environment.NewLine;
             SpecInput += "LineEnd: " + ClientSpec.LineEnd.ToString().ToLowerInvariant() + Environment.NewLine;
 			if(ClientSpec.Stream != null)
 			{

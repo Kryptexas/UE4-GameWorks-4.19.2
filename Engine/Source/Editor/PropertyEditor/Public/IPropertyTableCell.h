@@ -8,6 +8,7 @@
 class IPropertyTableCell
 {
 public:
+	virtual ~IPropertyTableCell() { }
 
 	virtual void Refresh() = 0;
 

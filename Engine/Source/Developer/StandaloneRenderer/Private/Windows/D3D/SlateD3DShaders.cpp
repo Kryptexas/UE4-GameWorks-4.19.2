@@ -34,9 +34,13 @@ static pD3DCompile GetD3DCompileFunc()
 	return &D3DCompile;
 }
 
-class StandaloneD3DIncluder: public ID3DInclude
+class StandaloneD3DIncluder final : public ID3DInclude
 {
 	public:
+		virtual ~StandaloneD3DIncluder() 
+		{
+		}
+
 		STDMETHOD(Open)(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, uint32* pBytes) override
 		{
 			FString FileName(ANSI_TO_TCHAR(pFileName));

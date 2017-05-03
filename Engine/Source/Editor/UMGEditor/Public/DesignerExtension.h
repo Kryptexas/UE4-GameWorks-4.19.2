@@ -105,6 +105,7 @@ class UMGEDITOR_API FDesignerExtension : public TSharedFromThis<FDesignerExtensi
 public:
 	/** Constructor */
 	FDesignerExtension();
+	virtual ~FDesignerExtension() { }
 
 	/** Initializes the designer extension, this is called the first time a designer extension is registered */
 	virtual void Initialize(IUMGDesigner* InDesigner, UWidgetBlueprint* InBlueprint);

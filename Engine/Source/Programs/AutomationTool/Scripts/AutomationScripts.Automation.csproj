@@ -7,7 +7,7 @@
     <ProjectGuid>{8AA00D65-0954-4A27-AC0D-FB8B1106120F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AutomationScripts.Automation</RootNamespace>
+    <RootNamespace>AutomationTool</RootNamespace>
     <AssemblyName>AutomationScripts.Automation</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -103,6 +103,7 @@
     <Compile Include="StageTargetCommand.Automation.cs" />
     <Compile Include="StreamCopyDescription.Automation.cs" />
     <Compile Include="SubmitUtililzationReportToEC.Automation.cs" />
+    <Compile Include="SyncDDC.cs" />
     <Compile Include="SyncDepotPath.cs" />
     <Compile Include="Tests.Automation.cs" />
     <Compile Include="TestSnippet.Automation.cs" />

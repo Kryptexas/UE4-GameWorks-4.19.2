@@ -19,7 +19,7 @@ namespace UnrealBuildTool
 		static bool bEnableTracing = false; // Debug option
 
 		public HTML5ToolChain(FileReference InProjectFile)
-			: base(CppPlatform.HTML5, WindowsCompiler.VisualStudio2015)
+			: base(CppPlatform.HTML5, WindowsCompiler.VisualStudio2015, false)
 		{
 			if (!HTML5SDKInfo.IsSDKInstalled())
 			{
@@ -91,6 +91,7 @@ namespace UnrealBuildTool
 
 			Result += " -fno-exceptions";
 
+			Result += " -Wdelete-non-virtual-dtor";
 			Result += " -Wno-unused-value"; // appErrorf triggers this
 			Result += " -Wno-switch"; // many unhandled cases
 			Result += " -Wno-tautological-constant-out-of-range-compare"; // disables some warnings about comparisons from TCHAR being a char

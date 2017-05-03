@@ -881,7 +881,7 @@ namespace
 		}
 
 		// Unreachable
-		check(false);
+		check(false); //-V779
 		return nullptr;
 	}
 
@@ -2743,7 +2743,7 @@ void FHeaderParser::VerifyRepNotifyCallbacks( UClass* TargetClass )
 				{
 					UngetToken(PropertyToken->Token);
 					FError::Throwf(TEXT("Replication notification function %s must not have return values"), *Prop->RepNotifyFunc.ToString());
-					break;
+					break; //-V779
 				}
 				
 				bool IsArrayProperty = ( Prop->ArrayDim > 1 || Cast<UArrayProperty>(Prop) );
@@ -4011,7 +4011,7 @@ void FHeaderParser::GetVarType(
 				bHandledType = true;
 
 				bool bAllowWeak = !(Disallow & CPF_AutoWeak); // if it is not allowing anything, force it strong. this is probably a function arg
-				VarProperty = FPropertyBase( TempClass, NULL, bAllowWeak, bIsWeak, bWeakIsAuto, bIsLazy, bIsAsset );
+				VarProperty = FPropertyBase( TempClass, bAllowWeak && bIsWeak, bWeakIsAuto, bIsLazy, bIsAsset );
 				if (TempClass->IsChildOf(UClass::StaticClass()))
 				{
 					if ( MatchSymbol(TEXT("<")) )
@@ -4066,6 +4066,12 @@ void FHeaderParser::GetVarType(
 					bNativeConst |= MatchIdentifier(TEXT("const"));
 
 					RequireSymbol(TEXT("*"), TEXT("Expected a pointer type"));
+
+					// Swallow trailing 'const' after pointer properties
+					if (VariableCategory == EVariableCategory::Member)
+					{
+						MatchIdentifier(TEXT("const"));
+					}
 
 					VarProperty.PointerType = EPointerType::Native;
 				}
@@ -8791,7 +8797,9 @@ void FHeaderParser::PostPopNestClass(UClass* CurrentClass)
 		{
 			// If this interface is a common ancestor, skip it
 			if (CurrentClass->IsChildOf(Interface))
+			{
 				continue;
+			}
 
 			// So iterate over all functions this interface declares
 			for (UFunction* InterfaceFunction : TFieldRange<UFunction>(Interface, EFieldIteratorFlags::ExcludeSuper))
@@ -8802,19 +8810,27 @@ void FHeaderParser::PostPopNestClass(UClass* CurrentClass)
 				for (UFunction* ClassFunction : TFieldRange<UFunction>(CurrentClass))
 				{
 					if (ClassFunction->GetFName() != InterfaceFunction->GetFName())
+					{
 						continue;
+					}
 
 					if ((InterfaceFunction->FunctionFlags & FUNC_Event) && !(ClassFunction->FunctionFlags & FUNC_Event))
-						FError::Throwf(TEXT("Implementation of function '%s' must be declared as 'event' to match declaration in interface '%s'"), *ClassFunction->GetName(), *Interface->GetName());
+					{
+						FError::Throwf(TEXT("Implementation of function '%s::%s' must be declared as 'event' to match declaration in interface '%s'"), *ClassFunction->GetOuter()->GetName(), *ClassFunction->GetName(), *Interface->GetName());
+					}
 
 					if ((InterfaceFunction->FunctionFlags & FUNC_Delegate) && !(ClassFunction->FunctionFlags & FUNC_Delegate))
-						FError::Throwf(TEXT("Implementation of function '%s' must be declared as 'delegate' to match declaration in interface '%s'"), *ClassFunction->GetName(), *Interface->GetName());
+					{
+						FError::Throwf(TEXT("Implementation of function '%s::%s' must be declared as 'delegate' to match declaration in interface '%s'"), *ClassFunction->GetOuter()->GetName(), *ClassFunction->GetName(), *Interface->GetName());
+					}
 
 					// Making sure all the parameters match up correctly
 					Implemented = true;
 
 					if (ClassFunction->NumParms != InterfaceFunction->NumParms)
+					{
 						FError::Throwf(TEXT("Implementation of function '%s' conflicts with interface '%s' - different number of parameters (%i/%i)"), *InterfaceFunction->GetName(), *Interface->GetName(), ClassFunction->NumParms, InterfaceFunction->NumParms);
+					}
 
 					int32 Count = 0;
 					for (TFieldIterator<UProperty> It1(InterfaceFunction), It2(ClassFunction); Count < ClassFunction->NumParms; ++It1, ++It2, Count++)

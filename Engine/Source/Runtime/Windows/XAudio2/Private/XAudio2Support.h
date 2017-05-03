@@ -39,7 +39,7 @@
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 
-class FMMNotificationClient : public IMMNotificationClient
+class FMMNotificationClient final : public IMMNotificationClient
 {
 public:
 	FMMNotificationClient()
@@ -54,7 +54,7 @@ public:
 		}
 	}
 
-	~FMMNotificationClient()
+	virtual ~FMMNotificationClient()
 	{
 		if (DeviceEnumerator)
 		{
@@ -733,7 +733,7 @@ FORCEINLINE bool operator==(const WAVEFORMATEX& FormatA, const WAVEFORMATEX& For
 
 
 /** This structure holds any singleton XAudio2 resources which need to be used, not just "properties" of the device. */
-struct FXAudioDeviceProperties : public IDeviceChangedListener
+struct FXAudioDeviceProperties final : public IDeviceChangedListener
 {
 	// These variables are non-static to support multiple audio device instances
 	struct IXAudio2*					XAudio2;
@@ -794,7 +794,7 @@ struct FXAudioDeviceProperties : public IDeviceChangedListener
 #endif
 	}
 	
-	~FXAudioDeviceProperties()
+	virtual ~FXAudioDeviceProperties()
 	{
 #if PLATFORM_WINDOWS
 		NotificationClient->UnRegisterDeviceDeviceChangedListener(this);

@@ -18,6 +18,7 @@ class FHierarchyModel : public TSharedFromThis < FHierarchyModel >
 {
 public:
 	FHierarchyModel(TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor);
+	virtual ~FHierarchyModel() { }
 
 	/** Gets the unique name of the item used to restore item expansion. */
 	virtual FName GetUniqueName() const = 0;

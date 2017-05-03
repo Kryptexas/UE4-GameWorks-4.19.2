@@ -414,7 +414,7 @@ void FAnimNode_RigidBody::PreUpdate(const UAnimInstance* InAnimInstance)
 
 	if(SKC)
 	{
-		if (PhysicsSimulation && bEnableWorldGeometry && !bComponentSpaceSimulation && World)
+		if (PhysicsSimulation && bEnableWorldGeometry && !bComponentSpaceSimulation)
 		{
 			UpdateWorldGeometry(*World, *SKC);
 		}

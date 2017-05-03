@@ -95,6 +95,7 @@ public class UnrealEd : ModuleRules
 				"AutomationController",
 				"Localization",
 				"AudioEditor",
+				"NetworkFileSystem",
 			}
 		);
 
@@ -115,7 +116,6 @@ public class UnrealEd : ModuleRules
 				"LauncherServices",
 				"MaterialEditor",
 				"MessageLog",
-				"NetworkFileSystem",
 				"PakFile",
 				"PropertyEditor",
 				"Projects",

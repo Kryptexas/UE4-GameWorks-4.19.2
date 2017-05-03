@@ -1184,48 +1184,45 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX, uint32 
 
 	if (TextureOut)
 	{
-		if (SubResourceData)
+		// SubResourceData is only used in async texture creation (RHIAsyncCreateTexture2D). We need to manually transition the resource to
+		// its 'default state', which is what the rest of the RHI (including InitializeTexture2DData) expects for SRV-only resources.
+
+		check((TextureDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0);
+
+		const uint64 Size = GetRequiredIntermediateSize(TextureOut->GetResource()->GetResource(), 0, NumMips);
+		FD3D12FastAllocator& FastAllocator = GetHelperThreadDynamicUploadHeapAllocator();
+		FD3D12ResourceLocation TempResourceLocation(FastAllocator.GetParentDevice());
+		FastAllocator.Allocate<FD3D12ScopeLock>(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &TempResourceLocation);
+
+		FD3D12Texture2D* CurrentTexture = TextureOut;
+		while (CurrentTexture != nullptr)
 		{
-			// SubResourceData is only used in async texture creation (RHIAsyncCreateTexture2D). We need to manually transition the resource to
-			// its 'default state', which is what the rest of the RHI (including InitializeTexture2DData) expects for SRV-only resources.
+			FD3D12Device* Device = CurrentTexture->GetParentDevice();
+			FD3D12Resource* Resource = CurrentTexture->GetResource();
 
-			check((TextureDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0);
+			FD3D12CommandAllocatorManager& CommandAllocatorManager = Device->GetTextureStreamingCommandAllocatorManager();
+			FD3D12CommandAllocator* CurrentCommandAllocator = CommandAllocatorManager.ObtainCommandAllocator();
+			FD3D12CommandListHandle hCopyCommandList = Device->GetCopyCommandListManager().ObtainCommandList(*CurrentCommandAllocator);
+			hCopyCommandList.SetCurrentOwningContext(&Device->GetDefaultCommandContext());
 
-			const uint64 Size = GetRequiredIntermediateSize(TextureOut->GetResource()->GetResource(), 0, NumMips);
-			FD3D12FastAllocator& FastAllocator = GetHelperThreadDynamicUploadHeapAllocator();
-			FD3D12ResourceLocation TempResourceLocation(FastAllocator.GetParentDevice());
-			FastAllocator.Allocate<FD3D12ScopeLock>(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &TempResourceLocation);
+			hCopyCommandList.GetCurrentOwningContext()->numCopies++;
+			UpdateSubresources(
+				(ID3D12GraphicsCommandList*)hCopyCommandList.CommandList(),
+				Resource->GetResource(),
+				TempResourceLocation.GetResource()->GetResource(),
+				TempResourceLocation.GetOffsetFromBaseOfResource(),
+				0, NumMips,
+				SubResourceData);
 
-			FD3D12Texture2D* CurrentTexture = TextureOut;
-			while (CurrentTexture != nullptr)
-			{
-				FD3D12Device* Device = CurrentTexture->GetParentDevice();
-				FD3D12Resource* Resource = CurrentTexture->GetResource();
+			hCopyCommandList.UpdateResidency(Resource);
 
-				FD3D12CommandAllocatorManager& CommandAllocatorManager = Device->GetTextureStreamingCommandAllocatorManager();
-				FD3D12CommandAllocator* CurrentCommandAllocator = CommandAllocatorManager.ObtainCommandAllocator();
-				FD3D12CommandListHandle hCopyCommandList = Device->GetCopyCommandListManager().ObtainCommandList(*CurrentCommandAllocator);
-				hCopyCommandList.SetCurrentOwningContext(&Device->GetDefaultCommandContext());
+			// Wait for the copy context to finish before continuing as this function is only expected to return once all the texture streaming has finished.
+			hCopyCommandList.Close();
+			Device->GetCopyCommandListManager().ExecuteCommandList(hCopyCommandList, true);
 
-				hCopyCommandList.GetCurrentOwningContext()->numCopies++;
-				UpdateSubresources(
-					(ID3D12GraphicsCommandList*)hCopyCommandList.CommandList(),
-					Resource->GetResource(),
-					TempResourceLocation.GetResource()->GetResource(),
-					TempResourceLocation.GetOffsetFromBaseOfResource(),
-					0, NumMips,
-					SubResourceData);
+			CommandAllocatorManager.ReleaseCommandAllocator(CurrentCommandAllocator);
 
-				hCopyCommandList.UpdateResidency(Resource);
-
-				// Wait for the copy context to finish before continuing as this function is only expected to return once all the texture streaming has finished.
-				hCopyCommandList.Close();
-				Device->GetCopyCommandListManager().ExecuteCommandList(hCopyCommandList, true);
-
-				CommandAllocatorManager.ReleaseCommandAllocator(CurrentCommandAllocator);
-
-				CurrentTexture = (FD3D12Texture2D*)CurrentTexture->GetNextObject();
-			}
+			CurrentTexture = (FD3D12Texture2D*)CurrentTexture->GetNextObject();
 		}
 
 		FD3D12TextureStats::D3D12TextureAllocated(*TextureOut);

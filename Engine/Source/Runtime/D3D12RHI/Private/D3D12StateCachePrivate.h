@@ -793,7 +793,7 @@ public:
 
 	void Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, const FD3D12StateCacheBase* AncestralState, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc);
 
-	~FD3D12StateCacheBase()
+	virtual ~FD3D12StateCacheBase()
 	{
 	}
 

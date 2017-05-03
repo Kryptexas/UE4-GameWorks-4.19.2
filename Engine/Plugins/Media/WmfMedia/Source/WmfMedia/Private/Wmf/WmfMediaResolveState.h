@@ -27,7 +27,7 @@ enum class EWmfMediaResolveType
 /**
  * Implements media source resolve state information.
  */
-struct FWmfMediaResolveState
+struct FWmfMediaResolveState final
 	: public IUnknown
 {
 	/** The type of the media source being resolved. */
@@ -44,6 +44,9 @@ public:
 		, Type(InType)
 		, Url(InUrl)
 		, RefCount(0)
+	{ }
+
+	virtual ~FWmfMediaResolveState()
 	{ }
 
 public:

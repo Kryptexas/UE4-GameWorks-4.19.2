@@ -3174,12 +3174,12 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 void FLODSceneTree::ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)
 {
 	checkSlow(ViewState);
-	FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
-	TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState>& VisibilityStates = ViewState->HLODSceneNodeVisibilityStates;
-	FHLODSceneNodeVisibilityState& NodeVisibility = VisibilityStates.FindOrAdd(Node.SceneInfo->PrimitiveComponentId);
 
 	if (Node.SceneInfo)
 	{
+		FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
+		TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState>& VisibilityStates = ViewState->HLODSceneNodeVisibilityStates;
+		FHLODSceneNodeVisibilityState& NodeVisibility = VisibilityStates.FindOrAdd(Node.SceneInfo->PrimitiveComponentId);
 		NodeVisibility.UpdateCount = HLODState.UpdateCount;
 
 		// Force visibility during fades

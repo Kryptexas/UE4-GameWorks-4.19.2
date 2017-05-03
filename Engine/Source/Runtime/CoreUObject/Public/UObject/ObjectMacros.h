@@ -194,8 +194,8 @@ enum EClassFlags
 	/** Handle object configuration on a per-object basis, rather than per-class. */
 	CLASS_PerObjectConfig     = 0x00000400,
 	
-	/** pointers to this class default to weak. */
-	CLASS_PointersDefaultToWeak = 0x00000800,
+	/** */
+	//CLASS_ = 0x00000800,
 	
 	/** Class can be constructed from editinline New button. */
 	CLASS_EditInlineNew		  = 0x00001000,
@@ -208,8 +208,8 @@ enum EClassFlags
 	/** all properties and functions in this class are const and should be exported as const */
 	CLASS_Const			      = 0x00010000,
 
-	/** pointers to this class default to weak. */
-	CLASS_PointersDefaultToAutoWeak = 0x00020000,
+	/** */
+	//CLASS_ = 0x00020000,
 	
 	/** Indicates that the class was created from blueprint source material */
 	CLASS_CompiledFromBlueprint  = 0x00040000,
@@ -250,8 +250,7 @@ enum EClassFlags
 	/** @name Flags to inherit from base class */
 	//@{
 	CLASS_Inherit           = CLASS_Transient | CLASS_DefaultConfig | CLASS_Config | CLASS_PerObjectConfig | CLASS_ConfigDoNotCheckDefaults | CLASS_NotPlaceable
-							| CLASS_PointersDefaultToAutoWeak | CLASS_PointersDefaultToWeak | CLASS_Const
-							| CLASS_HasInstancedReference | CLASS_Deprecated | CLASS_DefaultToInstanced | CLASS_GlobalUserConfig,
+							| CLASS_Const | CLASS_HasInstancedReference | CLASS_Deprecated | CLASS_DefaultToInstanced | CLASS_GlobalUserConfig,
 
 	/** these flags will be cleared by the compiler when the class is parsed during script compilation */
 	CLASS_RecompilerClear   = CLASS_Inherit | CLASS_Abstract | CLASS_NoExport | CLASS_Native | CLASS_Intrinsic | CLASS_TokenStreamAssembled,
@@ -274,11 +273,9 @@ enum EClassFlags
 		CLASS_NotPlaceable |
 		CLASS_PerObjectConfig |
 		CLASS_ConfigDoNotCheckDefaults |
-		CLASS_PointersDefaultToWeak |
 		CLASS_EditInlineNew |
 		CLASS_CollapseCategories |
 		CLASS_Interface |
-		CLASS_PointersDefaultToAutoWeak |
 		CLASS_DefaultToInstanced |
 		CLASS_HasInstancedReference |
 		CLASS_Hidden |

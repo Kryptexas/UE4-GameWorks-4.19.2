@@ -494,7 +494,7 @@ namespace UnrealBuildTool
 					UHTModuleInfo.Info.GeneratedCPPFilenameBase = Path.Combine(Module.GeneratedCodeDirectory.FullName, UHTModuleInfo.Info.ModuleName) + ".generated";
 					if (Module.SourceFilesToBuild.Count != 0)
 					{
-						BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass(UHTModuleInfo.Info.GeneratedCPPFilenameBase + "*.cpp");
+						BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass(Path.Combine(Module.GeneratedCodeDirectory.FullName, "*.generated.cpp"));
 					}
 
 					Module.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass(BuildInfo);
@@ -684,15 +684,11 @@ namespace UnrealBuildTool
 				return DateTime.MinValue;
 			}
 
-			// Otherwise look for CoreUObject.generated.cpp or CoreUObject.generated.1.cpp
-			string[] Suffixes = { ".generated.cpp", ".generated.1.cpp" };
-			foreach(string Suffix in Suffixes)
+			// Otherwise look for CoreUObject.generated.Init.cpp
+			FileInfo CoreGeneratedFileInfo = new FileInfo(Path.Combine(ModuleGeneratedCodeDirectory, ModuleName + ".init.generated.cpp"));
+			if (CoreGeneratedFileInfo.Exists)
 			{
-				FileInfo CoreGeneratedFileInfo = new FileInfo(Path.Combine(ModuleGeneratedCodeDirectory, ModuleName + Suffix));
-				if (CoreGeneratedFileInfo.Exists)
-				{
-					return CoreGeneratedFileInfo.LastWriteTime;
-				}
+				return CoreGeneratedFileInfo.LastWriteTime;
 			}
 
 			// Doesn't exist, so use a 'newer that everything' date to force rebuild headers.
@@ -1039,11 +1035,11 @@ namespace UnrealBuildTool
 						UBTArguments.Append(" -ignorejunk");
 
 						// Add UHT plugins to UBT command line as external plugins
-						if (Target.UnrealHeaderToolPlugins != null && Target.UnrealHeaderToolPlugins.Count > 0)
+						foreach(UEBuildPlugin EnabledPlugin in Target.EnabledPlugins)
 						{
-							foreach (PluginInfo Plugin in Target.UnrealHeaderToolPlugins)
+							if (EnabledPlugin.Descriptor.bCanBeUsedWithUnrealHeaderTool)
 							{
-								UBTArguments.Append(" -PLUGIN \"" + Plugin.File + "\"");
+								UBTArguments.Append(" -PLUGIN \"" + EnabledPlugin.Info.File + "\"");
 							}
 						}						
 

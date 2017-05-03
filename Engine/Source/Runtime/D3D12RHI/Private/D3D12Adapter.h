@@ -84,6 +84,7 @@ class FD3D12Adapter : public FNoncopyable
 public:
 
 	FD3D12Adapter(FD3D12AdapterDesc& DescIn);
+	virtual ~FD3D12Adapter() { }
 
 	void Initialize(FD3D12DynamicRHI* RHI);
 	void InitializeDevices();

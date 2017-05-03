@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "ModuleDescriptor.h"
 #include "CustomBuildSteps.h"
-#include "PluginDescriptor.h"
+#include "PluginReferenceDescriptor.h"
 
 class FJsonObject;
 

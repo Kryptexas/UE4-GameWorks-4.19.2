@@ -213,8 +213,6 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, 
 FFeaturePackContentSource::FFeaturePackContentSource()
 {
 	bPackValid = false;
-	TSharedPtr<FJsonObject> ManifestObject;
-	bPackValid = false;
 }
 
 bool FFeaturePackContentSource::LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer)

@@ -416,7 +416,6 @@ private:
 
 		// Accumulate the hierarchical bias
 		const FMovieSceneSubSequenceData* ParentData = Cache.Template->Hierarchy.FindSubData(RemappedParentID);
-		SubDataCopy.HierarchicalBias = SubDataCopy.HierarchicalBias;
 		if (ParentData != nullptr)
 		{
 			SubDataCopy.HierarchicalBias += ParentData->HierarchicalBias;

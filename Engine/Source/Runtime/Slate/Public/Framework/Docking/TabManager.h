@@ -237,6 +237,8 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 			friend class FTabManager;
 
 		public:
+
+			virtual ~FLayoutNode() { }
 			
 			virtual TSharedPtr<FStack> AsStack();
 

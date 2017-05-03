@@ -836,10 +836,9 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 
 void FVulkanCommandListContext::InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
 {
-	const VkExtent2D& Extents = TransitionState.CurrentRenderPass->GetLayout().GetExtent2D();
-
 	if (TransitionState.CurrentRenderPass)
 	{
+		const VkExtent2D& Extents = TransitionState.CurrentRenderPass->GetLayout().GetExtent2D();
 		VkClearRect Rect;
 		FMemory::Memzero(Rect);
 		Rect.rect.offset.x = 0;

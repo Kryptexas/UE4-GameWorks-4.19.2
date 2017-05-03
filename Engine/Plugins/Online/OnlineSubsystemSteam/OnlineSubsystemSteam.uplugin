@@ -29,5 +29,16 @@
 			"Name": "OnlineSubsystemSteam",
 			"LoadingPolicy": "Always"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemUtils",
+			"Enabled": true
+		}
 	]
+
 }

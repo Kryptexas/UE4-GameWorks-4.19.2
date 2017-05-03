@@ -81,7 +81,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 				, ObjectsCreatedPerClassIdx);
 		}
 
-		ObjectsCreatedPerClassIdx = ObjectsCreatedPerClassIdx = DynamicBindingObjects.IndexOfByKey(Object);
+		ObjectsCreatedPerClassIdx = DynamicBindingObjects.IndexOfByKey(Object);
 		if (INDEX_NONE != ObjectsCreatedPerClassIdx)
 		{
 			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->%s[%d])")
@@ -1231,10 +1231,6 @@ FString FEmitHelper::PinTypeToNativeType(const FEdGraphPinType& Type)
 		else if (UEdGraphSchema_K2::PC_Int == InType.PinCategory)
 		{
 			return TEXT("int32");
-		}
-		else if (UEdGraphSchema_K2::PC_Float == InType.PinCategory)
-		{
-			return TEXT("float");
 		}
 		else if (UEdGraphSchema_K2::PC_Float == InType.PinCategory)
 		{

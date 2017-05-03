@@ -65,7 +65,7 @@ static bool GObjCurrentPurgeObjectIndexResetPastPermanent = false;
 static bool GIsPurgingObject = false;
 
 /** Helpful constant for determining how many token slots we need to store a pointer **/
-static const uint32 GNumTokensPerPointer = sizeof(void*) / sizeof(uint32);
+static const uint32 GNumTokensPerPointer = sizeof(void*) / sizeof(uint32); //-V514
 
 FThreadSafeBool& FGCScopeLock::GetGarbageCollectingFlag()
 {
@@ -1368,7 +1368,7 @@ struct FScopedCBDProfile
 		int32 NumPrint = 0;
 		for (auto& Item : CBDTimings)
 		{
-			UE_LOG(LogTemp, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Items, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Items), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
+			UE_LOG(LogGarbage, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Items, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Items), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
 			if (NumPrint++ > 3000000000)
 			{
 				break;

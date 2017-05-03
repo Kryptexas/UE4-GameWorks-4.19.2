@@ -12,6 +12,7 @@ namespace SceneOutliner
 	/** A const tree item visitor. Derive to implement type-specific behaviour for tree items. */
 	struct ITreeItemVisitor
 	{
+		virtual ~ITreeItemVisitor() {}
 		virtual void Visit(const FActorTreeItem& Actor) const {}
 		virtual void Visit(const FWorldTreeItem& World) const {}
 		virtual void Visit(const FFolderTreeItem& Folder) const {}
@@ -20,6 +21,7 @@ namespace SceneOutliner
 	/** A non-const tree item visitor. Derive to implement type-specific behaviour for tree items. */
 	struct IMutableTreeItemVisitor
 	{
+		virtual ~IMutableTreeItemVisitor() {}
 		virtual void Visit(FActorTreeItem& Actor) const {}
 		virtual void Visit(FWorldTreeItem& World) const {}
 		virtual void Visit(FFolderTreeItem& Folder) const {}

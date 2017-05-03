@@ -100,6 +100,7 @@ FCoreUObjectDelegates::FIsPackageOKToSaveDelegate FCoreUObjectDelegates::IsPacka
 FCoreUObjectDelegates::FAutoPackageBackupDelegate FCoreUObjectDelegates::AutoPackageBackupDelegate;
 
 FCoreUObjectDelegates::FOnPackageReloaded FCoreUObjectDelegates::OnPackageReloaded;
+FCoreUObjectDelegates::FNetworkFileRequestPackageReload FCoreUObjectDelegates::NetworkFileRequestPackageReload;
 
 FCoreUObjectDelegates::FOnPreObjectPropertyChanged FCoreUObjectDelegates::OnPreObjectPropertyChanged;
 FCoreUObjectDelegates::FOnObjectPropertyChanged FCoreUObjectDelegates::OnObjectPropertyChanged;
@@ -3026,76 +3027,7 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 		if (bCanUsePostConstructLink)
 		{
 			// Initialize remaining property values from defaults using an explicit custom post-construction property list returned by the class object.
-			if (const FCustomPropertyListNode* CustomPropertyList = Class->GetCustomPropertyListForPostConstruction())
-			{
-				InitPropertiesFromCustomList(CustomPropertyList, Class, (uint8*)Obj, (uint8*)DefaultData);
-			}
-		}
-	}
-}
-
-void FObjectInitializer::InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr)
-{
-	for (const FCustomPropertyListNode* CustomPropertyListNode = InPropertyList; CustomPropertyListNode; CustomPropertyListNode = CustomPropertyListNode->PropertyListNext)
-	{
-		uint8* PropertyValue = CustomPropertyListNode->Property->ContainerPtrToValuePtr<uint8>(DataPtr, CustomPropertyListNode->ArrayIndex);
-		const uint8* DefaultPropertyValue = CustomPropertyListNode->Property->ContainerPtrToValuePtr<uint8>(DefaultDataPtr, CustomPropertyListNode->ArrayIndex);
-
-		if (const UStructProperty* StructProperty = Cast<UStructProperty>(CustomPropertyListNode->Property))
-		{
-			// This should never be NULL; we should not be recording the StructProperty without at least one sub property, but we'll verify just to be sure.
-			if (ensure(CustomPropertyListNode->SubPropertyList != nullptr))
-			{
-				InitPropertiesFromCustomList(CustomPropertyListNode->SubPropertyList, StructProperty->Struct, PropertyValue, DefaultPropertyValue);
-			}
-		}
-		else if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CustomPropertyListNode->Property))
-		{
-			// Note: The sub-property list can be NULL here; in that case only the array size will differ from the default value, but the elements themselves will simply be initialized to defaults.
-			InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
-		}
-		else
-		{
-			CustomPropertyListNode->Property->CopySingleValue(PropertyValue, DefaultPropertyValue);
-		}
-	}
-}
-
-void FObjectInitializer::InitArrayPropertyFromCustomList(const UArrayProperty* ArrayProperty, const FCustomPropertyListNode* InPropertyList, uint8* DataPtr, const uint8* DefaultDataPtr)
-{
-	FScriptArrayHelper DstArrayValueHelper(ArrayProperty, DataPtr);
-	FScriptArrayHelper SrcArrayValueHelper(ArrayProperty, DefaultDataPtr);
-
-	const int32 SrcNum = SrcArrayValueHelper.Num();
-	const int32 DstNum = DstArrayValueHelper.Num();
-
-	if (SrcNum > DstNum)
-	{
-		DstArrayValueHelper.AddValues(SrcNum - DstNum);
-	}
-	else if (SrcNum < DstNum)
-	{
-		DstArrayValueHelper.RemoveValues(SrcNum, DstNum - SrcNum);
-	}
-
-	for (const FCustomPropertyListNode* CustomArrayPropertyListNode = InPropertyList; CustomArrayPropertyListNode; CustomArrayPropertyListNode = CustomArrayPropertyListNode->PropertyListNext)
-	{
-		int32 ArrayIndex = CustomArrayPropertyListNode->ArrayIndex;
-
-		uint8* DstArrayItemValue = DstArrayValueHelper.GetRawPtr(ArrayIndex);
-		const uint8* SrcArrayItemValue = SrcArrayValueHelper.GetRawPtr(ArrayIndex);
-
-		if (const UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
-		{
-			InitPropertiesFromCustomList(CustomArrayPropertyListNode->SubPropertyList, InnerStructProperty->Struct, DstArrayItemValue, SrcArrayItemValue);
-		}
-		else if (const UArrayProperty* InnerArrayProperty = Cast<UArrayProperty>(ArrayProperty->Inner))
-		{
-			InitArrayPropertyFromCustomList(InnerArrayProperty, CustomArrayPropertyListNode->SubPropertyList, DstArrayItemValue, SrcArrayItemValue);
-		}
-		else
-		{
-			ArrayProperty->Inner->CopyCompleteValue(DstArrayItemValue, SrcArrayItemValue);
+			Class->InitPropertiesFromCustomList((uint8*)Obj, (uint8*)DefaultData);
 		}
 	}
 }

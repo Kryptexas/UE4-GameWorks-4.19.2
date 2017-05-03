@@ -1533,7 +1533,7 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 	{
 		WorkerParameters += FString(TEXT(" -buildmachine "));
 	}
-	if (PLATFORM_LINUX && UE_BUILD_DEBUG)
+	if (PLATFORM_LINUX && UE_BUILD_DEBUG) //-V560
 	{
 		// when running a debug build under Linux, make SCW crash with core for easier debugging
 		WorkerParameters += FString(TEXT(" -core "));
@@ -2106,7 +2106,7 @@ bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMap
 					else 
 #endif	//UE_BUILD_DEBUG
 						if (FPlatformMisc::MessageBoxExt( EAppMsgType::YesNo, *FText::Format(NSLOCTEXT("UnrealEd", "Error_RetryShaderCompilation", "{0}\r\n\r\nRetry compilation?"),
-							FText::FromString(ErrorString)).ToString(), TEXT("Error")))
+							FText::FromString(ErrorString)).ToString(), TEXT("Error")) == EAppReturnType::Type::Yes)
 						{
 							bRetryCompile = true;
 						}

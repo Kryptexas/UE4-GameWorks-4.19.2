@@ -203,7 +203,7 @@ EBlackboardNotificationResult UBTTask_MoveTo::OnBlackboardValueChange(const UBla
 
 		// resetting BBObserverDelegateHandle without unregistering observer since 
 		// returning EBlackboardNotificationResult::RemoveObserver here will take care of that for us
-		MyMemory->BBObserverDelegateHandle.Reset();
+		MyMemory->BBObserverDelegateHandle.Reset(); //-V595
 
 		return EBlackboardNotificationResult::RemoveObserver;
 	}

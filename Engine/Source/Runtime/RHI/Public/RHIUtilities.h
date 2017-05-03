@@ -167,7 +167,7 @@ struct FDynamicReadBuffer : public FReadBuffer
 	{
 	}
 
-	~FDynamicReadBuffer()
+	virtual ~FDynamicReadBuffer()
 	{
 		Release();
 	}

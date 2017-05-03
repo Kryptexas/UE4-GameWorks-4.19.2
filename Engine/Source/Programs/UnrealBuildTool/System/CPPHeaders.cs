@@ -8,7 +8,6 @@ using System.Text.RegularExpressions;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Linq;
-using Tools.DotNETCommon.FileContentsCacheType;
 
 namespace UnrealBuildTool
 {
@@ -527,12 +526,29 @@ namespace UnrealBuildTool
 		static readonly Regex UObjectRegex = new Regex("^\\s*U(CLASS|STRUCT|ENUM|INTERFACE|DELEGATE)\\b", RegexOptions.Compiled | RegexOptions.Multiline);
 
 		// Maintains a cache of file contents
-		private static FileContentsCacheType FileContentsCache = new FileContentsCacheType();
+		private static Dictionary<string, string> FileContentsCache = new Dictionary<string, string>();
+
+		private static string GetFileContents(string Filename)
+		{
+			string Contents;
+			if (FileContentsCache.TryGetValue(Filename, out Contents))
+			{
+				return Contents;
+			}
+
+			using (var Reader = new StreamReader(Filename, System.Text.Encoding.UTF8))
+			{
+				Contents = Reader.ReadToEnd();
+				FileContentsCache.Add(Filename, Contents);
+			}
+
+			return Contents;
+		}
 
 		// Checks if a file contains UObjects
 		public static bool DoesFileContainUObjects(string Filename)
 		{
-			string Contents = FileContentsCache.GetContents(Filename);
+			string Contents = GetFileContents(Filename);
 			return UObjectRegex.IsMatch(Contents);
 		}
 
@@ -575,7 +591,7 @@ namespace UnrealBuildTool
 			string FileToRead = CPPFile.AbsolutePath;
 
 			// Read lines from the C++ file.
-			string FileContents = FileContentsCache.GetContents(FileToRead);
+			string FileContents = GetFileContents(FileToRead);
 			if (string.IsNullOrEmpty(FileContents))
 			{
 				return Result;
