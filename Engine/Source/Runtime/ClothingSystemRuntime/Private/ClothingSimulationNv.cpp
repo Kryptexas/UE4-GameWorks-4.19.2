@@ -627,6 +627,7 @@ void FClothingSimulationNv::GetSimulationData(TMap<int32, FClothSimulData>& OutD
 			NvClothSupport::ClothParticleScopeLock ParticleLock(Actor.LodData[CurrentClothingLod].Cloth);
 
 			FTransform RootBoneTransform = InOverrideComponent ? InOverrideComponent->GetComponentSpaceTransforms()[Asset->ReferenceBoneIndex] : InOwnerComponent->GetComponentSpaceTransforms()[Asset->ReferenceBoneIndex];
+			RootBoneTransform.SetScale3D(FVector(1.0f));
 			RootBoneTransform *= OwnerTransform;
 
 			const uint32 NumParticles = Actor.LodData[CurrentClothingLod].Cloth->getNumParticles();
@@ -920,6 +921,7 @@ void FClothingSimulationNv::DebugDraw_PhysMesh(USkeletalMeshComponent* OwnerComp
 		check(CurrentCloth);
 
 		FTransform RootBoneTransform = OwnerComponent->GetComponentSpaceTransforms()[Actor.AssetCreatedFrom->ReferenceBoneIndex];
+		RootBoneTransform.SetScale3D(FVector(1.0f));
 
 		NvClothSupport::ClothParticleScopeLock ParticleLoc(CurrentCloth);
 
@@ -992,6 +994,11 @@ void FClothingSimulationNv::DebugDraw_Collision(USkeletalMeshComponent* OwnerCom
 {
 	for(const FClothingActorNv& Actor : Actors)
 	{
+		if(Actor.CurrentLodIndex == INDEX_NONE)
+		{
+			continue;
+		}
+		
 		const FClothCollisionData& CollisionData = Actor.AssetCreatedFrom->LodData[Actor.CurrentLodIndex].CollisionData;
 
 		for(const FClothCollisionPrim_SphereConnection& Connection : CollisionData.SphereConnections)

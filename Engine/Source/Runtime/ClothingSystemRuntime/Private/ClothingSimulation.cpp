@@ -20,6 +20,10 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 {
 	SCOPE_CYCLE_COUNTER(STAT_ClothSkinPhysMesh);
 
+	// Ignore any user scale. It's already accounted for in our skinning matrices
+	FTransform RootBoneTransformInternal = RootBoneTransform;
+	RootBoneTransformInternal.SetScale3D(FVector(1.0f));
+
 	const uint32 NumVerts = InMesh.Vertices.Num();
 
 	OutPositions.Empty(NumVerts);
@@ -127,8 +131,8 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 			}
 		}
 
-		OutPosition = RootBoneTransform.InverseTransformPosition(OutPosition);
-		OutNormal = RootBoneTransform.InverseTransformVector(OutNormal);
+		OutPosition = RootBoneTransformInternal.InverseTransformPosition(OutPosition);
+		OutNormal = RootBoneTransformInternal.InverseTransformVector(OutNormal);
 		OutNormal = OutNormal.GetUnsafeNormal();
 	}
 }
