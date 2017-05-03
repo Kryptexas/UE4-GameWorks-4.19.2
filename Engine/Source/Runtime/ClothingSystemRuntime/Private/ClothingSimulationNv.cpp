@@ -766,7 +766,7 @@ void FClothingSimulationNv::UpdateLod(FClothingSimulationContextNv* InContext)
 				continue;
 			}
 
-			bool bOldLodMapped = LodMap.IsValidIndex(CurrentMeshLodIndex);
+			bool bOldLodMapped = LodMap.IsValidIndex(CurrentMeshLodIndex) && LodMap[CurrentMeshLodIndex] != INDEX_NONE;
 
 			// Get the clothing LOD mapped from the mesh predicted LOD
 			const int32 PredictedClothingLod = LodMap[InContext->PredictedLod];
