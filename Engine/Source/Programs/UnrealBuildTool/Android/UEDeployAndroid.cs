@@ -2171,8 +2171,9 @@ namespace UnrealBuildTool
 			// generate new ant.bat with an unused drive letter for subst
 			string AntBatText =
 					"@echo off\n" +
+					"setlocal\n" +
 					"set ANTPATH=%~dp0\n" +
-					"set ANT_CMD_LINE_ARGS =\n" +
+					"set ANT_CMD_LINE_ARGS=\n" +
 					":setupArgs\n" +
 					"if \"\"%1\"\"==\"\"\"\" goto doneStart\n" +
 					"set ANT_CMD_LINE_ARGS=%ANT_CMD_LINE_ARGS% %1\n" +
