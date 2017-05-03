@@ -249,7 +249,7 @@ if [ -e /etc/os-release ]; then
         update-mime-database ~/.local/share/mime
     fi
     # Generate .desktop file
-    if [ ! -f ~/.local/share/applications/UE4Editor.desktop ]; then
+    if [ -d ~/.local/share/applications ] && [ ! -f ~/.local/share/applications/UE4Editor.desktop ]; then
         ICON_DIR=$(cd $TOP_DIR/../../.. ; pwd)
         echo "#!/usr/bin/env xdg-open
 [Desktop Entry]
