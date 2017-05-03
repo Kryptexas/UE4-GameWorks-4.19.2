@@ -2,13 +2,19 @@
 
 #include "ClothingSimulation.h"
 
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "ClothingSimulationInterface.h"
 #include "ClothingSystemRuntimeModule.h"
-#include "Components/SkeletalMeshComponent.h"
-
 #include "ClothingAsset.h"
 
+
 DECLARE_CYCLE_STAT(TEXT("Skin Physics Mesh"), STAT_ClothSkinPhysMesh, STATGROUP_Physics);
+
+FClothingSimulationBase::FClothingSimulationBase()
+{
+	MaxPhysicsDelta = UPhysicsSettings::Get()->MaxPhysicsDeltaTime;
+}
 
 void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FClothPhysicalMeshData& InMesh, const FTransform& RootBoneTransform, const FMatrix* InBoneMatrices, const int32 InNumBoneMatrices, TArray<FVector>& OutPositions, TArray<FVector>& OutNormals)
 {
@@ -162,7 +168,7 @@ void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, I
 	UWorld* ComponentWorld = InComponent->GetWorld();
 	check(ComponentWorld);
 
-	BaseContext->DeltaSeconds = ComponentWorld->GetDeltaSeconds();
+	BaseContext->DeltaSeconds = FMath::Min(ComponentWorld->GetDeltaSeconds(), MaxPhysicsDelta);
 
 	BaseContext->TeleportMode = InComponent->ClothTeleportMode;
 
