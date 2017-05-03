@@ -21,8 +21,12 @@
 	
 	# Temporary PS4 deprecation warnings
 	".*OnlineSubsystemPS4.*warning:.*\\[-Wdeprecated-declarations\\]",
-	".*PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]"
+	".*PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]",
 	
+	# Missing Steam DLLs/Dylibs when building samples
+	"STEAM: Steam API disabled!",
+	"LogMac:Warning: dlopen failed:.*libsteam_api.dylib.*: image not found",
+	"LogOnline:Warning: STEAM:.*libraries not present.*failed to load!",
 	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
