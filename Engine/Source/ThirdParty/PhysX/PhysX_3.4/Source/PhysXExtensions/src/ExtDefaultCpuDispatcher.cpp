@@ -28,7 +28,6 @@
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
 
-#include "task/PxTask.h"
 #include "ExtDefaultCpuDispatcher.h"
 #include "ExtCpuWorkerThread.h"
 #include "ExtTaskQueueHelper.h"
