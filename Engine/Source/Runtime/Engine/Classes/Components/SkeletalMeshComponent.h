@@ -306,6 +306,9 @@ public:
 	/** Temporary storage for curves */
 	FBlendedHeapCurve AnimCurves;
 
+	/** Temporary fix for local space kinematics. This only works for bodies that have no constraints and is needed by vehicles. Proper support will remove this flag */
+	bool bLocalSpaceKinematics;
+
 	// Update Rate
 
 	/** Cached BoneSpaceTransforms for Update Rate optimization. */
