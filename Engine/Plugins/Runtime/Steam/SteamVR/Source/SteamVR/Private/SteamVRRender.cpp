@@ -265,7 +265,6 @@ void FSteamVRHMD::VulkanBridge::FinishRendering()
 		LeftBounds.vMin = 0.0f;
 		LeftBounds.vMax = 1.0f;
 
-
 		vr::VRTextureBounds_t RightBounds;
 		RightBounds.uMin = 0.5f;
 		RightBounds.uMax = 1.0f;
@@ -289,6 +288,7 @@ void FSteamVRHMD::VulkanBridge::FinishRendering()
 		Plugin->VRCompositor->Submit(vr::Eye_Left, &texture, &LeftBounds);
 		Plugin->VRCompositor->Submit(vr::Eye_Right, &texture, &RightBounds);
 
+		ImmediateContext.GetCommandBufferManager()->SubmitUploadCmdBuffer(false);
 	}
 }
 
