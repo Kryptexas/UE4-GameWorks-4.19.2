@@ -76,8 +76,6 @@ $ bUseFastPDBLinking : Whether to use the :FASTLINK option when building with /D
 
 $ bCreateMapFile : Outputs a map file as part of the build.
 
-$ bEnableCodeAnalysis : Enables code analysis mode.  Currently, this has specific requirements.  It only works on Windows platform with the MSVC compiler.  Also, it requires a version of the compiler that supports the /analyze option, such as Visual Studio 2013.
-
 $ bCheckSystemHeadersForModification : Whether headers in system paths should be checked for modification when determining outdated actions.
 
 $ bFlushBuildDirOnRemoteMac : Whether to clean Builds directory on a remote Mac before building.
@@ -183,6 +181,8 @@ $ bForceDebugUnrealHeaderTool : If true, the Debug version of UnrealHeaderTool w
 $ ProcessorCountMultiplier : Processor count multiplier for local execution. Can be below 1 to reserve CPU for other tasks.
 
 $ MaxProcessorCount : Maximum processor count for local execution.
+
+### ProjectFileGenerator
 
 ### VCProjectFileGenerator
 

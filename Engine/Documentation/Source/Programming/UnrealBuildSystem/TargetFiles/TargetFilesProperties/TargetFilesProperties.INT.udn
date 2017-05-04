@@ -206,8 +206,6 @@ $ bUseFastPDBLinking (Boolean): Whether to use the :FASTLINK option when buildin
 
 $ bCreateMapFile (Boolean): Outputs a map file as part of the build.
 
-$ bEnableCodeAnalysis (Boolean): Enables code analysis mode.  Currently, this has specific requirements.  It only works on Windows platform with the MSVC compiler.  Also, it requires a version of the compiler that supports the /analyze option, such as Visual Studio 2013.
-
 $ BundleVersion (String): Bundle version for Mac apps.
 
 $ bDeployAfterCompile (Boolean): Whether to deploy the executable after compilation on platforms that require deployment.
