@@ -6,7 +6,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 
-namespace Tools.DotNETCommon.SimpleWebRequest
+namespace Tools.CrashReporter.CrashReportCommon
 {
 	/// <summary>
 	/// A class to make simple Xml web requests to return a string.
