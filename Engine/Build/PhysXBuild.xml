@@ -108,7 +108,7 @@
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=TVOS -TargetConfigs=&quot;$(TargetConfigs)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
-	<Agent Name="PhysX Switch" Type="EngineWin64;PhysX_CompileSwitch;Win64">
+	<Agent Name="PhysX Switch" Type="EngineWin64;PhysX_CompileWin64;Win64">
 		<Node Name="Compile PhysX Switch">
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Switch -TargetConfigs=&quot;$(TargetConfigs)&quot; $(OtherArgs)"/>
 		</Node>
