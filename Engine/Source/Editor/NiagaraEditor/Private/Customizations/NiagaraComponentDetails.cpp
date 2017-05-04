@@ -417,19 +417,12 @@ public:
 
 		check(ObjectValue.DataInterface != nullptr);
 
-		if (ValueVariable)
-		{
-			check(ValueVariable->DataInterface->GetClass() == ObjectValue.DataInterface->GetClass());
-			ensure(ValueVariable->DataInterface->CopyTo(ObjectValue.DataInterface));
+		check(ValueVariable->DataInterface->GetClass() == ObjectValue.DataInterface->GetClass());
+		ensure(ValueVariable->DataInterface->CopyTo(ObjectValue.DataInterface));
 
-			if (DetailsView.IsValid())
-			{
-				DetailsView->SetObject(ObjectValue.DataInterface);
-			}
-		}
-		else
+		if (DetailsView.IsValid())
 		{
-			UE_LOG(LogNiagaraEditor, Warning, TEXT("Data interface %s does not exist!"), *ValueVariable->Name.ToString());
+			DetailsView->SetObject(ObjectValue.DataInterface);
 		}
 	}
 

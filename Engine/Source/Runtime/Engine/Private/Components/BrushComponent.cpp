@@ -536,12 +536,9 @@ void UBrushComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterial
 	if( Brush && Brush->Polys )
 	{
 		UPolys* Polys = Brush->Polys;
-		if( Polys )
+		for( int32 ElementIdx = 0; ElementIdx < Polys->Element.Num(); ++ElementIdx )
 		{
-			for( int32 ElementIdx = 0; ElementIdx < Polys->Element.Num(); ++ElementIdx )
-			{
-				OutMaterials.Add( Polys->Element[ ElementIdx ].Material );
-			}
+			OutMaterials.Add( Polys->Element[ ElementIdx ].Material );
 		}
 	}
 #endif // WITH_EDITOR

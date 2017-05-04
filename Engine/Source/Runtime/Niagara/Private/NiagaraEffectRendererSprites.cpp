@@ -193,17 +193,13 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 				PerViewUniformParameters.CameraFacingBlend = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 				PerViewUniformParameters.RemoveHMDRoll = 0.0f;
 				PerViewUniformParameters.CustomFacingVectorMask = Properties->CustomFacingVectorMask;
+				PerViewUniformParameters.SubImageSize = FVector4(Properties->SubImageSize.X, Properties->SubImageSize.Y, 1.0f / Properties->SubImageSize.X, 1.0f / Properties->SubImageSize.Y);
 
-				if (Properties)
+				if (Properties->Alignment == ENiagaraSpriteAlignment::VelocityAligned)
 				{
-					PerViewUniformParameters.SubImageSize = FVector4(Properties->SubImageSize.X, Properties->SubImageSize.Y, 1.0f / Properties->SubImageSize.X, 1.0f / Properties->SubImageSize.Y);
-
-					if (Properties->Alignment == ENiagaraSpriteAlignment::VelocityAligned)
-					{
-						// velocity aligned
-						PerViewUniformParameters.RotationScale = 0.0f;
-						PerViewUniformParameters.TangentSelector = FVector4(0.0f, 1.0f, 0.0f, 0.0f);
-					}
+					// velocity aligned
+					PerViewUniformParameters.RotationScale = 0.0f;
+					PerViewUniformParameters.TangentSelector = FVector4(0.0f, 1.0f, 0.0f, 0.0f);
 				}
 
 				// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory

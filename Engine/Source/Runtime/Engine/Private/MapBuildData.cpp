@@ -87,17 +87,12 @@ void ULevel::HandleLegacyMapBuildData()
 		|| GLevelsWithLegacyBuildData.GetAnnotationMap().Num() > 0
 		|| GLightComponentsWithLegacyBuildData.GetAnnotationMap().Num() > 0)
 	{
-		UMapBuildDataRegistry* Registry = NULL;
-
 		FLevelLegacyMapBuildData LegacyLevelData = GLevelsWithLegacyBuildData.GetAndRemoveAnnotation(this);
 
+		UMapBuildDataRegistry* Registry = NULL;
 		if (LegacyLevelData.Id != FGuid())
 		{
-			if (!Registry)
-			{
-				Registry = CreateRegistryForLegacyMap(this);
-			}
-
+			Registry = CreateRegistryForLegacyMap(this);
 			Registry->AddLevelBuildData(LegacyLevelData.Id, LegacyLevelData.Data);
 		}
 

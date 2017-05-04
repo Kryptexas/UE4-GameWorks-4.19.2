@@ -10,7 +10,6 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
-using Tools.DotNETCommon.XmlHandler;
 
 using System.ComponentModel;
 using System.Reflection;

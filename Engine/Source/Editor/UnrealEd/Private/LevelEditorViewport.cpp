@@ -120,6 +120,10 @@ FViewportCursorLocation::FViewportCursorLocation( const FSceneView* View, FEdito
 	}
 }
 
+FViewportCursorLocation::~FViewportCursorLocation()
+{
+}
+
 ELevelViewportType FViewportCursorLocation::GetViewportType() const
 {
 	return ViewportClient->GetViewportType();
@@ -137,6 +141,10 @@ FViewportClick::FViewportClick(const FSceneView* View,FEditorViewportClient* Vie
 	ControlDown = ViewportClient->IsCtrlPressed();
 	ShiftDown = ViewportClient->IsShiftPressed();
 	AltDown = ViewportClient->IsAltPressed();
+}
+
+FViewportClick::~FViewportClick()
+{
 }
 
 /** Helper function to compute a new location that is snapped to the origin plane given the users cursor location and camera angle */
@@ -598,12 +606,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 			UAnimSequenceBase* DroppedObjAsAnimSequence = Cast<UAnimSequenceBase>(ObjToUse);
 			if (DroppedObjAsAnimSequence)
 			{
-				USkeleton* AnimSkeleton = nullptr;
-
-				if (DroppedObjAsAnimSequence)
-				{
-					AnimSkeleton = DroppedObjAsAnimSequence->GetSkeleton();
-				}
+				USkeleton* AnimSkeleton = DroppedObjAsAnimSequence->GetSkeleton();
 
 				if (AnimSkeleton)
 				{
@@ -624,16 +627,13 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 							SkeletalMeshComponent->SetSkeletalMesh(AnimSkeleton->GetAssetPreviewMesh(DroppedObjAsAnimSequence));
 						}
 
-						if (DroppedObjAsAnimSequence)
-						{
-							SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-							SkeletalMeshComponent->AnimationData.AnimToPlay = DroppedObjAsAnimSequence;
+						SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+						SkeletalMeshComponent->AnimationData.AnimToPlay = DroppedObjAsAnimSequence;
 
-							// set runtime data
-							SkeletalMeshComponent->SetAnimation(DroppedObjAsAnimSequence);
-						}
+						// set runtime data
+						SkeletalMeshComponent->SetAnimation(DroppedObjAsAnimSequence);
 
-						if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
+						if (SkeletalMeshComponent->SkeletalMesh)
 						{
 							bResult = true;
 							SkeletalMeshComponent->InitAnim(true);
@@ -3533,8 +3533,7 @@ static bool ApplyScalingOptions(const FVector& InOriginalPreDragScale, const boo
 			SnapScaleAfter = false;
 		}
 
-		float ScaleRatioMax = 1.0f;
-		ScaleRatioMax = AbsoluteScaleValue / InOriginalPreDragScale[MaxAxisIndex];
+		float ScaleRatioMax = AbsoluteScaleValue / InOriginalPreDragScale[MaxAxisIndex];
 		for (int Axis = 0; Axis < 3; ++Axis)
 		{
 			if (bActiveAxes[Axis])

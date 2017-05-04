@@ -2627,82 +2627,13 @@ public:
 				static const FName LocalVertexFactory = FName(TEXT("FLocalVertexFactory"));
 				if (VertexFactoryType->GetFName() == LocalVertexFactory)
 				{
-					// reduce the number of shaders compiled for the thumbnail materials by only compiling with shader types known to be used by the preview scene
-					static const TArray<FName> AllowedShaderTypes =
-					{
-						FName(TEXT("TBasePassVSFNoLightMapPolicy")),
-						FName(TEXT("TBasePassPSFNoLightMapPolicy")),
-						FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy")),
-						FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy")),
-						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse")),
-						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthtrue")), // used by LPV
-						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse")),
-						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrecttrue")), // used by LPV
-						FName(TEXT("TDepthOnlyVS<false>")),
-						FName(TEXT("TDepthOnlyVS<true>")),
-						FName(TEXT("FDepthOnlyPS")),
-					};
-					// shader types known *not* to be used by the preview scene
-					static const TArray<FName> ExcludedShaderTypes =
-					{
-						// This is not an exhaustive list
-						FName(TEXT("FDebugViewModeVS")),
-						FName(TEXT("FConvertToUniformMeshVS")),
-						FName(TEXT("FConvertToUniformMeshGS")),
-						FName(TEXT("FVelocityVS")),
-						FName(TEXT("FVelocityPS")),
-						FName(TEXT("FHitProxyVS")),
-						FName(TEXT("FHitProxyPS")),
-						FName(TEXT("TLightMapDensityVSFNoLightMapPolicy")),
-						FName(TEXT("TLightMapDensityPSFNoLightMapPolicy")),
-						FName(TEXT("TLightMapDensityVSFDummyLightMapPolicy")),
-						FName(TEXT("TLightMapDensityPSFDummyLightMapPolicy")),
-
-						FName(TEXT("TBasePassPSFNoLightMapPolicySkylight")),
-						FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicySkylight")),
-						FName(TEXT("TBasePassVSFCachedVolumeIndirectLightingPolicy")),
-						FName(TEXT("TBasePassPSFCachedVolumeIndirectLightingPolicy")),
-						FName(TEXT("TBasePassPSFCachedVolumeIndirectLightingPolicySkylight")),
-
-						FName(TEXT("TBasePassVSFNoLightMapPolicyAtmosphericFog")),
-						FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicyAtmosphericFog")),
-						FName(TEXT("TBasePassVSFSelfShadowedCachedPointIndirectLightingPolicy")),
-						FName(TEXT("TBasePassPSFSelfShadowedCachedPointIndirectLightingPolicy")),
-						FName(TEXT("TBasePassPSFSelfShadowedCachedPointIndirectLightingPolicySkylight")),
-						FName(TEXT("TBasePassVSFSelfShadowedCachedPointIndirectLightingPolicyAtmosphericFog")),
-						FName(TEXT("TBasePassVSFSelfShadowedTranslucencyPolicy")),
-						FName(TEXT("TBasePassPSFSelfShadowedTranslucencyPolicy")),
-						FName(TEXT("TBasePassPSFSelfShadowedTranslucencyPolicySkylight")),
-						FName(TEXT("TBasePassVSFSelfShadowedTranslucencyPolicyAtmosphericFog")),
-
-						FName(TEXT("TShadowDepthVSVertexShadowDepth_PerspectiveCorrectfalse")),
-						FName(TEXT("TShadowDepthVSVertexShadowDepth_PerspectiveCorrecttrue")),
-						FName(TEXT("TShadowDepthVSVertexShadowDepth_OnePassPointLightfalse")),
-						FName(TEXT("TShadowDepthPSPixelShadowDepth_PerspectiveCorrectfalse")),
-						FName(TEXT("TShadowDepthPSPixelShadowDepth_PerspectiveCorrecttrue")),
-						FName(TEXT("TShadowDepthPSPixelShadowDepth_OnePassPointLightfalse")),
-						FName(TEXT("TShadowDepthPSPixelShadowDepth_OnePassPointLighttrue")),
-
-						FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_OutputDepthfalse")),
-						FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_OutputDepthtrue")),
-						FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_PerspectiveCorrectfalse")),
-						FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_PerspectiveCorrecttrue")),
-						FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_OnePassPointLightfalse")),
-						FName(TEXT("FOnePassPointShadowDepthGS")),
-
-						FName(TEXT("TTranslucencyShadowDepthVS<TranslucencyShadowDepth_Standard>")),
-						FName(TEXT("TTranslucencyShadowDepthPS<TranslucencyShadowDepth_Standard>")),
-						FName(TEXT("TTranslucencyShadowDepthVS<TranslucencyShadowDepth_PerspectiveCorrect>")),
-						FName(TEXT("TTranslucencyShadowDepthPS<TranslucencyShadowDepth_PerspectiveCorrect>")),
-					};
-
-					if (Algo::Find(AllowedShaderTypes, ShaderType->GetFName()))
+					if (Algo::Find(GetAllowedShaderTypes(), ShaderType->GetFName()))
 					{
 						return FMaterialResource::ShouldCache(Platform, ShaderType, VertexFactoryType);
 					}
 					else
 					{
-						if (Algo::Find(ExcludedShaderTypes, ShaderType->GetFName()))
+						if (Algo::Find(GetExcludedShaderTypes(), ShaderType->GetFName()))
 						{
 							UE_LOG(LogLandscape, VeryVerbose, TEXT("Excluding shader %s from landscape thumbnail material"), ShaderType->GetName());
 							return false;
@@ -2732,6 +2663,84 @@ public:
 		}
 
 		return false;
+	}
+
+	static const TArray<FName>& GetAllowedShaderTypes()
+	{
+		// reduce the number of shaders compiled for the thumbnail materials by only compiling with shader types known to be used by the preview scene
+		static const TArray<FName> AllowedShaderTypes =
+		{
+			FName(TEXT("TBasePassVSFNoLightMapPolicy")),
+			FName(TEXT("TBasePassPSFNoLightMapPolicy")),
+			FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy")),
+			FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthtrue")), // used by LPV
+			FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse")),
+			FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrecttrue")), // used by LPV
+			FName(TEXT("TDepthOnlyVS<false>")),
+			FName(TEXT("TDepthOnlyVS<true>")),
+			FName(TEXT("FDepthOnlyPS")),
+		};
+		return AllowedShaderTypes;
+	}
+
+	static const TArray<FName>& GetExcludedShaderTypes()
+	{
+		// shader types known *not* to be used by the preview scene
+		static const TArray<FName> ExcludedShaderTypes =
+		{
+			// This is not an exhaustive list
+			FName(TEXT("FDebugViewModeVS")),
+			FName(TEXT("FConvertToUniformMeshVS")),
+			FName(TEXT("FConvertToUniformMeshGS")),
+			FName(TEXT("FVelocityVS")),
+			FName(TEXT("FVelocityPS")),
+			FName(TEXT("FHitProxyVS")),
+			FName(TEXT("FHitProxyPS")),
+			FName(TEXT("TLightMapDensityVSFNoLightMapPolicy")),
+			FName(TEXT("TLightMapDensityPSFNoLightMapPolicy")),
+			FName(TEXT("TLightMapDensityVSFDummyLightMapPolicy")),
+			FName(TEXT("TLightMapDensityPSFDummyLightMapPolicy")),
+
+			FName(TEXT("TBasePassPSFNoLightMapPolicySkylight")),
+			FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicySkylight")),
+			FName(TEXT("TBasePassVSFCachedVolumeIndirectLightingPolicy")),
+			FName(TEXT("TBasePassPSFCachedVolumeIndirectLightingPolicy")),
+			FName(TEXT("TBasePassPSFCachedVolumeIndirectLightingPolicySkylight")),
+
+			FName(TEXT("TBasePassVSFNoLightMapPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassVSFSelfShadowedCachedPointIndirectLightingPolicy")),
+			FName(TEXT("TBasePassPSFSelfShadowedCachedPointIndirectLightingPolicy")),
+			FName(TEXT("TBasePassPSFSelfShadowedCachedPointIndirectLightingPolicySkylight")),
+			FName(TEXT("TBasePassVSFSelfShadowedCachedPointIndirectLightingPolicyAtmosphericFog")),
+			FName(TEXT("TBasePassVSFSelfShadowedTranslucencyPolicy")),
+			FName(TEXT("TBasePassPSFSelfShadowedTranslucencyPolicy")),
+			FName(TEXT("TBasePassPSFSelfShadowedTranslucencyPolicySkylight")),
+			FName(TEXT("TBasePassVSFSelfShadowedTranslucencyPolicyAtmosphericFog")),
+
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_PerspectiveCorrectfalse")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_PerspectiveCorrecttrue")),
+			FName(TEXT("TShadowDepthVSVertexShadowDepth_OnePassPointLightfalse")),
+			FName(TEXT("TShadowDepthPSPixelShadowDepth_PerspectiveCorrectfalse")),
+			FName(TEXT("TShadowDepthPSPixelShadowDepth_PerspectiveCorrecttrue")),
+			FName(TEXT("TShadowDepthPSPixelShadowDepth_OnePassPointLightfalse")),
+			FName(TEXT("TShadowDepthPSPixelShadowDepth_OnePassPointLighttrue")),
+
+			FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_OutputDepthfalse")),
+			FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_OutputDepthtrue")),
+			FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_PerspectiveCorrectfalse")),
+			FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_PerspectiveCorrecttrue")),
+			FName(TEXT("TShadowDepthVSForGSVertexShadowDepth_OnePassPointLightfalse")),
+			FName(TEXT("FOnePassPointShadowDepthGS")),
+
+			FName(TEXT("TTranslucencyShadowDepthVS<TranslucencyShadowDepth_Standard>")),
+			FName(TEXT("TTranslucencyShadowDepthPS<TranslucencyShadowDepth_Standard>")),
+			FName(TEXT("TTranslucencyShadowDepthVS<TranslucencyShadowDepth_PerspectiveCorrect>")),
+			FName(TEXT("TTranslucencyShadowDepthPS<TranslucencyShadowDepth_PerspectiveCorrect>")),
+		};
+		return ExcludedShaderTypes;
 	}
 };
 

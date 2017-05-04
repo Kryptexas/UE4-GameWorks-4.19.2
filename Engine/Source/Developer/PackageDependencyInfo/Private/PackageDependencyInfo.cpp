@@ -1199,7 +1199,8 @@ bool FPackageDependencyInfo::DeterminePackageDependencies(FPackageDependencyTrac
 		}
 		}
 		// Start off with setting the dependent time to the package itself
-		PkgInfo->TimeStamp = PkgInfo->TimeStamp;
+		// PVS-Studio reports this as a warning because it's a no-op
+		// PkgInfo->TimeStamp = PkgInfo->TimeStamp;
 
 		// Map? Code (ie blueprint)?
 		PkgInfo->bContainsMap = Linker->ContainsMap();

@@ -785,7 +785,7 @@ void FD3D12BucketAllocator::ReleaseAllResources()
 
 	while (ExpiredBlocks.Dequeue(Block))
 	{
-		if (Block.BucketIndex >= MinCleanupBucket)
+		if (Block.BucketIndex >= MinCleanupBucket) //-V547
 		{
 			SAFE_RELEASE(Block.ResourceHeap);
 		}

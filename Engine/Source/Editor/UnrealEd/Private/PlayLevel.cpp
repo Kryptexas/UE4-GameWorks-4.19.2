@@ -102,7 +102,6 @@
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
-DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
 
 #define LOCTEXT_NAMESPACE "PlayLevel"
 

@@ -10,7 +10,7 @@
 #include "VirtualTrackArea.h"
 
 
-struct FSelectionPreviewVisitor
+struct FSelectionPreviewVisitor final
 	: ISequencerEntityVisitor
 {
 	FSelectionPreviewVisitor(FSequencerSelectionPreview& InSelectionPreview, FSequencerSelection& InSelection, ESelectionPreviewState InSetStateTo)

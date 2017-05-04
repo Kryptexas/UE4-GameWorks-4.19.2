@@ -17,20 +17,20 @@ class FNetworkFileServerClientConnectionThreaded
 public:
 
 	FNetworkFileServerClientConnectionThreaded(FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, 
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
-		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate,InActiveTargetPlatforms)
+		const FRecompileShadersDelegate& InRecompileShadersDelegate, const FSandboxPathDelegate& SandboxPathOverrideDelegate, FOnFileModifiedDelegate* InOnFileModifiedCallback, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate, SandboxPathOverrideDelegate, InOnFileModifiedCallback, InActiveTargetPlatforms)
 		  ,Socket(InSocket)
 	{
 		Running.Set(true);
 		StopRequested.Reset();
-
+	
 #if UE_BUILD_DEBUG
-			// this thread needs more space in debug builds as it tries to log messages and such
-			const static uint32 NetworkFileServerThreadSize = 2 * 1024 * 1024; 
+		// this thread needs more space in debug builds as it tries to log messages and such
+		const static uint32 NetworkFileServerThreadSize = 2 * 1024 * 1024; 
 #else
-			const static uint32 NetworkFileServerThreadSize = 1 * 1024 * 1024; 
+		const static uint32 NetworkFileServerThreadSize = 1 * 1024 * 1024; 
 #endif
-			WorkerThread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), NetworkFileServerThreadSize, TPri_AboveNormal);
+		WorkerThread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), NetworkFileServerThreadSize, TPri_AboveNormal);
 	}
 
 
@@ -102,7 +102,7 @@ public:
 	}
 
 private: 
-
+	FOnFileModifiedDelegate* OnFileModifiedCallback;
 	FSocket* Socket; 
 	FThreadSafeCounter StopRequested;
 	FThreadSafeCounter Running;
@@ -114,7 +114,9 @@ private:
 /* FNetworkFileServer constructors
  *****************************************************************************/
 
-FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate,const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate,const FRecompileShadersDelegate* InRecompileShadersDelegate, 
+	const FSandboxPathDelegate* InSandboxPathOverrideDelegate, FOnFileModifiedDelegate* InOnFileModifiedCallback,
+	const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
 	:ActiveTargetPlatforms(InActiveTargetPlatforms)
 {
 	if(InPort <0)
@@ -135,6 +137,13 @@ FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate
 	{
 		RecompileShadersDelegate = *InRecompileShadersDelegate;
 	}
+
+	if ( InSandboxPathOverrideDelegate && InSandboxPathOverrideDelegate->IsBound() )
+	{
+		SandboxPathOverrideDelegate = *InSandboxPathOverrideDelegate;
+	}
+
+	OnFileModifiedCallback = InOnFileModifiedCallback;
 
 	// make sure sockets are going
 	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get();
@@ -256,7 +265,7 @@ uint32 FNetworkFileServer::Run( )
 					}
 				}
 
-				FNetworkFileServerClientConnectionThreaded* Connection = new FNetworkFileServerClientConnectionThreaded(ClientSocket, FileRequestDelegate, RecompileShadersDelegate, ActiveTargetPlatforms);
+				FNetworkFileServerClientConnectionThreaded* Connection = new FNetworkFileServerClientConnectionThreaded(ClientSocket, FileRequestDelegate, RecompileShadersDelegate, SandboxPathOverrideDelegate, OnFileModifiedCallback, ActiveTargetPlatforms);
 				Connections.Add(Connection);
 				UE_LOG(LogFileServer, Display, TEXT( "Client %s connected." ), *Connection->GetDescription() );
 			}
@@ -314,6 +323,7 @@ bool FNetworkFileServer::GetAddressList( TArray<TSharedPtr<FInternetAddr> >& Out
 
 	return (OutAddresses.Num() > 0);
 }
+
 
 bool FNetworkFileServer::IsItReadyToAcceptConnections(void) const
 {

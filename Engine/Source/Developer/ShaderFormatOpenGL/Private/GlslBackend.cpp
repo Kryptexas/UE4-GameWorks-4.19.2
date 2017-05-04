@@ -3431,7 +3431,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 
 
 // Converts an array index expression using an integer input attribute, to a float input attribute using a conversion to int
-struct SConvertIntVertexAttributeES2 : public ir_hierarchical_visitor
+struct SConvertIntVertexAttributeES2 final : public ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* ParseState;
 	exec_list* FunctionBody;
@@ -3439,6 +3439,10 @@ struct SConvertIntVertexAttributeES2 : public ir_hierarchical_visitor
 	std::map<ir_variable*, ir_variable*> ConvertedVarMap;
 
 	SConvertIntVertexAttributeES2(_mesa_glsl_parse_state* InParseState, exec_list* InFunctionBody) : ParseState(InParseState), FunctionBody(InFunctionBody), InsideArrayDeref(0)
+	{
+	}
+
+	virtual ~SConvertIntVertexAttributeES2()
 	{
 	}
 

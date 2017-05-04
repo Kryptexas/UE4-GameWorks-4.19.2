@@ -77,15 +77,12 @@ float ComputeOrthoZoomFactor(const float ViewportWidth)
 
 void PixelInspectorRealtimeManagement(FEditorViewportClient *CurrentViewport, bool bMouseEnter)
 {
-	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
-	if (PixelInspectorModule != nullptr)
+	FPixelInspectorModule& PixelInspectorModule = FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+	bool bViewportIsRealtime = CurrentViewport->IsRealtime();
+	bool bViewportShouldBeRealtime = PixelInspectorModule.GetViewportRealtime(CurrentViewport->ViewIndex, bViewportIsRealtime, bMouseEnter);
+	if (bViewportIsRealtime != bViewportShouldBeRealtime)
 	{
-		bool bViewportIsRealtime = CurrentViewport->IsRealtime();
-		bool bViewportShouldBeRealtime = PixelInspectorModule->GetViewportRealtime(CurrentViewport->ViewIndex, bViewportIsRealtime, bMouseEnter);
-		if (bViewportIsRealtime != bViewportShouldBeRealtime)
-		{
-			CurrentViewport->SetRealtime(bViewportShouldBeRealtime);
-		}
+		CurrentViewport->SetRealtime(bViewportShouldBeRealtime);
 	}
 }
 
@@ -3191,9 +3188,9 @@ void FEditorViewportClient::DrawCanvas(FViewport& InViewport, FSceneView& View, 
 	ModeTools->DrawHUD(this, &InViewport, &View, &Canvas);
 }
 
-void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View )
+void FEditorViewportClient::SetupViewForRendering(FSceneViewFamily& ViewFamily, FSceneView& View)
 {
-	if(ViewFamily.EngineShowFlags.Wireframe)
+	if (ViewFamily.EngineShowFlags.Wireframe)
 	{
 		// Wireframe color is emissive-only, and mesh-modifying materials do not use material substitution, hence...
 		View.DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
@@ -3204,7 +3201,7 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 		View.DiffuseOverrideParameter = FVector4(GEngine->LightingOnlyBrightness.R, GEngine->LightingOnlyBrightness.G, GEngine->LightingOnlyBrightness.B, 0.0f);
 		View.SpecularOverrideParameter = FVector4(.1f, .1f, .1f, 0.0f);
 	}
-	else if( ViewFamily.EngineShowFlags.ReflectionOverride)
+	else if (ViewFamily.EngineShowFlags.ReflectionOverride)
 	{
 		View.DiffuseOverrideParameter = FVector4(0.f, 0.f, 0.f, 0.f);
 		View.SpecularOverrideParameter = FVector4(1, 1, 1, 0.0f);
@@ -3226,44 +3223,41 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 
 	//Look if the pixel inspector tool is on
 	View.bUsePixelInspector = false;
-	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
-	if (PixelInspectorModule != nullptr)
+	FPixelInspectorModule& PixelInspectorModule = FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+	bool IsInspectorActive = PixelInspectorModule.IsPixelInspectorEnable();
+	View.bUsePixelInspector = IsInspectorActive;
+	FIntPoint InspectViewportPos = FIntPoint(-1, -1);
+	if (IsInspectorActive)
 	{
-		bool IsInspectorActive = PixelInspectorModule->IsPixelInspectorEnable();
-		View.bUsePixelInspector = IsInspectorActive;
-		FIntPoint InspectViewportPos = FIntPoint(-1, -1);
-		if (IsInspectorActive)
+		if (CurrentMousePos == FIntPoint(-1, -1))
 		{
-			if (CurrentMousePos == FIntPoint(-1, -1))
+			uint32 CoordinateViewportId = 0;
+			PixelInspectorModule.GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
+			bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
+			IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
+			if (IsInspectorActive)
 			{
-				uint32 CoordinateViewportId = 0;
-				PixelInspectorModule->GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
-				bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
-				IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
-				if (IsInspectorActive)
-				{
-					PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
-				}
-			}
-			else
-			{
-				InspectViewportPos = CurrentMousePos;
-				PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
-				PixelInspectorModule->SetCoordinatePosition(CurrentMousePos, false);
+				PixelInspectorModule.SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
 			}
 		}
+		else
+		{
+			InspectViewportPos = CurrentMousePos;
+			PixelInspectorModule.SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
+			PixelInspectorModule.SetCoordinatePosition(CurrentMousePos, false);
+		}
+	}
 
-		if (IsInspectorActive)
-		{
-			// Ready to send a request
-			FSceneInterface *SceneInterface = GetScene();
-			PixelInspectorModule->CreatePixelInspectorRequest(InspectViewportPos, View.State->GetViewKey(), SceneInterface);
-		}
-		else if (!View.bUsePixelInspector && CurrentMousePos != FIntPoint(-1, -1))
-		{
-			//Track in case the user hit esc key to stop inspecting pixel
-			PixelInspectorRealtimeManagement(this, true);
-		}
+	if (IsInspectorActive)
+	{
+		// Ready to send a request
+		FSceneInterface *SceneInterface = GetScene();
+		PixelInspectorModule.CreatePixelInspectorRequest(InspectViewportPos, View.State->GetViewKey(), SceneInterface);
+	}
+	else if (!View.bUsePixelInspector && CurrentMousePos != FIntPoint(-1, -1))
+	{
+		//Track in case the user hit esc key to stop inspecting pixel
+		PixelInspectorRealtimeManagement(this, true);
 	}
 }
 

@@ -29,6 +29,7 @@ public:
 	  */
 	virtual bool GetAddressList( TArray<TSharedPtr<FInternetAddr> >& OutAddresses ) const = 0;
 
+
 	/**
 	  * Gets the list of local network addresses that the file server listens on.
 	  *

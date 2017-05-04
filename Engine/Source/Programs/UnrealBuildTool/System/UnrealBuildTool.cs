@@ -1438,7 +1438,7 @@ namespace UnrealBuildTool
 						UBTMakefile.SourceFileWorkingSet = Unity.SourceFileWorkingSet;
 						UBTMakefile.CandidateSourceFilesForWorkingSet = Unity.CandidateSourceFilesForWorkingSet;
 
-						if (BuildConfiguration.bUseUBTMakefiles)
+						if (BuildConfiguration.bUseUBTMakefiles && !UBTMakefile.PrerequisiteActions.Any(x => x.ActionHandler != null))
 						{
 							// We've been told to prepare to build, so let's go ahead and save out our action graph so that we can use in a later invocation 
 							// to assemble the build.  Even if we are configured to assemble the build in this same invocation, we want to save out the
@@ -1577,11 +1577,11 @@ namespace UnrealBuildTool
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)
 							{
-									foreach (UEBuildTarget Target in Targets)
-									{
-										Target.WriteReceipts();
+								foreach (UEBuildTarget Target in Targets)
+								{
+									Target.WriteReceipts();
 									UEBuildPlatform.GetBuildPlatform(Target.Platform).PostBuildSync(Target);
-									}
+								}
 								if (ActionsToExecute.Count == 0 && BuildConfiguration.bSkipLinkingWhenNothingToCompile)
 								{
 									BuildResult = ECompilationResult.UpToDate;
@@ -1647,19 +1647,19 @@ namespace UnrealBuildTool
 
 			// Save the include dependency cache.
 			foreach(CPPHeaders Headers in TargetToHeaders.Values)
+			{
+				// NOTE: It's very important that we save the include cache, even if a build exception was thrown (compile error, etc), because we need to make sure that
+				//    any C++ include dependencies that we computed for out of date source files are saved.  Remember, the build may fail *after* some build products
+				//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successsfully
+				//    built before the failure would not be considered out of date on the next run, so this is our only chance to cache C++ includes for those files!
+
+				if (Headers.IncludeDependencyCache != null)
 				{
-					// NOTE: It's very important that we save the include cache, even if a build exception was thrown (compile error, etc), because we need to make sure that
-					//    any C++ include dependencies that we computed for out of date source files are saved.  Remember, the build may fail *after* some build products
-					//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successsfully
-					//    built before the failure would not be considered out of date on the next run, so this is our only chance to cache C++ includes for those files!
-
-				if(Headers.IncludeDependencyCache != null)
-					{
 					Headers.IncludeDependencyCache.Save();
-					}
+				}
 
-				if(Headers.FlatCPPIncludeDependencyCache != null)
-					{
+				if (Headers.FlatCPPIncludeDependencyCache != null)
+				{
 					Headers.FlatCPPIncludeDependencyCache.Save();
 				}
 			}
@@ -2461,6 +2461,12 @@ namespace UnrealBuildTool
 		/// <returns>True if file is part of the working set</returns>
 		public static bool ShouldSourceFileBePartOfWorkingSet(string SourceFileAbsolutePath)
 		{
+			// Generated .cpp files should never be treated as part of the working set
+			if (SourceFileAbsolutePath.EndsWith(".generated.cpp"))
+			{
+				return false;
+			}
+
 			bool bShouldBePartOfWorkingSourceFileSet = false;
 			try
 			{

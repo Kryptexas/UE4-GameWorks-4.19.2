@@ -166,11 +166,8 @@ void FProfilerClientManager::SetCaptureState(const bool bRequestedCaptureState, 
 		}
 		else
 		{
-			const FMessageAddress* MessageAddress = &Connections.Find(InstanceId)->ProfilerServiceAddress;
-			if(MessageAddress)
-			{
-				MessageEndpoint->Send(new FProfilerServiceCapture(bRequestedCaptureState), *MessageAddress);
-			}
+			const FMessageAddress& MessageAddress = Connections.Find(InstanceId)->ProfilerServiceAddress;
+			MessageEndpoint->Send(new FProfilerServiceCapture(bRequestedCaptureState), MessageAddress);
 
 			UE_LOG(LogProfilerClient, Verbose, TEXT("SetCaptureState Session: %s, Instance: %s, State: %i"), *ActiveSessionId.ToString(), *InstanceId.ToString(), (int32)bRequestedCaptureState);
 		}
@@ -196,11 +193,8 @@ void FProfilerClientManager::SetPreviewState(const bool bRequestedPreviewState, 
 		}
 		else
 		{
-			const FMessageAddress* MessageAddress = &Connections.Find(InstanceId)->ProfilerServiceAddress;
-			if(MessageAddress)
-			{
-				MessageEndpoint->Send(new FProfilerServicePreview(bRequestedPreviewState), *MessageAddress);
-			}
+			const FMessageAddress& MessageAddress = Connections.Find(InstanceId)->ProfilerServiceAddress;
+			MessageEndpoint->Send(new FProfilerServicePreview(bRequestedPreviewState), MessageAddress);
 			UE_LOG(LogProfilerClient, Verbose, TEXT("SetPreviewState Session: %s, Instance: %s, State: %i"), *ActiveSessionId.ToString(), *InstanceId.ToString(), (int32)bRequestedPreviewState);
 		}
 	}
@@ -340,11 +334,8 @@ void FProfilerClientManager::RequestLastCapturedFile(const FGuid& InstanceId /*=
 		}
 		else
 		{
-			const FMessageAddress* MessageAddress = &Connections.Find(InstanceId)->ProfilerServiceAddress;
-			if(MessageAddress)
-			{
-				MessageEndpoint->Send(new FProfilerServiceRequest(EProfilerRequestType::PRT_SendLastCapturedFile), *MessageAddress);
-			}
+			const FMessageAddress& MessageAddress = Connections.Find(InstanceId)->ProfilerServiceAddress;
+			MessageEndpoint->Send(new FProfilerServiceRequest(EProfilerRequestType::PRT_SendLastCapturedFile), MessageAddress);
 		}
 	}
 #endif

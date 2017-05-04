@@ -251,9 +251,9 @@ template <>
 UMovieSceneSection* FMovieScenePropertyRecorder<FVector>::AddSection(UObject* InObjectToRecord, UMovieScene* InMovieScene, const FGuid& InGuid, float InTime)
 {
 	UMovieSceneVectorTrack* Track = InMovieScene->AddTrack<UMovieSceneVectorTrack>(InGuid);
-	Track->SetNumChannelsUsed(3);
 	if (Track)
 	{
+		Track->SetNumChannelsUsed(3);
 		if (InObjectToRecord)
 		{
 			Track->SetPropertyNameAndPath(*Binding.GetProperty(*InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());

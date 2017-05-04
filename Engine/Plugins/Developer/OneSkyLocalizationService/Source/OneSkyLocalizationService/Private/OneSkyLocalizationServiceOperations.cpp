@@ -1016,7 +1016,7 @@ void FOneSkyUploadFileWorker::Query_HttpRequestComplete(FHttpRequestPtr HttpRequ
 
 	if (bResult)
 	{
-		TSharedPtr<FUploadLocalizationTargetFile, ESPMode::ThreadSafe> UploadFileOp = StaticCastSharedRef<FUploadLocalizationTargetFile>(Command->Operation);
+		TSharedPtr<FUploadLocalizationTargetFile, ESPMode::ThreadSafe> UploadFileOp = StaticCastSharedRef<FUploadLocalizationTargetFile>(Command->Operation); //-V595
 
 		FGuid InTargetGuid;
 		int32 InProjectId = -1;

@@ -59,48 +59,45 @@ static bool ModelToHullsWorker(FKAggregateGeom* outGeom,
 								bool bOutside, 
 								TArray<FPlane> &planes)
 {
-	FBspNode* node = &inModel->Nodes[nodeIx];
-	if(node)
+	FBspNode& node = inModel->Nodes[nodeIx];
+	// BACK
+	if (node.iBack != INDEX_NONE) // If there is a child, recurse into it.
 	{
-		// BACK
-		if(node->iBack != INDEX_NONE) // If there is a child, recurse into it.
+		planes.Add(node.Plane);
+		if (!ModelToHullsWorker(outGeom, inModel, node.iBack, node.ChildOutside(0, bOutside), planes))
 		{
-			planes.Add(node->Plane);
-			if ( !ModelToHullsWorker(outGeom, inModel, node->iBack, node->ChildOutside(0, bOutside), planes) )
-			{
-				return false;
-			}
-			planes.RemoveAt(planes.Num()-1);
+			return false;
 		}
-		else if(!node->ChildOutside(0, bOutside)) // If its a leaf, and solid (inside)
+		planes.RemoveAt(planes.Num() - 1);
+	}
+	else if (!node.ChildOutside(0, bOutside)) // If its a leaf, and solid (inside)
+	{
+		planes.Add(node.Plane);
+		if (!AddConvexPrim(outGeom, planes, inModel))
 		{
-			planes.Add(node->Plane);
-			if ( !AddConvexPrim(outGeom, planes, inModel) )
-			{
-				return false;
-			}
-			planes.RemoveAt(planes.Num()-1);
+			return false;
 		}
+		planes.RemoveAt(planes.Num() - 1);
+	}
 
-		// FRONT
-		if(node->iFront != INDEX_NONE)
+	// FRONT
+	if (node.iFront != INDEX_NONE)
+	{
+		planes.Add(node.Plane.Flip());
+		if (!ModelToHullsWorker(outGeom, inModel, node.iFront, node.ChildOutside(1, bOutside), planes))
 		{
-			planes.Add(node->Plane.Flip());
-			if ( !ModelToHullsWorker(outGeom, inModel, node->iFront, node->ChildOutside(1, bOutside), planes) )
-			{
-				return false;
-			}
-			planes.RemoveAt(planes.Num()-1);
+			return false;
 		}
-		else if(!node->ChildOutside(1, bOutside))
+		planes.RemoveAt(planes.Num() - 1);
+	}
+	else if (!node.ChildOutside(1, bOutside))
+	{
+		planes.Add(node.Plane.Flip());
+		if (!AddConvexPrim(outGeom, planes, inModel))
 		{
-			planes.Add(node->Plane.Flip());
-			if ( !AddConvexPrim(outGeom, planes, inModel) )
-			{
-				return false;
-			}
-			planes.RemoveAt(planes.Num()-1);
+			return false;
 		}
+		planes.RemoveAt(planes.Num() - 1);
 	}
 
 	return true;

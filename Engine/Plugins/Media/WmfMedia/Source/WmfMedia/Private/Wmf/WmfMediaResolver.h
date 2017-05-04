@@ -15,13 +15,14 @@ struct FWmfMediaResolveState;
 /**
  * Implements an asynchronous callback object for resolving media URLs.
  */
-class FWmfMediaResolver
+class FWmfMediaResolver final
 	: public IMFAsyncCallback
 {
 public:
 
 	/** Default constructor. */
 	FWmfMediaResolver();
+	virtual ~FWmfMediaResolver();
 
 public:
 

@@ -213,32 +213,34 @@ bool CanCookForPlatformInThisProcess( const FString& PlatformName )
 
 bool UUnrealEdEngine::CanCookByTheBookInEditor(const FString& PlatformName) const 
 { 	
-	if ( CanCookForPlatformInThisProcess(PlatformName) == false )
+	if ( !CookServer )
+	{
+		return false;
+	}
+
+	if ( !CanCookForPlatformInThisProcess(PlatformName) )
 	{
 		CookServer->ClearAllCookedData();
 		return false;
 	}
 
-	if ( CookServer )
-	{
-		return CookServer->GetCookMode() == ECookMode::CookByTheBookFromTheEditor; 
-	}
-	return false;
+	return CookServer->GetCookMode() == ECookMode::CookByTheBookFromTheEditor; 
 }
 
 bool UUnrealEdEngine::CanCookOnTheFlyInEditor(const FString& PlatformName) const
 {
-	if ( CanCookForPlatformInThisProcess(PlatformName) == false )
+	if ( !CookServer )
+	{
+		return false;
+	}
+
+	if ( !CanCookForPlatformInThisProcess(PlatformName) )
 	{
 		CookServer->ClearAllCookedData();
 		return false;
 	}
 
-	if ( CookServer )
-	{
-		return CookServer->GetCookMode() == ECookMode::CookOnTheFlyFromTheEditor;
-	}
-	return false;
+	return CookServer->GetCookMode() == ECookMode::CookOnTheFlyFromTheEditor;
 }
 
 void UUnrealEdEngine::StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections )

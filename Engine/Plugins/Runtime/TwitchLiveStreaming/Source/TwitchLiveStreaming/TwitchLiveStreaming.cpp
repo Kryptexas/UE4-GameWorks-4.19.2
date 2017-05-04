@@ -2099,7 +2099,7 @@ void FTwitchLiveStreaming::Async_GetGameLiveStreams( const FString& GameName, FQ
 		TArray< FLiveStreamInfo > ListOfStreams;
 		for( uint32 InfoIndex = 0; InfoIndex < CallbackPayload->TwitchGameStreamList.count; ++InfoIndex )
 		{
-			const auto& TwitchLiveGameStreamInfo = CallbackPayload->TwitchGameStreamList.list[ InfoIndex ];
+			const auto& TwitchLiveGameStreamInfo = CallbackPayload->TwitchGameStreamList.list[ InfoIndex ]; //-V595
 
 			FLiveStreamInfo StreamInfo;
 			StreamInfo.GameName = CallbackPayload->GameName;

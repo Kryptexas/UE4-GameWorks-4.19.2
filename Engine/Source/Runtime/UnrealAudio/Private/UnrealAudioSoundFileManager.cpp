@@ -196,7 +196,7 @@ namespace UAudio
 			// Create a task to load the sound file. Note this task will delete itself when it finishes loading the sound file
 			FAsyncTask<FAsyncSoundFileLoadTask>* Task = new FAsyncTask<FAsyncSoundFileLoadTask>(AudioModule, NewHandle, Path.GetPlainNameString());
 			Task->StartBackgroundTask(FileLoadingThreadPool);
-		}
+		} //-V773
 		else
 		{
 			// Immediately load the data entry if this is a synchronous load call

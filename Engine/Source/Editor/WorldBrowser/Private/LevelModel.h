@@ -20,6 +20,7 @@ class FLevelCollectionModel;
  */
 struct FLevelModelVisitor
 {
+	virtual ~FLevelModelVisitor() { }
 	virtual void Visit(FLevelModel& Item) = 0;
 };
 

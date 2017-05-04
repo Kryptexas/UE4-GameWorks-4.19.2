@@ -239,7 +239,7 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const UObject* Object, float Tim
 		}
 	}
 
-	return CurrentEntry && CurrentEntry->bIsAllowedToLog ? CurrentEntry : nullptr;
+	return CurrentEntry->bIsAllowedToLog ? CurrentEntry : nullptr;
 }
 
 

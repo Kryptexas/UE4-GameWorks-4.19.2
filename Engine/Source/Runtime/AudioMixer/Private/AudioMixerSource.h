@@ -39,7 +39,7 @@ namespace Audio
 
 		FMixerSourceVoiceBuffer()
 		{
-			FMemory::Memzero(this, sizeof(this));
+			FMemory::Memzero(this, sizeof(*this));
 		}
 	};
 

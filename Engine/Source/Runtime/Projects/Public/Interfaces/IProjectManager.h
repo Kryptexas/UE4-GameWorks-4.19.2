@@ -70,6 +70,7 @@ class IProjectManager
 {
 
 public:
+	virtual ~IProjectManager() { }
 
 	/**
 	 * Static: Access singleton instance
@@ -178,13 +179,6 @@ public:
 	/** Called when the target platforms for the current project are changed */
 	DECLARE_MULTICAST_DELEGATE(FOnTargetPlatformsForCurrentProjectChangedEvent);
 	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() = 0;
-
-	/**
-	 * Gets a list of plugins enabled for the current project.
-	 * 
-	 * @param	OutPluginNames		Array to receive the list of plugin names
-	 */
-	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const = 0;
 
 	/**
 	 * Hack to checks whether the current project has a non-default plugin enabled (ie. one which is not included by default in UE4Game).

@@ -14,7 +14,7 @@
 #include "CompositionLighting/PostProcessAmbientOcclusion.h"
 #include "CompositionLighting/PostProcessDeferredDecals.h"
 #include "PostProcess/PostProcessSubsurface.h"
-#include "LightPropagationVolumeBlendable.h"
+#include "LightPropagationVolumeSettings.h"
 
 /** The global center for all deferred lighting activities. */
 FCompositionLighting GCompositionLighting;

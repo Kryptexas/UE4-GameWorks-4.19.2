@@ -2921,7 +2921,7 @@ void FBlueprintEditor::NavigateToChildGraph_Clicked()
 	{
 		UEdGraph* CurrentGraph = FocusedGraphEdPtr.Pin()->GetCurrentGraph();
 
-		if (CurrentGraph->SubGraphs.Num() > 0)
+		if (CurrentGraph->SubGraphs.Num() > 1)
 		{
 			// Display a child jump list
 			FSlateApplication::Get().PushMenu( 

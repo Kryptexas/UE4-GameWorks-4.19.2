@@ -358,9 +358,6 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	MaxDrawDistance = 0.0f;
 	MaxDistanceFadeRange = 0.0f;
 	bAddedToSceneVisible = false;
-
-	MaxDrawDistance = 0.0f;
-	MaxDistanceFadeRange = 0.0f;
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const

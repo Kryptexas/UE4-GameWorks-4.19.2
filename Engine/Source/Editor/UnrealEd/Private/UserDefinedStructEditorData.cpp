@@ -138,7 +138,7 @@ void UUserDefinedStructEditorData::RecreateDefaultInstance(FString* OutLog)
 					if (!FBlueprintEditorUtils::PropertyValueFromString(Property, VarDesc->CurrentDefaultValue, StructData))
 					{
 						const FString Message = FString::Printf(TEXT("Cannot parse value. Property: %s String: \"%s\" ")
-							, (Property ? *Property->GetDisplayNameText().ToString() : TEXT("None"))
+							, *Property->GetDisplayNameText().ToString()
 							, *VarDesc->CurrentDefaultValue);
 						UE_LOG(LogClass, Warning, TEXT("UUserDefinedStructEditorData::RecreateDefaultInstance %s Struct: %s "), *Message, *GetPathNameSafe(ScriptStruct));
 						if (OutLog)

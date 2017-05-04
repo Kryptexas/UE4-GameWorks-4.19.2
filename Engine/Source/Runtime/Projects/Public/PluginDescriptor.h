@@ -6,6 +6,7 @@
 #include "ModuleDescriptor.h"
 #include "CustomBuildSteps.h"
 #include "LocalizationDescriptor.h"
+#include "PluginReferenceDescriptor.h"
 
 class FJsonObject;
 
@@ -72,9 +73,6 @@ struct PROJECTS_API FPluginDescriptor
 	/** Version of the engine that this plugin is compatible with */
 	FString EngineVersion;
 
-	/** For packaged plugins, contains the compatible changelist of the engine that built this plugin */
-	int32 CompatibleChangelist;
-
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
 
@@ -105,6 +103,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** Pre-build steps for each host platform */
 	FCustomBuildSteps PostBuildSteps;
 
+	/** Dependent plugins */
+	TArray<FPluginReferenceDescriptor> Plugins;
+
 	/** Constructor. */
 	FPluginDescriptor();
 
@@ -119,59 +120,5 @@ struct PROJECTS_API FPluginDescriptor
 
 	/** Writes a descriptor to JSON */
 	void Write(FString& Text, bool bPluginTypeEnabledByDefault) const;
-};
-
-/**
- * Descriptor for a plugin reference. Contains the information required to enable or disable a plugin for a given platform.
- */
-struct PROJECTS_API FPluginReferenceDescriptor
-{
-	/** Name of the plugin */
-	FString Name;
-
-	/** Whether it should be enabled by default */
-	bool bEnabled;
-
-	/** Whether this plugin is optional, and the game should silently ignore it not being present */
-	bool bOptional;
-	
-	/** Description of the plugin for users that do not have it installed. */
-	FString Description;
-
-	/** URL for this plugin on the marketplace, if the user doesn't have it installed. */
-	FString MarketplaceURL;
-
-	/** If enabled, list of platforms for which the plugin should be enabled (or all platforms if blank). */
-	TArray<FString> WhitelistPlatforms;
-
-	/** If enabled, list of platforms for which the plugin should be disabled. */
-	TArray<FString> BlacklistPlatforms;
- 
-	/** If enabled, list of targets for which the plugin should be enabled (or all targets if blank). */
-	TArray<FString> WhitelistTargets;
-
-	/** If enabled, list of targets for which the plugin should be disabled. */
-	TArray<FString> BlacklistTargets;
-
-	/** Constructor */
-	FPluginReferenceDescriptor(const FString& InName = TEXT(""), bool bInEnabled = false, const FString& InMarketplaceURL = TEXT(""));
-
-	/** Determines whether the plugin is enabled for the given platform */
-	bool IsEnabledForPlatform(const FString& Platform) const;
-
-	/** Determines whether the plugin is enabled for the given target */
-	bool IsEnabledForTarget(const FString& Target) const;
-
-	/** Reads the descriptor from the given JSON object */
-	bool Read(const FJsonObject& Object, FText& OutFailReason);
-
-	/** Reads an array of modules from the given JSON object */
-	static bool ReadArray(const FJsonObject& Object, const TCHAR* Name, TArray<FPluginReferenceDescriptor>& OutModules, FText& OutFailReason);
-
-	/** Writes a descriptor to JSON */
-	void Write(TJsonWriter<>& Writer) const;
-
-	/** Writes an array of modules to JSON */
-	static void WriteArray(TJsonWriter<>& Writer, const TCHAR* Name, const TArray<FPluginReferenceDescriptor>& Modules);
 };
 

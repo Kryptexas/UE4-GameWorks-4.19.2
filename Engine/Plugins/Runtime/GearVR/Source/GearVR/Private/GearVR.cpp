@@ -439,7 +439,7 @@ void FGearVR::FOVCommandHandler(const TArray<FString>& Args, UWorld* World, FOut
 	const bool bEnableDevOverrides = (DevOverridesTCVar && DevOverridesTCVar->GetValueOnAnyThread() != 0);
 	const TCHAR* FieldName = bIsVertical ? TEXT("VFOV") : TEXT("HFOV");
 	FSettings* CurrentSettings = GetSettings();
-	float& Field = bIsVertical ? CurrentSettings->VFOVInRadians : CurrentSettings->VFOVInRadians;
+	float& Field = bIsVertical ? CurrentSettings->VFOVInRadians : CurrentSettings->HFOVInRadians;
 
 	if (Args.Num() > 0)
 	{
@@ -1078,7 +1078,7 @@ void FGearVR::UpdateStereoRenderingParams()
 {
 	FSettings* CurrentSettings = GetSettings();
 
-	if ((!CurrentSettings->IsStereoEnabled() && !CurrentSettings->Flags.bHeadTrackingEnforced))
+	if (!CurrentSettings->IsStereoEnabled() && !CurrentSettings->Flags.bHeadTrackingEnforced)
 	{
 		return;
 	}

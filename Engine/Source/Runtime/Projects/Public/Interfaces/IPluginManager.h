@@ -128,6 +128,7 @@ public:
 class IPluginManager
 {
 public:
+	virtual ~IPluginManager() { }
 
 	/** 
 	 * Updates the list of plugins.

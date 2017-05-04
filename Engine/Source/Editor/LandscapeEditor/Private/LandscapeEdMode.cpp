@@ -529,10 +529,7 @@ void FEdModeLandscape::Exit()
 	if (CurrentTool)
 	{
 		CurrentTool->PreviousBrushIndex = CurrentBrushSetIndex;
-		if (CurrentTool)
-		{
-			CurrentTool->ExitTool();
-		}
+		CurrentTool->ExitTool();
 	}
 	CurrentTool = NULL;
 	// Leave CurrentToolIndex set so we can restore the active tool on re-opening the landscape editor
@@ -1408,7 +1405,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			// When debugging it's possible to miss the "mouse released" event, if we get a "mouse pressed" event when we think it's already pressed then treat it as release first
 			if (ToolActiveViewport)
 			{
-				CurrentTool->EndTool(ViewportClient);
+				CurrentTool->EndTool(ViewportClient); //-V595
 				Viewport->CaptureMouse(false);
 				ToolActiveViewport = nullptr;
 			}
@@ -1735,10 +1732,7 @@ void FEdModeLandscape::SetCurrentTool(int32 ToolIndex)
 	if (CurrentTool)
 	{
 		CurrentTool->PreviousBrushIndex = CurrentBrushSetIndex;
-		if (CurrentTool)
-		{
-			CurrentTool->ExitTool();
-		}
+		CurrentTool->ExitTool();
 	}
 	CurrentToolIndex = LandscapeTools.IsValidIndex(ToolIndex) ? ToolIndex : 0;
 	CurrentTool = LandscapeTools[CurrentToolIndex].Get();

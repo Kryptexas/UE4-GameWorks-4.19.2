@@ -80,6 +80,11 @@ public:
 
 protected:
 	/*
+	* Virtual destructor.
+	*/
+	virtual ~FRuntimeAssetCacheBackend() { }
+
+	/*
 	* Creates archive to read data from.
 	* @param Bucket Bucket containing cache entry.
 	* @param CacheKey Key to cache entry.

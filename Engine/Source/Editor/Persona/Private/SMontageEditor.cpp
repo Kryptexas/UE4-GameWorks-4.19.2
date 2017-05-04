@@ -39,11 +39,8 @@ void SMontageEditor::Construct(const FArguments& InArgs, const FMontageEditorReq
 	OnSectionsChanged = InArgs._OnSectionsChanged;
 	MontageObj->RegisterOnMontageChanged(UAnimMontage::FOnMontageChanged::CreateSP(this, &SMontageEditor::RebuildMontagePanel, false));
 		
-	if (MontageObj)
-	{
-		EnsureStartingSection();
-		EnsureSlotNode();
-	}
+	EnsureStartingSection();
+	EnsureSlotNode();
 
 	// set child montage if montage has parent
 	bChildAnimMontage = MontageObj->HasParentAsset();

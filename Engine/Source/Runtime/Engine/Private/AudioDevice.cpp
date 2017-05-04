@@ -3095,7 +3095,7 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 					}
 				}
 			}
-			else if (!Source)
+			else
 			{
 				// This can happen if the streaming manager determines that this sound should not be started.
 				// We stop the wave instance to prevent it from attempting to initialize every frame

@@ -35,6 +35,7 @@ struct ISequencerEntityVisitor
 	bool CheckEntityMask(ESequencerEntity::Type Type) const { return (EntityMask & Type) != 0; }
 
 protected:
+	virtual ~ISequencerEntityVisitor() { }
 
 	/** Bitmask of allowable entities */
 	uint32 EntityMask;

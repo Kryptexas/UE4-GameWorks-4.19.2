@@ -45,6 +45,8 @@ $ WhitelistRestrictedFolders (List&lt;String&gt;): List of folders which are whi
 
 $ bEnforceIWYU (Boolean): Enforce "include what you use" rules when PCHUsage is set to ExplicitOrSharedPCH; warns when monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
 
+$ bAddDefaultIncludePaths (Boolean): Whether to add all the default include paths to the module (eg. the Source/Classes folder, subfolders under Source/Public).
+
 $ PublicIncludePathModuleNames (List&lt;String&gt;): List of modules names (no path needed) with header files that our module's public headers needs access to, but we don't need to "import" or link against.
 
 $ PublicDependencyModuleNames (List&lt;String&gt;): List of public dependency module names (no path needed) (automatically does the private/public include). These are modules that are required by our public source files.
@@ -88,5 +90,7 @@ $ RuntimeDependencies (RuntimeDependencyList): List of files which this module d
 $ AdditionalPropertiesForReceipt (List&lt;ReceiptProperty&gt;): List of additional properties to be added to the build receipt
 
 $ PrecompileForTargets (PrecompileTargetsType): Which targets this module should be precompiled for
+
+$ ExternalDependencies (List&lt;String&gt;): External files which invalidate the makefile if modified. Relative paths are resolved relative to the .build.cs file.
 
 

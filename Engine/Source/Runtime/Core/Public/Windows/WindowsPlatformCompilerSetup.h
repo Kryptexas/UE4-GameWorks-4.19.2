@@ -188,7 +188,7 @@ static_assert(_MSC_VER >= 1800, "Visual Studio 2013 or later is required to comp
 #endif
 
 // interesting ones to turn on and off at times
-//#pragma warning(disable : 4265) // 'class' : class has virtual functions, but destructor is not virtual
+#pragma warning(3 : 4265) // 'class' : class has virtual functions, but destructor is not virtual
 //#pragma warning(disable : 4266) // '' : no override available for virtual member function from base ''; function is hidden
 //#pragma warning(disable : 4296) // 'operator' : expression is always true / false
 //#pragma warning(disable : 4820) // 'bytes' bytes padding added after member 'member'

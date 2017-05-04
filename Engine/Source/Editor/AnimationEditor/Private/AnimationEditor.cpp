@@ -387,11 +387,8 @@ TSharedPtr<SDockTab> FAnimationEditor::OpenNewAnimationDocumentTab(UAnimationAss
 			RemoveEditingObject(AnimationAsset);
 		}
 
-		if (InAnimAsset != nullptr)
-		{
-			AddEditingObject(InAnimAsset);
-			AnimationAsset = InAnimAsset;
-		}
+		AddEditingObject(InAnimAsset);
+		AnimationAsset = InAnimAsset;
 
 		GetPersonaToolkit()->GetPreviewScene()->SetPreviewAnimationAsset(InAnimAsset);
 		GetPersonaToolkit()->SetAnimationAsset(InAnimAsset);

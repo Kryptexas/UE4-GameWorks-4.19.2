@@ -24,7 +24,7 @@ PRAGMA_POP
 #include "INiagaraCompiler.h"
 
 /** Removes any assignments that don't actually map to a VM op but just move some data around. We look for refs and grab the source data direct. */
-class ir_propagate_non_expressions_visitor : public ir_rvalue_visitor
+class ir_propagate_non_expressions_visitor final : public ir_rvalue_visitor
 {
 	_mesa_glsl_parse_state *parse_state;
 
@@ -54,7 +54,7 @@ public:
 		progress = false;
 	}
 
-	~ir_propagate_non_expressions_visitor()
+	virtual ~ir_propagate_non_expressions_visitor()
 	{
 	}
 
@@ -207,7 +207,7 @@ void vm_propagate_non_expressions_visitor(exec_list* ir, _mesa_glsl_parse_state*
 
 //////////////////////////////////////////////////////////////////////////
 /** Replaces any array accesses to matrices with the equivalant swizzle. */
-class ir_matrix_array_access_to_swizzles : public ir_rvalue_visitor
+class ir_matrix_array_access_to_swizzles final : public ir_rvalue_visitor
 {
 public:
 
@@ -217,7 +217,7 @@ public:
 		progress = false;
 	}
 
-	~ir_matrix_array_access_to_swizzles()
+	virtual ~ir_matrix_array_access_to_swizzles()
 	{
 	}
 
@@ -291,6 +291,10 @@ public:
 	ir_matrices_to_vectors()
 	{
 		progress = false;
+	}
+
+	virtual ~ir_matrices_to_vectors()
+	{
 	}
 
 	virtual void handle_rvalue(ir_rvalue **rvalue)

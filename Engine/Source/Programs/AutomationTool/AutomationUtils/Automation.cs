@@ -7,7 +7,6 @@ using System.IO;
 using System.Reflection;
 using System.Diagnostics;
 using UnrealBuildTool;
-using Tools.DotNETCommon.CaselessDictionary;
 
 namespace AutomationTool
 {
@@ -94,7 +93,7 @@ namespace AutomationTool
 		/// <summary>
 		/// List of all registered command line parameters (global, not command-specific)
 		/// </summary>
-		public static CaselessDictionary<CommandLineArg> RegisteredArgs = new CaselessDictionary<CommandLineArg>();
+		public static Dictionary<string, CommandLineArg> RegisteredArgs = new Dictionary<string, CommandLineArg>(StringComparer.InvariantCultureIgnoreCase);
 
 		public static CommandLineArg CompileOnly = new CommandLineArg("-CompileOnly");
 		public static CommandLineArg Verbose = new CommandLineArg("-Verbose");
@@ -547,7 +546,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// </summary>
 		/// <param name="CommandsToExecute"></param>
 		/// <param name="Commands"></param>
-		private static ExitCode Execute(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
+		private static ExitCode Execute(List<CommandInfo> CommandsToExecute, Dictionary<string, Type> Commands)
 		{
 			for (int CommandIndex = 0; CommandIndex < CommandsToExecute.Count; ++CommandIndex)
 			{
@@ -595,7 +594,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// </summary>
 		/// <param name="CommandsToExecute">List of commands specified in the command line.</param>
 		/// <param name="Commands">All discovered command objects.</param>
-		private static void DisplayHelp(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
+		private static void DisplayHelp(List<CommandInfo> CommandsToExecute, Dictionary<string, Type> Commands)
 		{
 			for (int CommandIndex = 0; CommandIndex < CommandsToExecute.Count; ++CommandIndex)
 			{
@@ -624,7 +623,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// List all available commands.
 		/// </summary>
 		/// <param name="Commands">All vailable commands.</param>
-		private static void ListAvailableCommands(CaselessDictionary<Type> Commands)
+		private static void ListAvailableCommands(Dictionary<string, Type> Commands)
 		{
 			string Message = Environment.NewLine;
 			Message += "Available commands:" + Environment.NewLine;

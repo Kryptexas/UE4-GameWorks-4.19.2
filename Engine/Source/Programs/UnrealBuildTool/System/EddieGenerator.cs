@@ -114,7 +114,7 @@ namespace UnrealBuildTool
 
 			if (bGeneratingGameProjectFiles)
 			{
-				IncludeEngineSource = true;
+				bIncludeEngineSource = true;
 			}
 		}
 	}

@@ -20,7 +20,7 @@ PRAGMA_POP
 #include "ir.h"
 
 
-class ir_to_single_op_visitor2 : ir_hierarchical_visitor
+class ir_to_single_op_visitor2 final : ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* state;
 	bool assign_has_expressions;
@@ -39,6 +39,10 @@ public:
 		assign_has_expressions = false;
 		progress = false;
 		replacement = nullptr;
+	}
+
+	virtual ~ir_to_single_op_visitor2()
+	{
 	}
 
 	virtual ir_visitor_status visit_enter(ir_swizzle* swiz)

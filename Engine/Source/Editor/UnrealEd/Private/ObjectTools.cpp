@@ -1300,7 +1300,7 @@ namespace ObjectTools
 								Notification->SetCompletionState( CollectionCreated ? SNotificationItem::CS_Success : SNotificationItem::CS_Fail );
 							}
 						}
-					}
+					} //-V773
 				}
 			}
 			else
@@ -2747,11 +2747,8 @@ namespace ObjectTools
 					FPackageName::DoesPackageExist( ExistingOutermostPackage->GetName(), NULL, &ExistingOutermostPackageFilename );
 				}
 
-				if( Object )
-				{
-					// Fully load the ref objects package
-					TopLevelPackages.Add( Object->GetOutermost() );
-				}
+				// Fully load the ref objects package
+				TopLevelPackages.Add( Object->GetOutermost() );
 
 				// Used in the IsValidObjectName checks below
 				FText Reason;
@@ -2967,7 +2964,7 @@ namespace ObjectTools
 	bool RenameObjects( const TArray< UObject* >& SelectedObjects, bool bIncludeLocInstances, const FString& SourcePath, const FString& DestinationPath, bool bOpenDialog ) 
 	{
 		// @todo asset: Find a proper location for localized files
-		bIncludeLocInstances = false;
+		bIncludeLocInstances = false; //-V763
 		if( !bIncludeLocInstances )
 		{
 			return RenameObjectsInternal( SelectedObjects, bIncludeLocInstances, NULL, SourcePath, DestinationPath, bOpenDialog );

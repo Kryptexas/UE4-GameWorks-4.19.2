@@ -136,6 +136,7 @@ public:
 	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) override;
 
 
+	virtual void Tick() override;
 
 
 	

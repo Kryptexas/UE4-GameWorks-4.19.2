@@ -17,7 +17,7 @@
 
 #include "ModuleManager.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogAndroidPermission, Log, All);
+ANDROIDPERMISSION_API DECLARE_LOG_CATEGORY_EXTERN(LogAndroidPermission, Log, All);
 
 class FAndroidPermissionModule : public IModuleInterface
 {

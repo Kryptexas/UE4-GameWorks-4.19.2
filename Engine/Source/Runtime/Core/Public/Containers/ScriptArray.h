@@ -62,7 +62,7 @@ public:
 			                                               (OldNum-Index)*NumBytesPerElement
 		);
 	}
-	AGRESSIVE_ARRAY_FORCEINLINE int32 Add( int32 Count, int32 NumBytesPerElement )
+	int32 Add( int32 Count, int32 NumBytesPerElement )
 	{
 		check(Count>=0);
 		checkSlow(ArrayNum>=0);

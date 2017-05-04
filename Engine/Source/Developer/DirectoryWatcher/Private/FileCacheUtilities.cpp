@@ -3,6 +3,8 @@
 #include "FileCacheUtilities.h"
 #include "Misc/WildcardString.h"
 
+DEFINE_LOG_CATEGORY(LogFileCache);
+
 namespace DirectoryWatcher
 {
 

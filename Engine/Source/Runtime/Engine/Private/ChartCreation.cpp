@@ -90,6 +90,10 @@ public:
 		ScalabilityQuality = UserSettingsObj->ScalabilityQuality;
 	}
 
+	virtual ~FDumpFPSChartToEndpoint()
+	{
+	}
+
 protected:
 	double TotalTime;
 	double WallClockTimeFromStartOfCharting; // This can be much larger than TotalTime if the chart was paused or long frames were omitted

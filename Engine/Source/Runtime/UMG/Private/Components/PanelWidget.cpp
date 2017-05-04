@@ -123,10 +123,7 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 	PanelSlot->Content = Content;
 	PanelSlot->Parent = this;
 
-	if ( Content )
-	{
-		Content->Slot = PanelSlot;
-	}
+	Content->Slot = PanelSlot;
 
 	Slots.Add(PanelSlot);
 

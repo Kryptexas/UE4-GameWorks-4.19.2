@@ -505,23 +505,20 @@ public:
 
 		if (Elements.Num() > 0)
 		{
-			for(int32 ElementIndex = 0;ElementIndex < Elements.Num();ElementIndex++)
+			for (int32 ElementIndex = 0;ElementIndex < Elements.Num();ElementIndex++)
 			{
-				const FElementInfo* LCI = &Elements[ElementIndex];
-				if (LCI)
+				const FElementInfo& LCI = Elements[ElementIndex];
+				ELightInteractionType InteractionType = LCI.GetInteraction(LightSceneProxy).GetType();
+				if (InteractionType != LIT_CachedIrrelevant)
 				{
-					ELightInteractionType InteractionType = LCI->GetInteraction(LightSceneProxy).GetType();
-					if(InteractionType != LIT_CachedIrrelevant)
+					bRelevant = true;
+					if (InteractionType != LIT_CachedLightMap)
 					{
-						bRelevant = true;
-						if(InteractionType != LIT_CachedLightMap)
-						{
-							bLightMapped = false;
-						}
-						if(InteractionType != LIT_Dynamic)
-						{
-							bDynamic = false;
-						}
+						bLightMapped = false;
+					}
+					if (InteractionType != LIT_Dynamic)
+					{
+						bDynamic = false;
 					}
 				}
 			}

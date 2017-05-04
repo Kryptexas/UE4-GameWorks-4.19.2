@@ -97,7 +97,7 @@ void FXAudio2SoundSource::FreeResources( void )
 	// Release voice. Note that this will stop calling OnBufferEnd
 	if (Source)
 	{
-		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels);
+		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels); //-V595
 		Source = nullptr;
 	}
 
@@ -514,9 +514,6 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 		LPFFrequency = MAX_FILTER_FREQUENCY;
 		LastLPFFrequency = FLT_MAX;
 
-		// Reset the LPFFrequency values
-		LPFFrequency = MAX_FILTER_FREQUENCY;
-		LastLPFFrequency = FLT_MAX;
 		bIsFinished = false;
 
 		// We succeeded in preparing our xaudio2 buffer for initialization. We are technically not initialized yet.

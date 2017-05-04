@@ -70,6 +70,8 @@ public:
 			&& (NULL != Cast<UEdGraph>(Node->GetOuter()));
 	}
 
+	virtual ~FBasePinChangeHelper() { }
+
 	virtual void EditCompositeTunnelNode(class UK2Node_Tunnel* TunnelNode) {}
 
 	virtual void EditMacroInstance(class UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) {}

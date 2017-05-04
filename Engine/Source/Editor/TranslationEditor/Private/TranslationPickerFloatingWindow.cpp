@@ -164,74 +164,56 @@ FText STranslationPickerFloatingWindow::GetTextFromWidget(TSharedRef<SWidget> Wi
 {
 	FText OriginalText = FText::GetEmpty();
 
-	STextBlock* TextBlock = (STextBlock*)&Widget.Get();
+	STextBlock& TextBlock = (STextBlock&)Widget.Get();
 
 	// Have to parse the various widget types to find the FText
-	if ((Widget->GetTypeAsString() == "STextBlock" && TextBlock))
+	if (Widget->GetTypeAsString() == "STextBlock")
 	{
-		OriginalText = TextBlock->GetText();
+		OriginalText = TextBlock.GetText();
 	}
 	else if (Widget->GetTypeAsString() == "SToolTip")
 	{
-		SToolTip* ToolTipWidget = ((SToolTip*)&Widget.Get());
-		if (ToolTipWidget != nullptr)
+		SToolTip& ToolTipWidget = (SToolTip&)Widget.Get();
+		OriginalText = GetTextFromWidget(ToolTipWidget.GetContentWidget());
+		if (OriginalText.IsEmpty())
 		{
-			OriginalText = GetTextFromWidget(ToolTipWidget->GetContentWidget());
-			if (OriginalText.IsEmpty())
-			{
-				OriginalText = ToolTipWidget->GetTextTooltip();
-			}
+			OriginalText = ToolTipWidget.GetTextTooltip();
 		}
 	}
 	else if (Widget->GetTypeAsString() == "SDocumentationToolTip")
 	{
-		SDocumentationToolTip* DocumentationToolTip = (SDocumentationToolTip*)&Widget.Get();
-		if (DocumentationToolTip != nullptr)
-		{
-			OriginalText = DocumentationToolTip->GetTextTooltip();
-		}
+		SDocumentationToolTip& DocumentationToolTip = (SDocumentationToolTip&)Widget.Get();
+		OriginalText = DocumentationToolTip.GetTextTooltip();
 	}
 	else if (Widget->GetTypeAsString() == "SEditableText")
 	{
-		SEditableText* EditableText = (SEditableText*)&Widget.Get();
-		if (EditableText != nullptr)
-		{
-			// Always return the hint text because that's the only thing that will be translatable
-			OriginalText = EditableText->GetHintText();
-		}
+		SEditableText& EditableText = (SEditableText&)Widget.Get();
+		// Always return the hint text because that's the only thing that will be translatable
+		OriginalText = EditableText.GetHintText();
 	}
 	else if (Widget->GetTypeAsString() == "SRichTextBlock")
 	{
-		SRichTextBlock* RichTextBlock = (SRichTextBlock*)&Widget.Get();
-		if (RichTextBlock != nullptr)
-		{
-			OriginalText = RichTextBlock->GetText();
-		}
+		SRichTextBlock& RichTextBlock = (SRichTextBlock&)Widget.Get();
+		OriginalText = RichTextBlock.GetText();
 	}
 	else if (Widget->GetTypeAsString() == "SMultiLineEditableText")
 	{
-		SMultiLineEditableText* MultiLineEditableText = (SMultiLineEditableText*)&Widget.Get();
-		if (MultiLineEditableText != nullptr)
-		{
-			// Always return the hint text because that's the only thing that will be translatable
-			OriginalText = MultiLineEditableText->GetHintText();
-		}
+		SMultiLineEditableText& MultiLineEditableText = (SMultiLineEditableText&)Widget.Get();
+		// Always return the hint text because that's the only thing that will be translatable
+		OriginalText = MultiLineEditableText.GetHintText();
 	}
 	else if (Widget->GetTypeAsString() == "SMultiLineEditableTextBox")
 	{
-		SMultiLineEditableTextBox* MultiLineEditableTextBox = (SMultiLineEditableTextBox*)&Widget.Get();
-		if (MultiLineEditableTextBox != nullptr)
-		{
-			OriginalText = MultiLineEditableTextBox->GetText();
-		}
+		SMultiLineEditableTextBox& MultiLineEditableTextBox = (SMultiLineEditableTextBox&)Widget.Get();
+		OriginalText = MultiLineEditableTextBox.GetText();
 	}
 	else if (Widget->GetTypeAsString() == "SButton")
 	{
-		SButton* Button = (SButton*)&Widget.Get();
+		SButton& Button = (SButton&)Widget.Get();
 
 		// It seems like the LocateWindowUnderMouse() function will sometimes return an SButton but not the FText inside the button?
 		// So try to find the first FText child of a button just in case
-		FChildren* Children = Button->GetChildren();
+		FChildren* Children = Button.GetChildren();
 		for (int ChildIndex = 0; ChildIndex < Children->Num(); ++ChildIndex)
 		{
 			TSharedRef<SWidget> ChildWidget = Children->GetChildAt(ChildIndex);

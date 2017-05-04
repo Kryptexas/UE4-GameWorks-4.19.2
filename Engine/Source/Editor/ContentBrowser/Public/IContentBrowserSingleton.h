@@ -346,6 +346,9 @@ struct FSharedAssetDialogConfig
 	FSharedAssetDialogConfig()
 		: WindowSizeOverride(EForceInit::ForceInitToZero)
 	{}
+
+	virtual ~FSharedAssetDialogConfig()
+	{}
 };
 
 /** A struct containing details about how the open asset dialog should behave. */

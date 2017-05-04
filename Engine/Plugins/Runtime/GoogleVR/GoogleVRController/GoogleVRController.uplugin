@@ -22,5 +22,12 @@
             "LoadingPhase": "PostConfigInit",
             "WhitelistPlatforms": [ "Android", "Win32", "Win64", "IOS" ]
         }
-    ]
+    ],
+	"Plugins": [
+		{
+			"Name": "GoogleVRHMD",
+			"Enabled": true
+		}
+	]
+
 }

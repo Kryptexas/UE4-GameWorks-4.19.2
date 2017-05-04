@@ -113,6 +113,8 @@ struct FOptionalPinFromProperty
 struct BLUEPRINTGRAPH_API FOptionalPinManager
 {
 public:
+	virtual ~FOptionalPinManager() { }
+
 	// Should the specified property be displayed by default
 	virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const;
 

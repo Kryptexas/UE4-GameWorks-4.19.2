@@ -215,13 +215,10 @@ void UVREditorUISystem::Shutdown()
 
 	if (VRMode != nullptr)
 	{
-		UViewportWorldInteraction* WorldInteraction = &VRMode->GetWorldInteraction();
-		if (WorldInteraction != nullptr)
-		{
-			WorldInteraction->OnPreviewInputAction().RemoveAll(this);
-			WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
-			WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
-		}
+		UViewportWorldInteraction& WorldInteraction = VRMode->GetWorldInteraction();
+		WorldInteraction.OnPreviewInputAction().RemoveAll(this);
+		WorldInteraction.OnViewportInteractionInputAction().RemoveAll(this);
+		WorldInteraction.OnViewportInteractionHoverUpdate().RemoveAll(this);
 	}
 
 	GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
@@ -415,7 +412,7 @@ void UVREditorUISystem::OnPreviewInputAction(FEditorViewportClient& ViewportClie
 						}
 					}
 				}
-				else if (WidgetComponent != nullptr)
+				else
 				{
 					// Only allow clicks to our own widget components
 					// Always mark the event as handled so that the editor doesn't try to select the widget component
@@ -775,7 +772,7 @@ void UVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 		FSlateApplication::Get().SetUserFocus(0, ViewportClient->GetEditorViewportWidget());
 	}
 
-	const FTimespan CompareTime = FMath::Max(UIInteractor->GetLastActiveTrackpadUpdateTime(), RadialMenuModifierSpawnTime);
+	const FTimespan CompareTime = FMath::Max(UIInteractor->GetLastActiveTrackpadUpdateTime(), RadialMenuModifierSpawnTime); //-V595
 	if (!bRadialMenuIsNumpad &&
 		FTimespan::FromSeconds(FPlatformTime::Seconds()) - CompareTime > FTimespan::FromSeconds(1.5f))
 	{

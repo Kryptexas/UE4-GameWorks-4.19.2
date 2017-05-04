@@ -524,10 +524,6 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 		{
 			SetError(TEXT("FieldInstance is NULL."));
 		}
-		else if (FieldInstance == NULL)
-		{
-			SetError(FString::Printf(TEXT("Field '%s' is NULL."), *FieldInstance->GetName()));
-		}
 		else if (FieldAddress == NULL)
 		{
 			SetError(TEXT("FieldAddress is NULL (should already be pointing to base property address)."));

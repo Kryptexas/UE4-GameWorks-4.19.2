@@ -129,6 +129,8 @@ static void SetNodeError(UEdGraphNode* Node, FText const& ErrorText)
 class FExpressionVisitor
 {
 public:
+	virtual ~FExpressionVisitor() { }
+	
 	/** 
 	 * FExpressionNodes determine when a traverser (FExpressionVisitor) has access 
 	 * to the node. There are a couple hook points, allowing the traverser to pick 
@@ -1061,6 +1063,10 @@ public:
 	{
 	}
 
+	virtual ~FCodeGenFragment()
+	{
+	}
+
     /**
      * Takes the input to some other fragment, and plugs the result of this one 
 	 * into it.
@@ -1262,7 +1268,7 @@ private:
  * for the specified UK2Node_MathExpression (which is a tunnel node, similar to 
  * how collapsed composite nodes work).
  */
-class FMathGraphGenerator : public FExpressionVisitor
+class FMathGraphGenerator final : public FExpressionVisitor
 {
 public:
 	FMathGraphGenerator(UK2Node_MathExpression* InNode)

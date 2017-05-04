@@ -1580,15 +1580,12 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<FSectionInfo>& 
 		TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
 		UStaticMesh* StaticMesh = InMeshData[MeshIndex].SourceStaticMesh;
 
-				if (!OutMeshShouldBakeVertexData[MeshIndex])
+		if (!OutMeshShouldBakeVertexData[MeshIndex])
 		{
 			// No vertex data needed - could merge materials with other meshes.
-			if (!OutMeshShouldBakeVertexData[MeshIndex])
-			{
-				// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
-				// which don't require vertex data baking too.
-				StaticMesh = nullptr;
-			}
+			// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
+			// which don't require vertex data baking too.
+			StaticMesh = nullptr;
 
 			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
 			{

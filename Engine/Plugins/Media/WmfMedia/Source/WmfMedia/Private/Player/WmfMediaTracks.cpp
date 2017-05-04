@@ -990,7 +990,6 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 				const bool Uncompressed =
 					(SubType == MFVideoFormat_RGB555) ||
 					(SubType == MFVideoFormat_RGB565) ||
-					(SubType == MFVideoFormat_RGB565) ||
 					(SubType == MFVideoFormat_RGB24) ||
 					(SubType == MFVideoFormat_RGB32) ||
 					(SubType == MFVideoFormat_ARGB32);

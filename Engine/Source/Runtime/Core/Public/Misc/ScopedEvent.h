@@ -32,6 +32,14 @@ public:
 	}
 
 	/**
+	 * Checks if the event has been triggered (used for special early out cases of scope event)
+	 * if this returns true once it will return true forever
+	 *
+	 * @return returns true if the scoped event has been triggered once
+	 */
+	CORE_API bool IsReady();
+
+	/**
 	 * Retrieve the event, usually for passing around.
 	 *
 	 * @return The event.

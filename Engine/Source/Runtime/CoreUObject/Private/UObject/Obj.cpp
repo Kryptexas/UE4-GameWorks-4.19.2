@@ -857,14 +857,14 @@ bool UObject::ConditionalBeginDestroy()
 		TotalTime += ThisTime;
 		if ((++TotalCnt) % 1000 == 0)
 		{
-			UE_LOG(LogTemp, Log, TEXT("ConditionalBeginDestroy %d cnt %fus"), TotalCnt, 1000.0f * 1000.0f * TotalTime / float(TotalCnt));
+			UE_LOG(LogObj, Log, TEXT("ConditionalBeginDestroy %d cnt %fus"), TotalCnt, 1000.0f * 1000.0f * TotalTime / float(TotalCnt));
 
 			MyProfile.ValueSort(TLess<FTimeCnt>());
 
 			int32 NumPrint = 0;
 			for (auto& Item : MyProfile)
 			{
-				UE_LOG(LogTemp, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Count, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Count), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
+				UE_LOG(LogObj, Log, TEXT("    %6d cnt %6.2fus per   %6.2fms total  %s"), Item.Value.Count, 1000.0f * 1000.0f * Item.Value.TotalTime / float(Item.Value.Count), 1000.0f * Item.Value.TotalTime, *Item.Key.ToString());
 				if (NumPrint++ > 30)
 				{
 					break;

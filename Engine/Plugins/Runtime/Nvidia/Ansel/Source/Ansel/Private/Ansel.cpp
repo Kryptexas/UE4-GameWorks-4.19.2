@@ -564,8 +564,7 @@ private:
 	{
 		TSharedPtr<ICameraPhotography> Photography = nullptr;
 
-		FNVAnselCameraPhotographyPrivate* PhotographyPrivate = nullptr;
-		PhotographyPrivate = new FNVAnselCameraPhotographyPrivate();
+		FNVAnselCameraPhotographyPrivate* PhotographyPrivate = new FNVAnselCameraPhotographyPrivate();
 		if (PhotographyPrivate->IsSupported())
 		{
 			Photography = TSharedPtr<ICameraPhotography>(PhotographyPrivate);

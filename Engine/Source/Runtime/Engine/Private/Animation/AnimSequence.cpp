@@ -4758,7 +4758,7 @@ void AdvanceMarkerBackwards(int32& Marker, FName MarkerToFind, bool bLooping, co
 		{
 			break;
 		}
-		Counter = ++Counter % MarkerMax;
+		Counter = (Counter + 1) % MarkerMax;
 		Marker = MarkerCounterSpaceTransform(MarkerMax, Counter);
 	}
 

@@ -15,15 +15,39 @@
 #include "Interfaces/ITargetPlatform.h"
 
 
+/**
+ * Helper function for resolving engine and game sandbox paths
+ */
+void GetSandboxRootDirectories(FSandboxPlatformFile* Sandbox, FString& SandboxEngine, FString& SandboxGame, const FString& LocalEngineDir, const FString& LocalGameDir)
+{
+	SandboxEngine = Sandbox->ConvertToSandboxPath(*LocalEngineDir);
+	if (SandboxEngine.EndsWith(TEXT("/"), ESearchCase::CaseSensitive) == false)
+	{
+		SandboxEngine += TEXT("/");
+	}
+
+	// we need to add an extra bit to the game path to make the sandbox convert it correctly (investigate?)
+	// @todo: double check this
+	SandboxGame = Sandbox->ConvertToSandboxPath(*(LocalGameDir + TEXT("a.txt"))).Replace(TEXT("a.txt"), TEXT(""));
+}
+
+
 /* FNetworkFileServerClientConnection structors
  *****************************************************************************/
 
 FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FFileRequestDelegate& InFileRequestDelegate, 
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+		const FRecompileShadersDelegate& InRecompileShadersDelegate, const FSandboxPathDelegate& InSandboxPathOverrideDelegate, FOnFileModifiedDelegate* InOnFileModifiedCallback, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
 	: LastHandleId(0)
 	, Sandbox(NULL)
 	, ActiveTargetPlatforms(InActiveTargetPlatforms)
 {
+
+	OnFileModifiedCallback = InOnFileModifiedCallback;
+	if (OnFileModifiedCallback)
+	{
+		OnFileModifiedCallback->AddRaw(this, &FNetworkFileServerClientConnection::FileModifiedCallback);
+	}
+
 	if (InFileRequestDelegate.IsBound())
 	{
 		FileRequestDelegate = InFileRequestDelegate;
@@ -33,11 +57,18 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FF
 	{
 		RecompileShadersDelegate = InRecompileShadersDelegate;
 	}
+
+	if ( InSandboxPathOverrideDelegate.IsBound() )
+	{
+		SandboxPathOverrideDelegate = InSandboxPathOverrideDelegate;
+	}
 }
 
 
 FNetworkFileServerClientConnection::~FNetworkFileServerClientConnection( )
 {
+	OnFileModifiedCallback->RemoveAll(this);
+
 	// close all the files the client had opened through us when the client disconnects
 	for (TMap<uint64, IFileHandle*>::TIterator It(OpenFiles); It; ++It)
 	{
@@ -73,44 +104,51 @@ void FNetworkFileServerClientConnection::ConvertClientFilenameToServerFilename(F
 	}
 }
 
+
 /**
  * Fixup sandbox paths to match what package loading will request on the client side.  e.g.
  * Sandbox path: "../../../Elemental/Content/Elemental/Effects/FX_Snow_Cracks/Crack_02/Materials/M_SnowBlast.uasset ->
  * client path: "../../../Samples/Showcases/Elemental/Content/Elemental/Effects/FX_Snow_Cracks/Crack_02/Materials/M_SnowBlast.uasset"
  * This ensures that devicelocal-cached files will be properly timestamp checked before deletion.
  */
-static TMap<FString, FDateTime> FixupSandboxPathsForClient(FSandboxPlatformFile* Sandbox, const TMap<FString, FDateTime>& SandboxPaths, const FString& LocalEngineDir, const FString& LocalGameDir, bool bLowerCaseFiles)
+TMap<FString, FDateTime> FNetworkFileServerClientConnection::FixupSandboxPathsForClient(const TMap<FString, FDateTime>& SandboxPaths)
 {
-	TMap<FString, FDateTime> FixedFiletimes;
-	FString SandboxEngine = Sandbox->ConvertToSandboxPath(*LocalEngineDir);
-	if (SandboxEngine.EndsWith(TEXT("/"), ESearchCase::CaseSensitive) == false)
-	{
-		SandboxEngine += TEXT("/");
-	}
+	TMap<FString,FDateTime> FixedFiletimes;
 
-	// we need to add an extra bit to the game path to make the sandbox convert it correctly (investigate?)
-	// @todo: double check this
-	FString SandboxGame = Sandbox->ConvertToSandboxPath(*(LocalGameDir + TEXT("a.txt"))).Replace(TEXT("a.txt"), TEXT(""));
-	
 	// since the sandbox remaps from A/B/C to C, and the client has no idea of this, we need to put the files
 	// into terms of the actual LocalGameDir, which is all that the client knows about
 	for (TMap<FString, FDateTime>::TConstIterator It(SandboxPaths); It; ++It)
 	{
-		FString Fixed = Sandbox->ConvertToSandboxPath(*It.Key());
-		Fixed = Fixed.Replace(*SandboxEngine, *LocalEngineDir);
-		Fixed = Fixed.Replace(*SandboxGame, *LocalGameDir);
-
-		if (bLowerCaseFiles)
-		{
-			Fixed = Fixed.ToLower();
-		}
-		FixedFiletimes.Add(Fixed, It.Value());
+		FixedFiletimes.Add(FixupSandboxPathForClient(It.Key()), It.Value());
 	}
 	return FixedFiletimes;
 }
 
-void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(FString& FilenameToConvert)
+/**
+ * Fixup sandbox paths to match what package loading will request on the client side.  e.g.
+ * Sandbox path: "../../../Elemental/Content/Elemental/Effects/FX_Snow_Cracks/Crack_02/Materials/M_SnowBlast.uasset ->
+ * client path: "../../../Samples/Showcases/Elemental/Content/Elemental/Effects/FX_Snow_Cracks/Crack_02/Materials/M_SnowBlast.uasset"
+ * This ensures that devicelocal-cached files will be properly timestamp checked before deletion.
+ */
+FString FNetworkFileServerClientConnection::FixupSandboxPathForClient(const FString& Filename)
 {
+	const FString& LocalEngineDir = FPaths::EngineDir();
+	const FString& LocalGameDir = FPaths::GameDir();
+
+	FString Fixed = Sandbox->ConvertToSandboxPath(*Filename);
+	Fixed = Fixed.Replace(*SandboxEngine, *LocalEngineDir);
+	Fixed = Fixed.Replace(*SandboxGame, *LocalGameDir);
+
+	if (bSendLowerCase)
+	{
+		Fixed = Fixed.ToLower();
+	}
+	return Fixed;
+}
+
+/*void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(FString& FilenameToConvert)
+{
+
 	if (FilenameToConvert.StartsWith(FPaths::EngineDir()))
 	{
 		FilenameToConvert = FilenameToConvert.Replace(*(FPaths::EngineDir()), *ConnectedEngineDir);
@@ -130,7 +168,7 @@ void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(F
 			FilenameToConvert = FilenameToConvert.Replace(*(FPaths::GameDir()), *ConnectedGameDir);
 	}
 #endif
-}
+}*/
 
 static FCriticalSection SocketCriticalSection;
 
@@ -683,8 +721,6 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 
 	ConnectedPlatformName = TEXT("");
 
-	bool bSendLowerCase = false;
-
 	// if we didn't find one (and this is a dumb server - no active platforms), then just use what was sent
 	if (ActiveTargetPlatforms.Num() == 0)
 	{
@@ -756,7 +792,13 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	// figure out the sandbox directory
 	// @todo: This should use FPlatformMisc::SavedDirectory(GameName)
 	FString SandboxDirectory;
-	if ( FPaths::IsProjectFilePathSet() )
+	if ( SandboxPathOverrideDelegate.IsBound() )
+	{
+		SandboxDirectory = SandboxPathOverrideDelegate.Execute();
+		// if the sandbox directory delegate returns a path with the platform name in it then replace it :)
+		SandboxDirectory.ReplaceInline(TEXT("[Platform]"), *ConnectedPlatformName);
+	}
+	else if ( FPaths::IsProjectFilePathSet() )
 	{
 		FString ProjectDir = FPaths::GetPath(FPaths::GetProjectFilePath());
 		SandboxDirectory = FPaths::Combine(*ProjectDir, TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
@@ -784,6 +826,9 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	delete Sandbox;
 	Sandbox = new FSandboxPlatformFile(false);
 	Sandbox->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *SandboxDirectory));
+
+	GetSandboxRootDirectories(Sandbox, SandboxEngine, SandboxGame, LocalEngineDir, LocalGameDir);
+
 
 	// make sure the global shaders are up to date before letting the client read any shaders
 	// @todo: This will probably add about 1/2 second to the boot-up time of the client while the server does this
@@ -853,7 +898,7 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	Out << LocalGameDir;
 
 	// return the files and their timestamps
-	TMap<FString, FDateTime> FixedTimes = FixupSandboxPathsForClient(Sandbox, Visitor.FileTimes, LocalEngineDir, LocalGameDir, bSendLowerCase);
+	TMap<FString, FDateTime> FixedTimes = FixupSandboxPathsForClient(Visitor.FileTimes);
 	Out << FixedTimes;
 
 	// Do it again, preventing access to non-cooked files
@@ -921,20 +966,38 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		}
 	
 		// return the cached files and their timestamps
-		FixedTimes = FixupSandboxPathsForClient(Sandbox, VisitorForCacheDates.FileTimes, LocalEngineDir, LocalGameDir, bSendLowerCase);
+		FixedTimes = FixupSandboxPathsForClient(VisitorForCacheDates.FileTimes);
 		Out << FixedTimes;
 	}
 	return true;
 }
 
+void FNetworkFileServerClientConnection::FileModifiedCallback( const FString& Filename)
+{
+	FScopeLock Lock(&ModifiedFilesSection);
+
+	// do we care about this file???
+
+	// translation here?
+	ModifiedFiles.Add(Filename);
+}
 
 void FNetworkFileServerClientConnection::ProcessHeartbeat( FArchive& In, FArchive& Out )
 {
+	TArray<FString> FixedupModifiedFiles;
 	// Protect the array
-	FScopeLock Lock(&ModifiedFilesSection);
-
+	{
+		FScopeLock Lock(&ModifiedFilesSection);
+		for (const auto& ModifiedFile : ModifiedFiles)
+		{
+			FixedupModifiedFiles.Add(FixupSandboxPathForClient(ModifiedFile));
+		}
+		ModifiedFiles.Empty();
+	}
 	// return the list of modified files
-	Out << ModifiedFiles;
+	Out << FixedupModifiedFiles;
+
+	
 
 	// @todo: note the last received time, and toss clients that don't heartbeat enough!
 

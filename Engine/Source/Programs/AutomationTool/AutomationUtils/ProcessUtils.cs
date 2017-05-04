@@ -959,7 +959,8 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Env">Environment to use.</param>
 		/// <param name="CommandLine">Commandline to pass on to the executable</param>
-		public static string RunUAT(CommandEnvironment Env, string CommandLine)
+		/// <param name="Identifier">Log prefix for output</param>
+		public static string RunUAT(CommandEnvironment Env, string CommandLine, string Identifier = null)
 		{
 			// We want to redirect the output from recursive UAT calls into our normal log folder, but prefix everything with a unique identifier. To do so, we set the EnvVarNames.LogFolder environment
 			// variable to a subfolder of it, then copy its contents into the main folder with a prefix after it's finished. Start by finding a base name we can use to identify the output of this run.
@@ -1021,7 +1022,7 @@ namespace AutomationTool
 				OSEnv.Add(AutomationTool.EnvVarNames.LocalRoot, ""); // if we don't clear this out, it will think it is a build machine; it will rederive everything
 			}
 
-			IProcessResult Result = Run(App, CommandLine, null, ERunOptions.Default, OSEnv);
+			IProcessResult Result = Run(App, CommandLine, null, ERunOptions.Default, OSEnv, Identifier: Identifier);
 			if (Result.Output.Length > 0)
 			{
 				WriteToFile(LogFile, Result.Output);

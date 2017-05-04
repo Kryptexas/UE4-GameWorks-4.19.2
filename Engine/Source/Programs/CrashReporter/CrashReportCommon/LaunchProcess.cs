@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Tools.DotNETCommon.LaunchProcess
+namespace Tools.CrashReporter.CrashReportCommon
 {
 	/// <summary>
 	/// Enum to make the meaning of WaitForExit return code clear

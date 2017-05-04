@@ -272,4 +272,4 @@ protected:
 	FDelegateHandle SkeletonEditorExtenderHandle;
 };
 
-DEFINE_LOG_CATEGORY_STATIC(LogMeshUtilities, Verbose, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogMeshUtilities, Verbose, All);

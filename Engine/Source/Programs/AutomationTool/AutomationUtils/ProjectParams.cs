@@ -273,6 +273,7 @@ namespace AutomationTool
             this.CreateChunkInstall = InParams.CreateChunkInstall;
 			this.UE4Exe = InParams.UE4Exe;
 			this.NoDebugInfo = InParams.NoDebugInfo;
+			this.MapFile = InParams.MapFile;
 			this.NoCleanStage = InParams.NoCleanStage;
 			this.MapToRun = InParams.MapToRun;
 			this.AdditionalServerMapParams = InParams.AdditionalServerMapParams;
@@ -402,6 +403,7 @@ namespace AutomationTool
 			bool? NoCleanStage = null,
 			bool? NoClient = null,
 			bool? NoDebugInfo = null,
+			bool? MapFile = null,
 			bool? NoXGE = null,
 			bool? Package = null,
 			bool? Pak = null,
@@ -619,6 +621,7 @@ namespace AutomationTool
                 //this.StageDirectoryParam = this.PrebuiltDir;
             }
             this.NoDebugInfo = GetParamValueIfNotSpecified(Command, NoDebugInfo, this.NoDebugInfo, "nodebuginfo");
+			this.MapFile = GetParamValueIfNotSpecified(Command, MapFile, this.MapFile, "mapfile");
 			this.NoCleanStage = GetParamValueIfNotSpecified(Command, NoCleanStage, this.NoCleanStage, "nocleanstage");
 			this.MapToRun = ParseParamValueIfNotSpecified(Command, MapToRun, "map", String.Empty);
 			this.AdditionalServerMapParams = ParseParamValueIfNotSpecified(Command, AdditionalServerMapParams, "AdditionalServerMapParams", String.Empty);
@@ -1408,10 +1411,16 @@ namespace AutomationTool
 		#region Stage
 
 		/// <summary>
-		/// Stage: Commanndline: -nodebuginfo
+		/// Stage: Commandline: -nodebuginfo
 		/// </summary>
 		[Help("nodebuginfo", "do not copy debug files to the stage")]
 		public bool NoDebugInfo { private set; get; }
+
+		/// <summary>
+		/// Stage: Commandline: -mapfile
+		/// </summary>
+		[Help("MapFile", "generates a *.map file")]
+		public bool MapFile { private set; get; }
 
 		/// <summary>
 		/// true if the staging directory is to be cleaned: -cleanstage (also true if -clean is specified)
@@ -2357,6 +2366,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("NoClient={0}", NoClient);
 				CommandUtils.LogLog("NumClients={0}", NumClients);                
 				CommandUtils.LogLog("NoDebugInfo={0}", NoDebugInfo);
+				CommandUtils.LogLog("MapFile={0}", MapFile);
 				CommandUtils.LogLog("NoCleanStage={0}", NoCleanStage);
 				CommandUtils.LogLog("NoXGE={0}", NoXGE);
 				CommandUtils.LogLog("MapsToCook={0}", MapsToCook.ToString());

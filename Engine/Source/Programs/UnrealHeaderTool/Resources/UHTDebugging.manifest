@@ -3,6 +3,7 @@
 	"RootLocalPath": "..\\..\\..\\..",
 	"RootBuildPath": "..\\..\\..\\..",
 	"TargetName": "UHTDebugging",
+	"ExternalDependenciesFile": "",
 	"Modules":[{
 			"Name": "CoreUObject",
 			"ModuleType": "EngineRuntime",

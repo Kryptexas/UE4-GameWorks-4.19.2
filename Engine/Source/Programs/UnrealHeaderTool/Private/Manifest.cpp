@@ -243,7 +243,6 @@ bool FManifestModule::IsCompatibleWith(const FManifestModule& ManifestModule)
 		&& BaseDirectory == ManifestModule.BaseDirectory
 		&& IncludeBase == ManifestModule.IncludeBase
 		&& GeneratedIncludeDirectory == ManifestModule.GeneratedIncludeDirectory
-		&& BaseDirectory == ManifestModule.BaseDirectory
 		&& PublicUObjectClassesHeaders == ManifestModule.PublicUObjectClassesHeaders
 		&& PublicUObjectHeaders == ManifestModule.PublicUObjectHeaders
 		&& PrivateUObjectHeaders == ManifestModule.PrivateUObjectHeaders

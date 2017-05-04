@@ -818,7 +818,3 @@ public:
 	static void QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY, uint32 DividableBy = 32);
 
 };
-
-DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
-
-

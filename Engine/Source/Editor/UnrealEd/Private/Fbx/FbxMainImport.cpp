@@ -455,7 +455,7 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 	if (OpenFile(Filename, true))
 	{
 		FbxStatistics Statistics;
-		Importer->GetStatistics(&Statistics);
+		Importer->GetStatistics(&Statistics); //-V595
 		int32 ItemIndex;
 		FbxString ItemName;
 		int32 ItemCount;
@@ -1210,8 +1210,7 @@ FName FFbxImporter::MakeNameForMesh(FString InName, FbxObject* FbxObject)
 		}
 
 		// for mesh, replace ':' with '_' because Unreal doesn't support ':' in mesh name
-		char* NewName = nullptr;
-		NewName = FCStringAnsi::Strchr (Name, ':');
+		char* NewName = FCStringAnsi::Strchr(Name, ':');
 
 		if (NewName)
 		{

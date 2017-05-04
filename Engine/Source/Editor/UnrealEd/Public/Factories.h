@@ -26,6 +26,7 @@ protected:
 public:
 	/** Constructor for the factory; takes a context for emitting warnings such as GWarn */
 	FCustomizableTextObjectFactory(FFeedbackContext* InWarningContext);
+	virtual ~FCustomizableTextObjectFactory() {}
 
 	/**
 	 *	Parse a text buffer and factories objects from it, subject to the restrictions imposed by CanCreateClass()
@@ -105,6 +106,7 @@ public:
 
 	FMorphTargetBinaryImport( USkeletalMesh* InSrcMesh, int32 LODIndex=0, FFeedbackContext* InWarn=GWarn );
 	FMorphTargetBinaryImport( UStaticMesh* InSrcMesh, int32 LODIndex=0, FFeedbackContext* InWarn=GWarn );
+	virtual ~FMorphTargetBinaryImport() {}
 
 	void ImportMorphLODModel( UMorphTarget* MorphTarget, const TCHAR* SrcFilename, int32 LODIndex, EMorphImportError* Error=NULL );
     virtual USkeletalMesh* CreateSkeletalMesh(const TCHAR* SrcFilename, EMorphImportError* Error ) = 0;

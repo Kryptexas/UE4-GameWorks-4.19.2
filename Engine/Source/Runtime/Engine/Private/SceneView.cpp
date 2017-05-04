@@ -18,7 +18,7 @@
 #include "Engine/TextureCube.h"
 #include "IHeadMountedDisplay.h"
 #include "Engine/RendererSettings.h"
-#include "LightPropagationVolumeBlendable.h"
+#include "LightPropagationVolumeSettings.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"

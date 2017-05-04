@@ -1062,6 +1062,7 @@ protected:
 			{
 				FEventGraphData *NewData = new FEventGraphData(GetEventGraph().Get());
 				RebuildForFilter(NewData->GetRoot()->GetChildren());
+				delete NewData;
 			}
 			else
 			{

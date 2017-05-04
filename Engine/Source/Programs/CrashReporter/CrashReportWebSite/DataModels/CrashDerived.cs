@@ -31,19 +31,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 
         static Crash()
         {
-            //string AWSError;
-            //AWSCredentials AWSCredentialsForOutput = new StoredProfileAWSCredentials(Settings.Default.AWSS3ProfileName, Settings.Default.AWSCredentialsFilepath);
-            //AmazonS3Config S3ConfigForOutput = new AmazonS3Config
-            //{
-            //    ServiceURL = Settings.Default.AWSS3URL
-            //};
+            string AWSError;
+            AWSCredentials AWSCredentialsForOutput = new StoredProfileAWSCredentials(Settings.Default.AWSS3ProfileName, Settings.Default.AWSCredentialsFilepath);
+            AmazonS3Config S3ConfigForOutput = new AmazonS3Config
+            {
+                ServiceURL = Settings.Default.AWSS3URL
+            };
 
-            //AmazonClient = new AmazonClient(AWSCredentialsForOutput, null, S3ConfigForOutput, out AWSError);
+            AmazonClient = new AmazonClient(AWSCredentialsForOutput, null, S3ConfigForOutput, out AWSError);
 
-            //if (!AmazonClient.IsS3Valid)
-            //{
-            //    System.Diagnostics.Debug.WriteLine("Failed to initailize S3");
-            //}
+            if (!AmazonClient.IsS3Valid)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to initailize S3");
+            }
         }
 
         /// <summary>If available, will read CrashContext.runtime-xml.</summary>

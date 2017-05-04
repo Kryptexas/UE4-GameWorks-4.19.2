@@ -3055,7 +3055,7 @@ void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpres
 		// Recompile the preview material to get changes that might have been made during previewing
 		UpdatePreviewMaterial();
 	}
-	else if (NewPreviewExpression)
+	else
 	{
 		if( ExpressionPreviewMaterial == NULL )
 		{

@@ -69,12 +69,11 @@ FBlueprintCompiledStatement* FKCHandler_MathExpression::GenerateFunctionRPN(UEdG
 		return nullptr;
 	}
 
-	FBlueprintCompiledStatement* NewDetachedStatement = new FBlueprintCompiledStatement();
-	FBlueprintCompiledStatement& Statement = *NewDetachedStatement;
-	Statement.FunctionToCall = Function;
-	Statement.FunctionContext = nullptr;
-	Statement.Type = KCST_CallFunction;
-	Statement.LHS = ResultTerm; // required only for the first node
+	FBlueprintCompiledStatement* Statement = new FBlueprintCompiledStatement();
+	Statement->FunctionToCall = Function;
+	Statement->FunctionContext = nullptr;
+	Statement->Type = KCST_CallFunction;
+	Statement->LHS = ResultTerm; // required only for the first node
 
 	check(CallFunctionNode);
 
@@ -138,8 +137,8 @@ FBlueprintCompiledStatement* FKCHandler_MathExpression::GenerateFunctionRPN(UEdG
 			}
 		}
 	}
-	Statement.RHS = RHSTerms;
-	return &Statement;
+	Statement->RHS = RHSTerms;
+	return Statement;
 }
 
 void FKCHandler_MathExpression::RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode)

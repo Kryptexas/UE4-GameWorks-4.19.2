@@ -59,7 +59,7 @@ public:
 	/**
 	 * Destructor. Will unregister the callback
 	 */
-	~FScopedRedirectorCatcher();
+	virtual ~FScopedRedirectorCatcher();
 
 	/**
 	 * Returns whether or not a redirector was followed for the ObjectPathName

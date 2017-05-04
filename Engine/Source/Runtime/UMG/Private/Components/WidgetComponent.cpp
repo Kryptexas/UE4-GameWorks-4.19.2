@@ -1306,8 +1306,10 @@ void UWidgetComponent::UpdateRenderTarget(FIntPoint DesiredRenderTargetSize)
 	{
 	case EWidgetBlendMode::Opaque:
 		ActualBackgroundColor.A = 1.0f;
+		break;
 	case EWidgetBlendMode::Masked:
 		ActualBackgroundColor.A = 0.0f;
+		break;
 	}
 
 	if ( DesiredRenderTargetSize.X != 0 && DesiredRenderTargetSize.Y != 0 )

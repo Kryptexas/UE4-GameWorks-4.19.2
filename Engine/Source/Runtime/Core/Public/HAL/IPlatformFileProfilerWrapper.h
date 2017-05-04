@@ -585,6 +585,7 @@ public:
 	}
 
 	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override;
+	using IPlatformFile::Tick;
 	bool Tick(float Delta);
 	virtual IPlatformFile* GetLowerLevel() override
 	{

@@ -461,7 +461,7 @@ UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RecursivelyConstructNodes(bool
 						}
 						else
 						{
-							ReferenceNode->GetReferencerPin()->PinType.PinCategory = TEXT("hard");
+							ReferenceNode->GetReferencerPin()->PinType.PinCategory = TEXT("hard"); //-V595
 						}
 					}
 

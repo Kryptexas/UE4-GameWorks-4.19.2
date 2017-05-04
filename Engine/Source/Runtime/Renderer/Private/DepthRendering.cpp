@@ -232,7 +232,7 @@ public:
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,ViewUniformBuffer,ESceneRenderTargetsMode::DontSet);
 
 		// For debug view shaders, don't apply the depth offset as their base pass PS are using global shaders with depth equal.
-		SetShaderValue(RHICmdList, GetPixelShader(), ApplyDepthOffsetParameter, !View || !View->Family->UseDebugViewPS());
+		SetShaderValue(RHICmdList, GetPixelShader(), ApplyDepthOffsetParameter, !View->Family->UseDebugViewPS());
 		SetShaderValue(RHICmdList, GetPixelShader(), MobileColorValue, InMobileColorValue);
 	}
 

@@ -62,7 +62,7 @@ float FBoneDescription::CalculateScore(const FBoneDescription& Other) const
 	const int32 MaxNumChildren = FMath::Max(Other.NumChildren, NumChildren);
 	if (MaxNumChildren > 0)
 	{
-		Score_NumChildren = (1.f - (FMath::Abs(Other.NumChildren - NumChildren) / MaxNumChildren));
+		Score_NumChildren = (1.f - ((float)(FMath::Abs(Other.NumChildren - NumChildren)) / MaxNumChildren));
 	}
 	else
 	{

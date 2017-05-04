@@ -648,7 +648,7 @@ public:
 		return Cache;
 	}
 
-	~FDerivedDataBackendGraph()
+	virtual ~FDerivedDataBackendGraph()
 	{
 		RootCache = NULL;
 		DestroyCreatedBackends();

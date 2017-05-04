@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Tools.CrashReporter.CrashReportCommon;
-using Tools.DotNETCommon.LaunchProcess;
 
 namespace Tools.CrashReporter.CrashReportProcess
 {

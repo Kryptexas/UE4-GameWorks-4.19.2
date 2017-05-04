@@ -69,7 +69,7 @@ public:
 
 	virtual bool CanDeleteSelection() const;
 
-	~FSpriteSelectionHelper()
+	virtual ~FSpriteSelectionHelper()
 	{
 	}
 

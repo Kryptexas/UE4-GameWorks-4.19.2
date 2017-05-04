@@ -801,15 +801,6 @@ namespace UnrealBuildTool
 		public bool bCreateMapFile = false;
 
 		/// <summary>
-		/// Enables code analysis mode.  Currently, this has specific requirements.  It only works on Windows
-		/// platform with the MSVC compiler.  Also, it requires a version of the compiler that supports the
-		/// /analyze option, such as Visual Studio 2013.
-		/// </summary>
-		[CommandLine("-EnableCodeAnalysis")]
-		[XmlConfigFile(Category = "BuildConfiguration")]
-		public bool bEnableCodeAnalysis = false;
-
-		/// <summary>
 		/// Bundle version for Mac apps.
 		/// </summary>
 		[CommandLine("-BundleVersion")]
@@ -1861,11 +1852,6 @@ namespace UnrealBuildTool
 		public bool bCreateMapFile
 		{
 			get { return Inner.bCreateMapFile; }
-		}
-
-		public bool bEnableCodeAnalysis
-		{
-			get { return Inner.bEnableCodeAnalysis; }
 		}
 
 		public string BundleVersion

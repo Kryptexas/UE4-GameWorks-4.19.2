@@ -412,7 +412,7 @@ UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& Packa
 		return nullptr;
 	}
 
-	const FString PackageName = PackagePath + TEXT("/") + AssetName;
+	const FString PackageName = PackageTools::SanitizePackageName(PackagePath + TEXT("/") + AssetName);
 
 	// Make sure we can create the asset without conflicts
 	if ( !CanCreateAsset(AssetName, PackageName, LOCTEXT("CreateANewObject", "Create a new object")) )

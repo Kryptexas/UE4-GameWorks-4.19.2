@@ -534,7 +534,7 @@ void FOnlineVoiceSteam::ProcessMuteChangeNotification()
 				if (LP && LP->PlayerController)
 				{
 					// If there is a player controller, we can mute/unmute people
-					if (LocalTalkers[Index].bIsRegistered && LP->PlayerController != NULL)
+					if (LocalTalkers[Index].bIsRegistered)
 					{
 						// Use the common method of checking muting
 						UpdateMuteListForLocalTalker(Index, LP->PlayerController);

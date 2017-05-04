@@ -1397,8 +1397,8 @@ ETimelineSigType UBlueprint::GetTimelineSignatureForFunctionByName(const FName& 
 	return UTimelineComponent::GetTimelineSignatureForFunction(Function);
 
 
-	UE_LOG(LogBlueprint, Log, TEXT("GetTimelineSignatureForFunction: No SkeletonGeneratedClass in Blueprint '%s'."), *GetName());
-	return ETS_InvalidSignature;
+	//UE_LOG(LogBlueprint, Log, TEXT("GetTimelineSignatureForFunction: No SkeletonGeneratedClass in Blueprint '%s'."), *GetName());
+	//return ETS_InvalidSignature;
 }
 
 FString UBlueprint::GetDesc(void)

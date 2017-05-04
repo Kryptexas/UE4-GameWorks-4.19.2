@@ -73,6 +73,7 @@ class SLATECORE_API FSlateApplicationBase
 public:
 
 	FSlateApplicationBase();
+	virtual ~FSlateApplicationBase() { }
 
 	/**
 	 * Whether the application is active.

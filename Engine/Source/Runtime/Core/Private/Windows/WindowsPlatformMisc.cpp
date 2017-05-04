@@ -2065,11 +2065,12 @@ bool FWindowsPlatformMisc::GetWindowTitleMatchingText(const TCHAR* TitleStartsWi
 	HWND hWnd = FindWindowW(NULL,NULL);
 	if (hWnd != NULL)
 	{
+		size_t TitleStartsWithLen = _tcslen(TitleStartsWith);
 		do
 		{
 			GetWindowText(hWnd,Buffer,8192);
 			// If this matches, then grab the full text
-			if (_tcsnccmp(TitleStartsWith, Buffer, _tcslen(TitleStartsWith)) == 0)
+			if (_tcsnccmp(TitleStartsWith, Buffer, TitleStartsWithLen) == 0)
 			{
 				OutTitle = Buffer;
 				hWnd = NULL;

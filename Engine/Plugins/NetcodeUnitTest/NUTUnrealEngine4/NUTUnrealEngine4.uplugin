@@ -27,5 +27,20 @@
 				"Linux"
 			]
 		}
+	],
+	"Plugins":
+	[
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemUtils",
+			"Enabled": true
+		},
+		{
+			"Name": "NetcodeUnitTest",
+			"Enabled": true
+		}
 	]
 }

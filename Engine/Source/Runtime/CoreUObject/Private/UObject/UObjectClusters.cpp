@@ -94,6 +94,39 @@ void FUObjectClusterContainer::FreeCluster(int32 InClusterIndex)
 	check(NumAllocatedClusters >= 0);
 }
 
+FUObjectCluster* FUObjectClusterContainer::GetObjectCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster)
+{
+	check(ClusterRootOrObjectFromCluster);
+
+	const int32 OuterIndex = GUObjectArray.ObjectToIndex(ClusterRootOrObjectFromCluster);
+	FUObjectItem* OuterItem = GUObjectArray.IndexToObjectUnsafeForGC(OuterIndex);
+	int32 ClusterRootIndex = 0;
+	if (OuterItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+	{
+		ClusterRootIndex = OuterIndex;
+	}
+	else
+	{
+		ClusterRootIndex = OuterItem->GetOwnerIndex();
+	}
+	FUObjectCluster* Cluster = nullptr;
+	if (ClusterRootIndex != 0)
+	{
+		const int32 ClusterIndex = ClusterRootIndex > 0 ? GUObjectArray.IndexToObject(ClusterRootIndex)->GetClusterIndex() : OuterItem->GetClusterIndex();
+		Cluster = &GUObjectClusters[ClusterIndex];
+	}
+	return Cluster;
+}
+
+void FUObjectClusterContainer::DissolveCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster)
+{
+	FUObjectCluster* Cluster = GetObjectCluster(ClusterRootOrObjectFromCluster);
+	if (Cluster)
+	{
+		DissolveCluster(*Cluster);
+	}
+}
+
 void FUObjectClusterContainer::DissolveCluster(FUObjectCluster& Cluster)
 {
 	FUObjectItem* RootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(Cluster.RootIndex);
@@ -608,8 +641,10 @@ public:
 
 						for (int32 OtherClusterReferencedCluster : OtherCluster.ReferencedClusters)
 						{
-							check(OtherClusterReferencedCluster != ClusterRootIndex);
-							Cluster.ReferencedClusters.AddUnique(OtherClusterReferencedCluster);
+							if (OtherClusterReferencedCluster != ClusterRootIndex)
+							{
+								Cluster.ReferencedClusters.AddUnique(OtherClusterReferencedCluster);
+							}
 						}
 						for (int32 OtherClusterReferencedMutableObjectIndex : OtherCluster.MutableObjects)
 						{
@@ -693,26 +728,13 @@ void CreateClustersFromPackage(FLinkerLoad* PackageLinker)
 
 void UObjectBaseUtility::AddToCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster, bool bAddAsMutableObject /* = false */)
 {
-	check(ClusterRootOrObjectFromCluster);
-
-	const int32 OuterIndex = GUObjectArray.ObjectToIndex(ClusterRootOrObjectFromCluster);
-	FUObjectItem* OuterItem = GUObjectArray.IndexToObjectUnsafeForGC(OuterIndex);
-	int32 ClusterRootIndex = 0;
-	if (OuterItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+	FUObjectCluster* Cluster = GUObjectClusters.GetObjectCluster(ClusterRootOrObjectFromCluster);
+	if (Cluster)
 	{
-		ClusterRootIndex = OuterIndex;
-	}
-	else
-	{
-		ClusterRootIndex = OuterItem->GetOwnerIndex();
-	}
-	if (ClusterRootIndex != 0)
-	{
-		const int32 ClusterIndex = ClusterRootIndex > 0 ? GUObjectArray.IndexToObject(ClusterRootIndex)->GetClusterIndex() : OuterItem->GetClusterIndex();
-		FUObjectCluster& Cluster = GUObjectClusters[ClusterIndex];
+		const int32 ClusterRootIndex = Cluster->RootIndex;
 		if (!bAddAsMutableObject)
 		{
-			FClusterReferenceProcessor Processor(ClusterRootIndex, Cluster);
+			FClusterReferenceProcessor Processor(ClusterRootIndex, *Cluster);
 			TFastReferenceCollector<false, FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FClusterArrayPool, true> ReferenceCollector(Processor, FClusterArrayPool::Get());
 			TArray<UObject*> ObjectsToProcess;
 			UObject* ThisObject = static_cast<UObject*>(this);
@@ -727,20 +749,20 @@ void UObjectBaseUtility::AddToCluster(UObjectBaseUtility* ClusterRootOrObjectFro
 			// Adds this object's index to the MutableObjects array keeping it sorted and unique
 			const int32 ThisObjectIndex = GUObjectArray.ObjectToIndex(this);
 			int32 InsertedAt = INDEX_NONE;
-			for (int32 MutableObjectIndex = 0; MutableObjectIndex < Cluster.MutableObjects.Num() && InsertedAt == INDEX_NONE; ++MutableObjectIndex)
+			for (int32 MutableObjectIndex = 0; MutableObjectIndex < Cluster->MutableObjects.Num() && InsertedAt == INDEX_NONE; ++MutableObjectIndex)
 			{
-				if (Cluster.MutableObjects[MutableObjectIndex] > ThisObjectIndex)
+				if (Cluster->MutableObjects[MutableObjectIndex] > ThisObjectIndex)
 				{
-					InsertedAt = Cluster.MutableObjects.Insert(ThisObjectIndex, MutableObjectIndex);
+					InsertedAt = Cluster->MutableObjects.Insert(ThisObjectIndex, MutableObjectIndex);
 				}
-				else if (Cluster.MutableObjects[MutableObjectIndex] == ThisObjectIndex)
+				else if (Cluster->MutableObjects[MutableObjectIndex] == ThisObjectIndex)
 				{
 					InsertedAt = MutableObjectIndex;
 				}
 			}
 			if (InsertedAt == INDEX_NONE)
 			{
-				Cluster.MutableObjects.Add(ThisObjectIndex);
+				Cluster->MutableObjects.Add(ThisObjectIndex);
 			}
 		}
 	}

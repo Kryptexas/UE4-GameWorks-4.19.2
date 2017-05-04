@@ -81,7 +81,7 @@ void UInterpToMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	FVector WaitPos = FVector::ZeroVector;
 	if (bIsWaiting == true)
 	{
-		WaitPos = UpdatedComponent->GetComponentLocation();
+		WaitPos = UpdatedComponent->GetComponentLocation(); //-V595
 	}
 	while (RemainingTime >= MIN_TICK_TIME && (Iterations < MaxSimulationIterations) && !ActorOwner->IsPendingKill() && UpdatedComponent)
 	{
@@ -95,7 +95,7 @@ void UInterpToMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 		FVector MoveDelta = ComputeMoveDelta(Time);
 		
 		// Update the rotation on the spline if required
-		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation();				
+		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); //-V595
 		
 		// Move the component
  		if ((bPauseOnImpact == false ) && (BehaviourType != EInterpToBehaviourType::OneShot))

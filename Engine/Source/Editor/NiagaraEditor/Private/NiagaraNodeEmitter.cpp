@@ -61,11 +61,6 @@ void UNiagaraNodeEmitter::BuildNameList(TSet<FName>& ParameterNames, TSet<FName>
 		return;
 	}
 
-	if (Script == nullptr)
-	{
-		return;
-	}
-
 	if (Script->Source == nullptr || !Script->Source->IsA(UNiagaraScriptSource::StaticClass()))
 	{
 		return;

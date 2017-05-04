@@ -55,7 +55,7 @@ void FromString( EStatCompareBy::Type& OutValue, const TCHAR* Buffer )
 }
 
 struct FHUDGroupManager;
-struct FGroupFilter : public IItemFiler
+struct FGroupFilter : public IItemFilter
 {
 	TSet<FName> const& EnabledItems;
 	FString RootFilter;

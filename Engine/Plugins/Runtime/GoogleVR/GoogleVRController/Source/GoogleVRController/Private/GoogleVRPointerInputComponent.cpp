@@ -22,6 +22,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
 
+DEFINE_LOG_CATEGORY(LogGoogleVRPointerInput);
 
 UGoogleVRPointerInputComponent::UGoogleVRPointerInputComponent(const FObjectInitializer& ObjectInitializer)
 : PointerInputMode(EGoogleVRPointerInputMode::Camera)
@@ -169,7 +170,7 @@ void UGoogleVRPointerInputComponent::TickComponent(float DeltaTime, ELevelTick T
 	{
 		OnPointerExitComponentEvent.Broadcast(PreviousHitComponent, LatestHitResult);
 
-		if (PreviousHitComponent != nullptr && PreviousHitComponent->Implements<UGoogleVRComponentPointerResponder>())
+		if (PreviousHitComponent->Implements<UGoogleVRComponentPointerResponder>())
 		{
 			IGoogleVRComponentPointerResponder::Execute_OnPointerExit(PreviousHitComponent, PreviousHitComponent, LatestHitResult, this);
 		}
@@ -180,7 +181,7 @@ void UGoogleVRPointerInputComponent::TickComponent(float DeltaTime, ELevelTick T
 	{
 		OnPointerExitActorEvent.Broadcast(PreviousHitActor, LatestHitResult);
 
-		if (PreviousHitActor != nullptr && PreviousHitActor->Implements<UGoogleVRActorPointerResponder>())
+		if (PreviousHitActor->Implements<UGoogleVRActorPointerResponder>())
 		{
 			IGoogleVRActorPointerResponder::Execute_OnPointerExit(PreviousHitActor, PreviousHitActor, LatestHitResult, this);
 		}
@@ -193,7 +194,7 @@ void UGoogleVRPointerInputComponent::TickComponent(float DeltaTime, ELevelTick T
 	{
 		OnPointerEnterActorEvent.Broadcast(LatestHitResult);
 
-		if (HitActor != nullptr && HitActor->Implements<UGoogleVRActorPointerResponder>())
+		if (HitActor->Implements<UGoogleVRActorPointerResponder>())
 		{
 			IGoogleVRActorPointerResponder::Execute_OnPointerEnter(HitActor, LatestHitResult, this);
 		}
@@ -206,7 +207,7 @@ void UGoogleVRPointerInputComponent::TickComponent(float DeltaTime, ELevelTick T
 	{
 		OnPointerEnterComponentEvent.Broadcast(LatestHitResult);
 
-		if (HitComponent != nullptr && HitComponent->Implements<UGoogleVRComponentPointerResponder>())
+		if (HitComponent->Implements<UGoogleVRComponentPointerResponder>())
 		{
 			IGoogleVRComponentPointerResponder::Execute_OnPointerEnter(HitComponent, LatestHitResult, this);
 		}
@@ -223,7 +224,7 @@ void UGoogleVRPointerInputComponent::TickComponent(float DeltaTime, ELevelTick T
 	{
 		OnPointerHoverActorEvent.Broadcast(LatestHitResult);
 
-		if (HitActor != nullptr && HitActor->Implements<UGoogleVRActorPointerResponder>())
+		if (HitActor->Implements<UGoogleVRActorPointerResponder>())
 		{
 			IGoogleVRActorPointerResponder::Execute_OnPointerHover(HitActor, LatestHitResult, this);
 		}
@@ -236,7 +237,7 @@ void UGoogleVRPointerInputComponent::TickComponent(float DeltaTime, ELevelTick T
 	{
 		OnPointerHoverComponentEvent.Broadcast(LatestHitResult);
 
-		if (HitComponent != nullptr && HitComponent->Implements<UGoogleVRComponentPointerResponder>())
+		if (HitComponent->Implements<UGoogleVRComponentPointerResponder>())
 		{
 			IGoogleVRComponentPointerResponder::Execute_OnPointerHover(HitComponent, LatestHitResult, this);
 		}
@@ -349,7 +350,7 @@ void UGoogleVRPointerInputComponent::ClickButtonReleased()
 
 	if (PendingClickActor != nullptr)
 	{
-		if (PendingClickActor != nullptr && PendingClickActor->Implements<UGoogleVRActorPointerResponder>())
+		if (PendingClickActor->Implements<UGoogleVRActorPointerResponder>())
 		{
 			IGoogleVRActorPointerResponder::Execute_OnPointerReleased(PendingClickActor, LatestHitResult, this);
 		}
@@ -367,7 +368,7 @@ void UGoogleVRPointerInputComponent::ClickButtonReleased()
 
 	if (PendingClickComponent != nullptr)
 	{
-		if (PendingClickComponent != nullptr && PendingClickComponent->Implements<UGoogleVRComponentPointerResponder>())
+		if (PendingClickComponent->Implements<UGoogleVRComponentPointerResponder>())
 		{
 			IGoogleVRComponentPointerResponder::Execute_OnPointerReleased(PendingClickComponent, LatestHitResult, this);
 		}

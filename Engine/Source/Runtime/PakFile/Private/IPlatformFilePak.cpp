@@ -1310,6 +1310,8 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 
 	void ClearBlock(FCacheBlock &Block)
 	{
+		UE_LOG(LogPakFile, Verbose, TEXT("FPakReadRequest[%016llX, %016llX) ClearBlock"), Block.OffsetAndPakIndex, Block.OffsetAndPakIndex + Block.Size);
+
 		if (Block.Memory)
 		{
 			check(Block.Size);
@@ -1368,6 +1370,7 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 					FCacheBlock &Block = CacheBlockAllocator.Get(BlockIndex);
 					if (!Block.InRequestRefCount)
 					{
+						UE_LOG(LogPakFile, Verbose, TEXT("FPakReadRequest[%016llX, %016llX) Discard Cached"), Block.OffsetAndPakIndex, Block.OffsetAndPakIndex + Block.Size);
 						ClearBlock(Block);
 						return true;
 					}
@@ -1412,6 +1415,7 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 					{
 						if (GPakCache_NumUnreferencedBlocksToCache && GetRequestOffset(Block.OffsetAndPakIndex) + Block.Size > OffsetOfLastByte) // last block
 						{
+							OffsetAndPakIndexOfSavedBlocked.Remove(Block.OffsetAndPakIndex);
 							OffsetAndPakIndexOfSavedBlocked.Add(Block.OffsetAndPakIndex);
 							return false;
 						}
@@ -1904,6 +1908,7 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 		if (Block.InRequestRefCount == 0 || bWasCanceled)
 		{
 			FMemory::Free(Memory);
+			UE_LOG(LogPakFile, Verbose, TEXT("FPakReadRequest[%016llX, %016llX) Cancelled"), Block.OffsetAndPakIndex, Block.OffsetAndPakIndex + Block.Size);
 			ClearBlock(Block);
 		}
 		else

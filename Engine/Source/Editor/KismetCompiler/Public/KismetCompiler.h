@@ -165,7 +165,7 @@ public:
 	template <typename NodeType>
 	NodeType* SpawnIntermediateEventNode(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin = nullptr, UEdGraph* ParentGraph = nullptr)
 	{
-		if (ParentGraph == nullptr)
+		if (ParentGraph == nullptr && SourceNode != nullptr)
 		{
 			ParentGraph = SourceNode->GetGraph();
 		}

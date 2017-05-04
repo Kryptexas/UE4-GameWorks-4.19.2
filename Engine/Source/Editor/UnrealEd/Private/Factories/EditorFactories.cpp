@@ -989,26 +989,18 @@ UObject* ULevelFactory::FactoryCreateText
 
 		// Import properties if the new actor is 
 		bool		bActorChanged = false;
-		FString*	PropText = &(ActorMapElement.Value); 
-		if( PropText )
+		FString&	PropText = ActorMapElement.Value;
+		if ( Actor->ShouldImport(&PropText, bIsMoveToStreamingLevel) )
 		{
-			if ( Actor->ShouldImport(PropText, bIsMoveToStreamingLevel) )
-			{
-				Actor->PreEditChange(nullptr);
-				ImportObjectProperties( (uint8*)Actor, **PropText, Actor->GetClass(), Actor, Actor, Warn, 0, INDEX_NONE, NULL, &ExistingToNewMap );
-				bActorChanged = true;
+			Actor->PreEditChange(nullptr);
+			ImportObjectProperties( (uint8*)Actor, *PropText, Actor->GetClass(), Actor, Actor, Warn, 0, INDEX_NONE, NULL, &ExistingToNewMap );
+			bActorChanged = true;
 
-				GEditor->SelectActor( Actor, true, false, true );
-			}
-			else // This actor is new, but rejected to import its properties, so just delete...
-			{
-				Actor->Destroy();
-			}
+			GEditor->SelectActor( Actor, true, false, true );
 		}
-		else
-		if( !Actor->IsA(AInstancedFoliageActor::StaticClass()) )
+		else // This actor is new, but rejected to import its properties, so just delete...
 		{
-			// This actor is old
+			Actor->Destroy();
 		}
 
 		// If this is a newly imported brush, validate it.  If it's a newly imported dynamic brush, rebuild it first.
@@ -5155,7 +5147,7 @@ bool UReimportFbxSkeletalMeshFactory::CanReimport( UObject* Obj, TArray<FString>
 				//This skeletal mesh was import with a scene import, we cannot reimport it here
 				return false;
 			}
-			else if (SkeletalMesh->AssetImportData != nullptr && (FPaths::GetExtension(SkeletalMesh->AssetImportData->GetFirstFilename()).ToLower() == "abc"))
+			else if (FPaths::GetExtension(SkeletalMesh->AssetImportData->GetFirstFilename()).ToLower() == "abc")
 			{
 				return false;
 			}

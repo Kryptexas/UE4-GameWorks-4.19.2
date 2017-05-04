@@ -18,7 +18,7 @@
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 
-class FWindowsMMNotificationClient : public IMMNotificationClient
+class FWindowsMMNotificationClient final : public IMMNotificationClient
 {
 public:
 	FWindowsMMNotificationClient()
@@ -33,7 +33,7 @@ public:
 		}
 	}
 
-	~FWindowsMMNotificationClient()
+	virtual ~FWindowsMMNotificationClient()
 	{
 		if (DeviceEnumerator)
 		{

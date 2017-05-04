@@ -20,7 +20,7 @@ PRAGMA_POP
 #include "ir.h"
 
 //Helper visitor to replace any flatten branches (currently all) with selection statements the VM can deal with.
-class ir_flatten_branch_to_select_visitor : public ir_hierarchical_visitor
+class ir_flatten_branch_to_select_visitor final : public ir_hierarchical_visitor
 {
 public:
 
@@ -72,6 +72,10 @@ public:
 				}
 			}
 		}
+	}
+
+	virtual ~ir_flatten_branch_to_select_visitor()
+	{
 	}
 
 	ir_function_signature* get_select_signature(const glsl_type* type)

@@ -32,7 +32,7 @@ namespace Audio
 		// form y(n) = -gw(n) + w(n-D)
 		float Yn = -G*Wn + WnD;
 
-		UnderflowClamp(Yn);
+		Yn = UnderflowClamp(Yn);
 		this->WriteDelayAndInc(Wn);
 		*OutputSample = Yn;
 	}

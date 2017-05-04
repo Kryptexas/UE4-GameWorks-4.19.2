@@ -49,7 +49,8 @@ class FNetworkFileServerHttp
 
 public:
 	FNetworkFileServerHttp(int32 InPort, const FFileRequestDelegate* InFileRequestDelegate,
-		const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
+		const FRecompileShadersDelegate* InRecompileShadersDelegate, const FSandboxPathDelegate* SandboxPathOverrideDelegate, 
+		FOnFileModifiedDelegate* OnFileModifiedDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	// INetworkFileServer Interface.
 
@@ -86,6 +87,10 @@ private:
 
 	// Holds a delegate to be invoked when a client requests a shader recompile.
 	FRecompileShadersDelegate RecompileShadersDelegate;
+
+	FSandboxPathDelegate SandboxPathDelegate;
+
+	FOnFileModifiedDelegate* OnFileModifiedCallback;
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*> ActiveTargetPlatforms;

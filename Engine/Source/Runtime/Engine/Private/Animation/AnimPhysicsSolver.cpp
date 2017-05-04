@@ -1028,7 +1028,7 @@ void FAnimPhysSpring::ApplyForces(float DeltaTime)
 			Body1AngularAxis = Body1->GetPose().Orientation.GetAxisY();
 			break;
 		case AnimPhysTwistAxis::AxisZ:
-			Body1AngularAxis = Body1->GetPose().Orientation.GetAxisZ();
+			Body1AngularAxis = Body1->GetPose().Orientation.GetAxisZ(); //-V595
 			break;
 		default:
 			checkf(false, TEXT("Invalid target axis option"));

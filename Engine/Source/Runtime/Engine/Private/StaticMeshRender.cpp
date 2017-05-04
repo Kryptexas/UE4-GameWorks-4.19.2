@@ -1299,31 +1299,28 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 	{
 		for (int32 LODIndex = 0; LODIndex < LODs.Num(); LODIndex++)
 		{
-			const FLODInfo* LCI = &LODs[LODIndex];
+			const FLODInfo& LCI = LODs[LODIndex];
 
-			if (LCI)
+			ELightInteractionType InteractionType = LCI.GetInteraction(LightSceneProxy).GetType();
+
+			if (InteractionType != LIT_CachedIrrelevant)
 			{
-				ELightInteractionType InteractionType = LCI->GetInteraction(LightSceneProxy).GetType();
+				bRelevant = true;
+			}
 
-				if (InteractionType != LIT_CachedIrrelevant)
-				{
-					bRelevant = true;
-				}
+			if (InteractionType != LIT_CachedLightMap && InteractionType != LIT_CachedIrrelevant)
+			{
+				bLightMapped = false;
+			}
 
-				if (InteractionType != LIT_CachedLightMap && InteractionType != LIT_CachedIrrelevant)
-				{
-					bLightMapped = false;
-				}
+			if (InteractionType != LIT_Dynamic)
+			{
+				bDynamic = false;
+			}
 
-				if (InteractionType != LIT_Dynamic)
-				{
-					bDynamic = false;
-				}
-
-				if (InteractionType != LIT_CachedSignedDistanceFieldShadowMap2D)
-				{
-					bShadowMapped = false;
-				}
+			if (InteractionType != LIT_CachedSignedDistanceFieldShadowMap2D)
+			{
+				bShadowMapped = false;
 			}
 		}
 	}

@@ -177,15 +177,7 @@ void FClothPainter::ApplyGradient()
 void FClothPainter::SetSkeletalMeshComponent(UDebugSkelMeshComponent* InSkeletalMeshComponent)
 {
 	TSharedPtr<FClothMeshPaintAdapter> Result = MakeShareable(new FClothMeshPaintAdapter());
-	if (Result->Construct(InSkeletalMeshComponent, 0))
-	{
-		Adapter = Result;
-	}
-	else
-	{
-		Adapter = nullptr;
-	}
-	
+	Result->Construct(InSkeletalMeshComponent, 0);
 	Adapter = Result;
 
 	SkeletalMeshComponent = InSkeletalMeshComponent;
@@ -534,7 +526,7 @@ void FClothPainter::OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, 
 	TSharedPtr<FClothMeshPaintAdapter> ClothAdapter = StaticCastSharedPtr<FClothMeshPaintAdapter>(Adapter);
 	if(ClothAdapter.IsValid() && InNewSelectedAsset && InNewSelectedAsset->IsValidLod(InAssetLod))
 	{
-		const FGuid NewGuid = InNewSelectedAsset ? InNewSelectedAsset->GetAssetGuid() : FGuid();
+		const FGuid NewGuid = InNewSelectedAsset->GetAssetGuid();
 		SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
 		SkeletalMeshComponent->ToggleMeshSectionForCloth(NewGuid);
 

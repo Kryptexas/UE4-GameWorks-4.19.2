@@ -69,5 +69,8 @@ struct IMovieSceneTemplateGenerator
 	 * @param SequenceID				Specific ID to use to identify this sub sequence in the template. Must not already exist in the template.
 	 */
 	virtual void AddSubSequence(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID, FMovieSceneSequenceID SequenceID) = 0;
+
+protected:
+	virtual ~IMovieSceneTemplateGenerator() { }
 };
 

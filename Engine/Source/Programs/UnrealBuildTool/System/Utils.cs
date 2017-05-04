@@ -12,7 +12,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Linq;
 using System.Management;
-using Tools.DotNETCommon.CaselessDictionary;
 using System.Web.Script.Serialization;
 
 namespace UnrealBuildTool

@@ -55,6 +55,7 @@ static TMap <FGraphicsPipelineStateInitializer, FGraphicsPipelineState*> GGraphi
 class FPipelineState
 {
 public:
+	virtual ~FPipelineState() { }
 	virtual bool IsCompute() const = 0;
 	FGraphEventRef CompletionEvent;
 };

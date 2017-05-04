@@ -29,7 +29,7 @@ void UGeometryCache::Serialize(FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 #if WITH_EDITORONLY_DATA
-	if (( !Ar.IsCooking() || (Ar.CookingTarget() && Ar.CookingTarget()->HasEditorOnlyData())))
+	if ( !Ar.IsCooking() || (Ar.CookingTarget() && Ar.CookingTarget()->HasEditorOnlyData()))
 	{
 		Ar << AssetImportData;
 	}
@@ -55,7 +55,7 @@ void UGeometryCache::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 #if WITH_EDITORONLY_DATA
-	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(AssetImportData));
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(AssetImportData)); //-V568
 #endif
 	// Calculate Resource Size according to what is serialized
 	const int32 NumTracks = Tracks.Num();

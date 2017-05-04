@@ -159,16 +159,23 @@ struct FGenericPlatformAtomics
 		#error must implement
 	}
 
-#if PLATFORM_64BITS		// This function is not possible on 32-bit architectures
 	/**
 	 * Atomically compares the value to comparand and replaces with the exchange
 	 * value if they are equal and returns the original value
+	 * REQUIRED, even on 32 bit architectures. 
 	 */
 	static FORCEINLINE int64 InterlockedCompareExchange (volatile int64* Dest, int64 Exchange, int64 Comparand)
 	{
 		#error must implement
 	}
-#endif
+
+	/**
+	* Atomic read of 64 bit value with an implicit memory barrier.
+	*/
+	static FORCEINLINE int64 AtomicRead64(volatile const int64* Src)
+	{
+		return InterlockedCompareExchange((volatile int64*)Src, 0, 0);
+	}
 
 	/**
 	 * Atomically compares the pointer to comparand and replaces with the exchange
@@ -195,6 +202,18 @@ struct FGenericPlatformAtomics
 	static FORCEINLINE bool InterlockedCompareExchange128( volatile FInt128* Dest, const FInt128& Exchange, FInt128* Comparand )
 	{
 		#error Must implement
+	}
+
+	/**
+	* Atomic read of 128 bit value with a memory barrier
+	*/
+	static FORCEINLINE void AtomicRead128(const volatile FInt128* Src, FInt128* OutResult)
+	{
+		FInt128 Zero;
+		Zero.High = 0;
+		Zero.Low = 0;
+		*OutResult = Zero;
+		InterlockedCompareExchange128((volatile FInt128*)Src, Zero, OutResult);
 	}
 #endif // PLATFORM_HAS_128BIT_ATOMICS
 
@@ -223,3 +242,4 @@ protected:
 		return !(PTRINT(Ptr) & (Alignment - 1));
 	}
 };
+

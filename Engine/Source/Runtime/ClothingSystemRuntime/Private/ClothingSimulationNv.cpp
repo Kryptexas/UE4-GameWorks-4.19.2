@@ -223,9 +223,9 @@ void FClothingSimulationNv::ApplyClothConfig(FClothConfig &Config, FClothingActo
 								  1.0f - FMath::Exp(ExpDragLinY * PrecalcLog2),
 								  1.0f - FMath::Exp(ExpDragLinZ * PrecalcLog2));
 
-	const FVector AdjustedDragAng(1.0f - FMath::Exp(ExpDragLinX * PrecalcLog2),
-								  1.0f - FMath::Exp(ExpDragLinY * PrecalcLog2),
-								  1.0f - FMath::Exp(ExpDragLinZ * PrecalcLog2));
+	const FVector AdjustedDragAng(1.0f - FMath::Exp(ExpDragAngX * PrecalcLog2),
+								  1.0f - FMath::Exp(ExpDragAngY * PrecalcLog2),
+								  1.0f - FMath::Exp(ExpDragAngZ * PrecalcLog2));
 
 	for(FClothingActorNv::FActorLodData& LodData : InActor.LodData)
 	{

@@ -936,7 +936,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 	if (bCanUpdateState && Status == EPathFollowingStatus::Moving)
 	{
 		// check waypoint switch condition in meta paths
-		if (MetaNavPath && Status == EPathFollowingStatus::Moving)
+		if (MetaNavPath)
 		{
 			MetaNavPath->ConditionalMoveToNextSection(CurrentLocation, EMetaPathUpdateReason::MoveTick);
 		}

@@ -1553,7 +1553,7 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 				/*SizeZ=*/ SizeZ,
 				/*Format=*/ GLFormat.Format,
 				/*Type=*/ GLFormat.Type,
-				/*Data=*/ Data ? &Data[MipOffset] : NULL
+				/*Data=*/ &Data[MipOffset]
 				);
 
 			uint32 SysMemPitch      =  FMath::Max<uint32>(1,SizeX >> MipIndex) * GPixelFormats[Format].BlockBytes;
@@ -1665,7 +1665,7 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 				/*SizeZ=*/ FMath::Max<uint32>(1,(SizeZ >> MipIndex)),
 				/*Format=*/ GLFormat.Format,
 				/*Type=*/ GLFormat.Type,
-				/*Data=*/ Data ? &Data[MipOffset] : NULL
+				/*Data=*/ &Data[MipOffset]
 				);
 
 			uint32 SysMemPitch      =  FMath::Max<uint32>(1,SizeX >> MipIndex) * GPixelFormats[Format].BlockBytes;

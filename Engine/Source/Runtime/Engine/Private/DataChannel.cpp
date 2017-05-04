@@ -1646,7 +1646,7 @@ void UActorChannel::DestroyActorAndComponents()
 				Connection->Driver->RepChangedPropertyTrackerMap.Remove( SubObject );
 			}
 
-			Actor->OnSubobjectDestroyFromReplication(SubObject);
+			Actor->OnSubobjectDestroyFromReplication(SubObject); //-V595
 			SubObject->PreDestroyFromReplication();
 			SubObject->MarkPendingKill();
 		}
@@ -2462,7 +2462,7 @@ bool UActorChannel::ReplicateActor()
 	RepFlags.bNetSimulated	= ( Actor->GetRemoteRole() == ROLE_SimulatedProxy );
 	RepFlags.bRepPhysics	= Actor->ReplicatedMovement.bRepPhysics;
 	RepFlags.bReplay		= ActorWorld && (ActorWorld->DemoNetDriver == Connection->GetDriver());
-	RepFlags.bNetInitial	= RepFlags.bNetInitial;
+	//RepFlags.bNetInitial	= RepFlags.bNetInitial;
 
 	UE_LOG(LogNetTraffic, Log, TEXT("Replicate %s, bNetInitial: %d, bNetOwner: %d"), *Actor->GetName(), RepFlags.bNetInitial, RepFlags.bNetOwner );
 

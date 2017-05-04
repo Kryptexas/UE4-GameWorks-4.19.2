@@ -27,5 +27,13 @@
 				"Android"
 			]
 		}
+	],
+
+	"Plugins":
+	[
+		{
+			"Name": "OculusRift",
+			"Enabled": true
+		}
 	]
 }

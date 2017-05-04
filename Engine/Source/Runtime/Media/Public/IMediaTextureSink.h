@@ -290,5 +290,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	~IMediaTextureSink() { }
+	virtual ~IMediaTextureSink() { }
 };

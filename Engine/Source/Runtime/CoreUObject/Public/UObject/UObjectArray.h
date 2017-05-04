@@ -844,6 +844,19 @@ public:
 	/** Frees the cluster at the specified index */
 	void FreeCluster(int32 InClusterIndex);
 
+	/**
+	* Gets the cluster the specified object is a root of or belongs to.
+	* @Param ClusterRootOrObjectFromCluster Root cluster object or object that belongs to a cluster
+	*/
+	FUObjectCluster* GetObjectCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster);
+
+
+	/** 
+	 * Dissolves a cluster and all clusters that reference it 
+	 * @Param ClusterRootOrObjectFromCluster Root cluster object or object that belongs to a cluster
+	 */
+	void DissolveCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster);
+
 	/** Dissolve all clusters marked for dissolving */
 	void DissolveClusters();
 

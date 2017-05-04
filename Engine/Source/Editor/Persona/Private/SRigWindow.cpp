@@ -290,7 +290,7 @@ bool SRigWindow::OnTargetSkeletonSelected(USkeleton* SelectedSkeleton, URig*  Ri
 				}
 			}
 
-			float BoneMatchedPercentage = BoneMatched / RefSkeleton.GetNum();
+			float BoneMatchedPercentage = (float)(BoneMatched) / RefSkeleton.GetNum();
 			if (BoneMatchedPercentage > 0.5f)
 			{
 				Rig->SetSourceReferenceSkeleton(RefSkeleton);

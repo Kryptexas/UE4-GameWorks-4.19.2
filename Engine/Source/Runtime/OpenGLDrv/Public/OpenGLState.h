@@ -268,7 +268,7 @@ struct FOpenGLCommonState
 	, UAVs(NULL)
 	{}
 
-	~FOpenGLCommonState()
+	virtual ~FOpenGLCommonState()
 	{
 		CleanupResources();
 	}

@@ -121,7 +121,7 @@ void FSlateTextureAtlas::InitAtlasData()
 	check(AtlasOwnerThread != ESlateTextureAtlasThreadId::Unknown);
 
 	INC_MEMORY_STAT_BY(STAT_SlateTextureAtlasMemory, AtlasData.GetAllocatedSize());
-}
+} //-V773
 
 
 void FSlateTextureAtlas::CopyRow( const FCopyRowData& CopyRowData )

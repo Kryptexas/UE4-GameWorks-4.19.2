@@ -111,6 +111,6 @@ private:
 	ovrTouchHapticsDesc HapticsDesc;
 };
 
-DEFINE_LOG_CATEGORY_STATIC(LogOcInput, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogOcInput, Log, All);
 
 #endif //OCULUS_INPUT_SUPPORTED_PLATFORMS

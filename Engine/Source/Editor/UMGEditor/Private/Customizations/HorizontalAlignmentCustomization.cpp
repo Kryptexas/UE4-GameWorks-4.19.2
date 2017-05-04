@@ -100,7 +100,7 @@ void FHorizontalAlignmentCustomization::HandleCheckStateChanged(ECheckBoxState I
 ECheckBoxState FHorizontalAlignmentCustomization::GetCheckState(TSharedRef<IPropertyHandle> PropertyHandle, EHorizontalAlignment ForAlignment) const
 {
 	uint8 Value;
-	if ( PropertyHandle->GetValue(Value) )
+	if ( PropertyHandle->GetValue(Value) == FPropertyAccess::Result::Success )
 	{
 		return Value == ForAlignment ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}

@@ -104,7 +104,7 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 	const UClass* ComponentClass = GetSpawnedType();
 	if (ComponentClass != nullptr)
 	{
-		const UObject* ClassDefaultObject = ComponentClass ? ComponentClass->ClassDefaultObject : nullptr;
+		const UObject* ClassDefaultObject = ComponentClass->ClassDefaultObject;
 
 		for (TFieldIterator<UProperty> PropertyIt(ComponentClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{

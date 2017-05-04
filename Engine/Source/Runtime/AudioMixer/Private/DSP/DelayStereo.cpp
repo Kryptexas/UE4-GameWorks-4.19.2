@@ -75,8 +75,8 @@ namespace Audio
 		float LeftDelayOut = LeftDelay.Read();
 		float RightDelayOut = RightDelay.Read();
 
-		float LeftDelayIn;
-		float RightDelayIn;
+		float LeftDelayIn = 0.0f;
+		float RightDelayIn = 0.0f;
 
 		if (DelayMode == EStereoDelayMode::Normal)
 		{

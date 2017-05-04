@@ -70,21 +70,18 @@
     <Compile Include="CrashContext.cs" />
     <Compile Include="CrashReporterConstants.cs" />
     <Compile Include="JiraConnection.cs" />
+    <Compile Include="LaunchProcess.cs" />
     <Compile Include="LogWriter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="..\..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
     <Compile Include="ReportData.cs" />
+    <Compile Include="SimpleWebRequest.cs" />
     <Compile Include="SlackWriter.cs" />
     <Compile Include="Stats.cs" />
     <Compile Include="WerReport.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj">
-      <Project>{5d7d66e8-8c76-4af9-b3ec-2ef03421d730}</Project>
-      <Name>DotNETUtilities</Name>
-    </ProjectReference>
+    <Compile Include="XmlHandler.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

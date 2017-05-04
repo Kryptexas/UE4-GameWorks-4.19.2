@@ -112,9 +112,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 
 	FORCEINLINE static void MemoryBarrier()
 	{
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		OSMemoryBarrier();
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		__sync_synchronize();
 	}
 
 	static void LowLevelOutputDebugString(const TCHAR *Message);

@@ -527,7 +527,7 @@ void UK2Node_MakeArray::GetContextMenuActions(const FGraphNodeContextMenuBuilder
 bool UK2Node_MakeArray::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
 	// if MyPin has a ParentPin then we are dealing with a split pin and we should evaluate it with default behavior
-	if(MyPin->ParentPin == nullptr && OtherPin->PinType.IsContainer() == true && MyPin->Direction == EGPD_Input)
+	if(MyPin->ParentPin == nullptr && OtherPin->PinType.IsContainer() == true && MyPin->Direction == EGPD_Input) //-V595
 	{
 		OutReason = NSLOCTEXT("K2Node", "MakeArray_InputIsContainer", "Cannot make an array with an input of a container!").ToString();
 		return true;

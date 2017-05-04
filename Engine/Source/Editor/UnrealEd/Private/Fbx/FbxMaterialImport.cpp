@@ -482,7 +482,8 @@ bool CanUseMaterialWithInstance(FbxSurfaceMaterial& FbxMaterial, const char* Mat
 				{
 					return false; // no support for custom uv with instanced yet
 				}
-			}if (TextureCount > 1)
+			}
+			else if (TextureCount > 1)
 			{
 				return false; // no support for multiple textures
 			}

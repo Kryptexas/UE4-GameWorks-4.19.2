@@ -61,9 +61,8 @@ public:
 	{
 		UK2Node_GetArrayItem* ArrayNode = CastChecked<UK2Node_GetArrayItem>(Node);
 
-		FBlueprintCompiledStatement* SelectStatementPtr = new FBlueprintCompiledStatement();
-		FBlueprintCompiledStatement& ArrayGetFunction = *SelectStatementPtr;
-		ArrayGetFunction.Type = KCST_ArrayGetByRef;
+		FBlueprintCompiledStatement* ArrayGetFunction = new FBlueprintCompiledStatement();
+		ArrayGetFunction->Type = KCST_ArrayGetByRef;
 
 		UEdGraphPin* ArrayPinNet = FEdGraphUtilities::GetNetFromPin(Node->Pins[0]);
 		UEdGraphPin* ReturnValueNet = FEdGraphUtilities::GetNetFromPin(Node->Pins[2]);
@@ -77,10 +76,10 @@ public:
 
 		FBPTerminal** ReturnValue = Context.NetMap.Find(ReturnValueNet);
 		FBPTerminal** ReturnValueOrig = Context.NetMap.Find(Node->Pins[2]);
-		ArrayGetFunction.RHS.Add(*ArrayTerm);
-		ArrayGetFunction.RHS.Add(*IndexTermPtr);
+		ArrayGetFunction->RHS.Add(*ArrayTerm);
+		ArrayGetFunction->RHS.Add(*IndexTermPtr);
 
-		(*ReturnValue)->InlineGeneratedParameter = &ArrayGetFunction;
+		(*ReturnValue)->InlineGeneratedParameter = ArrayGetFunction;
 	}
 };
 

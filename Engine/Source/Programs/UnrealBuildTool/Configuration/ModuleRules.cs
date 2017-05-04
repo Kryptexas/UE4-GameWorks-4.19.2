@@ -228,6 +228,11 @@ namespace UnrealBuildTool
 		public bool bEnforceIWYU = true;
 
 		/// <summary>
+		/// Whether to add all the default include paths to the module (eg. the Source/Classes folder, subfolders under Source/Public).
+		/// </summary>
+		public bool bAddDefaultIncludePaths = true;
+
+		/// <summary>
 		/// List of modules names (no path needed) with header files that our module's public headers needs access to, but we don't need to "import" or link against.
 		/// </summary>
 		public List<string> PublicIncludePathModuleNames = new List<string>();

@@ -1,15 +1,14 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace Tools.DotNETCommon.XmlHandler
+namespace Tools.CrashReporter.CrashReportCommon
 {
 	/// <summary>
 	/// A helper class to handle reading and writing of XML files.

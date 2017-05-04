@@ -458,6 +458,10 @@ private:
 	TArray< ActionGroup > Entries;
 
 public:
+
+	/** Virtual destructor */
+	virtual ~FGraphActionListBuilderBase() { }
+
 	/** Adds an action entry containing a single action */
 	ENGINE_API virtual void AddAction( const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category = FString() );
 

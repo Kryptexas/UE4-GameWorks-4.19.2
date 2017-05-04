@@ -72,6 +72,8 @@ struct FUsdImportContext
 	/** If true stop at any USD prim that has an unreal asset reference.  Geometry that is a child such prims will be ignored */
 	bool bFindUnrealAssetReferences;
 
+	virtual ~FUsdImportContext() { }
+
 	virtual void Init(UObject* InParent, const FString& InName, EObjectFlags InFlags, IUsdStage* InStage);
 
 	void AddErrorMessage(EMessageSeverity::Type MessageSeverity, FText ErrorMessage);

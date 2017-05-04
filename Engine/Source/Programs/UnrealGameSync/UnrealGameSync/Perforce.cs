@@ -50,6 +50,83 @@ namespace UnrealGameSync
 		}
 	}
 
+	[DebuggerDisplay("{DepotFile}")]
+	class PerforceDescribeFileRecord
+	{
+		public string DepotFile;
+		public string Action;
+		public string Type;
+		public int Revision;
+		public int FileSize;
+		public string Digest;
+	}
+
+	[DebuggerDisplay("{ChangeNumber}: {Description}")]
+	class PerforceDescribeRecord
+	{
+		public int ChangeNumber;
+		public string User;
+		public string Client;
+		public long Time;
+		public string Description;
+		public string Status;
+		public string ChangeType;
+		public string Path;
+		public List<PerforceDescribeFileRecord> Files = new List<PerforceDescribeFileRecord>();
+
+		public PerforceDescribeRecord(Dictionary<string, string> Tags)
+		{
+			string ChangeString;
+			if(!Tags.TryGetValue("change", out ChangeString) || !int.TryParse(ChangeString, out ChangeNumber))
+			{
+				ChangeNumber = -1;
+			}
+
+			Tags.TryGetValue("user", out User);
+			Tags.TryGetValue("client", out Client);
+
+			string TimeString;
+			if(!Tags.TryGetValue("time", out TimeString) || !long.TryParse(TimeString, out Time))
+			{
+				Time = -1;
+			}
+
+			Tags.TryGetValue("desc", out Description);
+			Tags.TryGetValue("status", out Status);
+			Tags.TryGetValue("changeType", out ChangeType);
+			Tags.TryGetValue("path", out Path);
+
+			for(int Idx = 0;;Idx++)
+			{
+				string Suffix = String.Format("{0}", Idx);
+
+				PerforceDescribeFileRecord File = new PerforceDescribeFileRecord();
+				if(!Tags.TryGetValue("depotFile" + Suffix, out File.DepotFile))
+				{
+					break;
+				}
+
+				Tags.TryGetValue("action" + Suffix, out File.Action);
+				Tags.TryGetValue("type" + Suffix, out File.Type);
+
+				string RevisionString;
+				if(!Tags.TryGetValue("rev" + Suffix, out RevisionString) || !int.TryParse(RevisionString, out File.Revision))
+				{
+					File.Revision = -1;
+				}
+
+				string FileSizeString;
+				if(!Tags.TryGetValue("fileSize" + Suffix, out FileSizeString) || !int.TryParse(FileSizeString, out File.FileSize))
+				{
+					File.FileSize = -1;
+				}
+
+				Tags.TryGetValue("digest" + Suffix, out File.Digest);
+				Files.Add(File);
+			}
+		}
+	}
+
 	[DebuggerDisplay("{ServerAddress}")]
 	class PerforceInfoRecord
 	{
@@ -757,6 +834,35 @@ namespace UnrealGameSync
 			return RunCommand(String.Format("client -f -s -S \"{0}\" \"{1}\"", NewStream, ClientName), CommandOptions.None, Log);
 		}
 
+		public bool Describe(int ChangeNumber, out PerforceDescribeRecord Record, TextWriter Log)
+		{
+			string CommandLine = String.Format("describe -s {0}", ChangeNumber);
+
+			List<Dictionary<string, string>> Records = new List<Dictionary<string,string>>();
+			if(!RunCommandWithBinaryOutput(CommandLine, Records, CommandOptions.None, Log))
+			{
+				Record = null;
+				return false;
+			}
+			if(Records.Count != 1)
+			{
+				Log.WriteLine("Expected 1 record from p4 {0}, got {1}", CommandLine, Records.Count);
+				Record = null;
+				return false;
+			}
+
+			string Code;
+			if(!Records[0].TryGetValue("code", out Code) || Code != "stat")
+			{
+				Log.WriteLine("Unexpected response from p4 {0}: {1}", CommandLine, String.Join(", ", Records[0].Select(x => String.Format("{ \"{0}\", \"{1}\" }", x.Key, x.Value))));
+				Record = null;
+				return false;
+			}
+
+			Record = new PerforceDescribeRecord(Records[0]);
+			return true;
+		}
+
 		public bool Where(string Filter, out PerforceWhereRecord WhereRecord, TextWriter Log)
 		{
 			List<PerforceFileRecord> FileRecords;
@@ -1112,6 +1218,113 @@ namespace UnrealGameSync
 				return true;
 			}
 			return false;
+		}
+
+		/// <summary>
+		/// Execute a Perforce command and parse the output as marshalled Python objects. This is more robustly defined than the text-based tagged output
+		/// format, because it avoids ambiguity when returned fields can have newlines.
+		/// </summary>
+		/// <param name="CommandLine">Command line to execute Perforce with</param>
+		/// <param name="TaggedOutput">List that receives the output records</param>
+		/// <param name="WithClient">Whether to include client information on the command line</param>
+		private bool RunCommandWithBinaryOutput(string CommandLine, List<Dictionary<string, string>> Records, CommandOptions Options, TextWriter Log)
+		{
+			return RunCommandWithBinaryOutput(CommandLine, Record => { Records.Add(Record); return true; }, Options, Log);
+		}
+
+		/// <summary>
+		/// Execute a Perforce command and parse the output as marshalled Python objects. This is more robustly defined than the text-based tagged output
+		/// format, because it avoids ambiguity when returned fields can have newlines.
+		/// </summary>
+		/// <param name="CommandLine">Command line to execute Perforce with</param>
+		/// <param name="TaggedOutput">List that receives the output records</param>
+		/// <param name="WithClient">Whether to include client information on the command line</param>
+		private bool RunCommandWithBinaryOutput(string CommandLine, HandleRecordDelegate HandleOutput, CommandOptions Options, TextWriter Log)
+		{
+			// Execute Perforce, consuming the binary output into a memory stream
+			MemoryStream MemoryStream = new MemoryStream();
+			using (Process Process = new Process())
+			{
+				Process.StartInfo.FileName = "p4.exe";
+				Process.StartInfo.Arguments = GetFullCommandLine("-G " + CommandLine, Options | CommandOptions.NoChannels);
+
+				Process.StartInfo.RedirectStandardError = true;
+				Process.StartInfo.RedirectStandardOutput = true;
+				Process.StartInfo.RedirectStandardInput = false;
+				Process.StartInfo.UseShellExecute = false;
+				Process.StartInfo.CreateNoWindow = true;
+
+				Process.Start();
+
+				Process.StandardOutput.BaseStream.CopyTo(MemoryStream);
+				Process.WaitForExit();
+			}
+
+			// Move back to the start of the memory stream
+			MemoryStream.Position = 0;
+
+			// Parse the records
+			List<Dictionary<string, string>> Records = new List<Dictionary<string, string>>();
+			using (BinaryReader Reader = new BinaryReader(MemoryStream, Encoding.UTF8))
+			{
+				while(Reader.BaseStream.Position < Reader.BaseStream.Length)
+				{
+					// Check that a dictionary follows
+					byte Temp = Reader.ReadByte();
+					if(Temp != '{')
+					{
+						Log.WriteLine("Unexpected data while parsing marshalled output - expected '{'");
+						return false;
+					}
+
+					// Read all the fields in the record
+					Dictionary<string, string> Record = new Dictionary<string, string>();
+					for(;;)
+					{
+						// Read the next field type. Perforce only outputs string records. A '0' character indicates the end of the dictionary.
+						byte KeyFieldType = Reader.ReadByte();
+						if(KeyFieldType == '0')
+						{
+							break;
+						}
+						else if(KeyFieldType != 's')
+						{
+							Log.WriteLine("Unexpected key field type while parsing marshalled output ({0}) - expected 's'", (int)KeyFieldType);
+							return false;
+						}
+
+						// Read the key
+						int KeyLength = Reader.ReadInt32();
+						string Key = Encoding.UTF8.GetString(Reader.ReadBytes(KeyLength));
+
+						// Read the value type.
+						byte ValueFieldType = Reader.ReadByte();
+						if(ValueFieldType == 'i')
+						{
+							// An integer
+							string Value = Reader.ReadInt32().ToString();
+							Record.Add(Key, Value);
+						}
+						else if(ValueFieldType == 's')
+						{
+							// A string
+							int ValueLength = Reader.ReadInt32();
+							string Value = Encoding.UTF8.GetString(Reader.ReadBytes(ValueLength));
+							Record.Add(Key, Value);
+						}
+						else
+						{
+							Log.WriteLine("Unexpected value field type while parsing marshalled output ({0}) - expected 's'", (int)ValueFieldType);
+							return false;
+						}
+					}
+					if(!HandleOutput(Record))
+					{
+						return false;
+					}
+				}
+			}
+			return true;
 		}
 	}
 

@@ -255,11 +255,6 @@ namespace UnrealBuildTool
 		public bool bAllowLTCG;
 
 		/// <summary>
-		/// Enabled code analysis mode
-		/// </summary>
-		public bool bEnableCodeAnalysis;
-
-		/// <summary>
 		/// Whether to log detailed timing info from the compiler
 		/// </summary>
 		public bool bPrintTimingInfo;
@@ -358,7 +353,6 @@ namespace UnrealBuildTool
 			bSupportEditAndContinue = Other.bSupportEditAndContinue;
 			bUseIncrementalLinking = Other.bUseIncrementalLinking;
 			bAllowLTCG = Other.bAllowLTCG;
-			bEnableCodeAnalysis = Other.bEnableCodeAnalysis;
 			bPrintTimingInfo = Other.bPrintTimingInfo;
 			bAllowRemotelyCompiledPCHs = Other.bAllowRemotelyCompiledPCHs;
 			IncludePaths = new CppIncludePaths(Other.IncludePaths);

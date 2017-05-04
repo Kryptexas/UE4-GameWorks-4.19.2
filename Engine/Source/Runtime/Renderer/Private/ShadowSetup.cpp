@@ -28,7 +28,7 @@
 #include "LightPropagationVolume.h"
 #include "ScenePrivate.h"
 #include "RendererModule.h"
-#include "LightPropagationVolumeBlendable.h"
+#include "LightPropagationVolumeSettings.h"
 #include "CapsuleShadowRendering.h"
 
 static float GMinScreenRadiusForShadowCaster = 0.03f;

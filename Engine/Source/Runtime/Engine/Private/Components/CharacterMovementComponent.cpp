@@ -8271,11 +8271,11 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 	{
 		if (GetDefault<AGameNetworkManager>()->ClientAuthorativePosition)
 		{
-			const FVector LocDiff = UpdatedComponent->GetComponentLocation() - ClientLoc;
+			const FVector LocDiff = UpdatedComponent->GetComponentLocation() - ClientLoc; //-V595
 			if (!LocDiff.IsZero() || ClientMovementMode != PackNetworkMovementMode() || GetMovementBase() != ClientMovementBase || (CharacterOwner && CharacterOwner->GetBasedMovement().BoneName != ClientBaseBoneName))
 			{
 				// Just set the position. On subsequent moves we will resolve initially overlapping conditions.
-				UpdatedComponent->SetWorldLocation(ClientLoc, false);
+				UpdatedComponent->SetWorldLocation(ClientLoc, false); //-V595
 
 				// Trust the client's movement mode.
 				ApplyNetworkMovementMode(ClientMovementMode);
@@ -8408,7 +8408,7 @@ void UCharacterMovementComponent::MoveAutonomous
 	}
 
 	// If not playing root motion, tick animations after physics. We do this here to keep events, notifies, states and transitions in sync with client updates.
-	if( !CharacterOwner->bClientUpdating && !CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh() )
+	if( CharacterOwner && !CharacterOwner->bClientUpdating && !CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh() )
 	{
 		TickCharacterPose(DeltaTime);
 		// TODO: SaveBaseLocation() in case tick moves us?
@@ -8668,7 +8668,7 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 		// If walking, we'd like to continue walking if possible, to avoid falling for a frame, so try to find a base where we moved to.
 		if (PreviousBase)
 		{
-			FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
+			FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false); //-V595
 			if (CurrentFloor.IsWalkableFloor())
 			{
 				FinalBase = CurrentFloor.HitResult.Component.Get();

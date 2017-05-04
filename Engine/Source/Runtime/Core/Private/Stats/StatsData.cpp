@@ -1128,7 +1128,7 @@ void FStatsThreadState::UpdateStatMessagesMemoryUsage()
 void FStatsThreadState::GetInclusiveAggregateStackStats(
 	int64 TargetFrame, 
 	TArray<FStatMessage>& OutStats, 
-	IItemFiler* Filter /*= nullptr*/, 
+	IItemFilter* Filter /*= nullptr*/, 
 	bool bAddNonStackStats /*= true*/, 
 	TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap /*= nullptr */) const
 {
@@ -1139,7 +1139,7 @@ void FStatsThreadState::GetInclusiveAggregateStackStats(
 void FStatsThreadState::GetInclusiveAggregateStackStats( 
 	const TArray<FStatMessage>& CondensedMessages, 
 	TArray<FStatMessage>& OutStats, 
-	IItemFiler* Filter /*= nullptr*/, 
+	IItemFilter* Filter /*= nullptr*/, 
 	bool bAddNonStackStats /*= true*/, 
 	TMap<FName, TArray<FStatMessage>>* OptionalOutThreadBreakdownMap /*= nullptr */ ) const
 {
@@ -1282,7 +1282,7 @@ void FStatsThreadState::GetInclusiveAggregateStackStats(
 void FStatsThreadState::GetExclusiveAggregateStackStats( 
 	int64 TargetFrame, 
 	TArray<FStatMessage>& OutStats, 
-	IItemFiler* Filter /*= nullptr*/, 
+	IItemFilter* Filter /*= nullptr*/, 
 	bool bAddNonStackStats /*= true*/ ) const
 {
 	const TArray<FStatMessage>& CondensedMessages = GetCondensedHistory( TargetFrame );
@@ -1292,7 +1292,7 @@ void FStatsThreadState::GetExclusiveAggregateStackStats(
 void FStatsThreadState::GetExclusiveAggregateStackStats( 
 	const TArray<FStatMessage>& CondensedMessages, 
 	TArray<FStatMessage>& OutStats, 
-	IItemFiler* Filter /*= nullptr*/, 
+	IItemFilter* Filter /*= nullptr*/, 
 	bool bAddNonStackStats /*= true */ ) const
 {
 	TMap<FName, FStatMessage> ThisFrameMetaData;
@@ -1525,7 +1525,7 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 void FStatsThreadState::UncondenseStackStats(
 	int64 TargetFrame, 
 	FRawStatStackNode& Root, 
-	IItemFiler* Filter /*= nullptr*/, 
+	IItemFilter* Filter /*= nullptr*/, 
 	TArray<FStatMessage>* OutNonStackStats /*= nullptr */) const
 {
 	const TArray<FStatMessage>& CondensedMessages = GetCondensedHistory( TargetFrame );
@@ -1535,7 +1535,7 @@ void FStatsThreadState::UncondenseStackStats(
 void FStatsThreadState::UncondenseStackStats( 
 	const TArray<FStatMessage>& CondensedMessages, 
 	FRawStatStackNode& Root, 
-	IItemFiler* Filter /*= nullptr*/, 
+	IItemFilter* Filter /*= nullptr*/, 
 	TArray<FStatMessage>* OutNonStackStats /*= nullptr */ ) const
 {
 	TMap<FName, FStatMessage> ThisFrameNonStackStats;

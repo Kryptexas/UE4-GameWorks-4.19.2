@@ -28,7 +28,7 @@ public:
 	 * @param InFileRequestDelegate 
 	 */
 	FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate, 
-		const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
+		const FRecompileShadersDelegate* InRecompileShadersDelegate, const FSandboxPathDelegate* SandboxPathOverrideDelegate, FOnFileModifiedDelegate* OnFileModifiedCallback, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	/**
 	 * Destructor.
@@ -62,7 +62,6 @@ public:
 	virtual FString GetSupportedProtocol() const override;
 	virtual int32 NumConnections() const override;
 	virtual void Shutdown() override;
-
 private:
 
 	// Holds the server (listening) socket.
@@ -87,6 +86,12 @@ public:
 
 	// Holds a delegate to be invoked when a client requests a shader recompile.
 	FRecompileShadersDelegate RecompileShadersDelegate;
+
+	FSandboxPathDelegate SandboxPathDelegate;
+
+	FSandboxPathDelegate SandboxPathOverrideDelegate;
+
+	FOnFileModifiedDelegate* OnFileModifiedCallback;
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*> ActiveTargetPlatforms;

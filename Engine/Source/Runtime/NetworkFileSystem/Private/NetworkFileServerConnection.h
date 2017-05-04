@@ -22,7 +22,7 @@ public:
 	 * @param InFileRequestDelegate - A delegate to be invoked when the client requests a file.
 	 */
 	FNetworkFileServerClientConnection(const FFileRequestDelegate& InFileRequestDelegate, 
-		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
+		const FRecompileShadersDelegate& InRecompileShadersDelegate, const FSandboxPathDelegate& InSandboxPathOverrideDelegate, FOnFileModifiedDelegate* OnFileModifiedDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	/**
 	 * Destructor.
@@ -62,7 +62,7 @@ protected:
 	 *
 	 *	@param	FilenameToConvert		Upon input, the server version of the filename. After the call, the client version
 	 */
-	void ConvertServerFilenameToClientFilename(FString& FilenameToConvert);
+	// void ConvertServerFilenameToClientFilename(FString& FilenameToConvert);
 	
 	/** Opens a file for reading or writing. */
 	void ProcessOpenFile(FArchive& In, FArchive& Out, bool bIsWriting);
@@ -154,6 +154,32 @@ protected:
 
 
 	virtual bool SendPayload( TArray<uint8> &Out ) = 0; 
+
+	/**
+	 * When a file is modified this callback is triggered
+	 *  cleans up any cached information about the file and notifies client
+	 * 
+	 * @param Filename of the file which has been modified
+	 */
+	void FileModifiedCallback( const FString& Filename );
+
+	/**
+	 * Convert a path to a sandbox path and translate so the client can understand it 
+	 *
+	 * @param Filename to convert
+	 * @param bLowerCaseFiles conver the file name to all lower case
+	 * @return Resulting fixed up path
+	 */
+	FString FixupSandboxPathForClient(const FString& Filename);
+
+	/**
+	* Convert a path to a sandbox path and translate so the client can understand it
+	*
+	* @param Filename to convert
+	* @param bLowerCaseFiles conver the file name to all lower case
+	* @return Resulting fixed up path
+	*/
+	TMap<FString,FDateTime> FixupSandboxPathsForClient(const TMap<FString, FDateTime>& SandboxPaths);
 	
 private:
 
@@ -165,6 +191,15 @@ private:
 
 	// Hold the game directory from the connected platform.
 	FString ConnectedGameDir;
+
+	// Hold the sandbox engine directory for the connected platform
+	FString SandboxEngine;
+
+	// hold the sandbox game directory for the connected platform
+	FString SandboxGame;
+
+	// Should we send the filenames in lowercase
+	bool bSendLowerCase;
 
 	// Holds the last assigned handle id (0 = invalid).
 	uint64 LastHandleId;
@@ -192,6 +227,10 @@ private:
 
 	// Holds a delegate to be invoked when a client requests a shader recompile.
 	FRecompileShadersDelegate RecompileShadersDelegate;
+
+	FSandboxPathDelegate SandboxPathOverrideDelegate;
+
+	FOnFileModifiedDelegate* OnFileModifiedCallback;
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*>& ActiveTargetPlatforms;

@@ -132,10 +132,7 @@ void FPaperGroupedSpriteUtilities::SplitSprites(const TArray<UObject*>& InObject
 							ActorsCreated.Add(SpawnedActor);
 
 							// Give it a good name
-							if (InstanceData.SourceSprite != nullptr)
-							{
-								FActorLabelUtilities::SetActorLabelUnique(SpawnedActor, InstanceData.SourceSprite->GetName());
-							}
+							FActorLabelUtilities::SetActorLabelUnique(SpawnedActor, InstanceData.SourceSprite->GetName());
 						}
 					}
 				}

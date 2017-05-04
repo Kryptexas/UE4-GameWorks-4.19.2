@@ -1166,7 +1166,7 @@ void AGameModeBase::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
 
 	FRotator SpawnRotation = StartSpot->GetActorRotation();
 
-	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtPlayerStart %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
+	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtPlayerStart %s"), NewPlayer->PlayerState ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
 
 	if (MustSpectate(Cast<APlayerController>(NewPlayer)))
 	{
@@ -1205,7 +1205,7 @@ void AGameModeBase::RestartPlayerAtTransform(AController* NewPlayer, const FTran
 		return;
 	}
 
-	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtTransform %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
+	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtTransform %s"), NewPlayer->PlayerState ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
 
 	if (MustSpectate(Cast<APlayerController>(NewPlayer)))
 	{

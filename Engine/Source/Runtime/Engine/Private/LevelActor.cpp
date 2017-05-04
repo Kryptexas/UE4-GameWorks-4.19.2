@@ -401,7 +401,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 	// note: we can't handle all cases here, since we don't know the full component hierarchy until after the actor is spawned
 	if (CollisionHandlingMethod == ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding)
 	{
-		USceneComponent* const TemplateRootComponent = Template ? Template->GetRootComponent() : nullptr;
+		USceneComponent* const TemplateRootComponent = Template->GetRootComponent();
 
 		// Note that we respect any initial transformation the root component may have from the CDO, so the final transform
 		// might necessarily be exactly the passed-in UserTransform.

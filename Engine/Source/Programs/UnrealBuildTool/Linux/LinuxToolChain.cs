@@ -337,6 +337,7 @@ namespace UnrealBuildTool
 			Result += " -Wsequence-point";              // additional warning not normally included in Wall: warns if order of operations is ambigious
 			//Result += " -Wunreachable-code";            // additional warning not normally included in Wall: warns if there is code that will never be executed - not helpful due to bIsGCC and similar
 			//Result += " -Wshadow";                      // additional warning not normally included in Wall: warns if there variable/typedef shadows some other variable - not helpful because we have gobs of code that shadows variables
+			Result += " -Wdelete-non-virtual-dtor";
 
 			Result += ArchitectureSpecificSwitches(CompileEnvironment.Architecture);
 

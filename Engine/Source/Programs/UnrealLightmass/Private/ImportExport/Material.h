@@ -17,6 +17,7 @@ namespace Lightmass
 	class FBaseMaterial : public FBaseMaterialData
 	{
 	public:
+		virtual ~FBaseMaterial() { }
 		virtual void	Import( class FLightmassImporter& Importer );
 	};
 

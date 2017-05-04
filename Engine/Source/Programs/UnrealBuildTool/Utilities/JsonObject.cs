@@ -546,6 +546,31 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Write an array of strings
+		/// </summary>
+		/// <param name="Name">Name of the field</param>
+		/// <param name="Values">Values for the field</param>
+		public void WriteStringArrayField(string Name, IEnumerable<string> Values)
+		{
+			WriteArrayStart(Name);
+			foreach(string Value in Values)
+			{
+				WriteValue(Value);
+			}
+			WriteArrayEnd();
+		}
+
+		/// <summary>
+		/// Write an array of enum values
+		/// </summary>
+		/// <param name="Name">Name of the field</param>
+		/// <param name="Values">Values for the field</param>
+		public void WriteEnumArrayField<T>(string Name, IEnumerable<T> Values) where T : struct
+		{
+			WriteStringArrayField(Name, Values.Select(x => x.ToString()));
+		}
+
+		/// <summary>
 		/// Write a value with no field name, for the contents of an array
 		/// </summary>
 		/// <param name="Value">Value to write</param>

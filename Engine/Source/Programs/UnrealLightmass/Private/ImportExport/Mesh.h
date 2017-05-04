@@ -22,6 +22,7 @@ class FStaticMeshElement;
 class FBaseMesh : public FBaseMeshData
 {
 public:
+	virtual ~FBaseMesh() { }
 	virtual void			Import( class FLightmassImporter& Importer );
 };
 
@@ -56,6 +57,7 @@ protected:
 class FStaticMeshLOD : public FStaticMeshLODData
 {
 public:
+	virtual ~FStaticMeshLOD() { }
 	virtual void			Import( class FLightmassImporter& Importer );
 
 	/**

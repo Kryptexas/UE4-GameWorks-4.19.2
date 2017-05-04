@@ -314,6 +314,7 @@ class FD3D12OnlineHeap : public FD3D12DeviceChild, public FD3D12SingleNodeGPUObj
 {
 public:
 	FD3D12OnlineHeap(FD3D12Device* Device, GPUNodeMask Node, bool CanLoopAround, FD3D12DescriptorCache* _Parent = nullptr);
+	virtual ~FD3D12OnlineHeap() { }
 
 	FORCEINLINE D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) const { return{ CPUBase.ptr + Slot * DescriptorSize }; }
 	FORCEINLINE D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) const { return{ GPUBase.ptr + Slot * DescriptorSize }; }

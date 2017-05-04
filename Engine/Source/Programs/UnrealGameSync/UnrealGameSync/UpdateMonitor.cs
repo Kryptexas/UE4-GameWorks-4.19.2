@@ -61,7 +61,7 @@ namespace UnrealGameSync
 
 		void PollForUpdates()
 		{
-			while(!QuitEvent.WaitOne(20 * 1000))
+			while(!QuitEvent.WaitOne(5 * 60 * 1000))
 			{
 				StringWriter Log = new StringWriter();
 

@@ -189,7 +189,7 @@ public:
 	{
 	}
 
-	explicit FPropertyBase(UClass* InClass, UClass* InMetaClass=NULL, bool bAllowWeak = false, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsAsset = false)
+	explicit FPropertyBase(UClass* InClass, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsAsset = false)
 	: Type                (CPT_ObjectReference)
 	, ArrayType           (EArrayType::None)
 	, PropertyFlags       (0)
@@ -197,7 +197,7 @@ public:
 	, RefQualifier        (ERefQualifier::None)
 	, PropertyExportFlags (PROPEXPORT_Public)
 	, PropertyClass       (InClass)
-	, MetaClass           (InMetaClass)
+	, MetaClass           (nullptr)
 	, DelegateName        (NAME_None)
 	, DelegateSignatureOwnerClass(nullptr)
 	, RepNotifyName       (NAME_None)
@@ -208,28 +208,6 @@ public:
 		if ( InClass->HasAnyClassFlags(CLASS_Interface) )
 		{
 			Type = CPT_Interface;
-		}
-		if (bAllowWeak)
-		{
-			UClass* TestClass = InClass;
-			while (TestClass) // inherited class flags might not yet be propagated, so lets search
-			{
-				if ( TestClass->HasAnyClassFlags(CLASS_PointersDefaultToAutoWeak) )
-				{
-					bIsWeak = true;
-					bWeakIsAuto = true;
-					break;
-				}
-				if ( TestClass->HasAnyClassFlags(CLASS_PointersDefaultToWeak) )
-				{
-					bIsWeak = true;
-				}
-				TestClass = TestClass->GetSuperClass();
-			}
-		}
-		else
-		{
-			bIsWeak = false;
 		}
 		if (bIsLazy)
 		{

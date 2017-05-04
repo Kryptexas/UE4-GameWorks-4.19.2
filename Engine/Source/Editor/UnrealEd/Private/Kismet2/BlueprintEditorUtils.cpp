@@ -7804,7 +7804,7 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 		}
 		else if (const UEnumProperty* EnumProperty = Cast<const UEnumProperty>(Property))
 		{
-			int64 IntValue = IntValue = EnumProperty->GetEnum()->GetValueByName(FName(*Value));
+			int64 IntValue = EnumProperty->GetEnum()->GetValueByName(FName(*Value));
 			bParseSucceeded = (INDEX_NONE != IntValue);
 
 			// If the parse did not succeed, clear out the int to keep the enum value valid

@@ -18,6 +18,9 @@ public:
 	/** Constructor */
 	FSequencerSectionPainter(FSlateWindowElementList& OutDrawElements, const FGeometry& InSectionGeometry, UMovieSceneSection& Section);
 
+	/** Virtual destructor */
+	virtual ~FSequencerSectionPainter();
+
 	/** Paint the section background with the specified tint override */
 	virtual int32 PaintSectionBackground(const FLinearColor& Tint) = 0;
 

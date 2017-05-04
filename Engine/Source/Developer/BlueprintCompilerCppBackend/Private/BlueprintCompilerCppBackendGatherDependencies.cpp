@@ -204,7 +204,7 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 					{
 						if (UK2Node_EnumLiteral* LiteralEnumNode = Cast<UK2Node_EnumLiteral>(K2Node))
 						{
-							UEnum* Enum = LiteralEnumNode ? LiteralEnumNode->Enum : nullptr;
+							UEnum* Enum = LiteralEnumNode->Enum;
 							IncludeTheHeaderInBody(Enum);
 						}
 						// HACK FOR LITERAL ENUMS:
@@ -290,7 +290,7 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 				{
 					IncludeTheHeaderInBody(ObjAsField);
 				}
-				else if (BPGC)
+				else
 				{
 					IncludeTheHeaderInBody(Dependencies.GetFirstNativeOrConvertedClass(BPGC));
 					// Wrappers for unconverted BP will be included only when thay are directly used. See usage of FEmitterLocalContext::MarkUnconvertedClassAsNecessary.

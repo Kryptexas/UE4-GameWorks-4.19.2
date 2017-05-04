@@ -70,7 +70,7 @@ public:
 	}
 	virtual bool IsLocalPlayerTalking(uint32 LocalUserNum) override
 	{
-		return (!bIsLocalPlayerMuted && 0 <= LocalUserNum && LocalUserNum <= MAX_LOCAL_PLAYERS);
+		return (!bIsLocalPlayerMuted && LocalUserNum <= MAX_LOCAL_PLAYERS);
 	}
 	virtual bool IsRemotePlayerTalking(const FUniqueNetId& UniqueId) override;
 	virtual bool IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const override;

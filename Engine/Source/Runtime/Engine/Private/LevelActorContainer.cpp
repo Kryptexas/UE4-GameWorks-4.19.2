@@ -251,8 +251,10 @@ public:
 
 					for (int32 OtherClusterReferencedCluster : OtherCluster.ReferencedClusters)
 					{
-						check(OtherClusterReferencedCluster != ClusterRootIndex);
-						Cluster.ReferencedClusters.AddUnique(OtherClusterReferencedCluster);
+						if (OtherClusterReferencedCluster != ClusterRootIndex)
+						{
+							Cluster.ReferencedClusters.AddUnique(OtherClusterReferencedCluster);
+						}
 					}
 					for (int32 OtherClusterReferencedMutableObjectIndex : OtherCluster.MutableObjects)
 					{

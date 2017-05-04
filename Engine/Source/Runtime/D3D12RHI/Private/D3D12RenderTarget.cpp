@@ -206,10 +206,7 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
-	if (SourceTexture)
-	{
-		ConditionalClearShaderResource(&SourceTexture->ResourceLocation);
-	}
+	ConditionalClearShaderResource(&SourceTexture->ResourceLocation);
 
 	// Reset saved render targets
 	CommitRenderTargetsAndUAVs();

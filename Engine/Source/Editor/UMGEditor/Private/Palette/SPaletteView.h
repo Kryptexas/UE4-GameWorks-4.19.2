@@ -19,6 +19,8 @@ class UWidgetBlueprint;
 class FWidgetViewModel : public TSharedFromThis<FWidgetViewModel>
 {
 public:
+	virtual ~FWidgetViewModel() { }
+
 	virtual FText GetName() const = 0;
 
 	virtual bool IsTemplate() const = 0;

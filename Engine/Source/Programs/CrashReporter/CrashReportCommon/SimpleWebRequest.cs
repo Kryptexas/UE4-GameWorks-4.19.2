@@ -6,7 +6,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 
-namespace Tools.DotNETCommon.SimpleWebRequest
+namespace Tools.CrashReporter.CrashReportCommon
 {
 	/// <summary>
 	/// A class to make simple Xml web requests to return a string.
@@ -82,14 +82,13 @@ namespace Tools.DotNETCommon.SimpleWebRequest
 					if (WebResponse.StatusCode == HttpStatusCode.OK && WebResponse.ContentLength < 4096)
 					{
 						// Process the response
+						byte[] RawResponse;
 						using (Stream ResponseStream = WebResponse.GetResponseStream())
 						{
-							byte[] RawResponse = new byte[WebResponse.ContentLength];
+							RawResponse = new byte[WebResponse.ContentLength];
 							ResponseStream.Read(RawResponse, 0, (int)WebResponse.ContentLength);
-							ResponseStream.Close();
-
-							ResponseString = Encoding.UTF8.GetString(RawResponse);
 						}
+						ResponseString = Encoding.UTF8.GetString(RawResponse);
 					}
 				}
 			}

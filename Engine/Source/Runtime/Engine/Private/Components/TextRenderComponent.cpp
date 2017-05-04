@@ -711,7 +711,7 @@ FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
 	TextMaterial = EffectiveMaterial;
 	MaterialRelevance |= TextMaterial->GetMaterial()->GetRelevance(GetScene().GetFeatureLevel());
 
-	if (TextMaterial && Font && Font->FontCacheType == EFontCacheType::Offline)
+	if (Font && Font->FontCacheType == EFontCacheType::Offline)
 	{
 		FontMIDs = FTextRenderComponentMIDCache::Get().GetMIDData(TextMaterial, Font);
 	}

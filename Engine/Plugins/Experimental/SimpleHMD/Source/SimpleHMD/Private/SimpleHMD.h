@@ -105,5 +105,3 @@ private:
 	void GetCurrentPose(FQuat& CurrentOrientation);
 };
 
-
-DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);

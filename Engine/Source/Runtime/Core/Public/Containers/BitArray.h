@@ -422,20 +422,23 @@ public:
 	 */
 	void RemoveAt(int32 BaseIndex,int32 NumBitsToRemove = 1)
 	{
-		check(BaseIndex >= 0 && BaseIndex + NumBitsToRemove <= NumBits);
+		check(BaseIndex >= 0 && NumBitsToRemove >= 0 && BaseIndex + NumBitsToRemove <= NumBits);
 
-		// Until otherwise necessary, this is an obviously correct implementation rather than an efficient implementation.
-		FIterator WriteIt(*this);
-		for(FConstIterator ReadIt(*this);ReadIt;++ReadIt)
+		if (BaseIndex + NumBitsToRemove != NumBits)
 		{
-			// If this bit isn't being removed, write it back to the array at its potentially new index.
-			if(ReadIt.GetIndex() < BaseIndex || ReadIt.GetIndex() >= BaseIndex + NumBitsToRemove)
+			// Until otherwise necessary, this is an obviously correct implementation rather than an efficient implementation.
+			FIterator WriteIt(*this);
+			for(FConstIterator ReadIt(*this);ReadIt;++ReadIt)
 			{
-				if(WriteIt.GetIndex() != ReadIt.GetIndex())
+				// If this bit isn't being removed, write it back to the array at its potentially new index.
+				if(ReadIt.GetIndex() < BaseIndex || ReadIt.GetIndex() >= BaseIndex + NumBitsToRemove)
 				{
-					WriteIt.GetValue() = (bool)ReadIt.GetValue();
+					if(WriteIt.GetIndex() != ReadIt.GetIndex())
+					{
+						WriteIt.GetValue() = (bool)ReadIt.GetValue();
+					}
+					++WriteIt;
 				}
-				++WriteIt;
 			}
 		}
 		NumBits -= NumBitsToRemove;
@@ -449,7 +452,7 @@ public:
 	 */
 	void RemoveAtSwap( int32 BaseIndex, int32 NumBitsToRemove=1 )
 	{
-		check(BaseIndex >= 0 && BaseIndex + NumBitsToRemove <= NumBits);
+		check(BaseIndex >= 0 && NumBitsToRemove >= 0 && BaseIndex + NumBitsToRemove <= NumBits);
 		if( BaseIndex < NumBits - NumBitsToRemove )
 		{
 			// Copy bits from the end to the region we are removing
@@ -469,8 +472,9 @@ public:
 #endif
 			}
 		}
+
 		// Remove the bits from the end of the array.
-		RemoveAt(NumBits - NumBitsToRemove, NumBitsToRemove);
+		NumBits -= NumBitsToRemove;
 	}
 	
 
@@ -779,7 +783,7 @@ public:
 	TConstSetBitIterator(const TBitArray<Allocator>& InArray,int32 StartIndex = 0)
 		: FRelativeBitReference(StartIndex)
 		, Array                (InArray)
-		, UnvisitedBitMask     ((~0) << (StartIndex & (NumBitsPerDWORD - 1)))
+		, UnvisitedBitMask     ((~0U) << (StartIndex & (NumBitsPerDWORD - 1)))
 		, CurrentBitIndex      (StartIndex)
 		, BaseBitIndex         (StartIndex & ~(NumBitsPerDWORD - 1))
 	{
@@ -897,7 +901,7 @@ public:
 	:	FRelativeBitReference(StartIndex)
 	,	ArrayA(InArrayA)
 	,	ArrayB(InArrayB)
-	,	UnvisitedBitMask((~0) << (StartIndex & (NumBitsPerDWORD - 1)))
+	,	UnvisitedBitMask((~0U) << (StartIndex & (NumBitsPerDWORD - 1)))
 	,	CurrentBitIndex(StartIndex)
 	,	BaseBitIndex(StartIndex & ~(NumBitsPerDWORD - 1))
 	{
@@ -1093,11 +1097,11 @@ private:
 			sizeof(uint32)
 			);
 		MaxBits = MaxDWORDs * NumBitsPerDWORD;
-		const int32 PreviousNumDWORDs = FMath::DivideAndRoundUp(PreviousNumBits, NumBitsPerDWORD);
+		const uint32 PreviousNumDWORDs = FMath::DivideAndRoundUp(PreviousNumBits, NumBitsPerDWORD);
 
 		AllocatorInstance.ResizeAllocation(PreviousNumDWORDs, MaxDWORDs, sizeof(uint32));
 
-		if (MaxDWORDs && MaxDWORDs - PreviousNumDWORDs > 0)
+		if (MaxDWORDs && MaxDWORDs > PreviousNumDWORDs)
 		{
 			// Reset the newly allocated slack DWORDs.
 			FMemory::Memzero((uint32*)AllocatorInstance.GetAllocation() + PreviousNumDWORDs, (MaxDWORDs - PreviousNumDWORDs) * sizeof(uint32));
@@ -1112,9 +1116,9 @@ private:
 			sizeof(uint32)
 			);
 		MaxBits = MaxDWORDs * NumBitsPerDWORD;
-		const int32 PreviousNumDWORDs = FMath::DivideAndRoundUp(PreviousNumBits, NumBitsPerDWORD);
+		const uint32 PreviousNumDWORDs = FMath::DivideAndRoundUp(PreviousNumBits, NumBitsPerDWORD);
 		AllocatorInstance.ResizeAllocation(PreviousNumDWORDs, MaxDWORDs, sizeof(uint32));
-		if (MaxDWORDs && MaxDWORDs - PreviousNumDWORDs > 0)
+		if (MaxDWORDs && MaxDWORDs > PreviousNumDWORDs)
 		{
 			// Reset the newly allocated slack DWORDs.
 			FMemory::Memzero((uint32*)AllocatorInstance.GetAllocation() + PreviousNumDWORDs, (MaxDWORDs - PreviousNumDWORDs) * sizeof(uint32));

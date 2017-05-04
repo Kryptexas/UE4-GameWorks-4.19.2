@@ -3,129 +3,27 @@
 #include "Containers/LockFreeList.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/IConsoleManager.h"
+#include "Stats.h"
+
 
 
 DEFINE_LOG_CATEGORY(LogLockFreeList);
 
+DECLARE_MEMORY_STAT(TEXT("Lock Free List Links"), STAT_LockFreeListLinks, STATGROUP_Memory);
 
-#if USE_LOCKFREELIST_128
-
-/*-----------------------------------------------------------------------------
-	FLockFreeVoidPointerListBase128
------------------------------------------------------------------------------*/
-
-FLockFreeVoidPointerListBase128::FLinkAllocator& FLockFreeVoidPointerListBase128::FLinkAllocator::Get()
-{
-	static FLinkAllocator TheAllocator;
-	return TheAllocator;
-}
-
-FLockFreeVoidPointerListBase128::FLinkAllocator::FLinkAllocator()
-	: SpecialClosedLink( FLargePointer( new FLink(), FLockFreeListConstants::SpecialClosedLink ) ) 
-{
-	if( !FPlatformAtomics::CanUseCompareExchange128() )
-	{
-		// This is a fatal error.
-		FPlatformMisc::MessageBoxExt( EAppMsgType::Ok, TEXT( "CPU does not support Compare and Exchange 128-bit operation. Unreal Engine 4 will exit now." ), TEXT( "Unsupported processor" ) );
-		FPlatformMisc::RequestExit( true );
-		UE_LOG( LogHAL, Fatal, TEXT( "CPU does not support Compare and Exchange 128-bit operation" ) );
-	}
-}
-	
-
-FLockFreeVoidPointerListBase128::FLinkAllocator::~FLinkAllocator()
-{
- 	// - Deliberately leak to allow LockFree to be used during shutdown
-#if	0
- 	check(SpecialClosedLink.Pointer); // double free?
- 	check(!NumUsedLinks.GetValue());
- 	while( FLink* ToDelete = FLink::Unlink(FreeLinks) )
- 	{
- 		delete ToDelete;
- 		NumFreeLinks.Decrement();
- 	}
- 	check(!NumFreeLinks.GetValue());
- 	delete SpecialClosedLink.Pointer;
- 	SpecialClosedLink.Pointer = 0;
-#endif // 0
-}
-
-#else
-
-/*-----------------------------------------------------------------------------
-	FLockFreeVoidPointerListBase
------------------------------------------------------------------------------*/
-
-FLockFreeVoidPointerListBase::FLinkAllocator& FLockFreeVoidPointerListBase::FLinkAllocator::Get()
-{
-	static FLinkAllocator TheAllocator;
-	return TheAllocator;
-}
-
-FLockFreeVoidPointerListBase::FLinkAllocator::FLinkAllocator()
-	: FreeLinks(NULL)
-	, SpecialClosedLink(new FLink())
-{
-	ClosedLink()->LockCount.Increment();
-}
-
-FLockFreeVoidPointerListBase::FLinkAllocator::~FLinkAllocator()
-{
-	// - Deliberately leak to allow LockFree to be used during shutdown
-#if	0
-	check(SpecialClosedLink); // double free?
-	check(!NumUsedLinks.GetValue());
-	while (FLink* ToDelete = FLink::Unlink(&FreeLinks))
-	{
-		delete ToDelete;
-		NumFreeLinks.Decrement();
-	}
-	check(!NumFreeLinks.GetValue());
-	delete SpecialClosedLink;
-	SpecialClosedLink = 0;
-#endif // 0
-}
-
-FLockFreePointerQueueBaseLinkAllocator& FLockFreePointerQueueBaseLinkAllocator::Get()
-{
-	static FLockFreePointerQueueBaseLinkAllocator Singleton;
-	return Singleton;
-}
-
-//static FThreadSafeCounter Sleeps;
-//static FThreadSafeCounter BigSleeps;
-
-void LockFreeCriticalSpin(int32& SpinCount)
-{
-	SpinCount++;
-	if (SpinCount > 256)
-	{
-		FPlatformProcess::Sleep(0.00001f);
-		//BigSleeps.Increment();
-	}
-	else if (SpinCount > 32)
-	{
-		FPlatformProcess::Sleep(0.0f);
-		//if (Sleeps.Increment() % 10000 == 9999)
-		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("sleep0 %d sleep 10us %d"), Sleeps.GetValue() + 1, BigSleeps.GetValue());
-		//}
-	}
-	else if (SpinCount > 8)
-	{
-		FPlatformMisc::MemoryBarrier();
-	}
-}
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
-static FThreadSafeCounter TestStall;
-
 void DoTestCriticalStall()
 {
-	if (TestStall.Increment() % 9713 == 9712)
+	float Test = FMath::FRand();
+	if (Test < .001)
 	{
-		FPlatformProcess::Sleep(0.000001f);
+		FPlatformProcess::SleepNoStats(0.001f);
+	}
+	else if (Test < .01f)
+	{
+		FPlatformProcess::SleepNoStats(0.0f);
 	}
 }
 
@@ -139,5 +37,175 @@ static FAutoConsoleVariableRef CVarTestCriticalLockFree(
 
 #endif
 
-#endif //USE_LOCKFREELIST_128
+void LockFreeTagCounterHasOverflowed()
+{
+	UE_LOG(LogTemp, Log, TEXT("LockFree Tag has overflowed...(not a problem)."));
+	FPlatformProcess::Sleep(.001f);
+}
 
+void LockFreeLinksExhausted(uint32 TotalNum)
+{
+	UE_LOG(LogTemp, Fatal, TEXT("Consumed %d lock free links; there are no more."), TotalNum);
+}
+
+void* LockFreeAllocLinks(SIZE_T AllocSize)
+{
+	INC_MEMORY_STAT_BY(STAT_LockFreeListLinks, AllocSize);
+	return FMemory::Malloc(AllocSize);
+}
+void LockFreeFreeLinks(SIZE_T AllocSize, void* Ptr)
+{
+	DEC_MEMORY_STAT_BY(STAT_LockFreeListLinks, AllocSize);
+	FMemory::Free(Ptr);
+}
+
+class LockFreeLinkAllocator_TLSCache : public FNoncopyable
+{
+	enum
+	{
+		NUM_PER_BUNDLE = 64,
+	};
+
+	typedef FLockFreeLinkPolicy::TLink TLink;
+	typedef FLockFreeLinkPolicy::TLinkPtr TLinkPtr;
+
+public:
+
+	LockFreeLinkAllocator_TLSCache()
+	{
+		check(IsInGameThread());
+		TlsSlot = FPlatformTLS::AllocTlsSlot();
+		check(FPlatformTLS::IsValidTlsSlot(TlsSlot));
+	}
+	/** Destructor, leaks all of the memory **/
+	~LockFreeLinkAllocator_TLSCache()
+	{
+		FPlatformTLS::FreeTlsSlot(TlsSlot);
+		TlsSlot = 0;
+	}
+
+	/**
+	* Allocates a memory block of size SIZE.
+	*
+	* @return Pointer to the allocated memory.
+	* @see Free
+	*/
+	TLinkPtr Pop()
+	{
+		FThreadLocalCache& TLS = GetTLS();
+
+		if (!TLS.PartialBundle)
+		{
+			if (TLS.FullBundle)
+			{
+				TLS.PartialBundle = TLS.FullBundle;
+				TLS.FullBundle = 0;
+			}
+			else
+			{
+				TLS.PartialBundle = GlobalFreeListBundles.Pop();
+				if (!TLS.PartialBundle)
+				{
+					int32 FirstIndex = FLockFreeLinkPolicy::LinkAllocator.Alloc(NUM_PER_BUNDLE);
+					for (int32 Index = 0; Index < NUM_PER_BUNDLE; Index++)
+					{
+						TLink* Event = FLockFreeLinkPolicy::IndexToLink(FirstIndex + Index);
+						Event->DoubleNext.Init();
+						Event->SingleNext = 0;
+						Event->Payload = (void*)UPTRINT(TLS.PartialBundle);
+						TLS.PartialBundle = FLockFreeLinkPolicy::IndexToPtr(FirstIndex + Index);
+					}
+				}
+			}
+			TLS.NumPartial = NUM_PER_BUNDLE;
+		}
+		TLinkPtr Result = TLS.PartialBundle;
+		TLink* ResultP = FLockFreeLinkPolicy::DerefLink(TLS.PartialBundle);
+		TLS.PartialBundle = TLinkPtr(UPTRINT(ResultP->Payload));
+		TLS.NumPartial--;
+		checkLockFreePointerList(TLS.NumPartial >= 0 && ((!!TLS.NumPartial) == (!!TLS.PartialBundle)));
+		ResultP->Payload = nullptr;
+		checkLockFreePointerList(!ResultP->DoubleNext.GetPtr() && !ResultP->SingleNext);
+		return Result;
+	}
+
+	/**
+	* Puts a memory block previously obtained from Allocate() back on the free list for future use.
+	*
+	* @param Item The item to free.
+	* @see Allocate
+	*/
+	void Push(TLinkPtr Item)
+	{
+		FThreadLocalCache& TLS = GetTLS();
+		if (TLS.NumPartial >= NUM_PER_BUNDLE)
+		{
+			if (TLS.FullBundle)
+			{
+				GlobalFreeListBundles.Push(TLS.FullBundle);
+				//TLS.FullBundle = nullptr;
+			}
+			TLS.FullBundle = TLS.PartialBundle;
+			TLS.PartialBundle = 0;
+			TLS.NumPartial = 0;
+		}
+		TLink* ItemP = FLockFreeLinkPolicy::DerefLink(Item);
+		ItemP->DoubleNext.SetPtr(0);
+		ItemP->SingleNext = 0;
+		ItemP->Payload = (void*)UPTRINT(TLS.PartialBundle);
+		TLS.PartialBundle = Item;
+		TLS.NumPartial++;
+	}
+
+private:
+
+	/** struct for the TLS cache. */
+	struct FThreadLocalCache
+	{
+		TLinkPtr FullBundle;
+		TLinkPtr PartialBundle;
+		int32 NumPartial;
+
+		FThreadLocalCache()
+			: FullBundle(0)
+			, PartialBundle(0)
+			, NumPartial(0)
+		{
+		}
+	};
+
+	FThreadLocalCache& GetTLS()
+	{
+		checkSlow(FPlatformTLS::IsValidTlsSlot(TlsSlot));
+		FThreadLocalCache* TLS = (FThreadLocalCache*)FPlatformTLS::GetTlsValue(TlsSlot);
+		if (!TLS)
+		{
+			TLS = new FThreadLocalCache();
+			FPlatformTLS::SetTlsValue(TlsSlot, TLS);
+		}
+		return *TLS;
+	}
+
+	/** Slot for TLS struct. */
+	uint32 TlsSlot;
+
+	/** Lock free list of free memory blocks, these are all linked into a bundle of NUM_PER_BUNDLE. */
+	FLockFreePointerListLIFORoot<PLATFORM_CACHE_LINE_SIZE> GlobalFreeListBundles;
+};
+
+static LockFreeLinkAllocator_TLSCache GLockFreeLinkAllocator;
+
+void FLockFreeLinkPolicy::FreeLockFreeLink(FLockFreeLinkPolicy::TLinkPtr Item)
+{
+	GLockFreeLinkAllocator.Push(Item);
+}
+
+FLockFreeLinkPolicy::TLinkPtr FLockFreeLinkPolicy::AllocLockFreeLink()
+{
+	FLockFreeLinkPolicy::TLinkPtr Result = GLockFreeLinkAllocator.Pop();
+	// this can only really be a mem stomp
+	checkLockFreePointerList(Result && !FLockFreeLinkPolicy::DerefLink(Result)->DoubleNext.GetPtr() && !FLockFreeLinkPolicy::DerefLink(Result)->Payload && !FLockFreeLinkPolicy::DerefLink(Result)->SingleNext);
+	return Result;
+}
+
+FLockFreeLinkPolicy::TAllocator FLockFreeLinkPolicy::LinkAllocator;

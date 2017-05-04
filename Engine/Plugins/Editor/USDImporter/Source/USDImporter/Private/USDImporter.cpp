@@ -223,8 +223,7 @@ UObject* UUSDImporter::ImportMeshes(FUsdImportContext& ImportContext, const TArr
 
 		}
 
-		UObject* NewMesh = nullptr;
-		NewMesh = ImportSingleMesh(ImportContext, MeshImportType, PrimToImport);
+		UObject* NewMesh = ImportSingleMesh(ImportContext, MeshImportType, PrimToImport);
 
 		FAssetRegistryModule::AssetCreated(NewMesh);
 

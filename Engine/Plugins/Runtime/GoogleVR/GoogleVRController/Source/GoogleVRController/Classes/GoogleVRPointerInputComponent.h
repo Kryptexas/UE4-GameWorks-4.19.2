@@ -22,7 +22,7 @@
 
 class UGoogleVRWidgetInteractionComponent;
 
-DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRPointerInput, Log, All);
+GOOGLEVRCONTROLLER_API DECLARE_LOG_CATEGORY_EXTERN(LogGoogleVRPointerInput, Log, All);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGoogleVRInputDelegate, FHitResult, HitResult);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGoogleVRInputExitActorDelegate, AActor*, PreviousActor, FHitResult, HitResult);

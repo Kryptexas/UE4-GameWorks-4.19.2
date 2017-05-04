@@ -261,11 +261,29 @@ FScopedEvent::FScopedEvent()
 	: Event(FEventPool<EEventPoolTypes::AutoReset>::Get().GetEventFromPool())
 { }
 
+bool FScopedEvent::IsReady()
+{
+	if ( Event )
+	{
+		if ( Event->Wait(1) )
+		{
+			FEventPool<EEventPoolTypes::AutoReset>::Get().ReturnToPool(Event);
+			Event = nullptr;
+			return true;
+		}
+		return false;
+	}
+	return true;
+}
+
 FScopedEvent::~FScopedEvent()
 {
-	Event->Wait();
-	FEventPool<EEventPoolTypes::AutoReset>::Get().ReturnToPool(Event);
-	Event = nullptr;
+	if ( Event )
+	{
+		Event->Wait();
+		FEventPool<EEventPoolTypes::AutoReset>::Get().ReturnToPool(Event);
+		Event = nullptr;
+	}
 }
 
 /*-----------------------------------------------------------------------------

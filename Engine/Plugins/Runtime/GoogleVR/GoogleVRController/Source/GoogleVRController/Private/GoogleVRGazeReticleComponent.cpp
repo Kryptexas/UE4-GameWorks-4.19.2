@@ -22,6 +22,8 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 
+DEFINE_LOG_CATEGORY(LogGoogleVRGazeReticle);
+
 UGoogleVRGazeReticleComponent::UGoogleVRGazeReticleComponent()
 : Mesh(nullptr)
 , Material(nullptr)

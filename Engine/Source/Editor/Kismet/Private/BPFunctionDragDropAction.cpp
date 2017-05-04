@@ -225,8 +225,7 @@ FReply FKismetFunctionDragDropAction::DroppedOnPanel(TSharedRef<SWidget> const& 
 	FReply Reply = FReply::Unhandled();
 
 	// The ActionNode set during construction points to the Graph, this is suitable for displaying the mouse decorator but needs to be more complete based on the current graph
-	UBlueprintFunctionNodeSpawner* FunctionNodeSpawner = nullptr;
-	FunctionNodeSpawner = GetDropAction(Graph);
+	UBlueprintFunctionNodeSpawner* FunctionNodeSpawner = GetDropAction(Graph);
 
 	if (FunctionNodeSpawner)
 	{

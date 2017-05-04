@@ -65,27 +65,24 @@ FReply FPixelInspectorDetailsCustomization::HandleColorCellMouseButtonDown(const
 	if (DeltaX == 0 && DeltaY == 0)
 		return FReply::Handled();
 	//Get the PixelInspector module
-	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
-	if (PixelInspectorModule != nullptr)
+	FPixelInspectorModule& PixelInspectorModule = FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+	FIntPoint InspectViewportPos = FIntPoint(-1, -1);
+	uint32 CoordinateViewportId = 0;
+	PixelInspectorModule.GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
+	if (InspectViewportPos == FIntPoint(-1, -1))
+		return FReply::Handled();
+
+	InspectViewportPos.X += DeltaX;
+	InspectViewportPos.Y += DeltaY;
+	if (InspectViewportPos.X < 0 || InspectViewportPos.Y < 0)
+		return FReply::Handled();
+
+	bool IsInspectorActive = PixelInspectorModule.IsPixelInspectorEnable();
+	if (!IsInspectorActive)
 	{
-		FIntPoint InspectViewportPos = FIntPoint(-1, -1);
-		uint32 CoordinateViewportId = 0;
-		PixelInspectorModule->GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
-		if (InspectViewportPos == FIntPoint(-1, -1))
-			return FReply::Handled();
-
-		InspectViewportPos.X += DeltaX;
-		InspectViewportPos.Y += DeltaY;
-		if (InspectViewportPos.X < 0 || InspectViewportPos.Y < 0)
-			return FReply::Handled();
-
-		bool IsInspectorActive = PixelInspectorModule->IsPixelInspectorEnable();
-		if (!IsInspectorActive)
-		{
-			PixelInspectorModule->ActivateCoordinateMode();
-		}
-		PixelInspectorModule->SetCoordinatePosition(InspectViewportPos, true);
+		PixelInspectorModule.ActivateCoordinateMode();
 	}
+	PixelInspectorModule.SetCoordinatePosition(InspectViewportPos, true);
 	return FReply::Handled();
 }
 

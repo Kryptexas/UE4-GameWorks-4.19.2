@@ -18,6 +18,8 @@
 
 #define LOCTEXT_NAMESPACE "FGoogleVRTransition2DModule"
 
+DEFINE_LOG_CATEGORY(LogGoogleVRTransition2D);
+
 void FGoogleVRTransition2DModule::StartupModule()
 {
 	UGoogleVRTransition2DBPLibrary::Initialize();

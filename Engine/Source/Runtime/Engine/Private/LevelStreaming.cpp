@@ -1080,11 +1080,18 @@ ULevelStreamingKismet* ULevelStreamingKismet::LoadLevelInstance(UObject* WorldCo
 /*-----------------------------------------------------------------------------
 	ULevelStreamingAlwaysLoaded implementation.
 -----------------------------------------------------------------------------*/
+
 ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bShouldBeVisible = true;
 }
+
+void ULevelStreamingAlwaysLoaded::GetPrestreamPackages(TArray<UObject*>& OutPrestream)
+{
+	OutPrestream.Add(GetLoadedLevel()); // Nulls will be ignored later
+}
+
 
 bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded() const
 {

@@ -77,6 +77,9 @@ public:
 
 #endif
 
+	virtual ~TResourceArray() { }
+
+
 	// FResourceArrayInterface
 
 	/**

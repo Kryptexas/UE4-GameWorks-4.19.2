@@ -10,6 +10,7 @@
 class IRefCountedObject
 {
 public:
+	virtual ~IRefCountedObject() { }
 	virtual uint32 AddRef() const = 0;
 	virtual uint32 Release() const = 0;
 	virtual uint32 GetRefCount() const = 0;

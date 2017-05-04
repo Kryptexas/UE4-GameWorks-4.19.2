@@ -261,7 +261,7 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	bIsBeingDebugged = false;
 	if (UAnimBlueprint* AnimBlueprint = GetAnimBlueprint())
 	{
-		bIsBeingDebugged = (InAnimInstance && (AnimBlueprint->GetObjectBeingDebugged() == InAnimInstance));
+		bIsBeingDebugged = (AnimBlueprint->GetObjectBeingDebugged() == InAnimInstance);
 		if(bIsBeingDebugged)
 		{
 			UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());

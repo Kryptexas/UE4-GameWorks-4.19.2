@@ -18,7 +18,9 @@ CookOnTheFlyServer.h : handles polite cook requests via network ;)
 #include "HAL/PlatformProcess.h"
 #include "TickableEditorObject.h"
 #include "IPlatformFileSandboxWrapper.h"
+#include "Interfaces/INetworkFileSystemModule.h"
 #include "CookOnTheFlyServer.generated.h"
+
 
 class FAssetRegistryGenerator;
 class ITargetPlatform;
@@ -857,6 +859,7 @@ private:
 	// Cook on the fly options
 	/** Cook on the fly server uses the NetworkFileServer */
 	TArray<class INetworkFileServer*> NetworkFileServers;
+	FOnFileModifiedDelegate FileModifiedDelegate;
 
 	//////////////////////////////////////////////////////////////////////////
 	// General cook options
@@ -1391,6 +1394,11 @@ private:
 	* @param  RecompileData input params for shader compile and compiled shader output
 	*/
 	void HandleNetworkFileServerRecompileShaders(const struct FShaderRecompileData& RecompileData);
+
+	/**
+	 * Get the sandbox path we want the network file server to use
+	 */
+	FString HandleNetworkGetSandboxPath();
 
 	//////////////////////////////////////////////////////////////////////////
 	// general functions

@@ -25,6 +25,8 @@ static jmethodID _CheckPermissionMethodId;
 static jmethodID _AcquirePermissionMethodId;
 #endif
 
+DEFINE_LOG_CATEGORY(LogAndroidPermission);
+
 void UAndroidPermissionFunctionLibrary::Initialize()
 {
 #if PLATFORM_ANDROID

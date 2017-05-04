@@ -772,7 +772,7 @@ namespace VulkanRHI
 				MemoryPropertyFlags = MemoryPropertyFlags & ~VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
 			}
 
-			FOldResourceAllocation* Allocation = ResourceTypeHeaps[TypeIndex]->AllocateResource(MemoryReqs.size, MemoryReqs.alignment, false, bMapped, File, Line);
+			FOldResourceAllocation* Allocation = ResourceTypeHeaps[TypeIndex]->AllocateResource(MemoryReqs.size, MemoryReqs.alignment, false, bMapped, File, Line); //-V595
 			if (!Allocation)
 			{
 				// Try another memory type if the allocation failed

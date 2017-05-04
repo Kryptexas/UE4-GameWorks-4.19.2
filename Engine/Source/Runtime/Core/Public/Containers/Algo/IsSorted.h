@@ -3,12 +3,16 @@
 #pragma once
 
 #include "CoreTypes.h"
-#include "Traits/ElementType.h"
+#include "Templates/IdentityFunctor.h"
+#include "Templates/Invoke.h"
+#include "Templates/Less.h"
+#include "Templates/UnrealTemplate.h" // For GetData, GetNum, MoveTemp
+
 
 namespace AlgoImpl
 {
-	template <typename T, typename PredType>
-	bool IsSorted(const T* Range, int32 RangeSize, PredType Pred)
+	template <typename T, typename ProjectionType, typename PredType>
+	bool IsSortedBy(const T* Range, int32 RangeSize, ProjectionType Proj, PredType Pred)
 	{
 		if (RangeSize == 0)
 		{
@@ -26,7 +30,9 @@ namespace AlgoImpl
 				return true;
 			}
 
-			if (Pred(*Next, *Range))
+			auto&& Ref1 = Invoke(Proj, *Next);
+			auto&& Ref2 = Invoke(Proj, *Range);
+			if (Invoke(Pred, Ref1, Ref2))
 			{
 				return false;
 			}
@@ -50,34 +56,7 @@ namespace AlgoImpl
 namespace Algo
 {
 	/**
-	 * Tests is a range is sorted.
-	 *
-	 * @param  Array  The array to test for being sorted.
-	 *
-	 * @return true if the range is sorted, false otherwise.
-	 */
-	template <typename T, int32 ArraySize>
-	FORCEINLINE bool IsSorted(const T (&Array)[ArraySize])
-	{
-		return AlgoImpl::IsSorted((const T*)Array, ArraySize, AlgoImpl::TLess<T>());
-	}
-
-	/**
-	 * Tests is a range is sorted.
-	 *
-	 * @param  Array  The array to test for being sorted.
-	 * @param  Pred   A binary sorting predicate which describes the ordering of the elements in the array.
-	 *
-	 * @return true if the range is sorted, false otherwise.
-	 */
-	template <typename T, int32 ArraySize, typename PredType>
-	FORCEINLINE bool IsSorted(const T (&Array)[ArraySize], PredType Pred)
-	{
-		return AlgoImpl::IsSorted((const T*)Array, ArraySize, Pred);
-	}
-
-	/**
-	 * Tests is a range is sorted.
+	 * Tests if a range is sorted by its element type's operator<.
 	 *
 	 * @param  Array      A pointer to the array to test for being sorted.
 	 * @param  ArraySize  The number of elements in the array.
@@ -85,13 +64,14 @@ namespace Algo
 	 * @return true if the range is sorted, false otherwise.
 	 */
 	template <typename T>
+	DEPRECATED(4.16, "IsSorted taking a pointer and size has been deprecated - please pass a TArrayView instead")
 	FORCEINLINE bool IsSorted(const T* Array, int32 ArraySize)
 	{
-		return AlgoImpl::IsSorted(Array, ArraySize, AlgoImpl::TLess<T>());
+		return AlgoImpl::IsSortedBy(Array, ArraySize, FIdentityFunctor(), TLess<>());
 	}
 
 	/**
-	 * Tests is a range is sorted.
+	 * Tests if a range is sorted by a user-defined predicate.
 	 *
 	 * @param  Array      A pointer to the array to test for being sorted.
 	 * @param  ArraySize  The number of elements in the array.
@@ -100,35 +80,63 @@ namespace Algo
 	 * @return true if the range is sorted, false otherwise.
 	 */
 	template <typename T, typename PredType>
+	DEPRECATED(4.16, "IsSorted taking a pointer and size has been deprecated - please pass a TArrayView instead")
 	FORCEINLINE bool IsSorted(const T* Array, int32 ArraySize, PredType Pred)
 	{
-		return AlgoImpl::IsSorted(Array, ArraySize, Pred);
+		return AlgoImpl::IsSortedBy(Array, ArraySize, FIdentityFunctor(), MoveTemp(Pred));
 	}
 
 	/**
-	 * Tests is a range is sorted.
+	 * Tests if a range is sorted by its element type's operator<.
 	 *
-	 * @param  Container  The container to test for being sorted.
+	 * @param  Range  The container to test for being sorted.
 	 *
 	 * @return true if the range is sorted, false otherwise.
 	 */
-	template <typename ContainerType>
-	FORCEINLINE bool IsSorted(const ContainerType& Container)
+	template <typename RangeType>
+	FORCEINLINE bool IsSorted(const RangeType& Range)
 	{
-		return AlgoImpl::IsSorted(Container.GetData(), Container.Num(), AlgoImpl::TLess<typename TElementType<ContainerType>::Type>());
+		return AlgoImpl::IsSortedBy(GetData(Range), GetNum(Range), FIdentityFunctor(), TLess<>());
 	}
 
 	/**
-	 * Tests is a range is sorted.
+	 * Tests if a range is sorted by a user-defined predicate.
 	 *
-	 * @param  Container  The container to test for being sorted.
-	 * @param  Pred       A binary sorting predicate which describes the ordering of the elements in the array.
+	 * @param  Range  The container to test for being sorted.
+	 * @param  Pred   A binary sorting predicate which describes the ordering of the elements in the array.
 	 *
 	 * @return true if the range is sorted, false otherwise.
 	 */
-	template <typename ContainerType, typename PredType>
-	FORCEINLINE bool IsSorted(const ContainerType& Container, PredType Pred)
+	template <typename RangeType, typename PredType>
+	FORCEINLINE bool IsSorted(const RangeType& Range, PredType Pred)
 	{
-		return AlgoImpl::IsSorted(Container.GetData(), Container.Num(), Pred);
+		return AlgoImpl::IsSortedBy(GetData(Range), GetNum(Range), FIdentityFunctor(), MoveTemp(Pred));
+	}
+
+	/**
+	 * Tests if a range is sorted by a projection of the element type, using the projection's operator<.
+	 *
+	 * @param  Range  The container to test for being sorted.
+	 *
+	 * @return true if the range is sorted, false otherwise.
+	 */
+	template <typename RangeType, typename ProjectionType>
+	FORCEINLINE bool IsSortedBy(const RangeType& Range, ProjectionType Projection)
+	{
+		return AlgoImpl::IsSortedBy(GetData(Range), GetNum(Range), MoveTemp(Projection), TLess<>());
+	}
+
+	/**
+	 * Tests if a range is sorted by a projection of the element type, using a user-defined predicate on the projection.
+	 *
+	 * @param  Range  The container to test for being sorted.
+	 * @param  Pred   A binary sorting predicate which describes the ordering of the elements in the array.
+	 *
+	 * @return true if the range is sorted, false otherwise.
+	 */
+	template <typename RangeType, typename ProjectionType, typename PredType>
+	FORCEINLINE bool IsSortedBy(const RangeType& Range, ProjectionType Projection, PredType Pred)
+	{
+		return AlgoImpl::IsSortedBy(GetData(Range), GetNum(Range), MoveTemp(Projection), MoveTemp(Pred));
 	}
 }

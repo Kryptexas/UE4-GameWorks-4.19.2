@@ -96,11 +96,8 @@ FWidget::EWidgetMode FSplineIKEditMode::GetWidgetMode() const
 
 bool FSplineIKEditMode::IsModeValid(FWidget::EWidgetMode InWidgetMode) const
 {
-	UEdGraphPin* Pin = nullptr;
-
 	// @TODO: when transforms are exposed as pin, deny editing via widget
-
-	return Pin == nullptr || Pin->LinkedTo.Num() == 0;
+	return true;
 }
 
 

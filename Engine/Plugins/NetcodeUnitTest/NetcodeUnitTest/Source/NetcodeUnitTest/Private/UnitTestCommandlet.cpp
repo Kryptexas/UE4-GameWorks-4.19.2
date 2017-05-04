@@ -102,11 +102,10 @@ int32 UUnitTestCommandlet::Main(const FString& Params)
 		{
 			UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 
-			// GameInstace = GameEngine->GameInstance;
-			UGameInstance* GameInstance = GET_PRIVATE(UGameEngine, GameEngine, GameInstance);
-
 			if (GameEngine != NULL)
 			{
+				// GameInstace = GameEngine->GameInstance;
+				UGameInstance* GameInstance = GET_PRIVATE(UGameEngine, GameEngine, GameInstance);
 				UGameViewportClient* NewViewport = NewObject<UGameViewportClient>(GameEngine);
 				FWorldContext* CurContext = GameInstance->GetWorldContext();
 

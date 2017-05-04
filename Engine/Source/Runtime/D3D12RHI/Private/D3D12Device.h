@@ -16,6 +16,7 @@ class FD3D12Device : public FD3D12SingleNodeGPUObject, public FNoncopyable, publ
 public:
 	FD3D12Device();
 	FD3D12Device(GPUNodeMask Node, FD3D12Adapter* InAdapter);
+	virtual ~FD3D12Device() { }
 
 	/** Intialized members*/
 	void Initialize();

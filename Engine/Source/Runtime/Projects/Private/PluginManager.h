@@ -53,7 +53,7 @@ public:
 /**
  * FPluginManager manages available code and content extensions (both loaded and not loaded.)
  */
-class FPluginManager : public IPluginManager
+class FPluginManager final : public IPluginManager
 {
 public:
 	/** Constructor */
@@ -96,11 +96,29 @@ private:
 	/** Sets the bPluginEnabled flag on all plugins found from DiscoverAllPlugins that are enabled in config */
 	bool ConfigureEnabledPlugins();
 
+	/** Adds a single enabled plugin, and all its dependencies */
+	bool ConfigureEnabledPlugin(const FPluginReferenceDescriptor& FirstReference, TSet<FString>& EnabledPluginNames);
+
+	/** Prompts the user to download a missing plugin from the given URL */
+	static bool PromptToDownloadPlugin(const FString& PluginName, const FString& MarketplaceURL);
+
+	/** Prompts the user to disable a plugin */
+	static bool PromptToDisableMissingPlugin(const FString& PluginName, const FString& MissingPluginName);
+
+	/** Prompts the user to disable a plugin */
+	static bool PromptToDisableIncompatiblePlugin(const FString& PluginName, const FString& IncompatiblePluginName);
+
+	/** Prompts the user to disable a plugin */
+	static bool PromptToDisablePlugin(const FText& Caption, const FText& Message, const FString& PluginName);
+
+	/** Checks whether a plugin is compatible with the current engine version */
+	static bool IsPluginCompatible(const FPlugin& Plugin);
+
+	/** Prompts the user to disable a plugin */
+	static bool PromptToLoadIncompatiblePlugin(const FPlugin& Plugin, const FString& ReferencingPluginName);
+
 	/** Gets the instance of a given plugin */
 	TSharedPtr<FPlugin> FindPluginInstance(const FString& Name);
-
-	/** Returns true if the plugin is supported by the current target (program/game) */
-	bool IsPluginSupportedByCurrentTarget(TSharedRef<FPlugin> Plugin) const;
 
 private:
 	/** All of the plugins that we know about */

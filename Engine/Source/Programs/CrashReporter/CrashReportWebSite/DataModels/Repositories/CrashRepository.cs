@@ -193,6 +193,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
                     branchesAsSelectList =
                         BranchList
                         .Select(listItem => new SelectListItem { Selected = false, Text = listItem, Value = listItem })
+                        .OrderBy(listItem => listItem.Text)
                         .ToList();
 
                     branchesAsSelectList.Insert(0, new SelectListItem { Selected = true, Text = "", Value = "" });

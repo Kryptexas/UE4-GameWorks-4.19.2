@@ -51,13 +51,10 @@ FCategorizedMaterialExpressionNode* MaterialExpressionClasses::GetCategoryNode(c
 {
 	for (int32 CheckIndex = 0; CheckIndex < CategorizedExpressionClasses.Num(); CheckIndex++)
 	{
-		FCategorizedMaterialExpressionNode* CheckNode = &(CategorizedExpressionClasses[CheckIndex]);
-		if (CheckNode)
+		FCategorizedMaterialExpressionNode& CheckNode = CategorizedExpressionClasses[CheckIndex];
+		if (CheckNode.CategoryName.EqualTo(InCategoryName))
 		{
-			if (CheckNode->CategoryName.EqualTo(InCategoryName))
-			{
-				return CheckNode;
-			}
+			return &CheckNode;
 		}
 	}
 

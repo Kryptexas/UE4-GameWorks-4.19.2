@@ -160,7 +160,7 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 								UnitTestClass != UClientUnitTest::StaticClass() && UnitTestClass != UProcessUnitTest::StaticClass();
 
 	UUnitTest* UnitTestDefault = (bValidUnitTestClass ? Cast<UUnitTest>(UnitTestClass->GetDefaultObject()) : NULL);
-	bool bSupportsAllGames = (bValidUnitTestClass ? UnitTestDefault->GetSupportedGames().Contains("NullUnitEnv") : false);
+	bool bSupportsAllGames = (bValidUnitTestClass ? UnitTestDefault->GetSupportedGames().Contains("NullUnitEnv") : false); //-V595
 
 	bValidUnitTestClass = UnitTestDefault != NULL;
 
@@ -1749,7 +1749,7 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 			Ar.Logf(TEXT("Failed to execute unit test command '%s', GUnitTestManager == NULL"), Cmd);
 		}
 
-		bReturnVal = true;
+		bReturnVal = true; //-V519
 	}
 	/**
 	 * For the connection-per-unit-test code, which also creates a whole new world/netdriver etc. per unit test,
@@ -1917,7 +1917,7 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			uint8* Data = (uint8*)PointerVal;
 
-			if (Data != nullptr || DataLen == 0)
+			if (Data != nullptr && DataLen > 0)
 			{
 				NUTDebug::LogHexDump(Data, DataLen);
 			}

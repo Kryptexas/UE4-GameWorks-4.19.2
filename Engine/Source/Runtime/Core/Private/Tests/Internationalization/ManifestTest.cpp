@@ -69,7 +69,7 @@ bool FLocContextTest::RunTest( const FString& Parameters )
 
 
 		// Test copy ctor
-		{
+		{ //-V760
 			FManifestContext ContextAClone = ContextA;
 
 			if( ContextAClone.InfoMetadataObj == ContextA.InfoMetadataObj )

@@ -14,7 +14,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Misc/Timespan.h"
 #include "Misc/DateTime.h"
 #include "HAL/PlatformCrt.h"
-#include "HAL/PlatformCodeAnalysis.h"
 #include "GenericPlatform/GenericPlatformMemory.h"
 #include "HAL/PlatformMemory.h"
 #include "Misc/Char.h"

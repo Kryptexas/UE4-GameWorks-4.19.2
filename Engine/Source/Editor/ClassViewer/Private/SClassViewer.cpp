@@ -2662,8 +2662,7 @@ FText SClassViewer::GetClassCountText() const
 	const int32 NumAssets = GetNumItems();
 	const int32 NumSelectedAssets = GetSelectedItems().Num();
 
-	FText AssetCount = FText::GetEmpty();
-	AssetCount = LOCTEXT("AssetCountLabelSingular", "1 item");
+	FText AssetCount = LOCTEXT("AssetCountLabelSingular", "1 item");
 
 	if (NumSelectedAssets == 0)
 	{

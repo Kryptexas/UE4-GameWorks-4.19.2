@@ -11,7 +11,7 @@
 struct FPropertyChangedEvent;
 
 /**
- * Rendering settings.
+ * Streaming settings.
  */
 UCLASS(config=Engine, defaultconfig, meta=(DisplayName="Streaming"))
 class ENGINE_API UStreamingSettings : public UDeveloperSettings

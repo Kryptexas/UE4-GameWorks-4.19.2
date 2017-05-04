@@ -136,7 +136,9 @@
     <Compile Include="Configuration\UEBuildModuleExternal.cs" />
     <Compile Include="Configuration\UEBuildPlatformFactory.cs" />
     <Compile Include="Configuration\UEBuildPlatformSDK.cs" />
+    <Compile Include="Configuration\UEBuildPlugin.cs" />
     <Compile Include="System\BuildVersion.cs" />
+    <Compile Include="System\CppCompileEnvironment.cs" />
     <Compile Include="System\DirectoryReference.cs" />
     <Compile Include="System\RulesDocumentation.cs" />
     <Compile Include="System\FileFilter.cs" />
@@ -209,6 +211,7 @@
     <Compile Include="Utilities\BinaryWriterExtensions.cs" />
     <Compile Include="Utilities\EncryptionAndSigning.cs" />
     <Compile Include="Utilities\HashSetExtensions.cs" />
+    <Compile Include="Windows\PVSToolChain.cs" />
     <Compile Include="Windows\WindowsDeploy.cs" />
     <Compile Include="Windows\WinResources.cs" />
   </ItemGroup>
@@ -286,7 +289,6 @@
     <Compile Include="System\SNDBS.cs" />
     <Compile Include="System\VCSolutionOptions.cs" />
     <Compile Include="System\DirectoryLookupCache.cs" />
-    <Compile Include="System\CPPEnvironment.cs" />
     <Compile Include="System\CPPHeaders.cs" />
     <Compile Include="System\DependencyCache.cs" />
     <Compile Include="System\DynamicCompilation.cs" />

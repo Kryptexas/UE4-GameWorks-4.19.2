@@ -379,6 +379,7 @@ namespace UnrealBuildTool
 			Result += " -c";
 			Result += " -fdiagnostics-format=msvc";
 			Result += " -Wall";
+			Result += " -Wdelete-non-virtual-dtor";
 
 			Result += " -Wno-unused-variable";
 			// this will hide the warnings about static functions in headers that aren't used in every single .cpp file

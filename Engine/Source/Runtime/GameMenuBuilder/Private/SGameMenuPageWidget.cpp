@@ -939,9 +939,9 @@ FReply SGameMenuPageWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 {
 	FReply Result = FReply::Unhandled();
 	
-	if ((CurrentMenu.IsValid() == true) && (!bControlsLocked))
+	if ((CurrentMenu.IsValid() == true) && !bControlsLocked)
 	{
-		bool bNavigationLocked = bControlsLocked || PendingMainMenu.IsValid() || PendingSubMenu.IsValid();
+		bool bNavigationLocked = PendingMainMenu.IsValid() || PendingSubMenu.IsValid();
 		const FKey Key = InKeyEvent.GetKey();
 
 		if (bNavigationLocked == false)

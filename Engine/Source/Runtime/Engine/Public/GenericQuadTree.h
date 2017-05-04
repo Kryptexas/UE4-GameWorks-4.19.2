@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogQuadTree, Log, Warning);
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogQuadTree, Log, Warning);
 
 template <typename ElementType, int32 NodeCapacity = 4>
 class TQuadTree

@@ -417,15 +417,12 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = NewOwnerActor;
-			if (SpawnedCue == nullptr)
+			if (LogGameplayCueActorSpawning)
 			{
-				if (LogGameplayCueActorSpawning)
-				{
-					ABILITY_LOG(Warning, TEXT("Spawning GameplaycueActor: %s"), *CueClass->GetName());
-				}
-
-				SpawnedCue = World->SpawnActor<AGameplayCueNotify_Actor>(CueClass, TargetActor->GetActorLocation(), TargetActor->GetActorRotation(), SpawnParams);
+				ABILITY_LOG(Warning, TEXT("Spawning GameplaycueActor: %s"), *CueClass->GetName());
 			}
+
+			SpawnedCue = World->SpawnActor<AGameplayCueNotify_Actor>(CueClass, TargetActor->GetActorLocation(), TargetActor->GetActorRotation(), SpawnParams);
 		}
 
 		// Associate this GameplayCueNotifyActor with this target actor/key

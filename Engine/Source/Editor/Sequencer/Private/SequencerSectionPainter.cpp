@@ -12,6 +12,10 @@ FSequencerSectionPainter::FSequencerSectionPainter(FSlateWindowElementList& OutD
 {
 }
 
+FSequencerSectionPainter::~FSequencerSectionPainter()
+{
+}
+
 int32 FSequencerSectionPainter::PaintSectionBackground()
 {
 	return PaintSectionBackground(GetTrack()->GetColorTint());

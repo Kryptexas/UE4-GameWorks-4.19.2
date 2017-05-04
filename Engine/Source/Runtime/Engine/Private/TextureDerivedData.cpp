@@ -1718,17 +1718,14 @@ bool UTexture::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPl
 		if ( !PlatformData )
 			return false;
 
-		if (PlatformData)
+		if ( (PlatformData->AsyncTask != NULL) && ( PlatformData->AsyncTask->IsWorkDone() == true ) )
 		{
-			if ( (PlatformData->AsyncTask != NULL) && ( PlatformData->AsyncTask->IsWorkDone() == true ) )
-			{
-				PlatformData->FinishCache();
-			}
+			PlatformData->FinishCache();
+		}
 
-			if ( PlatformData->AsyncTask)
-			{
-				return false;
-			}
+		if ( PlatformData->AsyncTask)
+		{
+			return false;
 		}
 	}
 	// if we get here all our stuff is cached :)

@@ -135,14 +135,11 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 			}
 		}
 		UWidget* WidgetTemplate = RenamedTemplateWidget;
-		if (WidgetTemplate)
+		// Dummy rename with flag REN_Test returns if rename is possible
+		if (!WidgetTemplate->Rename(*NewNameSlug.ToString(), nullptr, REN_Test))
 		{
-			// Dummy rename with flag REN_Test returns if rename is possible
-			if (!WidgetTemplate->Rename(*NewNameSlug.ToString(), nullptr, REN_Test))
-			{
-				OutErrorMessage = LOCTEXT("ExistingObjectName", "Existing Object Name");
-				return false;
-			}
+			OutErrorMessage = LOCTEXT("ExistingObjectName", "Existing Object Name");
+			return false;
 		}
 	}
 
@@ -189,7 +186,7 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 
 	// NewName should be already validated. But one must make sure that NewTemplateName is also unique.
 	const bool bUniqueNameForTemplate = ( EValidatorResult::Ok == NameValidator->IsValid( NewFName ) || bBindWidget );
-	if ( Widget && bUniqueNameForTemplate )
+	if ( bUniqueNameForTemplate )
 	{
 		// Stringify the FNames
 		const FString NewNameStr = NewFName.ToString();

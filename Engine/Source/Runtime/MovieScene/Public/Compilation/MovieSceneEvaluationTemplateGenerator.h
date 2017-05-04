@@ -23,7 +23,7 @@ class UMovieSceneSequence;
 /**
  * Class responsible for generating up-to-date evaluation template data
  */
-class FMovieSceneEvaluationTemplateGenerator : IMovieSceneTemplateGenerator
+class FMovieSceneEvaluationTemplateGenerator final : IMovieSceneTemplateGenerator
 {
 public:
 

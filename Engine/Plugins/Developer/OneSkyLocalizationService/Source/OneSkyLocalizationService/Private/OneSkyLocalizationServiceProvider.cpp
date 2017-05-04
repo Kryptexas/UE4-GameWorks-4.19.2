@@ -856,9 +856,6 @@ void FOneSkyLocalizationServiceProvider::ExportCultureForTargetToOneSky_Callback
 		FilesDownloadingForImportFromOneSky.Remove(InRelativeInputFilePathAndName);
 
 		ErrorText = UploadLocalizationTargetOp->GetOutErrorText();
-		InTargetGuid = UploadLocalizationTargetOp->GetInTargetGuid();
-
-		Target = ILocalizationModule::Get().GetLocalizationTargetByName(TargetName, bIsEngineTarget);
 
 		FilesUploadingForExportToOneSky.Remove(InRelativeInputFilePathAndName);
 

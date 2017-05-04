@@ -91,6 +91,8 @@
 #include "UnrealEdMisc.h"
 #endif
 
+DEFINE_LOG_CATEGORY(LogMeshUtilities);
+
 /*------------------------------------------------------------------------------
 MeshUtilities module.
 ------------------------------------------------------------------------------*/
@@ -3484,6 +3486,8 @@ bool FMeshUtilities::GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Mode
 class IMeshBuildData
 {
 public:
+	virtual ~IMeshBuildData() { }
+
 	virtual uint32 GetWedgeIndex(uint32 FaceIndex, uint32 TriIndex) = 0;
 	virtual uint32 GetVertexIndex(uint32 WedgeIndex) = 0;
 	virtual uint32 GetVertexIndex(uint32 FaceIndex, uint32 TriIndex) = 0;
@@ -3519,7 +3523,7 @@ protected:
 	}
 };
 
-class SkeletalMeshBuildData : public IMeshBuildData
+class SkeletalMeshBuildData final : public IMeshBuildData
 {
 public:
 	SkeletalMeshBuildData(

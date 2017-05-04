@@ -95,6 +95,8 @@ struct FForceFeedbackEffectHistoryEntry
 struct ENGINE_API FInputModeDataBase
 {
 protected:
+	virtual ~FInputModeDataBase() { }
+
 	/** Derived classes override this function to apply the necessary settings for the desired input mode */
 	virtual void ApplyInputMode(class FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const = 0;
 

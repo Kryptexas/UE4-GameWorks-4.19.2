@@ -28,5 +28,15 @@
 				"Android"
 			]
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "LocationServicesBPLibrary",
+			"Enabled": true
+		},
+		{
+			"Name": "AndroidPermission",
+			"Enabled": true
+		}
 	]
 }

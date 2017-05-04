@@ -24,6 +24,7 @@ private:
 	/**
 	 * In the case of class ElementTypes, we inherit it to allow abstract types to work.
 	 */
+	PRAGMA_DISABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
 	struct FAlignedElements : ElementType
 	{
 		uint8 MisalignmentPadding;
@@ -31,6 +32,7 @@ private:
 		FAlignedElements();
 		~FAlignedElements();
 	};
+	PRAGMA_ENABLE_MISSING_VIRTUAL_DESTRUCTOR_WARNINGS
 
 	// We calculate the alignment here and then handle the zero case in the result by forwarding it to the non-class variant.
 	// This is necessary because the compiler can perform empty-base-optimization to eliminate a redundant ElementType state.

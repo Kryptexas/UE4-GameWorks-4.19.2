@@ -54,6 +54,7 @@ private:
 class FContextSupplier
 {
 public:
+	virtual ~FContextSupplier() {}
 	virtual FString GetContext()=0;
 };
 

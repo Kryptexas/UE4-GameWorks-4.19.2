@@ -106,12 +106,12 @@ void UMovieScene3DAttachSection::Eval( USceneComponent* SceneComponent, float Po
 		OutRotation.Roll = SceneComponent->GetRelativeTransform().GetRotation().Rotator().Roll;
 	}
 
-	if (!bConstrainRx)
+	if (!bConstrainRy)
 	{
 		OutRotation.Pitch = SceneComponent->GetRelativeTransform().GetRotation().Rotator().Pitch;
 	}
 
-	if (!bConstrainRx)
+	if (!bConstrainRz)
 	{
 		OutRotation.Yaw = SceneComponent->GetRelativeTransform().GetRotation().Rotator().Yaw;
 	}

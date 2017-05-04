@@ -386,7 +386,7 @@ bool FOnlineTitleFileHttp::ReadFileRemote(const FString& FileName)
 		HttpRequest->OnRequestProgress().BindRaw(this, &FOnlineTitleFileHttp::ReadFile_HttpRequestProgress);
 		FString RequestUrl;
 		// Grab the file from the specified URL if that was set, otherwise use the old method that hits the game service
-		if (CloudFileHeader != nullptr && !CloudFileHeader->URL.IsEmpty())
+		if (!CloudFileHeader->URL.IsEmpty())
 		{
 			RequestUrl = CloudFileHeader->URL;
 		}

@@ -3099,6 +3099,9 @@ void FEngineLoop::Tick()
 		}
 #endif	// WITH_ENGINE
 
+		// tick the currently active platform files
+		FPlatformFileManager::Get().TickActivePlatformFile();
+
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
 			SCOPE_TIME_GUARD(TEXT("SlateInput"));

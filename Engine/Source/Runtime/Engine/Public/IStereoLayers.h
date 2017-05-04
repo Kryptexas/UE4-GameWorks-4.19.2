@@ -54,6 +54,8 @@ public:
 		uint32				Flags		 = 0;														// Uses LAYER_FLAG_...
 	};
 
+	virtual ~IStereoLayers() { }
+
 	/**
 	 * Creates a new layer from a given texture resource, which is projected on top of the world as a quad
 	 *

@@ -6673,8 +6673,7 @@ UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const 
 		for (UK2Node_EditablePinBase* CurrentEditablePinNode : EditablePinNodes)
 		{
 			CurrentEditablePinNode->Modify();
-			UEdGraphPin* CreatedPin = nullptr;
-			CreatedPin = CurrentEditablePinNode->CreateUserDefinedPin(NewPinName, InSourcePinType, (InSourcePinDirection == EGPD_Input)? EGPD_Output : EGPD_Input);
+			UEdGraphPin* CreatedPin = CurrentEditablePinNode->CreateUserDefinedPin(NewPinName, InSourcePinType, (InSourcePinDirection == EGPD_Input) ? EGPD_Output : EGPD_Input);
 
 			// The final ResultPin is from the node the user dragged and dropped to
 			if (EditablePinNode == CurrentEditablePinNode)

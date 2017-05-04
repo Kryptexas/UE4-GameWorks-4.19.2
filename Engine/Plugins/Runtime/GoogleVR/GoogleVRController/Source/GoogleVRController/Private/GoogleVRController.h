@@ -28,7 +28,7 @@
 using namespace gvr;
 #endif
 
-DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRController, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogGoogleVRController, Log, All);
 
 /** Total number of controllers in a set */
 #define CONTROLLERS_PER_PLAYER	2

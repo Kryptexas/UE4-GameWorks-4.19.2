@@ -14,6 +14,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
@@ -689,7 +690,7 @@ namespace UnrealGameSync
 
 			if(Context.Options.HasFlag(WorkspaceUpdateOptions.Sync) || Context.Options.HasFlag(WorkspaceUpdateOptions.Build))
 			{
-				if(!Context.Options.HasFlag(WorkspaceUpdateOptions.ContentOnly))
+				if(!Context.Options.HasFlag(WorkspaceUpdateOptions.ContentOnly) && (Context.CustomBuildSteps == null || Context.CustomBuildSteps.Count == 0))
 				{
 					foreach(BuildConfig Config in Enum.GetValues(typeof(BuildConfig)))
 					{
@@ -836,6 +837,16 @@ namespace UnrealGameSync
 
 				PromotedChangeNumbers = PerforceMonitor.GetPromotedChangeNumbers();
 
+				string[] ExcludeChanges = new string[0];
+				if(Workspace != null)
+				{
+					ConfigFile ProjectConfigFile = Workspace.ProjectConfigFile;
+					if(ProjectConfigFile != null)
+					{
+						ExcludeChanges = Workspace.ProjectConfigFile.GetValues("Options.ExcludeChanges", ExcludeChanges);
+					}
+				}
+
 				bool bFirstChange = true;
 				bool bOnlyShowReviewed = OnlyShowReviewedCheckBox.Checked;
 
@@ -846,7 +857,7 @@ namespace UnrealGameSync
 				for(int ChangeIdx = 0; ChangeIdx < Changes.Count; ChangeIdx++)
 				{
 					PerforceChangeSummary Change = Changes[ChangeIdx];
-					if(ShouldShowChange(Change) || PromotedChangeNumbers.Contains(Change.Number))
+					if(ShouldShowChange(Change, ExcludeChanges) || PromotedChangeNumbers.Contains(Change.Number))
 					{
 						SortedChangeNumbers.Add(Change.Number);
 
@@ -936,8 +947,16 @@ namespace UnrealGameSync
 			UpdateSyncActionCheckboxes();
 		}
 
-		bool ShouldShowChange(PerforceChangeSummary Change)
+		bool ShouldShowChange(PerforceChangeSummary Change, string[] ExcludeChanges)
 		{
+			foreach(string ExcludeChange in ExcludeChanges)
+			{
+				if(Regex.IsMatch(Change.Description, ExcludeChange, RegexOptions.IgnoreCase))
+				{
+					return false;
+				}
+			}
+
 			if(String.Compare(Change.User, "buildmachine", true) == 0 && Change.Description.IndexOf("lightmaps", StringComparison.InvariantCultureIgnoreCase) == -1)
 			{
 				return false;

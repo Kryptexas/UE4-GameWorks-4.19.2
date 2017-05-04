@@ -5,6 +5,7 @@
 //~=============================================================================
 
 #pragma once
+#include "Factories/Factory.h"
 #include "ForceFeedbackAttenuationFactory.generated.h"
 
 UCLASS(hidecategories=Object, MinimalAPI)

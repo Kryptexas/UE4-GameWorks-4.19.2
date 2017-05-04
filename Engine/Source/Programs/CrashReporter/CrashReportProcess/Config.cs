@@ -369,6 +369,18 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string GameNamesToBlacklist { get; set; }
 
 		/// <summary>
+		/// When the queue waiting time gets beyond this many seconds, trigger a slack alert message. Default is 10 min.
+		/// </summary>
+		[XmlElement]
+		public System.TimeSpan QueueWaitingTimeAlertThreshold { get; set; }
+
+		/// <summary>
+		/// Interval by which to report disk space availability. Default is never (Zero)
+		/// </summary>
+		[XmlElement]
+		public System.TimeSpan DiskSpaceAvailableAlertInterval { get; set; }
+
+		/// <summary>
 		/// Get the default config object (lazy loads it on first access)
 		/// </summary>
 		public static Config Default
@@ -457,6 +469,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 #endif
 #endif
 			return LoadedConfig;
+		}
+
+		Config()
+		{
+			QueueWaitingTimeAlertThreshold = System.TimeSpan.FromMinutes(10);
+			DiskSpaceAvailableAlertInterval = System.TimeSpan.Zero;
 		}
 
 		private static Config DefaultSingleton;
