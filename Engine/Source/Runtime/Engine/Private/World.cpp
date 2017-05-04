@@ -3762,7 +3762,7 @@ bool UWorld::AreActorsInitialized() const
 float UWorld::GetMonoFarFieldCullingDistance() const
 {
 	float Result = 0.0f;
-	const AWorldSettings* const WorldSettings = GetWorldSettings(false);
+	const AWorldSettings* const WorldSettings = GetWorldSettings(false, false);
 	if (WorldSettings != nullptr)
 	{
 		Result = WorldSettings->MonoCullingDistance;
