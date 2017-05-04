@@ -875,6 +875,7 @@ void FSceneRenderTargets::AllocLightAttenuation(FRHICommandList& RHICmdList)
 void FSceneRenderTargets::ReleaseGBufferTargets()
 {
 	GBufferResourcesUniformBuffer.SafeRelease();
+	GBufferDummyResourcesUniformBuffer.SafeRelease();
 	GBufferA.SafeRelease();
 	GBufferB.SafeRelease();
 	GBufferC.SafeRelease();
