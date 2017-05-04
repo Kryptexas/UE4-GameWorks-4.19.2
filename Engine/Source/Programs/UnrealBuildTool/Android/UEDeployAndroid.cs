@@ -2250,6 +2250,7 @@ namespace UnrealBuildTool
 			// Sometimes old files get left behind if things change, so we'll do a clean up pass
 			{
 				string CleanUpBaseDir = Path.Combine(ProjectDirectory, "Build", "Android", "src");
+				string ImmediateBaseDir = Path.Combine(UE4BuildPath, "src");
 				var files = Directory.EnumerateFiles(CleanUpBaseDir, "*.java", SearchOption.AllDirectories);
 
 				Log.TraceInformation("Cleaning up files based on template dir {0}", TemplateDestinationBase);
@@ -2274,19 +2275,24 @@ namespace UnrealBuildTool
 						if (!cleanFiles.Contains(Path.GetFileName(filename)))
 							continue;
 
-						Log.TraceInformation("Cleaning up file {0} with path {1}", filename, filePath);
+						Log.TraceInformation("Cleaning up file {0}", filename);
+						FileAttributes Attribs = File.GetAttributes(filename);
+						File.SetAttributes(filename, Attribs & ~FileAttributes.ReadOnly);
 						File.Delete(filename);
 
 						// Check to see if this file also exists in our target destination, and if so nuke it too
-						string DestFilename = Path.Combine(UE4BuildPath, Utils.MakePathRelativeTo(filePath, UE4BuildFilesPath));
-						if (File.Exists(filename))
+						string DestFilename = Path.Combine(ImmediateBaseDir, Utils.MakePathRelativeTo(filename, CleanUpBaseDir));
+						if (File.Exists(DestFilename))
 						{
-							File.Delete(filename);
+							Log.TraceInformation("Cleaning up file {0}", DestFilename);
+							Attribs = File.GetAttributes(DestFilename);
+							File.SetAttributes(DestFilename, Attribs & ~FileAttributes.ReadOnly);
+							File.Delete(DestFilename);
 						}
 					}
 				}
 
-				// Directory clean up code
+				// Directory clean up code (Build/Android/src)
 				var directories = Directory.EnumerateDirectories(CleanUpBaseDir, "*", SearchOption.AllDirectories).OrderByDescending(x => x);
 				foreach (var directory in directories)
 				{
@@ -2297,7 +2303,16 @@ namespace UnrealBuildTool
 					}
 				};
 
-
+				// Directory clean up code (Intermediate/APK/src)
+				directories = Directory.EnumerateDirectories(ImmediateBaseDir, "*", SearchOption.AllDirectories).OrderByDescending(x => x);
+				foreach (var directory in directories)
+				{
+					if (Directory.Exists(directory) && Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories).Count() == 0)
+					{
+						Log.TraceInformation("Cleaning Directory {0} as empty.", directory);
+						Directory.Delete(directory, true);
+					}
+				};
 			}
 
 
