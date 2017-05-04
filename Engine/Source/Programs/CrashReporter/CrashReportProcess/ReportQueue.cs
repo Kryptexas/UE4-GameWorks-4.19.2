@@ -6,7 +6,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using Tools.CrashReporter.CrashReportCommon;
-using Tools.DotNETCommon.XmlHandler;
 
 namespace Tools.CrashReporter.CrashReportProcess
 {

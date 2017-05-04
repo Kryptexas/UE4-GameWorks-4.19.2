@@ -11,7 +11,6 @@ using System.Web;
 using System.Text;
 
 using Tools.CrashReporter.CrashReportCommon;
-using Tools.DotNETCommon.XmlHandler;
 using System.ComponentModel;
 using System.Threading;
 
