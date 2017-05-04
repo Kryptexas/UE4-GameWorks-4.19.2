@@ -1245,6 +1245,11 @@ bool UBlueprintGeneratedClass::NeedsLoadForClient() const
 	return Super::NeedsLoadForClient();
 }
 
+bool UBlueprintGeneratedClass::NeedsLoadForEditorGame() const
+{
+	return true;
+}
+
 bool UBlueprintGeneratedClass::CanBeClusterRoot() const
 {
 	// Clustering level BPs doesn't work yet

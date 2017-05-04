@@ -986,6 +986,12 @@ FArchive& FArchiveSaveTagExports::operator<<(UObject*& Obj)
 				break;
 			}
 		}
+
+		if(!bNeedsLoadForEditorGame && Obj->HasAnyFlags(RF_ClassDefaultObject))
+		{
+			bNeedsLoadForEditorGame = Obj->GetClass()->NeedsLoadForEditorGame();
+		}
+
 		if (!bNeedsLoadForEditorGame)
 		{
 			Obj->Mark(OBJECTMARK_NotAlwaysLoadedForEditorGame);

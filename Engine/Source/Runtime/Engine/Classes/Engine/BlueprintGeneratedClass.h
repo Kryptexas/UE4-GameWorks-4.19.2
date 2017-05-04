@@ -698,6 +698,7 @@ public:
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 	virtual bool NeedsLoadForServer() const override;
 	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
 	virtual bool CanBeClusterRoot() const override;
 	// End UObject interface
 	
