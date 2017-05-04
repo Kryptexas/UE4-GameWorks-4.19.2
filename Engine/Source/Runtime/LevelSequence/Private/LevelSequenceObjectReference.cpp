@@ -52,6 +52,11 @@ UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 				{
 					return FoundObject;
 				}
+
+				if (UObject* FoundObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPath, false))
+				{
+					return FoundObject;
+				}
 			}
 
 			UE_LOG(LogMovieScene, Warning, TEXT("Attempted to resolve object with a PIE instance that has not been fixed up yet. This is probably due to a streamed level not being available yet. %s"), *ObjectPath);
@@ -70,6 +75,11 @@ UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 	if (!ObjectPath.IsEmpty())
 	{
 		if (UObject* FoundObject = FindObject<UObject>(InContext, *ObjectPath, false))
+		{
+			return FoundObject;
+		}
+
+		if (UObject* FoundObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPath, false))
 		{
 			return FoundObject;
 		}
