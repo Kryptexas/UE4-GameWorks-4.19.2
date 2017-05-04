@@ -2293,26 +2293,40 @@ namespace UnrealBuildTool
 				}
 
 				// Directory clean up code (Build/Android/src)
-				var directories = Directory.EnumerateDirectories(CleanUpBaseDir, "*", SearchOption.AllDirectories).OrderByDescending(x => x);
-				foreach (var directory in directories)
+				try
 				{
-					if (Directory.Exists(directory) && Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories).Count() == 0)
+					var BaseDirectories = Directory.EnumerateDirectories(CleanUpBaseDir, "*", SearchOption.AllDirectories).OrderByDescending(x => x);
+					foreach (var directory in BaseDirectories)
 					{
-						Log.TraceInformation("Cleaning Directory {0} as empty.", directory);
-						Directory.Delete(directory, true);
+						if (Directory.Exists(directory) && Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories).Count() == 0)
+						{
+							Log.TraceInformation("Cleaning Directory {0} as empty.", directory);
+							Directory.Delete(directory, true);
+						}
 					}
-				};
+				}
+				catch (Exception)
+				{
+					// likely System.IO.DirectoryNotFoundException, ignore it
+				}
 
 				// Directory clean up code (Intermediate/APK/src)
-				directories = Directory.EnumerateDirectories(ImmediateBaseDir, "*", SearchOption.AllDirectories).OrderByDescending(x => x);
-				foreach (var directory in directories)
+				try
 				{
-					if (Directory.Exists(directory) && Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories).Count() == 0)
+					var ImmediateDirectories = Directory.EnumerateDirectories(ImmediateBaseDir, "*", SearchOption.AllDirectories).OrderByDescending(x => x);
+					foreach (var directory in ImmediateDirectories)
 					{
-						Log.TraceInformation("Cleaning Directory {0} as empty.", directory);
-						Directory.Delete(directory, true);
+						if (Directory.Exists(directory) && Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories).Count() == 0)
+						{
+							Log.TraceInformation("Cleaning Directory {0} as empty.", directory);
+							Directory.Delete(directory, true);
+						}
 					}
-				};
+				}
+				catch (Exception)
+				{
+					// likely System.IO.DirectoryNotFoundException, ignore it
+				}
 			}
 
 
