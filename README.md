@@ -27,28 +27,6 @@ Not all the Flex features are exposed in Unreal yet, but we're continuing work o
 
 You can get in touch with us via the NVIDIA Gameworks forum threads [https://forums.unrealengine.com/showthread.php?53735-NVIDIA-GameWorks-Integration](https://forums.unrealengine.com/showthread.php?53735-NVIDIA-GameWorks-Integration).
 
-
-
-Important: some of the FleX-specific files will be over-written if you run 'Setup.bat' after checking out the FleX branch, or if you run Setup.bat from a UE4-FleX installation created from a zip file.
-
-Special instructions for FleX branch:
-
-1.	git clone https://github.com/NvPhysX/UnrealEngine.git
-	
-2.	You should now be on the NVIDIA-README branch. Run setup.bat. You can now run GenerateProjectFiles.bat, build UE4, run it, etc.
-	
-3.	git branch -t FleX-4.15.0 origin/FleX-4.15.0
-	
-4.	git checkout FleX
-	
-5.	GenerateProjectFiles.bat
-	
-6.	Open .sln, build UE4.
-
-7.	Run UE4 Editor, open the FleX test project.
-
-
-
 Unreal Engine
 =============
 
