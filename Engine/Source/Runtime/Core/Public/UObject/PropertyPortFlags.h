@@ -101,4 +101,7 @@ enum EPropertyPortFlags
 
 	/** Ignores CPF_SkipSerialization flag when using tagged serialization */
 	PPF_ForceTaggedSerialization	= 0x20000000,
+
+	/** Set when duplicating objects verbatim (doesn't reset unique IDs) */
+	PPF_DuplicateVerbatim			= 0x40000000,
 };

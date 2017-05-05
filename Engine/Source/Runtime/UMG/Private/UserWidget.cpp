@@ -22,6 +22,7 @@
 #include "UObject/EditorObjectVersion.h"
 #include "UMGPrivate.h"
 #include "UObject/UObjectHash.h"
+#include "PropertyPortFlags.h"
 
 DECLARE_CYCLE_STAT(TEXT("UserWidget Create"), STAT_CreateWidget, STATGROUP_Slate);
 
@@ -124,6 +125,7 @@ void UUserWidget::TemplateInitInner()
 
 	FObjectDuplicationParameters Parameters(WidgetClass->WidgetTree, this);
 	Parameters.FlagMask = RF_Transactional;
+	Parameters.PortFlags = PPF_DuplicateVerbatim;
 
 	WidgetTree = (UWidgetTree*)StaticDuplicateObjectEx(Parameters);
 	bCookedWidgetTree = true;
