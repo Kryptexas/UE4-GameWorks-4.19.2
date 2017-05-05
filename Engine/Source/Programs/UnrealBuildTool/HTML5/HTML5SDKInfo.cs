@@ -183,7 +183,7 @@ namespace UnrealBuildTool
 		}
 		// --------------------------------------------------
 		// --------------------------------------------------
-		static string HTML5Intermediatory
+		public static string HTML5Intermediatory
 		{
 			get
 			{
@@ -252,7 +252,7 @@ namespace UnrealBuildTool
 			return TempPath;
 		}
 
-		static string PLATFORM_USER_HOME
+		public static string PLATFORM_USER_HOME
 		{
 			get
 			{

@@ -157,10 +157,16 @@ namespace UnrealBuildTool
 			Environment.SetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK", "1");
 
 			// THESE ARE TEST/DEBUGGING
-//			Environment.SetEnvironmentVariable("EMCC_DEBUG", "1");
+			Environment.SetEnvironmentVariable("EMCC_DEBUG", "1");
 //			Environment.SetEnvironmentVariable("EMCC_CORES", "8");
 //			Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
 
+			// Linux builds needs this - or else system clang will be attempted to be picked up instead of UE4's
+			// TODO: test on other platforms to remove this if() check
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
+			{
+				Environment.SetEnvironmentVariable(HTML5SDKInfo.PLATFORM_USER_HOME, HTML5SDKInfo.HTML5Intermediatory);
+			}
 			return Result;
 		}
 
