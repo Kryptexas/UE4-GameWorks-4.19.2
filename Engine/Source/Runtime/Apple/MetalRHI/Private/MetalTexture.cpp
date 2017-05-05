@@ -889,13 +889,14 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	#else
 			Desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
 			// No private storage for PVRTC as it messes up the blit-encoder usage.
-			if (MTLFormat >= MTLPixelFormatPVRTC_RGB_2BPP && MTLFormat <= MTLPixelFormatPVRTC_RGBA_4BPP_sRGB)
+			// note: this is set to always be on for 4.16 and will be re-addressed in 4.17
+			if (PLATFORM_IOS)
 			{
-			Desc.storageMode = MTLStorageModeShared;
-			Desc.resourceOptions = MTLResourceCPUCacheModeDefaultCache|MTLResourceStorageModeShared;
-		}
+				Desc.storageMode = MTLStorageModeShared;
+				Desc.resourceOptions = MTLResourceCPUCacheModeDefaultCache|MTLResourceStorageModeShared;
+			}
 			else
-		{
+			{
 				Desc.storageMode = MTLStorageModePrivate;
 				Desc.resourceOptions = MTLResourceCPUCacheModeDefaultCache|MTLResourceStorageModePrivate;
 	        }
