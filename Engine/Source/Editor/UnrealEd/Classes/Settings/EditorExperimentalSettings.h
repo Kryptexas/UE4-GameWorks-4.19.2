@@ -123,7 +123,7 @@ public:
 	bool bFacialAnimationImporter;
 
 	/** Enable experimental clothing tools (parameter painting and simulation configuration) found in the skeletal mesh editor */
-	UPROPERTY(EditAnywhere, config, Category = Tools)
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
 	bool bClothingTools;
 
 	/**

@@ -73,6 +73,8 @@ public:
 	, Library(nil)
 	, SideTableBinding(-1)
 	, GlslCodeNSString(nil)
+	, SourceLen(0)
+	, SourceCRC(0)
 	{
 	}
 	
@@ -112,6 +114,10 @@ public:
 	
 	/** The debuggable text source */
 	NSString* GlslCodeNSString;
+
+	/** CRC & Len for name disambiguation */
+	uint32 SourceLen;
+	uint32 SourceCRC;
 };
 
 class FMetalVertexShader : public TMetalBaseShader<FRHIVertexShader, SF_Vertex>

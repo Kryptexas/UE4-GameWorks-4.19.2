@@ -1166,9 +1166,10 @@ void FClothingSimulationNv::DebugDraw_SelfCollision(USkeletalMeshComponent* Owne
 			continue;
 		}
 
+		FTransform RootBoneTransform = OwnerComponent->GetComponentSpaceTransforms()[Actor.AssetCreatedFrom->ReferenceBoneIndex];
+
 		const float SelfCollisionThickness = Config.SelfCollisionRadius;
 
-		
 		const FClothLODData& LodData = Asset->LodData[Actor.CurrentLodIndex];
 		const FClothPhysicalMeshData& PhysMesh = LodData.PhysicalMeshData;
 
@@ -1183,7 +1184,7 @@ void FClothingSimulationNv::DebugDraw_SelfCollision(USkeletalMeshComponent* Owne
 
 		for(int32 SelfColIdx = 0; SelfColIdx < PhysMesh.SelfCollisionIndices.Num(); ++SelfColIdx)
 		{
-			FVector ParticlePosition = P2UVector(Particles[PhysMesh.SelfCollisionIndices[SelfColIdx]]);
+			FVector ParticlePosition = RootBoneTransform.TransformPosition(P2UVector(Particles[PhysMesh.SelfCollisionIndices[SelfColIdx]]));
 			DrawWireSphere(PDI, ParticlePosition, FColor::White, SelfCollisionThickness, 8, SDPG_World, 0.2f);
 		}
 	}

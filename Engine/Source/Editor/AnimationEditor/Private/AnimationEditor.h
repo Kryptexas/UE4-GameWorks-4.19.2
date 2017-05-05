@@ -105,8 +105,8 @@ private:
 	{
 		ReferencePose,
 		CurrentPose,
-		CurrentAnimation_Source,
-		CurrentAnimation_Play,
+		CurrentAnimation_AnimData,
+		CurrentAnimation_PreviewMesh,
 		Max
 	};
 

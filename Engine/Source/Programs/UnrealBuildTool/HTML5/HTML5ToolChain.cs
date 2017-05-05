@@ -271,6 +271,10 @@ namespace UnrealBuildTool
 					// Memory init file is an asm.js only needed construct, in wasm the global data section is embedded in the wasm module,
 					// so this flag is not needed there.
 					Result += " --memory-init-file 1";
+
+					// Separate the asm.js code to its own file so that browsers can optimize memory usage for the script files for debugging.
+					Result += " -Wno-separate-asm";
+					Result += " --separate-asm";
 				}
 
 				// we have to specify the full amount of memory with Asm.JS.
@@ -666,6 +670,7 @@ namespace UnrealBuildTool
 				else
 				{
 					BuildProducts.Add(Binary.Config.OutputFilePath + ".mem", BuildProductType.RequiredResource);
+					BuildProducts.Add(Binary.Config.OutputFilePath.ChangeExtension("asm.js"), BuildProductType.RequiredResource);
 				}
 				BuildProducts.Add(Binary.Config.OutputFilePath + ".symbols", BuildProductType.RequiredResource);
 			}

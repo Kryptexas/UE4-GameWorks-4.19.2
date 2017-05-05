@@ -64,8 +64,6 @@
 
 			UE4_indexedDBName: 'UE4_assetDatabase_%GAME%', // TODO Nick: this should be an ascii ID string without special characters that is unique to the project that is being packaged
 			UE4_indexedDBVersion: %TIMESTAMP%, // Bump this number to invalidate existing IDB storages in browsers.
-
-			preRun: [function() { addRunDependency('wait-for-compiled-code'); }]
 		};
 
 		// Tests if type === 'browser' or type === 'os' is 64-bit or not.
@@ -91,7 +89,7 @@
 		// strict limit to an application to keep it from going rogue with its memory usage beyond some
 		// undesired limit. The absolute maximum that is possible is one memory page short of 2GB.
 		var MAX_MEMORY_64BIT = Infinity;
-		var MAX_MEMORY_32BIT = Infinity;
+		var MAX_MEMORY_32BIT = 512*1024*1024;
 		var MAX_MEMORY = Math.min(alignPageUp(heuristic64BitBrowser ? MAX_MEMORY_64BIT : MAX_MEMORY_32BIT), 2048 * 1024 * 1024 - pageSize);
 
 		// The application needs at least this much memory to run. If the browser can't provide this,
@@ -113,27 +111,35 @@
 		var RESERVE_MAX_32BIT = false;
 		var RESERVE_MAX = heuristic64BitBrowser ? RESERVE_MAX_64BIT : RESERVE_MAX_32BIT;
 
-		// Try to get as much memory close to IDEAL, but at least MIN. For asm.js, start by reserving
-		// MAX if requested to do so.
-		for(var mem = (RESERVE_MAX && !supportsWasm) ? MAX_MEMORY : IDEAL_MEMORY; mem >= MIN_MEMORY; mem -= pageSize) {
-			try {
-				if (supportsWasm) {
-					if (RESERVE_MAX) Module['wasmMemory'] = new WebAssembly.Memory({ initial: mem / pageSize, maximum: MAX_MEMORY / pageSize });
-					else Module['wasmMemory'] = new WebAssembly.Memory({ initial: mem / pageSize });
-					Module['buffer'] = Module['wasmMemory'].buffer;
-				} else {
-					Module['buffer'] = new ArrayBuffer(mem);
-				}
-				if (Module['buffer'].byteLength != mem) throw 'Out of memory';
-				break;
-			} catch(e) { /*nop*/ }
-		}
 		function MB(x) { return (x/1024/1024) + 'MB'; }
-		if (!Module['buffer'] || !(Module['buffer'].byteLength >= MIN_MEMORY)) {
-			delete Module['buffer'];
-			throw 'Out of memory';
+		function allocateHeap() {
+			// Try to get as much memory close to IDEAL, but at least MIN. For asm.js, start by reserving
+			// MAX if requested to do so.
+			for(var mem = (RESERVE_MAX && !supportsWasm) ? MAX_MEMORY : IDEAL_MEMORY; mem >= MIN_MEMORY; mem -= pageSize) {
+				try {
+					if (supportsWasm) {
+						if (RESERVE_MAX) Module['wasmMemory'] = new WebAssembly.Memory({ initial: mem / pageSize, maximum: MAX_MEMORY / pageSize });
+						else Module['wasmMemory'] = new WebAssembly.Memory({ initial: mem / pageSize });
+						Module['buffer'] = Module['wasmMemory'].buffer;
+					} else {
+						Module['buffer'] = new ArrayBuffer(mem);
+					}
+					if (Module['buffer'].byteLength != mem) throw 'Out of memory';
+					break;
+				} catch(e) { /*nop*/ }
+			}
+			if (!Module['buffer'] || !(Module['buffer'].byteLength >= MIN_MEMORY)) {
+				delete Module['buffer'];
+				throw 'Out of memory';
+			}
+			Module['TOTAL_MEMORY'] = Module['buffer'].byteLength;
 		}
-		Module['TOTAL_MEMORY'] = Module['buffer'].byteLength;
+		var allocateHeapUpFront = !runningAsmJs || heuristic64BitBrowser;
+		if (allocateHeapUpFront) {
+			allocateHeap();
+		} else {
+			Module['TOTAL_MEMORY'] = IDEAL_MEMORY;
+		}
 		Module['MAX_MEMORY'] = MAX_MEMORY;
 		console.log('Initial memory size: ' + MB(Module['TOTAL_MEMORY']) + ' (MIN_MEMORY: ' + MB(MIN_MEMORY) + ', IDEAL_MEMORY: ' + MB(IDEAL_MEMORY) + ', MAX_MEMORY: ' + MB(MAX_MEMORY) + ', RESERVE_MAX: ' + RESERVE_MAX + ', heuristic64BitBrowser: ' + heuristic64BitBrowser + ', heuristic64BitOS: ' + heuristicIs64Bit('os') + ')');
 	</script>
@@ -629,7 +635,13 @@ function taskFinished(taskId, error) {
 }
 
 window.onerror = function(e) {
-	showErrorDialog(e.toString());
+	e = e.toString();
+	if (e.toLowerCase().indexOf('memory') != -1) {
+		e += '<br>';
+		if (!heuristic64BitBrowser) e += ' Try running in a 64-bit browser to resolve.';
+		if (runningAsmJs) e += ' If you are the developer, make sure to deploy a minified Shipping build and consider migrating to WebAssembly for optimized memory usage.';
+	}
+	showErrorDialog(e);
 }
 
 function formatBytes(bytes) {
@@ -875,8 +887,6 @@ function openIndexedDB(dbName, dbVersion) {
 			db.createObjectStore('FILES');
 		};
 		openRequest.onsuccess = function(evt) {
-//			var t1 = performance.realNow();
-//			if (typeof emunittestReportCustomBlockDuration !== 'undefined') emunittestReportCustomBlockDuration('openIndexedDB', (t1-t0));
 			resolve(evt.target.result);
 		};
 		openRequest.onerror = function(evt) {
@@ -1059,7 +1069,7 @@ $(document).ready(function() {
 		showWarningRibbon('Your browser does not support WebAssembly, so running the asm.js fallback of this page. This can impact performance.<br>Try updating to latest <a href="https://www.mozilla.org/en-US/firefox/all/">64-bit Firefox</a> for a browser that supports WebAssembly.<br>Current user agent: ' + navigator.userAgent);
 	}
 
-	if (!Module['buffer']) {
+	if (!Module['buffer'] && allocateHeapUpFront) {
 		showErrorDialog('Failed to allocate ' + MB(MIN_MEMORY) + ' of linear memory for the ' + (runningAsmJs?'asm.js':'WebAssembly') + ' heap!');
 		return;
 	}
@@ -1086,7 +1096,7 @@ $(document).ready(function() {
 
 	if (!heuristicIs64Bit('browser')) {
 		if (heuristicIs64Bit('os')) {
-			showWarningRibbon('It looks like you are running a 32-bit browser on a 64-bit operating system. This can dramatically affect performance. Try updating to <a href="https://www.mozilla.org/en-US/firefox/all/">64-bit Firefox</a> for an optimized experience.');
+			showWarningRibbon('It looks like you are running a 32-bit browser on a 64-bit operating system. This can dramatically affect performance and risk running out of memory on large applications. Try updating to <a href="https://www.mozilla.org/en-US/firefox/all/">64-bit Firefox</a> for an optimized experience.');
 		} else {
 			showWarningRibbon('It looks like your computer hardware is 32-bit. This can dramatically affect performance.');
 		}
@@ -1169,25 +1179,37 @@ $(document).ready(function() {
 				Module['wasmInstantiateActionReject'] = reject;
 			});
 
-			var mainJsDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.js')).then(addScriptToDom);
-			if (runningAsmJs) mainJsDownload = mainJsDownload.catch(noAsmJsFallbackHostedError);
+			var mainJsDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.js')).then(function(data) {
+					return addScriptToDom(data).then(function() {
+						addRunDependency('wait-for-compiled-code');
+					});
+				});
 		} else {
 			var mainCompiledCode = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%.asm.js'), 'arraybuffer').then(function(data) {
 				taskProgress(TASK_COMPILING);
 				return addScriptToDom(data).then(function() {
 					taskFinished(TASK_COMPILING);
 				}).catch(function(e) {
+					if (e.toString().toLowerCase().indexOf('memory') != -1) {
+						// Unminified asm.js pages are really large, they need a 64-bit browser to run.
+						if (data && data.byteLength > 150*1024*1024) {
+							e = 'Out of memory!<br />The size of asm.js code is quite large (' + ((data.byteLength/1024/1024)|0) + 'MB) which suggests this was a nonminified build. Try running development builds either on a 64-bit browser, restrict to a smaller asm.js heap size than the current ' + (Module['buffer'].byteLength/1024/1024) + ' MB, consider migrating to WebAssembly, or deploy a minified Shipping build instead.';
+						} else {
+							e = 'Out of memory!<br />Try restricting to a smaller asm.js heap size than the current ' + (Module['buffer'].byteLength/1024/1024) + ' MB or consider migrating to WebAssembly.';
+						}
+					}
 					taskFinished(TASK_COMPILING, e);
 				});
 			}).catch(function(e) {
 				noAsmJsFallbackHostedError();
 			});
 			var compiledCodeInstantiateAction = true; // There is no need to manually instantiate asm.js, so instead of having a Promise() to resolve that, pass through true as a no-op.
-			if (runningAsmJs) mainJsDownload = mainCompiledCode.catch(noAsmJsFallbackHostedError);
-			else {
-				var asmJsRuntimeDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%_asm.js')).catch(noAsmJsFallbackHostedError);
-				var mainJsDownload = Promise.all([asmJsRuntimeDownload, mainCompiledCode]).then(function(results) { addScriptToDom(results[0]); });
-			}
+			var asmJsRuntimeDownload = fetchOrDownloadAndStore(db, Module.locateFile('%CONFIG%_asm.js')).catch(noAsmJsFallbackHostedError);
+			var mainJsDownload = Promise.all([asmJsRuntimeDownload, mainCompiledCode]).then(function(results) {
+				return addScriptToDom(results[0]).then(function() {
+					addRunDependency('wait-for-compiled-code');
+				});
+			});
 		}
 
 		var dataJsDownload = fetchOrDownloadAndStore(db, Module.locateFile('%GAME%.data.js'));
@@ -1229,9 +1251,7 @@ $(document).ready(function() {
 				Module['precompiledShaders'] = Module['precompiledPrograms'] = Module['preinitializedWebGLContext'] = Module['glIDCounter'] = Module['precompiledUniforms'] = null;
 			}
 			taskProgress(TASK_MAIN);
-			setTimeout(function() {
-				removeRunDependency('wait-for-compiled-code'); // Now we are ready to call main()
-			}, 100);
+			removeRunDependency('wait-for-compiled-code'); // Now we are ready to call main()
 		});
 	};
 

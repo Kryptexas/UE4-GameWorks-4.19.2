@@ -22,7 +22,8 @@ namespace UnrealBuildTool.Rules
 					"HeadMountedDisplay",
 					"Analytics",
                     "LevelSequence",
-                    "Sequencer"
+                    "Sequencer",
+                    "Projects"
 				}
 			);
 

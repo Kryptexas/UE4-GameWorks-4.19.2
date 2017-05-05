@@ -107,7 +107,7 @@ public:
 		}
 		else
 		{
-			return LOCTEXT("InvalidSequence", "No Sequence Selected");
+			return LOCTEXT("NoSequenceSelected", "No Sequence Selected");
 		}
 	}
 	

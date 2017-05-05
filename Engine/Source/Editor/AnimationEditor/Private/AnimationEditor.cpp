@@ -194,12 +194,12 @@ void FAnimationEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnApplyRawAnimChanges),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::CanApplyRawAnimChanges));
 
-	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ExportToFBX_Source,
-		FExecuteAction::CreateSP(this, &FAnimationEditor::OnExportToFBX, EPoseSourceOption::CurrentAnimation_Source),
+	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ExportToFBX_AnimData,
+		FExecuteAction::CreateSP(this, &FAnimationEditor::OnExportToFBX, EPoseSourceOption::CurrentAnimation_AnimData),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
 
-	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ExportToFBX_Play,
-		FExecuteAction::CreateSP(this, &FAnimationEditor::OnExportToFBX, EPoseSourceOption::CurrentAnimation_Play),
+	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().ExportToFBX_PreviewMesh,
+		FExecuteAction::CreateSP(this, &FAnimationEditor::OnExportToFBX, EPoseSourceOption::CurrentAnimation_PreviewMesh),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
 
 	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().AddLoopingInterpolation,
@@ -545,18 +545,18 @@ void FAnimationEditor::OnApplyCompression()
 void FAnimationEditor::OnExportToFBX(const EPoseSourceOption Option)
 {
 	UAnimSequence* AnimSequenceToRecord = nullptr;
-	if (Option == EPoseSourceOption::CurrentAnimation_Source)
+	if (Option == EPoseSourceOption::CurrentAnimation_AnimData)
 	{
 		TArray<UObject*> AssetsToExport;
 		AssetsToExport.Add(AnimationAsset);
 		ExportToFBX(AssetsToExport, false);
 	}
-	else if (Option == EPoseSourceOption::CurrentAnimation_Play)
+	else if (Option == EPoseSourceOption::CurrentAnimation_PreviewMesh)
 	{
 		TArray<TWeakObjectPtr<UObject>> Skeletons;
 		Skeletons.Add(PersonaToolkit->GetSkeleton());
 
-		AnimationEditorUtils::CreateAnimationAssets(Skeletons, UAnimSequence::StaticClass(), FString("_Play"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::ExportToFBX, true), AnimationAsset, true);
+		AnimationEditorUtils::CreateAnimationAssets(Skeletons, UAnimSequence::StaticClass(), FString("_PreviewMesh"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::ExportToFBX, true), AnimationAsset, true);
 	}
 	else
 	{
@@ -717,21 +717,21 @@ void FAnimationEditor::FillCreateAnimationFromCurrentAnimationMenu(FMenuBuilder&
 		MenuBuilder.BeginSection("CreateAnimationSubMenu", LOCTEXT("CreateAnimationFromCurrentAnimationSubmenuHeading", "Create Animation"));
 		{
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT("CreateAnimation_CurrentAnimation_Source", "Source"),
-				LOCTEXT("CreateAnimation_CurrentAnimation_Source_Tooltip", "Create Animation from Source Data."),
+				LOCTEXT("CreateAnimation_CurrentAnimation_AnimData", "Animation Data"),
+				LOCTEXT("CreateAnimation_CurrentAnimation_AnimData_Tooltip", "Create Animation from Animation Source Data."),
 				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Objects, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_Source), false),
+					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Objects, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_AnimData), false),
 					FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence)
 				)
 			);
 
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT("CreateAnimation_CurrentAnimation_Play", "Play"),
-				LOCTEXT("CreateAnimation_CurrentAnimation_Play_Tooltip", "Create Animation from Play on the Current Preview Mesh, including Retargeting, Post Process Graph, or anything you see on the preview mesh."),
+				LOCTEXT("CreateAnimation_CurrentAnimation_PreviewMesh", "Preview Mesh"),
+				LOCTEXT("CreateAnimation_CurrentAnimation_PreviewMesh_Tooltip", "Create Animation by playing on the Current Preview Mesh, including Retargeting, Post Process Graph, or anything you see on the preview mesh."),
 				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Objects, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_Play), false),
+					FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Objects, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreateAnimation, EPoseSourceOption::CurrentAnimation_PreviewMesh), false),
 					FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence)
 				)
 			);
@@ -771,7 +771,7 @@ void FAnimationEditor::FillCreatePoseAssetMenu(FMenuBuilder& MenuBuilder) const
 			LOCTEXT("CreatePoseAsset_CurrentAnimation_Tooltip", "Create Animation from current animation."),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Objects, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, EPoseSourceOption::CurrentAnimation_Source), false),
+				FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UPoseAssetFactory, UPoseAsset>, Objects, FString("_PoseAsset"), FAnimAssetCreated::CreateSP(this, &FAnimationEditor::CreatePoseAsset, EPoseSourceOption::CurrentAnimation_AnimData), false),
 				FCanExecuteAction()
 			)
 		);
@@ -890,8 +890,8 @@ void FAnimationEditor::FillExportAssetMenu(FMenuBuilder& MenuBuilder) const
 {
 	MenuBuilder.BeginSection("AnimationExport", LOCTEXT("ExportAssetMenuHeading", "Export"));
 	{
-		MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().ExportToFBX_Source);
-		MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().ExportToFBX_Play);
+		MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().ExportToFBX_AnimData);
+		MenuBuilder.AddMenuEntry(FAnimationEditorCommands::Get().ExportToFBX_PreviewMesh);
 	}
 	MenuBuilder.EndSection();
 }
@@ -987,10 +987,10 @@ void FAnimationEditor::CreateAnimation(const TArray<UObject*> NewAssets, const E
 				case EPoseSourceOption::CurrentPose:
 					bResult &= NewAnimSequence->CreateAnimation(MeshComponent);
 					break;
-				case EPoseSourceOption::CurrentAnimation_Source:
+				case EPoseSourceOption::CurrentAnimation_AnimData:
 					bResult &= NewAnimSequence->CreateAnimation(Sequence);
 					break;
-				case EPoseSourceOption::CurrentAnimation_Play:
+				case EPoseSourceOption::CurrentAnimation_PreviewMesh:
 					bResult &= RecordMeshToAnimation(MeshComponent, NewAnimSequence);
 					break;
 				default: 
@@ -1036,7 +1036,7 @@ void FAnimationEditor::CreatePoseAsset(const TArray<UObject*> NewAssets, const E
 					NewPoseAsset->AddOrUpdatePoseWithUniqueName(PreviewComponent);
 					bResult = true;
 					break;
-				case EPoseSourceOption::CurrentAnimation_Source:
+				case EPoseSourceOption::CurrentAnimation_AnimData:
 					NewPoseAsset->CreatePoseFromAnimation(Sequence);
 					bResult = true;
 					break;

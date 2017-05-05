@@ -304,13 +304,5 @@ FName FSlateGameResources::GetCleanName(const FName& AssetName) const
 
 void FSlateGameResources::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	//We only add references to our style assets when in Game.
-	//We don't add them during normal editor execution so the user can delete the assets.
-	//We add them during Game so they don't get unloaded. 
-	//In Editor all style assets are marked with StandAlone so they are never unloaded.
-
-	if ( !GIsEditor )
-	{
-		Collector.AddReferencedObjects( UIResources );
-	}
+	Collector.AddReferencedObjects( UIResources );
 }

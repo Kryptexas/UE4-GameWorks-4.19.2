@@ -447,3 +447,6 @@ static bool CompatExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 }
 
 static FStaticSelfRegisteringExec CompatExecRegistration(CompatExec);
+
+#undef LOCTEXT_NAMESPACE
+

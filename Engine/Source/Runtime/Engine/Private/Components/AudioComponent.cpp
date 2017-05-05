@@ -49,7 +49,6 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 
 	AudioDeviceHandle = INDEX_NONE;
 	AudioComponentID = ++AudioComponentIDCounter;
-	AudioComponentUserID = INDEX_NONE;
 
 	// TODO: Consider only putting played/active components in to the map
 	AudioIDToComponentMap.Add(AudioComponentID, this);

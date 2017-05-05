@@ -37,24 +37,6 @@ FLevelSequenceObjectReference::FLevelSequenceObjectReference(const FUniqueObject
 {
 }
 
-UObject* ResolveByPath(UObject* InContext, const FString& InObjectPath)
-{
-	if (!InObjectPath.IsEmpty())
-	{
-		if (UObject* FoundObject = FindObject<UObject>(InContext, *InObjectPath, false))
-		{
-			return FoundObject;
-		}
-
-		if (UObject* FoundObject = FindObject<UObject>(ANY_PACKAGE, *InObjectPath, false))
-		{
-			return FoundObject;
-		}
-	}
-
-	return nullptr;
-}
-
 UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 {
 	if (ObjectId.IsValid() && InContext != nullptr)
@@ -64,13 +46,20 @@ UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 
 		if (PIEInstanceID != -1 && FixedUpId == ObjectId)
 		{
-			UObject* FoundObject = ResolveByPath(InContext, ObjectPath);
-			if (FoundObject)
+			if (!ObjectPath.IsEmpty())
 			{
-				return FoundObject;
+				if (UObject* FoundObject = FindObject<UObject>(InContext, *ObjectPath, false))
+				{
+					return FoundObject;
+				}
+
+				if (UObject* FoundObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPath, false))
+				{
+					return FoundObject;
+				}
 			}
 
-			UE_LOG(LogMovieScene, Warning, TEXT("Attempted to resolve object with a PIE instance that has not been fixed up yet. This is probably due to a streamed level not being available yet."));
+			UE_LOG(LogMovieScene, Warning, TEXT("Attempted to resolve object with a PIE instance that has not been fixed up yet. This is probably due to a streamed level not being available yet. %s"), *ObjectPath);
 			return nullptr;
 		}
 
@@ -83,7 +72,20 @@ UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 		}
 	}
 
-	return ResolveByPath(InContext, ObjectPath);
+	if (!ObjectPath.IsEmpty())
+	{
+		if (UObject* FoundObject = FindObject<UObject>(InContext, *ObjectPath, false))
+		{
+			return FoundObject;
+		}
+
+		if (UObject* FoundObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPath, false))
+		{
+			return FoundObject;
+		}
+	}
+
+	return nullptr;
 }
 
 bool FLevelSequenceObjectReferenceMap::Serialize(FArchive& Ar)

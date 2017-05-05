@@ -943,6 +943,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Copy( Light, LightData );
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
+		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = 0;
 		LightData.LightSourceLength = 0;
 		DirectionalData.LightSourceAngle = Light->LightmassSettings.LightSourceAngle * (float)PI / 180.0f;
@@ -960,6 +961,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Copy( Light, LightData );
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
+		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = Light->SourceRadius;
 		LightData.LightSourceLength = Light->SourceLength;
 		PointData.Radius = Light->AttenuationRadius;
@@ -979,6 +981,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Copy( Light, LightData ); 
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
+		LightData.ShadowResolutionScale = Light->ShadowResolutionScale;
 		LightData.LightSourceRadius = Light->SourceRadius;
 		LightData.LightSourceLength = Light->SourceLength;
 		PointData.Radius = Light->AttenuationRadius;

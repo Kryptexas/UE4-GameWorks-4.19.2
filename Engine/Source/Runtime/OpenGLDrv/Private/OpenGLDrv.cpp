@@ -547,6 +547,23 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 	{
 		GRHIVendorId = 0x5143;
 	}
+
+	if (GRHIVendorId == 0x0)
+	{
+		// Fix for Mesa Radeon
+		const ANSICHAR* AnsiVersion = (const ANSICHAR*)glGetString(GL_VERSION);
+		const ANSICHAR* AnsiRenderer = (const ANSICHAR*)glGetString(GL_RENDERER);
+		if (AnsiVersion && AnsiRenderer)
+		{
+			if (FCStringAnsi::Strstr(AnsiVersion, "Mesa") &&
+				(FCStringAnsi::Strstr(AnsiRenderer, "AMD") || FCStringAnsi::Strstr(AnsiRenderer, "ATI")))
+			{
+				// Radeon
+				GRHIVendorId = 0x1002;
+			}
+		}
+	}
+
 #if PLATFORM_WINDOWS
 	auto* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseStagingBuffer"));
 	if (CVar)

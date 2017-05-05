@@ -86,7 +86,7 @@ namespace UE4Paths_Private
 
 bool FPaths::ShouldSaveToUserDir()
 {
-	static bool bShouldSaveToUserDir = FApp::IsInstalled() || FParse::Param(FCommandLine::Get(), TEXT("SaveToUserDir"));
+	static bool bShouldSaveToUserDir = FApp::IsInstalled() || FParse::Param(FCommandLine::Get(), TEXT("SaveToUserDir")) || FPlatformProcess::ShouldSaveToUserDir();
 	return bShouldSaveToUserDir;
 }
 

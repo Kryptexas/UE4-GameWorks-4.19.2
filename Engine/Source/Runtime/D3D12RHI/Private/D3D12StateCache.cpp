@@ -135,6 +135,9 @@ void FD3D12StateCacheBase::ClearState()
 	// Rasterizer State Cache
 	PipelineState.Graphics.HighLevelDesc.RasterizerState = nullptr;
 
+	// Zero the RTV array - this is necessary to prevent uninitialized memory affecting the PSO cache hash generation
+	FMemory::Memzero(&PipelineState.Graphics.HighLevelDesc.RTVFormats[0], sizeof(PipelineState.Graphics.HighLevelDesc.RTVFormats[0]) * PipelineState.Graphics.HighLevelDesc.RTVFormats.Num());
+
 	// Depth Stencil State Cache
 	PipelineState.Graphics.CurrentReferenceStencil = 0;
 	PipelineState.Graphics.HighLevelDesc.DepthStencilState = nullptr;

@@ -6044,7 +6044,6 @@ bool UDataAssetFactory::ConfigureProperties()
 
 	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists;
 	Filter->AllowedChildrenOfClasses.Add(UDataAsset::StaticClass());
-	Filter->bDisallowBlueprintBase = true; // If a DataAsset subclass is blueprintable, data blueprints should be made instead
 
 	const FText TitleText = LOCTEXT("CreateDataAssetOptions", "Pick Data Asset Class");
 	UClass* ChosenClass = nullptr;

@@ -7930,11 +7930,18 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 		MessageY += FontSizeY;
 	}
 
-	// Warn about invalid reflection captures, this can appear only in game with FeatureLevel < SM4
+	// Warn about invalid reflection captures, this can appear only with FeatureLevel < SM4
 	if (World->NumInvalidReflectionCaptureComponents > 0)
 	{
 		SmallTextItem.SetColor(FLinearColor::Red);
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("INVALID REFLECTION CAPTURES (%u Components, resave map in the editor)"), World->NumInvalidReflectionCaptureComponents));
+		if( World->IsGameWorld())
+		{
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("INVALID REFLECTION CAPTURES (%u Components, resave map in the editor)"), World->NumInvalidReflectionCaptureComponents));
+		}
+		else
+		{
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("REFLECTION CAPTURE UPDATE REQUIRED (%u out-of-date reflection capture(s))"), World->NumInvalidReflectionCaptureComponents));
+		}
 		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 		MessageY += FontSizeY;
 	}

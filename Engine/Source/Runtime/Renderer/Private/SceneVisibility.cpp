@@ -3040,6 +3040,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 
 		HLODState.PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
 		HLODState.PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+		HLODState.HiddenChildPrimitiveMap.Init(false, View.PrimitiveVisibilityMap.Num());
 		FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
 		TArray<FPrimitiveViewRelevance, SceneRenderingAllocator>& RelevanceMap = View.PrimitiveViewRelevanceMap;
 
@@ -3192,6 +3193,7 @@ void FLODSceneTree::ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSc
 
 			HLODState.PrimitiveFadingLODMap[ChildIndex] = bIsFading;
 			HLODState.PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
+			HLODState.HiddenChildPrimitiveMap[ChildIndex] = false;
 			VisibilityFlags[ChildIndex] = true;
 
 			// Fading only occurs at the adjacent hierarchy level, below should be hidden
@@ -3217,6 +3219,7 @@ void FLODSceneTree::HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& 
 		for (const auto& Child : Node.ChildrenSceneInfos)
 		{
 			const int32 ChildIndex = Child->GetIndex();
+			HLODState.HiddenChildPrimitiveMap[ChildIndex] = true;
 			VisibilityFlags[ChildIndex] = false;
 
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))

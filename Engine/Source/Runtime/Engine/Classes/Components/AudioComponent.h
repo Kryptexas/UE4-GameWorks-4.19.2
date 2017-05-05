@@ -174,7 +174,7 @@ class ENGINE_API UAudioComponent : public USceneComponent
 
 	/** Configurable, serialized ID for audio plugins */
 	UPROPERTY()
-	uint64 AudioComponentUserID;
+	FName AudioComponentUserID;
 
 	/** The lower bound to use when randomly determining a pitch multiplier */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modulation)
@@ -389,7 +389,7 @@ public:
 
 	uint64 GetAudioComponentID() const { return AudioComponentID; }
 
-	uint64 GetAudioComponentUserID() const { return AudioComponentUserID; }
+	FName GetAudioComponentUserID() const { return AudioComponentUserID; }
 
 	static UAudioComponent* GetAudioComponentFromID(uint64 AudioComponentID);
 

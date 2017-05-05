@@ -30,6 +30,9 @@ public class ShaderCompileWorkerTarget : TargetRules
 		// Currently we force Lean and Mean mode
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 
+		// ShaderCompileWorker isn't localized, so doesn't need ICU
+		UEBuildConfiguration.bCompileICU = false;
+
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = false;

@@ -63,7 +63,7 @@ extern "C" {
     /* Context                                                                                                       */
     /*****************************************************************************************************************/
 
-    /** \defgroup context Context 
+    /** \defgroup context Context
      *  Defines a Context object, which controls low-level operations of Phonon. Typically, a Context is specified
      *  once during the execution of the client program, before calling any other API functions. Once any API function
      *  is called, changing the Context may lead to undefined behavior.
@@ -120,9 +120,10 @@ extern "C" {
      *  \{
      */
 
-    /** A point or vector in 3D space. Phonon uses a right-handed coordinate system, with the x-axis pointing right,
-     *  the y-axis pointing up, and the z-axis pointing ahead. Position and direction data obtained from a game
-     *  engine or audio engine must be properly transformed before being passed to any Phonon API function.
+    /** A point or vector in 3D space. Phonon uses a right-handed coordinate system, with the positive x-axis pointing
+     *  right, the positive y-axis pointing up, and the negative z-axis pointing ahead. Position and direction data
+     *  obtained from a game engine or audio engine must be properly transformed before being passed to any Phonon API
+     *  function.
      */
     typedef struct {
         IPLfloat32 x;   /**< The x-coordinate. */
@@ -715,15 +716,15 @@ extern "C" {
      *  \f$ -l \leq m \leq l \f$.
      *
      *  There are many different conventions used by the audio engineering community to encode Ambisonics coefficients.
-     *  Phonon supports many of them. 
+     *  Phonon supports many of them.
      *
      *  This enumeration defines the sequence in which Ambisonics channels are stored. Since two integers are needed to
      *  identify an Ambisonics channel, there is more than one way to use a single integer to identify an Ambisonics
-     *  channel. 
+     *  channel.
      */
     typedef enum {
         IPL_AMBISONICSORDERING_FURSEMALHAM, /**< Specifies the Furse-Malham (FuMa) channel ordering. This is an
-                                                 extension of traditional B-format encoding to higher-order 
+                                                 extension of traditional B-format encoding to higher-order
                                                  Ambisonics. */
         IPL_AMBISONICSORDERING_ACN          /**< Specifies the Ambisonics Channel Number scheme for channel ordering.
                                                  This is the new standard adopted by the AmbiX Ambisonics format. The
@@ -763,13 +764,13 @@ extern "C" {
     /** The format of an audio buffer. Whenever you pass audio data to or from Phonon, you must describe the format in
      *  which the audio is encoded. **Phonon only supports uncompressed PCM wave data, stored in 32-bit floating point
      *  format**. However, Phonon supports many different multi-channel and Ambisonics formats, and the
-     *  \c IPLAudioFormat tells Phonon how to interpret a buffer of audio data. 
+     *  \c IPLAudioFormat tells Phonon how to interpret a buffer of audio data.
      */
     typedef struct {
-        IPLChannelLayoutType        channelLayoutType;          /**< Indicates whether or not the audio should be 
+        IPLChannelLayoutType        channelLayoutType;          /**< Indicates whether or not the audio should be
                                                                      interpreted as Ambisonics data. */
         IPLChannelLayout            channelLayout;              /**< Specifies the speaker configuration used for
-                                                                     multi-channel, speaker-based audio data. Ignored 
+                                                                     multi-channel, speaker-based audio data. Ignored
                                                                      if \c channelLayoutType is
                                                                      \c ::IPL_CHANNELLAYOUTTYPE_AMBISONICS. */
         IPLint32                    numSpeakers;                /**< The number of channels in the audio data. Must be
@@ -826,7 +827,7 @@ extern "C" {
     IPLAPI IPLvoid iplMixAudioBuffers(IPLint32 numBuffers, IPLAudioBuffer* inputAudio, IPLAudioBuffer outputAudio);
 
     /** Interleaves a deinterleaved audio buffer. The formats of \c inputAudio and \c outputAudio must be identical
-     *  except for the \c channelOrder field. 
+     *  except for the \c channelOrder field.
      *
      *  \param  inputAudio          The input audio buffer. This audio buffer must be deinterleaved.
      *  \param  outputAudio         The output audio buffer. This audio buffer must be interleaved.
@@ -926,7 +927,7 @@ extern "C" {
      *
      *  \param  context             The Context object used by the audio engine.
      *  \param  renderingSettings   An \c IPLRenderingSettings object describing the audio pipeline's DSP processing
-     *                              parameters. These properties must remain constant throughout the lifetime of your 
+     *                              parameters. These properties must remain constant throughout the lifetime of your
      *                              application.
      *  \param  hrtfData            Pointer to a byte array containing HRTF data. For most situations, set this
      *                              parameter to \c NULL; Phonon will use its built-in HRTF data. If you want to use
@@ -960,7 +961,7 @@ extern "C" {
      */
 
     /** Creates a Panning Effect object. This can be used to render a point source on surround speakers, or using
-     *  Ambisonics. 
+     *  Ambisonics.
      *
      *  \param  renderer            Handle to a Binaural Renderer object.
      *  \param  inputFormat         The format of the audio buffers that will be passed as input to this effect. All
@@ -986,7 +987,7 @@ extern "C" {
 
     /** Applies 3D panning to a buffer of audio data, using the configuration of a Panning Effect object. The input
      *  audio is treated as emanating from a single point. If the input audio buffer contains more than one channel,
-     *  it will automatically be downmixed to mono. 
+     *  it will automatically be downmixed to mono.
      *
      *  \param  effect              Handle to a Panning Effect object.
      *  \param  inputAudio          Audio buffer containing the data to render using 3D panning. The format of this
@@ -999,6 +1000,14 @@ extern "C" {
     IPLAPI IPLvoid iplApplyPanningEffect(IPLhandle effect, IPLAudioBuffer inputAudio, IPLVector3 direction,
         IPLAudioBuffer outputAudio);
 
+    /** Resets any internal state maintained by a Panning Effect object. This is useful if the Panning Effect object
+     *  is going to be disabled/unused for a few frames; resetting the internal state will prevent an audible glitch
+     *  when the Panning Effect object is re-enabled at a later time.
+     *
+     *  \param  effect              Handle to a Panning Effect object.
+     */
+    IPLAPI IPLvoid iplFlushPanningEffect(IPLhandle effect);
+
     /** \} */
 
 
@@ -1009,7 +1018,7 @@ extern "C" {
     /** \defgroup binauraleffect Object-Based Binaural Effect
      *  Functionality for accurately spatializing point sources in 3D, using Head-Related Transfer Functions (HRTFs).
      *  The Phonon API includes a simple set of functions for applying high-performance binaural rendering to point
-     *  source audio data. 
+     *  source audio data.
      *  \{
      */
 
@@ -1033,8 +1042,8 @@ extern "C" {
      *                              \c IPLAudioBuffer objects with the same format as specified here. The input format
      *                              must not be Ambisonics.
      *  \param  outputFormat        The format of the audio buffers which will be used to retrieve the output from this
-     *                              effect. All subsequent calls to \c ::iplApplyBinauralEffect for this effect object 
-     *                              must use \c IPLAudioBuffer objects with the same format as specified here. The 
+     *                              effect. All subsequent calls to \c ::iplApplyBinauralEffect for this effect object
+     *                              must use \c IPLAudioBuffer objects with the same format as specified here. The
      *                              output format must be stereo (2 channels).
      *  \param  effect              [out] Handle to the created Object-Based Binaural Effect object.
      *
@@ -1052,8 +1061,8 @@ extern "C" {
 
     /** Applies HRTF-based binaural rendering to a buffer of audio data. The input audio is treated as emanating from
      *  a single point. If the input audio buffer contains more than one channel, it will automatically be downmixed to
-     *  mono. Using bilinear interpolation (by setting \c interpolation to \c ::IPL_HRTFINTERPOLATION_BILINEAR) can 
-     *  incur a relatively high CPU cost. Use it only on sources where nearest-neighbor filtering 
+     *  mono. Using bilinear interpolation (by setting \c interpolation to \c ::IPL_HRTFINTERPOLATION_BILINEAR) can
+     *  incur a relatively high CPU cost. Use it only on sources where nearest-neighbor filtering
      *  (\c ::IPL_HRTFINTERPOLATION_NEAREST) produces suboptimal results. Typically, bilinear filtering is most useful
      *  for wide-band noise-like sounds, such as radio static, mechanical noise, fire, etc.
      *
@@ -1072,6 +1081,15 @@ extern "C" {
     IPLAPI IPLvoid iplApplyBinauralEffect(IPLhandle effect, IPLAudioBuffer inputAudio, IPLVector3 direction,
         IPLHrtfInterpolation interpolation, IPLAudioBuffer outputAudio);
 
+    /** Resets any internal state maintained by an Object-Based Binaural Effect object. This is useful if the 
+     *  Object-Based Binaural Effect object is going to be disabled/unused for a few frames; resetting the internal 
+     *  state will prevent an audible glitch when the Object-Based Binaural Effect object is re-enabled at a later 
+     *  time.
+     *
+     *  \param  effect              Handle to an Object-Based Binaural Effect object.
+     */
+    IPLAPI IPLvoid iplFlushBinauralEffect(IPLhandle effect);
+
     /** \} */
 
 
@@ -1085,7 +1103,7 @@ extern "C" {
      *  for each speaker using binaural rendering. In other words, the audio signal for each speaker is rendered as if
      *  it were emanating from a point in space corresponding to the speaker's position. This allows users to
      *  experience, say, a 7.1 surround sound mix over regular stereo headphones.
-     * 
+     *
      *  Virtual Surround also works as a fast way to get approximate binaural rendering. All sound sources can be
      *  panned to some surround format (say 7.1); after they are mixed, the 7.1 surround mix can be rendered using
      *  virtual surround. This can save CPU cycles, at the cost of spatialization accuracy.
@@ -1130,6 +1148,86 @@ extern "C" {
     IPLAPI IPLvoid iplApplyVirtualSurroundEffect(IPLhandle effect, IPLAudioBuffer inputAudio,
         IPLAudioBuffer outputAudio);
 
+    /** Resets any internal state maintained by a Virtual Surround Effect object. This is useful if the Virtual 
+     *  Surround Effect object is going to be disabled/unused for a few frames; resetting the internal state will 
+     *  prevent an audible glitch when the Virtual Surround Effect object is re-enabled at a later time.
+     *
+     *  \param  effect              Handle to a Virtual Surround Effect object.
+     */
+    IPLAPI IPLvoid iplFlushVirtualSurroundEffect(IPLhandle effect);
+
+    /** \} */
+
+
+    /*****************************************************************************************************************/
+    /* Ambisonics Panning Effect                                                                                     */
+    /*****************************************************************************************************************/
+
+    /** \defgroup ambisonicspanning Ambisonics Panning Effect
+     *  Functionality for rendering Ambisonics data by panning it to standard speaker layouts. Ambisonics is a powerful
+     *  format for encoding 3D sound fields, and exchanging them. Phonon can encode data into Ambisonics using the
+     *  Panning Effect: to spatialize a sound source and create an Ambisonics track, use the Panning Effect with
+     *  \c outputFormat.channelLayoutType set to \c ::IPL_CHANNELLAYOUTTYPE_AMBISONICS.
+     *
+     *  Phonon can also decode and render Ambisonics data, using panning. This involves approximating the sound field
+     *  as if it were generated by sound coming from each speaker.
+     *
+     *  Ambisonics also allows 3D audio rendering in VR to be significantly accelerated: instead of applying
+     *  object-based binaural rendering to each source individually, the sources can be encoded into Ambisonics first,
+     *  then mixed, and finally the mix can be rendered using Ambisonics binaural rendering. This saves CPU cycles, at
+     *  the cost of some spatialization accuracy.
+     *  \{
+     */
+
+    /** Creates an Ambisonics Panning Effect object. This can be used to render higher-order Ambisonics data using
+     *  standard panning algorithms.
+     *
+     *  \param  renderer            Handle to a Binaural Renderer object.
+     *  \param  inputFormat         The format of the audio buffers that will be passed as input to this effect. All
+     *                              subsequent calls to \c ::iplApplyAmbisonicsPanningEffect for this effect object must
+     *                              use \c IPLAudioBuffer objects with the same format as specified here. The input
+     *                              format must be Ambisonics.
+     *  \param  outputFormat        The format of the audio buffers which will be used to retrieve the output from this
+     *                              effect. All subsequent calls to \c ::iplApplyAmbisonicsPanningEffect for this
+     *                              effect object must use \c IPLAudioBuffer objects with the same format as specified
+     *                              here.
+     *  \param  effect              [out] Handle to the created Ambisonics Panning Effect object.
+     *
+     *  \return Status code indicating whether or not the operation succeeded.
+     */
+    IPLAPI IPLerror iplCreateAmbisonicsPanningEffect(IPLhandle renderer, IPLAudioFormat inputFormat,
+        IPLAudioFormat outputFormat, IPLhandle* effect);
+
+    /** Destroys an Ambisonics Panning Effect object.
+     *
+     *  \param  effect              [in, out] Address of a handle to the Ambisonics Panning Effect object to destroy.
+     */
+    IPLAPI IPLvoid iplDestroyAmbisonicsPanningEffect(IPLhandle* effect);
+
+    /** Applies a panning-based rendering algorithm to a buffer of Ambisonics audio data. Ambisonics encoders and decoders
+     *  use many different conventions to store the multiple Ambisonics channels, as well as different normalization
+     *  schemes. Make sure that you correctly specify these settings when creating the Ambisonics Panning Effect
+     *  object, otherwise the rendered audio will be incorrect.
+     *
+     *  \param  effect              Handle to an Ambisonics Panning Effect object.
+     *  \param  inputAudio          Audio buffer containing the data to render. The format of
+     *                              this buffer must match the \c inputFormat parameter passed to
+     *                              \c ::iplCreateAmbisonicsPanningEffect.
+     *  \param  outputAudio         Audio buffer that should contain the rendered audio data. The format of this buffer
+     *                              must match the \c outputFormat parameter passed to
+     *                              \c ::iplCreateAmbisonicsPanningEffect.
+     */
+    IPLAPI IPLvoid iplApplyAmbisonicsPanningEffect(IPLhandle effect, IPLAudioBuffer inputAudio,
+        IPLAudioBuffer outputAudio);
+
+    /** Resets any internal state maintained by an Ambisonics Panning Effect object. This is useful if the Ambisonics 
+     *  Panning Effect object is going to be disabled/unused for a few frames; resetting the internal state will 
+     *  prevent an audible glitch when the Ambisonics Panning Effect object is re-enabled at a later time.
+     *
+     *  \param  effect              Handle to an Ambisonics Panning Effect object.
+     */
+    IPLAPI IPLvoid iplFlushAmbisonicsPanningEffect(IPLhandle effect);
+
     /** \} */
 
 
@@ -1141,21 +1239,21 @@ extern "C" {
      *  Functionality for rendering Ambisonics data using HRTF-based binaural rendering. Ambisonics is a powerful
      *  format for encoding 3D sound fields, and exchanging them. Phonon can encode data into Ambisonics using the
      *  Panning Effect: to spatialize a sound source and create an Ambisonics track, use the Panning Effect with
-     *  \c outputFormat.channelLayoutType set to \c ::IPL_CHANNELLAYOUTTYPE_AMBISONICS.  
+     *  \c outputFormat.channelLayoutType set to \c ::IPL_CHANNELLAYOUTTYPE_AMBISONICS.
      *
      *  Phonon can also decode and render Ambisonics data, using Ambisonics binaural rendering. This involves
      *  recreating the 3D sound field as perceived by each ear. This is a powerful and intuitive way of listening to
-     *  Ambisonics data. It is extremely useful for rendering audio tracks recorded for 360 video projects.  
+     *  Ambisonics data. It is extremely useful for rendering audio tracks recorded for 360 video projects.
      *
      *  Ambisonics also allows 3D audio rendering in VR to be significantly accelerated: instead of applying
      *  object-based binaural rendering to each source individually, the sources can be encoded into Ambisonics first,
      *  then mixed, and finally the mix can be rendered using Ambisonics binaural rendering. This saves CPU cycles, at
-     *  the cost of some spatialization accuracy. 
+     *  the cost of some spatialization accuracy.
      *  \{
      */
 
     /** Creates an Ambisonics Binaural Effect object. This can be used to render higher-order Ambisonics data using
-     *  HRTF-based binaural rendering. 
+     *  HRTF-based binaural rendering.
      *
      *  \param  renderer            Handle to a Binaural Renderer object.
      *  \param  inputFormat         The format of the audio buffers that will be passed as input to this effect. All
@@ -1190,10 +1288,18 @@ extern "C" {
      *                              \c ::iplCreateAmbisonicsBinauralEffect.
      *  \param  outputAudio         Audio buffer that should contain the rendered audio data. The format of this buffer
      *                              must match the \c outputFormat parameter passed to
-     *                              \c ::iplCreateAmbisonicsBinauralEffect. 
+     *                              \c ::iplCreateAmbisonicsBinauralEffect.
      */
     IPLAPI IPLvoid iplApplyAmbisonicsBinauralEffect(IPLhandle effect, IPLAudioBuffer inputAudio,
         IPLAudioBuffer outputAudio);
+
+    /** Resets any internal state maintained by an Ambisonics Binaural Effect object. This is useful if the Ambisonics 
+     *  Binaural Effect object is going to be disabled/unused for a few frames; resetting the internal state will 
+     *  prevent an audible glitch when the Ambisonics Binaural Effect object is re-enabled at a later time.
+     *
+     *  \param  effect              Handle to an Ambisonics Binaural Effect object.
+     */
+    IPLAPI IPLvoid iplFlushAmbisonicsBinauralEffect(IPLhandle effect);
 
     /** \} */
 
@@ -1238,6 +1344,21 @@ extern "C" {
     IPLAPI IPLvoid iplDestroyEnvironmentalRenderer(IPLhandle* renderer);
 
     /** \} */
+
+    IPLAPI IPLerror iplCreateSimulationData(IPLSimulationSettings simulationSettings,
+        IPLRenderingSettings renderingSettings, IPLhandle* simulationData);
+
+    IPLAPI IPLvoid iplDestroySimulationData(IPLhandle* simulationData);
+
+    IPLAPI IPLint32 iplGetNumIrSamples(IPLhandle simulationData);
+
+    IPLAPI IPLint32 iplGetNumIrChannels(IPLhandle simulationData);
+
+    IPLAPI IPLvoid iplGenerateSimulationData(IPLhandle simulationData, IPLhandle environment,
+        IPLVector3 listenerPosition, IPLVector3 listenerAhead, IPLVector3 listenerUp, IPLVector3* sources);
+
+    IPLAPI IPLvoid iplGetSimulationResult(IPLhandle simulationData, IPLint32 sourceIndex, IPLint32 channel,
+        IPLfloat32* buffer);
 
 
     /*****************************************************************************************************************/
@@ -1333,7 +1454,7 @@ extern "C" {
      *                              If you want this Convolution Effect to be used to render baked reverb, pass
      *                              \c "__reverb__" as the name.
      *  \param  simulationType      Whether this Convolution Effect object should use baked data or real-time simulation.
-     *  \param  inputFormat         Format of all audio buffers passed as input to 
+     *  \param  inputFormat         Format of all audio buffers passed as input to
      *                              \c ::iplSetDryAudioForConvolutionEffect.
      *  \param  outputFormat        Format of all output audio buffers passed to \c ::iplGetWetAudioForConvolutionEffect.
      *  \param  effect              [out] Handle to the created Convolution Effect object.
@@ -1395,6 +1516,14 @@ extern "C" {
     IPLAPI IPLvoid iplGetMixedEnvironmentalAudio(IPLhandle renderer, IPLVector3 listenerPosition,
         IPLVector3 listenerAhead, IPLVector3 listenerUp, IPLAudioBuffer mixedWetAudio);
 
+    /** Resets any internal state maintained by a Convolution Effect object. This is useful if the Convolution Effect 
+     *  object is going to be disabled/unused for a few frames; resetting the internal state will prevent an audible 
+     *  glitch when the Convolution Effect object is re-enabled at a later time.
+     *
+     *  \param  effect              Handle to a Convolution Effect object.
+     */
+    IPLAPI IPLvoid iplFlushConvolutionEffect(IPLhandle effect);
+
     /** \} */
 
 
@@ -1441,11 +1570,11 @@ extern "C" {
         IPLfloat32          spacing;            /**< Spacing between probes along the horizontal plane. Only
                                                      used if \c placement is \c ::IPL_PLACEMENT_UNIFORMFLOOR. */
         IPLfloat32          heightAboveFloor;   /**< Height of the probes above the closest floor or terrain
-                                                     surfaces. Only used if \c placement is 
+                                                     surfaces. Only used if \c placement is
                                                      \c ::IPL_PLACEMENT_UNIFORMFLOOR. */
-        IPLfloat32          maxOctreeTriangles; /**< The maximum number of triangles to store in an octree leaf
+        IPLint32           maxOctreeTriangles; /**< The maximum number of triangles to store in an octree leaf
                                                      node. Only used if \c placement is \c ::IPL_PLACEMENT_OCTREE. */
-        IPLfloat32          maxOctreeDepth;     /**< The maximum depth of the octree. Increasing this value increases
+        IPLint32            maxOctreeDepth;     /**< The maximum depth of the octree. Increasing this value increases
                                                      density of the generated probes. Only used if \c placement is
                                                      \c ::IPL_PLACEMENT_OCTREE. */
     } IPLProbePlacementParams;
@@ -1453,7 +1582,7 @@ extern "C" {
     /** A callback that is called to update the application on the progress of the \c ::iplCreateProbeBox function.
      *  You can use this to provide visual feedback to the user, like a progress bar.
      *
-     *  \param  progress            Fraction of the probe generation process that has been completed, between 
+     *  \param  progress            Fraction of the probe generation process that has been completed, between
      *                              0.0 and 1.0.
      */
     typedef void (*IPLProbePlacementProgressCallback)(IPLfloat32 progress);
@@ -1696,7 +1825,7 @@ extern "C" {
      *
      *  \param  environment         Handle to an Environment object.
      *  \param  probeBox            Handle to the Probe Box containing the probes for which to bake reverb.
-     *  \param  listener            Position of the listener.
+     *  \param  listenerInfluence   Position and influence radius of the listener.
      *  \param  listenerName        Name of the listener. At run-time, a Convolution Effect object can use this
      *                              name prefixed with \c __staticlistener__ to look up the correct impulse
      *                              response information.
@@ -1704,7 +1833,7 @@ extern "C" {
      *  \param  progressCallback    Pointer to a function that reports the percentage of this function's work that
      *                              has been completed. May be \c NULL.
      */
-    IPLAPI IPLvoid iplBakeStaticListener(IPLhandle environment, IPLhandle probeBox, IPLVector3 listener,
+    IPLAPI IPLvoid iplBakeStaticListener(IPLhandle environment, IPLhandle probeBox, IPLSphere listenerInfluence,
         IPLstring listenerName, IPLBakingSettings bakingSettings, IPLBakeProgressCallback progressCallback);
 
     /** Cancels any bake operations that may be in progress. Typically, an application will call \c ::iplBakeReverb
@@ -1733,6 +1862,7 @@ extern "C" {
     IPLAPI IPLint32 iplGetBakedDataSizeByName(IPLhandle probeBox, IPLstring sourceName);
 
     /** \} */
+
 
 #ifdef __cplusplus
 }

@@ -283,6 +283,15 @@ void UExponentialHeightFogComponent::SetVolumetricFogAlbedo(FColor NewValue)
 	}
 }
 
+void UExponentialHeightFogComponent::SetVolumetricFogEmissive(FLinearColor NewValue)
+{
+	if (VolumetricFogEmissive != NewValue)
+	{
+		VolumetricFogEmissive = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
 void UExponentialHeightFogComponent::SetVolumetricFogDistance(float NewValue)
 {
 	if(VolumetricFogDistance != NewValue)

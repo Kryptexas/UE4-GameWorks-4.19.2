@@ -389,6 +389,7 @@ void UAutomatedLevelSequenceCapture::SetupFrameRange()
 				Actor->SequencePlayer->SetPlaybackRange(
 					(float)PlaybackStartFrame / (float)Settings.FrameRate,
 					(float)PlaybackEndFrame / (float)Settings.FrameRate );
+				Actor->SequencePlayer->SetPlaybackPosition(0.f);
 			}
 		}
 	}
@@ -421,6 +422,8 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	// textures to stream in or post processing effects to settle.
 	if( CaptureState == ELevelSequenceCaptureState::DelayBeforeWarmUp )
 	{
+		Actor->SequencePlayer->SetPlaybackPosition(0.f);
+		
 		RemainingDelaySeconds -= DeltaSeconds;
 		if( RemainingDelaySeconds <= 0.0f )
 		{

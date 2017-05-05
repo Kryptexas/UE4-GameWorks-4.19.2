@@ -2120,6 +2120,7 @@ FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() co
 	StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
 
 	// Fill in info
+	const_cast<UStaticMeshComponent*>(this)->ConditionalUpdateComponentToWorld(); // sadness
 	StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
 
 	for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)

@@ -229,7 +229,7 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 		check(IsInRenderingThread());
 		GoToNextFrame(FrameNumber);
 
-		CurrentBoneBuffer = &GetBoneBufferForWriting(false, FrameNumber);
+		CurrentBoneBuffer = &GetBoneBufferForWriting(FrameNumber);
 
 		static FSharedPoolPolicyData PoolPolicy;
 		uint32 NumVectors = NumBones*3;

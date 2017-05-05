@@ -2242,7 +2242,6 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 #if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
 				if (GIsInitialLoad && !ImportLinker && ImportPackage->HasAnyPackageFlags(PKG_CompiledIn) && !bDynamicImport)
 				{
-					check(ImportPackage->GetName().StartsWith(TEXT("/Script/"))); // sanity check though doesn't really matter; we just need to correctly identify compiled in things.
 					// OuterMostNonPackageIndex is used here because if it is a CDO or subobject, etc, we wait for the outermost thing that is not a package
 					bFireIfNoArcsAdded = !GetGEDLBootNotificationManager().AddWaitingPackage(this, OuterMostImport.ObjectName, Linker->Imp(OuterMostNonPackageIndex).ObjectName, FPackageIndex::FromImport(LocalImportIndex));
 				}

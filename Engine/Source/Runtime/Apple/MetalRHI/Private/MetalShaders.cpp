@@ -119,6 +119,9 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 	Header = { 0 };
 	Ar << Header;
 
+	SourceLen = Header.SourceLen;
+	SourceCRC = Header.SourceCRC;
+
 	// remember where the header ended and code (precompiled or source) begins
 	int32 CodeOffset = Ar.Tell();
 	uint32 BufferSize = ShaderCode.GetActualShaderCodeSize() - CodeOffset;
@@ -307,7 +310,10 @@ void TMetalBaseShader<BaseResourceType, ShaderType>::Init(const TArray<uint8>& I
 		// get the header
 		Header = { 0 };
 		Ar << Header;
-		
+
+		SourceLen = Header.SourceLen;
+		SourceCRC = Header.SourceCRC;
+
 		// Only archived shaders should be in here.
 		UE_CLOG(!(Header.CompileFlags & (1 << CFLAG_Archive)), LogMetal, Warning, TEXT("Loaded a shader from a library that wasn't marked for archiving."));
 		{

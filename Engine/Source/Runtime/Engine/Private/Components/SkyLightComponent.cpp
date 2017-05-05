@@ -19,7 +19,7 @@
 #include "Misc/MapErrors.h"
 #include "ShaderCompiler.h"
 #include "Components/BillboardComponent.h"
-#include "Interfaces/ITargetPlatform.h"
+#include "ReleaseObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 
@@ -170,19 +170,16 @@ USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializ
 	LowerHemisphereColor = FLinearColor::Black;
 	AverageBrightness = 1.0f;
 	BlendDestinationAverageBrightness = 1.0f;
-	bSkyCaptureRequiredFromLoad = false;
 	bCastVolumetricShadow = true;
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
 {
-	// Mobile doesnt use SkyTexture.
-	const bool bMobileSkyLight = GetWorld()->FeatureLevel <= ERHIFeatureLevel::ES3_1;
-	if (ProcessedSkyTexture || bMobileSkyLight)
+	if (ProcessedSkyTexture)
 	{
 		return new FSkyLightSceneProxy(this);
 	}
-	
+
 	return NULL;
 }
 
@@ -275,10 +272,6 @@ void USkyLightComponent::PostLoad()
 	{
 		FScopeLock Lock(&SkyCapturesToUpdateLock);
 		SkyCapturesToUpdate.Remove(this);
-	}
-	else
-	{
-		bSkyCaptureRequiredFromLoad = true;
 	}
 }
 
@@ -427,33 +420,6 @@ void USkyLightComponent::CheckForErrors()
 	}
 }
 
-// If the feature level preview has been set before on-load captures have been built then the editor must update them.
-bool USkyLightComponent::MobileSkyCapturesNeedForcedUpdate(UWorld* WorldToUpdate)
-{
-	if (WorldToUpdate->Scene
-		&& WorldToUpdate->Scene->GetFeatureLevel() <= ERHIFeatureLevel::ES3_1
-		&& (GShaderCompilingManager == NULL || !GShaderCompilingManager->IsCompiling()))
-	{
-		FScopeLock Lock(&SkyCapturesToUpdateLock);
-		for (int32 CaptureIndex = SkyCapturesToUpdate.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
-		{
-			USkyLightComponent* CaptureComponent = SkyCapturesToUpdate[CaptureIndex];
-			AActor* Owner = CaptureComponent->GetOwner();
-			if (CaptureComponent->bSkyCaptureRequiredFromLoad
-				&& !CaptureComponent->IsPendingKill()
-				&& CaptureComponent->bVisible
-				&& CaptureComponent->bAffectsWorld
-				&& Owner
-				&& WorldToUpdate->ContainsActor(Owner)
-				&& !WorldToUpdate->IsPendingKill())
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
 #endif // WITH_EDITOR
 
 void USkyLightComponent::BeginDestroy()
@@ -585,7 +551,6 @@ void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, TA
 
 				CaptureComponent->IrradianceMapFence.BeginFence();
 				CaptureComponent->bHasEverCaptured = true;
-				CaptureComponent->bSkyCaptureRequiredFromLoad = false;
 				CaptureComponent->MarkRenderStateDirty();
 			}
 
@@ -597,7 +562,7 @@ void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, TA
 
 void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 {
-	if (WorldToUpdate->Scene && WorldToUpdate->FeatureLevel >= ERHIFeatureLevel::SM4)
+	if (WorldToUpdate->Scene)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_SkylightCaptures);
 		if (SkyCapturesToUpdate.Num() > 0)
@@ -792,20 +757,15 @@ void USkyLightComponent::RecaptureSky()
 
 void USkyLightComponent::Serialize(FArchive& Ar)
 {
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+
 	Super::Serialize(Ar);
 
-	if (Ar.UE4Ver() >= VER_UE4_SKYLIGHT_MOBILE_IRRADIANCE_MAP)
+	// if version is between VER_UE4_SKYLIGHT_MOBILE_IRRADIANCE_MAP and FReleaseObjectVersion::SkyLightRemoveMobileIrradianceMap then handle aborted attempt to serialize irradiance data on mobile.
+	if (Ar.UE4Ver() >= VER_UE4_SKYLIGHT_MOBILE_IRRADIANCE_MAP && !(Ar.CustomVer(FReleaseObjectVersion::GUID) >= FReleaseObjectVersion::SkyLightRemoveMobileIrradianceMap))
 	{
-		Ar << IrradianceEnvironmentMap;
-	}
-	else
-	{
-		if(Ar.IsCooking() && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::MobileRendering) )
-		{
-			// Temporary warning until the cooker can do sky captures itself.
-			UE_LOG(LogMaterial, Warning, TEXT("Sky light's mobile data is not present. This light will provide no lighting contribution on mobile."));
-			UE_LOG(LogMaterial, Warning, TEXT("Fix by resaving the map in the editor.  %s."), *GetFullName());
-		}
+		FSHVectorRGB3 DummyIrradianceEnvironmentMap;
+		Ar << DummyIrradianceEnvironmentMap;
 	}
 }
 

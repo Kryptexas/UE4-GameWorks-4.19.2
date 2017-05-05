@@ -796,6 +796,17 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, EObjectMark Exclud
 		InheritMark(SuperStruct, OBJECTMARK_NotForServer);
 	}
 
+	// Check archetype, this may not have been covered in the case of components
+	UObject* Archetype = Obj->GetArchetype();
+
+	if (Archetype)
+	{
+		ConditionallyExcludeObjectForTarget(Archetype, ExcludedObjectMarks, TargetPlatform);
+		InheritMark(Archetype, OBJECTMARK_EditorOnly);
+		InheritMark(Archetype, OBJECTMARK_NotForClient);
+		InheritMark(Archetype, OBJECTMARK_NotForServer);
+	}
+
 	if (Obj->HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// If class is included, CDO must be included so only check inherited marks

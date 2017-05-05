@@ -888,7 +888,7 @@ void UReflectionCaptureComponent::OnRegister()
 	Super::OnRegister();
 
 	UWorld* World = GetWorld();
-	if (World->IsGameWorld() && GMaxRHIFeatureLevel < ERHIFeatureLevel::SM4)
+	if (World->FeatureLevel < ERHIFeatureLevel::SM4)
 	{
 		if (EncodedHDRDerivedData == nullptr)
 		{
@@ -900,7 +900,7 @@ void UReflectionCaptureComponent::OnRegister()
 void UReflectionCaptureComponent::OnUnregister()
 {
 	UWorld* World = GetWorld();
-	if (World->IsGameWorld() && GMaxRHIFeatureLevel < ERHIFeatureLevel::SM4)
+	if (World->FeatureLevel < ERHIFeatureLevel::SM4)
 	{
 		if (EncodedHDRDerivedData == nullptr && World->NumInvalidReflectionCaptureComponents > 0)
 		{
@@ -1517,28 +1517,6 @@ void UReflectionCaptureComponent::ReadbackFromGPU(UWorld* WorldToUpdate)
 		}
 	}
 }
-
-#if WITH_EDITOR
-// If the feature level preview has been set before on-load captures have been built then the editor must update them.
-bool UReflectionCaptureComponent::MobileReflectionCapturesNeedForcedUpdate(UWorld* WorldToUpdate)
-{
-	if (WorldToUpdate->Scene 
-		&& WorldToUpdate->Scene->GetFeatureLevel() <= ERHIFeatureLevel::ES3_1
-		&& (GShaderCompilingManager == NULL || !GShaderCompilingManager->IsCompiling()))
-	{
-		FScopeLock Lock(&ReflectionCapturesToUpdateForLoadLock);
-		for (int32 CaptureIndex = ReflectionCapturesToUpdateForLoad.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
-		{
-			UReflectionCaptureComponent* CaptureComponent = ReflectionCapturesToUpdateForLoad[CaptureIndex];
-			if (!CaptureComponent->GetOwner() || WorldToUpdate->ContainsActor(CaptureComponent->GetOwner()))
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
-#endif
 
 void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldToUpdate)
 {

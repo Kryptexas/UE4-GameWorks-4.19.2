@@ -104,7 +104,7 @@ static TAutoConsoleVariable<float> CVarStencilSizeThreshold(
 	TEXT("  <0: optimization is disabled\n")
 	TEXT("   0: optimization is enabled no matter how small (screen space) the decal is\n")
 	TEXT("0..1: optimization is enabled, value defines the minimum size (screen space) to trigger the optimization (default 0.1)")
-	);
+);
 
 enum EDecalDepthInputState
 {
@@ -146,11 +146,11 @@ enum EDecalRasterizerState
 // @param RenderState 0:before BasePass, 1:before lighting, (later we could add "after lighting" and multiply)
 FBlendStateRHIParamRef GetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, EDecalRenderStage InDecalRenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal)
 {
-	if(InDecalRenderStage == DRS_BeforeBasePass)
+	if (InDecalRenderStage == DRS_BeforeBasePass)
 	{
 		// before base pass (for DBuffer decals)
 
-		if(SMFeatureLevel == ERHIFeatureLevel::SM4)
+		if (SMFeatureLevel == ERHIFeatureLevel::SM4)
 		{
 			// DX10 doesn't support masking/using different blend modes per MRT.
 			// We set the opacity in the shader to 0 so we can use the same frame buffer blend.
@@ -166,138 +166,138 @@ FBlendStateRHIParamRef GetDecalBlendState(const ERHIFeatureLevel::Type SMFeature
 			// As we set the opacity in the shader we don't need to set different frame buffer blend modes but we like to hint to the driver that we
 			// don't need to output there. We also could replace this with many SetRenderTarget calls but it might be slower (needs to be tested).
 
-			switch(DecalBlendMode)
+			switch (DecalBlendMode)
 			{
 			case DBM_DBuffer_ColorNormalRoughness:
 				return TStaticBlendState<
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI();		
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 
 			case DBM_DBuffer_Color:
 				// we can optimize using less MRT later
 				return TStaticBlendState<
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI();		
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI();
 
 			case DBM_DBuffer_ColorNormal:
 				// we can optimize using less MRT later
 				return TStaticBlendState<
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One >::GetRHI();		
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One >::GetRHI();
 
 			case DBM_DBuffer_ColorRoughness:
 				// we can optimize using less MRT later
 				return TStaticBlendState<
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI();		
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 
 			case DBM_DBuffer_Normal:
 				// we can optimize using less MRT later
 				return TStaticBlendState<
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI();		
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI();
 
 			case DBM_DBuffer_NormalRoughness:
 				// we can optimize using less MRT later
 				return TStaticBlendState<
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI();		
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 
 			case DBM_DBuffer_Roughness:
 				// we can optimize using less MRT later
 				return TStaticBlendState<
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI();		
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 
 			default:
 				// the decal type should not be rendered in this pass - internal error
-				check(0);	
+				check(0);
 				return nullptr;
 			}
 		}
 	}
-	else if(InDecalRenderStage == DRS_AfterBasePass)
+	else if (InDecalRenderStage == DRS_AfterBasePass)
 	{
 		ensure(DecalBlendMode == DBM_Volumetric_DistanceFunction);
 
 		return TStaticBlendState<>::GetRHI();
-	}	
+	}
 	else
 	{
 		// before lighting (for non DBuffer decals)
 
-		switch(DecalBlendMode)
+		switch (DecalBlendMode)
 		{
 		case DBM_Translucent:
 			// @todo: Feature Level 10 does not support separate blends modes for each render target. This could result in the
 			// translucent and stain blend modes looking incorrect when running in this mode.
-			if(GSupportsSeparateRenderTargetBlendState)
+			if (GSupportsSeparateRenderTargetBlendState)
 			{
-				if(bHasNormal)
+				if (bHasNormal)
 				{
 					return TStaticBlendState<
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Normal
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
 					>::GetRHI();
 				}
 				else
 				{
 					return TStaticBlendState<
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
-						CW_RGB, BO_Add, BF_Zero,		BF_One,						BO_Add, BF_Zero, BF_One,	// Normal
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+						CW_RGB, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,	// Normal
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
 					>::GetRHI();
 				}
 			}
-			else if(SMFeatureLevel == ERHIFeatureLevel::SM4)
+			else if (SMFeatureLevel == ERHIFeatureLevel::SM4)
 			{
 				return TStaticBlendState<
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Emissive
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Normal
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-					CW_RGB, BO_Add, BF_SourceAlpha,	BF_One,							BO_Add, BF_Zero, BF_One		// BaseColor
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Normal
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One		// BaseColor
 				>::GetRHI();
 			}
 
 		case DBM_Stain:
-			if(GSupportsSeparateRenderTargetBlendState)
+			if (GSupportsSeparateRenderTargetBlendState)
 			{
-				if(bHasNormal)
+				if (bHasNormal)
 				{
 					return TStaticBlendState<
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-						CW_RGB, BO_Add, BF_DestColor,	BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Normal
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+						CW_RGB, BO_Add, BF_DestColor, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
 					>::GetRHI();
 				}
 				else
 				{
 					return TStaticBlendState<
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
-						CW_RGB, BO_Add, BF_Zero,		BF_One,						BO_Add, BF_Zero, BF_One,	// Normal
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-						CW_RGB, BO_Add, BF_DestColor,	BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+						CW_RGB, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,	// Normal
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+						CW_RGB, BO_Add, BF_DestColor, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
 					>::GetRHI();
 				}
 			}
-			else if(SMFeatureLevel == ERHIFeatureLevel::SM4)
+			else if (SMFeatureLevel == ERHIFeatureLevel::SM4)
 			{
 				return TStaticBlendState<
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Emissive
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Normal
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-					CW_RGB, BO_Add, BF_SourceAlpha,	BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One		// BaseColor
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Emissive
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Normal
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
 				>::GetRHI();
 			}
 
@@ -310,7 +310,7 @@ FBlendStateRHIParamRef GetDecalBlendState(const ERHIFeatureLevel::Type SMFeature
 
 		default:
 			// the decal type should not be rendered in this pass - internal error
-			check(0);	
+			check(0);
 			return nullptr;
 		}
 	}
@@ -324,19 +324,19 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& Co
 	float Radius = ComponentToWorldMatrix.GetMaximumAxisScale();
 
 	// if not inside
-	if(Distance > Radius)
+	if (Distance > Radius)
 	{
 		float EstimatedDecalSize = Radius / Distance;
-		
+
 		float StencilSizeThreshold = CVarStencilSizeThreshold.GetValueOnRenderThread();
 
 		// Check if it's large enough on screen
-		if(EstimatedDecalSize < StencilSizeThreshold)
+		if (EstimatedDecalSize < StencilSizeThreshold)
 		{
 			return false;
 		}
 	}
-	
+
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
@@ -345,10 +345,10 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& Co
 
 	// all the same to have DX10 working
 	GraphicsPSOInit.BlendState = TStaticBlendState<
-		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Emissive
-		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
-		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
+		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Emissive
+		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Normal
+		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
 	>::GetRHI();
 
 	// Carmack's reverse the sandbox stencil bit on the bounds
@@ -380,12 +380,12 @@ static EDecalRasterizerState ComputeDecalRasterizerState(bool bInsideDecal, bool
 {
 	bool bClockwise = bInsideDecal;
 
-	if(View.bReverseCulling)
+	if (View.bReverseCulling)
 	{
 		bClockwise = !bClockwise;
 	}
 
-	if (bIsInverted) 
+	if (bIsInverted)
 	{
 		bClockwise = !bClockwise;
 	}
@@ -402,8 +402,8 @@ static FDecalDepthState ComputeDecalDepthState(EDecalRenderStage LocalDecalStage
 	FDecalDepthState Ret;
 
 	Ret.bDepthOutput = (LocalDecalStage == DRS_AfterBasePass);
-				
-	if(Ret.bDepthOutput)
+
+	if (Ret.bDepthOutput)
 	{
 		// can be made one enum
 		Ret.DepthTest = DDS_DepthTest;
@@ -412,9 +412,9 @@ static FDecalDepthState ComputeDecalDepthState(EDecalRenderStage LocalDecalStage
 
 	const bool bGBufferDecal = LocalDecalStage == DRS_BeforeLighting;
 
-	if(bInsideDecal)
+	if (bInsideDecal)
 	{
-		if(bThisDecalUsesStencil)
+		if (bThisDecalUsesStencil)
 		{
 			Ret.DepthTest = bGBufferDecal ? DDS_DepthAlways_StencilEqual1 : DDS_DepthAlways_StencilEqual1_IgnoreMask;
 		}
@@ -425,7 +425,7 @@ static FDecalDepthState ComputeDecalDepthState(EDecalRenderStage LocalDecalStage
 	}
 	else
 	{
-		if(bThisDecalUsesStencil)
+		if (bThisDecalUsesStencil)
 		{
 			Ret.DepthTest = bGBufferDecal ? DDS_DepthTest_StencilEqual1 : DDS_DepthTest_StencilEqual1_IgnoreMask;
 		}
@@ -440,82 +440,82 @@ static FDecalDepthState ComputeDecalDepthState(EDecalRenderStage LocalDecalStage
 
 static FDepthStencilStateRHIParamRef GetDecalDepthState(uint32& StencilRef, FDecalDepthState DecalDepthState)
 {
-	switch(DecalDepthState.DepthTest)
+	switch (DecalDepthState.DepthTest)
 	{
-		case DDS_DepthAlways_StencilEqual1:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			StencilRef = STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
-			return TStaticDepthStencilState<
-				false, CF_Always,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), STENCIL_SANDBOX_MASK>::GetRHI();
-			
-		case DDS_DepthAlways_StencilEqual1_IgnoreMask:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			StencilRef = STENCIL_SANDBOX_MASK;
-			return TStaticDepthStencilState<
-				false, CF_Always,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI();
+	case DDS_DepthAlways_StencilEqual1:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
+		return TStaticDepthStencilState<
+			false, CF_Always,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), STENCIL_SANDBOX_MASK>::GetRHI();
 
-		case DDS_DepthAlways_StencilEqual0:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			StencilRef = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
-			return TStaticDepthStencilState<
-				false, CF_Always,
-				true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
-				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI();
+	case DDS_DepthAlways_StencilEqual1_IgnoreMask:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = STENCIL_SANDBOX_MASK;
+		return TStaticDepthStencilState<
+			false, CF_Always,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI();
 
-		case DDS_Always:
-			check(!DecalDepthState.bDepthOutput);			// todo 
+	case DDS_DepthAlways_StencilEqual0:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
+		return TStaticDepthStencilState<
+			false, CF_Always,
+			true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+			false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+			STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI();
+
+	case DDS_Always:
+		check(!DecalDepthState.bDepthOutput);			// todo 
+		StencilRef = 0;
+		return TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+	case DDS_DepthTest_StencilEqual1:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
+		return TStaticDepthStencilState<
+			false, CF_DepthNearOrEqual,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), STENCIL_SANDBOX_MASK>::GetRHI();
+
+	case DDS_DepthTest_StencilEqual1_IgnoreMask:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = STENCIL_SANDBOX_MASK;
+		return TStaticDepthStencilState<
+			false, CF_DepthNearOrEqual,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI();
+
+	case DDS_DepthTest_StencilEqual0:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
+		return TStaticDepthStencilState<
+			false, CF_DepthNearOrEqual,
+			true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+			false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+			STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI();
+
+	case DDS_DepthTest:
+		if (DecalDepthState.bDepthOutput)
+		{
 			StencilRef = 0;
-			return TStaticDepthStencilState<false, CF_Always>::GetRHI();
+			return TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI();
+		}
+		else
+		{
+			StencilRef = 0;
+			return TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
+		}
 
-		case DDS_DepthTest_StencilEqual1:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			StencilRef = STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
-			return TStaticDepthStencilState<
-				false, CF_DepthNearOrEqual,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), STENCIL_SANDBOX_MASK>::GetRHI();
-			
-		case DDS_DepthTest_StencilEqual1_IgnoreMask:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			StencilRef = STENCIL_SANDBOX_MASK;
-			return TStaticDepthStencilState<
-				false, CF_DepthNearOrEqual,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI();
-
-		case DDS_DepthTest_StencilEqual0:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			StencilRef = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
-			return TStaticDepthStencilState<
-				false, CF_DepthNearOrEqual,
-				true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
-				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI();
-
-		case DDS_DepthTest:
-			if(DecalDepthState.bDepthOutput)
-			{
-				StencilRef = 0;
-				return TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI();
-			}
-			else
-			{
-				StencilRef = 0;
-				return TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
-			}
-
-		default:
-			check(0);
-			return nullptr;
+	default:
+		check(0);
+		return nullptr;
 	}
 }
 
@@ -523,9 +523,9 @@ static FRasterizerStateRHIParamRef GetDecalRasterizerState(EDecalRasterizerState
 {
 	switch (DecalRasterizerState)
 	{
-		case DRS_CW: return TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
-		case DRS_CCW: return TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI();
-		default: check(0); return nullptr;
+	case DRS_CW: return TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
+	case DRS_CCW: return TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI();
+	default: check(0); return nullptr;
 	}
 }
 
@@ -538,12 +538,12 @@ const TCHAR* GetStageName(EDecalRenderStage Stage)
 {
 	// could be implemented with enum reflections as well
 
-	switch(Stage)
+	switch (Stage)
 	{
-		case DRS_BeforeBasePass: return TEXT("DRS_BeforeBasePass");
-		case DRS_AfterBasePass: return TEXT("DRS_AfterBasePass");
-		case DRS_BeforeLighting: return TEXT("DRS_BeforeLighting");
-		case DRS_Mobile: return TEXT("DRS_Mobile");
+	case DRS_BeforeBasePass: return TEXT("DRS_BeforeBasePass");
+	case DRS_AfterBasePass: return TEXT("DRS_AfterBasePass");
+	case DRS_BeforeLighting: return TEXT("DRS_BeforeLighting");
+	case DRS_Mobile: return TEXT("DRS_Mobile");
 	}
 	return TEXT("<UNKNOWN>");
 }
@@ -628,20 +628,11 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	bool bNeedsDBufferTargets = false;
 
-	// Delay creating and clearing the DBuffers since if they're not used, we can use small textures and not eat the mem/perf cost of the clearing them (and fetching in the base pass)
-	FDelayedRendererAction DelayedCreateAndClearDBuffers;
-	struct FDelayedCreateAndClearDBuffersData
-	{
-		FRenderingCompositePassContext* Context;
-		FSceneRenderTargets* SceneContext;
-		bool bUseDummyDBuffers;
-	} DelayedCreateAndClearDBuffersData = {&Context, &SceneContext, false};
-
 	if (CurrentStage == DRS_BeforeBasePass)
 	{
 		// before BasePass, only if DBuffer is enabled
 		check(bDBuffer);
-		
+
 		// If we're rendering dbuffer decals but there are no decals in the scene, we avoid the 
 		// clears/decompresses and set the targets to NULL		
 		// The DBufferA-C will be replaced with dummy textures in FDeferredPixelShaderParameters
@@ -655,66 +646,60 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		}
 
 		// If we need dbuffer targets, initialize them
-		if ( bNeedsDBufferTargets )
+		if (bNeedsDBufferTargets)
 		{
-			auto CreateAndClearDBuffers = [](FRHICommandListImmediate& InRHICommandList, void* UserData)
+			FPooledRenderTargetDesc GBufferADesc;
+			SceneContext.GetGBufferADesc(GBufferADesc);
+
+			// DBuffer: Decal buffer
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GBufferADesc.Extent,
+				PF_B8G8R8A8,
+				FClearValueBinding::None,
+				TexCreate_None,
+				TexCreate_ShaderResource | TexCreate_RenderTargetable,
+				false,
+				1,
+				true,
+				true));
+
+			if (!SceneContext.DBufferA)
 			{
-				FDelayedCreateAndClearDBuffersData* DelayedData = (FDelayedCreateAndClearDBuffersData*)UserData;
-				FPooledRenderTargetDesc GBufferADesc;
-				DelayedData->SceneContext->GetGBufferADesc(GBufferADesc);
+				Desc.ClearValue = FClearValueBinding::Black;
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferA, TEXT("DBufferA"));
+			}
 
-				// DBuffer: Decal buffer
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(
-					DelayedData->bUseDummyDBuffers ? FIntPoint(1, 1) : GBufferADesc.Extent,
-					PF_B8G8R8A8,
-					FClearValueBinding::None,
-					TexCreate_None,
-					TexCreate_ShaderResource | TexCreate_RenderTargetable,
-					false,
-					1,
-					true,
-					true));
+			if (!SceneContext.DBufferB)
+			{
+				Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferB, TEXT("DBufferB"));
+			}
 
-				if (!DelayedData->SceneContext->DBufferA)
-				{
-					Desc.ClearValue = FClearValueBinding::Black;
-					GRenderTargetPool.FindFreeElement(InRHICommandList, Desc, DelayedData->SceneContext->DBufferA, TEXT("DBufferA"));
-				}
+			Desc.Format = PF_R8G8;
 
-				if (!DelayedData->SceneContext->DBufferB)
-				{
-					Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
-					GRenderTargetPool.FindFreeElement(InRHICommandList, Desc, DelayedData->SceneContext->DBufferB, TEXT("DBufferB"));
-				}
+			if (!SceneContext.DBufferC)
+			{
+				Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferC, TEXT("DBufferC"));
+			}
 
-				Desc.Format = PF_R8G8;
+			// we assume views are non overlapping, then we need to clear only once in the beginning, otherwise we would need to set scissor rects
+			// and don't get FastClear any more.
+			bool bFirstView = Context.View.Family->Views[0] == &Context.View;
 
-				if (!DelayedData->SceneContext->DBufferC)
-				{
-					Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
-					GRenderTargetPool.FindFreeElement(InRHICommandList, Desc, DelayedData->SceneContext->DBufferC, TEXT("DBufferC"));
-				}
+			if (bFirstView)
+			{
+				SCOPED_DRAW_EVENT(RHICmdList, DBufferClear);
 
-				// we assume views are non overlapping, then we need to clear only once in the beginning, otherwise we would need to set scissor rects
-				// and don't get FastClear any more.
-				bool bFirstView = DelayedData->Context->View.Family->Views[0] == &DelayedData->Context->View;
-				if (bFirstView)
-				{
-					SCOPED_DRAW_EVENT(InRHICommandList, DBufferClear);
+				FRHIRenderTargetView RenderTargets[3];
+				RenderTargets[0] = FRHIRenderTargetView(SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+				RenderTargets[1] = FRHIRenderTargetView(SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+				RenderTargets[2] = FRHIRenderTargetView(SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
 
-					FRHIRenderTargetView RenderTargets[3];
-					RenderTargets[0] = FRHIRenderTargetView(DelayedData->SceneContext->DBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-					RenderTargets[1] = FRHIRenderTargetView(DelayedData->SceneContext->DBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-					RenderTargets[2] = FRHIRenderTargetView(DelayedData->SceneContext->DBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+				FRHIDepthRenderTargetView DepthView(SceneContext.GetSceneDepthTexture(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
 
-					FRHIDepthRenderTargetView DepthView(DelayedData->SceneContext->GetSceneDepthTexture(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
-
-					// If we don't need the DBuffers, don't clear depth as it won't match the dummy sizes
-					FRHISetRenderTargetsInfo Info(3, RenderTargets, DelayedData->bUseDummyDBuffers ? FRHIDepthRenderTargetView() : DepthView);
-					InRHICommandList.SetRenderTargetsAndClear(Info);
-				}
-			};
-			DelayedCreateAndClearDBuffers.SetDelayedFunction(CreateAndClearDBuffers, &DelayedCreateAndClearDBuffersData);
+				FRHISetRenderTargetsInfo Info(3, RenderTargets, DepthView);
+				RHICmdList.SetRenderTargetsAndClear(Info);
+			}
 		} // if ( bNeedsDBufferTargets )
 	}
 
@@ -726,7 +711,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		{
 			if (Context.View.MeshDecalPrimSet.NumPrims() > 0)
 			{
-				DelayedCreateAndClearDBuffers.RunFunctionOnce(RHICmdList);
 				check(bNeedsDBufferTargets || CurrentStage != DRS_BeforeBasePass);
 				RenderMeshDecals(Context, CurrentStage);
 			}
@@ -737,7 +721,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		//don't early return. Resolves must be run for fast clears to work.
 		if (Scene.Decals.Num())
 		{
-			check(bNeedsDBufferTargets || CurrentStage != DRS_BeforeBasePass );
+			check(bNeedsDBufferTargets || CurrentStage != DRS_BeforeBasePass);
 			FDecalRenderTargetManager RenderTargetManager(RHICmdList, Context.GetShaderPlatform(), CurrentStage);
 
 			// Build a list of decals that need to be rendered for this view
@@ -746,7 +730,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			if (SortedDecals.Num() > 0)
 			{
-				DelayedCreateAndClearDBuffers.RunFunctionOnce(RHICmdList);
 				SCOPED_DRAW_EVENTF(RHICmdList, DeferredDecalsInner, TEXT("DeferredDecalsInner %d/%d"), SortedDecals.Num(), Scene.Decals.Num());
 
 				FGraphicsPipelineStateInitializer GraphicsPSOInit;
@@ -787,9 +770,9 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 					// Here we assume that GBuffer can only be WorldNormal since it is the only GBufferTarget handled correctly.
 					if (RenderTargetManager.bGufferADirty && DecalData.MaterialResource->NeedsGBuffer())
-					{ 
+					{
 						RHICmdList.CopyToResolveTarget(SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture, SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture, true, FResolveParams());
-						RenderTargetManager.TargetsToResolve[FDecalRenderTargetManager::GBufferAIndex] =  nullptr;
+						RenderTargetManager.TargetsToResolve[FDecalRenderTargetManager::GBufferAIndex] = nullptr;
 						RenderTargetManager.bGufferADirty = false;
 					}
 
@@ -841,7 +824,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						{
 							// Account for the reversal of handedness caused by negative scale on the decal
 							const auto& Scale3d = DecalProxy.ComponentTrans.GetScale3D();
-							bReverseHanded =  Scale3d[0] * Scale3d[1] * Scale3d[2] < 0.f;
+							bReverseHanded = Scale3d[0] * Scale3d[1] * Scale3d[2] < 0.f;
 						}
 						EDecalRasterizerState DecalRasterizerState = ComputeDecalRasterizerState(bInsideDecal, bReverseHanded, View);
 
@@ -879,14 +862,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			if (CurrentStage == DRS_BeforeBasePass)
 			{
-				if (!DelayedCreateAndClearDBuffers.HasBeenCalled())
-				{
-					// If we don't need the DBuffers, use 1x1 textures instead
-					DelayedCreateAndClearDBuffersData.bUseDummyDBuffers = true;
-				}
-
-				DelayedCreateAndClearDBuffers.RunFunctionOnce(RHICmdList);
-
 				// combine DBuffer RTWriteMasks; will end up in one texture we can load from in the base pass PS and decide whether to do the actual work or not
 				RenderTargetManager.FlushMetaData();
 
@@ -900,7 +875,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			RenderTargetManager.ResolveTargets();
 		}
 
-		if (CurrentStage == DRS_BeforeBasePass && bNeedsDBufferTargets )
+		if (CurrentStage == DRS_BeforeBasePass && bNeedsDBufferTargets)
 		{
 			// before BasePass
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.DBufferA);
@@ -922,7 +897,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDeferredDecals::ComputeOutputDesc(EPas
 {
 	// This pass creates it's own output so the compositing graph output isn't needed.
 	FPooledRenderTargetDesc Ret;
-	
+
 	Ret.DebugName = TEXT("DeferredDecals");
 
 	return Ret;
@@ -945,7 +920,7 @@ void FDecalRenderTargetManager::ResolveTargets()
 	FResolveParams ResolveParams;
 	for (int32 i = 0; i < ResolveBufferMax; ++i)
 	{
-		if (TargetsToResolve[i] )
+		if (TargetsToResolve[i])
 		{
 			RHICmdList.CopyToResolveTarget(TargetsToResolve[i], TargetsToResolve[i], true, ResolveParams);
 		}

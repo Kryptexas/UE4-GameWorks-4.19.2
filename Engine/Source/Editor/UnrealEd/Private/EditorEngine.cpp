@@ -1534,12 +1534,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Skip updating reflection captures on the first update as the level will not be ready to display
 	if (!bFirstTick)
 	{
-		if (UReflectionCaptureComponent::MobileReflectionCapturesNeedForcedUpdate(EditorContext.World())
-			|| USkyLightComponent::MobileSkyCapturesNeedForcedUpdate(EditorContext.World()))
-		{
-			UpdateReflectionCaptures();
-		}
-
 		// Update sky light first because sky diffuse will be visible in reflection capture indirect specular
 		USkyLightComponent::UpdateSkyCaptureContents(EditorContext.World());
 		UReflectionCaptureComponent::UpdateReflectionCaptureContents(EditorContext.World());

@@ -718,7 +718,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
 	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
 	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
-	const bool bAnyInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
+	const bool bAnyInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (Statement.bIsInterfaceContext || UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
 	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
 	const bool bNativeEvent = FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false);
 
@@ -785,19 +785,31 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 
 	FNativizationSummaryHelper::FunctionUsed(CurrentClass, Statement.FunctionToCall);
 
+	UClass* FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
 	// Emit object to call the method on
 	if (bInterfaceCallExecute)
 	{
-		auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
-		ensure(ContextInterfaceClass->IsChildOf<UInterface>());
-		Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject() ")
+		UClass* ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
+		const bool bInputIsInterface = ContextInterfaceClass->IsChildOf<UInterface>();
+
+		FString ExecuteFormat = TEXT("%s::Execute_%s(%s ");
+		if (bInputIsInterface)
+		{
+			ExecuteFormat.InsertAt(ExecuteFormat.Len()-1, TEXT(".GetObject()"));
+		}
+		else
+		{
+			ContextInterfaceClass = FunctionOwner;
+			ensure(ContextInterfaceClass->IsChildOf<UInterface>());
+		}		
+		
+		Result += FString::Printf(*ExecuteFormat
 			, *FEmitHelper::GetCppName(ContextInterfaceClass)
 			, *FunctionToCallOriginalName
 			, *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
 	}
 	else
 	{
-		auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
 		auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
 		const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
 		const bool bIsCustomThunk = bStaticCall && ( Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))

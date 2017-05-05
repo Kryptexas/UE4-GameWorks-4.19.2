@@ -305,7 +305,6 @@ public:
 		Num
 	};
 	void *RenderThreadContexts[(int32)ERenderThreadContext::Num];
-	static int32 StateCacheEnabled;
 
 protected:
 	//the values of this struct must be copied when the commandlist is split 
@@ -315,9 +314,6 @@ protected:
 		TStaticArray<FRHIRenderTargetView, MaxSimultaneousRenderTargets> CachedRenderTargets;
 		FRHIDepthRenderTargetView CachedDepthStencilTarget;
 	} PSOContext;
-
-	struct FRHICommandSetRasterizerState* CachedRasterizerState;
-	struct FRHICommandSetDepthStencilState* CachedDepthStencilState;
 
 	void CacheActiveRenderTargets(
 		uint32 NewNumSimultaneousRenderTargets,
@@ -336,13 +332,6 @@ protected:
 	}
 
 public:
-	void FORCEINLINE FlushStateCache()
-	{
-		CachedRasterizerState = nullptr;
-		CachedDepthStencilState = nullptr;
-	}
-
-
 	void CopyRenderThreadContexts(const FRHICommandListBase& ParentCommandList)
 	{
 		for (int32 Index = 0; ERenderThreadContext(Index) < ERenderThreadContext::Num; Index++)
@@ -1857,11 +1846,7 @@ public:
 			CMD_CONTEXT(RHISetRasterizerState)(State);
 			return;
 		}
-		if (StateCacheEnabled && CachedRasterizerState && CachedRasterizerState->State == State)
-		{
-			return;
-		}
-		CachedRasterizerState = new(AllocCommand<FRHICommandSetRasterizerState>()) FRHICommandSetRasterizerState(State);
+		new (AllocCommand<FRHICommandSetRasterizerState>()) FRHICommandSetRasterizerState(State);
 	}
 
 	DEPRECATED(4.15, "Use GraphicsPipelineState Interface")
@@ -1923,11 +1908,7 @@ public:
 			CMD_CONTEXT(RHISetDepthStencilState)(NewStateRHI, StencilRef);
 			return;
 		}
-		if (StateCacheEnabled && CachedDepthStencilState && CachedDepthStencilState->State == NewStateRHI && CachedDepthStencilState->StencilRef == StencilRef)
-		{
-			return;
-		}
-		CachedDepthStencilState = new(AllocCommand<FRHICommandSetDepthStencilState>()) FRHICommandSetDepthStencilState(NewStateRHI, StencilRef);
+		new (AllocCommand<FRHICommandSetDepthStencilState>()) FRHICommandSetDepthStencilState(NewStateRHI, StencilRef);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetStencilRef(uint32 StencilRef)
@@ -1937,12 +1918,6 @@ public:
 			CMD_CONTEXT(RHISetStencilRef)(StencilRef);
 			return;
 		}
-
-		if (StateCacheEnabled && CachedDepthStencilState && CachedDepthStencilState->StencilRef == StencilRef)
-		{
-			return;
-		}
-
 		new(AllocCommand<FRHICommandSetStencilRef>()) FRHICommandSetStencilRef(StencilRef);
 	}
 

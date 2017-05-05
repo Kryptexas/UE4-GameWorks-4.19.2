@@ -253,12 +253,22 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Failed to find module for package: %s"), *PkgModuleName);
 		}
 	}
-
 	FBlueprintNativeCodeGenPaths TargetPaths = Manifest.GetTargetPaths();
 
+	FString PCHIncPath = TargetPaths.RuntimeModuleFile(FBlueprintNativeCodeGenPaths::HFile);
+	if ( PCHIncPath.RemoveFromStart(TargetPaths.RuntimeModuleDir()) )
+	{
+		// since the above Remove() is likely to leave a leading slash, add in the '.' to be explicit
+		// this will likely be stripped below in CollapseRelativeDirectories()
+		PCHIncPath = TEXT("./") + PCHIncPath;
+	}
+	FPaths::NormalizeFilename(PCHIncPath);
+	FPaths::RemoveDuplicateSlashes(PCHIncPath);
+	FPaths::CollapseRelativeDirectories(PCHIncPath);
+	
 	FText ErrorMessage;
-	bool bSuccess = GameProjectUtils::GenerateGameModuleBuildFile(TargetPaths.RuntimeBuildFile(), TargetPaths.RuntimeModuleName(),
-		PublicDependencies, PrivateDependencies, ErrorMessage);
+	bool bSuccess = GameProjectUtils::GeneratePluginModuleBuildFile(TargetPaths.RuntimeBuildFile(), TargetPaths.RuntimeModuleName(),
+		PublicDependencies, PrivateDependencies, PCHIncPath, ErrorMessage);
 
 	if (!bSuccess)
 	{

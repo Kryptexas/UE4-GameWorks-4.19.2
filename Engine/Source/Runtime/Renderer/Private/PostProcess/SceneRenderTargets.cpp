@@ -875,6 +875,7 @@ void FSceneRenderTargets::AllocLightAttenuation(FRHICommandList& RHICmdList)
 void FSceneRenderTargets::ReleaseGBufferTargets()
 {
 	GBufferResourcesUniformBuffer.SafeRelease();
+	GBufferDummyResourcesUniformBuffer.SafeRelease();
 	GBufferA.SafeRelease();
 	GBufferB.SafeRelease();
 	GBufferC.SafeRelease();
@@ -2798,13 +2799,16 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 		}
 	}
 	else if (TextureMode == ESceneRenderTargetsMode::DontSet ||
-		TextureMode == ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing)
+		TextureMode == ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing ||
+		TextureMode == ESceneRenderTargetsMode::InvalidScene)
 	{
-		// Verify that none of these are actually bound
-		checkSlow(!GBufferResources.IsBound());
-	}
-	else if (TextureMode == ESceneRenderTargetsMode::InvalidScene)
-	{
+		if (TextureMode == ESceneRenderTargetsMode::DontSet ||
+			TextureMode == ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing)
+		{
+			// Verify that none of these are actually bound
+			ensureMsgf(!GBufferResources.IsBound(), TEXT("Incompatible Material bound"));
+		}
+
 		FTextureRHIParamRef BlackDefault2D = GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture;
 		FTextureRHIParamRef WhiteDefault2D = GSystemTextures.WhiteDummy->GetRenderTargetItem().ShaderResourceTexture;
 		FTextureRHIParamRef DepthDefault = GSystemTextures.DepthDummy->GetRenderTargetItem().ShaderResourceTexture;

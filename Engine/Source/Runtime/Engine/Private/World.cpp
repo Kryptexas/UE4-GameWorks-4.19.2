@@ -4767,7 +4767,16 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FName& PackageName
 		{
 			if (World->WorldType == EWorldType::PIE)
 			{
-				World->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(LevelPackage->PIEInstanceID);
+				if (LevelPackage->PIEInstanceID != -1)
+				{
+					World->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(LevelPackage->PIEInstanceID);
+				}
+				else
+				{
+					// If this is a PIE world but the PIEInstanceID is -1, that implies this world is a temporary save
+					// for multi-process PIE which should have been saved with the correct StreamingLevelsPrefix.
+					ensure(!World->StreamingLevelsPrefix.IsEmpty());
+				}
 			}
 
 			if (World->PersistentLevel)

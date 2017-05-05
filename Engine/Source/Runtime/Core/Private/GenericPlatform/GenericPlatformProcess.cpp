@@ -60,6 +60,12 @@ void FGenericPlatformProcess::SetThreadAffinityMask( uint64 AffinityMask )
 	// Not implemented cross-platform. Each platform may or may not choose to implement this.
 }
 
+bool FGenericPlatformProcess::ShouldSaveToUserDir()
+{
+	// default to use the engine/game directories
+	return false;
+}
+
 const TCHAR* FGenericPlatformProcess::UserDir()
 {
 	// default to the root directory

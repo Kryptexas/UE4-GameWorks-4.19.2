@@ -2257,6 +2257,9 @@ namespace UnrealBuildTool
 
 			PreBuildSetup(TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment);
 
+			// Save off the original list of binaries. We'll use this to figure out which PCHs to create later, to avoid switching PCHs when compiling single modules.
+			List<UEBuildBinary> OriginalBinaries = AppBinaries;
+
 			// If we're building a single module, then find the binary for that module and add it to our target
 			if (OnlyModules.Count > 0)
 			{
@@ -2545,7 +2548,7 @@ namespace UnrealBuildTool
 			List<PrecompiledHeaderTemplate> SharedPCHs = new List<PrecompiledHeaderTemplate>();
 			if (!ProjectFileGenerator.bGenerateProjectFiles && Rules.bUseSharedPCHs)
 			{
-				SharedPCHs = FindSharedPCHs(GlobalCompileEnvironment);
+				SharedPCHs = FindSharedPCHs(OriginalBinaries, GlobalCompileEnvironment);
 			}
 
 			// Compile the resource files common to all DLLs on Windows
@@ -3291,11 +3294,11 @@ namespace UnrealBuildTool
 		/// Determines which modules can be used to create shared PCHs
 		/// </summary>
 		/// <returns>List of shared PCH modules, in order of preference</returns>
-		List<PrecompiledHeaderTemplate> FindSharedPCHs(CppCompileEnvironment GlobalCompileEnvironment)
+		List<PrecompiledHeaderTemplate> FindSharedPCHs(List<UEBuildBinary> OriginalBinaries, CppCompileEnvironment GlobalCompileEnvironment)
 		{
 			// Find how many other shared PCH modules each module depends on, and use that to sort the shared PCHs by reverse order of size.
 			HashSet<UEBuildModuleCPP> SharedPCHModules = new HashSet<UEBuildModuleCPP>();
-			foreach(UEBuildBinaryCPP Binary in AppBinaries.OfType<UEBuildBinaryCPP>())
+			foreach(UEBuildBinaryCPP Binary in OriginalBinaries.OfType<UEBuildBinaryCPP>())
 			{
 				foreach(UEBuildModuleCPP Module in Binary.Modules.OfType<UEBuildModuleCPP>())
 				{

@@ -46,9 +46,9 @@ void FHTML5SaveGameSystem::Shutdown()
 //		);
 }
 
-bool FHTML5SaveGameSystem::DoesSaveGameExist(const TCHAR* Name, const int32 UserIndex)
+ISaveGameSystem::ESaveExistsResult FHTML5SaveGameSystem::DoesSaveGameExistWithResult(const TCHAR* Name, const int32 UserIndex)
 {
-	return UE_DoesSaveGameExist(GetSaveGamePath(Name, UserIndex));
+	return UE_DoesSaveGameExist(GetSaveGamePath(Name, UserIndex)) ? ESaveExistsResult::OK : ESaveExistsResult::DoesNotExist;
 }
 
 bool FHTML5SaveGameSystem::SaveGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, const TArray<uint8>& Data)

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/GCObject.h"
+#include "TickableEditorObject.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 
 class UVREditorMode;
@@ -13,7 +14,7 @@ enum class EMapChangeType : uint8;
 /**
  * Manages starting and closing the VREditor mode
  */
-class FVREditorModeManager : public FGCObject
+class FVREditorModeManager : public FGCObject, public FTickableEditorObject
 {
 
 public:
@@ -24,8 +25,13 @@ public:
 	/** Default destructor */
 	~FVREditorModeManager();
 
-	/** Ticks to detect entering and closing the VR Editor */
-	void Tick( const float DeltaTime );
+	// FTickableEditorObject overrides
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override;
+	virtual TStatId GetStatId() const override
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FVREditorModeManager, STATGROUP_Tickables);
+	}
 
 	/** Start or stop the VR Editor */
 	void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD );

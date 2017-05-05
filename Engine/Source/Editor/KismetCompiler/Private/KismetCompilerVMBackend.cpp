@@ -1383,9 +1383,7 @@ public:
 		else
 		{
 			Writer << EX_Let;
-			ensure(DestinationExpression->AssociatedVarProperty);
 			Writer << DestinationExpression->AssociatedVarProperty;
-
 		}
 		EmitTerm(DestinationExpression);
 	}

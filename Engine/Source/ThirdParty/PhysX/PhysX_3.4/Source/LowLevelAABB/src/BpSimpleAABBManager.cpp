@@ -1824,10 +1824,15 @@ void SimpleAABBManager::handleOriginShift()
 	// PT: TODO: check that aggregates code is correct here
 	for(PxU32 i=0; i<mUsedSize; i++)
 	{
-		if(!mAddedHandleMap.test(i) && mGroups[i] != PX_INVALID_U32)
+		if(mGroups[i] == PX_INVALID_U32)
+			continue;
+
 		{
 			if(mVolumeData[i].isSingleActor())
-				mUpdatedHandles.pushBack(i);	// PT: TODO: BoundsIndex-to-ShapeHandle confusion here
+			{
+				if(!mAddedHandleMap.test(i))
+					mUpdatedHandles.pushBack(i);	// PT: TODO: BoundsIndex-to-ShapeHandle confusion here
+			}
 			else if(mVolumeData[i].isAggregate())
 			{
 				const AggregateHandle aggregateHandle = mVolumeData[i].getAggregate();
@@ -1838,7 +1843,8 @@ void SimpleAABBManager::handleOriginShift()
 					aggregate->allocateBounds();
 					aggregate->computeBounds(mBoundsArray, mContactDistance.begin());
 					mBoundsArray.begin()[aggregate->mIndex] = aggregate->mBounds;
-					mUpdatedHandles.pushBack(i);	// PT: TODO: BoundsIndex-to-ShapeHandle confusion here
+					if(!mAddedHandleMap.test(i))
+						mUpdatedHandles.pushBack(i);	// PT: TODO: BoundsIndex-to-ShapeHandle confusion here
 				}
 			}
 		}
