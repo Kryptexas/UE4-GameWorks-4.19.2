@@ -952,6 +952,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 	{
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixActorReferences);
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().RebindPossessableReferences);
 	}
 	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixFrameTiming);
 
