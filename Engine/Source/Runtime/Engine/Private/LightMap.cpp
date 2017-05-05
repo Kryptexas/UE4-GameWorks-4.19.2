@@ -427,7 +427,7 @@ struct FLightMapPendingTexture : public FTextureLayout
 	/**
 	 * Processes the textures and starts asynchronous compression tasks for all mip-levels.
 	 */
-	void StartEncoding(ULevel* Unused);
+	void StartEncoding(ULevel* Unused, ITextureCompressorModule* UnusedCompressor);
 
 	/**
 	 * Call this function after the IsFinishedEncoding function returns true
@@ -1169,7 +1169,7 @@ bool FLightMapPendingTexture::NeedsAOMaterialMaskTexture() const
 	return false;
 }
 
-void FLightMapPendingTexture::StartEncoding(ULevel* Unused)
+void FLightMapPendingTexture::StartEncoding(ULevel* Unused, ITextureCompressorModule* UnusedCompressor)
 {
 	if (!bUObjectsCreated)
 	{
@@ -1985,7 +1985,7 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 				// precreate the UObjects then give them to some threads to process
 				// need to precreate Uobjects 
 				Texture->CreateUObjects();
-				auto AsyncEncodeTask = new (AsyncEncodeTasks)FAsyncEncode<FLightMapPendingTexture>(Texture,NULL,Counter);
+				auto AsyncEncodeTask = new (AsyncEncodeTasks)FAsyncEncode<FLightMapPendingTexture>(Texture,nullptr,Counter,nullptr);
 				GLargeThreadPool->AddQueuedWork(AsyncEncodeTask);
 			}
 
@@ -2005,7 +2005,7 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 					GWarn->UpdateProgress(TextureIndex, PendingTextures.Num());
 				}
 				FLightMapPendingTexture* PendingTexture = PendingTextures[TextureIndex];
-				PendingTexture->StartEncoding(NULL);
+				PendingTexture->StartEncoding(nullptr,nullptr);
 			}
 		}
 

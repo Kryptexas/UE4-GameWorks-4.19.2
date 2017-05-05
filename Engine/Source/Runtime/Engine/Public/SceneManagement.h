@@ -664,9 +664,11 @@ private:
 	TPendingTextureType* PendingTexture;
 	FThreadSafeCounter& Counter;
 	ULevel* LightingScenario;
+	class ITextureCompressorModule* Compressor;
+
 public:
 
-	FAsyncEncode(TPendingTextureType* InPendingTexture, ULevel* InLightingScenario, FThreadSafeCounter& InCounter) : PendingTexture(nullptr), Counter(InCounter)
+	FAsyncEncode(TPendingTextureType* InPendingTexture, ULevel* InLightingScenario, FThreadSafeCounter& InCounter, ITextureCompressorModule* InCompressor) : PendingTexture(nullptr), Counter(InCounter), Compressor(InCompressor)
 	{
 		LightingScenario = InLightingScenario;
 		PendingTexture = InPendingTexture;
@@ -674,13 +676,13 @@ public:
 
 	void Abandon()
 	{
-		PendingTexture->StartEncoding(LightingScenario);
+		PendingTexture->StartEncoding(LightingScenario, Compressor);
 		Counter.Decrement();
 	}
 
 	void DoThreadedWork()
 	{
-		PendingTexture->StartEncoding(LightingScenario);
+		PendingTexture->StartEncoding(LightingScenario, Compressor);
 		Counter.Decrement();
 	}
 };
