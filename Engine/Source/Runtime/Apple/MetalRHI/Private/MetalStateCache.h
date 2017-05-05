@@ -220,7 +220,7 @@ private:
 	FMetalTextureBindings ShaderTextures[SF_NumFrequencies];
 	FMetalSamplerBindings ShaderSamplers[SF_NumFrequencies];
 	
-	MTLStoreAction ColorStore[MaxMetalRenderTargets];
+	MTLStoreAction ColorStore[MaxSimultaneousRenderTargets];
 	MTLStoreAction DepthStore;
 	MTLStoreAction StencilStore;
 

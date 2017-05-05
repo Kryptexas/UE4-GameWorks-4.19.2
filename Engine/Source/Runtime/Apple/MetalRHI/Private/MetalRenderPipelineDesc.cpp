@@ -143,7 +143,7 @@ FMetalRenderPipelineDesc::FMetalRenderPipelineDesc()
 {
 	Hash.RasterBits = 0;
 	Hash.TargetBits = 0;
-	for (int Index = 0; Index < MaxMetalRenderTargets; Index++)
+	for (int Index = 0; Index < MaxSimultaneousRenderTargets; Index++)
 	{
 		[PipelineDescriptor.colorAttachments setObject:[[MTLRenderPipelineColorAttachmentDescriptor new] autorelease] atIndexedSubscript:Index];
 	}
@@ -168,7 +168,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 	
 	// Disable blending and writing on unbound targets or Metal will assert/crash/abort depending on build.
 	// At least with this API all the state must match all of the time for it to work.
-	for (int Index = 0; Index < MaxMetalRenderTargets; Index++)
+	for (int Index = 0; Index < MaxSimultaneousRenderTargets; Index++)
 	{
 		MTLRenderPipelineColorAttachmentDescriptor* Desc = [PipelineDescriptor.colorAttachments objectAtIndexedSubscript:Index];
 		if(Desc.pixelFormat == MTLPixelFormatInvalid)

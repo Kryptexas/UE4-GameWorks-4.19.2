@@ -341,7 +341,7 @@ private:
     
 	FMetalBufferBindings ShaderBuffers[MTLFunctionTypeKernel+1];
 	
-	MTLStoreAction ColorStoreActions[MaxMetalRenderTargets];
+	MTLStoreAction ColorStoreActions[MaxSimultaneousRenderTargets];
 	MTLStoreAction DepthStoreAction;
 	MTLStoreAction StencilStoreAction;
 	
