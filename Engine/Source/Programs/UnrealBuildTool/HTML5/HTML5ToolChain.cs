@@ -157,7 +157,7 @@ namespace UnrealBuildTool
 			Environment.SetEnvironmentVariable("EMCC_SKIP_SANITY_CHECK", "1");
 
 			// THESE ARE TEST/DEBUGGING
-			Environment.SetEnvironmentVariable("EMCC_DEBUG", "1");
+//			Environment.SetEnvironmentVariable("EMCC_DEBUG", "1");
 //			Environment.SetEnvironmentVariable("EMCC_CORES", "8");
 //			Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
 
