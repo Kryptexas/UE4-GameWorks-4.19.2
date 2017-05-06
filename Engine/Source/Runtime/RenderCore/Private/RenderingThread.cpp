@@ -12,6 +12,7 @@
 #include "Misc/CoreStats.h"
 #include "Misc/TimeGuard.h"
 #include "Misc/CoreDelegates.h"
+#include "Misc/ScopeLock.h"
 #include "RenderCore.h"
 #include "RenderCommandFence.h"
 #include "RHI.h"
