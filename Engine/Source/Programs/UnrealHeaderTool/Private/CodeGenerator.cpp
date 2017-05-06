@@ -2194,7 +2194,9 @@ void FNativeClassHeaderGenerator::ExportClassFromSourceFileInner(
 			// to script VM functions
 			if (SuperClass->IsChildOf(UInterface::StaticClass()))
 			{
-				InterfaceBoilerplate.Logf(TEXT("\tvirtual UObject* _getUObject() const = 0;\r\n"));
+				// Note: This used to be declared as a pure virtual function, but it was changed here in order to allow the Blueprint nativization process
+				// to detect C++ interface classes that explicitly declare pure virtual functions via type traits. This code will no longer trigger that check.
+				InterfaceBoilerplate.Logf(TEXT("\tvirtual UObject* _getUObject() const { check(0 && \"Missing required implementation.\"); return nullptr; }\r\n"));
 			}
 
 			if (bNeedsRep && !bHasGetLifetimeReplicatedProps)
