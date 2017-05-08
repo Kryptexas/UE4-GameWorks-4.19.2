@@ -2923,7 +2923,7 @@ bool GameProjectUtils::GenerateGameModuleBuildFile(const FString& NewBuildFileNa
 	return WriteOutputFile(NewBuildFileName, FinalOutput, OutFailReason);
 }
 
-bool GameProjectUtils::GeneratePluginModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, const FString& PchIncPath, FText& OutFailReason)
+bool GameProjectUtils::GeneratePluginModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason, bool bUseExplicitOrSharedPCHs/* = true*/)
 {
 	FString Template;
 	if ( !ReadTemplateFile(TEXT("PluginModule.Build.cs.template"), Template, OutFailReason) )
@@ -2936,12 +2936,8 @@ bool GameProjectUtils::GeneratePluginModuleBuildFile(const FString& NewBuildFile
 	FinalOutput = FinalOutput.Replace(TEXT("%PRIVATE_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PrivateDependencyModuleNames), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
 	
-	FString AddedBody;
-	if (!PchIncPath.IsEmpty())
-	{
-		AddedBody = FString::Printf(TEXT("PrivatePCHHeaderFile = \"%s\";"), *PchIncPath);
-	}
-	FinalOutput = FinalOutput.Replace(TEXT("%ADDED_BODY%"), *AddedBody, ESearchCase::CaseSensitive);
+	const FString PCHUsage = bUseExplicitOrSharedPCHs ? TEXT("UseExplicitOrSharedPCHs") : TEXT("UseSharedPCHs");
+	FinalOutput = FinalOutput.Replace(TEXT("%PCH_USAGE%"), *PCHUsage, ESearchCase::CaseSensitive);
 
 	return WriteOutputFile(NewBuildFileName, FinalOutput, OutFailReason);
 }

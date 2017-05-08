@@ -182,7 +182,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateNativizedDependenciesSource
 
 	{
 		const FString SourceFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::CppFile), *BaseFilename) + TEXT(".cpp");
-		const FString SourceFileContent = FString::Printf( TEXT("#include \"%s.h\"\n%s"), *BaseFilename, *CodeGenBackend.DependenciesGlobalMapBodyCode(TargetPaths.RuntimeModuleName()) );
+		const FString SourceFileContent = CodeGenBackend.DependenciesGlobalMapBodyCode(TargetPaths.RuntimeModuleName());
 		bSuccess &= GameProjectUtils::WriteOutputFile(SourceFilePath, SourceFileContent, FailureReason);
 	}
 
@@ -254,21 +254,10 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 		}
 	}
 	FBlueprintNativeCodeGenPaths TargetPaths = Manifest.GetTargetPaths();
-
-	FString PCHIncPath = TargetPaths.RuntimeModuleFile(FBlueprintNativeCodeGenPaths::HFile);
-	if ( PCHIncPath.RemoveFromStart(TargetPaths.RuntimeModuleDir()) )
-	{
-		// since the above Remove() is likely to leave a leading slash, add in the '.' to be explicit
-		// this will likely be stripped below in CollapseRelativeDirectories()
-		PCHIncPath = TEXT("./") + PCHIncPath;
-	}
-	FPaths::NormalizeFilename(PCHIncPath);
-	FPaths::RemoveDuplicateSlashes(PCHIncPath);
-	FPaths::CollapseRelativeDirectories(PCHIncPath);
 	
 	FText ErrorMessage;
 	bool bSuccess = GameProjectUtils::GeneratePluginModuleBuildFile(TargetPaths.RuntimeBuildFile(), TargetPaths.RuntimeModuleName(),
-		PublicDependencies, PrivateDependencies, PCHIncPath, ErrorMessage);
+		PublicDependencies, PrivateDependencies, ErrorMessage, false);
 
 	if (!bSuccess)
 	{
