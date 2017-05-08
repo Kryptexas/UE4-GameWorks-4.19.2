@@ -18,6 +18,7 @@
 
 #if WITH_FLEX
 #include "FlexContainerInstance.h"
+#include "DrawDebugHelpers.h" // FlushPersistentDebugLines
 #endif
 
 /* *********************************************************************** */
