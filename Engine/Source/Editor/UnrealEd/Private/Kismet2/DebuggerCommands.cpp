@@ -1196,7 +1196,7 @@ void FInternalPlayWorldCommandCallbacks::Simulate_Clicked()
 bool FInternalPlayWorldCommandCallbacks::Simulate_CanExecute()
 {
 	// Can't simulate while already simulating; PIE is fine as we toggle to simulate
-	return !(HasPlayWorld() && GUnrealEd->bIsSimulatingInEditor);
+	return !(HasPlayWorld() && GUnrealEd->bIsSimulatingInEditor) && !GEditor->IsLightingBuildCurrentlyRunning();
 }
 
 
@@ -1415,7 +1415,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInViewport_Clicked( )
 bool FInternalPlayWorldCommandCallbacks::PlayInViewport_CanExecute()
 {
 	// Allow PIE if we don't already have a play session or the play session is simulate in editor (which we can toggle to PIE)
-	return (!GEditor->bIsPlayWorldQueued && !HasPlayWorld() ) || GUnrealEd->bIsSimulatingInEditor;
+	return (!GEditor->bIsPlayWorldQueued && !HasPlayWorld() && !GEditor->IsLightingBuildCurrentlyRunning() ) || GUnrealEd->bIsSimulatingInEditor;
 }
 
 
@@ -1465,7 +1465,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_Clicked( )
 
 bool FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_CanExecute()
 {
-	return !HasPlayWorld() || !GUnrealEd->bIsSimulatingInEditor;
+	return (!HasPlayWorld() || !GUnrealEd->bIsSimulatingInEditor) && !GEditor->IsLightingBuildCurrentlyRunning();
 }
 
 void FInternalPlayWorldCommandCallbacks::PlayInVR_Clicked()
@@ -1515,7 +1515,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInVR_Clicked()
 
 bool FInternalPlayWorldCommandCallbacks::PlayInVR_CanExecute()
 {
-	return (!HasPlayWorld() || !GUnrealEd->bIsSimulatingInEditor) && GEngine && GEngine->HMDDevice.IsValid();
+	return (!HasPlayWorld() || !GUnrealEd->bIsSimulatingInEditor) && !GEditor->IsLightingBuildCurrentlyRunning() && GEngine && GEngine->HMDDevice.IsValid();
 }
 
 
