@@ -181,9 +181,12 @@ namespace UnrealBuildTool
 				}
 			}
 		}
-		// --------------------------------------------------
-		// --------------------------------------------------
-		public static string HTML5Intermediatory
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public static string HTML5Intermediatory
 		{
 			get
 			{
@@ -252,7 +255,11 @@ namespace UnrealBuildTool
 			return TempPath;
 		}
 
-		public static string PLATFORM_USER_HOME
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public static string PLATFORM_USER_HOME
 		{
 			get
 			{
