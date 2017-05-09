@@ -260,14 +260,14 @@ class FAssetClassParentFilter : public IClassViewerFilter
 {
 public:
 	FAssetClassParentFilter()
-		: DisallowedClassFlags(0), bDisallowBlueprintBase(false)
+		: DisallowedClassFlags(CLASS_None), bDisallowBlueprintBase(false)
 	{}
 
 	/** All children of these classes will be included unless filtered out by another setting. */
 	TSet< const UClass* > AllowedChildrenOfClasses;
 
 	/** Disallowed class flags. */
-	uint32 DisallowedClassFlags;
+	EClassFlags DisallowedClassFlags;
 
 	/** Disallow blueprint base classes. */
 	bool bDisallowBlueprintBase;

@@ -201,7 +201,7 @@ public:
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct AIMODULE_API FAISenseAffiliationFilter
 {
 	GENERATED_USTRUCT_BODY()

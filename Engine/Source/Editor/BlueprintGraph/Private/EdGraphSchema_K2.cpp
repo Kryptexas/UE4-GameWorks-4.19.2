@@ -1493,6 +1493,11 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().RemoveThisStructVarPin);
 					MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().RemoveOtherStructVarPins);
 				}
+
+				if (InGraphPin->PinType.PinCategory != PC_Exec && InGraphPin->Direction == EGPD_Input && InGraphPin->LinkedTo.Num() == 0 && !ShouldHidePinDefaultValue(const_cast<UEdGraphPin*>(InGraphPin)))
+				{
+					MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().ResetPinToDefaultValue);
+				}
 			}
 		}
 		MenuBuilder->EndSection();
@@ -2252,11 +2257,9 @@ const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGra
 	if(const UK2Node* OwningNode = Cast<UK2Node>(InputPin->GetOwningNode()))
 	{
 		const bool bAllowMultipleSelfs = OwningNode->AllowMultipleSelfs(true); // it applies also to ForEachCall
-		const bool bNotAnArrayFunction = !InputPin->PinType.bIsArray;
-		const bool bNotAMapFunction = !InputPin->PinType.bIsMap;
-		const bool bNotASetFunction = !InputPin->PinType.bIsSet;
+		const bool bNotAContainer = !InputPin->PinType.IsContainer();
 		const bool bSelfPin = IsSelfPin(*InputPin);
-		bIgnoreArray = bAllowMultipleSelfs && bNotAnArrayFunction && bNotAMapFunction && bNotASetFunction  && bSelfPin;
+		bIgnoreArray = bAllowMultipleSelfs && bNotAContainer && bSelfPin;
 	}
 
 	// Find the calling context in case one of the pins is of type object and has a value of Self
@@ -2493,11 +2496,9 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 	TargetFunction = NAME_None;
 	FunctionOwner = nullptr;
 
-	if (OutputPin->PinType.bIsArray != InputPin->PinType.bIsArray ||
-		OutputPin->PinType.bIsMap != InputPin->PinType.bIsMap ||
-		OutputPin->PinType.bIsSet != InputPin->PinType.bIsSet)
+	if (OutputPin->PinType.ContainerType != InputPin->PinType.ContainerType)
 	{
-		if (OutputPin->PinType.bIsSet && InputPin->PinType.bIsArray)
+		if (OutputPin->PinType.IsSet() && InputPin->PinType.IsArray())
 		{
 			UFunction* Function = UBlueprintSetLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UBlueprintSetLibrary, Set_ToArray));
 			TargetFunction = Function->GetFName();
@@ -2512,7 +2513,7 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 	{
 		UClass const* InputClass = Cast<UClass const>(InputPin->PinType.PinSubCategoryObject.Get());
 
-		bool const bInputIsUObject = ((InputClass != NULL) && (InputClass == UObject::StaticClass()));
+		bool const bInputIsUObject = (InputClass && (InputClass == UObject::StaticClass()));
 		if (bInputIsUObject)
 		{
 			UFunction* Function = UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, Conv_InterfaceToObject));
@@ -2576,7 +2577,7 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 	TargetNode = nullptr;
 
 	// Conversion for scalar -> array
-	if( (!OutputPin->PinType.IsContainer() && InputPin->PinType.bIsArray) && ArePinTypesCompatible(OutputPin->PinType, InputPin->PinType, NULL, true))
+	if( (!OutputPin->PinType.IsContainer() && InputPin->PinType.IsArray()) && ArePinTypesCompatible(OutputPin->PinType, InputPin->PinType, nullptr, true))
 	{
 		bCanConvert = true;
 		if(bCreateNode)
@@ -2646,8 +2647,8 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 
 		// CHECK BYTE TO ENUM CAST
 		UEnum* Enum = Cast<UEnum>(InputType.PinSubCategoryObject.Get());
-		const bool bInputIsEnum = !InputType.bIsArray && (PC_Byte == InputType.PinCategory) && Enum;
-		const bool bOutputIsByte = !OutputType.bIsArray && (PC_Byte == OutputType.PinCategory);
+		const bool bInputIsEnum = !InputType.IsContainer() && (PC_Byte == InputType.PinCategory) && Enum;
+		const bool bOutputIsByte = !OutputType.IsContainer() && (PC_Byte == OutputType.PinCategory);
 		if (bInputIsEnum && bOutputIsByte)
 		{
 			bCanConvert = true;
@@ -2804,9 +2805,9 @@ FString UEdGraphSchema_K2::IsPinDefaultValid(const UEdGraphPin* Pin, const FStri
 		return FText::Format(MsgFormat, MessageArgs).ToString();
 	}
 
-	const bool bIsArray = Pin->PinType.bIsArray;
-	const bool bIsSet = Pin->PinType.bIsSet;
-	const bool bIsMap = Pin->PinType.bIsMap;
+	const bool bIsArray = Pin->PinType.IsArray();
+	const bool bIsSet = Pin->PinType.IsSet();
+	const bool bIsMap = Pin->PinType.IsMap();
 	const bool bIsReference = Pin->PinType.bIsReference;
 	const bool bIsAutoCreateRefTerm = IsAutoCreateRefTerm(Pin);
 
@@ -2975,7 +2976,7 @@ FLinearColor UEdGraphSchema_K2::GetPinTypeColor(const FEdGraphPinType& PinType) 
 
 FLinearColor UEdGraphSchema_K2::GetSecondaryPinTypeColor(const FEdGraphPinType& PinType) const
 {
-	if (PinType.bIsMap)
+	if (PinType.IsMap())
 	{
 		FEdGraphPinType FakePrimary = PinType;
 		FakePrimary.PinCategory = FakePrimary.PinValueType.TerminalCategory;
@@ -3320,11 +3321,11 @@ bool UEdGraphSchema_K2::GetPropertyCategoryInfo(const UProperty* TestProperty, F
 		OutCategory = PC_Struct;
 		OutSubCategoryObject = StructProperty->Struct;
 	}
-	else if (Cast<const UFloatProperty>(TestProperty) != NULL)
+	else if (TestProperty->IsA<UFloatProperty>())
 	{
 		OutCategory = PC_Float;
 	}
-	else if (Cast<const UIntProperty>(TestProperty) != NULL)
+	else if (TestProperty->IsA<UIntProperty>())
 	{
 		OutCategory = PC_Int;
 
@@ -3366,19 +3367,19 @@ bool UEdGraphSchema_K2::GetPropertyCategoryInfo(const UProperty* TestProperty, F
 			OutSubCategoryObject = EnumProperty->GetEnum();
 		}
 	}
-	else if (Cast<const UNameProperty>(TestProperty) != NULL)
+	else if (TestProperty->IsA<UNameProperty>())
 	{
 		OutCategory = PC_Name;
 	}
-	else if (Cast<const UBoolProperty>(TestProperty) != NULL)
+	else if (TestProperty->IsA<UBoolProperty>())
 	{
 		OutCategory = PC_Boolean;
 	}
-	else if (Cast<const UStrProperty>(TestProperty) != NULL)
+	else if (TestProperty->IsA<UStrProperty>())
 	{
 		OutCategory = PC_String;
 	}
-	else if (Cast<const UTextProperty>(TestProperty) != NULL)
+	else if (TestProperty->IsA<UTextProperty>())
 	{
 		OutCategory = PC_Text;
 	}
@@ -3434,9 +3435,7 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	{
 		TestProperty = ArrayProperty->Inner;
 	}
-	TypeOut.bIsMap = (MapProperty != NULL);
-	TypeOut.bIsSet = (SetProperty != NULL);
-	TypeOut.bIsArray = (ArrayProperty != NULL);
+	TypeOut.ContainerType = FEdGraphPinType::ToPinContainerType(ArrayProperty != nullptr, SetProperty != nullptr, MapProperty != nullptr);
 	TypeOut.bIsReference = Property->HasAllPropertyFlags(CPF_OutParm|CPF_ReferenceParm);
 	TypeOut.bIsConst     = Property->HasAllPropertyFlags(CPF_ConstParm);
 
@@ -3462,7 +3461,9 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	else
 	{
 		UObject* SubCategoryObject = nullptr;
-		bool bResult = GetPropertyCategoryInfo(TestProperty, TypeOut.PinCategory, TypeOut.PinSubCategory, SubCategoryObject, TypeOut.bIsWeakPointer);
+		bool bIsWeakPointer = false;
+		bool bResult = GetPropertyCategoryInfo(TestProperty, TypeOut.PinCategory, TypeOut.PinSubCategory, SubCategoryObject, bIsWeakPointer);
+		TypeOut.bIsWeakPointer = bIsWeakPointer;
 		TypeOut.PinSubCategoryObject = SubCategoryObject;
 		if (!bResult)
 		{
@@ -3697,7 +3698,7 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 {
 	FText PropertyText = TerminalTypeToText(Type.PinCategory, Type.PinSubCategory, Type.PinSubCategoryObject.Get(), Type.bIsWeakPointer);
 
-	if ( Type.bIsMap )
+	if (Type.IsMap())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("KeyTitle"), PropertyText);
@@ -3705,13 +3706,13 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 		Args.Add(TEXT("ValueTitle"), ValueText);
 		PropertyText = FText::Format(LOCTEXT("MapAsText", "Map of {KeyTitle}s to {ValueTitle}s"), Args);
 	}
-	else if ( Type.bIsSet )
+	else if (Type.IsSet())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PropertyTitle"), PropertyText);
 		PropertyText = FText::Format(LOCTEXT("SetAsText", "Set of {PropertyTitle}s"), Args);
 	}
-	else if (Type.bIsArray)
+	else if (Type.IsArray())
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PropertyTitle"), PropertyText);
@@ -3837,15 +3838,15 @@ struct FWildcardArrayPinHelper
 			return true;
 		}
 
-		const UK2Node* OwningNode = InputPin ? Cast<UK2Node>(InputPin->GetOwningNode()) : NULL;
+		const UK2Node* OwningNode = InputPin ? Cast<UK2Node>(InputPin->GetOwningNode()) : nullptr;
 		const bool bInputWildcardPinAcceptsArray = !OwningNode || OwningNode->DoesInputWildcardPinAcceptArray(InputPin);
 		if (bInputWildcardPinAcceptsArray)
 		{
 			return true;
 		}
 
-		const bool bCheckInputPin = (InputPin->PinType.PinCategory == GetDefault<UEdGraphSchema_K2>()->PC_Wildcard) && !InputPin->PinType.bIsArray;
-		const bool bArrayOutputPin = OutputPin && OutputPin->PinType.bIsArray;
+		const bool bCheckInputPin = (InputPin->PinType.PinCategory == GetDefault<UEdGraphSchema_K2>()->PC_Wildcard) && !InputPin->PinType.IsArray();
+		const bool bArrayOutputPin = OutputPin && OutputPin->PinType.IsArray();
 		return !(bCheckInputPin && bArrayOutputPin);
 	}
 };
@@ -3883,7 +3884,7 @@ namespace
 	{
 		bool bResult = false;
 		bool bIsNonNativeClass = false;
-		if(UClass* TargetAsClass = const_cast<UClass*>(Cast<UClass>(InTargetStruct)))
+		if (const UClass* TargetAsClass = Cast<const UClass>(InTargetStruct))
 		{
 			InTargetStruct = TargetAsClass->GetAuthoritativeClass();
 		}
@@ -4005,7 +4006,7 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 			}
 		}
 	}
-	else if ((PinCategory == PC_Class) || (PinCategory == PC_AssetClass))
+	else if ((PinCategory == PC_Class))
 	{
 		// Should have an object set but no string
 		if (!NewDefaultValue.IsEmpty())
@@ -4068,7 +4069,7 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 	{
 		// Anything is allowed
 	}
-	else if ((PinCategory == PC_Object) || (PinCategory == PC_Interface) || (PinCategory == PC_Asset))
+	else if ((PinCategory == PC_Object) || (PinCategory == PC_Interface))
 	{
 		if (PinSubCategoryObject == NULL && (PinSubCategory != PSC_Self))
 		{
@@ -4096,10 +4097,25 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 		{
 			DVSV_RETURN_MSG(FString::Printf(TEXT("%s isn't a %s (specified on pin %s)"), *NewDefaultObject->GetPathName(), *ObjectClass->GetName(), *(PinName)));
 		}
-
-		if ((PinCategory == PC_Asset) && NewDefaultObject && !NewDefaultObject->IsAsset())
+	}
+	else if ((PinCategory == PC_Asset) || (PinCategory == PC_AssetClass))
+	{
+		// Should not have an object set, should be converted to string before getting here
+		if (NewDefaultObject)
 		{
-			DVSV_RETURN_MSG(FString::Printf(TEXT("%s is not an asset (specified on pin %s)"), *NewDefaultObject->GetPathName(), *(PinName)));
+			DVSV_RETURN_MSG(FString::Printf(TEXT("NewDefaultObject '%s' specified on object pin '%s'"), *NewDefaultObject->GetPathName(), *(PinName)));
+		}
+
+		if (!NewDefaultValue.IsEmpty())
+		{
+			FText PathReason;
+
+			if (!FPackageName::IsValidObjectPath(NewDefaultValue, &PathReason))
+			{
+				DVSV_RETURN_MSG(FString::Printf(TEXT("Asset ID '%s' is invalid format for object pin '%s':"), *NewDefaultValue, *(PinName), *PathReason.ToString()));
+			}
+
+			// Class and IsAsset validation is not foolproof for asset ids, skip
 		}
 	}
 	else if (PinCategory == PC_String)
@@ -4187,7 +4203,7 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 
 bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, const FEdGraphPinType& Input, const UClass* CallingContext, bool bIgnoreArray /*= false*/) const
 {
-	if( !bIgnoreArray && ( Output.bIsMap != Input.bIsMap || Output.bIsSet != Input.bIsSet || Output.bIsArray != Input.bIsArray ) && (Input.PinCategory != PC_Wildcard || Input.IsContainer()) )
+	if( !bIgnoreArray && ( Output.ContainerType != Input.ContainerType ) && (Input.PinCategory != PC_Wildcard || Input.IsContainer()) )
 	{
 		return false;
 	}
@@ -4197,7 +4213,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			&& (Output.PinSubCategoryObject == Input.PinSubCategoryObject)
 			&& (Output.PinSubCategoryMemberReference == Input.PinSubCategoryMemberReference))
 		{
-			if(Input.bIsMap)
+			if(Input.IsMap())
 			{
 				return 
 					Input.PinValueType.TerminalCategory == PC_Wildcard ||
@@ -4227,7 +4243,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		{
 			const UClass* OutputObject = (Output.PinSubCategory == PSC_Self) ? CallingContext : Cast<const UClass>(Output.PinSubCategoryObject.Get());
 			const UClass* InputObject = (Input.PinSubCategory == PSC_Self) ? CallingContext : Cast<const UClass>(Input.PinSubCategoryObject.Get());
-			if ((OutputObject != NULL) && (InputObject != NULL))
+			if (OutputObject && InputObject)
 			{
 				return ExtendedIsChildOf(OutputObject ,InputObject);
 			}
@@ -4239,7 +4255,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			UStruct const* OutputObject = (Output.PinSubCategory == PSC_Self) ? CallingContext : Cast<UStruct>(Output.PinSubCategoryObject.Get());
 			UStruct const* InputObject  = (Input.PinSubCategory == PSC_Self)  ? CallingContext : Cast<UStruct>(Input.PinSubCategoryObject.Get());
 
-			if ((OutputObject != NULL) && (InputObject != NULL))
+			if (OutputObject && InputObject)
 			{
 				if (Output.PinCategory == PC_Struct)
 				{
@@ -4441,57 +4457,90 @@ void UEdGraphSchema_K2::HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved) con
 	}
 }
 
+void UEdGraphSchema_K2::GetPinDefaultValuesFromString(const FEdGraphPinType& PinType, UObject* OwningObject, const FString& NewDefaultValue, FString& UseDefaultValue, UObject*& UseDefaultObject, FText& UseDefaultText) const
+{
+	if ((PinType.PinCategory == PC_Object)
+		|| (PinType.PinCategory == PC_Class)
+		|| (PinType.PinCategory == PC_Interface))
+	{
+		FString ObjectPathLocal = NewDefaultValue;
+		ConstructorHelpers::StripObjectClass(ObjectPathLocal);
+
+		// If this is not a full object path it's a relative path so should be saved as a string
+		if (FPackageName::IsValidObjectPath(ObjectPathLocal))
+		{
+			FStringAssetReference AssetRef = ObjectPathLocal;
+			UseDefaultValue.Empty();
+			UseDefaultObject = AssetRef.TryLoad();
+			UseDefaultText = FText::GetEmpty();
+		}
+		else
+		{
+			// "None" should be saved as empty string
+			if (ObjectPathLocal == TEXT("None"))
+			{
+				ObjectPathLocal.Empty();
+			}
+
+			UseDefaultValue = ObjectPathLocal;
+			UseDefaultObject = nullptr;
+			UseDefaultText = FText::GetEmpty();
+		}
+	}
+	else if (PinType.PinCategory == PC_Text)
+	{
+		FString PackageNamespace;
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (GIsEditor)
+		{
+			PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(OwningObject);
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+		if (!FTextStringHelper::ReadFromString(*NewDefaultValue, UseDefaultText, nullptr, *PackageNamespace))
+		{
+			UseDefaultText = FText::FromString(NewDefaultValue);
+		}
+		UseDefaultObject = nullptr;
+		UseDefaultValue.Empty();
+	}
+	else
+	{
+		UseDefaultValue = NewDefaultValue;
+		UseDefaultObject = nullptr;
+		UseDefaultText = FText::GetEmpty();
+
+		if (PinType.PinCategory == PC_Byte && UseDefaultValue.IsEmpty())
+		{
+			UEnum* EnumPtr = Cast<UEnum>(PinType.PinSubCategoryObject.Get());
+			if (EnumPtr)
+			{
+				// Enums are stored as empty string in autogenerated defaults, but should turn into the first value in array 
+				UseDefaultValue = EnumPtr->GetNameStringByIndex(0);
+			}
+		}
+		else if ((PinType.PinCategory == PC_Asset) || (PinType.PinCategory == PC_AssetClass))
+		{
+			ConstructorHelpers::StripObjectClass(UseDefaultValue);
+		}
+	}
+}
+
 void UEdGraphSchema_K2::TrySetDefaultValue(UEdGraphPin& Pin, const FString& NewDefaultValue) const
 {
 	FString UseDefaultValue;
 	UObject* UseDefaultObject = nullptr;
 	FText UseDefaultText;
 
-	if ((Pin.PinType.PinCategory == PC_Object) 
-		|| (Pin.PinType.PinCategory == PC_Class) 
-		|| (Pin.PinType.PinCategory == PC_Interface)
-		|| (Pin.PinType.PinCategory == PC_Asset)
-		|| (Pin.PinType.PinCategory == PC_AssetClass))
-	{
-		FString ObjectPathLocal = NewDefaultValue;
-		ConstructorHelpers::StripObjectClass(ObjectPathLocal);
-		UseDefaultObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPathLocal);
-		UseDefaultValue.Empty();
-	}
-	else if(Pin.PinType.PinCategory == PC_Text)
-	{
-		FString PackageNamespace;
-#if USE_STABLE_LOCALIZATION_KEYS
-		if (GIsEditor)
-		{
-			PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(Pin.GetOwningNodeUnchecked());
-		}
-#endif // USE_STABLE_LOCALIZATION_KEYS
-		FText NewTextValue;
-		if (!FTextStringHelper::ReadFromString(*NewDefaultValue, NewTextValue, nullptr, *PackageNamespace))
-		{
-			NewTextValue = FText::FromString(NewDefaultValue);
-		}
-		TrySetDefaultText(Pin, NewTextValue);
-		UseDefaultObject = nullptr;
-		UseDefaultValue.Empty();
-		return;
-	}
-	else
-	{
-		UseDefaultObject = nullptr;
-		UseDefaultValue = NewDefaultValue;
-	}
+	GetPinDefaultValuesFromString(Pin.PinType, Pin.GetOwningNodeUnchecked(), NewDefaultValue, UseDefaultValue, UseDefaultObject, UseDefaultText);
 
 	// Check the default value and make it an error if it's bogus
-	if (IsPinDefaultValid(&Pin, UseDefaultValue, UseDefaultObject, UseDefaultText) == TEXT(""))
+	if (IsPinDefaultValid(&Pin, UseDefaultValue, UseDefaultObject, UseDefaultText).IsEmpty())
 	{
 		Pin.DefaultObject = UseDefaultObject;
 		Pin.DefaultValue = UseDefaultValue;
 		Pin.DefaultTextValue = UseDefaultText;
 
 		UEdGraphNode* Node = Pin.GetOwningNode();
-		check(Node);
 		Node->PinDefaultValueChanged(&Pin);
 
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(Node);
@@ -4503,16 +4552,21 @@ void UEdGraphSchema_K2::TrySetDefaultObject(UEdGraphPin& Pin, UObject* NewDefaul
 {
 	FText UseDefaultText;
 
+	if ((Pin.PinType.PinCategory == PC_Asset) || (Pin.PinType.PinCategory == PC_AssetClass))
+	{
+		TrySetDefaultValue(Pin, NewDefaultObject ? NewDefaultObject->GetPathName() : FString());
+		return;
+	}
+
 	// Check the default value and make it an error if it's bogus
-	if (IsPinDefaultValid(&Pin, FString(TEXT("")), NewDefaultObject, UseDefaultText) == TEXT(""))
+	if (IsPinDefaultValid(&Pin, FString(), NewDefaultObject, UseDefaultText).IsEmpty())
 	{
 		Pin.DefaultObject = NewDefaultObject;
-		Pin.DefaultValue = NULL;
+		Pin.DefaultValue.Empty();
 		Pin.DefaultTextValue = UseDefaultText;
 	}
 
 	UEdGraphNode* Node = Pin.GetOwningNode();
-	check(Node);
 	Node->PinDefaultValueChanged(&Pin);
 
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(Node);
@@ -4525,15 +4579,14 @@ void UEdGraphSchema_K2::TrySetDefaultText(UEdGraphPin& InPin, const FText& InNew
 	if(InPin.PinType.PinCategory == PC_Text)
 	{
 		// Check the default value and make it an error if it's bogus
-		if (IsPinDefaultValid(&InPin, TEXT(""), NULL, InNewDefaultText) == TEXT(""))
+		if (IsPinDefaultValid(&InPin, FString(), nullptr, InNewDefaultText).IsEmpty())
 		{
-			InPin.DefaultObject = NULL;
-			InPin.DefaultValue = NULL;
+			InPin.DefaultObject = nullptr;
+			InPin.DefaultValue.Empty();
 			InPin.DefaultTextValue = InNewDefaultText;
 		}
 
 		UEdGraphNode* Node = InPin.GetOwningNode();
-		check(Node);
 		Node->PinDefaultValueChanged(&InPin);
 
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(Node);
@@ -4612,70 +4665,50 @@ bool UEdGraphSchema_K2::ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const
 	return bShow;
 }
 
-void UEdGraphSchema_K2::SetPinDefaultValue(UEdGraphPin* Pin, const UFunction* Function, const UProperty* Param) const
+bool UEdGraphSchema_K2::FindFunctionParameterDefaultValue(const UFunction* Function, const UProperty* Param, FString& OutString)
 {
-	if ((Function != nullptr) && (Param != nullptr))
-	{
-		bool bHasAutomaticValue = false;
+	bool bHasAutomaticValue = false;
 
-		const FString MetadataDefaultValue = Function->GetMetaData(*Param->GetName());
-		if (!MetadataDefaultValue.IsEmpty())
+	const FString MetadataDefaultValue = Function->GetMetaData(*Param->GetName());
+	if (!MetadataDefaultValue.IsEmpty())
+	{
+		// Specified default value in the metadata
+		OutString = MetadataDefaultValue;
+		bHasAutomaticValue = true;
+	}
+	else
+	{
+		const FName MetadataCppDefaultValueKey(*(FString(TEXT("CPP_Default_")) + Param->GetName()));
+		const FString MetadataCppDefaultValue = Function->GetMetaData(MetadataCppDefaultValueKey);
+		if (!MetadataCppDefaultValue.IsEmpty())
 		{
-			// Specified default value in the metadata
-			Pin->AutogeneratedDefaultValue = MetadataDefaultValue;
+			OutString = MetadataCppDefaultValue;
 			bHasAutomaticValue = true;
 		}
-		else
-		{
-			const FName MetadataCppDefaultValueKey( *(FString(TEXT("CPP_Default_")) + Param->GetName()) );
-			const FString MetadataCppDefaultValue = Function->GetMetaData(MetadataCppDefaultValueKey);
-			if (!MetadataCppDefaultValue.IsEmpty())
-			{
-				Pin->AutogeneratedDefaultValue = MetadataCppDefaultValue;
-				bHasAutomaticValue = true;
-			}
-		}
+	}
 
-		if (bHasAutomaticValue)
-		{
-			if (Pin->PinType.PinCategory == PC_Text)
-			{
-				FString PackageNamespace;
-#if USE_STABLE_LOCALIZATION_KEYS
-				if (GIsEditor)
-				{
-					PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(Pin->GetOwningNodeUnchecked());
-				}
-#endif // USE_STABLE_LOCALIZATION_KEYS
-				if (!FTextStringHelper::ReadFromString(*Pin->AutogeneratedDefaultValue, Pin->DefaultTextValue, nullptr, *PackageNamespace))
-				{
-					Pin->DefaultTextValue = FText::FromString(Pin->AutogeneratedDefaultValue);
-				}
-			}
-			else
-			{
-				Pin->DefaultValue = Pin->AutogeneratedDefaultValue;
-			}
-		}
-	}
-	
-	if (Pin->DefaultValue.Len() == 0)
-	{
-		// Set the default value to (T)0
-		SetPinDefaultValueBasedOnType(Pin);
-	}
+	return bHasAutomaticValue;
 }
 
-void UEdGraphSchema_K2::SetPinDefaultValueBasedOnType(UEdGraphPin* Pin) const
+void UEdGraphSchema_K2::SetPinAutogeneratedDefaultValue(UEdGraphPin* Pin, const FString& NewValue) const
 {
+	Pin->AutogeneratedDefaultValue = NewValue;
+
+	ResetPinToAutogeneratedDefaultValue(Pin, false);
+}
+
+void UEdGraphSchema_K2::SetPinAutogeneratedDefaultValueBasedOnType(UEdGraphPin* Pin) const
+{
+	FString NewValue;
+
 	// Create a useful default value based on the pin type
 	if(Pin->PinType.IsContainer() )
 	{
-		Pin->AutogeneratedDefaultValue = TEXT("");
+		NewValue = TEXT("");
 	}
 	else if (Pin->PinType.PinCategory == PC_Int)
 	{
-		Pin->AutogeneratedDefaultValue = TEXT("0");
+		NewValue = TEXT("0");
 	}
 	else if(Pin->PinType.PinCategory == PC_Byte)
 	{
@@ -4684,37 +4717,73 @@ void UEdGraphSchema_K2::SetPinDefaultValueBasedOnType(UEdGraphPin* Pin) const
 		{
 			// First element of enum can change. If the enum is { A, B, C } and the default value is A, 
 			// the defult value should not change when enum will be changed into { N, A, B, C }
-			Pin->AutogeneratedDefaultValue = TEXT("");
-			Pin->DefaultValue = EnumPtr->GetNameStringByIndex(0);
-			return;
+			NewValue = TEXT("");
 		}
 		else
 		{
-			Pin->AutogeneratedDefaultValue = TEXT("0");
+			NewValue = TEXT("0");
 		}
 	}
 	else if (Pin->PinType.PinCategory == PC_Float)
 	{
-		Pin->AutogeneratedDefaultValue = TEXT("0.0");
+		// This is a slightly different format than is produced by PropertyValueToString, but changing it has backward compatibility issues
+		NewValue = TEXT("0.0");
 	}
 	else if (Pin->PinType.PinCategory == PC_Boolean)
 	{
-		Pin->AutogeneratedDefaultValue = TEXT("false");
+		NewValue = TEXT("false");
 	}
 	else if (Pin->PinType.PinCategory == PC_Name)
 	{
-		Pin->AutogeneratedDefaultValue = TEXT("None");
+		NewValue = TEXT("None");
 	}
 	else if ((Pin->PinType.PinCategory == PC_Struct) && ((Pin->PinType.PinSubCategoryObject == VectorStruct) || (Pin->PinType.PinSubCategoryObject == RotatorStruct)))
 	{
-		Pin->AutogeneratedDefaultValue = TEXT("0, 0, 0");
+		// This is a slightly different format than is produced by PropertyValueToString, but changing it has backward compatibility issues
+		NewValue = TEXT("0, 0, 0");
+	}
+
+	// PropertyValueToString also has cases for LinerColor and Transform, LinearColor is identical to export text so is fine, the Transform case is specially handled in the vm
+
+	SetPinAutogeneratedDefaultValue(Pin, NewValue);
+}
+
+void UEdGraphSchema_K2::ResetPinToAutogeneratedDefaultValue(UEdGraphPin* Pin, bool bCallModifyCallbacks) const
+{
+	GetPinDefaultValuesFromString(Pin->PinType, Pin->GetOwningNodeUnchecked(), Pin->AutogeneratedDefaultValue, Pin->DefaultValue, Pin->DefaultObject, Pin->DefaultTextValue);
+
+	if (bCallModifyCallbacks)
+	{
+		UEdGraphNode* Node = Pin->GetOwningNode();
+		Node->PinDefaultValueChanged(Pin);
+
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(Node);
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+	}
+}
+
+void UEdGraphSchema_K2::SetPinDefaultValueAtConstruction(UEdGraphPin* Pin, const FString& DefaultValueString) const
+{
+	GetPinDefaultValuesFromString(Pin->PinType, Pin->GetOwningNodeUnchecked(), DefaultValueString, Pin->DefaultValue, Pin->DefaultObject, Pin->DefaultTextValue);
+}
+
+void UEdGraphSchema_K2::SetPinDefaultValue(UEdGraphPin* Pin, const UFunction* Function, const UProperty* Param) const
+{
+	if (Function != nullptr && Param != nullptr)
+	{
+		FString NewValue;
+		FindFunctionParameterDefaultValue(Function, Param, NewValue);
+		SetPinAutogeneratedDefaultValue(Pin, NewValue);
 	}
 	else
 	{
-		Pin->AutogeneratedDefaultValue = TEXT("");
+		SetPinAutogeneratedDefaultValueBasedOnType(Pin);
 	}
+}
 
-	Pin->DefaultValue = Pin->AutogeneratedDefaultValue;
+void UEdGraphSchema_K2::SetPinDefaultValueBasedOnType(UEdGraphPin* Pin) const
+{
+	SetPinAutogeneratedDefaultValueBasedOnType(Pin);
 }
 
 void UEdGraphSchema_K2::ValidateExistingConnections(UEdGraphPin* Pin)
@@ -4863,7 +4932,7 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 	UFunction* Function = NULL;
 	if(SetFunctionName != NAME_None)
 	{
-		if(PinType.bIsArray)
+		if(PinType.IsArray())
 		{
 			static FName SetArrayName(GET_FUNCTION_NAME_CHECKED(UKismetArrayLibrary, SetArrayPropertyByName));
 			Function = FindField<UFunction>(UKismetArrayLibrary::StaticClass(), SetArrayName);
@@ -6377,7 +6446,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 		{
 			const FString PinName = FString::Printf(TEXT("%s_%s"), *Pin->PinName, *ProtoPin->PinName);
 			const FEdGraphPinType& ProtoPinType = ProtoPin->PinType;
-			UEdGraphPin* SubPin = GraphNode->CreatePin(Pin->Direction, ProtoPinType.PinCategory, ProtoPinType.PinSubCategory, ProtoPinType.PinSubCategoryObject.Get(), ProtoPinType.bIsArray, false, PinName);
+			UEdGraphPin* SubPin = GraphNode->CreatePin(Pin->Direction, ProtoPinType.PinCategory, ProtoPinType.PinSubCategory, ProtoPinType.PinSubCategoryObject.Get(), PinName, ProtoPinType.ContainerType, false, false, INDEX_NONE, ProtoPinType.PinValueType);
 
 			if (K2Node != nullptr && K2Node->ShouldDrawCompact() && !Pin->ParentPin)
 			{
@@ -6682,6 +6751,15 @@ UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const 
 			}
 		}
 
+		HandleParameterDefaultValueChanged(EditablePinNode);
+	}
+	return ResultPin;
+}
+
+void UEdGraphSchema_K2::HandleParameterDefaultValueChanged(UK2Node* InTargetNode) const
+{
+	if (UK2Node_EditablePinBase* EditablePinNode = Cast<UK2Node_EditablePinBase>(InTargetNode))
+	{
 		FParamsChangedHelper ParamsChangedHelper;
 		ParamsChangedHelper.ModifiedBlueprints.Add(FBlueprintEditorUtils::FindBlueprintForNode(InTargetNode));
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(FBlueprintEditorUtils::FindBlueprintForNode(InTargetNode));
@@ -6697,7 +6775,7 @@ UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const 
 		}
 
 		// Now update all the blueprints that got modified
-		for (UBlueprint* Blueprint  : ParamsChangedHelper.ModifiedBlueprints)
+		for (UBlueprint* Blueprint : ParamsChangedHelper.ModifiedBlueprints)
 		{
 			if (Blueprint)
 			{
@@ -6705,7 +6783,6 @@ UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const 
 			}
 		}
 	}
-	return ResultPin;
 }
 
 bool UEdGraphSchema_K2::SupportsDropPinOnNode(UEdGraphNode* InTargetNode, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection, FText& OutErrorMessage) const

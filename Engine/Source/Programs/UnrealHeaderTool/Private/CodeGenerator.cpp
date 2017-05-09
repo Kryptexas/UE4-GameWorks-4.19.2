@@ -1415,7 +1415,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FOutputDevice& O
 		GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t{\r\n"), ClassNameCPP);
 		GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\tUObjectForceRegistration(OuterClass);\r\n"));
 		uint32 Flags = (Class->ClassFlags & CLASS_SaveInCompiledInClasses) | CLASS_Constructed;
-		GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\tOuterClass->ClassFlags |= 0x%08X;\r\n"), Flags);
+		GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\tOuterClass->ClassFlags |= (EClassFlags)0x%08Xu;\r\n"), Flags);
 		TheFlagAudit.Add(Class, TEXT("ClassFlags"), Flags);
 		GeneratedClassRegisterFunctionText.Logf(TEXT("\r\n"));
 		GeneratedClassRegisterFunctionText.Log(CallSingletons);
@@ -2202,7 +2202,9 @@ void FNativeClassHeaderGenerator::ExportClassFromSourceFileInner(
 			// to script VM functions
 			if (SuperClass->IsChildOf(UInterface::StaticClass()))
 			{
-				InterfaceBoilerplate.Logf(TEXT("\tvirtual UObject* _getUObject() const = 0;\r\n"));
+				// Note: This used to be declared as a pure virtual function, but it was changed here in order to allow the Blueprint nativization process
+				// to detect C++ interface classes that explicitly declare pure virtual functions via type traits. This code will no longer trigger that check.
+				InterfaceBoilerplate.Logf(TEXT("\tvirtual UObject* _getUObject() const { check(0 && \"Missing required implementation.\"); return nullptr; }\r\n"));
 			}
 
 			if (bNeedsRep && !bHasGetLifetimeReplicatedProps)
@@ -4784,7 +4786,7 @@ void ResolveSuperClasses(UPackage* Package)
 	TArray<UObject*> Objects;
 	GetObjectsWithOuter(Package, Objects);
 
-	for (auto* Object : Objects)
+	for (UObject* Object : Objects)
 	{
 		if (!Object->IsA<UClass>())
 		{
@@ -5258,7 +5260,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 	return Result;
 }
 
-UClass* ProcessParsedClass(bool bClassIsAnInterface, TArray<FHeaderProvider> &DependentOn, const FString& ClassName, const FString& BaseClassName, UObject* InParent, EObjectFlags Flags)
+UClass* ProcessParsedClass(bool bClassIsAnInterface, TArray<FHeaderProvider>& DependentOn, const FString& ClassName, const FString& BaseClassName, UObject* InParent, EObjectFlags Flags)
 {
 	FString ClassNameStripped = GetClassNameWithPrefixRemoved(*ClassName);
 

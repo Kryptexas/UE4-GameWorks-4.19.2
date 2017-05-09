@@ -26,11 +26,11 @@ struct FParticleReplayTrackKey
 	float Time;
 
 	/** Time length this clip should be captured/played for */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ParticleReplayTrackKey)
+	UPROPERTY(EditAnywhere, Category=ParticleReplayTrackKey)
 	float Duration;
 
 	/** Replay clip ID number that identifies the clip we should capture to or playback from */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ParticleReplayTrackKey)
+	UPROPERTY(EditAnywhere, Category=ParticleReplayTrackKey)
 	int32 ClipIDNumber;
 
 

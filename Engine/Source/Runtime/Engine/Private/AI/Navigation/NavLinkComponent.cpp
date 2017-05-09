@@ -38,7 +38,7 @@ FBoxSphereBounds UNavLinkComponent::CalcBounds(const FTransform &LocalToWorld) c
 
 void UNavLinkComponent::GetNavigationData(FNavigationRelevantData& Data) const
 {
-	NavigationHelper::ProcessNavLinkAndAppend(&Data.Modifiers, GetOwner(), Links);
+	NavigationHelper::ProcessNavLinkAndAppend(&Data.Modifiers, NavigationHelper::FNavLinkOwnerData(*this), Links);
 }
 
 bool UNavLinkComponent::IsNavigationRelevant() const

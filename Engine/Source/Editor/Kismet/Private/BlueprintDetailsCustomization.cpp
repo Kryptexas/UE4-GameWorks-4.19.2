@@ -54,6 +54,7 @@
 #include "SKismetInspector.h"
 #include "SSCSEditor.h"
 #include "SPinTypeSelector.h"
+#include "NodeFactory.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 
@@ -1989,7 +1990,7 @@ bool FBlueprintVarActionDetails::IsConfigCheckBoxEnabled() const
 		if (UProperty* VariableProperty = CachedVariableProperty.Get())
 		{
 			// meant to match up with UHT's FPropertyBase::IsObject(), which it uses to block object properties from being marked with CPF_Config
-			bEnabled = VariableProperty->IsA<UClassProperty>() || VariableProperty->IsA<UAssetClassProperty>() || 
+			bEnabled = VariableProperty->IsA<UClassProperty>() || VariableProperty->IsA<UAssetClassProperty>() || VariableProperty->IsA<UAssetObjectProperty>() ||
 				(!VariableProperty->IsA<UObjectPropertyBase>() && !VariableProperty->IsA<UInterfaceProperty>());
 		}
 	}
@@ -2513,8 +2514,12 @@ void FBlueprintVarActionDetails::OnFinishedChangingProperties(const FPropertyCha
 			// Search out the correct local variable in the Function Entry Node and set the default value
 			for(auto& LocalVar : FuncEntry->LocalVariables)
 			{
-				if(LocalVar.VarName == DirectProperty->GetFName())
+				if(LocalVar.VarName == DirectProperty->GetFName() && LocalVar.DefaultValue != DefaultValueString)
 				{
+					const FScopedTransaction Transaction(LOCTEXT("ChangeDefaults", "Change Defaults"));
+
+					FuncEntry->Modify();
+					GetBlueprintObj()->Modify();
 					LocalVar.DefaultValue = DefaultValueString;
 					FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
 					break;
@@ -2701,22 +2706,39 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 {
 	if (bHasDefaultValue)
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ) )
-		.NameContent()
-		[
-			SNew(STextBlock)
-				.Text( LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ) )
-				.ToolTipText( LOCTEXT("FunctionArgDetailsDefaultValueParamTooltip", "The default value of the parameter.") )
-				.Font( IDetailLayoutBuilder::GetDetailFont() )
-		]
-		.ValueContent()
-		[
-			SNew(SEditableTextBox)
-				.Text( this, &FBlueprintGraphArgumentLayout::OnGetArgDefaultValueText )
-				.OnTextCommitted( this, &FBlueprintGraphArgumentLayout::OnArgDefaultValueCommitted )
-				.IsEnabled(!ShouldPinBeReadOnly())
-				.Font( IDetailLayoutBuilder::GetDetailFont() )
-		];
+		if (UEdGraphPin* FoundPin = GetPin())
+		{
+			// Certain types are outlawed at the compiler level
+			bool bTypeWithNoDefaults = (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Object) || (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class) || (FoundPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface);
+
+			if (!FoundPin->PinType.bIsReference && !bTypeWithNoDefaults)
+			{
+				DefaultValuePinWidget = FNodeFactory::CreatePinWidget(FoundPin);
+				DefaultValuePinWidget->SetOnlyShowDefaultValue(true);
+				TSharedRef<SWidget> DefaultValueWidget = DefaultValuePinWidget->GetDefaultValueWidget();
+
+				if (DefaultValueWidget != SNullWidget::NullWidget)
+				{
+					ChildrenBuilder.AddChildContent(LOCTEXT("FunctionArgDetailsDefaultValue", "Default Value"))
+						.NameContent()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("FunctionArgDetailsDefaultValue", "Default Value"))
+						.ToolTipText(LOCTEXT("FunctionArgDetailsDefaultValueParamTooltip", "The default value of the parameter."))
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+						]
+					.ValueContent()
+						.MaxDesiredWidth(512)
+						[
+							DefaultValueWidget
+						];
+				}
+				else
+				{
+					DefaultValuePinWidget.Reset();
+				}
+			}
+		}
 
 		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ) )
 		.NameContent()
@@ -2926,6 +2948,15 @@ FEdGraphPinType FBlueprintGraphArgumentLayout::OnGetPinInfo() const
 	return FEdGraphPinType();
 }
 
+UEdGraphPin* FBlueprintGraphArgumentLayout::GetPin() const
+{
+	if (ParamItemPtr.IsValid() && TargetNode)
+	{
+		return TargetNode->FindPin(ParamItemPtr.Pin()->PinName, ParamItemPtr.Pin()->DesiredPinDirection);
+	}
+	return nullptr;
+}
+
 ECheckBoxState FBlueprintGraphArgumentLayout::IsRefChecked() const
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
@@ -2936,9 +2967,9 @@ void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ECheckBoxState InStat
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
 	PinType.bIsReference = (InState == ECheckBoxState::Checked)? true : false;
-	// Note: Array types are implicitly passed by reference. For custom event nodes, the reference flag is essentially
-	//  treated as being redundant on array inputs, but we also need to implicitly set the 'const' flag to avoid a compiler note.
-	PinType.bIsConst = (PinType.bIsArray || PinType.bIsReference) && TargetNode && TargetNode->IsA<UK2Node_CustomEvent>();
+	// Note: Container types are implicitly passed by reference. For custom event nodes, the reference flag is essentially
+	//  treated as being redundant on container inputs, but we also need to implicitly set the 'const' flag to avoid a compiler note.
+	PinType.bIsConst = (PinType.IsContainer() || PinType.bIsReference) && TargetNode && TargetNode->IsA<UK2Node_CustomEvent>();
 	PinInfoChanged(PinType);
 }
 
@@ -2970,8 +3001,11 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 						{
 							(*UDPinPtr)->PinType = PinType;
 
-							// Array types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
-							(*UDPinPtr)->PinType.bIsConst = PinType.bIsArray && Node->IsA<UK2Node_CustomEvent>();
+							// Container types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
+							(*UDPinPtr)->PinType.bIsConst = PinType.IsContainer() && Node->IsA<UK2Node_CustomEvent>();
+
+							// Reset default value, it probably doesn't match
+							(*UDPinPtr)->PinDefaultValue.Reset();
 						}
 						GraphActionDetailsPinned->OnParamsChanged(Node);
 					}
@@ -2995,33 +3029,6 @@ void FBlueprintGraphArgumentLayout::OnPrePinInfoChange(const FEdGraphPinType& Pi
 		}
 	}
 }
-
-FText FBlueprintGraphArgumentLayout::OnGetArgDefaultValueText() const
-{
-	if (ParamItemPtr.IsValid())
-	{
-		return FText::FromString(ParamItemPtr.Pin()->PinDefaultValue);
-	}
-	return FText();
-}
-
-void FBlueprintGraphArgumentLayout::OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
-{
-	auto GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
-	if (!NewText.IsEmpty() 
-		&& !ShouldPinBeReadOnly() 
-		&& (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus) 
-		&& ParamItemPtr.IsValid() 
-		&& GraphActionDetailsPinned.IsValid())
-	{
-		bool bSuccess = TargetNode->ModifyUserDefinedPinDefaultValue(ParamItemPtr.Pin(), NewText.ToString());
-		if (bSuccess)
-		{
-			GraphActionDetailsPinned->OnParamsChanged(TargetNode);
-		}
-	}
-}
-
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
@@ -3513,6 +3520,11 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			];
 		}
 	}
+
+	if (bHasAGraph)
+	{
+		MyRegisteredGraphChangedDelegateHandle = GetGraph()->AddOnGraphChangedHandler(FOnGraphChanged::FDelegate::CreateSP(this, &FBaseBlueprintGraphActionDetails::OnGraphChanged));
+	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -3595,6 +3607,21 @@ bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 		FunctionResultNodePtr = FBlueprintEditorUtils::FindOrCreateFunctionResultNode(FunctionEntryNodePtr.Get());
 	}
 	return FunctionResultNodePtr.IsValid();
+}
+
+FBaseBlueprintGraphActionDetails::~FBaseBlueprintGraphActionDetails()
+{
+	UEdGraph* MyGraph = GetGraph();
+	if (MyRegisteredGraphChangedDelegateHandle.IsValid() && MyGraph)
+	{
+		MyGraph->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegateHandle);
+	}
+}
+
+void FBaseBlueprintGraphActionDetails::OnGraphChanged(const FEdGraphEditAction& Action)
+{
+	/** Graph changed, need to refresh inputs in case pin UI changed */
+	RegenerateInputsChildrenDelegate.ExecuteIfBound();
 }
 
 void FBaseBlueprintGraphActionDetails::SetRefreshDelegate(FSimpleDelegate RefreshDelegate, bool bForInputs)
@@ -3962,28 +3989,10 @@ void FBaseBlueprintGraphActionDetails::OnParamsChanged(UK2Node_EditablePinBase* 
 
 		// Reconstruct the entry/exit definition and recompile the blueprint to make sure the signature has changed before any fixups
 		TargetNode->ReconstructNode();
-		FParamsChangedHelper ParamsChangedHelper;
-		ParamsChangedHelper.ModifiedBlueprints.Add(GetBlueprintObj());
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 
-		ParamsChangedHelper.Broadcast(GetBlueprintObj(), TargetNode, Graph);
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-		for (auto GraphIt = ParamsChangedHelper.ModifiedGraphs.CreateIterator(); GraphIt; ++GraphIt)
-		{
-			if(UEdGraph* ModifiedGraph = *GraphIt)
-			{
-				ModifiedGraph->NotifyGraphChanged();
-			}
-		}
-
-		// Now update all the blueprints that got modified
-		for (auto BlueprintIt = ParamsChangedHelper.ModifiedBlueprints.CreateIterator(); BlueprintIt; ++BlueprintIt)
-		{
-			if(UBlueprint* Blueprint = *BlueprintIt)
-			{
-				Blueprint->BroadcastChanged();
-			}
-		}
+		K2Schema->HandleParameterDefaultValueChanged(TargetNode);
 	}
 }
 

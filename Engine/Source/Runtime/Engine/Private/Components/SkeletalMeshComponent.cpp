@@ -2214,7 +2214,7 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 		{
 			int32 BoneIndex = RequiredBones[Index];
 			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			FTransform BoneTM = (GetComponentSpaceTransforms()[BoneIndex] * ComponentToWorld);
+			FTransform BoneTM = (GetComponentSpaceTransforms()[BoneIndex] * GetComponentTransform());
 			FVector Start, End;
 			FLinearColor LineColor;
 
@@ -2222,12 +2222,12 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 
 			if (ParentIndex >=0)
 			{
-				Start = (GetComponentSpaceTransforms()[ParentIndex] * ComponentToWorld).GetLocation();
+				Start = (GetComponentSpaceTransforms()[ParentIndex] * GetComponentTransform()).GetLocation();
 				LineColor = FLinearColor::White;
 			}
 			else
 			{
-				Start = ComponentToWorld.GetLocation();
+				Start = GetComponentTransform().GetLocation();
 				LineColor = FLinearColor::Red;
 			}
 
@@ -2529,30 +2529,27 @@ bool USkeletalMeshComponent::PoseTickedThisFrame() const
 FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform& InTransform)
 {
 	// Make sure component to world is up to date
-	if (!bWorldToComponentUpdated)
-	{
-		UpdateComponentToWorld();
-	}
+	ConditionalUpdateComponentToWorld();
 
 #if !(UE_BUILD_SHIPPING)
-	if (ComponentToWorld.ContainsNaN())
+	if (GetComponentTransform().ContainsNaN())
 	{
-		logOrEnsureNanError(TEXT("SkeletalMeshComponent: ComponentToWorld contains NaN!"));
-		ComponentToWorld = FTransform::Identity;
+		logOrEnsureNanError(TEXT("SkeletalMeshComponent: GetComponentTransform() contains NaN!"));
+		SetComponentToWorld(FTransform::Identity);
 	}
 #endif
 
 	//Calculate new actor transform after applying root motion to this component
 	const FTransform ActorToWorld = GetOwner()->GetTransform();
 
-	const FTransform ComponentToActor = ActorToWorld.GetRelativeTransform(ComponentToWorld);
-	const FTransform NewComponentToWorld = InTransform * ComponentToWorld;
+	const FTransform ComponentToActor = ActorToWorld.GetRelativeTransform(GetComponentTransform());
+	const FTransform NewComponentToWorld = InTransform * GetComponentTransform();
 	const FTransform NewActorTransform = ComponentToActor * NewComponentToWorld;
 
 	const FVector DeltaWorldTranslation = NewActorTransform.GetTranslation() - ActorToWorld.GetTranslation();
 
-	const FQuat NewWorldRotation = ComponentToWorld.GetRotation() * InTransform.GetRotation();
-	const FQuat DeltaWorldRotation = NewWorldRotation * ComponentToWorld.GetRotation().Inverse();
+	const FQuat NewWorldRotation = GetComponentTransform().GetRotation() * InTransform.GetRotation();
+	const FQuat DeltaWorldRotation = NewWorldRotation * GetComponentTransform().GetRotation().Inverse();
 	
 	const FTransform DeltaWorldTransform(DeltaWorldRotation, DeltaWorldTranslation);
 
@@ -2627,7 +2624,7 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBB
 		{
 			for (const auto& Vertex : Section.SoftVertices)
 			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
+				const FVector Location = GetComponentTransform().TransformPosition(Vertex.Position);
 				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
 
 				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
@@ -2671,7 +2668,7 @@ bool USkeletalMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVo
 		{
 			for (const auto& Vertex : Section.SoftVertices)
 			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
+				const FVector Location = GetComponentTransform().TransformPosition(Vertex.Position);
 				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
 
 				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
@@ -2960,7 +2957,7 @@ void USkeletalMeshComponent::UnbindClothFromMasterPoseComponent(bool bRestoreSim
 bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	UPhysicsAsset* PhysicsAsset = GetPhysicsAsset();
-	if (PhysicsAsset && ComponentToWorld.GetScale3D().IsUniform())
+	if (PhysicsAsset && GetComponentTransform().GetScale3D().IsUniform())
 	{
 		const int32 MaxBodies = PhysicsAsset->SkeletalBodySetups.Num();
 		for (int32 Idx = 0; Idx < MaxBodies; Idx++)
@@ -2970,7 +2967,7 @@ bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 
 			if (BoneIndex != INDEX_NONE)
 			{
-				FTransform WorldBoneTransform = GetBoneTransform(BoneIndex, ComponentToWorld);
+				FTransform WorldBoneTransform = GetBoneTransform(BoneIndex, GetComponentTransform());
 				if (FMath::Abs(WorldBoneTransform.GetDeterminant()) > (float)KINDA_SMALL_NUMBER)
 				{
 					GeomExport.ExportRigidBodySetup(*BS, WorldBoneTransform);

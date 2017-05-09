@@ -8,7 +8,7 @@
 
 class UAnimSingleNodeInstance;
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSingleAnimationPlayData
 {
 	GENERATED_USTRUCT_BODY()

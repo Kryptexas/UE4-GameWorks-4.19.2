@@ -427,7 +427,7 @@ struct FClothingAssetData_Legacy
 };
 
 //~ Begin Material Interface for USkeletalMesh - contains a material and a shadow casting flag
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FSkeletalMaterial
 {
 	GENERATED_USTRUCT_BODY()

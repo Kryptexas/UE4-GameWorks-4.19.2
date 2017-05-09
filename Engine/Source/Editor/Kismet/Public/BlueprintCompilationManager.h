@@ -4,7 +4,30 @@
 
 #include "CoreMinimal.h" // for DLLEXPORT (KISMET_API)
 
+#include "Kismet2/KismetEditorUtilities.h"
+
 class UBlueprint;
+class FCompilerResultsLog;
+
+struct FBPCompileRequest
+{
+	explicit FBPCompileRequest(UBlueprint* InBPToCompile, EBlueprintCompileOptions InCompileOptions, FCompilerResultsLog* InClientResultsLog )
+		: BPToCompile(InBPToCompile)
+		, CompileOptions(InCompileOptions)
+		, ClientResultsLog(InClientResultsLog)
+	{
+	}
+
+	// BP that needs to be compiled:
+	UBlueprint* BPToCompile;
+
+	// Legacy options for blueprint compilation:
+	EBlueprintCompileOptions CompileOptions;
+	
+	// Clients can give us a results log if they want to parse or display it themselves, otherwise
+	// we will use a transient one:
+	FCompilerResultsLog* ClientResultsLog;
+};
 
 struct KISMET_API FBlueprintCompilationManager
 {
@@ -21,9 +44,11 @@ struct KISMET_API FBlueprintCompilationManager
 	static void FlushCompilationQueue(TArray<UObject*>* ObjLoaded = nullptr);
 
 	/**
-	 * Adds the blueprint to the compilation queue
+	 * Immediately compiles the blueprint, no expectation that related blueprints be subsequently compiled.
+	 * It will be significantly more efficient to queue blueprints and then flush the compilation queue
+	 * if there are several blueprints that require compilation (e.g. typical case on PIE):
 	 */
-	static void QueueForCompilation(UBlueprint* BPToCompile);
+	static void CompileSynchronously(const FBPCompileRequest& Request);
 	
 	/**
 	 * Adds a newly loaded blueprint to the compilation queue

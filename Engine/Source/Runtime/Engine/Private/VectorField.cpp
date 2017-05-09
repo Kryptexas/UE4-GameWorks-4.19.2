@@ -520,7 +520,7 @@ void UVectorFieldComponent::OnRegister()
 		{
 			FVectorFieldInstance* Instance = new FVectorFieldInstance();
 			VectorField->InitInstance(Instance, /*bPreviewInstance=*/ true);
-			Instance->UpdateTransforms(ComponentToWorld.ToMatrixWithScale());
+			Instance->UpdateTransforms(GetComponentTransform().ToMatrixWithScale());
 			VectorFieldInstance = Instance;
 		}
 		else

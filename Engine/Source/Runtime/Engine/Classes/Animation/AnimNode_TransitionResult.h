@@ -9,7 +9,7 @@
 #include "AnimNode_TransitionResult.generated.h"
 
 // Root node of a state machine transition graph
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_TransitionResult : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

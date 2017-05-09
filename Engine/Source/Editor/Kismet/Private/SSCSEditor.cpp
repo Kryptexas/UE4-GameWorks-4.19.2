@@ -32,7 +32,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "ComponentAssetBroker.h"
 #include "ClassViewerFilter.h"
-
+#include "SSearchBox.h"
 #include "PropertyPath.h"
 
 #include "AssetSelection.h"
@@ -190,23 +190,26 @@ FReply SSCSEditor::TryHandleAssetDragDropOperation(const FDragDropEvent& DragDro
 					}
 				}
 
+				// Only set focus to the last item created
+				const bool bSetFocusToNewItem = (DroppedAssetIdx == NumAssets - 1);
+
 				TSubclassOf<UActorComponent> MatchingComponentClassForAsset = FComponentAssetBrokerage::GetPrimaryComponentForAsset(AssetClass);
 				if (MatchingComponentClassForAsset != nullptr)
 				{
-					AddNewComponent(MatchingComponentClassForAsset, Asset, true );
+					AddNewComponent(MatchingComponentClassForAsset, Asset, true, bSetFocusToNewItem );
 					bMarkBlueprintAsModified = true;
 				}
 				else if ((PotentialComponentClass != nullptr) && !PotentialComponentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NewerVersionExists))
 				{
 					if (PotentialComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
 					{
-						AddNewComponent(PotentialComponentClass, nullptr, true );
+						AddNewComponent(PotentialComponentClass, nullptr, true, bSetFocusToNewItem );
 						bMarkBlueprintAsModified = true;
 					}
 				}
 				else if ((PotentialActorClass != nullptr) && !PotentialActorClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NewerVersionExists))
 				{
-					AddNewComponent(UChildActorComponent::StaticClass(), PotentialActorClass, true );
+					AddNewComponent(UChildActorComponent::StaticClass(), PotentialActorClass, true, bSetFocusToNewItem );
 					bMarkBlueprintAsModified = true;
 				}
 			}
@@ -376,6 +379,7 @@ FSCSEditorTreeNode::FSCSEditorTreeNode(FSCSEditorTreeNode::ENodeType InNodeType)
 	: ComponentTemplatePtr(nullptr)
 	, NodeType(InNodeType)
 	, bNonTransactionalRename(false)
+	, FilterFlags((uint8)EFilteredState::Unknown)
 {
 }
 
@@ -476,6 +480,105 @@ bool FSCSEditorTreeNode::IsAttachedTo(FSCSEditorTreeNodePtrType InNodePtr) const
 	return false; 
 }
 
+void FSCSEditorTreeNode::UpdateCachedFilterState(bool bMatchesFilter, bool bUpdateParent)
+{
+	bool bFlagsChanged = false;
+	if ((FilterFlags & EFilteredState::Unknown) == EFilteredState::Unknown)
+	{
+		FilterFlags   = 0x00;
+		bFlagsChanged = true;
+	}
+
+	if (bMatchesFilter)
+	{
+		bFlagsChanged |= (FilterFlags & EFilteredState::MatchesFilter) == 0;
+		FilterFlags |= EFilteredState::MatchesFilter;
+	}
+	else
+	{
+		bFlagsChanged |= (FilterFlags & EFilteredState::MatchesFilter) != 0;
+		FilterFlags &= ~EFilteredState::MatchesFilter;
+	}
+
+	const bool bHadChildMatch = (FilterFlags & EFilteredState::ChildMatches) != 0;
+	// refresh the cached child state (don't update the parent, we'll do that below if it's needed)
+	RefreshCachedChildFilterState(/*bUpdateParent =*/false);
+
+	bFlagsChanged |= bHadChildMatch != ((FilterFlags & EFilteredState::ChildMatches) != 0);
+	if (bUpdateParent && bFlagsChanged)
+	{
+		ApplyFilteredStateToParent();
+	}
+}
+
+void FSCSEditorTreeNode::RefreshCachedChildFilterState(bool bUpdateParent)
+{
+	const bool bCointainedMatch = !IsFlaggedForFiltration();
+
+	FilterFlags &= ~EFilteredState::ChildMatches;
+	for (FSCSEditorTreeNodePtrType Child : Children)
+	{
+		if (!Child->IsFlaggedForFiltration())
+		{
+			FilterFlags |= EFilteredState::ChildMatches;
+			break;
+		}
+	}
+	const bool bCointainsMatch = !IsFlaggedForFiltration();
+
+	const bool bStateChange = bCointainedMatch != bCointainsMatch;
+	if (bUpdateParent && bStateChange)
+	{
+		ApplyFilteredStateToParent();
+	}
+}
+
+void FSCSEditorTreeNode::ApplyFilteredStateToParent()
+{
+	FSCSEditorTreeNode* Child = this;
+	while (Child->ParentNodePtr.IsValid())
+	{
+		FSCSEditorTreeNode* Parent = Child->ParentNodePtr.Get();
+
+		if ( !IsFlaggedForFiltration() )
+		{
+			if ((Parent->FilterFlags & EFilteredState::ChildMatches) == 0)
+			{
+				Parent->FilterFlags |= EFilteredState::ChildMatches;
+			}
+			else
+			{
+				// all parents from here on up should have the flag
+				break;
+			}
+		}
+		// have to see if this was the only child contributing to this flag
+		else if (Parent->FilterFlags & EFilteredState::ChildMatches)
+		{
+			Parent->FilterFlags &= ~EFilteredState::ChildMatches;
+			for (const FSCSEditorTreeNodePtrType& Sibling : Parent->Children)
+			{
+				if (Sibling.Get() == Child)
+				{
+					continue;
+				}
+
+				if (Sibling->FilterFlags & EFilteredState::FilteredInMask)
+				{
+					Parent->FilterFlags |= EFilteredState::ChildMatches;
+					break;
+				}
+			}
+
+			if (Parent->FilterFlags & EFilteredState::ChildMatches)
+			{
+				// another child added the flag back
+				break;
+			}
+		}
+		Child = Parent;
+	}
+}
 
 FSCSEditorTreeNodePtrType FSCSEditorTreeNode::FindClosestParent(TArray<FSCSEditorTreeNodePtrType> InNodes)
 {
@@ -515,6 +618,16 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 	// Add the given node as a child and link its parent
 	Children.AddUnique(InChildNodePtr);
 	InChildNodePtr->ParentNodePtr = AsShared();
+
+	if (InChildNodePtr->FilterFlags != EFilteredState::Unknown && !InChildNodePtr->IsFlaggedForFiltration())
+	{
+		FSCSEditorTreeNodePtrType AncestorPtr = InChildNodePtr->ParentNodePtr;
+		while (AncestorPtr.IsValid() && (AncestorPtr->FilterFlags & EFilteredState::ChildMatches) == 0)
+		{
+			AncestorPtr->FilterFlags |= EFilteredState::ChildMatches;
+			AncestorPtr = AncestorPtr->GetParent();
+		}
+	}
 
 	// Add a child node to the SCS tree node if not already present
 	USCS_Node* SCS_ChildNode = InChildNodePtr->GetSCSNode();
@@ -769,6 +882,11 @@ void FSCSEditorTreeNode::RemoveChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 	Children.Remove(InChildNodePtr);
 	InChildNodePtr->ParentNodePtr.Reset();
 	InChildNodePtr->RemoveMeAsChild();
+
+	if (InChildNodePtr->IsFlaggedForFiltration())
+	{
+		RefreshCachedChildFilterState(/*bUpdateParent =*/true);
+	}
 }
 
 void FSCSEditorTreeNode::OnRequestRename(bool bTransactional)
@@ -1299,8 +1417,8 @@ void SSCS_RowWidget::Construct( const FArguments& InArgs, TSharedPtr<SSCSEditor>
 	
 	auto Args = FSuperRowType::FArguments()
 		.Style(bIsSeparator ?
-				&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.NoHoverTableRow") :
-				&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("SceneOutliner.TableViewRow")) //@todo create editor style for the SCS tree
+			&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.NoHoverTableRow") :
+			&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("SceneOutliner.TableViewRow")) //@todo create editor style for the SCS tree
 		.Padding(FMargin(0.f, 0.f, 0.f, 4.f))
 		.ShowSelection(!bIsSeparator)
 		.OnDragDetected(this, &SSCS_RowWidget::HandleOnDragDetected)
@@ -2355,7 +2473,7 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 				check(ComponentTemplate);
 
 				// Note: This will mark the Blueprint as structurally modified
-				UActorComponent* ClonedComponent = SCSEditorPtr->AddNewComponent(ComponentTemplate->GetClass(), NULL);
+				UActorComponent* ClonedComponent = SCSEditorPtr->AddNewComponent(ComponentTemplate->GetClass(), nullptr);
 				check(ClonedComponent);
 
 				//Serialize object properties using write/read operations.
@@ -2650,7 +2768,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	{
 		// Get the current Blueprint context
 		UBlueprint* Blueprint = GetBlueprint();
-		check(Blueprint != NULL && Blueprint->SimpleConstructionScript != nullptr);
+		check(Blueprint && Blueprint->SimpleConstructionScript);
 
 		// Clone the component if it's being dropped into a different SCS
 		if(DroppedNodePtr->GetBlueprint() != Blueprint)
@@ -2659,7 +2777,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 			check(ComponentTemplate);
 
 			// Note: This will mark the Blueprint as structurally modified
-			UActorComponent* ClonedComponent = SCSEditorPtr->AddNewComponent(ComponentTemplate->GetClass(), NULL);
+			UActorComponent* ClonedComponent = SCSEditorPtr->AddNewComponent(ComponentTemplate->GetClass(), nullptr);
 			check(ClonedComponent);
 
 			//Serialize object properties using write/read operations.
@@ -3338,7 +3456,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	SCSTreeWidget = SNew(SSCSTreeType)
 		.ToolTipText(LOCTEXT("DropAssetToAddComponent", "Drop asset here to add a component."))
 		.SCSEditor(this)
-		.TreeItemsSource(&RootNodes)
+		.TreeItemsSource(&FilteredRootNodes)
 		.SelectionMode(ESelectionMode::Multi)
 		.OnGenerateRow(this, &SSCSEditor::MakeTableRowWidget)
 		.OnGetChildren(this, &SSCSEditor::OnGetChildrenForTree)
@@ -3439,6 +3557,15 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 					.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
 					.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Adds a new component to this actor"))
 					.IsEnabled(AllowEditing)
+				]
+
+				+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.VAlign(VAlign_Center)
+					.Padding(3.0f, 3.0f)
+				[
+					SAssignNew(FilterBox, SSearchBox)
+						.OnTextChanged(this, &SSCSEditor::OnFilterTextChanged)
 				]
 
 				+ SHorizontalBox::Slot()
@@ -3884,8 +4011,7 @@ void SSCSEditor::OnDuplicateComponent()
 
 		for (int32 i = 0; i < SelectedNodes.Num(); ++i)
 		{
-			UActorComponent* ComponentTemplate = SelectedNodes[i]->GetComponentTemplate();
-			if(ComponentTemplate != NULL)
+			if (UActorComponent* ComponentTemplate = SelectedNodes[i]->GetComponentTemplate())
 			{
 				UActorComponent* CloneComponent = AddNewComponent(ComponentTemplate->GetClass(), ComponentTemplate);
 				UActorComponent* OriginalComponent = ComponentTemplate;
@@ -3935,9 +4061,25 @@ void SSCSEditor::OnDuplicateComponent()
 
 void SSCSEditor::OnGetChildrenForTree( FSCSEditorTreeNodePtrType InNodePtr, TArray<FSCSEditorTreeNodePtrType>& OutChildren )
 {
-	if(InNodePtr.IsValid())
+	if (InNodePtr.IsValid())
 	{
-		OutChildren = InNodePtr->GetChildren();
+		const TArray<FSCSEditorTreeNodePtrType>& Children = InNodePtr->GetChildren();
+		OutChildren.Reserve(Children.Num());
+
+		if (!GetFilterText().IsEmpty())
+		{
+			for (FSCSEditorTreeNodePtrType Child : Children)
+			{
+				if (!Child->IsFlaggedForFiltration())
+				{
+					OutChildren.Add(Child);
+				}
+			}
+		}
+		else
+		{
+			OutChildren = Children;
+		}
 	}
 	else
 	{
@@ -4274,7 +4416,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				}
 				
 				for (UActorComponent* Component : Components)
-				{				
+				{
 					if (USceneComponent* SceneComp = Cast<USceneComponent>(Component))
 					{
 						// Add the rest of the native base class SceneComponent hierarchy
@@ -4445,6 +4587,8 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				SCSTreeWidget->RequestScrollIntoView(NodeToRenamePtr);
 			}
 		}
+
+		RebuildFilteredRootList();
 	}
 
 	// refresh widget
@@ -4625,11 +4769,18 @@ TSharedPtr<FSCSEditorTreeNode> SSCSEditor::AddRootComponentTreeNode(UActorCompon
 	if (RootTreeNode.IsValid())
 	{
 		NewTreeNode = RootTreeNode->AddChildFromComponent(ActorComp);
+		RefreshFilteredState(NewTreeNode, /*bRecursive =*/false);
 	}
 	else
 	{
 		NewTreeNode = FSCSEditorTreeNode::FactoryNodeFromComponent(ActorComp);
 		RootNodes.Add(NewTreeNode);
+
+		bool bIsFilteredOut = RefreshFilteredState(NewTreeNode, /*bRecursive =*/false);
+		if (!bIsFilteredOut)
+		{
+			FilteredRootNodes.Add(NewTreeNode);
+		}
 	}
 
 	RootComponentNodes.Add(NewTreeNode);
@@ -4735,6 +4886,36 @@ UClass* SSCSEditor::CreateNewBPComponent(TSubclassOf<UActorComponent> ComponentC
 	return NewClass;
 }
 
+void SSCSEditor::RebuildFilteredRootList()
+{
+ 	FilteredRootNodes.Empty(RootNodes.Num());
+
+	FSCSEditorTreeNodePtrType PendingSeparator;
+	for (const FSCSEditorTreeNodePtrType& Node : RootNodes)
+	{
+		switch (Node->GetNodeType())
+		{
+		case FSCSEditorTreeNode::ENodeType::ComponentNode:
+			if (Node->IsFlaggedForFiltration())
+			{	
+				break;
+			}
+		case FSCSEditorTreeNode::ENodeType::RootActorNode:
+			if (PendingSeparator.IsValid())
+			{
+				FilteredRootNodes.Add(PendingSeparator);
+				PendingSeparator.Reset();
+			}
+			FilteredRootNodes.Add(Node);
+			break;
+
+		case FSCSEditorTreeNode::ENodeType::SeparatorNode:
+			PendingSeparator = Node;
+			break;
+		}
+	}
+}
+
 void SSCSEditor::ClearSelection()
 {
 	if ( bUpdatingSelection == false )
@@ -4776,7 +4957,7 @@ bool SSCSEditor::IsEditingAllowed() const
 	return AllowEditing.Get() && nullptr == GEditor->PlayWorld;
 }
 
-UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset, const bool bSkipMarkBlueprintModified )
+UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset, const bool bSkipMarkBlueprintModified, const bool bSetFocusToNewItem )
 {
 	if (NewComponentClass->ClassWithin && NewComponentClass->ClassWithin != UObject::StaticClass())
 	{
@@ -4816,7 +4997,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		}
 		
 		const FName NewVariableName = (Asset ? FName(*FComponentEditorUtils::GenerateValidVariableNameFromAsset(Asset, nullptr)) : NAME_None);
-		NewComponent = AddNewNode(Blueprint->SimpleConstructionScript->CreateNode(NewComponentClass, NewVariableName), Asset, bMarkBlueprintModified);
+		NewComponent = AddNewNode(Blueprint->SimpleConstructionScript->CreateNode(NewComponentClass, NewVariableName), Asset, bMarkBlueprintModified, bSetFocusToNewItem);
 
 		if (ComponentTemplate)
 		{
@@ -4839,7 +5020,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		if (ComponentTemplate)
 		{
 			// Create a duplicate of the provided template
-			NewComponent = AddNewNodeForInstancedComponent(FComponentEditorUtils::DuplicateComponent(ComponentTemplate), nullptr);
+			NewComponent = AddNewNodeForInstancedComponent(FComponentEditorUtils::DuplicateComponent(ComponentTemplate), nullptr, bSetFocusToNewItem);
 		}
 		else if (AActor* ActorInstance = GetActorContext())
 		{
@@ -4901,7 +5082,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			// Rerun construction scripts
 			ActorInstance->RerunConstructionScripts();
 
-			NewComponent = AddNewNodeForInstancedComponent(NewInstanceComponent, Asset);
+			NewComponent = AddNewNodeForInstancedComponent(NewInstanceComponent, Asset, bSetFocusToNewItem);
 		}
 	}
 
@@ -5478,6 +5659,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 		{
 			// do this first, because we need a FSCSEditorTreeNodePtrType for the new node
 			NewNodePtr = ParentPtr->AddChild(InSCSNode, bIsInheritedSCS);
+			RefreshFilteredState(NewNodePtr, /*bRecursive =*/false);
 
 			bool bParentIsEditorOnly = ParentPtr->GetComponentTemplate()->IsEditorOnly();
 			// if you can't nest this new node under the proposed parent (then swap the two)
@@ -5520,6 +5702,12 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 			{
 				NewNodePtr = MakeShareable(new FSCSEditorTreeNodeComponent(InSCSNode, bIsInheritedSCS));
 				RootNodes.Add(NewNodePtr);
+
+				bool bIsFilteredOut = RefreshFilteredState(NewNodePtr, /*bRecursive =*/false);
+				if (!bIsFilteredOut)
+				{
+					FilteredRootNodes.Add(NewNodePtr);
+				}
 			}
 			
 			NodeSCS->AddNode(InSCSNode);
@@ -5545,6 +5733,12 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 		{
 			NewNodePtr = MakeShareable(new FSCSEditorTreeNodeComponent(InSCSNode, bIsInheritedSCS));
 			RootNodes.Add(NewNodePtr);
+
+			bool bIsFilteredOut = RefreshFilteredState(NewNodePtr, /*bRecursive =*/false);
+			if (!bIsFilteredOut)
+			{
+				FilteredRootNodes.Add(NewNodePtr);
+			}
 		}
 
 		RootComponentNodes.Add(NewNodePtr);
@@ -5594,6 +5788,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNodeFromComponent(USceneComponent* 
 		// Add a new tree node for the given scene component
 		check(ParentNodePtr.IsValid());
 		NewNodePtr = ParentNodePtr->AddChildFromComponent(InSceneComponent);
+		RefreshFilteredState(NewNodePtr, /*bRecursive =*/false);
 
 		// Expand parent nodes by default
 		SCSTreeWidget->SetItemExpansion(ParentNodePtr, true);
@@ -5615,6 +5810,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNodeFromComponent(USceneComponent* 
 		else if (SceneRootNodePtr->GetComponentTemplate() != InSceneComponent)
 		{
 			NewNodePtr = SceneRootNodePtr->AddChildFromComponent(InSceneComponent);
+			RefreshFilteredState(NewNodePtr, /*bRecursive =*/false);
 		}
 	}
 
@@ -6169,6 +6365,115 @@ void SSCSEditor::SetItemExpansionRecursive(FSCSEditorTreeNodePtrType Model, bool
 			SetItemExpansionRecursive(Child, bInExpansionState);
 		}
 	}
+}
+
+FText SSCSEditor::GetFilterText() const
+{
+	return FilterBox->GetText();
+}
+
+void SSCSEditor::OnFilterTextChanged(const FText& InFilterText)
+{
+	struct OnFilterTextChanged_Inner
+	{
+		static FSCSEditorTreeNodePtrType ExpandToFilteredChildren(SSCSEditor* SCSEditor, FSCSEditorTreeNodePtrType TreeNode)
+		{
+			FSCSEditorTreeNodePtrType NodeToFocus;
+
+			const TArray<FSCSEditorTreeNodePtrType>& Children = TreeNode->GetChildren();
+			// iterate backwards so we select from the top down
+			for (int32 ChildIndex = Children.Num() - 1; ChildIndex >= 0; --ChildIndex)
+			{
+				const FSCSEditorTreeNodePtrType& Child = Children[ChildIndex];
+				if (!Child->IsFlaggedForFiltration())
+				{
+					SCSEditor->SetNodeExpansionState(TreeNode, /*bIsExpanded =*/true);
+					NodeToFocus = ExpandToFilteredChildren(SCSEditor, Child);
+				}
+			}
+
+			if (!NodeToFocus.IsValid() && !TreeNode->IsFlaggedForFiltration())
+			{
+				NodeToFocus = TreeNode;
+			}
+			return NodeToFocus;
+		}
+	};
+
+	FSCSEditorTreeNodePtrType NewSelection;
+	const bool bIsFilterBlank = GetFilterText().IsEmpty();
+
+	bool bRootItemFilteredBackIn = false;
+	// iterate backwards so we select from the top down
+	for (int32 ComponentIndex = RootComponentNodes.Num() - 1; ComponentIndex >= 0; --ComponentIndex)
+	{
+		FSCSEditorTreeNodePtrType Component = RootComponentNodes[ComponentIndex];
+
+		const bool bWasFilteredOut = Component->IsFlaggedForFiltration();
+		bool bFilteredOut = RefreshFilteredState(Component, /*bRecursive =*/true);
+
+		if (!bFilteredOut)
+		{
+			if (!bIsFilterBlank)
+			{
+				NewSelection = OnFilterTextChanged_Inner::ExpandToFilteredChildren(this, Component);
+			}
+			bRootItemFilteredBackIn |= bWasFilteredOut;
+		}
+		else
+		{
+			FilteredRootNodes.Remove(Component);
+		}
+	}
+
+	if (NewSelection.IsValid() && !SCSTreeWidget->IsItemSelected(NewSelection))
+	{
+		SelectNode(NewSelection, /*IsCntrlDown =*/false);
+	}
+	
+	if (bRootItemFilteredBackIn)
+	{
+		RebuildFilteredRootList();
+	}
+	UpdateTree(/*bRegenerateTreeNodes =*/false);
+}
+
+bool SSCSEditor::RefreshFilteredState(FSCSEditorTreeNodePtrType TreeNode, bool bRecursive)
+{
+	FString FilterText = FText::TrimPrecedingAndTrailing( GetFilterText() ).ToString();
+	TArray<FString> FilterTerms;
+	FilterText.ParseIntoArray(FilterTerms, TEXT(" "), /*CullEmpty =*/true);
+
+	struct RefreshFilteredState_Inner
+	{
+		static void RefreshFilteredState(FSCSEditorTreeNodePtrType TreeNodeIn, const TArray<FString>& FilterTermsIn, bool bRecursiveIn)
+		{
+			if (bRecursiveIn)
+			{
+				for (FSCSEditorTreeNodePtrType Child : TreeNodeIn->GetChildren())
+				{
+					RefreshFilteredState(Child, FilterTermsIn, bRecursiveIn);
+				}
+			}
+			
+			FString DisplayStr = TreeNodeIn->GetDisplayString();
+
+			bool bIsFilteredOut = false;
+			for (const FString& FilterTerm : FilterTermsIn)
+			{
+				if (!DisplayStr.Contains(FilterTerm))
+				{
+					bIsFilteredOut = true;
+				}
+			}
+			// if we're not recursing, then assume this is for a new node and we need to update the parent
+			// otherwise, assume the parent was hit as part of the recursion
+			TreeNodeIn->UpdateCachedFilterState(!bIsFilteredOut, /*bUpdateParent =*/!bRecursiveIn);
+		}
+	};
+
+	RefreshFilteredState_Inner::RefreshFilteredState(TreeNode, FilterTerms, bRecursive);
+	return TreeNode->IsFlaggedForFiltration();
 }
 
 #undef LOCTEXT_NAMESPACE

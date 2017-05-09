@@ -237,6 +237,7 @@ bool FAssetRegistryGenerator::GenerateStreamingInstallManifest()
 			{
 				FString Filename = ChunkFilenames[FilenameIndex];
 				FString PakListLine = FPaths::ConvertRelativePathToFull(Filename.Replace(TEXT("[Platform]"), *Platform));
+				if (MaxChunkSize > 0)
 				{
 					TArray<FString> FoundFiles;
 					FString FileSearchString = FString::Printf(TEXT("%s.*"), *PakListLine);
@@ -247,14 +248,14 @@ bool FAssetRegistryGenerator::GenerateStreamingInstallManifest()
 						int64 FileSize = IFileManager::Get().FileSize(*(FPaths::Combine(Path,FoundFile)));
 						CurrentPakSize +=  FileSize > 0 ? FileSize : 0;
 					}
+					if (MaxChunkSize < CurrentPakSize)
+					{
+						// early out if we are over memory limit
+						bFinishedAllFiles = false;
+						break;
+					}
 				}
-				if ((MaxChunkSize > 0) && (MaxChunkSize < CurrentPakSize))
-				{
-					// early out if we are over memory limit
-					bFinishedAllFiles = false;
-					break;
-				}
-
+				
 				PakListLine.ReplaceInline(TEXT("/"), TEXT("\\"));
 				PakListLine += TEXT("\r\n");
 				PakListFile->Serialize(TCHAR_TO_ANSI(*PakListLine), PakListLine.Len());
@@ -519,7 +520,7 @@ void FAssetRegistryGenerator::UpdatePackageSourceHashes()
 	}
 }
 
-void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages)
+void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPackages, TSet<FName>& NewPackages, TSet<FName>& RemovedPackages, TSet<FName>& IdenticalCookedPackages, TSet<FName>& IdenticalUncookedPackages, bool bRecurseModifications)
 {
 	for (const TPair<FName, const FAssetPackageData*>& PackagePair : State.GetAssetPackageDataMap())
 	{
@@ -562,27 +563,29 @@ void FAssetRegistryGenerator::ComputePackageDifferences(TSet<FName>& ModifiedPac
 		}
 	}
 
-	// Recurse modified packages to their dependencies. In theory a small number of packages are modified at once so this is faster than computing the hashes recursively
-	TArray<FName> ModifiedPackagesToRecurse = ModifiedPackages.Array();
-
-	for (int32 RecurseIndex = 0; RecurseIndex < ModifiedPackagesToRecurse.Num(); RecurseIndex++)
+	if (bRecurseModifications)
 	{
-		FName ModifiedPackage = ModifiedPackagesToRecurse[RecurseIndex];
-		TArray<FAssetIdentifier> Referencers;
-		State.GetReferencers(ModifiedPackage, Referencers, EAssetRegistryDependencyType::Hard);
+		// Recurse modified packages to their dependencies. In theory a small number of packages are modified at once so this is faster than computing the hashes recursively
+		TArray<FName> ModifiedPackagesToRecurse = ModifiedPackages.Array();
 
-		for (const FAssetIdentifier& Referencer : Referencers)
+		for (int32 RecurseIndex = 0; RecurseIndex < ModifiedPackagesToRecurse.Num(); RecurseIndex++)
 		{
-			FName ReferencerPackage = Referencer.PackageName;
-			if (!ModifiedPackages.Contains(ReferencerPackage))
-			{
-				// Remove from identical/new list
-				IdenticalCookedPackages.Remove(ReferencerPackage);
-				IdenticalUncookedPackages.Remove(ReferencerPackage);
-				NewPackages.Remove(ReferencerPackage);
+			FName ModifiedPackage = ModifiedPackagesToRecurse[RecurseIndex];
+			TArray<FAssetIdentifier> Referencers;
+			State.GetReferencers(ModifiedPackage, Referencers, EAssetRegistryDependencyType::Hard);
 
-				ModifiedPackages.Add(ReferencerPackage);
-				ModifiedPackagesToRecurse.Add(ReferencerPackage);
+			for (const FAssetIdentifier& Referencer : Referencers)
+			{
+				FName ReferencerPackage = Referencer.PackageName;
+				if (!ModifiedPackages.Contains(ReferencerPackage) && (IdenticalCookedPackages.Contains(ReferencerPackage) || IdenticalUncookedPackages.Contains(ReferencerPackage)))
+				{
+					// Remove from identical list
+					IdenticalCookedPackages.Remove(ReferencerPackage);
+					IdenticalUncookedPackages.Remove(ReferencerPackage);
+
+					ModifiedPackages.Add(ReferencerPackage);
+					ModifiedPackagesToRecurse.Add(ReferencerPackage);
+				}
 			}
 		}
 	}
@@ -769,6 +772,15 @@ bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath)
 	AssetRegistry.InitializeSerializationOptions(DevelopmentSaveOptions, TargetPlatform->IniPlatformName());
 	DevelopmentSaveOptions.ModifyForDevelopment();
 
+	// Write runtime registry, this can be excluded per game/platform
+	FAssetRegistrySerializationOptions SaveOptions;
+	AssetRegistry.InitializeSerializationOptions(SaveOptions, TargetPlatform->IniPlatformName());
+
+	// Flush the asset registry and make sure the asset data is in sync, as it may have been updated during cook
+	AssetRegistry.Tick(-1.0f);
+
+	AssetRegistry.InitializeTemporaryAssetRegistryState(State, SaveOptions, true);
+
 	if (DevelopmentSaveOptions.bSerializeAssetRegistry)
 	{
 		// Create development registry data, used for incremental cook and editor viewing
@@ -782,14 +794,10 @@ bool FAssetRegistryGenerator::SaveAssetRegistry(const FString& SandboxPath)
 		FFileHelper::SaveArrayToFile(SerializedAssetRegistry, *PlatformSandboxPath);
 	}
 
-	// Write runtime registry, this can be excluded per game/platform
-	FAssetRegistrySerializationOptions SaveOptions;
-	AssetRegistry.InitializeSerializationOptions(SaveOptions, TargetPlatform->IniPlatformName());
-
 	if (SaveOptions.bSerializeAssetRegistry)
 	{
 		// Prune out the development only packages
-		State.PruneAssetData(CookedPackages, TSet<FName>());
+		State.PruneAssetData(CookedPackages, TSet<FName>(), SaveOptions.bFilterAssetDataWithNoTags);
 
 		// Create runtime registry data
 		FArrayWriter SerializedAssetRegistry;

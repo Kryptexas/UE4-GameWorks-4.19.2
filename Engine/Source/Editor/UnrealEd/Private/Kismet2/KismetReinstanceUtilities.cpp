@@ -107,7 +107,7 @@ struct FReplaceReferenceHelper
 					class ReferenceReplace : public FArchiveReplaceObjectRef < UObject >
 					{
 					public:
-						ReferenceReplace(UObject* InSearchObject, const TMap<UObject*, UObject*>& InReplacementMap, TMap<FStringAssetReference, UObject*> InWeakReferencesMap)
+						ReferenceReplace(UObject* InSearchObject, const TMap<UObject*, UObject*>& InReplacementMap, const TMap<FStringAssetReference, UObject*>& InWeakReferencesMap)
 							: FArchiveReplaceObjectRef<UObject>(InSearchObject, InReplacementMap, false, false, false, true), WeakReferencesMap(InWeakReferencesMap)
 						{
 							SerializeSearchObject();
@@ -247,51 +247,8 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Remember the initial CDO for the class being resinstanced
 		OriginalCDO = ClassToReinstance->GetDefaultObject();
 
-		// Duplicate the class we're reinstancing into the transient package.  We'll re-class all objects we find to point to this new class
-		GIsDuplicatingClassForReinstancing = true;
-		ClassToReinstance->ClassFlags |= CLASS_NewerVersionExists;
+		DuplicatedClass = MoveCDOToNewClass(ClassToReinstance, TMap<UClass*, UClass*>(), bAvoidCDODuplication);
 
-		if(bAvoidCDODuplication)
-		{
-			// clear the CDO so that we don't duplicate it, it's stored in OriginalCDO now
-			ClassToReinstance->ClassDefaultObject = nullptr;
-		}
-
-		const FName ReinstanceName = MakeUniqueObjectName(GetTransientPackage(), ClassToReinstance->GetClass(), *(FString(TEXT("REINST_")) + *ClassToReinstance->GetName()));
-		DuplicatedClass = (UClass*)StaticDuplicateObject(ClassToReinstance, GetTransientPackage(), ReinstanceName, ~RF_Transactional); 
-		// If you compile a blueprint that is part of the rootset, there's no reason for the REINST version to be part of the rootset:
-		DuplicatedClass->RemoveFromRoot();
-
-		ClassToReinstance->ClassFlags &= ~CLASS_NewerVersionExists;
-		GIsDuplicatingClassForReinstancing = false;
-
-		UBlueprintGeneratedClass* BPClassToReinstance = Cast<UBlueprintGeneratedClass>(ClassToReinstance);
-		UBlueprintGeneratedClass* BPGDuplicatedClass = Cast<UBlueprintGeneratedClass>(DuplicatedClass);
-		if (BPGDuplicatedClass && BPClassToReinstance && BPClassToReinstance->OverridenArchetypeForCDO)
-		{
-			BPGDuplicatedClass->OverridenArchetypeForCDO = BPClassToReinstance->OverridenArchetypeForCDO;
-		}
-
-		UFunction* DuplicatedClassUberGraphFunction = BPGDuplicatedClass ? BPGDuplicatedClass->UberGraphFunction : nullptr;
-		if (DuplicatedClassUberGraphFunction)
-		{
-			DuplicatedClassUberGraphFunction->Bind();
-			DuplicatedClassUberGraphFunction->StaticLink(true);
-		}
-
-		// Bind and link the duplicate class, so that it has the proper duplicate property offsets
-		DuplicatedClass->Bind();
-		DuplicatedClass->StaticLink(true);
-		
-		if(bAvoidCDODuplication)
-		{
-			// give the OriginalCDO to the DuplicatedClass:
-			OriginalCDO->Rename(*OriginalCDO->GetName(), DuplicatedClass, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
-			DuplicatedClass->ClassDefaultObject = OriginalCDO;
-		}
-
-		DuplicatedClass->ClassDefaultObject->SetClass(DuplicatedClass);
-	
 		if(!bAvoidCDODuplication)
 		{
 			ensure( ClassToReinstance->ClassDefaultObject->GetClass() == DuplicatedClass );
@@ -533,7 +490,7 @@ public:
 					Actor->ReregisterAllComponents();
 					Actor->RerunConstructionScripts();
 
-					if (SelectedObjecs.Contains(Obj))
+					if (SelectedObjecs.Contains(Obj) && GEditor)
 					{
 						GEditor->SelectActor(Actor, /*bInSelected =*/true, /*bNotify =*/true, false, true);
 					}
@@ -1170,7 +1127,7 @@ struct FActorReplacementHelper
 			}
 
 			// Save off transform
-			TargetWorldTransform = OldRootComponent->ComponentToWorld;
+			TargetWorldTransform = OldRootComponent->GetComponentTransform();
 			TargetWorldTransform.SetTranslation(OldRootComponent->GetComponentLocation()); // take into account any custom location
 		}
 
@@ -1259,7 +1216,7 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 		NewActor->MarkComponentsRenderStateDirty();
 	}
 
-	if (bSelectNewActor)
+	if (bSelectNewActor && GEditor)
 	{
 		GEditor->SelectActor(NewActor, /*bInSelected =*/true, /*bNotify =*/true);
 	}
@@ -1275,7 +1232,10 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 			}
 		}
 	}
-	GEditor->NotifyToolsOfObjectReplacement(ConstructedComponentReplacementMap);
+	if (GEditor)
+	{
+		GEditor->NotifyToolsOfObjectReplacement(ConstructedComponentReplacementMap);
+	}
 
 	// Make array of component subobjects that have been reinstanced as part of the new Actor.
 	TArray<UObject*> SourceObjects;
@@ -1287,7 +1247,7 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 	
 	// Destroy actor and clear references.
 	NewActor->Modify();
-	if (GEditor->Layers.IsValid())
+	if (GEditor && GEditor->Layers.IsValid())
 	{
 		GEditor->Layers->InitializeNewActorLayers(NewActor);
 	}
@@ -1516,6 +1476,58 @@ void FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(TMap<UClass*, UC
 	ReplaceInstancesOfClass_Inner(InOldToNewClassMap, nullptr, ObjectsThatShouldUseOldStuff, bClassObjectReplaced, bPreserveRootComponent);
 }
 
+UClass* FBlueprintCompileReinstancer::MoveCDOToNewClass(UClass* OwnerClass, const TMap<UClass*, UClass*>& OldToNewMap, bool bAvoidCDODuplication)
+{
+	GIsDuplicatingClassForReinstancing = true;
+	OwnerClass->ClassFlags |= CLASS_NewerVersionExists;
+
+	UObject* OldCDO = OwnerClass->ClassDefaultObject;
+	if(bAvoidCDODuplication)
+	{
+		// prevent duplication of CDO by hiding it from StaticDuplicateObject
+		OwnerClass->ClassDefaultObject = nullptr;
+	}
+	const FName ReinstanceName = MakeUniqueObjectName(GetTransientPackage(), OwnerClass->GetClass(), *(FString(TEXT("REINST_")) + *OwnerClass->GetName()));
+	UClass* CopyOfOwnerClass = CastChecked<UClass>(StaticDuplicateObject(OwnerClass, GetTransientPackage(), ReinstanceName, ~RF_Transactional));
+
+	CopyOfOwnerClass->RemoveFromRoot();
+	OwnerClass->ClassFlags &= ~CLASS_NewerVersionExists;
+	GIsDuplicatingClassForReinstancing = false;
+
+	UClass * const* OverridenParent = OldToNewMap.Find(CopyOfOwnerClass->GetSuperClass());
+	if(OverridenParent && *OverridenParent)
+	{
+		CopyOfOwnerClass->SetSuperStruct(*OverridenParent);
+	}
+
+	UBlueprintGeneratedClass* BPClassToReinstance = Cast<UBlueprintGeneratedClass>(OwnerClass);
+	UBlueprintGeneratedClass* BPGDuplicatedClass = Cast<UBlueprintGeneratedClass>(CopyOfOwnerClass);
+	if (BPGDuplicatedClass && BPClassToReinstance && BPClassToReinstance->OverridenArchetypeForCDO)
+	{
+		BPGDuplicatedClass->OverridenArchetypeForCDO = BPClassToReinstance->OverridenArchetypeForCDO;
+	}
+
+	UFunction* DuplicatedClassUberGraphFunction = BPGDuplicatedClass ? BPGDuplicatedClass->UberGraphFunction : nullptr;
+	if (DuplicatedClassUberGraphFunction)
+	{
+		DuplicatedClassUberGraphFunction->Bind();
+		DuplicatedClassUberGraphFunction->StaticLink(true);
+	}
+
+	CopyOfOwnerClass->Bind();
+	CopyOfOwnerClass->StaticLink(true);
+	if(OldCDO)
+	{
+		if(bAvoidCDODuplication)
+		{
+			OldCDO->Rename(*OldCDO->GetName(), CopyOfOwnerClass, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+			CopyOfOwnerClass->ClassDefaultObject = OldCDO;
+		}
+		OldCDO->SetClass(CopyOfOwnerClass);
+	}
+	return CopyOfOwnerClass;
+}
+
 void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, UClass*>& InOldToNewClassMap, UObject* InOriginalCDO, TSet<UObject*>* ObjectsThatShouldUseOldStuff, bool bClassObjectReplaced, bool bPreserveRootComponent)
 {
 	// If there is an original CDO, we are only reinstancing a single class
@@ -1655,16 +1667,16 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						FRotator Rotation = FRotator::ZeroRotator;
 						if (USceneComponent* OldRootComponent = OldActor->GetRootComponent())
 						{
-							// We need to make sure that the ComponentToWorld transform is up to date, but we don't want to run any initialization logic
+							// We need to make sure that the GetComponentTransform() transform is up to date, but we don't want to run any initialization logic
 							// so we silence the update, cache it off, revert the change (so no events are raised), and then directly update the transform
 							// with the value calculated in ConditionalUpdateComponentToWorld:
 							FScopedMovementUpdate SilenceMovement(OldRootComponent);
 
 							OldRootComponent->ConditionalUpdateComponentToWorld();
-							FTransform OldComponentToWorld = OldRootComponent->ComponentToWorld;
+							FTransform OldComponentToWorld = OldRootComponent->GetComponentTransform();
 							SilenceMovement.RevertMove();
 
-							OldRootComponent->ComponentToWorld = OldComponentToWorld;
+							OldRootComponent->SetComponentToWorld(OldComponentToWorld);
 							Location = OldActor->GetActorLocation();
 							Rotation = OldActor->GetActorRotation();
 						}
@@ -1736,10 +1748,13 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 
 						if (OldActor->IsSelected())
 						{
-							GEditor->SelectActor(OldActor, /*bInSelected =*/false, /*bNotify =*/false);
+							if(GEditor)
+							{
+								GEditor->SelectActor(OldActor, /*bInSelected =*/false, /*bNotify =*/false);
+							}
 							bSelectionChanged = true;
 						}
-						if (GEditor->Layers.IsValid())
+						if (GEditor && GEditor->Layers.IsValid())
 						{
 							GEditor->Layers->DisassociateActorFromLayers(OldActor);
 						}

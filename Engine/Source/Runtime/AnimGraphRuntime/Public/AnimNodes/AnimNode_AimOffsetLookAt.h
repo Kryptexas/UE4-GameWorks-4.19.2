@@ -9,7 +9,7 @@
 #include "AnimNode_AimOffsetLookAt.generated.h"
 
 //@TODO: Comment
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_AimOffsetLookAt : public FAnimNode_BlendSpacePlayer
 {
 	GENERATED_USTRUCT_BODY()

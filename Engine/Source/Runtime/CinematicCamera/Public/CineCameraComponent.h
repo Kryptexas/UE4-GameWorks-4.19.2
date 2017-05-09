@@ -14,7 +14,7 @@ class UStaticMesh;
 class UStaticMeshComponent;
 
 /** #note, this struct has a details customization in CameraFilmbackSettingsCustomization.cpp/h */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCameraFilmbackSettings
 {
 	GENERATED_USTRUCT_BODY()
@@ -49,7 +49,7 @@ struct FNamedFilmbackPreset
 /** 
  * #note, this struct has a details customization in CameraLensSettingsCustomization.cpp/h
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCameraLensSettings
 {
 	GENERATED_USTRUCT_BODY()
@@ -108,7 +108,7 @@ enum class ECameraFocusMethod : uint8
 };
 
 /** Settings to control tracking-focus mode. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCameraTrackingFocusSettings
 {
 	GENERATED_USTRUCT_BODY()
@@ -132,7 +132,7 @@ struct FCameraTrackingFocusSettings
 };
 
 /** Settings to control camera focus */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCameraFocusSettings
 {
 	GENERATED_USTRUCT_BODY()

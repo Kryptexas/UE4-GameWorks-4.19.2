@@ -143,7 +143,7 @@ void UDestructibleComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTrans
 		return;
 	}
 
-	const FTransform& CurrentLocalToWorld = ComponentToWorld;
+	const FTransform& CurrentLocalToWorld = GetComponentTransform();
 
 #if !(UE_BUILD_SHIPPING)
 	if(CurrentLocalToWorld.ContainsNaN())
@@ -253,9 +253,9 @@ void UDestructibleComponent::OnCreatePhysicsState()
 	// Get the default actor descriptor NvParameterized data from the asset
 	NvParameterized::Interface* ActorParams = TheDestructibleMesh->GetDestructibleActorDesc(PhysMat);
 
-	// Create PhysX transforms from ComponentToWorld
-	const PxTransform GlobalPose(U2PVector(ComponentToWorld.GetTranslation()), U2PQuat(ComponentToWorld.GetRotation()));
-	const PxVec3 Scale = U2PVector(ComponentToWorld.GetScale3D());
+	// Create PhysX transforms from GetComponentTransform()
+	const PxTransform GlobalPose(U2PVector(GetComponentTransform().GetTranslation()), U2PQuat(GetComponentTransform().GetRotation()));
+	const PxVec3 Scale = U2PVector(GetComponentTransform().GetScale3D());
 
 	// Set the transform in the actor descriptor
 	verify( NvParameterized::setParamTransform(*ActorParams,"globalPose",GlobalPose) );
@@ -985,7 +985,7 @@ void UDestructibleComponent::UpdateDestructibleChunkTM(const TArray<const PxRigi
 		}
 		else
 		{
-			//if we haven't fractured it must mean that we're simulating a destructible and so we should update our ComponentToWorld based on the single rigid body
+			//if we haven't fractured it must mean that we're simulating a destructible and so we should update our GetComponentTransform() based on the single rigid body
 			DestructibleComponent->SyncComponentToRBPhysics();
 		}
 
@@ -998,7 +998,7 @@ void UDestructibleComponent::UpdateDestructibleChunkTM(const TArray<const PxRigi
 
 void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& UpdateInfos)
 {
-	const FQuat InvRotation = ComponentToWorld.GetRotation().Inverse();
+	const FQuat InvRotation = GetComponentTransform().GetRotation().Inverse();
 
 	for (const FUpdateChunksInfo& UpdateInfo : UpdateInfos)
 	{
@@ -1008,7 +1008,7 @@ void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& U
 		const FQuat WorldRotation		= UpdateInfo.WorldTM.GetRotation();
 
 		const FQuat BoneRotation = InvRotation*WorldRotation;
-		const FVector BoneTranslation = InvRotation.RotateVector(WorldTranslation - ComponentToWorld.GetTranslation()) / ComponentToWorld.GetScale3D();
+		const FVector BoneTranslation = InvRotation.RotateVector(WorldTranslation - GetComponentTransform().GetTranslation()) / GetComponentTransform().GetScale3D();
 
 		GetEditableComponentSpaceTransforms()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 	}
@@ -1035,14 +1035,14 @@ void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& Wor
 	MarkRenderDynamicDataDirty();
 
 #if 0
-	// Scale is already applied to the ComponentToWorld transform, and is carried into the bones _locally_.
+	// Scale is already applied to the GetComponentTransform() transform, and is carried into the bones _locally_.
 	// So there is no need to set scale in the bone local transforms
-	const FTransform WorldRT(WorldRotation, WorldTranslation, ComponentToWorld.GetScale3D());
-	SpaceBases(BoneIndex) = WorldRT*ComponentToWorld.Inverse();
+	const FTransform WorldRT(WorldRotation, WorldTranslation, GetComponentTransform().GetScale3D());
+	SpaceBases(BoneIndex) = WorldRT*GetComponentTransform().Inverse();
 #elif 1
 	// More optimal form of the above
-	const FQuat BoneRotation = ComponentToWorld.GetRotation().Inverse()*WorldRotation;
-	const FVector BoneTranslation = ComponentToWorld.GetRotation().Inverse().RotateVector(WorldTranslation - ComponentToWorld.GetTranslation())/ComponentToWorld.GetScale3D();
+	const FQuat BoneRotation = GetComponentTransform().GetRotation().Inverse()*WorldRotation;
+	const FVector BoneTranslation = GetComponentTransform().GetRotation().Inverse().RotateVector(WorldTranslation - GetComponentTransform().GetTranslation())/GetComponentTransform().GetScale3D();
 	GetEditableComponentSpaceTransforms()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 #endif
 }
@@ -1155,7 +1155,7 @@ bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 #if WITH_EDITORONLY_DATA
 		if (DestructibleMesh && DestructibleMesh->SourceStaticMesh)
 		{
-			GeomExport.ExportRigidBodySetup(*DestructibleMesh->SourceStaticMesh->BodySetup, ComponentToWorld);
+			GeomExport.ExportRigidBodySetup(*DestructibleMesh->SourceStaticMesh->BodySetup, GetComponentTransform());
 			bExportFromBodySetup = false;
 		}
 #endif	// WITH_EDITORONLY_DATA
@@ -1165,7 +1165,7 @@ bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 
 	apex::DestructibleActor* DestrActor = const_cast<apex::DestructibleActor*>(ApexDestructibleActor);
 
-	const FTransform ComponentToWorldNoScale(ComponentToWorld.GetRotation(), ComponentToWorld.GetTranslation(), FVector(1.f));
+	const FTransform ComponentToWorldNoScale(GetComponentTransform().GetRotation(), GetComponentTransform().GetTranslation(), FVector(1.f));
 	TArray<PxShape*> Shapes;
 	Shapes.AddUninitialized(8);
 	PxRigidDynamic** PActorBuffer = NULL;

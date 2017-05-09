@@ -231,7 +231,7 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 	FString PosString;
 	if( bShowPosition )
 	{
-		FVector Posn = SceneComp->ComponentToWorld.GetLocation();
+		FVector Posn = SceneComp->GetComponentTransform().GetLocation();
 		//PosString = FString::Printf( TEXT("{R:%f,%f,%f- W:%f,%f,%f}"), SceneComp->RelativeLocation.X, SceneComp->RelativeLocation.Y, SceneComp->RelativeLocation.Z, Posn.X, Posn.Y, Posn.Z );
 		PosString = FString::Printf( TEXT("{R:%f- W:%f}"), SceneComp->RelativeLocation.Z, Posn.Z );
 	}
@@ -252,7 +252,7 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 	{
 		if( bShowPosition )
 		{
-			FVector Posn = SceneComp->ComponentToWorld.GetLocation();
+			FVector Posn = SceneComp->GetComponentTransform().GetLocation();
 			//PosString = FString::Printf( TEXT("{R:%f,%f,%f- W:%f,%f,%f}"), SceneComp->RelativeLocation.X, SceneComp->RelativeLocation.Y, SceneComp->RelativeLocation.Z, Posn.X, Posn.Y, Posn.Z );
 			PosString = FString::Printf( TEXT("{R:%f- W:%f}"), SceneComp->RelativeLocation.Z, Posn.Z );
 		}
@@ -287,7 +287,7 @@ AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* A
 	if (bCacheRootComponentData && ActorRootComponent && ActorRootComponent->IsCreatedByConstructionScript())
 	{
 		bRootComponentDataCached = true;
-		RootComponentData.Transform = ActorRootComponent->ComponentToWorld;
+		RootComponentData.Transform = ActorRootComponent->GetComponentTransform();
 		RootComponentData.Transform.SetTranslation(ActorRootComponent->GetComponentLocation()); // take into account any custom location
 
 		if (ActorRootComponent->GetAttachParent())

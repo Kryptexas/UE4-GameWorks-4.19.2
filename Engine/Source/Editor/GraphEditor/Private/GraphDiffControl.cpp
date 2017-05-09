@@ -153,15 +153,16 @@ static void DiffR_PinTypeChanged(FDiffResults& Results, class UEdGraphPin* Pin2,
 			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinSubCategoryObjFmt", "Pin SubCategoryObject '{0}' ['{1}' -> '{2}']"), FText::FromString(Pin2->PinName), FText::FromString(Obj1), FText::FromString(Obj2));
 		}
 	}
-	else if(Type1.bIsArray != Type2.bIsArray)
+	else if(Type1.ContainerType != Type2.ContainerType)
 	{
+		// TODO: Make the messaging correct about the nature of the diff
 		Diff.Diff = EDiffType::PIN_TYPE_IS_ARRAY;
 
 		// Only bother setting up the display data if we're storing the result
 		if(Results.CanStoreResults())
 		{
-			FText IsArray1 = Pin1->PinType.bIsArray ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
-			FText IsArray2 = Pin2->PinType.bIsArray ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
+			FText IsArray1 = Pin1->PinType.IsArray() ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
+			FText IsArray2 = Pin2->PinType.IsArray() ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
 
 			Diff.ToolTip = FText::Format(LOCTEXT("DIF_PinIsArrayToolTipFmt", "PinType IsArray for '{0}' modified. Was '{1}', but is now '{2}"), FText::FromString(Pin2->PinName), IsArray1, IsArray2);
 			Diff.DisplayString = FText::Format(LOCTEXT("DIF_PinIsArrayFmt", "Pin IsArray '{0}' ['{1}' -> '{2}']"), FText::FromString(Pin2->PinName), IsArray1, IsArray2);
@@ -410,7 +411,7 @@ static bool IsPinTypeDifferent(const FEdGraphPinType& T1, const FEdGraphPinType&
 {
 	bool bIsDifferent =  (T1.PinCategory != T2.PinCategory) 
 		|| (T1.PinSubCategory != T2.PinSubCategory) 
-		|| (T1.bIsArray != T2.bIsArray) 
+		|| (T1.ContainerType != T2.ContainerType) 
 		|| (T1.bIsReference != T2.bIsReference);
 
 	const UObject* T1Obj = T1.PinSubCategoryObject.Get();

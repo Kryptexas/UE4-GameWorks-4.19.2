@@ -14,7 +14,7 @@ struct FAnimInstanceProxy;
  *	Simple controller to copy a bone's transform to another one.
  */
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_CopyPoseFromMesh : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

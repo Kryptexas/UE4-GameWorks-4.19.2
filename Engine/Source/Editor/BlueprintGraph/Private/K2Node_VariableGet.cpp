@@ -132,13 +132,13 @@ void UK2Node_VariableGet::CreateNonPurePins(TArray<UEdGraphPin*>* InOldPinsPtr)
 		if (IsValidTypeForNonPure(PinType))
 		{
 			// Input - Execution Pin
-			CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+			CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
 
 			// Output - Execution Pins
-			UEdGraphPin* ValidPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
+			UEdGraphPin* ValidPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
 			ValidPin->PinFriendlyName = LOCTEXT("Valid", "Is Valid");
 
-			UEdGraphPin* InvalidPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Else);
+			UEdGraphPin* InvalidPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Else);
 			InvalidPin->PinFriendlyName = LOCTEXT("Invalid", "Is Not Valid");
 		}
 		else
@@ -320,7 +320,7 @@ FNodeHandlingFunctor* UK2Node_VariableGet::CreateNodeHandler(FKismetCompilerCont
 
 bool UK2Node_VariableGet::IsValidTypeForNonPure(const FEdGraphPinType& InPinType)
 {
-	return InPinType.bIsArray == false && (InPinType.PinCategory == UObject::StaticClass()->GetName() ||InPinType.PinCategory == UClass::StaticClass()->GetName());
+	return !InPinType.IsContainer() && (InPinType.PinCategory == UObject::StaticClass()->GetName() ||InPinType.PinCategory == UClass::StaticClass()->GetName());
 }
 
 void UK2Node_VariableGet::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const

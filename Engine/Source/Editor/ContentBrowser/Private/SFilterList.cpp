@@ -415,7 +415,7 @@ void SFilterList::Construct( const FArguments& InArgs )
 	{
 		if (UContentBrowserFrontEndFilterExtension* PotentialExtension = *ExtensionIt)
 		{
-			if (PotentialExtension->HasAnyFlags(RF_ClassDefaultObject) && !PotentialExtension->GetClass()->HasAnyCastFlag(CLASS_Deprecated | CLASS_Abstract))
+			if (PotentialExtension->HasAnyFlags(RF_ClassDefaultObject) && !PotentialExtension->GetClass()->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract))
 			{
 				// Grab the filters
 				TArray< TSharedRef<FFrontendFilter> > ExtendedFrontendFilters;

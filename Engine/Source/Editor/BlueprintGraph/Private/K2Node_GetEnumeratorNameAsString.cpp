@@ -17,8 +17,8 @@ void UK2Node_GetEnumeratorNameAsString::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, Schema->PC_Byte, TEXT(""), NULL, false, false, EnumeratorPinName);
-	CreatePin(EGPD_Output, Schema->PC_String, TEXT(""), NULL, false, false, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, Schema->PC_Byte, FString(), nullptr, EnumeratorPinName);
+	CreatePin(EGPD_Output, Schema->PC_String, FString(), nullptr, Schema->PN_ReturnValue);
 }
 
 FText UK2Node_GetEnumeratorNameAsString::GetTooltipText() const

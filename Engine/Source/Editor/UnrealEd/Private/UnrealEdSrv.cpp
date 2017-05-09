@@ -1079,7 +1079,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 					SlowTask.EnterProgressFrame();
 
 					// Optimization - check the asset has import information before loading it
-					TOptional<FAssetImportInfo> ImportInfo = FAssetSourceFilenameCache::ExtractAssetImportInfo(Asset.TagsAndValues);
+					TOptional<FAssetImportInfo> ImportInfo = FAssetSourceFilenameCache::ExtractAssetImportInfo(Asset);
 					if (ImportInfo.IsSet() && ImportInfo->SourceFiles.Num())
 					{
 						RemoveSourcePath(ImportInfo.GetValue(), Asset, SearchTerms);

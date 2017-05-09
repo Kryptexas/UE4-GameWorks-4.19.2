@@ -1946,7 +1946,15 @@ static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGrap
 			FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
 			PinType.bIsReference = false;
 
-			PinType.bIsArray = true;
+			PinType.ContainerType = EPinContainerType::Array;
+			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+			FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+			PinType.ContainerType = EPinContainerType::Set;
+			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+			FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+			PinType.ContainerType = EPinContainerType::Map;
 			DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
 
 			bWroteToFile = true;
@@ -1988,7 +1996,15 @@ static bool DumpBlueprintInfoUtils::DumpTypeTreeActions(uint32 Indent, UEdGraph*
 		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
 		PinType.bIsReference = false;
 
-		PinType.bIsArray = true;
+		PinType.ContainerType = EPinContainerType::Array;
+		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+		PinType.ContainerType = EPinContainerType::Set;
+		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
+		FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
+
+		PinType.ContainerType = EPinContainerType::Map;
 		DumpContextualPinTypeActions(Indent, Graph, PinType, FileOutWriter);
 
 		PendingLineEnding = TEXT(",\n");
@@ -2019,7 +2035,7 @@ static bool DumpBlueprintInfoUtils::DumpTypeTreeActions(uint32 Indent, UEdGraph*
 }
 
 //------------------------------------------------------------------------------
-static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, FEdGraphPinType const& PinType, FArchive* FileOutWriter)
+static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, const FEdGraphPinType& PinType, FArchive* FileOutWriter)
 {
 	FGraphContextMenuBuilder ContextMenuBuilder(Graph);
 

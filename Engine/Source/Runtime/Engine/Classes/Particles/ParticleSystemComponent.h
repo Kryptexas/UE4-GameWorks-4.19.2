@@ -694,7 +694,7 @@ public:
 			check(bAsyncDataCopyIsValid); 
 			return AsyncComponentToWorld;
 		}
-		return ComponentToWorld;
+		return GetComponentTransform();
 	}
 
 	FORCEINLINE const TArray<struct FParticleSysParam>& GetAsyncInstanceParameters()

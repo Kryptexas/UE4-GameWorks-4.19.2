@@ -199,6 +199,11 @@ public:
 	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason, const FString& MarketplaceURL = TEXT("")) = 0;
 
 	/**
+	 * 
+	 */
+	virtual bool RemovePluginReference(const FString& PluginName, FText& OutFailReason) = 0;
+
+	/**
 	 * Updates a directory to be scanned for plugins (added or removed)
 	 *
 	 * @param Dir the directory to scan

@@ -608,7 +608,7 @@ void FClothingSimulationNv::GetSimulationData(TMap<int32, FClothSimulData>& OutD
 
 	bool bFoundSimData = false;
 
-	const FTransform& OwnerTransform = InOwnerComponent->ComponentToWorld;
+	const FTransform& OwnerTransform = InOwnerComponent->GetComponentTransform();
 	
 	for(int32 ActorIdx = 0; ActorIdx < NumActors; ++ActorIdx)
 	{

@@ -628,7 +628,7 @@ bool UBrushComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, con
 				{
 					for (const auto& Vertex : Poly.Vertices)
 					{
-						const FVector Location = ComponentToWorld.TransformPosition(Vertex);
+						const FVector Location = GetComponentTransform().TransformPosition(Vertex);
 						const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
 
 						// If the selection box doesn't have to encompass the entire component and any poly vertex intersects with the selection
@@ -649,10 +649,10 @@ bool UBrushComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, con
 					const int32 NumVerts = Poly.Vertices.Num();
 					if (NumVerts > 0)
 					{
-						FVector StartVert = ComponentToWorld.TransformPosition(Poly.Vertices[NumVerts - 1]);
+						FVector StartVert = GetComponentTransform().TransformPosition(Poly.Vertices[NumVerts - 1]);
 						for (int32 Index = 0; Index < NumVerts; ++Index)
 						{
-							const FVector EndVert = ComponentToWorld.TransformPosition(Poly.Vertices[Index]);
+							const FVector EndVert = GetComponentTransform().TransformPosition(Poly.Vertices[Index]);
 
 							if (FMath::LineBoxIntersection(InSelBBox, StartVert, EndVert, EndVert - StartVert))
 							{
@@ -675,7 +675,7 @@ bool UBrushComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, con
 				// The component must be entirely within the bounding box...
 				for (const auto& Vertex : Poly.Vertices)
 				{
-					const FVector Location = ComponentToWorld.TransformPosition(Vertex);
+					const FVector Location = GetComponentTransform().TransformPosition(Vertex);
 					const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
 
 					// If the selection box has to encompass the entire component and a poly vertex didn't intersect with the selection
@@ -711,7 +711,7 @@ bool UBrushComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& I
 		{
 			for (const auto& Vertex : Poly.Vertices)
 			{
-				const FVector Location = ComponentToWorld.TransformPosition(Vertex);
+				const FVector Location = GetComponentTransform().TransformPosition(Vertex);
 				const bool bIntersect = InFrustum.IntersectSphere(Location, 0.0f);
 
 				if (bIntersect && !bMustEncompassEntireComponent)

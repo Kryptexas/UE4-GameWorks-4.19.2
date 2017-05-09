@@ -15,6 +15,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "SMyBlueprint.h"
+#include "SGraphPin.h"
 
 class Error;
 class FBlueprintGlobalOptionsDetails;
@@ -285,7 +286,7 @@ private:
 class FBaseBlueprintGraphActionDetails : public IDetailCustomization
 {
 public:
-	virtual ~FBaseBlueprintGraphActionDetails(){};
+	virtual ~FBaseBlueprintGraphActionDetails();
 
 	FBaseBlueprintGraphActionDetails(TWeakPtr<SMyBlueprint> InMyBlueprint)
 		: MyBlueprint(InMyBlueprint)
@@ -324,14 +325,13 @@ public:
 	
 	FReply OnAddNewInputClicked();
 
+	/** Called when blueprint graph changes */
+	void OnGraphChanged(const FEdGraphEditAction& Action);
+
 protected:
 	/** Tries to create the result node (if there are output args) */
 	bool AttemptToCreateResultNode();
 
-	/** Toggles the ability to be called in editor */
-	void OnToggleEditorCallableEvent( const ECheckBoxState NewCheckedState, TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode ) const;
-
-protected:
 	/** Pointer to the parent */
 	TWeakPtr<SMyBlueprint> MyBlueprint;
 	
@@ -347,6 +347,9 @@ protected:
 
 	/** Details layout builder we need to hold on to to refresh it at times */
 	IDetailLayoutBuilder* DetailsLayoutPtr;
+
+	/** Handle for graph refresh delegate */
+	FDelegateHandle MyRegisteredGraphChangedDelegateHandle;
 	
 	/** Array of nodes were were constructed to represent */
 	TArray< TWeakObjectPtr<UObject> > ObjectsBeingEdited;
@@ -469,14 +472,14 @@ private:
 	void PinInfoChanged(const FEdGraphPinType& PinType);
 	void OnPrePinInfoChange(const FEdGraphPinType& PinType);
 
+	/** Returns the graph pin representing this variable */
+	UEdGraphPin* GetPin() const;
+
 	/** Returns whether the "Pass-by-Reference" checkbox is checked or not */
 	ECheckBoxState IsRefChecked() const;
 
 	/** Handles toggling the "Pass-by-Reference" checkbox */
 	void OnRefCheckStateChanged(ECheckBoxState InState);
-
-	FText OnGetArgDefaultValueText() const;
-	void OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 
 private:
 	/** The parent graph action details customization */
@@ -496,6 +499,9 @@ private:
 
 	/** Holds a weak pointer to the argument name widget, used for error notifications */
 	TWeakPtr<SEditableTextBox> ArgumentNameWidget;
+
+	/** The SGraphPin widget created to show/edit default value */
+	TSharedPtr<SGraphPin> DefaultValuePinWidget;
 };
 
 /** Details customization for functions and graphs selected in the MyBlueprint panel */

@@ -204,7 +204,7 @@ struct FAnimPhysSphericalLimit
 	ESphericalLimitType LimitType;
 };
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_BODY();
@@ -216,27 +216,27 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	AnimPhysSimSpaceType SimulationSpace;
 
 	/** When in BoneRelative sim space, the simulation will use this bone as the origin */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, Category = Setup)
 	FBoneReference RelativeSpaceBone;
 
 	/** Set to true to use the solver to simulate a connected chain */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, Category = Setup)
 	bool bChain;
 
 	/** The bone to attach the physics body to, if bChain is true this is the top of the chain */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, Category = Setup)
 	FBoneReference BoundBone;
 	
 	/** If bChain is true this is the bottom of the chain, otherwise ignored */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup, meta=(EditCondition = bChain))
+	UPROPERTY(EditAnywhere, Category = Setup, meta=(EditCondition = bChain))
 	FBoneReference ChainEnd;
 
 	/** Extents of the box to use for simulation */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, Category = Setup)
 	FVector BoxExtents;
 
 	/** Vector relative to the body being simulated to attach the constraint to */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, Category = Setup)
 	FVector LocalJointOffset;
 
 	/** Scale for gravity, higher values increase forces due to gravity */
@@ -244,11 +244,11 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	float GravityScale;
 
 	/** If true the body will attempt to spring back to its initial position */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, Category = Setup)
 	bool bLinearSpring;
 
 	/** If true the body will attempt to align itself with the specified angular target */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, Category = Setup)
 	bool bAngularSpring;
 
 	/** Spring constant to use when calculating linear springs, higher values mean a stronger spring.*/
@@ -260,18 +260,18 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	float AngularSpringConstant;
 
 	/** Whether or not wind is enabled for the bodies in this simulation */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Wind)
+	UPROPERTY(EditAnywhere, Category = Wind)
 	bool bEnableWind;
 
 	UPROPERTY(Transient)
 	bool bWindWasEnabled;
 
 	/** Scale to apply to calculated wind velocities in the solver */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Wind)
+	UPROPERTY(EditAnywhere, Category = Wind)
 	float WindScale;
 
 	/** If true, the override value will be used for linear damping */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
 	bool bOverrideLinearDamping;
 
 	/** Overridden linear damping value */
@@ -279,7 +279,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	float LinearDampingOverride;
 
 	/** If true, the override value will be used for angular damping */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
 	bool bOverrideAngularDamping;
 
 	/** Overridden angular damping value */
@@ -291,7 +291,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	 *  in check. When using single-body systems sometimes angular forces will look like they are "catching-up" with
 	 *  the mesh, if that's the case override this and push it towards 1.0f until it settles correctly
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
 	bool bOverrideAngularBias;
 
 	/** Overridden angular bias value
@@ -303,11 +303,11 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	float AngularBiasOverride;
 
 	/** If true we will perform physics update, otherwise skip - allows visualisation of the initial state of the bodies */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
 	bool bDoUpdate;
 
 	/** If true we will perform bone transform evaluation, otherwise skip - allows visualisation of the initial anim state compared to the physics sim */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Setup)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
 	bool bDoEval;
 
 	/** Number of update passes on the linear and angular limits before we solve the position of the bodies recommended to be four times the value of NumSolverIterationsPostUpdate */
@@ -319,23 +319,23 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	int32 NumSolverIterationsPostUpdate;
 
 	/** Data describing the constraints we will apply to the body */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Constraint)
+	UPROPERTY(EditAnywhere, Category = Constraint)
 	FAnimPhysConstraintSetup ConstraintSetup;
 
 	/** Whether to evaluate planar limits */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlanarLimit)
+	UPROPERTY(EditAnywhere, Category=PlanarLimit)
 	bool bUsePlanarLimit;
 
 	/** List of available planar limits for this node */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlanarLimit)
+	UPROPERTY(EditAnywhere, Category=PlanarLimit)
 	TArray<FAnimPhysPlanarLimit> PlanarLimits;
 
 	/** Whether to evaluate spherical limits */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SphericalLimit)
+	UPROPERTY(EditAnywhere, Category = SphericalLimit)
 	bool bUseSphericalLimits;
 
 	/** List of available spherical limits for this node */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SphericalLimit)
+	UPROPERTY(EditAnywhere, Category = SphericalLimit)
 	TArray<FAnimPhysSphericalLimit> SphericalLimits;
 
 	/** Resolution method for planar limits */

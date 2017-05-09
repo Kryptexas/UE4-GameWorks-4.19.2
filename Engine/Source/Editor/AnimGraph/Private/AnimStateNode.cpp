@@ -25,8 +25,8 @@ UAnimStateNode::UAnimStateNode(const FObjectInitializer& ObjectInitializer)
 
 void UAnimStateNode::AllocateDefaultPins()
 {
-	UEdGraphPin* Inputs = CreatePin(EGPD_Input, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("In"));
-	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("Out"));
+	UEdGraphPin* Inputs = CreatePin(EGPD_Input, TEXT("Transition"), FString(), nullptr, TEXT("In"));
+	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
 }
 
 void UAnimStateNode::AutowireNewNode(UEdGraphPin* FromPin)
@@ -34,7 +34,7 @@ void UAnimStateNode::AutowireNewNode(UEdGraphPin* FromPin)
 	Super::AutowireNewNode(FromPin);
 
 	//@TODO: If the FromPin is a state, create a transition between us
-	if (FromPin != NULL)
+	if (FromPin)
 	{
 		if (GetSchema()->TryCreateConnection(FromPin, GetInputPin()))
 		{

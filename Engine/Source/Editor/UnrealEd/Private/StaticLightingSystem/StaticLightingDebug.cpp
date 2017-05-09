@@ -226,9 +226,9 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 						uint32 Index2 = Indices[TriangleIndex + 2];
 
 						// Transform positions to world space
-						FVector Position0 = SMComponent->ComponentToWorld.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index0));
-						FVector Position1 = SMComponent->ComponentToWorld.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index1));
-						FVector Position2 = SMComponent->ComponentToWorld.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index2));
+						FVector Position0 = SMComponent->GetComponentTransform().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index0));
+						FVector Position1 = SMComponent->GetComponentTransform().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index1));
+						FVector Position2 = SMComponent->GetComponentTransform().TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index2));
 
 						float PlaneDistance;
 						FVector BaryCentricWeights;

@@ -519,9 +519,9 @@ FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData
 	{
 		int64 TotalWeight = 0;
 
-		TArray<FPrimaryAssetId> ReferencingPrimaryAssets;
+		TSet<FPrimaryAssetId> ReferencingPrimaryAssets;
 
-		AssetManager.GetPackageManagerList(AssetData.PackageName, false, ReferencingPrimaryAssets);
+		AssetManager.GetPackageManagers(AssetData.PackageName, false, ReferencingPrimaryAssets);
 
 		for (const FPrimaryAssetId& PrimaryAssetId : ReferencingPrimaryAssets)
 		{

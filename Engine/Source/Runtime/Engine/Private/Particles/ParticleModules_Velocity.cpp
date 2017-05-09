@@ -86,7 +86,7 @@ void UParticleModuleVelocity::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 		FVector OwnerScale(1.0f);
 		if ((bApplyOwnerScale == true) && Owner->Component)
 		{
-			OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
+			OwnerScale = Owner->Component->GetComponentTransform().GetScale3D();
 		}
 
 		UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
@@ -195,7 +195,7 @@ void UParticleModuleVelocityInheritParent::Spawn(FParticleEmitterInstance* Owner
 	check(LODLevel);
 	if (LODLevel->RequiredModule->bUseLocalSpace)
 	{
-		Vel = Owner->Component->ComponentToWorld.InverseTransformVector(Owner->Component->PartSysVelocity);
+		Vel = Owner->Component->GetComponentTransform().InverseTransformVector(Owner->Component->PartSysVelocity);
 	}
 	else
 	{
@@ -255,7 +255,7 @@ void UParticleModuleVelocityOverLifetime::Spawn(FParticleEmitterInstance* Owner,
 		FVector OwnerScale(1.0f);
 		if ((bApplyOwnerScale == true) && Owner && Owner->Component)
 		{
-			OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
+			OwnerScale = Owner->Component->GetComponentTransform().GetScale3D();
 		}
 		FVector Vel = VelOverLife.GetValue(Particle.RelativeTime, Owner->Component) * OwnerScale;
 		Particle.Velocity		= Vel;
@@ -431,7 +431,7 @@ void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32
 	FVector OwnerScale(1.0f);
 	if ((bApplyOwnerScale == true) && Owner->Component)
 	{
-		OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
+		OwnerScale = Owner->Component->GetComponentTransform().GetScale3D();
 	}
 	
 	// Spawn particles
@@ -471,11 +471,11 @@ void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32
 		// Transform according to world and local space flags 
 		if (!LODLevel->RequiredModule->bUseLocalSpace && !bInWorldSpace)
 		{
-			SpawnDirection = Owner->Component->ComponentToWorld.TransformVector(SpawnDirection);
+			SpawnDirection = Owner->Component->GetComponentTransform().TransformVector(SpawnDirection);
 		}
 		else if (LODLevel->RequiredModule->bUseLocalSpace && bInWorldSpace)
 		{
-			SpawnDirection = Owner->Component->ComponentToWorld.InverseTransformVector(SpawnDirection);
+			SpawnDirection = Owner->Component->GetComponentTransform().InverseTransformVector(SpawnDirection);
 		}
 
 		// Set final velocity vector
@@ -548,13 +548,13 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 		{
 			if (bApplyOwnerScale == true)
 			{
-				OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
+				OwnerScale = Owner->Component->GetComponentTransform().GetScale3D();
 			}
 
 			OwnerRotation = FQuatRotationMatrix(Actor->GetActorQuat());
 		}
-	  LocalToWorldOrigin = Owner->Component->ComponentToWorld.GetLocation();
-	  LocalToWorld = Owner->Component->ComponentToWorld.ToMatrixWithScale().RemoveTranslation();
+	  LocalToWorldOrigin = Owner->Component->GetComponentTransform().GetLocation();
+	  LocalToWorld = Owner->Component->GetComponentTransform().ToMatrixWithScale().RemoveTranslation();
 	  LocalToWorld.RemoveScaling();
 	}
 	FMatrix Transform;

@@ -78,7 +78,7 @@ bool FClothPainter::PaintInternal(const FVector& InCameraOrigin, const FVector& 
 			}
 			else if (PaintSettings->PaintTool == EClothPaintTool::Gradient)
 			{
-				const FMatrix ComponentToWorldMatrix = HitResult.Component->ComponentToWorld.ToMatrixWithScale();
+				const FMatrix ComponentToWorldMatrix = HitResult.Component->GetComponentTransform().ToMatrixWithScale();
 				const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(InCameraOrigin));
 				const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitResult.Location));
 				const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(PaintSettings->bUseRegularBrushForGradient ? BrushSettings->GetBrushRadius() : 2.0f, 0.0f, 0.0f)).Size();
@@ -332,7 +332,7 @@ void FClothPainter::Render(const FSceneView* View, FViewport* Viewport, FPrimiti
 	// Render simulation mesh vertices if not simulating
 	if (SkeletalMeshComponent && !bShouldSimulate)
 	{
-		const FMatrix ComponentToWorldMatrix = SkeletalMeshComponent->ComponentToWorld.ToMatrixWithScale();
+		const FMatrix ComponentToWorldMatrix = SkeletalMeshComponent->GetComponentTransform().ToMatrixWithScale();
 		const TArray<FVector>& AllVertices = Adapter->GetMeshVertices();
 		for (const FVector& Vertex : AllVertices)
 		{
@@ -346,7 +346,7 @@ void FClothPainter::Render(const FSceneView* View, FViewport* Viewport, FPrimiti
 		TArray<MeshPaintHelpers::FPaintRay> PaintRays;
 		MeshPaintHelpers::RetrieveViewportPaintRays(View, Viewport, PDI, PaintRays);
 
-		const FMatrix ComponentToWorldMatrix = SkeletalMeshComponent->ComponentToWorld.ToMatrixWithScale();
+		const FMatrix ComponentToWorldMatrix = SkeletalMeshComponent->GetComponentTransform().ToMatrixWithScale();
 
 		for (const MeshPaintHelpers::FPaintRay& PaintRay : PaintRays)
 		{

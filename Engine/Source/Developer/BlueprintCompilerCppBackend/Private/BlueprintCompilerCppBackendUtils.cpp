@@ -44,6 +44,9 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 	UClass* OriginalActualClass = Dependencies.FindOriginalClass(ActualClass);
 	UClass* OuterClass = Object ? Cast<UClass>(Object->GetOuter()) : nullptr;	// SCS component templates will have an Outer that equates to their owning BPGC; since they're not currently DSOs, we have to special-case them.
 	
+	// The UsedAssets list is only applicable to UClass derivatives.
+	bTryUsedAssetsList &= (ActualClass != nullptr);
+
 	auto ClassString = [&]() -> FString
 	{
 		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetFirstNativeOrConvertedClass(Object->GetClass());
@@ -764,7 +767,7 @@ FString FEmitHelper::GenerateReplaceConvertedMD(UObject* Obj)
 	return Result;
 }
 
-FString FEmitHelper::GetBaseFilename(const UObject* AssetObj)
+FString FEmitHelper::GetBaseFilename(const UObject* AssetObj, const FCompilerNativizationOptions& NativizationOptions)
 {
 	FString AssetName = FPackageName::GetLongPackageAssetName(AssetObj->GetOutermost()->GetPathName());
 	// We have to sanitize the package path because UHT is going to generate header guards (preprocessor symbols)
@@ -1151,13 +1154,13 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		MetaClass = MetaClass ? MetaClass : UObject::StaticClass();
 		const FString ObjTypeStr = FEmitHelper::GetCppName(EmitterContext.GetFirstNativeOrConvertedClass(MetaClass));
 
-		if (LiteralObject)
+		if (!CustomValue.IsEmpty())
 		{
 			const bool bAssetSubclassOf = (UEdGraphSchema_K2::PC_AssetClass == Type.PinCategory);
 			return FString::Printf(TEXT("%s<%s>(FStringAssetReference(TEXT(\"%s\")))")
 				, bAssetSubclassOf ? TEXT("TAssetSubclassOf") : TEXT("TAssetPtr")
 				, *ObjTypeStr
-				, *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
+				, *(CustomValue.ReplaceCharWithEscapedChar()));
 		}
 		return FString::Printf(TEXT("((%s*)nullptr)"), *ObjTypeStr);
 	}
@@ -1291,7 +1294,8 @@ FString FEmitHelper::PinTypeToNativeType(const FEdGraphPinType& Type)
 	};
 
 	FString InnerTypeName = PinTypeToNativeTypeInner(Type);
-	return Type.bIsArray ? FString::Printf(TEXT("TArray<%s>"), *InnerTypeName) : InnerTypeName;
+	ensure(!Type.IsSet() && !Type.IsMap());
+	return Type.IsArray() ? FString::Printf(TEXT("TArray<%s>"), *InnerTypeName) : InnerTypeName;
 }
 
 UFunction* FEmitHelper::GetOriginalFunction(UFunction* Function)
@@ -1350,7 +1354,7 @@ bool FEmitHelper::ShouldHandleAsImplementableEvent(UFunction* Function)
 
 bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, const UProperty* LProp, const UProperty* RProp, FString& OutCastBegin, FString& OutCastEnd, bool bForceReference)
 {
-	if ((RType.bIsArray != LType.bIsArray) || (LType.PinCategory != RType.PinCategory))
+	if ((RType.ContainerType != LType.ContainerType) || (LType.PinCategory != RType.PinCategory))
 	{
 		return false;
 	}
@@ -1359,7 +1363,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 	// ENUM to BYTE cast
 	if (LType.PinCategory == UEdGraphSchema_K2::PC_Byte)
 	{
-		if (!RType.bIsArray)
+		if (!RType.IsContainer())
 		{
 			UEnum* LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
 			UEnum* RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
@@ -1403,7 +1407,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 
 		auto RequiresArrayCast = [&RType](UClass* LClass, UClass* RClass)->bool
 		{
-			return RType.bIsArray && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass);
+			return RType.IsArray() && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass);
 		};
 
 		const bool bIsClassTerm = LType.PinCategory == UEdGraphSchema_K2::PC_Class;
@@ -1446,7 +1450,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			UClass* RClass = GetClassType(RType);
 			// it seems that we only need to cast class types when they're in arrays (TSubClassOf<>
 			// has built in conversions to/from other TSubClassOfs and raw UClasses)
-			if (RType.bIsArray)
+			if (RType.IsArray())
 			{
 				const UArrayProperty* LArrayProp = Cast<UArrayProperty>(LProp);
 				const UClassProperty* LInnerProp = LArrayProp ? Cast<UClassProperty>(LArrayProp->Inner) : nullptr;
@@ -1469,14 +1473,14 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			UClass* LClass = GetClassType(LType);
 			UClass* RClass = GetClassType(RType);
 
-			if (!RType.bIsArray && LClass && RClass && (LType.bIsReference || bForceReference) && (LClass != RClass) && RClass->IsChildOf(LClass))
+			if (!RType.IsContainer() && LClass && RClass && (LType.bIsReference || bForceReference) && (LClass != RClass) && RClass->IsChildOf(LClass))
 			{
 				// when pointer is passed as reference, the type must be exactly the same
 				OutCastBegin = FString::Printf(TEXT("*(%s*)(&("), *GetTypeString(LClass, Cast<UObjectProperty>(LProp)));
 				OutCastEnd = TEXT("))");
 				return true;
 			}
-			if (!RType.bIsArray && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
+			if (!RType.IsContainer() && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 			{
 				OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
 				OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");

@@ -1588,7 +1588,7 @@ void FCascade::Tick(float DeltaTime)
 			Position.X = MotionModeRadius * FMath::Sin(AccumulatedMotionTime);
 			Position.Y = MotionModeRadius * FMath::Cos(AccumulatedMotionTime);
 			Position.Z = 0.0f;
-			ParticleSystemComponent->ComponentToWorld = FTransform(Position);
+			ParticleSystemComponent->SetComponentToWorld(FTransform(Position));
 		}
 
 		if (ParticleSystemComponent->IsComponentTickEnabled())

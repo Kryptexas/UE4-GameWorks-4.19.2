@@ -8,7 +8,6 @@
 
 class FDependsNode;
 struct FARFilter;
-enum class ERuntimeRegistryVersion;
 
 /** Load/Save options used to modify how the cache is serialized. These are read out of the AssetRegistry section of Engine.ini and can be changed per platform. */
 struct FAssetRegistrySerializationOptions
@@ -31,6 +30,9 @@ struct FAssetRegistrySerializationOptions
 	/** True if CookFilterlistTagsByClass is a whitelist. False if it is a blacklist. */
 	bool bUseAssetRegistryTagsWhitelistInsteadOfBlacklist;
 
+	/** True if we want to only write out asset data if it has valid tags. This saves memory by not saving data for things like textures */
+	bool bFilterAssetDataWithNoTags;
+
 	/** The map of classname to tag set of tags that are allowed in cooked builds. This is either a whitelist or blacklist depending on bUseAssetRegistryTagsWhitelistInsteadOfBlacklist */
 	TMap<FName, TSet<FName>> CookFilterlistTagsByClass;
 
@@ -41,12 +43,14 @@ struct FAssetRegistrySerializationOptions
 		, bSerializeManageDependencies(false)
 		, bSerializePackageData(false)
 		, bUseAssetRegistryTagsWhitelistInsteadOfBlacklist(false)
+		, bFilterAssetDataWithNoTags(false)
 	{}
 
 	/** Options used to read/write the DevelopmentAssetRegistry, which includes all data */
 	void ModifyForDevelopment()
 	{
 		bSerializeAssetRegistry = bSerializeDependencies = bSerializeSearchableNameDependencies = bSerializeManageDependencies = bSerializePackageData = true;
+		bFilterAssetDataWithNoTags = false;
 	}
 };
 
@@ -112,15 +116,51 @@ public:
 	}
 
 	/**
-	 * Gets the asset data for the specified object path
+	 * Gets the asset data for the specified package name
 	 *
-	 * @param ObjectPath the path of the object to be looked up
-	 * @return the assets data, null if not found
+	 * @param PackageName the path of the package to be looked up
+	 * @return an array of AssetData*, empty if nothing found
 	 */
 	const TArray<const FAssetData*>& GetAssetsByPackageName(const FName PackageName) const
 	{
 		static TArray<const FAssetData*> InvalidArray;
 		const TArray<FAssetData*>* FoundAssetArray = CachedAssetsByPackageName.Find(PackageName);
+		if (FoundAssetArray)
+		{
+			return reinterpret_cast<const TArray<const FAssetData*>&>(*FoundAssetArray);
+		}
+
+		return InvalidArray;
+	}
+
+	/**
+	 * Gets the asset data for the specified asset class
+	 *
+	 * @param ClassName the class name of the assets to look for
+	 * @return An array of AssetData*, empty if nothing found
+	 */
+	const TArray<const FAssetData*>& GetAssetsByClassName(const FName ClassName) const
+	{
+		static TArray<const FAssetData*> InvalidArray;
+		const TArray<FAssetData*>* FoundAssetArray = CachedAssetsByClass.Find(ClassName);
+		if (FoundAssetArray)
+		{
+			return reinterpret_cast<const TArray<const FAssetData*>&>(*FoundAssetArray);
+		}
+
+		return InvalidArray;
+	}
+
+	/**
+	 * Gets the asset data for the specified asset tag
+	 *
+	 * @param TagName the tag name to search for 
+	 * @return An array of AssetData*, empty if nothing found
+	 */
+	const TArray<const FAssetData*>& GetAssetsByTagName(const FName TagName) const
+	{
+		static TArray<const FAssetData*> InvalidArray;
+		const TArray<FAssetData*>* FoundAssetArray = CachedAssetsByTag.Find(TagName);
 		if (FoundAssetArray)
 		{
 			return reinterpret_cast<const TArray<const FAssetData*>&>(*FoundAssetArray);
@@ -163,17 +203,25 @@ public:
 	void Reset();
 
 	/** Initializes cache from existing set of asset data and depends nodes */
-	void InitializeFromExisting(const TMap<FName, FAssetData*>& AssetDataMap, const TMap<FAssetIdentifier, FDependsNode*>& DependsNodeMap, const TMap<FName, FAssetPackageData*>& AssetPackageDataMap, const FAssetRegistrySerializationOptions& Options);
-	void InitializeFromExisting(const FAssetRegistryState& Existing, const FAssetRegistrySerializationOptions& Options)
+	void InitializeFromExisting(const TMap<FName, FAssetData*>& AssetDataMap, const TMap<FAssetIdentifier, FDependsNode*>& DependsNodeMap, const TMap<FName, FAssetPackageData*>& AssetPackageDataMap, const FAssetRegistrySerializationOptions& Options, bool bRefreshExisting = false);
+	void InitializeFromExisting(const FAssetRegistryState& Existing, const FAssetRegistrySerializationOptions& Options, bool bRefreshExisting = false)
 	{
-		InitializeFromExisting(Existing.CachedAssetsByObjectPath, Existing.CachedDependsNodes, Existing.CachedPackageData, Options);
+		InitializeFromExisting(Existing.CachedAssetsByObjectPath, Existing.CachedDependsNodes, Existing.CachedPackageData, Options, bRefreshExisting);
 	}
 
-	/** Prunes an asset cache, this removes asset data, nodes, and package data that isn't needed. If Required is empty it will only apply ignored */
-	void PruneAssetData(const TSet<FName>& RequiredPackages, const TSet<FName>& RemovePackages);
+	/** 
+	 * Prunes an asset cache, this removes asset data, nodes, and package data that isn't needed. 
+	 * @param RequiredPackages If set, only these packages will be maintained. If empty it will keep all unless filtered by other parameters
+	 * @param RemovePackages These packages will be removed from the current set
+	 * @param bFilterAssetDataWithNoTags If true, any AssetData with no Tags will be removed
+	 */
+	void PruneAssetData(const TSet<FName>& RequiredPackages, const TSet<FName>& RemovePackages, bool bFilterAssetDataWithNoTags = false);
 
 	/** Serialize the registry to/from a file, skipping editor only data */
 	bool Serialize(FArchive& Ar, FAssetRegistrySerializationOptions& Options);
+
+	/** Returns memory size of entire registry, optionally logging sizes */
+	uint32 GetAllocatedSize(bool bLogDetailed = false) const;
 
 	/** Checks a filter to make sure there are no illegal entries */
 	static bool IsFilterValid(const FARFilter& Filter, bool bAllowRecursion);
@@ -190,9 +238,6 @@ private:
 
 	/** Removes the depends node and updates the dependencies to no longer contain it as as a referencer. */
 	bool RemoveDependsNode(const FAssetIdentifier& Identifier);
-
-	/** Reads old format asset registry state */
-	bool ReadDeprecated(FArchive& Ar, ERuntimeRegistryVersion Version);
 
 	/** The map of ObjectPath names to asset data for assets saved to disk */
 	TMap<FName, FAssetData*> CachedAssetsByObjectPath;

@@ -859,14 +859,14 @@ float UEnvQueryManager::FindNamedParam(int32 QueryId, FName ParamName) const
 //----------------------------------------------------------------------//
 // BP functions and related functionality 
 //----------------------------------------------------------------------//
-UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldContext, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass)
+UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldContextObject, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass)
 { 
 	if (QueryTemplate == nullptr || Querier == nullptr)
 	{
 		return nullptr;
 	}
 
-	UEnvQueryManager* EQSManager = GetCurrent(WorldContext);
+	UEnvQueryManager* EQSManager = GetCurrent(WorldContextObject);
 	UEnvQueryInstanceBlueprintWrapper* QueryInstanceWrapper = nullptr;
 
 	if (EQSManager)

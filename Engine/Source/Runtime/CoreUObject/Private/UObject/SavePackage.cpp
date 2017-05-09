@@ -988,6 +988,12 @@ FArchive& FArchiveSaveTagExports::operator<<(UObject*& Obj)
 				break;
 			}
 		}
+
+		if(!bNeedsLoadForEditorGame && Obj->HasAnyFlags(RF_ClassDefaultObject))
+		{
+			bNeedsLoadForEditorGame = Obj->GetClass()->NeedsLoadForEditorGame();
+		}
+
 		if (!bNeedsLoadForEditorGame)
 		{
 			Obj->Mark(OBJECTMARK_NotAlwaysLoadedForEditorGame);
@@ -1102,7 +1108,6 @@ public:
 	virtual FArchive& operator<<(UObject*& Obj) override;
 	virtual FArchive& operator<< (struct FWeakObjectPtr& Value) override;
 	virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override;
-	virtual FArchive& operator<<(FAssetPtr& AssetPtr) override;
 	virtual FArchive& operator<<(FStringAssetReference& Value) override;
 	virtual FArchive& operator<<(FName& Name) override;
 	
@@ -1243,33 +1248,12 @@ FArchive& FArchiveSaveTagImports::operator<<( FLazyObjectPtr& LazyObjectPtr)
 	return *this << ID;
 }
 
-FArchive& FArchiveSaveTagImports::operator<<( FAssetPtr& AssetPtr)
-{
-	FStringAssetReference ID;
-	UObject *Object = AssetPtr.Get();
-
-	if (Object)
-	{
-		// Use object in case name has changed. 
-		ID = FStringAssetReference(Object);
-	}
-	else
-	{
-		ID = AssetPtr.GetUniqueID();
-	}
-	return *this << ID;
-}
-
 FArchive& FArchiveSaveTagImports::operator<<(FStringAssetReference& Value)
 {
 	if (Value.IsValid())
 	{
+		Value.PreSavePath();
 		FString Path = Value.ToString();
-		if (FCoreUObjectDelegates::StringAssetReferenceSaving.IsBound())
-		{
-			// This picks up any redirectors
-			Path = FCoreUObjectDelegates::StringAssetReferenceSaving.Execute(Path);
-		}
 
 		if (GetIniFilenameFromObjectsReference(Path) != nullptr)
 		{

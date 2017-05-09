@@ -42,8 +42,8 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 	 * Triggers in sequence all functional tests found on the level.
 	 * @return true if any tests have been triggered
 	 */
-	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(WorldContext="WorldContext", CallableWithoutWorldContext ) )
-	static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog = true, bool bRunLooped = false, bool bWaitForNavigationBuildFinish = true, FString FailedTestsReproString = TEXT(""));
+	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(WorldContext="WorldContextObject", CallableWithoutWorldContext ) )
+	static bool RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog = true, bool bRunLooped = false, bool bWaitForNavigationBuildFinish = true, FString FailedTestsReproString = TEXT(""));
 		
 	bool IsRunning() const { return bIsRunning; }
 	bool IsFinished() const { return bFinished; }

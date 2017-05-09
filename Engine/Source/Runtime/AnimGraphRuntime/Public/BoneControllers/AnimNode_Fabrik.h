@@ -54,7 +54,7 @@ public:
 	}
 };
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_Fabrik : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
@@ -64,34 +64,34 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Fabrik : public FAnimNode_SkeletalControlB
 	FTransform EffectorTransform;
 
 	/** Reference frame of Effector Transform. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EndEffector)
+	UPROPERTY(EditAnywhere, Category = EndEffector)
 	TEnumAsByte<enum EBoneControlSpace> EffectorTransformSpace;
 
 	/** If EffectorTransformSpace is a bone, this is the bone to use. **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EndEffector)
+	UPROPERTY(EditAnywhere,  Category = EndEffector)
 	FBoneReference EffectorTransformBone;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EndEffector)
+	UPROPERTY(EditAnywhere, Category = EndEffector)
 	TEnumAsByte<enum EBoneRotationSource> EffectorRotationSource;
 
 	/** Name of tip bone */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Solver)
+	UPROPERTY(EditAnywhere, Category = Solver)
 	FBoneReference TipBone;
 
 	/** Name of the root bone*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Solver)
+	UPROPERTY(EditAnywhere, Category = Solver)
 	FBoneReference RootBone;
 
 	/** Tolerance for final tip location delta from EffectorLocation*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Solver)
+	UPROPERTY(EditAnywhere, Category = Solver)
 	float Precision;
 
 	/** Maximum number of iterations allowed, to control performance. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Solver)
+	UPROPERTY(EditAnywhere, Category = Solver)
 	int32 MaxIterations;
 
 	/** Toggle drawing of axes to debug joint rotation*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Solver)
+	UPROPERTY(EditAnywhere, Category = Solver)
 	bool bEnableDebugDraw;
 
 public:

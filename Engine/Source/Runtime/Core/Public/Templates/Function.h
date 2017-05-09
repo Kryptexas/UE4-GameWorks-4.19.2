@@ -355,7 +355,7 @@ namespace UE4Function_Private
  * {
  *     for (const FString& Str : SomeBunchOfStrings)
  *     {
- *         int32 Int = Func(Str);
+ *         int32 Int = Convert(Str);
  *         DoSomething(Int);
  *     }
  * }

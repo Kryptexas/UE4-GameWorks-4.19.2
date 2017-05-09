@@ -9,7 +9,6 @@
 
 class IAssetRegistry;
 
-template <class FKey, class FValue> class TSharedMapView;
 
 /** Class responsible for maintaing a cache of clean source file names (bla.txt) to asset data */
 class UNREALED_API FAssetSourceFilenameCache
@@ -21,8 +20,7 @@ public:
 	static FAssetSourceFilenameCache& Get();
 
 	/** Helper functions to extract asset import information from asset registry tags */
-	static TOptional<FAssetImportInfo> ExtractAssetImportInfo(const TSharedMapView<FName, FString>& InTags);
-	static TOptional<FAssetImportInfo> ExtractAssetImportInfo(const TArray<UObject::FAssetRegistryTag>& InTags);
+	static TOptional<FAssetImportInfo> ExtractAssetImportInfo(const FAssetData& AssetData);
 
 	/** Retrieve a list of assets that were imported from the specified filename */
 	TArray<FAssetData> GetAssetsPertainingToFile(const IAssetRegistry& Registry, const FString& AbsoluteFilename) const;

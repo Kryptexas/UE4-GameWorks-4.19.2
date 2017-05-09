@@ -1230,7 +1230,7 @@ FMatrix UTextRenderComponent::GetRenderMatrix() const
 		const float VerticalAlignmentOffset = -ComputeVerticalAlignmentOffset(SizeY, VerticalAlignment, FirstLineHeight);
 		VerticalTransform = VerticalTransform.ConcatTranslation(FVector(0.f, 0.f, VerticalAlignmentOffset));
 
-		return VerticalTransform *  ComponentToWorld.ToMatrixWithScale();
+		return VerticalTransform *  GetComponentTransform().ToMatrixWithScale();
 
 	}
 	return UPrimitiveComponent::GetRenderMatrix();
@@ -1329,7 +1329,7 @@ FVector UTextRenderComponent::GetTextLocalSize() const
 
 FVector UTextRenderComponent::GetTextWorldSize() const
 {
-	const FBoxSphereBounds TextBounds = CalcBounds(ComponentToWorld);
+	const FBoxSphereBounds TextBounds = CalcBounds(GetComponentTransform());
 	return TextBounds.GetBox().GetSize();
 }
 

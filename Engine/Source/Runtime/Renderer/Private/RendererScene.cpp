@@ -1182,7 +1182,7 @@ void FScene::AddLight(ULightComponent* Light)
 		Light->SceneProxy = Proxy;
 
 		// Update the light's transform and position.
-		Proxy->SetTransform(Light->ComponentToWorld.ToMatrixNoScale(),Light->GetLightPosition());
+		Proxy->SetTransform(Light->GetComponentTransform().ToMatrixNoScale(),Light->GetLightPosition());
 
 		// Create the light scene info.
 		Proxy->LightSceneInfo = new FLightSceneInfo(Proxy, true);
@@ -1215,7 +1215,7 @@ void FScene::AddInvisibleLight(ULightComponent* Light)
 		Light->SceneProxy = Proxy;
 
 		// Update the light's transform and position.
-		Proxy->SetTransform(Light->ComponentToWorld.ToMatrixNoScale(),Light->GetLightPosition());
+		Proxy->SetTransform(Light->GetComponentTransform().ToMatrixNoScale(),Light->GetLightPosition());
 
 		// Create the light scene info.
 		Proxy->LightSceneInfo = new FLightSceneInfo(Proxy, false);
@@ -1436,7 +1436,7 @@ void FScene::UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Compo
 		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			UpdateTransformCommand,
 			FReflectionCaptureProxy*,Proxy,Component->SceneProxy,
-			FMatrix,Transform,Component->ComponentToWorld.ToMatrixWithScale(),
+			FMatrix,Transform,Component->GetComponentTransform().ToMatrixWithScale(),
 			const float*,AverageBrightness,Component->GetAverageBrightnessPtr(),
 			FScene*,Scene,this,
 		{
@@ -1696,7 +1696,7 @@ void FScene::UpdateLightTransform(ULightComponent* Light)
 	if(Light->SceneProxy)
 	{
 		FUpdateLightTransformParameters Parameters;
-		Parameters.LightToWorld = Light->ComponentToWorld.ToMatrixNoScale();
+		Parameters.LightToWorld = Light->GetComponentTransform().ToMatrixNoScale();
 		Parameters.Position = Light->GetLightPosition();
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			UpdateLightTransform,

@@ -121,7 +121,7 @@ public:
 	/**
 	 * @return Whether or not this node is a child (direct or indirect) of the given node.
 	 */
-	bool IsAttachedTo(FSCSEditorTreeNodePtrType InNodePtr) const;
+	bool IsAttachedTo(FSCSEditorTreeNodePtrType InNodePtr) const;	
 
 	/**
 	 * Finds the closest ancestor node in the given node set.
@@ -288,8 +288,22 @@ public:
 	/** Sets up the delegate for renaming a component */
 	void SetRenameRequestedDelegate(FOnRenameRequested InRenameRequested) { RenameRequestedDelegate = InRenameRequested; }
 
+	/** Query that determines if this item should be filtered out or not */
+	bool IsFlaggedForFiltration() const 
+	{
+		return ensureMsgf(FilterFlags != EFilteredState::Unknown, TEXT("Querying a bad filtration state.")) ? 
+			(FilterFlags & EFilteredState::FilteredInMask) == 0 : false; 
+	}
+
+	/** Refreshes this item's filtration state. Use bUpdateParent to make sure the parent's EFilteredState::ChildMatches flag is properly updated based off the new state */
+	void UpdateCachedFilterState(bool bMatchesFilter, bool bUpdateParent);
 
 protected:
+	/** Updates the EFilteredState::ChildMatches flag, based off of children's current state */
+	void RefreshCachedChildFilterState(bool bUpdateParent);
+	/** Used to update the EFilteredState::ChildMatches flag for parent nodes, when this item's filtration state has changed */
+	void ApplyFilteredStateToParent();
+	
 	bool GetAndClearNonTransactionalRenameFlag()
 	{
 		const bool bResult = bNonTransactionalRename;
@@ -311,6 +325,17 @@ private:
 	/** Handles rename requests */
 	bool bNonTransactionalRename;
 	FOnRenameRequested RenameRequestedDelegate;
+
+	enum EFilteredState
+	{
+		FilteredOut    = 0x00,
+		MatchesFilter  = (1 << 0),
+		ChildMatches   = (1 << 1),
+
+		FilteredInMask = (MatchesFilter | ChildMatches),
+		Unknown = 0xFC // ~FilteredInMask
+	};
+	uint8 FilterFlags;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -784,7 +809,7 @@ public:
 	   @param Asset       					(In) Optional asset to assign to the component
 	   @param bSkipMarkBlueprintModified 	(In) Optionally skip marking this blueprint as modified (e.g. if we're handling that externally)
 	   @return The reference of the newly created ActorComponent */
-	UActorComponent* AddNewComponent(UClass* NewComponentClass, UObject* Asset, const bool bSkipMarkBlueprintModified = false );
+	UActorComponent* AddNewComponent(UClass* NewComponentClass, UObject* Asset, const bool bSkipMarkBlueprintModified = false, bool bSetFocusToNewItem = true);
 
 	/** Adds a new SCS Node to the component Table
 	   @param NewNode	(In) The SCS node to add
@@ -944,6 +969,9 @@ public:
 	/** Handler for recursively expanding/collapsing items */
 	void SetItemExpansionRecursive(FSCSEditorTreeNodePtrType Model, bool bInExpansionState);
 
+	/** Callback for the action trees to get the filter text */
+	FText GetFilterText() const;
+
 protected:
 	FString GetSelectedClassText() const;
 
@@ -1059,7 +1087,6 @@ protected:
 	 * @return The new class that was created
 	 */
 	UClass* CreateNewCPPComponent(TSubclassOf<UActorComponent> ComponentClass);
-
 	
 	/**
 	 * Creates a new Blueprint component from the specified class type
@@ -1068,6 +1095,22 @@ protected:
 	 * @return The new class that was created
 	 */
 	UClass* CreateNewBPComponent(TSubclassOf<UActorComponent> ComponentClass);
+
+	/** Recursively updates the filtered state for each component item */
+	void OnFilterTextChanged(const FText& InFilterText);
+
+	/** 
+	 * Compares the filter bar's text with the item's component name. Use 
+	 * bRecursive to refresh the state of child nodes as well. Returns true if 
+	 * the node is set to be filtered out 
+	 */
+	bool RefreshFilteredState(FSCSEditorTreeNodePtrType TreeNode, bool bRecursive);
+
+	/** 
+	 * Iterates the RootNodes list, and uses the cached filtered state to 
+	 * determine what items should be listed in the tree view. 
+	 */
+	void RebuildFilteredRootList();
 
 public:
 	/** Tree widget */
@@ -1115,6 +1158,9 @@ private:
 	/** Root set of components (contains the root scene component and any non-scene component nodes) */
 	TArray<FSCSEditorTreeNodePtrType> RootComponentNodes;
 
+	/** The list of nodes used for the UI (a filtered version of RootNodes) */
+	TArray<FSCSEditorTreeNodePtrType> FilteredRootNodes;
+
 	/* Root Tree Node (for scene components) */
 	TSharedPtr<FSCSEditorTreeNode> RootTreeNode;
 
@@ -1135,4 +1181,7 @@ private:
 
 	/** TRUE if this SCSEditor is currently the target of a diff */
 	bool bIsDiffing;
+
+	/** The filter box that handles filtering for the tree. */
+	TSharedPtr< SSearchBox > FilterBox;
 };

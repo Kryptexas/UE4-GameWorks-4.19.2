@@ -851,7 +851,7 @@ public:
 			//int32 NumPerNode = (1 + ClusterTree[0].LastInstance - ClusterTree[0].FirstInstance) / NumNodes;
 			//UE_LOG(LogTemp, Display, TEXT("Occlusion level %d   %d inst / node"), NumNodes, NumPerNode);
 			OcclusionBounds.Reserve(NumNodes);
-			FMatrix XForm = InComponent->ComponentToWorld.ToMatrixWithScale();
+			FMatrix XForm = InComponent->GetComponentTransform().ToMatrixWithScale();
 			for (int32 Index = FirstOcclusionNode; Index <= LastOcclusionNode; Index++)
 			{
 				OcclusionBounds.Add(FBoxSphereBounds(FBox(ClusterTree[Index].BoundMin, ClusterTree[Index].BoundMax).TransformBy(XForm)));
@@ -1974,7 +1974,7 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 
 	int32 RenderIndex = InstanceReorderTable[InstanceIndex];
 	const FMatrix OldTransform = PerInstanceSMData[InstanceIndex].Transform;
-	const FTransform NewLocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(ComponentToWorld) : NewInstanceTransform;
+	const FTransform NewLocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(GetComponentTransform()) : NewInstanceTransform;
 	const FVector NewLocalLocation = NewLocalTransform.GetTranslation();
 
 	// if we are only updating rotation/scale we update the instance directly in the cluster tree
@@ -2682,7 +2682,7 @@ static void GatherInstanceTransformsInArea(const UHierarchicalInstancedStaticMes
 	if (ClusterTree.Num())
 	{
 		const FClusterNode& ChildNode = ClusterTree[Child];
-		const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.ComponentToWorld);
+		const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.GetComponentTransform());
 	
 		if (AreaBox.Intersect(WorldNodeBox))
 		{
@@ -2712,7 +2712,7 @@ static void GatherInstanceTransformsInArea(const UHierarchicalInstancedStaticMes
 					
 					if (!InstanceToComponent.GetScale3D().IsZero())
 					{
-						InstanceData.Add(InstanceToComponent*Component.ComponentToWorld);
+						InstanceData.Add(InstanceToComponent*Component.GetComponentTransform());
 					}
 				}
 			}
@@ -2823,7 +2823,7 @@ void UHierarchicalInstancedStaticMeshComponent::PartialNavigationUpdate(int32 In
 		if (NavSys && NavSys->GetObjectsNavOctreeId(this))
 		{
 			FTransform InstanceTransform(PerInstanceSMData[InstanceIdx].Transform);
-			FBox InstanceBox = GetStaticMesh()->GetBounds().TransformBy(InstanceTransform*ComponentToWorld).GetBox(); // in world space
+			FBox InstanceBox = GetStaticMesh()->GetBounds().TransformBy(InstanceTransform*GetComponentTransform()).GetBox(); // in world space
 			AccumulatedNavigationDirtyArea+= InstanceBox;
 		}
 	}
@@ -2840,7 +2840,7 @@ void UHierarchicalInstancedStaticMeshComponent::FlushAccumulatedNavigationUpdate
 		// Check if this component is registered in navigation system
 		if (ClusterTree.Num() && NavSys && NavSys->GetObjectsNavOctreeId(this))
 		{
-			FBox NewBounds = FBox(ClusterTree[0].BoundMin, ClusterTree[0].BoundMax).TransformBy(ComponentToWorld);
+			FBox NewBounds = FBox(ClusterTree[0].BoundMin, ClusterTree[0].BoundMax).TransformBy(GetComponentTransform());
 			NavSys->UpdateNavOctreeElementBounds(this, NewBounds, AccumulatedNavigationDirtyArea);
 		}
 			
@@ -2853,7 +2853,7 @@ static void GatherInstancesOverlappingArea(const UHierarchicalInstancedStaticMes
 {
 	const TArray<FClusterNode>& ClusterTree = *Component.ClusterTreePtr;
 	const FClusterNode& ChildNode = ClusterTree[Child];
-	const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.ComponentToWorld);
+	const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.GetComponentTransform());
 
 	if (AreaBox.Intersect(WorldNodeBox))
 	{
@@ -2897,11 +2897,11 @@ TArray<int32> UHierarchicalInstancedStaticMeshComponent::GetInstancesOverlapping
 		FBox WorldSpaceAABB(Sphere.Center - FVector(Sphere.W), Sphere.Center + FVector(Sphere.W));
 		if (bSphereInWorldSpace)
 		{
-			Sphere = Sphere.TransformBy(ComponentToWorld.Inverse());
+			Sphere = Sphere.TransformBy(GetComponentTransform().Inverse());
 		}
 		else
 		{
-			WorldSpaceAABB = WorldSpaceAABB.TransformBy(ComponentToWorld);
+			WorldSpaceAABB = WorldSpaceAABB.TransformBy(GetComponentTransform());
 		}
 
 		const float StaticMeshBoundsRadius = GetStaticMesh()->GetBounds().SphereRadius;
@@ -2930,11 +2930,11 @@ TArray<int32> UHierarchicalInstancedStaticMeshComponent::GetInstancesOverlapping
 		FBox LocalSpaceSpaceBox(InBox);
 		if (bBoxInWorldSpace)
 		{
-			LocalSpaceSpaceBox = LocalSpaceSpaceBox.TransformBy(ComponentToWorld.Inverse());
+			LocalSpaceSpaceBox = LocalSpaceSpaceBox.TransformBy(GetComponentTransform().Inverse());
 		}
 		else
 		{
-			WorldSpaceBox = WorldSpaceBox.TransformBy(ComponentToWorld);
+			WorldSpaceBox = WorldSpaceBox.TransformBy(GetComponentTransform());
 		}
 
 		const FBox StaticMeshBox = GetStaticMesh()->GetBounds().GetBox();

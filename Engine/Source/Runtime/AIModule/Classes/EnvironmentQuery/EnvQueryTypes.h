@@ -485,7 +485,7 @@ struct AIMODULE_API FEnvQueryItem
 
 template <> struct TIsZeroConstructType<FEnvQueryItem> { enum { Value = true }; };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct AIMODULE_API FEnvQueryResult
 {
 	GENERATED_USTRUCT_BODY()

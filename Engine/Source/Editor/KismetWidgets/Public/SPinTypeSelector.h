@@ -48,7 +48,7 @@ public:
 
 	SLATE_BEGIN_ARGS( SPinTypeSelector )
 		: _TargetPinType()
-		, _Schema(NULL)
+		, _Schema(nullptr)
 		, _TypeTreeFilter(ETypeTreeFilter::None)
 		, _bAllowArrays(true)
 		, _TreeViewWidth(300.f)
@@ -96,6 +96,7 @@ protected:
 	FText GetSecondaryTypeDescription() const;
 
 	TSharedPtr<SComboButton>		TypeComboButton;
+	TSharedPtr<SComboButton>		SecondaryTypeComboButton;
 	TSharedPtr<SSearchBox>			FilterTextBox;
 	TSharedPtr<SPinTypeTreeView>	TypeTreeView;
 	
@@ -140,7 +141,7 @@ protected:
 	void OnArrayStateToggled();
 
 	/** Updates the variable container type: */
-	void OnContainerTypeSelectionChanged(enum class EPinContainerType PinContainerType);
+	void OnContainerTypeSelectionChanged(EPinContainerType PinContainerType);
 
 	/** Array containing the unfiltered list of all supported types this pin could possibly have */
 	TArray<FPinTypeTreeItem>		TypeTreeRoot;

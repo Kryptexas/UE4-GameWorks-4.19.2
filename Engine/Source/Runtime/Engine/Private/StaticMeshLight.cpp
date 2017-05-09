@@ -65,7 +65,7 @@ FStaticMeshStaticLightingMesh::FStaticMeshStaticLightingMesh(const UStaticMeshCo
 	StaticMesh(InPrimitive->GetStaticMesh()),
 	Primitive(InPrimitive),
 	LODRenderData(InPrimitive->GetStaticMesh()->RenderData->LODResources[InLODIndex]),
-	bReverseWinding(InPrimitive->ComponentToWorld.GetDeterminant() < 0.0f)
+	bReverseWinding(InPrimitive->GetComponentTransform().GetDeterminant() < 0.0f)
 {
 	LODIndexBuffer = LODRenderData.IndexBuffer.GetArrayView();
 

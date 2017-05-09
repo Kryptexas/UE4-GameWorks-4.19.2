@@ -26,7 +26,7 @@ struct FClassArchiveProxy : public FStructArchiveProxy
 	static void AddReferencedNames(const UClass* Class, FUHTMakefile& UHTMakefile);
 
 	int32 ClassUnique;
-	uint32 ClassFlags;
+	EClassFlags ClassFlags;
 	EClassCastFlags ClassCastFlags;
 	FSerializeIndex ClassWithinIndex;
 	FSerializeIndex ClassGeneratedByIndex;

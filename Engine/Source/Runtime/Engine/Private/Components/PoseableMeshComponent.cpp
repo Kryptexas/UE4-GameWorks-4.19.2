@@ -206,7 +206,7 @@ FTransform GetBoneTransformByNameHelper(FName BoneName, EBoneSpaces::Type BoneSp
 	}
 	else
 	{
-		return CSPose.GetComponentSpaceTransform(BoneIndex) * Component->ComponentToWorld;
+		return CSPose.GetComponentSpaceTransform(BoneIndex) * Component->GetComponentTransform();
 	}
 }
 

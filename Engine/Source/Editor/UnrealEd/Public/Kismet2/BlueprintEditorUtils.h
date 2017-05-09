@@ -257,6 +257,9 @@ public:
 	 */
 	static bool ShouldRegenerateBlueprint(UBlueprint* Blueprint);
 
+	/** Returns true if compilation for the given blueprint has been disabled */
+	static bool IsCompileOnLoadDisabled(UBlueprint* Blueprint);
+
 	/**
 	 * Blueprint has structurally changed (added/removed functions, graphs, etc...). Performs the following actions:
 	 *  - Recompiles the skeleton class.
@@ -1080,14 +1083,16 @@ public:
 	/** Indicates if the variable is used on any graphs in this Blueprint*/
 	static bool IsVariableUsed(const UBlueprint* Blueprint, const FName& Name, UEdGraph* LocalGraphScope = nullptr);
 
-	static void ImportKismetDefaultValueToProperty(UEdGraphPin* SourcePin, UProperty* DestinationProperty, uint8* DestinationAddress, UObject* OwnerObject);
-	
-	static void ExportPropertyToKismetDefaultValue(UEdGraphPin* TargetPin, UProperty* SourceProperty, uint8* SourceAddress, UObject* OwnerObject);
+	/** Copies the value from the passed in string into a property. ContainerMem points to the Struct or Class containing Property */
+	static bool PropertyValueFromString(const UProperty* Property, const FString& StrValue, uint8* Container);
 
-	static bool PropertyValueFromString(const UProperty* Property, const FString& StrValue, uint8* ContainerMem);
+	/** Copies the value from the passed in string into a property. DirectValue is the raw memory address of the property value */
+	static bool PropertyValueFromString_Direct(const UProperty* Property, const FString& StrValue, uint8* DirectValue);
 
+	/** Copies the value from a property into the string OutForm. ContainerMem points to the Struct or Class containing Property */
 	static bool PropertyValueToString(const UProperty* Property, const uint8* Container, FString& OutForm);
 
+	/** Copies the value from a property into the string OutForm. DirectValue is the raw memory address of the property value */
 	static bool PropertyValueToString_Direct(const UProperty* Property, const uint8* DirectValue, FString& OutForm);
 
 	/** Call PostEditChange() on all Actors based on the given Blueprint */

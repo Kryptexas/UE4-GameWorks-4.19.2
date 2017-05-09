@@ -129,7 +129,7 @@ public:
 	{
 		if (Struct)
 		{
-			auto VarDescArray = GetVarDescPtr(Struct);
+			TArray<FStructVariableDescription>* VarDescArray = GetVarDescPtr(Struct);
 			return VarDescArray ? VarDescArray->FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : nullptr;
 		}
 		return nullptr;
@@ -139,7 +139,7 @@ public:
 	{
 		if (Struct)
 		{
-			auto VarDescArray = GetVarDescPtr(Struct);
+			const TArray<FStructVariableDescription>* VarDescArray = GetVarDescPtr(Struct);
 			return VarDescArray ? VarDescArray->FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : nullptr;
 		}
 		return nullptr;

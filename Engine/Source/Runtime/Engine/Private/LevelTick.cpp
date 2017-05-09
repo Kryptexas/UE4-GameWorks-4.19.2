@@ -1155,48 +1155,55 @@ void EndTickDrawEvent(TDrawEvent<FRHICommandList>* TickDrawEvent)
 }
 
 
-void FTickableGameObject::TickObjects(UWorld* World, int32 InTickType, bool bIsPaused, float DeltaSeconds)
+void FTickableGameObject::TickObjects(UWorld* World, const int32 InTickType, const bool bIsPaused, const float DeltaSeconds)
 {
-	check(!bIsTickingObjects);
-	bIsTickingObjects = true;
-
-	bool bNeedsCleanup = false;
-	ELevelTick TickType = (ELevelTick)InTickType;
-
-	for( int32 i=0; i < TickableObjects.Num(); ++i )
+	if (TickableObjects.Num() > 0)
 	{
-		if (FTickableGameObject* TickableObject = TickableObjects[i])
+		check(!bIsTickingObjects);
+		bIsTickingObjects = true;
+
+		bool bNeedsCleanup = false;
+		const ELevelTick TickType = (ELevelTick)InTickType;
+
+		for (int32 i = 0; i < TickableObjects.Num(); ++i)
 		{
-			const bool bTickIt = TickableObject->IsTickable() && (TickableObject->GetTickableGameObjectWorld() == World) &&
-				(
-					(TickType != LEVELTICK_TimeOnly && !bIsPaused) ||
-					(bIsPaused && TickableObject->IsTickableWhenPaused()) ||
-					(GIsEditor && (World == nullptr || !World->IsPlayInEditor()) && TickableObject->IsTickableInEditor())
-					);
-
-			if (bTickIt)
+			if (FTickableGameObject* TickableObject = TickableObjects[i])
 			{
-				STAT(FScopeCycleCounter Context(TickableObject->GetStatId());)
-				TickableObject->Tick(DeltaSeconds);
-
-				if (TickableObjects[i] == nullptr)
+				// If it is tickable and in this world
+				if (TickableObject->IsTickable() && (TickableObject->GetTickableGameObjectWorld() == World))
 				{
-					bNeedsCleanup = true;
+					// If this is a game world or the object is tickable in editor
+					const bool bIsGameWorld = InTickType == LEVELTICK_All || (World && World->IsGameWorld());
+
+					if (bIsGameWorld || (GIsEditor && TickableObject->IsTickableInEditor()))
+					{
+						// Then tick if we are not doing a time only (paused) update and we are not paused or the object is tickable when paused
+						if ((!bIsPaused && TickType != LEVELTICK_TimeOnly) || (bIsPaused && TickableObject->IsTickableWhenPaused()))
+						{
+							STAT(FScopeCycleCounter Context(TickableObject->GetStatId());)
+							TickableObject->Tick(DeltaSeconds);
+
+							if (TickableObjects[i] == nullptr)
+							{
+								bNeedsCleanup = true;
+							}
+						}
+					}
 				}
 			}
+			else
+			{
+				bNeedsCleanup = true;
+			}
 		}
-		else
+
+		if (bNeedsCleanup)
 		{
-			bNeedsCleanup = true;
+			TickableObjects.RemoveAll([](FTickableGameObject* Object) { return Object == nullptr; });
 		}
-	}
 
-	if (bNeedsCleanup)
-	{
-		TickableObjects.RemoveAll([](FTickableGameObject* Object) { return Object == nullptr; });
+		bIsTickingObjects = false;
 	}
-
-	bIsTickingObjects = false;
 }
 
 /**

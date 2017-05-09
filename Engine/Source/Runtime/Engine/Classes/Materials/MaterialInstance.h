@@ -28,7 +28,7 @@ class FMaterialShaderMapId;
 class FSHAHash;
 
 /** Editable font parameter. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FFontParameterValue
 {
 	GENERATED_USTRUCT_BODY()
@@ -58,7 +58,7 @@ struct FFontParameterValue
 };
 
 /** Editable scalar parameter. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FScalarParameterValue
 {
 	GENERATED_USTRUCT_BODY()
@@ -84,7 +84,7 @@ struct FScalarParameterValue
 };
 
 /** Editable texture parameter. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FTextureParameterValue
 {
 	GENERATED_USTRUCT_BODY()
@@ -110,7 +110,7 @@ struct FTextureParameterValue
 };
 
 /** Editable vector parameter. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FVectorParameterValue
 {
 	GENERATED_USTRUCT_BODY()
@@ -213,7 +213,7 @@ class UMaterialInstance : public UMaterialInterface
 	UPROPERTY()
 	bool bOverrideBaseProperties_DEPRECATED;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
+	UPROPERTY(EditAnywhere, Category=MaterialInstance)
 	struct FMaterialInstanceBasePropertyOverrides BasePropertyOverrides;
 
 	//Cached copies of the base property overrides or the value from the parent to avoid traversing the parent chain for each access.

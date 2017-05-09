@@ -179,7 +179,7 @@ void FParticleSystemThumbnailScene::SetParticleSystem(UParticleSystem* ParticleS
 		ParticleSystem->PreviewComponent = NewObject<UParticleSystemComponent>();
 		ParticleSystem->PreviewComponent->Template = ParticleSystem;
 
-		ParticleSystem->PreviewComponent->ComponentToWorld.SetIdentity();
+		ParticleSystem->PreviewComponent->SetComponentToWorld(FTransform::Identity);
 
 		bNewComponent = true;
 	}

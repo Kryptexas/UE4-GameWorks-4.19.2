@@ -159,6 +159,7 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 				if (OwnerClass)
 				{
 					Dependencies.Assets.AddUnique(OwnerClass);
+					Dependencies.Assets.AddUnique(OwnerClass->GetDefaultObject());
 				}
 				else if (UStruct* OwnerStruct = AsField->GetOwnerStruct())
 				{
@@ -374,12 +375,12 @@ FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* In
 			TSet<UField*> FieldsToAdd;
 			for (auto Iter = FieldSet.CreateIterator(); Iter; ++Iter)
 			{
-				UClass* CurrentClass = (*Iter) ? (*Iter)->GetOwnerClass() : nullptr;
-				UBlueprint* CurrentBP = CurrentClass ? Cast<UBlueprint>(CurrentClass->ClassGeneratedBy) : nullptr;
-				if (CurrentBP && FBlueprintEditorUtils::IsDataOnlyBlueprint(CurrentBP))
+				const UClass* CurrentClass = (*Iter) ? (*Iter)->GetOwnerClass() : nullptr;
+				const UBlueprint* CurrentBP = CurrentClass ? Cast<UBlueprint>(CurrentClass->ClassGeneratedBy) : nullptr;
+				if (CurrentBP && FBlueprintEditorUtils::IsDataOnlyBlueprint(CurrentBP) && !WillClassBeConverted(Cast<const UBlueprintGeneratedClass>(CurrentClass)))
 				{
 					Iter.RemoveCurrent();
-					FieldsToAdd.Add(GetFirstNativeOrConvertedClass(CurrentClass, true));
+					FieldsToAdd.Add(GetFirstNativeOrConvertedClass(CurrentClass->GetSuperClass()));
 				}
 			}
 
@@ -424,7 +425,7 @@ FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* In
 	GatherRequiredModules(IncludeInBody);
 }
 
-UClass* FGatherConvertedClassDependencies::GetFirstNativeOrConvertedClass(UClass* InClass, bool bExcludeBPDataOnly) const
+UClass* FGatherConvertedClassDependencies::GetFirstNativeOrConvertedClass(UClass* InClass) const
 {
 	check(InClass);
 	for (UClass* ItClass = InClass; ItClass; ItClass = ItClass->GetSuperClass())
@@ -432,14 +433,6 @@ UClass* FGatherConvertedClassDependencies::GetFirstNativeOrConvertedClass(UClass
 		UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ItClass);
 		if (ItClass->HasAnyClassFlags(CLASS_Native) || WillClassBeConverted(BPGC))
 		{
-			if (bExcludeBPDataOnly)
-			{
-				UBlueprint* BP = BPGC ? Cast<UBlueprint>(BPGC->ClassGeneratedBy) : nullptr;
-				if (BP && FBlueprintEditorUtils::IsDataOnlyBlueprint(BP))
-				{
-					continue;
-				}
-			}
 			return ItClass;
 		}
 	}
@@ -591,9 +584,14 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		for (TFieldIterator<UObjectPropertyBase> PropertyIt(UDS); PropertyIt; ++PropertyIt)
 		{
 			UObject* DefaultValueObject = ((UObjectPropertyBase*)*PropertyIt)->GetObjectPropertyValue_InContainer(StructOnScope.GetStructMemory());
-			UField* ObjAsField = Cast<UField>(DefaultValueObject);
-			UField* FieldForHeader = ObjAsField ? ObjAsField : (DefaultValueObject ? DefaultValueObject->GetClass() : nullptr);
-			IncludeInHeader.Add(FieldForHeader);
+			if (ShouldIncludeHeaderFor(DefaultValueObject))
+			{
+				UField* ObjAsField = Cast<UField>(DefaultValueObject);
+				if (UField* FieldForHeader = ObjAsField ? ObjAsField : (DefaultValueObject ? DefaultValueObject->GetClass() : nullptr))
+				{
+					DeclareInHeader.Add(FieldForHeader);
+				}
+			}
 		}
 	}
 

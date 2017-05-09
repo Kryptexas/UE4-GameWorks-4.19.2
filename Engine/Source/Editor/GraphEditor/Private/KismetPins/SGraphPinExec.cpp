@@ -8,8 +8,12 @@ void SGraphPinExec::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 {
 	SGraphPin::Construct(SGraphPin::FArguments(), InPin);
 
-	bWasEventPin = false;
+	// Call utility function so inheritors can also call it since arguments can be passed through
+	CachePinIcons();
+}
 
+void SGraphPinExec::CachePinIcons()
+{
 	CachedImg_Pin_ConnectedHovered = FEditorStyle::GetBrush(TEXT("Graph.ExecPin.ConnectedHovered"));
 	CachedImg_Pin_Connected = FEditorStyle::GetBrush(TEXT("Graph.ExecPin.Connected"));
 	CachedImg_Pin_DisconnectedHovered = FEditorStyle::GetBrush(TEXT("Graph.ExecPin.DisconnectedHovered"));

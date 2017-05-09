@@ -59,7 +59,7 @@ DirectoryWatcher::FFileCacheConfig GenerateFileCacheConfig(const FString& InPath
 		// We need to consider this as a changed file if the hash doesn't match any asset imported from that file
 		for (FAssetData& Asset : Assets)
 		{
-			TOptional<FAssetImportInfo> Info = FAssetSourceFilenameCache::ExtractAssetImportInfo(Asset.TagsAndValues);
+			TOptional<FAssetImportInfo> Info = FAssetSourceFilenameCache::ExtractAssetImportInfo(Asset);
 
 			// Check if the source file that this asset last imported was the same as the one we're going to reimport.
 			// If it is, there's no reason to auto-reimport it

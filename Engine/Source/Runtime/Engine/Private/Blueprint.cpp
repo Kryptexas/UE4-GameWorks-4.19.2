@@ -582,17 +582,18 @@ UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Previous
 			UBlueprint::ForceLoadMembers(GeneratedClassResolved->ClassDefaultObject);
 		}
 		UBlueprint::ForceLoadMembers(this);
+		
+		FBlueprintEditorUtils::PreloadConstructionScript( this );
+
+		FBlueprintEditorUtils::LinkExternalDependencies( this );
 
 		FBlueprintEditorUtils::RefreshVariables(this);
-		FBlueprintEditorUtils::PreloadConstructionScript( this );
 		
 		// Preload Overridden Components
 		if (InheritableComponentHandler)
 		{
 			InheritableComponentHandler->PreloadAll();
 		}
-
-		FBlueprintEditorUtils::LinkExternalDependencies( this );
 
 		FBlueprintCompilationManager::NotifyBlueprintLoaded( this ); 
 		
@@ -1176,7 +1177,7 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 		// If nativization is enabled and this Blueprint class will NOT be nativized, we need to determine if any of its parent Blueprints will be nativized and flag it for the runtime code.
 		// Note: Currently, this flag is set on Actor-based Blueprint classes only. If it's ever needed for non-Actor-based Blueprint classes at runtime, then this needs to be updated to match.
 		const IBlueprintNativeCodeGenCore* NativeCodeGenCore = IBlueprintNativeCodeGenCore::Get();
-		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets")))
+		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr)
 		{
 			ensure(TargetPlatform);
 			const FCompilerNativizationOptions& NativizationOptions = NativeCodeGenCore->GetNativizationOptionsForPlatform(TargetPlatform);

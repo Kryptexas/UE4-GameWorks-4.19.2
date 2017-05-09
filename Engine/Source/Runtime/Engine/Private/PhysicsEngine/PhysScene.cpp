@@ -1224,9 +1224,9 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 
 		// See if the transform is actually different, and if so, move the component to match physics
 		const FTransform NewTransform = BodyInstance->GetUnrealWorldTransform_AssumesLocked();
-		if (!NewTransform.EqualsNoScale(BodyInstance->OwnerComponent->ComponentToWorld))
+		if (!NewTransform.EqualsNoScale(BodyInstance->OwnerComponent->GetComponentTransform()))
 		{
-			const FVector MoveBy = NewTransform.GetLocation() - BodyInstance->OwnerComponent->ComponentToWorld.GetLocation();
+			const FVector MoveBy = NewTransform.GetLocation() - BodyInstance->OwnerComponent->GetComponentTransform().GetLocation();
 			const FQuat NewRotation = NewTransform.GetRotation();
 
 			//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)

@@ -17,29 +17,29 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 	bool bSucceeded = true;
 	//connect exe
 	{
-		auto SpawnExecPin = GetExecPin();
-		auto CallExecPin = CallCreateNode->GetExecPin();
+		UEdGraphPin* SpawnExecPin = GetExecPin();
+		UEdGraphPin* CallExecPin = CallCreateNode->GetExecPin();
 		bSucceeded &= SpawnExecPin && CallExecPin && CompilerContext.MovePinLinksToIntermediate(*SpawnExecPin, *CallExecPin).CanSafeConnect();
 	}
 
 	//connect class
 	{
-		auto SpawnClassPin = GetClassPin();
-		auto CallClassPin = CallCreateNode->FindPin(TEXT("ObjectClass"));
+		UEdGraphPin* SpawnClassPin = GetClassPin();
+		UEdGraphPin* CallClassPin = CallCreateNode->FindPin(TEXT("ObjectClass"));
 		bSucceeded &= SpawnClassPin && CallClassPin && CompilerContext.MovePinLinksToIntermediate(*SpawnClassPin, *CallClassPin).CanSafeConnect();
 	}
 		
 	//connect outer
 	{
-		auto SpawnOuterPin = GetOuterPin();
-		auto CallOuterPin = CallCreateNode->FindPin(TEXT("Outer"));
+		UEdGraphPin* SpawnOuterPin = GetOuterPin();
+		UEdGraphPin* CallOuterPin = CallCreateNode->FindPin(TEXT("Outer"));
 		bSucceeded &= SpawnOuterPin && CallOuterPin && CompilerContext.MovePinLinksToIntermediate(*SpawnOuterPin, *CallOuterPin).CanSafeConnect();
 	}
 
 	UEdGraphPin* CallResultPin = nullptr;
 	//connect result
 	{
-		auto SpawnResultPin = GetResultPin();
+		UEdGraphPin* SpawnResultPin = GetResultPin();
 		CallResultPin = CallCreateNode->GetReturnValuePin();
 
 		// cast HACK. It should be safe. The only problem is native code generation.
@@ -52,8 +52,8 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 
 	//assign exposed values and connect then
 	{
-		auto LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, this, CallResultPin, GetClassToSpawn());
-		auto SpawnNodeThen = GetThenPin();
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallCreateNode, this, CallResultPin, GetClassToSpawn());
+		UEdGraphPin* SpawnNodeThen = GetThenPin();
 		bSucceeded &= SpawnNodeThen && LastThen && CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *LastThen).CanSafeConnect();
 	}
 
@@ -65,23 +65,18 @@ void UK2Node_GenericCreateObject::ExpandNode(class FKismetCompilerContext& Compi
 	}
 }
 
-void UK2Node_GenericCreateObject::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
-{
-	Super::ValidateNodeDuringCompilation(MessageLog);
-}
-
 void UK2Node_GenericCreateObject::EarlyValidation(class FCompilerResultsLog& MessageLog) const
 {
 	Super::EarlyValidation(MessageLog);
-	auto ClassPin = GetClassPin(&Pins);
+	UEdGraphPin* ClassPin = GetClassPin(&Pins);
 	const bool bAllowAbstract = ClassPin && ClassPin->LinkedTo.Num();
-	auto ClassToSpawn = GetClassToSpawn();
+	UClass* ClassToSpawn = GetClassToSpawn();
 	if (!UGameplayStatics::CanSpawnObjectOfClass(ClassToSpawn, bAllowAbstract))
 	{
 		MessageLog.Error(*FString::Printf(*LOCTEXT("GenericCreateObject_WrongClass", "Wrong class to spawn '%s' in @@").ToString(), *GetPathNameSafe(ClassToSpawn)), this);
 	}
 
-	auto OuterPin = GetOuterPin();
+	UEdGraphPin* OuterPin = GetOuterPin();
 	if (!OuterPin || (!OuterPin->DefaultObject && !OuterPin->LinkedTo.Num()))
 	{
 		MessageLog.Error(*LOCTEXT("GenericCreateObject_NoOuter", "Outer object is required in @@").ToString(), this);

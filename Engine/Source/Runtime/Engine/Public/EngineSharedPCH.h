@@ -462,7 +462,6 @@
 
 // From AssetRegistry:
 #include "AssetData.h"
-#include "SharedMapView.h"
 
 // From PacketHandler:
 #include "PacketHandler.h"

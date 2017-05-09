@@ -185,17 +185,17 @@ void UK2Node_DoOnceMultiInput::AllocateDefaultPins()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	FText InputPinAName = GetNameForPin(0, true);
-	UEdGraphPin* InputPinA = CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, InputPinAName.BuildSourceString());
+	UEdGraphPin* InputPinA = CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, InputPinAName.BuildSourceString());
 	InputPinA->PinFriendlyName = InputPinAName;
 
 	FText OutputPinAName = GetNameForPin(0, false);
-	UEdGraphPin* OutputPinA = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, OutputPinAName.BuildSourceString());
+	UEdGraphPin* OutputPinA = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, OutputPinAName.BuildSourceString());
 	OutputPinA->PinFriendlyName = OutputPinAName;
 
-	UEdGraphPin* DoOnceResetIn = CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Reset In"));
+	UEdGraphPin* DoOnceResetIn = CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, TEXT("Reset In"));
 	DoOnceResetIn->PinFriendlyName = LOCTEXT("DoOnceResetIn", "Reset In");
 
-	UEdGraphPin* DoOnceResetOut = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Reset Out"));
+	UEdGraphPin* DoOnceResetOut = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Reset Out"));
 	DoOnceResetOut->PinFriendlyName = LOCTEXT("DoOnceResetOut", "Reset Out");
 
 	for (int32 i = 0; i < NumAdditionalInputs; ++i)

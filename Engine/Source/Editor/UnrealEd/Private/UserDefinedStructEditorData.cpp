@@ -10,22 +10,28 @@
 
 #define LOCTEXT_NAMESPACE "UserDefinedStructEditorData"
 
+void FStructVariableDescription::PostSerialize(const FArchive& Ar)
+{
+	if (ContainerType == EPinContainerType::None)
+	{
+		ContainerType = FEdGraphPinType::ToPinContainerType(bIsArray_DEPRECATED, bIsSet_DEPRECATED, bIsMap_DEPRECATED);
+	}
+}
+
 bool FStructVariableDescription::SetPinType(const FEdGraphPinType& VarType)
 {
 	Category = VarType.PinCategory;
 	SubCategory = VarType.PinSubCategory;
 	SubCategoryObject = VarType.PinSubCategoryObject.Get();
 	PinValueType = VarType.PinValueType;
-	bIsArray = VarType.bIsArray;
-	bIsSet = VarType.bIsSet;
-	bIsMap = VarType.bIsMap;
+	ContainerType = VarType.ContainerType;
 
 	return !VarType.bIsReference && !VarType.bIsWeakPointer;
 }
 
 FEdGraphPinType FStructVariableDescription::ToPinType() const
 {
-	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.LoadSynchronous(), bIsArray, false, bIsSet, bIsMap, PinValueType);
+	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.LoadSynchronous(), ContainerType, false, PinValueType);
 }
 
 UUserDefinedStructEditorData::UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer)

@@ -6,10 +6,12 @@
 #include "AssetData.h"
 #include "ARFilter.h"
 #include "Engine/Engine.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Misc/FileHelper.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/Paths.h"
+#include "AssetRegistryState.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -96,18 +98,11 @@ const FPrimaryAssetType UAssetManager::PrimaryAssetLabelType = FName(TEXT("Prima
 UAssetManager::UAssetManager()
 {
 	bIsGlobalAsyncScanEnvironment = false;
-	bShouldKeepHardRefs = !GIsEditor || IsRunningCommandlet();
-	
-#if WITH_EDITOR
-	// In editor builds guess the type/name, in cooked builds do not as it should be saved
-	bShouldGuessTypeAndName = true;
-#else
 	bShouldGuessTypeAndName = false;
-#endif
-
-	bShouldUseSynchronousLoad = IsRunningCommandlet();
+	bShouldUseSynchronousLoad = false;
 	bIsBulkScanning = false;
 	bIsManagementDatabaseCurrent = false;
+	bUpdateManagementDatabaseAfterScan = false;
 }
 
 void UAssetManager::PostInitProperties()
@@ -116,7 +111,7 @@ void UAssetManager::PostInitProperties()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-
+		const UAssetManagerSettings& Settings = GetSettings();
 #if WITH_EDITOR
 		bIsGlobalAsyncScanEnvironment = GIsEditor && !IsRunningCommandlet();
 
@@ -128,11 +123,20 @@ void UAssetManager::PostInitProperties()
 			AssetRegistry.OnFilesLoaded().AddUObject(this, &UAssetManager::OnAssetRegistryFilesLoaded);
 			AssetRegistry.OnInMemoryAssetCreated().AddUObject(this, &UAssetManager::OnInMemoryAssetCreated);
 			AssetRegistry.OnInMemoryAssetDeleted().AddUObject(this, &UAssetManager::OnInMemoryAssetDeleted);
+			AssetRegistry.OnAssetRenamed().AddUObject(this, &UAssetManager::OnAssetRenamed);
 		}
 
 		FEditorDelegates::PreBeginPIE.AddUObject(this, &UAssetManager::PreBeginPIE);
 		FEditorDelegates::EndPIE.AddUObject(this, &UAssetManager::EndPIE);
+
+		// In editor builds guess the type/name if allowed
+		bShouldGuessTypeAndName = GetSettings().bShouldGuessTypeAndNameInEditor;
+#else 
+		// Never guess type in cooked builds
+		bShouldGuessTypeAndName = false;
 #endif
+		bShouldUseSynchronousLoad = IsRunningCommandlet();
+
 		LoadRedirectorMaps();
 	}
 }
@@ -281,7 +285,12 @@ int32 UAssetManager::ScanPathsForPrimaryAssets(FPrimaryAssetType PrimaryAssetTyp
 		}
 		else
 		{
-			ARFilter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
+			TArray<UClass*> BlueprintCoreDerivedClasses;
+			GetDerivedClasses(UBlueprintCore::StaticClass(), BlueprintCoreDerivedClasses);
+			for (UClass* BPCoreClass : BlueprintCoreDerivedClasses)
+			{
+				ARFilter.ClassNames.Add(BPCoreClass->GetFName());
+			}
 
 			// Make sure this works, if it does remove post load check
 			ClassNames.Add(BaseClass->GetFName());
@@ -289,14 +298,14 @@ int32 UAssetManager::ScanPathsForPrimaryAssets(FPrimaryAssetType PrimaryAssetTyp
 
 			/* DerivedClassNames are short names, GeneratedClass is a long name
 			const FName GeneratedClassName = FName(TEXT("GeneratedClass"));
-			for (FName DerivedClassName : DerivedClassNames)
+			for (const FName& DerivedClassName : DerivedClassNames)
 			{
 			ARFilter.TagsAndValues.Add(GeneratedClassName, DerivedClassName.ToString());
 
 			// Add any old names to the list in case things haven't been resaved
 			TArray<FName> OldNames = FLinkerLoad::FindPreviousNamesForClass(BaseClass->GetPathName(), false);
 
-			for (FName OldClassName : OldNames)
+			for (const FName& OldClassName : OldNames)
 			{
 			ARFilter.TagsAndValues.Add(GeneratedClassName, OldClassName.ToString());
 			}
@@ -348,7 +357,7 @@ int32 UAssetManager::ScanPathsForPrimaryAssets(FPrimaryAssetType PrimaryAssetTyp
 				ValidNames = FLinkerLoad::FindPreviousNamesForClass(BaseClass->GetPathName(), false);
 #endif
 				ValidNames.Add(FName(*ClassName));		
-				for (FName ValidName : ValidNames)
+				for (const FName& ValidName : ValidNames)
 				{
 					if (DerivedClassNames.Contains(ValidName))
 					{
@@ -417,11 +426,8 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 
 		if (OldData && OldData->AssetPtr.ToStringReference() != NewStringReference)
 		{
-			if (bAllowDuplicates)
-			{
-				UE_LOG(LogAssetManager, Warning, TEXT("Found Duplicate PrimaryAssetID %s during creation, this must be resolved before saving. Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToStringReference().ToString(), *NewStringReference.ToString());
-			}
-			else
+			UE_LOG(LogAssetManager, Warning, TEXT("Found Duplicate PrimaryAssetID %s, this must be resolved before saving. Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToStringReference().ToString(), *NewStringReference.ToString());
+			if (!bAllowDuplicates)
 			{
 				ensureMsgf(!OldData, TEXT("Found Duplicate PrimaryAssetID %s! Path %s is replacing path %s"), *PrimaryAssetId.ToString(), *OldData->AssetPtr.ToStringReference().ToString(), *NewStringReference.ToString());
 			}
@@ -467,6 +473,9 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 			CachedAssetBundles.Remove(PrimaryAssetId);
 		}
 		
+		// Mark these as editor only if our type is editor only
+		FStringAssetReferenceSerializationScope SerializationScope(NAME_None, NAME_None, TypeData.Info.bIsEditorOnly ? EStringAssetReferenceCollectType::EditorOnlyCollect : EStringAssetReferenceCollectType::AlwaysCollect);
+
 		FAssetBundleData BundleData;
 		if (BundleData.SetFromAssetData(NewAssetData))
 		{
@@ -677,7 +686,7 @@ bool UAssetManager::GetPrimaryAssetDataList(FPrimaryAssetType PrimaryAssetType, 
 	{
 		const FPrimaryAssetTypeData& TypeData = FoundType->Get();
 
-		for (TPair<FName, FPrimaryAssetData> Pair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& Pair : TypeData.AssetMap)
 		{
 			const FAssetData* CachedAssetData = Registry.GetCachedAssetDataForObjectPath(Pair.Value.AssetDataPath);
 
@@ -713,7 +722,7 @@ bool UAssetManager::GetPrimaryAssetObjectList(FPrimaryAssetType PrimaryAssetType
 	{
 		const FPrimaryAssetTypeData& TypeData = FoundType->Get();
 
-		for (TPair<FName, FPrimaryAssetData> Pair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& Pair : TypeData.AssetMap)
 		{
 			UObject* FoundObject = Pair.Value.AssetPtr.Get();
 
@@ -747,9 +756,12 @@ bool UAssetManager::GetPrimaryAssetPathList(FPrimaryAssetType PrimaryAssetType, 
 	{
 		const FPrimaryAssetTypeData& TypeData = FoundType->Get();
 
-		for (TPair<FName, FPrimaryAssetData> Pair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& Pair : TypeData.AssetMap)
 		{
-			AssetPathList.AddUnique(Pair.Value.AssetPtr.ToStringReference());
+			if (!Pair.Value.AssetPtr.IsNull())
+			{
+				AssetPathList.AddUnique(Pair.Value.AssetPtr.ToStringReference());
+			}
 		}
 	}
 
@@ -855,7 +867,7 @@ bool UAssetManager::GetPrimaryAssetIdList(FPrimaryAssetType PrimaryAssetType, TA
 	{
 		const FPrimaryAssetTypeData& TypeData = FoundType->Get();
 
-		for (TPair<FName, FPrimaryAssetData> Pair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& Pair : TypeData.AssetMap)
 		{
 			PrimaryAssetIdList.Add(FPrimaryAssetId(PrimaryAssetType, Pair.Key));
 		}
@@ -880,7 +892,7 @@ bool UAssetManager::GetPrimaryAssetTypeInfo(FPrimaryAssetType PrimaryAssetType, 
 
 void UAssetManager::GetPrimaryAssetTypeInfoList(TArray<FPrimaryAssetTypeInfo>& AssetTypeInfoList) const
 {
-	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
 		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
@@ -911,13 +923,13 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 			{
 				NewBundleState = CurrentBundleState;
 
-				for (FName RemoveBundle : RemoveBundles)
+				for (const FName& RemoveBundle : RemoveBundles)
 				{
 					NewBundleState.Remove(RemoveBundle);
 				}
 			}
 
-			for (FName AddBundle : AddBundles)
+			for (const FName& AddBundle : AddBundles)
 			{
 				NewBundleState.AddUnique(AddBundle);
 			}
@@ -951,7 +963,7 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 				PathsToLoad.Add(AssetPath);
 			}
 			
-			for (FName BundleName : NewBundleState)
+			for (const FName& BundleName : NewBundleState)
 			{
 				FAssetBundleEntry Entry = GetAssetBundleEntry(PrimaryAssetId, BundleName);
 
@@ -959,7 +971,10 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 				{
 					PathsToLoad.Append(Entry.BundleAssets);
 				}
-				UE_LOG(LogAssetManager, Verbose, TEXT("ChangeBundleStateForPrimaryAssets: No assets for bundle %s::%s"), *PrimaryAssetId.ToString(), *BundleName.ToString());
+				else
+				{
+					UE_LOG(LogAssetManager, Verbose, TEXT("ChangeBundleStateForPrimaryAssets: No assets for bundle %s::%s"), *PrimaryAssetId.ToString(), *BundleName.ToString());
+				}
 			}
 
 			TSharedPtr<FStreamableHandle> NewHandle;
@@ -1058,6 +1073,80 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 	return ReturnHandle;
 }
 
+
+TSharedPtr<FStreamableHandle> UAssetManager::PreloadPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToLoad, const TArray<FName>& LoadBundles, bool bLoadRecursive, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
+{
+	TSet<FStringAssetReference> PathsToLoad;
+	FString DebugName;
+	TSharedPtr<FStreamableHandle> ReturnHandle;
+
+	for (const FPrimaryAssetId& PrimaryAssetId : AssetsToLoad)
+	{
+		FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
+
+		if (NameData)
+		{
+			// Gather asset refs
+			const FStringAssetReference& AssetPath = NameData->AssetPtr.ToStringReference();
+
+			if (!AssetPath.IsNull())
+			{
+				// Dynamic types can have no base asset path
+				PathsToLoad.Add(AssetPath);
+			}
+
+			// Construct a temporary bundle data with the bundles specified
+			FAssetBundleData TempBundleData;
+			for (const FName& BundleName : LoadBundles)
+			{
+				FAssetBundleEntry Entry = GetAssetBundleEntry(PrimaryAssetId, BundleName);
+
+				if (Entry.IsValid())
+				{
+					TempBundleData.Bundles.Add(Entry);
+				}
+			}
+
+			if (bLoadRecursive)
+			{
+				RecursivelyExpandBundleData(TempBundleData);
+			}
+
+			for (const FAssetBundleEntry& Entry : TempBundleData.Bundles)
+			{
+				PathsToLoad.Append(Entry.BundleAssets);
+			}
+
+			if (DebugName.IsEmpty())
+			{
+				DebugName += TEXT("Preloading ");
+			}
+			else
+			{
+				DebugName += TEXT(", ");
+			}
+			DebugName += PrimaryAssetId.ToString();
+		}
+	}
+
+	if (bShouldUseSynchronousLoad)
+	{
+		ReturnHandle = StreamableManager.RequestSyncLoad(PathsToLoad.Array(), false, DebugName);
+		FStreamableHandle::ExecuteDelegate(DelegateToCall);
+	}
+	else
+	{
+		ReturnHandle = StreamableManager.RequestAsyncLoad(PathsToLoad.Array(), DelegateToCall, Priority, false, DebugName);
+	}
+
+	if (!ensureMsgf(ReturnHandle.IsValid(), TEXT("Requested preload of Primary Asset with no referenced assets!")))
+	{
+		return nullptr;
+	}
+
+	return ReturnHandle;
+}
+
 void UAssetManager::OnAssetStateChangeCompleted(FPrimaryAssetId PrimaryAssetId, TSharedPtr<FStreamableHandle> BoundHandle, FStreamableDelegate WrappedDelegate)
 {
 	FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
@@ -1102,16 +1191,16 @@ TSharedPtr<FStreamableHandle> UAssetManager::LoadPrimaryAssetsWithType(FPrimaryA
 	return LoadPrimaryAssets(Assets, LoadBundles, DelegateToCall, Priority);
 }
 
-TSharedPtr<FStreamableHandle> UAssetManager::GetPrimaryAssetHandle(const FPrimaryAssetId& PrimaryAssetId, bool bForceCurrent, TArray<FName>* Bundles)
+TSharedPtr<FStreamableHandle> UAssetManager::GetPrimaryAssetHandle(const FPrimaryAssetId& PrimaryAssetId, bool bForceCurrent, TArray<FName>* Bundles) const
 {
-	FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
+	const FPrimaryAssetData* NameData = GetNameData(PrimaryAssetId);
 
 	if (!NameData)
 	{
 		return nullptr;
 	}
 
-	FPrimaryAssetLoadState& LoadState = (bForceCurrent || !NameData->PendingState.IsValid()) ? NameData->CurrentState : NameData->PendingState;
+	const FPrimaryAssetLoadState& LoadState = (bForceCurrent || !NameData->PendingState.IsValid()) ? NameData->CurrentState : NameData->PendingState;
 
 	if (Bundles)
 	{
@@ -1120,11 +1209,11 @@ TSharedPtr<FStreamableHandle> UAssetManager::GetPrimaryAssetHandle(const FPrimar
 	return LoadState.Handle;
 }
 
-bool UAssetManager::GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& PrimaryAssetList, const TArray<FName>& ValidTypes, const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles, bool bForceCurrent)
+bool UAssetManager::GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& PrimaryAssetList, const TArray<FName>& ValidTypes, const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles, bool bForceCurrent) const
 {
 	bool bFoundAny = false;
 
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
 		if (ValidTypes.Num() > 0 && !ValidTypes.Contains(TypePair.Key))
 		{
@@ -1132,13 +1221,13 @@ bool UAssetManager::GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& Pri
 			continue;
 		}
 
-		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
+		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
-		for (TPair<FName, FPrimaryAssetData> NamePair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& NamePair : TypeData.AssetMap)
 		{
-			FPrimaryAssetData& NameData = NamePair.Value;
+			const FPrimaryAssetData& NameData = NamePair.Value;
 
-			FPrimaryAssetLoadState& LoadState = (bForceCurrent || !NameData.PendingState.IsValid()) ? NameData.CurrentState : NameData.PendingState;
+			const FPrimaryAssetLoadState& LoadState = (bForceCurrent || !NameData.PendingState.IsValid()) ? NameData.CurrentState : NameData.PendingState;
 
 			if (!LoadState.IsValid())
 			{
@@ -1149,7 +1238,7 @@ bool UAssetManager::GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& Pri
 			bool bFailedTest = false;
 
 			// Check bundle requirements
-			for (FName RequiredName : RequiredBundles)
+			for (const FName& RequiredName : RequiredBundles)
 			{
 				if (!LoadState.BundleNames.Contains(RequiredName))
 				{
@@ -1158,7 +1247,7 @@ bool UAssetManager::GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& Pri
 				}
 			}
 
-			for (FName ExcludedName : ExcludedBundles)
+			for (const FName& ExcludedName : ExcludedBundles)
 			{
 				if (LoadState.BundleNames.Contains(ExcludedName))
 				{
@@ -1178,19 +1267,19 @@ bool UAssetManager::GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& Pri
 	return bFoundAny;
 }
 
-void UAssetManager::GetPrimaryAssetBundleStateMap(TMap<FPrimaryAssetId, TArray<FName>>& BundleStateMap, bool bForceCurrent)
+void UAssetManager::GetPrimaryAssetBundleStateMap(TMap<FPrimaryAssetId, TArray<FName>>& BundleStateMap, bool bForceCurrent) const
 {
 	BundleStateMap.Reset();
 
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
-		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
+		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
-		for (TPair<FName, FPrimaryAssetData> NamePair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& NamePair : TypeData.AssetMap)
 		{
-			FPrimaryAssetData& NameData = NamePair.Value;
+			const FPrimaryAssetData& NameData = NamePair.Value;
 
-			FPrimaryAssetLoadState& LoadState = (bForceCurrent || !NameData.PendingState.IsValid()) ? NameData.CurrentState : NameData.PendingState;
+			const FPrimaryAssetLoadState& LoadState = (bForceCurrent || !NameData.PendingState.IsValid()) ? NameData.CurrentState : NameData.PendingState;
 
 			if (!LoadState.IsValid())
 			{
@@ -1289,7 +1378,6 @@ const FPrimaryAssetData* UAssetManager::GetNameData(const FPrimaryAssetId& Prima
 	const TSharedRef<FPrimaryAssetTypeData>* FoundType = AssetTypeMap.Find(PrimaryAssetId.PrimaryAssetType);
 
 	// Try redirected name
-
 	if (FoundType)
 	{
 		const FPrimaryAssetData* FoundName = (*FoundType)->AssetMap.Find(PrimaryAssetId.PrimaryAssetName);
@@ -1320,19 +1408,19 @@ void UAssetManager::RebuildObjectReferenceList()
 	ObjectReferenceList.Reset();
 
 	// Iterate primary asset map
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
 		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
 		// Add base class in case it's a blueprint
-		if (bShouldKeepHardRefs && !TypeData.Info.bIsDynamicAsset)
+		if (!TypeData.Info.bIsDynamicAsset)
 		{
 			ObjectReferenceList.AddUnique(TypeData.Info.AssetBaseClassLoaded);
 		}
 
 		TypeData.Info.NumberOfAssets = TypeData.AssetMap.Num();
 
-		for (TPair<FName, FPrimaryAssetData> NamePair : TypeData.AssetMap)
+		for (TPair<FName, FPrimaryAssetData>& NamePair : TypeData.AssetMap)
 		{
 			FPrimaryAssetData& NameData = NamePair.Value;
 			
@@ -1504,9 +1592,13 @@ void UAssetManager::ExtractStringAssetReferences(const UStruct* Struct, const vo
 	}
 }
 
-
 bool UAssetManager::GetAssetDataForPath(const FStringAssetReference& ObjectPath, FAssetData& AssetData) const
 {
+	if (ObjectPath.IsNull())
+	{
+		return false;
+	}
+
 	IAssetRegistry& AssetRegistry = GetAssetRegistry();
 
 	FString AssetPath = ObjectPath.ToString();
@@ -1564,7 +1656,7 @@ void UAssetManager::GetAssetDataForPathInternal(IAssetRegistry& AssetRegistry, c
 	bool bIsClass = AssetPath.EndsWith(TEXT("_C"), ESearchCase::CaseSensitive) && !AssetPath.Contains(TEXT("_C."), ESearchCase::CaseSensitive);
 
 	// If we're a class, first look for the asset data without the trailing _C
-	// We do this first because in cooked builds you have to search the asset registery for the Blueprint, not the class itself
+	// We do this first because in cooked builds you have to search the asset registry for the Blueprint, not the class itself
 	if (bIsClass)
 	{
 		// We need to strip the class suffix because the asset registry has it listed by blueprint name
@@ -1599,8 +1691,7 @@ bool UAssetManager::WriteCustomReport(FString FileName, TArray<FString>& FileLin
 		{
 			for (int32 Index = 0; Index < FileLines.Num(); ++Index)
 			{
-				FString LogEntry = FString::Printf(TEXT("%s"),
-					*FileLines[Index]) + LINE_TERMINATOR;
+				FString LogEntry = FString::Printf(TEXT("%s"), *FileLines[Index]) + LINE_TERMINATOR;
 				LogFile->Serialize(TCHAR_TO_ANSI(*LogEntry), LogEntry.Len());
 			}
 
@@ -1680,17 +1771,17 @@ void UAssetManager::DumpLoadedAssetState()
 
 		FPrimaryAssetTypeData& TypeData = Manager.AssetTypeMap.Find(TypeInfo.PrimaryAssetType)->Get();
 
-		for (TPair<FName, FPrimaryAssetData> NamePair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& NamePair : TypeData.AssetMap)
 		{
-			FPrimaryAssetData& NameData = NamePair.Value;
+			const FPrimaryAssetData& NameData = NamePair.Value;
 
 			if (NameData.PendingState.IsValid() || NameData.CurrentState.IsValid())
 			{
-				FPrimaryAssetLoadState& LoadState = (!NameData.PendingState.IsValid()) ? NameData.CurrentState : NameData.PendingState;
+				const FPrimaryAssetLoadState& LoadState = (!NameData.PendingState.IsValid()) ? NameData.CurrentState : NameData.PendingState;
 
 				FString BundleString;
 
-				for (FName BundleName : LoadState.BundleNames)
+				for (const FName& BundleName : LoadState.BundleNames)
 				{
 					if (!BundleString.IsEmpty())
 					{
@@ -1717,6 +1808,35 @@ void UAssetManager::DumpLoadedAssetState()
 	}
 }
 
+static FAutoConsoleCommand CVarDumpAssetRegistryInfo(
+	TEXT("AssetManager.DumpAssetRegistryInfo"),
+	TEXT("Dumps extended info about asset registry to log"),
+	FConsoleCommandDelegate::CreateStatic(UAssetManager::DumpAssetRegistryInfo),
+	ECVF_Cheat);
+
+void UAssetManager::DumpAssetRegistryInfo()
+{
+	UE_LOG(LogAssetManager, Log, TEXT("=========== Asset Registry Summary ==========="));
+	UE_LOG(LogAssetManager, Log, TEXT("Current Registry Memory:"));
+
+	UAssetManager& Manager = Get();
+
+	// Output sizes
+	Manager.GetAssetRegistry().GetAllocatedSize(true);
+
+#if WITH_EDITOR
+	UE_LOG(LogAssetManager, Log, TEXT("Estimated Cooked Registry Memory:"));
+
+	FAssetRegistryState State;
+	FAssetRegistrySerializationOptions SaveOptions;
+
+	Manager.GetAssetRegistry().InitializeSerializationOptions(SaveOptions);
+	Manager.GetAssetRegistry().InitializeTemporaryAssetRegistryState(State, SaveOptions);
+
+	State.GetAllocatedSize(true);
+#endif
+}
+
 static FAutoConsoleCommand CVarDumpReferencersForPackage(
 	TEXT("AssetManager.DumpReferencersForPackage"),
 	TEXT("Generates a graph viz and log file of all references to a specified package"),
@@ -1737,7 +1857,7 @@ void UAssetManager::DumpReferencersForPackage(const TArray< FString >& PackageNa
 
 	ReportLines.Add(TEXT("digraph { "));
 
-	for (FString PackageString : PackageNames)
+	for (const FString& PackageString : PackageNames)
 	{
 		TArray<FAssetIdentifier> FoundReferencers;
 
@@ -1767,13 +1887,13 @@ void UAssetManager::ScanPrimaryAssetTypesFromConfig()
 
 	for (FPrimaryAssetTypeInfo TypeInfo : Settings.PrimaryAssetTypesToScan)
 	{
-		// Fill out runtime data on a copy
-		if (!TypeInfo.FillRuntimeData())
+		if (TypeInfo.bIsEditorOnly && !GIsEditor)
 		{
 			continue;
 		}
 
-		if (TypeInfo.bIsEditorOnly && !GIsEditor)
+		// Fill out runtime data on a copy, specifically not making a reference in this case
+		if (!TypeInfo.FillRuntimeData())
 		{
 			continue;
 		}
@@ -1782,6 +1902,7 @@ void UAssetManager::ScanPrimaryAssetTypesFromConfig()
 
 		SetPrimaryAssetTypeRules(TypeInfo.PrimaryAssetType, TypeInfo.Rules);
 	}
+
 	StopBulkScanning();
 
 	// Read primary asset rule overrides
@@ -1802,6 +1923,7 @@ void UAssetManager::PostInitialAssetScan()
 #if WITH_EDITOR
 	if (bUpdateManagementDatabaseAfterScan)
 	{
+		bUpdateManagementDatabaseAfterScan = false;
 		UpdateManagementDatabase(true);
 	}
 #endif
@@ -1827,7 +1949,7 @@ bool UAssetManager::GetManagedPackageList(FPrimaryAssetId PrimaryAssetId, TArray
 	return bFoundAny;
 }
 
-bool UAssetManager::GetPackageManagerList(FName PackageName, bool bRecurseToParents, TArray<FPrimaryAssetId>& ManagerList) const
+bool UAssetManager::GetPackageManagers(FName PackageName, bool bRecurseToParents, TSet<FPrimaryAssetId>& ManagerSet) const
 {
 	IAssetRegistry& AssetRegistry = GetAssetRegistry();
 
@@ -1842,7 +1964,7 @@ bool UAssetManager::GetPackageManagerList(FName PackageName, bool bRecurseToPare
 		if (PrimaryAssetId.IsValid())
 		{
 			bFoundAny = true;
-			ManagerList.AddUnique(PrimaryAssetId);
+			ManagerSet.Add(PrimaryAssetId);
 
 			if (bRecurseToParents)
 			{
@@ -1926,9 +2048,9 @@ void UAssetManager::FinishInitialLoading()
 	// See if we have pending scans, if so defer result
 	bool bWaitingOnDeferredScan = false;
 
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
-		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
+		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
 		if (TypeData.DeferredAssetScanPaths.Num())
 		{
@@ -2028,7 +2150,7 @@ void UAssetManager::OnAssetRegistryFilesLoaded()
 {
 	StartBulkScanning();
 
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
 		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
@@ -2079,13 +2201,13 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 	// List of references to not recurse on, priority doesn't matter
 	TMultiMap<FAssetIdentifier, FAssetIdentifier> NoReferenceManagementMap;
 
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
-		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
+		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
-		for (TPair<FName, FPrimaryAssetData> NamePair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& NamePair : TypeData.AssetMap)
 		{
-			FPrimaryAssetData& NameData = NamePair.Value;
+			const FPrimaryAssetData& NameData = NamePair.Value;
 			FPrimaryAssetId PrimaryAssetId(TypePair.Key, NamePair.Key);
 
 			FPrimaryAssetRules Rules = GetPrimaryAssetRules(PrimaryAssetId);
@@ -2107,9 +2229,9 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 			// Add bundle references to manual reference list
 			if (BundleMap)
 			{
-				for (TPair<FName, FAssetBundleEntry>& BundlePair : *BundleMap)
+				for (const TPair<FName, FAssetBundleEntry>& BundlePair : *BundleMap)
 				{
-					for (FStringAssetReference& BundleAssetRef : BundlePair.Value.BundleAssets)
+					for (const FStringAssetReference& BundleAssetRef : BundlePair.Value.BundleAssets)
 					{
 						FString PackageName = BundleAssetRef.GetLongPackageName();
 
@@ -2118,7 +2240,7 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 				}
 			}
 
-			for (FName AssetPackage : AssetPackagesReferenced)
+			for (const FName& AssetPackage : AssetPackagesReferenced)
 			{
 				TMultiMap<FAssetIdentifier, FAssetIdentifier>& ManagerMap = Rules.bApplyRecursively ? PriorityManagementMap.FindOrAdd(Rules.Priority) : NoReferenceManagementMap;
 
@@ -2161,15 +2283,14 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 
 	TMultiMap<FAssetIdentifier, FAssetIdentifier> PrimaryAssetIdManagementMap;
 
-
 	// Update management parent list, which is PrimaryAssetId -> PrimaryAssetId
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
-		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
+		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
-		for (TPair<FName, FPrimaryAssetData> NamePair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& NamePair : TypeData.AssetMap)
 		{
-			FPrimaryAssetData& NameData = NamePair.Value;
+			const FPrimaryAssetData& NameData = NamePair.Value;
 			FPrimaryAssetId PrimaryAssetId(TypePair.Key, NamePair.Key);
 			const FStringAssetReference& AssetRef = NameData.AssetPtr.ToStringReference();
 
@@ -2177,9 +2298,9 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 			{
 				FName PackageName = FName(*AssetRef.GetLongPackageName());
 
-				TArray<FPrimaryAssetId> Managers;
+				TSet<FPrimaryAssetId> Managers;
 
-				if (GetPackageManagerList(PackageName, false, Managers) && Managers.Num() > 1)
+				if (GetPackageManagers(PackageName, false, Managers) && Managers.Num() > 1)
 				{
 					// Find all managers that aren't this specific asset
 					for (const FPrimaryAssetId& Manager : Managers)
@@ -2208,7 +2329,9 @@ void UAssetManager::UpdateManagementDatabase(bool bForceRefresh)
 
 void UAssetManager::ApplyPrimaryAssetLabels()
 {
-	// Load all of them off disk
+	// Load all of them off disk. Turn off string asset reference tracking to avoid them getting cooked
+	FStringAssetReferenceSerializationScope SerializationScope(NAME_None, NAME_None, EStringAssetReferenceCollectType::NeverCollect);
+
 	TSharedPtr<FStreamableHandle> Handle = LoadPrimaryAssetsWithType(PrimaryAssetLabelType);
 
 	if (Handle.IsValid())
@@ -2219,7 +2342,7 @@ void UAssetManager::ApplyPrimaryAssetLabels()
 	// PostLoad in PrimaryAssetLabel sets PrimaryAssetRules overrides
 }
 
-void UAssetManager::ModifyCook(TArray<FName>& PackageNames)
+void UAssetManager::ModifyCook(TArray<FName>& PackagesToCook, TArray<FName>& PackagesToNeverCook)
 {
 	// Make sure management database is set up
 	UpdateManagementDatabase();
@@ -2232,11 +2355,7 @@ void UAssetManager::ModifyCook(TArray<FName>& PackageNames)
 	// Get package names in the libraries that we care about for cooking. Only get ones that are needed in production
 	for (const FPrimaryAssetTypeInfo& TypeInfo : TypeList)
 	{
-		if (TypeInfo.bIsEditorOnly)
-		{
-			continue;
-		}
-
+		// Cook these types
 		TArray<FAssetData> AssetDataList;
 		GetPrimaryAssetDataList(TypeInfo.PrimaryAssetType, AssetDataList);
 
@@ -2244,9 +2363,15 @@ void UAssetManager::ModifyCook(TArray<FName>& PackageNames)
 		{
 			EPrimaryAssetCookRule CookRule = GetPackageCookRule(AssetData.PackageName);
 
-			if (CookRule == EPrimaryAssetCookRule::AlwaysCook)
+			if (CookRule == EPrimaryAssetCookRule::AlwaysCook && !TypeInfo.bIsEditorOnly)
 			{
-				PackageNames.AddUnique(AssetData.PackageName);
+				// If this is always cook and not editor only, cook it
+				PackagesToCook.AddUnique(AssetData.PackageName);
+			}
+			else if (!VerifyCanCookPackage(AssetData.PackageName, false))
+			{
+				// If this package cannot be cooked, add to exclusion list
+				PackagesToNeverCook.AddUnique(AssetData.PackageName);
 			}
 		}
 	}
@@ -2256,8 +2381,8 @@ EPrimaryAssetCookRule UAssetManager::GetPackageCookRule(FName PackageName) const
 {
 	FPrimaryAssetRules BestRules;
 	FPrimaryAssetId BestId;
-	TArray<FPrimaryAssetId> Managers;
-	GetPackageManagerList(PackageName, true, Managers);
+	TSet<FPrimaryAssetId> Managers;
+	GetPackageManagers(PackageName, true, Managers);
 
 	for (const FPrimaryAssetId& PrimaryAssetId : Managers)
 	{
@@ -2324,9 +2449,9 @@ bool UAssetManager::GetPackageChunkIds(FName PackageName, const ITargetPlatform*
 
 	// Add all chunk ids from the asset rules of managers. By default priority will not override other chunks
 	bool bFoundAny = false;
-	TArray<FPrimaryAssetId> Managers;
+	TSet<FPrimaryAssetId> Managers;
 
-	GetPackageManagerList(PackageName, true, Managers);
+	GetPackageManagers(PackageName, true, Managers);
 
 	for (const FPrimaryAssetId& PrimaryAssetId : Managers)
 	{
@@ -2365,15 +2490,14 @@ void UAssetManager::PreBeginPIE(bool bStartSimulate)
 void UAssetManager::EndPIE(bool bStartSimulate)
 {
 	// Reset asset load state
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
-		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
+		const FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
-		for (TPair<FName, FPrimaryAssetData> NamePair : TypeData.AssetMap)
+		for (const TPair<FName, FPrimaryAssetData>& NamePair : TypeData.AssetMap)
 		{
-			FPrimaryAssetData& NameData = NamePair.Value;
-
-			FPrimaryAssetLoadState& LoadState = (!NameData.PendingState.IsValid()) ? NameData.CurrentState : NameData.PendingState;
+			const FPrimaryAssetData& NameData = NamePair.Value;
+			const FPrimaryAssetLoadState& LoadState = (!NameData.PendingState.IsValid()) ? NameData.CurrentState : NameData.PendingState;
 
 			if (!LoadState.IsValid())
 			{
@@ -2403,7 +2527,7 @@ void UAssetManager::RefreshPrimaryAssetDirectory()
 {
 	StartBulkScanning();
 
-	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>> TypePair : AssetTypeMap)
+	for (TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
 		FPrimaryAssetTypeData& TypeData = TypePair.Value.Get();
 
@@ -2424,8 +2548,8 @@ void UAssetManager::RefreshPrimaryAssetDirectory()
 
 void UAssetManager::OnInMemoryAssetCreated(UObject *Object)
 {
-	// Ignore PIE changes
-	if (GIsPlayInEditorWorld || !Object)
+	// Ignore PIE and CDO changes
+	if (GIsPlayInEditorWorld || !Object || Object->HasAnyFlags(RF_ClassDefaultObject))
 	{
 		return;
 	}
@@ -2494,6 +2618,12 @@ void UAssetManager::OnAssetRenamed(const FAssetData& NewData, const FString& Old
 
 	FPrimaryAssetId OldPrimaryAssetId = GetPrimaryAssetIdForPath(OldPath);
 
+	// This may be a blueprint, try with _C
+	if (!OldPrimaryAssetId.IsValid())
+	{
+		OldPrimaryAssetId = GetPrimaryAssetIdForPath(OldPath + TEXT("_C"));
+	}
+
 	RemovePrimaryAssetId(OldPrimaryAssetId);
 
 	// This will always be in memory
@@ -2520,22 +2650,54 @@ void UAssetManager::RemovePrimaryAssetId(const FPrimaryAssetId& PrimaryAssetId)
 
 void UAssetManager::RefreshAssetData(UObject* ChangedObject)
 {
-	// Only update things it knows about
-	FPrimaryAssetId PrimaryAssetId = ChangedObject->GetPrimaryAssetId();
-	FStringAssetReference ChangedObjectPath(ChangedObject);
-
-	if (PrimaryAssetId.IsValid() && GetPrimaryAssetPath(PrimaryAssetId) == ChangedObjectPath)
+	// If this is a BP CDO, call on class instead
+	if (ChangedObject->HasAnyFlags(RF_ClassDefaultObject))
 	{
-		IAssetRegistry& AssetRegistry = GetAssetRegistry();
+		UBlueprintGeneratedClass* AssetClass = Cast<UBlueprintGeneratedClass>(ChangedObject->GetClass());
+		if (AssetClass)
+		{
+			RefreshAssetData(AssetClass);
+		}
+		return;
+	}
 
-		// This will load it out of the in memory object
+	// Only update things it knows about
+	IAssetRegistry& AssetRegistry = GetAssetRegistry();
+	FStringAssetReference ChangedObjectPath(ChangedObject);
+	FPrimaryAssetId PrimaryAssetId = ChangedObject->GetPrimaryAssetId();
+	FPrimaryAssetId OldPrimaryAssetId = GetPrimaryAssetIdForPath(ChangedObjectPath);
+	
+	// This may be a blueprint, try with _C
+	if (!OldPrimaryAssetId.IsValid())
+	{
+		OldPrimaryAssetId = GetPrimaryAssetIdForPath(ChangedObjectPath.ToString() + TEXT("_C"));
+	}
+
+	if (PrimaryAssetId.IsValid() && OldPrimaryAssetId == PrimaryAssetId)
+	{
+		// Same AssetId, this will update cache out of the in memory object
 		FAssetData NewData;
 		GetAssetDataForPathInternal(AssetRegistry, ChangedObjectPath.ToString(), NewData);
 
 		if (ensure(NewData.IsValid()))
 		{
 			UpdateCachedAssetData(PrimaryAssetId, NewData, false);
-		}	
+		}
+	}
+	else
+	{
+		// AssetId changed
+		if (OldPrimaryAssetId.IsValid())
+		{
+			// Remove old id if it was registered
+			RemovePrimaryAssetId(OldPrimaryAssetId);
+		}
+
+		if (PrimaryAssetId.IsValid())
+		{
+			// This will add new id
+			OnInMemoryAssetCreated(ChangedObject);
+		}
 	}
 }
 

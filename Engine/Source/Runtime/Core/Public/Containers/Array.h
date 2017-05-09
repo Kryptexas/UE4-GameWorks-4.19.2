@@ -28,6 +28,7 @@
  * - A method IndexType Num() const that returns the number of items in the container.
  * - A method bool IsValidIndex(IndexType index) which returns whether a given index is valid in the container.
  * - A method T& operator\[\](IndexType index) which returns a reference to a contained object by index.
+ * - A method void RemoveAt(IndexType index) which removes the element at index
  */
 template< typename ContainerType, typename ElementType, typename IndexType>
 class TIndexedContainerIterator
@@ -89,28 +90,20 @@ public:
 		return Tmp -= Offset;
 	}
 
-	/** @name Element access */
-	//@{
 	ElementType& operator* () const
 	{
 		return Container[ Index ];
 	}
 
-	ElementType* operator-> () const
+	ElementType* operator->() const
 	{
 		return &Container[ Index ];
 	}
-	//@}
 
 	/** conversion to "bool" returning true if the iterator has not reached the last element. */
 	FORCEINLINE explicit operator bool() const
 	{
 		return Container.IsValidIndex(Index);
-	}
-	/** inverse of the "bool" operator */
-	FORCEINLINE bool operator !() const 
-	{
-		return !(bool)*this;
 	}
 
 	/** Returns an index to the current element. */
@@ -123,6 +116,19 @@ public:
 	void Reset()
 	{
 		Index = 0;
+	}
+
+	/** Sets iterator to the last element. */
+	void SetToEnd()
+	{
+		Index = Container.Num();
+	}
+	
+	/** Removes current element in array. This invalidates the current iterator value and it must be incremented */
+	void RemoveCurrent()
+	{
+		Container.RemoveAt(Index);
+		Index--;
 	}
 
 	FORCEINLINE friend bool operator==(const TIndexedContainerIterator& Lhs, const TIndexedContainerIterator& Rhs) { return &Lhs.Container == &Rhs.Container && Lhs.Index == Rhs.Index; }

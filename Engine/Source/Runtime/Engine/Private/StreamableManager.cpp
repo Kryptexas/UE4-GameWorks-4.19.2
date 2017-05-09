@@ -242,24 +242,9 @@ void FStreamableHandle::GetLoadedAssets(TArray<UObject *>& LoadedAssets) const
 
 void FStreamableHandle::GetLoadedCount(int32& LoadedCount, int32& RequestedCount) const
 {
-	LoadedCount = 0;
 	RequestedCount = RequestedAssets.Num();
-
-	if (HasLoadCompleted())
-	{
-		LoadedCount = RequestedAssets.Num();
-	}
-	else if (IsActive())
-	{
-		for (const FStringAssetReference& Ref : RequestedAssets)
-		{
-			if (OwningManager->IsAsyncLoadComplete(Ref))
-			{
-				LoadedCount++;
-			}
-		}
-	}
-
+	LoadedCount = RequestedCount - StreamablesLoading;
+	
 	// Check child handles
 	for (TSharedPtr<FStreamableHandle> ChildHandle : ChildHandles)
 	{
@@ -766,6 +751,7 @@ FStreamable* FStreamableManager::StreamInternal(const FStringAssetReference& InT
 			}
 
 			Existing->bAsyncLoadRequestOutstanding = true;
+			Existing->bLoadFailed = false;
 			LoadPackageAsync(Package, FLoadPackageAsyncDelegate::CreateSP(Handle, &FStreamableHandle::AsyncLoadCallbackWrapper, TargetName), Priority);
 		}
 	}

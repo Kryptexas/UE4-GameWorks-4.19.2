@@ -10,7 +10,7 @@
 class IAIPerceptionListenerInterface;
 class UAISenseEvent;
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct AIMODULE_API FAIDamageEvent
 {	
 	GENERATED_USTRUCT_BODY()
@@ -65,8 +65,8 @@ public:
 	virtual void RegisterWrappedEvent(UAISenseEvent& PerceptionEvent) override;
 
 	/** EventLocation will be reported as Instigator's location at the moment of event happening*/
-	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext="WorldContext", AdvancedDisplay="HitLocation"))
-	static void ReportDamageEvent(UObject* WorldContext, AActor* DamagedActor, AActor* Instigator, float DamageAmount, FVector EventLocation, FVector HitLocation);
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext="WorldContextObject", AdvancedDisplay="HitLocation"))
+	static void ReportDamageEvent(UObject* WorldContextObject, AActor* DamagedActor, AActor* Instigator, float DamageAmount, FVector EventLocation, FVector HitLocation);
 
 protected:
 	virtual float Update() override;

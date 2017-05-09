@@ -4807,7 +4807,7 @@ bool USkeletalMeshSocket::AttachActor(AActor* Actor, class USkeletalMeshComponen
 
 			Actor->SetActorLocation(SocketTM.GetOrigin(), false);
 			Actor->SetActorRotation(SocketTM.Rotator());
-			Actor->GetRootComponent()->SnapTo( SkelComp, SocketName );
+			Actor->GetRootComponent()->AttachToComponent(SkelComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
 
 #if WITH_EDITOR
 			if (GIsEditor)

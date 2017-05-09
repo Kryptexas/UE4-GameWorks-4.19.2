@@ -2043,6 +2043,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				}
 			}
 
+			// Call init callbacks
+			FCoreDelegates::OnPostEngineInit.Broadcast();
+
 			// Load all the post-engine init modules
 			ensure(IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit));
 			ensure(IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostEngineInit));
@@ -2585,7 +2588,11 @@ int32 FEngineLoop::Init()
 
 	GEngine->Init(this);
 
+	// Call init callbacks
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	UEngine::OnPostEngineInit.Broadcast();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FCoreDelegates::OnPostEngineInit.Broadcast();
 
 	SlowTask.EnterProgressFrame(30);
 

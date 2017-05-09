@@ -15,7 +15,7 @@
 #include "GameplayTagsModule.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
-#include "Engine/Engine.h"
+#include "Misc/CoreDelegates.h"
 
 #if WITH_EDITOR
 #include "SourceControlHelpers.h"
@@ -515,7 +515,7 @@ void UGameplayTagsManager::InitializeManager()
 	SingletonManager->ConstructGameplayTagTree();
 
 	// Bind to end of engine init to be done adding native tags
-	UEngine::OnPostEngineInit.AddUObject(SingletonManager, &UGameplayTagsManager::DoneAddingNativeTags);
+	FCoreDelegates::OnPostEngineInit.AddUObject(SingletonManager, &UGameplayTagsManager::DoneAddingNativeTags);
 }
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)

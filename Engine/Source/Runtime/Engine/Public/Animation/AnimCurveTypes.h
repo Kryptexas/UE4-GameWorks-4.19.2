@@ -40,7 +40,7 @@ struct ENGINE_API FAnimCurveParam
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FAnimCurveParam)
+	UPROPERTY(EditAnywhere, Category = FAnimCurveParam)
 	FName Name;
 
 	// name UID for fast access

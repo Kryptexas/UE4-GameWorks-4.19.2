@@ -1121,7 +1121,7 @@ FBox AActor::CalculateComponentsBoundingBoxInLocalSpace( bool bNonColliding ) co
 			// Only use collidable components to find collision bounding box.
 			if( PrimComp->IsRegistered() && ( bNonColliding || PrimComp->IsCollisionEnabled() ) )
 			{
-				const FTransform ComponentToActor = PrimComp->ComponentToWorld * WorldToActor;
+				const FTransform ComponentToActor = PrimComp->GetComponentTransform() * WorldToActor;
 				FBoxSphereBounds ActorSpaceComponentBounds = PrimComp->CalcBounds( ComponentToActor );
 
 				Box += ActorSpaceComponentBounds.GetBox();
@@ -1576,7 +1576,7 @@ void AActor::SnapRootComponentTo(AActor* InParentActor, FName InSocketName/* = N
 		USceneComponent* ParentDefaultAttachComponent = InParentActor->GetDefaultAttachComponent();
 		if (ParentDefaultAttachComponent)
 		{
-			RootComponent->SnapTo(ParentDefaultAttachComponent, InSocketName);
+			RootComponent->AttachToComponent(ParentDefaultAttachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, InSocketName);
 		}
 	}
 }
@@ -1614,14 +1614,13 @@ void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent,
 
 void AActor::DetachAllSceneComponents(USceneComponent* InParentComponent, const FDetachmentTransformRules& DetachmentRules)
 {
-	if (InParentComponent != NULL)
+	if (InParentComponent)
 	{
 		TInlineComponentArray<USceneComponent*> Components;
 		GetComponents(Components);
 
-		for (int32 Index = 0; Index < Components.Num(); ++Index)
+		for (USceneComponent* SceneComp : Components)
 		{
-			USceneComponent* SceneComp = Components[Index];
 			if (SceneComp->GetAttachParent() == InParentComponent)
 			{
 				SceneComp->DetachFromComponent(DetachmentRules);
@@ -1925,6 +1924,26 @@ void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			EndPlay(EndPlayReason);
 		}
+
+		// Behaviors specific to an actor being unloaded due to a streaming level removal
+		if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
+		{
+			ClearComponentOverlaps();
+
+			bActorInitialized = false;
+			if (World)
+			{
+				World->RemoveNetworkActor(this);
+			}
+		}
+
+		// Clear any ticking lifespan timers
+		if (TimerHandle_LifeSpanExpired.IsValid())
+		{
+			SetLifeSpan(0.f);
+		}
+
+		UNavigationSystem::OnActorUnregistered(this);
 	}
 
 	UninitializeComponents();
@@ -1951,23 +1970,6 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 			}
 		}
 	}
-
-	// Behaviors specific to an actor being unloaded due to a streaming level removal
-	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
-	{
-		ClearComponentOverlaps();
-
-		bActorInitialized = false;
-		GetWorld()->RemoveNetworkActor(this);
-	}
-
-	// Clear any ticking lifespan timers
-	if (TimerHandle_LifeSpanExpired.IsValid())
-	{
-		SetLifeSpan(0.f);
-	}
-
-	UNavigationSystem::OnActorUnregistered(this);
 }
 
 FVector AActor::GetPlacementExtent() const
@@ -2838,7 +2840,7 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 	{
 		bHasFinishedSpawning = true;
 
-		FTransform FinalRootComponentTransform = (RootComponent ? RootComponent->ComponentToWorld : UserTransform);
+		FTransform FinalRootComponentTransform = (RootComponent ? RootComponent->GetComponentTransform() : UserTransform);
 
 		// see if we need to adjust the transform (i.e. in deferred cases where the caller passes in a different transform here 
 		// than was passed in during the original SpawnActor call)
@@ -2857,7 +2859,7 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 					// caller passed a different transform!
 					// undo the original spawn transform to get back to the template transform, so we can recompute a good
 					// final transform that takes into account the template's transform
-					FTransform const TemplateTransform = RootComponent->ComponentToWorld * OriginalSpawnTransform->Inverse();
+					FTransform const TemplateTransform = RootComponent->GetComponentTransform() * OriginalSpawnTransform->Inverse();
 					FinalRootComponentTransform = TemplateTransform * UserTransform;
 				}
 			}

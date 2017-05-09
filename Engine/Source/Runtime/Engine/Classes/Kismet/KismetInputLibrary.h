@@ -40,43 +40,43 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	/**
 	 * @returns True if the key is a modifier key: Ctrl, Command, Alt, Shift
 	 */
-	UFUNCTION(BlueprintPure, Category="Utilities|Key")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Modifier Key"), Category="Utilities|Key")
 	static bool Key_IsModifierKey(const FKey& Key);
 	
 	/**
 	 * @returns True if the key is a gamepad button
 	 */
-	UFUNCTION(BlueprintPure, Category="Utilities|Key")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Gamepad Key"), Category="Utilities|Key")
 	static bool Key_IsGamepadKey(const FKey& Key);
 	
 	/**
 	 * @returns True if the key is a mouse button
 	 */
-	UFUNCTION(BlueprintPure, Category="Utilities|Key")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Mouse Button"), Category="Utilities|Key")
 	static bool Key_IsMouseButton(const FKey& Key);
 	
 	/**
 	 * @returns True if the key is a keyboard button
 	 */
-	UFUNCTION(BlueprintPure, Category="Utilities|Key")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Keyboard Key"), Category="Utilities|Key")
 	static bool Key_IsKeyboardKey(const FKey& Key);
 	
 	/**
 	 * @returns True if the key is a float axis
 	 */
-	UFUNCTION(BlueprintPure, Category="Utilities|Key")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Float Axis"), Category="Utilities|Key")
 	static bool Key_IsFloatAxis(const FKey& Key);
 	
 	/**
 	 * @returns True if the key is a vector axis
 	 */
-	UFUNCTION(BlueprintPure, Category="Utilities|Key")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Vector Axis"), Category="Utilities|Key")
 	static bool Key_IsVectorAxis(const FKey& Key);
 	
 	/**
 	 * @returns The display name of the key.
 	 */
-	UFUNCTION(BlueprintPure, Category="Utilities|Key")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Get Key Display Name"), Category="Utilities|Key")
 	static FText Key_GetDisplayName(const FKey& Key);
 
 	/**
@@ -84,7 +84,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if this character is a repeat
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsRepeat" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Repeat" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsRepeat(const FInputEvent& Input);
 
 	/**
@@ -92,7 +92,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if shift is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsShiftDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Shift Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsShiftDown(const FInputEvent& Input);
 
 	/**
@@ -100,7 +100,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return True if left shift is pressed.
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsLeftShiftDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Left Shift Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsLeftShiftDown(const FInputEvent& Input);
 
 	/**
@@ -108,7 +108,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return True if right shift is pressed.
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsRightShiftDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Right Shift Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsRightShiftDown(const FInputEvent& Input);
 
 	/**
@@ -116,7 +116,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if control is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsControlDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Control Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsControlDown(const FInputEvent& Input);
 
 	/**
@@ -124,7 +124,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if left control is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsLeftControlDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Left Control Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsLeftControlDown(const FInputEvent& Input);
 
 	/**
@@ -132,7 +132,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if left control is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsRightControlDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Right Control Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsRightControlDown(const FInputEvent& Input);
 
 	/**
@@ -140,7 +140,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if alt is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsAltDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Alt Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsAltDown(const FInputEvent& Input);
 
 	/**
@@ -148,7 +148,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if left alt is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsLeftAltDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Left Alt Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsLeftAltDown(const FInputEvent& Input);
 
 	/**
@@ -156,7 +156,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if right alt is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsRightAltDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Right Alt Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsRightAltDown(const FInputEvent& Input);
 
 	/**
@@ -164,7 +164,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if command is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsCommandDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Command Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsCommandDown(const FInputEvent& Input);
 
 	/**
@@ -172,7 +172,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if left command is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsLeftCommandDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Left Command Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsLeftCommandDown(const FInputEvent& Input);
 
 	/**
@@ -180,7 +180,7 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  True if right command is pressed
 	 */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsRightCommandDown" ), Category="Utilities|InputEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Right Command Down" ), Category="Utilities|InputEvent")
 	static bool InputEvent_IsRightCommandDown(const FInputEvent& Input);
 
 
@@ -189,68 +189,68 @@ class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 	 *
 	 * @return  Key name
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|KeyEvent")
+	UFUNCTION(BlueprintPure, Category="Utilities|KeyEvent")
 	static FKey GetKey(const FKeyEvent& Input);
 
-	UFUNCTION(BlueprintCallable, Category = "Utilities|KeyEvent")
+	UFUNCTION(BlueprintPure, Category = "Utilities|KeyEvent")
 	static int32 GetUserIndex(const FKeyEvent& Input);
 
-	UFUNCTION(BlueprintCallable, Category = "Utilities|FAnalogInputEvent")
+	UFUNCTION(BlueprintPure, Category = "Utilities|FAnalogInputEvent")
 	static float GetAnalogValue(const FAnalogInputEvent& Input);
 
 	/** @return The position of the cursor in screen space */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetScreenSpacePosition" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Screen Space Position" ), Category="Utilities|PointerEvent")
 	static FVector2D PointerEvent_GetScreenSpacePosition(const FPointerEvent& Input);
 
 	/** @return The position of the cursor in screen space last time we handled an input event */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetLastScreenSpacePosition" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Last Screen Space Position" ), Category="Utilities|PointerEvent")
 	static FVector2D PointerEvent_GetLastScreenSpacePosition(const FPointerEvent& Input);
 
 	/** @return the distance the mouse traveled since the last event was handled. */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetCursorDelta" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Cursor Delta" ), Category="Utilities|PointerEvent")
 	static FVector2D PointerEvent_GetCursorDelta(const FPointerEvent& Input);
 
 	/** Mouse buttons that are currently pressed */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsMouseButtonDown" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Mouse Button Down" ), Category="Utilities|PointerEvent")
 	static bool PointerEvent_IsMouseButtonDown(const FPointerEvent& Input, FKey MouseButton);
 
 	/** Mouse button that caused this event to be raised (possibly EB_None) */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetEffectingButton" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Effecting Button" ), Category="Utilities|PointerEvent")
 	static FKey PointerEvent_GetEffectingButton(const FPointerEvent& Input);
 
 	/** How much did the mouse wheel turn since the last mouse event */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetWheelDelta" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Wheel Delta" ), Category="Utilities|PointerEvent")
 	static float PointerEvent_GetWheelDelta(const FPointerEvent& Input);
 
 	/** @return The index of the user that caused the event */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetUserIndex" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get User Index" ), Category="Utilities|PointerEvent")
 	static int32 PointerEvent_GetUserIndex(const FPointerEvent& Input);
 
 	/** @return The unique identifier of the pointer (e.g., finger index) */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetPointerIndex" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Pointer Index" ), Category="Utilities|PointerEvent")
 	static int32 PointerEvent_GetPointerIndex(const FPointerEvent& Input);
 
 	/** @return The index of the touch pad that generated this event (for platforms with multiple touch pads per user) */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetTouchpadIndex" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Touchpad Index" ), Category="Utilities|PointerEvent")
 	static int32 PointerEvent_GetTouchpadIndex(const FPointerEvent& Input);
 
 	/** @return Is this event a result from a touch (as opposed to a mouse) */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "IsTouchEvent" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Is Touch Event" ), Category="Utilities|PointerEvent")
 	static bool PointerEvent_IsTouchEvent(const FPointerEvent& Input);
 
 	//TODO UMG Support GetGestureType()
 
 	///** @return The type of touch gesture */
-	//UFUNCTION(BlueprintPure, meta=( DisplayName = "GetGestureType" ), Category="Utilities|PointerEvent")
+	//UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Gesture Type" ), Category="Utilities|PointerEvent")
 	//static EGestureEvent::Type PointerEvent_GetGestureType(const FPointerEvent& Input);
 
 	/** @return The change in gesture value since the last gesture event of the same type. */
-	UFUNCTION(BlueprintPure, meta=( DisplayName = "GetGestureDelta" ), Category="Utilities|PointerEvent")
+	UFUNCTION(BlueprintPure, meta=( DisplayName = "Get Gesture Delta" ), Category="Utilities|PointerEvent")
 	static FVector2D PointerEvent_GetGestureDelta(const FPointerEvent& Input);
 
 
 	/** @return The controller button that caused this event */
-	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use GetKey() for KeyEvent instead", DisplayName = "GetEffectingButton"), Category = "Utilities|ControllerEvent")
+	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use GetKey() for KeyEvent instead", DisplayName = "Get Effecting Button"), Category = "Utilities|ControllerEvent")
 	static FKey ControllerEvent_GetEffectingButton(const FControllerEvent& Input);
 
 	/** @return The index of the user that caused the event */

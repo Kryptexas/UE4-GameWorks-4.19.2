@@ -104,6 +104,7 @@ public:
 	TSharedPtr< FUICommandInfo > RecombineStructPin;
 	TSharedPtr< FUICommandInfo > StartWatchingPin;
 	TSharedPtr< FUICommandInfo > StopWatchingPin;
+	TSharedPtr< FUICommandInfo > ResetPinToDefaultValue;
 
 	// SkeletalControl specific commands
 	TSharedPtr< FUICommandInfo > SelectBone;

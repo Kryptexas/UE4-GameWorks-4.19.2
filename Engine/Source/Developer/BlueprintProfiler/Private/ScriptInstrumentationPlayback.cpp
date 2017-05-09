@@ -953,7 +953,7 @@ void FBlueprintFunctionContext::GetPinCustomizations(const UEdGraphPin* Pin, FSc
 		const UEdGraphSchema* Schema = Pin->GetSchema();
 		PinParams.IconColor = Schema->GetPinTypeColor(Pin->PinType);
 		// Determine pin icon
-		if (Pin->PinType.bIsArray)
+		if (Pin->PinType.IsArray())
 		{
 			// Array pins
 			PinParams.Icon = const_cast<FSlateBrush*>(FEditorStyle::GetBrush(TEXT("Graph.ArrayPin.Connected")));

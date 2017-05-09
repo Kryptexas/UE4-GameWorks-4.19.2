@@ -310,7 +310,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnPostMeshBuild, class UStaticMesh*);
 #endif
 
 //~ Begin Material Interface for UStaticMesh - contains a material and other stuff
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FStaticMaterial
 {
 	GENERATED_USTRUCT_BODY()

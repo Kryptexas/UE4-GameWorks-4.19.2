@@ -39,25 +39,13 @@ FArchive& FObjectReader::operator<<( class FLazyObjectPtr& LazyObjectPtr )
 
 FArchive& FObjectReader::operator<<( class FAssetPtr& AssetPtr )
 {
-	FArchive& Ar = *this;
-	FStringAssetReference ID;
-	ID.Serialize(Ar);
-
-	AssetPtr = ID;
-	return Ar;
+	AssetPtr.ResetWeakPtr();
+	return *this << AssetPtr.GetUniqueID();
 }
 
 FArchive& FObjectReader::operator<<(FStringAssetReference& Value)
 {
-	FString Path = Value.ToString();
-
-	*this << Path;
-
-	if (IsLoading())
-	{
-		Value.SetPath(MoveTemp(Path));
-	}
-
+	Value.SerializePath(*this);
 	return *this;
 }
 

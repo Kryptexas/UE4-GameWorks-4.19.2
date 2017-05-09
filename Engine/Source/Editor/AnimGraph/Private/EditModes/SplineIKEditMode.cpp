@@ -62,7 +62,7 @@ void FSplineIKEditMode::Render(const FSceneView* View, FViewport* Viewport, FPri
 {
 	UDebugSkelMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
 
-	USplineComponent::Draw(PDI, View, SplineIKRuntimeNode->GetTransformedSplineCurves().Position, SkelComp->ComponentToWorld.ToMatrixWithScale(), FLinearColor::Yellow, SDPG_Foreground);
+	USplineComponent::Draw(PDI, View, SplineIKRuntimeNode->GetTransformedSplineCurves().Position, SkelComp->GetComponentTransform().ToMatrixWithScale(), FLinearColor::Yellow, SDPG_Foreground);
 
 	for (int32 SplineHandleIndex = 0; SplineHandleIndex < SplineIKRuntimeNode->GetNumControlPoints(); SplineHandleIndex++)
 	{
@@ -83,7 +83,7 @@ FVector FSplineIKEditMode::GetWidgetLocation() const
 		FVector Location = SplineIKRuntimeNode->GetTransformedSplinePoint(SelectedSplinePoint).GetLocation();
 
 		UDebugSkelMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
-		return SkelComp->ComponentToWorld.TransformPosition(Location);
+		return SkelComp->GetComponentTransform().TransformPosition(Location);
 	}
 
 	return FVector::ZeroVector;
@@ -188,7 +188,7 @@ bool FSplineIKEditMode::GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void
 		if (SelectedSplinePoint != INDEX_NONE)
 		{
 			FTransform Transform = SplineIKRuntimeNode->GetTransformedSplinePoint(SelectedSplinePoint);
-			FTransform WorldTransform = Transform * SkelMeshComp->ComponentToWorld;
+			FTransform WorldTransform = Transform * SkelMeshComp->GetComponentTransform();
 			InMatrix = WorldTransform.ToMatrixNoScale().RemoveTranslation();
 		}
 

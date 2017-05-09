@@ -573,7 +573,7 @@ class ENGINE_API UEngine
 {
 	GENERATED_UCLASS_BODY()
 
-	// Called after GEngine->Init has been called
+	DEPRECATED(4.17, "UEngine::OnPostEngineInit is deprecated, bind to FCoreDelegates::OnPostEngineInit instead, which will also be called for commandlets")
 	static FSimpleMulticastDelegate OnPostEngineInit;
 
 private:

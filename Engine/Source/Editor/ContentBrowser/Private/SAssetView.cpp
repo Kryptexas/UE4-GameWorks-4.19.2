@@ -551,11 +551,8 @@ void SAssetView::DeferredCreateNewAsset()
 		FName PackagePathFName = FName(*DeferredAssetToCreate->PackagePath);
 		FName AssetName = FName(*DeferredAssetToCreate->DefaultAssetName);
 		FName AssetClassName = DeferredAssetToCreate->AssetClass->GetFName();
-		TMap<FName, FString> EmptyTags;
-		TArray<int32> EmptyChunkIDs;
-		const uint32 EmptyPackageFlags = 0;
 
-		FAssetData NewAssetData(PackageName, PackagePathFName, NAME_None, AssetName, AssetClassName, EmptyTags, EmptyChunkIDs, EmptyPackageFlags);
+		FAssetData NewAssetData(PackageName, PackagePathFName, AssetName, AssetClassName);
 		TSharedPtr<FAssetViewItem> NewItem = MakeShareable(new FAssetViewCreation(NewAssetData, DeferredAssetToCreate->AssetClass, DeferredAssetToCreate->Factory));
 
 		NewItem->bRenameWhenScrolledIntoview = true;
@@ -590,11 +587,8 @@ void SAssetView::DuplicateAsset(const FString& PackagePath, const TWeakObjectPtr
 	FName PackagePathFName = FName(*PackagePath);
 	FName AssetName = FName(*AssetNameStr);
 	FName AssetClass = OriginalObject->GetClass()->GetFName();
-	TMap<FName, FString> EmptyTags;
-	TArray<int32> EmptyChunkIDs;
-	const uint32 EmptyPackageFlags = 0;
-
-	FAssetData NewAssetData(PackageName, PackagePathFName, NAME_None, AssetName, AssetClass, EmptyTags, EmptyChunkIDs, EmptyPackageFlags);
+	
+	FAssetData NewAssetData(PackageName, PackagePathFName, AssetName, AssetClass);
 	TSharedPtr<FAssetViewItem> NewItem = MakeShareable(new FAssetViewDuplication(NewAssetData, OriginalObject));
 	NewItem->bRenameWhenScrolledIntoview = true;
 

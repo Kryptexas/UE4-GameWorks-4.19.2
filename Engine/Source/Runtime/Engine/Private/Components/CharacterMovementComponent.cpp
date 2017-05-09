@@ -7408,12 +7408,7 @@ void UCharacterMovementComponent::ForcePositionUpdate(float DeltaTime)
 
 FNetworkPredictionData_Client* UCharacterMovementComponent::GetPredictionData_Client() const
 {
-	// Should only be called on client or listen server (for remote clients) in network games
-	check(CharacterOwner != NULL);
-	checkSlow(CharacterOwner->Role < ROLE_Authority || (CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy && GetNetMode() == NM_ListenServer));
-	checkSlow(GetNetMode() == NM_Client || GetNetMode() == NM_ListenServer);
-
-	if (!ClientPredictionData)
+	if (ClientPredictionData == nullptr)
 	{
 		UCharacterMovementComponent* MutableThis = const_cast<UCharacterMovementComponent*>(this);
 		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Character(*this);
@@ -7424,12 +7419,7 @@ FNetworkPredictionData_Client* UCharacterMovementComponent::GetPredictionData_Cl
 
 FNetworkPredictionData_Server* UCharacterMovementComponent::GetPredictionData_Server() const
 {
-	// Should only be called on server in network games
-	check(CharacterOwner != NULL);
-	check(CharacterOwner->Role == ROLE_Authority);
-	checkSlow(GetNetMode() < NM_Client);
-
-	if (!ServerPredictionData)
+	if (ServerPredictionData == nullptr)
 	{
 		UCharacterMovementComponent* MutableThis = const_cast<UCharacterMovementComponent*>(this);
 		MutableThis->ServerPredictionData = new FNetworkPredictionData_Server_Character(*this);
@@ -7441,13 +7431,35 @@ FNetworkPredictionData_Server* UCharacterMovementComponent::GetPredictionData_Se
 
 FNetworkPredictionData_Client_Character* UCharacterMovementComponent::GetPredictionData_Client_Character() const
 {
-	return static_cast<class FNetworkPredictionData_Client_Character*>(GetPredictionData_Client());
+	// Should only be called on client or listen server (for remote clients) in network games
+	checkSlow(CharacterOwner != NULL);
+	checkSlow(CharacterOwner->Role < ROLE_Authority || (CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy && GetNetMode() == NM_ListenServer));
+	checkSlow(GetNetMode() == NM_Client || GetNetMode() == NM_ListenServer);
+
+	if (ClientPredictionData == nullptr)
+	{
+		UCharacterMovementComponent* MutableThis = const_cast<UCharacterMovementComponent*>(this);
+		MutableThis->ClientPredictionData = static_cast<class FNetworkPredictionData_Client_Character*>(GetPredictionData_Client());
+	}
+
+	return ClientPredictionData;
 }
 
 
 FNetworkPredictionData_Server_Character* UCharacterMovementComponent::GetPredictionData_Server_Character() const
 {
-	return static_cast<class FNetworkPredictionData_Server_Character*>(GetPredictionData_Server());
+	// Should only be called on server in network games
+	checkSlow(CharacterOwner != NULL);
+	checkSlow(CharacterOwner->Role == ROLE_Authority);
+	checkSlow(GetNetMode() < NM_Client);
+
+	if (ServerPredictionData == nullptr)
+	{
+		UCharacterMovementComponent* MutableThis = const_cast<UCharacterMovementComponent*>(this);
+		MutableThis->ServerPredictionData = static_cast<class FNetworkPredictionData_Server_Character*>(GetPredictionData_Server());
+	}
+
+	return ServerPredictionData;
 }
 
 bool UCharacterMovementComponent::HasPredictionData_Client() const

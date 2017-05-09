@@ -565,6 +565,70 @@ bool FPackageName::IsValidLongPackageName(const FString& InLongPackageName, bool
 	return bValidRoot;
 }
 
+bool FPackageName::IsValidObjectPath(const FString& InObjectPath, FText* OutReason)
+{
+	FString PackageName;
+	FString RemainingObjectPath;
+
+	// Check for package delimiter
+	int32 ObjectDelimiterIdx;
+	if (InObjectPath.FindChar('.', ObjectDelimiterIdx))
+	{
+		if (ObjectDelimiterIdx == InObjectPath.Len() - 1)
+		{
+			if (OutReason)
+			{
+				*OutReason = NSLOCTEXT("Core", "ObjectPath_EndWithPeriod", "Object Path may not end with .");
+			}
+			return false;
+		}
+
+		PackageName = InObjectPath.Mid(0, ObjectDelimiterIdx);
+		RemainingObjectPath = InObjectPath.Mid(ObjectDelimiterIdx + 1);
+	}
+	else
+	{
+		PackageName = InObjectPath;
+	}
+
+	if (!IsValidLongPackageName(PackageName, true, OutReason))
+	{
+		return false;
+	}
+
+	if (RemainingObjectPath.Len() > 0)
+	{
+		FText PathContext = NSLOCTEXT("Core", "ObjectPathContext", "Object Path");
+		if (!FName::IsValidXName(RemainingObjectPath, INVALID_OBJECTPATH_CHARACTERS, OutReason, &PathContext))
+		{
+			return false;
+		}
+
+		TCHAR LastChar = RemainingObjectPath[RemainingObjectPath.Len() - 1];
+		if (LastChar == '.' || LastChar == ':')
+		{
+			if (OutReason)
+			{
+				*OutReason = NSLOCTEXT("Core", "ObjectPath_PathWithTrailingSeperator", "Object Path may not end with : or .");
+			}
+			return false;
+		}
+
+		int32 SlashIndex;
+		if (RemainingObjectPath.FindChar('/', SlashIndex))
+		{
+			if (OutReason)
+			{
+				*OutReason = NSLOCTEXT("Core", "ObjectPath_SlashAfterPeriod", "Object Path may not have / after first .");
+			}
+
+			return false;
+		}
+	}
+
+	return true;
+}
+
 void FPackageName::RegisterMountPoint(const FString& RootPath, const FString& ContentPath)
 {
 	FLongPackagePathsSingleton& Paths = FLongPackagePathsSingleton::Get();

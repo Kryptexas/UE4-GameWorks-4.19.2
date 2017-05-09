@@ -43,7 +43,7 @@ UK2Node_Self::UK2Node_Self(const FObjectInitializer& ObjectInitializer)
 void UK2Node_Self::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Output, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
+	CreatePin(EGPD_Output, K2Schema->PC_Object, K2Schema->PSC_Self, nullptr, K2Schema->PN_Self);
 
 	Super::AllocateDefaultPins();
 }

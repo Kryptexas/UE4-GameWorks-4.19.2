@@ -90,13 +90,6 @@ FArchive& FDuplicateDataWriter::operator<<(FLazyObjectPtr& LazyObjectPtr)
 	return *this << ID;
 }
 
-FArchive& FDuplicateDataWriter::operator<<(FAssetPtr& AssetPtr)
-{
-	FStringAssetReference ID = AssetPtr.GetUniqueID();
-	ID.Serialize(*this);
-	return *this;
-}
-
 void FDuplicateDataWriter::AddDuplicate(UObject* SourceObject, UObject* DupObject)
 {
 	if ( DupObject && !DupObject->IsTemplate() )

@@ -261,18 +261,18 @@ FTransform UPaperTerrainComponent::GetTransformAtDistance(float InDistance) cons
 	LocalTransform = FTransform(FRotator(0.0f, 180.0f, 0.0f), FVector::ZeroVector) * LocalTransform;
 
 #if PAPER_TERRAIN_DRAW_DEBUG
-	FTransform WorldTransform = LocalTransform * ComponentToWorld;
+	FTransform WorldTransform = LocalTransform * GetComponentToWorld();
 
 	const float Time = 2.5f;
 
 	DrawDebugCoordinateSystem(GetWorld(), WorldTransform.GetLocation(), FRotator(WorldTransform.GetRotation()), 15.0f, true, Time, SDPG_Foreground);
-// 	FVector WorldPos = ComponentToWorld.TransformPosition(Position3D);
+// 	FVector WorldPos = GetComponentTransform().TransformPosition(Position3D);
 // 	WorldPos.Y -= 0.01;
 // 
-// 	//DrawDebugLine(GetWorld(), WorldPos, WorldPos + ComponentToWorld.TransformVector(Tangent) * 10.0f, FColor::Red, true, Time);
-// 	// 		DrawDebugLine(GetWorld(), WorldPos, WorldPos + ComponentToWorld.TransformVector(NormalEst) * 10.0f, FColor::Green, true, Time);
-// 	// 		DrawDebugLine(GetWorld(), WorldPos, WorldPos + ComponentToWorld.TransformVector(Bitangent) * 10.0f, FColor::Blue, true, Time);
-// 	//DrawDebugLine(GetWorld(), WorldPos, WorldPos + ComponentToWorld.TransformVector(Floop) * 10.0f, FColor::Yellow, true, Time);
+// 	//DrawDebugLine(GetWorld(), WorldPos, WorldPos + GetComponentTransform().TransformVector(Tangent) * 10.0f, FColor::Red, true, Time);
+// 	// 		DrawDebugLine(GetWorld(), WorldPos, WorldPos + GetComponentTransform().TransformVector(NormalEst) * 10.0f, FColor::Green, true, Time);
+// 	// 		DrawDebugLine(GetWorld(), WorldPos, WorldPos + GetComponentTransform().TransformVector(Bitangent) * 10.0f, FColor::Blue, true, Time);
+// 	//DrawDebugLine(GetWorld(), WorldPos, WorldPos + GetComponentTransform().TransformVector(Floop) * 10.0f, FColor::Yellow, true, Time);
 // 	// 		DrawDebugPoint(GetWorld(), WorldPos, 4.0f, FColor::White, true, 1.0f);
 #endif
 
@@ -706,11 +706,11 @@ void UPaperTerrainComponent::OnSplineEdited()
 		{
 			const float Time = 5.0f;
 			{
-				FTransform WorldTransform = GetTransformAtDistance(0.0f) * ComponentToWorld;
+				FTransform WorldTransform = GetTransformAtDistance(0.0f) * GetComponentTransform();
 				DrawDebugCoordinateSystem(GetWorld(), WorldTransform.GetLocation(), FRotator(WorldTransform.GetRotation()), 30.0f, true, Time, SDPG_Foreground);
 			}
 			{
-				FTransform WorldTransform = GetTransformAtDistance(SplineLength) * ComponentToWorld;
+				FTransform WorldTransform = GetTransformAtDistance(SplineLength) * GetComponentTransform();
 				DrawDebugCoordinateSystem(GetWorld(), WorldTransform.GetLocation(), FRotator(WorldTransform.GetRotation()), 30.0f, true, Time, SDPG_Foreground);
 			}
 		}

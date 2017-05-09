@@ -43,44 +43,44 @@ struct FOptionalPinFromProperty
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category= OptionalPin, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, Category= OptionalPin)
 	FName PropertyName;
 
-	UPROPERTY(EditAnywhere, Category= OptionalPin, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, Category= OptionalPin)
 	FString PropertyFriendlyName;
 
-	UPROPERTY(EditAnywhere, Category= OptionalPin, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, Category= OptionalPin)
 	FText PropertyTooltip;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OptionalPin)
-	bool bShowPin;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OptionalPin)
-	bool bCanToggleVisibility;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OptionalPin)
-	bool bPropertyIsCustomized;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OptionalPin)
+	UPROPERTY(EditAnywhere, Category=OptionalPin)
 	FName CategoryName;
 
 	UPROPERTY(EditAnywhere, Category=OptionalPin)
-	bool bHasOverridePin;
+	uint8 bShowPin:1;
 
 	UPROPERTY(EditAnywhere, Category=OptionalPin)
-	bool bIsMarkedForAdvancedDisplay;
+	uint8 bCanToggleVisibility:1;
+
+	UPROPERTY(EditAnywhere, Category=OptionalPin)
+	uint8 bPropertyIsCustomized:1;
+	
+	UPROPERTY(EditAnywhere, Category=OptionalPin)
+	uint8 bHasOverridePin:1;
+
+	UPROPERTY(EditAnywhere, Category=OptionalPin)
+	uint8 bIsMarkedForAdvancedDisplay:1;
 
 	/** TRUE if the override value is enabled for use */
 	UPROPERTY(EditAnywhere, Category = OptionalPin)
-	bool bIsOverrideEnabled;
+	uint8 bIsOverrideEnabled:1;
 
 	/** TRUE if the override value should be set through this pin */
 	UPROPERTY(EditAnywhere, Category = OptionalPin)
-	bool bIsSetValuePinVisible;
+	uint8 bIsSetValuePinVisible:1;
 
 	/** TRUE if the override pin is visible */
 	UPROPERTY(EditAnywhere, Category = OptionalPin)
-	bool bIsOverridePinVisible;
+	uint8 bIsOverridePinVisible:1;
 
 	FOptionalPinFromProperty()
 		: bIsMarkedForAdvancedDisplay(false)
@@ -96,10 +96,10 @@ struct FOptionalPinFromProperty
 #if WITH_EDITORONLY_DATA
 		, PropertyTooltip(InTooltip)
 #endif
+		, CategoryName(InCategoryName)
 		, bShowPin(bInShowPin)
 		, bCanToggleVisibility(bInCanToggleVisibility)
 		, bPropertyIsCustomized(bInPropertyIsCustomized)
-		, CategoryName(InCategoryName)
 		, bHasOverridePin(bInHasOverridePin)
 		, bIsMarkedForAdvancedDisplay(false)
 		, bIsOverrideEnabled(true)
@@ -115,26 +115,36 @@ struct BLUEPRINTGRAPH_API FOptionalPinManager
 public:
 	virtual ~FOptionalPinManager() { }
 
-	// Should the specified property be displayed by default
+	/** Should the specified property be displayed by default */
 	virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const;
 
-	// Can this property be managed as an optional pin (with the ability to be shown or hidden)
+	/** Can this property be managed as an optional pin (with the ability to be shown or hidden) */
 	virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const;
 
-	// Reconstructs the specified property array using the SourceStruct
-	// @param [in,out] Properties	The property array
-	// @param SourceStruct			The source structure to update the properties array from
-	// @param bDefaultVisibility
+	/** 
+	 * Reconstructs the specified property array using the SourceStruct
+	 * @param [in,out] Properties	The property array
+	 * @param SourceStruct			The source structure to update the properties array from
+	 * @param bDefaultVisibility
+	 */
 	void RebuildPropertyList(TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct);
 
-	// Creates a pin for each visible property on the specified node
-	void CreateVisiblePins(TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct, EEdGraphPinDirection Direction, class UK2Node* TargetNode, uint8* StructBasePtr = NULL);
+	/**
+	 * Creates a pin for each visible property on the specified node
+	 * @param Properties	The property array
+	 * @param SourceStruct	The source structure to update the properties array from
+	 * @param Direction		Direction of pins to create
+	 * @param TargetNode	Node to generate pins for
+	 * @param StructBasePtr	Struct that is iterated over, to represent the current version of the data
+	 * @param DefaultsPtr	Struct that is iterated over, to represent the default version of the data, used for delta serialization
+	 */
+	void CreateVisiblePins(TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct, EEdGraphPinDirection Direction, class UK2Node* TargetNode, uint8* StructBasePtr = nullptr, uint8* DefaultsPtr = nullptr);
 
 	// Customize automatically created pins if desired
 	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property = NULL) const {}
 protected:
-	virtual void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const {}
-	virtual void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const {}
+	virtual void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress, uint8* DefaultPropertyAddress) const {}
+	virtual void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress, uint8* DefaultPropertyAddress) const {}
 	void RebuildProperty(UProperty* TestProperty, FName CategoryName, TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct, TMap<FName, FOldOptionalPinSettings>& OldSettings);
 };
 

@@ -25,7 +25,7 @@ void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterface::AllocateDefaultP
 	}
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Interface, TEXT(""), UGameplayTagAssetInterface::StaticClass(), false, false, TEXT("Gameplay Tag Asset Interface"));
+	CreatePin(EGPD_Input, K2Schema->PC_Interface, FString(), UGameplayTagAssetInterface::StaticClass(), TEXT("Gameplay Tag Asset Interface"));
 }
 
 void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterface::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
@@ -103,6 +103,6 @@ void UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterface::AddPinToSwitchNo
 	PinNames.Add(FName(*PinName));
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CreatePin(EGPD_Input, K2Schema->PC_Struct, TEXT(""), FGameplayTagContainer::StaticStruct(), false, true, InPin);
-	CreatePin(EGPD_Output, K2Schema->PC_Boolean, TEXT(""), NULL, false, false, OutPin);
+	CreatePin(EGPD_Input, K2Schema->PC_Struct, FString(), FGameplayTagContainer::StaticStruct(), InPin, EPinContainerType::None, true);
+	CreatePin(EGPD_Output, K2Schema->PC_Boolean, FString(), nullptr, OutPin);
 }

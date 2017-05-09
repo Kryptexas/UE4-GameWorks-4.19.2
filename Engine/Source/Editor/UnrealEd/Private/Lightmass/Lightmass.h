@@ -109,7 +109,7 @@ public:
 
 	void AddPortal(const ULightmassPortalComponent* InPortalComponent)
 	{
-		Portals.Add(InPortalComponent->ComponentToWorld.ToMatrixWithScale());
+		Portals.Add(InPortalComponent->GetComponentTransform().ToMatrixWithScale());
 	}
 
 	// if provided, InStaticLightingMesh is used to UV unwrap the material into the static lighting textures

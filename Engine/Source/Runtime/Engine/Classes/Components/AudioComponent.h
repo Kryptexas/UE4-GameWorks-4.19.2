@@ -37,7 +37,7 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioPlaybackPercentNative, const clas
  *	Struct used for storing one per-instance named parameter for this AudioComponent.
  *	Certain nodes in the SoundCue may reference parameters by name so they can be adjusted per-instance.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAudioComponentParam
 {
 	GENERATED_USTRUCT_BODY()

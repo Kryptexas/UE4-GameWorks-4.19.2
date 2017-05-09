@@ -10,7 +10,7 @@
 #include "AnimNode_LayeredBoneBlend.generated.h"
 
 // Layered blend (per bone); has dynamic number of blendposes that can blend per different bone sets
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_LayeredBoneBlend : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
@@ -23,7 +23,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, editfixedsize, Category=Links)
 	TArray<FPoseLink> BlendPoses;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, editfixedsize, Category=Config)
+	UPROPERTY(EditAnywhere, editfixedsize, Category=Config)
 	TArray<FInputBlendPose> LayerSetup;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, editfixedsize, Category=Runtime, meta=(PinShownByDefault))

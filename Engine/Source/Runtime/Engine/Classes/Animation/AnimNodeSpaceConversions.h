@@ -7,7 +7,7 @@
 #include "Animation/AnimNodeBase.h"
 #include "AnimNodeSpaceConversions.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_ConvertComponentToLocalSpace : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
@@ -29,7 +29,7 @@ public:
 
 };
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_ConvertLocalToComponentSpace : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

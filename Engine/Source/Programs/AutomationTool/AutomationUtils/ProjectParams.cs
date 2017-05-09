@@ -283,6 +283,7 @@ namespace AutomationTool
             this.BundleName = InParams.BundleName;
 			this.RunCommandline = InParams.RunCommandline;
 			this.ServerCommandline = InParams.ServerCommandline;
+            this.ClientCommandline = InParams.ClientCommandline;
             this.Package = InParams.Package;
 			this.Deploy = InParams.Deploy;
 			this.DeployFolder = InParams.DeployFolder;
@@ -633,6 +634,8 @@ namespace AutomationTool
 			this.RunCommandline = this.RunCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
 			this.ServerCommandline = ParseParamValueIfNotSpecified(Command, ServerCommandline, "servercmdline");
 			this.ServerCommandline = this.ServerCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
+            this.ClientCommandline = ParseParamValueIfNotSpecified(Command, ClientCommandline, "clientcmdline");
+            this.ClientCommandline = this.ClientCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
             this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
 
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
@@ -1589,6 +1592,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("servercmdline", "Additional command line arguments for the program")]
 		public string ServerCommandline;
+
+        /// <summary>
+		/// Run: Override command line arguments to pass to the client, if set it will not try to guess at IPs or settings
+		/// </summary>
+		[Help("clientcmdline", "Override command line arguments to pass to the client")]
+        public string ClientCommandline;
 
         /// <summary>
         /// Run:adds -nullrhi to the client commandline

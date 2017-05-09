@@ -46,14 +46,14 @@ void UK2Node_InputTouch::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Pressed"));
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Released"));
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Moved"));
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Pressed"));
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Released"));
+	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, TEXT("Moved"));
 	
 	UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
-	CreatePin(EGPD_Output, K2Schema->PC_Struct, TEXT(""), VectorStruct, false, false, TEXT("Location"));
+	CreatePin(EGPD_Output, K2Schema->PC_Struct, FString(), VectorStruct, TEXT("Location"));
 
-	CreatePin(EGPD_Output, K2Schema->PC_Byte, TEXT(""), GetTouchIndexEnum(), false, false, TEXT("FingerIndex"));
+	CreatePin(EGPD_Output, K2Schema->PC_Byte, FString(), GetTouchIndexEnum(), TEXT("FingerIndex"));
 
 	Super::AllocateDefaultPins();
 }

@@ -44,12 +44,12 @@ void UK2Node_FormatText::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	CachedFormatPin = CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, FFormatTextNodeHelper::GetFormatPinName());
-	CreatePin(EGPD_Output, K2Schema->PC_Text, TEXT(""), NULL, false, false, TEXT("Result"));
+	CachedFormatPin = CreatePin(EGPD_Input, K2Schema->PC_Text, FString(), nullptr, FFormatTextNodeHelper::GetFormatPinName());
+	CreatePin(EGPD_Output, K2Schema->PC_Text, FString(), nullptr, TEXT("Result"));
 
-	for(auto It = PinNames.CreateConstIterator(); It; ++It)
+	for (const FString& PinName : PinNames)
 	{
-		CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), NULL, false, false, *It);
+		CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, PinName);
 	}
 }
 
@@ -63,7 +63,7 @@ void UK2Node_FormatText::SynchronizeArgumentPinType(UEdGraphPin* Pin)
 		bool bPinTypeChanged = false;
 		if (Pin->LinkedTo.Num() == 0)
 		{
-			static const FEdGraphPinType WildcardPinType = FEdGraphPinType(K2Schema->PC_Wildcard, TEXT(""), nullptr, false, false, false, false, FEdGraphTerminalType());
+			static const FEdGraphPinType WildcardPinType = FEdGraphPinType(K2Schema->PC_Wildcard, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
 
 			// Ensure wildcard
 			if (Pin->PinType != WildcardPinType)
@@ -137,7 +137,7 @@ void UK2Node_FormatText::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 
 void UK2Node_FormatText::PinConnectionListChanged(UEdGraphPin* Pin)
 {
-	const auto FormatPin = GetFormatPin();
+	UEdGraphPin* FormatPin = GetFormatPin();
 
 	Modify();
 
@@ -168,7 +168,7 @@ void UK2Node_FormatText::PinConnectionListChanged(UEdGraphPin* Pin)
 
 void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 {
-	const auto FormatPin = GetFormatPin();
+	const UEdGraphPin* FormatPin = GetFormatPin();
 	if(Pin == FormatPin && FormatPin->LinkedTo.Num() == 0)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -178,13 +178,13 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 
 		PinNames.Empty();
 
-		for(auto It = ArgumentParams.CreateConstIterator(); It; ++It)
+		for (const FString& Param : ArgumentParams)
 		{
-			if(!FindArgumentPin(*It))
+			if(!FindArgumentPin(Param))
 			{
-				CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), NULL, false, false, *It);
+				CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, Param);
 			}
-			PinNames.Add(*It);
+			PinNames.Add(Param);
 		}
 
 		for(auto It = Pins.CreateConstIterator(); It; ++It)
@@ -421,7 +421,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 
 UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FString& InPinName) const
 {
-	const auto FormatPin = GetFormatPin();
+	const UEdGraphPin* FormatPin = GetFormatPin();
 	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
 	{
 		if( Pins[PinIdx] != FormatPin && Pins[PinIdx]->Direction != EGPD_Output && Pins[PinIdx]->PinName.Equals(InPinName) )
@@ -527,7 +527,7 @@ void UK2Node_FormatText::AddArgumentPin()
 
 	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
 	FString PinName = GetUniquePinName();
-	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), NULL, false, false, PinName);
+	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, PinName);
 	PinNames.Add(PinName);
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());

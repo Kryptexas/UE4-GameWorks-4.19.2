@@ -28,12 +28,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Automation", meta = ( Latent, HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", LatentInfo = "LatentInfo", NameOverride = "" ))
 	static void TakeAutomationScreenshotOfUI(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options);
 
-    //UFUNCTION(BlueprintCallable, Category = "Automation|Performance")
-    //static void BeginPerformanceCapture();
-
-    //UFUNCTION(BlueprintCallable, Category = "Automation|Performance")
-    //static void EndPerformanceCapture();
-
 	UFUNCTION(BlueprintPure, Category="Automation")
 	static bool AreAutomatedTestsRunning();
 

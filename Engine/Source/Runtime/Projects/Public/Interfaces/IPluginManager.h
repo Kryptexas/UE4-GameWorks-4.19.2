@@ -92,6 +92,13 @@ public:
 	virtual bool IsEnabled() const = 0;
 
 	/**
+	 * Determines if the plugin is should be displayed in-editor for the user to enable/disable freely.
+	 *
+	 * @return True if the plugin should be hidden.
+	 */
+	virtual bool IsHidden() const = 0;
+
+	/**
 	 * Determines if the plugin can contain content.
 	 *
 	 * @return True if the plugin can contain content.

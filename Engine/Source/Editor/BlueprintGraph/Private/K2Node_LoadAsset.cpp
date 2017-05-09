@@ -22,15 +22,15 @@ void UK2Node_LoadAsset::AllocateDefaultPins()
 
 	if (K2Schema)
 	{
-		CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), nullptr, false, false, K2Schema->PN_Execute);
-		UEdGraphPin* OutputExecPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), nullptr, false, false, K2Schema->PN_Then);
+		CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
+		UEdGraphPin* OutputExecPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
 		if (OutputExecPin)
 		{
 			OutputExecPin->PinFriendlyName = FText::FromString(K2Schema->PN_Completed);
 		}
 
-		CreatePin(EGPD_Input, GetInputCategory(), TEXT(""), UObject::StaticClass(), false, false, GetInputPinName());
-		CreatePin(EGPD_Output, GetOutputCategory(), TEXT(""), UObject::StaticClass(), false, false, GetOutputPinName());
+		CreatePin(EGPD_Input, GetInputCategory(), FString(), UObject::StaticClass(), GetInputPinName());
+		CreatePin(EGPD_Output, GetOutputCategory(), FString(), UObject::StaticClass(), GetOutputPinName());
 	}
 }
 
@@ -54,7 +54,7 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 	}
 
 	// Create Local Variable
-	UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(this, GetOutputCategory(), FString(), UObject::StaticClass(), false);
+	UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(this, GetOutputCategory(), FString(), UObject::StaticClass());
 
 	// Create assign node
 	auto AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);

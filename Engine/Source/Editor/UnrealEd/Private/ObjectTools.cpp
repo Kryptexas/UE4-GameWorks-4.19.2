@@ -2926,7 +2926,7 @@ namespace ObjectTools
 		{
 			if(bMoveRedirectorFailed)
 			{
-				ErrorMessage += FText::Format( NSLOCTEXT("UnrealEd", "Error_CouldntRenameObjectRedirectorF", "Couldn't rename '{0}' object because there is an object redirector of the same name, please run FixupRedirects.\n"),
+				ErrorMessage += FText::Format( NSLOCTEXT("UnrealEd", "Error_CouldntRenameObjectRedirectorF", "Couldn't rename '{0}' object because there is an object redirector of the same name, please fixup redirect from editor by enabling Show Redirects in content browser.\n"),
 					FText::FromString(Object->GetFullName()) ).ToString();
 			}
 			else

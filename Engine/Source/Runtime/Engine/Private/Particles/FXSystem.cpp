@@ -217,7 +217,7 @@ void FFXSystem::AddVectorField( UVectorFieldComponent* VectorFieldComponent )
 				FAddVectorFieldCommand,
 				FFXSystem*, FXSystem, this,
 				FVectorFieldInstance*, Instance, Instance,
-				FMatrix, ComponentToWorld, VectorFieldComponent->ComponentToWorld.ToMatrixWithScale(),
+				FMatrix, ComponentToWorld, VectorFieldComponent->GetComponentTransform().ToMatrixWithScale(),
 			{
 				Instance->UpdateTransforms( ComponentToWorld );
 				Instance->Index = FXSystem->VectorFields.AddUninitialized().Index;
@@ -273,7 +273,7 @@ void FFXSystem::UpdateVectorField( UVectorFieldComponent* VectorFieldComponent )
 
 			FUpdateVectorFieldParams UpdateParams;
 			UpdateParams.Bounds = VectorFieldComponent->Bounds.GetBox();
-			UpdateParams.ComponentToWorld = VectorFieldComponent->ComponentToWorld.ToMatrixWithScale();
+			UpdateParams.ComponentToWorld = VectorFieldComponent->GetComponentTransform().ToMatrixWithScale();
 			UpdateParams.Intensity = VectorFieldComponent->Intensity;
 			UpdateParams.Tightness = VectorFieldComponent->Tightness;
 

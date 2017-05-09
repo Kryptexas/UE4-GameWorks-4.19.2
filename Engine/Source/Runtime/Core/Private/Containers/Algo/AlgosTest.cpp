@@ -249,5 +249,35 @@ bool FAlgosTest::RunTest(const FString& Parameters)
 		}
 	}
 
+	// binary search
+	{
+		// Verify static array case
+		int StaticArray[] = { 2,4,6,6,6,8 };
+
+		check(Algo::BinarySearch(StaticArray, 6) == 2);
+		check(Algo::BinarySearch(StaticArray, 5) == INDEX_NONE);
+
+		check(Algo::LowerBound(StaticArray, 6) == 2);
+		check(Algo::LowerBound(StaticArray, 5) == 2);
+		check(Algo::UpperBound(StaticArray, 6) == 5);
+		check(Algo::LowerBound(StaticArray, 7) == 5);
+		check(Algo::LowerBound(StaticArray, 9) == 6);
+
+		// Dynamic array case
+		TArray<int32> IntArray = { 2,2,4,4,6,6,6,8,8 };
+
+		check(Algo::BinarySearch(IntArray, 6) == 4);
+		check(Algo::BinarySearch(IntArray, 5) == INDEX_NONE);
+
+		check(Algo::LowerBound(IntArray, 2) == 0);
+		check(Algo::UpperBound(IntArray, 2) == 2);
+		check(Algo::LowerBound(IntArray, 6) == 4);
+		check(Algo::UpperBound(IntArray, 6) == 7);
+		check(Algo::LowerBound(IntArray, 5) == 4);
+		check(Algo::UpperBound(IntArray, 5) == 4);
+		check(Algo::LowerBound(IntArray, 7) == 7);
+		check(Algo::LowerBound(IntArray, 9) == 9);
+	}
+
 	return true;
 }

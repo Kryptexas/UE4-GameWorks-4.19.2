@@ -17,6 +17,7 @@ class FCompilerResultsLog;
 class UEdGraph;
 class UMovieScene;
 class UUserWidget;
+class UWidget;
 class UWidgetAnimation;
 class FKismetCompilerContext;
 
@@ -242,7 +243,22 @@ public:
 	/** Returns true if the supplied user widget will not create a circular reference when added to this blueprint */
 	bool IsWidgetFreeFromCircularReferences(UUserWidget* UserWidget) const;
 
+	/** 
+	 * Returns collection of widgets that represent the 'source' (user edited) widgets for this 
+	 * blueprint - avoids calling virtual functions on instances and is therefore safe to use 
+	 * throughout compilation.
+	 */
+	TArray<UWidget*> GetAllSourceWidgets();
+	TArray<const UWidget*> GetAllSourceWidgets() const;
+
+	/** Identical to GetAllSourceWidgets, but as an algorithm */
+	void ForEachSourceWidget(TFunctionRef<void(UWidget*)> Fn);
+	void ForEachSourceWidget(TFunctionRef<void(const UWidget*)> Fn) const;
+
 	static bool ValidateGeneratedClass(const UClass* InClass);
 	
 	static TUniquePtr<FKismetCompilerContext> GetCompilerForWidgetBP(UWidgetBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
+
+private:
+	void ForEachSourceWidgetImpl(TFunctionRef<void(UWidget*)> Fn) const;
 };

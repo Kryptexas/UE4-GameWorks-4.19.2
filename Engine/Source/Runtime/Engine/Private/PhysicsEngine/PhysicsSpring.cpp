@@ -27,12 +27,12 @@ UPhysicsSpringComponent::UPhysicsSpringComponent(const FObjectInitializer& Objec
 }
 FVector UPhysicsSpringComponent::SpringPositionFromLength(float Length) const
 {
-	return ComponentToWorld.GetLocation() + Length * GetSpringDirection();
+	return GetComponentTransform().GetLocation() + Length * GetSpringDirection();
 }
 
 FVector UPhysicsSpringComponent::GetSpringDirection() const
 {
-	return ComponentToWorld.TransformVectorNoScale(FVector(1.f, 0.f, 0.f));
+	return GetComponentTransform().TransformVectorNoScale(FVector(1.f, 0.f, 0.f));
 }
 
 float UPhysicsSpringComponent::GetNormalizedCompressionScalar() const
@@ -104,7 +104,7 @@ void UPhysicsSpringComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	{
 		if (bIsActive)
 		{
-			const FVector SpringStart = ComponentToWorld.GetLocation();
+			const FVector SpringStart = GetComponentTransform().GetLocation();
 			const FVector SpringDesiredEnd = SpringPositionFromLength(SpringLengthAtRest);
 			float CollisionTime = 1.f;
 			

@@ -614,7 +614,7 @@ void UPrimitiveComponent::OnCreatePhysicsState()
 		if(BodySetup)
 		{
 			// Create new BodyInstance at given location.
-			FTransform BodyTransform = ComponentToWorld;
+			FTransform BodyTransform = GetComponentTransform();
 
 			// Here we make sure we don't have zero scale. This still results in a body being made and placed in
 			// world (very small) but is consistent with a body scaled to zero.
@@ -687,8 +687,8 @@ void UPrimitiveComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransfor
 
 void UPrimitiveComponent::SendPhysicsTransform(ETeleportType Teleport)
 {
-	BodyInstance.SetBodyTransform(ComponentToWorld, Teleport);
-	BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D());
+	BodyInstance.SetBodyTransform(GetComponentTransform(), Teleport);
+	BodyInstance.UpdateBodyScale(GetComponentTransform().GetScale3D());
 }
 
 void UPrimitiveComponent::OnDestroyPhysicsState()
@@ -728,8 +728,8 @@ void UPrimitiveComponent::SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideS
 					FPrimitiveSceneProxy::FDebugMassData& RootMassData = DebugMassData[0];
 					const FTransform MassToWorld = BI->GetMassSpaceToWorldSpace();
 
-					RootMassData.LocalCenterOfMass = ComponentToWorld.InverseTransformPosition(MassToWorld.GetLocation());
-					RootMassData.LocalTensorOrientation = MassToWorld.GetRotation() * ComponentToWorld.GetRotation().Inverse();
+					RootMassData.LocalCenterOfMass = GetComponentTransform().InverseTransformPosition(MassToWorld.GetLocation());
+					RootMassData.LocalTensorOrientation = MassToWorld.GetRotation() * GetComponentTransform().GetRotation().Inverse();
 					RootMassData.MassSpaceInertiaTensor = BI->GetBodyInertiaTensor();
 					RootMassData.BoneIndex = INDEX_NONE;
 				}
@@ -747,7 +747,7 @@ void UPrimitiveComponent::SendRenderDebugPhysics(FPrimitiveSceneProxy* OverrideS
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const
 {
-	return ComponentToWorld.ToMatrixWithScale();
+	return GetComponentTransform().ToMatrixWithScale();
 }
 
 void UPrimitiveComponent::Serialize(FArchive& Ar)
@@ -1723,7 +1723,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	const FVector TraceStart = GetComponentLocation();
 	const FVector TraceEnd = TraceStart + Delta;
 	float DeltaSizeSq = (TraceEnd - TraceStart).SizeSquared();				// Recalc here to account for precision loss of float addition
-	const FQuat InitialRotationQuat = ComponentToWorld.GetRotation();
+	const FQuat InitialRotationQuat = GetComponentTransform().GetRotation();
 
 	// ComponentSweepMulti does nothing if moving < KINDA_SMALL_NUMBER in distance, so it's important to not try to sweep distances smaller than that. 
 	const float MinMovementDistSq = (bSweep ? FMath::Square(4.f*KINDA_SMALL_NUMBER) : 0.f);

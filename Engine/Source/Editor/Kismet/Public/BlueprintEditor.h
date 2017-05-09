@@ -714,6 +714,9 @@ protected:
 	void OnRestoreAllStructVarPins();
 	bool CanRestoreAllStructVarPins() const;
 
+	void OnResetPinToDefaultValue();
+	bool CanResetPinToDefaultValue() const;
+
 	void OnAddOptionPin();
 	bool CanAddOptionPin() const;
 

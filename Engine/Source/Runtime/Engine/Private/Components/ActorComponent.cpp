@@ -1684,7 +1684,7 @@ void UActorComponent::DetermineUCSModifiedProperties()
 
 			virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
 			{
-				return (    InProperty->HasAnyPropertyFlags(CPF_Transient | CPF_ContainsInstancedReference | CPF_InstancedReference)
+				return (    InProperty->HasAnyPropertyFlags(CPF_Transient)
 						|| !InProperty->HasAnyPropertyFlags(CPF_Edit | CPF_Interp));
 			}
 		} PropertySkipper;

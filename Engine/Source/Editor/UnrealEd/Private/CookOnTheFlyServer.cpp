@@ -2869,7 +2869,7 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 	// Don't resolve, just add to request list as needed
 	TSet<FName> StringAssetPackages;
 
-	GRedirectCollector.GetStringAssetReferencePackageList(Package->GetFName(), StringAssetPackages);
+	GRedirectCollector.ProcessStringAssetReferencePackageList(Package->GetFName(), false, StringAssetPackages);
 	
 	for (FName StringAssetPackage : StringAssetPackages)
 	{
@@ -2880,7 +2880,7 @@ void UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags,
 		{
 			for (TPair<FString, FString>& RedirectedPath : RedirectedPaths)
 			{
-				GRedirectCollector.AddStringAssetReferenceRedirection(RedirectedPath.Key, RedirectedPath.Value);
+				GRedirectCollector.AddAssetPathRedirection(RedirectedPath.Key, RedirectedPath.Value);
 			}
 		}
 
@@ -4354,7 +4354,6 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 				Json->WriteValue(TEXT("ObjectPath"), AssetData.ObjectPath.ToString());
 				Json->WriteValue(TEXT("PackageName"), AssetData.PackageName.ToString());
 				Json->WriteValue(TEXT("PackagePath"), AssetData.PackagePath.ToString());
-				Json->WriteValue(TEXT("GroupNames"), AssetData.GroupNames.ToString());
 				Json->WriteValue(TEXT("AssetName"), AssetData.AssetName.ToString());
 				Json->WriteValue(TEXT("AssetClass"), AssetData.AssetClass.ToString());
 				Json->WriteObjectStart("TagsAndValues");
@@ -4637,11 +4636,11 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 				FDateTime CurrentLocalCookedBuild = IFileManager::Get().GetTimeStamp(*SandboxCookedAssetRegistryFilename);
 
 				// iterate on the shared build if the option is set
-				FString SharedCookedAssetRegistry = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), GetAssetRegistryFilename());
+				FString SharedCookedAssetRegistry = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("SharedIterativeBuild"), *Target->PlatformName(), TEXT("Cooked"), TEXT("DevelopmentAssetRegistry.bin"));
 
 				FDateTime CurrentIterativeCookedBuild = IFileManager::Get().GetTimeStamp(*SharedCookedAssetRegistry);
 
-				if (CurrentIterativeCookedBuild > CurrentLocalCookedBuild)
+				if (CurrentIterativeCookedBuild >= CurrentLocalCookedBuild)
 				{
 					// clean the sandbox 
 					ClearPlatformCookedData(FName(*Target->PlatformName()));
@@ -4674,16 +4673,20 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 				else
 				{
 					UE_LOG(LogCook, Display, TEXT("Local cook is newer then shared cooked build, iterativly cooking from local build"));
+					PlatformAssetRegistry->LoadPreviousAssetRegistry(SandboxCookedAssetRegistryFilename);
 				}
-
 			}
-
-			PlatformAssetRegistry->LoadPreviousAssetRegistry(SandboxCookedAssetRegistryFilename);
+			else
+			{
+				PlatformAssetRegistry->LoadPreviousAssetRegistry(SandboxCookedAssetRegistryFilename);
+			}
 
 			// Get list of changed packages
 			TSet<FName> ModifiedPackages, NewPackages, RemovedPackages, IdenticalCookedPackages, IdenticalUncookedPackages;
 
-			PlatformAssetRegistry->ComputePackageDifferences(ModifiedPackages, NewPackages, RemovedPackages, IdenticalCookedPackages, IdenticalUncookedPackages);
+			// We recurse modifications up the reference chain because it is safer, if this ends up being a significant issue in some games we can add a command line flag
+			bool bRecurseModifications = true;
+			PlatformAssetRegistry->ComputePackageDifferences(ModifiedPackages, NewPackages, RemovedPackages, IdenticalCookedPackages, IdenticalUncookedPackages, bRecurseModifications);
 
 			// check the files on disk 
 			TMap<FName, FName> UncookedPathToCookedPath;
@@ -4693,8 +4696,13 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 			const static FName NAME_DummyCookedFilename(TEXT("DummyCookedFilename")); // pls never name a package dummycookedfilename otherwise shit might go wonky
 			if (bIsIterateSharedBuild)
 			{
+				TSet<FName> ExistingPackages = ModifiedPackages;
+				ExistingPackages.Append(RemovedPackages);
+				ExistingPackages.Append(IdenticalCookedPackages);
+				ExistingPackages.Append(IdenticalUncookedPackages);
+
 				// if we are iterating of a shared build the cooked files might not exist in the cooked directory because we assume they are packaged in the pak file (which we don't want to extract)
-				for (FName PackageName : IdenticalCookedPackages)
+				for (FName PackageName : ExistingPackages)
 				{
 					FString Filename;
 					if (FPackageName::DoesPackageExist(PackageName.ToString(), nullptr, &Filename))
@@ -5778,7 +5786,19 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 
 		if (UAssetManager::IsValid())
 		{
-			UAssetManager::Get().ModifyCook(FilesInPath);
+			TArray<FName> PackagesToNeverCook;
+
+			UAssetManager::Get().ModifyCook(FilesInPath, PackagesToNeverCook);
+
+			for (FName NeverCookPackage : PackagesToNeverCook)
+			{
+				const FName StandardPackageFilename = GetCachedStandardPackageFileFName(NeverCookPackage);
+
+				if (StandardPackageFilename != NAME_None)
+				{
+					NeverCookPackageList.Add(StandardPackageFilename);
+				}
+			}
 		}
 #if DEBUG_COOKMODIFICATIONDELEGATE
 		for (TObjectIterator<UPackage> It; It; ++It)
@@ -6032,6 +6052,20 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 			{
 				MapDependencyGraph.Value.Add(FName(TEXT("ContentDirectoryAssets")), ContentDirectoryAssets);
 			}
+		}
+	}
+
+	if (CookByTheBookOptions && !(FilesToCookFlags & ECookByTheBookOptions::DisableUnsolicitedPackages))
+	{
+		// Gather initial unsolicited package list, this is needed in iterative mode because it may skip cooking all explicit packages and never hit this code
+		TArray<UPackage*> UnsolicitedPackages;
+		bool ContainsFullAssetGCClasses = false;
+		UE_LOG(LogCook, Verbose, TEXT("Finding initial unsolicited packages"));
+		GetUnsolicitedPackages(UnsolicitedPackages, ContainsFullAssetGCClasses, CookByTheBookOptions->TargetPlatformNames);
+
+		for (UPackage* UnsolicitedPackage : UnsolicitedPackages)
+		{
+			AddFileToCook(FilesInPath, UnsolicitedPackage->GetName());
 		}
 	}
 }
@@ -6831,11 +6865,11 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	TSet<FName> StartupStringAssetPackages;
 
 	// Get the list of string asset references, for both empty package and all startup packages
-	GRedirectCollector.GetStringAssetReferencePackageList(NAME_None, StartupStringAssetPackages);
+	GRedirectCollector.ProcessStringAssetReferencePackageList(NAME_None, false, StartupStringAssetPackages);
 
 	for (const FName& StartupPackage : CookByTheBookOptions->StartupPackages)
 	{
-		GRedirectCollector.GetStringAssetReferencePackageList(StartupPackage, StartupStringAssetPackages);
+		GRedirectCollector.ProcessStringAssetReferencePackageList(StartupPackage, false, StartupStringAssetPackages);
 	}
 
 	for (FName StringAssetPackage : StartupStringAssetPackages)
@@ -6847,7 +6881,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		{
 			for (TPair<FString, FString>& RedirectedPath : RedirectedPaths)
 			{
-				GRedirectCollector.AddStringAssetReferenceRedirection(RedirectedPath.Key, RedirectedPath.Value);
+				GRedirectCollector.AddAssetPathRedirection(RedirectedPath.Key, RedirectedPath.Value);
 			}
 		}
 

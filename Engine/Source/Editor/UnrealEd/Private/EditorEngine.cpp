@@ -4679,12 +4679,12 @@ namespace ReattachActorsHelper
 
 				AActor* ChildActor = CurrentAttachmentInfo.AttachedActors[AttachedActorIdx].Actor;
 				ChildActor->Modify();
-				ChildActor->DetachRootComponentFromParent(true);
+				ChildActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 			}
 
 			// Modify the actor so undo will reattach it.
 			ActorToReattach->Modify();
-			ActorToReattach->DetachRootComponentFromParent(true);
+			ActorToReattach->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		}
 	}
 

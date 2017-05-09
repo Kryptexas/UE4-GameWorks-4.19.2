@@ -107,7 +107,7 @@ struct ANIMGRAPHRUNTIME_API FPoseDriverTarget
 };
 
 /** RBF based orientation driver */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_PoseDriver : public FAnimNode_PoseHandler
 {
 	GENERATED_BODY()

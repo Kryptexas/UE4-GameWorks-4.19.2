@@ -144,7 +144,7 @@ public:
 		}
 #endif
 		check(AlignedOffset <= Offset);
-		int64 BytesRead;
+		int64 BytesRead = 0L;
 		if (!GetOverlappedResult(FileHandle, &OverlappedIO, (LPDWORD)&BytesRead, TRUE))
 		{
 			uint32 ErrorCode = GetLastError();

@@ -40,7 +40,7 @@ void UAnimGraphNode_Base::CreateOutputPins()
 	if (!IsSinkNode())
 	{
 		const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-		CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), FPoseLink::StaticStruct(), /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT("Pose"));
+		CreatePin(EGPD_Output, Schema->PC_Struct, FString(), FPoseLink::StaticStruct(), TEXT("Pose"));
 	}
 }
 
@@ -54,8 +54,9 @@ void UAnimGraphNode_Base::InternalPinCreation(TArray<UEdGraphPin*>* OldPins)
 	{
 		// Display any currently visible optional pins
 		{
+			UObject* NodeDefaults = GetArchetype();
 			FAnimBlueprintNodeOptionalPinManager OptionalPinManager(this, OldPins);
-			OptionalPinManager.AllocateDefaultPins(NodeStruct->Struct, NodeStruct->ContainerPtrToValuePtr<uint8>(this));
+			OptionalPinManager.AllocateDefaultPins(NodeStruct->Struct, NodeStruct->ContainerPtrToValuePtr<uint8>(this), NodeDefaults ? NodeStruct->ContainerPtrToValuePtr<uint8>(NodeDefaults) : nullptr);
 		}
 
 		// Create the output pin, if needed
@@ -229,7 +230,7 @@ void UAnimGraphNode_Base::CreatePinsForPoseLink(UProperty* PoseProperty, int32 A
 
 	// pose input
 	const FString NewPinName = (ArrayIndex == INDEX_NONE) ? PoseProperty->GetName() : FString::Printf(TEXT("%s_%d"), *(PoseProperty->GetName()), ArrayIndex);
-	CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), A2PoseStruct, /*bIsArray=*/ false, /*bIsReference=*/ false, NewPinName);
+	CreatePin(EGPD_Input, Schema->PC_Struct, FString(), A2PoseStruct, NewPinName);
 }
 
 void UAnimGraphNode_Base::PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const
@@ -238,7 +239,7 @@ void UAnimGraphNode_Base::PostProcessPinName(const UEdGraphPin* Pin, FString& Di
 	{
 		if (Pin->PinName == TEXT("Pose"))
 		{
-			DisplayName = TEXT("");
+			DisplayName.Reset();
 		}
 	}
 }

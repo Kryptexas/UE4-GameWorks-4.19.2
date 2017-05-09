@@ -10,7 +10,7 @@
 #include "AtmosphericFogComponent.generated.h"
 
 /** Structure storing Data for pre-computation */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAtmospherePrecomputeParameters
 {
 	GENERATED_USTRUCT_BODY()

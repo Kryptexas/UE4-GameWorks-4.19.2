@@ -332,7 +332,7 @@ namespace EPinHidingMode
 #define ENABLE_ANIMGRAPH_TRAVERSAL_DEBUG 0
 
 /** A pose link to another node */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FPoseLinkBase
 {
 	GENERATED_USTRUCT_BODY()
@@ -390,7 +390,7 @@ public:
 #define ENABLE_ANIMNODE_POSE_DEBUG 0
 
 /** A local-space pose link to another node */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FPoseLink : public FPoseLinkBase
 {
 	GENERATED_USTRUCT_BODY()
@@ -407,7 +407,7 @@ private:
 };
 
 /** A component-space pose link to another node */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FComponentSpacePoseLink : public FPoseLinkBase
 {
 	GENERATED_USTRUCT_BODY()

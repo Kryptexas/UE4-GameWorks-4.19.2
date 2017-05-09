@@ -1,11 +1,12 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebugger/GameplayDebuggerCategory_Perception.h"
+
+#if WITH_GAMEPLAY_DEBUGGER
+
 #include "GameFramework/Pawn.h"
 #include "AIController.h"
 #include "Perception/AIPerceptionComponent.h"
-
-#if WITH_GAMEPLAY_DEBUGGER
 
 FGameplayDebuggerCategory_Perception::FGameplayDebuggerCategory_Perception()
 {

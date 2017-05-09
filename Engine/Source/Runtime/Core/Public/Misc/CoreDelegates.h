@@ -129,8 +129,14 @@ public:
 	// Called when an error occurred.
 	static FSimpleMulticastDelegate OnShutdownAfterError;
 
-	// Called when appInit is called.
+	// Called when appInit is called, very early in startup
 	static FSimpleMulticastDelegate OnInit;
+
+	// Called at the end of UEngine::Init, right before loading PostEngineInit modules for both normal execution and commandlets
+	static FSimpleMulticastDelegate OnPostEngineInit;
+
+	// Called at the very end of engine initialization, right before the engine starts ticking. This is not called for commandlets
+	static FSimpleMulticastDelegate OnFEngineLoopInitComplete;
 
 	// Called when the application is about to exit.
 	static FSimpleMulticastDelegate OnExit;
@@ -312,9 +318,6 @@ public:
 	static FRenderingThreadChanged PostRenderingThreadCreated;
 	/* Sent just before the rendering thread is destroyed. */
 	static FRenderingThreadChanged PreRenderingThreadDestroyed;
-
-	// Called when appInit is called.
-	static FSimpleMulticastDelegate OnFEngineLoopInitComplete;
 
 	// Callback to allow custom resolution of package names. Arguments are InRequestedName, OutResolvedName.
 	// Should return True of resolution occured.

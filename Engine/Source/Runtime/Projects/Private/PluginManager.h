@@ -44,6 +44,7 @@ public:
 	virtual FString GetContentDir() const override;
 	virtual FString GetMountedAssetPath() const override;
 	virtual bool IsEnabled() const override;
+	virtual bool IsHidden() const override;
 	virtual bool CanContainContent() const override;
 	virtual EPluginLoadedFrom GetLoadedFrom() const override;
 	virtual const FPluginDescriptor& GetDescriptor() const override;

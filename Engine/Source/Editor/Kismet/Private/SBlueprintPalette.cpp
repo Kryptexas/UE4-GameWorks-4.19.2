@@ -1332,6 +1332,11 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 				// Search through all function entry nodes for local variables to update their scope name
 				TArray<UK2Node_Variable*> VariableNodes;
 				Graph->GetNodesOfClass<UK2Node_Variable>(VariableNodes);
+				for (const UEdGraph* SubGraph : Graph->SubGraphs)
+				{
+					check(SubGraph != nullptr);
+					SubGraph->GetNodesOfClass<UK2Node_Variable>(VariableNodes);
+				}
 
 				for (UK2Node_Variable* const VariableNode : VariableNodes)
 				{

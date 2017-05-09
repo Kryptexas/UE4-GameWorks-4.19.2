@@ -130,7 +130,7 @@ void FClothingSimulationBase::SkinPhysicsMesh(UClothingAsset* InAsset, const FCl
 void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, IClothingSimulationContext* InOutContext)
 {
 	FClothingSimulationContextBase* BaseContext = static_cast<FClothingSimulationContextBase*>(InOutContext);
-	BaseContext->ComponentToWorld = InComponent->ComponentToWorld;
+	BaseContext->ComponentToWorld = InComponent->GetComponentTransform();
 	BaseContext->PredictedLod = InComponent->PredictedLODLevel;
 	InComponent->GetWindForCloth_GameThread(BaseContext->WindVelocity, BaseContext->WindAdaption);
 	

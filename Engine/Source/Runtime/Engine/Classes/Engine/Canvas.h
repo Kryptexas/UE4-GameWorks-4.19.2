@@ -17,7 +17,7 @@ class UTexture;
 /**
  * Holds texture information with UV coordinates as well.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCanvasIcon
 {
 	GENERATED_USTRUCT_BODY()

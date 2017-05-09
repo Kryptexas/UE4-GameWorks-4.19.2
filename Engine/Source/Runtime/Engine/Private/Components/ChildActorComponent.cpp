@@ -120,6 +120,30 @@ void UChildActorComponent::Serialize(FArchive& Ar)
 }
 
 #if WITH_EDITOR
+void UChildActorComponent::PostEditImport()
+{
+	Super::PostEditImport();
+
+	if (IsTemplate())
+	{
+		TArray<UObject*> Children;
+		GetObjectsWithOuter(this, Children, false);
+
+		for (UObject* Child : Children)
+		{
+			if (Child->GetClass() == ChildActorClass)
+			{
+				ChildActorTemplate = CastChecked<AActor>(Child);
+				break;
+			}
+		}
+	}
+	else
+	{
+		ChildActorTemplate = CastChecked<UChildActorComponent>(GetArchetype())->ChildActorTemplate;
+	}
+}
+
 void UChildActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass))
@@ -354,7 +378,7 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 		USceneComponent* ChildActorRoot = ChildActor->GetRootComponent();
 		if (ChildActorRoot)
 		{
-			for (const auto& AttachInfo : ChildActorInstanceData->AttachedActors)
+			for (const FChildActorComponentInstanceData::FAttachedActorInfo& AttachInfo : ChildActorInstanceData->AttachedActors)
 			{
 				AActor* AttachedActor = AttachInfo.Actor.Get();
 				if (AttachedActor)
@@ -362,7 +386,7 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 					USceneComponent* AttachedRootComponent = AttachedActor->GetRootComponent();
 					if (AttachedRootComponent)
 					{
-						AttachedActor->DetachRootComponentFromParent();
+						AttachedActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 						AttachedRootComponent->AttachToComponent(ChildActorRoot, FAttachmentTransformRules::KeepWorldTransform, AttachInfo.SocketName);
 						AttachedRootComponent->SetRelativeTransform(AttachInfo.RelativeTransform);
 						AttachedRootComponent->UpdateComponentToWorld();
@@ -487,7 +511,10 @@ void UChildActorComponent::CreateChildActor()
 				Params.bAllowDuringConstructionScript = true;
 				Params.OverrideLevel = (MyOwner ? MyOwner->GetLevel() : nullptr);
 				Params.Name = ChildActorName;
-				Params.Template = ChildActorTemplate;
+				if (ChildActorTemplate && ChildActorTemplate->GetClass() == ChildActorClass)
+				{
+					Params.Template = ChildActorTemplate;
+				}
 				Params.ObjectFlags |= (RF_TextExportTransient | RF_NonPIEDuplicateTransient);
 				if (!HasAllFlags(RF_Transactional))
 				{
@@ -510,7 +537,7 @@ void UChildActorComponent::CreateChildActor()
 
 					// Parts that we deferred from SpawnActor
 					const FComponentInstanceDataCache* ComponentInstanceData = (CachedInstanceData ? CachedInstanceData->ComponentInstanceData : nullptr);
-					ChildActor->FinishSpawning(ComponentToWorld, false, ComponentInstanceData);
+					ChildActor->FinishSpawning(GetComponentTransform(), false, ComponentInstanceData);
 
 					ChildActor->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 

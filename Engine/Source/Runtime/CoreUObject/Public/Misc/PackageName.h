@@ -109,7 +109,17 @@ public:
 	 * @param OutReason					When returning false, this will provide a description of what was wrong with the name.
 	 * @return							true if a valid long package name
 	 */
-	static bool IsValidLongPackageName(const FString& InLongPackageName, bool bIncludeReadOnlyRoots = false, FText* OutReason = NULL);
+	static bool IsValidLongPackageName(const FString& InLongPackageName, bool bIncludeReadOnlyRoots = false, FText* OutReason = nullptr);
+	/** 
+	 * Returns true if the path starts with a valid root (i.e. /Game/, /Engine/, etc) and contains no illegal characters.
+	 * This validates that the packagename is valid, and also makes sure the object after package name is also correct.
+	 * This will return false if passed a path starting with Classname'
+	 *
+	 * @param InObjectPath				The object path to test
+	 * @param OutReason					When returning false, this will provide a description of what was wrong with the name.
+	 * @return							true if a valid object path
+	 */
+	static bool IsValidObjectPath(const FString& InObjectPath, FText* OutReason = nullptr);
 	/**
 	 * Checks if the given string is a long package name or not.
 	 *

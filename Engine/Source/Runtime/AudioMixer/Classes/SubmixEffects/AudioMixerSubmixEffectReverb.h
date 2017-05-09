@@ -7,7 +7,7 @@
 #include "AudioEffect.h"
 #include "AudioMixerSubmixEffectReverb.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct AUDIOMIXER_API FSubmixEffectReverbSettings
 {
 	GENERATED_USTRUCT_BODY()

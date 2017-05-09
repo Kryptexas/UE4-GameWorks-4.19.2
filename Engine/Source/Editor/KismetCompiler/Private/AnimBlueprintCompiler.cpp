@@ -82,7 +82,7 @@ bool FAnimBlueprintCompiler::FEffectiveConstantRecord::Apply(UObject* Object)
 
 		if (ArrayHelper.IsValidIndex(ArrayIndex))
 		{
-			FBlueprintEditorUtils::ImportKismetDefaultValueToProperty(LiteralSourcePin, ArrayProperty->Inner, ArrayHelper.GetRawPtr(ArrayIndex), Object);
+			FBlueprintEditorUtils::PropertyValueFromString_Direct(ArrayProperty->Inner, LiteralSourcePin->GetDefaultAsString(), ArrayHelper.GetRawPtr(ArrayIndex));
 		}
 		else
 		{
@@ -91,7 +91,7 @@ bool FAnimBlueprintCompiler::FEffectiveConstantRecord::Apply(UObject* Object)
 	}
 	else
 	{
-		FBlueprintEditorUtils::ImportKismetDefaultValueToProperty(LiteralSourcePin, ConstantProperty, PropertyPtr, Object);
+		FBlueprintEditorUtils::PropertyValueFromString_Direct(ConstantProperty, LiteralSourcePin->GetDefaultAsString(), PropertyPtr);
 	}
 
 	return true;
@@ -225,7 +225,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerStruct(UAnimGraphNode_Base* 
 		// Does it get serviced by this handler?
 		if (FAnimNodeSinglePropertyHandler* SourceInfo = Record.ServicedProperties.Find(PropertyName))
 		{
-			if (TargetPin->PinType.bIsArray)
+			if (TargetPin->PinType.IsArray())
 			{
 				// Grab the array that we need to set members for
 				UK2Node_StructMemberGet* FetchArrayNode = SpawnIntermediateNode<UK2Node_StructMemberGet>(VisualAnimNode, ConsolidatedEventGraph);
@@ -271,6 +271,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerStruct(UAnimGraphNode_Base* 
 			}
 			else
 			{
+				check(!TargetPin->PinType.IsContainer())
 				// Single property
 				if (SourceInfo->CopyRecords.Num() > 0 && SourceInfo->CopyRecords[0].DestPin != nullptr)
 				{
@@ -351,7 +352,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandlerInstance(UAnimGraphNode_Base
 			// Find the property pin on the set node and configure
 			for(UEdGraphPin* TargetPin : VarAssignNode->Pins)
 			{
-				if(TargetPin->PinType.bIsArray)
+				if(TargetPin->PinType.IsContainer())
 				{
 					// Currently unsupported
 					continue;

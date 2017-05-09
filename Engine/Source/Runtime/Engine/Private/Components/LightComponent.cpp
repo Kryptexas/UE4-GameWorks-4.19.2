@@ -904,7 +904,7 @@ void ULightComponent::SetIESTexture(UTextureLightProfile* NewValue)
 // GetDirection
 FVector ULightComponent::GetDirection() const 
 { 
-	return ComponentToWorld.GetUnitAxis( EAxis::X );
+	return GetComponentTransform().GetUnitAxis( EAxis::X );
 }
 
 void ULightComponent::UpdateColorAndBrightness()
@@ -977,7 +977,7 @@ class FPrecomputedLightInstanceData : public FSceneComponentInstanceData
 public:
 	FPrecomputedLightInstanceData(const ULightComponent* SourceComponent)
 		: FSceneComponentInstanceData(SourceComponent)
-		, Transform(SourceComponent->ComponentToWorld)
+		, Transform(SourceComponent->GetComponentTransform())
 		, LightGuid(SourceComponent->LightGuid)
 		, PreviewShadowMapChannel(SourceComponent->PreviewShadowMapChannel)
 	{}
@@ -1003,7 +1003,7 @@ void ULightComponent::ApplyComponentInstanceData(FPrecomputedLightInstanceData* 
 {
 	check(LightMapData);
 
-	if (!LightMapData->Transform.Equals(ComponentToWorld))
+	if (!LightMapData->Transform.Equals(GetComponentTransform()))
 	{
 		return;
 	}

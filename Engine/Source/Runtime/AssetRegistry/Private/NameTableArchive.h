@@ -35,11 +35,14 @@ public:
 	~FNameTableArchiveReader();
 	
 	// Farchive implementation to redirect requests to the wrapped archive
-	virtual void Serialize(void* V, int64 Length);
-	virtual bool Precache(int64 PrecacheOffset, int64 PrecacheSize);
-	virtual void Seek(int64 InPos);
-	virtual int64 Tell();
-	virtual int64 TotalSize();
+	virtual void Serialize(void* V, int64 Length) override;
+	virtual bool Precache(int64 PrecacheOffset, int64 PrecacheSize) override;
+	virtual void Seek(int64 InPos) override;
+	virtual int64 Tell() override;
+	virtual int64 TotalSize() override;
+	virtual const FCustomVersionContainer& GetCustomVersions() const override;
+	virtual void SetCustomVersions(const FCustomVersionContainer& NewVersions) override;
+	virtual void ResetCustomVersions() override;
 	virtual FArchive& operator<<(FName& Name);
 
 private:
@@ -63,11 +66,14 @@ public:
 	~FNameTableArchiveWriter();
 
 	// Farchive implementation to redirect requests to the wrapped archive
-	virtual void Serialize(void* V, int64 Length);
-	virtual bool Precache(int64 PrecacheOffset, int64 PrecacheSize);
-	virtual void Seek(int64 InPos);
-	virtual int64 Tell();
-	virtual int64 TotalSize();
+	virtual void Serialize(void* V, int64 Length) override;
+	virtual bool Precache(int64 PrecacheOffset, int64 PrecacheSize) override;
+	virtual void Seek(int64 InPos) override;
+	virtual int64 Tell() override;
+	virtual int64 TotalSize() override;
+	virtual const FCustomVersionContainer& GetCustomVersions() const override;
+	virtual void SetCustomVersions(const FCustomVersionContainer& NewVersions) override;
+	virtual void ResetCustomVersions() override;
 	virtual FArchive& operator<<(FName& Name);
 
 private:

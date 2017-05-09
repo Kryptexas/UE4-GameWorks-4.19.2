@@ -59,8 +59,8 @@ typedef int32 NAME_INDEX;
 /** These characters cannot be used in object names */
 #define INVALID_OBJECTNAME_CHARACTERS	TEXT("\"' ,/.:|&!~\n\r\t@#(){}[]=;^%$`")
 
-/** These characters cannot be used in textboxes which take group names (i.e. Group1.Group2) */
-#define INVALID_GROUPNAME_CHARACTERS	TEXT("\"' ,/:|&!~\n\r\t@#")
+/** These characters cannot be used in ObjectPaths, which includes both the package path and part after the first . */
+#define INVALID_OBJECTPATH_CHARACTERS	TEXT("\"' ,|&!~\n\r\t@#(){}[]=;^%$`")
 
 /** These characters cannot be used in long package names */
 #define INVALID_LONGPACKAGE_CHARACTERS	TEXT("\\:*?\"<>|' ,.&!~\n\r\t@#")
@@ -741,6 +741,23 @@ public:
 	int32 Compare( const FName& Other ) const;
 
 	/**
+	 * Fast compares name to passed in one using indexes. Sort is allocation order ascending.
+	 *
+	 * @param	Other	Name to compare this against
+	 * @return	< 0 is this < Other, 0 if this == Other, > 0 if this > Other
+	 */
+	FORCEINLINE int32 CompareIndexes(const FName& Other) const
+	{
+		int32 ComparisonDiff = GetComparisonIndexFast() - Other.GetComparisonIndexFast();
+
+		if (ComparisonDiff == 0)
+		{
+			return GetNumber() - Other.GetNumber();
+		}
+		return ComparisonDiff;
+	}
+
+	/**
 	 * Create an FName with a hardcoded string index.
 	 *
 	 * @param N The hardcoded value the string portion of the name will have. The number portion will be NAME_NO_NUMBER
@@ -1179,3 +1196,11 @@ inline bool operator!=(const CharType *LHS, const FName &RHS)
 template <> struct TIsPODType<FName> { enum { Value = true }; };
 
 
+/** Sort predicate to sort FName by index instead of alphabetically, pass to anything that wants TLess */
+struct FNameSortIndexes
+{
+	FORCEINLINE bool operator()(const FName& A, const FName& B) const
+	{
+		return A.CompareIndexes(B) < 0;
+	}
+};

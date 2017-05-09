@@ -41,6 +41,7 @@
 #include "Interfaces/IMainFrameModule.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Misc/RedirectCollector.h"
 
 #define LOCTEXT_NAMESPACE "AssetRenameManager"
 
@@ -574,63 +575,24 @@ void FAssetRenameManager::DetectReadOnlyPackages(TArray<FAssetRenameDataWithRefe
 	}
 }
 
-/**
- * Function that renames all FStringAssetReference object with the old asset path to the new one.
- *
- * @param PackagesToCheck Packages to check for referencing FStringAssetReference.
- * @param OldAssetPath Old path.
- * @param NewAssetPath New path.
- */
-void FAssetRenameManager::RenameReferencingStringAssetReferences(const TArray<UPackage *> PackagesToCheck, const FString& OldAssetPath, const FString& NewAssetPath)
+void FAssetRenameManager::RenameReferencingStringAssetReferences(const TArray<UPackage *> PackagesToCheck, const TMap<FString, FString>& AssetRedirectorMap)
 {
 	struct FStringAssetReferenceRenameSerializer : public FArchiveUObject
 	{
-		FStringAssetReferenceRenameSerializer(const FString& InOldAssetPath, const FString& InNewAssetPath)
-			: OldAssetPath(InOldAssetPath), NewAssetPath(InNewAssetPath)
+		FStringAssetReferenceRenameSerializer()
 		{
 			// Mark it as saving to correctly process all references
 			ArIsSaving = true;
 		}
-
-		FArchive& operator<<(FStringAssetReference& Reference) override
-		{
-			if (Reference.ToString() == OldAssetPath)
-			{
-				Reference.SetPath(NewAssetPath);
-			}
-
-			// Generated class path support.
-			if (Reference.ToString() == OldAssetPath + "_C")
-			{
-				Reference.SetPath(NewAssetPath + "_C");
-			}
-
-			return *this;
-		}
-
-		FArchive& operator<<(FAssetPtr& AssetPtr)
-		{
-			// Fixup AssetPtrs string asset reference, as the pointed to object may have changed
-
-			UObject* Object = static_cast<UObject*>(AssetPtr.Get());
-			if (Object)
-			{
-				AssetPtr = Object;
-			}
-			else
-			{
-				*this << AssetPtr.GetUniqueID();
-			}
-
-			return *this;
-		}
-
-	private:
-		const FString& OldAssetPath;
-		const FString& NewAssetPath;
 	};
 
-	FStringAssetReferenceRenameSerializer RenameSerializer(OldAssetPath, NewAssetPath);
+	// Add redirects as needed
+	for (const TPair<FString, FString>& Pair : AssetRedirectorMap)
+	{
+		GRedirectCollector.AddAssetPathRedirection(Pair.Key, Pair.Value);
+	}
+
+	FStringAssetReferenceRenameSerializer RenameSerializer;
 
 	for (auto* Package : PackagesToCheck)
 	{
@@ -746,7 +708,17 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 			}
 		}
 
-		RenameReferencingStringAssetReferences(PackagesToCheck, OldAssetPath, Asset->GetPathName());
+		TMap<FString, FString> RedirectorMap;
+		RedirectorMap.Add(OldAssetPath, Asset->GetPathName());
+
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(Asset))
+		{
+			// Add redirect for class and default as well
+			RedirectorMap.Add(FString::Printf(TEXT("%s_C"), *OldAssetPath), FString::Printf(TEXT("%s_C"), *Asset->GetPathName()));
+			RedirectorMap.Add(FString::Printf(TEXT("Default__%s_C"), *OldAssetPath), FString::Printf(TEXT("Default__%s_C"), *Asset->GetPathName()));
+		}
+
+		RenameReferencingStringAssetReferences(PackagesToCheck, RedirectorMap);
 	}
 
 	GWarn->EndSlowTask();

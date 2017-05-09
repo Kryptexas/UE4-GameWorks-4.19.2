@@ -30,7 +30,7 @@ struct FStaticMeshBuildVertex
 
 
 /** The world size for each texcoord mapping. Used by the texture streaming. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMeshUVChannelInfo
 {
 	GENERATED_USTRUCT_BODY()

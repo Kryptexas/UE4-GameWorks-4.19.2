@@ -835,7 +835,7 @@ ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesCompo
 		// this is fine, we won't have any cross-level meshes in this case anyway
 		OuterLandscape->GetLandscapeGuid().IsValid())
 	{
-		FVector LandscapeLocalLocation = ComponentToWorld.GetRelativeTransform(OuterLandscape->LandscapeActorToWorld()).TransformPosition(LocalLocation);
+		FVector LandscapeLocalLocation = GetComponentTransform().GetRelativeTransform(OuterLandscape->LandscapeActorToWorld()).TransformPosition(LocalLocation);
 		const int32 ComponentIndexX = (LandscapeLocalLocation.X >= 0.0f) ? FMath::FloorToInt(LandscapeLocalLocation.X / OuterLandscape->ComponentSizeQuads) : FMath::CeilToInt(LandscapeLocalLocation.X / OuterLandscape->ComponentSizeQuads);
 		const int32 ComponentIndexY = (LandscapeLocalLocation.Y >= 0.0f) ? FMath::FloorToInt(LandscapeLocalLocation.Y / OuterLandscape->ComponentSizeQuads) : FMath::CeilToInt(LandscapeLocalLocation.Y / OuterLandscape->ComponentSizeQuads);
 		ULandscapeComponent* LandscapeComponent = OuterLandscape->GetLandscapeInfo()->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY));
@@ -1519,7 +1519,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 		FRotator MeshRotation = Rotation;
 		if (MeshComponentOuterSplines != OuterSplines)
 		{
-			const FTransform RelativeTransform = OuterSplines->ComponentToWorld.GetRelativeTransform(MeshComponentOuterSplines->ComponentToWorld);
+			const FTransform RelativeTransform = OuterSplines->GetComponentTransform().GetRelativeTransform(MeshComponentOuterSplines->GetComponentTransform());
 			MeshLocation = RelativeTransform.TransformPosition(MeshLocation);
 		}
 
@@ -2381,7 +2381,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			auto* const MeshComponentOuterSplines = MeshComponent->GetAttachParent();
 			if (MeshComponentOuterSplines != nullptr && MeshComponentOuterSplines != OuterSplines)
 			{
-				const FTransform RelativeTransform = OuterSplines->ComponentToWorld.GetRelativeTransform(MeshComponentOuterSplines->ComponentToWorld);
+				const FTransform RelativeTransform = OuterSplines->GetComponentTransform().GetRelativeTransform(MeshComponentOuterSplines->GetComponentTransform());
 				MeshComponent->SplineParams.StartPos = RelativeTransform.TransformPosition(MeshComponent->SplineParams.StartPos);
 				MeshComponent->SplineParams.EndPos   = RelativeTransform.TransformPosition(MeshComponent->SplineParams.EndPos);
 			}

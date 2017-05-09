@@ -25,8 +25,8 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	//~ Begin UK2Node Interface
 	//virtual bool DrawNodeAsVariable() const override { return true; }
 	virtual bool ShouldShowNodeProperties() const override { return true; }
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override {}
-	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput = nullptr) const override;
 	virtual FString GetFindReferenceSearchString() const override;
 	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	//~ End UK2Node Interface

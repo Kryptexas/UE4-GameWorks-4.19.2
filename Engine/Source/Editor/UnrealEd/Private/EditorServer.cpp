@@ -3544,7 +3544,7 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 
 					AActor* ParentActor = Actor->GetAttachParentActor();
 					FName SocketName = Actor->GetAttachParentSocketName();
-					Actor->DetachRootComponentFromParent(true);
+					Actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 					AttachData.Emplace(ParentActor, SocketName);
 
 					// If this actor is in a group, add it to the list
@@ -6950,7 +6950,7 @@ void UEditorEngine::AutoMergeStaticMeshes()
 			UStaticMeshComponent* Component = MergeComponents[ComponentIndex];
 
 			// calculate a matrix to go from my component space to the owner's component's space
-			FMatrix TransformToOwnerSpace = Component->ComponentToWorld.ToMatrixWithScale() * OwnerComponent->ComponentToWorld.ToMatrixWithScale().Inverse();
+			FMatrix TransformToOwnerSpace = Component->GetComponentTransform().ToMatrixWithScale() * OwnerComponent->GetComponentTransform().ToMatrixWithScale().Inverse();
 
 			// if we have negative scale, we need to munge the matrix and scaling
 			if (TransformToOwnerSpace.Determinant() < 0.0f)

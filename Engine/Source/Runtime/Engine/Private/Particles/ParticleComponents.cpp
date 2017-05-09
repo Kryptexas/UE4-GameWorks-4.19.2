@@ -3849,7 +3849,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 
 	if (Template)
 	{
-		ParticleDynamicData->SystemPositionForMacroUVs = ComponentToWorld.TransformPosition(Template->MacroUVPosition);
+		ParticleDynamicData->SystemPositionForMacroUVs = GetComponentTransform().TransformPosition(Template->MacroUVPosition);
 		ParticleDynamicData->SystemRadiusForMacroUVs = Template->MacroUVRadius;
 	}
 
@@ -4166,7 +4166,7 @@ void UParticleSystemComponent::OrientZAxisTowardCamera()
 		DirToCamera.Normalize();
 
 		// Convert the camera direction to local space
-		DirToCamera = ComponentToWorld.InverseTransformVectorNoScale(DirToCamera);
+		DirToCamera = GetComponentTransform().InverseTransformVectorNoScale(DirToCamera);
 		
 		// Local Z axis
 		const FVector LocalZAxis = FVector(0,0,1);
@@ -4611,7 +4611,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_Marshall)
 		bAsyncDataCopyIsValid = true;
 		check(!bParallelRenderThreadUpdate);
-		AsyncComponentToWorld = ComponentToWorld;
+		AsyncComponentToWorld = GetComponentTransform();
 		AsyncInstanceParameters.Reset();
 		AsyncInstanceParameters.Append(InstanceParameters);
 			AsyncBounds = Bounds;

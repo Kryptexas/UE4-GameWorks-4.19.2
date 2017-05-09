@@ -300,7 +300,7 @@ struct FEmitHelper
 
 	static FString GenerateReplaceConvertedMD(UObject* Obj);
 
-	static FString GetBaseFilename(const UObject* AssetObj);
+	static FString GetBaseFilename(const UObject* AssetObj, const FCompilerNativizationOptions& NativizationOptions);
 
 	static FString ReplaceConvertedMetaData(UObject* Obj);
 

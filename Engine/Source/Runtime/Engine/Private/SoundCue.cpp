@@ -5,6 +5,7 @@
 #include "EngineDefines.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
+#include "Misc/CoreDelegates.h"
 #include "Components/AudioComponent.h"
 #include "UObject/UObjectIterator.h"
 #include "EngineUtils.h"
@@ -121,13 +122,13 @@ void USoundCue::PostLoad()
 	}
 	else
 	{
-		OnPostEngineInitHandle = UEngine::OnPostEngineInit.AddUObject(this, &USoundCue::OnPostEngineInit);
+		OnPostEngineInitHandle = FCoreDelegates::OnPostEngineInit.AddUObject(this, &USoundCue::OnPostEngineInit);
 	}
 }
 
 void USoundCue::OnPostEngineInit()
 {
-	UEngine::OnPostEngineInit.Remove(OnPostEngineInitHandle);
+	FCoreDelegates::OnPostEngineInit.Remove(OnPostEngineInitHandle);
 	OnPostEngineInitHandle.Reset();
 
 	EvaluateNodes(true);

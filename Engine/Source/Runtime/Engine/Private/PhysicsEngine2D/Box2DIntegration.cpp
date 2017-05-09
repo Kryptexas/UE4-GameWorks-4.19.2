@@ -243,7 +243,7 @@ void FStartPhysics2DTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick T
 				{
 					// See if the transform is actually different, and if so, move the component to match physics
 					const FTransform NewTransform = UnrealBodyInstance->GetUnrealWorldTransform();
-					const FTransform& OldTransform = UnrealBodyInstance->OwnerComponent->ComponentToWorld;
+					const FTransform& OldTransform = UnrealBodyInstance->OwnerComponent->GetComponentTransform();
 					if (!NewTransform.Equals(OldTransform))
 					{
 						const FVector MoveBy = NewTransform.GetLocation() - OldTransform.GetLocation();

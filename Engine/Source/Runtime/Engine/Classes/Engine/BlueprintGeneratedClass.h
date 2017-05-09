@@ -698,6 +698,7 @@ public:
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 	virtual bool NeedsLoadForServer() const override;
 	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
 	virtual bool CanBeClusterRoot() const override;
 	// End UObject interface
 	
@@ -705,6 +706,7 @@ public:
 #if WITH_EDITOR
 	virtual UClass* GetAuthoritativeClass() override;
 	virtual void ConditionalRecompileClass(TArray<UObject*>* ObjLoaded) override;
+	virtual void FlushCompilationQueueForLevel() override;
 	virtual UObject* GetArchetypeForCDO() const override;
 #endif //WITH_EDITOR
 	virtual void SerializeDefaultObject(UObject* Object, FArchive& Ar) override;

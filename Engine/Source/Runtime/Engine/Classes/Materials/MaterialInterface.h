@@ -102,7 +102,7 @@ struct FLightmassMaterialInterfaceSettings
 	GENERATED_USTRUCT_BODY()
 
 	/** If true, forces translucency to cast static shadows as if the material were masked. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material)
+	UPROPERTY(EditAnywhere, Category=Material)
 	uint32 bCastShadowAsMasked:1;
 
 	/** Scales the emissive contribution of this material to static lighting. */
@@ -110,14 +110,14 @@ struct FLightmassMaterialInterfaceSettings
 	float EmissiveBoost;
 
 	/** Scales the diffuse contribution of this material to static lighting. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material)
+	UPROPERTY(EditAnywhere, Category=Material)
 	float DiffuseBoost;
 
 	/** 
 	 * Scales the resolution that this material's attributes were exported at. 
 	 * This is useful for increasing material resolution when details are needed.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material)
+	UPROPERTY(EditAnywhere, Category=Material)
 	float ExportResolutionScale;
 
 	/** Boolean override flags - only used in MaterialInstance* cases. */
@@ -211,7 +211,7 @@ class UMaterialInterface : public UObject, public IBlendableInterface
 
 protected:
 	/** The Lightmass settings for this object. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass)
+	UPROPERTY(EditAnywhere, Category=Lightmass)
 	struct FLightmassMaterialInterfaceSettings LightmassSettings;
 
 #if WITH_EDITORONLY_DATA

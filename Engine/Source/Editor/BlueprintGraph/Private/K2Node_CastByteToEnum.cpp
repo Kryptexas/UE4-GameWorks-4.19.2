@@ -32,8 +32,8 @@ void UK2Node_CastByteToEnum::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	
-	CreatePin(EGPD_Input, Schema->PC_Byte, TEXT(""), NULL, false, false, ByteInputPinName);
-	CreatePin(EGPD_Output, Schema->PC_Byte, TEXT(""), Enum, false, false, Schema->PN_ReturnValue);
+	CreatePin(EGPD_Input, Schema->PC_Byte, FString(), nullptr, ByteInputPinName);
+	CreatePin(EGPD_Output, Schema->PC_Byte, FString(), Enum, Schema->PN_ReturnValue);
 }
 
 FText UK2Node_CastByteToEnum::GetTooltipText() const

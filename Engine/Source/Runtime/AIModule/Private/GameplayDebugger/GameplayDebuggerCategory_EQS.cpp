@@ -1,15 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebugger/GameplayDebuggerCategory_EQS.h"
+
+#if WITH_GAMEPLAY_DEBUGGER
+
 #include "GameFramework/PlayerController.h"
 #include "CanvasItem.h"
 #include "Engine/Canvas.h"
-
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "DrawDebugHelpers.h"
-
-#if WITH_GAMEPLAY_DEBUGGER
 
 FGameplayDebuggerCategory_EQS::FGameplayDebuggerCategory_EQS()
 {

@@ -157,6 +157,9 @@ public:
 	/** Finds Package data for a package name. This data is only updated on save and can only be accessed for valid packages */
 	virtual const FAssetPackageData* GetAssetPackageData(FName PackageName) const = 0;
 
+	/** Uses the asset registry to look for ObjectRedirectors. This will follow the chain of redirectors. It will return the original path if no redirectors are found */
+	virtual FName GetRedirectedObjectPath(const FName ObjectPath) const = 0;
+
 	/** Returns true if the specified ClassName's ancestors could be found. If so, OutAncestorClassNames is a list of all its ancestors */
 	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const = 0;
 
@@ -302,14 +305,18 @@ public:
 	/** Serialize the registry to/from a file, skipping editor only data */
 	virtual void Serialize(FArchive& Ar) = 0;
 
+	/** Returns memory size of entire registry, optionally logging sizes */
+	virtual uint32 GetAllocatedSize(bool bLogDetailed = false) const = 0;
+
 	/**
 	 * Fills in a AssetRegistryState with a copy of the data in the internal cache, overriding some
 	 *
-	 * @param OutState		This will be filled in with a copy of the asset data, platform data, and dependency data
-	 * @param Options		Serialization options that will be used to write this later
-	 * @param OverrideData	Map of ObjectPath to AssetData. If non empty, it will use this map of AssetData, and will filter Platform/Dependency data to only include this set
+	 * @param OutState			This will be filled in with a copy of the asset data, platform data, and dependency data
+	 * @param Options			Serialization options that will be used to write this later
+	 * @param bRefreshExisting	If true, will not delete or add packages in OutState and will just update things that already exist
+	 * @param OverrideData		Map of ObjectPath to AssetData. If non empty, it will use this map of AssetData, and will filter Platform/Dependency data to only include this set
 	 */
-	virtual void InitializeTemporaryAssetRegistryState(FAssetRegistryState& OutState, const FAssetRegistrySerializationOptions& Options, const TMap<FName, FAssetData*>& OverrideData = TMap<FName, FAssetData*>()) const = 0;
+	virtual void InitializeTemporaryAssetRegistryState(FAssetRegistryState& OutState, const FAssetRegistrySerializationOptions& Options, bool bRefreshExisting = false, const TMap<FName, FAssetData*>& OverrideData = TMap<FName, FAssetData*>()) const = 0;
 
 	/** Fills in FAssetRegistrySerializationOptions from ini, optionally using a target platform ini name */
 	virtual void InitializeSerializationOptions(FAssetRegistrySerializationOptions& Options, const FString& PlatformIniName = FString()) const = 0;

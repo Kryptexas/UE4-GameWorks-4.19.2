@@ -330,7 +330,7 @@ struct FVector
 * A 4-D homogeneous vector.
 * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Vector4.h
 */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FVector4
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Vector4, SaveGame)
@@ -367,10 +367,10 @@ struct FVector2D
 USTRUCT(immutable, noexport)
 struct FTwoVectors
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TwoVectors, SaveGame)
+	UPROPERTY(EditAnywhere, Category=TwoVectors, SaveGame)
 	FVector v1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TwoVectors, SaveGame)
+	UPROPERTY(EditAnywhere, Category=TwoVectors, SaveGame)
 	FVector v2;
 
 };
@@ -380,7 +380,7 @@ struct FTwoVectors
  * A plane definition in 3D space.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Plane.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FPlane : public FVector
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Plane, SaveGame)
@@ -415,7 +415,7 @@ struct FRotator
  * Quaternion.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Quat.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FQuat
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Quat, SaveGame)
@@ -440,16 +440,16 @@ struct FQuat
 USTRUCT(immutable, noexport)
 struct FPackedNormal
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category=PackedNormal, SaveGame)
 	uint8 X;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category=PackedNormal, SaveGame)
 	uint8 Y;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category=PackedNormal, SaveGame)
 	uint8 Z;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category=PackedNormal, SaveGame)
 	uint8 W;
 
 };
@@ -461,7 +461,7 @@ struct FPackedNormal
 USTRUCT(immutable, noexport)
 struct FPackedRGB10A2N
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedBasis, SaveGame)
+	UPROPERTY(EditAnywhere, Category = PackedBasis, SaveGame)
 	int32 Packed;
 };
 
@@ -472,10 +472,10 @@ struct FPackedRGB10A2N
 USTRUCT(immutable, noexport)
 struct FPackedRGBA16N
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category = PackedNormal, SaveGame)
 	int32 XY;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedNormal, SaveGame)
+	UPROPERTY(EditAnywhere, Category = PackedNormal, SaveGame)
 	int32 ZW;
 };
 
@@ -483,7 +483,7 @@ struct FPackedRGBA16N
  * Screen coordinates.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\IntPoint.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FIntPoint
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IntPoint, SaveGame)
@@ -516,7 +516,7 @@ struct FIntVector
  * A Color (BGRA).
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Color.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FColor
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Color, SaveGame, meta=(ClampMin="0", ClampMax="255"))
@@ -597,7 +597,7 @@ struct FBox2D
  * A bounding box and bounding sphere with the same origin.
  * The full C++ class is located here : Engine\Source\Runtime\Core\Public\Math\BoxSphereBounds.h
  */
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FBoxSphereBounds
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=BoxSphereBounds, SaveGame)
@@ -618,25 +618,25 @@ struct FBoxSphereBounds
 USTRUCT(immutable, noexport)
 struct FOrientedBox
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	FVector Center;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	FVector AxisX;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	FVector AxisY;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	FVector AxisZ;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	float ExtentX;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	float ExtentY;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OrientedBox, SaveGame)
+	UPROPERTY(EditAnywhere, Category=OrientedBox, SaveGame)
 	float ExtentZ;
 };
 
@@ -644,7 +644,7 @@ struct FOrientedBox
  * A 4x4 matrix.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\Matrix.h
  */
-USTRUCT(immutable, noexport)
+USTRUCT(immutable, noexport, BlueprintType)
 struct FMatrix
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Matrix, SaveGame)
@@ -666,19 +666,19 @@ struct FMatrix
 USTRUCT(noexport)
 struct FInterpCurvePointFloat
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
 	float OutVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
 	float ArriveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
 	float LeaveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointFloat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointFloat)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
@@ -688,13 +688,13 @@ struct FInterpCurvePointFloat
 USTRUCT(noexport)
 struct FInterpCurveFloat
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
+	UPROPERTY(EditAnywhere, Category=InterpCurveFloat)
 	TArray<FInterpCurvePointFloat> Points;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
+	UPROPERTY(EditAnywhere, Category=InterpCurveFloat)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
+	UPROPERTY(EditAnywhere, Category=InterpCurveFloat)
 	float LoopKeyOffset;
 };
 
@@ -703,19 +703,19 @@ struct FInterpCurveFloat
 USTRUCT(noexport)
 struct FInterpCurvePointVector2D
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
 	FVector2D OutVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
 	FVector2D ArriveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
 	FVector2D LeaveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector2D)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector2D)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
@@ -725,13 +725,13 @@ struct FInterpCurvePointVector2D
 USTRUCT(noexport)
 struct FInterpCurveVector2D
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
+	UPROPERTY(EditAnywhere, Category=InterpCurveVector2D)
 	TArray<FInterpCurvePointVector2D> Points;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
+	UPROPERTY(EditAnywhere, Category=InterpCurveVector2D)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
+	UPROPERTY(EditAnywhere, Category=InterpCurveVector2D)
 	float LoopKeyOffset;
 };
 
@@ -740,19 +740,19 @@ struct FInterpCurveVector2D
 USTRUCT(noexport)
 struct FInterpCurvePointVector
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
 	FVector OutVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
 	FVector ArriveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
 	FVector LeaveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointVector)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointVector)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
@@ -762,13 +762,13 @@ struct FInterpCurvePointVector
 USTRUCT(noexport)
 struct FInterpCurveVector
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
+	UPROPERTY(EditAnywhere, Category=InterpCurveVector)
 	TArray<FInterpCurvePointVector> Points;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
+	UPROPERTY(EditAnywhere, Category=InterpCurveVector)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
+	UPROPERTY(EditAnywhere, Category=InterpCurveVector)
 	float LoopKeyOffset;
 };
 
@@ -777,19 +777,19 @@ struct FInterpCurveVector
 USTRUCT(noexport)
 struct FInterpCurvePointQuat
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
 	FQuat OutVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
 	FQuat ArriveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
 	FQuat LeaveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointQuat)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
@@ -799,13 +799,13 @@ struct FInterpCurvePointQuat
 USTRUCT(noexport)
 struct FInterpCurveQuat
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
+	UPROPERTY(EditAnywhere, Category=InterpCurveQuat)
 	TArray<FInterpCurvePointQuat> Points;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
+	UPROPERTY(EditAnywhere, Category=InterpCurveQuat)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
+	UPROPERTY(EditAnywhere, Category=InterpCurveQuat)
 	float LoopKeyOffset;
 };
 
@@ -814,19 +814,19 @@ struct FInterpCurveQuat
 USTRUCT(noexport)
 struct FInterpCurvePointTwoVectors
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
 	FTwoVectors OutVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
 	FTwoVectors ArriveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
 	FTwoVectors LeaveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointTwoVectors)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointTwoVectors)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
@@ -836,13 +836,13 @@ struct FInterpCurvePointTwoVectors
 USTRUCT(noexport)
 struct FInterpCurveTwoVectors
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
+	UPROPERTY(EditAnywhere, Category=InterpCurveTwoVectors)
 	TArray<FInterpCurvePointTwoVectors> Points;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
+	UPROPERTY(EditAnywhere, Category=InterpCurveTwoVectors)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
+	UPROPERTY(EditAnywhere, Category=InterpCurveTwoVectors)
 	float LoopKeyOffset;
 };
 
@@ -851,19 +851,19 @@ struct FInterpCurveTwoVectors
 USTRUCT(noexport)
 struct FInterpCurvePointLinearColor
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
 	float InVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
 	FLinearColor OutVal;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
 	FLinearColor ArriveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
 	FLinearColor LeaveTangent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointLinearColor)
+	UPROPERTY(EditAnywhere, Category=InterpCurvePointLinearColor)
 	TEnumAsByte<enum EInterpCurveMode> InterpMode;
 
 };
@@ -873,13 +873,13 @@ struct FInterpCurvePointLinearColor
 USTRUCT(noexport)
 struct FInterpCurveLinearColor
 {
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
+	UPROPERTY(EditAnywhere, Category=InterpCurveLinearColor)
 	TArray<FInterpCurvePointLinearColor> Points;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
+	UPROPERTY(EditAnywhere, Category=InterpCurveLinearColor)
 	bool bIsLooped;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
+	UPROPERTY(EditAnywhere, Category=InterpCurveLinearColor)
 	float LoopKeyOffset;
 };
 
@@ -939,7 +939,7 @@ struct FTimespan
 
 // A string asset reference
 
-USTRUCT(noexport, meta=(HasNativeMake="Engine.BlueprintFunctionLibrary.MakeStringAssetReference"))
+USTRUCT(noexport, BlueprintType, meta=(HasNativeMake="Engine.BlueprintFunctionLibrary.MakeStringAssetReference"))
 struct FStringAssetReference
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StringAssetReference)
@@ -983,7 +983,7 @@ struct FFallbackStruct
 {
 };
 
-UENUM()
+UENUM(BlueprintType)
 namespace ERangeBoundTypes
 {
 	/**
@@ -1010,49 +1010,49 @@ namespace ERangeBoundTypes
 
 // A float range bound
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FFloatRangeBound
 {
-	UPROPERTY(EditAnywhere, Category=Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Range)
 	TEnumAsByte<ERangeBoundTypes::Type> Type;
 
-	UPROPERTY(EditAnywhere, Category=Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Range)
 	float Value;
 };
 
 // A float range
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FFloatRange
 {
-	UPROPERTY(EditAnywhere, Category=Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Range)
 	FFloatRangeBound LowerBound;
 
-	UPROPERTY(EditAnywhere, Category=Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Range)
 	FFloatRangeBound UpperBound;
 };
 
 // An int32 range bound
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInt32RangeBound
 {
-	UPROPERTY(EditAnywhere, Category = Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Range)
 	TEnumAsByte<ERangeBoundTypes::Type> Type;
 
-	UPROPERTY(EditAnywhere, Category = Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Range)
 	int32 Value;
 };
 
 // An int32 range
 
-USTRUCT(noexport)
+USTRUCT(noexport, BlueprintType)
 struct FInt32Range
 {
-	UPROPERTY(EditAnywhere, Category = Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Range)
 	FInt32RangeBound LowerBound;
 
-	UPROPERTY(EditAnywhere, Category = Range)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Range)
 	FInt32RangeBound UpperBound;
 };
 

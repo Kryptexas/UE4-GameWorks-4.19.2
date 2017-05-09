@@ -137,8 +137,8 @@ FTransform UPhysicsConstraintComponent::GetBodyTransformInternal(EConstraintFram
 		return FTransform::Identity;
 	}
 	  
-	//Use ComponentToWorld by default for all components
-	FTransform ResultTM = PrimComp->ComponentToWorld;
+	//Use GetComponentTransform() by default for all components
+	FTransform ResultTM = PrimComp->GetComponentTransform();
 		
 	// Skeletal case
 	if(const USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(PrimComp))
@@ -524,8 +524,8 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 
 	// World ref frame
 	const FVector WPos = GetComponentLocation();
-	const FVector WPri = ComponentToWorld.GetUnitAxis( EAxis::X );
-	const FVector WOrth = ComponentToWorld.GetUnitAxis( EAxis::Y );
+	const FVector WPri = GetComponentTransform().GetUnitAxis( EAxis::X );
+	const FVector WOrth = GetComponentTransform().GetUnitAxis( EAxis::Y );
 
 	ConstraintInstance.Pos1 = A1Transform.InverseTransformPosition(WPos);
 	ConstraintInstance.PriAxis1 = A1Transform.InverseTransformVectorNoScale(WPri);
@@ -533,8 +533,8 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 
 	const FVector RotatedX = ConstraintInstance.AngularRotationOffset.RotateVector(FVector(1,0,0));
 	const FVector RotatedY = ConstraintInstance.AngularRotationOffset.RotateVector(FVector(0,1,0));
-	const FVector WPri2 = ComponentToWorld.TransformVectorNoScale(RotatedX);
-	const FVector WOrth2 = ComponentToWorld.TransformVectorNoScale(RotatedY);
+	const FVector WPri2 = GetComponentTransform().TransformVectorNoScale(RotatedX);
+	const FVector WOrth2 = GetComponentTransform().TransformVectorNoScale(RotatedY);
 	
 	
 	ConstraintInstance.Pos2 = A2Transform.InverseTransformPosition(WPos);

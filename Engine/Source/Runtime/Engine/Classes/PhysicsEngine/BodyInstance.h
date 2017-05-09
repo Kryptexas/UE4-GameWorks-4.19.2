@@ -188,7 +188,7 @@ enum class EDynamicActorScene : uint8
 };
 
 /** Container for a physics representation of an object */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FBodyInstance
 {
 	GENERATED_USTRUCT_BODY()

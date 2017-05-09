@@ -11,7 +11,7 @@ void FRadialForceComponentVisualizer::DrawVisualization( const UActorComponent* 
 	const URadialForceComponent* ForceComp = Cast<const URadialForceComponent>(Component);
 	if(ForceComp != NULL)
 	{
-		FTransform TM = ForceComp->ComponentToWorld;
+		FTransform TM = ForceComp->GetComponentTransform();
 		TM.RemoveScaling();
 
 		// Draw light radius

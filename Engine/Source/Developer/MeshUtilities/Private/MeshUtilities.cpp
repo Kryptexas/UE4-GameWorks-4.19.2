@@ -6257,7 +6257,7 @@ bool FMeshUtilities::ConstructRawMesh(
 	const FMeshBuildSettings& BuildSettings = bImportedMesh ? SourceStaticMeshModel.BuildSettings : SourceStaticMesh->SourceModels[0].BuildSettings;
 
 	// Transform raw mesh to world space
-	FTransform ComponentToWorldTransform = InMeshComponent->ComponentToWorld;
+	FTransform ComponentToWorldTransform = InMeshComponent->GetComponentTransform();
 	// Take into account build scale settings only for meshes imported from raw data
 	// meshes reconstructed from render data already have build scale applied
 	if (bImportedMesh)
@@ -6582,7 +6582,7 @@ static void ExtractPhysicsGeometry(UStaticMeshComponent* InMeshComponent, FKAggr
 	}
 
 	// Transform geometry to world space
-	FTransform CtoM = InMeshComponent->ComponentToWorld;
+	FTransform CtoM = InMeshComponent->GetComponentTransform();
 	TransformPhysicsGeometry(CtoM, OutAggGeom);
 }
 
@@ -6969,7 +6969,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		if (MeshId == 0)
 		{
 			// Mesh component pivot point
-			MergedAssetPivot = InSettings.bPivotPointAtZero ? FVector::ZeroVector : MeshComponent->ComponentToWorld.GetLocation();
+			MergedAssetPivot = InSettings.bPivotPointAtZero ? FVector::ZeroVector : MeshComponent->GetComponentTransform().GetLocation();
 			// Source mesh asset package name
 			MergedAssetPackageName = MeshComponent->GetStaticMesh()->GetOutermost()->GetName();
 		}

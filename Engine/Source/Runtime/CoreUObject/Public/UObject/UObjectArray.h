@@ -16,7 +16,9 @@
 * Controls whether the number of available elements is being tracked in the ObjObjects array.
 * By default it is only tracked in WITH_EDITOR builds as it adds a small amount of tracking overhead
 */
+#if !defined(UE_GC_TRACK_OBJ_AVAILABLE)
 #define UE_GC_TRACK_OBJ_AVAILABLE (WITH_EDITOR)
+#endif
 
 /**
 * Single item in the UObject array.

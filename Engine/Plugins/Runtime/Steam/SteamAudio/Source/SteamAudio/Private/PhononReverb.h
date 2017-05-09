@@ -107,6 +107,6 @@ class USubmixEffectReverbPluginPreset : public USoundEffectSubmixPreset
 public:
 	EFFECT_PRESET_METHODS_NO_ASSET_ACTIONS(SubmixEffectReverbPlugin)
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SubmixEffectPreset)
+	UPROPERTY(EditAnywhere, Category = SubmixEffectPreset)
 	FSubmixEffectReverbPluginSettings Settings;
 };

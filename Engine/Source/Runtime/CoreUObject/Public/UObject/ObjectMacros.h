@@ -80,6 +80,7 @@ enum ELoadFlags
 	LOAD_PackageForPIE				= 0x00080000,   // This package is being loaded for PIE, it must be flagged as such immediately
 	LOAD_DeferDependencyLoads       = 0x00100000,   // Do not load external (blueprint) dependencies (instead, track them for deferred loading)
 	LOAD_ForFileDiff				= 0x00200000,	// Load the package (not for diffing in the editor), instead verify at the two packages serialized output are the same, if they are not then debug break so that you can get the callstack and object information
+	LOAD_DisableCompileOnLoad		= 0x00400000,	// Prevent this load call from running compile on load for the loaded blueprint (intentionally not recursive, dependencies will still compile on load)
 };
 
 //
@@ -170,79 +171,79 @@ enum EClassFlags
 {
 	/** @name Base flags */
 	//@{
-	CLASS_None				  = 0x00000000,
+	CLASS_None				  = 0x00000000u,
 	/** Class is abstract and can't be instantiated directly. */
-	CLASS_Abstract            = 0x00000001,
+	CLASS_Abstract            = 0x00000001u,
 	/** Save object configuration only to Default INIs, never to local INIs. Must be combined with CLASS_Config */
-	CLASS_DefaultConfig		  = 0x00000002,
+	CLASS_DefaultConfig		  = 0x00000002u,
 	/** Load object configuration at construction time. */
-	CLASS_Config			  = 0x00000004,
+	CLASS_Config			  = 0x00000004u,
 	/** This object type can't be saved; null it out at save time. */
-	CLASS_Transient			  = 0x00000008,
+	CLASS_Transient			  = 0x00000008u,
 	/** Successfully parsed. */
-	CLASS_Parsed              = 0x00000010,
+	CLASS_Parsed              = 0x00000010u,
 	/** */
-	//CLASS_                  = 0x00000020,
+	//CLASS_                  = 0x00000020u,
 	/** All the properties on the class are shown in the advanced section (which is hidden by default) unless SimpleDisplay is specified on the property */
-	CLASS_AdvancedDisplay	  = 0x00000040,
+	CLASS_AdvancedDisplay	  = 0x00000040u,
 	/** Class is a native class - native interfaces will have CLASS_Native set, but not RF_MarkAsNative */
-	CLASS_Native			  = 0x00000080,
+	CLASS_Native			  = 0x00000080u,
 	/** Don't export to C++ header. */
-	CLASS_NoExport            = 0x00000100,
+	CLASS_NoExport            = 0x00000100u,
 	/** Do not allow users to create in the editor. */
-	CLASS_NotPlaceable        = 0x00000200,
+	CLASS_NotPlaceable        = 0x00000200u,
 	/** Handle object configuration on a per-object basis, rather than per-class. */
-	CLASS_PerObjectConfig     = 0x00000400,
+	CLASS_PerObjectConfig     = 0x00000400u,
 	
 	/** */
-	//CLASS_ = 0x00000800,
+	//CLASS_ = 0x00000800u,
 	
 	/** Class can be constructed from editinline New button. */
-	CLASS_EditInlineNew		  = 0x00001000,
+	CLASS_EditInlineNew		  = 0x00001000u,
 	/** Display properties in the editor without using categories. */
-	CLASS_CollapseCategories  = 0x00002000,
+	CLASS_CollapseCategories  = 0x00002000u,
 	/** Class is an interface **/
-	CLASS_Interface           = 0x00004000,
+	CLASS_Interface           = 0x00004000u,
 	/**  Do not export a constructor for this class, assuming it is in the cpptext **/
-	CLASS_CustomConstructor   = 0x00008000,
+	CLASS_CustomConstructor   = 0x00008000u,
 	/** all properties and functions in this class are const and should be exported as const */
-	CLASS_Const			      = 0x00010000,
+	CLASS_Const			      = 0x00010000u,
 
 	/** */
-	//CLASS_ = 0x00020000,
+	//CLASS_ = 0x00020000u,
 	
 	/** Indicates that the class was created from blueprint source material */
-	CLASS_CompiledFromBlueprint  = 0x00040000,
+	CLASS_CompiledFromBlueprint  = 0x00040000u,
 
 	/** Indicates that only the bare minimum bits of this class should be DLL exported/imported */
-	CLASS_MinimalAPI	      = 0x00080000,
+	CLASS_MinimalAPI	      = 0x00080000u,
 	
 	/** Indicates this class must be DLL exported/imported (along with all of it's members) */
-	CLASS_RequiredAPI	      = 0x00100000,
+	CLASS_RequiredAPI	      = 0x00100000u,
 
 	/** Indicates that references to this class default to instanced. Used to be subclasses of UComponent, but now can be any UObject */
-	CLASS_DefaultToInstanced  = 0x00200000,
+	CLASS_DefaultToInstanced  = 0x00200000u,
 
 	/** Indicates that the parent token stream has been merged with ours. */
-	CLASS_TokenStreamAssembled  = 0x00400000,
+	CLASS_TokenStreamAssembled  = 0x00400000u,
 	/** Class has component properties. */
-	CLASS_HasInstancedReference= 0x00800000,
+	CLASS_HasInstancedReference= 0x00800000u,
 	/** Don't show this class in the editor class browser or edit inline new menus. */
-	CLASS_Hidden			  = 0x01000000,
+	CLASS_Hidden			  = 0x01000000u,
 	/** Don't save objects of this class when serializing */
-	CLASS_Deprecated		  = 0x02000000,
+	CLASS_Deprecated		  = 0x02000000u,
 	/** Class not shown in editor drop down for class selection */
-	CLASS_HideDropDown		  = 0x04000000,
+	CLASS_HideDropDown		  = 0x04000000u,
 	/** Class settings are saved to <AppData>/..../Blah.ini (as opposed to CLASS_DefaultConfig) */
-	CLASS_GlobalUserConfig	  = 0x08000000,
+	CLASS_GlobalUserConfig	  = 0x08000000u,
 	/** Class was declared directly in C++ and has no boilerplate generated by UnrealHeaderTool */
-	CLASS_Intrinsic			  = 0x10000000,
+	CLASS_Intrinsic			  = 0x10000000u,
 	/** Class has already been constructed (maybe in a previous DLL version before hot-reload). */
-	CLASS_Constructed		  = 0x20000000,
+	CLASS_Constructed		  = 0x20000000u,
 	/** Indicates that object configuration will not check against ini base/defaults when serialized */
-	CLASS_ConfigDoNotCheckDefaults = 0x40000000,
+	CLASS_ConfigDoNotCheckDefaults = 0x40000000u,
 	/** Class has been consigned to oblivion as part of a blueprint recompile, and a newer version currently exists. */
-	CLASS_NewerVersionExists  = 0x80000000,
+	CLASS_NewerVersionExists  = 0x80000000u,
 
 	//@}
 
@@ -287,10 +288,11 @@ enum EClassFlags
 		CLASS_MinimalAPI |
 		CLASS_RequiredAPI,
 
-	CLASS_AllFlags			= 0xFFFFFFFF,
+	CLASS_AllFlags			= 0xFFFFFFFFu,
 };
 
-
+// Declare bitwise operators to allow EClassFlags to be combined but still retain type safety
+ENUM_CLASS_FLAGS(EClassFlags);
 
 
 
@@ -814,6 +816,9 @@ namespace UF
 		/// This function is cosmetic and will not run on dedicated servers
 		BlueprintCosmetic,
 
+		/// Indicates that a Blueprint exposed function should not be exposed to the end user
+		BlueprintInternalUseOnly,
+	
 		/// This function can be called in the editor on selected instances via a button in the details panel.
 		CallInEditor,
 
@@ -968,6 +973,9 @@ namespace US
 
 		/// Exposes this struct as a type that can be used for variables in blueprints
 		BlueprintType,
+
+		/// Indicates that a BlueprintType struct should not be exposed to the end user
+		BlueprintInternalUseOnly
 	};
 }
 
@@ -1351,7 +1359,7 @@ public: \
 	{ \
 		return TPackage; \
 	} \
-	/** Returns the StaticClassFlags for this class */ \
+	/** Returns the static cast flags for this class */ \
 	inline static EClassCastFlags StaticClassCastFlags() \
 	{ \
 		return TStaticCastFlags; \
@@ -1496,7 +1504,7 @@ public: \
 				PrivateStaticClass, \
 				StaticRegisterNatives##TClass, \
 				sizeof(TClass), \
-				TClass::StaticClassFlags, \
+				(EClassFlags)TClass::StaticClassFlags, \
 				TClass::StaticClassCastFlags(), \
 				TClass::StaticConfigName(), \
 				(UClass::ClassConstructorType)InternalConstructor<TClass>, \
@@ -1556,7 +1564,7 @@ public: \
 			PrivateStaticClass, \
 			StaticRegisterNatives##TClass, \
 			sizeof(TClass), \
-			TClass::StaticClassFlags, \
+			(EClassFlags)TClass::StaticClassFlags, \
 			TClass::StaticClassCastFlags(), \
 			TClass::StaticConfigName(), \
 			(UClass::ClassConstructorType)InternalConstructor<TClass>, \

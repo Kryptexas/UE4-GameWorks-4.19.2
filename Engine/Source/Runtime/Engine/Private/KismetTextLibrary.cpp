@@ -6,17 +6,9 @@
 
 #define LOCTEXT_NAMESPACE "Kismet"
 
-
-/* UKismetTextLibrary structors
- *****************************************************************************/
-
 UKismetTextLibrary::UKismetTextLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 { }
-
-
-/* UKismetTextLibrary static functions
- *****************************************************************************/
 
 FText UKismetTextLibrary::Conv_VectorToText(FVector InVec)
 {
@@ -28,7 +20,6 @@ FText UKismetTextLibrary::Conv_VectorToText(FVector InVec)
 	return FText::Format(NSLOCTEXT("Core", "Vector3", "X={X} Y={Y} Z={Z}"), Args);
 }
 
-
 FText UKismetTextLibrary::Conv_Vector2dToText(FVector2D InVec)
 {
 	FFormatNamedArguments Args;
@@ -37,7 +28,6 @@ FText UKismetTextLibrary::Conv_Vector2dToText(FVector2D InVec)
 
 	return FText::Format(NSLOCTEXT("Core", "Vector2", "X={X} Y={Y}"), Args);
 }
-
 
 FText UKismetTextLibrary::Conv_RotatorToText(FRotator InRot)
 {
@@ -49,18 +39,29 @@ FText UKismetTextLibrary::Conv_RotatorToText(FRotator InRot)
 	return FText::Format(NSLOCTEXT("Core", "Rotator", "P={P} Y={Y} R={R}"), Args);
 }
 
-
 FText UKismetTextLibrary::Conv_TransformToText(const FTransform& InTrans)
 {
-	return FText::FromString(InTrans.ToString());
-}
+	const FVector T(InTrans.GetTranslation());
+	const FRotator R(InTrans.Rotator());
+	const FVector S(InTrans.GetScale3D());
 
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("T"), Conv_VectorToText(T));
+	Args.Add(TEXT("R"), Conv_RotatorToText(R));
+	Args.Add(TEXT("S"), Conv_VectorToText(S));
+
+	return FText::Format(NSLOCTEXT("Core", "Transform", "Translation: {T} Rotation: {R} Scale: {S}"), Args);
+}
 
 FText UKismetTextLibrary::Conv_ObjectToText(class UObject* InObj)
 {
-	return FText::FromString((InObj != NULL) ? InObj->GetName() : FString(TEXT("None")));
-}
+	if (InObj)
+	{
+		return FText::AsCultureInvariant(InObj->GetName());
+	}
 
+	return GNone;
+}
 
 FText UKismetTextLibrary::Conv_ColorToText(FLinearColor InColor)
 {
@@ -73,120 +74,100 @@ FText UKismetTextLibrary::Conv_ColorToText(FLinearColor InColor)
 	return FText::Format(NSLOCTEXT("Core", "LinearColor", "R={R} G={G} B={B} A={A}"), Args);
 }
 
-
 FString UKismetTextLibrary::Conv_TextToString(const FText& InText)
 {
 	return InText.ToString();
 }
 
-
 FText UKismetTextLibrary::Conv_StringToText(const FString& InString)
 {	
-	return FText::FromString(InString);
+	return FText::AsCultureInvariant(InString);
 }
-
 
 FText UKismetTextLibrary::Conv_NameToText(FName InName)
 {
-	return FText::FromName(InName);
+	return FText::AsCultureInvariant(InName.ToString());
 }
-
 
 bool UKismetTextLibrary::TextIsEmpty(const FText& InText)
 {
 	return InText.IsEmpty();
 }
 
-
 bool UKismetTextLibrary::TextIsTransient(const FText& InText)
 {
 	return InText.IsTransient();
 }
-
 
 bool UKismetTextLibrary::TextIsCultureInvariant(const FText& InText)
 {
 	return InText.IsCultureInvariant();
 }
 
-
 FText UKismetTextLibrary::TextToLower(const FText& InText)
 {
 	return InText.ToLower();
 }
-
 
 FText UKismetTextLibrary::TextToUpper(const FText& InText)
 {
 	return InText.ToUpper();
 }
 
-
 FText UKismetTextLibrary::TextTrimPreceding(const FText& InText)
 {
 	return FText::TrimPreceding(InText);
 }
-
 
 FText UKismetTextLibrary::TextTrimTrailing(const FText& InText)
 {
 	return FText::TrimTrailing(InText);
 }
 
-
 FText UKismetTextLibrary::TextTrimPrecedingAndTrailing(const FText& InText)
 {
 	return FText::TrimPrecedingAndTrailing(InText);
 }
-
 
 FText UKismetTextLibrary::GetEmptyText()
 {
 	return FText::GetEmpty();
 }
 
-
 bool UKismetTextLibrary::FindTextInLocalizationTable(const FString& Namespace, const FString& Key, FText& OutText)
 {
 	return FText::FindText(Namespace, Key, OutText);
 }
-
 
 bool UKismetTextLibrary::EqualEqual_IgnoreCase_TextText(const FText& A, const FText& B)
 {
 	return A.EqualToCaseIgnored( B );
 }
 
-
 bool UKismetTextLibrary::EqualEqual_TextText(const FText& A, const FText& B)
 {
 	return A.EqualTo( B );
 }
-
 
 bool UKismetTextLibrary::NotEqual_IgnoreCase_TextText(const FText& A, const FText& B)
 {
 	return !A.EqualToCaseIgnored( B );
 }
 
-
 bool UKismetTextLibrary::NotEqual_TextText(const FText& A, const FText& B)
 {
 	return !A.EqualTo( B );
 }
-
 
 FText UKismetTextLibrary::Conv_BoolToText(bool InBool)
 {
 	return InBool ? LOCTEXT("True", "true") : LOCTEXT("False", "false");
 }
 
-
 FText UKismetTextLibrary::Conv_ByteToText(uint8 Value)
 {
 	return FText::AsNumber(Value, &FNumberFormattingOptions::DefaultNoGrouping());
 }
-
 
 FText UKismetTextLibrary::Conv_IntToText(int32 Value, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/)
 {
@@ -199,7 +180,6 @@ FText UKismetTextLibrary::Conv_IntToText(int32 Value, bool bUseGrouping/* = true
 
 	return FText::AsNumber(Value, &NumberFormatOptions);
 }
-
 
 FText UKismetTextLibrary::Conv_FloatToText(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping/* = true*/, int32 MinimumIntegralDigits/* = 1*/, int32 MaximumIntegralDigits/* = 324*/, int32 MinimumFractionalDigits/* = 0*/, int32 MaximumFractionalDigits/* = 3*/)
 {
@@ -258,66 +238,55 @@ FText UKismetTextLibrary::AsPercent_Float(float Value, TEnumAsByte<ERoundingMode
 	return FText::AsPercent(Value, &NumberFormatOptions);
 }
 
-
 FText UKismetTextLibrary::AsDate_DateTime(const FDateTime& InDateTime)
 {
 	return FText::AsDate(InDateTime, EDateTimeStyle::Default, FText::GetInvariantTimeZone());
 }
-
 
 FText UKismetTextLibrary::AsTimeZoneDate_DateTime(const FDateTime& InDateTime, const FString& InTimeZone)
 {
 	return FText::AsDate(InDateTime, EDateTimeStyle::Default, InTimeZone);
 }
 
-
 FText UKismetTextLibrary::AsDateTime_DateTime(const FDateTime& InDateTime)
 {
 	return FText::AsDateTime(InDateTime, EDateTimeStyle::Default, EDateTimeStyle::Default, FText::GetInvariantTimeZone());
 }
-
 
 FText UKismetTextLibrary::AsTimeZoneDateTime_DateTime(const FDateTime& InDateTime, const FString& InTimeZone)
 {
 	return FText::AsDateTime(InDateTime, EDateTimeStyle::Default, EDateTimeStyle::Default, InTimeZone);
 }
 
-
 FText UKismetTextLibrary::AsTime_DateTime(const FDateTime& InDateTime)
 {
 	return FText::AsTime(InDateTime, EDateTimeStyle::Default, FText::GetInvariantTimeZone());
 }
-
 
 FText UKismetTextLibrary::AsTimeZoneTime_DateTime(const FDateTime& InDateTime, const FString& InTimeZone)
 {
 	return FText::AsTime(InDateTime, EDateTimeStyle::Default, InTimeZone);
 }
 
-
 FText UKismetTextLibrary::AsTimespan_Timespan(const FTimespan& InTimespan)
 {
 	return FText::AsTimespan(InTimespan);
 }
-
 
 FText UKismetTextLibrary::Format(FText InPattern, TArray<FFormatArgumentData> InArgs)
 {
 	return FTextFormatter::Format(MoveTemp(InPattern), MoveTemp(InArgs), false, false);
 }
 
-
 bool UKismetTextLibrary::TextIsFromStringTable(const FText& Text)
 {
 	return Text.IsFromStringTable();
 }
 
-
 FText UKismetTextLibrary::TextFromStringTable(const FName TableId, const FString& Key)
 {
 	return FText::FromStringTable(TableId, Key);
 }
-
 
 bool UKismetTextLibrary::StringTableIdAndKeyFromText(FText Text, FName& OutTableId, FString& OutKey)
 {

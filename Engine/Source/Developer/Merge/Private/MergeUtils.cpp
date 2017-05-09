@@ -42,11 +42,8 @@ UObject const* FMergeToolUtils::LoadRevision(const FString& AssetName, const ISo
 	FString TempFileName;
 	if (DesiredRevision.Get(TempFileName))
 	{
-		// Forcibly disable compile on load in case we are loading old blueprints that might try to update/compile
-		TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
-
 		// Try and load that package
-		UPackage* TempPackage = LoadPackage(NULL, *TempFileName, LOAD_None);
+		UPackage* TempPackage = LoadPackage(NULL, *TempFileName, LOAD_DisableCompileOnLoad);
 		if (TempPackage != NULL)
 		{
 			// Grab the old asset from that old package

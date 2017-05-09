@@ -48,8 +48,8 @@
 DEFINE_LOG_CATEGORY(LogContentCommandlet);
 
 #include "AssetRegistryModule.h"
-
-
+#include "IDirectoryWatcher.h"
+#include "DirectoryWatcherModule.h"
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
@@ -237,18 +237,32 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		}
 	}
 
-	const bool bResaveDirectRefsAndDeps = Switches.Contains(TEXT("resavedirectrefsanddeps"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+	// This option works if a single package is specified, it will resave all packages that reference it, and all packages that it references
+	const bool bResaveDirectRefsAndDeps = Switches.Contains(TEXT("ResaveDirectRefsAndDeps"));
+
+	// This option will filter the package list and only save packages that are redirectors, or that reference redirectors
+	const bool bFixupRedirects = (Switches.Contains(TEXT("FixupRedirects")) || Switches.Contains(TEXT("FixupRedirectors")));
+
+	if (bResaveDirectRefsAndDeps || bFixupRedirects)
+	{
+		AssetRegistry.SearchAllAssets(true);
+
+		// Force directory watcher tick to register paths
+		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+		DirectoryWatcherModule.Get()->Tick(-1.0f);
+	}
+
 	if (bExplicitPackages && PackageNames.Num() == 1 && bResaveDirectRefsAndDeps)
 	{
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		AssetRegistryModule.Get().SearchAllAssets(true);
-
 		FName PackageName = FName(*FPackageName::FilenameToLongPackageName(PackageNames[0]));
 
 		TArray<FName> Referencers;
-		AssetRegistryModule.Get().GetReferencers(PackageName, Referencers);
+		AssetRegistry.GetReferencers(PackageName, Referencers);
 		TArray<FName> Dependencies;
-		AssetRegistryModule.Get().GetDependencies(PackageName, Dependencies);
+		AssetRegistry.GetDependencies(PackageName, Dependencies);
 
 		for (FName Ref : Referencers)
 		{
@@ -261,6 +275,54 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 			FString File;
 			FPackageName::SearchForPackageOnDisk(*Dep.ToString(), NULL, &File);
 			PackageNames.Add(File);
+		}
+	}
+	else if (bFixupRedirects)
+	{
+		// Look for all packages containing redirects, and their referencers
+		TArray<FAssetData> RedirectAssets;
+		TSet<FString> RedirectPackages;
+		TSet<FString> ReferencerPackages;
+
+		AssetRegistry.GetAssetsByClass(UObjectRedirector::StaticClass()->GetFName(), RedirectAssets);
+
+		for (const FAssetData& AssetData : RedirectAssets)
+		{
+			bool bIsAlreadyInSet = false;
+			FString RedirectFile;
+			FPackageName::SearchForPackageOnDisk(*AssetData.PackageName.ToString(), nullptr, &RedirectFile);
+
+			RedirectPackages.Add(RedirectFile, &bIsAlreadyInSet);
+
+			if (!bIsAlreadyInSet)
+			{
+				TArray<FName> Referencers;
+				AssetRegistry.GetReferencers(AssetData.PackageName, Referencers);
+
+				for (FName Referencer : Referencers)
+				{
+					FString ReferencerFile;
+					FPackageName::SearchForPackageOnDisk(*Referencer.ToString(), nullptr, &ReferencerFile);
+
+					ReferencerPackages.Add(ReferencerFile);
+				}
+			}
+		}
+
+		// Filter packagenames list to packages that are pointing to redirectors, it will probably be much smaller
+		TArray<FString> OldArray = PackageNames;
+		PackageNames.Reset();
+		for (FString& PackageName : OldArray)
+		{
+			if (RedirectPackages.Contains(PackageName))
+			{
+				RedirectorsToFixup.Add(PackageName);
+			}
+
+			if (ReferencerPackages.Contains(PackageName))
+			{
+				PackageNames.Add(PackageName);
+			}
 		}
 	}
 
@@ -518,61 +580,11 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 				if (bIsEmpty)
 				{
 					bSavePackage = false;
+					Package = nullptr;
 					
-					// get file SCC status
 					UE_LOG(LogContentCommandlet, Display, TEXT("Package %s is empty and will be deleted"), *Filename);
-					FString PackageFilename = SourceControlHelpers::PackageFilename(Package);
 
-					ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(PackageFilename, EStateCacheUsage::ForceUpdate);
-
-					// Unload package so we can delete it
-					TArray<UPackage *> PackagesToDelete;
-					PackagesToDelete.Add(Package);
-					PackageTools::UnloadPackages(PackagesToDelete);
-					PackagesToDelete.Empty();
-					Package = NULL;
-
-					if (bAutoCheckOut)
-					{
-						if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
-						{
-							UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
-							SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
-
-							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
-							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
-
-							FilesToSubmit.Add(Filename);
-						}
-						else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
-						{
-							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
-							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
-
-							FilesToSubmit.Add(Filename);
-						}
-						else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
-						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
-						}
-						else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
-						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
-							if (!IFileManager::Get().Delete(*Filename, false, true))
-							{
-								UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
-							}
-						}
-						else
-						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
-							if (!IFileManager::Get().Delete(*Filename, false, true))
-							{
-								UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
-							}
-						}
-					}
+					DeleteOnePackage(Filename);
 				}
 			}
 
@@ -617,8 +629,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 									VerboseMessage(TEXT("Post CheckOut"));
 
-									FString PackageName(FPackageName::FilenameToLongPackageName(Filename));
-									FilesToSubmit.Add(*PackageName);
+									FilesToSubmit.AddUnique(*Filename);
 								}
 							}
 							VerboseMessage(TEXT("Post ForceGetStatus2"));
@@ -667,6 +678,82 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 	}
 }
 
+void UResavePackagesCommandlet::DeleteOnePackage(const FString& Filename)
+{
+	bool bIsReadOnly = IFileManager::Get().IsReadOnly(*Filename);
+
+	if (bVerifyContent)
+	{
+		return;
+	}
+
+	if (bIsReadOnly && !bAutoCheckOut)
+	{
+		if (Verbosity != ONLY_ERRORS)
+		{
+			UE_LOG(LogContentCommandlet, Warning, TEXT("Skipping read-only file %s"), *Filename);
+		}
+		return;
+	}
+
+	FString PackageName;
+	FPackageName::TryConvertFilenameToLongPackageName(Filename, PackageName);
+
+	UPackage* Package = FindPackage(nullptr, *PackageName);
+
+	if (Package)
+	{
+		// Unload package so we can delete it
+		TArray<UPackage *> PackagesToDelete;
+		PackagesToDelete.Add(Package);
+		PackageTools::UnloadPackages(PackagesToDelete);
+		PackagesToDelete.Empty();
+		Package = nullptr;
+	}
+
+	FString PackageFilename = SourceControlHelpers::PackageFilename(Filename);
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+	FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(PackageFilename, EStateCacheUsage::ForceUpdate);
+
+	if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
+	{
+		UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
+		SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
+
+		UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+		SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+
+		FilesToSubmit.AddUnique(Filename);
+	}
+	else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
+	{
+		UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+		SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+
+		FilesToSubmit.AddUnique(Filename);
+	}
+	else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
+	{
+		UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
+	}
+	else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
+	{
+		UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
+		if (!IFileManager::Get().Delete(*Filename, false, true))
+		{
+			UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+		}
+	}
+	else
+	{
+		UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
+		if (!IFileManager::Get().Delete(*Filename, false, true))
+		{
+			UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+		}
+	}
+}
+
 int32 UResavePackagesCommandlet::Main( const FString& Params )
 {
 	const TCHAR* Parms = *Params;
@@ -685,9 +772,9 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	/** if we should only save dirty packages **/
 	bOnlySaveDirtyPackages = Switches.Contains(TEXT("OnlySaveDirtyPackages"));
 	/** if we should auto checkout packages that need to be saved**/
-	bAutoCheckOut = Switches.Contains(TEXT("AutoCheckOutPackages"));
+	bAutoCheckOut = Switches.Contains(TEXT("AutoCheckOutPackages")) || Switches.Contains(TEXT("AutoCheckOut"));
 	/** if we should auto checkin packages that were checked out**/
-	bAutoCheckIn = bAutoCheckOut && Switches.Contains(TEXT("AutoCheckIn"));
+	bAutoCheckIn = bAutoCheckOut && (Switches.Contains(TEXT("AutoCheckIn")) || Switches.Contains(TEXT("AutoSubmit")));
 	/** determine if we are building lighting for the map packages on the pass. **/
 	bShouldBuildLighting = Switches.Contains(TEXT("buildlighting"));
 	/** determine if we are building lighting for the map packages on the pass. **/
@@ -708,7 +795,7 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	}
 
 	// Retrieve list of all packages in .ini paths.
-	if( !PackageNames.Num() )
+	if(!PackageNames.Num() && !RedirectorsToFixup.Num())
 	{
 		return 0;
 	}
@@ -766,6 +853,41 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 		}
 	}
 
+	// Force a directory watcher and asset registry tick
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+	DirectoryWatcherModule.Get()->Tick(-1.0f);
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+	AssetRegistry.Tick(-1.0f);
+
+	// Delete unreferenced redirector packages
+	for (int32 PackageIndex = 0; PackageIndex < RedirectorsToFixup.Num(); PackageIndex++)
+	{
+		const FString& Filename = RedirectorsToFixup[PackageIndex];
+
+		FName PackageName = FName(*FPackageName::FilenameToLongPackageName(Filename));
+
+		// Load and save this package
+		TArray<FName> Referencers;
+
+		AssetRegistry.GetReferencers(PackageName, Referencers);
+
+		if (Referencers.Num() == 0)
+		{
+			if (Verbosity != ONLY_ERRORS)
+			{
+				UE_LOG(LogContentCommandlet, Display, TEXT("Deleting unreferenced redirector [%s]"), *Filename);
+			}
+
+			DeleteOnePackage(Filename);
+		}
+		else if (Verbosity != ONLY_ERRORS)
+		{
+			UE_LOG(LogContentCommandlet, Display, TEXT("Can't delete redirector [%s], unsaved packages reference it"), *Filename);
+		}
+	}
+
 	// Submit the results to source control
 	if( bAutoCheckIn )
 	{
@@ -805,6 +927,10 @@ FText UResavePackagesCommandlet::GetChangelistDescription() const
 	else if (bShouldBuildTextureStreaming)
 	{
 		ChangelistDescription = NSLOCTEXT("ContentCmdlets", "ChangelistDescriptionBuildTextureStreaming", "Rebuild texture streaming.");
+	}
+	else if (RedirectorsToFixup.Num() > 0)
+	{
+		ChangelistDescription = NSLOCTEXT("ContentCmdlets", "ChangelistDescriptionRedirectors", "Fixing Redirectors");
 	}
 	else
 	{
@@ -1174,7 +1300,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 		{
 			for(const auto& SublevelFilename : SublevelFilenames)
 			{
-				FilesToSubmit.Add(SublevelFilename);
+				FilesToSubmit.AddUnique(SublevelFilename);
 			}
 		}
 

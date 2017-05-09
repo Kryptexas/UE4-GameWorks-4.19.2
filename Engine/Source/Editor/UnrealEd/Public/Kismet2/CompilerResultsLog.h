@@ -13,8 +13,6 @@
 #include "EdGraphToken.h"
 #endif
 
-class Error;
-
 #if WITH_EDITOR
 
 /** This class maps from final objects to their original source object, across cloning, autoexpansion, etc... */
@@ -25,6 +23,7 @@ protected:
 	TMap<UObject const*, UObject*> SourceBacktrackMap;
 	// Maps from transient pins created during compiling to original 'source pin' object
 	TMap<UEdGraphPin*, UEdGraphPin*> PinSourceBacktrackMap;
+
 public:
 	/** Update the source backtrack map to note that NewObject was most closely generated/caused by the SourceObject */
 	void NotifyIntermediateObjectCreation(UObject* NewObject, UObject* SourceObject);
@@ -110,6 +109,9 @@ public:
 protected:
 	// Maps from transient object created during compiling to original 'source code' object
 	FBacktrackMap SourceBacktrackMap;
+	
+	// Maps immediately back to source uobject, which may itself by an intermediate object:
+	TMap<UEdGraphNode const*, UEdGraphNode*> FullSourceBacktrackMap;
 
 	// Name of the source object being compiled
 	FString SourcePath;
@@ -197,7 +199,7 @@ public:
 	UEdGraphNode* GetSourceNode(const UEdGraphNode* IntermediateNode);
 
 	/** Returns the intermediate tunnel instance that generated the node */
-	UEdGraphNode* GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode);
+	UEdGraphNode* GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode) const;
 
 	/** Returns the source tunnel node for the intermediate node */
 	UEdGraphNode* GetSourceTunnelNode(const UEdGraphNode* IntermediateNode);
@@ -211,6 +213,9 @@ public:
 	/** Returns the true source object for the passed in object */
 	UObject* FindSourceObject(UObject* PossiblyDuplicatedObject);
 	UObject const* FindSourceObject(UObject const* PossiblyDuplicatedObject) const;
+
+	/** Returns a int32 used to uniquely identify an action for the latent action manager */
+	int32 CalculateStableIdentifierForLatentActionManager( const UEdGraphNode* Node );
 
 	/** Returns the true source object for the passed in object; does type checking on the result */
 	template <typename T>

@@ -144,15 +144,15 @@ void UK2Node_ForEachElementInEnum::AllocateDefaultPins()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	check(K2Schema);
 
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
 
 	if (Enum)
 	{
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, InsideLoopPinName);
-		CreatePin(EGPD_Output, K2Schema->PC_Byte, TEXT(""), Enum, false, false, EnumOuputPinName);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, InsideLoopPinName);
+		CreatePin(EGPD_Output, K2Schema->PC_Byte, FString(), Enum, EnumOuputPinName);
 	}
 
-	if (auto CompletedPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then))
+	if (UEdGraphPin* CompletedPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then))
 	{
 		CompletedPin->PinFriendlyName = LOCTEXT("Completed", "Completed");
 	}
@@ -160,6 +160,8 @@ void UK2Node_ForEachElementInEnum::AllocateDefaultPins()
 
 void UK2Node_ForEachElementInEnum::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
 {
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
 	if (!Enum)
 	{
 		MessageLog.Error(*NSLOCTEXT("K2Node", "ForEachElementInEnum_NoEnumError", "No Enum in @@").ToString(), this);

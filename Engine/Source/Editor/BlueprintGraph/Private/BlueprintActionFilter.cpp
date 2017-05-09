@@ -1260,7 +1260,7 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 			if (IsClassOfType(PinObjClass, TargetClass))
 			{
 				bIsCompatible = true;
-				if (PinType.bIsArray)
+				if (PinType.IsArray())
 				{
 					if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
 					{
@@ -1276,7 +1276,7 @@ static bool BlueprintActionFilterImpl::IsPinCompatibleWithTargetSelf(UEdGraphPin
 					}
 				}
 			}
-			else if (!PinType.bIsArray && (BlueprintAction.GetNodeClass() == UK2Node_CallFunction::StaticClass()))
+			else if (!PinType.IsArray() && (BlueprintAction.GetNodeClass() == UK2Node_CallFunction::StaticClass()))
 			{
 				// if this is a bound CallFunction action, then we make the 
 				// assumption that it will be turned into a UK2Node_CallFunctionOnMember
@@ -1359,7 +1359,7 @@ static bool BlueprintActionFilterImpl::ArrayFunctionHasParamOfType(const UFuncti
 	FBlueprintEditorUtils::GetHiddenPinsForFunction(InGraph, ArrayFunction, HiddenPins);
 
 	FName ParamTag = FBlueprintMetadata::MD_ArrayDependentParam;
-	if (DesiredPinType.bIsArray)
+	if (DesiredPinType.IsArray())
 	{
 		ParamTag = FBlueprintMetadata::MD_ArrayParam;
 	}
@@ -1594,8 +1594,7 @@ static bool BlueprintActionFilterImpl::IsExtraneousInterfaceCall(FBlueprintActio
 		UClass* InterfaceClass = Function->GetOwnerClass();
 		checkSlow(InterfaceClass->IsChildOf<UInterface>());
 
-		bool const bIsAbstractCppClass = InterfaceClass->GetCppTypeInfo()->IsAbstract();
-		bool const bCanBeAddedToBlueprints = !bIsAbstractCppClass && !InterfaceClass->HasMetaData(FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint);
+		bool const bCanBeAddedToBlueprints = !InterfaceClass->HasMetaData(FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint);
 
 		bIsFilteredOut = (Filter.TargetClasses.Num() > 0);
 		for (const auto& ClassData : Filter.TargetClasses)
@@ -1762,7 +1761,7 @@ FBlueprintActionInfo::FBlueprintActionInfo(FBlueprintActionInfo const& Rhs, IBlu
 //------------------------------------------------------------------------------
 UObject const* FBlueprintActionInfo::GetActionOwner()
 {
-	return ActionOwner;
+	return ActionOwner.Get();
 }
 
 //------------------------------------------------------------------------------
@@ -1776,19 +1775,22 @@ UClass const* FBlueprintActionInfo::GetOwnerClass()
 {
 	if ((CacheFlags & EBlueprintActionInfoFlags::CachedClass) == 0)
 	{
-		CachedOwnerClass = Cast<UClass>(ActionOwner);
+		CachedOwnerClass = Cast<UClass>(ActionOwner.Get());
 		if (CachedOwnerClass == GetNodeClass())
 		{
 			CachedOwnerClass = nullptr;
 		}
-		else if (const UBlueprint* AsBlueprint = Cast<UBlueprint>(ActionOwner))
+		else if (const UBlueprint* AsBlueprint = Cast<UBlueprint>(ActionOwner.Get()))
 		{
 			CachedOwnerClass = AsBlueprint->SkeletonGeneratedClass;
 		}
 
 		if (CachedOwnerClass == nullptr)
 		{
-			CachedOwnerClass = GetAssociatedMemberField()->GetOwnerClass();
+			if (UField const* AssociatedMemberField = GetAssociatedMemberField())
+			{
+				CachedOwnerClass = AssociatedMemberField->GetOwnerClass();
+			}
 		}
 
 		CacheFlags |= EBlueprintActionInfoFlags::CachedClass;

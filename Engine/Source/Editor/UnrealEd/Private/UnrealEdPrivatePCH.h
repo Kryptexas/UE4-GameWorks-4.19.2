@@ -462,7 +462,6 @@
 
 // From AssetRegistry:
 #include "AssetData.h"
-#include "SharedMapView.h"
 #include "IAssetRegistry.h"
 #include "AssetRegistryModule.h"
 #include "ARFilter.h"

@@ -658,7 +658,7 @@ void FParticleBeam2EmitterInstance::UpdateBoundingBox(float DeltaTime)
 		}
 
 		// Take scale into account as well
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		// Take each particle into account
 		for (int32 i=0; i<ActiveParticles; i++)
@@ -732,7 +732,7 @@ void FParticleBeam2EmitterInstance::ForceUpdateBoundingBox()
 		}
 
 		// Take scale into account as well
-		FVector Scale = Component->ComponentToWorld.GetScale3D();
+		FVector Scale = Component->GetComponentTransform().GetScale3D();
 
 		// Take each particle into account
 		for (int32 i=0; i<ActiveParticles; i++)

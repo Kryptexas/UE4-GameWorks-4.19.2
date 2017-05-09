@@ -332,7 +332,7 @@ protected:
  * Struct representing modifier info used exclusively for "scoped" executions that happen instantaneously. These are
  * folded into a calculation only for the extent of the calculation and never permanently added to an aggregator.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FGameplayEffectExecutionScopedModifierInfo
 {
 	GENERATED_USTRUCT_BODY()
@@ -376,7 +376,7 @@ struct FGameplayEffectExecutionScopedModifierInfo
 /**
  * Struct for gameplay effects that apply only if another gameplay effect (or execution) was successfully applied.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FConditionalGameplayEffect
 {
 	GENERATED_USTRUCT_BODY()
@@ -398,7 +398,7 @@ struct GAMEPLAYABILITIES_API FConditionalGameplayEffect
  * Struct representing the definition of a custom execution for a gameplay effect.
  * Custom executions run special logic from an outside class each time the gameplay effect executes.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEffectExecutionDefinition
 {
 	GENERATED_USTRUCT_BODY()
@@ -439,7 +439,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectExecutionDefinition
  *	Does not tell us how exactly
  *
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 {
 	GENERATED_USTRUCT_BODY()
@@ -487,7 +487,7 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
  *	This is a cosmetic cue that can be tied to a UGameplayEffect. 
  *  This is essentially a GameplayTag + a Min/Max level range that is used to map the level of a GameplayEffect to a normalized value used by the GameplayCue system.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FGameplayEffectCue
 {
 	GENERATED_USTRUCT_BODY()
@@ -868,7 +868,7 @@ private:
  * FGameplayEffectSpec is modifiable. We start with initial conditions and modifications be applied to it. In this sense, it is stateful/mutable but it
  * is still distinct from an FActiveGameplayEffect which in an applied instance of an FGameplayEffectSpec.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 {
 	GENERATED_USTRUCT_BODY()

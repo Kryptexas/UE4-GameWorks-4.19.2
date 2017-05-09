@@ -8,7 +8,7 @@
 #include "AnimNode_BlendListByEnum.generated.h"
 
 // Blend List by Enum, it changes based on enum input that enters
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_BlendListByEnum : public FAnimNode_BlendListBase
 {
 	GENERATED_USTRUCT_BODY()

@@ -18,7 +18,7 @@ public:
 	TSet< const UClass* > DisallowedClasses;
 
 	/** Disallowed class flags. */
-	uint32 DisallowedClassFlags;
+	EClassFlags DisallowedClassFlags;
 
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 	{

@@ -966,6 +966,26 @@ namespace UnrealBuildTool
 				EngineProject.AddFilesToProject(SourceFileSearch.FindFiles(UHTConfigDirectory), UnrealBuildTool.EngineDirectory);
 			}
 		}
+		private List<FileReference> DiscoverExtraPlugins(List<UProjectInfo> AllGameProjects)
+		{
+			List<FileReference> AddedPlugins = new List<FileReference>();
+			foreach (UProjectInfo GameProject in AllGameProjects)
+			{
+				ProjectDescriptor ProjectDesc = ProjectDescriptor.FromFile(GameProject.FilePath.FullName);
+				foreach (DirectoryReference PluginDir in ProjectDesc.AdditionalPluginDirectories)
+				{
+					// @TODO: Right now, we're only including additional plugins that are still inside a game directory.
+					//        This is so FindProjectForModule() succeeds in matching up a project with the plugin. If 
+					//        the plugin is outside of a game directory, then we'll need to add special handling to AddProjectsForAllModules()
+					//        and generate a standalone project, since multiple games could share the same plugin
+					if (PluginDir.IsUnderDirectory(GameProject.Folder))
+					{
+						AddedPlugins.AddRange(Plugins.EnumeratePlugins(PluginDir));
+					}
+				}
+			}
+			return AddedPlugins;
+		}
 
 		/// <summary>
 		/// Finds all module files (filtering by platform)
@@ -976,7 +996,7 @@ namespace UnrealBuildTool
 			List<FileReference> AllModuleFiles = new List<FileReference>();
 
 			// Locate all modules (*.Build.cs files)
-			List<FileReference> FoundModuleFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Module, GameFolders: AllGameProjects.Select(x => x.Folder).ToList(), ForeignPlugins:null, AdditionalSearchPaths:null );
+			List<FileReference> FoundModuleFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Module, GameFolders: AllGameProjects.Select(x => x.Folder).ToList(), ForeignPlugins: DiscoverExtraPlugins(AllGameProjects), AdditionalSearchPaths:null );
 			foreach( FileReference BuildFileName in FoundModuleFiles )
 			{
 				AllModuleFiles.Add( BuildFileName );
@@ -1020,7 +1040,7 @@ namespace UnrealBuildTool
 			List<string> UnsupportedPlatformNameStrings = Utils.MakeListOfUnsupportedPlatforms( SupportedPlatforms );
 
 			// Locate all targets (*.Target.cs files)
-			List<FileReference> FoundTargetFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Target, AllGameProjects.Select(x => x.Folder).ToList(), ForeignPlugins:null, AdditionalSearchPaths:null );
+			List<FileReference> FoundTargetFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Target, AllGameProjects.Select(x => x.Folder).ToList(), ForeignPlugins: DiscoverExtraPlugins(AllGameProjects), AdditionalSearchPaths:null );
 			foreach( FileReference CurTargetFile in FoundTargetFiles )
 			{
 				string CleanTargetFileName = Utils.CleanDirectorySeparators( CurTargetFile.FullName );

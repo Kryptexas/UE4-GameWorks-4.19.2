@@ -1054,7 +1054,7 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 				}
 				GeomExport.ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
 					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(),
-					ComponentToWorld);
+					GetComponentTransform());
 
 				VertexBuffer.Reset();
 				for (int32 i = 0; i < NavCollision->TriMeshCollision.VertexBuffer.Num(); ++i)
@@ -1065,7 +1065,7 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 				}
 				GeomExport.ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
 					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(),
-					ComponentToWorld);
+					GetComponentTransform());
 
 				return false;
 			}
@@ -1282,7 +1282,7 @@ float USplineMeshComponent::GetTextureStreamingTransformScale() const
 
 		// We do this by looking at the ratio between current bounds (including deformation) and undeformed (straight from staticmesh)
 		const float MinExtent = 1.0f;
-		FBoxSphereBounds UndeformedBounds = GetStaticMesh()->GetBounds().TransformBy(ComponentToWorld);
+		FBoxSphereBounds UndeformedBounds = GetStaticMesh()->GetBounds().TransformBy(GetComponentTransform());
 		if (UndeformedBounds.BoxExtent.X >= MinExtent)
 		{
 			SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.X / UndeformedBounds.BoxExtent.X);

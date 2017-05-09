@@ -435,7 +435,7 @@ class FUserDefinedStructureLayout : public IDetailCustomNodeBuilder, public TSha
 public:
 	FUserDefinedStructureLayout(TWeakPtr<class FUserDefinedStructureDetails> InStructureDetails)
 		: StructureDetails(InStructureDetails)
-		, InitialPinType(GetDefault<UEdGraphSchema_K2>()->PC_Boolean, TEXT(""), NULL, false, false, false, false, FEdGraphTerminalType())
+		, InitialPinType(GetDefault<UEdGraphSchema_K2>()->PC_Boolean, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType())
 	{}
 
 	void OnChanged()

@@ -232,7 +232,7 @@ private:
 	bool bPassedFiltersAndWasExecuted;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FGameplayModifierEvaluatedData
 {
 	GENERATED_USTRUCT_BODY()
@@ -278,7 +278,7 @@ struct FGameplayModifierEvaluatedData
 };
 
 /** Struct defining gameplay attribute capture options for gameplay effects */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureDefinition
 {
 	GENERATED_USTRUCT_BODY()

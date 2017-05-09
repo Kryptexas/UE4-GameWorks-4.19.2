@@ -71,7 +71,7 @@ TSharedRef<SWidget> FFindInMaterialResult::CreateIcon() const
 	const FSlateBrush* Brush = NULL;
 	if (UEdGraphPin* ResolvedPin = Pin.Get())
 	{
-		if (ResolvedPin->PinType.bIsArray)
+		if (ResolvedPin->PinType.IsArray())
 		{
 			Brush = FEditorStyle::GetBrush(TEXT("GraphEditor.ArrayPinIcon"));
 		}

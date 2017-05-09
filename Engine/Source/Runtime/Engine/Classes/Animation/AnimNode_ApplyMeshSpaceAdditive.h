@@ -8,7 +8,7 @@
 #include "Animation/InputScaleBias.h"
 #include "AnimNode_ApplyMeshSpaceAdditive.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_ApplyMeshSpaceAdditive : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

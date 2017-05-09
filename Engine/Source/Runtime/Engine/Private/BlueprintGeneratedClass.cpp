@@ -24,6 +24,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintCompilationManager.h"
+#include "Engine/LevelScriptBlueprint.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
@@ -302,6 +303,17 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 			{
 				GeneratingBP->SkeletonGeneratedClass->StaticLink(true);
 			}
+		}
+	}
+}
+
+void UBlueprintGeneratedClass::FlushCompilationQueueForLevel()
+{
+	if(GBlueprintUseCompilationManager)
+	{
+		if(Cast<ULevelScriptBlueprint>(ClassGeneratedBy))
+		{
+			FBlueprintCompilationManager::FlushCompilationQueue();
 		}
 	}
 }
@@ -1324,6 +1336,11 @@ bool UBlueprintGeneratedClass::NeedsLoadForClient() const
 		}
 	}
 	return Super::NeedsLoadForClient();
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForEditorGame() const
+{
+	return true;
 }
 
 bool UBlueprintGeneratedClass::CanBeClusterRoot() const

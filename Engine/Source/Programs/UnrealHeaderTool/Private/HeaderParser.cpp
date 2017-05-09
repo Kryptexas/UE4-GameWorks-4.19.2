@@ -283,7 +283,7 @@ namespace
 					}
 					else if ( (FuncInfo.FunctionFlags & FUNC_Private) )
 					{
-						FError::Throwf(TEXT("A Private function cannot be a BlueprintNativeEvent!") );
+						UE_LOG_ERROR_UHT(TEXT("A Private function cannot be a BlueprintNativeEvent!") );
 					}
 
 					FuncInfo.FunctionFlags |= FUNC_Event;
@@ -304,7 +304,7 @@ namespace
 					}
 					else if ( (FuncInfo.FunctionFlags & FUNC_Private) )
 					{
-						FError::Throwf(TEXT("A Private function cannot be a BlueprintImplementableEvent!") );
+						UE_LOG_ERROR_UHT(TEXT("A Private function cannot be a BlueprintImplementableEvent!") );
 					}
 
 					FuncInfo.FunctionFlags |= FUNC_Event;
@@ -318,7 +318,7 @@ namespace
 					FuncInfo.FunctionFlags |= FUNC_Exec;
 					if( FuncInfo.FunctionFlags & FUNC_Net )
 					{
-						FError::Throwf(TEXT("Exec functions cannot be replicated!") );
+						UE_LOG_ERROR_UHT(TEXT("Exec functions cannot be replicated!") );
 					}
 				}
 				break;
@@ -346,7 +346,7 @@ namespace
 
 					if( FuncInfo.FunctionFlags & FUNC_Exec )
 					{
-						FError::Throwf(TEXT("Exec functions cannot be replicated!") );
+						UE_LOG_ERROR_UHT(TEXT("Exec functions cannot be replicated!") );
 					}
 				}
 				break;
@@ -503,37 +503,43 @@ namespace
 			bool bIsNetService  = !!(FuncInfo.FunctionFlags & (FUNC_NetRequest | FUNC_NetResponse));
 			bool bIsNetReliable = !!(FuncInfo.FunctionFlags & FUNC_NetReliable);
 
-			if ( FuncInfo.FunctionFlags & FUNC_Static )
-				FError::Throwf(TEXT("Static functions can't be replicated") );
+			if (FuncInfo.FunctionFlags & FUNC_Static)
+			{
+				UE_LOG_ERROR_UHT(TEXT("Static functions can't be replicated"));
+			}
 
 			if (!bIsNetReliable && !bSpecifiedUnreliable && !bIsNetService)
-				FError::Throwf(TEXT("Replicated function: 'reliable' or 'unreliable' is required"));
+			{
+				UE_LOG_ERROR_UHT(TEXT("Replicated function: 'reliable' or 'unreliable' is required"));
+			}
 
 			if (bIsNetReliable && bSpecifiedUnreliable && !bIsNetService)
-				FError::Throwf(TEXT("'reliable' and 'unreliable' are mutually exclusive"));
+			{
+				UE_LOG_ERROR_UHT(TEXT("'reliable' and 'unreliable' are mutually exclusive"));
+			}
 		}
 		else if (FuncInfo.FunctionFlags & FUNC_NetReliable)
 		{
-			FError::Throwf(TEXT("'reliable' specified without 'client' or 'server'"));
+			UE_LOG_ERROR_UHT(TEXT("'reliable' specified without 'client' or 'server'"));
 		}
 		else if (bSpecifiedUnreliable)
 		{
-			FError::Throwf(TEXT("'unreliable' specified without 'client' or 'server'"));
+			UE_LOG_ERROR_UHT(TEXT("'unreliable' specified without 'client' or 'server'"));
 		}
 
 		if (FuncInfo.bSealedEvent && !(FuncInfo.FunctionFlags & FUNC_Event))
 		{
-			FError::Throwf(TEXT("SealedEvent may only be used on events"));
+			UE_LOG_ERROR_UHT(TEXT("SealedEvent may only be used on events"));
 		}
 
 		if (FuncInfo.bSealedEvent && FuncInfo.FunctionFlags & FUNC_BlueprintEvent)
 		{
-			FError::Throwf(TEXT("SealedEvent cannot be used on Blueprint events"));
+			UE_LOG_ERROR_UHT(TEXT("SealedEvent cannot be used on Blueprint events"));
 		}
 
 		if (FuncInfo.bForceBlueprintImpure && (FuncInfo.FunctionFlags & FUNC_BlueprintPure) != 0)
 		{
-			FError::Throwf(TEXT("BlueprintPure (or BlueprintPure=true) and BlueprintPure=false should not both appear on the same function, they are mutually exclusive"));
+			UE_LOG_ERROR_UHT(TEXT("BlueprintPure (or BlueprintPure=true) and BlueprintPure=false should not both appear on the same function, they are mutually exclusive"));
 		}
 	}
 
@@ -1017,12 +1023,15 @@ namespace
 			return IsPropertySupportedByBlueprint(MapProperty->KeyProp, false) &&
 				IsPropertySupportedByBlueprint(MapProperty->ValueProp, false);
 		}
+		else if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
+		{
+			return (StructProperty->Struct->GetBoolMetaDataHierarchical(TEXT("BlueprintType")));
+		}
 
 		const bool bSupportedType = Property->IsA<UInterfaceProperty>()
 			|| Property->IsA<UClassProperty>()
 			|| Property->IsA<UAssetObjectProperty>()
 			|| Property->IsA<UObjectProperty>()
-			|| Property->IsA<UStructProperty>()
 			|| Property->IsA<UFloatProperty>()
 			|| Property->IsA<UIntProperty>()
 			|| Property->IsA<UByteProperty>()
@@ -1992,7 +2001,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 
 				if (!FPaths::IsSamePath(Filename, GTypeDefinitionInfoMap[UObject::StaticClass()]->GetUnrealSourceFile().GetFilename()))
 				{
-					FError::Throwf(TEXT("Immutable is being phased out in favor of SerializeNative, and is only legal on the mirror structs declared in UObject"));
+					UE_LOG_ERROR_UHT(TEXT("Immutable is being phased out in favor of SerializeNative, and is only legal on the mirror structs declared in UObject"));
 				}
 			}
 			break;
@@ -2675,7 +2684,7 @@ void FHeaderParser::FixupDelegateProperties( FClasses& AllClasses, UStruct* Stru
 									const bool bAllowedArrayRefFromBP = bClassGeneratedFromBP && FuncParam->IsA<UArrayProperty>();
 									if (!bAllowedArrayRefFromBP)
 									{
-										FError::Throwf(TEXT("BlueprintAssignable delegates do not support non-const references at the moment. Function: %s Parameter: '%s'"), *SourceDelegateFunction->GetName(), *FuncParam->GetName());
+										UE_LOG_ERROR_UHT(TEXT("BlueprintAssignable delegates do not support non-const references at the moment. Function: %s Parameter: '%s'"), *SourceDelegateFunction->GetName(), *FuncParam->GetName());
 									}
 								}
 							}
@@ -3026,7 +3035,7 @@ void FHeaderParser::GetVarType(
 				{
 					if (bSeenEditSpecifier)
 					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 					}
 					Flags |= CPF_Edit;
 					bSeenEditSpecifier = true;
@@ -3037,7 +3046,7 @@ void FHeaderParser::GetVarType(
 				{
 					if (bSeenEditSpecifier)
 					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 					}
 					Flags |= CPF_Edit | CPF_DisableEditOnTemplate;
 					bSeenEditSpecifier = true;
@@ -3048,7 +3057,7 @@ void FHeaderParser::GetVarType(
 				{
 					if (bSeenEditSpecifier)
 					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 					}
 					Flags |= CPF_Edit | CPF_DisableEditOnInstance;
 					bSeenEditSpecifier = true;
@@ -3059,7 +3068,7 @@ void FHeaderParser::GetVarType(
 				{
 					if (bSeenEditSpecifier)
 					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 					}
 					Flags |= CPF_Edit | CPF_EditConst;
 					bSeenEditSpecifier = true;
@@ -3070,7 +3079,7 @@ void FHeaderParser::GetVarType(
 				{
 					if (bSeenEditSpecifier)
 					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 					}
 					Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnTemplate;
 					bSeenEditSpecifier = true;
@@ -3081,7 +3090,7 @@ void FHeaderParser::GetVarType(
 				{
 					if (bSeenEditSpecifier)
 					{
-						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
 					}
 					Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnInstance;
 					bSeenEditSpecifier = true;
@@ -3092,19 +3101,19 @@ void FHeaderParser::GetVarType(
 				{
 					if (bSeenBlueprintEditSpecifier)
 					{
-						FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
 					}
 
 					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
 					const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
 					if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
 					{
-						FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
+						UE_LOG_ERROR_UHT(TEXT("BlueprintReadWrite should not be used on private members"));
 					}
 
 					if ((Flags & CPF_EditorOnly) != 0 && OwnerStruct->IsA<UScriptStruct>())
 					{
-						FError::Throwf(TEXT("Blueprint exposed struct members cannot be editor only"));
+						UE_LOG_ERROR_UHT(TEXT("Blueprint exposed struct members cannot be editor only"));
 					}
 
 					Flags |= CPF_BlueprintVisible;
@@ -3116,19 +3125,19 @@ void FHeaderParser::GetVarType(
 				{
 					if (bSeenBlueprintEditSpecifier)
 					{
-						FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
 					}
 
 					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
 					const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
 					if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
 					{
-						FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
+						UE_LOG_ERROR_UHT(TEXT("BlueprintReadOnly should not be used on private members"));
 					}
 
 					if ((Flags & CPF_EditorOnly) != 0 && OwnerStruct->IsA<UScriptStruct>())
 					{
-						FError::Throwf(TEXT("Blueprint exposed struct members cannot be editor only"));
+						UE_LOG_ERROR_UHT(TEXT("Blueprint exposed struct members cannot be editor only"));
 					}
 
 					Flags        |= CPF_BlueprintVisible | CPF_BlueprintReadOnly;
@@ -3151,7 +3160,7 @@ void FHeaderParser::GetVarType(
 
 				case EVariableSpecifier::Localized:
 				{
-					FError::Throwf(TEXT("The Localized specifier is deprecated"));
+					UE_LOG_ERROR_UHT(TEXT("The Localized specifier is deprecated"));
 				}
 				break;
 
@@ -3194,7 +3203,7 @@ void FHeaderParser::GetVarType(
 
 				case EVariableSpecifier::EditInline:
 				{
-					FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
+					UE_LOG_ERROR_UHT(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
 				}
 				break;
 
@@ -3215,7 +3224,7 @@ void FHeaderParser::GetVarType(
 				{
 					if (OwnerStruct->IsA<UScriptStruct>())
 					{
-						FError::Throwf(TEXT("Struct members cannot be replicated"));
+						UE_LOG_ERROR_UHT(TEXT("Struct members cannot be replicated"));
 					}
 
 					Flags |= CPF_Net;
@@ -3233,7 +3242,7 @@ void FHeaderParser::GetVarType(
 				{
 					if (!OwnerStruct->IsA<UScriptStruct>())
 					{
-						FError::Throwf(TEXT("Only Struct members can be marked NotReplicated"));
+						UE_LOG_ERROR_UHT(TEXT("Only Struct members can be marked NotReplicated"));
 					}
 
 					Flags |= CPF_RepSkip;
@@ -3242,7 +3251,7 @@ void FHeaderParser::GetVarType(
 
 				case EVariableSpecifier::RepRetry:
 				{
-					FError::Throwf(TEXT("'RepRetry' is deprecated."));
+					UE_LOG_ERROR_UHT(TEXT("'RepRetry' is deprecated."));
 				}
 				break;
 
@@ -3317,7 +3326,7 @@ void FHeaderParser::GetVarType(
 
 				default:
 				{
-					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
+					UE_LOG_ERROR_UHT(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
 				}
 				break;
 			}
@@ -3347,14 +3356,14 @@ void FHeaderParser::GetVarType(
 					}
 					else
 					{
-						FError::Throwf(TEXT("Only parameters in service request functions can be marked NotReplicated"));
+						UE_LOG_ERROR_UHT(TEXT("Only parameters in service request functions can be marked NotReplicated"));
 					}
 				}
 				break;
 
 				default:
 				{
-					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
+					UE_LOG_ERROR_UHT(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
 				}
 				break;
 			}
@@ -3519,7 +3528,7 @@ void FHeaderParser::GetVarType(
 	{
 		if (IsBitfieldProperty())
 		{
-			FError::Throwf(TEXT("bool bitfields are not supported."));
+			UE_LOG_ERROR_UHT(TEXT("bool bitfields are not supported."));
 		}
 		// C++ bool type
 		VarProperty = FPropertyBase(CPT_Bool);
@@ -4232,7 +4241,7 @@ void FHeaderParser::GetVarType(
 		}
 	}
 
-	if ( VarProperty.IsObject() && VarProperty.MetaClass == NULL && (VarProperty.PropertyFlags&CPF_Config) != 0 )
+	if ( VarProperty.IsObject() && VarProperty.Type != CPT_AssetObjectReference && VarProperty.MetaClass == nullptr && (VarProperty.PropertyFlags&CPF_Config) != 0 )
 	{
 		FError::Throwf(TEXT("Not allowed to use 'config' with object variables"));
 	}
@@ -5581,8 +5590,10 @@ bool FHeaderParser::IsValidDelegateDeclaration(const FToken& Token) const
 void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function, bool bExpectCommaBeforeName, TMap<FName, FString>* MetaData)
 {
 	// Get parameter list.
-	if ( MatchSymbol(TEXT(")")) )
+	if (MatchSymbol(TEXT(")")))
+	{
 		return;
+	}
 
 	FAdvancedDisplayParameterHandler AdvancedDisplay(MetaData);
 	do
@@ -5613,27 +5624,41 @@ void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function
 			if (!(Function->FunctionFlags & FUNC_NetRequest))
 			{
 				if (Property.PropertyFlags & CPF_OutParm)
-					FError::Throwf(TEXT("Replicated functions cannot contain out parameters"));
+				{
+					UE_LOG_ERROR_UHT(TEXT("Replicated functions cannot contain out parameters"));
+				}
 
 				if (Property.PropertyFlags & CPF_RepSkip)
-					FError::Throwf(TEXT("Only service request functions cannot contain NoReplication parameters"));
+				{
+					UE_LOG_ERROR_UHT(TEXT("Only service request functions cannot contain NoReplication parameters"));
+				}
 
 				if ((Prop->GetClass()->ClassCastFlags & CASTCLASS_UDelegateProperty) != 0)
-					FError::Throwf(TEXT("Replicated functions cannot contain delegate parameters (this would be insecure)"));
+				{
+					UE_LOG_ERROR_UHT(TEXT("Replicated functions cannot contain delegate parameters (this would be insecure)"));
+				}
 
 				if (Property.Type == CPT_String && Property.RefQualifier != ERefQualifier::ConstRef && Prop->ArrayDim == 1)
-					FError::Throwf(TEXT("Replicated FString parameters must be passed by const reference"));
+				{
+					UE_LOG_ERROR_UHT(TEXT("Replicated FString parameters must be passed by const reference"));
+				}
 
 				if (Property.ArrayType == EArrayType::Dynamic && Property.RefQualifier != ERefQualifier::ConstRef && Prop->ArrayDim == 1)
-					FError::Throwf(TEXT("Replicated TArray parameters must be passed by const reference"));
+				{
+					UE_LOG_ERROR_UHT(TEXT("Replicated TArray parameters must be passed by const reference"));
+				}
 			}
 			else
 			{
 				if (!(Property.PropertyFlags & CPF_RepSkip) && (Property.PropertyFlags & CPF_OutParm))
-					FError::Throwf(TEXT("Service request functions cannot contain out parameters, unless marked NotReplicated"));
+				{
+					UE_LOG_ERROR_UHT(TEXT("Service request functions cannot contain out parameters, unless marked NotReplicated"));
+				}
 
 				if (!(Property.PropertyFlags & CPF_RepSkip) && (Prop->GetClass()->ClassCastFlags & CASTCLASS_UDelegateProperty) != 0)
-					FError::Throwf(TEXT("Service request functions cannot contain delegate parameters, unless marked NotReplicated"));
+				{
+					UE_LOG_ERROR_UHT(TEXT("Service request functions cannot contain delegate parameters, unless marked NotReplicated"));
+				}
 			}
 		}
 		if ((Function->FunctionFlags & (FUNC_BlueprintEvent|FUNC_BlueprintCallable)) != 0)
@@ -5779,7 +5804,7 @@ UDelegateFunction* FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasse
 	// Multi-cast delegate function signatures are not allowed to have a return value
 	if (bHasReturnValue && bIsMulticast)
 	{
-		FError::Throwf(TEXT("Multi-cast delegates function signatures must not return a value"));
+		UE_LOG_ERROR_UHT(TEXT("Multi-cast delegates function signatures must not return a value"));
 	}
 
 	// Delegate signature
@@ -6080,7 +6105,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	if ((FuncInfo.FunctionFlags & FUNC_BlueprintPure) && GetCurrentClass()->HasAnyClassFlags(CLASS_Interface))
 	{
 		// Until pure interface casts are supported, we don't allow pures in interfaces
-		FError::Throwf(TEXT("BlueprintPure specifier is not allowed for interface functions"));
+		UE_LOG_ERROR_UHT(TEXT("BlueprintPure specifier is not allowed for interface functions"));
 	}
 
 	if (FuncInfo.FunctionFlags & FUNC_Net)
@@ -6122,7 +6147,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 			// To allow for quick iteration, don't enforce the requirement that game functions have to be categorized
 			if (!bModuleIsGame)
 			{
-				FError::Throwf(TEXT("Blueprint accessible functions must have a category specified"));
+				UE_LOG_ERROR_UHT(TEXT("Blueprint accessible functions must have a category specified"));
 			}
 		} 
 	}
@@ -6136,7 +6161,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 			// Ensure that blueprint events are only allowed in implementable interfaces. Internal only functions allowed
 			if (!bCanImplementInBlueprints && !bInternalOnly)
 			{
-				FError::Throwf(TEXT("Interfaces that are not implementable in blueprints cannot have BlueprintImplementableEvent members."));
+				UE_LOG_ERROR_UHT(TEXT("Interfaces that are not implementable in blueprints cannot have BlueprintImplementableEvent members."));
 			}
 		}
 		
@@ -6145,7 +6170,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 			// Ensure that if this interface contains blueprint callable functions that are not blueprint defined, that it must be implemented natively
 			if (bCanImplementInBlueprints)
 			{
-				FError::Throwf(TEXT("Blueprint implementable interfaces cannot contain BlueprintCallable functions that are not BlueprintImplementableEvents.  Use CannotImplementInterfaceInBlueprint on the interface if you wish to keep this function."));
+				UE_LOG_ERROR_UHT(TEXT("Blueprint implementable interfaces cannot contain BlueprintCallable functions that are not BlueprintImplementableEvents.  Use CannotImplementInterfaceInBlueprint on the interface if you wish to keep this function."));
 			}
 		}
 	}
@@ -6203,7 +6228,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 			// if this is a BlueprintNativeEvent, make sure it's not "virtual"
 			else if (FuncInfo.FunctionFlags & FUNC_Native)
 			{
-				FError::Throwf(TEXT("BlueprintNativeEvent functions must be non-virtual."));
+				UE_LOG_ERROR_UHT(TEXT("BlueprintNativeEvent functions must be non-virtual."));
 			}
 
 			else
@@ -6230,7 +6255,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 
 		if (GetCurrentClass()->HasAnyClassFlags(CLASS_Interface))
 		{
-			FError::Throwf(TEXT("Interface functions cannot be declared 'final'"));
+			UE_LOG_ERROR_UHT(TEXT("Interface functions cannot be declared 'final'"));
 		}
 	}
 
@@ -6264,12 +6289,16 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	{
 		bool bIsNetService = !!(FuncInfo.FunctionFlags & (FUNC_NetRequest | FUNC_NetResponse));
 		if (bHasReturnValue && !bIsNetService)
+		{
 			FError::Throwf(TEXT("Replicated functions can't have return values"));
+		}
 
 		if (FuncInfo.RPCId > 0)
 		{
 			if (FString* ExistingFunc = UsedRPCIds.Find(FuncInfo.RPCId))
+			{
 				FError::Throwf(TEXT("Function %s already uses identifier %d"), **ExistingFunc, FuncInfo.RPCId);
+			}
 
 			UsedRPCIds.Add(FuncInfo.RPCId, FuncInfo.Function.Identifier);
 			if (FuncInfo.FunctionFlags & FUNC_NetResponse)
@@ -6364,7 +6393,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		// we don't want to prevent compilation:
 		if (!bClassGeneratedFromBP)
 		{
-			FError::Throwf(TEXT("BlueprintPure specifier is not allowed for functions with no return value and no output parameters."));
+			UE_LOG_ERROR_UHT(TEXT("BlueprintPure specifier is not allowed for functions with no return value and no output parameters."));
 		}
 	}
 
@@ -6580,7 +6609,9 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 
 			if (!IsPropertySupportedByBlueprint(Param, false))
 			{
-				FError::Throwf(TEXT("Type '%s' is not supported by blueprint. Function: %s Parameter %s\n"), *Param->GetCPPType(), *TopFunction->GetName(), *Param->GetName());
+				FString ExtendedCPPType;
+				FString CPPType = Param->GetCPPType(&ExtendedCPPType);
+				UE_LOG_ERROR_UHT(TEXT("Type '%s%s' is not supported by blueprint. %s.%s"), *CPPType, *ExtendedCPPType, *TopFunction->GetName(), *Param->GetName());
 			}
 		}
 	}
@@ -6717,7 +6748,7 @@ void FHeaderParser::ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarPr
 	if ( VarProperty.MetaClass != NULL && VarProperty.MetaClass->HasAnyClassFlags(CLASS_Deprecated) && !(VarProperty.PropertyFlags & CPF_Deprecated) &&
 		(OuterPropertyType == NULL || !(OuterPropertyType->PropertyFlags & CPF_Deprecated)) )
 	{
-		FError::Throwf(TEXT("Property is using a deprecated class: %s.  Property should be marked deprecated as well."), *VarProperty.MetaClass->GetPathName());
+		UE_LOG_ERROR_UHT(TEXT("Property is using a deprecated class: %s.  Property should be marked deprecated as well."), *VarProperty.MetaClass->GetPathName());
 	}
 
 	// check to see if we have a UObjectProperty using a deprecated class.
@@ -6727,7 +6758,7 @@ void FHeaderParser::ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarPr
 		&& (VarProperty.PropertyFlags&CPF_Deprecated) == 0					// and this property isn't marked deprecated as well
 		&& (OuterPropertyType == NULL || !(OuterPropertyType->PropertyFlags & CPF_Deprecated)) ) // and this property isn't in an array that was marked deprecated either
 	{
-		FError::Throwf(TEXT("Property is using a deprecated class: %s.  Property should be marked deprecated as well."), *VarProperty.PropertyClass->GetPathName());
+		UE_LOG_ERROR_UHT(TEXT("Property is using a deprecated class: %s.  Property should be marked deprecated as well."), *VarProperty.PropertyClass->GetPathName());
 	}
 }
 
@@ -6789,7 +6820,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 		}
 		else
 		{
-			FError::Throwf(TEXT("Property is exposed to the editor or blueprints but has no Category specified."));
+			UE_LOG_ERROR_UHT(TEXT("Property is exposed to the editor or blueprints but has no Category specified."));
 		}
 	}
 
@@ -6804,7 +6835,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	// If the category was specified explicitly, it wins
 	if (Category && !(OriginalProperty.PropertyFlags & (CPF_Edit|CPF_BlueprintVisible|CPF_BlueprintAssignable|CPF_BlueprintCallable)))
 	{
-		FError::Throwf(TEXT("Property has a Category set but is not exposed to the editor or Blueprints with EditAnywhere, BlueprintReadWrite, VisibleAnywhere, BlueprintReadOnly, BlueprintAssignable, BlueprintCallable keywords.\r\n"));
+		UE_LOG_WARNING_UHT(TEXT("Property has a Category set but is not exposed to the editor or Blueprints with EditAnywhere, BlueprintReadWrite, VisibleAnywhere, BlueprintReadOnly, BlueprintAssignable, BlueprintCallable keywords.\r\n"));
 	}
 
 	// Make sure that editblueprint variables are editable
@@ -6812,12 +6843,12 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	{
 		if (OriginalProperty.PropertyFlags & CPF_DisableEditOnInstance)
 		{
-			FError::Throwf(TEXT("Property cannot have 'DisableEditOnInstance' without being editable"));
+			UE_LOG_ERROR_UHT(TEXT("Property cannot have 'DisableEditOnInstance' without being editable"));
 		}
 
 		if (OriginalProperty.PropertyFlags & CPF_DisableEditOnTemplate)
 		{
-			FError::Throwf(TEXT("Property cannot have 'DisableEditOnTemplate' without being editable"));
+			UE_LOG_ERROR_UHT(TEXT("Property cannot have 'DisableEditOnTemplate' without being editable"));
 		}
 	}
 
@@ -6831,7 +6862,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	{
 		if ((*ExposeOnSpawnValue == TEXT("true")) && !FExposeOnSpawnValidator::IsSupported(OriginalProperty))
 		{
-			FError::Throwf(TEXT("ExposeOnSpawn - Property cannot be exposed"));
+			UE_LOG_ERROR_UHT(TEXT("ExposeOnSpawn - Property cannot be exposed"));
 		}
 	}
 
@@ -6880,14 +6911,24 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 			}
 		}
 
-		if (NewProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) && (NewProperty->ArrayDim > 1))
+		if (NewProperty->HasAnyPropertyFlags(CPF_BlueprintVisible))
 		{
-			FError::Throwf(TEXT("Static array cannot be exposed to blueprint %s.%s"), *Struct->GetName(), *NewProperty->GetName());
-		}
+			if (Struct->IsA<UScriptStruct>() && !Struct->GetBoolMetaDataHierarchical(TEXT("BlueprintType")))
+			{
+				UE_LOG_ERROR_UHT(TEXT("Cannot expose property to blueprints in a struct that is not a BlueprintType. %s.%s"), *Struct->GetName(), *NewProperty->GetName());
+			}
 
-		if (NewProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) && !IsPropertySupportedByBlueprint(NewProperty, true))
-		{
-			FError::Throwf(TEXT("Type '%s' is not supported by blueprint. %s.%s"), *NewProperty->GetCPPType(), *Struct->GetName(), *NewProperty->GetName());
+			if (NewProperty->ArrayDim > 1)
+			{
+				UE_LOG_ERROR_UHT(TEXT("Static array cannot be exposed to blueprint %s.%s"), *Struct->GetName(), *NewProperty->GetName());
+			}
+
+			if (!IsPropertySupportedByBlueprint(NewProperty, true))
+			{
+				FString ExtendedCPPType;
+				FString CPPType = NewProperty->GetCPPType(&ExtendedCPPType);
+				UE_LOG_ERROR_UHT(TEXT("Type '%s%s' is not supported by blueprint. %s.%s"), *CPPType, *ExtendedCPPType, *Struct->GetName(), *NewProperty->GetName());
+			}
 		}
 
 	} while( MatchSymbol(TEXT(",")) );
@@ -7996,7 +8037,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InB
 		{
 			if (bFoundGeneratedInclude)
 			{
-				FError::Throwf(TEXT("#include found after .generated.h file - the .generated.h file should always be the last #include in a header"));
+				UE_LOG_ERROR_UHT(TEXT("#include found after .generated.h file - the .generated.h file should always be the last #include in a header"));
 			}
 
 			// Handle #include directives as if they were 'dependson' keywords.
@@ -8160,7 +8201,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* Filename, const TCHAR* InB
 
 	if (bFoundExportedClasses && !bFoundGeneratedInclude)
 	{
-		FError::Throwf(TEXT("No #include found for the .generated.h file - the .generated.h file should always be the last #include in a header"));
+		UE_LOG_ERROR_UHT(TEXT("No #include found for the .generated.h file - the .generated.h file should always be the last #include in a header"));
 	}
 }
 

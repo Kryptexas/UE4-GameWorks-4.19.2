@@ -67,6 +67,9 @@ class UK2Node_Switch : public UK2Node
 	 */
 	BLUEPRINTGRAPH_API virtual void RemovePinFromSwitchNode(UEdGraphPin* TargetPin);
 
+	/** Whether an execution pin can be removed from the node or not */
+	BLUEPRINTGRAPH_API virtual bool CanRemoveExecutionPin(UEdGraphPin* TargetPin) const;
+
 	/** Getting pin access */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetSelectionPin() const;
 	BLUEPRINTGRAPH_API UEdGraphPin* GetDefaultPin() const;

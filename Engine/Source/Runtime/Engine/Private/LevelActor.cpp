@@ -605,7 +605,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 			OldParentActor->Modify();
 		}
 
-		ThisActor->DetachRootComponentFromParent();
+		ThisActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 #if WITH_EDITOR
 		if( GIsEditor )

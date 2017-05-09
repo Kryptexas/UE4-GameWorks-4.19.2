@@ -391,6 +391,9 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(transient)
 	uint32 bForceFullEditor : 1;
 
+	UPROPERTY(transient)
+	uint32 bQueuedForCompilation : 1 ;
+
 	/**whether or not you want to continuously rerun the construction script for an actor as you drag it in the editor, or only when the drag operation is complete*/
 	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
 	uint32 bRunConstructionScriptOnDrag : 1;

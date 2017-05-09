@@ -2459,7 +2459,7 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 			const bool bHasColorData = bHasInstancedColorData || LODModel.ColorVertexBuffer.GetNumVertices();
 
 			// Get the raw triangle data for this static mesh
-			FTransform LocalToWorld = StaticMeshComponent->ComponentToWorld;
+			FTransform LocalToWorld = StaticMeshComponent->GetComponentTransform();
 			FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 			const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
 			const FColorVertexBuffer& ColorVertexBuffer = LODModel.ColorVertexBuffer;
@@ -2630,9 +2630,9 @@ bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* 
 				int32 Index2 = Indices[IndexBufferIdx + 2];
 
 				// Lookup the triangle world positions and colors.
-				FVector WorldVert0 = InStaticMeshComponent->ComponentToWorld.TransformPosition(PositionVertexBuffer.VertexPosition(Index0));
-				FVector WorldVert1 = InStaticMeshComponent->ComponentToWorld.TransformPosition(PositionVertexBuffer.VertexPosition(Index1));
-				FVector WorldVert2 = InStaticMeshComponent->ComponentToWorld.TransformPosition(PositionVertexBuffer.VertexPosition(Index2));
+				FVector WorldVert0 = InStaticMeshComponent->GetComponentTransform().TransformPosition(PositionVertexBuffer.VertexPosition(Index0));
+				FVector WorldVert1 = InStaticMeshComponent->GetComponentTransform().TransformPosition(PositionVertexBuffer.VertexPosition(Index1));
+				FVector WorldVert2 = InStaticMeshComponent->GetComponentTransform().TransformPosition(PositionVertexBuffer.VertexPosition(Index2));
 
 				FLinearColor Color0;
 				FLinearColor Color1;

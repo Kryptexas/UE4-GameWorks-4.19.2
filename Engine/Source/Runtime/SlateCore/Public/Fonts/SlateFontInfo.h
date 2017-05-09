@@ -30,7 +30,7 @@ enum class EFontFallback : uint8
 /**
  * Settings for applying an outline to a font
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct SLATECORE_API FFontOutlineSettings
 {
 	GENERATED_USTRUCT_BODY()

@@ -578,7 +578,7 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 		const FColor BoneColor = FColor::White;
 		if (BoneColor.A != 0)
 		{
-			const FVector BonePos = PreviewMeshComponent->ComponentToWorld.TransformPosition(PreviewMeshComponent->GetComponentSpaceTransforms()[BoneIndex].GetLocation());
+			const FVector BonePos = PreviewMeshComponent->GetComponentTransform().TransformPosition(PreviewMeshComponent->GetComponentSpaceTransforms()[BoneIndex].GetLocation());
 
 			const FPlane proj = View->Project(BonePos);
 			if (proj.W > 0.f)
@@ -1102,7 +1102,7 @@ void FAnimationViewportClient::DrawBonesFromTransforms(TArray<FTransform>& Trans
 			const int32 BoneIndex = MeshComponent->RequiredBones[Index];
 			const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 
-			WorldTransforms[BoneIndex] = Transforms[BoneIndex] * MeshComponent->ComponentToWorld;
+			WorldTransforms[BoneIndex] = Transforms[BoneIndex] * MeshComponent->GetComponentTransform();
 			BoneColours[BoneIndex] = (ParentIndex >= 0) ? BoneColour : RootBoneColour;
 		}
 
@@ -1129,7 +1129,7 @@ void FAnimationViewportClient::DrawBonesFromCompactPose(const FCompactHeapPose& 
 
 			if (ParentIndex == INDEX_NONE)
 			{
-				WorldTransforms[MeshBoneIndex.GetInt()] = Pose[BoneIndex] * MeshComponent->ComponentToWorld;
+				WorldTransforms[MeshBoneIndex.GetInt()] = Pose[BoneIndex] * MeshComponent->GetComponentTransform();
 			}
 			else
 			{
@@ -1224,7 +1224,7 @@ void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshCompon
 			const int32 BoneIndex = MeshComponent->RequiredBones[Index];
 			const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 
-			WorldTransforms[BoneIndex] = MeshComponent->GetComponentSpaceTransforms()[BoneIndex] * MeshComponent->ComponentToWorld;
+			WorldTransforms[BoneIndex] = MeshComponent->GetComponentSpaceTransforms()[BoneIndex] * MeshComponent->GetComponentTransform();
 			
 			if(SelectedBones.Contains(BoneIndex))
 			{
@@ -1375,7 +1375,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 					//found a bone we are interested in
 					if(ParentIndex >= 0)
 					{
-						WorldTransforms[ParentIndex] = MeshComponent->GetComponentSpaceTransforms()[ParentIndex]*MeshComponent->ComponentToWorld;
+						WorldTransforms[ParentIndex] = MeshComponent->GetComponentSpaceTransforms()[ParentIndex]*MeshComponent->GetComponentTransform();
 					}
 					BoneColours[BoneIndex] = LinearSelectionColor;
 					bDrawBone = true;
@@ -1393,7 +1393,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 			{
 				//add to the list
 				RequiredBones.AddUnique(BoneIndex);
-				WorldTransforms[BoneIndex] = MeshComponent->GetComponentSpaceTransforms()[BoneIndex] * MeshComponent->ComponentToWorld;
+				WorldTransforms[BoneIndex] = MeshComponent->GetComponentSpaceTransforms()[BoneIndex] * MeshComponent->GetComponentTransform();
 			}
 		}
 
@@ -1420,7 +1420,7 @@ void FAnimationViewportClient::DrawSockets(const UDebugSkelMeshComponent* InPrev
 			FVector Start, End;
 			if (ParentIndex >=0)
 			{
-				FTransform WorldTransformParent = InPreviewMeshComponent->GetComponentSpaceTransforms()[ParentIndex] * InPreviewMeshComponent->ComponentToWorld;
+				FTransform WorldTransformParent = InPreviewMeshComponent->GetComponentSpaceTransforms()[ParentIndex] * InPreviewMeshComponent->GetComponentTransform();
 				Start = WorldTransformParent.GetLocation();
 				End = WorldTransformSocket.GetLocation();
 			}
@@ -1477,8 +1477,7 @@ FSphere FAnimationViewportClient::GetCameraTarget()
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
 	if( PreviewMeshComponent != nullptr )
 	{
-		FTransform ComponentToWorld = PreviewMeshComponent->ComponentToWorld;
-		PreviewMeshComponent->CalcBounds(ComponentToWorld);
+		PreviewMeshComponent->CalcBounds(PreviewMeshComponent->GetComponentTransform());
 
 		// give the editor mode a chance to give us a camera target
 		FSphere Target;

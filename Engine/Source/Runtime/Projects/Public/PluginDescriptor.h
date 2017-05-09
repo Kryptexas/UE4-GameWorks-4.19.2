@@ -97,6 +97,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** For plugins that are under a platform folder (eg. /PS4/), determines whether compiling the plugin requires the build platform and/or SDK to be available */
 	bool bRequiresBuildPlatform;
 
+	/** For auto-generated plugins that should not be listed in the plugin browser for users to disable freely. */
+	bool bIsHidden;
+
 	/** Pre-build steps for each host platform */
 	FCustomBuildSteps PreBuildSteps;
 

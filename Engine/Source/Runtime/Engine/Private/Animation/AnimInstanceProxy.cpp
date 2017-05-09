@@ -226,7 +226,7 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 		LODLevel = SkelMeshComp->PredictedLODLevel;
 
 		// Cache these transforms, so nodes don't have to pull it off the gamethread manually.
-		SkelMeshCompLocalToWorld = SkelMeshComp->ComponentToWorld;
+		SkelMeshCompLocalToWorld = SkelMeshComp->GetComponentTransform();
 		if (const AActor* Owner = SkelMeshComp->GetOwner())
 		{
 			SkelMeshCompOwnerTransform = Owner->GetTransform();

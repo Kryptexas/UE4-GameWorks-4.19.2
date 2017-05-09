@@ -874,11 +874,8 @@ void FAssetTools::DiffAgainstDepot( UObject* InObject, const FString& InPackageP
 				FString TempFileName;
 				if(Revision->Get(TempFileName))
 				{
-					// Forcibly disable compile on load in case we are loading old blueprints that might try to update/compile
-					TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
-
 					// Try and load that package
-					UPackage* TempPackage = LoadPackage(nullptr, *TempFileName, LOAD_ForDiff);
+					UPackage* TempPackage = LoadPackage(nullptr, *TempFileName, LOAD_ForDiff|LOAD_DisableCompileOnLoad);
 					if(TempPackage != nullptr)
 					{
 						// Grab the old asset from that old package

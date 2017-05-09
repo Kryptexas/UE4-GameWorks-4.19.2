@@ -184,11 +184,11 @@ void UK2Node_Switch::AllocateDefaultPins()
 	// Add default pin
 	if (bHasDefaultPin)
 	{
-		CreatePin(EGPD_Output, K2Schema->PC_Exec,TEXT(""), NULL, false, false, DefaultPinName);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, DefaultPinName);
 	}
 
 	// Add exec input pin
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
 
 	// Create selection pin based on type
 	CreateSelectionPin();
@@ -237,7 +237,7 @@ void UK2Node_Switch::AddPinToSwitchNode()
 	FString NewPinName = GetUniquePinName();
 	if (NewPinName.Len() > 0)
 	{
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, NewPinName);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, NewPinName);
 	}
 }
 
@@ -247,7 +247,7 @@ void UK2Node_Switch::RemovePinFromSwitchNode(UEdGraphPin* TargetPin)
 	if(bHasDefaultPin && TargetPin == GetDefaultPin())
 	{
 		UProperty* HasDefaultPinProperty = FindField<UProperty>(GetClass(), "bHasDefaultPin");
-		if(HasDefaultPinProperty != NULL)
+		if(HasDefaultPinProperty)
 		{
 			PreEditChange(HasDefaultPinProperty);
 
@@ -266,6 +266,23 @@ void UK2Node_Switch::RemovePinFromSwitchNode(UEdGraphPin* TargetPin)
 	}
 }
 
+bool UK2Node_Switch::CanRemoveExecutionPin(UEdGraphPin* TargetPin) const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	// Don't allow removing last pin
+	int32 NumExecPins = 0;
+	for (int32 i = 0; i < Pins.Num(); ++i)
+	{
+		UEdGraphPin* PotentialPin = Pins[i];
+		if (K2Schema->IsExecPin(*PotentialPin) && (PotentialPin->Direction == EGPD_Output))
+		{
+			NumExecPins++;
+		}
+	}
+
+	return NumExecPins > 1;
+}
+
 // Returns the exec output pin name for a given 0-based index
 FString UK2Node_Switch::GetPinNameGivenIndex(int32 Index)
 {
@@ -277,7 +294,7 @@ void UK2Node_Switch::CreateFunctionPin()
 {
 	// Set properties on the function pin
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UEdGraphPin* FunctionPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), FunctionClass, false, false, FunctionName.ToString());
+	UEdGraphPin* FunctionPin = CreatePin(EGPD_Input, K2Schema->PC_Object, FString(), FunctionClass, FunctionName.ToString());
 	FunctionPin->bDefaultValueIsReadOnly = true;
 	FunctionPin->bNotConnectable = true;
 	FunctionPin->bHidden = true;

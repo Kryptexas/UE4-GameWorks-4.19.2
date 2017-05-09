@@ -679,7 +679,7 @@ static FString CustomThunkFunctionPostfix(FBlueprintCompiledStatement& Statement
 			if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(*PropIt))
 			{
 				ArrayTerm = Statement.RHS[NumParams];
-				ensure(ArrayTerm && ArrayTerm->Type.bIsArray);
+				ensure(ArrayTerm && ArrayTerm->Type.IsArray());
 				break;
 			}
 			NumParams++;
@@ -1061,10 +1061,10 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		}
 
 		const bool bNativeConstTemplateArg = Term->AssociatedVarProperty && Term->AssociatedVarProperty->HasMetaData(FName(TEXT("NativeConstTemplateArg")));
-		if (Term->Type.bIsArray && bNativeConstTemplateArg && bIsAccessible && bGetter)
+		if (Term->Type.IsArray() && bNativeConstTemplateArg && bIsAccessible && bGetter)
 		{
 			FEdGraphPinType InnerType = Term->Type;
-			InnerType.bIsArray = false;
+			InnerType.ContainerType = EPinContainerType::None;
 			InnerType.bIsConst = false;
 			const FString CppType = FEmitHelper::PinTypeToNativeType(InnerType);
 			ResultPath = FString::Printf(TEXT("TArrayCaster<const %s>(%s).Get<%s>()"), *CppType, *ResultPath, *CppType);

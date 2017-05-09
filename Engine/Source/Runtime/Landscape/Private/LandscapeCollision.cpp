@@ -598,7 +598,7 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 
 	UPhysicalMaterial* DefMaterial = Proxy->DefaultPhysMaterial ? Proxy->DefaultPhysMaterial : GEngine->DefaultPhysMaterial;
 
-	// ComponentToWorld might not be initialized at this point, so use landscape transform
+	// GetComponentTransform() might not be initialized at this point, so use landscape transform
 	const FVector LandscapeScale = Proxy->GetRootComponent()->RelativeScale3D;
 	const bool bIsMirrored = (LandscapeScale.X*LandscapeScale.Y*LandscapeScale.Z) < 0.f;
 
@@ -1291,7 +1291,7 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 			if (InstanceSet)
 			{
 				float TraceExtentSize = Bounds.SphereRadius * 2.f + 10.f; // extend a little
-				FVector TraceVector = GetOwner()->GetRootComponent()->ComponentToWorld.GetUnitAxis(EAxis::Z) * TraceExtentSize;
+				FVector TraceVector = GetOwner()->GetRootComponent()->GetComponentTransform().GetUnitAxis(EAxis::Z) * TraceExtentSize;
 
 				bool bFirst = true;
 				TArray<int32> InstancesToRemove;
@@ -1544,7 +1544,7 @@ bool ULandscapeHeightfieldCollisionComponent::DoCustomNavigableGeometryExport(FN
 #if WITH_PHYSX
 	if (IsValidRef(HeightfieldRef) && HeightfieldRef->RBHeightfield)
 	{
-		FTransform HFToW = ComponentToWorld;
+		FTransform HFToW = GetComponentTransform();
 		if (HeightfieldRef->RBHeightfieldSimple)
 		{
 			const float SimpleCollisionScale = CollisionScale * CollisionSizeQuads / SimpleCollisionSizeQuads;
@@ -1566,7 +1566,7 @@ void ULandscapeHeightfieldCollisionComponent::GatherGeometrySlice(FNavigableGeom
 	// note that this function can get called off game thread
 	if (CachedHeightFieldSamples.IsEmpty() == false)
 	{
-		FTransform HFToW = ComponentToWorld;
+		FTransform HFToW = GetComponentTransform();
 		HFToW.MultiplyScale3D(FVector(CollisionScale, CollisionScale, LANDSCAPE_ZSCALE));
 
 		GeomExport.ExportHeightFieldSlice(CachedHeightFieldSamples, HeightfieldRowsCount, HeightfieldColumnsCount, HFToW, SliceBox);
@@ -1620,7 +1620,7 @@ bool ULandscapeMeshCollisionComponent::DoCustomNavigableGeometryExport(FNavigabl
 #if WITH_PHYSX
 	if (IsValidRef(MeshRef) && MeshRef->RBTriangleMesh != nullptr)
 	{
-		FTransform MeshToW = ComponentToWorld;
+		FTransform MeshToW = GetComponentTransform();
 		MeshToW.MultiplyScale3D(FVector(CollisionScale, CollisionScale, 1.f));
 
 		if (MeshRef->RBTriangleMesh->getTriangleMeshFlags() & PxTriangleMeshFlag::e16_BIT_INDICES)

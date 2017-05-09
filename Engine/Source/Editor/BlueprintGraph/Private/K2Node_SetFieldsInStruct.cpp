@@ -126,12 +126,12 @@ void UK2Node_SetFieldsInStruct::AllocateDefaultPins()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	if (Schema && StructType)
 	{
-		CreatePin(EGPD_Input, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
-		CreatePin(EGPD_Output, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Then);
+		CreatePin(EGPD_Input, Schema->PC_Exec, FString(), nullptr, Schema->PN_Execute);
+		CreatePin(EGPD_Output, Schema->PC_Exec, FString(), nullptr, Schema->PN_Then);
 
-		UEdGraphPin* InPin = CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), StructType, false, true, SetFieldsInStructHelper::StructRefPinName());
+		UEdGraphPin* InPin = CreatePin(EGPD_Input, Schema->PC_Struct, FString(), StructType, SetFieldsInStructHelper::StructRefPinName(), EPinContainerType::None, true);
 
-		UEdGraphPin* OutPin = CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), StructType, false, true, SetFieldsInStructHelper::StructOutPinName());
+		UEdGraphPin* OutPin = CreatePin(EGPD_Output, Schema->PC_Struct, FString(), StructType, SetFieldsInStructHelper::StructOutPinName(), EPinContainerType::None, true);
 
 		// Input pin will forward the ref to the output, if the input value is not a reference connection, a copy is made and modified instead and provided as a reference until the function is called again.
 		InPin->AssignByRefPassThroughConnection(OutPin);

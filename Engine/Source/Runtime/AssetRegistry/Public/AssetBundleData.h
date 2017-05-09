@@ -75,7 +75,24 @@ struct ASSETREGISTRY_API FAssetBundleData
 	/** Adds multiple assets at once */
 	void AddBundleAssets(FName BundleName, const TArray<FStringAssetReference>& AssetPaths);
 
+	/** A fast set of asset bundle assets, will destroy copied in path list */
+	void SetBundleAssets(FName BundleName, TArray<FStringAssetReference>&& AssetPaths);
+
 	/** Resets the data to defaults */
 	void Reset();
 
+	/** Override Import/Export to not write out empty structs */
+	bool ExportTextItem(FString& ValueStr, FAssetBundleData const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
+	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+
+};
+
+template<>
+struct TStructOpsTypeTraits<FAssetBundleData> : public TStructOpsTypeTraitsBase2<FAssetBundleData>
+{
+	enum
+	{
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+	};
 };

@@ -451,16 +451,6 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 	}
 }
 
-//void UAutomationBlueprintFunctionLibrary::BeginPerformanceCapture()
-//{
-//    //::BeginPerformanceCapture();
-//}
-//
-//void UAutomationBlueprintFunctionLibrary::EndPerformanceCapture()
-//{
-//    //::EndPerformanceCapture();
-//}
-
 bool UAutomationBlueprintFunctionLibrary::AreAutomatedTestsRunning()
 {
 	return GIsAutomationTesting;

@@ -45,8 +45,7 @@ FArchive& FArchiveUObject::operator<<(class FLazyObjectPtr& LazyObjectPtr)
 		else
 #endif
 		{
-			// Downcast from UObjectBase to UObject
-			UObject* Object = static_cast<UObject*>(LazyObjectPtr.Get());
+			UObject* Object = LazyObjectPtr.Get();
 
 			Ar << Object;
 
@@ -59,73 +58,34 @@ FArchive& FArchiveUObject::operator<<(class FLazyObjectPtr& LazyObjectPtr)
 	return Ar;
 }
 
-/**
- * Asset pointer serialization.  Asset pointers only have weak references to objects and
- * won't serialize the object when gathering references for garbage collection.  So in many cases, you
- * don't need to bother serializing asset pointers.  However, serialization is required if you
- * want to load and save your object.
- */
 FArchive& FArchiveUObject::operator<<( class FAssetPtr& AssetPtr )
 {
 	FArchive& Ar = *this;
-	// We never serialize our reference while the garbage collector is harvesting references
-	// to objects, because we don't want weak object pointers to keep objects from being garbage
-	// collected.  That would defeat the whole purpose of a weak object pointer!
-	// However, when modifying both kinds of references we want to serialize and writeback the updated value.
-	// We only want to write the modified value during reference fixup if the data is loaded
-	if( !IsObjectReferenceCollector() || IsModifyingWeakAndStrongReferences() )
+	if (Ar.IsSaving() || Ar.IsLoading())
 	{
-#if WITH_EDITORONLY_DATA
-		// When transacting, just serialize as a string since the object may
-		// not be in memory and you don't want to save a nullptr in this case.
-		if (IsTransacting())
-		{
-			if (Ar.IsLoading())
-			{
-				// Reset before serializing to clear the internal weak pointer. 
-				AssetPtr.Reset();
-			}
-			Ar << AssetPtr.GetUniqueID();
-		}
-		else
-#endif
-		{
-			// Downcast from UObjectBase to UObject
-			UObject* Object = static_cast< UObject* >( AssetPtr.Get() );
+		// Reset before serializing to clear the internal weak pointer. 
+		AssetPtr.ResetWeakPtr();
+		Ar << AssetPtr.GetUniqueID();
+	}
+	else if (!IsObjectReferenceCollector() || IsModifyingWeakAndStrongReferences())
+	{
+		// Treat this like a weak pointer object, as we are doing something like replacing references in memory
+		UObject* Object = AssetPtr.Get();
 
-			Ar << Object;
+		Ar << Object;
 
-			if( IsLoading() || (Object && IsModifyingWeakAndStrongReferences()) )
-			{
-				AssetPtr = Object;
-			}
+		if (IsLoading() || (Object && IsModifyingWeakAndStrongReferences()))
+		{
+			AssetPtr = Object;
 		}
 	}
+
 	return Ar;
 }
 
 FArchive& FArchiveUObject::operator<<(struct FStringAssetReference& Value)
 {
-	FString Path = Value.ToString();
-
-	*this << Path;
-
-	if (IsLoading())
-	{
-		if (UE4Ver() < VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP)
-		{
-			FString NormalizedPath = FPackageName::GetNormalizedObjectPath(Path);
-			if (Value.ToString() != NormalizedPath)
-			{
-				Value.SetPath(NormalizedPath);
-			}
-		}
-		else
-		{
-			Value.SetPath(MoveTemp(Path));
-		}
-	}
-
+	Value.SerializePath(*this);
 	return *this;
 }
 

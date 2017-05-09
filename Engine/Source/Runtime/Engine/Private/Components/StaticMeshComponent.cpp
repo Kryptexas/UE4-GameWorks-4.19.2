@@ -730,7 +730,7 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 				MaterialStreamingRelativeBoxes.Empty(NumMaterials);
 				for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 				{
-					MaterialStreamingRelativeBoxes.Add(PackRelativeBox(Bounds.GetBox(), GetStaticMesh()->GetMaterialBox(MaterialIndex, ComponentToWorld)));
+					MaterialStreamingRelativeBoxes.Add(PackRelativeBox(Bounds.GetBox(), GetStaticMesh()->GetMaterialBox(MaterialIndex, GetComponentTransform())));
 				}
 
 				// Update since proxy has a copy of the material bounds.
@@ -821,7 +821,7 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 
 float UStaticMeshComponent::GetTextureStreamingTransformScale() const
 {
-	return ComponentToWorld.GetMaximumAxisScale();
+	return GetComponentTransform().GetMaximumAxisScale();
 }
 
 void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
@@ -966,7 +966,7 @@ FTransform UStaticMeshComponent::GetSocketTransform(FName InSocketName, ERelativ
 					}
 					case RTS_Component:
 					{
-						return SocketWorldTransform.GetRelativeTransform(ComponentToWorld);
+						return SocketWorldTransform.GetRelativeTransform(GetComponentTransform());
 					}
 				}
 			}
@@ -1673,7 +1673,6 @@ void UStaticMeshComponent::PostLoad()
 	// Remap the materials array if the static mesh materials may have been remapped to remove zero triangle sections.
 	if (GetStaticMesh() && GetLinkerUE4Version() < VER_UE4_REMOVE_ZERO_TRIANGLE_SECTIONS && OverrideMaterials.Num())
 	{
-		GetStaticMesh()->ConditionalPostLoad();
 		if (GetStaticMesh()->HasValidRenderData()
 			&& GetStaticMesh()->RenderData->MaterialIndexToImportIndex.Num())
 		{
@@ -2100,7 +2099,7 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMate
 int32 UStaticMeshComponent::GetBlueprintCreatedComponentIndex() const
 {
 	int32 ComponentIndex = 0;
-	for(const auto& Component : GetOwner()->BlueprintCreatedComponents)
+	for (const UActorComponent* Component : GetOwner()->BlueprintCreatedComponents)
 	{
 		if(Component == this)
 		{
@@ -2121,7 +2120,7 @@ FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() co
 
 	// Fill in info
 	const_cast<UStaticMeshComponent*>(this)->ConditionalUpdateComponentToWorld(); // sadness
-	StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
+	StaticMeshInstanceData->CachedStaticLighting.Transform = GetComponentTransform();
 
 	for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 	{
@@ -2170,7 +2169,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 	if (HasStaticLighting() && NumLODLightMaps > 0)
 	{
 		// See if data matches current state
-		if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld, 1.e-3f))
+		if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(GetComponentTransform(), 1.e-3f))
 		{
 			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
 
@@ -2183,7 +2182,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		{
 			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
 				*GetPathName(),
-				*ComponentToWorld.ToString(),
+				*GetComponentTransform().ToString(),
 				*StaticMeshInstanceData->CachedStaticLighting.Transform.ToString());
 		}
 	}
@@ -2215,15 +2214,15 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 		
 		if (NavCollision->bHasConvexGeometry)
 		{
-			const FVector Scale3D = ComponentToWorld.GetScale3D();
+			const FVector Scale3D = GetComponentTransform().GetScale3D();
 			// if any of scales is 0 there's no point in exporting it
 			if (!Scale3D.IsZero())
 			{
 				GeomExport.ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
-					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), ComponentToWorld);
+					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), GetComponentTransform());
 
 				GeomExport.ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
-					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), ComponentToWorld);
+					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), GetComponentTransform());
 			}
 
 			// regardless of above we don't want "regular" collision export for this mesh instance
@@ -2288,7 +2287,7 @@ void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) cons
 
 		if (bExportAsObstacle)
 		{
-			NavCollision->GetNavigationModifier(Data.Modifiers, ComponentToWorld);
+			NavCollision->GetNavigationModifier(Data.Modifiers, GetComponentTransform());
 		}
 	}
 }
@@ -2318,7 +2317,7 @@ bool UStaticMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox
 					{
 						int32 VertexIndex = Indices[FirstIndex + i];
 						FVector LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
-						Vertex.Emplace(ComponentToWorld.TransformPosition(LocalPosition));
+						Vertex.Emplace(GetComponentTransform().TransformPosition(LocalPosition));
 					}
 
 					// Check if the triangle is colliding with the bounding box.
@@ -2362,7 +2361,7 @@ bool UStaticMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolu
 			for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
 			{
 				const FVector& LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
-				const FVector WorldPosition = ComponentToWorld.TransformPosition(LocalPosition);
+				const FVector WorldPosition = GetComponentTransform().TransformPosition(LocalPosition);
 				bool bLocationIntersected = InFrustum.IntersectSphere(WorldPosition, 0.0f);
 				if (bLocationIntersected && !bMustEncompassEntireComponent)
 				{

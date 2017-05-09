@@ -89,9 +89,6 @@ extern CORE_API bool GCompilingBlueprint;
 /** True if we're reconstructing blueprint instances. Should never be true on cooked builds */
 extern CORE_API bool GIsReconstructingBlueprintInstances;
 
-/** Force blueprints to not compile on load */
-extern CORE_API bool GForceDisableBlueprintCompileOnLoad;
-
 /** True if actors and objects are being re-instanced. */
 extern CORE_API bool GIsReinstancing;
 

@@ -552,9 +552,9 @@ FVector UPrimitiveComponent::GetInertiaTensor(FName BoneName /* = NAME_None */) 
 FVector UPrimitiveComponent::ScaleByMomentOfInertia(FVector InputVector, FName BoneName /* = NAME_None */) const
 {
 	const FVector LocalInertiaTensor = GetInertiaTensor(BoneName);
-	const FVector InputVectorLocal = ComponentToWorld.InverseTransformVectorNoScale(InputVector);
+	const FVector InputVectorLocal = GetComponentTransform().InverseTransformVectorNoScale(InputVector);
 	const FVector LocalScaled = InputVectorLocal * LocalInertiaTensor;
-	const FVector WorldScaled = ComponentToWorld.TransformVectorNoScale(LocalScaled);
+	const FVector WorldScaled = GetComponentTransform().TransformVectorNoScale(LocalScaled);
 	return WorldScaled;
 }
 
@@ -658,9 +658,9 @@ void UPrimitiveComponent::SyncComponentToRBPhysics()
 
 	// See if the transform is actually different, and if so, move the component to match physics
 	const FTransform NewTransform = GetComponentTransformFromBodyInstance(UseBI);	
-	if(!NewTransform.EqualsNoScale(ComponentToWorld))
+	if(!NewTransform.EqualsNoScale(GetComponentTransform()))
 	{
-		const FVector MoveBy = NewTransform.GetLocation() - ComponentToWorld.GetLocation();
+		const FVector MoveBy = NewTransform.GetLocation() - GetComponentTransform().GetLocation();
 		const FRotator NewRotation = NewTransform.Rotator();
 
 		//@warning: do not reference BodyInstance again after calling MoveComponent() - events from the move could have made it unusable (destroying the actor, SetPhysics(), etc)

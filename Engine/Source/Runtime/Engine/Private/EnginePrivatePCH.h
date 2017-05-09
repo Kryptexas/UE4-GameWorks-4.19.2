@@ -378,7 +378,6 @@
 
 // From AssetRegistry:
 #include "AssetData.h"
-#include "SharedMapView.h"
 
 // From Engine:
 #include "EngineLogs.h"

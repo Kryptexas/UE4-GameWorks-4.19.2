@@ -85,9 +85,9 @@ struct FSortTestActorsByName
 	}
 };
 
-bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, FString ReproString)
+bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContextObject, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, FString ReproString)
 {
-	UFunctionalTestingManager* Manager = GetManager(WorldContext);
+	UFunctionalTestingManager* Manager = GetManager(WorldContextObject);
 
 	if (Manager->bIsRunning)
 	{
@@ -95,7 +95,8 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 		return true;
 	}
 	
-	WorldContext->GetWorld()->ForceGarbageCollection(true);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	World->ForceGarbageCollection(true);
 
 	Manager->bFinished = false;
 	Manager->bLooped = bRunLooped;
@@ -114,14 +115,14 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 	}
 	else
 	{
-		for (TActorIterator<APhasedAutomationActorBase> It(WorldContext->GetWorld()); It; ++It)
+		for (TActorIterator<APhasedAutomationActorBase> It(World); It; ++It)
 		{
 			APhasedAutomationActorBase* PAA = (*It);
 			Manager->OnTestsComplete.AddDynamic(PAA, &APhasedAutomationActorBase::OnFunctionalTestingComplete); 
 			Manager->OnTestsBegin.AddDynamic(PAA, &APhasedAutomationActorBase::OnFunctionalTestingBegin); 
 		}
 
-		for (TActorIterator<AFunctionalTest> It(WorldContext->GetWorld()); It; ++It)
+		for (TActorIterator<AFunctionalTest> It(World); It; ++It)
 		{
 			AFunctionalTest* Test = (*It);
 			if (Test != nullptr && Test->IsEnabled() == true)

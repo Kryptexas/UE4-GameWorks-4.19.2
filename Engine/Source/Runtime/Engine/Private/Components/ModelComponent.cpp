@@ -449,7 +449,7 @@ void UModelComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& Lev
 					const FBspNode& Node = Model->Nodes[SurfaceNodes[NodeIndex]];
 					for(int32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)
 					{
-						const FVector WorldVertex = ComponentToWorld.TransformPosition(Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex]);
+						const FVector WorldVertex = GetComponentTransform().TransformPosition(Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex]);
 						SurfaceVertices.Add(WorldVertex);
 					}
 				}

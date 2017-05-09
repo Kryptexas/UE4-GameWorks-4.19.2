@@ -23,7 +23,7 @@ void UBehaviorTreeDecoratorGraphNode_Logic::AllocateDefaultPins()
 
 	if (LogicMode != EDecoratorLogicMode::Sink)
 	{
-		CreatePin(EGPD_Output, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("Out"));
+		CreatePin(EGPD_Output, TEXT("Transition"), FString(), nullptr, TEXT("Out"));
 	}
 }
 
@@ -73,7 +73,7 @@ bool UBehaviorTreeDecoratorGraphNode_Logic::CanRemovePins() const
 
 UEdGraphPin* UBehaviorTreeDecoratorGraphNode_Logic::AddInputPin()
 {
-	return CreatePin(EGPD_Input, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("In"));
+	return CreatePin(EGPD_Input, TEXT("Transition"), FString(), nullptr, TEXT("In"));
 }
 
 void UBehaviorTreeDecoratorGraphNode_Logic::RemoveInputPin(class UEdGraphPin* Pin)

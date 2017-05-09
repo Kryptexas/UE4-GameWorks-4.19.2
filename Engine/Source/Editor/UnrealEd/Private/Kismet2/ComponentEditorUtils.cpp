@@ -334,7 +334,6 @@ bool FComponentEditorUtils::CanCopyComponents(const TArray<UActorComponent*>& Co
 void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& ComponentsToCopy)
 {
 	FStringOutputDevice Archive;
-	const FExportObjectInnerContext Context;
 
 	// Clear the mark state for saving.
 	UnMarkAllObjects(EObjectMark(OBJECTMARK_TagExp | OBJECTMARK_TagImp));
@@ -345,7 +344,7 @@ void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& Compo
 	for (UActorComponent* Component : ComponentsToCopy)
 	{
 		// Duplicate the component into a temporary object
-		UObject* DuplicatedComponent = StaticDuplicateObject(Component, GetTransientPackage(), Component->GetFName(), RF_AllFlags & ~RF_ArchetypeObject);
+		UObject* DuplicatedComponent = StaticDuplicateObject(Component, GetTransientPackage(), Component->GetFName());
 		if (DuplicatedComponent)
 		{
 			// If the duplicated component is a scene component, wipe its attach parent (to prevent log warnings for referencing a private object in an external package)
@@ -366,6 +365,8 @@ void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& Compo
 			ObjectMap.Add(Component->GetFName(), CastChecked<UActorComponent>(DuplicatedComponent));
 		}
 	}
+
+	const FExportObjectInnerContext Context;
 
 	// Export the component object(s) to text for copying
 	for (auto ObjectIt = ObjectMap.CreateIterator(); ObjectIt; ++ObjectIt)
@@ -626,7 +627,7 @@ UActorComponent* FComponentEditorUtils::DuplicateComponent(UActorComponent* Temp
 				USceneComponent* RootComponent = Actor->GetRootComponent();
 				check(RootComponent);
 
-				// ComponentToWorld is not a UPROPERTY, so make sure the clone has calculated it properly before attachment
+				// GetComponentTransform() is not a UPROPERTY, so make sure the clone has calculated it properly before attachment
 				NewSceneComponent->UpdateComponentToWorld();
 
 				NewSceneComponent->SetupAttachment(RootComponent);

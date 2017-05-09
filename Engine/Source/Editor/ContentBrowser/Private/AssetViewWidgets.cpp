@@ -704,7 +704,7 @@ TSharedRef<SWidget> SAssetViewItem::CreateToolTipWidget() const
 			}
 
 			// Add asset source files
-			TOptional<FAssetImportInfo> ImportInfo = FAssetSourceFilenameCache::ExtractAssetImportInfo(AssetData.TagsAndValues);
+			TOptional<FAssetImportInfo> ImportInfo = FAssetSourceFilenameCache::ExtractAssetImportInfo(AssetData);
 			if (ImportInfo.IsSet())
 			{
 				for (const auto& File : ImportInfo->SourceFiles)

@@ -1505,7 +1505,7 @@ void FSlateApplication::FinishedInputThisFrame()
 		}
 	}
 
-	// Any widgets that may have recieved key events
+	// Any widgets that may have received key events
 	// are given a chance to process accumulated values.
 	ForEachUser([&] (FSlateUser* User) {
 		const FSlateUser::FUserFocusEntry& UserFocusEntry = User->Focus;

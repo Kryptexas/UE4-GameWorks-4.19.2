@@ -93,6 +93,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 	PluginDesc.bEnabledByDefault  = true;
 	PluginDesc.bCanContainContent = false;
 	PluginDesc.bIsBetaVersion     = true; // @TODO: change once we're confident in the feature
+	PluginDesc.bIsHidden    = true; 
 
 	const FName ModuleName = *TargetPaths.RuntimeModuleName();
 	FModuleDescriptor* ModuleDesc = PluginDesc.Modules.FindByPredicate([ModuleName](const FModuleDescriptor& Module)->bool
@@ -107,6 +108,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 	else
 	{
 		ModuleDesc->WhitelistPlatforms.Empty();
+		ModuleDesc->WhitelistTargets.Empty();
 	}
 	if (ensure(ModuleDesc))
 	{
@@ -123,6 +125,26 @@ static bool BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(const FBluep
 				// We use the 'UBTTargetId' because this white-list expects the 
 				// string to correspond to UBT's UnrealTargetPlatform enum (and by proxy, FPlatformMisc::GetUBTPlatform)
 				ModuleDesc->WhitelistPlatforms.AddUnique(PlatformIt->UBTTargetId.ToString());
+
+				// should correspond to UnrealBuildTool::TargetType in TargetRules.cs
+				switch (PlatformIt->PlatformType)
+				{
+				case PlatformInfo::EPlatformType::Game:
+					ModuleDesc->WhitelistTargets.AddUnique(TEXT("Game"));
+					break;
+
+				case PlatformInfo::EPlatformType::Client:
+					ModuleDesc->WhitelistTargets.AddUnique(TEXT("Client"));
+					break;
+
+				case PlatformInfo::EPlatformType::Server:
+					ModuleDesc->WhitelistTargets.AddUnique(TEXT("Server"));
+					break;
+
+				case PlatformInfo::EPlatformType::Editor:
+					ensureMsgf(PlatformIt->PlatformType != PlatformInfo::EPlatformType::Editor, TEXT("Nativized Blueprint plugin is for cooked projects only - it isn't supported in editor builds."));
+					break;
+				};				
 			}
 		}
 	}
@@ -182,7 +204,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateNativizedDependenciesSource
 
 	{
 		const FString SourceFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::CppFile), *BaseFilename) + TEXT(".cpp");
-		const FString SourceFileContent = FString::Printf( TEXT("#include \"%s.h\"\n%s"), *BaseFilename, *CodeGenBackend.DependenciesGlobalMapBodyCode(TargetPaths.RuntimeModuleName()) );
+		const FString SourceFileContent = CodeGenBackend.DependenciesGlobalMapBodyCode(TargetPaths.RuntimeModuleName());
 		bSuccess &= GameProjectUtils::WriteOutputFile(SourceFilePath, SourceFileContent, FailureReason);
 	}
 
@@ -254,21 +276,10 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FBlue
 		}
 	}
 	FBlueprintNativeCodeGenPaths TargetPaths = Manifest.GetTargetPaths();
-
-	FString PCHIncPath = TargetPaths.RuntimeModuleFile(FBlueprintNativeCodeGenPaths::HFile);
-	if ( PCHIncPath.RemoveFromStart(TargetPaths.RuntimeModuleDir()) )
-	{
-		// since the above Remove() is likely to leave a leading slash, add in the '.' to be explicit
-		// this will likely be stripped below in CollapseRelativeDirectories()
-		PCHIncPath = TEXT("./") + PCHIncPath;
-	}
-	FPaths::NormalizeFilename(PCHIncPath);
-	FPaths::RemoveDuplicateSlashes(PCHIncPath);
-	FPaths::CollapseRelativeDirectories(PCHIncPath);
 	
 	FText ErrorMessage;
 	bool bSuccess = GameProjectUtils::GeneratePluginModuleBuildFile(TargetPaths.RuntimeBuildFile(), TargetPaths.RuntimeModuleName(),
-		PublicDependencies, PrivateDependencies, PCHIncPath, ErrorMessage);
+		PublicDependencies, PrivateDependencies, ErrorMessage, false);
 
 	if (!bSuccess)
 	{
@@ -404,11 +415,11 @@ void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FStr
 		IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 		if (UDEnum)
 		{
-			Compiler.GenerateCppCodeForEnum(UDEnum, *OutHeaderSource, *OutCppSource);
+			Compiler.GenerateCppCodeForEnum(UDEnum, NativizationOptions, *OutHeaderSource, *OutCppSource);
 		}
 		else if (UDStruct)
 		{
-			*OutHeaderSource = Compiler.GenerateCppCodeForStruct(UDStruct, NativizationOptions);
+			Compiler.GenerateCppCodeForStruct(UDStruct, NativizationOptions, *OutHeaderSource, *OutCppSource);
 		}
 	}
 	else

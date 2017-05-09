@@ -286,7 +286,7 @@ void AActor::RerunConstructionScripts()
 				USceneComponent* AttachParent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParent.Get();
 				AttachParentComponent = (AttachParent ? AttachParent : FindObjectFast<USceneComponent>(Parent, ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParentName));
 				SocketName = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.SocketName;
-				DetachRootComponentFromParent();
+				DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 			}
 
 			for (const FActorRootComponentReconstructionData::FAttachedActorInfo& CachedAttachInfo : ActorTransactionAnnotation->RootComponentData.AttachedToInfo)
@@ -301,7 +301,7 @@ void AActor::RerunConstructionScripts()
 					Info.RelativeTransform = CachedAttachInfo.RelativeTransform;
 					AttachedActorInfos.Add(Info);
 
-					AttachedActor->DetachRootComponentFromParent();
+					AttachedActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 				}
 			}
 
@@ -365,7 +365,7 @@ void AActor::RerunConstructionScripts()
 				// Update component transform and remember it so it can be reapplied to any new root component which exists after construction.
 				// (Component transform may be stale if we are here following an Undo)
 				RootComponent->UpdateComponentToWorld();
-				OldTransform = RootComponent->ComponentToWorld;
+				OldTransform = RootComponent->GetComponentTransform();
 			}
 		}
 

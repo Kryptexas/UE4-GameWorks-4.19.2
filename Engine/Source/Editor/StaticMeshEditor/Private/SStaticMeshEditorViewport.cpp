@@ -223,7 +223,7 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 					SocketPreviewMeshComponent = NewObject<UStaticMeshComponent>();
 					PreviewScene->AddComponent(SocketPreviewMeshComponent, FTransform::Identity);
 					SocketPreviewMeshComponents.Add(SocketPreviewMeshComponent);
-					SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
+					SocketPreviewMeshComponent->AttachToComponent(PreviewMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket->SocketName);
 				}
 				else
 				{
@@ -232,7 +232,7 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 					// In case of a socket rename, ensure our preview component is still snapping to the proper socket
 					if (!SocketPreviewMeshComponent->GetAttachSocketName().IsEqual(Socket->SocketName))
 					{
-						SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
+						SocketPreviewMeshComponent->AttachToComponent(PreviewMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket->SocketName);
 					}
 
 					// Force component to world update to take into account the new socket position.
@@ -295,7 +295,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh, boo
 		{
 			SocketPreviewMeshComponent = NewObject<UStaticMeshComponent>();
 			SocketPreviewMeshComponent->SetStaticMesh(Socket->PreviewStaticMesh);
-			SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
+			SocketPreviewMeshComponent->AttachToComponent(PreviewMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket->SocketName);
 			SocketPreviewMeshComponents.Add(SocketPreviewMeshComponent);
 			PreviewScene->AddComponent(SocketPreviewMeshComponent, FTransform::Identity);
 		}

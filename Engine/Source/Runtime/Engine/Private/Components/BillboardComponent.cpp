@@ -53,7 +53,7 @@ public:
 		bWillEverBeLit = false;
 
 		// Calculate the scale factor for the sprite.
-		float Scale = InComponent->ComponentToWorld.GetMaximumAxisScale();
+		float Scale = InComponent->GetComponentTransform().GetMaximumAxisScale();
 
 		if(InComponent->Sprite)
 		{
@@ -323,7 +323,7 @@ bool UBillboardComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox,
 
 	if (!bConsiderOnlyBSP && ShowFlags.BillboardSprites && Sprite != nullptr && Actor != nullptr)
 	{
-		const float Scale = ComponentToWorld.GetMaximumAxisScale();
+		const float Scale = GetComponentTransform().GetMaximumAxisScale();
 
 		// Construct a box representing the sprite
 		const FBox SpriteBox(
@@ -349,7 +349,7 @@ bool UBillboardComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolum
 
 	if (!bConsiderOnlyBSP && ShowFlags.BillboardSprites && Sprite != nullptr && Actor != nullptr)
 	{
-		const float Scale = ComponentToWorld.GetMaximumAxisScale();
+		const float Scale = GetComponentTransform().GetMaximumAxisScale();
 		const float MaxExtent = FMath::Max(Sprite->GetSizeX(), Sprite->GetSizeY());
 		const FVector Extent = Scale * MaxExtent * FVector(0.5f, 0.5f, 0.0f);
 

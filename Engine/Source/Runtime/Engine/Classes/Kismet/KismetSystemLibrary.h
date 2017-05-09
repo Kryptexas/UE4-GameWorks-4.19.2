@@ -63,7 +63,7 @@ namespace EQuitPreference
 	};
 }
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FGenericStruct
 {
 	GENERATED_USTRUCT_BODY()

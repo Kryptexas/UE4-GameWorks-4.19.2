@@ -9,7 +9,7 @@
 #include "AnimNode_AssetPlayerBase.generated.h"
 
 /* Base class for any asset playing anim node */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ENGINE_API FAnimNode_AssetPlayerBase : public FAnimNode_Base
 {
 	GENERATED_BODY();

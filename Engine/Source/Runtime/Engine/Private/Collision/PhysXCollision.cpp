@@ -628,8 +628,8 @@ PxQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& filte
 	}
 
 	// Check if the shape is the right complexity for the trace 
-	PxFilterData ShapeFilter = shape->getQueryFilterData();
-	PxFilterData ShapeSimFilter = shape->getSimulationFilterData();	//This is a bit of a hack. We do this because word2 has our component ID
+	const PxFilterData ShapeFilter = shape->getQueryFilterData();
+
 #define ENABLE_PREFILTER_LOGGING 0
 #if ENABLE_PREFILTER_LOGGING
 	static bool bLoggingEnabled=false;
@@ -675,10 +675,17 @@ PxQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& filte
 	// If not already rejected, check ignore actor and component list.
 	if (Result != PxQueryHitType::eNONE)
 	{
-		// See if we are ignoring the actor this shape belongs to (word0 of shape filterdata is actorID) or the component (word2 of shape sim filter data is componentID)
-		if (IgnoreActors.Contains(ShapeFilter.word0) || IgnoreComponents.Contains(ShapeSimFilter.word2))
+		// See if we are ignoring the actor this shape belongs to (word0 of shape filterdata is actorID)
+		if (IgnoreActors.Contains(ShapeFilter.word0))
 		{
 			//UE_LOG(LogTemp, Log, TEXT("Ignoring Actor: %d"), ShapeFilter.word0);
+			Result = PxQueryHitType::eNONE;
+		}
+
+		// We usually don't have ignore components so we try to avoid the virtual getSimulationFilterData() call below. 'word2' of shape sim filter data is componentID.
+		if (IgnoreComponents.Num() > 0 && IgnoreComponents.Contains(shape->getSimulationFilterData().word2))
+		{
+			//UE_LOG(LogTemp, Log, TEXT("Ignoring Component: %d"), shape->getSimulationFilterData().word2);
 			Result = PxQueryHitType::eNONE;
 		}
 	}

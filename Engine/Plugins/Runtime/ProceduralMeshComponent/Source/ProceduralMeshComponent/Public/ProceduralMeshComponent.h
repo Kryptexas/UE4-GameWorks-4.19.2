@@ -45,7 +45,7 @@ struct FProcMeshTangent
 };
 
 /** One vertex for the procedural mesh, used for storing data internally */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FProcMeshVertex
 {
 	GENERATED_USTRUCT_BODY()

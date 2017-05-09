@@ -708,7 +708,7 @@ public:
 };
 
 FLandscapeComponentGrassData::FLandscapeComponentGrassData(ULandscapeComponent* Component)
-	: RotationForWPO(Component->GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0))
+	: RotationForWPO(Component->GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->GetComponentTransform().GetRotation() : FQuat(0, 0, 0, 0))
 {
 	UMaterialInterface* Material = Component->GetLandscapeMaterial();
 	for (UMaterialInstanceConstant* MIC = Cast<UMaterialInstanceConstant>(Material); MIC; MIC = Cast<UMaterialInstanceConstant>(Material))
@@ -757,7 +757,7 @@ bool ULandscapeComponent::IsGrassMapOutdated() const
 			return true;
 		}
 
-		FQuat RotationForWPO = GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected() ? ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0);
+		FQuat RotationForWPO = GetLandscapeMaterial()->GetMaterial()->WorldPositionOffset.IsConnected() ? GetComponentTransform().GetRotation() : FQuat(0, 0, 0, 0);
 		if (GrassData->RotationForWPO != RotationForWPO)
 		{
 			return true;
@@ -1304,7 +1304,7 @@ struct FGrassBuilderBase
 			bHaveValidData = false;
 		}
 		const FRotator DrawRot = Landscape->GetActorRotation();
-		LandscapeToWorld = Landscape->GetRootComponent()->ComponentToWorld.ToMatrixNoScale();
+		LandscapeToWorld = Landscape->GetRootComponent()->GetComponentTransform().ToMatrixNoScale();
 
 		if (bHaveValidData && SqrtSubsections != 1)
 		{
@@ -1416,7 +1416,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		, AlignToSurface(GrassVariety.AlignToSurface)
 		, PlacementJitter(GrassVariety.PlacementJitter)
 		, RandomStream(HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed)
-		, XForm(LandscapeToWorld * HierarchicalInstancedStaticMeshComponent->ComponentToWorld.ToMatrixWithScale().Inverse())
+		, XForm(LandscapeToWorld * HierarchicalInstancedStaticMeshComponent->GetComponentTransform().ToMatrixWithScale().Inverse())
 		, MeshBox(GrassVariety.GrassMesh->GetBounds().GetBox())
 		, DesiredInstancesPerLeaf(HierarchicalInstancedStaticMeshComponent->DesiredInstancesPerLeaf())
 
@@ -1985,7 +1985,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 					continue;
 				}
 
-				FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->ComponentToWorld);
+				FBoxSphereBounds WorldBounds = Component->CalcBounds(Component->GetComponentTransform());
 				float MinDistanceToComp = Cameras.Num() ? MAX_flt : 0.0f;
 
 				for (auto& Pos : Cameras)
@@ -2053,7 +2053,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 											BoxMax.Z = LocalBox.Max.Z;
 
 											FBox LocalSubBox(BoxMin, BoxMax);
-											FBox WorldSubBox = LocalSubBox.TransformBy(Component->ComponentToWorld);
+											FBox WorldSubBox = LocalSubBox.TransformBy(Component->GetComponentTransform());
 
 											MinDistanceToSubComp = Cameras.Num() ? MAX_flt : 0.0f;
 											for (auto& Pos : Cameras)
@@ -2203,7 +2203,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassAttachComp);
 
 											HierarchicalInstancedStaticMeshComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-											FTransform DesiredTransform = GetRootComponent()->ComponentToWorld;
+											FTransform DesiredTransform = GetRootComponent()->GetComponentTransform();
 											DesiredTransform.RemoveScaling();
 											HierarchicalInstancedStaticMeshComponent->SetWorldTransform(DesiredTransform);
 

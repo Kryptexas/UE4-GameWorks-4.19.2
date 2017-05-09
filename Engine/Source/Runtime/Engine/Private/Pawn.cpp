@@ -105,17 +105,19 @@ void APawn::PostInitializeComponents()
 		GetWorld()->AddPawn( this );
 
 		// Automatically add Controller to AI Pawns if we are allowed to.
-		if (AutoPossessPlayer == EAutoReceiveInput::Disabled)
+		if (AutoPossessPlayer == EAutoReceiveInput::Disabled
+			&& AutoPossessAI != EAutoPossessAI::Disabled && Controller == NULL && GetNetMode() != NM_Client
+#if WITH_EDITOR
+			&& (GIsEditor == false || GetWorld()->IsGameWorld())
+#endif // WITH_EDITOR
+			)
 		{
-			if (AutoPossessAI != EAutoPossessAI::Disabled && Controller == NULL && GetNetMode() != NM_Client)
+			const bool bPlacedInWorld = (GetWorld()->bStartup);
+			if ((AutoPossessAI == EAutoPossessAI::PlacedInWorldOrSpawned) ||
+				(AutoPossessAI == EAutoPossessAI::PlacedInWorld && bPlacedInWorld) ||
+				(AutoPossessAI == EAutoPossessAI::Spawned && !bPlacedInWorld))
 			{
-				const bool bPlacedInWorld = (GetWorld()->bStartup);
-				if ((AutoPossessAI == EAutoPossessAI::PlacedInWorldOrSpawned) ||
-					(AutoPossessAI == EAutoPossessAI::PlacedInWorld && bPlacedInWorld) ||
-					(AutoPossessAI == EAutoPossessAI::Spawned && !bPlacedInWorld))
-				{
-					SpawnDefaultController();
-				}
+				SpawnDefaultController();
 			}
 		}
 

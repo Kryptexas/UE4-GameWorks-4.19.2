@@ -3303,7 +3303,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 			if (Class != NULL)
 			{
-				Ar.Logf(TEXT("Listing functions introduced in class %s (class flags = %d)"), ClassName, Class->GetClassFlags());
+				Ar.Logf(TEXT("Listing functions introduced in class %s (class flags = 0x%08X)"), ClassName, (uint32)Class->GetClassFlags());
 				for (TFieldIterator<UFunction> It(Class); It; ++It)
 				{
 					UFunction* Function = *It;
@@ -4031,17 +4031,11 @@ void InitUObject()
 	
 
 
-#if WITH_EDITORONLY_DATA
-	const FString CommandLine = FCommandLine::Get();
-
-	// this is a hack to give fixup redirects insight into the startup packages
-	if (CommandLine.Contains(TEXT("fixupredirects")) )
-	{
-		FCoreUObjectDelegates::RedirectorFollowed.AddRaw(&GRedirectCollector, &FRedirectCollector::OnRedirectorFollowed);
-	}
-
+#if WITH_EDITOR
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FCoreUObjectDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
 	FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 #endif
 
 	// Object initialization.

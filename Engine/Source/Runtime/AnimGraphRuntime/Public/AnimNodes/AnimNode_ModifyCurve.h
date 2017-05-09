@@ -21,7 +21,7 @@ enum class EModifyCurveApplyMode : uint8
 };
 
 /** Easy way to modify curve values on a pose */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_ModifyCurve : public FAnimNode_Base
 {
 	GENERATED_BODY()

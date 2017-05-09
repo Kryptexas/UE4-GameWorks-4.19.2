@@ -15,6 +15,18 @@
 
 namespace NavigationHelper
 {
+	FNavLinkOwnerData::FNavLinkOwnerData(const AActor& InActor)
+	{
+		Actor = &InActor;
+		LinkToWorld = InActor.GetActorTransform();
+	}
+
+	FNavLinkOwnerData::FNavLinkOwnerData(const USceneComponent& InComponent)
+	{
+		Actor = InComponent.GetOwner();
+		LinkToWorld = InComponent.GetComponentTransform();
+	}
+
 	void GatherCollision(UBodySetup* RigidBody, TNavStatArray<FVector>& OutVertexBuffer, TNavStatArray<int32>& OutIndexBuffer, const FTransform& LocalToWorld)
 	{
 		if (RigidBody == NULL)
@@ -65,10 +77,9 @@ namespace NavigationHelper
 		return FallDownHeight;
 	}
 
-	void DefaultNavLinkProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationLink>& IN NavLinks)
+	void DefaultNavLinkProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const FNavLinkOwnerData& OwnerData, const TArray<FNavigationLink>& IN NavLinks)
 	{
-		const FTransform LocalToWorld = Actor->ActorToWorld();
-		FSimpleLinkNavModifier SimpleLink(NavLinks, LocalToWorld);
+		FSimpleLinkNavModifier SimpleLink(NavLinks, OwnerData.LinkToWorld);
 
 		// adjust links
 		for (int32 LinkIndex = 0; LinkIndex < SimpleLink.Links.Num(); ++LinkIndex)
@@ -83,14 +94,13 @@ namespace NavigationHelper
 
 			if (Link.MaxFallDownLength > 0)
 			{
-				const FVector WorldRight = LocalToWorld.TransformPosition(Link.Right);
-				const float FallDownHeight = RawGeometryFall(Actor, WorldRight, Link.MaxFallDownLength);
+				const FVector WorldRight = OwnerData.LinkToWorld.TransformPosition(Link.Right);
+				const float FallDownHeight = RawGeometryFall(OwnerData.Actor, WorldRight, Link.MaxFallDownLength);
 
 				if (FallDownHeight > 0.f)
 				{
 					// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-					UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRight, WorldRight + FVector(0, 0, -FallDownHeight)
-						, FColor::Green, TEXT("FallDownHeight %d"), LinkIndex);
+					UE_VLOG_SEGMENT(OwnerData.Actor, LogNavigation, Log, WorldRight, WorldRight + FVector(0, 0, -FallDownHeight), FColor::Green, TEXT("FallDownHeight %d"), LinkIndex);
 
 					Link.Right.Z -= FallDownHeight;
 				}
@@ -98,14 +108,13 @@ namespace NavigationHelper
 
 			if (Link.LeftProjectHeight > 0)
 			{
-				const FVector WorldLeft = LocalToWorld.TransformPosition(Link.Left);
-				const float FallDownHeight = RawGeometryFall(Actor, WorldLeft, Link.LeftProjectHeight);
+				const FVector WorldLeft = OwnerData.LinkToWorld.TransformPosition(Link.Left);
+				const float FallDownHeight = RawGeometryFall(OwnerData.Actor, WorldLeft, Link.LeftProjectHeight);
 
 				if (FallDownHeight > 0.f)
 				{
 					// @todo maybe it's a good idea to clear ModifiedLink.LeftProjectHeight here
-					UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldLeft, WorldLeft + FVector(0, 0, -FallDownHeight)
-						, FColor::Green, TEXT("LeftProjectHeight %d"), LinkIndex);
+					UE_VLOG_SEGMENT(OwnerData.Actor, LogNavigation, Log, WorldLeft, WorldLeft + FVector(0, 0, -FallDownHeight), FColor::Green, TEXT("LeftProjectHeight %d"), LinkIndex);
 
 					Link.Left.Z -= FallDownHeight;
 				}
@@ -115,12 +124,11 @@ namespace NavigationHelper
 		CompositeModifier->Add(SimpleLink);
 	}
 
-	void DefaultNavLinkSegmentProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks)
+	void DefaultNavLinkSegmentProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const FNavLinkOwnerData& OwnerData, const TArray<FNavigationSegmentLink>& IN NavLinks)
 	{
-		const FTransform LocalToWorld = Actor->ActorToWorld();
-		FSimpleLinkNavModifier SimpleLink(NavLinks, LocalToWorld);
+		FSimpleLinkNavModifier SimpleLink(NavLinks, OwnerData.LinkToWorld);
 
-			// adjust links if needed
+		// adjust links if needed
 		for (int32 LinkIndex = 0; LinkIndex < SimpleLink.SegmentLinks.Num(); ++LinkIndex)
 		{
 			FNavigationSegmentLink& Link = SimpleLink.SegmentLinks[LinkIndex];
@@ -134,25 +142,23 @@ namespace NavigationHelper
 
 			if (Link.MaxFallDownLength > 0)
 			{
-				const FVector WorldRightStart = LocalToWorld.TransformPosition(Link.RightStart);
-				const FVector WorldRightEnd = LocalToWorld.TransformPosition(Link.RightEnd);
+				const FVector WorldRightStart = OwnerData.LinkToWorld.TransformPosition(Link.RightStart);
+				const FVector WorldRightEnd = OwnerData.LinkToWorld.TransformPosition(Link.RightEnd);
 
-				const float FallDownHeightStart = RawGeometryFall(Actor, WorldRightStart, Link.MaxFallDownLength);
-				const float FallDownHeightEnd = RawGeometryFall(Actor, WorldRightEnd, Link.MaxFallDownLength);
+				const float FallDownHeightStart = RawGeometryFall(OwnerData.Actor, WorldRightStart, Link.MaxFallDownLength);
+				const float FallDownHeightEnd = RawGeometryFall(OwnerData.Actor, WorldRightEnd, Link.MaxFallDownLength);
 
 				if (FallDownHeightStart > 0.f)
 				{
 					// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-					UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRightStart, WorldRightStart + FVector(0, 0, -FallDownHeightStart)
-						, FColor::Green, TEXT("FallDownHeightStart %d"), LinkIndex);
+					UE_VLOG_SEGMENT(OwnerData.Actor, LogNavigation, Log, WorldRightStart, WorldRightStart + FVector(0, 0, -FallDownHeightStart), FColor::Green, TEXT("FallDownHeightStart %d"), LinkIndex);
 
 					Link.RightStart.Z -= FallDownHeightStart;
 				}
 				if (FallDownHeightEnd > 0.f)
 				{
 					// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-					UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRightEnd, WorldRightEnd + FVector(0, 0, -FallDownHeightEnd)
-						, FColor::Green, TEXT("FallDownHeightEnd %d"), LinkIndex);
+					UE_VLOG_SEGMENT(OwnerData.Actor, LogNavigation, Log, WorldRightEnd, WorldRightEnd + FVector(0, 0, -FallDownHeightEnd), FColor::Green, TEXT("FallDownHeightEnd %d"), LinkIndex);
 
 					Link.RightEnd.Z -= FallDownHeightEnd;
 				}
@@ -162,38 +168,54 @@ namespace NavigationHelper
 		CompositeModifier->Add(SimpleLink);
 	}
 
-	FNavLinkProcessorDelegate NavLinkProcessor = FNavLinkProcessorDelegate::CreateStatic(DefaultNavLinkProcessorImpl);
-	FNavLinkSegmentProcessorDelegate NavLinkSegmentProcessor = FNavLinkSegmentProcessorDelegate::CreateStatic(DefaultNavLinkSegmentProcessorImpl);
+	FNavLinkProcessorDataDelegate NavLinkProcessor = FNavLinkProcessorDataDelegate::CreateStatic(DefaultNavLinkProcessorImpl);
+	FNavLinkSegmentProcessorDataDelegate NavLinkSegmentProcessor = FNavLinkSegmentProcessorDataDelegate::CreateStatic(DefaultNavLinkSegmentProcessorImpl);
 
 	void ProcessNavLinkAndAppend(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationLink>& IN NavLinks)
+	{
+		if (Actor)
+		{
+			ProcessNavLinkAndAppend(CompositeModifier, FNavLinkOwnerData(*Actor), NavLinks);
+		}
+	}
+
+	void ProcessNavLinkAndAppend(FCompositeNavModifier* OUT CompositeModifier, const FNavLinkOwnerData& OwnerData, const TArray<FNavigationLink>& IN NavLinks)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_AdjustingNavLinks);
 
 		if (NavLinks.Num())
 		{
 			check(NavLinkProcessor.IsBound());
-			NavLinkProcessor.Execute(CompositeModifier, Actor, NavLinks);
+			NavLinkProcessor.Execute(CompositeModifier, OwnerData, NavLinks);
 		}
 	}
 
 	void ProcessNavLinkSegmentAndAppend(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks)
+	{
+		if (Actor)
+		{
+			ProcessNavLinkSegmentAndAppend(CompositeModifier, FNavLinkOwnerData(*Actor), NavLinks);
+		}
+	}
+
+	void ProcessNavLinkSegmentAndAppend(FCompositeNavModifier* OUT CompositeModifier, const FNavLinkOwnerData& OwnerData, const TArray<FNavigationSegmentLink>& IN NavLinks)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_AdjustingNavLinks);
 
 		if (NavLinks.Num())
 		{
 			check(NavLinkSegmentProcessor.IsBound());
-			NavLinkSegmentProcessor.Execute(CompositeModifier, Actor, NavLinks);
+			NavLinkSegmentProcessor.Execute(CompositeModifier, OwnerData, NavLinks);
 		}
 	}
 
-	void SetNavLinkProcessorDelegate(const FNavLinkProcessorDelegate& NewDelegate)
+	void SetNavLinkProcessorDelegate(const FNavLinkProcessorDataDelegate& NewDelegate)
 	{
 		check(NewDelegate.IsBound());
 		NavLinkProcessor = NewDelegate;
 	}
 
-	void SetNavLinkSegmentProcessorDelegate(const FNavLinkSegmentProcessorDelegate& NewDelegate)
+	void SetNavLinkSegmentProcessorDelegate(const FNavLinkSegmentProcessorDataDelegate& NewDelegate)
 	{
 		check(NewDelegate.IsBound());
 		NavLinkSegmentProcessor = NewDelegate;
@@ -207,5 +229,34 @@ namespace NavigationHelper
 			&& (BodySetup.DefaultInstance.GetResponseToChannel(ECC_Pawn) == ECR_Block || BodySetup.DefaultInstance.GetResponseToChannel(ECC_Vehicle) == ECR_Block)
 			// AND has full colliding capabilities 
 			&& BodySetup.DefaultInstance.GetCollisionEnabled() == ECollisionEnabled::QueryAndPhysics;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// DEPRECATED FUNCTIONS
+
+	void SetNavLinkProcessorDelegate(const FNavLinkProcessorDelegate& NewDelegate)
+	{
+		// don't set delegate, custom navlink processor will not be registered with deprecated function
+	}
+
+	void SetNavLinkSegmentProcessorDelegate(const FNavLinkSegmentProcessorDelegate& NewDelegate)
+	{
+		// don't set delegate, custom navlink processor will not be registered with deprecated function
+	}
+
+	void DefaultNavLinkProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationLink>& IN NavLinks)
+	{
+		if (Actor)
+		{
+			DefaultNavLinkProcessorImpl(CompositeModifier, FNavLinkOwnerData(*Actor), NavLinks);
+		}
+	}
+
+	void DefaultNavLinkSegmentProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks)
+	{
+		if (Actor)
+		{
+			DefaultNavLinkSegmentProcessorImpl(CompositeModifier, FNavLinkOwnerData(*Actor), NavLinks);
+		}
 	}
 }

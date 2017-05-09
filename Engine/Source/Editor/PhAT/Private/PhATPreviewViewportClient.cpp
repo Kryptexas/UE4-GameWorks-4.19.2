@@ -61,7 +61,7 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 	EngineShowFlags.SetCompositeEditorPrimitives(true);
 
 	// Get actors asset collision bounding box, and move actor so its not intersection the floor plane at Z = 0.
-	FBox CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp, SharedData->EditorSkelComp->ComponentToWorld);	
+	FBox CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp, SharedData->EditorSkelComp->GetComponentTransform());	
 	FVector SkelCompLocation = FVector(0, 0, -CollBox.Min.Z + SharedData->EditorSimOptions->FloorGap);
 
 	SharedData->EditorSkelComp->SetAbsolute(true, true, true);
@@ -69,11 +69,11 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 	SharedData->ResetTM = SharedData->EditorSkelComp->GetComponentToWorld();
 
 	// Get new bounding box and set view based on that.
-	CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp, SharedData->EditorSkelComp->ComponentToWorld);	
+	CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp, SharedData->EditorSkelComp->GetComponentTransform());	
 	FVector CollBoxExtent = CollBox.GetExtent();
 
 	// Take into account internal mesh translation/rotation/scaling etc.
-	FTransform LocalToWorld = SharedData->EditorSkelComp->ComponentToWorld;
+	FTransform LocalToWorld = SharedData->EditorSkelComp->GetComponentTransform();
 	FSphere WorldSphere = SharedData->EditorSkelMesh->GetImportedBounds().GetSphere().TransformBy(LocalToWorld);
 
 	CollBoxExtent = CollBox.GetExtent();
@@ -178,7 +178,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 		// Iterate over each graphics bone.
 		for (int32 i = 0; i < SharedData->EditorSkelComp->GetNumComponentSpaceTransforms(); ++i)
 		{
-			FVector BonePos = SharedData->EditorSkelComp->ComponentToWorld.TransformPosition(SharedData->EditorSkelComp->GetComponentSpaceTransforms()[i].GetLocation());
+			FVector BonePos = SharedData->EditorSkelComp->GetComponentTransform().TransformPosition(SharedData->EditorSkelComp->GetComponentSpaceTransforms()[i].GetLocation());
 
 			FPlane proj = View.Project(BonePos);
 			if (proj.W > 0.f) // This avoids drawing bone names that are behind us.

@@ -5,7 +5,9 @@
 #include "UObject/UnrealType.h"
 #include "UObject/ObjectRedirector.h"
 #include "Misc/PackageName.h"
-
+#include "UObject/LinkerLoad.h"
+#include "UObject/UObjectThreadContext.h"
+#include "Misc/RedirectCollector.h"
 
 FStringAssetReference::FStringAssetReference(const UObject* InObject)
 {
@@ -15,7 +17,6 @@ FStringAssetReference::FStringAssetReference(const UObject* InObject)
 	}
 }
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 void FStringAssetReference::SetPath(FString Path)
 {
 	if (Path.IsEmpty())
@@ -39,32 +40,72 @@ void FStringAssetReference::SetPath(FString Path)
 		AssetLongPathname = MoveTemp(Path);
 	}
 }
-PRAGMA_POP
+
+void FStringAssetReference::PreSavePath()
+{
+#if WITH_EDITOR
+	FString* FoundRedirection = GRedirectCollector.GetAssetPathRedirection(ToString());
+
+	if (FoundRedirection)
+	{
+		SetPath(*FoundRedirection);
+	}
+#endif // WITH_EDITOR
+}
+
+void FStringAssetReference::PostLoadPath() const
+{
+#if WITH_EDITOR
+	GRedirectCollector.OnStringAssetReferenceLoaded(ToString());
+#endif // WITH_EDITOR
+}
 
 bool FStringAssetReference::Serialize(FArchive& Ar)
 {
-#if WITH_EDITOR
-	if (Ar.IsSaving() && Ar.IsPersistent() && FCoreUObjectDelegates::StringAssetReferenceSaving.IsBound())
-	{
-		SetPath(FCoreUObjectDelegates::StringAssetReferenceSaving.Execute(ToString()));
-	}
-#endif // WITH_EDITOR
+	// Archivers will call back into SerializePath for the various fixups
 	Ar << *this;
-#if WITH_EDITOR
-	if (Ar.IsLoading() && Ar.IsPersistent() && FCoreUObjectDelegates::StringAssetReferenceLoaded.IsBound())
-	{
-		FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(ToString());
-	}
-#endif // WITH_EDITOR
-
-	if (Ar.IsLoading() && (Ar.GetPortFlags()&PPF_DuplicateForPIE))
-	{
-		// Remap unique ID if necessary
-		// only for fixing up cross-level references, inter-level references handled in FDuplicateDataReader
-		FixupForPIE();
-	}
 
 	return true;
+}
+
+void FStringAssetReference::SerializePath(FArchive& Ar, bool bSkipSerializeIfArchiveHasSize)
+{
+#if WITH_EDITOR
+	if (Ar.IsSaving())
+	{
+		PreSavePath();
+	}
+#endif // WITH_EDITOR
+
+	FString Path = ToString();
+
+	if (!bSkipSerializeIfArchiveHasSize || Ar.IsObjectReferenceCollector() || Ar.Tell() < 0)
+	{
+		Ar << Path;
+	}
+
+	if (Ar.IsLoading())
+	{
+		if (Ar.UE4Ver() < VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP)
+		{
+			Path = FPackageName::GetNormalizedObjectPath(Path);
+		}
+		
+		SetPath(MoveTemp(Path));
+		
+#if WITH_EDITOR
+		if (Ar.IsPersistent())
+		{
+			PostLoadPath();
+		}
+		if (Ar.GetPortFlags()&PPF_DuplicateForPIE)
+		{
+			// Remap unique ID if necessary
+			// only for fixing up cross-level references, inter-level references handled in FDuplicateDataReader
+			FixupForPIE();
+		}
+#endif // WITH_EDITOR
+	}
 }
 
 bool FStringAssetReference::operator==(FStringAssetReference const& Other) const
@@ -87,7 +128,11 @@ bool FStringAssetReference::ExportTextItem(FString& ValueStr, FStringAssetRefere
 
 	if (IsValid())
 	{
-		ValueStr += ToString();
+		// Fixup any redirectors
+		FStringAssetReference Temp = *this;
+		Temp.PreSavePath();
+
+		ValueStr += Temp.ToString();
 	}
 	else
 	{
@@ -95,6 +140,7 @@ bool FStringAssetReference::ExportTextItem(FString& ValueStr, FStringAssetRefere
 	}
 	return true;
 }
+
 bool FStringAssetReference::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
 {
 	FString ImportedPath = TEXT("");
@@ -127,13 +173,8 @@ bool FStringAssetReference::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags
 
 	SetPath(MoveTemp(ImportedPath));
 
-#if WITH_EDITOR
 	// Consider this a load, so Config string asset references get cooked
-	if (FCoreUObjectDelegates::StringAssetReferenceLoaded.IsBound())
-	{
-		FCoreUObjectDelegates::StringAssetReferenceLoaded.Execute(ToString());
-	}
-#endif // WITH_EDITOR
+	PostLoadPath();
 
 	return true;
 }
@@ -155,6 +196,7 @@ bool FStringAssetReference::SerializeFromMismatchedTag(struct FPropertyTag const
 	if (Ar.IsLoading())
 	{
 		SetPath(MoveTemp(Path));
+		PostLoadPath();
 	}
 
 	return bReturn;
@@ -238,6 +280,78 @@ void FStringAssetReference::FixupForPIE()
 			}
 		}
 	}
+}
+
+bool FStringAssetReferenceThreadContext::GetSerializationOptions(FName& OutPackageName, FName& OutPropertyName, EStringAssetReferenceCollectType& OutCollectType) const
+{
+	FName CurrentPackageName, CurrentPropertyName;
+	EStringAssetReferenceCollectType CurrentCollectType = EStringAssetReferenceCollectType::AlwaysCollect;
+	bool bFoundAnything = false;
+	if (OptionStack.Num() > 0)
+	{
+		// Go from the top of the stack down
+		for (int32 i = OptionStack.Num() - 1; i >= 0; i--)
+		{
+			const FSerializationOptions& Options = OptionStack[i];
+			// Find first valid package/property names. They may not necessarily match
+			if (Options.PackageName != NAME_None && CurrentPackageName == NAME_None)
+			{
+				CurrentPackageName = Options.PackageName;
+			}
+			if (Options.PropertyName != NAME_None && CurrentPropertyName == NAME_None)
+			{
+				CurrentPropertyName = Options.PropertyName;
+			}
+
+			// Restrict based on lowest/most restrictive collect type
+			if (Options.CollectType < CurrentCollectType)
+			{
+				CurrentCollectType = Options.CollectType;
+			}
+		}
+
+		bFoundAnything = true;
+	}
+	
+	// Check UObject thread context as a backup
+	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+	if (ThreadContext.SerializedObject)
+	{
+		FLinkerLoad* Linker = ThreadContext.SerializedObject->GetLinker();
+		if (Linker)
+		{
+			if (CurrentPackageName == NAME_None)
+			{
+				CurrentPackageName = FName(*FPackageName::FilenameToLongPackageName(Linker->Filename));
+			}
+			if (Linker->GetSerializedProperty() && CurrentPropertyName == NAME_None)
+			{
+				CurrentPropertyName = Linker->GetSerializedProperty()->GetFName();
+			}
+#if WITH_EDITORONLY_DATA
+			bool bEditorOnly = Linker->IsEditorOnlyPropertyOnTheStack();
+#else
+			bool bEditorOnly = false;
+#endif
+			// If we were always collect before and not overridden by stack options, set to editor only
+			if (bEditorOnly && CurrentCollectType == EStringAssetReferenceCollectType::AlwaysCollect)
+			{
+				CurrentCollectType = EStringAssetReferenceCollectType::EditorOnlyCollect;
+			}
+
+			bFoundAnything = true;
+		}
+	}
+
+	if (bFoundAnything)
+	{
+		OutPackageName = CurrentPackageName;
+		OutPropertyName = CurrentPropertyName;
+		OutCollectType = CurrentCollectType;
+		return true;
+	}
+	
+	return bFoundAnything;
 }
 
 FThreadSafeCounter FStringAssetReference::CurrentTag(1);

@@ -50,7 +50,7 @@ struct FRandomAnimPlayData
 /** The random player node holds a list of sequences and parameter ranges which will be played continuously
   * In a random order. If shuffle mode is enabled then each entry will be played once before repeating any
   */
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct FRandomPlayerSequenceEntry
 {
 	GENERATED_BODY()
@@ -91,11 +91,11 @@ struct FRandomPlayerSequenceEntry
 	float MaxPlayRate;
 
 	/** Blending properties used when this entry is blending in ontop of another entry */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	UPROPERTY(EditAnywhere, Category = "Settings")
 	FAlphaBlend BlendIn;
 };
 
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_RandomPlayer : public FAnimNode_Base
 {
 	GENERATED_BODY()

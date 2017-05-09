@@ -59,7 +59,7 @@ namespace EKeyboardFocusCause
  * FFocusEvent is used when notifying widgets about keyboard focus changes
  * It is passed to event handlers dealing with keyboard focus
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FFocusEvent
 {
 	GENERATED_USTRUCT_BODY()
@@ -546,7 +546,7 @@ struct TStructOpsTypeTraits<FAnalogInputEvent> : public TStructOpsTypeTraitsBase
 /**
  * FCharacterEvent describes a keyboard action where the utf-16 code is given.  Used for OnKeyChar messages
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCharacterEvent
 	: public FInputEvent
 {

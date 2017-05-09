@@ -74,18 +74,20 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 		const FString InputCategory = bIsConnected
 			? (bIsAssetClass ? K2Schema->PC_AssetClass : K2Schema->PC_Asset)
 			: K2Schema->PC_Wildcard;
-		InutPin->PinType = FEdGraphPinType(InputCategory, FString(), TargetType, false, false, false, false, FEdGraphTerminalType() );
+		InutPin->PinType = FEdGraphPinType(InputCategory, FString(), TargetType, EPinContainerType::None, false, FEdGraphTerminalType() );
 
 		const FString OutputCategory = bIsConnected
 			? (bIsAssetClass ? K2Schema->PC_Class : K2Schema->PC_Object)
 			: K2Schema->PC_Wildcard;
-		OutputPin->PinType = FEdGraphPinType(OutputCategory, FString(), TargetType, false, false, false, false, FEdGraphTerminalType() );
+		OutputPin->PinType = FEdGraphPinType(OutputCategory, FString(), TargetType, EPinContainerType::None, false, FEdGraphTerminalType() );
 
 		PinTypeChanged(InutPin);
 		PinTypeChanged(OutputPin);
 
 		if (OutputPin->LinkedTo.Num())
 		{
+			TArray<UEdGraphPin*> PinsToUnlink = OutputPin->LinkedTo;
+
 			UClass const* CallingContext = NULL;
 			if (UBlueprint const* Blueprint = GetBlueprint())
 			{
@@ -96,7 +98,7 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 				}
 			}
 
-			for (auto TargetPin : OutputPin->LinkedTo)
+			for (auto TargetPin : PinsToUnlink)
 			{
 				if (TargetPin && !K2Schema->ArePinsCompatible(OutputPin, TargetPin, CallingContext))
 				{
@@ -120,14 +122,16 @@ void UK2Node_ConvertAsset::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 	if (Pin && (UK2Node_ConvertAssetImpl::InputPinName == Pin->PinName))
 	{
 		RefreshPinTypes();
+
+		GetGraph()->NotifyGraphChanged();
 	}
 }
 
 void UK2Node_ConvertAsset::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
-	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), nullptr, false, false, UK2Node_ConvertAssetImpl::InputPinName);
-	CreatePin(EGPD_Output, K2Schema->PC_Wildcard, TEXT(""), nullptr, false, false, UK2Node_ConvertAssetImpl::OutputPinName);
+	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, FString(), nullptr, UK2Node_ConvertAssetImpl::InputPinName);
+	CreatePin(EGPD_Output, K2Schema->PC_Wildcard, FString(), nullptr, UK2Node_ConvertAssetImpl::OutputPinName);
 }
 
 void UK2Node_ConvertAsset::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

@@ -18,7 +18,7 @@ class IRuntimeAssetCacheBuilder;
 /**
 * Useful for passing around void* data and size
 */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FVoidPtrParam
 {
 	GENERATED_BODY()

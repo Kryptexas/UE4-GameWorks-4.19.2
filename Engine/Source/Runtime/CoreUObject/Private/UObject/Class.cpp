@@ -50,6 +50,10 @@ DEFINE_LOG_CATEGORY(LogClass);
 	#endif
 #endif
 
+// If we end up pushing class flags out beyond a uint32, there are various places
+// casting it to uint32 that need to be fixed up (mostly printfs but also some serialization code)
+static_assert(sizeof(__underlying_type(EClassFlags)) == sizeof(uint32), "expecting ClassFlags enum to fit in a uint32");
+
 //////////////////////////////////////////////////////////////////////////
 
 FThreadSafeBool& InternalSafeGetTokenStreamDirtyFlag()
@@ -2559,7 +2563,7 @@ class FRestoreClassInfo: public FRestoreForUObjectOverwrite
 	/** Saved ClassDefaultObject **/
 	UObject*		DefaultObject;
 	/** Saved ClassFlags **/
-	uint32			Flags;
+	EClassFlags		Flags;
 	/** Saved ClassCastFlags **/
 	EClassCastFlags	CastFlags;
 	/** Saved ClassConstructor **/
@@ -3410,18 +3414,18 @@ void UClass::Serialize( FArchive& Ar )
 	// Class flags first.
 	if (Ar.IsSaving())
 	{
-		auto SavedClassFlags = ClassFlags;
+		uint32 SavedClassFlags = ClassFlags;
 		SavedClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
 		Ar << SavedClassFlags;
 	}
 	else if (Ar.IsLoading())
 	{
-		Ar << ClassFlags;
+		Ar << (uint32&)ClassFlags;
 		ClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
 	}
 	else 
 	{
-		Ar << ClassFlags;
+		Ar << (uint32&)ClassFlags;
 	}
 	if (Ar.UE4Ver() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
@@ -3696,7 +3700,7 @@ void UClass::PurgeClass(bool bRecompilingOnLoad)
 {
 	ClassConstructor = nullptr;
 	ClassVTableHelperCtorCaller = nullptr;
-	ClassFlags = 0;
+	ClassFlags = CLASS_None;
 	ClassCastFlags = 0;
 	ClassUnique = 0;
 	ClassReps.Empty();
@@ -3794,7 +3798,7 @@ bool UClass::HasProperty(UProperty* InProperty) const
 UClass::UClass(const FObjectInitializer& ObjectInitializer)
 :	UStruct( ObjectInitializer )
 ,	ClassUnique(0)
-,	ClassFlags(0)
+,	ClassFlags(CLASS_None)
 ,	ClassCastFlags(0)
 ,	ClassWithin( UObject::StaticClass() )
 ,	ClassGeneratedBy(nullptr)
@@ -3811,7 +3815,7 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
 :	UStruct(ObjectInitializer, InBaseClass)
 ,	ClassUnique(0)
-,	ClassFlags(0)
+,	ClassFlags(CLASS_None)
 ,	ClassCastFlags(0)
 ,	ClassWithin(UObject::StaticClass())
 ,	ClassGeneratedBy(nullptr)
@@ -3849,7 +3853,7 @@ UClass::UClass
 	EStaticConstructor,
 	FName			InName,
 	uint32			InSize,
-	uint32			InClassFlags,
+	EClassFlags		InClassFlags,
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,
@@ -3885,7 +3889,7 @@ UClass::UClass
 
 bool UClass::HotReloadPrivateStaticClass(
 	uint32			InSize,
-	uint32			InClassFlags,
+	EClassFlags		InClassFlags,
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	ClassConstructorType InClassConstructor,
@@ -4163,7 +4167,7 @@ const FString UClass::GetConfigName() const
 	}
 	else if( ClassConfigName == NAME_None )
 	{
-		UE_LOG(LogClass, Fatal,TEXT("UObject::GetConfigName() called on class with config name 'None'. Class flags = %d"), ClassFlags );
+		UE_LOG(LogClass, Fatal,TEXT("UObject::GetConfigName() called on class with config name 'None'. Class flags = 0x%08X"), (uint32)ClassFlags );
 		return TEXT("");
 	}
 	else
@@ -4288,7 +4292,7 @@ void GetPrivateStaticClassBody(
 	UClass*& ReturnClass,
 	void(*RegisterNativeFunc)(),
 	uint32 InSize,
-	uint32 InClassFlags,
+	EClassFlags InClassFlags,
 	EClassCastFlags InClassCastFlags,
 	const TCHAR* InConfigName,
 	UClass::ClassConstructorType InClassConstructor,
@@ -4869,7 +4873,7 @@ UDynamicClass::UDynamicClass(
 	EStaticConstructor,
 	FName			InName,
 	uint32			InSize,
-	uint32			InClassFlags,
+	EClassFlags		InClassFlags,
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,

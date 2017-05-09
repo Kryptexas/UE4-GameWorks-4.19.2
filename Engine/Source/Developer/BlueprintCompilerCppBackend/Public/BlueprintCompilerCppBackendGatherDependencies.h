@@ -43,7 +43,7 @@ public:
 
 	UClass* FindOriginalClass(const UClass* InClass) const;
 
-	UClass* GetFirstNativeOrConvertedClass(UClass* InClass, bool bExcludeBPDataOnly = false) const;
+	UClass* GetFirstNativeOrConvertedClass(UClass* InClass) const;
 
 	TSet<const UObject*> AllDependencies() const;
 

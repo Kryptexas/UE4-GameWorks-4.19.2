@@ -393,7 +393,7 @@ struct GAMEPLAYABILITIES_API FAttributeDefaults
 	UPROPERTY(EditAnywhere, Category = "AttributeTest")
 	TSubclassOf<UAttributeSet> Attributes;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
+	UPROPERTY(EditAnywhere, Category = "AttributeTest")
 	class UDataTable*	DefaultStartingTable;
 };
 

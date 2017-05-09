@@ -693,12 +693,12 @@ void FComponentTransformDetails::OnToggleAbsoluteLocation( bool bEnable )
 				{
 					if (SceneComponent->bAbsoluteLocation)
 					{
-						SceneComponent->RelativeLocation = SceneComponent->ComponentToWorld.GetTranslation();
+						SceneComponent->RelativeLocation = SceneComponent->GetComponentTransform().GetTranslation();
 					}
 					else
 					{
 						FTransform ParentToWorld = SceneComponent->GetAttachParent()->GetSocketTransform(SceneComponent->GetAttachSocketName());
-						FTransform RelativeTM = SceneComponent->ComponentToWorld.GetRelativeTransform(ParentToWorld);
+						FTransform RelativeTM = SceneComponent->GetComponentTransform().GetRelativeTransform(ParentToWorld);
 						SceneComponent->RelativeLocation = RelativeTM.GetTranslation();
 					}
 				}

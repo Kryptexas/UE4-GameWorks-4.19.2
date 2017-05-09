@@ -319,7 +319,7 @@ FScopedClassDependencyGather::~FScopedClassDependencyGather()
 {
 	// If this gatherer was the initial gatherer for the current scope, process 
 	// dependencies (unless compiling on load is explicitly disabled)
-	if( bMasterClass && !GForceDisableBlueprintCompileOnLoad )
+	if( bMasterClass )
 	{
 		auto DependencyIter = BatchClassDependencies.CreateIterator();
 		// implemented as a lambda, to prevent duplicated code between 
@@ -1473,6 +1473,17 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	// have to)... we do however need it here in FinalizeBlueprint(), because
 	// we need it ran for any super-classes before we regen
 	ResolveAllImports();
+
+	// Now that imports have been resolved we optionally flush the compilation
+	// queue. This is only done for level blueprints, which will have instances
+	// of actors in them that cannot reliably be reinstanced on load (see useage
+	// of Scene pointers in things like UActorComponent::ExecuteRegisterEvents)
+	// - on load the Scene may not yet be created, meaning this code cannot 
+	// correctly be run. We could address that, but avoiding reinstancings is
+	// also a performance win:
+#if WITH_EDITOR
+	LoadClass->FlushCompilationQueueForLevel();
+#endif
 
 	// interfaces can invalidate classes which implement them (when the  
 	// interface is regenerated), they essentially define the makeup of the  

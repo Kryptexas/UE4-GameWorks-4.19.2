@@ -197,7 +197,7 @@ private:
 	FNiagaraDataSet Data;
 	/** Keep partial particle spawns from last frame */
 	float SpawnRemainder;
-	/** The cached ComponentToWorld transform. */
+	/** The cached GetComponentTransform() transform. */
 	FTransform CachedComponentToWorld;
 
 	NiagaraEffectRenderer *EffectRenderer;

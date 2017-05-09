@@ -253,7 +253,7 @@ FWindSourceSceneProxy* UWindDirectionalSourceComponent::CreateSceneProxy() const
 	if (bPointWind)
 	{
 		return new FWindSourceSceneProxy(
-			ComponentToWorld.GetLocation(),
+			GetComponentTransform().GetLocation(),
 			Strength,
 			Speed,
 			MinGustAmount,
@@ -264,7 +264,7 @@ FWindSourceSceneProxy* UWindDirectionalSourceComponent::CreateSceneProxy() const
 	else
 	{
 		return new FWindSourceSceneProxy(
-			ComponentToWorld.GetUnitAxis(EAxis::X),
+			GetComponentTransform().GetUnitAxis(EAxis::X),
 			Strength,
 			Speed,
 			MinGustAmount,
@@ -280,12 +280,12 @@ bool UWindDirectionalSourceComponent::GetWindParameters(const FVector& EvaluateP
 
 	if(bPointWind)
 	{
-		FWindSourceSceneProxy LocalProxy = FWindSourceSceneProxy(ComponentToWorld.GetLocation(), Strength, Speed, MinGustAmount, MaxGustAmount, Radius);
+		FWindSourceSceneProxy LocalProxy = FWindSourceSceneProxy(GetComponentTransform().GetLocation(), Strength, Speed, MinGustAmount, MaxGustAmount, Radius);
 		bFoundWind = LocalProxy.GetWindParameters(EvaluatePosition, OutData, Weight);
 	}
 	else
 	{
-		FWindSourceSceneProxy LocalProxy = FWindSourceSceneProxy(ComponentToWorld.GetUnitAxis(EAxis::X), Strength, Speed, MinGustAmount, MaxGustAmount);
+		FWindSourceSceneProxy LocalProxy = FWindSourceSceneProxy(GetComponentTransform().GetUnitAxis(EAxis::X), Strength, Speed, MinGustAmount, MaxGustAmount);
 		bFoundWind = LocalProxy.GetWindParameters(EvaluatePosition, OutData, Weight);
 	}
 

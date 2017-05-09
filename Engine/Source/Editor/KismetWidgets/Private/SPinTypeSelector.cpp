@@ -131,14 +131,6 @@ private:
 	TWeakPtr<SSubMenuHandler> SubMenuHandler;
 };
 
-enum class EPinContainerType
-{
-	SingleValue,
-	Array,
-	Set,
-	Map,
-};
-
 static bool ContainerRequiresGetTypeHash(EPinContainerType InType)
 {
 	return InType == EPinContainerType::Set || InType == EPinContainerType::Map;
@@ -234,7 +226,7 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 	static TArray<TSharedPtr<EPinContainerType>> PinTypes;
 	if (PinTypes.Num() == 0)
 	{
-		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::SingleValue)));
+		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::None)));
 		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::Array)));
 		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::Set)));
 		PinTypes.Add(MakeShareable(new EPinContainerType(EPinContainerType::Map)));
@@ -419,12 +411,12 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 			.Visibility(
 				TAttribute<EVisibility>::Create(
 					TAttribute<EVisibility>::FGetter::CreateLambda(
-						[this]() {return this->TargetPinType.Get().bIsMap == true ? EVisibility::Visible : EVisibility::Collapsed; }
+						[this]() {return this->TargetPinType.Get().IsMap() == true ? EVisibility::Visible : EVisibility::Collapsed; }
 					)
 				)
 			)
 			[
-				SNew( SComboButton )
+				SAssignNew( SecondaryTypeComboButton, SComboButton )
 				.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent, true )
 				.ContentPadding(0)
 				.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxSecondaryType)
@@ -521,16 +513,13 @@ FSlateColor SPinTypeSelector::GetSecondaryTypeIconColor() const
 
 ECheckBoxState SPinTypeSelector::IsArrayChecked() const
 {
-	return TargetPinType.Get().bIsArray ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return TargetPinType.Get().IsArray() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SPinTypeSelector::OnArrayCheckStateChanged(ECheckBoxState NewState)
 {
 	FEdGraphPinType NewTargetPinType = TargetPinType.Get();
-	NewTargetPinType.bIsArray = (NewState == ECheckBoxState::Checked) ? true : false;
-	// just in case someone has been experimenting with experimental features:
-	NewTargetPinType.bIsMap = false;
-	NewTargetPinType.bIsSet = false;
+	NewTargetPinType.ContainerType = (NewState == ECheckBoxState::Checked) ? EPinContainerType::Array : EPinContainerType::None;
 
 	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
 }
@@ -543,30 +532,7 @@ void SPinTypeSelector::OnArrayStateToggled()
 void SPinTypeSelector::OnContainerTypeSelectionChanged( EPinContainerType PinContainerType)
 {
 	FEdGraphPinType NewTargetPinType = TargetPinType.Get();
-
-	switch (PinContainerType)
-	{
-	case EPinContainerType::SingleValue:
-		NewTargetPinType.bIsArray = false;
-		NewTargetPinType.bIsMap = false;
-		NewTargetPinType.bIsSet = false;
-		break;
-	case EPinContainerType::Array:
-		NewTargetPinType.bIsArray = true;
-		NewTargetPinType.bIsMap = false;
-		NewTargetPinType.bIsSet = false;
-		break;
-	case EPinContainerType::Set:
-		NewTargetPinType.bIsArray = false;
-		NewTargetPinType.bIsMap = false;
-		NewTargetPinType.bIsSet = true;
-		break;
-	case EPinContainerType::Map:
-		NewTargetPinType.bIsArray = false;
-		NewTargetPinType.bIsMap = true;
-		NewTargetPinType.bIsSet = false;
-		break;
-	}
+	NewTargetPinType.ContainerType = PinContainerType;
 
 	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
 }
@@ -817,26 +783,27 @@ void SPinTypeSelector::OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCat
 
 
 	TypeComboButton->SetIsOpen(false);
+	if (SecondaryTypeComboButton.IsValid())
+	{
+		SecondaryTypeComboButton->SetIsOpen(false);
+	}
 
 	if( NewTargetPinType.PinCategory == Schema->PC_Exec )
 	{
-		NewTargetPinType.bIsMap = false;
-		NewTargetPinType.bIsSet = false;
-		NewTargetPinType.bIsArray = false;
+		NewTargetPinType.ContainerType = EPinContainerType::None;
 		NewTargetPinType.PinValueType.TerminalCategory = FString();
 		NewTargetPinType.PinValueType.TerminalSubCategory = FString();
 		NewTargetPinType.PinValueType.TerminalSubCategoryObject = nullptr;
 	}
 
-	if ((NewTargetPinType.bIsMap || NewTargetPinType.bIsSet) && !FBlueprintEditorUtils::HasGetTypeHash(NewTargetPinType))
+	if ((NewTargetPinType.IsMap() || NewTargetPinType.IsSet()) && !FBlueprintEditorUtils::HasGetTypeHash(NewTargetPinType))
 	{
 		FEdGraphPinType HashedType = NewTargetPinType;
 		// clear the container-ness for messaging, we want to explain that the contained type is not hashable,
 		// not message about the container type (e.g. "Container type cleared because 'bool' does not have a GetTypeHash..."
 		// instead of "Container Type cleared because 'map of bool to float'..."). We also need to clear this because
 		// the type cannot be a container:
-		NewTargetPinType.bIsMap = false;
-		NewTargetPinType.bIsSet = false;
+		NewTargetPinType.ContainerType = EPinContainerType::None;
 
 		// inform user via toast why the type change was exceptional and clear IsMap/IsSetness because this type cannot be hashed:
 		const FText NotificationText = FText::Format(LOCTEXT("TypeCannotBeHashed", "Container type cleared because '{0}' does not have a GetTypeHash function. Maps and Sets require a hash function to insert and find elements"), UEdGraphSchema_K2::TypeToText(NewTargetPinType));
@@ -965,6 +932,10 @@ TSharedRef<SWidget>	SPinTypeSelector::GetMenuContent(bool bForSecondaryType)
 			
 
 			TypeComboButton->SetMenuContentWidgetToFocus(FilterTextBox);
+			if (SecondaryTypeComboButton.IsValid())
+			{
+				SecondaryTypeComboButton->SetMenuContentWidgetToFocus(FilterTextBox);
+			}
 	}
 	else
 	{

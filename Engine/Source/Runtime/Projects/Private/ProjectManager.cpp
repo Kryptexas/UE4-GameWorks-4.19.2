@@ -322,6 +322,28 @@ bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled,
 	return true;
 }
 
+bool FProjectManager::RemovePluginReference(const FString& PluginName, FText& OutFailReason)
+{
+	// Don't go any further if there's no project loaded
+	if (!CurrentProject.IsValid())
+	{
+		OutFailReason = LOCTEXT("NoProjectLoaded", "No project is currently loaded");
+		return false;
+	}
+
+	bool bPluginFound = false;
+	for (int32 PluginRefIdx = CurrentProject->Plugins.Num() - 1; PluginRefIdx >= 0 && !bPluginFound; --PluginRefIdx)
+	{
+		if (CurrentProject->Plugins[PluginRefIdx].Name == PluginName)
+		{
+			CurrentProject->Plugins.RemoveAt(PluginRefIdx);
+			bPluginFound = true;
+			break;
+		}
+	}
+	return bPluginFound;
+}
+
 void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames, bool bIncludeInstalledPlugins)
 {
 	// Add all the game plugins and everything marked as enabled by default

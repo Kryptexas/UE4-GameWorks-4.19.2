@@ -120,6 +120,11 @@ bool FPlugin::IsEnabled() const
 	return bEnabled;
 }
 
+bool FPlugin::IsHidden() const
+{
+	return Descriptor.bIsHidden;
+}
+
 bool FPlugin::CanContainContent() const
 {
 	return Descriptor.bCanContainContent;

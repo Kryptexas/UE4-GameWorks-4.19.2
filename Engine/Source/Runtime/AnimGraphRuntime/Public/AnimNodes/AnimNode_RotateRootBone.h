@@ -8,7 +8,7 @@
 #include "AnimNode_RotateRootBone.generated.h"
 
 //@TODO: Comment
-USTRUCT()
+USTRUCT(BlueprintInternalUseOnly)
 struct ANIMGRAPHRUNTIME_API FAnimNode_RotateRootBone : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()

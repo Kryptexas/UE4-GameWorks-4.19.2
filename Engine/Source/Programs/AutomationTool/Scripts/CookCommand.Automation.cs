@@ -30,6 +30,8 @@ public partial class Project : CommandUtils
             string PlatformPlaceholderPattern = "<PLAT>";
 
             string ProjectDir = Params.RawProjectPath.Directory.ToString();
+            // NOTE: in UProjectPackagingSettings::PostEditChangeProperty() there is a hardcoded file path/name that is set to match this; 
+            //       if you alter this path then you need to update that and likely FBlueprintNativeCodeGenPaths::GetDefaultCodeGenPaths() as well
             PluginPath = CombinePaths(ProjectDir, "Intermediate", "Plugins", PlatformPlaceholderPattern, "NativizedAssets", "NativizedAssets.uplugin");
 
             ProjectParams.BlueprintPluginKey PluginKey = new ProjectParams.BlueprintPluginKey();

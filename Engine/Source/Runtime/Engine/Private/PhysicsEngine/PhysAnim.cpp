@@ -144,7 +144,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 {
 	SCOPE_CYCLE_COUNTER(STAT_BlendInPhysics);
 	// Get drawscale from Owner (if there is one)
-	FVector TotalScale3D = ComponentToWorld.GetScale3D();
+	FVector TotalScale3D = GetComponentTransform().GetScale3D();
 	FVector RecipScale3D = TotalScale3D.Reciprocal();
 
 	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
@@ -172,7 +172,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 	TAssetWorldBoneTMArray WorldBoneTMs;
 	WorldBoneTMs.AddZeroed(GetNumComponentSpaceTransforms());
 	
-	FTransform LocalToWorldTM = ComponentToWorld;
+	FTransform LocalToWorldTM = GetComponentTransform();
 	LocalToWorldTM.RemoveScaling();
 
 	TArray<FTransform>& EditableComponentSpaceTransforms = GetEditableComponentSpaceTransforms();
@@ -318,7 +318,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 				//For now I'm juts deferring it to the end of this loop, but in general we need to move it all out of here and do it when the blend task is done
 				FBodyTMPair* BodyTMPair = new (PendingBodyTMs) FBodyTMPair;
 				BodyTMPair->BI = PhysicsAssetBodyInstance;
-				BodyTMPair->TM = EditableComponentSpaceTransforms[BoneIndex] * ComponentToWorld;
+				BodyTMPair->TM = EditableComponentSpaceTransforms[BoneIndex] * GetComponentTransform();
 			}
 #endif
 		}
@@ -487,7 +487,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		return;
 	}
 
-	const FTransform& CurrentLocalToWorld = ComponentToWorld;
+	const FTransform& CurrentLocalToWorld = GetComponentTransform();
 
 #if !(UE_BUILD_SHIPPING)
 	// Gracefully handle NaN

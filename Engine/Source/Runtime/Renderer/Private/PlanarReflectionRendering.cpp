@@ -364,7 +364,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 			});
 		}
 
-		const FMatrix ComponentTransform = CaptureComponent->ComponentToWorld.ToMatrixWithScale();
+		const FMatrix ComponentTransform = CaptureComponent->GetComponentTransform().ToMatrixWithScale();
 		const FPlane MirrorPlane = FPlane(ComponentTransform.TransformPosition(FVector::ZeroVector), ComponentTransform.TransformVector(FVector(0, 0, 1)));
 
 		TArray<FSceneCaptureViewInfo> SceneCaptureViewInfo;
@@ -499,7 +499,7 @@ void FScene::UpdatePlanarReflectionTransform(UPlanarReflectionComponent* Compone
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		FUpdatePlanarReflectionCommand,
 		FPlanarReflectionSceneProxy*,SceneProxy,Component->SceneProxy,
-		FMatrix,Transform,Component->ComponentToWorld.ToMatrixWithScale(),
+		FMatrix,Transform,Component->GetComponentTransform().ToMatrixWithScale(),
 		FScene*,Scene,this,
 	{
 		Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;

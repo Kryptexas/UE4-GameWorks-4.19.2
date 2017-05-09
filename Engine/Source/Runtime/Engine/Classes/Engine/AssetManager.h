@@ -145,7 +145,7 @@ public:
 	 * @param LoadBundles		List of bundles to load for those assets
 	 * @param DelegateToCall	Delegate that will be called on completion, may be called before function returns if assets are already loaded
 	 * @param Priority			Async loading priority for this request
-	 * @return					Streamable Handle that can be used to poll or wait
+	 * @return					Streamable Handle that can be used to poll or wait. You do not need to keep this handle to stop the assets from being unloaded
 	 */
 	virtual TSharedPtr<FStreamableHandle> LoadPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToLoad, const TArray<FName>& LoadBundles = TArray<FName>(), FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
 
@@ -156,7 +156,8 @@ public:
 	virtual TSharedPtr<FStreamableHandle> LoadPrimaryAssetsWithType(FPrimaryAssetType PrimaryAssetType, const TArray<FName>& LoadBundles = TArray<FName>(), FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
 
 	/** 
-	 * Unloads a list of Primary Assets. This will drop hard references to these assets, but they may be in memory due to other references or GC delay
+	 * Unloads a list of Primary Assets that were previously Loaded.
+	 * If the only thing keeping these assets in memory was a prior Load call, they will be freed.
 	 *
 	 * @param AssetsToUnload	List of primary assets to load
 	 * @return					Number of assets unloaded
@@ -180,7 +181,7 @@ public:
 	 * @param RemoveAllBundles	If true, remove all existing bundles even if not in remove list
 	 * @param DelegateToCall	Delegate that will be called on completion, may be called before function returns if assets are already loaded
 	 * @param Priority			Async loading priority for this request
-	 * @return					Streamable Handle that can be used to poll or wait
+	 * @return					Streamable Handle that can be used to poll or wait. You do not need to keep this handle to stop the assets from being unloaded
 	 */
 	virtual TSharedPtr<FStreamableHandle> ChangeBundleStateForPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToChange, const TArray<FName>& AddBundles, const TArray<FName>& RemoveBundles, bool bRemoveAllBundles = false, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
 
@@ -192,7 +193,7 @@ public:
 	 * @param Bundles			If not null, will fill in with a list of the requested bundle state
 	 * @return					Streamable Handle that can be used to poll or wait
 	 */
-	TSharedPtr<FStreamableHandle> GetPrimaryAssetHandle(const FPrimaryAssetId& PrimaryAssetId, bool bForceCurrent = false, TArray<FName>* Bundles = nullptr);
+	TSharedPtr<FStreamableHandle> GetPrimaryAssetHandle(const FPrimaryAssetId& PrimaryAssetId, bool bForceCurrent = false, TArray<FName>* Bundles = nullptr) const ;
 
 	/** 
 	 * Returns a list of primary assets that are in the given bundle state. Only assets that are loaded or being loaded are valid
@@ -204,10 +205,23 @@ public:
 	 * @param bForceCurrent		If true, only use the current state. If false, use the current or pending
 	 * @return					True if any found
 	 */
-	bool GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& PrimaryAssetList, const TArray<FName>& ValidTypes, const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles = TArray<FName>(), bool bForceCurrent = false);
+	bool GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& PrimaryAssetList, const TArray<FName>& ValidTypes, const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles = TArray<FName>(), bool bForceCurrent = false) const;
 
 	/** Fills in a TMap with the pending/active loading state of every asset */
-	void GetPrimaryAssetBundleStateMap(TMap<FPrimaryAssetId, TArray<FName>>& BundleStateMap, bool bForceCurrent = false);
+	void GetPrimaryAssetBundleStateMap(TMap<FPrimaryAssetId, TArray<FName>>& BundleStateMap, bool bForceCurrent = false) const;
+
+	/**
+	 * Preloads data for a set of assets in a specific bundle state, and returns a handle you must keep active.
+	 * These assets are not officially Loaded, so Unload/ChangeBundleState will not affect them and if you release the handle without otherwise loading the assets they will be freed.
+	 *
+	 * @param AssetsToLoad		List of primary assets to load
+	 * @param LoadBundles		List of bundles to load for those assets
+	 * @param bLoadRecursive	If true, this will call RecursivelyExpandBundleData and recurse into sub bundles of other primary assets loaded by a bundle reference
+	 * @param DelegateToCall	Delegate that will be called on completion, may be called before function returns if assets are already loaded
+	 * @param Priority			Async loading priority for this request
+	 * @return					Streamable Handle that must be stored to keep the preloaded assets from being freed
+	 */
+	virtual TSharedPtr<FStreamableHandle> PreloadPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToLoad, const TArray<FName>& LoadBundles, bool bLoadRecursive, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
 
 	/** Quick wrapper to async load some non primary assets with the primary streamable manager. This will not auto release the handle, release it if needed */
 	virtual TSharedPtr<FStreamableHandle> LoadAssetList(const TArray<FStringAssetReference>& AssetList);
@@ -234,7 +248,7 @@ public:
 	virtual bool GetManagedPackageList(FPrimaryAssetId PrimaryAssetId, TArray<FName>& AssetPackageList) const;
 
 	/** Returns list of PrimaryAssetIds that manage a package. Will optionally recurse up the management chain */
-	virtual bool GetPackageManagerList(FName PackageName, bool bRecurseToParents, TArray<FPrimaryAssetId>& ManagerList) const;
+	virtual bool GetPackageManagers(FName PackageName, bool bRecurseToParents, TSet<FPrimaryAssetId>& ManagerSet) const;
 
 
 	// GENERAL ASSET UTILITY FUNCTIONS
@@ -264,6 +278,9 @@ public:
 	/** Dumps out list of loaded asset bundles to log */
 	static void DumpLoadedAssetState();
 
+	/** Dumps information about the Asset Registry to log */
+	static void DumpAssetRegistryInfo();
+
 	/** Dumps out list of primary asset -> managed assets to log */
 	static void DumpReferencersForPackage(const TArray< FString >& PackageNames);
 
@@ -285,8 +302,8 @@ public:
 #if WITH_EDITOR
 	// EDITOR ONLY FUNCTIONALITY
 
-	/** Gets package names to add to the cook. Do this instead of loading assets so RAM can be properly managed on build machines */
-	virtual void ModifyCook(TArray<FName>& PackageNames);
+	/** Gets package names to add to the cook, and packages to never cook even if in startup set memory or referenced */
+	virtual void ModifyCook(TArray<FName>& PackagesToCook, TArray<FName>& PackagesToNeverCook);
 
 	/** Returns cook rule for a package name using Management rules, games should override this to take into account their individual workflows */
 	virtual EPrimaryAssetCookRule GetPackageCookRule(FName PackageName) const;
@@ -400,9 +417,6 @@ protected:
 	TMap<FPrimaryAssetId, TArray<FName>> PrimaryAssetStateBeforePIE;
 #endif // WITH_EDITOR
 
-	/** Per-type asset information */
-	TMap<FName, TSharedRef<FPrimaryAssetTypeData>> AssetTypeMap;
-
 	/** Map from object path to Primary Asset Id */
 	TMap<FName, FPrimaryAssetId> AssetPathMap;
 
@@ -428,10 +442,6 @@ protected:
 	/** True if we are running a build that is already scanning assets globally so we can perhaps avoid scanning paths synchronously */
 	UPROPERTY()
 	bool bIsGlobalAsyncScanEnvironment;
-
-	/** True if we should keep hard references to loaded assets, to stop them from garbage collecting */
-	UPROPERTY()
-	bool bShouldKeepHardRefs;
 
 	/** True if PrimaryAssetType/Name will be implied for loading assets that don't have it saved on disk. Won't work for all projects */
 	UPROPERTY()
@@ -459,6 +469,9 @@ protected:
 	TMap<FName, FName> AssetPathRedirects;
 
 private:
+	/** Per-type asset information, cannot be accessed by children as it is defined in CPP file */
+	TMap<FName, TSharedRef<FPrimaryAssetTypeData>> AssetTypeMap;
+
 	mutable class IAssetRegistry* CachedAssetRegistry;
 	mutable const class UAssetManagerSettings* CachedSettings;
 };

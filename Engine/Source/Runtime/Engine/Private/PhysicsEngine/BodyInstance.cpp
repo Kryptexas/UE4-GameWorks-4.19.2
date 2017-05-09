@@ -4549,7 +4549,7 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 
 		UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get();
 		PxTransform PStartTM(U2PVector(Start), ShapeAdaptor.GetGeomOrientation());
-		PxTransform PCompTM(U2PTransform(OwnerComponentInst->ComponentToWorld));
+		PxTransform PCompTM(U2PTransform(OwnerComponentInst->GetComponentTransform()));
 
 		PxVec3 PDir = U2PVector(Delta/DeltaMag);
 

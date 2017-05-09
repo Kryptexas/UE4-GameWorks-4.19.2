@@ -134,7 +134,7 @@ struct BLUEPRINTGRAPH_API FBlueprintActionInfo
 
 private:
 	/** The class or asset-object that the NodeSpawner action is keyed to (in the action database)*/
-	UObject const* ActionOwner;
+	const TWeakObjectPtr<UObject> ActionOwner;
 
 	/** Keeps track of the fields we've cached (needed in case one turns out to be null) */
 	uint32 CacheFlags;

@@ -1866,11 +1866,7 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 
 #endif	//WITH_EDITOR
 
-	// Delegate type for redirector followed events ( Params: const FString& PackageName, UObject* Redirector )
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
 
-	// Sent when a UObjectRedirector was followed to find the destination object
-	static FOnRedirectorFollowed RedirectorFollowed;
 
 	/** Delegate used by SavePackage() to create the package backup */
 	static FAutoPackageBackupDelegate AutoPackageBackupDelegate;
@@ -1926,10 +1922,6 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	static FOnLoadObjectsOnTop ShouldLoadOnTop;
 
 	/** called when loading a string asset reference */
-	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, const FString&);
-	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
-
-	/** called when loading a string asset reference */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageLoadedFromStringAssetReference, const FName&);
 	static FPackageLoadedFromStringAssetReference PackageLoadedFromStringAssetReference;
 
@@ -1937,13 +1929,21 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageCreatedForLoad, class UPackage*);
 	static FPackageCreatedForLoad PackageCreatedForLoad;
 
-	/** called when saving a string asset reference, can replace the value with something else */
-	DECLARE_DELEGATE_RetVal_OneParam(FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
-	static FStringAssetReferenceSaving StringAssetReferenceSaving;
-
 	/** Called when trying to figure out if a UObject is a primary asset, if it doesn't know */
 	DECLARE_DELEGATE_RetVal_OneParam(FPrimaryAssetId, FGetPrimaryAssetIdForObject, const UObject*);
 	static FGetPrimaryAssetIdForObject GetPrimaryAssetIdForObject;
+
+	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, const FString&);
+	DEPRECATED(4.17, "StringAssetReferenceLoaded is deprecated, call FStringAssetReference::PostLoadPath instead")
+	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
+
+	DECLARE_DELEGATE_RetVal_OneParam(FString, FStringAssetReferenceSaving, FString const& /*SavingAssetLongPathname*/);
+	DEPRECATED(4.17, "StringAssetReferenceSaving is deprecated, call FStringAssetReference::PreSavePath instead")
+	static FStringAssetReferenceSaving StringAssetReferenceSaving;
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnRedirectorFollowed, const FString&, UObject*);
+	DEPRECATED(4.17, "RedirectorFollowed is deprecated, FixeupRedirects was replaced with ResavePackages -FixupRedirect")
+	static FOnRedirectorFollowed RedirectorFollowed;
 };
 
 /** Allows release builds to override not verifying GC assumptions. Useful for profiling as it's hitchy. */

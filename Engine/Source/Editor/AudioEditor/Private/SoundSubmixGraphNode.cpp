@@ -61,13 +61,13 @@ void USoundSubmixGraphNode::AllocateDefaultPins()
 {
 	check(Pins.Num() == 0);
 
-	ChildPin = CreatePin(EGPD_Output, TEXT("SoundSubmix"), TEXT(""), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, LOCTEXT("SoundSubmixChildren", "Children").ToString());
-	ParentPin = CreatePin(EGPD_Input, TEXT("SoundSubmix"), TEXT(""), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT(""));
+	ChildPin = CreatePin(EGPD_Output, TEXT("SoundSubmix"), FString(), nullptr, LOCTEXT("SoundSubmixChildren", "Children").ToString());
+	ParentPin = CreatePin(EGPD_Input, TEXT("SoundSubmix"), FString(), nullptr, FString());
 }
 
 void USoundSubmixGraphNode::AutowireNewNode(UEdGraphPin* FromPin)
 {
-	if (FromPin != NULL)
+	if (FromPin)
 	{
 		const USoundSubmixGraphSchema* Schema = CastChecked<USoundSubmixGraphSchema>(GetSchema());
 

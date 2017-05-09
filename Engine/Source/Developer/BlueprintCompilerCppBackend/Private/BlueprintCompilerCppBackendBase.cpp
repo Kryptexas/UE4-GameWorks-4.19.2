@@ -174,7 +174,7 @@ struct FIncludeHeaderHelper
 		Dst.AddLine(FString::Printf(TEXT("#include \"%s%s\""), Message, bAddDotH ? TEXT(".h") : TEXT("")));
 	}
 
-	static void EmitInner(FCodeText& Dst, const TSet<UField*>& Src, const TSet<UField*>& Declarations, TSet<FString>& AlreadyIncluded)
+	static void EmitInner(FCodeText& Dst, const TSet<UField*>& Src, const TSet<UField*>& Declarations, const FCompilerNativizationOptions& NativizationOptions, TSet<FString>& AlreadyIncluded)
 	{
 		auto EngineSourceDir = FPaths::EngineSourceDir();
 		auto GameSourceDir = FPaths::GameSourceDir();
@@ -197,8 +197,13 @@ struct FIncludeHeaderHelper
 				AlreadyIncluded.Add(Name, &bAlreadyIncluded);
 				if (!bAlreadyIncluded)
 				{
-					const FString GeneratedFilename = FEmitHelper::GetBaseFilename(Field);
-					FIncludeHeaderHelper::EmitIncludeHeader(Dst, *GeneratedFilename, true);
+					const FString GeneratedFilename = FEmitHelper::GetBaseFilename(Field, NativizationOptions);
+
+					// In some cases the caller may have already primed this array with the generated filename.
+					if (!AlreadyIncluded.Contains(GeneratedFilename))
+					{
+						FIncludeHeaderHelper::EmitIncludeHeader(Dst, *GeneratedFilename, true);
+					}
 				}
 			}
 			// headers for native items
@@ -256,7 +261,7 @@ struct FIncludedUnconvertedWrappers
 	{
 		FCodeText AdditionalIncludes;
 		TSet<FString> DummyStrSet;
-		FIncludeHeaderHelper::EmitInner(AdditionalIncludes, InContext.UsedUnconvertedWrapper, TSet<UField*>{}, DummyStrSet);
+		FIncludeHeaderHelper::EmitInner(AdditionalIncludes, InContext.UsedUnconvertedWrapper, TSet<UField*>{}, InContext.NativizationOptions, DummyStrSet);
 		(bInInludeInBody ? InContext.Body : InContext.Header).Result.ReplaceInline(Placeholder(), *AdditionalIncludes.Result);
 	}
 
@@ -301,7 +306,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	}
 
 	// use GetBaseFilename() so that we can coordinate #includes and filenames
-	auto CleanCppClassName = FEmitHelper::GetBaseFilename(SourceClass);
+	auto CleanCppClassName = FEmitHelper::GetBaseFilename(SourceClass, NativizationOptions);
 	auto CppClassName = FEmitHelper::GetCppName(SourceClass);
 	
 	FGatherConvertedClassDependencies Dependencies(SourceClass, NativizationOptions);
@@ -466,7 +471,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	{
 		FCodeText AdditionalIncludes;
 		TSet<FString> DummyStrSet;
-		FIncludeHeaderHelper::EmitInner(AdditionalIncludes, EmitterContext.StructsUsedAsInlineValues, TSet<UField*>{}, DummyStrSet);
+		FIncludeHeaderHelper::EmitInner(AdditionalIncludes, EmitterContext.StructsUsedAsInlineValues, TSet<UField*>{}, EmitterContext.NativizationOptions, DummyStrSet);
 		EmitterContext.Body.Result.ReplaceInline(PlaceholderForInlinedStructInlude, *AdditionalIncludes.Result);
 	}
 
@@ -884,14 +889,14 @@ void FBlueprintCompilerCppBackendBase::ConstructFunctionBody(FEmitterLocalContex
 	}
 }
 
-void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum, FString& OutHeaderCode, FString& OutCPPCode)
+void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum, const FCompilerNativizationOptions& NativizationOptions, FString& OutHeaderCode, FString& OutCPPCode)
 {
 	check(SourceEnum);
 	FCodeText Header;
 	Header.AddLine(TEXT("#pragma once"));
 	const FString EnumCppName = *FEmitHelper::GetCppName(SourceEnum);
 	// use GetBaseFilename() so that we can coordinate #includes and filenames
-	Header.AddLine(FString::Printf(TEXT("#include \"%s.generated.h\""), *FEmitHelper::GetBaseFilename(SourceEnum)));
+	Header.AddLine(FString::Printf(TEXT("#include \"%s.generated.h\""), *FEmitHelper::GetBaseFilename(SourceEnum, NativizationOptions)));
 	Header.AddLine(FString::Printf(TEXT("UENUM(BlueprintType, %s )"), *FEmitHelper::ReplaceConvertedMetaData(SourceEnum)));
 	Header.AddLine(FString::Printf(TEXT("enum class %s  : uint8"), *EnumCppName));
 	Header.AddLine(TEXT("{"));
@@ -926,7 +931,6 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 	OutHeaderCode = MoveTemp(Header.Result);
 	
 	FCodeText Body;
-	Body.AddLine(FString::Printf(TEXT("#include \"%s.h\""), *FEmitHelper::GetBaseFilename(SourceEnum)));
 	
 	const FString PCHFilename = FEmitHelper::GetPCHFilename();
 	if (!PCHFilename.IsEmpty())
@@ -942,6 +946,8 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 			Body.AddLine(FString::Printf(TEXT("#include \"%s\""), *MainHeaderFilename));
 		}
 	}
+
+	Body.AddLine(FString::Printf(TEXT("#include \"%s.h\""), *FEmitHelper::GetBaseFilename(SourceEnum, NativizationOptions)));
 
 	// generate implementation of GetUserFriendlyName:
 	Body.AddLine(FString::Printf(TEXT("FText %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName, *EnumCppName));
@@ -975,14 +981,14 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 	OutCPPCode = MoveTemp(Body.Result);
 }
 
-FString FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct, const FCompilerNativizationOptions& NativizationOptions)
+void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct, const FCompilerNativizationOptions& NativizationOptions, FString& OutHeaderCode, FString& OutCPPCode)
 {
 	check(SourceStruct);
 	FGatherConvertedClassDependencies Dependencies(SourceStruct, NativizationOptions);
 	FNativizationSummaryHelper::RegisterRequiredModules(NativizationOptions.PlatformName, Dependencies.RequiredModuleNames);
 	FEmitterLocalContext EmitterContext(Dependencies, NativizationOptions);
 	// use GetBaseFilename() so that we can coordinate #includes and filenames
-	EmitFileBeginning(FEmitHelper::GetBaseFilename(SourceStruct), EmitterContext, true, true);
+	EmitFileBeginning(FEmitHelper::GetBaseFilename(SourceStruct, NativizationOptions), EmitterContext, true, true);
 	{
 		FIncludedUnconvertedWrappers IncludedUnconvertedWrappers(EmitterContext, false);
 		const FString CppStructName = FEmitHelper::GetCppName(SourceStruct);
@@ -1013,7 +1019,8 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStr
 		EmitterContext.Header.AddLine(TEXT("};"));
 	}
 
-	return EmitterContext.Header.Result;
+	OutCPPCode = MoveTemp(EmitterContext.Body.Result);
+	OutHeaderCode = MoveTemp(EmitterContext.Header.Result);
 }
 
 FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* SourceClass, const FCompilerNativizationOptions& NativizationOptions)
@@ -1098,7 +1105,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 	}
 
 	// Include standard stuff
-	EmitFileBeginning(FEmitHelper::GetBaseFilename(SourceClass), EmitterContext, bGenerateAnyMCDelegateProperty, true, true, SuperClassToUse);
+	EmitFileBeginning(FEmitHelper::GetBaseFilename(SourceClass, NativizationOptions), EmitterContext, bGenerateAnyMCDelegateProperty, true, true, SuperClassToUse);
 
 	{
 		FIncludedUnconvertedWrappers IncludedUnconvertedWrappers(EmitterContext, false);
@@ -1293,8 +1300,6 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 {
 	EmitterContext.Header.AddLine(TEXT("#pragma once"));
 
-	FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Body, *CleanName, true);
-
 	const FString PCHFilename = FEmitHelper::GetPCHFilename();
 	if (!PCHFilename.IsEmpty())
 	{
@@ -1310,6 +1315,7 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 		}
 	}
 	
+	FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Body, *CleanName, true);
 	FIncludeHeaderHelper::EmitIncludeHeader(bIncludeCodeHelpersInHeader ? EmitterContext.Header : EmitterContext.Body, TEXT("GeneratedCodeHelpers"), true);
 	FIncludeHeaderHelper::EmitIncludeHeader(EmitterContext.Header, TEXT("Blueprint/BlueprintSupport"), true);
 
@@ -1325,16 +1331,16 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 	{
 		IncludeInHeader.Add(AdditionalFieldToIncludeInHeader);
 	}
-	FIncludeHeaderHelper::EmitInner(EmitterContext.Header, IncludeInHeader, bFullyIncludedDeclaration ? TSet<UField*>() : EmitterContext.Dependencies.DeclareInHeader, AlreadyIncluded);
+	FIncludeHeaderHelper::EmitInner(EmitterContext.Header, IncludeInHeader, bFullyIncludedDeclaration ? TSet<UField*>() : EmitterContext.Dependencies.DeclareInHeader, EmitterContext.NativizationOptions, AlreadyIncluded);
 	if (bFullyIncludedDeclaration)
 	{
-		FIncludeHeaderHelper::EmitInner(EmitterContext.Header, EmitterContext.Dependencies.DeclareInHeader, TSet<UField*>(), AlreadyIncluded);
+		FIncludeHeaderHelper::EmitInner(EmitterContext.Header, EmitterContext.Dependencies.DeclareInHeader, TSet<UField*>(), EmitterContext.NativizationOptions, AlreadyIncluded);
 	}
 	else
 	{
 		IncludeInBody.Append(EmitterContext.Dependencies.DeclareInHeader);
 	}
-	FIncludeHeaderHelper::EmitInner(EmitterContext.Body, IncludeInBody, TSet<UField*>(), AlreadyIncluded);
+	FIncludeHeaderHelper::EmitInner(EmitterContext.Body, IncludeInBody, TSet<UField*>(), EmitterContext.NativizationOptions, AlreadyIncluded);
 
 	if (bIncludeGeneratedH)
 	{
