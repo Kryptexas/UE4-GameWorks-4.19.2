@@ -1753,22 +1753,36 @@ void USkeletalMeshComponent::UpdateHasValidBodies()
 
 void USkeletalMeshComponent::UpdateBoneBodyMapping()
 {
-	if(Bodies.Num() > 0)	//If using per poly then there's no bodies to update indices on
+	if (Bodies.Num() > 0)	//If using per poly then there's no bodies to update indices on
 	{
 		// If we have a physics asset..
 		if (const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset())
 		{
+			bool bNeedsReInit = false;
+
 			// For each body in physics asset..
 			for (int32 BodyIndex = 0; BodyIndex < PhysicsAsset->SkeletalBodySetups.Num(); BodyIndex++)
 			{
 				// .. find the matching graphics bone index
 				int32 BoneIndex = GetBoneIndex(PhysicsAsset->SkeletalBodySetups[BodyIndex]->BoneName);
-				Bodies[BodyIndex]->InstanceBoneIndex = BoneIndex;
+				FBodyInstance* Inst = Bodies[BodyIndex];
+				check(Inst);
 
-				if (BoneIndex == INDEX_NONE)
+				// Make sure physics state matches presence of bone
+				bool bHasValidBone = (BoneIndex != INDEX_NONE);
+				if (bHasValidBone != Inst->IsValidBodyInstance())
 				{
-					//TODO: warn that body was found without corresponding bone
+					// If not, we need to recreate physics asset to clean up bodies or create new ones
+					bNeedsReInit = true;
 				}
+
+				Inst->InstanceBoneIndex = BoneIndex;
+			}
+
+			// If the set of bodies needs to change, we recreate physics asset
+			if (bNeedsReInit)
+			{
+				RecreatePhysicsState();
 			}
 		}
 	}
