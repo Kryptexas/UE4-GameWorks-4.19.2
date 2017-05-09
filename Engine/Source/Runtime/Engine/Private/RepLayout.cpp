@@ -3567,6 +3567,18 @@ void FRepLayout::GetLifetimeCustomDeltaProperties(TArray< int32 > & OutCustom, T
 	}
 }
 
+void FRepLayout::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	for (int32 i = 0; i < Parents.Num(); i++)
+	{
+		if (Parents[i].Property != nullptr)
+		{
+			Collector.AddReferencedObject(Parents[i].Property);
+		}
+	}
+}
+
+
 FRepState::~FRepState()
 {
 	if (RepLayout.IsValid() && StaticBuffer.Num() > 0)

@@ -464,6 +464,8 @@ public:
 		const uint8* RESTRICT			Data,
 		const FReplicationFlags&		RepFlags ) const;
 
+	void AddReferencedObjects(FReferenceCollector& Collector);
+
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
 
