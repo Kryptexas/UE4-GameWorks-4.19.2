@@ -1252,6 +1252,9 @@ class FThreadStats : FNoncopyable
 	/** Tracks current stack depth for cycle counters. **/
 	bool bSawExplicitFlush;
 
+	/** True if this is the stats thread, which needs special handling. **/
+	bool bIsStatsThread;
+
 	/** Gathers information about the current thread and sets up the TLS value. **/
 	CORE_API FThreadStats();
 

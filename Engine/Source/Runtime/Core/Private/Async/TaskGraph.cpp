@@ -656,6 +656,13 @@ public:
 				TestRandomizedThreads();
 			}
 		}
+#if STATS
+		if (bTasksOpen)
+		{
+			ProcessingTasks.Stop();
+			bTasksOpen = false;
+		}
+#endif
 	}
 	virtual void EnqueueFromThisThread(int32 QueueIndex, FBaseGraphTask* Task) override
 	{
@@ -887,7 +894,7 @@ private:
 	struct FThreadTaskQueue
 	{
 		/** We need to disallow reentry of the processing loop **/
-		uint32												RecursionGuard;
+		uint32 RecursionGuard;
 		/** Indicates we executed a return task, so break out of the processing loop. **/
 		bool QuitForShutdown;
 		/** Event that this thread blocks on when it runs out of work. **/
