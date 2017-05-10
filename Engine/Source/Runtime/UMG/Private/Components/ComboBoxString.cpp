@@ -46,6 +46,17 @@ UComboBoxString::UComboBoxString(const FObjectInitializer& ObjectInitializer)
 	}
 }
 
+void UComboBoxString::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	// Initialize the set of options from the default set only once.
+	for (const FString& DefaultOption : DefaultOptions)
+	{
+		AddOption(DefaultOption);
+	}
+}
+
 void UComboBoxString::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
@@ -59,7 +70,7 @@ void UComboBoxString::PostLoad()
 	Super::PostLoad();
 
 	// Initialize the set of options from the default set only once.
-	for ( const FString& DefaultOption : DefaultOptions )
+	for (const FString& DefaultOption : DefaultOptions)
 	{
 		AddOption(DefaultOption);
 	}
@@ -68,8 +79,6 @@ void UComboBoxString::PostLoad()
 	{
 		EnableGamepadNavigationMode = false;
 	}
-
-
 }
 
 TSharedRef<SWidget> UComboBoxString::RebuildWidget()
