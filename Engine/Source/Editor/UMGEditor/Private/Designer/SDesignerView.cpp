@@ -60,6 +60,8 @@
 #include "ScopedTransaction.h"
 #include "Components/NamedSlot.h"
 
+#include "Types/ReflectionMetadata.h"
+
 #include "Math/TransformCalculus2D.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -192,7 +194,26 @@ TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<
 
 //////////////////////////////////////////////////////////////////////////
 
-static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2D InAbsoluteCursorLocation, FArrangedChildren& OutWidgetsUnderCursor, bool bIgnoreEnabledStatus)
+UWidget* SDesignerView::GetWidgetInDesignScopeFromSlateWidget(TSharedRef<SWidget>& InWidget)
+{
+	TSharedPtr<FReflectionMetaData> ReflectionMetadata = InWidget->GetMetaData<FReflectionMetaData>();
+	if ( ReflectionMetadata.IsValid() )
+	{
+		if ( UObject* SourceWidget = ReflectionMetadata->SourceObject.Get() )
+		{
+			// The first UUserWidget outer of the source widget should be equal to the PreviewWidget for
+			// it to be part of the scope of the design area we're dealing with.
+			if ( SourceWidget->GetTypedOuter<UUserWidget>() == PreviewWidget )
+			{
+				return Cast<UWidget>(SourceWidget);
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+bool SDesignerView::LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2D InAbsoluteCursorLocation, FArrangedChildren& OutWidgetsUnderCursor, bool bIgnoreEnabledStatus, bool bIgnoreLockedState)
 {
 	const bool bCandidateUnderCursor =
 		// Candidate is physically under the cursor
@@ -207,7 +228,7 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 		// Check to see if we were asked to still allow children to be hit test visible
 		bool bHitChildWidget = false;
 		
-		if ( Candidate.Widget->GetVisibility().AreChildrenHitTestVisible() )//!= 0 || OutWidgetsUnderCursor. )
+		if ( Candidate.Widget->GetVisibility().AreChildrenHitTestVisible() )
 		{
 			FArrangedChildren ArrangedChildren(OutWidgetsUnderCursor.GetFilter());
 			Candidate.Widget->ArrangeChildren(Candidate.Geometry, ArrangedChildren);
@@ -216,13 +237,19 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 			for ( int32 ChildIndex = ArrangedChildren.Num() - 1; !bHitChildWidget && ChildIndex >= 0; --ChildIndex )
 			{
 				FArrangedWidget& SomeChild = ArrangedChildren[ChildIndex];
-				bHitChildWidget = ( SomeChild.Widget->IsEnabled() || bIgnoreEnabledStatus ) && LocateWidgetsUnderCursor_Helper(SomeChild, InAbsoluteCursorLocation, OutWidgetsUnderCursor, bIgnoreEnabledStatus);
+				bHitChildWidget = ( SomeChild.Widget->IsEnabled() || bIgnoreEnabledStatus )
+					&& LocateWidgetsUnderCursor_Helper(SomeChild, InAbsoluteCursorLocation, OutWidgetsUnderCursor, bIgnoreEnabledStatus, bIgnoreLockedState);
 			}
 		}
 
+		// Widgets that are children of foreign userWidgets should not be considered selection candidates.
+		UWidget* CandidateUWidget = GetWidgetInDesignScopeFromSlateWidget(Candidate.Widget);
+
 		// If we hit a child widget or we hit our candidate widget then we'll append our widgets
 		const bool bHitCandidateWidget = OutWidgetsUnderCursor.Accepts(Candidate.Widget->GetVisibility()) &&
-			Candidate.Widget->GetVisibility().AreChildrenHitTestVisible();
+			Candidate.Widget->GetVisibility().AreChildrenHitTestVisible()
+			&& CandidateUWidget
+			&& (bIgnoreLockedState || !CandidateUWidget->IsLockedInDesigner());
 		
 		bHitAnyWidget = bHitChildWidget || bHitCandidateWidget;
 		if ( !bHitAnyWidget )
@@ -685,6 +712,13 @@ void SDesignerView::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SDesignerView::IsShowingOutlines)
 	);
+
+	CommandList->MapAction(
+		Commands.ToggleRespectLocks,
+		FExecuteAction::CreateSP(this, &SDesignerView::ToggleRespectingLocks),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SDesignerView::IsRespectingLocks)
+	);
 }
 
 void SDesignerView::AddReferencedObjects(FReferenceCollector& Collector)
@@ -736,6 +770,18 @@ void SDesignerView::ToggleShowingOutlines()
 bool SDesignerView::IsShowingOutlines() const
 {
 	return BlueprintEditor.Pin()->GetShowDashedOutlines();
+}
+
+void SDesignerView::ToggleRespectingLocks()
+{
+	TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
+
+	Editor->SetIsRespectingLocks(!Editor->GetIsRespectingLocks());
+}
+
+bool SDesignerView::IsRespectingLocks() const
+{
+	return BlueprintEditor.Pin()->GetIsRespectingLocks();
 }
 
 void SDesignerView::SetStartupResolution()
@@ -1247,7 +1293,7 @@ bool SDesignerView::FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPo
 
 	PreviewHitTestRoot->SetVisibility(EVisibility::Visible);
 	FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), MyGeometry);
-	LocateWidgetsUnderCursor_Helper(WindowWidgetGeometry, MouseEvent.GetScreenSpacePosition(), Children, true);
+	LocateWidgetsUnderCursor_Helper(WindowWidgetGeometry, MouseEvent.GetScreenSpacePosition(), Children, true, !IsRespectingLocks());
 
 	PreviewHitTestRoot->SetVisibility(EVisibility::HitTestInvisible);
 
@@ -2116,7 +2162,7 @@ void SDesignerView::DetermineDragDropPreviewWidgets(TArray<UWidget*>& OutWidgets
 	}
 	else if (AssetDragDropOp.IsValid())
 	{
-		for (FAssetData AssetData : AssetDragDropOp->AssetData)
+		for (const FAssetData& AssetData : AssetDragDropOp->GetAssets())
 		{
 			UWidget* Widget = nullptr;
 			UClass* AssetClass = FindObjectChecked<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());

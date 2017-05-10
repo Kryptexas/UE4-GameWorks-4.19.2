@@ -51,7 +51,7 @@ TSharedRef< class SWidget > FTextPropertyTableCellPresenter::ConstructDisplayWid
 		.VAlign(VAlign_Center)
 		.Padding(FMargin(0, 0, 2, 0))
 		[
-			SNew(SResetToDefaultPropertyEditor, PropertyEditor)
+			SNew(SResetToDefaultPropertyEditor, PropertyEditor->GetPropertyHandle())
 		];
 	}
 	

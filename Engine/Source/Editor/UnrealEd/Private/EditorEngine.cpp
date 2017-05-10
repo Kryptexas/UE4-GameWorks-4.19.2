@@ -184,6 +184,7 @@
 
 #include "SourceCodeNavigation.h"
 #include "GameProjectUtils.h"
+#include "ActorGroupingUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -241,14 +242,17 @@ static void PrivateInitSelectedSets()
 {
 	PrivateGetSelectedActors() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional);
 	PrivateGetSelectedActors()->AddToRoot();
+	PrivateGetSelectedActors()->Initialize(&GSelectedActorAnnotation);
 
 	PrivateGetSelectedActors()->SelectObjectEvent.AddStatic(&OnObjectSelected);
 
 	PrivateGetSelectedComponents() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional);
 	PrivateGetSelectedComponents()->AddToRoot();
+	PrivateGetSelectedComponents()->Initialize(&GSelectedComponentAnnotation);
 
 	PrivateGetSelectedObjects() = NewObject<USelection>(GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional);
 	PrivateGetSelectedObjects()->AddToRoot();
+	PrivateGetSelectedObjects()->Initialize(&GSelectedObjectAnnotation);
 }
 
 static void PrivateDestroySelectedSets()
@@ -318,6 +322,8 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
 
 	EditorWorldExtensionsManager = nullptr;
+
+	ActorGroupingUtilsClassName = UActorGroupingUtils::StaticClass();
 
 #if !UE_BUILD_SHIPPING
 	if (!AutomationCommon::OnEditorAutomationMapLoadDelegate().IsBound())
@@ -943,7 +949,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 		if (!IsRunningCommandlet())
 		{
-			FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
 			FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
 		}
 
@@ -4520,6 +4525,22 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* Owne
 	return FoundText.ToString();
 }
 
+UActorGroupingUtils* UEditorEngine::GetActorGroupingUtils()
+{
+	if (ActorGroupingUtils == nullptr)
+	{
+		UClass* ActorGroupingUtilsClass = ActorGroupingUtilsClassName.ResolveClass();
+		if (!ActorGroupingUtilsClass)
+		{
+			ActorGroupingUtilsClass = UActorGroupingUtils::StaticClass();
+		}
+
+		ActorGroupingUtils = NewObject<UActorGroupingUtils>(this, ActorGroupingUtilsClass);
+	}
+
+	return ActorGroupingUtils;
+}
+
 AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags InObjectFlags )
 {
 	// ensure that all selected assets are loaded
@@ -5638,9 +5659,10 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 			if (bUseSpecialCases)
 			{
 				// Disable grouping temporarily as the following code assumes only one actor will be selected at any given time
-				const bool bGroupingActiveSaved = GEditor->bGroupingActive;
+				const bool bGroupingActiveSaved = UActorGroupingUtils::IsGroupingActive();
 
-				GEditor->bGroupingActive = false;
+				UActorGroupingUtils::SetGroupingActive(false);
+
 				GEditor->SelectNone(true, true);
 				GEditor->SelectActor(ActorToConvert, true, true);
 
@@ -5674,7 +5696,7 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 				}
 
 				// Restore previous grouping setting
-				GEditor->bGroupingActive = bGroupingActiveSaved;
+				UActorGroupingUtils::SetGroupingActive(bGroupingActiveSaved);
 			}
 
 

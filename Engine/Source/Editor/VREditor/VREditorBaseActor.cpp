@@ -14,6 +14,7 @@ namespace VREd
 AVREditorBaseActor::AVREditorBaseActor() 
 	: Super(),
 	Scale( 1.0f ),
+	VRMode(nullptr),
 	LocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) ),
 	RelativeOffset( FVector::ZeroVector ),
 	DockedTo( EDockedTo::Nothing ),

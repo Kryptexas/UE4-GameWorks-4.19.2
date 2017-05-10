@@ -72,6 +72,7 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentStreaming.h"
 #include "IHeadMountedDisplay.h"
+#include "ActorGroupingUtils.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -1456,7 +1457,7 @@ void FTrackingTransaction::Begin(const FText& Description)
 
 		Actor->Modify();
 
-		if (GEditor->bGroupingActive)
+		if (UActorGroupingUtils::IsGroupingActive())
 		{
 			// if this actor is in a group, add the GroupActor into a list to be modified shortly
 			AGroupActor* ActorLockedRootGroup = AGroupActor::GetRootForActor(Actor, true);
@@ -3313,7 +3314,7 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 			else
 			{
 				AGroupActor* ParentGroup = AGroupActor::GetRootForActor(Actor, true, true);
-				if (ParentGroup && GEditor->bGroupingActive)
+				if (ParentGroup && UActorGroupingUtils::IsGroupingActive())
 				{
 					ActorGroups.AddUnique(ParentGroup);
 				}
@@ -3747,7 +3748,7 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 				// Check to see if the actor under the cursor is part of a group.  If so, we will how a hover cue the whole group
 				AGroupActor* GroupActor = AGroupActor::GetRootForActor( ActorUnderCursor, true, false );
 
-				if( GroupActor && GEditor->bGroupingActive)
+				if(GroupActor && UActorGroupingUtils::IsGroupingActive())
 				{
 					// Get all the actors in the group and add them to the list of objects to show a hover cue for.
 					TArray<AActor*> ActorsInGroup;

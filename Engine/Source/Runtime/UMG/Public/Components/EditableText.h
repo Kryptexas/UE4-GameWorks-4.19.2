@@ -183,4 +183,7 @@ protected:
 
 protected:
 	TSharedPtr<SEditableText> MyEditableText;
+
+	PROPERTY_BINDING_IMPLEMENTATION(FText, Text);
+	PROPERTY_BINDING_IMPLEMENTATION(FText, HintText);
 };

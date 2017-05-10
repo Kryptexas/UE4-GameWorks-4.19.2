@@ -19,6 +19,16 @@ public:
 	FORCEINLINE void Lock(void)
 	{
 	}
+	
+	/**
+	 * Attempt to take a lock and returns whether or not a lock was taken.
+	 *
+	 * @return true if a lock was taken, false otherwise.
+	 */
+	FORCEINLINE bool TryLock()
+	{
+		return false;
+	}
 
 	/**
 	 * Releases the lock on the critical seciton

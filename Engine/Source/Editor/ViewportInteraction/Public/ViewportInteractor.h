@@ -20,9 +20,12 @@ class AActor;
 UCLASS( ABSTRACT )
 class VIEWPORTINTERACTION_API UViewportInteractor : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
+
+	/** Default constructor */
+	UViewportInteractor();
 
 	/** Gets the private data for this interactor */
 	struct FViewportInteractorData& GetInteractorData();

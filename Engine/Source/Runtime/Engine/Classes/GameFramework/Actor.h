@@ -63,6 +63,11 @@ DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnProcessEvent, AActor*, UFunction*, 
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("GetComponentsTime"),STAT_GetComponentsTime,STATGROUP_Engine,ENGINE_API);
 
+#if WITH_EDITOR
+/** Annotation for actor selection.  This must be in engine instead of editor for ::IsSelected to work */
+extern ENGINE_API FUObjectAnnotationSparseBool GSelectedActorAnnotation;
+#endif
+
 /**
  * Actor is the base class for an Object that can be placed or spawned in a level.
  * Actors may contain a collection of ActorComponents, which can be used to control how actors move, how they are rendered, etc.
@@ -1544,6 +1549,7 @@ public:
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 	virtual void PostEditImport() override;
+	virtual bool IsSelectedInEditor() const override;
 
 	struct FActorRootComponentReconstructionData
 	{
@@ -1731,12 +1737,14 @@ public:
 	 * Simple accessor to check if the actor is hidden upon editor startup
 	 * @return	true if the actor is hidden upon editor startup; false if it is not
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	bool IsHiddenEdAtStartup() const
 	{
 		return bHiddenEd;
 	}
 
 	// Returns true if this actor is hidden in the editor viewports.
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	bool IsHiddenEd() const;
 
 	/**
@@ -1744,18 +1752,22 @@ public:
 	 *
 	 * @param bIsHidden	True if the actor is hidden
 	 */
+	UFUNCTION(BlueprintCallable, Category="Editor Scripting | Actor Editing")
 	virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden );
 
 	/**
 	 * @param  bIncludeParent - Whether to recurse up child actor hierarchy or not
 	 * @return Whether or not this actor is hidden in the editor for the duration of the current editor session
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	bool IsTemporarilyHiddenInEditor(bool bIncludeParent = false) const;
 
 	/** @return	Returns true if this actor is allowed to be displayed, selected and manipulated by the editor. */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	bool IsEditable() const;
 
 	/** @return	Returns true if this actor can EVER be selected in a level in the editor.  Can be overridden by specific actors to make them unselectable. */
+	UFUNCTION(BlueprintCallable, Category = "Editor Scripting | Actor Editing")
 	virtual bool IsSelectable() const { return true; }
 
 	/** @return	Returns true if this actor should be shown in the scene outliner */

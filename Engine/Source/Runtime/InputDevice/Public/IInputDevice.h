@@ -15,6 +15,7 @@ enum class FForceFeedbackChannelType;
 class IInputDevice
 {
 public:
+	virtual ~IInputDevice() {}
 
 	/** Tick the interface (e.g. check for new controllers) */
 	virtual void Tick( float DeltaTime ) = 0;

@@ -113,6 +113,8 @@ public:
 		bCanSupportFocus = false;
 	}
 
+	virtual ~SScaleBox();
+
 	void Construct(const FArguments& InArgs);
 	
 	// SWidget interface
@@ -147,7 +149,8 @@ protected:
 
 	float GetLayoutScale() const;
 	void RefreshSafeZoneScale();
-private:
+
+protected:
 	/** The allowed direction of stretching of the content */
 	TAttribute<EStretchDirection::Type> StretchDirection;
 
@@ -162,4 +165,7 @@ private:
 
 	/** Computed scale when scaled by safe zone padding */
 	float SafeZoneScale;
+
+	/** Delegate handle to unhook the safe frame changed. */
+	FDelegateHandle OnSafeFrameChangedHandle;
 };

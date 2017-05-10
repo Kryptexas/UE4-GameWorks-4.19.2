@@ -25,6 +25,10 @@ struct FMovieSceneSequencePlaybackSettings
 		, bRandomStartTime(false)
 		, StartTime(0.f)
 		, bRestoreState(false)
+		, bDisableMovementInput(false)
+		, bDisableLookAtInput(false)
+		, bHidePlayer(false)
+		, bHideHud(false)
 	{ }
 
 	GENERATED_BODY()
@@ -48,6 +52,22 @@ struct FMovieSceneSequencePlaybackSettings
 	/** Flag used to specify whether actor states should be restored on stop */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Playback")
 	bool bRestoreState;
+
+	/** Disable Input from player during play */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cinematic")
+	bool bDisableMovementInput;
+
+	/** Disable LookAt Input from player during play */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cinematic")
+	bool bDisableLookAtInput;
+
+	/** Hide Player Pawn during play */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cinematic")
+	bool bHidePlayer;
+
+	/** Hide HUD during play */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cinematic")
+	bool bHideHud;
 
 	/** Interface that defines overridden bindings for this sequence */
 	UPROPERTY()
@@ -101,9 +121,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Pause();
 	
+	/** Scrub playback. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void Scrub();
+
 	/** Stop playback. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Stop();
+
+	/** Stop playback and go to the end. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void StopAndGoToEnd();
 
 	/** Get the current playback position */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
@@ -116,6 +144,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void SetPlaybackPosition(float NewPlaybackPosition);
+
+	/**
+	 * Jump to new playback position
+	 * @param NewPlaybackPosition - The new playback position to set.
+	 * This can be used to update sequencer repeatedly, as if in a scrubbing state
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void JumpToPosition(float NewPlaybackPosition);
 
 	/** Check whether the sequence is actively playing. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
@@ -184,6 +220,9 @@ public:
 	/** Initialize this player with a sequence and some settings */
 	void Initialize(UMovieSceneSequence* InSequence, const FMovieSceneSequencePlaybackSettings& InSettings);
 
+	/** Begin play called */
+	virtual void BeginPlay() {};
+
 public:
 
 	/**
@@ -196,9 +235,9 @@ protected:
 
 	void PlayInternal();
 
-	void UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange);
+	void UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus = TOptional<EMovieScenePlayerStatus::Type>());
 
-	void UpdateTimeCursorPosition(float NewPosition);
+	void UpdateTimeCursorPosition(float NewPosition, TOptional<EMovieScenePlayerStatus::Type> OptionalStatus = TOptional<EMovieScenePlayerStatus::Type>());
 
 	bool ShouldStopOrLoop(float NewPosition) const;
 
@@ -233,9 +272,9 @@ private:
 
 protected:
 
-	/** Whether we're currently playing. If false, then sequence playback is paused or was never started. */
+	/** Movie player status. */
 	UPROPERTY()
-	uint32 bIsPlaying : 1;
+	TEnumAsByte<EMovieScenePlayerStatus::Type> Status;
 
 	/** Whether we're currently playing in reverse. */
 	UPROPERTY()

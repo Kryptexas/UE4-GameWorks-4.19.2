@@ -112,9 +112,9 @@ public:
 		}
 
 		// add box for the working size
-		const float StartOffset = Section.Parameters.TimeScale * Section.Parameters.StartOffset;
-		const float WorkingStart = -Section.Parameters.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
-		const float WorkingSize = Section.Parameters.TimeScale * (MovieScene != nullptr ? MovieScene->GetEditorData().WorkingRange.Size<float>() : 1.0f);
+		const float StartOffset = 1.0f/Section.Parameters.TimeScale * Section.Parameters.StartOffset;
+		const float WorkingStart = -1.0f/Section.Parameters.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
+		const float WorkingSize = 1.0f/Section.Parameters.TimeScale * (MovieScene != nullptr ? MovieScene->GetEditorData().WorkingRange.Size<float>() : 1.0f);
 
 		// add dark tint for left out-of-bounds & working range
 		if (StartOffset < 0.0f)
@@ -151,7 +151,7 @@ public:
 		}
 
 		// add dark tint for right out-of-bounds & working range
-		const float PlaybackEnd = Section.Parameters.TimeScale * PlaybackRange.Size<float>() - StartOffset;
+		const float PlaybackEnd = 1.0f/Section.Parameters.TimeScale * PlaybackRange.Size<float>() - StartOffset;
 
 		if (PlaybackEnd < SectionSize)
 		{

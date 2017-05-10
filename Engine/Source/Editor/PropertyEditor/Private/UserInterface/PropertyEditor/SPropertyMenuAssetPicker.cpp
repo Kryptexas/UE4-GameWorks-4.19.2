@@ -260,7 +260,7 @@ void SPropertyMenuAssetPicker::OnCreateNewAssetSelected(TWeakObjectPtr<UFactory>
 	{
 		UFactory* FactoryInstance = DuplicateObject<UFactory>(FactoryPtr.Get(), GetTransientPackage());
 		FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
-		UObject* NewAsset = AssetToolsModule.Get().CreateAsset(FactoryInstance->GetSupportedClass(), FactoryInstance);
+		UObject* NewAsset = AssetToolsModule.Get().CreateAssetWithDialog(FactoryInstance->GetSupportedClass(), FactoryInstance);
 		if (NewAsset != nullptr)
 		{
 			SetValue(NewAsset);

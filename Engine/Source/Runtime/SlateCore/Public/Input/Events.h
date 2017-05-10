@@ -461,23 +461,6 @@ struct TStructOpsTypeTraits<FKeyEvent> : public TStructOpsTypeTraitsBase2<FKeyEv
 	};
 };
 
-/** DEPRECATED 4.6 - Do not use */
-//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
-#define FKeyboardEvent \
-	FKeyEvent \
-	EMIT_DEPRECATED_WARNING_MESSAGE("FKeyboardEvent is deprecated in 4.6 and was renamed to FKeyEvent. Please use that type instead.")
-/*
-USTRUCT(BlueprintType)
-struct FKeyboardEvent : public FKeyEvent
-//struct DEPRECATED(4.6, "Use FKeyEvent") FKeyboardEvent : public FKeyEvent
-{
-	GENERATED_USTRUCT_BODY()
-public:
-	FKeyEvent() {}
-
-	FKeyEvent(const FKey InKey, const FModifierKeysState& InModifierKeys, const uint32 InUserIndex, const bool bInIsRepeat, const uint32 InCharacterCode, const uint32 InKeyCode)
-		: FKeyEvent(InKey, InModifierKeys, InUserIndex, bInIsRepeat, InCharacterCode, InKeyCode) {}
-}*/
 
 /**
  * FAnalogEvent describes a analog key value.

@@ -52,6 +52,7 @@ public:
 	virtual bool IsSoftwareCursorVisible() const override { return bIsSoftwareCursorVisible; }
 	virtual FVector2D GetSoftwareCursorPosition() const override { return SoftwareCursorPosition; }
 	virtual FCanvas* GetDebugCanvas() override;
+	virtual float GetDisplayGamma() const override;
 
 	/** Gets the proper RenderTarget based on the current thread*/
 	virtual const FTexture2DRHIRef& GetRenderTargetTexture() const;
@@ -257,6 +258,13 @@ public:
 	/** Get the cached viewport geometry. */
 	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
 
+
+	/** Set an optional display gamma to use for this viewport */
+	void SetGammaOverride(const float InGammaOverride)
+	{
+		ViewportGammaOverride = InGammaOverride;
+	};
+
 private:
 	/**
 	 * Called when this viewport is destroyed
@@ -420,4 +428,7 @@ private:
 
 	/** Tracks the number of touches currently active on the viewport */
 	int32 NumTouches;
+
+	/** The optional gamma value to use for this viewport */
+	TOptional<float> ViewportGammaOverride;
 };

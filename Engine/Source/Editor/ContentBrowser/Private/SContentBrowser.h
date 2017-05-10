@@ -56,7 +56,8 @@ public:
 	/** Sets up an inline-name for the creation of a new asset using the specified path and the specified class and/or factory */
 	void CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory);
 
-	/** Changes sources to show the specified assets and selects them in the asset view
+	/**
+	 * Changes sources to show the specified assets and selects them in the asset view
 	 *
 	 *	@param AssetDataList		- A list of assets to sync the view to
 	 * 
@@ -65,8 +66,28 @@ public:
 	 */
 	void SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync = false, const bool bDisableFiltersThatHideAssets = true );
 
+	/**
+	 * Changes sources to show the specified folders and selects them in the asset view
+	 *
+	 *	@param FolderList			- A list of folders to sync the view to
+	 * 
+	 *	@param bAllowImplicitSync	- true to allow the view to sync to parent folders if they are already selected,
+	 *								  false to force the view to select the explicit Parent folders of each asset 
+	 */
+	void SyncToFolders( const TArray<FString>& FolderList, const bool bAllowImplicitSync = false );
+
+	/**
+	 * Changes sources to show the specified items and selects them in the asset view
+	 *
+	 *	@param AssetDataList		- A list of assets to sync the view to
+	 * 
+	 *	@param bAllowImplicitSync	- true to allow the view to sync to parent folders if they are already selected,
+	 *								  false to force the view to select the explicit Parent folders of each asset 
+	 */
+	void SyncTo( const FContentBrowserSelection& ItemSelection, const bool bAllowImplicitSync = false, const bool bDisableFiltersThatHideAssets = true );
+
 	/** Sets this content browser as the primary browser. The primary browser is the target for asset syncs and contributes to the global selection set. */
-	void SetIsPrimaryContentBrowser (bool NewIsPrimary);
+	void SetIsPrimaryContentBrowser(bool NewIsPrimary);
 
 	/** Gets the tab manager for the tab containing this browser */
 	TSharedPtr<FTabManager> GetTabManager() const;
@@ -105,6 +126,9 @@ public:
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 
 private:
+
+	/** Called prior to syncing the selection in this Content Browser */
+	void PrepareToSync( const TArray<FAssetData>& AssetDataList, const TArray<FString>& FolderPaths, const bool bDisableFiltersThatHideAssets );
 
 	/** Called to retrieve the text that should be highlighted on assets */
 	FText GetHighlightedText() const;
@@ -152,10 +176,10 @@ private:
 	void PathPickerCollectionSelected(const FCollectionNameType& SelectedCollection);
 
 	/** Sets the state of the browser to the one described by the supplied history data */
-	void OnApplyHistoryData (const FHistoryData& History);
+	void OnApplyHistoryData(const FHistoryData& History);
 
 	/** Updates the supplied history data with current information */
-	void OnUpdateHistoryData (FHistoryData& History) const;
+	void OnUpdateHistoryData(FHistoryData& History) const;
 
 	/** Handler for when the path view requests an asset creation */
 	void NewAssetRequested(const FString& SelectedPath, TWeakObjectPtr<UClass> FactoryClass);
@@ -286,13 +310,19 @@ private:
 	void HandleOpenAssetsOrFoldersCommandExecute();
 
 	/** Handler for previewing assets */
-	void HandlePreviewAssetsCommandEecute();
+	void HandlePreviewAssetsCommandExecute();
 
 	/** Handler for creating new folder */
 	void HandleCreateNewFolderCommandExecute();
 
 	/** Handler for clicking the directory up button */
 	void HandleDirectoryUpCommandExecute();
+
+	/** Handler for the view references command */
+	void HandleViewReferencesCommand();
+
+	/** Returns true if the view references command can be handled */
+	bool HandleViewReferencesCanExecute();
 
 	/** True if the user may use the history back button */
 	bool IsBackEnabled() const;

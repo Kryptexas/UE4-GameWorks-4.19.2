@@ -171,4 +171,8 @@ protected:
 protected:
 
 	TSharedPtr<STextBlock> MyTextBlock;
+	
+	PROPERTY_BINDING_IMPLEMENTATION(FText, Text);
+	PROPERTY_BINDING_IMPLEMENTATION(FSlateColor, ColorAndOpacity);
+	PROPERTY_BINDING_IMPLEMENTATION(FLinearColor, ShadowColorAndOpacity);
 };

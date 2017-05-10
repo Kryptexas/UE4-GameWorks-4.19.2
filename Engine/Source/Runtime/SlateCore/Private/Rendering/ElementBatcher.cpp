@@ -58,6 +58,7 @@ void FSlateElementBatcher::AddElements(FSlateWindowElementList& WindowElementLis
 	TMap < TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>, TSharedPtr<FSlateDrawLayer> >& DrawLayers = WindowElementList.GetChildDrawLayers();
 	for ( auto& Entry : DrawLayers )
 	{
+		DrawLayer = Entry.Value.Get();
 		AddElements(Entry.Value.Get()->DrawElements, ViewportSize);
 	}
 

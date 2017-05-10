@@ -35,7 +35,6 @@
 #include "IViewportInteractionModule.h"
 #include "VREditorMotionControllerInteractor.h"
 
-#include "ViewportWorldInteractionManager.h"
 #include "EditorWorldExtension.h"
 #include "SequencerSettings.h"
 #include "Kismet/GameplayStatics.h"
@@ -91,13 +90,6 @@ UVREditorMode::UVREditorMode() :
 	AssetContainer(nullptr)
 {
 }
-
-
-UVREditorMode::~UVREditorMode()
-{
-	Shutdown();
-}
-
 
 void UVREditorMode::Init()
 {
@@ -320,8 +312,11 @@ void UVREditorMode::Enter()
 void UVREditorMode::Exit(const bool bShouldDisableStereo)
 {
 	{
+		GetLevelViewportPossessedForVR().RemoveAllPreviews();
+		GEditor->SelectNone(true, true, false);
+		GEditor->NoteSelectionChange();
 		FVREditorActionCallbacks::ChangeEditorModes(FBuiltinEditorModes::EM_Placement);
-
+		
 		//Destroy the avatar
 		{
 			DestroyTransientActor(AvatarActor);
@@ -399,11 +394,9 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 
 		WorldInteraction->RemoveInteractor( LeftHandInteractor );
 		LeftHandInteractor->MarkPendingKill();
-		LeftHandInteractor->Shutdown();
 		LeftHandInteractor = nullptr;
 
 		WorldInteraction->RemoveInteractor( RightHandInteractor );
-		RightHandInteractor->Shutdown();
 		RightHandInteractor->MarkPendingKill();
 		RightHandInteractor = nullptr;
 		
@@ -421,6 +414,8 @@ void UVREditorMode::Exit(const bool bShouldDisableStereo)
 	{
 		FSlateNotificationManager::Get().SetAllowNotifications( true);
 	}
+
+	AssetContainer = nullptr;
 
 	FEditorDelegates::PostPIEStarted.RemoveAll( this );
 	FEditorDelegates::PrePIEEnded.RemoveAll( this );
@@ -692,9 +687,17 @@ void UVREditorMode::RefreshVREditorSequencer(class ISequencer* InCurrentSequence
 {
 	CurrentSequencer = InCurrentSequencer;
 	// Tell the VR Editor UI system to refresh the Sequencer UI
-	if (bActuallyUsingVR && InCurrentSequencer != nullptr)
+	if (bActuallyUsingVR && UISystem != nullptr)
 	{
 		GetUISystem().UpdateSequencerUI();
+	}
+}
+
+void UVREditorMode::RefreshActorPreviewWidget(TSharedRef<SWidget> InWidget)
+{
+	if (bActuallyUsingVR && UISystem != nullptr)
+	{
+		GetUISystem().UpdateActorPreviewUI(InWidget);
 	}
 }
 

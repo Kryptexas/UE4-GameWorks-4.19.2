@@ -34,7 +34,7 @@ public:
 		{
 			const TArray< FTextLayout::FLineView >& Views = TextLayout->GetLineViews();
 
-			int32 AbsoluteBeginIndex = Line.Range.BeginIndex;
+			int32 AbsoluteBeginIndex = 0;
 			for ( int32 i = 0; i < Views.Num(); i++ )
 			{
 				if ( Views[i].ModelIndex == Line.ModelIndex )
@@ -42,7 +42,7 @@ public:
 					break;
 				}
 
-				AbsoluteBeginIndex = Views[i].Range.Len();
+				AbsoluteBeginIndex += Views[i].Range.Len();
 			}
 
 			if ( AbsoluteBeginIndex < RichBlock->RevealedIndex )

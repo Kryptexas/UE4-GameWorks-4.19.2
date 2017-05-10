@@ -76,7 +76,7 @@ void USpinBox::SynchronizeProperties()
 	bOverride_MaxSliderValue ? SetMaxSliderValue(MaxSliderValue) : ClearMaxSliderValue();
 
 	// Always set the value last so that the max/min values are taken into account.
-	TAttribute<float> ValueBinding = OPTIONAL_BINDING(float, Value);
+	TAttribute<float> ValueBinding = PROPERTY_BINDING(float, Value);
 	MySpinBox->SetValue(ValueBinding);
 }
 

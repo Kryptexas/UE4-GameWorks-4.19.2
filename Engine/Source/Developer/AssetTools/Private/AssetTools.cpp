@@ -110,10 +110,23 @@
 
 #define LOCTEXT_NAMESPACE "AssetTools"
 
-FAssetTools::FAssetTools()
-	: AssetRenameManager( MakeShareable(new FAssetRenameManager) )
-	, AssetFixUpRedirectors( MakeShareable(new FAssetFixUpRedirectors) )
-	, NextUserCategoryBit( EAssetTypeCategories::FirstUser )
+ 
+TScriptInterface<IAssetTools> UEditorScriptAccessors::GetAssetTools()
+{
+	return &UAssetToolsImpl::Get();
+}
+
+/** UInterface constructor */
+UAssetTools::UAssetTools(const class FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+UAssetToolsImpl::UAssetToolsImpl(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, AssetRenameManager(MakeShareable(new FAssetRenameManager))
+	, AssetFixUpRedirectors(MakeShareable(new FAssetFixUpRedirectors))
+	, NextUserCategoryBit(EAssetTypeCategories::FirstUser)
 {
 	// Register the built-in advanced categories
 	AllocatedCategoryBits.Add(TEXT("_BuiltIn_0"), FAdvancedAssetCategory(EAssetTypeCategories::Animation, LOCTEXT("AnimationAssetCategory", "Animation")));
@@ -129,94 +142,89 @@ FAssetTools::FAssetTools()
 	EAssetTypeCategories::Type BlendablesCategoryBit = RegisterAdvancedAssetCategory(FName(TEXT("Blendables")), LOCTEXT("BlendablesAssetCategory", "Blendables"));
 
 	// Register the built-in asset type actions
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimationAsset) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimBlueprint) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimComposite) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimMontage) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimSequence) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AimOffset) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AimOffset1D) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PoseAsset));
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_BlendSpace1D) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Blueprint) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CameraAnim) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CanvasRenderTarget2D) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Curve) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveFloat) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveTable) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveVector) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_CurveLinearColor) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DataAsset) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DataTable) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DestructibleMesh) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Enum) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Class) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Struct) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SceneImportData));
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Font) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_FontFace) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ForceFeedbackEffect) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SubsurfaceProfile));
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InstancedFoliageSettings) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InterpData) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_LandscapeLayer) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_LandscapeGrassType));
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Material(BlendablesCategoryBit)));
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialFunction) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialInstanceConstant(BlendablesCategoryBit)) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialInterface) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialParameterCollection) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ObjectLibrary) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ParticleSystem) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PhysicalMaterial) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PhysicsAsset) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PreviewMeshCollection) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ProceduralFoliageSpawner) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Redirector) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Rig) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SkeletalMesh) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Skeleton) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateBrush) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateWidgetStyle) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_StaticMesh) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture2D) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureCube) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTarget) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTarget2D) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureRenderTargetCube) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TextureLightProfile) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_TouchInterface) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorField) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldAnimated) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldStatic) );
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AnimationAsset));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AnimBlueprint));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AnimComposite));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AnimMontage));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AnimSequence));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AimOffset));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AimOffset1D));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_BlendSpace));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_PoseAsset));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_BlendSpace1D));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Blueprint));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_CameraAnim));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_CanvasRenderTarget2D));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Curve));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_CurveFloat));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_CurveTable));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_CurveVector));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_CurveLinearColor));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DataAsset));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DataTable));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_DestructibleMesh));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Enum));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Class));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Struct));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SceneImportData));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Font));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_FontFace));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_ForceFeedbackEffect));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SubsurfaceProfile));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_InstancedFoliageSettings));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_InterpData));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_LandscapeLayer));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_LandscapeGrassType));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Material(BlendablesCategoryBit)));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialFunction));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialInstanceConstant(BlendablesCategoryBit)));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialInterface));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_MaterialParameterCollection));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_ObjectLibrary));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_ParticleSystem));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_PhysicalMaterial));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_PhysicsAsset));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_PreviewMeshCollection));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_ProceduralFoliageSpawner));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Redirector));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Rig));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SkeletalMesh));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Skeleton));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SlateBrush));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SlateWidgetStyle));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_StaticMesh));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Texture));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_Texture2D));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_TextureCube));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_TextureRenderTarget));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_TextureRenderTarget2D));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_TextureRenderTargetCube));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_TextureLightProfile));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_TouchInterface));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_VectorField));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_VectorFieldAnimated));
+	RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_VectorFieldStatic));
 
 	// Note: Please don't add any more actions here!  They belong in an editor-only module that is more tightly
 	// coupled to your new system, and you should not create a dependency on your new system from AssetTools.
 
-	if ( UEditorEngine::IsUsingWorldAssets() )
+	if (UEditorEngine::IsUsingWorldAssets())
 	{
-		RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_World) );
+		RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_World));
 	}
 }
 
-FAssetTools::~FAssetTools()
-{
-
-}
-
-void FAssetTools::RegisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& NewActions)
+void UAssetToolsImpl::RegisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& NewActions)
 {
 	AssetTypeActionsList.Add(NewActions);
 }
 
-void FAssetTools::UnregisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& ActionsToRemove)
+void UAssetToolsImpl::UnregisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& ActionsToRemove)
 {
 	AssetTypeActionsList.Remove(ActionsToRemove);
 }
 
-void FAssetTools::GetAssetTypeActionsList( TArray<TWeakPtr<IAssetTypeActions>>& OutAssetTypeActionsList ) const
+void UAssetToolsImpl::GetAssetTypeActionsList( TArray<TWeakPtr<IAssetTypeActions>>& OutAssetTypeActionsList ) const
 {
 	for (auto ActionsIt = AssetTypeActionsList.CreateConstIterator(); ActionsIt; ++ActionsIt)
 	{
@@ -224,7 +232,7 @@ void FAssetTools::GetAssetTypeActionsList( TArray<TWeakPtr<IAssetTypeActions>>& 
 	}
 }
 
-TWeakPtr<IAssetTypeActions> FAssetTools::GetAssetTypeActionsForClass( UClass* Class ) const
+TWeakPtr<IAssetTypeActions> UAssetToolsImpl::GetAssetTypeActionsForClass( UClass* Class ) const
 {
 	TSharedPtr<IAssetTypeActions> MostDerivedAssetTypeActions;
 
@@ -245,7 +253,7 @@ TWeakPtr<IAssetTypeActions> FAssetTools::GetAssetTypeActionsForClass( UClass* Cl
 	return MostDerivedAssetTypeActions;
 }
 
-EAssetTypeCategories::Type FAssetTools::RegisterAdvancedAssetCategory(FName CategoryKey, FText CategoryDisplayName)
+EAssetTypeCategories::Type UAssetToolsImpl::RegisterAdvancedAssetCategory(FName CategoryKey, FText CategoryDisplayName)
 {
 	EAssetTypeCategories::Type Result = FindAdvancedAssetCategory(CategoryKey);
 	if (Result == EAssetTypeCategories::Misc)
@@ -275,7 +283,7 @@ EAssetTypeCategories::Type FAssetTools::RegisterAdvancedAssetCategory(FName Cate
 	return Result;
 }
 
-EAssetTypeCategories::Type FAssetTools::FindAdvancedAssetCategory(FName CategoryKey) const
+EAssetTypeCategories::Type UAssetToolsImpl::FindAdvancedAssetCategory(FName CategoryKey) const
 {
 	if (const FAdvancedAssetCategory* ExistingCategory = AllocatedCategoryBits.Find(CategoryKey))
 	{
@@ -287,22 +295,22 @@ EAssetTypeCategories::Type FAssetTools::FindAdvancedAssetCategory(FName Category
 	}
 }
 
-void FAssetTools::GetAllAdvancedAssetCategories(TArray<FAdvancedAssetCategory>& OutCategoryList) const
+void UAssetToolsImpl::GetAllAdvancedAssetCategories(TArray<FAdvancedAssetCategory>& OutCategoryList) const
 {
 	AllocatedCategoryBits.GenerateValueArray(OutCategoryList);
 }
 
-void FAssetTools::RegisterClassTypeActions(const TSharedRef<IClassTypeActions>& NewActions)
+void UAssetToolsImpl::RegisterClassTypeActions(const TSharedRef<IClassTypeActions>& NewActions)
 {
 	ClassTypeActionsList.Add(NewActions);
 }
 
-void FAssetTools::UnregisterClassTypeActions(const TSharedRef<IClassTypeActions>& ActionsToRemove)
+void UAssetToolsImpl::UnregisterClassTypeActions(const TSharedRef<IClassTypeActions>& ActionsToRemove)
 {
 	ClassTypeActionsList.Remove(ActionsToRemove);
 }
 
-void FAssetTools::GetClassTypeActionsList( TArray<TWeakPtr<IClassTypeActions>>& OutClassTypeActionsList ) const
+void UAssetToolsImpl::GetClassTypeActionsList( TArray<TWeakPtr<IClassTypeActions>>& OutClassTypeActionsList ) const
 {
 	for (auto ActionsIt = ClassTypeActionsList.CreateConstIterator(); ActionsIt; ++ActionsIt)
 	{
@@ -310,7 +318,7 @@ void FAssetTools::GetClassTypeActionsList( TArray<TWeakPtr<IClassTypeActions>>& 
 	}
 }
 
-TWeakPtr<IClassTypeActions> FAssetTools::GetClassTypeActionsForClass( UClass* Class ) const
+TWeakPtr<IClassTypeActions> UAssetToolsImpl::GetClassTypeActionsForClass( UClass* Class ) const
 {
 	TSharedPtr<IClassTypeActions> MostDerivedClassTypeActions;
 
@@ -331,7 +339,7 @@ TWeakPtr<IClassTypeActions> FAssetTools::GetClassTypeActionsForClass( UClass* Cl
 	return MostDerivedClassTypeActions;
 }
 
-bool FAssetTools::GetAssetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder, bool bIncludeHeading )
+bool UAssetToolsImpl::GetAssetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder, bool bIncludeHeading )
 {
 	bool bAddedActions = false;
 
@@ -395,7 +403,7 @@ struct FRootedOnScope
 	}
 };
 
-UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext)
+UObject* UAssetToolsImpl::CreateAsset(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext)
 {
 	FRootedOnScope DontGCFactory(Factory);
 
@@ -440,7 +448,7 @@ UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& Packa
 		FAssetRegistryModule::AssetCreated(NewObj);
 
 		// analytics create record
-		FAssetTools::OnNewCreateRecord(AssetClass, false);
+		UAssetToolsImpl::OnNewCreateRecord(AssetClass, false);
 
 		// Mark the package dirty...
 		Pkg->MarkPackageDirty();
@@ -449,7 +457,12 @@ UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& Packa
 	return NewObj;
 }
 
-UObject* FAssetTools::CreateAsset(UClass* AssetClass, UFactory* Factory, FName CallingContext)
+UObject* UAssetToolsImpl::CreateAsset(UClass* AssetClass, UFactory* Factory, FName CallingContext /*= NAME_None*/)
+{
+	return CreateAssetWithDialog(AssetClass, Factory, CallingContext);
+}
+
+UObject* UAssetToolsImpl::CreateAssetWithDialog(UClass* AssetClass, UFactory* Factory, FName CallingContext)
 {
 	if (Factory != nullptr)
 	{
@@ -474,7 +487,7 @@ UObject* FAssetTools::CreateAsset(UClass* AssetClass, UFactory* Factory, FName C
 }
 
 
-UObject* FAssetTools::CreateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext)
+UObject* UAssetToolsImpl::CreateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext)
 {
 	FSaveAssetDialogConfig SaveAssetDialogConfig;
 	SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("SaveAssetDialogTitle", "Save Asset As");
@@ -501,7 +514,7 @@ UObject* FAssetTools::CreateAssetWithDialog(const FString& AssetName, const FStr
 	return nullptr;
 }
 
-UObject* FAssetTools::DuplicateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject)
+UObject* UAssetToolsImpl::DuplicateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject)
 {
 	FSaveAssetDialogConfig SaveAssetDialogConfig;
 	SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("DuplicateAssetDialogTitle", "Duplicate Asset As");
@@ -524,7 +537,7 @@ UObject* FAssetTools::DuplicateAssetWithDialog(const FString& AssetName, const F
 	return nullptr;
 }
 
-UObject* FAssetTools::DuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject)
+UObject* UAssetToolsImpl::DuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject)
 {
 	// Verify the source object
 	if ( !OriginalObject )
@@ -565,18 +578,23 @@ UObject* FAssetTools::DuplicateAsset(const FString& AssetName, const FString& Pa
 		}
 
 		// analytics create record
-		FAssetTools::OnNewCreateRecord(NewObject->GetClass(), true);
+		UAssetToolsImpl::OnNewCreateRecord(NewObject->GetClass(), true);
 	}
 
 	return NewObject;
 }
 
-void FAssetTools::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
+void UAssetToolsImpl::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
 {
 	AssetRenameManager->RenameAssets(AssetsAndNames);
 }
 
-TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
+TArray<UObject*> UAssetToolsImpl::ImportAssets(const FString& DestinationPath)
+{
+	return ImportAssetsWithDialog(DestinationPath);
+}
+
+TArray<UObject*> UAssetToolsImpl::ImportAssetsWithDialog(const FString& DestinationPath)
 {
 	TArray<UObject*> ReturnObjects;
 	FString FileTypes, AllExtensions;
@@ -645,20 +663,22 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 	return ReturnObjects;
 }
 
-TArray<UObject*> FAssetTools::ImportAssetsAutomated(const UAutomatedAssetImportData& ImportData) const
+TArray<UObject*> UAssetToolsImpl::ImportAssetsAutomated(const UAutomatedAssetImportData* ImportData) const
 {
+	check(ImportData);
+
 	FAssetImportParams Params;
 
 	Params.bAutomated = true;
-	Params.bForceOverrideExisting = ImportData.bReplaceExisting;
+	Params.bForceOverrideExisting = ImportData->bReplaceExisting;
 	Params.bSyncToBrowser = false;
-	Params.SpecifiedFactory = ImportData.Factory;
-	Params.ImportData = &ImportData;
+	Params.SpecifiedFactory = ImportData->Factory;
+	Params.ImportData = ImportData;
 
-	return ImportAssetsInternal(ImportData.Filenames, ImportData.DestinationPath, nullptr, Params);
+	return ImportAssetsInternal(ImportData->Filenames, ImportData->DestinationPath, nullptr, Params);
 }
 
-void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const
+void UAssetToolsImpl::ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const
 {
 	// Iterate through all files in the list, if any folders are found, recurse and expand them.
 	for ( int32 FileIdx = 0; FileIdx < Files.Num(); ++FileIdx )
@@ -693,8 +713,7 @@ void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString&
 		}
 	}
 }
-
-TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory, bool bSyncToBrowser, TArray<TPair<FString, FString>> *FilesAndDestinations) const
+TArray<UObject*> UAssetToolsImpl::ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory, bool bSyncToBrowser /* = true */, TArray<TPair<FString, FString>>* FilesAndDestinations /* = nullptr */) const
 {
 	const bool bForceOverrideExisting = false;
 
@@ -703,12 +722,12 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	Params.bAutomated = false;
 	Params.bForceOverrideExisting = false;
 	Params.bSyncToBrowser = bSyncToBrowser;
-	Params.SpecifiedFactory = SpecifiedFactory;
+	Params.SpecifiedFactory = ChosenFactory;
 
-	return ImportAssetsInternal(Files, RootDestinationPath, FilesAndDestinations, Params);
+	return ImportAssetsInternal(Files, DestinationPath, FilesAndDestinations, Params);
 }
 
-void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const
+void UAssetToolsImpl::CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const
 {
 	const FString SanitizedBasePackageName = PackageTools::SanitizePackageName(InBasePackageName);
 
@@ -779,7 +798,7 @@ void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const 
 	while (bObjectExists != false);
 }
 
-bool FAssetTools::AssetUsesGenericThumbnail( const FAssetData& AssetData ) const
+bool UAssetToolsImpl::AssetUsesGenericThumbnail( const FAssetData& AssetData ) const
 {
 	if ( !AssetData.IsValid() )
 	{
@@ -844,7 +863,7 @@ bool FAssetTools::AssetUsesGenericThumbnail( const FAssetData& AssetData ) const
 	return false;
 }
 
-void FAssetTools::DiffAgainstDepot( UObject* InObject, const FString& InPackagePath, const FString& InPackageName ) const
+void UAssetToolsImpl::DiffAgainstDepot( UObject* InObject, const FString& InPackagePath, const FString& InPackageName ) const
 {
 	check( InObject );
 
@@ -899,7 +918,7 @@ void FAssetTools::DiffAgainstDepot( UObject* InObject, const FString& InPackageP
 	}
 }
 
-void FAssetTools::DiffAssets(UObject* OldAsset, UObject* NewAsset, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const
+void UAssetToolsImpl::DiffAssets(UObject* OldAsset, UObject* NewAsset, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const
 {
 	if(OldAsset == nullptr || NewAsset == nullptr)
 	{
@@ -927,7 +946,7 @@ void FAssetTools::DiffAssets(UObject* OldAsset, UObject* NewAsset, const struct 
 	}
 }
 
-FString FAssetTools::DumpAssetToTempFile(UObject* Asset) const
+FString UAssetToolsImpl::DumpAssetToTempFile(UObject* Asset) const
 {
 	check(Asset);
 
@@ -967,7 +986,7 @@ FString WrapArgument(const FString& Argument)
 											(Argument.EndsWith("\"")) ? TEXT(""): TEXT("\""));
 }
 
-bool FAssetTools::CreateDiffProcess(const FString& DiffCommand,  const FString& OldTextFilename,  const FString& NewTextFilename, const FString& DiffArgs) const
+bool UAssetToolsImpl::CreateDiffProcess(const FString& DiffCommand,  const FString& OldTextFilename,  const FString& NewTextFilename, const FString& DiffArgs) const
 {
 	// Construct Arguments
 	FString Arguments = FString::Printf( TEXT("%s %s %s"),*WrapArgument(OldTextFilename), *WrapArgument(NewTextFilename), *DiffArgs );
@@ -1026,7 +1045,7 @@ bool FAssetTools::CreateDiffProcess(const FString& DiffCommand,  const FString& 
 	return false;
 }
 
-void FAssetTools::MigratePackages(const TArray<FName>& PackageNamesToMigrate) const
+void UAssetToolsImpl::MigratePackages(const TArray<FName>& PackageNamesToMigrate) const
 {
 	// Packages must be saved for the migration to work
 	const bool bPromptUserToSave = true;
@@ -1039,7 +1058,7 @@ void FAssetTools::MigratePackages(const TArray<FName>& PackageNamesToMigrate) co
 		{
 			// Open a dialog asking the user to wait while assets are being discovered
 			SDiscoveringAssetsDialog::OpenDiscoveringAssetsDialog(
-				SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateRaw(this, &FAssetTools::PerformMigratePackages, PackageNamesToMigrate)
+				SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateUObject(this, &UAssetToolsImpl::PerformMigratePackages, PackageNamesToMigrate)
 				);
 		}
 		else
@@ -1050,7 +1069,7 @@ void FAssetTools::MigratePackages(const TArray<FName>& PackageNamesToMigrate) co
 	}
 }
 
-void FAssetTools::OnNewImportRecord(UClass* AssetType, const FString& FileExtension, bool bSucceeded, bool bWasCancelled, const FDateTime& StartTime)
+void UAssetToolsImpl::OnNewImportRecord(UClass* AssetType, const FString& FileExtension, bool bSucceeded, bool bWasCancelled, const FDateTime& StartTime)
 {
 	// Don't attempt to report usage stats if analytics isn't available
 	if(AssetType != nullptr && FEngineAnalytics::IsAvailable())
@@ -1066,7 +1085,7 @@ void FAssetTools::OnNewImportRecord(UClass* AssetType, const FString& FileExtens
 	}
 }
 
-void FAssetTools::OnNewCreateRecord(UClass* AssetType, bool bDuplicated)
+void UAssetToolsImpl::OnNewCreateRecord(UClass* AssetType, bool bDuplicated)
 {
 	// Don't attempt to report usage stats if analytics isn't available
 	if(AssetType != nullptr && FEngineAnalytics::IsAvailable())
@@ -1079,7 +1098,7 @@ void FAssetTools::OnNewCreateRecord(UClass* AssetType, bool bDuplicated)
 	}
 }
 
-TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, TArray<TPair<FString, FString>> *FilesAndDestinationsPtr, const FAssetImportParams& Params) const
+TArray<UObject*> UAssetToolsImpl::ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, TArray<TPair<FString, FString>> *FilesAndDestinationsPtr, const FAssetImportParams& Params) const
 {
 	UFactory* SpecifiedFactory = Params.SpecifiedFactory;
 	const bool bForceOverrideExisting = Params.bForceOverrideExisting;
@@ -1508,31 +1527,31 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 	// Sync content browser to the newly created assets
 	if(ReturnObjects.Num() && (bSyncToBrowser != false))
 	{
-		FAssetTools::Get().SyncBrowserToAssets(ReturnObjects);
+		UAssetToolsImpl::Get().SyncBrowserToAssets(ReturnObjects);
 	}
 
 	return ReturnObjects;
 }
 
-FAssetTools& FAssetTools::Get()
+UAssetToolsImpl& UAssetToolsImpl::Get()
 {
 	FAssetToolsModule& Module = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-	return static_cast<FAssetTools&>(Module.Get());
+	return static_cast<UAssetToolsImpl&>(Module.Get());
 }
 
-void FAssetTools::SyncBrowserToAssets(const TArray<UObject*>& AssetsToSync)
+void UAssetToolsImpl::SyncBrowserToAssets(const TArray<UObject*>& AssetsToSync)
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	ContentBrowserModule.Get().SyncBrowserToAssets( AssetsToSync, /*bAllowLockedBrowsers=*/true );
 }
 
-void FAssetTools::SyncBrowserToAssets(const TArray<FAssetData>& AssetsToSync)
+void UAssetToolsImpl::SyncBrowserToAssets(const TArray<FAssetData>& AssetsToSync)
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	ContentBrowserModule.Get().SyncBrowserToAssets( AssetsToSync, /*bAllowLockedBrowsers=*/true );
 }
 
-bool FAssetTools::CheckForDeletedPackage(const UPackage* Package) const
+bool UAssetToolsImpl::CheckForDeletedPackage(const UPackage* Package) const
 {
 	if ( ISourceControlModule::Get().IsEnabled() )
 	{
@@ -1569,7 +1588,7 @@ bool FAssetTools::CheckForDeletedPackage(const UPackage* Package) const
 	return true;
 }
 
-bool FAssetTools::CanCreateAsset(const FString& AssetName, const FString& PackageName, const FText& OperationText) const
+bool UAssetToolsImpl::CanCreateAsset(const FString& AssetName, const FString& PackageName, const FText& OperationText) const
 {
 	// @todo: These 'reason' messages are not localized strings!
 	FText Reason;
@@ -1662,7 +1681,7 @@ bool FAssetTools::CanCreateAsset(const FString& AssetName, const FString& Packag
 	return true;
 }
 
-void FAssetTools::PerformMigratePackages(TArray<FName> PackageNamesToMigrate) const
+void UAssetToolsImpl::PerformMigratePackages(TArray<FName> PackageNamesToMigrate) const
 {
 	// Form a full list of packages to move by including the dependencies of the supplied packages
 	TSet<FName> AllPackageNamesToMove;
@@ -1697,12 +1716,12 @@ void FAssetTools::PerformMigratePackages(TArray<FName> PackageNamesToMigrate) co
 		{
 			ReportPackageNames.Add((*PackageIt).ToString());
 		}
-		SPackageReportDialog::FOnReportConfirmed OnReportConfirmed = SPackageReportDialog::FOnReportConfirmed::CreateRaw(this, &FAssetTools::MigratePackages_ReportConfirmed, ReportPackageNames);
+		SPackageReportDialog::FOnReportConfirmed OnReportConfirmed = SPackageReportDialog::FOnReportConfirmed::CreateUObject(this, &UAssetToolsImpl::MigratePackages_ReportConfirmed, ReportPackageNames);
 		SPackageReportDialog::OpenPackageReportDialog(ReportMessage, ReportPackageNames, OnReportConfirmed);
 	}
 }
 
-void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPackageNamesToMigrate) const
+void UAssetToolsImpl::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPackageNamesToMigrate) const
 {
 	// Choose a destination folder
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
@@ -1917,7 +1936,7 @@ void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPacka
 	MigrateLog.Notify(LogMessage, Severity, true);
 }
 
-void FAssetTools::RecursiveGetDependencies(const FName& PackageName, TSet<FName>& AllDependencies) const
+void UAssetToolsImpl::RecursiveGetDependencies(const FName& PackageName, TSet<FName>& AllDependencies) const
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	TArray<FName> Dependencies;
@@ -1939,7 +1958,7 @@ void FAssetTools::RecursiveGetDependencies(const FName& PackageName, TSet<FName>
 	}
 }
 
-void FAssetTools::FixupReferencers(const TArray<UObjectRedirector*>& Objects) const
+void UAssetToolsImpl::FixupReferencers(const TArray<UObjectRedirector*>& Objects) const
 {
 	AssetFixUpRedirectors->FixupReferencers(Objects);
 }

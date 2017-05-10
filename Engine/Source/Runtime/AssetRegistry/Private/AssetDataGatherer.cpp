@@ -729,7 +729,7 @@ void FAssetDataGatherer::EnsureCompletion()
 	}
 }
 
-bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<FString>& OutCookedPackageNamesWithoutAssetDataResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)
+bool FAssetDataGatherer::GetAndTrimSearchResults(TBackgroundGatherResults<FAssetData*>& OutAssetResults, TBackgroundGatherResults<FString>& OutPathResults, TBackgroundGatherResults<FPackageDependencyData>& OutDependencyResults, TBackgroundGatherResults<FString>& OutCookedPackageNamesWithoutAssetDataResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)
 {
 	FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 

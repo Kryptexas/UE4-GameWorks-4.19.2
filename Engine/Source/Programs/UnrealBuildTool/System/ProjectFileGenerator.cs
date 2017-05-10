@@ -45,30 +45,35 @@ namespace UnrealBuildTool
 		/// <returns>The newly-added folder</returns>
 		public MasterProjectFolder AddSubFolder( string SubFolderName )
 		{
-            MasterProjectFolder ResultFolder = null;
+			MasterProjectFolder ResultFolder = null;
 
-            foreach (string FolderName in SubFolderName.Split(new char[1] {'\\'}, StringSplitOptions.RemoveEmptyEntries))
-            {
-                bool AlreadyExists = false;
-                foreach (MasterProjectFolder ExistingFolder in SubFolders)
-                {
-                    if (ExistingFolder.FolderName.Equals(FolderName, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        // Already exists!
-                        ResultFolder = ExistingFolder;
-                        AlreadyExists = true;
-                        break;
-                    }
-                }
+			List<string> FolderNames = SubFolderName.Split(new char[2] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, 2, StringSplitOptions.RemoveEmptyEntries).ToList();
+			string FirstFolderName = FolderNames[0];
 
-                if (!AlreadyExists)
-                {
-                    ResultFolder = OwnerProjectFileGenerator.AllocateMasterProjectFolder(OwnerProjectFileGenerator, SubFolderName);
-                    SubFolders.Add(ResultFolder);
-                }
-            }
+			bool AlreadyExists = false;
+			foreach (MasterProjectFolder ExistingFolder in SubFolders)
+			{
+				if (ExistingFolder.FolderName.Equals(FirstFolderName, StringComparison.InvariantCultureIgnoreCase))
+				{
+					// Already exists!
+					ResultFolder = ExistingFolder;
+					AlreadyExists = true;
+					break;
+				}
+			}
 
-            return ResultFolder;
+			if (!AlreadyExists)
+			{
+				ResultFolder = OwnerProjectFileGenerator.AllocateMasterProjectFolder(OwnerProjectFileGenerator, FirstFolderName);
+				SubFolders.Add(ResultFolder);
+			}
+
+			if (FolderNames.Count > 1)
+			{
+				ResultFolder = ResultFolder.AddSubFolder(FolderNames[1]);
+			}
+
+			return ResultFolder;
 		}
 
 

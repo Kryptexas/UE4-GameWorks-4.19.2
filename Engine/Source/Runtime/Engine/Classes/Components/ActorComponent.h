@@ -13,12 +13,18 @@
 #include "UObject/ScriptMacros.h"
 #include "EdGraph/EdGraphPin.h"
 #include "Interfaces/Interface_AssetUserData.h"
+#include "UObjectAnnotation.h"
 #include "ActorComponent.generated.h"
 
 class AActor;
 class UActorComponent;
 class UAssetUserData;
 class ULevel;
+
+#if WITH_EDITOR
+/** Annotation for component selection.  This must be in engine isntead of editor for ::IsSelected to work */
+extern ENGINE_API FUObjectAnnotationSparseBool GSelectedComponentAnnotation;
+#endif
 
 UENUM()
 enum class EComponentCreationMethod : uint8
@@ -763,6 +769,7 @@ public:
 	virtual void PostEditChangeChainProperty( FPropertyChangedChainEvent& PropertyChangedEvent ) override;
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
+	virtual bool IsSelectedInEditor() const override;
 #endif // WITH_EDITOR
 	//~ End UObject Interface.
 

@@ -511,11 +511,22 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 		SNew( SHorizontalBox )
 		.IsEnabled( IsEnabledAttrib );
 
+	TSharedPtr<SResetToDefaultPropertyEditor> ResetButton = nullptr;
+	if (!PropertyHandle->HasMetaData(TEXT("NoResetToDefault")))
+	{
+		SAssignNew(ResetButton, SResetToDefaultPropertyEditor, PropertyEditor->GetPropertyHandle())
+			.IsEnabled(IsEnabledAttrib)
+			.CustomResetToDefault(CustomResetToDefault);
+	};
+
+	TSharedRef<SWidget> ResetWidget = ResetButton.IsValid() ? ResetButton.ToSharedRef() : SNullWidget::NullWidget;
+
+	TSharedPtr<SPropertyValueWidget> PropertyValue;
+
 	if( InCustomRow.IsValid() )
 	{
 		MinWidth = InCustomRow->ValueWidget.MinWidth;
 		MaxWidth = InCustomRow->ValueWidget.MaxWidth;
-
 		ValueWidget->AddSlot()
 		[
 			InCustomRow->ValueWidget.Widget
@@ -523,15 +534,13 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 	}
 	else
 	{
-		TSharedPtr<SPropertyValueWidget> PropertyValue;
-
 		ValueWidget->AddSlot()
 		.Padding( 0.0f, 0.0f, 4.0f, 0.0f )
 		[
 			SAssignNew( PropertyValue, SPropertyValueWidget, PropertyEditor, GetPropertyUtilities() )
 			.ShowPropertyButtons( false ) // We handle this ourselves
+			.OptionalResetWidget(ResetWidget)
 		];
-
 		MinWidth = PropertyValue->GetMinDesiredWidth();
 		MaxWidth = PropertyValue->GetMaxDesiredWidth();
 	}
@@ -568,17 +577,15 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 			];
 		}
 
-		if (!PropertyHandle->HasMetaData(TEXT("NoResetToDefault")))
+		if (PropertyValue.IsValid() && !PropertyValue->CreatedResetButton() && ResetButton.IsValid())
 		{
 			ValueWidget->AddSlot()
-			.Padding( 2.0f, 0.0f )
+			.Padding(4.0f, 0.0f)
 			.AutoWidth()
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Left)
 			[
-				SNew( SResetToDefaultPropertyEditor, PropertyEditor.ToSharedRef() )
-				.IsEnabled( IsEnabledAttrib )
-				.CustomResetToDefault(CustomResetToDefault)
+				ResetWidget
 			];
 		}
 	}

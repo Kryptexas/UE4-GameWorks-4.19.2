@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Containers/ArrayView.h"
 #include "HAL/PlatformTime.h"
 #include "IPluginManager.h"
 
@@ -160,6 +161,22 @@ public:
 	}
 
 	/**
+	 * Does the given path contain classes, optionally also testing sub-paths?
+	 *
+	 * @param InClassPath - The path to query classes in
+	 * @param bRecursive - If true, the supplied path will be tested recursively
+	 */
+	bool HasClasses(const FName InClassPath, const bool bRecursive = false) const;
+
+	/**
+	 * Does the given path contain folders, optionally also testing sub-paths?
+	 *
+	 * @param InClassPath - The path to query classes in
+	 * @param bRecursive - If true, the supplied path will be tested recursively
+	 */
+	bool HasFolders(const FName InClassPath, const bool bRecursive = false) const;
+
+	/**
 	 * Work out which classes known to the class hierarchy match the given filter
 	 *
 	 * @param Filter - The filter to apply when working out which classes match
@@ -231,6 +248,26 @@ private:
 	};
 
 	/**
+	 * Test to see whether the given node has any child classes
+	 *
+	 * @param HierarchyNode - The node to test the children of
+	 * @param bRecurse - True to recurse into sub-folders, false to only check the given node
+	 *
+	 * @return True if the node has child classes, false otherwise
+	 */
+	static bool HasClassesRecursive(const TSharedRef<FNativeClassHierarchyNode>& HierarchyNode, const bool bRecurse = true);
+
+	/**
+	 * Test to see whether the given node has any child folders
+	 *
+	 * @param HierarchyNode - The node to test the children of
+	 * @param bRecurse - True to recurse into sub-folders, false to only check the given node
+	 *
+	 * @return True if the node has child folders, false otherwise
+	 */
+	static bool HasFoldersRecursive(const TSharedRef<FNativeClassHierarchyNode>& HierarchyNode, const bool bRecurse = true);
+
+	/**
 	 * Update OutClasses with any classes that are children of the given node
 	 *
 	 * @param HierarchyNode - The node to add the children of
@@ -254,7 +291,7 @@ private:
 	 * @param InClassPaths - The class paths to find the nodes for, or an empty list to get all root nodes
 	 * @param OutMatchingNodes - Array to be populated the nodes that correspond to the given class paths
 	 */
-	void GatherMatchingNodesForPaths(const TArray<FName>& InClassPaths, TArray<TSharedRef<FNativeClassHierarchyNode>>& OutMatchingNodes) const;
+	void GatherMatchingNodesForPaths(const TArrayView<const FName>& InClassPaths, TArray<TSharedRef<FNativeClassHierarchyNode>, TInlineAllocator<4>>& OutMatchingNodes) const;
 
 	/**
 	 * Completely clear and re-populate the known class hierarchy

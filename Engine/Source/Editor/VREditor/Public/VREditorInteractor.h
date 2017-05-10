@@ -27,11 +27,12 @@ enum class EControllerType : uint8
 UCLASS()
 class VREDITOR_API UVREditorInteractor : public UViewportInteractor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
 
-	virtual ~UVREditorInteractor();
+	/** Default constructor */
+	UVREditorInteractor();
 
 	/** Initialize default values */
 	virtual void Init( class UVREditorMode* InVRMode );

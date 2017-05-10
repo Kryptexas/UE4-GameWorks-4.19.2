@@ -22,10 +22,9 @@ struct FTreeItem;
 class SAssetTreeItem : public SCompoundWidget
 {
 public:
-	DECLARE_DELEGATE_ThreeParams( FOnNameChanged, const TSharedPtr<FTreeItem>& /*TreeItem*/, const FString& /*OldPath*/, const FVector2D& /*MessageLocation*/);
+	DECLARE_DELEGATE_FourParams( FOnNameChanged, const TSharedPtr<FTreeItem>& /*TreeItem*/, const FString& /*OldPath*/, const FVector2D& /*MessageLocation*/, const ETextCommit::Type /*CommitType*/);
 	DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnVerifyNameChanged, const FString& /*InName*/, FText& /*OutErrorMessage*/, const FString& /*FolderPath*/);
-	DECLARE_DELEGATE_TwoParams( FOnAssetsDragDropped, const TArray<FAssetData>& /*AssetList*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);
-	DECLARE_DELEGATE_TwoParams( FOnPathsDragDropped, const TArray<FString>& /*PathNames*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);
+	DECLARE_DELEGATE_ThreeParams( FOnAssetsOrPathsDragDropped, const TArray<FAssetData>& /*AssetList*/, const TArray<FString>& /*AssetPaths*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);
 	DECLARE_DELEGATE_TwoParams( FOnFilesDragDropped, const TArray<FString>& /*FileNames*/, const TSharedPtr<FTreeItem>& /*TreeItem*/);
 
 	SLATE_BEGIN_ARGS( SAssetTreeItem )
@@ -42,11 +41,8 @@ public:
 		/** Delegate for when the user is typing a new name for the folder */
 		SLATE_EVENT( FOnVerifyNameChanged, OnVerifyNameChanged )
 
-		/** Delegate for when assets are dropped on this folder */
-		SLATE_EVENT( FOnAssetsDragDropped, OnAssetsDragDropped )
-
-		/** Delegate for when asset paths are dropped on this folder */
-		SLATE_EVENT( FOnPathsDragDropped, OnPathsDragDropped )
+		/** Delegate for when assets or asset paths are dropped on this folder */
+		SLATE_EVENT( FOnAssetsOrPathsDragDropped, OnAssetsOrPathsDragDropped )
 
 		/** Delegate for when a list of files is dropped on this folder from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
@@ -123,11 +119,8 @@ private:
 	/** The name of the asset as an editable text box */
 	TSharedPtr<SEditableTextBox> EditableName;
 
-	/** Delegate for when a list of assets is dropped on this folder */
-	FOnAssetsDragDropped OnAssetsDragDropped;
-
-	/** Delegate for when a list of folder paths is dropped on this folder */
-	FOnPathsDragDropped OnPathsDragDropped;
+	/** Delegate for when a list of assets or asset paths are dropped on this folder */
+	FOnAssetsOrPathsDragDropped OnAssetsOrPathsDragDropped;
 
 	/** Delegate for when a list of files is dropped on this folder from an external source */
 	FOnFilesDragDropped OnFilesDragDropped;

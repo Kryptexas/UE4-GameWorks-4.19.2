@@ -84,6 +84,11 @@ bool FDefaultSourceControlProvider::UsesChangelists() const
 	return false;
 }
 
+bool FDefaultSourceControlProvider::UsesCheckout() const
+{
+	return false;
+}
+
 void FDefaultSourceControlProvider::Tick()
 {
 

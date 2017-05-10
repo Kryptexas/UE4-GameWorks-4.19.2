@@ -26,13 +26,15 @@
 #include "TutorialMetaData.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "NativeClassHierarchy.h"
+#include "EmptyFolderVisibilityManager.h"
 #include "CollectionAssetRegistryBridge.h"
 #include "ContentBrowserCommands.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
 FContentBrowserSingleton::FContentBrowserSingleton()
-	: CollectionAssetRegistryBridge(MakeShareable(new FCollectionAssetRegistryBridge()))
+	: EmptyFolderVisibilityManager(MakeShared<FEmptyFolderVisibilityManager>())
+	, CollectionAssetRegistryBridge(MakeShared<FCollectionAssetRegistryBridge>())
 	, SettingsStringID(0)
 {
 	// Register the tab spawners for all content browsers
@@ -228,7 +230,7 @@ void FContentBrowserSingleton::CreateNewAsset(const FString& DefaultAssetName, c
 	}
 }
 
-void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<FAssetData>& AssetDataList, bool bAllowLockedBrowsers, bool bFocusContentBrowser)
+TSharedPtr<SContentBrowser> FContentBrowserSingleton::FindContentBrowserToSync(bool bAllowLockedBrowsers)
 {
 	TSharedPtr<SContentBrowser> ContentBrowserToSync;
 
@@ -271,6 +273,18 @@ void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<FAssetData>& Ass
 		}
 	}
 
+	if ( !ContentBrowserToSync.IsValid() )
+	{
+		UE_LOG( LogContentBrowser, Log, TEXT( "Unable to sync content browser, all browsers appear to be locked" ) );
+	}
+
+	return ContentBrowserToSync;
+}
+
+void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<FAssetData>& AssetDataList, bool bAllowLockedBrowsers, bool bFocusContentBrowser)
+{
+	TSharedPtr<SContentBrowser> ContentBrowserToSync = FindContentBrowserToSync(bAllowLockedBrowsers);
+
 	if ( ContentBrowserToSync.IsValid() )
 	{
 		// Finally, focus and sync the browser that was found
@@ -279,10 +293,6 @@ void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<FAssetData>& Ass
 			FocusContentBrowser(ContentBrowserToSync);
 		}
 		ContentBrowserToSync->SyncToAssets(AssetDataList);
-	}
-	else
-	{
-		UE_LOG( LogContentBrowser, Log, TEXT( "Unable to sync content browser, all browsers appear to be locked" ) );
 	}
 }
 
@@ -299,6 +309,36 @@ void FContentBrowserSingleton::SyncBrowserToAssets(const TArray<UObject*>& Asset
 	}
 
 	SyncBrowserToAssets(AssetDataList, bAllowLockedBrowsers, bFocusContentBrowser);
+}
+
+void FContentBrowserSingleton::SyncBrowserToFolders(const TArray<FString>& FolderList, bool bAllowLockedBrowsers, bool bFocusContentBrowser)
+{
+	TSharedPtr<SContentBrowser> ContentBrowserToSync = FindContentBrowserToSync(bAllowLockedBrowsers);
+
+	if ( ContentBrowserToSync.IsValid() )
+	{
+		// Finally, focus and sync the browser that was found
+		if (bFocusContentBrowser)
+		{
+			FocusContentBrowser(ContentBrowserToSync);
+		}
+		ContentBrowserToSync->SyncToFolders(FolderList);
+	}
+}
+
+void FContentBrowserSingleton::SyncBrowserTo(const FContentBrowserSelection& ItemSelection, bool bAllowLockedBrowsers, bool bFocusContentBrowser)
+{
+	TSharedPtr<SContentBrowser> ContentBrowserToSync = FindContentBrowserToSync(bAllowLockedBrowsers);
+
+	if ( ContentBrowserToSync.IsValid() )
+	{
+		// Finally, focus and sync the browser that was found
+		if (bFocusContentBrowser)
+		{
+			FocusContentBrowser(ContentBrowserToSync);
+		}
+		ContentBrowserToSync->SyncTo(ItemSelection);
+	}
 }
 
 void FContentBrowserSingleton::GetSelectedAssets(TArray<FAssetData>& SelectedAssets)
@@ -373,6 +413,11 @@ TSharedRef<FNativeClassHierarchy> FContentBrowserSingleton::GetNativeClassHierar
 		NativeClassHierarchy = MakeShareable(new FNativeClassHierarchy());
 	}
 	return NativeClassHierarchy.ToSharedRef();
+}
+
+TSharedRef<FEmptyFolderVisibilityManager> FContentBrowserSingleton::GetEmptyFolderVisibilityManager()
+{
+	return EmptyFolderVisibilityManager;
 }
 
 void FContentBrowserSingleton::SharedCreateAssetDialogWindow(const TSharedRef<SAssetDialog>& AssetDialog, const FSharedAssetDialogConfig& InConfig, bool bModal) const

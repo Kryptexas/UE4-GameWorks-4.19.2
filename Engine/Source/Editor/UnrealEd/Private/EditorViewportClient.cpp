@@ -13,6 +13,7 @@
 #include "CanvasItem.h"
 #include "Engine/Canvas.h"
 #include "Settings/LevelEditorViewportSettings.h"
+#include "Settings/LevelEditorMiscSettings.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/BillboardComponent.h"
 #include "Debug/DebugDrawService.h"
@@ -296,6 +297,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, bOwnsModeTools(false)
 	, ModeTools(InModeTools)
 	, Widget(new FWidget)
+	, bShowWidget(true)
 	, MouseDeltaTracker(new FMouseDeltaTracker)
 	, RecordingInterpEd(NULL)
 	, bHasMouseMovedSinceClick(false)
@@ -3408,7 +3410,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 
 	
 	// Draw the widget.
-	if (Widget)
+	if (Widget && bShowWidget)
 	{
 		Widget->DrawHUD( Canvas );
 	}
@@ -3505,7 +3507,10 @@ void FEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface
 	MouseDeltaTracker->Render3DDragTool( View, PDI );
 
 	// Draw the widget.
-	Widget->Render( View, PDI, this );
+	if (Widget && bShowWidget)
+	{
+		Widget->Render( View, PDI, this );
+	}
 
 	if( bUsesDrawHelper )
 	{
@@ -4386,6 +4391,11 @@ FVector FEditorViewportClient::GetHitProxyObjectLocation(int32 X, int32 Y)
 }
 
 
+void FEditorViewportClient::ShowWidget(const bool bShow)
+{
+	bShowWidget = bShow;
+}
+
 void FEditorViewportClient::MoveViewportCamera(const FVector& InDrag, const FRotator& InRot, bool bDollyCamera)
 {
 	switch( GetViewportType() )
@@ -4892,14 +4902,15 @@ void FEditorViewportClient::TakeScreenshot(FViewport* InViewport, bool bInValida
 		}
 
 		// Create screenshot folder if not already present.
-		if ( IFileManager::Get().MakeDirectory( *FPaths::ScreenShotDir(), true ) )
+		
+		if ( IFileManager::Get().MakeDirectory(*(GetDefault<ULevelEditorMiscSettings>()->EditorScreenshotSaveDirectory.Path), true ) )
 		{
 			// Save the contents of the array to a bitmap file.
 			FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
 			HighResScreenshotConfig.SetHDRCapture(false);
 
 			FString ScreenshotSaveName;
-			if (FFileHelper::GenerateNextBitmapFilename(FPaths::ScreenShotDir() / TEXT("ScreenShot"), TEXT("png"), ScreenshotSaveName) &&
+			if (FFileHelper::GenerateNextBitmapFilename(GetDefault<ULevelEditorMiscSettings>()->EditorScreenshotSaveDirectory.Path / TEXT("ScreenShot"), TEXT("png"), ScreenshotSaveName) &&
 				HighResScreenshotConfig.SaveImage(ScreenshotSaveName, Bitmap, InViewport->GetSizeXY()))
 			{
 				// Setup the string with the path and name of the file
@@ -4918,7 +4929,7 @@ void FEditorViewportClient::TakeScreenshot(FViewport* InViewport, bool bInValida
 		{
 			// Failed to make save directory
 			ScreenshotSaveResultText = NSLOCTEXT( "UnrealEd", "ScreenshotFailedFolder", "Screenshot capture failed, unable to create save directory (see log)" );					
-			UE_LOG(LogEditorViewport, Warning, TEXT("Failed to create directory %s"), *FPaths::ConvertRelativePathToFull(FPaths::ScreenShotDir()));
+			UE_LOG(LogEditorViewport, Warning, TEXT("Failed to create directory %s"), *FPaths::ConvertRelativePathToFull(GetDefault<ULevelEditorMiscSettings>()->EditorScreenshotSaveDirectory.Path));
 		}
 	}
 	else

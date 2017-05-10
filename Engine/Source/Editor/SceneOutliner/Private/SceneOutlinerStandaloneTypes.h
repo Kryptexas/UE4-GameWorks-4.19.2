@@ -5,13 +5,10 @@
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
 #include "UObject/ObjectKey.h"
+#include "Templates/MaxSizeof.h"
 
 namespace SceneOutliner
 {
-		template <typename...> struct TMaxSizeof;
-		template <> struct TMaxSizeof<> { static const uint32 Value = 0; };
-		template <typename T, typename... TRest> struct TMaxSizeof<T, TRest...> { static const uint32 Value = sizeof(T) > TMaxSizeof<TRest...>::Value ? sizeof(T) : TMaxSizeof<TRest...>::Value; };
-
 	/** Variant type that defines an identifier for a tree item. Assumes 'trivial relocatability' as with many unreal containers. */
 	struct FTreeItemID
 	{

@@ -310,13 +310,13 @@ void FPackageLocalizationCache::ConditionalUpdatePackageNameToAssetGroupCache_No
 		return;
 	}
 
-	bPackageNameToAssetGroupDirty = false;
-
 	PackageNameToAssetGroup.Reset();
 	for (const auto& AssetClassGroupPair : AssetClassesToAssetGroups)
 	{
 		FindAssetGroupPackages(AssetClassGroupPair.Value, AssetClassGroupPair.Key);
 	}
+
+	bPackageNameToAssetGroupDirty = false;
 }
 
 void FPackageLocalizationCache::HandleContentPathMounted(const FString& InAssetPath, const FString& InFilesystemPath)

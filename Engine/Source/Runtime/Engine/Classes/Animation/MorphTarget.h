@@ -148,7 +148,7 @@ public:
 	bool HasDataForLOD(int32 LODIndex);
 
 	/** Populates the given morph target LOD model with the provided deltas */
-	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex);
+	ENGINE_API void PopulateDeltas(const TArray<FMorphTargetDelta>& Deltas, const int32 LODIndex, const bool bCompareNormal = false);
 
 public:
 

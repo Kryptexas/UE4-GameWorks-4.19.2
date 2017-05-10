@@ -6089,6 +6089,11 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		FuncInfo.FunctionFlags |= FUNC_Event;
 	}
 
+	if (CompilerDirectiveStack.Num() > 0 && (CompilerDirectiveStack.Last()&ECompilerDirective::WithEditor) != 0)
+	{
+		FuncInfo.FunctionFlags |= FUNC_EditorOnly;
+	}
+
 	ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound);
 
 	const bool bClassGeneratedFromBP = FClass::IsDynamic(GetCurrentClass());

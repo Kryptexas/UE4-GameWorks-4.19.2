@@ -37,6 +37,7 @@
 #include "CookOnTheSide/CookOnTheFlyServer.h"
 #include "Builders/CubeBuilder.h"
 #include "Settings/LevelEditorViewportSettings.h"
+#include "Settings/LevelEditorMiscSettings.h"
 #include "Engine/Brush.h"
 #include "AssetData.h"
 #include "Editor/EditorEngine.h"
@@ -99,6 +100,7 @@
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
 #endif
+#include "ActorGroupingUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 
@@ -661,8 +663,8 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		Pkg = GeneratePackageThumbnailsIfRequired( Str, Ar, ThumbNamesToUnload );
 	}
 
-	// If we don't have a viewport specified to catch the stat commands (and there's no game viewport), use to the active viewport
-	if (GStatProcessingViewportClient == NULL && GameViewport == NULL)
+	// If we don't have a viewport specified to catch the stat commands, use to the active viewport.  If there is a game viewport ignore this as we do not want 
+	if (GStatProcessingViewportClient == NULL && (GameViewport == NULL || GameViewport->IsSimulateInEditorViewport() ) )
 	{
 		GStatProcessingViewportClient = GLastKeyLevelEditingViewportClient ? GLastKeyLevelEditingViewportClient : GCurrentLevelEditingViewportClient;
 	}
@@ -1202,7 +1204,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 				if (FSlateApplication::Get().TakeScreenshot(InWidget, OutImageData, OutImageSize))
 				{
 					FString FileName;
-					const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
+					const FString BaseFileName = GetDefault<ULevelEditorMiscSettings>()->EditorScreenshotSaveDirectory.Path / TEXT("EditorScreenshot");
 					FFileHelper::GenerateNextBitmapFilename(BaseFileName, TEXT("bmp"), FileName);
 					FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetData());
 				}
@@ -2762,7 +2764,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	}
 	else if( FParse::Command(&Str,TEXT("MOVETOCURRENT")) )
 	{
-		MoveSelectedActorsToLevel( InWorld->GetCurrentLevel() );
+		UEditorLevelUtils::MoveSelectedActorsToLevel( InWorld->GetCurrentLevel() );
 		return true;
 	}
 	else if(FParse::Command(&Str, TEXT("DESELECT")))
@@ -3009,16 +3011,16 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 
 bool UUnrealEdEngine::Exec_Group( const TCHAR* Str, FOutputDevice& Ar )
 {
-	if(GEditor->bGroupingActive)
+	if(UActorGroupingUtils::IsGroupingActive())
 	{
 		if( FParse::Command(&Str,TEXT("REGROUP")) )
 		{
-			GUnrealEd->edactRegroupFromSelected();
+			UActorGroupingUtils::Get()->GroupSelected();
 			return true;
 		}
 		else if ( FParse::Command(&Str,TEXT("UNGROUP")) )
 		{
-			GUnrealEd->edactUngroupFromSelected();
+			UActorGroupingUtils::Get()->UngroupSelected();
 			return true;
 		}
 	}

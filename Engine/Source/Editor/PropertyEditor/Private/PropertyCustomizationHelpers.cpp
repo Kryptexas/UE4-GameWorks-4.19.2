@@ -29,6 +29,7 @@
 #include "Widgets/Input/SHyperlink.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "IDocumentation.h"
+#include "SResetToDefaultPropertyEditor.h"
 
 #define LOCTEXT_NAMESPACE "PropertyCustomizationHelpers"
 
@@ -403,6 +404,17 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 		}
 	}
 
+	TSharedPtr<SResetToDefaultPropertyEditor> ResetButton = nullptr;
+
+	if (PropertyHandle.IsValid() && !PropertyHandle->HasMetaData(TEXT("NoResetToDefault")))
+	{
+		SAssignNew(ResetButton, SResetToDefaultPropertyEditor, PropertyHandle)
+			.IsEnabled(true)
+			.CustomResetToDefault(InArgs._CustomResetToDefault);		
+	};
+
+	TSharedRef<SWidget> ResetWidget = ResetButton.IsValid() ? ResetButton.ToSharedRef() : SNullWidget::NullWidget;
+
 	ChildSlot
 	[	
 		SNew(SHorizontalBox)
@@ -424,6 +436,10 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 				.EnableContentPicker(InArgs._EnableContentPicker)
 				.PropertyHandle(PropertyHandle)
 				.ThumbnailSize(ThumbnailSize)
+				.ResetToDefaultSlot()
+				[
+					ResetWidget
+				]
 		]
 	];
 }

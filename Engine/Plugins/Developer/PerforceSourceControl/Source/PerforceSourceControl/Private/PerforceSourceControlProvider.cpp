@@ -322,6 +322,11 @@ bool FPerforceSourceControlProvider::UsesChangelists() const
 	return true;
 }
 
+bool FPerforceSourceControlProvider::UsesCheckout() const
+{
+	return true;
+}
+
 void FPerforceSourceControlProvider::OutputCommandMessages(const FPerforceSourceControlCommand& InCommand) const
 {
 	FMessageLog SourceControlLog("SourceControl");

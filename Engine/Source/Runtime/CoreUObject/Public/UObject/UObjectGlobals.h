@@ -714,10 +714,7 @@ template<class T> struct TIsPODType< TSubobjectPtrDeprecated<T> > { enum { Value
 template<class T> struct TIsZeroConstructType< TSubobjectPtrDeprecated<T> > { enum { Value = true }; };
 template<class T> struct TIsWeakPointerType< TSubobjectPtrDeprecated<T> > { enum { Value = false }; };
 
-#define TSubobjectPtr \
-	EMIT_DEPRECATED_WARNING_MESSAGE("TSubobjectPtr is deprecated and should no longer be used. Please use pointers instead.") \
-	TSubobjectPtrDeprecated
-	
+
 
 /**
  * Internal class to finalize UObject creation (initialize properties) after the real C++ constructor is called.
@@ -1092,9 +1089,6 @@ private:
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 };
 
-#define FPostConstructInitializeProperties \
-	FObjectInitializer \
-	EMIT_DEPRECATED_WARNING_MESSAGE("FPostConstructInitializeProperties is deprecated and was renamed to FObjectInitializer. Please use that type instead.")
 
 /**
 * Helper class for script integrations to access some UObject innards. Needed for script-generated UObject classes

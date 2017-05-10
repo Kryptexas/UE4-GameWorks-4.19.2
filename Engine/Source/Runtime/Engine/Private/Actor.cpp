@@ -53,6 +53,10 @@ DECLARE_CYCLE_STAT(TEXT("PostActorConstruction"), STAT_PostActorConstruction, ST
 
 FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(&AActor::MakeNoiseImpl);
 
+#if WITH_EDITOR
+FUObjectAnnotationSparseBool GSelectedActorAnnotation;
+#endif
+
 #if !UE_BUILD_SHIPPING
 FOnProcessEvent AActor::ProcessEventDelegate;
 #endif
@@ -2468,7 +2472,10 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 {
 	check(Component->GetOwner() == this);
 
-	Modify();
+	// Note: we do not mark dirty here because this can be called when in editor when modifying transient components
+	// if a component is added during this time it should not dirty.  Higher level code in the editor should always dirty the package anyway
+	const bool bMarkDirty = false;
+	Modify(bMarkDirty);
 
 	bool bAlreadyInSet = false;
 	OwnedComponents.Add(Component, &bAlreadyInSet);
@@ -2680,6 +2687,12 @@ void AActor::PostEditImport()
 
 	DispatchOnComponentsCreated(this);
 }
+
+bool AActor::IsSelectedInEditor() const
+{
+	return !IsPendingKill() && GSelectedActorAnnotation.Get(this);
+}
+
 #endif
 
 /** Util that sets up the actor's component hierarchy (when users forget to do so, in their native ctor) */

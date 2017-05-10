@@ -23,8 +23,12 @@ enum class EInteractorHand : uint8
 UCLASS(config = EditorSettings)
 class VREDITOR_API UVRModeSettings : public UObject
 {
+	GENERATED_BODY()
+
 public:
-	GENERATED_UCLASS_BODY()
+
+	/** Default constructor that sets up CDO properties */
+	UVRModeSettings();
 
 	/**If true, wearing a Vive or Oculus Rift headset will automatically enter VR Editing mode */
 	UPROPERTY(EditAnywhere, config, Category = "General", meta = (DisplayName = "Enable VR Mode Auto-Entry"))

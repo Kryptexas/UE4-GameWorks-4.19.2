@@ -341,6 +341,9 @@ public:
 	/** Get the visibility for items considered to be part of the 'full' viewport toolbar */
 	EVisibility GetFullToolbarVisibility() const { return bShowFullToolbar ? EVisibility::Visible : EVisibility::Collapsed; }
 
+	/** Unpin and close all actor preview windows */
+	void RemoveAllPreviews();
+
 protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;

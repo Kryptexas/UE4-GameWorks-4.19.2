@@ -764,7 +764,6 @@ public:
 	 */
 	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation = Orient_Vertical ) const;
 
-
 	/**
 	 * Is the window in the app's destroy queue? If so it will be destroyed next tick.
 	 *
@@ -1198,8 +1197,28 @@ public:
 	/** Set the size of the deadzone for dragging in screen pixels */
 	void SetDragTriggerDistance( float ScreenPixels );
 	
-	/** Set the analog cursor to be enabled or disabled. */
-	void SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> NewInputProcessor = nullptr);
+	/** [Deprecated] Adds or removes input pre-processor. */
+	DEPRECATED(4.17, "SetInputPreProcessor(...) is deprecated. Use RegisterInputPreProcessor(...) and/or UnregisterInputPreProcessor(...) / UnregisterAllInputPreProcessors(...) instead.")
+	void SetInputPreProcessor(bool bEnable, TSharedPtr<class IInputProcessor> InputProcessor = nullptr);
+
+	/** 
+	 * Adds input pre-processor if unique. 
+	 * @param InputProcessor	The input pre-processor to add.
+	 * @param Index				Where to insert the InputProcessor, when sorting is needed. Default index will add at the end.
+	 * @return True if added to list of input pre-processors, false if not
+	 */
+	bool RegisterInputPreProcessor(TSharedPtr<class IInputProcessor> InputProcessor, const int32 Index = INDEX_NONE);
+
+	/**
+	 * Removes an input pre-processor.
+	 * @param InputProcessor	The input pre-processor to Remove.
+	 */
+	void UnregisterInputPreProcessor(TSharedPtr<class IInputProcessor> InputProcessor);
+
+	/** 
+	 * Removes all input pre-processor from list of input pre-processors.
+	 */
+	void UnregisterAllInputPreProcessors();
 
 	/** Sets the hit detection radius of the cursor */
 	void SetCursorRadius(float NewRadius);
@@ -1248,7 +1267,7 @@ public:
 
 	virtual FVector2D GetCursorPos() const override;
 	virtual FVector2D GetLastCursorPos() const override;
-	virtual FVector2D GetCursorSize() const override;	
+	virtual FVector2D GetCursorSize() const override;
 
 	virtual bool GetSoftwareCursorAvailable() const override
 	{
@@ -1459,7 +1478,9 @@ public:
 	const void* FindBestParentWindowHandleForDialogs(const TSharedPtr<SWidget>& InWidget);
 
 public:
+#if WITH_EDITORONLY_DATA
 	FDragDropCheckingOverride OnDragDropCheckOverride;
+#endif
 
 private:
 
@@ -1606,6 +1627,12 @@ private:
 	/** A vertical slice through the tree of widgets on screen; it represents widgets that were under the cursor last time an event was processed */
 	TMap<FUserAndPointer, FWeakWidgetPath> WidgetsUnderCursorLastEvent;
 
+	/** Stores the position for the pointer position. */
+	TMap<FUserAndPointer, FVector2D> PointerIndexPositionMap;
+
+	/** Stores the position for the last pointer position. */
+	TMap<FUserAndPointer, FVector2D> PointerIndexLastPositionMap;
+
 	/**
 	 * A helper class to wrap the weak path functionality. The advantage of using this
 	 * class is that the path can be validated and the current mouse captor (if any) can
@@ -1694,9 +1721,6 @@ private:
 	/** The current mouse captor for the application, if any. */
 	MouseCaptorHelper MouseCaptor;
 
-	/** An input preprocessor, gets an opportunity to parse input before anything else. */
-	TSharedPtr<IInputProcessor> InputPreProcessor;
-	
 	/** The cursor widget and window to render that cursor for the current software cursor.*/
 	TWeakPtr<SWindow> CursorWindowPtr;
 	TWeakPtr<SWidget> CursorWidgetPtr;
@@ -1931,8 +1955,6 @@ private:
 	/** When an drag and drop is happening, we keep track of whether slate knew what to do with the payload on last mouse move */
 	bool DragIsHandled;
 
-	TMap<uint32, FVector2D> PointerIndexLastPositionMap;
-
 	/**
 	 * Virtual keyboard text field
 	 */
@@ -2015,6 +2037,51 @@ private:
 
 	/** Are we currently processing input in slate?  If so this value will be greater than 0. */
 	int32 ProcessingInput;
+
+		
+	/**
+	 * A helper class to wrap the list of input pre-processors. 
+	 */
+	class InputPreProcessorsHelper
+	{
+	public:
+
+		// Wrapper functions that call the corresponding function of IInputProcessor for each InputProcessor in the list.
+		void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor);
+		bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
+		bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent);
+		bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent);
+		bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
+		bool HandleMouseButtonDownEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
+		bool HandleMouseButtonUpEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent);
+		bool HandleMotionDetectedEvent(FSlateApplication& SlateApp, const FMotionEvent& MotionEvent);
+
+		/**
+		 * Adds or inserts an unique input pre-processor. 
+		 * @param InputProcessor	The InputProcessor to add.
+		 * @param Index				When this is set the index will be used to insert the InputProcessor. Defaults to INDEX_NONE, resulting in AddUnique.
+		 */
+		bool Add(TSharedPtr<IInputProcessor> InputProcessor, const int32 Index = INDEX_NONE);
+
+		/**
+		 * Remove an input pre-processor. 
+		 * @param InputProcessor	The InputProcessor to remove.
+		 */
+		void Remove(TSharedPtr<IInputProcessor> InputProcessor);
+
+		/**
+		 * Remove all registered input pre-processors.
+		 */
+		void RemoveAll();
+
+	private:
+
+		/** The list of input pre-processors. */
+		TArray<TSharedPtr<IInputProcessor>> InputPreProcessorList;
+	};
+
+	/** A list of input pre-processors, gets an opportunity to parse input before anything else. */
+	InputPreProcessorsHelper InputPreProcessors;
 
 #if WITH_EDITOR
 	/**

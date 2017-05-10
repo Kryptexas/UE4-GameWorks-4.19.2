@@ -37,6 +37,31 @@ namespace EAssetViewType
 }
 
 
+/** A selection of items in the Content Browser */
+struct FContentBrowserSelection
+{
+	TArray<FAssetData> SelectedAssets;
+	TArray<FString> SelectedFolders;
+
+	int32 Num() const
+	{
+		return SelectedAssets.Num() + SelectedFolders.Num();
+	}
+
+	void Reset()
+	{
+		SelectedAssets.Reset();
+		SelectedFolders.Reset();
+	}
+
+	void Empty()
+	{
+		SelectedAssets.Empty();
+		SelectedFolders.Empty();
+	}
+};
+
+
 /** A struct containing details about how the content browser should behave */
 struct FContentBrowserConfig
 {
@@ -257,7 +282,7 @@ struct FAssetPickerConfig
 		, bCanShowClasses(true)
 		, bCanShowFolders(false)
 		, bCanShowRealTimeThumbnails(false)
-		, bCanShowDevelopersFolder(false)
+		, bCanShowDevelopersFolder(true)
 		, bPreloadAssetsForContextMenu(true)
 		, bAddFilterUI(false)
 		, bShowPathInColumnView(false)
@@ -481,6 +506,12 @@ public:
 	/** Selects the supplied assets in all content browsers. If bAllowLockedBrowsers is true, even locked browsers may handle the sync. Only set to true if the sync doesn't seem external to the content browser. */
 	virtual void SyncBrowserToAssets(const TArray<class FAssetData>& AssetDataList, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) = 0;
 	virtual void SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) = 0;
+
+	/** Selects the supplied folders in all content browsers. If bAllowLockedBrowsers is true, even locked browsers may handle the sync. Only set to true if the sync doesn't seem external to the content browser. */
+	virtual void SyncBrowserToFolders(const TArray<FString>& FolderList, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) = 0;
+
+	/** Selects the supplied items in all content browsers. If bAllowLockedBrowsers is true, even locked browsers may handle the sync. Only set to true if the sync doesn't seem external to the content browser. */
+	virtual void SyncBrowserTo(const FContentBrowserSelection& ItemSelection, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) = 0;
 
 	/** Generates a list of assets that are selected in the primary content browser */
 	virtual void GetSelectedAssets(TArray<FAssetData>& SelectedAssets) = 0;

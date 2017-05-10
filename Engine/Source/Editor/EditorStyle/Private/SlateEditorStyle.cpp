@@ -1393,6 +1393,10 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "WorldBrowser.DetailsButtonBrush", new IMAGE_BRUSH( "Icons/icon_levels_detailsbutton_40x", Icon16x16 ) );
 		Set( "WorldBrowser.CompositionButtonBrush", new IMAGE_BRUSH( "Icons/icon_levels_compositionbutton_16x", Icon16x16 ) );
 		
+		Set( "WorldBrowser.FolderClosed", new IMAGE_BRUSH( "Icons/FolderClosed", Icon16x16 ) );
+		Set( "WorldBrowser.FolderOpen", new IMAGE_BRUSH( "Icons/FolderOpen", Icon16x16 ) );
+		Set( "WorldBrowser.NewFolderIcon", new IMAGE_BRUSH( "Icons/icon_AddFolder_16x", Icon16x16 ) );
+
 		Set( "WorldBrowser.StatusBarText", FTextBlockStyle(NormalText)
 				.SetFont( TTF_FONT( "Fonts/Roboto-BoldCondensed", 12 ) )
 				.SetColorAndOpacity( FLinearColor(0.9, 0.9f, 0.9f, 0.5f) )
@@ -2017,23 +2021,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
-	// Crash Tracker
-	{
-		Set( "CrashTracker", FTextBlockStyle(NormalText)
-			.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Bold", 18 ) )
-			.SetShadowOffset( FVector2D::ZeroVector ) );
-			
-		Set( "CrashTracker.Cursor", new IMAGE_BRUSH( "Common/MouseCursor", Icon32x32, FLinearColor(1,1,1,1), ESlateBrushTileType::Both ) );
-		Set( "CrashTracker.Record", new IMAGE_BRUSH( "Animation/Record", Icon20x20 ) );
-	}
-
-#if WITH_EDITOR || IS_PROGRAM
-	// Editor live streaming
-	{
-		Set( "EditorLiveStreaming.BroadcastButton", new IMAGE_BRUSH( "Animation/Record", Icon20x20 ) );
-	}
-
-#endif // WITH_EDITOR || IS_PROGRAM
 
 #if WITH_EDITOR
 	// Surface Props
@@ -2949,7 +2936,7 @@ void FSlateEditorStyle::FStyle::SetupDockingStyles()
 			// Legacy styles used by other editor specific widgets; see "Docking.MajorTab" in FCoreStyle for the current tab style
 			Set( "Docking.MajorTab.Normal", new BOX_BRUSH( "/Docking/AppTab_Inactive", FMargin(24.0f/64.0f, 4/32.0f) ) );
 			Set( "Docking.MajorTab.Active", new BOX_BRUSH( "/Docking/AppTab_Active", FMargin(24.0f/64.0f, 4/32.0f) ) );
-			Set( "Docking.MajorTab.ColorOverlay", new BOX_BRUSH( "/Docking/AppTab_ColorOverlay", FMargin(24.0f/64.0f, 4/32.0f) ) );
+			Set( "Docking.MajorTab.ColorOverlay", new BOX_BRUSH( "/Docking/AppTab_ColorOverlayIcon", FMargin(24.0f/64.0f, 4/32.0f) ) );
 			Set( "Docking.MajorTab.Foreground", new BOX_BRUSH( "/Docking/AppTab_Foreground", FMargin(24.0f/64.0f, 4/32.0f) ) );
 			Set( "Docking.MajorTab.Hovered", new BOX_BRUSH( "/Docking/AppTab_Hovered", FMargin(24.0f/64.0f, 4/32.0f) ) );
 			Set( "Docking.MajorTab.Padding", FMargin(17, 4, 15, 4) );
@@ -7163,6 +7150,8 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 	Set("WidgetDesigner.RenderTransform.Small", new IMAGE_BRUSH("Icons/UMG/Render_TransformMode_16x", Icon16x16));
 	Set("WidgetDesigner.ToggleOutlines", new IMAGE_BRUSH("Icons/UMG/ToggleOutlines.Small", Icon16x16));
 	Set("WidgetDesigner.ToggleOutlines.Small", new IMAGE_BRUSH("Icons/UMG/ToggleOutlines.Small", Icon16x16));
+	Set("WidgetDesigner.ToggleRespectLocks", new IMAGE_BRUSH("Icons/UMG/ToggleRespectLocks.Small", Icon16x16));
+	Set("WidgetDesigner.ToggleRespectLocks.Small", new IMAGE_BRUSH("Icons/UMG/ToggleRespectLocks.Small", Icon16x16));
 
 	Set("WidgetDesigner.LocationGridSnap", new IMAGE_BRUSH("Old/LevelEditor/LocationGridSnap", Icon14x14, IconColor));
 	Set("WidgetDesigner.RotationGridSnap", new IMAGE_BRUSH("Old/LevelEditor/RotationGridSnap", Icon14x14, IconColor));

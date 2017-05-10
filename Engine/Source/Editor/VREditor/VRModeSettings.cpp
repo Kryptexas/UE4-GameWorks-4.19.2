@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "VREditor"
 
-UVRModeSettings::UVRModeSettings(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+UVRModeSettings::UVRModeSettings()
+	: Super()
 {
 	bEnableAutoVREditMode = false;
 	InteractorHand = EInteractorHand::Right;

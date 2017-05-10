@@ -82,23 +82,18 @@ void SPluginBrowser::Construct( const FArguments& Args )
 
 	const float PaddingAmount = 2.0f;
 
-
 	PluginCategories = SNew( SPluginCategoryTree, SharedThis( this ) );
 
 	TSharedRef<SVerticalBox> MainContent = SNew( SVerticalBox )
 	+SVerticalBox::Slot()
 	[
-		SNew( SHorizontalBox )
-
-		+SHorizontalBox::Slot()
-		.Padding( PaddingAmount )
-		.AutoWidth()	// @todo plugedit: Probably want a splitter here (w/ saved layout)
+		SNew( SSplitter )
+		+SSplitter::Slot()
+		.Value(.3f)
 		[
 			PluginCategories.ToSharedRef()
 		]
-
-		+SHorizontalBox::Slot()
-		.Padding( PaddingAmount )
+		+SSplitter::Slot()
 		[
 			SNew( SVerticalBox )
 

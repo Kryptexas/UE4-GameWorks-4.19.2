@@ -21,6 +21,11 @@ UGlobalEditorUtilityBase::UGlobalEditorUtilityBase(const FObjectInitializer& Obj
 {
 }
 
+UWorld* UGlobalEditorUtilityBase::GetWorld() const
+{
+	return GEditor->GetEditorWorldContext().World();
+}
+
 TArray<AActor*> UGlobalEditorUtilityBase::GetSelectionSet()
 {
 	TArray<AActor*> Result;

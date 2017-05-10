@@ -66,6 +66,7 @@ void FPaintModePainter::Init()
 	FPaintModeCommands::Register();
 	CachedLODIndex = PaintSettings->VertexPaintSettings.LODIndex;
 	bCachedForceLOD = PaintSettings->VertexPaintSettings.bPaintOnSpecificLOD;
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FPaintModePainter::UpdatePaintTargets);
 }
 
 FPaintModePainter::FPaintModePainter()
@@ -81,6 +82,7 @@ FPaintModePainter::FPaintModePainter()
 
 FPaintModePainter::~FPaintModePainter()
 {
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	ComponentToAdapterMap.Empty();
 	ComponentToTexturePaintSettingsMap.Empty();
 }
@@ -2083,6 +2085,16 @@ void FPaintModePainter::ApplyForcedLODIndex(int32 ForcedLODIndex)
 	}
 }
 
+void FPaintModePainter::UpdatePaintTargets(UObject* InObject, struct FPropertyChangedEvent& InPropertyChangedEvent)
+{
+	AActor* Actor = Cast<AActor>(InObject);
+	if (InPropertyChangedEvent.Property && 
+		InPropertyChangedEvent.Property->GetName() == GET_MEMBER_NAME_CHECKED(USceneComponent, bVisible).ToString())
+	{
+		Refresh();
+	}
+}
+
 void FPaintModePainter::Refresh()
 {
 	// Ensure that we call OnRemoved while adapter/components are still valid
@@ -2178,7 +2190,7 @@ void FPaintModePainter::CacheSelectionData()
 	for (UMeshComponent* MeshComponent : SelectedMeshComponents)
 	{
 		TSharedPtr<IMeshPaintGeometryAdapter> MeshAdapter = FMeshPaintAdapterFactory::CreateAdapterForMesh(MeshComponent, PaintLODIndex);
-		if (MeshAdapter.IsValid() && MeshAdapter->IsValid())
+		if (MeshComponent->IsVisible() && MeshAdapter.IsValid() && MeshAdapter->IsValid())
 		{
 			PaintableComponents.Add(MeshComponent);
 			ComponentToAdapterMap.Add(MeshComponent, MeshAdapter);

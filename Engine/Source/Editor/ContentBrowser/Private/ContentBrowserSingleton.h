@@ -8,6 +8,7 @@
 #include "IContentBrowserSingleton.h"
 
 class FCollectionAssetRegistryBridge;
+class FEmptyFolderVisibilityManager;
 class FNativeClassHierarchy;
 class FSpawnTabArgs;
 class FTabManager;
@@ -41,6 +42,8 @@ public:
 	virtual void CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory) override;
 	virtual void SyncBrowserToAssets(const TArray<class FAssetData>& AssetDataList, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) override;
 	virtual void SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) override;
+	virtual void SyncBrowserToFolders(const TArray<FString>& FolderList, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) override;
+	virtual void SyncBrowserTo(const FContentBrowserSelection& ItemSelection, bool bAllowLockedBrowsers = false, bool bFocusContentBrowser = true) override;
 	virtual void GetSelectedAssets(TArray<FAssetData>& SelectedAssets) override;
 	virtual void CaptureThumbnailFromViewport(FViewport* InViewport, TArray<FAssetData>& SelectedAssets) override;
 	virtual void SetSelectedPaths(const TArray<FString>& FolderPaths, bool bNeedsRefresh = false) override;
@@ -58,7 +61,12 @@ public:
 
 	TSharedRef<FNativeClassHierarchy> GetNativeClassHierarchy();
 
+	TSharedRef<FEmptyFolderVisibilityManager> GetEmptyFolderVisibilityManager();
+
 private:
+
+	/** Util to get or create the content browser that should be used by the various Sync functions */
+	TSharedPtr<SContentBrowser> FindContentBrowserToSync(bool bAllowLockedBrowsers);
 
 	/** Shared code to open an asset dialog window with a config */
 	void SharedCreateAssetDialogWindow(const TSharedRef<class SAssetDialog>& AssetDialog, const FSharedAssetDialogConfig& InConfig, bool bModal) const;
@@ -101,6 +109,8 @@ private:
 	TWeakPtr<SContentBrowser> PrimaryContentBrowser;
 
 	TSharedPtr<FNativeClassHierarchy> NativeClassHierarchy;
+
+	TSharedRef<FEmptyFolderVisibilityManager> EmptyFolderVisibilityManager;
 
 	TSharedRef<FCollectionAssetRegistryBridge> CollectionAssetRegistryBridge;
 

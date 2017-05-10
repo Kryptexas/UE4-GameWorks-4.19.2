@@ -101,9 +101,21 @@ public:
 		// sort by start time to match application order of player camera
 		Segment.Impls.Sort(
 			[&](FSectionEvaluationData A, FSectionEvaluationData B){
-				const int32 SectionIndexA = SourceData[A.ImplIndex].EvalData.ImplIndex;
-				const int32 SectionIndexB = SourceData[B.ImplIndex].EvalData.ImplIndex;
-				return Sections[SectionIndexA]->GetStartTime() < Sections[SectionIndexB]->GetStartTime();
+				UMovieSceneSection* SectionA = Sections[SourceData[A.ImplIndex].EvalData.ImplIndex];
+				UMovieSceneSection* SectionB = Sections[SourceData[B.ImplIndex].EvalData.ImplIndex];
+
+				if (SectionA->IsInfinite())
+				{
+					return true;
+				}
+				else if (SectionB->IsInfinite())
+				{
+					return false;
+				}
+				else
+				{
+					return SectionA->GetStartTime() < SectionB->GetStartTime();
+				}
 			}
 		);
 	}

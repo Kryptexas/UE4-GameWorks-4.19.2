@@ -533,6 +533,12 @@ void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionA
 	UObject::PostEditUndo();
 }
 
+
+bool UObject::IsSelectedInEditor() const
+{
+	return !IsPendingKill() && GSelectedObjectAnnotation.Get(this);
+}
+
 #endif // WITH_EDITOR
 
 
@@ -1084,7 +1090,11 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 
 bool UObject::IsSelected() const
 {
-	return !IsPendingKill() && GSelectedAnnotation.Get(this);
+#if WITH_EDITOR
+	return IsSelectedInEditor();
+#else
+	return false;
+#endif
 }
 
 void UObject::GetPreloadDependencies(TArray<UObject*>& OutDeps)
@@ -1558,9 +1568,9 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 				// enums are alphabetical
 				TagType = FAssetRegistryTag::TT_Alphabetical;
 			}
-			else if ( Class->IsChildOf(UArrayProperty::StaticClass()) )
+			else if ( Class->IsChildOf(UArrayProperty::StaticClass()) || Class->IsChildOf(UMapProperty::StaticClass()) || Class->IsChildOf(USetProperty::StaticClass()) )
 			{
-				// arrays are hidden, it is often too much information to display and sort
+				// arrays/maps/sets are hidden, it is often too much information to display and sort
 				TagType = FAssetRegistryTag::TT_Hidden;
 			}
 			else

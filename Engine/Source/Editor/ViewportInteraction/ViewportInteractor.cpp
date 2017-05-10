@@ -28,8 +28,8 @@ namespace VI
 	static FAutoConsoleVariable LaserSmoothMinimumCutoff(TEXT("VI.LaserSmoothMinimumCutoff"), 0.9f, TEXT("Laser smooth lag"));
 }
 
-UViewportInteractor::UViewportInteractor( const FObjectInitializer& Initializer ) : 
-	UObject( Initializer ),
+UViewportInteractor::UViewportInteractor() :
+	Super(),
 	InteractorData(),
 	KeyToActionMap(),
 	WorldInteraction( nullptr ),
@@ -231,7 +231,7 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 										InteractorData.DragTranslationVelocity = FVector::ZeroVector;
 										InteractorData.DragRayLengthVelocity = 0.0f;
 										InteractorData.DraggingTransformGizmoComponent = nullptr;
-										InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
+										InteractorData.DragOperationComponent.Reset();
 										InteractorData.bIsDrivingVelocityOfSimulatedTransformables = false;
 
 										InteractorData.GizmoStartTransform = OtherInteractorData->GizmoStartTransform;
@@ -420,7 +420,7 @@ bool UViewportInteractor::HandleInputKey( FEditorViewportClient& ViewportClient,
 
 					// We won't use gizmo features for world movement
 					InteractorData.DraggingTransformGizmoComponent = nullptr;
-					InteractorData.TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
+					InteractorData.DragOperationComponent.Reset();
 					InteractorData.OptionalHandlePlacement.Reset();
 					InteractorData.GizmoStartTransform = FTransform::Identity;
 					InteractorData.GizmoStartLocalBounds = FBox(ForceInit);

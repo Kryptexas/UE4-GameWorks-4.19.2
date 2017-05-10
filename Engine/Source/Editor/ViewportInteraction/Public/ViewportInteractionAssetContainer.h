@@ -82,6 +82,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = Mesh)
 	UStaticMesh* CurrentRotationIndicatorMesh;
 
+	UPROPERTY(EditAnywhere, Category = Mesh)
+	UStaticMesh* FreeRotationHandleMesh;
 
 	//
 	// Materials

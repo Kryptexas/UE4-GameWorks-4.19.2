@@ -89,7 +89,16 @@ namespace
 		LINE_TERMINATOR;
 
 	const TCHAR RequiredCPPIncludes[] = TEXT("#include \"GeneratedCppIncludes.h\"") LINE_TERMINATOR;
+	
+	/** Guard that should be put at the start editor only generated code */
+	const TCHAR BeginEditorOnlyGuard[] = TEXT("#if WITH_EDITOR") LINE_TERMINATOR;
+
+	/** Guard that should be put at the end of editor only generated code */
+	const TCHAR EndEditorOnlyGuard[] = TEXT("#endif //WITH_EDITOR") LINE_TERMINATOR;
 }
+
+#define BEGIN_WRAP_EDITOR_ONLY(DoWrap) DoWrap ? BeginEditorOnlyGuard : TEXT("")
+#define END_WRAP_EDITOR_ONLY(DoWrap) DoWrap ? EndEditorOnlyGuard : TEXT("") 
 
 /**
  * Finds exact match of Identifier in string. Returns nullptr if none is found.
@@ -1352,13 +1361,26 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FOutputDevice& O
 	// Export the init code for each function
 	for (UFunction* Function : FunctionsToExport)
 	{
+		const bool bIsEditorOnlyFunction = Function->HasAnyFunctionFlags(FUNC_EditorOnly);
+
 		if (!Function->IsA<UDelegateFunction>())
 		{
-			OutDeclarations.Log(FTypeSingletonCache::Get(Function).GetExternDecl());
+			
+			OutDeclarations.Logf(TEXT("%s%s%s"), 
+				BEGIN_WRAP_EDITOR_ONLY(bIsEditorOnlyFunction),
+				*FTypeSingletonCache::Get(Function).GetExternDecl(),
+				END_WRAP_EDITOR_ONLY(bIsEditorOnlyFunction)
+			);
+
 			ExportFunction(Out, SourceFile, Function, bIsNoExport);
 		}
 
-		CallSingletons.Logf(TEXT("\t\t\t\tOuterClass->LinkChild(%s);\r\n"), *GetSingletonName(Function));
+		CallSingletons.Logf(TEXT("%s\t\t\t\tOuterClass->LinkChild(%s);\r\n%s"),
+			BEGIN_WRAP_EDITOR_ONLY(bIsEditorOnlyFunction),
+			*GetSingletonName(Function),
+			END_WRAP_EDITOR_ONLY(bIsEditorOnlyFunction)
+		);
+		
 	}
 
 	FUHTStringBuilder GeneratedClassRegisterFunctionText;
@@ -1457,7 +1479,13 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FOutputDevice& O
 			// Emit code to construct each UFunction and rebuild the function map at runtime
 			for (UFunction* Function : FunctionsInMap)
 			{
-				GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\tOuterClass->AddFunctionToFunctionMapWithOverriddenName(%s, %s);%s\r\n"), *GetSingletonName(Function), *FNativeClassHeaderGenerator::GetOverriddenNameForLiteral(Function), *GetGeneratedCodeCRCTag(Function));
+				const bool bIsEditorOnlyFunction = Function->HasAnyFunctionFlags(FUNC_EditorOnly);
+				GeneratedClassRegisterFunctionText.Logf(TEXT("%s\t\t\t\tOuterClass->AddFunctionToFunctionMapWithOverriddenName(%s, %s);%s\r\n%s"),
+					BEGIN_WRAP_EDITOR_ONLY(bIsEditorOnlyFunction),
+					*GetSingletonName(Function),
+					*FNativeClassHeaderGenerator::GetOverriddenNameForLiteral(Function),
+					*GetGeneratedCodeCRCTag(Function),
+					END_WRAP_EDITOR_ONLY(bIsEditorOnlyFunction));
 			}
 		}
 
@@ -1576,11 +1604,19 @@ void FNativeClassHeaderGenerator::ExportFunction(FOutputDevice& Out, const FUnre
 {
 	UFunction* SuperFunction = Function->GetSuperFunction();
 
+	const bool bIsEditorOnlyFunction = Function->HasAnyFunctionFlags(FUNC_EditorOnly);
+
 	bool bIsDelegate = Function->HasAnyFunctionFlags(FUNC_Delegate);
 
 	const FString SingletonName = GetSingletonName(Function);
 
 	FUHTStringBuilder CurrentFunctionText;
+
+	// Begin wrapping editor only functions.  Note: This should always be the first step!
+	if (bIsEditorOnlyFunction)
+	{
+		CurrentFunctionText.Logf(BeginEditorOnlyGuard);
+	}
 
 	CurrentFunctionText.Logf(TEXT("\tUFunction* %s\r\n"), *SingletonName);
 	CurrentFunctionText.Logf(TEXT("\t{\r\n"));
@@ -1692,6 +1728,12 @@ void FNativeClassHeaderGenerator::ExportFunction(FOutputDevice& Out, const FUnre
 	CurrentFunctionText.Logf(TEXT("\t\treturn ReturnFunction;\r\n"));
 	CurrentFunctionText.Logf(TEXT("\t}\r\n"));
 
+	// End wrapping editor only functions.  Note: This should always be the last step!
+	if (bIsEditorOnlyFunction)
+	{
+		CurrentFunctionText.Logf(EndEditorOnlyGuard);
+	}
+
 	uint32 FunctionCrc = GenerateTextCRC(*CurrentFunctionText);
 	GGeneratedCodeCRCs.Add(Function, FunctionCrc);
 	UHTMakefile.AddGeneratedCodeCRC(&SourceFile, Function, FunctionCrc);
@@ -1739,12 +1781,18 @@ void FNativeClassHeaderGenerator::ExportNatives(FOutputDevice& Out, FClass* Clas
 
 			for (const TTuple<UFunction*, FString>& Func : AnsiNamedFunctionsToExport)
 			{
+				UFunction* Function = Func.Get<0>();
+				const bool bEditorOnlyFunction = Function->HasAnyFunctionFlags(FUNC_EditorOnly);
+
 				Out.Logf(
-					TEXT("\t\t\t{ %s, (Native)&%s::exec%s },\r\n"),
+					TEXT("%s\t\t\t{ %s, (Native)&%s::exec%s },\r\n%s"),
+					BEGIN_WRAP_EDITOR_ONLY(bEditorOnlyFunction),
 					*Func.Get<1>(),
 					*TypeName,
-					*Func.Get<0>()->GetName()
+					*Function->GetName(),
+					END_WRAP_EDITOR_ONLY(bEditorOnlyFunction)
 				);
+
 			}
 
 			Out.Log(TEXT("\t\t};\r\n"));
@@ -1757,11 +1805,15 @@ void FNativeClassHeaderGenerator::ExportNatives(FOutputDevice& Out, FClass* Clas
 
 			for (const TTuple<UFunction*, FString>& Func : TCharNamedFunctionsToExport)
 			{
+				UFunction* Function = Func.Get<0>();
+				const bool bEditorOnlyFunction = Function->HasAnyFunctionFlags(FUNC_EditorOnly);
 				Out.Logf(
-					TEXT("\t\t\t{ %s, (Native)&%s::exec%s },\r\n"),
+					TEXT("%s\t\t\t{ %s, (Native)&%s::exec%s },\r\n%s"),
+					BEGIN_WRAP_EDITOR_ONLY(bEditorOnlyFunction),
 					*Func.Get<1>(),
 					*TypeName,
-					*Func.Get<0>()->GetName()
+					*Function->GetName(),
+					END_WRAP_EDITOR_ONLY(bEditorOnlyFunction)
 				);
 			}
 
@@ -3803,11 +3855,17 @@ FString FNativeClassHeaderGenerator::GetFunctionParameterString(UFunction* Funct
 	return ParameterList;
 }
 
-void FNativeClassHeaderGenerator::ExportNativeFunctions(FOutputDevice& OutGeneratedHeaderText, FOutputDevice& OutMacroCalls, FOutputDevice& OutNoPureDeclsMacroCalls, const FUnrealSourceFile& SourceFile, UClass* Class, FClassMetaData* ClassData)
+struct FNativeFunctionStringBuilder
 {
 	FUHTStringBuilder RPCWrappers;
 	FUHTStringBuilder AutogeneratedBlueprintFunctionDeclarations;
 	FUHTStringBuilder AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared;
+};
+
+void FNativeClassHeaderGenerator::ExportNativeFunctions(FOutputDevice& OutGeneratedHeaderText, FOutputDevice& OutMacroCalls, FOutputDevice& OutNoPureDeclsMacroCalls, const FUnrealSourceFile& SourceFile, UClass* Class, FClassMetaData* ClassData)
+{
+	FNativeFunctionStringBuilder RuntimeStringBuilders;
+	FNativeFunctionStringBuilder EditorStringBuilders;
 
 	FString ClassName = Class->GetName();
 
@@ -3827,6 +3885,9 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FOutputDevice& OutGenera
 			continue;
 		}
 
+		const bool bEditorOnlyFunc = Function->HasAnyFunctionFlags(FUNC_EditorOnly);
+		FNativeFunctionStringBuilder& FuncStringBuilders = bEditorOnlyFunc ? EditorStringBuilders : RuntimeStringBuilders;
+	
 		FFunctionData* CompilerInfo = FFunctionData::FindForFunction(Function);
 
 		const FFuncInfo& FunctionData = CompilerInfo->GetFunctionData();
@@ -3876,17 +3937,17 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FOutputDevice& OutGenera
 				const TCHAR* Virtual = (!FunctionData.FunctionReference->HasAnyFunctionFlags(FUNC_Static) && !(FunctionData.FunctionExportFlags & FUNCEXPORT_Final)) ? TEXT("virtual") : TEXT("");
 				FStringOutputDevice ValidDecl;
 				ValidDecl.Logf(TEXT("\t%s bool %s(%s);\r\n"), Virtual, *FunctionData.CppValidationImplName, *ParameterList);
-				AutogeneratedBlueprintFunctionDeclarations.Log(*ValidDecl);
+				FuncStringBuilders.AutogeneratedBlueprintFunctionDeclarations.Log(*ValidDecl);
 				if (!bHasValidate)
 				{
-					AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared.Logf(TEXT("%s"), *ValidDecl);
+					FuncStringBuilders.AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared.Logf(TEXT("%s"), *ValidDecl);
 				}
 			}
 
-			AutogeneratedBlueprintFunctionDeclarations.Log(*FunctionDeclaration);
+			FuncStringBuilders.AutogeneratedBlueprintFunctionDeclarations.Log(*FunctionDeclaration);
 			if (!bHasImplementation && FunctionData.CppImplName != FunctionName)
 			{
-				AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared.Log(*FunctionDeclaration);
+				FuncStringBuilders.AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared.Log(*FunctionDeclaration);
 			}
 
 			// Versions that skip function autodeclaration throw an error when a function is missing.
@@ -3897,7 +3958,7 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FOutputDevice& OutGenera
 			}
 		}
 
-		RPCWrappers.Log(TEXT("\r\n"));
+		FuncStringBuilders.RPCWrappers.Log(TEXT("\r\n"));
 
 		// if this function was originally declared in a base class, and it isn't a static function,
 		// only the C++ function header will be exported
@@ -3907,30 +3968,70 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FOutputDevice& OutGenera
 		}
 
 		// export the script wrappers
-		RPCWrappers.Logf(TEXT("\tDECLARE_FUNCTION(%s)"), *FunctionData.UnMarshallAndCallName);
-		RPCWrappers += LINE_TERMINATOR TEXT("\t{") LINE_TERMINATOR;
+		FuncStringBuilders.RPCWrappers.Logf(TEXT("\tDECLARE_FUNCTION(%s)"), *FunctionData.UnMarshallAndCallName);
+		FuncStringBuilders.RPCWrappers += LINE_TERMINATOR TEXT("\t{") LINE_TERMINATOR;
 
 		FParmsAndReturnProperties Parameters = GetFunctionParmsAndReturn(FunctionData.FunctionReference);
-		ExportFunctionThunk(RPCWrappers, Function, FunctionData, Parameters.Parms, Parameters.Return);
+		ExportFunctionThunk(FuncStringBuilders.RPCWrappers, Function, FunctionData, Parameters.Parms, Parameters.Return);
 
-		RPCWrappers += TEXT("\t}") LINE_TERMINATOR;
+		FuncStringBuilders.RPCWrappers += TEXT("\t}") LINE_TERMINATOR;
 	}
 
-	FString MacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_RPC_WRAPPERS"));
-	WriteMacro(OutGeneratedHeaderText, MacroName, AutogeneratedBlueprintFunctionDeclarations + RPCWrappers);
-	OutMacroCalls.Logf(TEXT("\t%s\r\n"), *MacroName);
-
-	// Put static checks before RPCWrappers to get proper messages from static asserts before compiler errors.
-	FString NoPureDeclsMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_RPC_WRAPPERS_NO_PURE_DECLS"));
-	if (SourceFile.GetGeneratedCodeVersionForStruct(Class) > EGeneratedCodeVersion::V1)
+	// Write runtime wrappers
 	{
-		WriteMacro(OutGeneratedHeaderText, NoPureDeclsMacroName, RPCWrappers);
+		FString MacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_RPC_WRAPPERS"));
+
+		WriteMacro(OutGeneratedHeaderText, MacroName, RuntimeStringBuilders.AutogeneratedBlueprintFunctionDeclarations + RuntimeStringBuilders.RPCWrappers);
+		OutMacroCalls.Logf(TEXT("\t%s\r\n"), *MacroName);
+
+		// Put static checks before RPCWrappers to get proper messages from static asserts before compiler errors.
+		FString NoPureDeclsMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_RPC_WRAPPERS_NO_PURE_DECLS"));
+		if (SourceFile.GetGeneratedCodeVersionForStruct(Class) > EGeneratedCodeVersion::V1)
+		{
+			WriteMacro(OutGeneratedHeaderText, NoPureDeclsMacroName, RuntimeStringBuilders.RPCWrappers);
+		}
+		else
+		{
+			WriteMacro(OutGeneratedHeaderText, NoPureDeclsMacroName, RuntimeStringBuilders.AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared + RuntimeStringBuilders.RPCWrappers);
+		}
+
+		OutNoPureDeclsMacroCalls.Logf(TEXT("\t%s\r\n"), *NoPureDeclsMacroName);
 	}
-	else
+
+	// Write editor only RPC wrappers if they exist
+	if (EditorStringBuilders.RPCWrappers.Len() > 0)
 	{
-		WriteMacro(OutGeneratedHeaderText, NoPureDeclsMacroName, AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared + RPCWrappers);
+		OutGeneratedHeaderText.Log( BeginEditorOnlyGuard );
+
+		FString MacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_EDITOR_ONLY_RPC_WRAPPERS"));
+
+		
+		WriteMacro(OutGeneratedHeaderText, MacroName, EditorStringBuilders.AutogeneratedBlueprintFunctionDeclarations + EditorStringBuilders.RPCWrappers);
+		OutMacroCalls.Logf(TEXT("\t%s\r\n"), *MacroName);
+
+		// Put static checks before RPCWrappers to get proper messages from static asserts before compiler errors.
+		FString NoPureDeclsMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_EDITOR_ONLY_RPC_WRAPPERS_NO_PURE_DECLS"));
+		if (SourceFile.GetGeneratedCodeVersionForStruct(Class) > EGeneratedCodeVersion::V1)
+		{
+			WriteMacro(OutGeneratedHeaderText, NoPureDeclsMacroName, EditorStringBuilders.RPCWrappers);
+		}
+		else
+		{
+			WriteMacro(OutGeneratedHeaderText, NoPureDeclsMacroName, EditorStringBuilders.AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared + EditorStringBuilders.RPCWrappers);
+		}
+
+		// write out an else preprocessor block for when not compiling for the editor.  The generated macros should be empty then since the functions are compiled out
+		{
+			OutGeneratedHeaderText.Log(TEXT("#else\r\n"));
+
+			WriteMacro(OutGeneratedHeaderText, MacroName, TEXT(""));
+			WriteMacro(OutGeneratedHeaderText, NoPureDeclsMacroName, TEXT(""));
+
+			OutGeneratedHeaderText.Log(EndEditorOnlyGuard);
+		}
+
+		OutNoPureDeclsMacroCalls.Logf(TEXT("\t%s\r\n"), *NoPureDeclsMacroName);
 	}
-	OutNoPureDeclsMacroCalls.Logf(TEXT("\t%s\r\n"), *NoPureDeclsMacroName);
 }
 
 /**

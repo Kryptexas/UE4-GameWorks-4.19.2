@@ -7,7 +7,6 @@
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
 #include "VREditorFloatingUI.h"
-#include "VREditorTransformGizmo.h"
 #include "SLevelViewport.h"
 #include "ImageUtils.h"
 #include "FileHelper.h"
@@ -217,12 +216,12 @@ void FVREditorActionCallbacks::UpdateGizmoModeText(UVREditorMode* InVRMode)
 	FVREditorActionCallbacks::GizmoModeText = GizmoTypeText;
 }
 
-void FVREditorActionCallbacks::OnUIToggleButtonClicked(UVREditorMode* InVRMode, const UVREditorUISystem::EEditorUIPanel PanelToToggle)
+void FVREditorActionCallbacks::OnUIToggleButtonClicked(UVREditorMode* InVRMode, VREditorPanelID PanelToToggle)
 {
 	InVRMode->GetUISystem().TogglePanelVisibility(PanelToToggle);
 }
 
-ECheckBoxState FVREditorActionCallbacks::GetUIToggledState(UVREditorMode* InVRMode, const UVREditorUISystem::EEditorUIPanel PanelToCheck)
+ECheckBoxState FVREditorActionCallbacks::GetUIToggledState(UVREditorMode* InVRMode, VREditorPanelID PanelToCheck)
 {
 	return InVRMode->GetUISystem().IsShowingEditorUIPanel(PanelToCheck) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }

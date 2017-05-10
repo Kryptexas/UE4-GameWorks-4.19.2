@@ -5,6 +5,7 @@
 #include "Modules/ModuleManager.h"
 #include "Misc/PackageName.h"
 #include "AssetData.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 
 FEnginePackageLocalizationCache::FEnginePackageLocalizationCache()
@@ -43,9 +44,8 @@ void FEnginePackageLocalizationCache::FindLocalizedPackages(const FString& InSou
 		LocalizedPackagePaths.Add(InLocalizedRoot);
 
 		// Set bIsScanningPath to avoid us processing newly added assets from this scan
-		bIsScanningPath = true;
+		TGuardValue<bool> SetIsScanningPath(bIsScanningPath, true);
 		AssetRegistry.ScanPathsSynchronous(LocalizedPackagePaths);
-		bIsScanningPath = false;
 	}
 #endif // WITH_EDITOR
 
@@ -54,7 +54,7 @@ void FEnginePackageLocalizationCache::FindLocalizedPackages(const FString& InSou
 
 	for (const FAssetData& LocalizedAssetData : LocalizedAssetDataArray)
 	{
-		const FName SourcePackageName = *(InSourceRoot / LocalizedAssetData.PackageName.ToString().Mid(InLocalizedRoot.Len() + 1)); // +1 for the trailing slash that isn't part of the string
+		const FName SourcePackageName = *FPackageName::GetSourcePackagePath(LocalizedAssetData.PackageName.ToString());
 
 		TArray<FName>& PrioritizedLocalizedPackageNames = InOutSourcePackagesToLocalizedPackages.FindOrAdd(SourcePackageName);
 		PrioritizedLocalizedPackageNames.AddUnique(LocalizedAssetData.PackageName);
@@ -63,24 +63,43 @@ void FEnginePackageLocalizationCache::FindLocalizedPackages(const FString& InSou
 
 void FEnginePackageLocalizationCache::FindAssetGroupPackages(const FName InAssetGroupName, const FName InAssetClassName)
 {
-	// We only support finding asset groups paths in cooked games, as the asset registry scan time can take too long otherwise
-	if (!FPlatformProperties::RequiresCookedData())
-	{
-		return;
-	}
-
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 
-	TArray<FAssetData> AssetsOfClass;
-	AssetRegistry.GetAssetsByClass(InAssetClassName, AssetsOfClass);
-
-	for (const FAssetData& AssetOfClass : AssetsOfClass)
+	// We use the localized paths to find the source assets for the group since it's much faster to scan those paths than perform a full scan
+	TArray<FString> LocalizedRootPaths;
 	{
-		if (!FPackageName::IsLocalizedPackage(AssetOfClass.PackageName.ToString()))
+		TArray<FString> RootPaths;
+		FPackageName::QueryRootContentPaths(RootPaths);
+		for (const FString& RootPath : RootPaths)
 		{
-			PackageNameToAssetGroup.Add(AssetOfClass.PackageName, InAssetGroupName);
+			LocalizedRootPaths.Add(RootPath / TEXT("L10N"));
 		}
+	}
+
+#if WITH_EDITOR
+	// Make sure the asset registry has the data we need
+	AssetRegistry.ScanPathsSynchronous(LocalizedRootPaths);
+#endif // WITH_EDITOR
+
+	// Build the filter to get all localized assets of the given class
+	FARFilter Filter;
+	Filter.bRecursivePaths = true;
+	for (const FString& LocalizedRootPath : LocalizedRootPaths)
+	{
+		Filter.PackagePaths.Add(*LocalizedRootPath);
+	}
+	Filter.bIncludeOnlyOnDiskAssets = false;
+	Filter.ClassNames.Add(InAssetClassName);
+	Filter.bRecursiveClasses = false;
+
+	TArray<FAssetData> LocalizedAssetsOfClass;
+	AssetRegistry.GetAssets(Filter, LocalizedAssetsOfClass);
+
+	for (const FAssetData& LocalizedAssetOfClass : LocalizedAssetsOfClass)
+	{
+		const FName SourcePackageName = *FPackageName::GetSourcePackagePath(LocalizedAssetOfClass.PackageName.ToString());
+		PackageNameToAssetGroup.Add(SourcePackageName, InAssetGroupName);
 	}
 }
 

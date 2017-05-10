@@ -661,7 +661,10 @@ void SGraphPin::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& 
 				TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 				bool bOkIcon = false;
 				FString TooltipText;
-				Node->GetSchema()->GetAssetsPinHoverMessage(AssetOp->AssetData, GraphPinObj, TooltipText, bOkIcon);
+				if (AssetOp->HasAssets())
+				{
+					Node->GetSchema()->GetAssetsPinHoverMessage(AssetOp->GetAssets(), GraphPinObj, TooltipText, bOkIcon);
+				}
 				const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
 				AssetOp->SetToolTip(FText::FromString(TooltipText), TooltipIcon);
 			}
@@ -760,8 +763,10 @@ FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dra
 		if(Node != NULL && Node->GetSchema() != NULL)
 		{
 			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
-
-			Node->GetSchema()->DroppedAssetsOnPin(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
+			if (AssetOp->HasAssets())
+			{
+				Node->GetSchema()->DroppedAssetsOnPin(AssetOp->GetAssets(), DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
+			}
 		}
 		return FReply::Handled();
 	}

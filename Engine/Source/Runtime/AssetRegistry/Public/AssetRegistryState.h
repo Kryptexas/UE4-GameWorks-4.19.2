@@ -62,6 +62,12 @@ public:
 	~FAssetRegistryState();
 
 	/**
+	 * Does the given path contain assets?
+	 * @note This function doesn't recurse into sub-paths.
+	 */
+	 bool HasAssets(const FName PackagePath) const;
+
+	/**
 	 * Gets asset data for all assets that match the filter.
 	 * Assets returned must satisfy every filter component if there is at least one element in the component's array.
 	 * Assets will satisfy a component if they match any of the elements in it.

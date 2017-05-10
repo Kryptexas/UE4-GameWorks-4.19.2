@@ -351,6 +351,7 @@ ULevelEditorMiscSettings::ULevelEditorMiscSettings( const FObjectInitializer& Ob
 	bAutoApplyLightingEnable = true;
 	SectionName = TEXT("Misc");
 	CategoryName = TEXT("LevelEditor");
+	EditorScreenshotSaveDirectory.Path = FPaths::ScreenShotDir();
 }
 
 

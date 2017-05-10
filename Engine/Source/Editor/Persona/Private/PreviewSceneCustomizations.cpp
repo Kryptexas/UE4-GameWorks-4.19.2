@@ -191,7 +191,7 @@ FReply FPreviewSceneDescriptionCustomization::OnSaveCollectionClicked(TSharedRef
 	if (DefaultPreviewMeshCollection)
 	{
 		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		UPreviewMeshCollection* NewPreviewMeshCollection = Cast<UPreviewMeshCollection>(AssetTools.CreateAsset(UPreviewMeshCollection::StaticClass(), FactoryToUse));
+		UPreviewMeshCollection* NewPreviewMeshCollection = Cast<UPreviewMeshCollection>(AssetTools.CreateAssetWithDialog(UPreviewMeshCollection::StaticClass(), FactoryToUse));
 		if (NewPreviewMeshCollection)
 		{
 			NewPreviewMeshCollection->Skeleton = DefaultPreviewMeshCollection->Skeleton;

@@ -405,4 +405,11 @@ public:
 	 * @return the widget
 	 */
 	virtual TSharedRef<SWidget> MakeTimeRange(const TSharedRef<SWidget>& InnerContent, bool bShowWorkingRange, bool bShowViewRange, bool bShowPlaybackRange) = 0;
+
+	/**
+	 * Get the top time slider from the main widget.
+	 *
+	 * @return the widget
+	 */
+	virtual TSharedPtr<class ITimeSlider> GetTopTimeSliderWidget() const = 0;
 };

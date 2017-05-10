@@ -2442,7 +2442,6 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Load runtime client modules (which are also needed at cook-time)
 	if( !IsRunningDedicatedServer() )
 	{
-		FModuleManager::Get().LoadModule(TEXT("GameLiveStreaming"));
 		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 	}
 #endif
@@ -2721,6 +2720,13 @@ void FEngineLoop::Exit()
 		FEngineFontServices::Destroy();
 	}
 #endif
+
+#if WITH_EDITOR
+	// This module must be shut down first because other modules may try to access it during shutdown.
+	// Accessing this module at shutdown causes instability since the object system will have been shut down and this module uses uobjects internally.
+	FModuleManager::Get().UnloadModule("AssetTools", true);
+#endif // WITH_EDITOR
+
 
 #if !PLATFORM_ANDROID 	// AppPreExit doesn't work on Android
 	AppPreExit();

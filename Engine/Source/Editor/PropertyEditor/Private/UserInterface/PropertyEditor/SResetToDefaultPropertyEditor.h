@@ -25,8 +25,7 @@ public:
 		SLATE_ARGUMENT(TOptional<FResetToDefaultOverride>, CustomResetToDefault)
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, const TSharedRef< class FPropertyEditor>& InPropertyEditor );
-
+	void Construct( const FArguments& InArgs, const TSharedPtr< class IPropertyHandle>& InPropertyHandle );
 
 private:
 	FText GetResetToolTip() const;
@@ -42,7 +41,7 @@ private:
 private:
 	TOptional<FResetToDefaultOverride> OptionalCustomResetToDefault;
 
-	TSharedPtr< class FPropertyEditor > PropertyEditor;
+	TSharedPtr< class IPropertyHandle > PropertyHandle;
 
 	EVisibility NonVisibleState;
 

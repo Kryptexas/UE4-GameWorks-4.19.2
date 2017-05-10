@@ -2261,6 +2261,11 @@ TArray<FString> UKismetSystemLibrary::GetPreferredLanguages()
 	return FPlatformMisc::GetPreferredLanguages();
 }
 
+FString UKismetSystemLibrary::GetDefaultLanguage()
+{
+	return FPlatformMisc::GetDefaultLanguage();
+}
+
 FString UKismetSystemLibrary::GetDefaultLocale()
 {
 	return FPlatformMisc::GetDefaultLocale();

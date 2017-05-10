@@ -30,7 +30,12 @@ void SSafeZone::Construct( const FArguments& InArgs )
 
 	SetTitleSafe(bIsTitleSafe);
 
-	FCoreDelegates::OnSafeFrameChangedEvent.AddSP(this, &SSafeZone::SafeAreaUpdated);
+	OnSafeFrameChangedHandle = FCoreDelegates::OnSafeFrameChangedEvent.AddSP(this, &SSafeZone::SafeAreaUpdated);
+}
+
+SSafeZone::~SSafeZone()
+{
+	FCoreDelegates::OnSafeFrameChangedEvent.Remove(OnSafeFrameChangedHandle);
 }
 
 void SSafeZone::SafeAreaUpdated()

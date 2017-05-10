@@ -14,15 +14,15 @@ class UMaterialExpressionTextureCoordinate : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 	/** Texture coordinate index */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureCoordinate)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MaterialExpressionTextureCoordinate)
 	int32 CoordinateIndex;
 
 	/** Controls how much the texture tiles horizontally, by scaling the U component of the vertex UVs by the specified amount. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureCoordinate)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionTextureCoordinate)
 	float UTiling;
 
 	/** Controls how much the texture tiles vertically, by scaling the V component of the vertex UVs by the specified amount. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureCoordinate)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialExpressionTextureCoordinate)
 	float VTiling;
 
 	/** Would like to unmirror U or V 

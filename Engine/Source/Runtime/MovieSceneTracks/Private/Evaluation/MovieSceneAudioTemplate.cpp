@@ -319,6 +319,7 @@ void FMovieSceneAudioSectionTemplateData::EnsureAudioIsPlaying(UAudioComponent& 
 		{
 			AudioComponent.bIsUISound = false;
 		}
+
 		AudioComponent.Play((Context.GetTime() - AudioRange.GetLowerBoundValue()) + FMath::Max(AudioStartOffset, 0.f));
 
 		if (Context.GetStatus() == EMovieScenePlayerStatus::Scrubbing)

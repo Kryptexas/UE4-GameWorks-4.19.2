@@ -31,6 +31,16 @@ void FMainFrameHandler::ShutDownEditor()
 	if (RootWindow.IsValid())
 	{
 		FSlateRect WindowRect = RootWindow->GetNonMaximizedRectInScreen();
+
+		if (!RootWindow->HasOSWindowBorder())
+		{
+			// If the window has a specified border size, shrink its screen size by that amount to prevent it from growing
+			// over multiple shutdowns
+			const FMargin WindowBorder = RootWindow->GetNonMaximizedWindowBorderSize();
+			WindowRect.Right -= WindowBorder.Left + WindowBorder.Right;
+			WindowRect.Bottom -= WindowBorder.Top + WindowBorder.Bottom;
+		}
+
 		FRootWindowLocation RootWindowLocation(FVector2D(WindowRect.Left, WindowRect.Top), WindowRect.GetSize(), RootWindow->IsWindowMaximized());
 		RootWindowLocation.SaveToIni();
 	}

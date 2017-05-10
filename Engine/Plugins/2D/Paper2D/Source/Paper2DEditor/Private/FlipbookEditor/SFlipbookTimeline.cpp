@@ -175,7 +175,7 @@ void SFlipbookTimeline::OnAssetsDropped(const class FAssetDragDropOp& DragDropOp
 {
 	//@TODO: Support inserting in addition to dropping at the end
 	TArray<FPaperFlipbookKeyFrame> NewFrames;
-	for (const FAssetData& AssetData : DragDropOp.AssetData)
+	for (const FAssetData& AssetData : DragDropOp.GetAssets())
 	{
 		if (UObject* Object = AssetData.GetAsset())
 		{

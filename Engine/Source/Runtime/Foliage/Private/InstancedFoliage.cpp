@@ -1254,7 +1254,7 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 	}
 
 	if (Component != nullptr)
-	{
+	{	
 		Component->BuildTreeIfOutdated(true, true);
 	}
 }

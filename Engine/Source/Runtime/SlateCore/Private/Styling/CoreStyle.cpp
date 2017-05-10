@@ -1065,7 +1065,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetCloseButtonStyle( CloseButton )
 			.SetNormalBrush( BOX_BRUSH( "/Docking/Tab_Inactive", 4/16.0f ) )
 			.SetActiveBrush( BOX_BRUSH( "/Docking/Tab_Active", 4/16.0f ) )
-			.SetColorOverlayBrush( BOX_BRUSH( "/Docking/Tab_ColorOverlay", 4/16.0f ) )
+			.SetColorOverlayBrush( BOX_BRUSH( "/Docking/Tab_ColorOverlayIcon", 4/16.0f ) )
 			.SetForegroundBrush( BOX_BRUSH( "/Docking/Tab_Foreground", 4/16.0f ) )
 			.SetHoveredBrush( BOX_BRUSH( "/Docking/Tab_Hovered", 4/16.0f ) )
 			.SetContentAreaBrush( BOX_BRUSH( "/Docking/TabContentArea", FMargin(4/16.0f) ) )
@@ -1080,7 +1080,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 			.SetCloseButtonStyle( CloseButton )
 			.SetNormalBrush( BOX_BRUSH( "/Docking/AppTab_Inactive", FMargin(24.0f/64.0f, 4/32.0f) ) )
 			.SetActiveBrush( BOX_BRUSH( "/Docking/AppTab_Active", FMargin(24.0f/64.0f, 4/32.0f) ) )
-			.SetColorOverlayBrush( BOX_BRUSH( "/Docking/AppTab_ColorOverlay", FMargin(24.0f/64.0f, 4/32.0f) ) )
+			.SetColorOverlayBrush( BOX_BRUSH( "/Docking/AppTab_ColorOverlayIcon", FMargin(24.0f/64.0f, 4/32.0f) ) )
 			.SetForegroundBrush( BOX_BRUSH( "/Docking/AppTab_Foreground", FMargin(24.0f/64.0f, 4/32.0f) ) )
 			.SetHoveredBrush( BOX_BRUSH( "/Docking/AppTab_Hovered", FMargin(24.0f/64.0f, 4/32.0f) ) )
 			.SetContentAreaBrush( BOX_BRUSH( "/Docking/AppTabContentArea", FMargin(4/16.0f) ) )
@@ -1198,6 +1198,8 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	// Widget Reflector Window
 	{
 		Style->Set("WidgetReflector.TabIcon", new IMAGE_BRUSH("Icons/icon_tab_WidgetReflector_16x", Icon16x16));
+		Style->Set("WidgetReflector.Icon", new IMAGE_BRUSH("Icons/icon_tab_WidgetReflector_40x", Icon40x40));
+		Style->Set("WidgetReflector.Icon.Small", new IMAGE_BRUSH("Icons/icon_tab_WidgetReflector_40x", Icon20x20));
 	}
 
 	// Message Log
@@ -1209,16 +1211,6 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set("MessageLog.Error", new IMAGE_BRUSH("MessageLog/Log_Error", Icon16x16));
 		Style->Set("MessageLog.Warning", new IMAGE_BRUSH("MessageLog/Log_Warning", Icon16x16));
 		Style->Set("MessageLog.Note", new IMAGE_BRUSH("MessageLog/Log_Note", Icon16x16));
-	}
-
-	// Slate RHI Renderer - Crash Tracker
-	{
-		Style->Set( "CrashTracker", FTextBlockStyle(NormalText)
-			.SetFont(TTF_FONT("Fonts/Roboto-Bold", 18))
-			.SetShadowOffset(FVector2D::ZeroVector));
-			
-		Style->Set("CrashTracker.Cursor", new IMAGE_BRUSH("CrashTracker/MouseCursor", Icon32x32, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f), ESlateBrushTileType::Both));
-		Style->Set("CrashTracker.Record", new IMAGE_BRUSH("CrashTracker/Record", Icon20x20));
 	}
 
 	// Wizard icons

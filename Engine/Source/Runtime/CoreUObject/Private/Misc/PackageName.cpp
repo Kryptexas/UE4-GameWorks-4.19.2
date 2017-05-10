@@ -18,6 +18,7 @@
 #include "Interfaces/IPluginManager.h"
 #include "Internationalization/PackageLocalizationManager.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "Misc/AutomationTest.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackageName, Log, All);
 
@@ -989,6 +990,63 @@ FString FPackageName::GetDelegateResolvedPackagePath(const FString& InSourcePack
 	return InSourcePackagePath;
 }
 
+FString FPackageName::GetSourcePackagePath(const FString& InLocalizedPackagePath)
+{
+	// This function finds the start and end point of the "/L10N/<culture>" part of the path so that it can be removed
+	auto GetL10NTrimRange = [](const FString& InPath, int32& OutL10NStart, int32& OutL10NLength)
+	{
+		const TCHAR* CurChar = *InPath;
+
+		// Must start with a slash
+		if (*CurChar++ != TEXT('/'))
+		{
+			return false;
+		}
+
+		// Find the end of the first part of the path, eg /Game/
+		while (*CurChar && *CurChar++ != TEXT('/')) {}
+		if (!*CurChar)
+		{
+			// Found end-of-string
+			return false;
+		}
+
+		if (FCString::Strnicmp(CurChar, TEXT("L10N/"), 5) == 0) // StartsWith "L10N/"
+		{
+			CurChar -= 1; // -1 because we need to eat the slash before L10N
+			OutL10NStart = (CurChar - *InPath);
+			OutL10NLength = 6; // "/L10N/"
+
+			// Walk to the next slash as that will be the end of the culture code
+			CurChar += OutL10NLength;
+			while (*CurChar && *CurChar++ != TEXT('/')) { ++OutL10NLength; }
+
+			return true;
+		}
+		else if (FCString::Stricmp(CurChar, TEXT("L10N")) == 0) // Is "L10N"
+		{
+			CurChar -= 1; // -1 because we need to eat the slash before L10N
+			OutL10NStart = (CurChar - *InPath);
+			OutL10NLength = 5; // "/L10N"
+
+			return true;
+		}
+
+		return false;
+	};
+
+	FString SourcePackagePath = InLocalizedPackagePath;
+
+	int32 L10NStart = INDEX_NONE;
+	int32 L10NLength = 0;
+	if (GetL10NTrimRange(SourcePackagePath, L10NStart, L10NLength))
+	{
+		SourcePackagePath.RemoveAt(L10NStart, L10NLength);
+	}
+
+	return SourcePackagePath;
+}
+
 FString FPackageName::GetLocalizedPackagePath(const FString& InSourcePackagePath)
 {
 	const FName LocalizedPackageName = FPackageLocalizationManager::Get().FindLocalizedPackageName(*InSourcePackagePath);
@@ -1211,3 +1269,51 @@ bool FPackageName::IsLocalizedPackage(const FString& InPackageName)
 	return FCString::Strnicmp(CurChar, TEXT("L10N/"), 5) == 0	// StartsWith "L10N/"
 		|| FCString::Stricmp(CurChar, TEXT("L10N")) == 0;		// Is "L10N"
 }
+
+
+#if WITH_DEV_AUTOMATION_TESTS
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPackageNameTests, "System.Core.Misc.PackageNames", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
+
+bool FPackageNameTests::RunTest(const FString& Parameters)
+{
+	// Localized paths tests
+	{
+		auto TestIsLocalizedPackage = [&](const FString& InPath, const bool InExpected)
+		{
+			const bool bResult = FPackageName::IsLocalizedPackage(InPath);
+			if (bResult != InExpected)
+			{
+				AddError(FString::Printf(TEXT("Path '%s' failed FPackageName::IsLocalizedPackage (got '%d', expected '%d')."), *InPath, bResult, InExpected));
+			}
+		};
+		
+		TestIsLocalizedPackage(TEXT("/Game"), false);
+		TestIsLocalizedPackage(TEXT("/Game/MyAsset"), false);
+		TestIsLocalizedPackage(TEXT("/Game/L10N"), true);
+		TestIsLocalizedPackage(TEXT("/Game/L10N/en"), true);
+		TestIsLocalizedPackage(TEXT("/Game/L10N/en/MyAsset"), true);
+	}
+
+	// Source path tests
+	{
+		auto TestGetSourcePackagePath = [this](const FString& InPath, const FString& InExpected)
+		{
+			const FString Result = FPackageName::GetSourcePackagePath(InPath);
+			if (Result != InExpected)
+			{
+				AddError(FString::Printf(TEXT("Path '%s' failed FPackageName::GetSourcePackagePath (got '%s', expected '%s')."), *InPath, *Result, *InExpected));
+			}
+		};
+
+		TestGetSourcePackagePath(TEXT("/Game"), TEXT("/Game"));
+		TestGetSourcePackagePath(TEXT("/Game/MyAsset"), TEXT("/Game/MyAsset"));
+		TestGetSourcePackagePath(TEXT("/Game/L10N"), TEXT("/Game"));
+		TestGetSourcePackagePath(TEXT("/Game/L10N/en"), TEXT("/Game"));
+		TestGetSourcePackagePath(TEXT("/Game/L10N/en/MyAsset"), TEXT("/Game/MyAsset"));
+	}
+
+	return true;
+}
+
+#endif //WITH_DEV_AUTOMATION_TESTS

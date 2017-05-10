@@ -246,7 +246,7 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() && GetWorld()->WorldType != EWorldType::Editor)
 	{
 		const FTransform ParentWorld = CalcNewComponentToWorld(FTransform());
 		GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);

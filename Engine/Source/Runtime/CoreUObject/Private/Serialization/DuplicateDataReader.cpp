@@ -30,7 +30,7 @@ FDuplicateDataReader::FDuplicateDataReader( class FUObjectAnnotationSparse<FDupl
 	ArPortFlags |= PPF_Duplicate | InPortFlags;
 
 #if USE_STABLE_LOCALIZATION_KEYS
-	if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+	if (GIsEditor && !(ArPortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
 	{
 		SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(InDestOuter));
 	}

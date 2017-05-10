@@ -273,6 +273,11 @@ public:
 	virtual bool UsesChangelists() const = 0;
 
 	/**
+	 * Whether the provider uses the checkout workflow
+	 */
+	virtual bool UsesCheckout() const = 0;
+
+	/**
 	 * Called every update.
 	 */
 	virtual void Tick() = 0;

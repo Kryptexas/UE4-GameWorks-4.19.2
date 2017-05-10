@@ -1502,8 +1502,24 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static TArray<FString> GetPreferredLanguages();
 	
 	/**
-	 * Returns the user's preferred language and region
-	 * @return A language ID indicating the user's language and region
+	 * Get the default language (for localization) used by this platform
+	 * @note This is typically the same as GetDefaultLocale unless the platform distinguishes between the two
+	 * @note This should be returned in IETF language tag form:
+	 *  - A two-letter ISO 639-1 language code (eg, "zh")
+	 *  - An optional four-letter ISO 15924 script code (eg, "Hans")
+	 *  - An optional two-letter ISO 3166-1 country code (eg, "CN")
+	 * @return The language as an IETF language tag (eg, "zh-Hans-CN")
+	 */
+	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
+	static FString GetDefaultLanguage();
+
+	/**
+	 * Get the default locale (for internationalization) used by this platform
+	 * @note This should be returned in IETF language tag form:
+	 *  - A two-letter ISO 639-1 language code (eg, "zh")
+	 *  - An optional four-letter ISO 15924 script code (eg, "Hans")
+	 *  - An optional two-letter ISO 3166-1 country code (eg, "CN")
+	 * @return The locale as an IETF language tag (eg, "zh-Hans-CN")
 	 */
 	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
 	static FString GetDefaultLocale();

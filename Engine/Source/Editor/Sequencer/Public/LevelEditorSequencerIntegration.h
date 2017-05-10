@@ -73,6 +73,9 @@ private:
 	/** Called when new actors are dropped in the viewport. */
 	void OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, const TArray<AActor*>& DroppedActors);
 
+	/** Called when viewport tab content changes. */
+	void OnTabContentChanged();
+
 	/** Called before a PIE session begins. */
 	void OnPreBeginPIE(bool bIsSimulating);
 

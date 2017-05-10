@@ -55,7 +55,6 @@ FSwarmDebugOptions GSwarmDebugOptions;
 #include "ModelLight.h"
 #include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
-#include "Interfaces/ICrashTrackerModule.h"
 #include "EngineModule.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
@@ -435,7 +434,6 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 	, DeterministicIndex(0)
 	, NextVisibilityId(0)
 	, CurrentBuildStage(FStaticLightingSystem::NotRunning)
-	, bCrashTrackerOriginallyEnabled(false)
 	, World(InWorld)
 	, LightingScenario(InLightingScenario)
 	, LightmassProcessor(NULL)
@@ -444,16 +442,6 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 
 FStaticLightingSystem::~FStaticLightingSystem()
 {
-	if (bCrashTrackerOriginallyEnabled)
-	{
-		// Re-enable the crash tracker if we ever disabled it
-		ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>("CrashTracker");
-		if (CrashTracker)
-		{
-			CrashTracker->SetCrashTrackingEnabled(true);
-			bCrashTrackerOriginallyEnabled = false;
-		}
-	}
 	if (LightmassProcessor)
 	{
 		delete LightmassProcessor;
@@ -2053,25 +2041,6 @@ bool FStaticLightingSystem::InitiateLightmassProcessor()
 			LightmassProcessor->InitiateExport();
 			bSuccessful = true;
 			CurrentBuildStage = FStaticLightingSystem::AmortizedExport;
-
-			if (!IsRunningCommandlet())
-			{
-				// Crash tracker interferes with performance during export only.
-				// Disable it only for export, for everything else it shouldn't matter.
-				// This is a very special case, and doing this sort of thing
-				// is almost never recommended, especially without profiling heavily.
-				// The reason it works here is because amortized export flushes the render
-				// commands every tick, which is highly detrimental to the crash tracker's operation.
-				// ALSO NOTE: The reason this is set here rather than be a common API in the crashtracker
-				// module is to discourage people from doing this sort of thing all over the place.
-				ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>("CrashTracker");
-				if (CrashTracker)
-				{
-					bCrashTrackerOriginallyEnabled = CrashTracker->IsCurrentlyCapturing();
-					CrashTracker->SetCrashTrackingEnabled(false);
-				}
-			}
-
 		}
 	}
 	
@@ -2190,16 +2159,6 @@ void FStaticLightingSystem::UpdateLightingBuild()
 
 		if (bCompleted)
 		{
-			if (bCrashTrackerOriginallyEnabled)
-			{
-				// Re-enable the crash tracker if we disabled it
-				ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>("CrashTracker");
-				if (CrashTracker)
-				{
-					CrashTracker->SetCrashTrackingEnabled(true);
-					bCrashTrackerOriginallyEnabled = false;
-				}
-			}
 			CurrentBuildStage = FStaticLightingSystem::SwarmKickoff;
 		}
 	}

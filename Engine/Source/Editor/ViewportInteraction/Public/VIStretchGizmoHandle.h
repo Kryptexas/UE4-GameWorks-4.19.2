@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "VIGizmoHandle.h"
+#include "ViewportDragOperation.h"
 #include "VIStretchGizmoHandle.generated.h"
 
 enum class EGizmoHandleTypes : uint8;
@@ -26,12 +27,20 @@ public:
 	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
 		float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup ) override;
 
-	/** Gets the InteractionType for this Gizmo handle */
-	virtual ETransformGizmoInteractionType GetInteractionType() const override;
-
 	/** Gets the GizmoType for this Gizmo handle */
 	virtual EGizmoHandleTypes GetHandleType() const override;
 
 	/** Returns true if this type of handle is allowed with world space gizmos */
 	virtual bool SupportsWorldCoordinateSpace() const override;
+};
+
+UCLASS()
+class UStretchGizmoHandleDragOperation : public UViewportDragOperation
+{
+	GENERATED_BODY()
+
+public:
+
+	// IViewportDragOperation
+	virtual void ExecuteDrag(struct FDraggingTransformableData& DraggingData) override;
 };

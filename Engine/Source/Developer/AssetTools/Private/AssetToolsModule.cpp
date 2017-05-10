@@ -12,8 +12,9 @@ DEFINE_LOG_CATEGORY(LogAssetTools);
 
 void FAssetToolsModule::StartupModule()
 {
-	AssetTools = new FAssetTools();
 	ConsoleCommands = new FAssetToolsConsoleCommands(*this);
+
+	AssetToolsPtr = GetMutableDefault<UAssetToolsImpl>();
 
 	// create a message log for the asset tools to use
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
@@ -24,12 +25,6 @@ void FAssetToolsModule::StartupModule()
 
 void FAssetToolsModule::ShutdownModule()
 {
-	if (AssetTools != NULL)
-	{
-		delete AssetTools;
-		AssetTools = NULL;
-	}
-
 	if (ConsoleCommands != NULL)
 	{
 		delete ConsoleCommands;
@@ -46,6 +41,5 @@ void FAssetToolsModule::ShutdownModule()
 
 IAssetTools& FAssetToolsModule::Get() const
 {
-	check(AssetTools);
-	return *AssetTools;
+	return *AssetToolsPtr;
 }

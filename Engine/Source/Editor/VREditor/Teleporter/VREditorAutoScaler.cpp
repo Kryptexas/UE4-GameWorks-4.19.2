@@ -5,24 +5,19 @@
 #include "ViewportInteractionTypes.h"
 #include "ViewportWorldInteraction.h"
 #include "ViewportInteractor.h"
-#include "Kismet/GameplayStatics.h"
-#include "GameFramework/WorldSettings.h"
 #include "Sound/SoundCue.h"
+#include "VREditorAssetContainer.h"
 
 namespace VREd
 {
 	static FAutoConsoleVariable AllowResetScale(TEXT("VREd.AllowResetScale"), 1, TEXT("Allowed to reset world to meters to default world to meters"));
 }
 
-UVREditorAutoScaler::UVREditorAutoScaler( const FObjectInitializer& ObjectInitializer ) :
-	Super( ObjectInitializer ),
-	VRMode( nullptr )
+UVREditorAutoScaler::UVREditorAutoScaler() :
+	Super(),
+	VRMode(nullptr)
 {
-	// Load sounds
-	ScaleSound = LoadObject<USoundCue>( nullptr, TEXT( "/Engine/VREditor/Sounds/VR_teleport_Cue" ) );
-	check( ScaleSound != nullptr );
 }
-
 
 void UVREditorAutoScaler::Init( class UVREditorMode* InVRMode )
 {
@@ -37,7 +32,6 @@ void UVREditorAutoScaler::Shutdown()
 	VRMode = nullptr;
 }
 
-
 void UVREditorAutoScaler::Scale( const float NewWorldToMetersScale )
 {
 	if (VREd::AllowResetScale->GetInt() != 0)
@@ -47,7 +41,8 @@ void UVREditorAutoScaler::Scale( const float NewWorldToMetersScale )
 		// Set the new world to meters scale.
 		WorldInteraction->SetWorldToMetersScale( NewWorldToMetersScale, true );
 		WorldInteraction->SkipInteractiveWorldMovementThisFrame();
-		UGameplayStatics::PlaySound2D( VRMode->GetWorld(), ScaleSound );
+	
+		VRMode->PlaySound(VRMode->GetAssetContainer().AutoScaleSound, VRMode->GetHeadTransform().GetLocation());
 	}
 }
 

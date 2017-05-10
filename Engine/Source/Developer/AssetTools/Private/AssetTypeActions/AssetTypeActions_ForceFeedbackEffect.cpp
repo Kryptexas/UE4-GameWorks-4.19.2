@@ -198,7 +198,8 @@ TSharedPtr<SWidget> FAssetTypeActions_ForceFeedbackEffect::GetThumbnailOverlay(c
 		.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 		.ToolTipText_Lambda(OnToolTipTextLambda)
 		.Cursor(EMouseCursor::Default) // The outer widget can specify a DragHand cursor, so we need to override that here
-		.ForegroundColor(FSlateColor::UseForeground())		
+		.ForegroundColor(FSlateColor::UseForeground())
+		.IsFocusable(false)
 		.IsEnabled_Lambda(IsEnabledLambda)
 		.OnClicked_Lambda(OnClickedLambda)
 		.Visibility_Lambda(OnGetVisibilityLambda)

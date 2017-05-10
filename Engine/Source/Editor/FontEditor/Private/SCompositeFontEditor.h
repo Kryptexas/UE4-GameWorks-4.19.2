@@ -11,6 +11,7 @@
 #include "Widgets/SWidget.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Fonts/SlateFontInfo.h"
+#include "Fonts/UnicodeBlockRange.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/STileView.h"
@@ -413,9 +414,33 @@ private:
 	/** Set the given range component from its numeric form (0 for min, 1 for max) */
 	void SetRangeComponent(const int32 InNewValue, const int32 InComponentIndex);
 
+	/** Cache the current range selection (calculated based on the current range) */
+	void CacheCurrentRangeSelection();
+
+	/** Get the display name of the current range selection (or "Custom" if there is no range selection) */
+	FText GetCurrentRangeSelectionDisplayName() const;
+
+	/** Called before the range selection combo is opened - used to sort the list of available range selections */
+	void OnRangeSelectionComboOpening();
+
+	/** Called when the selection of the range selection combo is changed */
+	void OnRangeSelectionChanged(TSharedPtr<FUnicodeBlockRange> InNewRangeSelection, ESelectInfo::Type);
+
+	/** Make the widget for an entry in the range selection combo */
+	TSharedRef<SWidget> MakeRangeSelectionWidget(TSharedPtr<FUnicodeBlockRange> InRangeSelection);
+
 	/** Pointer back to the composite font editor that owns us */
 	SCompositeFontEditor* CompositeFontEditorPtr;
 
 	/** Character range to edit (may be invalid, or change in response to an undo/redo) */
 	FCharacterRangeTileViewEntryPtr CharacterRange;
+
+	/** Range selection combo box widget */
+	TSharedPtr<SComboBox<TSharedPtr<FUnicodeBlockRange>>> RangeSelectionCombo;
+
+	/** Source data for the range selection combo widget */
+	TArray<TSharedPtr<FUnicodeBlockRange>> RangeSelectionComboData;
+
+	/** The currently selected range selection preset */
+	TOptional<FUnicodeBlockRange> CurrentRangeSelection;
 };

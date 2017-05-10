@@ -257,6 +257,12 @@ void FAssetRegistryState::PruneAssetData(const TSet<FName>& RequiredPackages, co
 	}
 }
 
+bool FAssetRegistryState::HasAssets(const FName PackagePath) const
+{
+	const TArray<FAssetData*>* FoundAssetArray = CachedAssetsByPath.Find(PackagePath);
+	return FoundAssetArray && FoundAssetArray->Num() > 0;
+}
+
 bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& PackageNamesToSkip, TArray<FAssetData>& OutAssetData) const
 {
 	// Verify filter input. If all assets are needed, use GetAllAssets() instead.
@@ -277,7 +283,7 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 	// On disk package names
 	if (FilterPackageNames.Num())
 	{
-		TArray<FAssetData*>* PackageNameFilter = new (DiskFilterSets) TArray<FAssetData*>();
+		TArray<FAssetData*>& PackageNameFilter = DiskFilterSets[DiskFilterSets.AddDefaulted()];
 
 		for (FName PackageName : FilterPackageNames)
 		{
@@ -285,7 +291,7 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 
 			if (PackageAssets != nullptr)
 			{
-				PackageNameFilter->Append(*PackageAssets);
+				PackageNameFilter.Append(*PackageAssets);
 			}
 		}
 	}
@@ -293,7 +299,7 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 	// On disk package paths
 	if (FilterPackagePaths.Num())
 	{
-		TArray<FAssetData*>* PathFilter = new (DiskFilterSets) TArray<FAssetData*>();
+		TArray<FAssetData*>& PathFilter = DiskFilterSets[DiskFilterSets.AddDefaulted()];
 
 		for (FName PackagePath : FilterPackagePaths)
 		{
@@ -301,7 +307,7 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 
 			if (PathAssets != nullptr)
 			{
-				PathFilter->Append(*PathAssets);
+				PathFilter.Append(*PathAssets);
 			}
 		}
 	}
@@ -309,7 +315,7 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 	// On disk classes
 	if (FilterClassNames.Num())
 	{
-		TArray<FAssetData*>* ClassFilter = new (DiskFilterSets) TArray<FAssetData*>();
+		TArray<FAssetData*>& ClassFilter = DiskFilterSets[DiskFilterSets.AddDefaulted()];
 
 		for (FName ClassName : FilterClassNames)
 		{
@@ -317,7 +323,7 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 
 			if (ClassAssets != nullptr)
 			{
-				ClassFilter->Append(*ClassAssets);
+				ClassFilter.Append(*ClassAssets);
 			}
 		}
 	}
@@ -325,15 +331,15 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 	// On disk object paths
 	if (FilterObjectPaths.Num())
 	{
-		TArray<const FAssetData*>* ObjectPathsFilter = new (DiskFilterSets) TArray<const FAssetData*>();
+		TArray<FAssetData*>& ObjectPathsFilter = DiskFilterSets[DiskFilterSets.AddDefaulted()];
 
 		for (FName ObjectPath : FilterObjectPaths)
 		{
-			const FAssetData* const* AssetDataPtr = CachedAssetsByObjectPath.Find(ObjectPath);
+			FAssetData* AssetDataPtr = CachedAssetsByObjectPath.FindRef(ObjectPath);
 
 			if (AssetDataPtr != nullptr)
 			{
-				ObjectPathsFilter->Add(*AssetDataPtr);
+				ObjectPathsFilter.Add(AssetDataPtr);
 			}
 		}
 	}
@@ -341,7 +347,7 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 	// On disk tags and values
 	if (Filter.TagsAndValues.Num())
 	{
-		TArray<const FAssetData*>* TagAndValuesFilter = new (DiskFilterSets) TArray<const FAssetData*>();
+		TArray<FAssetData*>& TagAndValuesFilter = DiskFilterSets[DiskFilterSets.AddDefaulted()];
 
 		for (auto FilterTagIt = Filter.TagsAndValues.CreateConstIterator(); FilterTagIt; ++FilterTagIt)
 		{
@@ -359,7 +365,7 @@ bool FAssetRegistryState::GetAssets(const FARFilter& Filter, const TSet<FName>& 
 						const FString* TagValue = AssetData->TagsAndValues.Find(Tag);
 						if (TagValue != nullptr && *TagValue == Value)
 						{
-							TagAndValuesFilter->Add(AssetData);
+							TagAndValuesFilter.Add(AssetData);
 						}
 					}
 				}

@@ -111,4 +111,6 @@ protected:
 	//~ Begin UWidget Interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	//~ End UWidget Interface
+
+	PROPERTY_BINDING_IMPLEMENTATION(FSlateColor, FillColorAndOpacity);
 };

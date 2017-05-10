@@ -57,6 +57,7 @@ namespace UMWidget
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget
  */
 #define OPTIONAL_BINDING(ReturnType, MemberName)				\
+	DEPRECATED_MACRO(4.17, "OPTIONAL_BINDING macro is deprecated.  Please use PROPERTY_BINDING in place and you'll need to define a PROPERTY_BINDING_IMPLEMENTATION in your header instead.") \
 	( MemberName ## Delegate.IsBound() && !IsDesignTime() )		\
 	?															\
 		TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()) \
@@ -65,14 +66,18 @@ namespace UMWidget
 
 #if WITH_EDITOR
 
-#define GAME_SAFE_OPTIONAL_BINDING(ReturnType, MemberName)			\
+/**
+ * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget.
+ * These macros create a binding that has a layer of indirection that allows blueprint debugging to work more effectively.
+ */
+#define PROPERTY_BINDING(ReturnType, MemberName)					\
 	( MemberName ## Delegate.IsBound() && !IsDesignTime() )			\
 	?																\
 		BIND_UOBJECT_ATTRIBUTE(ReturnType, K2_Gate_ ## MemberName)	\
 	:																\
 		TAttribute< ReturnType >(MemberName)
 
-#define GAME_SAFE_BINDING_IMPLEMENTATION(ReturnType, MemberName)		\
+#define PROPERTY_BINDING_IMPLEMENTATION(ReturnType, MemberName)			\
 	ReturnType K2_Cache_ ## MemberName;									\
 	ReturnType K2_Gate_ ## MemberName()									\
 	{																	\
@@ -86,16 +91,19 @@ namespace UMWidget
 
 #else
 
-#define GAME_SAFE_OPTIONAL_BINDING(ReturnType, MemberName)		\
+#define PROPERTY_BINDING(ReturnType, MemberName)				\
 	( MemberName ## Delegate.IsBound() && !IsDesignTime() )		\
 	?															\
 		TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()) \
 	:															\
 		TAttribute< ReturnType >(MemberName)
 
-#define GAME_SAFE_BINDING_IMPLEMENTATION(Type, MemberName)
+#define PROPERTY_BINDING_IMPLEMENTATION(Type, MemberName) 
 
 #endif
+
+#define GAME_SAFE_OPTIONAL_BINDING(ReturnType, MemberName) PROPERTY_BINDING(ReturnType, MemberName)
+#define GAME_SAFE_BINDING_IMPLEMENTATION(ReturnType, MemberName) PROPERTY_BINDING_IMPLEMENTATION(ReturnType, MemberName)
 
 /**
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget,
@@ -294,8 +302,30 @@ public:
 	UPROPERTY()
 	bool bExpandedInDesigner;
 
+	/** Stores the design time flag setting if the widget is locked inside the designer */
+	UPROPERTY()
+	bool bLockedInDesigner;
+
 	/** Stores a reference to the asset responsible for this widgets construction. */
 	TWeakObjectPtr<UObject> WidgetGeneratedBy;
+	
+#endif
+
+public:
+
+#if WITH_EDITOR
+
+	/** @return is this widget locked */
+	bool IsLockedInDesigner() const
+	{
+		return bLockedInDesigner;
+	}
+
+	/** @param bLockedInDesigner should this widget be locked */
+	virtual void SetLockedInDesigner(bool NewLockedInDesigner)
+	{
+		bLockedInDesigner = NewLockedInDesigner;
+	}
 
 #endif
 
@@ -744,7 +774,7 @@ private:
 #endif
 
 private:
-	GAME_SAFE_BINDING_IMPLEMENTATION(FText, ToolTipText)
-	GAME_SAFE_BINDING_IMPLEMENTATION(bool, bIsEnabled)
-	//GAME_SAFE_BINDING_IMPLEMENTATION(EMouseCursor::Type, Cursor)
+	PROPERTY_BINDING_IMPLEMENTATION(FText, ToolTipText);
+	PROPERTY_BINDING_IMPLEMENTATION(bool, bIsEnabled);
+	//PROPERTY_BINDING_IMPLEMENTATION(EMouseCursor::Type, Cursor);
 };

@@ -100,7 +100,7 @@ void FSkeletalMeshImportData::CopyLODImportData(
 					   TArray<FMeshWedge>& LODWedges,
 					   TArray<FMeshFace>& LODFaces,	
 					   TArray<FVertInfluence>& LODInfluences,
-					   TArray<int32>& LODPointToRawMap)
+					   TArray<int32>& LODPointToRawMap) const
 {
 	// Copy vertex data.
 	LODPoints.Empty( Points.Num() );

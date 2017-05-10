@@ -25,6 +25,7 @@ EUnit ConvertDefaultInputUnits(EDefaultLocationUnit In)
 
 UEditorProjectAppearanceSettings::UEditorProjectAppearanceSettings(const FObjectInitializer& Initializer)
 	: Super(Initializer)
+	, bDisplayUnitsOnComponentTransforms(false)
 	, UnitDisplay_DEPRECATED(EUnitDisplay::Invalid)
 	, DefaultInputUnits_DEPRECATED(EDefaultLocationUnit::Invalid)
 {

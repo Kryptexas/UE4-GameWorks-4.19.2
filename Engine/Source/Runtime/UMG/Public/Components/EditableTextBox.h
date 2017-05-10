@@ -186,4 +186,7 @@ protected:
 
 protected:
 	TSharedPtr<SEditableTextBox> MyEditableTextBlock;
+
+	PROPERTY_BINDING_IMPLEMENTATION(FText, Text);
+	PROPERTY_BINDING_IMPLEMENTATION(FText, HintText);
 };

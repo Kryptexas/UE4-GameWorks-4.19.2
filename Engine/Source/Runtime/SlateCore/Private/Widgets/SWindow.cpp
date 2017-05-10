@@ -796,6 +796,13 @@ FMargin SWindow::GetWindowBorderSize( bool bIncTitleBar ) const
 
 		return BorderSize;
 	}
+
+	return GetNonMaximizedWindowBorderSize();
+}
+
+
+FMargin SWindow::GetNonMaximizedWindowBorderSize() const
+{
 #if PLATFORM_WINDOWS || PLATFORM_LINUX
 	return LayoutBorder;
 #else

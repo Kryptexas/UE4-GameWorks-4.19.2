@@ -1793,6 +1793,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint, bool b
 			Blueprint->GeneratedClass = NewClass;
 			NewClass->ClassGeneratedBy = Blueprint;
 			NewClass->SetSuperStruct(Blueprint->ParentClass);
+			Blueprint->bHasBeenRegenerated = true;		// Set to true, similar to CreateBlueprint, since we've regerated the class by duplicating it
 
 			// Since we just duplicated the generated class above, we don't need to do a full compile below
 			CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;

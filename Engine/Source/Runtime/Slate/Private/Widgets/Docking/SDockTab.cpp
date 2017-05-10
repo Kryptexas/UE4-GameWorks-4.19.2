@@ -22,6 +22,9 @@ namespace SDockTabDefs
 
 	/** The amount of time to pass before we switch tabs due to drag event */
 	static const float DragTimerActivate = 0.75f;
+
+	/** Overrides the tab padding if color overlays are enabled */
+	static const float TabVerticalPaddingScaleOverride = 0.85f;
 }
 
 
@@ -356,7 +359,7 @@ SDockTab::SDockTab()
 	, OnCanCloseTab()
 	, ContentAreaPadding( 2 )
 	, bShouldAutosize(false)
-	, TabColorScale(FLinearColor(0,0,0,0))
+	, TabColorScale(FLinearColor::Transparent)
 	, LastActivationTime(0.0)
 {
 }
@@ -501,18 +504,6 @@ void SDockTab::Construct( const FArguments& InArgs )
 				SNew(SImage)
 				.Image( this, &SDockTab::GetImageBrush )
 			]
-			// Overlay for color-coded tab effect
-			+ SOverlay::Slot()
-			[
-				SNew(SBorder)
-				// Don't allow color overlay to absorb mouse clicks
-				.Visibility( EVisibility::HitTestInvisible )
-
-				// @todo toolkit major: Replace temp color overlay art with something prettier before enabling it!
-				.Padding( this, &SDockTab::GetTabPadding )
-				.BorderImage( this, &SDockTab::GetColorOverlayImageBrush )
-				.BorderBackgroundColor( this, &SDockTab::GetTabColor )
-			]
 
 			// Overlay for active tab indication.
 			+ SOverlay::Slot()
@@ -536,24 +527,32 @@ void SDockTab::Construct( const FArguments& InArgs )
 			]
 
 			+ SOverlay::Slot()
-			.Padding( TAttribute<FMargin>::Create( TAttribute<FMargin>::FGetter::CreateSP( this, &SDockTab::GetTabPadding ) ) )
+			.Padding(TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateSP(this, &SDockTab::GetTabPadding)))
 			.VAlign(VAlign_Center)
 			[
 				SNew(SHorizontalBox)
 				.Visibility(EVisibility::Visible)
-				.ToolTip( InArgs._ToolTip )
-				.ToolTipText( InArgs._ToolTipText.IsSet() ? InArgs._ToolTipText : TAttribute<FText>( this, &SDockTab::GetTabLabel ) )
+				.ToolTip(InArgs._ToolTip)
+				.ToolTipText(InArgs._ToolTipText.IsSet() ? InArgs._ToolTipText : TAttribute<FText>(this, &SDockTab::GetTabLabel))
 
 				// Tab Icon
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
-				.Padding(0,0,5,0)
+				.Padding(0, 0, 5, 0)
 				[
-					SAssignNew( IconWidget, SImage )
-					.Image( this, &SDockTab::GetTabIcon )
+					SNew(SBorder)
+					// Don't allow active tab overlay to absorb mouse clicks
+					.Padding(1.0f)
+					.Visibility(EVisibility::HitTestInvisible)
+					// Overlay for color-coded tab effect
+					.BorderImage(this, &SDockTab::GetColorOverlayImageBrush)
+					.BorderBackgroundColor(this, &SDockTab::GetTabColor)
+					[
+						SAssignNew(IconWidget, SImage)
+						.Image(this, &SDockTab::GetTabIcon)
+					]
 				]
-
 				// Tab Label
 				+ SHorizontalBox::Slot()
 				.FillWidth(1)
@@ -623,13 +622,18 @@ const FSlateBrush* SDockTab::GetImageBrush() const
 
 FMargin SDockTab::GetTabPadding() const
 {
-	return GetCurrentStyle().TabPadding;
+	FMargin NewPadding = GetCurrentStyle().TabPadding;
+	if (TabIcon.Get() != FStyleDefaults::GetNoBrush())
+	{
+		NewPadding.Top *= SDockTabDefs::TabVerticalPaddingScaleOverride;
+		NewPadding.Bottom *= SDockTabDefs::TabVerticalPaddingScaleOverride;
+	}
+	return NewPadding;
 }
-
 
 const FSlateBrush* SDockTab::GetColorOverlayImageBrush() const
 {
-	if (this->TabColorScale.A > 0.0f)
+	if (this->TabColorScale.Get().A > 0.0f)
 	{
 		return &GetCurrentStyle().ColorOverlayBrush;
 	}
@@ -649,7 +653,7 @@ const FSlateBrush* SDockTab::GetActiveTabOverlayImageBrush() const
 
 FSlateColor SDockTab::GetTabColor() const
 {
-	return TabColorScale;
+	return TabColorScale.Get();
 }
 
 

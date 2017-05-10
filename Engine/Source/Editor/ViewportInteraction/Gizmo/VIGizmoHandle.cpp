@@ -6,6 +6,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "VIBaseTransformGizmo.h"
 #include "ViewportWorldInteraction.h"
+#include "ViewportDragOperation.h"
 
 UGizmoHandleGroup::UGizmoHandleGroup()
 	: Super(),
@@ -15,14 +16,7 @@ UGizmoHandleGroup::UGizmoHandleGroup()
 	OwningTransformGizmoActor(nullptr),
 	bShowOnUniversalGizmo(true)
 {
-
-}
-
-UGizmoHandleGroup::~UGizmoHandleGroup()
-{
-	OwningTransformGizmoActor = nullptr;
-	GizmoMaterial = nullptr;
-	TranslucentGizmoMaterial = nullptr;
+	DragOperationComponent = CreateDefaultSubobject<UViewportDragOperationComponent>( TEXT( "DragOperation" ) );
 }
 
 FTransformGizmoHandlePlacement UGizmoHandleGroup::MakeHandlePlacementForIndex( const int32 HandleIndex ) const
@@ -113,17 +107,6 @@ FVector UGizmoHandleGroup::GetAxisVector( const int32 AxisIndex, const ETransfor
 	}
 
 	return AxisVector;
-}
-
-void UGizmoHandleGroup::GetHandleIndexInteractionType( const int32 HandleIndex, ETransformGizmoInteractionType& OutInteractionType, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement )
-{
-	OutHandlePlacement = MakeHandlePlacementForIndex( HandleIndex );
-	OutInteractionType = GetInteractionType();
-}
-
-ETransformGizmoInteractionType UGizmoHandleGroup::GetInteractionType() const
-{
-	return ETransformGizmoInteractionType::Translate;
 }
 
 void UGizmoHandleGroup::UpdateGizmoHandleGroup(const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
@@ -257,6 +240,11 @@ void UGizmoHandleGroup::UpdateVisibilityAndCollision(const EGizmoHandleTypes Giz
 			Handle.HandleMesh->SetCollisionEnabled(bShowIt ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
 		}
 	}
+}
+
+UViewportDragOperationComponent* UGizmoHandleGroup::GetDragOperationComponent()
+{
+	return DragOperationComponent;
 }
 
 class UStaticMeshComponent* UGizmoHandleGroup::CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName )

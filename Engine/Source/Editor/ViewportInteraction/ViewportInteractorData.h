@@ -126,7 +126,10 @@ struct FViewportInteractorData
 	FVector GizmoSpaceDragDeltaFromStartOffset;
 
 	/** The gizmo interaction we're doing with this hand */
-	ETransformGizmoInteractionType TransformGizmoInteractionType;
+	TWeakObjectPtr<class UViewportDragOperationComponent> DragOperationComponent;
+	
+	/** The last drag operation. */
+	class UViewportDragOperation* LastDragOperation;
 
 	/** Which handle on the gizmo we're interacting with, if any */
 	TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement;
@@ -176,7 +179,8 @@ struct FViewportInteractorData
 		GizmoLastTransform = GizmoTargetTransform = GizmoUnsnappedTargetTransform = GizmoInterpolationSnapshotTransform = GizmoStartTransform;
 		GizmoSpaceFirstDragUpdateOffsetAlongAxis = FVector::ZeroVector;
 		GizmoSpaceDragDeltaFromStartOffset = FVector::ZeroVector;
-		TransformGizmoInteractionType = ETransformGizmoInteractionType::None;
+		DragOperationComponent.Reset();
+		LastDragOperation = nullptr;
 		OptionalHandlePlacement.Reset();
 		DraggingTransformGizmoComponent = nullptr;
 		HoveringOverTransformGizmoComponent = nullptr;

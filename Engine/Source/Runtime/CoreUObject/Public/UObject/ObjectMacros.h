@@ -418,9 +418,6 @@ typedef uint64 EClassCastFlags;
 #define CPF_NativeAccessSpecifierPrivate	DECLARE_UINT64(0x0040000000000000)		// Private native access specifier
 #define CPF_SkipSerialization				DECLARE_UINT64(0x0080000000000000)		// Property shouldn't be serialized, can still be exported to text
 
-#define CPF_NonPIETransient \
-	EMIT_DEPRECATED_WARNING_MESSAGE("CPF_NonPIETransient is deprecated. Please use CPF_NonPIEDuplicateTransient instead.") \
-	CPF_NonPIEDuplicateTransient
 
 /** @name Combinations flags */
 //@{

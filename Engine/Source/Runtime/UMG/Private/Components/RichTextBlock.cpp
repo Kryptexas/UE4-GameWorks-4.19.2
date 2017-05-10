@@ -5,7 +5,6 @@
 #include "Engine/Font.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Text/SRichTextBlock.h"
-
 #include "Components/RichTextBlockDecorator.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -22,8 +21,6 @@ URichTextBlock::URichTextBlock(const FObjectInitializer& ObjectInitializer)
 		Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Regular"));
 	}
 	Color = FLinearColor::White;
-
-	Decorators.Add(ObjectInitializer.CreateOptionalDefaultSubobject<URichTextBlockDecorator>(this, FName("DefaultDecorator")));
 }
 
 void URichTextBlock::ReleaseSlateResources(bool bReleaseChildren)
@@ -64,7 +61,7 @@ void URichTextBlock::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+	TAttribute<FText> TextBinding = PROPERTY_BINDING(FText, Text);
 
 	MyRichTextBlock->SetText(TextBinding);
 
@@ -76,6 +73,11 @@ void URichTextBlock::SynchronizeProperties()
 const FText URichTextBlock::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");
+}
+
+void URichTextBlock::OnCreationFromPalette()
+{
+	Decorators.Add(NewObject<URichTextBlockDecorator>(this, NAME_None, RF_Transactional));
 }
 
 #endif

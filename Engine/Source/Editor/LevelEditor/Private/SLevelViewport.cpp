@@ -64,6 +64,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Slate/SGameLayerManager.h"
 #include "FoliageType.h"
+#include "IVREditorModule.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -722,13 +723,11 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, cons
 
 		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
 
-		ActorFactory = DragDropOp->ActorFactory.Get();
+		ActorFactory = DragDropOp->GetActorFactory();
 
 		bAllAssetWereLoaded = true;
-		for (int32 AssetIdx = 0; AssetIdx < DragDropOp->AssetData.Num(); ++AssetIdx)
+		for (const FAssetData& AssetData : DragDropOp->GetAssets())
 		{
-			const FAssetData& AssetData = DragDropOp->AssetData[AssetIdx];
-
 			UObject* Asset = AssetData.GetAsset();
 			if ( Asset != NULL )
 			{
@@ -3120,7 +3119,7 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 				// Push actor transform to view.  From here on out, this will happen automatically in FLevelEditorViewportClient::Tick.
 				// The reason we allow the viewport client to update this is to avoid off-by-one-frame issues when dragging actors around.
 				ActorPreviewLevelViewportClient->SetActorLock( CurActor );
-				ActorPreviewLevelViewportClient->UpdateViewForLockedActor();
+				ActorPreviewLevelViewportClient->UpdateViewForLockedActor();			
 			}
 
 			TSharedPtr< SActorPreview > ActorPreviewWidget = SNew(SActorPreview)
@@ -3129,7 +3128,7 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 
 			auto ActorPreviewViewportWidget = ActorPreviewWidget->GetViewportWidget();
 
-			TSharedPtr< FSceneViewport > ActorPreviewSceneViewport = MakeShareable( new FSceneViewport( ActorPreviewLevelViewportClient.Get(), ViewportWidget ) );
+			TSharedPtr< FSceneViewport > ActorPreviewSceneViewport = MakeShareable( new FSceneViewport( ActorPreviewLevelViewportClient.Get(), ActorPreviewViewportWidget) );
 			{
 				ActorPreviewLevelViewportClient->Viewport = ActorPreviewSceneViewport.Get();
 				ActorPreviewViewportWidget->SetViewportInterface( ActorPreviewSceneViewport.ToSharedRef() );
@@ -3144,11 +3143,20 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 
 			// Add our new widget to our viewport's overlay
 			// @todo camerapip: Consider using a canvas instead of an overlay widget -- our viewports get SQUASHED when the view shrinks!
-			ActorPreviewHorizontalBox->AddSlot()
-			.AutoWidth()
-			[
-				ActorPreviewWidget.ToSharedRef()
-			];
+			IVREditorModule& VREditorModule = IVREditorModule::Get();
+			if (VREditorModule.IsVREditorEnabled())
+			{
+				NewActorPreview.SceneViewport->SetGammaOverride(1.0f);
+				VREditorModule.UpdateActorPreview( NewActorPreview.PreviewWidget.ToSharedRef());
+			}
+			else
+			{
+				ActorPreviewHorizontalBox->AddSlot()
+				.AutoWidth()
+				[
+					ActorPreviewWidget.ToSharedRef()
+				];
+			}
 		}
 
 		// OK, at least one new preview viewport was added, so update settings for all views immediately.
@@ -3846,9 +3854,16 @@ UWorld* SLevelViewport::GetWorld() const
 
 void SLevelViewport::RemoveActorPreview( int32 PreviewIndex )
 {
-	// Remove widget from viewport overlay
-	ActorPreviewHorizontalBox->RemoveSlot( ActorPreviews[PreviewIndex].PreviewWidget.ToSharedRef() );
-
+	IVREditorModule& VREditorModule = IVREditorModule::Get();
+	if (VREditorModule.IsVREditorEnabled())
+	{
+		VREditorModule.UpdateActorPreview(SNullWidget::NullWidget);
+	}
+	else
+	{
+		// Remove widget from viewport overlay
+		ActorPreviewHorizontalBox->RemoveSlot(ActorPreviews[PreviewIndex].PreviewWidget.ToSharedRef());
+	}
 	// Clean up our level viewport client
 	if( ActorPreviews[PreviewIndex].LevelViewportClient.IsValid() )
 	{
@@ -3951,6 +3966,16 @@ void SLevelViewport::OnFloatingButtonClicked()
 {
 	// if one of the viewports floating buttons has been clicked, update the global viewport ptr
 	LevelViewportClient->SetLastKeyViewport();
+}
+
+void SLevelViewport::RemoveAllPreviews()
+{
+	// Clean up any actor preview viewports
+	for (FViewportActorPreview& ActorPreview : ActorPreviews)
+	{
+		ActorPreview.bIsPinned = false;
+	}
+	PreviewActors(TArray< AActor* >());
 }
 
 #undef LOCTEXT_NAMESPACE

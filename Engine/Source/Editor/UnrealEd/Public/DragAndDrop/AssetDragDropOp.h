@@ -12,13 +12,66 @@ class FAssetThumbnail;
 class FAssetThumbnailPool;
 class UActorFactory;
 
-class FAssetDragDropOp : public FDecoratedDragDropOp
+class UNREALED_API FAssetDragDropOp : public FDecoratedDragDropOp
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FAssetDragDropOp, FDecoratedDragDropOp)
 
-	/** Data for the asset this item represents */
+	static TSharedRef<FAssetDragDropOp> New(const FAssetData& InAssetData, UActorFactory* ActorFactory = nullptr);
+
+	static TSharedRef<FAssetDragDropOp> New(TArray<FAssetData> InAssetData, UActorFactory* ActorFactory = nullptr);
+
+	static TSharedRef<FAssetDragDropOp> New(FString InAssetPath);
+
+	static TSharedRef<FAssetDragDropOp> New(TArray<FString> InAssetPaths);
+
+	static TSharedRef<FAssetDragDropOp> New(TArray<FAssetData> InAssetData, TArray<FString> InAssetPaths, UActorFactory* ActorFactory = nullptr);
+
+	/** @return true if this drag operation contains assets */
+	bool HasAssets() const
+	{
+		return AssetData.Num() > 0;
+	}
+
+	/** @return true if this drag operation contains asset paths */
+	bool HasAssetPaths() const
+	{
+		return AssetPaths.Num() > 0;
+	}
+
+	/** @return The assets from this drag operation */
+	const TArray<FAssetData>& GetAssets() const
+	{
+		return AssetData;
+	}
+
+	/** @return The asset paths from this drag operation */
+	const TArray<FString>& GetAssetPaths() const
+	{
+		return AssetPaths;
+	}
+
+	/** @return The actor factory to use if converting this asset to an actor */
+	UActorFactory* GetActorFactory() const
+	{
+		return ActorFactory.Get();
+	}
+
+public:
+	virtual ~FAssetDragDropOp();
+
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
+
+	FText GetDecoratorText() const;
+
+private:
+	void Init();
+
+	/** Data for the assets this item represents */
 	TArray<FAssetData> AssetData;
+
+	/** Data for the asset paths this item represents */
+	TArray<FString> AssetPaths;
 
 	/** Pool for maintaining and rendering thumbnails */
 	TSharedPtr<FAssetThumbnailPool> ThumbnailPool;
@@ -27,21 +80,8 @@ public:
 	TSharedPtr<FAssetThumbnail> AssetThumbnail;
 
 	/** The actor factory to use if converting this asset to an actor */
-	TWeakObjectPtr< UActorFactory > ActorFactory;
+	TWeakObjectPtr<UActorFactory> ActorFactory;
 
-	UNREALED_API static TSharedRef<FAssetDragDropOp> New(const FAssetData& InAssetData, UActorFactory* ActorFactory = NULL);
-
-	UNREALED_API static TSharedRef<FAssetDragDropOp> New(const TArray<FAssetData>& InAssetData, UActorFactory* ActorFactory = NULL);
-
-public:
-	UNREALED_API virtual ~FAssetDragDropOp();
-
-	UNREALED_API virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
-
-	UNREALED_API void Init();
-
-	UNREALED_API EVisibility GetTooltipVisibility() const;
-
-private:
+	/** The size of the thumbnail */
 	int32 ThumbnailSize;
 };

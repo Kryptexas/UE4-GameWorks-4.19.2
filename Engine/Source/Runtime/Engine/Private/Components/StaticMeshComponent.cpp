@@ -1282,7 +1282,7 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 			const int32 NumVerts = CurRenderData.GetNumVertices();
 			check(NumVerts == NewOverrideColors.Num());
 
-			LODInfo.PaintedVertices.Reserve(NumVerts);
+			LODInfo.PaintedVertices.Empty(NumVerts);
 			for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
 			{
 				FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;

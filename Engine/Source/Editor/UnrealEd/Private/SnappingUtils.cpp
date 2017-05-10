@@ -19,6 +19,7 @@
 #include "VertexSnapping.h"
 #include "ISnappingPolicy.h"
 #include "ViewportSnappingModule.h"
+#include "ActorGroupingUtils.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FEditorViewportSnapping
@@ -226,7 +227,7 @@ bool FEditorViewportSnapping::SnapActorsToNearestActor( FVector& Drag, FLevelEdi
 					&& !Selection->IsSelected( Actor ) )
 				{
 					// Group Actors don't appear in the selected actors list!
-					if ( GEditor->bGroupingActive )
+					if (UActorGroupingUtils::IsGroupingActive())
 					{
 						// Valid snaps: locked groups (not self or actors within locked groups), actors within unlocked groups (not the group itself), other actors
 						const AGroupActor* GroupActor = Cast<AGroupActor>( Actor ); // AGroupActor::GetRootForActor( Actor );

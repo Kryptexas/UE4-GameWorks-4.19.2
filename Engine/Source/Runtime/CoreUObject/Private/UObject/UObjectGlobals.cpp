@@ -56,7 +56,7 @@ DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 bool						GIsSavingPackage = false;
 
 /** Object annotation used by the engine to keep track of which objects are selected */
-FUObjectAnnotationSparseBool GSelectedAnnotation;
+FUObjectAnnotationSparseBool GSelectedObjectAnnotation;
 
 DEFINE_STAT(STAT_InitProperties);
 DEFINE_STAT(STAT_ConstructObject);

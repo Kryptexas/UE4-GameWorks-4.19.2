@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ObjectMacros.h"
 #include "Templates/RefCounting.h"
 #include "Containers/List.h"
 
@@ -126,7 +127,7 @@ namespace EMaterialQualityLevel
 //
 //	EMaterialProperty
 //
-
+UENUM(BlueprintType)
 enum EMaterialProperty
 {
 	MP_EmissiveColor = 0,

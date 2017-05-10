@@ -6,7 +6,8 @@
 #include "UObject/ObjectMacros.h"
 #include "MovieSceneSequence.h"
 #include "LevelSequenceObject.h"
-#include "LevelSequenceObjectReference.h"
+#include "LevelSequenceBindingReference.h"
+#include "LevelSequenceLegacyObjectReference.h"
 #include "LevelSequence.generated.h"
 
 class UMovieScene;
@@ -50,14 +51,15 @@ public:
 
 	virtual void PostLoad() override;
 
-	/** Bind a posessable object with an explicitly-supplied ObjectReference */
-	void BindPossessableObject(const FGuid& ObjectId, const FLevelSequenceObjectReference& ObjectReference);
-
 protected:
 
-	/** Collection of possessed objects. */
+	/** Legacy object references - should be read-only. Not deprecated because they need to still be saved */
 	UPROPERTY()
 	FLevelSequenceObjectReferenceMap ObjectReferences;
+
+	/** References to bound objects. */
+	UPROPERTY()
+	FLevelSequenceBindingReferences BindingReferences;
 
 	/** Deprecated property housing old possessed object bindings */
 	UPROPERTY()

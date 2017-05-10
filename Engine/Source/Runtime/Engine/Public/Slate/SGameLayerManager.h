@@ -51,6 +51,7 @@ class IGameLayerManager
 {
 public:
 	virtual const FGeometry& GetViewportWidgetHostGeometry() const = 0;
+	virtual const FGeometry& GetPlayerWidgetHostGeometry(ULocalPlayer* Player) const = 0;
 
 	virtual void NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer) = 0;
 	virtual void NotifyPlayerRemoved(int32 PlayerIndex, ULocalPlayer* RemovedPlayer) = 0;
@@ -102,6 +103,7 @@ public:
 
 	// Begin IGameLayerManager
 	virtual const FGeometry& GetViewportWidgetHostGeometry() const override;
+	virtual const FGeometry& GetPlayerWidgetHostGeometry(ULocalPlayer* Player) const override;
 
 	virtual void NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer) override;
 	virtual void NotifyPlayerRemoved(int32 PlayerIndex, ULocalPlayer* RemovedPlayer) override;

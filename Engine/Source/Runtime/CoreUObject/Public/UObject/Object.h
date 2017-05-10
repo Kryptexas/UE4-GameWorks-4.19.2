@@ -325,7 +325,15 @@ public:
 	/** Called after applying a transaction to the object in cases where transaction annotation was provided. Default implementation simply calls PostEditChange. */
 	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation);
 
-
+	/**
+	 * Test the selection state of a UObject
+	 *
+	 * @return		true if the object is selected, false otherwise.
+	 * @todo UE4 this doesn't belong here, but it doesn't belong anywhere else any better
+	 */
+private:
+	virtual bool IsSelectedInEditor() const;
+public:
 #endif // WITH_EDITOR
 
 	// @todo document
@@ -579,20 +587,43 @@ public:
 	 */
 	struct FAssetRegistryTag
 	{
+		/** Enum specifying the type of this tag */
 		enum ETagType
 		{
+			/** This tag should not be shown in the UI */
 			TT_Hidden,
+			/** This tag should be shown, and sorted alphabetically in the UI */
 			TT_Alphabetical,
+			/** This tag should be shown, and is a number */
 			TT_Numerical,
-			TT_Dimensional
+			/** This tag should be shown, and is an "x" delimited list of dimensions */ 
+			TT_Dimensional,
+			/** This tag should be shown, and is a timestamp formatted via FDateTime::ToString */
+			TT_Chronological,
 		};
 
+		/** Flags controlling how this tag should be shown in the UI */
+		enum ETagDisplay
+		{
+			/** No special display */
+			TD_None = 0,
+			/** For TT_Chronological, include the date */
+			TD_Date = 1<<0,
+			/** For TT_Chronological, include the time */
+			TD_Time = 1<<1,
+			/** For TT_Chronological, specifies that the timestamp should be displayed using the invariant timezone (typically for timestamps that are already in local time) */
+			TD_InvariantTz = 1<<2,
+			/** For TT_Numerical, specifies that the number is a value in bytes that should be displayed using FText::AsMemory */
+			TD_Memory = 1<<3,
+		};
+		
 		FName Name;
-		ETagType Type;
 		FString Value;
+		ETagType Type;
+		uint32 DisplayFlags;
 
-		FAssetRegistryTag(FName InName, const FString& InValue, ETagType InType)
-			: Name(InName), Type(InType), Value(InValue) {}
+		FAssetRegistryTag(FName InName, const FString& InValue, ETagType InType, uint32 InDisplayFlags = TD_None)
+			: Name(InName), Value(InValue), Type(InType), DisplayFlags(InDisplayFlags) {}
 
 		/** Gathers a list of asset registry searchable tags from given objects properties */
 		COREUOBJECT_API static void GetAssetRegistryTagsFromSearchableProperties(const UObject* Object, TArray<FAssetRegistryTag>& OutTags);

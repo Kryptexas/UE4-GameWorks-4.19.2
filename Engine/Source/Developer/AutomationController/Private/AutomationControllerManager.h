@@ -327,12 +327,12 @@ protected:
 	/**
 	 * Create a json file that contains all of our test report data at /saved/automation/logs/AutomationReport-{CL}-{DateTime}.json
 	 */
-	void GenerateJsonTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp);
+	bool GenerateJsonTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp);
 
 	/**
 	 * Generates a full html report of the testing, which may include links to images.  All of it will be bundled under a folder.
 	 */
-	void GenerateHtmlTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp);
+	bool GenerateHtmlTestPassSummary(const FAutomatedTestPassResults& SerializedPassResults, FDateTime Timestamp);
 
 	/**
 	* Gather all info, warning, and error lines generated over the course of a test.

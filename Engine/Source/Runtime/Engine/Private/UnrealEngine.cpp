@@ -11497,7 +11497,7 @@ public:
 		ArPortFlags |= Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
 
 #if USE_STABLE_LOCALIZATION_KEYS
-		if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+		if (GIsEditor && !(ArPortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
 		{
 			SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(DstObject));
 		}
@@ -11556,7 +11556,7 @@ public:
 		ArIgnoreClassRef = true;
 
 #if USE_STABLE_LOCALIZATION_KEYS
-		if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
+		if (GIsEditor && !(ArPortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
 		{
 			SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(DstObject));
 		}

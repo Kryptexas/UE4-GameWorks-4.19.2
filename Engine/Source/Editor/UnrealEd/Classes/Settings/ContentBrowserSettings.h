@@ -31,9 +31,13 @@ public:
 	UPROPERTY(config)
 	bool RealTimeThumbnails;
 
-	/** Whether to display folders in the assets view of the content browser. Note that this implies 'Show Only Assets in Selected Folders'. */
+	/** Whether to display folders in the asset view of the content browser. Note that this implies 'Show Only Assets in Selected Folders'. */
 	UPROPERTY(config)
 	bool DisplayFolders;
+
+	/** Whether to empty display folders in the asset view of the content browser. */
+	UPROPERTY(config)
+	bool DisplayEmptyFolders;
 
 public:
 

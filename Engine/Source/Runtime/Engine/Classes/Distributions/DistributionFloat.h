@@ -24,7 +24,7 @@ struct FFloatDistribution
 #endif
 
 USTRUCT()
-struct FRawDistributionFloat : public FRawDistribution
+struct ENGINE_API FRawDistributionFloat : public FRawDistribution
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -54,7 +54,7 @@ public:
 	/**`
 		* Initialize a raw distribution from the original Unreal distribution
 		*/
-	ENGINE_API void Initialize();
+	void Initialize();
 #endif
 			 
 	/**
@@ -65,7 +65,7 @@ public:
 	/**
 		* Get the value at the specified F
 		*/
-	ENGINE_API float GetValue(float F=0.0f, UObject* Data=NULL, struct FRandomStream* InRandomStream = NULL);
+	float GetValue(float F=0.0f, UObject* Data=NULL, struct FRandomStream* InRandomStream = NULL);
 
 	/**
 		* Get the min and max values
@@ -98,8 +98,8 @@ public:
 	}
 };
 
-UCLASS(abstract, customconstructor,MinimalAPI)
-class UDistributionFloat : public UDistribution
+UCLASS(abstract, customconstructor)
+class ENGINE_API UDistributionFloat : public UDistribution
 {
 	GENERATED_UCLASS_BODY()
 

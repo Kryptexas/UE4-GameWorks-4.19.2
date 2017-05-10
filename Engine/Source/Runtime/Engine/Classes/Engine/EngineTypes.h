@@ -465,7 +465,7 @@ enum EMaterialTessellationMode
 };
 
 
-UENUM()
+UENUM(BlueprintType)
 enum EMaterialSamplerType
 {
 	SAMPLERTYPE_Color UMETA(DisplayName="Color"),

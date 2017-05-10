@@ -1367,6 +1367,15 @@ FCanvas* FSceneViewport::GetDebugCanvas()
 	return DebugCanvasDrawer->GetGameThreadDebugCanvas();
 }
 
+float FSceneViewport::GetDisplayGamma() const
+{
+	if (ViewportGammaOverride.IsSet())
+	{
+		return ViewportGammaOverride.GetValue();
+	}
+	return	FViewport::GetDisplayGamma();
+}
+
 const FTexture2DRHIRef& FSceneViewport::GetRenderTargetTexture() const
 {
 	if (IsInRenderingThread())
@@ -1482,7 +1491,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	// If we dont have the ViewportRHI then we need to get it before rendering
 	// Note, we need ViewportRHI even if UseSeparateRenderTarget() is true when stereo rendering
 	// is enabled.
-	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled())) )
+	if (!IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled() && IsStereoRenderingAllowed())) )
 	{
 		// Get the viewport for this window from the renderer so we can render directly to the backbuffer
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
@@ -1515,7 +1524,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 
 	FViewport::EnqueueBeginRenderFrame();
 
-	if (GEngine->StereoRenderingDevice.IsValid())
+	if (GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed())
 	{
 		GEngine->StereoRenderingDevice->UpdateViewport(UseSeparateRenderTarget(), *this, ViewportWidget.Pin().Get());	
 	}

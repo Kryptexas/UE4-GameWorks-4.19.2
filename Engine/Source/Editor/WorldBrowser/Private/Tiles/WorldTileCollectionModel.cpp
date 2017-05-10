@@ -236,36 +236,42 @@ void FWorldTileCollectionModel::TranslateLevels(const FLevelModelList& InLevels,
 	RequestUpdateAllLevels();
 }
 
-TSharedPtr<FLevelDragDropOp> FWorldTileCollectionModel::CreateDragDropOp() const
+TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> FWorldTileCollectionModel::CreateDragDropOp() const
+{
+	return CreateDragDropOp(SelectedLevelsList);
+}
+
+TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> FWorldTileCollectionModel::CreateDragDropOp(const FLevelModelList& InLevels) const
 {
 	TArray<TWeakObjectPtr<ULevel>>			LevelsToDrag;
 	TArray<TWeakObjectPtr<ULevelStreaming>> StreamingLevelsToDrag;
 
 	if (!IsReadOnly())
 	{
-		for (TSharedPtr<FLevelModel> LevelModel : SelectedLevelsList)
+		for (TSharedPtr<FLevelModel> LevelModel : InLevels)
 		{
+			check(AllLevelsList.Contains(LevelModel));
 			ULevel* Level = LevelModel->GetLevelObject();
 			if (Level)
 			{
-				LevelsToDrag.Add(Level);
+				LevelsToDrag.AddUnique(Level);
 			}
 
 			TSharedPtr<FWorldTileModel> Tile = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
 			if (Tile->IsLoaded())
 			{
-				StreamingLevelsToDrag.Add(Tile->GetAssosiatedStreamingLevel());
+				StreamingLevelsToDrag.AddUnique(Tile->GetAssosiatedStreamingLevel());
 			}
 			else
 			{
 				//
 				int32 TileStreamingIdx = GetWorld()->WorldComposition->TilesStreaming.IndexOfByPredicate(
 					ULevelStreaming::FPackageNameMatcher(LevelModel->GetLongPackageName())
-					);
+				);
 
 				if (GetWorld()->WorldComposition->TilesStreaming.IsValidIndex(TileStreamingIdx))
 				{
-					StreamingLevelsToDrag.Add(GetWorld()->WorldComposition->TilesStreaming[TileStreamingIdx]);
+					StreamingLevelsToDrag.AddUnique(GetWorld()->WorldComposition->TilesStreaming[TileStreamingIdx]);
 				}
 			}
 		}
@@ -273,17 +279,17 @@ TSharedPtr<FLevelDragDropOp> FWorldTileCollectionModel::CreateDragDropOp() const
 
 	if (LevelsToDrag.Num())
 	{
-		TSharedPtr<FLevelDragDropOp> Op = FLevelDragDropOp::New(LevelsToDrag);
+		TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> Op = WorldHierarchy::FWorldBrowserDragDropOp::New(LevelsToDrag);
 		Op->StreamingLevelsToDrop = StreamingLevelsToDrag;
 		return Op;
 	}
 
 	if (StreamingLevelsToDrag.Num())
 	{
-		TSharedPtr<FLevelDragDropOp> Op = FLevelDragDropOp::New(StreamingLevelsToDrag);
+		TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> Op = WorldHierarchy::FWorldBrowserDragDropOp::New(StreamingLevelsToDrag);
 		return Op;
 	}
-		
+
 	return FLevelCollectionModel::CreateDragDropOp();
 }
 

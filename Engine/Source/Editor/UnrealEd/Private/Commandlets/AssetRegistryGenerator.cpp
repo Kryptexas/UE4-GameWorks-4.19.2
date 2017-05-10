@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Commandlets/AssetRegistryGenerator.h"
+#include "AssetRegistryGenerator.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Serialization/ArrayReader.h"

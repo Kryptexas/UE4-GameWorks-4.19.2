@@ -25,9 +25,6 @@ public:
 	/** Default constructor that sets up CDO properties */
 	AVREditorTeleporter();
 
-	/** Deconstructor */
-	virtual ~AVREditorTeleporter();
-
 	/** Initializes the teleporter */
 	void Init(class UVREditorMode* InMode);
 

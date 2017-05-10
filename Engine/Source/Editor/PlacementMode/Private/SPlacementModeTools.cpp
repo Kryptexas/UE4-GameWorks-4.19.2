@@ -243,9 +243,13 @@ FReply SPlacementAssetEntry::OnDragDetected(const FGeometry& MyGeometry, const F
 {
 	bIsPressed = false;
 
-	TArray<FAssetData> DraggedAssetDatas;
-	DraggedAssetDatas.Add( Item->AssetData );
-	FEditorDelegates::OnAssetDragStarted.Broadcast( DraggedAssetDatas, Item->Factory );
+	if (FEditorDelegates::OnAssetDragStarted.IsBound())
+	{
+		TArray<FAssetData> DraggedAssetDatas;
+		DraggedAssetDatas.Add( Item->AssetData );
+		FEditorDelegates::OnAssetDragStarted.Broadcast( DraggedAssetDatas, Item->Factory );
+		return FReply::Handled();
+	}
 
 	if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
 	{

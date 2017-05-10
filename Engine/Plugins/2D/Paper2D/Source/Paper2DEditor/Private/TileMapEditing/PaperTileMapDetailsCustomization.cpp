@@ -358,7 +358,7 @@ FReply FPaperTileMapDetailsCustomization::OnPromoteToAssetButtonClicked()
 				PromotionFactory->AssetToRename = TileMapComponent->TileMap;
 
 				FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
-				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(PromotionFactory->GetSupportedClass(), PromotionFactory);
+				UObject* NewAsset = AssetToolsModule.Get().CreateAssetWithDialog(PromotionFactory->GetSupportedClass(), PromotionFactory);
 			
 				// Show it in the content browser
 				TArray<UObject*> ObjectsToSync;

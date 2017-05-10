@@ -169,6 +169,9 @@ public:
 	bool GetShowDashedOutlines() const;
 	void SetShowDashedOutlines(bool Value);
 
+	bool GetIsRespectingLocks() const;
+	void SetIsRespectingLocks(bool Value);
+
 public:
 	/** Fires whenever a new widget is being hovered over */
 	FOnHoveredWidgetSet OnHoveredWidgetSet;
@@ -323,6 +326,9 @@ private:
 
 	/** Should the designer show outlines when it creates widgets? */
 	bool bShowDashedOutlines;
+
+	/**  */
+	bool bRespectLocks;
 
 	TArray< TFunction<void()> > QueuedDesignerActions;
 

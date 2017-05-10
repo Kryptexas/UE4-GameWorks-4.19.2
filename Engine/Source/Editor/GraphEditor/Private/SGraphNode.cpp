@@ -291,7 +291,10 @@ FReply SGraphNode::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 		{
 			bool bOkIcon = false;
 			FString TooltipText;
-			GraphNode->GetSchema()->GetAssetsNodeHoverMessage(AssetOp->AssetData, GraphNode, TooltipText, bOkIcon);
+			if (AssetOp->HasAssets())
+			{
+				GraphNode->GetSchema()->GetAssetsNodeHoverMessage(AssetOp->GetAssets(), GraphNode, TooltipText, bOkIcon);
+			}
 			bool bReadOnly = OwnerGraphPanelPtr.IsValid() ? !OwnerGraphPanelPtr.Pin()->IsGraphEditable() : false;
 			bOkIcon = bReadOnly ? false : bOkIcon;
 			const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
@@ -370,7 +373,10 @@ FReply SGraphNode::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 		if(Node != NULL && Node->GetSchema() != NULL)
 		{
 			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
-			Node->GetSchema()->DroppedAssetsOnNode(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), Node);
+			if (AssetOp->HasAssets())
+			{
+				Node->GetSchema()->DroppedAssetsOnNode(AssetOp->GetAssets(), DragDropEvent.GetScreenSpacePosition(), Node);
+			}
 		}
 		return FReply::Handled();
 	} 

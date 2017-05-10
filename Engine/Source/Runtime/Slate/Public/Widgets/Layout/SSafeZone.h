@@ -90,6 +90,13 @@ class SLATE_API SSafeZone : public SBox
 
 public:
 
+	SSafeZone()
+	{
+		bCanTick = false;
+		bCanSupportFocus = false;
+	}
+	virtual ~SSafeZone();
+
 	void Construct( const FArguments& InArgs );
 	
 	void SafeAreaUpdated();
@@ -125,5 +132,7 @@ private:
 
 	/** Screen space margin */
 	FMargin SafeMargin;
+
+	FDelegateHandle OnSafeFrameChangedHandle;
 };
  

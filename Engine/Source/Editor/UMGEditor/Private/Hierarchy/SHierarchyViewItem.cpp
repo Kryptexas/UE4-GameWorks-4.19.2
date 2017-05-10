@@ -9,6 +9,8 @@
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Views/SListView.h"
+#include "EditorFontGlyphs.h"
+#include "Application/SlateApplication.h"
 
 #if WITH_EDITOR
 	#include "EditorStyleSet.h"
@@ -1093,6 +1095,32 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 				.IsSelected(this, &SHierarchyViewItem::IsSelectedExclusively)
 			]
 
+			// Locked Icon
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.ContentPadding(FMargin(3, 1))
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ForegroundColor(FCoreStyle::Get().GetSlateColor("Foreground"))
+				.OnClicked(this, &SHierarchyViewItem::OnToggleLockedInDesigner)
+				.Visibility(Model->CanControlLockedInDesigner() ? EVisibility::Visible : EVisibility::Hidden)
+				.ToolTipText(LOCTEXT("WidgetLockedButtonToolTip", "Locks or Unlocks this widget and all children.  Locking a widget prevents it from being selected in the designer view by clicking on them.\n\nHolding [Shift] will only affect this widget and no children."))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SBox)
+					.MinDesiredWidth(12.0f)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+						.Text(this, &SHierarchyViewItem::GetLockBrushForWidget)
+					]
+				]
+			]
+
 			// Visibility icon
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -1216,9 +1244,23 @@ FReply SHierarchyViewItem::OnToggleVisibility()
 
 FText SHierarchyViewItem::GetVisibilityBrushForWidget() const
 {
-	return Model->IsVisible() ?
-		FText::FromString(FString(TEXT("\xf06e")) /*fa-eye*/) :
-		FText::FromString(FString(TEXT("\xf070")) /*fa-eye-slash*/);
+	return Model->IsVisible() ? FEditorFontGlyphs::Eye : FEditorFontGlyphs::Eye_Slash;
+}
+
+FReply SHierarchyViewItem::OnToggleLockedInDesigner()
+{
+	if ( Model.IsValid() )
+	{
+		const bool bRecursive = FSlateApplication::Get().GetModifierKeys().IsShiftDown() ? false : true;
+		Model->SetIsLockedInDesigner(!Model->IsLockedInDesigner(), bRecursive);
+	}
+
+	return FReply::Handled();
+}
+
+FText SHierarchyViewItem::GetLockBrushForWidget() const
+{
+	return Model.IsValid() && Model->IsLockedInDesigner() ? FEditorFontGlyphs::Lock : FEditorFontGlyphs::Unlock;
 }
 
 #undef LOCTEXT_NAMESPACE

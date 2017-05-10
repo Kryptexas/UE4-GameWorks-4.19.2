@@ -936,10 +936,10 @@ void UWidget::SynchronizeProperties()
 	{
 		if ( bOverride_Cursor /*|| CursorDelegate.IsBound()*/ )
 		{
-			SafeWidget->SetCursor(Cursor);// GAME_SAFE_OPTIONAL_BINDING(EMouseCursor::Type, Cursor));
+			SafeWidget->SetCursor(Cursor);// PROPERTY_BINDING(EMouseCursor::Type, Cursor));
 		}
 
-		SafeWidget->SetEnabled(GAME_SAFE_OPTIONAL_BINDING( bool, bIsEnabled ));
+		SafeWidget->SetEnabled(PROPERTY_BINDING( bool, bIsEnabled ));
 		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
 
@@ -967,17 +967,17 @@ void UWidget::SynchronizeProperties()
 	}
 	else if ( !ToolTipText.IsEmpty() || ToolTipTextDelegate.IsBound() )
 	{
-		SafeWidget->SetToolTipText(GAME_SAFE_OPTIONAL_BINDING(FText, ToolTipText));
+		SafeWidget->SetToolTipText(PROPERTY_BINDING(FText, ToolTipText));
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	// In editor builds we add metadata to the widget so that once hit with the widget reflector it can report
 	// where it comes from, what blueprint, what the name of the widget was...etc.
-	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShared<FReflectionMetaData>(GetFName(), GetClass(), WidgetGeneratedBy.Get()));
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShared<FReflectionMetaData>(GetFName(), GetClass(), this, WidgetGeneratedBy.Get()));
 #else
 
 #if !UE_BUILD_SHIPPING
-	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShared<FReflectionMetaData>(GetFName(), GetClass(), WidgetGeneratedByClass.Get()));
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShared<FReflectionMetaData>(GetFName(), GetClass(), this, WidgetGeneratedByClass.Get()));
 #endif
 
 #endif

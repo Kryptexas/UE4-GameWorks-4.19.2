@@ -246,13 +246,26 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 	LoadSettings();
 	
 	// Set the preview mesh for the material.  This call must occur after the toolbar is initialized.
-	USceneThumbnailInfoWithPrimitive* ThumbnailInfoWithPrim = Cast<USceneThumbnailInfoWithPrimitive>(InstanceConstant->ThumbnailInfo);
-	if ( ThumbnailInfoWithPrim )
+	
+	if ( !SetPreviewAssetByName( *InstanceConstant->PreviewMesh.ToString() ) )
 	{
-		InstanceConstant->PreviewMesh = ThumbnailInfoWithPrim->PreviewMesh;
+		// If the preview mesh could not be found for this instance, attempt to use the preview mesh for the parent material if one exists,
+		//	or use a default instead if the parent's preview mesh cannot be used
+
+		if ( InstanceConstant->Parent == nullptr || !SetPreviewAssetByName( *InstanceConstant->Parent->PreviewMesh.ToString() ) )
+		{
+			USceneThumbnailInfoWithPrimitive* ThumbnailInfoWithPrim = Cast<USceneThumbnailInfoWithPrimitive>( InstanceConstant->ThumbnailInfo );
+
+			if ( ThumbnailInfoWithPrim != nullptr )
+			{
+				SetPreviewAssetByName( *ThumbnailInfoWithPrim->PreviewMesh.ToString() );
+			}
+		}
 	}
-	SetPreviewAssetByName(*InstanceConstant->PreviewMesh.ToString());
+
+	Refresh();
 }
+
 FMaterialInstanceEditor::FMaterialInstanceEditor()
 : MaterialEditorInstance(nullptr)
 , MenuExtensibilityManager(new FExtensibilityManager)
@@ -705,20 +718,7 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 	}
 	else if(PropertyThatChanged->GetName() == TEXT("PreviewMesh"))
 	{
-		UObject* PreviewAsset = MaterialEditorInstance->SourceInstance->PreviewMesh.TryLoad();
-		if(!PreviewAsset)
-		{
-			// Just default to the sphere if the preview asset is null or missing
-			PreviewAsset = GUnrealEd->GetThumbnailManager()->EditorSphere;
-
-			USceneThumbnailInfoWithPrimitive* ThumbnailInfo = Cast<USceneThumbnailInfoWithPrimitive>(MaterialEditorInstance->SourceInstance->ThumbnailInfo);
-			if (ThumbnailInfo)
-			{
-				ThumbnailInfo->PreviewMesh.Reset();
-			}
-
-		}
-		PreviewVC->SetPreviewAsset(PreviewAsset);
+		RefreshPreviewAsset();
 	}
 
 	//rebuild the property window to account for the possibility that the item changed was
@@ -734,6 +734,28 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 
 	// Update the preview window when the user changes a property.
 	PreviewVC->RefreshViewport();
+}
+
+void FMaterialInstanceEditor::RefreshPreviewAsset()
+{
+	UObject* PreviewAsset = MaterialEditorInstance->SourceInstance->PreviewMesh.TryLoad();
+	if (!PreviewAsset)
+	{
+		// Attempt to use the parent material's preview mesh if the instance's preview mesh is invalid, and use a default
+		//	sphere instead if the parent's mesh is also invalid
+		UMaterialInterface* ParentMaterial = MaterialEditorInstance->SourceInstance->Parent;
+
+		UObject* ParentPreview = ParentMaterial != nullptr ? ParentMaterial->PreviewMesh.TryLoad() : nullptr;
+		PreviewAsset = ParentPreview != nullptr ? ParentPreview : GUnrealEd->GetThumbnailManager()->EditorSphere;
+
+		USceneThumbnailInfoWithPrimitive* ThumbnailInfo = Cast<USceneThumbnailInfoWithPrimitive>(MaterialEditorInstance->SourceInstance->ThumbnailInfo);
+		if (ThumbnailInfo)
+		{
+			ThumbnailInfo->PreviewMesh.Reset();
+		}
+
+	}
+	PreviewVC->SetPreviewAsset(PreviewAsset);
 }
 
 void FMaterialInstanceEditor::PreSavePackage(UPackage* Package)
@@ -1041,12 +1063,14 @@ void FMaterialInstanceEditor::Refresh()
 void FMaterialInstanceEditor::PostUndo( bool bSuccess )
 {
 	MaterialEditorInstance->CopyToSourceInstance();
+	RefreshPreviewAsset();
 	Refresh();
 }
 
 void FMaterialInstanceEditor::PostRedo( bool bSuccess )
 {
 	MaterialEditorInstance->CopyToSourceInstance();
+	RefreshPreviewAsset();
 	Refresh();
 }
 

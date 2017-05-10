@@ -565,6 +565,9 @@ public:
 	 */
 	static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture );
 
+	/** Whether transport controls can be attached */
+	virtual bool CanAttachTransportControls() const { return true; }
+
 protected:
 	/** 
 	 * Checks the viewport to see if the given blueprint asset can be dropped on the viewport.

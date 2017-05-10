@@ -1239,21 +1239,21 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 }
 
 
-bool UMaterial::CheckMaterialUsage(EMaterialUsage Usage, const bool bSkipPrim)
+bool UMaterial::CheckMaterialUsage(EMaterialUsage Usage)
 {
 	check(IsInGameThread());
 	bool bNeedsRecompile = false;
-	return SetMaterialUsage(bNeedsRecompile, Usage, bSkipPrim);
+	return SetMaterialUsage(bNeedsRecompile, Usage);
 }
 
-bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage, const bool bSkipPrim) const 
+bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage) const 
 {
 	bool bUsageSetSuccessfully = false;
 	if (NeedsSetMaterialUsage_Concurrent(bUsageSetSuccessfully, Usage))
 	{
 		if (IsInGameThread())
 		{
-			bUsageSetSuccessfully = const_cast<UMaterial*>(this)->CheckMaterialUsage(Usage, bSkipPrim);
+			bUsageSetSuccessfully = const_cast<UMaterial*>(this)->CheckMaterialUsage(Usage);
 		}	
 		else
 		{
@@ -1261,23 +1261,21 @@ bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage, const bool b
 			{
 				UMaterial* Material;
 				EMaterialUsage Usage;
-				bool bSkipPrim;
 
-				FCallSMU(UMaterial* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim)
+				FCallSMU(UMaterial* InMaterial, EMaterialUsage InUsage)
 					: Material(InMaterial)
 					, Usage(InUsage)
-					, bSkipPrim(bInSkipPrim)
 				{
 				}
 
 				void Task()
 				{
-					Material->CheckMaterialUsage(Usage, bSkipPrim);
+					Material->CheckMaterialUsage(Usage);
 				}
 			};
 			UE_LOG(LogMaterial, Log, TEXT("Had to pass SMU back to game thread. Please ensure correct material usage flags."));
 
-			TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterial*>(this), Usage, bSkipPrim));
+			TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterial*>(this), Usage));
 			bUsageSetSuccessfully = false;
 
 			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
@@ -1338,7 +1336,7 @@ bool UMaterial::NeedsSetMaterialUsage_Concurrent(bool &bOutHasUsage, EMaterialUs
 	return false;
 }
 
-bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, const bool bSkipPrim)
+bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage)
 {
 	bNeedsRecompile = false;
 
@@ -2420,6 +2418,26 @@ void UMaterial::CacheExpressionTextureReferences()
 	{
 		RebuildExpressionTextureReferences();
 	}
+}
+
+bool UMaterial::AttemptInsertNewGroupName(const FString & InNewName)
+{
+#if WITH_EDITOR
+	FParameterGroupData* ParameterGroupDataElement = ParameterGroupData.FindByPredicate([&InNewName](const FParameterGroupData& DataElement)
+	{
+		return InNewName == DataElement.GroupName;
+	});
+
+	if (ParameterGroupDataElement == nullptr)
+	{
+		FParameterGroupData NewGroupData;
+		NewGroupData.GroupName = InNewName;
+		NewGroupData.GroupSortPriority = 0;
+		ParameterGroupData.Add(NewGroupData);
+		return true;
+	}
+#endif
+	return false;
 }
 
 void UMaterial::RebuildExpressionTextureReferences()
@@ -4033,7 +4051,45 @@ bool UMaterial::GetExpressionsInPropertyChain(EMaterialProperty InProperty,
 	return true;
 }
 
-bool UMaterial::GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,  
+bool UMaterial::GetParameterSortPriority(FName ParameterName, int32& OutSortPriority) const
+{
+#if WITH_EDITOR
+	for (UMaterialExpression* Expression : Expressions)
+	{
+		UMaterialExpressionParameter* Parameter = Cast<UMaterialExpressionParameter>(Expression);
+		if (Parameter && Expression->GetParameterName() == ParameterName)
+		{
+			OutSortPriority = Parameter->SortPriority;
+			return true;
+		}
+		UMaterialExpressionTextureSampleParameter* TextureParameter = Cast<UMaterialExpressionTextureSampleParameter>(Expression);
+		if (TextureParameter && Expression->GetParameterName() == ParameterName)
+		{
+			OutSortPriority = TextureParameter->SortPriority;
+			return true;
+		}
+	}
+#endif
+	return false;
+}
+
+bool UMaterial::GetGroupSortPriority(const FString& InGroupName, int32& OutSortPriority) const
+{
+#if WITH_EDITOR
+	const FParameterGroupData* ParameterGroupDataElement = ParameterGroupData.FindByPredicate([&InGroupName](const FParameterGroupData& DataElement)
+	{
+		return InGroupName == DataElement.GroupName;
+	});
+	if (ParameterGroupDataElement != nullptr)
+	{
+		OutSortPriority = ParameterGroupDataElement->GroupSortPriority;
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UMaterial::GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,
 	TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet)
 {
 	TArray<UMaterialExpression*> ChainExpressions;

@@ -26,7 +26,12 @@ void SScaleBox::Construct( const SScaleBox::FArguments& InArgs )
 		InArgs._Content.Widget
 	];
 
-	FCoreDelegates::OnSafeFrameChangedEvent.AddSP(this, &SScaleBox::RefreshSafeZoneScale);
+	OnSafeFrameChangedHandle = FCoreDelegates::OnSafeFrameChangedEvent.AddSP(this, &SScaleBox::RefreshSafeZoneScale);
+}
+
+SScaleBox::~SScaleBox()
+{
+	FCoreDelegates::OnSafeFrameChangedEvent.Remove(OnSafeFrameChangedHandle);
 }
 
 /* SWidget overrides

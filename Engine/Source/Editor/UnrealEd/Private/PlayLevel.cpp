@@ -2176,7 +2176,7 @@ void UEditorEngine::RequestEndPlayMap()
 	{
 		bRequestEndPlayMapQueued = true;
 
-		// Cache the postion and rotation of the camera (the controller may be destroyed before we end the pie session and we need them to preserve the camera position)
+		// Cache the position and rotation of the camera (the controller may be destroyed before we end the pie session and we need them to preserve the camera position)
 		if (bLastViewAndLocationValid == false)
 		{
 			for (int32 WorldIdx = WorldList.Num() - 1; WorldIdx >= 0; --WorldIdx)

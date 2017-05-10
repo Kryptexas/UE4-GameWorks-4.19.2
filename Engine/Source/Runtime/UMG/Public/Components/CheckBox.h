@@ -163,4 +163,6 @@ protected:
 	
 protected:
 	TSharedPtr<SCheckBox> MyCheckbox;
+
+	PROPERTY_BINDING_IMPLEMENTATION(ECheckBoxState, CheckedState)
 };

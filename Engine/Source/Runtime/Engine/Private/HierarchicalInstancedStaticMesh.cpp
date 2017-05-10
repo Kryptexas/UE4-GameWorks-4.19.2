@@ -1997,6 +1997,7 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 			{
 				BuiltInstanceBounds += NewInstanceBounds;
 				bDirtyRenderState = true;
+
 			}
 		}
 		else

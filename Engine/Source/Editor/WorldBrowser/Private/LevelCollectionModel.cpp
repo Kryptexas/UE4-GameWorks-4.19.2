@@ -30,6 +30,7 @@
 
 #include "ShaderCompiler.h"
 #include "FoliageEditModule.h"
+#include "LevelUtils.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -623,6 +624,8 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
+	BroadcastPreLevelsUnloaded();
+
 	// Take a copy of the list rather than using a reference to the selected levels list, as this will be modified in the loop below
 	const FLevelModelList LevelListCopy = InLevelList;
 	for (auto It = LevelListCopy.CreateConstIterator(); It; ++It)
@@ -662,6 +665,8 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 			}
 		}
 	}
+
+	BroadcastPostLevelsUnloaded();
 
 	GEditor->ResetTransaction( LOCTEXT("RemoveLevelTransReset", "Removing Levels from World") );
 
@@ -720,9 +725,14 @@ void FLevelCollectionModel::AddExistingLevelsFromAssetData(const TArray<FAssetDa
 	
 }
 
-TSharedPtr<FLevelDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
+TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
 {
-	return TSharedPtr<FLevelDragDropOp>();
+	return MakeShareable( new WorldHierarchy::FWorldBrowserDragDropOp );
+}
+
+TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp> FLevelCollectionModel::CreateDragDropOp(const FLevelModelList& InLevels) const
+{
+	return TSharedPtr<WorldHierarchy::FWorldBrowserDragDropOp>();
 }
 
 bool FLevelCollectionModel::PassesAllFilters(const FLevelModel& Item) const
@@ -1031,6 +1041,16 @@ void FLevelCollectionModel::BroadcastCollectionChanged()
 void FLevelCollectionModel::BroadcastHierarchyChanged()
 {
 	HierarchyChanged.Broadcast();
+}
+
+void FLevelCollectionModel::BroadcastPreLevelsUnloaded()
+{
+	PreLevelsUnloaded.Broadcast();
+}
+
+void FLevelCollectionModel::BroadcastPostLevelsUnloaded()
+{
+	PostLevelsUnloaded.Broadcast();
 }
 
 float FLevelCollectionModel::EditableAxisLength()
@@ -1630,7 +1650,7 @@ void FLevelCollectionModel::MoveActorsToSelected_Executed()
 
 	MakeLevelCurrent_Executed();
 	const FScopedTransaction Transaction( LOCTEXT("MoveSelectedActorsToSelectedLevel", "Move Selected Actors to Level") );
-	GEditor->MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
+	UEditorLevelUtils::MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
 
 	RequestUpdateAllLevels();
 }

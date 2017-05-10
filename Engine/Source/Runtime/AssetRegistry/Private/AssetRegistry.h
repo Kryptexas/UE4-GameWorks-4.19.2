@@ -1,15 +1,15 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "AssetData.h"
 #include "IAssetRegistry.h"
 #include "AssetRegistryState.h"
-#include "Runtime/AssetRegistry/Private/PathTree.h"
-#include "Runtime/AssetRegistry/Private/PackageDependencyData.h"
-#include "Runtime/AssetRegistry/Private/AssetDataGatherer.h"
+#include "PathTree.h"
+#include "PackageDependencyData.h"
+#include "AssetDataGatherer.h"
+#include "BackgroundGatherResults.h"
 
 class FDependsNode;
 struct FARFilter;
@@ -26,6 +26,7 @@ public:
 	virtual ~FAssetRegistry();
 
 	// IAssetRegistry implementation
+	virtual bool HasAssets(const FName PackagePath, const bool bRecursive = false) const override;
 	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets = false) const override;
 	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false, bool bIncludeOnlyOnDiskAssets = false) const override;
 	virtual bool GetAssetsByClass(FName ClassName, TArray<FAssetData>& OutAssetData, bool bSearchSubClasses = false) const override;
@@ -119,16 +120,16 @@ private:
 	void ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode, TArray<FName>* OutFoundAssets, TArray<FName>* OutFoundPaths);
 
 	/** Called every tick to when data is retrieved by the background asset search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
-	void AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults);
+	void AssetSearchDataGathered(const double TickStartTime, TBackgroundGatherResults<FAssetData*>& AssetResults);
 
 	/** Called every tick when data is retrieved by the background path search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
-	void PathDataGathered(const double TickStartTime, TArray<FString>& PathResults);
+	void PathDataGathered(const double TickStartTime, TBackgroundGatherResults<FString>& PathResults);
 
 	/** Called every tick when data is retrieved by the background dependency search */
-	void DependencyDataGathered(const double TickStartTime, TArray<FPackageDependencyData>& DependsResults);
+	void DependencyDataGathered(const double TickStartTime, TBackgroundGatherResults<FPackageDependencyData>& DependsResults);
 
 	/** Called every tick when data is retrieved by the background search for cooked packages that do not contain asset data */
-	void CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TArray<FString>& CookedPackageNamesWithoutAssetDataResults);
+	void CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TBackgroundGatherResults<FString>& CookedPackageNamesWithoutAssetDataResults);
 
 	/** Adds an asset to the empty package list which contains packages that have no assets left in them */
 	void AddEmptyPackage(FName PackageName);
@@ -233,10 +234,10 @@ private:
 	TSharedPtr< class FAssetDataGatherer > BackgroundAssetSearch;
 
 	/** A list of results that were gathered from the background thread that are waiting to get processed by the main thread */
-	TArray<class FAssetData*> BackgroundAssetResults;
-	TArray<FString> BackgroundPathResults;
-	TArray<class FPackageDependencyData> BackgroundDependencyResults;
-	TArray<FString> BackgroundCookedPackageNamesWithoutAssetDataResults;
+	TBackgroundGatherResults<FAssetData*> BackgroundAssetResults;
+	TBackgroundGatherResults<FString> BackgroundPathResults;
+	TBackgroundGatherResults<FPackageDependencyData> BackgroundDependencyResults;
+	TBackgroundGatherResults<FString> BackgroundCookedPackageNamesWithoutAssetDataResults;
 
 	/** The max number of results to process per tick */
 	float MaxSecondsPerFrame;

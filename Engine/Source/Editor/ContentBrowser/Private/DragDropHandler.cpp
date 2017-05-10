@@ -10,7 +10,6 @@
 #include "EditorStyleSet.h"
 
 #include "DragAndDrop/AssetDragDropOp.h"
-#include "DragAndDrop/AssetPathDragDropOp.h"
 #include "ContentBrowserUtils.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
@@ -33,81 +32,52 @@ bool DragDropHandler::ValidateDragDropOnAssetFolder(const FGeometry& MyGeometry,
 	if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
+		const TArray<FAssetData>& DroppedAssets = DragDropOp->GetAssets();
+		const TArray<FString>& DroppedAssetPaths = DragDropOp->GetAssetPaths();
 
 		OutIsKnownDragOperation = true;
 
-		if (bIsAssetPath)
-		{
-			int32 NumAssetItems, NumClassItems;
-			ContentBrowserUtils::CountItemTypes(DragDropOp->AssetData, NumAssetItems, NumClassItems);
+		int32 NumAssetItems, NumClassItems;
+		ContentBrowserUtils::CountItemTypes(DroppedAssets, NumAssetItems, NumClassItems);
 
-			if (NumAssetItems > 0)
-			{
-				const FText MoveOrCopyText = (NumAssetItems > 1)
-					? FText::Format(LOCTEXT("OnDragAssetsOverFolder_MultipleAssets", "Move or copy '{0}' and {1} other(s)"), FText::FromName(DragDropOp->AssetData[0].AssetName), FText::AsNumber(NumAssetItems - 1))
-					: FText::Format(LOCTEXT("OnDragAssetsOverFolder_SingularAsset", "Move or copy '{0}'"), FText::FromName(DragDropOp->AssetData[0].AssetName));
+		int32 NumAssetPaths, NumClassPaths;
+		ContentBrowserUtils::CountPathTypes(DroppedAssetPaths, NumAssetPaths, NumClassPaths);
 
-				if (NumClassItems > 0)
-				{
-					DragDropOp->SetToolTip(FText::Format(LOCTEXT("OnDragAssetsOverFolder_AssetsAndClasses", "{0}\n\n{1} C++ class(es) will be ignored as they cannot be moved or copied"), MoveOrCopyText, FText::AsNumber(NumClassItems)), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OKWarn")));
-					bIsValidDrag = true;
-				}
-				else
-				{
-					DragDropOp->SetToolTip(MoveOrCopyText, FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")));
-					bIsValidDrag = true;
-				}
-			}
-			else if (NumClassItems > 0)
-			{
-				DragDropOp->SetToolTip(LOCTEXT("OnDragAssetsOverFolder_OnlyClasses", "C++ classes cannot be moved or copied"), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
-			}
-		}
-		else
-		{
-			DragDropOp->SetToolTip(FText::Format(LOCTEXT("OnDragAssetsOverFolder_InvalidFolder", "'{0}' is not a valid place to drop assets"), FText::FromString(TargetPath)), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
-		}
-	}
-	else if (Operation->IsOfType<FAssetPathDragDropOp>())
-	{
-		TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>(Operation);
-
-		OutIsKnownDragOperation = true;
-
-		if (DragDropOp->PathNames.Num() == 1 && DragDropOp->PathNames[0] == TargetPath)
+		if (DroppedAssetPaths.Num() == 1 && DroppedAssetPaths[0] == TargetPath)
 		{
 			DragDropOp->SetToolTip(LOCTEXT("OnDragFoldersOverFolder_CannotSelfDrop", "Cannot move or copy a folder onto itself"), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
 		}
 		else if (bIsAssetPath)
 		{
-			int32 NumAssetPaths, NumClassPaths;
-			ContentBrowserUtils::CountPathTypes(DragDropOp->PathNames, NumAssetPaths, NumClassPaths);
+			const int32 TotalAssetDropItems = NumAssetItems + NumAssetPaths;
+			const int32 TotalClassDropItems = NumClassItems + NumClassPaths;
 
-			if (NumAssetPaths > 0)
+			if (TotalAssetDropItems > 0)
 			{
-				const FText MoveOrCopyText = (NumAssetPaths > 1)
-					? FText::Format(LOCTEXT("OnDragFoldersOverFolder_MultipleFolders", "Move or copy '{0}' and {1} other(s)"), FText::FromString(DragDropOp->PathNames[0]), FText::AsNumber(NumAssetPaths - 1))
-					: FText::Format(LOCTEXT("OnDragFoldersOverFolder_SingularFolder", "Move or copy '{0}'"), FText::FromString(DragDropOp->PathNames[0]));
+				bIsValidDrag = true;
 
-				if (NumClassPaths > 0)
+				const FText FirstItemText = DroppedAssets.Num() > 0 ? FText::FromName(DroppedAssets[0].AssetName) : FText::FromString(DroppedAssetPaths[0]);
+				const FText MoveOrCopyText = (TotalAssetDropItems > 1)
+					? FText::Format(LOCTEXT("OnDragAssetsOverFolder_MultipleAssetItems", "Move or copy '{0}' and {1} {1}|plural(one=other,other=others)"), FirstItemText, TotalAssetDropItems - 1)
+					: FText::Format(LOCTEXT("OnDragAssetsOverFolder_SingularAssetItems", "Move or copy '{0}'"), FirstItemText);
+
+				if (TotalClassDropItems > 0)
 				{
-					DragDropOp->SetToolTip(FText::Format(LOCTEXT("OnDragFoldersOverFolder_AssetsAndClasses", "{0}\n\n{1} C++ class folder(s) will be ignored as they cannot be moved or copied"), MoveOrCopyText, FText::AsNumber(NumClassPaths)), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OKWarn")));
-					bIsValidDrag = true;
+					DragDropOp->SetToolTip(FText::Format(LOCTEXT("OnDragAssetsOverFolder_AssetAndClassItems", "{0}\n\n{1} C++ {1}|plural(one=item,other=items) will be ignored as they cannot be moved or copied"), MoveOrCopyText, NumClassItems), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OKWarn")));
 				}
 				else
 				{
 					DragDropOp->SetToolTip(MoveOrCopyText, FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")));
-					bIsValidDrag = true;
 				}
 			}
-			else if (NumClassPaths > 0)
+			else if (TotalClassDropItems > 0)
 			{
-				DragDropOp->SetToolTip(LOCTEXT("OnDragFoldersOverFolder_OnlyClasses", "C++ class folders cannot be moved or copied"), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
+				DragDropOp->SetToolTip(LOCTEXT("OnDragAssetsOverFolder_OnlyClassItems", "C++ items cannot be moved or copied"), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
 			}
 		}
 		else
 		{
-			DragDropOp->SetToolTip(FText::Format(LOCTEXT("OnDragFoldersOverFolder_InvalidFolder", "'{0}' is not a valid place to drop folders"), FText::FromString(TargetPath)), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
+			DragDropOp->SetToolTip(FText::Format(LOCTEXT("OnDragAssetsOverFolder_InvalidFolder", "'{0}' is not a valid place to drop assets or folders"), FText::FromString(TargetPath)), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
 		}
 	}
 	else if (Operation->IsOfType<FExternalDragOperation>())
@@ -127,19 +97,21 @@ bool DragDropHandler::ValidateDragDropOnAssetFolder(const FGeometry& MyGeometry,
 	return bIsValidDrag;
 }
 
-void DragDropHandler::HandleAssetsDroppedOnAssetFolder(const TSharedRef<SWidget>& ParentWidget, const TArray<FAssetData>& AssetList, const FString& TargetPath, const FText& TargetDisplayName, FExecuteCopyOrMoveAssets CopyActionHandler, FExecuteCopyOrMoveAssets MoveActionHandler)
+void DragDropHandler::HandleDropOnAssetFolder(const TSharedRef<SWidget>& ParentWidget, const TArray<FAssetData>& AssetList, const TArray<FString>& AssetPaths, const FString& TargetPath, const FText& TargetDisplayName, FExecuteCopyOrMove CopyActionHandler, FExecuteCopyOrMove MoveActionHandler)
 {
-	TArray<FAssetData> FinalAssetList;
-	FinalAssetList.Reserve(AssetList.Num());
-
 	// Remove any classes from the asset list
-	for (const FAssetData& AssetData : AssetList)
+	TArray<FAssetData> FinalAssetList = AssetList;
+	FinalAssetList.RemoveAll([](const FAssetData& AssetData)
 	{
-		if (AssetData.AssetClass != NAME_Class)
-		{
-			FinalAssetList.Add(AssetData);
-		}
-	}
+		return AssetData.AssetClass == NAME_Class;
+	});
+
+	// Remove any class paths from the list
+	TArray<FString> FinalAssetPaths = AssetPaths;
+	FinalAssetPaths.RemoveAll([](const FString& AssetPath)
+	{
+		return ContentBrowserUtils::IsClassPath(AssetPath);
+	});
 
 	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, nullptr);
 	const FText MoveCopyHeaderString = FText::Format(LOCTEXT("AssetViewDropMenuHeading", "Move/Copy to {0}"), TargetDisplayName);
@@ -147,58 +119,16 @@ void DragDropHandler::HandleAssetsDroppedOnAssetFolder(const TSharedRef<SWidget>
 	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DragDropCopy", "Copy Here"),
-			LOCTEXT("DragDropCopyTooltip", "Creates a copy of all dragged files in this folder."),
+			LOCTEXT("DragDropCopyTooltip", "Copy the dragged items to this folder, preserving the structure of any copied folders."),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateLambda([=]() { CopyActionHandler.ExecuteIfBound(FinalAssetList, TargetPath); }))
+			FUIAction(FExecuteAction::CreateLambda([=]() { CopyActionHandler.ExecuteIfBound(FinalAssetList, FinalAssetPaths, TargetPath); }))
 			);
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DragDropMove", "Move Here"),
-			LOCTEXT("DragDropMoveTooltip", "Moves all dragged files to this folder."),
+			LOCTEXT("DragDropMoveTooltip", "Move the dragged items to this folder, preserving the structure of any copied folders."),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateLambda([=]() { MoveActionHandler.ExecuteIfBound(FinalAssetList, TargetPath); }))
-			);
-	}
-	MenuBuilder.EndSection();
-
-	FSlateApplication::Get().PushMenu(
-		ParentWidget,
-		FWidgetPath(),
-		MenuBuilder.MakeWidget(),
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
-		);
-}
-
-void DragDropHandler::HandleFoldersDroppedOnAssetFolder(const TSharedRef<SWidget>& ParentWidget, const TArray<FString>& PathNames, const FString& TargetPath, const FText& TargetDisplayName, FExecuteCopyOrMoveFolders CopyActionHandler, FExecuteCopyOrMoveFolders MoveActionHandler)
-{
-	TArray<FString> FinalPathNames;
-	FinalPathNames.Reserve(PathNames.Num());
-
-	// Remove any class paths from the list
-	for (const FString& PathName : PathNames)
-	{
-		if (!ContentBrowserUtils::IsClassPath(PathName))
-		{
-			FinalPathNames.Add(PathName);
-		}
-	}
-
-	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, nullptr);
-	MenuBuilder.BeginSection("PathFolderMoveCopy", FText::Format(LOCTEXT("AssetViewDropMenuHeading", "Move/Copy to {0}"), TargetDisplayName));
-	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropCopyFolder", "Copy Folder Here"),
-			LOCTEXT("DragDropCopyFolderTooltip", "Creates a copy of all assets in the dragged folders to this folder, preserving folder structure."),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateLambda([=]() { CopyActionHandler.ExecuteIfBound(FinalPathNames, TargetPath); }))
-			);
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("DragDropMoveFolder", "Move Folder Here"),
-			LOCTEXT("DragDropMoveFolderTooltip", "Moves all assets in the dragged folders to this folder, preserving folder structure."),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateLambda([=]() { MoveActionHandler.ExecuteIfBound(FinalPathNames, TargetPath); }))
+			FUIAction(FExecuteAction::CreateLambda([=]() { MoveActionHandler.ExecuteIfBound(FinalAssetList, FinalAssetPaths, TargetPath); }))
 			);
 	}
 	MenuBuilder.EndSection();

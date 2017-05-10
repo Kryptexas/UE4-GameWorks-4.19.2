@@ -991,6 +991,25 @@ void ULevelStreaming::PostEditUndo()
 #endif // WITH_EDITOR
 
 
+#if WITH_EDITOR
+const FName& ULevelStreaming::GetFolderPath() const
+{
+	return FolderPath;
+}
+
+void ULevelStreaming::SetFolderPath(const FName& InFolderPath)
+{
+	if (FolderPath != InFolderPath)
+	{
+		Modify();
+
+		FolderPath = InFolderPath;
+
+		// @TODO: Should this be broadcasted through the editor, similar to BroadcastLevelActorFolderChanged?
+	}
+}
+#endif	// WITH_EDITOR
+
 /*-----------------------------------------------------------------------------
 	ULevelStreamingPersistent implementation.
 -----------------------------------------------------------------------------*/

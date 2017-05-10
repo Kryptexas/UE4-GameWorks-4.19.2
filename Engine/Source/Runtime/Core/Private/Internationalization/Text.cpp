@@ -1605,11 +1605,6 @@ bool FTextStringHelper::ReadFromString(const TCHAR* Buffer, FText& OutValue, con
 {
 	const TCHAR* const Start = Buffer;
 
-	while (FChar::IsWhitespace(*Buffer))
-	{
-		++Buffer;
-	}
-
 	// First, try and parse the text as a complex text export
 	{
 		int32 SubNumCharsRead = 0;

@@ -35,7 +35,7 @@ void USynthKnob::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	TAttribute<float> ValueBinding = OPTIONAL_BINDING(float, Value);
+	TAttribute<float> ValueBinding = PROPERTY_BINDING(float, Value);
 
 	MySynthKnob->SetValue(ValueBinding);
 	MySynthKnob->SetLocked(Locked);

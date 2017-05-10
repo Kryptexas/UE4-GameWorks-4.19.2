@@ -66,6 +66,10 @@ FAutoConsoleVariableRef GTickComponentLatentActionsWithTheComponentCVar(
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 
+#if WITH_EDITOR
+FUObjectAnnotationSparseBool GSelectedComponentAnnotation;
+#endif
+
 /** Static var indicating activity of reregister context */
 int32 FGlobalComponentReregisterContext::ActiveGlobalReregisterContextCount = 0;
 
@@ -626,6 +630,11 @@ void UActorComponent::PostEditUndo()
 		}
 	}
 	Super::PostEditUndo();
+}
+
+bool UActorComponent::IsSelectedInEditor() const
+{
+	return !IsPendingKill() && GSelectedComponentAnnotation.Get(this);
 }
 
 void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& PropertyChangedEvent)

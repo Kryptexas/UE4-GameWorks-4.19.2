@@ -30,7 +30,7 @@ namespace EPropertyValueSetFlags
  * A handle to a property which is used to read and write the value without needing to handle Pre/PostEditChange, transactions, package modification
  * A handle also is used to identify the property in detail customization interfaces
  */
-class IPropertyHandle
+class IPropertyHandle : public TSharedFromThis<IPropertyHandle>
 {
 public:
 	virtual ~IPropertyHandle(){}
@@ -551,6 +551,19 @@ public:
 	 * @return An array of interfaces to the properties that were added
 	 */
 	virtual TArray<TSharedPtr<IPropertyHandle>> AddChildStructure( TSharedRef<FStructOnScope> ChildStructure ) = 0;
+
+	/**
+	 * Returns whether or not the property can be set to default
+	 * 
+	 * @return If this property can be reset to default
+	 */
+	virtual bool IsResetToDefaultAvailable() = 0;
+	
+
+	/**
+	 * Sets an override for this property's reset to defautl behavior
+	 */
+	virtual void CustomResetToDefault( const class FResetToDefaultOverride& OnCustomResetToDefault ) = 0;
 };
 
 /**

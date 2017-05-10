@@ -1275,6 +1275,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=LevelStreaming, AdvancedDisplay)
 	float StreamingDistanceFactor;
 
+	/** The save directory for newly created screenshots */
+	UPROPERTY(config, EditAnywhere, Category = Screenshots)
+	FDirectoryPath GameScreenshotSaveDirectory;
+
 	/** The current transition type. */
 	UPROPERTY()
 	TEnumAsByte<enum ETransitionType> TransitionType;

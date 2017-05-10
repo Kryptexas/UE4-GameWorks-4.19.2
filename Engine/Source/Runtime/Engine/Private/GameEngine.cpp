@@ -462,6 +462,11 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		// Registration of the game viewport to that messages are correctly received.
 		// Could be a re-register, however it's necessary after the window is set.
 		FSlateApplication::Get().RegisterGameViewport(GameViewportWidgetRef);
+
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateApplication::Get().SetAllUserFocusToGameViewport(EFocusCause::SetDirectly);
+		}
 	}
 }
 
@@ -539,6 +544,8 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	FixedFrameRate = 30.f;
 
 	bIsVanillaProduct = false;
+
+	GameScreenshotSaveDirectory.Path = FPaths::ScreenShotDir();
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)

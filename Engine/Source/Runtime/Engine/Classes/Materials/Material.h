@@ -274,6 +274,24 @@ struct FMaterialParameterCollectionInfo
 	}
 };
 
+USTRUCT()
+struct FParameterGroupData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(VisibleAnywhere, Category = "Group Sorting")
+	FString GroupName;
+
+	UPROPERTY(EditAnywhere, Category = "Group Sorting")
+	int32 GroupSortPriority;
+
+	FParameterGroupData()
+	{
+		GroupName = FString(TEXT(""));
+		GroupSortPriority = 0;
+	}
+};
+
 /**
  * A Material is an asset which can be applied to a mesh to control the visual look of the scene. 
  * When light from the scene hits the surface, the shading model of the material is used to calculate how that light interacts with the surface. 
@@ -715,6 +733,10 @@ public:
 	UPROPERTY()
 	TArray<class UMaterialExpressionComment*> EditorComments;
 
+	/** Controls where this parameter group is displayed in a material instance parameter list.  The lower the number the higher up in the parameter list. */
+	UPROPERTY(EditAnywhere, EditFixedSize, Category = "Group Sorting")
+	TArray<FParameterGroupData> ParameterGroupData;
+
 #endif // WITH_EDITORONLY_DATA
 	/** Array of all functions this material depends on. */
 	UPROPERTY()
@@ -855,8 +877,8 @@ public:
 	ENGINE_API virtual void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual float GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel::Type FeatureLevel) override;
-	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
-	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
+	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage) override;
+	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage) const override;
 	ENGINE_API virtual FMaterialResource* AllocateResource();
 	ENGINE_API virtual FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) override;
 	ENGINE_API virtual const FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) const override;
@@ -865,6 +887,8 @@ public:
 	ENGINE_API virtual bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) const override;
 	ENGINE_API virtual bool UpdateLightmassTextureTracking() override;
 #if WITH_EDITOR
+	ENGINE_API virtual bool GetParameterSortPriority(FName ParameterName, int32& OutSortPriority) const override;
+	ENGINE_API virtual bool GetGroupSortPriority(const FString& InGroupName, int32& OutSortPriority) const override;
 	ENGINE_API virtual bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures, 
 		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
 #endif
@@ -1000,10 +1024,9 @@ public:
 	 * Set the given usage flag.
 	 * @param bNeedsRecompile - true if the material was recompiled for the usage change
 	 * @param Usage - The usage flag to set
-	 * @param bSkipPrim - Bypass the primitive type checks
 	 * @return bool - true if the material can be used for rendering with the given type.
 	 */
-	ENGINE_API bool SetMaterialUsage(bool &bNeedsRecompile, const EMaterialUsage Usage, const bool bSkipPrim = false);
+	ENGINE_API bool SetMaterialUsage(bool &bNeedsRecompile, const EMaterialUsage Usage);
 
 	/**
 	 * Tests to see if this material needs a usage flag update
@@ -1175,6 +1198,9 @@ public:
 	 * see also RebuildExpressionTextureReferences
 	 */
 	void CacheExpressionTextureReferences();
+
+	/** Attempts to add a new group name to the Group Data struct. True if new name was added. */
+	ENGINE_API bool AttemptInsertNewGroupName(const FString& InNewName);
 
 private:
 	/**

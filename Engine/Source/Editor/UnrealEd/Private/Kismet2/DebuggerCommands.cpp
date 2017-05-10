@@ -1334,7 +1334,7 @@ void FInternalPlayWorldCommandCallbacks::RepeatLastPlay_Clicked()
 
 	// Grab the play command and execute it
 	TSharedRef<FUICommandInfo> LastCommand = GetLastPlaySessionCommand();
-	UE_LOG(LogTemp, Log, TEXT("Repeting last play command: %s"), *LastCommand->GetLabel().ToString());
+	UE_LOG(LogTemp, Log, TEXT("Repeating last play command: %s"), *LastCommand->GetLabel().ToString());
 
 	FPlayWorldCommands::GlobalPlayWorldActions->ExecuteAction(LastCommand);
 }

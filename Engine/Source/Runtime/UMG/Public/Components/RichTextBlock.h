@@ -11,6 +11,7 @@
 #include "RichTextBlock.generated.h"
 
 class SRichTextBlock;
+class URichTextBlockDecorator;
 
 /**
  * The rich text block
@@ -37,6 +38,7 @@ public:
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FText GetPaletteCategory() override;
+	virtual void OnCreationFromPalette() override;
 	// End UWidget interface
 #endif
 
@@ -58,7 +60,7 @@ protected:
 	FLinearColor Color;
 
 	UPROPERTY(EditAnywhere, Instanced, Category=Decorators)
-	TArray<class URichTextBlockDecorator*> Decorators;
+	TArray<URichTextBlockDecorator*> Decorators;
 
 protected:
 	FTextBlockStyle DefaultStyle;
@@ -69,4 +71,7 @@ protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
+
+protected:
+	PROPERTY_BINDING_IMPLEMENTATION(FText, Text);
 };

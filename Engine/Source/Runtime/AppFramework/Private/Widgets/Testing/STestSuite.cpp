@@ -5837,7 +5837,7 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 			.SetGroup(TestSuiteMenu::SuiteTabs);
 
 		TestSuite2TabManager->RegisterTabSpawner("InvalidationTest", FOnSpawnTab::CreateStatic(&SpawnTab, FName("InvalidationTest")))
-			.SetDisplayName(NSLOCTEXT("TestSuite1", "InvalidationTest", "Invalidtion"))
+			.SetDisplayName(NSLOCTEXT("TestSuite1", "InvalidationTest", "Invalidation"))
 			.SetGroup(TestSuiteMenu::SuiteTabs);
 		
 		TestSuite2TabManager->RegisterTabSpawner("GammaTest", FOnSpawnTab::CreateStatic(&SpawnTab, FName("GammaTest")))

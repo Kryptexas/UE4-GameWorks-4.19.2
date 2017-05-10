@@ -300,7 +300,7 @@ bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const
 				{
 					const_cast<UMovementComponent*>(this)->bEditorWarnedStaticMobilityMove = true;
 					FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move it with {2}. "),
-						FText::FromString(GetNameSafe(UpdatedComponent->GetOwner())), FText::FromString(UpdatedComponent->GetName()), FText::FromString(GetClass()->GetName())));
+						FText::FromString(GetPathNameSafe(UpdatedComponent->GetOwner())), FText::FromString(UpdatedComponent->GetName()), FText::FromString(GetClass()->GetName())));
 				}
 			}
 		}

@@ -1103,9 +1103,24 @@ bool UWidgetComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		FString PropertyName = InProperty->GetName();
 
+		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, GeometryMode) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, TimingPolicy) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bWindowFocusable) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bManuallyRedraw) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, RedrawTime) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, BackgroundColor) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, TintColorAndOpacity) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, OpacityFromTexture) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, BlendMode) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bIsTwoSided) ||
+			 PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, TickWhenOffscreen) )
+		{
+			return Space != EWidgetSpace::Screen;
+		}
+
 		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bReceiveHardwareInput) )
 		{
-			return GeometryMode == EWidgetGeometryMode::Plane;
+			return Space != EWidgetSpace::Screen && GeometryMode == EWidgetGeometryMode::Plane;
 		}
 
 		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, CylinderArcAngle) )

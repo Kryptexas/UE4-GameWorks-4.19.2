@@ -366,6 +366,27 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	}
 }
 
+bool FAssetRegistry::HasAssets(const FName PackagePath, const bool bRecursive) const
+{
+	bool bHasAssets = State.HasAssets(PackagePath);
+
+	if (!bHasAssets && bRecursive)
+	{
+		TSet<FName> SubPaths;
+		CachedPathTree.GetSubPaths(PackagePath, SubPaths);
+
+		for (const FName& SubPath : SubPaths)
+		{
+			bHasAssets = State.HasAssets(SubPath);
+			if (bHasAssets)
+			{
+				break;
+			}
+		}
+	}
+
+	return bHasAssets;
+}
 
 bool FAssetRegistry::GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets ) const
 {
@@ -1101,19 +1122,14 @@ void FAssetRegistry::PrioritizeSearchPath(const FString& PathToPrioritize)
 	}
 
 	// Also prioritize the queue of background search results
+	BackgroundAssetResults.Prioritize([&PathToPrioritize](const FAssetData* BackgroundAssetResult)
 	{
-		// Swap all priority files to the top of the list
-		int32 LowestNonPriorityFileIdx = 0;
-		for (int32 ResultIdx = 0; ResultIdx < BackgroundAssetResults.Num(); ++ResultIdx)
-		{
-			FAssetData* BackgroundAssetResult = BackgroundAssetResults[ResultIdx];
-			if (BackgroundAssetResult && BackgroundAssetResult->PackagePath.ToString().StartsWith(PathToPrioritize))
-			{
-				BackgroundAssetResults.Swap(ResultIdx, LowestNonPriorityFileIdx);
-				LowestNonPriorityFileIdx++;
-			}
-		}
-	}
+		return BackgroundAssetResult && BackgroundAssetResult->PackagePath.ToString().StartsWith(PathToPrioritize);
+	});
+	BackgroundPathResults.Prioritize([&PathToPrioritize](const FString& BackgroundPathResult)
+	{
+		return BackgroundPathResult.StartsWith(PathToPrioritize);
+	});
 }
 
 void FAssetRegistry::AssetCreated(UObject* NewAsset)
@@ -1525,10 +1541,10 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 		FAssetDataGatherer AssetSearch(PathsToScan, FilesToScan, /*bSynchronous=*/true, AssetDataCacheMode);
 
 		// Get the search results
-		TArray<FAssetData*> AssetResults;
-		TArray<FString> PathResults;
-		TArray<FPackageDependencyData> DependencyResults;
-		TArray<FString> CookedPackageNamesWithoutAssetDataResults;
+		TBackgroundGatherResults<FAssetData*> AssetResults;
+		TBackgroundGatherResults<FString> PathResults;
+		TBackgroundGatherResults<FPackageDependencyData> DependencyResults;
+		TBackgroundGatherResults<FString> CookedPackageNamesWithoutAssetDataResults;
 		TArray<double> SearchTimes;
 		int32 NumFilesToSearch = 0;
 		int32 NumPathsToSearch = 0;
@@ -1586,36 +1602,33 @@ void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths
 	}
 }
 
-void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults)
+void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TBackgroundGatherResults<FAssetData*>& AssetResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
-	TSet<FName> ModifiedPaths;
 
 	// Add the found assets
-	int32 AssetIndex = 0;
-	for (AssetIndex = 0; AssetIndex < AssetResults.Num(); ++AssetIndex)
+	while (AssetResults.Num() > 0)
 	{
-		FAssetData*& BackgroundResult = AssetResults[AssetIndex];
+		FAssetData*& BackgroundResult = AssetResults.Pop();
 
 		CA_ASSUME(BackgroundResult);
 
 		// Try to update any asset data that may already exist
-		FAssetData* AssetData = nullptr;
-		FAssetData** AssetDataPtr = State.CachedAssetsByObjectPath.Find(BackgroundResult->ObjectPath);
-		if (AssetDataPtr != nullptr)
-		{
-			AssetData = *AssetDataPtr;
-		}
+		FAssetData* AssetData = State.CachedAssetsByObjectPath.FindRef(BackgroundResult->ObjectPath);
 
 		const FName PackagePath = BackgroundResult->PackagePath;
-		if ( AssetData != nullptr )
+		if (AssetData)
 		{
-			// The asset exists in the cache, update it
-			UpdateAssetData(AssetData, *BackgroundResult);
+			// If this ensure fires then we've somehow processed the same result more than once, and that should never happen
+			if (ensure(AssetData != BackgroundResult))
+			{
+				// The asset exists in the cache, update it
+				UpdateAssetData(AssetData, *BackgroundResult);
 
-			// Delete the result that was originally created by an FPackageReader
-			delete BackgroundResult;
-			BackgroundResult = nullptr;
+				// Delete the result that was originally created by an FPackageReader
+				delete BackgroundResult;
+				BackgroundResult = nullptr;
+			}
 		}
 		else
 		{
@@ -1627,51 +1640,43 @@ void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<
 		AddAssetPath(PackagePath);
 
 		// Check to see if we have run out of time in this tick
-		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
+		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
-			// Increment the index to properly trim the buffer below
-			++AssetIndex;
 			break;
 		}
 	}
 
 	// Trim the results array
-	if (AssetIndex > 0)
-	{
-		AssetResults.RemoveAt(0, AssetIndex);
-	}
+	AssetResults.Trim();
 }
 
-void FAssetRegistry::PathDataGathered(const double TickStartTime, TArray<FString>& PathResults)
+void FAssetRegistry::PathDataGathered(const double TickStartTime, TBackgroundGatherResults<FString>& PathResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
-	int32 ResultIdx = 0;
-	for (ResultIdx = 0; ResultIdx < PathResults.Num(); ++ResultIdx)
+
+	while (PathResults.Num() > 0)
 	{
-		const FString& Path = PathResults[ResultIdx];
+		const FString& Path = PathResults.Pop();
 		AddAssetPath(FName(*Path));
-		
+
 		// Check to see if we have run out of time in this tick
-		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
+		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
-			// Increment the index to properly trim the buffer below
-			++ResultIdx;
 			break;
 		}
 	}
 
 	// Trim the results array
-	PathResults.RemoveAt(0, ResultIdx);
+	PathResults.Trim();
 }
 
-void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<FPackageDependencyData>& DependsResults)
+void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TBackgroundGatherResults<FPackageDependencyData>& DependsResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
 
-	int32 ResultIdx = 0;
-	for (ResultIdx = 0; ResultIdx < DependsResults.Num(); ++ResultIdx)
+	while (DependsResults.Num() > 0)
 	{
-		FPackageDependencyData& Result = DependsResults[ResultIdx];
+		FPackageDependencyData& Result = DependsResults.Pop();
 
 		// Update package data
 		FAssetPackageData* PackageData = State.CreateOrGetAssetPackageData(Result.PackageName);
@@ -1791,42 +1796,34 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 		// Check to see if we have run out of time in this tick
 		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
-			// Increment the index to properly trim the buffer below
-			++ResultIdx;
 			break;
 		}
 	}
 
 	// Trim the results array
-	DependsResults.RemoveAt(0, ResultIdx);
+	DependsResults.Trim();
 }
 
-void FAssetRegistry::CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TArray<FString>& CookedPackageNamesWithoutAssetDataResults)
+void FAssetRegistry::CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TBackgroundGatherResults<FString>& CookedPackageNamesWithoutAssetDataResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
 
 	// Add the found assets
-	int32 PackageNameIndex = 0;
-	for (PackageNameIndex = 0; PackageNameIndex < CookedPackageNamesWithoutAssetDataResults.Num(); ++PackageNameIndex)
+	while (CookedPackageNamesWithoutAssetDataResults.Num() > 0)
 	{
 		// If this data is cooked and it we couldn't find any asset in its export table then try load the entire package 
-		const FString& BackgroundResult = CookedPackageNamesWithoutAssetDataResults[PackageNameIndex];
+		const FString& BackgroundResult = CookedPackageNamesWithoutAssetDataResults.Pop();
 		LoadPackage(nullptr, *BackgroundResult, 0);
 
 		// Check to see if we have run out of time in this tick
 		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
 		{
-			// Increment the index to properly trim the buffer below
-			++PackageNameIndex;
 			break;
 		}
 	}
 
 	// Trim the results array
-	if (PackageNameIndex > 0)
-	{
-		CookedPackageNamesWithoutAssetDataResults.RemoveAt(0, PackageNameIndex);
-	}
+	CookedPackageNamesWithoutAssetDataResults.Trim();
 }
 
 void FAssetRegistry::AddEmptyPackage(FName PackageName)

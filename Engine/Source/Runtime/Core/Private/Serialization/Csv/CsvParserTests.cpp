@@ -147,7 +147,27 @@ bool FEndOfStringTest::RunTest(const FString& Parameters)
 	}
 
 	{
+		const FCsvParser Parser(TEXT("\"\",\"\",\"\",\"\""));
+
+		const FString Expected[][4] = {
+			{ "", "", "", "" },
+		};
+
+		bSuccess &= CsvParser_Tests::CheckRows(Parser.GetRows(), Expected, this);
+	}
+
+	{
 		const FCsvParser Parser(TEXT(",,,\n"));
+
+		const FString Expected[][4] = {
+			{ "", "", "", "" },
+		};
+
+		bSuccess &= CsvParser_Tests::CheckRows(Parser.GetRows(), Expected, this);
+	}
+
+	{
+		const FCsvParser Parser(TEXT("\"\",\"\",\"\",\"\"\n"));
 
 		const FString Expected[][4] = {
 			{ "", "", "", "" },

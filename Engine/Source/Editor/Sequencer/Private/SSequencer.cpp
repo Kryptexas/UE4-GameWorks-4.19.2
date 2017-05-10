@@ -190,7 +190,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	bool bMirrorLabels = false;
 	
 	// Create the top and bottom sliders
-	TSharedRef<ITimeSlider> TopTimeSlider = SequencerWidgets.CreateTimeSlider( TimeSliderControllerRef, bMirrorLabels );
+	TopTimeSlider = SequencerWidgets.CreateTimeSlider( TimeSliderControllerRef, bMirrorLabels );
 	bMirrorLabels = true;
 	TSharedRef<ITimeSlider> BottomTimeSlider = SequencerWidgets.CreateTimeSlider( TimeSliderControllerRef, TAttribute<EVisibility>(this, &SSequencer::GetBottomTimeSliderVisibility), bMirrorLabels );
 
@@ -437,7 +437,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 						.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
 						.Padding(0)
 						[
-							TopTimeSlider
+							TopTimeSlider.ToSharedRef()
 						]
 					]
 
@@ -952,6 +952,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 	{
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixActorReferences);
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().RebindPossessableReferences);
 	}
 	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixFrameTiming);
 
@@ -1201,6 +1202,11 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 		GetZeroPadNumericTypeInterface()
 		);
 	return SequencerWidgets.CreateTimeRange(Args, InnerContent);
+}
+
+TSharedPtr<ITimeSlider> SSequencer::GetTopTimeSliderWidget() const
+{
+	return TopTimeSlider;
 }
 
 SSequencer::~SSequencer()
@@ -1532,10 +1538,8 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 	TArray< UObject* > DroppedObjects;
 	bool bAllAssetsWereLoaded = true;
 
-	for( auto CurAssetData = DragDropOp.AssetData.CreateConstIterator(); CurAssetData; ++CurAssetData )
+	for (const FAssetData& AssetData : DragDropOp.GetAssets())
 	{
-		const FAssetData& AssetData = *CurAssetData;
-
 		UObject* Object = AssetData.GetAsset();
 
 		if ( Object != nullptr )

@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "VIBaseTransformGizmo.h"
+#include "ViewportInteractionDragOperations.h"
 
 UStretchGizmoHandleGroup::UStretchGizmoHandleGroup()
 	: Super()
@@ -74,6 +75,8 @@ UStretchGizmoHandleGroup::UStretchGizmoHandleGroup()
 			}
 		}
 	}
+
+	DragOperationComponent->SetDragOperationClass(UStretchGizmoHandleDragOperation::StaticClass());
 }
 
 void UStretchGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, const bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
@@ -235,11 +238,6 @@ void UStretchGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalTo
 	}
 }
 
-ETransformGizmoInteractionType UStretchGizmoHandleGroup::GetInteractionType() const
-{
-	return ETransformGizmoInteractionType::StretchAndReposition;
-}
-
 EGizmoHandleTypes UStretchGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Scale;
@@ -249,4 +247,69 @@ bool UStretchGizmoHandleGroup::SupportsWorldCoordinateSpace() const
 {
 	// Stretching only works with local space gizmos
 	return false;
+}
+
+void UStretchGizmoHandleDragOperation::ExecuteDrag(FDraggingTransformableData& DraggingData)
+{
+	// We only support stretching by a handle currently
+	const FTransformGizmoHandlePlacement& HandlePlacement = DraggingData.OptionalHandlePlacement.GetValue();
+
+	const FVector PassGizmoSpaceDraggedTo = DraggingData.GizmoStartTransform.InverseTransformPositionNoScale(DraggingData.PassDraggedTo);
+
+	FBox NewGizmoLocalBounds = DraggingData.GizmoStartLocalBounds;
+	FVector GizmoSpacePivotLocation = FVector::ZeroVector;
+	for (int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex)
+	{
+		// Figure out how much the gizmo bounds changes
+		if (HandlePlacement.Axes[AxisIndex] == ETransformGizmoHandleDirection::Negative)	// Negative direction
+		{
+			GizmoSpacePivotLocation[AxisIndex] = DraggingData.GizmoStartLocalBounds.Max[AxisIndex];
+			NewGizmoLocalBounds.Min[AxisIndex] = DraggingData.GizmoStartLocalBounds.Min[AxisIndex] + PassGizmoSpaceDraggedTo[AxisIndex];
+
+		}
+		else if (HandlePlacement.Axes[AxisIndex] == ETransformGizmoHandleDirection::Positive)	// Positive direction
+		{
+			GizmoSpacePivotLocation[AxisIndex] = DraggingData.GizmoStartLocalBounds.Min[AxisIndex];
+			NewGizmoLocalBounds.Max[AxisIndex] = DraggingData.GizmoStartLocalBounds.Max[AxisIndex] + PassGizmoSpaceDraggedTo[AxisIndex];
+		}
+		else
+		{
+			// Must be ETransformGizmoHandleDirection::Center.  
+			GizmoSpacePivotLocation[AxisIndex] = DraggingData.GizmoStartLocalBounds.GetCenter()[AxisIndex];
+		}
+	}
+
+	const FVector GizmoStartLocalSize = DraggingData.GizmoStartLocalBounds.GetSize();
+	const FVector NewGizmoLocalSize = NewGizmoLocalBounds.GetSize();
+
+	FVector NewGizmoLocalScaleFromStart = FVector(1.0f);
+	for (int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex)
+	{
+		if (!FMath::IsNearlyZero(GizmoStartLocalSize[AxisIndex]))
+		{
+			NewGizmoLocalScaleFromStart[AxisIndex] = NewGizmoLocalSize[AxisIndex] / GizmoStartLocalSize[AxisIndex];
+		}
+		else
+		{
+			// Zero scale.  This is allowed in Unreal, for better or worse.
+			NewGizmoLocalScaleFromStart[AxisIndex] = 0.0f;
+		}
+	}
+
+	// Stretch and reposition the gizmo!
+	{
+		FTransform& PassGizmoTargetTransform = DraggingData.bIsUpdatingUnsnappedTarget ? DraggingData.OutGizmoUnsnappedTargetTransform : DraggingData.OutGizmoTargetTransform;
+
+		{
+			const FVector GizmoSpaceTransformableStartLocation = DraggingData.GizmoStartTransform.InverseTransformPositionNoScale(DraggingData.GizmoStartTransform.GetLocation());
+			const FVector NewGizmoSpaceLocation = (GizmoSpaceTransformableStartLocation - GizmoSpacePivotLocation) * NewGizmoLocalScaleFromStart + GizmoSpacePivotLocation;
+			PassGizmoTargetTransform.SetLocation(DraggingData.GizmoStartTransform.TransformPosition(NewGizmoSpaceLocation));
+		}
+
+		// @todo vreditor: This scale is still in gizmo space, but we're setting it in world space
+		PassGizmoTargetTransform.SetScale3D(DraggingData.GizmoStartTransform.GetScale3D() * NewGizmoLocalScaleFromStart);
+
+		DraggingData.bOutMovedTransformGizmo = true;
+		DraggingData.bOutShouldApplyVelocitiesFromDrag = false;
+	}
 }

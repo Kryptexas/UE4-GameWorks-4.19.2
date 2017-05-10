@@ -247,6 +247,7 @@
 #include "Factories/PreviewMeshCollectionFactory.h"
 #include "Factories/ForceFeedbackAttenuationFactory.h"
 #include "FileHelper.h"
+#include "ActorGroupingUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -758,7 +759,7 @@ UObject* ULevelFactory::FactoryCreateText
 						
 						if( NewActor )
 						{
-							if( GEditor->bGroupingActive && !Cast<AGroupActor>(NewActor) )
+							if( UActorGroupingUtils::IsGroupingActive() && !Cast<AGroupActor>(NewActor) )
 							{
 								bool bGrouped = false;
 

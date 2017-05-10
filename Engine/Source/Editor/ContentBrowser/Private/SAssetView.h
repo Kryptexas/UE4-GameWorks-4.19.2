@@ -20,6 +20,7 @@
 #include "Widgets/Views/STableRow.h"
 #include "Editor/ContentBrowser/Private/AssetViewSortManager.h"
 #include "AssetViewTypes.h"
+#include "HistoryManager.h"
 
 class FMenuBuilder;
 class FWeakWidgetPath;
@@ -29,7 +30,6 @@ class SAssetListView;
 class SAssetTileView;
 class SComboButton;
 class UFactory;
-struct FHistoryData;
 struct FPropertyChangedEvent;
 
 /**
@@ -222,8 +222,14 @@ public:
 	/** Selects the paths containing the specified assets. */
 	void SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bFocusOnSync = true );
 
+	/** Selects the specified paths. */
+	void SyncToFolders( const TArray<FString>& FolderList, const bool bFocusOnSync = true );
+
+	/** Selects the paths containing the specified items. */
+	void SyncTo( const FContentBrowserSelection& ItemSelection, const bool bFocusOnSync = true );
+
 	/** Sets the state of the asset view to the one described by the history data */
-	void ApplyHistoryData ( const FHistoryData& History );
+	void ApplyHistoryData( const FHistoryData& History );
 
 	/** Returns all the items currently selected in the view */
 	TArray<TSharedPtr<FAssetViewItem>> GetSelectedItems() const;
@@ -295,6 +301,9 @@ public:
 	/** Called when a folder is removed from the asset registry */
 	void OnAssetRegistryPathRemoved(const FString& Path);
 
+	/** Handles updating the content browser when a path is populated with an asset for the first time */
+	void OnFolderPopulated(const FString& Path);
+
 	/**
 	 * Forces the plugin content folder to be shown.
 	 *
@@ -303,6 +312,9 @@ public:
 	void ForceShowPluginFolder( bool bEnginePlugin );
 
 private:
+
+	/** Sets the pending selection to the current selection (used when changing views or refreshing the view). */
+	void SyncToSelection( const bool bFocusOnSync = true );
 
 	/** @return the thumbnail scale setting path to use when looking up the setting in an ini. */
 	FString GetThumbnailScaleSettingPath(const FString& SettingsString) const;
@@ -415,14 +427,23 @@ private:
 	/** @return true when we are showing folders */
 	bool IsShowingFolders() const;
 
-	/** Toggle whether folders should be shown or not */
-	void ToggleShowL10NFolder();
+	/** Toggle whether empty folders should be shown or not */
+	void ToggleShowEmptyFolders();
 
-	/** Whether or not it's possible to show folders */
-	bool IsToggleShowL10NFolderAllowed() const;
+	/** Whether or not it's possible to show empty folders */
+	bool IsToggleShowEmptyFoldersAllowed() const;
+
+	/** @return true when we are showing empty folders */
+	bool IsShowingEmptyFolders() const;
+
+	/** Toggle whether localized content should be shown or not */
+	void ToggleShowLocalizedContent();
+
+	/** Whether or not it's possible to show localized content */
+	bool IsToggleShowLocalizedContentAllowed() const;
 
 	/** @return true when we are showing folders */
-	bool IsShowingL10NFolder() const;
+	bool IsShowingLocalizedContent() const;
 
 	/** Toggle whether to show real-time thumbnails */
 	void ToggleRealTimeThumbnails();
@@ -433,26 +454,26 @@ private:
 	/** @return true if we are showing real-time thumbnails */
 	bool IsShowingRealTimeThumbnails() const;
 
-	/** Toggle whether plugin content folders should be shown or not */
-	void ToggleShowPluginFolders();
+	/** Toggle whether plugin content should be shown or not */
+	void ToggleShowPluginContent();
 
-	/** @return true when we are showing plugin content folders */
-	bool IsShowingPluginFolders() const;
+	/** @return true when we are showing plugin content */
+	bool IsShowingPluginContent() const;
 
-	/** Toggle whether the engine folder should be shown or not */
-	void ToggleShowEngineFolder();
+	/** Toggle whether engine content should be shown or not */
+	void ToggleShowEngineContent();
 
-	/** @return true when we are showing the engine folder */
-	bool IsShowingEngineFolder() const;
+	/** @return true when we are showing engine content */
+	bool IsShowingEngineContent() const;
 
-	/** Toggle whether the developers folder should be shown or not */
-	void ToggleShowDevelopersFolder();
+	/** Toggle whether developers content should be shown or not */
+	void ToggleShowDevelopersContent();
 
-	/** Whether or not it's possible to toggle the developers folder */
-	bool IsToggleShowDevelopersFolderAllowed() const;
+	/** Whether or not it's possible to toggle developers content */
+	bool IsToggleShowDevelopersContentAllowed() const;
 
-	/** @return true when we are showing the developers folder */
-	bool IsShowingDevelopersFolder() const;
+	/** @return true when we are showing the developers content */
+	bool IsShowingDevelopersContent() const;
 
 	/** Toggle whether collections should be shown or not */
 	void ToggleShowCollections();
@@ -463,11 +484,14 @@ private:
 	/** @return true when we are showing collections */
 	bool IsShowingCollections() const;
 
-	/** Toggle whether C++ content folders should be shown or not */
-	void ToggleShowCppFolders();
+	/** Toggle whether C++ content should be shown or not */
+	void ToggleShowCppContent();
 
-	/** @return true when we are showing c++ content folders */
-	bool IsShowingCppFolders() const;
+	/** Whether or not it's possible to show C++ content */
+	bool IsToggleShowCppContentAllowed() const;
+
+	/** @return true when we are showing C++ content */
+	bool IsShowingCppContent() const;
 
 	/** Sets the view type and updates lists accordingly */
 	void SetCurrentViewType(EAssetViewType::Type NewType);
@@ -626,26 +650,17 @@ private:
 	/** Whether we have a single source collection selected */
 	bool HasSingleCollectionSource() const;
 
-	/** Delegate for when assets are dragged onto a folder */
-	void OnAssetsDragDropped(const TArray<FAssetData>& AssetList, const FString& DestinationPath);
-
-	/** Delegate for when folder(s) are dragged onto a folder */
-	void OnPathsDragDropped(const TArray<FString>& PathNames, const FString& DestinationPath);
+	/** Delegate for when assets or asset paths are dragged onto a folder */
+	void OnAssetsOrPathsDragDropped(const TArray<FAssetData>& AssetList, const TArray<FString>& AssetPaths, const FString& DestinationPath);
 
 	/** Delegate for when external assets are dragged onto a folder */
 	void OnFilesDragDropped(const TArray<FString>& AssetList, const FString& DestinationPath);
 
-	/** Delegate to respond to drop of assets onto a folder */
-	void ExecuteDropCopy(TArray<FAssetData> AssetList, FString DestinationPath);
+	/** Delegate to respond to drop of assets or asset paths onto a folder */
+	void ExecuteDropCopy(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath);
 
-	/** Delegate to respond to drop of assets onto a folder */
-	void ExecuteDropMove(TArray<FAssetData> AssetList, FString DestinationPath);
-
-	/** Delegate to respond to drop of folder(s) onto a folder */
-	void ExecuteDropCopyFolder(TArray<FString> PathNames, FString DestinationPath);
-
-	/** Delegate to respond to drop of folder(s) onto a folder */
-	void ExecuteDropMoveFolder(TArray<FString> PathNames, FString DestinationPath);
+	/** Delegate to respond to drop of assets or asset paths onto a folder */
+	void ExecuteDropMove(TArray<FAssetData> AssetList, TArray<FString> AssetPaths, FString DestinationPath);
 
 	/** Creates a new asset from deferred data */
 	void DeferredCreateNewAsset();
@@ -743,8 +758,8 @@ private:
 	/** If true, the frontend items will be refreshed next frame. Much faster. */
 	bool bQuickFrontendListRefreshRequested;
 
-	/** The list of assets to sync next frame */
-	TSet<FName> PendingSyncAssets;
+	/** The list of items to sync next frame */
+	FSelectionData PendingSyncItems;
 
 	/** Should we take focus when the PendingSyncAssets are processed? */
 	bool bPendingFocusOnSync;

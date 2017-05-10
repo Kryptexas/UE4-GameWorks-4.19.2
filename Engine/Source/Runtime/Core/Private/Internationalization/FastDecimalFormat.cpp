@@ -38,6 +38,10 @@ static_assert(ARRAY_COUNT(Pow10Table) - 1 >= MaxFractionalPrintPrecision, "Pow10
 
 void SanitizeNumberFormattingOptions(FNumberFormattingOptions& InOutFormattingOptions)
 {
+	// Ensure that the minimum limits are >= 0
+	InOutFormattingOptions.MinimumIntegralDigits = FMath::Max(0, InOutFormattingOptions.MinimumIntegralDigits);
+	InOutFormattingOptions.MinimumFractionalDigits = FMath::Max(0, InOutFormattingOptions.MinimumFractionalDigits);
+
 	// Ensure that the maximum limits are >= the minimum limits
 	InOutFormattingOptions.MaximumIntegralDigits = FMath::Max(InOutFormattingOptions.MinimumIntegralDigits, InOutFormattingOptions.MaximumIntegralDigits);
 	InOutFormattingOptions.MaximumFractionalDigits = FMath::Max(InOutFormattingOptions.MinimumFractionalDigits, InOutFormattingOptions.MaximumFractionalDigits);
@@ -62,7 +66,7 @@ int32 IntegralToString_UInt64ToString(
 	{
 		// Perform the initial number -> string conversion
 		uint64 TmpNum = InVal;
-		while (StringLen < InMaxDigitsToPrint && TmpNum != 0)
+		while (DigitsPrinted < InMaxDigitsToPrint && TmpNum != 0)
 		{
 			if (InUseGrouping && NumUntilNextGroup-- == 0)
 			{

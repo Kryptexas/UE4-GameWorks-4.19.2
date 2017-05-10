@@ -8,7 +8,6 @@
 
 #include "DragAndDrop/DecoratedDragDropOp.h"
 #include "DragAndDrop/AssetDragDropOp.h"
-#include "DragAndDrop/AssetPathDragDropOp.h"
 #include "DragAndDrop/CollectionDragDropOp.h"
 #include "DragDropHandler.h"
 #include "ContentBrowserUtils.h"
@@ -26,8 +25,7 @@ void SAssetTreeItem::Construct( const FArguments& InArgs )
 	TreeItem = InArgs._TreeItem;
 	OnNameChanged = InArgs._OnNameChanged;
 	OnVerifyNameChanged = InArgs._OnVerifyNameChanged;
-	OnAssetsDragDropped = InArgs._OnAssetsDragDropped;
-	OnPathsDragDropped = InArgs._OnPathsDragDropped;
+	OnAssetsOrPathsDragDropped = InArgs._OnAssetsOrPathsDragDropped;
 	OnFilesDragDropped = InArgs._OnFilesDragDropped;
 	IsItemExpanded = InArgs._IsItemExpanded;
 	bDraggedOver = false;
@@ -151,16 +149,11 @@ FReply SAssetTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 		if (Operation->IsOfType<FAssetDragDropOp>())
 		{
 			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
-			OnAssetsDragDropped.ExecuteIfBound(DragDropOp->AssetData, TreeItem.Pin());
+			OnAssetsOrPathsDragDropped.ExecuteIfBound(DragDropOp->GetAssets(), DragDropOp->GetAssetPaths(), TreeItem.Pin());
 			return FReply::Handled();
 		}
-		else if (Operation->IsOfType<FAssetPathDragDropOp>())
-		{
-			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
-			OnPathsDragDropped.ExecuteIfBound(DragDropOp->PathNames, TreeItem.Pin());
-			return FReply::Handled();
-		}
-		else if (Operation->IsOfType<FExternalDragOperation>())
+		
+		if (Operation->IsOfType<FExternalDragOperation>())
 		{
 			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
 			OnFilesDragDropped.ExecuteIfBound(DragDropOp->GetFiles(), TreeItem.Pin());
@@ -197,7 +190,7 @@ bool SAssetTreeItem::VerifyNameChanged(const FText& InName, FText& OutError) con
 	return true;
 }
 
-void SAssetTreeItem::HandleNameCommitted( const FText& NewText, ETextCommit::Type /*CommitInfo*/ )
+void SAssetTreeItem::HandleNameCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
 {
 	if ( TreeItem.IsValid() )
 	{
@@ -218,7 +211,7 @@ void SAssetTreeItem::HandleNameCommitted( const FText& NewText, ETextCommit::Typ
 			MessageLoc.X = LastGeometry.AbsolutePosition.X;
 			MessageLoc.Y = LastGeometry.AbsolutePosition.Y + LastGeometry.Size.Y * LastGeometry.Scale;
 
-			OnNameChanged.ExecuteIfBound(TreeItemPtr, OldPath, MessageLoc);
+			OnNameChanged.ExecuteIfBound(TreeItemPtr, OldPath, MessageLoc, CommitInfo);
 		}
 	}
 }

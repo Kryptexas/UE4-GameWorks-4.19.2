@@ -124,6 +124,12 @@ public:
 	/** Gets the world context */
 	FWorldContext* GetWorldContext() const;
 
+	/**
+	 * Checks if the passed extension already exists and creates one if it doesn't.
+	 * @param EditorExtensionClass the subclass of an extension to create if necessary and add.
+	 */
+	UEditorWorldExtension* AddExtension(TSubclassOf<UEditorWorldExtension> EditorExtensionClass);
+
 	/** 
 	 * Adds an extension to the collection
 	 * @param	EditorExtension			The UEditorExtension that will be created, initialized and added to the collection.

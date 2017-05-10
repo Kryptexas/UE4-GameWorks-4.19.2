@@ -723,6 +723,7 @@ public:
 	 *
 	 * @return Requested material
 	 */
+	UFUNCTION(BlueprintCallable, Category = "StaticMesh")
 	ENGINE_API UMaterialInterface* GetMaterial(int32 MaterialIndex) const;
 
 	/**
@@ -730,6 +731,7 @@ public:
 	*
 	* @return Requested material
 	*/
+	UFUNCTION(BlueprintCallable, Category = "StaticMesh")
 	ENGINE_API int32 GetMaterialIndex(FName MaterialSlotName) const;
 
 	/**

@@ -10,6 +10,7 @@
 #include "Widgets/Images/SImage.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "EditorStyleSet.h"
@@ -647,27 +648,44 @@ void SEventGraph::Construct( const FArguments& InArgs )
 							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 							.Padding(2.0f)
 							[
-								SNew(SHorizontalBox)
+								SNew(SVerticalBox)
 
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									[
-										GetWidgetForEventGraphTypes()
-									]
+								+ SVerticalBox::Slot()
+								[
+									SNew(SHorizontalBox)
 
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.Padding(2.0f, 0.0f, 0.0f, 0.0f)
-									[
-										GetWidgetForEventGraphViewModes()
-									]
+									+ SHorizontalBox::Slot()
+										.AutoWidth()
+										[
+											GetWidgetForEventGraphTypes()
+										]
 
-								+ SHorizontalBox::Slot()
+									+ SHorizontalBox::Slot()
+										.AutoWidth()
+										.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+										[
+											GetWidgetForEventGraphViewModes()
+										]
+
+									+ SHorizontalBox::Slot()
+										.FillWidth(1.0f)
+										.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+										[
+											GetWidgetBoxForOptions()
+										]
+								]
+
+								+ SVerticalBox::Slot()
+								.Padding(0.0f, 2.0f, 0.0f, 0.0f)
+								[
+									SNew(SHorizontalBox)
+
+									+ SHorizontalBox::Slot()
 									.FillWidth(1.0f)
-									.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 									[
-										GetWidgetBoxForOptions()
+										GetWidgetForThreadFilter()
 									]
+								]
 							]
 					]
  
@@ -988,6 +1006,113 @@ TSharedRef<SWidget> SEventGraph::GetWidgetForEventGraphViewModes()
 	];
 }
 
+TSharedRef<SWidget> SEventGraph::GetWidgetForThreadFilter()
+{
+	return SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("Profiler.Group.16"))
+		.Padding(FMargin(2.0f, 0.0))
+		[
+			SNew(SHorizontalBox)
+
+			+SHorizontalBox::Slot()
+			.HAlign( HAlign_Center )
+			.VAlign( VAlign_Center )
+			.AutoWidth()
+			.Padding( 2.0f )
+			[
+				SNew ( STextBlock )
+				.Text( LOCTEXT( "Toolbar_Thread", "Thread" ) )
+				.TextStyle( FEditorStyle::Get(), TEXT( "Profiler.CaptionBold" ) )
+			]
+
+			+SHorizontalBox::Slot()
+			.HAlign( HAlign_Center )
+			.VAlign( VAlign_Fill )
+			.AutoWidth()
+			.Padding( 2.0f )
+			[
+				SAssignNew( ThreadFilterComboBox, SComboBox<TSharedPtr<FName>> )
+				.ContentPadding( FMargin( 6.0f, 2.0f ) )
+				.OptionsSource( &ThreadNamesForCombo )
+				.OnSelectionChanged( this, &SEventGraph::OnThreadFilterChanged )
+				.OnGenerateWidget( this, &SEventGraph::OnGenerateWidgetForThreadFilter )
+				[
+					SNew( STextBlock )
+					.Text( this, &SEventGraph::GenerateTextForThreadFilter, FName( TEXT( "SelectedThreadName" ) ) )
+				]
+			]
+	];
+}
+
+void SEventGraph::FillThreadFilterOptions()
+{
+	ThreadNamesForCombo.Empty();
+
+	// Allow None as an option
+	ThreadNamesForCombo.Add(MakeShareable(new FName()));
+
+	if ( EventGraphStatesHistory.Num() == 0 )
+	{
+		return;
+	}
+
+	FEventGraphSamplePtr Root = GetCurrentState()->GetRoot();
+	if ( !Root.IsValid() )
+	{
+		return;
+	}
+
+	// Add a thread filter entry for each root child
+	for ( const FEventGraphSamplePtr Child : Root->GetChildren() )
+	{
+		ThreadNamesForCombo.Add( MakeShareable( new FName( Child->_ThreadName ) ) );
+	}
+
+	// Sort the thread names alphabetically
+	ThreadNamesForCombo.Sort([]( const TSharedPtr<FName> Lhs, const TSharedPtr<FName> Rhs ) 
+	{
+		return Lhs->IsNone() || ( !Rhs->IsNone() && *Lhs < *Rhs );
+	});
+
+	// Refresh the combo box
+	if ( ThreadFilterComboBox.IsValid() )
+	{
+		ThreadFilterComboBox->RefreshOptions();
+	}
+}
+
+FText SEventGraph::GenerateTextForThreadFilter( FName ThreadName ) const
+{
+	static const FName SelectedThreadName( TEXT( "SelectedThreadName" ) );
+	if ( ThreadName == SelectedThreadName )
+	{
+		if ( EventGraphStatesHistory.Num() > 0 )
+		{
+			ThreadName = GetCurrentState()->ThreadFilter;
+		}
+		else
+		{
+			ThreadName = NAME_None;
+		}
+	}
+	return FText::FromName( ThreadName );
+}
+
+void SEventGraph::OnThreadFilterChanged( TSharedPtr<FName> NewThread, ESelectInfo::Type SelectionType )
+{
+	if ( NewThread.IsValid() )
+	{
+		GetCurrentState()->ThreadFilter = *NewThread;
+		RestoreEventGraphStateFrom( GetCurrentState() );
+		GetCurrentState()->GetRoot()->SetBooleanStateForAllChildren<EEventPropertyIndex::bNeedNotCulledChildrenUpdate>(true);
+	}
+}
+
+TSharedRef<SWidget> SEventGraph::OnGenerateWidgetForThreadFilter( TSharedPtr<FName> ThreadName ) const
+{
+	return SNew( STextBlock )
+		.Text( GenerateTextForThreadFilter( ThreadName.IsValid() ? *ThreadName : NAME_None ) );
+}
 
 TSharedRef<SWidget> SEventGraph::GetWidgetBoxForOptions()
 {
@@ -2860,6 +2985,7 @@ void SEventGraph::SetNewEventGraphState( const FEventGraphDataRef AverageEventGr
 	FEventGraphState* Op = new FEventGraphState( AverageEventGraph->DuplicateAsRef(), MaximumEventGraph->DuplicateAsRef() );
 	CurrentStateIndex = EventGraphStatesHistory.Add( MakeShareable(Op) );
 	RestoreEventGraphStateFrom( GetCurrentState(), bInitial );
+	FillThreadFilterOptions();
 }
 
 FReply SEventGraph::HistoryBack_OnClicked()

@@ -25,7 +25,6 @@
 #include "AutoReimport/AssetSourceFilenameCache.h"
 #include "CollectionViewUtils.h"
 #include "DragAndDrop/AssetDragDropOp.h"
-#include "DragAndDrop/AssetPathDragDropOp.h"
 #include "DragDropHandler.h"
 #include "Internationalization/BreakIterator.h"
 #include "Widgets/Text/SInlineEditableTextBlock.h"
@@ -380,8 +379,7 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	ShouldAllowToolTip = InArgs._ShouldAllowToolTip;
 	ThumbnailEditMode = InArgs._ThumbnailEditMode;
 	HighlightText = InArgs._HighlightText;
-	OnAssetsDragDropped = InArgs._OnAssetsDragDropped;
-	OnPathsDragDropped = InArgs._OnPathsDragDropped;
+	OnAssetsOrPathsDragDropped = InArgs._OnAssetsOrPathsDragDropped;
 	OnFilesDragDropped = InArgs._OnFilesDragDropped;
 	OnGetCustomAssetToolTip = InArgs._OnGetCustomAssetToolTip;
 	OnVisualizeAssetToolTip = InArgs._OnVisualizeAssetToolTip;
@@ -494,16 +492,11 @@ FReply SAssetViewItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 			OnFilesDragDropped.ExecuteIfBound(DragDropOp->GetFiles(), StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
 			return FReply::Handled();
 		}
-		else if (Operation->IsOfType<FAssetPathDragDropOp>())
-		{
-			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>(Operation);
-			OnPathsDragDropped.ExecuteIfBound(DragDropOp->PathNames, StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
-			return FReply::Handled();
-		}
-		else if (Operation->IsOfType<FAssetDragDropOp>())
+		
+		if (Operation->IsOfType<FAssetDragDropOp>())
 		{
 			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
-			OnAssetsDragDropped.ExecuteIfBound(DragDropOp->AssetData, StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
+			OnAssetsOrPathsDragDropped.ExecuteIfBound(DragDropOp->GetAssets(), DragDropOp->GetAssetPaths(), StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
 			return FReply::Handled();
 		}
 	}
@@ -583,7 +576,7 @@ void SAssetViewItem::OnAssetDataChanged()
 		InlineRenameWidget->SetText( GetNameText() );
 	}
 
-	CacheToolTipTags();
+	CacheDisplayTags();
 }
 
 void SAssetViewItem::DirtyStateChanged()
@@ -698,9 +691,9 @@ TSharedRef<SWidget> SAssetViewItem::CreateToolTipWidget() const
 			}
 
 			// Add tags
-			for (const auto& ToolTipTagItem : CachedToolTipTags)
+			for (const auto& DisplayTagItem : CachedDisplayTags)
 			{
-				AddToToolTipInfoBox(InfoBox, ToolTipTagItem.Key, ToolTipTagItem.Value, ToolTipTagItem.bImportant);
+				AddToToolTipInfoBox(InfoBox, DisplayTagItem.DisplayKey, DisplayTagItem.DisplayValue, DisplayTagItem.bImportant);
 			}
 
 			// Add asset source files
@@ -1002,119 +995,302 @@ void SAssetViewItem::CachePackageName()
 	}
 }
 
-void SAssetViewItem::CacheToolTipTags()
+void SAssetViewItem::CacheDisplayTags()
 {
-	CachedToolTipTags.Reset();
+	CachedDisplayTags.Reset();
 
-	if(AssetItem->GetType() != EAssetItemType::Folder)
+	if (AssetItem->GetType() == EAssetItemType::Folder)
 	{
-		const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
-		UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+		return;
+	}
 
-		// If we are using a loaded class, find all the hidden tags so we don't display them
-		TMap<FName, UObject::FAssetRegistryTagMetadata> MetadataMap;
-		TSet<FName> ShownTags;
-		if ( AssetClass != NULL && AssetClass->GetDefaultObject() != NULL )
+	const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
+
+	// Find the asset CDO so we can get the meta-data for the tags
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	const UObject* AssetCDO = AssetClass ? GetDefault<UObject>(AssetClass) : nullptr;
+
+	// If no asset CDO is available then we cannot determine the meta-data for the tags, so just bail
+	if (!AssetCDO)
+	{
+		return;
+	}
+
+	struct FTagDisplayMetaData
+	{
+		FTagDisplayMetaData()
+			: MetaData()
+			, Type(UObject::FAssetRegistryTag::TT_Hidden)
+			, DisplayFlags(UObject::FAssetRegistryTag::TD_None)
 		{
-			AssetClass->GetDefaultObject()->GetAssetRegistryTagMetadata(MetadataMap);
+		}
 
-			TArray<UObject::FAssetRegistryTag> Tags;
-			AssetClass->GetDefaultObject()->GetAssetRegistryTags(Tags);
+		UObject::FAssetRegistryTagMetadata MetaData;
+		UObject::FAssetRegistryTag::ETagType Type;
+		uint32 DisplayFlags;
+	};
 
-			for ( auto TagIt = Tags.CreateConstIterator(); TagIt; ++TagIt )
+	// Build up the meta-data needed to correctly process the tags for display
+	TMap<FName, FTagDisplayMetaData> TagMetaDataMap;
+	{
+		// Add the internal meta-data
+		{
+			TMap<FName, UObject::FAssetRegistryTagMetadata> TmpMetaData;
+			AssetCDO->GetAssetRegistryTagMetadata(TmpMetaData);
+
+			for (const auto& TmpMetaDataPair : TmpMetaData)
 			{
-				if (TagIt->Type != UObject::FAssetRegistryTag::TT_Hidden )
-				{
-					ShownTags.Add(TagIt->Name);
-				}
+				FTagDisplayMetaData& TagMetaData = TagMetaDataMap.FindOrAdd(TmpMetaDataPair.Key);
+				TagMetaData.MetaData = TmpMetaDataPair.Value;
 			}
 		}
 
-		// If an asset class could not be loaded we cannot determine hidden tags so display no tags.
-		if( AssetClass != NULL )
+		// Add the type and display flags
 		{
-			// Add all asset registry tags and values
-			for (const auto& KeyValue: AssetData.TagsAndValues)
+			TArray<UObject::FAssetRegistryTag> TmpTags;
+			AssetCDO->GetAssetRegistryTags(TmpTags);
+
+			for (const UObject::FAssetRegistryTag& TmpTag : TmpTags)
 			{
-				// Skip tags that are set to be hidden
-				if ( ShownTags.Contains(KeyValue.Key) )
+				FTagDisplayMetaData& TagMetaData = TagMetaDataMap.FindOrAdd(TmpTag.Name);
+				TagMetaData.Type = TmpTag.Type;
+				TagMetaData.DisplayFlags = TmpTag.DisplayFlags;
+			}
+		}
+	}
+
+	// Add all asset registry tags and values
+	for (const auto& TagAndValuePair : AssetData.TagsAndValues)
+	{
+		const FTagDisplayMetaData TagMetaData = TagMetaDataMap.FindRef(TagAndValuePair.Key);
+
+		// Skip tags that are set to be hidden
+		if (TagMetaData.Type == UObject::FAssetRegistryTag::TT_Hidden)
+		{
+			continue;
+		}
+
+		UProperty* TagField = FindField<UProperty>(AssetClass, TagAndValuePair.Key);
+
+		// Build the display name for this tag
+		FText DisplayName;
+		if (!TagMetaData.MetaData.DisplayName.IsEmpty())
+		{
+			DisplayName = TagMetaData.MetaData.DisplayName;
+		}
+		else if (TagField)
+		{
+			DisplayName = TagField->GetDisplayNameText();
+		}
+		else
+		{
+			// We have no type information by this point, so no idea if it's a bool :(
+			const bool bIsBool = false;
+			DisplayName = FText::FromString(FName::NameToDisplayString(TagAndValuePair.Key.ToString(), bIsBool));
+		}
+
+		// Build the display value for this tag
+		FText DisplayValue;
+		{
+			auto ReformatNumberStringForDisplay = [](const FString& InNumberString) -> FText
+			{
+				// Respect the number of decimal places in the source string when converting for display
+				int32 NumDecimalPlaces = 0;
 				{
-					const UObject::FAssetRegistryTagMetadata* Metadata = MetadataMap.Find(KeyValue.Key);
-
-					const bool bImportant = (Metadata != nullptr && !Metadata->ImportantValue.IsEmpty() && Metadata->ImportantValue == KeyValue.Value);
-
-					// The string value might be localizable text, so we need to stringify it for display
-					FString ValueString = KeyValue.Value;
-					if (FTextStringHelper::IsComplexText(*ValueString))
+					int32 DotIndex = INDEX_NONE;
+					if (InNumberString.FindChar(TEXT('.'), DotIndex))
 					{
-						FText TmpText;
-						if (FTextStringHelper::ReadFromString(*ValueString, TmpText))
-						{
-							ValueString = TmpText.ToString();
-						}
+						NumDecimalPlaces = InNumberString.Len() - DotIndex - 1;
 					}
+				}
 
-					// Since all we have at this point is a string, we can't be very smart here.
-					// We need to strip some noise off class paths in some cases, but can't load the asset to inspect its UPROPERTYs manually due to performance concerns.
-					const TCHAR StringToRemove[] = TEXT("Class'/Script/");
-					if (ValueString.StartsWith(StringToRemove) && ValueString.EndsWith(TEXT("'")))
+				if (NumDecimalPlaces > 0)
+				{
+					// Convert the number as a double
+					double Num = 0.0;
+					Lex::FromString(Num, *InNumberString);
+
+					const FNumberFormattingOptions NumFormatOpts = FNumberFormattingOptions()
+						.SetMinimumFractionalDigits(NumDecimalPlaces)
+						.SetMaximumFractionalDigits(NumDecimalPlaces);
+
+					return FText::AsNumber(Num, &NumFormatOpts);
+				}
+				else
+				{
+					const bool bIsSigned = InNumberString.Len() > 0 && (InNumberString[0] == TEXT('-') || InNumberString[0] == TEXT('+'));
+
+					if (bIsSigned)
 					{
-						// Remove the class path for native classes, and also remove Engine. for engine classes
-						const int32 SizeOfPrefix = ARRAY_COUNT(StringToRemove);
-						ValueString = ValueString.Mid(SizeOfPrefix - 1, ValueString.Len() - SizeOfPrefix).Replace(TEXT("Engine."), TEXT(""));
-					}
-						
-					// Check for DisplayName metadata
-					FText DisplayName;
-					if (UProperty* Field = FindField<UProperty>(AssetClass, KeyValue.Key))
-					{
-						DisplayName = Field->GetDisplayNameText();
+						// Convert the number as a signed int
+						int64 Num = 0;
+						Lex::FromString(Num, *InNumberString);
 
-						UProperty* Prop = nullptr;
-						UEnum* Enum = nullptr;
-						if (UByteProperty* ByteProp = Cast<UByteProperty>(Field))
-						{
-							Prop = ByteProp;
-							Enum = ByteProp->Enum;
-						}
-						else if (UEnumProperty* EnumProp = Cast<UEnumProperty>(Field))
-						{
-							Prop = EnumProp;
-							Enum = EnumProp->GetEnum();
-						}
-
-						// Strip off enum prefixes if they exist
-						if (Prop)
-						{
-							if (Enum)
-							{
-								const FString EnumPrefix = Enum->GenerateEnumPrefix();
-								if (EnumPrefix.Len() && ValueString.StartsWith(EnumPrefix))
-								{
-									ValueString = ValueString.RightChop(EnumPrefix.Len() + 1);	// +1 to skip over the underscore
-								}
-							}
-
-							ValueString = FName::NameToDisplayString(ValueString, false);
-						}
+						return FText::AsNumber(Num);
 					}
 					else
 					{
-						// We have no type information by this point, so no idea if it's a bool :(
-						const bool bIsBool = false;
-						DisplayName = FText::FromString(FName::NameToDisplayString(KeyValue.Key.ToString(), bIsBool));
-					}
-					
-					// Add suffix to the value string, if one is defined for this tag
-					if (Metadata != nullptr && !Metadata->Suffix.IsEmpty())
-					{
-						ValueString += TEXT(" ");
-						ValueString += Metadata->Suffix.ToString();
-					}
+						// Convert the number as an unsigned int
+						uint64 Num = 0;
+						Lex::FromString(Num, *InNumberString);
 
-					CachedToolTipTags.Add(FToolTipTagItem(DisplayName, FText::FromString(ValueString), bImportant));
+						return FText::AsNumber(Num);
+					}
+				}
+
+				return FText::GetEmpty();
+			};
+
+			bool bHasSetDisplayValue = false;
+
+			// Numerical tags need to format the specified number based on the display flags
+			if (!bHasSetDisplayValue && TagMetaData.Type == UObject::FAssetRegistryTag::TT_Numerical && TagAndValuePair.Value.IsNumeric())
+			{
+				bHasSetDisplayValue = true;
+
+				const bool bAsMemory = !!(TagMetaData.DisplayFlags & UObject::FAssetRegistryTag::TD_Memory);
+
+				if (bAsMemory)
+				{
+					// Memory should be a 64-bit unsigned number of bytes
+					uint64 NumBytes = 0;
+					Lex::FromString(NumBytes, *TagAndValuePair.Value);
+
+					DisplayValue = FText::AsMemory(NumBytes);
+				}
+				else
+				{
+					DisplayValue = ReformatNumberStringForDisplay(TagAndValuePair.Value);
 				}
 			}
+
+			// Dimensional tags need to be split into their component numbers, with each component number re-format
+			if (!bHasSetDisplayValue && TagMetaData.Type == UObject::FAssetRegistryTag::TT_Dimensional)
+			{
+				TArray<FString> NumberStrTokens;
+				TagAndValuePair.Value.ParseIntoArray(NumberStrTokens, TEXT("x"), true);
+
+				if (NumberStrTokens.Num() > 0 && NumberStrTokens.Num() <= 3)
+				{
+					bHasSetDisplayValue = true;
+
+					switch (NumberStrTokens.Num())
+					{
+					case 1:
+						DisplayValue = ReformatNumberStringForDisplay(NumberStrTokens[0]);
+						break;
+
+					case 2:
+						DisplayValue = FText::Format(LOCTEXT("DisplayTag2xFmt", "{0} \u00D7 {1}"), ReformatNumberStringForDisplay(NumberStrTokens[0]), ReformatNumberStringForDisplay(NumberStrTokens[1]));
+						break;
+
+					case 3:
+						DisplayValue = FText::Format(LOCTEXT("DisplayTag3xFmt", "{0} \u00D7 {1} \u00D7 {2}"), ReformatNumberStringForDisplay(NumberStrTokens[0]), ReformatNumberStringForDisplay(NumberStrTokens[1]), ReformatNumberStringForDisplay(NumberStrTokens[2]));
+						break;
+
+					default:
+						break;
+					}
+				}
+			}
+
+			// Chronological tags need to format the specified timestamp based on the display flags
+			if (!bHasSetDisplayValue && TagMetaData.Type == UObject::FAssetRegistryTag::TT_Chronological)
+			{
+				bHasSetDisplayValue = true;
+
+				FDateTime Timestamp;
+				if (FDateTime::Parse(TagAndValuePair.Value, Timestamp))
+				{
+					const bool bDisplayDate = !!(TagMetaData.DisplayFlags & UObject::FAssetRegistryTag::TD_Date);
+					const bool bDisplayTime = !!(TagMetaData.DisplayFlags & UObject::FAssetRegistryTag::TD_Time);
+					const FString TimeZone = (TagMetaData.DisplayFlags & UObject::FAssetRegistryTag::TD_InvariantTz) ? FText::GetInvariantTimeZone() : FString();
+
+					if (bDisplayDate && bDisplayTime)
+					{
+						DisplayValue = FText::AsDateTime(Timestamp, EDateTimeStyle::Short, EDateTimeStyle::Short, TimeZone);
+					}
+					else if (bDisplayDate)
+					{
+						DisplayValue = FText::AsDate(Timestamp, EDateTimeStyle::Short, TimeZone);
+					}
+					else if (bDisplayTime)
+					{
+						DisplayValue = FText::AsTime(Timestamp, EDateTimeStyle::Short, TimeZone);
+					}
+				}
+			}
+
+			// The tag value might be localized text, so we need to parse it for display
+			if (!bHasSetDisplayValue && FTextStringHelper::IsComplexText(*TagAndValuePair.Value))
+			{
+				bHasSetDisplayValue = true;
+
+				FTextStringHelper::ReadFromString(*TagAndValuePair.Value, DisplayValue);
+			}
+
+			// Do our best to build something valid from the string value
+			if (!bHasSetDisplayValue)
+			{
+				bHasSetDisplayValue = true;
+
+				FString ValueString = TagAndValuePair.Value;
+
+				// Since all we have at this point is a string, we can't be very smart here.
+				// We need to strip some noise off class paths in some cases, but can't load the asset to inspect its UPROPERTYs manually due to performance concerns.
+				const TCHAR StringToRemove[] = TEXT("Class'/Script/");
+				if (ValueString.StartsWith(StringToRemove) && ValueString.EndsWith(TEXT("'")))
+				{
+					// Remove the class path for native classes, and also remove Engine. for engine classes
+					const int32 SizeOfPrefix = ARRAY_COUNT(StringToRemove);
+					ValueString = ValueString.Mid(SizeOfPrefix - 1, ValueString.Len() - SizeOfPrefix).Replace(TEXT("Engine."), TEXT(""));
+				}
+
+				if (TagField)
+				{
+					UProperty* TagProp = nullptr;
+					UEnum* TagEnum = nullptr;
+					if (UByteProperty* ByteProp = Cast<UByteProperty>(TagField))
+					{
+						TagProp = ByteProp;
+						TagEnum = ByteProp->Enum;
+					}
+					else if (UEnumProperty* EnumProp = Cast<UEnumProperty>(TagField))
+					{
+						TagProp = EnumProp;
+						TagEnum = EnumProp->GetEnum();
+					}
+
+					// Strip off enum prefixes if they exist
+					if (TagProp)
+					{
+						if (TagEnum)
+						{
+							const FString EnumPrefix = TagEnum->GenerateEnumPrefix();
+							if (EnumPrefix.Len() && ValueString.StartsWith(EnumPrefix))
+							{
+								ValueString = ValueString.RightChop(EnumPrefix.Len() + 1);	// +1 to skip over the underscore
+							}
+						}
+
+						ValueString = FName::NameToDisplayString(ValueString, false);
+					}
+				}
+
+				DisplayValue = FText::FromString(MoveTemp(ValueString));
+			}
+						
+			// Add suffix to the value, if one is defined for this tag
+			if (!TagMetaData.MetaData.Suffix.IsEmpty())
+			{
+				DisplayValue = FText::Format(LOCTEXT("DisplayTagSuffixFmt", "{0} {1}"), DisplayValue, TagMetaData.MetaData.Suffix);
+			}
+		}
+
+		if (!DisplayValue.IsEmpty())
+		{
+			const bool bImportant = !TagMetaData.MetaData.ImportantValue.IsEmpty() && TagMetaData.MetaData.ImportantValue == TagAndValuePair.Value;
+			CachedDisplayTags.Add(FTagDisplayItem(TagAndValuePair.Key, DisplayName, DisplayValue, bImportant));
 		}
 	}
 }
@@ -1260,8 +1436,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 		.ShouldAllowToolTip(InArgs._ShouldAllowToolTip)
 		.ThumbnailEditMode(InArgs._ThumbnailEditMode)
 		.HighlightText(InArgs._HighlightText)
-		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
-		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
+		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
@@ -1413,8 +1588,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		.ShouldAllowToolTip(InArgs._ShouldAllowToolTip)
 		.ThumbnailEditMode(InArgs._ThumbnailEditMode)
 		.HighlightText(InArgs._HighlightText)
-		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
-		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
+		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
@@ -1615,8 +1789,7 @@ void SAssetColumnItem::Construct( const FArguments& InArgs )
 		.OnVerifyRenameCommit(InArgs._OnVerifyRenameCommit)
 		.OnItemDestroyed(InArgs._OnItemDestroyed)
 		.HighlightText(InArgs._HighlightText)
-		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
-		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
+		.OnAssetsOrPathsDragDropped(InArgs._OnAssetsOrPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
 		.OnGetCustomAssetToolTip(InArgs._OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._OnVisualizeAssetToolTip)
@@ -1836,14 +2009,28 @@ FText SAssetColumnItem::GetAssetTagText(FName AssetTag) const
 		if(AssetItem->GetType() != EAssetItemType::Folder)
 		{
 			const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(AssetItem);
-			// Check custom type
-			FString* FoundString = ItemAsAsset->CustomColumnData.Find(AssetTag);
 
-			if (FoundString)
+			// Check custom type
 			{
-				return FText::FromString(*FoundString);
+				FString* FoundString = ItemAsAsset->CustomColumnData.Find(AssetTag);
+				if (FoundString)
+				{
+					return FText::FromString(*FoundString);
+				}
 			}
-			return ItemAsAsset->Data.GetTagValueRef<FText>(AssetTag);
+
+			// Check display tags
+			{
+				const FTagDisplayItem* FoundTagItem = CachedDisplayTags.FindByPredicate([AssetTag](const FTagDisplayItem& TagItem)
+				{
+					return TagItem.TagKey == AssetTag;
+				});
+
+				if (FoundTagItem)
+				{
+					return FoundTagItem->DisplayValue;
+				}
+			}
 		}
 	}
 	

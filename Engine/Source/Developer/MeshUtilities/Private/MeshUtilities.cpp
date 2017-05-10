@@ -2242,18 +2242,46 @@ static void ComputeTangents(
 	uint32 TangentOptions
 	)
 {
-	const float ComparisonThreshold = (TangentOptions & ETangentOptions::IgnoreDegenerateTriangles) ? THRESH_POINTS_ARE_SAME : 0.0f;
 	ComputeTangents(RawMesh.VertexPositions, RawMesh.WedgeIndices, RawMesh.WedgeTexCoords[0], RawMesh.FaceSmoothingMasks, OverlappingCorners, RawMesh.WedgeTangentX, RawMesh.WedgeTangentY, RawMesh.WedgeTangentZ, TangentOptions);
 }
 
 /*------------------------------------------------------------------------------
 MikkTSpace for computing tangents.
 ------------------------------------------------------------------------------*/
+class MikkTSpace_Mesh
+{
+public:
+	const TArray<FVector>& Vertices;
+	const TArray<uint32>& Indices;
+	const TArray<FVector2D>& UVs;
+
+	TArray<FVector>& TangentsX;			//Reference to newly created tangents list.
+	TArray<FVector>& TangentsY;			//Reference to newly created bitangents list.
+	TArray<FVector>& TangentsZ;			//Reference to computed normals, will be empty otherwise.
+
+	MikkTSpace_Mesh(
+		const TArray<FVector>		&InVertices,
+		const TArray<uint32>		&InIndices,
+		const TArray<FVector2D>		&InUVs,
+		TArray<FVector>				&InVertexTangentsX,
+		TArray<FVector>				&InVertexTangentsY,
+		TArray<FVector>				&InVertexTangentsZ
+		)
+		:
+		Vertices(InVertices),
+		Indices(InIndices),
+		UVs(InUVs),
+		TangentsX(InVertexTangentsX),
+		TangentsY(InVertexTangentsY),
+		TangentsZ(InVertexTangentsZ)
+	{
+	}
+};
 
 static int MikkGetNumFaces(const SMikkTSpaceContext* Context)
 {
-	FRawMesh *UserData = (FRawMesh*)(Context->m_pUserData);
-	return UserData->WedgeIndices.Num() / 3;
+	MikkTSpace_Mesh *UserData = (MikkTSpace_Mesh*)(Context->m_pUserData);
+	return UserData->Indices.Num() / 3;
 }
 
 static int MikkGetNumVertsOfFace(const SMikkTSpaceContext* Context, const int FaceIdx)
@@ -2264,8 +2292,8 @@ static int MikkGetNumVertsOfFace(const SMikkTSpaceContext* Context, const int Fa
 
 static void MikkGetPosition(const SMikkTSpaceContext* Context, float Position[3], const int FaceIdx, const int VertIdx)
 {
-	FRawMesh *UserData = (FRawMesh*)(Context->m_pUserData);
-	FVector VertexPosition = UserData->GetWedgePosition(FaceIdx * 3 + VertIdx);
+	MikkTSpace_Mesh *UserData = (MikkTSpace_Mesh*)(Context->m_pUserData);
+	FVector VertexPosition = UserData->Vertices[ UserData->Indices[FaceIdx * 3 + VertIdx] ];
 	Position[0] = VertexPosition.X;
 	Position[1] = VertexPosition.Y;
 	Position[2] = VertexPosition.Z;
@@ -2273,8 +2301,8 @@ static void MikkGetPosition(const SMikkTSpaceContext* Context, float Position[3]
 
 static void MikkGetNormal(const SMikkTSpaceContext* Context, float Normal[3], const int FaceIdx, const int VertIdx)
 {
-	FRawMesh *UserData = (FRawMesh*)(Context->m_pUserData);
-	FVector &VertexNormal = UserData->WedgeTangentZ[FaceIdx * 3 + VertIdx];
+	MikkTSpace_Mesh *UserData = (MikkTSpace_Mesh*)(Context->m_pUserData);
+	FVector &VertexNormal = UserData->TangentsZ[FaceIdx * 3 + VertIdx];
 	for (int32 i = 0; i < 3; ++i)
 	{
 		Normal[i] = VertexNormal[i];
@@ -2283,14 +2311,14 @@ static void MikkGetNormal(const SMikkTSpaceContext* Context, float Normal[3], co
 
 static void MikkSetTSpaceBasic(const SMikkTSpaceContext* Context, const float Tangent[3], const float BitangentSign, const int FaceIdx, const int VertIdx)
 {
-	FRawMesh *UserData = (FRawMesh*)(Context->m_pUserData);
-	FVector &VertexTangent = UserData->WedgeTangentX[FaceIdx * 3 + VertIdx];
+	MikkTSpace_Mesh *UserData = (MikkTSpace_Mesh*)(Context->m_pUserData);
+	FVector &VertexTangent = UserData->TangentsX[FaceIdx * 3 + VertIdx];
 	for (int32 i = 0; i < 3; ++i)
 	{
 		VertexTangent[i] = Tangent[i];
 	}
-	FVector Bitangent = BitangentSign * FVector::CrossProduct(UserData->WedgeTangentZ[FaceIdx * 3 + VertIdx], VertexTangent);
-	FVector &VertexBitangent = UserData->WedgeTangentY[FaceIdx * 3 + VertIdx];
+	FVector Bitangent = BitangentSign * FVector::CrossProduct(UserData->TangentsZ[FaceIdx * 3 + VertIdx], VertexTangent);
+	FVector &VertexBitangent = UserData->TangentsY[FaceIdx * 3 + VertIdx];
 	for (int32 i = 0; i < 3; ++i)
 	{
 		VertexBitangent[i] = -Bitangent[i];
@@ -2299,8 +2327,8 @@ static void MikkSetTSpaceBasic(const SMikkTSpaceContext* Context, const float Ta
 
 static void MikkGetTexCoord(const SMikkTSpaceContext* Context, float UV[2], const int FaceIdx, const int VertIdx)
 {
-	FRawMesh *UserData = (FRawMesh*)(Context->m_pUserData);
-	FVector2D &TexCoord = UserData->WedgeTexCoords[0][FaceIdx * 3 + VertIdx];
+	MikkTSpace_Mesh *UserData = (MikkTSpace_Mesh*)(Context->m_pUserData);
+	const FVector2D &TexCoord = UserData->UVs[FaceIdx * 3 + VertIdx];
 	UV[0] = TexCoord.X;
 	UV[1] = TexCoord.Y;
 }
@@ -2416,9 +2444,15 @@ static void MikkGetTexCoord_Skeletal(const SMikkTSpaceContext* Context, float UV
 }
 
 static void ComputeTangents_MikkTSpace(
-	FRawMesh& RawMesh,
+	const TArray<FVector>& InVertices,
+	const TArray<uint32>& InIndices,
+	const TArray<FVector2D>& InUVs,
+	const TArray<uint32>& SmoothingGroupIndices,
 	TMultiMap<int32, int32> const& OverlappingCorners,
-	uint32 TangentOptions
+	TArray<FVector>& OutTangentX,
+	TArray<FVector>& OutTangentY,
+	TArray<FVector>& OutTangentZ,
+	const uint32 TangentOptions
 	)
 {
 	bool bBlendOverlappingNormals = (TangentOptions & ETangentOptions::BlendOverlappingNormals) != 0;
@@ -2431,10 +2465,12 @@ static void ComputeTangents_MikkTSpace(
 	TArray<FVector> TriangleTangentZ;
 
 	ComputeTriangleTangents(
+		InVertices,
+		InIndices,
+		InUVs,
 		TriangleTangentX,
 		TriangleTangentY,
 		TriangleTangentZ,
-		RawMesh,
 		bIgnoreDegenerateTriangles ? SMALL_NUMBER : 0.0f
 		);
 
@@ -2443,252 +2479,247 @@ static void ComputeTangents_MikkTSpace(
 	TArray<int32> AdjacentFaces;
 	TArray<int32> DupVerts;
 
-	int32 NumWedges = RawMesh.WedgeIndices.Num();
+	int32 NumWedges = InIndices.Num();
 	int32 NumFaces = NumWedges / 3;
 
-	bool bWedgeNormals = true;
 	bool bWedgeTSpace = false;
-	for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeTangentZ.Num(); ++WedgeIdx)
-	{
-		bWedgeNormals = bWedgeNormals && (!RawMesh.WedgeTangentZ[WedgeIdx].IsNearlyZero());
-	}
 
-	if (RawMesh.WedgeTangentX.Num() > 0 && RawMesh.WedgeTangentY.Num() > 0)
+	if (OutTangentX.Num() > 0 && OutTangentY.Num() > 0)
 	{
 		bWedgeTSpace = true;
-		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeTangentX.Num()
-			&& WedgeIdx < RawMesh.WedgeTangentY.Num(); ++WedgeIdx)
+		for (int32 WedgeIdx = 0; WedgeIdx < OutTangentX.Num()
+			&& WedgeIdx < OutTangentY.Num(); ++WedgeIdx)
 		{
-			bWedgeTSpace = bWedgeTSpace && (!RawMesh.WedgeTangentX[WedgeIdx].IsNearlyZero()) && (!RawMesh.WedgeTangentY[WedgeIdx].IsNearlyZero());
+			bWedgeTSpace = bWedgeTSpace && (!OutTangentX[WedgeIdx].IsNearlyZero()) && (!OutTangentY[WedgeIdx].IsNearlyZero());
 		}
 	}
 
 	// Allocate storage for tangents if none were provided, and calculate normals for MikkTSpace.
-	if (RawMesh.WedgeTangentZ.Num() != NumWedges || !bWedgeNormals)
+	if (OutTangentZ.Num() != NumWedges)
 	{
 		// normals are not included, so we should calculate them
-		RawMesh.WedgeTangentZ.Empty(NumWedges);
-		RawMesh.WedgeTangentZ.AddZeroed(NumWedges);
+		OutTangentZ.Empty(NumWedges);
+		OutTangentZ.AddZeroed(NumWedges);
+	}
 
-		// we need to calculate normals for MikkTSpace
-		UE_LOG(LogMeshUtilities, Log, TEXT("Invalid vertex normals found for mesh. Forcing recomputation of vertex normals for MikkTSpace. Fix mesh or disable \"Use MikkTSpace Tangent Space\" to avoid forced recomputation of normals."));
+	// we need to calculate normals for MikkTSpace
+	for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
+	{
+		int32 WedgeOffset = FaceIndex * 3;
+		FVector CornerPositions[3];
+		FVector CornerNormal[3];
 
-		for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
+		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 		{
-			int32 WedgeOffset = FaceIndex * 3;
-			FVector CornerPositions[3];
-			FVector CornerNormal[3];
+			CornerNormal[CornerIndex] = FVector::ZeroVector;
+			CornerPositions[CornerIndex] = InVertices[InIndices[WedgeOffset + CornerIndex]];
+			RelevantFacesForCorner[CornerIndex].Reset();
+		}
 
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+		// Don't process degenerate triangles.
+		if (PointsEqual(CornerPositions[0], CornerPositions[1], ComparisonThreshold)
+			|| PointsEqual(CornerPositions[0], CornerPositions[2], ComparisonThreshold)
+			|| PointsEqual(CornerPositions[1], CornerPositions[2], ComparisonThreshold))
+		{
+			continue;
+		}
+
+		// No need to process triangles if tangents already exist.
+		bool bCornerHasNormal[3] = { 0 };
+		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+		{
+			bCornerHasNormal[CornerIndex] = !OutTangentZ[WedgeOffset + CornerIndex].IsZero();
+		}
+		if (bCornerHasNormal[0] && bCornerHasNormal[1] && bCornerHasNormal[2])
+		{
+			continue;
+		}
+
+		// Start building a list of faces adjacent to this face.
+		AdjacentFaces.Reset();
+		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+		{
+			int32 ThisCornerIndex = WedgeOffset + CornerIndex;
+			DupVerts.Reset();
+			OverlappingCorners.MultiFind(ThisCornerIndex, DupVerts);
+			DupVerts.Add(ThisCornerIndex); // I am a "dup" of myself
+			for (int32 k = 0; k < DupVerts.Num(); k++)
 			{
-				CornerNormal[CornerIndex] = FVector::ZeroVector;
-				CornerPositions[CornerIndex] = GetPositionForWedge(RawMesh, WedgeOffset + CornerIndex);
-				RelevantFacesForCorner[CornerIndex].Reset();
+				AdjacentFaces.AddUnique(DupVerts[k] / 3);
 			}
+		}
 
-			// Don't process degenerate triangles.
-			if (PointsEqual(CornerPositions[0], CornerPositions[1], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[0], CornerPositions[2], ComparisonThreshold)
-				|| PointsEqual(CornerPositions[1], CornerPositions[2], ComparisonThreshold))
+		// We need to sort these here because the criteria for point equality is
+		// exact, so we must ensure the exact same order for all dups.
+		AdjacentFaces.Sort();
+
+		// Process adjacent faces
+		for (int32 AdjacentFaceIndex = 0; AdjacentFaceIndex < AdjacentFaces.Num(); AdjacentFaceIndex++)
+		{
+			int32 OtherFaceIndex = AdjacentFaces[AdjacentFaceIndex];
+			for (int32 OurCornerIndex = 0; OurCornerIndex < 3; OurCornerIndex++)
 			{
-				continue;
-			}
-
-			// No need to process triangles if tangents already exist.
-			bool bCornerHasNormal[3] = { 0 };
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-			{
-				bCornerHasNormal[CornerIndex] = !RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex].IsZero();
-			}
-			if (bCornerHasNormal[0] && bCornerHasNormal[1] && bCornerHasNormal[2])
-			{
-				continue;
-			}
-
-			// Start building a list of faces adjacent to this face.
-			AdjacentFaces.Reset();
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-			{
-				int32 ThisCornerIndex = WedgeOffset + CornerIndex;
-				DupVerts.Reset();
-				OverlappingCorners.MultiFind(ThisCornerIndex, DupVerts);
-				DupVerts.Add(ThisCornerIndex); // I am a "dup" of myself
-				for (int32 k = 0; k < DupVerts.Num(); k++)
-				{
-					AdjacentFaces.AddUnique(DupVerts[k] / 3);
-				}
-			}
-
-			// We need to sort these here because the criteria for point equality is
-			// exact, so we must ensure the exact same order for all dups.
-			AdjacentFaces.Sort();
-
-			// Process adjacent faces
-			for (int32 AdjacentFaceIndex = 0; AdjacentFaceIndex < AdjacentFaces.Num(); AdjacentFaceIndex++)
-			{
-				int32 OtherFaceIndex = AdjacentFaces[AdjacentFaceIndex];
-				for (int32 OurCornerIndex = 0; OurCornerIndex < 3; OurCornerIndex++)
-				{
-					if (bCornerHasNormal[OurCornerIndex])
-						continue;
-
-					FFanFace NewFanFace;
-					int32 CommonIndexCount = 0;
-
-					// Check for vertices in common.
-					if (FaceIndex == OtherFaceIndex)
-					{
-						CommonIndexCount = 3;
-						NewFanFace.LinkedVertexIndex = OurCornerIndex;
-					}
-					else
-					{
-						// Check matching vertices against main vertex .
-						for (int32 OtherCornerIndex = 0; OtherCornerIndex < 3; OtherCornerIndex++)
-						{
-							if (PointsEqual(
-								CornerPositions[OurCornerIndex],
-								GetPositionForWedge(RawMesh, OtherFaceIndex * 3 + OtherCornerIndex),
-								ComparisonThreshold
-								))
-							{
-								CommonIndexCount++;
-								NewFanFace.LinkedVertexIndex = OtherCornerIndex;
-							}
-						}
-					}
-
-					// Add if connected by at least one point. Smoothing matches are considered later.
-					if (CommonIndexCount > 0)
-					{
-						NewFanFace.FaceIndex = OtherFaceIndex;
-						NewFanFace.bFilled = (OtherFaceIndex == FaceIndex); // Starter face for smoothing floodfill.
-						NewFanFace.bBlendTangents = NewFanFace.bFilled;
-						NewFanFace.bBlendNormals = NewFanFace.bFilled;
-						RelevantFacesForCorner[OurCornerIndex].Add(NewFanFace);
-					}
-				}
-			}
-
-			// Find true relevance of faces for a vertex normal by traversing
-			// smoothing-group-compatible connected triangle fans around common vertices.
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-			{
-				if (bCornerHasNormal[CornerIndex])
+				if (bCornerHasNormal[OurCornerIndex])
 					continue;
 
-				int32 NewConnections;
-				do
+				FFanFace NewFanFace;
+				int32 CommonIndexCount = 0;
+
+				// Check for vertices in common.
+				if (FaceIndex == OtherFaceIndex)
 				{
-					NewConnections = 0;
-					for (int32 OtherFaceIdx = 0; OtherFaceIdx < RelevantFacesForCorner[CornerIndex].Num(); OtherFaceIdx++)
+					CommonIndexCount = 3;
+					NewFanFace.LinkedVertexIndex = OurCornerIndex;
+				}
+				else
+				{
+					// Check matching vertices against main vertex .
+					for (int32 OtherCornerIndex = 0; OtherCornerIndex < 3; OtherCornerIndex++)
 					{
-						FFanFace& OtherFace = RelevantFacesForCorner[CornerIndex][OtherFaceIdx];
-						// The vertex' own face is initially the only face with bFilled == true.
-						if (OtherFace.bFilled)
+						if (PointsEqual(
+							CornerPositions[OurCornerIndex],
+							InVertices[InIndices[OtherFaceIndex * 3 + OtherCornerIndex]],
+							ComparisonThreshold
+							))
 						{
-							for (int32 NextFaceIndex = 0; NextFaceIndex < RelevantFacesForCorner[CornerIndex].Num(); NextFaceIndex++)
+							CommonIndexCount++;
+							NewFanFace.LinkedVertexIndex = OtherCornerIndex;
+						}
+					}
+				}
+
+				// Add if connected by at least one point. Smoothing matches are considered later.
+				if (CommonIndexCount > 0)
+				{
+					NewFanFace.FaceIndex = OtherFaceIndex;
+					NewFanFace.bFilled = (OtherFaceIndex == FaceIndex); // Starter face for smoothing floodfill.
+					NewFanFace.bBlendTangents = NewFanFace.bFilled;
+					NewFanFace.bBlendNormals = NewFanFace.bFilled;
+					RelevantFacesForCorner[OurCornerIndex].Add(NewFanFace);
+				}
+			}
+		}
+
+		// Find true relevance of faces for a vertex normal by traversing
+		// smoothing-group-compatible connected triangle fans around common vertices.
+		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+		{
+			if (bCornerHasNormal[CornerIndex])
+				continue;
+
+			int32 NewConnections;
+			do
+			{
+				NewConnections = 0;
+				for (int32 OtherFaceIdx = 0; OtherFaceIdx < RelevantFacesForCorner[CornerIndex].Num(); OtherFaceIdx++)
+				{
+					FFanFace& OtherFace = RelevantFacesForCorner[CornerIndex][OtherFaceIdx];
+					// The vertex' own face is initially the only face with bFilled == true.
+					if (OtherFace.bFilled)
+					{
+						for (int32 NextFaceIndex = 0; NextFaceIndex < RelevantFacesForCorner[CornerIndex].Num(); NextFaceIndex++)
+						{
+							FFanFace& NextFace = RelevantFacesForCorner[CornerIndex][NextFaceIndex];
+							if (!NextFace.bFilled) // && !NextFace.bBlendTangents)
 							{
-								FFanFace& NextFace = RelevantFacesForCorner[CornerIndex][NextFaceIndex];
-								if (!NextFace.bFilled) // && !NextFace.bBlendTangents)
+								if ((NextFaceIndex != OtherFaceIdx)
+									&& (SmoothingGroupIndices[NextFace.FaceIndex] & SmoothingGroupIndices[OtherFace.FaceIndex]))
 								{
-									if ((NextFaceIndex != OtherFaceIdx)
-										&& (RawMesh.FaceSmoothingMasks[NextFace.FaceIndex] & RawMesh.FaceSmoothingMasks[OtherFace.FaceIndex]))
+									int32 CommonVertices = 0;
+									int32 CommonNormalVertices = 0;
+									for (int32 OtherCornerIndex = 0; OtherCornerIndex < 3; OtherCornerIndex++)
 									{
-										int32 CommonVertices = 0;
-										int32 CommonNormalVertices = 0;
-										for (int32 OtherCornerIndex = 0; OtherCornerIndex < 3; OtherCornerIndex++)
+										for (int32 NextCornerIndex = 0; NextCornerIndex < 3; NextCornerIndex++)
 										{
-											for (int32 NextCornerIndex = 0; NextCornerIndex < 3; NextCornerIndex++)
+											int32 NextVertexIndex = InIndices[NextFace.FaceIndex * 3 + NextCornerIndex];
+											int32 OtherVertexIndex = InIndices[OtherFace.FaceIndex * 3 + OtherCornerIndex];
+											if (PointsEqual(
+												InVertices[NextVertexIndex],
+												InVertices[OtherVertexIndex],
+												ComparisonThreshold))
 											{
-												int32 NextVertexIndex = RawMesh.WedgeIndices[NextFace.FaceIndex * 3 + NextCornerIndex];
-												int32 OtherVertexIndex = RawMesh.WedgeIndices[OtherFace.FaceIndex * 3 + OtherCornerIndex];
-												if (PointsEqual(
-													RawMesh.VertexPositions[NextVertexIndex],
-													RawMesh.VertexPositions[OtherVertexIndex],
-													ComparisonThreshold))
+												CommonVertices++;
+												if (bBlendOverlappingNormals
+													|| NextVertexIndex == OtherVertexIndex)
 												{
-													CommonVertices++;
-													if (bBlendOverlappingNormals
-														|| NextVertexIndex == OtherVertexIndex)
-													{
-														CommonNormalVertices++;
-													}
+													CommonNormalVertices++;
 												}
 											}
 										}
-										// Flood fill faces with more than one common vertices which must be touching edges.
-										if (CommonVertices > 1)
-										{
-											NextFace.bFilled = true;
-											NextFace.bBlendNormals = (CommonNormalVertices > 1);
-											NewConnections++;
-										}
+									}
+									// Flood fill faces with more than one common vertices which must be touching edges.
+									if (CommonVertices > 1)
+									{
+										NextFace.bFilled = true;
+										NextFace.bBlendNormals = (CommonNormalVertices > 1);
+										NewConnections++;
 									}
 								}
 							}
 						}
 					}
-				} 
-				while (NewConnections > 0);
-			}
-
-
-			// Vertex normal construction.
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-			{
-				if (bCornerHasNormal[CornerIndex])
-				{
-					CornerNormal[CornerIndex] = RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex];
 				}
-				else
+			} 
+			while (NewConnections > 0);
+		}
+
+
+		// Vertex normal construction.
+		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+		{
+			if (bCornerHasNormal[CornerIndex])
+			{
+				CornerNormal[CornerIndex] = OutTangentZ[WedgeOffset + CornerIndex];
+			}
+			else
+			{
+				for (int32 RelevantFaceIdx = 0; RelevantFaceIdx < RelevantFacesForCorner[CornerIndex].Num(); RelevantFaceIdx++)
 				{
-					for (int32 RelevantFaceIdx = 0; RelevantFaceIdx < RelevantFacesForCorner[CornerIndex].Num(); RelevantFaceIdx++)
+					FFanFace const& RelevantFace = RelevantFacesForCorner[CornerIndex][RelevantFaceIdx];
+					if (RelevantFace.bFilled)
 					{
-						FFanFace const& RelevantFace = RelevantFacesForCorner[CornerIndex][RelevantFaceIdx];
-						if (RelevantFace.bFilled)
+						int32 OtherFaceIndex = RelevantFace.FaceIndex;
+						if (RelevantFace.bBlendNormals)
 						{
-							int32 OtherFaceIndex = RelevantFace.FaceIndex;
-							if (RelevantFace.bBlendNormals)
-							{
-								CornerNormal[CornerIndex] += TriangleTangentZ[OtherFaceIndex];
-							}
+							CornerNormal[CornerIndex] += TriangleTangentZ[OtherFaceIndex];
 						}
 					}
-					if (!RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex].IsZero())
-					{
-						CornerNormal[CornerIndex] = RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex];
-					}
+				}
+				if (!OutTangentZ[WedgeOffset + CornerIndex].IsZero())
+				{
+					CornerNormal[CornerIndex] = OutTangentZ[WedgeOffset + CornerIndex];
 				}
 			}
+		}
 
-			// Normalization.
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-			{
-				CornerNormal[CornerIndex].Normalize();
-			}
+		// Normalization.
+		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+		{
+			CornerNormal[CornerIndex].Normalize();
+		}
 
-			// Copy back to the mesh.
-			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-			{
-				RawMesh.WedgeTangentZ[WedgeOffset + CornerIndex] = CornerNormal[CornerIndex];
-			}
+		// Copy back to the mesh.
+		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+		{
+			OutTangentZ[WedgeOffset + CornerIndex] = CornerNormal[CornerIndex];
 		}
 	}
 
-	if (RawMesh.WedgeTangentX.Num() != NumWedges)
+	if (OutTangentX.Num() != NumWedges)
 	{
-		RawMesh.WedgeTangentX.Empty(NumWedges);
-		RawMesh.WedgeTangentX.AddZeroed(NumWedges);
+		OutTangentX.Empty(NumWedges);
+		OutTangentX.AddZeroed(NumWedges);
 	}
-	if (RawMesh.WedgeTangentY.Num() != NumWedges)
+	if (OutTangentY.Num() != NumWedges)
 	{
-		RawMesh.WedgeTangentY.Empty(NumWedges);
-		RawMesh.WedgeTangentY.AddZeroed(NumWedges);
+		OutTangentY.Empty(NumWedges);
+		OutTangentY.AddZeroed(NumWedges);
 	}
 
 	if (!bWedgeTSpace)
 	{
+		MikkTSpace_Mesh MikkTSpaceMesh( InVertices, InIndices, InUVs, OutTangentX, OutTangentY, OutTangentZ );
+
 		// we can use mikktspace to calculate the tangents
 		SMikkTSpaceInterface MikkTInterface;
 		MikkTInterface.m_getNormal = MikkGetNormal;
@@ -2701,14 +2732,23 @@ static void ComputeTangents_MikkTSpace(
 
 		SMikkTSpaceContext MikkTContext;
 		MikkTContext.m_pInterface = &MikkTInterface;
-		MikkTContext.m_pUserData = (void*)(&RawMesh);
+		MikkTContext.m_pUserData = (void*)(&MikkTSpaceMesh);
 		MikkTContext.m_bIgnoreDegenerates = bIgnoreDegenerateTriangles;
 		genTangSpaceDefault(&MikkTContext);
 	}
 
-	check(RawMesh.WedgeTangentX.Num() == NumWedges);
-	check(RawMesh.WedgeTangentY.Num() == NumWedges);
-	check(RawMesh.WedgeTangentZ.Num() == NumWedges);
+	check(OutTangentX.Num() == NumWedges);
+	check(OutTangentY.Num() == NumWedges);
+	check(OutTangentZ.Num() == NumWedges);
+}
+
+static void ComputeTangents_MikkTSpace(
+	FRawMesh& RawMesh,
+	TMultiMap<int32, int32> const& OverlappingCorners,
+	uint32 TangentOptions
+	)
+{
+	ComputeTangents_MikkTSpace(RawMesh.VertexPositions, RawMesh.WedgeIndices, RawMesh.WedgeTexCoords[0], RawMesh.FaceSmoothingMasks, OverlappingCorners, RawMesh.WedgeTangentX, RawMesh.WedgeTangentY, RawMesh.WedgeTangentZ, TangentOptions);
 }
 
 static void BuildDepthOnlyIndexBuffer(
@@ -4117,13 +4157,7 @@ public:
 		int32 NumWedges = BuildData->GetNumWedges();
 		check(NumFaces * 3 == NumWedges);
 
-		bool bWedgeNormals = true;
 		bool bWedgeTSpace = false;
-		for (int32 WedgeIdx = 0; WedgeIdx < WedgeTangentZ.Num(); ++WedgeIdx)
-		{
-			for (int32 VertexIndex = 0; VertexIndex < 3; VertexIndex++)
-				bWedgeNormals = bWedgeNormals && (!WedgeTangentZ[WedgeIdx].IsNearlyZero());
-		}
 
 		if (WedgeTangentX.Num() > 0 && WedgeTangentY.Num() > 0)
 		{
@@ -4136,212 +4170,213 @@ public:
 		}
 
 		// Allocate storage for tangents if none were provided, and calculate normals for MikkTSpace.
-		if (WedgeTangentZ.Num() != NumWedges || !bWedgeNormals)
+		if (WedgeTangentZ.Num() != NumWedges)
 		{
 			// normals are not included, so we should calculate them
 			WedgeTangentZ.Empty(NumWedges);
 			WedgeTangentZ.AddZeroed(NumWedges);
-			// we need to calculate normals for MikkTSpace
+		}
 
-			for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
+		// we need to calculate normals for MikkTSpace
+
+		for (int32 FaceIndex = 0; FaceIndex < NumFaces; FaceIndex++)
+		{
+			int32 WedgeOffset = FaceIndex * 3;
+			FVector CornerPositions[3];
+			FVector CornerNormal[3];
+
+			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 			{
-				int32 WedgeOffset = FaceIndex * 3;
-				FVector CornerPositions[3];
-				FVector CornerNormal[3];
+				CornerNormal[CornerIndex] = FVector::ZeroVector;
+				CornerPositions[CornerIndex] = BuildData->GetVertexPosition(FaceIndex, CornerIndex);
+				RelevantFacesForCorner[CornerIndex].Reset();
+			}
 
-				for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+			// Don't process degenerate triangles.
+			if (PointsEqual(CornerPositions[0], CornerPositions[1], ComparisonThreshold)
+				|| PointsEqual(CornerPositions[0], CornerPositions[2], ComparisonThreshold)
+				|| PointsEqual(CornerPositions[1], CornerPositions[2], ComparisonThreshold))
+			{
+				continue;
+			}
+
+			// No need to process triangles if tangents already exist.
+			bool bCornerHasNormal[3] = { 0 };
+			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+			{
+				bCornerHasNormal[CornerIndex] = !WedgeTangentZ[WedgeOffset + CornerIndex].IsZero();
+			}
+			if (bCornerHasNormal[0] && bCornerHasNormal[1] && bCornerHasNormal[2])
+			{
+				continue;
+			}
+
+			// Start building a list of faces adjacent to this face.
+			AdjacentFaces.Reset();
+			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+			{
+				int32 ThisCornerIndex = WedgeOffset + CornerIndex;
+				DupVerts.Reset();
+				OverlappingCorners.MultiFind(ThisCornerIndex, DupVerts);
+				DupVerts.Add(ThisCornerIndex); // I am a "dup" of myself
+				for (int32 k = 0; k < DupVerts.Num(); k++)
 				{
-					CornerNormal[CornerIndex] = FVector::ZeroVector;
-					CornerPositions[CornerIndex] = BuildData->GetVertexPosition(FaceIndex, CornerIndex);
-					RelevantFacesForCorner[CornerIndex].Reset();
+					AdjacentFaces.AddUnique(DupVerts[k] / 3);
 				}
+			}
 
-				// Don't process degenerate triangles.
-				if (PointsEqual(CornerPositions[0], CornerPositions[1], ComparisonThreshold)
-					|| PointsEqual(CornerPositions[0], CornerPositions[2], ComparisonThreshold)
-					|| PointsEqual(CornerPositions[1], CornerPositions[2], ComparisonThreshold))
+			// We need to sort these here because the criteria for point equality is
+			// exact, so we must ensure the exact same order for all dups.
+			AdjacentFaces.Sort();
+
+			// Process adjacent faces
+			for (int32 AdjacentFaceIndex = 0; AdjacentFaceIndex < AdjacentFaces.Num(); AdjacentFaceIndex++)
+			{
+				int32 OtherFaceIndex = AdjacentFaces[AdjacentFaceIndex];
+				for (int32 OurCornerIndex = 0; OurCornerIndex < 3; OurCornerIndex++)
 				{
-					continue;
-				}
-
-				// No need to process triangles if tangents already exist.
-				bool bCornerHasNormal[3] = { 0 };
-				for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-				{
-					bCornerHasNormal[CornerIndex] = !WedgeTangentZ[WedgeOffset + CornerIndex].IsZero();
-				}
-				if (bCornerHasNormal[0] && bCornerHasNormal[1] && bCornerHasNormal[2])
-				{
-					continue;
-				}
-
-				// Start building a list of faces adjacent to this face.
-				AdjacentFaces.Reset();
-				for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-				{
-					int32 ThisCornerIndex = WedgeOffset + CornerIndex;
-					DupVerts.Reset();
-					OverlappingCorners.MultiFind(ThisCornerIndex, DupVerts);
-					DupVerts.Add(ThisCornerIndex); // I am a "dup" of myself
-					for (int32 k = 0; k < DupVerts.Num(); k++)
-					{
-						AdjacentFaces.AddUnique(DupVerts[k] / 3);
-					}
-				}
-
-				// We need to sort these here because the criteria for point equality is
-				// exact, so we must ensure the exact same order for all dups.
-				AdjacentFaces.Sort();
-
-				// Process adjacent faces
-				for (int32 AdjacentFaceIndex = 0; AdjacentFaceIndex < AdjacentFaces.Num(); AdjacentFaceIndex++)
-				{
-					int32 OtherFaceIndex = AdjacentFaces[AdjacentFaceIndex];
-					for (int32 OurCornerIndex = 0; OurCornerIndex < 3; OurCornerIndex++)
-					{
-						if (bCornerHasNormal[OurCornerIndex])
-							continue;
-
-						FFanFace NewFanFace;
-						int32 CommonIndexCount = 0;
-
-						// Check for vertices in common.
-						if (FaceIndex == OtherFaceIndex)
-						{
-							CommonIndexCount = 3;
-							NewFanFace.LinkedVertexIndex = OurCornerIndex;
-						}
-						else
-						{
-							// Check matching vertices against main vertex .
-							for (int32 OtherCornerIndex = 0; OtherCornerIndex < 3; OtherCornerIndex++)
-							{
-								if (PointsEqual(
-									CornerPositions[OurCornerIndex],
-									BuildData->GetVertexPosition(OtherFaceIndex, OtherCornerIndex),
-									ComparisonThreshold
-									))
-								{
-									CommonIndexCount++;
-									NewFanFace.LinkedVertexIndex = OtherCornerIndex;
-								}
-							}
-						}
-
-						// Add if connected by at least one point. Smoothing matches are considered later.
-						if (CommonIndexCount > 0)
-						{
-							NewFanFace.FaceIndex = OtherFaceIndex;
-							NewFanFace.bFilled = (OtherFaceIndex == FaceIndex); // Starter face for smoothing floodfill.
-							NewFanFace.bBlendTangents = NewFanFace.bFilled;
-							NewFanFace.bBlendNormals = NewFanFace.bFilled;
-							RelevantFacesForCorner[OurCornerIndex].Add(NewFanFace);
-						}
-					}
-				}
-
-				// Find true relevance of faces for a vertex normal by traversing
-				// smoothing-group-compatible connected triangle fans around common vertices.
-				for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-				{
-					if (bCornerHasNormal[CornerIndex])
+					if (bCornerHasNormal[OurCornerIndex])
 						continue;
 
-					int32 NewConnections;
-					do
+					FFanFace NewFanFace;
+					int32 CommonIndexCount = 0;
+
+					// Check for vertices in common.
+					if (FaceIndex == OtherFaceIndex)
 					{
-						NewConnections = 0;
-						for (int32 OtherFaceIdx = 0; OtherFaceIdx < RelevantFacesForCorner[CornerIndex].Num(); OtherFaceIdx++)
+						CommonIndexCount = 3;
+						NewFanFace.LinkedVertexIndex = OurCornerIndex;
+					}
+					else
+					{
+						// Check matching vertices against main vertex .
+						for (int32 OtherCornerIndex = 0; OtherCornerIndex < 3; OtherCornerIndex++)
 						{
-							FFanFace& OtherFace = RelevantFacesForCorner[CornerIndex][OtherFaceIdx];
-							// The vertex' own face is initially the only face with bFilled == true.
-							if (OtherFace.bFilled)
+							if (PointsEqual(
+								CornerPositions[OurCornerIndex],
+								BuildData->GetVertexPosition(OtherFaceIndex, OtherCornerIndex),
+								ComparisonThreshold
+								))
 							{
-								for (int32 NextFaceIndex = 0; NextFaceIndex < RelevantFacesForCorner[CornerIndex].Num(); NextFaceIndex++)
+								CommonIndexCount++;
+								NewFanFace.LinkedVertexIndex = OtherCornerIndex;
+							}
+						}
+					}
+
+					// Add if connected by at least one point. Smoothing matches are considered later.
+					if (CommonIndexCount > 0)
+					{
+						NewFanFace.FaceIndex = OtherFaceIndex;
+						NewFanFace.bFilled = (OtherFaceIndex == FaceIndex); // Starter face for smoothing floodfill.
+						NewFanFace.bBlendTangents = NewFanFace.bFilled;
+						NewFanFace.bBlendNormals = NewFanFace.bFilled;
+						RelevantFacesForCorner[OurCornerIndex].Add(NewFanFace);
+					}
+				}
+			}
+
+			// Find true relevance of faces for a vertex normal by traversing
+			// smoothing-group-compatible connected triangle fans around common vertices.
+			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+			{
+				if (bCornerHasNormal[CornerIndex])
+					continue;
+
+				int32 NewConnections;
+				do
+				{
+					NewConnections = 0;
+					for (int32 OtherFaceIdx = 0; OtherFaceIdx < RelevantFacesForCorner[CornerIndex].Num(); OtherFaceIdx++)
+					{
+						FFanFace& OtherFace = RelevantFacesForCorner[CornerIndex][OtherFaceIdx];
+						// The vertex' own face is initially the only face with bFilled == true.
+						if (OtherFace.bFilled)
+						{
+							for (int32 NextFaceIndex = 0; NextFaceIndex < RelevantFacesForCorner[CornerIndex].Num(); NextFaceIndex++)
+							{
+								FFanFace& NextFace = RelevantFacesForCorner[CornerIndex][NextFaceIndex];
+								if (!NextFace.bFilled) // && !NextFace.bBlendTangents)
 								{
-									FFanFace& NextFace = RelevantFacesForCorner[CornerIndex][NextFaceIndex];
-									if (!NextFace.bFilled) // && !NextFace.bBlendTangents)
+									if ((NextFaceIndex != OtherFaceIdx)
+											&& (BuildData->GetFaceSmoothingGroups(NextFace.FaceIndex) & BuildData->GetFaceSmoothingGroups(OtherFace.FaceIndex)))
 									{
-										if ((NextFaceIndex != OtherFaceIdx)
-											 && (BuildData->GetFaceSmoothingGroups(NextFace.FaceIndex) & BuildData->GetFaceSmoothingGroups(OtherFace.FaceIndex)))
+										int32 CommonVertices = 0;
+										int32 CommonNormalVertices = 0;
+										for (int32 OtherCornerIndex = 0; OtherCornerIndex < 3; OtherCornerIndex++)
 										{
-											int32 CommonVertices = 0;
-											int32 CommonNormalVertices = 0;
-											for (int32 OtherCornerIndex = 0; OtherCornerIndex < 3; OtherCornerIndex++)
+											for (int32 NextCornerIndex = 0; NextCornerIndex < 3; NextCornerIndex++)
 											{
-												for (int32 NextCornerIndex = 0; NextCornerIndex < 3; NextCornerIndex++)
+												int32 NextVertexIndex = BuildData->GetVertexIndex(NextFace.FaceIndex, NextCornerIndex);
+												int32 OtherVertexIndex = BuildData->GetVertexIndex(OtherFace.FaceIndex, OtherCornerIndex);
+												if (PointsEqual(
+													BuildData->GetVertexPosition(NextFace.FaceIndex, NextCornerIndex),
+													BuildData->GetVertexPosition(OtherFace.FaceIndex, OtherCornerIndex),
+													ComparisonThreshold))
 												{
-													int32 NextVertexIndex = BuildData->GetVertexIndex(NextFace.FaceIndex, NextCornerIndex);
-													int32 OtherVertexIndex = BuildData->GetVertexIndex(OtherFace.FaceIndex, OtherCornerIndex);
-													if (PointsEqual(
-														BuildData->GetVertexPosition(NextFace.FaceIndex, NextCornerIndex),
-														BuildData->GetVertexPosition(OtherFace.FaceIndex, OtherCornerIndex),
-														ComparisonThreshold))
+													CommonVertices++;
+													if (bBlendOverlappingNormals
+														|| NextVertexIndex == OtherVertexIndex)
 													{
-														CommonVertices++;
-														if (bBlendOverlappingNormals
-															|| NextVertexIndex == OtherVertexIndex)
-														{
-															CommonNormalVertices++;
-														}
+														CommonNormalVertices++;
 													}
 												}
 											}
-											// Flood fill faces with more than one common vertices which must be touching edges.
-											if (CommonVertices > 1)
-											{
-												NextFace.bFilled = true;
-												NextFace.bBlendNormals = (CommonNormalVertices > 1);
-												NewConnections++;
-											}
+										}
+										// Flood fill faces with more than one common vertices which must be touching edges.
+										if (CommonVertices > 1)
+										{
+											NextFace.bFilled = true;
+											NextFace.bBlendNormals = (CommonNormalVertices > 1);
+											NewConnections++;
 										}
 									}
 								}
 							}
 						}
-					} 
-					while (NewConnections > 0);
-				}
+					}
+				} 
+				while (NewConnections > 0);
+			}
 
-				// Vertex normal construction.
-				for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+			// Vertex normal construction.
+			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+			{
+				if (bCornerHasNormal[CornerIndex])
 				{
-					if (bCornerHasNormal[CornerIndex])
+					CornerNormal[CornerIndex] = WedgeTangentZ[WedgeOffset + CornerIndex];
+				}
+				else
+				{
+					for (int32 RelevantFaceIdx = 0; RelevantFaceIdx < RelevantFacesForCorner[CornerIndex].Num(); RelevantFaceIdx++)
+					{
+						FFanFace const& RelevantFace = RelevantFacesForCorner[CornerIndex][RelevantFaceIdx];
+						if (RelevantFace.bFilled)
+						{
+							int32 OtherFaceIndex = RelevantFace.FaceIndex;
+							if (RelevantFace.bBlendNormals)
+							{
+								CornerNormal[CornerIndex] += TriangleTangentZ[OtherFaceIndex];
+							}
+						}
+					}
+					if (!WedgeTangentZ[WedgeOffset + CornerIndex].IsZero())
 					{
 						CornerNormal[CornerIndex] = WedgeTangentZ[WedgeOffset + CornerIndex];
 					}
-					else
-					{
-						for (int32 RelevantFaceIdx = 0; RelevantFaceIdx < RelevantFacesForCorner[CornerIndex].Num(); RelevantFaceIdx++)
-						{
-							FFanFace const& RelevantFace = RelevantFacesForCorner[CornerIndex][RelevantFaceIdx];
-							if (RelevantFace.bFilled)
-							{
-								int32 OtherFaceIndex = RelevantFace.FaceIndex;
-								if (RelevantFace.bBlendNormals)
-								{
-									CornerNormal[CornerIndex] += TriangleTangentZ[OtherFaceIndex];
-								}
-							}
-						}
-						if (!WedgeTangentZ[WedgeOffset + CornerIndex].IsZero())
-						{
-							CornerNormal[CornerIndex] = WedgeTangentZ[WedgeOffset + CornerIndex];
-						}
-					}
 				}
+			}
 
-				// Normalization.
-				for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-				{
-					CornerNormal[CornerIndex].Normalize();
-				}
+			// Normalization.
+			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+			{
+				CornerNormal[CornerIndex].Normalize();
+			}
 
-				// Copy back to the mesh.
-				for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
-				{
-					WedgeTangentZ[WedgeOffset + CornerIndex] = CornerNormal[CornerIndex];
-				}
+			// Copy back to the mesh.
+			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
+			{
+				WedgeTangentZ[WedgeOffset + CornerIndex] = CornerNormal[CornerIndex];
 			}
 		}
 
@@ -7960,7 +7995,21 @@ void FMeshUtilities::CalculateTangents(const TArray<FVector>& InVertices, const 
 
 	TMultiMap<int32, int32> OverlappingCorners;
 	FindOverlappingCorners(OverlappingCorners, InVertices, InIndices, ComparisonThreshold);
-	ComputeTangents(InVertices, InIndices, InUVs, InSmoothingGroupIndices, OverlappingCorners, OutTangentX, OutTangentY, OutNormals, InTangentOptions);
+
+	if ( InTangentOptions & ETangentOptions::UseMikkTSpace )
+	{
+		ComputeTangents_MikkTSpace(InVertices, InIndices, InUVs, InSmoothingGroupIndices, OverlappingCorners, OutTangentX, OutTangentY, OutNormals, InTangentOptions);
+	}
+	else
+	{
+		ComputeTangents(InVertices, InIndices, InUVs, InSmoothingGroupIndices, OverlappingCorners, OutTangentX, OutTangentY, OutNormals, InTangentOptions);
+	}
+}
+
+void FMeshUtilities::CalculateOverlappingCorners(const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, bool bIgnoreDegenerateTriangles, TMultiMap<int32, int32>& OutOverlappingCorners) const
+{
+	const float ComparisonThreshold = bIgnoreDegenerateTriangles ? THRESH_POINTS_ARE_SAME : 0.f;
+	FindOverlappingCorners(OutOverlappingCorners, InVertices, InIndices, ComparisonThreshold);
 }
 
 void FMeshUtilities::AddAnimationBlueprintEditorToolbarExtender()

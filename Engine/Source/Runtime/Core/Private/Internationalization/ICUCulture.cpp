@@ -178,14 +178,16 @@ int FCulture::FICUCultureImplementation::GetLCID() const
 
 FString FCulture::FICUCultureImplementation::GetCanonicalName(const FString& Name)
 {
-	static const int32 MaximumNameLength = 64;
-	const int32 NameLength = Name.Len();
-	check(NameLength < MaximumNameLength);
-	char CanonicalName[MaximumNameLength];
+	const FString SanitizedName = ICUUtilities::SanitizeCultureCode(Name);
+
+	static const int32 CanonicalNameBufferSize = 64;
+	char CanonicalNameBuffer[CanonicalNameBufferSize];
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
-	uloc_canonicalize(TCHAR_TO_ANSI( *Name ), CanonicalName, MaximumNameLength, &ICUStatus);
-	FString CanonicalNameString = CanonicalName;
+	uloc_canonicalize(TCHAR_TO_ANSI(*SanitizedName), CanonicalNameBuffer, CanonicalNameBufferSize-1, &ICUStatus);
+	CanonicalNameBuffer[CanonicalNameBufferSize-1] = 0;
+
+	FString CanonicalNameString = CanonicalNameBuffer;
 	CanonicalNameString.ReplaceInline(TEXT("_"), TEXT("-"));
 	return CanonicalNameString;
 }
@@ -417,7 +419,8 @@ TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetCur
 		ICUCurrencyFormat = CreateCurrencyFormat( ICULocale );
 	}
 
-	const bool bIsDefault = Options == NULL && CurrencyCode.IsEmpty();
+	const FString SanitizedCurrencyCode = ICUUtilities::SanitizeCurrencyCode(CurrencyCode);
+	const bool bIsDefault = Options == NULL && SanitizedCurrencyCode.IsEmpty();
 	const TSharedRef<const icu::DecimalFormat> DefaultFormatter( ICUCurrencyFormat.ToSharedRef() );
 
 	if(bIsDefault)
@@ -431,7 +434,7 @@ TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetCur
 		if (!CurrencyCode.IsEmpty())
 		{
 			icu::UnicodeString ICUCurrencyCode;
-			ICUUtilities::ConvertString(CurrencyCode, ICUCurrencyCode);
+			ICUUtilities::ConvertString(SanitizedCurrencyCode, ICUCurrencyCode);
 			Formatter->setCurrency(ICUCurrencyCode.getBuffer());
 		}
 
@@ -485,12 +488,14 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateFo
 		ICUDateFormat = CreateDateFormat( ICULocale );
 	}
 
+	const FString SanitizedTimezoneCode = ICUUtilities::SanitizeTimezoneCode(TimeZone);
+
 	icu::UnicodeString InputTimeZoneID;
-	ICUUtilities::ConvertString(TimeZone, InputTimeZoneID, false);
+	ICUUtilities::ConvertString(SanitizedTimezoneCode, InputTimeZoneID, false);
 
 	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUDateFormat.ToSharedRef() );
 
-	bool bIsDefaultTimeZone = TimeZone.IsEmpty();
+	bool bIsDefaultTimeZone = SanitizedTimezoneCode.IsEmpty();
 	if( !bIsDefaultTimeZone )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
@@ -518,7 +523,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateFo
 	else
 	{
 		const TSharedRef<icu::DateFormat> Formatter( icu::DateFormat::createDateInstance( UEToICU(DateStyle), ICULocale ) );
-		Formatter->adoptTimeZone( bIsDefaultTimeZone ? icu::TimeZone::createDefault() :icu::TimeZone::createTimeZone(InputTimeZoneID) );
+		Formatter->adoptTimeZone( bIsDefaultTimeZone ? icu::TimeZone::createDefault() : icu::TimeZone::createTimeZone(InputTimeZoneID) );
 		return Formatter;
 	}
 }
@@ -530,12 +535,14 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetTimeFo
 		ICUTimeFormat = CreateTimeFormat( ICULocale );
 	}
 
+	const FString SanitizedTimezoneCode = ICUUtilities::SanitizeTimezoneCode(TimeZone);
+
 	icu::UnicodeString InputTimeZoneID;
-	ICUUtilities::ConvertString(TimeZone, InputTimeZoneID, false);
+	ICUUtilities::ConvertString(SanitizedTimezoneCode, InputTimeZoneID, false);
 
 	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUTimeFormat.ToSharedRef() );
 
-	bool bIsDefaultTimeZone = TimeZone.IsEmpty();
+	bool bIsDefaultTimeZone = SanitizedTimezoneCode.IsEmpty();
 	if( !bIsDefaultTimeZone )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
@@ -563,7 +570,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetTimeFo
 	else
 	{
 		const TSharedRef<icu::DateFormat> Formatter( icu::DateFormat::createTimeInstance( UEToICU(TimeStyle), ICULocale ) );
-		Formatter->adoptTimeZone( bIsDefaultTimeZone ? icu::TimeZone::createDefault() :icu::TimeZone::createTimeZone(InputTimeZoneID) );
+		Formatter->adoptTimeZone( bIsDefaultTimeZone ? icu::TimeZone::createDefault() : icu::TimeZone::createTimeZone(InputTimeZoneID) );
 		return Formatter;
 	}
 }
@@ -575,12 +582,14 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateTi
 		ICUDateTimeFormat = CreateDateTimeFormat( ICULocale );
 	}
 
+	const FString SanitizedTimezoneCode = ICUUtilities::SanitizeTimezoneCode(TimeZone);
+
 	icu::UnicodeString InputTimeZoneID;
-	ICUUtilities::ConvertString(TimeZone, InputTimeZoneID, false);
+	ICUUtilities::ConvertString(SanitizedTimezoneCode, InputTimeZoneID, false);
 
 	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUDateTimeFormat.ToSharedRef() );
 
-	bool bIsDefaultTimeZone = TimeZone.IsEmpty();
+	bool bIsDefaultTimeZone = SanitizedTimezoneCode.IsEmpty();
 	if( !bIsDefaultTimeZone )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
@@ -609,7 +618,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateTi
 	else
 	{
 		const TSharedRef<icu::DateFormat> Formatter( icu::DateFormat::createDateTimeInstance( UEToICU(DateStyle), UEToICU(TimeStyle), ICULocale ) );
-		Formatter->adoptTimeZone( bIsDefaultTimeZone ? icu::TimeZone::createDefault() :icu::TimeZone::createTimeZone(InputTimeZoneID) );
+		Formatter->adoptTimeZone( bIsDefaultTimeZone ? icu::TimeZone::createDefault() : icu::TimeZone::createTimeZone(InputTimeZoneID) );
 		return Formatter;
 	}
 }
@@ -739,7 +748,8 @@ const FDecimalNumberFormattingRules& FCulture::FICUCultureImplementation::GetPer
 
 const FDecimalNumberFormattingRules& FCulture::FICUCultureImplementation::GetCurrencyFormattingRules(const FString& InCurrencyCode)
 {
-	const bool bUseDefaultFormattingRules = InCurrencyCode.IsEmpty();
+	const FString SanitizedCurrencyCode = ICUUtilities::SanitizeCurrencyCode(InCurrencyCode);
+	const bool bUseDefaultFormattingRules = SanitizedCurrencyCode.IsEmpty();
 
 	if (bUseDefaultFormattingRules)
 	{
@@ -752,7 +762,7 @@ const FDecimalNumberFormattingRules& FCulture::FICUCultureImplementation::GetCur
 	{
 		FScopeLock MapLock(&UEAlternateCurrencyFormattingRulesCS);
 
-		auto FoundUEAlternateCurrencyFormattingRules = UEAlternateCurrencyFormattingRules.FindRef(InCurrencyCode);
+		auto FoundUEAlternateCurrencyFormattingRules = UEAlternateCurrencyFormattingRules.FindRef(SanitizedCurrencyCode);
 		if (FoundUEAlternateCurrencyFormattingRules.IsValid())
 		{
 			return *FoundUEAlternateCurrencyFormattingRules;
@@ -770,7 +780,7 @@ const FDecimalNumberFormattingRules& FCulture::FICUCultureImplementation::GetCur
 	if (!bUseDefaultFormattingRules)
 	{
 		// Set the custom currency before we extract the data from the formatter
-		icu::UnicodeString ICUCurrencyCode = ICUUtilities::ConvertString(InCurrencyCode);
+		icu::UnicodeString ICUCurrencyCode = ICUUtilities::ConvertString(SanitizedCurrencyCode);
 		CurrencyFormatterForCulture->setCurrency(ICUCurrencyCode.getBuffer());
 	}
 
@@ -795,14 +805,14 @@ const FDecimalNumberFormattingRules& FCulture::FICUCultureImplementation::GetCur
 		FScopeLock MapLock(&UEAlternateCurrencyFormattingRulesCS);
 
 		// Find again in case another thread beat us to it
-		auto FoundUEAlternateCurrencyFormattingRules = UEAlternateCurrencyFormattingRules.FindRef(InCurrencyCode);
+		auto FoundUEAlternateCurrencyFormattingRules = UEAlternateCurrencyFormattingRules.FindRef(SanitizedCurrencyCode);
 		if (FoundUEAlternateCurrencyFormattingRules.IsValid())
 		{
 			return *FoundUEAlternateCurrencyFormattingRules;
 		}
 
 		FoundUEAlternateCurrencyFormattingRules = MakeShareable(new FDecimalNumberFormattingRules(NewUECurrencyFormattingRules));
-		UEAlternateCurrencyFormattingRules.Add(InCurrencyCode, FoundUEAlternateCurrencyFormattingRules);
+		UEAlternateCurrencyFormattingRules.Add(SanitizedCurrencyCode, FoundUEAlternateCurrencyFormattingRules);
 		return *FoundUEAlternateCurrencyFormattingRules;
 	}
 }

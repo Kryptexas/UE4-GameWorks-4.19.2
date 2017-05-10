@@ -208,13 +208,17 @@ void FMaterialInstanceParameterDetails::CreateParameterValueWidget(UDEditorParam
 
 		IDetailPropertyRow& PropertyRow = DetailGroup.AddPropertyRow( ParameterValueProperty.ToSharedRef() );
 
+		FIsResetToDefaultVisible IsResetVisible = FIsResetToDefaultVisible::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowResetToDefault, Parameter);
+		FResetToDefaultHandler ResetHandler = FResetToDefaultHandler::CreateSP(this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter);
+		FResetToDefaultOverride ResetOverride = FResetToDefaultOverride::Create(IsResetVisible, ResetHandler);
+
 		PropertyRow
 		.DisplayName( FText::FromName(Parameter->ParameterName) )
 		.ToolTip( GetParameterExpressionDescription(Parameter) )
 		.EditCondition( IsParamEnabled, FOnBooleanValueChanged::CreateSP( this, &FMaterialInstanceParameterDetails::OnOverrideParameter, Parameter ) )
 		.Visibility( TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::ShouldShowExpression, Parameter)) )
 		// Handle reset to default manually
-		.OverrideResetToDefault(FResetToDefaultOverride::Create(FResetToDefaultHandler::CreateSP(this, &FMaterialInstanceParameterDetails::ResetToDefault, Parameter)));
+		.OverrideResetToDefault(ResetOverride);
 	}
 }
 
@@ -452,6 +456,93 @@ void FMaterialInstanceParameterDetails::ResetToDefault(TSharedRef<IPropertyHandl
 			MaterialEditorInstance->CopyToSourceInstance();
 		}
 	}
+}
+
+bool FMaterialInstanceParameterDetails::ShouldShowResetToDefault(TSharedRef<IPropertyHandle> PropertyHandle, class UDEditorParameterValue* Parameter)
+{
+	FName ParameterName = Parameter->ParameterName;
+
+	UDEditorFontParameterValue* FontParam = Cast<UDEditorFontParameterValue>(Parameter);
+	UDEditorScalarParameterValue* ScalarParam = Cast<UDEditorScalarParameterValue>(Parameter);
+	UDEditorStaticComponentMaskParameterValue* CompMaskParam = Cast<UDEditorStaticComponentMaskParameterValue>(Parameter);
+	UDEditorStaticSwitchParameterValue* SwitchParam = Cast<UDEditorStaticSwitchParameterValue>(Parameter);
+	UDEditorTextureParameterValue* TextureParam = Cast<UDEditorTextureParameterValue>(Parameter);
+	UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(Parameter);
+
+	if (ScalarParam)
+	{
+		float OutValue;
+		if (MaterialEditorInstance->Parent->GetScalarParameterValue(ParameterName, OutValue))
+		{
+			if (ScalarParam->ParameterValue != OutValue)
+			{
+				return true;
+			}
+		}
+	}
+	else if (FontParam)
+	{
+		UFont* OutFontValue;
+		int32 OutFontPage;
+		if (MaterialEditorInstance->Parent->GetFontParameterValue(ParameterName, OutFontValue, OutFontPage))
+		{
+			if (FontParam->ParameterValue.FontValue != OutFontValue ||
+				FontParam->ParameterValue.FontPage != OutFontPage)
+			{
+				return true;
+			}
+		}
+	}
+	else if (TextureParam)
+	{
+		UTexture* OutValue;
+		if (MaterialEditorInstance->Parent->GetTextureParameterValue(ParameterName, OutValue))
+		{
+			if (TextureParam->ParameterValue != OutValue)
+			{
+				return true;
+			}
+		}
+	}
+	else if (VectorParam)
+	{
+		FLinearColor OutValue;
+		if (MaterialEditorInstance->Parent->GetVectorParameterValue(ParameterName, OutValue))
+		{
+			if (VectorParam->ParameterValue != OutValue)
+			{
+				return true;
+			}
+		}
+	}
+	else if (SwitchParam)
+	{
+		bool OutValue;
+		FGuid TempGuid(0, 0, 0, 0);
+		if (MaterialEditorInstance->Parent->GetStaticSwitchParameterValue(ParameterName, OutValue, TempGuid))
+		{
+			if (SwitchParam->ParameterValue != OutValue)
+			{
+				return true;
+			}
+		}
+	}
+	else if (CompMaskParam)
+	{
+		bool OutValue[4];
+		FGuid TempGuid(0, 0, 0, 0);
+		if (MaterialEditorInstance->Parent->GetStaticComponentMaskParameterValue(ParameterName, OutValue[0], OutValue[1], OutValue[2], OutValue[3], TempGuid))
+		{
+			if (CompMaskParam->ParameterValue.R != OutValue[0] ||
+			CompMaskParam->ParameterValue.G != OutValue[1] ||
+			CompMaskParam->ParameterValue.B != OutValue[2] ||
+			CompMaskParam->ParameterValue.A != OutValue[3])
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 EVisibility FMaterialInstanceParameterDetails::ShouldShowMaterialRefractionSettings() const

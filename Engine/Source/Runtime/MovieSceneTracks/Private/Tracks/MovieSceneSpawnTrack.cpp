@@ -35,6 +35,7 @@ void UMovieSceneSpawnTrack::PostLoad()
 		UMovieSceneBoolSection* BoolSection = ExactCast<UMovieSceneBoolSection>(Sections[Index]);
 		if (BoolSection)
 		{
+			BoolSection->ConditionalPostLoad();
 			Bytes.Reset();
 
 			FObjectWriter(BoolSection, Bytes);

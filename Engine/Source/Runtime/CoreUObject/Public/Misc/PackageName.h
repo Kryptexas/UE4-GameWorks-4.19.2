@@ -256,6 +256,15 @@ public:
 	static FString GetDelegateResolvedPackagePath(const FString& InSourcePackagePath);
 
 	/**
+	 * Gets the source version of a localized long package path (it is also safe to pass non-localized paths into this function).
+	 *
+	 * @param InLocalizedPackagePath Path to the localized package.
+	 *
+	 * @returns Source package path.
+	 */
+	static FString GetSourcePackagePath(const FString& InLocalizedPackagePath);
+
+	/**
 	 * Gets the localized version of a long package path for the current culture, or returns the source package if there is no suitable localized package.
 	 *
 	 * @param InSourcePackagePath	Path to the source package.

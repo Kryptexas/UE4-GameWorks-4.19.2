@@ -1,5 +1,9 @@
 ﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+// Define this to use older - slower, but tested and proven - way of dealing with cross-referenced libraries.
+// This path will be removed once new one is well tested (in 4.18 timeframe)
+//#define USE_FIXDEPS
+
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -706,17 +710,22 @@ namespace UnrealBuildTool
 		/// </summary>
 		static int CompilerVersionPatch = -1;
 
+#if (USE_FIXDEPS)
 		/// <summary>
 		/// Track which scripts need to be deleted before appending to
 		/// </summary>
 		private bool bHasWipedFixDepsScript = false;
 
 		/// <summary>
+		/// Holds all the binaries for a particular target (except maybe the executable itself).
+		/// </summary>
+		private static List<FileItem> AllBinaries = new List<FileItem>();
+#endif
+
+		/// <summary>
 		/// Tracks that information about used C++ library is only printed once
 		/// </summary>
 		private bool bHasPrintedLibcxxInformation = false;
-
-		private static List<FileItem> BundleDependencies = new List<FileItem>();
 
 		public override CPPOutput CompileCPPFiles(CppCompileEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
@@ -953,6 +962,7 @@ namespace UnrealBuildTool
 
 		public FileItem FixDependencies(LinkEnvironment LinkEnvironment, FileItem Executable, ActionGraph ActionGraph)
 		{
+#if (USE_FIXDEPS)
 			if (!LinkEnvironment.bIsCrossReferenced)
 			{
 				return null;
@@ -982,7 +992,7 @@ namespace UnrealBuildTool
 			// Make sure we don't run this script until the all executables and shared libraries
 			// have been built.
 			PostLinkAction.PrerequisiteItems.Add(Executable);
-			foreach (FileItem Dependency in BundleDependencies)
+			foreach (FileItem Dependency in AllBinaries)
 			{
 				PostLinkAction.PrerequisiteItems.Add(Dependency);
 			}
@@ -1005,6 +1015,9 @@ namespace UnrealBuildTool
 
 			PostLinkAction.ProducedItems.Add(OutputFile);
 			return OutputFile;
+#else
+			return null;
+#endif
 		}
 
 
@@ -1099,7 +1112,8 @@ namespace UnrealBuildTool
 				LinkAction.CommandArguments += string.Format(" -L\"{0}\"", Path.GetFullPath(LibraryPath));
 			}
 
-			List<string> EngineAndGameLibraries = new List<string>();
+			List<string> EngineAndGameLibrariesLinkFlags = new List<string>();
+			List<FileItem> EngineAndGameLibrariesFiles = new List<FileItem>();
 
 			// Pre-2.25 ld has symbol resolution problems when .so are mixed with .a in a single --start-group/--end-group
 			// when linking with --as-needed.
@@ -1157,10 +1171,12 @@ namespace UnrealBuildTool
 						// We are building a cross referenced DLL so we can't actually include
 						// dependencies at this point. Instead we add it to the list of
 						// libraries to be used in the FixDependencies step.
-						EngineAndGameLibraries.Add(LibLinkFlag);
-						if (!LinkAction.CommandArguments.Contains("--allow-shlib-undefined"))
+						EngineAndGameLibrariesLinkFlags.Add(LibLinkFlag);
+						EngineAndGameLibrariesFiles.Add(LibraryDependency);
+						// it is important to add this exactly to the same place where the missing libraries would have been, it will be replaced later
+						if (!ExternalLibraries.Contains("--allow-shlib-undefined"))
 						{
-							LinkAction.CommandArguments += string.Format(" -Wl,--allow-shlib-undefined");
+							ExternalLibraries += string.Format(" -Wl,--allow-shlib-undefined");
 						}
 					}
 					else
@@ -1241,6 +1257,7 @@ namespace UnrealBuildTool
 			// are created. This script will be called by action created in FixDependencies()
 			if (LinkEnvironment.bIsCrossReferenced && LinkEnvironment.bIsBuildingDLL)
 			{
+#if (USE_FIXDEPS)
 				bool bUseCmdExe = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32;
 				string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
 
@@ -1270,7 +1287,7 @@ namespace UnrealBuildTool
 				StreamWriter FixDepsScript = File.AppendText(FixDepsScriptPath);
 
 				string EngineAndGameLibrariesString = "";
-				foreach (string Library in EngineAndGameLibraries)
+				foreach (string Library in EngineAndGameLibrariesLinkFlags)
 				{
 					EngineAndGameLibrariesString += Library;
 				}
@@ -1298,6 +1315,90 @@ namespace UnrealBuildTool
 					FixDepsScript.Write(string.Format("touch -d \"$TIMESTAMP\" \"{0}\"\n\n", OutputFile.AbsolutePath));
 				}
 				FixDepsScript.Close();
+#else
+				// Create the action to relink the library. This actions does not overwrite the source file so it can be executed in parallel
+				Action RelinkAction = ActionGraph.Add(ActionType.Link);
+				RelinkAction.WorkingDirectory = LinkAction.WorkingDirectory;
+				RelinkAction.StatusDescription = LinkAction.StatusDescription;
+				RelinkAction.CommandDescription = "Relink";
+				RelinkAction.bCanExecuteRemotely = false;
+				RelinkAction.ProducedItems.Clear();
+				RelinkAction.PrerequisiteItems = new List<FileItem>( LinkAction.PrerequisiteItems );
+				foreach (FileItem Dependency in EngineAndGameLibrariesFiles)
+				{
+					RelinkAction.PrerequisiteItems.Add(Dependency);
+				}
+				RelinkAction.PrerequisiteItems.Add(OutputFile);	// also depend on the first link action's output
+
+				string LinkOutputFileForwardSlashes = OutputFile.AbsolutePath.Replace("\\", "/");
+				string RelinkedFileForwardSlashes = Path.Combine(LinkEnvironment.LocalShadowDirectory.FullName, OutputFile.Reference.GetFileName()) + ".relinked";
+
+				// cannot use the real product because we need to maintain the timestamp on it
+				FileReference RelinkActionDummyProductRef = FileReference.Combine(LinkEnvironment.LocalShadowDirectory, LinkEnvironment.OutputFilePath.GetFileNameWithoutExtension() + ".relinked_action_ran");
+				RelinkAction.ProducedItems.Add(FileItem.GetItemByFileReference(RelinkActionDummyProductRef));
+
+				string EngineAndGameLibrariesString = "";
+				foreach (string Library in EngineAndGameLibrariesLinkFlags)
+				{
+					EngineAndGameLibrariesString += Library;
+				}
+
+				// create the action 
+				bool bUseCmdExe = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32;
+				string ShellBinary = bUseCmdExe ? "cmd.exe" : "/bin/sh";
+				string ExecuteSwitch = bUseCmdExe ? " /C" : ""; // avoid -c so scripts don't need +x
+
+				// create the relinking step
+				string RelinkScriptName = string.Format((bUseCmdExe ? "Relink-{0}.bat" : "Relink-{0}.sh"), OutputFile);
+				string RelinkScriptFullPath = Path.Combine(LinkEnvironment.LocalShadowDirectory.FullName, RelinkScriptName);
+
+				Log.TraceVerbose("Creating script: {0}", RelinkScriptFullPath);
+				StreamWriter RelinkWriter = File.CreateText(RelinkScriptFullPath);
+
+				string RelinkInvocation = LinkAction.CommandPath + " " + LinkAction.CommandArguments;
+				string Replace = "-Wl,--allow-shlib-undefined";
+				RelinkInvocation = RelinkInvocation.Replace(Replace, EngineAndGameLibrariesString);
+
+				// should be the same as RelinkedFileRef
+				RelinkInvocation = RelinkInvocation.Replace(LinkOutputFileForwardSlashes, RelinkedFileForwardSlashes);
+				RelinkInvocation = RelinkInvocation.Replace("$", "\\$");
+
+				if (bUseCmdExe)
+				{
+					RelinkWriter.Write("@echo off\n");
+					RelinkWriter.Write("rem Automatically generated by UnrealBuildTool\n");
+					RelinkWriter.Write("rem *DO NOT EDIT*\n\n");
+					RelinkWriter.Write(RelinkInvocation + "\n");
+					RelinkWriter.Write("copy /B \"{0}\" \"{1}.temp\"\n", RelinkedFileForwardSlashes, OutputFile.AbsolutePath);
+					RelinkWriter.Write(":moveloop\n");
+					RelinkWriter.Write("move /Y \"{0}.temp\" \"{1}\"\n", OutputFile.AbsolutePath, OutputFile.AbsolutePath);
+					RelinkWriter.Write("if errorlevel 1 goto moveloop\n");
+					RelinkWriter.Write(string.Format("echo \"Dummy\" >> \"{0}\" && copy /b \"{0}\" +,,", RelinkActionDummyProductRef.FullName));
+				}
+				else
+				{
+					RelinkWriter.Write("#!/bin/sh\n");
+					RelinkWriter.Write("# Automatically generated by UnrealBuildTool\n");
+					RelinkWriter.Write("# *DO NOT EDIT*\n\n");
+					RelinkWriter.Write("set -o errexit\n");
+					RelinkWriter.Write(RelinkInvocation + "\n");
+					RelinkWriter.Write(string.Format("TIMESTAMP=`stat --format %y \"{0}\"`\n", OutputFile.AbsolutePath));
+					RelinkWriter.Write("cp \"{0}\" \"{1}.temp\"\n", RelinkedFileForwardSlashes, OutputFile.AbsolutePath);
+					RelinkWriter.Write("mv \"{0}.temp\" \"{1}\"\n", OutputFile.AbsolutePath, OutputFile.AbsolutePath);
+					RelinkWriter.Write(string.Format("touch -d \"$TIMESTAMP\" \"{0}\"\n\n", OutputFile.AbsolutePath));
+					RelinkWriter.Write(string.Format("echo \"Dummy\" >> \"{0}\"", RelinkActionDummyProductRef.FullName));
+				}
+				RelinkWriter.Close();
+
+				RelinkAction.CommandPath = ShellBinary;
+				RelinkAction.CommandArguments = ExecuteSwitch + " \"" + RelinkScriptFullPath + "\"";
+
+				// piping output through the handler during native builds is unnecessary and reportedly causes problems with tools like octobuild.
+				if (CrossCompiling())
+				{
+					RelinkAction.OutputEventHandler = new DataReceivedEventHandler(CrossCompileOutputReceivedDataEventHandler);
+				}
+#endif
 			}
 
 			if (CrossCompiling())
@@ -1312,13 +1413,15 @@ namespace UnrealBuildTool
 			throw new BuildException("Linux cannot compile C# files");
 		}
 
+#if (USE_FIXDEPS)
 		public override void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName)
 		{
 			foreach (UEBuildBinary Binary in Binaries)
 			{
-				BundleDependencies.Add(FileItem.GetItemByFileReference(Binary.Config.OutputFilePath));
+				AllBinaries.Add(FileItem.GetItemByFileReference(Binary.Config.OutputFilePath));
 			}
 		}
+#endif
 
 		/// <summary>
 		/// Converts the passed in path from UBT host to compiler native format.
@@ -1339,6 +1442,7 @@ namespace UnrealBuildTool
 		{
 			var OutputFiles = base.PostBuild(Executable, BinaryLinkEnvironment, ActionGraph);
 
+#if (USE_FIXDEPS)
 			if (BinaryLinkEnvironment.bIsBuildingDLL || BinaryLinkEnvironment.bIsBuildingLibrary)
 			{
 				return OutputFiles;
@@ -1349,7 +1453,15 @@ namespace UnrealBuildTool
 			{
 				OutputFiles.Add(FixDepsOutputFile);
 			}
+#else
+			// make build product of cross-referenced DSOs to be *..relinked_action_ran, so the relinking steps are executed
+			if (BinaryLinkEnvironment.bIsBuildingDLL && BinaryLinkEnvironment.bIsCrossReferenced)
+			{
+				FileReference RelinkedMapRef = FileReference.Combine(BinaryLinkEnvironment.LocalShadowDirectory, BinaryLinkEnvironment.OutputFilePath.GetFileNameWithoutExtension() + ".relinked_action_ran");
+				OutputFiles.Add(FileItem.GetItemByFileReference(RelinkedMapRef));
+			}
 
+#endif // USE_FIXDEPS
 			return OutputFiles;
 		}
 

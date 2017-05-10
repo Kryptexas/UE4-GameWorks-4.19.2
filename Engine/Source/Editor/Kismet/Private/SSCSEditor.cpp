@@ -118,7 +118,7 @@ FReply SSCSEditorDragDropTree::OnDragOver( const FGeometry& MyGeometry, const FD
 				{
 					const auto& AssetDragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 
-					for (const FAssetData& AssetData : AssetDragDropOp->AssetData)
+					for (const FAssetData& AssetData : AssetDragDropOp->GetAssets())
 					{
 						if (UClass* AssetClass = AssetData.GetClass())
 						{

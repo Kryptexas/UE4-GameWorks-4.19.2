@@ -111,6 +111,7 @@ TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 			if (KeyAreas[0]->CanCreateKeyEditor())
 			{
 				BoxPanel->AddSlot()
+				.AutoWidth()
 				.HAlign(HAlign_Right)
 				.VAlign(VAlign_Center)
 				[
@@ -126,13 +127,13 @@ TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 			else
 			{
 				BoxPanel->AddSlot()
+				.AutoWidth()
 				[
 					SNew(SSpacer)
 				];
 			}
 
 			BoxPanel->AddSlot()
-			.AutoWidth()
 			.VAlign(VAlign_Center)
 			[
 				SNew(SKeyNavigationButtons, AsShared())
@@ -182,6 +183,7 @@ TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 		if (Widget.IsValid())
 		{
 			BoxPanel->AddSlot()
+			.AutoWidth()
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Right)
 			[
@@ -192,7 +194,6 @@ TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 		if (bHasKeyableAreas)
 		{
 			BoxPanel->AddSlot()
-			.AutoWidth()
 			.VAlign(VAlign_Center)
 			[
 				SNew(SKeyNavigationButtons, AsShared())

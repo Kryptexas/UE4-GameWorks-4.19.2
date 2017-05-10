@@ -140,7 +140,7 @@ public:
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
 	/** @return The user widget object displayed by this component */
-	UFUNCTION(BlueprintCallable, Category=UserInterface)
+	UFUNCTION(BlueprintCallable, Category=UserInterface, meta=(UnsafeDuringActorConstruction=true))
 	UUserWidget* GetUserWidgetObject() const;
 
 	/** @return Returns the Slate widget that was assigned to this component, if any */

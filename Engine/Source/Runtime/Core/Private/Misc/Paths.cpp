@@ -17,6 +17,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogPaths, Log, All);
 
+FString FPaths::GameProjectFilePath;
 
 /*-----------------------------------------------------------------------------
 	Path helpers for retrieving game dir, engine dir, etc.
@@ -564,6 +565,16 @@ FString FPaths::ChangeExtension(const FString& InPath, const FString& InNewExten
 	int32 Pos = INDEX_NONE;
 	if (InPath.FindLastChar('.', Pos))
 	{
+		const int32 PathEndPos = InPath.FindLastCharByPredicate(UE4Paths_Private::IsSlashOrBackslash);
+		if (PathEndPos != INDEX_NONE && PathEndPos > Pos)
+		{
+			// The dot found was part of the path rather than the name
+			Pos = INDEX_NONE;
+		}
+	}
+
+	if (Pos != INDEX_NONE)
+	{
 		FString Result = InPath.Left(Pos);
 
 		if (InNewExtension.Len() && InNewExtension[0] != '.')
@@ -582,7 +593,15 @@ FString FPaths::ChangeExtension(const FString& InPath, const FString& InNewExten
 FString FPaths::SetExtension(const FString& InPath, const FString& InNewExtension)
 {
 	int32 Pos = INDEX_NONE;
-	InPath.FindLastChar('.', Pos);
+	if (InPath.FindLastChar('.', Pos))
+	{
+		const int32 PathEndPos = InPath.FindLastCharByPredicate(UE4Paths_Private::IsSlashOrBackslash);
+		if (PathEndPos != INDEX_NONE && PathEndPos > Pos)
+		{
+			// The dot found was part of the path rather than the name
+			Pos = INDEX_NONE;
+		}
+	}
 
 	FString Result = Pos == INDEX_NONE ? InPath : InPath.Left(Pos);
 

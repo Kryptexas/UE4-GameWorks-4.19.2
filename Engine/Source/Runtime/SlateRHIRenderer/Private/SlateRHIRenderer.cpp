@@ -19,16 +19,12 @@
 #include "SlateShaders.h"
 #include "Rendering/ElementBatcher.h"
 #include "StereoRendering.h"
-#include "Features/ILiveStreamingService.h"
 #include "SlateNativeTextureResource.h"
 #include "SceneUtils.h"
 #include "Runtime/Renderer/Public/VolumeRendering.h"
 #include "ShaderCompiler.h"
 #include "PipelineStateCache.h"
 
-DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_CrashTracker);
-DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);
-DECLARE_CYCLE_STAT(TEXT("Unmap Staging Buffer"),STAT_UnmapStagingBuffer,STATGROUP_CrashTracker);
 
 DECLARE_CYCLE_STAT(TEXT("Slate RT: Rendering"), STAT_SlateRenderingRTTime, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("Slate RT: Create Batches"), STAT_SlateRTCreateBatches, STATGROUP_Slate);
@@ -59,53 +55,6 @@ static TAutoConsoleVariable<float> CVarDrawToVRRenderTarget(
 	1,
 	TEXT("If enabled while in VR. Slate UI will be drawn into the render target texture where the VR imagery for either eye was rendered, allow the viewer of the HMD to see the UI (for better or worse.)  This render target will then be cropped/scaled into the back buffer, if mirroring is enabled.  When disabled, Slate UI will be drawn on top of the backbuffer (not to the HMD) after the mirror texture has been cropped/scaled into the backbuffer."),
 	ECVF_RenderThreadSafe);
-
-
-void FSlateCrashReportResource::InitDynamicRHI()
-{
-	int32 Width = VirtualScreen.Width();
-	int32 Height = VirtualScreen.Height();
-
-	// @todo livestream: Ideally this "desktop background color" should be configurable in the editor's preferences
-	FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(FLinearColor(0.8f, 0.00f, 0.0f)) };
-	CrashReportBuffer = RHICreateTexture2D(
-		Width,
-		Height,
-		PF_R8G8B8A8,
-		1,
-		1,
-		TexCreate_RenderTargetable,
-		CreateInfo
-		);
-
-	for (int32 i = 0; i < 2; ++i)
-	{
-		ReadbackBuffer[i] = RHICreateTexture2D(
-			Width,
-			Height,
-			PF_R8G8B8A8,
-			1,
-			1,
-			TexCreate_CPUReadback,
-			CreateInfo
-			);
-	}
-	
-	ReadbackBufferIndex = 0;
-}
-
-void FSlateCrashReportResource::ReleaseDynamicRHI()
-{
-	ReadbackBuffer[0].SafeRelease();
-	ReadbackBuffer[1].SafeRelease();
-	CrashReportBuffer.SafeRelease();
-}
-
-FSlateWindowElementList* FSlateCrashReportResource::GetNextElementList()
-{
-	ElementListIndex = (ElementListIndex + 1) % 2;
-	return &ElementList[ElementListIndex];
-}
 
 
 void FSlateRHIRenderer::FViewportInfo::InitRHI()
@@ -160,7 +109,6 @@ FSlateRHIRenderer::FSlateRHIRenderer( TSharedRef<FSlateFontServices> InSlateFont
 {
 	ResourceManager = InResourceManager;
 
-	CrashTrackerResource = NULL;
 	ViewMatrix = FMatrix(	FPlane(1,	0,	0,	0),
 							FPlane(0,	1,	0,	0),
 							FPlane(0,	0,	1,  0),
@@ -216,13 +164,7 @@ void FSlateRHIRenderer::Destroy()
 	{
 		BeginReleaseResource( It.Value() );
 	}
-	
-#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
-	if (CrashTrackerResource != nullptr)
-	{
-		BeginReleaseResource(CrashTrackerResource);
-	}
-#endif
+
 
 	FlushRenderingCommands();
 	
@@ -238,12 +180,6 @@ void FSlateRHIRenderer::Destroy()
 		delete ViewportInfo;
 	}
 	
-	if (CrashTrackerResource != nullptr)
-	{
-		delete CrashTrackerResource;
-		CrashTrackerResource = nullptr;
-	}
-
 	WindowToViewportInfo.Empty();
 	CurrentSceneIndex = -1;
 	ActiveScenes.Empty();
@@ -1093,351 +1029,6 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 	FontCache->ConditionalFlushCache();
 }
 
-
-FIntRect FSlateRHIRenderer::SetupVirtualScreenBuffer(const bool bPrimaryWorkAreaOnly, const float ScreenScaling, ILiveStreamingService* LiveStreamingService )
-{
-	// Figure out how big we need our render targets to be, based on the size of the entire desktop and the configured scaling amount
-	FDisplayMetrics DisplayMetrics;
-	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
-
-#if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
-	ensureMsgf(0, TEXT("This functionality is not valid for this platform"));	
-	return FIntRect(FIntPoint(0, 0), FIntPoint(DisplayMetrics.PrimaryDisplayWidth, DisplayMetrics.PrimaryDisplayHeight));
-#endif	
-
-	FIntPoint UnscaledVirtualScreenOrigin;
-	FIntPoint UnscaledVirtualScreenLowerRight;
-
-	if( bPrimaryWorkAreaOnly )
-	{
-		UnscaledVirtualScreenOrigin = FIntPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
-		UnscaledVirtualScreenLowerRight = FIntPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Right, DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom);
-	}
-	else
-	{
-		UnscaledVirtualScreenOrigin = FIntPoint(DisplayMetrics.VirtualDisplayRect.Left, DisplayMetrics.VirtualDisplayRect.Top);
-		UnscaledVirtualScreenLowerRight = FIntPoint(DisplayMetrics.VirtualDisplayRect.Right, DisplayMetrics.VirtualDisplayRect.Bottom);
-	}
-	const FIntRect UnscaledVirtualScreen = FIntRect(UnscaledVirtualScreenOrigin, UnscaledVirtualScreenLowerRight);
-	FIntRect ScaledVirtualScreen;
-	{
-		int BufferWidth = FMath::FloorToInt( (float)UnscaledVirtualScreen.Width() * ScreenScaling );
-		int BufferHeight = FMath::FloorToInt( (float)UnscaledVirtualScreen.Height() * ScreenScaling );
-		
-		// If we're preparing a buffer for live streaming, then go ahead and make sure the resolution will be valid for that
-		if( LiveStreamingService != nullptr )
-		{
-			// @todo livestream: This could cause the aspect ratio to be changed and the buffer to be stretched non-uniformly, but usually the aspect only changes slightly
-			LiveStreamingService->MakeValidVideoBufferResolution( BufferWidth, BufferHeight );
-		}
-
-		const float XScaling = (float)BufferWidth / (float)UnscaledVirtualScreen.Width();
-		const float YScaling = (float)BufferHeight / (float)UnscaledVirtualScreen.Height();
-
-		ScaledVirtualScreen.Min.X = FMath::FloorToInt(( float)UnscaledVirtualScreen.Min.X * XScaling );
-		ScaledVirtualScreen.Max.X = FMath::FloorToInt(( float)UnscaledVirtualScreen.Max.X * XScaling );
-		ScaledVirtualScreen.Min.Y = FMath::FloorToInt(( float)UnscaledVirtualScreen.Min.Y * YScaling );
-		ScaledVirtualScreen.Max.Y = FMath::FloorToInt(( float)UnscaledVirtualScreen.Max.Y * YScaling );
-	}
-
-	// @todo livestream: This CrashTrackerResource is now also used for editor live streaming, so we should consider renaming it and cleaning
-	// up the API a little bit more
-	if( CrashTrackerResource == nullptr || 
-		ScaledVirtualScreen != CrashTrackerResource->GetVirtualScreen() )
-	{
-		if( CrashTrackerResource != nullptr )
-		{
-			// Size has changed, so clear out our old resource and create a new one
-			BeginReleaseResource(CrashTrackerResource);
-
-			FlushRenderingCommands();
-	
-			if (CrashTrackerResource != nullptr)
-			{
-				delete CrashTrackerResource;
-				CrashTrackerResource = NULL;
-			}
-		}
-
-		CrashTrackerResource = new FSlateCrashReportResource(ScaledVirtualScreen, UnscaledVirtualScreen);
-		BeginInitResource(CrashTrackerResource);
-	}
-
-	return CrashTrackerResource->GetVirtualScreen();
-}
-
-
-void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer)
-{
-#if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
-	ensureMsgf(0, TEXT("This functionality is not valid for this platform"));
-	return;
-#endif
-
-	SCOPE_CYCLE_COUNTER(STAT_GenerateCaptureBuffer);
-
-	// Make sure to call SetupDrawBuffer() before calling this function!
-	check( CrashTrackerResource != nullptr );
-
-	const FIntRect VirtualScreen = CrashTrackerResource->GetVirtualScreen();
-	const FIntPoint VirtualScreenPos = VirtualScreen.Min;
-	const FIntPoint VirtualScreenSize = VirtualScreen.Size();
-	const FIntRect UnscaledVirtualScreen = CrashTrackerResource->GetUnscaledVirtualScreen();
-	const float XScaling = (float)VirtualScreen.Width() / (float)UnscaledVirtualScreen.Width();
-	const float YScaling = (float)VirtualScreen.Height() / (float)UnscaledVirtualScreen.Height();
-	
-	// setup state
-	struct FSetupWindowStateContext
-	{
-		FSlateCrashReportResource* CrashReportResource;
-		FIntRect IntermediateBufferSize;
-	};
-	FSetupWindowStateContext SetupWindowStateContext =
-	{
-		CrashTrackerResource,
-		VirtualScreen
-	};
-
-	ENQUEUE_RENDER_COMMAND(SetupWindowState)(
-		[SetupWindowStateContext](FRHICommandListImmediate& RHICmdList)
-		{
-			FRHIRenderTargetView RtView = FRHIRenderTargetView(SetupWindowStateContext.CrashReportResource->GetBuffer(), ERenderTargetLoadAction::EClear);
-			FRHISetRenderTargetsInfo Info(1, &RtView, FRHIDepthRenderTargetView());
-			RHICmdList.SetRenderTargetsAndClear(Info);
-			RHICmdList.SetViewport(0, 0, 0.0f, SetupWindowStateContext.IntermediateBufferSize.Width(), SetupWindowStateContext.IntermediateBufferSize.Height(), 1.0f);
-		}
-	);
-
-	// draw windows to buffer
-	TArray< TSharedRef<SWindow> > OutWindows;
-	FSlateApplication::Get().GetAllVisibleWindowsOrdered(OutWindows);
-
-	static const FName RendererModuleName( "Renderer" );
-	IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>( RendererModuleName );
-
-	//if ( false )
-	{
-		for (int32 i = 0; i < OutWindows.Num(); ++i)
-		{
-			TSharedPtr<SWindow> WindowPtr = OutWindows[i];
-			SWindow* Window = WindowPtr.Get();
-			FViewportInfo* ViewportInfo = WindowToViewportInfo.FindChecked(Window);
-
-			const FSlateRect SlateWindowRect = Window->GetRectInScreen();
-			const FVector2D WindowSize = SlateWindowRect.GetSize();
-			if ( WindowSize.X > 0 && WindowSize.Y > 0 )
-			{
-				FIntRect ScaledWindowRect;
-				ScaledWindowRect.Min.X = SlateWindowRect.Left * XScaling - VirtualScreenPos.X;
-				ScaledWindowRect.Max.X = SlateWindowRect.Right * XScaling - VirtualScreenPos.X;
-				ScaledWindowRect.Min.Y = SlateWindowRect.Top * YScaling - VirtualScreenPos.Y;
-				ScaledWindowRect.Max.Y = SlateWindowRect.Bottom * YScaling - VirtualScreenPos.Y;
-
-				struct FDrawWindowToBufferContext
-				{
-					FViewportInfo* InViewportInfo;
-					FIntRect WindowRect;
-					FIntRect IntermediateBufferSize;
-					IRendererModule* RendererModule;
-				};
-				FDrawWindowToBufferContext DrawWindowToBufferContext =
-				{
-					ViewportInfo,
-					ScaledWindowRect,
-					VirtualScreen,
-					&RendererModule
-				};
-
-				// Draw a quad mapping scene color to the view's render target
-				ENQUEUE_RENDER_COMMAND(DrawWindowToBuffer)(
-					[DrawWindowToBufferContext](FRHICommandListImmediate& RHICmdList)
-					{
-						FGraphicsPipelineStateInitializer GraphicsPSOInit;
-						RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-						GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
-						GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
-						GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
-
-						const auto FeatureLevel = GMaxRHIFeatureLevel;
-						auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
-
-						TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
-						TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
-
-						GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = DrawWindowToBufferContext.RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
-						GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
-						GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
-						GraphicsPSOInit.PrimitiveType = PT_TriangleList;
-
-						SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
-
-						if(DrawWindowToBufferContext.WindowRect.Width() != DrawWindowToBufferContext.InViewportInfo->Width || DrawWindowToBufferContext.WindowRect.Height() != DrawWindowToBufferContext.InViewportInfo->Height )
-						{
-							// We're scaling down the window, so use bilinear filtering
-							PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), RHICmdList.GetViewportBackBuffer(DrawWindowToBufferContext.InViewportInfo->ViewportRHI));
-						}
-						else
-						{
-							// Drawing 1:1, so no filtering needed
-							PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), RHICmdList.GetViewportBackBuffer(DrawWindowToBufferContext.InViewportInfo->ViewportRHI));
-						}
-
-						DrawWindowToBufferContext.RendererModule->DrawRectangle(
-							RHICmdList,
-							DrawWindowToBufferContext.WindowRect.Min.X, DrawWindowToBufferContext.WindowRect.Min.Y,
-							DrawWindowToBufferContext.WindowRect.Width(), DrawWindowToBufferContext.WindowRect.Height(),
-							0, 0,
-							1, 1,
-							FIntPoint(DrawWindowToBufferContext.IntermediateBufferSize.Width(), DrawWindowToBufferContext.IntermediateBufferSize.Height()),
-							FIntPoint(1, 1),
-							*VertexShader,
-							EDRF_Default);
-					}
-				);
-			}
-		}
-	}
-
-	// draw mouse cursor and keypresses
-	const FVector2D MouseCursorLocation = FSlateApplication::Get().GetCursorPos();
-	const FIntPoint ScaledCursorLocation = FIntPoint(MouseCursorLocation.X * XScaling, MouseCursorLocation.Y * YScaling) - VirtualScreenPos;
-
-	FSlateWindowElementList* WindowElementList = CrashTrackerResource->GetNextElementList();
-	WindowElementList->ResetBuffers();
-
-	// Don't draw cursor when it is hidden (mouse looking, scrolling, etc.)
-	// @todo livestream: The cursor is probably still hidden when dragging with the mouse captured (grabby hand)
-	if( FSlateApplication::Get().GetMouseCaptureWindow() == nullptr )
-	{
-		FSlateDrawElement::MakeBox(
-			*WindowElementList,
-			0,
-			FPaintGeometry(ScaledCursorLocation, FVector2D(32, 32) * XScaling, XScaling),
-			FCoreStyle::Get().GetBrush("CrashTracker.Cursor"),
-			FSlateRect(0, 0, VirtualScreenSize.X, VirtualScreenSize.Y));
-	}
-	
-	for (int32 i = 0; i < KeypressBuffer.Num(); ++i)
-	{
-		FSlateDrawElement::MakeText(
-			*WindowElementList,
-			0,
-			FPaintGeometry(FVector2D(10, 10 + i * 30), FVector2D(300, 30), 1.f),
-			KeypressBuffer[i],
-			FCoreStyle::Get().GetFontStyle(TEXT("CrashTracker.Font")),
-			FSlateRect(0, 0, VirtualScreenSize.X, VirtualScreenSize.Y));
-	}
-	
-	ElementBatcher->AddElements(*WindowElementList);
-	ElementBatcher->ResetBatches();
-	
-	struct FWriteMouseCursorAndKeyPressesContext
-	{
-		FSlateCrashReportResource* CrashReportResource;
-		FIntRect IntermediateBufferSize;
-		FSlateRHIRenderingPolicy* RenderPolicy;
-		FSlateWindowElementList* SlateElementList;
-		FIntPoint ViewportSize;
-	};
-	FWriteMouseCursorAndKeyPressesContext WriteMouseCursorAndKeyPressesContext =
-	{
-		CrashTrackerResource,
-		VirtualScreen,
-		RenderingPolicy.Get(),
-		WindowElementList,
-		VirtualScreenSize
-	};
-	ENQUEUE_RENDER_COMMAND(WriteMouseCursorAndKeyPresses)(
-		[WriteMouseCursorAndKeyPressesContext](FRHICommandListImmediate& RHICmdList)
-		{
-			//TODO Where does this State go?
-			//GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI();
-		
-			FSlateBatchData& BatchData = WriteMouseCursorAndKeyPressesContext.SlateElementList->GetBatchData();
-			FElementBatchMap& RootBatchMap = WriteMouseCursorAndKeyPressesContext.SlateElementList->GetRootDrawLayer().GetElementBatchMap();
-
-			BatchData.CreateRenderBatches(RootBatchMap);
-
-			WriteMouseCursorAndKeyPressesContext.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
-			if( BatchData.GetRenderBatches().Num() > 0 )
-			{
-				FTexture2DRHIRef UnusedTargetTexture;
-				FSlateBackBuffer UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
-
-				WriteMouseCursorAndKeyPressesContext.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(WriteMouseCursorAndKeyPressesContext.ViewportSize.X, WriteMouseCursorAndKeyPressesContext.ViewportSize.Y), BatchData.GetRenderBatches());
-			}
-		}
-	);
-
-	// copy back to the cpu
-	struct FReadbackFromIntermediateBufferContext
-	{
-		FSlateCrashReportResource* CrashReportResource;
-		FIntRect IntermediateBufferSize;
-	};
-	FReadbackFromIntermediateBufferContext ReadbackFromIntermediateBufferContext =
-	{
-		CrashTrackerResource,
-		VirtualScreen
-	};
-	ENQUEUE_RENDER_COMMAND(ReadbackFromIntermediateBuffer)(
-		[ReadbackFromIntermediateBufferContext](FRHICommandListImmediate& RHICmdList)
-		{
-			RHICmdList.CopyToResolveTarget(
-				ReadbackFromIntermediateBufferContext.CrashReportResource->GetBuffer(),
-				ReadbackFromIntermediateBufferContext.CrashReportResource->GetReadbackBuffer(),
-				false,
-				FResolveParams());
-		}
-	);
-}
-
-
-void FSlateRHIRenderer::MapVirtualScreenBuffer(FMappedTextureBuffer* OutTextureData)
-{
-	const FIntRect VirtualScreen = CrashTrackerResource->GetVirtualScreen();
-
-	struct FReadbackFromStagingBufferContext
-	{
-		FSlateCrashReportResource* CrashReportResource;
-		FMappedTextureBuffer* TextureData;
-		FIntRect ExpectedBufferSize;
-	};
-	FReadbackFromStagingBufferContext ReadbackFromStagingBufferContext =
-	{
-		CrashTrackerResource,
-		OutTextureData,
-		VirtualScreen,
-	};
-	ENQUEUE_RENDER_COMMAND(ReadbackFromStagingBuffer)(
-		[ReadbackFromStagingBufferContext](FRHICommandListImmediate& RHICmdList)
-		{
-			SCOPE_CYCLE_COUNTER(STAT_MapStagingBuffer);
-			RHICmdList.MapStagingSurface(ReadbackFromStagingBufferContext.CrashReportResource->GetReadbackBuffer(), ReadbackFromStagingBufferContext.TextureData->Data, ReadbackFromStagingBufferContext.TextureData->Width, ReadbackFromStagingBufferContext.TextureData->Height);
-
-			ReadbackFromStagingBufferContext.CrashReportResource->SwapTargetReadbackBuffer();
-		}
-	);
-}
-
-void FSlateRHIRenderer::UnmapVirtualScreenBuffer()
-{
-	struct FReadbackFromStagingBufferContext
-	{
-		FSlateCrashReportResource* CrashReportResource;
-	};
-	FReadbackFromStagingBufferContext ReadbackFromStagingBufferContext =
-	{
-		CrashTrackerResource
-	};
-	ENQUEUE_RENDER_COMMAND(ReadbackFromStagingBuffer)(
-		[ReadbackFromStagingBufferContext](FRHICommandListImmediate& RHICmdList)
-		{
-			SCOPE_CYCLE_COUNTER(STAT_UnmapStagingBuffer);
-			RHICmdList.UnmapStagingSurface(ReadbackFromStagingBufferContext.CrashReportResource->GetReadbackBuffer());
-		}
-	);
-}
 
 FIntPoint FSlateRHIRenderer::GenerateDynamicImageResource(const FName InTextureName)
 {

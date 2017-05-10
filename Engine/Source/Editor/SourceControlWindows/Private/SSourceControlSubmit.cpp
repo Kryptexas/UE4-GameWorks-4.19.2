@@ -180,6 +180,7 @@ void SSourceControlSubmitWidget::Construct(const FArguments& InArgs)
 					SNew(SCheckBox)
 					.OnCheckStateChanged( this, &SSourceControlSubmitWidget::OnCheckStateChanged_KeepCheckedOut)
 					.IsChecked( this, &SSourceControlSubmitWidget::GetKeepCheckedOut )
+					.IsEnabled( this, &SSourceControlSubmitWidget::CanCheckOut )
 					[
 						SNew(STextBlock)
 						.Text(NSLOCTEXT("SourceControl.SubmitPanel", "KeepCheckedOut", "Keep Files Checked Out") )
@@ -372,6 +373,13 @@ void SSourceControlSubmitWidget::OnCheckStateChanged_KeepCheckedOut(ECheckBoxSta
 ECheckBoxState SSourceControlSubmitWidget::GetKeepCheckedOut() const
 {
 	return KeepCheckedOut;
+}
+
+
+bool SSourceControlSubmitWidget::CanCheckOut() const
+{
+	const ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+	return SourceControlProvider.UsesCheckout();
 }
 
 

@@ -1190,6 +1190,30 @@ protected:
 	bool FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray, UFbxSkeletalMeshImportData* TemplateImportData, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, TArray<FName> &LastImportedMaterialNames);
 	
 	/**
+	* Fill the Points in FSkeletalMeshIMportData from a Fbx Node and a FbxShape if it exists.
+	*
+	* @param OutData    FSkeletalMeshImportData output data
+	* @param RootNode	The root node of the Fbx
+	* @param Node		The node to get the points from
+	* @param FbxShape	Fbx Morph object, if not NULL, we are importing a morph object.
+	*
+	* @returns bool		true if import successfully.
+	*/
+	bool FillSkeletalMeshImportPoints(FSkeletalMeshImportData* OutData, FbxNode* RootNode, FbxNode* Node, FbxShape* FbxShape);
+
+	/**
+	* Fill the Points in FSkeletalMeshIMportData from Fbx Nodes and FbxShape Array if it exists.
+	*
+	* @param OutData		FSkeletalMeshImportData output data
+	* @param NodeArray		Fbx node array to look at
+	* @param FbxShapeArray	Fbx Morph object, if not NULL, we are importing a morph object.
+	* @param ModifiedPoints	Set of points indices for which we've modified the value in OutData
+	*
+	* @returns bool			true if import successfully.
+	*/
+	bool GatherPointsForMorphTarget(FSkeletalMeshImportData* OutData, TArray<FbxNode*>& NodeArray, TArray< FbxShape* >* FbxShapeArray, TSet<uint32>& ModifiedPoints);
+
+	/**
 	 * Import bones from skeletons that NodeArray bind to.
 	 *
 	 * @param NodeArray Fbx Nodes to import, they are bound to the same skeleton system

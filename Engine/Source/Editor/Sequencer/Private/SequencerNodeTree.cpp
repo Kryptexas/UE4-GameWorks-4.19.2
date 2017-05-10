@@ -192,12 +192,11 @@ void FSequencerNodeTree::Update()
 
 	RootNodes.Append( FolderAndObjectNodes );
 
-	RootNodes.Reserve(RootNodes.Num()*2);
-	for (int32 Index = 0; Index < RootNodes.Num(); Index += 2)
+	RootNodes.Reserve((RootNodes.Num()-1)*2);
+	for (int32 Index = 1; Index < RootNodes.Num(); Index += 2)
 	{
 		RootNodes.Insert(MakeShareable(new FSequencerSpacerNode(1.f, nullptr, *this)), Index);
 	}
-	RootNodes.Add(MakeShareable(new FSequencerSpacerNode(1.f, nullptr, *this)));
 
 	// Set up virtual offsets, expansion states, and tints
 	float VerticalOffset = 0.f;
@@ -513,6 +512,16 @@ static void AddFilteredNode(const TSharedRef<FSequencerDisplayNode>& StartNode, 
 	}
 }
 
+static void AddParentNodes(const TSharedRef<FSequencerDisplayNode>& StartNode, TSet<TSharedRef<const FSequencerDisplayNode>>& OutFilteredNodes)
+{
+	TSharedPtr<FSequencerDisplayNode> ParentNode = StartNode->GetParent();
+	if (ParentNode.IsValid())
+	{
+		OutFilteredNodes.Add(ParentNode.ToSharedRef());
+		AddParentNodes(ParentNode.ToSharedRef(), OutFilteredNodes);
+	}
+}
+
 /**
  * Recursively filters nodes
  *
@@ -590,7 +599,7 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 
 			if (bPassedTextFilter && !bInFilter)
 			{
-				AddFilteredNode(StartNode, OutFilteredNodes);
+				AddParentNodes(Node, OutFilteredNodes);
 
 				bInFilter = true;
 			}

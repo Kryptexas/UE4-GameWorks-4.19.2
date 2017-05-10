@@ -58,6 +58,14 @@ public:
 	virtual ~IAssetRegistry() {}
 
 	/**
+	 * Does the given path contain assets, optionally also testing sub-paths?
+	 *
+	 * @param PackagePath the path to query asset data in
+	 * @param bRecursive if true, the supplied path will be tested recursively
+	 */
+	 virtual bool HasAssets(const FName PackagePath, const bool bRecursive = false) const = 0;
+
+	/**
 	 * Gets asset data for the assets in the package with the specified package name
 	 *
 	 * @param PackageName the package name for the requested assets

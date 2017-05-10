@@ -1061,14 +1061,14 @@ float UMaterialInstance::GetScalarParameterDefault(FName ParameterName, ERHIFeat
 	return 0.f;
 }
 
-bool UMaterialInstance::CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim)
+bool UMaterialInstance::CheckMaterialUsage(const EMaterialUsage Usage)
 {
 	check(IsInGameThread());
 	UMaterial* Material = GetMaterial();
 	if(Material)
 	{
 		bool bNeedsRecompile = false;
-		bool bUsageSetSuccessfully = Material->SetMaterialUsage(bNeedsRecompile, Usage, bSkipPrim);
+		bool bUsageSetSuccessfully = Material->SetMaterialUsage(bNeedsRecompile, Usage);
 		if (bNeedsRecompile)
 		{
 			CacheResourceShadersForRendering();
@@ -1082,7 +1082,7 @@ bool UMaterialInstance::CheckMaterialUsage(const EMaterialUsage Usage, const boo
 	}
 }
 
-bool UMaterialInstance::CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim) const
+bool UMaterialInstance::CheckMaterialUsage_Concurrent(const EMaterialUsage Usage) const
 {
 	TMicRecursionGuard RecursionGuard;
 	UMaterial const* Material = GetMaterial_Concurrent(RecursionGuard);
@@ -1093,7 +1093,7 @@ bool UMaterialInstance::CheckMaterialUsage_Concurrent(const EMaterialUsage Usage
 		{
 			if (IsInGameThread())
 			{
-				bUsageSetSuccessfully = const_cast<UMaterialInstance*>(this)->CheckMaterialUsage(Usage, bSkipPrim);
+				bUsageSetSuccessfully = const_cast<UMaterialInstance*>(this)->CheckMaterialUsage(Usage);
 			}
 			else
 			{
@@ -1101,23 +1101,21 @@ bool UMaterialInstance::CheckMaterialUsage_Concurrent(const EMaterialUsage Usage
 				{
 					UMaterialInstance* Material;
 					EMaterialUsage Usage;
-					bool bSkipPrim;
 
-					FCallSMU(UMaterialInstance* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim)
+					FCallSMU(UMaterialInstance* InMaterial, EMaterialUsage InUsage)
 						: Material(InMaterial)
 						, Usage(InUsage)
-						, bSkipPrim(bInSkipPrim)
 					{
 					}
 
 					void Task()
 					{
-						Material->CheckMaterialUsage(Usage, bSkipPrim);
+						Material->CheckMaterialUsage(Usage);
 					}
 				};
 				UE_LOG(LogMaterial, Log, TEXT("Had to pass SMU back to game thread. Please ensure correct material usage flags."));
 
-				TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterialInstance*>(this), Usage, bSkipPrim));
+				TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterialInstance*>(this), Usage));
 				bUsageSetSuccessfully = false;
 
 				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),

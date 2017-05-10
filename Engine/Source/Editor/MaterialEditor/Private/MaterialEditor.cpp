@@ -34,6 +34,7 @@
 #include "UnrealEdGlobals.h"
 #include "Editor.h"
 #include "MaterialEditorModule.h"
+#include "MaterialEditingLibrary.h"
 
 
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
@@ -303,6 +304,9 @@ void FMaterialEditor::InitEditorForMaterial(UMaterial* InMaterial)
 			Material->Expressions.RemoveAt(ExpressionIndex);
 		}
 	}
+
+	TArray<FString> Groups;
+	GetAllMaterialExpressionGroups(&Groups);
 }
 
 void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMaterialFunction)
@@ -330,6 +334,9 @@ void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMateria
 	MaterialFunction->ParentFunction = InMaterialFunction;
 
 	OriginalMaterial = Material;
+
+	TArray<FString> Groups;
+	GetAllMaterialExpressionGroups(&Groups);
 }
 
 void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit )
@@ -639,14 +646,17 @@ void FMaterialEditor::GetAllMaterialExpressionGroups(TArray<FString>* OutGroups)
 		if(Switch)
 		{
 			OutGroups->AddUnique(Switch->Group.ToString());
+			Material->AttemptInsertNewGroupName(Switch->Group.ToString());
 		}
 		if(TextureS)
 		{
 			OutGroups->AddUnique(TextureS->Group.ToString());
+			Material->AttemptInsertNewGroupName(TextureS->Group.ToString());
 		}
 		if(FontS)
 		{
 			OutGroups->AddUnique(FontS->Group.ToString());
+			Material->AttemptInsertNewGroupName(FontS->Group.ToString());
 		}
 	}
 }
@@ -2749,7 +2759,7 @@ void FMaterialEditor::OnMaterialUsageFlagsChanged(UMaterial* MaterialThatChanged
 	if(MaterialThatChanged == OriginalMaterial)
 	{
 		bool bNeedsRecompile = false;
-		Material->SetMaterialUsage(bNeedsRecompile, Flag, MaterialThatChanged->GetUsageByFlag(Flag));
+		Material->SetMaterialUsage(bNeedsRecompile, Flag);
 		UpdateStatsMaterials();
 	}
 }
@@ -3124,107 +3134,13 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "MaterialEditorNewExpression", "Material Editor: New Expression") );
 		Material->Modify();
 
-		UObject* ExpressionOuter = Material;
-		if (MaterialFunction)
-		{
-			ExpressionOuter = MaterialFunction;
-		}
-
-		NewExpression = NewObject<UMaterialExpression>(ExpressionOuter, NewExpressionClass, NAME_None, RF_Transactional);
-		Material->Expressions.Add( NewExpression );
-		NewExpression->Material = Material;
-
-		// Set the expression location.
-		NewExpression->MaterialExpressionEditorX = NodePos.X;
-		NewExpression->MaterialExpressionEditorY = NodePos.Y;
-
-		// Create a GUID for the node
-		NewExpression->UpdateMaterialExpressionGuid(true, true);
-
+		UObject* SelectedAsset = nullptr;
 		if (bAutoAssignResource)
 		{
-			// If the user is adding a texture, automatically assign the currently selected texture to it.
-			UMaterialExpressionTextureBase* METextureBase = Cast<UMaterialExpressionTextureBase>( NewExpression );
-			if( METextureBase )
-			{
-				FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-				if( UTexture* SelectedTexture = GEditor->GetSelectedObjects()->GetTop<UTexture>() )
-				{
-					METextureBase->Texture = SelectedTexture;
-				}
-				METextureBase->AutoSetSampleType();
-			}
-
-			UMaterialExpressionMaterialFunctionCall* MEMaterialFunction = Cast<UMaterialExpressionMaterialFunctionCall>( NewExpression );
-			if( MEMaterialFunction )
-			{
-				FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-				MEMaterialFunction->SetMaterialFunction(MaterialFunction, NULL, GEditor->GetSelectedObjects()->GetTop<UMaterialFunction>());
-			}
-
-			UMaterialExpressionCollectionParameter* MECollectionParameter = Cast<UMaterialExpressionCollectionParameter>( NewExpression );
-			if( MECollectionParameter )
-			{
-				FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-				MECollectionParameter->Collection = GEditor->GetSelectedObjects()->GetTop<UMaterialParameterCollection>();
-			}
+			SelectedAsset = GEditor->GetSelectedObjects()->GetTop<UObject>();
 		}
 
-		UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>( NewExpression );
-		if( FunctionInput )
-		{
-			FunctionInput->ConditionallyGenerateId(true);
-			FunctionInput->ValidateName();
-		}
-
-		UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>( NewExpression );
-		if( FunctionOutput )
-		{
-			FunctionOutput->ConditionallyGenerateId(true);
-			FunctionOutput->ValidateName();
-		}
-
-		NewExpression->UpdateParameterGuid(true, true);
-
-		if (NewExpression->HasAParameterName())
-		{
-			NewExpression->ValidateParameterName();
-		}
-
-		UMaterialExpressionComponentMask* ComponentMaskExpression = Cast<UMaterialExpressionComponentMask>( NewExpression );
-		// Setup defaults for the most likely use case
-		// Can't change default properties as that will affect existing content
-		if( ComponentMaskExpression )
-		{
-			ComponentMaskExpression->R = true;
-			ComponentMaskExpression->G = true;
-		}
-
-		UMaterialExpressionStaticComponentMaskParameter* StaticComponentMaskExpression = Cast<UMaterialExpressionStaticComponentMaskParameter>( NewExpression );
-		// Setup defaults for the most likely use case
-		// Can't change default properties as that will affect existing content
-		if( StaticComponentMaskExpression )
-		{
-			StaticComponentMaskExpression->DefaultR = true;
-		}
-
-		// Setup defaults for the most likely use case
-		// Can't change default properties as that will affect existing content
-		UMaterialExpressionTransformPosition* PositionTransform = Cast<UMaterialExpressionTransformPosition>(NewExpression);
-		if (PositionTransform)
-		{
-			PositionTransform->TransformSourceType = TRANSFORMPOSSOURCE_Local;
-			PositionTransform->TransformType = TRANSFORMPOSSOURCE_World;
-		}
-
-		// Make sure the dynamic parameters are named based on existing ones
-		UMaterialExpressionDynamicParameter* DynamicExpression = Cast<UMaterialExpressionDynamicParameter>(NewExpression);
-		if (DynamicExpression)
-		{
-			DynamicExpression->UpdateDynamicParameterProperties();
-		}
-
-		Material->AddExpressionParameter(NewExpression, Material->EditorParameters);
+		NewExpression = UMaterialEditingLibrary::CreateMaterialExpressionEx(Material, MaterialFunction, NewExpressionClass, SelectedAsset, NodePos.X, NodePos.Y);
 
 		if (NewExpression)
 		{

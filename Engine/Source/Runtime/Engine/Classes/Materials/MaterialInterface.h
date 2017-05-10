@@ -25,6 +25,7 @@ class USubsurfaceProfile;
 class UTexture;
 struct FPrimitiveViewRelevance;
 
+UENUM(BlueprintType)
 enum EMaterialUsage
 {
 	MATUSAGE_SkeletalMesh,
@@ -349,14 +350,13 @@ public:
 	 * Checks if the material can be used with the given usage flag.  
 	 * If the flag isn't set in the editor, it will be set and the material will be recompiled with it.
 	 * @param Usage - The usage flag to check
-	 * @param bSkipPrim - Bypass the primitive type checks
 	 * @return bool - true if the material can be used for rendering with the given type.
 	 */
-	virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) PURE_VIRTUAL(UMaterialInterface::CheckMaterialUsage,return false;);
+	virtual bool CheckMaterialUsage(const EMaterialUsage Usage) PURE_VIRTUAL(UMaterialInterface::CheckMaterialUsage,return false;);
 	/**
 	 * Same as above but is valid to call from any thread. In the editor, this might spin and stall for a shader compile
 	 */
-	virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const PURE_VIRTUAL(UMaterialInterface::CheckMaterialUsage,return false;);
+	virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage) const PURE_VIRTUAL(UMaterialInterface::CheckMaterialUsage,return false;);
 
 	/**
 	 * Get the static permutation resource if the instance has one
@@ -399,6 +399,26 @@ public:
 	*/
 	virtual bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) const
 		PURE_VIRTUAL(UMaterialInterface::GetTerrainLayerWeightParameterValue,return false;);
+
+	/**
+	* Get the sort priority index of the given parameter
+	*
+	* @param	ParameterName	The name of the parameter
+	* @param	OutSortPriority	Will contain the sort priority of the parameter if successful
+	* @return					True if successful
+	*/
+	virtual bool GetParameterSortPriority(FName ParameterName, int32& OutSortPriority) const
+		PURE_VIRTUAL(UMaterialInterface::GetParameterSortPriority, return false;);
+
+	/**
+	* Get the sort priority index of the given parameter group
+	*
+	* @param	InGroupName	The name of the parameter group
+	* @param	OutSortPriority	Will contain the sort priority of the parameter group if successful
+	* @return					True if successful
+	*/
+	virtual bool GetGroupSortPriority(const FString& InGroupName, int32& OutSortPriority) const
+		PURE_VIRTUAL(UMaterialInterface::GetGroupSortPriority, return false;);
 
 	/** @return The material's relevance. */
 	ENGINE_API FMaterialRelevance GetRelevance(ERHIFeatureLevel::Type InFeatureLevel) const;

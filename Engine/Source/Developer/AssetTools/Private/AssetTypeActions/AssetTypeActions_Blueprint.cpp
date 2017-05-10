@@ -81,7 +81,7 @@ void FAssetTypeActions_Blueprint::OpenAssetEditor( const TArray<UObject*>& InObj
 			bool bLetOpen = true;
 			if (!Blueprint->SkeletonGeneratedClass || !Blueprint->GeneratedClass)
 			{
-				bLetOpen = EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNoCancel, LOCTEXT("FailedToLoadBlueprintWithContinue", "Blueprint could not be loaded because it derives from an invalid class.  Check to make sure the parent class for this blueprint hasn't been removed! Do you want to continue (it can crash the editor)?"));
+				bLetOpen = EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("FailedToLoadBlueprintWithContinue", "Blueprint could not be loaded because it derives from an invalid class.  Check to make sure the parent class for this blueprint hasn't been removed! Do you want to continue (it can crash the editor)?"));
 			}
 			if (bLetOpen)
 			{

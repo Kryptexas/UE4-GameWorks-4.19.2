@@ -274,6 +274,9 @@ private:
 
 	/** Forces a specific LOD level to be rendered for the selected mesh components */
 	void ApplyForcedLODIndex(int32 ForcedLODIndex);
+
+	/** Updates the paint targets based on property changes on actors in the scene */
+	void UpdatePaintTargets(UObject* InObject, struct FPropertyChangedEvent& InPropertyChangedEvent);
 protected:	
 	/** Texture paint state */
 	/** Textures eligible for painting retrieved from the current selection */

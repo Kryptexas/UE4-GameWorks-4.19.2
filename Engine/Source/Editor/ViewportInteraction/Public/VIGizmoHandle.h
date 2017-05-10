@@ -40,9 +40,6 @@ public:
 	/** Default constructor that sets up CDO properties */
 	UGizmoHandleGroup();
 	
-	/** Deconstructor */
-	virtual ~UGizmoHandleGroup();
-
 	/** Given the unique index, makes a handle */
 	FTransformGizmoHandlePlacement MakeHandlePlacementForIndex( const int32 HandleIndex ) const;
 
@@ -62,11 +59,7 @@ public:
 	/** Default setting the visibility and collision for all the handles in this group */
 	void UpdateVisibilityAndCollision(const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, const bool bAllowRotationAndScaleHandles, UActorComponent* DraggingHandle);
 
-	/** Gets the InteractionType and the HandlePlacement for this Gizmo handle */
-	virtual void GetHandleIndexInteractionType( const int32 HandleIndex, ETransformGizmoInteractionType& OutInteractionType, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement );
-
-	/** Gets the Gizmo InteractionType, needs to be implemented by derived classes */
-	virtual ETransformGizmoInteractionType GetInteractionType() const;
+	class UViewportDragOperationComponent* GetDragOperationComponent();
 
 	/** Finds the index of DraggedMesh in HandleMeshes */
 	virtual int32 GetDraggedHandleIndex( class UStaticMeshComponent* DraggedMesh );
@@ -129,6 +122,9 @@ protected:
 	/** The actor transform gizmo owning this handlegroup */
 	UPROPERTY()
 	class ABaseTransformGizmo* OwningTransformGizmoActor;
+
+	UPROPERTY()
+	class UViewportDragOperationComponent* DragOperationComponent;
 
 private:
 

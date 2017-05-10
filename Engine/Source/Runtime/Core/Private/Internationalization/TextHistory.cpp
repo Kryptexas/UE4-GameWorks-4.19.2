@@ -162,7 +162,7 @@ void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, FTextDisplayStri
 #if USE_STABLE_LOCALIZATION_KEYS
 		// Make sure the package namespace for this text property is up-to-date
 		// We do this on load (as well as save) to handle cases where data is being duplicated, as it will be written by one package and loaded into another
-		if (GIsEditor && !Ar.HasAnyPortFlags(PPF_DuplicateForPIE))
+		if (GIsEditor && !Ar.HasAnyPortFlags(PPF_DuplicateVerbatim | PPF_DuplicateForPIE))
 		{
 			const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Ar);
 			if (!PackageNamespace.IsEmpty())
@@ -192,7 +192,7 @@ void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, FTextDisplayStri
 
 #if USE_STABLE_LOCALIZATION_KEYS
 		// Make sure the package namespace for this text property is up-to-date
-		if (GIsEditor && !Ar.HasAnyPortFlags(PPF_DuplicateForPIE))
+		if (GIsEditor && !Ar.HasAnyPortFlags(PPF_DuplicateVerbatim | PPF_DuplicateForPIE))
 		{
 			const FString PackageNamespace = TextNamespaceUtil::GetPackageNamespace(Ar);
 			if (!PackageNamespace.IsEmpty())
@@ -598,7 +598,7 @@ FString FTextHistory_FormatNumber::BuildNumericDisplayString(const FDecimalNumbe
 	case EFormatArgumentType::Double:
 		return FastDecimalFormat::NumberToString(SourceValue.GetDoubleValue() * static_cast<double>(InValueMultiplier), InFormattingRules, FormattingOptions);
 	default:
-		check(0); // Should never reach this point
+		break;
 	}
 	return FString();
 }
@@ -1090,7 +1090,7 @@ FString FTextHistory_Transform::BuildLocalizedDisplayString() const
 	case ETransformType::ToUpper:
 		return FTextTransformer::ToUpper(SourceText.ToString());
 	default:
-		check(0); // Should never reach this point
+		break;
 	}
 	return FString();
 }
@@ -1106,7 +1106,7 @@ FString FTextHistory_Transform::BuildInvariantDisplayString() const
 	case ETransformType::ToUpper:
 		return FTextTransformer::ToUpper(SourceText.BuildSourceString());
 	default:
-		check(0); // Should never reach this point
+		break;
 	}
 	return FString();
 }

@@ -217,6 +217,23 @@ FWorldContext* UEditorWorldExtensionCollection::GetWorldContext() const
 	return WorldContext;
 }
 
+UEditorWorldExtension* UEditorWorldExtensionCollection::AddExtension(TSubclassOf<UEditorWorldExtension> EditorExtensionClass)
+{
+	UEditorWorldExtension* Extension = nullptr;
+	UEditorWorldExtension* FoundExtension = FindExtension(EditorExtensionClass);
+	if (FoundExtension != nullptr)
+	{
+		Extension = FoundExtension;
+	}
+	else
+	{
+		Extension = NewObject<UEditorWorldExtension>(this, EditorExtensionClass);
+	}
+
+	AddExtension(Extension);
+	return Extension;
+}
+
 void UEditorWorldExtensionCollection::AddExtension( UEditorWorldExtension* EditorExtension )
 {
 	check( EditorExtension != nullptr );

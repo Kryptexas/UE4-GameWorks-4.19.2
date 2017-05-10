@@ -52,7 +52,7 @@ TSharedRef< class SWidget > FBooleanPropertyTableCellPresenter::ConstructDisplay
 		.HAlign(HAlign_Center)
 		.Padding(FMargin(0, 0, 2, 0))
 		[
-			SNew(SResetToDefaultPropertyEditor, PropertyEditor)
+			SNew(SResetToDefaultPropertyEditor, PropertyEditor->GetPropertyHandle())
 		];
 	}
 

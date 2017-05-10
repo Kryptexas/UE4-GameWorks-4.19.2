@@ -118,4 +118,8 @@ protected:
 
 protected:
 	TSharedPtr<SImage> MyImage;
+
+protected:
+
+	PROPERTY_BINDING_IMPLEMENTATION(FSlateColor, ColorAndOpacity);
 };

@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Templates/SubclassOf.h"
 #include "Engine/DeveloperSettings.h"
+#include "Engine/EngineTypes.h"
 #include "LevelEditorMiscSettings.generated.h"
 
 class ULevelStreaming;
@@ -64,6 +65,12 @@ public:
 	/** The default level streaming class to use when adding new streaming levels */
 	UPROPERTY(EditAnywhere, config, Category=Levels)
 	TSubclassOf<ULevelStreaming> DefaultLevelStreamingClass;
+
+public:
+
+	/** The save directory for newly created screenshots */
+	UPROPERTY(EditAnywhere, config, Category = Screenshots)
+	FDirectoryPath EditorScreenshotSaveDirectory;
 
 protected:
 
