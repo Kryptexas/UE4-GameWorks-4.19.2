@@ -1614,10 +1614,8 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 	if (bDoTaskThreads)
 	{
 		MyEvent = FPlatformProcess::GetSynchEventFromPool(false);
-		FThreadSafeCounter StallForTaskThread;
 
 		int32 Workers = FTaskGraphInterface::Get().GetNumWorkerThreads();
-		StallForTaskThread.Reset();
 		StallForTaskThread.Add(Workers * (1 + (bDoBackgroundThreads && ENamedThreads::bHasBackgroundThreads) + !!(ENamedThreads::bHasHighPriorityThreads)));
 
 		TaskEvents.Reserve(StallForTaskThread.GetValue());
@@ -1686,7 +1684,6 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 		FPlatformProcess::ReturnSynchEventToPool(MyEvent);
 	}
 }
-
 
 
 // Benchmark
