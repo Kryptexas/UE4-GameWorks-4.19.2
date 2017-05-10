@@ -83,7 +83,7 @@ public:
 
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 
-	virtual bool IsHMDConnected() override { return true; }
+	virtual bool IsHMDConnected() override;
 	virtual bool IsHMDEnabled() const override;
 	virtual EHMDWornState::Type GetHMDWornState() override;
 	virtual void EnableHMD(bool allow = true) override;

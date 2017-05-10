@@ -2295,7 +2295,7 @@ bool UEngine::InitializeHMDDevice()
 
 void UEngine::RecordHMDAnalytics()
 {
-	if(HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")))
+	if(HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")) && HMDDevice->IsHMDConnected())
 	{
 		HMDDevice->RecordAnalytics();
 	}

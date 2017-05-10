@@ -262,6 +262,11 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::Cre
 pVRIsHmdPresent FSteamVRHMD::VRIsHmdPresentFn = nullptr;
 pVRGetGenericInterface FSteamVRHMD::VRGetGenericInterfaceFn = nullptr;
 
+bool FSteamVRHMD::IsHMDConnected()
+{
+	return FSteamVRHMD::VRIsHmdPresentFn ? (bool)(*FSteamVRHMD::VRIsHmdPresentFn)() : false;
+}
+
 bool FSteamVRHMD::IsHMDEnabled() const
 {
 	return bHmdEnabled;
