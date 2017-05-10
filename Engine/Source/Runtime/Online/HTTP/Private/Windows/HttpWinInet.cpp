@@ -297,7 +297,7 @@ bool FWinInetConnection::InitConnection()
 
 	// setup net connection
 	InternetHandle = InternetOpen(
-		*FString::Printf(TEXT("game=%s, engine=UE4, version=%u"), FApp::GetGameName(), FNetworkVersion::GetNetworkCompatibleChangelist()), 
+		*FPlatformHttp::GetDefaultUserAgent(),
 		INTERNET_OPEN_TYPE_PRECONFIG, 
 		NULL, 
 		NULL, 

@@ -1631,6 +1631,11 @@ void FMacPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_
 	out_OSSubVersionLabel = GMacAppInfo.OSBuild;
 }
 
+FString FMacPlatformMisc::GetOSVersion()
+{
+	return GMacAppInfo.OSVersion;
+}
+
 bool FMacPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
 {
 	struct statfs FSStat = { 0 };

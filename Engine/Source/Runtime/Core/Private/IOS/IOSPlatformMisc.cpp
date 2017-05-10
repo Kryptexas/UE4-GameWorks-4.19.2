@@ -708,6 +708,7 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 FString FIOSPlatformMisc::GetDeviceId()
 {
 	// Check to see if this OS has this function
+
 	if ([[UIDevice currentDevice] respondsToSelector:@selector(identifierForVendor)])
 	{
 	    NSUUID* Id = [[UIDevice currentDevice] identifierForVendor];
@@ -719,6 +720,11 @@ FString FIOSPlatformMisc::GetDeviceId()
 	    }
 	}
 	return FString();
+}
+
+FString FIOSPlatformMisc::GetOSVersion()
+{
+	return FString([[UIDevice currentDevice] systemVersion]);
 }
 
 class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()

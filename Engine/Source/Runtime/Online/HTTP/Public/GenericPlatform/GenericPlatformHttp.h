@@ -70,4 +70,13 @@ public:
 	 * Returns the mime type for the file.
 	 */
 	static FString GetMimeType(const FString& FilePath);
+
+	
+	/**
+	 * Returns the default User-Agent string to use in HTTP requests.
+	 * Requests that explicitly set the User-Agent header will not use this value.
+	 *
+	 * @return the default User-Agent string that requests should use.
+	 */
+	static FString GetDefaultUserAgent();
 };

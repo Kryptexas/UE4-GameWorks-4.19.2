@@ -1608,3 +1608,8 @@ void FAndroidMisc::SetOnReInitWindowCallback(FAndroidMisc::ReInitWindowCallbackT
 {
 	OnReInitWindowCallback = InOnReInitWindowCallback;
 }
+
+FString FAndroidMisc::GetOSVersion()
+{
+	return GetAndroidVersion();
+}

@@ -171,6 +171,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	 * so all the caveats that apply to that API call apply here.
 	 */
 	static FString GetDeviceId();
+	static FString GetOSVersion();
 
 	// Possible iOS devices
 	enum EIOSDevice

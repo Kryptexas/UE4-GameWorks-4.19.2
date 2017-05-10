@@ -445,6 +445,13 @@ bool FLinuxPlatformMisc::HasOverriddenReturnCode(uint8 * OverriddenReturnCodeToU
 	return GHasOverriddenReturnCode;
 }
 
+FString FLinuxPlatformMisc::GetOSVersion()
+{
+	// TODO [RCL] 2015-07-15: check if /etc/os-release or /etc/redhat-release exist and parse it
+	// See void FLinuxPlatformSurvey::GetOSName(FHardwareSurveyResults& OutResults)
+	return FString();
+}
+
 const TCHAR* FLinuxPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
 	check(OutBuffer && BufferCount);

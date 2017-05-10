@@ -263,7 +263,7 @@ bool FAppleHttpRequest::StartRequest()
 	const FString UserAgent = GetHeader("User-Agent");
 	if(UserAgent.IsEmpty())
 	{
-		NSString* Tag = FString::Printf(TEXT("UE4-%s,UE4Ver(%s)"), FApp::GetGameName(), *FEngineVersion::Current().ToString()).GetNSString();
+		NSString* Tag = FPlatformHttp::GetDefaultUserAgent().GetNSString();
 		[Request addValue:Tag forHTTPHeaderField:@"User-Agent"];
 	}
 	else

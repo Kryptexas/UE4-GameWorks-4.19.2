@@ -24,6 +24,7 @@ struct FWindowsOSVersionHelper
 	};
 
 	static int32 GetOSVersions( FString& out_OSVersion, FString& out_OSSubVersion );
+	static FString GetOSVersion();
 };
 
 
@@ -204,6 +205,7 @@ struct CORE_API FWindowsPlatformMisc
 	static FString GetPrimaryGPUBrand();
 	static struct FGPUDriverInfo GetGPUDriverInfo(const FString& DeviceDescription);
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
+	static FString GetOSVersion();
 	static bool GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes );
 
 	/**
