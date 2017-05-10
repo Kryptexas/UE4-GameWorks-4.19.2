@@ -11,5 +11,5 @@
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/OpenSSL1.0.1e_License.txt</LicenseFolder>
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/OpenSSL_License.txt</LicenseFolder>
 </TpsData>
