@@ -2,6 +2,9 @@
 //
 #include "CoreMinimal.h"
 #include "SteamVRPrivate.h"
+
+#if STEAMVR_SUPPORTED_PLATFORMS
+
 #include "SteamVRHMD.h"
 
 #include "RendererPrivate.h"
@@ -16,8 +19,6 @@
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 #endif
-
-#if STEAMVR_SUPPORTED_PLATFORMS
 
 static TAutoConsoleVariable<int32> CUsePostPresentHandoff(TEXT("vr.SteamVR.UsePostPresentHandoff"), 0, TEXT("Whether or not to use PostPresentHandoff.  If true, more GPU time will be available, but this relies on no SceneCaptureComponent2D or WidgetComponents being active in the scene.  Otherwise, it will break async reprojection."));
 

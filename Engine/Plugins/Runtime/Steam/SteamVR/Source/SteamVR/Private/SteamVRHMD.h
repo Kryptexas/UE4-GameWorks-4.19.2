@@ -2,6 +2,9 @@
 
 #pragma once
 #include "ISteamVRPlugin.h"
+
+#if STEAMVR_SUPPORTED_PLATFORMS
+
 #include "HeadMountedDisplay.h"
 #include "HeadMountedDisplayBase.h"
 #include "SteamVRFunctionLibrary.h"
@@ -16,8 +19,6 @@
 #elif PLATFORM_LINUX
 #include "OpenGLDrv.h"
 #endif
-
-#if STEAMVR_SUPPORTED_PLATFORMS
 
 #include "SceneViewExtension.h"
 
