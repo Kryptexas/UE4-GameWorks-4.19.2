@@ -3847,7 +3847,7 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 	check(!FPlatformProperties::IsServerOnly());
 	check(GGlobalShaderMap[Platform]);
 
-	UE_LOG(LogShaders, Log, TEXT("Verifying Global Shaders for %s"), *LegacyShaderPlatformToShaderFormat(Platform).ToString());
+	UE_LOG(LogMaterial, Log, TEXT("Verifying Global Shaders for %s"), *LegacyShaderPlatformToShaderFormat(Platform).ToString());
 
 	// Ensure that the global shader map contains all global shader types.
 	TShaderMap<FGlobalShaderType>* GlobalShaderMap = GetGlobalShaderMap(Platform);
@@ -4135,7 +4135,7 @@ void CompileGlobalShaderMap(EShaderPlatform Platform, bool bRefreshShaderMap)
 	{
 		if (!GGlobalShaderMap[Platform])
 		{
-			GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>();
+			GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>(Platform);
 		}
 		return;
 	}
@@ -4163,7 +4163,7 @@ void CompileGlobalShaderMap(EShaderPlatform Platform, bool bRefreshShaderMap)
 		SlowTask.EnterProgressFrame(20);
 		VerifyShaderSourceFiles();
 
-		GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>();
+		GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>(Platform);
 
 		bool bLoadedFromCacheFile = false;
 
