@@ -1970,5 +1970,8 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 
 	GLog->Flush();
 
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+
 	return Result;
 }
