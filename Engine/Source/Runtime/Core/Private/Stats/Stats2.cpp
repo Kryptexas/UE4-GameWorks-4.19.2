@@ -1061,7 +1061,7 @@ FThreadStats::FThreadStats():
 {
 	Packet.SetThreadProperties();
 
-	check(FPlatformTLS::IsValidTlsSlot(TlsSlot));
+	check(TlsSlot && FPlatformTLS::IsValidTlsSlot(TlsSlot));
 	FPlatformTLS::SetTlsValue(TlsSlot, this);
 }
 
@@ -1311,18 +1311,18 @@ void FThreadStats::StartThread()
 	FThreadStats::FrameDataIsIncomplete(); // make this non-zero
 	check(IsInGameThread());
 	check(!IsThreadingReady());
-	FStatsThreadState::GetLocalState(); // start up the state
-	FStatsThread::Get();
-	FStatsThread::Get().Start();
-
 	// Preallocate a bunch of FThreadStats to avoid dynamic memory allocation.
 	// (Must do this before we expose ourselves to other threads via tls).
 	FThreadStatsPool::Get();
-
+	FStatsThreadState::GetLocalState(); // start up the state
 	if (!TlsSlot)
 	{
 		TlsSlot = FPlatformTLS::AllocTlsSlot();
+                check(TlsSlot);
 	}
+	FStatsThread::Get();
+	FStatsThread::Get().Start();
+
 	check(IsThreadingReady());
 	CheckEnable();
 	

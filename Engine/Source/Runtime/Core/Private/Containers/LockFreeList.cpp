@@ -48,14 +48,24 @@ void LockFreeLinksExhausted(uint32 TotalNum)
 	UE_LOG(LogTemp, Fatal, TEXT("Consumed %d lock free links; there are no more."), TotalNum);
 }
 
+static void ChangeMem(int32 Delta)
+{
+	static FThreadSafeCounter LockFreeListMem;
+	LockFreeListMem.Add(Delta);
+	if (GIsRunning)
+	{
+		SET_MEMORY_STAT(STAT_LockFreeListLinks, LockFreeListMem.GetValue());
+	}
+}
+
 void* LockFreeAllocLinks(SIZE_T AllocSize)
 {
-	INC_MEMORY_STAT_BY(STAT_LockFreeListLinks, AllocSize);
+	ChangeMem(AllocSize);
 	return FMemory::Malloc(AllocSize);
 }
 void LockFreeFreeLinks(SIZE_T AllocSize, void* Ptr)
 {
-	DEC_MEMORY_STAT_BY(STAT_LockFreeListLinks, AllocSize);
+	ChangeMem(-int32(AllocSize));
 	FMemory::Free(Ptr);
 }
 
