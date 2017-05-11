@@ -42,6 +42,15 @@ void UMovieSceneParameterSection::AddScalarParameterKey( FName InParameterName, 
 		ExistingCurve = &ScalarParameterNamesAndCurves[NewIndex].ParameterCurve;
 	}
 	ExistingCurve->AddKey(InTime, InValue);
+
+	if (GetStartTime() > InTime)
+	{
+		SetStartTime(InTime);
+	}
+	if (GetEndTime() < InTime)
+	{
+		SetEndTime(InTime);
+	}
 }
 
 void UMovieSceneParameterSection::AddVectorParameterKey( FName InParameterName, float InTime, FVector InValue )
@@ -64,6 +73,15 @@ void UMovieSceneParameterSection::AddVectorParameterKey( FName InParameterName, 
 	ExistingCurves->XCurve.AddKey( InTime, InValue.X );
 	ExistingCurves->YCurve.AddKey( InTime, InValue.Y );
 	ExistingCurves->ZCurve.AddKey( InTime, InValue.Z );
+
+	if (GetStartTime() > InTime)
+	{
+		SetStartTime(InTime);
+	}
+	if (GetEndTime() < InTime)
+	{
+		SetEndTime(InTime);
+	}
 }
 
 void UMovieSceneParameterSection::AddColorParameterKey( FName InParameterName, float InTime, FLinearColor InValue )
@@ -87,6 +105,15 @@ void UMovieSceneParameterSection::AddColorParameterKey( FName InParameterName, f
 	ExistingCurves->GreenCurve.AddKey( InTime, InValue.G );
 	ExistingCurves->BlueCurve.AddKey( InTime, InValue.B );
 	ExistingCurves->AlphaCurve.AddKey( InTime, InValue.A );
+
+	if (GetStartTime() > InTime)
+	{
+		SetStartTime(InTime);
+	}
+	if (GetEndTime() < InTime)
+	{
+		SetEndTime(InTime);
+	}
 }
 
 bool UMovieSceneParameterSection::RemoveScalarParameter( FName InParameterName )
