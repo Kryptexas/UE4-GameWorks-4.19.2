@@ -370,6 +370,11 @@ public class HTML5Platform : Platform
 					LineStr = LineStr.Replace("%UE4CMDLINE%", ArgumentString);
 				}
 
+				if (!targetingWasm && LineStr.Contains("const explicitlyLoadedAsmJs"))
+				{
+					LineStr = "const explicitlyLoadedAsmJs = true;";
+				}
+
 				outputContents.AppendLine(LineStr);
 			}
 		}
