@@ -12,7 +12,7 @@ namespace UnrealBuildTool
 	class HTML5ToolChain : VCToolChain
 	{
 		// ini configurations
-		static bool targetingWasm = true;
+		static bool targetingWasm = false;
 		static bool targetWebGL2 = true; // Currently if this is set to true, UE4 can still fall back to WebGL 1 at runtime if browser does not support WebGL 2.
 		static bool enableSIMD = false;
 		static bool enableMultithreading = false;
@@ -37,7 +37,7 @@ namespace UnrealBuildTool
 			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectDir, UnrealTargetPlatform.HTML5);
 
 			// these will be going away...
-			bool targetingAsmjs = false; // inverted check
+			bool targetingAsmjs = true; // inverted check
 			bool targetWebGL1 = false; // inverted check
 			if ( Ini.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetAsmjs", out targetingAsmjs) )
 			{
