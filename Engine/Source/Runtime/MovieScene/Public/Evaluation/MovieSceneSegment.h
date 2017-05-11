@@ -29,8 +29,23 @@ struct FSectionEvaluationData
 {
 	GENERATED_BODY()
 
-	FSectionEvaluationData() : ForcedTime(TNumericLimits<float>::Lowest()), Flags(ESectionEvaluationFlags::None) {}
-	explicit FSectionEvaluationData(int32 InImplIndex, float InForcedTime = TNumericLimits<float>::Lowest()) : ImplIndex(InImplIndex), ForcedTime(InForcedTime), Flags(ESectionEvaluationFlags::None) {}
+	/** Default constructor */
+	FSectionEvaluationData() : ImplIndex(-1), ForcedTime(TNumericLimits<float>::Lowest()), Flags(ESectionEvaluationFlags::None) {}
+
+	/** Construction from an implementaiton index (probably a section) */
+	explicit FSectionEvaluationData(int32 InImplIndex)
+		: ImplIndex(InImplIndex), ForcedTime(TNumericLimits<float>::Lowest()), Flags(ESectionEvaluationFlags::None)
+	{}
+
+	/** Construction from an implementaiton index and a time to force evaluation at */
+	FSectionEvaluationData(int32 InImplIndex, float InForcedTime)
+		: ImplIndex(InImplIndex), ForcedTime(InForcedTime), Flags(ESectionEvaluationFlags::None)
+	{}
+
+	/** Construction from an implementaiton index and custom eval flags */
+	FSectionEvaluationData(int32 InImplIndex, ESectionEvaluationFlags InFlags)
+		: ImplIndex(InImplIndex), ForcedTime(TNumericLimits<float>::Lowest()), Flags(InFlags)
+	{}
 
 	friend bool operator==(FSectionEvaluationData A, FSectionEvaluationData B)
 	{
