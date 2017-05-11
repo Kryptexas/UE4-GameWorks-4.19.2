@@ -91,7 +91,7 @@ struct FMovieSceneSegment
 		: Range(InRange)
 	{}
 
-	FMovieSceneSegment(const TRange<float>& InRange, TArrayView<FSectionEvaluationData> InApplicationImpls)
+	FMovieSceneSegment(const TRange<float>& InRange, TArrayView<const FSectionEvaluationData> InApplicationImpls)
 		: Range(InRange)
 	{
 		Impls.Reserve(InApplicationImpls.Num());
@@ -100,11 +100,6 @@ struct FMovieSceneSegment
 			Impls.Add(Impl);
 		}
 	}
-
-	FMovieSceneSegment(const TRange<float>& InRange, std::initializer_list<FSectionEvaluationData> InSectionEvaluationData)
-		: Range(InRange)
-		, Impls(InSectionEvaluationData)
-	{}
 
 	/** Custom serializer to accomodate the inline allocator on our array */
 	bool Serialize(FArchive& Ar)
