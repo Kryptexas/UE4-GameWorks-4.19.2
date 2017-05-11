@@ -209,7 +209,8 @@ void FReflectionEnvironmentSceneData::ResizeCubemapArrayGPU(uint32 InMaxCubemaps
 	int32 Count = 0;
 	for (int i = 0; i < CubemapArray.GetMaxCubemaps(); i++)
 	{
-		if (CubemapArraySlotsUsed[i] )
+		bool bUsed = i < CubemapArraySlotsUsed.Num() ? CubemapArraySlotsUsed[i] : false;
+		if (bUsed)
 		{
 			IndexRemapping.Add(Count);
 			Count++;
