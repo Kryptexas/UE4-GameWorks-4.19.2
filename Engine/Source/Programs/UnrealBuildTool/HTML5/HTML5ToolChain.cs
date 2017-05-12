@@ -151,15 +151,22 @@ namespace UnrealBuildTool
 			}
 
 			// --------------------------------------------------------------------------------
-			// normally, this option is for linking -- but it using here
-			// to force recompile when flipping between asmjs and wasm
-			if (targetingWasm)
+			// normally, these option are for linking -- but it using here to force recompile when
+			if (targetingWasm) // flipping between asmjs and wasm
 			{
 				Result += " -s BINARYEN=1";
 			}
 			else
 			{
 				Result += " -s BINARYEN=0";
+			}
+			if (targetWebGL2) // flipping between webgl1 and webgl2
+			{
+				Result += " -s USE_WEBGL2=1";
+			}
+			else
+			{
+				Result += " -s USE_WEBGL2=0";
 			}
 			// --------------------------------------------------------------------------------
 

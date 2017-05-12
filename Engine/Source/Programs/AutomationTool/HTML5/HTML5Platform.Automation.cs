@@ -16,6 +16,7 @@ public class HTML5Platform : Platform
 	// ini configurations
 	static bool Compressed = false;
 	static bool targetingWasm = true;
+	static bool targetWebGL2 = true;
 	static bool enableIndexedDB = false; // experimental for now...
 
 	public HTML5Platform()
@@ -40,9 +41,14 @@ public class HTML5Platform : Platform
 		// ini configurations
 		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.HTML5);
 		bool targetingAsmjs = false; // inverted checked - this will be going away soon...
+		bool targetWebGL1 = false; // inverted checked - this will be going away soon...
 		if ( ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetAsmjs", out targetingAsmjs) )
 		{
 			targetingWasm = !targetingAsmjs;
+		}
+		if ( ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "TargetWebGL1", out targetWebGL1) )
+		{
+			targetWebGL2  = !targetWebGL1;
 		}
 
 		// Debug and Development builds are not uncompressed to:
@@ -57,6 +63,7 @@ public class HTML5Platform : Platform
 			ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "EnableIndexedDB", out enableIndexedDB);
 		}
 		Log("HTML5Platform.Automation: TargetWasm = "       + targetingWasm   );
+		Log("HTML5Platform.Automation: TargetWebGL2 = "     + targetWebGL2    );
 		Log("HTML5Platform.Automation: Compressed = "       + Compressed      );
 		Log("HTML5Platform.Automation: EnableIndexedDB = "  + enableIndexedDB );
 
@@ -373,6 +380,11 @@ public class HTML5Platform : Platform
 				if (!targetingWasm && LineStr.Contains("const explicitlyLoadedAsmJs"))
 				{
 					LineStr = "const explicitlyLoadedAsmJs = true;";
+				}
+
+				if (!targetWebGL2 && LineStr.Contains("const explicitlyUseWebGL1"))
+				{
+					LineStr = "const explicitlyUseWebGL1 = true;";
 				}
 
 				outputContents.AppendLine(LineStr);
