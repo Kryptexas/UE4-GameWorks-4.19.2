@@ -2107,14 +2107,14 @@ struct FTestRigFIFO
 {
 	FLockFreePointerFIFOBase<FTestStruct, PLATFORM_CACHE_LINE_SIZE> Test1;
 	FLockFreePointerFIFOBase<FTestStruct, 1> Test2;
-	FLockFreePointerFIFOBase<FTestStruct, 1, 1 << 16> Test3;
+	FLockFreePointerFIFOBase<FTestStruct, 1, 1 << 4> Test3;
 };
 
 struct FTestRigLIFO
 {
 	FLockFreePointerListLIFOBase<FTestStruct, PLATFORM_CACHE_LINE_SIZE> Test1;
 	FLockFreePointerListLIFOBase<FTestStruct, 1> Test2;
-	FLockFreePointerListLIFOBase<FTestStruct, 1, 1 << 16> Test3;
+	FLockFreePointerListLIFOBase<FTestStruct, 1, 1 << 4> Test3;
 };
 
 static void TestLockFree(int32 OuterIters = 3)

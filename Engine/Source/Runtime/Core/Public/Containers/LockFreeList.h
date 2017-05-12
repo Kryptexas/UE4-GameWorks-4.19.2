@@ -40,8 +40,8 @@ CORE_API void LockFreeLinksExhausted(uint32 TotalNum);
 CORE_API void* LockFreeAllocLinks(SIZE_T AllocSize);
 CORE_API void LockFreeFreeLinks(SIZE_T AllocSize, void* Ptr);
 
-#define MAX_LOCK_FREE_LINKS_AS_BITS (22)
-#define MAX_LOCK_FREE_LINKS (1 << 22)
+#define MAX_LOCK_FREE_LINKS_AS_BITS (26)
+#define MAX_LOCK_FREE_LINKS (1 << 26)
 
 template<int TPaddingForCacheContention>
 struct FPaddingForCacheContention
