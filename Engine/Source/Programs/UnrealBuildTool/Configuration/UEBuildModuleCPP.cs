@@ -376,7 +376,7 @@ namespace UnrealBuildTool
 
 			// Check to see if this is an Engine module (including program or plugin modules).  That is, the module is located under the "Engine" folder
 			bool IsPluginModule = (Target.ProjectFile != null && ModuleDirectory.IsUnderDirectory(DirectoryReference.Combine(Target.ProjectFile.Directory, "Plugins")));
-			bool IsGameModule = !IsPluginModule && !ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
+			bool IsGameModule = !IsPluginModule && !UnrealBuildTool.IsUnderAnEngineDirectory(ModuleDirectory);
 
 			// Should we force a precompiled header to be generated for this module?  Usually, we only bother with a
 			// precompiled header if there are at least several source files in the module (after combining them for unity
@@ -1026,7 +1026,8 @@ namespace UnrealBuildTool
 		/// <returns>True if it is an engine module, false otherwise</returns>
 		public bool IsEngineModule()
 		{
-			return ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineSourceProgramsDirectory) && Name != "UE4Game";
+			return UnrealBuildTool.IsUnderAnEngineDirectory(ModuleDirectory) && !ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineSourceProgramsDirectory) && Name != "UE4Game" &&
+				!ModuleDirectory.IsUnderDirectory(DirectoryReference.Combine(UnrealBuildTool.EnterpriseSourceDirectory, "Programs"));
 		}
 
 		/// <summary>

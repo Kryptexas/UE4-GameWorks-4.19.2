@@ -690,6 +690,17 @@ namespace UnrealBuildTool
 			else
 			{
 				RulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
+
+				if (RulesAssembly.GetTargetFileName(Desc.TargetName) == null)
+				{
+					// Target isn't part of the engine assembly, try the enterprise assembly
+					RulesAssembly EnterpriseRulesAssembly = RulesCompiler.CreateEnterpriseRulesAssembly();
+
+					if (EnterpriseRulesAssembly != null)
+					{
+						RulesAssembly = EnterpriseRulesAssembly;
+					}
+				}
 			}
 			if (Desc.ForeignPlugins != null)
 			{
@@ -1366,7 +1377,14 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				ProjectDirectory = UnrealBuildTool.EngineDirectory;
+				if (TargetCsFilename.IsUnderDirectory(UnrealBuildTool.EnterpriseDirectory))
+				{
+					ProjectDirectory = UnrealBuildTool.EnterpriseDirectory;
+				}
+				else
+				{
+					ProjectDirectory = UnrealBuildTool.EngineDirectory;
+				}
 			}
 
 			// Build the project intermediate directory
@@ -4457,7 +4475,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				if (UnrealBuildTool.IsUnderAnEngineDirectory(ModuleFileName.Directory))
 				{
 					if (RulesObject.Type == ModuleRules.ModuleType.External)
 					{
@@ -4472,7 +4490,14 @@ namespace UnrealBuildTool
 
 						if (!ModuleType.HasValue)
 						{
-							ModuleType = ExternalExecution.GetEngineModuleTypeBasedOnLocation(ModuleFileName);
+							if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+							{
+								ModuleType = ExternalExecution.GetEngineModuleTypeBasedOnLocation(UnrealBuildTool.EngineSourceDirectory, ModuleFileName);
+							}
+							else if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EnterpriseSourceDirectory))
+							{
+								ModuleType = ExternalExecution.GetEngineModuleTypeBasedOnLocation(UnrealBuildTool.EnterpriseSourceDirectory, ModuleFileName);
+							}
 						}
 					}
 				}
@@ -4577,7 +4602,7 @@ namespace UnrealBuildTool
 					}
 
 					// So all we care about are the game module and/or plugins.
-					if (bDiscoverFiles && (!UnrealBuildTool.IsEngineInstalled() || !ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory)))
+					if (bDiscoverFiles && (!UnrealBuildTool.IsEngineInstalled() || !UnrealBuildTool.IsUnderAnEngineDirectory(ModuleFileName.Directory)))
 					{
 						List<FileReference> SourceFilePaths = new List<FileReference>();
 
@@ -4664,7 +4689,7 @@ namespace UnrealBuildTool
 		public void AddDefaultIncludePathsToModuleRules(FileReference ModuleFile, bool IsGameModule, PluginInfo Plugin, ModuleRules RulesObject)
 		{
 			// Get the base source directory for this module. This may be the project source directory, engine source directory, or plugin source directory.
-			if (!ModuleFile.IsUnderDirectory(UnrealBuildTool.EngineSourceDirectory))
+			if (!ModuleFile.IsUnderDirectory(UnrealBuildTool.EngineSourceDirectory) && !ModuleFile.IsUnderDirectory(UnrealBuildTool.EnterpriseSourceDirectory))
 			{
 				// Add the module source directory 
 				DirectoryReference BaseSourceDirectory;

@@ -389,29 +389,29 @@ namespace UnrealBuildTool
             return Type.GetValueOrDefault();
         }
 
-		public static UHTModuleType? GetEngineModuleTypeBasedOnLocation(FileReference ModuleFileName)
+		public static UHTModuleType? GetEngineModuleTypeBasedOnLocation(DirectoryReference SourceDirectory, FileReference ModuleFileName)
 		{
-			if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineSourceRuntimeDirectory))
+			if (ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(SourceDirectory, "Runtime")))
 			{
 				return UHTModuleType.EngineRuntime;
 			}
 
-			if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineSourceDeveloperDirectory))
+			if (ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(SourceDirectory, "Developer")))
 			{
 				return UHTModuleType.EngineDeveloper;
 			}
 
-			if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineSourceEditorDirectory))
+			if (ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(SourceDirectory, "Editor")))
 			{
 				return UHTModuleType.EngineEditor;
 			}
-	
-			if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineSourceProgramsDirectory))
+
+			if (ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(SourceDirectory, "Programs")))
 			{
 				return UHTModuleType.Program;
 			}
 
-			if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineSourceThirdPartyDirectory))
+			if (ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(SourceDirectory, "ThirdParty")))
 			{
 				return UHTModuleType.EngineThirdParty;
 			}
@@ -727,7 +727,7 @@ namespace UnrealBuildTool
 			foreach (UHTModuleInfo Module in UObjectModules)
 			{
 				// If we're using a precompiled engine, skip skip checking timestamps for modules that are under the engine directory
-				if (bUsePrecompiled && Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				if (bUsePrecompiled && UnrealBuildTool.IsUnderAnEngineDirectory(Module.ModuleDirectory))
 				{
 					continue;
 				}
@@ -869,7 +869,7 @@ namespace UnrealBuildTool
 					if (GeneratedCodeDirectoryInfo.Exists)
 					{
 						// Don't write anything to the engine directory if we're running an installed build
-						if (bUsePrecompiled && Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+						if (bUsePrecompiled && UnrealBuildTool.IsUnderAnEngineDirectory(Module.ModuleDirectory))
 						{
 							continue;
 						}

@@ -83,6 +83,13 @@ public:
 	static FString EnginePluginsDir();
 
 	/**
+	* Returns the enterprise plugins directory
+	*
+	* @return Plugins directory.
+	*/
+	static FString EnterprisePluginsDir();
+
+	/**
 	 * Returns the root directory of the engine directory tree
 	 *
 	 * @return Root directory.

@@ -266,6 +266,12 @@ namespace UnrealBuildTool
 		public List<FileItem> CommonResourceFiles = new List<FileItem>();
 
 		/// <summary>
+		/// Provides a Module Definition File (.def) to the linker to describe various attributes of a DLL.
+		/// Necessary when exporting functions by ordinal values instead of by name.
+		/// </summary>
+		public string ModuleDefinitionFile;
+
+		/// <summary>
 		/// Default constructor.
 		/// </summary>
 		public LinkEnvironment(CppPlatform Platform, CppConfiguration Configuration, string Architecture)
@@ -322,6 +328,7 @@ namespace UnrealBuildTool
 			InputLibraries.AddRange(Other.InputLibraries);
 			DefaultResourceFiles.AddRange(Other.DefaultResourceFiles);
 			CommonResourceFiles.AddRange(Other.CommonResourceFiles);
-		}
+			ModuleDefinitionFile = Other.ModuleDefinitionFile;
+        }
 	}
 }

@@ -67,6 +67,7 @@ namespace UnrealBuildTool
 			if (bIncludeEngine)
 			{
 				Folders.Add(UnrealBuildTool.EngineSourceDirectory);
+				Folders.Add(UnrealBuildTool.EnterpriseSourceDirectory);
 			}
 
 			// @todo plugin: Disallow modules from including plugin modules as dependency modules? (except when the module is part of that plugin)
@@ -76,6 +77,7 @@ namespace UnrealBuildTool
 			if (bIncludeEngine)
 			{
 				RootFolders.Add(UnrealBuildTool.EngineDirectory);
+				RootFolders.Add(UnrealBuildTool.EnterpriseDirectory);
 			}
 			if (GameFolders != null)
 			{
@@ -227,6 +229,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		private static RulesAssembly EngineRulesAssembly;
 
+		/// <summary>
+		/// The cached rules assembly for enterprise modules and targets.
+		/// </summary>
+		private static RulesAssembly EnterpriseRulesAssembly;
+
 		/// Map of assembly names we've already compiled and loaded to their Assembly and list of game folders.  This is used to prevent
 		/// trying to recompile the same assembly when ping-ponging between different types of targets
 		private static Dictionary<FileReference, RulesAssembly> LoadedAssemblyMap = new Dictionary<FileReference, RulesAssembly>();
@@ -239,20 +246,47 @@ namespace UnrealBuildTool
 		{
 			if (EngineRulesAssembly == null)
 			{
-				// Find all the rules files
-				List<FileReference> ModuleFiles = new List<FileReference>(FindAllRulesFiles(UnrealBuildTool.EngineSourceDirectory, RulesFileType.Module));
-				List<FileReference> TargetFiles = new List<FileReference>(FindAllRulesFiles(UnrealBuildTool.EngineSourceDirectory, RulesFileType.Target));
-
-				// Add all the plugin modules too
-				IReadOnlyList<PluginInfo> EnginePlugins = Plugins.ReadEnginePlugins(UnrealBuildTool.EngineDirectory);
-				Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
-				FindModuleRulesForPlugins(EnginePlugins, ModuleFiles, ModuleFileToPluginInfo);
-
-				// Create a path to the assembly that we'll either load or compile
-				FileReference AssemblyFileName = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", "BuildRules", "UE4Rules.dll");
-				EngineRulesAssembly = new RulesAssembly(EnginePlugins, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, null);
+				EngineRulesAssembly = CreateRulesAssembly(UnrealBuildTool.EngineDirectory, ProjectFileGenerator.EngineProjectFileNameBase, null);
 			}
 			return EngineRulesAssembly;
+		}
+
+		/// <summary>
+		/// Creates the enterprise rules assembly
+		/// </summary>
+		/// <returns>New rules assembly. Returns null if the enterprise directory is unavailable.</returns>
+		public static RulesAssembly CreateEnterpriseRulesAssembly()
+		{
+			if (EnterpriseRulesAssembly == null && DirectoryReference.Exists(UnrealBuildTool.EnterpriseDirectory))
+			{
+				EnterpriseRulesAssembly = CreateRulesAssembly(UnrealBuildTool.EnterpriseDirectory, ProjectFileGenerator.EnterpriseProjectFileNameBase, CreateEngineRulesAssembly());
+			}
+			return EnterpriseRulesAssembly;
+		}
+
+		/// <summary>
+		/// Creates a rules assembly
+		/// </summary>
+		/// <param name="RootDirectory">The root directory to create rules for</param>
+		/// <param name="AssemblyPrefix">A prefix for the assembly file name</param>
+		/// <param name="Parent">The parent rules assembly</param>
+		/// <returns>New rules assembly</returns>
+		private static RulesAssembly CreateRulesAssembly(DirectoryReference RootDirectory, string AssemblyPrefix, RulesAssembly Parent)
+		{
+			DirectoryReference SourceDirectory = DirectoryReference.Combine(RootDirectory, "Source");
+
+			// Find all the rules files
+			List<FileReference> ModuleFiles = new List<FileReference>(FindAllRulesFiles(SourceDirectory, RulesFileType.Module));
+			List<FileReference> TargetFiles = new List<FileReference>(FindAllRulesFiles(SourceDirectory, RulesFileType.Target));
+
+			// Add all the plugin modules too
+			IReadOnlyList<PluginInfo> PluginInfos = Plugins.ReadEnginePlugins(RootDirectory);
+			Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
+			FindModuleRulesForPlugins(PluginInfos, ModuleFiles, ModuleFileToPluginInfo);
+
+			// Create a path to the assembly that we'll either load or compile
+			FileReference AssemblyFileName = FileReference.Combine(RootDirectory, "Intermediate", "Build", "BuildRules", AssemblyPrefix + "Rules.dll");
+			return new RulesAssembly(PluginInfos, ModuleFiles, TargetFiles, ModuleFileToPluginInfo, AssemblyFileName, Parent);
 		}
 
 		/// <summary>
@@ -267,7 +301,17 @@ namespace UnrealBuildTool
 			if (!LoadedAssemblyMap.TryGetValue(ProjectFileName, out ProjectRulesAssembly))
 			{
 				// Create the engine rules assembly
-				RulesAssembly Parent = CreateEngineRulesAssembly();
+				RulesAssembly Parent;
+
+				// When the enterprise folder is available, use it as our parent assembly. It's also a child of the engine assembly.
+				if (DirectoryReference.Exists(UnrealBuildTool.EnterpriseDirectory))
+				{
+					Parent = CreateEnterpriseRulesAssembly();
+				}
+				else
+				{
+					Parent = CreateEngineRulesAssembly();
+				}
 
 				// Find all the rules under the project source directory
 				DirectoryReference ProjectDirectory = ProjectFileName.Directory;
@@ -364,6 +408,11 @@ namespace UnrealBuildTool
 			{
 				return FileName.FullName;
 			}
+			else if (EnterpriseRulesAssembly != null && EnterpriseRulesAssembly.TryGetFileNameFromType(ExistingType, out FileName))
+			{
+				return FileName.FullName;
+			}
+
 			foreach (RulesAssembly RulesAssembly in LoadedAssemblyMap.Values)
 			{
 				if (RulesAssembly.TryGetFileNameFromType(ExistingType, out FileName))

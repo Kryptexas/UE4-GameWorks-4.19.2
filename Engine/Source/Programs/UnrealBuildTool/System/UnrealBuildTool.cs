@@ -77,6 +77,16 @@ namespace UnrealBuildTool
 		public static readonly DirectoryReference EngineSourceThirdPartyDirectory = DirectoryReference.Combine(EngineSourceDirectory, "ThirdParty");
 
 		/// <summary>
+		/// The full name of the Enterprise directory
+		/// </summary>
+		public static readonly DirectoryReference EnterpriseDirectory = DirectoryReference.Combine(RootDirectory, "Enterprise");
+
+		/// <summary>
+		/// The full name of the Enterprise/Source directory
+		/// </summary>
+		public static readonly DirectoryReference EnterpriseSourceDirectory = DirectoryReference.Combine(EnterpriseDirectory, "Source");
+
+		/// <summary>
 		/// The Remote Ini directory.  This should always be valid when compiling using a remote server.
 		/// </summary>
 		static string RemoteIniPath = null;
@@ -238,6 +248,18 @@ namespace UnrealBuildTool
 		static public bool IsValidPlatform(UnrealTargetPlatform InPlatform)
 		{
 			return InstalledPlatformInfo.Current.IsValidPlatform(InPlatform, EProjectType.Code);
+		}
+
+		/// <summary>
+		/// Determines whether a directory is part of the engine
+		/// </summary>
+		/// <param name="InDirectory"></param>
+		/// <returns>true if the directory is under of the engine directories, false if not</returns>
+		static public bool IsUnderAnEngineDirectory(DirectoryReference InDirectory)
+		{
+			// Enterprise modules are considered as engine modules
+			return InDirectory.IsUnderDirectory( UnrealBuildTool.EngineDirectory ) || InDirectory.IsUnderDirectory( UnrealBuildTool.EnterpriseSourceDirectory ) ||
+				InDirectory.IsUnderDirectory( DirectoryReference.Combine( UnrealBuildTool.EnterpriseDirectory, "Plugins" ) );
 		}
 
 		public static void RegisterAllUBTClasses(SDKOutputLevel OutputLevel, bool bValidatingPlatforms)
@@ -465,7 +487,7 @@ namespace UnrealBuildTool
 			if (!bIsEngineInstalled.HasValue)
 			{
 				bIsEngineInstalled = FileReference.Exists(FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt"));
-		}
+			}
 
 			DateTime StartTime = DateTime.UtcNow;
 
@@ -478,10 +500,10 @@ namespace UnrealBuildTool
 				bLogSourcesToConsole: false,
 				bColorConsoleOutput: true,
 				TraceListeners: new[] 
-                {
-                    new ConsoleTraceListener(),
-                    !string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
-                });
+				{
+					new ConsoleTraceListener(),
+					!string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
+				});
 
 			// Parse rocket-specific arguments.
 			FileReference ProjectFile = null;
@@ -492,7 +514,7 @@ namespace UnrealBuildTool
 				{
 					// This is to allow relative paths for the project file
 					Log.TraceVerbose("UBT Running for Rocket: " + ProjectFile);
-                    break;
+					break;
 				}
 			}
 

@@ -1439,13 +1439,18 @@ namespace UnrealBuildTool
 			}
 
 
-			// Add delay loaded DLLs.
 			if (!bIsBuildingLibrary)
 			{
 				// Delay-load these DLLs.
 				foreach (string DelayLoadDLL in LinkEnvironment.DelayLoadDLLs.Distinct())
 				{
 					Arguments.Add(String.Format("/DELAYLOAD:\"{0}\"", DelayLoadDLL));
+				}
+
+				// Pass the module definition file to the linker if we have one
+				if (LinkEnvironment.ModuleDefinitionFile != null && LinkEnvironment.ModuleDefinitionFile.Length > 0)
+				{
+					Arguments.Add(String.Format("/DEF:\"{0}\"", LinkEnvironment.ModuleDefinitionFile));
 				}
 			}
 

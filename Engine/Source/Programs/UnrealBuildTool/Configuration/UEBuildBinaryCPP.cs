@@ -230,7 +230,7 @@ namespace UnrealBuildTool
 			List<UEBuildModule> GameModules = new List<UEBuildModule>();
 			foreach (UEBuildModule Module in Modules)
 			{
-				if (!Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				if (!UnrealBuildTool.IsUnderAnEngineDirectory(Module.ModuleDirectory))
 				{
 					GameModules.Add(Module);
 				}
