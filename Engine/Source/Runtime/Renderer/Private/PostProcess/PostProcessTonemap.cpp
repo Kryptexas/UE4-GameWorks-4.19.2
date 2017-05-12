@@ -907,6 +907,8 @@ public:
 		OutputDevice.Bind(ParameterMap, TEXT("OutputDevice"));
 		OutputGamut.Bind(ParameterMap, TEXT("OutputGamut"));
 		EncodeHDROutput.Bind(ParameterMap, TEXT("EncodeHDROutput"));
+
+		EyeAdaptation.Bind(ParameterMap, TEXT("EyeAdaptation"));
 	}
 	
 	template <typename TRHICmdList, typename TRHIShader>
@@ -1071,6 +1073,29 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
 			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
+		
+		{
+			// Fix for eye adaptation vertex texture read failing in Metal macOS 10.11 - If Mac should be Metal but also check lauguage version (Clone of Vertex Shader version implementation).
+			EShaderPlatform ShaderPlatform = Context.GetShaderPlatform();
+			if(IsMetalPlatform(ShaderPlatform) && RHIGetShaderLanguageVersion(ShaderPlatform) < 2)
+			{
+				if (Context.View.HasValidEyeAdaptation())
+				{
+					IPooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation(Context.RHICmdList);
+					FTextureRHIParamRef EyeAdaptationRTRef = EyeAdaptationRT->GetRenderTargetItem().TargetableTexture;
+					if (EyeAdaptationRTRef)
+					{
+						Context.RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &EyeAdaptationRTRef, 1);
+					}
+					SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
+				}
+				else
+				{
+					// some views don't have a state, thumbnail rendering?
+					SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, GWhiteTexture->TextureRHI);
+				}
+			}
+		}
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FPostProcessTonemapShaderParameters& P)
@@ -1081,6 +1106,7 @@ public:
 		Ar << P.ColorMatrixR_ColorCurveCd1 << P.ColorMatrixG_ColorCurveCd3Cm3 << P.ColorMatrixB_ColorCurveCm2 << P.ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << P.ColorCurve_Ch1_Ch2 << P.ColorShadow_Luma << P.ColorShadow_Tint1 << P.ColorShadow_Tint2;
 		Ar << P.OverlayColor;
 		Ar << P.OutputDevice << P.OutputGamut << P.EncodeHDROutput;
+		Ar << P.EyeAdaptation;
 
 		return Ar;
 	}
@@ -1111,6 +1137,9 @@ public:
 	FShaderParameter OutputDevice;
 	FShaderParameter OutputGamut;
 	FShaderParameter EncodeHDROutput;
+	
+	//Fix for eye adaptation vertex texture read failing in Metal macOS 10.11
+	FShaderResourceParameter EyeAdaptation;
 };
 
 /**
