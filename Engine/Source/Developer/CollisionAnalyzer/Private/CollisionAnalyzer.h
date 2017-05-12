@@ -12,6 +12,11 @@ class SWidget;
 /** Stores information about one collision query */
 struct FCAQuery
 {
+	FCAQuery():
+		Params(NAME_None, FCollisionQueryParams::GetUnknownStatId())
+	{
+	}
+
 	FVector						Start;
 	FVector						End;
 	FQuat						Rot;

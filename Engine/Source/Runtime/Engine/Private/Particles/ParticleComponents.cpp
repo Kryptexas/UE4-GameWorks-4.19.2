@@ -3468,18 +3468,15 @@ void UParticleSystemComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeReso
 bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* SourceActor, const FVector& End, const FVector& Start, const FVector& HalfExtent, const FCollisionObjectQueryParams& ObjectParams)
 {
 	check(GetWorld());
-	static FName NAME_ParticleCollision = FName(TEXT("ParticleCollision"));
-
 	if ( HalfExtent.IsZero() )
 	{
-		FCollisionQueryParams QueryParams(NAME_ParticleCollision, true, SourceActor);
+		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ParticleCollision), true, SourceActor);
 		QueryParams.bReturnPhysicalMaterial = true;
 		return GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ObjectParams, QueryParams);
 	}
 	else
 	{
-		FCollisionQueryParams BoxParams;
-		BoxParams.TraceTag = NAME_ParticleCollision;
+		FCollisionQueryParams BoxParams(SCENE_QUERY_STAT(ParticleCollision));
 		BoxParams.AddIgnoredActor(SourceActor);
 		BoxParams.bReturnPhysicalMaterial = true;
 		return GetWorld()->SweepSingleByObjectType(Hit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(HalfExtent), BoxParams);

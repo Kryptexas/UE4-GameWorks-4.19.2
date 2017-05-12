@@ -265,8 +265,7 @@ void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UPathFollowingComponent
 		return;
 	}
 
-	static FName SmartLinkBroadcastTrace(TEXT("SmartLinkBroadcastTrace"));
-	FCollisionQueryParams Params(SmartLinkBroadcastTrace, false, MyOwner);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(SmartLinkBroadcastTrace), false, MyOwner);
 	TArray<FOverlapResult> OverlapsL, OverlapsR;
 
 	const FVector LocationL = GetStartPoint();

@@ -837,7 +837,7 @@ void UDestructibleComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRe
 	if(TheDestructibleMesh != NULL)
 	{
 		// Resize the fracture effects array to the appropriate size
-		FractureEffects.AddZeroed(TheDestructibleMesh->ApexDestructibleAsset->getDepthCount());
+		FractureEffects.SetNumZeroed(TheDestructibleMesh->ApexDestructibleAsset->getDepthCount());
 	}
 #else
 	SetDestructibleMesh(TheDestructibleMesh);

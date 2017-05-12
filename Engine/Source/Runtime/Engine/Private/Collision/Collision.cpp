@@ -146,11 +146,12 @@ UPrimitiveComponent* FOverlapResult::GetComponent() const
 //////////////////////////////////////////////////////////////////////////
 // FCollisionQueryParams
 
-FCollisionQueryParams::FCollisionQueryParams(FName InTraceTag, bool bInTraceComplex, const AActor* InIgnoreActor)
+FCollisionQueryParams::FCollisionQueryParams(FName InTraceTag, const TStatId& InStatId, bool bInTraceComplex, const AActor* InIgnoreActor)
 {
 	bTraceComplex = bInTraceComplex;
 	MobilityType = EQueryMobilityType::Any;
 	TraceTag = InTraceTag;
+	StatId = InStatId;
 	bTraceAsyncScene = false;
 	bFindInitialOverlaps = true;
 	bReturnFaceIndex = false;

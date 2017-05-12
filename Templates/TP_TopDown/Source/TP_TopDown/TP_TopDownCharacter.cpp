@@ -67,7 +67,7 @@ void ATP_TopDownCharacter::Tick(float DeltaSeconds)
 			if (UWorld* World = GetWorld())
 			{
 				FHitResult HitResult;
-				FCollisionQueryParams Params;
+				FCollisionQueryParams Params(NAME_None, FCollisionQueryParams::GetUnknownStatId());
 				FVector StartLocation = TopDownCameraComponent->GetComponentLocation();
 				FVector EndLocation = TopDownCameraComponent->GetComponentRotation().Vector() * 2000.0f;
 				Params.AddIgnoredActor(this);

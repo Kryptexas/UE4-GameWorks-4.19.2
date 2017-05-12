@@ -25,6 +25,8 @@
 #include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "SSkeletonWidget.h"
+#include "Engine/DataAsset.h"
+#include "PreviewCollectionInterface.h"
 
 const FString FEditableSkeleton::SocketCopyPasteHeader = TEXT("SocketCopyPasteBuffer");
 
@@ -1050,10 +1052,13 @@ void FEditableSkeleton::LoadAdditionalPreviewSkeletalMeshes()
 	Skeleton->LoadAdditionalPreviewSkeletalMeshes();
 }
 
-void FEditableSkeleton::SetAdditionalPreviewSkeletalMeshes(class UPreviewMeshCollection* InSkeletalMeshes)
+void FEditableSkeleton::SetAdditionalPreviewSkeletalMeshes(class UDataAsset* InPreviewCollectionAsset)
 {
-	const FScopedTransaction Transaction(LOCTEXT("ChangeSkeletonAdditionalMeshes", "Change Skeleton Additional Meshes"));
-	Skeleton->SetAdditionalPreviewSkeletalMeshes(InSkeletalMeshes);
+	if (!InPreviewCollectionAsset || InPreviewCollectionAsset->GetClass()->ImplementsInterface(UPreviewCollectionInterface::StaticClass()))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ChangeSkeletonAdditionalMeshes", "Change Skeleton Additional Meshes"));
+		Skeleton->SetAdditionalPreviewSkeletalMeshes(InPreviewCollectionAsset);
+	}
 }
 
 void FEditableSkeleton::RenameRetargetSource(const FName& InOldName, const FName& InNewName)

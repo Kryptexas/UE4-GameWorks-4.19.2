@@ -1280,8 +1280,7 @@ void FLevelEditorActionCallbacks::GoHere_Clicked( const FVector* Point )
 
 				FHitResult HitResult;
 
-				static FName FocusOnPoint = FName(TEXT("FocusOnPoint"));
-				FCollisionQueryParams LineParams(FocusOnPoint, true);
+				FCollisionQueryParams LineParams(SCENE_QUERY_STAT(FocusOnPoint), true);
 
 				if(GCurrentLevelEditingViewportClient->GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HALF_WORLD_MAX, FCollisionObjectQueryParams(ECC_WorldStatic), LineParams))
 				{

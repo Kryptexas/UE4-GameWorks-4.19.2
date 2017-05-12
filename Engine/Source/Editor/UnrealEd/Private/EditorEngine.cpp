@@ -6233,8 +6233,7 @@ void UEditorEngine::UpdatePreviewMesh()
 
 		// Perform a line check from the camera eye to the surface to place the preview mesh. 
 		FHitResult Hit(ForceInit);
-		static FName UpdatePreviewMeshTrace = FName(TEXT("UpdatePreviewMeshTrace"));
-		FCollisionQueryParams LineParams(UpdatePreviewMeshTrace, true);
+		FCollisionQueryParams LineParams(SCENE_QUERY_STAT(UpdatePreviewMeshTrace), true);
 		LineParams.bTraceComplex = false;
 		if ( GWorld->LineTraceSingleByObjectType(Hit, LineCheckStart, LineCheckEnd, FCollisionObjectQueryParams(ECC_WorldStatic), LineParams) ) 
 		{

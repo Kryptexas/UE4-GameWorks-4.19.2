@@ -615,7 +615,7 @@ public:
 		FHitResult Hit;
 		UWorld* World = SplinesComponent->GetWorld();
 		check(World);
-		if (World->LineTraceSingleByObjectType(Hit, Start, End, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_None,true)))
+		if (World->LineTraceSingleByObjectType(Hit, Start, End, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(),true)))
 		{
 			ControlPoint->Location = LocalToWorld.InverseTransformPosition(Hit.Location);
 			ControlPoint->UpdateSplinePoints();

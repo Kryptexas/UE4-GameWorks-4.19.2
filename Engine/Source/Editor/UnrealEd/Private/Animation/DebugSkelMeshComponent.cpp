@@ -302,6 +302,8 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 				PreviewInstance->SetAnimationAsset(nullptr);
 			}
 		}
+
+		ClothTeleportMode = EClothingTeleportMode::TeleportAndReset;
 	}
 }
 

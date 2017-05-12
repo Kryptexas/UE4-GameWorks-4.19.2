@@ -61,7 +61,7 @@ public:
 	/**
 	 * Adds a component to the preview scene.  This attaches the component to the scene, and takes ownership of it.
 	 */
-	virtual void AddComponent(class UActorComponent* Component,const FTransform& LocalToWorld);
+	virtual void AddComponent(class UActorComponent* Component,const FTransform& LocalToWorld, bool bAttachToRoot=false);
 
 	/**
 	 * Removes a component from the preview scene.  This detaches the component from the scene, and returns ownership of it.

@@ -10,6 +10,7 @@
 class FClothPainter;
 class UClothingAsset;
 class UClothPainterSettings;
+class FClothPaintToolBase;
 
 class FClothPaintSettingsCustomization : public IDetailCustomization
 {
@@ -27,6 +28,12 @@ public:
 
 private:
 
+	/** Handlers for SCombobox, generation of row widgets, combo text and handling selection change */
+	TSharedRef<SWidget> OnGenerateToolComboRow(TSharedPtr<FClothPaintToolBase> InItem);
+	void OnHandleToolSelection(TSharedPtr<FClothPaintToolBase> InItem, ESelectInfo::Type InSelectInfo, IDetailLayoutBuilder* DetailBuider);
+	FText GetToolComboText() const;
+
+	/** The painter containing the paint settings we are customizing */
 	FClothPainter* Painter;
 };
 

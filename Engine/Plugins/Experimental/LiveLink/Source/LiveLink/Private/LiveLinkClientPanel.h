@@ -48,8 +48,10 @@ private:
 
 	void HandleRemoveAllSources();
 
-private:
+	// Registered with the client and called when clients sources changes
+	void OnSourcesChangedHandler();
 
+private:
 	const TArray<FLiveLinkSourceUIEntryPtr>& GetCurrentSources() const;
 
 	TSharedRef<ITableRow> MakeSourceListViewWidget(FLiveLinkSourceUIEntryPtr Entry, const TSharedRef<STableViewBase>& OwnerTable) const;
@@ -65,4 +67,10 @@ private:
 	FLiveLinkClient* Client;
 
 	TMap<ULiveLinkSourceFactory*, TSharedPtr<SWidget>> SourcePanels;
+
+	// Reference to connection settings struct details panel
+	TSharedPtr<class IStructureDetailsView> StructureDetailsView;
+
+	// Handle to delegate registered with client so we can update when a source disappears
+	FDelegateHandle OnSourcesChangedHandle;
 };

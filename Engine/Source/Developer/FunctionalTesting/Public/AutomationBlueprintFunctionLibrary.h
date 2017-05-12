@@ -28,6 +28,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Automation", meta = ( Latent, HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", LatentInfo = "LatentInfo", NameOverride = "" ))
 	static void TakeAutomationScreenshotOfUI(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options);
 
+	UFUNCTION(BlueprintCallable, Category = "Automation", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	static void EnableStatGroup(UObject* WorldContextObject, FName GroupName);
+
+	UFUNCTION(BlueprintCallable, Category = "Automation", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	static void DisableStatGroup(UObject* WorldContextObject, FName GroupName);
+
+	UFUNCTION(BlueprintCallable, Category = "Automation")
+	static float GetStatIncAverage(FName StatName);
+
+	UFUNCTION(BlueprintCallable, Category = "Automation")
+	static float GetStatIncMax(FName StatName);
+
+	UFUNCTION(BlueprintCallable, Category = "Automation")
+	static float GetStatExcAverage(FName StatName);
+
+	UFUNCTION(BlueprintCallable, Category = "Automation")
+	static float GetStatExcMax(FName StatName);
+
+	UFUNCTION(BlueprintCallable, Category = "Automation")
+	static float GetStatCallCount(FName StatName);
+
 	UFUNCTION(BlueprintPure, Category="Automation")
 	static bool AreAutomatedTestsRunning();
 

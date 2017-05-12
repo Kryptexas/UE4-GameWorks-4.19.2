@@ -18,6 +18,15 @@ FClothingPaintEditMode::FClothingPaintEditMode()
 	
 }
 
+FClothingPaintEditMode::~FClothingPaintEditMode()
+{
+	if(ClothPainter.IsValid())
+	{
+		// Drop the reference
+		ClothPainter = nullptr;
+	}
+}
+
 class IPersonaPreviewScene* FClothingPaintEditMode::GetAnimPreviewScene() const
 {
 	return static_cast<IPersonaPreviewScene*>(static_cast<FAssetEditorModeManager*>(Owner)->GetPreviewScene());
@@ -25,7 +34,10 @@ class IPersonaPreviewScene* FClothingPaintEditMode::GetAnimPreviewScene() const
 
 void FClothingPaintEditMode::Initialize()
 {
-	MeshPainter = ClothPainter = new FClothPainter();
+	ClothPainter = MakeShared<FClothPainter>();
+	MeshPainter = ClothPainter.Get();
+
+	ClothPainter->Init();
 }
 
 TSharedPtr<class FModeToolkit> FClothingPaintEditMode::GetToolkit()

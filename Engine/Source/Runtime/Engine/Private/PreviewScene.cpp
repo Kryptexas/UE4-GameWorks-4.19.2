@@ -84,7 +84,7 @@ FPreviewScene::~FPreviewScene()
 	GEngine->DestroyWorldContext(GetWorld());
 }
 
-void FPreviewScene::AddComponent(UActorComponent* Component,const FTransform& LocalToWorld)
+void FPreviewScene::AddComponent(UActorComponent* Component,const FTransform& LocalToWorld, bool bAttachToRoot /*= false*/)
 {
 	Components.AddUnique(Component);
 

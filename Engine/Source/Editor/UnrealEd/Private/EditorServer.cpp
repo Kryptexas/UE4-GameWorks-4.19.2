@@ -4882,7 +4882,7 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 	// Do the actual actor->world check.  We try to collide against the world, straight down from our current position.
 	// If we hit anything, we will move the actor to a position that lets it rest on the floor.
 	FHitResult Hit(1.0f);
-	FCollisionQueryParams Params(FName(TEXT("MoveActorToTrace")), false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(MoveActorToTrace), false);
 	if( Object.Actor )
 	{
 		Params.AddIgnoredActor( Object.Actor );

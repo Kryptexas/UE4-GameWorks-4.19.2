@@ -26,6 +26,7 @@
 #include "BufferVisualizationData.h"
 #include "Engine/LocalPlayer.h"
 #include "ContentStreaming.h"
+#include "Stats/StatsData.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
 
@@ -449,6 +450,106 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 			}
 		}
 	}
+}
+
+void UAutomationBlueprintFunctionLibrary::EnableStatGroup(UObject* WorldContextObject, FName GroupName)
+{
+#if STATS
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		const FString GroupNameString = FString(TEXT("STATGROUP_")) + GroupName.ToString();
+		const FName GroupNameFull = FName(*GroupNameString, EFindName::FNAME_Find);
+		if(StatsData->GroupNames.Contains(GroupNameFull))
+		{
+			return;
+		}
+	}
+
+	if (APlayerController* TargetPC = UGameplayStatics::GetPlayerController(WorldContextObject, 0))
+	{
+		TargetPC->ConsoleCommand( FString(TEXT("stat ")) + GroupName.ToString() + FString(TEXT(" -nodisplay")), /*bWriteToLog=*/false);
+	}
+#endif
+}
+
+void UAutomationBlueprintFunctionLibrary::DisableStatGroup(UObject* WorldContextObject, FName GroupName)
+{
+#if STATS
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		const FString GroupNameString = FString(TEXT("STATGROUP_")) + GroupName.ToString();
+		const FName GroupNameFull = FName(*GroupNameString, EFindName::FNAME_Find);
+
+		if (!StatsData->GroupNames.Contains(GroupNameFull))
+		{
+			return;
+		}
+	}
+
+	if (APlayerController* TargetPC = UGameplayStatics::GetPlayerController(WorldContextObject, 0))
+	{
+		TargetPC->ConsoleCommand(FString(TEXT("stat ")) + GroupName.ToString() + FString(TEXT(" -nodisplay")), /*bWriteToLog=*/false);
+	}
+#endif
+}
+
+template <EComplexStatField::Type ValueType, bool bCallCount = false>
+float HelperGetStat(FName StatName)
+{
+#if STATS
+	if (FGameThreadStatsData* StatsData = FLatestGameThreadStatsData::Get().Latest)
+	{
+		if (const FComplexStatMessage* StatMessage = StatsData->GetStatData(StatName))
+		{
+			if(bCallCount)
+			{
+				return StatMessage->GetValue_CallCount(ValueType);	
+			}
+			else
+			{
+				return FPlatformTime::ToMilliseconds(StatMessage->GetValue_Duration(ValueType));
+			}
+		}
+	}
+
+#if WITH_EDITOR
+	FText WarningOut = FText::Format(LOCTEXT("StatNotFound", "Could not find stat data for {0}, did you call ToggleStatGroup with enough time to capture data?"), FText::FromName(StatName));
+	FMessageLog("PIE").Warning(WarningOut);
+	UE_LOG(AutomationFunctionLibrary, Warning, TEXT("%s"), *WarningOut.ToString());
+#endif
+
+#endif
+
+	return 0.f;
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatIncAverage(FName StatName)
+{
+	return HelperGetStat<EComplexStatField::IncAve>(StatName);
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatIncMax(FName StatName)
+{
+
+	return HelperGetStat<EComplexStatField::IncMax>(StatName);
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatExcAverage(FName StatName)
+{
+
+	return HelperGetStat<EComplexStatField::ExcAve>(StatName);
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatExcMax(FName StatName)
+{
+
+	return HelperGetStat<EComplexStatField::ExcMax>(StatName);
+}
+
+float UAutomationBlueprintFunctionLibrary::GetStatCallCount(FName StatName)
+{
+
+	return HelperGetStat<EComplexStatField::IncAve, /*bCallCount=*/true>(StatName);
 }
 
 bool UAutomationBlueprintFunctionLibrary::AreAutomatedTestsRunning()

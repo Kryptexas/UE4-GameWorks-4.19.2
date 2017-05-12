@@ -86,18 +86,10 @@ public:
 	bool IsLoaded() const;
 
 protected:
-
-	UPROPERTY(transient)
-	USoundWave* SoundWaveCopy;
-
-	UPROPERTY(transient)
-	USoundWave* PendingSoundWaveSet;
-
 	Audio::FSampleBufferReader SampleBufferReader;
 	Audio::FSampleBuffer SampleBuffer;
+	Audio::FSoundWavePCMLoader SoundWaveLoader;
+
 	float SampleDurationSec;
 	float SamplePlaybackProgressSec;
-	bool bTransferPendingToSound;
-	bool bIsLoaded;
-	bool bIsLoadedBroadcast;
 };

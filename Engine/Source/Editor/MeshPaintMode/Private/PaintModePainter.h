@@ -101,7 +101,7 @@ class SWidget;
 struct FPaintableTexture;
 struct FPaintTexture2DData;
 struct FTexturePaintMeshSectionInfo;
-
+struct FPerVertexPaintActionArgs;
 
 /** Painter class used by the level viewport mesh painting mode */
 class FPaintModePainter : public IMeshPainter
@@ -139,7 +139,7 @@ protected:
 	virtual bool PaintInternal(const FVector& InCameraOrigin, const FVector& InRayOrigin, const FVector& InRayDirection, EMeshPaintAction PaintAction, float PaintStrength) override;
 
 	/** Per vertex action function used for painting vertex colors */
-	void ApplyVertexColor(IMeshPaintGeometryAdapter* Adapter, int32 VertexIndex, FMeshPaintParameters Parameters);
+	void ApplyVertexColor(FPerVertexPaintActionArgs& Args, int32 VertexIndex, FMeshPaintParameters Parameters);
 
 	/** Per triangle action function used for retrieving triangle eligible for texture painting */
 	void GatherTextureTriangles(IMeshPaintGeometryAdapter* Adapter, int32 TriangleIndex, const int32 VertexIndices[3], TArray<FTexturePaintTriangleInfo>* TriangleInfo, TArray<FTexturePaintMeshSectionInfo>* SectionInfos, int32 UVChannelIndex);

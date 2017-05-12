@@ -2404,7 +2404,6 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 			FHitResult Hit(1.0f);
 			FVector PredictedLocation = ViewLocation + Ahead;
 
-			static FName NAME_ServerForwardView = FName(TEXT("ServerForwardView"));
 			UWorld* World = NULL;
 			if( InConnection->PlayerController )
 			{
@@ -2415,7 +2414,7 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 				World = ViewerPawn->GetWorld();
 			}
 			check( World );
-			if (World->LineTraceSingleByObjectType(Hit, ViewLocation, PredictedLocation, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_ServerForwardView, true, ViewTarget)))
+			if (World->LineTraceSingleByObjectType(Hit, ViewLocation, PredictedLocation, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(SCENE_QUERY_STAT(ServerForwardView), true, ViewTarget)))
 			{
 				// hit something, view location is hit location
 				ViewLocation = Hit.Location;

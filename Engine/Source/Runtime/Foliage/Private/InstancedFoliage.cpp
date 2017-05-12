@@ -2355,7 +2355,7 @@ void AInstancedFoliageActor::MapRebuild()
 					FVector End(InstanceToWorld.TransformPosition(Down));
 
 					FHitResult Result;
-					bool bHit = World->LineTraceSingleByObjectType(Result, Start, End, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_None, true));
+					bool bHit = World->LineTraceSingleByObjectType(Result, Start, End, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true));
 
 					if (bHit && Result.Component.IsValid() && Result.Component->IsA(UModelComponent::StaticClass()))
 					{
@@ -2844,7 +2844,7 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 #if WITH_EDITOR
 bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex, const FFoliageTraceFilterFunc& FilterFunc)
 {
-	FCollisionQueryParams QueryParams(InTraceTag, true);
+	FCollisionQueryParams QueryParams(InTraceTag, SCENE_QUERY_STAT_ONLY(IFA_FoliageTrace), true);
 	QueryParams.bReturnFaceIndex = InbReturnFaceIndex;
 
 	//It's possible that with the radius of the shape we will end up with an initial overlap which would place the instance at the top of the procedural volume.

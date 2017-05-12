@@ -632,7 +632,6 @@ void FLandscapeStaticLightingMesh::GetTriangleIndices(int32 TriangleIndex,int32&
 }
 
 
-const static FName FLandscapeStaticLightingMesh_IntersectLightRayName(TEXT("FLandscapeStaticLightingMesh_IntersectLightRay"));
 
 FLightRayIntersection FLandscapeStaticLightingMesh::IntersectLightRay(const FVector& Start,const FVector& End,bool bFindNearestIntersection) const
 {
@@ -640,7 +639,7 @@ FLightRayIntersection FLandscapeStaticLightingMesh::IntersectLightRay(const FVec
 	FHitResult Result(1.0f);
 
 	FHitResult NewHitInfo;
-	FCollisionQueryParams NewTraceParams( FLandscapeStaticLightingMesh_IntersectLightRayName, true );
+	FCollisionQueryParams NewTraceParams(SCENE_QUERY_STAT(FLandscapeStaticLightingMesh_IntersectLightRay), true );
 	
 	const bool bIntersects = LandscapeComponent->LineTraceComponent( Result, Start, End, NewTraceParams );
 

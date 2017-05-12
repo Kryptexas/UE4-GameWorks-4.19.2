@@ -339,6 +339,14 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio")
 	void SetSubmixSend(USoundSubmix* Submix, float SendLevel);
 
+	/** Sets whether or not the low pass filter is enabled on the audio component. */
+	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio")
+	void SetLowPassFilterEnabled(bool InLowPassFilterEnabled);
+
+	/** Sets lowpass filter frequency of the audio component. */
+	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio")
+	void SetLowPassFilterFrequency(float InLowPassFilterFrequency);
+
 	static void PlaybackCompleted(uint64 AudioComponentID, bool bFailedToStart);
 
 private:

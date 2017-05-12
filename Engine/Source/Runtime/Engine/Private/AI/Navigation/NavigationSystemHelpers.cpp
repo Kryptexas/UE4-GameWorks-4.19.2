@@ -59,7 +59,7 @@ namespace NavigationHelper
 		UE_VLOG_SEGMENT(Querier, LogNavigation, Log, FallStart, FallStart + FVector(0, 0, -FallLimit)
 				, FColor::Red, TEXT("TerrainTrace"));
 
-		FCollisionQueryParams TraceParams(NAME_None, true, Querier);
+		FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(RawGeometryFall), true, Querier);
 		FHitResult Hit;
 		const bool bHit = Querier->GetWorld()->LineTraceSingleByChannel(Hit, FallStart, FallStart+FVector(0,0,-FallLimit), ECC_WorldStatic, TraceParams);
 		if( bHit )

@@ -55,6 +55,7 @@ public class Persona : ModuleRules
                 "ClothingSystemRuntime",
                 "ClothingSystemEditorInterface",
                 "ClothingSystemRuntimeInterface",
+                "AnimGraphRuntime",
             }
         );
 

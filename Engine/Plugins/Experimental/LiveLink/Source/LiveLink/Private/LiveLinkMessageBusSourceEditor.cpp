@@ -66,12 +66,12 @@ SLiveLinkMessageBusSourceEditor::~SLiveLinkMessageBusSourceEditor()
 void SLiveLinkMessageBusSourceEditor::Construct(const FArguments& Args)
 {
 	MessageEndpoint =	FMessageEndpoint::Builder(TEXT("LiveLinkMessageBusSource"))
-						.Handling<FLiveLinkPong>(this, &SLiveLinkMessageBusSourceEditor::HandlePongMessage);
+						.Handling<FLiveLinkPongMessage>(this, &SLiveLinkMessageBusSourceEditor::HandlePongMessage);
 
 	CurrentPollRequest = FGuid::NewGuid();
 
 	//Simple each for connections till UI comes along
-	MessageEndpoint->Publish(new FLiveLinkPing(CurrentPollRequest));
+	MessageEndpoint->Publish(new FLiveLinkPingMessage(CurrentPollRequest));
 
 	ChildSlot
 	[
@@ -108,7 +108,7 @@ void SLiveLinkMessageBusSourceEditor::OnSourceListSelectionChanged(FProviderPoll
 	SelectedResult = PollResult;
 }
 
-void SLiveLinkMessageBusSourceEditor::HandlePongMessage(const FLiveLinkPong& Message, const IMessageContextRef& Context)
+void SLiveLinkMessageBusSourceEditor::HandlePongMessage(const FLiveLinkPongMessage& Message, const IMessageContextRef& Context)
 {
 	if(Message.PollRequest == CurrentPollRequest)
 	{

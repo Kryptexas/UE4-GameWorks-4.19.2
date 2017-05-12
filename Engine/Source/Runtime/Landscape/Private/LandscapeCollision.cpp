@@ -1317,12 +1317,11 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& I
 						FVector Start = TestLocation + TraceVector;
 						FVector End = TestLocation - TraceVector;
 
-						static FName TraceTag = FName(TEXT("FoliageSnapToLandscape"));
 						TArray<FHitResult> Results;
 						UWorld* World = GetWorld();
 						check(World);
 						// Editor specific landscape heightfield uses ECC_Visibility collision channel
-						World->LineTraceMultiByObjectType(Results, Start, End, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(TraceTag, true));
+						World->LineTraceMultiByObjectType(Results, Start, End, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(SCENE_QUERY_STAT(FoliageSnapToLandscape), true));
 
 						bool bFoundHit = false;
 						for (const FHitResult& Hit : Results)

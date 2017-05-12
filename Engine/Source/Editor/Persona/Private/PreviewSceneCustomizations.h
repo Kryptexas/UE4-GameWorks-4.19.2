@@ -34,6 +34,8 @@ private:
 
 	bool HandleShouldFilterAsset(const FAssetData& InAssetData, bool bCanUseDifferentSkeleton);
 
+	bool HandleShouldFilterAdditionalMesh(const FAssetData& InAssetData, bool bCanUseDifferentSkeleton);
+
 	void HandleAnimationModeChanged();
 
 	void HandleAnimationChanged(const FAssetData& InAssetData);
@@ -41,6 +43,10 @@ private:
 	void HandleMeshChanged(const FAssetData& InAssetData);
 
 	void HandleAdditionalMeshesChanged(const FAssetData& InAssetData, IDetailLayoutBuilder* DetailLayoutBuilder);
+
+	void HandleAllowDifferentSkeletonsCheckedStateChanged(ECheckBoxState CheckState);
+
+	ECheckBoxState HandleAllowDifferentSkeletonsIsChecked() const;
 
 private:
 	/** Cached skeleton name to check for asset registry tags */
@@ -57,6 +63,9 @@ private:
 
 	/** Factory to use when creating mesh collections */
 	UPreviewMeshCollectionFactory* FactoryToUse;
+
+	/** This is list of class available to filter asset by. This list doesn't change once loaded, so only collect once */
+	static TArray<FName> AvailableClassNameList;
 };
 
 class FPreviewMeshCollectionEntryCustomization : public IPropertyTypeCustomization

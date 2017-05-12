@@ -274,6 +274,8 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 
 			ChunkStorage->Index = Index;
 
+			check(LoadedChunkStorageIndex != INDEX_NONE);
+
 			// Pass the request on to the async io manager after increasing the request count. The request count 
 			// has been pre-incremented before fielding the update request so we don't have to worry about file
 			// I/O immediately completing and the game thread kicking off again before this function
@@ -316,6 +318,7 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 					[this, LoadedChunkStorageIndex](bool bWasCancelled, IAsyncReadRequest* Req)
 				{
 					AudioStreamingManager->OnAsyncFileCallback(this, LoadedChunkStorageIndex, Req);
+
 					PendingChunkChangeRequestStatus.Decrement();
 				};
 

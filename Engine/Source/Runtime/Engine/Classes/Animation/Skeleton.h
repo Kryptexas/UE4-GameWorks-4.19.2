@@ -21,7 +21,6 @@
 
 class UAnimSequence;
 class UBlendProfile;
-class UPreviewMeshCollection;
 class URig;
 class USkeletalMesh;
 class USkeletalMeshSocket;
@@ -475,7 +474,7 @@ private:
 
 	/** The additional skeletal meshes to use when previewing this skeleton */
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
-	TAssetPtr<class UPreviewMeshCollection> AdditionalPreviewSkeletalMeshes;
+	TAssetPtr<class UDataAsset> AdditionalPreviewSkeletalMeshes;
 
 	UPROPERTY()
 	FRigConfiguration RigConfig;
@@ -557,10 +556,10 @@ public:
 	ENGINE_API void LoadAdditionalPreviewSkeletalMeshes();
 
 	/** Get the additional skeletal meshes we use when previewing this skeleton */
-	ENGINE_API UPreviewMeshCollection* GetAdditionalPreviewSkeletalMeshes() const;
+	ENGINE_API UDataAsset* GetAdditionalPreviewSkeletalMeshes() const;
 
 	/** Set the additional skeletal meshes we use when previewing this skeleton */
-	ENGINE_API void SetAdditionalPreviewSkeletalMeshes(UPreviewMeshCollection* PreviewMeshCollection);
+	ENGINE_API void SetAdditionalPreviewSkeletalMeshes(UDataAsset* InPreviewCollectionAsset);
 
 	/**
 	 * Makes sure all attached objects are valid and removes any that aren't.

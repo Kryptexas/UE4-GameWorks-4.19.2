@@ -640,6 +640,9 @@ public:
 	/** Remove this SkeletalMeshComponent from set needing kinematic update before simulating physics*/
 	void ClearPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp);
 
+	/** The number of frames it takes to rebuild the PhysX scene query AABB tree. The bigger the number, the smaller fetchResults takes per frame, but the more the tree deteriorates until a new tree is built */
+	void SetPhysXTreeRebuildRate(int32 RebuildRate);
+	
 private:
 	/** Initialize a scene of the given type.  Must only be called once for each scene type. */
 	void InitPhysScene(uint32 SceneType);
@@ -661,6 +664,9 @@ private:
 
 	/** Set whether we're doing a static load and want to stall, or are during gameplay and want to distribute over many frames */
 	void SetIsStaticLoading(bool bStaticLoading);
+
+	/** The number of frames it takes to rebuild the PhysX scene query AABB tree. The bigger the number, the smaller fetchResults takes per frame, but the more the tree deteriorates until a new tree is built */
+	void SetPhysXTreeRebuildRateImp(int32 RebuildRate);
 
 #if WITH_PHYSX
 	/** User data wrapper passed to physx */
@@ -714,6 +720,8 @@ private:
 	TMap<USkeletalMeshComponent*, FDeferredKinematicUpdateInfo>	DeferredKinematicUpdateSkelMeshes;
 
 	FDelegateHandle PreGarbageCollectDelegateHandle;
+
+	int32 PhysXTreeRebuildRate;
 };
 
 /**

@@ -275,6 +275,11 @@ struct FCollisionParameters
 
 	/** Contains Collision Shape data including dimension of the shape **/
 	struct FCollisionShape CollisionShape;
+
+	FCollisionParameters()
+		: CollisionQueryParam(NAME_None, TStatId())
+	{
+	}
 };
 
 /** 

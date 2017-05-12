@@ -46,7 +46,7 @@ void AVisualLoggerHUD::PostRender()
 			FVector const CamLoc = DebugCamController->PlayerCameraManager->GetCameraLocation();
 			FRotator const CamRot = DebugCamController->PlayerCameraManager->GetCameraRotation();
 
-			FCollisionQueryParams TraceParams(NAME_None, true, this);
+			FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true, this);
 			FHitResult Hit;
 			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
 			if( bHit )

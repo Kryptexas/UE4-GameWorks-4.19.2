@@ -3550,7 +3550,7 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 
 	// Also sort the RequiredBones array to be strictly increasing.
 	NewLODModel.RequiredBones.Sort();
-	InSkeletalMesh->RefSkeleton.EnsureParentExists(NewLODModel.ActiveBoneIndices);
+	BaseSkeletalMesh->RefSkeleton.EnsureParentExists(NewLODModel.ActiveBoneIndices);
 
 	// To be extra-nice, we apply the difference between the root transform of the meshes to the verts.
 	FMatrix LODToBaseTransform = InSkeletalMesh->GetRefPoseMatrix(0).InverseFast() * BaseSkeletalMesh->GetRefPoseMatrix(0);

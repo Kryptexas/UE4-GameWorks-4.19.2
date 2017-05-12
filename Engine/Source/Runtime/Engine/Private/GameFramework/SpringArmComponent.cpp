@@ -169,8 +169,7 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	FVector ResultLoc;
 	if (bDoTrace && (TargetArmLength != 0.0f))
 	{
-		static FName TraceTagName(TEXT("SpringArm"));
-		FCollisionQueryParams QueryParams(TraceTagName, false, GetOwner());
+		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SpringArm), false, GetOwner());
 
 		FHitResult Result;
 		GetWorld()->SweepSingleByChannel(Result, ArmOrigin, DesiredLoc, FQuat::Identity, ProbeChannel, FCollisionShape::MakeSphere(ProbeSize), QueryParams);

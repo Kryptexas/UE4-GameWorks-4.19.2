@@ -3110,6 +3110,11 @@ bool UWorld::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleTraceTagCommand( Cmd, Ar );
 	}
+	else if( FParse::Command( &Cmd, TEXT("TRACETAGALL")))
+	{
+		bDebugDrawAllTraceTags = !bDebugDrawAllTraceTags;
+		return true;
+	}
 	else if( FParse::Command( &Cmd, TEXT("FLUSHPERSISTENTDEBUGLINES") ) )
 	{		
 		return HandleFlushPersistentDebugLinesCommand( Cmd, Ar );

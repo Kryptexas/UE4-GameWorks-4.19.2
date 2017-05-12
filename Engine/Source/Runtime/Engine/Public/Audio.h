@@ -346,8 +346,6 @@ struct ENGINE_API FWaveInstance
 	float				AttenuationFilterFrequency;
 	/** Current pitch */
 	float				Pitch;
-	/** Current velocity */
-	FVector				Velocity;
 	/** Current location */
 	FVector				Location;
 	/** At what distance we start transforming into omnidirectional soundsource */

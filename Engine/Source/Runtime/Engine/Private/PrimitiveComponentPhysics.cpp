@@ -1047,8 +1047,7 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 
 bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName, FHitResult& OutHit)
 {
-	static FName KismetTraceComponentName(TEXT("KismetTraceComponent"));
-	FCollisionQueryParams LineParams(KismetTraceComponentName, bTraceComplex);
+	FCollisionQueryParams LineParams(SCENE_QUERY_STAT(KismetTraceComponent), bTraceComplex);
 	const bool bDidHit = LineTraceComponent(OutHit, TraceStart, TraceEnd, LineParams);
 
 	if( bDidHit )

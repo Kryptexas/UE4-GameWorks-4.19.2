@@ -144,5 +144,4 @@
 	<Notify Nodes="Compile PhysX HTML5" Users="$(AllEmailTargets);nshin@phosphorgames.com"/>
 	<Notify Nodes="Compile PhysX Mac;Compile PhysX IOS;Compile PhysX TVOS" Users="$(AllEmailTargets);michael.trepka@epicgames.com"/>
 	<Notify Nodes="Compile PhysX Switch" Users="$(AllEmailTargets);josh.adams@epicgames.com"/>
-	
 </BuildGraph>

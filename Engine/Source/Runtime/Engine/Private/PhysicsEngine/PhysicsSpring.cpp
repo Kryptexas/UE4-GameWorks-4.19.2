@@ -57,8 +57,7 @@ UPrimitiveComponent* UPhysicsSpringComponent::GetSpringCollision(const FVector& 
 	UWorld* World = GetWorld();
 	AActor* IgnoreActor = bIgnoreSelf ? GetOwner() : nullptr;
 
-	static FName NAME_Spring = FName(TEXT("SpringComponent"));
-	FCollisionQueryParams QueryParams(NAME_Spring, true, IgnoreActor);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SpringComponent), true, IgnoreActor);
 	FHitResult Hit;
 
 	UPrimitiveComponent* CollidedComponent = nullptr;

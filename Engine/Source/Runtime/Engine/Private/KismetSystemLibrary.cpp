@@ -962,8 +962,7 @@ bool UKismetSystemLibrary::SphereOverlapComponents(UObject* WorldContextObject, 
 {
 	OutComponents.Empty();
 
-	static FName SphereOverlapComponentsName(TEXT("SphereOverlapComponents"));
-	FCollisionQueryParams Params(SphereOverlapComponentsName, false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(SphereOverlapComponents), false);
 	Params.AddIgnoredActors(ActorsToIgnore);
 	Params.bTraceAsyncScene = true;
 	TArray<FOverlapResult> Overlaps;
@@ -1017,8 +1016,7 @@ bool UKismetSystemLibrary::BoxOverlapComponents(UObject* WorldContextObject, con
 {
 	OutComponents.Empty();
 
-	static FName BoxOverlapComponentsName(TEXT("BoxOverlapComponents"));
-	FCollisionQueryParams Params(BoxOverlapComponentsName, false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(BoxOverlapComponents), false);
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
@@ -1071,8 +1069,7 @@ bool UKismetSystemLibrary::CapsuleOverlapComponents(UObject* WorldContextObject,
 {
 	OutComponents.Empty();
 
-	static FName CapsuleOverlapComponentsName(TEXT("CapsuleOverlapComponents"));
-	FCollisionQueryParams Params(CapsuleOverlapComponentsName, false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(CapsuleOverlapComponents), false);
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
@@ -1127,8 +1124,7 @@ bool UKismetSystemLibrary::ComponentOverlapComponents(UPrimitiveComponent* Compo
 
 	if(Component != nullptr)
 	{
-		static FName ComponentOverlapComponentsName(TEXT("ComponentOverlapComponents"));
-		FComponentQueryParams Params(ComponentOverlapComponentsName);	
+		FComponentQueryParams Params(SCENE_QUERY_STAT(ComponentOverlapComponents));
 		Params.bTraceAsyncScene = true;
 		Params.AddIgnoredActors(ActorsToIgnore);
 

@@ -3220,8 +3220,13 @@ void FAudioDevice::Update(bool bGameTicking)
 
 		UpdatePassiveSoundMixModifiers(ActiveWaveInstances, FirstActiveIndex);
 
-		// Update the playback time of the active sounds after we've processed passive mix modifiers
-		UpdateActiveSoundPlaybackTime();
+		// If not paused, update the playback time of the active sounds after we've processed passive mix modifiers 
+		// Note that for sounds which play while paused, this will result in longer active sound playback times, which will be ok. If we update the 
+		// active sound is updated while paused (for a long time), most sounds will be stopped when unpaused.
+		if (bGameTicking)
+		{
+			UpdateActiveSoundPlaybackTime();
+		}
 
 		const int32 Channels = GetMaxChannels();
 		INC_DWORD_STAT_BY(STAT_WaveInstances, ActiveWaveInstances.Num());

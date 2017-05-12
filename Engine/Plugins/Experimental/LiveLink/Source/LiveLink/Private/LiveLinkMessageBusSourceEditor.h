@@ -9,7 +9,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Guid.h"
 
-struct FLiveLinkPong;
+struct FLiveLinkPongMessage;
 struct FMessageAddress;
 class ITableRow;
 class STableViewBase;
@@ -47,7 +47,7 @@ class SLiveLinkMessageBusSourceEditor : public SCompoundWidget
 
 private:
 
-	void HandlePongMessage(const FLiveLinkPong& Message, const IMessageContextRef& Context);
+	void HandlePongMessage(const FLiveLinkPongMessage& Message, const IMessageContextRef& Context);
 
 	TSharedRef<ITableRow> MakeSourceListViewWidget(FProviderPollResultPtr PollResult, const TSharedRef<STableViewBase>& OwnerTable) const;
 

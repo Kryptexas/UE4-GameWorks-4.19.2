@@ -75,14 +75,12 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Static Bodies"), STAT_NumStaticBodiesAs
 DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Shapes"), STAT_NumShapesAsync, STATGROUP_Physics);
 
 static int16 PhysXSceneCount = 1;
-static const int PhysXSlowRebuildRate = 10;
 
 EPhysicsSceneType FPhysScene::SceneType_AssumesLocked(const FBodyInstance* BodyInstance) const
 {
 #if WITH_PHYSX
 	//This is a helper function for dynamic actors - static actors are in both scenes
-	check(BodyInstance->GetPxRigidBody_AssumesLocked());
-	return UPhysicsSettings::Get()->bEnableAsyncScene && BodyInstance->UseAsyncScene(this) ? PST_Async : PST_Sync;
+	return HasAsyncScene() && BodyInstance->bUseAsyncScene ? PST_Async : PST_Sync;
 #endif
 
 	return PST_Sync;
@@ -154,22 +152,41 @@ FAutoConsoleTaskPriority CPrio_FPhysXTask_Cloth(
 
 DECLARE_STATS_GROUP(TEXT("PhysXTasks"), STATGROUP_PhysXTasks, STATCAT_Advanced);
 
+struct FPhysXRingBuffer
+{
+	static const int32 Size = 16;
+
+	PxBaseTask* Buffer[Size];
+	int32 Start;
+	int32 End;
+	int32 Num;
+};
+
+int32 GBatchPhysXTasksSize = 3;	//NOTE: FPhysXRingBuffer::Size should be twice as big as this value
+TAutoConsoleVariable<int32> CVarBatchPhysXTasksSize(TEXT("p.BatchPhysXTasksSize"), GBatchPhysXTasksSize, TEXT("Number of tasks to batch together (max 8). 1 will go as wide as possible, but more overhead on small tasks"), ECVF_Default);
+
+struct FBatchPhysXTasks
+{
+	static void SetPhysXTasksSinkFunc()
+	{
+		GBatchPhysXTasksSize = FMath::Max(1, FMath::Min(FPhysXRingBuffer::Size / 2, CVarBatchPhysXTasksSize.GetValueOnGameThread()));
+	}
+};
+
+static FAutoConsoleVariableSink CVarBatchPhysXTasks(FConsoleCommandDelegate::CreateStatic(&FBatchPhysXTasks::SetPhysXTasksSinkFunc));
+
+
+
+template <bool IsCloth>
+struct FPhysXCPUDispatcher;
 
 template <bool IsCloth>
 class FPhysXTask
 {
-	PxBaseTask&	Task;
-
 public:
-	FPhysXTask(PxBaseTask* InTask)
-		: Task(*InTask)
-	{
-	}
-
-	~FPhysXTask()
-	{
-		Task.release();
-	}
+	FPhysXTask(PxBaseTask& InTask, FPhysXCPUDispatcher<IsCloth>& InDispatcher);
+	FPhysXTask(FPhysXRingBuffer& RingBuffer, FPhysXCPUDispatcher<IsCloth>& InDispatcher);
+	~FPhysXTask();
 
 	static FORCEINLINE TStatId GetStatId()
 	{
@@ -198,6 +215,22 @@ public:
 	{
 		return ESubsequentsMode::TrackSubsequents;
 	}
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent);
+
+	FPhysXRingBuffer RingBuffer;
+	FPhysXCPUDispatcher<IsCloth>& Dispatcher;
+private:
+
+	struct FStatLookup
+	{
+		const char* StatName;
+		TStatId Stat;
+	};
+	static FStatLookup Stats[100];
+
+	static int NumStats;
+	static FCriticalSection CS;
 
 	FORCEINLINE TStatId FindOrCreateStatId(const char* StatName)
 	{
@@ -237,36 +270,113 @@ public:
 #endif // STATS
 		return TStatId();
 	}
+};
 
-	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+/** Used to dispatch physx tasks to task graph */
+template <bool IsClothScene>
+struct FPhysXCPUDispatcher : public PxCpuDispatcher
+{
+	FPhysXCPUDispatcher()
 	{
-#if STATS
-		const char* StatName = Task.getName();
-		FScopeCycleCounter CycleCounter(FindOrCreateStatId(StatName));
-		
-
-		FPlatformMisc::BeginNamedEvent(FColor::Black, StatName);
-#endif
-
-		Task.run();
-
-#if STATS
-		FPlatformMisc::EndNamedEvent();
-#endif
+		check(IsInGameThread());
+		TLSKey = FPlatformTLS::AllocTlsSlot();
 	}
 
-private:
-
-	struct FStatLookup
+	~FPhysXCPUDispatcher()
 	{
-		const char* StatName;
-		TStatId Stat;
-	};
-	static FStatLookup Stats[100];
+		check(IsInGameThread());
+		FPlatformTLS::FreeTlsSlot(TLSKey);
+	}
 
-	static int NumStats;
-	static FCriticalSection CS;
+	virtual void submitTask(PxBaseTask& Task) override
+	{
+		if (IsInGameThread())
+		{
+			//Game thread enqueues on task graph
+			TGraphTask<FPhysXTask<IsClothScene>>::CreateTask(NULL).ConstructAndDispatchWhenReady(Task, *this);
+		}
+		else
+		{
+			//See if we can use local queue
+			FPhysXRingBuffer& RingBuffer = *(FPhysXRingBuffer*)FPlatformTLS::GetTlsValue(TLSKey);
+			RingBuffer.Buffer[RingBuffer.End] = &Task;
+			RingBuffer.End = (RingBuffer.End + 1) % FPhysXRingBuffer::Size;
+			RingBuffer.Num++;
+
+			if (RingBuffer.Num >= GBatchPhysXTasksSize * 2)
+			{
+				TGraphTask<FPhysXTask<IsClothScene>>::CreateTask(NULL).ConstructAndDispatchWhenReady(RingBuffer, *this);
+			}
+		}
+	}
+
+	virtual PxU32 getWorkerCount() const override
+	{
+		return FTaskGraphInterface::Get().GetNumWorkerThreads();
+	}
+
+	uint32 TLSKey;
 };
+
+template <bool IsCloth>
+FPhysXTask<IsCloth>::FPhysXTask(PxBaseTask& Task, FPhysXCPUDispatcher<IsCloth>& InDispatcher)
+	: Dispatcher(InDispatcher)
+{
+	RingBuffer.Buffer[0] = &Task;
+	RingBuffer.Start = 0;
+	RingBuffer.End = 1;
+	RingBuffer.Num = 1;
+}
+
+template <bool IsCloth>
+FPhysXTask<IsCloth>::FPhysXTask(FPhysXRingBuffer& InRingBuffer, FPhysXCPUDispatcher<IsCloth>& InDispatcher)
+	: Dispatcher(InDispatcher)
+{
+	int32 NumToSteal = InRingBuffer.Num / 2;
+	ensureMsgf(NumToSteal > 0, TEXT("Trying to steal 0 items"));
+
+	const int32 StartPos = (InRingBuffer.Start + NumToSteal);
+	for (int32 Count = 0; Count < NumToSteal; ++Count)
+	{
+		RingBuffer.Buffer[Count] = InRingBuffer.Buffer[(StartPos + Count) % FPhysXRingBuffer::Size];
+	}
+
+	RingBuffer.Start = 0;
+	RingBuffer.End = NumToSteal;
+	RingBuffer.Num = NumToSteal;
+
+
+	InRingBuffer.Num -= NumToSteal;
+	InRingBuffer.End = (StartPos) % FPhysXRingBuffer::Size;
+}
+
+template <bool IsCloth>
+FPhysXTask<IsCloth>::~FPhysXTask()
+{
+	FPlatformTLS::SetTlsValue(Dispatcher.TLSKey, nullptr);
+}
+
+template <bool IsCloth>
+void FPhysXTask<IsCloth>::DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	FPlatformTLS::SetTlsValue(Dispatcher.TLSKey, &RingBuffer);
+
+	while (RingBuffer.Num)
+	{
+		PxBaseTask* Task = RingBuffer.Buffer[RingBuffer.Start];
+
+#if STATS
+		const char* StatName = Task->getName();
+		FScopeCycleCounter CycleCounter(FindOrCreateStatId(StatName));
+#endif
+		Task->run();
+		Task->release();
+
+		RingBuffer.Start = (RingBuffer.Start + 1) % RingBuffer.Size;
+		--RingBuffer.Num;
+
+	}
+}
 
 template<> int FPhysXTask<true>::NumStats = 0;
 template<> int FPhysXTask<false>::NumStats = 0;
@@ -274,23 +384,6 @@ template<> FCriticalSection FPhysXTask<true>::CS = {};
 template<> FCriticalSection FPhysXTask<false>::CS = {};
 template<> FPhysXTask<true>::FStatLookup FPhysXTask<true>::Stats[100] = {};
 template<> FPhysXTask<false>::FStatLookup FPhysXTask<false>::Stats[100] = {};
-
-
-/** Used to dispatch physx tasks to task graph */
-template <bool IsClothScene>
-class FPhysXCPUDispatcher : public PxCpuDispatcher
-{
-public:
-	virtual void submitTask(PxBaseTask& Task) override
-	{
-		TGraphTask<FPhysXTask<IsClothScene>>::CreateTask(NULL).ConstructAndDispatchWhenReady(&Task);
-	}
-
-	virtual PxU32 getWorkerCount() const override
-	{
-		return FTaskGraphInterface::Get().GetNumWorkerThreads();
-	}
-};
 
 DECLARE_CYCLE_STAT(TEXT("PhysX Single Thread Task"), STAT_PhysXSingleThread, STATGROUP_Physics);
 
@@ -337,6 +430,26 @@ TSharedPtr<ISimEventCallbackFactory> FPhysScene::SimEventCallbackFactory;
 
 #endif // WITH_PHYSX
 
+static void StaticSetPhysXTreeRebuildRate(const TArray<FString>& Args, UWorld* World)
+{
+	if (Args.Num() > 0)
+	{
+		const int32 NewRate = FCString::Atoi(*Args[0]);
+		if(World && World->GetPhysicsScene())
+		{
+			World->GetPhysicsScene()->SetPhysXTreeRebuildRate(NewRate);
+		}
+	}
+	else
+	{
+		UE_LOG(LogPhysics, Warning, TEXT("Usage: p.PhysXTreeRebuildRate <num_frames>"));
+	}
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GSetPhysXTreeRebuildRate(TEXT("p.PhysXTreeRebuildRate"), TEXT("Utility function to change PhysXTreeRebuildRate, useful when profiling fetchResults vs scene queries."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&StaticSetPhysXTreeRebuildRate)
+);
+
 
 /** Exposes creation of physics-engine scene outside Engine (for use with PhAT for example). */
 FPhysScene::FPhysScene()
@@ -359,6 +472,8 @@ FPhysScene::FPhysScene()
 	bSubsteppingAsync = PhysSetting->bSubsteppingAsync;
 	bAsyncSceneEnabled = PhysSetting->bEnableAsyncScene;
 	NumPhysScenes = bAsyncSceneEnabled ? PST_Async + 1 : PST_Cloth + 1;
+
+	PhysXTreeRebuildRate = PhysSetting->PhysXTreeRebuildRate;
 	
 	// Create scenes of all scene types
 	for (uint32 SceneType = 0; SceneType < NumPhysScenes; ++SceneType)
@@ -502,29 +617,24 @@ void FPhysScene::SetKinematicTarget_AssumesLocked(FBodyInstance* BodyInstance, c
 #if WITH_PHYSX
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic_AssumesLocked())
 	{
-		FTransform CurrentPose = P2UTransform(PRigidDynamic->getGlobalPose());
-		if (!TargetTransform.EqualsNoScale(CurrentPose))
+		const bool bIsKinematicTarget = IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(PRigidDynamic);
+		if(bIsKinematicTarget)
 		{
-			const bool bIsKinematicTarget = IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(PRigidDynamic);
-			if(bIsKinematicTarget)
+			uint32 BodySceneType = SceneType_AssumesLocked(BodyInstance);
+			if (bAllowSubstepping && IsSubstepping(BodySceneType))
 			{
-				uint32 BodySceneType = SceneType_AssumesLocked(BodyInstance);
-				if (bAllowSubstepping && IsSubstepping(BodySceneType))
-				{
-					FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
-					PhysSubStepper->SetKinematicTarget_AssumesLocked(BodyInstance, TargetTransform);
-				}
+				FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
+				PhysSubStepper->SetKinematicTarget_AssumesLocked(BodyInstance, TargetTransform);
+			}
 
-				const PxTransform PNewPose = U2PTransform(TargetTransform);
-				PRigidDynamic->setKinematicTarget(PNewPose);	//If we interpolate, we will end up setting the kinematic target once per sub-step. However, for the sake of scene queries we should do this right away
-			}
-			else 
-			{
-				const PxTransform PNewPose = U2PTransform(TargetTransform);
-				PRigidDynamic->setGlobalPose(PNewPose);
-			}
+			const PxTransform PNewPose = U2PTransform(TargetTransform);
+			PRigidDynamic->setKinematicTarget(PNewPose);	//If we interpolate, we will end up setting the kinematic target once per sub-step. However, for the sake of scene queries we should do this right away
 		}
-
+		else 
+		{
+			const PxTransform PNewPose = U2PTransform(TargetTransform);
+			PRigidDynamic->setGlobalPose(PNewPose);
+		}
 	}
 #endif
 }
@@ -639,7 +749,7 @@ void FPhysScene::RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uin
 		ActiveBodyInstances[SceneType][BodyIndex] = nullptr;
 	}
 
-	PendingSleepEvents[SceneType].Remove(BodyInstance->GetPxRigidActor_AssumesLocked(SceneType));
+	PendingSleepEvents[SceneType].Remove(BodyInstance->GetPxRigidActorFromScene_AssumesLocked(SceneType));
 }
 #endif
 void FPhysScene::TermBody_AssumesLocked(FBodyInstance* BodyInstance)
@@ -1620,6 +1730,17 @@ void FPhysScene::EnsureCollisionTreeIsBuilt(UWorld* World)
 
 void FPhysScene::SetIsStaticLoading(bool bStaticLoading)
 {
+	SetPhysXTreeRebuildRateImp(bStaticLoading ? 5 : PhysXTreeRebuildRate);
+}
+
+void FPhysScene::SetPhysXTreeRebuildRate(int32 RebuildRate)
+{
+	PhysXTreeRebuildRate = FMath::Max(4, RebuildRate);
+	SetPhysXTreeRebuildRateImp(RebuildRate);
+}
+
+void FPhysScene::SetPhysXTreeRebuildRateImp(int32 RebuildRate)
+{
 #if WITH_PHYSX
 	// Loop through scene types to get all scenes
 	for (uint32 SceneType = 0; SceneType < NumPhysScenes; ++SceneType)
@@ -1631,7 +1752,7 @@ void FPhysScene::SetIsStaticLoading(bool bStaticLoading)
 			SCENE_LOCK_WRITE(PScene);
 
 			// Sets the rebuild rate hint, to 1 frame if static loading
-			PScene->setDynamicTreeRebuildRateHint(bStaticLoading ? 5 : PhysXSlowRebuildRate);
+			PScene->setDynamicTreeRebuildRateHint(PhysXTreeRebuildRate);
 
 			// Unlock scene lock, in case it is required
 			SCENE_UNLOCK_WRITE(PScene);
@@ -1644,15 +1765,24 @@ void FPhysScene::SetIsStaticLoading(bool bStaticLoading)
 /** Utility for looking up the PxScene associated with this FPhysScene. */
 PxScene* FPhysScene::GetPhysXScene(uint32 SceneType) const
 {
-	check(SceneType < NumPhysScenes);
-	return GetPhysXSceneFromIndex(PhysXSceneIndex[SceneType]);
+	if(SceneType < NumPhysScenes)
+	{
+		return GetPhysXSceneFromIndex(PhysXSceneIndex[SceneType]);
+	}
+	
+	return nullptr;
 }
 
 #if WITH_APEX
 apex::Scene* FPhysScene::GetApexScene(uint32 SceneType) const
 {
-	check(SceneType < NumPhysScenes);
-	return GetApexSceneFromIndex(PhysXSceneIndex[SceneType]);
+	if(SceneType < NumPhysScenes)
+	{
+		return GetApexSceneFromIndex(PhysXSceneIndex[SceneType]);
+	}
+
+	return nullptr;
+	
 }
 #endif // WITH_APEX
 
@@ -1897,7 +2027,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Do this to improve loading times, esp. for streaming in sublevels
 	PSceneDesc.staticStructure = PxPruningStructureType::eDYNAMIC_AABB_TREE;
 	// Default to rebuilding tree slowly
-	PSceneDesc.dynamicTreeRebuildRateHint = PhysXSlowRebuildRate;
+	PSceneDesc.dynamicTreeRebuildRateHint = PhysXTreeRebuildRate;
 
 #if PHYSX_ENABLE_ENHANCED_DETERMINISM
 	PSceneDesc.flags |= PxSceneFlag::eENABLE_ENHANCED_DETERMINISM;

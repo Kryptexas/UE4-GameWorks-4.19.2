@@ -167,7 +167,7 @@ FLightRayIntersection FStaticMeshStaticLightingMesh::IntersectLightRay(const FVe
 
 	// Do the line check
 	FHitResult NewHitInfo;
-	FCollisionQueryParams NewTraceParams( FStaticMeshStaticLightingMesh_IntersectLightRayName, true );
+	FCollisionQueryParams NewTraceParams( SCENE_QUERY_STAT(FStaticMeshStaticLightingMesh_IntersectLightRay), true );
 	UStaticMeshComponent* StaticMeshComp = const_cast<UStaticMeshComponent*>(Primitive);
 	const bool bIntersects = StaticMeshComp->LineTraceComponent( Result, Start, End, NewTraceParams );
 	

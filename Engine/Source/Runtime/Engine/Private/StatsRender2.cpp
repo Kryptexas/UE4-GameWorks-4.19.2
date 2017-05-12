@@ -538,7 +538,7 @@ static FString GetMemoryString( const double Value, const bool bAutoType = true 
 	return FString::Printf( TEXT( "%.2f MB" ), float( Value / (1024.0 * 1024.0) ) );
 }
 
-static int32 RenderMemoryCounter( const FGameThreadHudData& ViewData, const FComplexStatMessage& All, class FCanvas* Canvas, const int32 X, const int32 Y, const float Budget, const bool bIsBudgetIgnored )
+static int32 RenderMemoryCounter( const FGameThreadStatsData& ViewData, const FComplexStatMessage& All, class FCanvas* Canvas, const int32 X, const int32 Y, const float Budget, const bool bIsBudgetIgnored )
 {
 	FPlatformMemory::EMemoryCounterRegion Region = FPlatformMemory::EMemoryCounterRegion(All.NameAndInfo.GetField<EMemoryRegion>());
 	// At this moment we only have memory stats that are marked as non frame stats, so can't be cleared every frame.
@@ -575,7 +575,7 @@ static int32 RenderMemoryCounter( const FGameThreadHudData& ViewData, const FCom
 	return Globals.GetFontHeight();
 }
 
-static int32 RenderCounter( const FGameThreadHudData& ViewData, const FComplexStatMessage& All, class FCanvas* Canvas, const int32 X, const int32 Y, const float Budget, const bool bIsBudgetIgnored )
+static int32 RenderCounter( const FGameThreadStatsData& ViewData, const FComplexStatMessage& All, class FCanvas* Canvas, const int32 X, const int32 Y, const float Budget, const bool bIsBudgetIgnored )
 {
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
@@ -622,7 +622,7 @@ static int32 RenderCounter( const FGameThreadHudData& ViewData, const FComplexSt
 	return Globals.GetFontHeight();
 }
 
-void RenderHierCycles( FCanvas* Canvas, const int32 X, int32& Y, const FHudGroup& HudGroup )
+void RenderHierCycles( FCanvas* Canvas, const int32 X, int32& Y, const FActiveStatGroupInfo& HudGroup )
 {
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 	const FTexture* BackgroundTexture = Globals.GetBackgroundTexture();
@@ -670,7 +670,7 @@ int32 RenderGroupBudget( FCanvas* Canvas, const  int32 X, const int32 Y, const u
 }
 
 template< typename T >
-void RenderArrayOfStats( FCanvas* Canvas, const int32 X, int32& Y, const TArray<FComplexStatMessage>& Aggregates, const FGameThreadHudData& ViewData, const TSet<FName>& IgnoreBudgetStats, const float TotalGroupBudget, const T& FunctionToCall )
+void RenderArrayOfStats( FCanvas* Canvas, const int32 X, int32& Y, const TArray<FComplexStatMessage>& Aggregates, const FGameThreadStatsData& ViewData, const TSet<FName>& IgnoreBudgetStats, const float TotalGroupBudget, const T& FunctionToCall )
 {
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 	const FTexture* BackgroundTexture = Globals.GetBackgroundTexture();
@@ -710,7 +710,7 @@ void RenderArrayOfStats( FCanvas* Canvas, const int32 X, int32& Y, const TArray<
 	}
 }
 
-static int32 RenderFlatCycle( const FGameThreadHudData& ViewData, const FComplexStatMessage& Item, class FCanvas* Canvas, const int32 X, const int32 Y, const  float Budget, const bool bIsBudgetIgnored )
+static int32 RenderFlatCycle( const FGameThreadStatsData& ViewData, const FComplexStatMessage& Item, class FCanvas* Canvas, const int32 X, const int32 Y, const  float Budget, const bool bIsBudgetIgnored )
 {
 	return RenderCycle( Item, Canvas, X, Y, 0, true, Budget, bIsBudgetIgnored);
 }
@@ -723,7 +723,7 @@ static int32 RenderFlatCycle( const FGameThreadHudData& ViewData, const FComplex
  * @param X the X location to start rendering at
  * @param Y the Y location to start rendering at
  */
-static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FViewport* Viewport, class FCanvas* Canvas, const int32 X, int32& Y)
+static void RenderGroupedWithHierarchy(const FGameThreadStatsData& ViewData, FViewport* Viewport, class FCanvas* Canvas, const int32 X, int32& Y)
 {
 	// Grab texture for rendering text background.
 	UTexture2D* BackgroundTexture = UCanvas::StaticClass()->GetDefaultObject<UCanvas>()->DefaultTexture;
@@ -731,13 +731,13 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 	const FStatRenderGlobals& Globals = GetStatRenderGlobals();
 
 	// Render all groups.
-	for( int32 GroupIndex = 0; GroupIndex < ViewData.HudGroups.Num(); ++GroupIndex )
+	for( int32 GroupIndex = 0; GroupIndex < ViewData.ActiveStatGroups.Num(); ++GroupIndex )
 	{
-		const FHudGroup& HudGroup = ViewData.HudGroups[GroupIndex];
-		const bool bBudget = HudGroup.ThreadBudgetMap.Num() > 0;
-		const int32 NumThreadsBreakdown = bBudget ? HudGroup.FlatAggregateThreadBreakdown.Num() : 1;
+		const FActiveStatGroupInfo& StatGroup = ViewData.ActiveStatGroups[GroupIndex];
+		const bool bBudget = StatGroup.ThreadBudgetMap.Num() > 0;
+		const int32 NumThreadsBreakdown = bBudget ? StatGroup.FlatAggregateThreadBreakdown.Num() : 1;
 		TArray<FName> ThreadNames;
-		HudGroup.FlatAggregateThreadBreakdown.GetKeys(ThreadNames);
+		StatGroup.FlatAggregateThreadBreakdown.GetKeys(ThreadNames);
 
 		for(int32 ThreadBreakdownIdx = 0; ThreadBreakdownIdx < NumThreadsBreakdown; ++ThreadBreakdownIdx)
 		{
@@ -772,8 +772,8 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 			Y += Globals.GetFontHeight();
 
 			
-			const bool bHasHierarchy = !!HudGroup.HierAggregate.Num();
-			const bool bHasFlat = !!HudGroup.FlatAggregate.Num();
+			const bool bHasHierarchy = !!StatGroup.HierAggregate.Num();
+			const bool bHasFlat = !!StatGroup.FlatAggregate.Num();
 
 			if (bHasHierarchy || bHasFlat)
 			{
@@ -784,34 +784,34 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FView
 			// Render hierarchy.
 			if (bHasHierarchy)
 			{
-				RenderHierCycles(Canvas, X, Y, HudGroup);
+				RenderHierCycles(Canvas, X, Y, StatGroup);
 				Y += Globals.GetFontHeight();
 			}
 
-			const float* BudgetPtr = ShortThreadName != NAME_None ? HudGroup.ThreadBudgetMap.Find(ShortThreadName) : nullptr;
+			const float* BudgetPtr = ShortThreadName != NAME_None ? StatGroup.ThreadBudgetMap.Find(ShortThreadName) : nullptr;
 			const float Budget = BudgetPtr ? *BudgetPtr : -1.f;
 			// Render flat.
 			if (bHasFlat)
 			{
-				RenderArrayOfStats(Canvas, X, Y, bBudget ? HudGroup.FlatAggregateThreadBreakdown[ThreadName] : HudGroup.FlatAggregate, ViewData, HudGroup.BudgetIgnoreStats, Budget, RenderFlatCycle);
+				RenderArrayOfStats(Canvas, X, Y, bBudget ? StatGroup.FlatAggregateThreadBreakdown[ThreadName] : StatGroup.FlatAggregate, ViewData, StatGroup.BudgetIgnoreStats, Budget, RenderFlatCycle);
 				Y += Globals.GetFontHeight();
 			}
 		}
 		
 
 			// Render memory counters.
-			if (HudGroup.MemoryAggregate.Num())
+			if (StatGroup.MemoryAggregate.Num())
 			{
 				Y += RenderMemoryHeadings(Canvas, X, Y);
-			RenderArrayOfStats(Canvas, X, Y, HudGroup.MemoryAggregate, ViewData, HudGroup.BudgetIgnoreStats, -1.f, RenderMemoryCounter);
+			RenderArrayOfStats(Canvas, X, Y, StatGroup.MemoryAggregate, ViewData, StatGroup.BudgetIgnoreStats, -1.f, RenderMemoryCounter);
 				Y += Globals.GetFontHeight();
 			}
 
 			// Render remaining counters.
-			if (HudGroup.CountersAggregate.Num())
+			if (StatGroup.CountersAggregate.Num())
 			{
 				Y += RenderCounterHeadings(Canvas, X, Y);
-			RenderArrayOfStats(Canvas, X, Y, HudGroup.CountersAggregate, ViewData, HudGroup.BudgetIgnoreStats, -1.f, RenderCounter);
+			RenderArrayOfStats(Canvas, X, Y, StatGroup.CountersAggregate, ViewData, StatGroup.BudgetIgnoreStats, -1.f, RenderCounter);
 				Y += Globals.GetFontHeight();
 			}
 		}
@@ -830,12 +830,12 @@ void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y, i
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "RenderStats" ), STAT_RenderStats, STATGROUP_StatSystem );
 
-	FGameThreadHudData* ViewData = FHUDGroupGameThreadRenderer::Get().Latest;
-	if (!ViewData)
+	FGameThreadStatsData* ViewData = FLatestGameThreadStatsData::Get().Latest;
+	if (!ViewData || !ViewData->bRenderStats)
 	{
 		return;
 	}
-
+	
 	FStatRenderGlobals& Globals = GetStatRenderGlobals();
 	// SizeX is used to clip/arrange the rendered stats to avoid overlay in stereo mode.
 	const bool bIsStereo = Canvas->IsStereoRendering();

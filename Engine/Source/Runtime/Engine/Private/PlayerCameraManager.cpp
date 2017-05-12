@@ -523,7 +523,7 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 			}
 
 			FVector Pos = Loc + ViewTargetOffset + FRotationMatrix(Rotator).TransformVector(FreeCamOffset) - Rotator.Vector() * FreeCamDistance;
-			FCollisionQueryParams BoxParams(NAME_FreeCam, false, this);
+			FCollisionQueryParams BoxParams(SCENE_QUERY_STAT(FreeCam), false, this);
 			BoxParams.AddIgnoredActor(OutVT.Target);
 			FHitResult Result;
 

@@ -364,13 +364,13 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 		if (PActor1->is<PxRigidStatic>() && PActor2->is<PxRigidBody>())
 		{
 			const uint32 SceneType = Body2->RigidActorSync != NULL ? PST_Sync : PST_Async;
-			PActor1 = Body1->GetPxRigidActor_AssumesLocked(SceneType);
+			PActor1 = Body1->GetPxRigidActorFromScene_AssumesLocked(SceneType);
 		}
 		else
 		if (PActor2->is<PxRigidStatic>() && PActor1->is<PxRigidBody>())
 		{
 			const uint32 SceneType = Body1->RigidActorSync != NULL ? PST_Sync : PST_Async;
-			PActor2 = Body2->GetPxRigidActor_AssumesLocked(SceneType);
+			PActor2 = Body2->GetPxRigidActorFromScene_AssumesLocked(SceneType);
 		}
 	}
 

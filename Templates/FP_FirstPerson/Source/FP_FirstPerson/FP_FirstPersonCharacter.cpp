@@ -8,7 +8,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
 
-static FName WeaponFireTraceIdent = FName(TEXT("WeaponTrace"));
 #define COLLISION_WEAPON		ECC_GameTraceChannel1
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
@@ -249,7 +248,7 @@ void AFP_FirstPersonCharacter::LookUpAtRate(float Rate)
 FHitResult AFP_FirstPersonCharacter::WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const
 {
 	// Perform trace to retrieve hit info
-	FCollisionQueryParams TraceParams(WeaponFireTraceIdent, true, Instigator);
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(WeaponTrace), true, Instigator);
 	TraceParams.bTraceAsyncScene = true;
 	TraceParams.bReturnPhysicalMaterial = true;
 

@@ -16,13 +16,12 @@ AGameplayAbilityTargetActor_SingleLineTrace::AGameplayAbilityTargetActor_SingleL
 
 FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InSourceActor)
 {
-	static const FName LineTraceSingleName(TEXT("AGameplayAbilityTargetActor_SingleLineTrace"));
 	bool bTraceComplex = false;
 	TArray<AActor*> ActorsToIgnore;
 
 	ActorsToIgnore.Add(InSourceActor);
 
-	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(AGameplayAbilityTargetActor_SingleLineTrace), bTraceComplex);
 	Params.bReturnPhysicalMaterial = true;
 	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);

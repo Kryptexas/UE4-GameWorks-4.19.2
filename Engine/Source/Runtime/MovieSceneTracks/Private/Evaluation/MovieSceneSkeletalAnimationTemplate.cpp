@@ -126,7 +126,7 @@ struct FSkeletalAnimationTrackData : IPersistentEvaluationData
 			
 			if (SkeletalMeshComponent)
 			{
-				UAnimSequencerInstance::BindToSkeletalMeshComponent(SkeletalMeshComponent);
+				UAnimCustomInstance::BindToSkeletalMeshComponent<UAnimSequencerInstance>(SkeletalMeshComponent);
 
 				static const bool bLooping = false;
 

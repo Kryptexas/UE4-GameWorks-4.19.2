@@ -936,16 +936,16 @@ void USkeleton::LoadAdditionalPreviewSkeletalMeshes()
 	AdditionalPreviewSkeletalMeshes.LoadSynchronous();
 }
 
-UPreviewMeshCollection* USkeleton::GetAdditionalPreviewSkeletalMeshes() const
+UDataAsset* USkeleton::GetAdditionalPreviewSkeletalMeshes() const
 {
 	return AdditionalPreviewSkeletalMeshes.Get();
 }
 
-void USkeleton::SetAdditionalPreviewSkeletalMeshes(UPreviewMeshCollection* PreviewMeshCollection)
+void USkeleton::SetAdditionalPreviewSkeletalMeshes(UDataAsset* InPreviewCollectionAsset)
 {
 	Modify();
 
-	AdditionalPreviewSkeletalMeshes = PreviewMeshCollection;
+	AdditionalPreviewSkeletalMeshes = InPreviewCollectionAsset;
 }
 
 int32 USkeleton::ValidatePreviewAttachedObjects()

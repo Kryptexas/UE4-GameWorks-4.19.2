@@ -447,7 +447,7 @@ void ADebugCameraController::SelectTargetedObject()
 	GetPlayerViewPoint(CamLoc, CamRot);
 
 	FHitResult Hit;
-	FCollisionQueryParams TraceParams(NAME_None, true, this);
+	FCollisionQueryParams TraceParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(), true, this);
 	bool const bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 5000.f * 20.f + CamLoc, ECC_Pawn, TraceParams);
 	if( bHit)
 	{

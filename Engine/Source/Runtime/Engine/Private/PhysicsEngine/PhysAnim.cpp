@@ -292,7 +292,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 			}
 			else
 			{
-				if(BodyIndex == INDEX_NONE || Bodies[BodyIndex]->IsInstanceSimulatingPhysics())
+				if(bLocalSpaceKinematics || BodyIndex == INDEX_NONE || Bodies[BodyIndex]->IsInstanceSimulatingPhysics())
 				{
 					const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 					EditableComponentSpaceTransforms[BoneIndex] = InBoneSpaceTransforms[BoneIndex] * EditableComponentSpaceTransforms[ParentIndex];
@@ -499,7 +499,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 #endif
 
 	// If we are only using bodies for physics, don't need to move them right away, can defer until simulation (unless told not to)
-	if(BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly && DeferralAllowed == EAllowKinematicDeferral::AllowDeferral)
+	if(DeferralAllowed == EAllowKinematicDeferral::AllowDeferral && (bDeferMovementFromSceneQueries || BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly))
 	{
 		PhysScene->MarkForPreSimKinematicUpdate(this, Teleport, bNeedsSkinning);
 		return;
@@ -543,7 +543,8 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 				return;
 			}
 #endif
-
+			const int32 NumComponentSpaceTransforms = GetNumComponentSpaceTransforms();
+			const int32 NumBodies = Bodies.Num();
 #if WITH_PHYSX
 
 			const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene, UseAsyncScene);
@@ -552,18 +553,17 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 #endif
 
 			// Iterate over each body
-			for (int32 i = 0; i < Bodies.Num(); i++)
+			for (int32 i = 0; i < NumBodies; i++)
 			{
-				// If we have a physics body, and its kinematic...
 				FBodyInstance* BodyInst = Bodies[i];
-				check(BodyInst);
+				PxRigidActor* RigidActor = BodyInst->GetPxRigidActor_AssumesLocked();
 
-				if (BodyInst->IsValidBodyInstance() && (bTeleport || !BodyInst->IsInstanceSimulatingPhysics()))
+				if (RigidActor && (bTeleport || !BodyInst->IsInstanceSimulatingPhysics()))	//If we have a body and it's kinematic, or we are teleporting a simulated body
 				{
 					const int32 BoneIndex = BodyInst->InstanceBoneIndex;
 
 					// If we could not find it - warn.
-					if (BoneIndex == INDEX_NONE || BoneIndex >= GetNumComponentSpaceTransforms())
+					if (BoneIndex == INDEX_NONE || BoneIndex >= NumComponentSpaceTransforms)
 					{
 						const FName BodyName = PhysicsAsset->SkeletalBodySetups[i]->BoneName;
 						UE_LOG(LogPhysics, Log, TEXT("UpdateRBBones: WARNING: Failed to find bone '%s' need by PhysicsAsset '%s' in SkeletalMesh '%s'."), *BodyName.ToString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName());
@@ -582,8 +582,8 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 							continue;
 						}
 
-						// If kinematic and not teleporting, set kinematic target
-						if (!BodyInst->IsInstanceSimulatingPhysics() && !bTeleport)
+						// If not teleporting (must be kinematic) set kinematic target
+						if (!bTeleport)
 						{
 							PhysScene->SetKinematicTarget_AssumesLocked(BodyInst, BoneTransform, true);
 						}
@@ -592,7 +592,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 						{
 							const PxTransform PNewPose = U2PTransform(BoneTransform);
 							ensure(PNewPose.isValid());
-							PxRigidActor* RigidActor = BodyInst->GetPxRigidActor_AssumesLocked(); // This should never fail because IsValidBodyInstance() passed above
 							RigidActor->setGlobalPose(PNewPose);
 						}
 #endif

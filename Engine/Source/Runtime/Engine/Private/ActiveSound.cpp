@@ -519,14 +519,13 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 	if (!bAsyncOcclusionPending && (PlaybackTime - LastOcclusionCheckTime) > OcclusionCheckInterval)
 	{
 		LastOcclusionCheckTime = PlaybackTime;
-		static FName NAME_SoundOcclusion = FName(TEXT("SoundOcclusion"));
 
 		const bool bUseComplexCollisionForOcclusion = AttenuationSettingsPtr->bUseComplexCollisionForOcclusion;
 		const ECollisionChannel OcclusionTraceChannel = AttenuationSettingsPtr->OcclusionTraceChannel;
 
 		if (!bHasCheckedOcclusion)
 		{
-			FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexCollisionForOcclusion);
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(SoundOcclusion), bUseComplexCollisionForOcclusion);
 			if (OwnerID > 0)
 			{
 				Params.AddIgnoredActor(OwnerID);
@@ -553,7 +552,7 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 			{
 				if (UWorld* WorldPtr = SoundWorld.Get())
 				{
-					FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexCollisionForOcclusion);
+					FCollisionQueryParams Params(SCENE_QUERY_STAT(SoundOcclusion), bUseComplexCollisionForOcclusion);
 					if (SoundOwnerID > 0)
 					{
 						Params.AddIgnoredActor(SoundOwnerID);

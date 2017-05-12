@@ -17,8 +17,14 @@
 #include "AssetToolsModule.h"
 #include "IAssetTools.h"
 #include "Animation/AnimBlueprint.h"
+#include "UObject/UObjectIterator.h"
+#include "STextBlock.h"
+#include "SCheckBox.h"
 
 #define LOCTEXT_NAMESPACE "PreviewSceneCustomizations"
+
+// static list that contains available classes, so that we can only allow these classes
+TArray<FName> FPreviewSceneDescriptionCustomization::AvailableClassNameList;
 
 FPreviewSceneDescriptionCustomization::FPreviewSceneDescriptionCustomization(const FString& InSkeletonName, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit)
 	: SkeletonName(InSkeletonName)
@@ -29,6 +35,18 @@ FPreviewSceneDescriptionCustomization::FPreviewSceneDescriptionCustomization(con
 	// setup custom factory up-front so we can control its lifetime
 	FactoryToUse = NewObject<UPreviewMeshCollectionFactory>();
 	FactoryToUse->AddToRoot();
+
+	// only first time
+	if (AvailableClassNameList.Num() == 0)
+	{
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			if (ClassIt->IsChildOf(UDataAsset::StaticClass()) && ClassIt->ImplementsInterface(UPreviewCollectionInterface::StaticClass()))
+			{
+				AvailableClassNameList.Add(ClassIt->GetFName());
+			}
+		}
+	}
 }
 
 FPreviewSceneDescriptionCustomization::~FPreviewSceneDescriptionCustomization()
@@ -119,6 +137,23 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 	FAssetData AdditionalMeshesAsset;
 	AdditionalMeshesProperty->GetValue(AdditionalMeshesAsset);
 
+	// bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons option
+	DetailBuilder.EditCategory("Additional Meshes")
+	.AddCustomRow(LOCTEXT("AdditvesMeshOption", "Additional Mesh Selection Option"))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+		.Text(LOCTEXT("AdditvesMeshSelectionFromDifferentSkeletons", "Allow Different Skeletons"))
+		.ToolTipText(LOCTEXT("AdditvesMeshSelectionFromDifferentSkeletons_ToolTip", "When selecting additional mesh, whether or not filter by the current skeleton."))
+	]
+	.ValueContent()
+	[
+		SNew(SCheckBox)
+		.IsChecked(this, &FPreviewSceneDescriptionCustomization::HandleAllowDifferentSkeletonsIsChecked)
+		.OnCheckStateChanged(this, &FPreviewSceneDescriptionCustomization::HandleAllowDifferentSkeletonsCheckedStateChanged)
+	];
+
 	DetailBuilder.EditCategory("Additional Meshes")
 	.AddProperty(AdditionalMeshesProperty)
 	.CustomWidget()
@@ -135,9 +170,11 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 		.FillWidth(1.0f)
 		[
 			SNew(SObjectPropertyEntryBox)
-			.AllowedClass(UPreviewMeshCollection::StaticClass())
+			// searching uobject is too much for a scale of Fortnite
+			// for now we just allow UDataAsset
+			.AllowedClass(UDataAsset::StaticClass())
 			.PropertyHandle(AdditionalMeshesProperty)
-			.OnShouldFilterAsset(this, &FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset, true)
+			.OnShouldFilterAsset(this, &FPreviewSceneDescriptionCustomization::HandleShouldFilterAdditionalMesh, true)
 			.OnObjectChanged(this, &FPreviewSceneDescriptionCustomization::HandleAdditionalMeshesChanged, &DetailBuilder)
 			.ThumbnailPool(DetailBuilder.GetThumbnailPool())
 			.NewAssetFactories(FactoriesToUse)
@@ -206,6 +243,30 @@ FReply FPreviewSceneDescriptionCustomization::OnSaveCollectionClicked(TSharedRef
 	return FReply::Handled();
 }
 
+bool FPreviewSceneDescriptionCustomization::HandleShouldFilterAdditionalMesh(const FAssetData& InAssetData, bool bCanUseDifferentSkeleton)
+{
+	// see if it's in valid class set
+	bool bValidClass = false;
+
+	// first to see if it's allowed class
+	for (FName& ClassName: AvailableClassNameList)
+	{
+		if (ClassName == InAssetData.AssetClass)
+		{
+			bValidClass = true;
+			break;
+		}
+	}
+
+	// not valid class, filter it
+	if (!bValidClass)
+	{
+		return true;
+	}
+
+	return HandleShouldFilterAsset(InAssetData, bCanUseDifferentSkeleton);
+}
+
 bool FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset(const FAssetData& InAssetData, bool bCanUseDifferentSkeleton)
 {
 	if (bCanUseDifferentSkeleton && GetDefault<UPersonaOptions>()->bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons)
@@ -250,7 +311,7 @@ void FPreviewSceneDescriptionCustomization::HandleAnimationChanged(const FAssetD
 	}
 }
 
-void FPreviewSceneDescriptionCustomization::HandleMeshChanged(const FAssetData& InAssetData)
+void FPreviewSceneDescriptionCustomization::HandleMeshChanged(const FAssetData& InAssetData)   
 {
 	USkeletalMesh* NewPreviewMesh = Cast<USkeletalMesh>(InAssetData.GetAsset());
 	PersonaToolkit.Pin()->SetPreviewMesh(NewPreviewMesh);
@@ -258,9 +319,29 @@ void FPreviewSceneDescriptionCustomization::HandleMeshChanged(const FAssetData& 
 
 void FPreviewSceneDescriptionCustomization::HandleAdditionalMeshesChanged(const FAssetData& InAssetData, IDetailLayoutBuilder* DetailLayoutBuilder)
 {
-	PreviewScene.Pin()->SetAdditionalMeshes(Cast<UPreviewMeshCollection>(InAssetData.GetAsset()));
+	UDataAsset* MeshCollection = Cast<UDataAsset>(InAssetData.GetAsset());
+	if (!MeshCollection || MeshCollection->GetClass()->ImplementsInterface(UPreviewCollectionInterface::StaticClass()))
+	{
+		PreviewScene.Pin()->SetAdditionalMeshes(MeshCollection);
+	}
+
 	DetailLayoutBuilder->ForceRefreshDetails();
 }
+
+void FPreviewSceneDescriptionCustomization::HandleAllowDifferentSkeletonsCheckedStateChanged(ECheckBoxState CheckState)
+{
+	GetMutableDefault<UPersonaOptions>()->bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons = (CheckState == ECheckBoxState::Checked);
+}
+
+ECheckBoxState FPreviewSceneDescriptionCustomization::HandleAllowDifferentSkeletonsIsChecked() const
+{
+	return GetDefault<UPersonaOptions>()->bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// 
+// FPreviewMeshCollectionEntryCustomization
+// 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void FPreviewMeshCollectionEntryCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {

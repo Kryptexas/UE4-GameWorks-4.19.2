@@ -111,7 +111,7 @@ public:
 	virtual void LoadAdditionalPreviewSkeletalMeshes() = 0;
 
 	/** Set the additional skeletal meshes we use when previewing this skeleton */
-	virtual void SetAdditionalPreviewSkeletalMeshes(class UPreviewMeshCollection* InSkeletalMeshes) = 0;
+	virtual void SetAdditionalPreviewSkeletalMeshes(class UDataAsset* InPreviewCollectionAsset) = 0;
 
 	/** Rename the specified retarget source */
 	virtual void RenameRetargetSource(const FName& InOldName, const FName& InNewName) = 0;

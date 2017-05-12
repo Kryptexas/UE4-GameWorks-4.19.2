@@ -1794,6 +1794,8 @@ struct FStat_##StatName\
 	static DEFINE_STAT(StatId) \
 	return GET_STATID(StatId);
 
+#define QUICK_USE_CYCLE_STAT(StatId,GroupId) [](){ RETURN_QUICK_DECLARE_CYCLE_STAT(StatId, GroupId); }()
+
 #define DECLARE_CYCLE_STAT(CounterName,StatId,GroupId) \
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
 	static DEFINE_STAT(StatId)
@@ -2038,6 +2040,7 @@ DECLARE_STATS_GROUP(TEXT("CPU Stalls"), STATGROUP_CPUStalls, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Canvas"),STATGROUP_Canvas, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Character"), STATGROUP_Character, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Collision"),STATGROUP_Collision, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("CollisionTags"), STATGROUP_CollisionTags, STATCAT_Advanced);
 DECLARE_STATS_GROUP_VERBOSE(TEXT("CollisionVerbose"),STATGROUP_CollisionVerbose, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("D3D11RHI"),STATGROUP_D3D11RHI, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("DDC"),STATGROUP_DDC, STATCAT_Advanced);

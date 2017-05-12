@@ -1990,11 +1990,9 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 	return false;
 }
 
-static const FName NAME_ClickableTrace("ClickableTrace");
-
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
-	FCollisionQueryParams CollisionQueryParams( NAME_ClickableTrace, bTraceComplex );
+	FCollisionQueryParams CollisionQueryParams(SCENE_QUERY_STAT(ClickableTrace), bTraceComplex );
 	return GetHitResultAtScreenPosition( ScreenPosition, TraceChannel, CollisionQueryParams, HitResult );
 }
 
@@ -2016,7 +2014,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 	if (UGameplayStatics::DeprojectScreenToWorld(this, ScreenPosition, WorldOrigin, WorldDirection) == true)
 	{
 		FCollisionObjectQueryParams const ObjParam(ObjectTypes);
-		return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, ObjParam, FCollisionQueryParams("ClickableTrace", bTraceComplex));
+		return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, ObjParam, FCollisionQueryParams(SCENE_QUERY_STAT(ClickableTrace), bTraceComplex));
 	}
 
 	return false;

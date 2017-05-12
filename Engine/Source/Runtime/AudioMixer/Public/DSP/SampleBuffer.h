@@ -16,21 +16,6 @@ namespace Audio
 		FSampleBuffer();
 		~FSampleBuffer();
 
-		// Initialize the sample buffer
-		void Init(FAudioDevice* InAudioDevice);
-
-		// Load a USoundWave and get the decoded PCM data and store internally
-		void LoadSoundWave(USoundWave* InSoundWave, const bool bLoadAsync = true);
-
-		// Updates the loading state
-		void UpdateLoading();
-
-		// Queries if the sound file is loaded
-		bool IsLoaded() const;
-
-		// Queries if the sound file is loading
-		bool IsLoading() const;
-
 		// Gets the raw PCM data of the sound wave
 		const int16* GetData() const;
 
@@ -46,17 +31,59 @@ namespace Audio
 		// Gets the sample rate of the sound wave
 		int32 GetSampleRate() const;
 
-	protected:
-		
-		// What audio device this sample buffer is playing in.
-		FAudioDevice* AudioDevice;
-
-		// Sound wave object
-		USoundWave* SoundWave;
-
-		bool bIsLoaded;
-		bool bIsLoading;
+		// Ptr to raw PCM data buffer
+		int16* RawPCMData;
+		// The number of samples in the buffer
+		int32 NumSamples;
+		// The number of frames in the buffer
+		int32 NumFrames;
+		// The number of channels in the buffer
+		int32 NumChannels;
+		// The sample rate of the buffer	
+		int32 SampleRate;
+		// The duration of the buffer in seconds
+		float SampleDuration;
 	};
 
+	// Class which handles loading and decoding a USoundWave asset into a PCM buffer
+	class AUDIOMIXER_API FSoundWavePCMLoader
+	{
+	public:
+		FSoundWavePCMLoader();
+
+		// Intialize loader with audio device
+		void Init(FAudioDevice* InAudioDevice);
+
+		// Loads a USoundWave, call on game thread.
+		void LoadSoundWave(USoundWave* InSoundWave);
+
+		// Update the loading state. Returns true once the sound wave is loaded/decoded.
+		// Call on game thread.
+		bool Update();
+
+		// Returns the sample buffer data once the sound wave is loaded/decoded. Call on game thread thread.
+		void GetSampleBuffer(FSampleBuffer& OutSampleBuffer);
+
+		// Empties pending sound wave load references. Call on audio rendering thread.
+		void Reset();
+
+		// Queries whether the current sound wave has finished loading/decoding
+		bool IsSoundWaveLoaded() const { return bIsLoaded; }
+
+	private:
+		
+		// Ptr to the audio device to use to do the decoding
+		FAudioDevice* AudioDevice;
+		// Reference to current loading sound wave
+		USoundWave* SoundWave;	
+		// Struct to meta-data of decoded PCM buffer and ptr to PCM data
+		FSampleBuffer SampleBuffer;
+		// Queue of sound wave ptrs to hold references to them until fully released in audio render thread
+		TQueue<USoundWave*> PendingStoppingSoundWaves;
+		// Whether the sound wave load/decode is in-flight
+		bool bIsLoading;
+		// Whether or not the sound wave has already been loaded
+		bool bIsLoaded;
+	};
 }
 

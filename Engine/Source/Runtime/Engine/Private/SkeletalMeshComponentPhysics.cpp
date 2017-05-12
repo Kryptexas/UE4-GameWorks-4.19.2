@@ -2022,7 +2022,7 @@ bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if(World && (World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+	if(World && World->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		TArray<FHitResult> Hits;
 		if (bHaveHit)
@@ -2149,6 +2149,8 @@ void USkeletalMeshComponent::RecreateClothingActors()
 
 			ClothingSimulation->CreateActor(this, Asset, BaseAssetIndex);
 		}
+
+		WritebackClothingSimulationData();
 	}
 }
 
@@ -2296,8 +2298,7 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 	// to collide with other clothing objects
 	ObjectParams.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
 
-	static FName ClothOverlapComponentsName(TEXT("ClothOverlapComponents"));
-	FCollisionQueryParams Params(ClothOverlapComponentsName, false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(ClothOverlapComponents), false);
 
 	GetWorld()->OverlapMultiByObjectType(Overlaps, Bounds.Origin, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(Bounds.BoxExtent), Params);
 

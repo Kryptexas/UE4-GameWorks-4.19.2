@@ -21,7 +21,8 @@ using namespace ImmediatePhysics;
 
 #define LOCTEXT_NAMESPACE "ImmediatePhysics"
 
-FAnimNode_RigidBody::FAnimNode_RigidBody()
+FAnimNode_RigidBody::FAnimNode_RigidBody():
+	QueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId())
 {
 	bResetSimulated = false;
 	PhysicsSimulation = nullptr;
@@ -335,7 +336,7 @@ DECLARE_CYCLE_STAT(TEXT("FAnimNode_Ragdoll::UpdateWorldGeometry"), STAT_Immediat
 void FAnimNode_RigidBody::UpdateWorldGeometry(const UWorld& World, const USkeletalMeshComponent& SKC)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ImmediateUpdateWorldGeometry);
-	QueryParams = FCollisionQueryParams(TEXT("RagdollNodeFindGeometry"), /*bTraceComplex=*/false);
+	QueryParams = FCollisionQueryParams(SCENE_QUERY_STAT(RagdollNodeFindGeometry), /*bTraceComplex=*/false);
 #if WITH_EDITOR
 	if(!World.IsGameWorld())
 	{

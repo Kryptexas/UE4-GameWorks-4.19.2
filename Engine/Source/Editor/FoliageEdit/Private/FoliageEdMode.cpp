@@ -1799,8 +1799,7 @@ void FEdModeFoliage::SelectInvalidInstances(const UFoliageType* Settings)
 {
 	UWorld* InWorld = GetWorld();
 
-	static FName NAME_FoliageGroundCheck = FName("FoliageGroundCheck");
-	FCollisionQueryParams QueryParams(NAME_FoliageGroundCheck, true);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(FoliageGroundCheck), true);
 	QueryParams.bReturnFaceIndex = false;
 	FCollisionShape SphereShape;
 	SphereShape.SetSphere(0.f);

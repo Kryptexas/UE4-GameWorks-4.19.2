@@ -42,10 +42,9 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 		const FVector Origin = GetComponentLocation();
 
 		// Find objects within the sphere
-		static FName AddForceOverlapName = FName(TEXT("AddForceOverlap"));
 		TArray<FOverlapResult> Overlaps;
 
-		FCollisionQueryParams Params(AddForceOverlapName, false);
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(AddForceOverlap), false);
 		Params.bTraceAsyncScene = true; // want to hurt stuff in async scene
 
 		// Ignore owner actor if desired
@@ -112,10 +111,9 @@ void URadialForceComponent::FireImpulse()
 	const FVector Origin = GetComponentLocation();
 
 	// Find objects within the sphere
-	static FName FireImpulseOverlapName = FName(TEXT("FireImpulseOverlap"));
 	TArray<FOverlapResult> Overlaps;
 
-	FCollisionQueryParams Params(FireImpulseOverlapName, false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(FireImpulseOverlap),  false);
 	Params.bTraceAsyncScene = true; // want to hurt stuff in async scene
 
 	// Ignore owner actor if desired

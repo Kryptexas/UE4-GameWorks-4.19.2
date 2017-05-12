@@ -288,7 +288,7 @@ void FEQSHelpers::RunRaycastsOnNavHitOnlyWalls(const ANavigationData& NavData, c
 		ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
 		FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
 
-		FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+		FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(EnvQueryTrace), TraceData.bTraceComplex);
 		TraceParams.bTraceAsyncScene = true;
 		TraceParams.AddIgnoredActors(IgnoredActors);
 
@@ -394,7 +394,7 @@ void FEQSHelpers::RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData,
 	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
 	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
 
-	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(EnvQueryTrace), TraceData.bTraceComplex);
 	TraceParams.bTraceAsyncScene = true;
 	TraceParams.AddIgnoredActors(IgnoredActors);
 
@@ -428,7 +428,7 @@ void FEQSHelpers::RunPhysProjection(UWorld* World, const FEnvTraceData& TraceDat
 	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
 	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
 
-	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(EnvQueryTrace), TraceData.bTraceComplex);
 	TraceParams.bTraceAsyncScene = true;
 
 	FBatchTrace BatchOb(World, TraceCollisionChannel, TraceParams, TraceExtent, TraceMode);
@@ -461,7 +461,7 @@ void FEQSHelpers::RunPhysProjection(UWorld* World, const FEnvTraceData& TraceDat
 	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
 	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
 
-	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(EnvQueryTrace), TraceData.bTraceComplex);
 	TraceParams.bTraceAsyncScene = true;
 
 	FBatchTrace BatchOb(World, TraceCollisionChannel, TraceParams, TraceExtent, ETraceMode::Keep);

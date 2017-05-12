@@ -1150,16 +1150,18 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 				const bool bDifferentNumberOfElements = false;
 				/* // This code is a no-op
 				{
-					const FConfigSection* SourceSection = nullptr;
-					if( SourceSection )
+					if (SourceConfigFile)
 					{
-						TArray<FConfigValue> SourceMatchingProperties;
-						SourceSection->MultiFind( PropertyName, SourceMatchingProperties );
+						if (const FConfigSection* SourceSection = SourceConfigFile->Find(SectionName))
+						{
+							TArray<FConfigValue> SourceMatchingProperties;
+							SourceSection->MultiFind(PropertyName, SourceMatchingProperties);
 
-						TArray<FConfigValue> DestMatchingProperties;
-						Section.MultiFind( PropertyName, DestMatchingProperties );
+							TArray<FConfigValue> DestMatchingProperties;
+							Section.MultiFind(PropertyName, DestMatchingProperties);
 
-						bDifferentNumberOfElements = SourceMatchingProperties.Num() != DestMatchingProperties.Num();
+							bDifferentNumberOfElements = SourceMatchingProperties.Num() != DestMatchingProperties.Num();
+						}
 					}
 				}
 				*/

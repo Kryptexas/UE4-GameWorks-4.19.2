@@ -50,9 +50,17 @@ public:
 	void OnRefresh();
 
 protected:
+
+	// Details view placed below asset selection
 	TSharedPtr<IDetailsView> DetailsView;
+
+	// Objects observed in the details view
 	TArray<UObject*> Objects;
 
+	// The painter instance this widget is using
+	FClothPainter* Painter;
+
+	// Settings for the painter instance
 	UClothPainterSettings* ClothPainterSettings;
 
 	// Asset List handling

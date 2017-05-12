@@ -47,6 +47,7 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, DefaultLocalAxesSelection(2)
 	, DefaultBoneDrawSelection(1)
+	, bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons(true)
 {
 	ViewModeIndex = VMI_Lit;
 

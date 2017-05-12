@@ -852,7 +852,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* InViewport, bool bCo
 #endif
 	SharedData->LastClickPos = Click.GetClickPos();
 	FHitResult Result(1.f);
-	bool bHit = SharedData->EditorSkelComp->LineTraceComponent(Result, Click.GetOrigin() - Click.GetDirection() * SimGrabCheckDistance, Click.GetOrigin() + Click.GetDirection() * SimGrabCheckDistance, FCollisionQueryParams(NAME_None,true));
+	bool bHit = SharedData->EditorSkelComp->LineTraceComponent(Result, Click.GetOrigin() - Click.GetDirection() * SimGrabCheckDistance, Click.GetOrigin() + Click.GetDirection() * SimGrabCheckDistance, FCollisionQueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId(),true));
 
 	if (bHit)
 	{

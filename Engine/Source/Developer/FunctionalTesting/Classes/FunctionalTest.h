@@ -415,6 +415,13 @@ public:
 	void AssertEqual_Float(const float Actual, const float Expected, const FString& What, float Tolerance = 1.e-4, const UObject* ContextObject = nullptr);
 
 	/**
+	* Assert that two integers are equal.
+	* @param What	A name to use in the message if the assert fails (What: expected {Actual} to be Equal To {Expected} '')
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Asserts", DisplayName = "Assert Equal (Int)", meta = (HidePin = "ContextObject", DefaultToSelf = "ContextObject"))
+	bool AssertEqual_Int(const int32 Actual, const int32 Expected, const FString& What, const UObject* ContextObject = nullptr);
+
+	/**
 	 * Assert that two transforms are (components memberwise - translation, rotation, scale) not equal within a small tolerance.
 	 * @param What	A name to use in the message if the assert fails ("Expected 'What' not to be {Expected} but it was {Actual} for context ''")
 	 */

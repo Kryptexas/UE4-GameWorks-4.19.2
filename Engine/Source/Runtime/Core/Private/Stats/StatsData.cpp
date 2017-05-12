@@ -37,6 +37,8 @@ const FName FStatConstants::RAW_NamedMarker = FStatNameAndInfo( GET_STATFNAME( S
 
 const FStatNameAndInfo FStatConstants::AdvanceFrame = FStatNameAndInfo( NAME_AdvanceFrame, "", "", TEXT( "" ), EStatDataType::ST_int64, true, false );
 
+extern bool GRenderStats;
+
 /*-----------------------------------------------------------------------------
 	FRawStatStackNode
 -----------------------------------------------------------------------------*/
@@ -1101,7 +1103,7 @@ void FStatsThreadState::UpdateStatMessagesMemoryUsage()
 
 	if( FThreadStats::bIsRawStatsActive )
 	{
-		FGameThreadHudData* ToGame = new FGameThreadHudData(true);
+		FGameThreadStatsData* ToGame = new FGameThreadStatsData(true, GRenderStats);
 
 		const double InvMB = 1.0f / 1024.0f / 1024.0f;
 
@@ -1119,7 +1121,7 @@ void FStatsThreadState::UpdateStatMessagesMemoryUsage()
 
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
 		(
-			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FHUDGroupGameThreadRenderer::Get(), &FHUDGroupGameThreadRenderer::NewData, ToGame),
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FLatestGameThreadStatsData::Get(), &FLatestGameThreadStatsData::NewData, ToGame),
 			TStatId(), nullptr, ENamedThreads::GameThread
 		);
 	}

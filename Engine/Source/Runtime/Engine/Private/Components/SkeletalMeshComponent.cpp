@@ -1533,12 +1533,12 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	}
 
 	// update anim instance
-	if (InAnimInstance && InAnimInstance->NeedsUpdate())
+	if(InAnimInstance && InAnimInstance->NeedsUpdate())
 	{
 		InAnimInstance->ParallelUpdateAnimation();
 	}
-
-	if (PostProcessAnimInstance && PostProcessAnimInstance->NeedsUpdate())
+	
+	if(PostProcessAnimInstance && PostProcessAnimInstance->NeedsUpdate())
 	{
 		// If we don't have an anim instance, we may still have a post physics instance
 		PostProcessAnimInstance->ParallelUpdateAnimation();
@@ -1809,7 +1809,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 					AnimCurves.CopyFrom(CachedCurve);
 				}
 			}
-			if (AnimScriptInstance && AnimScriptInstance->NeedsUpdate())
+			if(AnimScriptInstance && AnimScriptInstance->NeedsUpdate())
 			{
 				AnimScriptInstance->ParallelUpdateAnimation();
 			}
@@ -1838,7 +1838,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	{
 		EvaluationContext.AnimInstance->PostUpdateAnimation();
 
-		for(UAnimInstance* SubInstance : SubInstances)
+		for (UAnimInstance* SubInstance : SubInstances)
 		{
 			SubInstance->PostUpdateAnimation();
 		}
@@ -2041,11 +2041,11 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRe
 		UpdateHasValidBodies();
 
 		InitAnim(bReinitPose);
-	}
 
 #if WITH_APEX_CLOTHING
-	RecreateClothingActors();
+		RecreateClothingActors();
 #endif
+	}
 
 	// Mark cached material parameter names dirty
 	MarkCachedMaterialParameterNameIndicesDirty();

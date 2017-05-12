@@ -18,6 +18,7 @@
 #include "SInlineEditableTextBlock.h"
 #include "MultiBoxBuilder.h"
 #include "SButton.h"
+#include "ClothPaintToolBase.h"
 
 #define LOCTEXT_NAMESPACE "ClothPaintWidget"
 
@@ -267,8 +268,17 @@ FName SMaskListRow::Column_CurrentTarget(TEXT("CurrentTarget"));
 
 void SClothPaintWidget::Construct(const FArguments& InArgs, FClothPainter* InPainter)
 {
-	Objects.Add(InPainter->GetBrushSettings());
-	Objects.Add(InPainter->GetPainterSettings());
+	Painter = InPainter;
+
+	Objects.Add(Painter->GetBrushSettings());
+	Objects.Add(Painter->GetPainterSettings());
+
+	UObject* ToolSettings = Painter->GetSelectedTool()->GetSettingsObject();
+	if(ToolSettings)
+	{
+		Objects.Add(ToolSettings);
+	}
+
 	ClothPainterSettings = Cast<UClothPainterSettings>(InPainter->GetPainterSettings());
 	CreateDetailsView(InPainter);
 
@@ -452,6 +462,16 @@ void SClothPaintWidget::OnRefresh()
 
 	if(DetailsView.IsValid())
 	{
+		Objects.Reset();
+		Objects.Add(Painter->GetBrushSettings());
+		Objects.Add(Painter->GetPainterSettings());
+
+		UObject* ToolSettings = Painter->GetSelectedTool()->GetSettingsObject();
+		if(ToolSettings)
+		{
+			Objects.Add(ToolSettings);
+		}
+
 		DetailsView->SetObjects(Objects, true);
 	}
 }

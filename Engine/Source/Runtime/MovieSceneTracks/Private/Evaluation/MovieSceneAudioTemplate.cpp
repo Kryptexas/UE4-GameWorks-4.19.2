@@ -304,7 +304,6 @@ void FMovieSceneAudioSectionTemplateData::EnsureAudioIsPlaying(UAudioComponent& 
 	if (bPlaySound)
 	{
 		AudioComponent.bAllowSpatialization = bAllowSpatialization;
-		AudioComponent.bOverrideAttenuation = bAllowSpatialization;
 		AudioComponent.Stop();
 		AudioComponent.SetSound(Sound);
 #if WITH_EDITOR

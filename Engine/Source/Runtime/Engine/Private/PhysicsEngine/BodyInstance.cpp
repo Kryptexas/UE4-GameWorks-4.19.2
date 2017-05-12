@@ -1422,7 +1422,7 @@ struct FInitBodiesHelper
 		return PNewDynamic;
 	}
 
-	bool CreateShapes_PhysX_AssumesLocked(FBodyInstance* Instance, physx::PxRigidActor* PNewDynamic) const
+	bool CreateShapes_PhysX_AssumesLocked(FBodyInstance* Instance, physx::PxRigidActor* PNewDynamic, bool bKinematicTargetForSQ) const
 	{
 		UPhysicalMaterial* SimplePhysMat = Instance->GetSimplePhysicalMaterial();
 		TArray<UPhysicalMaterial*> ComplexPhysMats = Instance->GetComplexPhysicalMaterials();
@@ -1439,7 +1439,7 @@ struct FInitBodiesHelper
 			{
 				ModifyRigidBodyFlag<PxRigidBodyFlag::eKINEMATIC>(ShapeData.SyncBodyFlags, true);
 			}
-			ModifyRigidBodyFlag<PxRigidBodyFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES>(ShapeData.SyncBodyFlags, true);
+			ModifyRigidBodyFlag<PxRigidBodyFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES>(ShapeData.SyncBodyFlags, bKinematicTargetForSQ);
 		}
 
 		bool bInitFail = false;
@@ -1567,7 +1567,7 @@ struct FInitBodiesHelper
 			if (!bFoundBinaryData)
 			{
 				PNewDynamic = CreateActor_PhysX_AssumesLocked(Instance, U2PTransform(Transform));
-				const bool bInitFail = CreateShapes_PhysX_AssumesLocked(Instance, PNewDynamic);
+				const bool bInitFail = CreateShapes_PhysX_AssumesLocked(Instance, PNewDynamic, SpawnParams.bKinematicTargetsUpdateSQ);
 
 				if (bInitFail)
 				{
@@ -1947,8 +1947,18 @@ struct FInitBodiesHelper
 FBodyInstance::FInitBodySpawnParams::FInitBodySpawnParams(const UPrimitiveComponent* PrimComp)
 {
 	bStaticPhysics = PrimComp == nullptr || PrimComp->Mobility != EComponentMobility::Movable;
-	bPhysicsTypeDeterminesSimulation = PrimComp && PrimComp->IsA<USkeletalMeshComponent>();
 	DynamicActorScene = EDynamicActorScene::Default;
+
+	if(const USkeletalMeshComponent* SKOwner = Cast<USkeletalMeshComponent>(PrimComp))
+	{
+		bPhysicsTypeDeterminesSimulation = true;
+		bKinematicTargetsUpdateSQ = !SKOwner->bDeferMovementFromSceneQueries;
+	}
+	else
+	{
+		bPhysicsTypeDeterminesSimulation = false;
+		bKinematicTargetsUpdateSQ = true;
+	}
 }
 
 void FBodyInstance::InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams, PhysXAggregateType InAggregate /*= NULL*/)
@@ -3417,7 +3427,7 @@ int32 FBodyInstance::GetSceneIndex(int32 SceneType /* = -1 */) const
 	return -1;
 }
 
-PxRigidActor* FBodyInstance::GetPxRigidActor_AssumesLocked(int32 SceneType) const
+PxRigidActor* FBodyInstance::GetPxRigidActorFromScene_AssumesLocked(int32 SceneType) const
 {
 	// Negative scene type means to return whichever is not NULL, preferring the sync scene.
 	if( SceneType < 0 )
@@ -4408,6 +4418,7 @@ FString FBodyInstance::GetBodyDebugName() const
 
 bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_FBodyInstance_LineTrace);
 
 	OutHit.TraceStart = Start;
@@ -4728,6 +4739,7 @@ template bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const 
 
 bool FBodyInstance::OverlapTest(const FVector& Position, const FQuat& Rotation, const struct FCollisionShape& CollisionShape, FMTDResult* OutMTD) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_FBodyInstance_OverlapTest);
 
 	bool bHasOverlap = false;
@@ -4769,6 +4781,7 @@ FTransform RootSpaceToWeldedSpace(const FBodyInstance* BI, const FTransform& Roo
 
 bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FQuat& Quat, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_Collision_SceneQueryTotal);
 	SCOPE_CYCLE_COUNTER(STAT_Collision_FBodyInstance_OverlapMulti);
 
 	if ( !IsValidBodyInstance()  && (!WeldParent || !WeldParent->IsValidBodyInstance()))

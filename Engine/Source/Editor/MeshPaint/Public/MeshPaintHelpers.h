@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "MeshPaintTypes.h"
 
 class FMeshPaintParameters;
 class UVertexColorImportOptions;
@@ -24,8 +26,18 @@ struct FStaticMeshComponentLODInfo;
 
 enum class EMeshPaintColorViewMode : uint8;
 
+/** Parameters for paint actions, stored together for convenience */
+struct FPerVertexPaintActionArgs
+{
+	IMeshPaintGeometryAdapter* Adapter;
+	FVector CameraPosition;
+	FHitResult HitResult;
+	const UPaintBrushSettings* BrushSettings;
+	EMeshPaintAction Action;
+};
+
 /** Delegates used to call per-vertex/triangle actions */
-DECLARE_DELEGATE_TwoParams(FPerVertexPaintAction, IMeshPaintGeometryAdapter* /*Adapter*/, int32 /*VertexIndex*/);
+DECLARE_DELEGATE_TwoParams(FPerVertexPaintAction, FPerVertexPaintActionArgs& /*Args*/, int32 /*VertexIndex*/);
 DECLARE_DELEGATE_ThreeParams(FPerTrianglePaintAction, IMeshPaintGeometryAdapter* /*Adapter*/, int32 /*TriangleIndex*/, const int32[3] /*Vertex Indices*/);
 
 class MESHPAINT_API MeshPaintHelpers
@@ -103,8 +115,8 @@ public:
 	/** Retrieves the number of bytes used to store the per-instance LOD vertex color data from the static mesh component */
 	static void GetInstanceColorDataInfo(const UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, int32& OutTotalInstanceVertexColorBytes);
 
-	/** Given the adapter, settings and view-information retrieves influences vertices and applies Action to them */
-	static bool ApplyPerVertexPaintAction(IMeshPaintGeometryAdapter* Adapter, const FVector& CameraPosition, const FVector& HitPosition, const UPaintBrushSettings* Settings, FPerVertexPaintAction Action);
+	/** Given arguments for an action, and an action - retrieves influences vertices and applies Action to them */
+	static bool ApplyPerVertexPaintAction(FPerVertexPaintActionArgs& InArgs, FPerVertexPaintAction Action);
 	
 	/** Given the adapter, settings and view-information retrieves influences triangles and applies Action to them */
 	static bool ApplyPerTrianglePaintAction(IMeshPaintGeometryAdapter* Adapter, const FVector& CameraPosition, const FVector& HitPosition, const UPaintBrushSettings* Settings, FPerTrianglePaintAction Action);

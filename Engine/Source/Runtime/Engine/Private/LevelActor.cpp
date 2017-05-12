@@ -793,8 +793,6 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	return !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust);
 }
 
-static const FName NAME_ComponentEncroachesBlockingGeometry_NoAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_NoAdjustment"));
-
 /** Tests shape components more efficiently than the with-adjustment case, but does less-efficient ppr-poly collision for meshes. */
 static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, const TArray<AActor*>& IgnoreActors)
 {	
@@ -815,7 +813,7 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 			{
 				// must be registered
 				TArray<FOverlapResult> Overlaps;
-				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, TestActor);
+				FComponentQueryParams Params(SCENE_QUERY_STAT(ComponentEncroachesBlockingGeometry_NoAdjustment), TestActor);
 				FCollisionResponseParams ResponseParams;
 				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 				Params.AddIgnoredActors(IgnoreActors);
@@ -829,7 +827,7 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 		}
 		else
 		{
-			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, false, TestActor);
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(ComponentEncroachesBlockingGeometry_NoAdjustment), false, TestActor);
 			FCollisionResponseParams ResponseParams;
 			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 			Params.AddIgnoredActors(IgnoreActors);
@@ -839,8 +837,6 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 
 	return false;
 }
-
-static const FName NAME_ComponentEncroachesBlockingGeometry_WithAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_WithAdjustment"));
 
 /** Tests shape components less efficiently than the no-adjustment case, but does quicker aabb collision for meshes. */
 static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector& OutProposedAdjustment, const TArray<AActor*>& IgnoreActors)
@@ -867,7 +863,7 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 			if (PrimComp->IsRegistered())
 			{
 				// must be registered
-				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, TestActor);
+				FComponentQueryParams Params(SCENE_QUERY_STAT(ComponentEncroachesBlockingGeometry_WithAdjustment), TestActor);
 				FCollisionResponseParams ResponseParams;
 				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 				Params.AddIgnoredActors(IgnoreActors);
@@ -882,7 +878,7 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 		else
 		{
 			// overlap our shape
-			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, false, TestActor);
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(ComponentEncroachesBlockingGeometry_WithAdjustment), false, TestActor);
 			FCollisionResponseParams ResponseParams;
 			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
 			Params.AddIgnoredActors(IgnoreActors);

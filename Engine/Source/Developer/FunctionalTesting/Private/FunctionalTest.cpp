@@ -604,6 +604,20 @@ void AFunctionalTest::AssertEqual_Float(const float Actual, const float Expected
 	}
 }
 
+bool AFunctionalTest::AssertEqual_Int(const int32 Actual, const int32 Expected, const FString& What, const UObject* ContextObject)
+{
+	if(Actual != Expected)
+	{
+		LogStep(ELogVerbosity::Error, FString::Printf(TEXT("Expected '%s' to be {%d}, but it was {%d} for context '%s'"), *What, Expected, Actual, ContextObject ? *ContextObject->GetName() : TEXT("")));
+		return false;
+	}
+	else
+	{
+		LogStep(ELogVerbosity::Log, FString::Printf(TEXT("Int assertion passed (%s)"), *What));
+		return true;
+	}
+}
+
 void AFunctionalTest::AssertEqual_Transform(const FTransform Actual, const FTransform Expected, const FString& What, const UObject* ContextObject)
 {
 	if ( !Expected.Equals(Actual) )

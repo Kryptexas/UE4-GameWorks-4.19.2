@@ -78,20 +78,6 @@ const float UCharacterMovementComponent::MAX_FLOOR_DIST = 2.4f;
 const float UCharacterMovementComponent::BRAKE_TO_STOP_VELOCITY = 10.f;
 const float UCharacterMovementComponent::SWEEP_EDGE_REJECT_DISTANCE = 0.15f;
 
-// Statics
-namespace CharacterMovementComponentStatics
-{
-	static const FName CrouchTraceName = FName(TEXT("CrouchTrace"));
-	static const FName FindWaterLineName = FName(TEXT("FindWaterLine"));
-	static const FName FallingTraceParamsTag = FName(TEXT("PhysFalling"));
-	static const FName CheckLedgeDirectionName = FName(TEXT("CheckLedgeDirection"));
-	static const FName ProjectLocationName = FName(TEXT("NavProjectLocation"));
-	static const FName CheckWaterJumpName = FName(TEXT("CheckWaterJump"));
-	static const FName ComputeFloorDistName = FName(TEXT("ComputeFloorDistSweep"));
-	static const FName FloorLineTraceName = FName(TEXT("ComputeFloorDistLineTrace"));
-	static const FName ImmersionDepthName = FName(TEXT("MovementComp_Character_ImmersionDepth"));
-}
-
 // CVars
 namespace CharacterMovementCVars
 {
@@ -2363,7 +2349,7 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 		// Crouching to a larger height? (this is rare)
 		if (ClampedCrouchedHalfHeight > OldUnscaledHalfHeight)
 		{
-			FCollisionQueryParams CapsuleParams(CharacterMovementComponentStatics::CrouchTraceName, false, CharacterOwner);
+			FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(CrouchTrace), false, CharacterOwner);
 			FCollisionResponseParams ResponseParam;
 			InitCollisionParams(CapsuleParams, ResponseParam);
 			const bool bEncroached = GetWorld()->OverlapBlockingTestByChannel(UpdatedComponent->GetComponentLocation() - FVector(0.f,0.f,ScaledHalfHeightAdjust), FQuat::Identity,
@@ -2445,7 +2431,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 	{
 		// Try to stay in place and see if the larger capsule fits. We use a slightly taller capsule to avoid penetration.
 		const float SweepInflation = KINDA_SMALL_NUMBER * 10.f;
-		FCollisionQueryParams CapsuleParams(CharacterMovementComponentStatics::CrouchTraceName, false, CharacterOwner);
+		FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(CrouchTrace), false, CharacterOwner);
 		FCollisionResponseParams ResponseParam;
 		InitCollisionParams(CapsuleParams, ResponseParam);
 
@@ -2856,7 +2842,7 @@ float UCharacterMovementComponent::ImmersionDepth() const
 				const FVector TraceStart = UpdatedComponent->GetComponentLocation() + FVector(0.f,0.f,CollisionHalfHeight);
 				const FVector TraceEnd = UpdatedComponent->GetComponentLocation() - FVector(0.f,0.f,CollisionHalfHeight);
 
-				FCollisionQueryParams NewTraceParams(CharacterMovementComponentStatics::ImmersionDepthName, true);
+				FCollisionQueryParams NewTraceParams(SCENE_QUERY_STAT(ImmersionDepth), true);
 				VolumeBrushComp->LineTraceComponent( Hit, TraceStart, TraceEnd, NewTraceParams );
 			}
 
@@ -3777,7 +3763,7 @@ FVector UCharacterMovementComponent::FindWaterLine(FVector InWater, FVector Outo
 	FVector Result = OutofWater;
 
 	TArray<FHitResult> Hits;
-	GetWorld()->LineTraceMultiByChannel(Hits, OutofWater, InWater, UpdatedComponent->GetCollisionObjectType(), FCollisionQueryParams(CharacterMovementComponentStatics::FindWaterLineName, true, CharacterOwner));
+	GetWorld()->LineTraceMultiByChannel(Hits, OutofWater, InWater, UpdatedComponent->GetCollisionObjectType(), FCollisionQueryParams(SCENE_QUERY_STAT(FindWaterLine), true, CharacterOwner));
 
 	for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
 	{
@@ -4119,7 +4105,7 @@ bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float Ad
 	
 	if (!TestWalk.IsZero())
 	{
-		FCollisionQueryParams CapsuleQuery(CharacterMovementComponentStatics::FallingTraceParamsTag, false, CharacterOwner);
+		FCollisionQueryParams CapsuleQuery(SCENE_QUERY_STAT(FallingTraceParam), false, CharacterOwner);
 		FCollisionResponseParams ResponseParam;
 		InitCollisionParams(CapsuleQuery, ResponseParam);
 		const FVector CapsuleLocation = UpdatedComponent->GetComponentLocation();
@@ -4164,7 +4150,7 @@ FVector UCharacterMovementComponent::LimitAirControl(float DeltaTime, const FVec
 bool UCharacterMovementComponent::CheckLedgeDirection(const FVector& OldLocation, const FVector& SideStep, const FVector& GravDir) const
 {
 	const FVector SideDest = OldLocation + SideStep;
-	FCollisionQueryParams CapsuleParams(CharacterMovementComponentStatics::CheckLedgeDirectionName, false, CharacterOwner);
+	FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(CheckLedgeDirection), false, CharacterOwner);
 	FCollisionResponseParams ResponseParam;
 	InitCollisionParams(CapsuleParams, ResponseParam);
 	const FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
@@ -4931,7 +4917,7 @@ void UCharacterMovementComponent::FindBestNavMeshLocation(const FVector& TraceSt
 	// raycast to underlying mesh to allow us to more closely follow geometry
 	// we use static objects here as a best approximation to accept only objects that
 	// influence navmesh generation
-	FCollisionQueryParams Params(CharacterMovementComponentStatics::ProjectLocationName, false);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(ProjectLocation), false);
 
 	// blocked by world static and optionally world dynamic
 	FCollisionResponseParams ResponseParams(ECR_Ignore);
@@ -5472,7 +5458,7 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 	CheckPoint = UpdatedComponent->GetComponentLocation() + 1.2f * PawnCapsuleRadius * CheckNorm;
 	FVector Extent(PawnCapsuleRadius, PawnCapsuleRadius, PawnCapsuleHalfHeight);
 	FHitResult HitInfo(1.f);
-	FCollisionQueryParams CapsuleParams(CharacterMovementComponentStatics::CheckWaterJumpName, false, CharacterOwner);
+	FCollisionQueryParams CapsuleParams(SCENE_QUERY_STAT(CheckWaterJump), false, CharacterOwner);
 	FCollisionResponseParams ResponseParam;
 	InitCollisionParams(CapsuleParams, ResponseParam);
 	FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
@@ -5486,7 +5472,7 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 		FVector Start = UpdatedComponent->GetComponentLocation();
 		Start.Z += MaxOutOfWaterStepHeight;
 		CheckPoint = Start + 3.2f * PawnCapsuleRadius * WallNormal;
-		FCollisionQueryParams LineParams(CharacterMovementComponentStatics::CheckWaterJumpName, true, CharacterOwner);
+		FCollisionQueryParams LineParams(SCENE_QUERY_STAT(CheckWaterJump), true, CharacterOwner);
 		FCollisionResponseParams LineResponseParam;
 		InitCollisionParams(LineParams, LineResponseParam);
 		bHit = GetWorld()->LineTraceSingleByChannel( HitInfo, Start, CheckPoint, CollisionChannel, LineParams, LineResponseParam );
@@ -5704,7 +5690,7 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 	}
 
 	bool bBlockingHit = false;
-	FCollisionQueryParams QueryParams(NAME_None, false, CharacterOwner);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ComputeFloorDist), false, CharacterOwner);
 	FCollisionResponseParams ResponseParam;
 	InitCollisionParams(QueryParams, ResponseParam);
 	const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
@@ -5718,7 +5704,6 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 		const float ShrinkScaleOverlap = 0.1f;
 		float ShrinkHeight = (PawnHalfHeight - PawnRadius) * (1.f - ShrinkScale);
 		float TraceDist = SweepDistance + ShrinkHeight;
-		QueryParams.TraceTag = CharacterMovementComponentStatics::ComputeFloorDistName;
 		FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(SweepRadius, PawnHalfHeight - ShrinkHeight);
 
 		FHitResult Hit(1.f);
@@ -5777,7 +5762,7 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 		const FVector LineTraceStart = CapsuleLocation;	
 		const float TraceDist = LineDistance + ShrinkHeight;
 		const FVector Down = FVector(0.f, 0.f, -TraceDist);
-		QueryParams.TraceTag = CharacterMovementComponentStatics::FloorLineTraceName;
+		QueryParams.TraceTag = SCENE_QUERY_STAT_NAME_ONLY(FloorLineTrace);
 
 		FHitResult Hit(1.f);
 		bBlockingHit = GetWorld()->LineTraceSingleByChannel(Hit, LineTraceStart, LineTraceStart + Down, CollisionChannel, QueryParams, ResponseParam);
@@ -9016,7 +9001,7 @@ void UCharacterMovementComponent::ApplyRepulsionForce(float DeltaSeconds)
 		const TArray<FOverlapInfo>& Overlaps = UpdatedPrimitive->GetOverlapInfos();
 		if (Overlaps.Num() > 0)
 		{
-			FCollisionQueryParams QueryParams;
+			FCollisionQueryParams QueryParams (SCENE_QUERY_STAT(CMC_ApplyRepulsionForce));
 			QueryParams.bReturnFaceIndex = false;
 			QueryParams.bReturnPhysicalMaterial = false;
 

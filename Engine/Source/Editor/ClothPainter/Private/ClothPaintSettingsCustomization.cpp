@@ -8,6 +8,8 @@
 #include "ClothPaintSettings.h"
 #include "ClothingAsset.h"
 #include "SComboBox.h"
+#include "ClothPainter.h"
+#include "ClothPaintToolBase.h"
 
 #define LOCTEXT_NAMESPACE "ClothPaintSettingsCustomization"
 
@@ -46,22 +48,62 @@ void FClothPaintSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 	const FName ClothCategory = "ClothPainting";
 	IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory(ClothCategory);
-	// Hide gradient/brush settings according to which tool is being used
-	if (PainterSettings)
-	{
-		DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UClothPainterSettings, PaintTool))->SetOnPropertyValueChanged(FSimpleDelegate::CreateLambda([&]() { DetailBuilder.ForceRefreshDetails(); }));
 
-		if (PainterSettings->PaintTool == EClothPaintTool::Brush)
-		{
-			DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UClothPainterSettings, GradientStartValue));
-			DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UClothPainterSettings, GradientEndValue));
-			DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UClothPainterSettings, bUseRegularBrushForGradient));
-		}
-		else
-		{
-			DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UClothPainterSettings, PaintValue));
-		}
+	// Add tool selection from the tools array on the painter
+	FText ToolText = LOCTEXT("ToolSelectionRow", "Tool");
+	FDetailWidgetRow& ToolSelectionRow = CategoryBuilder.AddCustomRow(ToolText);
+
+	ToolSelectionRow.NameContent()
+		[
+			SNew(STextBlock)
+				.Text(ToolText)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+		];
+
+	ToolSelectionRow.ValueContent()
+		[
+			SNew(SComboBox<TSharedPtr<FClothPaintToolBase>>)
+				.OptionsSource(&Painter->Tools)
+				.OnGenerateWidget(this, &FClothPaintSettingsCustomization::OnGenerateToolComboRow)
+				.OnSelectionChanged(this, &FClothPaintSettingsCustomization::OnHandleToolSelection, &DetailBuilder)
+				[
+					SNew(STextBlock)
+						.Text(this, &FClothPaintSettingsCustomization::GetToolComboText)
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+		];
+}
+
+TSharedRef<SWidget> FClothPaintSettingsCustomization::OnGenerateToolComboRow(TSharedPtr<FClothPaintToolBase> InItem)
+{
+	FText RowText = LOCTEXT("ToolComboRow_Error", "Invalid");
+
+	if(InItem.IsValid())
+	{
+		RowText = InItem->GetDisplayName();
 	}
+
+	return SNew(STextBlock).Text(RowText);
+}
+
+void FClothPaintSettingsCustomization::OnHandleToolSelection(TSharedPtr<FClothPaintToolBase> InItem, ESelectInfo::Type InSelectInfo, IDetailLayoutBuilder* DetailBuider)
+{
+	if(InItem.IsValid() && Painter && Painter->SelectedTool != InItem)
+	{
+		// Update selection
+		Painter->SelectedTool = InItem;
+		Painter->Refresh();
+	}
+}
+
+FText FClothPaintSettingsCustomization::GetToolComboText() const
+{
+	if(Painter && Painter->SelectedTool.IsValid())
+	{
+		return Painter->SelectedTool->GetDisplayName();
+	}
+
+	return LOCTEXT("ToolComboRow_Error", "Invalid");
 }
 
 #undef LOCTEXT_NAMESPACE

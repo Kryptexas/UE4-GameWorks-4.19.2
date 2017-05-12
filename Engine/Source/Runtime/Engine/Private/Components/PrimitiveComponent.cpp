@@ -42,8 +42,6 @@
 namespace PrimitiveComponentStatics
 {
 	static const FText MobilityWarnText = LOCTEXT("InvalidMove", "move");
-	static const FName MoveComponentName(TEXT("MoveComponent"));
-	static const FName UpdateOverlapsName(TEXT("UpdateOverlaps"));
 }
 
 typedef TArray<FOverlapInfo, TInlineAllocator<3>> TInlineOverlapInfoArray;
@@ -1791,7 +1789,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			UWorld* const MyWorld = GetWorld();
 
 			const bool bForceGatherOverlaps = !ShouldCheckOverlapFlagToQueueOverlaps(*this);
-			FComponentQueryParams Params(PrimitiveComponentStatics::MoveComponentName, Actor);
+			FComponentQueryParams Params(SCENE_QUERY_STAT(MoveComponent), Actor);
 			FCollisionResponseParams ResponseParam;
 			InitSweepCollisionParams(Params, ResponseParam);
 			Params.bIgnoreTouches |= !(bGenerateOverlapEvents || bForceGatherOverlaps);
@@ -2113,7 +2111,7 @@ bool UPrimitiveComponent::LineTraceComponent(struct FHitResult& OutHit, const FV
 	bool bHaveHit = BodyInstance.LineTrace(OutHit, Start, End, Params.bTraceComplex, Params.bReturnPhysicalMaterial); 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((GetWorld()->DebugDrawTraceTag != NAME_None) && (GetWorld()->DebugDrawTraceTag == Params.TraceTag))
+	if (GetWorld()->DebugDrawSceneQueries(Params.TraceTag))
 	{
 		TArray<FHitResult> Hits;
 		if (bHaveHit)
@@ -2461,7 +2459,7 @@ const TArray<FOverlapInfo>* UPrimitiveComponent::ConvertSweptOverlapsToCurrentOv
 				SCOPE_CYCLE_COUNTER(STAT_MoveComponent_FastOverlap);
 
 				// Check components we hit during the sweep, keep only those still overlapping
-				const FCollisionQueryParams UnusedQueryParams;
+				const FCollisionQueryParams UnusedQueryParams(NAME_None, FCollisionQueryParams::GetUnknownStatId());
 				for (int32 Index = SweptOverlapsIndex; Index < SweptOverlaps.Num(); ++Index)
 				{
 					const FOverlapInfo& OtherOverlap = SweptOverlaps[Index];
@@ -2721,7 +2719,7 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					UWorld* const MyWorld = MyActor->GetWorld();
 					TArray<FOverlapResult> Overlaps;
 					// note this will optionally include overlaps with components in the same actor (depending on bIgnoreChildren). 
-					FComponentQueryParams Params(PrimitiveComponentStatics::UpdateOverlapsName, bIgnoreChildren ? MyActor : nullptr);
+					FComponentQueryParams Params(SCENE_QUERY_STAT(UpdateOverlaps), bIgnoreChildren ? MyActor : nullptr);
 					Params.bIgnoreBlocks = true;	//We don't care about blockers since we only route overlap events to real overlaps
 					FCollisionResponseParams ResponseParam;
 					InitSweepCollisionParams(Params, ResponseParam);

@@ -2432,7 +2432,7 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 				{
 					// check for all volumes that overlap the component
 					TArray<FOverlapResult> Hits;
-					FComponentQueryParams Params(SceneComponentStatics::PhysicsVolumeTraceName, GetOwner());
+					FComponentQueryParams Params(SCENE_QUERY_STAT(UpdatePhysicsVolume),  GetOwner());
 
 					bool bOverlappedOrigin = false;
 					const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);

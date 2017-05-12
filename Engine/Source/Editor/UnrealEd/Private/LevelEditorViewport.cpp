@@ -1876,7 +1876,6 @@ void FLevelEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 //
 void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
 {
-	static FName ProcessClickTrace = FName(TEXT("ProcessClickTrace"));
 
 	const FViewportClick Click(&View,this,Key,Event,HitX,HitY);
 	if (Click.GetKey() == EKeys::MiddleMouseButton && !Click.IsAltDown() && !Click.IsShiftDown())
@@ -1987,7 +1986,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			if( GeomHitProxy->GetGeomObject() )
 			{
 				FHitResult CheckResult(ForceInit);
-				FCollisionQueryParams BoxParams(ProcessClickTrace, false, GeomHitProxy->GetGeomObject()->ActualBrush);
+				FCollisionQueryParams BoxParams(SCENE_QUERY_STAT(ProcessClickTrace), false, GeomHitProxy->GetGeomObject()->ActualBrush);
 				bool bHit = GWorld->SweepSingleByObjectType(CheckResult, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX, FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeBox(FVector(1.f)), BoxParams);
 
 				if(bHit)

@@ -647,7 +647,7 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 			const bool bOnlyEditorGizmos = ( PassIndex == 0 );
 
 			const bool bTraceComplex = true;
-			FCollisionQueryParams TraceParams( NAME_None, bTraceComplex, nullptr );
+			FCollisionQueryParams TraceParams( NAME_None, FCollisionQueryParams::GetUnknownStatId(), bTraceComplex, nullptr );
 
 			if ( OptionalListOfIgnoredActors != nullptr )
 			{

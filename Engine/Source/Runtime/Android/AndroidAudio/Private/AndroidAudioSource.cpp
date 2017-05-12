@@ -439,27 +439,6 @@ void FSLESSoundSource::Update( void )
 
 	SetFilterFrequency();
 	
-	FVector Location;
-	FVector	Velocity;
-	
-	// See file header for coordinate system explanation.
-	Location.X = WaveInstance->Location.X;
-	Location.Y = WaveInstance->Location.Z; // Z/Y swapped to match UE coordinate system
-	Location.Z = WaveInstance->Location.Y; // Z/Y swapped to match UE coordinate system
-	
-	Velocity.X = WaveInstance->Velocity.X;
-	Velocity.Y = WaveInstance->Velocity.Z; // Z/Y swapped to match UE coordinate system
-	Velocity.Z = WaveInstance->Velocity.Y; // Z/Y swapped to match UE coordinate system
-	
-	// We're using a relative coordinate system for un- spatialized sounds.
-	if( !WaveInstance->bUseSpatialization )
-	{
-		Location = FVector( 0.f, 0.f, 0.f );
-	}
-	
-	// Set volume (Pitch changes are not supported on current Android platforms!)
-	// also Location & Velocity
-	
 	// Avoid doing the log calculation each update by only doing it if the volume changed
 	if (Volume != VolumePreviousUpdate)
 	{

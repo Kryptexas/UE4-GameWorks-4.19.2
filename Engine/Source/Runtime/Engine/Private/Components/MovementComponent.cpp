@@ -375,7 +375,7 @@ void UMovementComponent::InitCollisionParams(FCollisionQueryParams &OutParams, F
 
 bool UMovementComponent::OverlapTest(const FVector& Location, const FQuat& RotationQuat, const ECollisionChannel CollisionChannel, const FCollisionShape& CollisionShape, const AActor* IgnoreActor) const
 {
-	FCollisionQueryParams QueryParams(MovementComponentStatics::TestOverlapName, false, IgnoreActor);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MovementOverlapTest), false, IgnoreActor);
 	FCollisionResponseParams ResponseParam;
 	InitCollisionParams(QueryParams, ResponseParam);
 	return GetWorld()->OverlapBlockingTestByChannel(Location, RotationQuat, CollisionChannel, CollisionShape, QueryParams, ResponseParam);

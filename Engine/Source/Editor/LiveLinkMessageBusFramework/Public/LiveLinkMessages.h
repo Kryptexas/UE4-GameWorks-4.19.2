@@ -3,21 +3,11 @@
 #pragma once
 #include "Object.h"
 #include "LiveLinkRefSkeleton.h"
-
+#include "LiveLinkTypes.h"
 #include "LiveLinkMessages.generated.h"
 
-//Is this still needed?
-UCLASS()
-class UDummyObject : public UObject
-{
-	GENERATED_BODY()
-	
-	UPROPERTY()
-	int32 test;
-};
-
 USTRUCT()
-struct FLiveLinkSubjectData
+struct FLiveLinkSubjectDataMessage
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -25,26 +15,36 @@ struct FLiveLinkSubjectData
 	FLiveLinkRefSkeleton RefSkeleton;
 
 	UPROPERTY()
-	FString SubjectName;
-
-	UPROPERTY()
-	int32 BoneID;
+	FName SubjectName;
 };
 
 USTRUCT()
-struct FLiveLinkSubjectFrame
+struct FLiveLinkSubjectFrameMessage
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+	FName SubjectName;
+
+	// Bone Transform data for this frame
+	UPROPERTY()
 	TArray<FTransform> Transforms;
 
+	// Curve data for this frame
 	UPROPERTY()
-	int32 BoneID;
+	TArray<FLiveLinkCurveElement> Curves;
+
+	// Incrementing time for interpolation
+	UPROPERTY()
+	double Time;
+
+	// Frame number
+	UPROPERTY()
+	int32 FrameNum;
 };
 
 USTRUCT()
-struct FLiveLinkPing
+struct FLiveLinkPingMessage
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -52,13 +52,13 @@ struct FLiveLinkPing
 	FGuid PollRequest;
 
 	// default constructor for the receiver
-	FLiveLinkPing() = default;
+	FLiveLinkPingMessage() = default;
 
-	FLiveLinkPing(const FGuid& InPollRequest) : PollRequest(InPollRequest) {}
+	FLiveLinkPingMessage(const FGuid& InPollRequest) : PollRequest(InPollRequest) {}
 };
 
 USTRUCT()
-struct FLiveLinkPong
+struct FLiveLinkPongMessage
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -72,13 +72,32 @@ struct FLiveLinkPong
 	FGuid PollRequest;
 
 	// default constructor for the receiver
-	FLiveLinkPong() = default;
+	FLiveLinkPongMessage() = default;
 
-	FLiveLinkPong(const FString& InProviderName, const FString& InMachineName, const FGuid& InPollRequest) : ProviderName(InProviderName), MachineName(InMachineName), PollRequest(InPollRequest) {}
+	FLiveLinkPongMessage(const FString& InProviderName, const FString& InMachineName, const FGuid& InPollRequest) : ProviderName(InProviderName), MachineName(InMachineName), PollRequest(InPollRequest) {}
 };
 
 USTRUCT()
-struct FLiveLinkConnect
+struct FLiveLinkConnectMessage
 {
 	GENERATED_USTRUCT_BODY()
+};
+
+USTRUCT()
+struct FLiveLinkHeartbeatMessage
+{
+	GENERATED_USTRUCT_BODY()
+};
+
+USTRUCT()
+struct FLiveLinkClearSubject
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Name of the subject to clear
+	UPROPERTY()
+	FName SubjectName;
+
+	FLiveLinkClearSubject() {}
+	FLiveLinkClearSubject(const FName& InSubjectName) : SubjectName(InSubjectName) {}
 };

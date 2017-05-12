@@ -959,3 +959,40 @@ void UAudioComponent::SetSubmixSend(USoundSubmix* Submix, float SendLevel)
 	}
 }
 
+void UAudioComponent::SetLowPassFilterEnabled(bool InLowPassFilterEnabled)
+{
+	if (FAudioDevice* AudioDevice = GetAudioDevice())
+	{
+		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.SetLowPassFilterFrequency"), STAT_AudioSetLowPassFilterEnabled, STATGROUP_AudioThreadCommands);
+
+		const uint64 MyAudioComponentID = AudioComponentID;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, InLowPassFilterEnabled]()
+		{
+			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
+			if (ActiveSound)
+			{
+				ActiveSound->bEnableLowPassFilter = InLowPassFilterEnabled;
+			}
+		}, GET_STATID(STAT_AudioSetLowPassFilterEnabled));
+	}
+}
+
+void UAudioComponent::SetLowPassFilterFrequency(float InLowPassFilterFrequency)
+{
+	if (FAudioDevice* AudioDevice = GetAudioDevice())
+	{
+		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.SetLowPassFilterFrequency"), STAT_AudioSetLowPassFilterFrequency, STATGROUP_AudioThreadCommands);
+
+		const uint64 MyAudioComponentID = AudioComponentID;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, MyAudioComponentID, InLowPassFilterFrequency]()
+		{
+			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(MyAudioComponentID);
+			if (ActiveSound)
+			{
+				ActiveSound->LowPassFilterFrequency = InLowPassFilterFrequency;
+			}
+		}, GET_STATID(STAT_AudioSetLowPassFilterFrequency));
+	}
+}
+
+

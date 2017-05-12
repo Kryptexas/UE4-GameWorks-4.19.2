@@ -338,6 +338,8 @@ static void RHIExitAndStopRHIThread()
 }
 #endif
 
+extern void DeferredPhysResourceCleanup();
+
 
 /**
  * Initializes std out device and adds it to GLog
@@ -884,6 +886,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// Fail, shipping builds will crash if setting command line fails
 		return -1;
 	}
+
+#if WITH_ENGINE
+	FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.AddStatic(DeferredPhysResourceCleanup);
+#endif
 
 #if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)

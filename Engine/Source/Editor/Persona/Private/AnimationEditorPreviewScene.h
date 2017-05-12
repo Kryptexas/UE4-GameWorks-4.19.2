@@ -30,7 +30,7 @@ public:
 	virtual void InvalidateViews() override;
 	virtual void FocusViews() override;
 	virtual UDebugSkelMeshComponent* GetPreviewMeshComponent() const override { return SkeletalMeshComponent; }
-	virtual void SetAdditionalMeshes(class UPreviewMeshCollection* InAdditionalMeshes) override;
+	virtual void SetAdditionalMeshes(class UDataAsset* InAdditionalMeshes) override;
 	virtual void RefreshAdditionalMeshes() override;
 	virtual void ShowReferencePose(bool bReferencePose) override;
 	virtual bool IsShowReferencePoseEnabled() const override;
@@ -120,7 +120,7 @@ public:
 
 	/** FPreviewScene interface */
 	virtual void Tick(float InDeltaTime) override;
-	virtual void AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld) override;
+	virtual void AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld, bool bAttachToRoot = false) override;
 	virtual void RemoveComponent(class UActorComponent* Component) override;
 
 	/** FEditorUndoClient interface */

@@ -153,7 +153,6 @@ bool FComponentSweepMultiTest::RunTest(const FString& Parameters)
 	UWorld* World = FAutomationEditorCommonUtils::CreateNewMap();
 	TestNotNull( TEXT("Failed to create world for Physics.Collision.Ray Test. Tests aborted."), World );
 
-	static FName TraceIdent = FName(TEXT("TestTrace"));
 	
 	FVector StartPos;
 	FVector EndPos;
@@ -189,7 +188,7 @@ bool FComponentSweepMultiTest::RunTest(const FString& Parameters)
 			StartPos = TestRayCollisionActor->GetActorLocation();
 			EndPos = TestRayMeshActor->GetActorLocation();
 			// Setup the query
-			FComponentQueryParams ShapeQueryParameters(TraceIdent, nullptr);
+			FComponentQueryParams ShapeQueryParameters(SCENE_QUERY_STAT(TestTrace), nullptr);
 			ShapeQueryParameters.bTraceComplex = true;
 			ShapeQueryParameters.bTraceAsyncScene = true;
 

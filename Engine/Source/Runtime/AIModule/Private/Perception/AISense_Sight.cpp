@@ -139,8 +139,6 @@ bool UAISense_Sight::ShouldAutomaticallySeeTarget(const FDigestedSightProperties
 
 float UAISense_Sight::Update()
 {
-	static const FName NAME_AILineOfSight = FName(TEXT("AILineOfSight"));
-
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight);
 
 	const UWorld* World = GEngine->GetWorldFromContextObject(GetPerceptionSystem()->GetOuter());
@@ -246,7 +244,7 @@ float UAISense_Sight::Update()
 						FHitResult HitResult;
 						const bool bHit = World->LineTraceSingleByChannel(HitResult, Listener.CachedLocation, TargetLocation
 							, DefaultSightCollisionChannel
-							, FCollisionQueryParams(NAME_AILineOfSight, true, Listener.Listener->GetBodyActor()));
+							, FCollisionQueryParams(SCENE_QUERY_STAT(AILineOfSight), true, Listener.Listener->GetBodyActor()));
 
 						++TracesCount;
 
