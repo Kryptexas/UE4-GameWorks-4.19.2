@@ -151,6 +151,17 @@ namespace UnrealBuildTool
 			}
 
 			// --------------------------------------------------------------------------------
+			// normally, this option is for linking -- but it using here
+			// to force recompile when flipping between asmjs and wasm
+			if (targetingWasm)
+			{
+				Result += " -s BINARYEN=1";
+			}
+			else
+			{
+				Result += " -s BINARYEN=0";
+			}
+			// --------------------------------------------------------------------------------
 
 			// Expect that Emscripten SDK has been properly set up ahead in time (with emsdk and prebundled toolchains this is always the case)
 			// This speeds up builds a tiny bit.
