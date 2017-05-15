@@ -16,6 +16,8 @@
 #include "Modules/ModuleManager.h"
 #include "VulkanPipelineState.h"
 
+#define LOCTEXT_NAMESPACE "VulkanRHI"
+
 #ifdef VK_API_VERSION
 // Check the SDK is least the API version we want to use
 static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the version we want to support (UE_VK_API_VERSION). Please update your SDK.");
@@ -358,6 +360,11 @@ void FVulkanDynamicRHI::Init()
 {
 	if (!LoadVulkanLibrary())
 	{
+#if PLATFORM_LINUX
+		// be more verbose on Linux
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *LOCTEXT("UnableToInitializeVulkanLinux", "Unable to load Vulkan library and/or acquire the necessary function pointers. Make sure an up-to-date libvulkan.so.1 is installed.").ToString(),
+									 *LOCTEXT("UnableToInitializeVulkanLinuxTitle", "Unable to initialize Vulkan.").ToString());
+#endif // PLATFORM_LINUX
 		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points; make sure your driver supports Vulkan!"));
 	}
 
@@ -1333,3 +1340,5 @@ void FVulkanDynamicRHI::RecreateSwapChain(void* NewNativeWindow)
 		FlushRenderingCommands();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE
