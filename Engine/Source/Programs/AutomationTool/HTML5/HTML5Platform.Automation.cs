@@ -594,7 +594,10 @@ public class HTML5Platform : Platform
 		if (LowerBrowserPath.Contains("chrome"))
 		{
 			ProfileDirectory = Path.Combine(ProfileDirectory, "chrome");
-			BrowserCommandline  += "  " + String.Format("--user-data-dir=\\\"{0}\\\" --enable-logging --no-first-run", ProfileDirectory);
+			// removing [--enable-logging] otherwise, chrome breaks with a bunch of the following errors:
+			// > ERROR:process_info.cc(631)] range at 0x7848406c00000000, size 0x1a4 fully unreadable
+			// leaving this note here for future reference: UE-45078
+			BrowserCommandline  += "  " + String.Format("--user-data-dir=\\\"{0}\\\"   --no-first-run", ProfileDirectory);
 		}
 		else if (LowerBrowserPath.Contains("firefox"))
 		{
