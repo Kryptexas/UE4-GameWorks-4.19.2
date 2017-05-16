@@ -694,6 +694,7 @@ namespace UnrealBuildTool
 				{
 					BuildProducts.Add(Binary.Config.OutputFilePath + ".mem", BuildProductType.RequiredResource);
 					BuildProducts.Add(Binary.Config.OutputFilePath.ChangeExtension("asm.js"), BuildProductType.RequiredResource);
+					// TODO: add "_asm.js"
 				}
 				BuildProducts.Add(Binary.Config.OutputFilePath + ".symbols", BuildProductType.RequiredResource);
 			}

@@ -141,7 +141,7 @@ public class HTML5Platform : Platform
 			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find application {0}. You may need to build the UE4 project with your target configuration and platform.", FullGameExePath);
 		}
 
-		if (FullGameExePath != FullPackageGameExePath)
+		if (FullGameExePath != FullPackageGameExePath) // TODO: remove this check
 		{
 			File.Copy(FullGameExePath + ".symbols", FullPackageGameExePath + ".symbols", true);
 			if (targetingWasm)
@@ -153,7 +153,6 @@ public class HTML5Platform : Platform
 			{
 				File.Copy(FullGameExePath + ".mem", FullPackageGameExePath + ".mem", true);
 				File.Copy(FullGameBasePath + ".asm.js", FullPackageGameBasePath + ".asm.js", true);
-				File.Copy(FullGameExePath, ASMJS_FullPackageGameExePath, true); // --separate-asm
 			}
 		}
 
@@ -167,6 +166,7 @@ public class HTML5Platform : Platform
 		{
 			File.SetAttributes(FullPackageGameExePath + ".mem", FileAttributes.Normal);
 			File.SetAttributes(FullPackageGameBasePath + ".asm.js", FileAttributes.Normal);
+			File.Copy(FullGameExePath, ASMJS_FullPackageGameExePath, true); // --separate-asm // UE-45058
 			File.SetAttributes(ASMJS_FullPackageGameExePath, FileAttributes.Normal);
 		}
 
