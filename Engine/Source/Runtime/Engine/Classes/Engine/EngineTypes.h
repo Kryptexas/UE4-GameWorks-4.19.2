@@ -570,6 +570,9 @@ enum class ENetworkSmoothingMode : uint8
     If(QueryIgnoreMask & ShapeFilter != 0) filter out */
 typedef uint8 FMaskFilter;
 
+// Number of bits used currently from FMaskFilter.
+enum { NumExtraFilterBits = 6 };
+
 // NOTE!!Some of these values are used to index into FCollisionResponseContainers and must be kept in sync.
 // @see FCollisionResponseContainer::SetResponse().
 

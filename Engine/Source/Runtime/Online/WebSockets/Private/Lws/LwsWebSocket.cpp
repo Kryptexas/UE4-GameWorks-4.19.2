@@ -34,6 +34,8 @@ FLwsWebSocket::FLwsWebSocket(const FString& InUrl, const TArray<FString>& InProt
 	, CloseCode(0)
 	, CloseReason()
 	, bIsConnecting(false)
+	, bIsConnected(false)
+	, bClientInitiatedClose(false)
 {
 }
 
@@ -133,9 +135,9 @@ void FLwsWebSocket::Close(int32 Code, const FString& Reason)
 
 void FLwsWebSocket::Send(const void* Data, SIZE_T Size, bool bIsBinary)
 {
-	bool QueueWasEmpty = SendQueue.IsEmpty();
+	bool bQueueWasEmpty = SendQueue.IsEmpty();
 	SendQueue.Enqueue(MakeShareable(new FLwsSendBuffer((const uint8*) Data, Size, bIsBinary)));
-	if (LwsConnection != nullptr && QueueWasEmpty)
+	if (LwsConnection != nullptr && bQueueWasEmpty)
 	{
 		lws_callback_on_writable(LwsConnection);
 	}
@@ -184,7 +186,6 @@ bool FLwsSendBuffer::Write(struct lws* LwsConnection)
 	if (BytesWritten > 0)
 	{
 		WriteProtocol = LWS_WRITE_CONTINUATION;
-		UE_LOG(LogWebSockets, Verbose, TEXT("Flooby"));
 	}
 	else
 	{
@@ -212,7 +213,9 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 	switch (Reason)
 	{
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
+	{
 		bIsConnecting = false;
+		bIsConnected = true;
 		LwsConnection = Instance;
 		if (!SendQueue.IsEmpty())
 		{
@@ -220,6 +223,7 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 		}
 		OnConnected().Broadcast();
 		break;
+	}
 	case LWS_CALLBACK_CLIENT_RECEIVE:
 	{
 		SIZE_T BytesLeft = lws_remaining_packet_payload(Instance);
@@ -238,7 +242,8 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 	}
 	case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE:
 	{
-		LwsConnection = nullptr;
+		bClientInitiatedClose = true;
+		bIsConnected = false;
 		FlushQueues();
 		if (OnClosed().IsBound())
 		{
@@ -254,33 +259,29 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 		break;
 	}
 	case LWS_CALLBACK_WSI_DESTROY:
+	{
 		// Getting a WSI_DESTROY before a connection has been established and no errors reported usually means there was a timeout establishing a connection
 		if (bIsConnecting)
 		{
-			//OnConnectionError().Broadcast(TEXT("Connection timed out"));
-			//bIsConnecting = false;
+			OnConnectionError().Broadcast(TEXT("Connection timed out"));
+			bIsConnecting = false;
 		}
-		if (LwsConnection)
-		{
-			LwsConnection = nullptr;
-		}
+		LwsConnection = nullptr;
 		break;
+	}
 	case LWS_CALLBACK_CLOSED:
 	{
-		bool ClientInitiated = LwsConnection == nullptr;
-		LwsConnection = nullptr;
-		OnClosed().Broadcast(LWS_CLOSE_STATUS_NORMAL, ClientInitiated?TEXT("Successfully closed connection to server"):TEXT("Connection closed by server"), ClientInitiated);
+		bIsConnected = false;
+		OnClosed().Broadcast(LWS_CLOSE_STATUS_NORMAL, bClientInitiatedClose ? TEXT("Successfully closed connection to server") : TEXT("Connection closed by server"), bClientInitiatedClose);
 		FlushQueues();
 		break;
 	}
 	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
 	{
-		LwsConnection = nullptr;
 		FUTF8ToTCHAR Convert((const ANSICHAR*)Data, Length);
 		OnConnectionError().Broadcast(Convert.Get());
 		FlushQueues();
 		return -1;
-		break;
 	}
 	case LWS_CALLBACK_RECEIVE_PONG:
 		break;
@@ -289,10 +290,9 @@ int FLwsWebSocket::LwsCallback(lws* Instance, lws_callback_reasons Reason, void*
 	{
 		if (CloseCode != 0)
 		{
-			LwsConnection = nullptr;
 			FTCHARToUTF8 Convert(*CloseReason);
 			// This only sets the reason for closing the connection:
-			lws_close_reason(Instance, (enum lws_close_status)CloseCode, (unsigned char *)Convert.Get(), (size_t)Convert.Length());
+			lws_close_reason(Instance, (enum lws_close_status)CloseCode, (unsigned char*)Convert.Get(), (size_t)Convert.Length());
 			CloseCode = 0;
 			CloseReason = FString();
 			FlushQueues();

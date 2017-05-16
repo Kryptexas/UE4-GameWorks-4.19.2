@@ -43,6 +43,7 @@ private:
 	// TickerObjectBase override
 	virtual bool Tick(float DeltaTime) override;
 
+	static void LwsLog(int Level, const char* LogLine);
 	static int CallbackWrapper(lws* Connection, lws_callback_reasons Reason, void* UserData, void* Data, size_t Length);
 
 	void DeleteLwsProtocols();

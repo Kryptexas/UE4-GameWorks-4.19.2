@@ -11,6 +11,15 @@
 
 void SAddNewGameplayTagWidget::Construct(const FArguments& InArgs)
 {
+	
+	FText HintText = LOCTEXT("NewTagNameHint", "X.Y.Z");
+	DefaultNewName = InArgs._NewTagName;
+	if (DefaultNewName.IsEmpty() == false)
+	{
+		HintText = FText::FromString(DefaultNewName);
+	}
+
+
 	bAddingNewTag = false;
 	bShouldGetKeyboardFocus = false;
 
@@ -42,7 +51,7 @@ void SAddNewGameplayTagWidget::Construct(const FArguments& InArgs)
 			[
 				SAssignNew(TagNameTextBox, SEditableTextBox)
 				.MinDesiredWidth(240.0f)
-				.HintText(LOCTEXT("NewTagNameHint", "X.Y.Z"))
+				.HintText(HintText)
 				.OnTextCommitted(this, &SAddNewGameplayTagWidget::OnCommitNewTagName)
 			]
 		]
@@ -166,7 +175,7 @@ void SAddNewGameplayTagWidget::Reset()
 
 void SAddNewGameplayTagWidget::SetTagName(const FText& InName)
 {
-	TagNameTextBox->SetText(InName);
+	TagNameTextBox->SetText(InName.IsEmpty() ? FText::FromString(DefaultNewName) : InName);
 }
 
 void SAddNewGameplayTagWidget::SelectTagSource(const FName& InSource)

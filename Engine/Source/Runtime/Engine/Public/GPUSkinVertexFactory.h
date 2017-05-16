@@ -691,7 +691,6 @@ public:
 				Index = 1 - Index;
 			}
 
-			// we always return a valid buffer
 			check(ClothSimulPositionNormalBuffer[Index].VertexBufferRHI.IsValid());
 			return ClothSimulPositionNormalBuffer[Index];
 		}
@@ -715,13 +714,13 @@ public:
 		{
 			if(BufferFrameNumber[0] == -1)
 			{
-				ensure(BufferFrameNumber[1] != -1);
+				//ensure(BufferFrameNumber[1] != -1);
 
 				return 1;
 			}
 			else if(BufferFrameNumber[1] == -1)
 			{
-				ensure(BufferFrameNumber[0] != -1);
+				//ensure(BufferFrameNumber[0] != -1);
 				return 0;
 			}
 

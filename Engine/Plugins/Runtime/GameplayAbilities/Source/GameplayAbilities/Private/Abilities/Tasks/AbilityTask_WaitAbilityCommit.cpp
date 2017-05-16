@@ -21,6 +21,14 @@ UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCo
 	return MyObj;
 }
 
+UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCommit_Query(UGameplayAbility* OwningAbility, FGameplayTagQuery Query, bool InTriggerOnce)
+{
+	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityCommit>(OwningAbility);
+	MyObj->Query = Query;
+	MyObj->TriggerOnce = InTriggerOnce;
+	return MyObj;
+}
+
 void UAbilityTask_WaitAbilityCommit::Activate()
 {
 	if (AbilitySystemComponent)	
@@ -46,6 +54,15 @@ void UAbilityTask_WaitAbilityCommit::OnAbilityCommit(UGameplayAbility *Activated
 	{
 		// Failed tag check
 		return;
+	}
+
+	if (Query.IsEmpty() == false)
+	{
+		if (Query.Matches(ActivatedAbility->AbilityTags) == false)
+		{
+			// Failed query
+			return;
+		}
 	}
 
 	if (ShouldBroadcastAbilityTaskDelegates())

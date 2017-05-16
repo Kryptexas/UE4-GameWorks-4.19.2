@@ -1518,6 +1518,9 @@ public:
 	/** Perform rotation over deltaTime */
 	virtual void PhysicsRotation(float DeltaTime);
 
+	/** if true, DesiredRotation will be restricted to only Yaw component in PhysicsRotation() */
+	virtual bool ShouldRemainVertical() const;
+
 	/** Delegate when PhysicsVolume of UpdatedComponent has been changed **/
 	virtual void PhysicsVolumeChanged(class APhysicsVolume* NewVolume) override;
 
@@ -2275,6 +2278,8 @@ public:
 
 	/** allows modifing avoidance velocity, called when bUseRVOPostProcess is set */
 	virtual void PostProcessAvoidanceVelocity(FVector& NewVelocity);
+
+	virtual void FlushServerMoves();
 
 protected:
 

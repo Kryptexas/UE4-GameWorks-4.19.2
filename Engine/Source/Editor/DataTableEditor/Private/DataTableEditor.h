@@ -65,6 +65,7 @@ public:
 	// INotifyOnDataTableChanged
 	virtual void PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
 	virtual void PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
+	virtual void SelectionChange(const UDataTable* Changed, FName RowName) override;
 
 	/** Get the data table being edited */
 	const UDataTable* GetDataTable() const;

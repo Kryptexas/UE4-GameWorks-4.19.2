@@ -449,19 +449,6 @@ void UAnimInstance::PostUpdateAnimation()
 		ExtractedRootMotion.MakeUpToFullWeight();
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	// Notify / Event Handling!
-	// This can do anything to our component (including destroy it) 
-	// Any code added after this point needs to take that into account
-	/////////////////////////////////////////////////////////////////////////////
-	{
-		// now trigger Notifies
-		TriggerAnimNotifies(Proxy.GetDeltaSeconds());
-
-		// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
-		TriggerQueuedMontageEvents();
-	}
-
 #if WITH_EDITOR && 0
 	{
 		// Take a snapshot if the scrub control is locked to the end, we are playing, and we are the one being debugged
@@ -480,6 +467,38 @@ void UAnimInstance::PostUpdateAnimation()
 		}
 	}
 #endif
+}
+
+void UAnimInstance::DispatchQueuedAnimEvents()
+{
+	// now trigger Notifies
+	TriggerAnimNotifies(GetProxyOnGameThread<FAnimInstanceProxy>().GetDeltaSeconds());
+
+	// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
+	TriggerQueuedMontageEvents();
+
+	// After queued Montage Events have been dispatched, it's now safe to delete invalid Montage Instances.
+	// And dispatch 'OnAllMontageInstancesEnded'
+	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+	{
+		// Should never be null
+		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+		ensure(MontageInstance);
+		if (MontageInstance && !MontageInstance->IsValid())
+		{
+			// Make sure we've cleared our references before deleting memory
+			ClearMontageInstanceReferences(*MontageInstance);
+
+			delete MontageInstance;
+			MontageInstances.RemoveAt(InstanceIndex);
+			--InstanceIndex;
+
+			if (MontageInstances.Num() == 0)
+			{
+				OnAllMontageInstancesEnded.Broadcast();
+			}
+		}
+	}
 }
 
 void UAnimInstance::ParallelUpdateAnimation()
@@ -1469,12 +1488,12 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
-	for (int32 InstanceIndex = 0; InstanceIndex<MontageInstances.Num(); InstanceIndex++)
+	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 	{
+		FAnimMontageInstance* const MontageInstance = MontageInstances[InstanceIndex];
 		// should never be NULL
-		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 		ensure(MontageInstance);
-		if (MontageInstance)
+		if (MontageInstance && MontageInstance->IsValid())
 		{
 			bool const bUsingBlendedRootMotion = (RootMotionMode == ERootMotionMode::RootMotionFromEverything);
 			bool const bNoRootMotionExtraction = (RootMotionMode == ERootMotionMode::NoRootMotionExtraction);
@@ -1495,28 +1514,14 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 			MontageInstance->Advance(DeltaSeconds, RootMotionParams, bUsingBlendedRootMotion);
 			MontageInstance->MontageSync_PostUpdate();
 
-			if (!MontageInstance->IsValid())
-			{
-				// Make sure we've cleared our references before deleting memory
-				ClearMontageInstanceReferences(*MontageInstance);
-
-				delete MontageInstance;
-				MontageInstances.RemoveAt(InstanceIndex);
-				--InstanceIndex;
-
-				if (MontageInstances.Num() == 0)
-				{
-					OnAllMontageInstancesEnded.Broadcast();
-				}
-			}
 #if DO_CHECK && WITH_EDITORONLY_DATA && 0
-			else
+			// We need to re-check IsValid() here because Advance() could have terminated this Montage.
+			if (MontageInstance.IsValid())
 			{
-				FAnimMontageInstance* AnimMontageInstance = MontageInstances(I);
 				// print blending time and weight and montage name
-				UE_LOG(LogAnimMontage, Warning, TEXT("%d. Montage (%s), DesiredWeight(%0.2f), CurrentWeight(%0.2f), BlendingTime(%0.2f)"), 
-					I+1, *AnimMontageInstance->Montage->GetName(), AnimMontageInstance->GetDesiredWeight(), AnimMontageInstance->GetWeight(),  
-					AnimMontageInstance->GetBlendTime() );
+				UE_LOG(LogAnimMontage, Warning, TEXT("%d. Montage (%s), DesiredWeight(%0.2f), CurrentWeight(%0.2f), BlendingTime(%0.2f)"),
+					I + 1, *MontageInstance->Montage->GetName(), MontageInstance->GetDesiredWeight(), MontageInstance->GetWeight(),
+					MontageInstance->GetBlendTime());
 			}
 #endif
 		}

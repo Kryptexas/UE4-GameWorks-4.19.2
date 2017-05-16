@@ -247,7 +247,7 @@ void LineCheckTracker::CaptureLineCheck(int32 LineCheckFlags, const FVector* Ext
 	Level actor management.
 -----------------------------------------------------------------------------*/
 // LOOKING_FOR_PERF_ISSUES
-#define PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES ((1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST)) || !WITH_EDITORONLY_DATA)
+#define PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES (!(UE_BUILD_SHIPPING || UE_BUILD_TEST)) && (LOOKING_FOR_PERF_ISSUES || !WITH_EDITORONLY_DATA)
 
 #if PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES
 	/** Array showing names of pawns spawned this frame. */

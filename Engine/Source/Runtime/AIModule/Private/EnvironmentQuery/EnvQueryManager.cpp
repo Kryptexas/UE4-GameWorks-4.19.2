@@ -40,6 +40,9 @@ DEFINE_STAT(STAT_AI_EQS_NumInstances);
 DEFINE_STAT(STAT_AI_EQS_NumItems);
 DEFINE_STAT(STAT_AI_EQS_InstanceMemory);
 DEFINE_STAT(STAT_AI_EQS_AvgInstanceResponseTime);
+DEFINE_STAT(STAT_AI_EQS_Debug_StoreQuery);
+DEFINE_STAT(STAT_AI_EQS_Debug_StoreTickTime);
+DEFINE_STAT(STAT_AI_EQS_Debug_StoreStats);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool UEnvQueryManager::bAllowEQSTimeSlicing = true;
@@ -330,10 +333,18 @@ void UEnvQueryManager::Tick(float DeltaTime)
 		
 		const int32 NumRunningQueries = RunningQueries.Num();
 		int32 Index = 0;
-		while ((TimeLeft > 0.0) && (Index < NumRunningQueries) && (QueriesFinishedDuringUpdate < NumRunningQueries))
+
+		while ((TimeLeft > 0.0) 
+			&& (Index < NumRunningQueries) 
+			// make sure we account for queries that have finished (been aborted)
+			// before UEnvQueryManager::Tick has been called
+			&& (QueriesFinishedDuringUpdate + NumRunningQueriesAbortedSinceLastUpdate < NumRunningQueries))
 		{
 			const double StepStartTime = FPlatformTime::Seconds();
 			float ResultHandlingDuration = 0.0f;
+#if USE_EQS_DEBUGGER
+			bool bWorkHasBeenDone = false;
+#endif // USE_EQS_DEBUGGER
 
 			TSharedPtr<FEnvQueryInstance> QueryInstance = RunningQueries[Index];
 			FEnvQueryInstance* QueryInstancePtr = QueryInstance.Get();
@@ -344,13 +355,10 @@ void UEnvQueryManager::Tick(float DeltaTime)
 			}
 			else
 			{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				const float StepTimeLimit = bAllowEQSTimeSlicing ? TimeLeft : UEnvQueryTypes::UnlimitedStepTime;
-#else
-				const float StepTimeLimit = TimeLeft;
-#endif
 				QueryInstancePtr->ExecuteOneStep(TimeLeft);
-
+#if USE_EQS_DEBUGGER
+				bWorkHasBeenDone = true;
+#endif // USE_EQS_DEBUGGER
 				if (QueryInstancePtr->IsFinished())
 				{
 					// Always log that we executed total execution time at the end of the query.
@@ -409,7 +417,8 @@ void UEnvQueryManager::Tick(float DeltaTime)
 				TimeLeft -= StepProcessingTime;
 
 #if USE_EQS_DEBUGGER
-				if (QueryInstancePtr)
+				// we want to do any kind of logging only if any work has been done
+				if (QueryInstancePtr && bWorkHasBeenDone)
 				{
 					EQSDebugger.StoreTickTime(*QueryInstancePtr, StepProcessingTime, MaxAllowedTestingTime);
 				}
@@ -968,6 +977,8 @@ bool UEnvQueryManager::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar
 
 void FEQSDebugger::StoreStats(const FEnvQueryInstance& QueryInstance)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Debug_StoreStats);
+
 	FStatsInfo& UpdateInfo = UEnvQueryManager::DebuggerStats.FindOrAdd(FName(*QueryInstance.QueryName));
 
 	const FEnvQueryDebugProfileData& QueryStats = QueryInstance.DebugData;
@@ -996,6 +1007,8 @@ void FEQSDebugger::StoreStats(const FEnvQueryInstance& QueryInstance)
 
 void FEQSDebugger::StoreQuery(const TSharedPtr<FEnvQueryInstance>& QueryInstance)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Debug_StoreQuery);
+
 	StoredQueries.Remove(nullptr);
 	if (!QueryInstance.IsValid() || QueryInstance->World == nullptr)
 	{
@@ -1028,6 +1041,8 @@ void FEQSDebugger::StoreQuery(const TSharedPtr<FEnvQueryInstance>& QueryInstance
 void FEQSDebugger::StoreTickTime(const FEnvQueryInstance& QueryInstance, float TickTime, float MaxTickTime)
 {
 #if USE_EQS_TICKLOADDATA
+	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Debug_StoreTickTime);
+
 	const int32 NumRecordedTicks = 0x4000;
 
 	FStatsInfo& UpdateInfo = UEnvQueryManager::DebuggerStats.FindOrAdd(FName(*QueryInstance.QueryName));

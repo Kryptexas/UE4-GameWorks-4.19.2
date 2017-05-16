@@ -373,6 +373,8 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** returns the CDO of the ability used to instigate this context */
 	const UGameplayAbility* GetAbility() const;
 
+	const UGameplayAbility* GetAbilityInstance_NotReplicated() const;
+
 	int32 GetAbilityLevel() const
 	{
 		return AbilityLevel;
@@ -490,9 +492,13 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<AActor> EffectCauser;
 
-	/** the ability that is responsible for this effect context */
+	/** the ability CDO that is responsible for this effect context (replicated) */
 	UPROPERTY()
 	TWeakObjectPtr<UGameplayAbility> AbilityCDO;
+
+	/** the ability instance that is responsible for this effect context (NOT replicated) */
+	UPROPERTY(NotReplicated)
+	TWeakObjectPtr<UGameplayAbility> AbilityInstanceNotReplicated;
 
 	UPROPERTY()
 	int32 AbilityLevel;
@@ -618,6 +624,16 @@ struct FGameplayEffectContextHandle
 		if (IsValid())
 		{
 			return Data->GetAbility();
+		}
+		return nullptr;
+	}
+
+	/** Returns the Ability Instance (never replicated) */
+	const UGameplayAbility* GetAbilityInstance_NotReplicated() const
+	{
+		if (IsValid())
+		{
+			return Data->GetAbilityInstance_NotReplicated();
 		}
 		return nullptr;
 	}
@@ -954,7 +970,19 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectStackChange, FActi
 /** FActiveGameplayEffectHandle that is being effect, the start time, duration of the effect */
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectTimeChange, FActiveGameplayEffectHandle, float, float);
 
+// This is deprecated, use FOnGameplayAttributeValueChange
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float, const FGameplayEffectModCallbackData*);
+
+struct FOnAttributeChangeData
+{
+	FGameplayAttribute Attribute;
+
+	float	NewValue;
+	float	OldValue;
+	const FGameplayEffectModCallbackData* GEModData;
+};
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameplayAttributeValueChange, const FOnAttributeChangeData&);
 
 DECLARE_DELEGATE_RetVal(FGameplayTagContainer, FGetGameplayTags);
 

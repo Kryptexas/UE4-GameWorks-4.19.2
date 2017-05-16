@@ -192,6 +192,7 @@ public:
 	virtual void RecordEvent(FString EventName, TArray<FAnalyticsEventAttribute>&& Attributes) override;
 	virtual void RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson) override;
 	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) override;
+	virtual const TArray<FAnalyticsEventAttribute>& GetDefaultEventAttributes() const override;
 
 	virtual ~FAnalyticsProviderET();
 
@@ -272,8 +273,8 @@ private:
 	 */
 	TArray<FAnalyticsEventEntry> CachedEvents;
 
-	/** Critical section for updating the CachedEvents */
-	FCriticalSection CachedEventsCS;
+	/** Critical section for updating the CachedEvents. Mutable to allow const methods to access the list. */
+	mutable FCriticalSection CachedEventsCS;
 
 	/**
 	* Delegate called when an event Http request completes
@@ -790,6 +791,15 @@ void FAnalyticsProviderET::SetDefaultEventAttributes(TArray<FAnalyticsEventAttri
 	{
 		CachedEvents.Emplace(FString(), MoveTemp(Attributes), false, true);
 	}
+}
+
+const TArray<FAnalyticsEventAttribute>& FAnalyticsProviderET::GetDefaultEventAttributes() const
+{
+	FScopeLock ScopedLock(&CachedEventsCS);
+
+	int DefaultIndex = CachedEvents.FindLastByPredicate([](const FAnalyticsEventEntry& Entry) { return Entry.bIsDefaultAttributes == 1; });
+	checkf(DefaultIndex != INDEX_NONE, TEXT("failed to find default attributes entry in analytics cached events list"));
+	return CachedEvents[DefaultIndex].Attributes;
 }
 
 void FAnalyticsProviderET::EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool, TSharedPtr< TArray<FAnalyticsEventEntry> > FlushedEvents)

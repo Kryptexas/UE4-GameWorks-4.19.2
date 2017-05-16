@@ -1672,7 +1672,7 @@ void UPrimitiveComponent::InitSweepCollisionParams(FCollisionQueryParams &OutPar
 
 void UPrimitiveComponent::SetMoveIgnoreMask(FMaskFilter InMoveIgnoreMask)
 {
-	if (ensure(InMoveIgnoreMask < 16)) // TODO: don't assert, and make this a nicer exposed value.
+	if (ensure(InMoveIgnoreMask < (1 << NumExtraFilterBits))) // We only have a limited nubmer of bits for the mask. TODO: don't assert, and make this a nicer exposed value.
 	{
 		MoveIgnoreMask = InMoveIgnoreMask;
 	}

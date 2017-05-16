@@ -3110,7 +3110,17 @@ void FAsyncPackage::EventDrivenCreateExport(int32 LocalExportIndex)
 					{
 							UE_LOG(LogStreaming, VeryVerbose, TEXT("Note2: %s was constructed during load and is an export and so needs loading."), *Export.Object->GetFullName());
 							UE_CLOG(!Export.Object->HasAllFlags(RF_WillBeLoaded), LogStreaming, Fatal, TEXT("%s was found in memory and is an export but does not have all load flags."), *Export.Object->GetFullName());
-						Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
+							if(Export.Object->HasAnyFlags(RF_ClassDefaultObject))
+							{
+								// never call PostLoadSubobjects on class default objects, this matches the behavior of the old linker where
+								// StaticAllocateObject prevents setting of RF_NeedPostLoad and RF_NeedPostLoadSubobjects, but FLinkerLoad::Preload
+								// assigns RF_NeedPostLoad for blueprint CDOs:
+								Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_WasLoaded);
+							}
+							else
+							{
+								Export.Object->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
+							}
 							Export.Object->ClearFlags(RF_WillBeLoaded);
 					}
 				}
@@ -4178,7 +4188,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 	double TickStartTime = FPlatformTime::Seconds();
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-	FScopedRecursionNotAllowed RecursionGuard;
+		FScopedRecursionNotAllowed RecursionGuard;
 #endif
 
 	if (GEventDrivenLoaderEnabled)

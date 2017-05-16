@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading;
 using System.Reflection;
 using System.Linq;
+using System.Threading.Tasks;
 using AutomationTool;
 using UnrealBuildTool;
 
@@ -43,20 +44,10 @@ public partial class Project : CommandUtils
         return PluginPath;
     }
 
-	static void CopySharedCookedBuildForTarget(ProjectParams Params,TargetPlatformDescriptor TargetPlatform, string CookPlatform)
+	static Task CopySharedCookedBuildTask = null;
+
+	static bool CopySharedCookedBuildForTargetInternal( string CookedBuildPath, string CookPlatform, string LocalPath)
 	{
-
-		string ProjectPath = Params.RawProjectPath.FullName;
-		var LocalPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "SharedIterativeBuild", CookPlatform);
-
-		// get network location 
-		ConfigHierarchy Hierarchy = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), TargetPlatform.Type);
-		string CookedBuildPath;
-		if (Hierarchy.GetString("SharedCookedBuildSettings", "SharedCookedBuildPath", out CookedBuildPath) == false)
-		{
-			Log("Unable to copy shared cooked build: SharedCookedBuildPath not set in Engine.ini SharedCookedBuildSettings");
-			return ;
-		}
 
 		string BuildRoot = P4Enabled ? P4Env.BuildRootP4.Replace("/", "+") : "";
 		int RecentCL = P4Enabled ? P4Env.Changelist : 0;
@@ -67,25 +58,26 @@ public partial class Project : CommandUtils
 			RecentCL = Version.Changelist;
 			BuildRoot = Version.BranchName;
 		}
+		System.GC.Collect();
 
 		// check to see if we have already synced this build ;)
 		var SyncedBuildFile = CombinePaths(LocalPath, "SyncedBuild.txt");
 		string BuildCL = "Invalid";
-		if ( File.Exists(SyncedBuildFile))
+		if (File.Exists(SyncedBuildFile))
 		{
 			BuildCL = File.ReadAllText(SyncedBuildFile);
 		}
 
-		if (RecentCL == 0 && CookedBuildPath.Contains("[CL]") )
+		if (RecentCL == 0 && CookedBuildPath.Contains("[CL]"))
 		{
 			Log("Unable to copy shared cooked build: Unable to determine CL number from P4 or UGS, and is required by SharedCookedBuildPath");
-			return;
+			return false;
 		}
 
 		if (RecentCL == 0 && CookedBuildPath.Contains("[BRANCHNAME]"))
 		{
 			Log("Unable to copy shared cooked build: Unable to determine BRANCHNAME number from P4 or UGS, and is required by SharedCookedBuildPath");
-			return;
+			return false;
 		}
 
 
@@ -93,10 +85,10 @@ public partial class Project : CommandUtils
 		CookedBuildPath = CookedBuildPath.Replace("[BRANCHNAME]", BuildRoot);
 		CookedBuildPath = CookedBuildPath.Replace("[PLATFORM]", CookPlatform);
 
-		if ( Directory.Exists(CookedBuildPath) == false )
+		if (Directory.Exists(CookedBuildPath) == false)
 		{
 			Log("Unable to copy shared cooked build: Unable to find shared build at location {0} check SharedCookedBuildPath in Engine.ini SharedCookedBuildSettings is correct", CookedBuildPath);
-			return;
+			return false;
 		}
 
 		Log("Attempting download of latest shared build CL {0} from location {1}", RecentCL, CookedBuildPath);
@@ -104,27 +96,13 @@ public partial class Project : CommandUtils
 		if (BuildCL == RecentCL.ToString())
 		{
 			Log("Already downloaded latest shared build at CL {0}", RecentCL);
-			return;
+			return false;
 		}
 		// delete all the stuff
 		Log("Deleting previous shared build because it was out of date");
 		CommandUtils.DeleteDirectory(LocalPath);
 		Directory.CreateDirectory(LocalPath);
 
-
-		// find all the files in the staged directory
-		string CookedBuildStagedDirectory = Path.GetFullPath(Path.Combine( CookedBuildPath, "Staged" ));
-		string LocalBuildStagedDirectory = Path.GetFullPath(Path.Combine(LocalPath, "Staged"));
-		if (Directory.Exists(CookedBuildStagedDirectory))
-		{
-			foreach (string FileName in Directory.EnumerateFiles(CookedBuildStagedDirectory, "*.*", SearchOption.AllDirectories))
-			{
-				string SourceFileName = Path.GetFullPath(FileName);
-				string DestFileName = SourceFileName.Replace(CookedBuildStagedDirectory, LocalBuildStagedDirectory);
-				Directory.CreateDirectory(Path.GetDirectoryName(DestFileName));
-				File.Copy(SourceFileName, DestFileName);
-			}
-		}
 
 
 		string CookedBuildCookedDirectory = Path.Combine(CookedBuildPath, "Cooked");
@@ -141,7 +119,52 @@ public partial class Project : CommandUtils
 				File.Copy(SourceFileName, DestFileName);
 			}
 		}
+
+
+		CopySharedCookedBuildTask = Task.Run(() =>
+		{
+			// find all the files in the staged directory
+			string CookedBuildStagedDirectory = Path.GetFullPath(Path.Combine(CookedBuildPath, "Staged"));
+			string LocalBuildStagedDirectory = Path.GetFullPath(Path.Combine(LocalPath, "Staged"));
+			if (Directory.Exists(CookedBuildStagedDirectory))
+			{
+				foreach (string FileName in Directory.EnumerateFiles(CookedBuildStagedDirectory, "*.*", SearchOption.AllDirectories))
+				{
+					string SourceFileName = Path.GetFullPath(FileName);
+					string DestFileName = SourceFileName.Replace(CookedBuildStagedDirectory, LocalBuildStagedDirectory);
+					Directory.CreateDirectory(Path.GetDirectoryName(DestFileName));
+					File.Copy(SourceFileName, DestFileName);
+				}
+			}
+		}
+		);
+
 		File.WriteAllText(SyncedBuildFile, RecentCL.ToString());
+		return true;
+	}
+
+	static void CopySharedCookedBuildForTarget(ProjectParams Params,TargetPlatformDescriptor TargetPlatform, string CookPlatform)
+	{
+
+		string ProjectPath = Params.RawProjectPath.FullName;
+		var LocalPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "SharedIterativeBuild", CookPlatform);
+
+		// get network location 
+		ConfigHierarchy Hierarchy = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), TargetPlatform.Type);
+		List<string> CookedBuildPaths;
+		if (Hierarchy.GetArray("SharedCookedBuildSettings", "SharedCookedBuildPath", out CookedBuildPaths) == false)
+		{
+			Log("Unable to copy shared cooked build: SharedCookedBuildPath not set in Engine.ini SharedCookedBuildSettings");
+			return;
+		}
+		foreach ( var CookedBuildPath in CookedBuildPaths )
+		{
+			if (CopySharedCookedBuildForTargetInternal(CookedBuildPath, CookPlatform, LocalPath) == true)
+			{
+				return;
+			}
+		}
+
 		return;
 	}
 
@@ -408,6 +431,11 @@ public partial class Project : CommandUtils
                 }
 
                 CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, InternationalizationPreset, CulturesToCook, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
+
+				if (CopySharedCookedBuildTask != null)
+				{
+					CopySharedCookedBuildTask.Wait();
+				}
             }
 			catch (Exception Ex)
 			{

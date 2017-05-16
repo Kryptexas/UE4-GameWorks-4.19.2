@@ -8,9 +8,10 @@ class UClothingAssetBase;
 class USkeletalMeshComponent;
 
 // Empty interface, derived simulation modules define the contents of the context
-class IClothingSimulationContext
+class CLOTHINGSYSTEMRUNTIMEINTERFACE_API IClothingSimulationContext
 {
-
+public:
+	virtual ~IClothingSimulationContext() {};
 };
 
 class CLOTHINGSYSTEMRUNTIMEINTERFACE_API IClothingSimulation

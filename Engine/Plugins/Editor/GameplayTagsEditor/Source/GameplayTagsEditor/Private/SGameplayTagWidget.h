@@ -35,17 +35,21 @@ public:
 
 	SLATE_BEGIN_ARGS( SGameplayTagWidget )
 		: _Filter()
+		, _NewTagName(TEXT(""))
 		, _ReadOnly( false )
 		, _TagContainerName( TEXT("") )
 		, _MultiSelect( true )
+		, _NewTagControlsInitiallyExpanded( false )
 		, _PropertyHandle( NULL )
 		, _GameplayTagUIMode( EGameplayTagUIMode::SelectionMode )
 		, _MaxHeight(260.0f)
 	{}
 		SLATE_ARGUMENT( FString, Filter ) // Comma delimited string of tag root names to filter by
+		SLATE_ARGUMENT( FString, NewTagName ) // String that will initially populate the New Tag Name field
 		SLATE_ARGUMENT( bool, ReadOnly ) // Flag to set if the list is read only
 		SLATE_ARGUMENT( FString, TagContainerName ) // The name that will be used for the settings file
 		SLATE_ARGUMENT( bool, MultiSelect ) // If we can select multiple entries
+		SLATE_ARGUMENT( bool, NewTagControlsInitiallyExpanded ) // If the create new tag controls are initially expanded
 		SLATE_ARGUMENT( TSharedPtr<IPropertyHandle>, PropertyHandle )
 		SLATE_EVENT( FOnTagChanged, OnTagChanged ) // Called when a tag status changes
 		SLATE_ARGUMENT( EGameplayTagUIMode, GameplayTagUIMode )	// Determines behavior of the menu based on where it's used

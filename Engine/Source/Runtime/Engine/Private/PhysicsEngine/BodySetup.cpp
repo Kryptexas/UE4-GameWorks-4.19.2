@@ -1159,7 +1159,9 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimize
 		TArray<uint8> OutData;
 
 		const EPhysXMeshCookFlags CookingFlags = bEligibleForRuntimeOptimization ? GetRuntimeOnlyCookOptimizationFlags() : EPhysXMeshCookFlags::Default;
+		
 		FDerivedDataPhysXCooker* DerivedPhysXData = new FDerivedDataPhysXCooker(Format, CookingFlags, this);
+	
 		if (DerivedPhysXData->CanBuild())
 		{
 		#if WITH_EDITOR
@@ -1178,10 +1180,13 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimize
 			}
 		}
 		else
-#endif
 		{
+			delete DerivedPhysXData;
 			UE_LOG(LogPhysics, Warning, TEXT("Attempt to build physics data for %s when we are unable to."), *GetPathName());
 		}
+#else
+		UE_LOG(LogPhysics, Warning, TEXT("Attempt to build physics data for %s when we are unable to."), *GetPathName());
+#endif
 	}
 #endif // WITH_PHYSX
 	check(Result);

@@ -455,7 +455,14 @@ FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGenericGamepl
 
 FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
 {
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return ActiveGameplayEffects.RegisterGameplayAttributeEvent(Attribute);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+FOnGameplayAttributeValueChange& UAbilitySystemComponent::GetGameplayAttributeValueChangeDelegate(FGameplayAttribute Attribute)
+{
+	return ActiveGameplayEffects.GetGameplayAttributeValueChangeDelegate(Attribute);
 }
 
 UProperty* UAbilitySystemComponent::GetOutgoingDurationProperty()
@@ -531,6 +538,8 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	// Scope lock the container after the addition has taken place to prevent the new effect from potentially getting mangled during the remainder
 	// of the add operation
 	FScopedActiveGameplayEffectLock ScopeLock(ActiveGameplayEffects);
+
+	FScopeCurrentGameplayEffectBeingApplied ScopedGEApplication(&Spec, this);
 
 	const bool bIsNetAuthority = IsOwnerActorAuthoritative();
 
@@ -663,6 +672,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			// This should just be a straight set of the duration float now
 			OurCopyOfSpec->SetDuration(UGameplayEffect::INFINITE_DURATION, true);
 		}
+	}
+
+	if (OurCopyOfSpec)
+	{
+		// Update (not push) the global spec being applied [we want to switch it to our copy, from the const input copy)
+		UAbilitySystemGlobals::Get().SetCurrentAppliedGE(OurCopyOfSpec);
 	}
 	
 

@@ -330,8 +330,12 @@ public:
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FImageIntegrityChanged, const TCHAR*, int32);
 	static FImageIntegrityChanged OnImageIntegrityChanged;
 
+	// Called to request that systems free whatever memory they are able to. Called early in LoadMap.
+	// Caller is responsible for flushing rendering etc. See UEngine::TrimMemory
+	static FSimpleMulticastDelegate& GetMemoryTrimDelegate();
+
 	// Called when OOM event occurs, after backup memory has been freed, so there's some hope of being effective
-	static FSimpleMulticastDelegate OnOutOfMemory;
+	static FSimpleMulticastDelegate& GetOutOfMemoryDelegate();
 
 	enum class EOnScreenMessageSeverity : uint8
 	{

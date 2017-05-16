@@ -135,6 +135,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	typedef TFunction<void(void* NewNativeHandle)> ReInitWindowCallbackType;
 	static ReInitWindowCallbackType GetOnReInitWindowCallback();
 	static void SetOnReInitWindowCallback(ReInitWindowCallbackType InOnReInitWindowCallback);
+	static FString GetOSVersion();
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();

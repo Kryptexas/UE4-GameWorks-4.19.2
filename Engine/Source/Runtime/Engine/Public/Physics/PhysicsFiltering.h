@@ -25,6 +25,14 @@ enum EPhysXFilterDataFlags
 	EPDF_ModifyContacts		=   0x0020
 };
 
+
+// Bit counts for Word3 of filter data.
+// (ExtraFilter (top NumExtraFilterBits) + MyChannel (next NumCollisionChannelBits) as ECollisionChannel + Flags (remaining NumFilterDataFlagBits)
+// [NumExtraFilterBits] [NumCollisionChannelBits] [NumFilterDataFlagBits] = 32 bits
+enum { NumCollisionChannelBits = 5 };
+enum { NumFilterDataFlagBits = 32 - NumExtraFilterBits - NumCollisionChannelBits };
+
+
 struct FPhysicsFilterBuilder
 {
 	ENGINE_API FPhysicsFilterBuilder(TEnumAsByte<enum ECollisionChannel> InObjectType, FMaskFilter MaskFilter, const struct FCollisionResponseContainer& ResponseToChannels);
@@ -37,13 +45,6 @@ struct FPhysicsFilterBuilder
 		}
 	}
 
-	inline void SetExtraFiltering(uint32 ExtraFiltering)
-	{
-		check(ExtraFiltering < 16);	//we only have 4 bits of extra filtering
-		uint32 ExtraFilterMask = ExtraFiltering >> 28;
-		Word3 |= ExtraFilterMask;
-	}
-
 	inline void GetQueryData(uint32 ActorID, uint32& OutWord0, uint32& OutWord1, uint32& OutWord2, uint32& OutWord3) const
 	{
 		/**
@@ -51,7 +52,7 @@ struct FPhysicsFilterBuilder
 		 *		word0 (object ID)
 		 *		word1 (blocking channels)
 		 *		word2 (touching channels)
-		 *		word3 (ExtraFilter (top 4) MyChannel (top 5) as ECollisionChannel + Flags (lower 23))
+		 *		word3 (ExtraFilter (top NumExtraFilterBits) + MyChannel (next NumCollisionChannelBits) as ECollisionChannel + Flags (remaining NumFilterDataFlagBits)
 		 */
 		OutWord0 = ActorID;
 		OutWord1 = BlockingBits;
@@ -66,7 +67,7 @@ struct FPhysicsFilterBuilder
 		 * 		word0 (body index)
 		 *		word1 (blocking channels)
 		 *		word2 (skeletal mesh component ID)
-		 * 		word3 (ExtraFilter (top 4) MyChannel (top 5) as ECollisionChannel + Flags (lower 23))
+		 *		word3 (ExtraFilter (top NumExtraFilterBits) + MyChannel (next NumCollisionChannelBits) as ECollisionChannel + Flags (remaining NumFilterDataFlagBits)
 		 */
 		OutWord0 = BodyIndex;
 		OutWord1 = BlockingBits;
@@ -118,29 +119,28 @@ inline void CreateShapeFilterData(
 
 inline ECollisionChannel GetCollisionChannel(uint32 Word3)
 {
-	uint32 NonFlagMask = Word3 >> 23;
-	uint32 ChannelMask = NonFlagMask & 0x1F;	//we only want the first 5 bits because there's only 32 channels: 0b11111
+	uint32 ChannelMask = (Word3 << NumExtraFilterBits) >> (32 - NumCollisionChannelBits);
 	return (ECollisionChannel)ChannelMask;
 }
 
 inline ECollisionChannel GetCollisionChannelAndExtraFilter(uint32 Word3, FMaskFilter& OutMaskFilter)
 {
-	uint32 NonFlagMask = Word3 >> 23;
-	uint32 ChannelMask = NonFlagMask & 0x1F;	//we only want the first 5 bits because there's only 32 channels: 0b11111
-	OutMaskFilter = NonFlagMask >> 5;
+	uint32 ChannelMask = GetCollisionChannel(Word3);
+	OutMaskFilter = Word3 >> (32 - NumExtraFilterBits);
 	return (ECollisionChannel)ChannelMask;
 }
 
 inline uint32 CreateChannelAndFilter(ECollisionChannel CollisionChannel, FMaskFilter MaskFilter)
 {
-	uint32 ResultMask = (MaskFilter << 5) | (uint32)CollisionChannel;
-	return ResultMask << 23;
+	uint32 ResultMask = (uint32(MaskFilter) << NumCollisionChannelBits) | (uint32)CollisionChannel;
+	return ResultMask << NumFilterDataFlagBits;
 }
 
 inline void UpdateMaskFilter(uint32& Word3, FMaskFilter NewMaskFilter)
 {
-	Word3 &= 0x0FFFFFFF;	//we ignore the top 4 bits because that's where the new mask filter is going
-	Word3 |= NewMaskFilter << 28;
+	static_assert(NumExtraFilterBits <= 8, "Only up to 8 extra filter bits are supported.");
+	Word3 &= (0xFFFFFFFFu >> NumExtraFilterBits);	//we drop the top NumExtraFilterBits bits because that's where the new mask filter is going
+	Word3 |= uint32(NewMaskFilter) << (32 - NumExtraFilterBits);
 }
 
 #if WITH_PHYSX

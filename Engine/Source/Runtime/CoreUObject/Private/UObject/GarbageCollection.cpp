@@ -21,6 +21,7 @@
 #include "UObject/GCScopeLock.h"
 #include "HAL/ExceptionHandling.h"
 #include "UObject/UObjectClusters.h"
+#include "CoreDelegates.h"
 
 /*-----------------------------------------------------------------------------
    Garbage collection.
@@ -107,8 +108,20 @@ public:
 	*/
 	FORCEINLINE static FGCArrayPool& Get()
 	{
-		static FGCArrayPool Singleton;
-		return Singleton;
+		static FAutoConsoleCommandWithOutputDevice GCDumpPoolCommand(
+			TEXT("gc.DumpPoolStats"),
+			TEXT("Dumps count and size of GC Pools"),
+			FConsoleCommandWithOutputDeviceDelegate::CreateStatic(&FGCArrayPool::DumpStats)
+		);
+
+		static FGCArrayPool* Singleton = nullptr;
+
+		if (!Singleton)
+		{
+			Singleton = new FGCArrayPool();
+			FCoreDelegates::GetMemoryTrimDelegate().AddRaw(Singleton, &FGCArrayPool::Cleanup);
+		}
+		return *Singleton;
 	}
 
 	/**
@@ -167,6 +180,78 @@ public:
 		UE_LOG(LogGarbage, Log, TEXT("Freed %ub from %d GC array pools."), FreedMemory, AllArrays.Num());
 	}
 
+	/**
+	* Writes out info about the makeup of the pool. called by 'gc.DumpPoolStats'
+	*
+	* @param Array The array to return.
+	* @see GetArrayFromPool
+	*/
+	static void DumpStats(FOutputDevice& OutputDevice)
+	{
+		FGCArrayPool& Instance = Get();
+				
+		TArray<TArray<UObject*>*> PoppedItems;
+
+		TMap<int32, int32> Buckets;
+
+		int32 TotalSize = 0;
+		int32 MaxSize = 0;
+		int32 TotalItems = 0;
+
+		do
+		{
+			TArray<UObject*>* Item = Instance.Pool.Pop();
+
+			if (Item)
+			{
+				PoppedItems.Push(Item);
+
+				// Inc our bucket
+				Buckets.FindOrAdd(Item->Max()) += 1;
+
+				TotalSize += Item->Max();
+				TotalItems++;
+			}
+			else
+			{
+				break;
+			}
+
+		} while (true);
+
+		// return everything to the pool
+		while (PoppedItems.Num())
+		{
+			Instance.Pool.Push(PoppedItems.Pop());
+		}
+
+		// One of these lists is used by the main GC and is huge, so remove it so that it doesn't
+		// pollute the stats and we can accurately see what the task pools are using.
+		int32 TotalSizeKB =(TotalSize * sizeof(UObject*)) / 1024;
+
+		OutputDevice.Logf(TEXT("GCPoolStats: %d Pools totaling %d KB. Avg: Objs=%d, Size=%d KB."),
+			TotalItems,
+			TotalSizeKB,
+			TotalSize / TotalItems,
+			TotalSizeKB / TotalItems);
+
+		//long form output...
+		TArray<int32> Keys;
+
+		Buckets.GetKeys(Keys);
+
+		Keys.Sort([&](int32 lhs, int32 rhs) {
+			return lhs > rhs;
+		});
+
+		for (int Key : Keys)
+		{
+			const int32 Value = Buckets[Key];
+			int32 ItemSize = (Key * sizeof(UObject*)) / 1024;
+			OutputDevice.Logf(TEXT("\t%d\t\t(%d Items @ %d KB = %d KB)"), Key, Value, ItemSize, Value * ItemSize);
+		}
+	}
+	
 #if UE_BUILD_DEBUG
 	void CheckLeaks()
 	{

@@ -14,6 +14,8 @@
 #include "Engine/StaticMesh.h"
 #include "Editor.h"
 
+#include "EditorReimportHandler.h"
+
 #include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
 
@@ -155,6 +157,8 @@ UObject* UFbxFactory::FactoryCreateBinary
  bool&				bOutOperationCanceled
  )
 {
+	CA_ASSUME(InParent);
+
 	if( bOperationCanceled )
 	{
 		bOutOperationCanceled = true;
@@ -165,8 +169,47 @@ UObject* UFbxFactory::FactoryCreateBinary
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
 	UObject* NewObject = NULL;
+	
+	//Look if its a re-import, in that cazse we must call the re-import factory
+	UObject *ExistingObject = nullptr;
+	UFbxStaticMeshImportData* ExistingStaticMeshImportData = nullptr;
+	UFbxSkeletalMeshImportData* ExistingSkeletalMeshImportData = nullptr;
+	if (InParent != nullptr)
+	{
+		ExistingObject = StaticFindObject(UObject::StaticClass(), InParent, *(Name.ToString()));
+		if (ExistingObject)
+		{
+			UStaticMesh *ExistingStaticMesh = Cast<UStaticMesh>(ExistingObject);
+			USkeletalMesh *ExistingSkeletalMesh = Cast<USkeletalMesh>(ExistingObject);
+			UObject *ObjectToReimport = nullptr;
+			if (ExistingStaticMesh)
+			{
+				ObjectToReimport = ExistingStaticMesh;
+			}
+			else if (ExistingSkeletalMesh)
+			{
+				ObjectToReimport = ExistingSkeletalMesh;
+			}
 
-	if ( bDetectImportTypeOnImport )
+			if (ObjectToReimport != nullptr)
+			{
+				TArray<UObject*> ToReimportObjects;
+				ToReimportObjects.Add(ObjectToReimport);
+				TArray<FString> Filenames;
+				Filenames.Add(UFactory::CurrentFilename);
+				//Set the new fbx source path before starting the re-import
+				FReimportManager::Instance()->UpdateReimportPaths(ObjectToReimport, Filenames);
+				//Do the re-import and exit
+				FReimportManager::Instance()->ValidateAllSourceFileAndReimport(ToReimportObjects);
+				return ObjectToReimport;
+			}
+		}
+	}
+
+	//We are not re-importing
+	ImportUI->bIsReimport = false;
+
+	if ( bDetectImportTypeOnImport)
 	{
 		if ( !DetectImportType(UFactory::CurrentFilename) )
 		{
@@ -200,7 +243,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 	bool bIsAutomated = IsAutomatedImport();
 	bool bShowImportDialog = bShowOption && !bIsAutomated;
 	bool bImportAll = false;
-	ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, bIsAutomated, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType );
+	ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, bIsAutomated, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType);
 	bOutOperationCanceled = bOperationCanceled;
 	
 	if( bImportAll )
@@ -763,6 +806,7 @@ IImportSettingsParser* UFbxFactory::GetImportSettingsParser()
 UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bIsReimport = false;
 	bAutomatedImportShouldDetectType = true;
 	
 	StaticMeshImportData = CreateDefaultSubobject<UFbxStaticMeshImportData>(TEXT("StaticMeshImportData"));

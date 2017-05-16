@@ -3561,9 +3561,13 @@ void FBlueprintEditor::JumpToHyperlink(const UObject* ObjectReference, bool bReq
 			OpenDocument(const_cast<UEdGraph*>(FunctionGraph), FDocumentTracker::OpenNewDocument);
 		}
 	}
+	else if ((ObjectReference != nullptr) && ObjectReference->IsAsset())
+	{
+		FAssetEditorManager::Get().OpenEditorForAsset(const_cast<UObject*>(ObjectReference));
+	}
 	else
 	{
-		UE_LOG(LogBlueprint, Warning, TEXT("Unknown type of hyperlinked object"));
+		UE_LOG(LogBlueprint, Warning, TEXT("Unknown type of hyperlinked object (%s)"), *GetNameSafe(ObjectReference));
 	}
 
 	//@TODO: Hacky way to ensure a message is seen when hitting an exception and doing intraframe debugging

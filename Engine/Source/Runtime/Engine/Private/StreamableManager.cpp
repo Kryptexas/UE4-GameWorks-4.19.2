@@ -1067,7 +1067,7 @@ void FStreamableManager::RemoveReferencedAsset(const FStringAssetReference& Targ
 	{
 		return;
 	}
-
+	
 	ensureMsgf(Handle->OwningManager == this, TEXT("RemoveReferencedAsset called on wrong streamable manager for target %s"), *Target.ToString());
 
 	FStreamable* Existing = FindStreamable(Target);

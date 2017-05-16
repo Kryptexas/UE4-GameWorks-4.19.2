@@ -197,6 +197,14 @@ public:
 	float ConnectionTimeout;
 
 	/**
+	* A multiplier that is applied to the above values when we are running with unoptimized builds (debug)
+	* or data (uncooked). This allows us to retain normal timeout behavior while debugging without resorting
+	* to the nuclear 'notimeouts' option or bumping the values above. If ==0 multiplier = 1
+	*/
+	UPROPERTY(Config)
+	float TimeoutMultiplierForUnoptimizedBuilds;
+
+	/**
 	 * If true, ignore timeouts completely.  Should be used only in development
 	 */
 	UPROPERTY(Config)

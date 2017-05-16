@@ -41,8 +41,8 @@ void UAbilityTask_WaitAttributeChangeRatioThreshold::Activate()
 			OnChange.Broadcast(bMatchedComparisonLastAttributeChange, LastAttributeDenominatorValue != 0.f ? LastAttributeNumeratorValue/LastAttributeDenominatorValue : 0.f);
 		}
 
-		OnNumeratorAttributeChangeDelegateHandle = AbilitySystemComponent->RegisterGameplayAttributeEvent(AttributeNumerator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnNumeratorAttributeChange);
-		OnDenominatorAttributeChangeDelegateHandle = AbilitySystemComponent->RegisterGameplayAttributeEvent(AttributeDenominator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnDenominatorAttributeChange);
+		OnNumeratorAttributeChangeDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeNumerator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnNumeratorAttributeChange);
+		OnDenominatorAttributeChangeDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeDenominator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnDenominatorAttributeChange);
 	}
 }
 
@@ -76,15 +76,15 @@ void UAbilityTask_WaitAttributeChangeRatioThreshold::OnRatioChange()
 	}
 }
 
-void UAbilityTask_WaitAttributeChangeRatioThreshold::OnNumeratorAttributeChange(float NewValue, const FGameplayEffectModCallbackData* Data)
+void UAbilityTask_WaitAttributeChangeRatioThreshold::OnNumeratorAttributeChange(const FOnAttributeChangeData& CallbackData)
 {
-	LastAttributeNumeratorValue = NewValue;
+	LastAttributeNumeratorValue = CallbackData.NewValue;
 	OnAttributeChange();
 }
 
-void UAbilityTask_WaitAttributeChangeRatioThreshold::OnDenominatorAttributeChange(float NewValue, const FGameplayEffectModCallbackData* Data)
+void UAbilityTask_WaitAttributeChangeRatioThreshold::OnDenominatorAttributeChange(const FOnAttributeChangeData& CallbackData)
 {
-	LastAttributeDenominatorValue = NewValue;
+	LastAttributeDenominatorValue = CallbackData.NewValue;
 	OnAttributeChange();
 }
 
@@ -127,8 +127,8 @@ void UAbilityTask_WaitAttributeChangeRatioThreshold::OnDestroy(bool AbilityEnded
 {
 	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->RegisterGameplayAttributeEvent(AttributeNumerator).Remove(OnNumeratorAttributeChangeDelegateHandle);
-		AbilitySystemComponent->RegisterGameplayAttributeEvent(AttributeDenominator).Remove(OnDenominatorAttributeChangeDelegateHandle);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeNumerator).Remove(OnNumeratorAttributeChangeDelegateHandle);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeDenominator).Remove(OnDenominatorAttributeChangeDelegateHandle);
 	}
 
 	Super::OnDestroy(AbilityEnded);

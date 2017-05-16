@@ -1124,12 +1124,21 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 
 		FName PackageFName(*InPackageName);
 
+		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+		if (!Result || Result->LinkerLoad || !Result->IsFullyLoaded())
 		{
 			int32 RequestID = LoadPackageAsync(InName, nullptr, *InPackageName);
 			FlushAsyncLoading(RequestID);
 		}
 
-		Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+		if (InOuter)
+		{
+			return InOuter;
+		}
+		if (!Result)
+		{
+			Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+		}
 		return Result;
 	}
 

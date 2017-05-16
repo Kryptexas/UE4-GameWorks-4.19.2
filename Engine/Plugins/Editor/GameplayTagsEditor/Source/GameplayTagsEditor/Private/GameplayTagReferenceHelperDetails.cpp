@@ -8,6 +8,9 @@
 #include "GameplayTagContainer.h"
 #include "UObjectHash.h"
 #include "UnrealType.h"
+#include "GameplayTagsManager.h"
+#include "SGameplayTagWidget.h"
+#include "IDetailChildrenBuilder.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagReferenceHelperDetails"
 
@@ -192,5 +195,41 @@ TSharedRef<ITableRow> FGameplayTagReferenceHelperDetails::OnGenerateWidgetForGam
 		];
 	}
 }
+
+// --------------------------------------------------------------------------------------
+
+TSharedRef<IPropertyTypeCustomization> FGameplayTagCreationWidgetHelperDetails::MakeInstance()
+{
+	return MakeShareable(new FGameplayTagCreationWidgetHelperDetails());
+}
+
+void FGameplayTagCreationWidgetHelperDetails::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+{
+
+}
+
+void FGameplayTagCreationWidgetHelperDetails::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+{
+	FString FilterString = UGameplayTagsManager::Get().GetCategoriesMetaFromPropertyHandle(StructPropertyHandle);
+	const float MaxPropertyWidth = 480.0f;
+	const float MaxPropertyHeight = 240.0f;
+
+	StructBuilder.AddChildContent( LOCTEXT("NewTag", "NewTag") )
+	.ValueContent()
+	.MaxDesiredWidth(MaxPropertyWidth)
+	[
+		SAssignNew(TagWidget, SGameplayTagWidget, TArray<SGameplayTagWidget::FEditableGameplayTagContainerDatum>())
+		.Filter(FilterString)
+		.NewTagName(FilterString)
+		.MultiSelect(false)
+		.GameplayTagUIMode(EGameplayTagUIMode::ManagementMode)
+		.MaxHeight(MaxPropertyHeight)
+		.NewTagControlsInitiallyExpanded(true)
+		//.OnTagChanged(this, &FGameplayTagsSettingsCustomization::OnTagChanged)
+	];
+	
+}
+
+
 
 #undef LOCTEXT_NAMESPACE

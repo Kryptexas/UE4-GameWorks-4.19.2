@@ -19,6 +19,7 @@
 	#include "../PhysicsEngine2D/Box2DIntegration.h"
 #endif
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "CoreDelegates.h"
 
 #ifndef APEX_STATICALLY_LINKED
 	#define APEX_STATICALLY_LINKED	0
@@ -435,6 +436,12 @@ void InitGamePhys()
 
 #endif // #if WITH_APEX
 
+	// One-time register delegate with Trim() to run our deferred cleanup upon request
+	static FDelegateHandle Clear = FCoreDelegates::GetMemoryTrimDelegate().AddLambda([]()
+	{
+		DeferredPhysResourceCleanup();
+	});
+	
 #endif // WITH_PHYSX
 }
 

@@ -158,7 +158,7 @@ private:
 	// Update the LOD for the current actors, this is more complex than just updating a LOD value,
 	// we need to skin the incoming simulation mesh to the outgoing mesh (the weighting data should have been
 	// built in the asset already) to make sure it matches up without popping
-	void UpdateLod(int32 InPredictedLod, bool bForceNoRemap = false);
+	void UpdateLod(int32 InPredictedLod, const FTransform& ComponentToWorld, const TArray<FTransform>& CSTransforms, bool bForceNoRemap = false);
 
 	// The core simulation is only solving unoriented particles, so we need to compute normals after the
 	// simulation runs

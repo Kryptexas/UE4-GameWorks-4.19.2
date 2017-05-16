@@ -81,6 +81,10 @@ protected:
 	UPROPERTY()
 	TArray<UGameplayTask*> TickingTasks;
 
+	/** All known tasks (processed by this component) referenced for GC */
+	UPROPERTY(transient)
+	TArray<UGameplayTask*> KnownTasks;
+
 	/** Indicates what's the highest priority among currently running tasks */
 	uint8 TopActivePriority;
 
@@ -137,10 +141,12 @@ public:
 	
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FString GetTickingTasksDescription() const;
+	FString GetKnownTasksDescription() const;
 	FString GetTasksPriorityQueueDescription() const;
 	static FString GetTaskStateName(EGameplayTaskState Value);
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FConstGameplayTaskIterator GetTickingTaskIterator() const;
+	FConstGameplayTaskIterator GetKnownTaskIterator() const;
 	FConstGameplayTaskIterator GetPriorityQueueIterator() const;
 
 #if ENABLE_VISUAL_LOG

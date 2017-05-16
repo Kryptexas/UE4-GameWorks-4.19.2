@@ -21,7 +21,6 @@ struct FGameplayEffectModCallbackData
 		, EvaluatedData(InEvaluatedData)
 		, Target(InTarget)
 	{
-
 	}
 
 	const struct FGameplayEffectSpec&		EffectSpec;		// The spec that the mod came from

@@ -5311,6 +5311,12 @@ FRotator UCharacterMovementComponent::ComputeOrientToMovementRotation(const FRot
 	return Acceleration.GetSafeNormal().Rotation();
 }
 
+bool UCharacterMovementComponent::ShouldRemainVertical() const
+{
+	// Always remain vertical when walking or falling.
+	return IsMovingOnGround() || IsFalling();
+}
+
 void UCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 {
 	if (!(bOrientRotationToMovement || bUseControllerDesiredRotation))
@@ -5343,8 +5349,7 @@ void UCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 		return;
 	}
 
-	// Always remain vertical when walking or falling.
-	if (IsMovingOnGround() || IsFalling())
+	if (ShouldRemainVertical())
 	{
 		DesiredRotation.Pitch = 0.f;
 		DesiredRotation.Yaw = FRotator::NormalizeAxis(DesiredRotation.Yaw);
@@ -8409,6 +8414,9 @@ void UCharacterMovementComponent::MoveAutonomous
 	{
 		TickCharacterPose(DeltaTime);
 		// TODO: SaveBaseLocation() in case tick moves us?
+
+		// Trigger Events right away, as we could be receiving multiple ServerMoves per frame.
+		CharacterOwner->GetMesh()->ConditionallyDispatchQueuedAnimEvents();
 	}
 
 	if (CharacterOwner && UpdatedComponent)
@@ -10175,6 +10183,31 @@ void UCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 	{
 		CharacterOwner->bWasJumping = false;
 		CharacterOwner->JumpKeyHoldTime = 0.0f;
+	}
+}
+
+void UCharacterMovementComponent::FlushServerMoves()
+{
+	// Send pendingMove to server if this character is replicating movement
+	if (CharacterOwner && CharacterOwner->bReplicateMovement)
+	{
+		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
+		if (!ClientData)
+		{
+			return;
+		}
+
+		if (ClientData->PendingMove.IsValid() != false)
+		{
+			const UWorld* MyWorld = GetWorld();
+
+			ClientData->ClientUpdateTime = MyWorld->TimeSeconds;
+
+			FSavedMovePtr NewMove = ClientData->PendingMove;
+
+			ClientData->PendingMove = NULL;
+			CallServerMove(NewMove.Get(), nullptr);
+		}
 	}
 }
 

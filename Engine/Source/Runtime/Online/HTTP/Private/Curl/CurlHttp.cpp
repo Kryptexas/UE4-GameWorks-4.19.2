@@ -608,7 +608,7 @@ bool FCurlHttpRequest::SetupRequest()
 	// set up headers
 	if (GetHeader("User-Agent").IsEmpty())
 	{
-		SetHeader(TEXT("User-Agent"), FString::Printf(TEXT("game=%s, engine=UE4, version=%s"), FApp::GetGameName(), *FEngineVersion::Current().ToString()));
+		SetHeader(TEXT("User-Agent"), FPlatformHttp::GetDefaultUserAgent());
 	}
 
 	// content-length should be present http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4

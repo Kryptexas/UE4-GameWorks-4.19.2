@@ -53,10 +53,7 @@ void SGameplayTagGraphPin::ParseDefaultValueData()
 		UFunction* ThisFunction = CallFuncNode->GetTargetFunction();
 		if (ThisFunction)
 		{
-			if (ThisFunction->HasMetaData(TEXT("GameplayTagFilter")))
-			{
-				FilterString = ThisFunction->GetMetaData(TEXT("GameplayTagFilter"));
-			}
+			FilterString = UGameplayTagsManager::Get().GetCategoriesMetaFromFunction(ThisFunction);
 		}
 	}
 

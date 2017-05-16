@@ -9984,20 +9984,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		WorldContext.SetCurrentWorld(nullptr);
 	}
 
-	// Clean up the previous level out of memory.
-	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
-	
-	// For platforms which manage GPU memory directly we must Enqueue a flush, and wait for it to be processed
-	// so that any pending frees that depend on the GPU will be processed.  Otherwise a whole map's worth of GPU memory
-	// may be unavailable to load the next one.
-	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand, 
-		{
-			GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
-			RHIFlushResources();
-			GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
-		}
-	);
-	FlushRenderingCommands();	  
+	// trim memory to clear up allocations from the previous level (also flushes rendering)
+	TrimMemory();
 
 	// Cancels the Forced StreamType for textures using a timer.
 	if (!IStreamingManager::HasShutdown())
@@ -10337,6 +10325,27 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	// Successfully started local level.
 	return true;
+}
+
+void UEngine::TrimMemory()
+{
+	// Clean up the previous level out of memory.
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+
+	// For platforms which manage GPU memory directly we must Enqueue a flush, and wait for it to be processed
+	// so that any pending frees that depend on the GPU will be processed.  Otherwise a whole map's worth of GPU memory
+	// may be unavailable to load the next one.
+	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand,
+	{
+		GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+		RHIFlushResources();
+		GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+	}
+	);
+	FlushRenderingCommands();
+
+	// Ask systems to trim memory where possible
+	FCoreDelegates::GetMemoryTrimDelegate().Broadcast();
 }
 
 void UEngine::BlockTillLevelStreamingCompleted(UWorld* InWorld)

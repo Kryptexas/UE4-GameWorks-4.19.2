@@ -48,6 +48,8 @@
 #include "AnimGraphNode_Slot.h"
 #include "AnimationEditorUtils.h"
 
+#include "AnimBlueprintPostCompileValidation.h" 
+
 #define LOCTEXT_NAMESPACE "AnimBlueprintCompiler"
 
 //
@@ -1996,7 +1998,12 @@ void FAnimBlueprintCompiler::PostCompile()
 			FExposedValueHandler* HandlerPtr = EvaluationHandler.EvaluationHandlerProperty->ContainerPtrToValuePtr<FExposedValueHandler>(EvaluationHandler.NodeVariableProperty->ContainerPtrToValuePtr<void>(DefaultAnimInstance));
 			TrueNode->BlueprintUsage = HandlerPtr->BoundFunction != NAME_None ? EBlueprintUsage::UsesBlueprint : EBlueprintUsage::DoesNotUseBlueprint;
 
-			if(TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint && AnimBlueprint->bWarnAboutBlueprintUsage)
+#if WITH_EDITORONLY_DATA // ANIMINST_PostCompileValidation
+			const bool bWarnAboutBlueprintUsage = AnimBlueprint->bWarnAboutBlueprintUsage || DefaultAnimInstance->PCV_ShouldWarnAboutNodesNotUsingFastPath();
+#else
+			const bool bWarnAboutBlueprintUsage = AnimBlueprint->bWarnAboutBlueprintUsage;
+#endif
+			if (bWarnAboutBlueprintUsage && (TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint))
 			{
 				MessageLog.Warning(*LOCTEXT("BlueprintUsageWarning", "Node @@ uses Blueprint to update its values, access member variables directly or use a constant value for better performance.").ToString(), Node);
 			}
@@ -2362,6 +2369,27 @@ int32 FAnimBlueprintCompiler::FindOrAddNotify(FAnimNotifyEvent& Notify)
 void FAnimBlueprintCompiler::PostCompileDiagnostics()
 {
 	FKismetCompilerContext::PostCompileDiagnostics();
+
+#if WITH_EDITORONLY_DATA // ANIMINST_PostCompileValidation
+	// See if AnimInstance implements a PostCompileValidation Class. 
+	// If so, instantiate it, and let it perform Validation of our newly compiled AnimBlueprint.
+	if (const UAnimInstance* const DefaultAnimInstance = CastChecked<UAnimInstance>(NewAnimBlueprintClass->GetDefaultObject()))
+	{
+		if (DefaultAnimInstance->PostCompileValidationClassName.IsValid())
+		{
+			UClass* PostCompileValidationClass = LoadClass<UObject>(nullptr, *DefaultAnimInstance->PostCompileValidationClassName.ToString());
+			if (PostCompileValidationClass)
+			{
+				UAnimBlueprintPostCompileValidation* PostCompileValidation = NewObject<UAnimBlueprintPostCompileValidation>(GetTransientPackage(), PostCompileValidationClass);
+				if (PostCompileValidation)
+				{
+					FAnimBPCompileValidationParams PCV_Params(DefaultAnimInstance, NewAnimBlueprintClass, MessageLog, AllocatedNodePropertiesToNodes);
+					PostCompileValidation->DoPostCompileValidation(PCV_Params);
+				}
+			}
+		}
+	}
+#endif // WITH_EDITORONLY_DATA
 
 	if (!bIsDerivedAnimBlueprint)
 	{

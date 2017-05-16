@@ -13,6 +13,7 @@
 #include "NetworkFileSystemLog.h"
 #include "Misc/PackageName.h"
 #include "Interfaces/ITargetPlatform.h"
+#include "HAL/PlatformTime.h"
 
 
 /**
@@ -62,6 +63,17 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FF
 	{
 		SandboxPathOverrideDelegate = InSandboxPathOverrideDelegate;
 	}
+	
+	//stats
+	FileRequestDelegateTime = 0.0;
+	PackageFileTime = 0.0;
+	UnsolicitedFilesTime = 0.0;
+
+	FileRequestCount = 0;
+	UnsolicitedFilesCount = 0;
+	PackageRequestsSucceeded = 0;
+	PackageRequestsFailed = 0;
+	FileBytesSent = 0;
 }
 
 
@@ -330,6 +342,8 @@ bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 
 		if (bSendUnsolicitedFiles && Result )
 		{
+			double StartTime;
+			StartTime = FPlatformTime::Seconds();
 			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
 			{
 				FBufferArchive OutUnsolicitedFile;
@@ -338,8 +352,12 @@ bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 				UE_LOG(LogFileServer, Display, TEXT("Returning unsolicited file %s with %d bytes"), *UnsolictedFiles[Index], OutUnsolicitedFile.Num());
 
 				Result &= SendPayload(OutUnsolicitedFile);
+				++UnsolicitedFilesCount;
 			}
 			UnsolictedFiles.RemoveAt(0, NumUnsolictedFiles);
+
+
+			UnsolicitedFilesTime += 1000.0f * float(FPlatformTime::Seconds() - StartTime);
 		}
 	}
 
@@ -802,6 +820,13 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	{
 		FString ProjectDir = FPaths::GetPath(FPaths::GetProjectFilePath());
 		SandboxDirectory = FPaths::Combine(*ProjectDir, TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
+
+		// this is a workaround because the cooker and the networkfile server don't have access to eachother and therefore don't share the same Sandbox
+		// the cooker in cook in editor saves to the EditorCooked directory
+		if ( GIsEditor && !IsRunningCommandlet())
+		{
+			SandboxDirectory = FPaths::Combine(*ProjectDir, TEXT("Saved"), TEXT("EditorCooked"), *ConnectedPlatformName);
+		}
 		if( bIsStreamingRequest )
 		{
 			RootDirectories.Add(ProjectDir);
@@ -901,6 +926,12 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	TMap<FString, FDateTime> FixedTimes = FixupSandboxPathsForClient(Visitor.FileTimes);
 	Out << FixedTimes;
 
+#if 0 // dump the list of files
+	for ( const auto& FileTime : Visitor.FileTimes)
+	{
+		UE_LOG(LogFileServer, Display, TEXT("Server list of files  %s time %d"), *FileTime.Key, *FileTime.Value.ToString() );
+	}
+#endif
 	// Do it again, preventing access to non-cooked files
 	if( bIsStreamingRequest == false )
 	{
@@ -1019,18 +1050,25 @@ bool FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchiv
 	// open file
 	IFileHandle* File = Sandbox->OpenRead(*Filename);
 
+
 	if (!File)
 	{
+		++PackageRequestsFailed;
+
+		UE_LOG(LogFileServer, Warning, TEXT("Opening file %s failed"), *Filename);
 		ServerTimeStamp = FDateTime::MinValue(); // if this was a directory, this will make sure it is not confused with a zero byte file
 	}
 	else
 	{
+		++PackageRequestsSucceeded;
+
 		if (!File->Size())
 		{
 			UE_LOG(LogFileServer, Warning, TEXT("Sending empty file %s...."), *Filename);
 		}
 		else
 		{
+			FileBytesSent += File->Size();
 			// read it
 			Contents.AddUninitialized(File->Size());
 			File->Read(Contents.GetData(), Contents.Num());
@@ -1076,10 +1114,16 @@ void FNetworkFileServerClientConnection::ProcessRecompileShaders( FArchive& In, 
 
 void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive& Out )
 {
+
+	double StartTime;
+	StartTime = FPlatformTime::Seconds();
+
 	// get filename
 	FString Filename;
 	In << Filename;
 	
+	UE_LOG(LogFileServer, Verbose, TEXT("Try sync file %s"), *Filename);
+
 	ConvertClientFilenameToServerFilename(Filename);
 	
 	//FString AbsFile(FString(*Sandbox->ConvertToAbsolutePathForExternalApp(*Filename)).MakeStandardFilename());
@@ -1088,6 +1132,10 @@ void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive
 	TArray<FString> NewUnsolictedFiles;
 
 	FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
+
+	FileRequestDelegateTime += 1000.0f * float(FPlatformTime::Seconds() - StartTime);
+	StartTime = FPlatformTime::Seconds();
+	
 
 	for (int32 Index = 0; Index < NewUnsolictedFiles.Num(); Index++)
 	{
@@ -1098,10 +1146,46 @@ void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive
 	}
 
 	PackageFile(Filename, Out);
+
+	PackageFileTime += 1000.0f * float(FPlatformTime::Seconds() - StartTime);
 }
+
 FString FNetworkFileServerClientConnection::GetDescription() const 
 {
 	return FString("Client For " ) + ConnectedPlatformName;
 }
 
+
+bool FNetworkFileServerClientConnection::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) 
+{
+	if (FParse::Command(&Cmd, TEXT("networkserverconnection")))
+	{
+		if (FParse::Command(&Cmd, TEXT("stats")))
+		{
+
+			Ar.Logf(TEXT("Network server connection %s stats\n"
+				"FileRequestDelegateTime \t%fms \n"
+				"PackageFileTime \t%fms \n"
+				"UnsolicitedFilesTime \t%fms \n"
+				"FileRequestCount \t%d \n"
+				"UnsolicitedFilesCount \t%d \n"
+				"PackageRequestsSucceeded \t%d \n"
+				"PackageRequestsFailed \t%d \n"
+				"FileBytesSent \t%d \n"),
+				*GetDescription(),
+				FileRequestDelegateTime,
+				PackageFileTime,
+				UnsolicitedFilesTime,
+				FileRequestCount,
+				UnsolicitedFilesCount,
+				PackageRequestsSucceeded,
+				PackageRequestsFailed,
+				FileBytesSent);
+
+			// there could be multiple network platform files so let them all report their stats
+			return false;
+		}
+	}
+	return false;
+}
 

@@ -21,7 +21,10 @@
 #include "SourceControlHelpers.h"
 #include "ISourceControlModule.h"
 #include "Editor.h"
+#include "PropertyHandle.h"
+FSimpleMulticastDelegate UGameplayTagsManager::OnEditorRefreshGameplayTagTree;
 #endif
+
 
 #define LOCTEXT_NAMESPACE "GameplayTagManager"
 
@@ -646,6 +649,21 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TSharedPtr<FGamepl
 	return InsertionIdx;
 }
 
+void UGameplayTagsManager::PrintReplicationIndices()
+{
+
+	UE_LOG(LogGameplayTags, Display, TEXT("::PrintReplicationIndices (TOTAL %d"), GameplayTagNodeMap.Num());
+
+	for (auto It : GameplayTagNodeMap)
+	{
+		FGameplayTag Tag = It.Key;
+		TSharedPtr<FGameplayTagNode> Node = It.Value;
+
+		UE_LOG(LogGameplayTags, Display, TEXT("Tag %s NetIndex: %d"), *Tag.ToString(), Node->GetNetIndex());
+	}
+
+}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 void UGameplayTagsManager::PrintReplicationFrequencyReport()
 {
@@ -843,6 +861,81 @@ void UGameplayTagsManager::GetFilteredGameplayRootTags(const FString& InFilterSt
 	}
 }
 
+FString UGameplayTagsManager::GetCategoriesMetaFromPropertyHandle(TSharedPtr<IPropertyHandle> PropertyHandle) const
+{
+	// Global delegate override. Useful for parent structs that want to override tag categories based on their data (e.g. not static property meta data)
+	FString DelegateOverrideString;
+	OnGetCategoriesMetaFromPropertyHandle.Broadcast(PropertyHandle, DelegateOverrideString);
+	if (DelegateOverrideString.IsEmpty() == false)
+	{
+		return DelegateOverrideString;
+	}
+
+
+	const FName CategoriesName = TEXT("Categories");
+	FString Categories;
+
+	auto GetMetaData = ([&](UField* Field)
+	{
+		if (Field->HasMetaData(CategoriesName))
+		{
+			Categories = Field->GetMetaData(CategoriesName);
+			return true;
+		}
+
+		return false;
+	});
+	
+	while(PropertyHandle.IsValid())
+	{
+		if (UProperty* Property = PropertyHandle->GetProperty())
+		{
+			/**
+			 *	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Categories="GameplayCue"))
+			 *	FGameplayTag GameplayCueTag;
+			 */
+			if (GetMetaData(Property))
+			{
+				break;
+			}
+
+			/**
+			 *	USTRUCT(meta=(Categories="EventKeyword"))
+			 *	struct FGameplayEventKeywordTag : public FGameplayTag
+			 */
+			if (UStructProperty* StructProperty = Cast<UStructProperty>(Property))
+			{
+				if (GetMetaData(StructProperty->Struct))
+				{
+					break;
+				}
+			}
+
+			/**	TArray<FGameplayEventKeywordTag> QualifierTagTestList; */
+			if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property))
+			{
+				if (GetMetaData(ArrayProperty->Inner))
+				{
+					break;
+				}
+			}
+		}
+		PropertyHandle = PropertyHandle->GetParentHandle();
+	}
+	
+	return Categories;
+}
+
+FString UGameplayTagsManager::GetCategoriesMetaFromFunction(UFunction* ThisFunction) const
+{
+	FString FilterString;
+	if (ThisFunction->HasMetaData(TEXT("GameplayTagFilter")))
+	{
+		FilterString = ThisFunction->GetMetaData(TEXT("GameplayTagFilter"));
+	}
+	return FilterString;
+}
+
 void UGameplayTagsManager::GetAllTagsFromSource(FName TagSource, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray) const
 {
 	for (const TPair<FGameplayTag, TSharedPtr<FGameplayTagNode>>& NodePair : GameplayTagNodeMap)
@@ -882,6 +975,8 @@ void UGameplayTagsManager::EditorRefreshGameplayTagTree()
 	DestroyGameplayTagTree();
 	LoadGameplayTagTables();
 	ConstructGameplayTagTree();
+
+	OnEditorRefreshGameplayTagTree.Broadcast();
 }
 
 FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildrenInDictionary(const FGameplayTag& GameplayTag) const
@@ -895,6 +990,29 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildrenInDictiona
 		AddChildrenTags(TagContainer, GameplayTagNode, true, true);
 	}
 	return TagContainer;
+}
+
+void UGameplayTagsManager::NotifyGameplayTagDoubleClickedEditor(FString TagName)
+{
+	FGameplayTag Tag = RequestGameplayTag(FName(*TagName), false);
+	if(Tag.IsValid())
+	{
+		FSimpleMulticastDelegate Delegate;
+		OnGatherGameplayTagDoubleClickedEditor.Broadcast(Tag, Delegate);
+		Delegate.Broadcast();
+	}
+}
+
+bool UGameplayTagsManager::ShowGameplayTagAsHyperLinkEditor(FString TagName)
+{
+	FGameplayTag Tag = RequestGameplayTag(FName(*TagName), false);
+	if(Tag.IsValid())
+	{
+		FSimpleMulticastDelegate Delegate;
+		OnGatherGameplayTagDoubleClickedEditor.Broadcast(Tag, Delegate);
+		return Delegate.IsBound();
+	}
+	return false;
 }
 
 #endif // WITH_EDITOR
@@ -976,6 +1094,43 @@ FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorI
 	return FGameplayTag();
 }
 
+FGameplayTag UGameplayTagsManager::FindGameplayTagFromPartialString_Slow(FString PartialString) const
+{
+#if WITH_EDITOR
+	// This critical section is to handle and editor-only issue where tag requests come from another thread when async loading from a background thread in FGameplayTagContainer::Serialize.
+	// This function is not generically threadsafe.
+	FScopeLock Lock(&GameplayTagMapCritical);
+#endif
+
+	// Exact match first
+	FGameplayTag PossibleTag(*PartialString);
+	if (GameplayTagNodeMap.Contains(PossibleTag))
+	{
+		return PossibleTag;
+	}
+
+	// Find shortest tag name that contains the match string
+	FGameplayTag FoundTag;
+	FGameplayTagContainer AllTags;
+	RequestAllGameplayTags(AllTags, false);
+
+	int32 BestMatchLength = MAX_int32;
+	for (FGameplayTag MatchTag : AllTags)
+	{
+		FString Str = MatchTag.ToString();
+		if (Str.Contains(PartialString))
+		{
+			if (Str.Len() < BestMatchLength)
+			{
+				FoundTag = MatchTag;
+				BestMatchLength = Str.Len();
+			}
+		}
+	}
+	
+	return FoundTag;
+}
+
 FGameplayTag UGameplayTagsManager::AddNativeGameplayTag(FName TagName)
 {
 	if (TagName.IsNone())
@@ -1001,16 +1156,33 @@ FGameplayTag UGameplayTagsManager::AddNativeGameplayTag(FName TagName)
 	return FGameplayTag();
 }
 
+FSimpleMulticastDelegate UGameplayTagsManager::OnLastChanceToAddNativeTags()
+{
+	static FSimpleMulticastDelegate Delegate;
+	return Delegate;
+}
+
 void UGameplayTagsManager::DoneAddingNativeTags()
 {
 	// Safe to call multiple times, only works the first time
 	if (!bDoneAddingNativeTags)
 	{
+		UE_LOG(LogGameplayTags, Display, TEXT("UGameplayTagsManager::DoneAddingNativeTags. DelegateIsBound: %d"), (int32)OnLastChanceToAddNativeTags().IsBound());
+		OnLastChanceToAddNativeTags().Broadcast();
 		bDoneAddingNativeTags = true;
 
 		if (ShouldUseFastReplication())
 		{
 			ConstructNetIndex();
+		}
+
+		// TEMP
+		for (auto It : GameplayTagNodeMap)
+		{
+			FGameplayTag Tag = It.Key;
+			TSharedPtr<FGameplayTagNode> Node = It.Value;
+
+			UE_LOG(LogGameplayTags, Display, TEXT("Tag %s NetIndex: %d"), *Tag.ToString(), Node->GetNetIndex());
 		}
 	}
 }

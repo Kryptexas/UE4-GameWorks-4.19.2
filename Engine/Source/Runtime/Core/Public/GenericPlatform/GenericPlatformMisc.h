@@ -360,6 +360,13 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 
+	/**
+	 * Gets a string representing the numeric OS version (as opposed to a translated OS version that GetOSVersions returns).
+	 * The returned string should try to be brief and avoid newlines and symbols, but there's technically no restriction on the string it can return.
+	 * If the implementation does not support this, it should return an empty string.
+	 */
+	static FString GetOSVersion();
+
 	/** Retrieves information about the total number of bytes and number of free bytes for the specified disk path. */
 	static bool GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes );
 

@@ -30,6 +30,16 @@ UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbili
 	return MyObj;
 }
 
+UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbilityActivate_Query(UGameplayAbility* OwningAbility, FGameplayTagQuery Query, bool InIncludeTriggeredAbilities, bool InTriggerOnce)
+{
+	auto MyObj = NewAbilityTask<UAbilityTask_WaitAbilityActivate>(OwningAbility);
+	MyObj->Query = Query;
+	MyObj->IncludeTriggeredAbilities = InIncludeTriggeredAbilities;
+	MyObj->TriggerOnce = InTriggerOnce;
+	return MyObj;
+
+}
+
 void UAbilityTask_WaitAbilityActivate::Activate()
 {
 	if (AbilitySystemComponent)
@@ -59,6 +69,15 @@ void UAbilityTask_WaitAbilityActivate::OnAbilityActivate(UGameplayAbility* Activ
 		if (!TagRequirements.RequirementsMet(ActivatedAbility->AbilityTags))
 		{
 			// Failed tag check
+			return;
+		}
+	}
+
+	if (Query.IsEmpty() == false)
+	{
+		if (Query.Matches(ActivatedAbility->AbilityTags) == false)
+		{
+			// Failed query
 			return;
 		}
 	}

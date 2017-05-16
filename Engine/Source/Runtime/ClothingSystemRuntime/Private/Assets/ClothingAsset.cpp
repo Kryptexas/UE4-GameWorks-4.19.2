@@ -616,7 +616,7 @@ void UClothingAsset::BuildSelfCollisionData()
 		return;
 	}
 
-	// Scale by the asset cull scale.
+	// can't pass through the network of other spheres.
 	const float SCRadius = ClothConfig.SelfCollisionRadius * ClothConfig.SelfCollisionCullScale;
 	const float SCRadiusSq = SCRadius * SCRadius;
 

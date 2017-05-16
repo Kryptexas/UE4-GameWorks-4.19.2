@@ -1321,6 +1321,8 @@ bool ListFilesInPak(const TCHAR * InPakFilename, int64 SizeFilter = 0)
 
 	if (PakFile.IsValid())
 	{
+		UE_LOG(LogPakFile, Display, TEXT("Mount point %s"), *PakFile.GetMountPoint());
+
 		TArray<FPakFile::FFileIterator> Records;
 
 		for (FPakFile::FFileIterator It(PakFile); It; ++It)

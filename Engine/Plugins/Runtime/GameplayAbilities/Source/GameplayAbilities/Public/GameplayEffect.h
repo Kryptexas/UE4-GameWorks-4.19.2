@@ -207,8 +207,11 @@ struct FSetByCallerFloat
 	{}
 
 	/** The Name the caller (code or blueprint) will use to set this magnitude by. */
-	UPROPERTY(EditDefaultsOnly, Category=SetByCaller)
+	UPROPERTY(VisibleDefaultsOnly, Category=SetByCaller)
 	FName	DataName;
+
+	UPROPERTY(EditDefaultsOnly, Category = SetByCaller, meta = (Categories = "SetByCaller"))
+	FGameplayTag DataTag;
 
 	/** Equality/Inequality operators */
 	bool operator==(const FSetByCallerFloat& Other) const;
@@ -947,8 +950,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	/** Sets the magnitude of a SetByCaller modifier */
 	void SetSetByCallerMagnitude(FName DataName, float Magnitude);
 
+	/** Sets the magnitude of a SetByCaller modifier */
+	void SetSetByCallerMagnitude(FGameplayTag DataTag, float Magnitude);
+
 	/** Returns the magnitude of a SetByCaller modifier. Will return 0.f and Warn if the magnitude has not been set. */
-	float GetSetByCallerMagnitude(FName DataName, bool WarnIfNotFound=true, float DefaultIfNotFound=0.f) const;
+	float GetSetByCallerMagnitude(FName DataName, bool WarnIfNotFound = true, float DefaultIfNotFound = 0.f) const;
+
+	/** Returns the magnitude of a SetByCaller modifier. Will return 0.f and Warn if the magnitude has not been set. */
+	float GetSetByCallerMagnitude(FGameplayTag DataTag, bool WarnIfNotFound = true, float DefaultIfNotFound = 0.f) const;
 
 	void SetLevel(float InLevel);
 
@@ -1072,7 +1081,8 @@ public:
 private:
 
 	/** Map of set by caller magnitudes */
-	TMap<FName, float>	SetByCallerMagnitudes;
+	TMap<FName, float>			SetByCallerNameMagnitudes;
+	TMap<FGameplayTag, float>	SetByCallerTagMagnitudes;
 	
 	UPROPERTY()
 	FGameplayEffectContextHandle EffectContext; // This tells us how we got here (who / what applied us)
@@ -1612,7 +1622,10 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	// -------------------------------------------------------------------------------------------
 
+	DEPRECATED(4.17, "Use GetGameplayAttributeValueChangeDelegate (the delegate signature has changed)")
 	FOnGameplayAttributeChange& RegisterGameplayAttributeEvent(FGameplayAttribute Attribute);
+
+	FOnGameplayAttributeValueChange& GetGameplayAttributeValueChangeDelegate(FGameplayAttribute Attribute);
 
 	void OnOwnerTagChange(FGameplayTag TagChange, int32 NewCount);
 
@@ -1713,7 +1726,11 @@ private:
 
 	TMap<FGameplayAttribute, FAggregatorRef>		AttributeAggregatorMap;
 
+	// DEPRECATED: use AttributeValueChangeDelegates
 	TMap<FGameplayAttribute, FOnGameplayAttributeChange> AttributeChangeDelegates;
+	
+	TMap<FGameplayAttribute, FOnGameplayAttributeValueChange> AttributeValueChangeDelegates;
+
 
 	TMap<FGameplayTag, TSet<FActiveGameplayEffectHandle> >	ActiveEffectTagDependencies;
 

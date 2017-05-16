@@ -953,7 +953,20 @@ void AActor::CallPreReplication(UNetDriver* NetDriver)
 		return;
 	}
 
-	PreReplication(*NetDriver->FindOrCreateRepChangedPropertyTracker(this).Get());
+	IRepChangedPropertyTracker* const ActorChangedPropertyTracker = NetDriver->FindOrCreateRepChangedPropertyTracker(this).Get();
+
+	// PreReplication is only called on the server, except when we're recording a Client Replay.
+	// In that case we call PreReplication on the locally controlled Character as well.
+	if ((Role == ROLE_Authority) || ((Role == ROLE_AutonomousProxy) && GetWorld()->IsRecordingClientReplay()))
+	{
+		PreReplication(*ActorChangedPropertyTracker);
+	}
+
+	// If we're recording a replay, call this for everyone (includes SimulatedProxies).
+	if (ActorChangedPropertyTracker->IsReplay())
+	{
+		PreReplicationForReplay(*ActorChangedPropertyTracker);
+	}
 
 	// Call PreReplication on all owned components that are replicated
 	for (UActorComponent* Component : ReplicatedComponents)
@@ -964,6 +977,10 @@ void AActor::CallPreReplication(UNetDriver* NetDriver)
 			Component->PreReplication(*NetDriver->FindOrCreateRepChangedPropertyTracker(Component).Get());
 		}
 	}
+}
+
+void AActor::PreReplicationForReplay(IRepChangedPropertyTracker & ChangedPropertyTracker)
+{
 }
 
 void AActor::PostActorCreated()

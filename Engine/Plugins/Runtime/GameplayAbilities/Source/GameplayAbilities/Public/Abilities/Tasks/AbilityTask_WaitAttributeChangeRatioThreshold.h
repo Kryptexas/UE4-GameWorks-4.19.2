@@ -26,8 +26,8 @@ class UAbilityTask_WaitAttributeChangeRatioThreshold : public UAbilityTask
 
 	virtual void Activate() override;
 
-	void OnNumeratorAttributeChange(float NewValue, const FGameplayEffectModCallbackData* Data);
-	void OnDenominatorAttributeChange(float NewValue, const FGameplayEffectModCallbackData* Data);
+	void OnNumeratorAttributeChange(const FOnAttributeChangeData& CallbackData);
+	void OnDenominatorAttributeChange(const FOnAttributeChangeData& CallbackData);
 
 	/** Wait on attribute ratio change meeting a comparison threshold. */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))

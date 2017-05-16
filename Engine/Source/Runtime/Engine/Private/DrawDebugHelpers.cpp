@@ -1058,4 +1058,16 @@ void DrawDebugCanvas2DCircle(UCanvas* Canvas, const FVector2D& Center, float Rad
 	}
 }
 
+void DrawDebugCanvas2DBox(UCanvas* Canvas, const FBox2D& Box, const FLinearColor& LineColor, const float& LineThickness)
+{
+	if (Canvas)
+	{
+		FCanvasBoxItem BoxItem(Box.Min, Box.GetSize());
+		BoxItem.LineThickness = LineThickness;
+		BoxItem.SetColor(LineColor);
+
+		Canvas->DrawItem(BoxItem);
+	}
+}
+
 #endif // ENABLE_DRAW_DEBUG

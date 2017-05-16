@@ -356,7 +356,7 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 	}
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), FAnalyticsEventAttribute(TEXT("VertexColors"), AnalyticsConversion::ToString(EditorViewportClient->EngineShowFlags.VertexColors)));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), FAnalyticsEventAttribute(TEXT("VertexColors"), static_cast<int>(EditorViewportClient->EngineShowFlags.VertexColors)));
 	}
 	SceneViewport->Invalidate();
 }

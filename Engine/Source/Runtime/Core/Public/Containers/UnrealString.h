@@ -1910,9 +1910,12 @@ namespace Lex
 {
 	/**
 	 *	Expected functions in this namespace are as follows:
-	 *		static bool		TryParseString(T& OutValue, const TCHAR* Buffer);
-	 *		static void 	FromString(T& OutValue, const TCHAR* Buffer);
-	 *		static FString	ToString(const T& OutValue);
+	 *		bool								TryParseString(T& OutValue, const TCHAR* Buffer);
+	 *		void 								FromString(T& OutValue, const TCHAR* Buffer);
+	 *		<implicitly convertible to string>	ToString(T);
+	 *		                    ^-- Generally this means it can return either FString or const TCHAR* 
+	 *		                        Generic code that uses ToString should assign to an FString or forward along to other functions
+	 *		                        that accept types that are also implicitly convertible to FString 
 	 *
 	 *	Implement custom functionality externally.
 	 */
@@ -1968,11 +1971,16 @@ namespace Lex
 		return ToString(Value);
 	}
 
-	/** Specialized for floats */
-	template<>
-	inline FString ToSanitizedString<float>(const float& Value)
+	/** Overloaded for floats */
+	inline FString ToSanitizedString(float Value)
 	{
-		return FString::SanitizeFloat( Value );
+		return FString::SanitizeFloat(Value);
+	}
+
+	/** Overloaded for doubles */
+	inline FString ToSanitizedString(double Value)
+	{
+		return FString::SanitizeFloat(Value);
 	}
 
 

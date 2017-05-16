@@ -75,13 +75,33 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 		SearchPaths.Add(DllDirectories[Idx]);
 	}
 
+	static bool SuppressErrors =  !FParse::Param(::GetCommandLineW(), TEXT("dllerrors"));
+
 	// Load the DLL, avoiding windows dialog boxes if missing
-	int32 PrevErrorMode = ::SetErrorMode(SEM_NOOPENFILEERRORBOX);
+	int32 PrevErrorMode = ::SetErrorMode(SuppressErrors ? SEM_NOOPENFILEERRORBOX : 0);
 
 	void* Handle = LoadLibraryWithSearchPaths(FileName, SearchPaths);
 
-	::SetErrorMode(PrevErrorMode);
+	if (!Handle)
+	{
+		DWORD LastError = ::GetLastError();
 
+		UE_LOG(LogWindows, Log, TEXT("LoadLibraryWithSearchPaths failed for file %s. GetLastError=%d"), FileName, LastError);
+
+		// if errors == 126 (module not found) then write out more info
+		if (LastError == ERROR_MOD_NOT_FOUND)
+		{
+			BOOL Missing = IFileManager::Get().FileExists(FileName);
+			UE_LOG(LogWindows, Log, TEXT("FileExists returned %d for Module %s"), Missing, FileName);
+
+			for (const auto& Path : SearchPaths)
+			{
+				UE_LOG(LogWindows, Log, TEXT("\t%s"), *Path);
+			}
+		}
+	}
+	
+	::SetErrorMode(PrevErrorMode);
 	return Handle;
 }
 

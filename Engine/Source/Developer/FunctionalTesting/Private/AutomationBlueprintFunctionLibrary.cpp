@@ -518,7 +518,6 @@ float HelperGetStat(FName StatName)
 	UE_LOG(AutomationFunctionLibrary, Warning, TEXT("%s"), *WarningOut.ToString());
 #endif
 
-
 	return 0.f;
 }
 #endif
@@ -527,40 +526,45 @@ float UAutomationBlueprintFunctionLibrary::GetStatIncAverage(FName StatName)
 {
 #if STATS
 	return HelperGetStat<EComplexStatField::IncAve>(StatName);
+#else
+	return 0.0f;
 #endif
-	return 0.f;
 }
 
 float UAutomationBlueprintFunctionLibrary::GetStatIncMax(FName StatName)
 {
 #if STATS
 	return HelperGetStat<EComplexStatField::IncMax>(StatName);
+#else
+	return 0.0f;
 #endif
-	return 0.f;
 }
 
 float UAutomationBlueprintFunctionLibrary::GetStatExcAverage(FName StatName)
 {
 #if STATS
 	return HelperGetStat<EComplexStatField::ExcAve>(StatName);
+#else
+	return 0.0f;
 #endif
-	return 0.f;
 }
 
 float UAutomationBlueprintFunctionLibrary::GetStatExcMax(FName StatName)
 {
 #if STATS
 	return HelperGetStat<EComplexStatField::ExcMax>(StatName);
+#else
+	return 0.0f;
 #endif
-	return 0.f;
 }
 
 float UAutomationBlueprintFunctionLibrary::GetStatCallCount(FName StatName)
 {
 #if STATS
 	return HelperGetStat<EComplexStatField::IncAve, /*bCallCount=*/true>(StatName);
+#else
+	return 0.0f;
 #endif
-	return 0.f;
 }
 
 bool UAutomationBlueprintFunctionLibrary::AreAutomatedTestsRunning()

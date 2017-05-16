@@ -2174,6 +2174,34 @@ void UNetDriver::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 {
 	UNetDriver* This = CastChecked<UNetDriver>(InThis);
 	Super::AddReferencedObjects(This, Collector);
+
+	for (auto It = This->RepLayoutMap.CreateIterator(); It; ++It)
+	{
+		if (It.Value().IsValid())
+		{
+			It.Value()->AddReferencedObjects(Collector);
+		}
+		else
+		{
+			It.RemoveCurrent();
+		}
+	}
+
+	for (auto It = This->ReplicationChangeListMap.CreateIterator(); It; ++It)
+	{
+		if (It.Value().IsValid())
+		{
+			FRepChangelistState* const ChangelistState = It.Value()->GetRepChangelistState();
+			if (ChangelistState && ChangelistState->RepLayout.IsValid())
+			{
+				ChangelistState->RepLayout->AddReferencedObjects(Collector);
+			}
+		}
+		else
+		{
+			It.RemoveCurrent();
+		}
+	}
 }
 
 #if DO_ENABLE_NET_TEST

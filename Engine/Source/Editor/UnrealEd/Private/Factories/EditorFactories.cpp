@@ -249,6 +249,8 @@
 #include "FileHelper.h"
 #include "ActorGroupingUtils.h"
 
+#include "Editor/EditorPerProjectUserSettings.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
 #define LOCTEXT_NAMESPACE "EditorFactories"
@@ -4970,18 +4972,24 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	{
 		ImportUI = NewObject<UFbxImportUI>(this, NAME_None, RF_Public);
 	}
+	const bool ShowImportDialogAtReimport = GetDefault<UEditorPerProjectUserSettings>()->bShowImportDialogAtReimport && !GIsAutomationTesting;
 
-	if( ImportData )
+	if( ImportData  && !ShowImportDialogAtReimport)
 	{
 		// Import data already exists, apply it to the fbx import options
 		ReimportUI->StaticMeshImportData = ImportData;
+		ReimportUI->bResetMaterialSlots = false;
 		ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 	}
 	else
 	{
-		// An existing import data object was not found, make one here and show the options dialog
-		ImportData = UFbxStaticMeshImportData::GetImportDataForStaticMesh(Mesh, ImportUI->StaticMeshImportData);
-		Mesh->AssetImportData = ImportData;
+		if (ImportData == nullptr)
+		{
+			// An existing import data object was not found, make one here and show the options dialog
+			ImportData = UFbxStaticMeshImportData::GetImportDataForStaticMesh(Mesh, ImportUI->StaticMeshImportData);
+			Mesh->AssetImportData = ImportData;
+		}
+		ReimportUI->bIsReimport = true;
 		ReimportUI->StaticMeshImportData = ImportData;
 		
 		bool bImportOperationCanceled = false;
@@ -5212,21 +5220,26 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 
 	bool bSuccess = false;
 
-	if( ImportData )
+	const bool ShowImportDialogAtReimport = GetDefault<UEditorPerProjectUserSettings>()->bShowImportDialogAtReimport && !GIsAutomationTesting;
+	if( ImportData && !ShowImportDialogAtReimport)
 	{
 		// Import data already exists, apply it to the fbx import options
 		ReimportUI->SkeletalMeshImportData = ImportData;
 		//Some options not supported with skeletal mesh
 		ReimportUI->SkeletalMeshImportData->bBakePivotInVertex = false;
 		ReimportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
-
+		ReimportUI->bResetMaterialSlots = false;
 		ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 	}
 	else
 	{
-		// An existing import data object was not found, make one here and show the options dialog
-		ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(SkeletalMesh, ImportUI->SkeletalMeshImportData);
-		SkeletalMesh->AssetImportData = ImportData;
+		if (ImportData == nullptr)
+		{
+			// An existing import data object was not found, make one here and show the options dialog
+			ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(SkeletalMesh, ImportUI->SkeletalMeshImportData);
+			SkeletalMesh->AssetImportData = ImportData;
+		}
+		ReimportUI->bIsReimport = true;
 		ReimportUI->SkeletalMeshImportData = ImportData;
 
 		bool bImportOperationCanceled = false;
@@ -6043,7 +6056,7 @@ bool UDataAssetFactory::ConfigureProperties()
 	TSharedPtr<FAssetClassParentFilter> Filter = MakeShareable(new FAssetClassParentFilter);
 	Options.ClassFilter = Filter;
 
-	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists;
+	Filter->DisallowedClassFlags = CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists | CLASS_HideDropDown;
 	Filter->AllowedChildrenOfClasses.Add(UDataAsset::StaticClass());
 
 	const FText TitleText = LOCTEXT("CreateDataAssetOptions", "Pick Data Asset Class");

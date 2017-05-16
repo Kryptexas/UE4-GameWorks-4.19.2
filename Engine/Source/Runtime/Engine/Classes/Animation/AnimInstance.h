@@ -16,6 +16,9 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "AnimInstance.generated.h"
 
+// Post Compile Validation requires WITH_EDITOR
+#define ANIMINST_PostCompileValidation WITH_EDITOR
+
 class FDebugDisplayInfo;
 class IAnimClassInterface;
 class UAnimInstance;
@@ -931,6 +934,16 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End UObject Interface
 
+#if WITH_EDITORONLY_DATA // ANIMINST_PostCompileValidation
+	/** Name of Class to do Post Compile Validation.
+	* See Class UAnimBlueprintPostCompileValidation. */
+	UPROPERTY()
+	FStringClassReference PostCompileValidationClassName;
+
+	/** Warn if AnimNodes are not using fast path during AnimBP compilation. */
+	virtual bool PCV_ShouldWarnAboutNodesNotUsingFastPath() const { return false; }
+#endif // WITH_EDITORONLY_DATA
+
 	virtual void OnUROSkipTickAnimation() {}
 	virtual void OnUROPreInterpolation() {}
 
@@ -1250,4 +1263,8 @@ public:
 
 	/** Called when a montage hits a 'PlayMontageNotify' or 'PlayMontageNotifyWindow' end */
 	FPlayMontageAnimNotifyDelegate OnPlayMontageNotifyEnd;
+
+public:
+	/** Dispatch AnimEvents (AnimNotifies, Montage Events) queued during UpdateAnimation() */
+	void DispatchQueuedAnimEvents();
 };

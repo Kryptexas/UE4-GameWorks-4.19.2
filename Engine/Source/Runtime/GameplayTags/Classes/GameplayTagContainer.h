@@ -234,7 +234,7 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
-private:
+protected:
 
 	/** Intentionally private so only the tag manager can use */
 	explicit FGameplayTag(FName InTagName);
@@ -855,6 +855,13 @@ struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraits
 	};
 };
 
+struct GAMEPLAYTAGS_API FGameplayTagNativeAdder
+{
+	FGameplayTagNativeAdder();
+
+	virtual void AddTags() = 0;
+};
+
 /**
  *	Helper struct for viewing tag references (assets that reference a tag). Drop this into a struct and set the OnGetgameplayStatName. A details customization
  *	will display a tree view of assets referencing the tag
@@ -879,6 +886,13 @@ struct FGameplayTagReferenceHelper
 	*/
 	DECLARE_DELEGATE_RetVal_OneParam(FName, FOnGetGameplayTagName, void* /**RawOuterStructData*/);
 	FOnGetGameplayTagName OnGetGameplayTagName;
+};
+
+/** Helper struct: drop this in another struct to get an embedded create new tag widget. */
+USTRUCT()
+struct FGameplayTagCreationWidgetHelper
+{
+	GENERATED_USTRUCT_BODY()
 };
 
 /** Enumerates the list of supported query expression types. */

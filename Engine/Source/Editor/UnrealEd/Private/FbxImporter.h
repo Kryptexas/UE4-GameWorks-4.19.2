@@ -109,6 +109,7 @@ struct FBXImportOptions
 	// General options
 	bool bImportScene;
 	bool bImportMaterials;
+	bool bResetMaterialSlots;
 	bool bInvertNormalMap;
 	bool bImportTextures;
 	bool bImportLOD;

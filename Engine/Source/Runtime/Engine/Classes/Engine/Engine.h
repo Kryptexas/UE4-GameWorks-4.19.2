@@ -2048,6 +2048,11 @@ public:
 	 */
 	virtual void StopFPSChart(const FString& MapName);
 
+	/**
+	* Attempts to reclaim any idle memory by performing a garbage collection and broadcasting FCoreDelegates::OnMemoryTrim. Pending rendering commands are first flushed. This is called
+	* between level loads and may be called at other times, but is expensive and should be used sparingly. Do
+	*/
+	void TrimMemory();
 
 	/**
 	 * Calculates information about the previous frame and passes it to all active performance data consumers.

@@ -256,6 +256,7 @@ FMaterialThumbnailScene::FMaterialThumbnailScene()
 	PreviewActor = GetWorld()->SpawnActor<AStaticMeshActor>( SpawnInfo );
 
 	PreviewActor->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
+	PreviewActor->GetStaticMeshComponent()->bSelectable = false;	// avoid generating hit proxies
 	PreviewActor->SetActorEnableCollision(false);
 }
 

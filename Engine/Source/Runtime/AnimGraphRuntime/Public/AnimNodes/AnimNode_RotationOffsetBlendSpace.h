@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Animation/AnimNodeBase.h"
 #include "AnimNodes/AnimNode_BlendSpacePlayer.h"
+#include "Animation/InputScaleBias.h"
 #include "AnimNode_RotationOffsetBlendSpace.generated.h"
 
 //@TODO: Comment
@@ -28,6 +29,16 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_RotationOffsetBlendSpace : public FAnimNod
 
 	UPROPERTY(Transient)
 	bool bIsLODEnabled;
+
+	// Current strength of the AimOffset
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinShownByDefault))
+	mutable float Alpha;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings)
+	FInputScaleBias AlphaScaleBias;
+
+	UPROPERTY(Transient)
+	float ActualAlpha;
 
 public:	
 	FAnimNode_RotationOffsetBlendSpace();

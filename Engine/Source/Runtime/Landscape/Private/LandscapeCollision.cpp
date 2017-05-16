@@ -241,6 +241,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 				HeightFieldShapeSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 				HeightFieldActorSync->attachShape(*HeightFieldShapeSync);
+
+				// attachShape holds its own ref(), so release this here.
 				HeightFieldShapeSync->release();
 
 				if (bCreateSimpleCollision)
@@ -262,6 +264,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 					HeightFieldShapeSimpleSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 					HeightFieldActorSync->attachShape(*HeightFieldShapeSimpleSync);
+
+					// attachShape holds its own ref(), so release this here.
 					HeightFieldShapeSimpleSync->release();
 				}
 
@@ -287,6 +291,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 						HeightFieldEdShapeSync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 
 						HeightFieldActorSync->attachShape(*HeightFieldEdShapeSync);
+
+						// attachShape holds its own ref(), so release this here.
 						HeightFieldEdShapeSync->release();
 					}
 				}
@@ -310,6 +316,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 					HeightFieldShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 					HeightFieldActorAsync->attachShape(*HeightFieldShapeAsync);
+
+					// attachShape holds its own ref(), so release this here.
 					HeightFieldShapeAsync->release();
 
 					if (bCreateSimpleCollision)
@@ -332,6 +340,8 @@ void ULandscapeHeightfieldCollisionComponent::OnCreatePhysicsState()
 						HeightFieldShapeSimpleAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
 						HeightFieldActorAsync->attachShape(*HeightFieldShapeSimpleAsync);
+
+						// attachShape holds its own ref(), so release this here.
 						HeightFieldShapeSimpleAsync->release();
 					}
 				}

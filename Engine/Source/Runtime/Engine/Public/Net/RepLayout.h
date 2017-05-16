@@ -21,6 +21,7 @@ class UPackageMapClient;
 // Properties will be copied in here so memory needs aligned to largest type
 typedef TArray< uint8, TAlignedHeapAllocator<16> > FRepStateStaticBuffer;
 
+
 class FRepChangedParent
 {
 public:
@@ -463,6 +464,8 @@ public:
 		FRepChangelistState* RESTRICT	RepState,
 		const uint8* RESTRICT			Data,
 		const FReplicationFlags&		RepFlags ) const;
+
+	void AddReferencedObjects(FReferenceCollector& Collector);
 
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;

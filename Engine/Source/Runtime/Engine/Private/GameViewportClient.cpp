@@ -736,7 +736,12 @@ void UGameViewportClient::AddSoftwareCursor(EMouseCursor::Type Cursor, const FSt
 		else
 		{
 			FMessageLog("PIE").Error(FText::Format(LOCTEXT("CursorClassNotFoundFormat", "The cursor class '{0}' was not found, check your custom cursor settings."), FText::FromString(CursorClass.ToString())));
+			UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: The cursor class %s was not found, check your custom cursor settings."), *CursorClass.ToString());
 		}
+	}
+	else
+	{
+		UE_LOG(LogPlayerManagement, Warning, TEXT("UGameViewportClient::AddCursor: Attempting to add an invalid cursor class."));
 	}
 }
 

@@ -1554,6 +1554,13 @@ float UNetConnection::GetTimeoutValue()
 		Timeout = bPendingDestroy ? 2.f : ConnectionTimeout;
 	}
 
+#if WITH_EDITOR || UE_BUILD_DEBUG
+	if (Driver->TimeoutMultiplierForUnoptimizedBuilds > 0)
+	{
+		Timeout *= Driver->TimeoutMultiplierForUnoptimizedBuilds;
+	}
+#endif
+
 	return Timeout;
 }
 

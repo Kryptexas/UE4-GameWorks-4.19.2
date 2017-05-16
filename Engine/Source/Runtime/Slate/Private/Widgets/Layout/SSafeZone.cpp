@@ -38,6 +38,7 @@ SSafeZone::~SSafeZone()
 	FCoreDelegates::OnSafeFrameChangedEvent.Remove(OnSafeFrameChangedHandle);
 }
 
+
 void SSafeZone::SafeAreaUpdated()
 {
 	SetTitleSafe(bIsTitleSafe);

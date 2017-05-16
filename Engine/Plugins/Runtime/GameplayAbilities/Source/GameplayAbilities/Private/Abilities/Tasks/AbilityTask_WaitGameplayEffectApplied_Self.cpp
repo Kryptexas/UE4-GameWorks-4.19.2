@@ -22,6 +22,18 @@ UAbilityTask_WaitGameplayEffectApplied_Self* UAbilityTask_WaitGameplayEffectAppl
 	return MyObj;
 }
 
+UAbilityTask_WaitGameplayEffectApplied_Self* UAbilityTask_WaitGameplayEffectApplied_Self::WaitGameplayEffectAppliedToSelf_Query(UGameplayAbility* OwningAbility, const FGameplayTargetDataFilterHandle InFilter, FGameplayTagQuery InSourceTagQuery, FGameplayTagQuery InTargetTagQuery, bool InTriggerOnce, AActor* OptionalExternalOwner, bool InListenForPeriodicEffect)
+{
+	auto MyObj = NewAbilityTask<UAbilityTask_WaitGameplayEffectApplied_Self>(OwningAbility);
+	MyObj->Filter = InFilter;
+	MyObj->SourceTagQuery = InSourceTagQuery;
+	MyObj->TargetTagQuery = InTargetTagQuery;
+	MyObj->TriggerOnce = InTriggerOnce;
+	MyObj->SetExternalActor(OptionalExternalOwner);
+	MyObj->ListenForPeriodicEffects = InListenForPeriodicEffect;
+	return MyObj;
+}
+
 void UAbilityTask_WaitGameplayEffectApplied_Self::BroadcastDelegate(AActor* Avatar, FGameplayEffectSpecHandle SpecHandle, FActiveGameplayEffectHandle ActiveHandle)
 {
 	if (ShouldBroadcastAbilityTaskDelegates())

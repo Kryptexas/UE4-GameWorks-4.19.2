@@ -80,4 +80,11 @@ public:
 	* @param Attributes array of attributes that should be appended to every event.
 	*/
 	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) = 0;
+
+	/**
+	* returns the current set of default event attributes set on the provider.
+	*
+	* @param Attributes array of attributes that should be appended to every event.
+	*/
+	virtual const TArray<FAnalyticsEventAttribute>& GetDefaultEventAttributes() const = 0;
 };

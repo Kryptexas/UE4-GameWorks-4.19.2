@@ -25,7 +25,7 @@ class UAbilityTask_WaitAttributeChangeThreshold : public UAbilityTask
 
 	virtual void Activate() override;
 
-	void OnAttributeChange(float NewValue, const FGameplayEffectModCallbackData* Data);
+	void OnAttributeChange(const FOnAttributeChangeData& CallbackData);
 
 	/** Wait on attribute change meeting a comparison threshold. */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))

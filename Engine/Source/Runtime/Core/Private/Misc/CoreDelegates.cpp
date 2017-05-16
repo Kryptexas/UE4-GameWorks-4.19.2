@@ -117,7 +117,20 @@ FCoreDelegates::FApplicationReceivedOnScreenOrientationChangedNotificationDelega
 
 FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;
 
-FSimpleMulticastDelegate FCoreDelegates::OnOutOfMemory;
+/**	 Implemented as a function to address global ctor issues */
+FSimpleMulticastDelegate& FCoreDelegates::GetMemoryTrimDelegate()
+{
+	static FSimpleMulticastDelegate OnMemoryTrim;;
+	return OnMemoryTrim;
+}
+
+/**	 Implemented as a function to address global ctor issues */
+FSimpleMulticastDelegate& FCoreDelegates::GetOutOfMemoryDelegate()
+{
+	static FSimpleMulticastDelegate OnOOM;
+	return OnOOM;
+}
+
 FCoreDelegates::FGetOnScreenMessagesDelegate FCoreDelegates::OnGetOnScreenMessages;
 
 void RegisterEncryptionKey(const char* InEncryptionKey)

@@ -200,10 +200,11 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 	NewActor.CurrentLodIndex = 0;
 
 	check(NewActor.LodData.IsValidIndex(0));
+
 	Solver->addCloth(NewActor.LodData[0].Cloth);
 
 	// Force update LODs so we're in the correct state now
-	UpdateLod(InOwnerComponent->PredictedLODLevel, true);
+	UpdateLod(InOwnerComponent->PredictedLODLevel, InOwnerComponent->ComponentToWorld, InOwnerComponent->GetComponentSpaceTransforms(), true);
 
 	// Compute normals for all active actors for first frame
 	for(FClothingActorNv& Actor : Actors)
@@ -373,7 +374,7 @@ void FClothingSimulationNv::Simulate(IClothingSimulationContext* InContext)
 {
 	FClothingSimulationContextNv* NvContext = (FClothingSimulationContextNv*)InContext;
 
-	UpdateLod(NvContext->PredictedLod);
+	UpdateLod(NvContext->PredictedLod, NvContext->ComponentToWorld, NvContext->BoneTransforms);
 
 	// Pre-sim work
 	for(FClothingActorNv& Actor : Actors)
@@ -763,7 +764,7 @@ FBoxSphereBounds FClothingSimulationNv::GetBounds(const USkeletalMeshComponent* 
 	return CurrentBounds;
 }
 
-void FClothingSimulationNv::UpdateLod(int32 InPredictedLod, bool bForceNoRemap)
+void FClothingSimulationNv::UpdateLod(int32 InPredictedLod, const FTransform& ComponentToWorld, const TArray<FTransform>& CSTransforms, bool bForceNoRemap)
 {
 	if(InPredictedLod != CurrentMeshLodIndex)
 	{
@@ -882,10 +883,10 @@ void FClothingSimulationNv::UpdateLod(int32 InPredictedLod, bool bForceNoRemap)
 					}
 				}
 
-				NewLodData.Cloth->clearInterpolation();
+				FTransform SimRootTransform = CSTransforms[Actor.AssetCreatedFrom->ReferenceBoneIndex] * ComponentToWorld;
+				NewLodData.Cloth->setTranslation(U2PVector(SimRootTransform.GetTranslation()));
+				NewLodData.Cloth->setRotation(U2PQuat(SimRootTransform.GetRotation()));
 				NewLodData.Cloth->clearInertia();
-				NewLodData.Cloth->clearMotionConstraints();
-				NewLodData.Cloth->clearSeparationConstraints();
 
 				Actor.CurrentLodIndex = PredictedClothingLod;
 			}
@@ -903,10 +904,10 @@ void FClothingSimulationNv::UpdateLod(int32 InPredictedLod, bool bForceNoRemap)
 						NewAccelerations[ParticleIndex] = physx::PxVec4(0.0f);
 					}
 
-					NewLodData.Cloth->clearInterpolation();
+					FTransform SimRootTransform = CSTransforms[Actor.AssetCreatedFrom->ReferenceBoneIndex] * ComponentToWorld;
+					NewLodData.Cloth->setTranslation(U2PVector(SimRootTransform.GetTranslation()));
+					NewLodData.Cloth->setRotation(U2PQuat(SimRootTransform.GetRotation()));
 					NewLodData.Cloth->clearInertia();
-					NewLodData.Cloth->clearMotionConstraints();
-					NewLodData.Cloth->clearSeparationConstraints();
 
 					Actor.CurrentLodIndex = PredictedClothingLod;
 				}
@@ -938,6 +939,7 @@ void FClothingSimulationNv::DebugDraw_PhysMesh(USkeletalMeshComponent* OwnerComp
 		nv::cloth::Cloth* CurrentCloth = Actor.LodData[CurrentClothLod].Cloth;
 		
 		check(CurrentCloth);
+
 
 		FTransform RootBoneTransform = OwnerComponent->GetComponentSpaceTransforms()[Actor.AssetCreatedFrom->ReferenceBoneIndex];
 
@@ -1190,6 +1192,7 @@ void FClothingSimulationNv::DebugDraw_SelfCollision(USkeletalMeshComponent* Owne
 
 		const float SelfCollisionThickness = Config.SelfCollisionRadius;
 
+		
 		const FClothLODData& LodData = Asset->LodData[Actor.CurrentLodIndex];
 		const FClothPhysicalMeshData& PhysMesh = LodData.PhysicalMeshData;
 

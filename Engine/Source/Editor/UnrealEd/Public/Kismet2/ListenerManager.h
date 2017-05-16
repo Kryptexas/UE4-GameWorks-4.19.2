@@ -64,4 +64,9 @@ public:
 			Listener->PostChange(Changed, Info);
 		}
 	}
+	
+	const TSet<BaseNotifyOnChanged*>& GetListeners() const
+	{
+		return Listeners;
+	}
 };

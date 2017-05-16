@@ -388,8 +388,13 @@ public:
 	/** Called on the actor when a subobject is dynamically destroyed via replication */
 	virtual void OnSubobjectDestroyFromReplication(UObject *Subobject);
 
-	/** Called on the actor right before replication occurs */
+	/** Called on the actor right before replication occurs. 
+	 * Only called on Server, and for autonomous proxies if recording a Client Replay. */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker );
+
+	/** Called on the actor right before replication occurs.
+	 * Called for everyone when recording a Client Replay, including Simulated Proxies. */
+	virtual void PreReplicationForReplay(IRepChangedPropertyTracker & ChangedPropertyTracker);
 
 	/** Called by the networking system to call PreReplication on this actor and its components using the given NetDriver to find or create RepChangedPropertyTrackers. */
 	void CallPreReplication(UNetDriver* NetDriver);

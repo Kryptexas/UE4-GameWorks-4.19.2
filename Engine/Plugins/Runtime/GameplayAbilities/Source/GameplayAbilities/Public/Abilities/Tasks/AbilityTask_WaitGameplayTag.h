@@ -9,8 +9,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitGameplayTagDelegate);
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitGameplayTagAdded : public UAbilityTask_WaitGameplayTag
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayTagAdded : public UAbilityTask_WaitGameplayTag
 {
 	GENERATED_UCLASS_BODY()
 
@@ -29,8 +29,8 @@ class UAbilityTask_WaitGameplayTagAdded : public UAbilityTask_WaitGameplayTag
 	virtual void GameplayTagCallback(const FGameplayTag Tag, int32 NewCount) override;
 };
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitGameplayTagRemoved : public UAbilityTask_WaitGameplayTag
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayTagRemoved : public UAbilityTask_WaitGameplayTag
 {
 	GENERATED_UCLASS_BODY()
 

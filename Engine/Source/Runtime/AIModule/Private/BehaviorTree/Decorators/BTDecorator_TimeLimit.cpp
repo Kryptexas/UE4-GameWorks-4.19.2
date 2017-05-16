@@ -6,7 +6,7 @@ UBTDecorator_TimeLimit::UBTDecorator_TimeLimit(const FObjectInitializer& ObjectI
 {
 	NodeName = "TimeLimit";
 	TimeLimit = 5.0f;
-	bNotifyBecomeRelevant = true;
+	bNotifyActivation = true;
 	bNotifyTick = true;
 	bTickIntervals = true;
 
@@ -16,11 +16,15 @@ UBTDecorator_TimeLimit::UBTDecorator_TimeLimit(const FObjectInitializer& ObjectI
 	FlowAbortMode = EBTFlowAbortMode::Self;
 }
 
-void UBTDecorator_TimeLimit::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+void UBTDecorator_TimeLimit::OnNodeActivation(FBehaviorTreeSearchData& SearchData)
 {
-	FBTAuxiliaryMemory* DecoratorMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
-	DecoratorMemory->NextTickRemainingTime = TimeLimit;
-	DecoratorMemory->AccumulatedDeltaTime = 0.0f;
+	uint8* RawMemory = SearchData.OwnerComp.GetNodeMemory(this, SearchData.OwnerComp.FindInstanceContainingNode(this));
+	if (RawMemory)
+	{
+		FBTAuxiliaryMemory* DecoratorMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(RawMemory);
+		DecoratorMemory->NextTickRemainingTime = TimeLimit;
+		DecoratorMemory->AccumulatedDeltaTime = 0.0f;
+	}
 }
 
 void UBTDecorator_TimeLimit::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)

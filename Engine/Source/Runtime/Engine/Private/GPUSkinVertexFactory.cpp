@@ -804,12 +804,12 @@ public:
 			if(ClothSimulVertsPositionsNormalsParameter.IsBound())
 			{
 				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), ClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
-					ClothShaderData.GetClothBufferForReading(false, FrameNumber).VertexBufferSRV);
+														  ClothShaderData.GetClothBufferForReading(false, FrameNumber).VertexBufferSRV);
 			}
 			if(PreviousClothSimulVertsPositionsNormalsParameter.IsBound())
 			{
 				RHICmdList.SetShaderResourceViewParameter(Shader->GetVertexShader(), PreviousClothSimulVertsPositionsNormalsParameter.GetBaseIndex(),
-					ClothShaderData.GetClothBufferForReading(true, FrameNumber).VertexBufferSRV);
+														  ClothShaderData.GetClothBufferForReading(true, FrameNumber).VertexBufferSRV);
 			}
 			
 			SetShaderValue(

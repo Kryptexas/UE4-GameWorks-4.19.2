@@ -867,6 +867,9 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRoot
 	SCOPE_CYCLE_COUNTER(STAT_AnimTickTime);
 	if (SkeletalMesh != nullptr)
 	{
+		// We're about to UpdateAnimation, this will potentially queue events that we'll need to dispatch.
+		bNeedsQueuedAnimEventsDispatched = true;
+
 		// We update sub instances first incase we're using either root motion or non-threaded update.
 		// This ensures that we go through the pre update process and initialize the proxies correctly.
 		for(UAnimInstance* SubInstance : SubInstances)
@@ -911,6 +914,17 @@ bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 		{
 			return true;
 		}
+
+		// if master pose is ticking, slave also has to update it
+		if (MasterPoseComponent.IsValid())
+		{
+			const USkeletalMeshComponent* Master = CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
+			if (Master->GetUpdateAnimationInEditor())
+			{
+				return true;
+			}
+		}
+
 		if( !bLODHasChanged )
 		{
 			return false;
@@ -1071,8 +1085,47 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 			ThisTickFunction->SetPriorityIncludingPrerequisites(bDoHiPri);
 		}
 	}
+
+	// If we are waiting for ParallelEval to complete or if we require Physics, 
+	// then FinalizeBoneTransform will be called and Anim events will be dispatched there. 
+	// We prefer doing it there so these events are triggered once we have a new updated pose.
+	// Note that it's possible that FinalizeBoneTransform has already been called here if not using ParallelUpdate.
+	// or it's possible that it hasn't been called at all if we're skipping Evaluate due to not being visible.
+	// ConditionallyDispatchQueuedAnimEvents will catch that and only Dispatch events if not already done.
+	if (!IsValidRef(ParallelAnimationEvaluationTask) && !bRequiresPhysics)
+	{
+		/////////////////////////////////////////////////////////////////////////////
+		// Notify / Event Handling!
+		// This can do anything to our component (including destroy it) 
+		// Any code added after this point needs to take that into account
+		/////////////////////////////////////////////////////////////////////////////
+
+		ConditionallyDispatchQueuedAnimEvents();
+	}
 }
 
+void USkeletalMeshComponent::ConditionallyDispatchQueuedAnimEvents()
+{
+	if (bNeedsQueuedAnimEventsDispatched)
+	{
+		bNeedsQueuedAnimEventsDispatched = false;
+
+		for (UAnimInstance* SubInstance : SubInstances)
+		{
+			SubInstance->DispatchQueuedAnimEvents();
+		}
+
+		if (AnimScriptInstance)
+		{
+			AnimScriptInstance->DispatchQueuedAnimEvents();
+		}
+
+		if (PostProcessAnimInstance)
+		{
+			PostProcessAnimInstance->DispatchQueuedAnimEvents();
+		}
+	}
+}
 
 /** 
  *	Utility for taking two arrays of bone indices, which must be strictly increasing, and finding the intersection between them.
@@ -2983,6 +3036,17 @@ bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 void USkeletalMeshComponent::FinalizeBoneTransform() 
 {
 	Super::FinalizeBoneTransform();
+
+	// After pose has been finalized, dispatch AnimNotifyEvents in case they want to use up to date pose.
+	// (For example attaching particle systems to up to date sockets).
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Notify / Event Handling!
+	// This can do anything to our component (including destroy it) 
+	// Any code added after this point needs to take that into account
+	/////////////////////////////////////////////////////////////////////////////
+
+	ConditionallyDispatchQueuedAnimEvents();
 
 	for(UAnimInstance* SubInstance : SubInstances)
 	{

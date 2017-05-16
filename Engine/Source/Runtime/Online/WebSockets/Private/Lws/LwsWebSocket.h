@@ -57,7 +57,7 @@ public:
 
 	virtual bool IsConnected() override
 	{
-		return LwsConnection != nullptr;
+		return bIsConnected;
 	}
 
 	virtual void Send(const FString& Data);
@@ -138,6 +138,8 @@ private:
 	int32 CloseCode;
 	FString CloseReason;
 	bool bIsConnecting;
+	bool bIsConnected;
+	bool bClientInitiatedClose;
 
 	friend class FLwsWebSocketsManager;
 };

@@ -7,6 +7,7 @@
 #include "Curves/CurveVector.h"
 #include "Curves/CurveFloat.h"
 #include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
 
 #if ROOT_MOTION_DEBUG
 TAutoConsoleVariable<int32> RootMotionSourceDebug::CVarDebugRootMotionSources(
@@ -25,12 +26,41 @@ static TAutoConsoleVariable<float> CVarDebugRootMotionSourcesLifetime(
 
 void RootMotionSourceDebug::PrintOnScreen(const ACharacter& InCharacter, const FString& InString)
 {
-	const FString AdjustedDebugString = FString::Printf(TEXT("[%d] [%s] %s"), GFrameCounter, *InCharacter.GetName(), *InString);
+	// Skip bots, debug player networking.
+	if (InCharacter.IsPlayerControlled())
+	{
+		const FString AdjustedDebugString = FString::Printf(TEXT("[%d] [%s] %s"), GFrameCounter, *InCharacter.GetName(), *InString);
 
-	const FColor DebugColor = (InCharacter.IsLocallyControlled()) ? FColor::Green : FColor::Red;
-	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, DebugColor, AdjustedDebugString, false, FVector2D::UnitVector * 1.5f);
+		// If on the server, replicate this message to everyone.
+		if (!InCharacter.IsLocallyControlled() && (InCharacter.Role == ROLE_Authority))
+		{
+			for (FConstPlayerControllerIterator Iterator = InCharacter.GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				if (const APlayerController* const PlayerController = Iterator->Get())
+				{
+					if (ACharacter* const Character = PlayerController->GetCharacter())
+					{
+						Character->RootMotionDebugClientPrintOnScreen(AdjustedDebugString);
+					}
+				}
+			}
+		}
+		else
+		{
+			const FColor DebugColor = (InCharacter.IsLocallyControlled()) ? FColor::Green : FColor::Purple;
+			GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, DebugColor, AdjustedDebugString, false, FVector2D::UnitVector * 1.5f);
 
-	UE_LOG(LogRootMotion, Verbose, TEXT("%s"), *AdjustedDebugString);
+			UE_LOG(LogRootMotion, Verbose, TEXT("%s"), *AdjustedDebugString);
+		}
+	}
+}
+
+void RootMotionSourceDebug::PrintOnScreenServerMsg(const FString& InString)
+{
+	const FColor DebugColor = FColor::Red;
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, DebugColor, InString, false, FVector2D::UnitVector * 1.5f);
+
+	UE_LOG(LogRootMotion, Verbose, TEXT("%s"), *InString);
 }
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

@@ -829,6 +829,9 @@ void FPaths::MakeStandardFilename(FString& InPath)
 	{
 #if !PLATFORM_HTML5
 		InPath = FPlatformProcess::BaseDir();
+		// if the base directory is nothing then this function will recurse infinitely instead of returning nothing. 
+		if (InPath.Len() == 0)
+			return;
 		FPaths::MakeStandardFilename(InPath);
 #else
 		// @todo: revisit this as needed

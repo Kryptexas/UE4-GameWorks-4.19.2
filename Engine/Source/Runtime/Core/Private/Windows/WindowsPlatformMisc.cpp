@@ -411,6 +411,35 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 
 	return ErrorCode;
 }
+
+FString FWindowsOSVersionHelper::GetOSVersion()
+{
+	int32 ErrorCode = (int32)SUCCEEDED;
+
+	// Get system info
+	SYSTEM_INFO SystemInfo;
+	if (FPlatformMisc::Is64bitOperatingSystem())
+	{
+		GetNativeSystemInfo(&SystemInfo);
+	}
+	else
+	{
+		GetSystemInfo(&SystemInfo);
+	}
+
+	OSVERSIONINFOEX OsVersionInfo = { 0 };
+	OsVersionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+#pragma warning(push)
+#pragma warning(disable : 4996) // 'function' was declared deprecated
+	CA_SUPPRESS(28159)
+	if (GetVersionEx((LPOSVERSIONINFO)&OsVersionInfo))
+#pragma warning(pop)
+	{
+		return FString::Printf(TEXT("%d.%d.%d.%d.%d"), OsVersionInfo.dwMajorVersion, OsVersionInfo.dwMinorVersion, OsVersionInfo.dwBuildNumber, OsVersionInfo.wProductType, OsVersionInfo.wSuiteMask);
+	}
+	return FString();
+}
+
 #include "Windows/HideWindowsPlatformTypes.h"
 
 /** 
@@ -2835,6 +2864,12 @@ void FWindowsPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& 
 	out_OSSubVersionLabel = OSSubVersionLabel;
 }
 
+
+FString FWindowsPlatformMisc::GetOSVersion()
+{
+	static FString CachedOSVersion = FWindowsOSVersionHelper::GetOSVersion();
+	return CachedOSVersion;
+}
 
 bool FWindowsPlatformMisc::GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes )
 {
