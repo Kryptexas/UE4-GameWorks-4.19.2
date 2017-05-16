@@ -227,7 +227,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Call to flush the list of native tags, once called it is unsafe to add more */
 	void DoneAddingNativeTags();
 
-	static FSimpleMulticastDelegate OnLastChanceToAddNativeTags();
+	static FSimpleMulticastDelegate& OnLastChanceToAddNativeTags();
 
 	/**
 	 * Gets a Tag Container containing the supplied tag and all of it's parents as explicit tags

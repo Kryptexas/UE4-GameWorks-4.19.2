@@ -1156,7 +1156,7 @@ FGameplayTag UGameplayTagsManager::AddNativeGameplayTag(FName TagName)
 	return FGameplayTag();
 }
 
-FSimpleMulticastDelegate UGameplayTagsManager::OnLastChanceToAddNativeTags()
+FSimpleMulticastDelegate& UGameplayTagsManager::OnLastChanceToAddNativeTags()
 {
 	static FSimpleMulticastDelegate Delegate;
 	return Delegate;
