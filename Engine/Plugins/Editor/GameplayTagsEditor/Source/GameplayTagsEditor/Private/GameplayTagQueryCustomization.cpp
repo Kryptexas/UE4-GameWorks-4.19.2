@@ -241,8 +241,11 @@ void FGameplayTagQueryCustomization::CloseWidgetWindow(bool WasCancelled)
 	// Notify change. This is required for these to work inside of UDataTables
 	if (!WasCancelled && PropertyUtilities.IsValid())
 	{
+		UProperty* TheProperty = StructPropertyHandle->GetProperty();
+
 		FEditPropertyChain PropertyChain;
-		PropertyChain.SetActivePropertyNode(StructPropertyHandle->GetProperty());
+		PropertyChain.AddHead(TheProperty);
+		PropertyChain.SetActivePropertyNode(TheProperty);
 
 		FPropertyChangedEvent ChangeEvent(StructPropertyHandle->GetProperty(), EPropertyChangeType::ValueSet, nullptr);
 		FNotifyHook* NotifyHook = PropertyUtilities->GetNotifyHook();

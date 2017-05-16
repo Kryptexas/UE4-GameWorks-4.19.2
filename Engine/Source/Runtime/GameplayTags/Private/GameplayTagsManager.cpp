@@ -1175,15 +1175,6 @@ void UGameplayTagsManager::DoneAddingNativeTags()
 		{
 			ConstructNetIndex();
 		}
-
-		// TEMP
-		for (auto It : GameplayTagNodeMap)
-		{
-			FGameplayTag Tag = It.Key;
-			TSharedPtr<FGameplayTagNode> Node = It.Value;
-
-			UE_LOG(LogGameplayTags, Display, TEXT("Tag %s NetIndex: %d"), *Tag.ToString(), Node->GetNetIndex());
-		}
 	}
 }
 
