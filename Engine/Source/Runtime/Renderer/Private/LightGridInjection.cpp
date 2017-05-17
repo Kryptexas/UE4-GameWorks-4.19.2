@@ -509,6 +509,10 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 				// Pack both values into a single float to keep float4 alignment
 				const FFloat16 SimpleLightSourceLength16f = FFloat16(0);
+				FLightingChannels SimpleLightLightingChannels;
+				// Put simple lights in all lighting channels
+				SimpleLightLightingChannels.bChannel0 = SimpleLightLightingChannels.bChannel1 = SimpleLightLightingChannels.bChannel2 = true;
+				const uint32 SimpleLightLightingChannelMask = GetLightingChannelMaskForStruct(SimpleLightLightingChannels);
 
 				for (int32 SimpleLightIndex = 0; SimpleLightIndex < SimpleLights.InstanceData.Num(); SimpleLightIndex++)
 				{	
@@ -520,7 +524,10 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 					LightData.LightPositionAndInvRadius = FVector4(SimpleLightPerViewData.Position, 1.0f / FMath::Max(SimpleLight.Radius, KINDA_SMALL_NUMBER));
 					LightData.LightColorAndFalloffExponent = FVector4(SimpleLight.Color, SimpleLight.Exponent);
 
+					// No shadowmap channels for simple lights
 					uint32 ShadowMapChannelMask = 0;
+					ShadowMapChannelMask |= SimpleLightLightingChannelMask << 8;
+
 					LightData.LightDirectionAndShadowMapChannelMask = FVector4(FVector(1, 0, 0), *((float*)&ShadowMapChannelMask));
 
 					// Pack both values into a single float to keep float4 alignment

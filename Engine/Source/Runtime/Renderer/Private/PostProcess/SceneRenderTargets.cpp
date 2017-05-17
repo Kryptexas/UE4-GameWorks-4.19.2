@@ -2725,7 +2725,7 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 	if (IsDBufferEnabled())
 	{
 		IPooledRenderTarget* DBufferA = SceneContext.DBufferA ? SceneContext.DBufferA : GSystemTextures.BlackAlphaOneDummy;
-		IPooledRenderTarget* DBufferB = SceneContext.DBufferB ? SceneContext.DBufferB : GSystemTextures.MidGrayDummy;
+		IPooledRenderTarget* DBufferB = SceneContext.DBufferB ? SceneContext.DBufferB : GSystemTextures.DefaultNormal8Bit;
 		IPooledRenderTarget* DBufferC = SceneContext.DBufferC ? SceneContext.DBufferC : GSystemTextures.GreenDummy;
 
 		// todo: optimize out when not needed

@@ -932,7 +932,7 @@ struct FClearValueBinding
 	static RHI_API const FClearValueBinding DepthNear;
 	static RHI_API const FClearValueBinding DepthFar;	
 	static RHI_API const FClearValueBinding Green;
-	static RHI_API const FClearValueBinding MidGray;
+	static RHI_API const FClearValueBinding DefaultNormal8Bit;
 };
 
 struct FRHIResourceCreateInfo

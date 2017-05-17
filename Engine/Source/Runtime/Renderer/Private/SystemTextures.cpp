@@ -62,14 +62,14 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 			RHICmdList.CopyToResolveTarget(GreenDummy->GetRenderTargetItem().TargetableTexture, GreenDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
-		// Create a MidGrayDummy texture
+		// Create a DefaultNormal8Bit texture
 		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::MidGray, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::DefaultNormal8Bit, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, MidGrayDummy, TEXT("MidGrayDummy"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DefaultNormal8Bit, TEXT("DefaultNormal8Bit"));
 
-			SetRenderTarget(RHICmdList, MidGrayDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
-			RHICmdList.CopyToResolveTarget(MidGrayDummy->GetRenderTargetItem().TargetableTexture, MidGrayDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			SetRenderTarget(RHICmdList, DefaultNormal8Bit->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
+			RHICmdList.CopyToResolveTarget(DefaultNormal8Bit->GetRenderTargetItem().TargetableTexture, DefaultNormal8Bit->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
 		// Create the PerlinNoiseGradient texture
@@ -437,7 +437,7 @@ void FSystemTextures::ReleaseDynamicRHI()
 	MaxFP16Depth.SafeRelease();
 	DepthDummy.SafeRelease();
 	GreenDummy.SafeRelease();
-	MidGrayDummy.SafeRelease();
+	DefaultNormal8Bit.SafeRelease();
 
 	GRenderTargetPool.FreeUnusedResources();
 
