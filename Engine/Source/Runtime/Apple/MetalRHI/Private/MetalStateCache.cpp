@@ -1568,16 +1568,6 @@ void FMetalStateCache::SetRenderStoreActions(FMetalCommandEncoder& CommandEncode
 
 void FMetalStateCache::SetRenderState(FMetalCommandEncoder& CommandEncoder, FMetalCommandEncoder* PrologueEncoder)
 {
-    if (RasterBits & EMetalRenderFlagPipelineState)
-    {
-    	check(PipelineState);
-        CommandEncoder.SetRenderPipelineState(PipelineState);
-		if (PipelineState.ComputePipelineState)
-		{
-			check(PrologueEncoder);
-    		PrologueEncoder->SetComputePipelineState(PipelineState);
-    	}
-    }
     if (RasterBits & EMetalRenderFlagViewport)
     {
         CommandEncoder.SetViewport(Viewport);
@@ -1622,6 +1612,17 @@ void FMetalStateCache::SetRenderState(FMetalCommandEncoder& CommandEncoder, FMet
     {
         CommandEncoder.SetVisibilityResultMode(VisibilityMode, VisibilityOffset);
     }
+	// Some Intel drivers need RenderPipeline state to be set after DepthStencil state to work properly
+	if (RasterBits & EMetalRenderFlagPipelineState)
+	{
+		check(PipelineState);
+		CommandEncoder.SetRenderPipelineState(PipelineState);
+		if (PipelineState.ComputePipelineState)
+		{
+			check(PrologueEncoder);
+			PrologueEncoder->SetComputePipelineState(PipelineState);
+		}
+	}
    	RasterBits = 0;
 }
 
