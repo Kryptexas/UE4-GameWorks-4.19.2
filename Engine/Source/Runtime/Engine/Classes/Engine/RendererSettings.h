@@ -379,8 +379,8 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	uint32 bUseGPUMorphTargets : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = Debugging, meta = (
-		ConsoleVariable = "r.DX11NVAfterMathEnabled", DisplayName = "Enable NVIDIA Aftermath to help debug GPU crashes on DX11",
-		ToolTip = "Enables NVIDIA Aftermath to generate GPU callstacks when the GPU hangs or crashes on DX11.  Application must be whitelisted by the NVIDIA driver.  UE4Editor is whitelisted on latest drivers.",
+		ConsoleVariable = "r.GPUCrashDebugging", DisplayName = "Enable vendor specific GPU crash analysis tools",
+		ToolTip = "Enables vendor specific GPU crash analysis tools.  Currently only supports NVIDIA Aftermath on DX11.",
 		ConfigRestartRequired = true))
 		uint32 bNvidiaAftermathEnabled : 1;
 
