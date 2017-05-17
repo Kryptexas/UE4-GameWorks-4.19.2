@@ -2093,6 +2093,8 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor(float DeltaTime)
 
 	bUseControllingActorViewInfo = false;
 	ControllingActorViewInfo = FMinimalViewInfo();
+	ControllingActorExtraPostProcessBlends.Empty();
+	ControllingActorExtraPostProcessBlendWeights.Empty();
 
 	AActor* Actor = ActorLockedByMatinee.IsValid() ? ActorLockedByMatinee.Get() : ActorLockedToCamera.Get();
 	if( Actor != NULL )
@@ -2119,18 +2121,23 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor(float DeltaTime)
 			if (bLockedCameraView)
 			{
 				// If this is a camera actor, then inherit some other settings
-				UCameraComponent* const CameraComponent = GetCameraComponentForLockedActor(Actor);
-				if (CameraComponent != nullptr)
+				USceneComponent* const ViewComponent = FindViewComponentForActor(Actor);
+				if (ViewComponent != nullptr)
 				{
-					bUseControllingActorViewInfo = true;
-					CameraComponent->GetCameraView(DeltaTime, ControllingActorViewInfo);
-					CameraComponent->GetExtraPostProcessBlends(ControllingActorExtraPostProcessBlends, ControllingActorExtraPostProcessBlendWeights);
-
-					// Post processing is handled by OverridePostProcessingSettings
-					ViewFOV = ControllingActorViewInfo.FOV;
-					AspectRatio = ControllingActorViewInfo.AspectRatio;
-					SetViewLocation(ControllingActorViewInfo.Location);
-					SetViewRotation(ControllingActorViewInfo.Rotation);
+					if ( ensure(ViewComponent->GetEditorPreviewInfo(DeltaTime, ControllingActorViewInfo)) )
+					{
+						bUseControllingActorViewInfo = true;
+						if (UCameraComponent* CameraComponent = Cast<UCameraComponent>(ViewComponent))
+						{
+							CameraComponent->GetExtraPostProcessBlends(ControllingActorExtraPostProcessBlends, ControllingActorExtraPostProcessBlendWeights);
+						}
+						
+						// Post processing is handled by OverridePostProcessingSettings
+						ViewFOV = ControllingActorViewInfo.FOV;
+						AspectRatio = ControllingActorViewInfo.AspectRatio;
+						SetViewLocation(ControllingActorViewInfo.Location);
+						SetViewRotation(ControllingActorViewInfo.Rotation);
+					}
 				}
 			}
 		}
@@ -3141,6 +3148,67 @@ void FLevelEditorViewportClient::MoveCameraToLockedActor()
 		SetViewRotation( GetActiveActorLock()->GetActorRotation() );
 		Invalidate();
 	}
+}
+
+USceneComponent* FLevelEditorViewportClient::FindViewComponentForActor(AActor const* Actor)
+{
+	USceneComponent* PreviewComponent = nullptr;
+	if (Actor)
+	{
+		
+		// see if actor has a component with preview capabilities (prioritize camera components)
+		TArray<USceneComponent*> SceneComps;
+		Actor->GetComponents<USceneComponent>(SceneComps);
+
+		bool bChoseCamComponent = false;
+		for (USceneComponent* Comp : SceneComps)
+		{
+			FMinimalViewInfo DummyViewInfo;
+			if (Comp->bIsActive && Comp->GetEditorPreviewInfo(/*DeltaTime =*/0.0f, DummyViewInfo))
+			{
+				if (Comp->IsSelected())
+				{
+					PreviewComponent = Comp;
+					break;
+				}
+				else if (PreviewComponent)
+				{
+					if (bChoseCamComponent)
+					{
+						continue;
+					}
+
+					UCameraComponent* AsCamComp = Cast<UCameraComponent>(Comp);
+					if (AsCamComp != nullptr)
+					{
+						PreviewComponent = AsCamComp;
+					}
+					continue;
+				}
+				PreviewComponent = Comp;
+			}
+		}
+
+		// now see if any actors are attached to us, directly or indirectly, that have an active camera component we might want to use
+		// we will just return the first one.
+		// #note: assumption here that attachment cannot be circular
+		if (PreviewComponent == nullptr)
+		{
+			TArray<AActor*> AttachedActors;
+			Actor->GetAttachedActors(AttachedActors);
+			for (AActor* AttachedActor : AttachedActors)
+			{
+				USceneComponent* const Comp = FindViewComponentForActor(AttachedActor);
+				if (Comp)
+				{
+					PreviewComponent = Comp;
+					break;
+				}
+			}
+		}
+	}
+
+	return PreviewComponent;
 }
 
 void FLevelEditorViewportClient::SetActorLock(AActor* Actor)

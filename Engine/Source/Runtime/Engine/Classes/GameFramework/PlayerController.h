@@ -257,6 +257,10 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY()
 	TArray<class AActor*> HiddenActors;
 
+	/** Explicit components the camera shouldn't see (helpful for external systems to hide a component from a single player) */
+	UPROPERTY()
+	TArray< TWeakObjectPtr<UPrimitiveComponent> > HiddenPrimitiveComponents;
+
 	/** Used to make sure the client is kept synchronized when in a spectator state */
 	UPROPERTY()
 	float LastSpectatorStateSynchTime;
@@ -1346,7 +1350,7 @@ public:
 	 * @param ViewLocation the view point to hide/unhide from
 	 * @param HiddenComponents the list to add to/remove from
 	 */
-	virtual void UpdateHiddenComponents(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponents) {}
+	virtual void UpdateHiddenComponents(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& /*HiddenComponents*/) {}
 
 	/**
 	 * Builds a list of components that are hidden based upon gameplay.
@@ -1354,7 +1358,7 @@ public:
 	 * @param ViewLocation the view point to hide/unhide from
 	 * @param HiddenComponents this list will have all components that should be hidden added to it
 	 */
-	void BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponents);
+	void BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponentsOut);
 
 	/**
 	 * Sets the Matinee director track instance that's currently possessing this player controller

@@ -4819,7 +4819,7 @@ void APlayerController::UpdateCameraManager(float DeltaSeconds)
 	}
 }
 
-void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponents)
+void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TSet<FPrimitiveComponentId>& HiddenComponentsOut)
 {
 	// Translate the hidden actors list to a hidden primitive list.
 	UpdateHiddenActors(ViewLocation);
@@ -4837,14 +4837,14 @@ void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TS
 				UPrimitiveComponent* PrimitiveComponent = Components[ComponentIndex];
 				if (PrimitiveComponent->IsRegistered())
 				{
-					HiddenComponents.Add(PrimitiveComponent->ComponentId);
+					HiddenComponentsOut.Add(PrimitiveComponent->ComponentId);
 
 					for (USceneComponent* AttachedChild : PrimitiveComponent->GetAttachChildren())
 					{						
 						UPrimitiveComponent* AttachChildPC = Cast<UPrimitiveComponent>(AttachedChild);
 						if (AttachChildPC && AttachChildPC->IsRegistered())
 						{
-							HiddenComponents.Add(AttachChildPC->ComponentId);
+							HiddenComponentsOut.Add(AttachChildPC->ComponentId);
 						}
 					}
 				}
@@ -4857,8 +4857,26 @@ void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TS
 		}
 	}
 
+	// iterate backwards to we can remove as we go
+	for (int32 ComponentIndx = HiddenPrimitiveComponents.Num() - 1; ComponentIndx >= 0; --ComponentIndx)
+	{
+		TWeakObjectPtr<UPrimitiveComponent> ComponentPtr = HiddenPrimitiveComponents[ComponentIndx];
+		if (ComponentPtr.IsValid())
+		{
+			UPrimitiveComponent* Component = ComponentPtr.Get();
+			if (Component->IsRegistered())
+			{
+				HiddenComponentsOut.Add(Component->ComponentId);
+			}
+		}
+		else
+		{
+			HiddenPrimitiveComponents.RemoveAt(ComponentIndx);
+		}
+	}
+
 	// Allow a chance to operate on a per primitive basis
-	UpdateHiddenComponents(ViewLocation, HiddenComponents);
+	UpdateHiddenComponents(ViewLocation, HiddenComponentsOut);
 }
 
 void APlayerController::ClientRepObjRef_Implementation(UObject *Object)

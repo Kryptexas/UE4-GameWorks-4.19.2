@@ -265,6 +265,7 @@ bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 bool GRHINeedsUnatlasedCSMDepthsWorkaround = false;
 bool GSupportsTexture3D = true;
 bool GSupportsMobileMultiView = false;
+bool GSupportsImageExternal = false;
 bool GSupportsResourceView = true;
 bool GSupportsMultipleRenderTargets = true;
 bool GSupportsWideMRT = true;

@@ -262,6 +262,11 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::Cre
 pVRIsHmdPresent FSteamVRHMD::VRIsHmdPresentFn = nullptr;
 pVRGetGenericInterface FSteamVRHMD::VRGetGenericInterfaceFn = nullptr;
 
+bool FSteamVRHMD::IsHMDConnected()
+{
+	return FSteamVRHMD::VRIsHmdPresentFn ? (bool)(*FSteamVRHMD::VRIsHmdPresentFn)() : false;
+}
+
 bool FSteamVRHMD::IsHMDEnabled() const
 {
 	return bHmdEnabled;
@@ -1083,15 +1088,23 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 				uint32 Width, Height;
 				GetWindowBounds( &PosX, &PosY, &Width, &Height );
 				SceneVP->SetViewportSize( Width, Height );
+				bStereoEnabled = bStereoDesired;
 			}
 			else
 			{
+				// Note: Setting before resize to ensure we don't try to allocate a new vr rt.
+				bStereoEnabled = bStereoDesired;
+
+				FRHIViewport* const ViewportRHI = SceneVP->GetViewportRHI();
+				if (ViewportRHI != nullptr)
+				{
+					ViewportRHI->SetCustomPresent(nullptr);
+				}
+
 				FVector2D size = SceneVP->FindWindow()->GetSizeInScreen();
 				SceneVP->SetViewportSize( size.X, size.Y );
 				Window->SetViewportSizeDrivenByWindow( true );
 			}
-
-			bStereoEnabled = bStereoDesired;
 		}
 	}
 
@@ -1115,6 +1128,9 @@ void FSteamVRHMD::CalculateStereoViewOffset(const enum EStereoscopicPass StereoP
 {
 	if( StereoPassType != eSSP_FULL)
 	{
+		// Needed to transform world locked stereo layers
+		PlayerLocation = ViewLocation;
+
 		vr::Hmd_Eye HmdEye = (StereoPassType == eSSP_LEFT_EYE) ? vr::Eye_Left : vr::Eye_Right;
 		vr::HmdMatrix34_t HeadFromEye = VRSystem->GetEyeToHeadTransform(HmdEye);
 
@@ -1256,6 +1272,10 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	const FTransform NewRelativeTransform(NewOrientation, NewPosition);
 
 	ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
+
+	const FQuat ViewOrientation = MainView->ViewRotation.Quaternion();
+	PlayerOrientation = ViewOrientation * MainView->BaseHmdOrientation.Inverse();
+
 }
 
 void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}

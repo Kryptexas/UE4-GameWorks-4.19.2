@@ -322,6 +322,15 @@ void UCameraComponent::CheckForErrors()
 			->AddToken(FMapErrorToken::Create(FMapErrors::CameraAspectRatioIsZero));
 	}
 }
+
+bool UCameraComponent::GetEditorPreviewInfo(float DeltaTime, FMinimalViewInfo& ViewOut)
+{
+	if (bIsActive)
+	{
+		GetCameraView(DeltaTime, ViewOut);
+	}
+	return bIsActive;
+}
 #endif	// WITH_EDITOR
 
 

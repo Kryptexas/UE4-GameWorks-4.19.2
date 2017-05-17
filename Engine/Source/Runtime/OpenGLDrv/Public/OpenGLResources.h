@@ -958,6 +958,13 @@ public:
 					Tex.Z = InArraySize;
 					break;
 				}
+#if PLATFORM_ANDROID
+				case GL_TEXTURE_EXTERNAL_OES:
+				{
+					Tex.Type = SCTT_TextureExternal2D;
+					break;
+				}
+#endif
 				default:
 				{
 					check(false);

@@ -153,6 +153,9 @@ extern RHI_API bool GSupportsTexture3D;
 /** true if the RHI supports mobile multi-view */
 extern RHI_API bool GSupportsMobileMultiView;
 
+/** true if the RHI supports image external */
+extern RHI_API bool GSupportsImageExternal;
+
 /** true if the RHI supports SRVs */
 extern RHI_API bool GSupportsResourceView;
 

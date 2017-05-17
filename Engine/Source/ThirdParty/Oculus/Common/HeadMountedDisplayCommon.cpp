@@ -883,9 +883,15 @@ void FHeadMountedDisplay::UpdateSplashScreen()
 
 	FTexture2DRHIRef Texture2D = (bSplashShowMovie && SplashMovie.IsValid()) ? SplashMovie : SplashTexture;
 	FTextureRHIRef Texture;
+	float InvAspectRatio = 1.0;
 	if (Texture2D.IsValid())
 	{
 		Texture = (FRHITexture*)Texture2D.GetReference();
+		const FIntPoint TextureSize = Texture2D->GetSizeXY();
+		if (TextureSize.X > 0)
+		{
+			InvAspectRatio = float(TextureSize.Y) / float(TextureSize.X);
+		}
 	}
 
 	// Disable features incompatible with the generalized VR splash screen
@@ -908,7 +914,8 @@ void FHeadMountedDisplay::UpdateSplashScreen()
 
 			FAsyncLoadingSplash::FSplashDesc NewDesc;
 			NewDesc.LoadedTexture = Texture;
-			NewDesc.QuadSizeInMeters = FVector2D(8.0f, 4.5f);
+			// Set texture size to 8m wide, keeping the aspect ratio.
+			NewDesc.QuadSizeInMeters = FVector2D(8.0f, 8.0f * InvAspectRatio);
 
 			FTransform Translation(FVector(5.0f, 0.0f, 0.0f));
 

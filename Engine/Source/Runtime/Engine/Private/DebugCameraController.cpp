@@ -252,11 +252,11 @@ FString ADebugCameraController::ConsoleCommand(const FString& Cmd,bool bWriteToL
 	return TEXT("");
 }
 
-void ADebugCameraController::UpdateHiddenComponents(const FVector& ViewLocation,TSet<FPrimitiveComponentId>& HiddenComponents)
+void ADebugCameraController::UpdateHiddenComponents(const FVector& ViewLocation,TSet<FPrimitiveComponentId>& HiddenComponentsOut)
 {
 	if (OriginalControllerRef != NULL)
 	{
-		OriginalControllerRef->UpdateHiddenComponents(ViewLocation,HiddenComponents);
+		OriginalControllerRef->UpdateHiddenComponents(ViewLocation, HiddenComponentsOut);
 	}
 }
 

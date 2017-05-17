@@ -29,7 +29,7 @@ void FSteamVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePass
 void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const
 {
 	check(IsInRenderingThread());
-	const_cast<FSteamVRHMD*>(this)->UpdateLayerTextures();
+	const_cast<FSteamVRHMD*>(this)->UpdateStereoLayers_RenderThread();
 
 	if (bSplashIsShown)
 	{

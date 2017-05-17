@@ -64,7 +64,16 @@ void FDefaultStereoLayers::StereoLayerRender(FRHICommandListImmediate& RHICmdLis
 	// Set render state
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
-	GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+	bool bLastNoAlpha = (RenderThreadLayers[LayersToRender[0]].Flags & LAYER_FLAG_TEX_NO_ALPHA_CHANNEL) != 0;
+	if (bLastNoAlpha)
+	{
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
+	}
+	else
+	{
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+	}
+
 	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None, false, false>::GetRHI();
 	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
@@ -86,19 +95,37 @@ void FDefaultStereoLayers::StereoLayerRender(FRHICommandListImmediate& RHICmdLis
 	{
 		const FLayerDesc& Layer = RenderThreadLayers[LayerIndex];
 		check(Layer.Texture.IsValid());
+		const bool bNoAlpha = (Layer.Flags & LAYER_FLAG_TEX_NO_ALPHA_CHANNEL) != 0;
+		if (bNoAlpha != bLastNoAlpha)
+		{
+			// Updater render state
+			if (bNoAlpha)
+			{
+				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
+			}
+			else
+			{
+				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+			bLastNoAlpha = bNoAlpha;
+		}
 
 		FMatrix LayerMatrix = ConvertTransform(Layer.Transform);
 
 		FVector2D QuadSize = Layer.QuadSize * 0.5f;
 		if (Layer.Flags & LAYER_FLAG_QUAD_PRESERVE_TEX_RATIO)
 		{
-			const FRHITexture2D* Tex2D = Layer.Texture.GetReference()->GetTexture2D();
+			const FRHITexture2D* Tex2D = Layer.Texture->GetTexture2D();
 			if (Tex2D)
 			{
 				const float SizeX = Tex2D->GetSizeX();
 				const float SizeY = Tex2D->GetSizeY();
-				const float AspectRatio = SizeY / SizeX;
-				QuadSize.Y = QuadSize.X * AspectRatio;
+				if (SizeX != 0)
+				{
+					const float AspectRatio = SizeY / SizeX;
+					QuadSize.Y = QuadSize.X * AspectRatio;
+				}
 			}
 		}
 

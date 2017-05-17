@@ -106,6 +106,12 @@ public:
 #endif
 	// End of UActorComponent interface
 
+	// USceneComponent interface
+#if WITH_EDITOR
+	virtual bool GetEditorPreviewInfo(float DeltaTime, FMinimalViewInfo& ViewOut) override;
+#endif 
+	// End of USceneComponent interface
+
 	// UObject interface
 #if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

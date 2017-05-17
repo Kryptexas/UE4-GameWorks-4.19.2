@@ -202,7 +202,8 @@ enum EShaderCacheTextureType
 	SCTT_Texture1DArray,
 	SCTT_Texture2DArray,
 	SCTT_TextureCubeArray,
-	SCTT_Buffer
+	SCTT_Buffer, 
+	SCTT_TextureExternal2D
 };
 
 /** The minimum texture state required for logging shader draw states */

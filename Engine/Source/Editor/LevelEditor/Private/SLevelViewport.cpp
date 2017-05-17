@@ -3917,34 +3917,16 @@ void SLevelViewport::LockActorInternal(AActor* NewActorToLock)
 
 bool SLevelViewport::GetCameraInformationFromActor(AActor* Actor, FMinimalViewInfo& out_CameraInfo)
 {
-	// @todo camerapip: Could support actors other than cameras too!  (Character views?)
+	//
 	//@TODO: CAMERA: Support richer camera interactions in SIE; this may shake out naturally if everything uses camera components though
-	TArray<UCameraComponent*> CamComps;
-	Actor->GetComponents<UCameraComponent>(CamComps);
-	for (UCameraComponent* CamComp : CamComps)
-	{
-		if (CamComp->bIsActive)
-		{
-			// first active camera, use it and be done
-			CamComp->GetCameraView(0.0f, out_CameraInfo);
-			return true;
-		}
-	}
 
-	// see if any actors are attached to us, directly or indirectly, that have an active camera component we might want to use
-	// #note: assumption here that attachment cannot be circular
-	TArray<AActor*> AttachedActors;
-	Actor->GetAttachedActors(AttachedActors);
-	for (AActor* AttachedActor : AttachedActors)
+	bool bFoundCamInfo = false;
+	if (USceneComponent* ViewComponent = FLevelEditorViewportClient::FindViewComponentForActor(Actor))
 	{
-		if (GetCameraInformationFromActor(AttachedActor, out_CameraInfo))
-		{
-			return true;
-		}
+		bFoundCamInfo = ViewComponent->GetEditorPreviewInfo(/*DeltaTime =*/0.0f, out_CameraInfo);
+		ensure(bFoundCamInfo);
 	}
-
-	// no active cameras
-	return false;
+	return bFoundCamInfo;
 }
 
 bool SLevelViewport::CanGetCameraInformationFromActor(AActor* Actor)

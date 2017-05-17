@@ -16,6 +16,7 @@ class AActor;
 class APhysicsVolume;
 class USceneComponent;
 struct FLevelCollection;
+struct FMinimalViewInfo;
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
 struct ENGINE_API FOverlapInfo
@@ -1060,6 +1061,13 @@ public:
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const;
 
 	virtual void PreFeatureLevelChange(ERHIFeatureLevel::Type PendingFeatureLevel) {}
+
+	/** 
+	 * Supplies the editor with a view specific to this component (think a view 
+	 * from a camera components POV, etc.). Used for PIP preview windows.
+	 * @return True if the component overrides this, and fills out the view info output.
+	 */
+	virtual bool GetEditorPreviewInfo(float DeltaTime, FMinimalViewInfo& ViewOut) { return false; }
 #endif // WITH_EDITOR
 
 protected:

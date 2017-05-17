@@ -197,6 +197,9 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 			switch (RenderTarget->Target)
 			{
 			case GL_TEXTURE_2D:
+#if PLATFORM_ANDROID
+			case GL_TEXTURE_EXTERNAL_OES:
+#endif
 			case GL_TEXTURE_2D_MULTISAMPLE:
 			{
 #if PLATFORM_ANDROID
@@ -233,6 +236,9 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 			switch( RenderTarget->Target )
 			{
 			case GL_TEXTURE_2D:
+#if PLATFORM_ANDROID
+			case GL_TEXTURE_EXTERNAL_OES:
+#endif
 			case GL_TEXTURE_2D_MULTISAMPLE:
 			{
 				check(ArrayIndices[RenderTargetIndex] == 0);
@@ -278,6 +284,9 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 		switch (DepthStencilTarget->Target)
 		{
 		case GL_TEXTURE_2D:
+#if PLATFORM_ANDROID
+		case GL_TEXTURE_EXTERNAL_OES:
+#endif
 		case GL_TEXTURE_2D_MULTISAMPLE:
 		{
 #if PLATFORM_ANDROID

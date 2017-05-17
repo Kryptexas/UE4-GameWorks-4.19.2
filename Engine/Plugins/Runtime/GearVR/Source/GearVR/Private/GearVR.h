@@ -595,6 +595,7 @@ public:
 
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 	virtual bool IsHMDConnected() override;
+	virtual EHMDWornState::Type GetHMDWornState() override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
 
@@ -792,6 +793,10 @@ private: // data
 	double				BackButtonDownStartTime;
 
 	TSharedPtr<FGearVRSplash> Splash;
+
+	/** Is the HMD being worn by the user (according to the api) */
+	EHMDWornState::Type HMDWornState;
+	void UpdateHMDWornState();
 
 	union OCFlagsUnion
 	{

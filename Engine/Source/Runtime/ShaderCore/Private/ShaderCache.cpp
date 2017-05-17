@@ -2578,6 +2578,7 @@ FTextureRHIRef FShaderCache::InternalCreateTexture(FShaderTextureKey const& Text
 			case SCTT_Buffer:
 			case SCTT_Texture1D:
 			case SCTT_Texture1DArray:
+			case SCTT_TextureExternal2D:
 			default:
 			{
 				check(false);

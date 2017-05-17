@@ -136,9 +136,29 @@ void FSteamVRHMD::UpdateLayer(struct FSteamVRLayer& Layer, uint32 LayerId, bool 
     TextureBounds.vMin = Layer.LayerDesc.UVRect.Min.Y;
     TextureBounds.vMax = Layer.LayerDesc.UVRect.Max.Y;
 	OVR_VERIFY(VROverlay->SetOverlayTextureBounds(Layer.OverlayHandle, &TextureBounds));
-	const float WorldToMeterScale = FMath::Max(GetWorldToMetersScale(), 0.1f);
+	const float WorldToMeterScale = GetWorldToMetersScale();
+	check(WorldToMeterScale > 0.f);
 	OVR_VERIFY(VROverlay->SetOverlayWidthInMeters(Layer.OverlayHandle, Layer.LayerDesc.QuadSize.X / WorldToMeterScale));
-	OVR_VERIFY(VROverlay->SetOverlayTexelAspect(Layer.OverlayHandle, Layer.LayerDesc.QuadSize.X / Layer.LayerDesc.QuadSize.Y));
+	
+	float TexelAspect = 1.0f;
+	// OpenVR overlays already take texture size into account, so we have to explicitly undo that in case the preserve texture ratio flag is not set. 
+	if (!(Layer.LayerDesc.Flags & IStereoLayers::LAYER_FLAG_QUAD_PRESERVE_TEX_RATIO) && Layer.LayerDesc.Texture.IsValid())
+	{
+		FRHITexture2D* Texture2D = Layer.LayerDesc.Texture->GetTexture2D();
+		if (Texture2D && Texture2D->GetSizeX() != 0)
+		{
+			// Initially set texel aspect so the image will be rendered in 1:1 ratio regardless of image size.
+			TexelAspect = (float)Texture2D->GetSizeY() / (float)Texture2D->GetSizeX();
+		}
+
+		// Now apply the ratio determined by Quad size:
+		if (Layer.LayerDesc.QuadSize.Y > 0.0f)
+		{
+			TexelAspect *= (Layer.LayerDesc.QuadSize.X / Layer.LayerDesc.QuadSize.Y);
+		}
+	}
+
+	OVR_VERIFY(VROverlay->SetOverlayTexelAspect(Layer.OverlayHandle, TexelAspect));
 
 	// Shift layer priority values up by -INT32_MIN, as SteamVR uses unsigned integers for the layer order where UE uses signed integers.
 	// This will preserve the correct order between layers with negative and positive priorities
@@ -148,21 +168,10 @@ void FSteamVRHMD::UpdateLayer(struct FSteamVRLayer& Layer, uint32 LayerId, bool 
 	switch (Layer.LayerDesc.PositionType)
 	{
 	case ELayerType::WorldLocked:
-#if 0
 	{
-		// needs final implementation
-
-		FQuat PlayerOrientation = BaseOrientation.Inverse() * PlayerOrientation;
-		FTransform PlayerTorso(PlayerOrientation, PlayerPosition);
-
-		FTransform Transform = PlayerTorso.Inverse() * Layer.LayerDesc.Transform;
-
-		vr::HmdMatrix34_t HmdTransform;
-		TransformToSteamSpace(Transform, HmdTransform, WorldToMeterScale);
-		OVR_VERIFY(VROverlay->SetOverlayTransformTrackedDeviceRelative(Layer.OverlayHandle, VRCompositor->GetTrackingSpace(), &HmdTransform));
+		// World locked layer positions are updated every frame.
 		break;
 	}
-#endif
 	case ELayerType::TrackerLocked:
 	{
 		vr::HmdMatrix34_t HmdTransform;
@@ -182,20 +191,33 @@ void FSteamVRHMD::UpdateLayer(struct FSteamVRLayer& Layer, uint32 LayerId, bool 
 
 
 //=============================================================================
-void FSteamVRHMD::UpdateLayerTextures()
+void FSteamVRHMD::UpdateStereoLayers_RenderThread()
 {
-	// If there have been no layer changes since last frame we can return
-	// Additionally, if we don't have a valid tracking position, the calls to ShowOverlay/SetOverlayTexture below will not have any effect.
-	if (!GetStereoLayersDirty() || !HasValidTrackingPosition())
+	// If we don't have a valid tracking position, the calls to ShowOverlay/SetOverlayTexture below will not have any effect.
+	if (!HasValidTrackingPosition())
 	{
 		return;
 	}
 
+	const float WorldToMeterScale = GetWorldToMetersScale();
+	check(WorldToMeterScale > 0.f);
+	FQuat AdjustedPlayerOrientation = BaseOrientation.Inverse() * PlayerOrientation;
+	FTransform InvWorldTransform = FTransform(AdjustedPlayerOrientation, PlayerLocation).Inverse();
+
+	// We have loop through all layers every frame, in case we have world locked layers or continuously updated textures.
 	ForEachLayer([=](uint32 /* unused */, FSteamVRLayer& Layer)
 	{
 		if (Layer.OverlayHandle != vr::k_ulOverlayHandleInvalid)
 		{
+			// Update world locked layer positions.
+			if (Layer.LayerDesc.PositionType == ELayerType::WorldLocked)
+			{
+				vr::HmdMatrix34_t HmdTransform;
+				TransformToSteamSpace(Layer.LayerDesc.Transform * InvWorldTransform, HmdTransform, WorldToMeterScale);
+				OVR_VERIFY(VROverlay->SetOverlayTransformAbsolute(Layer.OverlayHandle, VRCompositor->GetTrackingSpace(), &HmdTransform));
+			}
 
+			// Update layer textures
 			if (Layer.bUpdateTexture || (Layer.LayerDesc.Flags & LAYER_FLAG_TEX_CONTINUOUS_UPDATE))
 			{
 				vr::Texture_t Texture;

@@ -407,6 +407,7 @@ bool FAndroidOpenGL::bES31Support = false;
 bool FAndroidOpenGL::bSupportsInstancing = false;
 bool FAndroidOpenGL::bHasHardwareHiddenSurfaceRemoval = false;
 bool FAndroidOpenGL::bSupportsMobileMultiView = false;
+bool FAndroidOpenGL::bSupportsImageExternal = false;
 GLint FAndroidOpenGL::MaxMSAASamplesTileMem = 1;
 
 FAndroidOpenGL::EFeatureLevelSupport FAndroidOpenGL::CurrentFeatureLevelSupport = FAndroidOpenGL::EFeatureLevelSupport::Invalid;
@@ -467,6 +468,13 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	{
 		// indicates RHI supports on-chip MSAA but this device does not.
 		MaxMSAASamplesTileMem = 1;
+	}
+
+	if (ExtensionsString.Contains(TEXT("GL_OES_EGL_image_external")) && 
+		ExtensionsString.Contains(TEXT("OES_EGL_image_external_essl3")))
+	{
+		bSupportsImageExternal = true;
+		UE_LOG(LogRHI, Log, TEXT("Image external enabled."));
 	}
 
 	bSupportsETC2 = bES30Support;
