@@ -143,24 +143,44 @@ void FClothingSimulationBase::FillContext(USkeletalMeshComponent* InComponent, I
 	BaseContext->ComponentToWorld = InComponent->ComponentToWorld;
 	BaseContext->PredictedLod = InComponent->PredictedLODLevel;
 	InComponent->GetWindForCloth_GameThread(BaseContext->WindVelocity, BaseContext->WindAdaption);
-	
+	USkeletalMesh* SkelMesh = InComponent->SkeletalMesh;
+
 	if(USkinnedMeshComponent* MasterComponent = InComponent->MasterPoseComponent.Get())
 	{
 		const int32 NumBones = InComponent->MasterBoneMap.Num();
-		
+
 		BaseContext->BoneTransforms.Empty(NumBones);
 		BaseContext->BoneTransforms.AddDefaulted(NumBones);
 
 		for(int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 		{
+			bool bFoundMaster = false;
 			if(InComponent->MasterBoneMap.IsValidIndex(BoneIndex))
 			{
-				const int32 ParentIndex = InComponent->MasterBoneMap[BoneIndex];
-				BaseContext->BoneTransforms[BoneIndex] = MasterComponent->GetComponentSpaceTransforms()[ParentIndex];
+				const int32 MasterIndex = InComponent->MasterBoneMap[BoneIndex];
+
+				if(MasterIndex != INDEX_NONE)
+				{
+					BaseContext->BoneTransforms[BoneIndex] = MasterComponent->GetComponentSpaceTransforms()[MasterIndex];
+					bFoundMaster = true;
+				}
 			}
-			else
+
+			if(!bFoundMaster)
 			{
-				BaseContext->BoneTransforms[BoneIndex] = FTransform::Identity;
+				if(SkelMesh)
+				{
+					const int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(BoneIndex);
+
+					if(ParentIndex != INDEX_NONE)
+					{
+						BaseContext->BoneTransforms[BoneIndex] = BaseContext->BoneTransforms[ParentIndex] * SkelMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+					}
+					else
+					{
+						BaseContext->BoneTransforms[BoneIndex] = SkelMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+					}
+				}
 			}
 		}
 	}
