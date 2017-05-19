@@ -68,9 +68,10 @@ void DirectionalPixelMain(
 
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
 		
-		uint2 Random = Rand3DPCG16( uint3( SVPos.xy, View.StateFrameIndexMod8 ) ).xy;
+		uint2 Random = Rand3DPCG16( uint3( SVPos.xy, View.Random ) ).xy;
+		float Dither = InterleavedGradientNoise( SVPos.xy, View.StateFrameIndexMod8 );
 
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Random);
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Dither, Random);
 	}
 }
 
@@ -105,11 +106,10 @@ void RadialPixelMain(
 
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
 
-		uint2 Random = Rand3DPCG16( uint3( SVPos.xy, 0 ) ).xy;
-		Random.x ^= View.Random;
-		Random.y ^= View.Random;
+		uint2 Random = Rand3DPCG16( uint3( SVPos.xy, View.Random ) ).xy;
+		float Dither = InterleavedGradientNoise( SVPos.xy, View.StateFrameIndexMod8 );
 
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Random);
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Dither, Random);
 		OutColor *= ComputeLightProfileMultiplier(WorldPosition, DeferredLightUniforms.LightPosition, DeferredLightUniforms.NormalizedLightDirection);
 	}
 }

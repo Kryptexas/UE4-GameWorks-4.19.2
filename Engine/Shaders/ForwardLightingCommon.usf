@@ -133,7 +133,7 @@ float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 Cam
 		float WholeSceneShadowing = LightData.DistanceFadeMAD.y < 0.0f ? DynamicShadowing : 1.0f;
 		
 		float4 LightAttenuation = float4(WholeSceneShadowing.xx, PerObjectShadowing.xx);
-		float3 NewLighting = GetDynamicLighting(WorldPosition, -CameraVector, GBufferData, 1, GBufferData.ShadingModelID, LightData, LightAttenuation, uint2(0,0)).xyz;
+		float3 NewLighting = GetDynamicLighting(WorldPosition, -CameraVector, GBufferData, 1, GBufferData.ShadingModelID, LightData, LightAttenuation, 0.5, uint2(0,0)).xyz;
 
 		FLATTEN
 		if ((ForwardGlobalLightData.DirectionalLightShadowMapChannelMask >> 8) & Primitive.LightingChannelMask)
@@ -167,7 +167,7 @@ float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 Cam
 		float4 PreviewShadowMapChannelMask = UnpackShadowMapChannelMask(PackedShadowMapChannelMask >> 4);
 		float DynamicShadowing = dot(PreviewShadowMapChannelMask, DynamicShadowFactors);
 		float4 LightAttenuation = float4(1, 1, DynamicShadowing.x, DynamicShadowing.x);
-		float3 NewLighting = GetDynamicLighting(WorldPosition, -CameraVector, GBufferData, 1, GBufferData.ShadingModelID, LightData, LightAttenuation, uint2(0,0)).xyz;
+		float3 NewLighting = GetDynamicLighting(WorldPosition, -CameraVector, GBufferData, 1, GBufferData.ShadingModelID, LightData, LightAttenuation, 0.5, uint2(0,0)).xyz;
 
 		FLATTEN
 		if ((PackedShadowMapChannelMask >> 8) & Primitive.LightingChannelMask)
