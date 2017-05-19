@@ -4344,7 +4344,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 		FString BaseSourceFilename = GeneratedIncludeDirectory / StrippedName;
 
 		FUHTStringBuilder GeneratedHeaderText;
-		FGeneratedCPP& GeneratedCPP = GeneratedCPPs.Emplace(SourceFile, BaseSourceFilename + TEXT(".generated.cpp"));
+		FGeneratedCPP& GeneratedCPP = GeneratedCPPs.Emplace(SourceFile, BaseSourceFilename + TEXT(".gen.cpp"));
 		GeneratedCPP.RelativeIncludes.Add(MoveTemp(ModuleRelativeFilename));
 
 		UniqueCrossModuleReferences = &GeneratedCPP.CrossModuleReferences;
@@ -4495,8 +4495,8 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 	// now export the names for the functions in this package
 	// notice we always export this file (as opposed to only exporting if we have any marked names)
 	// because there would be no way to know when the file was created otherwise
-	// Export .generated.cpp
-	UE_LOG(LogCompile, Log, TEXT("Autogenerating boilerplate cpp: %s.generated.cpp"), *PackageName);
+	// Export .gen.cpp
+	UE_LOG(LogCompile, Log, TEXT("Autogenerating boilerplate cpp: %s.gen.cpp"), *PackageName);
 
 	if (GeneratedFunctionDeclarations.Len())
 	{
@@ -4515,7 +4515,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 			}
 		}
 
-		FGeneratedCPP& GeneratedCPP = GeneratedCPPs.Emplace(nullptr, GeneratedIncludeDirectory / FString::Printf(TEXT("%s.init.generated.cpp"), *PackageName));
+		FGeneratedCPP& GeneratedCPP = GeneratedCPPs.Emplace(nullptr, GeneratedIncludeDirectory / FString::Printf(TEXT("%s.init.gen.cpp"), *PackageName));
 		ExportGeneratedPackageInitCode(GeneratedCPP.GeneratedText, *GeneratedFunctionDeclarations, Package, CombinedCRC);
 	}
 
@@ -4545,7 +4545,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 		ExportGeneratedCPP(
 			FileText,
 			GeneratedCPP.Value.CrossModuleReferences,
-			*FPaths::GetCleanFilename(GeneratedCPP.Value.GeneratedCppFullFilename).Replace(TEXT(".generated.cpp"), TEXT("")).Replace(TEXT("."), TEXT("_")),
+			*FPaths::GetCleanFilename(GeneratedCPP.Value.GeneratedCppFullFilename).Replace(TEXT(".gen.cpp"), TEXT("")).Replace(TEXT("."), TEXT("_")),
 			*GeneratedCPP.Value.GeneratedText,
 			*GeneratedIncludes
 		);
@@ -4557,27 +4557,29 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
 
 	if (bAllowSaveExportedHeaders)
 	{
-	    // Delete old generated .cpp files which we don't need because we generated less code than last time.
-	    TArray<FString> FoundFiles;
-	    FString BaseDir = FPaths::GetPath(ModuleInfo->GeneratedCPPFilenameBase);
-	    IFileManager::Get().FindFiles(FoundFiles, *FPaths::Combine(BaseDir, TEXT("*.generated.cpp")), true, false);
-	    IFileManager::Get().FindFiles(FoundFiles, *FPaths::Combine(BaseDir, TEXT("*.generated.*.cpp")), true, false);
-	    for (FString& File : FoundFiles)
-	    {
-		    if (!GeneratedCPPNames.Contains(File))
-		    {
-			    IFileManager::Get().Delete(*FPaths::Combine(*BaseDir, *File));
-		    }
-	    }
-    
-	    // delete the old .cpp file that will cause link errors if it's left around (Engine.generated.cpp and Engine.generated.1.cpp will 
-	    // conflict now that we no longer use Engine.generated.cpp to #include Engine.generated.1.cpp, and UBT would compile all 3)
-	    // @todo: This is a temp measure so we don't force everyone to require a Clean
-	    if (GeneratedFunctionBodyTextSplit.Num() > 1)
-	    {
-		    FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
-		    IFileManager::Get().Delete(*CppPath);
-	    }
+		// Delete old generated .cpp files which we don't need because we generated less code than last time.
+		TArray<FString> FoundFiles;
+		FString BaseDir = FPaths::GetPath(ModuleInfo->GeneratedCPPFilenameBase);
+		IFileManager::Get().FindFiles(FoundFiles, *FPaths::Combine(BaseDir, TEXT("*.generated.cpp")), true, false);
+		IFileManager::Get().FindFiles(FoundFiles, *FPaths::Combine(BaseDir, TEXT("*.generated.*.cpp")), true, false);
+		IFileManager::Get().FindFiles(FoundFiles, *FPaths::Combine(BaseDir, TEXT("*.gen.cpp")), true, false);
+		IFileManager::Get().FindFiles(FoundFiles, *FPaths::Combine(BaseDir, TEXT("*.gen.*.cpp")), true, false);
+		for (FString& File : FoundFiles)
+		{
+			if (!GeneratedCPPNames.Contains(File))
+			{
+				IFileManager::Get().Delete(*FPaths::Combine(*BaseDir, *File));
+			}
+		}
+
+		// delete the old .cpp file that will cause link errors if it's left around (Engine.gen.cpp and Engine.gen.1.cpp will 
+		// conflict now that we no longer use Engine.gen.cpp to #include Engine.gen.1.cpp, and UBT would compile all 3)
+		// @todo: This is a temp measure so we don't force everyone to require a Clean
+		if (GeneratedFunctionBodyTextSplit.Num() > 1)
+		{
+			FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
+			IFileManager::Get().Delete(*CppPath);
+		}
 	}
 
 	// Export all changed headers from their temp files to the .h files
@@ -4793,7 +4795,6 @@ void FNativeClassHeaderGenerator::ExportUpdatedHeaders(FString PackageName)
 
 /**
  * Exports C++ definitions for boilerplate that was generated for a package.
- * They are exported to a file using the name <PackageName>.generated.cpp
  */
 void FNativeClassHeaderGenerator::ExportGeneratedCPP(FOutputDevice& Out, const TSet<FString>& InCrossModuleReferences, const TCHAR* EmptyLinkFunctionPostfix, const TCHAR* Body, const TCHAR* OtherIncludes)
 {
@@ -4822,7 +4823,6 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP(FOutputDevice& Out, const T
 		}
 		Out.Logf(TEXT("// End Cross Module References\r\n"));
 	}
-//	Out.Log(Declarations);
 	Out.Log(Body);
 	Out.Log(EnableDeprecationWarnings);
 	Out.Log(EnableWarning4883);

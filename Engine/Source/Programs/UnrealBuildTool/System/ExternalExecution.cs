@@ -181,7 +181,7 @@ namespace UnrealBuildTool
 		public string PCH;
 
 		/// <summary>
-		/// Base (i.e. extensionless) path+filename of the .generated files
+		/// Base (i.e. extensionless) path+filename of the .gen files
 		/// </summary>
 		public string GeneratedCPPFilenameBase;
 
@@ -489,12 +489,12 @@ namespace UnrealBuildTool
 				if (UHTModuleInfo.Info.PublicUObjectClassesHeaders.Count > 0 || UHTModuleInfo.Info.PrivateUObjectHeaders.Count > 0 || UHTModuleInfo.Info.PublicUObjectHeaders.Count > 0)
 				{
 					// If we've got this far and there are no source files then it's likely we're installed and ignoring
-					// engine files, so we don't need a .generated.cpp either
+					// engine files, so we don't need a .gen.cpp either
 					UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass BuildInfo = null;
-					UHTModuleInfo.Info.GeneratedCPPFilenameBase = Path.Combine(Module.GeneratedCodeDirectory.FullName, UHTModuleInfo.Info.ModuleName) + ".generated";
+					UHTModuleInfo.Info.GeneratedCPPFilenameBase = Path.Combine(Module.GeneratedCodeDirectory.FullName, UHTModuleInfo.Info.ModuleName) + ".gen";
 					if (Module.SourceFilesToBuild.Count != 0)
 					{
-						BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass(Path.Combine(Module.GeneratedCodeDirectory.FullName, "*.generated.cpp"));
+						BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass(Path.Combine(Module.GeneratedCodeDirectory.FullName, "*.gen.cpp"));
 					}
 
 					Module.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass(BuildInfo);
@@ -673,9 +673,9 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Gets the timestamp of CoreUObject.generated.cpp file.
+		/// Gets the timestamp of CoreUObject.gen.cpp file.
 		/// </summary>
-		/// <returns>Last write time of CoreUObject.generated.cpp or DateTime.MaxValue if it doesn't exist.</returns>
+		/// <returns>Last write time of CoreUObject.gen.cpp or DateTime.MaxValue if it doesn't exist.</returns>
 		private static DateTime GetCoreGeneratedTimestamp(string ModuleName, string ModuleGeneratedCodeDirectory)
 		{
 			// In Installed Builds, we don't check the timestamps on engine headers.  Default to a very old date.
@@ -684,8 +684,8 @@ namespace UnrealBuildTool
 				return DateTime.MinValue;
 			}
 
-			// Otherwise look for CoreUObject.generated.Init.cpp
-			FileInfo CoreGeneratedFileInfo = new FileInfo(Path.Combine(ModuleGeneratedCodeDirectory, ModuleName + ".init.generated.cpp"));
+			// Otherwise look for CoreUObject.init.gen.cpp
+			FileInfo CoreGeneratedFileInfo = new FileInfo(Path.Combine(ModuleGeneratedCodeDirectory, ModuleName + ".init.gen.cpp"));
 			if (CoreGeneratedFileInfo.Exists)
 			{
 				return CoreGeneratedFileInfo.LastWriteTime;
@@ -704,7 +704,7 @@ namespace UnrealBuildTool
 		/// <returns>    True if the code files are out of date</returns>
 		private static bool AreGeneratedCodeFilesOutOfDate(List<UHTModuleInfo> UObjectModules, DateTime HeaderToolTimestamp, bool bUsePrecompiled)
 		{
-			// Get CoreUObject.generated.cpp timestamp.  If the source files are older than the CoreUObject generated code, we'll
+			// Get CoreUObject.init.gen.cpp timestamp.  If the source files are older than the CoreUObject generated code, we'll
 			// need to regenerate code for the module
 			DateTime? CoreGeneratedTimestamp = null;
 			{

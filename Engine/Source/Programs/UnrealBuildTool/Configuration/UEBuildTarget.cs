@@ -3241,7 +3241,7 @@ namespace UnrealBuildTool
 				{
 					bFound = true;
 
-					string FunctionName = "EmptyLinkFunctionForGeneratedCode" + Path.GetFileName(CppFile).Replace(".generated.cpp", "").Replace(".", "_");
+					string FunctionName = "EmptyLinkFunctionForGeneratedCode" + Path.GetFileName(CppFile).Replace(".gen.cpp", "").Replace(".", "_");
 					if (AlreadyAddedEmptyLinkFunctions.Add(FunctionName))
 					{
 						Result.Add("    extern void " + FunctionName + "();");
@@ -4061,7 +4061,7 @@ namespace UnrealBuildTool
 
 			ToolChain.SetUpGlobalEnvironment(Rules);
 
-			// @Hack: This to prevent UHT from listing CoreUObject.generated.cpp as its dependency.
+			// @Hack: This to prevent UHT from listing CoreUObject.init.gen.cpp as its dependency.
 			// We flag the compile environment when we build UHT so that we don't need to check
 			// this for each file when generating their dependencies.
 			GlobalCompileEnvironment.bHackHeaderGenerator = (GetAppName() == "UnrealHeaderTool");

@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 			public class BuildInfoClass
 			{
 				/// <summary>
-				/// The wildcard of the *.generated.cpp file which was generated for the module
+				/// The wildcard of the *.gen.cpp file which was generated for the module
 				/// </summary>
 				public readonly string FileWildcard;
 
@@ -31,7 +31,7 @@ namespace UnrealBuildTool
 			}
 
 			/// <summary>
-			/// Information about how to build the .generated.cpp files. If this is null, then we're not building .generated.cpp files for this module.
+			/// Information about how to build the .gen.cpp files. If this is null, then we're not building .gen.cpp files for this module.
 			/// </summary>
 			public BuildInfoClass BuildInfo;
 
@@ -42,7 +42,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Information about the .generated.cpp file.  If this is null then this module doesn't have any UHT-produced code.
+		/// Information about the .gen.cpp file.  If this is null then this module doesn't have any UHT-produced code.
 		/// </summary>
 		public AutoGenerateCppInfoClass AutoGenerateCppInfo = null;
 
@@ -164,7 +164,7 @@ namespace UnrealBuildTool
 		{
 			return ((null == GeneratedCodeDirectory) || !DirectoryReference.Exists(GeneratedCodeDirectory))
 				? Enumerable.Empty<string>()
-				: DirectoryReference.EnumerateFiles(GeneratedCodeDirectory, "*.generated.cpp", SearchOption.TopDirectoryOnly).Select((Dir) => Dir.FullName);
+				: DirectoryReference.EnumerateFiles(GeneratedCodeDirectory, "*.gen.cpp", SearchOption.TopDirectoryOnly).Select((Dir) => Dir.FullName);
 		}
 
 		protected override void GetReferencedDirectories(HashSet<DirectoryReference> Directories)
@@ -557,7 +557,7 @@ namespace UnrealBuildTool
 
 					if (bModuleUsesUnityBuild)
 					{
-						GeneratedFileItems = Unity.GenerateUnityCPPs(Target, GeneratedFileItems, GeneratedCPPCompileEnvironment, Name + ".generated");
+						GeneratedFileItems = Unity.GenerateUnityCPPs(Target, GeneratedFileItems, GeneratedCPPCompileEnvironment, Name + ".gen");
 						LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(Target, ToolChain, GeneratedCPPCompileEnvironment, ModuleCompileEnvironment, GeneratedFileItems, ActionGraph).ObjectFiles);
 					}
 					else

@@ -2484,7 +2484,7 @@ namespace UnrealBuildTool
 		public static bool ShouldSourceFileBePartOfWorkingSet(string SourceFileAbsolutePath)
 		{
 			// Generated .cpp files should never be treated as part of the working set
-			if (SourceFileAbsolutePath.EndsWith(".generated.cpp"))
+			if (SourceFileAbsolutePath.EndsWith(".gen.cpp"))
 			{
 				return false;
 			}
