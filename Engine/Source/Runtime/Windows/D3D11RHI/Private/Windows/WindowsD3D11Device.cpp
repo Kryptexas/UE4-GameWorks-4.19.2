@@ -17,7 +17,7 @@
 #include "GenericPlatformDriver.h"			// FGPUDriverInfo
 
 #if NV_AFTERMATH
-int32 GDX11NVAfterMathEnabled = 1;
+int32 GDX11NVAfterMathEnabled = 0;
 static FAutoConsoleVariableRef CVarDX11NVAfterMathBufferSize(
 	TEXT("r.DX11NVAfterMathEnabled"),
 	GDX11NVAfterMathEnabled,
