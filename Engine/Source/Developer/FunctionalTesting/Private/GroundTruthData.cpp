@@ -2,14 +2,15 @@
 
 #include "GroundTruthData.h"
 
+#include "UObject/UnrealType.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "AssetData.h"
+
 #if WITH_EDITOR
 #include "ISourceControlModule.h"
 #include "ISourceControlProvider.h"
 #include "ISourceControlOperation.h"
-#include "UObject/Package.h"
-#include "Misc/PackageName.h"
-#include "AssetData.h"
-#include "UObject/UnrealType.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(GroundTruthLog, Log, Log)
