@@ -22,6 +22,8 @@
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "AssetTypeActions_GroundTruthData.h"
+#include "IAssetTools.h"
 
 #define LOCTEXT_NAMESPACE "EditorAutomation"
 
@@ -121,6 +123,9 @@ class FEditorAutomationModule : public IEditorAutomationModule
 		{
 			OnModulesChanged("PlacementMode", EModuleChangeReason::ModuleLoaded);
 		}
+
+		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_GroundTruthData()));
 	}
 
 	void ShutdownModule()

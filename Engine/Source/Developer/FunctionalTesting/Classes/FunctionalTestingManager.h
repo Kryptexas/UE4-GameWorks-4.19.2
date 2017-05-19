@@ -76,7 +76,6 @@ protected:
 	bool bIsRunning;
 	bool bFinished;
 	bool bLooped;
-	bool bWaitForNavigationBuildFinish;
 	bool bInitialDelayApplied;
 	uint32 CurrentIteration;
 

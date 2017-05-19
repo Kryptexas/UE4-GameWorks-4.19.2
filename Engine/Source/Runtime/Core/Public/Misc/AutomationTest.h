@@ -26,13 +26,14 @@
 #include "Math/Color.h"
 #include "PlatformProcess.h"
 #include "Misc/AutomationEvent.h"
+#include "Internationalization/Regex.h"
 
 /** Flags for specifying automation test requirements/behavior */
 namespace EAutomationTestFlags
 {
 	enum Type
 	{
-		//~ Application context required for the test - not specifying means it will be valid for any context
+		//~ Application context required for the test
 		// Test is suitable for running within the editor
 		EditorContext = 0x00000001,
 		// Test is suitable for running within the client
@@ -83,6 +84,30 @@ namespace EAutomationTestFlags
 		FilterMask = SmokeFilter | EngineFilter | ProductFilter | PerfFilter | StressFilter
 	};
 };
+
+/** Flags for indicating the matching type to use for an expected error */
+namespace EAutomationExpectedErrorFlags
+{
+	enum MatchType
+	{
+		// When matching expected errors, do so exactly.
+		Exact,
+		// When matching expected errors, just see if the error string is contained in the string to be evaluated.
+		Contains,
+	};
+
+	inline const TCHAR* ToString(EAutomationExpectedErrorFlags::MatchType ThisType)
+	{
+		switch (ThisType)
+		{
+		case Contains:
+			return TEXT("Contains");
+		case Exact:
+			return TEXT("Exact");
+		}
+		return TEXT("Unknown");
+	}
+}
 
 /** Simple class to store the results of the execution of a automation test */
 class CORE_API FAutomationTestExecutionInfo
@@ -481,6 +506,43 @@ public:
 	virtual void Run() = 0;
 };
 
+struct FAutomationExpectedError
+{
+	// Original regular expression pattern string matching expected error message.
+	// NOTE: using the Exact comparison type wraps the pattern string with ^ and $ tokens,
+	// but the base pattern string is preserved to allow checks for duplicate entries.
+	FString ErrorPatternString;
+	// Regular expression pattern for ErrorPatternString
+	FRegexPattern ErrorPattern;
+	// Type of comparison to perform on error message using ErrorPattern.
+	EAutomationExpectedErrorFlags::MatchType CompareType;
+	/** 
+	 * Number of occurrences expected for error. If set greater than 0, it will cause the test to fail if the
+	 * exact number of occurrences expected is not matched. If set to 0, it will suppress all matching messages. 
+	 */
+	int32 ExpectedNumberOfOccurrences;
+	int32 ActualNumberOfOccurrences;
+
+	/**
+	* Constructor
+	*/
+	
+	FAutomationExpectedError(FString& InErrorPattern, EAutomationExpectedErrorFlags::MatchType InCompareType, int32 InExpectedNumberOfOccurrences = 1)
+		: ErrorPatternString(InErrorPattern)
+		, ErrorPattern((InCompareType == EAutomationExpectedErrorFlags::Exact) ? FString::Printf(TEXT("^%s$"), *InErrorPattern) : InErrorPattern)
+		, CompareType(InCompareType)
+		, ExpectedNumberOfOccurrences(InExpectedNumberOfOccurrences)
+		, ActualNumberOfOccurrences(0)
+	{}
+
+	FAutomationExpectedError(FString& InErrorPattern, int32 InExpectedNumberOfOccurrences)
+		: ErrorPatternString(InErrorPattern)
+		, ErrorPattern(InErrorPattern)
+		, CompareType(EAutomationExpectedErrorFlags::Contains)
+		, ExpectedNumberOfOccurrences(InExpectedNumberOfOccurrences)
+	{}
+};
+
 struct FAutomationScreenshotData
 {
 	FString Name;
@@ -571,6 +633,10 @@ DECLARE_DELEGATE_TwoParams(FOnTestScreenshotCaptured, const TArray<FColor>&, con
 
 DECLARE_MULTICAST_DELEGATE_FiveParams(FOnTestScreenshotComparisonComplete, bool /*bWasNew*/, bool /*bWasSimilar*/, double /*MaxLocalDifference*/, double /*GlobalDifference*/, FString /*ErrorMessage*/);
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTestDataRetrieved, bool /*bWasNew*/, const FString& /*JsonData*/);
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPerformanceDataRetrieved, bool /*bSuccess*/, const FString& /*ErrorMessage*/);
+
 /** Class representing the main framework for running automation tests */
 class CORE_API FAutomationTestFramework
 {
@@ -583,6 +649,12 @@ public:
 
 	/** Called when a screenshot comparison completes. */
 	FOnTestScreenshotComparisonComplete OnScreenshotCompared;
+
+	/** Called when the test data is retrieved. */
+	FOnTestDataRetrieved OnTestDataRetrieved;
+
+	/** Called when the performance data is retrieved. */
+	FOnPerformanceDataRetrieved OnPerformanceDataRetrieved;
 
 	/** The final call related to screenshots, after they've been taken, and after they've been compared (or not if automation isn't running). */
 	FSimpleMulticastDelegate OnScreenshotTakenAndCompared;
@@ -759,6 +831,8 @@ public:
 	void SetTreatWarningsAsErrors(TOptional<bool> bTreatWarningsAsErrors);
 
 	void NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar, double MaxLocalDifference, double GlobalDifference, FString ErrorMessage);
+	void NotifyTestDataRetrieved(bool bWasNew, const FString& JsonData);
+	void NotifyPerformanceDataRetrieved(bool bSuccess, const FString& ErrorMessage);
 
 	void NotifyScreenshotTakenAndCompared();
 
@@ -991,6 +1065,13 @@ public:
 	bool HasAnyErrors() const;
 
 	/**
+	* Returns whether this test has encountered all expected errors defined for it
+	*
+	* @return true if this test has encountered all expected errors; false if not
+	*/
+	bool HasMetExpectedErrors();
+
+	/**
 	 * Forcibly sets whether the test has succeeded or not
 	 *
 	 * @param	bSuccessful	true to mark the test successful, false to mark the test as failed
@@ -1009,6 +1090,25 @@ public:
 	 * Helper function that will generate a list of sub-tests via GetTests
 	 */
 	void GenerateTestNames( TArray<FAutomationTestInfo>& TestInfo ) const;
+
+	/**
+	* Adds a regex pattern to an internal list that this test will expect to encounter in error or warning logs during its execution. If an expected pattern
+	* is not encountered, it will cause this test to fail.
+	*
+	* @param ExpectedPatternString - The expected message string. Supports basic regex patterns.
+	* @param CompareType - How to match this string with an encountered error, should it match exactly or simply just contain the string.
+	* @param Occurrences - How many times to expect this error string to be seen. If > 0, the error must be seen the exact number of times
+	* specified or the test will fail. If == 0, the error must be seen one or more times (with no upper limit) or the test will fail.
+	*/
+	void AddExpectedError(FString ExpectedPatternString, EAutomationExpectedErrorFlags::MatchType CompareType = EAutomationExpectedErrorFlags::Contains, int32 Occurrences = 1);
+
+	/**
+	* Populate the provided expected errors object with the expected errors contained within the test. Not particularly efficient,
+	* but providing direct access to the test's private execution errors list could result in errors.
+	*
+	* @param OutInfo - Array of Expected Errors to be populated with the same data contained within this test's expected errors list
+	*/
+	void GetExpectedErrors(TArray<FAutomationExpectedError>& OutInfo) const;
 
 	/**
 	 * Is this a complex tast - if so it will be a stress test.
@@ -1307,6 +1407,19 @@ protected:
 
 	//allow framework to call protected function
 	friend class FAutomationTestFramework;
+
+private:
+	/**
+	* Returns whether this test has defined any expected errors matching the given message.
+	* If a match is found, the expected error definition increments it actual occurrence count.
+	*
+	* @return true if this message matches any of the expected errors
+	*/
+	bool IsExpectedError(const FString& Error);
+
+	/* Errors to be expected while processing this test.*/
+	TArray< FAutomationExpectedError> ExpectedErrors;
+
 };
 
 class CORE_API FBDDAutomationTestBase : public FAutomationTestBase

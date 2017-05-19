@@ -500,6 +500,7 @@ void FAutomationControllerManager::Startup()
 		.Handling<FAutomationWorkerRequestTestsReplyComplete>(this, &FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage)
 		.Handling<FAutomationWorkerRunTestsReply>(this, &FAutomationControllerManager::HandleRunTestsReplyMessage)
 		.Handling<FAutomationWorkerScreenImage>(this, &FAutomationControllerManager::HandleReceivedScreenShot)
+		.Handling<FAutomationWorkerTestDataRequest>(this, &FAutomationControllerManager::HandleTestDataRequest)
 		.Handling<FAutomationWorkerWorkerOffline>(this, &FAutomationControllerManager::HandleWorkerOfflineMessage);
 
 	if ( MessageEndpoint.IsValid() )
@@ -896,6 +897,62 @@ void FAutomationControllerManager::HandleReceivedScreenShot(const FAutomationWor
 	Comparison->PendingComparison = ScreenshotManager->CompareScreensotAsync(Message.ScreenShotName);
 
 	ComparisonQueue.Enqueue(Comparison);
+}
+
+void FAutomationControllerManager::HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const IMessageContextRef& Context)
+{
+	const FString TestDataRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TEXT("Test"));
+	const FString DataFile = Message.DataType / Message.DataPlatform / Message.DataTestName / Message.DataName + TEXT(".json");
+	const FString DataFullPath = TestDataRoot / DataFile;
+
+	// Generate the folder for the data if it doesn't exist.
+	const bool bTree = true;
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(DataFile), bTree);
+
+	bool bIsNew = true;
+	FString ResponseJsonData = Message.JsonData;
+
+	if ( FPaths::FileExists(DataFullPath) )
+	{
+		if ( FFileHelper::LoadFileToString(ResponseJsonData, *DataFullPath) )
+		{
+			bIsNew = false;
+		}
+		else
+		{
+			// TODO Error
+		}
+	}
+
+	if ( bIsNew )
+	{
+		FString IncomingTestData = FPaths::GameSavedDir() / TEXT("Automation/IncomingData/") / DataFile;
+		if ( FFileHelper::SaveStringToFile(Message.JsonData, *IncomingTestData) )
+		{
+			//TODO Anything extra to do here?
+		}
+		else
+		{
+			//TODO What do we do if this fails?
+		}
+	}
+
+	FAutomationWorkerTestDataResponse* ResponseMessage = new FAutomationWorkerTestDataResponse();
+	ResponseMessage->bIsNew = bIsNew;
+	ResponseMessage->JsonData = ResponseJsonData;
+
+	MessageEndpoint->Send(ResponseMessage, Context->GetSender());
+}
+
+void FAutomationControllerManager::HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const IMessageContextRef& Context)
+{
+	//TODO Read/Performance data.
+
+	FAutomationWorkerPerformanceDataResponse* ResponseMessage = new FAutomationWorkerPerformanceDataResponse();
+	ResponseMessage->bSuccess = true;
+	ResponseMessage->ErrorMessage = TEXT("");
+
+	MessageEndpoint->Send(ResponseMessage, Context->GetSender());
 }
 
 void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage(const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context)

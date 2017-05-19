@@ -6991,16 +6991,18 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	{
 		if (Context.World())
 		{
+			FString WorldPackage = Context.World()->GetOutermost()->GetName();
+
 			if (Context.WorldType == EWorldType::PIE)
 			{
 				//don't quit!  This was triggered while pie was already running!
-				bNeedPieStart = !MapName.Contains(Context.World()->GetName());
+				bNeedPieStart = MapName != UWorld::StripPIEPrefixFromPackageName(WorldPackage, Context.World()->StreamingLevelsPrefix);
 				bPieRunning = true;
 				break;
 			}
 			else if (Context.WorldType == EWorldType::Editor)
 			{
-				bNeedLoadEditorMap = !MapName.Contains(Context.World()->GetName());
+				bNeedLoadEditorMap = MapName != WorldPackage;
 			}
 		}
 	}

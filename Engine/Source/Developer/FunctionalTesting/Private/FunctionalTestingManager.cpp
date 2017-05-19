@@ -62,7 +62,6 @@ UFunctionalTestingManager::UFunctionalTestingManager( const FObjectInitializer& 
 	, bIsRunning(false)
 	, bFinished(false)
 	, bLooped(false)
-	, bWaitForNavigationBuildFinish(false)
 	, bInitialDelayApplied(false)
 	, CurrentIteration(INDEX_NONE)
 {
@@ -100,7 +99,6 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContextObjec
 
 	Manager->bFinished = false;
 	Manager->bLooped = bRunLooped;
-	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
 	Manager->CurrentIteration = 0;
 	Manager->TestsLeft.Reset();
 	Manager->AllTests.Reset();
@@ -158,7 +156,11 @@ void UFunctionalTestingManager::TriggerFirstValidTest()
 	check(World);
 	bIsRunning = World->GetNavigationSystem() != nullptr;
 
-	if (bInitialDelayApplied == true && (bWaitForNavigationBuildFinish == false || UNavigationSystem::IsNavigationBeingBuilt(World) == false) && World->AreActorsInitialized())
+	const bool bIsWorldInitialized =
+		World->AreActorsInitialized() &&
+		!UNavigationSystem::IsNavigationBeingBuilt(World);
+
+	if (bInitialDelayApplied == true && bIsWorldInitialized)
 	{
 		bIsRunning = RunFirstValidTest();
 		if (bIsRunning == false)
@@ -178,10 +180,11 @@ UFunctionalTestingManager* UFunctionalTestingManager::GetManager(UObject* WorldC
 {
 	UFunctionalTestingManager* Manager = FFunctionalTestingModule::Get()->GetCurrentScript();
 
-	if (Manager == NULL)
+	if (Manager == nullptr)
 	{
-		UObject* Outer = WorldContext ? WorldContext : (UObject*)GetTransientPackage();
-		Manager = NewObject<UFunctionalTestingManager>(Outer);
+		check(WorldContext);
+		UObject* World = GEngine->GetWorldFromContextObject(WorldContext);
+		Manager = NewObject<UFunctionalTestingManager>(World);
 		FFunctionalTestingModule::Get()->SetScript(Manager);
 
 		// add to root and get notified on world cleanup to remove from root on map cleanup
@@ -203,6 +206,9 @@ void UFunctionalTestingManager::OnWorldCleanedUp(UWorld* World, bool bSessionEnd
 	if (MyWorld == World)
 	{
 		RemoveFromRoot();
+
+		// Clear the functional test manager once the world is removed.
+		FFunctionalTestingModule::Get()->SetScript(nullptr);
 	}
 }
 
@@ -283,7 +289,12 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 	if (TestReproStrings.Num() > 0)
 	{
 		UWorld* World = GetWorld();
-		UObject* TestsOuter = World ? (UObject*)(World->PersistentLevel) : (UObject*)(ANY_PACKAGE);
+
+		if (World == nullptr)
+		{
+			UE_LOG(LogFunctionalTest, Warning, TEXT("Unable to find testing world!"));
+			return bTestSuccessfullyTriggered;
+		}
 
 		while (TestReproStrings.Num() > 0)
 		{
@@ -302,7 +313,16 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			// first param is the test name. Look for it		
 			const FString TestName = TestParams[0];
 			TestParams.RemoveAt(0, 1, /*bAllowShrinking=*/false);
-			AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestName);			
+
+			AFunctionalTest* TestToRun = nullptr;
+			for (TActorIterator<AFunctionalTest> It(World); It; ++It)
+			{
+				if (It->GetName() == TestName)
+				{
+					TestToRun = *It;
+				}
+			}
+			
 			if (TestToRun)
 			{
 				// Add the test we found to the tests left to run, so that if re-runs occur we continue to process this test until
@@ -322,7 +342,13 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			}
 			else
 			{
-				UE_LOG(LogFunctionalTest, Warning, TEXT("Unable to find test \'%s\'"), *TestName);
+				UE_LOG(LogFunctionalTest, Warning, TEXT("Unable to find test \'%s\' in world %s, the available tests are..."), *TestName, *World->GetFullName());
+
+				// Find Actors by type (needs a UWorld object)
+				for (TActorIterator<AFunctionalTest> It(World); It; ++It)
+				{
+					UE_LOG(LogFunctionalTest, Warning, TEXT("\'%s\'."), *It->GetName());
+				}
 			}
 		}
 	}

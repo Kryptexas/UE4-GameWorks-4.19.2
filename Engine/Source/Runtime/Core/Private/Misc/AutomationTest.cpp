@@ -11,6 +11,7 @@
 #include "Misc/App.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/OutputDeviceRedirector.h"
+#include "Internationalization/Regex.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationTest, Warning, All);
@@ -606,10 +607,11 @@ bool FAutomationTestFramework::InternalStopTest(FAutomationTestExecutionInfo& Ou
 	// Disassociate the test from the feedback context
 	AutomationTestFeedbackContext.SetCurrentAutomationTest( NULL );
 
-	// Determine if the test was successful based on two criteria:
+	// Determine if the test was successful based on three criteria:
 	// 1) Did the test itself report success?
 	// 2) Did any errors occur and were logged by the feedback context during execution?++----
-	bTestSuccessful = bTestSuccessful && !CurrentTest->HasAnyErrors();
+	// 3) Did we meet any errors that were expected with this test
+	bTestSuccessful = bTestSuccessful && !CurrentTest->HasAnyErrors() && CurrentTest->HasMetExpectedErrors();
 
 	// Set the success state of the test based on the above criteria
 	CurrentTest->SetSuccessState( bTestSuccessful );
@@ -617,10 +619,17 @@ bool FAutomationTestFramework::InternalStopTest(FAutomationTestExecutionInfo& Ou
 	// Fill out the provided execution info with the info from the test
 	CurrentTest->GetExecutionInfo( OutExecutionInfo );
 
-	//save off timing for the test
+	// Save off timing for the test
 	OutExecutionInfo.Duration = TimeForTest;
 
-	//release pointers to now-invalid data
+	// Re-enable log parsing if it was disabled and empty the expected errors list
+	if (CurrentTest->ExpectedErrors.Num())
+	{
+		GLog->Logf(ELogVerbosity::Display, TEXT("<-- Resume Log Parsing -->"));
+	}
+	CurrentTest->ExpectedErrors.Empty();
+
+	// Release pointers to now-invalid data
 	CurrentTest = NULL;
 
 	return bTestSuccessful;
@@ -651,6 +660,16 @@ void FAutomationTestFramework::SetTreatWarningsAsErrors(TOptional<bool> bTreatWa
 void FAutomationTestFramework::NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar, double MaxLocalDifference, double GlobalDifference, FString ErrorMessage)
 {
 	OnScreenshotCompared.Broadcast(bWasNew, bWasSimilar, MaxLocalDifference, GlobalDifference, ErrorMessage);
+}
+
+void FAutomationTestFramework::NotifyTestDataRetrieved(bool bWasNew, const FString& JsonData)
+{
+	OnTestDataRetrieved.Broadcast(bWasNew, JsonData);
+}
+
+void FAutomationTestFramework::NotifyPerformanceDataRetrieved(bool bSuccess, const FString& ErrorMessage)
+{
+	OnPerformanceDataRetrieved.Broadcast(bSuccess, ErrorMessage);
 }
 
 void FAutomationTestFramework::NotifyScreenshotTakenAndCompared()
@@ -782,7 +801,7 @@ void FAutomationTestBase::ClearExecutionInfo()
 
 void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 {
-	if( !bSuppressLogs )
+	if( !bSuppressLogs && !IsExpectedError(InError))
 	{
 		if ( FAutomationTestFramework::Get().GetCaptureStack() )
 		{
@@ -798,7 +817,7 @@ void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 
 void FAutomationTestBase::AddError(const FString& InError, const FString& InFilename, int32 InLineNumber)
 {
-	if ( !bSuppressLogs )
+	if ( !bSuppressLogs && !IsExpectedError(InError))
 	{
 		ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error, InError, ExecutionInfo.GetContext(), InFilename, InLineNumber));
 	}
@@ -806,7 +825,7 @@ void FAutomationTestBase::AddError(const FString& InError, const FString& InFile
 
 void FAutomationTestBase::AddWarning(const FString& InWarning, const FString& InFilename, int32 InLineNumber)
 {
-	if ( !bSuppressLogs )
+	if ( !bSuppressLogs && !IsExpectedError(InWarning))
 	{
 		ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Warning, InWarning, ExecutionInfo.GetContext(), InFilename, InLineNumber));
 	}
@@ -814,7 +833,7 @@ void FAutomationTestBase::AddWarning(const FString& InWarning, const FString& In
 
 void FAutomationTestBase::AddWarning( const FString& InWarning, int32 StackOffset )
 {
-	if ( !bSuppressLogs )
+	if ( !bSuppressLogs && !IsExpectedError(InWarning))
 	{
 		if ( FAutomationTestFramework::Get().GetCaptureStack() )
 		{
@@ -854,6 +873,50 @@ bool FAutomationTestBase::HasAnyErrors() const
 	return ExecutionInfo.GetErrorTotal() > 0;
 }
 
+bool FAutomationTestBase::HasMetExpectedErrors()
+{
+	bool HasMetAllExpectedErrors = true;
+
+	for (auto& EError : ExpectedErrors)
+	{
+		if ((EError.ExpectedNumberOfOccurrences > 0) && (EError.ExpectedNumberOfOccurrences != EError.ActualNumberOfOccurrences))
+		{
+			HasMetAllExpectedErrors = false;
+
+			ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error,
+				FString::Printf(TEXT("Expected Error or Warning matching '%s' to occur %d times with %s match type, but it was found %d time(s).")
+					, *EError.ErrorPatternString
+					, EError.ExpectedNumberOfOccurrences
+					, EAutomationExpectedErrorFlags::ToString(EError.CompareType)
+					, EError.ActualNumberOfOccurrences)
+				, ExecutionInfo.GetContext()));			
+		}
+		else if (EError.ExpectedNumberOfOccurrences == 0)
+		{
+			if (EError.ActualNumberOfOccurrences == 0)
+			{
+				HasMetAllExpectedErrors = false;
+
+				ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Error,
+					FString::Printf(TEXT("Expected suppressed Error or Warning matching '%s' did not occur."), *EError.ErrorPatternString),
+					ExecutionInfo.GetContext()));
+			}
+			else
+			{
+				ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Info,
+					FString::Printf(TEXT("Suppressed expected Error or Warning matching '%s' %d times.")
+						, *EError.ErrorPatternString
+						, EError.ActualNumberOfOccurrences)
+					, ExecutionInfo.GetContext()));
+			}
+		}
+	}
+
+	return HasMetAllExpectedErrors;
+}
+
+
+
 void FAutomationTestBase::SetSuccessState( bool bSuccessful )
 {
 	ExecutionInfo.bSuccessful = bSuccessful;
@@ -862,6 +925,45 @@ void FAutomationTestBase::SetSuccessState( bool bSuccessful )
 void FAutomationTestBase::GetExecutionInfo( FAutomationTestExecutionInfo& OutInfo ) const
 {
 	OutInfo = ExecutionInfo;
+}
+
+void FAutomationTestBase::AddExpectedError(FString ExpectedErrorPattern, EAutomationExpectedErrorFlags::MatchType InCompareType, int32 Occurrences)
+{
+	if (Occurrences >= 0)
+	{
+		// If we already have an error matching string in our list, let's not add it again.
+		FAutomationExpectedError* FoundEntry = ExpectedErrors.FindByPredicate(
+			[ExpectedErrorPattern](const FAutomationExpectedError& InItem) 
+				{
+					return InItem.ErrorPatternString == ExpectedErrorPattern; 
+				}
+		);
+
+		if (FoundEntry)
+		{
+			UE_LOG(LogAutomationTest, Warning, TEXT("Adding expected error matching '%s' failed: cannot add duplicate entries"), *ExpectedErrorPattern)
+		}
+		else
+		{
+			// Disable log pre-processor the first time we successfully add an expected error
+			// so that successful tests don't trigger CIS failures
+			if (!ExpectedErrors.Num())
+			{
+				GLog->Logf(ELogVerbosity::Display, TEXT("<-- Suspend Log Parsing -->"));
+			}
+			// ToDo: After UE-44340 is resolved, create FAutomationExpectedError and check that its ErrorPattern is valid before adding
+			ExpectedErrors.Add(FAutomationExpectedError(ExpectedErrorPattern, InCompareType, Occurrences));
+		}
+	}
+	else
+	{
+		UE_LOG(LogAutomationTest, Error, TEXT("Adding expected error matching '%s' failed: number of expected occurrences must be >= 0"), *ExpectedErrorPattern);
+	}
+}
+
+void FAutomationTestBase::GetExpectedErrors(TArray<FAutomationExpectedError>& OutInfo) const
+{
+	OutInfo = ExpectedErrors;
 }
 
 void FAutomationTestBase::GenerateTestNames(TArray<FAutomationTestInfo>& TestInfo) const
@@ -985,4 +1087,20 @@ void FAutomationTestBase::TestNull(const FString& What, void* Pointer)
 	{
 		AddInfo(FString::Printf(TEXT("Expected '%s' to be null."), *What), 1);
 	}
+}
+
+bool FAutomationTestBase::IsExpectedError(const FString& Error)
+{
+	for (auto& EError : ExpectedErrors)
+	{
+		FRegexMatcher ErrorMatcher(EError.ErrorPattern, Error);
+
+		if (ErrorMatcher.FindNext())
+		{
+			EError.ActualNumberOfOccurrences++;
+			return true;
+		}
+	}
+
+	return false;
 }

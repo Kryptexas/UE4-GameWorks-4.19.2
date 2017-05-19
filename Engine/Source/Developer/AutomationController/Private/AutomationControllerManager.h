@@ -403,6 +403,12 @@ private:
 	/** Handles FAutomationWorkerScreenImage messages. */
 	void HandleReceivedScreenShot( const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context );
 
+	/** Handles FAutomationWorkerTestDataRequest messages. */
+	void HandleTestDataRequest(const FAutomationWorkerTestDataRequest& Message, const IMessageContextRef& Context);
+
+	/** Handles FAutomationWorkerPerformanceDataRequest messages. */
+	void HandlePerformanceDataRequest(const FAutomationWorkerPerformanceDataRequest& Message, const IMessageContextRef& Context);
+
 	/** Handles FAutomationWorkerRequestNextNetworkCommand messages. */
 	void HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context );
 

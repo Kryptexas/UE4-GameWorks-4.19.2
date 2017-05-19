@@ -10,6 +10,8 @@
 
 struct FAutomationWorkerFindWorkers;
 struct FAutomationWorkerImageComparisonResults;
+struct FAutomationWorkerTestDataResponse;
+struct FAutomationWorkerPerformanceDataResponse;
 struct FAutomationWorkerNextNetworkCommandReply;
 struct FAutomationWorkerPing;
 struct FAutomationWorkerRequestTests;
@@ -103,6 +105,12 @@ private:
 
 	// Handles FAutomationWorkerImageComparisonResults messages.
 	void HandleScreenShotCompared(const FAutomationWorkerImageComparisonResults& Message, const IMessageContextRef& Context);
+
+	// Handles FAutomationWorkerTestDataResponse messages.
+	void HandleTestDataRetrieved(const FAutomationWorkerTestDataResponse& Message, const IMessageContextRef& Context);
+
+	// Handles FAutomationWorkerPerformanceDataResponse messages.
+	void HandlePerformanceDataRetrieved(const FAutomationWorkerPerformanceDataResponse& Message, const IMessageContextRef& Context);
 
 	// Handles FAutomationTestFramework PreTestingEvents.
 	void HandlePreTestingEvent();

@@ -27,6 +27,7 @@
 #include "Engine/LocalPlayer.h"
 #include "ContentStreaming.h"
 #include "Stats/StatsData.h"
+#include "HAL/PlatformProperties.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
 
@@ -48,8 +49,11 @@ static TAutoConsoleVariable<int32> CVarAutomationScreenshotResolutionHeight(
 
 void FinishLoadingBeforeScreenshot()
 {
-	// Force all shader compiling to finish.
-	GShaderCompilingManager->FinishAllCompilation();
+	// Finish compiling the shaders if the platform doesn't require cooked data.
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		GShaderCompilingManager->FinishAllCompilation();
+	}
 
 	// Force all mip maps to load before taking the screenshot.
 	UTexture::ForceUpdateTextureStreaming();
@@ -572,9 +576,10 @@ bool UAutomationBlueprintFunctionLibrary::AreAutomatedTestsRunning()
 	return GIsAutomationTesting;
 }
 
-FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForGameplay(EComparisonTolerance Tolerance)
+FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForGameplay(EComparisonTolerance Tolerance, float Delay)
 {
 	FAutomationScreenshotOptions Options;
+	Options.Delay = Delay;
 	Options.Tolerance = Tolerance;
 	Options.bDisableNoisyRenderingFeatures = true;
 	Options.bIgnoreAntiAliasing = true;
@@ -583,9 +588,10 @@ FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScre
 	return Options;
 }
 
-FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForRendering(EComparisonTolerance Tolerance)
+FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScreenshotOptionsForRendering(EComparisonTolerance Tolerance, float Delay)
 {
 	FAutomationScreenshotOptions Options;
+	Options.Delay = Delay;
 	Options.Tolerance = Tolerance;
 	Options.bDisableNoisyRenderingFeatures = true;
 	Options.bIgnoreAntiAliasing = true;

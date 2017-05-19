@@ -136,6 +136,7 @@ void FAutomationWorkerModule::Initialize()
 			.Handling<FAutomationWorkerRequestTests>(this, &FAutomationWorkerModule::HandleRequestTestsMessage)
 			.Handling<FAutomationWorkerRunTests>(this, &FAutomationWorkerModule::HandleRunTestsMessage)
 			.Handling<FAutomationWorkerImageComparisonResults>(this, &FAutomationWorkerModule::HandleScreenShotCompared)
+			.Handling<FAutomationWorkerTestDataResponse>(this, &FAutomationWorkerModule::HandleTestDataRetrieved)
 			.WithInbox();
 
 		if (MessageEndpoint.IsValid())
@@ -390,6 +391,16 @@ void FAutomationWorkerModule::HandleScreenShotCompared(const FAutomationWorkerIm
 {
 	// Image comparison finished.
 	FAutomationTestFramework::Get().NotifyScreenshotComparisonComplete(Message.bNew, Message.bSimilar, Message.MaxLocalDifference, Message.GlobalDifference, Message.ErrorMessage);
+}
+
+void FAutomationWorkerModule::HandleTestDataRetrieved(const FAutomationWorkerTestDataResponse& Message, const IMessageContextRef& Context)
+{
+	FAutomationTestFramework::Get().NotifyTestDataRetrieved(Message.bIsNew, Message.JsonData);
+}
+
+void FAutomationWorkerModule::HandlePerformanceDataRetrieved(const FAutomationWorkerPerformanceDataResponse& Message, const IMessageContextRef& Context)
+{
+	FAutomationTestFramework::Get().NotifyPerformanceDataRetrieved(Message.bSuccess, Message.ErrorMessage);
 }
 
 #if WITH_ENGINE

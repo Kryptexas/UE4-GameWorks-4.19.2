@@ -56,6 +56,11 @@ void FFuncTestManager::SetScript(class UFunctionalTestingManager* NewScript)
 	TestScript = NewScript;
 }
 
+UFunctionalTestingManager* FFuncTestManager::GetCurrentScript()
+{
+	return TestScript.Get();
+}
+
 bool FFuncTestManager::IsRunning() const 
 { 
 	return TestScript.IsValid() && TestScript->IsRunning();

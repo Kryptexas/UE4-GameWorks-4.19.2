@@ -428,17 +428,7 @@ bool FAssetRegistryGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 
 bool FAssetRegistryGenerator::ContainsMap(const FName& PackageName) const
 {
-	const TArray<const FAssetData*>& PackageAssets = State.GetAssetsByPackageName(PackageName);
-	
-	for (const FAssetData* AssetData : PackageAssets)
-	{
-		UClass* AssetClass = AssetData->GetClass();
-		if (AssetClass->IsChildOf(UWorld::StaticClass()) || AssetClass->IsChildOf(ULevel::StaticClass()))
-		{
-			return true;
-		}
-	}
-	return false;
+	return PackagesContainingMaps.Contains(PackageName);
 }
 
 FAssetPackageData* FAssetRegistryGenerator::GetAssetPackageData(const FName& PackageName)

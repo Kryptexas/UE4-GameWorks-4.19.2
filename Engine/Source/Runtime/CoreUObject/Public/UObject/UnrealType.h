@@ -4309,18 +4309,6 @@ struct FPropertyChangedEvent
 	{
 	}
 
-
-	DEPRECATED(4.7, "The bInChangesTopology parameter has been removed, use the two-argument constructor of FPropertyChangedEvent instead")
-	FPropertyChangedEvent(UProperty* InProperty, const bool /*bInChangesTopology*/, EPropertyChangeType::Type InChangeType)
-		: Property(InProperty)
-		, MemberProperty(InProperty)
-		, ChangeType(InChangeType)
-		, ObjectIteratorIndex(INDEX_NONE)
-		, ArrayIndicesPerObject(nullptr)
-		, TopLevelObjects(nullptr)
-	{
-	}
-
 	void SetActiveMemberProperty( UProperty* InActiveMemberProperty )
 	{
 		MemberProperty = InActiveMemberProperty;
@@ -4365,6 +4353,14 @@ struct FPropertyChangedEvent
 	 * @return The object being edited or nullptr if no object was found
 	 */
 	const UObject* GetObjectBeingEdited(int32 Index) const { return TopLevelObjects ? (*TopLevelObjects)[Index] : nullptr; }
+
+	/**
+	 * Simple utility to get the name of the property and takes care of the possible null property.
+	 */
+	FName GetPropertyName() const
+	{
+		return (Property != nullptr) ? Property->GetFName() : NAME_None;
+	}
 
 	/**
 	 * The actual property that changed
