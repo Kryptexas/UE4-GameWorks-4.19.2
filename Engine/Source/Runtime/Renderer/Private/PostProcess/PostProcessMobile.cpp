@@ -918,7 +918,7 @@ public:
 		SunColorApertureDiv2.W = GetMobileDepthOfFieldScale(Context.View) * 0.5f;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, SunColorApertureDiv2Parameter, SunColorApertureDiv2);
 
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override

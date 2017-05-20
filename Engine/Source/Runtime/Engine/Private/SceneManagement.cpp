@@ -184,7 +184,7 @@ FMeshBatchAndRelevance::FMeshBatchAndRelevance(const FMeshBatch& InMesh, const F
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FMeshBatchAndRelevance);
 	const FMaterial* Material = InMesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
-	bHasOpaqueOrMaskedMaterial = !IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetMaterialDomain() == MD_Surface;
+	bHasOpaqueOrMaskedMaterial = !IsTranslucentBlendMode(Material->GetBlendMode());
 	bRenderInMainPass = PrimitiveSceneProxy->ShouldRenderInMainPass();
 }
 

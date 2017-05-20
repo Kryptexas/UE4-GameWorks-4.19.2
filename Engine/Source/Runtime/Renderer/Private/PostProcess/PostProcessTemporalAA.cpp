@@ -117,7 +117,7 @@ public:
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, 0, eFC_0000, FilterTable);
 
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
@@ -300,7 +300,7 @@ public:
 		}
 		PostprocessParameter.SetCS(ShaderRHI, Context, RHICmdList, 0, eFC_0000, FilterTable);
 
-		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 		RHICmdList.SetUAVParameter(ShaderRHI, OutComputeTex.GetBaseIndex(), DestUAV);
 
 		const float ForceResponsiveFrame = Context.View.bCameraCut ? 1.f : 0.f;

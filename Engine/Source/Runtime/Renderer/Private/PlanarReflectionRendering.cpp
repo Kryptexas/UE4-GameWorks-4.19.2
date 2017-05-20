@@ -68,7 +68,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
-		DeferredParameters.Set(RHICmdList, ShaderRHI, View, ESceneRenderTargetsMode::SetTextures);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View, MD_PostProcess, ESceneRenderTargetsMode::SetTextures);
 		PlanarReflectionParameters.SetParameters(RHICmdList, ShaderRHI, View, ReflectionSceneProxy);
 
 		int32 RenderTargetSizeY = ReflectionSceneProxy->RenderTarget->GetSizeXY().Y;
@@ -537,7 +537,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
-		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View, MD_PostProcess);
 		PlanarReflectionParameters.SetParameters(RHICmdList, ShaderRHI, View, ReflectionSceneProxy);
 	}
 
