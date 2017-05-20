@@ -2740,7 +2740,10 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 	//avoid asserts grabbing them when we don't need them.
 	if (FeatureLevel >= ERHIFeatureLevel::SM4 && TextureMode != ESceneRenderTargetsMode::SetTextures)
 	{
-		GBufferResourcesUniformBuffer = SceneContext.GetDummyGBufferResourcesUniformBuffer();
+		if (GBufferResources.IsBound())
+		{
+			GBufferResourcesUniformBuffer = SceneContext.GetDummyGBufferResourcesUniformBuffer();
+		}
 	}
 	
 	if (TextureMode == ESceneRenderTargetsMode::SetTextures)
