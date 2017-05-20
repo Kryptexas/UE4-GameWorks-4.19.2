@@ -532,7 +532,7 @@ static TAutoConsoleVariable<float> CVarStallInitViews(
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-
+	
 	//make sure all the targets we're going to use will be safely writable.
 	GRenderTargetPool.TransitionTargetsWritable(RHICmdList);
 
@@ -568,6 +568,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Allocate the maximum scene render target space for the current view family.
 		SceneContext.Allocate(RHICmdList, ViewFamily);
 	}
+	SceneContext.AllocDummyGBufferTargets(RHICmdList);
 
 	FGraphEventArray SortEvents;
 	FILCUpdatePrimTaskData ILCTaskData;
@@ -788,8 +789,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
 		SceneContext.PreallocGBufferTargets(); // Even if !bShouldRenderVelocities, the velocity buffer must be bound because it's a compile time option for the shader.
 		SceneContext.AllocGBufferTargets(RHICmdList);
-	}
-	SceneContext.AllocDummyGBufferTargets(RHICmdList);
+	}	
 
 	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.
 	bool bOcclusionBeforeBasePass = ((CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass) || IsForwardShadingEnabled(FeatureLevel);
