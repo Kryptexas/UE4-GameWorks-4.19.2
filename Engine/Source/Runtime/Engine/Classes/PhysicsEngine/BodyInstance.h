@@ -1134,6 +1134,8 @@ public:
 	/** Returns the relative transform between root body and welded instance owned by the shape.*/
 	const FTransform& GetRelativeBodyTransform(const physx::PxShape* PShape) const;
 
+	/** Check if the shape is owned by this body instance */
+	bool IsShapeBoundToBody(const physx::PxShape* PShape) const;
 private:
 	/**
 	 *  Trace a shape against just this bodyinstance
@@ -1151,8 +1153,6 @@ private:
 	 */
 	void UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, const TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride);
 
-	/** Check if the shape is owned by this body instance */
-	bool IsShapeBoundToBody(const physx::PxShape* PShape) const;
 #endif 
 	/**
 	 * Invalidate Collision Profile Name
