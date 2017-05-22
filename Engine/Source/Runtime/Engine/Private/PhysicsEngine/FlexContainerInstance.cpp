@@ -108,6 +108,8 @@ void FFlexContainerInstance::onRelease(const PxBase* observed, void* userData, P
 		// destroy and remove from cache
 		NvFlexDestroyTriangleMesh(GFlexLib, *Mesh);
 		TriangleMeshes.Remove(observed);
+
+		DEC_DWORD_STAT(STAT_Flex_StaticTriangleMeshCount);
 	}
 
 	NvFlexConvexMeshId* Convex = ConvexMeshes.Find(observed);
@@ -117,6 +119,8 @@ void FFlexContainerInstance::onRelease(const PxBase* observed, void* userData, P
 		// destroy and remove from cache
 		NvFlexDestroyConvexMesh(GFlexLib, *Convex);
 		ConvexMeshes.Remove(observed);
+
+		DEC_DWORD_STAT(STAT_Flex_StaticConvexMeshCount);
 	}
 }
 
@@ -135,8 +139,8 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeigh
 		NvFlexTriangleMeshId NewMesh = NvFlexCreateTriangleMesh(GFlexLib);
 
 		// clear temporary arrays for building trimesh data
-		TriMeshVerts.map(eNvFlexMapDiscard | eNvFlexMapWait);
-		TriMeshIndices.map(eNvFlexMapDiscard | eNvFlexMapWait);
+		TriMeshVerts.map();
+		TriMeshIndices.map();
 
 		TriMeshVerts.resize(0);
 		TriMeshIndices.resize(0);
@@ -204,6 +208,8 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxHeigh
 		// add to cache
 		TriangleMeshes.Add((void*)HeightField, NewMesh);
 
+		INC_DWORD_STAT(STAT_Flex_StaticTriangleMeshCount);
+
 		return NewMesh;
 	}
 }
@@ -228,8 +234,8 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTrian
 		const PxVec3* Verts = TriMesh->getVertices();
 
 		// clear temporary arrays for building trimesh data
-		TriMeshVerts.map(eNvFlexMapDiscard | eNvFlexMapWait);
-		TriMeshIndices.map(eNvFlexMapDiscard | eNvFlexMapWait);
+		TriMeshVerts.map();
+		TriMeshIndices.map();
 
 		TriMeshVerts.resize(0);
 		TriMeshIndices.resize(0);
@@ -262,6 +268,8 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetTriangleMesh(const PxTrian
 		// add to cache
 		TriangleMeshes.Add((void*)TriMesh, NewMesh);
 
+		INC_DWORD_STAT(STAT_Flex_StaticTriangleMeshCount);
+
 		return NewMesh;
 	}
 
@@ -281,7 +289,7 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexM
 	{
 		NvFlexConvexMeshId NewMesh = NvFlexCreateConvexMesh(GFlexLib);
 
-		ConvexMeshPlanes.map(eNvFlexMapDiscard | eNvFlexMapWait);
+		ConvexMeshPlanes.map();
 		ConvexMeshPlanes.resize(0);
 
 		int32 NumPolygons = ConvexMesh->getNbPolygons();
@@ -303,6 +311,8 @@ const NvFlexTriangleMeshId FFlexContainerInstance::GetConvexMesh(const PxConvexM
 		NvFlexUpdateConvexMesh(GFlexLib, NewMesh, ConvexMeshPlanes.buffer, ConvexMeshPlanes.size(), &ConvexBounds.minimum.x, &ConvexBounds.maximum.x);
 
 		ConvexMeshes.Add((void*)ConvexMesh, NewMesh);
+
+		INC_DWORD_STAT(STAT_Flex_StaticConvexMeshCount);
 
 		return NewMesh;
 	}
@@ -723,10 +733,6 @@ void FFlexContainerInstance::UpdateCollisionData()
 	// increase  global geometry counters
 	INC_DWORD_STAT_BY(STAT_Flex_StaticShapeCount, ShapePositions.size());
 
-	// update geometry counters to reflect any changes
-	SET_DWORD_STAT(STAT_Flex_StaticConvexMeshCount, ConvexMeshes.Num());
-	SET_DWORD_STAT(STAT_Flex_StaticTriangleMeshCount, TriangleMeshes.Num());
-
 }
 
 FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhysScene* OwnerScene)
@@ -755,8 +761,17 @@ FFlexContainerInstance::FFlexContainerInstance(UFlexContainer* InTemplate, FPhys
 	TemplateRef = InTemplate;
 	Template = InTemplate;
 
-	Solver = NvFlexCreateSolver(GFlexLib, Template->MaxParticles, 0);
-	Container = NvFlexExtCreateContainer(GFlexLib, Solver, Template->MaxParticles);
+
+    NvFlexSolverDesc SolverDesc;
+    NvFlexSetSolverDescDefaults(&SolverDesc);
+
+    SolverDesc.maxParticles = Template->MaxParticles;
+    SolverDesc.maxDiffuseParticles = 0;
+    SolverDesc.featureMode = eNvFlexFeatureModeDefault;
+
+    Solver = NvFlexCreateSolver(GFlexLib, &SolverDesc);
+    Container = NvFlexExtCreateContainer(GFlexLib, Solver, Template->MaxParticles);
+
 	ForceFieldCallback = NvFlexExtCreateForceFieldCallback(Solver);
 	
 	if (Template->AnisotropyScale > 0.0f)
@@ -801,14 +816,15 @@ FFlexContainerInstance::~FFlexContainerInstance()
 {
 	DEC_DWORD_STAT(STAT_Flex_ContainerCount);
 	DEC_DWORD_STAT_BY(STAT_Flex_StaticShapeCount, ShapePositions.size());
-	DEC_DWORD_STAT_BY(STAT_Flex_StaticConvexMeshCount, ConvexMeshes.Num());
-	DEC_DWORD_STAT_BY(STAT_Flex_StaticTriangleMeshCount, TriangleMeshes.Num());
 
 	UE_LOG(LogFlex, Display, TEXT("Destroying a FLEX system for.."));
 	
 	GPhysXSDK->unregisterDeletionListener(*this);
 
-	// destroy all cached triangle meshes
+	DEC_DWORD_STAT_BY(STAT_Flex_StaticTriangleMeshCount, TriangleMeshes.Num());
+	DEC_DWORD_STAT_BY(STAT_Flex_StaticConvexMeshCount, ConvexMeshes.Num());
+
+	// destroy any remaining cached triangle meshes
 	for (auto It = TriangleMeshes.CreateIterator(); It; ++It)
 	{
 		NvFlexDestroyTriangleMesh(GFlexLib, It->Value);
@@ -816,6 +832,12 @@ FFlexContainerInstance::~FFlexContainerInstance()
 
 	TriangleMeshes.Reset();
 
+	for (auto It = ConvexMeshes.CreateIterator(); It; ++It)
+	{
+		NvFlexDestroyConvexMesh(GFlexLib, It->Value);
+	}
+
+	ConvexMeshes.Reset();
 
 	if (ForceFieldCallback)
 		NvFlexExtDestroyForceFieldCallback(ForceFieldCallback);
@@ -1000,9 +1022,6 @@ void FFlexContainerInstance::UpdateSimData()
 	params.particleCollisionMargin = Template->CollisionMarginParticles;
 	params.shapeCollisionMargin = FMath::Max(Template->CollisionMarginShapes, FMath::Max(Template->CollisionDistance*0.25f, 1.0f)); // ensure a minimum collision distance for generating contacts against shapes, we need some margin to avoid jittering as contacts activate/deactivate
 	params.collisionDistance = Template->CollisionDistance;
-	params.plasticThreshold = Template->PlasticThreshold;
-	params.plasticCreep = Template->PlasticCreep;
-	params.fluid = Template->Fluid;
 	params.sleepThreshold = Template->SleepThreshold;
 	params.shockPropagation = Template->ShockPropagation;
 	params.restitution = Template->Restitution;
@@ -1080,12 +1099,12 @@ void FFlexContainerInstance::Simulate(float DeltaTime)
 	
 	if (Template->AnisotropyScale > 0.0f)
 	{
-		NvFlexGetAnisotropy(Solver, Anisotropy1.buffer, Anisotropy2.buffer, Anisotropy3.buffer);
+		NvFlexGetAnisotropy(Solver, Anisotropy1.buffer, Anisotropy2.buffer, Anisotropy3.buffer, NULL);
 	}
 
 	if (Template->PositionSmoothing > 0.0f)
 	{
-		NvFlexGetSmoothParticles(Solver, SmoothPositions.buffer, Template->MaxParticles);
+		NvFlexGetSmoothParticles(Solver, SmoothPositions.buffer, NULL);
 	}
 
 	if (ShapeReportComponents.Num() > 0)

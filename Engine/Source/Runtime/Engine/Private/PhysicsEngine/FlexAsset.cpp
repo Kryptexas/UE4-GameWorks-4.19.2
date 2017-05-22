@@ -511,7 +511,9 @@ void UFlexAssetSoft::ReImport(const UStaticMesh* Mesh)
 		ClusterStiffness, 
 		LinkRadius, 
 		LinkStiffness,
-		0.0f);
+		0.0f,
+		NULL,
+		NULL);
 	
 	if (NewAsset)
 	{
