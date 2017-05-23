@@ -3,6 +3,7 @@
 #include "OnlineSubsystemTwitchPrivate.h"
 #include "OnlineIdentityTwitch.h"
 #include "OnlineAccountTwitch.h"
+#include "OnlineExternalUIInterface.h"
 #include "Http.h"
 #include "Misc/ConfigCacheIni.h"
 

@@ -4,6 +4,7 @@
 #include "OnlineIdentityTwitch.h"
 #include "OnlineExternalUITwitch.h"
 #include "Engine/Console.h"
+#include "Misc/ConfigCacheIni.h"
 
 IOnlineSessionPtr FOnlineSubsystemTwitch::GetSessionInterface() const
 {
