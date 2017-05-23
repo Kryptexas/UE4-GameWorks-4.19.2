@@ -229,8 +229,15 @@ namespace UnrealBuildTool
 				// Separate functions for linker.
 				Arguments.Add("/Gy");
 
-				// Allow 1000% of the default memory allocation limit.
-				Arguments.Add("/Zm850");
+				// Allow 750% of the default memory allocation limit when using the static analyzer, and 850% at other times.
+				if (bWithStaticAnalyzer)
+				{
+					Arguments.Add("/Zm750");
+				}
+				else
+				{
+					Arguments.Add("/Zm850");
+				}
 
 				// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 				Arguments.Add("/wd4819");

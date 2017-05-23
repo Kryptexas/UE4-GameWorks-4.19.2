@@ -50,5 +50,7 @@ public class HTTPChunkInstaller : ModuleRules
 					"SystemConfiguration",
 				});
 		}
+
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 	}
 }

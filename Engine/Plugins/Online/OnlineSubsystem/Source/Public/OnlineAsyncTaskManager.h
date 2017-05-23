@@ -204,7 +204,7 @@ public:
 	virtual bool WasSuccessful() override { return true; }
 
 private:
-	/** True after it has ticked once and run the Callable on the online thred */
+	/** True after it has ticked once and run the Callable on the online thread */
 	bool bHasTicked;
 	/** Stored copy of the object to invoke on the game thread. */
 	CallableType CallableObject;
@@ -263,7 +263,20 @@ public:
 };
 
 /**
- *	
+ *	The foundation of all async operations in every online subsystem
+ *
+ * A task manager ticks on its own thread, managing both a serial and parallel queue of FOnlineAsyncTasks
+ * Each task works through the serial queue in the following manner
+ *	GameThread
+ *	- Initialize()
+ *	OnlineThread
+ *	-- Tick() until IsDone()
+ *	-- Add task to OutQueue
+ *	GameThread
+ *	- Finalize()
+ *	- TriggerDelegates() 
+ *
+ * Parallel task queue works in a similar flow, except the tasks don't wait for any previous tasks to complete
  */
 class ONLINESUBSYSTEM_API FOnlineAsyncTaskManager : public FRunnable, FSingleThreadRunnable 
 {

@@ -7,8 +7,6 @@
 #include "OnlineSubsystemGooglePackage.h"
 
 class FOnlineSubsystemGoogle;
-class IHttpRequest;
-class FSocket;
 
 /** 
  * Implementation for the Google external UIs

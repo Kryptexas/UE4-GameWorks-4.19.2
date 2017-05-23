@@ -8,6 +8,14 @@
 #include "IHttpRequest.h"
 #include "OnlineSubsystemGooglePackage.h"
 
+// Google scope fields
+// email profile
+// https://www.googleapis.com/auth/plus.login
+// https://www.googleapis.com/auth/plus.me 
+// https://www.googleapis.com/auth/userinfo.email
+// https://www.googleapis.com/auth/userinfo.profile
+#define GOOGLE_PERM_PUBLIC_PROFILE "https://www.googleapis.com/auth/plus.login"
+
 class FOnlineSubsystemGoogle;
 class FUserOnlineAccountGoogleCommon;
 

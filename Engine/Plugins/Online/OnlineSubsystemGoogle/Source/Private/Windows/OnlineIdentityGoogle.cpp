@@ -4,13 +4,6 @@
 #include "OnlineSubsystemGooglePrivate.h"
 #include "OnlineExternalUIInterfaceGoogle.h"
 #include "Misc/ConfigCacheIni.h"
-// Google scope fields
-// email profile
-// https://www.googleapis.com/auth/plus.login
-// https://www.googleapis.com/auth/plus.me 
-// https://www.googleapis.com/auth/userinfo.email
-// https://www.googleapis.com/auth/userinfo.profile
-#define GOOGLE_PERM_PUBLIC_PROFILE "https://www.googleapis.com/auth/plus.login"
 
 FOnlineIdentityGoogle::FOnlineIdentityGoogle(FOnlineSubsystemGoogle* InSubsystem)
 	: FOnlineIdentityGoogleCommon(InSubsystem)
@@ -285,8 +278,15 @@ void FOnlineIdentityGoogle::ExchangeRequest_HttpRequestComplete(FHttpRequestPtr 
 		}
 		else
 		{
-			//FErrorGoogle Error;
-			//Error.FromJson(ResponseStr);
+			FErrorGoogle Error;
+			if (Error.FromJson(ResponseStr) && !Error.Error_Description.IsEmpty())
+			{
+				ErrorStr = Error.Error_Description;
+			}
+			else
+			{
+				ErrorStr = FString::Printf(TEXT("Failed to parse Google error %s"), *ResponseStr);
+			}
 		}
 	}
 	else
@@ -380,8 +380,15 @@ void FOnlineIdentityGoogle::RefreshAuthRequest_HttpRequestComplete(FHttpRequestP
 		}
 		else
 		{
-			//FErrorGoogle Error;
-			//Error.FromJson(ResponseStr);
+			FErrorGoogle Error;
+			if (Error.FromJson(ResponseStr) && !Error.Error_Description.IsEmpty())
+			{
+				ErrorStr = Error.Error_Description;
+			}
+			else
+			{
+				ErrorStr = FString::Printf(TEXT("Failed to parse Google error %s"), *ResponseStr);
+			}
 		}
 	}
 	else

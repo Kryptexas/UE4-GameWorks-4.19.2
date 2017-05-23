@@ -114,6 +114,14 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLogoutComplete, int32 /*LocalUserNum*/, 
 typedef FOnLogoutComplete::FDelegate FOnLogoutCompleteDelegate;
 
 /**
+ * Delegate called when logout requires login flow to cleanup
+ *
+ * @param LoginDomains the login domains to clean up
+ */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginFlowLogout, const TArray<FString>& /*LoginDomains*/);
+typedef FOnLoginFlowLogout::FDelegate FOnLoginFlowLogoutDelegate;
+
+/**
  * Interface for registration/authentication of user identities
  */
 class IOnlineIdentity
@@ -216,6 +224,12 @@ public:
 	 * @param bWasSuccessful whether the async call completed properly or not
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, OnLogoutComplete, bool);
+
+	/**
+	 * Delegate called when the online subsystem requires an the login flow to logout and cleanup
+	 * @param LoginDomains login domains to be cleaned up
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnLoginFlowLogout, const TArray<FString>& /*LoginDomains*/);
 
 	/**
 	 * Logs the player into the online service using parameters passed on the

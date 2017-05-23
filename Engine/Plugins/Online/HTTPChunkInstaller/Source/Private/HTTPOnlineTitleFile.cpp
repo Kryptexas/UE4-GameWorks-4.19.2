@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HTTPOnlineTitleFile.h"
+
 #include "HTTPChunkInstallerLog.h"
 #include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
@@ -21,6 +22,7 @@
 #endif
 
 #define LOCTEXT_NAMESPACE "HTTPChunkInstaller"
+
 
 FOnlineTitleFileHttp::FOnlineTitleFileHttp(const FString& InBaseUrl, const FString& InManifestData)
 	: BaseUrl(InBaseUrl)

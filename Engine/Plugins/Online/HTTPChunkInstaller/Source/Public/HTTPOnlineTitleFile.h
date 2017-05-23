@@ -2,16 +2,17 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Interfaces/OnlineTitleFileInterface.h"
-#include "Interfaces/IHttpRequest.h"
-#include "Misc/SecureHash.h"
-#include "HAL/ThreadSafeCounter64.h"
-#include "Misc/Paths.h"
-#include "Stats/Stats.h"
+#include "OnlineTitleFileInterface.h"
+#include "AsyncWork.h"
+#include "ThreadSafeCounter64.h"
+#include "FileManager.h"
+#include "SecureHash.h"
+#include "Paths.h"
+#include "IHttpRequest.h"
 
 const FName NAME_SHA1(TEXT("SHA1"));
 const FName NAME_SHA256(TEXT("SHA256"));
+
 
 class FTitleFileHttpAsyncLoadAndVerify :
 	public FNonAbandonableTask

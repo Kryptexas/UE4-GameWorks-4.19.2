@@ -20,3 +20,4 @@ FOnlineFriendsFacebook::~FOnlineFriendsFacebook()
 }
 
 #endif // WITH_FACEBOOK
+

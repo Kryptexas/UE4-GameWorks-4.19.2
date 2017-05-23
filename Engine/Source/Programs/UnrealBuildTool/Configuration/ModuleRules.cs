@@ -147,6 +147,11 @@ namespace UnrealBuildTool
 		/// This should only be set for header files that are included by a significant number of other C++ modules.
 		/// </summary>
 		public string SharedPCHHeaderFile;
+		
+		/// <summary>
+		/// Specifies an alternate name for intermediate directories and files for intermediates of this module. Useful when hitting path length limitations.
+		/// </summary>
+		public string ShortName = null;
 
 		/// <summary>
 		/// Precompiled header usage for this module

@@ -254,10 +254,13 @@ private:
 
 	void HandleBrowserUrlChanged(const FText& Url)
 	{
-		FString CurrentURL = MainBrowser->GetUrl();
-		UE_LOG(LogLoginFlow, Log, TEXT("HandleBrowserUrlChanged Current: %s New: %s"), *CurrentURL, *Url.ToString());
+		if (0) // HandleBrowserBeforeBrowse seems to do all that is required atm
+		{
+			FString CurrentURL = MainBrowser->GetUrl();
+			UE_LOG(LogLoginFlow, Log, TEXT("HandleBrowserUrlChanged Current: %s New: %s"), *CurrentURL, *Url.ToString());
 
-		ViewModel->HandleBrowserUrlChanged(Url);
+			ViewModel->HandleBrowserUrlChanged(Url);
+		}
 	}
 
 	bool HandleBrowserCloseWindow(const TWeakPtr<IWebBrowserWindow>& BrowserWindowPtr)
@@ -446,11 +449,14 @@ private:
 
 	bool HandleBrowserBeforeBrowse(const FString& Url, const FWebNavigationRequest& Request)
 	{
-		UE_LOG(LogLoginFlow, Log, TEXT("HandleBrowserBeforeBrowse URL: %s %d Redirect: %d"), *Url, Request.bIsMainFrame, Request.bIsRedirect);
-
-		if (Request.bIsRedirect)
+		if (Request.bIsMainFrame && Request.bIsRedirect)
 		{
+			UE_LOG(LogLoginFlow, Log, TEXT("HandleBrowserBeforeBrowse URL: %s"), *Url);
 			return ViewModel->HandleBeforeBrowse(Url);
+		}
+		else
+		{
+			UE_LOG(LogLoginFlow, VeryVerbose, TEXT("HandleBrowserBeforeBrowse skipped URL: %s MainFrame: %d Redirect: %d"), *Url, Request.bIsMainFrame, Request.bIsRedirect);
 		}
 		return false;
 	}

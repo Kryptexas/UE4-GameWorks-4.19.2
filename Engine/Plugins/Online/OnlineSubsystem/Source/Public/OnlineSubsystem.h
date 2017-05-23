@@ -541,6 +541,11 @@ public:
 	* @param UserIdList - list of other users in the PS4 party to send invites to
 	*/
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPlayTogetherEventReceived, int32, TArray<TSharedPtr<const FUniqueNetId>>);
+
+	/**
+	 * @return The name of the online service this platform uses
+	 */
+	virtual FText GetOnlineServiceName() const = 0;
 };
 
 /** Public references to the online subsystem pointer should use this */

@@ -5,7 +5,7 @@ using UnrealBuildTool;
 public class OnlineSubsystemOculus : ModuleRules
 {
 	public OnlineSubsystemOculus(ReadOnlyTargetRules Target) : base(Target)
-	{		
+    {		
 		Definitions.Add("ONLINESUBSYSTEMOCULUS_PACKAGE=1");
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		

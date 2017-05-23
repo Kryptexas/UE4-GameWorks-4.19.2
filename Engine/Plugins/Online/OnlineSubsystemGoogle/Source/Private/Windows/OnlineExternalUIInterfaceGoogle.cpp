@@ -5,10 +5,6 @@
 #include "OnlineIdentityGoogle.h"
 #include "OnlineError.h"
 
-#include "SocketSubsystem.h"
-#include "IPAddress.h"
-#include "Sockets.h"
-
 #define GOOGLE_STATE_TOKEN TEXT("state")
 #define GOOGLE_ACCESS_TOKEN TEXT("code")
 #define GOOGLE_ERRORCODE_TOKEN TEXT("error")
@@ -59,7 +55,7 @@ FLoginFlowResult FOnlineExternalUIGoogle::OnLoginRedirectURL(const FString& Redi
 		if (URLDetails.IsValid())
 		{
 			// Wait for the RedirectURI to appear
-			if (!RedirectURL.Contains(URLDetails.LoginUrl) && RedirectURL.StartsWith(URLDetails.LoginRedirectUrl))
+			if (!RedirectURL.Contains(FPlatformHttp::UrlEncode(URLDetails.LoginUrl)) && RedirectURL.StartsWith(URLDetails.LoginRedirectUrl))
 			{
 				TMap<FString, FString> ParamsMap;
 
@@ -142,7 +138,7 @@ FLoginFlowResult FOnlineExternalUIGoogle::OnLoginRedirectURL(const FString& Redi
 
 void FOnlineExternalUIGoogle::OnExternalLoginFlowComplete(const FLoginFlowResult& Result, int ControllerIndex, const FOnLoginUIClosedDelegate Delegate)
 {
-	UE_LOG(LogOnline, Log, TEXT("OnExternalLoginFlowComplete %s %s"), *Result.Token, Result.Error.ToLogString());
+	UE_LOG(LogOnline, Log, TEXT("OnExternalLoginFlowComplete %s"), *Result.ToDebugString());
 
 	bool bStarted = false;
 	if (Result.IsValid())

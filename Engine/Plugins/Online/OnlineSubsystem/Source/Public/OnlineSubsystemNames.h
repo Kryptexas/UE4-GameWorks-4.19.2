@@ -40,8 +40,16 @@
 #define PS4_SUBSYSTEM FName(TEXT("PS4"))
 #endif
 
+#ifndef PS4SERVER_SUBSYSTEM
+#define PS4SERVER_SUBSYSTEM FName(TEXT("PS4SERVER"))
+#endif
+
 #ifndef LIVE_SUBSYSTEM
 #define LIVE_SUBSYSTEM FName(TEXT("LIVE"))
+#endif
+
+#ifndef LIVESERVER_SUBSYSTEM
+#define LIVESERVER_SUBSYSTEM FName(TEXT("LIVESERVER"))
 #endif
 
 #ifndef THUNDERHEAD_SUBSYSTEM
@@ -58,6 +66,10 @@
 
 #ifndef WECHAT_SUBSYSTEM
 #define WECHAT_SUBSYSTEM FName(TEXT("WeChat"))
+#endif
+
+#ifndef TWITCH_SUBSYSTEM
+#define TWITCH_SUBSYSTEM FName(TEXT("TWITCH"))
 #endif
 
 #ifndef SWITCH_SUBSYSTEM

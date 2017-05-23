@@ -129,6 +129,10 @@ public:
 						bSuccess = FCoreDelegates::OnMountPak.Execute(SandboxedPath, PakReadOrder, nullptr);
 					}
 #endif
+					if (!bSuccess)
+					{
+						UE_LOG(LogTemp, Error, TEXT("Failed to mount pak %s"), *PakFiles[PakIndex]);
+					}
 					MountedPaks.Add(PakFiles[PakIndex]);
 				}
 			}
@@ -164,13 +168,16 @@ public:
 
 class FChunkMountOnlyTask : public FRunnable
 {
+	struct MountRecord
+	{
+		FString DestDir;
+		IBuildManifestPtr BuildManifest;
+	};
 public:
 	/** Input parameters */
-	FString							ManifestPath;
-	FString							DestDir;
+	TArray<MountRecord>				MountWork;
 	bool							bCopy;
 	const TArray<FString>*			CurrentMountPaks;
-	IBuildManifestPtr				BuildManifest;
 	FEvent*							CompleteEvent;
 	/** Output */
 	TArray<FString>					MountedPaks;
@@ -178,6 +185,7 @@ public:
 	FChunkMountOnlyTask()
 	{
 		CompleteEvent = FPlatformProcess::GetSynchEventFromPool(true);
+		CompleteEvent->Trigger();
 	}
 
 	~FChunkMountOnlyTask()
@@ -186,11 +194,12 @@ public:
 		CompleteEvent = nullptr;
 	}
 
-	void SetupWork(FString InManifestPath, FString InDestDir, IBuildManifestRef InBuildManifest, const TArray<FString>& InCurrentMountedPaks)
+	void AddWork(FString InDestDir, IBuildManifestRef InBuildManifest, const TArray<FString>& InCurrentMountedPaks)
 	{
-		ManifestPath = InManifestPath;
-		DestDir = InDestDir;
-		BuildManifest = InBuildManifest;
+		MountRecord Work;
+		Work.DestDir = InDestDir;
+		Work.BuildManifest = InBuildManifest;
+		MountWork.Add(Work);
 		CurrentMountPaks = &InCurrentMountedPaks;
 
 		MountedPaks.Reset();
@@ -226,35 +235,43 @@ public:
 		TArray<FString> PakFiles;
 		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
-		// Find all pak files.
-		FPakSearchVisitor Visitor(PakFiles);
-		PlatformFile.IterateDirectoryRecursively(*DestDir, Visitor);
-		auto PakReadOrderField = BuildManifest->GetCustomField("PakReadOrdering");
-		uint32 PakReadOrder = PakReadOrderField.IsValid() ? (uint32)PakReadOrderField->AsInteger() : 0;
-		for (uint32 PakIndex = 0, PakCount = PakFiles.Num(); PakIndex < PakCount; ++PakIndex)
+		while (MountWork.Num() > 0)
 		{
-			if (!CurrentMountPaks->Contains(PakFiles[PakIndex]) && !MountedPaks.Contains(PakFiles[PakIndex]))
+			// Find all pak files.
+			FPakSearchVisitor Visitor(PakFiles);
+			PlatformFile.IterateDirectoryRecursively(*(MountWork[0].DestDir), Visitor);
+			auto PakReadOrderField = MountWork[0].BuildManifest->GetCustomField("PakReadOrdering");
+			uint32 PakReadOrder = PakReadOrderField.IsValid() ? (uint32)PakReadOrderField->AsInteger() : 0;
+			for (uint32 PakIndex = 0, PakCount = PakFiles.Num(); PakIndex < PakCount; ++PakIndex)
 			{
-				// TODO: are we a patch?
-				// 				if (PakFiles[PakIndex].EndsWith("_P.pak"))
-				// 				{
-				// 					// bump the read priority
-				// 					++PakReadOrder;
-				// 				}
-				if (FCoreDelegates::OnMountPak.IsBound())
+				if (!CurrentMountPaks->Contains(PakFiles[PakIndex]) && !MountedPaks.Contains(PakFiles[PakIndex]))
 				{
-					auto bSuccess = FCoreDelegates::OnMountPak.Execute(PakFiles[PakIndex], PakReadOrder, nullptr);
-#if !UE_BUILD_SHIPPING
-					if (!bSuccess)
+					// TODO: are we a patch?
+					// 				if (PakFiles[PakIndex].EndsWith("_P.pak"))
+					// 				{
+					// 					// bump the read prioritiy 
+					// 					++PakReadOrder;
+					// 				}
+					if (FCoreDelegates::OnMountPak.IsBound())
 					{
-						// This can fail because of the sandbox system - which the pak system doesn't understand.
-						auto SandboxedPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*PakFiles[PakIndex]);
-						bSuccess = FCoreDelegates::OnMountPak.Execute(SandboxedPath, PakReadOrder, nullptr);
-					}
+						auto bSuccess = FCoreDelegates::OnMountPak.Execute(PakFiles[PakIndex], PakReadOrder, nullptr);
+#if !UE_BUILD_SHIPPING
+						if (!bSuccess)
+						{
+							// This can fail because of the sandbox system - which the pak system doesn't understand.
+							auto SandboxedPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*PakFiles[PakIndex]);
+							bSuccess = FCoreDelegates::OnMountPak.Execute(SandboxedPath, PakReadOrder, nullptr);
+						}
 #endif
-					MountedPaks.Add(PakFiles[PakIndex]);
+						if (!bSuccess)
+						{
+							UE_LOG(LogTemp, Error, TEXT("Failed to mount pak %s"), *PakFiles[PakIndex]);
+						}
+						MountedPaks.Add(PakFiles[PakIndex]);
+					}
 				}
 			}
+			MountWork.RemoveAt(0);
 		}
 
 		CompleteEvent->Trigger();

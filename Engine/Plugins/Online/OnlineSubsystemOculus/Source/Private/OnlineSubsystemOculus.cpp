@@ -326,6 +326,11 @@ bool FOnlineSubsystemOculus::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 	return false;
 }
 
+FText FOnlineSubsystemOculus::GetOnlineServiceName() const
+{
+	return NSLOCTEXT("OnlineSubsystemOculus", "OnlineServiceName", "Oculus Platform");
+}
+
 bool FOnlineSubsystemOculus::IsEnabled()
 {
 	bool bEnableOculus = true;
