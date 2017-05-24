@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -79,7 +79,7 @@ void foo(const float* ptr)
 	#else
 		#define NV_SIMD_SSE2 0
 	#endif
-	#if (defined _M_ARM || defined __ARM_NEON__)
+	#if (defined _M_ARM || defined __ARM_NEON__ || (defined(__ARM_NEON_FP) && !defined(__ANDROID__)))
 		#define NV_SIMD_NEON 1
 	#else
 		#define NV_SIMD_NEON 0
@@ -104,7 +104,7 @@ void foo(const float* ptr)
 // support shift by vector operarations
 #define NV_SIMD_SHIFT_BY_VECTOR (NV_SIMD_NEON)
 // support inline assembler
-#if !(defined _M_ARM || defined SN_TARGET_PSP2 || defined __arm64__)
+#if !(defined _M_ARM || defined SN_TARGET_PSP2 || defined __arm64__ || defined __aarch64__)
 	#define NV_SIMD_INLINE_ASSEMBLER 1
 #else
 	#define NV_SIMD_INLINE_ASSEMBLER 0

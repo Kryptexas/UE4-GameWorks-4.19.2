@@ -54,7 +54,9 @@ public:
 #endif
 	
 private:
+#if WITH_EDITORONLY_DATA
 	void UpdatePreviewMeshes();
+#endif
 	void UpdateCraneComponents();
 
 	/** Root component to give the whole actor a transform. */
@@ -73,6 +75,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Crane Components")
 	USceneComponent* CraneCameraMount;
 
+#if WITH_EDITORONLY_DATA
 	/** Preview meshes for visualization */
 	UPROPERTY()
 	UStaticMeshComponent* PreviewMesh_CraneArm;
@@ -85,4 +88,5 @@ private:
 
 	UPROPERTY()
 	UStaticMeshComponent* PreviewMesh_CraneCounterWeight;
+#endif
 };

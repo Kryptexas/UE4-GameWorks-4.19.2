@@ -19,12 +19,6 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(ULinkerPlaceholderClass, UClass,
 );
 
 //------------------------------------------------------------------------------
-void ULinkerPlaceholderClass::PostInitProperties()
-{
-	Super::PostInitProperties();
-}
-
-//------------------------------------------------------------------------------
 void ULinkerPlaceholderClass::BeginDestroy()
 {
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -44,9 +38,7 @@ void ULinkerPlaceholderClass::BeginDestroy()
 void ULinkerPlaceholderClass::Bind()
 {
 	ClassConstructor = InternalConstructor<ULinkerPlaceholderClass>;
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCaller = InternalVTableHelperCtorCaller<ULinkerPlaceholderClass>;
-#endif // WITH_HOT_RELOAD_CTORS
 	Super::Bind();
 
 	ClassAddReferencedObjects = &ULinkerPlaceholderClass::AddReferencedObjects;

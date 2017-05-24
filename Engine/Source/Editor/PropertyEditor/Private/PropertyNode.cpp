@@ -1680,7 +1680,7 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 			// The property is a simple field.  Compare it against the enclosing object's default for that property.
 			if ( !bDiffersFromDefaultForObject)
 			{
-				uint32 PortFlags = 0;
+				uint32 PortFlags = PPF_PropertyWindow;
 				UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(InProperty);
 				if (InProperty->ContainsInstancedObjectProperty())
 				{
@@ -1721,22 +1721,8 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 				}
 				else
 				{
+					// Port flags will cause enums to display correctly
 					InProperty->ExportTextItem( DefaultValue, ValueTracker.GetPropertyDefaultAddress(), ValueTracker.GetPropertyDefaultAddress(), InObject, PortFlags, NULL );
-
-					UEnum* Enum = nullptr;
-					if (UByteProperty* ByteProperty = Cast<UByteProperty>(InProperty))
-					{
-						Enum = ByteProperty->Enum;
-					}
-					else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(InProperty))
-					{
-						Enum = EnumProperty->GetEnum();
-					}
-
-					if ( Enum )
-					{
-						AdjustEnumPropDisplayName(Enum, DefaultValue);
-					}
 				}
 			}
 		}
@@ -2419,6 +2405,8 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 		{
 			PropertyChain->SetActiveMemberPropertyNode( OriginalActiveProperty );
 			PropertyChain->SetActivePropertyNode( InPropertyChangedEvent.Property);
+		
+			InPropertyChangedEvent.SetActiveMemberProperty(OriginalActiveProperty);
 			InNotifyHook->NotifyPostChange( InPropertyChangedEvent, &PropertyChain.Get() );
 		}
 	}
@@ -2940,15 +2928,11 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 				bool bShouldImport = false;
 				{
 					uint8* TempComplexPropAddr = (uint8*)FMemory::Malloc(ComplexProperty->GetSize(), ComplexProperty->GetMinAlignment());
-					ON_SCOPE_EXIT
-					{
-						FMemory::Free(TempComplexPropAddr);
-					};
-
 					ComplexProperty->InitializeValue(TempComplexPropAddr);
 					ON_SCOPE_EXIT
 					{
 						ComplexProperty->DestroyValue(TempComplexPropAddr);
+						FMemory::Free(TempComplexPropAddr);
 					};
 
 					// Importing the previous value into the temporary property can potentially affect shared state (such as FText display string values), so we back-up the current value 

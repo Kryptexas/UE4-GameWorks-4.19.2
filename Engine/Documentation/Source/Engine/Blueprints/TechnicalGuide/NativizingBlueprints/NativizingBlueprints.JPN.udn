@@ -1,32 +1,80 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3324139
 Availability:Public
 Title:ブループリントのネイティブ化
-Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:ゲームプレイ要素をブループリントに公開するゲームプレイ プログラマーのためのテクニカル ガイド
-Version:4.12
+Crumbs:
+Description:ゲームプレイ要素をブループリントに公開するテクニカル ガイド (ゲームプレイ プログラマー向け)
+Version:4.15
 Parent:Engine/Blueprints/TechnicalGuide
 type:overview
+tags:Blueprints
+Skilllevel:Intermediate
+Related:Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced
+social-image:social_bp_nativization.png
 
-[REGION:warning]
-これは実験的なベータ機能です。アンリアル エンジン 4 のサンプル ゲームと中規模のデモは正常にネイティブ化されますが、大規模プロジェクトでこの機能が使えるように調整しています。
+[TOC(start:1 end:4)]
+
+ブループリントでゲームプレイをスクリプト化する時、ネイティブ C++ (CPP) コードを書いたりコンパイルをせずにチームは UClasses を新規作成できます。ネイティブ CPP プログラマーの専門知識がなくても使えるので、 
+ブループリントはチームで重宝されています。プログラマー以外の人がブループリントがうまく使いこなせる理由は、 
+ブループリントが仮想マシン (VM) で、ネイティブ CPP 関数の呼び出しが可能だからです。残念なことに、VM はブループリントをネイティブ CPP コードに変換するため、使用すると負荷がかかります。 
+そうすると、想像できると思いますが、Blueprint ノードからネイティブ CPP 関数への変換はフレームあたりのゲーム パフォーマンスを落としてしまう可能性があります。 
+
+ブループリントの実行負荷が VM では気にならない程度であれば VM オーバーヘッドは許容範囲ですが、 
+ゲームの実行速度をできるだけ速くしたいは (特にハードウェア性能に制限があるデバイスを出荷する時)、アンリアル エンジンの Blueprint Nativization ツールが役に立ちます。 
+
+[REGION:note]
+エピックでは、新しい VR タイトル [Robo Recall](https://www.epicgames.com/roborecall/en-US/home) の開発においてこの Blueprint Nativization ツールが大活躍しました。
 [/REGION]
 
+##VM オーバーヘッドの削減
 
-新なブループリント ネイティブ化ツールにより、プロジェクトのブループリントからネイティブ C++ コードの生成を可能にします。エディタ外あるいはリリース用のテスティングのためにプロジェクトをクックすると、
-生成されたコードでプロジェクトをコンパイルします。そして、すべてのブループリント クラスは新規生成されたネイティブ クラスに変更されます。ブループリントのネイティブ化の主な目的は、 
-プロジェクトのランタイム版での仮想マシン (VM) オーバーヘッドの削減です。結果として、生成されたコードは「使いやすくする」または「再利用可能にする」ために必ずしも必要ではありません。 
+Blueprint Nativization の主な目的は、プロジェクトのブループリントからネイティブ CPP コードを生成して、プロジェクトのランタイムでの VM オーバーヘッドを削減することです。一般的に、 
+Blueprint クラスはすべて、新しく生成された CPP クラスに置き換えられ、[クック処理](Engine/Deployment/Cooking) 中にプロジェクトにコンパイルされます。 
+テキスト エディタから変換した CPP コードは読み取り可能ですが、コードのフォーマットは再利用目的はフォーマット化されていません (または「読みやすい」ようには作成されていません)。
 
-このページで、プロジェクトのブループリントのネイティブ化を始めましょう。ブループリント専用プロジェクトの場合、大部分は透明なプロセスになります。プロジェクトで C++ を使う、または
-ネイティブ化されたコードをデバッグしたい場合は、[](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) で詳細をご覧ください。
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Blueprint](Blueprint.png)(w:1200)
+	[/PARAM]
+	[PARAM:after]
+	![Nativized Blueprint](NativizedBlueprint.png)(w:1200)
+	[/PARAM]
+[/OBJECT]
 
+_Player Character プループリントとネイティブ化されたコードの比較です。_
 
-## ブループリントのネイティブ化を有効にする
+このページで、プロジェクトのブループリントのネイティブ化を始めましょう。ブループリント専用プロジェクトであれば理解しやすいです。まず始めに、 
+Blueprint Nativization の有効無効を切り替えるユーザー インターフェース (UI) を探しましょう。
 
-ブループリントのネイティブ化を有効にするには、**[Edit Menu (編集メニュー)]** から **[Project Settings (プロジェクト設定)]** を開きます。**[Packaging (パッケージング)]** の **[Nativize Blueprint Assets]** チェックボックスを有効にします。
+##Blueprint Nativization を無効にする
 
-![](BlueprintNativizeCheckbox.png)
+プロジェクトを初めて作成する時、Blueprint Nativization はデフォルトで無効になっています。Blueprint Nativization 設定は、 
+アンリアル エディタの **[Project Settings (プロジェクト設定)]** メニューの左欄で**[Packaging]** を選択し、**[Project - Packaging]** メニューの **[Blueprints]** ドロップダウン メニューの中にあります。
 
-プロジェクトをパッケージ化する時に、以下のブループリント アセットがネイティブ化されます。 
+[REGION:lightbox]
+	[![](BPNativization_DisabledUI.png)(w:600)](BPNativization_DisabledUI.png)
+[/REGION]
+
+[REGION:caption]
+	クリックしてフルサイズで表示
+[/REGION]
+
+**[Blueprint Nativization Method]** ドロップダウン リストから **[Disable]** を選択すれば、開発中はいつでも Blueprint Nativization を無効にすることができます。 
+
+![](BPNativization_DisabledUI1.png)(w:900)
+
+ドロップダウン リストを見ると分かりますが、以下の 2 つのオプションが選択できます。
+
+* **Inclusive** Nativization
+* **Exclusive** Nativization
+
+##Inclusive ネイティブ化メソッド
+
+**[Inclusive]** を選択すると、プロジェクト内でサポートされている Blueprint クラスがすべてネイティブ化されます。 
+
+![](BPNativization_InclusiveUI.png)(w:900)
+
+**[Inclusive]** ネイティブ化メソッドが選択されると、 
+アンリアル エンジン ツール (UAT) は[パッケージ化プロセス](Engine/Basics/Projects/Packaging) 中にサポート対象の以下の Blueprint アセットをネイティブ化します。これは重要なことです。
 
 * Blueprint クラス
 * ブループリント関数ライブラリ
@@ -36,16 +84,196 @@ type:overview
 * ユーザー定義の構造体
 * ユーザー定義の Enum
 
-現在、_レベル ブループリント_ は変換されません。ネイティブ コードは `[ProjectDirectory]\Intermediate\[Platform That Was Cooked For]\NativizedAssets\Source\NativizedAssets\` に格納されます。
+[REGION:note]
+この時、Level ブループリントと Bluepint マクロは Blueprint Nativization ツールのサポート対象外なので、ネイティブ CPP コードには変換されません。 
+[/REGION]
 
-## ブループリントを変換から除外する
+### ブループリントを変換対象から除外する
 
-所定の _ブループリント_ を変換から除外することも可能です。プロジェクトの `DefaultEditor.ini` ファイルの中に `[BlueprintNativizationSettings]` 見出しを作成します。
+Blueprint Nativization ツールが Blueprint ノードをネイティブ CPP コードに変換すると、 
+出来上がった実行ファイルには、変換をサポートするための端末命令、依存、埋め込みメタデータが追加されます。 
 
-* 所定のアセット タイプを除外するには、`ExcludedBlueprintTypes` を設定します。例えば、`+ExcludedBlueprintTypes=/Script/UMGEditor.WidgetBlueprint` だと、_Widget ブループリント_ は変換されません。
-* 個別にアセットを除外するには `ExcludedAssets` を設定します。例えば、`+ExcludedAssets=/Engine/Tutorial/SubEditors/TutorialAssets/Character/TutorialCharacter` だと **Tutorial Character** は変換されません。
+[REGION:warning]
+従って、**Inclusive** Blueprint Nativization メソッドを選んだ場合、 
+実行ファイルのサイズが肥大化し、出荷対象プラットフォームが容量オーバーになる可能性があることに留意してください。これはとても重要です。
+[/REGION]
 
-クックされている場合、アセットはネイティブ化されます。クッカがクック対象にアセット / マップを何も指定していない場合、 
-プロジェクトの **Content** ディレクトリの中をすべてクックします。未使用のブループリントがネイティブ化されていたら、パッケージするマップのリストを使ってもアセットを省略することができます。 
+変換プロセスから除外したいブループリントを指定すれば、実行ファイル サイズの肥大化の緩和が可能になります。ブループリントを変換対象から除外するには、 
+プロジェクトの `DefaultEditor.ini` ファイルを開いて、`[BlueprintNativizationSettings]` ヘディングを以下のコンフィギュレーション プロパティで作成します。
 
-![](AdditionalMaps.png)
+* 所定のタイプの Blueprint アセットを排除するには、`ExcludedBlueprintTypes` コンフィギュレーション プロパティを設定します。  
+  例えば、`+ExcludedBlueprintTypes=/Script/UMGEditor.WidgetBlueprint` の場合、Widget Blueprint アセットは変換されません。
+* 特定の Blueprint アセットを排除するには、`ExcludedAssets` コンフィギュレーション プロパティを設定します。  
+  例えば、`+ExcludedAssets=/Engine/Tutorial/SubEditors/TutorialAssets/Character/TutorialCharacter` だと **Tutorial Character** Blueprint アセットは変換されません。
+
+![](DefaultEngineINI.png)(w:900)
+
+Blueprint アセットはパッケージ化の処理中にネイティブ化されることに注意してください。これはとても重要です。従って、クック処理する Blueprint アセットあるいはマップを何も指定しないと、 
+アンリアル エンジンは **Content** ディレクトリの中にあるすべてのものをクックします。**Inclusive** メソッドを選択して、使っていない Blueprint がネイティブ化されていたら、 
+**[Exclusive]** Blueprint Nativization Method を選択した方がよいかもしれません。
+
+##Exclusive ネイティブ化メソッド
+
+限られたハードウェア リソースのデバイス向けに出荷される大きめのプロジェクトの場合は、**Exclusive** Blueprint Nativization Method を選択することをお勧めします。
+
+![](BPNativization_ExclusiveUI.png)(w:900)
+
+**[Inclusive]** メソッドは、ターゲット ハードウェアのアプリケーションをホストする容量を実行ファイルが超える危険のない小さ目のプロジェクトに利用できます。 
+一方、**[Exclusive]** Blueprint Nativization Method にも以下のような利点があります。
+
+* 実行フィアルの最終サイズを制限する
+* 未使用の Blueprint アセットの変換を能動的に防ぐ
+* 変換対象の Blueprint アセットの明示的な選択が可能である
+
+例えば以下のような (ただしこれに制限されない)、計算に負荷のかかるブループリントに対しては、Exclusive Blueprint Nativization Method を選択することを推奨します。
+
+* ノードの多いブループリント
+* ループの最適化が必要なブループリント
+* 複雑な演算処理を実行するブループリント 
+
+###ネイティブ化するブループリントの選択
+
+[REGION:note]
+Blueprint アセットを含むプロジェクトを作っていない場合、いずれかのプロジェクト テンプレートを使用して新規作成してください。ここでは図説に便利な  
+**Puzzle** Project テンプレートを使用しています。
+[/REGION]
+
+**Exclusive** Blueprint Nativization Method を使ってネイティブ化したい Blueprint アセットを選択するには、以下の手順を行います。 
+
+1.	**[Edit]** メニューを開いて、**[Project Settings... (プロジェクト設定)]** を選びます。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_1.png)(w:900)](BPNativization_ExclusiveStep_1.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	**[Project Settings (プロジェクト設定)]** メニューを開いたら、**[Packaging]** をクリックして **[Project Settings - Packaging]** メニューを選択します。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_2.png)(w:900)](BPNativization_ExclusiveStep_2.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	**[Blueprints]** サブメニューから **[Blueprint Nativization Menu]** ドロップダウン リストをクリックします。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_3.png)(w:900)](BPNativization_ExclusiveStep_3.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	**[Exclusive]** オプションから Exclusive Blueprint Nativization Method を選択します。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_4.png)(w:900)](BPNativization_ExclusiveStep_4.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	サブメニューの下の方にある矢印で展開して、空の配列を表示します。 
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_5.png)(w:900)](BPNativization_ExclusiveStep_5.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+
+	[/REGION]
+
+	この配列には、ネイティブ化を明示的に選択できる Blueprint アセットのリストが入ります。
+	![](BPNativization_ExclusiveStep_5Note.png)(w:900)
+
+1.	**[Project Properties]** メニューを終了して、Blueprint アセットが入っているフォルダを開きます。 
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_6.png)(w:900)](BPNativization_ExclusiveStep_6.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	ネイティブ化したい Blueprint アセットを開きます。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_7.png)(w:900)](BPNativization_ExclusiveStep_7.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	**ブループリント エディタ** を開いたら、**[Class Settings]** ボタンをクリックします。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_8.png)(w:900)](BPNativization_ExclusiveStep_8.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	この Blueprint アセットにネイティブ化対象の印をつけるために、**[Details (詳細)]** パネルの **[Packaging]** サブメニューにある**[Nativize (ネイティブ化)]** チェックボックスをクリックします。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_9.png)(w:900)](BPNativization_ExclusiveStep_9.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	このアセット用の **ブループリント エディタ** を終了する前に、**[Save]** ボタンを必ずクリックしてください。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_10.png)(w:900)](BPNativization_ExclusiveStep_10.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	Exclusive メソッドによるネイティブ化の対象に選んだ Blueprint アセットを確認するには、**[Project Settings]** メニューを開いてネイティブ化の印をつけた Blueprint アセットのリストが入っている配列を表示します。
+
+	[REGION:lightbox]
+		[![](BPNativization_ExclusiveStep_11.png)(w:900)](BPNativization_ExclusiveStep_11.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+これで **Exclusive** Blueprint Nativization Method を使ったプロジェクトのクックとパッケージ化処理の準備ができました。 
+
+##ネイティブ コードの場所
+
+ネイティブ コードは `[ProjectDirectory]\Intermediate\\[Platform That Was Cooked For]\NativizedAssets\Source\NativizedAssets\` にあります。
+
+![](NativizedAssetsLocation.png)(w:900)
+
+##ネイティブ化フラグの設定
+
+**[Project Settings (プロジェクト設定)] > [Project - Packaging]** メニューに戻ると、**[Warn if Packaged Without Nativization Flag (ネイティブ化フラグなしのアセットをパッケージ化した場合に警告を出す)]** ラベルの横にチェックボックスがあると思います。 
+
+[REGION:lightbox]
+	[![](NativizationFlag.png)(w:900)](NativizationFlag.png)
+[/REGION]
+
+[REGION:caption]
+	クリックしてフルサイズで表示
+[/REGION]
+
+このフラグは、コマンド ラインからプロジェクトをビルド / クックできる上級ユーザー向けです (サーバー側のビルド エンジニアなど)。**[Project Settings]** メニューでネイティブ化が有効になっている時にこのフラグも有効にすると、 
+コマンドラインからネイティブ化フラグを使用してビルド / クックを行わないと基本的には警告が出されます。コマンドラインからネイティブ化スイッチを使う方法は、 
+[](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) を参照してください。

@@ -112,6 +112,20 @@ class FAndroid_MultiTargetPlatform
 			}
 		}
 	}
+
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override
+	{
+		// Ask each platform variant to choose texture formats
+		for (ITargetPlatform* Platform : FormatTargetPlatforms)
+		{
+			TArray<FName> PlatformFormats;
+			Platform->GetAllTextureFormats(PlatformFormats);
+			for (FName Format : PlatformFormats)
+			{
+				OutFormats.AddUnique(Format);
+			}
+		}
+	}
 #endif	
 
 	virtual FText GetVariantDisplayName() const override

@@ -127,7 +127,7 @@ struct FDrawTickArgs
 	/** Start layer for elements */
 	int32 StartLayer;
 	/** Draw effects to apply */
-	ESlateDrawEffect::Type DrawEffects;
+	ESlateDrawEffect DrawEffects;
 	/** Whether or not to only draw major ticks */
 	bool bOnlyDrawMajorTicks;
 	/** Whether or not to mirror labels */
@@ -138,9 +138,9 @@ struct FDrawTickArgs
 void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, FDrawTickArgs& InArgs ) const
 {
 	float MinDisplayTickSpacing = ScrubConstants::MinDisplayTickSpacing;
-	if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.Settings->GetTimeSnapInterval()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
+	if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.TimeSnapInterval.Get()) && TimeSliderArgs.TimeSnapInterval.Get())
 	{
-		MinDisplayTickSpacing = TimeSliderArgs.Settings->GetTimeSnapInterval();
+		MinDisplayTickSpacing = TimeSliderArgs.TimeSnapInterval.Get();
 	}
 
 	const float Spacing = DetermineOptimalSpacing( RangeToScreen.PixelsPerInput, ScrubConstants::MinPixelsPerDisplayTick, MinDisplayTickSpacing );
@@ -191,7 +191,7 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 			if( !InArgs.bOnlyDrawMajorTicks )
 			{
 				FString FrameString;
-				if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.Settings->GetTimeSnapInterval()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
+				if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.TimeSnapInterval.Get()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
 				{
 					FrameString = FString::Printf( TEXT("%d"), TimeToFrame(Seconds));
 				}
@@ -249,7 +249,7 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const bool bEnabled = bParentEnabled;
-	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get();
 	const float LocalViewRangeMin = LocalViewRange.GetLowerBoundValue();
@@ -320,9 +320,9 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 		float Time = TimeSliderArgs.ScrubPosition.Get();
 		FString FrameString;
 
-		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.Settings->GetTimeSnapInterval()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
+		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.TimeSnapInterval.Get()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
 		{
-			float FrameRate = 1.0f/TimeSliderArgs.Settings->GetTimeSnapInterval();
+			float FrameRate = 1.0f/TimeSliderArgs.TimeSnapInterval.Get();
 			float FrameTime = Time * FrameRate;
 			int32 Frame = SequencerHelpers::TimeToFrame(Time, FrameRate);
 			const float FrameTolerance = 0.001f;
@@ -628,7 +628,7 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 				float MouseValue = RangeToScreen.LocalXToInput( CursorPos.X );
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
-					MouseValue = TimeSliderArgs.Settings->SnapTimeToInterval(MouseValue);
+					MouseValue = SequencerHelpers::SnapTimeToInterval(MouseValue, TimeSliderArgs.TimeSnapInterval.Get());
 				}
 
 				TSharedRef<SWidget> MenuContent = OpenSetPlaybackRangeMenu(MouseValue);
@@ -677,14 +677,14 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 
 			if ( TimeSliderArgs.Settings->GetIsSnapEnabled() )
 			{
-				NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+				NewValue = SequencerHelpers::SnapTimeToInterval(NewValue, TimeSliderArgs.TimeSnapInterval.Get());
 			}
 
 			float DownValue = MouseDownRange[0];
 				
 			if ( TimeSliderArgs.Settings->GetIsSnapEnabled() )
 			{
-				DownValue = TimeSliderArgs.Settings->SnapTimeToInterval(DownValue);
+				DownValue = SequencerHelpers::SnapTimeToInterval(DownValue, TimeSliderArgs.TimeSnapInterval.Get());
 			}
 
 			// Zoom in
@@ -726,7 +726,7 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 
 			if ( TimeSliderArgs.Settings->GetIsSnapEnabled() && TimeSliderArgs.Settings->GetSnapPlayTimeToInterval() )
 			{
-				NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+				NewValue = SequencerHelpers::SnapTimeToInterval(NewValue, TimeSliderArgs.TimeSnapInterval.Get());
 			}
 			
 			CommitScrubPosition( NewValue, /*bIsScrubbing=*/false );
@@ -841,7 +841,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 			{
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
-					NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+					NewValue = SequencerHelpers::SnapTimeToInterval(NewValue, TimeSliderArgs.TimeSnapInterval.Get());
 				}
 
 				SetPlaybackRangeStart(NewValue);
@@ -851,7 +851,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 			{
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
-					NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+					NewValue = SequencerHelpers::SnapTimeToInterval(NewValue, TimeSliderArgs.TimeSnapInterval.Get());
 				}
 					
 				SetPlaybackRangeEnd(NewValue);
@@ -860,7 +860,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 			{
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
-					NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+					NewValue = SequencerHelpers::SnapTimeToInterval(NewValue, TimeSliderArgs.TimeSnapInterval.Get());
 				}
 
 				SetSelectionRangeStart(NewValue);
@@ -870,7 +870,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 			{
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
-					NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+					NewValue = SequencerHelpers::SnapTimeToInterval(NewValue, TimeSliderArgs.TimeSnapInterval.Get());
 				}
 
 				SetSelectionRangeEnd(NewValue);
@@ -879,7 +879,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 			{
 				if ( TimeSliderArgs.Settings->GetIsSnapEnabled() && TimeSliderArgs.Settings->GetSnapPlayTimeToInterval() )
 				{
-					NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
+					NewValue = SequencerHelpers::SnapTimeToInterval(NewValue, TimeSliderArgs.TimeSnapInterval.Get());
 				}
 					
 				// Delegate responsibility for clamping to the current viewrange to the client
@@ -969,7 +969,7 @@ FCursorReply FSequencerTimeSliderController::OnCursorQuery( TSharedRef<const SWi
 
 int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, const FPaintSectionAreaViewArgs& Args ) const
 {
-	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get();
 	float LocalScrubPosition = TimeSliderArgs.ScrubPosition.Get();
@@ -1043,7 +1043,7 @@ TSharedRef<SWidget> FSequencerTimeSliderController::OpenSetPlaybackRangeMenu(flo
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, nullptr);
 
 	FText CurrentTimeText;
-	if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.Settings->GetTimeSnapInterval()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
+	if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSliderArgs.TimeSnapInterval.Get()) && TimeSliderArgs.Settings->GetShowFrameNumbers())
 	{
 		CurrentTimeText = FText::Format(LOCTEXT("FrameTextFormat", "at frame {0}"), FText::AsNumber(TimeToFrame(MouseTime)));
 	}
@@ -1131,13 +1131,13 @@ TSharedRef<SWidget> FSequencerTimeSliderController::OpenSetPlaybackRangeMenu(flo
 
 int32 FSequencerTimeSliderController::TimeToFrame(float Time) const
 {
-	float FrameRate = 1.0f/TimeSliderArgs.Settings->GetTimeSnapInterval();
+	float FrameRate = 1.0f/TimeSliderArgs.TimeSnapInterval.Get();
 	return SequencerHelpers::TimeToFrame(Time, FrameRate);
 }
 
 float FSequencerTimeSliderController::FrameToTime(int32 Frame) const
 {
-	float FrameRate = 1.0f/TimeSliderArgs.Settings->GetTimeSnapInterval();
+	float FrameRate = 1.0f/TimeSliderArgs.TimeSnapInterval.Get();
 	return SequencerHelpers::FrameToTime(Frame, FrameRate);
 }
 

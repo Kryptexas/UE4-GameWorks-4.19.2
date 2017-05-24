@@ -122,11 +122,20 @@ public:
 
 	/**
 	 * Get the size of the download of this set of tags
-	 * @param Tags				IN	The tags used for installation
-	 * @param PreviousVersion	IN	The manifest for previous version to compare against
-	 * @return		the minimum download size required in bytes
+	 * @param Tags              IN  The tags used for installation, will be applied to both manifests
+	 * @param PreviousVersion   IN  The manifest for previous version to compare against
+	 * @return the minimum download size required in bytes
 	 */
 	virtual int64 GetDeltaDownloadSize(const TSet<FString>& Tags, const IBuildManifestRef& PreviousVersion) const = 0;
+
+	/**
+	 * Get the size of the download of this set of tags
+	 * @param Tags              IN  The tags used for installation
+	 * @param PreviousVersion   IN  The manifest for previous version to compare against
+	 * @param PreviousTags      IN  The tags used for previous installation
+	 * @return the minimum download size required in bytes
+	 */
+	virtual int64 GetDeltaDownloadSize(const TSet<FString>& Tags, const IBuildManifestRef& PreviousVersion, const TSet<FString>& PreviousTags) const = 0;
 
 	/**
 	 * Get the size of this build

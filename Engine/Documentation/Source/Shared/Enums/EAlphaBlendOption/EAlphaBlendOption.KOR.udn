@@ -2,7 +2,7 @@
 Availability:NoPublish
 Title:EAlphaBlendOption
 Crumbs:
-Description: FAlphaBlend 에 사용할 커브 블렌딩 유형을 설명하는 열거형입니다.
+Description: FAlphaBlend 에 사용할 커브 블렌딩 유형을 설명하는 Enum 입니다.
 
 [EXCERPT:Linear]
 

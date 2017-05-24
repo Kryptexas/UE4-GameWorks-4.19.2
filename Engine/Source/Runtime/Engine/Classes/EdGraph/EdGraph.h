@@ -55,7 +55,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FGraphReference> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGraphReference> : public TStructOpsTypeTraitsBase2<FGraphReference>
 {
 	enum 
 	{
@@ -169,7 +169,7 @@ public:
 	 * @param bIsLoading		If true, the node move is occurring during a blueprint load
 	 * @param bInIsCompiling	TRUE if the function is being called during compilation, this will eliminate some nodes that will not be compiled
 	 */
-	void MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoading, bool bInIsCompiling = false);
+	void MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoading, bool bInIsCompiling);
 
 	/** Finds all the nodes of a given minimum type in the graph */
 	template<class MinRequiredType, class ArrayElementType>

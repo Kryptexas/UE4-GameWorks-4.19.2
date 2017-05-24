@@ -12,6 +12,9 @@
 #include "MovieSceneExecutionToken.h"
 #include "Evaluation/PersistentEvaluationData.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
+#include "MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "MovieScenePropertyTemplate.generated.h"
 
 DECLARE_CYCLE_STAT(TEXT("Property Track Token Execute"), MovieSceneEval_PropertyTrack_TokenExecute, STATGROUP_MovieSceneEval);
@@ -23,8 +26,8 @@ namespace PropertyTemplate
 	{
 		MOVIESCENE_API FSectionData();
 
-		/** Initialize track data with the specified property name, path, and optional setter function */
-		MOVIESCENE_API void Initialize(FName InPropertyName, FString InPropertyPath, FName InFunctionName = NAME_None);
+		/** Initialize track data with the specified property name, path, optional setter function, and optional notify function */
+		MOVIESCENE_API void Initialize(FName InPropertyName, FString InPropertyPath, FName InFunctionName = NAME_None, FName InNotifyFunctionName = NAME_None);
 
 		/** Property bindings used to get and set the property */
 		TSharedPtr<FTrackInstancePropertyBindings> PropertyBindings;
@@ -57,7 +60,22 @@ namespace PropertyTemplate
 			{
 				if (UObject* ObjectPtr = Object.Get())
 				{
-					ObjectsAndValues.Add(TCachedValue<PropertyValueType>{ ObjectPtr, PropertyBindings->GetCurrentValue<PropertyValueType>(*ObjectPtr) });
+					PropertyBindings->CacheBinding(*ObjectPtr);
+					if (UProperty* Property = PropertyBindings->GetProperty(*ObjectPtr))
+					{
+						if (Property->GetSize() == sizeof(PropertyValueType))
+						{
+							ObjectsAndValues.Add(TCachedValue<PropertyValueType>{ ObjectPtr, PropertyBindings->GetCurrentValue<PropertyValueType>(*ObjectPtr) });
+						}
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+						else
+						{
+							FMessageLog("Sequencer").Warning()
+								->AddToken(FUObjectToken::Create(Player.GetEvaluationTemplate().GetSequence(MovieSceneSequenceID::Root)))
+								->AddToken(FTextToken::Create(FText::Format(NSLOCTEXT("MovieScene", "IncompatibleDataWarning", "Property size mismatch for property '{0}'. Expected '{1}', found '{2}'. Recreate the track with the new property type."), FText::FromString(PropertyBindings->GetPropertyPath()), FText::FromString(TNameOf<PropertyValueType>::GetName()), FText::FromString(Property->GetCPPType()))));
+						}
+#endif
+					}
 				}
 			}
 		}
@@ -212,15 +230,21 @@ struct FMovieScenePropertySectionData
 	FMovieScenePropertySectionData()
 	{}
 
-	FMovieScenePropertySectionData(FName InPropertyName, FString InPropertyPath, FName InFunctionName = NAME_None)
-		: PropertyName(InPropertyName), PropertyPath(MoveTemp(InPropertyPath)), FunctionName(InFunctionName) 
+	FMovieScenePropertySectionData(FName InPropertyName, FString InPropertyPath, FName InFunctionName = NAME_None, FName InNotifyFunctionName = NAME_None)
+		: PropertyName(InPropertyName), PropertyPath(MoveTemp(InPropertyPath)), FunctionName(InFunctionName), NotifyFunctionName(InNotifyFunctionName)
 	{
 	}
 
 	/** Helper function to create FSectionData for this property section */
 	void SetupTrack(FPersistentEvaluationData& PersistentData) const
 	{
-		PersistentData.AddSectionData<PropertyTemplate::FSectionData>().Initialize(PropertyName, PropertyPath, FunctionName);
+		SetupTrack<PropertyTemplate::FSectionData>(PersistentData);
+	}
+
+	template<typename T>
+	void SetupTrack(FPersistentEvaluationData& PersistentData) const
+	{
+		PersistentData.AddSectionData<T>().Initialize(PropertyName, PropertyPath, FunctionName, NotifyFunctionName);
 	}
 
 	/** Helper function to create TCachedSectionData<T> for this property section */
@@ -228,7 +252,7 @@ struct FMovieScenePropertySectionData
 	void SetupCachedTrack(FPersistentEvaluationData& PersistentData) const
 	{
 		typedef PropertyTemplate::TCachedSectionData<T> FSectionData;
-		PersistentData.AddSectionData<FSectionData>().Initialize(PropertyName, PropertyPath, FunctionName);
+		PersistentData.AddSectionData<FSectionData>().Initialize(PropertyName, PropertyPath, FunctionName, NotifyFunctionName);
 	}
 
 	/** Helper function to initialize the TCachedSectionData<T> for this property section for the current frame */
@@ -249,4 +273,7 @@ private:
 
 	UPROPERTY()
 	FName FunctionName;
+
+	UPROPERTY()
+	FName NotifyFunctionName;
 };

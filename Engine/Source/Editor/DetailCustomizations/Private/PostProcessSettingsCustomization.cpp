@@ -62,10 +62,16 @@ void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 	TMap<FString, FPostProcessGroup> NameToGroupMap;
 
 	static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperFilm"));
+	static const auto VarMobileTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.TonemapperFilm"));
 	static const FName LegacyTonemapperName("LegacyTonemapper");
 	static const FName TonemapperCategory("Tonemapper");
+	static const FName MobileTonemapperCategory("Mobile Tonemapper");
 
-	const bool bUseNewTonemapper = VarTonemapperFilm->GetValueOnGameThread() == 1;
+	const bool bDesktopTonemapperFilm = VarTonemapperFilm->GetValueOnGameThread() == 1;
+	const bool bMobileTonemapperFilm = VarMobileTonemapperFilm->GetValueOnGameThread() == 1;
+	const bool bUsingFilmTonemapper = bDesktopTonemapperFilm || bMobileTonemapperFilm;		// Are any platforms use film tonemapper
+	const bool bUsingLegacyTonemapper = !bDesktopTonemapperFilm || !bMobileTonemapperFilm;	// Are any platforms use legacy/ES2 tonemapper
+
 	if(Result == FPropertyAccess::Success && NumChildren > 0)
 	{
 		for( uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
@@ -78,20 +84,26 @@ void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 				UProperty* Property = ChildHandle->GetProperty();
 
 				FName CategoryFName = FObjectEditorUtils::GetCategoryFName(Property);
-			
-				if(CategoryFName == TonemapperCategory)
+					
+				if (CategoryFName == TonemapperCategory)
 				{
-					if(ChildHandle->HasMetaData(LegacyTonemapperName) && bUseNewTonemapper)
+					bool bIsLegacyTonemapperPropery = ChildHandle->HasMetaData(LegacyTonemapperName);
+
+					// Hide in case no platforms use legacy/ES2 tonemapper
+					// Hide in case no platforms use film tonemapper
+					if ((bIsLegacyTonemapperPropery && !bUsingLegacyTonemapper) || (!bIsLegacyTonemapperPropery && !bUsingFilmTonemapper))
 					{
-						// Hide because property is for legacy tonemapper and we are using the new tonemapper
 						ChildHandle->MarkHiddenByCustomization();
 						continue;
 					}
-					else if(!ChildHandle->HasMetaData(LegacyTonemapperName) && !bUseNewTonemapper)
+
+					// In case platforms use different tonemappers, place mobile settings into separate category
+					if (bMobileTonemapperFilm != bDesktopTonemapperFilm)
 					{
-						// Hide because property is for new tone mapper and we are using old tone mapper
-						ChildHandle->MarkHiddenByCustomization();
-						continue;
+						if (bMobileTonemapperFilm == !bIsLegacyTonemapperPropery)
+						{
+							CategoryFName = MobileTonemapperCategory;
+						}
 					}
 				}
 				
@@ -150,6 +162,13 @@ void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 			if(PPGroup.SimplePropertyHandles.Num() > 0 || PPGroup.AdvancedPropertyHandles.Num() > 0 )
 			{
 				IDetailGroup& SimpleGroup = PPGroup.RootCategory->AddGroup(*PPGroup.RawGroupName, FText::FromString(PPGroup.DisplayName));
+
+				// Only enable group reset on color grading category groups
+				if (PPGroup.RootCategory->GetDisplayName().IdenticalTo(FText::FromString(TEXT("Color Grading"))))
+				{
+					SimpleGroup.EnableReset(true);
+				}
+
 				for(auto& SimpleProperty : PPGroup.SimplePropertyHandles)
 				{
 					SimpleGroup.AddPropertyRow(SimpleProperty.ToSharedRef());

@@ -5,13 +5,12 @@ using System.IO;
 
 public class SteamController : ModuleRules
 {
-    public SteamController(TargetInfo Target)
+    public SteamController(ReadOnlyTargetRules Target) : base(Target)
     {
-        string SteamVersion = "Steamv132";
+        string SteamVersion = "Steamv139";
         bool bSteamSDKFound = Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
 
         Definitions.Add("STEAMSDK_FOUND=" + (bSteamSDKFound ? "1" : "0"));
-        Definitions.Add("WITH_STEAMWORKS=" + (bSteamSDKFound ? "1" : "0"));
 
         PrivateIncludePathModuleNames.Add("TargetPlatform");
 
@@ -23,6 +22,7 @@ public class SteamController : ModuleRules
 		});
 
         PublicDependencyModuleNames.Add("InputDevice");
+        PublicDependencyModuleNames.Add("InputCore");
 
         AddEngineThirdPartyPrivateStaticDependencies(Target,
             "Steamworks"

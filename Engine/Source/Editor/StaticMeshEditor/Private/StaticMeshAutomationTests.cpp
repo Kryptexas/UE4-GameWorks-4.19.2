@@ -208,32 +208,12 @@ bool FStaticMeshEditorTest::RunTest(const FString& Parameters)
 		const FString BaseFileName = TEXT("StaticMeshEditorTest");
 		FString StaticMeshTestName = FString::Printf(TEXT("%s/Base"), *BaseFileName);
 
-		//Wait for the window to load and then take the initial screen shot		
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
-		if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
-		{
-			AutomationCommon::GetScreenshotPath(StaticMeshTestName, WindowParameters.ScreenshotName);
-			ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
-			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
-		}
-
 		for(auto CurrentCommandType = 0; CurrentCommandType < EditorViewButtonHelper::EStaticMeshFlag::Max; ++CurrentCommandType)
 		{
 			StaticMeshTestName = FString::Printf(TEXT("%s/%s"), *BaseFileName, EditorViewButtonHelper::GetStaticMeshFlagName(AutomationParameters.CommandType));
 			
 			//Toggle the command for the button, take a screenshot, and then re-toggle the command for the button
 			ADD_LATENT_AUTOMATION_COMMAND(EditorViewButtonHelper::FPerformStaticMeshFlagToggle(AutomationParameters));
-			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
-
-			if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
-			{
-				//Take the screenshot
-				AutomationCommon::GetScreenshotPath(StaticMeshTestName, WindowParameters.ScreenshotName);
-				ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
-
-				//Wait so the screenshots have a chance to save
-				ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
-			}
 
 			//Toggle the flag back off
 			ADD_LATENT_AUTOMATION_COMMAND(EditorViewButtonHelper::FPerformStaticMeshFlagToggle(AutomationParameters));

@@ -380,8 +380,25 @@ struct FParticleVertexDynamicParameter
 };
 
 //	FParticleBeamTrailVertex
-struct FParticleBeamTrailVertex : public FParticleSpriteVertex
+struct FParticleBeamTrailVertex
 {
+	/** The position of the particle. */
+	FVector Position;
+	/** The relative time of the particle. */
+	float RelativeTime;
+	/** The previous position of the particle. */
+	FVector	OldPosition;
+	/** Value that remains constant over the lifetime of a particle. */
+	float ParticleId;
+	/** The size of the particle. */
+	FVector2D Size;
+	/** The rotation of the particle. */
+	float Rotation;
+	/** The sub-image index for the particle. */
+	float SubImageIndex;
+	/** The color of the particle. */
+	FLinearColor Color;
+
 	float			Tex_U;
 	float			Tex_V;
 
@@ -1485,6 +1502,7 @@ struct FDynamicSpriteEmitterReplayDataBase
 	int32							OrbitModuleOffset;
 	int32							DynamicParameterDataOffset;
 	int32							LightDataOffset;
+	float							LightVolumetricScatteringIntensity;
 	int32							CameraPayloadOffset;
 	int32							SubUVDataOffset;
 	int32							SubImages_Horizontal;

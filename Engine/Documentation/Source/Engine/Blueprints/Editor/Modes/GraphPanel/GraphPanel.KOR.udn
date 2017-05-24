@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 그래프 모드
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description: 블루프린트 안의 노드 망 레이아웃을 시각적으로 배치하여 함수성을 붙일 수 있는 모드입니다.
+tags:Blueprints
 
 
 [VAR:Topic]

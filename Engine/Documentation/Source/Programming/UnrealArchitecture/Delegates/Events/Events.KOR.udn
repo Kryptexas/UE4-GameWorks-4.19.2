@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:3108692
 Availability:Public
-Title: 이벤트 (Event)
+Title: 이벤트
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
 Description:여러 함수에 바인딩하여 모두 한 번에 실행시킬 수 있는 델리게이트입니다.
 Version: 4.9

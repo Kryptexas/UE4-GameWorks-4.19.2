@@ -106,87 +106,87 @@ set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 add_definitions(-DFT2_BUILD_LIBRARY)
 
 # Specify library include directories
-include_directories("${PROJECT_SOURCE_DIR}/include")
+include_directories("${PROJECT_SOURCE_DIR}/Include")
 
 # Create the configuration file
-message(STATUS "Creating directory, ${PROJECT_BINARY_DIR}/include/freetype2.")
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/include/freetype2)
+message(STATUS "Creating directory, ${PROJECT_BINARY_DIR}/Include/freetype2.")
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/Include/freetype2)
 
 # For the auto-generated ftconfig.h file
-include_directories(BEFORE "${PROJECT_BINARY_DIR}/include/freetype2")
-message(STATUS "Creating ${PROJECT_BINARY_DIR}/include/freetype2/ftconfig.h.")
+include_directories(BEFORE "${PROJECT_BINARY_DIR}/Include/freetype2")
+message(STATUS "Creating ${PROJECT_BINARY_DIR}/Include/freetype2/ftconfig.h.")
 execute_process(
   COMMAND sed -e "s/FT_CONFIG_OPTIONS_H/<ftoption.h>/" -e "s/FT_CONFIG_STANDARD_LIBRARY_H/<ftstdlib.h>/" -e "s?/undef ?#undef ?"
   INPUT_FILE ${PROJECT_SOURCE_DIR}/builds/unix/ftconfig.in
-  OUTPUT_FILE ${PROJECT_BINARY_DIR}/include/freetype2/ftconfig.h
+  OUTPUT_FILE ${PROJECT_BINARY_DIR}/Include/freetype2/ftconfig.h
 )
 
-file(GLOB PUBLIC_HEADERS "include/*.h")
-file(GLOB PUBLIC_CONFIG_HEADERS "include/config/*.h")
-file(GLOB PRIVATE_HEADERS "include/internal/*.h")
+file(GLOB PUBLIC_HEADERS "Include/*.h")
+file(GLOB PUBLIC_CONFIG_HEADERS "Include/config/*.h")
+file(GLOB PRIVATE_HEADERS "Include/internal/*.h")
 
 set(BASE_SRCS
-  src/autofit/autofit.c
-  src/base/ftadvanc.c
-  src/base/ftbbox.c
-  src/base/ftbdf.c
-  src/base/ftbitmap.c
-  src/base/ftcalc.c
-  src/base/ftcid.c
-  src/base/ftdbgmem.c
-  src/base/ftdebug.c
-  src/base/ftfntfmt.c
-  src/base/ftfstype.c
-  src/base/ftgasp.c
-  src/base/ftgloadr.c
-  src/base/ftglyph.c
-  src/base/ftgxval.c
-  src/base/ftinit.c
-  src/base/ftlcdfil.c
-  src/base/ftmm.c
-  src/base/ftobjs.c
-  src/base/ftotval.c
-  src/base/ftoutln.c
-  src/base/ftpatent.c
-  src/base/ftpfr.c
-  src/base/ftrfork.c
-  src/base/ftsnames.c
-  src/base/ftstream.c
-  src/base/ftstroke.c
-  src/base/ftsynth.c
-  src/base/ftsystem.c
-  src/base/fttrigon.c
-  src/base/fttype1.c
-  src/base/ftutil.c
-  src/base/ftwinfnt.c
-  src/bdf/bdf.c
-  src/bzip2/ftbzip2.c
-  src/cache/ftcache.c
-  src/cff/cff.c
-  src/cid/type1cid.c
-  src/gzip/ftgzip.c
-  src/lzw/ftlzw.c
-  src/pcf/pcf.c
-  src/pfr/pfr.c
-  src/psaux/psaux.c
-  src/pshinter/pshinter.c
-  src/psnames/psmodule.c
-  src/raster/raster.c
-  src/sfnt/sfnt.c
-  src/smooth/smooth.c
-  src/truetype/truetype.c
-  src/type1/type1.c
-  src/type42/type42.c
-  src/winfonts/winfnt.c
+  Src/autofit/autofit.c
+  Src/base/ftadvanc.c
+  Src/base/ftbbox.c
+  Src/base/ftbdf.c
+  Src/base/ftbitmap.c
+  Src/base/ftcalc.c
+  Src/base/ftcid.c
+  Src/base/ftdbgmem.c
+  Src/base/ftdebug.c
+  Src/base/ftfntfmt.c
+  Src/base/ftfstype.c
+  Src/base/ftgasp.c
+  Src/base/ftgloadr.c
+  Src/base/ftglyph.c
+  Src/base/ftgxval.c
+  Src/base/ftinit.c
+  Src/base/ftlcdfil.c
+  Src/base/ftmm.c
+  Src/base/ftobjs.c
+  Src/base/ftotval.c
+  Src/base/ftoutln.c
+  Src/base/ftpatent.c
+  Src/base/ftpfr.c
+  Src/base/ftrfork.c
+  Src/base/ftsnames.c
+  Src/base/ftstream.c
+  Src/base/ftstroke.c
+  Src/base/ftsynth.c
+  Src/base/ftsystem.c
+  Src/base/fttrigon.c
+  Src/base/fttype1.c
+  Src/base/ftutil.c
+  Src/base/ftwinfnt.c
+  Src/bdf/bdf.c
+  Src/bzip2/ftbzip2.c
+  Src/cache/ftcache.c
+  Src/cff/cff.c
+  Src/cid/type1cid.c
+  Src/gzip/ftgzip.c
+  Src/lzw/ftlzw.c
+  Src/pcf/pcf.c
+  Src/pfr/pfr.c
+  Src/psaux/psaux.c
+  Src/pshinter/pshinter.c
+  Src/psnames/psmodule.c
+  Src/raster/raster.c
+  Src/sfnt/sfnt.c
+  Src/smooth/smooth.c
+  Src/truetype/truetype.c
+  Src/type1/type1.c
+  Src/type42/type42.c
+  Src/winfonts/winfnt.c
 )
 
-include_directories("src/truetype")
-include_directories("src/sfnt")
-include_directories("src/autofit")
-include_directories("src/smooth")
-include_directories("src/raster")
-include_directories("src/psaux")
-include_directories("src/psnames")
+include_directories("Src/truetype")
+include_directories("Src/sfnt")
+include_directories("Src/autofit")
+include_directories("Src/smooth")
+include_directories("Src/raster")
+include_directories("Src/psaux")
+include_directories("Src/psnames")
 
 if (BUILD_FRAMEWORK)
   set(BASE_SRCS
@@ -225,8 +225,8 @@ endif ()
 
 # Installations
 # Note the trailing slash in the argument to the `DIRECTORY' directive
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
-  DESTINATION include/freetype2
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/Include/
+  DESTINATION Include/freetype2
   PATTERN "internal" EXCLUDE
 )
 install(TARGETS freetype

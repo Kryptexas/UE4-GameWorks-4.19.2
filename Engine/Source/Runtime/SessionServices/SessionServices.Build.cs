@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SessionServices : ModuleRules
 {
-	public SessionServices(TargetInfo Target)
+	public SessionServices(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]

@@ -318,7 +318,7 @@ UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const U
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, true))
 	{
-		Result = ERedirectType_Custom;
+		Result = ERedirectType_Name;
 	}
 	else if ((ERedirectType_None == Result) && NewPin && OldPin)
 	{
@@ -327,19 +327,16 @@ UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const U
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 			if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
 			{
-				Result = ERedirectType_Custom;
+				Result = ERedirectType_Name;
 			}
 		}
 		else if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
 		{
-			TMap<FName, FName>* StructRedirects = UStruct::TaggedPropertyRedirects.Find(StructType->GetFName());
-			if (StructRedirects)
+			FName RedirectedPinName = UProperty::FindRedirectedPropertyName(StructType, FName(*OldPin->PinName));
+
+			if (RedirectedPinName != NAME_Name)
 			{
-				FName* PropertyRedirect = StructRedirects->Find(FName(*OldPin->PinName));
-				if (PropertyRedirect)
-				{
-					Result = ((FCString::Stricmp(*PropertyRedirect->ToString(), *NewPin->PinName) != 0) ? ERedirectType_None : ERedirectType_Name);
-				}
+				Result = ((FCString::Stricmp(*RedirectedPinName.ToString(), *NewPin->PinName) != 0) ? ERedirectType_None : ERedirectType_Name);
 			}
 		}
 	}

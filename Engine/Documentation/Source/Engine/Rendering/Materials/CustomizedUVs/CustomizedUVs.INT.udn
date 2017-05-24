@@ -7,6 +7,7 @@ parent:Engine/Rendering/Materials
 order:12
 topic-image:CUVs_topic.png
 type:overview
+tags:Materials
 
 
 [TOC(start:2)]

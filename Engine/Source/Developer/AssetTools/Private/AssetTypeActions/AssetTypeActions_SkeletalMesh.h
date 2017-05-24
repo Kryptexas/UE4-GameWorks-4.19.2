@@ -53,6 +53,9 @@ private:
 	/** Handler for skeletal mesh import */
 	static void ExecuteImportMeshLOD(class UObject* Mesh, int32 LOD);
 
+	/** Handler to import clothing to a mesh */
+	void ExecuteImportClothing(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
+
 	// Helper functions
 private:
 	/** Creates a physics asset based on the mesh */
@@ -63,7 +66,7 @@ private:
 
 	void OnAssetCreated(TArray<UObject*> NewAssets) const;
 
-	void FillSourceMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
-	void FillSkeletonMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
-	void FillCreateMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
+	void FillSourceMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
+	void FillSkeletonMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
+	void FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
 };

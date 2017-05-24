@@ -70,30 +70,23 @@ uint32 FNetworkVersion::GetLocalNetworkVersion( bool AllowOverrideDelegate /*=tr
 	{
 		CachedNetworkChecksum = GetLocalNetworkVersionOverride.Execute();
 
-		UE_LOG( LogNetVersion, Log, TEXT( "GetLocalNetworkVersionOverride: NetworkChecksum: %u" ), CachedNetworkChecksum );
+		UE_LOG( LogNetVersion, Log, TEXT( "Checksum from delegate: %u" ), CachedNetworkChecksum );
 
 		bHasCachedNetworkChecksum = true;
 
 		return CachedNetworkChecksum;
 	}
 
-	// Get the project name (NOT case sensitive)
-	const FString ProjectName( FString( FApp::GetGameName() ).ToLower() );
+	FString VersionString = FString::Printf(TEXT("%s %s, NetCL: %d, EngineNetVer: %d, GameNetVer: %d"),
+		FApp::GetGameName(),
+		*ProjectVersion,
+		GetNetworkCompatibleChangelist(),
+		FNetworkVersion::GetEngineNetworkProtocolVersion(),
+		FNetworkVersion::GetGameNetworkProtocolVersion());
 
-	// Start with project name+compatible changelist as seed
-	CachedNetworkChecksum = FCrc::StrCrc32( *ProjectName, GetNetworkCompatibleChangelist() );
+	CachedNetworkChecksum = FCrc::StrCrc32(*VersionString.ToLower());
 
-	// Next, hash with project version
-	CachedNetworkChecksum = FCrc::StrCrc32( *ProjectVersion, CachedNetworkChecksum );
-
-	// Finally, hash with engine/game network version
-	const uint32 EngineNetworkVersion	= FNetworkVersion::GetEngineNetworkProtocolVersion();
-	const uint32 GameNetworkVersion		= FNetworkVersion::GetGameNetworkProtocolVersion();
-
-	CachedNetworkChecksum = FCrc::MemCrc32( &EngineNetworkVersion, sizeof( EngineNetworkVersion ), CachedNetworkChecksum );
-	CachedNetworkChecksum = FCrc::MemCrc32( &GameNetworkVersion, sizeof( GameNetworkVersion ), CachedNetworkChecksum );
-
-	UE_LOG( LogNetVersion, Log, TEXT( "GetLocalNetworkVersion: CL: %u, ProjectName: %s, ProjectVersion: %s, EngineNetworkVersion: %i, GameNetworkVersion: %i, NetworkChecksum: %u" ), FEngineVersion::CompatibleWith().GetChangelist(), *ProjectName, *ProjectVersion, EngineNetworkVersion, GameNetworkVersion, CachedNetworkChecksum );
+	UE_LOG(LogNetVersion, Log, TEXT("%s (Checksum: %u)"), *VersionString, CachedNetworkChecksum);
 
 	bHasCachedNetworkChecksum = true;
 

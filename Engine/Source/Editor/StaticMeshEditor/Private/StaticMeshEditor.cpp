@@ -40,7 +40,7 @@
 #include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
-#include "SAdvancedPreviewDetailsTab.h"
+#include "AdvancedPreviewSceneModule.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
@@ -481,6 +481,20 @@ void FStaticMeshEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FStaticMeshEditor::OnConvexDecomposition));
 }
 
+static TSharedRef< SWidget > GenerateCollisionMenuContent(TSharedPtr<const FUICommandList> InCommandList)
+{
+	FMenuBuilder MenuBuilder(true, InCommandList);
+
+	MenuBuilder.BeginSection("ShowCollision", LOCTEXT("ShowCollision", "Show Collision"));
+	{
+		MenuBuilder.AddMenuEntry(FStaticMeshEditorCommands::Get().SetShowSimpleCollision);
+		MenuBuilder.AddMenuEntry(FStaticMeshEditorCommands::Get().SetShowComplexCollision);
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
 void FStaticMeshEditor::ExtendToolBar()
 {
 	struct Local
@@ -500,7 +514,17 @@ void FStaticMeshEditor::ExtendToolBar()
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowVertexColor);
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowGrid);
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowBounds);
-				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowCollision);
+
+				TSharedPtr<const FUICommandList> CommandList = ToolbarBuilder.GetTopCommandList();
+
+				ToolbarBuilder.AddComboButton(
+					FUIAction(),
+					FOnGetContent::CreateStatic(&GenerateCollisionMenuContent, CommandList),
+					LOCTEXT("Collision_Label", "Collision"),
+					LOCTEXT("Collision_Tooltip", "Collision drawing options"),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "StaticMeshEditor.SetShowCollision")
+				);
+
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowPivot);
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowNormals);
 				ToolbarBuilder.AddToolBarButton(FStaticMeshEditorCommands::Get().SetShowTangents);
@@ -576,7 +600,8 @@ void FStaticMeshEditor::BuildSubTools()
 		LODLevelCombo->SetSelectedItem(LODLevels[0]);
 	}
 
-	AdvancedPreviewSettingsWidget = SNew(SAdvancedPreviewDetailsTab, Viewport->GetPreviewScene());
+	FAdvancedPreviewSceneModule& AdvancedPreviewSceneModule = FModuleManager::LoadModuleChecked<FAdvancedPreviewSceneModule>("AdvancedPreviewScene");
+	AdvancedPreviewSettingsWidget = AdvancedPreviewSceneModule.CreateAdvancedPreviewSceneSettingsWidget(Viewport->GetPreviewScene());
 }
 
 FName FStaticMeshEditor::GetToolkitFName() const
@@ -657,9 +682,9 @@ void FStaticMeshEditor::AddSelectedPrim(const FPrimData& InPrimData, bool bClear
 	check(IsPrimValid(InPrimData));
 
 	// Enable collision, if not already
-	if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+	if( !Viewport->GetViewportClient().IsSetShowSimpleCollisionChecked() )
 	{
-		Viewport->GetViewportClient().SetShowWireframeCollision();
+		Viewport->GetViewportClient().SetShowSimpleCollision();
 	}
 
 	if( bClearSelection )
@@ -1445,9 +1470,9 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 	BodySetup->CopyBodyPropertiesFrom(SelectedMesh->BodySetup);
 
 	// Enable collision, if not already
-	if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+	if( !Viewport->GetViewportClient().IsSetShowSimpleCollisionChecked() )
 	{
-		Viewport->GetViewportClient().SetShowWireframeCollision();
+		Viewport->GetViewportClient().SetShowSimpleCollision();
 	}
 
 	// Invalidate physics data and create new meshes
@@ -1509,7 +1534,7 @@ UStaticMesh* FStaticMeshEditor::GetFirstSelectedStaticMeshInContentBrowser() con
 	return NULL;
 }
 
-void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh)
+void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCamera/*=true*/)
 {
 	ClearSelectedPrims();
 
@@ -1569,7 +1594,7 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh)
 	// Set the details view.
 	StaticMeshDetailsView->SetObject(StaticMesh);
 
-	Viewport->UpdatePreviewMesh(StaticMesh);
+	Viewport->UpdatePreviewMesh(StaticMesh, bResetCamera);
 	Viewport->RefreshViewport();
 }
 
@@ -1691,9 +1716,9 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 		}
 
 		// Enable collision, if not already
-		if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )
+		if( !Viewport->GetViewportClient().IsSetShowSimpleCollisionChecked() )
 		{
-			Viewport->GetViewportClient().SetShowWireframeCollision();
+			Viewport->GetViewportClient().SetShowSimpleCollision();
 		}
 
 		// refresh collision change back to staticmesh components
@@ -1867,49 +1892,15 @@ void FStaticMeshEditor::OnObjectReimported(UObject* InObject)
 	// Make sure we are using the object that is being reimported, otherwise a lot of needless work could occur.
 	if(StaticMesh == InObject)
 	{
-		SetEditorMesh(Cast<UStaticMesh>(InObject));
+		//When we re-import we want to avoid moving the camera in the staticmesh editor
+		bool bResetCamera = false;
+		SetEditorMesh(Cast<UStaticMesh>(InObject), bResetCamera);
 
 		if (SocketManager.IsValid())
 		{
 			SocketManager->UpdateStaticMesh();
 		}
 	}
-}
-
-void FStaticMeshEditor::SaveAsset_Execute()
-{
-	//Clean the unused Material entry before saving
-	if (StaticMesh)
-	{
-		for (int32 MaterialIndex = 0; MaterialIndex < StaticMesh->StaticMaterials.Num(); ++MaterialIndex)
-		{
-			bool MaterialIsUsed = false;
-			for (int32 LODIndex = 0; LODIndex < StaticMesh->GetNumLODs(); ++LODIndex)
-			{
-				for (int32 SectionIndex = 0; SectionIndex < StaticMesh->GetNumSections(LODIndex); ++SectionIndex)
-				{
-					FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);
-					if (Info.MaterialIndex == MaterialIndex)
-					{
-						MaterialIsUsed = true;
-						break;
-					}
-				}
-			}
-
-			if (!MaterialIsUsed)
-			{
-				StaticMesh->StaticMaterials[MaterialIndex].MaterialInterface = nullptr;
-				StaticMesh->Modify();
-				StaticMesh->PostEditChange();
-				if (StaticMesh->BodySetup)
-				{
-					StaticMesh->BodySetup->CreatePhysicsMeshes();
-				}
-			}
-		}
-	}
-	FAssetEditorToolkit::SaveAsset_Execute();
 }
 
 EViewModeIndex FStaticMeshEditor::GetViewMode() const

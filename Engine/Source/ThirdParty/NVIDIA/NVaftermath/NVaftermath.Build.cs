@@ -3,7 +3,8 @@ using UnrealBuildTool;
 using System;
 public class NVAftermath : ModuleRules
 {
-    public NVAftermath(TargetInfo Target)
+    public NVAftermath(ReadOnlyTargetRules Target)
+        : base(Target)
 	{
 		Type = ModuleType.External;
 

@@ -20,7 +20,7 @@
 #include "IOSVR.h"
 #include "OSVRHMDDescription.h"
 #include "HeadMountedDisplay.h"
-#include "IHeadMountedDisplay.h"
+#include "HeadMountedDisplayBase.h"
 #include "SceneViewExtension.h"
 #include "SceneView.h"
 #include "ShowFlags.h"
@@ -39,7 +39,7 @@ DECLARE_LOG_CATEGORY_EXTERN(OSVRHMDLog, Log, All);
 /**
 * OSVR Head Mounted Display
 */
-class FOSVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, public TSharedFromThis< FOSVRHMD, ESPMode::ThreadSafe >
+class FOSVRHMD : public FHeadMountedDisplayBase, public ISceneViewExtension, public TSharedFromThis< FOSVRHMD, ESPMode::ThreadSafe >
 {
 public:
 
@@ -50,7 +50,12 @@ public:
     virtual void OnBeginPlay() override;
     virtual void OnEndPlay() override;
 #endif
-    virtual bool IsHMDConnected() override;
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("OSVR"));
+		return DefaultName;
+	}
+	virtual bool IsHMDConnected() override;
     virtual bool IsHMDEnabled() const override;
     virtual void EnableHMD(bool bEnable = true) override;
     virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
@@ -83,18 +88,14 @@ public:
 
     virtual bool IsChromaAbCorrectionEnabled() const override;
 
-    virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 #if !OSVR_UNREAL_4_12
     virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
 #endif
 
     virtual bool IsPositionalTrackingEnabled() const override;
-    virtual bool EnablePositionalTracking(bool bEnable) override;
 
     virtual bool IsHeadTrackingAllowed() const override;
 
-    virtual bool IsInLowPersistenceMode() const override;
-    virtual void EnableLowPersistenceMode(bool bEnable = true) override;
     virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
 
     // seen in simplehmd
@@ -198,7 +199,6 @@ private:
     /** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
     float WorldToMetersScale = 100.0f; // @todo: isn't this meters to world units scale?
 
-    bool bHmdPosTracking = false;
     bool bHaveVisionTracking = false;
 
     bool bStereoEnabled = false;

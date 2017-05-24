@@ -14,6 +14,18 @@ class UQosEvaluator;
 
 #define UNREACHABLE_PING 9999
 
+/** Enum for single region QoS return codes */
+UENUM()
+enum class EQosRegionResult : uint8
+{
+	/** Incomplete, invalid result */
+	Invalid,
+	/** QoS operation was successful */
+	Success,
+	/** QoS operation with one or more ping failures */
+	Incomplete
+};
+
 /** Enum for possible QoS return codes */
 UENUM()
 enum class EQosCompletionResult : uint8
@@ -79,9 +91,14 @@ struct FQosDatacenterInfo
 	{
 	}
 
+	bool IsPingable() const
+	{
+		return !RegionId.IsEmpty() && bEnabled;
+	}
+
 	bool IsUsable() const
 	{
-		return !RegionId.IsEmpty() && bEnabled && bVisible;
+		return IsPingable() && bVisible;
 	}
 };
 
@@ -97,7 +114,7 @@ struct QOS_API FQosRegionInfo
 
 	/** Success of the qos evaluation */
 	UPROPERTY(Transient)
-	EQosCompletionResult Result;
+	EQosRegionResult Result;
 	/** Avg ping times across all search results */
 	UPROPERTY(Transient)
 	int32 AvgPingMs;
@@ -107,21 +124,25 @@ struct QOS_API FQosRegionInfo
 	/** Transient list of ping times for the above search results */
 	UPROPERTY(Transient)
 	TArray<int32> PingResults;
+	/** Number of good results */
+	int32 NumResponses;
 	/** Last time this datacenter was checked */
 	UPROPERTY(Transient)
 	FDateTime LastCheckTimestamp;
 
 	FQosRegionInfo()
-		: Result(EQosCompletionResult::Invalid)
+		: Result(EQosRegionResult::Invalid)
 		, AvgPingMs(UNREACHABLE_PING)
+		, NumResponses(0)
 		, LastCheckTimestamp(0)
 	{
 	}
 
 	FQosRegionInfo(const FQosDatacenterInfo& InMeta)
 		: Region(InMeta)
-		, Result(EQosCompletionResult::Invalid)
+		, Result(EQosRegionResult::Invalid)
 		, AvgPingMs(UNREACHABLE_PING)
+		, NumResponses(0)
 		, LastCheckTimestamp(0)
 	{
 	}
@@ -136,7 +157,7 @@ struct QOS_API FQosRegionInfo
 	void Reset()
 	{
 		// Only the transient values get reset
-		Result = EQosCompletionResult::Invalid;
+		Result = EQosRegionResult::Invalid;
 		AvgPingMs = UNREACHABLE_PING;
 		SearchResults.Empty();
 		PingResults.Empty();
@@ -207,6 +228,9 @@ public:
 	 * @return the default datacenter identifier
 	 */
 	static FString GetDatacenterId();
+
+    /** @return true if a reasonable enough number of results were returned from all known regions, false otherwise */
+	bool AllRegionsFound() const;
 
 	/**
 	 * Debug output for current region / datacenter information

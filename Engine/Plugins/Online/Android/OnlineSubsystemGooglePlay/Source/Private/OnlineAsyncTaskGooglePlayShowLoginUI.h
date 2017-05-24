@@ -7,6 +7,7 @@
 #include "OnlineExternalUIInterface.h"
 #include "OnlineAsyncTaskGooglePlayAuthAction.h"
 #include "OnlineSubsystemGooglePlayPackage.h"
+#include "AndroidPermissionFunctionLibrary.h"
 
 #include <vector>
 
@@ -36,6 +37,9 @@ public:
 
 	/** Callback from JNI when Google Client is connected */
 	void ProcessGoogleClientConnectResult(bool bInSuccessful, FString AccessToken);
+
+	void OnPermissionRequestReturn(const TArray<FString>& Permissions, const TArray<bool>& GrantResults);
+
 
 private:
 	/** The subsystem is the only class that should be calling OnAuthActionFinished */

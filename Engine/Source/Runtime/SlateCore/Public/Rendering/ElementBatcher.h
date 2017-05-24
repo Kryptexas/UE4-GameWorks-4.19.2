@@ -45,53 +45,62 @@ public:
 	void ResetBatches();
 
 private:
-	void AddElements(const FSlateWindowElementList& ElementList, FSlateDrawLayer& InDrawLayer);
+	void AddElements(const TArray<FSlateDrawElement>& DrawElements, const FVector2D& ViewportSize);
 	
 	FColor PackVertexColor(const FLinearColor& InLinearColor);
 
 	/** 
 	 * Creates vertices necessary to draw a Quad element 
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddQuadElement( const FSlateDrawElement& DrawElement, FColor Color = FColor::White);
 
 	/** 
 	 * Creates vertices necessary to draw a 3x3 element
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddBoxElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a string (one quad per character)
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddTextElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a shaped glyph sequence (one quad per glyph)
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddShapedTextElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a gradient box (horizontal or vertical)
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddGradientElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a spline (Bezier curve)
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddSplineElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a series of attached line segments
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddLineElement( const FSlateDrawElement& DrawElement );
 	
 	/** 
 	 * Creates vertices necessary to draw a viewport (just a textured quad)
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddViewportElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a border element
 	 */
+	template<ESlateVertexRounding Rounding>
 	void AddBorderElement( const FSlateDrawElement& DrawElement );
 
 	/**
@@ -132,8 +141,8 @@ private:
 											 const FSlateShaderResource* InTexture, 
 											 ESlateDrawPrimitive::Type PrimitiveType, 
 											 ESlateShader::Type ShaderType, 
-											 ESlateDrawEffect::Type DrawEffects, 
-											 ESlateBatchDrawFlag::Type DrawFlags,
+											 ESlateDrawEffect DrawEffects, 
+											 ESlateBatchDrawFlag DrawFlags,
 											 const TOptional<FShortRect>& ScissorRect,
 											 int32 SceneIndex = -1);
 private:

@@ -11,12 +11,15 @@
 #include "UObject/Object.h"
 #include "Audio.h"
 #include "Sound/SoundConcurrency.h"
+#include "SoundSubmix.h"
 #include "SoundBase.generated.h"
 
 class USoundEffectSourcePreset;
 class USoundSubmix;
+struct FSoundSubmixSendInfo;
 struct FActiveSound;
 struct FSoundParseParameters;
+
 
 UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundBase : public UObject
@@ -34,10 +37,6 @@ protected:
 
 public:
 
-	/** Sound submix this sound belongs to */
-	UPROPERTY(EditAnywhere, Category=Sound, meta = (DisplayName = "Sound Submix"))
-	USoundSubmix* SoundSubmixObject;
-
 	/** When "stat sounds -debug" has been specified, draw this sound's attenuation shape when the sound is audible. For debugging purpose only. */
 	UPROPERTY(EditAnywhere, Category = Debug)
 	uint32 bDebug:1;
@@ -50,11 +49,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
 	uint32 bIgnoreFocus:1;
 
-	/** If bOverridePlayback is false, the sound concurrency settings to use for this sound. */
+	/** If Override Concurrency is false, the sound concurrency settings to use for this sound. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency, meta = (EditCondition = "!bOverrideConcurrency"))
 	class USoundConcurrency* SoundConcurrencySettings;
 
-	/** If bOverridePlayback is true, concurrency settings to use. */
+	/** If Override Concurrency is true, concurrency settings to use. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency, meta = (EditCondition = "bOverrideConcurrency"))
 	struct FSoundConcurrencySettings ConcurrencyOverrides;
 
@@ -77,13 +76,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "100.0", UIMax = "100.0") )
 	float Priority;
 
-	/** The source effect chain to use for this sound. */
-	UPROPERTY(EditAnywhere, Category = Effects)
-	TArray<USoundEffectSourcePreset*> SourceEffectChain;
+	/** Sound submix this sound belongs to. 
+	  * Audio will play here and traverse through the submix graph. 
+	  * A null entry will make the sound obey the default master effects graph.
+	  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects, meta = (DisplayName = "Sound Submix"))
+	USoundSubmix* SoundSubmixObject;
 
-	/** The default amount of audio to send to the master reverb effect for this sound if reverb is enabled for the sound. This can be overridden by sound attenuation settings for 3d sounds. */
-	UPROPERTY(EditAnywhere, Category = Effects)
+	/** An array of submix sends. Audio from this sound will send a portion of its audio to these effects.  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+	TArray<FSoundSubmixSendInfo> SoundSubmixSends;
+
+	/** 
+	 * The default amount of audio to send to the master reverb effect for this sound if reverb is enabled for the sound. 
+	 * This can be overridden by sound attenuation settings for 3d sounds. 
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
 	float DefaultMasterReverbSendAmount;
+
+	/** The source effect chain to use for this sound. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Effects)
+	USoundEffectSourcePresetChain* SourceEffectChain;
 
 public:	
 	/** Number of times this cue is currently being played. */
@@ -130,6 +143,9 @@ public:
 
 	/** Returns the SoundSubmix used for this sound. */
 	virtual USoundSubmix* GetSoundSubmix() const;
+
+	/** Returns the sound submix sends for this sound. */
+	void GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const;
 
 	/** Returns the FSoundConcurrencySettings struct to use. */
 	const FSoundConcurrencySettings* GetSoundConcurrencySettingsToApply();

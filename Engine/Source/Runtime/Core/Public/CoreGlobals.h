@@ -288,19 +288,14 @@ extern CORE_API FString GSystemStartTime;
 /** Whether we are still in the initial loading process. */
 extern CORE_API bool GIsInitialLoad;
 
-/* Whether we are using the new async IO */
-extern CORE_API bool GNewAsyncIO;
-
 /* Whether we are using the event driven loader */
 extern CORE_API bool GEventDrivenLoaderEnabled;
 
 //@todoio put this in some kind of API
 extern CORE_API bool GPakCache_AcceptPrecacheRequests;
 
-#if WITH_HOT_RELOAD_CTORS
 /** true when we are retrieving VTablePtr from UClass */
 extern CORE_API bool GIsRetrievingVTablePtr;
-#endif // WITH_HOT_RELOAD_CTORS
 
 /** Steadily increasing frame counter. */
 extern CORE_API uint64 GFrameCounter;
@@ -361,9 +356,6 @@ extern CORE_API ELogTimes::Type GPrintLogTimes;
 /** How to print the category in log output. */
 extern CORE_API bool GPrintLogCategory;
 
-/** Global screen shot index to avoid overwriting ScreenShots. */
-extern CORE_API int32 GScreenshotBitmapIndex;
-
 /** Whether stats should emit named events for e.g. PIX. */
 extern CORE_API int32 GCycleStatsShouldEmitNamedEvents;
 
@@ -388,7 +380,6 @@ extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
 extern CORE_API bool GEnableVREditorHacks;
 
-#if WITH_HOT_RELOAD_CTORS
 /**
  * Ensures that current thread is during retrieval of vtable ptr of some
  * UClass.
@@ -397,7 +388,6 @@ extern CORE_API bool GEnableVREditorHacks;
  *		construct proper error message.
  */
 CORE_API void EnsureRetrievingVTablePtrDuringCtor(const TCHAR* CtorSignature);
-#endif // WITH_HOT_RELOAD_CTORS
 
 /** @return True if called from the game thread. */
 FORCEINLINE bool IsInGameThread()
@@ -405,7 +395,7 @@ FORCEINLINE bool IsInGameThread()
 	if(GIsGameThreadIdInitialized)
 	{
 		const uint32 CurrentThreadId = FPlatformTLS::GetCurrentThreadId();
-		return CurrentThreadId == GGameThreadId || CurrentThreadId == GSlateLoadingThreadId;
+		return CurrentThreadId == GGameThreadId;
 	}
 
 	return true;

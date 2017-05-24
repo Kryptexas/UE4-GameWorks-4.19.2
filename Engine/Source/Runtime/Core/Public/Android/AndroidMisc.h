@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "CoreTypes.h"
 #include "Android/AndroidSystemIncludes.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 //@todo android: this entire file
@@ -26,7 +27,8 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void LocalPrint(const TCHAR *Message);
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit(bool ShowSplashScreen);
+	static void PlatformPostInit();
+	static void PlatformHandleSplashScreen(bool ShowSplashScreen);
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();
 	static void SetHardwareWindow(void* InWindow);
@@ -133,6 +135,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	typedef TFunction<void(void* NewNativeHandle)> ReInitWindowCallbackType;
 	static ReInitWindowCallbackType GetOnReInitWindowCallback();
 	static void SetOnReInitWindowCallback(ReInitWindowCallbackType InOnReInitWindowCallback);
+	static FString GetOSVersion();
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();

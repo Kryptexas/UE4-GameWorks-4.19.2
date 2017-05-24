@@ -159,12 +159,12 @@ void SGraphEditorImpl::SelectAllNodes()
 
 UEdGraphPin* SGraphEditorImpl::GetGraphPinForMenu()
 {
-	return GraphPinForMenu;
+	return GraphPinForMenu.Get();
 }
 
 UEdGraphNode* SGraphEditorImpl::GetGraphNodeForMenu()
 {
-	return GraphNodeForMenu;
+	return GraphNodeForMenu.IsValid() ? GraphNodeForMenu.Get() : nullptr;
 }
 
 void SGraphEditorImpl::ZoomToFit(bool bOnlySelection)
@@ -246,7 +246,8 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 
 	}
 
-	GraphPinForMenu = NULL;
+	bResetMenuContext = false;
+	GraphPinForMenu.SetPin(nullptr);
 	EdGraphObj = InArgs._GraphToEdit;
 
 	OnFocused = InArgs._GraphEvents.OnFocused;
@@ -431,6 +432,13 @@ SGraphEditorImpl::~SGraphEditorImpl()
 
 void SGraphEditorImpl::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	if (bResetMenuContext)
+	{
+		GraphPinForMenu.SetPin(nullptr);
+		GraphNodeForMenu.Reset();
+		bResetMenuContext = false;
+	}
+
 	// If locked to another graph editor, and our panel has moved, synchronise the locked graph editor accordingly
 	if ((EdGraphObj != NULL) && GraphPanel.IsValid())
 	{
@@ -456,24 +464,18 @@ void SGraphEditorImpl::OnClosedActionMenu()
 
 FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo)
 {
+	FActionMenuContent Result;
+
 	if (EdGraphObj != NULL)
 	{
+		Result = FActionMenuContent( SNew(STextBlock) .Text( NSLOCTEXT("GraphEditor", "NoNodes", "No Nodes") ) );
+
 		const UEdGraphSchema* Schema = EdGraphObj->GetSchema();
 		check(Schema);
 			
 		// Cache the pin this menu is being brought up for
-		GraphPinForMenu = SpawnInfo.GraphPin;
+		GraphPinForMenu.SetPin(SpawnInfo.GraphPin);
 		GraphNodeForMenu = SpawnInfo.GraphNode;
-		
-		// Ensure we reset the GraphNodeForMenu when the menu closes
-		RegisterActiveTimer(0.1f, FWidgetActiveTimerDelegate::CreateLambda([this](double, float){
-			if (!FSlateApplication::Get().AnyMenusVisible())
-			{
-				GraphNodeForMenu = nullptr;
-				return EActiveTimerReturnType::Stop;
-			}
-			return EActiveTimerReturnType::Continue;
-		}));
 		
 		if ((SpawnInfo.GraphPin != NULL) || (SpawnInfo.GraphNode != NULL))
 		{
@@ -496,17 +498,15 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor(const FGraphCon
 			FMenuBuilder MenuBuilder( bShouldCloseAfterAction, this->Commands, MenuExtender );
 			Schema->GetContextMenuActions(EdGraphObj, SpawnInfo.GraphNode, SpawnInfo.GraphPin, &MenuBuilder, !IsEditable.Get());
 
-			return FActionMenuContent(MenuBuilder.MakeWidget());
+			Result = FActionMenuContent(MenuBuilder.MakeWidget());
 		}
 		else if (IsEditable.Get())
 		{
 			if (EdGraphObj->GetSchema() != NULL )
 			{
-				FActionMenuContent Content;
-
 				if(OnCreateActionMenu.IsBound())
 				{
-					Content = OnCreateActionMenu.Execute(
+					Result = OnCreateActionMenu.Execute(
 						EdGraphObj, 
 						SpawnInfo.NodeAddPosition,
 						SpawnInfo.DragFromPins,
@@ -525,29 +525,31 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor(const FGraphCon
 						.OnClosedCallback( SGraphEditor::FActionMenuClosed::CreateSP(this, &SGraphEditorImpl::OnClosedActionMenu)
 						);
 
-					Content = FActionMenuContent( Menu, Menu->GetFilterTextBox() );
+					Result = FActionMenuContent( Menu, Menu->GetFilterTextBox() );
 				}
 
 				if (SpawnInfo.DragFromPins.Num() > 0)
 				{
 					GraphPanel->PreservePinPreviewUntilForced();
 				}
-
-				return Content;
 			}
-
-			return FActionMenuContent( SNew(STextBlock) .Text( NSLOCTEXT("GraphEditor", "NoNodes", "No Nodes") ) );
 		}
 		else
 		{
-			return FActionMenuContent( SNew(STextBlock)  .Text( NSLOCTEXT("GraphEditor", "CannotCreateWhileDebugging", "Cannot create new nodes in a read only graph") ) );
+			Result = FActionMenuContent( SNew(STextBlock)  .Text( NSLOCTEXT("GraphEditor", "CannotCreateWhileDebugging", "Cannot create new nodes in a read only graph") ) );
 		}
 	}
 	else
 	{
-		return FActionMenuContent( SNew(STextBlock) .Text( NSLOCTEXT("GraphEditor", "GraphObjectIsNull", "Graph Object is Null") ) );
+		Result = FActionMenuContent( SNew(STextBlock) .Text( NSLOCTEXT("GraphEditor", "GraphObjectIsNull", "Graph Object is Null") ) );
 	}
-		
+
+	Result.OnMenuDismissed.AddLambda([this]()
+	{
+		bResetMenuContext = true;
+	});
+
+	return Result;
 }
 
 bool SGraphEditorImpl::CanReconstructNodes() const
@@ -562,7 +564,7 @@ bool SGraphEditorImpl::CanBreakNodeLinks() const
 
 bool SGraphEditorImpl::CanBreakPinLinks() const
 {
-	return IsGraphEditable() && (GraphPinForMenu != NULL);
+	return IsGraphEditable() && (GraphPinForMenu.Get() != nullptr);
 }
 
 void SGraphEditorImpl::ReconstructNodes()
@@ -598,8 +600,11 @@ void SGraphEditorImpl::BreakNodeLinks()
 	
 void SGraphEditorImpl::BreakPinLinks(bool bSendNodeNotification)
 {
-	const UEdGraphSchema* Schema = GraphPinForMenu->GetSchema();
-	Schema->BreakPinLinks(*GraphPinForMenu, bSendNodeNotification);
+	if (UEdGraphPin* PinContext = GraphPinForMenu.Get())
+	{
+		const UEdGraphSchema* Schema = PinContext->GetSchema();
+		Schema->BreakPinLinks(*PinContext, bSendNodeNotification);
+	}
 }
 
 FText SGraphEditorImpl::GetZoomText() const

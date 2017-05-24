@@ -1,47 +1,42 @@
-﻿INTSourceChangelist:0
-Availability:docs
-Title: Mesh Preview Scenes
+﻿INTSourceChangelist:3277768
+Availability:Public
+Title:模型预览场景（Mesh Preview Scenes）
 Crumbs: %ROOT%, Engine
-Description:Mesh Preview Scenes
-Version: 4.13
+Description:如何在虚幻引擎 4 中设置并使用模型预览场景配置文件。
+Version:4.13
+parent:Engine/UI
+type:overview
+tags:User Interface
 
 
-
-In the Static Mesh editor and Persona you can now set up preview scenes when inspecting your assets. This allows you to quickly assess what your assets would look like in multiple different 
-environments and lighting scenarios very quickly without having to set up these scenes within the game viewport. 
+在静态和骨架网格体的诸多编辑器窗口中检查资源时，可设置用户自定的预览场景进行使用。这使用户无需在场景中进行设置即可迅速了解资源在多个环境和光照情景下的效果。
 
 ![](6.png)(w:950)
 
-The Preview Scene Settings panel gives you control over various lighting settings and full control over the Post Process settings. 
+利用 **Preview Scene Settings** 面板可在预览场景中进行以下内容的调整：
 
-* Directional Light�s Color, Intensity, and Rotation.
-* Sky Light�s HDRI Environment Map, Intensity, and Rotation.
-* Post Process Settings full control over all settings.
+* 定向光照：颜色、强度和旋转
+* 天空光照：HDRI 环境地图、强度和旋转
+* 后期处理体积域：全部设置
 
+## 使用场景配置文件
 
-## Usage
-
-Below you will find some examples of the settings that you can make to the Preview Scene Settings and examples of their usage.
-
-
-### Using Scene Profiles
-
-The Preview Scene Settings allow you to setup any number of environments and lighting scenarios to emulate your game levels. These scenes can be saved as any number of separate 
-profiles that can be shared between the Static Mesh editor and Persona. Use the steps below to see how easy it is to add new profiles and to remove any unneeded ones. 
+利用 **Preview Scene Settings** 可设置任意数量的环境和光照情景，进行游戏关卡模拟。这些场景可被另存为任意数量的独立 
+配置文件，在诸多编辑器窗口中共享。 
 
 
-#### Adding Profiles
+### 添加配置文件
 
-1. When you open the Static Mesh editor or Persona locate the panel on the right for **Preview Scene Settings**. 
+1. 在 Content Browser 中打开静态或骨架网格体，找到编辑器窗口右边面板上的 **Preview Scene Settings**。 
 	
 	[REGION:imagetable]
 	| [INCLUDE:#staticmesheditor] | [INCLUDE:#skeletalmesheditor] |
 	| --- | --- |
-	|Static Mesh Editor| Persona |
-	| _Click for Full Image_ | _Click for Full Image_ |
+	|静态网格体编辑器| 骨架网格体编辑器 |
+	| _点击查看全图_ | _点击查看全图_ |
 	[/REGION]
 
-2. Adjust the various settings until you have something that emulates the environment lighting and Post Processing settings you would like to use.
+2. 调整诸多设置，模拟需要使用的环境光照和后期处理设置。
 	
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -55,63 +50,59 @@ profiles that can be shared between the Static Mesh editor and Persona. Use the 
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-3. In the text box for **Profile Name**, give it a name that will be useful, like "Nighttime Environment" or "Daytime Environment".
+3. 在 **Profile Name** 文本框中进行命名，如“Nighttime Environment”或“Daytime Environment”。
 
 	[REGION:lightbox]
 	[![](ProfileName.png)(w:350)](ProfileName.png) 
 	[/REGION]
 
-4. Click on the button for **Add Profile**. 
+4. 点击 **Add Profile** 按钮。 
 
 	[REGION:lightbox]
 	[![](AddingProfile.png)(w:350)](AddingProfile.png) 
 	[/REGION]
 
-5. You have now created and saved your profile and can select it from the drop-down next to **Scene Profile Settings**. 
+5. 配置文件的创建和保存便已完成，可从 **Scene Profile Settings** 下方的下拉菜单中进行选择。 
 
 	[REGION:lightbox]
 	[![](ProfileSelection.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
-	[REGION:warning]
-	When adding additional profiles make sure to use the drop-down profile selector and choose the base "Profile_[X]" to save your new profile settings. If you fail to do this you will
-	overwrite the current profile you have selected.
-	[/REGION]
 
-#### Removing Profiles
+#### 移除配置文件
 
-1. Select a profile from the drop-down selection next to **Scene Profile Settings**.
+1. 从 **Scene Profile Settings** 下方的下拉菜单中选择一个配置文件。
 
 	[REGION:lightbox]
 	[![](RemoveProfileSelection.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
-2. Now click on the button for **Remove Profile** to permanently delete the currently selected profile.
+2. 点击 **Remove Profile** 按钮永久删除当前选中的配置文件。
 
 	[REGION:lightbox]
 	[![](RemoveProfileButton.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
-3. You will now see that profile has been removed leaving only the Default profile and any other previously setup Profiles. 
+3. 配置文件列表中只剩下默认配置文件和其他未删除的配置文件。 
 
 	[REGION:lightbox]
 	[![](RemoveProfileSelection1.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
 
-### Rotating the Environment
+### 旋转环境
 
-In this section, you will adjust the environment rotation which will rotate the skybox and the Directional Light around the mesh. This setting can be used to simply rotate the environment
-around the mesh manually or to set a speed for the environment to rotate continually.
+在这部分中我们将调整环境旋转，围绕网格体旋转天空盒和定向光照。此设置可用于围绕网格体手动旋转环境，
+或使环境定速持续旋转。
 
 
-1. Enable environment rotation by placing a checkbox next to **Rotate Sky and Directional Lighting**.
+1. 勾选 **Rotate Sky and Directional Lighting** 勾选框即可启用环境旋转。
 
 	[REGION:lightbox]
 	[![](RotatingEnvironment.png)(w:350)](RotatingEnvironment.png) 
 	[/REGION]
 
-2. Next, set a value for **Rotation Speed** for the environment to start rotating.
+2. 接下来为环境设置 **Rotation Speed** 值，开始旋转。
 
 	![](RotationSpeed.png)(w:350)
 	[OBJECT:EmbeddedVideo]
@@ -127,15 +118,34 @@ around the mesh manually or to set a speed for the environment to rotate continu
 	[/OBJECT]
 
 	[REGION:note]
-	If you only want to rotate the environment but not have it at a constant rotating speed you can use the slider for **Lighting Rig Rotation** to manually rotate the environment or you can hold
-	the **L** key and left-click to only rotate the Directional light.
+	长按 **K** 键，点击鼠标左键拖动即可手动旋转环境；长按 **L** 键，点击鼠标左键拖动即可手动旋转定向光照。
 	[/REGION]
 
-### Assigning an Environment Cube Map
 
-In this section, you will learn how to assign a skybox for the environment for your preview scene.
+### 开启/关闭环境和地面显示
 
-1. Click the selection drop-down next to **Environment Cube Map** to select from the available HDRI cube maps available for use. 
+这部分讲述如何隐藏和显示预览场景中的环境和地面网格体。 
+
+1. 点击 **Show Environment** 和 **Show Floor** 旁边的勾选框即可将其隐藏/显示。 
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:width]
+		640
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		360
+		[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		b9r1-mx1xfM
+		[/PARAMLITERAL]
+	[/OBJECT]
+
+
+### 指定环境立方体贴图
+
+这部分讲述如何为预览场景的环境指定天空盒。
+
+1. 点击 **Environment Cube Map** 旁的下拉选择菜单，从可用的 HDRI 立方体贴图中进行选择。 
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -151,7 +161,7 @@ In this section, you will learn how to assign a skybox for the environment for y
 
 
 [REGION:tip]
-Use the View Options for **Show Engine Content** to see additional cube maps that are included in the Engine Contents folder.
+使用 **Show Engine Content** 的查看选项查看 **Engine Content** 文件夹中包含的立方体贴图。
 
 [REGION:lightbox]
 [![](ViewOptions.png)(w:600)](ViewOptions.png)
@@ -159,36 +169,19 @@ Use the View Options for **Show Engine Content** to see additional cube maps tha
 [/REGION]
 
 
-### Post Process Settings
+### 后期处理设置
 
-Like the Post Process Volume settings available in your game viewport, you have full control over all available Post Process settings for your preview scenes under the advanced rollout. 
-You can toggle the post processing on and off for the Preview Scene by using the checkbox for **Post Processing Enabled**. 
+和游戏视口中的后期处理体积域设置一样，在高级卷栏中可对预览场景的所有后期处理设置进行调整。 
+通过 **Post Processing Enabled** 勾选框即可开启/关闭预览场景后期处理。 
 
 [REGION:lightbox]
 [![](ScenePostProcess.png)(w:350)](ScenePostProcess.png)
 [/REGION]
 
-For a full break-down of the various settings you can check out the [Post Process Effects](https://docs.unrealengine.com/latest/INT/Engine/Rendering/PostProcessEffects/) page. 
+如需了解各个设置的详解，请查阅 [后期处理效果](https://docs.unrealengine.com/latest/INT/Engine/Rendering/PostProcessEffects/) 页面。 
 
 
 
-<!---
-## Settings
-
-| Property | Description |
-| --- | --- |
-| **Profile Name** | Manually set the Directional Light's color to be used. |
-| **Sky Light Intensity** | Manually set the intensity for the sky light to use. |
-| **Rotate Sky and Directional Light** | Toggle the sky and directional light's rotation.  |
-| **Show Environment** | Toggle visibility of the environment cubemap. |
-| **Show Floor** | Toggle visibility of the floor mesh. |
-| **Environment Cubemap** | Set the cubemap that should be used for the scene. |
-| **Post Processing Settings** | Adjust various post process settings for the scene. |
-| **Post Processing Enabled** | Whether or not post processing should be influence the scene. |
-| **Lighting Rig Rotation** | Adjust the rotationg of the sky and directional light for the scene from 0-360 degrees. |
-| **Rotation Speed** | Set the speed at which the sky and directional light rotate when Rotate Sky and Directional Light has been enabled. |
-
---->
 
 
 <!---

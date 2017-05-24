@@ -1,64 +1,45 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: How to Setup an IDE for UE4
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper
-Description:Learn how to setup your IDE to build and run UE4 on Linux.
+﻿INTSourceChangelist:3298291
+Availability:Public
+Title:如何设置 UE4 的 IDE
+Crumbs:
+Description:学习如何在 Linux 上设置 IDE，以便生成和运行 UE4。
 Platform:Linux
-Version: 4.13
+Version:4.14
 type:how to
-parent:Platforms/Linux/BeginnerLinuxDeveloper
-order: 3
+parent:Platforms/Linux
+order:3
 tags:Linux
 SkillLevel:Beginner
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+topic-image:IDE_HowToTopic.png
 
-[VAR:Params]
-[PARAM:image]
-	![%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:title%](linuxHT_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:title%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
 
 [REGION:imagetable]
 ![](CompiledEditor_LinuxIDE.png)(w:1280)  
-At the end of this tutorial, you'll have an **Integrated Development Environment** (IDE) configured to build and run Unreal Engine 4 (UE4).
+完成此教程后，您便会完成 **整合开发环境**（IDE）的配置，可以开始生成和运行虚幻引擎 4（UE4）。
 [/REGION]
 
-## Goal
+## 目标
 
-The focus of this guide is to show you how to setup an IDE to build and run UE4. 
+此教程的目标是为您展示如何设置 IDE，以进行 UE4 的生成和运行。 
 
-## Objectives
+## 目的
 
-After working through this tutorial, you'll know the following:
+在此教程的学习中您将了解以下内容：
 
-* How to configure your IDE to build UE4 in debug and release mode.
-* How to configure your IDE to run UE4 in debug and release mode.
-* How to build UE4 from your IDE.
-* How to run UE4 from your IDE.
-* How to create and configure a new Blueprint project from your IDE.
-* How to create and configure a new CPP project from your IDE.
+* 如何配置 IDE，在调试和发布模式下生成 UE4。
+* 如何配置 IDE，在调试和发布模式下运行 UE4。
+* 如何从 IDE 生成 UE4。
+* 如何从 IDE 运行 UE4。
+* 如何从 IDE 用 UE4 新建和配置蓝图项目。
+* 如何从 IDE 用 UE4 新建和配置 CPP 项目。
 
 [OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

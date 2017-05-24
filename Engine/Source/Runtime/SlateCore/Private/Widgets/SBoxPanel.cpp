@@ -277,3 +277,219 @@ SBoxPanel::SBoxPanel( EOrientation InOrientation )
 {
 
 }
+
+
+void SDragAndDropVerticalBox::Construct(const FArguments& InArgs)
+{
+	SVerticalBox::Construct(SVerticalBox::FArguments());
+
+	OnCanAcceptDrop = InArgs._OnCanAcceptDrop;
+	OnAcceptDrop = InArgs._OnAcceptDrop;
+	OnDragDetected_Handler = InArgs._OnDragDetected;
+	OnDragEnter_Handler = InArgs._OnDragEnter;
+	OnDragLeave_Handler = InArgs._OnDragLeave;
+	OnDrop_Handler = InArgs._OnDrop;
+
+	CurrentDragOperationScreenSpaceLocation = FVector2D::ZeroVector;
+	CurrentDragOverSlotIndex = INDEX_NONE;
+}
+
+FReply SDragAndDropVerticalBox::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		return FReply::Handled().DetectDrag(SharedThis(this), EKeys::LeftMouseButton);
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply SDragAndDropVerticalBox::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	TPanelChildren<FSlot>* PanelChildren = (TPanelChildren<FSlot>*)GetChildren();
+	FArrangedChildren ArrangedChildren(EVisibility::Visible);
+	ArrangeChildren(MyGeometry, ArrangedChildren);
+
+	int32 NodeUnderPositionIndex = SWidget::FindChildUnderMouse(ArrangedChildren, MouseEvent);
+
+	if (PanelChildren->IsValidIndex(NodeUnderPositionIndex))
+	{
+		SVerticalBox::FSlot* Slot = &(*PanelChildren)[NodeUnderPositionIndex];
+
+		if (OnDragDetected_Handler.IsBound())
+		{
+			return OnDragDetected_Handler.Execute(MyGeometry, MouseEvent, NodeUnderPositionIndex, Slot);
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
+void SDragAndDropVerticalBox::OnDragEnter(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent)
+{
+	if (OnDragEnter_Handler.IsBound())
+	{
+		OnDragEnter_Handler.Execute(DragDropEvent);
+	}
+}
+
+void SDragAndDropVerticalBox::OnDragLeave(FDragDropEvent const& DragDropEvent)
+{
+	ItemDropZone = TOptional<EItemDropZone>();
+	CurrentDragOperationScreenSpaceLocation = FVector2D::ZeroVector;
+	CurrentDragOverSlotIndex = INDEX_NONE;
+
+	if (OnDragLeave_Handler.IsBound())
+	{
+		OnDragLeave_Handler.Execute(DragDropEvent);
+	}
+}
+
+SDragAndDropVerticalBox::EItemDropZone SDragAndDropVerticalBox::ZoneFromPointerPosition(FVector2D LocalPointerPos, const FGeometry& CurrentGeometry, const FGeometry& StartGeometry) const
+{
+	FSlateLayoutTransform StartGeometryLayoutTransform = StartGeometry.GetAccumulatedLayoutTransform();
+	FSlateLayoutTransform CurrentGeometryLayoutTransform = CurrentGeometry.GetAccumulatedLayoutTransform();
+
+	if (StartGeometryLayoutTransform.GetTranslation().Y > CurrentGeometryLayoutTransform.GetTranslation().Y) // going up
+	{
+		return EItemDropZone::AboveItem;
+	}
+	else if (StartGeometryLayoutTransform.GetTranslation().Y < CurrentGeometryLayoutTransform.GetTranslation().Y) // going down
+	{
+		return EItemDropZone::BelowItem;
+	}
+	else
+	{
+		if (LocalPointerPos.Y <= CurrentGeometry.GetLocalSize().Y / 2.0f)
+		{
+			return EItemDropZone::AboveItem;
+		}
+		else
+		{
+			return EItemDropZone::BelowItem;
+		}
+	}
+}
+
+FReply SDragAndDropVerticalBox::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	if (OnCanAcceptDrop.IsBound())
+	{
+		FArrangedChildren ArrangedChildren(EVisibility::Visible);
+		ArrangeChildren(MyGeometry, ArrangedChildren);
+
+		TSharedPtr<FDragAndDropVerticalBoxOp> DragOp = DragDropEvent.GetOperationAs<FDragAndDropVerticalBoxOp>();
+
+		if (DragOp.IsValid())
+		{
+			int32 DragOverSlotIndex = SWidget::FindChildUnderPosition(ArrangedChildren, DragDropEvent.GetScreenSpacePosition());
+
+			if (ArrangedChildren.IsValidIndex(DragOverSlotIndex))
+			{
+				FVector2D LocalPointerPos = ArrangedChildren[DragOverSlotIndex].Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+				EItemDropZone ItemHoverZone = ZoneFromPointerPosition(LocalPointerPos, ArrangedChildren[DragOverSlotIndex].Geometry, ArrangedChildren[DragOp->SlotIndexBeingDragged].Geometry);
+
+				TPanelChildren<FSlot>* PanelChildren = (TPanelChildren<FSlot>*)GetChildren();
+
+				if (PanelChildren->IsValidIndex(DragOverSlotIndex))
+				{
+					SVerticalBox::FSlot* Slot = &(*PanelChildren)[DragOverSlotIndex];
+
+					ItemDropZone = OnCanAcceptDrop.Execute(DragDropEvent, ItemHoverZone, Slot);
+					CurrentDragOperationScreenSpaceLocation = DragDropEvent.GetScreenSpacePosition();
+					CurrentDragOverSlotIndex = DragOverSlotIndex;
+
+					return FReply::Handled();
+				}
+			}
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply SDragAndDropVerticalBox::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	FReply DropReply = FReply::Unhandled();
+
+	if (OnAcceptDrop.IsBound())
+	{
+		FArrangedChildren ArrangedChildren(EVisibility::Visible);
+		ArrangeChildren(MyGeometry, ArrangedChildren);
+
+		if (DragDropEvent.GetOperationAs<FDragAndDropVerticalBoxOp>().IsValid())
+		{
+			int32 NodeUnderPositionIndex = SWidget::FindChildUnderPosition(ArrangedChildren, DragDropEvent.GetScreenSpacePosition());
+			TPanelChildren<FSlot>* PanelChildren = (TPanelChildren<FSlot>*)GetChildren();
+
+			if (PanelChildren->IsValidIndex(NodeUnderPositionIndex))
+			{
+				SVerticalBox::FSlot* Slot = &(*PanelChildren)[NodeUnderPositionIndex];
+				TOptional<EItemDropZone> ReportedZone = ItemDropZone;
+
+				if (OnCanAcceptDrop.IsBound() && ItemDropZone.IsSet())
+				{
+					ReportedZone = OnCanAcceptDrop.Execute(DragDropEvent, ItemDropZone.GetValue(), Slot);
+				}
+
+				if (ReportedZone.IsSet())
+				{
+					DropReply = OnAcceptDrop.Execute(DragDropEvent, ReportedZone.GetValue(), NodeUnderPositionIndex, Slot);
+
+					if (DropReply.IsEventHandled())
+					{
+						TSharedPtr<FDragAndDropVerticalBoxOp> DragOp = DragDropEvent.GetOperationAs<FDragAndDropVerticalBoxOp>();
+
+						// Perform the slot changes
+						PanelChildren->Move(DragOp->SlotIndexBeingDragged, NodeUnderPositionIndex);
+					}
+				}
+			}
+
+			ItemDropZone = TOptional<EItemDropZone>();
+			CurrentDragOperationScreenSpaceLocation = FVector2D::ZeroVector;
+			CurrentDragOverSlotIndex = INDEX_NONE;
+		}		
+	}
+
+	return DropReply;
+}
+
+int32 SDragAndDropVerticalBox::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	FArrangedChildren ArrangedChildren(EVisibility::Visible);
+	ArrangeChildren(AllottedGeometry, ArrangedChildren);
+
+	LayerId = SPanel::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	if (ItemDropZone.IsSet())
+	{
+		// Draw feedback for user dropping an item above, below.
+		const FSlateBrush* DropIndicatorBrush = nullptr;
+
+		switch (ItemDropZone.GetValue())
+		{
+			default:
+			case EItemDropZone::AboveItem: DropIndicatorBrush = &DropIndicator_Above; break;
+			case EItemDropZone::BelowItem: DropIndicatorBrush = &DropIndicator_Below; break;
+		};
+
+		if (ArrangedChildren.IsValidIndex(CurrentDragOverSlotIndex))
+		{
+			const FArrangedWidget& CurWidget = ArrangedChildren[CurrentDragOverSlotIndex];
+
+			FSlateDrawElement::MakeBox
+			(
+				OutDrawElements,
+				LayerId++,
+				CurWidget.Geometry.ToPaintGeometry(),
+				DropIndicatorBrush,
+				CurWidget.Geometry.GetClippingRect(),
+				ESlateDrawEffect::None,
+				DropIndicatorBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
+			);
+		}
+	}
+
+	return LayerId;
+}

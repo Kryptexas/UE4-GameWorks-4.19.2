@@ -22,13 +22,16 @@ public:
 
 	virtual ~FOnlineSubsystemUtils() {}
 
-	FName GetOnlineIdentifier(const FWorldContext& WorldContext) override
+	FName GetOnlineIdentifier(const FWorldContext& WorldContext, const FName Subsystem = NAME_None) override
 	{
 #if WITH_EDITOR
-		return FName(*FString::Printf(TEXT(":%s"), *WorldContext.ContextHandle.ToString()));
-#else
-		return NAME_None;
+		if (WorldContext.WorldType == EWorldType::PIE)
+		{
+			return FName(*FString::Printf(TEXT("%s:%s"), !Subsystem.IsNone() ? *Subsystem.ToString() : TEXT(""), *WorldContext.ContextHandle.ToString()));
+		}
 #endif
+
+		return Subsystem;
 	}
 
 	FName GetOnlineIdentifier(UWorld* World, const FName Subsystem = NAME_None) override
@@ -36,14 +39,10 @@ public:
 #if WITH_EDITOR
 		if (const FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(World))
 		{
-			return FName(
-				*FString::Printf(TEXT("%s:%s"), !Subsystem.IsNone() ? *Subsystem.ToString() : TEXT(""), *WorldContext->ContextHandle.ToString()));
+			return GetOnlineIdentifier(*WorldContext, Subsystem);
 		}
-
-		return NAME_None;
-#else
-		return Subsystem;
 #endif
+		return Subsystem;
 	}
 
 #if WITH_EDITOR

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title:레벨 에디터
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -7,33 +7,6 @@ Version: 4.9
 parent:Engine/Editor
 order:3
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:next]
-		[다음 토픽](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		Programming_Beginner
-	[/PARAMLITERAL]
-	[PARAM:next]
-		[다음 토픽](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/Programming/Beginner)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -214,5 +187,3 @@ order:3
 [INCLUDE:Engine/UI/LevelEditor/Layers#Overview]
 
 **레이어** 패널 사용에 있어서의 자세한 내용은 [](Engine/UI/LevelEditor/Layers) 페이지를 참고해 주시기 바랍니다.
-
-%playlistnav%

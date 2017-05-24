@@ -16,10 +16,10 @@ public class CopyUAT : BuildCommand
 	public override void ExecuteBuild()
 	{
 		// Get the output directory
-		string TargetDir = ParseParamValue("TargetDir");
-		if(TargetDir == null)
+		string TargetDirParam = ParseParamValue("TargetDir");
+		if(TargetDirParam == null)
 		{
-			throw new AutomationException("Missing -Target argument to CopyUAT");
+			throw new AutomationException("Missing -TargetDir=... argument to CopyUAT");
 		}
 
 		// Construct a dummy UE4Build object to get a list of the UAT and UBT build products
@@ -32,24 +32,34 @@ public class CopyUAT : BuildCommand
 		Build.AddUBTFilesToBuildProducts();
 
 		// Get a list of all the input files
-		List<string> FileNames = new List<string>(Build.BuildProductFiles);
-		foreach(string FileName in Build.BuildProductFiles)
+		List<FileReference> SourceFiles = new List<FileReference>();
+		foreach(string BuildProductFile in Build.BuildProductFiles)
 		{
-			string SymbolFileName = Path.ChangeExtension(FileName, ".pdb");
-			if(File.Exists(SymbolFileName))
+			FileReference SourceFile = new FileReference(BuildProductFile);
+			SourceFiles.Add(SourceFile);
+
+			FileReference SourceSymbolFile = SourceFile.ChangeExtension(".pdb");
+			if(FileReference.Exists(SourceSymbolFile))
 			{
-				FileNames.Add(SymbolFileName);
+				SourceFiles.Add(SourceSymbolFile);
+			}
+
+			FileReference DocumentationFile = SourceFile.ChangeExtension(".xml");
+			if(FileReference.Exists(DocumentationFile))
+			{
+				SourceFiles.Add(DocumentationFile);
 			}
 		}
 
 		// Copy all the files over
-		foreach(string FileName in FileNames)
+		DirectoryReference TargetDir = new DirectoryReference(TargetDirParam);
+		foreach(FileReference SourceFile in SourceFiles)
 		{
-			string TargetFileName = Utils.MakeRerootedFilePath(FileName, CommandUtils.CmdEnv.LocalRoot, TargetDir);
-			Directory.CreateDirectory(Path.GetDirectoryName(TargetFileName));
-			File.Copy(FileName, TargetFileName);
+			FileReference TargetFile = FileReference.Combine(TargetDir, SourceFile.MakeRelativeTo(CommandUtils.RootDirectory));
+			DirectoryReference.CreateDirectory(TargetFile.Directory);
+			CommandUtils.CopyFile(SourceFile.FullName, TargetFile.FullName);
 		}
 
-		Log("Copied {0} files to {1}", FileNames.Count, TargetDir);
+		Log("Copied {0} files to {1}", SourceFiles.Count, TargetDir);
 	}
 }

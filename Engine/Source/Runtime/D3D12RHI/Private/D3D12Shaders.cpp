@@ -381,3 +381,44 @@ FBoundShaderStateRHIRef FD3D12DynamicRHI::RHICreateBoundShaderState(
 		return new FD3D12BoundShaderState(VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, GetRHIDevice());
 	}
 }
+
+struct FD3D12PipelineStateWrapper : public FRHIComputePipelineState
+{
+	FD3D12PipelineStateWrapper(FD3D12PipelineState* InPipelineState, FD3D12ComputeShader* InComputeShader)
+		: PipelineState(InPipelineState)
+		, ComputeShader(InComputeShader)
+	{
+	}
+
+	FD3D12PipelineState* PipelineState;
+	FD3D12ComputeShader* ComputeShader;
+};
+
+TRefCountPtr<FRHIComputePipelineState> FD3D12DynamicRHI::RHICreateComputePipelineState(FRHIComputeShader* ComputeShaderRHI)
+{
+	check(ComputeShaderRHI);
+	FD3D12ComputeShader* ComputeShader = FD3D12DynamicRHI::ResourceCast(ComputeShaderRHI);
+	FD3D12ComputePipelineStateDesc PSODesc;
+	FMemory::Memzero(&PSODesc, sizeof(PSODesc));
+	PSODesc.pRootSignature = ComputeShader->pRootSignature;
+	PSODesc.Desc.pRootSignature = PSODesc.pRootSignature->GetRootSignature();
+	PSODesc.Desc.CS = ComputeShader->ShaderBytecode.GetShaderBytecode();
+	PSODesc.CSHash = ComputeShader->ShaderBytecode.GetHash();
+
+	FD3D12PipelineStateCache& PSOCache = GetRHIDevice()->GetParentAdapter()->GetPSOCache();
+
+	// Actual creation happens here
+	FD3D12PipelineState* const PSO = PSOCache.FindCompute(&PSODesc);
+	check(PSO != nullptr);
+
+	return new FD3D12PipelineStateWrapper(PSO, ComputeShader);
+}
+
+void FD3D12CommandContext::RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState)
+{
+	if (ComputePipelineState)
+	{
+		FD3D12PipelineStateWrapper* Wrapper = static_cast<FD3D12PipelineStateWrapper*>(ComputePipelineState);
+		StateCache.SetComputeShader(Wrapper->ComputeShader);
+	}
+}

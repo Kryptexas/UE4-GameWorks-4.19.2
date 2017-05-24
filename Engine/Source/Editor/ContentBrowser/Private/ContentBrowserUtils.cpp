@@ -47,6 +47,8 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Interfaces/IPluginManager.h"
+#include "SAssetView.h"
+#include "SPathView.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1243,6 +1245,13 @@ bool ContentBrowserUtils::IsValidFolderName(const FString& FolderName, FText& Re
 		return false;
 	}
 		
+	// Make sure the new name doesn't start with an underscore
+	if ( FolderName[0] == TEXT('_') )
+	{
+		Reason = LOCTEXT("InvalidFolderName_StartsWithUnderscore", "The folder name cannot start with an underscore.");
+		return false;
+	}
+
 	if ( FolderName.Len() > MAX_UNREAL_FILENAME_LENGTH )
 	{
 		Reason = FText::Format( LOCTEXT("InvalidFolderName_TooLongForCooking", "Filename '{0}' is too long; this may interfere with cooking for consoles. Unreal filenames should be no longer than {1} characters." ),
@@ -1646,6 +1655,14 @@ bool ContentBrowserUtils::IsValidObjectPathForCreate(const FString& ObjectPath, 
 		return false;
 	}
 
+	// Make sure the new name doesn't start with an underscore
+	if (ObjectName.Len() > 0 && ObjectName[0] == TEXT('_'))
+	{
+		OutErrorMessage = LOCTEXT("AssetNameMustNotStartWithUnderscore", "The asset name cannot start with an underscore.");
+		// Return false to indicate that the user should enter a new name
+		return false;
+	}
+
 	// Make sure we are not creating an FName that is too large
 	if ( ObjectPath.Len() > NAME_SIZE )
 	{
@@ -1938,114 +1955,54 @@ void ContentBrowserUtils::SyncPackagesFromSourceControl(const TArray<FString>& P
 			PackageNamesToSync.Append(ExtraPackagesToSync);
 		}
 
-		if (GetDefault<UEditorExperimentalSettings>()->bEnableContentHotReloading)
+		ISourceControlProvider& SCCProvider = ISourceControlModule::Get().GetProvider();
+		const TArray<FString> PackageFilenames = SourceControlHelpers::PackageFilenames(PackageNamesToSync);
+
+		// Form a list of loaded packages to reload...
+		TArray<UPackage*> LoadedPackages;
+		LoadedPackages.Reserve(PackageNamesToSync.Num());
+		for (const FString& PackageName : PackageNamesToSync)
 		{
-			ISourceControlProvider& SCCProvider = ISourceControlModule::Get().GetProvider();
-			const TArray<FString> PackageFilenames = SourceControlHelpers::PackageFilenames(PackageNamesToSync);
-
-			// Form a list of loaded packages to reload...
-			TArray<UPackage*> LoadedPackages;
-			LoadedPackages.Reserve(PackageNamesToSync.Num());
-			for (const FString& PackageName : PackageNamesToSync)
+			UPackage* Package = FindPackage(nullptr, *PackageName);
+			if (Package)
 			{
-				UPackage* Package = FindPackage(nullptr, *PackageName);
-				if (Package)
+				LoadedPackages.Emplace(Package);
+
+				// Detach the linkers of any loaded packages so that SCC can overwrite the files...
+				if (!Package->IsFullyLoaded())
 				{
-					LoadedPackages.Emplace(Package);
-
-					// Detach the linkers of any loaded packages so that SCC can overwrite the files...
-					if (!Package->IsFullyLoaded())
-					{
-						FlushAsyncLoading();
-						Package->FullyLoad();
-					}
-					ResetLoaders(Package);
+					FlushAsyncLoading();
+					Package->FullyLoad();
 				}
-			}
-
-			// Sync everything...
-			SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), PackageFilenames);
-
-			// Syncing may have deleted some packages, so we need to unload those rather than re-load them...
-			TArray<UPackage*> PackagesToUnload;
-			LoadedPackages.RemoveAll([&](UPackage* InPackage) -> bool
-			{
-				const FString PackageExtension = InPackage->ContainsMap() ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
-				const FString PackageFilename = FPackageName::LongPackageNameToFilename(InPackage->GetName(), PackageExtension);
-				if (!FPaths::FileExists(PackageFilename))
-				{
-					PackagesToUnload.Emplace(InPackage);
-					return true; // remove package
-				}
-				return false; // keep package
-			});
-
-			// Hot-reload the new packages...
-			PackageTools::ReloadPackages(LoadedPackages);
-
-			// Unload any deleted packages...
-			PackageTools::UnloadPackages(PackagesToUnload);
-
-			// Re-cache the SCC state...
-			SCCProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackageFilenames, EConcurrency::Asynchronous);
-		}
-		else
-		{
-			// Form a list of loaded packages to unload
-			TArray<UPackage*> LoadedPackages;
-			TArray<FString> LoadedPackageNames;
-			for (const FString& PackageName : PackageNamesToSync)
-			{
-				UPackage* Package = FindPackage(nullptr, *PackageName);
-				if (Package != nullptr)
-				{
-					LoadedPackages.Add(Package);
-					LoadedPackageNames.Add(PackageName);
-				}
-			}
-
-			// Prevent any level assets from being synced if they are currently being edited
-			bool bSyncingLevelBeingEdited = false;
-			LoadedPackages.RemoveAllSwap([&bSyncingLevelBeingEdited, &PackageNamesToSync, &LoadedPackageNames](UPackage* Package)
-			{
-				UWorld* ExistingWorld = UWorld::FindWorldInPackage(Package);
-				if (ExistingWorld && ExistingWorld->WorldType == EWorldType::Editor)
-				{
-					PackageNamesToSync.RemoveSwap(Package->GetName());
-					LoadedPackageNames.RemoveSwap(Package->GetName());
-					bSyncingLevelBeingEdited = true;
-					return true;
-				}
-
-				return false;
-			});
-
-			if (bSyncingLevelBeingEdited)
-			{
-				FNotificationInfo Info(LOCTEXT("CannotSyncLevelBeingEdited", "Level(s) being currently edited have not been synced."));
-				Info.ExpireDuration = 3.0f;
-				FSlateNotificationManager::Get().AddNotification(Info);
-			}
-
-			FText ErrorMessage;
-			PackageTools::UnloadPackages(LoadedPackages, ErrorMessage);
-
-			if (!ErrorMessage.IsEmpty())
-			{
-				FMessageDialog::Open(EAppMsgType::Ok, ErrorMessage);
-			}
-			else
-			{
-				ISourceControlProvider& SCCProvider = ISourceControlModule::Get().GetProvider();
-				const TArray<FString> PackageFilenames = SourceControlHelpers::PackageFilenames(PackageNamesToSync);
-				SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), PackageFilenames);
-				for (const FString& PackageName : LoadedPackageNames)
-				{
-					PackageTools::LoadPackage(PackageName);
-				}
-				SCCProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackageFilenames, EConcurrency::Asynchronous);
+				ResetLoaders(Package);
 			}
 		}
+
+		// Sync everything...
+		SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), PackageFilenames);
+
+		// Syncing may have deleted some packages, so we need to unload those rather than re-load them...
+		TArray<UPackage*> PackagesToUnload;
+		LoadedPackages.RemoveAll([&](UPackage* InPackage) -> bool
+		{
+			const FString PackageExtension = InPackage->ContainsMap() ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
+			const FString PackageFilename = FPackageName::LongPackageNameToFilename(InPackage->GetName(), PackageExtension);
+			if (!FPaths::FileExists(PackageFilename))
+			{
+				PackagesToUnload.Emplace(InPackage);
+				return true; // remove package
+			}
+			return false; // keep package
+		});
+
+		// Hot-reload the new packages...
+		PackageTools::ReloadPackages(LoadedPackages);
+
+		// Unload any deleted packages...
+		PackageTools::UnloadPackages(PackagesToUnload);
+
+		// Re-cache the SCC state...
+		SCCProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackageFilenames, EConcurrency::Asynchronous);
 	}
 }
 
@@ -2097,77 +2054,142 @@ void ContentBrowserUtils::SyncPathsFromSourceControl(const TArray<FString>& Cont
 			}
 		}
 
-		if (GetDefault<UEditorExperimentalSettings>()->bEnableContentHotReloading)
+		ISourceControlProvider& SCCProvider = ISourceControlModule::Get().GetProvider();
+
+		// Warn about any packages that are being synced without also getting the newest version of their dependencies...
+		TArray<FString> PackageNamesToSync = PackageNames;
+		TArray<FString> ExtraPackagesToSync;
 		{
-			ISourceControlProvider& SCCProvider = ISourceControlModule::Get().GetProvider();
+			TArray<FString> OutOfDateDependencies;
+			GetOutOfDatePackageDependencies(PackageNamesToSync, OutOfDateDependencies);
 
-			// Warn about any packages that are being synced without also getting the newest version of their dependencies...
-			TArray<FString> PackageNamesToSync = PackageNames;
-			TArray<FString> ExtraPackagesToSync;
-			{
-				TArray<FString> OutOfDateDependencies;
-				GetOutOfDatePackageDependencies(PackageNamesToSync, OutOfDateDependencies);
+			ShowSyncDependenciesDialog(OutOfDateDependencies, ExtraPackagesToSync);
 
-				ShowSyncDependenciesDialog(OutOfDateDependencies, ExtraPackagesToSync);
-
-				PackageNamesToSync.Append(ExtraPackagesToSync);
-			}
-
-			// Form a list of loaded packages to reload...
-			TArray<UPackage*> LoadedPackages;
-			LoadedPackages.Reserve(PackageNamesToSync.Num());
-			for (const FString& PackageName : PackageNamesToSync)
-			{
-				UPackage* Package = FindPackage(nullptr, *PackageName);
-				if (Package)
-				{
-					LoadedPackages.Emplace(Package);
-
-					// Detach the linkers of any loaded packages so that SCC can overwrite the files...
-					if (!Package->IsFullyLoaded())
-					{
-						FlushAsyncLoading();
-						Package->FullyLoad();
-					}
-					ResetLoaders(Package);
-				}
-			}
-
-			// Sync everything...
-			SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), PathsOnDisk);
-			if (ExtraPackagesToSync.Num() > 0)
-			{
-				SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), SourceControlHelpers::PackageFilenames(ExtraPackagesToSync));
-			}
-
-			// Syncing may have deleted some packages, so we need to unload those rather than re-load them...
-			TArray<UPackage*> PackagesToUnload;
-			LoadedPackages.RemoveAll([&](UPackage* InPackage) -> bool
-			{
-				const FString PackageExtension = InPackage->ContainsMap() ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
-				const FString PackageFilename = FPackageName::LongPackageNameToFilename(InPackage->GetName(), PackageExtension);
-				if (!FPaths::FileExists(PackageFilename))
-				{
-					PackagesToUnload.Emplace(InPackage);
-					return true; // remove package
-				}
-				return false; // keep package
-			});
-
-			// Hot-reload the new packages...
-			PackageTools::ReloadPackages(LoadedPackages);
-
-			// Unload any deleted packages...
-			PackageTools::UnloadPackages(PackagesToUnload);
-
-			// Re-cache the SCC state...
-			SCCProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PathsOnDisk, EConcurrency::Asynchronous);
+			PackageNamesToSync.Append(ExtraPackagesToSync);
 		}
-		else
+
+		// Form a list of loaded packages to reload...
+		TArray<UPackage*> LoadedPackages;
+		LoadedPackages.Reserve(PackageNamesToSync.Num());
+		for (const FString& PackageName : PackageNamesToSync)
 		{
-			ContentBrowserUtils::SyncPackagesFromSourceControl(PackageNames);
+			UPackage* Package = FindPackage(nullptr, *PackageName);
+			if (Package)
+			{
+				LoadedPackages.Emplace(Package);
+
+				// Detach the linkers of any loaded packages so that SCC can overwrite the files...
+				if (!Package->IsFullyLoaded())
+				{
+					FlushAsyncLoading();
+					Package->FullyLoad();
+				}
+				ResetLoaders(Package);
+			}
 		}
+
+		// Sync everything...
+		SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), PathsOnDisk);
+		if (ExtraPackagesToSync.Num() > 0)
+		{
+			SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), SourceControlHelpers::PackageFilenames(ExtraPackagesToSync));
+		}
+
+		// Syncing may have deleted some packages, so we need to unload those rather than re-load them...
+		TArray<UPackage*> PackagesToUnload;
+		LoadedPackages.RemoveAll([&](UPackage* InPackage) -> bool
+		{
+			const FString PackageExtension = InPackage->ContainsMap() ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
+			const FString PackageFilename = FPackageName::LongPackageNameToFilename(InPackage->GetName(), PackageExtension);
+			if (!FPaths::FileExists(PackageFilename))
+			{
+				PackagesToUnload.Emplace(InPackage);
+				return true; // remove package
+			}
+			return false; // keep package
+		});
+
+		// Hot-reload the new packages...
+		PackageTools::ReloadPackages(LoadedPackages);
+
+		// Unload any deleted packages...
+		PackageTools::UnloadPackages(PackagesToUnload);
+
+		// Re-cache the SCC state...
+		SCCProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PathsOnDisk, EConcurrency::Asynchronous);
 	}
 }
+
+bool ContentBrowserUtils::CanDeleteFromAssetView(TWeakPtr<SAssetView> AssetView)
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
+
+	int32 NumAssetItems, NumClassItems;
+	ContentBrowserUtils::CountItemTypes(AssetViewSelectedAssets, NumAssetItems, NumClassItems);
+
+	int32 NumAssetPaths, NumClassPaths;
+	ContentBrowserUtils::CountPathTypes(SelectedFolders, NumAssetPaths, NumClassPaths);
+
+	bool bHasSelectedCollections = false;
+	for (const FString& SelectedFolder : SelectedFolders)
+	{
+		if (ContentBrowserUtils::IsCollectionPath(SelectedFolder))
+		{
+			bHasSelectedCollections = true;
+			break;
+		}
+	}
+
+	// We can't delete classes, or folders containing classes, or any collection folders
+	return ((NumAssetItems > 0 && NumClassItems == 0) || (NumAssetPaths > 0 && NumClassPaths == 0)) && !bHasSelectedCollections;
+}
+
+bool ContentBrowserUtils::CanRenameFromAssetView(TWeakPtr<SAssetView> AssetView)
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
+
+	const bool bOneAssetSelected = AssetViewSelectedAssets.Num() == 1 && SelectedFolders.Num() == 0		// A single asset
+		&& ContentBrowserUtils::CanRenameAsset(AssetViewSelectedAssets[0]);								// Which can be renamed
+
+	const bool bOneFolderSelected = AssetViewSelectedAssets.Num() == 0 && SelectedFolders.Num() == 1	// A single folder
+		&& ContentBrowserUtils::CanRenameFolder(SelectedFolders[0]);									// Which can be renamed
+
+	return (bOneAssetSelected || bOneFolderSelected) && !AssetView.Pin()->IsThumbnailEditMode();
+}
+
+bool ContentBrowserUtils::CanDeleteFromPathView(const TArray<FString>& SelectedPaths)
+{
+	int32 NumAssetPaths, NumClassPaths;
+	ContentBrowserUtils::CountPathTypes(SelectedPaths, NumAssetPaths, NumClassPaths);
+
+	// We can't delete folders containing classes
+	return NumAssetPaths > 0 && NumClassPaths == 0;
+}
+
+bool ContentBrowserUtils::CanRenameFromPathView(const TArray<FString>& SelectedPaths)
+{
+	// We can't rename when we have more than one path selected
+	if (SelectedPaths.Num() != 1)
+	{
+		return false;
+	}
+
+	// We can't rename a root folder
+	if (ContentBrowserUtils::IsRootDir(SelectedPaths[0]))
+	{
+		return false;
+	}
+
+	// We can't rename *any* folders that belong to class roots
+	if (ContentBrowserUtils::IsClassPath(SelectedPaths[0]))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 
 #undef LOCTEXT_NAMESPACE

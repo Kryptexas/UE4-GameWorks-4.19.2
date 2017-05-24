@@ -135,6 +135,14 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 	}
 
 	virtual FString ToString() const;
+
+	// -------------------------------------
+	//..See notes on delegate definition FOnTargetActorSwapped.
+	virtual bool ShouldCheckForTargetActorSwap() const
+	{
+		return false;
+	}
+
 };
 
 
@@ -254,7 +262,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOpsTypeTraitsBase2<FGameplayAbilityTargetDataHandle>
 {
 	enum
 	{
@@ -285,6 +293,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 		LiteralTransform = Other.LiteralTransform;
 		SourceActor = Other.SourceActor;
 		SourceComponent = Other.SourceComponent;
+		SourceAbility = Other.SourceAbility;
 		SourceSocketName = Other.SourceSocketName;
 	}
 
@@ -360,7 +369,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetingLocationInfo> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayAbilityTargetingLocationInfo> : public TStructOpsTypeTraitsBase2<FGameplayAbilityTargetingLocationInfo>
 {
 	enum
 	{
@@ -421,7 +430,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_LocationInfo : public FG
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetData_LocationInfo> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayAbilityTargetData_LocationInfo> : public TStructOpsTypeTraitsBase2<FGameplayAbilityTargetData_LocationInfo>
 {
 	enum
 	{
@@ -523,7 +532,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetData_ActorArray> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayAbilityTargetData_ActorArray> : public TStructOpsTypeTraitsBase2<FGameplayAbilityTargetData_ActorArray>
 {
 	enum
 	{
@@ -603,7 +612,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetData_SingleTargetHit> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayAbilityTargetData_SingleTargetHit> : public TStructOpsTypeTraitsBase2<FGameplayAbilityTargetData_SingleTargetHit>
 {
 	enum
 	{
@@ -644,7 +653,7 @@ namespace EAbilityGenericReplicatedEvent
 		GameCustom3,
 		GameCustom4,
 		GameCustom5,
-
+		GameCustom6,
 		MAX
 	};
 }

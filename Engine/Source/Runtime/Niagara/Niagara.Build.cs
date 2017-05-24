@@ -4,12 +4,11 @@ using UnrealBuildTool;
 
 public class Niagara : ModuleRules
 {
-    public Niagara(TargetInfo Target)
+    public Niagara(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateDependencyModuleNames.AddRange(
             new string[] {
 				"Core",
-				"CoreUObject",
                 "Engine",
 				"RenderCore",
                 "ShaderCore",
@@ -22,6 +21,8 @@ public class Niagara : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[] {
                 "MovieScene",
+				"MovieSceneTracks",
+				"CoreUObject",
                 "VectorVM",
                 "RHI",
             }

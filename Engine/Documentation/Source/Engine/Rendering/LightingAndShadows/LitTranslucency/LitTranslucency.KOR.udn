@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3218894
 Availability:Public
 Title:라이팅된 반투명
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -82,3 +82,23 @@ _왼쪽 구체는 반투명, 오른쪽은 불투명, 둘 다 메탈, 즉 스페�
 
 * 라이팅된 반투명 표면에는 직접 스페큘러가 없습니다.
 * 라이팅된 반투명 표면은 그 모든 직사광을 반투명 볼륨 라이팅 텍스처로부터 받기에, 대부분의 표면 (유리, 물) 재질에 필요한 것보다 해상도가 낮아집니다.
+
+### 픽셀 단위 반투명 라이팅
+
+디퍼드 렌더러에서는, 이제 반투명 표면에서 새로운 포워드 셰이딩 기능을 사용하여 다수의 라이트에서 스페큘러 라이트를 받거나 시차 보정된 리플렉션 캡처에서 이미지 기반 리플렉션을 받도록 할 수 있습니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	r6u908IE4aA
+	[/PARAMLITERAL]
+[/OBJECT]
+
+Per-Pixel Translucent Lighting (픽셀 단위 반투명 라이팅)을 켜려면, Lighting Mode (라이팅 모드)를 **Surface ForwardShading** (표면 포워드 셰이딩)으로 설정한 뒤 **Screen Space Reflections** (스크린 스페이스 리플렉션)이 켜졌는지 확인합니다.
+
+![](PerPixel_TransLighting_Settings.png)

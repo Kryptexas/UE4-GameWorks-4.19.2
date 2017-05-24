@@ -1,29 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title: 트리거 액터
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:활성화되면 레벨에 이벤트가 발생하도록 하는 액터입니다.
 version: 4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/Actors/Volumes "%Engine/Actors/Volumes:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/Rendering/Materials/IntroductionToMaterials "%Engine/Rendering/Materials/IntroductionToMaterials:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [TOC(start:2)]
 
@@ -69,4 +49,4 @@ Trigger (트리거)는 레벨의 다른 오브젝트와 상호작용이 일어�
 때마다 발동됩니다:
 
 <!-- Add GIF/slider showing overlap during play and pin firing in graph -->
-%playlistnav%
+

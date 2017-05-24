@@ -185,13 +185,6 @@ TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const In
 			InThumbnail
 		];
 
-		// Tools for thumbnail edit mode
-		ItemContentsOverlay->AddSlot()
-		[
-			SNew(SThumbnailEditModeTools, InTileOrListItem->AssetThumbnail)
-			.SmallView(!InTileOrListItem->CanDisplayPrimitiveTools())
-			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility)
-		];
 
 		// Source control state
 		ItemContentsOverlay->AddSlot()
@@ -214,6 +207,15 @@ TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const In
 		[
 			SNew(SImage)
 			.Image(InTileOrListItem, &T::GetDirtyImage)
+		];
+
+
+		// Tools for thumbnail edit mode
+		ItemContentsOverlay->AddSlot()
+		[
+			SNew(SThumbnailEditModeTools, InTileOrListItem->AssetThumbnail)
+			.SmallView(!InTileOrListItem->CanDisplayPrimitiveTools())
+			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility)
 		];
 	}
 
@@ -617,7 +619,7 @@ FText SAssetViewItem::GetAssetClassText() const
 
 const FSlateBrush* SAssetViewItem::GetSCCStateImage() const
 {
-	return SCCStateBrush;
+	return ThumbnailEditMode.Get() ? FEditorStyle::GetNoBrush() : SCCStateBrush;
 }
 
 void SAssetViewItem::HandleSourceControlProviderChanged(ISourceControlProvider& OldProvider, ISourceControlProvider& NewProvider)
@@ -1632,7 +1634,7 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 	TSharedPtr<SWidget> Content;
 
 	// A little right padding so text from this column does not run directly into text from the next.
-	static const FMargin ColumnItemPadding( 0, 0, 6, 0 );
+	static const FMargin ColumnItemPadding( 5, 0, 5, 0 );
 
 	if ( ColumnName == "Name" )
 	{
@@ -1650,7 +1652,7 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 		}
 		else
 		{
-			IconBrush = FEditorStyle::GetBrush("ContentBrowser.ColumnViewAssetIcon");;
+			IconBrush = FEditorStyle::GetBrush("ContentBrowser.ColumnViewAssetIcon");
 		}
 
 		// Make icon overlays (eg, SCC and dirty status) a reasonable size in relation to the icon size (note: it is assumed this icon is square)
@@ -1724,6 +1726,8 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 		return SNew(SBorder)
 			.BorderImage(this, &SAssetViewItem::GetBorderImage)
 			.Padding(0)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
 			[
 				SNew( SAssetColumnItemNameBox, SharedThis(this) )
 				.Padding( ColumnItemPadding )
@@ -1755,6 +1759,8 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 
 	return SNew(SBox)
 		.Padding( ColumnItemPadding )
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
 		[
 			Content.ToSharedRef()
 		];
@@ -1825,13 +1831,21 @@ FText SAssetColumnItem::GetAssetPathText() const
 	}
 }
 
-FText SAssetColumnItem::GetAssetTagText(FName AssetRegistryTag) const
+FText SAssetColumnItem::GetAssetTagText(FName AssetTag) const
 {
 	if ( AssetItem.IsValid() )
 	{
 		if(AssetItem->GetType() != EAssetItemType::Folder)
 		{
-			return StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.GetTagValueRef<FText>(AssetRegistryTag);
+			const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(AssetItem);
+			// Check custom type
+			FString* FoundString = ItemAsAsset->CustomColumnData.Find(AssetTag);
+
+			if (FoundString)
+			{
+				return FText::FromString(*FoundString);
+			}
+			return ItemAsAsset->Data.GetTagValueRef<FText>(AssetTag);
 		}
 	}
 	

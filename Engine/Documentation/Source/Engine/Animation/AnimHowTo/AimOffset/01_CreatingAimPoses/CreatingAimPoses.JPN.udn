@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3235253
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:1 - 照準ポーズを作成する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:デフォルトのプレイ可能なキャラクターを更新し、Aim Offset に必要な全ポーズを作成します。 
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 tags:Aim Offset
 
 [VAR:Steps]

@@ -12,6 +12,7 @@
 #include "TrackEditors/PropertyTrackEditors/FloatPropertyTrackEditor.h"
 #include "TrackEditors/PropertyTrackEditors/IntegerPropertyTrackEditor.h"
 #include "TrackEditors/PropertyTrackEditors/VectorPropertyTrackEditor.h"
+#include "TrackEditors/PropertyTrackEditors/TransformPropertyTrackEditor.h"
 #include "TrackEditors/PropertyTrackEditors/VisibilityPropertyTrackEditor.h"
 #include "TrackEditors/PropertyTrackEditors/ActorReferencePropertyTrackEditor.h"
 #include "TrackEditors/PropertyTrackEditors/StringPropertyTrackEditor.h"
@@ -34,7 +35,9 @@
 #include "TrackEditors/LevelVisibilityTrackEditor.h"
 #include "TrackEditors/CameraAnimTrackEditor.h"
 #include "TrackEditors/CameraShakeTrackEditor.h"
+#include "TrackEditors/MaterialParameterCollectionTrackEditor.h"
 
+#include "MovieSceneObjectBindingIDCustomization.h"
 #include "SequencerClipboardReconciler.h"
 #include "ClipboardTypes.h"
 #include "ISettingsModule.h"
@@ -70,41 +73,44 @@ public:
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>( "Sequencer" );
 
 		// register property track editors
-		BoolPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FBoolPropertyTrackEditor::CreateTrackEditor ) );
-		BytePropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FBytePropertyTrackEditor::CreateTrackEditor ) );
-		ColorPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FColorPropertyTrackEditor::CreateTrackEditor ) );
-		FloatPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FFloatPropertyTrackEditor::CreateTrackEditor ) );
-		IntegerPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FIntegerPropertyTrackEditor::CreateTrackEditor ) );
-		VectorPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FVectorPropertyTrackEditor::CreateTrackEditor ) );
-		VisibilityPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FVisibilityPropertyTrackEditor::CreateTrackEditor ) );
-		ActorReferencePropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic( &FActorReferencePropertyTrackEditor::CreateTrackEditor ) );
-		StringPropertyTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic( &FStringPropertyTrackEditor::CreateTrackEditor ) );
+		BoolPropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FBoolPropertyTrackEditor>();
+		BytePropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FBytePropertyTrackEditor>();
+		ColorPropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FColorPropertyTrackEditor>();
+		FloatPropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FFloatPropertyTrackEditor>();
+		IntegerPropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FIntegerPropertyTrackEditor>();
+		VectorPropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FVectorPropertyTrackEditor>();
+		TransformPropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FTransformPropertyTrackEditor>();
+		VisibilityPropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FVisibilityPropertyTrackEditor>();
+		ActorReferencePropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FActorReferencePropertyTrackEditor>();
+		StringPropertyTrackCreateEditorHandle = SequencerModule.RegisterPropertyTrackEditor<FStringPropertyTrackEditor>();
 
 		// register specialty track editors
-		AnimationTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSkeletalAnimationTrackEditor::CreateTrackEditor ) );
-		AttachTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DAttachTrackEditor::CreateTrackEditor ) );
-		AudioTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FAudioTrackEditor::CreateTrackEditor ) );
-		EventTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FEventTrackEditor::CreateTrackEditor ) );
-		ParticleTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FParticleTrackEditor::CreateTrackEditor ) );
-		ParticleParameterTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FParticleParameterTrackEditor::CreateTrackEditor ) );
-		PathTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DPathTrackEditor::CreateTrackEditor ) );
-		CameraCutTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FCameraCutTrackEditor::CreateTrackEditor ) );
-		CinematicShotTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FCinematicShotTrackEditor::CreateTrackEditor ) );
-		SlomoTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSlomoTrackEditor::CreateTrackEditor ) );
-		SubTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSubTrackEditor::CreateTrackEditor ) );
-		TransformTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DTransformTrackEditor::CreateTrackEditor ) );
-		ComponentMaterialTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FComponentMaterialTrackEditor::CreateTrackEditor ) );
-		FadeTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FFadeTrackEditor::CreateTrackEditor ) );
-		SpawnTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSpawnTrackEditor::CreateTrackEditor ) );
-		LevelVisibilityTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FLevelVisibilityTrackEditor::CreateTrackEditor ) );
-		CameraAnimTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FCameraAnimTrackEditor::CreateTrackEditor));
-		CameraShakeTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FCameraShakeTrackEditor::CreateTrackEditor));
+		AnimationTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FSkeletalAnimationTrackEditor::CreateTrackEditor ) );
+		AttachTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &F3DAttachTrackEditor::CreateTrackEditor ) );
+		AudioTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FAudioTrackEditor::CreateTrackEditor ) );
+		EventTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FEventTrackEditor::CreateTrackEditor ) );
+		ParticleTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FParticleTrackEditor::CreateTrackEditor ) );
+		ParticleParameterTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FParticleParameterTrackEditor::CreateTrackEditor ) );
+		PathTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &F3DPathTrackEditor::CreateTrackEditor ) );
+		CameraCutTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FCameraCutTrackEditor::CreateTrackEditor ) );
+		CinematicShotTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FCinematicShotTrackEditor::CreateTrackEditor ) );
+		SlomoTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FSlomoTrackEditor::CreateTrackEditor ) );
+		SubTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FSubTrackEditor::CreateTrackEditor ) );
+		TransformTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &F3DTransformTrackEditor::CreateTrackEditor ) );
+		ComponentMaterialTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FComponentMaterialTrackEditor::CreateTrackEditor ) );
+		FadeTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FFadeTrackEditor::CreateTrackEditor ) );
+		SpawnTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FSpawnTrackEditor::CreateTrackEditor ) );
+		LevelVisibilityTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor( FOnCreateTrackEditor::CreateStatic( &FLevelVisibilityTrackEditor::CreateTrackEditor ) );
+		CameraAnimTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FCameraAnimTrackEditor::CreateTrackEditor));
+		CameraShakeTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FCameraShakeTrackEditor::CreateTrackEditor));
+		MPCTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FMaterialParameterCollectionTrackEditor::CreateTrackEditor));
 
 		RegisterClipboardConversions();
 
 		// register details customization
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout("MovieSceneToolsProjectSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FMovieSceneToolsProjectSettingsCustomization::MakeInstance));
+		PropertyModule.RegisterCustomPropertyTypeLayout("MovieSceneObjectBindingID", FOnGetPropertyTypeCustomizationInstance::CreateLambda(&MakeShared<FMovieSceneObjectBindingIDCustomization>));
 	}
 
 	virtual void ShutdownModule() override
@@ -122,39 +128,41 @@ public:
 		ISequencerModule& SequencerModule = FModuleManager::Get().GetModuleChecked<ISequencerModule>( "Sequencer" );
 
 		// unregister property track editors
-		SequencerModule.UnRegisterTrackEditor_Handle( BoolPropertyTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( BytePropertyTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( ColorPropertyTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( FloatPropertyTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( IntegerPropertyTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( VectorPropertyTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( VisibilityPropertyTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( ActorReferencePropertyTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( StringPropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( BoolPropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( BytePropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( ColorPropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( FloatPropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( IntegerPropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( VectorPropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( VisibilityPropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( ActorReferencePropertyTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( StringPropertyTrackCreateEditorHandle );
 
 		// unregister specialty track editors
-		SequencerModule.UnRegisterTrackEditor_Handle( AnimationTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( AttachTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( AudioTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( EventTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( ParticleTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( ParticleParameterTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( PathTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( CameraCutTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( CinematicShotTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( SlomoTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( SubTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( TransformTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( ComponentMaterialTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( FadeTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( SpawnTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( CameraAnimTrackCreateEditorHandle );
-		SequencerModule.UnRegisterTrackEditor_Handle( CameraShakeTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( AnimationTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( AttachTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( AudioTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( EventTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( ParticleTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( ParticleParameterTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( PathTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( CameraCutTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( CinematicShotTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( SlomoTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( SubTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( TransformTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( ComponentMaterialTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( FadeTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( SpawnTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( CameraAnimTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( CameraShakeTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor( MPCTrackCreateEditorHandle );
 
 		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 		{	
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 			PropertyModule.UnregisterCustomClassLayout("MovieSceneToolsProjectSettings");
+			PropertyModule.UnregisterCustomPropertyTypeLayout("MovieSceneObjectBindingID");
 		}
 	}
 
@@ -201,6 +209,7 @@ private:
 	FDelegateHandle FloatPropertyTrackCreateEditorHandle;
 	FDelegateHandle IntegerPropertyTrackCreateEditorHandle;
 	FDelegateHandle VectorPropertyTrackCreateEditorHandle;
+	FDelegateHandle TransformPropertyTrackCreateEditorHandle;
 	FDelegateHandle VisibilityPropertyTrackCreateEditorHandle;
 	FDelegateHandle ActorReferencePropertyTrackCreateEditorHandle;
 	FDelegateHandle StringPropertyTrackCreateEditorHandle;
@@ -223,6 +232,7 @@ private:
 	FDelegateHandle LevelVisibilityTrackCreateEditorHandle;
 	FDelegateHandle CameraAnimTrackCreateEditorHandle;
 	FDelegateHandle CameraShakeTrackCreateEditorHandle;
+	FDelegateHandle MPCTrackCreateEditorHandle;
 };
 
 

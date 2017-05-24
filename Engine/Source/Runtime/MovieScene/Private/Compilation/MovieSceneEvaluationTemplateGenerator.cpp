@@ -3,6 +3,8 @@
 #include "Compilation/MovieSceneEvaluationTemplateGenerator.h"
 #include "MovieSceneSequence.h"
 #include "MovieScene.h"
+#include "UObject/ObjectKey.h"
+#include "IMovieSceneModule.h"
 
 namespace 
 {
@@ -28,27 +30,6 @@ namespace
 		InitPtrs.Reset();
 		EvalPtrs.Reset();
 	}
-
-	TMap<FName, FMovieSceneEvaluationGroupParameters> EvaluationGroupParameters;
-}
-
-void IMovieSceneTemplateGenerator::RegisterEvaluationGroupParameters(FName GroupName, const FMovieSceneEvaluationGroupParameters& GroupParameters)
-{
-	check(!GroupName.IsNone() && GroupParameters.EvaluationPriority != 0);
-
-	for (auto& Pair : EvaluationGroupParameters)
-	{
-		checkf(Pair.Key != GroupName, TEXT("Cannot add 2 groups of the same name"));
-		checkf(Pair.Value.EvaluationPriority != GroupParameters.EvaluationPriority, TEXT("Cannot add 2 groups of the same priority"));
-	}
-
-	EvaluationGroupParameters.Add(GroupName, GroupParameters);
-}
-
-FMovieSceneEvaluationGroupParameters IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(FName GroupName)
-{
-	FMovieSceneEvaluationGroupParameters* ExistingParams = EvaluationGroupParameters.Find(GroupName);
-	return ExistingParams ? *ExistingParams : FMovieSceneEvaluationGroupParameters();
 }
 
 FMovieSceneEvaluationTemplateGenerator::FMovieSceneEvaluationTemplateGenerator(UMovieSceneSequence& InSequence, FMovieSceneEvaluationTemplate& OutTemplate, FMovieSceneSequenceTemplateStore& InStore)
@@ -84,7 +65,7 @@ void FMovieSceneEvaluationTemplateGenerator::AddSharedTrack(FMovieSceneEvaluatio
 	AddOwnedTrack(MoveTemp(InTrackTemplate), SourceTrack);
 }
 
-void FMovieSceneEvaluationTemplateGenerator::AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs)
+void FMovieSceneEvaluationTemplateGenerator::AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs, ESectionEvaluationFlags Flags)
 {
 	if (RootRange.IsEmpty())
 	{
@@ -95,13 +76,26 @@ void FMovieSceneEvaluationTemplateGenerator::AddExternalSegments(TRange<float> R
 
 	for (const FMovieSceneEvaluationFieldSegmentPtr& SegmentPtr : SegmentPtrs)
 	{
-		if (!ExternalSegmentLookup.Contains(SegmentPtr))
+		// Add one segment to the external segment map per flag configuration
+		FExternalSegment NewSegment{ -1, Flags };
+		for (auto It = ExternalSegmentLookup.CreateConstKeyIterator(SegmentPtr); It; ++It)
 		{
-			ExternalSegmentLookup.Add(SegmentPtr, TrackLUT.Num());
+			if (It.Value().Flags == Flags)
+			{
+				NewSegment = It.Value();
+				break;
+			}
+		}
+
+		if (NewSegment.Index == -1)
+		{
+			NewSegment.Index = TrackLUT.Num();
+			ExternalSegmentLookup.Add(SegmentPtr, NewSegment);
 			TrackLUT.Add(SegmentPtr);
 		}
 
-		SegmentData.Add(FMovieSceneSectionData(RootRange, ExternalSegmentLookup.FindRef(SegmentPtr)));
+		// Flags are irrelevant for the final segment compilation
+		SegmentData.Add(FMovieSceneSectionData(RootRange, FSectionEvaluationData(NewSegment.Index)));
 	}
 }
 
@@ -116,37 +110,32 @@ FMovieSceneSequenceTransform FMovieSceneEvaluationTemplateGenerator::GetSequence
 	return ensure(Data) ? Data->RootToSequenceTransform : FMovieSceneSequenceTransform();
 }
 
-FMovieSceneSequenceID FMovieSceneEvaluationTemplateGenerator::GenerateSequenceID(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID)
+void FMovieSceneEvaluationTemplateGenerator::AddSubSequence(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID, FMovieSceneSequenceID SequenceID)
 {
 	FMovieSceneSequenceHierarchyNode* ParentNode = Template.Hierarchy.FindNode(ParentID);
 	checkf(ParentNode, TEXT("Cannot generate a sequence ID for a ParentID that doesn't yet exist"));
 
-	FMovieSceneSequenceID ThisID = SequenceData.DeterministicSequenceID;
-
+	check(SequenceID.IsValid());
+	
+#if WITH_EDITORONLY_DATA
 	if (const FMovieSceneSubSequenceData* ParentSubSequenceData = Template.Hierarchy.FindSubData(ParentID))
 	{
-#if WITH_EDITORONLY_DATA
 		// Clamp this sequence's valid play range by its parent's valid play range
 		TRange<float> ParentPlayRangeChildSpace = ParentSubSequenceData->ValidPlayRange * (SequenceData.RootToSequenceTransform * ParentSubSequenceData->RootToSequenceTransform.Inverse());
 		SequenceData.ValidPlayRange = TRange<float>::Intersection(ParentPlayRangeChildSpace, SequenceData.ValidPlayRange);
-#endif
-		// Determine its ID from its parent's
-		ThisID = SequenceData.DeterministicSequenceID.AccumulateParentID(ParentSubSequenceData->DeterministicSequenceID);
 	}
+#endif
 
 	// Ensure we have a unique ID. This should never happen in reality.
-	while(!ensureMsgf(!Template.Hierarchy.FindNode(ThisID), TEXT("CRC collision on deterministic hashes. Manually hashing a random new one.")))
+	while(!ensureMsgf(!Template.Hierarchy.FindNode(SequenceID), TEXT("CRC collision on deterministic hashes. Manually hashing a random new one.")))
 	{
-		ThisID = ThisID.AccumulateParentID(ThisID);
+		SequenceID = SequenceID.AccumulateParentID(SequenceID);
 	}
 
-	SequenceData.DeterministicSequenceID = ThisID;
-
-	ParentNode->Children.Add(ThisID);
-	Template.Hierarchy.Add(SequenceData, ThisID, ParentID);
-
-	return ThisID;
+	Template.Hierarchy.Add(SequenceData, SequenceID, ParentID);
 }
+
+
 void FMovieSceneEvaluationTemplateGenerator::Generate(FMovieSceneTrackCompilationParams InParams)
 {
 	Template.Hierarchy = FMovieSceneSequenceHierarchy();
@@ -185,7 +174,7 @@ void FMovieSceneEvaluationTemplateGenerator::Generate(FMovieSceneTrackCompilatio
 		// Add the segment range data to the master collection for overall compilation
 		for (int32 SegmentIndex = 0; SegmentIndex < Segments.Num(); ++SegmentIndex)
 		{
-			SegmentData.Add(FMovieSceneSectionData(Segments[SegmentIndex].Range, TrackLUT.Num()));
+			SegmentData.Add(FMovieSceneSectionData(Segments[SegmentIndex].Range, FSectionEvaluationData(TrackLUT.Num())));
 			TrackLUT.Add(FMovieSceneEvaluationFieldSegmentPtr(MovieSceneSequenceID::Root, Pair.Key, SegmentIndex));
 		}
 	}
@@ -195,7 +184,7 @@ void FMovieSceneEvaluationTemplateGenerator::Generate(FMovieSceneTrackCompilatio
 	{
 		if (UMovieSceneSequence* Sequence = Pair.Value.Sequence)
 		{
-			SequenceIdToTemplate.Add(Pair.Key, &TransientArgs.SubSequenceStore.GetCompiledTemplate(*Sequence));
+			SequenceIdToTemplate.Add(Pair.Key, &TransientArgs.SubSequenceStore.GetCompiledTemplate(*Sequence, FObjectKey(Pair.Value.SequenceKeyObject)));
 		}
 	}
 
@@ -243,6 +232,8 @@ void FMovieSceneEvaluationTemplateGenerator::RemoveOldTrackReferences()
 
 void FMovieSceneEvaluationTemplateGenerator::UpdateEvaluationField(const TArray<FMovieSceneSegment>& Segments, const TArray<FMovieSceneEvaluationFieldSegmentPtr>& Ptrs, const TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplate*>& Templates)
 {
+	IMovieSceneModule& MovieSceneModule = IMovieSceneModule::Get();
+
 	FMovieSceneEvaluationField& Field = Template.EvaluationField;
 
 	Field = FMovieSceneEvaluationField();
@@ -268,7 +259,7 @@ void FMovieSceneEvaluationTemplateGenerator::UpdateEvaluationField(const TArray<
 		// Sort the track ptrs, and define flush ranges
 		AllTracksInSegment.Sort(
 			[&](const FMovieSceneEvaluationFieldSegmentPtr& A, const FMovieSceneEvaluationFieldSegmentPtr& B){
-				return SortPredicate(LookupTrack(A, Templates), LookupTrack(B, Templates));
+				return SortPredicate(A, B, Templates, MovieSceneModule);
 			}
 		);
 
@@ -293,7 +284,7 @@ void FMovieSceneEvaluationTemplateGenerator::UpdateEvaluationField(const TArray<
 			CurrentEvaluationGroup = Track->GetEvaluationGroup();
 			if (CurrentEvaluationGroup != LastEvaluationGroup)
 			{
-				FMovieSceneEvaluationGroupParameters GroupParams = IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(LastEvaluationGroup);
+				FMovieSceneEvaluationGroupParameters GroupParams = MovieSceneModule.GetEvaluationGroupParameters(LastEvaluationGroup);
 				AddPtrsToGroup(Group, GroupParams.bRequiresImmediateFlush, InitPtrs, EvalPtrs);
 			}
 			LastEvaluationGroup = Track->GetEvaluationGroup();
@@ -313,7 +304,7 @@ void FMovieSceneEvaluationTemplateGenerator::UpdateEvaluationField(const TArray<
 			EvalPtrs.Add(Ptr);
 		}
 
-		FMovieSceneEvaluationGroupParameters GroupParams = IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(LastEvaluationGroup);
+		FMovieSceneEvaluationGroupParameters GroupParams = MovieSceneModule.GetEvaluationGroupParameters(LastEvaluationGroup);
 		AddPtrsToGroup(Group, GroupParams.bRequiresImmediateFlush, InitPtrs, EvalPtrs);
 
 		// Copmpute meta data for this segment
@@ -343,15 +334,31 @@ const FMovieSceneEvaluationTrack* FMovieSceneEvaluationTemplateGenerator::Lookup
 	return nullptr;
 }
 
-bool FMovieSceneEvaluationTemplateGenerator::SortPredicate(const FMovieSceneEvaluationTrack* A, const FMovieSceneEvaluationTrack* B) const
+bool FMovieSceneEvaluationTemplateGenerator::SortPredicate(const FMovieSceneEvaluationFieldTrackPtr& InPtrA, const FMovieSceneEvaluationFieldTrackPtr& InPtrB, const TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplate*>& Templates, IMovieSceneModule& MovieSceneModule)
 {
+	const FMovieSceneEvaluationTrack* A = LookupTrack(InPtrA, Templates);
+	const FMovieSceneEvaluationTrack* B = LookupTrack(InPtrB, Templates);
 	if (!ensure(A && B))
 	{
 		return false;
 	}
 
-	FMovieSceneEvaluationGroupParameters GroupA = IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(A->GetEvaluationGroup());
-	FMovieSceneEvaluationGroupParameters GroupB = IMovieSceneTemplateGenerator::GetEvaluationGroupParameters(B->GetEvaluationGroup());
+	FMovieSceneEvaluationGroupParameters GroupA = MovieSceneModule.GetEvaluationGroupParameters(A->GetEvaluationGroup());
+	FMovieSceneEvaluationGroupParameters GroupB = MovieSceneModule.GetEvaluationGroupParameters(B->GetEvaluationGroup());
+
+	const FMovieSceneSubSequenceData* DataA = Template.Hierarchy.FindSubData(InPtrA.SequenceID);
+	const FMovieSceneSubSequenceData* DataB = Template.Hierarchy.FindSubData(InPtrB.SequenceID);
+
+	if (DataA || DataB)
+	{
+		int32 HierarchicalBiasA = DataA ? DataA->HierarchicalBias : 0;
+		int32 HierarchicalBiasB = DataB ? DataB->HierarchicalBias : 0;
+
+		if (HierarchicalBiasA != HierarchicalBiasB)
+		{
+			return HierarchicalBiasA < HierarchicalBiasB;
+		}
+	}
 
 	if (GroupA.EvaluationPriority != GroupB.EvaluationPriority)
 	{

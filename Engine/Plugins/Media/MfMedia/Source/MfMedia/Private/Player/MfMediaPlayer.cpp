@@ -172,12 +172,13 @@ bool FMfMediaPlayer::SetRate(float Rate)
 
 	if (FMath::IsNearlyZero(Rate))
 	{
+		// Make sure we set enabled to false before pausing or the render thread might get stuck waiting for another sample to read.
+		Tracks->SetEnabled(false);
+
 		if (FAILED(MediaSource->Pause()))
 		{
 			return false;
 		}
-
-		Tracks->SetEnabled(false);
 	}
 	else
 	{
@@ -445,6 +446,7 @@ void FMfMediaPlayer::TickPlayer(float DeltaTime)
 			// stop playback
 			Seek(FTimespan::Zero());
 			SetRate(0.0f);
+			MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
 		}
 	}
 }

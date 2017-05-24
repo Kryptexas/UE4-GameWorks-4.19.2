@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "AIGraph.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQueryGraph.generated.h"
 
 class UEnvironmentQueryGraphNode;
@@ -25,6 +26,11 @@ class UEnvironmentQueryGraph : public UAIGraph
 	void SpawnMissingNodes();
 	void CalculateAllWeights();
 	void CreateEnvQueryFromGraph(class UEnvironmentQueryGraphNode* RootEdNode);
+
+	void ResetProfilerStats();
+#if USE_EQS_DEBUGGER
+	void StoreProfilerStats(const FEQSDebugger::FStatsInfo& Stats);
+#endif
 
 protected:
 

@@ -3417,7 +3417,7 @@ void FOpenGLDebugFrameDumper::DumpTextureUnitSettings( FOutputDeviceFile& LogFil
 
 void FOpenGLDebugFrameDumper::DumpGeneralOpenGLState( const TCHAR* DrawCommandDescription, bool bIsDrawEvent, bool bIsFramebufferBlitEvent )
 {
-	FString LogFileName = *CachedEventFolder * TEXT("state.log");
+	FString LogFileName = *CachedEventFolder / TEXT("state.log");
 	FOutputDeviceFile LogFile( *LogFileName );
 	LogFile.SetAutoEmitLineTerminator( false );
 	LogFile.Log( LINE_TERMINATOR );	// to end "log start" line
@@ -3488,7 +3488,7 @@ void FOpenGLDebugFrameDumper::DumpFramebufferState( bool bReadFramebuffer )
 		FramebufferBindingEnum = GL_DRAW_FRAMEBUFFER_BINDING;
 	}
 
-	FString LogFilePath = *CachedEventFolder * LogFileName;
+	FString LogFilePath = *CachedEventFolder / LogFileName;
 	FOutputDeviceFile LogFile( *LogFilePath );
 	LogFile.SetAutoEmitLineTerminator( false );
 	LogFile.Log( LINE_TERMINATOR );	// to end "log start" line
@@ -3509,7 +3509,7 @@ void FOpenGLDebugFrameDumper::DumpProgramAndShaderState( void )
 	glGetIntegerv( GL_CURRENT_PROGRAM, &ProgramID );
 	ASSERT_NO_GL_ERROR();
 
-	FString ProgramLogFileName = *CachedEventFolder * *FString::Printf( TEXT("program%d.log"), ProgramID );
+	FString ProgramLogFileName = *CachedEventFolder / FString::Printf( TEXT("program%d.log"), ProgramID );
 	FOutputDeviceFile ProgramLogFile( *ProgramLogFileName );
 	ProgramLogFile.SetAutoEmitLineTerminator( false );
 	ProgramLogFile.Log( LINE_TERMINATOR );	// to end "log start" line
@@ -3535,7 +3535,7 @@ void FOpenGLDebugFrameDumper::DumpProgramAndShaderState( void )
 
 	for( GLint AttachedShaderIndex = 0; AttachedShaderIndex < CountReceived; ++AttachedShaderIndex )
 	{
-		FString ShaderLogFileName = *CachedEventFolder * *FString::Printf( TEXT("shader%d.log"), AttachedShadersTable[AttachedShaderIndex] );
+		FString ShaderLogFileName = *CachedEventFolder / FString::Printf( TEXT("shader%d.log"), AttachedShadersTable[AttachedShaderIndex] );
 		FOutputDeviceFile ShaderLogFile( *ShaderLogFileName );
 		ShaderLogFile.SetAutoEmitLineTerminator( false );
 		ShaderLogFile.Log( LINE_TERMINATOR );	// to end "log start" line
@@ -3550,7 +3550,7 @@ void FOpenGLDebugFrameDumper::DumpProgramAndShaderState( void )
 
 void FOpenGLDebugFrameDumper::DumpBoundTextureState( void )
 {
-	FString LogFileName = *CachedEventFolder * TEXT("textureUnits.log");
+	FString LogFileName = *CachedEventFolder / TEXT("textureUnits.log");
 	FOutputDeviceFile LogFile( *LogFileName );
 	LogFile.SetAutoEmitLineTerminator( false );
 	LogFile.Log( LINE_TERMINATOR );	// to end "log start" line
@@ -4115,7 +4115,7 @@ void FOpenGLDebugFrameDumper::DumpFramebufferContent( GLint FramebufferID, GLint
 #if USE_COMPRESSED_PNG_INSTEAD_OF_BMP_FOR_CONTENT_OUTPUT
 
 			FilenameString += TEXT(".png");
-			FString FilePath = *CachedEventFolder * FilenameString;
+			FString FilePath = *CachedEventFolder / FilenameString;
 
 			if( bIgnoreAlpha && ( SlotType == EFramebufferAttachmentSlotType::Color ) )	// Alpha is 255 in depth and stencil already
 			{
@@ -4131,7 +4131,7 @@ void FOpenGLDebugFrameDumper::DumpFramebufferContent( GLint FramebufferID, GLint
 			appCreatePNGWithAlpha( *FilePath, Width, Height, (FColor*)RGBAData );
 #else
 			FilenameString += TEXT(".bmp");
-			FString FilePath = *CachedEventFolder * FilenameString;
+			FString FilePath = *CachedEventFolder / FilenameString;
 
 			if( bIgnoreAlpha )
 			{
@@ -4284,7 +4284,7 @@ void FOpenGLDebugFrameDumper::DumpTextureSurfaceContent( const TCHAR* TargetFile
 		ASSERT_NO_GL_ERROR();
 
 		FString FilenameString( TargetFilename );
-		FString FilePath = *CachedEventFolder * ( FilenameString + TEXT(".dds") );
+		FString FilePath = *CachedEventFolder / ( FilenameString + TEXT(".dds") );
 		appCreateDDSWithSingleSurface( *FilePath, Width, Height, InternalFormat, CompressedData, CompressedSize );
 
 		FMemory::Free( CompressedData );
@@ -4509,7 +4509,7 @@ void FOpenGLDebugFrameDumper::DumpTextureSurfaceContent( const TCHAR* TargetFile
 #if USE_COMPRESSED_PNG_INSTEAD_OF_BMP_FOR_CONTENT_OUTPUT
 
 		FilenameString += TEXT(".png");
-		FString FilePath = *CachedEventFolder * FilenameString;
+		FString FilePath = *CachedEventFolder / FilenameString;
 
 		if( bIgnoreAlpha && bTextureTypeIsColor )
 		{
@@ -4525,7 +4525,7 @@ void FOpenGLDebugFrameDumper::DumpTextureSurfaceContent( const TCHAR* TargetFile
 		appCreatePNGWithAlpha( *FilePath, Width, Height, (FColor*)RGBAData );
 #else
 		FilenameString += TEXT(".bmp");
-		FString FilePath = *CachedEventFolder * FilenameString;
+		FString FilePath = *CachedEventFolder / FilenameString;
 
 		if( bIgnoreAlpha )
 		{
@@ -4674,7 +4674,7 @@ void FOpenGLDebugFrameDumper::DumpElementArrayBufferContents( GLenum ElementArra
 		return;
 	}
 
-	FString LogFileName = *CachedEventFolder * TEXT("elementArrayBuffer.log");
+	FString LogFileName = *CachedEventFolder / TEXT("elementArrayBuffer.log");
 	FOutputDeviceFile LogFile( *LogFileName );
 	LogFile.SetAutoEmitLineTerminator( false );
 	LogFile.Log( LINE_TERMINATOR );	// to end "log start" line
@@ -4942,7 +4942,7 @@ void FOpenGLDebugFrameDumper::DumpBoundVertexArrayBufferContents( GLint VertexBu
 		VertexCount = InstanceCount;
 	}
 
-	FString LogFileName = *CachedEventFolder * FString::Printf( TEXT("vertexArrayBuffer%d.log"), VertexBufferID );
+	FString LogFileName = *CachedEventFolder / FString::Printf( TEXT("vertexArrayBuffer%d.log"), VertexBufferID );
 	FOutputDeviceFile LogFile( *LogFileName );
 	LogFile.SetAutoEmitLineTerminator( false );
 	LogFile.Log( LINE_TERMINATOR );	// to end "log start" line
@@ -5288,7 +5288,7 @@ void FOpenGLDebugFrameDumper::TriggerFrameDump( void )
 	if( CachedRootFolder == NULL )
 	{
 		// Delete entire root frame dump folder with everything in it, if it exists.
-		CachedRootFolder = new FString( FPaths::ProfilingDir() * TEXT("OpenGLDebugFrameDump") );
+		CachedRootFolder = new FString( FPaths::ProfilingDir() / TEXT("OpenGLDebugFrameDump") );
 		IFileManager::Get().DeleteDirectory( **CachedRootFolder, false, true );
 
 		// Create new root frame dump folder
@@ -5298,7 +5298,7 @@ void FOpenGLDebugFrameDumper::TriggerFrameDump( void )
 	// Create new frame folder
 	if( CachedFrameFolder )
 		delete CachedFrameFolder;
-	CachedFrameFolder = new FString( *CachedRootFolder * FString::Printf( TEXT( "Frame_%08u" ), FrameCounter ) );
+	CachedFrameFolder = new FString( *CachedRootFolder / FString::Printf( TEXT( "Frame_%08u" ), FrameCounter ) );
 
 	UE_LOG( LogRHI, Log, TEXT("DEBUG FRAME DUMPER: Frame %d dump started."), FrameCounter );
 
@@ -5311,7 +5311,7 @@ void FOpenGLDebugFrameDumper::SetNewEventFolder( const FString& EventString )
 	// Create new event folder
 	if( CachedEventFolder )
 		delete CachedEventFolder;
-	CachedEventFolder = new FString( *CachedFrameFolder * ( FString::Printf( TEXT( "Event_%08u-" ), EventCounter ) + EventString ) );
+	CachedEventFolder = new FString( *CachedFrameFolder / FString::Printf( TEXT( "Event_%08u-" ), EventCounter ) + EventString );
 }
 
 void FOpenGLDebugFrameDumper::SignalDrawEvent( const TCHAR* FolderPart, const TCHAR* DrawCommandDescription, GLint ElementArrayType, GLint StartVertex, GLint VertexCount, GLint InstanceCount )

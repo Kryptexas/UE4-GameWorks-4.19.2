@@ -60,6 +60,8 @@ public:
 	virtual void InitializeDefaultValue(uint8* StructData) const override;
 	// End of UScriptStruct interface.
 
+	bool DiffersFromDefaultValue(uint8* StructData) const;
+
 	void ValidateGuid();
 #endif	// WITH_EDITOR
 

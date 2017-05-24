@@ -13,12 +13,15 @@
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "FindInBlueprintManager.h"
 
 struct FK2Node_CreateDelegate_Helper
 {
 	static FString DelegateOutputName;
+	static FString InputObjectName; // Deprecated, for fixup
 };
 FString FK2Node_CreateDelegate_Helper::DelegateOutputName(TEXT("OutputDelegate"));
+FString FK2Node_CreateDelegate_Helper::InputObjectName(TEXT("InputObject"));
 
 UK2Node_CreateDelegate::UK2Node_CreateDelegate(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -40,6 +43,19 @@ void UK2Node_CreateDelegate::AllocateDefaultPins()
 	}
 
 	Super::AllocateDefaultPins();
+}
+
+UK2Node::ERedirectType UK2Node_CreateDelegate::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	// Handles remap of InputObject to Self, from 4.10 time frame
+	if (OldPin->PinName == FK2Node_CreateDelegate_Helper::InputObjectName && NewPin->PinName == K2Schema->PN_Self)
+	{
+		return ERedirectType_Name;
+	}
+
+	return Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 }
 
 bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClassForSelf) const
@@ -180,8 +196,8 @@ void UK2Node_CreateDelegate::ValidationAfterFunctionsAreCreated(class FCompilerR
 
 void UK2Node_CreateDelegate::HandleAnyChangeWithoutNotifying()
 {
-	const auto Blueprint = GetBlueprint();
-	const auto SelfScopeClass = Blueprint ? Blueprint->SkeletonGeneratedClass : NULL;
+	const auto Blueprint = HasValidBlueprint() ? GetBlueprint() : nullptr;
+	const auto SelfScopeClass = Blueprint ? Blueprint->SkeletonGeneratedClass : nullptr;
 	const auto ParentClass = GetScopeClass();
 	const bool bIsSelfScope = SelfScopeClass && ParentClass && ((SelfScopeClass->IsChildOf(ParentClass)) || (SelfScopeClass->ClassGeneratedBy == ParentClass->ClassGeneratedBy));
 
@@ -226,8 +242,8 @@ void UK2Node_CreateDelegate::HandleAnyChange(UEdGraph* & OutGraph, UBlueprint* &
 	}
 	else
 	{
-		OutGraph = NULL;
-		OutBlueprint = NULL;
+		OutGraph = nullptr;
+		OutBlueprint = nullptr;
 	}
 }
 
@@ -355,7 +371,7 @@ UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/
 		}
 	}
 
-	if (bUseSelf)
+	if (bUseSelf && HasValidBlueprint())
 	{
 		if (UBlueprint* ScopeClassBlueprint = GetBlueprint())
 		{
@@ -363,7 +379,7 @@ UClass* UK2Node_CreateDelegate::GetScopeClass(bool bDontUseSkeletalClassForSelf/
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 FName UK2Node_CreateDelegate::GetFunctionName() const
@@ -433,6 +449,17 @@ UObject* UK2Node_CreateDelegate::GetJumpTargetForDoubleClick() const
 		}
 	}
 	return NULL;
+}
+
+void UK2Node_CreateDelegate::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const
+{
+	Super::AddSearchMetaDataInfo(OutTaggedMetaData);
+
+	const FName FunctionName = GetFunctionName();
+	if (!FunctionName.IsNone())
+	{
+		OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_NativeName, FText::FromName(FunctionName)));
+	}
 }
 
 FNodeHandlingFunctor* UK2Node_CreateDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

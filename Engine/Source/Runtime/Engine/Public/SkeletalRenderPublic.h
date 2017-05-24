@@ -45,15 +45,8 @@ enum ECustomSortAlternateIndexMode
 class FSkeletalMeshObject : public FDeferredCleanupInterface
 {
 public:
-	enum
-	{
-		// Up to this number of chunks, we can use on the GPU skinning cache; no point in using TArray as it's using int16 elements
-		// 32 is the conservative size needed for Senua in CharDemo with NinjaTheory (this should be a cvar and project specific or dynamic, with only using the feature on RecomputeTangents it can be much less)
-		MAX_GPUSKINCACHE_CHUNKS_PER_LOD = 32,
-	};
-
 	FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type FeatureLevel);
-	virtual ~FSkeletalMeshObject() {}
+	virtual ~FSkeletalMeshObject();
 
 	/** 
 	 * Initialize rendering resources for each LOD 
@@ -84,7 +77,7 @@ public:
 	 * Called by FSkeletalMeshObject prior to GDME. This allows the GPU skin version to update bones etc now that we know we are going to render
 	 * @param FrameNumber from GFrameNumber
 	 */
-	virtual void PreGDMECallback(uint32 FrameNumber)
+	virtual void PreGDMECallback(class FGPUSkinCache* GPUSkinCache, uint32 FrameNumber)
 	{
 	}
 
@@ -140,7 +133,7 @@ public:
 	* @param bDrawTangents	- Should draw vertex tangents
 	* @param bDrawBinormals	- Should draw vertex binormals
 	*/
-	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const {}
+	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FMatrix& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const {}
 
 	/** 
 	 *	Given a set of views, update the MinDesiredLODLevel member to indicate the minimum (ie best) LOD we would like to use to render this mesh. 
@@ -262,6 +255,7 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** Index of the section to preview... If set to -1, all section will be rendered */
 	int32 SectionIndexPreview;
+	int32 MaterialIndexPreview;
 #endif
 
 	/** returns the feature level this FSkeletalMeshObject was created with */
@@ -277,8 +271,7 @@ protected:
 	/** Per-LOD info. */
 	TArray<FSkeletalMeshLODInfo> SkeletalMeshLODInfo;
 
-	/** GPU Skin Cache Keys per chunk; -1 means not using GPU Skin Cache **/
-	int16 GPUSkinCacheKeys[MAX_GPUSKINCACHE_CHUNKS_PER_LOD];
+	class FGPUSkinCacheEntry* SkinCacheEntry;
 
 	/** Used to keep track of the first call to UpdateMinDesiredLODLevel each frame. from ViewFamily.FrameNumber */
 	uint32 LastFrameNumber;

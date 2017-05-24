@@ -54,6 +54,7 @@ class ENGINE_API UChannel
 	uint32				Broken:1;			// Has encountered errors and is ignoring subsequent packets.
 	uint32				bTornOff:1;			// Actor associated with this channel was torn off
 	uint32				bPendingDormancy:1;	// Channel wants to go dormant (it will check during tick if it can go dormant)
+	uint32				bPausedUntilReliableACK:1; // Unreliable property replication is paused until all reliables are ack'd.
 	int32				ChIndex;			// Index of this channel.
 	int32				OpenedLocally;		// Whether channel was opened locally or by remote.
 	FPacketIdRange		OpenPacketId;		// If OpenedLocally is true, this is the packet we sent the bOpen bunch on. Otherwise, it's the packet we received the bOpen bunch on.

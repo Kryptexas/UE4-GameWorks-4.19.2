@@ -101,7 +101,7 @@ bool UMobileInstalledContent::Mount(int32 InPakOrder, const FString& InMountPoin
 			FString PakFullName = InstallDir / FileName;
 			if (PakFileMgr->Mount(*PakFullName, PakOrder, MountPount))
 			{
-				UE_LOG(LogMobilePatchingUtils, Log, TEXT("Mounted = %s, Order = %d, MountPoint = %s"), *PakFullName, PakOrder, MountPount ? TEXT("(null)") : MountPount);
+				UE_LOG(LogMobilePatchingUtils, Log, TEXT("Mounted = %s, Order = %d, MountPoint = %s"), *PakFullName, PakOrder, !MountPount ? TEXT("(null)") : MountPount);
 				bMounted = true;
 			}
 			else

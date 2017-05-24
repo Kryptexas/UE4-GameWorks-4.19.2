@@ -592,6 +592,7 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	bUseEditorCompositing = false;
 
 	Space = EWidgetSpace::World;
+	TimingPolicy = EWidgetTimingPolicy::RealTime;
 	Pivot = FVector2D(0.5, 0.5);
 
 	bAddedToScreen = false;
@@ -690,7 +691,7 @@ void UWidgetComponent::OnRegister()
 	{
 		if ( Space != EWidgetSpace::Screen )
 		{
-			if ( bReceiveHardwareInput && GetWorld()->IsGameWorld() )
+			if ( CanReceiveHardwareInput() && GetWorld()->IsGameWorld() )
 			{
 				TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
 				RegisterHitTesterWithViewport(GameViewportWidget);
@@ -707,6 +708,11 @@ void UWidgetComponent::OnRegister()
 		InitWidget();
 	}
 #endif // !UE_SERVER
+}
+
+bool UWidgetComponent::CanReceiveHardwareInput() const
+{
+	return bReceiveHardwareInput && GeometryMode == EWidgetGeometryMode::Plane;
 }
 
 void UWidgetComponent::RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
@@ -734,7 +740,7 @@ void UWidgetComponent::RegisterHitTesterWithViewport(TSharedPtr<SViewport> Viewp
 void UWidgetComponent::UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
 {
 #if !UE_SERVER
-	if ( bReceiveHardwareInput )
+	if ( CanReceiveHardwareInput() )
 	{
 		TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
 		if ( CustomHitTestPath.IsValid() )
@@ -791,7 +797,6 @@ void UWidgetComponent::ReleaseResources()
 	}
 
 	WidgetRenderer.Reset();
-	HitTestGrid.Reset();
 
 	UnregisterWindow();
 }
@@ -800,7 +805,7 @@ void UWidgetComponent::RegisterWindow()
 {
 	if ( SlateWindow.IsValid() )
 	{
-		if (!bReceiveHardwareInput && FSlateApplication::IsInitialized() )
+		if (!CanReceiveHardwareInput() && FSlateApplication::IsInitialized() )
 		{
 			FSlateApplication::Get().RegisterVirtualWindow(SlateWindow.ToSharedRef());
 		}
@@ -811,7 +816,7 @@ void UWidgetComponent::UnregisterWindow()
 {
 	if ( SlateWindow.IsValid() )
 	{
-		if ( !bReceiveHardwareInput && FSlateApplication::IsInitialized() )
+		if ( !CanReceiveHardwareInput() && FSlateApplication::IsInitialized() )
 		{
 			FSlateApplication::Get().UnregisterVirtualWindow(SlateWindow.ToSharedRef());
 		}
@@ -841,7 +846,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 				// Calculate the actual delta time since we last drew, this handles the case where we're ticking when
 				// the world is paused, this also takes care of the case where the widget component is rendering at
 				// a different rate than the rest of the world.
-				const float DeltaTimeFromLastDraw = LastWidgetRenderTime == 0 ? 0 : (FApp::GetCurrentTime() - LastWidgetRenderTime );
+				const float DeltaTimeFromLastDraw = LastWidgetRenderTime == 0 ? 0 : (GetCurrentTime() - LastWidgetRenderTime);
 			    DrawWidgetToRenderTarget(DeltaTimeFromLastDraw);
 		    }
 	    }
@@ -908,7 +913,7 @@ bool UWidgetComponent::ShouldDrawWidget() const
 		// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
 		if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
 		{
-			if ( ( FApp::GetCurrentTime() - LastWidgetRenderTime) >= RedrawTime )
+			if ( ( GetCurrentTime() - LastWidgetRenderTime) >= RedrawTime )
 			{
 				return bManuallyRedraw ? bRedrawRequested : true;
 			}
@@ -969,13 +974,13 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 
 	WidgetRenderer->DrawWindow(
 		RenderTarget,
-		HitTestGrid.ToSharedRef(),
+		SlateWindow->GetHittestGrid(),
 		SlateWindow.ToSharedRef(),
 		DrawScale,
 		CurrentDrawSize,
 		DeltaTime);
 
-	LastWidgetRenderTime = FApp::GetCurrentTime();
+	LastWidgetRenderTime = GetCurrentTime();
 }
 
 float UWidgetComponent::ComputeComponentWidth() const
@@ -994,6 +999,11 @@ float UWidgetComponent::ComputeComponentWidth() const
 			return 2.0f * Radius * FMath::Sin(0.5f*ArcAngleRadians);
 		break;
 	}
+}
+
+double UWidgetComponent::GetCurrentTime() const
+{
+	return (TimingPolicy == EWidgetTimingPolicy::RealTime) ? FApp::GetCurrentTime() : static_cast<double>(GetWorld()->GetTimeSeconds());
 }
 
 void UWidgetComponent::RemoveWidgetFromScreen()
@@ -1085,7 +1095,28 @@ void UWidgetComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterial
 	}
 }
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
+
+bool UWidgetComponent::CanEditChange(const UProperty* InProperty) const
+{
+	if ( InProperty )
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, bReceiveHardwareInput) )
+		{
+			return GeometryMode == EWidgetGeometryMode::Plane;
+		}
+
+		if ( PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UWidgetComponent, CylinderArcAngle) )
+		{
+			return GeometryMode == EWidgetGeometryMode::Cylinder;
+		}
+	}
+
+	return Super::CanEditChange(InProperty);
+}
+
 void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* Property = PropertyChangedEvent.MemberProperty;
@@ -1136,6 +1167,7 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
 #endif
 
 void UWidgetComponent::InitWidget()
@@ -1223,23 +1255,21 @@ void UWidgetComponent::UpdateWidget()
 				NewSlateWidget = Widget->TakeWidget();
 			}
 
+			bool bNeededNewWindow = false;
 			if ( !SlateWindow.IsValid() )
 			{
 				SlateWindow = SNew(SVirtualWindow).Size(DrawSize);
 				SlateWindow->SetIsFocusable(bWindowFocusable);
 				RegisterWindow();
-			}
 
-			if ( !HitTestGrid.IsValid() )
-			{
-				HitTestGrid = MakeShareable(new FHittestGrid);
+				bNeededNewWindow = true;
 			}
 
 			SlateWindow->Resize(DrawSize);
 
 			if ( NewSlateWidget.IsValid() )
 			{
-				if ( NewSlateWidget != CurrentSlateWidget )
+				if ( NewSlateWidget != CurrentSlateWidget || bNeededNewWindow )
 				{
 					CurrentSlateWidget = NewSlateWidget;
 					SlateWindow->SetContent(NewSlateWidget.ToSharedRef());
@@ -1247,7 +1277,7 @@ void UWidgetComponent::UpdateWidget()
 			}
 			else if( SlateWidget.IsValid() )
 			{
-				if ( SlateWidget != CurrentSlateWidget )
+				if ( SlateWidget != CurrentSlateWidget || bNeededNewWindow )
 				{
 					CurrentSlateWidget = SlateWidget;
 					SlateWindow->SetContent(SlateWidget.ToSharedRef());
@@ -1547,9 +1577,9 @@ TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(FVector2D WidgetSpa
 	LastLocalHitLocation = LocalHitLocation;
 
 	TArray<FWidgetAndPointer> ArrangedWidgets;
-	if ( HitTestGrid.IsValid() )
+	if ( SlateWindow.IsValid() )
 	{
-		ArrangedWidgets = HitTestGrid->GetBubblePath( LocalHitLocation, CursorRadius, bIgnoreEnabledStatus );
+		ArrangedWidgets = SlateWindow->GetHittestGrid()->GetBubblePath( LocalHitLocation, CursorRadius, bIgnoreEnabledStatus );
 
 		for( FWidgetAndPointer& ArrangedWidget : ArrangedWidgets )
 		{
@@ -1642,11 +1672,6 @@ void UWidgetComponent::SetOpacityFromTexture( const float NewOpacityFromTexture 
 TSharedPtr< SWindow > UWidgetComponent::GetVirtualWindow() const
 {
 	return StaticCastSharedPtr<SWindow>(SlateWindow);
-}
-
-void UWidgetComponent::PostLoad()
-{
-	Super::PostLoad();
 }
 
 UMaterialInterface* UWidgetComponent::GetMaterial(int32 MaterialIndex) const

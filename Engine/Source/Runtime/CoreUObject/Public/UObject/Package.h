@@ -37,6 +37,34 @@ enum class ESavePackageResult
 	GenerateStub
 };
 
+/**
+ * Struct returned from save package, contains the enum as well as extra data about what was written
+ */
+struct FSavePackageResultStruct
+{
+	/** Success/failure of the save operation */
+	ESavePackageResult Result;
+
+	/** Total size of all files written out, including bulk data */
+	int64 TotalFileSize;
+
+	/** Constructors, it will implicitly construct from the result enum */
+	FSavePackageResultStruct() : Result(ESavePackageResult::Error), TotalFileSize(0) {}
+	FSavePackageResultStruct(ESavePackageResult InResult) : Result(InResult), TotalFileSize(0) {}
+	FSavePackageResultStruct(ESavePackageResult InResult, int64 InTotalFileSize) : Result(InResult), TotalFileSize(InTotalFileSize) {}
+
+	bool operator==(const FSavePackageResultStruct& Other) const
+	{
+		return Result == Other.Result;
+	}
+
+	bool operator!=(const FSavePackageResultStruct& Other) const
+	{
+		return Result != Other.Result;
+	}
+
+};
+
 COREUOBJECT_API void StartSavingEDLCookInfoForVerification();
 COREUOBJECT_API void VerifyEDLCookInfo();
 
@@ -49,7 +77,6 @@ class COREUOBJECT_API UPackage : public UObject
 	// Have to unwind this macro to support the reference variable, can go back to commented declaration when removing the deprecated variable
 	// DECLARE_CASTED_CLASS_INTRINSIC(UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage)
 
-#if WITH_HOT_RELOAD_CTORS
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API )
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UPackage(FVTableHelper& Helper)
@@ -57,9 +84,6 @@ class COREUOBJECT_API UPackage : public UObject
 		, PackageFlagsPrivate(PackageFlags) 
 	{
 	};
-#else
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API)
-#endif
 
 
 public:
@@ -494,9 +518,9 @@ public:
 	 * @param	TargetPlatform					The platform being saved for
 	 * @param	FinalTimeStamp					If not FDateTime::MinValue(), the timestamp the saved file should be set to. (Intended for cooking only...)
 	 *
-	 * @return	ESavePackageResult enum value with the result of saving a package.
+	 * @return	FSavePackageResultStruct enum value with the result of saving a package as well as extra data
 	 */
-	static ESavePackageResult Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
+	static FSavePackageResultStruct Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 		FOutputDevice* Error=GError, FLinkerLoad* Conform=NULL, bool bForceByteSwapping=false, bool bWarnOfLongFilename=true, 
 		uint32 SaveFlags=SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true );
 
@@ -552,22 +576,23 @@ public:
 	static void SaveWorldLevelInfo( UPackage* InOuter, FLinkerSave* Linker );
 
 	/**
-	  * Determines if a package contains no more assets.
-	  *
-	  * @param Package			the package to test
-	  * @param LastReferencer	the optional last UObject referencer to this package. This object will be excluded when determining if the package is empty
-	  * @return true if Package contains no more assets.
-	  */
+	 * Determines if a package contains no more assets.
+	 *
+	 * @param Package			the package to test
+	 * @param LastReferencer	the optional last UObject referencer to this package. This object will be excluded when determining if the package is empty
+	 * @return true if Package contains no more assets.
+	 */
 	static bool IsEmptyPackage(UPackage* Package, const UObject* LastReferencer = NULL);
 
-
 	/**
-	 * @param TargetPlatform - The platform being saved for
-	 * @param bIsCooking	 - Whether we are cooking or not
+	 * Determines the set of object marks that should be excluded for the target platform
 	 *
-	 * @return Objects marks specific for the particular target platform, objects with these marks will be rejected from the cook
+	 * @param TargetPlatform	The platform being saved for
+	 * @param bIsCooking		Whether we are cooking or not
+	 *
+	 * @return Excluded object marks specific for the particular target platform, objects with any of these marks will be rejected from the cook
 	 */
-	static EObjectMark GetObjectMarksForTargetPlatform( const class ITargetPlatform* TargetPlatform, const bool bIsCooking );
+	static EObjectMark GetExcludedObjectMarksForTargetPlatform( const class ITargetPlatform* TargetPlatform, const bool bIsCooking );
 
 };
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

@@ -638,8 +638,8 @@ private:
 	/** Gets the path to this asset */
 	FText GetAssetPathText() const;
 
-	/** Gets the value for the specified asset tag in this asset */
-	FText GetAssetTagText(FName AssetRegistryTag) const;
+	/** Gets the value for the specified tag in this asset */
+	FText GetAssetTagText(FName Tag) const;
 
 private:
 	TAttribute<FText> HighlightText;
@@ -684,6 +684,18 @@ public:
 			return SNew(STextBlock) .Text( NSLOCTEXT("AssetView", "InvalidColumnId", "Invalid Column Item") );
 		}
 		
+	}
+
+	virtual FVector2D GetRowSizeForColumn(const FName& InColumnName) const override
+	{
+		const TSharedRef<SWidget>* ColumnWidget = GetWidgetFromColumnId(InColumnName);
+
+		if (ColumnWidget != nullptr)
+		{
+			return (*ColumnWidget)->GetDesiredSize();
+		}
+
+		return FVector2D::ZeroVector; 
 	}
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override

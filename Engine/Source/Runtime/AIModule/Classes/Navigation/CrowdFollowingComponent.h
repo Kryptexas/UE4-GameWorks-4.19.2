@@ -66,14 +66,15 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	virtual void OnPathUpdated() override;
 	virtual void OnPathfindingQuery(FPathFindingQuery& Query) override;
 	virtual int32 GetCurrentPathElement() const override { return LastPathPolyIndex; }
+	virtual void OnNavigationInitDone() override;
 	// PathFollowingComponent END
 
 	/** update params in crowd manager */
 	void UpdateCrowdAgentParams() const;
 
 	/** pass agent velocity to movement component */
-	virtual void ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink);
-
+	virtual void ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink, bool bIsNearEndOfPath);
+	
 	/** pass desired position to movement component (after resolving collisions between crowd agents) */
 	virtual void ApplyCrowdAgentPosition(const FVector& NewPosition);
 
@@ -145,6 +146,9 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	DEPRECATED(4.11, "Use SetCrowdSimulationState function instead.")
 	virtual void SetCrowdSimulation(bool bEnable);
 
+	DEPRECATED_FORGAME(4.16, "Use ApplyCrowdAgentVelocity function with bIsNearEndOfPath param instead.")
+	virtual void ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink) {}
+
 	void UpdateDestinationForMovingGoal(const FVector& NewDestination);
 
 protected:
@@ -193,6 +197,9 @@ protected:
 	/** if set, agent if moving on final path part, skip further updates (runtime flag) */
 	uint32 bFinalPathPart : 1;
 
+	/** if set, destination overshot can be tested */
+	uint32 bCanCheckMovingTooFar : 1;
+
 	/** if set, movement will be finished when velocity is opposite to path direction (runtime flag) */
 	uint32 bCheckMovementAngle : 1;
 
@@ -234,7 +241,6 @@ protected:
 	virtual bool UpdateCachedGoal(FVector& NewGoalPos);
 	virtual bool ShouldTrackMovingGoal(FVector& OutGoalLocation) const;
 	
-	void OnPendingNavigationInit();
 	void RegisterCrowdAgent();
 
 	friend UCrowdManager;

@@ -45,6 +45,9 @@ public:
 	 */
 	static float FrameToTime(int32 Frame, float FrameRate);
 
+	/** Snaps a time value in seconds to the frame rate. */
+	static float SnapTimeToInterval(float InTime, float InFrameRate);
+
 	/**
 	 * Validate that the nodes with selected keys or sections actually are true
 	 */

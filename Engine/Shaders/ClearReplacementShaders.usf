@@ -6,7 +6,11 @@
 
 #include "Common.usf"
 
-float4 ClearColor;
+#ifndef Type
+#define Type float4
+#endif
+
+Type ClearColor;
 
 float4 ClearVS(uint Id : SV_VertexID) : SV_POSITION
 {
@@ -23,7 +27,7 @@ float4 ClearPS() : SV_Target0
 }
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-RWTexture2D<float4> ClearTextureRW;
+RWTexture2D<Type> ClearTextureRW;
 uint4 TargetBounds; //xy upperleft, zw lowerright
 
 [numthreads(8,8,1)]
@@ -52,4 +56,19 @@ void ClearBufferCS(uint Position : SV_DispatchThreadID)
 {
 	ClearBufferRW[Position] = ClearDword;
 }
+
+RWTexture2DArray<Type> ClearTextureArrayRW;
+[numthreads(8, 8, 1)]
+void ClearTexture2DArrayCS(uint3 Position : SV_DispatchThreadID)
+{
+	ClearTextureArrayRW[Position] = ClearColor;
+}
+
+RWTexture3D<Type> ClearVolumeRW;
+[numthreads(4, 4, 4)]
+void ClearVolumeCS(uint3 Position : SV_DispatchThreadID)
+{
+	ClearVolumeRW[Position] = ClearColor;
+}
+
 #endif

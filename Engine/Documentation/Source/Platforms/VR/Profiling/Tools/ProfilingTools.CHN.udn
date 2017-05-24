@@ -1,53 +1,61 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: VR Profiling Tools
+﻿INTSourceChangelist:3260598
+Availability:Public
+Title:VR 分析工具
 Crumbs:%ROOT%, Platforms
-Description:Internal and external tools you can use for profiling your Unreal Engine VR project
+Description:用于分析虚幻引擎 VR 项目的内部和外部工具
 Version:4.14
 Skilllevel:Advanced
 Parent:Platforms/VR/Profiling
 order:2
-related: Engine/Performance
+related:Engine/Performance
 related:Engine/Performance/Profiler
 related:Engine/Performance/GPU
+related:Platforms/VR/Profiling/Overview
+related:Platforms/VR/Profiling/Considerations
 
 
-Unreal Engine 4 has a [set of CPU and GPU profiling tools](Engine/Performance) that will help drill explicitly into what is costing time in your project. 
-For CPU profiling, you can drill into specific events and timings using the [CPU profiling tool](Engine/Performance/Profiler), which connects to a remote process. 
-For GPU profiling, there are more options.  First of all, and most specifically, there's Unreal Engine 4's [GPU profiler](Engine/Performance/GPU), which can be brought up with 
-**Ctrl + Shift + Comma** in editor builds running with `-game` emulation.  
+虚幻引擎 4 拥有一套 [CPU 和 GPU 分析工具集](Engine/Performance)，可显式挖掘出项目中开销较高的内容。 
+进行 CPU 分析的方法是使用连接至远程进程的 [CPU 分析工具](Engine/Performance/Profiler) 深入特定事件和时间进行分析。 
+对 GPU 分析而言则拥有更多选择。首先，在通过 `-game` 模拟的编辑器版本中按下 **Ctrl + Shift + 逗号** 组合键即可呼出虚幻引擎 4 的 [GPU 分析器](Engine/Performance/GPU)。  
 
-Additionally, you could go further drilling into more systemic problems using both GPUView and Nsight. 
-
-## RenderDoc
-
-RenderDoc is an external tool you can also use for profiling Unreal Engine projects. 
-To use it with UE4:
-
-1. Download the latest [RenderDoc](https://renderdoc.org/builds).
-1. In RenderDoc, configure it to launch your game (e.g. UE4Editor.exe, with appropriate command line arguments).
-1. Run `ToggleDrawEvents` from the command line of your app to get human readable events.
-1. Press F12 to capture a frame.
-
+此外，可使用 GPUView 和 Nsight 深入挖掘更多系统问题。 
 
 ## Oculus PerfHud
 
-Oculus PerfHud is a tool that can be displayed in game, whether in editor or in packaged builds, that will help verify the actual CPU and GPU timings, excluding any throttling done by the application.  There's a great overview of the screens 
-and what the values mean in Oculus' [documentation](https://developer3.oculus.com/documentation/pcsdk/latest/concepts/dg-hud/).
+Oculus PerfHud 可在游戏中显示（编辑器版本和打包版本中均可）。此工具可确认实际的 CPU 和 GPU 时间（不含应用程序执行的节流）。Oculus 的 [文档](https://developer3.oculus.com/documentation/pcsdk/latest/concepts/dg-hud/) 中总览了各个画面以及各数值的含义。
 
-In general, you'll want to look at the graphs and values on the **Application Render Timing** screen.  These will give you the CPU and GPU timings as the Oculus compositor sees them, and will be more accurate for Draw and GPU timings.
+总体而言，您需要查看 **Application Render Timing** 画面的图表和数值。Oculus 合成器查看到这些图表和数值后，便会生成 CPU 和 GPU 时间，绘制和 GPU 时间更为精确。
 
-To enable the PerfHud in UE4, type the following in the console:
+在控制台输入以下命令即可在 UE4 中启用 PerfHud：
 
 	hmd setint PerfHudMode N
 	
-where N is:
+N 为：
 
-| N | Display type |
+| N | 显示类型 |
 | --- | -----------|
-|	0	| Turns off the performance HUD |
-|	1	| Shows performance summary and headroom |
-|	2	| Shows latency related timing info |
-|	3	| Shows render timing info for application |
-|	4	| Shows render timing info for OVR compositor |
-|	5	| Shows SDK & HMD version Info |
+|	0	| 关闭性能 HUD |
+|	1	| 显示性能摘要和余量 |
+|	2	| 显示延迟相关的时间信息 |
+|	3	| 显示程序的渲染时间信息 |
+|	4	| 显示 OVR 合成器的渲染时间 |
+|	5	| 显示 SDK & HMD 版本信息 |
+
+## SteamVR Frame Timing 工具
+
+通过 SteamVR Frame Timing 可了解到 VR 项目在 UE4 编辑器和打包版本中的执行情况。此工具可确认实际的 CPU 和 GPU 时间（不含应用程序执行的节流）。[Valve 开发者社区]( https://developer.valvesoftware.com/wiki/SteamVR/Frame_Timing) 页面包含工具的打开方法以及所有数值的含义。请注意：使用 SteamVR Frame Timing 工具无需在 UE4 中执行额外操作。所有工具功能和使用均从 SteamVR 应用程序中进行。
+
+[region:note]
+请注意：使用 SteamVR Frame Timing 工具无需在 UE4 中执行额外操作。 
+[/region]
+
+
+## RenderDoc
+
+RenderDoc 是一款第三方工具，可用于虚幻引擎项目的分析。 
+在 UE4 中使用该工具的方法：
+
+1. 下载最新版本的 [RenderDoc](https://renderdoc.org/builds)。
+1. 在 RenderDoc 中进行配置，运行游戏（如 UE4Editor.exe，加上正确的命令行参数）。
+1. 从应用程序的命令行运行 `ToggleDrawEvents`，获得用户可读的事件。
+1. 按下 F12 截取一帧。

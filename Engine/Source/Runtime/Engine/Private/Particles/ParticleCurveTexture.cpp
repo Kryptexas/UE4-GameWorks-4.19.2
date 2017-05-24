@@ -17,6 +17,8 @@
 #include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 /** The texture size allocated for particle curves. */
 extern const int32 GParticleCurveTextureSizeX = 512;
@@ -191,18 +193,29 @@ static void InjectCurves(
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 
 	RHICmdList.BeginUpdateMultiFrameResource(CurveTextureTargetRHI);
-	SetRenderTarget(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef(), true);
-	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
-	RHICmdList.SetViewport(0, 0, 0.0f, GParticleCurveTextureSizeX, GParticleCurveTextureSizeY, 1.0f);
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 	if (bFirstCall)
 	{
-		RHICmdList.ClearColorTexture(CurveTextureTargetRHI, FLinearColor::Blue, FIntRect());
+		TransitionSetRenderTargetsHelper(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef(), FExclusiveDepthStencil::DepthWrite_StencilWrite);
+
+		FRHIRenderTargetView View = FRHIRenderTargetView(CurveTextureTargetRHI, ERenderTargetLoadAction::EClear);
+		FRHISetRenderTargetsInfo Info(1, &View, FRHIDepthRenderTargetView());
+		RHICmdList.SetRenderTargetsAndClear(Info);
 		bFirstCall = false;
 	}
+	else
+	{
+		SetRenderTarget(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef(), true);
+	}
+
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;	
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+	RHICmdList.SetViewport(0, 0, 0.0f, GParticleCurveTextureSizeX, GParticleCurveTextureSizeY, 1.0f);
+	GraphicsPSOInit.DepthStencilState =TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
 	int32 PendingCurveCount = InPendingCurves.Num();
 	for ( int32 CurveIndex = 0; CurveIndex < PendingCurveCount; ++CurveIndex )
@@ -228,18 +241,12 @@ static void InjectCurves(
 		TShaderMapRef<FParticleCurveInjectionVS> VertexShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 		TShaderMapRef<FParticleCurveInjectionPS> PixelShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 
-		// Bound shader state.
-		
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(
-			RHICmdList,
-			GMaxRHIFeatureLevel,
-			BoundShaderState,
-			GParticleCurveInjectionVertexDeclaration.VertexDeclarationRHI,
-			*VertexShader,
-			*PixelShader,
-			0
-			);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GParticleCurveInjectionVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetParameters(RHICmdList, CurveOffset );
 
@@ -505,7 +512,7 @@ FParticleCurveTexture::FParticleCurveTexture()
 void FParticleCurveTexture::InitRHI()
 {
 	// 8-bit per channel RGBA texture for curves.
-	FRHIResourceCreateInfo CreateInfo(FClearValueBinding::None);
+	FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(FLinearColor::Blue) };
 	RHICreateTargetableShaderResource2D(
 		GParticleCurveTextureSizeX,
 		GParticleCurveTextureSizeY,

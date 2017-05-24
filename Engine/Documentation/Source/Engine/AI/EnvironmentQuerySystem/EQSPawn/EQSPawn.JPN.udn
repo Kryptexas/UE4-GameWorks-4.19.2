@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2652918
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title: EQS Testing Pawn
+Title:EQS Testing Pawn
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
-Description:Environment Query System には、エディタ内での環境参照の結果をリアルタイムで表示する、特別な Pawn が含まれています。本ページでは、EQSTestingPawn の作成と使用について説明します。
-バージョン：4.9
+Description:Environment Query System には、エディタ内での環境クエリーの結果をリアルタイムで表示する、特別な Pawn が含まれています。本ページでは、EQSTestingPawn の作成と使用について説明します。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,7 +46,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 
 ![](testingPawnBanner.png)(convert:false)
 
-**Environment Query System Testing Pawn**** (EQSTestingPawn) は、Environment Queries が実際にしていることを確認することができる、特別な Pawn クラスです。Environment Query は作成された物のサイズと形を常に色付きの球体で表して定義します。球体は、緑から赤のカラースケールで、Environment Query が実行した各種テストに対する一致レベルを表します。青の球体は失敗、または **Trace** テストなどの bool タイプのテストが false を返したことを表します。
+**Environment Query System Testing Pawn** (**EQSTestingPawn**) は、Environment Query が実際にしていることを確認することができる、特別な Pawn クラスです。Environment Query は作成された物のサイズと形を常に色付きの球体で表して定義します。球体は、緑から赤のカラースケールで、Environment Query が実行した各種テストに対する一致レベルを表します。青の球体は失敗、または **Trace** テストなどの bool 型のテストが false を返したことを表します。
 
 ## EQS Testing Pawn の作成
 
@@ -68,7 +68,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 1. EQSTestingPawn ブループリントをクリックし、 **コンテンツ ブラウザ** から **ビューポート** へドラッグして、レベル内に置きます。
 
 	[REGION:note]
-	Environment Query System は実験的であり、EQSTestingPawn はプロセッサ集中型であることを考えると、有効な Query Template に変更を加えると、システムが長時間ハングします。環境に編集を加えている間は、Query Template プロパティをクリアしておくと良いでしょう。
+	Environment Query System は実験的であり、EQSTestingPawn はプロセッサ集中型であることを考えると、有効な Query Template に変更を加えると、システムが長時間ハングします。環境クエリーに編集を加えている間は、Query Template プロパティをクリアしておくと良いでしょう。
 	[/REGION]
 
 1. **Environment Query** を **Query Template** プロパティに割り当てます。
@@ -85,7 +85,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 | --- | --- |
 | **Query Template** | EQSTestingPawn が使用すべき Environment Query です。 |
 | **Query Params** | 指定した値を Environment Query にパスして、設定値を素早く調整します。 |
-| **Time Limit Per Step** | 値が 0.0 より大きい場合、このプロパティが設定されると EQSTestingPawn がステップの計算を停止します。EQSTestingPawn の使用中に、Environment Query の調整を減らしやすくなります。注記:**Density** が高い、大きな **Simple Grid** などを使用している **Generator** の位置計算にかかる時間は短縮しません。|
+| **Time Limit Per Step** | 値が 0.0 より大きい場合、このプロパティが設定されると EQSTestingPawn がステップの計算を停止します。EQSTestingPawn の使用中に、Environment Query の調整を減らしやすくなります。注意：**Density** が高い、大きな **Simple Grid** などを使用している **Generator** の位置計算にかかる時間は短縮しません。 |
 | **Step to Debug Draw** | デバッグ ステップを 1 つだけ表示します。ステップは Environment Query 内に表示される順序ではマップされない場合があります。 |
 | **Draw Labels** | ビューポートのデバッグ球体にウェイトまたは失敗の理由の描画を可能にします。 |
 | **Draw Failed Items** | トレースがターゲットを見つけられなかった場合など、失敗したテストのカリングを可能にします。 |

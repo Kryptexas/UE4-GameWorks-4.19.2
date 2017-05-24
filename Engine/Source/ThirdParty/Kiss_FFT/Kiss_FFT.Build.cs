@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class Kiss_FFT : ModuleRules
 {
-	public Kiss_FFT(TargetInfo Target)
+	public Kiss_FFT(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -41,7 +41,7 @@ public class Kiss_FFT : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			if (Target.IsMonolithic)
+			if (Target.LinkType == TargetLinkType.Monolithic)
 			{
 				PublicAdditionalLibraries.Add(Kiss_FFTPath + "/Lib/Linux/Release/" + Target.Architecture + "/libKissFFT.a");
 			}

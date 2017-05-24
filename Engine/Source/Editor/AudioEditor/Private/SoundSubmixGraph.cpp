@@ -144,22 +144,25 @@ void USoundSubmixGraph::RefreshGraphLinks()
 
 			ChildPin->BreakAllPinLinks();
 
-			for (int32 ChildIndex = 0; ChildIndex < Node->SoundSubmix->ChildSubmixes.Num(); ChildIndex++)
+			if (Node->SoundSubmix)
 			{
-				USoundSubmix* ChildSubmix = Node->SoundSubmix->ChildSubmixes[ChildIndex];
-
-				if (ChildSubmix)
+				for (int32 ChildIndex = 0; ChildIndex < Node->SoundSubmix->ChildSubmixes.Num(); ChildIndex++)
 				{
-					USoundSubmixGraphNode* ChildNode = FindExistingNode(ChildSubmix);
+					USoundSubmix* ChildSubmix = Node->SoundSubmix->ChildSubmixes[ChildIndex];
 
-					if (!ChildNode)
+					if (ChildSubmix)
 					{
-						// New Child not yet represented on graph
-						ConstructNodes(ChildSubmix, Node->NodePosX+400, Node->NodePosY);
-						ChildNode = FindExistingNode(ChildSubmix);
-					}
+						USoundSubmixGraphNode* ChildNode = FindExistingNode(ChildSubmix);
 
-					ChildPin->MakeLinkTo(ChildNode->GetParentPin());
+						if (!ChildNode)
+						{
+							// New Child not yet represented on graph
+							ConstructNodes(ChildSubmix, Node->NodePosX + 400, Node->NodePosY);
+							ChildNode = FindExistingNode(ChildSubmix);
+						}
+
+						ChildPin->MakeLinkTo(ChildNode->GetParentPin());
+					}
 				}
 			}
 
@@ -273,9 +276,6 @@ void USoundSubmixGraph::RemoveAllNodes()
 
 USoundSubmixGraphNode* USoundSubmixGraph::CreateNode(USoundSubmix* SoundSubmix, int32 NodePosX, int32 NodePosY, bool bSelectNewNode/* = true*/)
 {
-	// Make sure the sound submix graph sound submix nodes are all linked before trying to make a new node. This will make sure we know about recursive graph connections.
-	LinkSoundSubmixes();
-
 	USoundSubmixGraphNode* GraphNode = FindExistingNode(SoundSubmix);
 
 	if (!GraphNode)

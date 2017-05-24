@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3213360
-availability:docs
+﻿INTSourceChangelist:3264164
+availability:Docs
 title:블루프린트 및 렌더 타겟 실전 사례
 description: 블루프린트 및 렌더 타겟을 사용할 때 유용한 실전 사례 모음입니다.
 crumbs:
 version:4.13
-Type:topic
+Type:overview
 SkillLevel:Intermediate
 parent:Engine
 order:2

@@ -143,10 +143,12 @@ bool FICUInternationalization::Initialize()
 	I18N->InvariantCulture = FindOrMakeCulture(TEXT("en-US-POSIX"), EAllowDefaultCultureFallback::No);
 	if (!I18N->InvariantCulture.IsValid())
 	{
-		I18N->InvariantCulture = FindOrMakeCulture(TEXT(""), EAllowDefaultCultureFallback::Yes);
+		I18N->InvariantCulture = FindOrMakeCulture(FString(), EAllowDefaultCultureFallback::Yes);
 	}
-	I18N->DefaultCulture = FindOrMakeCulture(FPlatformMisc::GetDefaultLocale(), EAllowDefaultCultureFallback::Yes);
-	SetCurrentCulture( I18N->GetDefaultCulture()->GetName() );
+	I18N->DefaultLanguage = FindOrMakeCulture(FPlatformMisc::GetDefaultLanguage(), EAllowDefaultCultureFallback::Yes);
+	I18N->DefaultLocale = FindOrMakeCulture(FPlatformMisc::GetDefaultLocale(), EAllowDefaultCultureFallback::Yes);
+	I18N->CurrentLanguage = I18N->DefaultLanguage;
+	I18N->CurrentLocale = I18N->DefaultLocale;
 
 	InitializeInvariantGregorianCalendar();
 
@@ -181,8 +183,6 @@ void FICUInternationalization::LoadDLLs()
 
 #if _MSC_VER >= 1900
 	const FString VSVersionFolderName = TEXT("VS2015");
-#elif _MSC_VER == 1800
-	const FString VSVersionFolderName = TEXT("VS2013");
 #else
 	#error "FICUInternationalization::LoadDLLs - Unknown _MSC_VER! Please update this code for this version of MSVC."
 #endif //_MSVC_VER
@@ -499,33 +499,17 @@ bool FICUInternationalization::IsCultureDisabled(const FString& Name)
 	return DisabledCultures.Contains(Name);
 }
 
-bool FICUInternationalization::SetCurrentCulture(const FString& Name)
+void FICUInternationalization::HandleLanguageChanged(const FString& Name)
 {
-	FCulturePtr NewCurrentCulture = FindOrMakeCulture(Name, EAllowDefaultCultureFallback::No);
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	uloc_setDefault(StringCast<char>(*Name).Get(), &ICUStatus);
 
-	if (NewCurrentCulture.IsValid())
+	// Update the cached display names in any existing cultures
+	FScopeLock Lock(&CachedCulturesCS);
+	for (const auto& CachedCulturePair : CachedCultures)
 	{
-		if (NewCurrentCulture.ToSharedRef() != I18N->CurrentCulture)
-		{
-			I18N->CurrentCulture = NewCurrentCulture.ToSharedRef();
-
-			UErrorCode ICUStatus = U_ZERO_ERROR;
-			uloc_setDefault(StringCast<char>(*Name).Get(), &ICUStatus);
-
-			// Update the cached display names in any existing cultures
-			{
-				FScopeLock Lock(&CachedCulturesCS);
-				for (const auto& CachedCulturePair : CachedCultures)
-				{
-					CachedCulturePair.Value->HandleCultureChanged();
-				}
-			}
-
-			FInternationalization::Get().BroadcastCultureChanged();
-		}
+		CachedCulturePair.Value->HandleCultureChanged();
 	}
-
-	return I18N->CurrentCulture == NewCurrentCulture;
 }
 
 void FICUInternationalization::GetCultureNames(TArray<FString>& CultureNames) const

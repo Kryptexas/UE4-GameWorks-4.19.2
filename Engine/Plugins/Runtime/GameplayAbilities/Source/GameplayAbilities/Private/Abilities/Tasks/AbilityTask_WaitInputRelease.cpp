@@ -34,7 +34,10 @@ void UAbilityTask_WaitInputRelease::OnReleaseCallback()
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
-	OnRelease.Broadcast(ElapsedTime);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnRelease.Broadcast(ElapsedTime);
+	}
 	EndTask();
 }
 
@@ -69,9 +72,4 @@ void UAbilityTask_WaitInputRelease::Activate()
 			}
 		}
 	}
-}
-
-void UAbilityTask_WaitInputRelease::OnDestroy(bool AbilityEnded)
-{
-	Super::OnDestroy(AbilityEnded);
 }

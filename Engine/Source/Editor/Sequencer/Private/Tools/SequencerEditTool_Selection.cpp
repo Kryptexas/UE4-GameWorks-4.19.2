@@ -191,6 +191,8 @@ public:
 		auto& Selection = Sequencer.GetSelection();
 		auto& SelectionPreview = Sequencer.GetSelectionPreview();
 
+		Selection.SuspendBroadcast();
+
 		// Patch everything from the selection preview into the actual selection
 		for (const auto& Pair : SelectionPreview.GetDefinedKeyStates())
 		{
@@ -231,6 +233,9 @@ public:
 				Selection.RemoveFromNodesWithSelectedKeysOrSections(Pair.Key);
 			}
 		}
+
+		Selection.ResumeBroadcast();
+		Selection.RequestOutlinerNodeSelectionChangedBroadcast();
 
 		// We're done with this now
 		SelectionPreview.Empty();

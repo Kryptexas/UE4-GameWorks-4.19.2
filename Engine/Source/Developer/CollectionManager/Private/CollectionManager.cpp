@@ -1433,7 +1433,7 @@ void FCollectionManager::HandleFixupRedirectors(ICollectionRedirectorFollower& I
 			FName NewObjectPath;
 			if (InRedirectorFollower.FixupObject(CachedObjectInfo.Key, NewObjectPath))
 			{
-				ObjectsToRename.Add(TPairInitializer<FName, FName>(CachedObjectInfo.Key, NewObjectPath));
+				ObjectsToRename.Emplace(CachedObjectInfo.Key, NewObjectPath);
 			}
 		}
 	}

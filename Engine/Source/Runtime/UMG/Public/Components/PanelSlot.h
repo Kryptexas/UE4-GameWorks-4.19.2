@@ -15,10 +15,10 @@ class UMG_API UPanelSlot : public UVisual
 
 public:
 
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	class UPanelWidget* Parent;
 
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	class UWidget* Content;
 	
 	bool IsDesignTime() const;

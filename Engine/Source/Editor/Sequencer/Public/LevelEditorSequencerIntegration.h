@@ -88,6 +88,9 @@ private:
 	/** Called via UEditorEngine::GetActorRecordingStateEvent to check to see whether we need to record actor state */
 	void GetActorRecordingState( bool& bIsRecording ) const;
 
+	/** Called when sequencer has been evaluated */
+	void OnSequencerEvaluated();
+
 	void OnPropertyEditorOpened();
 
 	TSharedRef<FExtender> GetLevelViewportExtender(const TSharedRef<FUICommandList> CommandList, const TArray<AActor*> InActors);
@@ -124,6 +127,7 @@ private:
 	{
 		TWeakPtr<FSequencer> Sequencer;
 		FLevelEditorSequencerIntegrationOptions Options;
+		FAcquiredResources AcquiredResources;
 	};
 	TArray<FSequencerAndOptions> BoundSequencers;
 

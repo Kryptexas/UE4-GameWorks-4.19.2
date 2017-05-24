@@ -263,7 +263,9 @@ NSWindow* FMetalViewport::GetWindow() const
 FViewportRHIRef FMetalDynamicRHI::RHICreateViewport(void* WindowHandle,uint32 SizeX,uint32 SizeY,bool bIsFullscreen,EPixelFormat PreferredPixelFormat)
 {
 	check( IsInGameThread() );
+	@autoreleasepool {
 	return new FMetalViewport(WindowHandle, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
+	}
 }
 
 void FMetalDynamicRHI::RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen)
@@ -273,10 +275,12 @@ void FMetalDynamicRHI::RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 S
 
 void FMetalDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI,uint32 SizeX,uint32 SizeY,bool bIsFullscreen,EPixelFormat Format)
 {
+	@autoreleasepool {
 	check( IsInGameThread() );
 
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 	Viewport->Resize(SizeX, SizeY, bIsFullscreen, Format);
+	}
 }
 
 void FMetalDynamicRHI::RHITick( float DeltaTime )
@@ -293,8 +297,9 @@ void FMetalRHICommandContext::RHIBeginDrawingViewport(FViewportRHIParamRef Viewp
 	check(false);
 }
 
-void FMetalDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
+void FMetalRHIImmediateCommandContext::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
 {
+	@autoreleasepool {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 	check(Viewport);
 
@@ -305,13 +310,14 @@ void FMetalDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 	// Set the render target and viewport.
 	if (RenderTargetRHI)
 	{
-		FRHIRenderTargetView RTV(RenderTargetRHI);
+		FRHIRenderTargetView RTV(RenderTargetRHI, ERenderTargetLoadAction::ELoad);
 		RHISetRenderTargets(1, &RTV, nullptr, 0, NULL);
 	}
 	else
 	{
-		FRHIRenderTargetView RTV(Viewport->GetBackBuffer(EMetalViewportAccessRHI));
+		FRHIRenderTargetView RTV(Viewport->GetBackBuffer(EMetalViewportAccessRHI), ERenderTargetLoadAction::ELoad);
 		RHISetRenderTargets(1, &RTV, nullptr, 0, NULL);
+	}
 	}
 }
 
@@ -320,8 +326,9 @@ void FMetalRHICommandContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewpor
 	check(false);
 }
 
-void FMetalDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bool bPresent,bool bLockToVsync)
+void FMetalRHIImmediateCommandContext::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bool bPresent,bool bLockToVsync)
 {
+	@autoreleasepool {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 	((FMetalDeviceContext*)Context)->EndDrawingViewport(Viewport, bPresent);
 #if PLATFORM_MAC
@@ -330,12 +337,15 @@ void FMetalDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 		[Window startRendering];
 	}, NSDefaultRunLoopMode, false);
 #endif
+	}
 }
 
 FTexture2DRHIRef FMetalDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)
 {
+	@autoreleasepool {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 	return Viewport->GetBackBuffer(EMetalViewportAccessRenderer);
+	}
 }
 
 void FMetalDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()

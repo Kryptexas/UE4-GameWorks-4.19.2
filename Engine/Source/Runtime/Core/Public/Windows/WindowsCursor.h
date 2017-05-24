@@ -31,7 +31,7 @@ public:
 
 	virtual void Lock( const RECT* const Bounds ) override;
 
-	virtual void SetCustomShape(void* CursorHandle) override;
+	virtual void SetTypeShape(EMouseCursor::Type InCursorType, void* CursorHandle) override;
 
 private:
 
@@ -39,4 +39,7 @@ private:
 
 	/** Cursors */
 	Windows::HCURSOR CursorHandles[ EMouseCursor::TotalCursorCount ];
+
+	/** Override Cursors */
+	Windows::HCURSOR CursorOverrideHandles[EMouseCursor::TotalCursorCount];
 };

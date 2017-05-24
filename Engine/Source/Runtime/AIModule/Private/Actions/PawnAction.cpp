@@ -12,11 +12,11 @@ DEFINE_LOG_CATEGORY(LogPawnAction);
 
 namespace
 {
-	FString GetActionResultName(int32 Index)
+	FString GetActionResultName(int64 Value)
 	{
 		static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPawnActionResult"));
 		check(Enum);
-		return Enum->GetEnumName(Index);
+		return Enum->GetNameStringByValue(Value);
 	}
 }
 
@@ -407,7 +407,7 @@ FString UPawnAction::GetStateDescription() const
 		
 	if (AbortState != EPawnActionAbortState::NotBeingAborted)
 	{
-		return *AbortStateEnum->GetEnumText(AbortState).ToString();
+		return *AbortStateEnum->GetDisplayNameTextByValue(AbortState).ToString();
 	}
 	return IsPaused() ? TEXT("Paused") : TEXT("Active");
 }
@@ -416,7 +416,7 @@ FString UPawnAction::GetPriorityName() const
 {
 	static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAIRequestPriority"));
 	check(Enum);
-	return Enum->GetEnumName(GetPriority());
+	return Enum->GetNameStringByValue(GetPriority());
 }
 
 FString UPawnAction::GetDisplayName() const

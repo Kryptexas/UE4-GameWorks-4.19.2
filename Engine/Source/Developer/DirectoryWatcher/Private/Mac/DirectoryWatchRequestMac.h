@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef _INC_DIRECTORYWATCHREQUESTMAC
-#define _INC_DIRECTORYWATCHREQUESTMAC
+#pragma once
 
 #include "Delegates/Delegate.h"
 #include "IDirectoryWatcher.h"
@@ -45,5 +44,3 @@ private:
 	void ProcessChanges( size_t EventCount, void* EventPaths, const FSEventStreamEventFlags EventFlags[] );
 	void Shutdown( void );
 };
-
-#endif // _INC_DIRECTORYWATCHREQUESTMAC

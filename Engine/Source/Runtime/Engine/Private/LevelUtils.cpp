@@ -133,7 +133,7 @@ bool FLevelUtils::IsLevelLocked(ULevel* Level)
 				LevelData.LastUpdateTime = Level->OwningWorld->GetRealTimeSeconds();
 				//If we dont find package we dont consider it as readonly
 				LevelData.IsReadOnly = false;
-				const UPackage* pPackage = Cast<UPackage>(Level->GetOutermost());
+				const UPackage* pPackage = Level->GetOutermost();
 				if (pPackage)
 				{
 					FString PackageFileName;

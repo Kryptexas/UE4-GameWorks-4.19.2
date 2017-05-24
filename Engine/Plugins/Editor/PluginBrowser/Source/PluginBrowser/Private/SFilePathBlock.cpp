@@ -13,6 +13,19 @@
 
 void SFilePathBlock::Construct(const FArguments& InArgs)
 {
+	FText BrowseForFolderToolTipText;
+
+	const bool bReadOnlyFolderPath = InArgs._ReadOnlyFolderPath;
+
+	if (bReadOnlyFolderPath)
+	{
+		BrowseForFolderToolTipText = LOCTEXT("BrowseForFolderDisabled", "You cannot modify this location");
+	}
+	else
+	{
+		BrowseForFolderToolTipText = LOCTEXT("BrowseForFolder", "Browse for a folder");
+	}
+
 	ChildSlot
 	[
 		SNew(SGridPanel)
@@ -32,6 +45,7 @@ void SFilePathBlock::Construct(const FArguments& InArgs)
 				.Padding(FMargin(5.f, 3.f, 25.f, 3.f))
 				.OnTextChanged(InArgs._OnFolderChanged)
 				.OnTextCommitted(InArgs._OnFolderCommitted)
+				.IsReadOnly(bReadOnlyFolderPath)
 			]
 
 			+ SOverlay::Slot()
@@ -41,8 +55,9 @@ void SFilePathBlock::Construct(const FArguments& InArgs)
 				.ButtonStyle(FEditorStyle::Get(), "FilePath.FolderButton")
 				.ContentPadding(FMargin(4.f, 0.f))
 				.OnClicked(InArgs._OnBrowseForFolder)
-				.ToolTipText(LOCTEXT("BrowseForFolder", "Browse for a folder"))
+				.ToolTipText(BrowseForFolderToolTipText)
 				.Text(LOCTEXT("...", "..."))
+				.IsEnabled( !bReadOnlyFolderPath )
 			]
 		]
 

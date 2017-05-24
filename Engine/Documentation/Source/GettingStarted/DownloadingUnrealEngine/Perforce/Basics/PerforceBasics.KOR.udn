@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:3108692
-Availability:NoPublish
+﻿INTSourceChangelist:3351642
+Availability:Licensee
 Title:퍼포스로 언리얼 엔진 내려받기
-Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
+Crumbs:
 Description:퍼포스로 언리얼 엔진 소스 코드 내려받는 방법 안내서입니다.
+Parent:GettingStarted/DownloadingUnrealEngine/Perforce
 
 <!--
 ## 에픽의 VPN 접속
@@ -33,11 +34,22 @@ Description:퍼포스로 언리얼 엔진 소스 코드 내려받는 방법 안�
 			* **유럽 중부 (프랑크푸르트)**: _ssl:p4-licensee-central.eu.epicgames.com:1667_
 		[/REGION]
 
-	* **User**: 에픽 게임스가 제공한 퍼포스 사용자명입니다.
-	* **Password**: 에픽 게임스가 제공한 암호입니다.
-	* **Workspace**: _UE4_팀이름_ (이와 같이 지으실 것을 추천합니다. 팀 이름으로 끝나기만 한다면 어떠한 이름이든 상관 없습니다.)
+	* **User**: 에픽 게임즈가 제공한 퍼포스 사용자명입니다.
+	* **Password**: 에픽 게임즈가 제공한 암호입니다.
 
 1.	OK 를 누르면 퍼포스 서버에 접속합니다.
+	
+1. P4V 에서 **Connection > New Workspace** 로 엔진의 새 워크스페이스를 만듭니다. 아래 정보를 입력하고 **OK** 를 선택하면 워크스페이스가 생성됩니다:
+
+	* **Workspace 이름**: _UE4_TeamName_ (추천일 뿐입니다. 팀 이름으로만 끝난다면 어떤 이름이든 상관 없습니다.)
+	* **Stream**: **Browse** 클릭 후 사용가능한 스트림 목록에서 _//UE4/Release-Latest_ 를 선택합니다.
+
+	![](new_workspace.png)
+
+1. Depot 패널에서 **Filter Depot** 버튼을 클릭하고 **Tree Restricted to Workspace View** 를 선택합니다.
+
+	![](filter_depot.png)
+
 
 [REGION:note]
 에픽에서는 모든 브로커와 프록시 SSL end point (종단점)에 대해 일관된 certificate fingerprint (서티피케이트 핑거프린트)를 유지하나, 퍼포스에서는 하나의 IP 주소 + 핑거프린트 짝마다 하나의 trust (신뢰)를 필요로 합니다. 하나의 종단점에 처음 접속할 때, 반드시 그 종단점을 신뢰해 줘야 합니다. 에픽의 핑거프린트는 45:0D:78:E2:0E:9E:E4:82:45:80:16:36:29:5E:54:4D:66:31:6C:43 입니다.
@@ -71,28 +83,22 @@ P4V 에 새로운 종단점을 신뢰하겠냐는 창이 뜹니다:
 
 ## 언리얼 엔진 4 내려받기
 
-라이선시에게 언리얼 엔진 4 를 배포하는 방식은, 퍼포스 디포의 _UE4-QA_ 브랜치를 통해 이루어집니다. 여기에는 
+라이선시에게 언리얼 엔진 4 를 배포하는 방식은, 퍼포스 디포의 _//UE4/Release-Latest_ 스트림을 통해 이루어집니다. 여기에는 
 전체 엔진은 물론 예제 게임, 샘플, 데모와 같은 형태의 부가 프로젝트도 여럿 포함되어 있습니다. 모든 것을 내려받아도 되고,
 필요하거나 원하는 부분만 선택적으로 받아도 됩니다. 가급적 빠른 준비를 위해서는,
 최소한의 부분만 내려받아 시작한 다음, 필요에 따라 다른 부분을 내려받는 것을 추천합니다.
 내려받기 완료를 기다리느라 허비되는 시간을 크게 줄일 수 있습니다.
 
 [REGION:warning]
-	_UE4-QA_ 브랜치에는 많은 수의 파일이 있으며, 총 크기가 수 기가바이트에 달하므로, 
+	_//UE4/Release-Latest_ 스트림에는 많은 수의 파일이 있으며, 총 크기가 수 기가바이트에 달하므로, 
 	전체 브랜치를 동기화시키는 데는 시간이 꽤 걸릴 수 있습니다.
 [/REGION]
 
-1.	_UE4-QA_ 브랜치에 우클릭한 다음 **Get Revision** 을 선택합니다.
+1.	_UE4_ 스트림에 우클릭한 다음 **Get Latest Revision** 을 선택합니다.
 
-	![Perforce - Get Revision Option](get_revision_menu.png)
+	![Perforce - Get Latest Revision](get_latest_menu.png)
 
-1.	**Specify revision using** 동글 버튼을 클릭한 다음 콤보 박스에서 Label 을 선택합니다.
-
-	![Perforce - Specify Label](specify_label.png)
-
-1.	**Browse** 버튼을 누르면 열리는 대화창에서 *QA_APPROVED_UE4_BUILD_MINIMUM* (엔진 실행에 필수적인 최소한) 또는 *QA_APPROVED_UE4_BUILD_CURRENT* (크기는 훨씬 크지만 샘플 프로젝트 포함) 중에서 선택합니다. **OK** 를 누릅니다.
-
-1.	**Get Revision** 을 눌러 언리얼 엔진 4 내려받기를 시작합니다.
+1.	모든 파일 최신 버전을 다운로드합니다.
 
 [/EXCERPT:main]
 

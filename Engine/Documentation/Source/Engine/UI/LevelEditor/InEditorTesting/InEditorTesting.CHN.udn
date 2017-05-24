@@ -5,23 +5,6 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description: Description: 关于直接在编辑器中测试关卡及游戏性的指南。
 Version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		关卡设计_初学者
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[前一主题](Engine/Rendering/LightingAndShadows/Basics "%Engine/Rendering/LightingAndShadows/Basics:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [TOC(start:2 end:2)]
 
 [VAR:Topic]
@@ -235,4 +218,4 @@ $ 默认玩家起点: 游戏以当前的玩家起点位置开始运行。
 _在编辑器中运行_ 或  _在编辑器中模拟_ 功能时，也可以进行编译，您的代码修改将会更新，且您不需要停止游戏或模拟。
 
 
-%playlistnav%
+

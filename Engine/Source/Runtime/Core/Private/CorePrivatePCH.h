@@ -95,7 +95,7 @@
 #include "Delegates/MulticastDelegateBase.h"
 #include "Delegates/DelegateBase.h"
 #include "Delegates/IntegerSequence.h"
-#include "Delegates/Tuple.h"
+#include "Templates/Tuple.h"
 #include "Templates/TypeWrapper.h"
 #include "UObject/ScriptDelegates.h"
 #include "Misc/Parse.h"

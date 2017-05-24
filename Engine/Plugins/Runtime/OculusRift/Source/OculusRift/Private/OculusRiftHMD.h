@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "IOculusRiftPlugin.h"
-#include "IHeadMountedDisplay.h"
+#include "HeadMountedDisplayBase.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 
@@ -15,14 +15,15 @@
 #include "OculusRiftCommon.h"
 #include "OculusRiftLayers.h"
 #include "OculusRiftSplash.h"
-#if !UE_BUILD_SHIPPING
-#include "SceneCubemapCapturer.h"
-#endif
 
 class FOculusRiftHMD;
 
 DECLARE_STATS_GROUP(TEXT("OculusRiftHMD"), STATGROUP_OculusRiftHMD, STATCAT_Advanced);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("BeginRendering"), STAT_BeginRendering, STATGROUP_OculusRiftHMD, );
+
+// Avoid unrealistic pixel density values
+const float ClampPixelDensityMin = 0.1f;
+const float ClampPixelDensityMax = 3.0f;
 
 namespace OculusRift 
 {
@@ -170,7 +171,11 @@ public:
 	float					PixelDensity;
 	float					PixelDensityMin;
 	float					PixelDensityMax;
-	bool					PixelDensityAdaptive;
+	bool					bPixelDensityAdaptive;
+
+	// Used to convert between screen percentage and pixel density
+	float					IdealScreenPercentage;
+	float					CurrentScreenPercentage;
 
 	unsigned				SupportedTrackingCaps;
 	unsigned				SupportedHmdCaps;
@@ -180,26 +185,31 @@ public:
 
 	float					VsyncToNextVsync;
 
-	enum MirrorWindowModeType
-	{
-		eMirrorWindow_Distorted,
-		eMirrorWindow_Undistorted,
-		eMirrorWindow_SingleEye,
-		eMirrorWindow_SingleEyeLetterboxed,
-		eMirrorWindow_SingleEyeCroppedToFill,
-
-		eMirrorWindow_Total_
-	};
-	MirrorWindowModeType	MirrorWindowMode;
-
 	FSettings();
 	virtual ~FSettings() override {}
 
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> Clone() const override;
 
-	float GetTexturePaddingPerEye() const { return TexturePaddingPerEye * GetActualScreenPercentage()/100.f; }
+	void UpdateScreenPercentageFromPixelDensity();
+	bool UpdatePixelDensityFromScreenPercentage();
+
+	float GetTexturePaddingPerEye() const
+	{
+		// Uses PixelDensityMax when using adaptive pixel density to have the value not fluctuate by varying pixel density
+		return TexturePaddingPerEye * (bPixelDensityAdaptive ? PixelDensityMax : PixelDensity);
+	}
 };
 
+enum class EMirrorWindowMode
+{
+	Disabled = 0,
+	SingleEyeLetterboxed,
+	Undistorted,
+	Distorted,
+	SingleEye,
+	SingleEyeCroppedToFill,
+	Last = SingleEyeCroppedToFill
+};
 
 //-------------------------------------------------------------------------------------------------
 // FGameFrame
@@ -271,7 +281,7 @@ class FCustomPresent : public FRHICustomPresent
 {
 	friend class FLayerManager;
 public:
-	FCustomPresent(const FOvrSessionSharedPtr& InOvrSession);
+	FCustomPresent(const FOvrSessionSharedPtr& InOvrSession, FOculusRiftHMD* InRiftHMD);
 
 	// Returns true if it is initialized and used.
 	bool IsInitialized() const { return Session->IsActive(); }
@@ -368,6 +378,7 @@ protected: // data
 	FOvrSessionSharedPtr Session;
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
 	IRendererModule*	RendererModule;
+	FOculusRiftHMD*		RiftHMD;
 
 	TSharedPtr<FLayerManager> LayerMgr;
 
@@ -412,6 +423,33 @@ using namespace OculusRift;
 
 
 //-------------------------------------------------------------------------------------------------
+// FOculusRiftConsoleCommands - Wrapper around various console command handlers used by FOculusRiftHMD
+//-------------------------------------------------------------------------------------------------
+class FOculusRiftConsoleCommands
+	: private FSelfRegisteringExec
+{
+public:
+	FOculusRiftConsoleCommands(class FOculusRiftHMD* InHMDPtr);
+private:
+	FAutoConsoleCommand PixelDensityCommand;
+	FAutoConsoleCommand PixelDensityMinCommand;
+	FAutoConsoleCommand PixelDensityMaxCommand;
+	FAutoConsoleCommand PixelDensityAdaptiveCommand;
+	FAutoConsoleCommand HQBufferCommand;
+	FAutoConsoleCommand HQDistortionCommand;
+#if !UE_BUILD_SHIPPING
+	// Debug console commands
+	FAutoConsoleCommand OvrPropertyCommand;
+	FAutoConsoleCommand StatsCommand;
+	FAutoConsoleCommand GridCommand;
+	FAutoConsoleCommand CubemapCommand;
+#endif // !UE_BUILD_SHIPPING
+	// Exec handler that aliases old deprecated Oculus Rift console commands to the new ones.
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+};
+
+
+//-------------------------------------------------------------------------------------------------
 // FOculusRiftHMD - Oculus Rift Head Mounted Display
 //-------------------------------------------------------------------------------------------------
 
@@ -422,6 +460,8 @@ class FOculusRiftHMD : public FHeadMountedDisplay
 	friend class FOculusRiftPlugin;
 	friend class FLayerManager;
 	friend class FOculusRiftSplash;
+	friend class FCustomPresent;
+	friend class FOculusRiftConsoleCommands;
 public:
 	/** IHeadMountedDisplay interface */
 	virtual FName GetDeviceName() const override
@@ -443,11 +483,7 @@ public:
 	virtual void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
 
 	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() override;
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 	
-	virtual void SetScreenPercentage(float InScreenPercentage) override;
-	virtual void RecordAnalytics() override;
-
 	virtual bool HasHiddenAreaMesh() const override;
 	virtual void DrawHiddenAreaMesh_RenderThread(FRHICommandList& RHICmdList, EStereoscopicPass StereoPass) const override;
 
@@ -488,9 +524,6 @@ public:
 	/** Positional tracking control methods */
 	virtual bool IsHeadTrackingAllowed() const override;
 
-	virtual bool IsInLowPersistenceMode() const override;
-	virtual void EnableLowPersistenceMode(bool Enable = true) override;
-
 	/** Resets orientation by setting roll and pitch to 0, 
 	    assuming that current yaw is forward direction and assuming
 		current position as 0 point. */
@@ -525,13 +558,7 @@ public:
 
 	virtual void UseImplicitHmdPosition( bool bInImplicitHmdPosition ) override;
 
-	virtual void SetPixelDensity(float NewPD) override
-	{
-		GetSettings()->PixelDensity = FMath::Clamp(NewPD, 0.5f, 2.0f);
-		GetSettings()->PixelDensityMin = FMath::Min(GetSettings()->PixelDensity, GetSettings()->PixelDensityMin);
-		GetSettings()->PixelDensityMax = FMath::Max(GetSettings()->PixelDensity, GetSettings()->PixelDensityMax);
-		Flags.bNeedUpdateStereoRenderingParams = true;
-	}
+	virtual void SetPixelDensity(float NewPD) override;
 
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const override;
@@ -543,6 +570,9 @@ protected:
 	virtual void GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition, bool bUseOrienationForPlayerCamera = false, bool bUsePositionForPlayerCamera = false) override;
 
 	void MakeSureValidFrameExists(AWorldSettings* InWorldSettings);
+
+	// FHeadMountedDisplayBase overrides
+	bool PopulateAnalyticsAttributes(TArray<FAnalyticsEventAttribute>& EventAttributes) override;
 
 public:
 
@@ -564,7 +594,7 @@ public:
 	class D3D11Bridge : public FCustomPresent
 	{
 	public:
-		D3D11Bridge(const FOvrSessionSharedPtr& InOvrSession);
+		D3D11Bridge(const FOvrSessionSharedPtr& InOvrSession, FOculusRiftHMD* RiftHMD);
 
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual bool IsUsingGraphicsAdapter(const ovrGraphicsLuid& luid) override;
@@ -577,7 +607,7 @@ public:
 	class D3D12Bridge : public FCustomPresent
 	{
 	public:
-		D3D12Bridge(const FOvrSessionSharedPtr& InOvrSession);
+		D3D12Bridge(const FOvrSessionSharedPtr& InOvrSession, FOculusRiftHMD* RiftHMD);
 
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual bool IsUsingGraphicsAdapter(const ovrGraphicsLuid& luid) override;
@@ -592,7 +622,7 @@ public:
 	class OGLBridge : public FCustomPresent
 	{
 	public:
-		OGLBridge(const FOvrSessionSharedPtr& InOvrSession);
+		OGLBridge(const FOvrSessionSharedPtr& InOvrSession, FOculusRiftHMD* RiftHMD);
 
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual bool IsUsingGraphicsAdapter(const ovrGraphicsLuid& luid) override;
@@ -615,14 +645,6 @@ public:
 
 	virtual IRendererModule* GetRendererModule() override { return RendererModule; }
 	
-	#if !UE_BUILD_SHIPPING
-	enum ECubemapType
-	{
-		CM_GearVR = 0,
-		CM_Rift = 1
-	};
-	void CaptureCubemap(UWorld* InWorld, ECubemapType CubemapType = CM_Rift, FVector InOffset = FVector::ZeroVector, float InYaw = 0);
-	#endif //#if !UE_BUILD_SHIPPING
 
 private:
 	FOculusRiftHMD* getThis() { return this; }
@@ -643,12 +665,13 @@ private:
 
 	void SetupOcclusionMeshes();
 
+	void GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const override;
+
 	/**
 	 * Reads the device configuration, and sets up the stereoscopic rendering parameters
 	 */
 	virtual void UpdateStereoRenderingParams() override;
 	virtual void UpdateHmdRenderInfo() override;
-	virtual void UpdateHmdCaps() override;
 	virtual void ApplySystemOverridesOnStereo(bool force = false) override;
 
 	/**
@@ -670,6 +693,19 @@ private:
 	virtual FAsyncLoadingSplash* GetAsyncLoadingSplash() const override { return Splash.Get(); }
 
 	void PreShutdown();
+	void PixelDensityCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void PixelDensityMinCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void PixelDensityMaxCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void PixelDensityAdaptiveCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void HQBufferCommandHandler(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar);
+	void HQDistortionCommandHandler(const TArray<FString>& Args, UWorld*, FOutputDevice& Ar);
+#if !UE_BUILD_SHIPPING
+	void OvrPropertyCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void StatsCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void GridCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	virtual void EnforceHeadTrackingCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar) override;
+#endif
+	static void CVarSinkHandler();
 
 private: // data
 
@@ -690,16 +726,12 @@ private: // data
 	FWorldContext*				WorldContext;
 
 	FOculusRiftRenderDelegate	MirrorRenderDelegate;
-
-	// used to capture cubemaps for Oculus Home
-	class USceneCubemapCapturer* CubemapCapturer;
 	
 	// Stores GetFrame()->PlayerLocation (i.e., ViewLocation) from the previous frame
 	FVector LastPlayerLocation;
 
 	// Stores difference between ViewRotation and EyeOrientation from previous frame
 	FQuat LastPlayerRotation;
-
 
 	union
 	{
@@ -738,6 +770,10 @@ private: // data
 	{
 		return (const FSettings*)(Settings.Get());
 	}
+
+	FOculusRiftConsoleCommands ConsoleCommands;
+	static FAutoConsoleVariableSink CVarSink;
+
 };
 
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS

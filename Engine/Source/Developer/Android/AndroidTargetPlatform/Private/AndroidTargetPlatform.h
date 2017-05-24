@@ -156,11 +156,11 @@ public:
 
 	virtual void GetAllTargetedShaderFormats(TArray<FName>& OutFormats) const override;
 	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings() const override;
 
 	virtual void GetTextureFormats( const UTexture* InTexture, TArray<FName>& OutFormats ) const override;
+
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override;
 
 	virtual const UTextureLODSettings& GetTextureLODSettings() const override;
 
@@ -170,6 +170,7 @@ public:
 	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
+	virtual void GetAllWaveFormats( TArray<FName>& OutFormats) const override;
 #endif //WITH_ENGINE
 
 	virtual bool SupportsVariants() const override;
@@ -181,7 +182,7 @@ public:
 		OutSection = TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings");
 		InBoolKeys.Add(TEXT("bBuildForArmV7")); InBoolKeys.Add(TEXT("bBuildForArm64")); InBoolKeys.Add(TEXT("bBuildForX86"));
 		InBoolKeys.Add(TEXT("bBuildForX8664")); InBoolKeys.Add(TEXT("bBuildForES2")); InBoolKeys.Add(TEXT("bBuildForESDeferred"));
-		InBoolKeys.Add(TEXT("bBuildForES31"));
+		InBoolKeys.Add(TEXT("bBuildForES31")); InBoolKeys.Add(TEXT("bBuildWithHiddenSymbolVisibility"));
 	}
 
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);

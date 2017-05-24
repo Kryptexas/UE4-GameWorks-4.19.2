@@ -3,6 +3,7 @@
 
 #include "K2Node.h"
 #include "UObject/UnrealType.h"
+#include "UObject/CoreRedirects.h"
 #include "EdGraph/EdGraphPin.h"
 #include "UObject/Interface.h"
 #include "Engine/Blueprint.h"
@@ -383,11 +384,11 @@ void UK2Node::PostReconstructNode()
 					if (EnumPtr)
 					{
 						const FString& PinValue = CurrentPin->DefaultValue;
-						// see if this enum is in EnumRedirects
-						int32 EnumIndex = UEnum::FindEnumRedirects(EnumPtr, *PinValue);
+						// Check for redirected enum names
+						int32 EnumIndex = EnumPtr->GetIndexByNameString(PinValue);
 						if (EnumIndex != INDEX_NONE)
 						{
-							FString EnumName = EnumPtr->GetEnumName(EnumIndex);
+							FString EnumName = EnumPtr->GetNameStringByIndex(EnumIndex);
 
 							// if the name does not match with pin value, override pin value
 							if (EnumName != PinValue)
@@ -431,14 +432,14 @@ void UK2Node::ReconstructNode()
 		{
 			UEdGraphPin* OtherPin = LinkedToCopy[LinkIdx];
 			// If we are linked to a pin that its owner doesn't know about, break that link
-			if ((OtherPin == NULL) || !OtherPin->GetOwningNodeUnchecked() || !OtherPin->GetOwningNode()->Pins.Contains(OtherPin))
+			if ((OtherPin == nullptr) || !OtherPin->GetOwningNodeUnchecked() || !OtherPin->GetOwningNode()->Pins.Contains(OtherPin))
 			{
 				Pin->LinkedTo.Remove(OtherPin);
 			}
 
 			if (Blueprint->bIsRegeneratingOnLoad && Linker->UE4Ver() < VER_UE4_INJECT_BLUEPRINT_STRUCT_PIN_CONVERSION_NODES)
 			{
-				if ((Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Struct))
+				if (OtherPin == nullptr || (Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Struct))
 				{
 					continue;
 				}
@@ -493,32 +494,19 @@ void UK2Node::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& Redir
 
 UK2Node::ERedirectType UK2Node::ShouldRedirectParam(const TArray<FString>& OldPinNames, FName& NewPinName, const UK2Node * NewPinNode) const 
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UK2Node::ShouldRedirectParam"), STAT_LinkerLoad_ShouldRedirectParam, STATGROUP_LoadTimeVerbose);
+
 	if ( ensure(NewPinNode) )
 	{
-		const TMultiMap<UClass*, FParamRemapInfo>& ParamRedirectMap = FMemberReference::GetParamRedirectMap();
-
-		if ( ParamRedirectMap.Num() > 0 )
+		for (const FString& OldPinName : OldPinNames)
 		{
-			// convert TArray<FString> to TArray<FName>, faster to search
-			TArray<FName> OldPinFNames;
-			for (auto NameIter=OldPinNames.CreateConstIterator(); NameIter; ++NameIter)
+			const FCoreRedirect* ValueRedirect = nullptr;
+			FCoreRedirectObjectName NewRedirectName;
+			
+			if (FCoreRedirects::RedirectNameAndValues(ECoreRedirectFlags::Type_Property, OldPinName, NewRedirectName, &ValueRedirect))
 			{
-				const FString& Name = *NameIter;
-				OldPinFNames.AddUnique(*Name);
-			}
-
-			// go through for the NewPinNode
-			for(TMultiMap<UClass*, FParamRemapInfo>::TConstKeyIterator ParamIter(ParamRedirectMap, NewPinNode->GetClass()); ParamIter; ++ParamIter)
-			{
-				const FParamRemapInfo& ParamRemap = ParamIter.Value();
-
-				// if it has it, return true
-				if (OldPinFNames.Contains(ParamRemap.OldParam)
-					&& (ParamRemap.NodeTitle == NAME_None || ParamRemap.NodeTitle.ToString() == NewPinNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString()))
-				{
-					NewPinName = ParamRemap.NewParam;
-					return (ParamRemap.bCustomValueMapping ? ERedirectType_Custom : (ParamRemap.ParamValueMap.Num() ? ERedirectType_Value : ERedirectType_Name));
-				}
+				NewPinName = NewRedirectName.ObjectName;
+				return (ValueRedirect ? ERedirectType_Value : ERedirectType_Name);
 			}
 		}
 	}
@@ -631,20 +619,13 @@ UK2Node::ERedirectType UK2Node::DoPinsMatchForReconstruction(const UEdGraphPin* 
 				{
 					const UEdGraphPin* CurPin = ParentHierarchy[ParentIndex].Pin;
 					const UEdGraphPin* ParentPin = CurPin ? CurPin->ParentPin : nullptr;
-					const UObject* SubCategoryObject = ParentPin ? ParentPin->PinType.PinSubCategoryObject.Get() : nullptr;
+					UStruct* SubCategoryStruct = ParentPin ? Cast<UStruct>(ParentPin->PinType.PinSubCategoryObject.Get()) : nullptr;
 
-					TMap<FName, FName>* StructRedirects = SubCategoryObject ? UStruct::TaggedPropertyRedirects.Find(SubCategoryObject->GetFName()) : nullptr;
-					if (StructRedirects)
+					FName RedirectedPinName = SubCategoryStruct ? UProperty::FindRedirectedPropertyName(SubCategoryStruct, FName(*ParentHierarchy[ParentIndex].PropertyName)) : NAME_None;
+
+					if (RedirectedPinName != NAME_Name)
 					{
-						FName* PropertyRedirect = StructRedirects->Find(FName(*ParentHierarchy[ParentIndex].PropertyName));
-						if (PropertyRedirect)
-						{
-							NewPinNameStr += FString("_") + PropertyRedirect->ToString();
-						}
-						else
-						{
-							NewPinNameStr += FString("_") + ParentHierarchy[ParentIndex].PropertyName;
-						}
+						NewPinNameStr += FString("_") + RedirectedPinName.ToString();
 					}
 					else
 					{
@@ -667,6 +648,8 @@ void UK2Node::CustomMapParamValue(UEdGraphPin& Pin)
 
 void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERedirectType RedirectType)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UK2Node::ReconstructSinglePin"), STAT_LinkerLoad_ReconstructSinglePin, STATGROUP_LoadTimeVerbose);
+
 	UBlueprint* Blueprint = GetBlueprint();
 
 	check(NewPin && OldPin);
@@ -681,23 +664,13 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 			TArray<FString> OldPinNames;
 			GetRedirectPinNames(*OldPin, OldPinNames);
 
-			// convert TArray<FString> to TArray<FName>, faster to search
-			TArray<FName> OldPinFNames;
-			for (auto NameIter=OldPinNames.CreateConstIterator(); NameIter; ++NameIter)
+			for (const FString& OldPinName : OldPinNames)
 			{
-				const FString& Name = *NameIter;
-				OldPinFNames.AddUnique(*Name);
-			}
+				const TMap<FString, FString>* ValueChanges = FCoreRedirects::GetValueRedirects(ECoreRedirectFlags::Type_Property, OldPinName);
 
-			// go through for the NewPinNode
-			for(TMultiMap<UClass*, FParamRemapInfo>::TConstKeyIterator ParamIter(FMemberReference::GetParamRedirectMap(), Cast<UK2Node>(NewPin->GetOwningNode())->GetClass()); ParamIter; ++ParamIter)
-			{
-				const FParamRemapInfo& ParamRemap = ParamIter.Value();
-
-				// once we find it, see about remapping the value
-				if (OldPinFNames.Contains(ParamRemap.OldParam))
+				if (ValueChanges)
 				{
-					const FString* NewValue = ParamRemap.ParamValueMap.Find(NewPin->DefaultValue);
+					const FString* NewValue = ValueChanges->Find(*NewPin->DefaultValue);
 					if (NewValue)
 					{
 						NewPin->DefaultValue = *NewValue;
@@ -708,7 +681,9 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 		}
 		else if (RedirectType == ERedirectType_Custom)
 		{
+			PRAGMA_DISABLE_DEPRECATION_WARNINGS
 			CustomMapParamValue(*NewPin);
+			PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		}
 	}
 
@@ -799,48 +774,51 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 {
 	const UEdGraphSchema_K2* Schema = CastChecked<UEdGraphSchema_K2>(CompilerContext ? CompilerContext->GetSchema() : SourceGraph->GetSchema());
 
-	UK2Node* ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
-
-	int32 SubPinIndex = 0;
-
-	for (int32 ExpandedPinIndex=0; ExpandedPinIndex < ExpandedNode->Pins.Num(); ++ExpandedPinIndex)
+	if (Pins.Contains(Pin))
 	{
-		UEdGraphPin* ExpandedPin = ExpandedNode->Pins[ExpandedPinIndex];
+		UK2Node* ExpandedNode = Schema->CreateSplitPinNode(Pin, CompilerContext, SourceGraph);
 
-		if (!ExpandedPin->bHidden)
+		int32 SubPinIndex = 0;
+
+		for (int32 ExpandedPinIndex = 0; ExpandedPinIndex < ExpandedNode->Pins.Num(); ++ExpandedPinIndex)
 		{
-			if (ExpandedPin->Direction == Pin->Direction)
+			UEdGraphPin* ExpandedPin = ExpandedNode->Pins[ExpandedPinIndex];
+
+			if (!ExpandedPin->bHidden)
 			{
-				if (Pin->SubPins.Num() == SubPinIndex)
+				if (ExpandedPin->Direction == Pin->Direction)
 				{
+					if (Pin->SubPins.Num() == SubPinIndex)
+					{
+						if (CompilerContext)
+						{
+							CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+						}
+						break;
+					}
+
+					UEdGraphPin* SubPin = Pin->SubPins[SubPinIndex++];
 					if (CompilerContext)
 					{
-						CompilerContext->MessageLog.Error(*LOCTEXT("PinExpansionError", "Failed to expand pin @@, likely due to bad logic in node @@").ToString(), Pin, Pin->GetOwningNode());
+						CompilerContext->MovePinLinksToIntermediate(*SubPin, *ExpandedPin);
 					}
-					break;
-				}
-
-				UEdGraphPin* SubPin = Pin->SubPins[SubPinIndex++];
-				if (CompilerContext)
-				{
-					CompilerContext->MovePinLinksToIntermediate(*SubPin, *ExpandedPin);
+					else
+					{
+						Schema->MovePinLinks(*SubPin, *ExpandedPin);
+					}
+					// We should only discard the pin set when this node owns them.
+					Pins.Remove(SubPin);
+					SubPin->ParentPin = nullptr;
+					SubPin->MarkPendingKill();
 				}
 				else
 				{
-					Schema->MovePinLinks(*SubPin, *ExpandedPin);
+					Schema->TryCreateConnection(Pin, ExpandedPin);
 				}
-				Pins.Remove(SubPin);
-				SubPin->ParentPin = nullptr;
-				SubPin->MarkPendingKill();
-			}
-			else
-			{
-				Schema->TryCreateConnection(Pin, ExpandedPin);
 			}
 		}
+		Pin->SubPins.Empty();
 	}
-
-	Pin->SubPins.Empty();				
 }
 
 void UK2Node::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
@@ -947,15 +925,13 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 {
 	// Save the old visibility
 	TMap<FName, FOldOptionalPinSettings> OldPinSettings;
-	for (auto ExtraPropertyIt = Properties.CreateIterator(); ExtraPropertyIt; ++ExtraPropertyIt)
+	for (const FOptionalPinFromProperty& PropertyEntry : Properties)
 	{
-		FOptionalPinFromProperty& PropertyEntry = *ExtraPropertyIt;
-
 		OldPinSettings.Add(PropertyEntry.PropertyName, FOldOptionalPinSettings(PropertyEntry.bShowPin, PropertyEntry.bIsOverrideEnabled, PropertyEntry.bIsSetValuePinVisible, PropertyEntry.bIsOverridePinVisible));
 	}
 
 	// Rebuild the property list
-	Properties.Empty();
+	Properties.Reset();
 
 	// find all "bOverride_" properties
 	TMap<FName, UProperty*> OverridesMap;
@@ -1059,11 +1035,13 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 						UEdGraphPin* NewPin = NULL;
 						if (PropertyEntry.bShowPin)
 						{
+							const FString PinName = FString::Printf(TEXT("%s_%d"), *PropertyEntry.PropertyName.ToString(), Index);
+
 							FFormatNamedArguments Args;
-							Args.Add(TEXT("PinName"), FText::FromName(PropertyEntry.PropertyName));
+							Args.Add(TEXT("PinName"), FText::FromString(PropertyEntry.PropertyFriendlyName.IsEmpty() ? PinName : PropertyEntry.PropertyFriendlyName));
 							Args.Add(TEXT("Index"), Index);
-							const FText PinFriendlyName = FText::Format(LOCTEXT("PinFriendlyNameWithIndex", "{PinName}_{Index}"), Args);
-							const FString PinName = PinFriendlyName.ToString();
+							const FText PinFriendlyName = FText::Format(LOCTEXT("PinFriendlyNameWithIndex", "{PinName} {Index}"), Args);
+
 							NewPin = TargetNode->CreatePin(Direction, PinType, PinName);
 							NewPin->PinFriendlyName = PinFriendlyName;
 							NewPin->bNotConnectable = !PropertyEntry.bIsSetValuePinVisible;
@@ -1100,7 +1078,7 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 					{
 						const FString PinName = PropertyEntry.PropertyName.ToString();
 						NewPin = TargetNode->CreatePin(Direction, PinType, PinName);
-						NewPin->PinFriendlyName = PropertyEntry.PropertyFriendlyName.IsEmpty() ? FText::FromString(PinName) : FText::FromString(PropertyEntry.PropertyFriendlyName);
+						NewPin->PinFriendlyName = FText::FromString(PropertyEntry.PropertyFriendlyName.IsEmpty() ? PinName : PropertyEntry.PropertyFriendlyName);
 						NewPin->bNotConnectable = !PropertyEntry.bIsSetValuePinVisible;
 						NewPin->bDefaultValueIsIgnored = !PropertyEntry.bIsSetValuePinVisible;
 						Schema->ConstructBasicPinTooltip(*NewPin, PropertyEntry.PropertyTooltip, NewPin->PinToolTip);

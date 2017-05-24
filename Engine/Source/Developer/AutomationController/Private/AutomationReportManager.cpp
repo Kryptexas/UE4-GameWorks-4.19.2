@@ -134,14 +134,6 @@ const bool FAutomationReportManager::ExportReport(uint32 FileExportTypeMask, con
 	return ReportGenerated;
 }
 
-
-void FAutomationReportManager::TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack)
-{
-	// push this request straight to the reports.
-	ReportRoot->TrackHistory(bShouldTrack, NumReportsToTrack);
-}
-
-
 void FAutomationReportManager::AddResultReport(TSharedPtr< IAutomationReport > InReport, const int32 NumDeviceClusters, TArray< FString >& ResultsLog, uint32 FileExportTypeMask)
 {
 	if (InReport->IsEnabled())
@@ -156,15 +148,15 @@ void FAutomationReportManager::AddResultReport(TSharedPtr< IAutomationReport > I
 			{
 				uint32 ResultMask = 0;
 
-				if (TestResults.Errors.Num())
+				if (TestResults.GetErrorTotal() > 0)
 				{
 					EFileExportType::SetFlag( ResultMask, EFileExportType::FET_Errors );
 				}
-				if (TestResults.Warnings.Num())
+				if (TestResults.GetWarningTotal() > 0)
 				{
 					EFileExportType::SetFlag( ResultMask, EFileExportType::FET_Warnings );
 				}
-				if (TestResults.Logs.Num())
+				if (TestResults.GetLogTotal())
 				{
 					EFileExportType::SetFlag( ResultMask, EFileExportType::FET_Logs );
 				}
@@ -199,7 +191,7 @@ void FAutomationReportManager::AddResultReport(TSharedPtr< IAutomationReport > I
 				FString Status;
 
 				// Was the test a success
-				if (( TestResults.Warnings.Num() == 0 ) && ( TestResults.Errors.Num() == 0 ) && ( InReport->GetState( ClusterIndex,CurrentTestPass ) == EAutomationState::Success ))
+				if ( ( TestResults.GetWarningTotal() == 0 ) && ( TestResults.GetErrorTotal() == 0 ) && ( InReport->GetState(ClusterIndex, CurrentTestPass) == EAutomationState::Success ) )
 				{
 					Status = "Success";
 				}
@@ -210,11 +202,11 @@ void FAutomationReportManager::AddResultReport(TSharedPtr< IAutomationReport > I
 				else
 				{
 					Status = "Issues ";
-					if (TestResults.Warnings.Num())
+					if (TestResults.GetWarningTotal())
 					{
 						Status += "Warnings ";
 					}
-					if (TestResults.Errors.Num())
+					if (TestResults.GetErrorTotal())
 					{
 						Status += "Errors";
 					}
@@ -236,25 +228,28 @@ void FAutomationReportManager::AddResultReport(TSharedPtr< IAutomationReport > I
 
 
 				// Add any warning or errors
-				if ( EFileExportType::IsSet( FileExportTypeMask, EFileExportType::FET_All ) || EFileExportType::IsSet( FileExportTypeMask, EFileExportType::FET_Errors ) )
+				for ( const FAutomationEvent& Event : TestResults.GetEvents() )
 				{
-					for ( int32 ErrorIndex = 0; ErrorIndex < TestResults.Errors.Num(); ++ErrorIndex )
+					switch ( Event.Type )
 					{
-						ResultsLog.Add( ErrorPrefixText + TestResults.Errors[ ErrorIndex ].ToString() + ErrorSufixText );
-					}
-				}
-				if ( EFileExportType::IsSet( FileExportTypeMask, EFileExportType::FET_All ) || EFileExportType::IsSet( FileExportTypeMask, EFileExportType::FET_Warnings ) )
-				{
-					for ( int32 WarningIndex = 0; WarningIndex < TestResults.Warnings.Num(); ++WarningIndex )
-					{
-						ResultsLog.Add( ErrorPrefixText + TestResults.Warnings[ WarningIndex ] + ErrorSufixText );
-					}
-				}
-				if ( EFileExportType::IsSet( FileExportTypeMask, EFileExportType::FET_All ) || EFileExportType::IsSet( FileExportTypeMask, EFileExportType::FET_Logs ) )
-				{
-					for ( int32 LogIndex = 0; LogIndex < TestResults.Logs.Num(); ++LogIndex )
-					{
-						ResultsLog.Add( ErrorPrefixText + TestResults.Logs[ LogIndex ] + ErrorSufixText );
+					case EAutomationEventType::Info:
+						if ( EFileExportType::IsSet(FileExportTypeMask, EFileExportType::FET_All) || EFileExportType::IsSet(FileExportTypeMask, EFileExportType::FET_Logs) )
+						{
+							ResultsLog.Add(ErrorPrefixText + Event.ToString() + ErrorSufixText);
+						}
+						break;
+					case EAutomationEventType::Warning:
+						if ( EFileExportType::IsSet(FileExportTypeMask, EFileExportType::FET_All) || EFileExportType::IsSet(FileExportTypeMask, EFileExportType::FET_Warnings) )
+						{
+							ResultsLog.Add(ErrorPrefixText + Event.ToString() + ErrorSufixText);
+						}
+						break;
+					case EAutomationEventType::Error:
+						if ( EFileExportType::IsSet(FileExportTypeMask, EFileExportType::FET_All) || EFileExportType::IsSet(FileExportTypeMask, EFileExportType::FET_Errors) )
+						{
+							ResultsLog.Add(ErrorPrefixText + Event.ToString() + ErrorSufixText);
+						}
+						break;
 					}
 				}
 			}

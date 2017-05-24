@@ -1,26 +1,8 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title:액터 트랜스폼
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:레벨에 배치된 액터의 위치, 회전, 스케일 변경하기 입니다.
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/Actors/Selection "%Engine/Actors/Selection:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/Actors/Mobility "%Engine/Actors/Mobility:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -61,8 +43,6 @@ Description:레벨에 배치된 액터의 위치, 회전, 스케일 변경하기
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 
 [TOC(start:2)]
@@ -244,3 +224,7 @@ V + 마우스 가운데 버튼을 사용하여, 오브젝트의 피벗을 기존
 이 과정을 반복하면 메시의 위치를 멋지게 잡을 수 있습니다. 이 기법은 통로, 벽, 문은 물론 다른 메시나 오브젝트와의 정교한 배치가 필요한 상황에서 유용합니다.
 
 ![](snappedMeshes.png)(w:500)
+
+
+
+

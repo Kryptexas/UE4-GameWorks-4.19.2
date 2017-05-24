@@ -195,6 +195,12 @@ public:
 		return CompactPoseRefPoseBones;
 	}
 
+	void SetRefPoseCompactArray(const TArray<FTransform>& InRefPoseCompactArray)
+	{
+		check(InRefPoseCompactArray.Num() == CompactPoseRefPoseBones.Num());
+		CompactPoseRefPoseBones = InRefPoseCompactArray;
+	}
+
 	/** Access to Asset's RefSkeleton. */
 	const FReferenceSkeleton& GetReferenceSkeleton() const
 	{
@@ -216,16 +222,16 @@ public:
 	int32 GetPoseBoneIndexForBoneName(const FName& BoneName) const;
 
 	/** Get ParentBoneIndex for current Asset. */
-	int32 GetParentBoneIndex(const int32& BoneIndex) const;
+	int32 GetParentBoneIndex(const int32 BoneIndex) const;
 
 	/** Get ParentBoneIndex for current Asset. */
 	FCompactPoseBoneIndex GetParentBoneIndex(const FCompactPoseBoneIndex& BoneIndex) const;
 
 	/** Get Depth between bones for current asset. */
-	int32 GetDepthBetweenBones(const int32& BoneIndex, const int32& ParentBoneIndex) const;
+	int32 GetDepthBetweenBones(const int32 BoneIndex, const int32 ParentBoneIndex) const;
 
 	/** Returns true if bone is child of for current asset. */
-	bool BoneIsChildOf(const int32& BoneIndex, const int32& ParentBoneIndex) const;
+	bool BoneIsChildOf(const int32 BoneIndex, const int32 ParentBoneIndex) const;
 
 	/** Returns true if bone is child of for current asset. */
 	bool BoneIsChildOf(const FCompactPoseBoneIndex& BoneIndex, const FCompactPoseBoneIndex& ParentBoneIndex) const;
@@ -331,9 +337,20 @@ struct FBoneReference
 	 */
 	bool bUseSkeletonIndex;
 
+	FCompactPoseBoneIndex CachedCompactPoseIndex;
+
 	FBoneReference()
 		: BoneIndex(INDEX_NONE)
 		, bUseSkeletonIndex(false)
+		, CachedCompactPoseIndex(INDEX_NONE)
+	{
+	}
+
+	FBoneReference(const FName& InBoneName)
+		: BoneName(InBoneName)
+		, BoneIndex(INDEX_NONE)
+		, bUseSkeletonIndex(false)
+		, CachedCompactPoseIndex(INDEX_NONE)
 	{
 	}
 
@@ -373,20 +390,18 @@ struct FBoneReference
 
 	FCompactPoseBoneIndex GetCompactPoseIndex(const FBoneContainer& RequiredBones) const 
 	{ 
-		// accessing array with invalid index would cause crash, so we have to check here
-		if (BoneIndex != INDEX_NONE)
+		if (bUseSkeletonIndex)
 		{
-			if (bUseSkeletonIndex)
+			//If we were initialized with a skeleton we wont have a cached index.
+			if (BoneIndex != INDEX_NONE)
 			{
+				// accessing array with invalid index would cause crash, so we have to check here
 				return RequiredBones.GetCompactPoseIndexFromSkeletonIndex(BoneIndex);
 			}
-			else
-			{
-				return RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex(RequiredBones));
-			}
+			return FCompactPoseBoneIndex(INDEX_NONE);
 		}
 		
-		return FCompactPoseBoneIndex(INDEX_NONE);
+		return CachedCompactPoseIndex;
 	}
 
 	// need this because of BoneReference being used in CurveMetaData and that is in SmartName

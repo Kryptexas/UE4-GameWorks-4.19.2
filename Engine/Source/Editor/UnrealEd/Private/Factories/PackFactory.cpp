@@ -34,6 +34,7 @@
 #include "Dialogs/SOutputLogDialog.h"
 #include "UniquePtr.h"
 #include "Logging/MessageLog.h"
+#include "CoreDelegates.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackFactory, Log, All);
 
@@ -64,10 +65,17 @@ namespace PackFactoryHelper
 			// If file is encrypted so we need to account for padding
 			int64 SizeToRead = Entry.bEncrypted ? Align(SizeToCopy,FAES::AESBlockSize) : SizeToCopy;
 
+			const ANSICHAR* Key = nullptr;
+			FCoreDelegates::FPakEncryptionKeyDelegate& Delegate = FCoreDelegates::GetPakEncryptionKeyDelegate();
+			if (Delegate.IsBound())
+			{
+				Key = Delegate.Execute();
+			}
+
 			Source.Serialize(Buffer.GetData(),SizeToRead);
 			if (Entry.bEncrypted)
 			{
-				FAES::DecryptData(Buffer.GetData(),SizeToRead);
+				FAES::DecryptData(Buffer.GetData(),SizeToRead, Key);
 			}
 			DestAr.Serialize(Buffer.GetData(), SizeToCopy);
 			RemainingSizeToCopy -= SizeToRead;
@@ -103,7 +111,14 @@ namespace PackFactoryHelper
 
 			if (Entry.bEncrypted)
 			{
-				FAES::DecryptData(PersistentBuffer.GetData(), SizeToRead);
+				const ANSICHAR* Key = nullptr;
+				FCoreDelegates::FPakEncryptionKeyDelegate& Delegate = FCoreDelegates::GetPakEncryptionKeyDelegate();
+				if (Delegate.IsBound())
+				{
+					Key = Delegate.Execute();
+				}
+
+				FAES::DecryptData(PersistentBuffer.GetData(), SizeToRead, Key);
 			}
 
 			if(!FCompression::UncompressMemory((ECompressionFlags)Entry.CompressionMethod,UncompressedBuffer,UncompressedBlockSize,PersistentBuffer.GetData(),CompressedBlockSize, false, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow()))

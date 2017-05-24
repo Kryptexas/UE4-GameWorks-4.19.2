@@ -136,7 +136,7 @@ protected:
 		while(Iter && (!Current || (LocalOnly && !Current->IsLocalController())))
 		{
 			++Iter;
-			Current = Cast<T>(*Iter);
+			Current = Iter ? Cast<T>(*Iter) : nullptr;
 		}
 	}
 
@@ -416,6 +416,7 @@ struct FCachedSystemScalabilityCVars
 	int32 DetailMode;
 	EMaterialQualityLevel::Type MaterialQualityLevel;
 	int32 MaxShadowResolution;
+	int32 MaxCSMShadowResolution;
 	float ViewDistanceScale;
 	float ViewDistanceScaleSquared;
 

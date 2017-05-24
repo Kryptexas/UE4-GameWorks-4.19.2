@@ -36,6 +36,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, meta = (DisplayName = "Iterative cooking for builds launched from the editor (launch on)"))
 	bool bIterativeCookingForLaunchOn;
 
+	/** Use asset registry for iteration instead of older system. Currently experimental, will be default when finished */
+	UPROPERTY(GlobalConfig)
+	bool bUseAssetRegistryForIteration;
+
 	/** Whether or not to compile Blueprints in development mode when cooking. */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay)
 	bool bCompileBlueprintsInDevelopmentMode;
@@ -48,9 +52,17 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay, meta = (DisplayName = "Classes excluded when cooking for dedicated server"))
 	TArray<FString> ClassesExcludedOnDedicatedServer;
 
+	/** List of module names to exclude when cooking for dedicated server */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay, meta = (DisplayName = "Modules excluded when cooking for dedicated server"))
+	TArray<FString> ModulesExcludedOnDedicatedServer;
+
 	/** List of class names to exclude when cooking for dedicated client */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay, meta = (DisplayName = "Classes excluded when cooking for dedicated client"))
 	TArray<FString> ClassesExcludedOnDedicatedClient;
+
+	/** List of module names to exclude when cooking for dedicated client */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooker, AdvancedDisplay, meta = (DisplayName = "Modules excluded when cooking for dedicated client"))
+	TArray<FString> ModulesExcludedOnDedicatedClient;
 
 	/** Quality of 0 means fastest, 4 means best quality */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Textures, meta = (DisplayName = "PVRTC Compression Quality (0-4, 0 is fastest)"))

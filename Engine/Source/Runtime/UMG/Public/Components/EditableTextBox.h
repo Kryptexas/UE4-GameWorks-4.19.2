@@ -145,8 +145,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget", meta=(DisplayName="SetText (Text Box)"))
 	void SetText(FText InText);
 
+	UFUNCTION(BlueprintCallable, Category = "Widget", meta = (DisplayName = "Set Hint Text (Text Box)"))
+	void SetHintText(FText InText);
+
 	UFUNCTION(BlueprintCallable, Category="Widget",  meta=(DisplayName="SetError (Text Box)"))
 	void SetError(FText InError);
+
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(DisplayName="SetIsReadOnly (Text Box)"))
+	void SetIsReadOnly(bool bReadOnly);
 
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ClearError();

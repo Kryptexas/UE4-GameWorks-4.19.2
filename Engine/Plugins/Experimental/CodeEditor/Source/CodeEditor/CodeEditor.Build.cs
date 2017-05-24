@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class CodeEditor : ModuleRules
 	{
-		public CodeEditor(TargetInfo Target)
+		public CodeEditor(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

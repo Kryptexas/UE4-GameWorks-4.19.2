@@ -27,13 +27,13 @@
 #include "HAL/Runnable.h"
 #include "Misc/OutputDeviceArchiveWrapper.h"
 #include "Stats/StatsMisc.h"
-#include "HAL/IOBase.h"
 #include "Containers/Ticker.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/ObjectThumbnail.h"
 #include "Misc/App.h"
+#include "Misc/TimeGuard.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectIterator.h"
 #include "UObject/Package.h"
@@ -126,12 +126,16 @@
 #include "Particles/ParticleModuleRequired.h"
 
 #include "Components/TextRenderComponent.h"
-
+#include "Classes/Sound/AudioSettings.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 
 #if WITH_EDITORONLY_DATA
 #include "ObjectEditorUtils.h"
+#endif
+
+#if WITH_EDITOR
+#include "AudioEditorModule.h"
 #endif
 
 #include "HardwareInfo.h"
@@ -154,7 +158,6 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
-#include "TextLocalizationResourceGenerator.h"
 
 #include "IMessageRpcClient.h"
 #include "IMessagingRpcModule.h"
@@ -174,12 +177,17 @@
 #include "Engine/EndUserSettings.h"
 
 #include "Engine/LODActor.h"
+#include "Engine/AssetManager.h"
 #include "GameplayTagsManager.h"
 
 #if !UE_BUILD_SHIPPING
 #include "Interfaces/IAutomationWorkerModule.h"
 #include "HAL/ExceptionHandling.h"
 #endif	// UE_BUILD_SHIPPING
+
+#if ENABLE_LOC_TESTING
+#include "LocalizationModule.h"
+#endif
 
 #include "GeneralProjectSettings.h"
 #include "ProfilingDebugging/LoadTimeTracker.h"
@@ -291,6 +299,7 @@ FCachedSystemScalabilityCVars::FCachedSystemScalabilityCVars()
 	, DetailMode(-1)
 	, MaterialQualityLevel(EMaterialQualityLevel::Num)
 	, MaxShadowResolution(-1)
+	, MaxCSMShadowResolution(-1)
 	, ViewDistanceScale(-1)
 	, ViewDistanceScaleSquared(-1)
 	, MaxAnisotropy(-1)
@@ -317,6 +326,11 @@ void ScalabilityCVarsSinkCallback()
 	{
 		static const auto* MaxShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxResolution"));
 		LocalScalabilityCVars.MaxShadowResolution = MaxShadowResolution->GetValueOnGameThread();
+	}
+
+	{
+		static const auto* MaxCSMShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxCSMResolution"));
+		LocalScalabilityCVars.MaxCSMShadowResolution = MaxCSMShadowResolution->GetValueOnGameThread();
 	}
 
 	{
@@ -386,7 +400,7 @@ void SystemResolutionSinkCallback()
 	int32 WindowModeInt = GSystemResolution.WindowMode;
 
 	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-	bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
+	bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
 	
 	if (FParse::Resolution(*ResString, ResX, ResY, WindowModeInt))
 	{
@@ -791,8 +805,8 @@ void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericConte
 
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("EngineMemoryWarningHandler: Mem Used %.2f MB, Texture Memory %.2f MB, Render Target memory %.2f MB, OS Free %.2f MB\n"), 
 		Stats.UsedPhysical / 1048576.0f, 
-		GCurrentTextureMemorySize / 1048576.0f, 
-		GCurrentRendertargetMemorySize / 1048576.0f, 
+		GCurrentTextureMemorySize / 1024.f,
+		GCurrentRendertargetMemorySize / 1024.f,
 		Stats.AvailablePhysical / 1048576.0f);
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
@@ -1030,6 +1044,14 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModuleChecked(TEXT("StreamingPauseRendering"));
 		FModuleManager::Get().LoadModuleChecked(TEXT("Niagara"));
 		FModuleManager::Get().LoadModuleChecked(TEXT("GeometryCache"));
+		FModuleManager::Get().LoadModuleChecked(TEXT("MovieScene"));
+		FModuleManager::Get().LoadModuleChecked(TEXT("MovieSceneTracks"));
+	}
+
+	// Finish asset manager loading
+	if (AssetManager)
+	{
+		AssetManager->FinishInitialLoading();
 	}
 
 	bool bIsRHS = true;
@@ -1169,6 +1191,10 @@ void UEngine::ShutdownHMD()
 
 void UEngine::TickDeferredCommands()
 {
+	SCOPE_TIME_GUARD(TEXT("UEngine::TickDeferredCommands"));
+
+	const double StartTime = FPlatformTime::Seconds();
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UEngine_TickDeferredCommands);
 	// Execute all currently queued deferred commands (allows commands to be queued up for next frame).
 	const int32 DeferredCommandsCount = DeferredCommands.Num();
@@ -1186,6 +1212,20 @@ void UEngine::TickDeferredCommands()
 			Exec( GWorld, *DeferredCommands[DeferredCommandsIndex], *GLog );
 		}
 	}
+
+	const double ElapsedTimeMS = (FPlatformTime::Seconds() - StartTime) / 1000.0;
+
+	// If we're not in the editor, and commands took more than our target frame time to execute, print them out so there's a paper trail
+	if (GIsEditor == false && ElapsedTimeMS >= FEnginePerformanceTargets::GetTargetFrameTimeThresholdMS())
+	{
+		UE_LOG(LogEngine, Warning, TEXT("UEngine::TickDeferredCommands took %.02fms to execute %d commands!"), ElapsedTimeMS, DeferredCommandsCount);
+		
+		for (int32 i = 0; i < DeferredCommandsCount; i++)
+		{
+			UE_LOG(LogEngine, Warning, TEXT("\t%s"), *DeferredCommands[i]);
+		}	
+	}
+
 	DeferredCommands.RemoveAt(0, DeferredCommandsCount);
 }
 
@@ -1585,6 +1625,7 @@ void UEngine::InitializeObjectReferences()
 		LoadSpecialMaterial(GeomMaterialName.ToString(), GeomMaterial, false);
 		LoadSpecialMaterial(EditorBrushMaterialName.ToString(), EditorBrushMaterial, false);
 		LoadSpecialMaterial(BoneWeightMaterialName.ToString(), BoneWeightMaterial, false);
+		LoadSpecialMaterial(ClothPaintMaterialName.ToString(), ClothPaintMaterial, false);
 #endif
 
 		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.ToString(), PreviewShadowsIndicatorMaterial, false);
@@ -1614,6 +1655,11 @@ void UEngine::InitializeObjectReferences()
 	if( DefaultBokehTexture == NULL )
 	{
 		DefaultBokehTexture = LoadObject<UTexture2D>(NULL, *DefaultBokehTextureName.ToString(), NULL, LOAD_None, NULL);
+	}
+
+	if (DefaultBloomKernelTexture == NULL)
+	{
+		DefaultBloomKernelTexture = LoadObject<UTexture2D>(NULL, *DefaultBloomKernelTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( PreIntegratedSkinBRDFTexture == NULL )
@@ -1695,6 +1741,25 @@ void UEngine::InitializeObjectReferences()
 		else
 		{
 			UE_LOG(LogEngine, Error, TEXT("Engine config value GameSingletonClassName '%s' is not a valid class name."), *GameSingletonClassName.ToString());
+		}
+	}
+
+	if (AssetManager == nullptr && AssetManagerClassName.ToString().Len() > 0)
+	{
+		UClass *SingletonClass = LoadClass<UObject>(nullptr, *AssetManagerClassName.ToString());
+
+		if (SingletonClass)
+		{
+			AssetManager = NewObject<UAssetManager>(this, SingletonClass);
+
+			if (AssetManager)
+			{
+				AssetManager->StartInitialLoading();
+			}
+		}
+		else
+		{
+			UE_LOG(LogEngine, Error, TEXT("Engine config value AssetManagerClassName '%s' is not a valid class name."), *AssetManagerClassName.ToString());
 		}
 	}
 
@@ -1969,6 +2034,18 @@ bool UEngine::InitializeAudioDeviceManager()
 				// did the module exist?
 				if (AudioDeviceModule)
 				{
+					const bool bIsAudioMixerEnabled = AudioDeviceModule->IsAudioMixerModule();
+					GetMutableDefault<UAudioSettings>()->SetAudioMixerEnabled(bIsAudioMixerEnabled);
+
+#if WITH_EDITOR
+					if (bIsAudioMixerEnabled)
+					{
+						IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
+						AudioEditorModule->RegisterAudioMixerAssetActions();
+						AudioEditorModule->RegisterEffectPresetAssetActions();
+					}
+#endif
+
 					// Create the audio device manager and register the platform module to the device manager
 					AudioDeviceManager = new FAudioDeviceManager();
 					AudioDeviceManager->RegisterAudioDeviceModule(AudioDeviceModule);
@@ -2097,17 +2174,12 @@ public:
 	{
 		check(IsInRenderingThread());
 
-		//RHISetRenderTarget( BackBuffer, FTextureRHIRef() );
-		SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
+		FRHIRenderTargetView BackBufferView = FRHIRenderTargetView(BackBuffer, ERenderTargetLoadAction::EClear);
+		FRHISetRenderTargetsInfo Info(1, &BackBufferView, FRHIDepthRenderTargetView());
+		RHICmdList.SetRenderTargetsAndClear(Info);
 		const uint32 ViewportWidth = BackBuffer->GetSizeX();
 		const uint32 ViewportHeight = BackBuffer->GetSizeY();
 		RHICmdList.SetViewport( 0,0,0,ViewportWidth, ViewportHeight, 1.0f );
-
-		
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		RHICmdList.ClearColorTexture(BackBuffer, FLinearColor::Black, FIntRect());
 	}
 
 	float FOVInDegrees;		// max(HFOV, VFOV) in degrees of imaginable HMD
@@ -2223,7 +2295,7 @@ bool UEngine::InitializeHMDDevice()
 
 void UEngine::RecordHMDAnalytics()
 {
-	if(HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")))
+	if(HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")) && HMDDevice->IsHMDConnected())
 	{
 		HMDDevice->RecordAnalytics();
 	}
@@ -2648,11 +2720,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return true;
 	}
 
-	if (HMDDevice.IsValid() && HMDDevice->Exec( InWorld, Cmd, Ar ))
-	{
-		return true;
-	}
-
 #if ENABLE_LOC_TESTING
 	{
 		FString CultureName;
@@ -2663,10 +2730,26 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 
 	{
+		FString LanguageName;
+		if (FParse::Value(Cmd, TEXT("LANGUAGE="), LanguageName))
+		{
+			FInternationalization::Get().SetCurrentLanguage(LanguageName);
+		}
+	}
+
+	{
+		FString LocaleName;
+		if (FParse::Value(Cmd, TEXT("LOCALE="), LocaleName))
+		{
+			FInternationalization::Get().SetCurrentLocale(LocaleName);
+		}
+	}
+
+	{
 		FString ConfigFilePath;
 		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
 		{
-			FTextLocalizationResourceGenerator::GenerateAndUpdateLiveEntriesFromConfig(ConfigFilePath, /*bSkipSourceCheck*/false);
+			ILocalizationModule::Get().HandleRegenLocCommand(ConfigFilePath, /*bSkipSourceCheck*/false);
 		}
 	}
 #endif
@@ -2793,16 +2876,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return HandleFreezeAllCommand( Cmd, Ar, InWorld );
 	}
 	
-	else if( !GNewAsyncIO && FParse::Command(&Cmd, TEXT("FLUSHIOMANAGER")) )
-	{
-		return HandleFlushIOManagerCommand( Cmd, Ar );
-	}
-	// This will list out the packages which are in the precache list and have not been "loaded" out.  (e.g. could be just there taking up memory!)
-	else if ( !GNewAsyncIO && FParse::Command(&Cmd, TEXT("ListPrecacheMapPackages")))
-	{
-		return HandleListPreCacheMapPackagesCommand(Cmd, Ar);
-	}
-
 	else if( FParse::Command(&Cmd,TEXT("ToggleRenderingThread")) )
 	{
 		return HandleToggleRenderingThreadCommand( Cmd, Ar );
@@ -3044,7 +3117,7 @@ bool UEngine::HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	FString VersionString = FString::Printf( TEXT( "GameVersion Branch: %s, Configuration: %s, Build: %s, CommandLine: %s" ),
 											 *FApp::GetBranchName(), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ), FApp::GetBuildVersion(), FCommandLine::Get() );
 
-	Ar.Logf( *VersionString );
+	Ar.Logf( TEXT("%s"), *VersionString );
 	FPlatformMisc::ClipboardCopy( *VersionString );
 
 	if (FCString::Stristr(Cmd, TEXT("-display")))
@@ -3239,8 +3312,9 @@ static void DumpHelp(UWorld* InWorld)
 	ConsoleCommandLibrary_DumpLibraryHTML(InWorld, *GEngine, FilePath);
 
 	// Notification in editor
+#if WITH_EDITOR
 	{
-		auto Message = NSLOCTEXT("UnrealEd", "ConsoleHelpExported", "ConsoleHelp.html was saved as");
+		const FText Message = NSLOCTEXT("UnrealEd", "ConsoleHelpExported", "ConsoleHelp.html was saved as");
 		FNotificationInfo Info(Message);
 		Info.bFireAndForget = true;
 		Info.ExpireDuration = 5.0f;
@@ -3250,15 +3324,20 @@ static void DumpHelp(UWorld* InWorld)
 		const FString HyperLinkText = FPaths::ConvertRelativePathToFull(FilePath);
 		Info.Hyperlink = FSimpleDelegate::CreateStatic([](FString SourceFilePath) 
 		{
-			// open default browser, usually internet explorer (bit slower than Chrome)
-//			FPlatformProcess::LaunchURL(*SourceFilePath, TEXT(""), 0);
 			// open folder, you can choose the browser yourself
 			FPlatformProcess::ExploreFolder(*(FPaths::GetPath(SourceFilePath)));
 		}, HyperLinkText);
 		Info.HyperlinkText = FText::FromString(HyperLinkText);
 
 		FSlateNotificationManager::Get().AddNotification(Info);
+
+		// Always try to open the help file on Windows (including in -game, etc...)
+#if PLATFORM_WINDOWS
+		const FString LaunchableURL = FString(TEXT("file://")) + HyperLinkText;
+		FPlatformProcess::LaunchURL(*LaunchableURL, nullptr, nullptr);
+#endif
 	}
+#endif// WITH_EDITOR
 }
 static FAutoConsoleCommandWithWorld GConsoleCommandHelp(
 	TEXT("help"),
@@ -3435,34 +3514,14 @@ bool UEngine::HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	return true;
 }
 
-bool UEngine::HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	check(!GNewAsyncIO);
-	FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
-	return true;
-}
-bool UEngine::HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar)
-{
-	check(!GNewAsyncIO);
-	TArray<FString> Packages;
-	FLinkerLoad::GetListOfPackagesInPackagePrecacheMap(Packages);
-
-	Packages.Sort();
-
-	Ar.Logf(TEXT("Total Number Of Packages In PrecacheMap: %i "), Packages.Num());
-
-	for (int32 i = 0; i < Packages.Num(); ++i)
-	{
-		Ar.Logf(TEXT("%i %s"), i, *Packages[i]);
-	}
-	Ar.Logf(TEXT("Total Number Of Packages In PrecacheMap: %i "), Packages.Num());
-
-	return true;
-}
+extern void ToggleFreezeFoliageCulling();
 
 bool UEngine::HandleFreezeRenderingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld  )
 {
 	ProcessToggleFreezeCommand( InWorld );
+
+	ToggleFreezeFoliageCulling();
+
 	return true;
 }
 
@@ -4039,7 +4098,7 @@ bool UEngine::HandleListParticleSystemsCommand( const TCHAR* Cmd, FOutputDevice&
 		FArchiveCountMem Count( Tree );
 		int32 RootSize = Count.GetMax();
 
-		SortedSets.Add(FSortedParticleSet(Description, RootSize, RootSize, 0, 0, 0, FResourceSizeEx(), FResourceSizeEx()));
+		SortedSets.Add(FSortedParticleSet(Description, RootSize, RootSize, 0, 0, 0, FResourceSizeEx(EResourceSizeMode::Inclusive), FResourceSizeEx(EResourceSizeMode::Exclusive)));
 		SortMap.Add(Tree,SortedSets.Num() - 1);
 	}
 
@@ -4220,6 +4279,8 @@ bool UEngine::HandleMemReportCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 #if ALLOW_DEBUG_FILES
+	QUICK_SCOPE_CYCLE_COUNTER(HandleMemReportDeferredCommand);
+
 	const bool bPerformSlowCommands = FParse::Param( Cmd, TEXT("FULL") );
 	const bool bLogOutputToFile = !FParse::Param( Cmd, TEXT("LOG") );
 	FString InFileName;
@@ -4253,7 +4314,7 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 		UE_LOG(LogEngine, Log, TEXT("MemReportDeferred: saving to %s"), *FilenameFull);		
 	}
 
-	ReportAr->Logf( *FString::Printf( TEXT( "CommandLine Options: %s" ) LINE_TERMINATOR, FCommandLine::Get() ) );
+	ReportAr->Logf( TEXT( "CommandLine Options: %s" ) LINE_TERMINATOR, FCommandLine::Get() );
 
 	// Run commands from the ini
 	FConfigSection* CommandsToRun = GConfig->GetSectionPrivate(TEXT("MemReportCommands"), 0, 1, GEngineIni);
@@ -5424,7 +5485,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 						continue;
 					}
 					FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(*It);
-					if (ObjectItem->GetOwnerIndex())
+					if (ObjectItem->GetOwnerIndex() > 0)
 					{
 						continue;
 					}
@@ -6442,7 +6503,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("CRTINVALID")))
 	{
 		SetCrashType(ECrashType::Debug);
-		FString::Printf(NULL);
+		FString::Printf(TEXT("%s"), (const char*)nullptr);
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("HITCH")))
@@ -7874,11 +7935,18 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 		MessageY += FontSizeY;
 	}
 
-	// Warn about invalid reflection captures, this can appear only in game with FeatureLevel < SM4
+	// Warn about invalid reflection captures, this can appear only with FeatureLevel < SM4
 	if (World->NumInvalidReflectionCaptureComponents > 0)
 	{
 		SmallTextItem.SetColor(FLinearColor::Red);
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("INVALID REFLECTION CAPTURES (%u Components, resave map in the editor)"), World->NumInvalidReflectionCaptureComponents));
+		if( World->IsGameWorld())
+		{
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("INVALID REFLECTION CAPTURES (%u Components, resave map in the editor)"), World->NumInvalidReflectionCaptureComponents));
+		}
+		else
+		{
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("REFLECTION CAPTURE UPDATE REQUIRED (%u out-of-date reflection capture(s))"), World->NumInvalidReflectionCaptureComponents));
+		}
 		Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 		MessageY += FontSizeY;
 	}
@@ -8863,7 +8931,7 @@ UNetDriver* CreateNetDriver_Local(UEngine *Engine, FWorldContext &Context, FName
 			// Try to create network driver.
 			NetDriver = NewObject<UNetDriver>(GetTransientPackage(), NetDriverClass);
 			check(NetDriver);
-			NetDriver->NetDriverName = NetDriver->GetFName();
+			NetDriver->SetNetDriverName(NetDriver->GetFName());
 
 			new (Context.ActiveNetDrivers) FNamedNetDriver(NetDriver, &NetDriverDef);
 			return NetDriver;
@@ -8887,7 +8955,7 @@ bool CreateNamedNetDriver_Local(UEngine *Engine, FWorldContext &Context, FName N
 		NetDriver = CreateNetDriver_Local(Engine, Context, NetDriverDefinition);
 		if (NetDriver)
 		{
-			NetDriver->NetDriverName = NetDriverName;
+			NetDriver->SetNetDriverName(NetDriverName);
 			return true;
 		}
 	}
@@ -9768,7 +9836,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			if (!bCalled)
 			{
+				PRAGMA_DISABLE_DEPRECATION_WARNINGS
 				FCoreUObjectDelegates::PostLoadMap.Broadcast();
+				PRAGMA_ENABLE_DEPRECATION_WARNINGS
+				FCoreUObjectDelegates::PostLoadMapWithWorld.Broadcast(nullptr);
 			}
 		}
 	} PostLoadMapCaller;
@@ -10226,7 +10297,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	// send a callback message
 	PostLoadMapCaller.bCalled = true;
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FCoreUObjectDelegates::PostLoadMap.Broadcast();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FCoreUObjectDelegates::PostLoadMapWithWorld.Broadcast(WorldContext.World());
 	
 	WorldContext.World()->bWorldWasLoadedThisTick = true;
 
@@ -10370,7 +10444,7 @@ void UEngine::MovePendingLevel(FWorldContext &Context)
 	if( NetDriver )
 	{
 		// The pending net driver is renamed to the current "game net driver"
-		NetDriver->NetDriverName = NAME_GameNetDriver;
+		NetDriver->SetNetDriverName(NAME_GameNetDriver);
 		NetDriver->SetWorld(Context.World());
 
 		FLevelCollection& SourceLevels = Context.World()->FindOrAddCollectionByType(ELevelCollectionType::DynamicSourceLevels);
@@ -10621,7 +10695,7 @@ UGameViewportClient* UEngine::GameViewportForWorld(const UWorld *InWorld) const
 
 bool UEngine::AreGameAnalyticsEnabled() const
 { 
-	return GetDefault<UEndUserSettings>()->bSendAnonymousUsageDataToEpic;
+	return FPlatformMisc::AllowSendAnonymousGameUsageDataToEpic() && GetDefault<UEndUserSettings>()->bSendAnonymousUsageDataToEpic;
 }
 
 bool UEngine::AreGameAnalyticsAnonymous() const
@@ -10884,6 +10958,7 @@ void UEngine::VerifyLoadMapWorldCleanup()
 				FString						ErrorString	= FArchiveTraceRoute::PrintRootPath( Route, World );
 				UE_LOG(LogLoad, Log, TEXT("%s"),*ErrorString);
 				// before asserting.
+
 				UE_LOG(LogLoad, Fatal, TEXT("%s not cleaned up by garbage collection!") LINE_TERMINATOR TEXT("%s") , *World->GetFullName(), *ErrorString );
 			}
 		}
@@ -11365,6 +11440,140 @@ static TAutoConsoleVariable<int32> CVarDumpCopyPropertiesForUnrelatedObjects(
 	TEXT("Dump the objects that are cross class copied")
 	);
 
+/* 
+ * Houses base functionality shared between CPFUO archivers (FCPFUOWriter/FCPFUOReader) 
+ * Used to track whether tagged data is being processed (and whether we should be serializing it).
+ */
+struct FCPFUOArchive
+{
+public:
+	FCPFUOArchive(bool bIncludeUntaggedDataIn)
+		: bIncludeUntaggedData(bIncludeUntaggedDataIn)
+		, TaggedDataScope(0)
+	{}
+
+	FCPFUOArchive(const FCPFUOArchive& DataSrc)
+		: bIncludeUntaggedData(DataSrc.bIncludeUntaggedData)
+		, TaggedDataScope(0)
+	{}
+
+protected:
+	FORCEINLINE void OpenTaggedDataScope()  { ++TaggedDataScope; }
+	FORCEINLINE void CloseTaggedDataScope() { --TaggedDataScope; }
+
+	FORCEINLINE bool IsSerializationEnabled()
+	{
+		return bIncludeUntaggedData || (TaggedDataScope > 0);
+	}
+
+	bool bIncludeUntaggedData;
+private:
+	int32 TaggedDataScope;
+};
+
+/* Serializes and stores property data from a specified 'source' object. Only stores data compatible with a target destination object. */
+struct FCPFUOWriter : public FObjectWriter, public FCPFUOArchive
+{
+public:
+	/* Contains the source object's serialized data */
+	TArray<uint8> SavedPropertyData;
+
+public:
+	FCPFUOWriter(UObject* SrcObject, UObject* DstObject, const UEngine::FCopyPropertiesForUnrelatedObjectsParams& Params)
+		: FObjectWriter(SavedPropertyData)
+		// if the two objects don't share a common native base class, then they may have different
+		// serialization methods, which is dangerous (the data is not guaranteed to be homogeneous)
+		// in that case, we have to stick with tagged properties only
+		, FCPFUOArchive(FindNativeSuperClass(SrcObject) == FindNativeSuperClass(DstObject))
+		, bSkipCompilerGeneratedDefaults(Params.bSkipCompilerGeneratedDefaults)
+	{
+		ArIgnoreArchetypeRef = true;
+		ArNoDelta = !Params.bDoDelta;
+		ArIgnoreClassRef = true;
+		ArPortFlags |= Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (GIsEditor && !(ArPortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
+		{
+			SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(DstObject));
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+		SrcObject->Serialize(*this);
+	}
+
+	//~ Begin FArchive Interface
+	virtual void Serialize(void* Data, int64 Num) override
+	{
+		if (IsSerializationEnabled())
+		{
+			FObjectWriter::Serialize(Data, Num);
+		}
+	}
+
+	virtual void MarkScriptSerializationStart(const UObject* Object) override { OpenTaggedDataScope(); }
+	virtual void MarkScriptSerializationEnd(const UObject* Object) override   { CloseTaggedDataScope(); }
+
+#if WITH_EDITOR
+	virtual bool ShouldSkipProperty(const class UProperty* InProperty) const override
+	{
+		static FName BlueprintCompilerGeneratedDefaultsName(TEXT("BlueprintCompilerGeneratedDefaults"));
+		return bSkipCompilerGeneratedDefaults && InProperty->HasMetaData(BlueprintCompilerGeneratedDefaultsName);
+	}
+#endif 
+	//~ End FArchive Interface
+
+private:
+	static UClass* FindNativeSuperClass(UObject* Object)
+	{
+		UClass* Class = Object->GetClass();
+		for (; Class; Class = Class->GetSuperClass())
+		{
+			if ((Class->ClassFlags & CLASS_Native) != 0)
+			{
+				break;
+			}
+		}
+		return Class;
+	}
+
+	bool bSkipCompilerGeneratedDefaults;
+};
+
+/* Responsible for applying the saved property data from a FCPFUOWriter to a specified object */
+struct FCPFUOReader : public FObjectReader, public FCPFUOArchive
+{
+public:
+	FCPFUOReader(FCPFUOWriter& DataSrc, UObject* DstObject)
+		: FObjectReader(DataSrc.SavedPropertyData)
+		, FCPFUOArchive(DataSrc)
+	{
+		ArIgnoreArchetypeRef = true;
+		ArIgnoreClassRef = true;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (GIsEditor && !(ArPortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
+		{
+			SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(DstObject));
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+		DstObject->Serialize(*this);
+	}
+
+	//~ Begin FArchive Interface
+	virtual void Serialize(void* Data, int64 Num) override
+	{
+		if (IsSerializationEnabled())
+		{
+			FObjectReader::Serialize(Data, Num);
+		}
+	}
+
+	virtual void MarkScriptSerializationStart(const UObject* Object) override { OpenTaggedDataScope(); }
+	virtual void MarkScriptSerializationEnd(const UObject* Object) override   { CloseTaggedDataScope(); }
+	// ~End FArchive Interface
+};
 
 void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject, FCopyPropertiesForUnrelatedObjectsParams Params)
 {
@@ -11396,49 +11605,10 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	}
 
 	// Serialize out the modified properties on the old default object
-	TArray<uint8> SavedProperties;
 	TIndirectArray<FInstancedObjectRecord> SavedInstances;
 	TMap<FString, int32> OldInstanceMap;
-
-	const uint32 AdditionalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
-	// Save the modified properties of the old CDO
-	{
-		class FCopyPropertiesArchiveObjectWriter : public FObjectWriter
-		{
-		public:
-			FCopyPropertiesArchiveObjectWriter(UObject* InSrcObj, TArray<uint8>& InSrcBytes, UObject* InDstObject, bool bIgnoreClassRef, bool bIgnoreArchetypeRef, bool bDoDelta , uint32 InAdditionalPortFlags, bool bInSkipCompilerGeneratedDefaults)
-				: FObjectWriter(InSrcBytes)
-			{	
-				bSkipCompilerGeneratedDefaults = bInSkipCompilerGeneratedDefaults;
-				ArIgnoreClassRef = bIgnoreClassRef;
-				ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
-				ArNoDelta = !bDoDelta;
-				ArPortFlags |= InAdditionalPortFlags;
-
-#if USE_STABLE_LOCALIZATION_KEYS
-				if (GIsEditor && !(ArPortFlags & PPF_DuplicateForPIE))
-				{
-					SetLocalizationNamespace(TextNamespaceUtil::EnsurePackageNamespace(InDstObject));
-				}
-#endif // USE_STABLE_LOCALIZATION_KEYS
-
-				InSrcObj->Serialize(*this);
-			}
-
-#if WITH_EDITOR
-			virtual bool ShouldSkipProperty(const class UProperty* InProperty) const override
-			{
-				static FName BlueprintCompilerGeneratedDefaultsName(TEXT("BlueprintCompilerGeneratedDefaults"));
-				return bSkipCompilerGeneratedDefaults && InProperty->HasMetaData(BlueprintCompilerGeneratedDefaultsName);
-			}
-#endif
-
-		private:
-			bool bSkipCompilerGeneratedDefaults;
-		};
-
-		FCopyPropertiesArchiveObjectWriter Writer(OldObject, SavedProperties, NewObject, true, true, Params.bDoDelta, AdditionalPortFlags, Params.bSkipCompilerGeneratedDefaults);
-	}
+ 	// Save the modified properties of the old CDO
+	FCPFUOWriter Writer(OldObject, NewObject, Params);
 
 	{
 		// Find all instanced objects of the old CDO, and save off their modified properties to be later applied to the newly instanced objects of the new CDO
@@ -11451,7 +11621,8 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 			UObject* OldInstance = Components[Index];
 			pRecord->OldInstance = OldInstance;
 			OldInstanceMap.Add(OldInstance->GetPathName(OldObject), SavedInstances.Num() - 1);
-			FObjectWriter Writer(OldInstance, pRecord->SavedProperties, true, true, true, AdditionalPortFlags);
+			const uint32 AdditionalPortFlags = Params.bCopyDeprecatedProperties ? PPF_UseDeprecatedProperties : PPF_None;
+			FObjectWriter SubObjWriter(OldInstance, pRecord->SavedProperties, true, true, true, AdditionalPortFlags);
 		}
 	}
 
@@ -11523,9 +11694,9 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		}
 
 		// Serialize in the modified properties from the old CDO to the new CDO
-		if (SavedProperties.Num() > 0)
+		if (Writer.SavedPropertyData.Num() > 0)
 		{
-			FObjectReader Reader(NewObject, SavedProperties, true, true);
+			FCPFUOReader Reader(Writer, NewObject);
 		}
 
 		for (int32 Index = 0; Index < ComponentsOnNewObject.Num(); Index++)
@@ -11554,7 +11725,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	});
 
 	// Replace references to old classes and instances on this object with the corresponding new ones
-	UPackage* NewPackage = Cast<UPackage>(NewObject->GetOutermost());
+	UPackage* NewPackage = NewObject->GetOutermost();
 	FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
 
 	// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
@@ -12129,7 +12300,7 @@ int32 UEngine::RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* C
 	const TArray<FSubLevelStatus> SubLevelsStatusList = GetSubLevelsStatus(World);
 
 	// First iterate to find bounds of all streaming volumes
-	FBox AllVolBounds(0);
+	FBox AllVolBounds(ForceInit);
 	for (const FSubLevelStatus& LevelStatus : SubLevelsStatusList)
 	{
 		ULevelStreaming* LevelStreaming = World->GetLevelStreamingForPackageName(LevelStatus.PackageName);
@@ -12748,7 +12919,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 				{
 					if (WaveInstanceInfo.ActualVolume >= 0.01f)
 					{
-						WaveInstances.Add(TPairInitializer<const FAudioStats::FStatWaveInstanceInfo*, const FAudioStats::FStatSoundInfo*>(&WaveInstanceInfo, &StatSoundInfo));
+						WaveInstances.Emplace(&WaveInstanceInfo, &StatSoundInfo);
 					}
 				}
 			}

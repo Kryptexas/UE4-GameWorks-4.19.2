@@ -26,6 +26,10 @@ class UPoseAssetFactory : public UFactory
 	UPROPERTY()
 	class UAnimSequence* SourceAnimation;
 
+	/** The preview mesh to use with this pose asset */
+	UPROPERTY()
+	class USkeletalMesh* PreviewSkeletalMesh;
+
 	//~ Begin UFactory Interface
 	virtual bool ConfigureProperties() override;
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;

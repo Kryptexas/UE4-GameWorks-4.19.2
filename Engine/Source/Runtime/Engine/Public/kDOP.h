@@ -584,7 +584,7 @@ struct TkDOPNode
 			Occupancy = NumTris;
 			
 			// Generate bounding volume for leaf which is passed up the call chain.
-			FBox BoundingVolume(0);
+			FBox BoundingVolume(ForceInit);
 			for (int32 TriangleIndex=Start; TriangleIndex<Start + NumTris; TriangleIndex++)
 			{
 				BoundingVolume += BuildTriangles[TriangleIndex].V0;

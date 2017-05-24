@@ -6,6 +6,15 @@
 #include "OnlineMessageMultiTaskOculus.h"
 #include "OnlineSubsystemOculusPackage.h"
 
+#if USING_CODE_ANALYSIS
+#pragma warning( push )
+#pragma warning( disable : ALL_CODE_ANALYSIS_WARNINGS )
+#endif	// USING_CODE_ANALYSIS
+#include <string>
+#if USING_CODE_ANALYSIS
+#pragma warning( pop )
+#endif	// USING_CODE_ANALYSIS
+
 class FOnlineMessageMultiTaskOculusWriteAchievements : public FOnlineMessageMultiTaskOculus
 {
 private:
@@ -101,7 +110,9 @@ void FOnlineAchievementsOculus::WriteAchievements(const FUniqueNetId& PlayerId, 
 			case EAchievementType::Bitfield:
 				FString Bitfield;
 				GetWriteAchievementBitfieldValue(VariantData, Bitfield, AchievementDesc->BitfieldLength);
-				RequestId = ovr_Achievements_AddFields(TCHAR_TO_ANSI(*AchievementId), TCHAR_TO_ANSI(*Bitfield));
+				std::string AchievementIdString(TCHAR_TO_ANSI(*AchievementId));
+				std::string BitfieldString(TCHAR_TO_ANSI(*Bitfield));
+				RequestId = ovr_Achievements_AddFields(AchievementIdString.c_str(), BitfieldString.c_str());
 				break;
 		}
 
@@ -283,7 +294,7 @@ bool FOnlineAchievementsOculus::ResetAchievements(const FUniqueNetId& PlayerId)
 };
 #endif // !UE_BUILD_SHIPPING
 
-void FOnlineAchievementsOculus::GetWriteAchievementCountValue(FVariantData VariantData, uint64& OutData)
+void FOnlineAchievementsOculus::GetWriteAchievementCountValue(FVariantData VariantData, uint64& OutData) const
 {
 	switch (VariantData.GetType())
 	{
@@ -291,16 +302,31 @@ void FOnlineAchievementsOculus::GetWriteAchievementCountValue(FVariantData Varia
 		{
 			int32 Value;
 			VariantData.GetValue(Value);
-			OutData = (uint64)Value;
+			OutData = static_cast<uint64>(Value);
 			break;
 		}
 		case EOnlineKeyValuePairDataType::Int64:
+		{
+			int64 Value;
+			VariantData.GetValue(Value);
+			OutData = static_cast<uint64>(Value);
+			break;
+		}
+		case EOnlineKeyValuePairDataType::UInt32:
+		{
+			uint32 Value;
+			VariantData.GetValue(Value);
+			OutData = static_cast<uint64>(Value);
+			break;
+		}
+		case EOnlineKeyValuePairDataType::UInt64:
 		{
 			VariantData.GetValue(OutData);
 			break;
 		}
 		default:
 		{
+			UE_LOG_ONLINE(Warning, TEXT("Could not %s convert to uint64"), VariantData.GetTypeString());
 			OutData = 0;
 			break;
 		}

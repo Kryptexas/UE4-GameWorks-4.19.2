@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __LevelViewportLayoutTwoPanes_h__
-#define __LevelViewportLayoutTwoPanes_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -52,5 +48,3 @@ class FLevelViewportLayoutTwoPanesHoriz : public TLevelViewportLayoutTwoPanes<EO
 public:
 	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::TwoPanesHoriz; }
 };
-
-#endif

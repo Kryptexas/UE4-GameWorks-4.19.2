@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_Flying.h"
 #include "TP_FlyingGameMode.h"
 #include "TP_FlyingPawn.h"
 

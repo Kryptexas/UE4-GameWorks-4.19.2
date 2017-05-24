@@ -50,7 +50,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AI|EQS")
 	float GetItemScore(int32 ItemIndex);
 
-	/** return an array filled with resulting actors. Not that it makes sense only if ItemType is a EnvQueryItemType_ActorBase-derived type */
+	/** return an array filled with resulting actors. Note that it makes sense only if ItemType is a EnvQueryItemType_ActorBase-derived type */
 	UFUNCTION(BlueprintPure, Category = "AI|EQS")
 	TArray<AActor*> GetResultsAsActors();
 

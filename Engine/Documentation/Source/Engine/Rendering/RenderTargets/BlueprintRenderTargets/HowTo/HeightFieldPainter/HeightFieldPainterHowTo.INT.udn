@@ -1,4 +1,4 @@
-availability:docs
+availability:Public
 title:Creating a Height Field Painter with Blueprints and Render Targets
 description:How-To use Blueprints and Render Targets to create realtime Height Filed Painter.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
@@ -13,7 +13,7 @@ Related:Engine/Blueprints/
 Related:Engine/Rendering/Materials/
 Related:Engine/Blueprints/UserGuide/UserConstructionScript/
 tags:Render Targets
-tags:Blueprint
+tags:Blueprints
 checkpoint:HFP
 
 ![](HFP_Header_Image.png)

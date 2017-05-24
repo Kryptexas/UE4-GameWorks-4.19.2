@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MaterialShaderQualitySettings : ModuleRules
 {
-    public MaterialShaderQualitySettings(TargetInfo Target)
+    public MaterialShaderQualitySettings(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[]

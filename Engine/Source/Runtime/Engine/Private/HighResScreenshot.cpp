@@ -261,7 +261,9 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 	
 	bool bSuccess = false;
 
-	if (ImageWriter && ImageWriter->ImageWrapper->SetRaw((void*)&Bitmap[0], sizeof(TPixelType)* x * y, x, y, Traits::SourceChannelLayout, BitsPerPixel))
+	if (ImageWriter != nullptr &&
+		ImageWriter->ImageWrapper.IsValid() &&
+		ImageWriter->ImageWrapper->SetRaw((void*)&Bitmap[0], sizeof(TPixelType)* x * y, x, y, Traits::SourceChannelLayout, BitsPerPixel))
 	{
 		ImageCompression::CompressionQuality LocalCompressionQuality = ImageCompression::Default;
 		
@@ -274,9 +276,9 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 		FArchive* Ar = FileManager->CreateFileWriter(Filename.GetCharArray().GetData());
 		if (Ar != nullptr)
 		{
-		const TArray<uint8>& CompressedData = ImageWriter->ImageWrapper->GetCompressed(LocalCompressionQuality);
-			int32 CompressedSize = CompressedData.Num();
-			Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
+			const TArray<uint8>& CompressedData = ImageWriter->ImageWrapper->GetCompressed(LocalCompressionQuality);
+				int32 CompressedSize = CompressedData.Num();
+				Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
 			delete Ar;
 
 			bSuccess = true;

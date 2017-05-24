@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3232646
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:3 - Anim Graph のセットアップ
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Anim Graph をセットアップし、AnimMontage とステートマシンの動きのポーズのブレンドを処理します。 
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 
 [VAR:Steps]
 [OBJECT:Navigation]

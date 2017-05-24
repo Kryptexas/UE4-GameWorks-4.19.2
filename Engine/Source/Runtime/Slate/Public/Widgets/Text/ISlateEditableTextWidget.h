@@ -221,8 +221,11 @@ public:
 	/** Get the type of virtual keyboard to use for this widget */
 	virtual EKeyboardType GetVirtualKeyboardType() const = 0;
 
-	/** Get our the Slate widget this interface is representing */
+	/** Get the Slate widget this interface is representing (may not be called during destruction) */
 	virtual TSharedRef<SWidget> GetSlateWidget() = 0;
+
+	/** Get the Slate widget this interface is representing (may be null during destruction) */
+	virtual TSharedPtr<SWidget> GetSlateWidgetPtr() = 0;
 
 	/** Build the context menu content to use for this widget (if any) */
 	virtual TSharedPtr<SWidget> BuildContextMenuContent() const = 0;

@@ -22,8 +22,9 @@ void UChildActorComponent::OnRegister()
 
 	if (ChildActor)
 	{
-		if (ChildActor->GetClass() != ChildActorClass)
+		if (bNeedsRecreate || ChildActor->GetClass() != ChildActorClass)
 		{
+			bNeedsRecreate = false;
 			DestroyChildActor();
 			CreateChildActor();
 		}
@@ -87,8 +88,17 @@ void UChildActorComponent::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITOR
+	if (ChildActorClass == nullptr)
+	{
+		// It is unknown how this state can come to be, so for now we'll simply correct the issue and record that it occurs and 
+		// and if it is occurring frequently, then investigate how the state comes to pass
+		if (!ensureAlwaysMsgf(ChildActorTemplate == nullptr, TEXT("Found unexpected ChildActorTemplate %s when ChildActorClass is null"), *ChildActorTemplate->GetFullName()))
+		{
+			ChildActorTemplate = nullptr;
+		}
+	}
 	// Since we sometimes serialize properties in instead of using duplication and we can end up pointing at the wrong template
-	if (!Ar.IsPersistent() && ChildActorTemplate)
+	else if (!Ar.IsPersistent() && ChildActorTemplate)
 	{
 		if (IsTemplate())
 		{
@@ -178,12 +188,25 @@ void UChildActorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(UChildActorComponent, ChildActor);
 }
 
+struct FActorParentComponentSetter
+{
+private:
+	static void Set(AActor* ChildActor, UChildActorComponent* ParentComponent)
+	{
+		ChildActor->ParentComponent = ParentComponent;
+	}
+
+	friend UChildActorComponent;
+};
+
 void UChildActorComponent::PostRepNotifies()
 {
 	Super::PostRepNotifies();
 
 	if (ChildActor)
 	{
+		FActorParentComponentSetter::Set(ChildActor, this);
+
 		ChildActorClass = ChildActor->GetClass();
 		ChildActorName = ChildActor->GetFName();
 	}
@@ -396,17 +419,6 @@ void UChildActorComponent::SetChildActorClass(TSubclassOf<AActor> Class)
 	}
 }
 
-struct FActorParentComponentSetter
-{
-private:
-	static void Set(AActor* ChildActor, UChildActorComponent* ParentComponent)
-	{
-		ChildActor->ParentComponent = ParentComponent;
-	}
-
-	friend UChildActorComponent;
-};
-
 #if WITH_EDITOR
 void UChildActorComponent::PostLoad()
 {
@@ -419,18 +431,7 @@ void UChildActorComponent::PostLoad()
 		// Don't do this if there is no linker which implies component was created via duplication
 		if (ChildActorTemplate && GetLinker())
 		{
-			UWorld* MyWorld = GetWorld();
-			if (MyWorld && MyWorld->IsGameWorld())
-			{
-				// A game world might already be kicking along and then we will try and dispatch destroy events and it will be bad
-				// so just mark the child pending kill and move along
-				ChildActor->MarkPendingKill();
-				ChildActor = nullptr;
-			}
-			else
-			{
-				DestroyChildActor();
-			}
+			bNeedsRecreate = true;
 		}
 		else
 		{

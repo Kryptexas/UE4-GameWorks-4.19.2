@@ -5,8 +5,9 @@
 
 #include "OVR_Platform_Defs.h"
 #include "OVR_DataStore.h"
-#include "OVR_RoomJoinPolicy.h"
+#include "OVR_MatchmakingEnqueuedUserArray.h"
 #include "OVR_RoomJoinability.h"
+#include "OVR_RoomJoinPolicy.h"
 #include "OVR_RoomType.h"
 #include "OVR_Types.h"
 #include "OVR_User.h"
@@ -14,6 +15,15 @@
 #include <stddef.h>
 
 typedef struct ovrRoom *ovrRoomHandle;
+
+/// A list of users that have been invited to the room, but have not joined the
+/// room yet.
+OVRP_PUBLIC_FUNCTION(ovrUserArrayHandle) ovr_Room_GetInvitedUsers(const ovrRoomHandle obj);
+
+/// If this is a matchmaking room, it contains all users matched into the room,
+/// including the host as well as users enqueued by someone else. Also includes
+/// additional per-user matchmaking metadata.
+OVRP_PUBLIC_FUNCTION(ovrMatchmakingEnqueuedUserArrayHandle) ovr_Room_GetMatchedUsers(const ovrRoomHandle obj);
 
 OVRP_PUBLIC_FUNCTION(ovrID)              ovr_Room_GetApplicationID(const ovrRoomHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrDataStoreHandle) ovr_Room_GetDataStore(const ovrRoomHandle obj);

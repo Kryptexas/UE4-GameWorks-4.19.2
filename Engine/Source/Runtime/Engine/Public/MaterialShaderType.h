@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "Shader.h"
 #include "GlobalShader.h"
+#include "Engine/EngineTypes.h"
 
 /** A macro to implement material shaders. */
 #define IMPLEMENT_MATERIAL_SHADER_TYPE(TemplatePrefix,ShaderClass,SourceFilename,FunctionName,Frequency) \

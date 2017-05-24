@@ -36,6 +36,7 @@
 #include "Components/ChildActorComponent.h"
 #include "Camera/CameraComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/NetworkObjectList.h"
 
 DEFINE_LOG_CATEGORY(LogActor);
 
@@ -272,6 +273,11 @@ void AActor::PostInitProperties()
 	}
 }
 
+bool AActor::CanBeInCluster() const
+{
+	return bCanBeInCluster;
+}
+
 void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	AActor* This = CastChecked<AActor>(InThis);
@@ -481,7 +487,12 @@ void AActor::RemoveControllingMatineeActor( AMatineeActor& InMatineeActor )
 
 void AActor::BeginDestroy()
 {
+	ULevel* OwnerLevel = Cast<ULevel>(GetOuter());
 	UnregisterAllComponents();
+	if (OwnerLevel && !OwnerLevel->HasAnyInternalFlags(EInternalObjectFlags::Unreachable))
+	{
+		OwnerLevel->Actors.RemoveSingleSwap(this, false);
+	}
 	Super::BeginDestroy();
 }
 
@@ -619,7 +630,7 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 	// If this is a Blueprint class, we may need to manually apply default value overrides to some inherited components in a cooked
 	// build scenario. This can occur, for example, if we have a nativized Blueprint class somewhere in the class inheritance hierarchy.
-	if (FPlatformProperties::RequiresCookedData())
+	if (FPlatformProperties::RequiresCookedData() && !IsTemplate())
 	{
 		const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
 		if (BPGC != nullptr && BPGC->bHasNativizedParent)
@@ -1077,7 +1088,7 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 
 FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	for (const UActorComponent* ActorComponent : GetComponents())
 	{
@@ -1097,7 +1108,7 @@ FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 
 FBox AActor::CalculateComponentsBoundingBoxInLocalSpace( bool bNonColliding ) const
 {
-	FBox Box( 0 );
+	FBox Box(ForceInit);
 
 	const FTransform& ActorToWorld = GetTransform();
 	const FTransform WorldToActor = ActorToWorld.Inverse();
@@ -1769,7 +1780,7 @@ void AActor::ForceNetUpdate()
 		FlushNetDormancy(); 
 	}
 
-	SetNetUpdateTime(FMath::Min(NetUpdateTime, GetWorld()->TimeSeconds - 0.01f));
+	SetNetUpdateTime(GetWorld()->TimeSeconds - 0.01f);
 }
 
 bool AActor::IsReplicationPausedForConnection(const FNetViewer& ConnectionOwnerNetViewer)
@@ -1967,7 +1978,7 @@ FVector AActor::GetPlacementExtent() const
 		TInlineComponentArray<USceneComponent*> Components;
 		GetComponents(Components);
 
-		FBox ActorBox(0.f);
+		FBox ActorBox(ForceInit);
 		for (int32 ComponentID=0; ComponentID<Components.Num(); ++ComponentID)
 		{
 			USceneComponent* SceneComp = Components[ComponentID];
@@ -1996,12 +2007,6 @@ void AActor::Destroyed()
 
 	ReceiveDestroyed();
 	OnDestroyed.Broadcast(this);
-	UWorld* ActorWorld = GetWorld();
-
-	if( ActorWorld )
-	{
-		ActorWorld->RemoveNetworkActor(this);
-	}
 }
 
 void AActor::TearOff()
@@ -2371,19 +2376,20 @@ void AActor::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 	GetActorEyesViewPoint(OutResult.Location, OutResult.Rotation);
 }
 
-bool AActor::HasActiveCameraComponent()
+bool AActor::HasActiveCameraComponent() const
 {
 	if (bFindCameraComponentWhenViewTarget)
 	{
 		// Look for the first active camera component and use that for the view
-		TInlineComponentArray<UCameraComponent*> Cameras;
-		GetComponents<UCameraComponent>(Cameras);
-
-		for (UCameraComponent* CameraComponent : Cameras)
+		for (const UActorComponent* Component : OwnedComponents)
 		{
-			if (CameraComponent->bIsActive)
+			const UCameraComponent* CameraComponent = Cast<const UCameraComponent>(Component);
+			if (CameraComponent)
 			{
-				return true;
+				if (CameraComponent->bIsActive)
+				{
+					return true;
+				}
 			}
 		}
 	}
@@ -2395,14 +2401,15 @@ bool AActor::HasActivePawnControlCameraComponent() const
 	if (bFindCameraComponentWhenViewTarget)
 	{
 		// Look for the first active camera component and use that for the view
-		TInlineComponentArray<UCameraComponent*> Cameras;
-		GetComponents<UCameraComponent>(Cameras);
-
-		for (UCameraComponent* CameraComponent : Cameras)
+		for (const UActorComponent* Component : OwnedComponents)
 		{
-			if (CameraComponent->bIsActive && CameraComponent->bUsePawnControlRotation)
+			const UCameraComponent* CameraComponent = Cast<const UCameraComponent>(Component);
+			if (CameraComponent)
 			{
-				return true;
+				if (CameraComponent->bIsActive && CameraComponent->bUsePawnControlRotation)
+				{
+					return true;
+				}
 			}
 		}
 	}
@@ -4536,6 +4543,34 @@ float AActor::GetGameTimeSinceCreation()
 	{
 		return 0.f;
 	}
+}
+
+void AActor::SetNetUpdateTime( float NewUpdateTime )
+{
+	FNetworkObjectInfo* NetActor = GetNetworkObjectInfo();
+
+	if ( NetActor != nullptr )
+	{
+		// Only allow the next update to be sooner than the current one
+		NetActor->NextUpdateTime = FMath::Min( NetActor->NextUpdateTime, (double)NewUpdateTime );
+	}			
+}
+
+FNetworkObjectInfo* AActor::GetNetworkObjectInfo() const
+{
+	UWorld* World = GetWorld();
+
+	if ( World != nullptr )
+	{
+		UNetDriver* NetDriver = World->GetNetDriver();
+
+		if ( NetDriver != nullptr )
+		{
+			return NetDriver->GetNetworkObjectInfo( this );
+		}
+	}
+
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

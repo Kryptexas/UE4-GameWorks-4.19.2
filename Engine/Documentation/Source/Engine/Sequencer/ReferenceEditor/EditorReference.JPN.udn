@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3038334
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:シーケンサー エディタのリファレンス
 Crumbs: %ROOT%, Engine
@@ -7,9 +7,10 @@ Navigation:topic
 parent:Engine/Sequencer
 Skilllevel: beginner
 order:1
-Version: 4.12
-Related: Engine\Sequencer\Overview
-Related: Engine/Sequencer/HowTo
+Version:4.12
+Related:Engine\Sequencer\Overview
+Related:Engine/Sequencer/HowTo
+tags:Sequencer
 
 このページでは、**シーケンサー** エディタのウィンドウ、オプション、制御について概要を説明します。 
 
@@ -35,7 +36,7 @@ Related: Engine/Sequencer/HowTo
 
 ![](Toolbar.png)
 
-以下は、ツールバーのボタンについての説明です。ツールバーの左から右の順に解説していきます。 
+以下は、ツールバーのボタンについての説明です。ツールバーの左から右の順に解説していきます。
 
 | アイコン | 説明 |
 | ---- | ----------- |

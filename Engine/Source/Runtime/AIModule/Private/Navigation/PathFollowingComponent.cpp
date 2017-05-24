@@ -73,7 +73,7 @@ FPathFollowingResult::FPathFollowingResult(EPathFollowingResult::Type ResultCode
 FString FPathFollowingResult::ToString() const
 {
 	static UEnum* ResultEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"));
-	return FString::Printf(TEXT("%s[%s]"), ResultEnum ? *ResultEnum->GetEnumName(Code) : TEXT("??"), *FPathFollowingResultFlags::ToString(Flags));
+	return FString::Printf(TEXT("%s[%s]"), ResultEnum ? *ResultEnum->GetNameStringByValue(Code) : TEXT("??"), *FPathFollowingResultFlags::ToString(Flags));
 }
 
 FString FPathFollowingResultFlags::ToString(uint16 Value)
@@ -88,6 +88,7 @@ FString FPathFollowingResultFlags::ToString(uint16 Value)
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, MovementStop),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, NewRequest),
 		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, ForcedScript),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, AlreadyAtGoal),
 	};
 
 	FString CombinedDesc;
@@ -230,7 +231,7 @@ FString GetPathDescHelper(FNavPathSharedPtr Path)
 void UPathFollowingComponent::OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Event)
 {
 	const static UEnum* NavPathEventEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ENavPathEvent"));
-	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("OnPathEvent: %s"), *NavPathEventEnum->GetEnumName(Event));
+	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("OnPathEvent: %s"), *NavPathEventEnum->GetNameStringByValue(Event));
 
 	if (InPath && Path.Get() == InPath)
 	{
@@ -648,8 +649,46 @@ void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveCo
 
 		UWorld* MyWorld = GetWorld();
 		if (MyWorld && MyWorld->GetNavigationSystem())
-		{	
+		{
 			MyNavData = MyWorld->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
+			if (MyNavData == nullptr)
+			{
+				if (MyWorld->GetNavigationSystem()->IsInitialized() == false)
+				{
+					MyWorld->GetNavigationSystem()->OnNavigationInitDone.AddUObject(this, &UPathFollowingComponent::OnNavigationInitDone);
+				}
+				else
+				{
+					MyWorld->GetNavigationSystem()->OnNavDataRegisteredEvent.AddUniqueDynamic(this, &UPathFollowingComponent::OnNavDataRegistered);
+				}
+			}
+		}
+	}
+}
+
+void UPathFollowingComponent::OnNavigationInitDone()
+{
+	UWorld* MyWorld = GetWorld();
+	if (MovementComp && MyWorld)
+	{
+		check(MyWorld->GetNavigationSystem());
+		const FNavAgentProperties& NavAgentProps = MovementComp->GetNavAgentPropertiesRef();
+		MyNavData = MyWorld->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
+		MyWorld->GetNavigationSystem()->OnNavigationInitDone.RemoveAll(this);
+	}
+}
+
+void UPathFollowingComponent::OnNavDataRegistered(ANavigationData* NavData)
+{
+	if (NavData && MovementComp)
+	{
+		const FNavAgentProperties& NavAgentProps = MovementComp->GetNavAgentPropertiesRef();
+		if (NavData->DoesSupportAgent(NavAgentProps))
+		{
+			MyNavData = NavData;
+			UWorld* MyWorld = GetWorld();
+			check(MyWorld && MyWorld->GetNavigationSystem());
+			MyWorld->GetNavigationSystem()->OnNavDataRegisteredEvent.RemoveAll(this);
 		}
 	}
 }
@@ -741,7 +780,10 @@ int32 UPathFollowingComponent::DetermineStartingPathPoint(const FNavigationPath*
 				// would influence the result
 				const float SqDistToFirstPoint = (CurrentLocation - PathPt0).SizeSquared2D();
 				const float SqDistToSecondPoint = (CurrentLocation - PathPt1).SizeSquared2D();
-				PickedPathPoint = (SqDistToFirstPoint < SqDistToSecondPoint) ? 0 : 1;
+
+				PickedPathPoint = FMath::IsNearlyEqual(SqDistToFirstPoint, SqDistToSecondPoint) ?
+					((FMath::Abs(CurrentLocation.Z - PathPt0.Z) < FMath::Abs(CurrentLocation.Z - PathPt1.Z)) ? 0 : 1) :
+					((SqDistToFirstPoint < SqDistToSecondPoint) ? 0 : 1);
 			}
 			else
 			{
@@ -842,6 +884,8 @@ void UPathFollowingComponent::UpdatePathSegment()
 		return;
 	}
 
+	FMetaNavMeshPath* MetaNavPath = bIsUsingMetaPath ? Path->CastPath<FMetaNavMeshPath>() : nullptr;
+
 	// if agent has control over its movement, check finish conditions
 	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 	const bool bCanUpdateState = HasMovementAuthority();
@@ -849,6 +893,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 	{
 		const int32 LastSegmentEndIndex = Path->GetPathPoints().Num() - 1;
 		const bool bFollowingLastSegment = (MoveSegmentEndIndex >= LastSegmentEndIndex);
+		const bool bLastPathChunk = (MetaNavPath == nullptr || MetaNavPath->IsLastSection());
 
 		if (bCollidedWithGoal)
 		{
@@ -861,7 +906,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 			OnSegmentFinished();
 			OnPathFinished(EPathFollowingResult::Success, FPathFollowingResultFlags::None);
 		}
-		else if (bFollowingLastSegment && bMoveToGoalOnLastSegment)
+		else if (bFollowingLastSegment && bMoveToGoalOnLastSegment && bLastPathChunk)
 		{
 			// use goal actor for end of last path segment
 			// UNLESS it's partial path (can't reach goal)
@@ -891,7 +936,6 @@ void UPathFollowingComponent::UpdatePathSegment()
 	if (bCanUpdateState && Status == EPathFollowingStatus::Moving)
 	{
 		// check waypoint switch condition in meta paths
-		FMetaNavMeshPath* MetaNavPath = bIsUsingMetaPath ? Path->CastPath<FMetaNavMeshPath>() : nullptr;
 		if (MetaNavPath && Status == EPathFollowingStatus::Moving)
 		{
 			MetaNavPath->ConditionalMoveToNextSection(CurrentLocation, EMetaPathUpdateReason::MoveTick);
@@ -1039,8 +1083,8 @@ bool UPathFollowingComponent::HasReachedDestination(const FVector& CurrentLocati
 	float GoalRadius = 0.0f;
 	float GoalHalfHeight = 0.0f;
 	
-	// take goal's current location, unless path is partial
-	if (DestinationActor.IsValid() && !Path->IsPartial())
+	// take goal's current location, unless path is partial or last segment doesn't reach goal actor (used by tethered AI)
+	if (DestinationActor.IsValid() && !Path->IsPartial() && bMoveToGoalOnLastSegment)
 	{
 		if (DestinationAgent)
 		{
@@ -1551,7 +1595,7 @@ FString UPathFollowingComponent::GetStatusDesc() const
 	const static UEnum* StatusEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingStatus"));
 	if (StatusEnum)
 	{
-		return StatusEnum->GetEnumName(Status);
+		return StatusEnum->GetNameStringByValue(Status);
 	}
 
 	return TEXT("Unknown");
@@ -1562,7 +1606,7 @@ FString UPathFollowingComponent::GetResultDesc(EPathFollowingResult::Type Result
 	const static UEnum* ResultEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"));
 	if (ResultEnum)
 	{
-		return ResultEnum->GetEnumName(Result);
+		return ResultEnum->GetNameStringByValue(Result);
 	}
 
 	return TEXT("Unknown");
@@ -1708,7 +1752,7 @@ void UPathFollowingComponent::LockResource(EAIRequestPriority::Type LockSource)
 	ResourceLock.SetLock(LockSource);
 	if (bWasLocked == false)
 	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Locking Move by source %s"), SourceEnum ? *SourceEnum->GetEnumName(Status) : TEXT("invalid"));
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Locking Move by source %s"), SourceEnum ? *SourceEnum->GetNameStringByValue(Status) : TEXT("invalid"));
 		PauseMove(CurrentRequestId, EPathFollowingVelocityMode::Reset);
 	}
 }

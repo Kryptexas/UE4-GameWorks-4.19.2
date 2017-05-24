@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ViewportSnapping : ModuleRules
 {
-	public ViewportSnapping(TargetInfo Target)
+	public ViewportSnapping(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("UnrealEd");
 

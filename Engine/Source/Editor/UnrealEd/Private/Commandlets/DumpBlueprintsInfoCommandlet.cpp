@@ -1708,7 +1708,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 		}
 		ActionEntry += "\","; // end action category data
 
-		FString TooltipStr = PrimeAction->GetTooltipDescription().Replace(TEXT("\\\""), TEXT("'")).Replace(TEXT("\""), TEXT("'"));
+		FString TooltipStr = PrimeAction->GetTooltipDescription().ToString().Replace(TEXT("\\\""), TEXT("'")).Replace(TEXT("\""), TEXT("'"));
 		FString const TooltipFieldLabel("\"Tooltip\"     : \"");
 		TooltipStr = TooltipStr.Replace(TEXT("\n"), *(IndentedNewline + BuildIndentString(TooltipFieldLabel.Len(), /*bUseSpaces =*/true)));
 

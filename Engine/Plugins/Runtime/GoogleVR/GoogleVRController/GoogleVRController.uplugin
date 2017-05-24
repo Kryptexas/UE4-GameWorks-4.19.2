@@ -1,7 +1,7 @@
 {
     "FileVersion": 3,
-    "Version": 6,
-    "VersionName": "1.2 (GVR NDK v1.10.0)",
+    "Version": 7,
+    "VersionName": "1.3 (GVR NDK v1.40.0)",
     "FriendlyName": "Google VR Motion Controller",
     "Description": "Support for the Google VR motion controller",
     "Category": "Input Devices",
@@ -20,7 +20,7 @@
             "Name": "GoogleVRController",
             "Type": "Runtime",
             "LoadingPhase": "PostConfigInit",
-            "WhitelistPlatforms": [ "Android", "Mac", "Win32", "Win64"]
+            "WhitelistPlatforms": [ "Android", "Win32", "Win64", "IOS" ]
         }
     ]
 }

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class RealtimeProfiler : ModuleRules
 {
-	public RealtimeProfiler(TargetInfo Target)
+	public RealtimeProfiler(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

@@ -33,7 +33,7 @@ enum EFBXAnimationLengthImportType
 /**
 * Import data and options used when importing any mesh from FBX
 */
-UCLASS()
+UCLASS(config = EditorPerProjectUserSettings, configdonotcheckdefaults)
 class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 {
 	GENERATED_UCLASS_BODY()

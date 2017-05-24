@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:텍스처 마스크 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -11,7 +11,7 @@ Related: Engine/Rendering/Materials/HowTo/EmissiveGlow
 Related: Engine/Rendering/Materials/HowTo/Instancing
 Version: 4.9
 SkillLevel: Intermediate
-
+tags:Materials
 
 [TOC(start:2 end:3)]
 
@@ -122,10 +122,10 @@ SkillLevel: Intermediate
 
 ![](TM_SM_Chair.png)
 
-## 마스킹 팁 & 꼼수
+## 마스킹 팁 & 정보
 
 텍스처 마스킹은 특히나 UE4 의 다른 툴과 함께했을 때 매우 강력한 도구가 될 수 있습니다. 다음 부분에서는 여러분 작품에 텍스처 마스킹의 위력을 최대한 발휘하도록 하기 위한 
-팁과 꼼수를 몇 가지 다루도록 하겠습니다.
+팁과 정보를 몇 가지 다루도록 하겠습니다.
 
 ### 텍스처 마스킹 및 머티리얼 인스턴싱
 

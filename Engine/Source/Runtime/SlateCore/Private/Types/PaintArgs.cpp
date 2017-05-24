@@ -31,6 +31,14 @@ FPaintArgs FPaintArgs::EnableCaching(const TWeakPtr<ILayoutCache>& InLayoutCache
 	return UpdatedArgs;
 }
 
+FPaintArgs FPaintArgs::WithNewTime(double InCurrentTime, float InDeltaTime) const
+{
+	FPaintArgs UpdatedArgs(*this);
+	UpdatedArgs.CurrentTime = InCurrentTime;
+	UpdatedArgs.DeltaTime = InDeltaTime;
+	return UpdatedArgs;
+}
+
 FPaintArgs FPaintArgs::RecordHittestGeometry(const SWidget* Widget, const FGeometry& WidgetGeometry, int32 LayerId, const FSlateRect& InClippingRect) const
 {
 	FPaintArgs UpdatedArgs(*this);

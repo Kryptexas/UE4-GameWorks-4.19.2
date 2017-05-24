@@ -9,6 +9,7 @@
 
 typedef struct ovrPurchase *ovrPurchaseHandle;
 
+OVRP_PUBLIC_FUNCTION(unsigned long long) ovr_Purchase_GetExpirationTime(const ovrPurchaseHandle obj);
 OVRP_PUBLIC_FUNCTION(unsigned long long) ovr_Purchase_GetGrantTime(const ovrPurchaseHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrID)              ovr_Purchase_GetPurchaseID(const ovrPurchaseHandle obj);
 OVRP_PUBLIC_FUNCTION(const char *)       ovr_Purchase_GetSKU(const ovrPurchaseHandle obj);

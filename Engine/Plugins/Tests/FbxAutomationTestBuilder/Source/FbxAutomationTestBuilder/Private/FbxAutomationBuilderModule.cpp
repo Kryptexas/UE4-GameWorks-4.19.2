@@ -84,4 +84,4 @@ TSharedRef<SDockTab> FFbxAutomationBuilderModule::MakeFbxAutomationBuilderTab(co
 	return FbxAutomationBuilderTab;
 }
 
-IMPLEMENT_MODULE(FFbxAutomationBuilderModule, FbxAutomationBuilderModule);
+IMPLEMENT_MODULE(FFbxAutomationBuilderModule, FbxAutomationTestBuilder);

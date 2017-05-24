@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"OTVORI CENTAR ZA POMOĆ"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"Potreban je telefon kompatibilan sa značajkom Daydream. Dodatne informacije potražite u centru za pomoć za Daydream."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"Nabavite aplikaciju Cardboard da biste konfigurirali masku za virtualnu stvarnost."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"Postavite masku za virtualnu stvarnost da biste u potpunosti iskoristili sve značajke."</string>
 <string name="dialog_title" msgid="7887077605817014784">"Konfiguracija"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"Telefon nije kompatibilan"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"Potrebno je postavljanje"</string>

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2828862
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:Wrap Box
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -6,6 +6,7 @@ Description:Wrap Box を使用して幅を超えた場合に自動的にウィ�
 Related:Engine/UMG/UserGuide
 Related:Engine/UMG/UserGuide/Styling
 Related:Engine/UMG/UserGuide/Slots
+tags:UMG UI Designer
 
 [TOC(start:2 end:2)]
 
@@ -15,17 +16,17 @@ Related:Engine/UMG/UserGuide/Slots
 このウィジェットは子ウィジェットを左から右に並べて、その幅を超えたウィジェットを次の行に配置します。 
 [/EXCERPT:desc]
 
-## 詳細
+## Details
 
-**Wrap Box** 内に配置されたウィジェットの **詳細** パネルには、以下で説明するウィジェットの機能を調整するために使用可能ないくつかの設定があります。 
+**Wrap Box** 内に配置されたウィジェットの **[Details (詳細)]** パネルには、以下で説明するウィジェットの機能を調整するために使用可能ないくつかの設定があります。 
 
 ![](WrapBoxSlotDetails.png)
 
-| オプション| 説明 |
+| オプション | 説明 |
 | -------- | ----------- |
 | **Padding** | スロットとスロットに入っているコンテンツとの間のパディング領域です。 |
 | **Fill Empty Space** | 行の残りのスペースをスロットが満たすべきかを決めます。 |
-| **Fill Span when Less Than** | ラップボックスで利用可能な合計スペースが指定した閾値よりも低くなるかを示し、スロットは行全体を埋めようとします。値 0 は何も埋められないことを示します。  |
+| **Fill Span when Less Than** | ラップボックスで利用可能な合計スペースが指定した閾値よりも低くなるかどうかを示し、スロットは行全体を埋めようとします。値 0 は何も埋められないことを示します。  |
 | **Horizontal Alignment** | オブジェクトを横方向にアライメントします。 |
 | **Vertical Alignment** | オブジェクトを縦方向にアライメントします。 |
 
@@ -82,7 +83,7 @@ IN6MhFKqyiI
 [/PARAMLITERAL]
 [/OBJECT]
 
-Wrap Box は、その中のウィジェットをいつ整理するかを決める場合に幅だけをチェックします。Wrap Box を Scroll Box と組み合わせて使用することもできます。Scroll Box は、ウィンドウ内のウィジェットの表示が切れてしまう場合にスクロールバーを追加し、残りのウィジェットをスクロールして見ることができるようにします。 
+Wrap Box は、その中のウィジェットを整理する場合に幅だけをチェックして決めます。Wrap Box を Scroll Box と組み合わせて使用することもできます。Scroll Box は、ウィンドウ内のウィジェットの表示が切れてしまう場合にスクロールバーを追加し、残りのウィジェットをスクロールして見ることができるようにします。 
 
 
 

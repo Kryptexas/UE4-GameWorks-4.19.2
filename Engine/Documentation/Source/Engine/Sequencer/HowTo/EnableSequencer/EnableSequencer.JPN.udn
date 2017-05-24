@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2998495
+﻿INTSourceChangelist:3244012
 Availability:Docs
 Title:シーケンサーを有効にして開く
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -10,6 +10,7 @@ order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 <!--
 ****** This is an outdated and no longer needed doc. *******
@@ -26,7 +27,7 @@ Related:Engine\Sequencer\ReferenceEditor\
 ## ステップ
 
 [REGION:note]
-ここでは **Blueprint Third Person Template** プロジェクトを使います。必要に応じて他のプロジェクトを使用することもできます。 
+ここでは **Blueprint Third Person Template** プロジェクトを使います。ただし、必要に応じて他のプロジェクトを使用することもできます。 
 [/REGION]
 
 1.	プロジェクトを開いた状態で **[File (ファイル)]** メニューから **[Edit (編集)]** を選択し、 **[Plugins (プラグイン)]** を選択します。 

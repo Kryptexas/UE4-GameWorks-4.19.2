@@ -62,6 +62,10 @@ void UEnumProperty::AddCppProperty(UProperty* Inner)
 {
 	check(!UnderlyingProp);
 	UnderlyingProp = CastChecked<UNumericProperty>(Inner);
+	if (UnderlyingProp && UnderlyingProp->HasAnyPropertyFlags(CPF_HasGetValueTypeHash))
+	{
+		PropertyFlags |= CPF_HasGetValueTypeHash;
+	}
 }
 
 void UEnumProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
@@ -91,7 +95,7 @@ void UEnumProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaul
 
 		// There's no guarantee EnumValueName is still present in Enum, in which case Value will be set to the enum's max value.
 		// On save, it will then be serialized as NAME_None.
-		int32 EnumIndex = Enum->FindEnumIndex(EnumValueName);
+		int32 EnumIndex = Enum->GetIndexByName(EnumValueName, true);
 		int64 NewEnumValue;
 		if (EnumIndex == INDEX_NONE)
 		{
@@ -208,7 +212,7 @@ void UEnumProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue,
 		else
 		{
 			ValueStr += FString::Printf(TEXT("%s::%s"), *FullyQualifiedEnumName,
-				*Enum->GetEnumName(Enum->GetIndexByValue(GoodValue)));
+				*Enum->GetNameStringByValue(GoodValue));
 		}
 		return;
 	}
@@ -226,11 +230,11 @@ void UEnumProperty::ExportTextItem(FString& ValueStr, const void* PropertyValue,
 			// We do not want to export the enum text for non-display uses, localization text is very dynamic and would cause issues on import
 			if (PortFlags & PPF_PropertyWindow)
 			{
-				ValueStr += Enum->GetEnumTextByValue(Value).ToString();
+				ValueStr += Enum->GetDisplayNameTextByValue(Value).ToString();
 			}
 			else
 			{
-				ValueStr += Enum->GetEnumNameStringByValue(Value);
+				ValueStr += Enum->GetNameStringByValue(Value);
 			}
 		}
 		else
@@ -254,7 +258,7 @@ const TCHAR* UEnumProperty::ImportText_Internal(const TCHAR* InBuffer, void* Dat
 		FString Temp;
 		if (const TCHAR* Buffer = UPropertyHelpers::ReadToken(InBuffer, Temp, true))
 		{
-			int32 EnumIndex = Enum->FindEnumIndex(*Temp);
+			int32 EnumIndex = Enum->GetIndexByName(*Temp, true);
 			if (EnumIndex != INDEX_NONE)
 			{
 				UnderlyingProp->SetIntPropertyValue(Data, Enum->GetValueByIndex(EnumIndex));
@@ -297,6 +301,8 @@ void UEnumProperty::LinkInternal(FArchive& Ar)
 
 	this->ElementSize = UnderlyingProp->ElementSize;
 	this->PropertyFlags |= CPF_IsPlainOldData | CPF_NoDestructor | CPF_ZeroConstructor;
+
+	PropertyFlags |= (UnderlyingProp->PropertyFlags & CPF_HasGetValueTypeHash);
 }
 
 bool UEnumProperty::Identical(const void* A, const void* B, uint32 PortFlags) const

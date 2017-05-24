@@ -115,6 +115,10 @@ void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 		}
 #endif
 	}
+	else
+	{
+		RootNode = (FAnimNode_Base*) GetCustomRootNode();
+	}
 
 #if !NO_LOGGING
 	ActorName = GetNameSafe(InAnimInstance->GetOwningActor());
@@ -134,46 +138,68 @@ void FAnimInstanceProxy::InitializeRootNode()
 		GameThreadPreUpdateNodes.Reset();
 		DynamicResetNodes.Reset();
 
-		// cache any state machine descriptions we have
-		for(UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
+		auto InitializeNode = [this](FAnimNode_Base* AnimNode)
 		{
-			if (Property->Struct->IsChildOf(FAnimNode_Base::StaticStruct()))
+			AnimNode->RootInitialize(this);
+
+			// Force our functions to be re-evaluated - this reinitialization may have been a 
+			// consequence of our class being recompiled and functions will be invalid in that
+			// case.
+			AnimNode->EvaluateGraphExposedInputs.bInitialized = false;
+			AnimNode->EvaluateGraphExposedInputs.Initialize(AnimNode, AnimInstanceObject);
+
+			if (AnimNode->HasPreUpdate())
 			{
-				FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(AnimInstanceObject);
-				if (AnimNode)
+				GameThreadPreUpdateNodes.Add(AnimNode);
+			}
+
+			if (AnimNode->NeedsDynamicReset())
+			{
+				DynamicResetNodes.Add(AnimNode);
+			}
+		};
+
+		if(AnimClassInterface)
+		{
+			// cache any state machine descriptions we have
+			for (UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
+			{
+				if (Property->Struct->IsChildOf(FAnimNode_Base::StaticStruct()))
 				{
-					AnimNode->RootInitialize(this);
-
-					// Force our functions to be re-evaluated - this reinitialization may have been a 
-					// consequence of our class being recompiled and functions will be invalid in that
-					// case.
-					AnimNode->EvaluateGraphExposedInputs.bInitialized = false;
-					AnimNode->EvaluateGraphExposedInputs.Initialize(AnimNode, AnimInstanceObject);
-
-					if (AnimNode->HasPreUpdate())
+					FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(AnimInstanceObject);
+					if (AnimNode)
 					{
-						GameThreadPreUpdateNodes.Add(AnimNode);
-					}
+						InitializeNode(AnimNode);
 
-					if(AnimNode->NeedsDynamicReset())
-					{
-						DynamicResetNodes.Add(AnimNode);
-					}
+						if (Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
+						{
+							FAnimNode_StateMachine* StateMachine = static_cast<FAnimNode_StateMachine*>(AnimNode);
+							StateMachine->CacheMachineDescription(AnimClassInterface);
+						}
 
-					if(Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
-					{
-						FAnimNode_StateMachine* StateMachine = static_cast<FAnimNode_StateMachine*>(AnimNode);
-						StateMachine->CacheMachineDescription(AnimClassInterface);
-					}
-
-					if(Property->Struct->IsChildOf(FAnimNode_SubInput::StaticStruct()))
-					{
-						check(!SubInstanceInputNode); // Should only ever have one
-						SubInstanceInputNode = static_cast<FAnimNode_SubInput*>(AnimNode);
+						if (Property->Struct->IsChildOf(FAnimNode_SubInput::StaticStruct()))
+						{
+							check(!SubInstanceInputNode); // Should only ever have one
+							SubInstanceInputNode = static_cast<FAnimNode_SubInput*>(AnimNode);
+						}
 					}
 				}
 			}
 		}
+		else
+		{
+			//We have a custom root node, so get the associated nodes and initialize them
+			TArray<FAnimNode_Base*> CustomNodes;
+			GetCustomNodes(CustomNodes);
+			for(FAnimNode_Base* Node : CustomNodes)
+			{
+				if(Node)
+				{
+					InitializeNode(Node);
+				}
+			}
+		}
+		
 
 		InitializationCounter.Increment();
 		FAnimationInitializeContext InitContext(this);
@@ -194,8 +220,18 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 
 	InitializeObjects(InAnimInstance);
 
-	// Save off LOD level that we're currently using.
-	LODLevel = InAnimInstance->GetSkelMeshComponent()->PredictedLODLevel;
+	if (USkeletalMeshComponent* SkelMeshComp = InAnimInstance->GetSkelMeshComponent())
+	{
+		// Save off LOD level that we're currently using.
+		LODLevel = SkelMeshComp->PredictedLODLevel;
+
+		// Cache these transforms, so nodes don't have to pull it off the gamethread manually.
+		SkelMeshCompLocalToWorld = SkelMeshComp->ComponentToWorld;
+		if (const AActor* Owner = SkelMeshComp->GetOwner())
+		{
+			SkelMeshCompOwnerTransform = Owner->GetTransform();
+		}
+	}
 
 	NotifyQueue.Reset(InAnimInstance->GetSkelMeshComponent());
 
@@ -234,6 +270,10 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 		}
 	}
 #endif
+
+	ComponentTransform = SkeletalMeshComponent->GetComponentTransform();
+	ComponentRelativeTransform = SkeletalMeshComponent->GetRelativeTransform();
+	ActorTransform = SkeletalMeshComponent->GetOwner() ? SkeletalMeshComponent->GetOwner()->GetActorTransform() : FTransform::Identity;
 
 	// run preupdate calls
 	for (FAnimNode_Base* Node : GameThreadPreUpdateNodes)
@@ -279,6 +319,7 @@ void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 		case EDrawDebugItemType::DirectionalArrow: DrawDebugDirectionalArrow(InAnimInstance->GetSkelMeshComponent()->GetWorld(), DebugItem.StartLoc, DebugItem.EndLoc, DebugItem.Size, DebugItem.Color, DebugItem.bPersistentLines, DebugItem.LifeTime, 0, DebugItem.Thickness); break;
 		case EDrawDebugItemType::Sphere : DrawDebugSphere(InAnimInstance->GetSkelMeshComponent()->GetWorld(), DebugItem.Center, DebugItem.Radius, DebugItem.Segments, DebugItem.Color, DebugItem.bPersistentLines, DebugItem.LifeTime, 0, DebugItem.Thickness); break;
 		case EDrawDebugItemType::Line: DrawDebugLine(InAnimInstance->GetSkelMeshComponent()->GetWorld(), DebugItem.StartLoc, DebugItem.EndLoc, DebugItem.Color, DebugItem.bPersistentLines, DebugItem.LifeTime, 0, DebugItem.Thickness); break;
+		case EDrawDebugItemType::CoordinateSystem : DrawDebugCoordinateSystem(InAnimInstance->GetSkelMeshComponent()->GetWorld(), DebugItem.StartLoc, DebugItem.Rotation, DebugItem.Size, DebugItem.bPersistentLines, DebugItem.LifeTime, 0, DebugItem.Thickness); break;
 		}
 	}
 #endif
@@ -383,7 +424,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 	for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
 	{
 		FAnimGroupInstance& SyncGroup = SyncGroups[GroupIndex];
-    
+	
 		if (SyncGroup.ActivePlayers.Num() > 0)
 		{
 			const FAnimGroupInstance* PreviousGroup = PreviousSyncGroups.IsValidIndex(GroupIndex) ? &PreviousSyncGroups[GroupIndex] : nullptr;
@@ -455,7 +496,7 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 				// if we don't have a good leader, no reason to convert to follower
 				// tick as leader
 				TickContext.ConvertToFollower();
-    
+	
 				for (int32 TickIndex = GroupLeaderIndex + 1; TickIndex < SyncGroup.ActivePlayers.Num(); ++TickIndex)
 				{
 					FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
@@ -781,6 +822,38 @@ void FAnimInstanceProxy::RecalcRequiredBones(USkeletalMeshComponent* Component, 
 {
 	RequiredBones.InitializeTo(Component->RequiredBones, *Asset);
 
+	// If there is a ref pose override, we want to replace ref pose in RequiredBones
+	const FSkelMeshRefPoseOverride* RefPoseOverride = Component->GetRefPoseOverride();
+	if (RefPoseOverride)
+	{
+		// Get ref pose override info
+		// Get indices of required bones
+		const TArray<FBoneIndexType>& BoneIndicesArray = RequiredBones.GetBoneIndicesArray();
+		// Get number of required bones
+		int32 NumReqBones = BoneIndicesArray.Num();
+
+		// Build new array of ref pose transforms for required bones
+		TArray<FTransform> NewCompactRefPose;
+		NewCompactRefPose.AddUninitialized(NumReqBones);
+
+		for (int32 CompactBoneIndex = 0; CompactBoneIndex < NumReqBones; ++CompactBoneIndex)
+		{
+			FBoneIndexType MeshPoseIndex = BoneIndicesArray[CompactBoneIndex];
+
+			if (RefPoseOverride->RefBonePoses.IsValidIndex(MeshPoseIndex))
+			{
+				NewCompactRefPose[CompactBoneIndex] = RefPoseOverride->RefBonePoses[MeshPoseIndex];
+			}
+			else
+			{
+				NewCompactRefPose[CompactBoneIndex] = FTransform::Identity;
+			}
+		}
+
+		// Update ref pose in required bones structure
+		RequiredBones.SetRefPoseCompactArray(NewCompactRefPose);
+	}
+
 	// If this instance can accept input poses, initialise the input pose container
 	if(SubInstanceInputNode)
 	{
@@ -823,20 +896,25 @@ void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)
 {
 	ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimInstance, !IsInGameThread());
 
+	CacheBones();
+
+	// Evaluate native code if implemented, otherwise evaluate the node graph
+	if (!Evaluate(Output))
+	{
+		EvaluateAnimationNode(Output);
+	}
+}
+
+void FAnimInstanceProxy::CacheBones()
+{
 	// If bone caches have been invalidated, have AnimNodes refresh those.
-	if( bBoneCachesInvalidated && RootNode )
+	if (bBoneCachesInvalidated && RootNode)
 	{
 		bBoneCachesInvalidated = false;
 
 		CachedBonesCounter.Increment();
 		FAnimationCacheBonesContext Proxy(this);
 		RootNode->CacheBones(Proxy);
-	}
-
-	// Evaluate native code if implemented, otherwise evaluate the node graph
-	if (!Evaluate(Output))
-	{
-		EvaluateAnimationNode(Output);
 	}
 }
 
@@ -854,7 +932,7 @@ void FAnimInstanceProxy::EvaluateAnimationNode(FPoseContext& Output)
 	}
 }
 
-// for now disable becauase it will not work with single node instance
+// for now disable because it will not work with single node instance
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define DEBUG_MONTAGEINSTANCE_WEIGHT 0
 #else
@@ -1142,6 +1220,21 @@ void FAnimInstanceProxy::AnimDrawDebugSphere(const FVector& Center, float Radius
 	DrawDebugItem.Radius = Radius;
 	DrawDebugItem.Segments = Segments;
 	DrawDebugItem.Color = Color;
+	DrawDebugItem.bPersistentLines = bPersistentLines;
+	DrawDebugItem.LifeTime = LifeTime;
+	DrawDebugItem.Thickness = Thickness;
+
+	QueuedDrawDebugItems.Add(DrawDebugItem);
+}
+
+void FAnimInstanceProxy::AnimDrawDebugCoordinateSystem(FVector const& AxisLoc, FRotator const& AxisRot, float Scale, bool bPersistentLines, float LifeTime, float Thickness)
+{
+	FQueuedDrawDebugItem DrawDebugItem;
+
+	DrawDebugItem.ItemType = EDrawDebugItemType::CoordinateSystem;
+	DrawDebugItem.StartLoc = AxisLoc;
+	DrawDebugItem.Rotation = AxisRot;
+	DrawDebugItem.Size = Scale;
 	DrawDebugItem.bPersistentLines = bPersistentLines;
 	DrawDebugItem.LifeTime = LifeTime;
 	DrawDebugItem.Thickness = Thickness;
@@ -1740,17 +1833,17 @@ int32 FAnimInstanceProxy::GetInstanceAssetPlayerIndex(FName MachineName, FName S
 	return INDEX_NONE;
 }
 
-float FAnimInstanceProxy::GetRecordedMachineWeight(const int32& InMachineClassIndex) const
+float FAnimInstanceProxy::GetRecordedMachineWeight(const int32 InMachineClassIndex) const
 {
 	return MachineWeightArrays[GetSyncGroupReadIndex()][InMachineClassIndex];
 }
 
-void FAnimInstanceProxy::RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight)
+void FAnimInstanceProxy::RecordMachineWeight(const int32 InMachineClassIndex, const float InMachineWeight)
 {
 	MachineWeightArrays[GetSyncGroupWriteIndex()][InMachineClassIndex] = InMachineWeight;
 }
 
-float FAnimInstanceProxy::GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex) const
+float FAnimInstanceProxy::GetRecordedStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex) const
 {
 	const int32* BaseIndexPtr = StateMachineClassIndexToWeightOffset.Find(InMachineClassIndex);
 
@@ -1763,7 +1856,7 @@ float FAnimInstanceProxy::GetRecordedStateWeight(const int32& InMachineClassInde
 	return 0.0f;
 }
 
-void FAnimInstanceProxy::RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight)
+void FAnimInstanceProxy::RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight)
 {
 	const int32* BaseIndexPtr = StateMachineClassIndexToWeightOffset.Find(InMachineClassIndex);
 

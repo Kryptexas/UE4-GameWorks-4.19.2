@@ -28,6 +28,7 @@
 #include "Misc/FeedbackContext.h"
 #include "Internationalization/Internationalization.h"
 #include "Internationalization/Culture.h"
+#include "Apple/ApplePlatformDebugEvents.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>
@@ -423,7 +424,7 @@ void FMacPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("Power Source: %s"), GMacAppInfo.RunningOnBattery ? TEXT(kIOPSBatteryPowerValue) : TEXT(kIOPSACPowerValue) );
 }
 
-void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
+void FMacPlatformMisc::PlatformPostInit()
 {
 	// Setup the app menu in menu bar
 	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
@@ -1630,6 +1631,11 @@ void FMacPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_
 	out_OSSubVersionLabel = GMacAppInfo.OSBuild;
 }
 
+FString FMacPlatformMisc::GetOSVersion()
+{
+	return GMacAppInfo.OSVersion;
+}
+
 bool FMacPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes)
 {
 	struct statfs FSStat = { 0 };
@@ -1652,8 +1658,18 @@ bool FMacPlatformMisc::HasSeparateChannelForDebugOutput()
 
 void FMacPlatformMisc::LoadPreInitModules()
 {
-	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 	FModuleManager::Get().LoadModule(TEXT("CoreAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerCoreAudio"));
+}
+
+void* FMacPlatformMisc::CreateAutoreleasePool()
+{
+	return [[NSAutoreleasePool alloc] init];
+}
+
+void FMacPlatformMisc::ReleaseAutoreleasePool(void *Pool)
+{
+	[(NSAutoreleasePool*)Pool release];
 }
 
 FLinearColor FMacPlatformMisc::GetScreenPixelColor(const FVector2D& InScreenPos, float /*InGamma*/)
@@ -1708,20 +1724,26 @@ uint32 FMacPlatformMisc::GetCPUInfo()
 	return Args[0];
 }
 
-FString FMacPlatformMisc::GetDefaultLocale()
+FString FMacPlatformMisc::GetDefaultLanguage()
 {
-
 	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
 	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
 	FString LangCode((__bridge NSString*)LangCodeStr);
 	CFRelease(Languages);
 
+	return LangCode;
+}
+
+FString FMacPlatformMisc::GetDefaultLocale()
+{
 	CFLocaleRef Locale = CFLocaleCopyCurrent();
+	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
+	FString LangCode((__bridge NSString*)LangCodeStr);
 	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
 	FString CountryCode((__bridge NSString*)CountryCodeStr);
 	CFRelease(Locale);
 
-	return FString::Printf(TEXT("%s_%s"), *LangCode, *CountryCode);
+	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
 }
 
 FText FMacPlatformMisc::GetFileManagerName()
@@ -2875,3 +2897,20 @@ void FMacPlatformMisc::UpdateDriverMonitorStatistics(int32 DeviceIndex)
 		}
 	}
 }
+
+#if MAC_PROFILING_ENABLED
+void FMacPlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
+{
+	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
+}
+
+void FMacPlatformMisc::BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
+{
+	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
+}
+
+void FMacPlatformMisc::EndNamedEvent()
+{
+	FApplePlatformDebugEvents::EndNamedEvent();
+}
+#endif

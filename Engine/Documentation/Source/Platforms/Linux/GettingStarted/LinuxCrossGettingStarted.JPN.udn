@@ -1,113 +1,271 @@
-﻿Availability:Public
-Title:入門編:Linux プロジェクトの開発
-Crumbs:%ROOT%, Platforms, Platforms/Linux
-Description:Linux プラットフォーム開発の環境設定
-Version:4.9
+﻿INTSourceChangelist:3343972
+Availability:Public
+Title:Linux のクロスコンパイル
+Crumbs:
+Description:Linux プラットフォームをターゲットにして、Windows でクロスコンパイル ツールチェーンを設定してみよう。
+Version:4.15
 SkillLevel:Advanced
-type:quickstart
+type:overview
 parent:Platforms/Linux
 tags:Linux
+related:Programming/Development/CompilingProjects
+related:Programming/Development/BuildConfigurations
+related:Engine/Basics/Projects/Packaging
+related:Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy
+related:Programming/Basics/ConfigurationFiles
+topic-image:GettingStarted_Topic.png
 
 <!--- %Globals:BinarySourceSelectVar% --->
 
-[TOC(start:2 end:3)]
+[TOC(start:2 end:4)]
 
-## クロスコンパイルが必要な理由
+![](LinuxXC_Banner.png)(w:1200)
 
-クロスコンパイルは、ゲームデベロッパー (Windows 中心のワークフローを導入してるデベロッパ対象) が Linux をターゲットとした開発をしやくするために選択されました。現時点では、 [native compilation](https://wiki.unrealengine.com/Building_On_Linux) を使っている Windows と Mac ユーザーのみをサポートしています。Linux-x86_64 のサポートおよびテストも行いますが、 Linux ARM のコンパイルを有効にするライブラリやツールチェーン (clang-3.5.0-arm) も提供しています。ただし、ユーザーは UBT でコードを (マイナー) 変更しなくてはいけません。
+クロスコンパイル ツールチェーンの改善に伴い、 
+アンリアル エンジン 4 (UE4) デベロッパーは Windows 開発環境で多様なプラットフォームをターゲットにすることができるようになりました。このガイドは、クロスコンパイル ツールチェーンの使用可能なプラットフォームを紹介し、 
+ツールチェーンのダウンロード ページ、そして最後にUE4 プロジェクトを Linux 用にクロスコンパイルする設定方法を説明します。アンリアル エンジン 4.15 でプロジェクトを開発するための 
+ターゲット プラットフォーム間切り替え方法も学習できます。
 
-以下に記述する内容のほとんどは ARM のコンパイル (別のツールチェーンを除く) にも通用しますが、ここから先は x86_64 Linux をターゲットに開発を行うユーザーを想定しています。異なるバージョンのツールや別のアーキテクチャをターゲットとする場合は、独自の [応用編](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) ツールチェーンを構築することができます。
-
-## ツールチェーンの設定 
-
-[Control Panel (コントロールパネル)]->[System (システム)]->[Advanced system settings (詳細システム設定)]->[Advanced (詳細)]->[Environment variables (環境変数)] の順に選んで、 LINUX_ROOT という名前の環境変数を追加します。この値はツールチェーンの後に続くバックスラッシュなしの絶対パスです。
-
-[REGION:raw]
-![](image00.png)
+[REGION:note]
+バージョンが 4.13 より前のエンジンをご使用の場合は、[](Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy) を参照してください。
 [/REGION]
 
-変数を設定したら、 UE4 プロジェクトファイルを再生成 (「GenerateProjectFiles.bat」を使用) して Visual Studio を再起動します。終了したら、Win32/Win64 コンフィギュレーションで "Linux" が表示されて、クロスコンパイルが可能になります。
+[INCLUDE:Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy#Why_XC]
 
-## Linux 向けパッケージングの設定
+## ツールチェーンの設定
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	BinarySourceSelect
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	binaryinstall
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%binary%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	BinarySourceSelect
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	sourceinstall
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%source%
-	[/PARAM]
-[/OBJECT]
+Windows (ホスト) コンピューターからツールチェーンをセットアップして前述のプラットフォームのいずれかをターゲットにするには、 
+ツールチェーンをダウンロードしてシステムの環境変数を設定して、環境に基づいて Linux と ARM 向けにアプリケーションをパッケージ化する必要があります。Linux プラットフォーム向けに UE4 プロジェクトを初めてパッケージ化する場合は、 
+Linux 用の Visual Studio と使ってエンジンをビルドする必要もあります。以下の手順に従って設定をすれば、 
+現在サポート対象のプラットフォームのいずれかをターゲットにするようにホスト環境が設定されるはずです。 
 
-[VAR:source]
-Linux プラットフォーム対応のッケージを作成するには、以下のターゲットのビルドが必須です。
+[REGION:note]
+これから説明する手順を開始する前に、インターネット接続が信頼できるものであることを確認してください。ツールチェーンのダウンロード時間は数分から数時間です 
+(インターネット接続速度によって異なります)。
+[/REGION]
 
-Linux 向け:
+### ツールチェーンのダウンロード
 
-* CrashReportClient
-* UE4Game (コンテンツのみのプロジェクトの場合、それ以外はプロジェクトのみをビルド)
+1.	[ここ](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip) をクリックして Clang 3.9.0 ベースのツールチェーンをダウンロードします。
 
-Windows 向け:
+1.	そして新規フォルダを作成し、そのフォルダに「Linux_CrossCompileToolChain」と名前を付けます。
 
-* エディタ自体 (Unreal Editor と Unreal Frontend で Linux 対応のゲームをクック / パッケージ化するために、 Linux ターゲットモジュールビルドを取得するために必要)
-* UnrealPak と ShaderCompileWorker (おそらくビルドされるでしょうが、総合的に言及)
+	[REGION:lightbox]
+		[![](LinuxXC_Step2.png)(w:600)](LinuxXC_Step2.png)
+	[/REGION]
 
-[/VAR]
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
-[VAR:binary]
-バイナリ リリースは、コンテンツ専用プロジェクトのみのパッケージを作成できることに注意してください。Linux 向けにコードベースのプロジェクトをパッケージ化する場合 (または規定外のサードパーティプラグインがあるプロジェクト) は、ソースビルドを設定しなくてはいけません。コンテンツ専用のパッケージ化が必要な場合は、UE4Game と CrashReportClient の Linux バイナリがバンドルされているため何もする必要がありません。
-[/VAR]
+	[REGION:note]
+	使用している命名規則が異なる場合は、さきほど付けた名前を適切なフォルダ名に変更してください。
+	[/REGION]
 
-## Linux 向けのパッケージング:
+1.	解凍ファイルの保存先が前のステップで作成したフォルダになっていることを確認して、ツールチェーンを **解凍** します。 
 
-エディタでパッケージ プロジェクトを開いて、[File]->[Package To]->[Linux] の順に選択する方法が最も簡単なパッケージの作成手段です (前の手順でクロスツールチェーンをインストール済みで、 Linux ターゲットモジュールが対象エディタ用にビルドされていることが前提です。リストに 「Linux」 が表示されない場合は、いずれかの手順が終了してない可能性があります。上記を参照してください)。サンプリングしばらくすると (対象プロジェクトに依存、サンプル プロジェクトはいくらか短時間) 、パッケージを作成するディレクトリにゲームアセットとバイナリが表示されます。
+	![](LinuxXC_Step3.png)(w:600)
 
-パッケージ作成のプロセスに関する詳細は、 "Show Output Log" リンクから参照してください。プロセスが "unable to find UnrealPak or ShaderCompileWorker" のエラーメッセージで失敗した場合は、ホスト (Windows) プラットフォーム向けのパッケージのビルド方法を上記で参照してください。
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
-Scp もしくはターゲット マシーンにコピー (ターゲット マシーンのディスク スペースが不足している場合は、Samba の設定方法を知っているのであれば、Samba share の実装が良いでしょう。反復時間も削減することができます)、ターゲット実行ファイルを chmod +x t に指定して (場所は 「LinuxNoEditor/<ProjectName>/Binaries/Linux/ directory」) してこれを実行します。
+1.	「[ROOT]/Linux_CrossCompileToolChain/v8_clang-3.9.0-centos7」フォルダを開いて、解凍ファイルを表示します。
 
-線形###Linux ARM プラットフォームの変更点
+	[REGION:lightbox]
+		[![](LinuxXC_Step4.png)(w:600)](LinuxXC_Step4.png)
+	[/REGION]
 
-Linux-ARM クロスコンパイル ツールチェーンを使用している場合は、以下の 「GenerateProjectFiles.bat」 を実行する前に UE4 ソースコードで以下のファイルを編集します。 
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
-.../UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Linux/UEBuildLinux.cs 
+	#### サポート対象プラットフォーム
 
-次の行をコメントアウトします。 
+	以下の表を参照して、使用している UE4 がターゲットにできるプラットフォームを確認してください。 
 
-static private string DefaultArchitecture = "x86_64-unknown-linux-gnu"; 
+	| **アーキテクチャ**                                                    | **サブアーキテクチャ** | **メーカー** | **システム** | **Application Binary Interface (abi)** | UE 4.15 Support | UE.
+	| ------------------------------------------------------------------- | -------------------- | ---------- | ---------- | -------------------------------------- | --------------- | ---------------- |
+	| **[AArch64](https://fedoraproject.org/wiki/Architectures/AArch64)** | N/A                  | 不明    | Linux      | gnueabi                                | &#x2717; | &#x2713; |
+	| **[ARM](https://developer.arm.com/)**                               | N/A                  | 不明    | Linux      | gnueabihf                              | &#x2717; | &#x2713; |
+	| **[i686](https://software.intel.com/en-us/)**                       | N/A                  | 不明    | Linux      | gnu                                    | &#x2717; | &#x2717; |
+	| **[x86_64](http://developer.amd.com/)**                             | N/A                  | 不明    | Linux      | gnu                                    | &#x2713; | &#x2713; |
+	[REGION:note]
 
-次のように Linux-ARM アーキテクチャの行のコメントを削除します。 
+	i686 プラットフォーム用のエンジン ライブラリはまだ追加していません。
+	[/REGION]
 
-//static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
+### 環境変数の設定
 
-Linux-ARM プラットフォーム上で実行可能なパッケージ プロジェクトは追加の手順が必要です。パッケージプロジェクトが 「\foo\bar\SunTemple_Linux」 に保存されていると仮定して、以下の保存場所を開きます。
+1.	`LINUX_MULTIARCH_ROOT` 環境変数を設定する前に、**Setup** バッチファイル (`Setup.bat`) をダブルクリックして、コンピューターに対する適切な変数設定を出力します。 
 
-\foo\bar\SunTemple_Linux\LinuxNoEditor\Engine\Binaries\Linux 
+	[REGION:lightbox]
+		[![](LinuxXC_Step5.png)(w:600)](LinuxXC_Step5.png)
+	[/REGION]
 
-そして 「libopenal.so.1」を以下のバージョンから置換します。 
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
-...\UnrealEngine\Engine\Source\ThirdParty\OpenAL\1.15.1\lib\Linux\arm-unknown-linux-gnueabihf\libopenal.so 
+1.	この時点で新しい **OutputEnvVars** テキストファイルが `v8_clang-3.9.0-centos7` フォルダ内にできてます。 
 
-「 ...\UnrealEngine」 は UE4 のソースコードの保存場所です。かならず 「libopenal.so」 を 「libopenal.so.1」に名前変更してください。
+	[REGION:lightbox]
+		[![](LinuxXC_Step6.png)(w:600)](LinuxXC_Step6.png)
+	[/REGION]
 
-プロジェクトをターゲットマシーンへコピー出来るようになりました。ターゲット実行ファイルを chmod+x で実行して、上記の説明通りに実行します。
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
+	[REGION:tip]
+	`OutputEnvVars.txt` ファイルには、システムの環境変数を設定する際に便利な情報が含まれています。
+	[/REGION]
+
+1.	**[Windows] キー** と **[Pause Break] キー** を一緒に押して **[System Information]** メニューを開きます。 
+	**[Advanced System Settings (詳細システム設定)]** からは **[System Properties]** メニューの **[Advanced]** サブメニューが開くようになっています。
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step8.png)(w:600)](LinuxXC_Step8.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	**[Environment Variables...(環境変数...)]** ボタンをクリックします
+
+	![](LinuxXC_Step9.png)
+
+1.	新たに **システム変数** を追加するには、**[System variables]** リストの **[New...]** ボタンをクリックします。
+
+	![](LinuxXC_Step10.png)
+
+	[REGION:note]
+	`OutputEnvVars.txt` を開いていない場合は、次のステップへ進む前に開いてください。
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step10Note.png)(w:600)](LinuxXC_Step10Note.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+	[/REGION]
+
+1.	**[New System Variable (新規システム変数)]** ダイアログ メニューが開いたら`LINUX_MULTIARCH_ROOT` 環境変数設定を **[New System Variable]** ダイアログのテキストボックスへコピーします。
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step11.png)(w:600)](LinuxXC_Step11.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	**[Evironment Variables]** メニューに戻って、**[Ok]** ボタンを押して `LINUX_MULTIARCH_ROOT` 環境変数を保存します。
+
+	![](LinuxXC_Step14.png)
+
+	[REGION:note]
+	`LINUX_ROOT` 環境変数を設定してしまっていても、パッケージ化の間エンジンは `LINUX_ROOT` よりも `LINUX_MULTIARCH_ROOT` を優先するので、それを削除する必要はありません。
+	[/REGION]
+
+1.	**[OK]** ボタンを押して **[System Properties]** メニューを終了します。
+
+	![](LinuxXC_Step15.png)
+
+	[REGION:note]
+	環境変数をシステムに新たに追加したので、実行中の **Visual Studio** と **Command Prompt** のインスタンスをすべて再起動する必要があります。
+	[/REGION]
+
+### Linux ビルド コンフィギュレーションの設定
+
+Linux のパッケージ化が初めての場合は、以下の手順に従ってください。
+
+1.	**Command Prompt** を開いて、`Setup.bat` を実行して、**Visual Studio** から UE4 をビルドするための前提条件の依存性の確認、更新、およびインストールを行います。
+
+	![](LinuxXC_Step17.png)
+
+1.	`GenerateProjectFiles.bat` を実行してプロジェクト ファイルを UE4 向けに設定します。
+
+	![](LinuxXC_Step18.png)
+
+	[REGION:warning]
+	`GenerateProjectFiles.bat` は UE4 が入っているルート フォルダ (`[UE4 ROOT]`) 内で実行されなければなりません。[Unreal Game Sync](https://github.com/EpicGames/UnrealEngine/blob/release/Engine/Source/Programs/UnrealGameSync/Deployment.txt) でバッチファイルを実行する場合、Linux は **Visual Studio** では有効な **Build Configuration** として表示されません。
+	[/REGION]
+
+1.	`[UE4 ROOT]` の中の **UE4.sln** をダブルクリックして **Visual Studio** の UE4 ソリューションを開きます。
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step19.png)(w:600)](LinuxXC_Step19.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	UE4 をビルドしていない場合は、**F5** キーを押して Visual Studio から UE4 をビルドし実行します。
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step20.png)(w:600)](LinuxXC_Step20.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	次にエンジンの実行を停止し、**Visual Studio** に戻って Visual Studio で **Linux** ソリューション プラットフォームを選択します。キーボードで **Ctrl+Shift+B** を一緒に押すと Linux 用のビルドになります。
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step21.png)(w:600)](LinuxXC_Step21.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+	[REGION:note]
+	この時点で、Visual Studio の **[Output] ウィンドウ** でツールチェーンが表示されています。
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step21Note.png)(w:600)](LinuxXC_Step21Note.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+	[/REGION]
+
+## 特定のプラットフォームをターゲットにする
+
+[REGION:note]
+バージョン 4.14 のターゲットは e x86_64 プラットフォームのみです、次のセクションはバージョン 4.15 で作業するデベロッパー向けとなります。
+[/REGION]
+
+ターゲットとするプラットフォームを指定するには、プロジェクトの [Default Engine Configuration File](Programming/Basics/ConfigurationFiles) を編集する必要があります。そのファイルの保存場所 (`[Project Directory]\Config`) で  
+`DefaultEngine.ini` を開いて次の行を追加します。
+
+	[/Script/LinuxTargetPlatform.LinuxTargetSettings]
+	TargetArchitecture=X86_64UnknownLinuxGnu
+
+`TargetArchitecture` は以下の値を自由に設定してください。
+
+* X86_64UnknownLinuxGnu
+* ArmUnknownLinuxGnueabihf
+* AArch64UnknownLinuxGnueabi
+
+## 結果
+
+これで終わりです！次Linux 用にプロジェクトをパッケージ化しながら、クロスコンパイル ツールチェーンが使用されていることが確認できるようになりました。
+
+[REGION:lightbox]
+	[![](LinuxXC_EndResult.png)(w:600)](LinuxXC_EndResult.png)
+[/REGION]
+
+[REGION:caption]
+	クリックしてフルサイズで表示
+[/REGION]
+
+ これで、Windows (ホスト) コンピューターから各種 Linux プラットフォーム用にプロジェクトを [コンパイル](Programming/Development/CompilingProjects)、[ビルド](Programming/Development/BuildConfigurations)、[パッケージ化](Engine/Basics/Projects/Packaging) することが可能になりました。 
+ 

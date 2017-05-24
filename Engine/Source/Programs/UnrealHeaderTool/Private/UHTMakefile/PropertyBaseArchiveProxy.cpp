@@ -43,7 +43,7 @@ FPropertyBaseArchiveProxy::FPropertyBaseArchiveProxy(const FUHTMakefile& UHTMake
 	MetaData.Empty(PropertyBase->MetaData.Num());
 	for (auto& Kvp : PropertyBase->MetaData)
 	{
-		MetaData.Add(TPairInitializer<FNameArchiveProxy, FString>(FNameArchiveProxy(UHTMakefile, Kvp.Key), Kvp.Value));
+		MetaData.Emplace(FNameArchiveProxy(UHTMakefile, Kvp.Key), Kvp.Value);
 	}
 	PointerType = PropertyBase->PointerType;
 }
@@ -76,7 +76,7 @@ void FPropertyBaseArchiveProxy::PostConstruct(FPropertyBase* PropertyBase) const
 void FPropertyBaseArchiveProxy::Resolve(FPropertyBase* PropertyBase, const FUHTMakefile& UHTMakefile) const
 {
 	FPropertyBase* MapKeyProp = UHTMakefile.GetPropertyBaseByIndex(MapKeyPropIndex);
-	PropertyBase->MapKeyProp = MapKeyProp && MapKeyProp->HasBeenAlreadyMadeSharable() ? MapKeyProp->AsShared() : TSharedPtr<FPropertyBase>(MapKeyProp);
+	PropertyBase->MapKeyProp = MapKeyProp && MapKeyProp->DoesSharedInstanceExist() ? MapKeyProp->AsShared() : TSharedPtr<FPropertyBase>(MapKeyProp);
 
 	switch (PropertyBase->Type)
 	{

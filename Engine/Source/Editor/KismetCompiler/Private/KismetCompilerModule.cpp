@@ -43,14 +43,15 @@ class FKismet2CompilerModule : public IKismetCompilerInterface
 public:
 	// Implementation of the IKismetCompilerInterface
 	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<class FBlueprintCompileReinstancer> ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL) override;
+	virtual void RefreshVariables(UBlueprint* Blueprint) override final;
 	virtual void CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results) override;
 	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) override;
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) override;
 	virtual TArray<IBlueprintCompiler*>& GetCompilers() override { return Compilers; }
 	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const override;
 	virtual void GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FString& OutHeaderCode, FString& OutCPPCode) override;
-	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct) override;
-	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC) override;
+	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions) override;
+	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC, const FCompilerNativizationOptions& NativizationOptions) override;
 	// End implementation
 private:
 	void CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> Reinstancer, TArray<UObject*>* ObjLoaded);
@@ -184,16 +185,16 @@ void FKismet2CompilerModule::GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FS
 	Backend_CPP->GenerateCodeFromEnum(UDEnum, OutHeaderCode, OutCPPCode);
 }
 
-FString FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct)
+FString FKismet2CompilerModule::GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	return Backend_CPP->GenerateCodeFromStruct(UDStruct);
+	return Backend_CPP->GenerateCodeFromStruct(UDStruct, NativizationOptions);
 }
 
-FString FKismet2CompilerModule::GenerateCppWrapper(UBlueprintGeneratedClass* BPGC)
+FString FKismet2CompilerModule::GenerateCppWrapper(UBlueprintGeneratedClass* BPGC, const FCompilerNativizationOptions& NativizationOptions)
 {
 	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	return Backend_CPP->GenerateWrapperForClass(BPGC);
+	return Backend_CPP->GenerateWrapperForClass(BPGC, NativizationOptions);
 }
 
 extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
@@ -265,32 +266,35 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			// There were errors.  Compile the generated class to have function stubs
 			Blueprint->Status = BS_Error;
 
-			// Reinstance objects here, so we can preserve their memory layouts to reinstance them again
-			if (ParentReinstancer.IsValid())
+			if(CompileOptions.bReinstanceAndStubOnFailure)
 			{
-				ParentReinstancer->UpdateBytecodeReferences();
-
-				if(!Blueprint->bIsRegeneratingOnLoad)
+				// Reinstance objects here, so we can preserve their memory layouts to reinstance them again
+				if (ParentReinstancer.IsValid())
 				{
-					ParentReinstancer->ReinstanceObjects();
+					ParentReinstancer->UpdateBytecodeReferences();
+
+					if(!Blueprint->bIsRegeneratingOnLoad)
+					{
+						ParentReinstancer->ReinstanceObjects();
+					}
 				}
-			}
-			const bool bBytecodeOnly = EKismetCompileType::BytecodeOnly == CompileOptions.CompileType;
-			auto StubReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->GeneratedClass, bBytecodeOnly, false, false);
+				const EBlueprintCompileReinstancerFlags Flags = (EKismetCompileType::BytecodeOnly == CompileOptions.CompileType) ? EBlueprintCompileReinstancerFlags::BytecodeOnly : EBlueprintCompileReinstancerFlags::None;
+				TSharedPtr<FBlueprintCompileReinstancer> StubReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->GeneratedClass, Flags);
 
-			// Toss the half-baked class and generate a stubbed out skeleton class that can be used
-			FCompilerResultsLog StubResults;
-			StubResults.bSilentMode = true;
-			FKismetCompilerOptions StubCompileOptions(CompileOptions);
-			StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
-			{
-				CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
-			}
+				// Toss the half-baked class and generate a stubbed out skeleton class that can be used
+				FCompilerResultsLog StubResults;
+				StubResults.bSilentMode = true;
+				FKismetCompilerOptions StubCompileOptions(CompileOptions);
+				StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
+				{
+					CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
+				}
 
-			StubReinstancer->UpdateBytecodeReferences();
-			if( !Blueprint->bIsRegeneratingOnLoad )
-			{
-				StubReinstancer->ReinstanceObjects();
+				StubReinstancer->UpdateBytecodeReferences();
+				if( !Blueprint->bIsRegeneratingOnLoad )
+				{
+					StubReinstancer->ReinstanceObjects();
+				}
 			}
 		}
 	}
@@ -305,6 +309,69 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	{
 		UMetaData* MetaData =  Package->GetMetaData();
 		MetaData->RemoveMetaDataOutsidePackage();
+	}
+}
+
+void FKismet2CompilerModule::RefreshVariables(UBlueprint* Blueprint)
+{
+#if 0 // disabled because this is a costly ensure:
+	//  ensure that nothing is using this class cause that would be super bad:
+	TArray<UObject*> Instances;
+	GetObjectsOfClass(*(Blueprint->GeneratedClass), Instances);
+	ensure(Instances.Num() == 0 || Instances.Num() == 1);
+#endif
+
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	FCompilerResultsLog MessageLog;
+
+	bool bMissingProperty = false;
+	TArray<int32> MissingVariables;
+
+	for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
+	{
+		UProperty* ExistingVariable = Blueprint->GeneratedClass->FindPropertyByName(Blueprint->NewVariables[VarIndex].VarName);
+		if( ExistingVariable == nullptr || ExistingVariable->GetOuter() != Blueprint->GeneratedClass)
+		{
+			MissingVariables.Add(VarIndex);
+		}
+	}
+
+	if(MissingVariables.Num() != 0)
+	{
+		UObject* OldCDO = Blueprint->GeneratedClass->ClassDefaultObject;
+		auto Reinstancer = FBlueprintCompileReinstancer::Create(*Blueprint->GeneratedClass);
+		ensure(OldCDO->GetClass() != *Blueprint->GeneratedClass);
+		// move old cdo aside:
+		if(OldCDO)
+		{
+			OldCDO->Rename(NULL, GetTransientPackage(), REN_DontCreateRedirectors | REN_NonTransactional | REN_ForceNoResetLoaders);
+		}
+		Blueprint->GeneratedClass->ClassDefaultObject = nullptr;
+
+		// add missing properties:
+		for( int32 MissingVarIndex : MissingVariables)
+		{
+			UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(
+				Blueprint->GeneratedClass, 
+				Blueprint->NewVariables[MissingVarIndex].VarName, 
+				Blueprint->NewVariables[MissingVarIndex].VarType, 
+				Blueprint->GeneratedClass, 
+				0,
+				K2Schema,
+				MessageLog);
+
+			NewProperty->PropertyLinkNext = Blueprint->GeneratedClass->PropertyLink;
+			Blueprint->GeneratedClass->PropertyLink = NewProperty;
+		}
+		
+		Blueprint->GeneratedClass->Bind();
+		Blueprint->GeneratedClass->StaticLink(true);
+		// regenerate CDO:
+		Blueprint->GeneratedClass->GetDefaultObject();
+
+		// cpfuo:
+		UEngine::FCopyPropertiesForUnrelatedObjectsParams Params;
+		UEngine::CopyPropertiesForUnrelatedObjects(OldCDO, Blueprint->GeneratedClass->ClassDefaultObject, Params);
 	}
 }
 

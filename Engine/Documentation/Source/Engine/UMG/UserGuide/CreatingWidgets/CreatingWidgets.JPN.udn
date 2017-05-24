@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2708377
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:ウィジェットの作成
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:Widget ブループリントを作成し、ゲーム内で表示する方法 
 version:4.9
+tags:UMG UI Designer
 
 **Widget ブループリント** を作成し、レイアウト後に、ゲーム内で表示させるには、別の **ブループリント** (例、**Level ブループリント** や Character ブループリント) 内で、**Create Widget** ノードと **Add to Viewport** ノードを使用してそれを呼び出す必要があります  
 
@@ -31,7 +32,7 @@ version:4.9
 * 上の画像の中央のノード、**Set Input Mode Game Only** は、ゲームに対して入力のみを有効にし、UI エレメントは無視します (これは、ヘルス、ポイント、時間表示などのインタラクティブではない UI エレメントに最適です)。
 * 上の画像の右のノード、**Set Input Mode UIOnly** はエッジケース ノードで UI ナビゲーションのみを可能にし、ゲーム入力は使えないようにするために使用します。これは、完全にすべてのゲーム コントロールを無効にし、UI がすべての入力を処理します。このノードは慎重に使用してください。  
 
-上のノードを補足するために、**マウス カーソル** 表示を **有効/無効** にしたい場合があるかもしれません。これを行うには、**Set Show Mouse Cursor** ノードを使用します。**Get Player Controller** ノードをドラッグして、**Set Show Mouse Cursor** ノードを使用して True または False にチェックを入れて、マウスカーソルを表示または非表示にします。 
+上のノードを補足するために、**マウス カーソル** 表示を **有効/無効** にしたい場合があるかもしれません。これは、**Set Show Mouse Cursor** ノードを使って行うことができます。**Get Player Controller** ノードをドラッグして、**Set Show Mouse Cursor** ノードを使用して True または False にチェックを入れて、マウスカーソルを表示または非表示にします。 
 
 ![](ShowCursor.png)
 
@@ -47,6 +48,6 @@ version:4.9
 上の例では start_Button と呼ばれる **Scroll Box** ウィジェットを **Add Child** 関数を使用して、Main Menu と呼ばれる新規ウィジェットに付加する方法を示しています。 
 
 [REGION:note]
-**Add Child** ノードは、パネル内のあるウィジェットを別のウィジェットに親子付けします。これに対して **Add to viewport** は、新規ウィンドウであるかのようにウィジェットをルート ビューポートに追加します。子のウィジェットを取り除くには、親を get し、**RemoveChild** を呼び出します。
+**Add Child** ノードは、パネル内のあるウィジェットを別のウィジェットに親子付けします。これに対して **Add to viewport** は、新規ウィンドウであるかのようにウィジェットをルート ビューポートに追加します。子のウィジェットを取り除くには、親を取得し、**RemoveChild** を呼び出します。
 [/REGION]
 

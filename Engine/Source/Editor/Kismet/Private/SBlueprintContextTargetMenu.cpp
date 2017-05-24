@@ -471,7 +471,7 @@ namespace BlueprintContextTargetMenuImpl
 	{
 		if (Enum != nullptr)
 		{
-			return Enum->GetDisplayNameText(EnumIndex);
+			return Enum->GetDisplayNameTextByIndex(EnumIndex);
 		}
 		return LOCTEXT("UnrecognizedTarget", "Error: <UNRECOGNIZED>");
 	}
@@ -571,7 +571,7 @@ void SBlueprintContextTargetMenu::Construct(const FArguments& InArgs, const FBlu
 					}
 					else if (TargetEnum != nullptr)
 					{
-						return TargetEnum->GetToolTipText(BitMaskOffset);
+						return TargetEnum->GetToolTipTextByIndex(BitMaskOffset);
 					}
 					return LOCTEXT("GenericTargetTooltip", "Include variables/functions that belong to this target.");
 				})

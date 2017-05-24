@@ -54,6 +54,9 @@ public:
 	/**	@return	Current editor world */
 	UWorld* GetWorld(bool bEvenIfPendingKill = false) const { return CurrentWorld.Get(bEvenIfPendingKill); }
 
+	/** @return	Whether current world has world origin rebasing enabled */
+	bool IsOriginRebasingEnabled() const;
+
 	/** Current world size  */
 	FIntPoint GetWorldSize() const { return WorldSize; }
 	

@@ -119,9 +119,11 @@ FReply SDropTarget::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& Dr
 		{
 			return DroppedEvent.Execute(DragDropEvent.GetOperation());
 		}
+
+		return FReply::Handled();
 	}
 
-	return FReply::Handled();
+	return FReply::Unhandled();
 }
 
 void SDropTarget::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)

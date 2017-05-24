@@ -4,8 +4,8 @@ using UnrealBuildTool;
 
 public class GameCircleRuntimeSettings : ModuleRules
 {
-	public GameCircleRuntimeSettings(TargetInfo Target)
-	{
+	public GameCircleRuntimeSettings(ReadOnlyTargetRules Target) : base(Target)
+    {
 		BinariesSubFolder = "Android";
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -18,7 +18,7 @@ public class GameCircleRuntimeSettings : ModuleRules
 			}
 		);
 
-        if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Program)
+        if (Target.Type == TargetType.Editor || Target.Type == TargetType.Program)
         {
             PrivateDependencyModuleNames.AddRange(
                 new string[]

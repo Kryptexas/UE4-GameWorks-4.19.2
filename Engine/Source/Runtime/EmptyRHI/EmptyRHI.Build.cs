@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class EmptyRHI : ModuleRules
 {	
-	public EmptyRHI(TargetInfo Target)
+	public EmptyRHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 //		BinariesSubFolder = "Empty";
 

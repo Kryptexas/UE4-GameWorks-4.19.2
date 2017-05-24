@@ -9,23 +9,14 @@
 #include "MovieSceneSpawnable.h"
 #include "Templates/ValueOrError.h"
 #include "UObject/WeakObjectPtr.h"
+#include "IMovieSceneObjectSpawner.h"
 
 class IMovieScenePlayer;
 class UMovieScene;
 struct FMovieSceneEvaluationState;
-
-/** Struct used for defining a new spawnable type */
-struct FNewSpawnable
-{
-	FNewSpawnable() : ObjectTemplate(nullptr) {}
-	FNewSpawnable(UObject* InObjectTemplate, FString InName) : ObjectTemplate(InObjectTemplate), Name(MoveTemp(InName)) {}
-
-	/** The archetype object template that defines the spawnable */
-	UObject* ObjectTemplate;
-
-	/** The desired name of the new spawnable */
-	FString Name;
-};
+struct FTransformData;
+class ISequencer;
+class USequencerSettings;
 
 /**
  * Class responsible for managing spawnables in a movie scene
@@ -126,6 +117,33 @@ public:
 	 */
 	virtual void SaveDefaultSpawnableState(FMovieSceneSpawnable& Spawnable, FMovieSceneSequenceIDRef TemplateID, IMovieScenePlayer& Player) {}
 
+	/**
+	 * Setup a new spawnable object with some default tracks and keys
+	 *
+	 * @param	SpawnedObject	The newly spawned object. This may be NULL in the case of a spawnable that has not yet bneen spawned.
+	 * @param	Guid			The ID of the spawnable to setup defaults for
+	 * @param	TransformData	The transform of the object to be spawned. This will usually be valid in the case of converting a possessable to a spawnable.
+	 * @param	Sequencer		The sequencer this spawnable was just created by
+	 * @param	Settings		The settings for this sequencer
+	 */
+	virtual void SetupDefaultsForSpawnable(UObject* SpawnedObject, const FGuid& Guid, const FTransformData& TransformData, TSharedRef<ISequencer> Sequencer, USequencerSettings* Settings) {}
+
+	/**
+	 * Called to handle cleanup of objects when we convert a possessable to a spawnable object
+	 *
+	 * @param	OldObject			The old possessable object
+	 * @param	Player		The current player
+	 * @param	OutTransformData	Transform data that can be used to recreate objects in the same location
+	 */
+	virtual void HandleConvertPossessableToSpawnable(UObject* OldObject, IMovieScenePlayer& Player, FTransformData& OutTransformData) {}
+
+
+	/**
+	 * Check whether the specified Spawnable can become a Possessable.
+	 * @param	Spawnable	The spawnable to check
+	 * @return whether the conversion from Spawnable to Possessable can occur.
+	 */
+	virtual bool CanConvertSpawnableToPossessable(FMovieSceneSpawnable& Spawnable) const { return true; }
 #endif
 
 protected:

@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "HTML5PlatformHttp.h"
-#include "HTML5Http.h"
+#include "HTML5HTTP.h"
 
 
 void FHTML5PlatformHttp::Init()

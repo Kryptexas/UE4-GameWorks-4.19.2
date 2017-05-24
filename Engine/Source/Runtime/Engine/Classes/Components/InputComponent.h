@@ -156,6 +156,14 @@ struct FInputActionUnifiedDelegate
 		FuncDelegateWithKey.BindUObject(Object, Func);
 	}
 
+	template< class DelegateType, class UserClass, typename... VarTypes >
+	inline void BindDelegate(UserClass* Object, typename DelegateType::template TUObjectMethodDelegate< UserClass >::FMethodPtr Func, VarTypes... Vars)
+	{
+		FuncDynDelegate.Unbind();
+		FuncDelegateWithKey.Unbind();
+		FuncDelegate.BindUObject(Object, Func, Vars...);
+	}
+
 	/** Binds a dynamic delegate and unbinds any bound native delegate */
 	inline void BindDelegate(UObject* Object, const FName FuncName)
 	{
@@ -693,6 +701,18 @@ public:
 	{
 		FInputActionBinding AB( ActionName, KeyEvent );
 		AB.ActionDelegate.BindDelegate(Object, Func);
+		return AddActionBinding(AB);
+	}
+
+	/**
+	* Binds a delegate function to an Action defined in the project settings.
+	* Returned reference is only guaranteed to be valid until another action is bound.
+	*/
+	template< class DelegateType, class UserClass, typename... VarTypes >
+	FInputActionBinding& BindAction( const FName ActionName, const EInputEvent KeyEvent, UserClass* Object, typename DelegateType::template TUObjectMethodDelegate< UserClass >::FMethodPtr Func, VarTypes... Vars )
+	{
+		FInputActionBinding AB( ActionName, KeyEvent );
+		AB.ActionDelegate.BindDelegate<DelegateType>(Object, Func, Vars...);
 		return AddActionBinding(AB);
 	}
 

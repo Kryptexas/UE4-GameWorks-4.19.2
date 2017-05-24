@@ -21,15 +21,20 @@ private:
 	UPROPERTY(Category = TriggerBase, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UShapeComponent* CollisionComponent;
 
+#if WITH_EDITORONLY_DATA
 	/** Billboard used to see the trigger in the editor */
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
+#endif
 
 public:
 	/** Returns CollisionComponent subobject **/
 	ENGINE_API UShapeComponent* GetCollisionComponent() const { return CollisionComponent; }
+
+#if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
 	ENGINE_API UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };
 
 

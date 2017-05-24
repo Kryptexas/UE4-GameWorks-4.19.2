@@ -1,4 +1,4 @@
-availability:Docs
+availability:Public
 title: Blueprint and Render Targets How To's
 description: How to guides for using Blueprints to manipulate render targets. 
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
@@ -7,7 +7,7 @@ Type:how-to
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
 Navigation:landing
 tags: Render Targets
-tags: Blueprint
+tags: Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png
 
 The following **Blueprint and Render Targets - How To** pages provide step-by-step examples on how to use Blueprints and render targets together in your Unreal Engine 4 (UE4) projects. 

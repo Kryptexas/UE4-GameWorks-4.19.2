@@ -23,8 +23,6 @@ public:
 		STM__All = ((STM_GPU<<1)-1)
 	};
 
-	FOculusStressTester();
-
 	// multiple masks could be set, see EStressTestMode
 	void SetStressMode(uint32 InStressMask);
 	uint32 GetStressMode() const { return Mode; }
@@ -46,10 +44,32 @@ public:
 	// sets time limit for STM_GPU mode; 0 - unlimited
 	void SetGPUsTimeLimitInSeconds(double InSeconds) { GPUsTimeLimitInSeconds = InSeconds; }
 
-	void TickCPU_GameThread(class FHeadMountedDisplay* pPlugin);
-	void TickGPU_RenderThread(FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture);
+	static TSharedRef<class FOculusStressTester, ESPMode::ThreadSafe> Get();
+
+	static void TickCPU_GameThread(FHeadMountedDisplay* pPlugin)
+	{
+		check(IsInGameThread());
+		if (SharedInstance.IsValid())
+		{
+			SharedInstance->DoTickCPU_GameThread(pPlugin);
+		}
+	}
+
+	static void TickGPU_RenderThread(FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture)
+	{
+		check(IsInRenderingThread());
+		if (SharedInstance.IsValid())
+		{
+			SharedInstance->DoTickGPU_RenderThread(RHICmdList, BackBuffer, SrcTexture);
+		}
+	}
 
 protected:
+	void DoTickCPU_GameThread(class FHeadMountedDisplay* pPlugin);
+	void DoTickGPU_RenderThread(FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture);
+
+	FOculusStressTester();
+
 	uint32 Mode; // bit mask, see EStressTestMode
 	double CPUSpinOffInSeconds; // limit of additional CPU load per frame, STM_CPUSpin
 	double PDsTimeLimitInSeconds;  // time limit for STM_EyeBufferRealloc mode; 0 - unlimited
@@ -62,6 +82,8 @@ protected:
 	double CPUStartTimeInSeconds;
 	double GPUStartTimeInSeconds;
 	double PDStartTimeInSeconds;
+
+	static TSharedPtr<class FOculusStressTester, ESPMode::ThreadSafe> SharedInstance;
 };
 
 #endif // #if OCULUS_STRESS_TESTS_ENABLED

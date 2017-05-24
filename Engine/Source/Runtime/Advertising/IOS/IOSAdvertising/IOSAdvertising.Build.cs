@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class IOSAdvertising : ModuleRules
 	{
-		public IOSAdvertising( TargetInfo Target )
+		public IOSAdvertising( ReadOnlyTargetRules Target ) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

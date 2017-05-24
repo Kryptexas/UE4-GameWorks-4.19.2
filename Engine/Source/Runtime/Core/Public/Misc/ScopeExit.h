@@ -56,15 +56,6 @@ namespace ScopeExitSupport
 }
 
 
-#ifdef __COUNTER__
-	// Created a variable with a unique name
-	#define ANONYMOUS_VARIABLE( Name ) PREPROCESSOR_JOIN(Name, __COUNTER__)
-#else
-	// Created a variable with a unique name.
-	// Less reliable than the __COUNTER__ version.
-	#define ANONYMOUS_VARIABLE( Name ) PREPROCESSOR_JOIN(Name, __LINE__)
-#endif
-
 
 /**
  * Enables a lambda to be executed on scope exit.

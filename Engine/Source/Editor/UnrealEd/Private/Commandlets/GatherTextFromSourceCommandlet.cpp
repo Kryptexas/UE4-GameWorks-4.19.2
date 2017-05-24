@@ -5,6 +5,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Misc/ExpressionParserTypes.h"
+#include "Internationalization/InternationalizationMetadata.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGatherTextFromSourceCommandlet, Log, All);
 
@@ -237,14 +238,24 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	// New Localization System with Namespace as literal argument.
 	Parsables.Add(new FStringMacroDescriptor( FString(TEXT("NSLOCTEXT")),
-		FMacroDescriptor::FMacroArg(FMacroDescriptor::MAS_Namespace, true),
-		FMacroDescriptor::FMacroArg(FMacroDescriptor::MAS_Identifier, true),
-		FMacroDescriptor::FMacroArg(FMacroDescriptor::MAS_SourceText, true)));
+		FStringMacroDescriptor::FMacroArg(FStringMacroDescriptor::MAS_Namespace, true),
+		FStringMacroDescriptor::FMacroArg(FStringMacroDescriptor::MAS_Identifier, true),
+		FStringMacroDescriptor::FMacroArg(FStringMacroDescriptor::MAS_SourceText, true)));
 	
 	// New Localization System with Namespace as preprocessor define.
 	Parsables.Add(new FStringMacroDescriptor( FString(TEXT("LOCTEXT")),
-		FMacroDescriptor::FMacroArg(FMacroDescriptor::MAS_Identifier, true),
-		FMacroDescriptor::FMacroArg(FMacroDescriptor::MAS_SourceText, true)));
+		FStringMacroDescriptor::FMacroArg(FStringMacroDescriptor::MAS_Identifier, true),
+		FStringMacroDescriptor::FMacroArg(FStringMacroDescriptor::MAS_SourceText, true)));
+
+	Parsables.Add(new FStringTableMacroDescriptor());
+
+	Parsables.Add(new FStringTableFromFileMacroDescriptor(TEXT("LOCTABLE_FROMFILE_ENGINE"), FPaths::EngineContentDir()));
+
+	Parsables.Add(new FStringTableFromFileMacroDescriptor(TEXT("LOCTABLE_FROMFILE_GAME"), FPaths::GameContentDir()));
+
+	Parsables.Add(new FStringTableEntryMacroDescriptor());
+
+	Parsables.Add(new FStringTableEntryMetaDataMacroDescriptor());
 
 	Parsables.Add(new FIniNamespaceDescriptor());
 
@@ -305,6 +316,47 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 		}
 	}
 	
+	// Process any parsed string tables
+	for (const auto& ParsedStringTablePair : ParseCtxt.ParsedStringTables)
+	{
+		if (ParsedStringTablePair.Value.SourceLocation.Line == INDEX_NONE)
+		{
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("String table with ID '%s' had %s entries parsed for it, but the table was never registered. Skipping for gather."), *ParsedStringTablePair.Key.ToString(), ParsedStringTablePair.Value.TableEntries.Num());
+		}
+		else
+		{
+			for (const auto& ParsedStringTableEntryPair : ParsedStringTablePair.Value.TableEntries)
+			{
+				if (!ParsedStringTableEntryPair.Value.bIsEditorOnly || ParseCtxt.ShouldGatherFromEditorOnlyData)
+				{
+					FManifestContext SourceContext;
+					SourceContext.Key = ParsedStringTableEntryPair.Key;
+					SourceContext.SourceLocation = ParsedStringTableEntryPair.Value.SourceLocation.ToString();
+
+					const FParsedStringTableEntryMetaDataMap* ParsedMetaDataMap = ParsedStringTablePair.Value.MetaDataEntries.Find(ParsedStringTableEntryPair.Key);
+					if (ParsedMetaDataMap && ParsedMetaDataMap->Num() > 0)
+					{
+						SourceContext.InfoMetadataObj = MakeShareable(new FLocMetadataObject());
+						for (const auto& ParsedMetaDataPair : *ParsedMetaDataMap)
+						{
+							if (!ParsedMetaDataPair.Value.bIsEditorOnly || ParseCtxt.ShouldGatherFromEditorOnlyData)
+							{
+								SourceContext.InfoMetadataObj->SetStringField(ParsedMetaDataPair.Key.ToString(), ParsedMetaDataPair.Value.MetaData);
+							}
+						}
+					}
+
+					FString SourceDescription = FString::Printf(TEXT("In string table '%s' at '%s'"),
+						*ParsedStringTablePair.Key.ToString(),
+						*ParsedStringTableEntryPair.Value.SourceLocation.ToString()
+						);
+
+					ParseCtxt.GatherManifestHelper->AddSourceText(ParsedStringTablePair.Value.TableNamespace, FLocItem(ParsedStringTableEntryPair.Value.SourceString), SourceContext, &SourceDescription);
+				}
+			}
+		}
+	}
+
 	// Clear parsables list safely
 	for (int32 i=0; i<Parsables.Num(); i++)
 	{
@@ -497,7 +549,7 @@ FString UGatherTextFromSourceCommandlet::UnescapeLiteralCharacterEscapeSequences
 		}
 	}
 
-	return RetString;
+	return RetString.ReplaceEscapedCharWithChar();
 }
 
 FString UGatherTextFromSourceCommandlet::RemoveStringFromTextMacro(const FString& TextMacro, const FString& IdentForLogging, bool& Error)
@@ -877,8 +929,7 @@ bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddManifestText( 
 			*Filename, 
 			LineNumber, 
 			*LineText);
-		FLocItem Source( SourceText.ReplaceEscapedCharWithChar() );
-		return GatherManifestHelper->AddSourceText(InNamespace, Source, Context, &EntryDescription);
+		return GatherManifestHelper->AddSourceText(InNamespace, FLocItem(SourceText), Context, &EntryDescription);
 	}
 
 	return false;
@@ -1008,6 +1059,129 @@ void UGatherTextFromSourceCommandlet::FSourceFileParseContext::RemoveDefine(cons
 			return;
 		}
 	}
+}
+
+bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddStringTableImpl(const FName InTableId, const FString& InTableNamespace)
+{
+	// String table entries may be parsed before the string table itself (due to code ordering), so only warn about duplication here if we've already got a source location for the string table (as adding entries doesn't set that)
+	FParsedStringTable& ParsedStringTable = ParsedStringTables.FindOrAdd(InTableId);
+	if (ParsedStringTable.SourceLocation.Line != INDEX_NONE)
+	{
+		UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("String table with ID '%s' at '%s' was already parsed at '%s'. Ignoring additional definition."), *InTableId.ToString(), *FSourceLocation(Filename, LineNumber).ToString(), *ParsedStringTable.SourceLocation.ToString());
+		return false;
+	}
+
+	ParsedStringTable.TableNamespace = InTableNamespace;
+	ParsedStringTable.SourceLocation = FSourceLocation(Filename, LineNumber);
+	return true;
+}
+
+bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddStringTableEntryImpl(const FName InTableId, const FString& InKey, const FString& InSourceString, const FSourceLocation& InSourceLocation)
+{
+	const bool bIsEditorOnly = EvaluateMacroStack() == EMacroBlockState::EditorOnly;
+
+	// String table entries may be parsed before the string table itself (due to code ordering), so we may need to add our string table below
+	FParsedStringTable& ParsedStringTable = ParsedStringTables.FindOrAdd(InTableId);
+
+	FParsedStringTableEntry* ExistingEntry = ParsedStringTable.TableEntries.Find(InKey);
+	if (ExistingEntry)
+	{
+		if (ExistingEntry->SourceString.Equals(InSourceString, ESearchCase::CaseSensitive))
+		{
+			ExistingEntry->bIsEditorOnly &= bIsEditorOnly;
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("String table entry with ID '%s' and key '%s' at '%s' was already parsed at '%s'. Ignoring additional definition."), *InTableId.ToString(), *InKey, *FSourceLocation(Filename, LineNumber).ToString(), *ExistingEntry->SourceLocation.ToString());
+			return false;
+		}
+	}
+	else
+	{
+		FParsedStringTableEntry& ParsedStringTableEntry = ParsedStringTable.TableEntries.Add(InKey);
+		ParsedStringTableEntry.SourceString = InSourceString;
+		ParsedStringTableEntry.SourceLocation = InSourceLocation;
+		ParsedStringTableEntry.bIsEditorOnly = bIsEditorOnly;
+		return true;
+	}
+}
+
+bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddStringTableEntryMetaDataImpl(const FName InTableId, const FString& InKey, const FName InMetaDataId, const FString& InMetaData, const FSourceLocation& InSourceLocation)
+{
+	const bool bIsEditorOnly = EvaluateMacroStack() == EMacroBlockState::EditorOnly;
+
+	// String table meta-data may be parsed before the string table itself (due to code ordering), so we may need to add our string table below
+	FParsedStringTable& ParsedStringTable = ParsedStringTables.FindOrAdd(InTableId);
+	FParsedStringTableEntryMetaDataMap& MetaDataMap = ParsedStringTable.MetaDataEntries.FindOrAdd(InKey);
+
+	FParsedStringTableEntryMetaData* ExistingMetaData = MetaDataMap.Find(InMetaDataId);
+	if (ExistingMetaData)
+	{
+		if (ExistingMetaData->MetaData.Equals(InMetaData, ESearchCase::CaseSensitive))
+		{
+			ExistingMetaData->bIsEditorOnly &= bIsEditorOnly;
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("String table entry meta-data with ID '%s' and key '%s' at '%s' was already parsed at '%s'. Ignoring additional definition."), *InTableId.ToString(), *InKey, *FSourceLocation(Filename, LineNumber).ToString(), *ExistingMetaData->SourceLocation.ToString());
+			return false;
+		}
+	}
+	else
+	{
+		FParsedStringTableEntryMetaData& ParsedMetaData = MetaDataMap.Add(InMetaDataId);
+		ParsedMetaData.MetaData = InMetaData;
+		ParsedMetaData.SourceLocation = InSourceLocation;
+		ParsedMetaData.bIsEditorOnly = bIsEditorOnly;
+		return true;
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddStringTable(const FName InTableId, const FString& InTableNamespace)
+{
+	AddStringTableImpl(InTableId, InTableNamespace);
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddStringTableFromFile(const FName InTableId, const FString& InTableNamespace, const FString& InTableFilename, const FString& InRootPath)
+{
+	if (AddStringTableImpl(InTableId, InTableNamespace))
+	{
+		const FString FullImportPath = InRootPath / InTableFilename;
+
+		FStringTableRef TmpStringTable = FStringTable::NewStringTable();
+		if (TmpStringTable->ImportStrings(FullImportPath))
+		{
+			TmpStringTable->EnumerateSourceStrings([&](const FString& InKey, const FString& InSourceString)
+			{
+				const FSourceLocation SourceLocation = FSourceLocation(InTableFilename, INDEX_NONE);
+				AddStringTableEntryImpl(InTableId, InKey, InSourceString, SourceLocation);
+
+				TmpStringTable->EnumerateMetaData(InKey, [&](const FName InMetaDataId, const FString& InMetaData)
+				{
+					AddStringTableEntryMetaDataImpl(InTableId, InKey, InMetaDataId, InMetaData, SourceLocation);
+					return true; // continue enumeration
+				});
+
+				return true; // continue enumeration
+			});
+		}
+		else
+		{
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("String table with ID '%s' at '%s' failed to import strings from '%s'."), *InTableId.ToString(), *FSourceLocation(Filename, LineNumber).ToString(), *FullImportPath);
+		}
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddStringTableEntry(const FName InTableId, const FString& InKey, const FString& InSourceString)
+{
+	AddStringTableEntryImpl(InTableId, InKey, InSourceString, FSourceLocation(Filename, LineNumber));
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddStringTableEntryMetaData(const FName InTableId, const FString& InKey, const FName InMetaDataId, const FString& InMetaData)
+{
+	AddStringTableEntryMetaDataImpl(InTableId, InKey, InMetaDataId, InMetaData, FSourceLocation(Filename, LineNumber));
 }
 
 void UGatherTextFromSourceCommandlet::FDefineDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
@@ -1255,13 +1429,13 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 				FString Identifier = Arguments[0].Trim();
 				const FString UICommandRootNamespace = TEXT("UICommands");
 				FString Namespace = Context.WithinNamespaceDefine && !Context.Namespace.IsEmpty() ? FString::Printf( TEXT("%s.%s"), *UICommandRootNamespace, *Context.Namespace) : UICommandRootNamespace;
-				FString SourceLocation = FString( Context.Filename + TEXT(" - line ") + FString::FromInt(Context.LineNumber) );
+				FString SourceLocation = FSourceLocation(Context.Filename, Context.LineNumber).ToString();
 				FString SourceText = Arguments[1].Trim();
 
 				if ( Identifier.IsEmpty() )
 				{
 					//The command doesn't have an identifier so we can't gather it
-					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("UICOMMAND macro doesn't have unique identifier. %s"), *SourceLocation );
+					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("UICOMMAND macro has an empty identifier and cannot be gathered. %s"), *SourceLocation );
 					return;
 				}
 
@@ -1321,7 +1495,7 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 			{
 				FString Identifier;
 				FString Namespace = Context.Namespace;
-				FString SourceLocation = FString( Context.Filename + TEXT(" - line ") + FString::FromInt(Context.LineNumber) );
+				FString SourceLocation = FSourceLocation(Context.Filename, Context.LineNumber).ToString();
 				FString SourceText;
 
 				bool ArgParseError = false;
@@ -1372,6 +1546,179 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 					MacroContext.SourceLocation = SourceLocation;
 
 					Context.AddManifestText( GetToken(), Namespace, SourceText, MacroContext );
+				}
+			}
+		}
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FStringTableMacroDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// LOCTABLE_NEW(Id, Namespace)
+
+	if (!Context.ExcludedRegion && !Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		TArray<FString> Arguments;
+		if (ParseArgsFromMacro(StripCommentsFromToken(Text, Context), Arguments, Context))
+		{
+			if (Arguments.Num() != 2)
+			{
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Unexpected number of arguments for %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
+			}
+			else
+			{
+				FString TableId = Arguments[0].Trim();
+				FString TableNamespace = Arguments[1].Trim();
+
+				const FString TableIdMacroDesc = FString::Printf(TEXT("\"Id\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+				const FString TableNamespaceMacroDesc = FString::Printf(TEXT("\"Namespace\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+
+				bool HasQuotes;
+				if (PrepareArgument(TableId, true, TableIdMacroDesc, HasQuotes) && PrepareArgument(TableNamespace, true, TableNamespaceMacroDesc, HasQuotes))
+				{
+					const FName TableIdName = *TableId;
+
+					if (TableIdName.IsNone())
+					{
+						UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("%s macro has an empty identifier and cannot be gathered. %s"), *GetToken(), *FSourceLocation(Context.Filename, Context.LineNumber).ToString());
+					}
+					else
+					{
+						Context.AddStringTable(TableIdName, TableNamespace);
+					}
+				}
+			}
+		}
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FStringTableFromFileMacroDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// LOCTABLE_FROMFILE_X(Id, Namespace, FilePath)
+
+	if (!Context.ExcludedRegion && !Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		TArray<FString> Arguments;
+		if (ParseArgsFromMacro(StripCommentsFromToken(Text, Context), Arguments, Context))
+		{
+			if (Arguments.Num() != 3)
+			{
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Unexpected number of arguments for %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
+			}
+			else
+			{
+				FString TableId = Arguments[0].Trim();
+				FString TableNamespace = Arguments[1].Trim();
+				FString TableFilename = Arguments[2].Trim();
+
+				const FString TableIdMacroDesc = FString::Printf(TEXT("\"Id\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+				const FString TableNamespaceMacroDesc = FString::Printf(TEXT("\"Namespace\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+				const FString TableFilenameMacroDesc = FString::Printf(TEXT("\"FilePath\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+
+				bool HasQuotes;
+				if (PrepareArgument(TableId, true, TableIdMacroDesc, HasQuotes) && PrepareArgument(TableNamespace, true, TableNamespaceMacroDesc, HasQuotes) && PrepareArgument(TableFilename, true, TableFilenameMacroDesc, HasQuotes))
+				{
+					const FName TableIdName = *TableId;
+
+					if (TableIdName.IsNone())
+					{
+						UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("%s macro has an empty identifier and cannot be gathered. %s"), *GetToken(), *FSourceLocation(Context.Filename, Context.LineNumber).ToString());
+					}
+					else
+					{
+						Context.AddStringTableFromFile(TableIdName, TableNamespace, TableFilename, RootPath);
+					}
+				}
+			}
+		}
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FStringTableEntryMacroDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// LOCTABLE_SETSTRING(Id, Key, SourceString)
+
+	if (!Context.ExcludedRegion && !Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		TArray<FString> Arguments;
+		if (ParseArgsFromMacro(StripCommentsFromToken(Text, Context), Arguments, Context))
+		{
+			if (Arguments.Num() != 3)
+			{
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Unexpected number of arguments for %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
+			}
+			else
+			{
+				FString TableId = Arguments[0].Trim();
+				FString Key = Arguments[1].Trim();
+				FString SourceString = Arguments[2].Trim();
+
+				const FString TableIdMacroDesc = FString::Printf(TEXT("\"Id\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+				const FString KeyMacroDesc = FString::Printf(TEXT("\"Key\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+				const FString SourceStringMacroDesc = FString::Printf(TEXT("\"SourceString\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+
+				bool HasQuotes;
+				if (PrepareArgument(TableId, true, TableIdMacroDesc, HasQuotes) && PrepareArgument(Key, true, KeyMacroDesc, HasQuotes) && PrepareArgument(SourceString, true, SourceStringMacroDesc, HasQuotes))
+				{
+					const FName TableIdName = *TableId;
+
+					if (TableIdName.IsNone() || Key.IsEmpty())
+					{
+						UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("%s macro has an empty identifier and cannot be gathered. %s"), *GetToken(), *FSourceLocation(Context.Filename, Context.LineNumber).ToString());
+					}
+					else if (!SourceString.IsEmpty())
+					{
+						Context.AddStringTableEntry(TableIdName, Key, SourceString);
+					}
+				}
+			}
+		}
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FStringTableEntryMetaDataMacroDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// LOCTABLE_SETMETA(Id, Key, SourceString)
+
+	if (!Context.ExcludedRegion && !Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		TArray<FString> Arguments;
+		if (ParseArgsFromMacro(StripCommentsFromToken(Text, Context), Arguments, Context))
+		{
+			if (Arguments.Num() != 4)
+			{
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Unexpected number of arguments for %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
+			}
+			else
+			{
+				FString TableId = Arguments[0].Trim();
+				FString Key = Arguments[1].Trim();
+				FString MetaDataId = Arguments[2].Trim();
+				FString MetaData = Arguments[3].Trim();
+
+				const FString TableIdMacroDesc = FString::Printf(TEXT("\"Id\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+				const FString KeyMacroDesc = FString::Printf(TEXT("\"Key\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+				const FString MetaDataIdMacroDesc = FString::Printf(TEXT("\"MetaDataId\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+				const FString MetaDataMacroDesc = FString::Printf(TEXT("\"MetaData\" argument in %s macro %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *Context.LineText);
+
+				bool HasQuotes;
+				if (PrepareArgument(TableId, true, TableIdMacroDesc, HasQuotes) && PrepareArgument(Key, true, KeyMacroDesc, HasQuotes) && PrepareArgument(MetaDataId, true, MetaDataIdMacroDesc, HasQuotes) && PrepareArgument(MetaData, true, MetaDataMacroDesc, HasQuotes))
+				{
+					const FName TableIdName = *TableId;
+					const FName MetaDataIdName = *MetaDataId;
+
+					if (TableIdName.IsNone() || Key.IsEmpty() || MetaDataIdName.IsNone())
+					{
+						UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("%s macro has an empty identifier and cannot be gathered. %s"), *GetToken(), *FSourceLocation(Context.Filename, Context.LineNumber).ToString());
+					}
+					else if (!MetaData.IsEmpty())
+					{
+						Context.AddStringTableEntryMetaData(TableIdName, Key, MetaDataIdName, MetaData);
+					}
 				}
 			}
 		}

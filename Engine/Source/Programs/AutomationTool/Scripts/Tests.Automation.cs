@@ -778,8 +778,8 @@ class TestFileUtility : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		string[] DummyFilenames = new string[] { ParseParamValue("file", "") };
-		DeleteFile(DummyFilenames);
+		string DummyFilename = ParseParamValue("file", "");
+		DeleteFile(DummyFilename);
 	}
 }
 

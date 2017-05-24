@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TextureFormatPVR : ModuleRules
 {
-	public TextureFormatPVR( TargetInfo Target )
+	public TextureFormatPVR( ReadOnlyTargetRules Target ) : base(Target)
 	{
         PrivateIncludePathModuleNames.AddRange(new string[] { "TargetPlatform", "TextureCompressor", "Engine" });
         PrivateDependencyModuleNames.AddRange(new string[] { "Core", "ImageCore", "ImageWrapper" });

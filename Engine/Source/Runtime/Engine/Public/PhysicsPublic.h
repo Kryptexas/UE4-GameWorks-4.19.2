@@ -10,7 +10,6 @@
 #include "CoreMinimal.h"
 #include "Stats/Stats.h"
 #include "Engine/EngineTypes.h"
-#include "Engine/World.h"
 #include "Misc/CoreMisc.h"
 #include "EngineDefines.h"
 #include "RenderResource.h"
@@ -31,6 +30,8 @@ struct FPendingApexDamageManager;
  * Physics stats
  */
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FetchAndStart Time (all)"), STAT_TotalPhysicsTime, STATGROUP_Physics, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Cloth Actor Count"), STAT_NumCloths, STATGROUP_Physics, ENGINE_API);
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Simulated Cloth Verts"), STAT_NumClothVerts, STATGROUP_Physics, ENGINE_API);
 
 #if WITH_PHYSX
 
@@ -102,12 +103,12 @@ extern ENGINE_API class FPhysXAllocator* GPhysXAllocator;
 /** Pointer to PhysX Command Handler */
 extern ENGINE_API class FPhysCommandHandler* GPhysCommandHandler;
 
-#if WITH_APEX
-
 namespace NvParameterized
 {
 	class Interface;
 }
+
+#if WITH_APEX
 
 /** Pointer to APEX SDK object */
 extern ENGINE_API apex::ApexSDK*			GApexSDK;
@@ -119,13 +120,6 @@ extern ENGINE_API apex::Module* 			GApexModuleLegacy;
 /** Pointer to APEX Clothing module object */
 extern ENGINE_API apex::ModuleClothing*		GApexModuleClothing;
 #endif //WITH_APEX_CLOTHING
-
-#else
-
-namespace NvParameterized
-{
-	typedef void Interface;
-};
 
 #endif // #if WITH_APEX
 
@@ -470,13 +464,6 @@ private:
 	FPendingConstraintData PendingConstraintData[PST_MAX];
 	
 public:
-
-	/** Whether or not the results of the simulation has updated yet. This can be important for trying to set the body transform or velocity (which is double buffered during simulation) */
-	bool IsPendingSimulationTransforms(uint32 SceneType) const
-	{
-		return PendingSimulationTransforms[SceneType];
-	}
-
 #if WITH_PHYSX
 	/** Static factory used to override the simulation event callback from other modules.
 	If not set it defaults to using FPhysXSimEventCallback. */
@@ -484,13 +471,13 @@ public:
 
 
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
-	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType);
+	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType) const;
 
 #endif
 
 #if WITH_APEX
 	/** Utility for looking up the ApexScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
-	nvidia::apex::Scene*				GetApexScene(uint32 SceneType);
+	ENGINE_API nvidia::apex::Scene*				GetApexScene(uint32 SceneType) const;
 #endif
 	ENGINE_API FPhysScene();
 	ENGINE_API ~FPhysScene();
@@ -532,7 +519,7 @@ public:
 	void SyncComponentsToBodies_AssumesLocked(uint32 SceneType);
 
 	/** Call after WaitPhysScene on the synchronous scene to make deferred OnRigidBodyCollision calls.  */
-	void DispatchPhysNotifications_AssumesLocked();
+	ENGINE_API void DispatchPhysNotifications_AssumesLocked();
 
 	/** Add any debug lines from the physics scene of the given type to the supplied line batcher. */
 	ENGINE_API void AddDebugLines(uint32 SceneType, class ULineBatchComponent* LineBatcherToUse);
@@ -541,19 +528,7 @@ public:
 	static bool SupportsOriginShifting() { return true; }
 
 	/** @return Whether physics scene is using substepping */
-	bool IsSubstepping(uint32 SceneType) const
-	{
-		// Substepping relies on interpolating transforms over frames, but only game worlds will be ticked,
-		// so we disallow this feature in non-game worlds.
-		if( !GetOwningWorld()->IsGameWorld() )
-		{
-			return false;
-		}
-
-		if (SceneType == PST_Sync) return bSubstepping;
-		if (SceneType == PST_Async) return bSubsteppingAsync;
-		return false;
-	}
+	bool IsSubstepping(uint32 SceneType) const;
 	
 	/** Shifts physics scene origin by specified offset */
 	void ApplyWorldOffset(FVector InOffset);
@@ -598,7 +573,7 @@ public:
 	}
 
 	/** Adds a force to a body at a specific position - We need to go through scene to support substepping */
-	void AddForceAtPosition_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping);
+	void AddForceAtPosition_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping, bool bIsLocalForce=false);
 
 	/** Adds a radial force to a body - We need to go through scene to support substepping */
 	DEPRECATED(4.8, "Please call AddRadialForceToBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
@@ -702,10 +677,7 @@ private:
 #endif
 
 	class FPhysSubstepTask * PhysSubSteppers[PST_MAX];
-
-	/** Indicates whether the physx scene is currently simulating*/
-	bool PendingSimulationTransforms[PST_MAX];
-
+	
 #if WITH_APEX
 	TUniquePtr<struct FPendingApexDamageManager> PendingApexDamageManager;
 #endif

@@ -13,7 +13,9 @@
 DEFINE_LOG_CATEGORY_STATIC(LogTransform, Log, All);
 
 // FTransform identity
-const FTransform FTransform::Identity(FQuat(0.f,0.f,0.f,1.f), FVector::ZeroVector, FVector(1.f));
+// @Note: Do not reference FVector::ZeroVector or FVector::OneVector
+// because they're not initialized yet, it will come as 0 vector
+const FTransform FTransform::Identity(FQuat(0.f,0.f,0.f,1.f), FVector(0.f), FVector(1.f));
 
 
 // Replacement of Inverse of FMatrix
@@ -74,7 +76,7 @@ bool FTransform::InitFromString( const FString& Source )
 	}
 
 	// Scale
-	FVector ParsedScale = FVector(1.f);
+	FVector ParsedScale = FVector::OneVector;
 	if( !FDefaultValueHelper::ParseVector(ComponentStrings[2], ParsedScale) )
 	{
 		return false;
@@ -164,8 +166,7 @@ FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 	// where A = this, B = Other
 	FTransform Result;
 
-	const bool bHaveNegativeScale = Scale3D.GetMin() < 0 || Other.Scale3D.GetMin() < 0;
-	if (bHaveNegativeScale)
+	if (AnyHasNegativeScale(Scale3D, Other.GetScale3D()))
 	{
 		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
 		GetRelativeTransformUsingMatrixWithScale(&Result, this, &Other);

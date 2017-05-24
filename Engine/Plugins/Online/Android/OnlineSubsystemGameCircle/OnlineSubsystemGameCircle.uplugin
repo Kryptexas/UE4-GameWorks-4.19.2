@@ -2,7 +2,6 @@
 	"FileVersion" : 3,
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"EngineVersion" : "4.13.0",
 	"FriendlyName" : "Online Subsystem GameCircle",
 	"Description" : "An Android plugin for enabling Amazon GameCircle Achievements, Leaderboards, and Friends as well as Amazon IAP.",
 	"Category" : "Online Platform",
@@ -33,5 +32,11 @@
 				"Android"
 			]
 		}
-	]
+	],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemGameCircle",
+			"LoadingPolicy": "Always"
+		}
+	]	
 }

@@ -9,6 +9,7 @@ order:1
 Version: 4.12
 Related: Engine\Sequencer\Overview
 Related: Engine/Sequencer/HowTo
+tags:Sequencer
 
 This page outlines each of the windows, options and controls for the **Sequencer** Editor. 
 

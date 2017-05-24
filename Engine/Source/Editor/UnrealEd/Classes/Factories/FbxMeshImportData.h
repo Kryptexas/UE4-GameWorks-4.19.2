@@ -28,6 +28,17 @@ namespace EFBXNormalGenerationMethod
 	};
 }
 
+/** Action to add nodes to the graph based on selected objects*/
+USTRUCT()
+struct FImportMeshLodSectionsData
+{
+	GENERATED_USTRUCT_BODY();
+
+	/*Every original imported fbx material name for every section*/
+	UPROPERTY()
+	TArray<FName> SectionOriginalMaterialName;
+};
+
 
 /**
  * Import data and options used when importing any mesh from FBX
@@ -58,4 +69,12 @@ class UFbxMeshImportData : public UFbxAssetImportData
 	TEnumAsByte<enum EFBXNormalGenerationMethod::Type> NormalGenerationMethod;
 
 	bool CanEditChange( const UProperty* InProperty ) const override;
+
+	//////////////////////////////////////////////////////////////////////////
+	//Original import section/material data
+	UPROPERTY()
+	TArray<FName> ImportMaterialOriginalNameData;
+	
+	UPROPERTY()
+	TArray<FImportMeshLodSectionsData> ImportMeshLodData;
 };

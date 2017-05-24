@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3174170
-Availability:Docs
-Title: Font Materials and Outlines
-Description:Examples of how you can style your UMG fonts using colors, Materials, and outlines.
+﻿INTSourceChangelist:3244089
+Availability:Public
+Title: 폰트 머티리얼 및 윤곽선
+Description:색, 머티리얼, 윤곽선을 사용하여 UMG 폰트의 스타일을 잡는 방법에 대한 예제입니다.
 Crumbs:
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide/Fonts
@@ -10,44 +10,45 @@ Version: 4.14
 Parent: Engine/UMG/UserGuide/Fonts
 order: 1
 tags: User Interface
+tags:UMG UI Designer
 
 [TOC]
 
-In addition to being able to set a **Color and Opacity** for your **Font** in UMG, you can also use Materials and font outlines for additional **Font** styling.
+UMG 에서 **Font** (폰트)에 **Color and Opacity** (색과 불투명도)를 설정할 수 있는 기능에 추가로, 머티리얼과 폰트 윤곽선을 사용하여 추가적인 **폰트** 스타일을 낼 수 있습니다.
 
-## Font Colors
+## 폰트 색
 
-You can set the **Vertex Color** for your **Font** by setting its **Color and Opacity**. 
+**폰트** 에 **색과 불투명도** 를 설정하는 것으로 **Vertex Color** (버텍스 컬러)를 설정할 수 있습니다.
 
 ![](GreenFontNoMaterial.png)
 
-Without a **Font Material** specified, this will apply a solid color to your text.
+**Font Material** (폰트 머티리얼)을 지정하지 않으면, 텍스트에 단색이 적용됩니다.
 
 ![](GreenFontNoMaterialDisplay.png)
  
-## Font Materials
+## 폰트 머티리얼
 
-You can specify a **Font Material** for your **Font** in the **Details** panel.
+**디테일** 패널에서 **폰트** 의 **폰트 머티리얼** 을 지정할 수 있습니다.
 
 ![](ColorAndOpacity.png)
 
-If your **Font Material** doesn't have a **Vertex Color** node, the effect is like a simple multiplication. 
+**폰트 머티리얼** 에 **Vertex Color** 노드가 없는 경우, 그 효과는 단순 곱하기와 비슷합니다.
 
 [REGION:imagetable]
 | [INCLUDE:#basecolorgraph] | ![](BaseColorFinalFontMat.png)(w:200)|![](BaseColorFinalDisplay.png)(w:550) |
 |---- |----- |----- |
-| Font Material Setup |  Font Material Preview | Final Font |
+| 폰트 머티리얼 구성 |  폰트 머티리얼 미리보기 | 최종 폰트 |
 [/REGION]
 
-However, if you place a **Vertex Color** node in your **Font Material**, you can use its outputs to do math within your shader. 
+하지만 **폰트 머티리얼** 안에 **Vertex Color** 노드를 넣으면, 그 출력을 사용하여 셰이더 안에서 수학 연산이 가능합니다.
 
 [REGION:imagetable]
 |[INCLUDE:#vertexcolorgraph] | ![](VertexColorFinalMat.png)(w:200)|![](VertexColorFont.png)(w:550) |
 |---- |----- |----- |
-| Font Material Setup |  Font Material Preview | Final Font |
+| 폰트 머티리얼 구성 |  폰트 머티리얼 미리보기 | 최종 폰트 |
 [/REGION]
 
-Materials used as font materials must be in the **User Interface** domain.
+폰트 머티리얼로 사용되는 머티리얼은 반드시 **User Interface** (유저 인터페이스) 도메인 아래 있어야 합니다.
 
 ![](UI.png)
 
@@ -64,26 +65,26 @@ Materials used as font materials must be in the **User Interface** domain.
 [/REGION]
 [/EXCERPT]
 -->
-## Font Outlines
+## 폰트 윤곽선
 
-You can specify a different **Outline Color** as well as a different Material to use for a font outline. 
+폰트 윤곽선에는 다양한 **Outline Color** (윤곽선 색)은 물론 다양한 머티리얼을 지정할 수도 있습니다.
 
 ![](FontOutlineSettings.png)
 
-The size of the outline is specified in Slate units, but when the font's scale is 1.0, 1 Slate unit is equivalent to 1 pixel. 
+윤곽선 크기는 Slate (슬레이트) 유닛으로 지정되나, 폰트의 스케일이 1.0 인 경우 1 슬레이트 유닛은 1 픽셀에 해당합니다.
 
 ![](FontOutline5Display.png)
 
-One interesting note is that you can specify whether or not to use **Separate Fill Alpha**. 
+참고로 **Separate Fill Alpha** (독립 채우기 알파) 기능 사용 여부를 지정할 수 있습니다.
 
 ![](SeparateFill.png)
 
-When this is enabled, the outline is translucent
-where the filled area will be, allowing you to adjust the alphas of the font and the font outline independently. When it is disabled, the font is overlaid
-on the outline, so the alphas are additive and the outline color and Material is visible through a font with an alpha less than 1.
+이 기능을 켜면, 채워진 부분의 윤곽선은 반투명이 되어, 
+폰트와 폰트 윤곽선 알파를 독립적으로 조절할 수 있습니다. 이 기능을 끄면, 폰트를 윤곽선 위에 겹쳐 놓아, 
+알파가 더하기 식으로 작동하여 알파가 1 미만인 폰트에는 윤곽선 색과 머티리얼이 보이게 됩니다.
 
 [REGION:imagetable]
 |![](SeparateAlphaOff.png)(w:550) | ![](SeparateAlphaOn.png)(w:550)|
 |---|----|
-| Font Color Alpha = 0.5, **Separate Fill Alpha** disabled | Font Color Alpha = 0.5, **Separate Fill Alpha** enable |
+| Font Color Alpha = 0.5, **Separate Fill Alpha** 꺼짐 | Font Color Alpha = 0.5, **Separate Fill Alpha** 켜짐 |
 [/REGION]

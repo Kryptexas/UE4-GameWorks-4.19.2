@@ -261,35 +261,48 @@ namespace Tools.CrashReporter.CrashReportProcess
 			bDisposing = true;
 
 			// Clean up the directory watcher and crash processor threads
+			WriteEvent("Shutdown: Stopping ReportProcessors...");
 			foreach (var Processor in Processors)
 			{
 				Processor.RequestStop();
 			}
+			WriteEvent("Shutdown: Disposing ReportProcessors...");
 			foreach (var Processor in Processors)
 			{
 				Processor.Dispose();
 			}
 			Processors.Clear();
+			WriteEvent("Shutdown: ReportProcessors stopped and disposed.");
 
+			WriteEvent("Shutdown: Disposing ReportWatcher...");
 			Watcher.Dispose();
 			Watcher = null;
+			WriteEvent("Shutdown: ReportWatcher disposed.");
 
+			WriteEvent("Shutdown: Writing ReportIndex.");
 			ReportIndex.WriteToFile();
 			ReportIndex = null;
+			WriteEvent("Shutdown: ReportIndex written.");
 
+			WriteEvent("Shutdown: Disposing AmazonClients...");
 			OutputAWS.Dispose();
 			OutputAWS = null;
-
 			DataRouterAWS.Dispose();
 			DataRouterAWS = null;
+			WriteEvent("Shutdown: AmazonClients disposed.");
 
+			WriteEvent("Shutdown: Disposing StatusReporter...");
 			StatusReporter.Dispose();
 			StatusReporter = null;
+			WriteEvent("Shutdown: StatusReporter disposed.");
 
+			WriteEvent("Shutdown: Disposing SlackWriter...");
 			Slack.Dispose();
 			Slack = null;
+			WriteEvent("Shutdown: SlackWriter disposed.");
 
 			// Flush the log to disk
+			WriteEvent("Shutdown: Disposing LogWriter.");
 			Log.Dispose();
 			Log = null;
 

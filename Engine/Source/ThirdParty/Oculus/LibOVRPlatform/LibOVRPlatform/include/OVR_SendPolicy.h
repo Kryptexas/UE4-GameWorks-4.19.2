@@ -10,7 +10,7 @@ typedef enum ovrSendPolicy_ {
   /// or ordering guarantees are provided. Sending will fail unless a connection
   /// to the peer is already established, either via a previous call to
   /// ovr_Net_SendPacket() or an explicit ovr_Net_Connect().
-  /// 
+  ///
   /// Ideally, each message should fit into a single packet. Therefore, it is
   /// recommended to keep them under 1200 bytes.
   ovrSend_Unreliable,

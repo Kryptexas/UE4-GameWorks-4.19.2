@@ -82,7 +82,7 @@ public:
 
 	bool NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch);
 
-	static void NotifyPostLoadMap();
+	static void NotifyPostLoadMap(UWorld* LoadedWorld);
 
 	static bool VerifyEventWatcher();
 

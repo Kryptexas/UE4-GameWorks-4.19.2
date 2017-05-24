@@ -87,9 +87,28 @@ void UK2Node_Knot::PostReconstructNode()
 
 void UK2Node_Knot::PropagatePinType()
 {
-	UEdGraphPin* MyInputPin = GetInputPin();
+	UEdGraphPin* MyInputPin  = GetInputPin();
 	UEdGraphPin* MyOutputPin = GetOutputPin();
 
+	for (UEdGraphPin* Inputs : MyInputPin->LinkedTo)
+	{
+		if (Inputs->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard)
+		{
+			PropagatePinTypeFromInput();
+			return;
+		}
+	}
+
+	for (UEdGraphPin* Outputs : MyOutputPin->LinkedTo)
+	{
+		if (Outputs->PinType.PinCategory != UEdGraphSchema_K2::PC_Wildcard)
+		{
+			PropagatePinTypeFromOutput();
+			return;
+		}
+	}
+
+	// if all inputs/outputs are wildcards, still favor the inputs first (propagate array/reference/etc. state)
 	if (MyInputPin->LinkedTo.Num() > 0)
 	{
 		// If we can't mirror from output type, we should at least get the type information from the input connection chain

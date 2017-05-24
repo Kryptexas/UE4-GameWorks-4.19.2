@@ -95,6 +95,7 @@ void UEnvironmentQueryGraph::UpdateAsset(int32 UpdateFlags)
 							UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(TestNode->NodeInstance);
 							if (TestInstance)
 							{
+								TestInstance->TestOrder = TestIdx;
 								OptionInstance->Tests.Add(TestInstance);
 							}
 						}
@@ -466,3 +467,135 @@ void UEnvironmentQueryGraph::SpawnMissingSubNodes(UEnvQueryOption* Option, TSet<
 		TestNode->NodeInstance = TestsCopy[SubIdx];
 	}
 }
+
+void UEnvironmentQueryGraph::ResetProfilerStats()
+{
+	for (int32 Idx = 0; Idx < Nodes.Num(); Idx++)
+	{
+		UEnvironmentQueryGraphNode_Option* OptionNode = Cast<UEnvironmentQueryGraphNode_Option>(Nodes[Idx]);
+		if (OptionNode)
+		{
+			OptionNode->bStatShowOverlay = false;
+			OptionNode->StatsPerGenerator.Reset();
+			OptionNode->StatAvgPickRate = 0.0f;
+
+			for (int32 TestIdx = 0; TestIdx < OptionNode->SubNodes.Num(); TestIdx++)
+			{
+				UEnvironmentQueryGraphNode_Test* TestNode = Cast<UEnvironmentQueryGraphNode_Test>(OptionNode->SubNodes[TestIdx]);
+				if (TestNode)
+				{
+					TestNode->bStatShowOverlay = false;
+					TestNode->Stats = FEnvionmentQueryNodeStats();
+				}
+			}
+		}
+	}
+}
+
+#if USE_EQS_DEBUGGER
+
+FEnvionmentQueryNodeStats GetOverlayStatsHelper(const FEQSDebugger::FStatsInfo& StatsInfo, int32 OptionIdx, int32 StepIdx)
+{
+	FEnvionmentQueryNodeStats OverlayInfo;
+	OverlayInfo.AvgTime = 1000.0f * StatsInfo.TotalAvgData.OptionStats[OptionIdx].StepData[StepIdx].ExecutionTime / StatsInfo.TotalAvgCount;
+
+	// make sure it exists in data from most expensive run
+	if (StatsInfo.MostExpensive.OptionStats.IsValidIndex(OptionIdx) && StatsInfo.MostExpensive.OptionStats[OptionIdx].StepData.IsValidIndex(StepIdx))
+	{
+		OverlayInfo.MaxTime = StatsInfo.MostExpensive.OptionStats[OptionIdx].StepData[StepIdx].ExecutionTime * 1000.0f;
+		OverlayInfo.MaxNumProcessedItems = StatsInfo.MostExpensive.OptionStats[OptionIdx].StepData[StepIdx].NumProcessedItems;
+	}
+
+	return OverlayInfo;
+}
+
+void UEnvironmentQueryGraph::StoreProfilerStats(const FEQSDebugger::FStatsInfo& Stats)
+{
+	TArray<float> OptionPickRate;
+	for (int32 Idx = 0; Idx < Stats.TotalAvgData.OptionStats.Num(); Idx++)
+	{
+		OptionPickRate.Add(1.0f * Stats.TotalAvgData.OptionStats[Idx].NumRuns / Stats.TotalAvgCount);
+	}
+
+	// process connected option nodes, if asset no longer match recorder data, debug view will not be accurate!
+	int32 AssetOptionIdx = 0;
+	for (int32 NodeIdx = 0; NodeIdx < Nodes.Num(); NodeIdx++)
+	{
+		UEnvironmentQueryGraphNode_Root* RootNode = Cast<UEnvironmentQueryGraphNode_Root>(Nodes[NodeIdx]);
+		if (RootNode)
+		{
+			for (int32 PinIdx = 0; PinIdx < RootNode->Pins.Num(); PinIdx++)
+			{
+				if (RootNode->Pins[PinIdx] && RootNode->Pins[PinIdx]->Direction == EEdGraphPinDirection::EGPD_Output)
+				{
+					for (int32 LinkedPinIdx = 0; LinkedPinIdx < RootNode->Pins[PinIdx]->LinkedTo.Num(); LinkedPinIdx++)
+					{
+						UEdGraphPin* LinkedPin = RootNode->Pins[PinIdx]->LinkedTo[LinkedPinIdx];
+						UEnvironmentQueryGraphNode_Option* OptionNode = LinkedPin ? Cast<UEnvironmentQueryGraphNode_Option>(LinkedPin->GetOuter()) : nullptr;
+
+						if (OptionNode)
+						{
+							int32 StatsOptionIdx = INDEX_NONE;
+							for (int32 Idx = 0; Idx < Stats.TotalAvgData.OptionData.Num(); Idx++)
+							{
+								if (Stats.TotalAvgData.OptionData[Idx].OptionIdx == AssetOptionIdx)
+								{
+									StatsOptionIdx = Idx;
+									break;
+								}
+							}
+
+							if (StatsOptionIdx != INDEX_NONE)
+							{
+								// fill overlay values
+
+								OptionNode->bStatShowOverlay = true;
+								OptionNode->StatAvgPickRate = OptionPickRate.IsValidIndex(StatsOptionIdx) ? OptionPickRate[StatsOptionIdx] : 0.0f;
+								OptionNode->StatsPerGenerator.Reset();
+
+								if (Stats.TotalAvgData.OptionStats.IsValidIndex(StatsOptionIdx))
+								{
+									const int32 NumGenerators = Stats.TotalAvgData.OptionData[StatsOptionIdx].NumGenerators;
+									for (int32 GenIdx = 0; GenIdx < NumGenerators; GenIdx++)
+									{
+										const FEnvionmentQueryNodeStats OverlayStatsInfo = GetOverlayStatsHelper(Stats, StatsOptionIdx, GenIdx);
+										OptionNode->StatsPerGenerator.Add(OverlayStatsInfo);
+									}
+
+									for (int32 TestIdx = 0; TestIdx < OptionNode->SubNodes.Num(); TestIdx++)
+									{
+										UEnvironmentQueryGraphNode_Test* TestNode = Cast<UEnvironmentQueryGraphNode_Test>(OptionNode->SubNodes[TestIdx]);
+										if (TestNode)
+										{
+											int32 StatsStepIdx = INDEX_NONE;
+											for (int32 Idx = 0; Idx < Stats.TotalAvgData.OptionData[StatsOptionIdx].TestIndices.Num(); Idx++)
+											{
+												if (Stats.TotalAvgData.OptionData[StatsOptionIdx].TestIndices[Idx] == TestIdx)
+												{
+													StatsStepIdx = Idx + NumGenerators;
+													break;
+												}
+											}
+
+											if (StatsStepIdx != INDEX_NONE)
+											{
+												TestNode->bStatShowOverlay = true;
+												TestNode->Stats = GetOverlayStatsHelper(Stats, StatsOptionIdx, StatsStepIdx);
+											}
+										}
+									}
+								}
+							}
+
+							AssetOptionIdx++;
+						}
+					}
+				}
+			}
+
+			break;
+		}
+	}
+}
+
+#endif // USE_EQS_DEBUGGER

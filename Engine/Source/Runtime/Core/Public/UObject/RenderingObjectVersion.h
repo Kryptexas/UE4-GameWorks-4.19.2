@@ -43,6 +43,12 @@ struct CORE_API FRenderingObjectVersion
 
 		FixedBSPLightmaps,
 
+		DistanceFieldSelfShadowBias,
+
+		FixedLegacyMaterialAttributeNodeTypes,
+
+		ShaderResourceCodeSharing,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

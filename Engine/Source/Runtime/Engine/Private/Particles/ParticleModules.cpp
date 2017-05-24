@@ -3030,6 +3030,8 @@ UParticleModuleLight::UParticleModuleLight(const FObjectInitializer& ObjectIniti
 	SpawnFraction = 1;
 	bSupported3DDrawMode = true;
 	b3DDrawMode = true;
+	// Particle lights don't affect volumetric fog by default, since they are likely to be moving fast and volumetric fog relies on a strong temporal filter
+	VolumetricScatteringIntensity = 0.0f;
 }
 
 void UParticleModuleLight::InitializeDefaults()
@@ -3140,7 +3142,12 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 		LightId = (uint64)PointLightComponent;
 						
 		USceneComponent* RootComponent = HQLightContainer->GetRootComponent();
-		if (RootComponent)
+		USceneComponent* AttachParent = ParticleSystem->GetAttachParent();
+		if (AttachParent)
+		{			
+			PointLightComponent->SetupAttachment(AttachParent, ParticleSystem->GetAttachSocketName());
+		}
+		else if (RootComponent)
 		{
 			PointLightComponent->SetupAttachment(RootComponent);
 		}			
@@ -3148,6 +3155,7 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 		PointLightComponent->LightingChannels = LightingChannels;
 		PointLightComponent->bUseInverseSquaredFalloff = bUseInverseSquaredFalloff;
 		PointLightComponent->bAffectTranslucentLighting = bAffectsTranslucency;
+		PointLightComponent->VolumetricScatteringIntensity = VolumetricScatteringIntensity;
 		PointLightComponent->SetCastShadows(bShadowCastingLights);
 
 		PointLightComponent->RegisterComponent();

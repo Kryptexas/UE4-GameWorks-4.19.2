@@ -5,6 +5,7 @@
 #include "Misc/ScopeLock.h"
 #include "Internationalization/Culture.h"
 #include "Misc/PackageName.h"
+#include "Misc/ConfigCacheIni.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackageLocalizationCache, Log, All);
 
@@ -24,6 +25,12 @@ void FPackageLocalizationCultureCache::ConditionalUpdateCache_NoLock()
 {
 	if (PendingSourceRootPathsToSearch.Num() == 0)
 	{
+		return;
+	}
+
+	if (!IsInGameThread())
+	{
+		UE_LOG(LogPackageLocalizationCache, Warning, TEXT("Skipping the cache update for %d pending package path(s) due to a cache request from a non-game thread. Some localized packages may be missed for this query."), PendingSourceRootPathsToSearch.Num());
 		return;
 	}
 
@@ -160,7 +167,45 @@ FName FPackageLocalizationCultureCache::FindLocalizedPackageName(const FName InS
 
 FPackageLocalizationCache::FPackageLocalizationCache()
 {
-	HandleCultureChanged();
+	// Read the asset group class information so we know which culture to use for packages based on the class of their primary asset
+	{
+		auto ReadAssetGroupClassSettings = [this](const TCHAR* InConfigLogName, const FString& InConfigFilename)
+		{
+			// The config is Group=Class, but we want Class=Group
+			if (const FConfigSection* AssetGroupClassesSection = GConfig->GetSectionPrivate(TEXT("Internationalization.AssetGroupClasses"), false, true, InConfigFilename))
+			{
+				for (const auto& SectionEntryPair : *AssetGroupClassesSection)
+				{
+					const FName GroupName = SectionEntryPair.Key;
+					const FName ClassName = *SectionEntryPair.Value.GetValue();
+
+					const auto* AssetClassGroupPair = AssetClassesToAssetGroups.FindByPredicate([&](const TTuple<FName, FName>& InAssetClassToAssetGroup)
+					{
+						return InAssetClassToAssetGroup.Key == ClassName;
+					});
+
+					if (AssetClassGroupPair)
+					{
+						UE_CLOG(AssetClassGroupPair->Value != ClassName, LogPackageLocalizationCache, Warning, TEXT("Class '%s' was already assigned to asset group '%s', ignoring request to assign it to '%s' from the %s configuration."), *ClassName.ToString(), *AssetClassGroupPair->Value.ToString(), *GroupName.ToString(), InConfigLogName);
+					}
+					else
+					{
+						AssetClassesToAssetGroups.Add(MakeTuple(ClassName, GroupName));
+						UE_LOG(LogPackageLocalizationCache, Log, TEXT("Assigning class '%s' to asset group '%s' from the %s configuration."), *ClassName.ToString(), *GroupName.ToString(), InConfigLogName);
+					}
+				}
+			}
+		};
+
+		ReadAssetGroupClassSettings(TEXT("game"), GGameIni);
+		ReadAssetGroupClassSettings(TEXT("engine"), GEngineIni);
+
+		bPackageNameToAssetGroupDirty = true;
+	}
+
+	const FString CurrentCultureName = FInternationalization::Get().GetCurrentLanguage()->GetName();
+	CurrentCultureCache = FindOrAddCacheForCulture_NoLock(CurrentCultureName);
+
 	FInternationalization::Get().OnCultureChanged().AddRaw(this, &FPackageLocalizationCache::HandleCultureChanged);
 
 	FPackageName::OnContentPathMounted().AddRaw(this, &FPackageLocalizationCache::HandleContentPathMounted);
@@ -186,11 +231,27 @@ void FPackageLocalizationCache::ConditionalUpdateCache()
 	{
 		CultureCachePair.Value->ConditionalUpdateCache();
 	}
+
+	ConditionalUpdatePackageNameToAssetGroupCache_NoLock();
 }
 
 FName FPackageLocalizationCache::FindLocalizedPackageName(const FName InSourcePackageName)
 {
 	FScopeLock Lock(&LocalizedCachesCS);
+
+	ConditionalUpdatePackageNameToAssetGroupCache_NoLock();
+
+	if (PackageNameToAssetGroup.Num() > 0)
+	{
+		const FName AssetGroupName = PackageNameToAssetGroup.FindRef(InSourcePackageName);
+		if (!AssetGroupName.IsNone())
+		{
+			const FCultureRef PrimaryAssetCulture = FInternationalization::Get().GetCurrentAssetGroupCulture(AssetGroupName);
+
+			TSharedPtr<FPackageLocalizationCultureCache> CultureCache = FindOrAddCacheForCulture_NoLock(PrimaryAssetCulture->GetName());
+			return (CultureCache.IsValid()) ? CultureCache->FindLocalizedPackageName(InSourcePackageName) : NAME_None;
+		}
+	}
 
 	return (CurrentCultureCache.IsValid()) ? CurrentCultureCache->FindLocalizedPackageName(InSourcePackageName) : NAME_None;
 }
@@ -210,21 +271,52 @@ TSharedPtr<FPackageLocalizationCultureCache> FPackageLocalizationCache::FindOrAd
 		return nullptr;
 	}
 
-	TSharedPtr<FPackageLocalizationCultureCache>& CultureCache = AllCultureCaches.FindOrAdd(InCultureName);
-	if (!CultureCache.IsValid())
 	{
-		CultureCache = MakeShareable(new FPackageLocalizationCultureCache(this, InCultureName));
-		
-		// Add the current set of root paths
-		TArray<FString> RootPaths;
-		FPackageName::QueryRootContentPaths(RootPaths);
-		for (const FString& RootPath : RootPaths)
+		auto* ExistingCache = AllCultureCaches.FindByPredicate([&](const TTuple<FString, TSharedPtr<FPackageLocalizationCultureCache>>& InCultureCachePair)
 		{
-			CultureCache->AddRootSourcePath(RootPath);
+			return InCultureCachePair.Key == InCultureName;
+		});
+
+		if (ExistingCache)
+		{
+			return ExistingCache->Value;
 		}
 	}
 
+	TSharedPtr<FPackageLocalizationCultureCache> CultureCache = MakeShared<FPackageLocalizationCultureCache>(this, InCultureName);
+
+	// Add the current set of root paths
+	TArray<FString> RootPaths;
+	FPackageName::QueryRootContentPaths(RootPaths);
+	for (const FString& RootPath : RootPaths)
+	{
+		CultureCache->AddRootSourcePath(RootPath);
+	}
+
+	AllCultureCaches.Add(MakeTuple(InCultureName, CultureCache));
 	return CultureCache;
+}
+
+void FPackageLocalizationCache::ConditionalUpdatePackageNameToAssetGroupCache_NoLock()
+{
+	if (!bPackageNameToAssetGroupDirty)
+	{
+		return;
+	}
+
+	if (!IsInGameThread())
+	{
+		UE_LOG(LogPackageLocalizationCache, Warning, TEXT("Skipping the cache update for the package asset groups due to a cache request from a non-game thread. Some localized packages may be missed for this query."));
+		return;
+	}
+
+	bPackageNameToAssetGroupDirty = false;
+
+	PackageNameToAssetGroup.Reset();
+	for (const auto& AssetClassGroupPair : AssetClassesToAssetGroups)
+	{
+		FindAssetGroupPackages(AssetClassGroupPair.Value, AssetClassGroupPair.Key);
+	}
 }
 
 void FPackageLocalizationCache::HandleContentPathMounted(const FString& InAssetPath, const FString& InFilesystemPath)
@@ -235,6 +327,8 @@ void FPackageLocalizationCache::HandleContentPathMounted(const FString& InAssetP
 	{
 		CultureCachePair.Value->AddRootSourcePath(InAssetPath);
 	}
+
+	bPackageNameToAssetGroupDirty = true;
 }
 
 void FPackageLocalizationCache::HandleContentPathDismounted(const FString& InAssetPath, const FString& InFilesystemPath)
@@ -245,6 +339,8 @@ void FPackageLocalizationCache::HandleContentPathDismounted(const FString& InAss
 	{
 		CultureCachePair.Value->RemoveRootSourcePath(InAssetPath);
 	}
+
+	bPackageNameToAssetGroupDirty = true;
 }
 
 void FPackageLocalizationCache::HandleCultureChanged()
@@ -255,6 +351,15 @@ void FPackageLocalizationCache::HandleCultureChanged()
 	CurrentCultureCache.Reset();
 	AllCultureCaches.Empty();
 
-	const FString CurrentCultureName = FInternationalization::Get().GetCurrentCulture()->GetName();
+	const FString CurrentCultureName = FInternationalization::Get().GetCurrentLanguage()->GetName();
 	CurrentCultureCache = FindOrAddCacheForCulture_NoLock(CurrentCultureName);
+
+	if (CurrentCultureCache.IsValid())
+	{
+		// We expect culture changes to happen on the game thread, so update the cache now while it is likely safe to do so
+		// (ConditionalUpdateCache will internally check that this is currently the game thread before allowing the update)
+		CurrentCultureCache->ConditionalUpdateCache();
+	}
+
+	ConditionalUpdatePackageNameToAssetGroupCache_NoLock();
 }

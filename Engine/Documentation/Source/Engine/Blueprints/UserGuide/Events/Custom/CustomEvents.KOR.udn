@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:커스텀 이벤트
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -6,6 +6,7 @@ Description: 그래프 안에서 발동시킬 수 있는 사용자 제작 커스
 version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

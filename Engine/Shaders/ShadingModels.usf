@@ -116,7 +116,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 			float CNoH = saturate( dot(ClearCoatUnderNormal, H) );
 
 			float D2 = D_GGX(LobeRoughness[1], CNoH ) * LobeEnergy[1];
-			float Vis2 = Vis_Schlick( LobeRoughness[1], NoV, NoL );
+			float Vis2 = Vis_SmithJointApprox( LobeRoughness[1], NoV, NoL );
 			//float3 F2 = F_Schlick( GBuffer.SpecularColor, VoH );
 			float3 F2 = saturate( 50.0 * GBuffer.SpecularColor.g ) * Fc + (1 - Fc) * GBuffer.SpecularColor;
 
@@ -133,7 +133,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 
 	// Generalized microfacet specular
 	float D2 = D_GGX( LobeRoughness[1], NoH ) * LobeEnergy[1];
-	float Vis2 = Vis_Schlick( LobeRoughness[1], NoV, NoL );
+	float Vis2 = Vis_SmithJointApprox( LobeRoughness[1], NoV, NoL );
 	//float3 F2 = F_Schlick( GBuffer.SpecularColor, VoH );
 	float3 F2 = saturate( 50.0 * GBuffer.SpecularColor.g ) * Fc + (1 - Fc) * GBuffer.SpecularColor;
 
@@ -205,7 +205,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 	
 	// Generalized microfacet specular
 	float D2 = D_GGX( Roughness, NoH ) * LobeEnergy[2];
-	float Vis2 = Vis_Schlick( Roughness, NoV2, NoL2 );
+	float Vis2 = Vis_SmithJointApprox( Roughness, NoV2, NoL2 );
 	float3 F2 = F_Schlick( GBuffer.SpecularColor, VoH );
 
 	float3 Fr2 = Diffuse_Lambert( GBuffer.DiffuseColor ) * LobeEnergy[2] + (D2 * Vis2) * F2;

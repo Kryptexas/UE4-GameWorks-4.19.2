@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class FreeType2 : ModuleRules
 {
-	public FreeType2(TargetInfo Target)
+	public FreeType2(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -19,15 +19,18 @@ public class FreeType2 : ModuleRules
 		    Target.Platform == UnrealTargetPlatform.HTML5)
 		{
 			FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.6/";
+			
+			PublicSystemIncludePaths.Add(FreeType2Path + "Include");
 		}
 		else
 		{
+			
 			FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/";
+			
+			PublicSystemIncludePaths.Add(FreeType2Path + "include");
 		}
 
 		FreeType2LibPath = FreeType2Path + "Lib/";
-
-		PublicSystemIncludePaths.Add(FreeType2Path + "include");
 
         if (Target.Platform == UnrealTargetPlatform.Win32 ||
             Target.Platform == UnrealTargetPlatform.Win64 ||
@@ -89,7 +92,7 @@ public class FreeType2 : ModuleRules
 		}
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            if (Target.Type == TargetRules.TargetType.Server)
+            if (Target.Type == TargetType.Server)
             {
                 string Err = string.Format("{0} dedicated server is made to depend on {1}. We want to avoid this, please correct module dependencies.", Target.Platform.ToString(), this.ToString());
                 System.Console.WriteLine(Err);
@@ -98,7 +101,7 @@ public class FreeType2 : ModuleRules
 
             PublicSystemIncludePaths.Add(FreeType2Path + "Include");
 
-            if (Target.IsMonolithic)
+            if (Target.LinkType == TargetLinkType.Monolithic)
             {
                 PublicAdditionalLibraries.Add(FreeType2LibPath + "Linux/" + Target.Architecture + "/libfreetype.a");
             }

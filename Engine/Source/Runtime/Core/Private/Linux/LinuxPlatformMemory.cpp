@@ -15,9 +15,15 @@
 #include "HAL/MallocJemalloc.h"
 #include "HAL/MallocBinned.h"
 #include "HAL/MallocBinned2.h"
-#include <sys/sysinfo.h>
+#if PLATFORM_FREEBSD
+	#include <kvm.h>
+#else
+	#include <sys/sysinfo.h>
+#endif
 #include <sys/file.h>
 #include <sys/mman.h>
+
+#include "OSAllocationPool.h"
 
 // do not do a root privilege check on non-x86-64 platforms (assume an embedded device)
 #if defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
@@ -26,6 +32,8 @@
 	#define UE4_DO_ROOT_PRIVILEGE_CHECK	 0
 #endif // defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
 
+// Set rather to use BinnedMalloc2 for binned malloc, can be overridden below
+#define USE_MALLOC_BINNED2 (1)
 
 void FLinuxPlatformMemory::Init()
 {
@@ -38,9 +46,6 @@ void FLinuxPlatformMemory::Init()
 		MemoryConstants.TotalPhysical / 1024ULL, 
 		MemoryConstants.TotalPhysical);
 }
-
-// Set rather to use BinnedMalloc2 for binned malloc, can be overridden below
-#define USE_MALLOC_BINNED2 (0)
 
 class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 {
@@ -129,7 +134,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 
 	default:	// intentional fall-through
 	case EMemoryAllocatorToUse::Binned:
-		Allocator = new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
+		Allocator = new FMallocBinned(FPlatformMemory::GetConstants().BinnedPageSize & MAX_uint32, 0x100000000);
 		break;
 	}
 
@@ -160,19 +165,205 @@ bool FLinuxPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const
 	return mprotect(Ptr, Size, ProtectMode) == 0;
 }
 
-void* FLinuxPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
-{	
-	return mmap(nullptr, Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+#if UE4_POOL_BAFO_ALLOCATIONS
+namespace LinuxMemoryPool
+{
+	enum
+	{
+		LargestPoolSize = 32 * 1024 * 1024,
+
+		RequiredAlignment = 65536,	// should match BinnedPageSize
+		ExtraSizeToAllocate = 60 * 1024,	// BinnedPageSize - SystemPageSize (4KB on most platforms)
+	};
+
+	/** Table used to describe an array of pools.
+	 *	Format:
+	 *	  Each entry is two int32, one is block size in bytes, another is number of such blocks in pool.
+	 *    Block size should be divisible by RequiredAlignment
+	 *	  -1 for the first number is the end marker.
+	 *	  Entries should be sorted ascending by block size.
+	 */
+	int32 PoolTable[] =
+	{
+		// 512 MB of 64K blocks
+		65536, 8192,
+		// 256 MB of 256K blocks
+		262144, 1024,
+		// 256 MB of 1MB blocks
+		1024 * 1024, 256,
+		// 192 MB of 8MB blocks
+		8 * 1024 * 1024, 24,
+		// 192 MB of 32MB blocks
+		LinuxMemoryPool::LargestPoolSize, 6,
+		-1
+	};
+
+	/** Reserves the address space (mmap on Linux, VirtualAlloc(MEM_RESERVE) on Windows. Failure is fatal. */
+	bool ReserveAddressRange(void** OutReturnedPointer, SIZE_T Size)
+	{
+		void* Ptr = mmap(nullptr, Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+		if (Ptr == MAP_FAILED)
+		{
+			const int ErrNo = errno;
+			UE_LOG(LogHAL, Fatal, TEXT("mmap(len=%llu) failed with errno = %d (%s)"), (uint64)Size,
+				ErrNo, StringCast< TCHAR >(strerror(ErrNo)).Get());
+			// unreachable
+			return false;
+		}
+
+		*OutReturnedPointer = Ptr;
+		return true;
+	}
+
+	/**
+	* Frees the address space (munmap on Linux, VirtualFree() on Windows.
+	* To be compatible with all platforms, Size should exactly match the size requested in ReserveAddressRange,
+	* and Address should be the same as the pointer returned from RAR. Number of RAR/FAR calls should match, too.
+	*/
+	bool FreeAddressRange(void* Address, SIZE_T Size)
+	{
+		if (munmap(Address, Size) != 0)
+		{
+			const int ErrNo = errno;
+			UE_LOG(LogHAL, Fatal, TEXT("munmap(addr=%p, len=%llu) failed with errno = %d (%s)"), Address, (uint64)Size,
+				ErrNo, StringCast< TCHAR >(strerror(ErrNo)).Get());
+			// unreachable
+			return false;
+		}
+		return true;
+	}
+
+	/** Let the OS know that we need this range to be backed by physical RAM. */
+	bool CommitAddressRange(void* AddrStart, SIZE_T Size)
+	{
+		return madvise(AddrStart, Size, MADV_WILLNEED) == 0;
+	}
+
+	/** Let the OS know that we the RAM pages backing this address range can be evicted. */
+	bool EvictAddressRange(void* AddrStart, SIZE_T Size)
+	{
+		return madvise(AddrStart, Size, MADV_DONTNEED) == 0;
+	}
+
+	typedef TMemoryPoolArray<
+		&ReserveAddressRange,
+		&FreeAddressRange,
+		&CommitAddressRange,
+		&EvictAddressRange,
+		RequiredAlignment,
+		ExtraSizeToAllocate >
+		TLinuxMemoryPoolArray;
+
+	/**
+	 * This function tries to scale the pool table according to the available memory.
+	 * Why scale the pool: with new BAFO behavior, it is rather easy to run into
+	 * limit of VMAs (mmaps), which is about 64k mappings by default. Pool size should thus
+	 * be adequate to hold most of the actually used memory, which is specially important for the editor (and cooker).
+	 */
+	int32* ScalePoolTable(int32* InOutPoolTable)
+	{
+		uint64 PoolSize = 0;
+		uint64 MaxPooledAllocs = 0;
+		for (int32* PoolPtr = InOutPoolTable; *PoolPtr != -1; PoolPtr += 2)
+		{
+			uint64 BlockSize = static_cast<uint64>(PoolPtr[0]);
+			uint64 NumBlocks = static_cast<uint64>(PoolPtr[1]);
+			PoolSize += (BlockSize * NumBlocks);
+			MaxPooledAllocs += NumBlocks;
+		}
+
+		// do not scale for a non-editor
+		if (UE_EDITOR)
+		{
+			// scale it so it is roughly 25% of total physical
+			uint64 DesiredPoolSize = FPlatformMemory::GetConstants().TotalPhysical / 4;
+			uint64 Multiplier = (DesiredPoolSize / PoolSize);
+			if (Multiplier >= 2)
+			{
+				PoolSize = 0;
+				MaxPooledAllocs = 0;
+				for (int32* PoolPtr = InOutPoolTable; *PoolPtr != -1; PoolPtr += 2)
+				{
+					uint64 BlockSize = static_cast<uint64>(PoolPtr[0]);
+					PoolPtr[1] *= Multiplier;
+					uint64 NumBlocks = static_cast<uint64>(PoolPtr[1]);
+					PoolSize += (BlockSize * NumBlocks);
+					MaxPooledAllocs += NumBlocks;
+				}
+			}
+		}
+
+		printf("Pooling OS allocations (pool size: %llu MB, maximum allocations: %llu).\n", PoolSize / (1024ULL * 1024ULL), MaxPooledAllocs);
+
+		return InOutPoolTable;
+	}
+
+	TLinuxMemoryPoolArray& GetPoolArray()
+	{
+		static TLinuxMemoryPoolArray PoolArray(ScalePoolTable(LinuxMemoryPool::PoolTable));
+		return PoolArray;
+	}
+}
+#endif // UE4_POOL_BAFO_ALLOCATIONS
+
+void* FLinuxPlatformMemory::BinnedAllocFromOS(SIZE_T Size)
+{
+#if UE4_POOL_BAFO_ALLOCATIONS
+	LinuxMemoryPool::TLinuxMemoryPoolArray& PoolArray = LinuxMemoryPool::GetPoolArray();
+	void* RetVal = PoolArray.Allocate(Size);
+	if (LIKELY(RetVal))
+	{
+		return RetVal;
+	}
+	// otherwise, let generic BAFO deal with it
+
+#if UE4_POOL_BAFO_ALLOCATIONS_DEBUG_OOM
+	// only store BAFO allocs
+	if (LIKELY(AllocationHistogram::CurAlloc < AllocationHistogram::MaxAllocs))
+	{
+		AllocationHistogram::Sizes[AllocationHistogram::CurAlloc++] = Size;
+	}
+#endif // UE4_POOL_BAFO_ALLOCATIONS_DEBUG_OOM
+
+	void* Ret = FGenericPlatformMemory::BinnedAllocFromOS(Size);
+#if UE4_POOL_BAFO_ALLOCATIONS_DEBUG_OOM
+	if (Ret == nullptr)
+	{
+		AllocationHistogram::PrintDebugInfo();
+		LinuxMemoryPool::GetPoolArray().PrintDebugInfo();
+		for (;;) {};	// hang on here so we can attach the debugger and inspect the details
+	}
+#endif // UE4_POOL_BAFO_ALLOCATIONS_DEBUG_OOM
+	return Ret;
+
+#else
+
+	return FGenericPlatformMemory::BinnedAllocFromOS(Size);
+
+#endif // UE4_POOL_BAFO_ALLOCATIONS
 }
 
-void FLinuxPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
+void FLinuxPlatformMemory::BinnedFreeToOS(void* Ptr, SIZE_T Size)
 {
-	if (munmap(Ptr, Size) != 0)
+#if UE4_POOL_BAFO_ALLOCATIONS
+	LinuxMemoryPool::TLinuxMemoryPoolArray& PoolArray = LinuxMemoryPool::GetPoolArray();
+	if (LIKELY(PoolArray.Free(Ptr, Size)))
 	{
-		const int ErrNo = errno;
-		UE_LOG(LogHAL, Fatal, TEXT("munmap(addr=%p, len=%llu) failed with errno = %d (%s)"), Ptr, Size,
-			ErrNo, StringCast< TCHAR >(strerror(ErrNo)).Get());
+		return;
 	}
+	// otherwise, let generic BFTO deal with it
+#endif // UE4_POOL_BAFO_ALLOCATIONS
+
+	return FGenericPlatformMemory::BinnedFreeToOS(Ptr, Size);
+}
+
+bool FLinuxPlatformMemory::BinnedPlatformHasMemoryPoolForThisSize(SIZE_T Size)
+{
+#if UE4_POOL_BAFO_ALLOCATIONS
+	return Size <= LinuxMemoryPool::LargestPoolSize;
+#else
+	return false;
+#endif // UE4_POOL_BAFO_ALLOCATIONS
 }
 
 namespace LinuxPlatformMemory
@@ -222,6 +413,31 @@ namespace LinuxPlatformMemory
 FPlatformMemoryStats FLinuxPlatformMemory::GetStats()
 {
 	FPlatformMemoryStats MemoryStats;	// will init from constants
+
+#if PLATFORM_FREEBSD
+
+	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
+
+	size_t size = sizeof(SIZE_T);
+
+	SIZE_T SysFreeCount = 0;
+	sysctlbyname("vm.stats.vm.v_free_count", &SysFreeCount, &size, NULL, 0);
+
+	SIZE_T SysActiveCount = 0;
+	sysctlbyname("vm.stats.vm.v_active_count", &SysActiveCount, &size, NULL, 0);
+
+	// Get swap info from kvm api
+	kvm_t* Kvm = kvm_open(NULL, "/dev/null", NULL, O_RDONLY, NULL);
+	struct kvm_swap KvmSwap;
+	kvm_getswapinfo(Kvm, &KvmSwap, 1, 0);
+	kvm_close(Kvm);
+
+	MemoryStats.AvailablePhysical = SysFreeCount * MemoryConstants.PageSize;
+	MemoryStats.AvailableVirtual = (KvmSwap.ksw_total - KvmSwap.ksw_used) * MemoryConstants.PageSize;
+	MemoryStats.UsedPhysical = SysActiveCount * MemoryConstants.PageSize;
+	MemoryStats.UsedVirtual = KvmSwap.ksw_used * MemoryConstants.PageSize;
+
+#else
 
 	// open to all kind of overflows, thanks to Linux approach of exposing system stats via /proc and lack of proper C API
 	// And no, sysinfo() isn't useful for this (cannot get the same value for MemAvailable through it for example).
@@ -311,6 +527,8 @@ FPlatformMemoryStats FLinuxPlatformMemory::GetStats()
 		fclose(ProcMemStats);
 	}
 
+#endif // PLATFORM_FREEBSD
+
 	// sanitize stats as sometimes peak < used for some reason
 	MemoryStats.PeakUsedVirtual = FMath::Max(MemoryStats.PeakUsedVirtual, MemoryStats.UsedVirtual);
 	MemoryStats.PeakUsedPhysical = FMath::Max(MemoryStats.PeakUsedPhysical, MemoryStats.UsedPhysical);
@@ -324,6 +542,28 @@ const FPlatformMemoryConstants& FLinuxPlatformMemory::GetConstants()
 
 	if( MemoryConstants.TotalPhysical == 0 )
 	{
+#if PLATFORM_FREEBSD
+
+		size_t Size = sizeof(SIZE_T);
+
+		SIZE_T SysPageCount = 0;
+		sysctlbyname("vm.stats.vm.v_page_count", &SysPageCount, &Size, NULL, 0);
+
+		SIZE_T SysPageSize = 0;
+		sysctlbyname("vm.stats.vm.v_page_size", &SysPageSize, &Size, NULL, 0);
+
+		// Get swap info from kvm api
+		kvm_t* Kvm = kvm_open(NULL, "/dev/null", NULL, O_RDONLY, NULL);
+		struct kvm_swap KvmSwap;
+		kvm_getswapinfo(Kvm, &KvmSwap, 1, 0);
+		kvm_close(Kvm);
+
+		MemoryConstants.TotalPhysical = SysPageCount * SysPageSize;
+		MemoryConstants.TotalVirtual = KvmSwap.ksw_total * SysPageSize;
+		MemoryConstants.PageSize = SysPageSize;
+
+#else
+ 
 		// Gather platform memory stats.
 		struct sysinfo SysInfo;
 		unsigned long long MaxPhysicalRAMBytes = 0;
@@ -337,8 +577,15 @@ const FPlatformMemoryConstants& FLinuxPlatformMemory::GetConstants()
 
 		MemoryConstants.TotalPhysical = MaxPhysicalRAMBytes;
 		MemoryConstants.TotalVirtual = MaxVirtualRAMBytes;
-		MemoryConstants.TotalPhysicalGB = (MemoryConstants.TotalPhysical + 1024 * 1024 * 1024 - 1) / 1024 / 1024 / 1024;
+
+#endif // PLATFORM_FREEBSD
+
+		MemoryConstants.TotalPhysicalGB = (MemoryConstants.TotalPhysical + 1024ULL * 1024ULL * 1024ULL - 1) / 1024ULL / 1024ULL / 1024ULL;
+
 		MemoryConstants.PageSize = sysconf(_SC_PAGESIZE);
+		MemoryConstants.BinnedPageSize = FMath::Max((SIZE_T)65536, MemoryConstants.PageSize);
+		MemoryConstants.BinnedAllocationGranularity = 16384;  // Binned2 malloc will allocate in increments of this, and this is the minimum constant recommended
+		MemoryConstants.OsAllocationGranularity = MemoryConstants.BinnedPageSize;
 	}
 
 	return MemoryConstants;	

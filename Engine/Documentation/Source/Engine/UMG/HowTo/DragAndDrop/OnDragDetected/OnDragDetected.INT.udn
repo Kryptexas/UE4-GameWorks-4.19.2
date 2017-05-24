@@ -4,8 +4,8 @@ Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:In this step we set up what happens when drag is detected.
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
-Version: 4.12
 SkillLevel: Intermediate
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -25,7 +25,7 @@ SkillLevel: Intermediate
 
 %Steps%
 
-In this step we determine what happens when the player is in fact dragging the HealthBar around on screen. 
+In this step, we determine what happens when the player is, in fact, dragging the HealthBar around on the screen. 
 
 ## Steps
 
@@ -34,7 +34,7 @@ In this step we determine what happens when the player is in fact dragging the H
 	![](UpdatedDragDrop1.png)
 
 	When drag is detected, we will create our DragWidget (which will hold our drag widget). 
-	Before we continue with our OnDragDetected function, we need to pass through the Health Bar widget as reference when the DragWidget is created. 
+	Before we continue with our OnDragDetected function, we need to pass through the Health Bar widget as a reference when the DragWidget is created. 
 
 1.	Open **DragWidget** and add a **User Widget** variable called **WidgetReference** set to **Expose on Spawn** and **Editable**. 
 
@@ -64,11 +64,12 @@ In this step we determine what happens when the player is in fact dragging the H
 	_Click for full view._
 
 	Above we indicated what Widget Blueprint is our reference, what the drag visual should be and provided an offset in which to start dragging. 
-	There is an offset pin on the node by default, however we are using our own in our own calculation to determine the position in which to start dragging when Mouse Button Down is pressed. 
+	There is an offset pin on the node by default, however, we are using our own in our own calculation to determine the position in which to start dragging when Mouse Button Down is pressed. 
 
 The last few things we need to do is to determine what happens when the player releases the Left Mouse Button and performs the OnDrop function. 
 We also need to add the HealthBar Widget to our Main HUD Widget Blueprint and tell that to be displayed before testing everything out.  
 
 %Steps%
+
 
 

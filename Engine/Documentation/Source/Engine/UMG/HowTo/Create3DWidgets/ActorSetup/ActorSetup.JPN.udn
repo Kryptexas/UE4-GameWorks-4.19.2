@@ -1,14 +1,15 @@
-﻿INTSourceChangelist:2816279
-Availability:Public
+﻿INTSourceChangelist:3343833
+Availability:Docs
 Title:2.Actor ブループリントをセットアップする
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
-Description:Actor ブループリントを Widget コンポーネントと合わせて使用し、Widget ブループリントを 3D ワールド空間で表示します。 
+Description:Actor ブループリントを Widget コンポーネントと合わせて使用して、Widget ブループリントを 3D ワールド空間で表示します。 
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
 Related:Engine/Blueprints
 Version:4.10
 SkillLevel:Intermediate
-checkpoint: editorqs
+checkpoint: umg_create_3d_howto
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -27,7 +28,7 @@ checkpoint: editorqs
 
 %Steps%
 
-Widget ブループリントを作成したので、表示します。どのブループリント内でも **Widget コンポーネント** を作成して、そのブループリントをレベルに配置してゲームワールドで表示することができます。 
+Widget ブループリントを作成したので表示します。どのブループリント内でも **Widget コンポーネント** を作成して、そのブループリントをレベルに配置してゲームワールドで表示することができます。 
 Widget コンポーネントには、そのウィジェットをワールドまたはスクリーン空間で表示するかを決める設定もあります (デフォルト設定はワールド)。 
 
 ## ステップ
@@ -108,7 +109,7 @@ Widget コンポーネントには、そのウィジェットをワールドま�
 
 	![](Actor_16..png)
 
-	**Move (W)** キー、**Rotate (E)** キー、および **Scale (R)** キーを使用して、ワールド内のお好みの位置に UI を配置します。 
+	**Move (W)**、 **Rotate (E)**、および **Scale (R)** キーを使って、ワールドで配置したい場所に UI を置くことができます。 
 
 
 ## 最終結果

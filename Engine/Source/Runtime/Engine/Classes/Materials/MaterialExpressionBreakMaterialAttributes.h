@@ -16,6 +16,10 @@ class UMaterialExpressionBreakMaterialAttributes : public UMaterialExpression
 
  	UPROPERTY()
  	FMaterialAttributesInput MaterialAttributes;
+
+	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
+	//~ End UObject Interface
  
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR

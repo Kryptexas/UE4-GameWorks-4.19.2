@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TextureCompressor : ModuleRules
 {
-	public TextureCompressor(TargetInfo Target)
+	public TextureCompressor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

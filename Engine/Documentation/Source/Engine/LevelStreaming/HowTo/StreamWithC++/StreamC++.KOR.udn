@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3238697
 Availability: Public
 Title:C++ 로 레벨 로드 및 언로드
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
@@ -32,8 +32,7 @@ tags:Level Streaming
 		RootComponent = OverlapVolume;
 
 1. `LevelStreamerActor.h` 로 돌아와서 protected OverlapBegins 함수를 선언합니다. BoxComponent 의 OnComponentBeginOverlap 함수에 바인딩될 것입니다. 이 바인딩이 무슨 뜻이냐면, 
-OverlapBegins 는 반드시 UFUNCTION 매크로로 태그되어 있어야 하며, OnComponentBeginOverlap 와 
-같은 시그너처를 가져야 한다는 뜻입니다.
+OverlapBegins 는 반드시 UFUNCTION 매크로로 태그되어 있어야 하며, OnComponentBeginOverlap 와 같은 시그너처를 가져야 한다는 뜻입니다.
 		protected:
 	
 		UFUNCTION()
@@ -82,15 +81,15 @@ OverlapBegins 는 반드시 UFUNCTION 매크로로 태그되어 있어야 하며
 		public:	
 			// 이 액터 프로퍼티에 대한 기본값을 설정합니다.
 			ALevelStreamerActor();
-
-			// 게임 시작 또는 스폰시 호출됩니다.
-			virtual void BeginPlay() override;
-			
+	
 			// 매 프레임 호출됩니다.
 			virtual void Tick( float DeltaSeconds ) override;
 
 		protected:
 			
+			// 게임 시작 또는 스폰시 호출됩니다.
+			virtual void BeginPlay() override;
+
 			UFUNCTION()
 			void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 			

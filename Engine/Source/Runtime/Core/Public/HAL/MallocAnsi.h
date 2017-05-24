@@ -9,7 +9,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "Templates/AlignmentTemplates.h"
 
-#if defined(_MSC_VER) || PLATFORM_MAC
+#if defined(_MSC_VER) || PLATFORM_MAC || PLATFORM_IOS
 	#define USE_ALIGNED_MALLOC 1
 #else
 	//@todo gcc: this should be implemented more elegantly on other platforms
@@ -144,6 +144,8 @@ public:
 			return true;
 #elif PLATFORM_IOS
 			return true;
+#elif PLATFORM_LINUX
+			return true;	// malloc()/free() is thread-safe on Linux
 #else
 			return false;
 #endif

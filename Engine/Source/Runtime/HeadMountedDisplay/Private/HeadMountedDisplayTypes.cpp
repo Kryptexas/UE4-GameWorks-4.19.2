@@ -26,7 +26,17 @@ FHMDViewMesh::~FHMDViewMesh()
 
 void FHMDViewMesh::BuildMesh(const FVector2D Positions[], uint32 VertexCount, EHMDMeshType MeshType)
 {
-	check(pVertices == nullptr);
+	if( pVertices != nullptr )
+	{
+		delete[] pVertices;
+		pVertices = nullptr;
+	}
+	if( pIndices != nullptr )
+	{
+		delete[] pIndices;
+		pIndices = nullptr;
+	}
+
 	check(VertexCount > 2 && VertexCount % 3 == 0);
 
 	NumVertices = VertexCount;

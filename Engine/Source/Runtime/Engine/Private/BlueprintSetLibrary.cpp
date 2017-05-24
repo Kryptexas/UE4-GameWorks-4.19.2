@@ -110,6 +110,8 @@ void UBlueprintSetLibrary::GenericSet_Intersect(const void* SetA, const USetProp
 		FScriptSetHelper SetHelperB(SetPropertyB, SetB);
 		FScriptSetHelper SetHelperResult(SetPropertyResult, SetResult);
 		
+		SetHelperResult.EmptyElements();
+
 		int32 Size = SetHelperA.Num();
 		for (int32 I = 0; Size; ++I)
 		{
@@ -133,6 +135,8 @@ void UBlueprintSetLibrary::GenericSet_Union(const void* SetA, const USetProperty
 		FScriptSetHelper SetHelperA(SetPropertyA, SetA);
 		FScriptSetHelper SetHelperB(SetPropertyB, SetB);
 		FScriptSetHelper SetHelperResult(SetPropertyResult, SetResult);
+		
+		SetHelperResult.EmptyElements();
 
 		int32 SizeA = SetHelperA.Num();
 		for (int32 I = 0; SizeA; ++I)
@@ -163,6 +167,8 @@ void UBlueprintSetLibrary::GenericSet_Difference(const void* SetA, const USetPro
 		FScriptSetHelper SetHelperA(SetPropertyA, SetA);
 		FScriptSetHelper SetHelperB(SetPropertyB, SetB);
 		FScriptSetHelper SetHelperResult(SetPropertyResult, SetResult);
+
+		SetHelperResult.EmptyElements();
 
 		int32 Size = SetHelperA.Num();
 		for (int32 I = 0; Size; ++I)

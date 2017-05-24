@@ -1,209 +1,175 @@
-﻿INTSourceChangeList:3178213
+﻿INTSourceChangelist:3348703
 Availability:Docs
 Title:カプセル シャドウの概要
-Crumbs: %ROOT%, Engine, 
-Description:カプセル シャドウの概要
-Version:4.13
-
-
-[REGION:center]
-![](image_9.png)(w:900)
-[/REGION]
+Crumbs:  
+Description:アンリアル エンジン 4 のカプセルシャドウの概要を説明します。
+Version:4.15
+Type: overview
+Parent:Engine/Rendering/LightingAndShadows/CapsuleShadows
+topic-image:cs_overview_topic.png
+tags:Lighting
 
 [TOC(start:2 end:3)]
 
+アンリアル エンジン 4 では、物理アセットを使ってキャラクターをカプセルで描画する機能の **カプセル シャドウ** によって、直接ライトで照らされている領域のキャラクターへのソフト シャドウをサポートするようになりました。 
+このシャドウイング メソッドを使うと、間接ライトで照らされている領域のキャラクターがを地上にいるように見せて、直接ライトで照らされている領域にソフトシャドウを作ることができます。
+これは、今までのシャドウ マッピング テクニックでは不可能でした。
 
-**Capsule Shadows (カプセル シャドウ)** は、物理アセットでキャラクターをカプセルで描写し、ライトが当たる部分ににソフト シャドウを作成します。
-この機能は、直接および間接ライティングでソフト シャドウに一貫性を出すことで、キャラクターに地面との接地感を出します。
 
+## キャラクターをカプセルで描写する
 
-## 機能の仕組み
+[物理アセット](Engine/Physics/PhAT/) は、非常にソフトなシャドウをサポートするためのキャラクターの近似描画に使用します。カプセルはキャラクターのボーンにアタッチされるので、 
+シャドウはシーン内での正確な移動およびキャストが可能になります。 
 
-カプセル シャドウは、**Shadow Physics アセット** としてどんなスケルタルメッシュにも割り当て可能な特殊な物理アセットを使います。このアセットは、キャストするシャドウに対して、 
-スケルタルメッシュの近似値を使用します。そういうわけで、 
-ライトの作成後に生成した [間接ライティング キャッシュ](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) を使って光源にコーンをキャストすることができます。キャラクターがこのポイントに近づくと、 
-コーンがオーバーラップがないかカプセルを確認します。オクルードしている場合、すべてのカプセル シャドウが集められてキャラクターのソフト シャドウがビルドされます。
-
-[REGION:imagetable]
-| ![](CS_Without.png)(w:370) | ![](CS_With.png)(w:370) |
-| ---- | ---- |
-| カプセルシャドウあり | カプセルシャドウなし |
-[/REGION]
-
-[REGION:left]
-[INCLUDE:Engine/Rendering/LightingAndShadows/CapsuleShadows\Overview#CapsuleShadowSlider]
-[/REGION]
-
-<!---
-[EXCERPT:CapsuleShadowSlider]
-[OBJECT:SliderSequence]
-	[PARAMLITERAL:max]
-	5
-	[/PARAMLITERAL]
-	[PARAMLITERAL:ext]
-	jpg
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	FS
-	[/PARAMLITERAL]
-	[PARAM:caption]
-	**スライダをドラッグすると、キャラクターのカプセル シャドウのレンダリングの様子が分かります。**
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Character with Capsule Representation](CapsuleShadowPA.png)(w:500)
 	[/PARAM]
-	[PARAM:image_list]
-	![](CS_1.png)(w:750)
-	![](CS_2.png)(w:750)
-	![](CS_3.png)(w:750)
-	![](CS_4.png)(w:750)
-	![](CS_6.png)(w:750)
+	[PARAM:after]
+	![Capsule Representation Only](CapsuleShadowPA1.png)(w:500)
 	[/PARAM]
 [/OBJECT]
-[/EXCERPT:CapsuleShadowSlider]
--->
-
-カプセル シャドウに対して作成され、スケルタルメッシュに割り当てられた物理アセットは、間接ライトが当たっているエリアでキャラクターを表現するために使用します。こちらは、キャラクターをカプセルで表現したモックアップです。 
-
-1. シーンのライティングがビルトされたら、間接ライティングのエリアではキャラクターにはシャドウイングはつきません。 
-2. カプセル シャドウに対して作成され、スケルタルメッシュに割り当てられた物理アセットは、間接ライトが当たっているエリアでキャラクターを表現するために使用します。こちらは、キャラクターをカプセルで表現したモックアップです。
-3. ライティングをビルドすると、事前計算された [ボリューム ライティング サンプル](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) が 
-スケルタル アクタが間接ライト当たる背景とブレンドするように配置されます。
-4. これらのライトのサンプルは、ライトの指向性強度に基づいてキャラクターをカプセル表現するためにコーンを描画するために使用します。コーンを使って、シャドウのあるエリアをマスクアウトして、 
-キャラクターのソフトシャドウを表現することができます。  
-5. カプセル シャドウ表現の強度と指向性を計算して、背景にキャラクターを着地されることで、間接ライトが当たるエリアのムーバブル アクタにソフト シャドウイングを付けてレンダリングを仕上げることができます。 
 
 [REGION:note]
-カプセル シャドウは、**Capsule Direct Shadow** を有効にすると、動的ライトでも使用できるので、動的ライトが当たるエリアでも使用できます。[Capsule Direct Shadowing](Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview#CapsulesforDirectShadowing) セクションを参照してください。
+地面にあるシャドウはカプセル シャドウによる描画ではありません。
 [/REGION]
 
-#### キャラクターをカプセルで描写する
 
-キャラクターを正確に描写するために、物理アセットを使用します。カプセルはキャラクターのボーンにアタッチされるので、シャドウはキャラクターと一緒に移動することができます。
+## 使用方法
 
-物理アセットの設定手順については、[Shadow Physics アセットの作成方法](Engine/Rendering/LightingAndShadows/CapsuleShadows/HowTo/CreateShadowAsset) を参照してください。
+![](ShadowPhysicsAsset.png)(w:400)
 
-物理アセットの設定のヒントについては、カプセル シャドウの [ベストプラクティス](Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices) を参照してください。
-
-[REGION:lightbox]
-[![](PA_WithoutArms.png)(w:500)](PA_withoutArms.png)
-[/REGION]
-
-[REGION:caption]
-_スケルタルメッシュ キャラクターをカプセルで描写する_
-[/REGION]
-
-[REGION:note]
-地面にあるシャドウは表現的なカプセル シャドウではありません。 
-[/REGION]
+スケルタルメッシュを開き、**[Asset Details (アセットの詳細)]** パネルの **[Shadow Physics Asset]** 選択を使ってカプセル シャドウに使う物理アセットを割り当てます。
 
 
 ## カプセル シャドウ設定
 
-レベル内の各スケルタルメッシュに対してカプセル シャドウを有効にするには、**[Detail (詳細)]** パネルで **[Capsule Direct Shadows (直接シャドウをカプセル化する)]** あるいは **[Capsule Indirect Shadows (間接シャドウをカプセル化する)]** オプションを有効にします。
-
-![](EnableCapsuleShadows.png)(w:350)
-
-
-#### Capsules Direct Shadowing
-
-**Capsule Direct Shadows** は、**Movable (ムーバブル)** または **Stationary (固定)** ライトが直接当たるエリアにキャラクターがいる場合、ソフト シャドウイングを有効にします。 
-
-[REGION:lightbox]
-[![](DirectCapsuleShadows.png)(w:500)](DirectCapsuleShadows.png)
-[/REGION]
-[REGION:caption]
-_画像をクリックしてフルサイズで表示_
+![](CapsuleShadowSettings.png)(w:400)
+[REGION:simpletable]
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Capsule Direct Shadow** | スケルタルメッシュのシャドウ物理アセット スロットにカプセル描画を割り当てた場合に、直接 (ムーバブル) ライトからのソフト シャドウイングを有効にします。 |
+| **Capsule Indirect Shadow** | スケルタルメッシュのシャドウ物理アセット スロットにカプセル描画を割り当てた場合に、事前計算ライティング (ライトマップおよびスカイライト) からのソフトシャドウイングを有効にします。 |
+| **Capsule Indirect Shadow Min Visibility** | 間接ライトで照らされている領域でのカプセル シャドウの暗さをアーティストが調節できるようにします。 |
 [/REGION]
 
-##### Light Source Angle (光源の角度)
 
-直接ライトが当たっているカプセル シャドウの場合、指向性ライトの **[Light Source Angle (光源の角度)]** を調節してシャドウをソフトにすることができます。 
+### Capsule Indirect Shadows
+
+![](CapsuleShadowsSetting2.png)(w:400)
+
+**Capsule Indirect Shadow** を有効にすると、ライティング ビルド中にライトマスによって配置および計算された [volume lighting samples](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/IndirectLightingCache/) に基づいた指向性のある
+ソフト シャドウをキャストするためにキャラクターのカプセル描画が使用されます。Capsule Indirect Shadows を使うと、これらの領域でキャラクターの接地感を出すことができます。これは今までのシャドウ マッピングではうまく表現できませんでした。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Light Source Angle: 1.0 (Default)](DirectLightSourceAngle1.png)(w:500)
+	![Capsule Indirect Shadow Enabled](CSEnabled.png)(w:500)
 	[/PARAM]
 	[PARAM:after]
-	![Light Source Angle: 2.0](DirectLightSourceAngle2.png)(w:500)
+	![Capsule Indirect Shadow Disabled](CSDisabled.png)(w:500)
 	[/PARAM]
 [/OBJECT]
 
-#### Capsules Indirect Shadowing
+Capsule Indirect Shadow を有効にすると、キャラクターは領域に接地可能なソフト シャドウをバウンス ライティングのみでキャストします。 
 
-**Capsule Indirect Shadows (間接シャドウをカプセル化する)** は、**Static (静的)** または **Stationary (固定)** ライトが間接的に当たるエリアにキャラクターがいる場合に、ソフト シャドウイングを有効にします。カプセル シャドウイングは、ライトのビルド中に生成された  
-[間接ライティング キャッシュ](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) で作成されます。 
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Indirect Capsule Shadows Enabled](SkylightCS1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Indirect Capsule Shadows Disabled](SkylightCS2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
 
-[REGION:lightbox]
-[![](IndirectDefault.png)(w:500)](IndirectDefault.png)
+スカイライトのみが光源となるオープン領域では、ライトは全方向からくるため指向性はほとんどなくなります。事前計算されたライティングを使うと、
+キャラクターの下のソフトな「ぼんやりした」シャドウはほとんどできません。 
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	ns4QW1BFSHg
+	[/PARAMLITERAL]
+[/OBJECT]
+
+ライトが開口部から差し込む閉ざされた領域では、カプセル シャドウに指向性および柔らかさを出すために、 
+キャラクターが空間を移動するにつれて配置されたボリューム ライティング サンプル間を補正して、[直接ライティング キャッシュ](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/IndirectLightingCache/) が使われます。入口では、キャラクターのシャドウは指向性がほとんどなく強度も弱くなりますが、
+キャラクターが入口から遠ざかるにつれてシャドウの強度と指向性が増加します。
+
+
+#### Indirect Minimum Shadow Visibility
+
+アーティストは **Capsule Indirect Shadow Min Visibility** を調節することでさらに制御が可能になります。間接光に照らされる領域でのカプセル シャドウの暗さを事前計算されたライティングを使って調節することができます。 
+周囲のシャドウとうまくブレンドさせるために、これらの領域でカプセルからのセルフ シャドウイングを減らす、あるいは、シャドウ強度を低くする場合に便利です。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Capsule Shadow Indirect Min Visibility: 0.1 (Default)](CSEnabled.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![Capsule Shadow Indirect Min Visibility: 0.45](CSMinVisibility_45.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+
+### Capsule Direct Shadows
+
+![](CapsuleShadowsSetting1.png)(w:400)
+
+**Direct Capsule Shadow** を有効にすると、指向性ライトの **Light Source Angle** およびスポットライトとポイントライトの **Source Radius** を使って、受光面でのシャドウの柔らかさを定義します。 
+直接光に照らされる場合、カプセル シャドウの柔らかさを直接調節することができます。
+
+#### Light Source Angle 
+
+指向性ライトの **Light Source Angle** プロパティは、ソフト エリア シャドウを作成する動的シャドウイング メソッドのために使用します。このプロパティを調節すると、 
+シャドウはキャスト先のサーフェスから遠ざかるにつれて柔らかくなります。 
+
+[REGION:imagetable]
+| ![](CS_LSA1.png)(w:400) | ![](CS_LSA2.png)(w:400) |
+| --- | --- |
+| Light Source Angle:1.0 (Default) | Light Source Angle:2.0 |
 [/REGION]
-[REGION:caption]
-_画像をクリックしてフルサイズで表示_
+
+#### Source Radius
+
+指向性ライトの Light Source Angle の機能と同様、Stationary のスポットライトおよびポイントライトの **Source Radius** もキャラクターにソフト シャドウを付けるために使用します。Source Radius を大きくすると、投影元から遠いサーフェスになるほどライトが柔らかくなります。
+
+[REGION:imagetable]
+| ![](CS_SR1.png)(w:400) | ![](CS_SR2.png)(w:400) |
+| --- | --- |
+| Source Radius:5.0 | Source Radius:15.0 |
 [/REGION]
 
-
-## 間接シャドウの方向性と強度
-
-カプセル シャドウイングの方向性と強度は、ライトのビルド後に生成されるライト サンプルで決定します。ライトはいろいろな方向から集まってくるので、ライティング サンプルの強度が明るいほど、シャドウの強度が下がりソフトになります。 
-
-### Closed Area Shadowing
-
-ライトが差し込む隙間があると、ライトの強度は隙間部分が明るくなり、その部分の後ろ側は暗くなります。 
-
-[REGION:lightbox]
-[![](CS_CaveFront.png)(w:500)](CS_CaveFront.png)
+[REGION:note]
+シーンにライティングを一旦ビルドしてしまえば、ライティングを再ビルドせずに **Source Radius** プロパティを調節できます。このプロパティは、カプセル シャドウ、もしくはメッシュ ディスタンス フィールドが有効にされているムーバブル アクタのみに影響します。
 [/REGION]
-[REGION:caption]
-_画像をクリックしてフルサイズで表示_
-[/REGION]
-
-このエリアの正面では、ライトが多くなるため、キャラクターのシャドウはだいぶソフトになり、上からのライトが多くなるため、シャドウの指向性は弱くなります。 
-
-[REGION:lightbox]
-[![](CS_CaveBack.png)(w:500)](CS_CaveBack.png)
-[/REGION]
-[REGION:caption]
-_画像をクリックしてフルサイズで表示_
-[/REGION]
-
-ただし、このエリアの後ろ側はライトが弱いので、シャドウの強度が高くなり、方向性も強くなります。ライトの大部分は一ヶ所の隙間から正面に向かって入ってきます。
-つまり、このエリアを移動ライトは少なくなり、キャラクターに当たるライトは強くなります。
-
-### Open Area Shadowing
-
-間接シャドウを受け取るオープンなエリアでは、すべての方向からライトがくるので、カプセル シャドウはよりソフトになります。
-
-[REGION:lightbox]
-[![](CS_openarea.png)(w:500)](CS_openarea.png)
-[/REGION]
-[REGION:caption]
-_画像をクリックしてフルサイズで表示_
-[/REGION]
-
-
-
 
 ## パフォーマンス
 
-カプセル シャドウは、そのカプセルからシャドウを受け取る可能性のあるタイルに対してのみ、カプセルの影響をカリングするタイル ディファード カリングを行うため、 
-標準のシャドウ マッピング技術よりも効率的です。画面のほとんどの部分は影響を受けませんし、追加のレンダリング作業も必要ないのです。シャドウを受け取っているタイルは、 
-ピクセルごとに直接影響するカプセル数を計算しなければなりません。カプセル シャドウは、カプセル数が減った場合だけでなく、 
-影響されるタイル数が画面上で少なくなるほど、パフォーマンスが良くなります。
+カプセル シャドウの GPU パフォーマンス負荷は、使用するカプセル数、キャラクター数、およびシャドウの影響を受けるスクリーンサイズに比例します。 
 
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Standard Shdow Mapping](DirectShadowMapping.png)(w:500)
-	[/PARAM]
-	[PARAM:after]
-	![Capsule Direct Shadows Enabled](DirectCapsuleShadows.png)(w:500)
-	[/PARAM]
-[/OBJECT]
+例えば、Radeon (AMD 社による) 7870、1080p の場合、 
+ 
+[REGION:simpletable]
+| 10 カプセルの場合の GPU 負荷 | ミリ秒 (ms) |
+| ---- | --- |
+| **画面上にキャラクターが 1 つの場合** | 0.29 ms |
+| **画面上に 1 つキャラクターを追加するごとに** | 0.05 ms |
+[/REGION]
 
-カプセル シャドウのパフォーマンスは、使用されるカプセル ボディ数および影響を受けるタイル数で左右されます。一方、標準のシャドウ マッピングは、シャドウマップ内のすべてのトライアングルを考慮するため負荷が高くなります。
-つまり、トライアングルに対して若干ぼやけている鮮明なシャドウしか取得できなくなります。
-
+このカプセル シャドウの実装は非常に効率的です。
+深度を意識したアップサンプルを使って半分の解像度でシャドウイングを計算し、スクリーン タイル カリングを使ってシャドウイング量を減らします。 
 
 ## 制限事項
 
-* シェーダー計算でタイル処理ディファード処理を実行するため DX 11 が必要です。
+* 演算シェーターによるタイル処理ディファード処理を実行するため DirectX 11 が必要です。
 * 自己シャドウイングによるアーティファクトが任意のメッシュ形状に対して発生する可能性があります。
-* カプセル表現は、Spheres と Sphylls のみしか使用できません。
-* スケルタルメッシュのみ対応してますが、スタティックメッシュでも使うようにすることができます。
+* Spheres と Sphylls のみカプセル描写を使用できます。
 * カプセルシャドウがソフトになりすぎてアンビエント オクルージョンになった場合、シャドウイングの中にアーティファクトがハードラインの原因になっています。 
+
+
+

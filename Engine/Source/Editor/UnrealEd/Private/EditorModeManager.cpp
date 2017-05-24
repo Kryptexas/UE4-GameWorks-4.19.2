@@ -18,6 +18,11 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/LevelStreaming.h"
+#include "EditorWorldExtension.h"
+#include "ViewportWorldInteraction.h"
+#include "Editor/EditorEngine.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
 
 /*------------------------------------------------------------------------------
 	FEditorModeTools.
@@ -217,7 +222,22 @@ void FEditorModeTools::SetPivotLocation( const FVector& Location, const bool bIn
 
 ECoordSystem FEditorModeTools::GetCoordSystem(bool bGetRawValue)
 {
-	if (!bGetRawValue && (GetWidgetMode() == FWidget::WM_Scale))
+	bool bAligningToActors = false;
+	if (GEditor->GetEditorWorldExtensionsManager() != nullptr
+		&& GetWorld() != nullptr)
+	{
+		UEditorWorldExtensionCollection* WorldExtensionCollection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld(), false);
+		if (WorldExtensionCollection != nullptr)
+		{
+			UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(WorldExtensionCollection->FindExtension(UViewportWorldInteraction::StaticClass()));
+			if (ViewportWorldInteraction != nullptr && ViewportWorldInteraction->AreAligningToActors() == true)
+			{
+				bAligningToActors = true;
+			}
+		}
+	}
+	if (!bGetRawValue && 
+		((GetWidgetMode() == FWidget::WM_Scale) || bAligningToActors))
 	{
 		return COORD_Local;
 	}
@@ -229,6 +249,25 @@ ECoordSystem FEditorModeTools::GetCoordSystem(bool bGetRawValue)
 
 void FEditorModeTools::SetCoordSystem(ECoordSystem NewCoordSystem)
 {
+	// If we are trying to enter world space but are aligning to actors, turn off aligning to actors
+	if (GEditor->GetEditorWorldExtensionsManager() != nullptr
+		&& GetWorld() != nullptr
+		&& NewCoordSystem == COORD_World)
+	{
+		UEditorWorldExtensionCollection* WorldExtensionCollection = GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld(), false);
+		if (WorldExtensionCollection != nullptr)
+		{
+			UViewportWorldInteraction* ViewportWorldInteraction = Cast<UViewportWorldInteraction>(WorldExtensionCollection->FindExtension(UViewportWorldInteraction::StaticClass()));
+			if (ViewportWorldInteraction != nullptr && ViewportWorldInteraction->AreAligningToActors() == true)
+			{
+				if (ViewportWorldInteraction->HasCandidatesSelected())
+				{
+					ViewportWorldInteraction->SetSelectionAsCandidates();
+				}
+				GUnrealEd->Exec(GetWorld(), TEXT("VI.EnableGuides 0"));
+			}
+		}
+	}
 	CoordSystem = NewCoordSystem;
 }
 

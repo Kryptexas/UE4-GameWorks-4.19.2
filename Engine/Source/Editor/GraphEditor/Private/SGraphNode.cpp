@@ -442,14 +442,24 @@ void SGraphNode::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 	SNodePanel::SNode::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-	if (IsHovered())
+	const bool bNeedToUpdateCommentBubble = GetNodeObj()->ShouldMakeCommentBubbleVisible();
+
+	if (IsHovered() || bNeedToUpdateCommentBubble)
 	{
 		if (FNodeSlot* CommentSlot = GetSlot(ENodeZone::TopCenter))
 		{
 			TSharedPtr<SCommentBubble> CommentBubble = StaticCastSharedRef<SCommentBubble>(CommentSlot->GetWidget());
 			if (CommentBubble.IsValid())
 			{
-				CommentBubble->TickVisibility(InCurrentTime, InDeltaTime);
+				if (bNeedToUpdateCommentBubble)
+				{
+					CommentBubble->SetCommentBubbleVisibility(true);
+					GetNodeObj()->SetMakeCommentBubbleVisible(false);
+				}
+				else
+				{
+					CommentBubble->TickVisibility(InCurrentTime, InDeltaTime);
+				}
 			}
 		}
 	}

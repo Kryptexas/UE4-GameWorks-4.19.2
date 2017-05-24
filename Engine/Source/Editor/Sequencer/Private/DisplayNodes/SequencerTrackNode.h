@@ -134,7 +134,9 @@ public:
 	virtual void SetDisplayName(const FText& NewDisplayName) override;
 	virtual const FSlateBrush* GetIconBrush() const override;
 	virtual bool CanDrag() const override;
-
+	virtual bool IsResizable() const override;
+	virtual void Resize(float NewSize) override;
+	
 private:
 
 	/** The track editor for the track associated with this node. */

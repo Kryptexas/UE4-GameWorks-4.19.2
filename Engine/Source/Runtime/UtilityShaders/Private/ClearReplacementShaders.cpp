@@ -3,25 +3,52 @@
 
 #include "ClearReplacementShaders.h"
 #include "ShaderParameterUtils.h"
+#include "RendererInterface.h"
 
-IMPLEMENT_SHADER_TYPE(,FClearReplacementVS,TEXT("ClearReplacementShaders"),TEXT("ClearVS"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(,FClearReplacementPS,TEXT("ClearReplacementShaders"),TEXT("ClearPS"),SF_Pixel);
-
-IMPLEMENT_SHADER_TYPE(,FClearTexture2DReplacementCS,TEXT("ClearReplacementShaders"),TEXT("ClearTexture2DCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(,FClearTexture2DReplacementScissorCS,TEXT("ClearReplacementShaders"),TEXT("ClearTexture2DScissorCS"), SF_Compute);
-
-IMPLEMENT_SHADER_TYPE(,FClearBufferReplacementCS,TEXT("ClearReplacementShaders"),TEXT("ClearBufferCS"),SF_Compute);
-
-void FClearTexture2DReplacementCS::SetParameters( FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value )
+template< typename T >
+void FClearTexture2DReplacementCS<T>::SetParameters( FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4] )
 {
 	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearColor, Value);
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearColor, Values);
 
 	RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, TextureRW);
 	RHICmdList.SetUAVParameter(ComputeShaderRHI, ClearTextureRW.GetBaseIndex(), TextureRW);
 }
 
-void FClearTexture2DReplacementCS::FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW)
+template< typename T >
+void FClearTexture2DReplacementCS<T>::FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW)
+{
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, TextureRW);
+}
+
+template< typename T >
+void FClearTexture2DArrayReplacementCS<T>::SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4])
+{
+	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearColor, Values);
+
+	RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, TextureRW);
+	RHICmdList.SetUAVParameter(ComputeShaderRHI, ClearTextureArrayRW.GetBaseIndex(), TextureRW);
+}
+
+template< typename T >
+void FClearTexture2DArrayReplacementCS<T>::FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW)
+{
+	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, TextureRW);
+}
+
+template< typename T >
+void FClearVolumeReplacementCS<T>::SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4])
+{
+	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearColor, Values);
+
+	RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, TextureRW);
+	RHICmdList.SetUAVParameter(ComputeShaderRHI, ClearVolumeRW.GetBaseIndex(), TextureRW);
+}
+
+template< typename T >
+void FClearVolumeReplacementCS<T>::FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW)
 {
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, TextureRW);
 }
@@ -52,3 +79,23 @@ void FClearBufferReplacementCS::FinalizeParameters(FRHICommandList& RHICmdList, 
 {
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, BufferRW);
 }
+
+template class FClearTexture2DReplacementCS<float>;
+template class FClearTexture2DReplacementCS<uint32>;
+template class FClearTexture2DArrayReplacementCS<float>;
+template class FClearTexture2DArrayReplacementCS<uint32>;
+template class FClearVolumeReplacementCS<float>;
+template class FClearVolumeReplacementCS<uint32>;
+
+IMPLEMENT_SHADER_TYPE(, FClearReplacementVS, TEXT("ClearReplacementShaders"), TEXT("ClearVS"), SF_Vertex);
+IMPLEMENT_SHADER_TYPE(, FClearReplacementPS, TEXT("ClearReplacementShaders"), TEXT("ClearPS"), SF_Pixel);
+
+IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DReplacementCS<float>, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DReplacementCS<uint32>, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DArrayReplacementCS<float>, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DArrayCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearTexture2DArrayReplacementCS<uint32>, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DArrayCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearVolumeReplacementCS<float>, TEXT("ClearReplacementShaders"), TEXT("ClearVolumeCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>, FClearVolumeReplacementCS<uint32>, TEXT("ClearReplacementShaders"), TEXT("ClearVolumeCS"), SF_Compute);
+IMPLEMENT_SHADER_TYPE(, FClearTexture2DReplacementScissorCS, TEXT("ClearReplacementShaders"), TEXT("ClearTexture2DScissorCS"), SF_Compute);
+
+IMPLEMENT_SHADER_TYPE(, FClearBufferReplacementCS, TEXT("ClearReplacementShaders"), TEXT("ClearBufferCS"), SF_Compute);

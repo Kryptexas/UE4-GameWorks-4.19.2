@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:블루프린트 인터페이스 구현하기
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/Interface
 Description:블루프린트 인터페이스는, 블루프린트에서 유형이 다른 타겟 블루프린트의 함수도, 같은 인터페이스를 구현하기만 한다면 호출할 수 있도록 해 줍니다.
 Version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class LauncherServices : ModuleRules
 	{
-		public LauncherServices(TargetInfo Target)
+		public LauncherServices(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

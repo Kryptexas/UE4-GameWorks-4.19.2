@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2589216
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title:编程指南
 Crumbs: %ROOT%
@@ -6,6 +6,7 @@ Description:程序员使用虚幻引擎进行开发的信息。
 version: 4.9
 parent:%ROOT%
 order:4
+type:landing
 
 [VAR:Params]
 [PARAM:image]
@@ -55,7 +56,7 @@ order:4
 [/OBJECT]
 [/VAR]
 
-[VAR:Role]
+[VAR:TopicRole]
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
@@ -64,7 +65,7 @@ order:4
 [/OBJECT]
 [/VAR]
 
-[VAR:TopicRole]
+[VAR:Role]
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
@@ -135,13 +136,26 @@ C++类可以作为蓝图类的基类使用，并且这样的话，程序员就�
 [/OBJECT]
 [/REGION]
 
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		虚幻引擎开发设置
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming/Development "%Programming/Development:description%")
+	[/PARAM]
+[/OBJECT]
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/api_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		虚幻引擎API引用
+		虚幻引擎 API 引用
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

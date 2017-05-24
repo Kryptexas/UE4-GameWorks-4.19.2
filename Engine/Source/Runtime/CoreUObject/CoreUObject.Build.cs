@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CoreUObject : ModuleRules
 {
-	public CoreUObject(TargetInfo Target)
+	public CoreUObject(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivatePCHHeaderFile = "Private/CoreUObjectPrivatePCH.h";
 

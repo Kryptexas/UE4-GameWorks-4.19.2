@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3178047
+﻿INTSourceChangelist:3260884
 Availability: Public
 Title:폴리지, 인스턴싱된 메시
 Crumbs:%ROOT%, Engine
@@ -178,6 +178,10 @@ order:11
 
 ![](Foliage_Paint_Tool_Gimzo.png)
 
+[REGION:tip]
+폴리지 페인팅은 VR 에디터에서도 작동합니다. VR 에서의 폴리지 페인팅 조작법은, [](Engine/Editor/VR/Controls) 문서를 참고하세요.
+[/REGION]
+
 **브러시 영역에 폴리지를 칠하려면:**  
 * **왼쪽 마우스** 버튼을 누른 상태로 폴리지를 추가하려는 곳에 클릭합니다.
 메시 목록에 현재 선택된 메시 전부가 현재 파라미터와 세팅에 따라 추가됩니다.
@@ -186,11 +190,6 @@ order:11
 
 **브러시 영역에서 폴리지를 지우려면:**
 * **왼쪽 마우스 버튼 + Shift** 키를 누른 상태로 폴리지를 지우려는 곳에 클릭합니다.
-
-
-[REGION:tip]
-폴리지 페인팅은 VR 에디터에서도 작동합니다. VR 에서의 폴리지 페인팅 조작법은, [](Engine/Editor/VR/Controls) 문서를 참고하세요.
-[/REGION]
 
 ### 페인트 세팅
 
@@ -418,6 +417,7 @@ foliage.DensityScale 세팅이 0.1 에서 1.0 까지 0.1 단위로 증가함에 
 [/OBJECT]
 [/EXCERPT:FS]
 -->
+
 
 
 

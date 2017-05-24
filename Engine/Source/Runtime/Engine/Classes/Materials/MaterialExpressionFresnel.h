@@ -15,7 +15,7 @@
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionFresnel.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(MinimalAPI, collapsecategories, hidecategories=Object)
 class UMaterialExpressionFresnel : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -55,7 +55,9 @@ public:
 	FSlateMaterialShaderPS() {}
 	FSlateMaterialShaderPS(const FMaterialShaderType::CompiledShaderInitializerType& Initializer);
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, float InDisplayGamma, const FVector4& InShaderParams);
+	void SetBlendState(FGraphicsPipelineStateInitializer& GraphicsPSOInit, const FMaterial* Material);
+
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, const FVector4& InShaderParams);
 
 	void SetDisplayGamma(FRHICommandList& RHICmdList, float InDisplayGamma);
 
@@ -71,7 +73,7 @@ private:
 	FShaderResourceParameter AdditionalTextureParameter;
 };
 
-template<bool bUseInstancing> 
+template<bool bUseInstancing>
 class TSlateMaterialShaderVS : public FSlateMaterialShaderVS
 {
 public:
@@ -86,15 +88,15 @@ public:
 	/** Only compile shaders used with UI. */
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
-		return FSlateMaterialShaderVS::ShouldCache(Platform,Material);
+		return FSlateMaterialShaderVS::ShouldCache(Platform, Material);
 	}
 
 	/** Modifies the compilation of this shader. */
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FSlateMaterialShaderVS::ModifyCompilationEnvironment(Platform, Material,OutEnvironment);
+		FSlateMaterialShaderVS::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 
-		OutEnvironment.SetDefine(TEXT("USE_SLATE_INSTANCING"), (uint32)(bUseInstancing ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("USE_SLATE_INSTANCING"), (uint32)( bUseInstancing ? 1 : 0 ));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override

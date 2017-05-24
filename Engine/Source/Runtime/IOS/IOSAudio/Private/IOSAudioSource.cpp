@@ -104,10 +104,20 @@ FIOSAudioSoundSource::~FIOSAudioSoundSource(void)
 
 bool FIOSAudioSoundSource::Init(FWaveInstance* InWaveInstance)
 {
+	// Wait for the render callback to finish and then prevent it from being entered again in case this object is deleted after being stopped
+	while (!LockCallback(&CallbackLock))
+	{
+		UE_LOG(LogIOSAudio, Log, TEXT("Waiting for source to unlock"));
+		
+		// Allow time for other threads to run
+		FPlatformProcess::Sleep(0.0f);
+	}
+	
 	FSoundSource::InitCommon();
 
 	if (InWaveInstance->OutputTarget == EAudioOutputTarget::Controller)
 	{
+		UnlockCallback(&CallbackLock);
 		return false;
 	}
 	
@@ -122,6 +132,7 @@ bool FIOSAudioSoundSource::Init(FWaveInstance* InWaveInstance)
 
 	if (IOSBuffer == NULL || IOSBuffer->NumChannels <= 0 || (IOSBuffer->SoundFormat != SoundFormat_LPCM && IOSBuffer->SoundFormat != SoundFormat_ADPCM))
 	{
+		UnlockCallback(&CallbackLock);
 		return false;
 	}
 
@@ -172,6 +183,8 @@ bool FIOSAudioSoundSource::Init(FWaveInstance* InWaveInstance)
 	// Start in a disabled state
 	DetachFromAUGraph();
 	Update();
+	
+	UnlockCallback(&CallbackLock);
 
 	return true;
 }
@@ -261,16 +274,17 @@ void FIOSAudioSoundSource::Play(void)
 
 void FIOSAudioSoundSource::Stop(void)
 {
+	// Wait for the render callback to finish and then prevent it from being entered again in case this object is deleted after being stopped
+	while (!LockCallback(&CallbackLock))
+	{
+		UE_LOG(LogIOSAudio, Log, TEXT("Waiting for source to unlock"));
+
+		// Allow time for other threads to run
+		FPlatformProcess::Sleep(0.0f);
+	}
+
 	if (WaveInstance)
 	{
-		// Wait for the render callback to finish and then prevent it from being entered again in case this object is deleted after being stopped
-		while (!LockCallback(&CallbackLock))
-		{
-			UE_LOG(LogIOSAudio, Log, TEXT("Waiting for source to unlock"));
-			
-			// Allow time for other threads to run
-			FPlatformProcess::Sleep(0.0f);
-		}
 		
 		// At this point we are no longer in the render callback and we will not re-enter it either
 		
@@ -279,17 +293,21 @@ void FIOSAudioSoundSource::Stop(void)
 
 		Paused = false;
 		Playing = false;
+	}
 
-		FSoundSource::Stop();
+	// Call parent class version regardless of if there's a wave instance
+	FSoundSource::Stop();
 		
+	if (WaveInstance)
+	{
 		if(IOSBuffer != NULL)
 		{
 			IOSBuffer->DecompressionState->SeekToTime(0.0f);
 		}
-		
-		// It's now safe to unlock the callback
-		UnlockCallback(&CallbackLock);
 	}
+
+	// It's now safe to unlock the callback
+	UnlockCallback(&CallbackLock);
 }
 
 void FIOSAudioSoundSource::Pause(void)

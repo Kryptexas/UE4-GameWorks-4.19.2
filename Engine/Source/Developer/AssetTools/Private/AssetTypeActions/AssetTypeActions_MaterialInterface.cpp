@@ -33,11 +33,24 @@ UThumbnailInfo* FAssetTypeActions_MaterialInterface::GetThumbnailInfo(UObject* A
 	UThumbnailInfo* ThumbnailInfo = MaterialInterface->ThumbnailInfo;
 	if ( ThumbnailInfo == NULL )
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfoWithPrimitive>(MaterialInterface);
+		ThumbnailInfo = NewObject<USceneThumbnailInfoWithPrimitive>(MaterialInterface, NAME_None, RF_Transactional);
 		MaterialInterface->ThumbnailInfo = ThumbnailInfo;
 	}
 
 	return ThumbnailInfo;
+}
+
+EThumbnailPrimType FAssetTypeActions_MaterialInterface::GetDefaultThumbnailPrimitiveType(UObject* Asset) const
+{
+	EThumbnailPrimType PrimType = TPT_Sphere;
+	UMaterialInterface* MaterialInterface = CastChecked<UMaterialInterface>(Asset);
+	UMaterial* Material = MaterialInterface->GetBaseMaterial();
+	if (Material && Material->bUsedWithParticleSprites)
+	{
+		PrimType = TPT_Plane;
+	}
+
+	return PrimType;
 }
 
 void FAssetTypeActions_MaterialInterface::ExecuteNewMIC(TArray<TWeakObjectPtr<UMaterialInterface>> Objects)

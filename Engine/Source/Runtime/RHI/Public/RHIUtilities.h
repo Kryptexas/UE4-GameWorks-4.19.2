@@ -11,6 +11,7 @@
 #include "UObject/NameTypes.h"
 #include "Logging/LogMacros.h"
 #include "HAL/IConsoleManager.h"
+#include "RHIDefinitions.h"
 #include "RHICommandList.h"
 
 class FExclusiveDepthStencil;
@@ -18,10 +19,27 @@ class FRHIDepthRenderTargetView;
 class FRHIRenderTargetView;
 class FRHISetRenderTargetsInfo;
 struct FRHIResourceCreateInfo;
-enum class ERenderTargetLoadAction;
-enum class ERenderTargetStoreAction;
 enum class EResourceTransitionAccess;
 enum class ESimpleRenderTargetMode;
+
+
+static inline bool IsDepthOrStencilFormat(EPixelFormat Format)
+{
+	switch (Format)
+	{
+	case PF_D24:
+	case PF_DepthStencil:
+	case PF_X24_G8:
+	case PF_ShadowDepth:
+		return true;
+
+	default:
+		break;
+	}
+
+	return false;
+}
+
 
 /** Encapsulates a GPU read/write buffer with its UAV and SRV. */
 struct FRWBuffer
@@ -287,8 +305,8 @@ inline void TransitionSetRenderTargetsHelper(FRHICommandList& RHICmdList, uint32
 /** Helper for the common case of using a single color and depth render target. */
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
-	FRHIRenderTargetView RTV(NewRenderTarget);
-	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	FRHIRenderTargetView RTV(NewRenderTarget, ERenderTargetLoadAction::ELoad);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
 
 	//make these rendertargets safely writable
 	if (bWritableBarrier)
@@ -320,8 +338,8 @@ inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef New
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
-	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, -1);
-	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	FRHIRenderTargetView RTV(NewRenderTarget, ERenderTargetLoadAction::ELoad, MipIndex, -1);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
 	
 	//make these rendertargets safely writable
 	if (bWritableBarrier)
@@ -334,8 +352,8 @@ inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef New
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
 inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
-	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, ArraySliceIndex);
-	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	FRHIRenderTargetView RTV(NewRenderTarget, ERenderTargetLoadAction::ELoad, MipIndex, ArraySliceIndex);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
 
 	//make these rendertargets safely writable
 	if (bWritableBarrier)
@@ -359,7 +377,7 @@ inline void SetRenderTargets(
 	FRHIRenderTargetView RTVs[MaxSimultaneousRenderTargets];
 	for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
 	{
-		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index]);
+		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index], ERenderTargetLoadAction::ELoad);
 	
 	}
 
@@ -369,7 +387,7 @@ inline void SetRenderTargets(
 		TransitionSetRenderTargetsHelper(RHICmdList, NewNumSimultaneousRenderTargets, NewRenderTargetsRHI, NewDepthStencilTargetRHI, FExclusiveDepthStencil::DepthWrite_StencilWrite);
 	}
 
-	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTargetRHI);
+	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTargetRHI, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
 	RHICmdList.SetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, &DepthRTV, NewNumUAVs, UAVs);
 }
 
@@ -776,3 +794,116 @@ private:
 #else
 #define DUMP_TRANSITION(ResourceName, TransitionType)
 #endif
+
+extern RHI_API void EnableDepthBoundsTest(FRHICommandList& RHICmdList, float WorldSpaceDepthNear, float WorldSpaceDepthFar, const FMatrix& ProjectionMatrix);
+extern RHI_API void DisableDepthBoundsTest(FRHICommandList& RHICmdList);
+
+struct FRHILockTracker
+{
+	struct FLockParams
+	{
+		void* RHIBuffer;
+		void* Buffer;
+		uint32 BufferSize;
+		uint32 Offset;
+		EResourceLockMode LockMode;
+		bool bDirectLock; //did we call the normal flushing/updating lock?
+		bool bCreateLock; //did we lock to immediately initialize a newly created buffer?
+		
+		FORCEINLINE_DEBUGGABLE FLockParams(void* InRHIBuffer, void* InBuffer, uint32 InOffset, uint32 InBufferSize, EResourceLockMode InLockMode, bool bInbDirectLock, bool bInCreateLock)
+		: RHIBuffer(InRHIBuffer)
+		, Buffer(InBuffer)
+		, BufferSize(InBufferSize)
+		, Offset(InOffset)
+		, LockMode(InLockMode)
+		, bDirectLock(bInbDirectLock)
+		, bCreateLock(bInCreateLock)
+		{
+		}
+	};
+	
+	struct FUnlockFenceParams
+	{
+		FUnlockFenceParams(void* InRHIBuffer, FGraphEventRef InUnlockEvent)
+		: RHIBuffer(InRHIBuffer)
+		, UnlockEvent(InUnlockEvent)
+		{
+			
+		}
+		void* RHIBuffer;
+		FGraphEventRef UnlockEvent;
+	};
+	
+	TArray<FLockParams, TInlineAllocator<16> > OutstandingLocks;
+	uint32 TotalMemoryOutstanding;
+	TArray<FUnlockFenceParams, TInlineAllocator<16> > OutstandingUnlocks;
+	
+	FRHILockTracker()
+	{
+		TotalMemoryOutstanding = 0;
+	}
+	
+	FORCEINLINE_DEBUGGABLE void Lock(void* RHIBuffer, void* Buffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode, bool bInDirectBufferWrite = false, bool bInCreateLock = false)
+	{
+#if DO_CHECK
+		for (auto& Parms : OutstandingLocks)
+		{
+			check((Parms.RHIBuffer != RHIBuffer) || (Parms.bDirectLock && bInDirectBufferWrite) || Parms.Offset != Offset);
+		}
+#endif
+		OutstandingLocks.Add(FLockParams(RHIBuffer, Buffer, Offset, SizeRHI, LockMode, bInDirectBufferWrite, bInCreateLock));
+		TotalMemoryOutstanding += SizeRHI;
+	}
+	FORCEINLINE_DEBUGGABLE FLockParams Unlock(void* RHIBuffer, uint32 Offset=0)
+	{
+		for (int32 Index = 0; Index < OutstandingLocks.Num(); Index++)
+		{
+			if (OutstandingLocks[Index].RHIBuffer == RHIBuffer && OutstandingLocks[Index].Offset == Offset)
+			{
+				FLockParams Result = OutstandingLocks[Index];
+				OutstandingLocks.RemoveAtSwap(Index, 1, false);
+				return Result;
+			}
+		}
+		check(!"Mismatched RHI buffer locks.");
+		return FLockParams(nullptr, nullptr, 0, 0, RLM_WriteOnly, false, false);
+	}
+	
+	template<class TIndexOrVertexBufferPointer>
+	FORCEINLINE_DEBUGGABLE void AddUnlockFence(TIndexOrVertexBufferPointer* Buffer, FRHICommandListImmediate& RHICmdList, const FLockParams& LockParms)
+	{
+		if (LockParms.LockMode != RLM_WriteOnly || !(Buffer->GetUsage() & BUF_Volatile))
+		{
+			OutstandingUnlocks.Emplace(Buffer, RHICmdList.RHIThreadFence(true));
+		}
+	}
+	
+	FORCEINLINE_DEBUGGABLE void WaitForUnlock(void* RHIBuffer)
+	{
+		for (int32 Index = 0; Index < OutstandingUnlocks.Num(); Index++)
+		{
+			if (OutstandingUnlocks[Index].RHIBuffer == RHIBuffer)
+			{
+				FRHICommandListExecutor::WaitOnRHIThreadFence(OutstandingUnlocks[Index].UnlockEvent);
+				OutstandingUnlocks.RemoveAtSwap(Index, 1, false);
+				return;
+			}
+		}
+	}
+	
+	FORCEINLINE_DEBUGGABLE void FlushCompleteUnlocks()
+	{
+		uint32 Count = OutstandingUnlocks.Num();
+		for (uint32 Index = 0; Index < Count; Index++)
+		{
+			if (OutstandingUnlocks[Index].UnlockEvent->IsComplete())
+			{
+				OutstandingUnlocks.RemoveAt(Index, 1);
+				--Count;
+				--Index;
+			}
+		}
+	}
+};
+
+extern RHI_API FRHILockTracker GRHILockTracker;

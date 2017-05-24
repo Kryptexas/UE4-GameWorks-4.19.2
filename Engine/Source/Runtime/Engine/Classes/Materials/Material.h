@@ -106,25 +106,6 @@ inline bool IsDBufferDecalBlendMode(EDecalBlendMode In)
 	return false;
 }
 
-/** Defines the domain of a material. */
-UENUM()
-enum EMaterialDomain
-{
-	/** The material's attributes describe a 3d surface. */
-	MD_Surface UMETA(DisplayName="Surface"),
-	/** The material's attributes describe a deferred decal, and will be mapped onto the decal's frustum. */
-	MD_DeferredDecal UMETA(DisplayName="Deferred Decal"),
-	/** The material's attributes describe a light's distribution. */
-	MD_LightFunction UMETA(DisplayName="Light Function"),
-	/** The material will be used in a custom post process pass. */
-	MD_PostProcess UMETA(DisplayName="Post Process"),
-	/** The material will be used for UMG or Slate UI */
-	MD_UI UMETA(DisplayName="User Interface"),
-
-	MD_MAX
-};
-
-
 /** Defines how the material reacts on DBuffer decals, later we can expose more variants between None and Default. */
 UENUM()
 enum EMaterialDecalResponse
@@ -448,8 +429,8 @@ public:
 	uint32 TwoSided:1;
 
 	/** Whether meshes rendered with the material should support dithered LOD transitions. */
-	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay, meta = (DisplayName = "Dithered LOD Transition"))
-	uint32 DitheredLODTransition:1;
+	UPROPERTY(EditAnywhere, Category = Material, AdvancedDisplay, meta = (DisplayName = "Dithered LOD Transition"))
+	uint32 DitheredLODTransition : 1;
 
 	/** Dither opacity mask. When combined with Temporal AA this can be used as a form of limited translucency which supports all lighting features. */
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
@@ -587,6 +568,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
 	uint32 bUsedWithMeshParticles:1;
 
+
+	/**
+	* Indicates that the material and its instances can be use with Niagara sprites (meshes and ribbons, respectively)
+	* This will result in the shaders required to support Niagara sprites being compiled which will increase shader compile time and memory usage.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
+	uint32 bUsedWithNiagaraSprites : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
+	uint32 bUsedWithNiagaraRibbons : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Usage)
+	uint32 bUsedWithNiagaraMeshParticles : 1;
+
+
+
 	/** 
 	 * Indicates that the material and its instances can be use with static lighting
 	 * This will result in the shaders required to support static lighting being compiled which will increase shader compile time and memory usage.
@@ -671,7 +668,7 @@ public:
 	uint32 bUsePlanarForwardReflections : 1;
 
 	/* Reduce roughness based on screen space normal changes. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ForwardShading)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Material, AdvancedDisplay)
 	uint32 bNormalCurvatureToRoughness : 1;
 
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */
@@ -744,8 +741,12 @@ public:
 	uint32 bUseMaterialAttributes:1;
 
 	/** When true, translucent materials are fogged. Defaults to true. */
-	UPROPERTY(EditAnywhere, Category=Translucency)
+	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Apply Fogging"))
 	uint32 bUseTranslucencyVertexFog:1;
+
+	/** When true, translucent materials have fog computed for every pixel, which costs more but fixes artifacts due to low tessellation. */
+	UPROPERTY(EditAnywhere, Category=Translucency)
+	uint32 bComputeFogPerPixel:1;
 
 	/** If true the compilation environment will be changed to remove the global COMPILE_SHADERS_FOR_DEVELOPMENT flag. */
 	UPROPERTY(transient, duplicatetransient)
@@ -1065,21 +1066,7 @@ public:
 	template<typename ExpressionType>
 	ExpressionType* FindExpressionByGUID(const FGuid &InGUID)
 	{
-		ExpressionType* Result = NULL;
-
-		for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
-		{
-			ExpressionType* ExpressionPtr =
-				Cast<ExpressionType>(Expressions[ExpressionIndex]);
-
-			if(ExpressionPtr && ExpressionPtr->ExpressionGUID.IsValid() && ExpressionPtr->ExpressionGUID==InGUID)
-			{
-				Result = ExpressionPtr;
-				break;
-			}
-		}
-
-		return Result;
+		return FindExpressionByGUIDRecursive<ExpressionType>(InGUID, Expressions);
 	}
 
 	/* Get all expressions of the requested type */
@@ -1372,6 +1359,7 @@ public:
 
 	/* Returns any UMaterialExpressionCustomOutput expressions */
 	ENGINE_API void GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const;
+	ENGINE_API void GetAllExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const;
 
 #if WITH_EDITOR
 	/**
@@ -1473,6 +1461,32 @@ private:
 
 	// DO NOT CALL outside of FMaterialEditor!
 	ENGINE_API static void ForceNoCompilationInPostLoad(bool bForceNoCompilation);
+
+	/* Helper function to help finding expression GUID taking into account UMaterialExpressionMaterialFunctionCall */
+	template<typename ExpressionType>
+	ExpressionType* FindExpressionByGUIDRecursive(const FGuid &InGUID, const TArray<UMaterialExpression*>& InMaterialExpression)
+	{
+		for (int32 ExpressionIndex = 0; ExpressionIndex < InMaterialExpression.Num(); ++ExpressionIndex)
+		{
+			UMaterialExpression* ExpressionPtr = InMaterialExpression[ExpressionIndex];
+			UMaterialExpressionMaterialFunctionCall* MaterialFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(ExpressionPtr);
+
+			if (MaterialFunctionCall != nullptr)
+			{
+				if (MaterialFunctionCall->MaterialFunction != nullptr)
+				{
+					return FindExpressionByGUIDRecursive<ExpressionType>(InGUID, MaterialFunctionCall->MaterialFunction->FunctionExpressions);
+				}
+			}
+			else if (ExpressionPtr && ExpressionPtr->bIsParameterExpression && ExpressionPtr->GetParameterExpressionId() == InGUID)
+			{
+				return Cast<ExpressionType>(ExpressionPtr);
+			}
+		}
+
+		return nullptr;
+	}
+
 };
 
 

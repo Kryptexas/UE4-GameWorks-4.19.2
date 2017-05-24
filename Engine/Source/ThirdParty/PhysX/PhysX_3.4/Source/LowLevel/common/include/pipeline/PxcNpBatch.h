@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -58,8 +58,8 @@ namespace Gu
 	class PxgGpuNarrowphaseCoreInterface;
 }
 
-void PxcDiscreteNarrowPhase(PxcNpThreadContext& context, PxcNpWorkUnit& cmInput, Gu::Cache& cache, PxsContactManagerOutput& output);
-void PxcDiscreteNarrowPhasePCM(PxcNpThreadContext& context, PxcNpWorkUnit& cmInput, Gu::Cache& cache, PxsContactManagerOutput& output);
+void PxcDiscreteNarrowPhase(PxcNpThreadContext& context, const PxcNpWorkUnit& cmInput, Gu::Cache& cache, PxsContactManagerOutput& output);
+void PxcDiscreteNarrowPhasePCM(PxcNpThreadContext& context, const PxcNpWorkUnit& cmInput, Gu::Cache& cache, PxsContactManagerOutput& output);
 }
 
 #endif

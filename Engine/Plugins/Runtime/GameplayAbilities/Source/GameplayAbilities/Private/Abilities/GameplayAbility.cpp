@@ -251,6 +251,13 @@ bool UGameplayAbility::ShouldActivateAbility(ENetRole Role) const
 	return Role != ROLE_SimulatedProxy;
 }
 
+void UGameplayAbility::K2_CancelAbility()
+{
+	check(CurrentActorInfo);
+
+	CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
+}
+
 bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, OUT FGameplayTagContainer* OptionalRelevantTags) const
 {
 	// Don't set the actor info, CanActivate is called on the CDO
@@ -673,6 +680,8 @@ void UGameplayAbility::PreActivate(const FGameplayAbilitySpecHandle Handle, cons
 		bIsBlockingOtherAbilities = true;
 		bIsCancelable = true;
 	}
+
+	RemoteInstanceEnded = false;
 
 	Comp->HandleChangeAbilityCanBeCanceled(AbilityTags, this, true);
 	Comp->ApplyAbilityBlockAndCancelTags(AbilityTags, this, true, BlockAbilitiesWithTag, true, CancelAbilitiesWithTag);

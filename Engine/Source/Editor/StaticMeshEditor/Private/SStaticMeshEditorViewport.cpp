@@ -54,7 +54,8 @@ public:
 
 			ShowMenuBuilder.AddMenuEntry(Commands.SetShowGrid);
 			ShowMenuBuilder.AddMenuEntry(Commands.SetShowBounds);
-			ShowMenuBuilder.AddMenuEntry(Commands.SetShowCollision);
+			ShowMenuBuilder.AddMenuEntry(Commands.SetShowSimpleCollision);
+			ShowMenuBuilder.AddMenuEntry(Commands.SetShowComplexCollision);
 
 			ShowMenuBuilder.AddMenuSeparator();
 
@@ -256,7 +257,7 @@ void SStaticMeshEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh)
 	EditorViewportClient->SetPreviewMesh(InStaticMesh, PreviewMeshComponent);
 }
 
-void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
+void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh, bool bResetCamera/*= true*/)
 {
 	{
 		const int32 SocketedComponentCount = SocketPreviewMeshComponents.Num();
@@ -300,7 +301,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 		}
 	}
 
-	EditorViewportClient->SetPreviewMesh(InStaticMesh, PreviewMeshComponent);
+	EditorViewportClient->SetPreviewMesh(InStaticMesh, PreviewMeshComponent, bResetCamera);
 }
 
 bool SStaticMeshEditorViewport::IsVisible() const
@@ -448,10 +449,16 @@ void SStaticMeshEditorViewport::BindCommands()
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowBoundsChecked ) );
 
 	CommandList->MapAction(
-		Commands.SetShowCollision,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetShowWireframeCollision ),
+		Commands.SetShowSimpleCollision,
+		FExecuteAction::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetShowSimpleCollision ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowWireframeCollisionChecked ) );
+		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowSimpleCollisionChecked ) );
+
+	CommandList->MapAction(
+		Commands.SetShowComplexCollision,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetShowComplexCollision),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowComplexCollisionChecked));
 
 	CommandList->MapAction(
 		Commands.SetShowSockets,
@@ -516,7 +523,7 @@ void SStaticMeshEditorViewport::OnFocusViewportToSelection()
 	}
 
 	// If we have selected primitives, focus on them 
-	FBox Box(0);
+	FBox Box(ForceInit);
 	const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->CalcSelectedPrimsAABB(Box);
 	if (bSelectedPrim)
 	{

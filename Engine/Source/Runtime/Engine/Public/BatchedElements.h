@@ -88,7 +88,7 @@ class FBatchedElementParameters
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) = 0;
+	virtual void BindShaders(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, ERHIFeatureLevel::Type InFeatureLevel, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) = 0;
 
 };
 
@@ -203,7 +203,7 @@ public:
 	 * @param DepthTexture	DepthTexture for manual depth testing with editor compositing in the pixel shader
 	 */
 	DEPRECATED(4.14, "Deprecated. Use the FBatchedElements::Draw method that takes a non-optional FSceneView parameter instead")
-	bool Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef(), EBlendModeFilter::Type Filter = EBlendModeFilter::All) const;
+	bool Draw(FRHICommandList& RHICmdList, const struct FDrawingPolicyRenderState& DrawRenderState, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef(), EBlendModeFilter::Type Filter = EBlendModeFilter::All) const;
 	
 	/**
 	 * Draws the batch
@@ -213,7 +213,7 @@ public:
 	 * @param Gamma			Optional gamma override
 	 * @param DepthTexture	DepthTexture for manual depth testing with editor compositing in the pixel shader
 	 */
-	bool Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FSceneView& View, bool bHitTesting, float Gamma = 1.0f, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef(), EBlendModeFilter::Type Filter = EBlendModeFilter::All) const;
+	bool Draw(FRHICommandList& RHICmdList, const struct FDrawingPolicyRenderState& DrawRenderState, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FSceneView& View, bool bHitTesting, float Gamma = 1.0f, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef(), EBlendModeFilter::Type Filter = EBlendModeFilter::All) const;
 
 	/**
 	 * Creates a proxy FSceneView for operations that are not tied directly to a scene but still require batched elements to be drawn.
@@ -354,30 +354,12 @@ private:
 		}
 	};
 
-	static FSimpleElementBSSContainer SimpleBoundShaderState;
-	/** bound shader state for the regular mesh elements with a linear texture */
-	static FSimpleElementBSSContainer RegularLinearBoundShaderState;
-	/** bound shader state for the regular mesh elements with an sRGB texture */
-	static FSimpleElementBSSContainer RegularSRGBBoundShaderState;
-	/** bound shader state for masked mesh elements */
-	static FSimpleElementBSSContainer MaskedLinearBoundShaderState;
-    static FSimpleElementBSSContainer MaskedSRGBBoundShaderState;
-	/** bound shader state for masked mesh elements */
-	static FSimpleElementBSSContainer DistanceFieldBoundShaderState;
-	/** bound shader state for the hit testing mesh elements */
-	static FSimpleElementBSSContainer HitTestingBoundShaderState;
-	/** bound shader state for color masked elements */
-	static FSimpleElementBSSContainer ColorChannelMaskShaderState;
-	/** bound shader state for alpha only fonts */
-	static FSimpleElementBSSContainer AlphaOnlyShaderState;
-	/** bound shader state for gamma corrected alpha only fonts */
-	static FSimpleElementBSSContainer GammaAlphaOnlyShaderState;
-
 	/**
 	 * Sets the appropriate vertex and pixel shader.
 	 */
 	void PrepareShaders(
 		FRHICommandList& RHICmdList,
+		FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 		ERHIFeatureLevel::Type FeatureLevel,
 		ESimpleElementBlendMode BlendMode,
 		const FMatrix& Transform,

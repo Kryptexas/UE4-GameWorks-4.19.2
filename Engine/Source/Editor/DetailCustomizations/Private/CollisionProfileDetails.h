@@ -177,7 +177,7 @@ private:
 
 	// this is the data that saves before starting, and creates the EditProfiles based on that. 
 	// this is needed if we do EditProfiles
-	struct FCollsiionProfileData
+	struct FCollisionProfileData
 	{
 		TArray<FCollisionResponseTemplate>	Profiles;
 		TArray<FCustomChannelSetup>			DefaultChannelResponses;
@@ -186,6 +186,6 @@ private:
 		void Save(UCollisionProfile * Profile);
 	};
 
-	FCollsiionProfileData SavedData;
+	FCollisionProfileData SavedData;
 };
 

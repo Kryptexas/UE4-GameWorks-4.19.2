@@ -101,7 +101,7 @@ namespace
 			FString Sanitized(ANSI_TO_TCHAR(String));
 			Sanitized.ReplaceInline(TEXT("\n"), TEXT(""), ESearchCase::CaseSensitive);
 			Sanitized.ReplaceInline(TEXT("\r"), TEXT(""), ESearchCase::CaseSensitive);
-			Ar->Logf(*Sanitized);
+			Ar->Logf(TEXT("%s"), *Sanitized);
 		}
 	}
 }

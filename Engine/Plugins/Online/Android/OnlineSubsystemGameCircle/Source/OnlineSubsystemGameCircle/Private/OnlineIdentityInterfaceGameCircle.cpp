@@ -30,7 +30,7 @@ TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityGameCircle::GetAllUserAcc
 
 bool FOnlineIdentityGameCircle::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) 
 {
-	return MainSubsystem->GetExternalUIInterface()->ShowLoginUI(LocalUserNum, false);
+	return MainSubsystem->GetExternalUIInterface()->ShowLoginUI(LocalUserNum, false, false);
 }
 
 

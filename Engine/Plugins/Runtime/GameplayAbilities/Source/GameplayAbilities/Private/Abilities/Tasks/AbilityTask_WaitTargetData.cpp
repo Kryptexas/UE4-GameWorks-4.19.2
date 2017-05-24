@@ -223,11 +223,17 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(const FGameplay
 	 */
 	if (TargetActor && !TargetActor->OnReplicatedTargetDataReceived(MutableData))
 	{
-		Cancelled.Broadcast(MutableData);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			Cancelled.Broadcast(MutableData);
+		}
 	}
 	else
 	{
-		ValidData.Broadcast(MutableData);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			ValidData.Broadcast(MutableData);
+		}
 	}
 
 	if (ConfirmationType != EGameplayTargetingConfirmation::CustomMulti)
@@ -240,7 +246,10 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(const FGameplay
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 {
 	check(AbilitySystemComponent);
-	Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
+	}
 	EndTask();
 }
 
@@ -270,7 +279,10 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(const FGameplayAbili
 		}
 	}
 
-	ValidData.Broadcast(Data);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		ValidData.Broadcast(Data);
+	}
 
 	if (ConfirmationType != EGameplayTargetingConfirmation::CustomMulti)
 	{
@@ -319,7 +331,10 @@ void UAbilityTask_WaitTargetData::ExternalConfirm(bool bEndTask)
 void UAbilityTask_WaitTargetData::ExternalCancel()
 {
 	check(AbilitySystemComponent);
-	Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
+	}
 	Super::ExternalCancel();
 }
 

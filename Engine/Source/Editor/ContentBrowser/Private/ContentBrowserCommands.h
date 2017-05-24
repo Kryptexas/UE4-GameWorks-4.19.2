@@ -30,4 +30,5 @@ public:
 	TSharedPtr<FUICommandInfo> PreviewAssets;
 	TSharedPtr<FUICommandInfo> SaveSelectedAsset;
 	TSharedPtr<FUICommandInfo> SaveAllCurrentFolder;
+	TSharedPtr<FUICommandInfo> ResaveAllCurrentFolder;
 };

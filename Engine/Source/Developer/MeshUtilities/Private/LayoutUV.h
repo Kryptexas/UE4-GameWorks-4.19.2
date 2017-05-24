@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "RawMesh.h"
 #include "Developer/MeshUtilities/Private/Allocator2D.h"
+#include "MeshUtilities.h"
 
 struct FMeshChart
 {
@@ -48,6 +49,8 @@ public:
 	bool		FindBestPacking();
 	void		CommitPackedUVs();
 
+	void		SetVersion( ELightmapUVVersion Version ) { LayoutVersion = Version; }
+
 private:
 	bool		PositionsMatch( uint32 a, uint32 b ) const;
 	bool		NormalsMatch( uint32 a, uint32 b ) const;
@@ -74,7 +77,10 @@ private:
 
 	FAllocator2D		LayoutRaster;
 	FAllocator2D		ChartRaster;
+	FAllocator2D		BestChartRaster;
 	FAllocator2DShader	ChartShader;
+
+	ELightmapUVVersion LayoutVersion;
 };
 
 

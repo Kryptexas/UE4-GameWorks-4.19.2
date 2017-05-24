@@ -72,10 +72,13 @@ void FMathStructCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>& 
 		const bool bLastChild = SortedChildHandles.Num()-1 == ChildIndex;
 		// Make a widget for each property.  The vector component properties  will be displayed in the header
 
+		TSharedRef<SWidget> NumericEntryBox = MakeChildWidget(StructPropertyHandle, ChildHandle);
+		NumericEntryBoxWidgetList.Add(NumericEntryBox);
+
 		HorizontalBox->AddSlot()
 		.Padding(FMargin(0.0f, 2.0f, bLastChild ? 0.0f : 3.0f, 2.0f))
 		[
-			MakeChildWidget(StructPropertyHandle, ChildHandle)
+			NumericEntryBox
 		];
 	}
 
@@ -145,7 +148,7 @@ void FMathStructCustomization::GetSortedChildren(TSharedRef<IPropertyHandle> Str
 
 
 template<typename NumericType>
-void ExtractNumericMetadata(TSharedRef<IPropertyHandle>& PropertyHandle, TOptional<NumericType>& MinValue, TOptional<NumericType>& MaxValue, TOptional<NumericType>& SliderMinValue, TOptional<NumericType>& SliderMaxValue, NumericType& SliderExponent, NumericType& Delta, int32 &ShiftMouseMovePixelPerDelta, bool &DisplayChannelColor)
+void FMathStructCustomization::ExtractNumericMetadata(TSharedRef<IPropertyHandle>& PropertyHandle, TOptional<NumericType>& MinValue, TOptional<NumericType>& MaxValue, TOptional<NumericType>& SliderMinValue, TOptional<NumericType>& SliderMaxValue, NumericType& SliderExponent, NumericType& Delta, int32 &ShiftMouseMovePixelPerDelta, bool& SupportDynamicSliderMaxValue, bool& SupportDynamicSliderMinValue)
 {
 	UProperty* Property = PropertyHandle->GetProperty();
 
@@ -154,9 +157,10 @@ void ExtractNumericMetadata(TSharedRef<IPropertyHandle>& PropertyHandle, TOption
 	const FString& SliderExponentString = Property->GetMetaData(TEXT("SliderExponent"));
 	const FString& DeltaString = Property->GetMetaData(TEXT("Delta"));
 	const FString& ShiftMouseMovePixelPerDeltaString = Property->GetMetaData(TEXT("ShiftMouseMovePixelPerDelta"));
+	const FString& SupportDynamicSliderMaxValueString = Property->GetMetaData(TEXT("SupportDynamicSliderMaxValue"));
+	const FString& SupportDynamicSliderMinValueString = Property->GetMetaData(TEXT("SupportDynamicSliderMinValue"));
 	const FString& ClampMinString = Property->GetMetaData(TEXT("ClampMin"));
 	const FString& ClampMaxString = Property->GetMetaData(TEXT("ClampMax"));
-	const FString& ColorGradingModeString = Property->GetMetaData(TEXT("ColorGradingMode"));
 
 	// If no UIMin/Max was specified then use the clamp string
 	const FString& UIMinString = MetaUIMinString.Len() ? MetaUIMinString : ClampMinString;
@@ -223,8 +227,9 @@ void ExtractNumericMetadata(TSharedRef<IPropertyHandle>& PropertyHandle, TOption
 	{
 		//UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric"), *UIMinString, *UIMaxString);
 	}
-
-	DisplayChannelColor = ColorGradingModeString.Len() > 0 ? true : false;
+	
+	SupportDynamicSliderMaxValue = SupportDynamicSliderMaxValueString.Len() > 0 && SupportDynamicSliderMaxValueString.ToBool();
+	SupportDynamicSliderMinValue = SupportDynamicSliderMinValueString.Len() > 0 && SupportDynamicSliderMinValueString.ToBool();
 }
 
 
@@ -236,35 +241,16 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
 	TOptional<NumericType> MinValue, MaxValue, SliderMinValue, SliderMaxValue;
 	NumericType SliderExponent, Delta;
 	int32 ShiftMouseMovePixelPerDelta = 1;
-	bool DisplayChannelColor = false;
-	ExtractNumericMetadata(StructurePropertyHandle, MinValue, MaxValue, SliderMinValue, SliderMaxValue, SliderExponent, Delta, ShiftMouseMovePixelPerDelta, DisplayChannelColor);
+	bool SupportDynamicSliderMaxValue = false;
+	bool SupportDynamicSliderMinValue = false;
 
-	TSharedPtr<SWidget> LabelWidget = SNew(STextBlock)
-		.Font(IDetailLayoutBuilder::GetDetailFont())
-		.Text(PropertyHandle->GetPropertyDisplayName());
-
-	int32 ColorIndex = INDEX_NONE;
-	if (DisplayChannelColor && SortedChildHandles.Num() > 2)
-	{
-		for (int32 PropertyHandleIndex = 0; PropertyHandleIndex < SortedChildHandles.Num(); ++PropertyHandleIndex)
-		{
-			TSharedRef<IPropertyHandle> CurrentPropertyHandle = SortedChildHandles[PropertyHandleIndex];
-			if (CurrentPropertyHandle == PropertyHandle)
-			{
-				ColorIndex = PropertyHandleIndex;
-				break;
-			}
-		}
-	}
+	ExtractNumericMetadata(StructurePropertyHandle, MinValue, MaxValue, SliderMinValue, SliderMaxValue, SliderExponent, Delta, ShiftMouseMovePixelPerDelta, SupportDynamicSliderMaxValue, SupportDynamicSliderMinValue);
 
 	TWeakPtr<IPropertyHandle> WeakHandlePtr = PropertyHandle;
 
-	const FEditableTextBoxStyle& DarkEditorStyle = FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("DarkEditableTextBox");
-	const FEditableTextBoxStyle& NormalEditorStyle = FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("NormalEditableTextBox");
-
 	return SNew(SNumericEntryBox<NumericType>)
 		.IsEnabled(this, &FMathStructCustomization::IsValueEnabled, WeakHandlePtr)
-		.EditableTextBoxStyle(DisplayChannelColor ? &DarkEditorStyle : &NormalEditorStyle)
+		.EditableTextBoxStyle(&FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("NormalEditableTextBox"))
 		.Value(this, &FMathStructCustomization::OnGetValue, WeakHandlePtr)
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 		.UndeterminedString(NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values"))
@@ -275,9 +261,11 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
 		.LabelVAlign(VAlign_Center)
 		// Only allow spin on handles with one object.  Otherwise it is not clear what value to spin
 		.AllowSpin(PropertyHandle->GetNumOuterObjects() == 1)
-		.UseDarkStyle(DisplayChannelColor)
-		.ColorIndex(ColorIndex)
 		.ShiftMouseMovePixelPerDelta(ShiftMouseMovePixelPerDelta)
+		.SupportDynamicSliderMaxValue(SupportDynamicSliderMaxValue)
+		.SupportDynamicSliderMinValue(SupportDynamicSliderMinValue)
+		.OnDynamicSliderMaxValueChanged(this, &FMathStructCustomization::OnDynamicSliderMaxValueChanged<NumericType>)
+		.OnDynamicSliderMinValueChanged(this, &FMathStructCustomization::OnDynamicSliderMinValueChanged<NumericType>)
 		.MinValue(MinValue)
 		.MaxValue(MaxValue)
 		.MinSliderValue(SliderMinValue)
@@ -286,8 +274,74 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
 		.Delta(Delta)
 		.Label()
 		[
-			LabelWidget.ToSharedRef()
+			SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(PropertyHandle->GetPropertyDisplayName())
 		];
+}
+
+template <typename NumericType>
+void FMathStructCustomization::OnDynamicSliderMaxValueChanged(NumericType NewMaxSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfHigher)
+{
+	for (TWeakPtr<SWidget>& Widget : NumericEntryBoxWidgetList)
+	{
+		TSharedPtr<SNumericEntryBox<NumericType>> NumericBox = StaticCastSharedPtr<SNumericEntryBox<NumericType>>(Widget.Pin());
+
+		if (NumericBox.IsValid())
+		{
+			TSharedPtr<SSpinBox<NumericType>> SpinBox = StaticCastSharedPtr<SSpinBox<NumericType>>(NumericBox->GetSpinBox());
+
+			if (SpinBox.IsValid())
+			{
+				if (SpinBox != InValueChangedSourceWidget)
+				{
+					if ((NewMaxSliderValue > SpinBox->GetMaxSliderValue() && UpdateOnlyIfHigher) || !UpdateOnlyIfHigher)
+					{
+						// Make sure the max slider value is not a getter otherwise we will break the link!
+						verifySlow(!SpinBox->IsMaxSliderValueBound());
+						SpinBox->SetMaxSliderValue(NewMaxSliderValue);
+					}
+				}
+			}
+		}
+	}
+
+	if (IsOriginator)
+	{
+		OnNumericEntryBoxDynamicSliderMaxValueChanged.Broadcast((float)NewMaxSliderValue, InValueChangedSourceWidget, false, UpdateOnlyIfHigher);
+	}
+}
+
+template <typename NumericType>
+void FMathStructCustomization::OnDynamicSliderMinValueChanged(NumericType NewMinSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfLower)
+{
+	for (TWeakPtr<SWidget>& Widget : NumericEntryBoxWidgetList)
+	{
+		TSharedPtr<SNumericEntryBox<NumericType>> NumericBox = StaticCastSharedPtr<SNumericEntryBox<NumericType>>(Widget.Pin());
+
+		if (NumericBox.IsValid())
+		{
+			TSharedPtr<SSpinBox<NumericType>> SpinBox = StaticCastSharedPtr<SSpinBox<NumericType>>(NumericBox->GetSpinBox());
+
+			if (SpinBox.IsValid())
+			{
+				if (SpinBox != InValueChangedSourceWidget)
+				{
+					if ((NewMinSliderValue < SpinBox->GetMinSliderValue() && UpdateOnlyIfLower) || !UpdateOnlyIfLower)
+					{
+						// Make sure the min slider value is not a getter otherwise we will break the link!
+						verifySlow(!SpinBox->IsMinSliderValueBound());
+						SpinBox->SetMinSliderValue(NewMinSliderValue);
+					}
+				}
+			}
+		}
+	}
+
+	if (IsOriginator)
+	{
+		OnNumericEntryBoxDynamicSliderMinValueChanged.Broadcast((float)NewMinSliderValue, InValueChangedSourceWidget, false, UpdateOnlyIfLower);
+	}
 }
 
 TSharedRef<SWidget> FMathStructCustomization::MakeChildWidget(

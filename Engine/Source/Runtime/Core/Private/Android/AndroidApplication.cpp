@@ -11,6 +11,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogAndroidApplication, Log, All);
 
 bool FAndroidApplication::bWindowSizeChanged = false;
 
+FAndroidApplication* FAndroidApplication::_application = nullptr;
+
 FAndroidApplication* FAndroidApplication::CreateAndroidApplication()
 {
 	return new FAndroidApplication();
@@ -21,6 +23,7 @@ FAndroidApplication::FAndroidApplication()
 	, InputInterface( FAndroidInputInterface::Create( MessageHandler ) )
 	, bHasLoadedInputPlugins(false)
 {
+	_application = this;
 }
 
 void FAndroidApplication::SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
@@ -76,18 +79,6 @@ void FAndroidApplication::PollGameDeviceState( const float TimeDelta )
 FPlatformRect FAndroidApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
 {
 	return FAndroidWindow::GetScreenRect();
-}
-
-IForceFeedbackSystem *FAndroidApplication::GetForceFeedbackSystem()
-{
-	// NOTE: This does not increase the reference count, so don't cache the result
-	return InputInterface.Get();
-}
-
-IForceFeedbackSystem *FAndroidApplication::DEPRECATED_GetForceFeedbackSystem()
-{
-	// NOTE: This does not increase the reference count, so don't cache the result
-	return InputInterface.Get();
 }
 
 IInputInterface* FAndroidApplication::GetInputInterface()

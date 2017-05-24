@@ -9,14 +9,35 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// The project type that support is required for
+	/// </summary>
 	public enum EProjectType
 	{
+		/// <summary>
+		/// 
+		/// </summary>
 		Unknown,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		Any,
+
+		/// <summary>
+		/// Support for code projects
+		/// </summary>
 		Code,
+
+		/// <summary>
+		/// Support for deploying content projects
+		/// </summary>
 		Content,
 	};
 
+	/// <summary>
+	/// Contains methods to allow querying the available installed platforms
+	/// </summary>
 	public class InstalledPlatformInfo
 	{
 		/// <summary>
@@ -24,28 +45,52 @@ namespace UnrealBuildTool
 		/// </summary>
 		public struct InstalledPlatformConfiguration
 		{
+			/// <summary>
 			/// Build Configuration of this combination
+			/// </summary>
 			public UnrealTargetConfiguration Configuration;
 
+			/// <summary>
 			/// Platform for this combination
+			/// </summary>
 			public UnrealTargetPlatform Platform;
 
+			/// <summary>
 			/// Type of Platform for this combination
-			public TargetRules.TargetType PlatformType;
+			/// </summary>
+			public TargetType PlatformType;
 
+			/// <summary>
 			/// Architecture for this combination
+			/// </summary>
 			public string Architecture;
 
+			/// <summary>
 			/// Location of a file that must exist for this combination to be valid (optional)
+			/// </summary>
 			public string RequiredFile;
 
+			/// <summary>
 			/// Type of project this configuration can be used for
+			/// </summary>
 			public EProjectType ProjectType;
 
+			/// <summary>
 			/// Whether to display this platform as an option even if it is not valid
+			/// </summary>
 			public bool bCanBeDisplayed;
 
-			public InstalledPlatformConfiguration(UnrealTargetConfiguration InConfiguration, UnrealTargetPlatform InPlatform, TargetRules.TargetType InPlatformType, string InArchitecture, string InRequiredFile, EProjectType InProjectType, bool bInCanBeDisplayed)
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="InConfiguration"></param>
+			/// <param name="InPlatform"></param>
+			/// <param name="InPlatformType"></param>
+			/// <param name="InArchitecture"></param>
+			/// <param name="InRequiredFile"></param>
+			/// <param name="InProjectType"></param>
+			/// <param name="bInCanBeDisplayed"></param>
+			public InstalledPlatformConfiguration(UnrealTargetConfiguration InConfiguration, UnrealTargetPlatform InPlatform, TargetType InPlatformType, string InArchitecture, string InRequiredFile, EProjectType InProjectType, bool bInCanBeDisplayed)
 			{
 				Configuration = InConfiguration;
 				Platform = InPlatform;
@@ -61,6 +106,9 @@ namespace UnrealBuildTool
 
 		private List<InstalledPlatformConfiguration> InstalledPlatformConfigurations = new List<InstalledPlatformConfiguration>();
 
+		/// <summary>
+		/// Returns the current singleton used to track installed platform info
+		/// </summary>
 		public static InstalledPlatformInfo Current
 		{
 			get
@@ -122,19 +170,19 @@ namespace UnrealBuildTool
 			}
 
 			string PlatformTypeName;
-			TargetRules.TargetType PlatformType = TargetRules.TargetType.Game;
+			TargetType PlatformType = TargetType.Game;
 			if (ParseSubValue(PlatformConfiguration, "PlatformTypeName=", out PlatformTypeName))
 			{
 				if (!Enum.TryParse(PlatformTypeName, out PlatformType))
 				{
 					Log.TraceWarning("Unable to read Platform Type from {0}, defaulting to Game", PlatformConfiguration);
-					PlatformType = TargetRules.TargetType.Game;
+					PlatformType = TargetType.Game;
 				}
 			}
-			if (PlatformType == TargetRules.TargetType.Program)
+			if (PlatformType == TargetType.Program)
 			{
 				Log.TraceWarning("Program is not a valid PlatformType for an Installed Platform, defaulting to Game");
-				PlatformType = TargetRules.TargetType.Game;
+				PlatformType = TargetType.Game;
 			}
 
 			string Architecture;
@@ -201,6 +249,12 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		/// <summary>
+		/// Determine if the given configuration is available for any platform
+		/// </summary>
+		/// <param name="Configuration">Configuration type to check</param>
+		/// <param name="ProjectType">The type of project</param>
+		/// <returns>True if supported</returns>
 		public bool IsValidConfiguration(UnrealTargetConfiguration Configuration, EProjectType ProjectType = EProjectType.Any)
 		{
 			return ContainsValidConfiguration(
@@ -213,6 +267,12 @@ namespace UnrealBuildTool
 			);
 		}
 
+		/// <summary>
+		/// Determine if the given platform is available
+		/// </summary>
+		/// <param name="Platform">Platform to check</param>
+		/// <param name="ProjectType">The type of project</param>
+		/// <returns>True if supported</returns>
 		public bool IsValidPlatform(UnrealTargetPlatform Platform, EProjectType ProjectType = EProjectType.Any)
 		{
 			return ContainsValidConfiguration(
@@ -225,6 +285,13 @@ namespace UnrealBuildTool
 			);
 		}
 
+		/// <summary>
+		/// Determine whether the given platform/configuration/project type combination is supported
+		/// </summary>
+		/// <param name="Configuration">Configuration for the project</param>
+		/// <param name="Platform">Platform for the project</param>
+		/// <param name="ProjectType">Type of the project</param>
+		/// <returns>True if the combination is supported</returns>
 		public bool IsValidPlatformAndConfiguration(UnrealTargetConfiguration Configuration, UnrealTargetPlatform Platform, EProjectType ProjectType = EProjectType.Any)
 		{
 			return ContainsValidConfiguration(
@@ -257,6 +324,11 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="Configs"></param>
+		/// <param name="OutEntries"></param>
 		public static void WriteConfigFileEntries(List<InstalledPlatformConfiguration> Configs, ref List<String> OutEntries)
 		{
 			// Write config section header
@@ -279,7 +351,7 @@ namespace UnrealBuildTool
 			{
 				ConfigDescription += string.Format("Configuration=\"{0}\", ", Config.Configuration.ToString());
 			}
-			if (Config.PlatformType != TargetRules.TargetType.Program)
+			if (Config.PlatformType != TargetType.Program)
 			{
 				ConfigDescription += string.Format("PlatformType=\"{0}\", ", Config.PlatformType.ToString());
 			}

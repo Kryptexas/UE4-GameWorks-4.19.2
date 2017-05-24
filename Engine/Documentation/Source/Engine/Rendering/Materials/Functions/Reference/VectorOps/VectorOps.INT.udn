@@ -3,6 +3,7 @@ title:VectorOps
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions build to handle vector mathematics, such as calculating a Fresnel effect.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

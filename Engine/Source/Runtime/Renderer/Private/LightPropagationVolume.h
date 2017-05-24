@@ -87,6 +87,12 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FLpvReadUniformBufferParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, SpecularOcclusionExponent )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, SpecularOcclusionIntensity )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, DiffuseOcclusionIntensity )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, PostprocessSpecularIntensityThreshold )
+
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector, LpvGridOffsetSmooth )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector, DirectionalOcclusionDefaultValue )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, DirectionalOcclusionFadeRange )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( float, FadeRange )
 END_UNIFORM_BUFFER_STRUCT( FLpvReadUniformBufferParameters )
 
 

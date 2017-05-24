@@ -4,9 +4,8 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this step, we update our default playable character and create all the poses that will be needed for the Aim Offset. 
 version: 4.14
 skilllevel: Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 tags:Aim Offset
 
 [VAR:Steps]

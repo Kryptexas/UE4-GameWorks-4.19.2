@@ -17,6 +17,32 @@ FMovieSceneEvaluationTrack::FMovieSceneEvaluationTrack(const FGuid& InObjectBind
 {
 }
 
+void FMovieSceneEvaluationTrack::PostSerialize(const FArchive& Ar)
+{
+	if (Ar.IsLoading())
+	{
+		// Guard against serialization mismatches where structs have been removed
+		TArray<int32, TInlineAllocator<2>> ImplsToRemove;
+		for (int32 Index = 0; Index < ChildTemplates.Num(); ++Index)
+		{
+			FMovieSceneEvalTemplatePtr& Child = ChildTemplates[Index];
+			if (!Child.IsValid() || &Child->GetScriptStruct() == FMovieSceneEvalTemplate::StaticStruct())
+			{
+				ImplsToRemove.Add(Index);
+			}
+		}
+
+		if (ImplsToRemove.Num())
+		{
+			for (FMovieSceneSegment& Segment : Segments)
+			{
+				Segment.Impls.RemoveAll([&](const FSectionEvaluationData& In) { return ImplsToRemove.Contains(In.ImplIndex); });
+			}
+		}
+	}
+	SetupOverrides();
+}
+
 void FMovieSceneEvaluationTrack::DefineAsSingleTemplate(FMovieSceneEvalTemplatePtr&& InTemplate)
 {
 	ChildTemplates.Reset(1);
@@ -24,8 +50,8 @@ void FMovieSceneEvaluationTrack::DefineAsSingleTemplate(FMovieSceneEvalTemplateP
 
 	ChildTemplates.Add(MoveTemp(InTemplate));
 	
-	int32 SegmentIndex = 0;
-	Segments.Add(FMovieSceneSegment(TRange<float>::All(), TArrayView<int32>(&SegmentIndex, 1)));
+	FSectionEvaluationData EvalData(0);
+	Segments.Add(FMovieSceneSegment(TRange<float>::All(), TArrayView<FSectionEvaluationData>(&EvalData, 1)));
 }
 
 int32 FMovieSceneEvaluationTrack::AddChildTemplate(FMovieSceneEvalTemplatePtr&& InTemplate)
@@ -55,6 +81,19 @@ void FMovieSceneEvaluationTrack::ValidateSegments()
 			}
 		}
 	}
+}
+
+int32 FMovieSceneEvaluationTrack::FindSegmentIndex(float InTime) const
+{
+	for (int32 Index = 0; Index < Segments.Num(); ++Index)
+	{
+		if (Segments[Index].Range.Contains(InTime))
+		{
+			return Index;
+		}
+	}
+
+	return INDEX_NONE;
 }
 
 void FMovieSceneEvaluationTrack::SetupOverrides()
@@ -95,14 +134,11 @@ void FMovieSceneEvaluationTrack::DefaultInitialize(int32 SegmentIndex, const FMo
 		if (Template.RequiresInitialization())
 		{
 			PersistentData.DeriveSectionKey(EvalData.ImplIndex);
-			
-			Context.OverrideTime(EvalData.ForcedTime);
 
-			Template.Initialize(
-				Operand,
-				Context,
-				PersistentData,
-				Player);
+			Context.OverrideTime(EvalData.ForcedTime);
+			Context.ApplySectionPrePostRoll(EvalData.IsPreRoll(), EvalData.IsPostRoll());
+
+			Template.Initialize(Operand, Context, PersistentData, Player);
 		}
 	}
 }
@@ -139,19 +175,16 @@ void FMovieSceneEvaluationTrack::EvaluateStatic(int32 SegmentIndex, const FMovie
 	for (const FSectionEvaluationData& EvalData : GetSegment(SegmentIndex).Impls)
 	{
 		const FMovieSceneEvalTemplate& Template = GetChildTemplate(EvalData.ImplIndex);
-		
+
 		Context.OverrideTime(EvalData.ForcedTime);
+		Context.ApplySectionPrePostRoll(EvalData.IsPreRoll(), EvalData.IsPostRoll());
 
 		PersistentData.DeriveSectionKey(EvalData.ImplIndex);
 		ExecutionTokens.SetSectionIdentifier(EvalData.ImplIndex);
 		ExecutionTokens.SetCompletionMode(Template.GetCompletionMode());
 		ExecutionTokens.SetContext(Context);
 
-		Template.Evaluate(
-			Operand,
-			Context,
-			PersistentData,
-			ExecutionTokens);
+		Template.Evaluate(Operand, Context, PersistentData, ExecutionTokens);
 	}
 }
 
@@ -180,29 +213,32 @@ namespace
 
 		return true;
 	}
+
+	void GatherSweptSegments(TRange<float> TraversedRange, int32 CurrentSegmentIndex, const TArray<FMovieSceneSegment>& Segments, TMap<int32, TRange<float>>& ImplToAccumulatedRange)
+	{
+		// Search backwards from the current segment for any segments intersecting the traversed range
+		{
+			int32 PreviousIndex = CurrentSegmentIndex;
+			while(--PreviousIndex >= 0 && IntersectSegmentRanges(Segments[PreviousIndex], TraversedRange, ImplToAccumulatedRange));
+		}
+
+		// Obviously the current segment intersects otherwise we wouldn't be in here
+		IntersectSegmentRanges(Segments[CurrentSegmentIndex], TraversedRange, ImplToAccumulatedRange);
+
+		// Search forwards from the current segment for any segments intersecting the traversed range
+		{
+			int32 NextIndex = CurrentSegmentIndex;
+			while(++NextIndex < Segments.Num() && IntersectSegmentRanges(Segments[NextIndex], TraversedRange, ImplToAccumulatedRange));
+		}
+	}
 }
 
 void FMovieSceneEvaluationTrack::EvaluateSwept(int32 SegmentIndex, const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	TRange<float> TraversedRange = Context.GetRange();
-
 	// Accumulate the relevant ranges that each section intersects with the evaluated range
 	TMap<int32, TRange<float>> ImplToAccumulatedRange;
 
-	// Search backwards from the current segment for any segments intersecting the traversed range
-	{
-		int32 PreviousIndex = SegmentIndex;
-		while(--PreviousIndex >= 0 && IntersectSegmentRanges(Segments[PreviousIndex], TraversedRange, ImplToAccumulatedRange));
-	}
-
-	// Obviously the current segment intersects otherwise we wouldn't be in here
-	IntersectSegmentRanges(Segments[SegmentIndex], TraversedRange, ImplToAccumulatedRange);
-
-	// Search forwards from the current segment for any segments intersecting the traversed range
-	{
-		int32 NextIndex = SegmentIndex;
-		while(++NextIndex < Segments.Num() && IntersectSegmentRanges(Segments[NextIndex], TraversedRange, ImplToAccumulatedRange));
-	}
+	GatherSweptSegments(Context.GetRange(), SegmentIndex, Segments, ImplToAccumulatedRange);
 
 	for (auto& Pair : ImplToAccumulatedRange)
 	{
@@ -214,11 +250,44 @@ void FMovieSceneEvaluationTrack::EvaluateSwept(int32 SegmentIndex, const FMovieS
 		ExecutionTokens.SetSectionIdentifier(SectionIndex);
 		ExecutionTokens.SetCompletionMode(Template.GetCompletionMode());
 		ExecutionTokens.SetContext(Context);
-
+		
 		Template.EvaluateSwept(
 			Operand,
 			Context.Clamp(EvaluationRange),
 			PersistentData,
 			ExecutionTokens);
+	}
+}
+
+void FMovieSceneEvaluationTrack::Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container) const
+{
+	if (TrackTemplate.IsValid() && TrackTemplate->Interrogate(Context, Container))
+	{
+		return;
+	}
+
+	const int32 SegmentIndex = FindSegmentIndex(Context.GetTime());
+	if (SegmentIndex == INDEX_NONE)
+	{
+		return;
+	}
+
+	if (EvaluationMethod == EEvaluationMethod::Static)
+	{
+		for (const FSectionEvaluationData& EvalData : GetSegment(SegmentIndex).Impls)
+		{
+			GetChildTemplate(EvalData.ImplIndex).Interrogate(Context, Container);
+		}
+	}
+	else
+	{
+		// Accumulate the relevant ranges that each section intersects with the evaluated range
+		TMap<int32, TRange<float>> ImplToAccumulatedRange;
+
+		GatherSweptSegments(Context.GetRange(), SegmentIndex, Segments, ImplToAccumulatedRange);
+		for (auto& Pair : ImplToAccumulatedRange)
+		{
+			GetChildTemplate(Pair.Key).Interrogate(Context, Pair.Value, Container);
+		}
 	}
 }

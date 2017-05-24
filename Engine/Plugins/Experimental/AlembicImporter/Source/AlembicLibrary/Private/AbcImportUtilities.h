@@ -184,7 +184,7 @@ namespace AbcImporterUtilities
 		Alembic::AbcCoreAbstract::TimeSamplingType SamplingType = TimeSampler->getTimeSamplingType();
 		// We know the seconds per frame, so if we take the time for the first stored sample we can work out how many 'empty' frames come before it
 		// Ensure that the start frame is never lower that 0
-		StartFrame = FMath::Max<int32>( (int32)(StartTime / (float)SamplingType.getTimePerCycle() - 1), 0 );
+		StartFrame = FMath::Max<int32>( FMath::CeilToInt(StartTime / (float)SamplingType.getTimePerCycle()), 0 );
 	}
 	
 	FAbcMeshSample* MergeMeshSamples(const TArray<FAbcMeshSample*>& Samples);

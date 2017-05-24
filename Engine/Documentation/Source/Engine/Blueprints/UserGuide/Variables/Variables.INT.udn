@@ -6,6 +6,7 @@ version: 4.9
 skilllevel:Intermediate
 Parent:Engine/Blueprints/Scripting
 tags:Data Types
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

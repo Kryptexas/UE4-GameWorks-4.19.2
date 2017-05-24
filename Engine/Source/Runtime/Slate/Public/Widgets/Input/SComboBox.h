@@ -131,6 +131,9 @@ public:
 		/** Called when combo box is opened, before list is actually created */
 		SLATE_EVENT( FOnComboBoxOpening, OnComboBoxOpening )
 
+		/** The custom scrollbar to use in the ListView */
+		SLATE_ARGUMENT(TSharedPtr<SScrollBar>, CustomScrollbar)
+
 		/** The option that should be selected when the combo box is first created */
 		SLATE_ARGUMENT( OptionType, InitiallySelectedItem )
 
@@ -185,6 +188,7 @@ public:
 		this->EnableGamepadNavigationMode = InArgs._EnableGamepadNavigationMode;
 
 		OptionsSource = InArgs._OptionsSource;
+		CustomScrollbar = InArgs._CustomScrollbar;
 
 		TSharedRef<SWidget> ComboBoxMenuContent =
 			SNew(SBox)
@@ -192,9 +196,10 @@ public:
 			[
 				SAssignNew(this->ComboListView, SComboListType)
 				.ListItemsSource(InArgs._OptionsSource)
-			.OnGenerateRow(this, &SComboBox< OptionType >::GenerateMenuItemRow)
-			.OnSelectionChanged(this, &SComboBox< OptionType >::OnSelectionChanged_Internal)
-			.SelectionMode(ESelectionMode::Single)
+				.OnGenerateRow(this, &SComboBox< OptionType >::GenerateMenuItemRow)
+				.OnSelectionChanged(this, &SComboBox< OptionType >::OnSelectionChanged_Internal)
+				.SelectionMode(ESelectionMode::Single)
+				.ExternalScrollbar(InArgs._CustomScrollbar)
 			];
 
 		// Set up content
@@ -409,7 +414,7 @@ private:
 			bControllerInputCaptured = false;
 			//Ensure the ListView selection is set back to the last committed selection
 			ComboListView->SetSelection(SelectedItem, ESelectInfo::OnNavigation);
-			ComboListView->RequestScrollIntoView(SelectedItem);
+			ComboListView->RequestScrollIntoView(SelectedItem, 0);
 
 			// Set focus back to ComboBox for users focusing the ListView that just closed
 			FSlateApplication::Get().ForEachUser([&](FSlateUser* User) {
@@ -491,6 +496,8 @@ private:
 	OptionType SelectedItem;
 	/** The ListView that we pop up; visualized the available options. */
 	TSharedPtr< SComboListType > ComboListView;
+	/** The Scrollbar used in the ListView. */
+	TSharedPtr< SScrollBar > CustomScrollbar;
 	/** Delegate to invoke before the combo box is opening. */
 	FOnComboBoxOpening OnComboBoxOpening;
 	/** Delegate to invoke when we need to visualize an option as a widget. */

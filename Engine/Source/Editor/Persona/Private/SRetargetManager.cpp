@@ -16,9 +16,10 @@
 #include "SRigWindow.h"
 #include "AnimPreviewInstance.h"
 #include "IEditableSkeleton.h"
+#include "PropertyCustomizationHelpers.h"
+#include "MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "SRetargetManager"
-
 
 //////////////////////////////////////////////////////////////////////////
 // SRetargetManager
@@ -164,11 +165,11 @@ void SRetargetManager::Construct(const FArguments& InArgs, const TSharedRef<IEdi
 			.HAlign(HAlign_Center)
 			[
 				SNew(SButton)
-				.OnClicked(FOnClicked::CreateSP(this, &SRetargetManager::OnResetRetargetBasePose))
+				.OnClicked(FOnClicked::CreateSP(this, &SRetargetManager::OnModifyPose))
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
-				.Text(LOCTEXT("ResetRetargetBasePose_Label", "Reset Pose"))
-				.ToolTipText(LOCTEXT("ResetRetargetBasePose_Tooltip", "Restore Retarget Base Pose to Mesh Refeference Pose"))
+				.Text(LOCTEXT("ModifyRetargetBasePose_Label", "Modify Pose"))
+				.ToolTipText(LOCTEXT("ModifyRetargetBasePose_Tooltip", "Modify Retarget Base Pose"))
 			]
 
 			+SHorizontalBox::Slot()
@@ -181,18 +182,6 @@ void SRetargetManager::Construct(const FArguments& InArgs, const TSharedRef<IEdi
 				.VAlign(VAlign_Center)
 				.Text(this, &SRetargetManager::GetToggleRetargetBasePose)
 				.ToolTipText(LOCTEXT("ViewRetargetBasePose_Tooltip", "Toggle to View/Edit Retarget Base Pose"))
-			]
-
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.HAlign(HAlign_Center)
-			[
-				SNew(SButton)
-				.OnClicked(FOnClicked::CreateSP(this, &SRetargetManager::OnSaveRetargetBasePose))
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				.Text(LOCTEXT("SaveRetargetBasePose_Label", "Save Pose"))
-				.ToolTipText(LOCTEXT("SaveRetargetBasePose_Tooltip", "Save Current Pose to Retarget Base Pose"))
 			]
 		]
 	];
@@ -218,7 +207,161 @@ FReply SRetargetManager::OnViewRetargetBasePose()
 	return FReply::Handled();
 }
 
-FReply SRetargetManager::OnSaveRetargetBasePose()
+FReply SRetargetManager::OnModifyPose()
+{
+	// create context menu
+	TSharedPtr< SWindow > Parent = FSlateApplication::Get().GetActiveTopLevelWindow();
+	if (Parent.IsValid())
+	{
+		FSlateApplication::Get().PushMenu(
+			Parent.ToSharedRef(),
+			FWidgetPath(),
+			OnModifyPoseContextMenu(),
+			FSlateApplication::Get().GetCursorPos(),
+			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup));
+	}
+
+	return FReply::Handled();
+}
+
+TSharedRef<SWidget> SRetargetManager::OnModifyPoseContextMenu() 
+{
+	FMenuBuilder MenuBuilder(false, nullptr);
+
+	MenuBuilder.BeginSection("ModifyPose_Label", LOCTEXT("ModifyPose", "Set Pose"));
+	{
+		FUIAction Action_ReferencePose
+		(
+			FExecuteAction::CreateSP(this, &SRetargetManager::ResetRetargetBasePose)
+		);
+
+		MenuBuilder.AddMenuEntry
+		(
+			LOCTEXT("ModifyPoseContextMenu_Reset", "Reset"),
+			LOCTEXT("ModifyPoseContextMenu_Reset_Desc", "Reset to reference pose"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Profiler.EventGraph.SelectStack"), Action_ReferencePose, NAME_None, EUserInterfaceActionType::Button
+		);
+
+		FUIAction Action_UseCurrentPose
+		(
+			FExecuteAction::CreateSP(this, &SRetargetManager::UseCurrentPose)
+		);
+
+		MenuBuilder.AddMenuEntry
+		(
+			LOCTEXT("ModifyPoseContextMenu_UseCurrentPose", "Use CurrentPose"),
+			LOCTEXT("ModifyPoseContextMenu_UseCurrentPose_Desc", "Use Current Pose"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Profiler.EventGraph.SelectStack"), Action_UseCurrentPose, NAME_None, EUserInterfaceActionType::Button
+		);
+
+		MenuBuilder.AddMenuSeparator();
+
+		MenuBuilder.AddWidget(
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(3)
+			[
+				SNew(SObjectPropertyEntryBox)
+				.AllowedClass(UPoseAsset::StaticClass())
+				.OnObjectChanged(this, &SRetargetManager::SetSelectedPose)
+				.OnShouldFilterAsset(this, &SRetargetManager::ShouldFilterAsset)
+				.ObjectPath(this, &SRetargetManager::GetSelectedPose)
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(3)
+			[
+				SAssignNew(PoseAssetNameWidget, SPoseAssetNameWidget)
+				.OnSelectionChanged(this, &SRetargetManager::SetPoseName)
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(3)
+			[
+				SNew(SButton)
+				.OnClicked(FOnClicked::CreateSP(this, &SRetargetManager::OnImportPose))
+				.IsEnabled(this, &SRetargetManager::CanImportPose)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Text(LOCTEXT("ImportRetargetBasePose_Label", "Import"))
+				.ToolTipText(LOCTEXT("ImportRetargetBasePose_Tooltip", "Import the selected pose to Retarget Base Pose"))
+			]
+			,
+			FText()
+		);
+
+		if (SelectedPoseAsset.IsValid())
+		{
+			PoseAssetNameWidget->SetPoseAsset(SelectedPoseAsset.Get());
+		}
+		// import pose 
+		MenuBuilder.EndSection();
+	}
+
+	return MenuBuilder.MakeWidget();
+}
+
+bool SRetargetManager::CanImportPose() const
+{
+	return (SelectedPoseAsset.IsValid() && SelectedPoseAsset.Get()->ContainsPose(FName(*SelectedPoseName)));
+}
+
+void SRetargetManager::SetSelectedPose(const FAssetData& InAssetData)
+{
+	if (PoseAssetNameWidget.IsValid())
+	{
+		SelectedPoseAsset = Cast<UPoseAsset>(InAssetData.GetAsset());
+		if (SelectedPoseAsset.IsValid())
+		{
+			PoseAssetNameWidget->SetPoseAsset(SelectedPoseAsset.Get());
+		}
+	}
+}
+
+FString SRetargetManager::GetSelectedPose() const
+{
+	return SelectedPoseAsset->GetPathName();
+}
+
+bool SRetargetManager::ShouldFilterAsset(const FAssetData& InAssetData)
+{
+	if (InAssetData.GetClass() == UPoseAsset::StaticClass() &&
+		EditableSkeletonPtr.IsValid())
+	{
+		FString SkeletonString = FAssetData(&EditableSkeletonPtr.Pin()->GetSkeleton()).GetExportTextName();
+		const FString* Value = InAssetData.TagsAndValues.Find(TEXT("Skeleton"));
+		return (!Value || SkeletonString != *Value);
+	}
+
+	return false;
+}
+
+void SRetargetManager::ResetRetargetBasePose()
+{
+	UDebugSkelMeshComponent * PreviewMeshComp = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
+	if(PreviewMeshComp && PreviewMeshComp->SkeletalMesh)
+	{
+		USkeletalMesh * PreviewMesh = PreviewMeshComp->SkeletalMesh;
+
+		check(PreviewMesh && &EditableSkeletonPtr.Pin()->GetSkeleton() == PreviewMesh->Skeleton);
+
+		if(PreviewMesh)
+		{
+			const FScopedTransaction Transaction(LOCTEXT("ResetRetargetBasePose_Action", "Reset Retarget Base Pose"));
+			PreviewMesh->Modify();
+			// reset to original ref pose
+			PreviewMesh->RetargetBasePose = PreviewMesh->RefSkeleton.GetRefBonePose();
+			TurnOnPreviewRetargetBasePose();
+		}
+	}
+
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void SRetargetManager::UseCurrentPose()
 {
 	UDebugSkelMeshComponent * PreviewMeshComp = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
 	if (PreviewMeshComp && PreviewMeshComp->SkeletalMesh)
@@ -229,7 +372,7 @@ FReply SRetargetManager::OnSaveRetargetBasePose()
 
 		if (PreviewMesh)
 		{
-			const FScopedTransaction Transaction( LOCTEXT("SaveRetargetBasePose_Action", "Save Retarget Base Pose") );
+			const FScopedTransaction Transaction(LOCTEXT("RetargetBasePose_UseCurrentPose_Action", "Retarget Base Pose : Use Current Pose"));
 			PreviewMesh->Modify();
 			// get space bases and calculate local
 			const TArray<FTransform> & SpaceBases = PreviewMeshComp->GetComponentSpaceTransforms();
@@ -237,12 +380,12 @@ FReply SRetargetManager::OnSaveRetargetBasePose()
 			const FReferenceSkeleton& RefSkeleton = PreviewMesh->RefSkeleton;
 			TArray<FTransform> & NewRetargetBasePose = PreviewMesh->RetargetBasePose;
 			// if you're using master pose component in preview, this won't work
-			check (PreviewMesh->RefSkeleton.GetNum() == SpaceBases.Num());
+			check(PreviewMesh->RefSkeleton.GetNum() == SpaceBases.Num());
 			int32 TotalNumBones = PreviewMesh->RefSkeleton.GetNum();
 			NewRetargetBasePose.Empty(TotalNumBones);
 			NewRetargetBasePose.AddUninitialized(TotalNumBones);
 
-			for (int32 BoneIndex = 0; BoneIndex<TotalNumBones; ++BoneIndex)
+			for (int32 BoneIndex = 0; BoneIndex < TotalNumBones; ++BoneIndex)
 			{
 				// this is slower, but skeleton can have more bones, so I can't just access
 				// Parent index from Skeleton. Going safer route
@@ -262,39 +405,71 @@ FReply SRetargetManager::OnSaveRetargetBasePose()
 
 			// Clear PreviewMeshComp bone modified, they're baked now
 			PreviewMeshComp->PreviewInstance->ResetModifiedBone();
-			// turn off the retarget base pose if you're looking at it
-			PreviewMeshComp->PreviewInstance->SetForceRetargetBasePose(false);
+			TurnOnPreviewRetargetBasePose();
 		}
 	}
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void SRetargetManager::SetPoseName(TSharedPtr<FString> PoseName, ESelectInfo::Type SelectionType)
+{
+	SelectedPoseName = *PoseName.Get();
+}
+
+FReply SRetargetManager::OnImportPose()
+{
+	if (CanImportPose())
+	{
+		UPoseAsset* RawPoseAsset = SelectedPoseAsset.Get();
+		ImportPose(RawPoseAsset, FName(*SelectedPoseName));
+	}
+
+	FSlateApplication::Get().DismissAllMenus();
+
 	return FReply::Handled();
 }
 
-FReply SRetargetManager::OnResetRetargetBasePose()
+void SRetargetManager::ImportPose(const UPoseAsset* PoseAsset, const FName& PoseName)
 {
-	const FText Message = LOCTEXT("ResetRetargetBasePose_Confirm", "This will reset current Retarget Base Pose to the Reference Pose of current preview mesh. Would you like to continue?");
-	EAppReturnType::Type Response = FMessageDialog::Open(EAppMsgType::OkCancel, Message);
-	if(Response == EAppReturnType::Ok)
+	// Get transforms from pose (this also converts from additive if necessary)
+	int32 PoseIndex = PoseAsset->GetPoseIndexByName(PoseName);
+	if (PoseIndex != INDEX_NONE)
 	{
-		UDebugSkelMeshComponent * PreviewMeshComp = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
-		if(PreviewMeshComp && PreviewMeshComp->SkeletalMesh)
+		TArray<FTransform> PoseTransforms;
+		if (PoseAsset->GetFullPose(PoseIndex, PoseTransforms))
 		{
-			USkeletalMesh * PreviewMesh = PreviewMeshComp->SkeletalMesh;
+			const TArray<FName>	PoseTrackNames = PoseAsset->GetTrackNames();
 
-			check(PreviewMesh && &EditableSkeletonPtr.Pin()->GetSkeleton() == PreviewMesh->Skeleton);
+			ensureAlways(PoseTrackNames.Num() == PoseTransforms.Num());
 
-			if(PreviewMesh)
+			// now I have pose, I have to copy to the retarget base pose
+			UDebugSkelMeshComponent * PreviewMeshComp = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
+			if (PreviewMeshComp && PreviewMeshComp->SkeletalMesh)
 			{
-				const FScopedTransaction Transaction(LOCTEXT("ResetRetargetBasePose_Action", "Reset Retarget Base Pose"));
-				PreviewMesh->Modify();
-				// reset to original ref pose
-				PreviewMesh->RetargetBasePose = PreviewMesh->RefSkeleton.GetRefBonePose();
-				// turn off the retarget base pose if you're looking at it
-				PreviewMeshComp->PreviewInstance->SetForceRetargetBasePose(true);
+				USkeletalMesh * PreviewMesh = PreviewMeshComp->SkeletalMesh;
+
+				check(PreviewMesh && &EditableSkeletonPtr.Pin()->GetSkeleton() == PreviewMesh->Skeleton);
+
+				if (PreviewMesh)
+				{
+					const FScopedTransaction Transaction(LOCTEXT("ImportRetargetBasePose_Action", "Import Retarget Base Pose"));
+					PreviewMesh->Modify();
+
+					// reset to original ref pose first
+					PreviewMesh->RetargetBasePose = PreviewMesh->RefSkeleton.GetRefBonePose();
+
+					// now override imported pose
+					for (int32 TrackIndex = 0; TrackIndex < PoseTrackNames.Num(); ++TrackIndex)
+					{
+						int32 BoneIndex = PreviewMesh->RefSkeleton.FindBoneIndex(PoseTrackNames[TrackIndex]);
+						PreviewMesh->RetargetBasePose[BoneIndex] = PoseTransforms[TrackIndex];
+					}
+
+					TurnOnPreviewRetargetBasePose();
+				}
 			}
 		}
 	}
-
-	return FReply::Handled();
 }
 
 void SRetargetManager::PostUndo()
@@ -317,6 +492,15 @@ FText SRetargetManager::GetToggleRetargetBasePose() const
 	}
 
 	return LOCTEXT("InvalidRetargetBasePose_Label", "No Mesh for Base Pose");
+}
+
+void SRetargetManager::TurnOnPreviewRetargetBasePose()
+{
+	UDebugSkelMeshComponent * PreviewMeshComp = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
+	if (PreviewMeshComp && PreviewMeshComp->PreviewInstance)
+	{
+		PreviewMeshComp->PreviewInstance->SetForceRetargetBasePose(true);
+	}
 }
 #undef LOCTEXT_NAMESPACE
 

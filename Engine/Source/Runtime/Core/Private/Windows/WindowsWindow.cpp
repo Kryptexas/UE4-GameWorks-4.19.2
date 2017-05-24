@@ -173,6 +173,24 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 		( InParent.IsValid() ) ? static_cast<HWND>( InParent->HWnd ) : NULL,
 		NULL, InHInstance, NULL);
 
+	if (HWnd == NULL)
+	{
+		FSlowHeartBeatScope SuspendHeartBeat;
+
+		// @todo Error message should be localized!
+		MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
+
+		const uint32 Error = GetLastError();
+
+		// Get the number of handles.  A large number of windows has been known to cause window creation to fail because windows only allows so many.
+		DWORD NumHandles = 0;
+		GetProcessHandleCount(GetCurrentProcess(), &NumHandles);
+		checkf(0, TEXT("Window Creation Failed (%d). %d"), Error, NumHandles);
+
+		return;
+	}
+
+
 #if WINVER >= 0x0601
 	if ( RegisterTouchWindow( HWnd, 0 ) == false )
 	{
@@ -190,15 +208,6 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	// desired client area space.
 	ReshapeWindow( ClientX, ClientY, ClientWidth, ClientHeight );
 
-	if( HWnd == NULL )
-	{
-		FSlowHeartBeatScope SuspendHeartBeat;
-
-		// @todo Error message should be localized!
-		MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
-		checkf(0, TEXT("Window Creation Failed (%d)"), ::GetLastError() );
-		return;
-	}
 
 	if ( Definition->TransparencySupport == EWindowTransparency::PerWindow )
 	{
@@ -248,7 +257,7 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 
 		uint32 SetWindowPositionFlags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED;
 
-		if ( !Definition->ActivateWhenFirstShown )
+		if ( Definition->ActivationPolicy == EWindowActivationPolicy::Never )
 		{
 			SetWindowPositionFlags |= SWP_NOACTIVATE;
 		}
@@ -271,7 +280,10 @@ FWindowsWindow::FWindowsWindow()
 	, WindowMode( EWindowMode::Windowed )
 	, OLEReferenceCount(0)
 	, AspectRatio(1.0f)
-	, bIsVisible( false )
+	, bIsVisible(false)
+	, bIsFirstTimeVisible(true)
+	, bInitiallyMinimized(false)
+	, bInitiallyMaximized(false)
 	, DPIScaleFactor(1.0f)
 {
 	// PreFullscreenWindowPlacement.length will be set when we save the window placement and then used to check if the structure is valid
@@ -552,19 +564,49 @@ void FWindowsWindow::Destroy()
 /** Native window should implement this function by performing the equivalent of the Win32 minimize-to-taskbar operation */
 void FWindowsWindow::Minimize()
 {
-	::ShowWindow(HWnd, SW_MINIMIZE);
+	// Windows window handles the initial show state on the first Show call in order to handle activation policy.
+	// So we only call now if that already happened.
+	if (!bIsFirstTimeVisible)
+	{
+		::ShowWindow(HWnd, SW_MINIMIZE);
+	}
+	else
+	{
+		bInitiallyMinimized = true;
+		bInitiallyMaximized = false;
+	}
 }
 
 /** Native window should implement this function by performing the equivalent of the Win32 maximize operation */
 void FWindowsWindow::Maximize()
 {
-	::ShowWindow(HWnd, SW_MAXIMIZE);
+	// Windows window handles the initial show state on the first Show call in order to handle activation policy.
+	// So we only call now if that already happened.
+	if (!bIsFirstTimeVisible)
+	{
+		::ShowWindow(HWnd, SW_MAXIMIZE);
+	}
+	else
+	{
+		bInitiallyMaximized = true;
+		bInitiallyMinimized = false;
+	}
 }
 
 /** Native window should implement this function by performing the equivalent of the Win32 maximize operation */
 void FWindowsWindow::Restore()
 {
-	::ShowWindow(HWnd, SW_RESTORE);
+	// Windows window handles the initial show state on the first Show call in order to handle activation policy.
+	// So we only call now if that already happened.
+	if (!bIsFirstTimeVisible)
+	{
+		::ShowWindow(HWnd, SW_RESTORE);
+	}
+	else
+	{
+		bInitiallyMaximized = false;
+		bInitiallyMinimized = false;
+	}
 }
 
 /** Native window should make itself visible */
@@ -574,10 +616,34 @@ void FWindowsWindow::Show()
 	{
 		bIsVisible = true;
 
+		// Should the show command include activation?
 		// Do not activate windows that do not take input; e.g. tool-tips and cursor decorators
-		// Also dont activate if a window wants to appear but not activate itself
-		const bool bShouldActivate = Definition->AcceptsInput && Definition->ActivateWhenFirstShown;
-		::ShowWindow(HWnd, bShouldActivate ? SW_SHOW : SW_SHOWNOACTIVATE);
+		bool bShouldActivate = false;
+		if (Definition->AcceptsInput)
+		{
+			bShouldActivate = Definition->ActivationPolicy == EWindowActivationPolicy::Always;
+			if (bIsFirstTimeVisible && Definition->ActivationPolicy == EWindowActivationPolicy::FirstShown)
+			{
+				bShouldActivate = true;
+			}
+		}
+
+		// Map to the relevant ShowWindow command.
+		int ShowWindowCommand = bShouldActivate ? SW_SHOW : SW_SHOWNOACTIVATE;
+		if (bIsFirstTimeVisible)
+		{
+			bIsFirstTimeVisible = false;
+			if (bInitiallyMinimized)
+			{
+				ShowWindowCommand = bShouldActivate ? SW_MINIMIZE : SW_SHOWMINNOACTIVE;
+			}
+			else if (bInitiallyMaximized)
+			{
+				ShowWindowCommand = bShouldActivate ? SW_SHOWMAXIMIZED : SW_MAXIMIZE;
+			}
+		}
+
+		::ShowWindow(HWnd, ShowWindowCommand);
 
 		// Turns out SW_SHOWNA doesn't work correctly if the window has never been shown before.  If the window
 		// was already maximized, (and hidden) and we're showing it again, SW_SHOWNA would be right.  But it's not right

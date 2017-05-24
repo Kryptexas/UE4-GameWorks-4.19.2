@@ -11,7 +11,9 @@
 #include "UObject/Object.h"
 #include "Serialization/ArchiveUObject.h"
 #include "Misc/ITransaction.h"
+#include "UObject/AssetPtr.h"
 #include "Transactor.generated.h"
+
 
 /*-----------------------------------------------------------------------------
 	FUndoSessionContext
@@ -232,6 +234,13 @@ protected:
 				}
 				return *this;
 			}
+			FArchive& operator<<(class FAssetPtr& AssetPtr) override
+			{
+				FStringAssetReference ID;
+				ID.Serialize(*this);
+				AssetPtr = ID;
+				return *this;
+			}
 			void Preload( UObject* InObject ) override
 			{
 				if( Owner )
@@ -320,6 +329,12 @@ protected:
 					ObjectMap.Add(Res, ObjectIndex);
 				}
 				return (FArchive&)*this << ObjectIndex;
+			}
+			FArchive& operator<<(class FAssetPtr& AssetPtr)
+			{
+				FStringAssetReference ID = AssetPtr.GetUniqueID();
+				ID.Serialize(*this);
+				return *this;
 			}
 			TArray<uint8>& Data;
 			ObjectMapType ObjectMap;

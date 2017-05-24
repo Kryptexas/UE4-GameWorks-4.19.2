@@ -126,6 +126,13 @@ public:
 	{
 		TimeDuration = WindowDuration;
 	}
+
+#if WITH_EDITOR
+	bool NeedsUpdate(const EFilterInterpolationType InType, const float InTime)
+	{
+		return InterpolationType != InType || TimeDuration != InTime;
+	}
+#endif // WITH_EDITOR
 private:
 	TArray<FFilterData>			FilterWindow;
 	EFilterInterpolationType	InterpolationType;

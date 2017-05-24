@@ -6,13 +6,10 @@
 
 extern bool D3D12RHI_ShouldCreateWithD3DDebug();
 
-static const uint64 InvalidFence = static_cast<uint64>(-1);
-
 FComputeFenceRHIRef FD3D12DynamicRHI::RHICreateComputeFence(const FName& Name)
 {
 	FD3D12Fence* Fence = new FD3D12Fence(&GetAdapter(), Name);
-
-	Fence->CreateFence(InvalidFence);
+	Fence->CreateFence();
 
 	return Fence;
 }
@@ -26,7 +23,6 @@ FD3D12FenceCore::FD3D12FenceCore(FD3D12Adapter* Parent, uint64 InitialValue)
 	hFenceCompleteEvent = CreateEvent(nullptr, false, false, nullptr);
 	check(INVALID_HANDLE_VALUE != hFenceCompleteEvent);
 
-	InitialValue = FMath::Min(InitialValue, InvalidFence);
 	VERIFYD3D12RESULT(Parent->GetD3DDevice()->CreateFence(InitialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(Fence.GetInitReference())));
 }
 
@@ -41,9 +37,9 @@ FD3D12FenceCore::~FD3D12FenceCore()
 
 FD3D12Fence::FD3D12Fence(FD3D12Adapter* Parent, const FName& Name)
 	: FRHIComputeFence(Name)
-	, CurrentFence(-1)
-	, LastSignaledFence(-1)
-	, LastCompletedFence(-1)
+	, CurrentFence(0)
+	, LastSignaledFence(0)
+	, LastCompletedFence(0)
 	, FenceCore(nullptr)
 	, FD3D12AdapterChild(Parent)
 {
@@ -64,16 +60,14 @@ void FD3D12Fence::Destroy()
 	}
 }
 
-void FD3D12Fence::CreateFence(uint64 InitialValue)
+void FD3D12Fence::CreateFence()
 {
 	check(FenceCore == nullptr);
 
 	// Get a fence from the pool
-	FenceCore = GetParentAdapter()->GetFenceCorePool().ObtainFenceCore(InitialValue);
-
-#if !UE_BUILD_SHIPPING
+	FenceCore = GetParentAdapter()->GetFenceCorePool().ObtainFenceCore();
 	SetName(FenceCore->GetFence(), *GetName().ToString());
-#endif
+
 	LastSignaledFence = GetLastCompletedFence();
 	CurrentFence = LastSignaledFence + 1;
 }
@@ -215,7 +209,7 @@ void FD3D12CommandListManager::Create(const TCHAR* Name, uint32 NumCommandLists,
 	FD3D12Adapter* Adapter = Device->GetParentAdapter();
 
 	CommandListFence.SetParentAdapter(Adapter);
-	CommandListFence.CreateFence(0);
+	CommandListFence.CreateFence();
 
 	check(D3DCommandQueue.GetReference() == nullptr);
 	check(ReadyLists.IsEmpty());
@@ -584,29 +578,19 @@ FD3D12CommandListHandle FD3D12CommandListManager::CreateCommandListHandle(FD3D12
 	return List;
 }
 
-FD3D12FenceCore* FD3D12FenceCorePool::ObtainFenceCore(uint64 InitialValue)
+FD3D12FenceCore* FD3D12FenceCorePool::ObtainFenceCore()
 {
 	{
 		FScopeLock Lock(&CS);
 		FD3D12FenceCore* Fence = nullptr;
-		if (AvailableFences.Peek(Fence))
+		if (AvailableFences.Peek(Fence) && Fence->IsAvailable())
 		{
-			if (Fence->IsAvailable())
-			{
-				AvailableFences.Dequeue(Fence);
-
-				//Reset the fence value
-				if (InitialValue != InvalidFence)
-				{
-					Fence->GetFence()->Signal(InitialValue);
-				}
-
-				return Fence;
-			}
+			AvailableFences.Dequeue(Fence);
+			return Fence;
 		}
 	}
 
-	return new FD3D12FenceCore(GetParentAdapter(), InitialValue);
+	return new FD3D12FenceCore(GetParentAdapter(), 0);
 }
 
 void FD3D12FenceCorePool::ReleaseFenceCore(FD3D12FenceCore* Fence, uint64 CurrentFenceValue)

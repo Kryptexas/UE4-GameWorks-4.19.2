@@ -15,7 +15,6 @@ void SSafeZone::Construct( const FArguments& InArgs )
 		]
 	);
 
-	
 	Padding = InArgs._Padding;
 	SafeAreaScale = InArgs._SafeAreaScale;
 	bIsTitleSafe = InArgs._IsTitleSafe;
@@ -23,6 +22,11 @@ void SSafeZone::Construct( const FArguments& InArgs )
 	bPadRight = InArgs._PadRight;
 	bPadTop = InArgs._PadTop;
 	bPadBottom = InArgs._PadBottom;
+
+#if WITH_EDITOR
+	OverrideScreenSize = InArgs._OverrideScreenSize;
+	OverrideDpiScale = InArgs._OverrideDpiScale;
+#endif
 
 	SetTitleSafe(bIsTitleSafe);
 
@@ -39,13 +43,23 @@ void SSafeZone::SetTitleSafe( bool InIsTitleSafe )
 	FDisplayMetrics Metrics;
 	FSlateApplication::Get().GetDisplayMetrics( Metrics );
 
-	if ( bIsTitleSafe )
+	const FMargin DeviceSafeMargin = bIsTitleSafe ?
+		FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
+		FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+
+#if WITH_EDITOR
+	if ( OverrideScreenSize.IsSet() )
 	{
-		SafeMargin = FMargin( Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y );
+		const float WidthPaddingRatio = DeviceSafeMargin.Left / ( Metrics.PrimaryDisplayWidth * 0.5f );
+		const float HeightPaddingRatio = DeviceSafeMargin.Top / ( Metrics.PrimaryDisplayHeight * 0.5f );
+		const FMargin OverrideSafeMargin = FMargin(WidthPaddingRatio * OverrideScreenSize->X * 0.5f, HeightPaddingRatio * OverrideScreenSize->Y * 0.5f);
+
+		SafeMargin = OverrideSafeMargin;
 	}
 	else
+#endif
 	{
-		SafeMargin = FMargin( Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y );
+		SafeMargin = DeviceSafeMargin;
 	}
 
 	SafeMargin = FMargin(bPadLeft ? SafeMargin.Left : 0.0f, bPadTop ? SafeMargin.Top : 0.0f, bPadRight ? SafeMargin.Right : 0.0f, bPadBottom ? SafeMargin.Bottom : 0.0f);
@@ -61,6 +75,18 @@ void SSafeZone::SetSidesToPad(bool InPadLeft, bool InPadRight, bool InPadTop, bo
 	SetTitleSafe(bIsTitleSafe);
 }
 
+#if WITH_EDITOR
+
+void SSafeZone::SetOverrideScreenInformation(TOptional<FVector2D> InScreenSize, TOptional<float> InOverrideDpiScale)
+{
+	OverrideScreenSize = InScreenSize;
+	OverrideDpiScale = InOverrideDpiScale;
+
+	SetTitleSafe(bIsTitleSafe);
+}
+
+#endif
+
 void SSafeZone::SetSafeAreaScale(FMargin InSafeAreaScale)
 {
 	SafeAreaScale = InSafeAreaScale;
@@ -68,7 +94,12 @@ void SSafeZone::SetSafeAreaScale(FMargin InSafeAreaScale)
 
 FMargin SSafeZone::ComputeScaledSafeMargin(float Scale) const
 {
+#if WITH_EDITOR
+	const float InvScale = OverrideDpiScale.IsSet() ? 1.0f / OverrideDpiScale.GetValue() : 1.0f / Scale;
+#else
 	const float InvScale = 1.0f / Scale;
+#endif
+
 	const FMargin ScaledSafeMargin(
 		FMath::RoundToFloat(SafeMargin.Left * InvScale),
 		FMath::RoundToFloat(SafeMargin.Top * InvScale),

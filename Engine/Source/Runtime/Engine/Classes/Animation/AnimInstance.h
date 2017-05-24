@@ -13,6 +13,7 @@
 #include "BonePose.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimNotifyQueue.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
 #include "AnimInstance.generated.h"
 
 class FDebugDisplayInfo;
@@ -80,6 +81,8 @@ DECLARE_DELEGATE_ThreeParams(FOnGraphStateChanged, const struct FAnimNode_StateM
 /** Delegate that allows users to insert custom animation curve values - for now, it's only single, not sure how to make this to multi delegate and retrieve value sequentially, so */
 DECLARE_DELEGATE_OneParam(FOnAddCustomAnimationCurves, UAnimInstance*)
 
+/** Delegate called by 'PlayMontageNotify' and 'PlayMontageNotifyWindow' **/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPlayMontageAnimNotifyDelegate, FName, NotifyName, const FBranchingPointNotifyPayload&, BranchingPointPayload);
 
 
 USTRUCT()
@@ -123,7 +126,7 @@ public:
 	bool IsValid() const;
 
 	/** Get parent bone index for given bone index. */
-	int32 GetParentBoneIndex(const int32& BoneIndex) const;
+	int32 GetParentBoneIndex(const int32 BoneIndex) const;
 
 	/** Returns local transform for the bone index. **/
 	FTransform GetLocalSpaceTransform(int32 BoneIndex);
@@ -704,14 +707,6 @@ private:
 	/** Used to guard against recursive calls to UpdateAnimation */
 	bool bPostUpdatingAnimation;
 
-#if WITH_EDITOR
-	/** Delegate for custom animation curve addition */
-	TArray<FOnAddCustomAnimationCurves> OnAddAnimationCurves;
-public:
-	/** Add custom curve delegates */
-	void AddDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves);
-	void RemoveDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves);
-#endif // editor only for now
 public:
 
 	/** Is this animation currently running post update */
@@ -1002,7 +997,8 @@ public:
 public:
 
 	/** Access the required bones array */
-	FBoneContainer& GetRequiredBones();	
+	FBoneContainer& GetRequiredBones();
+	const FBoneContainer& GetRequiredBones() const;
 
 	/** Animation Notifies that has been triggered in the latest tick **/
 	FAnimNotifyQueue NotifyQueue;
@@ -1084,7 +1080,7 @@ public:
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value);
 
 	/** Given a machine index, record a state machine weight for this frame */
-	void RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight);
+	void RecordMachineWeight(const int32 InMachineClassIndex, const float InMachineWeight);
 	/** 
 	 * Add curve float data, using a curve name. External values should all be added using
 	 * The curve UID to the public version of this method
@@ -1092,7 +1088,7 @@ public:
 	void AddCurveValue(const FName& CurveName, float Value);
 
 	/** Given a machine and state index, record a state weight for this frame */
-	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
+	void RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight);
 
 protected:
 #if WITH_EDITORONLY_DATA
@@ -1148,9 +1144,6 @@ protected:
 
 	/** Called to setup for updates */
 	void PreUpdateAnimation(float DeltaSeconds);
-
-	/** Actually does the update work, can be called from a worker thread  */
-	void UpdateAnimationInternal_Concurrent(float DeltaSeconds, FAnimInstanceProxy& Proxy);
 
 	/** update animation curves to component */
 	void UpdateCurvesToComponents(USkeletalMeshComponent* Component);
@@ -1242,4 +1235,11 @@ protected:
 protected:
 	/** Proxy object, nothing should access this from an externally-callable API as it is used as a scratch area on worker threads */
 	mutable FAnimInstanceProxy* AnimInstanceProxy;
+
+public:
+	/** Called when a montage hits a 'PlayMontageNotify' or 'PlayMontageNotifyWindow' begin */
+	FPlayMontageAnimNotifyDelegate OnPlayMontageNotifyBegin;
+
+	/** Called when a montage hits a 'PlayMontageNotify' or 'PlayMontageNotifyWindow' end */
+	FPlayMontageAnimNotifyDelegate OnPlayMontageNotifyEnd;
 };

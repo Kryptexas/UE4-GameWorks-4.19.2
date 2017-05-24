@@ -22,6 +22,7 @@
 #include "gvr_arm_model.h"
 #endif
 #include "Classes/GoogleVRControllerEventManager.h"
+#include "Classes/GoogleVRControllerFunctionLibrary.h"
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 using namespace gvr;
@@ -105,9 +106,18 @@ public: // Helper Functions
 
 	EGoogleVRControllerState GetControllerState() const;
 
-	FVector ConvertGvrVectorToUnreal(float x, float y, float z) const;
+	FVector ConvertGvrVectorToUnreal(float x, float y, float z, float WorldToMetersScale) const;
 
 	FQuat ConvertGvrQuaternionToUnreal(float w, float x, float y, float z) const;
+
+	/** Checks if the controller battery is charging. */
+	bool GetBatteryCharging();
+
+	/** Returns an approximate battery level. */
+	EGoogleVRControllerBatteryLevel GetBatteryLevel();
+
+	/** Returns the time stamp the battery information was last updated. */
+	int64_t GetLastBatteryTimestamp();
 
 public: // Arm Model
 
@@ -147,7 +157,7 @@ public: // IMotionController
 	* @param OutPosition		(out) If tracked, the position (in calibrated-space) of the controller in the specified hand
 	* @return					True if the device requested is valid and tracked, false otherwise
 	*/
-	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const;
+	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const;
 
 	/**
 	* Returns the tracking status (e.g. not tracked, intertial-only, fully tracked) of the specified controller
@@ -161,9 +171,10 @@ public: // IMotionController
 	gvr::ControllerState CachedControllerState;
 #endif
 
+	float  GetWorldToMetersScale() const;
+
 private:
 
-	float  GetWorldToMetersScale() const;
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	/** GVR Controller client reference */

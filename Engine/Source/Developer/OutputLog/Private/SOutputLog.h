@@ -28,18 +28,21 @@ struct FLogMessage
 {
 	TSharedRef<FString> Message;
 	ELogVerbosity::Type Verbosity;
+	FName Category;
 	FName Style;
 
-	FLogMessage(const TSharedRef<FString>& NewMessage, FName NewStyle = NAME_None)
+	FLogMessage(const TSharedRef<FString>& NewMessage, FName NewCategory, FName NewStyle = NAME_None)
 		: Message(NewMessage)
 		, Verbosity(ELogVerbosity::Log)
+		, Category(NewCategory)
 		, Style(NewStyle)
 	{
 	}
 
-	FLogMessage(const TSharedRef<FString>& NewMessage, ELogVerbosity::Type NewVerbosity, FName NewStyle = NAME_None)
+	FLogMessage(const TSharedRef<FString>& NewMessage, ELogVerbosity::Type NewVerbosity, FName NewCategory, FName NewStyle = NAME_None)
 		: Message(NewMessage)
 		, Verbosity(NewVerbosity)
+		, Category(NewCategory)
 		, Style(NewStyle)
 	{
 	}
@@ -156,10 +159,13 @@ struct FLogFilter
 	/** true to show Errors. */
 	bool bShowErrors;
 
+	/** true to allow all Log Categories */
+	bool bShowAllCategories;
+
 	/** Enable all filters by default */
 	FLogFilter() : TextFilterExpressionEvaluator(ETextFilterExpressionEvaluatorMode::BasicString)
 	{
-		bShowErrors = bShowLogs = bShowWarnings = true;
+		bShowErrors = bShowLogs = bShowWarnings = bShowAllCategories = true;
 	}
 
 	/** Returns true if any messages should be filtered out */
@@ -177,9 +183,29 @@ struct FLogFilter
 	/** Returns Evaluator syntax errors (if any) */
 	FText GetSyntaxErrors() { return TextFilterExpressionEvaluator.GetFilterErrorText(); }
 
+	const TArray<FName>& GetAvailableLogCategories() { return AvailableLogCategories; }
+
+	/** Adds a Log Category to the list of available categories, if it isn't already present */
+	void AddAvailableLogCategory(FName& LogCategory);
+
+	/** Enables or disables a Log Category in the filter */
+	void ToggleLogCategory(const FName& LogCategory);
+
+	/** Returns true if the specified log category is enabled */
+	bool IsLogCategoryEnabled(const FName& LogCategory);
+
+	/** Empties the list of selected log categories */
+	void ClearSelectedLogCategories();
+
 private:
 	/** Expression evaluator that can be used to perform complex text filter queries */
 	FTextFilterExpressionEvaluator TextFilterExpressionEvaluator;
+
+	/** Array of Log Categories which are available for filter -- i.e. have been used in a log this session */
+	TArray<FName> AvailableLogCategories;
+
+	/** Array of Log Categories which are being used in the filter */
+	TArray<FName> SelectedLogCategories;
 };
 
 /**
@@ -277,6 +303,9 @@ private:
 	/** Make the "Filters" menu. */
 	TSharedRef<SWidget> MakeAddFilterMenu();
 
+	/** Make the "Categories" menu. */
+	TSharedRef<SWidget> MakeSelectCategoriesMenu();
+
 	/** Fills in the filter menu. */
 	void FillVerbosityEntries(FMenuBuilder& MenuBuilder);
 
@@ -300,6 +329,12 @@ private:
 
 	/** Returns the state of "Errors". */
 	bool MenuErrors_IsChecked() const;
+
+	/** Toggles All Categories ture/false. */
+	void MenuShowAllCategories_Execute();
+
+	/** Returns the state of "Show All" */
+	bool MenuShowAllCategories_IsChecked() const;
 
 	/** Forces re-population of the messages list */
 	void Refresh();

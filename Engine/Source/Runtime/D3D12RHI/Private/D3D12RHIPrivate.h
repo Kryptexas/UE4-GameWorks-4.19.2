@@ -15,14 +15,9 @@
 #include "Containers/ResourceArray.h"
 #include "Serialization/MemoryReader.h"
 #include "EngineGlobals.h"
+#include "StaticBoundShaderState.h"
 
 #define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE 1
-
-#if UE_BUILD_SHIPPING || UE_BUILD_TEST
-#define CHECK_SRV_TRANSITIONS 0
-#else
-#define CHECK_SRV_TRANSITIONS 0	// MSFT: Seb: TODO: ENable
-#endif
 
 #ifndef WITH_DX_PERF
 #define WITH_DX_PERF 0
@@ -78,9 +73,21 @@ typedef FD3D12StateCacheBase FD3D12StateCache;
 #define EXECUTE_DEBUG_COMMAND_LISTS 0
 #define ENABLE_PLACED_RESOURCES 0 // Disabled due to a couple of NVidia bugs related to placed resources. Works fine on Intel
 #define REMOVE_OLD_QUERY_BATCHES 1  // D3D12: MSFT: TODO: Works around a suspected UE4 InfiltratorDemo bug where a query is never released
+#define NAME_OBJECTS !UE_BUILD_SHIPPING	// Name objects in all builds except shipping
 
-#define DEFAULT_BUFFER_POOL_SIZE (8 * 1024 * 1024)
-#define DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE (512 * 1024)
+//@TODO: Improve allocator efficiency so we can increase these thresholds and improve performance
+// We measured 149MB of wastage in 340MB of allocations with DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE set to 512KB
+#if PLATFORM_XBOXONE
+  // Most allocs are 4K and below, but most of the waste comes from larger
+  // allocations, so this is a good compromise (4KB reduced waste by 66% compared to 512KB)
+  #define DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE (4 * 1024) 
+  #define DEFAULT_BUFFER_POOL_SIZE (1 * 1024 * 1024)
+#else
+  // On PC, buffers are 64KB aligned, so anything smaller should be sub-allocated
+  #define DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE (64 * 1024)
+  #define DEFAULT_BUFFER_POOL_SIZE (8 * 1024 * 1024)
+#endif
+
 #define DEFAULT_CONTEXT_UPLOAD_POOL_SIZE (8 * 1024 * 1024)
 #define DEFAULT_CONTEXT_UPLOAD_POOL_MAX_ALLOC_SIZE (4 * 1024 * 1024)
 #define DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT (D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
@@ -211,6 +218,7 @@ public:
 	virtual FComputeFenceRHIRef RHICreateComputeFence(const FName& Name) final override;
 	virtual FBoundShaderStateRHIRef RHICreateBoundShaderState(FVertexDeclarationRHIParamRef VertexDeclaration, FVertexShaderRHIParamRef VertexShader, FHullShaderRHIParamRef HullShader, FDomainShaderRHIParamRef DomainShader, FPixelShaderRHIParamRef PixelShader, FGeometryShaderRHIParamRef GeometryShader) final override;
 	virtual FGraphicsPipelineStateRHIRef RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer& Initializer) final override;
+	virtual TRefCountPtr<FRHIComputePipelineState> RHICreateComputePipelineState(FRHIComputeShader* ComputeShader) final override;
 	virtual FUniformBufferRHIRef RHICreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage) final override;
 	virtual FIndexBufferRHIRef RHICreateIndexBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo) final override;
 	virtual void* RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBuffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode) final override;
@@ -239,7 +247,7 @@ public:
 	virtual void RHICopySharedMips(FTexture2DRHIParamRef DestTexture2D, FTexture2DRHIParamRef SrcTexture2D) final override;
 	virtual FTexture2DArrayRHIRef RHICreateTexture2DArray(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo) override;
 	virtual FTexture3DRHIRef RHICreateTexture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo) override;
-	virtual void RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo) final override;
+	virtual void RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo) override;
 	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel) final override;
 	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format) final override;
 	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView(FTexture3DRHIParamRef Texture3DRHI, uint8 MipLevel) final override;
@@ -247,7 +255,7 @@ public:
 	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView(FTextureCubeRHIParamRef TextureCubeRHI, uint8 MipLevel) final override;
 	virtual void RHIGenerateMips(FTextureRHIParamRef Texture) final override;
 	virtual uint32 RHIComputeMemorySize(FTextureRHIParamRef TextureRHI) final override;
-	virtual FTexture2DRHIRef RHIAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus) final override;
+	virtual FTexture2DRHIRef RHIAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus) override;
 	virtual ETextureReallocationStatus RHIFinalizeAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted) final override;
 	virtual ETextureReallocationStatus RHICancelAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted) final override;
 	virtual void* RHILockTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail) final override;
@@ -289,7 +297,7 @@ public:
 	virtual void* RHIGetNativeDevice() final override;
 	virtual class IRHICommandContext* RHIGetDefaultContext() final override;
 	virtual class IRHIComputeContext* RHIGetDefaultAsyncComputeContext() final override;
-	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override;
+	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) final override;
 
 
 	// FD3D12DynamicRHI interface.
@@ -771,10 +779,10 @@ public:
 	static __declspec(thread) FD3D12FastAllocator* HelperThreadDynamicHeapAllocator;
 
 #if	PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
-	virtual void* CreateVirtualTexture(uint32 Flags, D3D12_RESOURCE_DESC& ResourceDesc, const struct FD3D12TextureLayout& TextureLayout, FD3D12Resource** ppResource) = 0;
+	virtual void* CreateVirtualTexture(uint32 Flags, D3D12_RESOURCE_DESC& ResourceDesc, const struct FD3D12TextureLayout& TextureLayout, FD3D12Resource** ppResource, D3D12_RESOURCE_STATES InitialUsage = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) = 0;
 	virtual void DestroyVirtualTexture(uint32 Flags, void* RawTextureMemory) = 0;
 	virtual bool HandleSpecialLock(void*& MemoryOut, uint32 MipIndex, uint32 ArrayIndex, uint32 Flags, EResourceLockMode LockMode, const FD3D12TextureLayout& TextureLayout, void* RawTextureMemory, uint32& DestStride) = 0;
-	virtual bool HandleSpecialUnlock(uint32 MipIndex, uint32 Flags, const struct FD3D12TextureLayout& TextureLayout, void* RawTextureMemory) = 0;	
+	virtual bool HandleSpecialUnlock(FRHICommandListBase* RHICmdList, uint32 MipIndex, uint32 Flags, const struct FD3D12TextureLayout& TextureLayout, void* RawTextureMemory) = 0;
 #endif
 
 	/** Consumes about 100ms of GPU time (depending on resolution and GPU), useful for making sure we're not CPU bound when GPU profiling. */
@@ -841,18 +849,26 @@ class FD3D12DynamicRHIModule : public IDynamicRHIModule
 {
 public:
 
+	FD3D12DynamicRHIModule()
+		: WindowsPixDllHandle(nullptr)
+	{
+	}
+
 	~FD3D12DynamicRHIModule()
 	{
 	}
 
 	// IModuleInterface
 	virtual bool SupportsDynamicReloading() override { return false; }
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	// IDynamicRHIModule
 	virtual bool IsSupported() override;
 	virtual FDynamicRHI* CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::Num) override;
 
 private:
+	void* WindowsPixDllHandle;
 	TArray<TSharedPtr<FD3D12Adapter>> ChosenAdapters;
 
 	// set MaxSupportedFeatureLevel and ChosenAdapter

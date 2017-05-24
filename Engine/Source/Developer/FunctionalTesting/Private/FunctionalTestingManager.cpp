@@ -219,15 +219,6 @@ void UFunctionalTestingManager::OnTestDone(AFunctionalTest* FTest)
 
 void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 {
-	//if (FTest->IsSuccessful() == false)
-	//{
-	//	if (GatheredFailedTestsReproString.IsEmpty() == false)
-	//	{
-	//		GatheredFailedTestsReproString += FFunctionalTesting::ReproStringTestSeparator;
-	//	}
-	//	GatheredFailedTestsReproString += FTest->GetReproString();
-	//}
-
 	if (FTest->OnWantsReRunCheck() == false && FTest->WantsToRunAgain() == false)
 	{
 		//We can also do named reruns. These are lower priority than those triggered above.
@@ -239,10 +230,6 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 		else
 		{
 			TestsLeft.RemoveSingle(FTest);
-			/*if (bDiscardSuccessfulTests && FTest->IsSuccessful())
-			{
-			AllTests.RemoveSingle(FTest);
-			}*/
 			FTest->CleanUp();
 		}
 	}
@@ -264,14 +251,6 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 
 void UFunctionalTestingManager::AllTestsDone()
 {
-	//TODO AUTOMATION Should we revive this?  There's no good way at the moment to know if the test -actually-
-	// failed, because warnings and such could actually fail the test.
-
-	//if (GatheredFailedTestsReproString.IsEmpty() == false)
-	//{
-	//	UE_LOG(LogFunctionalTest, Log, TEXT("Repro String : %s"), *GatheredFailedTestsReproString);
-	//}
-
 	if (bLooped == true)
 	{
 		++CurrentIteration;
@@ -279,7 +258,6 @@ void UFunctionalTestingManager::AllTestsDone()
 		// reset
 		ensure(TestReproStrings.Num() == 0);
 		SetReproString(StartingReproString);
-		//GatheredFailedTestsReproString = TEXT("");
 		TestsLeft = AllTests;
 
 		UE_LOG(LogFunctionalTest, Log, TEXT("----- Starting iteration %d -----"), CurrentIteration);
@@ -293,7 +271,6 @@ void UFunctionalTestingManager::AllTestsDone()
 	{
 		OnTestsComplete.Broadcast();
 		bFinished = true;
-		UE_LOG(LogFunctionalTest, Log, TEXT("DONE."));
 		RemoveFromRoot();
 	}
 }

@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __LevelEditorToolBar_h__
-#define __LevelEditorToolBar_h__
-
 #pragma once
 
 
@@ -85,7 +81,3 @@ protected:
 	 */
 	static void OnOpenSubLevelBlueprint( ULevel* InLevel );
 };
-
-
-
-#endif		// __LevelEditorToolBar_h__

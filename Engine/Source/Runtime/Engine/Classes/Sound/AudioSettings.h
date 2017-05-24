@@ -96,6 +96,12 @@ class ENGINE_API UAudioSettings : public UDeveloperSettings
 
 	const FAudioQualitySettings& GetQualityLevelSettings(int32 QualityLevel) const;
 
+	// Sets whether audio mixer is enabled. Set once an audio mixer platform module is loaded.
+	void SetAudioMixerEnabled(const bool bInAudioMixerEnabled);
+
+	// Returns if the audio mixer is currently enabled
+	const bool IsAudioMixerEnabled() const;
+
 private:
 
 #if WITH_EDITOR
@@ -103,4 +109,7 @@ private:
 #endif
 
 	void AddDefaultSettings();
+
+	// Whether or not the audio mixer is loaded/enabled. Used to toggle visibility of editor features.
+	bool bIsAudioMixerEnabled;
 };

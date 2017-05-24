@@ -4,8 +4,29 @@
 #include "Audio.h"
 #include "ActiveSound.h"
 #include "Sound/SoundWave.h"
+#include "FrameworkObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "SoundNodeWavePlayer"
+
+void USoundNodeWavePlayer::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::HardSoundReferences)
+	{
+		if (Ar.IsLoading())
+		{
+			Ar << SoundWave;
+		}
+		else if (Ar.IsSaving())
+		{
+			USoundWave* HardReference = (ShouldHardReferenceAsset() ? SoundWave : nullptr);
+			Ar << HardReference;
+		}
+	}
+}
 
 void USoundNodeWavePlayer::LoadAsset(bool bAddToRoot)
 {

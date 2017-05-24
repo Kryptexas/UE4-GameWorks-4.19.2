@@ -17,10 +17,29 @@ namespace UnrealBuildTool
 	/// </summary>
 	public enum UEBuildBinaryType
 	{
+		/// <summary>
+		/// An executable
+		/// </summary>
 		Executable,
+
+		/// <summary>
+		/// A dynamic library (.dll, .dylib, or .so)
+		/// </summary>
 		DynamicLinkLibrary,
+
+		/// <summary>
+		/// A static library (.lib or .a)
+		/// </summary>
 		StaticLibrary,
+
+		/// <summary>
+		/// An object file (.obj or .o)
+		/// </summary>
 		Object,
+
+		/// <summary>
+		/// A precompiled header (.pch or .gch)
+		/// </summary>
 		PrecompiledHeader
 	}
 
@@ -112,6 +131,11 @@ namespace UnrealBuildTool
 		public bool bIsCrossTarget = false;
 
 		/// <summary>
+		/// This binary is only being created because UBT is being run with the -precompile option; it is not linked into the target.
+		/// </summary>
+		public bool bPrecompileOnly = false;
+
+		/// <summary>
 		/// If true, creates an additional console application. Hack for Windows, where it's not possible to conditionally inherit a parent's console Window depending on how
 		/// the application is invoked; you have to link the same executable with a different subsystem setting.
 		/// </summary>
@@ -131,10 +155,15 @@ namespace UnrealBuildTool
 		/// The configuration class for a binary build.
 		/// </summary>
 		/// <param name="InType"></param>
-		/// <param name="InOutputFilePath"></param>
+		/// <param name="InOutputFilePaths"></param>
+		/// <param name="InIntermediateDirectory"></param>
 		/// <param name="bInAllowExports"></param>
 		/// <param name="bInCreateImportLibrarySeparately"></param>
+		/// <param name="bInIncludeDependentLibrariesInLibrary"></param>
+		/// <param name="bInAllowCompilation"></param>
+		/// <param name="bInHasModuleRules"></param>
 		/// <param name="bInIsCrossTarget">For most binaries, this is false. If this is a cross-platform binary build for a specific platform (for example XB1 DLL for a windows editor) this will be true.</param>
+		/// <param name="bInPrecompileOnly"></param>
 		/// <param name="InProjectFilePath"></param>
 		/// <param name="InModuleNames"></param>
 		public UEBuildBinaryConfiguration(
@@ -147,6 +176,7 @@ namespace UnrealBuildTool
 				bool bInAllowCompilation = true,
 				bool bInHasModuleRules = true,
 				bool bInIsCrossTarget = false,
+				bool bInPrecompileOnly = false,
 				FileReference InProjectFilePath = null,
 				IEnumerable<string> InModuleNames = null
 			)
@@ -163,6 +193,7 @@ namespace UnrealBuildTool
 			bAllowCompilation = bInAllowCompilation;
 			bHasModuleRules = bInHasModuleRules;
 			bIsCrossTarget = bInIsCrossTarget;
+			bPrecompileOnly = bInPrecompileOnly;
 			ProjectFilePath = InProjectFilePath;
 			if (InModuleNames != null)
 			{
@@ -175,42 +206,39 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// A binary built by UBT.
 	/// </summary>
-	public abstract class UEBuildBinary
+	abstract class UEBuildBinary
 	{
-		/// <summary>
-		/// The target which owns this binary.
-		/// </summary>
-		public UEBuildTarget Target;
-
 		/// <summary>
 		/// The build binary configuration data
 		/// </summary>
-		public UEBuildBinaryConfiguration Config = null;
+		public UEBuildBinaryConfiguration Config;
 
 		/// <summary>
 		/// Create an instance of the class with the given configuration data
 		/// </summary>
 		/// <param name="InConfig">The build binary configuration to initialize the class with</param>
-		public UEBuildBinary(UEBuildTarget InTarget, UEBuildBinaryConfiguration InConfig)
+		public UEBuildBinary(UEBuildBinaryConfiguration InConfig)
 		{
 			Debug.Assert(InConfig.OutputFilePath != null && InConfig.IntermediateDirectory != null);
-			Target = InTarget;
 			Config = InConfig;
 		}
 
 		/// <summary>
 		/// Creates all the modules referenced by this target.
 		/// </summary>
-		public virtual void CreateAllDependentModules(UEBuildTarget Target) { }
+		public virtual void CreateAllDependentModules(UEBuildModule.CreateModuleDelegate CreateModule) { }
 
 		/// <summary>
 		/// Builds the binary.
 		/// </summary>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <param name="ToolChain">The toolchain which to use for building</param>
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
-		/// <returns></returns>
-		public abstract IEnumerable<FileItem> Build(UEBuildTarget Target, UEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, List<PrecompiledHeaderTemplate> SharedPCHs, ActionGraph ActionGraph);
+		/// <param name="SharedPCHs">List of templates for shared PCHs</param>
+		/// <param name="ActionGraph">Graph to add build actions to</param>
+		/// <returns>Set of built products</returns>
+		public abstract IEnumerable<FileItem> Build(ReadOnlyTargetRules Target, UEToolChain ToolChain, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, List<PrecompiledHeaderTemplate> SharedPCHs, ActionGraph ActionGraph);
 
 		/// <summary>
 		/// Called to allow the binary to modify the link environment of a different binary containing 
@@ -232,7 +260,6 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Called to allow the binary to find game modules.
 		/// </summary>
-		/// <param name="OnlyModules"></param>
 		/// <returns>The OnlyModule if found, null if not</returns>
 		public virtual List<UEBuildModule> FindGameModules()
 		{
@@ -248,6 +275,10 @@ namespace UnrealBuildTool
 		public virtual List<UEBuildModule> GetAllDependencyModules(bool bIncludeDynamicallyLoaded, bool bForceCircular)
 		{
 			return new List<UEBuildModule>();
+		}
+
+		public virtual void FindModuleReferences(Dictionary<UEBuildModule, UEBuildModule> ReferencedBy)
+		{
 		}
 
 		/// <summary>
@@ -269,7 +300,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Adds a module to the binary.
 		/// </summary>
-		/// <param name="ModuleName">The module to add</param>
+		/// <param name="Module">The module to add</param>
 		public virtual void AddModule(UEBuildModule Module)
 		{
 		}
@@ -277,9 +308,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets all build products produced by this binary
 		/// </summary>
+		/// <param name="Target">The target being built</param>
 		/// <param name="ToolChain">The platform toolchain</param>
 		/// <param name="BuildProducts">Mapping of produced build product to type</param>
-		public virtual void GetBuildProducts(UEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts)
+		/// <param name="bCreateDebugInfo">Whether debug info is enabled for this binary</param>
+		public void GetBuildProducts(ReadOnlyTargetRules Target, UEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts, bool bCreateDebugInfo)
 		{
 			// Get the type of build products we're creating
 			BuildProductType Type = BuildProductType.RequiredResource;
@@ -297,10 +330,10 @@ namespace UnrealBuildTool
 			}
 
 			// Add the primary build products
-			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Target.Platform).GetDebugInfoExtension(Config.Type);
+			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Target.Platform).GetDebugInfoExtension(Target, Config.Type);
 			foreach (FileReference OutputFilePath in Config.OutputFilePaths)
 			{
-				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, BuildProducts, ToolChain);
+				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, BuildProducts, ToolChain, bCreateDebugInfo);
 			}
 
 			// Add the console app, if there is one
@@ -308,28 +341,46 @@ namespace UnrealBuildTool
 			{
 				foreach (FileReference OutputFilePath in Config.OutputFilePaths)
 				{
-					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, BuildProducts, ToolChain);
+					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, BuildProducts, ToolChain, bCreateDebugInfo);
 				}
 			}
 
+			// Add any additional build products from the modules in this binary, including additional bundle resources/dylibs on Mac.
+			List<string> Libraries = new List<string>();
+			List<UEBuildBundleResource> BundleResources = new List<UEBuildBundleResource>();
+			GatherAdditionalResources(Libraries, BundleResources);
+
 			// Add any extra files from the toolchain
-			ToolChain.ModifyBuildProducts(this, BuildProducts);
+			ToolChain.ModifyBuildProducts(Target, this, Libraries, BundleResources, BuildProducts);
 		}
 
 		/// <summary>
 		/// Adds a build product and its associated debug file to a receipt.
 		/// </summary>
 		/// <param name="OutputFile">Build product to add</param>
+		/// <param name="OutputType">The type of built product</param>
 		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
-		/// <param name="Receipt">Receipt to add to</param>
-		static void AddBuildProductAndDebugFile(FileReference OutputFile, BuildProductType OutputType, string DebugExtension, Dictionary<FileReference, BuildProductType> BuildProducts, UEToolChain ToolChain)
+		/// <param name="BuildProducts">Map of build products to their type</param>
+		/// <param name="ToolChain">The toolchain used to build these binaries</param>
+		/// <param name="bCreateDebugInfo">Whether creating debug info is enabled</param>
+		static void AddBuildProductAndDebugFile(FileReference OutputFile, BuildProductType OutputType, string DebugExtension, Dictionary<FileReference, BuildProductType> BuildProducts, UEToolChain ToolChain, bool bCreateDebugInfo)
 		{
 			BuildProducts.Add(OutputFile, OutputType);
 
-			if (!String.IsNullOrEmpty(DebugExtension) && ToolChain.ShouldAddDebugFileToReceipt(OutputFile, OutputType))
+			if (!String.IsNullOrEmpty(DebugExtension) && ToolChain.ShouldAddDebugFileToReceipt(OutputFile, OutputType) && bCreateDebugInfo)
 			{
 				BuildProducts.Add(OutputFile.ChangeExtension(DebugExtension), BuildProductType.SymbolFile);
 			}
+		}
+
+		/// <summary>
+		/// Enumerates resources which the toolchain may need may produced additional build products from. Some platforms (eg. Mac, Linux) can link directly 
+		/// against .so/.dylibs, but they are also copied to the output folder by the toolchain.
+		/// </summary>
+		/// <param name="Libraries">List to which libraries required by this module are added</param>
+		/// <param name="BundleResources">List of bundle resources required by this module</param>
+		public virtual void GatherAdditionalResources(List<string> Libraries, List<UEBuildBundleResource> BundleResources)
+		{
 		}
 
 		/// <summary>
@@ -346,51 +397,62 @@ namespace UnrealBuildTool
 		/// Checks whether the binary output paths are appropriate for the distribution
 		/// level of its direct module dependencies
 		/// </summary>
-		public void CheckOutputDistributionLevelAgainstDependencies(Dictionary<UEBuildModule, UEBuildModuleDistribution> ModuleDistributionCache)
+		public bool CheckRestrictedFolders(DirectoryReference ProjectDir, Dictionary<UEBuildModule, Dictionary<RestrictedFolder, DirectoryReference>> ModuleRestrictedFolderCache)
 		{
-			// Find maximum distribution level of its direct dependencies
-			UEBuildModuleDistribution DistributionLevel = UEBuildModuleDistribution.Public;
-			List<UEBuildModule> DependantModules = GetAllDependencyModules(false, false);
-			List<string>[] DependantModuleNames = new List<string>[Enum.GetNames(typeof(UEBuildModuleDistribution)).Length];
-			foreach (UEBuildModule Module in DependantModules)
-			{
-				UEBuildModuleDistribution ModuleDistributionLevel;
-				if (!ModuleDistributionCache.TryGetValue(Module, out ModuleDistributionLevel))
-				{
-					ModuleDistributionLevel = Module.DetermineDistributionLevel();
-					ModuleDistributionCache.Add(Module, ModuleDistributionLevel);
-				}
-				if (ModuleDistributionLevel != UEBuildModuleDistribution.Public)
-				{
-					// Make a list of non-public dependant modules so that exception
-					// message can be more helpful
-					int DistributionIndex = (int)ModuleDistributionLevel;
-					if (DependantModuleNames[DistributionIndex] == null)
-					{
-						DependantModuleNames[DistributionIndex] = new List<string>();
-					}
-					DependantModuleNames[DistributionIndex].Add(Module.Name);
+			// Find all the modules we depend on
+			Dictionary<UEBuildModule, UEBuildModule> ModuleReferencedBy = new Dictionary<UEBuildModule, UEBuildModule>();
+			FindModuleReferences(ModuleReferencedBy);
 
-					DistributionLevel = Utils.Max(DistributionLevel, ModuleDistributionLevel);
+			// Loop through each of the output binaries and check them separately
+			bool bResult = true;
+			foreach (FileReference OutputFilePath in Config.OutputFilePaths)
+			{
+				// Find the base directory for this binary
+				DirectoryReference BaseDir;
+				if(OutputFilePath.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				{
+					BaseDir = UnrealBuildTool.EngineDirectory;
+				}
+				else if(ProjectDir != null && OutputFilePath.IsUnderDirectory(ProjectDir))
+				{
+					BaseDir = ProjectDir;
+				}
+				else
+				{
+					continue;
+				}
+
+				// Find the restricted folders under the base directory
+				List<RestrictedFolder> BinaryFolders = RestrictedFolders.FindRestrictedFolders(BaseDir, OutputFilePath.Directory);
+
+				// Check all the dependent modules
+				foreach(UEBuildModule Module in ModuleReferencedBy.Keys)
+				{
+					// Find the restricted folders for this module
+					Dictionary<RestrictedFolder, DirectoryReference> ModuleRestrictedFolders;
+					if (!ModuleRestrictedFolderCache.TryGetValue(Module, out ModuleRestrictedFolders))
+					{
+						ModuleRestrictedFolders = Module.FindRestrictedFolderReferences(ProjectDir);
+						ModuleRestrictedFolderCache.Add(Module, ModuleRestrictedFolders);
+					}
+
+					// Write errors for any missing paths in the output files
+					foreach(KeyValuePair<RestrictedFolder, DirectoryReference> Pair in ModuleRestrictedFolders)
+					{
+						if(!BinaryFolders.Contains(Pair.Key))
+						{
+							List<string> ReferenceChain = new List<string>();
+							for(UEBuildModule ReferencedModule = Module; ReferencedModule != null; ReferencedModule = ModuleReferencedBy[ReferencedModule])
+							{
+								ReferenceChain.Insert(0, ReferencedModule.Name);
+							}
+							Log.TraceError("ERROR: Output binary \"{0}\" is not in a {1} folder, but references \"{2}\" via {3}.", OutputFilePath, Pair.Key.ToString(), Pair.Value, String.Join(" -> ", ReferenceChain));
+							bResult = false;
+						}
+					}
 				}
 			}
-
-			// Check Output Paths if dependencies shouldn't be distributed to everyone
-			if (DistributionLevel != UEBuildModuleDistribution.Public)
-			{
-				foreach (FileReference OutputFilePath in Config.OutputFilePaths)
-				{
-					UEBuildModuleDistribution OutputDistributionLevel = UEBuildModule.GetModuleDistributionLevelBasedOnLocation(OutputFilePath.FullName);
-
-					// Throw exception if output path is not appropriate
-					if (OutputDistributionLevel < DistributionLevel)
-					{
-						string JoinedModuleNames = String.Join(",", DependantModuleNames[(int)DistributionLevel]);
-						throw new BuildException("Output file \"{0}\" has distribution level of \"{1}\" but has direct dependencies on modules with distribution level of \"{2}\" ({3}).\nEither change to dynamic dependencies, set BinariesSubFolder/ExeBinariesSubFolder to \"{2}\" or set bOutputPubliclyDistributable to true in the target.cs or build.cs file.",
-							OutputFilePath, OutputDistributionLevel.ToString(), DistributionLevel.ToString(), JoinedModuleNames);
-					}
-				}
-			}
+			return bResult;
 		}
 
 		/// <summary>
@@ -409,495 +471,5 @@ namespace UnrealBuildTool
 			}
 			Writer.WriteArrayEnd();
 		}
-	};
-
-	/// <summary>
-	/// A binary built by UBT from a set of C++ modules.
-	/// </summary>
-	public class UEBuildBinaryCPP : UEBuildBinary
-	{
-		public readonly List<UEBuildModule> Modules = new List<UEBuildModule>();
-		private bool bCreateImportLibrarySeparately;
-		private bool bIncludeDependentLibrariesInLibrary;
-		private List<string> DependentLinkLibraries;
-
-		/// <summary>
-		/// Create an instance initialized to the given configuration
-		/// </summary>
-		/// <param name="InConfig">The build binary configuration to initialize the instance to</param>
-		public UEBuildBinaryCPP(UEBuildTarget InTarget, UEBuildBinaryConfiguration InConfig)
-			: base(InTarget, InConfig)
-		{
-			bCreateImportLibrarySeparately = InConfig.bCreateImportLibrarySeparately;
-			bIncludeDependentLibrariesInLibrary = InConfig.bIncludeDependentLibrariesInLibrary;
-		}
-
-		/// <summary>
-		/// Adds a module to the binary.
-		/// </summary>
-		/// <param name="ModuleName">The module to add</param>
-		public override void AddModule(UEBuildModule Module)
-		{
-			if (!Modules.Contains(Module))
-			{
-				Modules.Add(Module);
-			}
-		}
-
-		// UEBuildBinary interface.
-
-		/// <summary>
-		/// Creates all the modules referenced by this target.
-		/// </summary>
-		public override void CreateAllDependentModules(UEBuildTarget Target)
-		{
-			if (Config.bHasModuleRules)
-			{
-				foreach (UEBuildModule Module in Modules)
-				{
-					Module.RecursivelyCreateModules(Target);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Generates a list of all modules referenced by this binary
-		/// </summary>
-		/// <param name="bIncludeDynamicallyLoaded">True if dynamically loaded modules (and all of their dependent modules) should be included.</param>
-		/// <param name="bForceCircular">True if circular dependencies should be process</param>
-		/// <returns>List of all referenced modules</returns>
-		public override List<UEBuildModule> GetAllDependencyModules(bool bIncludeDynamicallyLoaded, bool bForceCircular)
-		{
-			List<UEBuildModule> ReferencedModules = new List<UEBuildModule>();
-			HashSet<UEBuildModule> IgnoreReferencedModules = new HashSet<UEBuildModule>();
-
-			foreach (UEBuildModule Module in Modules)
-			{
-				if (!IgnoreReferencedModules.Contains(Module))
-				{
-					IgnoreReferencedModules.Add(Module);
-
-					Module.GetAllDependencyModules(ReferencedModules, IgnoreReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies: false);
-
-					ReferencedModules.Add(Module);
-				}
-			}
-
-			return ReferencedModules;
-		}
-
-		/// <summary>
-		/// Sets whether to create a separate import library to resolve circular dependencies for this binary
-		/// </summary>
-		/// <param name="bInCreateImportLibrarySeparately">True to create a separate import library</param>
-		public override void SetCreateImportLibrarySeparately(bool bInCreateImportLibrarySeparately)
-		{
-			bCreateImportLibrarySeparately = bInCreateImportLibrarySeparately;
-		}
-
-		/// <summary>
-		/// Sets whether to include dependent libraries when building a static library
-		/// </summary>
-		/// <param name="bInIncludeDependentLibrariesInLibrary"></param>
-		public override void SetIncludeDependentLibrariesInLibrary(bool bInIncludeDependentLibrariesInLibrary)
-		{
-			bIncludeDependentLibrariesInLibrary = bInIncludeDependentLibrariesInLibrary;
-		}
-
-		bool IsBuildingDll(UEBuildBinaryType Type)
-		{
-			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
-			{
-				return false;
-			}
-
-			return Type == UEBuildBinaryType.DynamicLinkLibrary;
-		}
-
-		bool IsBuildingLibrary(UEBuildBinaryType Type)
-		{
-			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
-			{
-				return false;
-			}
-
-			return Type == UEBuildBinaryType.StaticLibrary;
-		}
-
-		/// <summary>
-		/// Builds the binary.
-		/// </summary>
-		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
-		/// <param name="LinkEnvironment">The environment to link the binary in</param>
-		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(UEBuildTarget Target, UEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, List<PrecompiledHeaderTemplate> SharedPCHs, ActionGraph ActionGraph)
-		{
-			// UnrealCodeAnalyzer produces output files only for a specific module.
-			if (BuildConfiguration.bRunUnrealCodeAnalyzer && !(Modules.Any(x => x.Name == BuildConfiguration.UCAModuleToAnalyze)))
-			{
-				return new List<FileItem>();
-			}
-
-			// Setup linking environment.
-			LinkEnvironment BinaryLinkEnvironment = SetupBinaryLinkEnvironment(Target, ToolChain, LinkEnvironment, CompileEnvironment, SharedPCHs, ActionGraph);
-
-			// Return linked files.
-			return SetupOutputFiles(ToolChain, ref BinaryLinkEnvironment, ActionGraph);
-		}
-
-		/// <summary>
-		/// Called to allow the binary to modify the link environment of a different binary containing 
-		/// a module that depends on a module in this binary.
-		/// </summary>
-		/// <param name="DependentLinkEnvironment">The link environment of the dependency</param>
-		public override void SetupDependentLinkEnvironment(LinkEnvironment DependentLinkEnvironment)
-		{
-			// Cache the list of libraries in the dependent link environment between calls. We typically run this code path many times for each module.
-			if (DependentLinkLibraries == null)
-			{
-				DependentLinkLibraries = new List<string>();
-				foreach (FileReference OutputFilePath in Config.OutputFilePaths)
-				{
-					FileReference LibraryFileName;
-					if (Config.Type == UEBuildBinaryType.StaticLibrary || DependentLinkEnvironment.Config.Platform == CPPTargetPlatform.Mac || DependentLinkEnvironment.Config.Platform == CPPTargetPlatform.Linux)
-					{
-						LibraryFileName = OutputFilePath;
-					}
-					else
-					{
-						LibraryFileName = FileReference.Combine(Config.IntermediateDirectory, OutputFilePath.GetFileNameWithoutExtension() + ".lib");
-					}
-					DependentLinkLibraries.Add(LibraryFileName.FullName);
-				}
-			}
-			DependentLinkEnvironment.Config.AdditionalLibraries.AddRange(DependentLinkLibraries);
-
-			// If we're linking against static library containing the launch module on windows, we need to add the compiled resource separately. We can't link it through the static library.
-			if (Config.Type == UEBuildBinaryType.StaticLibrary && Modules.Any(x => x.Name == "Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
-			{
-				FileReference ResourceFileRef = FileReference.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
-				DependentLinkEnvironment.InputFiles.Add(FileItem.GetItemByFileReference(ResourceFileRef));
-			}
-		}
-
-		/// <summary>
-		/// Called to allow the binary to to determine if it matches the Only module "short module name".
-		/// </summary>
-		/// <param name="OnlyModules"></param>
-		/// <returns>The OnlyModule if found, null if not</returns>
-		public override OnlyModule FindOnlyModule(List<OnlyModule> OnlyModules)
-		{
-			foreach (UEBuildModule Module in Modules)
-			{
-				foreach (OnlyModule OnlyModule in OnlyModules)
-				{
-					if (OnlyModule.OnlyModuleName.ToLower() == Module.Name.ToLower())
-					{
-						return OnlyModule;
-					}
-				}
-			}
-			return null;
-		}
-
-		public override List<UEBuildModule> FindGameModules()
-		{
-			List<UEBuildModule> GameModules = new List<UEBuildModule>();
-			foreach (UEBuildModule Module in Modules)
-			{
-				if (!Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
-				{
-					GameModules.Add(Module);
-				}
-			}
-			return GameModules;
-		}
-
-		/// <summary>
-		/// Gets all build products produced by this binary
-		/// </summary>
-		/// <param name="ToolChain">The platform toolchain</param>
-		/// <param name="BuildProducts">Mapping of produced build product to type</param>
-		public override void GetBuildProducts(UEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts)
-		{
-			base.GetBuildProducts(ToolChain, BuildProducts);
-
-			// Add the compiled resource file if we're building a static library containing the launch module on Windows
-			if (Config.Type == UEBuildBinaryType.StaticLibrary && Modules.Any(x => x.Name == "Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
-			{
-				FileReference ResourceFilePath = FileReference.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
-				BuildProducts.Add(ResourceFilePath, BuildProductType.StaticLibrary);
-			}
-		}
-
-		// Object interface.
-
-		/// <summary>
-		/// ToString implementation
-		/// </summary>
-		/// <returns>Returns the OutputFilePath for this binary</returns>
-		public override string ToString()
-		{
-			return Config.OutputFilePath.FullName;
-		}
-
-		private LinkEnvironment SetupBinaryLinkEnvironment(UEBuildTarget Target, UEToolChain ToolChain, LinkEnvironment LinkEnvironment, CPPEnvironment CompileEnvironment, List<PrecompiledHeaderTemplate> SharedPCHs, ActionGraph ActionGraph)
-		{
-			LinkEnvironment BinaryLinkEnvironment = LinkEnvironment.DeepCopy();
-			HashSet<UEBuildModule> LinkEnvironmentVisitedModules = new HashSet<UEBuildModule>();
-			List<UEBuildBinary> BinaryDependencies = new List<UEBuildBinary>();
-			CompileEnvironment.Config.bIsBuildingDLL = IsBuildingDll(Config.Type);
-			CompileEnvironment.Config.bIsBuildingLibrary = IsBuildingLibrary(Config.Type);
-
-			CPPEnvironment BinaryCompileEnvironment = CompileEnvironment.DeepCopy();
-			// @Hack: This to prevent UHT from listing CoreUObject.generated.cpp as its dependency.
-			// We flag the compile environment when we build UHT so that we don't need to check
-			// this for each file when generating their dependencies.
-			BinaryCompileEnvironment.bHackHeaderGenerator = (Target.GetAppName() == "UnrealHeaderTool");
-
-			// @todo: This should be in some Windows code somewhere...
-			// Set the original file name macro; used in PCLaunch.rc to set the binary metadata fields.
-			string OriginalFilename = (Config.OriginalOutputFilePaths != null) ?
-				Config.OriginalOutputFilePaths[0].GetFileName() :
-				Config.OutputFilePaths[0].GetFileName();
-			BinaryCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"" + OriginalFilename + "\"");
-
-			foreach (UEBuildModule Module in Modules)
-			{
-				List<FileItem> LinkInputFiles;
-				if (Module.Binary == null || Module.Binary == this)
-				{
-					// Compile each module.
-					Log.TraceVerbose("Compile module: " + Module.Name);
-					LinkInputFiles = Module.Compile(Target, ToolChain, BinaryCompileEnvironment, SharedPCHs, ActionGraph);
-
-					// NOTE: Because of 'Shared PCHs', in monolithic builds the same PCH file may appear as a link input
-					// multiple times for a single binary.  We'll check for that here, and only add it once.  This avoids
-					// a linker warning about redundant .obj files. 
-					foreach (FileItem LinkInputFile in LinkInputFiles)
-					{
-						if (!BinaryLinkEnvironment.InputFiles.Contains(LinkInputFile))
-						{
-							BinaryLinkEnvironment.InputFiles.Add(LinkInputFile);
-						}
-					}
-				}
-				else
-				{
-					BinaryDependencies.Add(Module.Binary);
-				}
-
-				if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
-				{
-					// Allow the module to modify the link environment for the binary.
-					Module.SetupPrivateLinkEnvironment(this, BinaryLinkEnvironment, BinaryDependencies, LinkEnvironmentVisitedModules);
-				}
-			}
-
-
-			// Allow the binary dependencies to modify the link environment.
-			foreach (UEBuildBinary BinaryDependency in BinaryDependencies)
-			{
-				BinaryDependency.SetupDependentLinkEnvironment(BinaryLinkEnvironment);
-			}
-
-			// Remove the default resource file on Windows (PCLaunch.rc) if the user has specified their own
-			if (BinaryLinkEnvironment.InputFiles.Select(Item => Path.GetFileName(Item.AbsolutePath).ToLower()).Any(Name => Name.EndsWith(".res") && !Name.EndsWith(".inl.res") && Name != "pclaunch.rc.res"))
-			{
-				BinaryLinkEnvironment.InputFiles.RemoveAll(x => Path.GetFileName(x.AbsolutePath).ToLower() == "pclaunch.rc.res");
-			}
-
-			// Set the link output file.
-			BinaryLinkEnvironment.Config.OutputFilePaths = Config.OutputFilePaths.ToList();
-
-			// Set whether the link is allowed to have exports.
-			BinaryLinkEnvironment.Config.bHasExports = Config.bAllowExports;
-
-			// Set the output folder for intermediate files
-			BinaryLinkEnvironment.Config.IntermediateDirectory = Config.IntermediateDirectory;
-
-			// Put the non-executable output files (PDB, import library, etc) in the same directory as the production
-			BinaryLinkEnvironment.Config.OutputDirectory = Config.OutputFilePaths[0].Directory;
-
-			// Setup link output type
-			BinaryLinkEnvironment.Config.bIsBuildingDLL = IsBuildingDll(Config.Type);
-			BinaryLinkEnvironment.Config.bIsBuildingLibrary = IsBuildingLibrary(Config.Type);
-
-			BinaryLinkEnvironment.Config.ProjectFile = Target.ProjectFile;
-
-			// Add the default resources for dlls
-			if (Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
-			{
-				// Check if there's already a custom resource file
-				if (!BinaryLinkEnvironment.InputFiles.Any(x => x.Reference.HasExtension(".res")))
-				{
-					if (UEBuildConfiguration.bFormalBuild)
-					{
-						// For formal builds, compile the default resource file per-binary, so that it gets the correct ORIGINAL_FILE_NAME macro.
-						CPPEnvironment BinaryResourceCompileEnvironment = BinaryCompileEnvironment.DeepCopy();
-						BinaryResourceCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(BinaryResourceCompileEnvironment.Config.OutputDirectory, Modules.First().Name);
-						FileItem DefaultResourceFile = FileItem.GetItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc"));
-						CPPOutput DefaultResourceOutput = ToolChain.CompileRCFiles(BinaryResourceCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
-						BinaryLinkEnvironment.InputFiles.AddRange(DefaultResourceOutput.ObjectFiles);
-					}
-					else
-					{
-						// For non-formal builds, we just want to share the default resource file between modules
-						BinaryLinkEnvironment.InputFiles.AddRange(BinaryLinkEnvironment.DefaultResourceFiles);
-					}
-				}
-
-				// Add all the common resource files
-				BinaryLinkEnvironment.InputFiles.AddRange(BinaryLinkEnvironment.CommonResourceFiles);
-			}
-
-			return BinaryLinkEnvironment;
-		}
-
-		private List<FileItem> SetupOutputFiles(UEToolChain ToolChain, ref LinkEnvironment BinaryLinkEnvironment, ActionGraph ActionGraph)
-		{
-			// Early exits first
-			if (ProjectFileGenerator.bGenerateProjectFiles)
-			{
-				// We're generating projects.  Since we only need include paths and definitions, there is no need
-				// to go ahead and run through the linking logic.
-				return BinaryLinkEnvironment.InputFiles;
-			}
-
-			if (BuildConfiguration.bDisableLinking)
-			{
-				// We don't need linked binaries
-				return BinaryLinkEnvironment.InputFiles;
-			}
-
-			if (BuildConfiguration.bEnableCodeAnalysis)
-			{
-				// We're only analyzing code, so we won't actually link any executables.  Instead, our output
-				// files will simply be the .obj files that were compiled during static analysis.
-				return BinaryLinkEnvironment.InputFiles;
-			}
-
-			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
-			{
-				//
-				// Create actions to analyze *.includes files and provide suggestions on how to modify PCH.
-				//
-				return CreateOutputFilesForUCA(BinaryLinkEnvironment, ActionGraph);
-			}
-
-			if (!string.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile))
-			{
-				return BinaryLinkEnvironment.InputFiles;
-			}
-
-			//
-			// Regular linking action.
-			//
-			List<FileItem> OutputFiles = new List<FileItem>();
-			if (bCreateImportLibrarySeparately)
-			{
-				// Mark the link environment as cross-referenced.
-				BinaryLinkEnvironment.Config.bIsCrossReferenced = true;
-
-				if (BinaryLinkEnvironment.Config.Platform != CPPTargetPlatform.Mac && BinaryLinkEnvironment.Config.Platform != CPPTargetPlatform.Linux)
-				{
-					// Create the import library.
-					OutputFiles.AddRange(ToolChain.LinkAllFiles(BinaryLinkEnvironment, true, ActionGraph));
-				}
-			}
-
-			BinaryLinkEnvironment.Config.bIncludeDependentLibrariesInLibrary = bIncludeDependentLibrariesInLibrary;
-
-			// Link the binary.
-			FileItem[] Executables = ToolChain.LinkAllFiles(BinaryLinkEnvironment, false, ActionGraph);
-			OutputFiles.AddRange(Executables);
-
-			// Produce additional console app if requested
-			if (Config.bBuildAdditionalConsoleApp)
-			{
-				// Produce additional binary but link it as a console app
-				LinkEnvironment ConsoleAppLinkEvironment = BinaryLinkEnvironment.DeepCopy();
-				ConsoleAppLinkEvironment.Config.bIsBuildingConsoleApplication = true;
-				ConsoleAppLinkEvironment.Config.WindowsEntryPointOverride = "WinMainCRTStartup";		// For WinMain() instead of "main()" for Launch module
-				ConsoleAppLinkEvironment.Config.OutputFilePaths = ConsoleAppLinkEvironment.Config.OutputFilePaths.Select(Path => GetAdditionalConsoleAppPath(Path)).ToList();
-
-				// Link the console app executable
-				OutputFiles.AddRange(ToolChain.LinkAllFiles(ConsoleAppLinkEvironment, false, ActionGraph));
-			}
-
-			foreach (FileItem Executable in Executables)
-			{
-				OutputFiles.AddRange(ToolChain.PostBuild(Executable, BinaryLinkEnvironment, ActionGraph));
-			}
-
-			return OutputFiles;
-		}
-
-		private List<FileItem> CreateOutputFilesForUCA(LinkEnvironment BinaryLinkEnvironment, ActionGraph ActionGraph)
-		{
-			List<FileItem> OutputFiles = new List<FileItem>();
-			string ModuleName = Modules.Select(Module => Module.Name).First(Name => Name.CompareTo(BuildConfiguration.UCAModuleToAnalyze) == 0);
-			UEBuildModuleCPP ModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName(ModuleName);
-			FileItem ModulePrivatePCH = ModuleCPP.ProcessedDependencies.UniquePCHHeaderFile;
-			string IntermediatePath = Path.Combine(Target.ProjectIntermediateDirectory.FullName, ModuleName);
-			FileReference OutputFileName = Target.OutputPath;
-			FileItem OutputFile = FileItem.GetItemByFileReference(OutputFileName);
-
-			Action LinkAction = ActionGraph.Add(ActionType.Compile);
-			LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
-			LinkAction.CommandPath = System.IO.Path.Combine(LinkAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"UnrealCodeAnalyzer.exe");
-			LinkAction.ProducedItems.Add(OutputFile);
-			LinkAction.PrerequisiteItems.AddRange(BinaryLinkEnvironment.InputFiles);
-			LinkAction.CommandArguments = @"-AnalyzePCHFile -PCHFile=""" + ModulePrivatePCH.AbsolutePath + @""" -OutputFile=""" + OutputFileName + @""" -HeaderDataPath=""" + IntermediatePath + @""" -UsageThreshold " + BuildConfiguration.UCAUsageThreshold.ToString(CultureInfo.InvariantCulture);
-
-			foreach (string IncludeSearchPath in ModuleCPP.IncludeSearchPaths)
-			{
-				LinkAction.CommandArguments += @" /I""" + LinkAction.WorkingDirectory + @"\" + IncludeSearchPath + @"""";
-			}
-
-			OutputFiles.Add(OutputFile);
-
-			return OutputFiles;
-		}
-	};
-
-	/// <summary>
-	/// A DLL built by MSBuild from a C# project.
-	/// </summary>
-	public class UEBuildBinaryCSDLL : UEBuildBinary
-	{
-		/// <summary>
-		/// Create an instance initialized to the given configuration
-		/// </summary>
-		/// <param name="InConfig">The build binary configuration to initialize the instance to</param>
-		public UEBuildBinaryCSDLL(UEBuildTarget InTarget, UEBuildBinaryConfiguration InConfig)
-			: base(InTarget, InConfig)
-		{
-		}
-
-		/// <summary>
-		/// Builds the binary.
-		/// </summary>
-		/// <param name="ToolChain">The toolchain to use for building</param>
-		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
-		/// <param name="LinkEnvironment">The environment to link the binary in</param>
-		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(UEBuildTarget Target, UEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment, List<PrecompiledHeaderTemplate> SharedPCHs, ActionGraph ActionGraph)
-		{
-			CSharpEnvironment ProjectCSharpEnviroment = new CSharpEnvironment();
-			if (LinkEnvironment.Config.Configuration == CPPTargetConfiguration.Debug)
-			{
-				ProjectCSharpEnviroment.TargetConfiguration = CSharpTargetConfiguration.Debug;
-			}
-			else
-			{
-				ProjectCSharpEnviroment.TargetConfiguration = CSharpTargetConfiguration.Development;
-			}
-			ProjectCSharpEnviroment.EnvironmentTargetPlatform = LinkEnvironment.Config.Platform;
-
-			ToolChain.CompileCSharpProject(ProjectCSharpEnviroment, Config.ProjectFilePath, Config.OutputFilePath, ActionGraph);
-
-			return new FileItem[] { FileItem.GetItemByFileReference(Config.OutputFilePath) };
-		}
-	};
+	}
 }

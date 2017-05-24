@@ -104,10 +104,8 @@ bool FGameplayAbilityActorInfo::IsNetAuthority() const
 		return (OwnerActor.Get(true)->Role == ROLE_Authority);
 	}
 
-	// If we encounter issues with this being called before or after the owning actor is destroyed,
-	// we may need to cache off the authority (or look for it on some global/world state).
-
-	ensure(false);
+	// This rarely happens during shutdown cases for reasons that aren't quite clear
+	ABILITY_LOG(Warning, TEXT("IsNetAuthority called when OwnerActor was invalid. Returning false. AbilitySystemComponent: %s"), *GetNameSafe(AbilitySystemComponent.Get()));
 	return false;
 }
 
@@ -160,6 +158,16 @@ UGameplayAbility* FGameplayAbilitySpec::GetPrimaryInstance() const
 	return nullptr;
 }
 
+bool FGameplayAbilitySpec::ShouldReplicatedAbilitySpec() const
+{
+	if (Ability && Ability->ShouldReplicatedAbilitySpec(*this))
+	{
+		return true;
+	}
+
+	return false;
+}
+
 void FGameplayAbilitySpec::PreReplicatedRemove(const struct FGameplayAbilitySpecContainer& InArraySerializer)
 {
 	if (InArraySerializer.Owner)
@@ -174,6 +182,11 @@ void FGameplayAbilitySpec::PostReplicatedAdd(const struct FGameplayAbilitySpecCo
 	{
 		InArraySerializer.Owner->OnGiveAbility(*this);
 	}
+}
+
+FString FGameplayAbilitySpec::GetDebugString()
+{
+	return FString::Printf(TEXT("(%s)"), *GetNameSafe(Ability));
 }
 
 void FGameplayAbilitySpecContainer::RegisterWithOwner(UAbilitySystemComponent* InOwner)

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Containers/Queue.h"
 #include "AudioThread.h"
+#include "Sound/SoundEffectSource.h"
 
 class FAudioDevice;
 class FReferenceCollector;
@@ -15,6 +16,7 @@ class USoundClass;
 class USoundMix;
 class USoundSubmix;
 class USoundWave;
+struct FSourceEffectChainEntry;
 
 /**
 * Class for managing multiple audio devices.
@@ -117,7 +119,11 @@ public:
 	/** Initializes the sound mixes for all active devices. */
 	void InitSoundSubmixes();
 
+	/** Initialize all sound effect presets. */
 	void InitSoundEffectPresets();
+
+	/** Updates source effect chain on all sources currently using the source effect chain. */
+	void UpdateSourceEffectChain(const uint32 SourceEffectChainId, const TArray<FSourceEffectChainEntry>& SourceEffectChain, const bool bPlayEffectChainTails);
 
 	/** Sets which audio device is the active audio device. */
 	void SetActiveDevice(uint32 InAudioDeviceHandle);

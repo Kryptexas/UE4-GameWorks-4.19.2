@@ -6,6 +6,7 @@ using System.Linq;
 using System.Web.Caching;
 using Tools.CrashReporter.CrashReportWebSite.DataModels;
 using Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories;
+using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
@@ -25,7 +26,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		private const string UserNameKeyPrefix = "_UserName_";
 
 		/// <summary>
-		/// Link the Http context cache to a crash repository.
+		/// Link the Http context cache to a Crash repository.
 		/// </summary>
 		/// <param name="inCache">The current Http context cache.</param>
 		/// <param name="inCrashRepository">The repository to associate the cache with.</param>
@@ -68,16 +69,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Retrieve a cached (and pre-parsed) callstack container from the cache, or parse the raw callstack, and add to the cache.
 		/// </summary>
-		/// <param name="CurrentCrash">The crash to retrieve the parsed callstack for.</param>
+		/// <param name="currentCrash">The Crash to retrieve the parsed callstack for.</param>
 		/// <returns>A parsed callstack.</returns>
-		public DataModels.CallStackContainer GetCallStackFast( DataModels.Crash CurrentCrash )
+        public CallStackContainer GetCallStackFast(CrashDataModel currentCrash)
 		{
-			using( var logTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CurrentCrash.Id + ")" ) )
+			using( var logTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + currentCrash.Id + ")" ) )
 			{
-				var key = CacheKeyPrefix + CallstackKeyPrefix + CurrentCrash.Id;
+				var key = CacheKeyPrefix + CallstackKeyPrefix + currentCrash.Id;
 				var callStack = (CallStackContainer)CacheInstance[key];
 			    if (callStack != null) return callStack;
-			    callStack = new CallStackContainer( CurrentCrash );
+			    callStack = new CallStackContainer( currentCrash.CrashType, currentCrash.RawCallStack, currentCrash.PlatformName );
 			    callStack.bDisplayFunctionNames = true;
 			    CacheInstance.Insert( key, callStack );
 

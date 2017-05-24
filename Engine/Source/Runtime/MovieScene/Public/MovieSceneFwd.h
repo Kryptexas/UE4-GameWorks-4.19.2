@@ -20,6 +20,7 @@ namespace EMovieScenePlayerStatus
 	};
 }
 
+MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogMovieScene, Log, All);
 DECLARE_STATS_GROUP(TEXT("Movie Scene Evaluation"), STATGROUP_MovieSceneEval, STATCAT_Advanced);
 
 #ifndef MOVIESCENE_DETAILED_STATS

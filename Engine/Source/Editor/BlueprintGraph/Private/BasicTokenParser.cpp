@@ -807,7 +807,10 @@ Loop:
 			ClearCachedComment();
 			SetError(FErrorState::ParseError, LOCTEXT("NoCommentClose", "No end to a comment by the end of the expression"));
 		}
-		goto Loop;
+		else
+		{
+			goto Loop;
+		}
 	}
 	return c;
 }

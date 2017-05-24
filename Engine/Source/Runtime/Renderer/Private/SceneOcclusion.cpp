@@ -14,6 +14,7 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
 #include "PlanarReflectionSceneProxy.h"
+#include "PipelineStateCache.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -43,6 +44,12 @@ static FAutoConsoleVariableRef CVarShowRelevantPrecomputedVisibilityCells(
 	ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarFastVRamHzb(
+	TEXT("r.FastVramHzb"),
+	0,
+	TEXT("Whether to store HZB in fast VRAM"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 #define NUM_CUBE_VERTICES 36
 
 /** Random table for occlusion **/
@@ -64,7 +71,7 @@ int32 FOcclusionQueryHelpers::GetNumBufferedFrames()
 // default, non-instanced shader implementation
 IMPLEMENT_SHADER_TYPE(,FOcclusionQueryVS,TEXT("OcclusionQueryVertexShader"),TEXT("Main"),SF_Vertex);
 
-FGlobalBoundShaderState FDeferredShadingSceneRenderer::OcclusionTestBoundShaderState;
+static FGlobalBoundShaderState GOcclusionTestBoundShaderState;
 
 /** 
  * Returns an array of visibility data for the given view position, or NULL if none exists. 
@@ -377,90 +384,138 @@ FRenderQueryRHIParamRef FOcclusionQueryBatcher::BatchPrimitive(const FVector& Bo
 	return CurrentBatchOcclusionQuery->Query;
 }
 
-static void IssueProjectedShadowOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader, int32 NumBufferedFrames)
-{	
-	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+static bool AllocatePointLightShadowOcclusionQuery(FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, int32 NumBufferedFrames, FRenderQueryRHIRef& ShadowOcclusionQuery)
+{
+	FLightSceneProxy& LightProxy = *(ProjectedShadowInfo.GetLightSceneInfo().Proxy);
+	
+	// Query one pass point light shadows separately because they don't have a shadow frustum, they have a bounding sphere instead.
+	FSphere LightBounds = LightProxy.GetBoundingSphere();
+	
+	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.GetViewOrigin() - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
+	if (!bCameraInsideLightGeometry)
+	{
+		FSceneViewState* ViewState = (FSceneViewState*)View.State;
+		ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
 
+		FSceneViewState::FProjectedShadowKey Key(ProjectedShadowInfo);
+		
+		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, NumBufferedFrames);
+		FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
+		checkSlow(ShadowOcclusionQueryMap.Find(Key) == NULL);
+		ShadowOcclusionQueryMap.Add(Key, ShadowOcclusionQuery);
+	}
+	
+	return (!bCameraInsideLightGeometry);
+}
+
+static void ExecutePointLightShadowOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader, FRenderQueryRHIRef ShadowOcclusionQuery)
+{
+	FLightSceneProxy& LightProxy = *(ProjectedShadowInfo.GetLightSceneInfo().Proxy);
+	
+	// Query one pass point light shadows separately because they don't have a shadow frustum, they have a bounding sphere instead.
+	FSphere LightBounds = LightProxy.GetBoundingSphere();
+
+	RHICmdList.BeginRenderQuery(ShadowOcclusionQuery);
+	
+	// Draw bounding sphere
+	VertexShader->SetParametersWithBoundingSphere(RHICmdList, View, LightBounds);
+	StencilingGeometry::DrawVectorSphere(RHICmdList);
+		
+	RHICmdList.EndRenderQuery(ShadowOcclusionQuery);
+}
+
+static bool AllocateProjectedShadowOcclusionQuery(FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, int32 NumBufferedFrames, FRenderQueryRHIRef& ShadowOcclusionQuery)
+{
+	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+	
 	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, NumBufferedFrames);
 	FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
+	
+	// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to
+	// be translated.
+	const FVector4 PreShadowToPreViewTranslation(View.ViewMatrices.GetPreViewTranslation() - ProjectedShadowInfo.PreShadowTranslation,0);
+	
+	// If the shadow frustum is farther from the view origin than the near clipping plane,
+	// it can't intersect the near clipping plane.
+	const bool bIntersectsNearClippingPlane = ProjectedShadowInfo.ReceiverFrustum.IntersectSphere(
+																								  View.ViewMatrices.GetViewOrigin() + ProjectedShadowInfo.PreShadowTranslation,
+																								  View.NearClippingDistance * FMath::Sqrt(3.0f)
+																								  );
+	
+	if( !bIntersectsNearClippingPlane )
+	{
+		// Allocate an occlusion query for the primitive from the occlusion query pool.
+		ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
+		FSceneViewState::FProjectedShadowKey Key(ProjectedShadowInfo);
+		
+		checkSlow(ShadowOcclusionQueryMap.Find(Key) == NULL);
+		ShadowOcclusionQueryMap.Add(Key, ShadowOcclusionQuery);
+	}
+	
+	return ( !bIntersectsNearClippingPlane );
+}
 
+static void ExecuteProjectedShadowOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader, FRenderQueryRHIRef ShadowOcclusionQuery)
+{	
 	// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to
 	// be translated.
 	const FVector4 PreShadowToPreViewTranslation(View.ViewMatrices.GetPreViewTranslation() - ProjectedShadowInfo.PreShadowTranslation,0);
 
-	// If the shadow frustum is farther from the view origin than the near clipping plane,
-	// it can't intersect the near clipping plane.
-	const bool bIntersectsNearClippingPlane = ProjectedShadowInfo.ReceiverFrustum.IntersectSphere(
-		View.ViewMatrices.GetViewOrigin() + ProjectedShadowInfo.PreShadowTranslation,
-		View.NearClippingDistance * FMath::Sqrt(3.0f)
-		);
+	VertexShader->SetParameters(RHICmdList, View);
 
-	if( !bIntersectsNearClippingPlane )
+	// Draw the primitive's bounding box, using the occlusion query.
+	RHICmdList.BeginRenderQuery(ShadowOcclusionQuery);
+
+	void* VerticesPtr;
+	void* IndicesPtr;
+	// preallocate memory to fill out with vertices and indices
+	RHICmdList.BeginDrawIndexedPrimitiveUP(PT_TriangleList, 12, 8, sizeof(FVector), VerticesPtr, 0, NUM_CUBE_VERTICES, sizeof(uint16), IndicesPtr);
+	FVector* Vertices = (FVector*)VerticesPtr;
+	uint16* Indices = (uint16*)IndicesPtr;
+
+	// Generate vertices for the shadow's frustum.
+	for(uint32 Z = 0;Z < 2;Z++)
 	{
-		// Allocate an occlusion query for the primitive from the occlusion query pool.
-		const FRenderQueryRHIRef ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
-		
-		VertexShader->SetParameters(RHICmdList, View);
-
-		// Draw the primitive's bounding box, using the occlusion query.
-		RHICmdList.BeginRenderQuery(ShadowOcclusionQuery);
-
-		void* VerticesPtr;
-		void* IndicesPtr;
-		// preallocate memory to fill out with vertices and indices
-		RHICmdList.BeginDrawIndexedPrimitiveUP(PT_TriangleList, 12, 8, sizeof(FVector), VerticesPtr, 0, NUM_CUBE_VERTICES, sizeof(uint16), IndicesPtr);
-		FVector* Vertices = (FVector*)VerticesPtr;
-		uint16* Indices = (uint16*)IndicesPtr;
-
-		// Generate vertices for the shadow's frustum.
-		for(uint32 Z = 0;Z < 2;Z++)
+		for(uint32 Y = 0;Y < 2;Y++)
 		{
-			for(uint32 Y = 0;Y < 2;Y++)
+			for(uint32 X = 0;X < 2;X++)
 			{
-				for(uint32 X = 0;X < 2;X++)
-				{
-					const FVector4 UnprojectedVertex = ProjectedShadowInfo.InvReceiverMatrix.TransformFVector4(
-						FVector4(
-						(X ? -1.0f : 1.0f),
-						(Y ? -1.0f : 1.0f),
-						(Z ?  1.0f : 0.0f),
-						1.0f
-						)
-						);
-					const FVector ProjectedVertex = UnprojectedVertex / UnprojectedVertex.W + PreShadowToPreViewTranslation;
-					Vertices[GetCubeVertexIndex(X,Y,Z)] = ProjectedVertex;
-				}
+				const FVector4 UnprojectedVertex = ProjectedShadowInfo.InvReceiverMatrix.TransformFVector4(
+					FVector4(
+					(X ? -1.0f : 1.0f),
+					(Y ? -1.0f : 1.0f),
+					(Z ?  1.0f : 0.0f),
+					1.0f
+					)
+					);
+				const FVector ProjectedVertex = UnprojectedVertex / UnprojectedVertex.W + PreShadowToPreViewTranslation;
+				Vertices[GetCubeVertexIndex(X,Y,Z)] = ProjectedVertex;
 			}
 		}
-
-		// we just copy the indices right in
-		FMemory::Memcpy(Indices, GCubeIndices, sizeof(GCubeIndices));
-
-		FSceneViewState::FProjectedShadowKey Key(ProjectedShadowInfo);
-
-		checkSlow(ShadowOcclusionQueryMap.Find(Key) == NULL);
-		ShadowOcclusionQueryMap.Add(Key, ShadowOcclusionQuery);
-
-		RHICmdList.EndDrawIndexedPrimitiveUP();
-		RHICmdList.EndRenderQuery(ShadowOcclusionQuery);
 	}
+
+	// we just copy the indices right in
+	FMemory::Memcpy(Indices, GCubeIndices, sizeof(GCubeIndices));
+
+	RHICmdList.EndDrawIndexedPrimitiveUP();
+	RHICmdList.EndRenderQuery(ShadowOcclusionQuery);
 }
 
-static void IssuePlanarReflectionOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FPlanarReflectionSceneProxy* SceneProxy, FOcclusionQueryVS* VertexShader, int32 NumBufferedFrames)
+static bool AllocatePlanarReflectionOcclusionQuery(FViewInfo& View, const FPlanarReflectionSceneProxy* SceneProxy, int32 NumBufferedFrames, FRenderQueryRHIRef& OcclusionQuery)
 {
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-
+	
 	bool bAllowBoundsTest = false;
-
+	
 	if (View.ViewFrustum.IntersectBox(SceneProxy->WorldBounds.GetCenter(), SceneProxy->WorldBounds.GetExtent()))
 	{
 		const FBoxSphereBounds OcclusionBounds(SceneProxy->WorldBounds);
-
+		
 		if (View.bHasNearClippingPlane)
 		{
 			bAllowBoundsTest = View.NearClippingPlane.PlaneDot(OcclusionBounds.Origin) <
-				-(FVector::BoxPushOut(View.NearClippingPlane, OcclusionBounds.BoxExtent));
-
+			-(FVector::BoxPushOut(View.NearClippingPlane, OcclusionBounds.BoxExtent));
+			
 		}
 		else if (!View.IsPerspectiveProjection())
 		{
@@ -473,50 +528,55 @@ static void IssuePlanarReflectionOcclusionQuery(FRHICommandListImmediate& RHICmd
 			bAllowBoundsTest = OcclusionBounds.SphereRadius < HALF_WORLD_MAX;
 		}
 	}
-
+	
 	uint32 OcclusionFrameCounter = ViewState->OcclusionFrameCounter;
 	FIndividualOcclusionHistory& OcclusionHistory = ViewState->PlanarReflectionOcclusionHistories.FindOrAdd(SceneProxy->PlanarReflectionId);
 	ViewState->OcclusionQueryPool.ReleaseQuery(OcclusionHistory.GetPastQuery(OcclusionFrameCounter, NumBufferedFrames));
-
+	
 	if (bAllowBoundsTest)
 	{
 		// Allocate an occlusion query for the primitive from the occlusion query pool.
-		const FRenderQueryRHIRef OcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
-
-		VertexShader->SetParameters(RHICmdList, View);
-
-		// Draw the primitive's bounding box, using the occlusion query.
-		RHICmdList.BeginRenderQuery(OcclusionQuery);
-
-		void* VerticesPtr;
-		void* IndicesPtr;
-		// preallocate memory to fill out with vertices and indices
-		RHICmdList.BeginDrawIndexedPrimitiveUP(PT_TriangleList, 12, 8, sizeof(FVector), VerticesPtr, 0, NUM_CUBE_VERTICES, sizeof(uint16), IndicesPtr);
-		float* Vertices = (float*)VerticesPtr;
-		uint16* Indices = (uint16*)IndicesPtr;
-
-		const FVector PrimitiveBoxMin = SceneProxy->WorldBounds.Min + View.ViewMatrices.GetPreViewTranslation();
-		const FVector PrimitiveBoxMax = SceneProxy->WorldBounds.Max + View.ViewMatrices.GetPreViewTranslation();
-		Vertices[0] = PrimitiveBoxMin.X; Vertices[1] = PrimitiveBoxMin.Y; Vertices[2] = PrimitiveBoxMin.Z;
-		Vertices[3] = PrimitiveBoxMin.X; Vertices[4] = PrimitiveBoxMin.Y; Vertices[5] = PrimitiveBoxMax.Z;
-		Vertices[6] = PrimitiveBoxMin.X; Vertices[7] = PrimitiveBoxMax.Y; Vertices[8] = PrimitiveBoxMin.Z;
-		Vertices[9] = PrimitiveBoxMin.X; Vertices[10] = PrimitiveBoxMax.Y; Vertices[11] = PrimitiveBoxMax.Z;
-		Vertices[12] = PrimitiveBoxMax.X; Vertices[13] = PrimitiveBoxMin.Y; Vertices[14] = PrimitiveBoxMin.Z;
-		Vertices[15] = PrimitiveBoxMax.X; Vertices[16] = PrimitiveBoxMin.Y; Vertices[17] = PrimitiveBoxMax.Z;
-		Vertices[18] = PrimitiveBoxMax.X; Vertices[19] = PrimitiveBoxMax.Y; Vertices[20] = PrimitiveBoxMin.Z;
-		Vertices[21] = PrimitiveBoxMax.X; Vertices[22] = PrimitiveBoxMax.Y; Vertices[23] = PrimitiveBoxMax.Z;
-
-		FMemory::Memcpy(Indices, GCubeIndices, sizeof(GCubeIndices));
-
+		OcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
+		
 		OcclusionHistory.SetCurrentQuery(OcclusionFrameCounter, OcclusionQuery, NumBufferedFrames);
-
-		RHICmdList.EndDrawIndexedPrimitiveUP();
-		RHICmdList.EndRenderQuery(OcclusionQuery);
 	}
 	else
 	{
 		OcclusionHistory.SetCurrentQuery(OcclusionFrameCounter, NULL, NumBufferedFrames);
 	}
+	
+	return bAllowBoundsTest;
+}
+
+static void ExecutePlanarReflectionOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FPlanarReflectionSceneProxy* SceneProxy, FOcclusionQueryVS* VertexShader, FRenderQueryRHIRef OcclusionQuery)
+{
+	VertexShader->SetParameters(RHICmdList, View);
+
+	// Draw the primitive's bounding box, using the occlusion query.
+	RHICmdList.BeginRenderQuery(OcclusionQuery);
+
+	void* VerticesPtr;
+	void* IndicesPtr;
+	// preallocate memory to fill out with vertices and indices
+	RHICmdList.BeginDrawIndexedPrimitiveUP(PT_TriangleList, 12, 8, sizeof(FVector), VerticesPtr, 0, NUM_CUBE_VERTICES, sizeof(uint16), IndicesPtr);
+	float* Vertices = (float*)VerticesPtr;
+	uint16* Indices = (uint16*)IndicesPtr;
+
+	const FVector PrimitiveBoxMin = SceneProxy->WorldBounds.Min + View.ViewMatrices.GetPreViewTranslation();
+	const FVector PrimitiveBoxMax = SceneProxy->WorldBounds.Max + View.ViewMatrices.GetPreViewTranslation();
+	Vertices[0] = PrimitiveBoxMin.X; Vertices[1] = PrimitiveBoxMin.Y; Vertices[2] = PrimitiveBoxMin.Z;
+	Vertices[3] = PrimitiveBoxMin.X; Vertices[4] = PrimitiveBoxMin.Y; Vertices[5] = PrimitiveBoxMax.Z;
+	Vertices[6] = PrimitiveBoxMin.X; Vertices[7] = PrimitiveBoxMax.Y; Vertices[8] = PrimitiveBoxMin.Z;
+	Vertices[9] = PrimitiveBoxMin.X; Vertices[10] = PrimitiveBoxMax.Y; Vertices[11] = PrimitiveBoxMax.Z;
+	Vertices[12] = PrimitiveBoxMax.X; Vertices[13] = PrimitiveBoxMin.Y; Vertices[14] = PrimitiveBoxMin.Z;
+	Vertices[15] = PrimitiveBoxMax.X; Vertices[16] = PrimitiveBoxMin.Y; Vertices[17] = PrimitiveBoxMax.Z;
+	Vertices[18] = PrimitiveBoxMax.X; Vertices[19] = PrimitiveBoxMax.Y; Vertices[20] = PrimitiveBoxMin.Z;
+	Vertices[21] = PrimitiveBoxMax.X; Vertices[22] = PrimitiveBoxMax.Y; Vertices[23] = PrimitiveBoxMax.Z;
+
+	FMemory::Memcpy(Indices, GCubeIndices, sizeof(GCubeIndices));
+
+	RHICmdList.EndDrawIndexedPrimitiveUP();
+	RHICmdList.EndRenderQuery(OcclusionQuery);
 }
 
 FHZBOcclusionTester::FHZBOcclusionTester()
@@ -691,7 +751,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		/*
 		 * Defines the maximum number of mipmaps the HZB test is considering
@@ -879,15 +939,21 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 
 		SetRenderTarget(RHICmdList, ResultsTextureGPU->GetRenderTargetItem().TargetableTexture, NULL);
 
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 		TShaderMapRef< FScreenVS >	VertexShader(View.ShaderMap);
 		TShaderMapRef< FHZBTestPS >	PixelShader(View.ShaderMap);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		PixelShader->SetParameters(RHICmdList, View, BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture );
 
@@ -954,7 +1020,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 		
 		const FIntPoint GBufferSize = SceneContext.GetBufferSizeXY();
@@ -980,7 +1046,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		const FVector2D InvSize( 1.0f / Size.X, 1.0f / Size.Y );
 		SetShaderValue(RHICmdList, ShaderRHI, InvSizeParameter, InvSize );
@@ -1022,27 +1088,37 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 	View.HZBMipmap0Size = HZBSize;
 
 	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(HZBSize, PF_R16F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, NumMips));
-	Desc.Flags |= TexCreate_FastVRAM;
+	if (CVarFastVRamHzb.GetValueOnRenderThread() >= 1)
+	{
+		Desc.Flags |= TexCreate_FastVRAM;
+	}
 	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, View.HZB, TEXT("HZB") );
 	
 	FSceneRenderTargetItem& HZBRenderTarget = View.HZB->GetRenderTargetItem();
 	
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
 	FTextureRHIParamRef HZBRenderTargetRef = HZBRenderTarget.TargetableTexture.GetReference();
 	// Mip 0
 	{
 		SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB SetupMip 0 %dx%d"), HZBSize.X, HZBSize.Y);
 
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, 0, NULL);
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 		TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
 		TShaderMapRef< THZBBuildPS<0> >	PixelShader(View.ShaderMap);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		// Imperfect sampling, doesn't matter too much
 		PixelShader->SetParameters( RHICmdList, View );
@@ -1076,16 +1152,17 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 		DstSize.Y = FMath::Max(DstSize.Y, 1);
 
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 		TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
 		TShaderMapRef< THZBBuildPS<1> >	PixelShader(View.ShaderMap);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		PixelShader->SetParameters(RHICmdList, View, SrcSize, HZBRenderTarget.MipSRVs[ MipIndex - 1 ] );
 
@@ -1115,59 +1192,34 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries)
 {
 	SCOPE_CYCLE_COUNTER(STAT_BeginOcclusionTestsTime);
-	int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	const bool bUseDownsampledDepth = SceneContext.UseDownsizedOcclusionQueries() && IsValidRef(SceneContext.SmallDepthZ) && IsValidRef(SceneContext.GetSmallDepthSurface());	
 
-	if (bUseDownsampledDepth)
-	{
-		SetRenderTarget(RHICmdList, NULL, SceneContext.GetSmallDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
-	}
-	else
-	{
-		SetRenderTarget(RHICmdList, NULL, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
-	}
-
 	if (bRenderQueries)
 	{
-		RHICmdList.BeginOcclusionQueryBatch();
+		int32 const NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+		
+		bool bBatchedQueries = false;
+		
+		struct FViewOcclusionQueries
+		{
+			TArray<TPair<FProjectedShadowInfo const*, FRenderQueryRHIRef>> PointLightQueries;
+			TArray<TPair<FProjectedShadowInfo const*, FRenderQueryRHIRef>> ShadowQueries;
+			TArray<TPair<FPlanarReflectionSceneProxy const*, FRenderQueryRHIRef>> ReflectionQueries;
+		};
+		
+		TArray<FViewOcclusionQueries> ViewQueries;
+		ViewQueries.AddDefaulted(Views.Num());
 
 		// Perform occlusion queries for each view
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, BeginOcclusionTests);
 			FViewInfo& View = Views[ViewIndex];
-
-			if (bUseDownsampledDepth)
-			{
-				const uint32 DownsampledX = FMath::TruncToInt(View.ViewRect.Min.X / SceneContext.GetSmallColorDepthDownsampleFactor());
-				const uint32 DownsampledY = FMath::TruncToInt(View.ViewRect.Min.Y / SceneContext.GetSmallColorDepthDownsampleFactor());
-				const uint32 DownsampledSizeX = FMath::TruncToInt(View.ViewRect.Width() / SceneContext.GetSmallColorDepthDownsampleFactor());
-				const uint32 DownsampledSizeY = FMath::TruncToInt(View.ViewRect.Height() / SceneContext.GetSmallColorDepthDownsampleFactor());
-
-				// Setup the viewport for rendering to the downsampled depth buffer
-				RHICmdList.SetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
-			}
-			else
-			{
-				RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-			}
-
+			FViewOcclusionQueries& ViewQuery = ViewQueries[ViewIndex];
 			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
 			if (ViewState && !View.bDisableQuerySubmissions)
 			{
-				// Depth tests, no depth writes, no color writes, opaque, solid rasterization wo/ backface culling.
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
-				// We only need to render the front-faces of the culling geometry (this halves the amount of pixels we touch)
-				RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
-				RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-
-				// Lookup the vertex shader.
-				TShaderMapRef<FOcclusionQueryVS> VertexShader(View.ShaderMap);
-				SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), OcclusionTestBoundShaderState, GetVertexDeclarationFVector3(), *VertexShader, NULL);
-				VertexShader->SetParameters(RHICmdList, View);
-
 				// Issue this frame's occlusion queries (occlusion queries from last frame may still be in flight)
 				const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, NumBufferedFrames);
 				FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
@@ -1202,34 +1254,23 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 
 							if (ProjectedShadowInfo.bOnePassPointLightShadow)
 							{
-								FLightSceneProxy& LightProxy = *(ProjectedShadowInfo.GetLightSceneInfo().Proxy);
-
-								// Query one pass point light shadows separately because they don't have a shadow frustum, they have a bounding sphere instead.
-								FSphere LightBounds = LightProxy.GetBoundingSphere();
-
-								const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.GetViewOrigin() - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
-								if (!bCameraInsideLightGeometry)
+								FRenderQueryRHIRef ShadowOcclusionQuery;
+								if (AllocatePointLightShadowOcclusionQuery(View, ProjectedShadowInfo, NumBufferedFrames, ShadowOcclusionQuery))
 								{
-									const FRenderQueryRHIRef ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
-									RHICmdList.BeginRenderQuery(ShadowOcclusionQuery);
-
-									FSceneViewState::FProjectedShadowKey Key(ProjectedShadowInfo);
-
-									checkSlow(ShadowOcclusionQueryMap.Find(Key) == NULL);
-									ShadowOcclusionQueryMap.Add(Key, ShadowOcclusionQuery);
-
-									// Draw bounding sphere
-									VertexShader->SetParametersWithBoundingSphere(RHICmdList, View, LightBounds);
-									StencilingGeometry::DrawVectorSphere(RHICmdList);
-
-									RHICmdList.EndRenderQuery(ShadowOcclusionQuery);
+									ViewQuery.PointLightQueries.Add(TPairInitializer<FProjectedShadowInfo const*, FRenderQueryRHIRef>(&ProjectedShadowInfo, ShadowOcclusionQuery));
+									bBatchedQueries = true;
 								}
 							}
 							// Don't query preshadows, since they are culled if their subject is occluded.
 							// Don't query if any subjects are visible because the shadow frustum will be definitely unoccluded
 							else if (!ProjectedShadowInfo.IsWholeSceneDirectionalShadow() && !ProjectedShadowInfo.bPreShadow && !ProjectedShadowInfo.SubjectsVisible(View))
 							{
-								IssueProjectedShadowOcclusionQuery(RHICmdList, View, ProjectedShadowInfo, *VertexShader, NumBufferedFrames);
+								FRenderQueryRHIRef ShadowOcclusionQuery;
+								if (AllocateProjectedShadowOcclusionQuery(View, ProjectedShadowInfo, NumBufferedFrames, ShadowOcclusionQuery))
+								{
+									ViewQuery.ShadowQueries.Add(TPairInitializer<FProjectedShadowInfo const*, FRenderQueryRHIRef>(&ProjectedShadowInfo, ShadowOcclusionQuery));
+									bBatchedQueries = true;
+								}
 							}
 						}
 
@@ -1237,7 +1278,12 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 						for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.OccludedPerObjectShadows.Num(); ShadowIndex++)
 						{
 							const FProjectedShadowInfo& ProjectedShadowInfo = *VisibleLightInfo.OccludedPerObjectShadows[ShadowIndex];
-							IssueProjectedShadowOcclusionQuery(RHICmdList, View, ProjectedShadowInfo, *VertexShader, NumBufferedFrames);
+							FRenderQueryRHIRef ShadowOcclusionQuery;
+							if (AllocateProjectedShadowOcclusionQuery(View, ProjectedShadowInfo, NumBufferedFrames, ShadowOcclusionQuery))
+							{
+								ViewQuery.ShadowQueries.Add(TPairInitializer<FProjectedShadowInfo const*, FRenderQueryRHIRef>(&ProjectedShadowInfo, ShadowOcclusionQuery));
+								bBatchedQueries = true;
+							}
 						}
 					}
 				}
@@ -1247,22 +1293,116 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 					!View.bIsReflectionCapture)
 				{
 					// +1 to buffered frames because the query is submitted late into the main frame, but read at the beginning of a frame
-					const int32 NumReflectionBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames() + 1;
+					const int32 NumReflectionBufferedFrames = NumBufferedFrames + 1;
 
 					for (int32 ReflectionIndex = 0; ReflectionIndex < Scene->PlanarReflections.Num(); ReflectionIndex++)
 					{
 						FPlanarReflectionSceneProxy* SceneProxy = Scene->PlanarReflections[ReflectionIndex];
-						IssuePlanarReflectionOcclusionQuery(RHICmdList, View, SceneProxy, *VertexShader, NumReflectionBufferedFrames);
+						FRenderQueryRHIRef ShadowOcclusionQuery;
+						if (AllocatePlanarReflectionOcclusionQuery(View, SceneProxy, NumBufferedFrames, ShadowOcclusionQuery))
+						{
+							ViewQuery.ReflectionQueries.Add(TPairInitializer<FPlanarReflectionSceneProxy const*, FRenderQueryRHIRef>(SceneProxy, ShadowOcclusionQuery));
+							bBatchedQueries = true;
+						}
 					}
 				}
 
-				// Don't do primitive occlusion if we have a view parent or are frozen.
+				bBatchedQueries |= (View.IndividualOcclusionQueries.HasBatches() || View.GroupedOcclusionQueries.HasBatches()
+									// Don't do primitive occlusion if we have a view parent or are frozen - only applicable to Debug & Development.
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if (!ViewState->HasViewParent() && !ViewState->bIsFrozen)
+									|| (!ViewState->HasViewParent() && !ViewState->bIsFrozen)
 #endif
+									);
+			}
+		}
+
+		// Don't do anything if we have no queries batched.
+		if (bBatchedQueries)
+		{
+			SCOPED_DRAW_EVENT(RHICmdList, BeginOcclusionTests);
+			
+			if (bUseDownsampledDepth)
+			{
+				SetRenderTarget(RHICmdList, NULL, SceneContext.GetSmallDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+			}
+			else
+			{
+				SetRenderTarget(RHICmdList, NULL, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+			}
+			
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_NONE>::GetRHI();
+			// Depth tests, no depth writes, no color writes, opaque, solid rasterization wo/ backface culling.
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
+			
+			RHICmdList.BeginOcclusionQueryBatch();
+			
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				SCOPED_DRAW_EVENTF(RHICmdList, ViewOcclusionTests, TEXT("ViewOcclusionTests %d"), ViewIndex);
+				
+				FViewInfo& View = Views[ViewIndex];
+				FViewOcclusionQueries& ViewQuery = ViewQueries[ViewIndex];
+				FSceneViewState* ViewState = (FSceneViewState*)View.State;
+				
+				// We only need to render the front-faces of the culling geometry (this halves the amount of pixels we touch)
+				GraphicsPSOInit.RasterizerState = View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
+				
+				if (bUseDownsampledDepth)
+				{
+					const uint32 DownsampledX = FMath::TruncToInt(View.ViewRect.Min.X / SceneContext.GetSmallColorDepthDownsampleFactor());
+					const uint32 DownsampledY = FMath::TruncToInt(View.ViewRect.Min.Y / SceneContext.GetSmallColorDepthDownsampleFactor());
+					const uint32 DownsampledSizeX = FMath::TruncToInt(View.ViewRect.Width() / SceneContext.GetSmallColorDepthDownsampleFactor());
+					const uint32 DownsampledSizeY = FMath::TruncToInt(View.ViewRect.Height() / SceneContext.GetSmallColorDepthDownsampleFactor());
+					
+					// Setup the viewport for rendering to the downsampled depth buffer
+					RHICmdList.SetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
+				}
+				else
+				{
+					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+				}
+				
+				// Lookup the vertex shader.
+				TShaderMapRef<FOcclusionQueryVS> VertexShader(View.ShaderMap);
+				
+				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector3();
+				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+				GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+				
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+				VertexShader->SetParameters(RHICmdList, View);
+				
+				{
+					SCOPED_DRAW_EVENT(RHICmdList, ShadowFrustumQueries);
+					for (TPair<FProjectedShadowInfo const*, FRenderQueryRHIRef> const& Query : ViewQuery.PointLightQueries)
+					{
+						ExecutePointLightShadowOcclusionQuery(RHICmdList, View, *Query.Key, *VertexShader, Query.Value);
+					}
+					
+					for (TPair<FProjectedShadowInfo const*, FRenderQueryRHIRef> const& Query : ViewQuery.ShadowQueries)
+					{
+						ExecuteProjectedShadowOcclusionQuery(RHICmdList, View, *Query.Key, *VertexShader, Query.Value);
+					}
+				}
+				
+				{
+					SCOPED_DRAW_EVENT(RHICmdList, PlanarReflectionQueries);
+					for (TPair<FPlanarReflectionSceneProxy const*, FRenderQueryRHIRef> const& Query : ViewQuery.ReflectionQueries)
+					{
+						ExecutePlanarReflectionOcclusionQuery(RHICmdList, View, Query.Key, *VertexShader, Query.Value);
+					}
+				}
+				
+				// Don't do primitive occlusion if we have a view parent or are frozen - only applicable to Debug & Development.
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				if(!ViewState->HasViewParent() && !ViewState->bIsFrozen)
+	#endif
 				{
 					VertexShader->SetParameters(RHICmdList, View);
-
+					
 					{
 						SCOPED_DRAW_EVENT(RHICmdList, IndividualQueries);
 						View.IndividualOcclusionQueries.Flush(RHICmdList);
@@ -1273,14 +1413,14 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 					}
 				}
 			}
+			
+			RHICmdList.EndOcclusionQueryBatch();
+			
+			if (bUseDownsampledDepth)
+			{
+				// Restore default render target
+				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+			}
 		}
-
-		RHICmdList.EndOcclusionQueryBatch();
-	}
-
-	if (bUseDownsampledDepth)
-	{
-		// Restore default render target
-		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 	}
 }

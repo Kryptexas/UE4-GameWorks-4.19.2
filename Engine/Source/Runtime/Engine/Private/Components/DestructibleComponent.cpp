@@ -513,6 +513,14 @@ void UDestructibleComponent::AddForceAtLocation( FVector Force, FVector Location
 #endif
 }
 
+void UDestructibleComponent::AddForceAtLocationLocal(FVector Force, FVector Location, FName BoneName /*= NAME_None*/)
+{
+#if WITH_APEX
+	// AddForceAtLocation already seems to be relative for ApexDestructibles.
+	AddForceAtLocation(Force, Location, BoneName);
+#endif
+}
+
 void UDestructibleComponent::AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange)
 {
 #if WITH_APEX
@@ -1519,8 +1527,8 @@ void UDestructibleComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType
 		
 		PxU32 NumChunks = GetDestructibleMesh()->GetApexDestructibleAsset()->getChunkCount();
 		
-		const bool bSetQuery = NewType == ECollisionEnabled::QueryAndPhysics || NewType == ECollisionEnabled::QueryOnly;
-		const bool bSetSim = NewType == ECollisionEnabled::PhysicsOnly || NewType == ECollisionEnabled::QueryAndPhysics;
+		const bool bSetQuery = CollisionEnabledHasQuery(NewType);
+		const bool bSetSim = CollisionEnabledHasPhysics(NewType);
 		
 		for(uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
 		{

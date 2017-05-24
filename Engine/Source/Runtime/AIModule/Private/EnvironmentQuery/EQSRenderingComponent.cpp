@@ -193,7 +193,7 @@ void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FE
 
 	if (ShouldDrawFailedItems && QueryInstance)
 	{
-		const FEQSQueryDebugData& InstanceDebugData = QueryInstance->DebugData;
+		const FEnvQueryDebugData& InstanceDebugData = QueryInstance->DebugData;
 		const TArray<FEnvQueryItem>& DebugQueryItems = InstanceDebugData.DebugItems;
 		const TArray<FEnvQueryItemDetails>& Details = InstanceDebugData.DebugItemDetails;
 

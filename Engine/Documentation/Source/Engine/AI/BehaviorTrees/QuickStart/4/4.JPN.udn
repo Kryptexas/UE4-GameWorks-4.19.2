@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2757171
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:4.Character ブループリントのセットアップ
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -23,7 +23,7 @@ version:4.9
 
 %Steps%
 
-**キャラクター** を含むプロジェクトが既に作成されているので、人型の **スケルタルメッシュ** とその **Animation** ブループリントをご利用いただけます。このチュートリアルではこうしたものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
+**キャラクター** が既に入っているプロジェクトを作成したので、人型の **スケルタルメッシュ** とその **Animation** ブループリントをご利用いただけます。このチュートリアルではこうしたものを使用しますが、ご自分のものを使って頂いても構いません。
 
 このキャラクターが新規 AI キャラクターになります。例えばポーンではなくキャラクターを使う理由は、Character Movement コンポーネントの機能にアクセスするためです。
 
@@ -47,7 +47,7 @@ version:4.9
 
 	![](assignAnimBP.png)
 
-1. **[Components]** パネルで **CapsuleComponent** を選び、 **[Details]** パネルで **Capsule Half Height (カプセルの半分の高さ)** と **Capsule Radius (カプセルの半径)** を調整して **スケルタル メッシュ** を囲むようにします。
+1. **[Components]** パネルで **CapsuleComponent** を選びます。次に、**[Details]** パネルで **Capsule Half Height (カプセルの半分の高さ)** と **Capsule Radius (カプセルの半径)** を調整して **スケルタル メッシュ** を囲むようにします。
 
 	![](shapeCat.png)
 
@@ -61,11 +61,11 @@ version:4.9
 
 	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセルの「半分の高さ」の 2 倍になるように設定します。_
 
-1. Character Movement コンポーネントを選択した状態のまま、 **Character Movement** カテゴリの **[Max Walk Speed (最高歩行速度)]** プロパティを 400 に変更します。
-
+1. Character Movement コンポーネントを選択した状態のまま、 **Character Movement** カテゴリの **[Max Walk Speed (最高歩行速度)]** プロパティを `400` に変更します。
+	
 	![](maxWalk.png)
 
-1. **Class Defaults** ボタンをクリックして、新規 AI Controller (`Follower_AI_CON`) を **[Pawn]** カテゴリの **[AIController Class]** プロパティに割り当てます。
+1. **[Class Defaults]** ボタンをクリックして、新規 AI Controller (`Follower_AI_CON`) を **[Pawn]** カテゴリの **[AIController Class]** プロパティに割り当てます。
 
 	![](AI_con.png)
 

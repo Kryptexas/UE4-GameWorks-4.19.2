@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3124629
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:FBX ファイルのエクスポートとインポート
 Crumbs: %ROOT%, Engine
@@ -9,6 +9,7 @@ order:1
 Version:4.13
 Related:Engine\Sequencer\Overview
 Related:Engine/Sequencer/HowTo
+tags:Sequencer
 
 このページでは、FBX ファイルとしてシーケンサーからシーンをエクスポートし、3dsMax や Maya などのサードパーティのアプリケーション内でそのファイルに変更を加え、その FBX ファイルを (変更と合わせて) 既存のシーンの一部としてアンリアル エンジンのシーケンサーにインポートします。 
 
@@ -46,8 +47,8 @@ Related:Engine/Sequencer/HowTo
 	SM77fHV_wu8
 	[/PARAMLITERAL]
 	[/OBJECT]
-	### 外部の編集
 
+### 外部の編集
 
 シーケンサーからエクスポートした FBX が用意できたらサードパーティのアプリケーションを開いてそれをインポートして編集を開始できるようにします。 
 

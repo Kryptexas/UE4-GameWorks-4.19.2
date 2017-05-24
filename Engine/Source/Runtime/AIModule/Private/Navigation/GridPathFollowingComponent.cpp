@@ -34,6 +34,15 @@ void UGridPathFollowingComponent::Reset()
 	bHasGridPath = false;
 }
 
+void UGridPathFollowingComponent::OnPathUpdated()
+{
+	Super::OnPathUpdated();
+
+	// force grid update in next tick
+	ActiveGridIdx = INDEX_NONE;
+	ActiveGridId = INDEX_NONE;
+}
+
 void UGridPathFollowingComponent::UpdatePathSegment()
 {
 	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
@@ -113,6 +122,7 @@ void UGridPathFollowingComponent::UpdateActiveGrid(const FVector& CurrentLocatio
 				ActiveGridId = GridData.GetGridId();
 				ActiveGridIdx = GridIdx;
 
+				GridManager->UpdateAccessTime(GridIdx);
 				GridData.FindPathForMovingAgent(*Path.Get(), CurrentLocation, MoveSegmentStartIndex, GridPathPoints, MoveSegmentStartIndexOffGrid);
 				
 				bHasGridPath = GridPathPoints.Num() > 1;
@@ -128,12 +138,20 @@ void UGridPathFollowingComponent::UpdateActiveGrid(const FVector& CurrentLocatio
 					const FVector DebugDrawOffset(0, 0, 15.0f);
 					const FVector DebugPathPointExtent(5, 5, 5);
 
-					UE_VLOG_BOX(this, LogPathFollowing, Log, GridData.WorldBounds, FColor::Yellow, TEXT(""));
-					UE_VLOG_BOX(this, LogPathFollowing, Log, FBox::BuildAABB(GridPathPoints[0] + DebugDrawOffset, DebugPathPointExtent), FColor::Cyan, TEXT(""));
+					UE_VLOG_BOX(this, LogPathFollowing, Verbose, GridData.WorldBounds, FColor::Cyan, TEXT(""));
+					UE_VLOG_BOX(this, LogPathFollowing, Log, FBox::BuildAABB(GridPathPoints[0] + DebugDrawOffset, DebugPathPointExtent), FColor::Yellow, TEXT(""));
 					for (int32 Idx = 1; Idx < GridPathPoints.Num(); Idx++)
 					{
-						UE_VLOG_BOX(this, LogPathFollowing, Log, FBox::BuildAABB(GridPathPoints[Idx] + DebugDrawOffset, DebugPathPointExtent), FColor::Cyan, TEXT(""));
-						UE_VLOG_SEGMENT_THICK(this, LogPathFollowing, Log, GridPathPoints[Idx - 1] + DebugDrawOffset, GridPathPoints[Idx] + DebugDrawOffset, FColor::Cyan, 3.0f, TEXT(""));
+						UE_VLOG_BOX(this, LogPathFollowing, Log, FBox::BuildAABB(GridPathPoints[Idx] + DebugDrawOffset, DebugPathPointExtent), FColor::Yellow, TEXT(""));
+						UE_VLOG_SEGMENT_THICK(this, LogPathFollowing, Log, GridPathPoints[Idx - 1] + DebugDrawOffset, GridPathPoints[Idx] + DebugDrawOffset, FColor::Yellow, 3.0f, TEXT(""));
+					}
+
+					for (int32 Idx = 0; Idx < GridData.GetCellsCount(); Idx++)
+					{
+						if (GridData.GetCellAtIndexUnsafe(Idx))
+						{
+							UE_VLOG_BOX(this, LogPathFollowing, Verbose, GridData.GetWorldCellBox(Idx), FColor::Red, TEXT(""));
+						}
 					}
 #endif
 				}

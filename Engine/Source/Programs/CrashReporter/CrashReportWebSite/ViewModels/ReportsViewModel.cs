@@ -7,7 +7,7 @@ using Tools.CrashReporter.CrashReportWebSite.DataModels;
 namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
 {
     /// <summary>
-    /// The view model for the crash summary page.
+    /// The view model for the Crash summary page.
     /// </summary>
     public class ReportsViewModel
     {
@@ -17,10 +17,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.ViewModels
         /// <summary>A container of sorted Crashes.</summary>
         public List<Crash> Crashes { get; set; }
 
-        /// <summary>The date of the earliest crash in a Bugg.</summary>
+        /// <summary>The date of the earliest Crash in a Bugg.</summary>
         public long DateFrom { get; set; }
 
-        /// <summary>The date of the most recent crash in a Bugg.</summary>
+        /// <summary>The date of the most recent Crash in a Bugg.</summary>
         public long DateTo { get; set; }
 
         /// <summary></summary>

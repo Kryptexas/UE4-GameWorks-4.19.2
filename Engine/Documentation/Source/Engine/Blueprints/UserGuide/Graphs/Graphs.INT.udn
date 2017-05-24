@@ -5,6 +5,7 @@ Description:Node graph that uses events and function calls to perform actions in
 version: 4.9
 Parent:Engine/Blueprints/Anatomy
 Tags:Graphs
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

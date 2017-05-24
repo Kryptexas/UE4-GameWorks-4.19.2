@@ -1,94 +1,81 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:How-To Apply a Physical Animation Profile
+﻿INTSourceChangelist:3260662
+Availability:Public
+Title:如何应用物理动画配置文件
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to apply a Physical Animation Profile to a Skeletal Mesh Component using Blueprints.
+Description:此指南说明如何使用蓝图应用物理动画配置文件到骨架网格体组件。
 parent:Engine/Physics/PhAT/HowTo
 order:1
-Version: 4.13
+Version:4.13
 skilllevel:Intermediate
-prereq: Engine/Blueprints/QuickStart
-prereq: Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile
+prereq:Engine/Blueprints/QuickStart
+prereq:Engine/Physics/PhAT/HowTo/CreatePhysicalAnimationProfile
 related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
-related: Engine/Physics/PhAT/HowTo/ApplyConstraintProfile
+related:Engine/Physics/PhAT/HowTo/ApplyConstraintProfile
+topic-image:Engine/Physics/physics_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+以下讲述创建简单图表的步骤，用以在 **Pawn** 中的 **骨架网格体组件** 上启用 **物理动画配置文件**。 
 
-Below you will find the steps for creating a simple graph to enable a **Physical Animation Profile** on a **Skeletal Mesh Component** in a **Pawn**. 
+## 步骤
 
-## Steps
+1. 打开或创建一个带 **骨架网格体组件** 的蓝图。
+	* 如蓝图不包含 **骨架网格体组件**，则使用 **Components 面板** 进行添加。
 
-1. Open or create a Blueprint with a **Skeletal Mesh Component**.
-	* Or, if your Blueprint doesn't contain a **Skeletal Mesh Component**, add one using the **Components Panel**.
-1. Adjust the **Skeletal Mesh Component** Collision settings.
-	* The Collision Preset needs to be changed so that that **Skeletal Mesh Component** has **Collision Enabled** but also so it doesn't interact with Pawns:
+	![](Engine\Physics\PhAT\HowTo\ApplyConstraintProfile\addSkelMeshComp.png)
+
+1. 调整 **骨架网格体组件** 的碰撞设置。
+	* 需要对 Collision Preset 进行修改，使 **骨架网格体组件** **启用碰撞**，但不与 Pawn 发生交互：
 
 		![](collisionSettings.png)
 
 		[REGION:note]
-		You'll notice that the **Object Type** is set to **Pawn** and that we're ignoring **Pawns** in our collision channels. This fixes the issue of the **Skeletal Mesh** trying to eject itself from 
-		the collision capsule. However, if you want the **Skeletal Mesh** to collide with other **Pawns** you'll need to adjust what **Object Type** your **Skeletal Mesh** is and then change 
-		how the **Capsule** interacts with that **Object Type**. See: **[](Engine/Physics/Collision/HowTo/AddCustomCollisionType)**, for more information on creating **Custom Collision Channels**.
+		您将注意到 **Object Type** 设为 **Pawn**，并且无视碰撞通道中的 **Pawn**。这能修复 **骨架网格体** 将自己从碰撞胶囊体中弹出 
+		的问题。然而，如果希望 **骨架网格体** 与其他 **Pawn** 发生碰撞，则需要调整 **骨架网格体** 的 **物体类型**，然后 
+		修改 **胶囊体** 与该 **物体类型** 进行交互的方式。查阅在 **[](Engine/Physics/Collision/HowTo/AddCustomCollisionType)** 查阅创建 **自定义碰撞通道** 的更多内容。
 		[/REGION]
 
-1. Add a **Physical Animation Component** to your Blueprint using the **Components Panel**.
-1. Add a Name Variable and call it **Bone Name**.
-1. Compile so we can set the value of the **Bone Name** variable.
-1. Change **Bone Name** Default Value to the desired target **Bone**, in this case `spine_01`.
-1. Switch to the **Event Graph**.
-1. Locate or create the **Event BeginPlay** event node.
-1. Add a **Set Skeletal Mesh Component** Node connecting to **Event Beging Play**
-	* Target is the **Physical Animation Component** you added above.
-	* In **Skeletal Mesh Component** is the **Skeletal Mesh Component** in your Blueprint or the one you added above.
-1. Add a **Apply Physcial Animation Profile Below** Node connecting to the **Set Skeletal Mesh Component** Node.
-	* **Target** is the **Physical Animation Component**.
-	* **Body Name** will accept the **Bone Name** variable as input. In Physics Assets, Physics Bodies are named after their Bone.
-	* **Profile Name** the name of the **Physical Animation Profile** you wish to apply to the **Skeletal Mesh**.
-	* Since we are using `spine_01' as the desired bone so just the upper body animates, so **Include Self** should be checked.
-	* **Clear Not Found** is optional, but we've set it to **True** to clear any bones that are not found in the profile.
-1. Set All Bodies Below Simulate Physics Node connected to the **Apply Physcial Animation Profile Below** Node.
-	* **Target** is your **Skeletal Mesh Component**.
-	* **In Bone Name** will take the **Bone Name** variable as input.
-	* **New Simulate** should be set to **True**.
-	* Again, since we are using `spine_01` as the target bone **Include Self** should be checked.
-1. Final graph:
+1. 使用 **Components 面板** 添加一个 **Physical Animation Component** 到蓝图。
+
+	![](Engine\Physics\PhAT\HowTo\ApplyConstraintProfile\addPhysAnimComp.png)
+
+1. 添加一个 Name 变量并将其命名为 **Bone Name**。
+
+	[REGION:raw]
+	![](Engine\Physics\PhAT\HowTo\ApplyConstraintProfile\variableName.png)
+	[/REGION]
+
+1. 编译，以便设置 **Bone Name** 变量的值。
+
+	![](Engine\Physics\PhAT\HowTo\ApplyConstraintProfile\compile.png)
+
+1. 将 **Bone Name** 的默认值设为设为所需的目标 **骨骼**，在此例中为 `spine_01`。
+
+	![](Engine\Physics\PhAT\HowTo\ApplyConstraintProfile\boneName.png)
+
+1. 切换至 **事件图表**。
+1. 找到或创建 **Event BeginPlay** 事件节点。
+
+	![](Engine\Physics\PhAT\HowTo\ApplyConstraintProfile\eventBP.png)
+
+1. 添加一个 **Set Skeletal Mesh Component** 节点，连接到 **Event Beging Play**
+	* 目标为上方添加的 **物理动画组件**。
+	* **Skeletal Mesh Component** 中是蓝图中的 **骨架网格体组件**（或是上方添加的骨架网格体组件）。
+
+	![](createSetSkel.png)
+
+1. 添加一个 **Apply Physcial Animation Profile Below** 节点，连接至 **Set Skeletal Mesh Component** 节点。
+	* **Target** 为 **物理动画组件**。
+	* **Body Name** 将以 **Bone Name** 变量为输入。在物理资源中，物理形体以其骨骼命名。
+	* **Profile Name** 是希望应用到 **骨架网格体** 的 **物理动画配置文件**。
+	* 因为我们使用 `spine_01` 作为所需骨骼，仅限上半身运动，则需要勾选 **Include Self**。
+	* **Clear Not Found** 为任选，但我们已将其设为 **True**，清理未在此配置文件中找到的骨骼。
+
+	![](applyPhysAnim.png)
+
+1. Set All Bodies Below Simulate Physics 节点连接到 **Apply Physcial Animation Profile Below** 节点。图表便设置完成。
+	* **Target** 是 **骨架网格体组件**。
+	* **In Bone Name** 将以 **Bone Name** 变量为输入。
+	* **New Simulate** 应被设为 **True**。
+	* 因为我们使用 `spine_01` 作为目标骨骼，则需要勾选 **Include Self**。
 
 	[OBJECT:Snippet]
 		[PARAMLITERAL:id]
@@ -105,22 +92,22 @@ Below you will find the steps for creating a simple graph to enable a **Physical
 		[/PARAM]
 	[/OBJECT]
 
-	**Hidden Graph Information**
+	**隐藏图表信息**
 
 	[REGION:raw]
-	| Variable | Value | Description |
+	| 变量 | 值 | 描述 |
 	| --- | :--- | :--- |
-	| **Bone Name** %spacer2% | `spine_01` | The name of the **Bone** in the **Skeletal Mesh** to start applying the Physical Animation Profile. We also use it in the **Set All Bodies Below Simulate Physics**. |
+	| **Bone Name** %spacer2% | `spine_01` | **骨架网格体** 中 **骨骼** 的名称，开始应用物理动画配置文件。此外还在 **Set All Bodies Below Simulate Physics** 中使用。|
 	[/REGION]
 
-	| Component || Description |
-	| --- | :---: | :--- |
-	| **Physical Animation Component** || This is the component that actually handles the Physical Animation of our **Skeletal Mesh**. |
-	| **Skeletal Mesh Component** || The **Skeletal Mesh Component** that will be physically animated. |
+	| 组件 || 描述 |
+	| --- | :---:| :--- |
+	| **Physical Animation Component** || 该组件实际处理 **骨架网格体** 的物理动画。|
+	| **Skeletal Mesh Component** || 进行物理动画设置的 **骨架网格体组件**。如果从继承自 **Character** 的现有蓝图进行工作，它将被简单命名为 `Mesh`。|
 
-## Result
+## 结果
 
-When finished, your **Skeletal Mesh Component** will be simulating physics using the **Physical Animation Component** while in runtime.
+完成后，**骨架网格体组件** 将在运行时使用 **物理动画组件** 模拟物理。
 
 ![](resultApplyPAP.png)
 
@@ -234,3 +221,4 @@ When finished, your **Skeletal Mesh Component** will be simulating physics using
 		CustomProperties Pin (PinId=41EFD7554F080B09E40F7199FA2BAF6F,PinName="bClearNotFound",PinToolTip="Clear Not Found\nBoolean\n\nIf true, bodies without the given profile name will have any existing physical animation settings cleared. If false, bodies without the given profile name are left untouched.",PinType.PinCategory="bool",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="true",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 	End Object
 [/VAR]
+

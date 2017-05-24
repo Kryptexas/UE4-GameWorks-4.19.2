@@ -25,6 +25,7 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& Obj
 	bSuspendCrowdSimulation = false;
 	bEnableSimulationReplanOnResume = true;
 	bRegisteredWithCrowdSimulation = false;
+	bCanCheckMovingTooFar = true;
 
 	bEnableAnticipateTurns = false;
 	bEnableObstacleAvoidance = true;
@@ -333,7 +334,15 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 	// CrowdAgentMoveDirection either direction on path or aligned with current velocity
 	if (CharacterMovement->MovementMode != MOVE_Falling)
 	{
-		CrowdAgentMoveDirection = (bRotateToVelocity || bTraversingLink) && (NewVelocity.SizeSquared() > KINDA_SMALL_NUMBER) ? NewVelocity.GetSafeNormal() : MoveSegmentDirection;
+		if (bUpdateDirectMoveVelocity)
+		{
+			const FVector CurrentTargetPt = DestinationActor.IsValid() ? DestinationActor->GetActorLocation() : GetCurrentTargetLocation();
+			CrowdAgentMoveDirection = (CurrentTargetPt - AgentLoc).GetSafeNormal();
+		}
+		else
+		{
+			CrowdAgentMoveDirection = (bRotateToVelocity || bTraversingLink) && (NewVelocity.SizeSquared() > KINDA_SMALL_NUMBER) ? NewVelocity.GetSafeNormal() : MoveSegmentDirection;
+		}
 	}
 }
 
@@ -368,8 +377,9 @@ bool UCrowdFollowingComponent::UpdateCachedGoal(FVector& NewGoalPos)
 	return ShouldTrackMovingGoal(NewGoalPos);
 }
 
-void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink)
+void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink, bool bIsNearEndOfPath)
 {
+	bCanCheckMovingTooFar = !bTraversingLink && bIsNearEndOfPath;
 	if (IsCrowdSimulationEnabled() && Status == EPathFollowingStatus::Moving && MovementComp)
 	{
 		if (bAffectFallingVelocity || CharacterMovement == NULL || CharacterMovement->MovementMode != MOVE_Falling)
@@ -392,6 +402,9 @@ void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocit
 			}
 		}
 	}
+
+	// call deprecated function in case someone is overriding it
+	ApplyCrowdAgentVelocity(NewVelocity, DestPathCorner, bTraversingLink);
 }
 
 void UCrowdFollowingComponent::ApplyCrowdAgentPosition(const FVector& NewPosition)
@@ -460,7 +473,7 @@ void UCrowdFollowingComponent::Initialize()
 			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 			if (NavSys && !NavSys->IsInitialized())
 			{
-				NavSys->OnNavigationInitDone.AddUObject(this, &UCrowdFollowingComponent::OnPendingNavigationInit);
+				NavSys->OnNavigationInitDone.AddUObject(this, &UCrowdFollowingComponent::OnNavigationInitDone);
 			}
 			else
 			{
@@ -551,6 +564,7 @@ void UCrowdFollowingComponent::Reset()
 	LastPathPolyIndex = 0;
 
 	bFinalPathPart = false;
+	bCanCheckMovingTooFar = true;
 	bCheckMovementAngle = false;
 	bUpdateDirectMoveVelocity = false;
 }
@@ -565,6 +579,9 @@ bool UCrowdFollowingComponent::UpdateMovementComponent(bool bForce)
 
 void UCrowdFollowingComponent::OnLanded()
 {
+	// don't check overshot in the same frame, AI may require turning back after landing
+	bCanCheckMovingTooFar = false;
+
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (IsCrowdSimulationEnabled() && CrowdManager)
 	{
@@ -756,7 +773,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		return;
 	}
 	
-	FVector CurrentTargetPt = Path->GetPathPoints()[1].Location;
+	FVector CurrentTargetPt = Path->GetPathPoints().Last().Location;
 
 	FNavMeshPath* NavMeshPath = Path->CastPath<FNavMeshPath>();
 	FAbstractNavigationPath* DirectPath = Path->CastPath<FAbstractNavigationPath>();
@@ -835,7 +852,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		}
 		else if (NavMeshPath->IsPartial())
 		{
-			RecastNavData->GetClosestPointOnPoly(NavMeshPath->PathCorridor[PathPartEndIdx], Path->GetPathPoints()[1].Location, CurrentTargetPt);
+			RecastNavData->GetClosestPointOnPoly(NavMeshPath->PathCorridor[PathPartEndIdx], Path->GetPathPoints().Last().Location, CurrentTargetPt);
 		}
 
 		// not safe to read those directions yet, you have to wait until crowd manager gives you next corner of string pulled path
@@ -920,7 +937,22 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 		else if (bFinalPathPart)
 		{
 			const FVector ToTarget = (GoalLocation - MovementComp->GetActorFeetLocation());
-			const bool bMovedTooFar = bCheckMovementAngle && !CrowdAgentMoveDirection.IsNearlyZero() && FVector::DotProduct(ToTarget, CrowdAgentMoveDirection) < 0.0;
+			const bool bMovedTooFar = (bCheckMovementAngle || bCanCheckMovingTooFar) && !CrowdAgentMoveDirection.IsNearlyZero() && FVector::DotProduct(ToTarget, CrowdAgentMoveDirection) < 0.0;
+
+#if ENABLE_VISUAL_LOG
+			if (bMovedTooFar)
+			{
+				const FVector AgentLoc = MovementComp->GetActorFeetLocation();
+				UE_VLOG_SEGMENT(GetOwner(), LogCrowdFollowing, Log, AgentLoc, AgentLoc + CrowdAgentMoveDirection * 100.0f, FColor::Cyan, TEXT("moveDir"));
+				UE_VLOG_SEGMENT(GetOwner(), LogCrowdFollowing, Log, AgentLoc, AgentLoc + ToTarget.GetSafeNormal() * 100.0f, FColor::Cyan, TEXT("toTarget"));
+				UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Moved too far, dotValue: %.2f (normalized dot: %.2f) velocity:%s (speed:%.0f)"),
+					FVector::DotProduct(ToTarget, CrowdAgentMoveDirection),
+					FVector::DotProduct(ToTarget.GetSafeNormal(), CrowdAgentMoveDirection),
+					*MovementComp->Velocity.ToString(),
+					MovementComp->Velocity.Size()
+					);
+			}
+#endif
 
 			// can't use HasReachedDestination here, because it will use last path point
 			// which is not set correctly for partial paths without string pulling
@@ -1068,8 +1100,10 @@ void UCrowdFollowingComponent::RegisterCrowdAgent()
 	}
 }
 
-void UCrowdFollowingComponent::OnPendingNavigationInit()
+void UCrowdFollowingComponent::OnNavigationInitDone()
 {
+	Super::OnNavigationInitDone();
+
 	RegisterCrowdAgent();
 	
 	if (!bRegisteredWithCrowdSimulation)

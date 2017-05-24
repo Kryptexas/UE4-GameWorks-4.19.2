@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Rejoin : ModuleRules
 {
-	public Rejoin(TargetInfo Target)
+	public Rejoin(ReadOnlyTargetRules Target) : base(Target)
     {
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		

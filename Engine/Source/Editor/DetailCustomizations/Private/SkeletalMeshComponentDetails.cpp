@@ -105,7 +105,7 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 				else if(Mesh->SkeletalMesh->Skeleton != Skeleton)
 				{
 					// There's an incompatible skeleton in the selection, stop checking
-					AnimPickerVisibility = EVisibility::Hidden;
+					bAnimPickerEnabled = false;
 					break;
 				}
 			}
@@ -116,10 +116,10 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 	{
 		// No valid skeleton in selection, treat as invalid
 		SelectedSkeletonName = "";
-		AnimPickerVisibility = EVisibility::Hidden;
+		bAnimPickerEnabled = false;
 	}
 
-	if(AnimPickerVisibility == EVisibility::Visible)
+	if(bAnimPickerEnabled)
 	{
 		// If we're showing the animation asset then we have a valid skeleton
 		SelectedSkeletonName = FString::Printf(TEXT("%s'%s'"), *Skeleton->GetClass()->GetName(), *Skeleton->GetPathName());
@@ -147,7 +147,8 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 			AnimationBlueprintHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.MinDesiredWidth(250.f)
+		.MinDesiredWidth(125.f)
+		.MaxDesiredWidth(250.f)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -206,20 +207,24 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 			TSharedPtr<SWidget> NameWidget = ChildHandle->CreatePropertyNameWidget();
 
 			TSharedRef<SWidget> PropWidget = SNew(SObjectPropertyEntryBox)
+				.ThumbnailPool(DetailBuilder.GetThumbnailPool())
 				.PropertyHandle(ChildHandle)
 				.AllowedClass(UAnimationAsset::StaticClass())
 				.AllowClear(true)
 				.OnShouldFilterAsset(FOnShouldFilterAsset::CreateSP(this, &FSkeletalMeshComponentDetails::OnShouldFilterAnimAsset));
 
-			TAttribute<EVisibility> AnimPickerVisibilityAttr(this, &FSkeletalMeshComponentDetails::VisibilityForAnimPicker);
+			TAttribute<bool> AnimPickerEnabledAttr(this, &FSkeletalMeshComponentDetails::AnimPickerIsEnabled);
 
 			AnimationCategory.AddCustomRow(ChildHandle->GetPropertyDisplayName())
-				.Visibility(AnimPickerVisibilityAttr)
+				.Visibility(SingleAnimVisibility)
+				.IsEnabled(AnimPickerEnabledAttr)
 				.NameContent()
 				[
 					NameWidget.ToSharedRef()
 				]
 				.ValueContent()
+				.MinDesiredWidth(600)
+				.MaxDesiredWidth(600)
 				[
 					PropWidget
 				];
@@ -278,12 +283,12 @@ void FSkeletalMeshComponentDetails::SkeletalMeshPropertyChanged()
 
 	if(Skeleton)
 	{
-		AnimPickerVisibility = EVisibility::Visible;
+		bAnimPickerEnabled = true;
 		SelectedSkeletonName = FString::Printf(TEXT("%s'%s'"), *Skeleton->GetClass()->GetName(), *Skeleton->GetPathName());
 	}
 	else
 	{
-		AnimPickerVisibility = EVisibility::Hidden;
+		bAnimPickerEnabled = false;
 		SelectedSkeletonName = "";
 	}
 }
@@ -317,9 +322,9 @@ void FSkeletalMeshComponentDetails::UnregisterAllMeshPropertyChangedCallers()
 	}
 }
 
-EVisibility FSkeletalMeshComponentDetails::VisibilityForAnimPicker() const
+bool FSkeletalMeshComponentDetails::AnimPickerIsEnabled() const
 {
-	return (VisibilityForSingleAnimMode().IsVisible() && AnimPickerVisibility.IsVisible()) ? EVisibility::Visible : EVisibility::Hidden;
+	return bAnimPickerEnabled;
 }
 
 TSharedRef<SWidget> FSkeletalMeshComponentDetails::GetClassPickerMenuContent()
@@ -368,14 +373,7 @@ void FSkeletalMeshComponentDetails::OnClassPicked( UClass* PickedClass )
 
 	ClassPickerComboButton->SetIsOpen(false);
 
-	if(PickedClass)
-	{
-		AnimationBlueprintHandle->SetValueFromFormattedString(PickedClass->GetName());
-	}
-	else
-	{
-		AnimationBlueprintHandle->SetValueFromFormattedString(FString(TEXT("None")));
-	}
+	AnimationBlueprintHandle->SetValue(PickedClass);
 }
 
 void FSkeletalMeshComponentDetails::OnBrowseToAnimBlueprint()

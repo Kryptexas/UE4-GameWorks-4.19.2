@@ -108,19 +108,18 @@ BlackClip = 0;
 WhiteClip = 0.025;
 
 // ACES settings
-Slope = 0.88;
-Toe = 0.55;
-Shoulder = 0.26;
+Slope = 0.91;
+Toe = 0.53;
+Shoulder = 0.23;
 BlackClip = 0;
-WhiteClip = 0.04;
+WhiteClip = 0.035;
 ===========================================
 */
-
-float FilmSlope;
-float FilmToe;
-float FilmShoulder;
-float FilmBlackClip;
-float FilmWhiteClip;
+float FilmSlope = 0.91;
+float FilmToe = 0.53;
+float FilmShoulder = 0.23;
+float FilmBlackClip = 0;
+float FilmWhiteClip = 0.035;
 
 half3 FilmToneMap( half3 LinearColor ) 
 {
@@ -128,7 +127,7 @@ half3 FilmToneMap( half3 LinearColor )
 	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
 	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
 	
-#if !ES2_PROFILE //disabling this part for mobile, Adreno devices can't handle it (UE-40689)
+#if 0
 	float3 ACESColor = mul( sRGB_2_AP0, float3(LinearColor) );
 
 	// --- Red modifier --- //
@@ -204,6 +203,35 @@ half3 FilmToneMap( half3 LinearColor )
 
 	//return saturate( ToneColor );
 	//return max( 0, ToneColor );
+}
+
+half3 FilmToneMapInverse( half3 ToneColor ) 
+{
+	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
+	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
+	
+	// Use ACEScg primaries as working space
+	half3 WorkingColor = mul( sRGB_2_AP1, saturate( ToneColor ) );
+
+	WorkingColor = max( 0, WorkingColor );
+	
+	// Post desaturate
+	WorkingColor = lerp( dot( WorkingColor, AP1_RGB2Y ), WorkingColor, 1.0 / 0.93 );
+
+	half3 ToeColor		= 0.374816 * pow( 0.9 / min( WorkingColor, 0.8 ) - 1, -0.588729 );
+	half3 ShoulderColor	= 0.227986 * pow( 1.56 / ( 1.04 - WorkingColor ) - 1, 1.02046 );
+
+	half3 t = saturate( ( WorkingColor - 0.35 ) / ( 0.45 - 0.35 ) );
+	t = (3-2*t)*t*t;
+	half3 LinearColor = lerp( ToeColor, ShoulderColor, t );
+
+	// Pre desaturate
+	LinearColor = lerp( dot( LinearColor, AP1_RGB2Y ), LinearColor, 1.0 / 0.96 );
+
+	LinearColor = mul( AP1_2_sRGB, LinearColor );
+
+	// Returning positive sRGB values
+	return max( 0, LinearColor );
 }
 
 //
@@ -326,7 +354,7 @@ float3 ST2084ToScRGB(float3 Color, uint OutputDevice)
 	float MaxODTNits = 1000.0f;
 	float MinODTNits = 0.0001f;
 
-	if (OutputDevice == 4)
+	if (OutputDevice == 4 || OutputDevice == 6)
 	{
 		// 2000 nit display
 		MaxODTNits = 2000.0f;

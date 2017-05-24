@@ -3,6 +3,7 @@ Title:Event Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Event modules allow you to generate events based on particles themselves or other actors in the level.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

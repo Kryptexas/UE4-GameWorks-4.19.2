@@ -552,6 +552,11 @@ public:
 	/** @return The height of the texture. */
 	uint32 GetSizeY() const { return SizeY; }
 
+	inline FIntPoint GetSizeXY() const
+	{
+		return FIntPoint(SizeX, SizeY);
+	}
+
 private:
 
 	uint32 SizeX;
@@ -877,8 +882,8 @@ public:
 		Texture(NULL),
 		MipIndex(0),
 		ArraySliceIndex(-1),
-		LoadAction(ERenderTargetLoadAction::ELoad),
-		StoreAction(ERenderTargetStoreAction::EStore)
+		LoadAction(ERenderTargetLoadAction::ENoAction),
+		StoreAction(ERenderTargetStoreAction::ENoAction)
 	{}
 
 	FRHIRenderTargetView(const FRHIRenderTargetView& Other) :
@@ -889,23 +894,25 @@ public:
 		StoreAction(Other.StoreAction)
 	{}
 
-	FRHIRenderTargetView(FTextureRHIParamRef InTexture) :
+	//common case
+	explicit FRHIRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction) :
 		Texture(InTexture),
 		MipIndex(0),
 		ArraySliceIndex(-1),
-		LoadAction(ERenderTargetLoadAction::ELoad),
+		LoadAction(InLoadAction),
 		StoreAction(ERenderTargetStoreAction::EStore)
 	{}
 
-	FRHIRenderTargetView(FTextureRHIParamRef InTexture, uint32 InMipIndex, uint32 InArraySliceIndex) :
+	//common case
+	explicit FRHIRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, uint32 InMipIndex, uint32 InArraySliceIndex) :
 		Texture(InTexture),
 		MipIndex(InMipIndex),
 		ArraySliceIndex(InArraySliceIndex),
-		LoadAction(ERenderTargetLoadAction::ELoad),
+		LoadAction(InLoadAction),
 		StoreAction(ERenderTargetStoreAction::EStore)
 	{}
 	
-	FRHIRenderTargetView(FTextureRHIParamRef InTexture, uint32 InMipIndex, uint32 InArraySliceIndex, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
+	explicit FRHIRenderTargetView(FTextureRHIParamRef InTexture, uint32 InMipIndex, uint32 InArraySliceIndex, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
 		Texture(InTexture),
 		MipIndex(InMipIndex),
 		ArraySliceIndex(InArraySliceIndex),
@@ -1085,29 +1092,19 @@ public:
 	// accessor to prevent write access to DepthStencilAccess
 	FExclusiveDepthStencil GetDepthStencilAccess() const { return DepthStencilAccess; }
 
-	FRHIDepthRenderTargetView() :
+	explicit FRHIDepthRenderTargetView() :
 		Texture(nullptr),
-		DepthLoadAction(ERenderTargetLoadAction::EClear),
-		DepthStoreAction(ERenderTargetStoreAction::EStore),
-		StencilLoadAction(ERenderTargetLoadAction::EClear),
-		StencilStoreAction(ERenderTargetStoreAction::EStore),
-		DepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite)
+		DepthLoadAction(ERenderTargetLoadAction::ENoAction),
+		DepthStoreAction(ERenderTargetStoreAction::ENoAction),
+		StencilLoadAction(ERenderTargetLoadAction::ENoAction),
+		StencilStoreAction(ERenderTargetStoreAction::ENoAction),
+		DepthStencilAccess(FExclusiveDepthStencil::DepthNop_StencilNop)
 	{
 		Validate();
 	}
 
-	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture) :
-		Texture(InTexture),
-		DepthLoadAction(ERenderTargetLoadAction::EClear),
-		DepthStoreAction(ERenderTargetStoreAction::EStore),
-		StencilLoadAction(ERenderTargetLoadAction::EClear),
-		StencilStoreAction(ERenderTargetStoreAction::EStore),
-		DepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite)
-	{
-		Validate();
-	}
-
-	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
+	//common case
+	explicit FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
 		Texture(InTexture),
 		DepthLoadAction(InLoadAction),
 		DepthStoreAction(InStoreAction),
@@ -1118,7 +1115,7 @@ public:
 		Validate();
 	}
 
-	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction, FExclusiveDepthStencil InDepthStencilAccess) :
+	explicit FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction, FExclusiveDepthStencil InDepthStencilAccess) :
 		Texture(InTexture),
 		DepthLoadAction(InLoadAction),
 		DepthStoreAction(InStoreAction),
@@ -1129,7 +1126,7 @@ public:
 		Validate();
 	}
 
-	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction) :
+	explicit FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction) :
 		Texture(InTexture),
 		DepthLoadAction(InDepthLoadAction),
 		DepthStoreAction(InDepthStoreAction),
@@ -1140,7 +1137,7 @@ public:
 		Validate();
 	}
 
-	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction, FExclusiveDepthStencil InDepthStencilAccess) :
+	explicit FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction, FExclusiveDepthStencil InDepthStencilAccess) :
 		Texture(InTexture),
 		DepthLoadAction(InDepthLoadAction),
 		DepthStoreAction(InDepthStoreAction),
@@ -1380,12 +1377,6 @@ struct FBoundShaderStateInput
 class FGraphicsPipelineStateInitializer
 {
 public:
-	enum OptionalState : uint32
-	{
-		OS_SetStencilRef = 1 << 0,
-		OS_SetBlendFactor = 1 << 1,
-	};
-
 	using TRenderTargetFormats = TStaticArray<EPixelFormat, MaxSimultaneousRenderTargets>;
 	using TRenderTargetFlags = TStaticArray<uint32, MaxSimultaneousRenderTargets>;
 	using TRenderTargetLoadActions = TStaticArray<ERenderTargetLoadAction, MaxSimultaneousRenderTargets>;
@@ -1399,12 +1390,11 @@ public:
 		, RenderTargetsEnabled(0)
 		, DepthStencilTargetFormat(PF_Unknown)
 		, DepthStencilTargetFlag(0)
-		, DepthStencilTargetLoadAction(ERenderTargetLoadAction::ENoAction)
-		, DepthStencilTargetStoreAction(ERenderTargetStoreAction::ENoAction)
+		, DepthTargetLoadAction(ERenderTargetLoadAction::ENoAction)
+		, DepthTargetStoreAction(ERenderTargetStoreAction::ENoAction)
+		, StencilTargetLoadAction(ERenderTargetLoadAction::ENoAction)
+		, StencilTargetStoreAction(ERenderTargetStoreAction::ENoAction)
 		, NumSamples(0)
-		, OptState(0)
-		, StencilRef(0)
-		, BlendFactor(1.0f, 1.0f, 1.0f)
 	{
 		for (uint32 i = 0; i < MaxSimultaneousRenderTargets; ++i)
 		{
@@ -1420,8 +1410,6 @@ public:
 		FBlendStateRHIParamRef				InBlendState,
 		FRasterizerStateRHIParamRef			InRasterizerState,
 		FDepthStencilStateRHIParamRef		InDepthStencilState,
-		uint32								InStencilRef,
-		FLinearColor						InBlendFactor,
 		EPrimitiveType						InPrimitiveType,
 		uint32								InRenderTargetsEnabled,
 		const TRenderTargetFormats&			InRenderTargetFormats,
@@ -1430,8 +1418,10 @@ public:
 		const TRenderTargetStoreActions&	InRenderTargetStoreActions,
 		EPixelFormat						InDepthStencilTargetFormat,
 		uint32								InDepthStencilTargetFlag,
-		ERenderTargetLoadAction				InDepthStencilTargetLoadAction,
-		ERenderTargetStoreAction			InDepthStencilTargetStoreAction,
+		ERenderTargetLoadAction				InDepthTargetLoadAction,
+		ERenderTargetStoreAction			InDepthTargetStoreAction,
+		ERenderTargetLoadAction				InStencilTargetLoadAction,
+		ERenderTargetStoreAction			InStencilTargetStoreAction,
 		uint32								InNumSamples
 		)
 		: BoundShaderState(InBoundShaderState)
@@ -1446,16 +1436,15 @@ public:
 		, RenderTargetStoreActions(InRenderTargetStoreActions)
 		, DepthStencilTargetFormat(InDepthStencilTargetFormat)
 		, DepthStencilTargetFlag(InDepthStencilTargetFlag)
-		, DepthStencilTargetLoadAction(InDepthStencilTargetLoadAction)
-		, DepthStencilTargetStoreAction(InDepthStencilTargetStoreAction)
+		, DepthTargetLoadAction(InDepthTargetLoadAction)
+		, DepthTargetStoreAction(InDepthTargetStoreAction)
+		, StencilTargetLoadAction(InStencilTargetLoadAction)
+		, StencilTargetStoreAction(InStencilTargetStoreAction)
 		, NumSamples(InNumSamples)
-		, OptState(OptionalState::OS_SetStencilRef | OptionalState::OS_SetBlendFactor)
-		, StencilRef(InStencilRef)
-		, BlendFactor(InBlendFactor)
 	{
 	}
 
-	bool operator==(FGraphicsPipelineStateInitializer& rhs)
+	bool operator==(const FGraphicsPipelineStateInitializer& rhs) const
 	{
 		if (BoundShaderState.VertexDeclarationRHI != rhs.BoundShaderState.VertexDeclarationRHI || 
 			BoundShaderState.VertexShaderRHI != rhs.BoundShaderState.VertexShaderRHI ||
@@ -1466,8 +1455,6 @@ public:
 			BlendState != rhs.BlendState || 
 			RasterizerState != rhs.RasterizerState || 
 			DepthStencilState != rhs.DepthStencilState ||
-			StencilRef != rhs.StencilRef || 
-			BlendFactor != rhs.BlendFactor || 
 			PrimitiveType != rhs.PrimitiveType || 
 			RenderTargetsEnabled != rhs.RenderTargetsEnabled ||
 			RenderTargetFormats != rhs.RenderTargetFormats || 
@@ -1476,10 +1463,11 @@ public:
 			RenderTargetStoreActions != rhs.RenderTargetStoreActions || 
 			DepthStencilTargetFormat != rhs.DepthStencilTargetFormat || 
 			DepthStencilTargetFlag != rhs.DepthStencilTargetFlag ||
-			DepthStencilTargetLoadAction != rhs.DepthStencilTargetLoadAction || 
-			DepthStencilTargetStoreAction != rhs.DepthStencilTargetStoreAction || 
-			NumSamples != rhs.NumSamples ||
-			OptState != rhs.OptState) 
+			DepthTargetLoadAction != rhs.DepthTargetLoadAction ||
+			DepthTargetStoreAction != rhs.DepthTargetStoreAction ||
+			StencilTargetLoadAction != rhs.StencilTargetLoadAction ||
+			StencilTargetStoreAction != rhs.StencilTargetStoreAction || 
+			NumSamples != rhs.NumSamples) 
 		{
 			return false;
 		}
@@ -1540,41 +1528,23 @@ public:
 #undef COMPARE_FIELD
 #undef COMPARE_FIELD_END
 
-	uint32 GetOptionalSetState()
+	uint32 ComputeNumValidRenderTargets() const
 	{
-		return OptState;
-	}
-
-	uint32 GetStencilRef() const
-	{
-		return StencilRef;
-	}
-
-	void SetStencilRef(uint32 InStencilRef)
-	{
-		OptState |= OptionalState::OS_SetStencilRef;
-		StencilRef = InStencilRef;
-	}
-
-	void ClearSetStencilRef()
-	{
-		OptState &= ~OptionalState::OS_SetStencilRef;
-	}
-
-	FLinearColor GetBlendFactor() const
-	{
-		return BlendFactor;
-	}
-
-	void SetBlendFactor(FLinearColor InBlendFactor)
-	{
-		OptState |= OptionalState::OS_SetBlendFactor;
-		BlendFactor = InBlendFactor;
-	}
-
-	void ClearSetBlendFactor()
-	{
-		OptState &= ~OptionalState::OS_SetBlendFactor;
+		// Get the count of valid render targets (ignore those at the end of the array with PF_Unknown)
+		if (RenderTargetsEnabled > 0)
+		{
+			int32 LastValidTarget = -1;
+			for (int32 i = (int32)RenderTargetsEnabled - 1; i >= 0; i--)
+			{
+				if (RenderTargetFormats[i] != PF_Unknown)
+				{
+					LastValidTarget = i;
+					break;
+				}
+			}
+			return uint32(LastValidTarget + 1);
+		}
+		return RenderTargetsEnabled;
 	}
 
 	// TODO: [PSO API] - As we migrate reuse existing API objects, but eventually we can move to the direct initializers. 
@@ -1591,14 +1561,11 @@ public:
 	TRenderTargetStoreActions		RenderTargetStoreActions;
 	EPixelFormat					DepthStencilTargetFormat;
 	uint32							DepthStencilTargetFlag;
-	ERenderTargetLoadAction			DepthStencilTargetLoadAction;
-	ERenderTargetStoreAction		DepthStencilTargetStoreAction;
+	ERenderTargetLoadAction			DepthTargetLoadAction;
+	ERenderTargetStoreAction		DepthTargetStoreAction;
+	ERenderTargetLoadAction			StencilTargetLoadAction;
+	ERenderTargetStoreAction		StencilTargetStoreAction;
 	uint32							NumSamples;
-
-private:
-	uint32							OptState;
-	uint32							StencilRef;
-	FLinearColor					BlendFactor;
 
 	friend class FMeshDrawingPolicy;
 };
@@ -1616,3 +1583,81 @@ public:
 
 	FGraphicsPipelineStateInitializer Initializer;
 };
+
+class FRHIComputePipelineStateFallback : public FRHIComputePipelineState
+{
+public:
+	FRHIComputePipelineStateFallback(FRHIComputeShader* InComputeShader)
+		: ComputeShader(InComputeShader)
+	{
+		check(InComputeShader);
+	}
+
+	FRHIComputeShader* GetComputeShader()
+	{
+		return ComputeShader;
+	}
+
+protected:
+	TRefCountPtr<FRHIComputeShader> ComputeShader;
+};
+
+//
+// Shader Library
+//
+
+class FRHIShaderLibrary : public FRHIResource
+{
+public:
+	FRHIShaderLibrary(EShaderPlatform InPlatform) : Platform(InPlatform) {}
+	virtual ~FRHIShaderLibrary() {}
+	
+	FORCEINLINE EShaderPlatform GetPlatform(void) const { return Platform; }
+	
+	virtual bool IsNativeLibrary() const = 0;
+	
+	//Library iteration
+	struct FShaderLibraryEntry
+	{
+		FShaderLibraryEntry(): Frequency(SF_NumFrequencies), Platform(SP_NumPlatforms) {}
+		
+		FSHAHash Hash;
+		EShaderFrequency Frequency;
+		EShaderPlatform Platform;
+		
+		bool IsValid() const {return (Frequency < SF_NumFrequencies) && (Platform < SP_NumPlatforms);}
+	};
+	
+	class FShaderLibraryIterator : public FRHIResource
+	{
+	public:
+		FShaderLibraryIterator(FRHIShaderLibrary* ShaderLibrary) : ShaderLibrarySource(ShaderLibrary) {}
+		virtual ~FShaderLibraryIterator() {}
+	
+		//Is the iterator valid
+		virtual bool IsValid() const					 = 0;
+		
+		//Iterator position access
+		virtual FShaderLibraryEntry operator*()	const	 = 0;
+		
+		//Iterator next operation
+		virtual FShaderLibraryIterator& operator++()	 = 0;
+		
+		//Access the library we are iterating through - allow query e.g. GetPlatform from iterator object
+		FRHIShaderLibrary* GetLibrary() const			 {return ShaderLibrarySource;};
+		
+	private:
+		//Control source object lifetime while iterator is 'active'
+		TRefCountPtr<FRHIShaderLibrary> ShaderLibrarySource;
+	};
+	
+	virtual TRefCountPtr<FShaderLibraryIterator> CreateIterator(void) = 0;
+	
+	virtual uint32 GetShaderCount(void) const = 0;
+
+protected:
+	EShaderPlatform Platform;
+};
+
+typedef FRHIShaderLibrary*				FRHIShaderLibraryParamRef;
+typedef TRefCountPtr<FRHIShaderLibrary>	FRHIShaderLibraryRef;

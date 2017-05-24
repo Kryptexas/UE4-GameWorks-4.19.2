@@ -7,15 +7,18 @@
 #include "NiagaraEffectRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.generated.h"
 
-UCLASS()
+UCLASS(editinlinenew)
 class UNiagaraRibbonRendererProperties : public UNiagaraEffectRendererProperties
 {
 public:
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
-	UNiagaraRibbonRendererProperties()
-	{
-	}
+	//~ UNiagaraEffectRendererProperties interface
+	virtual NiagaraEffectRenderer* CreateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel) override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 
-//	UPROPERTY(EditAnywhere, Category = "Ribbon Rendering")
+#if WITH_EDITORONLY_DATA
+	virtual bool IsMaterialValidForRenderer(UMaterial* Material, FText& InvalidMessage) override;
+	virtual void FixMaterial(UMaterial* Material);
+#endif
 };

@@ -6,13 +6,13 @@
 #include "UObject/ObjectMacros.h"
 #include "Components/PrimitiveComponent.h"
 #include "SceneViewExtension.h"
+#include "IMotionController.h"
 #include "MotionControllerComponent.generated.h"
 
 class FPrimitiveSceneInfo;
 class FRHICommandListImmediate;
 class FSceneView;
 class FSceneViewFamily;
-enum class ETrackingStatus : uint8;
 
 UCLASS(Blueprintable, meta = (BlueprintSpawnableComponent), ClassGroup = MotionController)
 class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveComponent
@@ -46,6 +46,11 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 		return bTracked;
 	}
 
+protected:
+	//~ Begin UActorComponent Interface.
+	virtual void SendRenderTransform_Concurrent() override;
+	//~ End UActorComponent Interface.
+
 private:
 	/** Whether or not this component had a valid tracked controller associated with it this frame*/
 	bool bTracked;
@@ -54,7 +59,10 @@ private:
 	bool bHasAuthority;
 
 	/** If true, the Position and Orientation args will contain the most recent controller state */
-	bool PollControllerState(FVector& Position, FRotator& Orientation);
+	bool PollControllerState(FVector& Position, FRotator& Orientation, float WorldToMetersScale);
+
+	FTransform RenderThreadRelativeTransform;
+	FVector RenderThreadComponentScale;
 
 	/** View extension object that can persist on the render thread without the motion controller component */
 	class FViewExtension : public ISceneViewExtension, public TSharedFromThis<FViewExtension, ESPMode::ThreadSafe>

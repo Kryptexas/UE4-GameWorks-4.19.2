@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class EnvironmentQueryEditor : ModuleRules
 {
-	public EnvironmentQueryEditor(TargetInfo Target)
+	public EnvironmentQueryEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.AddRange(
             new string[] {
@@ -18,9 +18,10 @@ public class EnvironmentQueryEditor : ModuleRules
             new string[] {
 				"AssetRegistry",
 				"AssetTools",
-                "PropertyEditor"
-			}
-		);
+                "PropertyEditor",
+                "DesktopPlatform",
+            }
+        );
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

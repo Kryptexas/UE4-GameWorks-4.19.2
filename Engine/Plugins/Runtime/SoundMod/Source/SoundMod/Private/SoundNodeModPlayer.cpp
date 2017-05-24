@@ -4,8 +4,29 @@
 #include "Audio.h"
 #include "SoundMod.h"
 #include "ActiveSound.h"
+#include "FrameworkObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "SoundNodeModPlayer"
+
+void USoundNodeModPlayer::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::HardSoundReferences)
+	{
+		if (Ar.IsLoading())
+		{
+			Ar << SoundMod;
+		}
+		else if (Ar.IsSaving())
+		{
+			USoundMod* HardReference = (ShouldHardReferenceAsset() ? SoundMod : nullptr);
+			Ar << HardReference;
+		}
+	}
+}
 
 void USoundNodeModPlayer::LoadAsset(bool bAddToRoot)
 {

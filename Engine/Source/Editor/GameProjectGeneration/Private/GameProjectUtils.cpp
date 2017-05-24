@@ -66,6 +66,7 @@
 
 #include "Sound/SoundEffectSubmix.h"
 #include "Sound/SoundEffectSource.h"
+#include "Components/SynthComponent.h"
 
 #include "PlatformInfo.h"
 #include "Blueprint/BlueprintSupport.h"
@@ -366,18 +367,17 @@ FString FNewClassInfo::GetHeaderTemplateFilename() const
 				{
 					return TEXT("CharacterClass.h.template");
 				}
-
-				// Only check audio-mixer module specific classes if audio mixer is loaded
-				if (FModuleManager::Get().IsModuleLoaded("AudioMixer"))
+				else if (BaseClass == USoundEffectSourcePreset::StaticClass())
 				{
-					if (BaseClass == USoundEffectSourcePreset::StaticClass())
-					{
-						return TEXT("SoundEffectSourceClass.h.template");
-					}
-					else if (BaseClass == USoundEffectSubmixPreset::StaticClass())
-					{
-						return TEXT("SoundEffectSubmixClass.h.template");
-					}
+					return TEXT("SoundEffectSourceClass.h.template");
+				}
+				else if (BaseClass == USoundEffectSubmixPreset::StaticClass())
+				{
+					return TEXT("SoundEffectSubmixClass.h.template");
+				}
+				else if (BaseClass == USynthComponent::StaticClass())
+				{
+					return TEXT("SynthComponentClass.h.template");
 				}
 			}
 			// Some other non-actor, non-component UObject class
@@ -432,6 +432,10 @@ FString FNewClassInfo::GetSourceTemplateFilename() const
 				else if (BaseClass == USoundEffectSourcePreset::StaticClass())
 				{
 					return TEXT("SoundEffectSourceClass.cpp.template");
+				}
+				else if (BaseClass == USynthComponent::StaticClass())
+				{
+					return TEXT("SynthComponentClass.cpp.template");
 				}
 			}
 			// Some other non-actor, non-component UObject class
@@ -737,9 +741,9 @@ bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, F
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Outcome"), bProjectCreationSuccessful ? TEXT("Successful") : TEXT("Failed")));
 
 		UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EHardwareClass"), true);
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HardwareClass"), Enum ? Enum->GetEnumName(InProjectInfo.TargetedHardware) : FString()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HardwareClass"), Enum ? Enum->GetNameStringByValue(InProjectInfo.TargetedHardware) : FString()));
 		Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGraphicsPreset"), true);
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("GraphicsPreset"), Enum ? Enum->GetEnumName(InProjectInfo.DefaultGraphicsPerformance) : FString()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("GraphicsPreset"), Enum ? Enum->GetNameStringByValue(InProjectInfo.DefaultGraphicsPerformance) : FString()));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("StarterContent"), InProjectInfo.bCopyStarterContent ? TEXT("Yes") : TEXT("No")));
 
 		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.NewProject.ProjectCreated" ), EventAttributes );
@@ -1248,7 +1252,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	return true;
 }
 
-bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog, TArray<FString>* OutCreatedFiles)
+bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog,TArray<FString>* OutCreatedFiles)
 {
 	FScopedSlowTask SlowTask(10);
 
@@ -1284,9 +1288,9 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 
 	// Form a list of all extensions we care about
 	TSet<FString> ReplacementsInFilesExtensions;
-	for ( auto ReplacementIt = TemplateDefs->ReplacementsInFiles.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
+	for ( const FTemplateReplacement& Replacement : TemplateDefs->ReplacementsInFiles )
 	{
-		ReplacementsInFilesExtensions.Append((*ReplacementIt).Extensions);
+		ReplacementsInFilesExtensions.Append(Replacement.Extensions);
 	}
 
 	// Keep a list of created files so we can delete them if project creation fails
@@ -1304,10 +1308,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	{
 		// Open a new feedback scope for the loop so we can report how far through the copy we are
 		FScopedSlowTask InnerSlowTask(FilesToCopy.Num());
-		for ( auto FileIt = FilesToCopy.CreateConstIterator(); FileIt; ++FileIt )
+		for ( const FString& SrcFilename : FilesToCopy )
 		{
-			const FString SrcFilename = (*FileIt);
-
 			// Update the progress
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("SrcFilename"), FText::FromString( FPaths::GetCleanFilename(SrcFilename) ) );
@@ -1317,47 +1319,24 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 			const FString SrcFileSubpath = SrcFilename.RightChop(SrcFolder.Len() + 1);
 
 			// Skip any files that were configured to be ignored
-			bool bThisFileIsIgnored = false;
-			for ( auto IgnoreIt = TemplateDefs->FilesToIgnore.CreateConstIterator(); IgnoreIt; ++IgnoreIt )
-			{
-				if ( SrcFileSubpath == *IgnoreIt )
-				{
-					// This file was marked as "ignored"
-					bThisFileIsIgnored = true;
-					break;
-				}
-			}
-
-			if ( bThisFileIsIgnored )
+			if ( TemplateDefs->FilesToIgnore.Contains(SrcFileSubpath) )
 			{
 				// This file was marked as "ignored"
 				continue;
 			}
 
 			// Skip any folders that were configured to be ignored
-			bool bThisFolderIsIgnored = false;
-			for ( auto IgnoreIt = TemplateDefs->FoldersToIgnore.CreateConstIterator(); IgnoreIt; ++IgnoreIt )
-			{
-				if ( SrcFileSubpath.StartsWith((*IgnoreIt) + TEXT("/") ) )
-				{
-					// This folder was marked as "ignored"
-					UE_LOG(LogGameProjectGeneration, Verbose, TEXT("'%s': Skipping as it is in an ignored folder '%s'"), *SrcFilename, **IgnoreIt);
-					bThisFolderIsIgnored = true;
-					break;
-				}
-			}
-
-			if ( bThisFolderIsIgnored )
+			if ( const FString* IgnoredFolder = TemplateDefs->FoldersToIgnore.FindByPredicate([&SrcFileSubpath](const FString& Ignore){ return SrcFileSubpath.StartsWith(Ignore + TEXT("/")); }) )
 			{
 				// This folder was marked as "ignored"
+				UE_LOG(LogGameProjectGeneration, Verbose, TEXT("'%s': Skipping as it is in an ignored folder '%s'"), *SrcFilename, **IgnoredFolder);
 				continue;
 			}
 
 			// Retarget any folders that were chosen to be renamed by choosing a new destination subpath now
 			FString DestFileSubpathWithoutFilename = FPaths::GetPath(SrcFileSubpath) + TEXT("/");
-			for ( auto RenameIt = TemplateDefs->FolderRenames.CreateConstIterator(); RenameIt; ++RenameIt )
+			for ( const FTemplateFolderRename& FolderRename : TemplateDefs->FolderRenames )
 			{
-				const FTemplateFolderRename& FolderRename = *RenameIt;
 				if ( SrcFileSubpath.StartsWith(FolderRename.From + TEXT("/")) )
 				{
 					// This was a file in a renamed folder. Retarget to the new location
@@ -1369,9 +1348,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 			// Retarget any files that were chosen to have parts of their names replaced here
 			FString DestBaseFilename = FPaths::GetBaseFilename(SrcFileSubpath);
 			const FString FileExtension = FPaths::GetExtension(SrcFileSubpath);
-			for ( auto ReplacementIt = TemplateDefs->FilenameReplacements.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
+			for ( const FTemplateReplacement& Replacement : TemplateDefs->FilenameReplacements )
 			{
-				const FTemplateReplacement& Replacement = *ReplacementIt;
 				if ( Replacement.Extensions.Contains( FileExtension ) )
 				{
 					// This file matched a filename replacement extension, apply it now
@@ -1421,19 +1399,17 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		FScopedSlowTask InnerSlowTask(FilesThatNeedContentsReplaced.Num());
 
 		// Open all files with the specified extensions and replace text
-		for ( auto FileIt = FilesThatNeedContentsReplaced.CreateConstIterator(); FileIt; ++FileIt )
+		for ( const FString& FileToFix : FilesThatNeedContentsReplaced )
 		{
 			InnerSlowTask.EnterProgressFrame();
 
-			const FString FileToFix = *FileIt;
 			bool bSuccessfullyProcessed = false;
 
 			FString FileContents;
 			if ( FFileHelper::LoadFileToString(FileContents, *FileToFix) )
 			{
-				for ( auto ReplacementIt = TemplateDefs->ReplacementsInFiles.CreateConstIterator(); ReplacementIt; ++ReplacementIt )
+				for ( const FTemplateReplacement& Replacement : TemplateDefs->ReplacementsInFiles )
 				{
-					const FTemplateReplacement& Replacement = *ReplacementIt;
 					if ( Replacement.Extensions.Contains( FPaths::GetExtension(FileToFix) ) )
 					{
 						FileContents = FileContents.Replace(*Replacement.From, *Replacement.To, Replacement.bCaseSensitive ? ESearchCase::CaseSensitive : ESearchCase::IgnoreCase);
@@ -1480,19 +1456,18 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	// Fixup specific ini values
 	TArray<FTemplateConfigValue> ConfigValuesToSet;
 	TemplateDefs->AddConfigValues(ConfigValuesToSet, TemplateName, ProjectName, InProjectInfo.bShouldGenerateCode);
-	new (ConfigValuesToSet) FTemplateConfigValue(TEXT("DefaultGame.ini"), TEXT("/Script/EngineSettings.GeneralProjectSettings"), TEXT("ProjectID"), FGuid::NewGuid().ToString(), /*InShouldReplaceExistingValue=*/true);
+	ConfigValuesToSet.Emplace(TEXT("DefaultGame.ini"), TEXT("/Script/EngineSettings.GeneralProjectSettings"), TEXT("ProjectID"), FGuid::NewGuid().ToString(), /*InShouldReplaceExistingValue=*/true);
 
 	// Add all classname fixups
-	for ( auto RenameIt = ClassRenames.CreateConstIterator(); RenameIt; ++RenameIt )
+	for ( const TPair<FString, FString>& Rename : ClassRenames )
 	{
-		const FString ClassRedirectString = FString::Printf(TEXT("(OldClassName=\"%s\",NewClassName=\"%s\")"), *RenameIt.Key(), *RenameIt.Value());
-		new (ConfigValuesToSet) FTemplateConfigValue(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveClassRedirects"), *ClassRedirectString, /*InShouldReplaceExistingValue=*/false);
+		const FString ClassRedirectString = FString::Printf(TEXT("(OldClassName=\"%s\",NewClassName=\"%s\")"), *Rename.Key, *Rename.Value);
+		ConfigValuesToSet.Emplace(TEXT("DefaultEngine.ini"), TEXT("/Script/Engine.Engine"), TEXT("+ActiveClassRedirects"), *ClassRedirectString, /*InShouldReplaceExistingValue=*/false);
 	}
 
 	// Fix all specified config values
-	for ( auto ConfigIt = ConfigValuesToSet.CreateConstIterator(); ConfigIt; ++ConfigIt )
+	for ( const FTemplateConfigValue& ConfigValue : ConfigValuesToSet )
 	{
-		const FTemplateConfigValue& ConfigValue = *ConfigIt;
 		const FString IniFilename = ProjectConfigPath / ConfigValue.ConfigFile;
 		bool bSuccessfullyProcessed = false;
 
@@ -1503,9 +1478,9 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 			const FString TargetSection = ConfigValue.ConfigSection;
 			FString CurSection;
 			bool bFoundTargetKey = false;
-			for ( auto LineIt = FileLines.CreateConstIterator(); LineIt; ++LineIt )
+			for ( const FString& LineIn : FileLines )
 			{
-				FString Line = *LineIt;
+				FString Line = LineIn;
 				Line.Trim().TrimTrailing();
 
 				bool bShouldExcludeLineFromOutput = false;
@@ -1560,7 +1535,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 				if ( !bShouldExcludeLineFromOutput )
 				{
 					FileOutput += Line;
-					if ( LineIt.GetIndex() < FileLines.Num() - 1 )
+					if ( &LineIn != &FileLines.Last() )
 					{
 						// Add a line terminator on every line except the last
 						FileOutput += LINE_TERMINATOR;
@@ -1597,16 +1572,16 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	}
 
 	// Insert any required feature packs (EG starter content) into ini file. These will be imported automatically when the editor is first run
-	if ( !InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason) )
+	if(!InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason))
 	{
 		return false;
 	}
 
-	if ( !AddSharedContentToProject(InProjectInfo, CreatedFiles, OutFailReason) )
+	if( !AddSharedContentToProject(InProjectInfo, CreatedFiles, OutFailReason ) )
 	{
 		return false;
 	}
-
+	
 	
 	SlowTask.EnterProgressFrame();
 
@@ -1614,7 +1589,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	{
 		// Load the source project
 		FProjectDescriptor Project;
-		if ( !Project.Load(InProjectInfo.TemplateFile, OutFailReason) )
+		if(!Project.Load(InProjectInfo.TemplateFile, OutFailReason))
 		{
 			return false;
 		}
@@ -1626,9 +1601,8 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		// Fix up module names
 		const FString BaseSourceName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
 		const FString BaseNewName = FPaths::GetBaseFilename(InProjectInfo.ProjectFilename);
-		for ( auto ModuleIt = Project.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
+		for ( FModuleDescriptor& ModuleInfo : Project.Modules )
 		{
-			FModuleDescriptor& ModuleInfo = *ModuleIt;
 			ModuleInfo.Name = FName(*ModuleInfo.Name.ToString().Replace(*BaseSourceName, *BaseNewName));
 		}
 
@@ -1969,7 +1943,6 @@ bool GameProjectUtils::GenerateBasicSourceCode(const FString& NewProjectSourcePa
 	{
 		const FString NewHeaderFilename = GameModulePath / NewProjectName + TEXT(".h");
 		TArray<FString> PublicHeaderIncludes;
-		PublicHeaderIncludes.Add(TEXT("Engine.h"));
 		if ( GenerateGameModuleHeaderFile(NewHeaderFilename, PublicHeaderIncludes, OutFailReason) )
 		{
 			OutCreatedFiles.Add(NewHeaderFilename);
@@ -2727,7 +2700,7 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 	FString BaseClassIncludePath;
 	if(ParentClassInfo.GetIncludePath(BaseClassIncludePath))
 	{
-		BaseClassIncludeDirective = FString::Printf(LINE_TERMINATOR TEXT("#include \"%s\""), *BaseClassIncludePath);
+		BaseClassIncludeDirective = FString::Printf(TEXT("#include \"%s\""), *BaseClassIncludePath);
 	}
 
 	FString ModuleAPIMacro;
@@ -2762,11 +2735,96 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 	FinalOutput = FinalOutput.Replace(TEXT("%EVENTUAL_CONSTRUCTOR_DECLARATION%"), *EventualConstructorDeclaration, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%CLASS_PROPERTIES%"), *ClassProperties, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%CLASS_FUNCTION_DECLARATIONS%"), *ClassFunctionDeclarations, ESearchCase::CaseSensitive);
+	if (BaseClassIncludeDirective.Len() == 0)
+	{
+		FinalOutput = FinalOutput.Replace(TEXT("%BASE_CLASS_INCLUDE_DIRECTIVE%") LINE_TERMINATOR, TEXT(""), ESearchCase::CaseSensitive);
+	}
 	FinalOutput = FinalOutput.Replace(TEXT("%BASE_CLASS_INCLUDE_DIRECTIVE%"), *BaseClassIncludeDirective, ESearchCase::CaseSensitive);
 
 	HarvestCursorSyncLocation( FinalOutput, OutSyncLocation );
 
 	return WriteOutputFile(NewHeaderFileName, FinalOutput, OutFailReason);
+}
+
+static bool TryParseIncludeDirective(const FString& Text, int StartPos, int EndPos, FString& IncludePath)
+{
+	// Check if the line starts with a # character
+	int Pos = StartPos;
+	while (Pos < EndPos && FChar::IsWhitespace(Text[Pos]))
+	{
+		Pos++;
+	}
+	if (Pos == EndPos || Text[Pos++] != '#')
+	{
+		return false;
+	}
+	while (Pos < EndPos && FChar::IsWhitespace(Text[Pos]))
+	{
+		Pos++;
+	}
+
+	// Check it's an include directive
+	const TCHAR* IncludeText = TEXT("include");
+	for (int Idx = 0; IncludeText[Idx] != 0; Idx++)
+	{
+		if (Pos == EndPos || Text[Pos] != IncludeText[Idx])
+		{
+			return false;
+		}
+		Pos++;
+	}
+	while (Pos < EndPos && FChar::IsWhitespace(Text[Pos]))
+	{
+		Pos++;
+	}
+
+	// Parse out the quoted include path
+	if (Pos == EndPos || Text[Pos++] != '"')
+	{
+		return false;
+	}
+	int IncludePathPos = Pos;
+	while (Pos < EndPos && Text[Pos] != '"')
+	{
+		Pos++;
+	}
+	IncludePath = Text.Mid(IncludePathPos, Pos - IncludePathPos);
+	return true;
+}
+
+static bool IsUsingOldStylePch(FString BaseDir)
+{
+	// Find all the cpp files under the base directory
+	TArray<FString> Files;
+	IFileManager::Get().FindFilesRecursive(Files, *BaseDir, TEXT("*.cpp"), true, false, false);
+
+	// Parse the first include directive for up to 16 include paths
+	TArray<FString> FirstIncludedFiles;
+	for (int Idx = 0; Idx < Files.Num() && Idx < 16; Idx++)
+	{
+		FString Text;
+		FFileHelper::LoadFileToString(Text, *Files[Idx]);
+
+		int LinePos = 0;
+		while(LinePos < Text.Len())
+		{
+			int EndOfLinePos = LinePos;
+			while (EndOfLinePos < Text.Len() && Text[EndOfLinePos] != '\n')
+			{
+				EndOfLinePos++;
+			}
+
+			FString IncludePath;
+			if (TryParseIncludeDirective(Text, LinePos, EndOfLinePos, IncludePath))
+			{
+				FirstIncludedFiles.AddUnique(FPaths::GetCleanFilename(IncludePath));
+				break;
+			}
+
+			LinePos = EndOfLinePos + 1;
+		}
+	}
+	return FirstIncludedFiles.Num() == 1 && Files.Num() > 1;
 }
 
 bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, FString& OutSyncLocation, const FModuleContextInfo& ModuleInfo, FText& OutFailReason)
@@ -2811,8 +2869,15 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 	}
 
 	// Calculate the correct include path for the module header
-	const FString ModuleIncludePath = DetermineModuleIncludePath(ModuleInfo, NewCPPFileName);
-
+	FString PchIncludeDirective;
+	if (IsUsingOldStylePch(ModuleInfo.ModuleSourcePath))
+	{
+		const FString ModuleIncludePath = DetermineModuleIncludePath(ModuleInfo, NewCPPFileName);
+		if (ModuleIncludePath.Len() > 0)
+		{
+			PchIncludeDirective = FString::Printf(TEXT("#include \"%s\""), *ModuleIncludePath);
+		}
+	}
 
 	FString EventualConstructorDefinition;
 	if (PropertyOverrides.Num() != 0)
@@ -2827,7 +2892,11 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnPrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleInfo.ModuleName, ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_INCLUDE_PATH%"), *ModuleIncludePath, ESearchCase::CaseSensitive);
+	if (PchIncludeDirective.Len() == 0)
+	{
+		FinalOutput = FinalOutput.Replace(TEXT("%PCH_INCLUDE_DIRECTIVE%") LINE_TERMINATOR, TEXT(""), ESearchCase::CaseSensitive);
+	}
+	FinalOutput = FinalOutput.Replace(TEXT("%PCH_INCLUDE_DIRECTIVE%"), *PchIncludeDirective, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%EVENTUAL_CONSTRUCTOR_DEFINITION%"), *EventualConstructorDefinition, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%ADDITIONAL_MEMBER_DEFINITIONS%"), *AdditionalMemberDefinitions, ESearchCase::CaseSensitive);
@@ -2841,7 +2910,7 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 bool GameProjectUtils::GenerateGameModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason)
 {
 	FString Template;
-	if ( !ReadTemplateFile(TEXT("GameModule.Build.cs.template"), Template, OutFailReason) )
+	if (!ReadTemplateFile(TEXT("GameModule.Build.cs.template"), Template, OutFailReason))
 	{
 		return false;
 	}
@@ -2850,6 +2919,25 @@ bool GameProjectUtils::GenerateGameModuleBuildFile(const FString& NewBuildFileNa
 	FinalOutput = FinalOutput.Replace(TEXT("%PUBLIC_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PublicDependencyModuleNames), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PRIVATE_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PrivateDependencyModuleNames), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
+
+	return WriteOutputFile(NewBuildFileName, FinalOutput, OutFailReason);
+}
+
+bool GameProjectUtils::GeneratePluginModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason, bool bUseExplicitOrSharedPCHs/* = true*/)
+{
+	FString Template;
+	if ( !ReadTemplateFile(TEXT("PluginModule.Build.cs.template"), Template, OutFailReason) )
+	{
+		return false;
+	}
+
+	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%PUBLIC_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PublicDependencyModuleNames), ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%PRIVATE_DEPENDENCY_MODULE_NAMES%"), *MakeCommaDelimitedList(PrivateDependencyModuleNames), ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
+	
+	const FString PCHUsage = bUseExplicitOrSharedPCHs ? TEXT("UseExplicitOrSharedPCHs") : TEXT("UseSharedPCHs");
+	FinalOutput = FinalOutput.Replace(TEXT("%PCH_USAGE%"), *PCHUsage, ESearchCase::CaseSensitive);
 
 	return WriteOutputFile(NewBuildFileName, FinalOutput, OutFailReason);
 }

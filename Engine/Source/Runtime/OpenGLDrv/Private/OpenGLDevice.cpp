@@ -23,6 +23,10 @@
 
 #include "HardwareInfo.h"
 
+#if PLATFORM_ANDROID
+#include <jni.h>
+#endif
+
 #ifndef GL_STEREO
 #define GL_STEREO			0x0C33
 #endif
@@ -197,7 +201,29 @@ void FOpenGLDynamicRHI::RHIEndScene()
 	ResourceTableFrameCounter = INDEX_NONE;
 }
 
+#if PLATFORM_ANDROID
 
+JNI_METHOD void Java_com_epicgames_ue4_MediaPlayer14_nativeClearCachedAttributeState(JNIEnv* jenv, jobject thiz, jint PositionAttrib, jint TexCoordsAttrib)
+{
+	FOpenGLContextState& ContextState = PrivateOpenGLDevicePtr->GetContextStateForCurrentContext();
+
+	// update vertex attributes state
+	ContextState.VertexAttrs[PositionAttrib].bEnabled = false;
+	ContextState.VertexAttrs[PositionAttrib].Stride = -1;
+
+	ContextState.VertexAttrs[TexCoordsAttrib].bEnabled = false;
+	ContextState.VertexAttrs[TexCoordsAttrib].Stride = -1;
+
+	// make sure the texture is set again
+	ContextState.ActiveTexture = 0;
+	ContextState.Textures[0].Texture = nullptr;
+	ContextState.Textures[0].Target = 0;
+
+	// restore previous program
+	FOpenGL::BindProgramPipeline(ContextState.Program);
+}
+
+#endif
 
 bool GDisableOpenGLDebugOutput = false;
 
@@ -739,6 +765,11 @@ static void InitRHICapabilitiesForGL()
 
 	// Emulate uniform buffers on ES2, unless we're on a desktop platform emulating ES2.
 	GUseEmulatedUniformBuffers = IsES2Platform(GMaxRHIShaderPlatform) && !IsPCPlatform(GMaxRHIShaderPlatform);
+#if PLATFORM_HTML5
+	// On browser builds, ask the current browser we are running on whether it supports uniform buffers or not.
+	GUseEmulatedUniformBuffers = !FOpenGL::SupportsUniformBuffers();
+#endif
+
 	if (!GUseEmulatedUniformBuffers && IsPCPlatform(GMaxRHIShaderPlatform))
 	{
 		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("OpenGL.UseEmulatedUBs"));
@@ -784,7 +815,7 @@ static void InitRHICapabilitiesForGL()
 	GMaxShadowDepthBufferSizeX = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096); // Limit to the D3D11 max.
 	GMaxShadowDepthBufferSizeY = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096);
 	GHardwareHiddenSurfaceRemoval = FOpenGL::HasHardwareHiddenSurfaceRemoval();
-	GRHISupportsInstancing = FOpenGL::SupportsInstancing(); // HTML5 does not support it. Android supports it with OpenGL ES3.0+
+	GRHISupportsInstancing = FOpenGL::SupportsInstancing(); // HTML5 supports it with ANGLE_instanced_arrays or WebGL 2.0+. Android supports it with OpenGL ES3.0+
 	GSupportsTimestampRenderQueries = FOpenGL::SupportsTimestampQueries();
 
 	GSupportsHDR32bppEncodeModeIntrinsic = FOpenGL::SupportsHDR32bppEncodeModeIntrinsic();
@@ -1382,9 +1413,7 @@ void FOpenGLDynamicRHI::Init()
 	VERIFY_GL_SCOPE();
 
 	FOpenGLProgramBinaryCache::Initialize();
-#if PLATFORM_DESKTOP
-	FShaderCache::InitShaderCache(SCO_Default, FOpenGL::GetMaxTextureImageUnits());
-#endif
+	FShaderCache::SetMaxShaderResources(FOpenGL::GetMaxTextureImageUnits());
 
 	InitializeStateResources();
 
@@ -1444,10 +1473,6 @@ void FOpenGLDynamicRHI::Init()
 
 	CheckTextureCubeLodSupport();
 	CheckVaryingLimit();
-
-#if PLATFORM_DESKTOP
-	FShaderCache::LoadBinaryCache();
-#endif
 }
 
 void FOpenGLDynamicRHI::Shutdown()
@@ -1466,9 +1491,6 @@ void FOpenGLDynamicRHI::Cleanup()
 {
 	if(GIsRHIInitialized)
 	{
-#if PLATFORM_DESKTOP
-		FShaderCache::ShutdownShaderCache();
-#endif
 		FOpenGLProgramBinaryCache::Shutdown();
 
 		// Reset the RHI initialized flag.

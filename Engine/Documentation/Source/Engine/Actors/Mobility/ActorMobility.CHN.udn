@@ -4,26 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/Actors
 Description:控制是否允许在游戏过程中以某种方式移动或改变Actor的设置。
 
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[前一个主题](Engine/Actors/Transform "%Engine/Actors/Transform:title%")
-	[/PARAM]
-	[PARAM:next]
-		[下一个主题](Engine/Actors/Grouping "%Engine/Actors/Grouping:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [EXCERPT:Intro]
 ![](TransformMobility.png)
 
@@ -63,4 +43,4 @@ _Stationary（固定）_ 设置，用于不移动但可以在游戏中以某种�
 -->
 
 
-%playlistnav%
+

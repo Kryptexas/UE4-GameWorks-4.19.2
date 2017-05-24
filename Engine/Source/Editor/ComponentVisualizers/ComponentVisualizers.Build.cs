@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ComponentVisualizers : ModuleRules
 {
-	public ComponentVisualizers(TargetInfo Target)
+	public ComponentVisualizers(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/ComponentVisualizers/Private");	// For PCH includes (because they don't work with relative paths, yet)
 

@@ -1,25 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3275202
+Availability:Public
 Title:エディタ内テスト （プレイ＆シミュレート）
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:エディタ内でレベルとゲームプレイを直接テストするためのガイド
 Version:4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Rendering/LightingAndShadows/Basics "%Engine/Rendering/LightingAndShadows/Basics:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [TOC(start:2 end:2)]
 
@@ -64,7 +48,7 @@ Version:4.9
 
 [EXCERPT:overview]
 エディタでは、どこでもプレイヤーをスポーンし、ファイルの保存を待たずにエディタ内でゲームを即時にプレビューできます。2 種類のプレビュータイプを利用できます。**Play In Editor** (PIE) は、メインツールバーにある **[Play]** ボタンから直接アクセスします。
-**Simulate In Editor** (SIE) は、**Play** ボタンのドロップダウンメニューから (または **Alt+S** を押して) アクセスします。エディタ内プレビュー システムは Play In Editor と Simulate In Editor のセッション間の切り替えに対応しています。従って、ゲームプレイとアセットの微調整を迅速に反復し、
+**Simulate In Editor** (SIE) は、**Play** ボタンのドロップダウンメニューから (または **Alt+S** を押して) アクセスします。エディタ内プレビュー システムは Play In Editor と Simulate In Editor のセッション間の切り替えに対応しています。従って、ゲームプレイとアセットの微調整を迅速にイタレーションし、
 結果としてゲームがどのように変化するかを確認できます。
 [/EXCERPT:overview]
 
@@ -73,7 +57,7 @@ Version:4.9
 
 ゲーム プレビューにはレベル ストリーミングが含まれ、**ワールド アウトライナー** が適宜更新するので、ゲームプレイの結果としてストリームインされるアクタの選択および編集が可能です。 
 さらに、_Play In Editor_ もしくは _Simulate In Editor_ のセッションでのゲームのテスト開始時に選択したアクタは選択状態のままになります。その逆も _然り_ で、エディタ内テスト中に選択されたアクタは
-テスト セッション終了後も選択されたままになります。つまり、**[詳細]** パネルには、レベルの離れたセクションでゲームプレイを開始しても、
+テスト セッション終了後も選択されたままになります。つまり、**[Details (詳細)]** パネルには、レベルの離れたセクションでゲームプレイを開始しても、
 外観や動作を変更するために選択したアクタのプロパティが表示されます。
 
 ## ツールバー
@@ -94,7 +78,7 @@ Version:4.9
 
 ![](button_PlayMenu.png)
 
-ここでは、[Play In Editor モード](#モード) を変更、基本の [ネットワーク接続された Play In Editor](Engine/UI/LevelEditor\InEditorTesting\NetworkedPlayInEditor) オプションを設定、または [Play In Editor 設定ウィンドウ](Engine/UI/LevelEditor\InEditorTesting\Settings) を開くことができます。**Simulate** をクリックすると _Simulate In Editor_ モードが始まり、ツールバー のテスト セクションが変わります。シミュレーションの間、ゲームプレイを一時停止または停止することができます。また **[Possess]** ボタンを使用して _Play In Editor_ セッションへの切り替えもできます。
+ここでは、[Play In Editor モード](#モード) を変更、基本の [ネットワーク接続された Play In Editor](Engine/UI/LevelEditor\InEditorTesting\NetworkedPlayInEditor) オプションを設定、または [Play In Editor 設定ウィンドウ](Engine/UI/LevelEditor\InEditorTesting\Settings) を開くことができます。**Simulate** をクリックすると _Simulate In Editor_ モードが始まり、ツールバーのテスト セクションが変わります。シミュレーションの間、ゲームプレイを一時停止または停止することができます。また **[Possess]** ボタンを使用して _Play In Editor_ セッションへの切り替えもできます。
 
 ![](SIE_toolbar.png)
 
@@ -105,7 +89,7 @@ Version:4.9
 _Play In Editor_ ではエディタから直接現在のレベルを再生できるので、プレイヤー制御やプレイヤーの動作でトリガーするレベル イベントなどのゲームプレイ機能のテストが可能になります。
 
 ### モード
-別のモードでゲーム プレビューを起動すると、**[Play]** ボタンで起動したデフォルトの Play モードが変わります。
+別のモードでゲーム プレビューを起動すると、**[Play]** ボタンで起動するデフォルトの Play モードが変わります。
 
 #### 表示タイプ
 
@@ -116,17 +100,18 @@ $ Viewport :ゲームプレイはアクティブになっているレベル エ�
 	[REGION:lightbox]
 	[![](PIE_viewport.png)(w:300)](PIE_viewport.png)
 	[/REGION:lightbox]
+
 	これは、[Possess (制御取得)] と [Eject (制御解除)] ボタンを使って _Play In Editor_ と _Simulate in Editor_ の切り替えが可能な唯一の表示タイプです。**Viewport** モードでは、[Pause (一時停止)] や [Stop (停止)]ボタンでもゲームプレイを中断できます。
 
 	![](PIE_toolbar.png)
 
-	プレビュー ウィンドウはデフォルトでマウス カーソルを自動制御しません。プレビュー ウィンドウ内でクリックするとゲームでマウス カーソル制御を使用できます。 
+	プレビュー ウィンドウはデフォルトでマウス カーソルの制御を自動的に取得しません。プレビュー ウィンドウ内でクリックするとゲームでマウス カーソル制御を使用できます。 
 
 	[REGION:fullwidth]
 	![](mouse_control_label.png)
 	[/REGION]
 
-	マウス カーソルを再び使用するには、**Shift+F1** を押します。  
+	マウス カーソルを再び制御するには、**Shift+F1** を押します。  
 
 	[REGION:fullwidth]
 	![](mouse_regain_label.png)
@@ -142,7 +127,8 @@ $ New Window :ゲームプレイは新規ウィンドウに表示されます。
 	[REGION:lightbox]
 	[![](PIE_newwindow.png)(w:300)](PIE_newwindow.png)
 	[/REGION:lightbox]
-	新規ウィンドウでゲーム プレビューを再生する場合、_Simulate In Editor_ へは切り替えることができません。ただし、表示される [ツールバー] ボタンでゲームプレイの一時停止や停止はできます。
+
+	新規ウィンドウでゲーム プレビューを再生する場合、_Simulate In Editor_ セッションに切り替えることができません。ただし、表示される [ツールバー] ボタンでゲームプレイの一時停止や停止はできます。
 
 	![](pause_stop_only.png)
 
@@ -156,7 +142,7 @@ $ Standalone Game :ゲームプレイはそのプロセスで実行している�
 	[![](PIE_standalone.png)(w:300)](PIE_standalone.png)
 	[/REGION:lightbox]
 
-	そのプロセスの中でゲームを再生させる表示タイプなので、ゲームの一時停止または停止はできません。_Simulate In Editor_ への切り替えもできません。つまり、スタンドアローン プレビューの再生中は、[ツールバー] ボタンは変りません。
+	そのプロセスの中でゲームを再生させる表示タイプなので、ゲームの一時停止または停止はできません。_Simulate In Editor_ への切り替えもできません。つまり、スタンドアローンのゲーム プレビューの再生中は、[ツールバー] ボタンは変りません。
 
 	スタンドアローン ウィンドウで再生するとマウス制御はデフォルトで自動的にゲームに与えられます。**Shift+F1** を押すと、マウス カーソルを再び使用できます。  
 
@@ -182,15 +168,15 @@ $ Default Player Start :ゲームプレイはプレイヤー開始位置から�
 
 ### Simulate In Editor に切り替える
 
-ビューポートが _Play In Editor_ の時に **Shift+F1** を押してマウス制御を再び使用できるようにします。それから、**ツールバー** の **Eject** をクリックして _Simulate In Editor_ セッションへ切り替えます。
+ビューポートが _Play In Editor_ セッションの時に**Shift+F1**を押してマウス制御を再び使用できるようにします。それから、**ツールバー** の **Eject** をクリックして _Simulate In Editor_ セッションへ切り替えます。
 プレイヤー コントローラーから切り離され、現在位置で _Simulate In Editor_ セッションを開始します。 
 
 [REGION:tip]
-_Play In Editor_ から _Simulate In Editor_ への切り替えは **Eject** キーボード ショートカットを押しても可能です (デフォルト: **F10**)
+_Play In Editor_ から _Simulate In Editor_ への切り替えは **Eject** キーボード ショートカットを押しても可能です (デフォルト: **F10**)。
 [/REGION:tip]
 
 [ネットワーク接続された Play In Editor](Engine/UI/LevelEditor\InEditorTesting\NetworkedPlayInEditor) で _Play In Editor_ のテスト用にクライアントを複数設定している場合は、最初のセッション (**Viewport** 内のもの) のみが 
-_Simulate In Editor_ モードへの切り替えに対応します。シングル プレイヤーのゲームプレイのテストの場合でも、ゲームが新規ウィンドウやスタンドアローンのゲーム プロセスにある _Play In Editor_ セッションは _Simulate In Editor_ への切り替えに対応しません。 
+_Simulate In Editor_ モードへの切替をサポートします。シングル プレイヤーのゲームプレイのテストの場合でも、ゲームが新規ウィンドウやスタンドアローンのゲーム プロセスにある _Play In Editor_ セッションは _Simulate In Editor_ への切り替えに対応しません。 
 
 
 ## SimulateInEditor
@@ -203,12 +189,12 @@ _Simulate In Editor_ セッションの間に **ツールバー** の **Possess*
 プレイヤー コントローラーに接続し、アクティブなレベル ビューポートで _Play In Editor_ セッションを開始します。 
 
 [REGION:tip]
-**Possess** キーボード ショートカットキーを押しても _Simulate In Editor_ から _Play In Editor_ へ切り替えることができます。(デフォルト: **F10**)
+**Possess** キーボード ショートカットキーを押しても _Simulate In Editor_ から _Play In Editor_ へ切り替えることができます (デフォルト: **F10**)。
 [/REGION:tip]
 
 _Simulate In Editor_ セッションでエディタ内テストを開始した後で、プレイヤー コントローラーに接続するために Possess を使用した場合は、 
 デフォルトのプレイヤー スタートで、 _Play In Editor_ セッションが開始します。これは、**[Play In]** ドロップダウン メニューから **[Play In] > [Viewport at] > [Default Player Start]** の順序で選択することと同じになります。
-ただし、In Editor のテストモードのままで _Play In Editor_ セッションから _Simulate In Editor_ セッションへ既に切り替えている場合は、**Possess** をクリックすると、
+ただし、 _Play In Editor_ セッションから _Simulate In Editor_ セッションへ既に切り替えている場合は、**Possess** をクリックすると、In Editor のテストモードを離れずに、
 プレイヤー コントローラーに再接続されて、前に **Eject** をクリックしたレベル内の位置でゲームプレイを再開します。
 
 
@@ -229,7 +215,4 @@ _Play In Editor_ や _Simulate In Editor_ モードにすると、保存はさ�
 
 C++ コードを含むプロジェクトの場合は、**レベル エディタのツールバー** に **[コンパイル]** ボタンがあります。このボタンでゲームコードがただちに再コンパイルおよび再読み込みされます。プロジェクトの C++ ファイルのプロパティまたは関数を変更する場合は、
 **[コンパイル]** ボタンをクリックするとゲーム モジュールが再コンパイルおよび再読み込みされるので、コード変更がエディタに反映されます。_Play In Editor_ や _Simulate In Editor_ の使用中でもコンパイルが可能な場合があり、
-ゲームプレイやシミュレーションを停止せずにコード変更が反映されます。
-
-
-%playlistnav%
+ゲームプレイやシミュレーションを停止させる必要なくコード変更が反映されます。

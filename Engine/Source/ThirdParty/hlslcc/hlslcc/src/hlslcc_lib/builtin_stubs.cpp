@@ -628,6 +628,7 @@ void make_intrinsic_refract(exec_list *ir, _mesa_glsl_parse_state *state)
 
 	for (unsigned Type = GLSL_TYPE_HALF; Type <= GLSL_TYPE_FLOAT; ++Type)
 	{
+		const glsl_type* ScalarType = glsl_type::get_instance(Type, 1, 1);
 		for (unsigned c = 2; c <= 4; ++c)
 		{
 			const glsl_type* genType = glsl_type::get_instance(Type, c, 1);
@@ -635,7 +636,7 @@ void make_intrinsic_refract(exec_list *ir, _mesa_glsl_parse_state *state)
 			sig->is_builtin = true;
 			sig->parameters.push_tail(make_var(ctx, genType, 0, ir_var_in));
 			sig->parameters.push_tail(make_var(ctx, genType, 1, ir_var_in));
-			sig->parameters.push_tail(make_var(ctx, genType, 2, ir_var_in));
+			sig->parameters.push_tail(make_var(ctx, ScalarType, 2, ir_var_in));
 			func->add_signature(sig);
 		}
 	}
@@ -1373,8 +1374,8 @@ void _mesa_glsl_initialize_functions(exec_list *ir, _mesa_glsl_parse_state *stat
 	make_intrinsic_genType(ir, state, "rsqrt", ir_unop_rsq, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 1);
 
 	// 8.3 Common Functions.
-	make_intrinsic_genType(ir, state, "abs", ir_unop_abs, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT_THRU | IR_INTRINSIC_MATRIX, 1);
-	make_intrinsic_genType(ir, state, "sign", ir_unop_sign, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT_THRU | IR_INTRINSIC_MATRIX, 1);
+	make_intrinsic_genType(ir, state, "abs", ir_unop_abs, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT | IR_INTRINSIC_MATRIX, 1);
+	make_intrinsic_genType(ir, state, "sign", ir_unop_sign, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_INT | IR_INTRINSIC_UINT | IR_INTRINSIC_MATRIX, 1);
 	make_intrinsic_genType(ir, state, "floor", ir_unop_floor, IR_INTRINSIC_ALL_FLOATING | IR_INTRINSIC_MATRIX, 1);
 	if (state->bGenerateES)
 	{

@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+
 DECLARE_LOG_CATEGORY_EXTERN(UnrealWatchdogLog, Log, All);
 
 struct FWatchdogCommandLine
@@ -13,7 +16,8 @@ struct FWatchdogCommandLine
 	FString EngineVersion;
 	uint32 ParentProcessId;
 	int32 SuccessReturnCode;
-	int32 HeartbeatSeconds;
+	bool bAllowDetectHangs;
+	int32 HangThresholdSeconds;
 	bool bAllowDialogs;
 	bool bHasProcessId;
 
@@ -28,16 +32,13 @@ struct FWatchdogCommandLine
 		bHasProcessId = FParse::Value(InCommandLine, TEXT("PID="), ParentProcessId);
 		SuccessReturnCode = 0;
 		FParse::Value(InCommandLine, TEXT("SuccessfulRtnCode="), SuccessReturnCode);
-		HeartbeatSeconds = 300;
-		FParse::Value(InCommandLine, TEXT("HeartbeatSeconds="), HeartbeatSeconds);
+		bAllowDetectHangs = FParse::Param(InCommandLine, TEXT("DetectHangs"));
+		HangThresholdSeconds = 120;
+		FParse::Value(InCommandLine, TEXT("HangSeconds="), HangThresholdSeconds);
 		bAllowDialogs = FParse::Param(InCommandLine, TEXT("AllowDialogs"));
 	}
 };
 
 bool GetWatchdogStoredDebuggerValue(const FString& WatchdogSectionName);
 int RunUnrealWatchdog(const TCHAR* CommandLine);
-bool WaitForProcess(class IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine, int32& OutReturnCode, bool& bOutHang, const FString& WatchdogSectionName);
-void SendHeartbeatEvent(class IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine);
-bool CheckParentHeartbeat(class IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine, const FString& WatchdogSectionName);
-void SendHangDetectedEvent(class IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine);
-void SendHangRecoveredEvent(class IAnalyticsProviderET& Analytics, const FWatchdogCommandLine& CommandLine);
+FProcHandle GetProcessHandle(const FWatchdogCommandLine& CommandLine);

@@ -45,16 +45,16 @@ namespace Audio
 	{
 		FReverbSettingsInternal::Init(InSampleRate);
 
-		const int32 SampleRate = FReverbSettingsInternal::SampleRate;
+		const float SampleRate = (float)FReverbSettingsInternal::SampleRate;
 		const int32 DefaultDelayLength = (int32)(0.2f * SampleRate);
 
 		for (int32 Channel = 0; Channel < 2; ++Channel)
 		{
-			Data[Channel].PreDelay.Init(SampleRate, SampleRate);
+			Data[Channel].PreDelay.Init(SampleRate, 1.0f);
 
 			for (int32 i = 0; i < 4; ++i)
 			{
-				Data[Channel].APF[i].Init(SampleRate, (int32)(0.2f * SampleRate));
+				Data[Channel].APF[i].Init(SampleRate, 0.2f);
 			}
 			FMemory::Memzero(Data[Channel].DelayLineInputs, sizeof(float) * 4);
 			FMemory::Memzero(Data[Channel].DelayLineOuputs, sizeof(float) * 4);
@@ -158,8 +158,7 @@ namespace Audio
 	}
 
 	FPlateReverb::FPlateReverb()
-		: LFO(nullptr)
-		, bEnableLateReflections(true)
+		: bEnableLateReflections(true)
 		, bEnableEarlyReflections(true)
 	{
 		FMemory::Memzero(LeftTaps, sizeof(float)*NumTaps);
@@ -168,11 +167,6 @@ namespace Audio
 
 	FPlateReverb::~FPlateReverb()
 	{
-		if (LFO)
-		{
-			delete LFO;
-			LFO = nullptr;
-		}
 	}
 
 	void FPlateReverb::Init(const int32 InSampleRate)
@@ -181,10 +175,10 @@ namespace Audio
 
 		EarlyReflections.Init(InSampleRate);
 
-		const int32 SampleRate = FReverbSettingsInternal::SampleRate;
-		PreDelay.Init(SampleRate, 2 * SampleRate);
+		const float SampleRate = (float)FReverbSettingsInternal::SampleRate;
+		PreDelay.Init(SampleRate, 2.0f);
 
-		const int32 DefaultDelayLength = (int32)(0.2f * SampleRate);
+		const float DefaultDelayLength = 0.2f;
 
 		APF1.Init(SampleRate, DefaultDelayLength);
 		APF1.SetDelayMsec(GetDelayMsec(142));
@@ -198,7 +192,7 @@ namespace Audio
 		APF4.Init(SampleRate, DefaultDelayLength);
 		APF4.SetDelayMsec(GetDelayMsec(277));
 
-		if (!LFO)
+		if (!LFO.IsValid())
 		{
 			LFO = FWaveTableOsc::CreateWaveTable(EWaveTable::SineWaveTable);
 		}
@@ -369,7 +363,7 @@ namespace Audio
 			float NormalPhaseOut = 0.0f;
 			float QuadPhaseOut = 0.0f;
 
-			LFO->ProcessAudio(&NormalPhaseOut, &QuadPhaseOut);
+			LFO->Generate(&NormalPhaseOut, &QuadPhaseOut);
 
 			float LeftPlateDelayMsec = LeftPlate.ModulatedBaseDelayMsec + NormalPhaseOut * LeftPlate.ModulatedDeltaDelayMsec;
 			float RightPlateDelayMsec = RightPlate.ModulatedBaseDelayMsec + QuadPhaseOut * RightPlate.ModulatedDeltaDelayMsec;
@@ -381,7 +375,7 @@ namespace Audio
 			// RIGHT PLATE
 
 			// Get input into right plate by adding the left plate's previous sample (feedback path)
-			float RightPlateInput = APF4Out + LeftPlate.PreviousSample;
+			float RightPlateInput = APF4Out + UnderflowClamp(LeftPlate.PreviousSample);
 
 			// Input -> ModulatedAPF
 			float RightPlateModulatedAPFOut = 0.0f;
@@ -416,7 +410,7 @@ namespace Audio
 			// LEFT PLATE
 
 			// Get input into right plate by adding the left plate's previous sample (feedback path)
-			float LeftPlateInput = APF4Out + RightPlate.PreviousSample;
+			float LeftPlateInput = APF4Out + UnderflowClamp(RightPlate.PreviousSample);
 
 			// Input -> ModulatedAPF
 			float LeftPlateModulatedAPFOut = 0.0f;

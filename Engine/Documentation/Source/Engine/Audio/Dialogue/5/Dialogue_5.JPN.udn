@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3194067
-Availability:Docs
+﻿INTSourceChangelist:3218993
+Availability:Public
 Title:5.Sound Cue とDialogue
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:より複雑なダイアログ マネージャ システムを構築するための開始点について説明します。
 version:4.13
 parent:Engine/Audio/Dialogue
 order:5
+type:quick start
 checkpoint:dialogueqs
 prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
@@ -13,20 +14,7 @@ related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[前のステップ](Engine/Audio/Dialogue/4 "%Engine/Audio/Dialogue/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/Audio/Dialogue)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 複雑な会話では、Sound Cue コンポーネントと Audio コンポーネントを使用することになるでしょう。Audio コンポーネントでは、**On Audio Finished** デリゲートを使って、オーディオの再生が終わったときに 
 何らかの機能をバインドすることができます。  
@@ -36,7 +24,7 @@ related:Engine/Audio/SoundCues/NodeReference
 上記の例とは見た目が同じにはなりません。 
 [/REGION]
 
-**Sound Cues** を使って **Dialogue Waves** を再生するために、**Sound Cue Editor** に **Dialogue Player** ノードがあります。
+**Sound Cue** を使って **Dialogue Waves** を再生するために、**Sound Cue Editor** に **Dialogue Player** ノードがあります。
 
 ![](DialoguePlayerNode.png)
 
@@ -48,4 +36,4 @@ related:Engine/Audio/SoundCues/NodeReference
 
 ![](AudioNextSteps.png)
 
-%Steps%
+[NAV]

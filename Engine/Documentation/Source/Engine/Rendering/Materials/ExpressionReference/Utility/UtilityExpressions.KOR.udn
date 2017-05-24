@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3188564
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title:Utility 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:하나 이상의 입력에 여러가지 유용한 연산을 하는 표현식입니다.
 Version: 4.9
+tags:Materials
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -252,22 +253,7 @@ Noise 표현식은 제어할 수 있는 방식으로 프로시저럴 노이즈 �
 
 ## Vector Noise
 
-Vector Noise (벡터 노이즈) 표현식은 3D 출력으로 절차적 노이즈 이펙트의 변종을 만듭니다.
-
-| 항목 | 설명 |
-| -------- | ----------- |
-| [REGION:tablesection]프로퍼티[/REGION] ||
-| **Function** | [INCLUDE:#VectorNoiseFunctions] |
-| **Quality** | 모양/퍼포먼스 세팅입니다. 값이 작으면 빨라지지만 모양이 떨어지고, 값이 크면 느려지지만 모양은 나아집니다. |
-| **Tiling** | 노이즈를 지원하는 함수에 타일링을 허용합니다. 비용은 올라가지만, 노이즈를 심리스 래핑 텍스처에 구을 때 좋습니다. |
-| **Tile Size** | 타일링할 때, 노이즈를 얼마나 자주 반복시킬지 입니다. 펄린 노이즈 변종의 경우, Tile Size 는 3 의 배수여야 합니다. |
-|| [REGION:tablesection]입력[/REGION] ||
-| **Position** | 3D 벡터를 통해 텍스처 크기를 조정할 수 있도록 합니다. |
-
-![Cellnoise.png](Cellnoise.png)
-![PerlinGradient.png](PerlinGradient.png)
-![Voronoi.png](Voronoi.png)
-
+[INCLUDE:Engine\Rendering\Materials\ExpressionReference\Vector#VectorNoiseTest]
 
 ## QualitySwitch
 
@@ -451,3 +437,5 @@ Mask Channel Parameter 를 추가한 것은 머티리얼 인스턴스 내 RGB �
 | Voronoi | *Noise* 표현식의 Voronoi 함수와 같은 알고리즘을 사용하며, 인스트럭션 수도 같습니다. 하지만 RGB 는 각 보로노이 셀의 가장 가까운 시드 포인트 위치이며, A 는 그 시드 포인트까지의 거리입니다. |
 [/EXCERPT]
 -->
+
+

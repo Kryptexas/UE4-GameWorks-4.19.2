@@ -57,7 +57,7 @@ UGoogleVRMotionControllerComponent::UGoogleVRMotionControllerComponent()
 , LaserParticleSystemComponent(nullptr)
 , ReticleBillboardComponent(nullptr)
 , TouchMeshScale(FVector::ZeroVector)
-, bAreSubComponentsEnabled(true)
+, bAreSubComponentsEnabled(false)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bAutoActivate = true;
@@ -195,8 +195,7 @@ void UGoogleVRMotionControllerComponent::OnRegister()
 	// Now that everything is created, set the visibility based on the active status.
 	// Set bAreSubComponentsEnabled to prevent SetSubComponentsEnabled from returning early since
 	// The components have only just been created and may not be set properly yet.
-	bAreSubComponentsEnabled = !IsPointerActive();
-	SetSubComponentsEnabled(IsPointerActive());
+	SetSubComponentsEnabled(true);
 }
 
 void UGoogleVRMotionControllerComponent::BeginPlay()
@@ -452,19 +451,19 @@ void UGoogleVRMotionControllerComponent::SetSubComponentsEnabled(bool bNewEnable
 
 	if (ControllerTouchPointMeshComponent != nullptr)
 	{
-		ControllerMeshComponent->SetActive(bNewEnabled);
+		ControllerTouchPointMeshComponent->SetActive(bNewEnabled);
 		ControllerTouchPointMeshComponent->SetVisibility(bNewEnabled);
 	}
 
 	if (LaserParticleSystemComponent != nullptr)
 	{
-		ControllerMeshComponent->SetActive(bNewEnabled);
+		LaserParticleSystemComponent->SetActive(bNewEnabled);
 		LaserParticleSystemComponent->SetVisibility(bNewEnabled);
 	}
 
 	if (ReticleBillboardComponent != nullptr)
 	{
-		ControllerMeshComponent->SetActive(bNewEnabled);
+		ReticleBillboardComponent->SetActive(bNewEnabled);
 		ReticleBillboardComponent->SetVisibility(bNewEnabled);
 	}
 }

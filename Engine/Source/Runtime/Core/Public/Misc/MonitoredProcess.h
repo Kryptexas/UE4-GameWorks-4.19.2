@@ -9,6 +9,7 @@
 #include "Misc/DateTime.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/Runnable.h"
+#include "Misc/SingleThreadRunnable.h"
 
 /**
  * Declares a delegate that is executed when a monitored process completed.
@@ -29,7 +30,7 @@ DECLARE_DELEGATE_OneParam(FOnMonitoredProcessOutput, FString)
  * Implements an external process that can be monitored.
  */
 class CORE_API FMonitoredProcess
-	: public FRunnable
+	: public FRunnable, FSingleThreadRunnable
 {
 public:
 
@@ -70,10 +71,18 @@ public:
 	 *
 	 * @return true if the process is running, false otherwise.
 	 */
+	DEPRECATED(4.16, "IsRunning() is deprecated because it doesn't support -nothreading. Please use Update()")
 	bool IsRunning() const
 	{
 		return bIsRunning;
 	}
+
+	/**
+	* Checks whether the process is still running. In single threaded mode, this will tick the thread processing
+	*
+	* @return true if the process is running, false otherwise.
+	*/
+	bool Update();
 
 	/** Launches the process. */
 	bool Launch();
@@ -148,7 +157,17 @@ public:
 
 	virtual void Exit() override { }
 
+	virtual FSingleThreadRunnable* GetSingleThreadInterface() override
+	{
+		return this;
+	}
+
 protected:
+
+	/**
+	* FSingleThreadRunnable interface
+	*/
+	void Tick() override;
 
 	/**
 	 * Processes the given output string.
@@ -158,6 +177,8 @@ protected:
 	void ProcessOutput( const FString& Output );
 
 private:
+	void TickInternal();
+
 
 	// Whether the process is being canceled. */
 	bool Canceling;

@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __DRAGTOOL_VIEWPORTCHANGE_H__
-#define __DRAGTOOL_VIEWPORTCHANGE_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Editor/UnrealEdTypes.h"
@@ -51,5 +49,3 @@ private:
 
 	FVector2D ViewOptionOffset;
 };
-
-#endif // __DRAGTOOL_VIEWPORTCHANGE_H__

@@ -19,6 +19,7 @@
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCAL_EPS (0.01f)
 static void AddVertexIfNotPresent(TArray<FVector> &vertices, FVector &newVertex)
@@ -188,7 +189,7 @@ int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const TArray<FVecto
 
 static void CalcBoundingBox(const FRawMesh& RawMesh, FVector& Center, FVector& Extents, FVector& LimitVec)
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	for (uint32 i = 0; i < (uint32)RawMesh.VertexPositions.Num(); i++)
 	{
@@ -559,7 +560,7 @@ int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh)
 
 	FKSphylElem SphylElem;
 	SphylElem.Center = sphere.Center;
-	SphylElem.Orientation = rotation.Quaternion();
+	SphylElem.Rotation = rotation;
 	SphylElem.Radius = sphere.W;
 	SphylElem.Length = length;
 	bs->AggGeom.SphylElems.Add(SphylElem);

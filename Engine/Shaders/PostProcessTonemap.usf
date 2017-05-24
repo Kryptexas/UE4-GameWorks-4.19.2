@@ -73,15 +73,14 @@ half3 ColorLookupTable( half3 LinearColor )
 		LUTEncodedColor = LinearToST2084( LinearColor );
 	// Encode as log values
 	else
-		LUTEncodedColor = LinToLog( LinearColor );
+		LUTEncodedColor = LinToLog( LinearColor + LogToLin( 0 ) );
 	
 	float3 UVW = LUTEncodedColor * ((LUTSize - 1) / LUTSize) + (0.5f / LUTSize);
 
 #if USE_VOLUME_LUT == 1
-	half3 OutDeviceColor = ColorGradingLUT.Sample( ColorGradingLUTSampler, UVW ).rgb;
+	half3 OutDeviceColor = Texture3DSample( ColorGradingLUT, ColorGradingLUTSampler, UVW ).rgb;
 #else
 	half3 OutDeviceColor = UnwrappedTexture3DSample( ColorGradingLUT, ColorGradingLUTSampler, UVW, LUTSize ).rgb;
-	//half3 OutDeviceColor = UnwrappedTexture3DSample( PostprocessInput3, PostprocessInput3Sampler, UVW, LUTSize ).rgb;
 #endif
 	
 	return OutDeviceColor * 1.05;
@@ -122,6 +121,44 @@ float2 UVToScreenPos(float2 UV)
 
 float4 FringeUVParams;
 
+void TonemapCommonVS(
+	in	float4 Position,
+	in	float2 TexCoord,
+	out	float3 OutExposureScaleVignette,
+	out	float4 OutGrainUV,
+	out	float4 OutFringe,
+	out	float2 OutFullViewUV
+	)
+{
+	// Forward renderer uses view size texture
+	// TODO: Looks to be Ronin specific.. check this:
+	OutFullViewUV.xy = Position.xy * float2(0.5,-0.5) + 0.5;
+
+#if NEEDTOSWITCHVERTICLEAXIS
+	OutFullViewUV.y = 1.0 - OutFullViewUV.y;
+#endif
+
+#if EYEADAPTATION_EXPOSURE_FIX == 1
+	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
+	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).r;//EyeAdaptationLookup();
+#else
+	// If eye adaptation is disabled (e.g. fixed exposure level ) or  not available.  
+	OutExposureScaleVignette.x = DefaultEyeExposure;
+#endif
+
+	// Scale vignette to always be a circle with consistent corner intensity.
+	OutExposureScaleVignette.yz = VignetteSpace(Position.xy);
+
+	// Grain
+	OutGrainUV.xy = TexCoord + PostprocessInput0Size.zw * float2(-0.5,0.5);
+	OutGrainUV.zw = TexCoord + GrainRandomFull.xy;
+
+	// Fringe
+	float2 ScreenPos = UVToScreenPos(TexCoord);
+	OutFringe.xy = ScreenPosToUV(ScreenPos * FringeUVParams.r);
+	OutFringe.zw = ScreenPosToUV(ScreenPos * FringeUVParams.g);
+}
+
 // vertex shader entry point
 void MainVS(
 	in 					float4 InPosition 				: ATTRIBUTE0,
@@ -130,7 +167,7 @@ void MainVS(
 	out noperspective 	float3 OutExposureScaleVignette : TEXCOORD1,
 	out noperspective 	float4 OutGrainUV 				: TEXCOORD2,
 	out noperspective 	float4 OutFringe 				: TEXCOORD3,
-	out noperspective 	float4 OutFullViewUV 			: TEXCOORD4,
+	out noperspective 	float2 OutFullViewUV 			: TEXCOORD4,
 	out 				float4 OutPosition 				: SV_POSITION
 	)
 {
@@ -139,35 +176,8 @@ void MainVS(
 	InTexCoord.y = 1.0 - InTexCoord.y;
 #endif
 
-	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord.xy);
-
-	// Forward renderer uses view size texture
-	// TODO: Looks to be Ronin specific.. check this:
-	OutFullViewUV.xy = OutPosition.xy * float2(0.5,-0.5) + 0.5;
-
-#if NEEDTOSWITCHVERTICLEAXIS
-	OutFullViewUV.y = 1.0 - OutFullViewUV.y;
-#endif
-
-#if EYEADAPTATION_EXPOSURE_FIX == 1
-	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
-	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).r;
-#else
-	// If eye adaptation is disabled (e.g. fixed exposure level ) or  not available.  
-	OutExposureScaleVignette.x = DefaultEyeExposure;
-#endif
-
-	// Scale vignette to always be a circle with consistent corner intensity.
-	OutExposureScaleVignette.yz = VignetteSpace(OutPosition.xy);
-
-	// Grain
-	OutGrainUV.xy = OutTexCoord + PostprocessInput0Size.zw * float2(-0.5,0.5);
-	OutGrainUV.zw = OutTexCoord + GrainRandomFull.xy;
-
-	// Fringe
-	float2 ScreenPos = UVToScreenPos(OutTexCoord);
-	OutFringe.xy = ScreenPosToUV(ScreenPos * FringeUVParams.r);
-	OutFringe.zw = ScreenPosToUV(ScreenPos * FringeUVParams.g);
+	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord);
+	TonemapCommonVS(OutPosition, OutTexCoord, OutExposureScaleVignette, OutGrainUV, OutFringe, OutFullViewUV);
 }
 
 // Function graphing
@@ -237,46 +247,6 @@ float RemapScalar(float Low, float High, float x)
 
 uint OutputGamut;
 
-// Doesn't work with PQ output
-float3 InvertACESTonemapping( float3 OutColor )
-{
-	const float3x3 AP1_2_sRGB    = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
-	const float3x3 sRGB_2_AP1    = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
-
-	const float3x3 AP1_2_Output = OuputGamutMappingMatrix( OutputGamut );
-	const float3x3 Output_2_AP1  = OuputInverseGamutMappingMatrix( OutputGamut );
-
-	const float3x3 sRGB_2_Output = mul( AP1_2_Output, sRGB_2_AP1 );
-	const float3x3 Output_2_sRGB = mul( AP1_2_Output, Output_2_AP1 );
-
-	half3 PseudoLinearColor, Approach0, Approach1;
-	PseudoLinearColor = saturate(sRGBToLinear( OutColor.rgb ));
-
-	// Approximate inversion
-	//Approach0 = mul( Output_2_AP1, PseudoLinearColor );
-
-	// FIXME: Workaround for UE-29935, pushing all colors with a 0 component to black output
-	// Workaround in PostProcessCombineLUTs.usf mean that the output color is always in the
-	// sRGB gamut. Once that is resolved, the matrix multiply above should be re-enabled.
-	Approach0 = PseudoLinearColor;
-
-	Approach0 = aces100nitFitInverse( Approach0 );
-	Approach0 = max(0, mul( AP1_2_Output, Approach0 ));
-
-	// Exact inversion
-	//Approach1 = mul(Output_2_sRGB, PseudoLinearColor);
-
-	// FIXME: Workaround for UE-29935, pushing all colors with a 0 component to black output
-	// Workaround in PostProcessCombineLUTs.usf mean that the output color is always in the
-	// sRGB gamut. Once that is resolved, the matrix multiply above should be re-enabled.
-	//Approach1 = PseudoLinearColor;
-
-	//Approach1 = InverseACESOutputTransformsRGBD65( Approach1 );
-	//Approach1 = max(0, mul( sRGB_2_Output, Approach1 ));
-
-	return Approach0;//lerp(Approach0, Approach1, ACESInversion);
-}
-
 float max4(float4 x)
 {
 	return max(max(x.r, x.g), max(x.b, x.a));
@@ -316,18 +286,16 @@ half3 LookupSceneColor(float2 SceneUV, int2 PixelOffset)
 #endif
 }
 
-// pixel shader entry point
-void MainPS(
-	in noperspective float2 UV : TEXCOORD0,
-	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
-	in noperspective float4 GrainUV : TEXCOORD2,
-	in noperspective float4 FringeUV : TEXCOORD3,
-	in noperspective float4 FullViewUV : TEXCOORD4,
-	float4 SvPosition : SV_POSITION,		// after all interpolators
-	out float4 OutColor : SV_Target0
+float4 TonemapCommonPS(
+	float2 UV,
+	float3 InExposureScaleVignette,
+	float4 GrainUV,
+	float4 FringeUV,
+	float2 FullViewUV,
+	float4 SvPosition
 	)
 {
-	OutColor = 0;
+	float4 OutColor = 0;
 
 #if DEBUG_TONEMAPPER
 	// @param DebugTile 0,0 is center, -1,0 is left, 1,0 is right, ...
@@ -410,18 +378,18 @@ void MainPS(
 //		half A0 = max3(SceneColor);
 //		half4 LuminanceNeightbors = half4(max3(C1), max3(C2), max3(C3), max3(C4));
 		// 5 instructiopns less than reference
-//		half A0 = Luminance(SceneColor);
-//		half4 LuminanceNeightbors = half4(Luminance(C1), Luminance(C2), Luminance(C3), Luminance(C4));
+		half A0 = Luminance(SceneColor);
+		half4 LuminanceNeightbors = half4(Luminance(C1), Luminance(C2), Luminance(C3), Luminance(C4));
 		// 9 instructions less than reference (green is often a good approximation for the luminance)
-		half A0 = SceneColor.g;
-		half4 LuminanceNeightbors = half4(C1.g, C2.g, C3.g, C4.g);
+		//half A0 = SceneColor.g;
+		//half4 LuminanceNeightbors = half4(C1.g, C2.g, C3.g, C4.g);
 
 		// compute mask to not sharpen near very bright HDR content
 		// Note: using max instead of summming up saves 1 instruction
 		// Note: We could multiply this to tweak the edge weight but it might instroduce a cost
-//		half HDREdge = ExposureScale * max4(abs(A0 - LuminanceNeightbors));
+		half HDREdge = ExposureScale * max4(abs(A0 - LuminanceNeightbors));
 		// 3 instructions less but less accurate (faint black dots near bright edges)
-		half HDREdge = ExposureScale * max(abs(A0 * 2 - (LuminanceNeightbors.r + LuminanceNeightbors.g)), abs(A0 * 2 - (LuminanceNeightbors.b + LuminanceNeightbors.a)));
+		//half HDREdge = ExposureScale * max(abs(A0 * 2 - (LuminanceNeightbors.r + LuminanceNeightbors.g)), abs(A0 * 2 - (LuminanceNeightbors.b + LuminanceNeightbors.a)));
 
 		// 0..1
 		half EdgeMask = saturate(1.0f - HDREdge);
@@ -434,11 +402,8 @@ void MainPS(
 		}
 #endif //DEBUG_TONEMAPPER
 
-
 		// -1:sharpen, 0:no effect, 1:blur
 		float LerpFactor = -EdgeMask * SharpenMultiplierDiv6;
-
-
 
 		// reference
 		// same instruction count as if the center weight is 1.0
@@ -518,11 +483,6 @@ void MainPS(
 		// RETURN_COLOR not needed unless writing to SceneColor
 		OutColor = float4(OutDeviceColor, saturate(LuminanceForPostProcessAA));
 
-		#if USE_INVERSE_TONEMAPPING
-			// Post-tonemap linearization. Used when writing out EXRs
-			OutColor.rgb = InvertACESTonemapping( OutColor.rgb );
-		#endif
-
 		// We always process in PQ for precision but can output in ScRGB
 		BRANCH
 		if (GetOutputDevice() == 5 || GetOutputDevice() == 6)
@@ -530,7 +490,6 @@ void MainPS(
 			OutColor.xyz = ST2084ToScRGB(OutColor.xyz, GetOutputDevice());
 		}
 	#endif
-
 
 #if DEBUG_TONEMAPPER
 	if (!bOutputDebugTile)
@@ -550,7 +509,60 @@ void MainPS(
 		OutColor = 1;
 	}
 #endif //DEBUG_TONEMAPPER
+
+	return OutColor;
 }
+
+// pixel shader entry point
+void MainPS(
+	in noperspective float2 UV : TEXCOORD0,
+	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
+	in noperspective float4 GrainUV : TEXCOORD2,
+	in noperspective float4 FringeUV : TEXCOORD3,
+	in noperspective float2 FullViewUV : TEXCOORD4,
+	float4 SvPosition : SV_POSITION,		// after all interpolators
+	out float4 OutColor : SV_Target0
+	)
+{
+#if EYEADAPTATION_EXPOSURE_FIX == 1
+	float3 vEyeAdapationVS = InExposureScaleVignette;
+	vEyeAdapationVS.x = EyeAdaptation.Load(int3(0, 0, 0)).r;
+	OutColor = TonemapCommonPS(UV, vEyeAdapationVS, GrainUV, FringeUV, FullViewUV, SvPosition);
+#else
+	OutColor = TonemapCommonPS(UV, InExposureScaleVignette, GrainUV, FringeUV, FullViewUV, SvPosition);
+#endif
+}
+
+#if COMPUTESHADER
+// xy: Unused, zw: ThreadToUVScale
+float4 TonemapComputeParams;
+RWTexture2D<float4> RWOutComputeTex;
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
+{
+	float2 UV = ((float2)DispatchThreadId + View.ViewRectMin.xy + 0.5f) * TonemapComputeParams.zw;
+	float4 SvPosition = float4(UV*2-1,0,1);
+
+	if (IsComputeUVOutOfBounds(UV))
+	{
+		return;
+	}
+
+	float3 ExposureScaleVignette;
+	float4 GrainUV, FringeUV;
+	float2 FullViewUV;	
+	TonemapCommonVS(SvPosition, UV, ExposureScaleVignette, GrainUV, FringeUV, FullViewUV);
+
+	float4 OutColor = TonemapCommonPS(UV, ExposureScaleVignette, GrainUV, FringeUV, FullViewUV, SvPosition);
+
+	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
+#if NEEDTOSWITCHVERTICLEAXIS
+	PixelPos.y = (uint)(1.0/TonemapComputeParams.w) - PixelPos.y;
+#endif
+	RWOutComputeTex[PixelPos] = OutColor;
+}
+#endif
 
 
 // ES2 version
@@ -646,6 +658,7 @@ half2 CocBlendScaleBiasFine()
 }
 
 float4 OverlayColor;
+float SRGBAwareTarget;
 
 void MainPS_ES2(
 	in float4 UVAndScreenPos : TEXCOORD0,
@@ -669,15 +682,15 @@ void MainPS_ES2(
 	BRANCH
 	if (FringeIntensity > 0.0)
 	{
-		SceneColor.r = PostprocessInput0.Sample(PostprocessInput0Sampler, UV).r;
-		SceneColor.g = PostprocessInput0.Sample(PostprocessInput0Sampler, InFringeTexCoords.xy).g;
-		SceneColor.b = PostprocessInput0.Sample(PostprocessInput0Sampler, InFringeTexCoords.zw).b;
+		SceneColor.r = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).r;
+		SceneColor.g = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, InFringeTexCoords.xy).g;
+		SceneColor.b = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, InFringeTexCoords.zw).b;
 		SceneColor.a = 1.0;
 	}
 	else
 #endif
 	{
-		SceneColor = PostprocessInput0.Sample(PostprocessInput0Sampler, UV);
+		SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
 	}
 
 	#if USE_GAMMA_ONLY
@@ -692,8 +705,8 @@ void MainPS_ES2(
 		#endif
 
 		#if USE_DOF
-			half4 DofFine = PostprocessInput0.Sample(PostprocessInput0Sampler, FineDofGrain.xy);
-			half4 Dof = PostprocessInput2.Sample(PostprocessInput2Sampler, FullViewUV.zw);
+			half4 DofFine = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FineDofGrain.xy);
+			half4 Dof = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, FullViewUV.zw);
 			// Convert alpha back into circle of confusion.
 			SceneColor.a = max(Dof.a, abs(SceneColor.a * 2.0 - 1.0));
 			// Convert circle of confusion into blend factors.		
@@ -715,7 +728,7 @@ void MainPS_ES2(
 					// This has grain jitter off.
 				#else
 					// Do jitter for grain.
-					half4 DofFine = PostprocessInput0.Sample(PostprocessInput0Sampler, FineDofGrain.xy);
+					half4 DofFine = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FineDofGrain.xy);
 					// Grain jitter.
 					SceneColor.rgb = lerp(SceneColor.rgb, DofFine.rgb, (1.0-Grain*Grain) * GrainScaleBiasJitter.z);
 				#endif
@@ -771,13 +784,23 @@ void MainPS_ES2(
 		#endif
 
 		half3 FilmColor = FilmPostProcess(LinearColor.rgb);
-		#if IOS
+		half3 TonemappedColor;
+		if (SRGBAwareTarget > 0.5)
+		{
+			// skip sRGB conversion if HW conversion will take place.
+			TonemappedColor = FilmColor;
+		}
+		else
+		{
+#if IOS
 			// Note, iOS native output is raw gamma 2.2 not sRGB!
-			half3 TonemappedColor = pow(FilmColor.rgb, 1.0/2.2);
-		#else
+			TonemappedColor = pow(FilmColor.rgb, 1.0 / 2.2);
+#else
 			// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-			half3 TonemappedColor = LinearToSrgbBranchless(FilmColor);
-		#endif
+			TonemappedColor = LinearToSrgbBranchless(FilmColor);
+#endif
+		}
+
 
 		// Blend with custom LDR color, used for Fade track in Matinee.
 		// This is the 101% wrong way to do this,

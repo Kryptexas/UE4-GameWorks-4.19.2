@@ -62,7 +62,11 @@ void FPersonaToolkit::Initialize(UAnimBlueprint* InAnimBlueprint)
 	AnimBlueprint = InAnimBlueprint;
 	Skeleton = InAnimBlueprint->TargetSkeleton;
 	check(InAnimBlueprint->TargetSkeleton);
-	Mesh = InAnimBlueprint->TargetSkeleton->GetPreviewMesh();
+	Mesh = InAnimBlueprint->GetPreviewMesh();
+	if (Mesh == nullptr)
+	{
+		Mesh = Skeleton->GetPreviewMesh();
+	}
 	if (Mesh == nullptr)
 	{
 		Mesh = Skeleton->FindCompatibleMesh();
@@ -90,13 +94,11 @@ void FPersonaToolkit::CreatePreviewScene()
 		PersonaModule.OnPreviewSceneCreated().Broadcast(PreviewScene.ToSharedRef());
 
 		bool bSetMesh = false;
-		USkeletalMesh* SkeletonPreviewMesh = nullptr;
 
 		// Set the mesh
 		if (Mesh != nullptr)
 		{
 			PreviewScene->SetPreviewMesh(Mesh);
-			SkeletonPreviewMesh = Mesh;
 			bSetMesh = true;
 		}
 		else if (AnimationAsset != nullptr)
@@ -105,7 +107,15 @@ void FPersonaToolkit::CreatePreviewScene()
 			if (AssetMesh)
 			{
 				PreviewScene->SetPreviewMesh(AssetMesh);
-				SkeletonPreviewMesh = AssetMesh;
+				bSetMesh = true;
+			}
+		}
+		else if (AnimBlueprint != nullptr)
+		{
+			USkeletalMesh* AssetMesh = AnimBlueprint->GetPreviewMesh();
+			if (AssetMesh)
+			{
+				PreviewScene->SetPreviewMesh(AssetMesh);
 				bSetMesh = true;
 			}
 		}
@@ -117,11 +127,9 @@ void FPersonaToolkit::CreatePreviewScene()
 			if (PreviewMesh)
 			{
 				PreviewScene->SetPreviewMesh(PreviewMesh);
-				SkeletonPreviewMesh = PreviewMesh;
+				EditableSkeleton->SetPreviewMesh(PreviewMesh);
 			}
 		}
-
-		EditableSkeleton->SetPreviewMesh(SkeletonPreviewMesh);
 	}
 }
 
@@ -179,12 +187,18 @@ TSharedRef<IPersonaPreviewScene> FPersonaToolkit::GetPreviewScene() const
 {
 	return PreviewScene.ToSharedRef();
 }
+
 USkeletalMesh* FPersonaToolkit::GetPreviewMesh() const
 {
 	if (InitialAssetClass == UAnimationAsset::StaticClass())
 	{
 		check(AnimationAsset);
 		return AnimationAsset->GetPreviewMesh();
+	}
+	else if (InitialAssetClass == UAnimBlueprint::StaticClass())
+	{
+		check(AnimBlueprint);
+		return AnimBlueprint->GetPreviewMesh();
 	}
 	else if(InitialAssetClass == USkeletalMesh::StaticClass())
 	{
@@ -209,6 +223,13 @@ void FPersonaToolkit::SetPreviewMesh(class USkeletalMesh* InSkeletalMesh)
 
 			check(AnimationAsset);
 			AnimationAsset->SetPreviewMesh(InSkeletalMesh);
+		}
+		else if (InitialAssetClass == UAnimBlueprint::StaticClass())
+		{
+			FScopedTransaction Transaction(NSLOCTEXT("PersonaToolkit", "SetAnimBlueprintPreviewMesh", "Set Animation Blueprint Preview Mesh"));
+
+			check(AnimBlueprint);
+			AnimBlueprint->SetPreviewMesh(InSkeletalMesh);
 		}
 		else
 		{

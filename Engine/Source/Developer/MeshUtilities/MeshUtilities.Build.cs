@@ -5,7 +5,7 @@ using System.IO;
 
 public class MeshUtilities : ModuleRules
 {
-	public MeshUtilities(TargetInfo Target)
+	public MeshUtilities(ReadOnlyTargetRules Target) : base(Target)
 	{
 
         PublicDependencyModuleNames.AddRange(
@@ -64,5 +64,33 @@ public class MeshUtilities : ModuleRules
                 );
             }
 		}
+
+        // EMBREE
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            string SDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelEmbree/Embree2140/Win64/";
+
+            PublicIncludePaths.Add(SDKDir + "include");
+            PublicLibraryPaths.Add(SDKDir + "lib");
+            PublicAdditionalLibraries.Add("embree.2.14.0.lib");
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/embree.2.14.0.dll"));
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/tbb.dll"));
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/tbbmalloc.dll"));
+            Definitions.Add("USE_EMBREE=1");
+        }
+        else if (Target.Platform == UnrealTargetPlatform.Mac)
+        {
+            string SDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "IntelEmbree/Embree2140/MacOSX/";
+
+            PublicIncludePaths.Add(SDKDir + "include");
+            PublicAdditionalLibraries.Add(SDKDir + "lib/libembree.2.14.0.dylib");
+			PublicAdditionalLibraries.Add(SDKDir + "lib/libtbb.dylib");
+			PublicAdditionalLibraries.Add(SDKDir + "lib/libtbbmalloc.dylib");
+            Definitions.Add("USE_EMBREE=1");
+        }
+        else
+        {
+            Definitions.Add("USE_EMBREE=0");
+        }
 	}
 }

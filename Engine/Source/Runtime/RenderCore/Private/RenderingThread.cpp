@@ -18,6 +18,8 @@
 #include "TickableObjectRenderThread.h"
 #include "Stats/StatsData.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "RenderResource.h"
+
 //
 // Globals
 //
@@ -815,6 +817,46 @@ bool IsRenderingThreadHealthy()
 	return GIsRenderingThreadHealthy;
 }
 
+static FGraphEventRef BundledCompletionEvent;
+static FGraphEventRef BundledCompletionEventPrereq; // We fire this when we are done, which queues the actual fence
+
+void StartRenderCommandFenceBundler()
+{
+	if (!GIsThreadedRendering)
+	{
+		return;
+	}
+
+	check(IsInGameThread() && !BundledCompletionEvent.GetReference() && !BundledCompletionEventPrereq.GetReference()); // can't use this in a nested fashion
+	BundledCompletionEventPrereq = FGraphEvent::CreateGraphEvent();
+
+	FGraphEventArray Prereqs;
+	Prereqs.Add(BundledCompletionEventPrereq);
+
+	DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.FenceRenderCommandBundled"),
+	STAT_FNullGraphTask_FenceRenderCommandBundled,
+		STATGROUP_TaskGraphTasks);
+
+	BundledCompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(&Prereqs, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+		GET_STATID(STAT_FNullGraphTask_FenceRenderCommandBundled), ENamedThreads::RenderThread);
+
+	StartBatchedRelease();
+}
+
+void StopRenderCommandFenceBundler()
+{
+	if (!GIsThreadedRendering || !BundledCompletionEvent.GetReference())
+	{
+		return;
+	}
+
+	EndBatchedRelease();
+	check(IsInGameThread() && BundledCompletionEvent.GetReference() && !BundledCompletionEvent->IsComplete() && BundledCompletionEventPrereq.GetReference() && !BundledCompletionEventPrereq->IsComplete()); // can't use this in a nested fashion
+	TArray<FBaseGraphTask*> NewTasks;
+	BundledCompletionEventPrereq->DispatchSubsequents(NewTasks);
+	BundledCompletionEventPrereq = nullptr;
+	BundledCompletionEvent = nullptr;
+}
 
 void FRenderCommandFence::BeginFence()
 {
@@ -824,6 +866,12 @@ void FRenderCommandFence::BeginFence()
 	}
 	else
 	{
+		if (BundledCompletionEvent.GetReference() && IsInGameThread())
+		{
+			CompletionEvent = BundledCompletionEvent;
+			return;
+		}
+
 		DECLARE_CYCLE_STAT(TEXT("FNullGraphTask.FenceRenderCommand"),
 			STAT_FNullGraphTask_FenceRenderCommand,
 			STATGROUP_TaskGraphTasks);
@@ -922,12 +970,13 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				bDone = Event->Wait(WaitTime);
 
 				// editor threads can block for quite a while... 
-				// Also dont do this when attached to the debugger as long pauses on breakpoints will cause this to trigger
 				if (!bDone && !WITH_EDITOR && !FPlatformMisc::IsDebuggerPresent())
 				{
+					static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
+
 					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
 					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
-					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !FPlatformMisc::IsDebuggerPresent() )
+					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !bDisabled)
 					{
 						UE_LOG(LogRendererCore, Fatal, TEXT("GameThread timed out waiting for RenderThread after %.02f secs"), FPlatformTime::Seconds() - StartTime);
 					}
@@ -950,6 +999,7 @@ void FRenderCommandFence::Wait(bool bProcessGameThreadTasks) const
 {
 	if (!IsFenceComplete())
 	{
+		StopRenderCommandFenceBundler();
 #if 0
 		// on most platforms this is a better solution because it doesn't spin
 		// windows needs to pump messages

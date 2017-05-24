@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "NiagaraPins/SGraphPinVector4.h"
+#include "KismetPins/SGraphPinVector4.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "ScopedTransaction.h"

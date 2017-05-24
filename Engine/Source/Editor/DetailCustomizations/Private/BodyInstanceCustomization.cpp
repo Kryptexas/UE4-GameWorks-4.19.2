@@ -1267,6 +1267,7 @@ void FBodyInstanceCustomizationHelper::UpdateFilters()
 	bDisplayMass = true;
 	bDisplayConstraints = true;
 	bDisplayEnablePhysics = true;
+	bDisplayAsyncScene = true;
 
 	for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
 	{
@@ -1284,6 +1285,11 @@ void FBodyInstanceCustomizationHelper::UpdateFilters()
 					bDisplayEnablePhysics = false;
 					bDisplayConstraints = false;
 				}
+			}
+
+			if(ObjectsCustomized[i]->IsA(USkeletalMeshComponent::StaticClass()))
+			{
+				bDisplayAsyncScene = false;
 			}
 		}
 	}
@@ -1317,8 +1323,7 @@ void FBodyInstanceCustomizationHelper::CustomizeDetails( IDetailLayoutBuilder& D
 
 		//ADVANCED
 		PhysicsCategory.AddProperty(BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, bAutoWeld)))
-			.Visibility(TAttribute<EVisibility>(this, &FBodyInstanceCustomizationHelper::IsAutoWeldVisible))
-			.EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsAutoWeldEditable), NULL);
+			.Visibility(TAttribute<EVisibility>(this, &FBodyInstanceCustomizationHelper::IsAutoWeldVisible));
 
 		PhysicsCategory.AddProperty(BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, bStartAwake)));
 
@@ -1330,7 +1335,14 @@ void FBodyInstanceCustomizationHelper::CustomizeDetails( IDetailLayoutBuilder& D
 		TSharedRef<IPropertyHandle> AsyncEnabled = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, bUseAsyncScene)).ToSharedRef();
 		if(AsyncEnabled->IsCustomized() == false)	//outer customization already handles it so don't bother adding
 		{
-			PhysicsCategory.AddProperty(AsyncEnabled).EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsUseAsyncEditable), NULL);
+			if (bDisplayAsyncScene)
+			{
+				PhysicsCategory.AddProperty(AsyncEnabled).EditCondition(TAttribute<bool>(this, &FBodyInstanceCustomizationHelper::IsUseAsyncEditable), NULL);
+			}
+			else
+			{
+				AsyncEnabled->MarkHiddenByCustomization();
+			}
 		}
 		
 
@@ -1509,25 +1521,6 @@ EVisibility FBodyInstanceCustomizationHelper::IsMaxAngularVelocityVisible(bool b
 	{
 		return bIsMaxAngularVelocityReadOnly ? EVisibility::Visible : EVisibility::Collapsed;
 	}
-}
-
-bool FBodyInstanceCustomizationHelper::IsAutoWeldEditable() const
-{
-	for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
-	{
-		if (UPrimitiveComponent * SceneComponent = Cast<UPrimitiveComponent>(ObjectsCustomized[i].Get()))
-		{
-			if (FBodyInstance* BI = SceneComponent->GetBodyInstance())
-			{
-				if (BI->ShouldInstanceSimulatingPhysics())
-				{
-					return false;
-				}
-			}
-		}
-	}
-
-	return true;
 }
 
 EVisibility FBodyInstanceCustomizationHelper::IsAutoWeldVisible() const

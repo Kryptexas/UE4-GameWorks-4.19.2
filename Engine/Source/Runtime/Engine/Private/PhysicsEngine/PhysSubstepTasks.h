@@ -99,6 +99,7 @@ struct FForceTarget
 	FVector Position;
 	bool bPosition;
 	bool bAccelChange;
+	bool bIsLocalForce;
 };
 
 struct FTorqueTarget
@@ -163,7 +164,7 @@ public:
 	bool GetKinematicTarget_AssumesLocked(const FBodyInstance* Body, FTransform& OutTM) const;
 	void AddCustomPhysics_AssumesLocked(FBodyInstance* Body, const FCalculateCustomPhysics& CalculateCustomPhysics);
 	void AddForce_AssumesLocked(FBodyInstance* Body, const FVector& Force, bool bAccelChange);
-	void AddForceAtPosition_AssumesLocked(FBodyInstance* Body, const FVector& Force, const FVector& Position);
+	void AddForceAtPosition_AssumesLocked(FBodyInstance* Body, const FVector& Force, const FVector& Position, bool bIsLocalForce);
 	void AddTorque_AssumesLocked(FBodyInstance* Body, const FVector& Torque, bool bAccelChange);
 	void AddRadialForceToBody_AssumesLocked(FBodyInstance* Body, const FVector& Origin, const float Radius, const float Strength, const uint8 Falloff, const bool bAccelChange);
 

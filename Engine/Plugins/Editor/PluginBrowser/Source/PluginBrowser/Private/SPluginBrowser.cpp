@@ -186,7 +186,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 		.TextStyle(FEditorStyle::Get(), "LargeText")
 		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 		.HAlign(HAlign_Center)
-		.Text(LOCTEXT("NewPluginLabel", "New plugin"))
+		.Text(LOCTEXT("NewPluginLabel", "New Plugin"))
 		.OnClicked(this, &SPluginBrowser::HandleNewPluginButtonClicked)
 	];
 

@@ -3,6 +3,7 @@ Title: Find Result Panel
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description: Panel that is a search tool within the Blueprint Editor that allows you to quickly track down a variety of objects.
 version: 4.9
+tags:Blueprints
 
 
 The **Find Results** panel is a powerful search tool within the Blueprint Editor that allows you to quickly track down a variety of objects based on the following criteria:

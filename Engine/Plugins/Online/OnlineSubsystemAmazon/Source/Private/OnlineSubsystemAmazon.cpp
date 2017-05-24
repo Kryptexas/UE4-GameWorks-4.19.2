@@ -21,7 +21,7 @@ public:
 
 	virtual IOnlineSubsystemPtr CreateSubsystem(FName InstanceName)
 	{
-		FOnlineSubsystemAmazonPtr OnlineSub = MakeShareable(new FOnlineSubsystemAmazon());
+		FOnlineSubsystemAmazonPtr OnlineSub = MakeShareable(new FOnlineSubsystemAmazon(InstanceName));
 		if (OnlineSub->IsEnabled())
 		{
 			if(!OnlineSub->Init())
@@ -132,11 +132,17 @@ bool FOnlineSubsystemAmazon::IsEnabled(void)
 	return bEnableAmazon;
 }
 
-FOnlineSubsystemAmazon::FOnlineSubsystemAmazon() :
-	IdentityInterface(NULL),
-	TickToggle(0)
+FOnlineSubsystemAmazon::FOnlineSubsystemAmazon() 
+	: IdentityInterface(nullptr)
+	, TickToggle(0)
 {
+}
 
+FOnlineSubsystemAmazon::FOnlineSubsystemAmazon(FName InInstanceName) 
+	: FOnlineSubsystemImpl(AMAZON_SUBSYSTEM, InInstanceName)
+	, IdentityInterface(nullptr)
+	, TickToggle(0)
+{
 }
 
 FOnlineSubsystemAmazon::~FOnlineSubsystemAmazon()

@@ -32,6 +32,9 @@ public:
 	/** Sets a new root package name */
 	void SetGraphRootPackageNames(const TArray<FAssetIdentifier>& NewGraphRootIdentifiers);
 
+	/** Gets graph editor */
+	TSharedPtr<SGraphEditor> GetGraphEditor() const { return GraphEditorPtr; }
+
 private:
 
 	/** Called to create context menu when right-clicking on graph */
@@ -90,6 +93,10 @@ private:
 	void OnShowHardReferencesChanged(ECheckBoxState NewState);
 	ECheckBoxState IsShowHardReferencesChecked() const;
 
+	EVisibility GetManagementReferencesVisibility() const;
+	void OnShowManagementReferencesChanged(ECheckBoxState NewState);
+	ECheckBoxState IsShowManagementReferencesChecked() const;
+
 	void OnShowSearchableNamesChanged(ECheckBoxState NewState);
 	ECheckBoxState IsShowSearchableNamesChecked() const;
 	void OnShowNativePackagesChanged(ECheckBoxState NewState);
@@ -102,13 +109,18 @@ private:
 	void ShowSelectionInContentBrowser();
 	void OpenSelectedInAssetEditor();
 	void ReCenterGraph();
-	void ListReferencedObjects();
-	void ListObjectsThatReference();
+	void CopyReferencedObjects();
+	void CopyReferencingObjects();
+	void ShowReferencedObjects();
+	void ShowReferencingObjects();
 	void MakeCollectionWithReferencersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers);
 	void ShowSizeMap();
 	void ShowReferenceTree();
 
 	void ReCenterGraphOnNodes(const TSet<UObject*>& Nodes);
+
+	FString GetReferencedObjectsList() const;
+	FString GetReferencingObjectsList() const;
 
 	UObject* GetObjectFromSingleSelectedNode() const;
 	void GetPackageNamesFromSelectedNodes(TSet<FName>& OutNames) const;

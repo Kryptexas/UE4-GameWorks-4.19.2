@@ -15,6 +15,7 @@
 #include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
+#include "MeshUtilities.h"
 #include "Misc/FeedbackContext.h"
 #include "Misc/App.h"
 #endif // #if WITH_EDITOR
@@ -92,6 +93,9 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 
 	// Remember the derived data key of our current render data if any.
 	FString ExistingDerivedDataKey = RenderData ? RenderData->DerivedDataKey : TEXT("");
+
+	// Regenerating UVs for lightmaps, use the latest version
+	LightmapUVVersion = (int32)ELightmapUVVersion::Latest;
 
 	// Free existing render data and recache.
 	CacheDerivedData();
@@ -223,51 +227,58 @@ struct FStaticMeshComponentVertPosOctreeSemantics
 };
 typedef TOctree<FPaintedVertex, FStaticMeshComponentVertPosOctreeSemantics> TSMCVertPosOctree;
 
-void RemapPaintedVertexColors(
-	const TArray<FPaintedVertex>& InPaintedVertices,
+void RemapPaintedVertexColors(const TArray<FPaintedVertex>& InPaintedVertices,
 	const FColorVertexBuffer& InOverrideColors,
+	const FPositionVertexBuffer& OldPositions,
+	const FStaticMeshVertexBuffer& OldVertexBuffer,
 	const FPositionVertexBuffer& NewPositions,
 	const FStaticMeshVertexBuffer* OptionalVertexBuffer,
-	TArray<FColor>& OutOverrideColors
-	)
+	TArray<FColor>& OutOverrideColors)
 {
-
-	// Local copy of painted vertices we can scratch on.
-	TArray<FPaintedVertex> PaintedVertices(InPaintedVertices);
-
 	// Find the extents formed by the cached vertex positions in order to optimize the octree used later
-	FVector MinExtents( PaintedVertices[ 0 ].Position );
-	FVector MaxExtents( PaintedVertices[ 0 ].Position );
+	FVector MinExtents(EForceInit::ForceInitToZero);
+	FVector MaxExtents(EForceInit::ForceInitToZero);
+	
+	TArray<FPaintedVertex> PaintedVertices;
+	FBox Bounds(EForceInit::ForceInitToZero);
 
-	for (int32 VertIndex = 0; VertIndex < PaintedVertices.Num(); ++VertIndex)
+	// Retrieve currently painted vertices
+	if (InPaintedVertices.Num() > 0)
 	{
-		FVector& CurVector = PaintedVertices[ VertIndex ].Position;
+		// In case we have retained the painted vertices we can just append
+		PaintedVertices.Append(InPaintedVertices);
+		
+		for (const FPaintedVertex& Vertex : InPaintedVertices)
+		{
+			Bounds += Vertex.Position;
+		}
+	}
+	else
+	{
+		// Otherwise we have to retrieve the data from the override color and vertex buffers
+		TArray<FColor> Colors;
+		InOverrideColors.GetVertexColors(Colors);
 
-		MinExtents.X = FMath::Min<float>( MinExtents.X, CurVector.X );
-		MinExtents.Y = FMath::Min<float>( MinExtents.Y, CurVector.Y );
-		MinExtents.Z = FMath::Min<float>( MinExtents.Z, CurVector.Z );
+		PaintedVertices.Reset(Colors.Num());
+		FPaintedVertex PaintedVertex;
+		for (int32 Index = 0; Index < Colors.Num(); ++Index)
+		{
+			PaintedVertex.Color = Colors[Index];
+			PaintedVertex.Normal = OldVertexBuffer.VertexTangentZ(Index);
+			PaintedVertex.Position = OldPositions.VertexPosition(Index);
+			Bounds += PaintedVertex.Position;
 
-		MaxExtents.X = FMath::Max<float>( MaxExtents.X, CurVector.X );
-		MaxExtents.Y = FMath::Max<float>( MaxExtents.Y, CurVector.Y );
-		MaxExtents.Z = FMath::Max<float>( MaxExtents.Z, CurVector.Z );
+			PaintedVertices.Add(PaintedVertex);
+		}
 	}
 
 	// Create an octree which spans the extreme extents of the old and new vertex positions in order to quickly query for the colors
 	// of the new vertex positions
 	for (int32 VertIndex = 0; VertIndex < (int32)NewPositions.GetNumVertices(); ++VertIndex)
 	{
-		FVector CurVector = NewPositions.VertexPosition(VertIndex);
-
-		MinExtents.X = FMath::Min<float>( MinExtents.X, CurVector.X );
-		MinExtents.Y = FMath::Min<float>( MinExtents.Y, CurVector.Y );
-		MinExtents.Z = FMath::Min<float>( MinExtents.Z, CurVector.Z );
-
-		MaxExtents.X = FMath::Max<float>( MaxExtents.X, CurVector.X );
-		MaxExtents.Y = FMath::Max<float>( MaxExtents.Y, CurVector.Y );
-		MaxExtents.Z = FMath::Max<float>( MaxExtents.Z, CurVector.Z );
+		Bounds += NewPositions.VertexPosition(VertIndex);
 	}
 
-	FBox Bounds( MinExtents, MaxExtents );
 	TSMCVertPosOctree VertPosOctree( Bounds.GetCenter(), Bounds.GetExtent().GetMax() );
 
 	// Add each old vertex to the octree
@@ -275,7 +286,6 @@ void RemapPaintedVertexColors(
 	{
 		VertPosOctree.AddElement( PaintedVertices[ PaintedVertexIndex ] );
 	}
-
 
 	// Iterate over each new vertex position, attempting to find the old vertex it is closest to, applying
 	// the color of the old vertex to the new position if possible.

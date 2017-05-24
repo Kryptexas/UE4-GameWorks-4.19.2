@@ -24,6 +24,7 @@
 
 
 const FVector2D FTabManager::FallbackWindowSize( 1000, 600 );
+TMap<FTabId, FVector2D> FTabManager::DefaultTabWindowSizeMap;
 
 DEFINE_LOG_CATEGORY_STATIC(LogTabManager, Display, All);
 
@@ -1146,18 +1147,17 @@ TSharedRef<SDockTab> FTabManager::InvokeTab_Internal( const FTabId& TabId )
 	else
 	{
 		// No layout info about this tab found; start 
-		TSharedRef<FArea> NewAreaForTab = FTabManager::NewArea(FTabManager::FallbackWindowSize)
+		TSharedRef<FArea> NewAreaForTab = FTabManager::NewArea(FTabManager::GetDefaultTabWindowSize(TabId))
 		->Split
 		(
 			FTabManager::NewStack()
 			->AddTab( TabId, ETabState::OpenedTab )
 		);
 
-		TSharedRef<SDockingArea> DockingArea = RestoreArea( NewAreaForTab, GetPrivateApi().GetParentWindow() );
-				
+		TSharedRef<SDockingArea> DockingArea = RestoreArea(NewAreaForTab, GetPrivateApi().GetParentWindow());
 		const TSharedPtr<SDockTab> NewlyOpenedTab = DockingArea->GetAllChildTabs()[0];
 		check(NewlyOpenedTab.IsValid());
-		return NewlyOpenedTab.ToSharedRef();
+		return NewlyOpenedTab.ToSharedRef();	
 	}
 }
 
@@ -1522,6 +1522,19 @@ TSharedPtr<class SDockingTabStack> FTabManager::FindTabInLiveArea( const FTabMat
 	}
 
 	return TSharedPtr<SDockingTabStack>();
+}
+
+FVector2D FTabManager::GetDefaultTabWindowSize(const FTabId& TabId)
+{
+	FVector2D WindowSize = FTabManager::FallbackWindowSize;
+	FVector2D* DefaultTabSize = FTabManager::DefaultTabWindowSizeMap.Find(TabId);
+
+	if (DefaultTabSize != nullptr)
+	{
+		WindowSize = *DefaultTabSize;
+	}
+
+	return WindowSize;
 }
 
 template<typename MatchFunctorType>
@@ -1913,7 +1926,10 @@ void FGlobalTabmanager::DrawAttentionToTabManager( const TSharedRef<FTabManager>
 		// #HACK VREDITOR
 		if ( ProxyTabManager.IsValid() )
 		{
-			ProxyTabManager->DrawAttention(Tab.ToSharedRef());
+			if( ProxyTabManager->IsTabSupported( Tab->GetLayoutIdentifier() ) )
+			{
+				ProxyTabManager->DrawAttention(Tab.ToSharedRef());
+			}
 		}
 	}
 }
@@ -2121,7 +2137,7 @@ void FGlobalTabmanager::UpdateStats()
 
 void FGlobalTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab)
 {
-	if ( ProxyTabManager.IsValid() )
+	if ( ProxyTabManager.IsValid() && ProxyTabManager->IsTabSupported( UnmanagedTab->GetLayoutIdentifier() ) )
 	{
 		ProxyTabManager->OpenUnmanagedTab(PlaceholderId, SearchPreference, UnmanagedTab);
 	}
@@ -2136,29 +2152,43 @@ void FGlobalTabmanager::SetProxyTabManager(TSharedPtr<FProxyTabmanager> InProxyT
 	ProxyTabManager = InProxyTabManager;
 }
 
+bool FProxyTabmanager::IsTabSupported( const FTabId TabId ) const
+{
+	bool bIsTabSupported = true;
+	if( OnIsTabSupported.IsBound() )
+	{
+		OnIsTabSupported.Broadcast( TabId, /* In/Out */ bIsTabSupported );
+	}
+
+	return bIsTabSupported;
+}
+
 void FProxyTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab)
 {
-	// No layout info about this tab found; start 
-	TSharedRef<FArea> NewAreaForTab = FTabManager::NewPrimaryArea()
-		->Split
-		(
-			FTabManager::NewStack()
-			->AddTab(UnmanagedTab->GetLayoutIdentifier(), ETabState::OpenedTab)
-		);
-
 	TSharedPtr<SWindow> ParentWindowPtr = ParentWindow.Pin();
-	TSharedRef<SDockingArea> DockingArea = RestoreArea(NewAreaForTab, ParentWindowPtr, false);
-	ParentWindowPtr->SetContent(DockingArea);
+	if( ensure( ParentWindowPtr.IsValid() ) )
+	{
+		// No layout info about this tab found; start 
+		TSharedRef<FArea> NewAreaForTab = FTabManager::NewPrimaryArea()
+			->Split
+			(
+				FTabManager::NewStack()
+				->AddTab( UnmanagedTab->GetLayoutIdentifier(), ETabState::OpenedTab )
+			);
 
-	const TSharedPtr<SDockTab> NewlyOpenedTab = DockingArea->GetAllChildTabs()[0];
-	check(NewlyOpenedTab.IsValid());
+		TSharedRef<SDockingArea> DockingArea = RestoreArea(NewAreaForTab, ParentWindowPtr, false);
+		ParentWindowPtr->SetContent(DockingArea);
+
+		const TSharedPtr<SDockTab> NewlyOpenedTab = DockingArea->GetAllChildTabs()[0];
+		check(NewlyOpenedTab.IsValid());
 		
-	NewlyOpenedTab->GetParent()->GetParentDockTabStack()->OpenTab(UnmanagedTab);
-	NewlyOpenedTab->RequestCloseTab();
+		NewlyOpenedTab->GetParent()->GetParentDockTabStack()->OpenTab(UnmanagedTab);
+		NewlyOpenedTab->RequestCloseTab();
 
-	MainNonCloseableTab = UnmanagedTab;
+		MainNonCloseableTab = UnmanagedTab;
 
-	OnTabOpened.Broadcast(UnmanagedTab);
+		OnTabOpened.Broadcast(UnmanagedTab);
+	}
 }
 
 void FProxyTabmanager::DrawAttention(const TSharedRef<SDockTab>& TabToHighlight)
@@ -2168,5 +2198,10 @@ void FProxyTabmanager::DrawAttention(const TSharedRef<SDockTab>& TabToHighlight)
 	OnAttentionDrawnToTab.Broadcast(TabToHighlight);
 }
 
+
+void FProxyTabmanager::SetParentWindow(TSharedRef<SWindow> InParentWindow)
+{
+	ParentWindow = InParentWindow;
+}
 
 #undef LOCTEXT_NAMESPACE

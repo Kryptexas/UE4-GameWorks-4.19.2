@@ -5,6 +5,9 @@
 #include "Fonts/SlateTextShaper.h"
 #include "Fonts/LegacySlateFontInfoCache.h"
 #include "HAL/IConsoleManager.h"
+#include "SlateGlobals.h"
+
+DECLARE_CYCLE_STAT(TEXT("Render Glyph"), STAT_SlateRenderGlyph, STATGROUP_Slate);
 
 /**
  * Method for rendering fonts with the possibility of an outline.
@@ -66,13 +69,11 @@ uint16 FSlateFontRenderer::GetMaxHeight(const FSlateFontInfo& InFontInfo, const 
 
 	if (FaceGlyphData.FaceAndMemory.IsValid())
 	{
-		FFreeTypeGlyphCache::FCachedGlyphData CachedGlyphData;
-		if (FTGlyphCache->FindOrCache(FaceGlyphData.FaceAndMemory->GetFace(), FaceGlyphData.GlyphIndex, FaceGlyphData.GlyphFlags, InFontInfo.Size, InScale, CachedGlyphData))
-		{
-			// Adjust the height by the size of the outline that was applied.  The outline is counted twice since it surrounds the font on top and bottom
-			const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize * 2;
-			return static_cast<uint16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FT_MulFix(CachedGlyphData.Height, CachedGlyphData.SizeMetrics.y_scale)) + HeightAdjustment) * InScale);
-		}
+		FreeTypeUtils::ApplySizeAndScale(FaceGlyphData.FaceAndMemory->GetFace(), InFontInfo.Size, InScale);
+
+		// Adjust the height by the size of the outline that was applied.  
+		const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize;
+		return static_cast<uint16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FaceGlyphData.FaceAndMemory->GetScaledHeight()) + HeightAdjustment) * InScale);
 	}
 
 	return 0;
@@ -91,13 +92,9 @@ int16 FSlateFontRenderer::GetBaseline(const FSlateFontInfo& InFontInfo, const fl
 
 	if (FaceGlyphData.FaceAndMemory.IsValid())
 	{
-		FFreeTypeGlyphCache::FCachedGlyphData CachedGlyphData;
-		if (FTGlyphCache->FindOrCache(FaceGlyphData.FaceAndMemory->GetFace(), FaceGlyphData.GlyphIndex, FaceGlyphData.GlyphFlags, InFontInfo.Size, InScale, CachedGlyphData))
-		{
-			// Adjust the height by the size of the outline that was applied.  The outline is counted twice since it surrounds the font on top and bottom
-			const float HeightAdjustment = InFontInfo.OutlineSettings.OutlineSize * 2;
-			return static_cast<int16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(CachedGlyphData.SizeMetrics.descender) + HeightAdjustment) * InScale);
-		}
+		FreeTypeUtils::ApplySizeAndScale(FaceGlyphData.FaceAndMemory->GetFace(), InFontInfo.Size, InScale);
+
+		return static_cast<int16>((FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FaceGlyphData.FaceAndMemory->GetDescender())) * InScale);
 	}
 
 	return 0;
@@ -147,7 +144,6 @@ int8 FSlateFontRenderer::GetKerning(const FFontData& InFontData, const int32 InS
 {
 #if WITH_FREETYPE
 	int8 Kerning = 0;
-	int32* FoundKerning = nullptr;
 
 	FT_Face FontFace = GetFontFace(InFontData);
 
@@ -189,92 +185,79 @@ bool FSlateFontRenderer::CanLoadCharacter(const FFontData& InFontData, TCHAR Cha
 FFreeTypeFaceGlyphData FSlateFontRenderer::GetFontFaceForCharacter(const FFontData& InFontData, TCHAR Char, EFontFallback MaxFallbackLevel) const 
 {
 	FFreeTypeFaceGlyphData ReturnVal;
-
-	TSharedPtr<FFreeTypeFace> FaceAndMemory = CompositeFontCache->GetFontFace(InFontData);
-	uint32 GlyphIndex = 0;
 	const bool bOverrideFallback = Char == SlateFontRendererUtils::InvalidSubChar;
 
-	if (FaceAndMemory.IsValid())
+	// Try the requested font first
 	{
-		// Get the index to the glyph in the font face
-		GlyphIndex = FT_Get_Char_Index(FaceAndMemory->GetFace(), Char);
-		ReturnVal.CharFallbackLevel = EFontFallback::FF_NoFallback;
+		ReturnVal.FaceAndMemory = CompositeFontCache->GetFontFace(InFontData);
+
+		if (ReturnVal.FaceAndMemory.IsValid())
+		{
+			ReturnVal.GlyphIndex = FT_Get_Char_Index(ReturnVal.FaceAndMemory->GetFace(), Char);
+			ReturnVal.CharFallbackLevel = EFontFallback::FF_NoFallback;
+		}
 	}
 
 	// If the requested glyph doesn't exist, use the localization fallback font
-	if (!FaceAndMemory.IsValid() || (Char != 0 && GlyphIndex == 0))
+	if (Char != 0 && ReturnVal.GlyphIndex == 0)
 	{
 		const bool bCanFallback = bOverrideFallback || MaxFallbackLevel >= EFontFallback::FF_LocalizedFallback;
 
 		if (bCanFallback)
 		{
-			FaceAndMemory = CompositeFontCache->GetFontFace(FLegacySlateFontInfoCache::Get().GetLocalizedFallbackFontData());
+			ReturnVal.FaceAndMemory = CompositeFontCache->GetFontFace(FLegacySlateFontInfoCache::Get().GetLocalizedFallbackFontData());
 
-			if (FaceAndMemory.IsValid())
+			if (ReturnVal.FaceAndMemory.IsValid())
 			{	
-				GlyphIndex = FT_Get_Char_Index(FaceAndMemory->GetFace(), Char);
+				ReturnVal.GlyphIndex = FT_Get_Char_Index(ReturnVal.FaceAndMemory->GetFace(), Char);
 
-				ReturnVal.CharFallbackLevel = EFontFallback::FF_LocalizedFallback;
-				ReturnVal.GlyphFlags |= FT_LOAD_FORCE_AUTOHINT;
+				if (ReturnVal.GlyphIndex != 0)
+				{
+					ReturnVal.CharFallbackLevel = EFontFallback::FF_LocalizedFallback;
+					ReturnVal.GlyphFlags |= FT_LOAD_FORCE_AUTOHINT;
+				}
 			}
 		}
 	}
 
 	// If the requested glyph doesn't exist, use the last resort fallback font
-	if (!FaceAndMemory.IsValid() || (Char != 0 && GlyphIndex == 0))
+	if (Char != 0 && ReturnVal.GlyphIndex == 0)
 	{
-		bool bCanFallback = bOverrideFallback || MaxFallbackLevel >= EFontFallback::FF_LastResortFallback;
+		const bool bCanFallback = bOverrideFallback || MaxFallbackLevel >= EFontFallback::FF_LastResortFallback;
 
-		if (bCanFallback)
+		if (bCanFallback && FLegacySlateFontInfoCache::Get().IsLastResortFontAvailable())
 		{
-			FaceAndMemory = CompositeFontCache->GetFontFace(FLegacySlateFontInfoCache::Get().GetLastResortFontData());
+			ReturnVal.FaceAndMemory = CompositeFontCache->GetFontFace(FLegacySlateFontInfoCache::Get().GetLastResortFontData());
 
-			if (FaceAndMemory.IsValid())
+			if (ReturnVal.FaceAndMemory.IsValid())
 			{
-				GlyphIndex = FT_Get_Char_Index(FaceAndMemory->GetFace(), Char);
+				ReturnVal.GlyphIndex = FT_Get_Char_Index(ReturnVal.FaceAndMemory->GetFace(), Char);
 
-				ReturnVal.CharFallbackLevel = EFontFallback::FF_LastResortFallback;
-				ReturnVal.GlyphFlags |= FT_LOAD_FORCE_AUTOHINT;
+				if (ReturnVal.GlyphIndex != 0)
+				{
+					ReturnVal.CharFallbackLevel = EFontFallback::FF_LastResortFallback;
+					ReturnVal.GlyphFlags |= FT_LOAD_FORCE_AUTOHINT;
+				}
 			}
 		}
 	}
 
-	ReturnVal.FaceAndMemory = FaceAndMemory;
-	ReturnVal.GlyphIndex = GlyphIndex;
+	// Found an invalid glyph?
+	if (Char != 0 && ReturnVal.GlyphIndex == 0)
+	{
+		ReturnVal.FaceAndMemory.Reset();
+	}
 
 	return ReturnVal;
 }
 
 #endif // WITH_FREETYPE
 
-bool FSlateFontRenderer::GetRenderData(const FFontData& InFontData, const int32 InSize, const FFontOutlineSettings& InOutlineSettings, TCHAR Char, FCharacterRenderData& OutRenderData, const float InScale, EFontFallback* OutFallbackLevel) const
-{
-#if WITH_FREETYPE
-	FFreeTypeFaceGlyphData FaceGlyphData = GetFontFaceForCharacter(InFontData, Char, EFontFallback::FF_Max);
-	if (FaceGlyphData.FaceAndMemory.IsValid())
-	{
-		check(FaceGlyphData.FaceAndMemory->IsValid());
-
-		if (OutFallbackLevel)
-		{
-			*OutFallbackLevel = FaceGlyphData.CharFallbackLevel;
-		}
-
-		SlateFontRendererUtils::AppendGlyphFlags(InFontData, FaceGlyphData.GlyphFlags);
-
-		FT_Error Error = FreeTypeUtils::LoadGlyph(FaceGlyphData.FaceAndMemory->GetFace(), FaceGlyphData.GlyphIndex, FaceGlyphData.GlyphFlags, InSize, InScale);
-		check(Error == 0);
-
-		OutRenderData.Char = Char;
-		return GetRenderData(FaceGlyphData, InScale, InOutlineSettings, OutRenderData);
-	}
-#endif // WITH_FREETYPE
-	return false;
-}
-
 bool FSlateFontRenderer::GetRenderData(const FShapedGlyphEntry& InShapedGlyph, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const
 {
 #if WITH_FREETYPE
+	SCOPE_CYCLE_COUNTER(STAT_SlateRenderGlyph);
+
 	FFreeTypeFaceGlyphData FaceGlyphData;
 	FaceGlyphData.FaceAndMemory = InShapedGlyph.FontFaceData->FontFace.Pin();
 	FaceGlyphData.GlyphIndex = InShapedGlyph.GlyphIndex;
@@ -331,7 +314,7 @@ struct FRasterizerSpanList
 	FBox2D BoundingBox;
 
 	FRasterizerSpanList()
-		: BoundingBox(0)
+		: BoundingBox(ForceInit)
 	{}
 };
 
@@ -339,7 +322,7 @@ struct FRasterizerSpanList
 /**
  * Rasterizes a font glyph
  */
-void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanList& OutSpansListOuter)
+void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanList& OutSpansList)
 {
 	auto RasterizerCallback = [](const int32 Y, const int32 Count, const FT_Span* const Spans, void* const UserData)
 	{
@@ -364,7 +347,7 @@ void RenderOutlineRows(FT_Library Library, FT_Outline* Outline, FRasterizerSpanL
 	FMemory::Memzero<FT_Raster_Params>(RasterParams);
 	RasterParams.flags = FT_RASTER_FLAG_AA | FT_RASTER_FLAG_DIRECT;
 	RasterParams.gray_spans = RasterizerCallback;
-	RasterParams.user = &OutSpansListOuter;
+	RasterParams.user = &OutSpansList;
 
 	FT_Outline_Render(Library, Outline, &RasterParams);
 
@@ -381,7 +364,7 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 
 	float ScaledOutlineSize = FMath::RoundToFloat(InOutlineSettings.OutlineSize * InScale);
 
-	if( (ScaledOutlineSize > 0 || OutlineFontRenderMethod == 1) && Slot->format == FT_GLYPH_FORMAT_OUTLINE)
+	if((ScaledOutlineSize > 0 || OutlineFontRenderMethod == 1) && Slot->format == FT_GLYPH_FORMAT_OUTLINE)
 	{
 		// Render the filled area first
 		FRasterizerSpanList FillSpans;
@@ -412,7 +395,7 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 
 		FVector2D Size = BoundingBox.GetSize();
 
-		//Note: we add 1 to width and height because we need full pixels
+		//Note: we add 1 to width and height because the size of the rect is inclusive
 		int32 Width = FMath::TruncToInt(Size.X)+1;
 		int32 Height = FMath::TruncToInt(Size.Y)+1;
 
@@ -421,7 +404,7 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 		OutRenderData.MeasureInfo.SizeX = Width;
 		OutRenderData.MeasureInfo.SizeY = Height;
 
-		OutRenderData.RawPixels.AddZeroed(OutRenderData.MeasureInfo.SizeX * OutRenderData.MeasureInfo.SizeY);
+		OutRenderData.RawPixels.AddZeroed(Width*Height);
 
 		int32 XMin = BoundingBox.Min.X;
 		int32 YMin = BoundingBox.Min.Y;
@@ -483,7 +466,6 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 
 		// Note: in order to render the stroke properly AND to get proper measurements this must be done after rendering the stroke
 		FT_Render_Glyph(Slot, FT_RENDER_MODE_NORMAL);
-
 	}
 	else
 	{
@@ -552,23 +534,17 @@ bool FSlateFontRenderer::GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyph
 		ScaledOutlineSize = 0;
 	}
 
-	const int32 Height = static_cast<int32>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(FT_MulFix(Face->height, Face->size->metrics.y_scale)) * InScale);
-
 	// Set measurement info for this character
 	OutRenderData.GlyphIndex = InFaceGlyphData.GlyphIndex;
 	OutRenderData.HasKerning = FT_HAS_KERNING(Face) != 0;
 
-	OutRenderData.MaxHeight = Height;
-
-	// Ascender is not scaled by freetype.  Scale it now. 
-	OutRenderData.MeasureInfo.GlobalAscender = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(Face->size->metrics.ascender) * InScale);
-	// Descender is not scaled by freetype.  Scale it now. 
-	OutRenderData.MeasureInfo.GlobalDescender = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(Face->size->metrics.descender) * InScale);
+	OutRenderData.MaxHeight = static_cast<int32>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(InFaceGlyphData.FaceAndMemory->GetScaledHeight()) * InScale);
+	OutRenderData.MeasureInfo.GlobalAscender = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(InFaceGlyphData.FaceAndMemory->GetAscender()) * InScale);
+	OutRenderData.MeasureInfo.GlobalDescender = static_cast<int16>(FreeTypeUtils::Convert26Dot6ToRoundedPixel<int32>(InFaceGlyphData.FaceAndMemory->GetDescender()) * InScale);
 	// Note we use Slot->advance instead of Slot->metrics.horiAdvance because Slot->Advance contains transformed position (needed if we scale)
 	OutRenderData.MeasureInfo.XAdvance = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(Slot->advance.x);
 	OutRenderData.MeasureInfo.HorizontalOffset = Slot->bitmap_left;
 	OutRenderData.MeasureInfo.VerticalOffset = Slot->bitmap_top + ScaledOutlineSize;
-
 
 	return true;
 }

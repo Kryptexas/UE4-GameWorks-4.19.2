@@ -178,16 +178,16 @@ void UBTDecorator_Blackboard::BuildDescription()
 			switch (Op)
 			{
 			case EBlackboardKeyOperation::Basic:
-				BlackboardDesc = FString::Printf(TEXT("%s is %s"), *KeyName, *BasicOpEnum->GetEnumName(OperationType));
+				BlackboardDesc = FString::Printf(TEXT("%s is %s"), *KeyName, *BasicOpEnum->GetDisplayNameTextByValue(OperationType).ToString());
 				break;
 
 			case EBlackboardKeyOperation::Arithmetic:
-				BlackboardDesc = FString::Printf(TEXT("%s %s %s"), *KeyName, *ArithmeticOpEnum->GetDisplayNameText(OperationType).ToString(),
+				BlackboardDesc = FString::Printf(TEXT("%s %s %s"), *KeyName, *ArithmeticOpEnum->GetDisplayNameTextByValue(OperationType).ToString(),
 					*EntryInfo->KeyType->DescribeArithmeticParam(IntValue, FloatValue));
 				break;
 
 			case EBlackboardKeyOperation::Text:
-				BlackboardDesc = FString::Printf(TEXT("%s %s [%s]"), *KeyName, *TextOpEnum->GetEnumName(OperationType), *StringValue);
+				BlackboardDesc = FString::Printf(TEXT("%s %s [%s]"), *KeyName, *TextOpEnum->GetDisplayNameTextByValue(OperationType).ToString(), *StringValue);
 				break;
 
 			default: break;

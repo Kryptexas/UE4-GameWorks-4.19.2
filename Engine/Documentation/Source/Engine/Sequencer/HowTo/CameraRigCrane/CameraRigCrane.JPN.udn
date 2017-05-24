@@ -1,117 +1,22 @@
-﻿INTSourceChangelist:3009005
+﻿INTSourceChangelist:3335256
 Availability:Public
 Title:Camera Rig Crane から撮影する
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Camera Rig Crane を使ってスイープ動作でシーンを撮影します。 
-Version: 4.12
+Crumbs:
+Description:Camera Rig Crane を使ってスイープ動作でシーンを撮影する方法を学習しましょう。 
+Version:4.14
 SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine/Sequencer/ReferenceEditor
+tags:Sequencer
 
-滑らかなスイープ ショットを生み出すために現実世界の映像制作で使われるツールとして、カメラをクレーンに装着し、クレーンの動きによってショットを制御するというものがあります。
-シーケンサーで **Camera Rig Crane** アクタとアタッチされた **カメラ** を使って同様のショットを作成することができます。 
+滑らかなスイープ ショットを生み出すために現実の映像制作で使われる方法として、カメラをクレーンに取り付けて、クレーンの動きによってショットを制御するというものがあります。
+シーケンサーで **Camera Rig Crane** アクタとアタッチされた **カメラ** を使って同様のショットを作成することができます。クレーンのピッチ (上下動)、ヨー (左右回転)、クレーン アームの長さをキーフレーム化したり、 
+取り付けたカメラのピッチやヨーをロックする (クレーンの動きに追随する) ことができます。 
 
-この操作ガイドでは、Camera Rig Crane を追加し、カメラをアタッチし、サンプル Crane ショットを作成します。 
-
-
-## ステップ
-
-[REGION:note]
-ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。 
-[/REGION]
-
-1.	**[Modes]** パネルの **[Cinematic]** から **Camera Rig Crane** アセットをレベルにドラッグします。 
-
-	![](Crane01.png)
-
-1.	**[Cinematic]** から **Cine Camera アクタ** をレベルにドラッグします。 
-
-	![](Crane02.png)
-
-1.	**[ワールド アウトライナー]** ウィンドウで **CineCameraActor** を **CameraRig_Crane** にドラッグ & ドロップします。 
-
-	![](Crane03.png)
-
-	これでカメラがクレーンにアタッチされて、クレーンの動きに追随するようになります。 
-
-1.	**CineCameraActor** を選択し、**[Details (詳細)]** パネルの **[Transform]** で **[Location]** と **[Rotation]** の値に "0" を入力します。 
-
-	![](Crane04.png)
-
-	これでカメラのトランスフォームが初期化されて、クレーンに正しくアタッチされます。 
-
-1.	メイン ツールバー から **[Cinematics]** をクリックし、**[Add Level Sequence (レベル シーケンスを追加)]** をクリックします。 
-
-	![](Crane05.png)
-
-1.	**Ctrl** キーを押したまま、 **[CameraRigCrane]** と **[CineCameraActor]** を選択して両方とも **シーケンサー** に追加します。 
-
-	![](Crane06.png)
-
-1.	**[Add]** をクリックして、**[Camera Cut Track]** を選択します。 
-
-	![](Crane07.png)
-
-	これでどのカメラからこのレベル シーケンスを撮影するかを定義できます。 
-
-1.	**Camera Cuts** トラックで、**[+ Camera]** ボタンをクリックし、 **CineCameraActor** を選択します。 
-
-	![](Crane08.png)
-
-	これで、Camera Rig Crane と Cine Camera Actor を使ってシーンを撮影する準備が整いました。 
-	追加したカメラの視点を通してシーンがどのように見えるかをプレビューできます。これは、**Camera Cuts トラック** で、**[Lock Viewport to Camera Cuts (ビューポートをカメラカットにロック)]** ボタンをクリックして行います。 
-
-	![](Crane09.png)
-
-	**[Lock Viewport to Camera]** を再度クリックすると、カメラのロックが解除されます。 	
-
-1.	**Translate** ツール (**W** キー) と **Rotation** ツール (**E** キー) を使って、クレーン / カメラを以下のように回転させます。 
-
-	![](Crane10.png)
-
-	クレーンを上にあげ、押し出して、この特定のショットのためにレベルに立っているキャラクターにフォーカスし、その姿が見えるようにします。 
-
-1.	**[Transform Track]** で **[Add Key]** ボタンをクリックして、**[Cine Camera Actor]** の **[Transform]** 位置にキーを追加します。 
-
-	![](Crane11.png)
-
-1.	**CameraRig_Crane** 上の **[+ Track]** ボタンをクリックして、**Crane Arm Length**、 **Crane Pitch**、および **Crane Yaw** の各トラックを追加します。 
-
-	![](Crane12.png)
-
-1.	タイムライン マーカーを **50** に進めます。次に、**Crane Arm Length** を **1000** に、**Crane Pitch** を **20** に設定し、両方にキーを追加します。 
-
-	![](Crane13.png)
-
-	スタートとフレーム 50 との間をスクラブして前後すると、ビューポートでクレーンが動くのがわかります。
-
-1.	タイムライン マーカーをシーケンスの終わり (**150**) までスクラブします。
-
-1.	**CameraRig_Crane** の **[Details]** パネルで、**[Crane Yaw]** を **-25** に設定し、キーを追加します。 
-
-	![](Crane14.png)
-
-	**[Details]** パネルで **[Crane Pitch]**、**[Crane Yaw]**、**[Crane Arm Length]** の各プロパティの隣にある **[Add Key]** ボタンをクリックしてこれらを設定することができます。 
-
-1.	**[Details]** パネルの **CineCameraActor** で、**Rotation** の **XYZ** 値を **0、 -25、 -50** に設定します。 
-
-	![](Crane16.png)
-
-	これらの値は正確ではない場合があり、自動調整されるかもしれませんが問題ありません。 
-
-1.	**Cine Camera Actor** を選択したままの状態で、**Shift + E** キーを押してこの回転値にキーを追加します。 
-
-	![](Crane17.png)
-
-1.	ビューポートを **Camera Cuts** トラックに固定してから、**[Preview Play]** ボタンをクリックします。 
-
-	## 最終結果
-
-
-以下の動画に類似した結果になります。カメラがクレーンに沿ってパンアップし、キャラクターに向かってプッシュインします。 
+この操作ガイドでは、Camera Rig Crane を追加し、カメラをアタッチし、以下の例のようにサンプル Crane ショットを作成します。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -121,15 +26,158 @@ Related: Engine\Sequencer\ReferenceEditor\
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-RAsfP5G0Shk
+WnwtVEBUORc
 [/PARAMLITERAL]
 [/OBJECT]
 
-キーフレーム ウィンドウで新しい値にドラッグすることでキーを調整することができます。上の画像では、上方向の動きでクレーンを遅くしました。これは、フレーム **50** に追加した **Crane Arm Length** と **Crane Pitch** のキーフレームを、フレーム **100** まで動かして行いました。 
+
+## ステップ
+
+[REGION:note]
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。 
+[/REGION]
+
+1.	プロジェクトのレベル ビューポートで **ThirdPersonCharacter** を選択し、**Alt** キーを押したまま、そのコピーをドラッグして回転させて、既存のキャラクターの方を向くようにします。 
+
+	![](Crane01.png)
+
+	この 2 つのキャラクターはクレーン ショットの対象になります。 
+
+1.	メイン ツールバー から **[Cinematics (シネマティックス)]** ボタンをクリックし、ドロップダウン メニューから **[Add Level Sequence (レベル シーケンスを追加)]** を選択します。 
+
+	![](Crane02.png)
+
+1.	**[Modes]** パネルの **[Cinematic]** から **[Camera Rig Crane]** をレベルにドラッグします。 
+
+	![](Crane03.png)
+
+1.	**[Modes]** パネルの **[Cinematic]** から **Cine Camera アクタ** をレベルにドラッグします。 
+
+	![](Crane04.png)
+
+1.	**[World Outliner]** パネルで **Camera Rig Crane** の上に **Cine Camera Actor** をドラッグしてアタッチします。 
+
+	![](Crane05.png)
+
+	これでカメラがクレーンにアタッチされて、クレーンの動きに追随するようになります。 
+
+1.	**Cine Camera Actor** の **[Details]** パネルで、**[Location]** と **[Rotation]** の値を **0.0** に設定します。 
+
+	![](Crane06.png)
+
+	これで、Camera Rig Crane の取り付け位置にカメラがアタッチされます。 
+
+1.	**Camera Rig Crane** の位置を調整してショットをセットアップします (以下ではキャラクターの背後に配置しています)。 
+
+	![](Crane07.png)
+
+1.	**Ctrl** キーを押したまま、 **[Camera Rig Crane]** と **[Cine Camera Actor]** の両方を選択して、シーケンサーで **Add** をクリックして両方ともレベル シーケンスに追加します。 
+
+	![](Crane08.png)
+
+1.	**[Camera Rig Crane]** を選択し、**[Details]** パネルで、 **Crane Pitch**、 **Crane Yaw**、および **Crane Arm Length** に対して以下の **Add Key (キー追加)** ボタンをクリックします。 
+
+	![](Crane09.png)
+
+	これでシーケンスを開始する各デフォルト位置を設定します。 
+
+1.	シーケンサーで **Cine Camera Actor** を選択し、**S** キーを押します。 
+
+	![](Crane10.png)
+
+	これは現在の **Transform** 値にキーを追加し、カメラの位置を初期化するためのショートカットです。 
+
+1.	タイムラインをフレーム **50** までスクラブし、**Camera Rig Crane** の **Crane Pitch** 値を **40.0** に変更します。次に **Add Key** ボタンをクリックします。 
+
+	![](Crane11.png)
+
+	タイムラインを 0 に戻し、50 までスクラブすると、以下のように 2 つのキーフレーム間でクレーンが動くのがわかります。 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	LiJ2TXYz7A8
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	[REGION:note]
+	上の映像では、**[Lock Mount Pitch]** オプションを有効にすると、アタッチされたカメラにどのような影響があるかを示しています。 
+	このオプションを無効にすると、カメラは設定された位置を維持します。このオプションを有効にすると取付けたカメラはクレーンのピッチ (上下動) に従い、クレーンが動くと自動的に変化します。 
+	このオプションをキーフレーム化し、ショットのニーズに応じてシーケンサーでこのオプションのオン、オフを切り替えることができます。 
+	[/REGION]
+
+1.	タイムラインがフレーム **50** にある状態で、**Cine Camera Actor** を選択し、**S** を押して別のキーフレームを追加します。 
+
+	![](Crane12.png)
+
+1.	タイムラインをショットの終わりまでスクラブして、**Crane Yaw** を **75** に、**Crane Arm Length** を **600** にそれぞれ変更してから、それぞれにキーを追加します。 
+
+	![](Crane13.png)
+
+	タイムラインをスクラブすると Crane Yaw と Crane Arm Length のキーフレームの間で値が変わるのがわかります。 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	d7K3mHA0bXM
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	[REGION:note]
+	**Lock Mount Pitch** と同様に、**Lock Mount Yaw** オプションでは、取り付けたカメラをクレーンのヨー位置にロックすることができます。 
+	Lock Mount Pitch と Lock Mount Yaw の両方を有効にすると、取り付けたカメラはクレーンの同じ方向でピッチとヨーの動作をします。 
+	[/REGION]
+
+1.	レベル ビューポートでカメラを回転させて 2 つのキャラクターをフレームアップし、**S** を押してその位置にキーフレームを追加します。 
+
+	![](Crane14.png)
+
+1.	シーケンサーの **Cine Camera Actor** で **[Camera Lock]** ボタンをクリックします。 
+
+	![](Crane15.png)
+
+	これでビューポートがカメラ視点にロックされて、このカメラを使っている時にショットがどのように見えるかを表示させることができます。
+
+	## 最終結果
+
+
+以下のような結果になります。カメラがクレーンによって定められる経路に従います。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+WnwtVEBUORc
+[/PARAMLITERAL]
+[/OBJECT]
+
+この映像では、ビューポートをカメラにロックし、**Game View** (**G** キー) をオンにし、すべてのエディタのアイコンを非表示にして、ショットがどのように見えるかを把握できるようにしました。 
+
+この操作ガイドでは、Camera Rig Crane をレベルに追加してから Cine Camera Actor を追加し、それを手動でクレーンにアタッチしました。
+Camera Rig Crane アセットをレベルに追加する場合に使用できる高度な方法があります。これを使うと、この操作ガイドのいくつかの手順を自動化し、Cine Camera アクタを自動的に Camera Rig Crane に追加、アタッチします。 
+これは、両方のアセットを開いたレベル シーケンスに追加し、Camera Cuts Track を割り当てて、ショットに対して使用するカメラを割り当てます。 
 
 [REGION:tip]
-シーケンサーで **Camera Rig Crane** アセットで作業するための高度な方法があります。これを使うと、この操作ガイドのいくつかの手順を自動化できます。詳細は [**ワークフローのショートカット**](Engine\Sequencer\Workflow\CheatSheet) セクションをご覧ください。 
+自動化された方法やシーケンサーのその他のヒントについては、 [ワークフローのショートカット](Engine\Sequencer\Workflow\CheatSheet) およびその他のシーケンサーのヒントをご覧ください。 
 [/REGION]
+
+
+
+
 
 
 

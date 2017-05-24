@@ -1,6 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -10,7 +8,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
 {
     public class ErrorMessageRepository : IErrorMessageRepository
     {
-        private readonly CrashReportEntities _entityContext;
+        private CrashReportEntities _entityContext;
 
         /// <summary>
         /// Constructor
@@ -31,6 +29,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public IQueryable<ErrorMessage> ListAll()
         {
             return _entityContext.ErrorMessages;
+        }
+
+        /// <summary>
+        /// Count the number of objects that satisfy the filter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public int Count(Expression<Func<ErrorMessage, bool>> filter)
+        {
+            return _entityContext.ErrorMessages.Count(filter);
         }
 
         /// <summary>

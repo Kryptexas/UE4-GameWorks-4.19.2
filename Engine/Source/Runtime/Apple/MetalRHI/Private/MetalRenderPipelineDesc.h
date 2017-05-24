@@ -3,6 +3,9 @@
 #pragma once
 
 #include "MetalRHIPrivate.h"
+#if METAL_DEBUG_OPTIONS
+#include "MetalDebugCommandEncoder.h"
+#endif
 
 enum EMetalPipelineHashBits
 {
@@ -45,7 +48,7 @@ enum EMetalPipelineHashOffsets
 };
 
 
-@interface FMetalTessellationPipelineDesc : NSObject
+@interface FMetalTessellationPipelineDesc : FApplePlatformObject
 @property (nonatomic, retain) MTLVertexDescriptor* DomainVertexDescriptor;
 @property (nonatomic) NSUInteger TessellationInputControlPointBufferIndex;
 @property (nonatomic) NSUInteger TessellationOutputControlPointBufferIndex;
@@ -61,15 +64,25 @@ enum EMetalPipelineHashOffsets
 @property (nonatomic) NSUInteger DSNumUniformBuffers; // DEBUG ONLY
 @end
 
-@interface FMetalShaderPipeline : NSObject
+@interface FMetalShaderPipeline : FApplePlatformObject
+{
+#if METAL_DEBUG_OPTIONS
+@public
+	FMetalDebugShaderResourceMask ResourceMask[EMetalShaderStagesNum];
+#endif
+}
 @property (nonatomic, retain) id<MTLRenderPipelineState> RenderPipelineState;
 @property (nonatomic, retain) id<MTLComputePipelineState> ComputePipelineState;
+@property (nonatomic, retain) FMetalTessellationPipelineDesc* TessellationPipelineDesc;
+#if METAL_DEBUG_OPTIONS
 @property (nonatomic, retain) MTLRenderPipelineReflection* RenderPipelineReflection;
 @property (nonatomic, retain) MTLComputePipelineReflection* ComputePipelineReflection;
 @property (nonatomic, retain) NSString* VertexSource;
 @property (nonatomic, retain) NSString* FragmentSource;
 @property (nonatomic, retain) NSString* ComputeSource;
-@property (nonatomic, retain) FMetalTessellationPipelineDesc* TessellationPipelineDesc;
+- (void)initResourceMask;
+- (void)initResourceMask:(EMetalShaderFrequency)Frequency;
+#endif
 @end
 
 struct FMetalRenderPipelineDesc

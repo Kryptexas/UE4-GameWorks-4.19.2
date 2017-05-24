@@ -6,6 +6,7 @@
 
 #include "AndroidFile.h"
 #include "Misc/App.h"
+#include "Misc/Paths.h"
 
 #include <dirent.h>
 #include <jni.h>
@@ -73,6 +74,7 @@ FString GFontPathBase;
 
 // Is the OBB in an APK file or not
 bool GOBBinAPK;
+FString GAPKFilename;
 
 #define FILEBASE_DIRECTORY "/UE4Game/"
 
@@ -80,7 +82,7 @@ extern jobject AndroidJNI_GetJavaAssetManager();
 extern AAssetManager * AndroidThunkCpp_GetAssetManager();
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);"
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetObbInfo(JNIEnv* jenv, jobject thiz, jstring ProjectName, jstring PackageName, jint Version, jint PatchVersion)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeSetObbInfo(JNIEnv* jenv, jobject thiz, jstring ProjectName, jstring PackageName, jint Version, jint PatchVersion)
 {
 	const char* JavaProjectChars = jenv->GetStringUTFChars(ProjectName, 0);
 	GAndroidProjectName = UTF8_TO_TCHAR(JavaProjectChars);
@@ -179,6 +181,20 @@ public:
 		, CurrentOffset(base.Start + start)
 	{
 		CheckValid();
+		LogInfo();
+	}
+
+	// Handle that covers a subsegment of provided file.
+	FFileHandleAndroid(const FString & path, int32 filehandle, int64 filestart, int64 filelength)
+		: File(MakeShareable(new FileReference(path, filehandle)))
+		, Start(filestart), Length(filelength), CurrentOffset(0)
+	{
+		CheckValid();
+#if UE_ANDROID_FILE_64
+		lseek64(File->Handle, filestart, SEEK_SET);
+#else
+		lseek(File->Handle, filestart, SEEK_SET);
+#endif
 		LogInfo();
 	}
 
@@ -885,13 +901,31 @@ public:
 		}
 		if (GOBBinAPK)
 		{
-			// Since we control the APK we mount any OBBs we find
-			// inside of the APK.
-			//FMountOBBVisitor MountOBB(*this);
-			//IterateDirectory(TEXT(""), MountOBB, false, true);
+			// Open the APK as a ZIP
+			FZipUnionFile APKZip;
+			int32 Handle = open(TCHAR_TO_UTF8(*GAPKFilename), O_RDONLY);
+			if (Handle == -1)
+			{
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::Initialize unable to open APK: %s"), *GAPKFilename);
+				return false;
+			}
+			FFileHandleAndroid* APKFile = new FFileHandleAndroid(GAPKFilename, Handle);
+			APKZip.AddPatchFile(MakeShareable(APKFile));
 
-			// Not searching for the OBB to mount is faster on some devices (IterateDirectory above can be slow!)
-			MountOBB(TEXT("main.obb.png"));
+			// Now open the OBB in the APK and mount it
+			if (APKZip.HasEntry("assets/main.obb.png"))
+			{
+				auto OBBEntry = APKZip.GetEntry("assets/main.obb.png");
+				FFileHandleAndroid* OBBFile = static_cast<FFileHandleAndroid*>(new FFileHandleAndroid(*OBBEntry.File, 0, OBBEntry.File->Size()));
+				check(nullptr != OBBFile);
+				ZipResource.AddPatchFile(MakeShareable(OBBFile));
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Mounted OBB in APK: %s"), *GAPKFilename);
+			}
+			else
+			{
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("OBB not found in APK: %s"), *GAPKFilename);
+				return false;
+			}
 		}
 		else
 		{
@@ -1106,7 +1140,7 @@ public:
 				{
 					FileInfo.st_mode |= S_IWUSR;
 				}
-				return chmod(TCHAR_TO_UTF8(*LocalPath), FileInfo.st_mode);
+				return chmod(TCHAR_TO_UTF8(*LocalPath), FileInfo.st_mode) == 0;
 			}
 		}
 		return false;

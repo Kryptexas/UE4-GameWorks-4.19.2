@@ -97,7 +97,7 @@ public:
 	}
 	bool HasAllIDs(FGameplayResourceSet Other) const
 	{
-		return (Flags & Other.Flags) == Flags;
+		return (Flags & Other.Flags) == Other.Flags;
 	}
 	bool HasAnyID(FGameplayResourceSet Other) const
 	{
@@ -135,7 +135,7 @@ public:
 	FString GetDebugDescription() const;
 };
 
-UCLASS(Abstract, meta = (ExposedAsyncProxy))
+UCLASS(Abstract, meta = (ExposedAsyncProxy), config = Game)
 class GAMEPLAYTASKS_API UGameplayTask : public UObject, public IGameplayTaskOwnerInterface
 {
 	GENERATED_BODY()
@@ -321,6 +321,7 @@ protected:
 
 	EGameplayTaskState TaskState;
 
+	UPROPERTY(config)
 	ETaskResourceOverlapPolicy ResourceOverlapPolicy;
 
 	/** If true, this task will receive TickTask calls from TasksComponent */

@@ -335,4 +335,7 @@ bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+#undef CHECK_SUCCESS
+#undef CHECK_FAIL
+
 #endif //ENABLE_VISUAL_LOG

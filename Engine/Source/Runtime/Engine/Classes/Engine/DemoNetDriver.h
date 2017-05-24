@@ -257,9 +257,6 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
 
-	/** When actors are dormant in replays, we remove them from the master list, and add them here for tracking */
-	TSet< TWeakObjectPtr< AActor > > FullyDormantActors;
-
 	/** When we save a checkpoint, we remember all of the actors that need a checkpoint saved out by adding them to this list */
 	TSet< TWeakObjectPtr< AActor > > PendingCheckpointActors;
 
@@ -334,6 +331,9 @@ private:
 	/** Cached replay URL, so that the driver can access the map name and any options later */
 	FURL DemoURL;
 
+	/** The unique identifier for the lifetime of this object. */
+	FString DemoSessionID;
+
 	/** This header is valid during playback (so we know what version to pass into serializers, etc */
 	FNetworkDemoHeader PlaybackDemoHeader;
 
@@ -363,9 +363,6 @@ private:
 
 	/** Does the actual work of TickFlush, either on the main thread or in a task thread in parallel with Slate. */
 	void TickFlushInternal(float DeltaSeconds);
-
-	/** Returns true if TickFlush can be called in parallel with the Slate tick. */
-	bool ShouldTickFlushAsyncEndOfFrame() const;
 
 	/** Returns either CheckpointSaveMaxMSPerFrame or the value of demo.CheckpointSaveMaxMSPerFrameOverride if it's >= 0. */
 	float GetCheckpointSaveMaxMSPerFrame() const;
@@ -431,11 +428,8 @@ public:
 
 public:
 
-	// FExec interface
-
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-
-public:
+	UPROPERTY()
+	bool bIsLocalReplay;
 
 	/** @todo document */
 	bool UpdateDemoTime( float* DeltaTime, float TimeDilation );
@@ -502,11 +496,22 @@ public:
 
 	/** Read the streaming level information from the metadata after the level is loaded */
 	void PendingNetGameLoadMapCompleted();
-
+	
 	virtual void NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel=false ) override;
 
 	/** Call this function during playback to track net startup actors that need a hard reset when scrubbing, which is done by destroying and then re-spawning */
 	virtual void QueueNetStartupActorForRollbackViaDeletion( AActor* Actor );
+
+	/** Called when seamless travel begins when recording a replay. */
+	void OnSeamlessTravelStartDuringRecording(const FString& LevelName);
+	/** @return the unique identifier for the lifetime of this object. */
+	const FString& GetDemoSessionID() const { return DemoSessionID; }
+
+	/** Called when the downloading header request from the replay streamer completes. */
+	void OnDownloadHeaderComplete(const bool bWasSuccessful, int32 LevelIndex);
+
+	/** Returns true if TickFlush can be called in parallel with the Slate tick. */
+	bool ShouldTickFlushAsyncEndOfFrame() const;
 
 protected:
 	/** allows subclasses to write game specific data to demo header which is then handled by ProcessGameSpecificDemoHeader */
@@ -526,5 +531,10 @@ protected:
 
 	void ProcessSeamlessTravel(int32 LevelIndex);
 
+	bool ReadPlaybackDemoHeader(FString& Error);
+
 	TArray<FQueuedDemoPacket> QueuedPacketsBeforeTravel;
+
+	bool bIsWaitingForHeaderDownload;
+
 };

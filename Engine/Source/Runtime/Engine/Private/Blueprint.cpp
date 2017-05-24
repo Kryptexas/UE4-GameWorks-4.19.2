@@ -18,6 +18,8 @@
 
 #if WITH_EDITOR
 #include "Blueprint/BlueprintSupport.h"
+#include "BlueprintCompilationManager.h"
+#include "Blueprint/BlueprintSupport.h"
 #include "Editor/UnrealEd/Classes/Settings/ProjectPackagingSettings.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
@@ -32,6 +34,8 @@
 #include "Settings/EditorLoadingSavingSettings.h"
 #include "Engine/TimelineTemplate.h"
 #include "Curves/CurveBase.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "MetaData.h"
 #endif
 #include "Engine/InheritableComponentHandler.h"
 
@@ -334,8 +338,11 @@ void UBlueprint::PreSave(const class ITargetPlatform* TargetPlatform)
 	// Clear all upgrade notes, the user has saved and should not see them anymore
 	UpgradeNotesLog.Reset();
 
-	// Cache the BP for use
-	FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
+	if (!TargetPlatform || TargetPlatform->HasEditorOnlyData())
+	{
+		// Cache the BP for use
+		FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
+	}
 }
 #endif // WITH_EDITORONLY_DATA
 
@@ -425,7 +432,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 		if (Ar.IsLoading())
 		{
 			// Validate metadata keys/values on load only
-			FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(Variable);
+			FBlueprintEditorUtils::FixupVariableDescription(this, Variable);
 		}
 	}
 
@@ -527,12 +534,12 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 		TArray<UBlueprint*> Dependents;
 		FBlueprintEditorUtils::GetDependentBlueprints(this, Dependents);
 
-		FKismetEditorUtilities::CompileBlueprint(this, false);
+		FKismetEditorUtilities::CompileBlueprint(this);
 
 		// Recompile dependent blueprints after compiling this one. Otherwise, we can end up with a GLEO during the internal package save, which will include referencers as well.
 		for (UBlueprint* DependentBlueprint : Dependents)
 		{
-			FKismetEditorUtilities::CompileBlueprint(DependentBlueprint, false);
+			FKismetEditorUtilities::CompileBlueprint(DependentBlueprint);
 		}
 	}
 
@@ -548,9 +555,62 @@ void UBlueprint::PostDuplicate(bool bDuplicateForPIE)
 	}
 }
 
+extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
+
 UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
-	return FBlueprintEditorUtils::RegenerateBlueprintClass(this, ClassToRegenerate, PreviousCDO, ObjLoaded);
+	if(GBlueprintUseCompilationManager)
+	{
+		// ensure that we have UProperties for any properties declared in the blueprint:
+		if(!GeneratedClass || !HasAnyFlags(RF_BeingRegenerated) || bIsRegeneratingOnLoad || bHasBeenRegenerated)
+		{
+			return GeneratedClass;
+		}
+		
+		// tag ourself as bIsRegeneratingOnLoad so that any reentrance via ForceLoad calls doesn't recurse:
+		bIsRegeneratingOnLoad = true;
+		
+		UPackage* Package = Cast<UPackage>(GetOutermost());
+		bool bIsPackageDirty = Package ? Package->IsDirty() : false;
+
+		UClass* GeneratedClassResolved = GeneratedClass;
+
+		UBlueprint::ForceLoadMetaData(this);
+		if (ensure(GeneratedClassResolved->ClassDefaultObject ))
+		{
+			UBlueprint::ForceLoadMembers(GeneratedClassResolved);
+			UBlueprint::ForceLoadMembers(GeneratedClassResolved->ClassDefaultObject);
+		}
+		UBlueprint::ForceLoadMembers(this);
+
+		FBlueprintEditorUtils::RefreshVariables(this);
+		FBlueprintEditorUtils::PreloadConstructionScript( this );
+		
+		// Preload Overridden Components
+		if (InheritableComponentHandler)
+		{
+			InheritableComponentHandler->PreloadAll();
+		}
+
+		FBlueprintEditorUtils::LinkExternalDependencies( this );
+
+		FBlueprintCompilationManager::NotifyBlueprintLoaded( this ); 
+		
+		// clear this now that we're not in a re-entrrant context - bHasBeenRegenerated will guard against 'real' 
+		// double regeneration calls:
+		bIsRegeneratingOnLoad = false;
+
+		if( Package )
+		{
+			Package->SetDirtyFlag(bIsPackageDirty);
+		}
+
+		return GeneratedClassResolved;
+	}
+	else
+	{
+		return FBlueprintEditorUtils::RegenerateBlueprintClass(this, ClassToRegenerate, PreviousCDO, ObjLoaded);
+	}
 }
 
 void UBlueprint::RemoveGeneratedClasses()
@@ -599,18 +659,6 @@ void UBlueprint::PostLoad()
 
 	// Purge any NULL graphs
 	FBlueprintEditorUtils::PurgeNullGraphs(this);
-
-	// Remove old AutoConstructionScript graph
-	for (int32 i = 0; i < FunctionGraphs.Num(); ++i)
-	{
-		UEdGraph* FuncGraph = FunctionGraphs[i];
-		if ((FuncGraph != NULL) && (FuncGraph->GetName() == TEXT("AutoConstructionScript")))
-		{
-			UE_LOG(LogBlueprint, Log, TEXT("!!! Removing AutoConstructionScript from %s"), *GetPathName());
-			FunctionGraphs.RemoveAt(i);
-			break;
-		}
-	}
 
 	// Remove stale breakpoints
 	for (int32 i = 0; i < Breakpoints.Num(); ++i)
@@ -671,17 +719,6 @@ void UBlueprint::PostLoad()
 
 	// Update old Anim Blueprints
 	FBlueprintEditorUtils::UpdateOutOfDateAnimBlueprints(this);
-
-	// Update old macro blueprints
-	if(BPTYPE_MacroLibrary == BlueprintType)
-	{
-		//macros were moved into a separate array
-		MacroGraphs.Append(FunctionGraphs);
-		FunctionGraphs.Empty();
-	}
-
-	// Update old pure functions to be pure using new system
-	FBlueprintEditorUtils::UpdateOldPureFunctions(this);
 
 #if WITH_EDITORONLY_DATA
 	// Ensure all the pin watches we have point to something useful
@@ -810,6 +847,7 @@ UWorld* UBlueprint::GetWorldBeingDebugged()
 
 void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
+	// We use Generated instead of Skeleton because the CDO data is more accurate on Generated
 	if (UClass* GenClass = Cast<UClass>(GeneratedClass))
 	{
 		if (UObject* CDO = GenClass->GetDefaultObject())
@@ -868,7 +906,8 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 			FBlueprintEditorUtils::IsDataOnlyBlueprint(this) ? TEXT("True") : TEXT("False"),
 			FAssetRegistryTag::TT_Alphabetical ) );
 
-	if ( ParentClass )
+	// Only add the FiB tags in the editor, this now gets run for standalone uncooked games
+	if ( ParentClass && GIsEditor)
 	{
 		OutTags.Add( FAssetRegistryTag("FiBData", FFindInBlueprintSearchManager::Get().QuerySingleBlueprint((UBlueprint*)this, false), FAssetRegistryTag::TT_Hidden) );
 	}
@@ -906,6 +945,18 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		}
 		OutTags.Add(FAssetRegistryTag("BlueprintComponents", FString::FromInt(NumAddedComponents), UObject::FAssetRegistryTag::TT_Numerical));
 	}
+}
+
+FPrimaryAssetId UBlueprint::GetPrimaryAssetId() const
+{
+	// Forward to our Class, which will forward to CDO if needed
+	// We use Generated instead of Skeleton because the CDO data is more accurate on Generated
+	if (UClass* GenClass = Cast<UClass>(GeneratedClass))
+	{
+		return GenClass->GetPrimaryAssetId();
+	}
+
+	return FPrimaryAssetId();
 }
 
 FString UBlueprint::GetFriendlyName() const
@@ -989,6 +1040,47 @@ UTimelineTemplate* UBlueprint::FindTimelineTemplateByVariableName(const FName& T
 	// <<< End Backwards Compatibility
 
 	return Timeline;
+}
+
+bool UBlueprint::ForceLoad(UObject* Obj)
+{
+	FLinkerLoad* Linker = Obj->GetLinker();
+	if (Linker && !Obj->HasAnyFlags(RF_LoadCompleted))
+	{
+		check(!GEventDrivenLoaderEnabled);
+		Obj->SetFlags(RF_NeedLoad);
+		Linker->Preload(Obj);
+		return true;
+	}
+	return false;
+}
+
+void UBlueprint::ForceLoadMembers(UObject* InObject)
+{
+	// Collect a list of all things this element owns
+	TArray<UObject*> MemberReferences;
+	FReferenceFinder ComponentCollector(MemberReferences, InObject, false, true, true, true);
+	ComponentCollector.FindReferences(InObject);
+
+	// Iterate over the list, and preload everything so it is valid for refreshing
+	for (TArray<UObject*>::TIterator it(MemberReferences); it; ++it)
+	{
+		UObject* CurrentObject = *it;
+		if (ForceLoad(CurrentObject))
+		{
+			ForceLoadMembers(CurrentObject);
+		}
+	}
+}
+
+void UBlueprint::ForceLoadMetaData(UObject* InObject)
+{
+	checkSlow(InObject);
+	UPackage* Package = InObject->GetOutermost();
+	checkSlow(Package);
+	UMetaData* MetaData = Package->GetMetaData();
+	checkSlow(MetaData);
+	ForceLoad(MetaData);
 }
 
 bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)
@@ -1084,13 +1176,15 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 		// If nativization is enabled and this Blueprint class will NOT be nativized, we need to determine if any of its parent Blueprints will be nativized and flag it for the runtime code.
 		// Note: Currently, this flag is set on Actor-based Blueprint classes only. If it's ever needed for non-Actor-based Blueprint classes at runtime, then this needs to be updated to match.
 		const IBlueprintNativeCodeGenCore* NativeCodeGenCore = IBlueprintNativeCodeGenCore::Get();
-		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr && FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets")))
+		if (GeneratedClass != nullptr && NativeCodeGenCore != nullptr)
 		{
+			ensure(TargetPlatform);
+			const FCompilerNativizationOptions& NativizationOptions = NativeCodeGenCore->GetNativizationOptionsForPlatform(TargetPlatform);
 			TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
 			UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GeneratedClass->GetSuperClass(), ParentBPClassStack);
 			for (const UBlueprintGeneratedClass *ParentBPClass : ParentBPClassStack)
 			{
-				if (NativeCodeGenCore->IsTargetedForReplacement(ParentBPClass) == EReplacementResult::ReplaceCompletely)
+				if (NativeCodeGenCore->IsTargetedForReplacement(ParentBPClass, NativizationOptions) == EReplacementResult::ReplaceCompletely)
 				{
 					if (UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(*GeneratedClass))
 					{
@@ -1120,7 +1214,7 @@ void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 									}
 									else
 									{
-										bool bResult = (NativeCodeGenCore->IsTargetedForReplacement(RecordIt->ComponentKey.GetComponentOwner()) == EReplacementResult::ReplaceCompletely);
+										bool bResult = (NativeCodeGenCore->IsTargetedForReplacement(RecordIt->ComponentKey.GetComponentOwner(), NativizationOptions) == EReplacementResult::ReplaceCompletely);
 										bIsOwnerClassTargetedForReplacement = ParentBPClassNativizationResultMap.Add(ComponentTemplateOwnerClass, bResult);
 									}
 

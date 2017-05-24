@@ -333,7 +333,7 @@ public partial class Project : CommandUtils
 					ClientProcess.StopProcess();
 					Thread.Sleep(10000);
 				}
-				while (ClientLogReader != null && !ClientLogReader.EndOfStream)
+				while (!ClientLogReader.EndOfStream)
 				{
 					string ClientOutput = ClientLogReader.ReadToEnd();
 					if (!String.IsNullOrEmpty(ClientOutput))
@@ -537,7 +537,7 @@ public partial class Project : CommandUtils
 				if (ClientProcess == null && !String.IsNullOrEmpty(Output))
 				{
 					AllClientOutput += Output;
-					if (ClientProcess == null && (AllClientOutput.Contains("Game Engine Initialized") || AllClientOutput.Contains("Unreal Network File Server is ready")))
+					if (AllClientOutput.Contains("Game Engine Initialized") || AllClientOutput.Contains("Unreal Network File Server is ready"))
 					{
 						Log("Starting Client....");
 						var SC = DeployContextList[0];
@@ -843,7 +843,7 @@ public partial class Project : CommandUtils
 		if (Params.CrashIndex > 0)
 		{
 			int RealIndex = Params.CrashIndex - 1;
-			if (RealIndex < 0 || RealIndex >= CrashCommands.Count())
+			if (RealIndex >= CrashCommands.Count())
 			{
 				throw new AutomationException("CrashIndex {0} is out of range...max={1}", Params.CrashIndex, CrashCommands.Count());
 			}
@@ -868,7 +868,7 @@ public partial class Project : CommandUtils
 		else
 		{
 			// skip arguments which don't make sense for iOS
-			TempCmdLine += "-Messaging -nomcp ";
+			TempCmdLine += "-Messaging ";
 		}
 		if (Params.NullRHI && SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.Mac) // all macs have GPUs, and currently the mac dies with nullrhi
 		{
@@ -981,9 +981,11 @@ public partial class Project : CommandUtils
 			{
 				Map += "?fake";
 			}
-
-			Args += String.Format("{0} -server -abslog={1}  -unattended -log -Messaging", Map, CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile));
-
+			Args += String.Format("{0} -server -abslog={1}  -log -Messaging", Map, CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile));
+			if (Params.Unattended)
+			{
+				Args += " -unattended";
+			}
 			// Do not blindly add -nomcp, only do so if the client is using it
 			if (Params.RunCommandline.Contains("-nomcp"))
 			{

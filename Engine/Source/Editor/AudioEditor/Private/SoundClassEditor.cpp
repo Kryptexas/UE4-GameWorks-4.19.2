@@ -342,34 +342,17 @@ void FSoundClassEditor::CreateSoundClass(UEdGraphPin* FromPin, const FVector2D& 
 	// If we have a valid name
 	if (!Name.IsEmpty() && Name != SoundClass->GetName())
 	{
-		USoundClass* NewSoundClass = nullptr;
-		FName NewClassName(*Name);
-		
-		// Check if sound class exists and use that instead of trying to create a new one
-		for (TObjectIterator<USoundClass> It; It; ++It)
-		{
-			USoundClass* ExistingSoundClass = *It;
-			if (ExistingSoundClass->GetFName() == NewClassName)
-			{
-				NewSoundClass = ExistingSoundClass;
-				break;
-			}
-		}
+		// Derive new package path from existing asset's path
+		FString PackagePath = SoundClass->GetPathName();
+		FString AssetName = FString::Printf(TEXT("/%s.%s"), *SoundClass->GetName(), *SoundClass->GetName());
+		PackagePath.RemoveFromEnd(AssetName);
 
-		if (!NewSoundClass)
-		{
-			// Derive new package path from existing asset's path
-			FString PackagePath = SoundClass->GetPathName();
-			FString AssetName = FString::Printf(TEXT("/%s.%s"), *SoundClass->GetName(), *SoundClass->GetName());
-			PackagePath.RemoveFromEnd(AssetName);
+		// Create a sound class factory to create a new sound class
+		USoundClassFactory* SoundClassFactory = NewObject<USoundClassFactory>();
 
-			// Create a sound class factory to create a new sound class
-			USoundClassFactory* SoundClassFactory = NewObject<USoundClassFactory>();
-
-			// Load asset tools to create the asset properly
-			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-			NewSoundClass = Cast<USoundClass>(AssetToolsModule.Get().CreateAsset(Name, PackagePath, USoundClass::StaticClass(), SoundClassFactory, FName("SoundClassEditorNewAsset")));
-		}
+		// Load asset tools to create the asset properly
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		USoundClass* NewSoundClass = Cast<USoundClass>(AssetToolsModule.Get().CreateAsset(Name, PackagePath, USoundClass::StaticClass(), SoundClassFactory, FName("SoundClassEditorNewAsset")));
 
 		// This may fail if the asset has same name as existing asset, etc.
 		if (NewSoundClass)

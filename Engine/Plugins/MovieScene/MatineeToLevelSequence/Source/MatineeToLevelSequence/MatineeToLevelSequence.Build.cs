@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MatineeToLevelSequence : ModuleRules
 {
-	public MatineeToLevelSequence(TargetInfo Target)
+	public MatineeToLevelSequence(ReadOnlyTargetRules Target) : base(Target)
 	{
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {

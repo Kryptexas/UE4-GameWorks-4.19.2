@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealAtoS : ModuleRules
 {
-	public UnrealAtoS( TargetInfo Target )
+	public UnrealAtoS( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add( "Launch" );
 		PrivateIncludePaths.Add( "Runtime/Launch/Private" );

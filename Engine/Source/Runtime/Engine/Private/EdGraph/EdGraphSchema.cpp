@@ -26,68 +26,83 @@ void FEdGraphSchemaAction::UpdateCategory(FText NewCategory)
 {
 	Category = MoveTemp(NewCategory);
 
-	TArray<FString> Scratch;
-	Category.ToString().ParseIntoArray(FullSearchCategoryArray, TEXT(" "), true);
-	Category.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
-	FullSearchCategoryArray.Append(MoveTemp(Scratch));
+	Category.ToString().ParseIntoArray(LocalizedFullSearchCategoryArray, TEXT(" "), true);
+	Category.BuildSourceString().ParseIntoArray(FullSearchCategoryArray, TEXT(" "), true);
 
+	// Glob search text together, we use the SearchText string for basic filtering:
+	UpdateSearchText();
+}
+
+void FEdGraphSchemaAction::UpdateSearchText()
+{
 	SearchText.Reset();
-	for (const FString& Entry : FullSearchTitlesArray)
+
+	for (FString& Entry : LocalizedFullSearchTitlesArray)
 	{
+		Entry.ToLowerInline();
 		SearchText += Entry;
 	}
+
 	SearchText.Append(LINE_TERMINATOR);
-	for (const FString& Entry : FullSearchKeywordsArray)
+
+	for (FString& Entry : LocalizedFullSearchKeywordsArray)
 	{
+		Entry.ToLowerInline();
 		SearchText += Entry;
 	}
+
 	SearchText.Append(LINE_TERMINATOR);
-	for (const FString& Entry : FullSearchCategoryArray)
+
+	for (FString& Entry : LocalizedFullSearchCategoryArray)
 	{
+		Entry.ToLowerInline();
+		SearchText += Entry;
+	}
+
+	for (FString& Entry : FullSearchTitlesArray)
+	{
+		Entry.ToLowerInline();
+		SearchText += Entry;
+	}
+
+	SearchText.Append(LINE_TERMINATOR);
+
+	for (FString& Entry : FullSearchKeywordsArray)
+	{
+		Entry.ToLowerInline();
+		SearchText += Entry;
+	}
+
+	SearchText.Append(LINE_TERMINATOR);
+
+	for (FString& Entry : FullSearchCategoryArray)
+	{
+		Entry.ToLowerInline();
 		SearchText += Entry;
 	}
 }
 
-void FEdGraphSchemaAction::UpdateSearchData(FText NewMenuDescription, FString NewToolTipDescription, FText NewCategory, FText NewKeywords)
+void FEdGraphSchemaAction::UpdateSearchData(FText NewMenuDescription, FText NewToolTipDescription, FText NewCategory, FText NewKeywords)
 {
 	MenuDescription = MoveTemp(NewMenuDescription);
 	TooltipDescription = MoveTemp(NewToolTipDescription);
 	Category = MoveTemp(NewCategory);
 	Keywords = MoveTemp(NewKeywords);
 
-	MenuDescription.ToString().ParseIntoArray(MenuDescriptionArray, TEXT(" "), true);
+	MenuDescription.ToString().ParseIntoArray(LocalizedMenuDescriptionArray, TEXT(" "), true);
+	MenuDescription.BuildSourceString().ParseIntoArray(MenuDescriptionArray, TEXT(" "), true);
 
 	FullSearchTitlesArray = MenuDescriptionArray;
-	TArray<FString> Scratch;
-	MenuDescription.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
-	FullSearchTitlesArray.Append(Scratch);
+	LocalizedFullSearchTitlesArray = LocalizedMenuDescriptionArray;
 
-	Keywords.ToString().ParseIntoArray(FullSearchKeywordsArray, TEXT(" "), true);
-	Keywords.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
-	FullSearchKeywordsArray.Append(Scratch);
-
-	Category.ToString().ParseIntoArray(FullSearchCategoryArray, TEXT(" "), true);
-	Category.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
-	FullSearchCategoryArray.Append(Scratch);
+	Keywords.ToString().ParseIntoArray(LocalizedFullSearchKeywordsArray, TEXT(" "), true);
+	Keywords.BuildSourceString().ParseIntoArray(FullSearchKeywordsArray, TEXT(" "), true);
+	
+	Category.ToString().ParseIntoArray(LocalizedFullSearchCategoryArray, TEXT(" "), true);
+	Category.BuildSourceString().ParseIntoArray(FullSearchCategoryArray, TEXT(" "), true);
 
 	// Glob search text together, we use the SearchText string for basic filtering:
-	for (FString& Entry : FullSearchTitlesArray)
-	{
-		Entry.ToLowerInline();
-		SearchText += Entry;
-	}
-	SearchText.Append(LINE_TERMINATOR);
-	for (FString& Entry : FullSearchKeywordsArray)
-	{
-		Entry.ToLowerInline();
-		SearchText += Entry;
-	}
-	SearchText.Append(LINE_TERMINATOR);
-	for (FString& Entry : FullSearchCategoryArray)
-	{
-		Entry.ToLowerInline();
-		SearchText += Entry;
-	}
+	UpdateSearchText();
 }
 
 /////////////////////////////////////////////////////
@@ -763,6 +778,7 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 						SelectedNode->PreEditChange(NodeCommentProperty);
 
 						SelectedNode->NodeComment = NewString;
+						SelectedNode->SetMakeCommentBubbleVisible(true);
 
 						FPropertyChangedEvent NodeCommentPropertyChangedEvent(NodeCommentProperty);
 						SelectedNode->PostEditChangeProperty(NodeCommentPropertyChangedEvent);

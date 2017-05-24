@@ -1,15 +1,16 @@
-﻿INTSourceChangelist:3009005
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:Camera Rig Rail から撮影する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:Camera Rig Rail をセットアップし、撮影する方法の例について説明します。 
-Version: 4.12
-SkillLevel: Intermediate
+Version:4.12
+SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 **Camera Rig Rail** アクタは、カメラをレールにアタッチしてそれに沿って移動することでフライスルー、360 度、または他の移動ショットを撮るために使用することができます。
 レールの経路は [**Sprine コンポーネント**](Engine/Components/Shapes/) を使って定義することができます。シーケンサーでは、任意の時間にカメラが位置する、レールに沿った位置にキーフレームを指定することができます。 
@@ -30,7 +31,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	![](Rails02.png)(w:800)
 
-1.	**[ワールド アウトライナー]** で **CineCameraActor** を **CameraRig_Rail** にドラッグ & ドロップしてアタッチします。
+1.	**[World Outliner (ワールド アウトライナー)]** で **CineCameraActor** を **CameraRig_Rail** にドラッグ & ドロップしてアタッチします。
 
 	![](Rails03.png)
 
@@ -102,7 +103,7 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	ここでは、**[Actor to Track (追跡対象のアクタ)]** の位置、この場合は **ThirdPersonCharacter** の位置をカメラが常に追随するようにします。 
 
-1.	ビューポートを **Camera Cut Track** に固定してから、[Preview Play] ボタンをクリックします。 
+1.	ビューポートを **Camera Cut Track** にロックしてから、[Preview Play] ボタンをクリックします。 
 
 	## 最終結果
 

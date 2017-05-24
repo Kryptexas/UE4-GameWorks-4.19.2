@@ -7,6 +7,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/UObjectBaseUtility.h"
 #include "ProfilingDebugging/ResourceSize.h"
+#include "PrimaryAssetId.h"
 
 class FConfigCacheIni;
 class FEditPropertyChain;
@@ -36,12 +37,10 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	// Declarations.
 	DECLARE_CLASS(UObject,UObject,CLASS_Abstract|CLASS_NoExport,CASTCLASS_None,TEXT("/Script/CoreUObject"),NO_API)
 	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(UObject)
-#if WITH_HOT_RELOAD_CTORS
 	static UObject* __VTableCtorCaller(FVTableHelper& Helper)
 	{
 		return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) UObject(Helper);
 	}
-#endif // WITH_HOT_RELOAD_CTORS
 
 	typedef UObject WithinClass;
 	static const TCHAR* StaticConfigName() {return TEXT("Engine");}
@@ -50,10 +49,8 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	UObject();
 	UObject(const FObjectInitializer& ObjectInitializer);
 	UObject( EStaticConstructor, EObjectFlags InFlags );
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UObject(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	static void StaticRegisterNativesUObject() 
 	{
@@ -155,6 +152,14 @@ public:
 	 * mainly this is to emulate some behavior of when the constructor was called after the properties were initialized.
 	 */
 	virtual void PostInitProperties();
+
+	/**
+	* Called after the C++ constructor has run on the CDO for a class. This is an obscure routine used to deal with the recursion 
+	* in the construction of the default materials
+	*/
+	virtual void PostCDOContruct()
+	{
+	}
 
 	/**
 	 * Called from within SavePackage on the passed in base/ root. The return value of this function will be passed to
@@ -339,23 +344,24 @@ public:
 
 	/**
 	 * Called during saving to determine the load flags to save with the object.
-	 * Upon reload, this object will be discarded on clients
+	 * If false, this object will be discarded on clients
 	 *
-	 * @return	true if this object should not be loaded on clients
+	 * @return	true if this object should be loaded on clients
 	 */
 	virtual bool NeedsLoadForClient() const;
 
 	/**
 	 * Called during saving to determine the load flags to save with the object.
-	 * Upon reload, this object will be discarded on servers
+	 * If false, this object will be discarded on servers
 	 *
-	 * @return	true if this object should not be loaded on servers
+	 * @return	true if this object should be loaded on servers
 	 */
 	virtual bool NeedsLoadForServer() const;
 
 	/**
 	 * Called during saving to determine the load flags to save with the object.
-	 *
+	 * If false, this object will still get loaded if NeedsLoadForServer/Client are true
+	 * 
 	 * @return	true if this object should always be loaded for editor game
 	 */
 	virtual bool NeedsLoadForEditorGame() const
@@ -393,12 +399,12 @@ public:
 	/**
 	*	Update the list of classes that we should exclude from dedicated server builds
 	*/
-	static void UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames);
+	static void UpdateClassesExcludedFromDedicatedServer(const TArray<FString>& InClassNames, const TArray<FString>& InModulesNames);
 
 	/**
 	*	Update the list of classes that we should exclude from dedicated client builds
 	*/
-	static void UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames);
+	static void UpdateClassesExcludedFromDedicatedClient(const TArray<FString>& InClassNames, const TArray<FString>& InModulesNames);
 
 	/** 
 	 *	Determines if you can create an object from the supplied template in the current context (editor, client only, dedicated server, game/listen) 
@@ -581,6 +587,9 @@ public:
 
 		/** Gathers a list of asset registry searchable tags from given objects properties */
 		COREUOBJECT_API static void GetAssetRegistryTagsFromSearchableProperties(const UObject* Object, TArray<FAssetRegistryTag>& OutTags);
+
+		/** Returns true if this FName is a special UStruct that should be exported even if not tagged, with the struct name as the tag name */
+		COREUOBJECT_API static bool IsUniqueAssetRegistryTagStruct(FName StructName, ETagType& TagType);
 	};
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
 
@@ -633,6 +642,13 @@ public:
 
 	/** Returns true if this object is considered an asset. */
 	virtual bool IsAsset() const;
+
+	/**
+	 * Returns an Type:Name pair representing the PrimaryAssetId for this object.
+	 * Assets that need to be globally referenced at runtime should return a valid Identifier.
+	 * If this is valid, the object can be referenced by identifier using the AssetManager 
+	 */
+	virtual FPrimaryAssetId GetPrimaryAssetId() const;
 
 	/** Returns true if this object is considered a localized resource. */
 	virtual bool IsLocalizedResource() const;
@@ -860,13 +876,11 @@ private:
 	 */
 	void UpdateSingleSectionOfConfigFile(const FString& ConfigIniName);
 
-#if WITH_HOT_RELOAD_CTORS
 	/**
 	 * Ensures that current thread is NOT during vtable ptr retrieval process
 	 * of some UClass.
 	 */
 	void EnsureNotRetrievingVTablePtr() const;
-#endif // WITH_HOT_RELOAD_CTORS
 
 public:
 	
@@ -879,6 +893,9 @@ public:
 	 * Get the global user override config filename for the specified UObject
 	 */
 	FString GetGlobalUserConfigFilename() const;
+
+	/** Returns the override config hierarchy platform (if NDAd platforms need defaults to not be in Base*.ini but still want editor to load them) */
+	virtual const TCHAR* GetConfigOverridePlatform() const { return nullptr; }
 
 	/**
 	 * Imports property values from an .ini file.
@@ -1173,6 +1190,8 @@ public:
 	DECLARE_FUNCTION(execSetSet);
 	DECLARE_FUNCTION(execSetMap);
 	DECLARE_FUNCTION(execArrayConst);
+	DECLARE_FUNCTION(execSetConst);
+	DECLARE_FUNCTION(execMapConst);
 
 	// Object construction
 	DECLARE_FUNCTION(execNew);

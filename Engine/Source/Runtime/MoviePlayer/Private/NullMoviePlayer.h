@@ -10,19 +10,29 @@ class FNullGameMoviePlayer : public IGameMoviePlayer,
 	public TSharedFromThis<FNullGameMoviePlayer>
 {
 public:
-	static TSharedPtr<FNullGameMoviePlayer> Get()
+	static void Create()
 	{
-		if (!MoviePlayer.IsValid())
-		{
-			MoviePlayer = MakeShareable(new FNullGameMoviePlayer);
-		}
-		return MoviePlayer;
+		check(IsInGameThread() && !IsInSlateThread());
+		check(!MoviePlayer.IsValid());
+
+		MoviePlayer = MakeShareable(new FNullGameMoviePlayer);
+	}
+
+	static void Destroy()
+	{
+		check(IsInGameThread() && !IsInSlateThread());
+
+		MoviePlayer.Reset();
+	}
+
+	static FNullGameMoviePlayer* Get()
+	{
+		return MoviePlayer.Get();
 	}
 
 	/** IGameMoviePlayer Interface */
 	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) override {}
-	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) override {}
-	virtual void Initialize() override {}
+	virtual void Initialize(TSharedPtr<class FSlateRenderer> InSlateRenderer) override {}
 	virtual void Shutdown() override {}
 	virtual void PassLoadingScreenWindowBackToGame() const override {}
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes) override {}

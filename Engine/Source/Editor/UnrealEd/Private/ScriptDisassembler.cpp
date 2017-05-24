@@ -237,6 +237,22 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			Ar.Logf(TEXT("%s $%X: EX_EndSet"), *Indents, (int32)Opcode);
 			break;
 		}
+	case EX_SetConst:
+		{
+			UProperty* InnerProp = ReadPointer<UProperty>(ScriptIndex);
+			int32 Num = ReadINT(ScriptIndex);
+ 			Ar.Logf(TEXT("%s $%X: set set const - elements number: %d, inner property: %s"), *Indents, (int32)Opcode, Num, *GetNameSafe(InnerProp));
+ 			while (SerializeExpr(ScriptIndex) != EX_EndSetConst)
+ 			{
+ 				// Set contents
+ 			}
+ 			break;
+		}
+	case EX_EndSetConst:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_EndSetConst"), *Indents, (int32)Opcode);
+			break;
+		}
 	case EX_SetMap:
 		{
  			Ar.Logf(TEXT("%s $%X: set map"), *Indents, (int32)Opcode);
@@ -251,6 +267,23 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 	case EX_EndMap:
 		{
 			Ar.Logf(TEXT("%s $%X: EX_EndMap"), *Indents, (int32)Opcode);
+			break;
+		}
+	case EX_MapConst:
+		{
+			UProperty* KeyProp = ReadPointer<UProperty>(ScriptIndex);
+			UProperty* ValProp = ReadPointer<UProperty>(ScriptIndex);
+			int32 Num = ReadINT(ScriptIndex);
+ 			Ar.Logf(TEXT("%s $%X: set map const - elements number: %d, key property: %s, val property: %s"), *Indents, (int32)Opcode, Num, *GetNameSafe(KeyProp), *GetNameSafe(ValProp));
+ 			while (SerializeExpr(ScriptIndex) != EX_EndMapConst)
+ 			{
+ 				// Map contents
+ 			}
+ 			break;
+		}
+	case EX_EndMapConst:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_EndMapConst"), *Indents, (int32)Opcode);
 			break;
 		}
 	case EX_ObjToInterfaceCast:
@@ -680,6 +713,15 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 				{
 					const FString SourceString = ReadString(ScriptIndex);
 					Ar.Logf(TEXT("%s $%X: literal text - literal string: \"%s\""), *Indents, (int32)Opcode, *SourceString);
+				}
+				break;
+
+			case EBlueprintTextLiteralType::StringTableEntry:
+				{
+					ReadPointer<UObject>(ScriptIndex); // String Table asset (if any)
+					const FString TableIdString = ReadString(ScriptIndex);
+					const FString KeyString = ReadString(ScriptIndex);
+					Ar.Logf(TEXT("%s $%X: literal text - string table entry { tableid: \"%s\", key: \"%s\" }"), *Indents, (int32)Opcode, *TableIdString, *KeyString);
 				}
 				break;
 

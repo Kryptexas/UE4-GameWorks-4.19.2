@@ -27,6 +27,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "NativeClassHierarchy.h"
 #include "CollectionAssetRegistryBridge.h"
+#include "ContentBrowserCommands.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -63,6 +64,8 @@ FContentBrowserSingleton::FContentBrowserSingleton()
 
 	// Register to be notified when properties are edited
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.AddRaw(this, &FContentBrowserSingleton::OnEditorLoadSelectedAssetsIfNeeded);
+
+	FContentBrowserCommands::Register();
 }
 
 FContentBrowserSingleton::~FContentBrowserSingleton()
@@ -580,6 +583,43 @@ FText FContentBrowserSingleton::GetContentBrowserTabLabel(int32 BrowserIdx)
 	else
 	{
 		return LOCTEXT("ContentBrowserTabName", "Content Browser");
+	}
+}
+
+void FContentBrowserSingleton::SetSelectedPaths(const TArray<FString>& FolderPaths, bool bNeedsRefresh/* = false*/)
+{
+	// Make sure we have a valid browser
+	if (!PrimaryContentBrowser.IsValid())
+	{
+		ChooseNewPrimaryBrowser();
+
+		if (!PrimaryContentBrowser.IsValid())
+		{
+			SummonNewBrowser();
+		}
+	}
+
+	if (PrimaryContentBrowser.IsValid())
+	{
+		PrimaryContentBrowser.Pin()->SetSelectedPaths(FolderPaths, bNeedsRefresh);
+	}
+}
+
+void FContentBrowserSingleton::ForceShowPluginContent(bool bEnginePlugin)
+{
+	if (!PrimaryContentBrowser.IsValid())
+	{
+		ChooseNewPrimaryBrowser();
+
+		if (!PrimaryContentBrowser.IsValid())
+		{
+			SummonNewBrowser();
+		}
+	}
+
+	if (PrimaryContentBrowser.IsValid())
+	{
+		PrimaryContentBrowser.Pin()->ForceShowPluginContent(bEnginePlugin);
 	}
 }
 

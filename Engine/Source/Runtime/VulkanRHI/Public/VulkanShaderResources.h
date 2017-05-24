@@ -218,8 +218,8 @@ static inline VkDescriptorType BindingToDescriptorType(EVulkanBindingType::EType
 	case EVulkanBindingType::PackedUniformBuffer:	return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	case EVulkanBindingType::UniformBuffer:			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	case EVulkanBindingType::CombinedImageSampler:	return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	case EVulkanBindingType::Sampler:				return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-	case EVulkanBindingType::Image:					return VK_DESCRIPTOR_TYPE_SAMPLER;
+	case EVulkanBindingType::Sampler:				return VK_DESCRIPTOR_TYPE_SAMPLER;
+	case EVulkanBindingType::Image:					return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	case EVulkanBindingType::UniformTexelBuffer:	return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 	case EVulkanBindingType::StorageImage:			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	case EVulkanBindingType::StorageTexelBuffer:	return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;

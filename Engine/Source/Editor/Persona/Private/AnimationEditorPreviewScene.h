@@ -92,6 +92,16 @@ public:
 		OnFocusViews.RemoveAll(Thing);
 	}
 
+	virtual void RegisterOnMeshClick(const FOnMeshClick& Delegate) override
+	{
+		OnMeshClick.Add(Delegate);
+	}
+
+	virtual void UnregisterOnMeshClick(void* Thing) override
+	{
+		OnMeshClick.RemoveAll(Thing);
+	}
+
 	virtual void SetDefaultAnimationMode(EPreviewSceneDefaultAnimationMode Mode, bool bShowNow) override;
 	virtual void ShowDefaultMode() override;
 	virtual void EnableWind(bool bEnableWind) override;
@@ -105,6 +115,8 @@ public:
 	virtual int32 GetSelectedBoneIndex() const override;
 	virtual void TogglePlayback() override;
 	virtual AActor* GetActor() const override;
+	virtual bool AllowMeshHitProxies() const override;
+	virtual void SetAllowMeshHitProxies(bool bState) override;
 
 	/** FPreviewScene interface */
 	virtual void Tick(float InDeltaTime) override;
@@ -169,6 +181,10 @@ public:
 	/** Get the currently bone index */
 	int32 GetSelectedBoneIndex() { return SelectedBoneIndex; }
 
+	/** Broadcasts that a mesh viewport click occurred */
+	virtual bool BroadcastMeshClick(HActor* HitProxy, const FViewportClick& Click) {
+		OnMeshClick.Broadcast(HitProxy, Click); return OnMeshClick.IsBound(); }
+
 private:
 	/** Set preview mesh internal use only. The mesh should be verified by now. */
 	void SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh);
@@ -224,6 +240,9 @@ private:
 	/** Mode that the preview scene defaults to (usually depending on asset editor context) */
 	EPreviewSceneDefaultAnimationMode DefaultMode;
 
+	/** Broadcasts whenever the preview mesh is clicked */
+	FOnMeshClickMulticaster OnMeshClick;
+
 	/** Configuration object for editing in details panels */
 	class UPersonaPreviewSceneDescription* PreviewSceneDescription;
 
@@ -258,4 +277,7 @@ private:
 
 	/** View focus delegate */
 	FSimpleMulticastDelegate OnFocusViews;
+
+	/** Whether or not mesh section hit proxies should be enabled or not */
+	bool bEnableMeshHitProxies;
 };

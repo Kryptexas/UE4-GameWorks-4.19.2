@@ -169,6 +169,9 @@ namespace PlatformInfo
 		/** Whether UAT closes immediately after launching on this platform, or if it sticks around to read output from the running process */
 		bool bUATClosesAfterLaunch;
 
+		/** An identifier that corresponds to UBT's UnrealTargetPlatform enum (and by proxy, FGenericPlatformMisc::GetUBTPlatform()) */
+		FName UBTTargetId;
+
 		/** Returns true if this platform is vanilla */
 		FORCEINLINE bool IsVanilla() const
 		{
@@ -279,6 +282,11 @@ namespace PlatformInfo
 			FPlatformEnumerator Copy(*this);
 			++CurrentPlatform;
 			return Copy;
+		}
+
+		FORCEINLINE operator bool() const
+		{
+			return CurrentPlatform < end();
 		}
 
 	private:

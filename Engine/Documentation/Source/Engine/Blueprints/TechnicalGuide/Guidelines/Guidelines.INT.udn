@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:Tips and tricks for how best to write a Blueprint-friendly API
 Related:Engine/Blueprints/TechnicalGuide/ExtendingBlueprints 
 version: 4.9
+tags:Blueprints
 
 [TOC (start:2 end:2)]
 

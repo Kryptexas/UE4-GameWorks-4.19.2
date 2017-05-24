@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __LevelViewportLayoutOnePane_h__
-#define __LevelViewportLayoutOnePane_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -35,5 +31,3 @@ protected:
 	/** The viewport widget parent box */
 	TSharedPtr< SHorizontalBox > ViewportBox;
 };
-
-#endif

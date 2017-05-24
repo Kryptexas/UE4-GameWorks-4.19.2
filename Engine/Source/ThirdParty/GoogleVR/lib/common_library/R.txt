@@ -30,7 +30,6 @@ int string dialog_button_got_it 0x1
 int string dialog_button_open_help_center 0x1
 int string dialog_message_incompatible_phone 0x1
 int string dialog_message_no_cardboard 0x1
-int string dialog_message_setup 0x1
 int string dialog_title 0x1
 int string dialog_title_incompatible_phone 0x1
 int string dialog_title_vr_core_not_enabled 0x1
@@ -48,7 +47,7 @@ int string settings_button_content_description 0x1
 int string setup_button 0x1
 int string switch_viewer_action 0x1
 int string switch_viewer_prompt 0x1
-int style CardboardDialogTheme 0x1
+int style GvrDialogTheme 0x1
 int style NoSystemUI 0x1
 int style UiButton 0x1
 int style VrActivityTheme 0x1

@@ -30,10 +30,7 @@ namespace Audio
 		void Release();
 
 		// Queues the given buffer data to the internal queue of audio buffers.
-		void SubmitBuffer(FMixerSourceBufferPtr InSourceVoiceBuffer);
-
-		// Quees the given buffer data to teh internal queue of audio buffers on the audio thread.
-		void SubmitBufferAudioThread(FMixerSourceBufferPtr InSourceVoiceBuffer);
+		void SubmitBuffer(FMixerSourceBufferPtr InSourceVoiceBuffer, const bool bOnRenderThread);
 
 		// Returns the number of buffers that are currently queued to be played.
 		int32 GetNumBuffersQueued() const;
@@ -74,6 +71,9 @@ namespace Audio
 		// Queries if the source voice has finished playing all its audio.
 		bool IsDone() const;
 
+		// Queries if the source ffect tails have finished
+		bool IsSourceEffectTailsDone() const;
+
 		// Whether or not the device changed and needs another speaker map sent
 		bool NeedsSpeakerMap() const;
 
@@ -81,10 +81,10 @@ namespace Audio
 		int64 GetNumFramesPlayed() const;
 
 		// Mixes the dry and wet buffer audio into the given buffers.
-		void MixOutputBuffers(TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer, const float DryLevel, const float WetLevel) const;
+		void MixOutputBuffers(TArray<float>& OutWetBuffer, const float SendLevel) const;
 
 		// Sets the submix send levels
-		void SetSubmixSendInfo(FMixerSubmixPtr Submix, const float DryLevel, const float WetLevel);
+		void SetSubmixSendInfo(FMixerSubmixPtr Submix, const float SendLevel);
 
 		// Returns the submix that owns this source voice.
 		TMap<uint32, FMixerSourceSubmixSend>& GetSubmixSends() { return SubmixSends; }

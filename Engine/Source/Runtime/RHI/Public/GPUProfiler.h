@@ -204,6 +204,8 @@ struct RHI_API FGPUProfiler
 	/** Current perf event node. */
 	FGPUProfilerEventNode* CurrentEventNode;
 
+	int32 StackDepth;
+
 	FGPUProfiler() :
 		bTrackingEvents(false),
 		bLatchedGProfilingGPU(false),
@@ -212,7 +214,8 @@ struct RHI_API FGPUProfiler
 		bOriginalGEmitDrawEvents(false),
 		GPUHitchDebounce(0),
 		CurrentEventNodeFrame(NULL),
-		CurrentEventNode(NULL)
+		CurrentEventNode(NULL),
+		StackDepth(0)
 	{
 	}
 
@@ -234,9 +237,6 @@ struct RHI_API FGPUProfiler
 
 	virtual void PushEvent(const TCHAR* Name, FColor Color);
 	virtual void PopEvent();
-
-	void BeginFrame();
-	void EndFrame();
 };
 
 

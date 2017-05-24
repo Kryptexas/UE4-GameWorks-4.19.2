@@ -362,7 +362,7 @@ FBoxSphereBounds ULineBatchComponent::CalcBounds( const FTransform& LocalToWorld
 		return FBoxSphereBounds(FVector::ZeroVector, BoxExtent, BoxExtent.Size());
 	}
 
-	FBox BBox(0);
+	FBox BBox(ForceInit);
 	for (const FBatchedLine& Line : BatchedLines)
 	{
 		BBox += Line.Start;

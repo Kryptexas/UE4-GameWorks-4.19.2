@@ -190,6 +190,12 @@ public:
 	/* Get a valid unique name from a name */
 	FString GetFbxObjectName(const FString &FbxObjectNode, INodeNameAdapter& NodeNameAdapter);
 
+	/**
+	 * Exports the basic information about an actor and buffers it.
+	 * This function creates one FBX node for the actor with its placement.
+	 */
+	FbxNode* ExportActor(AActor* Actor, bool bExportComponents, INodeNameAdapter& NodeNameAdapter);
+
 private:
 	FFbxExporter();
 
@@ -261,13 +267,6 @@ private:
 
 	void ExportModel(UModel* Model, FbxNode* Node, const char* Name);
 	
-	/**
-	 * Exports the basic information about an actor and buffers it.
-	 * This function creates one FBX node for the actor with its placement.
-	 */
-	FbxNode* ExportActor(AActor* Actor, bool bExportComponents, INodeNameAdapter& NodeNameAdapter);
-	
-
 #if WITH_PHYSX
 	FbxNode* ExportCollisionMesh(const UStaticMesh* StaticMesh, const TCHAR* MeshName, FbxNode* ParentActor);
 #endif

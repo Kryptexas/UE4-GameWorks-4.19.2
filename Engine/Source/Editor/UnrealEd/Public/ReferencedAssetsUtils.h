@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __REFERENCEDASSETSBROWSER_H__
-#define __REFERENCEDASSETSBROWSER_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Serialization/ArchiveUObject.h"
@@ -191,5 +189,3 @@ protected:
 	/** Handle to the registered OnEditorMapChange delegate. */
 	FDelegateHandle OnEditorMapChangeDelegateHandle;
 };
-
-#endif // __REFERENCEDASSETSBROWSER_H__

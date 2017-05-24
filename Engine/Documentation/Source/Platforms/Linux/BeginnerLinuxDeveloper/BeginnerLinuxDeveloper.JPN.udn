@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3065645
-Availability:Docs
-Title:Linux のゲーム開発：入門レベル
+﻿INTSourceChangelist:3108692
+Availability:NoPublish
+Title:入門レベルの Linux デベロッパー
 Crumbs:%ROOT%, Platforms, Platforms/Linux
 Description:Linux でのゲーム開発の基本的なワークフローの設定方法を学習します。
 Platform:Linux
 Navigation:platform
-Version:4.11
+Version:4.13
 type:landing
 parent:Platforms/Linux
 order:1

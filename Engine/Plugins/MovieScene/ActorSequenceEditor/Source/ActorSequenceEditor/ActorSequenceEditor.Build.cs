@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ActorSequenceEditor : ModuleRules
 {
-	public ActorSequenceEditor(TargetInfo Target)
+	public ActorSequenceEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

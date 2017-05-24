@@ -12,6 +12,10 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
+#if WITH_EDITOR
+#include "UObject/UnrealType.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "ConstraintInstance"
 
 TAutoConsoleVariable<float> CVarConstraintDampingScale(
@@ -45,6 +49,67 @@ physx::PxD6Joint* FConstraintInstance::GetUnbrokenJoint_AssumesLocked() const
 {
 	return (ConstraintData && !(ConstraintData->getConstraintFlags()&PxConstraintFlag::eBROKEN)) ? ConstraintData : nullptr;
 }
+
+#if WITH_EDITOR
+void FConstraintProfileProperties::SyncChangedConstraintProperties(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	static const FName StiffnessProperty = GET_MEMBER_NAME_CHECKED(FConstraintDrive, Stiffness);
+	static const FName MaxForceName = GET_MEMBER_NAME_CHECKED(FConstraintDrive, MaxForce);
+	static const FName DampingName = GET_MEMBER_NAME_CHECKED(FConstraintDrive, Damping);
+
+	if (TDoubleLinkedList<UProperty*>::TDoubleLinkedListNode* PropertyNode = PropertyChangedEvent.PropertyChain.GetTail())
+	{
+		if (TDoubleLinkedList<UProperty*>::TDoubleLinkedListNode* ParentProeprtyNode = PropertyNode->GetPrevNode())
+		{
+			if (UProperty* Property = PropertyNode->GetValue())
+			{
+				if (UProperty* ParentProperty = ParentProeprtyNode->GetValue())
+				{
+					const FName PropertyName = Property->GetFName();
+					const FName ParentPropertyName = ParentProperty->GetFName();
+
+					if (ParentPropertyName == GET_MEMBER_NAME_CHECKED(FLinearDriveConstraint, XDrive))
+					{
+						if (StiffnessProperty == PropertyName)
+						{
+							LinearDrive.YDrive.Stiffness = LinearDrive.XDrive.Stiffness;
+							LinearDrive.ZDrive.Stiffness = LinearDrive.XDrive.Stiffness;
+						}
+						else if (MaxForceName == PropertyName)
+						{
+							LinearDrive.YDrive.MaxForce = LinearDrive.XDrive.MaxForce;
+							LinearDrive.ZDrive.MaxForce = LinearDrive.XDrive.MaxForce;
+						}
+						else if (DampingName == PropertyName)
+						{
+							LinearDrive.YDrive.Damping = LinearDrive.XDrive.Damping;
+							LinearDrive.ZDrive.Damping = LinearDrive.XDrive.Damping;
+						}
+					}
+					else if (ParentPropertyName == GET_MEMBER_NAME_CHECKED(FAngularDriveConstraint, SlerpDrive))
+					{
+						if (StiffnessProperty == PropertyName)
+						{
+							AngularDrive.SwingDrive.Stiffness = AngularDrive.SlerpDrive.Stiffness;
+							AngularDrive.TwistDrive.Stiffness = AngularDrive.SlerpDrive.Stiffness;
+						}
+						else if (MaxForceName == PropertyName)
+						{
+							AngularDrive.SwingDrive.MaxForce = AngularDrive.SlerpDrive.MaxForce;
+							AngularDrive.TwistDrive.MaxForce = AngularDrive.SlerpDrive.MaxForce;
+						}
+						else if (DampingName == PropertyName)
+						{
+							AngularDrive.SwingDrive.Damping = AngularDrive.SlerpDrive.Damping;
+							AngularDrive.TwistDrive.Damping = AngularDrive.SlerpDrive.Damping;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+#endif
 
 bool FConstraintInstance::ExecuteOnUnbrokenJointReadOnly(TFunctionRef<void(const physx::PxD6Joint*)> Func) const
 {
@@ -271,11 +336,11 @@ float ComputeAverageMass_AssumesLocked(const PxRigidActor* PActor1, const PxRigi
 }
 
 /** Finds the common scene and appropriate actors for the passed in body instances. Makes sure to do this without requiring a scene lock*/
-PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Body2, UObject* DebugOwner)
+bool GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Body2, UObject* DebugOwner,PxScene*& OutScene)
 {
 	const int32 SceneIndex1 = Body1 ? Body1->GetSceneIndex() : -1;
 	const int32 SceneIndex2 = Body2 ? Body2->GetSceneIndex() : -1;
-	PxScene* PScene = nullptr;
+	OutScene = nullptr;
 
 	//ensure we constrain components from the same scene
 	if(SceneIndex1 >= 0 && SceneIndex2 >= 0 && SceneIndex1 != SceneIndex2)
@@ -286,19 +351,19 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesStart", "Constraint")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("JointBetweenScenesOwner", "'{0}'"), FText::FromString(GetPathNameSafe(DebugOwner)))))
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesMid", "attempting to create a joint between two actors in different scenes (")))
-			->AddToken(FUObjectToken::Create(PrimComp1))
-			->AddToken(FUObjectToken::Create(PrimComp2))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("JointBetweenScenesArgs", "'{0}' and '{1}'"), FText::FromString(GetPathNameSafe(PrimComp1)), FText::FromString(GetPathNameSafe(PrimComp2)))))
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesEnd", ").  No joint created.")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		return false;
 	}
 	else if(SceneIndex1 >= 0 || SceneIndex2 >= 0)
 	{
-		PScene = GetPhysXSceneFromIndex(SceneIndex1 >= 0 ? SceneIndex1 : SceneIndex2);
+		OutScene = GetPhysXSceneFromIndex(SceneIndex1 >= 0 ? SceneIndex1 : SceneIndex2);
 	}
 
-	return PScene;
+	return true;	//we are simply using a nullscene which is valid in some cases
 }
 
 bool CanActorSimulate(const FBodyInstance* BI, const PxRigidActor* PActor, UObject* DebugOwner)
@@ -309,9 +374,9 @@ bool CanActorSimulate(const FBodyInstance* BI, const PxRigidActor* PActor, UObje
 		const UPrimitiveComponent* PrimComp = BI->OwnerComponent.Get();
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyStart", "Attempting to create a joint")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("InvalidBodyOwner", "'{0}'"), FText::FromString(GetPathNameSafe(DebugOwner)))))
 			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyMid", "to body")))
-			->AddToken(FUObjectToken::Create(PrimComp))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("InvalidBodyComponent", "'{0}'"), FText::FromString(GetPathNameSafe(PrimComp)))))
 			->AddToken(FTextToken::Create(LOCTEXT("InvalidBodyEnd", "which is not eligible for simulation. Is it marked QueryOnly?")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -334,7 +399,7 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("TwoStaticBodiesWarningStart", "Constraint in")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("TwoStaticBodiesWarningOwner", "'{0}'"), FText::FromString(GetPathNameSafe(DebugOwner)))))
 			->AddToken(FTextToken::Create(LOCTEXT("TwoStaticBodiesWarningEnd", "attempting to create a joint between objects that are both static.  No joint created.")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		return false;
@@ -346,7 +411,7 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 		const UPrimitiveComponent* PrimComp = Body1->OwnerComponent.Get();
 		FMessageLog("PIE").Warning()
 			->AddToken(FTextToken::Create(LOCTEXT("SameBodyWarningStart", "Constraint in")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("SameBodyWarningOwner", "'{0}'"), FText::FromString(GetPathNameSafe(DebugOwner)))))
 			->AddToken(FTextToken::Create(LOCTEXT("SameBodyWarningMid", "attempting to create a joint to the same body")))
 			->AddToken(FUObjectToken::Create(PrimComp));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -413,22 +478,26 @@ bool FConstraintInstance::CreatePxJoint_AssumesLocked(physx::PxRigidActor* PActo
 	///////// POINTERS
 	PD6Joint->userData = &PhysxUserData;
 
-	// Remember reference to scene index.
-	FPhysScene* RBScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-	if (RBScene->GetPhysXScene(PST_Sync) == PScene)
+	if(PScene)
 	{
-		SceneIndex = RBScene->PhysXSceneIndex[PST_Sync];
+		// Remember reference to scene index.
+		FPhysScene* RBScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+		if (RBScene->GetPhysXScene(PST_Sync) == PScene)
+		{
+			SceneIndex = RBScene->PhysXSceneIndex[PST_Sync];
+		}
+		else
+			if (RBScene->GetPhysXScene(PST_Async) == PScene)
+			{
+				SceneIndex = RBScene->PhysXSceneIndex[PST_Async];
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Log, TEXT("URB_ConstraintInstance::InitConstraint: PxScene has inconsistent FPhysScene userData.  No joint created."));
+				return false;
+			}
 	}
-	else
-	if (RBScene->GetPhysXScene(PST_Async) == PScene)
-	{
-		SceneIndex = RBScene->PhysXSceneIndex[PST_Async];
-	}
-	else
-	{
-		UE_LOG(LogPhysics, Log, TEXT("URB_ConstraintInstance::InitConstraint: PxScene has inconsistent FPhysScene userData.  No joint created."));
-		return false;
-	}
+	
 
 	ConstraintData = PD6Joint;
 	return true;
@@ -502,10 +571,11 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
 #if WITH_PHYSX
 	PxRigidActor* PActor1 = nullptr;
 	PxRigidActor* PActor2 = nullptr;
-	PxScene* PScene = GetPScene_LockFree(Body1, Body2, DebugOwner);
+	PxScene* PScene;
+	bool bValidScene = GetPScene_LockFree(Body1, Body2, DebugOwner, PScene);
 	SCOPED_SCENE_WRITE_LOCK(PScene);
 	{
-		const bool bValidConstraintSetup = PScene && GetPActors_AssumesLocked(Body1, Body2, &PActor1, &PActor2, DebugOwner);
+		const bool bValidConstraintSetup = bValidScene && GetPActors_AssumesLocked(Body1, Body2, &PActor1, &PActor2, DebugOwner);
 		if (!bValidConstraintSetup)
 		{
 			return;
@@ -542,7 +612,10 @@ void FConstraintInstance::InitConstraintPhysX_AssumesLocked(physx::PxRigidActor*
 
 	ProfileInstance.UpdatePhysX_AssumesLocked(ConstraintData, AverageMass, bScaleLinearLimits ? LastKnownScale : 1.f);
 
-	EnsureSleepingActorsStaySleeping_AssumesLocked(PActor1, PActor2);
+	if(PScene)
+	{
+		EnsureSleepingActorsStaySleeping_AssumesLocked(PActor1, PActor2);
+	}
 }
 #endif
 
@@ -588,7 +661,7 @@ void FConstraintInstance::TermConstraint()
 	}
 
 	// use correct scene
-	if(PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex))
+	PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
 	{
 		SCOPED_SCENE_WRITE_LOCK(PScene);
 		ConstraintData->release();

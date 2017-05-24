@@ -8,7 +8,7 @@ UMovieSceneBindingOverrides::UMovieSceneBindingOverrides(const FObjectInitialize
 {
 }
 
-bool UMovieSceneBindingOverrides::LocateBoundObjects(const FGuid& InBindingId, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const
+bool UMovieSceneBindingOverrides::LocateBoundObjects(const FGuid& InBindingId, FMovieSceneSequenceID InSequenceID, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const
 {
 	if (bLookupDirty)
 	{
@@ -20,6 +20,13 @@ bool UMovieSceneBindingOverrides::LocateBoundObjects(const FGuid& InBindingId, T
 	for (auto It = LookupMap.CreateConstKeyIterator(InBindingId);It;++It)
 	{
 		const FMovieSceneBindingOverrideData& Data = BindingData[It.Value()];
+
+		// We have fast lookup only on GUID, so be sure to check the sequence ID before allowing overrides
+		if (Data.ObjectBindingId.GetSequenceID() != InSequenceID)
+		{
+			continue;
+		}
+
 		UObject* Object = Data.Object.Get();
 
 		if (Data.bOverridesDefault)
@@ -36,7 +43,7 @@ bool UMovieSceneBindingOverrides::LocateBoundObjects(const FGuid& InBindingId, T
 	return bAllowDefault;
 }
 
-void UMovieSceneBindingOverrides::SetBinding(FMovieSceneObjectBindingPtr Binding, const TArray<UObject*>& Objects, bool bAllowBindingsFromAsset)
+void UMovieSceneBindingOverrides::SetBinding(FMovieSceneObjectBindingID Binding, const TArray<UObject*>& Objects, bool bAllowBindingsFromAsset)
 {
 	ResetBinding(Binding);
 
@@ -47,7 +54,7 @@ void UMovieSceneBindingOverrides::SetBinding(FMovieSceneObjectBindingPtr Binding
 			continue;
 		}
 
-		LookupMap.Add(Binding.Guid, BindingData.Num());
+		LookupMap.Add(Binding.GetGuid(), BindingData.Num());
 
 		FMovieSceneBindingOverrideData NewBinding;
 		NewBinding.ObjectBindingId = Binding;
@@ -57,11 +64,11 @@ void UMovieSceneBindingOverrides::SetBinding(FMovieSceneObjectBindingPtr Binding
 	}
 }
 
-void UMovieSceneBindingOverrides::AddBinding(FMovieSceneObjectBindingPtr Binding, UObject* Object, bool bAllowBindingsFromAsset)
+void UMovieSceneBindingOverrides::AddBinding(FMovieSceneObjectBindingID Binding, UObject* Object, bool bAllowBindingsFromAsset)
 {
 	if (Object)
 	{
-		LookupMap.Add(Binding.Guid, BindingData.Num());
+		LookupMap.Add(Binding.GetGuid(), BindingData.Num());
 
 		FMovieSceneBindingOverrideData NewBinding;
 		NewBinding.ObjectBindingId = Binding;
@@ -71,10 +78,10 @@ void UMovieSceneBindingOverrides::AddBinding(FMovieSceneObjectBindingPtr Binding
 	}
 }
 
-void UMovieSceneBindingOverrides::RemoveBinding(FMovieSceneObjectBindingPtr Binding, UObject* Object)
+void UMovieSceneBindingOverrides::RemoveBinding(FMovieSceneObjectBindingID Binding, UObject* Object)
 {
 	int32 NumRemoved = BindingData.RemoveAll([=](const FMovieSceneBindingOverrideData& InBindingData){
-		return InBindingData.Object == Object && Binding.Guid == InBindingData.ObjectBindingId.Guid;
+		return InBindingData.Object == Object && Binding == InBindingData.ObjectBindingId;
 	});
 
 	if (NumRemoved)
@@ -83,10 +90,10 @@ void UMovieSceneBindingOverrides::RemoveBinding(FMovieSceneObjectBindingPtr Bind
 	}
 }
 
-void UMovieSceneBindingOverrides::ResetBinding(FMovieSceneObjectBindingPtr Binding)
+void UMovieSceneBindingOverrides::ResetBinding(FMovieSceneObjectBindingID Binding)
 {
 	int32 NumRemoved = BindingData.RemoveAll([=](const FMovieSceneBindingOverrideData& InBindingData){
-		return Binding.Guid == InBindingData.ObjectBindingId.Guid;
+		return Binding == InBindingData.ObjectBindingId;
 	});
 
 	if (NumRemoved)
@@ -111,7 +118,7 @@ void UMovieSceneBindingOverrides::RebuildLookupMap() const
 
 	for (int32 Index = 0; Index < BindingData.Num(); ++Index)
 	{
-		LookupMap.Add(BindingData[Index].ObjectBindingId.Guid, Index);
+		LookupMap.Add(BindingData[Index].ObjectBindingId.GetGuid(), Index);
 	}
 
 	bLookupDirty = false;

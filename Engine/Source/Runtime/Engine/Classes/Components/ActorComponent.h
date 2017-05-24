@@ -70,8 +70,11 @@ FORCEINLINE EUpdateTransformFlags SkipPhysicsToEnum(bool bSkipPhysics){ return b
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorComponentActivatedSignature, UActorComponent*, Component, bool, bReset);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentDeactivateSignature, UActorComponent*, Component);
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentCreatePhysicsSignature, UActorComponent*);
-DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentDestroyPhysicsSignature, UActorComponent*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentGlobalCreatePhysicsSignature, UActorComponent*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentGlobalDestroyPhysicsSignature, UActorComponent*);
+
+DECLARE_MULTICAST_DELEGATE(FActorComponentInstanceCreatePhysicsSignature);
+DECLARE_MULTICAST_DELEGATE(FActorComponentInstanceDestroyPhysicsSignature);
 
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
@@ -88,9 +91,14 @@ class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserDa
 public:
 
 	/** Create component physics state global delegate.*/
-	static FActorComponentCreatePhysicsSignature CreatePhysicsDelegate;
+	static FActorComponentGlobalCreatePhysicsSignature GlobalCreatePhysicsDelegate;
 	/** Destroy component physics state global delegate.*/
-	static FActorComponentDestroyPhysicsSignature DestroyPhysicsDelegate;
+	static FActorComponentGlobalDestroyPhysicsSignature GlobalDestroyPhysicsDelegate;
+
+	/** Create component physics state delegate (for this specific instance).*/
+	FActorComponentInstanceCreatePhysicsSignature InstanceCreatePhysicsDelegate;
+	/** Destroy component physics state delegate (for this specific instance).*/
+	FActorComponentInstanceDestroyPhysicsSignature InstanceDestroyPhysicsDelegate;
 
 	/**
 	 * Default UObject constructor that takes an optional ObjectInitializer.
@@ -275,9 +283,13 @@ public:
 	UFUNCTION()
 	void OnRep_IsActive();
 
+private:
+	AActor* GetActorOwnerNoninline() const;
+
+public:
 	/** Follow the Outer chain to get the  AActor  that 'Owns' this component */
 	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Actor Owning Parent"))
-	class AActor* GetOwner() const;
+	AActor* GetOwner() const;
 
 	virtual UWorld* GetWorld() const override final { return (WorldPrivate ? WorldPrivate : GetWorld_Uncached()); }
 
@@ -334,7 +346,7 @@ public:
 	 * @return - The active state of the component.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
-	virtual bool IsActive() const;
+	virtual bool IsActive() const { return bIsActive; }
 
 	/**
 	 * Sets whether the component should be auto activate or not. Only safe during construction scripts.
@@ -900,4 +912,23 @@ FORCEINLINE_DEBUGGABLE bool UActorComponent::IsNetMode(ENetMode Mode) const
 		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
 	}
 #endif // UE_EDITOR
+}
+
+FORCEINLINE_DEBUGGABLE AActor* UActorComponent::GetOwner() const
+{
+#if WITH_EDITOR
+	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
+	if (bCanUseCachedOwner)
+	{
+		checkSlow(OwnerPrivate == GetActorOwnerNoninline()); // verify cached value is correct
+		return OwnerPrivate;
+	}
+	else
+	{
+		return GetActorOwnerNoninline();
+	}
+#else
+	checkSlow(OwnerPrivate == GetActorOwnerNoninline()); // verify cached value is correct
+	return OwnerPrivate;
+#endif
 }

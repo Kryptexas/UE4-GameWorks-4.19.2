@@ -15,6 +15,7 @@
 #include "Templates/UnrealTemplate.h"
 #include "Math/NumericLimits.h"
 #include "Containers/Array.h"
+#include "Containers/Set.h"
 #include "Misc/CString.h"
 #include "Misc/Crc.h"
 #include "Math/UnrealMathUtility.h"
@@ -1244,28 +1245,28 @@ public:
 	}
 
 	/**
-	* Searches the string for the last occurrence of a character
-	*
-	* @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
-	* @param StartIndex Index of element from which to start searching. Defaults to last TCHAR in string.
-	*
-	* @return Index of found TCHAR, INDEX_NONE otherwise.
-	*/
+	 * Searches an initial substring for the last occurrence of a character which matches the specified predicate.
+	 *
+	 * @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
+	 * @param Count The number of characters from the front of the string through which to search.
+	 *
+	 * @return Index of found TCHAR, INDEX_NONE otherwise.
+	 */
 	template <typename Predicate>
-	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred, int32 StartIndex) const
+	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred, int32 Count) const
 	{
-		check(StartIndex >= 0 && StartIndex <= this->Len());
-		return Data.FindLastByPredicate(Pred, StartIndex);
+		check(Count >= 0 && Count <= this->Len());
+		return Data.FindLastByPredicate(Pred, Count);
 	}
 
 	/**
-	* Searches the string for the last occurrence of a character
-	*
-	* @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
-	* @param StartIndex Index of element from which to start searching. Defaults to last TCHAR in string.
-	*
-	* @return Index of found TCHAR, INDEX_NONE otherwise.
-	*/
+	 * Searches the string for the last occurrence of a character which matches the specified predicate.
+	 *
+	 * @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
+	 * @param StartIndex Index of element from which to start searching. Defaults to last TCHAR in string.
+	 *
+	 * @return Index of found TCHAR, INDEX_NONE otherwise.
+	 */
 	template <typename Predicate>
 	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred) const
 	{
@@ -1682,6 +1683,36 @@ public:
 		FString Result;
 		bool    First = true;
 		for (const T& Element : Array)
+		{
+			if (First)
+			{
+				First = false;
+			}
+			else
+			{
+				Result += Separator;
+			}
+
+			Result += Element;
+		}
+
+		return Result;
+	}
+
+	/**
+	* Joins a Set of 'something that can be concatentated to strings with +=' together into a single string with separators.
+	*
+	* @param	Set		The Set of 'things' to concatenate.
+	* @param	Separator	The string used to separate each element.
+	*
+	* @return	The final, joined, separated string.
+	*/
+	template <typename T, typename Allocator>
+	static FString Join(const TSet<T, Allocator>& Set, const TCHAR* Separator)
+	{
+		FString Result;
+		bool    First = true;
+		for (const T& Element : Set)
 		{
 			if (First)
 			{

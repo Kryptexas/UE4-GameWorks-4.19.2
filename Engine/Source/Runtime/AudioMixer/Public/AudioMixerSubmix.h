@@ -3,7 +3,6 @@
 #pragma once
 
 #include "AudioMixer.h"
-#include "AudioMixerSourceManager.h"
 #include "Sound/SoundSubmix.h"
 
 class USoundEffectSubmix;
@@ -14,11 +13,16 @@ namespace Audio
 	class FMixerSourceVoice;
 	class FMixerDevice;
 
+	typedef TSharedPtr<FSoundEffectSubmix, ESPMode::ThreadSafe> FSoundEffectSubmixPtr;
+
 	class FMixerSubmix
 	{
 	public:
-		FMixerSubmix(USoundSubmix* InSoundSubmix, FMixerDevice* InMixerDevice);
+		FMixerSubmix(FMixerDevice* InMixerDevice);
 		~FMixerSubmix();
+
+		// Initialize the submix object with the USoundSubmix ptr. Sets up child and parent connects.
+		void Init(USoundSubmix* InSoundSubmix);
 
 		// Returns the mixer submix Id
 		uint32 GetId() const { return Id; }
@@ -39,22 +43,22 @@ namespace Audio
 		int32 GetNumEffects() const;
 
 		// Add (if not already added) or sets the amount of the source voice's send amount
-		void AddOrSetSourceVoice(FMixerSourceVoice* InSourceVoice, const float DryLevel, const float WetLevel);
+		void AddOrSetSourceVoice(FMixerSourceVoice* InSourceVoice, const float SendLevel);
 
 		/** Removes the given source voice from the submix. */
 		void RemoveSourceVoice(FMixerSourceVoice* InSourceVoice);
 
 		/** Appends the effect submix to the effect submix chain. */
-		void AddSoundEffectSubmix(FSoundEffectSubmix* InSoundEffectSubmix);
+		void AddSoundEffectSubmix(uint32 SubmixPresetId, FSoundEffectSubmixPtr InSoundEffectSubmix);
+
+		/** Removes the submix effect from the effect submix chain. */
+		void RemoveSoundEffectSubmix(uint32 SubmixPresetId);
+
+		/** Clears all submix effects from the effect submix chain. */
+		void ClearSoundEffectSubmixes();
 
 		// Function which processes audio.
 		void ProcessAudio(TArray<float>& OutAudio);
-
-		// Sets the wet-level to use when outputting the submix's audio to it's parent submixes (does not apply for master submix).
-		void SetOutputWetLevel(const float InWetLevel);
-
-		// Returns the submix's wet level, used by parent submixes to determine where to route output audio of children.
-		float GetOutputWetLevel() const;
 
 		// Returns the device sample rate this submix is rendering to
 		int32 GetSampleRate() const;
@@ -69,13 +73,14 @@ namespace Audio
 		int32 GetNumChainEffects() const;
 
 		// Returns the submix effect at the given effect chain index
-		FSoundEffectSubmix* GetSubmixEffect(const int32 InIndex);
+		FSoundEffectSubmixPtr GetSubmixEffect(const int32 InIndex);
 
 	protected:
 		// Down mix the given buffer to the desired down mix channel count
 		void DownmixBuffer(const int32 InputChannelCount, const TArray<float>& InBuffer, const int32 DownMixChannelCount, TArray<float>& OutDownmixedBuffer);
 
 	protected:
+
 		// This mixer submix's Id
 		uint32 Id;
 
@@ -85,29 +90,34 @@ namespace Audio
 		// Child submixes
 		TMap<uint32, TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe>> ChildSubmixes;
 
+		// Info struct for a submix effect instance
+		struct FSubmixEffectInfo
+		{
+			// The preset object id used to spawn this effect instance
+			uint32 PresetId;
+
+			// The effect instance ptr
+			FSoundEffectSubmixPtr EffectInstance;
+
+			FSubmixEffectInfo()
+				: PresetId(INDEX_NONE)
+			{
+			}
+		};
+
 		// The effect chain of this submix, based on the sound submix preset chain
-		TArray<FSoundEffectSubmix*> EffectSubmixChain;
+		TArray<FSubmixEffectInfo> EffectSubmixChain;
 
 		// Owning mixer device. 
 		FMixerDevice* MixerDevice;
 
-		// Describes how to treat the source voice in the mixer submix's effect chain
-		struct FSubmixEffectSendInfo
-		{
-			float DryLevel;
-			float WetLevel;
-		};
+		// Map of mixer source voices with a given send level for this submix
+		TMap<FMixerSourceVoice*, float> MixerSourceVoices;
 
-		// Map of mixer source voices with a given wet-level to use when processing
-		TMap<FMixerSourceVoice*, FSubmixEffectSendInfo> MixerSourceVoices;
-
-		TArray<float> DryBuffer;
-		TArray<float> WetBuffer;
 		TArray<float> ScratchBuffer;
 		TArray<float> DownmixedBuffer;
 
-		// The output wet level of this submix. Used by parent submix to determine how to route the output of this submix. 
-		float WetLevel;
+		friend class FMixerDevice;
 	};
 
 

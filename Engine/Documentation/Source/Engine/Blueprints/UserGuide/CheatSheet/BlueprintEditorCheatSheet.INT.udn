@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:Reference covering Blueprint shortcuts and useful actions.
 version: 4.9
 order:1
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

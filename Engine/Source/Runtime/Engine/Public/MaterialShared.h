@@ -110,6 +110,33 @@ enum EMaterialCommonBasis
 	MCB_MAX,
 };
 
+//when setting deferred scene resources whether to throw warnings when we fall back to defaults.
+enum struct EDeferredParamStrictness
+{
+	ELoose, // no warnings
+	EStrict, // throw warnings
+};
+
+/** Defines the domain of a material. */
+UENUM()
+enum EMaterialDomain
+{
+	/** The material's attributes describe a 3d surface. */
+	MD_Surface UMETA(DisplayName = "Surface"),
+	/** The material's attributes describe a deferred decal, and will be mapped onto the decal's frustum. */
+	MD_DeferredDecal UMETA(DisplayName = "Deferred Decal"),
+	/** The material's attributes describe a light's distribution. */
+	MD_LightFunction UMETA(DisplayName = "Light Function"),
+	/** The material's attributes describe a 3d volume. */
+	MD_Volume UMETA(DisplayName = "Volume"),
+	/** The material will be used in a custom post process pass. */
+	MD_PostProcess UMETA(DisplayName = "Post Process"),
+	/** The material will be used for UMG or Slate UI */
+	MD_UI UMETA(DisplayName = "User Interface"),
+
+	MD_MAX
+};
+
 /**
  * The context of a material being rendered.
  */
@@ -306,6 +333,8 @@ class FMaterialCompilationOutput
 {
 public:
 	FMaterialCompilationOutput() :
+		NumUsedUVScalars(0),
+		NumUsedCustomInterpolatorScalars(0),
 		bRequiresSceneColorCopy(false),
 		bNeedsSceneTextures(false),
 		bUsesEyeAdaptation(false),
@@ -321,9 +350,13 @@ public:
 
 	FUniformExpressionSet UniformExpressionSet;
 
-	/** 
-	 * Indicates whether the material uses scene color. 
-	 */
+	/** Number of used custom UV scalars. */
+	uint8 NumUsedUVScalars;
+
+	/** Number of used custom vertex interpolation scalars. */
+	uint8 NumUsedCustomInterpolatorScalars;
+
+	/** Indicates whether the material uses scene color. */
 	bool bRequiresSceneColorCopy;
 
 	/** true if the material needs the scenetexture lookups. */
@@ -375,6 +408,7 @@ namespace EMaterialShaderMapUsage
 		MaterialExportAO,
 		MaterialExportEmissive,
 		MaterialExportOpacity,
+		MaterialExportOpacityMask,
 		MaterialExportSubSurfaceColor,
 		DebugViewModeTexCoordScale,
 		DebugViewModeRequiredTextureResolution
@@ -503,8 +537,9 @@ class FMeshMaterialShaderMap : public TShaderMap<FMeshMaterialShaderType>
 {
 public:
 
-	FMeshMaterialShaderMap(FVertexFactoryType* InVFType) :
-		VertexFactoryType(InVFType)
+	FMeshMaterialShaderMap(EShaderPlatform InPlatform, FVertexFactoryType* InVFType) 
+		: TShaderMap<FMeshMaterialShaderType>(InPlatform)
+		, VertexFactoryType(InVFType)
 	{}
 
 	/**
@@ -593,7 +628,8 @@ public:
 	 */
 	static void LoadFromDerivedDataCache(const FMaterial* Material, const FMaterialShaderMapId& ShaderMapId, EShaderPlatform Platform, TRefCountPtr<FMaterialShaderMap>& InOutShaderMap);
 
-	FMaterialShaderMap();
+	inline FMaterialShaderMap() : FMaterialShaderMap(EShaderPlatform::SP_NumPlatforms) {}
+	FMaterialShaderMap(EShaderPlatform InPlatform);
 
 	// Destructor.
 	~FMaterialShaderMap();
@@ -687,6 +723,7 @@ public:
 
 	/** Registers all shaders that have been loaded in Serialize */
 	virtual void RegisterSerializedShaders() override;
+	virtual void DiscardSerializedShaders() override;
 
 	/** Backs up any FShaders in this shader map to memory through serialization and clears FShader references. */
 	TArray<uint8>* BackupShadersToMemory();
@@ -715,7 +752,6 @@ public:
 	// Accessors.
 	ENGINE_API const FMeshMaterialShaderMap* GetMeshShaderMap(FVertexFactoryType* VertexFactoryType) const;
 	const FMaterialShaderMapId& GetShaderMapId() const { return ShaderMapId; }
-	EShaderPlatform GetShaderPlatform() const { return Platform; }
 	const FString& GetFriendlyName() const { return FriendlyName; }
 	uint32 GetCompilingId() const { return CompilingId; }
 	bool IsCompilationFinalized() const { return bCompilationFinalized; }
@@ -730,6 +766,8 @@ public:
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 	bool UsesPixelDepthOffset() const { return MaterialCompilationOutput.bUsesPixelDepthOffset; }
 	bool UsesSceneDepthLookup() const { return MaterialCompilationOutput.bUsesSceneDepthLookup; }
+	uint32 GetNumUsedUVScalars() const { return MaterialCompilationOutput.NumUsedUVScalars; }
+	uint32 GetNumUsedCustomInterpolatorScalars() const { return MaterialCompilationOutput.NumUsedCustomInterpolatorScalars; }
 
 	bool IsValidForRendering() const
 	{
@@ -763,9 +801,6 @@ private:
 
 	/** The material's user friendly name, typically the object name. */
 	FString FriendlyName;
-
-	/** The platform this shader map was compiled with */
-	EShaderPlatform Platform;
 
 	/** The static parameter set that this shader map was compiled with */
 	FMaterialShaderMapId ShaderMapId;
@@ -971,7 +1006,7 @@ public:
 
 	// Material properties.
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const;
-	virtual int32 GetMaterialDomain() const = 0; // See EMaterialDomain.
+	virtual EMaterialDomain GetMaterialDomain() const = 0; // See EMaterialDomain.
 	virtual bool IsTwoSided() const = 0;
 	virtual bool IsDitheredLODTransition() const = 0;
 	virtual bool IsTranslucencyWritingCustomDepth() const { return false; }
@@ -985,6 +1020,7 @@ public:
 	virtual bool IsLightFunction() const = 0;
 	virtual bool IsUsedWithEditorCompositing() const { return false; }
 	virtual bool IsDeferredDecal() const = 0;
+	virtual bool IsVolumetricPrimitive() const = 0;
 	virtual bool IsWireframe() const = 0;
 	virtual bool IsUIMaterial() const { return false; }
 	virtual bool IsSpecialEngineMaterial() const = 0;
@@ -994,6 +1030,9 @@ public:
 	virtual bool IsUsedWithParticleSprites() const { return false; }
 	virtual bool IsUsedWithBeamTrails() const { return false; }
 	virtual bool IsUsedWithMeshParticles() const { return false; }
+	virtual bool IsUsedWithNiagaraSprites() const { return false; }
+	virtual bool IsUsedWithNiagaraRibbons() const { return false; }
+	virtual bool IsUsedWithNiagaraMeshParticles() const { return false; }
 	virtual bool IsUsedWithStaticLighting() const { return false; }
 	virtual	bool IsUsedWithMorphTargets() const { return false; }
 	virtual bool IsUsedWithSplineMeshes() const { return false; }
@@ -1032,7 +1071,8 @@ public:
 	virtual float GetTranslucentShadowStartOffset() const { return 0.0f; }
 	virtual float GetRefractionDepthBiasValue() const { return 0.0f; }
 	virtual float GetMaxDisplacement() const { return 0.0f; }
-	virtual bool UseTranslucencyVertexFog() const { return false; }
+	virtual bool ShouldApplyFogging() const { return false; }
+	virtual bool ComputeFogPerPixel() const { return false; }
 	virtual FString GetFriendlyName() const = 0;
 	virtual bool HasVertexPositionOffsetConnected() const { return false; }
 	virtual bool HasPixelDepthOffsetConnected() const { return false; }
@@ -1238,6 +1278,9 @@ protected:
 
 	/* Gather any UMaterialExpressionCustomOutput expressions they can be compiled in turn */
 	virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const {}
+
+	/* Gather any UMaterialExpressionCustomOutput expressions in the material and referenced function calls */
+	virtual void GatherExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const {}
 
 	/** Returns the index to the Expression in the Expressions array, or -1 if not found. */
 	int32 FindExpression(const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >&Expressions, const FMaterialUniformExpressionTexture &Expression);
@@ -1606,12 +1649,13 @@ public:
 
 	/** Returns the number of samplers used in this material, or -1 if the material does not have a valid shader map (compile error or still compiling). */
 	ENGINE_API int32 GetSamplerUsage() const;
+	ENGINE_API void GetUserInterpolatorUsage(uint32& NumUsedUVScalars, uint32& NumUsedCustomInterpolatorScalars) const;
 
 	ENGINE_API virtual FString GetMaterialUsageDescription() const override;
 
 	// FMaterial interface.
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const override;
-	ENGINE_API virtual int32 GetMaterialDomain() const override;
+	ENGINE_API virtual EMaterialDomain GetMaterialDomain() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
 	ENGINE_API virtual bool IsDitheredLODTransition() const override;
 	ENGINE_API virtual bool IsTranslucencyWritingCustomDepth() const override;
@@ -1625,6 +1669,7 @@ public:
 	ENGINE_API virtual bool IsLightFunction() const override;
 	ENGINE_API virtual bool IsUsedWithEditorCompositing() const override;
 	ENGINE_API virtual bool IsDeferredDecal() const override;
+	ENGINE_API virtual bool IsVolumetricPrimitive() const override;
 	ENGINE_API virtual bool IsWireframe() const override;
 	ENGINE_API virtual bool IsUIMaterial() const override;
 	ENGINE_API virtual bool IsSpecialEngineMaterial() const override;
@@ -1634,6 +1679,9 @@ public:
 	ENGINE_API virtual bool IsUsedWithParticleSprites() const override;
 	ENGINE_API virtual bool IsUsedWithBeamTrails() const override;
 	ENGINE_API virtual bool IsUsedWithMeshParticles() const override;
+	ENGINE_API virtual bool IsUsedWithNiagaraSprites() const override;
+	ENGINE_API virtual bool IsUsedWithNiagaraRibbons() const override;
+	ENGINE_API virtual bool IsUsedWithNiagaraMeshParticles() const override;
 	ENGINE_API virtual bool IsUsedWithStaticLighting() const override;
 	ENGINE_API virtual bool IsUsedWithMorphTargets() const override;
 	ENGINE_API virtual bool IsUsedWithSplineMeshes() const override;
@@ -1682,7 +1730,8 @@ public:
 	ENGINE_API virtual bool GetBlendableOutputAlpha() const override;
 	ENGINE_API virtual float GetRefractionDepthBiasValue() const override;
 	ENGINE_API virtual float GetMaxDisplacement() const override;
-	ENGINE_API virtual bool UseTranslucencyVertexFog() const override;
+	ENGINE_API virtual bool ShouldApplyFogging() const override;
+	ENGINE_API virtual bool ComputeFogPerPixel() const override;
 	ENGINE_API virtual UMaterialInterface* GetMaterialInterface() const override;
 	/**
 	 * Should shaders compiled for this material be saved to disk?
@@ -1728,6 +1777,7 @@ protected:
 
 	/* Gives the material a chance to compile any custom output nodes it has added */
 	ENGINE_API virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const override;
+	ENGINE_API virtual void GatherExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const override;
 	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const override;
 	ENGINE_API virtual bool HasPixelDepthOffsetConnected() const override;
 	ENGINE_API virtual bool HasMaterialAttributesConnected() const override;
@@ -1984,8 +2034,8 @@ private:
 		EMaterialValueType ValueType, const FVector4& DefaultValue, EShaderFrequency ShaderFrequency,
 		int32 TexCoordIndex = INDEX_NONE, bool bIsHidden = false, MaterialAttributeBlendFunction BlendFunction = nullptr);
 
-	FMaterialAttributeDefintion* Find(const FGuid& AttributeID);
-	FMaterialAttributeDefintion* Find(EMaterialProperty Property);
+	ENGINE_API FMaterialAttributeDefintion* Find(const FGuid& AttributeID);
+	ENGINE_API FMaterialAttributeDefintion* Find(EMaterialProperty Property);
 
 	ENGINE_API static FMaterialAttributeDefinitionMap GMaterialPropertyAttributesMap;
 

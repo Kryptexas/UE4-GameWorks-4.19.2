@@ -11,13 +11,24 @@
 	"MarketplaceURL" : "",
 	"SupportURL" : "",
 	"EnabledByDefault" : true,
-	"CanContainContent" : false,
+	"CanContainContent" : true,
 	"IsBetaVersion" : false,
 	"Installed" : false,
 	"Modules" :
 	[
 		{
 			"Name" : "GearVR",
+			"Type" : "Runtime",
+			"LoadingPhase" : "PostConfigInit",
+			"WhitelistPlatforms" :
+			[
+				"Android",
+				"Win64",
+				"Win32"
+			]
+		},
+		{
+			"Name" : "GearVRController",
 			"Type" : "Runtime",
 			"LoadingPhase" : "PostConfigInit",
 			"WhitelistPlatforms" :

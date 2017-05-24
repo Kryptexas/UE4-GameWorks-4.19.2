@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TextureFormatIntelISPCTexComp : ModuleRules
 {
-	public TextureFormatIntelISPCTexComp(TargetInfo Target)
+	public TextureFormatIntelISPCTexComp(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

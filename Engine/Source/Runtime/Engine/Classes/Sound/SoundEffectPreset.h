@@ -4,56 +4,40 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
-#include "SoundEffectBase.h"
 #include "SoundEffectPreset.generated.h"
 
 class FAssetData;
 class FMenuBuilder;
 class IToolkitHost;
-
-/** Raw data container for arbitrary preset UStructs */
-struct FPresetSettings
-{
-	void* Data;
-	uint32 Size;
-	UScriptStruct* Struct;
-
-	FPresetSettings()
-		: Data(nullptr)
-		, Size(0)
-		, Struct(nullptr)
-	{}
-};
+class FSoundEffectBase;
 
 UCLASS(config = Engine, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundEffectPreset : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
-	void Init();
+	USoundEffectPreset(const FObjectInitializer& ObjectInitializer);
 
-	//~ Begin UObject
-	virtual void BeginDestroy() override;
-	//~ End UObject
-
-	virtual void* GetSettings() PURE_VIRTUAL(USoundEffectPreset::GetSettings, return nullptr;);
-	virtual uint32 GetSettingsSize() const PURE_VIRTUAL(USoundEffectPreset::GetSettingsSize, return 0;);
-	virtual UScriptStruct* GetSettingsStruct() const PURE_VIRTUAL(USoundEffectPreset::GetSettingsStruct, return nullptr;);
 	virtual FText GetAssetActionName() const PURE_VIRTUAL(USoundEffectPreset::GetAssetActionName, return FText(););
 	virtual UClass* GetSupportedClass() const PURE_VIRTUAL(USoundEffectPreset::GetSupportedClass, return nullptr;);
 	virtual USoundEffectPreset* CreateNewPreset(UObject* InParent, FName Name, EObjectFlags Flags) const PURE_VIRTUAL(USoundEffectPreset::CreateNewPreset, return nullptr;);
 	virtual FSoundEffectBase* CreateNewEffect() const PURE_VIRTUAL(USoundEffectPreset::CreateNewEffect, return nullptr;);
 	virtual bool HasAssetActions() const { return true; }
+	virtual void Init() PURE_VIRTUAL(USoundEffectPreset::Init, ); 
+	virtual FColor GetPresetColor() const { return FColor(200.0f, 100.0f, 100.0f); }
 
+	void Update();
+	void AddEffectInstance(FSoundEffectBase* InSource);
+	void RemoveEffectInstance(FSoundEffectBase* InSource);
 
-	const FPresetSettings& GetPresetSettings() const
-	{
-		return PresetSettings;
-	}
+protected:
 
-private:
-	FPresetSettings PresetSettings;
+#if WITH_EDITORONLY_DATA
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
+	// Array of instances which are using this preset
+	TArray<FSoundEffectBase*> Instances;
+	bool bInitialized;
 };
-
-

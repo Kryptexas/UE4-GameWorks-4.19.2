@@ -14,6 +14,8 @@
  */
 
 #include "GoogleVRSplash.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 #include "GoogleVRHMD.h"
@@ -51,7 +53,7 @@ FGoogleVRSplash::~FGoogleVRSplash()
 	if (bInitialized)
 	{
 		FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
-		FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+		FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 	}
 }
 
@@ -60,7 +62,7 @@ void FGoogleVRSplash::Init()
 	if (!bInitialized)
 	{
 		FCoreUObjectDelegates::PreLoadMap.AddSP(this, &FGoogleVRSplash::OnPreLoadMap);
-		FCoreUObjectDelegates::PostLoadMap.AddSP(this, &FGoogleVRSplash::OnPostLoadMap);
+		FCoreUObjectDelegates::PostLoadMapWithWorld.AddSP(this, &FGoogleVRSplash::OnPostLoadMap);
 
 		LoadDefaultSplashTexturePath();
 		bInitialized = true;
@@ -72,7 +74,7 @@ void FGoogleVRSplash::OnPreLoadMap(const FString&)
 	Show();
 }
 
-void FGoogleVRSplash::OnPostLoadMap()
+void FGoogleVRSplash::OnPostLoadMap(UWorld*)
 {
 	Hide();
 }
@@ -205,25 +207,34 @@ void FGoogleVRSplash::RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdL
 
 	FIntRect DstRect = FIntRect(0, 0, ViewportWidth, ViewportHeight);
 
+	const auto FeatureLevel = GMaxRHIFeatureLevel;
+	// Should really be SetRT and Clear
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
-	RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
+	DrawClearQuad(RHICmdList, FeatureLevel, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
 
 	// If the texture is not avaliable, we just clear the DstTexture with black.
 	if (SplashTexture && SplashTexture->IsValidLowLevel())
 	{
 		RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-		const auto FeatureLevel = GMaxRHIFeatureLevel;
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
 		TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
 		TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), SplashTexture->Resource->TextureRHI);
 
@@ -293,7 +304,7 @@ void FGoogleVRSplash::SubmitBlackFrame()
 	GVRCustomPresent->BeginRendering(GVRHMD->CachedHeadPose);
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
-	RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
+	DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
 
 	GVRCustomPresent->FinishRendering();
 }
@@ -330,10 +341,9 @@ bool FGoogleVRSplash::LoadDefaultSplashTexturePath()
 bool FGoogleVRSplash::LoadTexture()
 {
 	SplashTexture = LoadObject<UTexture2D>(nullptr, *SplashTexturePath, nullptr, LOAD_None, nullptr);
-	SplashTexture->AddToRoot();
-
 	if (SplashTexture && SplashTexture->IsValidLowLevel())
 	{
+		SplashTexture->AddToRoot();
 		UE_LOG(LogHMD, Log, TEXT("Splash Texture load successful!"));
 		SplashTexture->UpdateResource();
 		FlushRenderingCommands();

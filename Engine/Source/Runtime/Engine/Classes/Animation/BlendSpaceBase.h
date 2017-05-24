@@ -282,6 +282,9 @@ class UBlendSpaceBase : public UAnimationAsset, public IInterpolationIndexProvid
 	ENGINE_API void InitializeFilter(FBlendFilter* Filter) const;
 	
 #if WITH_EDITOR	
+	/** Validates sample data for blendspaces using the given animation sequence */
+	ENGINE_API static void UpdateBlendSpacesUsingAnimSequence(UAnimSequenceBase* Sequence);
+
 	/** Validates the contained data */
 	ENGINE_API void ValidateSampleData();
 
@@ -290,6 +293,9 @@ class UBlendSpaceBase : public UAnimationAsset, public IInterpolationIndexProvid
 
 	/** edit samples */
 	ENGINE_API bool	EditSampleValue(const int32 BlendSampleIndex, const FVector& NewValue);
+
+	/** update animation on grid sample */
+	ENGINE_API bool	UpdateSampleAnimation(UAnimSequence* AnimationSequence, const FVector& SampleValue);
 
 	/** delete samples */
 	ENGINE_API bool	DeleteSample(const int32 BlendSampleIndex);
@@ -455,9 +461,6 @@ protected:
 	/** Blend Parameters for each axis. **/
 	UPROPERTY(EditAnywhere, Category = BlendParametersTest)
 	struct FBlendParameter BlendParameters[3];
-
-	/** Flag which keeps track of whether or not the filter data was changed, which will make FilterInput reinitialize the filter when called next (this is very dirty, and don't know how this works with multiple players) */
-	static bool bNeedReinitializeFilter;
 
 #if WITH_EDITOR
 private:

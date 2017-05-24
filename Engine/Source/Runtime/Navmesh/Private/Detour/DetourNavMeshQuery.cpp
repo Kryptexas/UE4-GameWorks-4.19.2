@@ -2236,19 +2236,30 @@ dtStatus dtNavMeshQuery::appendPortals(const int startIdx, const int endIdx, con
 		
 		// Append intersection
 		float s,t;
-		if (dtIntersectSegSeg2D(startPos, endPos, left, right, s, t))
+		if (!dtIntersectSegSeg2D(startPos, endPos, left, right, s, t))
 		{
-			float pt[3];
-			dtVlerp(pt, left,right, t);
-
-			unsigned char flags = 0;
-			if (toPoly->getType() != DT_POLYTYPE_GROUND)
-				flags = DT_STRAIGHTPATH_OFFMESH_CONNECTION;
-
-			stat = appendVertex(pt, flags, path[i + 1], result);
-			if (stat != DT_IN_PROGRESS)
-				return stat;
+			// failsafe for vertical navlinks: if left and right are the same and either start or end matches, append intersection
+			if (dtVequal(left, right) && (dtVequal(left, startPos) || dtVequal(left, endPos)))
+			{
+				// valid intersection, initialize interp value
+				t = 0.0f;
+			}
+			else
+			{
+				continue;
+			}
 		}
+
+		float pt[3];
+		dtVlerp(pt, left,right, t);
+
+		unsigned char flags = 0;
+		if (toPoly->getType() != DT_POLYTYPE_GROUND)
+			flags = DT_STRAIGHTPATH_OFFMESH_CONNECTION;
+
+		stat = appendVertex(pt, flags, path[i + 1], result);
+		if (stat != DT_IN_PROGRESS)
+			return stat;
 	}
 	return DT_IN_PROGRESS;
 }

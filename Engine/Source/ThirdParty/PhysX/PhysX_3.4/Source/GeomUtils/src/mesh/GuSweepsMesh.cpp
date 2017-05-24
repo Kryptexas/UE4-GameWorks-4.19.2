@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -157,8 +157,7 @@ PxAgain SweepCapsuleMeshHitCallback::processHit( // all reported coords are in m
 	}
 
 	const PxReal alignmentValue = computeAlignmentValue(triNormal, mUnitDir);
-	//	if(keepTriangle(localHit.distance, alignmentValue, mBestDist, mBestAlignmentValue, mTrueSweepDistance, distEpsilon))	
-	if (keepTriangle(localHit.distance, alignmentValue, mBestDist, mBestAlignmentValue, mTrueSweepDistance, GU_EPSILON_SAME_DISTANCE))
+	if(keepTriangle(localHit.distance, alignmentValue, mBestDist, mBestAlignmentValue, mTrueSweepDistance, distEpsilon))	
 	{
 		mBestAlignmentValue = alignmentValue;
 

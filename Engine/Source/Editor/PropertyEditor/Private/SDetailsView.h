@@ -175,6 +175,12 @@ private:
 	 */
 	FReply OnOpenRawPropertyEditorClicked();
 
+	/** @return Returns true if show hidden properties while playing is checked */
+	bool IsShowHiddenPropertiesWhilePlayingChecked() const;
+
+	/** Called when show hidden properties while playing is clicked */
+	void OnShowHiddenPropertiesWhilePlayingClicked();
+
 private:
 	/** Information about the current set of selected actors */
 	FSelectedActorInfo SelectedActorInfo;

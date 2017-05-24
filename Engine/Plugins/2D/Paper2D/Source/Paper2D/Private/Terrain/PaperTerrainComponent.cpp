@@ -720,10 +720,10 @@ void UPaperTerrainComponent::OnSplineEdited()
 	if (CachedBodySetup != nullptr)
 	{
 		// Finalize the BodySetup
-#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 		CachedBodySetup->InvalidatePhysicsData();
-#endif
 		CachedBodySetup->CreatePhysicsMeshes();
+#endif
 	}
 
 	RecreateRenderState_Concurrent();

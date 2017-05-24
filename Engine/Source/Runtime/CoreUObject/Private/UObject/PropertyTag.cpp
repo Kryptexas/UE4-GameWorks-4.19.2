@@ -176,6 +176,11 @@ void FPropertyTag::SerializeTaggedProperty( FArchive& Ar, UProperty* Property, u
 	}
 	else
 	{
+#if WITH_EDITOR
+		static const FName NAME_SerializeTaggedProperty = FName(TEXT("SerializeTaggedProperty"));
+		FArchive::FScopeAddDebugData P(Ar, NAME_SerializeTaggedProperty);
+		FArchive::FScopeAddDebugData A(Ar, Property->GetFName());
+#endif
 		FSerializedPropertyScope SerializedProperty(Ar, Property);
 		Property->SerializeItem( Ar, Value, Defaults );
 	}

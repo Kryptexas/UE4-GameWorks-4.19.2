@@ -17,6 +17,11 @@ UInputComponent::UInputComponent( const FObjectInitializer& ObjectInitializer )
 float UInputComponent::GetAxisValue( const FName AxisName ) const
 {
 	float AxisValue = 0.f;
+	if (AxisName.IsNone())
+	{
+		return AxisValue;
+	}
+
 	bool bFound = false;
 
 	for (const FInputAxisBinding& AxisBinding : AxisBindings)

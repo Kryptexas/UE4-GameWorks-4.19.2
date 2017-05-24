@@ -8,59 +8,79 @@ NiagaraSimulation.h: Niagara emitter simulation class
 #include "CoreMinimal.h"
 #include "UObject/WeakObjectPtr.h"
 #include "NiagaraCommon.h"
-#include "Runtime/Niagara/NiagaraConstantSet.h"
 #include "NiagaraDataSet.h"
 #include "NiagaraEvents.h"
+#include "NiagaraCollision.h"
+#include "NiagaraEmitterHandle.h"
 #include "NiagaraEmitterProperties.h"
 
 class FNiagaraEffectInstance;
 class NiagaraEffectRenderer;
+struct FNiagaraEmitterHandle;
 
 /**
 * A Niagara particle simulation.
 */
 struct FNiagaraSimulation
 {
-public:
-	explicit FNiagaraSimulation(TWeakObjectPtr<UNiagaraEmitterProperties> InProps, FNiagaraEffectInstance* InParentEffectInstance);
-	FNiagaraSimulation(TWeakObjectPtr<UNiagaraEmitterProperties> Props, FNiagaraEffectInstance* InParentEffectInstance, ERHIFeatureLevel::Type InFeatureLevel);
-	virtual ~FNiagaraSimulation()
-	{}
 
-	NIAGARA_API void Init();
+private:
+	struct FNiagaraBurstInstance
+	{
+		float Time;
+		uint32 NumberToSpawn;
+	};
+
+public:
+	explicit FNiagaraSimulation(FNiagaraEffectInstance* InParentEffectInstance);
+	bool bDumpAfterEvent;
+	virtual ~FNiagaraSimulation();
+
+	void Init(const FNiagaraEmitterHandle& InEmitterHandle, FName EffectInstanceName);
+	void ResetSimulation();
+	void ReInitSimulation();
+	void ReBindDataInterfaces();
+	void ReInitDataInterfaces();
 
 	/** Called after all emitters in an effect have been initialized, allows emitters to access information from one another. */
-	void PostInit();
+	void PostResetSimulation();
 
 	void PreTick();
 	void Tick(float DeltaSeconds);
+
+	uint32 CalculateEventSpawnCount(const FNiagaraEventScriptProperties &EventHandlerProps, TArray<int32> &EventSpawnCounts, FNiagaraDataSet *EventSet);
 	void TickEvents(float DeltaSeconds);
 
-	void KillParticles();
+	void PostProcessParticles();
 
 	FBox GetBounds() const { return CachedBounds; }
 
 	FNiagaraDataSet &GetData()	{ return Data; }
 
-	FNiagaraConstants &GetConstants()	{ return ExternalConstants; }
+	FNiagaraParameters &GetUpdateConstants()	{ return ExternalUpdateConstants; }
+	FNiagaraParameters &GetSpawnConstants() { return ExternalSpawnConstants; }
 
 	NiagaraEffectRenderer *GetEffectRenderer()	{ return EffectRenderer; }
 	
 	bool IsEnabled()const 	{ return bIsEnabled;  }
+	
+	/** Set whether or not this simulation is enabled*/
+	void SetEnabled(bool bEnabled) { bIsEnabled = bEnabled; }
 
-	void NIAGARA_API SetRenderModuleType(EEmitterRenderModuleType Type, ERHIFeatureLevel::Type FeatureLevel);
+	/** Sets whether or not this simulation's data interfaces are valid. */
+	void SetDataInterfacesProperlySetup(bool bEnabled) { bDataInterfacesEnabled = bEnabled; }
+	
+	/** Create a new NiagaraEffectRenderer. The old renderer is not immediately deleted, but instead put in the ToBeRemoved list.*/
+	void NIAGARA_API UpdateEffectRenderer(ERHIFeatureLevel::Type FeatureLevel, TArray<NiagaraEffectRenderer*>& ToBeRemovedList);
 
 	int32 GetNumParticles()	{ return Data.GetNumInstances(); }
 
-	TWeakObjectPtr<UNiagaraEmitterProperties> GetProperties()	{ return Props; }
-	void SetProperties(TWeakObjectPtr<UNiagaraEmitterProperties> InProps);
+	const FNiagaraEmitterHandle& GetEmitterHandle() const { return *EmitterHandle; }
 
 	FNiagaraEffectInstance* GetParentEffectInstance()	{ return ParentEffectInstance; }
 
 	float NIAGARA_API GetTotalCPUTime();
 	int	NIAGARA_API GetTotalBytesUsed();
-
-	void NIAGARA_API SetEnabled(bool bEnabled);
 
 	float GetAge() { return Age; }
 	int32 GetLoopCount()	{ return Loops; }
@@ -78,8 +98,55 @@ public:
 
 	void SpawnBurst(uint32 Count) { SpawnRemainder += Count; }
 
+	/** Gets the simulation time constants which are defined externally by the spawn script. */
+	FNiagaraParameters& GetExternalSpawnConstants() { return ExternalSpawnConstants; }
+
+	/** Gets the simulation time constants which are defined externally by the update script. */
+	FNiagaraParameters& GetExternalUpdateConstants() { return ExternalUpdateConstants; }
+
+	/** Gets the simulation time constants which are defined externally by the event script. */
+	FNiagaraParameters& GetExternalEventConstants() { return ExternalUpdateConstants; }
+
+	/** Gets the simulation time data sources which are defined externally by the spawn script. */
+	TArray<FNiagaraScriptDataInterfaceInfo>& GetExternalSpawnDataInterfaceInfo() { return ExternalSpawnDataInterfaces; }
+
+	/** Gets the simulation time data sources which are defined externally by the update script. */
+	TArray<FNiagaraScriptDataInterfaceInfo>& GetExternalUpdateDataInterfaceInfo() { return ExternalUpdateDataInterfaces; }
+
+	/** Gets the simulation time data sources which are defined externally by the event script. */
+	TArray<FNiagaraScriptDataInterfaceInfo>& GetExternalEventDataInterfaceInfo() { return ExternalEventHandlerDataInterfaces; }
+
+	/** If you modify the GetExternalSpawnDataInterfaceInfo array, make sure that you call this function to cause the data to be reset appropriately.*/
+	void DirtyExternalSpawnDataInterfaceInfo() { ExternalSpawnFunctionTable.Empty(); }
+
+	/** If you modify the GetExternalUpdateDataInterfaceInfo array, make sure that you call this function to cause the data to be reset appropriately.*/
+	void DirtyExternalUpdateDataInterfaceInfo() { ExternalUpdateFunctionTable.Empty(); }
+
+	/** If you modify the GetExternalEventDataInterfaceInfo array, make sure that you call this function to cause the data to be reset appropriately.*/
+	void DirtyExternalEventDataInterfaceInfo() { ExternalEventHandlerFunctionTable.Empty(); }
+	
+	/** Tell the renderer thread that we're done with the Niagara renderer on this simulation.*/
+	void ClearRenderer();
+
+	/** Get the current spawn rate for the emitter.*/
+	float GetSpawnRate() const { return SpawnRate; }
+	
+	/** Set the current spawn rate for the emitter.*/
+	void SetSpawnRate(float InSpawnRate) { SpawnRate = InSpawnRate; }
+	
+	/** Helper accessor defining the string name of the spawn rate variable.*/
+	static FString NIAGARA_API GetEmitterSpawnRateInternalVarName();
+
+	/** Helper accessor defining the string name of the emitter enabed variable.*/
+	static FString NIAGARA_API GetEmitterEnabledInternalVarName();
+
+	FBox GetCachedBounds() { return CachedBounds; }
+
 private:
-	TWeakObjectPtr<UNiagaraEmitterProperties> Props;		// points to an entry in the array of FNiagaraProperties stored in the EffectInstance (itself pointing to the effect's properties)
+	void InitInternal();
+
+	/* A handle to the emitter this simulation is simulating. */
+	const FNiagaraEmitterHandle* EmitterHandle;
 
 	/* The age of the emitter*/
 	float Age;
@@ -87,13 +154,44 @@ private:
 	uint32 Loops;
 	/* If false, don't tick or render*/
 	bool bIsEnabled;
+
+	/* If false, the data interfaces are incorrect, so don't tick or render. */
+	bool bDataInterfacesEnabled;
+
+	/* If false, the properties or scripts are incorrect, don't tick or render until a reset happens.*/
+	bool bHasValidPropertiesAndScripts;
+
 	/* Seconds taken to process everything (including rendering) */
 	float CPUTimeMS;
 	/* Emitter tick state */
 	ENiagaraTickState TickState;
+	/* Emitter bounds */
+	FBox CachedBounds;
+
+
+	/* The current spawn rate of the simulation*/
+	float SpawnRate;
 	
 	/** Local constant set. */
-	FNiagaraConstants ExternalConstants;
+	FNiagaraParameters ExternalSpawnConstants;
+	FNiagaraParameters ExternalUpdateConstants;
+	FNiagaraParameters ExternalEventHandlerConstants;
+
+	/** The complete set of spawn constants used last frame. Used for interpolated spawning.*/
+	FNiagaraParameters PrevSpawnConstants;
+
+	/** Local data source sets. */
+	TArray<FNiagaraScriptDataInterfaceInfo> ExternalSpawnDataInterfaces;
+	TArray<FNiagaraScriptDataInterfaceInfo> ExternalUpdateDataInterfaces;
+	TArray<FNiagaraScriptDataInterfaceInfo> ExternalEventHandlerDataInterfaces;
+
+	/** Build local function tables. */
+	TArray<FVMExternalFunction> ExternalSpawnFunctionTable;
+	TArray<FVMExternalFunction> ExternalUpdateFunctionTable;
+	TArray<FVMExternalFunction> ExternalEventHandlerFunctionTable;
+
+	TArray<FNiagaraBurstInstance> BurstInstances;
+	int32 CurrentBurstInstanceIndex;
 
 	/** particle simulation data */
 	FNiagaraDataSet Data;
@@ -101,48 +199,37 @@ private:
 	float SpawnRemainder;
 	/** The cached ComponentToWorld transform. */
 	FTransform CachedComponentToWorld;
-	/** Cached bounds. */
-	FBox CachedBounds;
 
 	NiagaraEffectRenderer *EffectRenderer;
 	FNiagaraEffectInstance *ParentEffectInstance;
 
-	TArray<FNiagaraDataSet> DataSets;
+	TArray<FNiagaraDataSet*> UpdateScriptEventDataSets;
+	TArray<FNiagaraDataSet*> SpawnScriptEventDataSets;
 	TMap<FNiagaraDataSetID, FNiagaraDataSet*> DataSetMap;
 	
-	FNiagaraSpawnEventGenerator SpawnEventGenerator;
-	bool bGenerateSpawnEvents;
-	FNiagaraDeathEventGenerator DeathEventGenerator;
-	bool bGenerateDeathEvents;
+	FNiagaraCollisionBatch CollisionBatch;
+
+	FNiagaraVariable EmitterAge;
+	FNiagaraVariable DeltaTime;
+	FNiagaraVariable InvDeltaTime;
+	FNiagaraVariable ExecCount;
+	FNiagaraVariable SpawnRateParam;
+	FNiagaraVariable SpawnIntervalParam;
+	FNiagaraVariable InterpSpawnStartDtParam;
+
+	FName OwnerEffectInstanceName;
+
+	/** Stat IDs for all scopes of each script. */
+#if STATS
+	TArray<TStatId> SpawnStatScopes;
+	TArray<TStatId> UpdateStatScopes;
+	TArray<TStatId> EventHandlerStatScopes;
+#endif
 	
 	/** Calc number to spawn */
-	int32 CalcNumToSpawn(float DeltaSeconds)
-	{
-		if (TickState == NTS_Dead || TickState == NTS_Dieing || TickState == NTS_Suspended)
-		{
-			return 0;
-		}
-
-		float FloatNumToSpawn = SpawnRemainder + (DeltaSeconds * Props->SpawnRate);
-		int32 NumToSpawn = FMath::FloorToInt(FloatNumToSpawn);
-		SpawnRemainder = FloatNumToSpawn - NumToSpawn;
-		return NumToSpawn;
-	}
+	int32 CalcNumToSpawn(float DeltaSeconds);
 	
-	/** Runs a script in the VM over a specific range of particles. */
-	void RunVMScript(FNiagaraEmitterScriptProperties& ScriptProps, EUnusedAttributeBehaviour UnusedAttribBehaviour);
-	void RunVMScript(FNiagaraEmitterScriptProperties& ScriptProps, EUnusedAttributeBehaviour UnusedAttribBehaviour, uint32 StartParticle);
-	void RunVMScript(FNiagaraEmitterScriptProperties& ScriptProps, EUnusedAttributeBehaviour UnusedAttribBehaviour, uint32 StartParticle, uint32 NumParticles);
+	bool CheckAttributesForRenderer();
 
-	/** Util to move a particle */
-	void MoveParticleToIndex(int32 SrcIndex, int32 DestIndex)
-	{
-		for (int32 AttrIndex = 0; AttrIndex < Data.GetNumVariables(); AttrIndex++)
-		{
-			FVector4 *AttrPtr = Data.GetCurrentBuffer(AttrIndex);
-			*(AttrPtr+DestIndex) = *(AttrPtr+SrcIndex);
-		}
-	}
-
-	bool CheckAttriubtesForRenderer();
+	bool UpdateFunctionTableInternal(TArray<FNiagaraScriptDataInterfaceInfo>& DataInterfaces, TArray<FVMExternalFunction>& FunctionTable, UNiagaraScript* Script);
 };

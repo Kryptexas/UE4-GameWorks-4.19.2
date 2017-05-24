@@ -98,7 +98,7 @@ public:
 	void OnPreLoadMap(const FString&) { OnLoadingBegins(); }
 
 	// delegate method, called when loading ends
-	void OnPostLoadMap() { OnLoadingEnds(); }
+	void OnPostLoadMap(UWorld*) { OnLoadingEnds(); }
 
 protected:
 	void LoadTexture(FSplashDesc& InSplashDesc);

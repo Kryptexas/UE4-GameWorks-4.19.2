@@ -29,6 +29,8 @@
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
 #endif
+#include "UObject/Package.h"
+
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
@@ -37,7 +39,7 @@
 ///////////////////////////////////////////
 
 static TAutoConsoleVariable<int32> CVarViewerPreview(
-	TEXT("googlevr.ViewerPreview"),
+	TEXT("vr.googlevr.ViewerPreview"),
 	3,
 	TEXT("Change which viewer data is used for VR previewing.\n")
 	TEXT(" 0: No viewer or distortion\n")
@@ -50,7 +52,7 @@ static TAutoConsoleVariable<int32> CVarViewerPreview(
 );
 
 static TAutoConsoleVariable<float> CVarPreviewSensitivity(
-	TEXT("googlevr.PreviewSensitivity"),
+	TEXT("vr.googlevr.PreviewSensitivity"),
 	1.0f,
 	TEXT("Change preview sensitivity of Yaw and Pitch multiplier.\n")
 	TEXT("Values are clamped between 0.1 and 10.0\n")
@@ -110,7 +112,7 @@ int64 CallLongMethod(JNIEnv* Env, jobject Object, jmethodID Method, ...)
 	return (int64)Return;
 }
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeOnUiLayerBack(JNIEnv* jenv, jobject thiz)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeOnUiLayerBack(JNIEnv* jenv, jobject thiz)
 {
 	// Need to be on game thread to dispatch handler
 	bBackDetected = true;
@@ -350,6 +352,55 @@ FGoogleVRHMD::FGoogleVRHMD()
 	, NumVerts(0)
 	, NumTris(0)
 	, NumIndices(0)
+	, DistortEnableCommand(TEXT("vr.googlevr.DistortionCorrection.bEnable"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_DistortEnable",
+			"Gogle VR specific extension.\n"
+			"Enable or disable lens distortion correction.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::DistortEnableCommandHandler))
+	, DistortMethodCommand(TEXT("vr.googlevr.DistortionCorrection.Method"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_DistortMethod",
+			"Gogle VR specific extension.\n"
+			"Set the lens distortion method.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::DistortMethodCommandHandler))
+	, RenderTargetSizeCommand(TEXT("vr.googlevr.RenderTargetSize"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_RenderTargetSize",
+			"Gogle VR specific extension.\n"
+			"Set or reset render target size.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::RenderTargetSizeCommandHandler))
+	, NeckModelScaleCommand(TEXT("vr.googlevr.NeckModelScale"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_NeckModelScale",
+			"Gogle VR specific extension.\n"
+			"Set the neck model scale.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::NeckModelScaleCommandHandler))
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	, DistortMeshSizeCommand(TEXT("vr.googlevr.DistortionMesh"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_DistortMeshSizee",
+			"Gogle VR specific extension.\n"
+			"Set the size of the distortion mesh.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::DistortMeshSizeCommandHandler))
+	, ShowSplashCommand(TEXT("vr.googlevr.bShowSplash"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_ShowSplash",
+			"Gogle VR specific extension.\n"
+			"Show or hide the splash screen").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::ShowSplashCommandHandler))
+	, SplashScreenDistanceCommand(TEXT("vr.googlevr.SplashScreenDistance"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_SplashScreenDistance",
+			"Gogle VR specific extension.\n"
+			"Set the distance to the splash screen").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::SplashScreenDistanceCommandHandler))
+	, SplashScreenRenderScaleCommand(TEXT("vr.googlevr.SplashScreenRenderScale"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_SplashScreenRenderScale",
+			"Gogle VR specific extension.\n"
+			"Set the scale at which the splash screen is rendered").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::SplashScreenRenderScaleCommandHandler))
+	, EnableSustainedPerformanceModeCommand(TEXT("vr.googlevr.bEnableSustainedPerformanceMode"),
+		*NSLOCTEXT("GoogleVR", "CCommandText_EnableSustainedPerformanceMode",
+			"Gogle VR specific extension.\n"
+			"Enable or Disable Sustained Performance Mode").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGoogleVRHMD::EnableSustainedPerformanceModeHandler))
+	, CVarSink(FConsoleCommandDelegate::CreateRaw(this, &FGoogleVRHMD::CVarSinkHandler))
+#endif
+
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("Initializing FGoogleVRHMD"));
 
@@ -1588,52 +1639,26 @@ bool FGoogleVRHMD::IsChromaAbCorrectionEnabled() const
 
 bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	if (FParse::Command(&Cmd, TEXT("HMD")))
+	const TCHAR* OrigCmd = Cmd;
+	FString AliasedCommand;
+
+	if (FParse::Command(&Cmd, TEXT("googlevr.ViewerPreview")) || FParse::Command(&Cmd, TEXT("googlevr.PreviewSensitivity")))
 	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			EnableHMD(true);
-			return true;
-		}
-		else if(FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			EnableHMD(false);
-			return true;
-		}
+		AliasedCommand = FString::Printf(TEXT("vr.%s"), OrigCmd);
 	}
-	else if (FParse::Command(&Cmd, TEXT("STEREO")))
+	else if (FParse::Command(&Cmd, TEXT("DISTORT")))
 	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
+		FString Value = FParse::Token(Cmd, 0);
+		if (Value.Equals(TEXT("ON"), ESearchCase::IgnoreCase) || Value.Equals(TEXT("OFF"), ESearchCase::IgnoreCase))
 		{
-			EnableStereo(true);
-			return true;
+			AliasedCommand = FString::Printf(TEXT("vr.googlevr.DistortionCorrection.bEnable %s"), *Value.ToLower());
 		}
-		else if(FParse::Command(&Cmd, TEXT("OFF")))
+		else if (Value.Equals(TEXT("PPHMD"), ESearchCase::IgnoreCase) || Value.Equals(TEXT("GVRAPI"), ESearchCase::IgnoreCase))
 		{
-			EnableStereo(false);
-			return true;
+			AliasedCommand = FString::Printf(TEXT("vr.googlevr.DistortionCorrection.Method %s"), *Value.ToLower());
 		}
-	}
-	else if(FParse::Command(&Cmd, TEXT("DISTORT")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			SetDistortionCorrectionEnabled(true);
-			return true;
-		}
-		else if(FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			SetDistortionCorrectionEnabled(false);
-			return true;
-		}
-		else if(FParse::Command(&Cmd, TEXT("PPHMD")))
-		{
-			SetDistortionCorrectionMethod(false);
-		}
-		else if(FParse::Command(&Cmd, TEXT("GVRAPI")))
-		{
-			SetDistortionCorrectionMethod(true);
-		}
+
+		return false;
 	}
 	else if (FParse::Command(&Cmd, TEXT("GVRRENDERSIZE")))
 	{
@@ -1642,29 +1667,25 @@ bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		FIntPoint ActualSize;
 		if (FParse::Value(Cmd, TEXT("W="), Width) && FParse::Value(Cmd, TEXT("H="), Height))
 		{
-			SetGVRHMDRenderTargetSize(Width, Height, ActualSize);
-			return true;
+			AliasedCommand = FString::Printf(TEXT("vr.googlevr.RenderTargetSize %d %d"), Width, Height);
 		}
 		else if (FParse::Value(Cmd, TEXT("S="), ScaleFactor))
 		{
-			SetGVRHMDRenderTargetSize(ScaleFactor, ActualSize);
-			return true;
+			AliasedCommand = FString::Printf(TEXT("r.ScreenPercentage %.0f"), ScaleFactor*100.f);
 		}
 		else if (FParse::Command(&Cmd, TEXT("RESET")))
 		{
-			SetRenderTargetSizeToDefault();
-			return true;
+			AliasedCommand = TEXT("vr.googlevr.RenderTargetSize reset");
 		}
 
 		return false;
 	}
 	else if (FParse::Command(&Cmd, TEXT("GVRNECKMODELSCALE")))
 	{
-		float ScaleFactor;
+		FString ScaleFactor;
 		if (FParse::Value(Cmd, TEXT("Factor="), ScaleFactor))
 		{
-			SetNeckModelScale(ScaleFactor);
-			return true;
+			AliasedCommand = FString::Printf(TEXT("vr.googlevr.NeckModelScale %s"), *ScaleFactor);
 		}
 
 		return false;
@@ -1673,96 +1694,198 @@ bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	// Tune the distortion mesh vert count when use Unreal's PostProcessing Distortion
 	else if (FParse::Command(&Cmd, TEXT("DISTORTMESH")))
 	{
-		if (FParse::Command(&Cmd, TEXT("VERYSMALL")))
+		const static UEnum* MeshSizeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EDistortionMeshSizeEnum"));
+		FString Value = FParse::Token(Cmd, 0);
+
+		if (!Value.IsEmpty() && MeshSizeEnum->GetIndexByName(*FString::Printf(TEXT("DMS_%s"), *Value.ToUpper())) != INDEX_NONE)
 		{
-			SetDistortionMeshSize(EDistortionMeshSizeEnum::DMS_VERYSMALL);
-			return true;
+			AliasedCommand = FString::Printf(TEXT("vr.googlevr.DistortionMesh %s"), *Value.ToLower());
 		}
-		else if (FParse::Command(&Cmd, TEXT("SMALL")))
-		{
-			SetDistortionMeshSize(EDistortionMeshSizeEnum::DMS_SMALL);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("MEDIUM")))
-		{
-			SetDistortionMeshSize(EDistortionMeshSizeEnum::DMS_MEDIUM);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("LARGE")))
-		{
-			SetDistortionMeshSize(EDistortionMeshSizeEnum::DMS_LARGE);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("VERYLARGE")))
-		{
-			SetDistortionMeshSize(EDistortionMeshSizeEnum::DMS_VERYLARGE);
-			return true;
-		}
+		return false;
 	}
 	else if (FParse::Command(&Cmd, TEXT("GVRSPLASH")))
 	{
-		float SplashScreenDistance;
-		float RenderScale;
-		if (FParse::Command(&Cmd, TEXT("SHOW")))
-		{
-			if (GVRSplash.IsValid())
-			{
-				GVRSplash->Show();
-				bDebugShowGVRSplash = true;
-				return true;
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("HIDE")))
-		{
-			if (GVRSplash.IsValid())
-			{
-				GVRSplash->Hide();
-				bDebugShowGVRSplash = false;
-				return true;
-			}
-		}
-		else if (FParse::Value(Cmd, TEXT("d="), SplashScreenDistance))
-		{
-			if (GVRSplash.IsValid())
-			{
-				GVRSplash->RenderDistanceInMeter = SplashScreenDistance;
-				return true;
-			}
-		}
-		else if (FParse::Value(Cmd, TEXT("s="), RenderScale))
-		{
-			if (GVRSplash.IsValid())
-			{
-				GVRSplash->RenderScale = RenderScale;
-				return true;
-			}
-		}
-	}
-	else if (FParse::Command(&Cmd, TEXT("GVRSPM")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			SetSPMEnable(true);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			SetSPMEnable(false);
-			return true;
-		}
+		AliasedCommand = FString::Printf(TEXT("vr.googlevr.bShowSplash %s"), FParse::Command(&Cmd, TEXT("SHOW"))?TEXT("True"):TEXT("False") );
 	}
 #endif
 
+	if (!AliasedCommand.IsEmpty())
+	{
+		Ar.Logf(ELogVerbosity::Warning, TEXT("%s is deprecated. Use %s instead"), OrigCmd, *AliasedCommand);
+		return IConsoleManager::Get().ProcessUserConsoleInput(*AliasedCommand, Ar, InWorld);
+	}
 	return false;
 }
+
+void FGoogleVRHMD::DistortEnableCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	if (Args.Num())
+	{
+		bool bShouldEnable = FCString::ToBool(*Args[0]);
+		SetDistortionCorrectionEnabled(bShouldEnable);
+	}
+}
+
+void FGoogleVRHMD::DistortMethodCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	if (Args.Num())
+	{
+		if (Args[0].Equals(TEXT("PPHMD"), ESearchCase::IgnoreCase))
+		{
+			SetDistortionCorrectionMethod(false);
+		}
+		else if (Args[0].Equals(TEXT("GVRAPI"), ESearchCase::IgnoreCase))
+		{
+			SetDistortionCorrectionMethod(true);
+		}
+		else
+		{
+			Ar.Logf(ELogVerbosity::Error, TEXT("Invalid argument '%s'. Use gvrapi or pphmd"), *Args[0]);
+		}
+	}
+}
+
+void FGoogleVRHMD::RenderTargetSizeCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	FIntPoint ActualSize;
+	if (Args.Num())
+	{
+		if (Args.Num() == 1 && Args[0].Equals(TEXT("reset"),ESearchCase::IgnoreCase))
+		{
+			SetRenderTargetSizeToDefault();
+			ActualSize = GVRRenderTargetSize;
+		}
+		else if (Args.Num() == 2 && FCString::IsNumeric(*Args[0]) && FCString::IsNumeric(*Args[1]))
+		{
+			SetGVRHMDRenderTargetSize(FCString::Atoi(*Args[0]), FCString::Atoi(*Args[1]), ActualSize);
+		}
+		else
+		{
+			Ar.Logf(ELogVerbosity::Error, TEXT("Usage: vr.googlevr.RenderTargetSize [reset|<width> <height>]"));
+			return;
+		}
+	}
+	else
+	{
+		ActualSize = GVRRenderTargetSize;
+	}
+	Ar.Logf(ELogVerbosity::Display, TEXT("vr.googlevr.RenderTargetSize = %d %d"), ActualSize.X, ActualSize.Y);
+}
+
+void FGoogleVRHMD::NeckModelScaleCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	if (Args.Num())
+	{
+		float ScaleFactor = FCString::Atof(*Args[0]);
+		SetNeckModelScale(ScaleFactor);
+	}
+}
+
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+void FGoogleVRHMD::DistortMeshSizeCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	const static UEnum* MeshSizeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EDistortionMeshSizeEnum"));
+	int EnumIndex = INDEX_NONE;
+
+	if (Args.Num())
+	{
+		if (FCString::IsNumeric(*Args[0]))
+		{
+			EnumIndex = FCString::Atoi(*Args[0]);
+		}
+		else
+		{
+			EnumIndex = MeshSizeEnum->GetIndexByName(*Args[0]);
+		}
+		if (!MeshSizeEnum->IsValidEnumValue(EnumIndex))
+		{
+			Ar.Logf(ELogVerbosity::Error, TEXT("Invalid distort mesh size, %s"), *Args[0]);
+			return;
+		}
+		else
+		{
+			SetDistortionMeshSize(EDistortionMeshSizeEnum(EnumIndex));
+		}
+	}
+}
+
+void FGoogleVRHMD::ShowSplashCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	static FDelegateHandle Handle;
+	if (Args.Num() && GVRSplash.IsValid())
+	{
+		bDebugShowGVRSplash = FCString::ToBool(*Args[0]);
+		if (bDebugShowGVRSplash)
+		{
+			GVRSplash->Show();
+		}
+		else
+		{
+			GVRSplash->Hide();
+		}
+	}
+}
+
+void FGoogleVRHMD::SplashScreenDistanceCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	static FDelegateHandle Handle;
+	if (Args.Num() && GVRSplash.IsValid())
+	{
+		const float distance = FCString::Atof(*Args[0]);
+		if (distance >=0)
+		{
+			GVRSplash->RenderDistanceInMeter = distance;
+		}
+		else
+		{
+			Ar.Logf(ELogVerbosity::Error, TEXT("Invalid SplashScreenDistance, %s"), *Args[0]);
+		}
+	}
+}
+
+void FGoogleVRHMD::SplashScreenRenderScaleCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	static FDelegateHandle Handle;
+	if (Args.Num() && GVRSplash.IsValid())
+	{
+		const float scale = FCString::Atof(*Args[0]);
+		if (scale > 0)
+		{
+			GVRSplash->RenderScale = scale;
+		}
+		else
+		{
+			Ar.Logf(ELogVerbosity::Error, TEXT("Invalid SplashScreenRenderScale, %s"), *Args[0]);
+		}
+	}
+}
+
+void FGoogleVRHMD::EnableSustainedPerformanceModeHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	static FDelegateHandle Handle;
+	if (Args.Num() && GVRSplash.IsValid())
+	{
+		const bool Enabled = FCString::ToBool(*Args[0]);
+		SetSPMEnable(Enabled);
+	}
+}
+
+void FGoogleVRHMD::CVarSinkHandler()
+{
+	static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+	static float PreviousValue = ScreenPercentageCVar->GetValueOnAnyThread();
+
+	float CurrentValue = ScreenPercentageCVar->GetValueOnAnyThread();
+	if (CurrentValue != PreviousValue)
+	{
+		FIntPoint ActualSize;
+		SetGVRHMDRenderTargetSize(CurrentValue / 100.f, ActualSize);
+		PreviousValue = CurrentValue;
+	}
+}
+#endif
 
 bool FGoogleVRHMD::IsPositionalTrackingEnabled() const
-{
-	// Does not support position tracking, only pose
-	return false;
-}
-
-bool FGoogleVRHMD::EnablePositionalTracking(bool enable)
 {
 	// Does not support position tracking, only pose
 	return false;
@@ -1771,15 +1894,6 @@ bool FGoogleVRHMD::EnablePositionalTracking(bool enable)
 bool FGoogleVRHMD::IsHeadTrackingAllowed() const
 {
 	return true;
-}
-
-bool FGoogleVRHMD::IsInLowPersistenceMode() const
-{
-	return false;
-}
-
-void FGoogleVRHMD::EnableLowPersistenceMode(bool Enable)
-{
 }
 
 void FGoogleVRHMD::ResetOrientationAndPosition(float Yaw)
@@ -1935,33 +2049,6 @@ bool FGoogleVRHMD::OnStartGameFrame( FWorldContext& WorldContext )
 bool FGoogleVRHMD::OnEndGameFrame( FWorldContext& WorldContext )
 {
 	return false;
-}
-
-void FGoogleVRHMD::RecordAnalytics()
-{
-#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-
-	if (FEngineAnalytics::IsAvailable())
-	{
-		// prepare and send analytics data
-		TArray<FAnalyticsEventAttribute> EventAttributes;
-
-		IHeadMountedDisplay::MonitorInfo MonitorInfo;
-		GetHMDMonitorInfo(MonitorInfo);
-
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DeviceName"), TEXT("GoogleVRHMD")));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DisplayDeviceName"), *MonitorInfo.MonitorName));
-		//EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DisplayId"), MonitorInfo.MonitorId)); // Doesn't compile on iOS for some reason
-		FString MonResolution(FString::Printf(TEXT("(%d, %d)"), MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Resolution"), MonResolution));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), GetInterpupillaryDistance()));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), IsChromaAbCorrectionEnabled()));
-
-		FString OutStr(TEXT("Editor.VR.DeviceInitialised"));
-		FEngineAnalytics::GetProvider().RecordEvent(OutStr, EventAttributes);
-	}
-
-#endif // GOOGLEVRHMD_SUPPORTED_PLATFORMS
 }
 
 FString FGoogleVRHMD::GetVersionString() const

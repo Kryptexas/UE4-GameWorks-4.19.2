@@ -1,7 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+
 # WARNING: connot build libs if absolute paths contains any space -- will revisit this in the future...
+# WARNING: on OSX - max process per user may need to be bumped up...
+#          see: https://gist.github.com/jamesstout/4546975#file-find_zombies-sh-L26-L46
+
 
 #set -x
 
@@ -48,34 +52,35 @@ build_via_cmake()
 		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
 		-DAPEX_ENABLE_UE4=1 \
 		-DTARGET_BUILD_PLATFORM=HTML5 \
-		-DPHYSX_ROOT_DIR=$GW_DEPS_ROOT/PhysX_3.4 \
-		-DPXSHARED_ROOT_DIR=$GW_DEPS_ROOT/PxShared \
-		-DNVSIMD_INCLUDE_DIR=$GW_DEPS_ROOT/PxShared/src/NvSimd \
-		-DNVTOOLSEXT_INCLUDE_DIRS=$GW_DEPS_ROOT/PhysX_3.4/externals/nvToolsExt/include \
+		-DPHYSX_ROOT_DIR="$GW_DEPS_ROOT"/PhysX_3.4 \
+		-DPXSHARED_ROOT_DIR="$GW_DEPS_ROOT"/PxShared \
+		-DNVSIMD_INCLUDE_DIR="$GW_DEPS_ROOT"/PxShared/src/NvSimd \
+		-DNVTOOLSEXT_INCLUDE_DIRS="$GW_DEPS_ROOT"/PhysX_3.4/externals/nvToolsExt/include \
 		-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON \
 		-DCMAKE_BUILD_TYPE=$type \
 		-DCMAKE_C_FLAGS_$TYPE="$OPTIMIZATION -D$DBGFLAG" \
 		-DCMAKE_CXX_FLAGS_$TYPE="$OPTIMIZATION -D$DBGFLAG" \
-		$GW_DEPS_ROOT/PhysX_3.4/Source/compiler/cmake/html5
+		"$GW_DEPS_ROOT"/PhysX_3.4/Source/compiler/cmake/html5
 
 # disabling APEX build for HTML5
-#		$GW_DEPS_ROOT/APEX_1.4/compiler/cmake/HTML5
+#		"$GW_DEPS_ROOT"/APEX_1.4/compiler/cmake/HTML5
 
 	cmake --build . -- -j VERBOSE=1
 	# ----------------------------------------
 	if [ $OLEVEL == "z" ]; then
 		# for some reason: _Oz is not getting done here...
-		find . -type f -name "*.bc" -print | while read i; do b=`basename $i .bc`; cp $i $GW_DEPS_ROOT/Lib/HTML5/${b}_Oz.bc; done
+		find . -type f -name "*.bc" -print | while read i; do b=`basename $i .bc`; cp $i "$GW_DEPS_ROOT"/Lib/HTML5/${b}_Oz.bc; done
 	else
-		find . -type f -name "*.bc" -exec cp {} $GW_DEPS_ROOT/Lib/HTML5 \;
+		find . -type f -name "*.bc" -exec cp {} "$GW_DEPS_ROOT"/Lib/HTML5 \;
 	fi
 	cd ..
 }
+chmod +w "$GW_DEPS_ROOT"/Lib/HTML5/*
 type=Debug;       OLEVEL=0;  build_via_cmake
 type=Release;     OLEVEL=2;  build_via_cmake
 type=Release;     OLEVEL=3;  build_via_cmake
 type=MinSizeRel;  OLEVEL=z;  build_via_cmake
-ls -l $GW_DEPS_ROOT/Lib/HTML5
+ls -l "$GW_DEPS_ROOT"/Lib/HTML5
 
 
 exit

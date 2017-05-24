@@ -11,6 +11,7 @@
 #include "MetalCommandQueue.h"
 #include "MetalCommandList.h"
 #include "MetalRenderPass.h"
+#include "MetalHeap.h"
 #if PLATFORM_IOS
 #include "IOSView.h"
 #endif
@@ -19,6 +20,7 @@
 #define NUM_SAFE_FRAMES 4
 
 class FMetalRHICommandContext;
+class FShaderCacheState;
 
 class FMetalContext
 {
@@ -27,8 +29,6 @@ public:
 	FMetalContext(FMetalCommandQueue& Queue, bool const bIsImmediate);
 	virtual ~FMetalContext();
 	
-	static FMetalContext* GetCurrentContext();
-	
 	id<MTLDevice> GetDevice();
 	FMetalCommandQueue& GetCommandQueue();
 	FMetalCommandList& GetCommandList();
@@ -36,13 +36,7 @@ public:
 	FMetalStateCache& GetCurrentState() { return StateCache; }
 	FMetalRenderPass& GetCurrentRenderPass() { return RenderPass; }
 	
-	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence);
-	
-	/**
-	 * Handle rendering thread starting/stopping
-	 */
-	static void CreateAutoreleasePool();
-	static void DrainAutoreleasePool();
+	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler = nil);
 
 	/**
 	 * Do anything necessary to prepare for any kind of draw call 
@@ -92,16 +86,16 @@ public:
 	
 	void CopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
 	
-    id<MTLCommandBuffer> BeginAsyncCommands(void);
+	void CopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInteger SourceOffset, id<MTLBuffer> DestinationBuffer, NSUInteger DestinationOffset, NSUInteger Size);
+	
+    void AsyncCopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
     
-    void AsyncCopyFromBufferToTexture(id<MTLCommandBuffer> CmdBuf, id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+    void AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
     
-    void AsyncCopyFromTextureToTexture(id<MTLCommandBuffer> CmdBuf, id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+    void AsyncGenerateMipmapsForTexture(id<MTLTexture> Texture);
     
-    void GenerateMipmapsForTexture(id<MTLCommandBuffer> CmdBuf, id<MTLTexture> Texture);
-    
-    void EndAsyncCommands(id<MTLCommandBuffer> CmdBuf, bool const bWait);
-    
+	void SubmitAsyncCommands(MTLCommandBufferHandler ScheduledHandler, MTLCommandBufferHandler CompletionHandler, bool const bWait);
+	
 	void SynchronizeTexture(id<MTLTexture> Texture, uint32 Slice, uint32 Level);
 	
 	void SynchroniseResource(id<MTLResource> Resource);
@@ -109,14 +103,18 @@ public:
 	void FillBuffer(id<MTLBuffer> Buffer, NSRange Range, uint8 Value);
 
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
-#if METAL_API_1_1
 	void DispatchIndirect(FMetalVertexBuffer* ArgumentBuffer, uint32 ArgumentOffset);
-#endif
 
 	void StartTiming(class FMetalEventNode* EventNode);
 	void EndTiming(class FMetalEventNode* EventNode);
 
+#if ENABLE_METAL_GPUPROFILE
 	static void MakeCurrent(FMetalContext* Context);
+	static FMetalContext* GetCurrentContext();
+#endif
+	
+	void SetParallelPassFences(id<MTLFence> Start, id<MTLFence> End);
+	
 	void InitFrame(bool const bImmediateContext);
 	void FinishFrame();
 
@@ -142,11 +140,16 @@ protected:
 	/** A pool of buffers for writing visibility query results. */
 	TSharedPtr<FMetalQueryBufferPool, ESPMode::ThreadSafe> QueryBuffer;
 	
-	/** the slot to store a per-thread autorelease pool */
-	static uint32 AutoReleasePoolTLSSlot;
+	/** Initial fence to wait on for parallel contexts */
+	FMetalFence StartFence;
 	
+	/** Fence to update at the end for parallel contexts */
+	FMetalFence EndFence;
+	
+#if ENABLE_METAL_GPUPROFILE
 	/** the slot to store a per-thread context ref */
 	static uint32 CurrentContextTLSSlot;
+#endif
 	
 	/** Whether the validation layer is enabled */
 	bool bValidationEnabled;
@@ -159,14 +162,22 @@ public:
 	static FMetalDeviceContext* CreateDeviceContext();
 	virtual ~FMetalDeviceContext();
 	
+	void Init(void);
+	
 	inline bool SupportsFeature(EMetalFeatures InFeature) { return CommandQueue.SupportsFeature(InFeature); }
 	
-	FMetalPooledBuffer CreatePooledBuffer(FMetalPooledBufferArgs const& Args);
-	void ReleasePooledBuffer(FMetalPooledBuffer Buf);
+	id<MTLTexture> CreateTexture(FMetalSurface* Surface, MTLTextureDescriptor* Descriptor);
+	id<MTLBuffer> CreatePooledBuffer(FMetalPooledBufferArgs const& Args);
+	void ReleasePooledBuffer(id<MTLBuffer> Buf);
 	void ReleaseObject(id Object);
+	void ReleaseResource(id<MTLResource> Object);
+	void ReleaseTexture(FMetalSurface* Surface, id<MTLTexture> Texture);
+	void ReleaseFence(id<MTLFence> Fence);
 	
 	void BeginFrame();
+	void FlushFreeList();
 	void ClearFreeList();
+	void DrainHeap();
 	void EndFrame();
 	
 	/** RHIBeginScene helper */
@@ -178,7 +189,7 @@ public:
 	void EndDrawingViewport(FMetalViewport* Viewport, bool bPresent);
 	
 	/** Take a parallel FMetalContext from the free-list or allocate a new one if required */
-	FMetalRHICommandContext* AcquireContext();
+	FMetalRHICommandContext* AcquireContext(int32 NewIndex, int32 NewNum);
 	
 	/** Release a parallel FMetalContext back into the free-list */
 	void ReleaseContext(FMetalRHICommandContext* Context);
@@ -199,28 +210,33 @@ private:
 	/** The index into the GPU device list for the selected Metal device */
 	uint32 DeviceIndex;
 	
-	/** Mutex for access to the unsafe buffer pool */
-	FCriticalSection PoolMutex;
-	
-	/** Dynamic buffer pool */
-	FMetalBufferPool BufferPool;
+	/** Dynamic memory heap */
+	FMetalHeap Heap;
 	
 	/** Free lists for releasing objects only once it is safe to do so */
-	TSet<id> FreeList;
-	NSMutableSet<id<MTLBuffer>>* FreeBuffers;
+	TSet<id> ObjectFreeList;
+	TSet<id<MTLResource>> ResourceFreeList;
 	struct FMetalDelayedFreeList
 	{
 		dispatch_semaphore_t Signal;
-		TSet<id> FreeList;
-		NSMutableSet<id<MTLBuffer>>* FreeBuffers;
+		TSet<id> ObjectFreeList;
+		TSet<id<MTLResource>> ResourceFreeList;
 #if METAL_DEBUG_OPTIONS
 		int32 DeferCount;
 #endif
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	
+#if METAL_DEBUG_OPTIONS
+	/** The list of fences for the current frame */
+	NSMutableArray<id<MTLFence>>* FrameFences;
+#endif
+	
 	/** Free-list of contexts for parallel encoding */
 	TLockFreePointerListLIFO<FMetalRHICommandContext> ParallelContexts;
+	
+	/** Fences for parallel execution */
+	TArray<id<MTLFence>> ParallelFences;
 	
 	/** Critical section for FreeList */
 	FCriticalSection FreeListMutex;
@@ -239,7 +255,4 @@ private:
 	
 	/** Count of concurrent contexts encoding commands. */
 	int32 ActiveContexts;
-	
-	/** Count of concurrent contexts encoding commands. */
-	uint32 AllocatedContexts;
 };

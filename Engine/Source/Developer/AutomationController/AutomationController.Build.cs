@@ -4,12 +4,13 @@ namespace UnrealBuildTool.Rules
 {
 	public class AutomationController : ModuleRules
 	{
-		public AutomationController(TargetInfo Target)
+		public AutomationController(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
+					"CoreUObject",
 				}
 			); 
 			
@@ -17,12 +18,13 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"AutomationMessages",
-					"CoreUObject",
 					"UnrealEdMessages",
                     "MessageLog",
                     "Json",
                     "JsonUtilities",
-					"ScreenShotComparisonTools"
+					"ScreenShotComparisonTools",
+					"HTTP",
+                    "AssetRegistry"
                 }
 			);
 

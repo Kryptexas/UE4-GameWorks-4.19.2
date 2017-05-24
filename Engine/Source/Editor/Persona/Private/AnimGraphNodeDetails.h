@@ -20,6 +20,7 @@ class UAnimGraphNode_Base;
 class UBlendProfile;
 class UEditorParentPlayerListObj;
 class USkeleton;
+class IEditableSkeleton;
 struct FAnimParentNodeAssetOverride;
 
 /////////////////////////////////////////////////////
@@ -92,9 +93,12 @@ private:
 	// Bone tree widget delegates
 	void OnBoneSelectionChanged(FName Name);
 	FName GetSelectedBone() const;
+	const struct FReferenceSkeleton&  GetReferenceSkeleton() const;
 
 	// Property to change after bone has been picked
 	TSharedPtr<IPropertyHandle> BoneRefProperty;
+	// Target Skeleton this widget is referencing
+	TSharedPtr<IEditableSkeleton> TargetEditableSkeleton;
 };
 
 //////////////////////////////////////////////////////////////////////////

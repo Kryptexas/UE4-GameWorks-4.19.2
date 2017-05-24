@@ -52,7 +52,7 @@ public:
 		if (Scale3D.ContainsNaN())
 		{
 			logOrEnsureNanError(TEXT("FTransform Scale3D contains NaN: %s"), *Scale3D.ToString());
-			const_cast<FTransform*>(this)->Scale3D = FVector(1.f);
+			const_cast<FTransform*>(this)->Scale3D = FVector::OneVector;
 		}
 	}
 
@@ -102,7 +102,7 @@ public:
 	FORCEINLINE FTransform()
 		: Rotation(0.f, 0.f, 0.f, 1.f)
 		, Translation(0.f)
-		, Scale3D(1.f)
+		, Scale3D(FVector::OneVector)
 	{
 	}
 
@@ -114,7 +114,7 @@ public:
 	FORCEINLINE explicit FTransform(const FVector& InTranslation)
 		: Rotation(FQuat::Identity),
 		Translation(InTranslation),
-		Scale3D(FVector(1.f))
+		Scale3D(FVector::OneVector)
 	{
 		DiagnosticCheckNaN_All();
 	}
@@ -143,7 +143,7 @@ public:
 	FORCEINLINE explicit FTransform(const FQuat& InRotation)
 		: Rotation(InRotation),
 		Translation(FVector::ZeroVector),
-		Scale3D(FVector(1.f))
+		Scale3D(FVector::OneVector)
 	{
 		DiagnosticCheckNaN_All();
 	}
@@ -156,7 +156,7 @@ public:
 	FORCEINLINE explicit FTransform(const FRotator& InRotation)
 		: Rotation(InRotation),
 		Translation(FVector::ZeroVector),
-		Scale3D(FVector(1.f))
+		Scale3D(FVector::OneVector)
 	{
 		DiagnosticCheckNaN_All();
 	}
@@ -168,7 +168,7 @@ public:
 	* @param InTranslation The value to use for the translation component
 	* @param InScale3D The value to use for the scale component
 	*/
-	FORCEINLINE FTransform(const FQuat& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector(1.f))
+	FORCEINLINE FTransform(const FQuat& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector::OneVector)
 		: Rotation(InRotation),
 		Translation(InTranslation),
 		Scale3D(InScale3D)
@@ -183,7 +183,7 @@ public:
 	* @param InTranslation The value to use for the translation component
 	* @param InScale3D The value to use for the scale component
 	*/
-	FORCEINLINE FTransform(const FRotator& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector(1.f))
+	FORCEINLINE FTransform(const FRotator& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector::OneVector)
 		: Rotation(InRotation),
 		Translation(InTranslation),
 		Scale3D(InScale3D)
@@ -523,6 +523,7 @@ public:
 	*/
 	FORCEINLINE void operator*=(const FQuat& Other);
 
+	FORCEINLINE static bool AnyHasNegativeScale(const FVector& InScale3D, const  FVector& InOtherScale3D);
 	FORCEINLINE void ScaleTranslation(const FVector& InScale3D);
 	FORCEINLINE void ScaleTranslation(const float& Scale);
 	FORCEINLINE void RemoveScaling(float Tolerance = SMALL_NUMBER);
@@ -976,7 +977,7 @@ public:
 	*/
 	FORCEINLINE void AccumulateWithAdditiveScale(const FTransform& Atom, float BlendWeight/* default param doesn't work since vectorized version takes ref param */)
 	{
-		const FVector DefaultScale(1.f);
+		const FVector DefaultScale(FVector::OneVector);
 
 		FTransform SourceAtom(Atom * BlendWeight);
 
@@ -1044,7 +1045,7 @@ public:
 	FORCEINLINE static void BlendFromIdentityAndAccumulate(FTransform& FinalAtom, FTransform& SourceAtom, float BlendWeight)
 	{
 		const  FTransform AdditiveIdentity(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
-		const FVector DefaultScale(1.f);
+		const FVector DefaultScale(FVector::OneVector);
 
 		// Scale delta by weight
 		if (BlendWeight < (1.f - ZERO_ANIMWEIGHT_THRESH))
@@ -1226,6 +1227,11 @@ private:
 
 template <> struct TIsPODType<FTransform> { enum { Value = true }; };
 
+FORCEINLINE bool FTransform::AnyHasNegativeScale(const FVector& InScale3D, const  FVector& InOtherScale3D) 
+{
+	return  (InScale3D.X < 0.f || InScale3D.Y < 0.f || InScale3D.Z < 0.f 
+			|| InOtherScale3D.X < 0.f || InOtherScale3D.Y < 0.f || InOtherScale3D.Z < 0.f );
+}
 
 /** Scale the translation part of the Transform by the supplied vector. */
 FORCEINLINE void FTransform::ScaleTranslation(const FVector& InScale3D)
@@ -1314,8 +1320,7 @@ FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform
 	//	S(AxB) = S(A)*S(B)
 	//	T(AxB) = Q(B)*S(B)*T(A)*-Q(B) + T(B)
 
-	const bool bHaveNegativeScale = A->Scale3D.GetMin() < 0 || B->Scale3D.GetMin() < 0;
-	if (bHaveNegativeScale)
+	if (AnyHasNegativeScale(A->Scale3D, B->Scale3D))
 	{
 		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
 		MultiplyUsingMatrixWithScale(OutTransform, A, B);
@@ -1476,7 +1481,7 @@ FORCEINLINE void FTransform::operator*=(const FTransform& Other)
 
 FORCEINLINE FTransform FTransform::operator*(const FQuat& Other) const
 {
-	FTransform Output, OtherTransform(Other, FVector::ZeroVector, FVector(1.f));
+	FTransform Output, OtherTransform(Other, FVector::ZeroVector, FVector::OneVector);
 	Multiply(&Output, this, &OtherTransform);
 	return Output;
 }
@@ -1484,7 +1489,7 @@ FORCEINLINE FTransform FTransform::operator*(const FQuat& Other) const
 
 FORCEINLINE void FTransform::operator*=(const FQuat& Other)
 {
-	FTransform OtherTransform(Other, FVector::ZeroVector, FVector(1.f));
+	FTransform OtherTransform(Other, FVector::ZeroVector, FVector::OneVector);
 	Multiply(this, this, &OtherTransform);
 }
 

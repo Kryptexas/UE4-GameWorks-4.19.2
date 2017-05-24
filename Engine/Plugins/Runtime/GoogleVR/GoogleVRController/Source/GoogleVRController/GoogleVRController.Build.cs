@@ -19,7 +19,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GoogleVRController : ModuleRules
 	{
-		public GoogleVRController(TargetInfo Target)
+		public GoogleVRController(ReadOnlyTargetRules Target) : base(Target)
 		{
             bFasterWithoutUnity = true;
 

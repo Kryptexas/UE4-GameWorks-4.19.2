@@ -7,6 +7,10 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "IAnimationBlueprintEditorModule.h"
 
+struct FAnimationGraphNodeFactory;
+struct FAnimationGraphPinFactory;
+struct FAnimationGraphPinConnectionFactory;
+
 /**
  * Animation Blueprint Editor module allows editing of Animation Blueprints
  */
@@ -40,4 +44,8 @@ private:
 	TSharedPtr<class FExtensibilityManager> ToolBarExtensibilityManager;
 
 	TArray<FAnimationBlueprintEditorToolbarExtender> AnimationBlueprintEditorToolbarExtenders;
+
+	TSharedPtr<FAnimationGraphNodeFactory> AnimGraphNodeFactory;
+	TSharedPtr<FAnimationGraphPinFactory> AnimGraphPinFactory;
+	TSharedPtr<FAnimationGraphPinConnectionFactory> AnimGraphPinConnectionFactory;
 };

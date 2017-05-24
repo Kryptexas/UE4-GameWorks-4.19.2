@@ -9,6 +9,7 @@ UEnvironmentQueryGraphNode_Test::UEnvironmentQueryGraphNode_Test(const FObjectIn
 	bIsSubNode = true;
 	bTestEnabled = true;
 	bHasNamedWeight = false;
+	bStatShowOverlay = false;
 	TestWeightPct = -1.0f;
 }
 

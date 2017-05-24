@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2708171
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:6.参考文献
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:UMG クイックスタートガイドの最後のステップでは、参考文献へのリンクを提示します。
 version:4.9
+tags:UMG UI Designer
 
 
 [VAR:Steps]

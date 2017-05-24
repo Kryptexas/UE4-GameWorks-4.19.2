@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AndroidMedia : ModuleRules
 	{
-        public AndroidMedia(TargetInfo Target)
+        public AndroidMedia(ReadOnlyTargetRules Target) : base(Target)
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {

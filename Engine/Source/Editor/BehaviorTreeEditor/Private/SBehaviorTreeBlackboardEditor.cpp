@@ -23,7 +23,7 @@
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeBlackboardEditor"
 
-DEFINE_LOG_CATEGORY_STATIC(LogBlackboardEditor, Warning, All);
+DEFINE_LOG_CATEGORY(LogBlackboardEditor);
 
 void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedRef<FUICommandList> InCommandList, UBlackboardData* InBlackboardData)
 {

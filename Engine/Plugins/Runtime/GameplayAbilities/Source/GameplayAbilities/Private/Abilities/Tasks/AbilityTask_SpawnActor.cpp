@@ -23,7 +23,7 @@ UAbilityTask_SpawnActor* UAbilityTask_SpawnActor::SpawnActor(UGameplayAbility* O
 
 bool UAbilityTask_SpawnActor::BeginSpawningActor(UGameplayAbility* OwningAbility, FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<AActor> InClass, AActor*& SpawnedActor)
 {
-	if (Ability && Ability->GetCurrentActorInfo()->IsNetAuthority())
+	if (Ability && Ability->GetCurrentActorInfo()->IsNetAuthority() && ShouldBroadcastAbilityTaskDelegates())
 	{
 		UWorld* const World = GEngine->GetWorldFromContextObject(OwningAbility);
 		if (World)
@@ -34,7 +34,10 @@ bool UAbilityTask_SpawnActor::BeginSpawningActor(UGameplayAbility* OwningAbility
 	
 	if (SpawnedActor == nullptr)
 	{
-		DidNotSpawn.Broadcast(nullptr);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			DidNotSpawn.Broadcast(nullptr);
+		}
 		return false;
 	}
 
@@ -68,7 +71,10 @@ void UAbilityTask_SpawnActor::FinishSpawningActor(UGameplayAbility* OwningAbilit
 
 		SpawnedActor->FinishSpawning(SpawnTransform);
 
-		Success.Broadcast(SpawnedActor);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			Success.Broadcast(SpawnedActor);
+		}
 	}
 
 	EndTask();

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Android_ATCTargetPlatform : ModuleRules
 {
-	public Android_ATCTargetPlatform( TargetInfo Target )
+	public Android_ATCTargetPlatform( ReadOnlyTargetRules Target ) : base(Target)
 	{
 		BinariesSubFolder = "Android";
 

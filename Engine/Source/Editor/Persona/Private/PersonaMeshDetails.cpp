@@ -42,6 +42,8 @@
 	#include "ApexClothingOptionWindow.h"
 #endif // #if WITH_APEX_CLOTHING
 
+#include "Assets/ClothingAsset.h"
+
 #include "LODUtilities.h"
 #include "MeshUtilities.h"
 #include "FbxMeshUtils.h"
@@ -56,6 +58,14 @@
 #include "IDocumentation.h"
 #include "JsonObjectConverter.h"
 #include "SWrapBox.h"
+#include "SNumericDropDown.h"
+#include "ComponentReregisterContext.h"
+#include "ClothingSystemEditorInterfaceModule.h"
+#include "ClothingAssetFactoryInterface.h"
+#include "SExpandableArea.h"
+#include "SKismetInspector.h"
+#include "PropertyEditorDelegates.h"
+#include "IEditableSkeleton.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
@@ -64,14 +74,6 @@ static bool IsAutoMeshReductionAvailable()
 {
 	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetSkeletalMeshReductionInterface() != NULL;
 	return bAutoMeshReductionAvailable;
-}
-
-/** Returns true if Skincache and -shaders are enabled */
-static bool IsSkinCacheAvailable()
-{
-	extern ENGINE_API int32 GEnableGPUSkinCacheShaders;
-	static bool bSkinCacheAvailable = !!GEnableGPUSkinCacheShaders;
-	return bSkinCacheAvailable;
 }
 
 /**
@@ -106,7 +108,7 @@ static void FillEnumOptions(TArray<TSharedPtr<FString> >& OutStrings, UEnum& InE
 {
 	for (int32 EnumIndex = 0; EnumIndex < InEnum.NumEnums() - 1; ++EnumIndex)
 	{
-		OutStrings.Add(MakeShareable(new FString(InEnum.GetEnumName(EnumIndex))));
+		OutStrings.Add(MakeShareable(new FString(InEnum.GetNameStringByIndex(EnumIndex))));
 	}
 }
 
@@ -270,10 +272,11 @@ void SSkeletalLODActions::Construct(const FArguments& InArgs)
 	RegisterActiveTimer(1.0f + LODTimeOffset * LODIndex, FWidgetActiveTimerDelegate::CreateSP(this, &SSkeletalLODActions::RefreshExistFlag));
 }
 
-FSkelMeshReductionSettingsLayout::FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty)
+FSkelMeshReductionSettingsLayout::FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty, const USkeleton* InSkeleton)
 : LODIndex(InLODIndex)
 , ParentLODSettings(InParentLODSettings)
 , BoneToRemoveProperty(InBoneToRemoveProperty)
+, Skeleton(InSkeleton)
 {
 	FillEnumOptions(SimplificationOptions, GetFeatureSimpificationEnum());
 	FillEnumOptions(ImportanceOptions, GetFeatureImportanceEnum());
@@ -509,7 +512,7 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.Text(LOCTEXT("BaseLODTitle", "Base LOD"))
 			]
-		.ValueContent()
+			.ValueContent()
 			[
 				SNew(SSpinBox<int32>)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
@@ -518,6 +521,26 @@ void FSkelMeshReductionSettingsLayout::GenerateChildContent(IDetailChildrenBuild
 				.OnValueChanged(this, &FSkelMeshReductionSettingsLayout::OnBaseLODChanged)
 			];
 
+	}
+
+	{
+
+
+		ChildrenBuilder.AddChildContent(LOCTEXT("BakePose", "Bake Pose"))
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("BakePoseTitle", "Bake Pose"))
+			]
+		.ValueContent()
+			[
+				SNew(SObjectPropertyEntryBox)
+				.ObjectPath(this, &FSkelMeshReductionSettingsLayout::GetBakePosePath)
+				.AllowedClass(UAnimSequence::StaticClass())
+				.OnShouldFilterAsset(this, &FSkelMeshReductionSettingsLayout::FilterOutBakePose)
+				.OnObjectChanged(this, &FSkelMeshReductionSettingsLayout::SetBakePose)
+			];
 	}
 
 	{
@@ -631,6 +654,27 @@ void FSkelMeshReductionSettingsLayout::OnMaxBonesPerVertexChanged(int32 NewValue
 void FSkelMeshReductionSettingsLayout::OnBaseLODChanged(int32 NewLOD)
 {
 	ReductionSettings.BaseLOD = NewLOD;
+}
+
+FString FSkelMeshReductionSettingsLayout::GetBakePosePath() const
+{
+	return FAssetData(ReductionSettings.BakePose).ObjectPath.ToString();
+}
+
+bool FSkelMeshReductionSettingsLayout::FilterOutBakePose(const FAssetData& AssetData) const
+{
+	UAnimSequence* AnimationSequence = Cast<UAnimSequence>(AssetData.GetAsset());
+	if (AnimationSequence)
+	{
+		return !(AnimationSequence->GetSkeleton() == Skeleton);
+	}
+
+	return true;
+}
+
+void FSkelMeshReductionSettingsLayout::SetBakePose(const FAssetData& AssetData)
+{
+	ReductionSettings.BakePose = Cast<UAnimSequence>(AssetData.GetAsset());
 }
 
 void FSkelMeshReductionSettingsLayout::OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo)
@@ -1022,6 +1066,10 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			ReductionSettingsWidgets.AddZeroed(SkelMeshLODCount - ReductionSettingsWidgets.Num());
 		}
 
+#if WITH_APEX_CLOTHING
+		ClothComboBoxes.Reset();
+#endif
+
 		//Create material list panel to let users control the materials array
 		{
 			FString MaterialCategoryName = FString(TEXT("Materials"));
@@ -1082,6 +1130,7 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 
 				MaterialListDelegates.OnGetMaterials.BindSP(this, &FPersonaMeshDetails::OnGetMaterialsForArray, 0);
 				MaterialListDelegates.OnMaterialChanged.BindSP(this, &FPersonaMeshDetails::OnMaterialArrayChanged, 0);
+				MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterialArray);
 				MaterialListDelegates.OnGenerateCustomMaterialWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMaterialArray, 0);
 				MaterialListDelegates.OnMaterialListDirty.BindSP(this, &FPersonaMeshDetails::OnMaterialListDirty);
 
@@ -1096,21 +1145,33 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 		// Create information panel for each LOD level.
 		for (int32 LODIndex = 0; LODIndex < SkelMeshLODCount; ++LODIndex)
 		{
+			TSharedRef<IPropertyHandle> LODInfoProperty = DetailLayout.GetProperty(FName("LODInfo"), USkeletalMesh::StaticClass());
+			uint32 NumChildren = 0;
+			LODInfoProperty->GetNumChildren(NumChildren);
+			check(NumChildren >(uint32)LODIndex);
+			TSharedPtr<IPropertyHandle> ChildHandle = LODInfoProperty->GetChildHandle(LODIndex);
+			check(ChildHandle.IsValid());
+			
 			if (LODIndex > 0 && IsAutoMeshReductionAvailable())
-			{
-				TSharedRef<IPropertyHandle> LODInfoProperty = DetailLayout.GetProperty(FName("LODInfo"), USkeletalMesh::StaticClass());
-				uint32 NumChildren = 0;
-				LODInfoProperty->GetNumChildren(NumChildren);
+			{	
+				
 
-				check(NumChildren > (uint32)LODIndex);
-	
-				TSharedPtr<IPropertyHandle> ChildHandle = LODInfoProperty->GetChildHandle(LODIndex);
-				check(ChildHandle.IsValid());
 				TSharedPtr<IPropertyHandle> ReductionHandle = ChildHandle->GetChildHandle(FName("ReductionSettings"));
 				check(ReductionHandle.IsValid());
 				TSharedPtr<IPropertyHandle> BonesToRemoveHandle = ReductionHandle->GetChildHandle(FName("BonesToRemove"));
-				ReductionSettingsWidgets[LODIndex] = MakeShareable(new FSkelMeshReductionSettingsLayout(LODIndex, SharedThis(this), BonesToRemoveHandle));
+
+
+				ReductionSettingsWidgets[LODIndex] = MakeShareable(new FSkelMeshReductionSettingsLayout(LODIndex, SharedThis(this), BonesToRemoveHandle, SkelMesh->Skeleton));
 			}
+
+			TSharedPtr<IPropertyHandle> RemovedBonesHandle = ChildHandle->GetChildHandle(FName("RemovedBones"));
+			RemovedBonesHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateLambda([this, LODIndex, SkelMesh]()
+			{
+				if (SkelMesh->LODInfo[LODIndex].RemovedBones.Num() == 0)
+				{
+					RemoveBones(LODIndex);
+				}
+			}));
 
 			FSkeletalMeshLODInfo& LODInfo = SkelMesh->LODInfo[LODIndex];
 			if (ReductionSettingsWidgets[LODIndex].IsValid())
@@ -1153,38 +1214,31 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 
 				LODCategory.AddCustomBuilder(MakeShareable(new FSectionList(LODCategory.GetParentLayout(), SectionListDelegates, (LODIndex > 0))));
 			}
-			// add each LOD Info to each LOD category
-			TSharedRef<IPropertyHandle> LODInfoProperty = DetailLayout.GetProperty(FName("LODInfo"), USkeletalMesh::StaticClass());
 
 			if (LODInfoProperty->IsValidHandle())
 			{
-				uint32 NumChildren;
-				LODInfoProperty->GetNumChildren(NumChildren);
-				check((uint32)LODIndex < NumChildren);
-
 				// changing property name to "LOD Info" because it shows only array index
 				TSharedPtr<IPropertyHandle> LODInfoChild = LODInfoProperty->GetChildHandle(LODIndex);
 				LODInfoChild->CreatePropertyNameWidget(LOCTEXT("LODInfoLabel", "LOD Info"));
 				LODCategory.AddProperty(LODInfoChild);
 
 				//@Todo : ideally this should be inside of LODinfo customization, but for now this will allow users to re-apply removed joints after re-import if they want to.
-				// this also can be buggy if you have this opened and you removed joints using skeleton tree, in that case, it might not show
-				if (SkelMesh->LODInfo[LODIndex].RemovedBones.Num() > 0)
-				{
-					// add custom button to re-apply bone reduction if they want to
-					LODCategory.AddCustomRow(LOCTEXT("ReapplyRemovedBones", "Reapply Removed Bones"))
-					.ValueContent()
-					.HAlign(HAlign_Left)
+				// this also can be buggy if you have this opened and you removed joints using skeleton tree, in that case, it might not show			
+				// add custom button to re-apply bone reduction if they want to
+				FDetailWidgetRow& ButtonRow = LODCategory.AddCustomRow(LOCTEXT("ReapplyRemovedBones", "Reapply Removed Bones"))
+				.ValueContent()
+				.HAlign(HAlign_Left)			
+				[
+					SNew(SButton)
+					.OnClicked(this, &FPersonaMeshDetails::RemoveBones, LODIndex)
 					[
-						SNew(SButton)
-						.OnClicked(this, &FPersonaMeshDetails::RemoveBones, LODIndex)
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("ReapplyRemovedBonesButton", "Reapply removed bones"))
-							.Font(DetailLayout.GetDetailFont())
-						]
-					];
-				}
+						SNew(STextBlock)
+						.Text(LOCTEXT("ReapplyRemovedBonesButton", "Reapply removed bones"))
+						.Font(DetailLayout.GetDetailFont())
+					]
+				];
+
+				ButtonRow.Visibility(TAttribute<EVisibility>::Create([SkelMesh, LODIndex]() -> EVisibility { return (SkelMesh->LODInfo[LODIndex].RemovedBones.Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed;  }));
 			}
 
 			if (ReductionSettingsWidgets[LODIndex].IsValid())
@@ -1350,6 +1404,8 @@ FReply FPersonaMeshDetails::RemoveBones(int32 LODIndex)
 	MeshUtilities.RemoveBonesFromMesh(SkelMesh, LODIndex, NULL);
 
 	MeshDetailLayout->ForceRefreshDetails();
+	GetPersonaToolkit()->GetEditableSkeleton()->RefreshBoneTree();
+
 	return FReply::Handled();
 }
 
@@ -1614,10 +1670,8 @@ void FPersonaMeshDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 	CustomizeLODSettingsCategories(DetailLayout);
 
-#if WITH_APEX_CLOTHING
 	IDetailCategoryBuilder& ClothingCategory = DetailLayout.EditCategory("Clothing", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	CustomizeClothingProperties(DetailLayout,ClothingCategory);
-#endif// #if WITH_APEX_CLOTHING
 
 	// Post process selector
 	IDetailCategoryBuilder& SkelMeshCategory = DetailLayout.EditCategory("SkeletalMesh");
@@ -1794,9 +1848,17 @@ void FPersonaMeshDetails::OnMaterialArrayChanged(UMaterialInterface* NewMaterial
 			Mesh->Materials[SlotIndex].MaterialInterface = NewMaterial;
 
 			//Add a default name to the material slot if this slot was manually add and there is no name yet
-			if (NewMaterial != nullptr && Mesh->Materials[SlotIndex].ImportedMaterialSlotName == NAME_None && Mesh->Materials[SlotIndex].MaterialSlotName == NAME_None)
+			if (NewMaterial != nullptr && (Mesh->Materials[SlotIndex].ImportedMaterialSlotName == NAME_None || Mesh->Materials[SlotIndex].MaterialSlotName == NAME_None))
 			{
-				Mesh->Materials[SlotIndex].MaterialSlotName = FName(*(NewMaterial->GetName()));
+				if (Mesh->Materials[SlotIndex].MaterialSlotName == NAME_None)
+				{
+					Mesh->Materials[SlotIndex].MaterialSlotName = FName(*(NewMaterial->GetName()));
+				}
+				if (Mesh->Materials[SlotIndex].ImportedMaterialSlotName == NAME_None)
+				{
+					//Add an imported material slot name so when we reimport we can keep the user changes
+					Mesh->Materials[SlotIndex].ImportedMaterialSlotName = Mesh->Materials[SlotIndex].MaterialSlotName;
+				}
 			}
 		}
 
@@ -1941,6 +2003,39 @@ void FPersonaMeshDetails::OnMaterialNameChanged(const FText& InValue, int32 Mate
 	}
 }
 
+TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterialArray(UMaterialInterface* Material, int32 MaterialIndex)
+{
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsMaterialSelected, MaterialIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnMaterialSelectedChanged, MaterialIndex)
+			.ToolTipText(LOCTEXT("Highlight_CustomMaterialName_ToolTip", "Highlights this material in the viewport"))
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+				.Text(LOCTEXT("Highlight", "Highlight"))
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsIsolateMaterialEnabled, MaterialIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnMaterialIsolatedChanged, MaterialIndex)
+			.ToolTipText(LOCTEXT("Isolate_CustomMaterialName_ToolTip", "Isolates this material in the viewport"))
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+				.Text(LOCTEXT("Isolate", "Isolate"))
+			]
+		];
+}
 
 TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMaterialArray(UMaterialInterface* Material, int32 MaterialIndex, int32 LODIndex)
 {
@@ -2133,6 +2228,8 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForSection(i
 
 TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSection(int32 LODIndex, int32 SectionIndex)
 {
+	extern ENGINE_API bool IsGPUSkinCacheAvailable();
+
 	TSharedRef<SVerticalBox> SectionWidget
 		= SNew(SVerticalBox)
 
@@ -2153,7 +2250,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSectio
 		.Padding(0, 2, 0, 0)
 		[
 			SNew(SCheckBox)
-			.IsEnabled(IsSkinCacheAvailable())
+			.IsEnabled(IsGPUSkinCacheAvailable())
 			.IsChecked(this, &FPersonaMeshDetails::IsSectionRecomputeTangentEnabled, LODIndex, SectionIndex)
 			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionRecomputeTangentChanged, LODIndex, SectionIndex)
 			[
@@ -2163,64 +2260,124 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSectio
 				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable (Support Skincache Shaders) in the Project Settings. Please note that skin cache is an experimental feature and only works if you have compute shaders."))
 			]
 		];
+
 #if WITH_APEX_CLOTHING
 
-	if (LODIndex == 0 && SectionIndex == 0)
-	{
-		ClothingComboLODInfos.Empty();
-	}
+	UpdateClothingEntries();
 
-	if (ClothingComboLODInfos.Num() <= LODIndex)
-	{
-		// Generate strings for the combo boxes assets
-		UpdateComboBoxStrings();
-	}
-	
-	TArray<TSharedPtr< STextComboBox >>& ComboBoxes = ClothingComboLODInfos[LODIndex].ClothingComboBoxes;
-	TArray<TSharedPtr<FString> >& ComboStrings = ClothingComboLODInfos[LODIndex].ClothingComboStrings;
-	TMap<FString, FClothAssetSubmeshIndex>&	ComboStringReverseLookup = ClothingComboLODInfos[LODIndex].ClothingComboStringReverseLookup;
-	TArray<int32>& ComboSelectedIndices = ClothingComboLODInfos[LODIndex].ClothingComboSelectedIndices;
+	ClothComboBoxes.AddDefaulted();
 
-	while (ComboBoxes.Num() <= SectionIndex)
-	{
-		ComboBoxes.AddZeroed();
-	}
-
-
-	int32 MaterialIndex = GetMaterialIndex(LODIndex, SectionIndex);
 	SectionWidget->AddSlot()
-		// Add APEX clothing combo boxes
-		.AutoHeight()
-		.Padding(0,2,0,0)
+	.AutoHeight()
+	.Padding(0, 2, 0, 0)
+	[
+	SNew(SHorizontalBox)
+	+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
 		[
-			SNew( SHorizontalBox )
-			.Visibility(this, &FPersonaMeshDetails::IsClothingComboBoxVisible, LODIndex, SectionIndex)
+			SNew(STextBlock)
+			.Text(LOCTEXT("Clothing", "Clothing"))
+		]
 
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2, 2, 0, 0)
+		[
+			SAssignNew(ClothComboBoxes.Last(), SClothComboBox)
+			.OnGenerateWidget(this, &FPersonaMeshDetails::OnGenerateWidgetForClothingEntry)
+			.OnSelectionChanged(this, &FPersonaMeshDetails::OnClothingSelectionChanged, ClothComboBoxes.Num() - 1, LODIndex, SectionIndex)
+			.OptionsSource(&NewClothingAssetEntries)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("Clothing", "Clothing"))
+				.Text(this, &FPersonaMeshDetails::OnGetClothingComboText, LODIndex, SectionIndex)
 			]
+		]
+	];
 
-			+SHorizontalBox::Slot()
-			.Padding(2,2,0,0)
-			.AutoWidth()
-			[
-				SAssignNew(ComboBoxes[SectionIndex], STextComboBox)
-				.ContentPadding(FMargin(6.0f, 2.0f))
-				.OptionsSource(&ComboStrings)
-				.ToolTipText(LOCTEXT("SectionsComboBoxToolTip", "Select the clothing asset and submesh to use as clothing for this section"))
-				.OnSelectionChanged(this, &FPersonaMeshDetails::HandleSectionsComboBoxSelectionChanged, LODIndex, SectionIndex)
-			]
-		];
-
-		int32 SelectedIndex = ComboSelectedIndices.IsValidIndex(SectionIndex) ? ComboSelectedIndices[SectionIndex] : -1;
-		ComboBoxes[SectionIndex]->SetSelectedItem(ComboStrings.IsValidIndex(SelectedIndex) ? ComboStrings[SelectedIndex] : ComboStrings[0]);
-		
 #endif// #if WITH_APEX_CLOTHING
 	return SectionWidget;
+}
+ECheckBoxState FPersonaMeshDetails::IsMaterialSelected(int32 MaterialIndex) const
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	const USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+	if (Mesh)
+	{
+		check(Mesh->GetResourceForRendering());
+		State = Mesh->SelectedEditorMaterial == MaterialIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return State;
+
+}
+
+void FPersonaMeshDetails::OnMaterialSelectedChanged(ECheckBoxState NewState, int32 MaterialIndex)
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	// Currently assumes that we only ever have one preview mesh in Persona.
+	UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+
+	if (Mesh && MeshComponent)
+	{
+		check(Mesh->GetResourceForRendering());
+		if (NewState == ECheckBoxState::Checked)
+		{
+			Mesh->SelectedEditorMaterial = MaterialIndex;
+			if (MeshComponent->MaterialIndexPreview != MaterialIndex)
+			{
+				// Unhide all mesh sections
+				MeshComponent->SetMaterialPreview(INDEX_NONE);
+			}
+			//Remove any section isolate or highlight
+			Mesh->SelectedEditorSection = INDEX_NONE;
+			MeshComponent->SetSectionPreview(INDEX_NONE);
+		}
+		else if (NewState == ECheckBoxState::Unchecked)
+		{
+			Mesh->SelectedEditorMaterial = INDEX_NONE;
+		}
+		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
+	}
+}
+
+ECheckBoxState FPersonaMeshDetails::IsIsolateMaterialEnabled(int32 MaterialIndex) const
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	const UDebugSkelMeshComponent* MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+	const USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+	if (MeshComponent && Mesh)
+	{
+		check(Mesh->GetResourceForRendering());
+		State = MeshComponent->MaterialIndexPreview == MaterialIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return State;
+}
+
+void FPersonaMeshDetails::OnMaterialIsolatedChanged(ECheckBoxState NewState, int32 MaterialIndex)
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+	UDebugSkelMeshComponent * MeshComponent = GetPersonaToolkit()->GetPreviewScene()->GetPreviewMeshComponent();
+	if (Mesh && MeshComponent)
+	{
+		check(Mesh->GetResourceForRendering());
+		if (NewState == ECheckBoxState::Checked)
+		{
+			MeshComponent->SetMaterialPreview(MaterialIndex);
+			if (Mesh->SelectedEditorMaterial != MaterialIndex)
+			{
+				Mesh->SelectedEditorMaterial = INDEX_NONE;
+			}
+			//Remove any section isolate or highlight
+			Mesh->SelectedEditorSection = INDEX_NONE;
+			MeshComponent->SetSectionPreview(INDEX_NONE);
+		}
+		else if (NewState == ECheckBoxState::Unchecked)
+		{
+			MeshComponent->SetMaterialPreview(INDEX_NONE);
+		}
+		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
+	}
 }
 
 ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
@@ -2252,6 +2409,8 @@ void FPersonaMeshDetails::OnSectionSelectedChanged(ECheckBoxState NewState, int3
 				// Unhide all mesh sections
 				MeshComponent->SetSectionPreview(INDEX_NONE);
 			}
+			Mesh->SelectedEditorMaterial = INDEX_NONE;
+			MeshComponent->SetMaterialPreview(INDEX_NONE);
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
@@ -2285,6 +2444,8 @@ void FPersonaMeshDetails::OnSectionIsolatedChanged(ECheckBoxState NewState, int3
 			{
 				Mesh->SelectedEditorSection = INDEX_NONE;
 			}
+			MeshComponent->SetMaterialPreview(INDEX_NONE);
+			Mesh->SelectedEditorMaterial = INDEX_NONE;
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
@@ -2293,7 +2454,6 @@ void FPersonaMeshDetails::OnSectionIsolatedChanged(ECheckBoxState NewState, int3
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
 	}
 }
-
 
 ECheckBoxState FPersonaMeshDetails::IsShadowCastingEnabled(int32 MaterialIndex) const
 {
@@ -2754,7 +2914,7 @@ void FPersonaMeshDetails::OnSectionChanged(int32 LODIndex, int32 SectionIndex, i
 				NewSkeletalMaterialIndex = SkeletalMaterialIndex;
 				break;
 			}
-			}
+		}
 
 		check(NewSkeletalMaterialIndex != INDEX_NONE);
 
@@ -2765,30 +2925,28 @@ void FPersonaMeshDetails::OnSectionChanged(int32 LODIndex, int32 SectionIndex, i
 
 		FSkeletalMeshLODInfo& Info = Mesh->LODInfo[LODIndex];
 		if (LODIndex == 0 || Info.LODMaterialMap.Num() == 0)
-				{
+		{
 			ImportedResource->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex = NewSkeletalMaterialIndex;
-				}
-				else
-				{
+		}
+		else
+		{
 			check(SectionIndex < Info.LODMaterialMap.Num());
 			Info.LODMaterialMap[SectionIndex] = NewSkeletalMaterialIndex;
-				}
+		}
 
 		Mesh->PostEditChange();
 
-			// Redraw viewports to reflect the material changes 
-			GUnrealEd->RedrawLevelEditingViewports();
-		}
+		// Redraw viewports to reflect the material changes 
+		GUnrealEd->RedrawLevelEditingViewports();
 	}
-
-#if WITH_APEX_CLOTHING
+}
 
 //
 // Generate slate UI for Clothing category
 //
 void FPersonaMeshDetails::CustomizeClothingProperties(IDetailLayoutBuilder& DetailLayout, IDetailCategoryBuilder& ClothingFilesCategory)
 {
-	TSharedRef<IPropertyHandle> ClothingAssetsProperty = DetailLayout.GetProperty(FName("ClothingAssets"), USkeletalMesh::StaticClass());
+	TSharedRef<IPropertyHandle> ClothingAssetsProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(USkeletalMesh, MeshClothingAssets), USkeletalMesh::StaticClass());
 
 	if( ClothingAssetsProperty->IsValidHandle() )
 	{
@@ -2798,6 +2956,7 @@ void FPersonaMeshDetails::CustomizeClothingProperties(IDetailLayoutBuilder& Deta
 		ClothingFilesCategory.AddCustomBuilder(ClothingAssetsPropertyBuilder, false);
 	}
 
+#if WITH_APEX_CLOTHING
 	// Button to add a new clothing file
 	ClothingFilesCategory.AddCustomRow( LOCTEXT("AddAPEXClothingFileFilterString", "Add APEX clothing file"))
 	[
@@ -2816,6 +2975,7 @@ void FPersonaMeshDetails::CustomizeClothingProperties(IDetailLayoutBuilder& Deta
 				TEXT("AddClothing")))
 		]
 	];
+#endif
 }
 
 //
@@ -2875,71 +3035,79 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 		]
 	];	
 
-	// Asset Name
-	TSharedRef<IPropertyHandle> AssetNameProperty = StructProperty->GetChildHandle(FName("AssetName")).ToSharedRef();
-	FSimpleDelegate UpdateComboBoxStringsDelegate = FSimpleDelegate::CreateSP(this, &FPersonaMeshDetails::UpdateComboBoxStrings);
-	AssetNameProperty->SetOnPropertyValueChanged(UpdateComboBoxStringsDelegate);
-	ChildrenBuilder.AddChildProperty(AssetNameProperty);
+	USkeletalMesh* CurrentMesh = GetPersonaToolkit()->GetMesh();
+	UClothingAssetBase* CurrentAsset = CurrentMesh->MeshClothingAssets[ElementIndex];
 
-	// APEX Details
-	TSharedRef<IPropertyHandle> ApexFileNameProperty = StructProperty->GetChildHandle(FName("ApexFileName")).ToSharedRef();
-	ChildrenBuilder.AddChildProperty(ApexFileNameProperty)
-	.CustomWidget()
+	ChildrenBuilder.AddChildContent(LOCTEXT("ClothingAsset_Search_Name", "Name"))
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Text(LOCTEXT("APEXDetails", "APEX Details"))
+		.Text(LOCTEXT("ClothingAsset_Label_Name", "Name"))
 		.Font(DetailFontInfo)
 	]
 	.ValueContent()
 	.HAlign(HAlign_Fill)
 	[
-		MakeApexDetailsWidget(ElementIndex)
+		SNew(STextBlock)
+		.Text(FText::FromString(CurrentAsset->GetName()))
+	];
+
+	ChildrenBuilder.AddChildContent(LOCTEXT("ClothingAsset_Search_Details", "Details"))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("Details", "Details"))
+		.Font(DetailFontInfo)
+	]
+	.ValueContent()
+	.HAlign(HAlign_Fill)
+	[
+		MakeClothingDetailsWidget(ElementIndex)
 	];	
 	
-	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
-	FClothingAssetData& AssetData = SkelMesh->ClothingAssets[ElementIndex];
+	// Properties are now inside UClothingAsset, so we just add a new inspector and handle everything through that
+	FDetailWidgetRow& ClothPropRow = ChildrenBuilder.AddChildContent(LOCTEXT("ClothingAsset_Search_Properties", "Properties"));
 
-	ApexClothingUtils::GetPhysicsPropertiesFromApexAsset(AssetData.ApexClothingAsset, AssetData.PhysicsProperties);
+	TSharedPtr<SKismetInspector> Inspector = nullptr;
 
-	// cloth physics properties
-	TSharedRef<IPropertyHandle> ClothPhysicsProperties = StructProperty->GetChildHandle(FName("PhysicsProperties")).ToSharedRef();
-	uint32 NumChildren;
-	ClothPhysicsProperties->GetNumChildren(NumChildren);
-	FSimpleDelegate UpdatePhysicsPropertyDelegate = FSimpleDelegate::CreateSP(this, &FPersonaMeshDetails::UpdateClothPhysicsProperties, ElementIndex);
-	for (uint32 ChildIdx = 0; ChildIdx < NumChildren; ChildIdx++)
-	{
-		ClothPhysicsProperties->GetChildHandle(ChildIdx)->SetOnPropertyValueChanged(UpdatePhysicsPropertyDelegate);
-	}
+	ClothPropRow.WholeRowWidget
+	[
+		SNew(SExpandableArea)
+		.InitiallyCollapsed(true)
+		.HeaderContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("Properties_Header", "Clothing Properties"))
+		]
+		.BodyContent()
+		[
+			SAssignNew(Inspector, SKismetInspector)
+			.ShowTitleArea(false)
+			.ShowPublicViewControl(false)
+			.HideNameArea(true)
+			.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &FPersonaMeshDetails::IsClothingPanelEnabled))
+			.OnFinishedChangingProperties(FOnFinishedChangingProperties::FDelegate::CreateSP(this, &FPersonaMeshDetails::OnFinishedChangingClothingProperties, ElementIndex))
+		]
+	];
 
-	ChildrenBuilder.AddChildProperty(ClothPhysicsProperties);
+	SKismetInspector::FShowDetailsOptions Options;
+	Options.bHideFilterArea = true;
+	Options.bShowComponents = false;
+
+	Inspector->ShowDetailsForSingleObject(CurrentAsset, Options);
 }
 
-TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 AssetIndex) const
+TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeClothingDetailsWidget(int32 AssetIndex) const
 {
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
 	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
-
-	FClothingAssetData& Asset = SkelMesh->ClothingAssets[AssetIndex];
+	UClothingAsset* ClothingAsset = Cast<UClothingAsset>(SkelMesh->MeshClothingAssets[AssetIndex]);
+	check(ClothingAsset);
 
 	TSharedRef<SUniformGridPanel> Grid = SNew(SUniformGridPanel).SlotPadding(2.0f);
 
-	// temporarily while removing
-	if(!SkelMesh->ClothingAssets.IsValidIndex(AssetIndex))
-	{
-		Grid->AddSlot(0, 0) // x, y
-			.HAlign(HAlign_Fill)
-			[
-				SNew(STextBlock)
-				.Font(DetailFontInfo)
-				.Text(LOCTEXT("Removing", "Removing..."))
-			];
-
-		return Grid;
-	}
-
-	int32 NumLODs = ApexClothingUtils::GetNumLODs(Asset.ApexClothingAsset);
+	int32 NumLODs = ClothingAsset->LodData.Num();
 	int32 RowNumber = 0;
 
 	for(int32 LODIndex=0; LODIndex < NumLODs; LODIndex++)
@@ -2954,19 +3122,11 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 
 		RowNumber++;
 
-		TArray<FSubmeshInfo> SubmeshInfos;
-		if(ApexClothingUtils::GetSubmeshInfoFromApexAsset(Asset.ApexClothingAsset, LODIndex, SubmeshInfos))
-		{
-			// content names
-			Grid->AddSlot(0, RowNumber) // x, y
-			.HAlign(HAlign_Center)
-			[
-				SNew(STextBlock)
-				.Font(DetailFontInfo)
-				.Text(LOCTEXT("SubmeshIndex", "Submesh"))
-			];
+		FClothLODData& LodData = ClothingAsset->LodData[LODIndex];
+		FClothPhysicalMeshData& PhysMeshData = LodData.PhysicalMeshData;
+		FClothCollisionData& CollisionData = LodData.CollisionData;
 
-			Grid->AddSlot(1, RowNumber) 
+		Grid->AddSlot(0, RowNumber) 
 			.HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
@@ -2974,15 +3134,15 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 				.Text(LOCTEXT("SimulVertexCount", "Simul Verts"))
 			];
 
-			Grid->AddSlot(2, RowNumber) 
+		Grid->AddSlot(0, RowNumber + 1)
 			.HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("RenderVertexCount", "Render Verts"))
+				.Text(FText::AsNumber(PhysMeshData.Vertices.Num() - PhysMeshData.NumFixedVerts))
 			];
 
-			Grid->AddSlot(3, RowNumber)
+		Grid->AddSlot(1, RowNumber)
 			.HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
@@ -2990,15 +3150,31 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 				.Text(LOCTEXT("FixedVertexCount", "Fixed Verts"))
 			];
 
-			Grid->AddSlot(4, RowNumber)
+		Grid->AddSlot(1, RowNumber + 1)
 			.HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("TriangleCount", "Triangles"))
+				.Text(FText::AsNumber(PhysMeshData.NumFixedVerts))
 			];
 
-			Grid->AddSlot(5, RowNumber)
+		Grid->AddSlot(2, RowNumber)
+			.HAlign(HAlign_Center)
+			[
+				SNew(STextBlock)
+				.Font(DetailFontInfo)
+				.Text(LOCTEXT("TriangleCount", "Sim Triangles"))
+			];
+
+		Grid->AddSlot(2, RowNumber + 1)
+			.HAlign(HAlign_Center)
+			[
+				SNew(STextBlock)
+				.Font(DetailFontInfo)
+				.Text(FText::AsNumber(PhysMeshData.Indices.Num() / 3))
+			];
+
+		Grid->AddSlot(3, RowNumber)
 			.HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
@@ -3006,7 +3182,15 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 				.Text(LOCTEXT("NumUsedBones", "Bones"))
 			];
 
-			Grid->AddSlot(6, RowNumber)
+		Grid->AddSlot(3, RowNumber + 1)
+			.HAlign(HAlign_Center)
+			[
+				SNew(STextBlock)
+				.Font(DetailFontInfo)
+				.Text(FText::AsNumber(PhysMeshData.MaxBoneWeights))
+			];
+
+		Grid->AddSlot(4, RowNumber)
 			.HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
@@ -3014,94 +3198,15 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 				.Text(LOCTEXT("NumBoneSpheres", "Spheres"))
 			];
 
-			RowNumber++;
-
-			for(int32 i=0; i < SubmeshInfos.Num(); i++)
-			{
-				Grid->AddSlot(0, RowNumber)
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Font(DetailFontInfo)
-					.Text(FText::AsNumber(SubmeshInfos[i].SubmeshIndex))
-				];
-
-				if(i == 0)
-				{
-					Grid->AddSlot(1, RowNumber)
-					.HAlign(HAlign_Center)
-					[
-						SNew(STextBlock)
-						.Font(DetailFontInfo)
-						.Text(FText::AsNumber(SubmeshInfos[i].SimulVertexCount))
-					];
-				}
-				else
-				{
-					Grid->AddSlot(1, RowNumber)
-					.HAlign(HAlign_Center)
-					[
-						SNew(STextBlock)
-						.Font(DetailFontInfo)
-						.Text(LOCTEXT("SharedLabel", "Shared"))
-					];
-				}
-
-				Grid->AddSlot(2, RowNumber)
-					.HAlign(HAlign_Center)
-					[
-						SNew(STextBlock)
-						.Font(DetailFontInfo)
-						.Text(FText::AsNumber(SubmeshInfos[i].VertexCount))
-					];
-
-				Grid->AddSlot(3, RowNumber)
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Font(DetailFontInfo)
-					.Text(FText::AsNumber(SubmeshInfos[i].FixedVertexCount))
-				];
-
-				Grid->AddSlot(4, RowNumber)
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Font(DetailFontInfo)
-					.Text(FText::AsNumber(SubmeshInfos[i].TriangleCount))
-				];
-
-				Grid->AddSlot(5, RowNumber)
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Font(DetailFontInfo)
-					.Text(FText::AsNumber(SubmeshInfos[i].NumUsedBones))
-				];
-
-				Grid->AddSlot(6, RowNumber)
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Font(DetailFontInfo)
-					.Text(FText::AsNumber(SubmeshInfos[i].NumBoneSpheres))
-				];
-
-				RowNumber++;
-			}
-		}
-		else
-		{
-			Grid->AddSlot(0, RowNumber) // x, y
-			.HAlign(HAlign_Fill)
+		Grid->AddSlot(4, RowNumber + 1)
+			.HAlign(HAlign_Center)
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("FailedGetSubmeshInfo", "Failed to get sub-mesh Info"))
+				.Text(FText::AsNumber(CollisionData.Spheres.Num()))
 			];
 
-			RowNumber++;
-		}
+		RowNumber += 2;
 	}
 
 	return Grid;
@@ -3109,57 +3214,58 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 
 FReply FPersonaMeshDetails::OnReimportApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout)
 {
+#if WITH_APEX_CLOTHING
 	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
 
-	check(SkelMesh);
+	check(SkelMesh && SkelMesh->MeshClothingAssets.IsValidIndex(AssetIndex));
 
-	FString FileName(SkelMesh->ClothingAssets[AssetIndex].ApexFileName);
+	UClothingAssetBase* AssetToReimport = SkelMesh->MeshClothingAssets[AssetIndex];
+	check(AssetToReimport);
 
-	bool bNeedToLeaveProperties = false;
-	FClothPhysicsProperties CurClothPhysicsProperties;
+	FString ReimportPath = AssetToReimport->ImportedFilePath;
 
-	// if this asset's cloth properties were changed in UE4 editor, then shows a warning dialog
-	if (SkelMesh->ClothingAssets[AssetIndex].bClothPropertiesChanged)
+	if(ReimportPath.IsEmpty())
 	{
-		const FText Text = LOCTEXT("Warning_ClothPropertiesChanged", "This asset's physics properties have been modified inside UE4. \nWould you like to reapply the modified property values after reimporting?");
-		EAppReturnType::Type Ret = FMessageDialog::Open(EAppMsgType::YesNoCancel, Text);
-		if (EAppReturnType::Yes == Ret)
+		const FText MessageText = LOCTEXT("Warning_NoReimportPath", "There is no reimport path available for this asset, it was likely created in the Editor. Would you like to select a file and overwrite this asset?");
+		EAppReturnType::Type MessageReturn = FMessageDialog::Open(EAppMsgType::YesNo, MessageText);
+
+		if(MessageReturn == EAppReturnType::Yes)
 		{
-			bNeedToLeaveProperties = true;
-			ApexClothingUtils::GetPhysicsPropertiesFromApexAsset(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset, CurClothPhysicsProperties);
-		}
-		else if (EAppReturnType::Cancel == Ret)
-		{
-			return FReply::Handled();
+			ReimportPath = ApexClothingUtils::PromptForClothingFile();
 		}
 	}
-	ApexClothingUtils::EClothUtilRetType RetType = ApexClothingUtils::ImportApexAssetFromApexFile(FileName, SkelMesh, AssetIndex);
-	switch(RetType)
-	{
-	case ApexClothingUtils::CURT_Ok:
-		UpdateComboBoxStrings();
-		if (bNeedToLeaveProperties)
-		{
-			// overwrites changed values instead of original values
-			SkelMesh->ClothingAssets[AssetIndex].bClothPropertiesChanged = true;
-			ApexClothingUtils::SetPhysicsPropertiesToApexAsset(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset, CurClothPhysicsProperties);
-		}
-		else
-		{
-			// will lose all changed values through UE4 editor
-			SkelMesh->ClothingAssets[AssetIndex].bClothPropertiesChanged = false;
-		}
 
+	if(ReimportPath.IsEmpty())
+	{
+		return FReply::Handled();
+	}
+
+	// Retry if the file isn't there
+	if(!FPaths::FileExists(ReimportPath))
+	{
+		const FText MessageText = LOCTEXT("Warning_NoFileFound", "Could not find an asset to reimport, select a new file on disk?");
+		EAppReturnType::Type MessageReturn = FMessageDialog::Open(EAppMsgType::YesNo, MessageText);
+
+		if(MessageReturn == EAppReturnType::Yes)
+		{
+			ReimportPath = ApexClothingUtils::PromptForClothingFile();
+		}
+	}
+
+	FClothingSystemEditorInterfaceModule& ClothingEditorInterface = FModuleManager::Get().LoadModuleChecked<FClothingSystemEditorInterfaceModule>("ClothingSystemEditorInterface");
+	UClothingAssetFactoryBase* Factory = ClothingEditorInterface.GetClothingAssetFactory();
+
+	if(Factory && Factory->CanImport(ReimportPath))
+	{
+		Factory->Reimport(ReimportPath, SkelMesh, AssetToReimport);
+
+		UpdateClothingEntries();
+		RefreshClothingComboBoxes();
+
+		// Force layout to refresh
 		DetailLayout->ForceRefreshDetails();
-
-		break;
-	case ApexClothingUtils::CURT_Fail:
-		// Failed to create or import
-		FMessageDialog::Open( EAppMsgType::Ok, FText::Format( LOCTEXT("ReimportFailed", "Failed to re-import APEX clothing asset from {0}."), FText::FromString( FileName ) ) );
-		break;
-	case ApexClothingUtils::CURT_Cancel:
-		break;
 	}
+#endif
 
 	return FReply::Handled();
 }
@@ -3167,410 +3273,217 @@ FReply FPersonaMeshDetails::OnReimportApexFileClicked(int32 AssetIndex, IDetailL
 FReply FPersonaMeshDetails::OnRemoveApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout)
 {
 	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
+	check(SkelMesh);
 
-	// SkeMesh->ClothingAssets.RemoveAt(AssetIndex) is conducted inside RemoveAssetFromSkeletalMesh
-	ApexClothingUtils::RemoveAssetFromSkeletalMesh(SkelMesh, AssetIndex, true);
+	TArray<UActorComponent*> ComponentsToReregister;
+	for(TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+	{
+		if(USkeletalMesh* UsedMesh = (*It)->SkeletalMesh)
+		{
+			if(UsedMesh == SkelMesh)
+			{
+				ComponentsToReregister.Add(*It);
+			}
+		}
+	}
+
+	{
+		// Need to unregister our components so they shut down their current clothing simulation
+		FMultiComponentReregisterContext ReregisterContext(ComponentsToReregister);
+
+		// Now we can remove the asset.
+		if(SkelMesh->MeshClothingAssets.IsValidIndex(AssetIndex))
+		{
+			UClothingAssetBase* AssetToRemove = SkelMesh->MeshClothingAssets[AssetIndex];
+			check(AssetToRemove);
+
+			AssetToRemove->UnbindFromSkeletalMesh(SkelMesh);
+
+			SkelMesh->MeshClothingAssets.RemoveAt(AssetIndex);
+
+			// Need to fix up asset indices on sections.
+			if(FSkeletalMeshResource* MeshResource = SkelMesh->GetImportedResource())
+			{
+				for(FStaticLODModel& LodModel : MeshResource->LODModels)
+				{
+					for(FSkelMeshSection& Section : LodModel.Sections)
+					{
+						if(Section.CorrespondClothAssetIndex > AssetIndex)
+						{
+							--Section.CorrespondClothAssetIndex;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	UpdateClothingEntries();
+	RefreshClothingComboBoxes();
 
 	// Force layout to refresh
 	DetailLayout->ForceRefreshDetails();
-
-	// Update the combo-box
-	UpdateComboBoxStrings();
 
 	return FReply::Handled();
 }
 
 FReply FPersonaMeshDetails::OnOpenClothingFileClicked(IDetailLayoutBuilder* DetailLayout)
 {
+#if WITH_APEX_CLOTHING
 	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
 
-	if( ensure(SkelMesh) )
+	if(SkelMesh)
 	{
-		FString Filename;
-		FName AssetName;
-
-		// Display open dialog box
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		if ( DesktopPlatform )
-		{
-			const void* ParentWindowWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
-
-			TArray<FString> OpenFilenames;	
-			FString OpenFilePath = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::MESH_IMPORT_EXPORT);
-
-			if( DesktopPlatform->OpenFileDialog(
-				ParentWindowWindowHandle,
-				*LOCTEXT("Persona_ChooseAPEXFile", "Choose file to load APEX clothing asset").ToString(), 
-				OpenFilePath,
-				TEXT(""), 
-				TEXT("APEX clothing asset(*.apx,*.apb)|*.apx;*.apb|All files (*.*)|*.*"),
-				EFileDialogFlags::None,
-				OpenFilenames
-				) )
-			{
-				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::MESH_IMPORT_EXPORT, OpenFilenames[0]);
-
-				ApexClothingUtils::EClothUtilRetType RetType = ApexClothingUtils::ImportApexAssetFromApexFile( OpenFilenames[0], SkelMesh, -1);
-
-				if(RetType  == ApexClothingUtils::CURT_Ok)
-				{
-					int32 AssetIndex = SkelMesh->ClothingAssets.Num()-1;
-					FClothingAssetData& AssetData = SkelMesh->ClothingAssets[AssetIndex];
-					int32 NumLODs = ApexClothingUtils::GetNumLODs(AssetData.ApexClothingAsset);
-
-					uint32 MaxClothVertices = ApexClothingUtils::GetMaxClothSimulVertices(GMaxRHIFeatureLevel);
-
-					// check whether there are sub-meshes which have over MaxClothVertices or not
-					// this checking will be removed after changing implementation way for supporting over MaxClothVertices
-					uint32 NumSubmeshesOverMaxSimulVerts = 0;
-
-					for(int32 LODIndex=0; LODIndex < NumLODs; LODIndex++)
-					{
-						TArray<FSubmeshInfo> SubmeshInfos;
-						if(ApexClothingUtils::GetSubmeshInfoFromApexAsset(AssetData.ApexClothingAsset, LODIndex, SubmeshInfos))
-						{
-							for(int32 SubIndex=0; SubIndex < SubmeshInfos.Num(); SubIndex++)
-							{
-								if(SubmeshInfos[SubIndex].SimulVertexCount >= MaxClothVertices)
-								{
-									NumSubmeshesOverMaxSimulVerts++;
-								}
-							}
-						}
-					}
-
-					// shows warning 
-					if(NumSubmeshesOverMaxSimulVerts > 0)
-					{
-						const FText Text = FText::Format(LOCTEXT("Warning_OverMaxClothSimulVerts", "{0} submeshes have over {1} cloth simulation vertices. Please reduce simulation vertices under {1}. It has possibility not to work correctly.\n\n Proceed?"), FText::AsNumber(NumSubmeshesOverMaxSimulVerts), FText::AsNumber(MaxClothVertices));
-						if (EAppReturnType::Ok != FMessageDialog::Open(EAppMsgType::OkCancel, Text))
-						{
-							ApexClothingUtils::RemoveAssetFromSkeletalMesh(SkelMesh, AssetIndex, true);
-							return FReply::Handled();
-						}
-					}
-
-					// show import option dialog if this asset has multiple LODs 
-					if(NumLODs > 1)
-					{
-						TSharedPtr<SWindow> ParentWindow;
-						// Check if the main frame is loaded.  When using the old main frame it may not be.
-						if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
-						{
-							IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
-							ParentWindow = MainFrame.GetParentWindow();
-						}
-
-						TSharedRef<SWindow> Window = SNew(SWindow)
-							.Title(LOCTEXT("ClothImportInfo", "Clothing Import Information"))
-							.SizingRule( ESizingRule::Autosized );
-
-						TSharedPtr<SApexClothingOptionWindow> ClothingOptionWindow;
-						Window->SetContent
-							(
-							SAssignNew(ClothingOptionWindow, SApexClothingOptionWindow)
-								.WidgetWindow(Window)
-								.NumLODs(NumLODs)
-								.ApexDetails(MakeApexDetailsWidget(AssetIndex))
-							);
-
-						FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
-
-						if(!ClothingOptionWindow->CanImport())
-						{
-							ApexClothingUtils::RemoveAssetFromSkeletalMesh(SkelMesh, AssetIndex, true);
-						}
-					}
-
-					DetailLayout->ForceRefreshDetails();
-
-					UpdateComboBoxStrings();
-				}
-				else
-				if(RetType == ApexClothingUtils::CURT_Fail)
-				{
-					// Failed to create or import
-					FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ImportFailed", "Failed to import APEX clothing asset from the selected file.") );
-				}
-			}
-		}
+		ApexClothingUtils::PromptAndImportClothing(SkelMesh);
+		
+		UpdateClothingEntries();
+		RefreshClothingComboBoxes();
 	}
+#endif
 
 	return FReply::Handled();
 }
 
-void FPersonaMeshDetails::UpdateComboBoxStrings()
+void FPersonaMeshDetails::UpdateClothingEntries()
 {
-	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
 
-	if (!SkelMesh)
+	NewClothingAssetEntries.Empty();
+
+	ClothingNoneEntry = MakeShared<FClothingEntry>();
+	ClothingNoneEntry->AssetIndex = INDEX_NONE;
+	ClothingNoneEntry->Asset = nullptr;
+
+	NewClothingAssetEntries.Add(ClothingNoneEntry);
+
+	const int32 NumClothingAssets = Mesh->MeshClothingAssets.Num();
+	for(int32 Idx = 0; Idx < NumClothingAssets; ++Idx)
 	{
-		return;
-	}
+		UClothingAsset* Asset = CastChecked<UClothingAsset>(Mesh->MeshClothingAssets[Idx]);
 
-	int32 NumLODs = SkelMesh->LODInfo.Num();
-
-	while (ClothingComboLODInfos.Num() < NumLODs)
-	{
-		new (ClothingComboLODInfos)FClothingComboInfo;
-	}
-
-	for (int32 LODIdx = 0; LODIdx < NumLODs; LODIdx++)
-	{
-		FClothingComboInfo& NewLODInfo = ClothingComboLODInfos[LODIdx];
-
-		TArray<TSharedPtr< STextComboBox >>& ClothingComboBoxes = NewLODInfo.ClothingComboBoxes;
-		TArray<TSharedPtr<FString> >& ClothingComboStrings = NewLODInfo.ClothingComboStrings;
-		TMap<FString, FClothAssetSubmeshIndex>&	ClothingComboStringReverseLookup = NewLODInfo.ClothingComboStringReverseLookup;
-		TArray<int32>& ClothingComboSelectedIndices = NewLODInfo.ClothingComboSelectedIndices;
-
-		// Clear out old strings
-		ClothingComboStrings.Empty();
-		ClothingComboStringReverseLookup.Empty();
-		ClothingComboStrings.Add(MakeShareable(new FString(TEXT("None"))));
-
-		FStaticLODModel& LODModel = SkelMesh->GetImportedResource()->LODModels[LODIdx];
-
-		// # of non clothing sections means # of slots
-		int32 NumNonClothingSections = LODModel.NumNonClothingSections();
-
-		TArray<FClothAssetSubmeshIndex> SectionAssetSubmeshIndices;
-
-		ClothingComboSelectedIndices.Empty(NumNonClothingSections);
-		SectionAssetSubmeshIndices.Empty(NumNonClothingSections);
-
-		for (int32 SecIdx = 0; SecIdx < NumNonClothingSections; SecIdx++)
+		const int32 NumAssetLods = Asset->LodData.Num();
+		for(int32 AssetLodIndex = 0; AssetLodIndex < NumAssetLods; ++AssetLodIndex)
 		{
-			ClothingComboSelectedIndices.Add(0); // None
-			new(SectionAssetSubmeshIndices)FClothAssetSubmeshIndex(INDEX_NONE, INDEX_NONE);
-		}
+			TSharedPtr<FClothingEntry> NewEntry = MakeShared<FClothingEntry>();
 
-		// Setup Asset's sub-mesh indices
-		for (int32 SecIdx = 0; SecIdx < NumNonClothingSections; SecIdx++)
-		{
-			int32 ClothSection = LODModel.Sections[SecIdx].CorrespondClothSectionIndex;
-			if (ClothSection >= 0)
-			{
-				FSkelMeshSection& Section = LODModel.Sections[ClothSection];
-				SectionAssetSubmeshIndices[SecIdx] = FClothAssetSubmeshIndex(Section.CorrespondClothAssetIndex, Section.ClothAssetSubmeshIndex);
-			}
-		}
+			NewEntry->Asset = Mesh->MeshClothingAssets[Idx];
+			NewEntry->AssetIndex = Idx;
+			NewEntry->AssetLodIndex = AssetLodIndex;
 
-		for (int32 AssetIndex = 0; AssetIndex < SkelMesh->ClothingAssets.Num(); AssetIndex++)
-		{
-			FClothingAssetData& ClothingAssetData = SkelMesh->ClothingAssets[AssetIndex];
-
-			TArray<FSubmeshInfo> SubmeshInfos;
-			// if failed to get sub-mesh info, then skip
-			if (!ApexClothingUtils::GetSubmeshInfoFromApexAsset(ClothingAssetData.ApexClothingAsset, LODIdx, SubmeshInfos))
-			{
-				continue;
-			}
-
-			if (SubmeshInfos.Num() == 1)
-			{
-				FString ComboString = ClothingAssetData.AssetName.ToString();
-				ClothingComboStrings.Add(MakeShareable(new FString(ComboString)));
-				FClothAssetSubmeshIndex& AssetSubmeshIndex = ClothingComboStringReverseLookup.Add(ComboString, FClothAssetSubmeshIndex(AssetIndex, SubmeshInfos[0].SubmeshIndex)); //submesh index is not always same as ordered index
-
-				for (int32 SlotIdx = 0; SlotIdx < NumNonClothingSections; SlotIdx++)
-				{
-					if (SectionAssetSubmeshIndices[SlotIdx] == AssetSubmeshIndex)
-					{
-						ClothingComboSelectedIndices[SlotIdx] = ClothingComboStrings.Num() - 1;
-					}
-				}
-			}
-			else
-			{
-				for (int32 SubIdx = 0; SubIdx < SubmeshInfos.Num(); SubIdx++)
-				{
-					FString ComboString = FText::Format(LOCTEXT("Persona_ApexClothingAsset_Submesh", "{0} submesh {1}"), FText::FromName(ClothingAssetData.AssetName), FText::AsNumber(SubmeshInfos[SubIdx].SubmeshIndex)).ToString(); //submesh index is not always same as SubIdx
-					ClothingComboStrings.Add(MakeShareable(new FString(ComboString)));
-					FClothAssetSubmeshIndex& AssetSubmeshIndex = ClothingComboStringReverseLookup.Add(ComboString, FClothAssetSubmeshIndex(AssetIndex, SubIdx));
-
-					for (int32 SlotIdx = 0; SlotIdx < NumNonClothingSections; SlotIdx++)
-					{
-						if (SectionAssetSubmeshIndices[SlotIdx] == AssetSubmeshIndex)
-						{
-							ClothingComboSelectedIndices[SlotIdx] = NewLODInfo.ClothingComboStrings.Num() - 1;
-						}
-					}
-				}
-			}
-		}
-		// Cause combo boxes to refresh their strings lists and selected value
-		for (int32 i = 0; i < NewLODInfo.ClothingComboBoxes.Num(); i++)
-		{
-			ClothingComboBoxes[i]->RefreshOptions();
-			ClothingComboBoxes[i]->SetSelectedItem(ClothingComboSelectedIndices.IsValidIndex(i) && ClothingComboStrings.IsValidIndex(ClothingComboSelectedIndices[i]) ? ClothingComboStrings[ClothingComboSelectedIndices[i]] : ClothingComboStrings[0]);
+			NewClothingAssetEntries.Add(NewEntry);
 		}
 	}
-
-
-#if 0
-	if(SkelMesh)
-	{
-		int32 NumMaterials = SkelMesh->Materials.Num();
-
-		TArray<FClothAssetSubmeshIndex> SectionAssetSubmeshIndices;
-		// Num of materials = slot size
-		ClothingComboSelectedIndices.Empty(NumMaterials);
-		SectionAssetSubmeshIndices.Empty(NumMaterials);
-
-		// Initialize Indices
-		for( int32 SlotIdx=0; SlotIdx<NumMaterials; SlotIdx++ )
-		{
-			ClothingComboSelectedIndices.Add(0); // None
-			new(SectionAssetSubmeshIndices) FClothAssetSubmeshIndex(-1, -1);
-		}
-
-		FStaticLODModel& LODModel = SkelMesh->GetImportedResource()->LODModels[0];
-		// Current mappings for each section
-		int32 NumNonClothingSections = LODModel.NumNonClothingSections();
-
-		// Setup Asset's sub-mesh indices
-		for( int32 SectionIdx=0; SectionIdx<NumNonClothingSections; SectionIdx++ )
-		{
-			int32 ClothSection = LODModel.Sections[SectionIdx].CorrespondClothSectionIndex;
-			if( ClothSection >= 0 )
-			{
-				// Material index is Slot index
-				int32 SlotIdx = LODModel.Sections[SectionIdx].MaterialIndex;
-				check(SlotIdx < SectionAssetSubmeshIndices.Num());
-				FSkelMeshSection& Section = LODModel.Sections[ClothSection];
-				SectionAssetSubmeshIndices[SlotIdx] = FClothAssetSubmeshIndex(Section.CorrespondClothAssetIndex, Section.ClothAssetSubmeshIndex);
-			}
-		}
-
-		for( int32 AssetIndex=0;AssetIndex<SkelMesh->ClothingAssets.Num();AssetIndex++ )
-		{
-			FClothingAssetData& ClothingAssetData = SkelMesh->ClothingAssets[AssetIndex];
-
-			TArray<FSubmeshInfo> SubmeshInfos;
-			// if failed to get sub-mesh info, then skip
-			if(!ApexClothingUtils::GetSubmeshInfoFromApexAsset(ClothingAssetData.ApexClothingAsset->GetAsset(), 0, SubmeshInfos))
-			{
-				continue;
-			}
-
-			if( SubmeshInfos.Num() == 1 )
-			{
-				FString ComboString = ClothingAssetData.AssetName.ToString();
-				ClothingComboStrings.Add(MakeShareable(new FString(ComboString)));
-				FClothAssetSubmeshIndex& AssetSubmeshIndex = ClothingComboStringReverseLookup.Add(ComboString, FClothAssetSubmeshIndex(AssetIndex, SubmeshInfos[0].SubmeshIndex)); //submesh index is not always same as ordered index
-
-				for( int32 SlotIdx=0;SlotIdx<NumMaterials;SlotIdx++ )
-				{
-					if( SectionAssetSubmeshIndices[SlotIdx] == AssetSubmeshIndex )
-					{
-						ClothingComboSelectedIndices[SlotIdx] = ClothingComboStrings.Num()-1;
-					}
-				}
-			}
-			else
-			{
-				for( int32 SubIdx=0;SubIdx<SubmeshInfos.Num();SubIdx++ )
-				{			
-					FString ComboString = FText::Format( LOCTEXT("Persona_ApexClothingAsset_Submesh", "{0} submesh {1}"), FText::FromName(ClothingAssetData.AssetName), FText::AsNumber(SubmeshInfos[SubIdx].SubmeshIndex) ).ToString(); //submesh index is not always same as SubIdx
-					ClothingComboStrings.Add(MakeShareable(new FString(ComboString)));
-					FClothAssetSubmeshIndex& AssetSubmeshIndex = ClothingComboStringReverseLookup.Add(ComboString, FClothAssetSubmeshIndex(AssetIndex, SubIdx));
-
-					for( int32 SlotIdx=0;SlotIdx<NumMaterials;SlotIdx++ )
-					{
-						if( SectionAssetSubmeshIndices[SlotIdx] == AssetSubmeshIndex )
-						{
-							ClothingComboSelectedIndices[SlotIdx] = ClothingComboStrings.Num()-1;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Cause combo boxes to refresh their strings lists and selected value
-	for(int32 i=0; i < ClothingComboBoxes.Num(); i++)
-	{
-		ClothingComboBoxes[i]->RefreshOptions();
-		ClothingComboBoxes[i]->SetSelectedItem(ClothingComboSelectedIndices.IsValidIndex(i) && ClothingComboStrings.IsValidIndex(ClothingComboSelectedIndices[i]) ? ClothingComboStrings[ClothingComboSelectedIndices[i]] : ClothingComboStrings[0]);
-	}
-#endif
 }
 
-EVisibility FPersonaMeshDetails::IsClothingComboBoxVisible(int32 LODIndex, int32 SectionIndex) const
+void FPersonaMeshDetails::RefreshClothingComboBoxes()
 {
-	// if this material doesn't have correspondence with any mesh section, hide this combo box 
-	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
-
-	// ClothingComboStrings.Num() should be greater than 1 because it is including "None"
-	bool bExistClothingLOD = ClothingComboLODInfos.IsValidIndex(LODIndex) && ClothingComboLODInfos[LODIndex].ClothingComboStrings.Num() > 1;
-
-	return SkelMesh && SkelMesh->ClothingAssets.Num() > 0 && bExistClothingLOD ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-FString FPersonaMeshDetails::HandleSectionsComboBoxGetRowText( TSharedPtr<FString> Section, int32 LODIndex, int32 SlotIndex)
-{
-	return *Section;
-}
-
-void FPersonaMeshDetails::HandleSectionsComboBoxSelectionChanged( TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo, int32 LODIndex, int32 SectionIndex )
-{		
-	// Selection set by code shouldn't make any content changes.
-	if( SelectInfo == ESelectInfo::Direct )
+	for(const SClothComboBoxPtr& BoxPtr : ClothComboBoxes)
 	{
-		return;
+		if(BoxPtr.IsValid())
+		{
+			BoxPtr->RefreshOptions();
+		}
 	}
+}
 
-	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
+TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateWidgetForClothingEntry(TSharedPtr<FClothingEntry> InEntry)
+{
+	UClothingAsset* Asset = Cast<UClothingAsset>(InEntry->Asset.Get());
 
-	FClothAssetSubmeshIndex* ComboItem;
-
-	TArray<TSharedPtr< STextComboBox >>& ComboBoxes = ClothingComboLODInfos[LODIndex].ClothingComboBoxes;
-	TArray<TSharedPtr<FString> >& ComboStrings = ClothingComboLODInfos[LODIndex].ClothingComboStrings;
-	TMap<FString, FClothAssetSubmeshIndex>&	ComboStringReverseLookup = ClothingComboLODInfos[LODIndex].ClothingComboStringReverseLookup;
-	TArray<int32>& ComboSelectedIndices = ClothingComboLODInfos[LODIndex].ClothingComboSelectedIndices;
-
-	// Look up the item
-	if (SelectedItem.IsValid() && (ComboItem = ComboStringReverseLookup.Find(*SelectedItem)) != NULL)
+	FText EntryText;
+	if(Asset)
 	{
-		if( !ApexClothingUtils::ImportClothingSectionFromClothingAsset(
-			SkelMesh,
-			LODIndex,
-			SectionIndex,
-			ComboItem->AssetIndex,
-			ComboItem->SubmeshIndex) )
-		{
-			// Failed.
-			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ImportClothingSectionFailed", "An error occurred using this clothing asset for this skeletal mesh material section.") );
-			// Change back to previously selected one.
-			int32 SelectedIndex = ComboSelectedIndices.IsValidIndex(SectionIndex) ? ComboSelectedIndices[SectionIndex] : 0;
-			ComboBoxes[SectionIndex]->SetSelectedItem(ComboStrings[SelectedIndex]);
-		}
-		else
-		{
-			// when clothing is mapped, need to re-prepare cloth morph targets
-			if (GetPersonaToolkit()->GetPreviewMeshComponent())
-			{
-				GetPersonaToolkit()->GetPreviewMeshComponent()->bPreparedClothMorphTargets = false;
-			}
-		}
+		EntryText = FText::Format(LOCTEXT("ClothingAssetEntry_Name", "{0} - LOD{1}"), FText::FromString(Asset->GetName()), FText::AsNumber(InEntry->AssetLodIndex));
 	}
 	else
 	{
-		ApexClothingUtils::RestoreOriginalClothingSection(SkelMesh, LODIndex, SectionIndex);
+		EntryText = LOCTEXT("NoClothingEntry", "None");
+	}
+
+	return SNew(STextBlock)
+		.Text(EntryText);
+}
+
+FText FPersonaMeshDetails::OnGetClothingComboText(int32 InLodIdx, int32 InSectionIdx) const
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if(Mesh)
+	{
+		UClothingAsset* ClothingAsset = Cast<UClothingAsset>(Mesh->GetSectionClothingAsset(InLodIdx, InSectionIdx));
+
+		if(ClothingAsset && ClothingAsset->LodMap.IsValidIndex(InLodIdx))
+		{
+			const int32 ClothingLOD = ClothingAsset->LodMap[InLodIdx];
+			return FText::Format(LOCTEXT("ClothingAssetEntry_Name", "{0} - LOD{1}"), FText::FromString(ClothingAsset->GetName()), FText::AsNumber(ClothingLOD));
+		}
+	}
+
+	return LOCTEXT("ClothingCombo_None", "None");
+}
+
+void FPersonaMeshDetails::OnClothingSelectionChanged(TSharedPtr<FClothingEntry> InNewEntry, ESelectInfo::Type InSelectType, int32 BoxIndex, int32 InLodIdx, int32 InSectionIdx)
+{
+	if(InNewEntry.IsValid())
+	{
+		USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+
+		if(UClothingAsset* ClothingAsset = Cast<UClothingAsset>(InNewEntry->Asset.Get()))
+		{
+			// Look for a currently bound asset an unbind it if necessary first
+			if(UClothingAssetBase* CurrentAsset = Mesh->GetSectionClothingAsset(InLodIdx, InSectionIdx))
+			{
+				CurrentAsset->UnbindFromSkeletalMesh(Mesh, InLodIdx);
+			}
+
+			if(!ClothingAsset->BindToSkeletalMesh(Mesh, InLodIdx, InSectionIdx, InNewEntry->AssetLodIndex))
+			{
+				// We failed to bind the clothing asset, reset box selection to "None"
+				SClothComboBoxPtr BoxPtr = ClothComboBoxes[BoxIndex];
+				if(BoxPtr.IsValid())
+				{
+					BoxPtr->SetSelectedItem(ClothingNoneEntry);
+				}
+			}
+		}
+		else if(Mesh)
+		{
+			if(UClothingAssetBase* CurrentAsset = Mesh->GetSectionClothingAsset(InLodIdx, InSectionIdx))
+			{
+				CurrentAsset->UnbindFromSkeletalMesh(Mesh, InLodIdx);
+			}
+		}
 	}
 }
 
-void FPersonaMeshDetails::UpdateClothPhysicsProperties(int32 AssetIndex)
+bool FPersonaMeshDetails::IsClothingPanelEnabled() const
 {
-	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
-	FClothingAssetData& Asset = SkelMesh->ClothingAssets[AssetIndex];
-
-	ApexClothingUtils::SetPhysicsPropertiesToApexAsset(Asset.ApexClothingAsset, Asset.PhysicsProperties);
-	Asset.bClothPropertiesChanged = true;
+	return !GEditor->bIsSimulatingInEditor && !GEditor->PlayWorld;
 }
 
-#endif// #if WITH_APEX_CLOTHING
+void FPersonaMeshDetails::OnFinishedChangingClothingProperties(const FPropertyChangedEvent& Event, int32 InAssetIndex)
+{
+	if(Event.ChangeType != EPropertyChangeType::Interactive)
+	{
+		if(Event.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionRadius) ||
+			Event.Property->GetFName() == GET_MEMBER_NAME_CHECKED(FClothConfig, SelfCollisionCullScale))
+		{
+			USkeletalMesh* CurrentMesh = GetPersonaToolkit()->GetMesh();
+			if(CurrentMesh->MeshClothingAssets.IsValidIndex(InAssetIndex))
+			{
+				UClothingAsset* Asset = CastChecked<UClothingAsset>(CurrentMesh->MeshClothingAssets[InAssetIndex]);
+
+				Asset->BuildSelfCollisionData();
+			}
+		}
+	}
+
+	if(UDebugSkelMeshComponent* PreviewComponent = GetPersonaToolkit()->GetPreviewMeshComponent())
+	{
+		// Reregister our preview component to apply the change
+		FComponentReregisterContext Context(PreviewComponent);
+	}
+}
 
 bool FPersonaMeshDetails::CanDeleteMaterialElement(int32 LODIndex, int32 SectionIndex) const
 {

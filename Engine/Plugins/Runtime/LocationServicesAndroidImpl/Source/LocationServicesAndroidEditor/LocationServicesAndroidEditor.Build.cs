@@ -4,12 +4,13 @@ using UnrealBuildTool;
 
 public class LocationServicesAndroidEditor : ModuleRules
 {
-    public LocationServicesAndroidEditor(TargetInfo Target)
+    public LocationServicesAndroidEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
+					"AndroidPermission"
 				}
 			);
 
@@ -24,7 +25,7 @@ public class LocationServicesAndroidEditor : ModuleRules
 			}
 		);
 
-		if (Target.Type == TargetRules.TargetType.Editor)
+		if (Target.Type == TargetType.Editor)
 		{
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] 

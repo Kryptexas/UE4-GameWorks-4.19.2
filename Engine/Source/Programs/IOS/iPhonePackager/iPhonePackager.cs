@@ -70,6 +70,7 @@ namespace iPhonePackager
 		Error_DeviceNotSetupForDevelopment = 150,
 		Error_DeviceOSNewerThanSDK = 151,
 		Error_TestFailure = 152,
+		Error_SymbolizedSONotFound = 153,
 	};
 
 	public partial class Program

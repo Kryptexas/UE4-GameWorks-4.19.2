@@ -153,7 +153,10 @@ public:
 	// Returns a human readable description of the latent operation's current state
 	virtual FString GetDescription() const override
 	{
-		return FString::Printf( *NSLOCTEXT("FInterpolateComponentToAction", "ActionTime", "Move (%.3f seconds left)").ToString(), TotalTime-TimeElapsed);
+		static const FNumberFormattingOptions DelayTimeFormatOptions = FNumberFormattingOptions()
+			.SetMinimumFractionalDigits(3)
+			.SetMaximumFractionalDigits(3);
+		return FText::Format(NSLOCTEXT("FInterpolateComponentToAction", "ActionTimeFmt", "Move ({0} seconds left)"), FText::AsNumber(TotalTime-TimeElapsed, &DelayTimeFormatOptions)).ToString();
 	}
 #endif
 };

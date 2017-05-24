@@ -12,20 +12,15 @@
 #include "DrawDebugHelpers.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMeshActor.h"
+#include "PipelineStateCache.h"
 
 #if OCULUS_STRESS_TESTS_ENABLED
 #include "OculusStressTests.h"
 #endif
 
 FHMDSettings::FHMDSettings() :
-	CurrentCVarScreenPercentage(0.f)
-	, ScreenPercentage(100.f)
-	, IdealScreenPercentage(100.f)
-	, InterpupillaryDistance(0.064f)
-	, WorldToMetersScale(100.f)
+	InterpupillaryDistance(0.064f)
 	, UserDistanceToScreenModifier(0.f)
-	, HFOVInRadians(FMath::DegreesToRadians(90.f))
-	, VFOVInRadians(FMath::DegreesToRadians(90.f))
 	, NearClippingPlane(0)
 	, FarClippingPlane(0)
 	, BaseOffset(0, 0, 0)
@@ -34,25 +29,14 @@ FHMDSettings::FHMDSettings() :
 {
 	Flags.Raw = 0;
 	Flags.bHMDEnabled = true;
-	Flags.bOverrideVSync = true;
-	Flags.bVSync = true;
-	Flags.bOverrideScreenPercentage = false;
-	Flags.bAllowFinishCurrentFrame = true;
-	Flags.bHmdDistortion = true;
 	Flags.bChromaAbCorrectionEnabled = true;
-	Flags.bYawDriftCorrectionEnabled = true;
-	Flags.bLowPersistenceMode = true;
 	Flags.bUpdateOnRT = true;
-	Flags.bMirrorToWindow = true;
-	Flags.bTimeWarp = true;
-	Flags.bHmdPosTracking = true;
+	Flags.bHQBuffer = false;
 	Flags.bPlayerControllerFollowsHmd = true;
 	Flags.bPlayerCameraManagerFollowsHmdOrientation = true;
 	Flags.bPlayerCameraManagerFollowsHmdPosition = true;
 	EyeRenderViewport[0] = EyeRenderViewport[1] = EyeRenderViewport[2] = FIntRect(0, 0, 0, 0);
 
-	CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
-	PositionScale3D = FVector(1.0f, 1.0f, 1.0f);
 }
 
 TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FHMDSettings::Clone() const
@@ -73,11 +57,6 @@ FIntPoint FHMDSettings::GetTextureSize() const
 { 
 	return FIntPoint(EyeRenderViewport[1].Min.X + EyeRenderViewport[1].Size().X, 
 					 EyeRenderViewport[1].Min.Y + EyeRenderViewport[1].Size().Y); 
-}
-
-float FHMDSettings::GetActualScreenPercentage() const
-{
-	return Flags.bOverrideScreenPercentage ? ScreenPercentage : IdealScreenPercentage;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -188,15 +167,24 @@ void FHMDViewExtension::PostRenderViewFamily_RenderThread(FRHICommandListImmedia
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
+	// PokeAHole not supported yet for direct-multiview.
+	static const auto CVarMobileMultiViewDirect = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView.Direct"));
+	const bool bIsMobileMultiViewDirectEnabled = (CVarMobileMultiViewDirect && CVarMobileMultiViewDirect->GetValueOnAnyThread() != 0);
+	if (bIsMobileMultiViewDirectEnabled)
+	{
+		return;
+	}
+
 	SetRenderTarget(RHICmdList, InViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture());
 
-	FHMDLayerManager *LayerMgr = HeadMountedDisplay->GetLayerManager();//->GetLayerMgr();
+	FHMDLayerManager *LayerMgr = HeadMountedDisplay->GetLayerManager();
 	LayerMgr->PokeAHole(RHICmdList, RenderContext.RenderFrame.Get(), HeadMountedDisplay->GetRendererModule(), InViewFamily);
 	check(IsInRenderingThread());
 }
 
 ////////////////////////////////////////////////////////////////////////////
 FHeadMountedDisplay::FHeadMountedDisplay()
+	: CommonConsoleCommands(this)
 {
 	Flags.Raw = 0;
 	Flags.bNeedUpdateStereoRenderingParams = true;
@@ -210,17 +198,10 @@ FHeadMountedDisplay::FHeadMountedDisplay()
 #endif
 
 	CurrentFrameNumber.Set(1);
-
-#if OCULUS_STRESS_TESTS_ENABLED
-	StressTester = nullptr;
-#endif
 }
 
 FHeadMountedDisplay::~FHeadMountedDisplay()
 {
-#if OCULUS_STRESS_TESTS_ENABLED
-	delete StressTester;
-#endif
 }
 
 bool FHeadMountedDisplay::IsInitialized() const
@@ -286,10 +267,7 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 	check(IsInGameThread());
 
 #if OCULUS_STRESS_TESTS_ENABLED
-	if (StressTester)
-	{
-		StressTester->TickCPU_GameThread(this);
-	}
+	FOculusStressTester::TickCPU_GameThread(this);
 #endif
 
 	if( !WorldContext.World() || ( !( GEnableVREditorHacks && WorldContext.WorldType == EWorldType::Editor ) && !WorldContext.World()->IsGameWorld() ) )	// @todo vreditor: (Also see OnEndGameFrame()) Kind of a hack here so we can use VR in editor viewports.  We need to consider when running GameWorld viewports inside the editor with VR.
@@ -341,10 +319,6 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 	{
 		UpdateDistortionCaps();
 	}
-	if (Flags.bNeedUpdateHmdCaps)
-	{
-		UpdateHmdCaps();
-	}
 
 	if (Flags.bApplySystemOverridesOnStereo)
 	{
@@ -363,23 +337,7 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 	CurrentFrame->FrameNumber = (uint32)CurrentFrameNumber.Increment();
 	CurrentFrame->Flags.bOutOfFrame = false;
 
-	if (Settings->Flags.bWorldToMetersOverride)
-	{
-		CurrentFrame->SetWorldToMetersScale( Settings->WorldToMetersScale );
-	}
-	else
-	{
-		CurrentFrame->SetWorldToMetersScale( WorldContext.World()->GetWorldSettings()->WorldToMeters );
-	}
-
-	if (Settings->Flags.bCameraScale3DOverride)
-	{
-		CurrentFrame->CameraScale3D = Settings->CameraScale3D;
-	}
-	else
-	{
-		CurrentFrame->CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
-	}
+	CurrentFrame->SetWorldToMetersScale( WorldContext.World()->GetWorldSettings()->WorldToMeters );
 
 	return true;
 }
@@ -431,27 +389,13 @@ void FHeadMountedDisplay::CreateAndInitNewGameFrame(const AWorldSettings* WorldS
 	CurrentFrame->FrameNumber = CurrentFrameNumber.GetValue();
 	CurrentFrame->Flags.bOutOfFrame = false;
 
-	if (Settings->Flags.bWorldToMetersOverride)
+	if (WorldSettings)
 	{
-		CurrentFrame->SetWorldToMetersScale(Settings->WorldToMetersScale);
-	}
-	else if (WorldSettings)
-	{
-		check(WorldSettings);
 		CurrentFrame->SetWorldToMetersScale(WorldSettings->WorldToMeters);
 	}
 	else
 	{
 		CurrentFrame->SetWorldToMetersScale(100.f);
-	}
-
-	if (Settings->Flags.bCameraScale3DOverride)
-	{
-		CurrentFrame->CameraScale3D = Settings->CameraScale3D;
-	}
-	else
-	{
-		CurrentFrame->CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
 	}
 }
 
@@ -483,22 +427,6 @@ void FHeadMountedDisplay::RebaseObjectOrientationAndPosition(FVector& OutPositio
 {
 }
 
-bool FHeadMountedDisplay::IsInLowPersistenceMode() const
-{
-	const auto frame = GetCurrentFrame();
-	if (frame)
-	{
-		const auto FrameSettings = frame->Settings;
-		return FrameSettings->Flags.bLowPersistenceMode;
-	}
-	return false;
-}
-
-void FHeadMountedDisplay::EnableLowPersistenceMode(bool Enable)
-{
-	Settings->Flags.bLowPersistenceMode = Enable;
-}
-
 float FHeadMountedDisplay::GetInterpupillaryDistance() const
 {
 	return Settings->InterpupillaryDistance;
@@ -510,16 +438,6 @@ void FHeadMountedDisplay::SetInterpupillaryDistance(float NewInterpupillaryDista
 	UpdateStereoRenderingParams();
 }
 
-void FHeadMountedDisplay::GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const
-{
-	const auto frame = GetCurrentFrame();
-	if (frame)
-	{
-		InOutHFOVInDegrees = FMath::RadiansToDegrees(frame->Settings->HFOVInRadians);
-		InOutVFOVInDegrees = FMath::RadiansToDegrees(frame->Settings->VFOVInRadians);
-	}
-}
-
 bool FHeadMountedDisplay::IsChromaAbCorrectionEnabled() const
 {
 	const auto frame = GetCurrentFrame();
@@ -528,19 +446,11 @@ bool FHeadMountedDisplay::IsChromaAbCorrectionEnabled() const
 
 bool FHeadMountedDisplay::IsPositionalTrackingEnabled() const
 {
-	const auto frame = GetCurrentFrame();
-	return (frame && frame->Settings->Flags.bHmdPosTracking);
-}
-
-bool FHeadMountedDisplay::EnablePositionalTracking(bool enable)
-{
-	Settings->Flags.bHmdPosTracking = enable;
-	return enable;
+	return false;
 }
 
 bool FHeadMountedDisplay::EnableStereo(bool bStereo)
 {
-	Settings->Flags.bStereoEnforced = false;
 	return DoEnableStereo(bStereo);
 }
 
@@ -608,16 +518,6 @@ FQuat FHeadMountedDisplay::GetBaseOrientation() const
 	return Settings->BaseOrientation;
 }
 
-void FHeadMountedDisplay::SetPositionScale3D(FVector PosScale3D)
-{
-	Settings->PositionScale3D = PosScale3D;
-}
-
-FVector FHeadMountedDisplay::GetPositionScale3D() const
-{
-	return Settings->PositionScale3D;
-}
-
 void FHeadMountedDisplay::SetBaseOffsetInMeters(const FVector& BaseOffset)
 {
 	Settings->BaseOffset = BaseOffset;
@@ -631,566 +531,16 @@ FVector FHeadMountedDisplay::GetBaseOffsetInMeters() const
 bool FHeadMountedDisplay::IsHeadTrackingAllowed() const
 {
 	const auto frame = GetCurrentFrame();
-	return (frame && (frame->Settings->Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D()));
+	return (frame && frame->Settings.IsValid() && (frame->Settings->Flags.bHeadTrackingEnforced || frame->Settings->IsStereoEnabled()));
 }
 
 void FHeadMountedDisplay::ResetStereoRenderingParams()
 {
 	Flags.bNeedUpdateStereoRenderingParams = true;
-	Settings->Flags.bOverrideStereo = false;
 	Settings->Flags.bOverrideIPD = false;
-	Settings->Flags.bWorldToMetersOverride = false;
 	Settings->NearClippingPlane = Settings->FarClippingPlane = 0.f;
 	Settings->Flags.bClippingPlanesOverride = true; // forces zeros to be written to ini file to use default values next run
 }
-
-bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
-{
-	auto frame = GetCurrentFrame();
-
-	if (FParse::Command(&Cmd, TEXT("STEREO")))
-	{
-		if (FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			Flags.bNeedDisableStereo = true;
-			Settings->Flags.bStereoEnforced = true;
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("RESET")))
-		{
-			Settings->Flags.bStereoEnforced = false;
-			ResetStereoRenderingParams();
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("SHOW")))
-		{
-			Ar.Logf(TEXT("stereo ipd=%.4f hfov=%.3f vfov=%.3f\n nearPlane=%.4f farPlane=%.4f"), GetInterpupillaryDistance(),
-				FMath::RadiansToDegrees(Settings->HFOVInRadians), FMath::RadiansToDegrees(Settings->VFOVInRadians),
-				(Settings->NearClippingPlane) ? Settings->NearClippingPlane : GNearClippingPlane, Settings->FarClippingPlane);
-		}
-		else
-		{
-			bool on, hmd = false;
-			on = FParse::Command(&Cmd, TEXT("ON"));
-			if (!on)
-			{
-				hmd = FParse::Command(&Cmd, TEXT("HMD"));
-			}
-			if (on || hmd)
-			{
-				if (!Settings->Flags.bHMDEnabled)
-				{
-					Ar.Logf(TEXT("HMD is disabled. Use 'hmd enable' to re-enable it."));
-				}
-				EnableStereo(true);
-				Settings->Flags.bStereoEnforced = true;
-				return true;
-			}
-		}
-
-		// normal configuration
-		float val;
-		if (FParse::Value(Cmd, TEXT("E="), val))
-		{
-			SetInterpupillaryDistance(val);
-			Settings->Flags.bOverrideIPD = true;
-			Flags.bNeedUpdateStereoRenderingParams = true;
-		}
-		if (FParse::Value(Cmd, TEXT("FCP="), val)) // far clipping plane override
-		{
-			Settings->FarClippingPlane = val;
-			Settings->Flags.bClippingPlanesOverride = true;
-		}
-		if (FParse::Value(Cmd, TEXT("NCP="), val)) // near clipping plane override
-		{
-			Settings->NearClippingPlane = val;
-			Settings->Flags.bClippingPlanesOverride = true;
-		}
-		if (FParse::Value(Cmd, TEXT("W2M="), val))
-		{
-			Settings->WorldToMetersScale = val;
-			Settings->Flags.bWorldToMetersOverride = true;
-		}
-		if (FParse::Value(Cmd, TEXT("CS="), val))
-		{
-			Settings->CameraScale3D = FVector(val, val, val);
-			Settings->Flags.bCameraScale3DOverride = true;
-		}
-		if (FParse::Value(Cmd, TEXT("PS="), val))
-		{
-			Settings->PositionScale3D = FVector(val, val, val);
-		}
-
-		// debug configuration
-		if (Settings->Flags.bDevSettingsEnabled)
-		{
-			float fov;
-			if (FParse::Value(Cmd, TEXT("HFOV="), fov))
-			{
-				Settings->HFOVInRadians = FMath::DegreesToRadians(fov);
-				Settings->Flags.bOverrideStereo = true;
-			}
-			else if (FParse::Value(Cmd, TEXT("VFOV="), fov))
-			{
-				Settings->VFOVInRadians = FMath::DegreesToRadians(fov);
-				Settings->Flags.bOverrideStereo = true;
-			}
-		}
-		return true;
-	}
-	else if (FParse::Command(&Cmd, TEXT("HMD")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ENABLE")))
-		{
-			EnableHMD(true);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("DISABLE")))
-		{
-			EnableHMD(false);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("VSYNC")))
-		{
-			if (FParse::Command(&Cmd, TEXT("RESET")))
-			{
-				if (Settings->Flags.bStereoEnabled)
-				{
-					Settings->Flags.bVSync = Settings->Flags.bSavedVSync;
-					Flags.bApplySystemOverridesOnStereo = true;
-					Flags.bNeedUpdateHmdCaps = true;
-				}
-				Settings->Flags.bOverrideVSync = false;
-				return true;
-			}
-			else
-			{
-				if (FParse::Command(&Cmd, TEXT("ON")) || FParse::Command(&Cmd, TEXT("1")))
-				{
-					Settings->Flags.bVSync = true;
-					Settings->Flags.bOverrideVSync = true;
-					Flags.bApplySystemOverridesOnStereo = true;
-					Flags.bNeedUpdateHmdCaps = true;
-					return true;
-				}
-				else if (FParse::Command(&Cmd, TEXT("OFF")) || FParse::Command(&Cmd, TEXT("0")))
-				{
-					Settings->Flags.bVSync = false;
-					Settings->Flags.bOverrideVSync = true;
-					Flags.bApplySystemOverridesOnStereo = true;
-					Flags.bNeedUpdateHmdCaps = true;
-					return true;
-				}
-				else if (FParse::Command(&Cmd, TEXT("TOGGLE")) || FParse::Command(&Cmd, TEXT("")))
-				{
-					Settings->Flags.bVSync = !Settings->Flags.bVSync;
-					Settings->Flags.bOverrideVSync = true;
-					Flags.bApplySystemOverridesOnStereo = true;
-					Flags.bNeedUpdateHmdCaps = true;
-					Ar.Logf(TEXT("VSync is currently %s"), (Settings->Flags.bVSync) ? TEXT("ON") : TEXT("OFF"));
-					return true;
-				}
-			}
-			return false;
-		}
-		else if (FParse::Command(&Cmd, TEXT("SP")) ||
-			FParse::Command(&Cmd, TEXT("SCREENPERCENTAGE")))
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
-			if (CmdName.IsEmpty())
-				return false;
-			Ar.Logf(TEXT("HMD SCREENPERCENTAGE is deprecated. Use r.ScreenPercentage instead"));
-
-			float Sp;
-			if (!FCString::Stricmp(*CmdName, TEXT("RESET")))
-			{
-				Sp = 0;
-			}
-			else
-			{
-				Sp = FCString::Atof(*CmdName);
-				if (Sp < 30 || Sp > 300)
-				{
-					Ar.Logf(TEXT("Value is out of range [30..300]"));
-					return true;
-				}
-			}
-			SetScreenPercentage(Sp);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("UPDATEONRT"))) // update on renderthread
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
-			if (!CmdName.IsEmpty())
-			{
-				if (!FCString::Stricmp(*CmdName, TEXT("ON")))
-				{
-					Settings->Flags.bUpdateOnRT = true;
-				}
-				else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
-				{
-					Settings->Flags.bUpdateOnRT = false;
-				}
-				else if (!FCString::Stricmp(*CmdName, TEXT("TOGGLE")))
-				{
-					Settings->Flags.bUpdateOnRT = !Settings->Flags.bUpdateOnRT;
-				}
-				else
-				{
-					return false;
-				}
-			}
-			else
-			{
-				Settings->Flags.bUpdateOnRT = !Settings->Flags.bUpdateOnRT;
-			}
-			Ar.Logf(TEXT("Update on render thread is currently %s"), (Settings->Flags.bUpdateOnRT) ? TEXT("ON") : TEXT("OFF"));
-			return true;
-		}
-#if !UE_BUILD_SHIPPING
-		else if (FParse::Command(&Cmd, TEXT("UPDATEONGT"))) // update on game thread
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
-			if (!CmdName.IsEmpty())
-			{
-				if (!FCString::Stricmp(*CmdName, TEXT("ON")))
-				{
-					Settings->Flags.bDoNotUpdateOnGT = false;
-				}
-				else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
-				{
-					Settings->Flags.bDoNotUpdateOnGT = true;
-				}
-				else if (!FCString::Stricmp(*CmdName, TEXT("TOGGLE")))
-				{
-					Settings->Flags.bDoNotUpdateOnGT = !Settings->Flags.bDoNotUpdateOnGT;
-				}
-				else
-				{
-					return false;
-				}
-			}
-			else
-			{
-				Settings->Flags.bDoNotUpdateOnGT = !Settings->Flags.bDoNotUpdateOnGT;
-			}
-			Ar.Logf(TEXT("Update on game thread is currently %s"), (!Settings->Flags.bDoNotUpdateOnGT) ? TEXT("ON") : TEXT("OFF"));
-			return true;
-		}
-#endif //UE_BUILD_SHIPPING
-	}
-#if !UE_BUILD_SHIPPING
-	else if (FParse::Command(&Cmd, TEXT("HMDDBG")))
-	{
-		if (FParse::Command(&Cmd, TEXT("SHOWCAMERA")))
-		{
-			if (FParse::Command(&Cmd, TEXT("OFF")))
-			{
-				Settings->Flags.bDrawSensorFrustum = false;
-				return true;
-			}
-			if (FParse::Command(&Cmd, TEXT("ON")))
-			{
-				Settings->Flags.bDrawSensorFrustum = true;
-				return true;
-			}
-			else
-			{
-				Settings->Flags.bDrawSensorFrustum = !Settings->Flags.bDrawSensorFrustum;
-				return true;
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("CUBES")))
-		{
-			if (FParse::Command(&Cmd, TEXT("OFF")))
-			{
-				Settings->Flags.bDrawCubes = false;
-				return true;
-			}
-			if (FParse::Command(&Cmd, TEXT("ON")))
-			{
-				Settings->Flags.bDrawCubes = true;
-				return true;
-			}
-			else
-			{
-				Settings->Flags.bDrawCubes = !Settings->Flags.bDrawCubes;
-				return true;
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("POSOFF")))
-		{
-			FString StrX = FParse::Token(Cmd, 0);
-			FString StrY = FParse::Token(Cmd, 0);
-			FString StrZ = FParse::Token(Cmd, 0);
-			Settings->PositionOffset.X = FCString::Atof(*StrX);
-			Settings->PositionOffset.Y = FCString::Atof(*StrY);
-			Settings->PositionOffset.Z = FCString::Atof(*StrZ);
-		}
-	}
-#if OCULUS_STRESS_TESTS_ENABLED
-	else if (FParse::Command(&Cmd, TEXT("STRESS")))
-	{
-		if (!StressTester)
-		{
-			StressTester = new FOculusStressTester;
-		}
-		if (FParse::Command(&Cmd, TEXT("GPU")))
-		{
-			StressTester->SetStressMode(FOculusStressTester::STM_GPU | StressTester->GetStressMode());
-			FString ValueStr = FParse::Token(Cmd, 0);
-			if (!ValueStr.IsEmpty())
-			{
-				const int gpuMult = FCString::Atoi(*ValueStr);
-				StressTester->SetGPULoadMultiplier(gpuMult);
-			}
-			ValueStr = FParse::Token(Cmd, 0);
-			if (!ValueStr.IsEmpty())
-			{
-				const float gpuTimeLimit = FCString::Atof(*ValueStr);
-				StressTester->SetGPUsTimeLimitInSeconds(gpuTimeLimit);
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("CPU")))
-		{
-			StressTester->SetStressMode(FOculusStressTester::STM_CPUSpin | StressTester->GetStressMode());
-
-			// Specify CPU spin off delta per frame in seconds
-			FString ValueStr = FParse::Token(Cmd, 0);
-			if (!ValueStr.IsEmpty())
-			{
-				const float cpuLimit = FCString::Atof(*ValueStr);
-				StressTester->SetCPUSpinOffPerFrameInSeconds(cpuLimit);
-			}
-			ValueStr = FParse::Token(Cmd, 0);
-			if (!ValueStr.IsEmpty())
-			{
-				const float cpuTimeLimit = FCString::Atof(*ValueStr);
-				StressTester->SetCPUsTimeLimitInSeconds(cpuTimeLimit);
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("PD")))
-		{
-			StressTester->SetStressMode(FOculusStressTester::STM_EyeBufferRealloc | StressTester->GetStressMode());
-			FString ValueStr = FParse::Token(Cmd, 0);
-			if (!ValueStr.IsEmpty())
-			{
-				const float timeLimit = FCString::Atof(*ValueStr);
-				StressTester->SetPDsTimeLimitInSeconds(timeLimit);
-			}
-		}
-		else if (FParse::Command(&Cmd, TEXT("RESET")))
-		{
-			StressTester->SetStressMode(0);
-		}
-
-		return true;
-	}
-#endif // OCULUS_STRESS_TESTS_ENABLED
-#endif //!UE_BUILD_SHIPPING
-	else if (FParse::Command(&Cmd, TEXT("HMDPOS")))
-	{
-		if (FParse::Command(&Cmd, TEXT("RESET")))
-		{
-			FString YawStr = FParse::Token(Cmd, 0);
-			float yaw = 0.f;
-			if (!YawStr.IsEmpty())
-			{
-				yaw = FCString::Atof(*YawStr);
-			}
-			Settings->Flags.bHeadTrackingEnforced = false;
-			ResetOrientationAndPosition(yaw);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("RESETPOS")))
-		{
-			Settings->Flags.bHeadTrackingEnforced = false;
-			ResetPosition();
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("RESETROT")))
-		{
-			FString YawStr = FParse::Token(Cmd, 0);
-			float yaw = 0.f;
-			if (!YawStr.IsEmpty())
-			{
-				yaw = FCString::Atof(*YawStr);
-			}
-			Settings->Flags.bHeadTrackingEnforced = false;
-			ResetOrientation(yaw);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("ON")) || FParse::Command(&Cmd, TEXT("ENABLE")))
-		{
-			Settings->Flags.bHmdPosTracking = true;
-			Flags.bNeedUpdateHmdCaps = true;
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("OFF")) || FParse::Command(&Cmd, TEXT("DISABLE")))
-		{
-			Settings->Flags.bHmdPosTracking = false;
-			Flags.bNeedUpdateHmdCaps = true;
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("TOGGLE")))
-		{
-			Settings->Flags.bHmdPosTracking = !Settings->Flags.bHmdPosTracking;
-			Flags.bNeedUpdateHmdCaps = true;
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("ENFORCE")))
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
-			if (CmdName.IsEmpty())
-				return false;
-
-			if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
-			{
-				Settings->Flags.bHeadTrackingEnforced = false;
-				return true;
-			}
-			else if (!FCString::Stricmp(*CmdName, TEXT("ON")))
-			{
-				Settings->Flags.bHeadTrackingEnforced = !Settings->Flags.bHeadTrackingEnforced;
-				if (!Settings->Flags.bHeadTrackingEnforced)
-				{
-					ResetControlRotation();
-				}
-				return true;
-			}
-			return false;
-		}
-		else if (FParse::Command(&Cmd, TEXT("SHOW")))
-		{
-			Ar.Logf(TEXT("hmdpos is %s, vision='%s'"),
-				(Settings->Flags.bHmdPosTracking ? TEXT("enabled") : TEXT("disabled")),
-				((frame && frame->Flags.bHaveVisionTracking) ? TEXT("active") : TEXT("lost")));
-			return true;
-		}
-	}
-	else if (FParse::Command(&Cmd, TEXT("SETFINISHFRAME")))
-	{
-		static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
-
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			Settings->Flags.bAllowFinishCurrentFrame = true;
-			if (Settings->Flags.bStereoEnabled)
-			{
-				CFinishFrameVar->Set(Settings->Flags.bAllowFinishCurrentFrame != 0);
-			}
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			Settings->Flags.bAllowFinishCurrentFrame = false;
-			if (Settings->Flags.bStereoEnabled)
-			{
-				CFinishFrameVar->Set(Settings->Flags.bAllowFinishCurrentFrame != 0);
-			}
-			return true;
-		}
-		return false;
-	}
-	else if (FParse::Command(&Cmd, TEXT("HMDDEV")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			Settings->Flags.bDevSettingsEnabled = true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			Settings->Flags.bDevSettingsEnabled = false;
-		}
-		UpdateStereoRenderingParams();
-		return true;
-	}
-	else if (FParse::Command(&Cmd, TEXT("UNCAPFPS")))
-	{
-		GEngine->bSmoothFrameRate = false;
-		return true;
-	}
-	else if (FParse::Command(&Cmd, TEXT("HMDVERSION")))
-	{
-		Ar.Logf(*GetVersionString());
-		return true;
-	}
-	return false;
-}
-
-void FHeadMountedDisplay::SetScreenPercentage(float InScreenPercentage)
-{
-	Settings->ScreenPercentage = InScreenPercentage;
-	if (InScreenPercentage == 0.0f)
-	{
-		Settings->Flags.bOverrideScreenPercentage = false;
-		Flags.bApplySystemOverridesOnStereo = true;
-	}
-	else
-	{
-		Settings->Flags.bOverrideScreenPercentage = true;
-		Settings->ScreenPercentage = FMath::Clamp(InScreenPercentage, 30.f, 300.f);
-		Flags.bApplySystemOverridesOnStereo = true;
-	}
-}
-
-float FHeadMountedDisplay::GetScreenPercentage() const
-{
-	return Settings->GetActualScreenPercentage();
-}
-
-/**
-Clutch to support using the r.ScreenPercentage console variable.
-
-As we don't want to default to 100%, we igore the value if the flags indicate the value is set by the constructor or scalability settings.
-*/
-void FHeadMountedDisplay::ScreenPercentageSinkHandler()
-{
-	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
-	if (!CVar)
-	{
-		return;
-	}
-	
-	// Ignore any value set by the constructor
-	int SetBy = (CVar->GetFlags() & ECVF_SetByMask);
-	if (SetBy == ECVF_SetByConstructor)
-	{
-		return;
-	}
-
-	FHeadMountedDisplay* HMD = nullptr;
-	if (GEngine && GEngine->HMDDevice.IsValid())
-	{
-		auto HMDType = GEngine->HMDDevice->GetHMDDeviceType();
-		if (HMDType == EHMDDeviceType::DT_OculusRift || HMDType == EHMDDeviceType::DT_GearVR)
-		{
-			HMD = static_cast<FHeadMountedDisplay*>(GEngine->HMDDevice.Get());
-		}
-	}
-	if (HMD == nullptr)
-	{
-		return;
-	}
-	
-	float Value = CVar->GetFloat();
-	
-	//<= 0 means disable override. As does 100.f if set the flags indicate its set via scalability settings, as we want to use the Occulus default in that case.
-	if (Value <= 0.f || (SetBy == ECVF_SetByScalability && Value == 100.f))
-	{
-		Value = 0.f;
-	}
-	
-	if (Value != HMD->Settings->CurrentCVarScreenPercentage)
-	{
-		// We also track the current value of the CVar, as SetScreenPercentage may clamp the value further. 
-		// Additionally, the deprecated HMD SCREENPERCENTAGE command will also call SetScreenPercentage, and we don't want to clobber that value until the CVar changes again.
-		HMD->Settings->CurrentCVarScreenPercentage = Value;
-		HMD->SetScreenPercentage(Value);
-	}
-}
-
-FAutoConsoleVariableSink FHeadMountedDisplay::CVarScreenPercentageSink(FConsoleCommandDelegate::CreateStatic(&FHeadMountedDisplay::ScreenPercentageSinkHandler));
 
 void FHeadMountedDisplay::ResetControlRotation() const
 {
@@ -1224,7 +574,6 @@ void FHeadMountedDisplay::GetCurrentHMDPose(FQuat& CurrentOrientation, FVector& 
 	if (PositionScale != FVector::ZeroVector)
 	{
 		frame->CameraScale3D = PositionScale;
-		frame->Flags.bCameraScale3DAlreadySet = true;
 	}
 	GetCurrentPose(CurrentOrientation, CurrentPosition, bUseOrienationForPlayerCamera, bUsePositionForPlayerCamera);
 	if (bUseOrienationForPlayerCamera)
@@ -1328,192 +677,6 @@ bool FHeadMountedDisplay::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector&
 
 	return true;
 }
-
-float FHeadMountedDisplay::GetActualScreenPercentage() const
-{
-	const auto frame = GetCurrentFrame();
-	if (frame)
-	{
-		return frame->Settings->GetActualScreenPercentage();
-	}
-	return 0.0f;
-}
-
-#if !UE_BUILD_SHIPPING
-void FHeadMountedDisplay::DrawDebugTrackingCameraFrustum(UWorld* World, const FRotator& ViewRotation, const FVector& ViewLocation)
-{
-	const auto frame = GetCurrentFrame();
-	if (!frame)
-	{
-		return;
-	}
-	const FColor c = (HasValidTrackingPosition() ? FColor::Green : FColor::Red);
-	FVector origin;
-	FQuat orient;
-	float lfovDeg, rfovDeg, tfovDeg, bfovDeg, nearPlane, farPlane, cameraDist;
-	uint32 nSensors = GetNumOfTrackingSensors();
-	for (uint8 sensorIndex = 0; sensorIndex < nSensors; ++sensorIndex)
-	{
-
-		GetTrackingSensorProperties(sensorIndex, origin, orient, lfovDeg, rfovDeg, tfovDeg, bfovDeg, cameraDist, nearPlane, farPlane);
-
-		FVector HeadPosition;
-		FQuat HeadOrient;
-		GetCurrentPose(HeadOrient, HeadPosition, false, false);
-		const FQuat DeltaControlOrientation = ViewRotation.Quaternion() * HeadOrient.Inverse();
-
-		orient = DeltaControlOrientation * orient;
-		if (frame->Flags.bPositionChanged && !frame->Flags.bPlayerControllerFollowsHmd)
-		{
-			origin = origin - HeadPosition;
-		}
-		origin = DeltaControlOrientation.RotateVector(origin);
-
-		// Level line
-		//DrawDebugLine(World, ViewLocation, FVector(ViewLocation.X + 1000, ViewLocation.Y, ViewLocation.Z), FColor::Blue);
-
-		const float lfov = FMath::DegreesToRadians(lfovDeg);
-		const float rfov = FMath::DegreesToRadians(rfovDeg);
-		const float tfov = FMath::DegreesToRadians(tfovDeg);
-		const float bfov = FMath::DegreesToRadians(bfovDeg);
-		FVector coneTop(0, 0, 0);
-		FVector coneBase1(-farPlane, farPlane * FMath::Tan(rfov), farPlane * FMath::Tan(tfov));
-		FVector coneBase2(-farPlane, -farPlane * FMath::Tan(lfov), farPlane * FMath::Tan(tfov));
-		FVector coneBase3(-farPlane, -farPlane * FMath::Tan(lfov), -farPlane * FMath::Tan(bfov));
-		FVector coneBase4(-farPlane, farPlane * FMath::Tan(rfov), -farPlane * FMath::Tan(bfov));
-		FMatrix m(FMatrix::Identity);
-		m = orient * m;
-		m *= FScaleMatrix(frame->CameraScale3D);
-		m *= FTranslationMatrix(origin);
-		m *= FTranslationMatrix(ViewLocation); // to location of pawn
-		coneTop = m.TransformPosition(coneTop);
-		coneBase1 = m.TransformPosition(coneBase1);
-		coneBase2 = m.TransformPosition(coneBase2);
-		coneBase3 = m.TransformPosition(coneBase3);
-		coneBase4 = m.TransformPosition(coneBase4);
-
-		// draw a point at the camera pos
-		DrawDebugPoint(World, coneTop, 5, c);
-
-		// draw main pyramid, from top to base
-		DrawDebugLine(World, coneTop, coneBase1, c);
-		DrawDebugLine(World, coneTop, coneBase2, c);
-		DrawDebugLine(World, coneTop, coneBase3, c);
-		DrawDebugLine(World, coneTop, coneBase4, c);
-
-		// draw base (far plane)				  
-		DrawDebugLine(World, coneBase1, coneBase2, c);
-		DrawDebugLine(World, coneBase2, coneBase3, c);
-		DrawDebugLine(World, coneBase3, coneBase4, c);
-		DrawDebugLine(World, coneBase4, coneBase1, c);
-
-		// draw near plane
-		FVector coneNear1(-nearPlane, nearPlane * FMath::Tan(rfov), nearPlane * FMath::Tan(tfov));
-		FVector coneNear2(-nearPlane, -nearPlane * FMath::Tan(lfov), nearPlane * FMath::Tan(tfov));
-		FVector coneNear3(-nearPlane, -nearPlane * FMath::Tan(lfov), -nearPlane * FMath::Tan(bfov));
-		FVector coneNear4(-nearPlane, nearPlane * FMath::Tan(rfov), -nearPlane * FMath::Tan(bfov));
-		coneNear1 = m.TransformPosition(coneNear1);
-		coneNear2 = m.TransformPosition(coneNear2);
-		coneNear3 = m.TransformPosition(coneNear3);
-		coneNear4 = m.TransformPosition(coneNear4);
-		DrawDebugLine(World, coneNear1, coneNear2, c);
-		DrawDebugLine(World, coneNear2, coneNear3, c);
-		DrawDebugLine(World, coneNear3, coneNear4, c);
-		DrawDebugLine(World, coneNear4, coneNear1, c);
-
-		// center line
-		FVector centerLine(-cameraDist, 0, 0);
-		centerLine = m.TransformPosition(centerLine);
-		DrawDebugLine(World, coneTop, centerLine, FColor::Yellow);
-		DrawDebugPoint(World, centerLine, 5, FColor::Yellow);
-	}
-}
-
-void FHeadMountedDisplay::DrawSeaOfCubes(UWorld* World, FVector ViewLocation)
-{
-	const auto frame = GetCurrentFrame();
-	if (!frame)
-	{
-		return;
-	}
-	if (frame->Settings->Flags.bDrawCubes && !SeaOfCubesActorPtr.IsValid())
-	{
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnInfo.bNoFail = true;
-		SpawnInfo.ObjectFlags = RF_Transient;
-		AStaticMeshActor* SeaOfCubesActor;
-		SeaOfCubesActorPtr = SeaOfCubesActor = World->SpawnActor<AStaticMeshActor>(SpawnInfo);
-
-		const float cube_side_in_meters = (SideOfSingleCubeInMeters == 0) ? 0.12f : SideOfSingleCubeInMeters;
-		const float cube_side = cube_side_in_meters * frame->Settings->WorldToMetersScale;
-		const float cubes_volume_in_meters = (SeaOfCubesVolumeSizeInMeters == 0) ? 3.2f : SeaOfCubesVolumeSizeInMeters;
-		const float cubes_volume = cubes_volume_in_meters * frame->Settings->WorldToMetersScale;
-		const int num_of_cubes = (NumberOfCubesInOneSide == 0) ? 11 : NumberOfCubesInOneSide;
-		const TCHAR* const cube_resource_name = (CubeMeshName.IsEmpty()) ? TEXT("/Engine/BasicShapes/Cube.Cube") : *CubeMeshName;
-		const TCHAR* const cube_material_name = (CubeMaterialName.IsEmpty()) ? TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial") : *CubeMaterialName;
-
-		UStaticMesh* const BoxMesh = Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), NULL,
-			cube_resource_name, NULL, LOAD_None, NULL));
-
-		UMaterial* const BoxMat = Cast<UMaterial>(StaticLoadObject(UMaterial::StaticClass(), NULL,
-			cube_material_name, NULL, LOAD_None, NULL));
-
-		if (!BoxMesh)
-		{
-			SeaOfCubesActorPtr = nullptr;
-			UE_LOG(LogHMD, Log, TEXT("DrawSeaOfCubes: Can't find cube  resource: %s"), cube_resource_name);
-			return;
-		}
-		if (!BoxMat)
-		{
-			UE_LOG(LogHMD, Log, TEXT("DrawSeaOfCubes: Can't find cube material: %s"), cube_material_name);
-			// cubes still can be drawn w/o material, so proceed.
-		}
-		const FBoxSphereBounds bounds = BoxMesh->GetBounds();
-
-		// Calc dimensions to calculate proper scale to maintain proper size of cubes
-		UE_LOG(LogHMD, Log, TEXT("Cube %s: Box extent %s, sphere rad %f"), cube_resource_name,
-			*bounds.BoxExtent.ToString(), bounds.SphereRadius);
-
-		const FVector box_scale(cube_side / (bounds.BoxExtent.X * 2), cube_side / (bounds.BoxExtent.Y * 2), cube_side / (bounds.BoxExtent.Z * 2));
-
-		const FVector SeaOfCubesOrigin = ViewLocation + (CenterOffsetInMeters * frame->Settings->WorldToMetersScale);
-
-		UInstancedStaticMeshComponent* ISMComponent = NewObject<UInstancedStaticMeshComponent>();
-		ISMComponent->SetupAttachment(SeaOfCubesActor->GetStaticMeshComponent());
-		ISMComponent->SetStaticMesh(BoxMesh);
-		ISMComponent->SetMaterial(0, BoxMat);
-		ISMComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		ISMComponent->SetCastShadow(false);
-		ISMComponent->SetEnableGravity(false);
-		ISMComponent->SetStaticLightingMapping(false, 0);
-		ISMComponent->InvalidateLightingCache();
-		ISMComponent->RegisterComponentWithWorld(World);
-
-		float X = SeaOfCubesOrigin.X - cubes_volume / 2;
-		for (int xn = 0; xn < num_of_cubes; ++xn, X += cubes_volume / num_of_cubes)
-		{
-			float Y = SeaOfCubesOrigin.Y - cubes_volume / 2;
-			for (int yn = 0; yn < num_of_cubes; ++yn, Y += cubes_volume / num_of_cubes)
-			{
-				float Z = SeaOfCubesOrigin.Z - cubes_volume / 2;
-				for (int zn = 0; zn < num_of_cubes; ++zn, Z += cubes_volume / num_of_cubes)
-				{
-					FTransform Transf(FQuat::Identity, FVector(X, Y, Z), box_scale);
-					ISMComponent->AddInstanceWorldSpace(Transf);
-				}
-			}
-		}
-	}
-	else if (!frame->Settings->Flags.bDrawCubes && SeaOfCubesActorPtr.IsValid())
-	{
-		SeaOfCubesActorPtr.Get()->GetStaticMeshComponent()->SetVisibility(false, true);
-		World->DestroyActor(SeaOfCubesActorPtr.Get());
-		SeaOfCubesActorPtr = nullptr;
-	}
-}
-#endif // #if !UE_BUILD_SHIPPING
 
 static FHMDLayerManager::LayerOriginType ConvertLayerPositionType(IStereoLayers::ELayerType InLayerPositionType)
 {
@@ -2250,7 +1413,7 @@ void FHMDLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RH
 			}
 		}
 
- 		LayersToRender.SetNum(EyeLayers.Num() + QuadLayers.Num() + DebugLayers.Num() + LayersToRender.Num() - NumOfAlreadyAdded);
+		LayersToRender.SetNum(EyeLayers.Num() + QuadLayers.Num() + DebugLayers.Num() + LayersToRender.Num() - NumOfAlreadyAdded);
 
 		for (uint32 i = 0, n = EyeLayers.Num(); i < n; ++i)
 		{
@@ -2407,9 +1570,6 @@ static void DrawPokeAHoleMesh(FRHICommandList& RHICmdList,const FHMDLayerDesc& L
 void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHMDGameFrame* CurrentFrame, IRendererModule* RendererModule,  FSceneViewFamily& InViewFamily)
 {
 	const uint32 NumLayers = LayersToRender.Num();
-	const float WorldToMetersScale = 100;
-
-	//const FGameFrame* CurrentGameFrame = static_cast<const FGameFrame*>(CurrentFrame);	
 
 	if (NumLayers > 0 && CurrentFrame)
 	{
@@ -2421,10 +1581,6 @@ void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHM
 		TShaderMapRef<FOculusVertexShader> ScreenVertexShader(LeftView->ShaderMap);
 		TShaderMapRef<FOculusAlphaInverseShader> PixelShader(LeftView->ShaderMap);
 		TShaderMapRef<FOculusWhiteShader> WhitePixelShader(LeftView->ShaderMap);
-
-		static FGlobalBoundShaderState BoundShaderState;
-		static FGlobalBoundShaderState BoundWhiteShaderState;
-		static FGlobalBoundShaderState BoundBlackShaderState;
 
 		for (uint32 i = 0; i < NumLayers; ++i)
 		{
@@ -2440,63 +1596,78 @@ void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHM
 			bool invertCoords;
 			GetPokeAHoleMatrices(LeftView, RightView, LayerDesc, CurrentFrame, leftMat, rightMat, invertCoords);
 
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
 			if (LayerDesc.IsPokeAHole())
 			{
 				if (LayerDesc.GetType() == FHMDLayerDesc::Cubemap)
 				{
+					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0.000, RightView->ViewRect.Max.X, RightView->ViewRect.Max.Y, 0.000);
+					RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+
+					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+					GraphicsPSOInit.BlendState = TStaticBlendState<CW_ALPHA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+						false, CF_Always
+					>::GetRHI();
+
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*WhitePixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+					DrawPokeAHoleQuadMesh(RHICmdList, FMatrix::Identity, -1, -1, 0, 2, 2, 0, false);
+
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+						false, CF_Always
+					>::GetRHI();
+
 					TShaderMapRef<FOculusBlackShader> BlackPixelShader(LeftView->ShaderMap);
 
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundWhiteShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *ScreenVertexShader, *WhitePixelShader);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*BlackPixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-					RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
-					RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
-
-					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0.000, RightView->ViewRect.Max.X, RightView->ViewRect.Max.Y, 0.000);
-
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-						false, CF_Always
-					>::GetRHI());
 					DrawPokeAHoleQuadMesh(RHICmdList, FMatrix::Identity, -1, -1, 0, 2, 2, 0, false);
-
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundBlackShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *ScreenVertexShader, *BlackPixelShader);
-
-					RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-						false, CF_Always
-					>::GetRHI());
-					DrawPokeAHoleQuadMesh(RHICmdList, FMatrix::Identity, -1, -1, 0, 2, 2, 0, false);
-
 				}
 				else
 				{
-					//draw quad outlines
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundWhiteShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *ScreenVertexShader, *WhitePixelShader);
-
-					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0, LeftView->ViewRect.Max.X, LeftView->ViewRect.Max.Y, 1);
 					RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+					GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
 						false, CF_Always
-					>::GetRHI());
-					RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA>::GetRHI());
+					>::GetRHI();
+					GraphicsPSOInit.BlendState = TStaticBlendState<CW_ALPHA>::GetRHI();
 
-					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0, LeftView->ViewRect.Max.X, LeftView->ViewRect.Max.Y, 1);
+					//draw quad outlines
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*WhitePixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
 					DrawPokeAHoleMesh(RHICmdList, LayerDesc, leftMat, 1.00, invertCoords);
 
 					RHICmdList.SetViewport(RightView->ViewRect.Min.X, RightView->ViewRect.Min.Y, 0, RightView->ViewRect.Max.X, RightView->ViewRect.Max.Y, 1);
 
 					DrawPokeAHoleMesh(RHICmdList, LayerDesc, rightMat, 1.00, invertCoords);
 
+					GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+						false, CF_DepthNearOrEqual
+					>::GetRHI();
+					GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_InverseSourceAlpha, BF_SourceAlpha, BO_Add, BF_One, BF_Zero>::GetRHI();
+
 					//draw inverse alpha
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ScreenVertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), Texture);
-
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-						false, CF_DepthNearOrEqual
-					>::GetRHI());
-					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_InverseSourceAlpha, BF_SourceAlpha, BO_Add, BF_One, BF_Zero>::GetRHI());
 
 					RHICmdList.SetViewport(LeftView->ViewRect.Min.X, LeftView->ViewRect.Min.Y, 0, LeftView->ViewRect.Max.X, LeftView->ViewRect.Max.Y, 1);
 
@@ -2512,4 +1683,3 @@ void FHMDLayerManager::PokeAHole(FRHICommandListImmediate& RHICmdList, const FHM
 		}
 	}
 }
-

@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class VHACD : ModuleRules
 {
-	public VHACD(TargetInfo Target)
+	public VHACD(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -40,7 +40,7 @@ public class VHACD : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			if (Target.IsMonolithic)
+			if (Target.LinkType == TargetLinkType.Monolithic)
 			{
 				PublicAdditionalLibraries.Add(VHACDDirectory + "Lib/Linux/" + Target.Architecture + "/libVHACD.a");
 			}

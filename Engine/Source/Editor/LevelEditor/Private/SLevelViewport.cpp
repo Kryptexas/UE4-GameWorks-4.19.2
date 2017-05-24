@@ -830,7 +830,7 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, cons
 		// Give the editor focus (quick Undo/Redo support after a drag drop operation)
 		if(ParentLevelEditor.IsValid())
 		{
-			FGlobalTabmanager::Get()->DrawAttentionToTabManager(ParentLevelEditor.Pin()->GetTabManager());
+			FGlobalTabmanager::Get()->DrawAttentionToTabManager(ParentLevelEditor.Pin()->GetTabManager().ToSharedRef());
 		}
 
 		if(bDropSuccessful)
@@ -1541,13 +1541,14 @@ EVisibility SLevelViewport::OnGetViewportContentVisibility() const
 	{
 		return BaseVisibility;
 	}
-	return IsPlayInEditorViewportActive() && IsImmersive() ? EVisibility::Collapsed : EVisibility::Visible;
+
+	return ( ( IsPlayInEditorViewportActive() && IsImmersive() ) || GEngine->IsStereoscopic3D( ActiveViewport.Get() ) ) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 EVisibility SLevelViewport::GetToolBarVisibility() const
 {
-	// Do not show the toolbar if this viewport has a play in editor session
-	return IsPlayInEditorViewportActive() ? EVisibility::Collapsed : OnGetViewportContentVisibility();
+	// Do not show the toolbar if this viewport has a play in editor session, or we're in the VR Editor
+	return ( IsPlayInEditorViewportActive() || GEngine->IsStereoscopic3D( ActiveViewport.Get() ) ) ? EVisibility::Collapsed : OnGetViewportContentVisibility();
 }
 
 EVisibility SLevelViewport::GetMaximizeToggleVisibility() const
@@ -2021,7 +2022,7 @@ void SLevelViewport::SetKeyboardFocusToThisViewport()
 
 void SLevelViewport::SaveConfig(const FString& ConfigName) const
 {
-	if(ensure(GetDefault<ULevelEditorViewportSettings>()))
+	if(GUnrealEd && GetDefault<ULevelEditorViewportSettings>())
 	{
 		// When we startup the editor we always start it up in IsInGameView()=false mode
 		FEngineShowFlags& EditorShowFlagsToSave = LevelViewportClient->IsInGameView() ? LevelViewportClient->LastEngineShowFlags : LevelViewportClient->EngineShowFlags;
@@ -3479,18 +3480,22 @@ void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, c
 	// Register the new viewport widget with Slate for viewport specific message routing.
 	FSlateApplication::Get().RegisterGameViewport(ViewportWidget.ToSharedRef() );
 
+	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	check(EditorPlayInSettings);
+
 	// Kick off a quick transition effect (border graphics)
 	ViewTransitionType = EViewTransition::StartingPlayInEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/StartPlayInEditor_Cue.StartPlayInEditor_Cue" ) );
+	if (EditorPlayInSettings->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound(TEXT("/Engine/EditorSounds/GamePreview/StartPlayInEditor_Cue.StartPlayInEditor_Cue"));
+	}
 
 	bPIEHasFocus = ActiveViewport->HasMouseCapture();
 
-	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
-	check(EditorPlayInSettings);
 
-	if(EditorPlayInSettings->ShowMouseControlLabel)
+	if(EditorPlayInSettings->ShowMouseControlLabel && !GEngine->IsStereoscopic3D( ActiveViewport.Get() ) )
 	{
 		ELabelAnchorMode AnchorMode = EditorPlayInSettings->MouseControlLabelPosition.GetValue();
 
@@ -3646,30 +3651,40 @@ void SLevelViewport::EndPlayInEditorSession()
 
 	if( IsPlayInEditorViewportActive() )
 	{
-		ActiveViewport->OnPlayWorldViewportSwapped(*InactiveViewport);
+		{
+			TSharedPtr<FSceneViewport> GameViewport = ActiveViewport;
+			ActiveViewport = InactiveViewport;
+			ActiveViewport->OnPlayWorldViewportSwapped( *GameViewport );
 
-		// Play in editor viewport was active, swap back to our level editor viewport
-		ActiveViewport->SetViewportClient( nullptr );
+			// Play in editor viewport was active, swap back to our level editor viewport
+			GameViewport->SetViewportClient( nullptr );
 
-		// We should be the only thing holding on to viewports
-		check( ActiveViewport.IsUnique() );
+			// We should be the only thing holding on to viewports
+			check( GameViewport.IsUnique() );
+		}
 
-		ActiveViewport = InactiveViewport;
-	
 		// Ensure our active viewport is for level editing
 		check( ActiveViewport->GetClient() == LevelViewportClient.Get() );
 
-		// Restore camera settings that may be adversely affected by PIE
-		LevelViewportClient->RestoreCameraFromPIE();
-		RedrawViewport(true);
+		// If we're going back to VR Editor, refresh the level viewport's render target so the HMD will present frames here
+		if( GEngine->IsStereoscopic3D( ActiveViewport.Get() ) )
+		{
+			ActiveViewport->UpdateViewportRHI( false, ActiveViewport->GetSizeXY().X, ActiveViewport->GetSizeXY().Y, ActiveViewport->GetWindowMode(), PF_Unknown );
+		}
+		else
+		{
+			// Restore camera settings that may be adversely affected by PIE
+			LevelViewportClient->RestoreCameraFromPIE();
+			RedrawViewport(true);
+
+			// Remove camera roll from any PIE camera applied in this viewport. A rolled camera is hard to use for editing
+			LevelViewportClient->RemoveCameraRoll();
+		}
 	}
 	else
 	{
 		InactiveViewport->SetViewportClient( nullptr );
 	}
-
-	// Remove camera roll from any PIE camera applied in this viewport. A rolled camera is hard to use for editing
-	LevelViewportClient->RemoveCameraRoll();
 
 	// Reset the inactive viewport
 	InactiveViewport.Reset();
@@ -3690,7 +3705,11 @@ void SLevelViewport::EndPlayInEditorSession()
 	ViewTransitionType = EViewTransition::ReturningToEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndPlayInEditor_Cue.EndPlayInEditor_Cue" ) );
+
+	if (GetDefault<ULevelEditorPlaySettings>()->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndPlayInEditor_Cue.EndPlayInEditor_Cue" ) );
+	}
 
 	GEngine->BroadcastLevelActorListChanged();
 }
@@ -3739,7 +3758,7 @@ void SLevelViewport::SwapViewportsForPlayInEditor()
 	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	check(EditorPlayInSettings);
 	
-	if(EditorPlayInSettings->ShowMouseControlLabel)
+	if(EditorPlayInSettings->ShowMouseControlLabel && !GEngine->IsStereoscopic3D( ActiveViewport.Get() ) )
 	{
 		ELabelAnchorMode AnchorMode = EditorPlayInSettings->MouseControlLabelPosition.GetValue();
 		
@@ -3765,7 +3784,11 @@ void SLevelViewport::SwapViewportsForPlayInEditor()
 	ViewTransitionType = EViewTransition::StartingPlayInEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EjectFromPlayer_Cue.EjectFromPlayer_Cue" ) );
+
+	if (EditorPlayInSettings->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EjectFromPlayer_Cue.EjectFromPlayer_Cue" ) );
+	}
 }
 
 
@@ -3775,7 +3798,10 @@ void SLevelViewport::OnSimulateSessionStarted()
 	ViewTransitionType = EViewTransition::StartingSimulate;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/StartSimulate_Cue.StartSimulate_Cue" ) );
+	if (GetDefault<ULevelEditorPlaySettings>()->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/StartSimulate_Cue.StartSimulate_Cue" ) );
+	}
 	 
 	// Make sure the viewport's hit proxies are invalidated.  If not done, clicking in the viewport could select an editor world actor
 	ActiveViewport->InvalidateHitProxy();
@@ -3788,7 +3814,10 @@ void SLevelViewport::OnSimulateSessionFinished()
 	ViewTransitionType = EViewTransition::ReturningToEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
 	bViewTransitionAnimPending = true;
-	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndSimulate_Cue.EndSimulate_Cue" ) );
+	if (GetDefault<ULevelEditorPlaySettings>()->EnablePIEEnterAndExitSounds)
+	{
+		GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndSimulate_Cue.EndSimulate_Cue" ) );
+	}
 
 	// Make sure the viewport's hit proxies are invalidated.  If not done, clicking in the viewport could select a pie world actor
 	ActiveViewport->InvalidateHitProxy();

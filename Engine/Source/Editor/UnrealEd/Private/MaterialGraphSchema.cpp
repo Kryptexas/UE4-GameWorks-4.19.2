@@ -375,7 +375,7 @@ void UMaterialGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Cont
 	{
 		const FText PasteDesc = LOCTEXT("PasteDesc", "Paste Here");
 		const FText PasteToolTip = LOCTEXT("PasteToolTip", "Pastes copied items at this location.");
-		TSharedPtr<FMaterialGraphSchemaAction_Paste> PasteAction(new FMaterialGraphSchemaAction_Paste(FText::GetEmpty(), PasteDesc, PasteToolTip.ToString(), 0));
+		TSharedPtr<FMaterialGraphSchemaAction_Paste> PasteAction(new FMaterialGraphSchemaAction_Paste(FText::GetEmpty(), PasteDesc, PasteToolTip, 0));
 		ContextMenuBuilder.AddAction(PasteAction);
 	}
 }
@@ -776,7 +776,7 @@ void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& A
 			{
 				// Gather the relevant information from the asset data
 				const FString FunctionPathName = AssetData.ObjectPath.ToString();
-				const FString Description = AssetData.GetTagValueRef<FString>("Description");
+				const FText Description = AssetData.GetTagValueRef<FText>("Description");
 				TArray<FString> LibraryCategories;
 				{
 					const FString LibraryCategoriesString = AssetData.GetTagValueRef<FString>("LibraryCategories");
@@ -851,7 +851,7 @@ void UMaterialGraphSchema::GetCommentAction(FGraphActionMenuBuilder& ActionMenuB
 		const FText MultiCommentDesc = LOCTEXT("MultiCommentDesc", "Create Comment from Selection");
 		const FText CommentToolTip = LOCTEXT("CommentToolTip", "Creates a comment.");
 		const FText MenuDescription = bIsManyNodesSelected ? MultiCommentDesc : CommentDesc;
-		TSharedPtr<FMaterialGraphSchemaAction_NewComment> NewAction(new FMaterialGraphSchemaAction_NewComment(FText::GetEmpty(), MenuDescription, CommentToolTip.ToString(), 0));
+		TSharedPtr<FMaterialGraphSchemaAction_NewComment> NewAction(new FMaterialGraphSchemaAction_NewComment(FText::GetEmpty(), MenuDescription, CommentToolTip, 0));
 		ActionMenuBuilder.AddAction( NewAction );
 	}
 }

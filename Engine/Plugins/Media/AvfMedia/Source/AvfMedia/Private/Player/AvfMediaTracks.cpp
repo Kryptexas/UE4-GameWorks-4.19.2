@@ -276,8 +276,10 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 
 		if ([MediaType isEqualToString:AVMediaTypeAudio])
 		{
+#if WITH_EDITOR
 			PlayerTrack.enabled = false;
-			
+#endif
+
 			int32 TrackIndex = AudioTracks.AddDefaulted();
 			Track = &AudioTracks[TrackIndex];
 			
@@ -438,10 +440,6 @@ void FAvfMediaTracks::Reset()
 	SelectedAudioTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
 	SelectedVideoTrack = INDEX_NONE;
-
-	AudioTracks.Empty();
-	CaptionTracks.Empty();
-	VideoTracks.Empty();
 
 	if (AudioSink != nullptr)
 	{
@@ -1275,7 +1273,7 @@ void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 					int32 Height = CVPixelBufferGetHeight(Frame);
 					
 					CVMetalTextureRef TextureRef = nullptr;
-					CVReturn Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatBGRA8Unorm, Width, Height, 0, &TextureRef);
+					CVReturn Result = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, MetalTextureCache, Frame, nullptr, MTLPixelFormatBGRA8Unorm_sRGB, Width, Height, 0, &TextureRef);
 					check(Result == kCVReturnSuccess);
 					check(TextureRef);
 					
@@ -1283,7 +1281,7 @@ void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 					CreateInfo.BulkData = new FAvfTexture2DResourceWrapper(TextureRef);
 					CreateInfo.ResourceArray = nullptr;
 					
-					uint32 TexCreateFlags = 0;
+					uint32 TexCreateFlags = TexCreate_SRGB;
 					TexCreateFlags |= TexCreate_Dynamic | TexCreate_NoTiling;
 					
 					TRefCountPtr<FRHITexture2D> RenderTarget;

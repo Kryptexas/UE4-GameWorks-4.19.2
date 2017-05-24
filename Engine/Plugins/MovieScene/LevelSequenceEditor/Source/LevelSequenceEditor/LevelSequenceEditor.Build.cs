@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LevelSequenceEditor : ModuleRules
 {
-	public LevelSequenceEditor(TargetInfo Target)
+	public LevelSequenceEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
@@ -34,6 +34,7 @@ public class LevelSequenceEditor : ModuleRules
                 "Slate",
                 "SlateCore",
                 "UnrealEd",
+                "VREditor"
 			}
 		);
 

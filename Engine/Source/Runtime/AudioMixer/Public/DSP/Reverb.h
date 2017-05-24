@@ -36,7 +36,7 @@ namespace Audio
 	};
 
 	// Basic implementation of a 4x4 Feedback Delay Network
-	class FEarlyReflections
+	class AUDIOMIXER_API FEarlyReflections
 	{
 	public:
 		FEarlyReflections();
@@ -119,7 +119,7 @@ namespace Audio
 		{}
 	};
 
-	class FPlateReverb
+	class AUDIOMIXER_API FPlateReverb
 	{
 	public:
 		FPlateReverb();
@@ -164,7 +164,7 @@ namespace Audio
 		FDelayAPF APF4;
 
 		// Wave table oscillator, modulates input APF in plates
-		FWaveTableOsc* LFO;
+		TSharedPtr<FWaveTableOsc> LFO;
 
 		// Plate data struction to organize each plate's delay lines and filters
 		struct FPlate

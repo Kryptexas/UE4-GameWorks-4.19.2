@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
-
 
 #include "CoreMinimal.h"
 #include "UObject/CoreOnline.h"
@@ -27,8 +25,6 @@ typedef FOnSharePostComplete::FDelegate FOnSharePostCompleteDelegate;
  */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnReadNewsFeedComplete, int32, bool);
 typedef FOnReadNewsFeedComplete::FDelegate FOnReadNewsFeedCompleteDelegate;
-
-
 
 /**
  * Called to notify that read permissions have been updated on the server
@@ -69,7 +65,7 @@ struct FOnlineStatusUpdate
 	TArray<TSharedRef<const FUniqueNetId> > TaggedFriends;
 
 	/** The privacy of this post */
-	EOnlineStatusUpdatePrivacy::Type PostPrivacy;
+	EOnlineStatusUpdatePrivacy PostPrivacy;
 
 	/**
 	 * Default Constructor
@@ -81,6 +77,48 @@ struct FOnlineStatusUpdate
 	{}
 };
 
+/**
+ * Contains information about a single permission granted by a backend service
+ */
+struct FSharingPermission
+{
+
+public:
+	
+	/** Name of the platform specific permission */
+	FString Name;
+	/** Type of permission */
+	EOnlineSharingCategory Type;
+	/** Status of the permission (granted/declined) */
+	EOnlineSharingPermissionState Status;
+
+	FSharingPermission()
+		: Type(EOnlineSharingCategory::None)
+		, Status(EOnlineSharingPermissionState::Unknown)
+	{
+	}
+
+	explicit FSharingPermission(const FString& InName, EOnlineSharingCategory InType)
+		: Name(InName)
+		, Type(InType)
+		, Status(EOnlineSharingPermissionState::Unknown)
+	{
+	}
+
+	inline bool operator==(const FSharingPermission& Other) const
+	{
+		return (Status == Other.Status) && (Type == Other.Type) && (Name == Other.Name);
+	}
+};
+
+/**
+ * Called when a current permissions query has completed
+ *
+ * @param LocalUserNum		- The controller number of the associated user
+ * @param bWasSuccessful	- True if the query completed successfully
+ * @param Permissions		- Current state of permissions
+ */
+DECLARE_DELEGATE_ThreeParams(FOnRequestCurrentPermissionsComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FSharingPermission>& /*Permissions*/);
 
 /**
  *	IOnlineSharing - Interface class for sharing.
@@ -92,6 +130,18 @@ public:
 	///////////////////////////////////////////////////////////
 	// PERMISSIONS
 
+	/**
+	 * Request the current set of permissions across all sharing
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param CompletionDelegate the delegate to fire when the operation is completed
+	 */
+	virtual void RequestCurrentPermissions(int32 LocalUserNum, FOnRequestCurrentPermissionsComplete& CompletionDelegate) = 0;
+
+	/**
+	 * @return the currently cached permissions for a given user
+	 */
+	virtual void GetCurrentPermissions(int32 LocalUserNum, TArray<FSharingPermission>& OutPermissions) = 0;
 	
 	/**
 	 * Called when we have successfully/failed to read a news feed from the server
@@ -108,9 +158,8 @@ public:
 	 * @param LocalUserNum		- The controller number of the associated user
 	 * @param NewPermissions	- The read permissions we are requesting authorization for.
 	 */
-	virtual bool RequestNewReadPermissions(int32 LocalUserNum, EOnlineSharingReadCategory::Type NewPermissions) = 0;
+	virtual bool RequestNewReadPermissions(int32 LocalUserNum, EOnlineSharingCategory NewPermissions) = 0;
 
-	
 	/**
 	 * Called when we have successfully/failed to read a news feed from the server
 	 *
@@ -126,8 +175,7 @@ public:
 	 * @param LocalUserNum		- The controller number of the associated user
 	 * @param NewPermissions	- The publish permissions we are requesting authorization for.
 	 */
-	virtual bool RequestNewPublishPermissions(int32 LocalUserNum, EOnlineSharingPublishingCategory::Type NewPermissions, EOnlineStatusUpdatePrivacy::Type Privacy) = 0;
-
+	virtual bool RequestNewPublishPermissions(int32 LocalUserNum, EOnlineSharingCategory NewPermissions, EOnlineStatusUpdatePrivacy Privacy) = 0;
 
 public:
 

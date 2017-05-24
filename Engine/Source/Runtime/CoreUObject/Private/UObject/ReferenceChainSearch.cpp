@@ -188,7 +188,7 @@ void FReferenceChainSearch::PrintReferencers(FReferenceChain& Referencer)
 			ObjectReachability += TEXT("(ClusterRoot) ");
 			bClusterRoot = true;
 		}
-		if (ReferencedByObjectItem->GetOwnerIndex())
+		if (ReferencedByObjectItem->GetOwnerIndex() > 0)
 		{
 			ObjectReachability += TEXT("(Clustered) ");
 		}
@@ -439,21 +439,24 @@ struct FStackEntry
 	int32 LoopStartIndex;
 };
 
-// Local helper function to add a reference chain to the temporary referecnce chain list
-void AddToReferenceList(TArray<FReferenceChainSearch::FReferenceChainLink>* ReferenceList, const FReferenceChainSearch::FReferenceChainLink& RefToAdd)
+// Local helper function to add a reference chain to the temporary reference chain list
+void AddToReferenceList(TArray<FReferenceChainSearch::FReferenceChainLink>& ReferenceList, const FReferenceChainSearch::FReferenceChainLink& RefToAdd)
 {
-	if (RefToAdd.ReferencedObj == NULL || RefToAdd.ReferencedBy == RefToAdd.ReferencedObj) { return; }
+	if (RefToAdd.ReferencedObj == NULL || RefToAdd.ReferencedBy == RefToAdd.ReferencedObj)
+	{
+		return;
+	}
 
 	bool bAdded = false;
 
-	for (int32 i=0; i<ReferenceList->Num(); ++i)
+	for (FReferenceChainSearch::FReferenceChainLink& Link : ReferenceList)
 	{
-		if ((*ReferenceList)[i].ReferencedObj == RefToAdd.ReferencedObj)
+		if (Link.ReferencedObj == RefToAdd.ReferencedObj)
 		{
 			bAdded = true;
 			if (RefToAdd.IsProperty() && RefToAdd.ReferencedThrough != NULL)
 			{
-				(*ReferenceList)[i] = RefToAdd;
+				Link = RefToAdd;
 			}
 			break;
 		}
@@ -461,21 +464,23 @@ void AddToReferenceList(TArray<FReferenceChainSearch::FReferenceChainLink>* Refe
 
 	if (!bAdded)
 	{
-		ReferenceList->Add(RefToAdd);
+		ReferenceList.Add(RefToAdd);
 	}
 }
 
-bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
+void FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 {
+	UClass* ObjectClass = CurrentObject->GetClass();
+
 	// Make sure that token stream has been assembled at this point as the below code relies on it.
-	if ( !CurrentObject->GetClass()->HasAnyClassFlags(CLASS_TokenStreamAssembled) )
+	if ( !ObjectClass->HasAnyClassFlags(CLASS_TokenStreamAssembled) )
 	{
-		CurrentObject->GetClass()->AssembleReferenceTokenStream();
-		check(CurrentObject->GetClass()->HasAnyClassFlags(CLASS_TokenStreamAssembled));
+		ObjectClass->AssembleReferenceTokenStream();
+		check(ObjectClass->HasAnyClassFlags(CLASS_TokenStreamAssembled));
 	}
 
 	// Get pointer to token stream and jump to the start.
-	FGCReferenceTokenStream* RESTRICT TokenStream = &CurrentObject->GetClass()->ReferenceTokenStream;
+	FGCReferenceTokenStream* RESTRICT TokenStream = &ObjectClass->ReferenceTokenStream;
 	uint32 TokenStreamIndex			= 0;
 	// Keep track of index to reference info. Used to avoid LHSs.
 	uint32 ReferenceTokenStreamIndex	= 0;
@@ -483,7 +488,7 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 	TArray<FStackEntry> Stack;
 	Stack.AddUninitialized( 128 );
 
-	// Create strack entry and initialize sane values.
+	// Create stack entry and initialize sane values.
 	FStackEntry* RESTRICT StackEntry = Stack.GetData();
 	uint8* StackEntryData		= (uint8*) CurrentObject;
 	StackEntry->Data			= StackEntryData;
@@ -492,16 +497,12 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 	StackEntry->LoopStartIndex	= -1;
 
 	// Keep track of token return count in separate integer as arrays need to fiddle with it.
-	int32 TokenReturnCount		= 0;
-
-	bool bRetVal = false;
+	int32 TokenReturnCount = 0;
 
 	UProperty* InArrayProp = NULL;
 
-	ReferenceMap.Add(CurrentObject, TArray<FReferenceChainLink>());
-	TArray<FReferenceChainLink>* ReferenceList = ReferenceMap.Find(CurrentObject);
-	
-	
+	TArray<FReferenceChainLink>& ReferenceList = ReferenceMap.Emplace(CurrentObject);
+
 	// Parse the token stream.
 	while( true )
 	{
@@ -541,9 +542,23 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 		// the reference info means we need to manually increment the token index to skip to the next one.
 		TokenStreamIndex++;
 		// Helper to make code more readable and hide the ugliness that is avoiding LHSs from caching.
-#define	REFERENCE_INFO TokenStream->AccessReferenceInfo( ReferenceTokenStreamIndex )
+		FGCReferenceInfo ReferenceInfo = TokenStream->AccessReferenceInfo( ReferenceTokenStreamIndex );
 
-		uint32 Offset = REFERENCE_INFO.Offset;
+		if( ReferenceInfo.Type == GCRT_EndOfStream )
+		{
+			check(StackEntry == Stack.GetData());
+			return;
+		}
+
+		if (ReferenceInfo.Type == GCRT_EndOfPointer)
+		{
+			TokenReturnCount = ReferenceInfo.ReturnCount;
+			continue;
+		}
+
+		uint32 Offset = ReferenceInfo.Offset;
+		
+		void* StackEntryPtr = StackEntryData + Offset;
 		
 		// Get the property from token stream
 		UProperty* Prop = Internal::FindPropertyForOffset(CurrentObject->GetClass(), Offset);
@@ -553,155 +568,151 @@ bool FReferenceChainSearch::ProcessObject( UObject* CurrentObject )
 			Prop = InArrayProp;
 		}
 
-		if( REFERENCE_INFO.Type == GCRT_Object )
-		{	
-			// We're dealing with an object reference.
-			UObject**	ObjectPtr	= (UObject**)(StackEntryData + Offset);
-			UObject*&	Object		= *ObjectPtr;
-			TokenReturnCount		= REFERENCE_INFO.ReturnCount;
-
-			FReferenceChainLink TopRef(ReferenceTokenStreamIndex, InArrayProp != NULL ? EReferenceType::ArrayProperty : EReferenceType::Property, CurrentObject, Prop, Object);
-			AddToReferenceList(ReferenceList, TopRef);
-		}
-		else if( REFERENCE_INFO.Type == GCRT_ArrayObject )
+		switch (ReferenceInfo.Type)
 		{
-			// We're dealing with an array of object references.
-			TArray<UObject*>& ObjectArray = *((TArray<UObject*>*)(StackEntryData + Offset));
-			TokenReturnCount = REFERENCE_INFO.ReturnCount;
-
-			for( int32 ObjectIndex=0; ObjectIndex<ObjectArray.Num(); ObjectIndex++ )
+			case GCRT_Object:
+			case GCRT_PersistentObject:
 			{
-				UObject*& Object = ObjectArray[ObjectIndex];
-				
-				FReferenceChainLink TopRef(ReferenceTokenStreamIndex, EReferenceType::ArrayProperty, CurrentObject, Prop, Object, ObjectIndex);
+				// We're dealing with an object reference.
+				UObject* Object = *(UObject**)StackEntryPtr;
+				TokenReturnCount = ReferenceInfo.ReturnCount;
+
+				FReferenceChainLink TopRef(ReferenceTokenStreamIndex, InArrayProp != NULL ? EReferenceType::ArrayProperty : EReferenceType::Property, CurrentObject, Prop, Object);
 				AddToReferenceList(ReferenceList, TopRef);
 			}
-		}
-		else if( REFERENCE_INFO.Type == GCRT_ArrayStruct )
-		{
-			InArrayProp = Prop;
+			break;
 
-			// We're dealing with a dynamic array of structs.
-			const FScriptArray& Array = *((FScriptArray*)(StackEntryData + Offset));
-			StackEntry++;
-			StackEntryData				= (uint8*) Array.GetData();
-			StackEntry->Data			= StackEntryData;
-			StackEntry->Stride			= TokenStream->ReadStride( TokenStreamIndex );
-			StackEntry->Count			= Array.Num();
-
-			const FGCSkipInfo SkipInfo	= TokenStream->ReadSkipInfo( TokenStreamIndex );
-			StackEntry->LoopStartIndex	= TokenStreamIndex;
-
-			if( StackEntry->Count == 0 )
+			case GCRT_ArrayObject:
 			{
-				// Skip empty array by jumping to skip index and set return count to the one about to be read in.
-				TokenStreamIndex		= SkipInfo.SkipIndex;
-				TokenReturnCount		= TokenStream->GetSkipReturnCount( SkipInfo );
-			}
-			else
-			{	
-				// Loop again.
-				check( StackEntry->Data );
-				TokenReturnCount		= 0;
-			}
-		}
-		else if( REFERENCE_INFO.Type == GCRT_PersistentObject )
-		{
-			// We're dealing with an object reference.
-			UObject**	ObjectPtr	= (UObject**)(StackEntryData + Offset);
-			UObject*&	Object		= *ObjectPtr;
-			TokenReturnCount		= REFERENCE_INFO.ReturnCount;
+				// We're dealing with an array of object references.
+				TArray<UObject*>& ObjectArray = *(TArray<UObject*>*)StackEntryPtr;
+				TokenReturnCount = ReferenceInfo.ReturnCount;
 
-			FReferenceChainLink TopRef(ReferenceTokenStreamIndex, InArrayProp != NULL ? EReferenceType::ArrayProperty : EReferenceType::Property, CurrentObject, Prop, Object);
-			AddToReferenceList(ReferenceList, TopRef);
-		}
-		else if( REFERENCE_INFO.Type == GCRT_FixedArray )
-		{
-			InArrayProp = Prop;
+				for( int32 ObjectIndex=0; ObjectIndex<ObjectArray.Num(); ObjectIndex++ )
+				{
+					UObject*& Object = ObjectArray[ObjectIndex];
+				
+					FReferenceChainLink TopRef(ReferenceTokenStreamIndex, EReferenceType::ArrayProperty, CurrentObject, Prop, Object, ObjectIndex);
+					AddToReferenceList(ReferenceList, TopRef);
+				}
+			}
+			break;
+
+			case GCRT_ArrayStruct:
+			{
+				InArrayProp = Prop;
+
+				// We're dealing with a dynamic array of structs.
+				const FScriptArray& Array = *(FScriptArray*)StackEntryPtr;
+				StackEntry++;
+				StackEntryData				= (uint8*) Array.GetData();
+				StackEntry->Data			= StackEntryData;
+				StackEntry->Stride			= TokenStream->ReadStride( TokenStreamIndex );
+				StackEntry->Count			= Array.Num();
+
+				const FGCSkipInfo SkipInfo	= TokenStream->ReadSkipInfo( TokenStreamIndex );
+				StackEntry->LoopStartIndex	= TokenStreamIndex;
+
+				if( StackEntry->Count == 0 )
+				{
+					// Skip empty array by jumping to skip index and set return count to the one about to be read in.
+					TokenStreamIndex		= SkipInfo.SkipIndex;
+					TokenReturnCount		= TokenStream->GetSkipReturnCount( SkipInfo );
+				}
+				else
+				{	
+					// Loop again.
+					check( StackEntry->Data );
+					TokenReturnCount		= 0;
+				}
+			}
+			break;
+
+			case GCRT_FixedArray:
+			{
+				InArrayProp = Prop;
 			
-			// We're dealing with a fixed size array
-			uint8* PreviousData	= StackEntryData;
-			StackEntry++;
-			StackEntryData				= PreviousData;
-			StackEntry->Data			= PreviousData;
-			StackEntry->Stride			= TokenStream->ReadStride( TokenStreamIndex );
-			StackEntry->Count			= TokenStream->ReadCount( TokenStreamIndex );
-			StackEntry->LoopStartIndex	= TokenStreamIndex;
-			TokenReturnCount			= 0;
-		}
-		else if( REFERENCE_INFO.Type == GCRT_AddStructReferencedObjects )
-		{
-			// We're dealing with a function call
-			void const*	StructPtr	= (void*)(StackEntryData + Offset);
-			TokenReturnCount		= REFERENCE_INFO.ReturnCount;
-			UScriptStruct::ICppStructOps::TPointerToAddStructReferencedObjects Func = (UScriptStruct::ICppStructOps::TPointerToAddStructReferencedObjects) TokenStream->ReadPointer( TokenStreamIndex );
-
-			FFindReferencerCollector ReferenceCollector(this, EReferenceType::StructARO, (void*)Func, CurrentObject);
-			Func(StructPtr, ReferenceCollector);
-
-			for (int32 i=0; i < ReferenceCollector.References.Num(); ++i)
-			{
-				AddToReferenceList(ReferenceList, ReferenceCollector.References[i]);
+				// We're dealing with a fixed size array
+				uint8* PreviousData	= StackEntryData;
+				StackEntry++;
+				StackEntryData				= PreviousData;
+				StackEntry->Data			= PreviousData;
+				StackEntry->Stride			= TokenStream->ReadStride( TokenStreamIndex );
+				StackEntry->Count			= TokenStream->ReadCount( TokenStreamIndex );
+				StackEntry->LoopStartIndex	= TokenStreamIndex;
+				TokenReturnCount			= 0;
 			}
-		}
-		else if( REFERENCE_INFO.Type == GCRT_AddReferencedObjects )
-		{
-			// Static AddReferencedObjects function call.
-			void (*AddReferencedObjects)(UObject*, FReferenceCollector&) = (void(*)(UObject*, FReferenceCollector&))TokenStream->ReadPointer( TokenStreamIndex );
-			TokenReturnCount = REFERENCE_INFO.ReturnCount;
+			break;
 
-			FFindReferencerCollector ReferenceCollector(this, EReferenceType::ARO, (void*)AddReferencedObjects, CurrentObject);
-			AddReferencedObjects(CurrentObject, ReferenceCollector);
-
-			for (int32 i=0; i < ReferenceCollector.References.Num(); ++i)
+			case GCRT_AddStructReferencedObjects:
 			{
-				AddToReferenceList(ReferenceList, ReferenceCollector.References[i]);
-			}
-		}
-		else if( REFERENCE_INFO.Type == GCRT_AddTMapReferencedObjects )
-		{
-			void*         Map         = StackEntryData + REFERENCE_INFO.Offset;
-			UMapProperty* MapProperty = (UMapProperty*)TokenStream->ReadPointer( TokenStreamIndex );
-			TokenReturnCount = REFERENCE_INFO.ReturnCount;
-			FFindReferencerCollector ReferenceCollector(this, EReferenceType::MapProperty, (void*)MapProperty, CurrentObject);
-			FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
-			MapProperty->SerializeItem(CollectorArchive, Map, nullptr);
+				// We're dealing with a function call
+				TokenReturnCount		= ReferenceInfo.ReturnCount;
+				UScriptStruct::ICppStructOps::TPointerToAddStructReferencedObjects Func = (UScriptStruct::ICppStructOps::TPointerToAddStructReferencedObjects) TokenStream->ReadPointer( TokenStreamIndex );
 
-			for (const FReferenceChainLink& Ref : ReferenceCollector.References)
-			{
-				AddToReferenceList(ReferenceList, Ref);
-			}
-		}
-		else if( REFERENCE_INFO.Type == GCRT_AddTSetReferencedObjects )
-		{
-			void*         Set         = StackEntryData + REFERENCE_INFO.Offset;
-			USetProperty* SetProperty = (USetProperty*)TokenStream->ReadPointer( TokenStreamIndex );
-			TokenReturnCount = REFERENCE_INFO.ReturnCount;
-			FFindReferencerCollector ReferenceCollector(this, EReferenceType::SetProperty, (void*)SetProperty, CurrentObject);
-			FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
-			SetProperty->SerializeItem(CollectorArchive, Set, nullptr);
+				FFindReferencerCollector ReferenceCollector(this, EReferenceType::StructARO, (void*)Func, CurrentObject);
+				Func(StackEntryPtr, ReferenceCollector);
 
-			for (const FReferenceChainLink& Ref : ReferenceCollector.References)
-			{
-				AddToReferenceList(ReferenceList, Ref);
+				for (int32 i=0; i < ReferenceCollector.References.Num(); ++i)
+				{
+					AddToReferenceList(ReferenceList, ReferenceCollector.References[i]);
+				}
 			}
-		}
-		else if (REFERENCE_INFO.Type == GCRT_EndOfPointer)
-		{
-			TokenReturnCount = REFERENCE_INFO.ReturnCount;
-		}
-		else if( REFERENCE_INFO.Type == GCRT_EndOfStream )
-		{
-			// Break out of loop.
+			break;
+
+			case GCRT_AddReferencedObjects:
+			{
+				// Static AddReferencedObjects function call.
+				void (*AddReferencedObjects)(UObject*, FReferenceCollector&) = (void(*)(UObject*, FReferenceCollector&))TokenStream->ReadPointer( TokenStreamIndex );
+				TokenReturnCount = ReferenceInfo.ReturnCount;
+
+				FFindReferencerCollector ReferenceCollector(this, EReferenceType::ARO, (void*)AddReferencedObjects, CurrentObject);
+				AddReferencedObjects(CurrentObject, ReferenceCollector);
+
+				for (int32 i=0; i < ReferenceCollector.References.Num(); ++i)
+				{
+					AddToReferenceList(ReferenceList, ReferenceCollector.References[i]);
+				}
+			}
+			break;
+
+			case GCRT_AddTMapReferencedObjects:
+			{
+				UMapProperty* MapProperty = (UMapProperty*)TokenStream->ReadPointer( TokenStreamIndex );
+				TokenReturnCount = ReferenceInfo.ReturnCount;
+				FFindReferencerCollector ReferenceCollector(this, EReferenceType::MapProperty, (void*)MapProperty, CurrentObject);
+				FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
+				MapProperty->SerializeItem(CollectorArchive, StackEntryPtr, nullptr);
+
+				for (const FReferenceChainLink& Ref : ReferenceCollector.References)
+				{
+					AddToReferenceList(ReferenceList, Ref);
+				}
+			}
+			break;
+
+			case GCRT_AddTSetReferencedObjects:
+			{
+				USetProperty* SetProperty = (USetProperty*)TokenStream->ReadPointer( TokenStreamIndex );
+				TokenReturnCount = ReferenceInfo.ReturnCount;
+				FFindReferencerCollector ReferenceCollector(this, EReferenceType::SetProperty, (void*)SetProperty, CurrentObject);
+				FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
+				SetProperty->SerializeItem(CollectorArchive, StackEntryPtr, nullptr);
+
+				for (const FReferenceChainLink& Ref : ReferenceCollector.References)
+				{
+					AddToReferenceList(ReferenceList, Ref);
+				}
+			}
+			break;
+
+			default:
+			{
+				UE_CLOG(ShouldOutputToLog(), LogReferenceChain, Fatal,TEXT("Unknown token"));
+			}
 			break;
 		}
-		else
-		{
-			UE_CLOG(ShouldOutputToLog(), LogReferenceChain, Fatal,TEXT("Unknown token"));
-		}
 	}
-	check(StackEntry == Stack.GetData());
-	return bRetVal;
 }
 
 FReferenceChainSearch::FReferenceChainSearch( UObject* InObjectToFind, uint32 Mode ) 

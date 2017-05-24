@@ -35,7 +35,7 @@ void FOnlineAsyncEventSteamExternalUITriggered::TriggerDelegates()
 	}
 }
 
-bool FOnlineExternalUISteam::ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate)
+bool FOnlineExternalUISteam::ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, bool bShowSkipButton, const FOnLoginUIClosedDelegate& Delegate)
 {
 	return false;
 }

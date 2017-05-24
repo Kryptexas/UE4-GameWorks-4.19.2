@@ -1,8 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_VehicleAdv.h"
 #include "TP_VehicleAdvWheelFront.h"
 #include "TireConfig.h"
+#include "UObject/ConstructorHelpers.h"
 
 UTP_VehicleAdvWheelFront::UTP_VehicleAdvWheelFront()
 {

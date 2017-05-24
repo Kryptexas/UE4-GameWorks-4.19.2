@@ -9,6 +9,7 @@
 #include "Misc/Guid.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "Engine/Blueprint.h"
 #include "SCS_Node.generated.h"
 
 class UBlueprint;

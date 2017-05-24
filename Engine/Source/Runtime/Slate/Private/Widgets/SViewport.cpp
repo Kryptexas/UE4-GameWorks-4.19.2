@@ -14,6 +14,7 @@ DECLARE_CYCLE_STAT(TEXT("Game UI Tick/Paint"), STAT_ViewportUpdateTime, STATGROU
 SViewport::SViewport()
 	: bRenderDirectlyToWindow(false)
 	, bEnableGammaCorrection(true)
+	, bReverseGammaCorrection(false)
 	, bEnableStereoRendering(false)
 { }
 
@@ -26,6 +27,7 @@ void SViewport::Construct( const FArguments& InArgs )
 	ShowDisabledEffect = InArgs._ShowEffectWhenDisabled;
 	bRenderDirectlyToWindow = InArgs._RenderDirectlyToWindow;
 	bEnableGammaCorrection = InArgs._EnableGammaCorrection;
+	bReverseGammaCorrection = InArgs._ReverseGammaCorrection;
 	bEnableBlending = InArgs._EnableBlending;
 	bEnableStereoRendering = InArgs._EnableStereoRendering;
 	bIgnoreTextureAlpha = InArgs._IgnoreTextureAlpha;
@@ -62,7 +64,7 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
 	bool bShowDisabledEffect = ShowDisabledEffect.Get();
-	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
+	ESlateDrawEffect DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
 
 	int32 LastHitTestIndex = Args.GetLastHitTestIndex();
 
@@ -78,6 +80,12 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 	if( !bEnableGammaCorrection )
 	{
 		DrawEffects |= ESlateDrawEffect::NoGamma;
+	}
+
+	// Should we reverse gamma correction
+	if (bReverseGammaCorrection)
+	{
+		DrawEffects |= ESlateDrawEffect::ReverseGamma;
 	}
 
 	// Show we enable blending?

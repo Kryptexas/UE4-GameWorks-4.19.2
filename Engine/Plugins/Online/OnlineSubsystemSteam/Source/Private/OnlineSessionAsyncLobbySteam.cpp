@@ -781,7 +781,7 @@ void FOnlineAsyncTaskSteamLeaveLobby::Tick()
 /**
  *	Create and trigger the lobby query from the defined search settings 
  */
-void FOnlineAsyncTaskSteamFindLobbies::CreateQuery()
+void FOnlineAsyncTaskSteamFindLobbiesBase::CreateQuery()
 {
 	check(SteamMatchmakingPtr);
 
@@ -879,7 +879,7 @@ void FOnlineAsyncTaskSteamFindLobbies::CreateQuery()
  *
  * @param LobbyId lobby to create the search result for
  */
-void FOnlineAsyncTaskSteamFindLobbies::ParseSearchResult(FUniqueNetIdSteam& LobbyId)
+void FOnlineAsyncTaskSteamFindLobbiesBase::ParseSearchResult(FUniqueNetIdSteam& LobbyId)
 {
 	FOnlineSessionSearchResult* NewSearchResult = new (SearchSettings->SearchResults) FOnlineSessionSearchResult();
 	if (!FillSessionFromLobbyData(LobbyId, NewSearchResult->Session))
@@ -891,111 +891,129 @@ void FOnlineAsyncTaskSteamFindLobbies::ParseSearchResult(FUniqueNetIdSteam& Lobb
 }
 
 /**
- *	Get a human readable description of task
- */
-FString FOnlineAsyncTaskSteamFindLobbies::ToString() const
-{
-	return FString::Printf(TEXT("FOnlineAsyncTaskSteamFindLobbies bWasSuccessful: %d NumResults: %d"), bWasSuccessful, CallbackResults.m_nLobbiesMatching);
-}
-
-/**
  * Give the async task time to do its work
  * Can only be called on the async task manager thread
  */
-void FOnlineAsyncTaskSteamFindLobbies::Tick()
+void FOnlineAsyncTaskSteamFindLobbiesBase::Tick()
 {
 	ISteamUtils* SteamUtilsPtr = SteamUtils();
 	check(SteamUtilsPtr);
 
-	if (!bInit)
+	switch (FindLobbiesState)
 	{
-		// Don't try to search if the network device is broken
-		if (ISocketSubsystem::Get()->HasNetworkDevice())
+	case EFindLobbiesState::Init:
 		{
-			// Make sure they are logged in to play online
-			if (SteamUser()->BLoggedOn())
+			// Don't try to search if the network device is broken
+			if (ISocketSubsystem::Get()->HasNetworkDevice())
 			{
-				UE_LOG_ONLINE(Verbose, TEXT("Starting search for Internet games..."));
+				// Make sure they are logged in to play online
+				if (SteamUser()->BLoggedOn())
+				{
+					UE_LOG_ONLINE(Verbose, TEXT("Starting search for Internet games..."));
 
-				// Setup the filters
-				CreateQuery();
-				// Start the async search
-				CallbackHandle = SteamMatchmakingPtr->RequestLobbyList();
+					// Setup the filters
+					CreateQuery();
+					// Start the async search
+					CallbackHandle = SteamMatchmakingPtr->RequestLobbyList();
+				}
+				else
+				{
+					UE_LOG_ONLINE(Warning, TEXT("You must be logged in to an online profile to search for internet games"));
+				}
 			}
 			else
 			{
-				UE_LOG_ONLINE(Warning, TEXT("You must be logged in to an online profile to search for internet games"));
+				UE_LOG_ONLINE(Warning, TEXT("Can't search for an internet game without a network connection"));
 			}
+
+			if (CallbackHandle == k_uAPICallInvalid)
+			{
+				bWasSuccessful = false;
+				FindLobbiesState = EFindLobbiesState::Finished;
+			}
+			else
+			{
+				FindLobbiesState = EFindLobbiesState::RequestLobbyList;
+			}
+			break;
 		}
-		else
+	case EFindLobbiesState::RequestLobbyList:
 		{
-			UE_LOG_ONLINE(Warning, TEXT("Can't search for an internet game without a network connection"));
-		}
-
-		bInit = true;
-	}
-
-	if (CallbackHandle != k_uAPICallInvalid)
-	{
-		if (!bLobbyRequestComplete)
-		{
-			bool bFailedCall = false; 
-
 			// Poll for completion status
-			bLobbyRequestComplete = SteamUtilsPtr->IsAPICallCompleted(CallbackHandle, &bFailedCall) ? true : false; 
-			if (bLobbyRequestComplete) 
-			{ 
+			bool bFailedCall = false;
+			if (SteamUtilsPtr->IsAPICallCompleted(CallbackHandle, &bFailedCall))
+			{
 				bool bFailedResult;
 				// Retrieve the callback data from the request
-				bool bSuccessCallResult = SteamUtilsPtr->GetAPICallResult(CallbackHandle, &CallbackResults, sizeof(CallbackResults), CallbackResults.k_iCallback, &bFailedResult); 
-				bWasSuccessful = (bSuccessCallResult ? true : false) &&
-					(!bFailedCall ? true : false) &&
-					(!bFailedResult ? true : false);
-
+				bool bSuccessCallResult = SteamUtilsPtr->GetAPICallResult(CallbackHandle, &CallbackResults, sizeof(CallbackResults), CallbackResults.k_iCallback, &bFailedResult);
+				bWasSuccessful = bSuccessCallResult && !bFailedCall && !bFailedResult;
 				if (bWasSuccessful)
 				{
 					// Trigger the lobby data requests
 					int32 NumLobbies = (int32)CallbackResults.m_nLobbiesMatching;
-					for (int32 LobbyIdx=0; LobbyIdx < NumLobbies; LobbyIdx++)
+					for (int32 LobbyIdx = 0; LobbyIdx < NumLobbies; LobbyIdx++)
 					{
-						CSteamID LobbyId = SteamMatchmakingPtr->GetLobbyByIndex(LobbyIdx);
-						if (!SteamMatchmakingPtr->RequestLobbyData(LobbyId))
-						{
-							bWasSuccessful = false;
-							break;
-						}
+						LobbyIDs.Add(SteamMatchmakingPtr->GetLobbyByIndex(LobbyIdx));
 					}
+					FindLobbiesState = EFindLobbiesState::RequestLobbyData;
+				}
+				else
+				{
+					FindLobbiesState = EFindLobbiesState::Finished;
 				}
 			}
+			break;
 		}
-		else if (bWasSuccessful)
+	case EFindLobbiesState::RequestLobbyData:
+		{
+			bWasSuccessful = true;
+			for (CSteamID LobbyId : LobbyIDs)
+			{
+				if (!SteamMatchmakingPtr->RequestLobbyData(LobbyId))
+				{
+					bWasSuccessful = false;
+					FindLobbiesState = EFindLobbiesState::Finished;
+					break;
+				}
+
+			}
+
+			if (bWasSuccessful)
+			{
+				FindLobbiesState = EFindLobbiesState::WaitForRequestLobbyData;
+			}
+
+			break;
+		}
+	case EFindLobbiesState::WaitForRequestLobbyData:
 		{
 			FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 
 			// Waiting for the lobby updates to fill in
-			if (CallbackResults.m_nLobbiesMatching == SessionInt->PendingSearchLobbyIds.Num())
+			if (LobbyIDs.Num() == SessionInt->PendingSearchLobbyIds.Num())
 			{
-				bIsComplete = true;
+				FindLobbiesState = EFindLobbiesState::Finished;
 			}
-
 			// Fallback timeout in case we don't hear from Steam
-			if (GetElapsedTime() >= ASYNC_TASK_TIMEOUT)
+			else if (GetElapsedTime() >= ASYNC_TASK_TIMEOUT)
 			{
-				bIsComplete = true;
 				bWasSuccessful = false;
+				FindLobbiesState = EFindLobbiesState::Finished;
 			}
+			break;
 		}
-		else
+	case EFindLobbiesState::Finished:
 		{
-			// Failure requesting lobby data
 			bIsComplete = true;
+			break;
 		}
-	}
-	else
-	{
-		// Invalid API call
-		bIsComplete = true;
-		bWasSuccessful = false;
+	default:
+		{
+			UE_LOG_ONLINE(Warning, TEXT("Unexpected state %d reached in FOnlineAsyncTaskSteamFindLobbiesBase::Tick, ending task."), (int32)FindLobbiesState);
+			bWasSuccessful = false;
+			FindLobbiesState = EFindLobbiesState::Finished;
+			break;
+		}
 	}
 }
 
@@ -1003,7 +1021,7 @@ void FOnlineAsyncTaskSteamFindLobbies::Tick()
  * Give the async task a chance to marshal its data back to the game thread
  * Can only be called on the game thread by the async task manager
  */
-void FOnlineAsyncTaskSteamFindLobbies::Finalize()
+void FOnlineAsyncTaskSteamFindLobbiesBase::Finalize()
 {
 	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 
@@ -1045,6 +1063,14 @@ void FOnlineAsyncTaskSteamFindLobbies::Finalize()
 }
 
 /**
+*	Get a human readable description of task
+*/
+FString FOnlineAsyncTaskSteamFindLobbies::ToString() const
+{
+	return FString::Printf(TEXT("FOnlineAsyncTaskSteamFindLobbiesForFindSessions bWasSuccessful: %d NumResults: %d"), bWasSuccessful, CallbackResults.m_nLobbiesMatching);
+}
+
+/**
  *	Async task is given a chance to trigger it's delegates
  */
 void FOnlineAsyncTaskSteamFindLobbies::TriggerDelegates()
@@ -1057,118 +1083,50 @@ void FOnlineAsyncTaskSteamFindLobbies::TriggerDelegates()
 }
 
 /**
- *	Create a search result from a specified lobby id 
- *
- * @param LobbyId lobby to create the search result for
- */
-void FOnlineAsyncTaskSteamFindLobby::ParseSearchResult(FUniqueNetIdSteam& InLobbyId)
+*	Get a human readable description of task
+*/
+FString FOnlineAsyncTaskSteamFindLobbiesForInviteSession::ToString() const
 {
-	FOnlineSessionSearchResult* NewSearchResult = new (SearchSettings->SearchResults) FOnlineSessionSearchResult();
-	if (!FillSessionFromLobbyData(InLobbyId, NewSearchResult->Session))
-	{
-		// Remove the failed element
-		SearchSettings->SearchResults.RemoveAtSwap(SearchSettings->SearchResults.Num() - 1);
-	}
+	return FString::Printf(TEXT("FOnlineAsyncTaskSteamFindLobbiesForInviteSession bWasSuccessful: %d Lobby ID: %llu"), bWasSuccessful, LobbyIDs[0].ConvertToUint64());
 }
 
 /**
- * Give the async task time to do its work
- * Can only be called on the async task manager thread
- */
-void FOnlineAsyncTaskSteamFindLobby::Tick()
-{
-	if (!bInit)
-	{
-		// Trigger the lobby data request
-		bWasSuccessful = SteamMatchmakingPtr->RequestLobbyData(LobbyId);
-		bInit = true;
-	}
-	
-	if (bWasSuccessful)
-	{
-		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-
-		// Waiting for the lobby updates to fill in
-		if (SessionInt->PendingSearchLobbyIds.Num() >= 1)
-		{
-			bIsComplete = true;
-		}
-	}
-	else
-	{
-		// Invalid API call
-		bIsComplete = true;
-		bWasSuccessful = false;
-	}
-}
-
-/**
- * Give the async task a chance to marshal its data back to the game thread
- * Can only be called on the game thread by the async task manager
- */
-void FOnlineAsyncTaskSteamFindLobby::Finalize()
-{
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	if (SessionInt.IsValid())
-	{
-		if (bWasSuccessful)
-		{
-			// Parse any ready search results
-			for (int32 LobbyIdx=0; LobbyIdx < SessionInt->PendingSearchLobbyIds.Num(); LobbyIdx++)
-			{
-				FUniqueNetIdSteam& PendingLobbyId = SessionInt->PendingSearchLobbyIds[LobbyIdx];
-				if (PendingLobbyId.IsValid() && CSteamID(PendingLobbyId).IsLobby())
-				{
-					ParseSearchResult(PendingLobbyId);
-				}
-			}
-
-			if (SearchSettings->SearchResults.Num() > 0)
-			{
-				// Allow game code to sort the servers
-				SearchSettings->SortSearchResults();
-			}
-		}
-
-		SearchSettings->SearchState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
-		if (SessionInt->CurrentSessionSearch.IsValid() && SearchSettings == SessionInt->CurrentSessionSearch)
-		{
-			SessionInt->CurrentSessionSearch = NULL;
-		}
-
-		SessionInt->PendingSearchLobbyIds.Empty();
-	}
-}
-
-/**
- *	Async task is given a chance to trigger it's delegates
- */
-void FOnlineAsyncTaskSteamFindLobby::TriggerDelegates()
+*	Async task is given a chance to trigger it's delegates
+*/
+void FOnlineAsyncTaskSteamFindLobbiesForInviteSession::TriggerDelegates()
 {
 	if (bWasSuccessful && SearchSettings->SearchResults.Num() > 0)
 	{
-		if (bIsUsingNetIdDelegate)
-		{
-			OnFindLobbyCompleteWithNetIdDelegate.Broadcast(bWasSuccessful, LocalUserNum, MakeShareable<FUniqueNetId>(new FUniqueNetIdSteam(SteamUser()->GetSteamID())), SearchSettings->SearchResults[0]);
-			
-		}
-		else
-		{
-			OnFindLobbyCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, SearchSettings->SearchResults[0]);
-		}
+		OnFindLobbyCompleteWithNetIdDelegate.Broadcast(bWasSuccessful, LocalUserNum, MakeShareable<FUniqueNetId>(new FUniqueNetIdSteam(SteamUser()->GetSteamID())), SearchSettings->SearchResults[0]);
 	}
 	else
 	{
 		FOnlineSessionSearchResult EmptyResult;
-		if (bIsUsingNetIdDelegate)
-		{
-			OnFindLobbyCompleteWithNetIdDelegate.Broadcast(bWasSuccessful, LocalUserNum, MakeShareable<FUniqueNetId>(new FUniqueNetIdSteam(SteamUser()->GetSteamID())), EmptyResult);
-		}
-		else
-		{
-			OnFindLobbyCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, EmptyResult);
-		}
+		OnFindLobbyCompleteWithNetIdDelegate.Broadcast(bWasSuccessful, LocalUserNum, MakeShareable<FUniqueNetId>(new FUniqueNetIdSteam(SteamUser()->GetSteamID())), EmptyResult);
+	}
+}
 
+/**
+*	Get a human readable description of task
+*/
+FString FOnlineAsyncTaskSteamFindLobbiesForFriendSession::ToString() const
+{
+	return FString::Printf(TEXT("FOnlineAsyncTaskSteamFindLobbiesForFriendSession bWasSuccessful: %d Lobby ID: %llu"), bWasSuccessful, LobbyIDs[0].ConvertToUint64());
+}
+
+/**
+*	Async task is given a chance to trigger it's delegates
+*/
+void FOnlineAsyncTaskSteamFindLobbiesForFriendSession::TriggerDelegates()
+{
+	if (bWasSuccessful && SearchSettings->SearchResults.Num() > 0)
+	{
+		OnFindFriendSessionCompleteDelegate.Broadcast(LocalUserNum, bWasSuccessful, SearchSettings->SearchResults);
+	}
+	else
+	{
+		TArray<FOnlineSessionSearchResult> EmptyResult;
+		OnFindFriendSessionCompleteDelegate.Broadcast(LocalUserNum, bWasSuccessful, EmptyResult);
 	}
 }
 
@@ -1195,7 +1153,7 @@ void FOnlineAsyncEventSteamLobbyInviteAccepted::Finalize()
 		SessionInt->CurrentSessionSearch = MakeShareable(new FOnlineSessionSearch());
 		SessionInt->CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::InProgress;
 
-		FOnlineAsyncTaskSteamFindLobby* NewTask = new FOnlineAsyncTaskSteamFindLobby(Subsystem, LobbyId, SessionInt->CurrentSessionSearch, LocalUserNum, SessionInt->OnSessionUserInviteAcceptedDelegates);
+		FOnlineAsyncTaskSteamFindLobbiesForInviteSession* NewTask = new FOnlineAsyncTaskSteamFindLobbiesForInviteSession(Subsystem, LobbyId, SessionInt->CurrentSessionSearch, LocalUserNum, SessionInt->OnSessionUserInviteAcceptedDelegates);
 		Subsystem->QueueAsyncTask(NewTask);
 	}
 	else

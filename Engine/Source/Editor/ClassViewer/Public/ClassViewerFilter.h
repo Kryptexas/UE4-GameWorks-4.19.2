@@ -213,4 +213,11 @@ public:
 	 * @return				true if it has an Is-A relationship to the passed in class.
 	 */
 	virtual bool IsA(const UClass* InClass) const = 0;
+
+	/**
+	 * Attempts to get the ClassWithin property for this class.
+	 *
+	 * @return ClassWithin of the child most Native class in the hierarchy.
+	 */
+	virtual const UClass* GetClassWithin() const = 0;
 };

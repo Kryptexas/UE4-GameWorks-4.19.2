@@ -6,7 +6,7 @@ using UnrealBuildTool;
 public class OSVRClientKit : ModuleRules
 {
 
-    public OSVRClientKit(TargetInfo Target)
+    public OSVRClientKit(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
         PublicIncludePaths.Add(ModuleDirectory + "/include");

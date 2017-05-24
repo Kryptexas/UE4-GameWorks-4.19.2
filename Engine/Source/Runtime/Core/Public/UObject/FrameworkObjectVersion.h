@@ -55,15 +55,16 @@ struct CORE_API FFrameworkObjectVersion
 
 		// Wheel force offset is now applied at the wheel instead of vehicle COM
 		WheelOffsetIsFromWheel,
+
 		// Move curve metadata to be saved in skeleton
 		// Individual asset still saves some flag - i.e. disabled curve and editable or not, but 
 		// major flag - i.e. material types - moves to skeleton and handle in one place
 		MoveCurveTypesToSkeleton,
 		
-	        // Cache destructible overlaps on save
+		// Cache destructible overlaps on save
 		CacheDestructibleOverlaps,
 
-	        // Added serialization of materials applied to geometry cache objects
+		// Added serialization of materials applied to geometry cache objects
 		GeometryCacheMissingMaterials,
 
 		// Switch static & skeletal meshes to calculate LODs based on resolution-independent screen size
@@ -80,6 +81,9 @@ struct CORE_API FFrameworkObjectVersion
 
 		// AudioComponent override subtitle priority default change
 		ChangeAudioComponentOverrideSubtitlePriorityDefault,
+
+		// Serialize hard references to sound files when possible
+		HardSoundReferences,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

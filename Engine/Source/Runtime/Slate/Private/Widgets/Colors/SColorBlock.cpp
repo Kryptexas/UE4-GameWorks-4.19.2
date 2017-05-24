@@ -25,7 +25,7 @@ int32 SColorBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 {
 	const FSlateBrush* GenericBrush = FCoreStyle::Get().GetBrush( "GenericWhiteBox" );
 
-	const ESlateDrawEffect::Type DrawEffects = ESlateDrawEffect::None;
+	const ESlateDrawEffect DrawEffects = ESlateDrawEffect::None;
 	
 	FLinearColor InColor = Color.Get();
 	if (ColorIsHSV.Get())

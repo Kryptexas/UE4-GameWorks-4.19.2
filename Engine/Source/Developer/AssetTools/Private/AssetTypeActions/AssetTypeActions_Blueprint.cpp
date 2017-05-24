@@ -280,7 +280,7 @@ UThumbnailInfo* FAssetTypeActions_Blueprint::GetThumbnailInfo(UObject* Asset) co
 	UThumbnailInfo* ThumbnailInfo = Blueprint->ThumbnailInfo;
 	if ( ThumbnailInfo == NULL )
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfo>(Blueprint);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(Blueprint, NAME_None, RF_Transactional);
 		Blueprint->ThumbnailInfo = ThumbnailInfo;
 	}
 

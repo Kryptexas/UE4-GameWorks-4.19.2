@@ -195,8 +195,8 @@ protected:
 	/** 
 	 * Helper function to interpolate between different effects
 	 */
-	void Interpolate( FAudioReverbEffect& Current, const FAudioReverbEffect& Start, const FAudioReverbEffect& End );
-	void Interpolate( FAudioEQEffect& Current, const FAudioEQEffect& Start, const FAudioEQEffect& End );
+	bool Interpolate( FAudioReverbEffect& Current, const FAudioReverbEffect& Start, const FAudioReverbEffect& End );
+	bool Interpolate( FAudioEQEffect& Current, const FAudioEQEffect& Start, const FAudioEQEffect& End );
 
 	FAudioDevice*			AudioDevice;
 	bool					bEffectsInitialised;
@@ -215,6 +215,11 @@ protected:
 	FAudioEQEffect			SourceEQEffect;
 	FAudioEQEffect			CurrentEQEffect;
 	FAudioEQEffect			DestinationEQEffect;
+
+	bool bReverbActive;
+	bool bEQActive;
+	bool bReverbChanged;
+	bool bEQChanged;
 };
 
 // end 

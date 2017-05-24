@@ -367,7 +367,7 @@ struct FBoneIndices
 	{}
 };
 
-void UPoseAsset::GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
+void UPoseAsset::GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve) const
 {
 	if (bAdditivePose && PoseContainer.Poses.IsValidIndex(BasePoseIndex))
 	{
@@ -482,57 +482,57 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 			BlendedBoneTransform.AddUninitialized(TrackNum);
 			for (int32 TrackIndex = 0; TrackIndex < TrackNum; ++TrackIndex)
 			{
-				bool bValidTransform = false;
-
-				TArray<FTransform> BlendingTransform;
-				TArray<float> BlendingWeights;
-				float TotalLocalWeight = 0.f;
-				for (const TPair<const FPoseData*, float>& ActivePosePair : IndexToWeightMap)
+				// If invalid compact bone index, BlendedBoneTransform[TrackIndex] won't be used (see 'blend curves' below), so don't bother filling it in
+				const FCompactPoseBoneIndex CompactIndex = BoneIndices[TrackIndex].CompactBoneIndex;
+				if (CompactIndex != INDEX_NONE)
 				{
-					const FPoseData* Pose = ActivePosePair.Key;
-					const float Weight = ActivePosePair.Value;
-
-					if (Pose->LocalSpacePoseMask[TrackIndex])
+					TArray<FTransform> BlendingTransform;
+					TArray<float> BlendingWeights;
+					float TotalLocalWeight = 0.f;
+					for (const TPair<const FPoseData*, float>& ActivePosePair : IndexToWeightMap)
 					{
-						BlendingTransform.Add(Pose->LocalSpacePose[TrackIndex]);
-						BlendingWeights.Add(Weight);
-						TotalLocalWeight += Weight;
+						const FPoseData* Pose = ActivePosePair.Key;
+						const float Weight = ActivePosePair.Value;
+
+						if (Pose->LocalSpacePoseMask[TrackIndex])
+						{
+							BlendingTransform.Add(Pose->LocalSpacePose[TrackIndex]);
+							BlendingWeights.Add(Weight);
+							TotalLocalWeight += Weight;
+						}
 					}
-				}
 
-				const int32 StartBlendLoopIndex = (!bAdditivePose && TotalLocalWeight < 1.f) ? 0 : 1;
+					const int32 StartBlendLoopIndex = (!bAdditivePose && TotalLocalWeight < 1.f) ? 0 : 1;
 
-				if (BlendingTransform.Num() == 0)
-				{
-					// copy from out default pose
-					if (BoneIndices[TrackIndex].CompactBoneIndex != INDEX_NONE)
+					if (BlendingTransform.Num() == 0)
 					{
-						BlendedBoneTransform[TrackIndex] = OutPose[BoneIndices[TrackIndex].CompactBoneIndex];
-					}
-				}
-				else 
-				{
-					if (bAdditivePose)
-					{
-						const  FTransform AdditiveIdentity(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
-						BlendedBoneTransform[TrackIndex].Blend(AdditiveIdentity, BlendingTransform[0], BlendingWeights[0]);
+						// copy from out default pose
+						BlendedBoneTransform[TrackIndex] = OutPose[CompactIndex];
 					}
 					else
 					{
-						if (StartBlendLoopIndex == 0)
+						if (bAdditivePose)
 						{
-							BlendedBoneTransform[TrackIndex] = OutPose[BoneIndices[TrackIndex].CompactBoneIndex] * ScalarRegister(1.f - TotalLocalWeight);
+							const  FTransform AdditiveIdentity(FQuat::Identity, FVector::ZeroVector, FVector::ZeroVector);
+							BlendedBoneTransform[TrackIndex].Blend(AdditiveIdentity, BlendingTransform[0], BlendingWeights[0]);
 						}
 						else
 						{
-							BlendedBoneTransform[TrackIndex] = BlendingTransform[0] * ScalarRegister(BlendingWeights[0]);
+							if (StartBlendLoopIndex == 0)
+							{
+								BlendedBoneTransform[TrackIndex] = OutPose[CompactIndex] * ScalarRegister(1.f - TotalLocalWeight);
+							}
+							else
+							{
+								BlendedBoneTransform[TrackIndex] = BlendingTransform[0] * ScalarRegister(BlendingWeights[0]);
+							}
 						}
 					}
-				}
 
-				for (int32 BlendIndex = StartBlendLoopIndex; BlendIndex < BlendingTransform.Num(); ++BlendIndex)
-				{
-					BlendedBoneTransform[TrackIndex].AccumulateWithShortestRotation(BlendingTransform[BlendIndex], ScalarRegister(BlendingWeights[BlendIndex]));
+					for (int32 BlendIndex = StartBlendLoopIndex; BlendIndex < BlendingTransform.Num(); ++BlendIndex)
+					{
+						BlendedBoneTransform[TrackIndex].AccumulateWithShortestRotation(BlendingTransform[BlendIndex], ScalarRegister(BlendingWeights[BlendIndex]));
+					}
 				}
 			}
 
@@ -595,8 +595,8 @@ void UPoseAsset::PostLoad()
 			// fix up curve flags to skeleton
 			for (auto& Curve : PoseContainer.Curves)
 			{
-				bool bMorphtargetSet = Curve.GetCurveTypeFlag(ACF_DriveMorphTarget_DEPRECATED);
-				bool bMaterialSet = Curve.GetCurveTypeFlag(ACF_DriveMaterial_DEPRECATED);
+				bool bMorphtargetSet = Curve.GetCurveTypeFlag(AACF_DriveMorphTarget_DEPRECATED);
+				bool bMaterialSet = Curve.GetCurveTypeFlag(AACF_DriveMaterial_DEPRECATED);
 
 				// only add this if that has to 
 				if (bMorphtargetSet || bMaterialSet)
@@ -645,6 +645,12 @@ int32 UPoseAsset::GetNumCurves() const
 {
 	return PoseContainer.Curves.Num();
 }
+
+int32 UPoseAsset::GetNumTracks() const
+{
+	return PoseContainer.Tracks.Num();
+}
+
 
 const TArray<FSmartName> UPoseAsset::GetPoseNames() const
 {
@@ -1136,6 +1142,47 @@ bool UPoseAsset::ConvertToAdditivePose(int32 NewBasePoseIndex)
 	}
 
 	return false;
+}
+
+bool UPoseAsset::GetFullPose(int32 PoseIndex, TArray<FTransform>& OutTransforms) const
+{
+	if (!PoseContainer.Poses.IsValidIndex(PoseIndex))
+	{
+		return false;
+	}
+
+	bool bSuccess = false;
+
+	if (bAdditivePose)
+	{
+		// if this pose is not base pose
+		if (PoseIndex != BasePoseIndex)
+		{
+			TArray<FTransform> BasePose;
+			TArray<float> BaseCurves;
+			GetBasePoseTransform(BasePose, BaseCurves);
+
+			const FPoseData& PoseData = PoseContainer.Poses[PoseIndex];
+			OutTransforms.AddUninitialized(PoseData.LocalSpacePose.Num());
+
+			const ScalarRegister AdditiveWeight(1.f);
+
+			for (int32 BoneIdx = 0; BoneIdx < OutTransforms.Num(); ++BoneIdx)
+			{
+				OutTransforms[BoneIdx] = BasePose[BoneIdx];
+				OutTransforms[BoneIdx].AccumulateWithAdditiveScale(PoseData.LocalSpacePose[BoneIdx], AdditiveWeight);
+			}
+
+			bSuccess = true;
+		}
+	}
+	else
+	{
+		OutTransforms = PoseContainer.Poses[PoseIndex].LocalSpacePose;
+		bSuccess = true;
+	}
+
+	return bSuccess;
 }
 
 bool UPoseAsset::ConvertSpace(bool bNewAdditivePose, int32 NewBasePoseInde)

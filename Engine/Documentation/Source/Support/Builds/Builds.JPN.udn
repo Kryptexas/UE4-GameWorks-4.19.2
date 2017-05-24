@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2760663
+﻿INTSourceChangelist:3151855
 Availability:Public
-Title:リリースノート
+Title:リリース ノート
 Crumbs:%ROOT%
 Description:アンリアル エンジン ビルドのリリースノート
 parent:%ROOT%
 order:9
+type:landing
 
 [VAR:Params]
 [PARAM:image]
@@ -87,6 +88,8 @@ engine
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2016/4_12)
+	* [](Support/Builds/ReleaseNotes/2016/4_11)
 	* [](Support/Builds/ReleaseNotes/2015/4_10)
 	* [](Support/Builds/ReleaseNotes/2015/4_9)
 	* [](Support/Builds/ReleaseNotes/2015/4_8)

@@ -30,9 +30,10 @@ enum EPhysAssetFitVertWeight
 struct FPhysAssetCreateParams
 {
 	float								MinBoneSize;
+	float								MinWeldSize;
 	EPhysAssetFitGeomType				GeomType;
 	EPhysAssetFitVertWeight				VertWeight;
-	bool								bAlignDownBone;
+	bool								bAutoOrientToBone;
 	bool								bCreateJoints;
 	bool								bWalkPastSmall;
 	bool								bBodyForAll;
@@ -68,10 +69,10 @@ namespace FPhysicsAssetUtils
 	 * @param	skelMesh			The SkeletalMesh we create collision for
 	 * @param	BoneIndex			Index of the bone the collision is created for
 	 * @param	Params				Additional parameters to control the creation 
-	 * @param	Infos				The vertices to create the collirion for
+	 * @param	Info				The vertices to create the collision for
 	 * @return  Returns true if successfully created collision from bone
 	 */
-	UNREALED_API bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const TArray<FBoneVertInfo>& Infos );
+	UNREALED_API bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const FBoneVertInfo& Info );
 
 	/**
 	 * Does a few things:

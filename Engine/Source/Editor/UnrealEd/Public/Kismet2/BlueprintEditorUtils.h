@@ -21,6 +21,7 @@ class FBlueprintEditor;
 class FCompilerResultsLog;
 class INameValidatorInterface;
 class UActorComponent;
+class UBlueprintGeneratedClass;
 class UK2Node_Variable;
 class ULevelScriptBlueprint;
 class USCS_Node;
@@ -173,15 +174,25 @@ public:
 	 */
 	static void PatchNewCDOIntoLinker(UObject* CDO, FLinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded);
 
-	/**
-	 * Helper for loading dependent data needed for compile, would not be needed if compile on load ran after serialization
+	/** 
+	 * Procedure used to remove old function implementations and child properties from data only blueprints.
 	 */
-	static void ForceLoadMembers(UObject* Object);
+	static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Blueprint);
+
+	/**
+	 *  Synchronizes Blueprint's GeneratedClass's properties with the NewVariable declarations in the blueprint
+	 */
+	static void RefreshVariables(UBlueprint* Blueprint);
 
 	/**
 	 * Regenerates the class at class load time, and refreshes the blueprint
 	 */
 	static UClass* RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded);
+	
+	/**
+	 * Links external dependencies
+	 */
+	static void LinkExternalDependencies(UBlueprint* Blueprint);
 
 	/**
 	 * Replace subobjects of CDO in linker
@@ -896,7 +907,7 @@ public:
 	static void ReplaceVariableReferences(UBlueprint* Blueprint, const UProperty* OldVariable, const UProperty* NewVariable);
 
 	/** Check blueprint variable metadata keys/values for validity and make adjustments if needed */
-	static void ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc);
+	static void FixupVariableDescription(UBlueprint* Blueprint, FBPVariableDescription& VarDesc);
 
 	/** Validate child blueprint component member variables, member variables, and timelines, and function graphs against the given variable name */
 	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName);
@@ -911,6 +922,14 @@ public:
 	 * @param	bNewBlueprintOnly	The new value to set the bitflag to
 	 */
 	static void SetBlueprintOnlyEditableFlag(UBlueprint* Blueprint, const FName& VarName, const bool bNewBlueprintOnly);
+
+	/**
+	 * Sets the Blueprint read-only flag on the variable with the specified name
+	 *
+	 * @param	VarName				Name of the var to set the flag on
+	 * @param	bVariableReadOnly	The new value to set the bitflag to
+	 */
+	static void SetBlueprintPropertyReadOnlyFlag(UBlueprint* Blueprint, const FName& VarName, const bool bVariableReadOnly);
 
 	/**
 	 * Sets the Interp flag on the variable with the specified name to make available to matinee
@@ -1133,9 +1152,6 @@ public:
 	/** Handle old AnimBlueprints (state machines in the wrong position, transition graphs with the wrong schema, etc...) */
 	static void UpdateOutOfDateAnimBlueprints(UBlueprint* Blueprint);
 
-	/* Update old pure functions to be pure using new system*/
-	static void UpdateOldPureFunctions(UBlueprint* Blueprint);
-
 	/** Handle fixing up composite nodes within the blueprint*/
 	static void UpdateOutOfDateCompositeNodes(UBlueprint* Blueprint);
 
@@ -1151,8 +1167,14 @@ public:
 	/** Handle stale pin watches */
 	static void UpdateStalePinWatches( UBlueprint* Blueprint );
 
+	/** Updates the cosmetic information cache for macros */
+	static void ClearMacroCosmeticInfoCache(UBlueprint* Blueprint);
+
+	/** Returns the cosmetic information for the specified macro graph, caching it if necessary */
+	static FBlueprintMacroCosmeticInfo GetCosmeticInfoForMacro(UEdGraph* MacroGraph);
+
 	/** Return the first function from implemented interface with given name */
-	static UFunction* FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool* bOutInvalidInterface = NULL );
+	static UFunction* FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool* bOutInvalidInterface = nullptr, bool bGetAllInterfaces = false);
 
 	/** 
 	 * Build a list of all interface classes either implemented by this blueprint or through inheritance
@@ -1200,7 +1222,7 @@ public:
 	// LevelScriptBlueprint
 
 	/** Find how many nodes reference the supplied actor */
-	static int32 FindNumReferencesToActorFromLevelScript(ULevelScriptBlueprint* LevelScriptBlueprint, AActor* InActor);
+	static bool FindReferencesToActorFromLevelScript(ULevelScriptBlueprint* LevelScriptBlueprint, AActor* InActor, TArray<UK2Node*>& ReferencedToActors);
 
 	/** Replace all references of the old actor with the new actor */
 	static void ReplaceAllActorRefrences(ULevelScriptBlueprint* InLevelScriptBlueprint, AActor* InOldActor, AActor* InNewActor);
@@ -1420,7 +1442,7 @@ protected:
 	 * @param InScope		Option scope for local variables
 	 * @return				Array of variable nodes
 	 */
-	static TArray<UK2Node_Variable*> GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope = nullptr);
+	static TArray<UK2Node*> GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope = nullptr);
 
 	/**
 	 * Helper function to warn user of the results of changing var type by displaying a suppressible dialog
@@ -1463,6 +1485,16 @@ public:
 	 * Remove overridden component templates from instance component handlers when a parent class disables editable when inherited boolean.
 	 */
 	static void HandleDisableEditableWhenInherited(UObject* ModifiedObject, TArray<UObject*>& ArchetypeInstances);
+
+	/**
+	 * Returns the BPs most derived native parent type:
+	 */
+	static UClass* GetNativeParent(const UBlueprint* BP);
+
+	/**
+	 * Returns true if this BP is currently based on a type that returns true for the UObject::ImplementsGetWorld() call:
+	 */
+	static bool ImplentsGetWorld(const UBlueprint* BP);
 };
 
 struct UNREALED_API FBlueprintDuplicationScopeFlags

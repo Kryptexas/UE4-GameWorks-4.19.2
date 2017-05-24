@@ -531,6 +531,58 @@ FVector2D UWidget::GetDesiredSize() const
 	return FVector2D(0, 0);
 }
 
+void UWidget::SetNavigationRuleInternal(EUINavigation Direction, EUINavigationRule Rule, FName WidgetToFocus)
+{
+	if (Navigation == nullptr)
+	{
+		Navigation = NewObject<UWidgetNavigation>(this);
+	}
+
+	FWidgetNavigationData NavigationData;
+	NavigationData.Rule = Rule;
+	NavigationData.WidgetToFocus = WidgetToFocus;
+	switch(Direction)
+	{
+		case EUINavigation::Up:
+			Navigation->Up = NavigationData;
+			break;
+		case EUINavigation::Down:
+			Navigation->Down = NavigationData;
+			break;
+		case EUINavigation::Left:
+			Navigation->Left = NavigationData;
+			break;
+		case EUINavigation::Right:
+			Navigation->Right = NavigationData;
+			break;
+		case EUINavigation::Next:
+			Navigation->Next = NavigationData;
+			break;
+		case EUINavigation::Previous:
+			Navigation->Previous = NavigationData;
+			break;
+		default:
+			break;
+	}
+}
+
+void UWidget::SetNavigationRule(EUINavigation Direction, EUINavigationRule Rule, FName WidgetToFocus)
+{
+	SetNavigationRuleInternal(Direction, Rule, WidgetToFocus);
+	BuildNavigation();
+}
+
+void UWidget::SetAllNavigationRules(EUINavigationRule Rule, FName WidgetToFocus)
+{
+	SetNavigationRuleInternal(EUINavigation::Up, Rule, WidgetToFocus);
+	SetNavigationRuleInternal(EUINavigation::Down, Rule, WidgetToFocus);
+	SetNavigationRuleInternal(EUINavigation::Left, Rule, WidgetToFocus);
+	SetNavigationRuleInternal(EUINavigation::Right, Rule, WidgetToFocus);
+	SetNavigationRuleInternal(EUINavigation::Next, Rule, WidgetToFocus);
+	SetNavigationRuleInternal(EUINavigation::Previous, Rule, WidgetToFocus);
+	BuildNavigation();
+}
+
 UPanelWidget* UWidget::GetParent() const
 {
 	if ( Slot )
@@ -683,13 +735,13 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 }
 #endif
 
-class APlayerController* UWidget::GetOwningPlayer() const
+APlayerController* UWidget::GetOwningPlayer() const
 {
 	if ( UWidgetTree* WidgetTree = Cast<UWidgetTree>(GetOuter()) )
 	{
 		if ( UUserWidget* UserWidget = Cast<UUserWidget>(WidgetTree->GetOuter()) )
 		{
-			UserWidget->GetOwningPlayer();
+			return UserWidget->GetOwningPlayer();
 		}
 	}
 
@@ -740,11 +792,6 @@ bool UWidget::IsGeneratedName() const
 FString UWidget::GetLabelMetadata() const
 {
 	return TEXT("");
-}
-
-FString UWidget::GetLabel() const
-{
-	return GetLabelText().ToString();
 }
 
 FText UWidget::GetLabelText() const
@@ -801,26 +848,26 @@ void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 	}
 }
 
-void UWidget::Select()
+void UWidget::SelectByDesigner()
 {
-	OnSelected();
+	OnSelectedByDesigner();
 
 	UWidget* Parent = GetParent();
 	while ( Parent != nullptr )
 	{
-		Parent->OnDescendantSelected(this);
+		Parent->OnDescendantSelectedByDesigner(this);
 		Parent = Parent->GetParent();
 	}
 }
 
-void UWidget::Deselect()
+void UWidget::DeselectByDesigner()
 {
-	OnDeselected();
+	OnDeselectedByDesigner();
 
 	UWidget* Parent = GetParent();
 	while ( Parent != nullptr )
 	{
-		Parent->OnDescendantDeselected(this);
+		Parent->OnDescendantDeselectedByDesigner(this);
 		Parent = Parent->GetParent();
 	}
 }
@@ -926,11 +973,11 @@ void UWidget::SynchronizeProperties()
 #if WITH_EDITORONLY_DATA
 	// In editor builds we add metadata to the widget so that once hit with the widget reflector it can report
 	// where it comes from, what blueprint, what the name of the widget was...etc.
-	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedBy.Get())));
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShared<FReflectionMetaData>(GetFName(), GetClass(), WidgetGeneratedBy.Get()));
 #else
 
 #if !UE_BUILD_SHIPPING
-	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedByClass.Get())));
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShared<FReflectionMetaData>(GetFName(), GetClass(), WidgetGeneratedByClass.Get()));
 #endif
 
 #endif
@@ -942,12 +989,12 @@ void UWidget::BuildNavigation()
 	{
 		TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 
-		if ( ensure(SafeWidget.IsValid()) )
+		if ( SafeWidget.IsValid() )
 		{
 			TSharedPtr<FNavigationMetaData> MetaData = SafeWidget->GetMetaData<FNavigationMetaData>();
 			if ( !MetaData.IsValid() )
 			{
-				MetaData = MakeShareable(new FNavigationMetaData());
+				MetaData = MakeShared<FNavigationMetaData>();
 				SafeWidget->AddMetadata(MetaData.ToSharedRef());
 			}
 

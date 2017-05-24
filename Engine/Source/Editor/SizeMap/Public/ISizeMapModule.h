@@ -39,5 +39,8 @@ public:
 	/** Invokes a major tab with a SizeMap within it */
 	virtual void InvokeSizeMapTab(const TArray<FName>& AssetPackageNames) = 0;
 
+	/** Invokes a modal dialog with a SizeMap within it. We can't double click to select an asset in the content browser */
+	virtual void InvokeSizeMapModalDialog(const TArray<FName>& AssetPackageNames, TSharedPtr<SWindow> ParentWindow) = 0;
+
 };
 

@@ -62,6 +62,12 @@
 #include "Animation/MorphTarget.h"
 #include "EditorDirectories.h"
 #include "PersonaCommonCommands.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
+#include "BlueprintEditorUtils.h"
 
 IMPLEMENT_MODULE( FPersonaModule, Persona );
 
@@ -78,6 +84,9 @@ void FPersonaModule::StartupModule()
 
 	//Call this to make sure AnimGraph module is setup
 	FModuleManager::Get().LoadModuleChecked(TEXT("AnimGraph"));
+
+	// Make sure the advanced preview scene module is loaded
+	FModuleManager::Get().LoadModuleChecked("AdvancedPreviewScene");
 
 	// Load all blueprint animnotifies from asset registry so they are available from drop downs in anim segment detail views
 	{
@@ -120,10 +129,14 @@ void FPersonaModule::StartupModule()
 	FEditorModeRegistry::Get().RegisterMode<FSkeletonSelectionEditMode>(FPersonaEditModes::SkeletonSelection, LOCTEXT("SkeletonSelectionEditMode", "Skeleton Selection"), FSlateIcon(), false);
 
 	FPersonaCommonCommands::Register();
+
+	FKismetEditorUtilities::RegisterOnBlueprintCreatedCallback(this, UAnimNotify::StaticClass(), FKismetEditorUtilities::FOnBlueprintCreated::CreateRaw(this, &FPersonaModule::HandleNewBlueprintCreated));
 }
 
 void FPersonaModule::ShutdownModule()
 {
+	FKismetEditorUtilities::UnregisterAutoBlueprintNodeCreation(this);
+
 	// Unregister the editor modes
 	FEditorModeRegistry::Get().UnregisterMode(FPersonaEditModes::SkeletonSelection);
 
@@ -670,6 +683,79 @@ void FPersonaModule::CustomizeSlotNodeDetails(const TSharedRef<class IDetailsVie
 IPersonaEditorModeManager* FPersonaModule::CreatePersonaEditorModeManager()
 {
 	return new FPersonaEditorModeManager();
+}
+
+void FPersonaModule::AddCommonToolbarExtensions(FToolBarBuilder& InToolbarBuilder, TSharedRef<IPersonaToolkit> PersonaToolkit)
+{
+	TWeakPtr<IPersonaToolkit> WeakPersonaToolkit = PersonaToolkit;
+
+	auto CreatePreviewMeshComboButtonContents = [WeakPersonaToolkit]()
+	{
+		FMenuBuilder MenuBuilder(true, nullptr);
+
+		MenuBuilder.BeginSection(TEXT("ChoosePreviewMesh"), LOCTEXT("ChoosePreviewMesh", "Choose Preview Mesh"));
+		{
+			FAssetPickerConfig AssetPickerConfig;
+			AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateLambda([WeakPersonaToolkit](const FAssetData& AssetData)
+			{
+				if (WeakPersonaToolkit.IsValid())
+				{
+					WeakPersonaToolkit.Pin()->SetPreviewMesh(Cast<USkeletalMesh>(AssetData.GetAsset()));
+				}
+
+				FSlateApplication::Get().DismissAllMenus();
+			});
+			AssetPickerConfig.bAllowNullSelection = false;
+			AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+			AssetPickerConfig.Filter.bRecursiveClasses = false;
+			AssetPickerConfig.Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
+			AssetPickerConfig.OnShouldFilterAsset = FOnShouldFilterAsset::CreateLambda([WeakPersonaToolkit](const FAssetData& AssetData)
+			{
+				if (WeakPersonaToolkit.IsValid())
+				{
+					FString TagValue;
+					if (AssetData.GetTagValue("Skeleton", TagValue))
+					{
+						return TagValue != FAssetData(WeakPersonaToolkit.Pin()->GetSkeleton()).GetExportTextName();
+					}
+				}
+				return true;
+			});
+			if (WeakPersonaToolkit.IsValid())
+			{
+				AssetPickerConfig.InitialAssetSelection = FAssetData(WeakPersonaToolkit.Pin()->GetPreviewMesh());
+			}
+
+			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+			TSharedPtr<SBox> MenuEntry = SNew(SBox)
+				.WidthOverride(300.0f)
+				.HeightOverride(300.0f)
+				[
+					ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+				];
+
+			MenuBuilder.AddWidget(MenuEntry.ToSharedRef(), FText::GetEmpty(), true);
+		}
+		MenuBuilder.EndSection();
+
+		return MenuBuilder.MakeWidget();
+	};
+
+	InToolbarBuilder.AddComboButton(
+		FUIAction(),
+		FOnGetContent::CreateLambda(CreatePreviewMeshComboButtonContents),
+		LOCTEXT("SetPreviewMesh", "Preview Mesh"),
+		LOCTEXT("SetPreviewMeshTooltip", "Set a new preview skeletal mesh for the current asset (stored per-animation or per-skeleton)"),
+		FSlateIcon("EditorStyle", "Persona.TogglePreviewAsset", "Persona.TogglePreviewAsset.Small")
+		);
+}
+
+void FPersonaModule::HandleNewBlueprintCreated(UBlueprint* InBlueprint)
+{
+	UEdGraph* const NewGraph = FBlueprintEditorUtils::CreateNewGraph(InBlueprint, "Received_Notify", UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+	FBlueprintEditorUtils::AddFunctionGraph(InBlueprint, NewGraph, /*bIsUserCreated=*/ false, UAnimNotify::StaticClass());
+	InBlueprint->LastEditedDocuments.Add(NewGraph);
 }
 
 #undef LOCTEXT_NAMESPACE

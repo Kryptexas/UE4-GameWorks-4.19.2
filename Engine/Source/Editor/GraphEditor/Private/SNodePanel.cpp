@@ -1057,6 +1057,16 @@ void SNodePanel::ApplyMarqueeSelection( const FMarqueeOperation& InMarquee, cons
 		{
 			OutNewSelection = CurrentSelection.Union(InMarquee.AffectedNodes);
 		}
+		break; 
+
+	case FMarqueeOperation::Invert:
+		{
+			// ToAdd = items in AffectedNodes that aren't in CurrentSelection (new selections)
+			FGraphPanelSelectionSet ToAdd = InMarquee.AffectedNodes.Difference(CurrentSelection);
+			// remove AffectedNodes that were already selected
+			OutNewSelection = CurrentSelection.Difference(InMarquee.AffectedNodes);
+			OutNewSelection.Append(ToAdd);
+		}
 		break;
 	}
 }

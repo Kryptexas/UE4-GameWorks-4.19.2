@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2016 The Khronos Group Inc.
+# Copyright (c) 2014-2017 The Khronos Group Inc.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and/or associated documentation files (the "Materials"),
@@ -42,7 +42,7 @@
 spv = {
     'MagicNumber' : 0x07230203,
     'Version' : 0x00010100,
-    'Revision' : 3,
+    'Revision' : 6,
     'OpCodeMask' : 0xffff,
     'WordCountShift' : 16,
 
@@ -352,6 +352,10 @@ spv = {
         'InputAttachmentIndex' : 43,
         'Alignment' : 44,
         'MaxByteOffset' : 45,
+        'OverrideCoverageNV' : 5248,
+        'PassthroughNV' : 5250,
+        'ViewportRelativeNV' : 5252,
+        'SecondaryViewportRelativeNV' : 5256,
     },
 
     'BuiltIn' : {
@@ -396,6 +400,21 @@ spv = {
         'SubgroupLocalInvocationId' : 41,
         'VertexIndex' : 42,
         'InstanceIndex' : 43,
+        'SubgroupEqMaskKHR' : 4416,
+        'SubgroupGeMaskKHR' : 4417,
+        'SubgroupGtMaskKHR' : 4418,
+        'SubgroupLeMaskKHR' : 4419,
+        'SubgroupLtMaskKHR' : 4420,
+        'BaseVertex' : 4424,
+        'BaseInstance' : 4425,
+        'DrawIndex' : 4426,
+        'DeviceIndex' : 4438,
+        'ViewIndex' : 4440,
+        'ViewportMaskNV' : 5253,
+        'SecondaryPositionNV' : 5257,
+        'SecondaryViewportMaskNV' : 5258,
+        'PositionPerViewNV' : 5261,
+        'ViewportMaskPerViewNV' : 5262,
     },
 
     'SelectionControlShift' : {
@@ -568,6 +587,21 @@ spv = {
         'SubgroupDispatch' : 58,
         'NamedBarrier' : 59,
         'PipeStorage' : 60,
+        'SubgroupBallotKHR' : 4423,
+        'DrawParameters' : 4427,
+        'SubgroupVoteKHR' : 4431,
+        'StorageUniformBufferBlock16' : 4433,
+        'StorageUniform16' : 4434,
+        'StoragePushConstant16' : 4435,
+        'StorageInputOutput16' : 4436,
+        'DeviceGroup' : 4437,
+        'MultiView' : 4439,
+        'SampleMaskOverrideCoverageNV' : 5249,
+        'GeometryShaderPassthroughNV' : 5251,
+        'ShaderViewportIndexLayerNV' : 5254,
+        'ShaderViewportMaskNV' : 5255,
+        'ShaderStereoViewNV' : 5259,
+        'PerViewAttributesNV' : 5260,
     },
 
     'Op' : {
@@ -875,6 +909,12 @@ spv = {
         'OpNamedBarrierInitialize' : 328,
         'OpMemoryNamedBarrier' : 329,
         'OpModuleProcessed' : 330,
+        'OpSubgroupBallotKHR' : 4421,
+        'OpSubgroupFirstInvocationKHR' : 4422,
+        'OpSubgroupAllKHR' : 4428,
+        'OpSubgroupAnyKHR' : 4429,
+        'OpSubgroupAllEqualKHR' : 4430,
+        'OpSubgroupReadInvocationKHR' : 4432,
     },
 
 }

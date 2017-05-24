@@ -9,6 +9,7 @@
 #include "Components/PointLightComponent.h"
 #include "Engine/PointLight.h"
 #include "Editor.h"
+#include "EngineUtils.h"
 
 // Automation
 #include "Tests/AutomationEditorCommon.h"
@@ -128,7 +129,7 @@ bool FLightingPromotionPointLightPlaceRotScaleTest::RunTest(const FString& Param
 	UWorld* World = FAutomationEditorCommonUtils::CreateNewMap();
 	ULevel* CurrentLevel = World->GetCurrentLevel();
 	// Test Summary
-	AddLogItem(TEXT("Place, Scale, and Rotate.\n- A Point light is placed into the world.\n- The light is moved.\n- The light is rotated.\n- The light is scaled up."));
+	AddInfo(TEXT("Place, Scale, and Rotate.\n- A Point light is placed into the world.\n- The light is moved.\n- The light is rotated.\n- The light is scaled up."));
 
 	if (!LightingTestHelpers::DoesActorExistInTheLevel(CurrentLevel, TEXT("PointLight"), APointLight::StaticClass()))
 	{
@@ -150,9 +151,9 @@ bool FLightingPromotionPointLightPlaceRotScaleTest::RunTest(const FString& Param
 		bool RotationsAreEqual = CurrentRotation.Equals(POINT_LIGHT_UPDATED_ROTATION, 1);
 
 		TestTrue(TEXT("The placed point light was not found."), LightingTestHelpers::DoesActorExistInTheLevel(CurrentLevel, PointLight->GetName(), PointLight->GetClass()));
-		TestEqual<FVector>(TEXT("The point light is not in correct location"), POINT_LIGHT_UPDATED_LOCATION, CurrentLocation);
+		TestEqual(TEXT("The point light is not in correct location"), CurrentLocation, POINT_LIGHT_UPDATED_LOCATION);
 		TestTrue(TEXT("The point light is not rotated correctly."), RotationsAreEqual);
-		TestEqual<FVector>(TEXT("The point light is not scaled correctly."), POINT_LIGHT_UPDATED_SCALE3D, CurrentScale3D);
+		TestEqual(TEXT("The point light is not scaled correctly."), CurrentScale3D, POINT_LIGHT_UPDATED_SCALE3D);
 
 		return true;
 	}
@@ -171,9 +172,7 @@ bool FLightingPromotionModifyProperties::RunTest(const FString& Parameters)
 	//** SETUP **//
 	UWorld* World = FAutomationEditorCommonUtils::CreateNewMap();
 	ULevel* CurrentLevel = World->GetCurrentLevel();
-	// Test Summary
-	AddLogItem(TEXT("The properties values for a point light are modified.\n- Intensity is set to 1000.\n- Color is set to R=0,G=0,B=255.\n- Attenuation Radius is set to 1024."));
-
+	
 	if (!LightingTestHelpers::DoesActorExistInTheLevel(CurrentLevel, TEXT("PointLight"), APointLight::StaticClass()))
 	{
 		//** TEST **//
@@ -185,9 +184,9 @@ bool FLightingPromotionModifyProperties::RunTest(const FString& Parameters)
 		LightingTestHelpers::SetPropertyByName(PointLight->PointLightComponent, TEXT("AttenuationRadius"), TEXT("1024.f"));
 
 		//** VERIFY **//
-		TestEqual<float>(TEXT("Light brightness property was not modified."), 1000.f, PointLight->PointLightComponent->Intensity);
-		TestEqual<FColor>(TEXT("Light color property was not modified."), FColor(0,0,255), PointLight->PointLightComponent->LightColor);
-		TestEqual<float>(TEXT("Light attenuation radius was not modified."), 1024.f, PointLight->PointLightComponent->AttenuationRadius);
+		TestEqual(TEXT("Light Brightness"), PointLight->PointLightComponent->Intensity, 1000.f);
+		TestEqual(TEXT("Light Color"), PointLight->PointLightComponent->LightColor, FColor(0, 0, 255));
+		TestEqual(TEXT("Light Attenuation Radius"), PointLight->PointLightComponent->AttenuationRadius, 1024.f);
 
 		return true;
 	}
@@ -208,7 +207,7 @@ bool FLightingPromotionDuplicationTest::RunTest(const FString& Parameters)
 	UWorld* World = FAutomationEditorCommonUtils::CreateNewMap();
 	ULevel* CurrentLevel = World->GetCurrentLevel();
 	// Test Summary
-	AddLogItem(TEXT("Duplicate and Copy Paste\n- Duplicates a point light.\n- Copies and Pastes a point light."));
+	AddInfo(TEXT("Duplicate and Copy Paste\n- Duplicates a point light.\n- Copies and Pastes a point light."));
 
 	if (!LightingTestHelpers::DoesActorExistInTheLevel(CurrentLevel, TEXT("PointLight"), APointLight::StaticClass()))
 	{
@@ -228,13 +227,13 @@ bool FLightingPromotionDuplicationTest::RunTest(const FString& Parameters)
 		//** Verify **//
 		int32 NumberOfPointLights = 0;
 		// Count the number of point lights in the level.
-		for (TObjectIterator<APointLight> It; It; ++It)
+		for ( TActorIterator<APointLight> It(World); It; ++It )
 		{
 			NumberOfPointLights++;
 		}
 		
 		// We are expecting three point lights to be in the level now.
-		TestEqual<int32>(TEXT("After duplicating a light the total number of them in the level is not correct."), 3, NumberOfPointLights);
+		TestEqual(TEXT("The light count after duplication"), NumberOfPointLights, 3);
 
 		return true;
 	}
@@ -306,7 +305,7 @@ bool FLightPointLightSetLocation::RunTest(const FString& Parameters)
 		FVector CurrentLocation;
 		LightingTestHelpers::GetActorCurrentLocation(CurrentLevel, PointLight->GetName(), CurrentLocation);
 
-		TestEqual<FVector>(TEXT("The point light is not in correct location"), POINT_LIGHT_UPDATED_LOCATION, CurrentLocation);
+		TestEqual(TEXT("The point light is not in correct location"), CurrentLocation, POINT_LIGHT_UPDATED_LOCATION);
 		return true;
 	}
 

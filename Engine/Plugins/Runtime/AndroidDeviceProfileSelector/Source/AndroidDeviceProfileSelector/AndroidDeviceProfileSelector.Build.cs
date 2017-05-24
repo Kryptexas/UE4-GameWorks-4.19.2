@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class AndroidDeviceProfileSelector : ModuleRules
 	{
-        public AndroidDeviceProfileSelector(TargetInfo Target)
+        public AndroidDeviceProfileSelector(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

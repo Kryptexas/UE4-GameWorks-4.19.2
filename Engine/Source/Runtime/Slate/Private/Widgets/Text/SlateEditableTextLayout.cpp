@@ -201,11 +201,12 @@ FSlateEditableTextLayout::~FSlateEditableTextLayout()
 	if (TextInputMethodSystem)
 	{
 		TSharedRef<FTextInputMethodContext> TextInputMethodContextRef = TextInputMethodContext.ToSharedRef();
+		
+		// Make sure that the composition is aborted to avoid any IME calls to EndComposition from trying to mutate our dying owner widget
+		TextInputMethodContextRef->AbortComposition();
+
 		if (TextInputMethodSystem->IsActiveContext(TextInputMethodContextRef))
 		{
-			// Make sure that the composition is aborted to avoid any IME calls to EndComposition from trying to mutate our dying owner widget
-			TextInputMethodContextRef->AbortComposition();
-
 			// This can happen if an entire tree of widgets is culled, as Slate isn't notified of the focus loss, the widget is just deleted
 			TextInputMethodSystem->DeactivateContext(TextInputMethodContextRef);
 		}
@@ -1818,7 +1819,11 @@ void FSlateEditableTextLayout::OnContextMenuClosed(TSharedRef<IMenu> Menu)
 	// to know that the window is still available for OnFocusReceived and OnFocusLost even though it's about to be destroyed
 
 	// Give our owner widget focus when the context menu has been dismissed
-	FSlateApplication::Get().SetKeyboardFocus(OwnerWidget->GetSlateWidget(), EFocusCause::OtherWidgetLostFocus);
+	TSharedPtr<SWidget> OwnerSlateWidget = OwnerWidget->GetSlateWidgetPtr();
+	if (OwnerSlateWidget.IsValid())
+	{
+		FSlateApplication::Get().SetKeyboardFocus(OwnerSlateWidget, EFocusCause::OtherWidgetLostFocus);
+	}
 }
 
 void FSlateEditableTextLayout::InsertRunAtCursor(TSharedRef<IRun> InRun)
@@ -3537,12 +3542,13 @@ void FSlateEditableTextLayout::FTextInputMethodContext::BeginComposition()
 
 void FSlateEditableTextLayout::FTextInputMethodContext::UpdateCompositionRange(const int32 InBeginIndex, const uint32 InLength)
 {
-	check(bIsComposing);
+	if (bIsComposing)
+	{
+		CompositionBeginIndex = InBeginIndex;
+		CompositionLength = InLength;
 
-	CompositionBeginIndex = InBeginIndex;
-	CompositionLength = InLength;
-
-	OwnerLayout->UpdateCursorHighlight();
+		OwnerLayout->UpdateCursorHighlight();
+	}
 }
 
 void FSlateEditableTextLayout::FTextInputMethodContext::EndComposition()

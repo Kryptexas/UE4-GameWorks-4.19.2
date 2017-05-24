@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2804994
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:イベントで UI の更新を操作する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -9,7 +9,7 @@ Related:Engine/Blueprints
 Related:Resources\SampleGames\UnrealMatch3
 Version:4.10
 SkillLevel:Advanced
-
+tags:UMG UI Designer
 
 
 [VAR:Topic]
@@ -55,9 +55,9 @@ SkillLevel:Advanced
 この操作ガイドに進む前に、[](Engine/UMG) の概要を理解することをお勧めします。 
 [/REGION]
 
-UI エレメントを作成する場合、作成するコンテンツを最適化する方法を考えることを習慣にするとよいでしょう。そうすることで、パフォーマンスを高め、後で最適化する必要が減るからです。例えば、プロジェクトの範囲によっては、情報を UI に伝達するために [](Engine/UMG/UserGuide/PropertyBinding) が適しているかもしれません。しかし、UI のセットアップが複雑だったり、プロジェクトを最適化する必要があれば、フレーム毎に最適化するのではなく、必要に応じて UI を更新したい場合があるかもしれません。 
+UI エレメントを作成する場合、作成するコンテンツを最適化する方法を考えることを習慣にするとよいでしょう。そうすることで、パフォーマンスを高め、後で最適化する必要が減るからです。例えば、プロジェクトの範囲によっては、情報を UI に伝達するために [](Engine/UMG/UserGuide/PropertyBinding) が適しているかもしれません。ただし、より複雑な UI のセットアップをする場合や、プロジェクトを最適化する必要がある場合は、フレーム毎ではなく、知る必要がある場合に UI を更新することを検討するとよいでしょう。 
 
-この操作ガイドでは、HUD に情報を伝達する 3 つの例を検討します。3 つともタスクを遂行しますが、3 つめの例が最もコスト効率が高くなっています。これは、更新プロセスをティック イベントから離し、[イベント ディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) を使って手動で情報を更新することで実現します。 
+この操作ガイドでは、HUD に情報を伝える 3 つの例を見てみます。3 つともタスクを遂行しますが、3 つめの例が最もコスト効率が高くなっています。これは、更新プロセスをティック イベントから離し、[イベント ディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) を使って手動で情報を更新することで実現します。 
 
 
 ##サンプル 1.関数のバインディング
@@ -94,7 +94,7 @@ UI エレメントを作成する場合、作成するコンテンツを最適�
 
 ![](PropBinding_EventConstruct.png)
 
-ひとつめの例では、Character ブループリントにフレーム毎に [](Engine/Blueprints/UserGuide/CastNodes) し、ヘルスとエネルギーの変数にアクセスするようにしました。ここでは、これを再度行い、参照として保存し、フレーム毎に行わなくてもいいようにします。これは前の方法に比べて若干コスト効率が高くなります。 
+ひとつめの例では、Character ブループリントにフレーム毎に [](Engine/Blueprints/UserGuide/CastNodes) ようにし、ヘルスとエネルギーの変数にアクセスするようにしました。ここでは、これを再度行い、参照として保存し、フレーム毎に行わなくてもいいようにします。これは前の方法に比べて若干コスト効率が高くなります。 
 
 次に進捗バーの値を Character ブループリント内の変数に直接バインドできます。 
 

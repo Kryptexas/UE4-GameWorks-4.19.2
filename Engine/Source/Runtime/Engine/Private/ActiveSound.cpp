@@ -10,6 +10,8 @@
 #include "Sound/SoundNodeAttenuation.h"
 #include "SubtitleManager.h"
 
+FTraceDelegate FActiveSound::ActiveSoundTraceDelegate;
+TMap<FTraceHandle, FActiveSound::FAsyncTraceDetails> FActiveSound::TraceToActiveSoundMap;
 
 FActiveSound::FActiveSound()
 	: World(nullptr)
@@ -84,6 +86,10 @@ FActiveSound::FActiveSound()
 	, CurrentInteriorLPF(MAX_FILTER_FREQUENCY)
 	, ClosestListenerPtr(nullptr)
 {
+	if (!ActiveSoundTraceDelegate.IsBound())
+	{
+		ActiveSoundTraceDelegate.BindStatic(&OcclusionTraceDone);
+	}
 }
 
 FActiveSound::~FActiveSound()
@@ -161,6 +167,7 @@ void FActiveSound::SetAudioComponent(UAudioComponent* Component)
 	AActor* Owner = Component->GetOwner();
 
 	AudioComponentID = Component->GetAudioComponentID();
+	AudioComponentUserID = Component->GetAudioComponentUserID();
 	AudioComponentName = Component->GetFName();
 
 	if (Owner)
@@ -213,6 +220,50 @@ USoundSubmix* FActiveSound::GetSoundSubmix() const
 	return nullptr;
 }
 
+void FActiveSound::SetSubmixSend(const FSoundSubmixSendInfo& SubmixSendInfo)
+{
+	for (int32 i = 0; i < SoundSubmixSendsOverride.Num(); ++i)
+	{
+		if (SoundSubmixSendsOverride[i].SoundSubmix == SubmixSendInfo.SoundSubmix)
+		{
+			SoundSubmixSendsOverride[i].SendLevel = SubmixSendInfo.SendLevel;
+			return;
+		}
+	}
+
+	SoundSubmixSendsOverride.Add(SubmixSendInfo);
+}
+
+void FActiveSound::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const
+{
+	if (Sound)
+	{
+		// Get the base sends
+		Sound->GetSoundSubmixSends(OutSends);
+
+		// Loop through the overrides, which may append or override the existing send
+		for (int32 i = 0; i < SoundSubmixSendsOverride.Num(); ++i)
+		{
+			bool bOverridden = false;
+			for (int32 j = 0; j < OutSends.Num(); ++j)
+			{
+				if (OutSends[j].SoundSubmix == SoundSubmixSendsOverride[j].SoundSubmix)
+				{
+					OutSends[j].SendLevel = SoundSubmixSendsOverride[j].SendLevel;
+					bOverridden = true;
+					break;
+				}
+			}
+
+			if (!bOverridden)
+			{
+				// Append
+				OutSends.Add(SoundSubmixSendsOverride[i]);
+			}
+		}
+	}
+}
+
 int32 FActiveSound::FindClosestListener( const TArray<FListener>& InListeners ) const
 {
 	return FAudioDevice::FindClosestListenerIndex(Transform, InListeners);
@@ -237,10 +288,11 @@ uint32 FActiveSound::GetSoundConcurrencyObjectID() const
 	{
 		return ConcurrencySettings->GetUniqueID();
 	}
-	else
+	else if (Sound)
 	{
 		return Sound->GetSoundConcurrencyObjectID();
 	}
+	return INDEX_NONE;
 }
 
 void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances, const float DeltaTime )
@@ -252,10 +304,6 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	{
 		return;
 	}
-
-	//@todo audio: Need to handle pausing and not getting out of sync by using the mixer's time.
-	//@todo audio: Fading in and out is also dependent on the DeltaTime
-	PlaybackTime += DeltaTime;
 
 	// splitscreen support:
 	// we always pass the 'primary' listener (viewport 0) to the sound nodes and the underlying audio system
@@ -300,9 +348,14 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	ParseParams.bEnableLowPassFilter = bEnableLowPassFilter;
 	ParseParams.LowPassFilterFrequency = LowPassFilterFrequency;
 	ParseParams.SoundClass = GetSoundClass();
-	ParseParams.SoundSubmix = GetSoundSubmix();
 	ParseParams.bIsPaused = bIsPaused;
+
+	ParseParams.SoundSubmix = GetSoundSubmix();
 	ParseParams.DefaultMasterReverbSendAmount = Sound->DefaultMasterReverbSendAmount;
+	GetSoundSubmixSends(ParseParams.SoundSubmixSends);
+
+	// Set up the base source effect chain. 
+	ParseParams.SourceEffectChain = Sound->SourceEffectChain;
 
 	if (bApplyInteriorVolumes)
 	{
@@ -423,9 +476,98 @@ void FActiveSound::UpdateAdjustVolumeMultiplier(const float DeltaTime)
 	}
 } 
 
-void FActiveSound::UpdateOcclusion(const FSoundAttenuationSettings* AttenuationSettingsPtr)
+void FActiveSound::OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum)
 {
-	float InterpolationTime = bHasCheckedOcclusion ? AttenuationSettingsPtr->OcclusionInterpolationTime : 0.0f;
+	// Look for any results that resulted in a blocking hit
+	bool bFoundBlockingHit = false;
+	for (const FHitResult& HitResult : TraceDatum.OutHits)
+	{
+		if (HitResult.bBlockingHit)
+		{
+			bFoundBlockingHit = true;
+			break;
+		}
+	}
+
+	FAsyncTraceDetails TraceDetails;
+	if (TraceToActiveSoundMap.RemoveAndCopyValue(TraceHandle, TraceDetails))
+	{
+		if (FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager())
+		{
+			if (FAudioDevice* AudioDevice = AudioDeviceManager->GetAudioDevice(TraceDetails.AudioDeviceID))
+			{
+				FActiveSound* ActiveSound = TraceDetails.ActiveSound;
+
+				FAudioThread::RunCommandOnAudioThread([AudioDevice, ActiveSound, bFoundBlockingHit]()
+				{
+					if (AudioDevice->GetActiveSounds().Contains(ActiveSound))
+					{
+						ActiveSound->bIsOccluded = bFoundBlockingHit;
+						ActiveSound->bAsyncOcclusionPending = false;
+					}
+				});
+			}
+		}
+	}
+}
+
+void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FSoundAttenuationSettings* AttenuationSettingsPtr)
+{
+	check(AttenuationSettingsPtr);
+	check(AttenuationSettingsPtr->bEnableOcclusion);
+
+	if (!bAsyncOcclusionPending && (PlaybackTime - LastOcclusionCheckTime) > OcclusionCheckInterval)
+	{
+		LastOcclusionCheckTime = PlaybackTime;
+		static FName NAME_SoundOcclusion = FName(TEXT("SoundOcclusion"));
+
+		const bool bUseComplexCollisionForOcclusion = AttenuationSettingsPtr->bUseComplexCollisionForOcclusion;
+		const ECollisionChannel OcclusionTraceChannel = AttenuationSettingsPtr->OcclusionTraceChannel;
+
+		if (!bHasCheckedOcclusion)
+		{
+			FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexCollisionForOcclusion);
+			if (OwnerID > 0)
+			{
+				Params.AddIgnoredActor(OwnerID);
+			}
+
+			if (UWorld* WorldPtr = World.Get())
+			{
+				// LineTraceTestByChannel is generally threadsafe, but there is a very narrow race condition here 
+				// if World goes invalid before the scene lock and queries begin.
+				bIsOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, OcclusionTraceChannel, Params);
+			}
+		}
+		else
+		{
+			bAsyncOcclusionPending = true;
+
+			const uint32 SoundOwnerID = OwnerID;
+			TWeakObjectPtr<UWorld> SoundWorld = World;
+			FAsyncTraceDetails TraceDetails;
+			TraceDetails.AudioDeviceID = AudioDevice->DeviceHandle;
+			TraceDetails.ActiveSound = this;
+
+			FAudioThread::RunCommandOnGameThread([SoundWorld, SoundLocation, ListenerLocation, OcclusionTraceChannel, SoundOwnerID, bUseComplexCollisionForOcclusion, TraceDetails]
+			{
+				if (UWorld* WorldPtr = SoundWorld.Get())
+				{
+					FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexCollisionForOcclusion);
+					if (SoundOwnerID > 0)
+					{
+						Params.AddIgnoredActor(SoundOwnerID);
+					}
+
+					FTraceHandle TraceHandle = WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, OcclusionTraceChannel, Params, FCollisionResponseParams::DefaultResponseParam, &ActiveSoundTraceDelegate);
+					TraceToActiveSoundMap.Add(TraceHandle, TraceDetails);
+				}
+			});
+		}
+	}
+
+	// Update the occlusion values
+	const float InterpolationTime = bHasCheckedOcclusion ? AttenuationSettingsPtr->OcclusionInterpolationTime : 0.0f;
 	bHasCheckedOcclusion = true;
 
 	if (bIsOccluded)
@@ -449,92 +591,6 @@ void FActiveSound::UpdateOcclusion(const FSoundAttenuationSettings* AttenuationS
 	const float DeltaTime = FApp::GetDeltaTime();
 	CurrentOcclusionFilterFrequency.Update(DeltaTime);
 	CurrentOcclusionVolumeAttenuation.Update(DeltaTime);
-}
-
-void FActiveSound::OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDatum& TraceDatum)
-{
-	// Look for any results that resulted in a blocking hit
-	bool bFoundBlockingHit = false;
-	for (const FHitResult& HitResult : TraceDatum.OutHits)
-	{
-		if (HitResult.bBlockingHit)
-		{
-			bFoundBlockingHit = true;
-			break;
-		}
-	}
-
-	FActiveSound* ActiveSound = this;
-
-	FAudioThread::RunCommandOnAudioThread([ActiveSound, bFoundBlockingHit]()
-	{
-		ActiveSound->bIsOccluded = bFoundBlockingHit;
-		ActiveSound->bAsyncOcclusionPending = false;
-	});
-}
-
-void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FSoundAttenuationSettings* AttenuationSettingsPtr)
-{
-	check(AttenuationSettingsPtr);
-	check(AttenuationSettingsPtr->bEnableOcclusion);
-
-	if (!bAsyncOcclusionPending && (PlaybackTime - LastOcclusionCheckTime) > OcclusionCheckInterval)
-	{
-		LastOcclusionCheckTime = PlaybackTime;
-		static FName NAME_SoundOcclusion = FName(TEXT("SoundOcclusion"));
-
-		const bool bUseComplexCollisionForOcclusion = AttenuationSettingsPtr->bUseComplexCollisionForOcclusion;
-		const ECollisionChannel OcclusionTraceChannel = AttenuationSettingsPtr->OcclusionTraceChannel;
-
-		if (!OcclusionTraceDelegate.IsBound())
-		{
-			OcclusionTraceDelegate.BindRaw(this, &FActiveSound::OcclusionTraceDone);
-
-			FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexCollisionForOcclusion);
-			if (OwnerID > 0)
-			{
-				Params.AddIgnoredActor(OwnerID);
-			}
-
-			if (UWorld* WorldPtr = World.Get())
-			{
-				// LineTraceTestByChannel is generally threadsafe, but there is a very narrow race condition here 
-				// if World goes invalid before the scene lock and queries begin.
-				bIsOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, OcclusionTraceChannel, Params);
-			}
-		}
-		else
-		{
-			bAsyncOcclusionPending = true;
-
-			const uint32 SoundOwnerID = OwnerID;
-			FTraceDelegate* TraceDelegate = &OcclusionTraceDelegate;
-			TWeakObjectPtr<UWorld> SoundWorld = World;
-
-			FAudioThread::RunCommandOnGameThread([SoundWorld, SoundLocation, ListenerLocation, OcclusionTraceChannel, SoundOwnerID, bUseComplexCollisionForOcclusion, TraceDelegate]
-			{
-				if (UWorld* WorldPtr = SoundWorld.Get())
-				{
-					FCollisionQueryParams Params(NAME_SoundOcclusion, bUseComplexCollisionForOcclusion);
-					if (SoundOwnerID > 0)
-					{
-						Params.AddIgnoredActor(SoundOwnerID);
-					}
-
-					WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, OcclusionTraceChannel, Params, FCollisionResponseParams::DefaultResponseParam, TraceDelegate);
-				}
-			});
-		}
-	}
-
-	UpdateOcclusion(AttenuationSettingsPtr);
-}
-
-const TCHAR* GetAWaveName(TMap<UPTRINT, struct FWaveInstance*> WaveInstances)
-{
-	TArray<FWaveInstance*> WaveInstanceArray;
-	WaveInstances.GenerateValueArray(WaveInstanceArray);
-	return *WaveInstanceArray[0]->WaveData->GetName();
 }
 
 void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParseParameters& ParseParams )
@@ -896,18 +952,29 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 		}
 	}
 
-	// Only do occlusion traces if the sound is audible
-	if (Settings->bEnableOcclusion && Volume > 0.0f && !AudioDevice->IsAudioDeviceMuted())
+	// Only do occlusion traces if the sound is audible and we're not using a occlusion plugin
+	if (Settings->bEnableOcclusion)
 	{
-		check(ClosestListenerPtr);
-		CheckOcclusion(ClosestListenerPtr->Transform.GetTranslation(), ParseParams.Transform.GetTranslation(), Settings);
+		// If we've got a occlusion plugin settings, then the plugin will handle occlusion calculations
+		if (Settings->OcclusionPluginSettings)
+		{
+			ParseParams.OcclusionPluginSettings = Settings->OcclusionPluginSettings;
+		}
+		else if (Volume > 0.0f && !AudioDevice->IsAudioDeviceMuted())
+		{
+			check(ClosestListenerPtr);
+			CheckOcclusion(ClosestListenerPtr->Transform.GetTranslation(), ParseParams.Transform.GetTranslation(), Settings);
 
-		// Apply the volume attenuation due to occlusion (using the interpolating dynamic parameter)
-		ParseParams.VolumeMultiplier *= CurrentOcclusionVolumeAttenuation.GetValue();
+			// Apply the volume attenuation due to occlusion (using the interpolating dynamic parameter)
+			ParseParams.VolumeMultiplier *= CurrentOcclusionVolumeAttenuation.GetValue();
 
-		ParseParams.bIsOccluded = bIsOccluded;
-		ParseParams.OcclusionFilterFrequency = CurrentOcclusionFilterFrequency.GetValue();
+			ParseParams.bIsOccluded = bIsOccluded;
+			ParseParams.OcclusionFilterFrequency = CurrentOcclusionFilterFrequency.GetValue();
+		}
 	}
+
+	ParseParams.SpatializationPluginSettings = Settings->SpatializationPluginSettings;
+	ParseParams.ReverbPluginSettings = Settings->ReverbPluginSettings;
 
 	// Attenuate with the low pass filter if necessary
 	if (Settings->bAttenuateWithLPF)

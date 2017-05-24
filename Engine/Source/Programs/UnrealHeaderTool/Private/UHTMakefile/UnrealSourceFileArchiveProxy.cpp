@@ -38,7 +38,7 @@ FUnrealSourceFileArchiveProxy::FUnrealSourceFileArchiveProxy(FUHTMakefile& UHTMa
 
 	for (auto& Kvp : UnrealSourceFile->GetDefinedClassesWithParsingInfo())
 	{
-		DefinedClassesWithParsingInfo.Add(TPairInitializer<FSerializeIndex, FSimplifiedParsingClassInfo>(UHTMakefile.GetClassIndex(Kvp.Key), Kvp.Value));
+		DefinedClassesWithParsingInfo.Emplace(UHTMakefile.GetClassIndex(Kvp.Key), Kvp.Value);
 	}
 
 	GeneratedCodeVersionsArchiveProxy.Empty(UnrealSourceFile->GetGeneratedCodeVersions().Num());
@@ -48,7 +48,7 @@ FUnrealSourceFileArchiveProxy::FUnrealSourceFileArchiveProxy(FUHTMakefile& UHTMa
 		FSerializeIndex StructIndex = UHTMakefile.GetStructIndex(Kvp.Key);
 		uint8 GeneratedCodeVersion = static_cast<uint8>(Kvp.Value);
 
-		GeneratedCodeVersionsArchiveProxy.Add(TPairInitializer<FSerializeIndex, uint8>(StructIndex, GeneratedCodeVersion));
+		GeneratedCodeVersionsArchiveProxy.Emplace(StructIndex, GeneratedCodeVersion);
 	}
 }
 
@@ -87,7 +87,7 @@ void FUnrealSourceFileArchiveProxy::Resolve(FUnrealSourceFile* UnrealSourceFile,
 	UnrealSourceFile->GetIncludes().Empty(Includes.Num());
 	for (const FHeaderProviderArchiveProxy& Include : Includes)
 	{
-		FHeaderProvider HeaderProvider = FHeaderProvider(static_cast<EHeaderProviderSourceType>(Include.Type), Include.Id, Include.bAutoInclude);
+		FHeaderProvider HeaderProvider = FHeaderProvider(static_cast<EHeaderProviderSourceType>(Include.Type), CopyTemp(Include.Id), Include.bAutoInclude);
 		HeaderProvider.SetCache(UHTMakefile.GetUnrealSourceFileByIndex(Include.CacheIndex));
 		UnrealSourceFile->GetIncludes().Add(HeaderProvider);
 	}

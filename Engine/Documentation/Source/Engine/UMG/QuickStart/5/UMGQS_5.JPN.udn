@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2708150
-Availability:Public
+﻿Availability:Public
 Title:5.ゲーム内の一時停止メニューの作成 / スクリプティング
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:ゲームを一時停止または終了できるゲーム内の一時停止メニューを作成します。 
 version:4.9
+tags:UMG UI Designer
 
 
 [VAR:Steps]
@@ -130,7 +130,7 @@ version:4.9
 	[![](PauseScript8.png)(w:840)](PauseScript8.png)
 	[/REGION]
 
-	_クリックしてフルサイズで表示_
+	_フルサイズ表示するにはここをクリック_
 
 	ボタンを両方ともセットアップしたので、最後にやるべきことはプレイヤーが一時停止メニューを呼び出し、ゲームを停止できるようにすることです。  
 
@@ -165,8 +165,7 @@ version:4.9
 	[REGION:lightbox]
 	[![](PauseScript14.png)(w:840)](PauseScript14.png)
 	[/REGION]
-
-	_クリックしてフルサイズで表示_
+	_フルサイズ表示するにはここをクリック_
 
 	一時停止メニューをセットアップしたので、テストします。 
 

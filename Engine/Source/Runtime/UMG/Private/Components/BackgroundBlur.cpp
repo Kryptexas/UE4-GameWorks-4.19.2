@@ -10,6 +10,7 @@
 #include "SBackgroundBlur.h"
 #include "BackgroundBlurSlot.h"
 #include "EditorObjectVersion.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -69,7 +70,6 @@ void UBackgroundBlur::SynchronizeProperties()
 
 void UBackgroundBlur::OnSlotAdded(UPanelSlot* InSlot)
 {
-	// Copy the content properties into the new slot
 	UBackgroundBlurSlot* BackgroundBlurSlot = CastChecked<UBackgroundBlurSlot>(InSlot);
 	BackgroundBlurSlot->Padding = Padding;
 	BackgroundBlurSlot->HorizontalAlignment = HorizontalAlignment;
@@ -82,7 +82,7 @@ void UBackgroundBlur::OnSlotAdded(UPanelSlot* InSlot)
 		BackgroundBlurSlot->BuildSlot(MyBackgroundBlur.ToSharedRef());
 	}
 }
-
+	
 void UBackgroundBlur::OnSlotRemoved(UPanelSlot* InSlot)
 {
 	// Remove the widget from the live slot if it exists.
@@ -155,25 +155,78 @@ void UBackgroundBlur::SetLowQualityFallbackBrush(const FSlateBrush& InBrush)
 	}
 }
 
+void UBackgroundBlur::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+}
+
 void UBackgroundBlur::PostLoad()
 {
 	Super::PostLoad();
 
-	if(GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::AddedBackgroundBlurContentSlot)
+	if ( GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::AddedBackgroundBlurContentSlot )
 	{
 		//Convert existing slot to new background blur slot slot.
-		if(UPanelSlot* PanelSlot = GetContentSlot())
+		if ( UPanelSlot* PanelSlot = GetContentSlot() )
 		{
-			UBackgroundBlurSlot* BlurSlot = NewObject<UBackgroundBlurSlot>(this);
-			BlurSlot->Content = PanelSlot->Content;
-			BlurSlot->Content->Slot = BlurSlot;
-			BlurSlot->Parent = this;
-			Slots[0] = BlurSlot;
+			if ( PanelSlot->IsA<UBackgroundBlurSlot>() == false )
+			{
+				UBackgroundBlurSlot* BlurSlot = NewObject<UBackgroundBlurSlot>(this);
+				BlurSlot->Content = PanelSlot->Content;
+				BlurSlot->Content->Slot = BlurSlot;
+				BlurSlot->Parent = this;
+				Slots[0] = BlurSlot;
+
+				// We don't want anyone considering this panel slot for anything, so mark it pending kill.  Otherwise
+				// it will confuse the pass we do when doing template validation when it finds it outered to the blur widget.
+				PanelSlot->MarkPendingKill();
+			}
 		}
 	}
 }
 
 #if WITH_EDITOR
+
+void UBackgroundBlur::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	static bool IsReentrant = false;
+
+	if (!IsReentrant)
+	{
+		IsReentrant = true;
+
+		if (PropertyChangedEvent.Property)
+		{
+			static const FName PaddingName("Padding");
+			static const FName HorizontalAlignmentName("HorizontalAlignment");
+			static const FName VerticalAlignmentName("VerticalAlignment");
+
+			FName PropertyName = PropertyChangedEvent.Property->GetFName();
+
+			if (UBackgroundBlurSlot* BlurSlot = Cast<UBackgroundBlurSlot>(GetContentSlot()))
+			{
+				if (PropertyName == PaddingName)
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, PaddingName, BlurSlot, PaddingName);
+				}
+				else if (PropertyName == HorizontalAlignmentName)
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, HorizontalAlignmentName, BlurSlot, HorizontalAlignmentName);
+				}
+				else if (PropertyName == VerticalAlignmentName)
+				{
+					FObjectEditorUtils::MigratePropertyValue(this, VerticalAlignmentName, BlurSlot, VerticalAlignmentName);
+				}
+			}
+		}
+
+		IsReentrant = false;
+	}
+}
 
 const FText UBackgroundBlur::GetPaletteCategory()
 {

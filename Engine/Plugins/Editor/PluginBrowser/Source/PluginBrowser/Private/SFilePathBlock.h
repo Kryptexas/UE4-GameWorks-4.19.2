@@ -24,6 +24,7 @@ public:
 	SLATE_BEGIN_ARGS( SFilePathBlock )
 		: _LabelBackgroundColor(FLinearColor::Black)
 		, _LabelBackgroundBrush(FEditorStyle::GetBrush("WhiteBrush"))
+		, _ReadOnlyFolderPath(false)
 	{}
 		/** Attribute specifying the text to display in the folder input */
 		SLATE_ATTRIBUTE(FText, FolderPath)
@@ -39,6 +40,9 @@ public:
 
 		/** Background label brush for the folder/name labels */
 		SLATE_ATTRIBUTE(const FSlateBrush*, LabelBackgroundBrush)
+
+		/** If true, the folder path cannot be modified by the user */
+		SLATE_ARGUMENT(bool, ReadOnlyFolderPath)
 
 		/** Event that is triggered when the browser for folder button is clicked */
 		SLATE_EVENT(FOnClicked, OnBrowseForFolder)

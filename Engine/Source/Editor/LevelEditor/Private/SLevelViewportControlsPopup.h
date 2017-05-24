@@ -39,14 +39,7 @@ private:
 	 */
 	FReply OnClicked() const;
 
-	/**
-	 * Gets content for the popup
-	 */
-	TSharedRef<SWidget> OnGetMenuContent();
-
 private:
-	/** Our menu's anchor */
-	TSharedPtr<SMenuAnchor> MenuAnchor;
 	/** The Button to open the menu*/
 	TSharedPtr< SButton > Button;
 	/** The Image to display on the button */
@@ -57,8 +50,6 @@ private:
 	const FSlateBrush* Hovered;
 	/** Button Image when pressed */
 	const FSlateBrush* Pressed;
-	/** Size of the viewport controls popup */
-	FVector2D PopupSize;
 	/** Path to html file for viewport controls */
 	FString PopupPath;
 };

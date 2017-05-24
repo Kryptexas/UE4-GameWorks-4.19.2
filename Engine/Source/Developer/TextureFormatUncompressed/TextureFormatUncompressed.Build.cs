@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TextureFormatUncompressed : ModuleRules
 {
-	public TextureFormatUncompressed(TargetInfo Target)
+	public TextureFormatUncompressed(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

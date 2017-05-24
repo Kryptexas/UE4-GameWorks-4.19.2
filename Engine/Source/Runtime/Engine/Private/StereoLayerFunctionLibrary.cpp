@@ -23,7 +23,7 @@ class FAutoShow: public TSharedFromThis<FAutoShow>
 {
 public:
 	void OnPreLoadMap(const FString&);
-	void OnPostLoadMap();
+	void OnPostLoadMap(UWorld* LoadedWorld);
 
 	void Register();
 	void Unregister();
@@ -38,7 +38,7 @@ void FAutoShow::OnPreLoadMap(const FString&)
 	}
 }
 
-void FAutoShow::OnPostLoadMap()
+void FAutoShow::OnPostLoadMap(UWorld* LoadedWorld)
 {
 	IStereoLayers* StereoLayers = GetStereoLayers();
 	if (StereoLayers)
@@ -50,13 +50,13 @@ void FAutoShow::OnPostLoadMap()
 void FAutoShow::Register()
 {
 	FCoreUObjectDelegates::PreLoadMap.AddSP(this, &FAutoShow::OnPreLoadMap);
-	FCoreUObjectDelegates::PostLoadMap.AddSP(this, &FAutoShow::OnPostLoadMap);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddSP(this, &FAutoShow::OnPostLoadMap);
 }
 
 void FAutoShow::Unregister()
 {
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
-	FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 }
 
 static TSharedPtr<FAutoShow> AutoShow;

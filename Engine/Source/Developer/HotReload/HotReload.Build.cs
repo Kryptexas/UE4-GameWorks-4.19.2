@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class HotReload : ModuleRules
 {
-	public HotReload(TargetInfo Target)
+	public HotReload(ReadOnlyTargetRules Target) : base(Target)
 	{
 			PublicDependencyModuleNames.AddRange(
 				new string[]
@@ -18,7 +18,8 @@ public class HotReload : ModuleRules
 				{
 					"Analytics",
 					"DirectoryWatcher",
-					"DesktopPlatform"
+					"DesktopPlatform",
+					"Projects"
 				}
 			);
 

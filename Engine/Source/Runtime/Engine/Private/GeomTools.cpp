@@ -8,6 +8,7 @@
 #include "RawIndexBuffer.h"
 #include "StaticMeshResources.h"
 #include "Engine/Polys.h"
+#include "Engine/StaticMesh.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGeomTools, Log, All);
 

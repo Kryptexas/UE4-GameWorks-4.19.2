@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CinematicCamera : ModuleRules
 {
-	public CinematicCamera(TargetInfo Target)
+	public CinematicCamera(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

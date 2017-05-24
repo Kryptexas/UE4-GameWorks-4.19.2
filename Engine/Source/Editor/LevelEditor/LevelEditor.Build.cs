@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LevelEditor : ModuleRules
 {
-	public LevelEditor(TargetInfo Target)
+	public LevelEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
@@ -58,7 +58,6 @@ public class LevelEditor : ModuleRules
 				"TargetPlatform",
 				"EngineSettings",
 				"PropertyEditor",
-				"WebBrowser",
                 "Persona",
                 "Kismet",
 				"KismetWidgets",

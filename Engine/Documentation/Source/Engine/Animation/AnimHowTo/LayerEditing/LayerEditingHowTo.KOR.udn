@@ -1,174 +1,106 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3255885
 Availability: Public
 Title:애니메이션 레이어 편집하기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Idle 애니메이션을 편집하여 애니메이션 레이어 편집을 통해 새로운 Reload 애니메이션을 만듭니다.
 Related: Engine\Animation\Sequences
-Related: Engine\Animation\AnimMontage
 Related: Engine\Animation\AnimBlueprints
-Related: Engine\Animation\AnimHowTo\AdditiveAnimations
+Related: Engine/Animation/AnimMontage
 Related: Engine\Animation\Skeleton
 Related: Engine\Animation\Overview
-version: 4.9
+version: 4.14
 skilllevel: Advanced
+type:how-to
+topic-image:LayeringTopic.png
+tags:Animation
+tags:Animation Blueprint
+tags:Animation Montage
 
-**애니메이션 레이어 편집** 은 언리얼 엔진 4 안에서 기존 [](Engine\Animation\Sequences) 를 **애디티브 레이어 트랙** 의 일부로 편집할 수 있습니다. 애니메이션 레이어 편집을 통해 기존 애니메이션을 조절하여 애니메이션을 다른 자세로 찍거나, 원본을 기반으로 제공한 자체 모션으로 별도의 애니메이션을 새로 만들 수 있습니다.
+애니메이션 레이어 편집은 기존 [](Engine\Animation\Sequences) 를 언리얼 엔진 4 안에서 **Additive Layer Tracks** (애디티브 레이어 트랙)의 일부로 편집할 수 있도록 해주는 기능입니다.
+이를 통해 기존 애니메이션을 가지고 해당 애니메이션에서 다른 테이크를 만들거나, 원본에서 파생된 별도의 모션을 가진 새로운 독립 애니메이션을 만들 수도 있습니다.
 
-여기서는 애니메이션 레이어 편집 툴 사용법과 Idle 애니메이션을 가지고 Reload 애니메이션으로 용도변경하는 법을 보여드리겠습니다.
-
-[TOC(start:2 end:2)]
+여기서는 애니메이션 레이어 편집 툴을 사용하여 Idle 애니메이션을 Reload 애니메이션으로 용도 변경하는 법을 보여드리겠습니다.
 
 [REGION:note]
-여기서는 **시작용 콘텐츠** 포함 **블루프린트 일인칭** 템플릿을 사용하여 새 프로젝트를 만들었습니다.
+여기서는 **블루프린트 일인칭** 템플릿에 **시작용 콘텐츠** 를 포함시켜 새로 만든 프로젝트를 사용하고 있습니다.
 [/REGION]
 
-## 새 애니메이션 만들기
+## 단계
 
-여기서는 Idle 애니메이션 사본을 만들어 편집하여, 원본은 보존하도록 하겠습니다.
+1.	**Content/FirstPerson/Animation** 폴더의 **FirstPerson_Idle** 애니메이션을 복제하고 이름을 **FirstPerson_Reload** 이라 합니다. 
 
-1.  **콘텐츠 브라우저** 에서 **Game/FirstPerson/Animations** 폴더 아래 **FirstPerson_Idle** 애니메이션을 엽니다.
+	![](LayerAnimation_01.png)
 
-	![](AnimEdit1.png)
+1.	**FirstPerson_Reload** 에서 애니메이션을 0 프레임에 일시정지시키고, **스켈레톤 트리** 의 **upperarm_l** 본을 클릭한 뒤 **Key** (키) 버튼을 클릭합니다.
 
-1.	애니메이션을 열고 **재생 콘트롤** 을 사용하여 애니메이션을 일시정지시킨 뒤 프레임 0, 처음 위치로 설정합니다.
+	![](LayerAnimation_02.png)
 
-	![](AnimEdit2.png)(w:640)
+	그러면 **Additive Layer Tracks** (애디티브 레이어 섹션)에 upperarm_l 현재 위치에 대한 **Transform**, **Rotation**, **Scale** (이동, 회전, 스케일) 키가 추가됩니다.
 
-1.	툴바 메뉴의 **애셋 생성** 버튼을 클릭한 다음, _애니메이션 생성_ 아래 **현재 애니메이션에서** 를 선택합니다.
+	![](LayerAnimation_03.png)
 
-	![](LE_FromCurrentAnimation.jpg)
+1.	타임라인을 **15** 프레임으로 이동시킵니다.
 
-	여기서는 Idle 애니메이션을 기반으로 새 애니메이션을 만듭니다. 애니메이션의 특정 포즈나 베이스 레퍼런스 포즈를 기반으로 애니메이션을 새로 만드는 옵션도 있습니다. 우리 용도상 전체 idle 애니메이션을 작업하여 reload 애니메이션으로 변경할 것이므로, **현재 애니메이션에서** 옵션이 가장 좋습니다.
+	![](LayerAnimation_04.png)
 
-1.	**새 애니메이션 애셋 생성** 창에서 **Animations** 폴더를 선택하고 이름을 **FirstPerson_Reload** 라 한 뒤 **OK** 를 클릭합니다. 
+1.	**upperarm_l** 본을 **-70** 도 회전시킨 뒤 **Key** (키) 버튼을 누릅니다.
 
-	![](AnimEdit4.png)
+	![](LayerAnimation_05.png)
 
-	애니메이션이 생성된 뒤 자동으로 열려, 편집을 시작할 수 있습니다.
+	그러면 애니메이션이 15 프레임에 있을 때 본 위치에 대한 키가 추가됩니다.
 
-## 새 애니메이션 편집하기
+1.	타임라인을 **20** 프레임으로 이동시키고, **upperarm_l** 본을 기본 위치에서 **70** 도 회전시킨 후 **Key** 버튼을 누릅니다.
 
-**FirstPerson_Reload** 애니메이션이 생성되었으니, 애니메이션 레이어 편집을 통해 편집을 시작할 수 있습니다.
+	![](LayerAnimation_06.png)
 
-1.  **FirstPerson_Reload** 애니메이션을 열고, **재생 콘트롤** 의 **To Next** 버튼을 클릭하여 15 프레임으로 이동합니다.
+	20 프레임에 걸쳐 팔이 내려가다가 기본 위치로 다시 올라옵니다.
 
-	![](AnimEdit5.png)
+1.	타임라인 마커에 **우클릭** 하고 **Remove from frame 20 to frame 92** 를 선택합니다. 
 
-1.	**스켈레톤 트리** 에서 **upperarm_l** 본을 클릭하여 선택합니다.
+	![](LayerAnimation_07.png)
 
-	![](LE_Leftarm.jpg)
+	그러면 애니메이션에서 나머지 프레임은 제거되고, 리로드 애니메이션만 남습니다.
 
-	편집을 시작하려면, 먼저 위에서 이미 했던 대로 **애디티브 레이어 트랙** 에서 변경할 본을 선택해야 합니다.
+1.	**콘텐츠 브라우저** 에서 **FirstPerson_Reload** 애니메이션에 **우클릭** 하고 **Create AnimMontage** (애님 몽타주 생성)을 선택합니다. 
 
-	[REGION:tip]
-	카메라를 이리저리 날려 왼팔을 더욱 잘 볼 수 있으면 편집이 쉬워질 것입니다. 뷰포트 안에서 **오른쪽 마우스 버튼** 을 누른 채 **WASD** 키를 사용하면 카메라를 움직여 원하는 뷰를 얻을 수 있습니다.
-	[/REGION]
+	![](LayerAnimation_08.png)
 
-1.	툴바 메뉴에서 **키 추가** 버튼을 누릅니다.
+	이것을 사용하여 플레이어가 게임 도중 지정된 키를 누르면 새로운 리로드 애니메이션을 재생합니다.
 
-	![](AnimEdit7.png)
+1.	새 애님 몽타주를 연 뒤, 슬롯이 **DefaultGroup.Arms** 슬롯을 사용하도록 변경합니다.
 
-	그러면 아래에서처럼 애디티브 레이어 트랙에 본의 현재 위치에 대한 키가 추가됩니다.
+	![](LayerAnimation_09.png)
 
-	![](AnimEdit8.png)(w:520)
+	아래에서 템플릿 캐릭터에 할당된 애니메이션 블루프린트는 [Slot 노드](Engine/Animation/NodeReference/Blend) 를 사용하여 "Arms" 슬롯에 할당된 애님 몽타주를 재생하도록 구성되어 있습니다.
 
-	위에서 **upperarm_l** 본에 세 개의 트랙이 추가되었습니다: **Translation** 트랙 (1), **Rotation** 트랙 (2), **Scale** 트랙 (3) 입니다.
+	![](LayerAnimation_13.png)
 
-1.	**To Next** 버튼을 클릭하여 30 프레임으로 진행합니다.
+	무기 발사 애니메이션 재생 처리에는 현재 이것이 사용되고 있는데, 이것을 리로드 애니메이션에도 사용할 것입니다.
 
-	![](AnimEdit9.png)
+1.	**Content/FirstPersonBP/Blueprints** 폴더에서 **FirstPersonCharacter** 블루프린트를 엽니다.
 
-1.	뷰포트 안에서 **회전** 위젯의 초록 원호에 **좌클릭** 합니다.
+	![](LayerAnimation_10.png)
 
-	![](LE_LeftArmRot.jpg)
+	템플릿에 할당된 캐릭터 블루프린트이자 우리 플레이 캐릭터입니다.
 
-	그러면 축 회전 위젯으로 변경되고, 마우스를 왼쪽 **-60.00** 마크로 움직입니다.
+1.	**Spawn Projectile** 스크립트를 찾아 **Ctrl** 키를 누르고 아래 표시된 **Mesh2P**, **Get Anim Instance**, **Montage Play** 노드를 선택합니다.
 
-	![](LE_LeftArmMinus60.jpg)
+	![](LayerAnimation_11.png)
 
-	일인칭 관점에서 보면, 손을 화면 밖 아래로 끌어냅니다.
+	이 노드는 스켈레탈 메시에 할당된 애니메이션 인스턴스를 구해 애니메이션 몽타주, 여기서는 무기 발사 몽타주 재생 신호를 보냅니다.
+	똑같은 스크립트를 사용하여 지정된 키를 누르면 리로드 애니메이션 몽타주를 호출하도록 하겠습니다.
 
-1.	툴바 메뉴에서, **키 추가** 버튼(또는 **S** 키)을 누릅니다.
+1.	**우클릭** 후 선택된 노드를 복사한 뒤, 그래프 빈 곳에 붙여넣습니다.
 
-	![](AnimEdit12.png)(w:640)
+1.	**우클릭** 후 **R** Key Event 를 추가하고 붙여넣은 노드에 아래와 같이 연결, **Montage to Play** 는 리로드 몽타주로 설정합니다.
 
-	애디티브 레이어 트랙에 새로운 키가 추가되며, 첫 키에서 두 번째 키까지 커브가 생성됩니다.
+	![](LayerAnimation_12.png)
 
-1.	**재생 콘트롤** 의 **To Next** 버튼을 클릭하여 45 프레임으로 진행합니다.
+1.	**컴파일** 후 **에디터에서 플레이** 합니다. 
 
-1.	뷰포트에서 **회전** 위젯의 초록 원호를 **좌클릭** 한 뒤 끌어, 오른쪽으로 **60.00** 마크까지 회전시킵니다.
+## 최종 결과
 
-	![](LE_LeftArmUp60.jpg)
-
-1.	툴바 메뉴에서 **키 추가** 버튼( 또는 **S** 키)을 누릅니다.
-
-	![](AnimEdit15.png)(w:640)
-
-	새 키가 추가되며, 키 첫 세트와 값이 똑같을 것입니다.
-
-1.	**재생 콘트롤** 의 **To Next** 버튼을 클릭하여 50 프레임으로 진행한 뒤, **S** 키를 눌러 키 세트를 추가합니다.
-
-	![](AnimEdit17.png)(w:640)
-
-1.	**재생 콘트롤** 의 **To Next** 버튼을 클릭하여 60 프레임으로 진행합니다.
-
-1.	뷰포트에서 **W** 키를 눌러 **이동** 모드로 전환한 다음, 빨강 화살표를 **좌클릭** 하고 오른쪽으로 약간 잡아 끕니다.
-
-	![](LE_LeftArmPump.jpg)
-
-	그러면 팔이 샷건을 "펌핑" 하는 것처럼 뒤로 약간 이동됩니다. 얼마만큼 움직일지는 재량껏 하시면 됩니다.
-
-1.	툴바 메뉴에서 **키 추가** 버튼( 또는 **S** 키)을 누릅니다.
-
-	![](AnimEdit20.png)(w:640)
-
-	예전 키에서의 커브와 함께 애디티브 레이어 트랙에 포즈에 대한 키가 추가됩니다.
-
-1.	**재생 콘트롤** 의 **To Next** 버튼을 클릭하여 65 프레임으로 진행한 뒤, **S** 키를 눌러 키 세트를 추가합니다.
-
-	![](AnimEdit22.png)(w:640)
-
-	새 키의 값은 0 으로 설정될텐데, 트랙의 키에 클릭하여 확인할 수 있습니다.
-
-	![](AnimEdit23.png)(w:640)
-
-	트랙에 있는 키를 클릭한 다음 **시간** 또는 **값** 을 수동 입력하면 원하는 정확한 값을 구하는 것도 가능합니다.
-
-1.	툴바 메뉴에서 초록 **적용** 버튼을 클릭하여 변경사항을 애니메이션에 적용합니다.
-
-	![](AnimEdit24.png)
-
-	키와 커브가 애니메이션에 추가되면, 그 결과는 베이스 애니메이션에 애디티브 모션을 적용한 것이 됩니다. **적용** 버튼을 누름으로써 키와 커브 데이터를 최종 애니메이션에 구워 넣게 됩니다.
-
-1.	애니메이션이 완료되었으니 **저장** 버튼을 클릭합니다.
- 
-1. **Game/FirstPerson/Animations** 폴더 안의 **FirstPerson_AnimBP** 를 더블클릭하여 엽니다.
-
-	![](AnimEdit28.png)
-
-1. **애니메이션 블루프린트 에디터** 안의 **내 블루프린트** 패널에서 **애님 그래프** 를 더블클릭하여 엽니다.
-
-	![](AnimEdit29.png)
-
-1.  **애님 그래프** 의 **New State Mahchine** 노드를 더블클릭합니다.
-
-	![](AnimEdit30.png)
-
-1. 제목이 **FPP_Idle** 인 노드를 찾아 더블클릭하여 엽니다.
-
-	![](AnimEdit31.png)
-
-1. 그래프에서 우클릭한 다음 **Play FirstPerson_Reload** 노드를 생성합니다.
-
-	![](AnimEdit32.png)
-
-1. **Play FirstPerson_Idle** 노드 출력에서 **Play FirstPerson_Reload** 노드로 **Ctrl + 좌클릭 드래그** 할 때 기존 **Play FirstPerson_Idle** 노드를 새로운 **Play FirstPerson_Reload** 노드로 대체합니다.
-
-	![](AnimEdit33.png)
-
-1. 애니메이션 블루프린트를 **컴파일**, **저장** 한 다음 닫고서 **플레이** 를 눌러 새 애니메이션을 테스트합니다.
-
-아래는 게임내 캐릭터에 애니메이션이 재생되는 예제입니다.
+에디터에서 플레이하고, **R** 키를 누르면 캐릭터의 손이 화면 밖으로 나아가 총으로 올라간 뒤 리로드 모션을 시뮬레이션합니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -178,11 +110,9 @@ skilllevel: Advanced
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-Soior02AUtE
+8nH8cw2bSB8
 [/PARAMLITERAL]
 [/OBJECT]
-
-## 결론 & 잦은 질문
 
 타임라인 상의 프레임으로 이동한 다음 변경하고자 하는 본을 선택한 뒤 키를 추가하고, 타임라인을 약간 앞으로 옮기고 본을 새 위치로 옮겨 다시 키를 추가하는 식으로, 이 애니메이션 변경 작업을 계속할 수 있습니다. 타임라인이 진행하면서 본은 생성된 커브를 따라 첫 키에서 두 번째 키로 이동합니다. 예제의 본은 얼마든지 수정하여 정교하게 만들 수 있으며, 키 작업은 동일합니다.
 
@@ -206,15 +136,18 @@ Soior02AUtE
 
 *	**표시** 메뉴 옵션 중 뷰포트에 **소스 애니메이션** 및 (또는) **구은 애니메이션** 을 표시하도록 할 수 있습니다. 아래 그림에서 소스 애니메이션은 흰색 스켈레톤으로 보이는 반면, 구은 애니메이션은 파랑색 스켈레톤으로 보입니다.
 
-	![](LE_SourceBakedAnim.jpg)
+	![](LE_SourceBakedAnim.png)
+
+	**표시 -> 본 계층구조** 메뉴에서 **본** 표시를 켰는지만 확인하면 됩니다.
 
 **애니메이션 레이어 편집을 사용하여 루트 모션을 만들 수도 있나요?**
 
 *	네, 루트 본을 선택하고 키를 추가한 다음, 타임라인을 앞으로 이동한 뒤 루트 본을 이동하여 다시 키를 추가하면 됩니다.
 
-	![](LE_ThirdPersonAnim.jpg)
+	![](LE_ThirdPersonAnim.png)
 
 	위에서는 소스 / 구은 애니메이션 미리보기를 켰으며, 흰색 스켈레톤이 소스 애니메이션입니다.
+
 
 
 

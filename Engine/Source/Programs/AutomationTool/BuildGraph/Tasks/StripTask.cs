@@ -37,7 +37,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Output directory for the stripped files. Defaults to the input path (overwriting the input files).
 		/// </summary>
-		[TaskParameter(ValidationType = TaskParameterValidationType.DirectoryName)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string OutputDir;
 
 		/// <summary>
@@ -82,13 +82,6 @@ namespace BuildGraph.Tasks
 			// Get the output directory
 			DirectoryReference OutputDir = ResolveDirectory(Parameters.OutputDir);
 
-			// Make sure the source and destination directories don't overlap. We can't strip in-place at the moment.
-			if(BaseDir == OutputDir)
-			{
-				CommandUtils.LogError("Output directory for stripped files is the same as source directory ({0})", BaseDir.FullName);
-				return false;
-			}
-
 			// Find the matching files
 			FileReference[] SourceFiles = ResolveFilespec(BaseDir, Parameters.Files, TagNameToFileSet).OrderBy(x => x.FullName).ToArray();
 
@@ -96,13 +89,19 @@ namespace BuildGraph.Tasks
 			FileReference[] TargetFiles = SourceFiles.Select(x => FileReference.Combine(OutputDir, x.MakeRelativeTo(BaseDir))).ToArray();
 
 			// Run the stripping command
-			UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(Parameters.Platform);
-			UEToolChain ToolChain = Platform.CreateContext(null, null).CreateToolChainForDefaultCppPlatform();
+			Platform TargetPlatform = Platform.GetPlatform(Parameters.Platform);
 			for (int Idx = 0; Idx < SourceFiles.Length; Idx++)
 			{
-				TargetFiles[Idx].Directory.CreateDirectory();
-				CommandUtils.Log("Stripping symbols: {0} -> {1}", SourceFiles[Idx].FullName, TargetFiles[Idx].FullName);
-				ToolChain.StripSymbols(SourceFiles[Idx].FullName, TargetFiles[Idx].FullName);
+				DirectoryReference.CreateDirectory(TargetFiles[Idx].Directory);
+				if (SourceFiles[Idx] == TargetFiles[Idx])
+				{
+					CommandUtils.Log("Stripping symbols: {0}", SourceFiles[Idx].FullName);
+				}
+				else
+				{
+					CommandUtils.Log("Stripping symbols: {0} -> {1}", SourceFiles[Idx].FullName, TargetFiles[Idx].FullName);
+				}
+				TargetPlatform.StripSymbols(SourceFiles[Idx], TargetFiles[Idx]);
 			}
 
 			// Apply the optional tag to the build products

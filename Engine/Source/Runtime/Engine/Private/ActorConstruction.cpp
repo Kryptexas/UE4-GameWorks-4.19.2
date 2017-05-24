@@ -8,6 +8,7 @@
 #include "UObject/Object.h"
 #include "UObject/Class.h"
 #include "UObject/UnrealType.h"
+#include "UObject/UObjectThreadContext.h"
 #include "Serialization/ObjectReader.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/Blueprint.h"
@@ -288,7 +289,7 @@ void AActor::RerunConstructionScripts()
 				DetachRootComponentFromParent();
 			}
 
-			for (const auto& CachedAttachInfo : ActorTransactionAnnotation->RootComponentData.AttachedToInfo)
+			for (const FActorRootComponentReconstructionData::FAttachedActorInfo& CachedAttachInfo : ActorTransactionAnnotation->RootComponentData.AttachedToInfo)
 			{
 				AActor* AttachedActor = CachedAttachInfo.Actor.Get();
 				if (AttachedActor)
@@ -841,22 +842,23 @@ void AActor::ProcessUserConstructionScript()
 	bRunningUserConstructionScript = false;
 
 	// Validate component mobility after UCS execution
-	TInlineComponentArray<USceneComponent*> SceneComponents;
-	GetComponents(SceneComponents);
-	for (auto SceneComponent : SceneComponents)
+	for (UActorComponent* Component : GetComponents())
 	{
-		// A parent component can't be more mobile than its children, so we check for that here and adjust as needed.
-		if(SceneComponent != RootComponent && SceneComponent->GetAttachParent() != nullptr && SceneComponent->GetAttachParent()->Mobility > SceneComponent->Mobility)
+		if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
 		{
-			if(SceneComponent->IsA<UStaticMeshComponent>())
+			// A parent component can't be more mobile than its children, so we check for that here and adjust as needed.
+			if (SceneComponent != RootComponent && SceneComponent->GetAttachParent() != nullptr && SceneComponent->GetAttachParent()->Mobility > SceneComponent->Mobility)
 			{
-				// SMCs can't be stationary, so always set them (and any children) to be movable
-				SceneComponent->SetMobility(EComponentMobility::Movable);
-			}
-			else
-			{
-				// Set the new component (and any children) to be at least as mobile as its parent
-				SceneComponent->SetMobility(SceneComponent->GetAttachParent()->Mobility);
+				if (SceneComponent->IsA<UStaticMeshComponent>())
+				{
+					// SMCs can't be stationary, so always set them (and any children) to be movable
+					SceneComponent->SetMobility(EComponentMobility::Movable);
+				}
+				else
+				{
+					// Set the new component (and any children) to be at least as mobile as its parent
+					SceneComponent->SetMobility(SceneComponent->GetAttachParent()->Mobility);
+				}
 			}
 		}
 	}
@@ -930,9 +932,6 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 
 			// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
 			ArPortFlags |= PPF_Duplicate;
-
-			// Set this flag to ensure that we also serialize any deprecated properties.
-			ArPortFlags |= PPF_UseDeprecatedProperties;
 		}
 	};
 
@@ -957,9 +956,19 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 			EObjectFlags(TemplateData->ComponentTemplateFlags) & ~(RF_ArchetypeObject | RF_Transactional | RF_WasLoaded | RF_Public | RF_InheritableComponentTemplate)
 		);
 
+		// Set these flags to match what SDO would otherwise do before serialization to enable post-duplication logic on the destination object.
+		NewActorComp->SetFlags(RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
+
 		// Load cached data into the new instance.
 		FBlueprintComponentInstanceDataLoader ComponentInstanceDataLoader(TemplateData->GetCachedPropertyDataForSerialization(), TemplateData->GetCachedPropertyListForSerialization());
 		NewActorComp->Serialize(ComponentInstanceDataLoader);
+
+		// Handle tasks that would normally occur post-duplication w/ SDO.
+		NewActorComp->PostDuplicate(EDuplicateMode::Normal);
+		{
+			TGuardValue<bool> GuardIsRoutingPostLoad(FUObjectThreadContext::Get().IsRoutingPostLoad, true);
+			NewActorComp->ConditionalPostLoad();
+		}
 
 		// Handle post-creation tasks.
 		PostCreateBlueprintComponent(NewActorComp);
@@ -988,7 +997,7 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 		; TemplateOwnerClass && !Template && !TemplateData
 		; TemplateOwnerClass = TemplateOwnerClass->GetSuperClass())
 	{
-		if (auto BPGC = Cast<UBlueprintGeneratedClass>(TemplateOwnerClass))
+		if (UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(TemplateOwnerClass))
 		{
 			// Use cooked instancing data if available (fast path).
 			if (FPlatformProperties::RequiresCookedData())
@@ -1001,7 +1010,7 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 				Template = BPGC->FindComponentTemplateByName(TemplateName);
 			}
 		}
-		else if (auto DynamicClass = Cast<UDynamicClass>(TemplateOwnerClass))
+		else if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(TemplateOwnerClass))
 		{
 			UObject** FoundTemplatePtr = DynamicClass->ComponentTemplates.FindByPredicate([=](UObject* Obj) -> bool
 			{

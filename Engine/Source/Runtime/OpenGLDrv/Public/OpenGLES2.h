@@ -138,12 +138,12 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsRGB10A2()							{ return bSupportsRGB10A2; }
 
 
+	static FORCEINLINE bool RequiresUEShaderFramebufferFetchDef() { return bRequiresUEShaderFramebufferFetchDef; }
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
 	static FORCEINLINE bool RequiresTextureCubeLodEXTToTextureCubeLodDefine() { return bRequiresTextureCubeLodEXTToTextureCubeLodDefine; }
 	static FORCEINLINE bool SupportsStandardDerivativesExtension()		{ return bSupportsStandardDerivativesExtension; }
 	static FORCEINLINE bool RequiresGLFragCoordVaryingLimitHack()		{ return bRequiresGLFragCoordVaryingLimitHack; }
 	static FORCEINLINE bool RequiresTexture2DPrecisionHack()			{ return bRequiresTexture2DPrecisionHack; }
-	static FORCEINLINE bool RequiresShaderFramebufferFetchUndef()		{ return bRequiresShaderFramebufferFetchUndef; }
 	static FORCEINLINE bool RequiresARMShaderFramebufferFetchDepthStencilUndef() { return bRequiresARMShaderFramebufferFetchDepthStencilUndef; }
 	static FORCEINLINE bool IsCheckingShaderCompilerHacks()				{ return bIsCheckingShaderCompilerHacks; }
     static FORCEINLINE bool IsLimitingShaderCompileCount()              { return bIsLimitingShaderCompileCount; }
@@ -408,6 +408,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	}
 
 protected:
+
 	/** GL_OES_vertex_array_object */
 	static bool bSupportsVertexArrayObjects;
 
@@ -474,6 +475,9 @@ protected:
 	/** GL_EXT_shader_framebuffer_fetch */
 	static bool bSupportsShaderFramebufferFetch;
 
+	/** workaround for GL_EXT_shader_framebuffer_fetch */
+	static bool bRequiresUEShaderFramebufferFetchDef;
+
 	/** GL_ARM_shader_framebuffer_fetch_depth_stencil */
 	static bool bSupportsShaderDepthStencilFetch;
 
@@ -530,9 +534,6 @@ public:
 
 	/* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
 	static bool bRequiresTexture2DPrecisionHack;
-
-	/* This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension  */
-	static bool bRequiresShaderFramebufferFetchUndef;
 
 	/* This is to avoid a bug in Adreno drivers that define GL_ARM_shader_framebuffer_fetch_depth_stencil even when device does not support this extension  */
 	static bool bRequiresARMShaderFramebufferFetchDepthStencilUndef;
@@ -912,9 +913,22 @@ public:
 #define GL_UNPACK_ROW_LENGTH 0x0CF2
 #define GL_UNPACK_IMAGE_HEIGHT 0x806E
 #define GL_NUM_EXTENSIONS 0x821D
+
+#if PLATFORM_HTML5_BROWSER
+// Browser supports either GLES2.0 or GLES3.0 at runtime, so needs to read these
+#define GL_MAX_3D_TEXTURE_SIZE 0x8073
+#define GL_MAX_COLOR_ATTACHMENTS 0x8CDF
+#define GL_MAX_SAMPLES 0x8D57
+#else
+// In native OpenGL ES 2.0, define to zero things that are not available.
+// In HTML5 however, always query from the browser what the supported
+// values are.
 #define GL_MAX_3D_TEXTURE_SIZE 0	//0x8073
 #define GL_MAX_COLOR_ATTACHMENTS 0	//0x8CDF
 #define GL_MAX_SAMPLES 0	//0x8D57
+#endif
+
+// OpenGL ES 3.1:
 #define GL_MAX_COLOR_TEXTURE_SAMPLES 0	//0x910E
 #define GL_MAX_DEPTH_TEXTURE_SAMPLES 0	//0x910F
 #define GL_MAX_INTEGER_SAMPLES 0	//0x9110

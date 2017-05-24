@@ -4,10 +4,9 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Demonstrates how to blend animations together, in this case, a character that can move and fire a weapon at the same time.
 version: 4.14
 skilllevel: Advanced
-type:howto
+type:how-to
 topic-image:LayerAnimationHowTo.png
 tags:Animation
-tags:How-To
 
 Animation blending, as a concept, simply means making a smooth transition between two or more animations on a single character or Skeletal Mesh. In Unreal Engine 4, there are various ways in which such blending can be applied either through [](Engine/Animation/Blendspaces), through additive methods by literally combining two animations based on a weighted bias or alpha value, or even applying direct overrides of the existing pose. 
 

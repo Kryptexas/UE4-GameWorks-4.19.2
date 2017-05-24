@@ -17,374 +17,178 @@ DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 #define OP0_CONST (1 << 0)
 #define OP1_CONST (1 << 1)
 #define OP2_CONST (1 << 2)
-#define OP3_CONST (1 << 3)
 
-#define SRCOP_RRRR (OP_REGISTER | OP_REGISTER | OP_REGISTER | OP_REGISTER)
-#define SRCOP_RRRC (OP_REGISTER | OP_REGISTER | OP_REGISTER | OP0_CONST)
-#define SRCOP_RRCR (OP_REGISTER | OP_REGISTER | OP1_CONST | OP_REGISTER)
-#define SRCOP_RRCC (OP_REGISTER | OP_REGISTER | OP1_CONST | OP0_CONST)
-#define SRCOP_RCRR (OP_REGISTER | OP2_CONST | OP_REGISTER | OP_REGISTER)
-#define SRCOP_RCRC (OP_REGISTER | OP2_CONST | OP_REGISTER | OP0_CONST)
-#define SRCOP_RCCR (OP_REGISTER | OP2_CONST | OP1_CONST | OP_REGISTER)
-#define SRCOP_RCCC (OP_REGISTER | OP2_CONST | OP1_CONST | OP0_CONST)
-#define SRCOP_CRRR (OP3_CONST | OP_REGISTER | OP_REGISTER | OP_REGISTER)
-#define SRCOP_CRRC (OP3_CONST | OP_REGISTER | OP_REGISTER | OP0_CONST)
-#define SRCOP_CRCR (OP3_CONST | OP_REGISTER | OP1_CONST | OP_REGISTER)
-#define SRCOP_CRCC (OP3_CONST | OP_REGISTER | OP1_CONST | OP0_CONST)
-#define SRCOP_CCRR (OP3_CONST | OP2_CONST | OP_REGISTER | OP_REGISTER)
-#define SRCOP_CCRC (OP3_CONST | OP2_CONST | OP_REGISTER | OP0_CONST)
-#define SRCOP_CCCR (OP3_CONST | OP2_CONST | OP1_CONST | OP_REGISTER)
-#define SRCOP_CCCC (OP3_CONST | OP2_CONST | OP1_CONST | OP0_CONST)
+#define SRCOP_RRR (OP_REGISTER | OP_REGISTER | OP_REGISTER)
+#define SRCOP_RRC (OP_REGISTER | OP_REGISTER | OP0_CONST)
+#define SRCOP_RCR (OP_REGISTER | OP1_CONST | OP_REGISTER)
+#define SRCOP_RCC (OP_REGISTER | OP1_CONST | OP0_CONST)
+#define SRCOP_CRR (OP2_CONST | OP_REGISTER | OP_REGISTER)
+#define SRCOP_CRC (OP2_CONST | OP_REGISTER | OP0_CONST)
+#define SRCOP_CCR (OP2_CONST | OP1_CONST | OP_REGISTER)
+#define SRCOP_CCC (OP2_CONST | OP1_CONST | OP0_CONST)
 
-uint8 VectorVM::CreateSrcOperandMask(EVectorVMOperandLocation Type1, EVectorVMOperandLocation Type2, EVectorVMOperandLocation Type3, EVectorVMOperandLocation Type4)
+uint8 VectorVM::CreateSrcOperandMask(EVectorVMOperandLocation Type0, EVectorVMOperandLocation Type1, EVectorVMOperandLocation Type2)
 {
-	return	(Type1 == EVectorVMOperandLocation::Constant ? OP0_CONST : OP_REGISTER) |
-		(Type2 == EVectorVMOperandLocation::Constant ? OP1_CONST : OP_REGISTER) |
-		(Type3 == EVectorVMOperandLocation::Constant ? OP2_CONST : OP_REGISTER) |
-		(Type4 == EVectorVMOperandLocation::Constant ? OP3_CONST : OP_REGISTER);
+	return	(Type0 == EVectorVMOperandLocation::Constant ? OP0_CONST : OP_REGISTER) |
+		(Type1 == EVectorVMOperandLocation::Constant ? OP1_CONST : OP_REGISTER) |
+		(Type2 == EVectorVMOperandLocation::Constant ? OP2_CONST : OP_REGISTER);
 }
-
-
-#if WITH_EDITOR
-TArray<FString> OpNames;
-TArray<FString> OperandLocationNames;
-#endif
-
-/**
- * Context information passed around during VM execution.
- */
-struct FVectorVMContext
-{
-	/** Pointer to the next element in the byte code. */
-	uint8 const* RESTRICT Code;
-	/** Pointer to the table of vector register arrays. */
-	VectorRegister* RESTRICT * RESTRICT RegisterTable;
-	/** Pointer to the constant table. */
-	FVector4 const* RESTRICT ConstantTable;
-	/** Pointer to the shared data table. */
-	FVectorVMSharedDataView* RESTRICT SharedDataTable;
-
-	/** The number of vectors to process. */
-	int32 NumVectors;
-
-	/** The number of instances to process. */
-	int32 NumInstances;
-
-	/** The Operation currently executing. */
-	EVectorVMOp CurrOp;
-
-	/** The instance we're currently starting at. Advances with each chunk processed. */
-	int32 StartInstance;
-	/** Initialization constructor. */
-	FVectorVMContext(
-		const uint8* InCode,
-		VectorRegister** InRegisterTable,
-		const FVector4* InConstantTable,
-		FVectorVMSharedDataView* InSharedDataTable,
-		int32 InNumVectors,
-		int32 InNumInstances,
-		int32 InStartInstance
-		)
-		: Code(InCode)
-		, RegisterTable(InRegisterTable)
-		, ConstantTable(InConstantTable)
-		, SharedDataTable(InSharedDataTable)
-		, NumVectors(InNumVectors)
-		, NumInstances(InNumInstances)
-		, CurrOp(EVectorVMOp::done)
-		, StartInstance(InStartInstance)
-	{
-	}
-
-	FORCEINLINE void SetOp(EVectorVMOp InOp){ CurrOp = InOp; }
-};
-
-
-static VM_FORCEINLINE uint8 DecodeU8(FVectorVMContext& Context)
-{
-	return *Context.Code++;
-}
-
-static VM_FORCEINLINE uint8 DecodeU16(FVectorVMContext& Context)
-{
-	return (*((uint16*)Context.Code))++;
-}
-
-static VM_FORCEINLINE uint8 DecodeU32(FVectorVMContext& Context)
-{
-	return (*((uint32*)Context.Code))++;
-}
-
-/** Decode the next operation contained in the bytecode. */
-static VM_FORCEINLINE EVectorVMOp DecodeOp(FVectorVMContext& Context)
-{
-	return static_cast<EVectorVMOp>(DecodeU8(Context));
-}
-
-static VM_FORCEINLINE uint8 DecodeSrcOperandTypes(FVectorVMContext& Context)
-{
-	return DecodeU8(Context);
-}
-
-//////////////////////////////////////////////////////////////////////////
-/** Constant handler. */
-
-struct FConstantHandlerBase
-{
-	uint8 ConstantIndex;
-	FConstantHandlerBase(FVectorVMContext& Context)
-		: ConstantIndex(DecodeU8(Context))
-	{}
-
-	VM_FORCEINLINE void Advance(){ }
-};
-
-template<typename T>
-struct FConstantHandler : public FConstantHandlerBase
-{
-	T Constant;
-	FConstantHandler(FVectorVMContext& Context)
-		: FConstantHandlerBase(Context)
-		, Constant(Context.ConstantTable[ConstantIndex])
-	{}
-	VM_FORCEINLINE const T& Get(){ return Constant; }
-};
-
-template<>
-struct FConstantHandler<VectorRegister> : public FConstantHandlerBase
-{
-	VectorRegister Constant;
-	FConstantHandler(FVectorVMContext& Context)
-		: FConstantHandlerBase(Context)
-		, Constant(VectorLoadAligned(&Context.ConstantTable[ConstantIndex]))
-	{}
-	VM_FORCEINLINE const VectorRegister Get(){ return Constant; }
-};
-
-typedef FConstantHandler<VectorRegister> FVectorConstantHandler;
-
-//////////////////////////////////////////////////////////////////////////
-// Register handlers.
-// Handle reading of a register, advancing the pointer with each read.
-
-struct FRegisterHandlerBase
-{
-	int32 RegisterIndex;
-	FRegisterHandlerBase(FVectorVMContext& Context)
-		: RegisterIndex(DecodeU8(Context))
-	{}
-};
-
-template<typename T, int32 NumInstancesPerOp=1>
-struct FRegisterHandler : public FRegisterHandlerBase
-{
-	T* RESTRICT Register;
-	FRegisterHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((T*)Context.RegisterTable[RegisterIndex])
-	{}
-	VM_FORCEINLINE const T Get(){ return *Register; }
-	VM_FORCEINLINE void Advance(){ Register += NumInstancesPerOp; }
-};
-
-template<int32 NumInstancesPerOp> struct FRegisterHandler<VectorRegister, NumInstancesPerOp> : public FRegisterHandlerBase
-{
-	VectorRegister* RESTRICT Register;
-	FRegisterHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((VectorRegister*)Context.RegisterTable[RegisterIndex])
-	{}
-	VM_FORCEINLINE const VectorRegister Get(){ return VectorLoadAligned(Register); }
-	VM_FORCEINLINE void Advance(){ Register += NumInstancesPerOp; }
-};
-
-typedef FRegisterHandler<VectorRegister> FVectorRegisterHandler;
-
-/** Handles writing to a register, advancing the pointer with each write. */
-template<typename T, int32 NumInstancesPerOp = 1>
-struct FRegisterDestHandler : public FRegisterHandlerBase
-{
-	T* RESTRICT Register;
-	FRegisterDestHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((T*)Context.RegisterTable[RegisterIndex])
-	{}
-	VM_FORCEINLINE T* RESTRICT Get(){ return Register; }
-	VM_FORCEINLINE T GetValue(){ return *Register; }
-	VM_FORCEINLINE void Advance(){ Register += NumInstancesPerOp; }
-};
-
-template<int32 NumInstancesPerOp>
-struct FRegisterDestHandler<VectorRegister, NumInstancesPerOp> : public FRegisterHandlerBase
-{
-	VectorRegister* RESTRICT Register;
-	FRegisterDestHandler(FVectorVMContext& Context)
-		: FRegisterHandlerBase(Context)
-		, Register((VectorRegister*)Context.RegisterTable[RegisterIndex])
-	{}
-	VM_FORCEINLINE VectorRegister* RESTRICT Get(){ return Register; }
-	VM_FORCEINLINE VectorRegister GetValue(){ return VectorLoadAligned(Register); }
-	VM_FORCEINLINE void Advance(){ Register += NumInstancesPerOp; }
-};
 
 //////////////////////////////////////////////////////////////////////////
 // Kernels
-template<typename Kernel, typename DstHandler, typename Arg0Handler>
-struct TUnaryKernel
+template<typename Kernel, typename DstHandler, typename Arg0Handler, uint32 NumInstancesPerOp>
+struct TUnaryKernelHandler
 {
 	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
-		DstHandler Dst(Context);
 		Arg0Handler Arg0(Context);
+		DstHandler Dst(Context);
 
-		for (int32 i = 0; i < Context.NumInstances; i += Kernel::NumInstancesPerOp)
+		int32 LoopInstances = Align(Context.NumInstances, NumInstancesPerOp) / NumInstancesPerOp;
+		for (int32 i = 0; i < LoopInstances; ++i)
 		{
-			Kernel::DoKernel(Dst.Get(), Arg0.Get());
+			Kernel::DoKernel(Dst.GetDest(), Arg0.Get());
 			Dst.Advance();	Arg0.Advance();
 		}
 	}
 };
 
-template<typename Kernel, typename DstHandler, typename Arg0Handler, typename Arg1Handler>
-struct TBinaryKernel
+template<typename Kernel, typename DstHandler, typename Arg0Handler, typename Arg1Handler, int32 NumInstancesPerOp>
+struct TBinaryKernelHandler
 {
-	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+	static void Exec(FVectorVMContext& Context)
 	{
-		DstHandler Dst(Context); 
 		Arg0Handler Arg0(Context); 
 		Arg1Handler Arg1(Context);
-		for (int32 i = 0; i < Context.NumInstances; i += Kernel::NumInstancesPerOp)
+
+		DstHandler Dst(Context);
+
+		int32 LoopInstances = Align(Context.NumInstances, NumInstancesPerOp) / NumInstancesPerOp;
+		for (int32 i = 0; i < LoopInstances; ++i)
 		{
-			Kernel::DoKernel(Dst.Get(), Arg0.Get(), Arg1.Get());
+			Kernel::DoKernel(Dst.GetDest(), Arg0.Get(), Arg1.Get());
 			Dst.Advance(); Arg0.Advance(); Arg1.Advance();
 		}
 	}
 };
 
-template<typename Kernel, typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler>
-struct TTrinaryKernel
+template<typename Kernel, typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, int32 NumInstancesPerOp>
+struct TTrinaryKernelHandler
 {
-	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+	static void Exec(FVectorVMContext& Context)
 	{
-		DstHandler Dst(Context);
 		Arg0Handler Arg0(Context);
 		Arg1Handler Arg1(Context);
 		Arg2Handler Arg2(Context);
-		for (int32 i = 0; i < Context.NumInstances; i += Kernel::NumInstancesPerOp)
+
+		DstHandler Dst(Context);
+
+		int32 LoopInstances = Align(Context.NumInstances, NumInstancesPerOp) / NumInstancesPerOp;
+		for (int32 i = 0; i < LoopInstances; ++i)
 		{
-			Kernel::DoKernel(Dst.Get(), Arg0.Get(), Arg1.Get(), Arg2.Get());
+			Kernel::DoKernel(Dst.GetDest(), Arg0.Get(), Arg1.Get(), Arg2.Get());
 			Dst.Advance(); Arg0.Advance(); Arg1.Advance(); Arg2.Advance();
 		}
 	}
 };
 
-template<typename Kernel, typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, typename Arg3Handler>
-struct TQuaternaryKernel
+
+template<typename Kernel, typename DstHandler, typename Arg0Handler, typename Arg1Handler, typename Arg2Handler, int32 NumInstancesPerOp>
+struct TTrinaryOutputKernelHandler
 {
-	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+	static void Exec(FVectorVMContext& Context)
 	{
-		DstHandler Dst(Context);
 		Arg0Handler Arg0(Context);
 		Arg1Handler Arg1(Context);
 		Arg2Handler Arg2(Context);
-		Arg3Handler Arg3(Context);
-		for (int32 i = 0; i < Context.NumInstances; i += Kernel::NumInstancesPerOp)
+
+		DstHandler Dst(Context, Arg0.Get());
+
+		int32 LoopInstances = Align(Context.NumInstances, NumInstancesPerOp) / NumInstancesPerOp;
+		for (int32 i = 0; i < LoopInstances; ++i)
 		{
-			Kernel::DoKernel(Dst.Get(), Arg0.Get(), Arg1.Get(), Arg2.Get(), Arg3.Get());
-			Dst.Advance(); Arg0.Advance(); Arg1.Advance(); Arg2.Advance(); Arg3.Advance();
+			Kernel::DoKernel(Dst.GetDest(), Arg0.Get(), Arg1.Get(), Arg2.Get());
+			Dst.Advance(); Arg0.Advance(); Arg1.Advance(); Arg2.Advance();
 		}
 	}
 };
 
+
 /** Base class of vector kernels with a single operand. */
-template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
-struct TUnaryVectorKernel
+template <typename Kernel, typename DstHandler, typename ConstHandler, typename RegisterHandler, int32 NumInstancesPerOp>
+struct TUnaryKernel
 {
-	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
 		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
 		switch (SrcOpTypes)
 		{
-		case SRCOP_RRRR: 	TUnaryKernel<Kernel, DstHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRRC:	TUnaryKernel<Kernel, DstHandler, FVectorConstantHandler>::Exec(Context); break;
+		case SRCOP_RRR: TUnaryKernelHandler<Kernel, DstHandler, RegisterHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_RRC:	TUnaryKernelHandler<Kernel, DstHandler, ConstHandler, NumInstancesPerOp>::Exec(Context); break;
 		default: check(0); break; 
 		};
 	}
 };
+template<typename Kernel>
+struct TUnaryScalarKernel : public TUnaryKernel<Kernel, FRegisterHandler<float>, FConstantHandler<float>, FRegisterHandler<float>, 1> {};
+template<typename Kernel>
+struct TUnaryVectorKernel : public TUnaryKernel<Kernel, FRegisterDestHandler<VectorRegister>, FConstantHandler<VectorRegister>, FRegisterHandler<VectorRegister>, VECTOR_WIDTH_FLOATS> {};
+template<typename Kernel>
+struct TUnaryVectorIntKernel : public TUnaryKernel<Kernel, FRegisterDestHandler<VectorRegisterInt>, FConstantHandler<VectorRegisterInt>, FRegisterHandler<VectorRegisterInt>, VECTOR_WIDTH_FLOATS> {};
 
 /** Base class of Vector kernels with 2 operands. */
-template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
-struct TBinaryVectorKernel
+template <typename Kernel, typename DstHandler, typename ConstHandler, typename RegisterHandler, uint32 NumInstancesPerOp>
+struct TBinaryKernel
 {
-	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
 		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
 		switch (SrcOpTypes)
 		{
-		case SRCOP_RRRR: 	TBinaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRRC:	TBinaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRCR: 	TBinaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_RRCC:	TBinaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorConstantHandler>::Exec(Context); break;
+		case SRCOP_RRR: TBinaryKernelHandler<Kernel, DstHandler, RegisterHandler, RegisterHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_RRC:	TBinaryKernelHandler<Kernel, DstHandler, ConstHandler, RegisterHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_RCR: TBinaryKernelHandler<Kernel, DstHandler, RegisterHandler, ConstHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_RCC:	TBinaryKernelHandler<Kernel, DstHandler, ConstHandler, ConstHandler, NumInstancesPerOp>::Exec(Context); break;
 		default: check(0); break;
 		};
 	}
 };
+template<typename Kernel>
+struct TBinaryScalarKernel : public TBinaryKernel<Kernel, FRegisterHandler<float>, FConstantHandler<float>, FRegisterHandler<float>, 1> {};
+template<typename Kernel>
+struct TBinaryVectorKernel : public TBinaryKernel<Kernel, FRegisterDestHandler<VectorRegister>, FConstantHandler<VectorRegister>, FRegisterHandler<VectorRegister>, VECTOR_WIDTH_FLOATS> {};
+template<typename Kernel>
+struct TBinaryVectorIntKernel : public TBinaryKernel<Kernel, FRegisterDestHandler<VectorRegisterInt>, FConstantHandler<VectorRegisterInt>, FRegisterHandler<VectorRegisterInt>, VECTOR_WIDTH_FLOATS> {};
 
 /** Base class of Vector kernels with 3 operands. */
-template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
-struct TTrinaryVectorKernel
+template <typename Kernel, typename DstHandler, typename ConstHandler, typename RegisterHandler, uint32 NumInstancesPerOp>
+struct TTrinaryKernel
 {
-	static const int32 NumInstancesPerOp = 1;
 	static void Exec(FVectorVMContext& Context)
 	{
 		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
 		switch (SrcOpTypes)
 		{
-		case SRCOP_RRRR: 	TTrinaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRRC:	TTrinaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRCR: 	TTrinaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRCC:	TTrinaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RCRR: 	TTrinaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_RCRC:	TTrinaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_RCCR: 	TTrinaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_RCCC:	TTrinaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorConstantHandler>::Exec(Context); break;
+		case SRCOP_RRR: TTrinaryKernelHandler<Kernel, DstHandler, RegisterHandler, RegisterHandler, RegisterHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_RRC:	TTrinaryKernelHandler<Kernel, DstHandler, ConstHandler, RegisterHandler, RegisterHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_RCR: TTrinaryKernelHandler<Kernel, DstHandler, RegisterHandler, ConstHandler, RegisterHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_RCC:	TTrinaryKernelHandler<Kernel, DstHandler, ConstHandler, ConstHandler, RegisterHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_CRR: TTrinaryKernelHandler<Kernel, DstHandler, RegisterHandler, RegisterHandler, ConstHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_CRC:	TTrinaryKernelHandler<Kernel, DstHandler, ConstHandler, RegisterHandler, ConstHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_CCR: TTrinaryKernelHandler<Kernel, DstHandler, RegisterHandler, ConstHandler, ConstHandler, NumInstancesPerOp>::Exec(Context); break;
+		case SRCOP_CCC:	TTrinaryKernelHandler<Kernel, DstHandler, ConstHandler, ConstHandler, ConstHandler, NumInstancesPerOp>::Exec(Context); break;
 		default: check(0); break;
 		};
 	}
 };
 
-/** Base class of Vector kernels with 4 operands. */
-template <typename Kernel, typename DstHandler = FRegisterDestHandler<VectorRegister>>
-struct TQuatenaryVectorKernel
-{
-	static const int32 NumInstancesPerOp = 1;
-	static void Exec(FVectorVMContext& Context)
-	{
-		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
-		switch (SrcOpTypes)
-		{
-		case SRCOP_RRRR: 	TQuaternaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRRC:	TQuaternaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRCR: 	TQuaternaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RRCC:	TQuaternaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RCRR: 	TQuaternaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RCRC:	TQuaternaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RCCR: 	TQuaternaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_RCCC:	TQuaternaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorRegisterHandler>::Exec(Context); break;
-		case SRCOP_CRRR: 	TQuaternaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_CRRC:	TQuaternaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_CRCR: 	TQuaternaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_CRCC:	TQuaternaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_CCRR: 	TQuaternaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_CCRC:	TQuaternaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_CCCR: 	TQuaternaryKernel<Kernel, DstHandler, FVectorRegisterHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorConstantHandler>::Exec(Context); break;
-		case SRCOP_CCCC:	TQuaternaryKernel<Kernel, DstHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorConstantHandler, FVectorConstantHandler>::Exec(Context); break;
-		default: check(0); break;
-		};
-	}
-};
+template<typename Kernel>
+struct TTrinaryScalarKernel : public TTrinaryKernel<Kernel, FRegisterHandler<float>, FConstantHandler<float>, FRegisterHandler<float>, 1> {};
+template<typename Kernel>
+struct TTrinaryVectorKernel : public TTrinaryKernel<Kernel, FRegisterDestHandler<VectorRegister>, FConstantHandler<VectorRegister>, FRegisterHandler<VectorRegister>, VECTOR_WIDTH_FLOATS> {};
+template<typename Kernel>
+struct TTrinaryVectorIntKernel : public TTrinaryKernel<Kernel, FRegisterDestHandler<VectorRegisterInt>, FConstantHandler<VectorRegisterInt>, FRegisterHandler<VectorRegisterInt>, VECTOR_WIDTH_FLOATS> {};
+
 
 /*------------------------------------------------------------------------------
 	Implementation of all kernel operations.
@@ -595,6 +399,16 @@ struct FVectorKernelFloor : public TUnaryVectorKernel<FVectorKernelFloor>
 	}
 };
 
+struct FVectorKernelRound : public TUnaryVectorKernel<FVectorKernelRound>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
+	{
+		//TODO: >SSE4 has direct ops for this.		
+		VectorRegister Trunc = VectorTruncate(Src0);
+		*Dst = VectorAdd(Trunc, VectorTruncate(VectorMultiply(VectorSubtract(Src0, Trunc), GlobalVectorConstants::FloatAlmostTwo)));
+	}
+};
+
 struct FVectorKernelMod : public TBinaryVectorKernel<FVectorKernelMod>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
@@ -619,14 +433,51 @@ struct FVectorKernelTrunc : public TUnaryVectorKernel<FVectorKernelTrunc>
 	}
 };
 
-struct FVectorKernelLessThan : public TBinaryVectorKernel<FVectorKernelLessThan>
+struct FVectorKernelCompareLT : public TBinaryVectorKernel<FVectorKernelCompareLT>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
 	{
-		VectorRegister Tmp = VectorSubtract(Src1, Src0);
-		Tmp = VectorMultiply(Tmp, GlobalVectorConstants::BigNumber);
-		Tmp = VectorMin(Tmp, GlobalVectorConstants::FloatOne);
-		*Dst = VectorMax(Tmp, GlobalVectorConstants::FloatZero);
+		*Dst = VectorCompareLT(Src0, Src1);
+	}
+};
+
+struct FVectorKernelCompareLE : public TBinaryVectorKernel<FVectorKernelCompareLE>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		*Dst = VectorCompareLE(Src0, Src1);
+	}
+};
+
+struct FVectorKernelCompareGT : public TBinaryVectorKernel<FVectorKernelCompareGT>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		*Dst = VectorCompareGT(Src0, Src1);
+	}
+};
+
+struct FVectorKernelCompareGE : public TBinaryVectorKernel<FVectorKernelCompareGE>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		*Dst = VectorCompareGE(Src0, Src1);
+	}
+};
+
+struct FVectorKernelCompareEQ : public TBinaryVectorKernel<FVectorKernelCompareEQ>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		*Dst = VectorCompareEQ(Src0, Src1);
+	}
+};
+
+struct FVectorKernelCompareNEQ : public TBinaryVectorKernel<FVectorKernelCompareNEQ>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{		
+		*Dst = VectorCompareNE(Src0, Src1);
 	}
 };
 
@@ -634,42 +485,49 @@ struct FVectorKernelSelect : public TTrinaryVectorKernel<FVectorKernelSelect>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Mask, VectorRegister A, VectorRegister B)
 	{
-		//Currently works by cmpgt 0 to match the current, all vector float vm/scripts but with int support, this should probably change to direct use of a mask.
-		*Dst = VectorSelect(VectorCompareGT(Mask, GlobalVectorConstants::FloatZero), A, B);
+		*Dst = VectorSelect(Mask, A, B);
 	}
 };
 
-
-struct FVectorKernelDot : public TBinaryVectorKernel<FVectorKernelDot>
+struct FVectorKernelExecutionIndex
 {
-	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	static void VM_FORCEINLINE Exec(FVectorVMContext& Context)
 	{
-		*Dst = VectorDot4(Src0, Src1);
+		static_assert(VECTOR_WIDTH_FLOATS == 4, "Need to update this when upgrading the VM to support >SSE2");
+		VectorRegisterInt VectorStride = MakeVectorRegisterInt(VECTOR_WIDTH_FLOATS, VECTOR_WIDTH_FLOATS, VECTOR_WIDTH_FLOATS, VECTOR_WIDTH_FLOATS);
+		VectorRegisterInt Index = MakeVectorRegisterInt(Context.StartInstance, Context.StartInstance + 1, Context.StartInstance + 2, Context.StartInstance + 3);
+		
+		FRegisterDestHandler<VectorRegisterInt> Dest(Context);
+		int32 Loops = Align(Context.NumInstances, VECTOR_WIDTH_FLOATS) / VECTOR_WIDTH_FLOATS;
+		for (int32 i = 0; i < Loops; ++i)
+		{
+			*Dest.GetDest() = Index;
+			Dest.Advance();
+			Index = VectorIntAdd(Index, VectorStride);
+		}
 	}
 };
 
-struct FVectorKernelLength : public TUnaryVectorKernel<FVectorKernelLength>
+struct FVectorKernelEnterStatScope
 {
-	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
+	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
-		VectorRegister Temp = VectorReciprocalLen(Src0);
-		*Dst = VectorReciprocal(Temp);
+#if STATS
+		FConstantHandler<int32> ScopeIdx(Context);		
+		int32 CounterIdx = Context.StatCounterStack.AddDefaulted(1);
+		Context.StatCounterStack[CounterIdx].Start(Context.StatScopes[ScopeIdx.Get()]);
+#endif
 	}
 };
 
-struct FVectorKernelCross : public TBinaryVectorKernel<FVectorKernelCross>
+struct FVectorKernelExitStatScope
 {
-	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
-		*Dst = VectorCross(Src0, Src1);
-	}
-};
-
-struct FVectorKernelNormalize : public TUnaryVectorKernel<FVectorKernelNormalize>
-{
-	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
-	{
-		*Dst = VectorNormalize(Src0);
+#if STATS
+		Context.StatCounterStack.Last().Stop();
+		Context.StatCounterStack.Pop();
+#endif
 	}
 };
 
@@ -717,9 +575,6 @@ struct FVectorKernelRandomGauss : public TBinaryVectorKernel<FVectorKernelRandom
 	}
 };
 
-
-
-
 struct FVectorKernelMin : public TBinaryVectorKernel<FVectorKernelMin>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst,VectorRegister Src0,VectorRegister Src1)
@@ -760,6 +615,129 @@ struct FVectorKernelStep : public TUnaryVectorKernel<FVectorKernelStep>
 	}
 };
 
+namespace VectorVMNoise
+{
+	int32 P[512] =
+	{
+		151,160,137,91,90,15,
+		131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
+		190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
+		88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
+		77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,
+		102,143,54, 65,25,63,161, 1,216,80,73,209,76,132,187,208, 89,18,169,200,196,
+		135,130,116,188,159,86,164,100,109,198,173,186, 3,64,52,217,226,250,124,123,
+		5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,
+		223,183,170,213,119,248,152, 2,44,154,163, 70,221,153,101,155,167, 43,172,9,
+		129,22,39,253, 19,98,108,110,79,113,224,232,178,185, 112,104,218,246,97,228,
+		251,34,242,193,238,210,144,12,191,179,162,241, 81,51,145,235,249,14,239,107,
+		49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,150,254,
+		138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180,
+		151,160,137,91,90,15,
+		131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
+		190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
+		88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
+		77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,
+		102,143,54, 65,25,63,161, 1,216,80,73,209,76,132,187,208, 89,18,169,200,196,
+		135,130,116,188,159,86,164,100,109,198,173,186, 3,64,52,217,226,250,124,123,
+		5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,
+		223,183,170,213,119,248,152, 2,44,154,163, 70,221,153,101,155,167, 43,172,9,
+		129,22,39,253, 19,98,108,110,79,113,224,232,178,185, 112,104,218,246,97,228,
+		251,34,242,193,238,210,144,12,191,179,162,241, 81,51,145,235,249,14,239,107,
+		49,192,214, 31,181,199,106,157,184, 84,204,176,115,121,50,45,127, 4,150,254,
+		138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
+	};
+
+	static FORCEINLINE float Lerp(float X, float A, float B)
+	{
+		return A + X * (B - A);
+	}
+
+	static FORCEINLINE float Fade(float X)
+	{
+		return X * X * X * (X * (X * 6 - 15) + 10);
+	}
+	
+	static FORCEINLINE float Grad(int32 hash, float x, float y, float z)
+	{
+		 float u = (hash < 8) ? x : y;
+		 float v = (hash < 4) ? y : ((hash == 12 || hash == 14) ? x : z);
+		 return ((hash & 1) == 0 ? u : -u) + ((hash & 2) == 0 ? v : -v);
+	}
+
+	struct FScalarKernelNoise3D_iNoise : TTrinaryScalarKernel<FScalarKernelNoise3D_iNoise>
+	{
+		static void VM_FORCEINLINE DoKernel(float* RESTRICT Dst, float X, float Y, float Z)
+		{
+			float Xfl = FMath::FloorToFloat(X);
+			float Yfl = FMath::FloorToFloat(Y);
+			float Zfl = FMath::FloorToFloat(Z);
+			int32 Xi = (int32)(Xfl) & 255;
+			int32 Yi = (int32)(Yfl) & 255;
+			int32 Zi = (int32)(Zfl) & 255;
+			X -= Xfl;
+			Y -= Yfl;
+			Z -= Zfl;
+			float Xm1 = X - 1.0f;
+			float Ym1 = Y - 1.0f;
+			float Zm1 = Z - 1.0f;
+
+			int32 A = P[Xi] + Yi;
+			int32 AA = P[A] + Zi;	int32 AB = P[A + 1] + Zi;
+
+			int32 B = P[Xi + 1] + Yi;
+			int32 BA = P[B] + Zi;	int32 BB = P[B + 1] + Zi;
+
+			float U = Fade(X);
+			float V = Fade(Y);
+			float W = Fade(Z);
+
+			*Dst =
+				Lerp(W,
+					Lerp(V,
+						Lerp(U,
+							Grad(P[AA], X, Y, Z),
+							Grad(P[BA], Xm1, Y, Z)),
+						Lerp(U,
+							Grad(P[AB], X, Ym1, Z),
+							Grad(P[BB], Xm1, Ym1, Z))),
+					Lerp(V,
+						Lerp(U,
+							Grad(P[AA + 1], X, Y, Zm1),
+							Grad(P[BA + 1], Xm1, Y, Zm1)),
+						Lerp(U,
+							Grad(P[AB + 1], X, Ym1, Zm1),
+							Grad(P[BB + 1], Xm1, Ym1, Zm1))));
+		}
+	};
+
+	struct FScalarKernelNoise2D_iNoise : TBinaryScalarKernel<FScalarKernelNoise2D_iNoise>
+	{
+		static void VM_FORCEINLINE DoKernel(float* RESTRICT Dst, float X, float Y)
+		{
+			*Dst = 0.0f;//TODO
+		}
+	};
+
+	struct FScalarKernelNoise1D_iNoise : TUnaryScalarKernel<FScalarKernelNoise1D_iNoise>
+	{
+		static void VM_FORCEINLINE DoKernel(float* RESTRICT Dst, float X)
+		{
+			*Dst = 0.0f;//TODO;
+		}
+	};
+
+	static void Noise1D(FVectorVMContext& Context) { FScalarKernelNoise1D_iNoise::Exec(Context); }
+	static void Noise2D(FVectorVMContext& Context) { FScalarKernelNoise2D_iNoise::Exec(Context); }
+	static void Noise3D(FVectorVMContext& Context)
+	{
+		//Basic scalar implementation of perlin's improved noise until I can spend some quality time exploring vectorized implementations of Marc O's noise from Random.usf.
+		//http://mrl.nyu.edu/~perlin/noise/
+		FScalarKernelNoise3D_iNoise::Exec(Context);
+	}
+};
+
+//Olaf's orginal curl noise. Needs updating for the new scalar VM and possibly calling Curl Noise to avoid confusion with regular noise?
+//Possibly needs to be a data interface as the VM can't output Vectors?
 struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 {
 	static VectorRegister RandomTable[17][17][17];
@@ -806,268 +784,470 @@ struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 
 VectorRegister FVectorKernelNoise::RandomTable[17][17][17];
 
-template<int32 Component>
-struct FVectorKernelSplat : public TUnaryVectorKernel<FVectorKernelSplat<Component>>
+//////////////////////////////////////////////////////////////////////////
+//Special Kernels.
+
+/** Special kernel for reading from the main input dataset. */
+template<typename T>
+struct FVectorKernelReadInput
 {
-	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
+	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
-		*Dst = VectorReplicate(Src0, Component);
+		static const int32 InstancesPerVector = sizeof(VectorRegister) / sizeof(T);
+
+		int32 DataSetIndex = DecodeU16(Context);
+		int32 InputRegisterIdx = DecodeU16(Context);
+		int32 DestRegisterIdx = DecodeU16(Context);
+		int32 Loops = Align(Context.NumInstances, InstancesPerVector) / InstancesPerVector;
+
+		VectorRegister* DestReg = (VectorRegister*)(Context.RegisterTable[DestRegisterIdx]);
+		int32 DataSetOffset = Context.DataSetOffsetTable[DataSetIndex];  //TODO: we'll need a different way of doing this for a proper kernel; might need a specific offset handler
+		VectorRegister* InputReg = (VectorRegister*)((T*)(Context.RegisterTable[InputRegisterIdx + DataSetOffset]) + Context.StartInstance);
+
+		//TODO: We can actually do some scalar loads into the first and final vectors to get around alignment issues and then use the aligned load for all others.
+		for (int32 i = 0; i < Loops; ++i)
+		{
+			*DestReg = VectorLoad(InputReg);
+			++DestReg;
+			++InputReg;
+		}
 	}
 };
 
-template<int32 Cmp0, int32 Cmp1, int32 Cmp2, int32 Cmp3>
-struct FVectorKernelCompose : public TQuatenaryVectorKernel<FVectorKernelCompose<Cmp0, Cmp1, Cmp2, Cmp3>>
+
+
+/** Special kernel for reading from an input dataset; non-advancing (reads same instance everytime). 
+ *  this kernel splats the X component of the source register to all 4 dest components; it's meant to
+ *	use scalar data sets as the source (e.g. events)
+ */
+template<typename T>
+struct FVectorKernelReadInputNoAdvance
 {
-	//Passing as const refs as some compilers cant handle > 3 aligned vectorregister params.
-	//inlined so shouldn't impact perf
-	//Todo: ^^^^ test this
-	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const VectorRegister& Src0, const VectorRegister& Src1, const VectorRegister& Src2, const VectorRegister& Src3)
+	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
-		//TODO - There's probably a faster way to do this.
-		VectorRegister Tmp0 = VectorShuffle(Src0, Src1, Cmp0, Cmp0, Cmp1, Cmp1);
-		VectorRegister Tmp1 = VectorShuffle(Src2, Src3, Cmp2, Cmp2, Cmp3, Cmp3);		
-		*Dst = VectorShuffle(Tmp0, Tmp1, 0, 2, 0, 2);
+		static const int32 InstancesPerVector = sizeof(VectorRegister) / sizeof(T);
+
+		int32 DataSetIndex = DecodeU16(Context);
+		int32 InputRegisterIdx = DecodeU16(Context);
+		int32 DestRegisterIdx = DecodeU16(Context);
+		int32 Loops = Align(Context.NumInstances, InstancesPerVector) / InstancesPerVector;
+
+		VectorRegister* DestReg = (VectorRegister*)(Context.RegisterTable[DestRegisterIdx]);
+		int32 DataSetOffset = Context.DataSetOffsetTable[DataSetIndex];  //TODO: we'll need a different way of doing this for a proper kernel; might need a specific offset handler
+		VectorRegister* InputReg = (VectorRegister*)((T*)(Context.RegisterTable[InputRegisterIdx + DataSetOffset]) );
+
+		//TODO: We can actually do some scalar loads into the first and final vectors to get around alignment issues and then use the aligned load for all others.
+		for (int32 i = 0; i < Loops; ++i)
+		{
+			*DestReg = VectorSwizzle(VectorLoad(InputReg), 0,0,0,0);
+			++DestReg;
+		}
 	}
 };
 
-// Ken Perlin's smootherstep function (zero first and second order derivatives at 0 and 1)
-// calculated separately for each channel of Src2
-struct FVectorKernelEaseIn : public TTrinaryVectorKernel<FVectorKernelEaseIn>
+
+
+
+
+//TODO - Should be straight forwards to follow the input with a mix of the outputs direct indexing
+/** Special kernel for reading an specific location in an input register. */
+// template<typename T>
+// struct FScalarKernelReadInputIndexed
+// {
+// 	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+// 	{
+// 		int32* IndexReg = (int32*)(Context.RegisterTable[DecodeU16(Context)]);
+// 		T* InputReg = (T*)(Context.RegisterTable[DecodeU16(Context)]);
+// 		T* DestReg = (T*)(Context.RegisterTable[DecodeU16(Context)]);
+// 
+// 		//Has to be scalar as each instance can read from a different location in the input buffer.
+// 		for (int32 i = 0; i < Context.NumInstances; ++i)
+// 		{
+// 			T* ReadPtr = (*InputReg) + (*IndexReg);
+// 			*DestReg = (*ReadPtr);
+// 			++IndexReg;
+// 			++DestReg;
+// 		}
+// 	}
+// };
+
+//Needs it's own handler as the output registers are indexed absolutely rather than incrementing in advance().
+template<typename T>
+struct FOutputRegisterHandler : public FRegisterHandlerBase
 {
-	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const VectorRegister& Src0, const VectorRegister& Src1, const VectorRegister& Src2)
+	T* Register;
+	FOutputRegisterHandler(FVectorVMContext& Context, uint32 DataSetOffset)
+		: FRegisterHandlerBase(Context)
+		, Register((T*)Context.RegisterTable[RegisterIndex+DataSetOffset])
+	{}
+
+	VM_FORCEINLINE void Advance() { }
+	VM_FORCEINLINE T Get() { return *Register; }
+	VM_FORCEINLINE T* GetDest() { return Register; }
+};
+
+/** Special kernel for writing to a specific output register. */
+template<typename T>
+struct FScalarKernelWriteOutputIndexed
+{
+	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
-		VectorRegister X = VectorMin( VectorDivide(VectorSubtract(Src2, Src0), VectorSubtract(Src1, Src0)), MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f) );
-		X = VectorMax(X, MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f));
+		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);		
+		switch (SrcOpTypes)
+		{
+		case SRCOP_RRR: TTrinaryOutputKernelHandler<FScalarKernelWriteOutputIndexed, FOutputRegisterHandler<T>, FDataSetOffsetHandler, FRegisterHandler<int32>, FRegisterHandler<T>, 1>::Exec(Context); break;
+		case SRCOP_RRC:	TTrinaryOutputKernelHandler<FScalarKernelWriteOutputIndexed, FOutputRegisterHandler<T>, FDataSetOffsetHandler, FRegisterHandler<int32>, FConstantHandler<T>, 1>::Exec(Context); break;
+		default: check(0); break;
+		};
+	}
 
-		VectorRegister X3 = VectorMultiply( VectorMultiply(X, X), X);
-		VectorRegister N6 = MakeVectorRegister(6.0f, 6.0f, 6.0f, 6.0f);
-		VectorRegister N15 = MakeVectorRegister(15.0f, 15.0f, 15.0f, 15.0f);
-		VectorRegister T = VectorSubtract( VectorMultiply(X, N6), N15 );
-		T = VectorAdd(VectorMultiply(X, T), MakeVectorRegister(10.0f, 10.0f, 10.0f, 10.0f));
-
-		*Dst = VectorMultiply(X3, T);
+	static VM_FORCEINLINE void DoKernel(T* RESTRICT Dst, int32 SetOffset, int32 Index, T Data)
+	{
+		if (Index != INDEX_NONE)
+		{
+			Dst[Index] = Data;//TODO: On sse4 we can use _mm_stream_ss here.
+		}
 	}
 };
 
-// smoothly runs 0->1->0
-struct FVectorKernelEaseInOut : public TUnaryVectorKernel<FVectorKernelEaseInOut>
+struct FDataSetCounterHandler
 {
-	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const VectorRegister& Src0)
+	int32* Counter;
+	FDataSetCounterHandler(FVectorVMContext& Context)
+		: Counter(Context.DataSetIndexTable + DecodeU16(Context))
+	{}
+
+	VM_FORCEINLINE void Advance() { }
+	VM_FORCEINLINE int32* Get() { return Counter; }
+	//VM_FORCEINLINE const int32* GetDest() { return Counter; }Should never use as a dest. All kernels with read and write to this.
+};
+
+struct FScalarKernelAcquireCounterIndex
+{
+	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
 	{
-		VectorRegister T = VectorMultiply(Src0, MakeVectorRegister(2.0f, 2.0f, 2.0f, 2.0f));
-		T = VectorSubtract(T, MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f));
-		VectorRegister X2 = VectorMultiply(T, T);
-		
-		VectorRegister R = VectorMultiply(X2, MakeVectorRegister(0.9604f, 0.9604f, 0.9604f, 0.9604f));
-		R = VectorSubtract(R, MakeVectorRegister(1.96f, 1.96f, 1.96f, 1.96f));
-		R = VectorMultiply(R, X2);
-		*Dst = VectorAdd(R, MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f));
+		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
+		switch (SrcOpTypes)
+		{
+		case SRCOP_RRR: TBinaryKernelHandler<FScalarKernelAcquireCounterIndex, FRegisterDestHandler<int32>, FDataSetCounterHandler, FRegisterHandler<int32>, 1>::Exec(Context); break;
+		case SRCOP_RRC:	TBinaryKernelHandler<FScalarKernelAcquireCounterIndex, FRegisterDestHandler<int32>, FDataSetCounterHandler, FConstantHandler<int32>, 1>::Exec(Context); break;
+		default: check(0); break;
+		};
+	}
+
+	static VM_FORCEINLINE void DoKernel(int32* RESTRICT Dst, int32* Index, int32 Valid)
+	{
+		if (*Index != INDEX_NONE && Valid != 0)
+		{
+			*Dst = (*Index)++;
+		}
+		else
+		{	
+			*Dst = INDEX_NONE;	// Subsequent DoKernal calls above will skip over INDEX_NONE register entries...
+		}
 	}
 };
 
-struct FVectorKernelOutputStreamed : public TUnaryVectorKernel<FVectorKernelOutputStreamed>
-{
-	static void VM_FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegister Src0)
-	{
-		VectorStoreAlignedStreamed(Src0, Dst);
-	}
-};
+//TODO: REWORK TO FUNCITON LIKE THE ABOVE.
+// /** Special kernel for decrementing a dataset counter. */
+// struct FScalarKernelReleaseCounterIndex
+// {
+// 	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+// 	{
+// 		int32* CounterPtr = (int32*)(Context.ConstantTable[DecodeU16(Context)]);
+// 		int32* DestReg = (int32*)(Context.RegisterTable[DecodeU16(Context)]);
+// 
+// 		for (int32 i = 0; i < Context.NumInstances; ++i)
+// 		{
+// 			int32 Counter = (*CounterPtr--);
+// 			*DestReg = Counter >= 0 ? Counter : INDEX_NONE;
+// 
+// 			++DestReg;
+// 		}
+// 	}
+// };
 
-struct FVectorKernelOutput : public TUnaryVectorKernel<FVectorKernelOutput>
+//////////////////////////////////////////////////////////////////////////
+//external_func_call
+
+struct FKernelExternalFunctionCall
 {
-	static void VM_FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegister Src0)
+	static void Exec(FVectorVMContext& Context)
 	{
-		VectorStoreAligned(Src0, Dst);
+		uint32 ExternalFuncIdx = DecodeU8(Context);
+		Context.ExternalFunctionTable[ExternalFuncIdx].Execute(Context);
 	}
 };
 
 //////////////////////////////////////////////////////////////////////////
-//Shared data
+//Integer operations
 
-struct FSharedDataHandlerBase
+//addi,
+struct FVectorIntKernelAdd : TBinaryVectorIntKernel<FVectorIntKernelAdd>
 {
-	int32 SharedDataIdx;
-	FVectorVMSharedDataView& SharedData;
-	int32 VarIndex;
-	FRegisterHandler<int32, 4> IndexRegisterHandler;
-
-	FSharedDataHandlerBase(FVectorVMContext& Context)
-		: SharedDataIdx(DecodeU8(Context))
-		, SharedData(Context.SharedDataTable[SharedDataIdx])
-		, VarIndex(DecodeU8(Context))
-		, IndexRegisterHandler(Context)
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
 	{
-	}
-
-	VM_FORCEINLINE void Advance(){ IndexRegisterHandler.Advance(); }
-	VM_FORCEINLINE int32 GetSharedDataIndex(){ return SharedDataIdx; }
-	VM_FORCEINLINE int32 GetVarIndex(){ return VarIndex; }
-	VM_FORCEINLINE int32 GetDataIndex(){ return IndexRegisterHandler.Get(); }
-};
-
-struct FSharedDataHandler : public FSharedDataHandlerBase
-{
-	FSharedDataHandler(FVectorVMContext& Context)
-	: FSharedDataHandlerBase(Context)
-	{
-	}
-
-	VM_FORCEINLINE VectorRegister Get()
-	{
-		return VectorLoad((VectorRegister*)SharedData.GetReadBuffer(VarIndex, IndexRegisterHandler.Get()));
+		*Dst = VectorIntAdd(Src0, Src1);
 	}
 };
 
-struct FSharedDataDestHandler : public FSharedDataHandlerBase
+//subi,
+struct FVectorIntKernelSubtract : TBinaryVectorIntKernel<FVectorIntKernelSubtract>
 {
-	FSharedDataDestHandler(FVectorVMContext& Context)
-	: FSharedDataHandlerBase(Context)
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
 	{
-	}
-
-	VM_FORCEINLINE VectorRegister* Get()
-	{
-		return (VectorRegister*)SharedData.GetWriteBuffer(VarIndex, IndexRegisterHandler.Get());
-	}
-	VM_FORCEINLINE VectorRegister GetValue()
-	{
-		return VectorLoadAligned(Get());
+		*Dst = VectorIntSubtract(Src0, Src1);
 	}
 };
 
-/** 
-Temporary Vector only version of this.
-*/
-struct FVectorKernelSharedDataWrite : public TUnaryKernel<FVectorKernelSharedDataWrite, FSharedDataDestHandler, FRegisterHandler<VectorRegister>>
+//muli,
+struct FVectorIntKernelMultiply : TBinaryVectorIntKernel<FVectorIntKernelMultiply>
 {
-	static const int32 NumInstancesPerOp = 1;
-	static void VM_FORCEINLINE DoKernel(VectorRegister* Buffer, VectorRegister Data)
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
 	{
-		VectorStoreAlignedStreamed(Data, (float*)(Buffer));
-	}
-}; 
-
-/**
-Temporary Vector only version of this.
-*/
-struct FVectorKernelSharedDataRead : public TUnaryKernel<FVectorKernelSharedDataRead, FRegisterDestHandler<VectorRegister>, FSharedDataHandler>
-{
-	static const int32 NumInstancesPerOp = 1;
-	static void VM_FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegister Data)
-	{
-		*Dst = Data;
+		*Dst = VectorIntMultiply(Src0, Src1);
 	}
 };
 
-struct FSharedDataIndexHandlerBase
+//clampi,
+struct FVectorIntKernelClamp : TTrinaryVectorIntKernel<FVectorIntKernelClamp>
 {
-	int32 SharedDataIndex;
-	int32 CurrIndex;
-	FVectorVMSharedDataView& SharedData;
-
-	VM_FORCEINLINE void Advance(){}
-	int32 Get(){ return CurrIndex; }
-	FSharedDataIndexHandlerBase(FVectorVMContext& Context) 
-		: SharedDataIndex(DecodeU8(Context))
-		, SharedData(Context.SharedDataTable[SharedDataIndex])
-	{	}
-};
-struct FSharedDataIndexHandler_Acquire : public FSharedDataIndexHandlerBase
-{
-	FSharedDataIndexHandler_Acquire(FVectorVMContext& Context) : FSharedDataIndexHandlerBase(Context)	{	}
-	int32 GetNextIndex(){ CurrIndex = SharedData.AcquireIndexWrap(); return CurrIndex; }
-};
-struct FSharedDataIndexHandler_AcquireWrap : public FSharedDataIndexHandlerBase
-{
-	FSharedDataIndexHandler_AcquireWrap(FVectorVMContext& Context) : FSharedDataIndexHandlerBase(Context)	{	}
-	int32 GetNextIndex(){ CurrIndex = SharedData.AcquireIndexWrap();  return CurrIndex; }
-};
-struct FSharedDataIndexHandler_Consume : public FSharedDataIndexHandlerBase
-{
-	FSharedDataIndexHandler_Consume(FVectorVMContext& Context) : FSharedDataIndexHandlerBase(Context)	{	}
-	int32 GetNextIndex(){ CurrIndex = SharedData.ConsumeIndex();  return CurrIndex; }
-};
-struct FSharedDataIndexHandler_ConsumeWrap : public FSharedDataIndexHandlerBase
-{
-	FSharedDataIndexHandler_ConsumeWrap(FVectorVMContext& Context) : FSharedDataIndexHandlerBase(Context)	{	}
-	int32 GetNextIndex(){ CurrIndex = SharedData.ConsumeIndexWrap();  return CurrIndex; }
-};
-
-//Temporary until after scalarization and we can store the size and counter of shared data in constant data.
-template <typename IndexHandler>
-struct FKernelSharedDataGetAppendIndexBase
-{
-	static const int32 NumInstancesPerOp = 1;
-	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1, VectorRegisterInt Src2)
 	{
-		FRegisterDestHandler<int32, 4> IndexDest(Context);
-		FRegisterHandler<float, 4> ValidSrc(Context);
-		IndexHandler IdxHandler(Context);
-		int32 NumInstances = Context.NumInstances;
-		for (int32 i = 0; i < NumInstances; ++i)
-		{
-			int32 Index = ValidSrc.Get() > 0.0f ? IdxHandler.GetNextIndex() : INDEX_NONE;
-			int32* Dest = IndexDest.Get();
-			Dest[0] = Index; Dest[1] = Index; Dest[2] = Index; Dest[3] = Index;
-
-			ValidSrc.Advance();
-			IndexDest.Advance();
-			IdxHandler.Advance();
-		}
+		*Dst = VectorIntMin(VectorIntMax(Src0, Src1), Src2);
 	}
 };
 
-typedef FKernelSharedDataGetAppendIndexBase<FSharedDataIndexHandler_Acquire> FKernelSharedDataGetAppendIndex;
-typedef FKernelSharedDataGetAppendIndexBase<FSharedDataIndexHandler_AcquireWrap> FKernelSharedDataGetAppendIndex_Wrap;
-
-//Temporary until after scalarization and we can store the size and counter of shared data in constant data.
-template<typename IndexHandler>
-struct FKernelSharedDataGetConsumeIndexBase
+//mini,
+struct FVectorIntKernelMin : TBinaryVectorIntKernel<FVectorIntKernelMin>
 {
-	static const int32 NumInstancesPerOp = 1;
-
-	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
 	{
-		FRegisterDestHandler<int32, 4> IndexDest(Context);
-		IndexHandler IdxHandler(Context);
-		int32 NumInstances = Context.NumInstances;
-		for (int32 i = 0; i < NumInstances; ++i)
-		{
-			int32 Index = IdxHandler.GetNextIndex();
-			//Better to just stay in int pipeline?
-			*IndexDest.Get() = Index;//Only need index in X;
-
-			IndexDest.Advance();
-			IdxHandler.Advance();
-		}
+		*Dst = VectorIntMin(Src0, Src1);
 	}
 };
 
-typedef FKernelSharedDataGetConsumeIndexBase<FSharedDataIndexHandler_Consume> FKernelSharedDataGetConsumeIndex;
-typedef FKernelSharedDataGetConsumeIndexBase<FSharedDataIndexHandler_ConsumeWrap> FKernelSharedDataGetConsumeIndex_Wrap;
-
-//Temporary until after scalarization and we can store the size and counter of shared data in constant data.
-struct FKernelSharedDataIndexValid
+//maxi,
+struct FVectorIntKernelMax : TBinaryVectorIntKernel<FVectorIntKernelMax>
 {
-	static VM_FORCEINLINE void Exec(FVectorVMContext& Context)
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
 	{
-		FRegisterDestHandler<float, 4> ValidDest(Context);
-		FRegisterHandler<int32, 4> IndexSrc(Context);
-		FVectorVMSharedDataView& SharedData = Context.SharedDataTable[DecodeU8(Context)];
-		int32 NumInstances = Context.NumInstances;
-		for (int32 i = 0; i < NumInstances; ++i)
-		{
-			int32 Index = IndexSrc.Get();
-			float Valid = SharedData.ValidIndex(Index) ? 1.0f : 0.0f;
-			//Better to just stay in int pipeline?
-			float* Dst = ValidDest.Get();
-			Dst[0] = Valid; Dst[1] = Valid; Dst[2] = Valid; Dst[3] = Valid;
-
-			ValidDest.Advance();
-			IndexSrc.Advance();;
-		}
+		*Dst = VectorIntMax(Src0, Src1);
 	}
 };
+
+//absi,
+struct FVectorIntKernelAbs : TUnaryVectorIntKernel<FVectorIntKernelAbs>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0)
+	{
+		*Dst = VectorIntAbs(Src0);
+	}
+};
+
+//negi,
+struct FVectorIntKernelNegate : TUnaryVectorIntKernel<FVectorIntKernelNegate>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0)
+	{
+		*Dst = VectorIntNegate(Src0);
+	}
+};
+
+//signi,
+struct FVectorIntKernelSign : TUnaryVectorIntKernel<FVectorIntKernelSign>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0)
+	{
+		*Dst = VectorIntSign(Src0);
+	}
+};
+
+//cmplti,
+struct FVectorIntKernelCompareLT : TBinaryVectorIntKernel<FVectorIntKernelCompareLT>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntCompareLT(Src0, Src1);
+	}
+};
+
+//cmplei,
+struct FVectorIntKernelCompareLE : TBinaryVectorIntKernel<FVectorIntKernelCompareLE>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntCompareLE(Src0, Src1);
+	}
+};
+
+//cmpgti,
+struct FVectorIntKernelCompareGT : TBinaryVectorIntKernel<FVectorIntKernelCompareGT>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntCompareGT(Src0, Src1);
+	}
+};
+
+//cmpgei,
+struct FVectorIntKernelCompareGE : TBinaryVectorIntKernel<FVectorIntKernelCompareGE>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntCompareGE(Src0, Src1);
+	}
+};
+
+//cmpeqi,
+struct FVectorIntKernelCompareEQ : TBinaryVectorIntKernel<FVectorIntKernelCompareEQ>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntCompareEQ(Src0, Src1);
+	}
+};
+
+//cmpneqi,
+struct FVectorIntKernelCompareNEQ : TBinaryVectorIntKernel<FVectorIntKernelCompareNEQ>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntCompareNEQ(Src0, Src1);
+	}
+};
+
+//bit_and,
+struct FVectorIntKernelBitAnd : TBinaryVectorIntKernel<FVectorIntKernelBitAnd>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntAnd(Src0, Src1);
+	}
+};
+
+//bit_or,
+struct FVectorIntKernelBitOr : TBinaryVectorIntKernel<FVectorIntKernelBitOr>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntOr(Src0, Src1);
+	}
+};
+
+//bit_xor,
+struct FVectorIntKernelBitXor : TBinaryVectorIntKernel<FVectorIntKernelBitXor>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		*Dst = VectorIntXor(Src0, Src1);
+	}
+};
+
+//bit_not,
+struct FVectorIntKernelBitNot : TUnaryVectorIntKernel<FVectorIntKernelBitNot>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0)
+	{
+		*Dst = VectorIntNot(Src0);
+	}
+};
+
+//"Boolean" ops. Currently handling bools as integers.
+//logic_and,
+struct FVectorIntKernelLogicAnd : TBinaryVectorIntKernel<FVectorIntKernelLogicAnd>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		//We need to assume a mask input and produce a mask output so just bitwise ops actually fine for these?
+		*Dst = VectorIntAnd(Src0, Src1);
+	}
+};
+
+//logic_or,
+struct FVectorIntKernelLogicOr : TBinaryVectorIntKernel<FVectorIntKernelLogicOr>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		//We need to assume a mask input and produce a mask output so just bitwise ops actually fine for these?
+		*Dst = VectorIntOr(Src0, Src1);
+	}
+};
+//logic_xor,
+struct FVectorIntKernelLogicXor : TBinaryVectorIntKernel<FVectorIntKernelLogicXor>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0, VectorRegisterInt Src1)
+	{
+		//We need to assume a mask input and produce a mask output so just bitwise ops actually fine for these?
+		*Dst = VectorIntXor(Src0, Src1);
+	}
+};
+
+//logic_not,
+struct FVectorIntKernelLogicNot : TUnaryVectorIntKernel<FVectorIntKernelLogicNot>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0)
+	{
+		//We need to assume a mask input and produce a mask output so just bitwise ops actually fine for these?
+		*Dst = VectorIntNot(Src0);
+	}
+};
+
+//conversions
+//f2i,
+struct FVectorKernelFloatToInt : TUnaryKernel<FVectorKernelFloatToInt, FRegisterDestHandler<VectorRegisterInt>, FConstantHandler<VectorRegister>, FRegisterHandler<VectorRegister>, VECTOR_WIDTH_FLOATS>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegister Src0)
+	{
+		*Dst = VectorFloatToInt(Src0);
+	}
+};
+
+//i2f,
+struct FVectorKernelIntToFloat : TUnaryKernel<FVectorKernelIntToFloat, FRegisterDestHandler<VectorRegister>, FConstantHandler<VectorRegisterInt>, FRegisterHandler<VectorRegisterInt>, VECTOR_WIDTH_FLOATS>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegisterInt Src0)
+	{
+		*Dst = VectorIntToFloat(Src0);
+	}
+};
+
+//f2b,
+struct FVectorKernelFloatToBool : TUnaryKernel<FVectorKernelFloatToBool, FRegisterDestHandler<VectorRegister>, FConstantHandler<VectorRegister>, FRegisterHandler<VectorRegister>, VECTOR_WIDTH_FLOATS>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegister Src0)
+	{		
+		*Dst = VectorCompareGT(Src0, GlobalVectorConstants::FloatZero);
+	}
+};
+
+//b2f,
+struct FVectorKernelBoolToFloat : TUnaryKernel<FVectorKernelBoolToFloat, FRegisterDestHandler<VectorRegister>, FConstantHandler<VectorRegister>, FRegisterHandler<VectorRegister>, VECTOR_WIDTH_FLOATS>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegister Src0)
+	{
+		*Dst = VectorSelect(Src0, GlobalVectorConstants::FloatOne, GlobalVectorConstants::FloatZero);
+	}
+};
+
+//i2b,
+struct FVectorKernelIntToBool : TUnaryKernel<FVectorKernelIntToBool, FRegisterDestHandler<VectorRegisterInt>, FConstantHandler<VectorRegisterInt>, FRegisterHandler<VectorRegisterInt>, VECTOR_WIDTH_FLOATS>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0)
+	{
+		*Dst = VectorIntCompareGT(Src0, GlobalVectorConstants::IntZero);
+	}
+};
+
+//b2i,
+struct FVectorKernelBoolToInt : TUnaryKernel<FVectorKernelBoolToInt, FRegisterDestHandler<VectorRegisterInt>, FConstantHandler<VectorRegisterInt>, FRegisterHandler<VectorRegisterInt>, VECTOR_WIDTH_FLOATS>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegisterInt* Dst, VectorRegisterInt Src0)
+	{
+		*Dst = VectorIntSelect(Src0, GlobalVectorConstants::IntOne, GlobalVectorConstants::IntZero);
+	}
+};
+
 
 void VectorVM::Init()
 {
@@ -1149,77 +1329,89 @@ void VectorVM::Init()
 			}
 		}
 
-#if WITH_EDITOR
-
-		OpNames.AddDefaulted((int32)EVectorVMOp::NumOpcodes);
-		if (UEnum* EnumStateObj = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVectorVMOp"), true))
-		{
-			for (int32 i = 0; i < (int32)EVectorVMOp::NumOpcodes; ++i)
-			{
-				OpNames[i] = EnumStateObj->GetDisplayNameText(i).ToString();
-			}
-		}
-
-		OperandLocationNames.AddDefaulted((int32)EVectorVMOperandLocation::Num);
-		if (UEnum* EnumStateObj = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVectorVMOperandLocation"), true))
-		{
-			for (int32 i = 0; i < (int32)EVectorVMOperandLocation::Num; ++i)
-			{
-				OperandLocationNames[i] = EnumStateObj->GetDisplayNameText(i).ToString();
-			}
-		}
-
-#endif
-
 		Inited = true;
 	}
 }
 
 void VectorVM::Exec(
 	uint8 const* Code,
-	VectorRegister** InputRegisters,
+	uint8** InputRegisters,
+	uint8* InputRegisterSizes,
 	int32 NumInputRegisters,
-	VectorRegister** OutputRegisters,
+	uint8** OutputRegisters,
+	uint8* OutputRegisterSizes,
 	int32 NumOutputRegisters,
-	FVector4 const* ConstantTable,
-	FVectorVMSharedDataView* SharedDataTable,
-	int32 NumVectors
+	uint8 const* ConstantTable,
+	TArray<FDataSetMeta> &DataSetMetaTable,
+	FVMExternalFunction* ExternalFunctionTable,
+	int32 NumInstances
+
+#if STATS
+	, TArray<TStatId>& StatScopes
+#endif
 	)
 {
-	VectorRegister TempRegisters[NumTempRegisters][VectorsPerChunk];
-	VectorRegister* RegisterTable[MaxRegisters] = {0};
+	uint32 TempRegisterSize = Align((InstancesPerChunk) * MaxInstanceSizeBytes, VECTOR_WIDTH_BYTES) + VECTOR_WIDTH_BYTES;
+	//TODO: Refactor this so VMs are a persistent object with growing buffers. Once spun up, there are no allocs.
+	//Can be pooled and used for threading and branching.
+	TArray<uint8,TAlignedHeapAllocator<VECTOR_WIDTH_BYTES>> TempRegTable;
+	TempRegTable.SetNumUninitialized(TempRegisterSize * NumTempRegisters);
+	uint8* RegisterTable[MaxRegisters] = {0};
+
 
 	// Map temporary registers.
 	for (int32 i = 0; i < NumTempRegisters; ++i)
 	{
-		RegisterTable[i] = TempRegisters[i];
+		RegisterTable[i] = TempRegTable.GetData() + TempRegisterSize * i;
 	}
 
-	// Process one chunk at a time.
-	int32 NumChunks = (NumVectors + VectorsPerChunk - 1) / VectorsPerChunk;
-	for (int32 ChunkIndex = 0; ChunkIndex < NumChunks; ++ChunkIndex)
-	{
-		// Map input and output registers.
-		for (int32 i = 0; i < NumInputRegisters; ++i)
-		{
-			RegisterTable[NumTempRegisters + i] = InputRegisters[i] + ChunkIndex * VectorsPerChunk;
-		}
-		for (int32 i = 0; i < NumOutputRegisters; ++i)
-		{
-			RegisterTable[NumTempRegisters + MaxInputRegisters + i] = OutputRegisters[i] + ChunkIndex * VectorsPerChunk;
-		}
+	// Map input and output registers.
+	//Input and output registers are indexed absolutely directly in their kernels.
+	//TODO: No need for these to be in the same table now.
+	//TODO: Also no need for the i/o size table as the ops will deal with that now.
+ 	for (int32 i = 0; i < NumInputRegisters; ++i)
+ 	{
+ 		RegisterTable[NumTempRegisters + i] = InputRegisters[i];
+ 	}
+ 	for (int32 i = 0; i < NumOutputRegisters; ++i)
+ 	{
+ 		RegisterTable[NumTempRegisters + MaxInputRegisters + i] = OutputRegisters[i];
+ 	}
 
+	// table of index counters, one for each data set
+	TArray<int32> DataSetIndexTable;
+
+	// map secondary data sets and fill in the offset table into the register table
+	//
+	TArray<int32> DataSetOffsetTable;
+	for (int32 Idx = 0; Idx < DataSetMetaTable.Num(); Idx++)
+	{
+		uint32 DataSetOffset = DataSetMetaTable[Idx].NumVariables;
+		DataSetOffsetTable.Add(DataSetOffset);
+		DataSetIndexTable.Add(DataSetMetaTable[Idx].DataSetAccessIndex);	// prime counter index table with the data set offset; will be incremented with every write for each instance
+	}
+
+
+
+	// Process one chunk at a time.
+	int32 InstancesLeft = NumInstances;
+	int32 ChunkIdx = 0;
+	while (InstancesLeft > 0)
+	{
 		// Setup execution context.
-		int32 VectorsThisChunk = FMath::Min<int32>(NumVectors, VectorsPerChunk);
-		int32 InstancesThisChunk = VectorsThisChunk;
-		FVectorVMContext Context(Code, RegisterTable, ConstantTable, SharedDataTable, VectorsThisChunk, InstancesThisChunk, VectorsPerChunk * ChunkIndex);
+		FVectorVMContext Context(Code, RegisterTable, ConstantTable, DataSetIndexTable.GetData(), DataSetOffsetTable.GetData(), 
+			ExternalFunctionTable, FMath::Min(InstancesLeft, (int32)InstancesPerChunk), InstancesPerChunk * ChunkIdx
+#if STATS
+			, StatScopes
+#endif
+		);
+		Context.NumSecondaryDataSets = DataSetOffsetTable.Num();
 		EVectorVMOp Op = EVectorVMOp::done;
 
 		// Execute VM on all vectors in this chunk.
 		do 
 		{
 			Op = DecodeOp(Context);
-			Context.SetOp(Op);
 			switch (Op)
 			{
 			// Dispatch kernel ops.
@@ -1247,6 +1439,7 @@ void VectorVM::Exec(
 			case EVectorVMOp::atan2: FVectorKernelATan2::Exec(Context); break;
 			case EVectorVMOp::ceil: FVectorKernelCeil::Exec(Context); break;
 			case EVectorVMOp::floor: FVectorKernelFloor::Exec(Context); break;
+			case EVectorVMOp::round: FVectorKernelRound::Exec(Context); break;
 			case EVectorVMOp::fmod: FVectorKernelMod::Exec(Context); break;
 			case EVectorVMOp::frac: FVectorKernelFrac::Exec(Context); break;
 			case EVectorVMOp::trunc: FVectorKernelTrunc::Exec(Context); break;
@@ -1256,37 +1449,60 @@ void VectorVM::Exec(
 			case EVectorVMOp::pow: FVectorKernelPow::Exec(Context); break;
 			case EVectorVMOp::sign: FVectorKernelSign::Exec(Context); break;
 			case EVectorVMOp::step: FVectorKernelStep::Exec(Context); break;
-			case EVectorVMOp::dot: FVectorKernelDot::Exec(Context); break;
-			case EVectorVMOp::cross: FVectorKernelCross::Exec(Context); break;
-			case EVectorVMOp::normalize: FVectorKernelNormalize::Exec(Context); break;
 			case EVectorVMOp::random: FVectorKernelRandom::Exec(Context); break;
-			case EVectorVMOp::length: FVectorKernelLength::Exec(Context); break;
-			case EVectorVMOp::noise: FVectorKernelNoise::Exec(Context); break;
-			case EVectorVMOp::splatx: FVectorKernelSplat<0>::Exec(Context); break;
-			case EVectorVMOp::splaty: FVectorKernelSplat<1>::Exec(Context); break;
-			case EVectorVMOp::splatz: FVectorKernelSplat<2>::Exec(Context); break;
-			case EVectorVMOp::splatw: FVectorKernelSplat<3>::Exec(Context); break;
-			case EVectorVMOp::compose: FVectorKernelCompose<0,1,2,3>::Exec(Context); break;
-			case EVectorVMOp::composex: FVectorKernelCompose<0, 0, 0, 0>::Exec(Context); break;
-			case EVectorVMOp::composey: FVectorKernelCompose<1, 1, 1, 1>::Exec(Context); break;
-			case EVectorVMOp::composez: FVectorKernelCompose<2, 2, 2, 2>::Exec(Context); break;
-			case EVectorVMOp::composew: FVectorKernelCompose<3, 3, 3, 3>::Exec(Context); break;
-			case EVectorVMOp::lessthan: FVectorKernelLessThan::Exec(Context); break;
-			case EVectorVMOp::easein: FVectorKernelEaseIn::Exec(Context); break;
-			case EVectorVMOp::easeinout: FVectorKernelEaseInOut::Exec(Context); break;
-			case EVectorVMOp::aquireshareddataindex: FKernelSharedDataGetAppendIndex::Exec(Context); break;
-			case EVectorVMOp::aquireshareddataindexwrap: FKernelSharedDataGetAppendIndex_Wrap::Exec(Context); break;
-			case EVectorVMOp::consumeshareddataindex: FKernelSharedDataGetConsumeIndex::Exec(Context); break;
-			case EVectorVMOp::consumeshareddataindexwrap: FKernelSharedDataGetConsumeIndex_Wrap::Exec(Context); break;
-			case EVectorVMOp::shareddataread: FVectorKernelSharedDataRead::Exec(Context); break;
-			case EVectorVMOp::shareddatawrite: FVectorKernelSharedDataWrite::Exec(Context); break;
-			case EVectorVMOp::shareddataindexvalid: FKernelSharedDataIndexValid::Exec(Context); break;
+			case EVectorVMOp::noise: VectorVMNoise::Noise1D(Context); break;
+			case EVectorVMOp::noise2D: VectorVMNoise::Noise2D(Context); break;
+			case EVectorVMOp::noise3D: VectorVMNoise::Noise3D(Context); break;
+
+			case EVectorVMOp::cmplt: FVectorKernelCompareLT::Exec(Context); break;
+			case EVectorVMOp::cmple: FVectorKernelCompareLE::Exec(Context); break;
+			case EVectorVMOp::cmpgt: FVectorKernelCompareGT::Exec(Context); break;
+			case EVectorVMOp::cmpge: FVectorKernelCompareGE::Exec(Context); break;
+			case EVectorVMOp::cmpeq: FVectorKernelCompareEQ::Exec(Context); break;
+			case EVectorVMOp::cmpneq: FVectorKernelCompareNEQ::Exec(Context); break;
 			case EVectorVMOp::select: FVectorKernelSelect::Exec(Context); break;
-			case EVectorVMOp::output:
-			{
-				FVectorKernelOutput::Exec(Context);
-			}
-				break;
+
+			case EVectorVMOp::addi: FVectorIntKernelAdd::Exec(Context); break;
+			case EVectorVMOp::subi: FVectorIntKernelSubtract::Exec(Context); break;
+			case EVectorVMOp::muli: FVectorIntKernelMultiply::Exec(Context); break;
+			case EVectorVMOp::clampi: FVectorIntKernelClamp::Exec(Context); break;
+			case EVectorVMOp::mini: FVectorIntKernelMin::Exec(Context); break;
+			case EVectorVMOp::maxi: FVectorIntKernelMax::Exec(Context); break;
+			case EVectorVMOp::absi: FVectorIntKernelAbs::Exec(Context); break;
+			case EVectorVMOp::negi: FVectorIntKernelNegate::Exec(Context); break;
+			case EVectorVMOp::signi: FVectorIntKernelSign::Exec(Context); break;
+			case EVectorVMOp::cmplti: FVectorIntKernelCompareLT::Exec(Context); break;
+			case EVectorVMOp::cmplei: FVectorIntKernelCompareLE::Exec(Context); break;
+			case EVectorVMOp::cmpgti: FVectorIntKernelCompareGT::Exec(Context); break;
+			case EVectorVMOp::cmpgei: FVectorIntKernelCompareGE::Exec(Context); break;
+			case EVectorVMOp::cmpeqi: FVectorIntKernelCompareEQ::Exec(Context); break;
+			case EVectorVMOp::cmpneqi: FVectorIntKernelCompareNEQ::Exec(Context); break;
+			case EVectorVMOp::bit_and: FVectorIntKernelBitAnd::Exec(Context); break;
+			case EVectorVMOp::bit_or: FVectorIntKernelBitOr::Exec(Context); break;
+			case EVectorVMOp::bit_xor: FVectorIntKernelBitXor::Exec(Context); break;
+			case EVectorVMOp::bit_not: FVectorIntKernelBitNot::Exec(Context); break;
+			case EVectorVMOp::logic_and: FVectorIntKernelLogicAnd::Exec(Context); break;
+			case EVectorVMOp::logic_or: FVectorIntKernelLogicOr::Exec(Context); break;
+			case EVectorVMOp::logic_xor: FVectorIntKernelLogicXor::Exec(Context); break;
+			case EVectorVMOp::logic_not: FVectorIntKernelLogicNot::Exec(Context); break;
+			case EVectorVMOp::f2i: FVectorKernelFloatToInt::Exec(Context); break;
+			case EVectorVMOp::i2f: FVectorKernelIntToFloat::Exec(Context); break;
+			case EVectorVMOp::f2b: FVectorKernelFloatToBool::Exec(Context); break;
+			case EVectorVMOp::b2f: FVectorKernelBoolToFloat::Exec(Context); break;
+			case EVectorVMOp::i2b: FVectorKernelIntToBool::Exec(Context); break;
+			case EVectorVMOp::b2i: FVectorKernelBoolToInt::Exec(Context); break;
+
+			case EVectorVMOp::outputdata_32bit:	FScalarKernelWriteOutputIndexed<int32>::Exec(Context);	break;
+			case EVectorVMOp::inputdata_32bit: FVectorKernelReadInput<int32>::Exec(Context); break;
+			//case EVectorVMOp::inputdata_32bit: FVectorKernelReadInput32::Exec(Context); break;
+			case EVectorVMOp::inputdata_noadvance_32bit: FVectorKernelReadInputNoAdvance<int32>::Exec(Context); break;
+			case EVectorVMOp::acquireindex:	FScalarKernelAcquireCounterIndex::Exec(Context); break;
+			case EVectorVMOp::external_func_call: FKernelExternalFunctionCall::Exec(Context); break;
+
+			case EVectorVMOp::exec_index: FVectorKernelExecutionIndex::Exec(Context); break;
+
+			case EVectorVMOp::enter_stat_scope: FVectorKernelEnterStatScope::Exec(Context); break;
+			case EVectorVMOp::exit_stat_scope: FVectorKernelExitStatScope::Exec(Context); break;
 
 			// Execution always terminates with a "done" opcode.
 			case EVectorVMOp::done:
@@ -1299,8 +1515,16 @@ void VectorVM::Exec(
 			}
 		} while (Op != EVectorVMOp::done);
 
-		NumVectors -= VectorsPerChunk;
+		InstancesLeft -= InstancesPerChunk;
+		++ChunkIdx;
 	}
+
+	// write back data set access indices, so we know how much was written to each data set
+	for (int32 Idx = 0; Idx < DataSetMetaTable.Num(); Idx++)
+	{
+		DataSetMetaTable[Idx].DataSetAccessIndex = DataSetIndexTable[Idx];	
+	}
+
 }
 
 uint8 VectorVM::GetNumOpCodes()
@@ -1311,12 +1535,24 @@ uint8 VectorVM::GetNumOpCodes()
 #if WITH_EDITOR
 FString VectorVM::GetOpName(EVectorVMOp Op)
 {
-	return OpNames[(int32)Op];
+	static UEnum* EnumStateObj = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVectorVMOp"), true);	
+	check(EnumStateObj);
+
+	FString OpStr = EnumStateObj->GetNameByValue((uint8)Op).ToString();
+	int32 LastIdx = 0;
+	OpStr.FindLastChar(TEXT(':'),LastIdx);
+	return OpStr.RightChop(LastIdx);
 }
 
 FString VectorVM::GetOperandLocationName(EVectorVMOperandLocation Location)
 {
-	return OperandLocationNames[(int32)Location];
+	static UEnum* EnumStateObj = FindObject<UEnum>(ANY_PACKAGE, TEXT("EVectorVMOperandLocation"), true);
+	check(EnumStateObj);
+
+	FString LocStr = EnumStateObj->GetNameByValue((uint8)Location).ToString();	
+	int32 LastIdx = 0;
+	LocStr.FindLastChar(TEXT(':'), LastIdx);
+	return LocStr.RightChop(LastIdx);
 }
 #endif
 

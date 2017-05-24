@@ -371,10 +371,6 @@ public:
 
 		virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override
 		{
-			// Child slots that do not allow zooming should scale themselves to negate the node panel's zoom.
-			TSharedPtr<SNodePanel> ParentPanel = GetParentPanel();
-			const float ZoomInverse = ParentPanel.IsValid() ? 1.0f / ParentPanel->GetZoomAmount() : 1.0f;
-
 			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 			{
 				const FNodeSlot& CurChild = Children[ChildIndex];

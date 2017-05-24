@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3242329
+Availability:Public
 title:マテリアル式リファレンス
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:複雑なノードベースのシェーダーネットワークを作成するための、マテリアルエディタで利用可能な全マテリアル式のリファレンス
@@ -7,6 +8,7 @@ parent:Engine/Rendering/Materials
 order:9
 topic-image:exp_ref_topic.png
 type:overview
+tags:Materials
 
 [REGION:banner]
 ![Materials Compendium](compendium.png)

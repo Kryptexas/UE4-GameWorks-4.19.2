@@ -183,7 +183,7 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 			{
 				 TSharedPtr<FPropertyRestriction> StaticRestriction = MakeShareable(new FPropertyRestriction(MoveTemp(RestrictReason)));
 				 const UEnum* const ComponentMobilityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EComponentMobility"));		
-				 StaticRestriction->AddDisabledValue(ComponentMobilityEnum->GetEnumNameStringByValue((uint8)EComponentMobility::Static));
+				 StaticRestriction->AddDisabledValue(ComponentMobilityEnum->GetNameStringByValue((uint8)EComponentMobility::Static));
 				 MobilityHandle->AddRestriction(StaticRestriction.ToSharedRef());
 
 				 RestrictedMobilityBits |= FMobilityCustomization::StaticMobilityBitMask;
@@ -198,7 +198,7 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 			{
 				TSharedPtr<FPropertyRestriction> StationaryRestriction = MakeShareable(new FPropertyRestriction(MoveTemp(RestrictReason)));
 				const UEnum* const ComponentMobilityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EComponentMobility"));		
-				StationaryRestriction->AddDisabledValue(ComponentMobilityEnum->GetEnumNameStringByValue((uint8)EComponentMobility::Stationary));
+				StationaryRestriction->AddDisabledValue(ComponentMobilityEnum->GetNameStringByValue((uint8)EComponentMobility::Stationary));
 				MobilityHandle->AddRestriction(StationaryRestriction.ToSharedRef());
 
 				RestrictedMobilityBits |= FMobilityCustomization::StationaryMobilityBitMask;

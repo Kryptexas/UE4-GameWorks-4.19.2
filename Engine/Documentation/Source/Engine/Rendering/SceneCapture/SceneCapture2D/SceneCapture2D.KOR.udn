@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3225648
 availability:Docs
-title:Scene Capture 2D
-description: Using the Scene Capture 2D Actor in Unreal Engine 4.
+title:씬 캡처 2D
+description: 언리얼 엔진 4 의 씬 캡처 2D 액터 사용법입니다.
 crumbs:
 version:4.14
 Type:topic

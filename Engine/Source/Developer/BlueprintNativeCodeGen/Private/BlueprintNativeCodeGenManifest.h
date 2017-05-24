@@ -75,17 +75,21 @@ public:
 		HFile, CppFile,
 	};
 
-	static FString GetDefaultManifestPath();
-
+	static FBlueprintNativeCodeGenPaths GetDefaultCodeGenPaths(const FName PlatformName);
+	static FString GetDefaultPluginPath(const FName PlatformName);
+	static FString GetDefaultManifestFilePath(const FName PlatformName, const int32 ChunkId = -1);
+	
 private:
 	friend struct FBlueprintNativeCodeGenManifest;
-	FBlueprintNativeCodeGenPaths(const FString& PluginName, const FString& TargetDir, const FString& ManifestPath);
+	FBlueprintNativeCodeGenPaths(const FString& PluginName, const FString& TargetDir, const FName PlatformName);
 
 public:
 	/**  */
-	FString ManifestFilePath() const;
+	FString ManifestFilename(const int32 ChunkId = -1) const;
+	FString ManifestFilePath(const int32 ChunkId = -1) const;
 
 	/**  */
+	const FString& GetPluginName() const { return PluginName; }
 	FString PluginRootDir() const;
 	FString PluginFilePath() const;
 	FString PluginSourceDir() const;
@@ -98,10 +102,13 @@ public:
 	FString RuntimeModuleFile(ESourceFileType SourceType) const;
 	FString RuntimePCHFilename() const;
 
+	/** */
+	FName GetTargetPlatformName() const { return PlatformName; }
+
 private:
-	FString TargetDir;
+	FString PluginsDir;
 	FString PluginName;
-	FString ManifestPath;
+	FName   PlatformName;
 };
 
 /*******************************************************************************
@@ -118,9 +125,11 @@ struct FBlueprintNativeCodeGenManifest
 	typedef TMap<FAssetId, FUnconvertedDependencyRecord> FUnconvertedRecord;
 
 public: 
-	FBlueprintNativeCodeGenManifest(); // default ctor for USTRUCT() system
-	FBlueprintNativeCodeGenManifest(const FString& InPluginName, const FString& InOutputDir, FCompilerNativizationOptions InCompilerNativizationOptions);
+	FBlueprintNativeCodeGenManifest(int32 ManifestId = -1); // default ctor for USTRUCT() system
+	FBlueprintNativeCodeGenManifest(const FString& PluginPath, const FCompilerNativizationOptions& InCompilerNativizationOptionsm, int32 ManifestId = -1);
+	FBlueprintNativeCodeGenManifest(const FCompilerNativizationOptions& InCompilerNativizationOptions, int32 ManifestId = -1);
 	FBlueprintNativeCodeGenManifest(const FString& ManifestFilePath);
+
 
 	/**
 	 * @return A utility object that you can query for various file/directory paths used/targeted by the conversion process.
@@ -154,6 +163,13 @@ public:
 	 */
 	void GatherModuleDependencies(UPackage* Package);
 
+	/**
+	 * Adds module, to dependency list
+	 * 
+	 * @param  Package    The module you want to add.
+	 */
+	void AddSingleModuleDependency(UPackage* Package);
+
 	/** 
 	 * @return A list of all known modules that this plugin will depend on. 
 	 */
@@ -165,30 +181,37 @@ public:
 	const FConversionRecord& GetConversionRecord() const { return ConvertedAssets; }
 
 	/**
-	* @return A list of all asset conversion that require stubs.
-	*/
+	 * @return A list of all asset conversion that require stubs.
+	 */
 	const FUnconvertedRecord& GetUnconvertedDependencies() const { return UnconvertedDependencies; }
 
 	/**
 	 * @return compiler nativization options
 	 */
-	const FCompilerNativizationOptions GetCompilerNativizationOptions() const { return NativizationOptions; }
+	const FCompilerNativizationOptions& GetCompilerNativizationOptions() const { return NativizationOptions; }
 
 	/**
 	 * Saves this manifest as json, to its target destination (which it was 
 	 * setup with).
 	 * 
-	 * @param Id an identifier used to uniquely identify this manifest, used by multiprocess cook
 	 * @return True if the save was a success, otherwise false.
 	 */
-	bool Save(int32 Id) const;
+	bool Save() const;
 
 	/**
-	* Merges the OtherManifest into the current manifest
-	*/
+	 * Merges the OtherManifest into the current manifest
+	 */
 	void Merge(const FBlueprintNativeCodeGenManifest& OtherManifest);
 
+	/** */
+	int32 GetManifestChunkId() const { return ManifestChunkId; }
+
 private:
+	/**
+	 * 
+	 */
+	void InitDestPaths(const FString& PluginPath);
+
 	/**
 	 * @return The destination directory for the plugin and all its related files.
 	 */
@@ -199,15 +222,16 @@ private:
 	 * names intact.
 	 */
 	void Clear();
-	
+
 private:
-	/** Defines the destination filepath for this manifest */
-	FString ManifestFilePath;
+	/** To uniquely identify related manifests (split between child cook processes), so the files remain distinct. */
+	UPROPERTY()
+	int32 ManifestChunkId;
 
 	UPROPERTY()
 	FString PluginName;
 
-	/** Relative to the project's directory */
+	/** Target plugin directory (relative to the project's directory) */
 	UPROPERTY()
 	FString OutputDir;
 

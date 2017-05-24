@@ -5,7 +5,7 @@ using System.IO;
 
 public class MeshBoneReduction : ModuleRules
 {
-    public MeshBoneReduction(TargetInfo Target)
+    public MeshBoneReduction(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Developer/MeshBoneReduction/Public");
 		PrivateDependencyModuleNames.Add("Core");

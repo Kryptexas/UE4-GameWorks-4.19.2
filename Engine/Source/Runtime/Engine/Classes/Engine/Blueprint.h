@@ -11,6 +11,7 @@
 #include "Engine/EngineTypes.h"
 #include "EdGraph/EdGraphPin.h"
 #include "Engine/BlueprintCore.h"
+#include "Misc/StringAssetReference.h"
 #include "Blueprint.generated.h"
 
 class FCompilerResultsLog;
@@ -90,15 +91,44 @@ struct FCompilerNativizationOptions
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+	FName PlatformName;
+
+	UPROPERTY()
 	bool ServerOnlyPlatform;
 
 	UPROPERTY()
 	bool ClientOnlyPlatform;
 
+	UPROPERTY()
+	TArray<FName> ExcludedModules;
+
+	// Individually excluded assets
+	UPROPERTY()
+	TSet<FStringAssetReference> ExcludedAssets;
+
+	// Excluded folders. It excludes only BPGCs, enums and structures are still converted.
+	UPROPERTY()
+	TArray<FString> ExcludedFolderPaths;
+
 	FCompilerNativizationOptions()
 		: ServerOnlyPlatform(false)
 		, ClientOnlyPlatform(false)
 	{}
+};
+
+/** Cached 'cosmetic' information about a macro graph (this is transient and is computed at load) */
+USTRUCT()
+struct FBlueprintMacroCosmeticInfo
+{
+	GENERATED_BODY()
+
+	// Does this macro contain one or more latent nodes?
+	bool bContainsLatentNodes;
+
+	FBlueprintMacroCosmeticInfo()
+		: bContainsLatentNodes(false)
+	{
+	}
 };
 
 struct FKismetCompilerOptions
@@ -118,6 +148,9 @@ public:
 
 	/** Whether or not this compile should emit instrumentation events */
 	bool bAddInstrumentation;
+
+	/** Whether or not to reinstance and stub if the blueprint fails to compile */
+	bool bReinstanceAndStubOnFailure;
 
 	TSharedPtr<FString> OutHeaderSourceCode;
 	TSharedPtr<FString> OutCppSourceCode;
@@ -152,6 +185,7 @@ public:
 		, bRegenerateSkelton(true)
 		, bIsDuplicationInstigated(false)
 		, bAddInstrumentation(false)
+		, bReinstanceAndStubOnFailure(true)
 	{
 	};
 };
@@ -257,7 +291,7 @@ struct FBPInterfaceDescription
 
 	/** References to the graphs associated with the required functions for this interface */
 	UPROPERTY()
-	TArray<class UEdGraph*> Graphs;
+	TArray<UEdGraph*> Graphs;
 
 
 	FBPInterfaceDescription()
@@ -409,27 +443,31 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 #if WITH_EDITORONLY_DATA
 	/** Set of pages that combine into a single uber-graph */
 	UPROPERTY()
-	TArray<class UEdGraph*> UbergraphPages;
+	TArray<UEdGraph*> UbergraphPages;
 
 	/** Set of functions implemented for this class graphically */
 	UPROPERTY()
-	TArray<class UEdGraph*> FunctionGraphs;
+	TArray<UEdGraph*> FunctionGraphs;
 
 	/** Graphs of signatures for delegates */
 	UPROPERTY()
-	TArray<class UEdGraph*> DelegateSignatureGraphs;
+	TArray<UEdGraph*> DelegateSignatureGraphs;
 
 	/** Set of macros implemented for this class */
 	UPROPERTY()
-	TArray<class UEdGraph*> MacroGraphs;
+	TArray<UEdGraph*> MacroGraphs;
 
 	/** Set of functions actually compiled for this class */
 	UPROPERTY(transient, duplicatetransient)
-	TArray<class UEdGraph*> IntermediateGeneratedGraphs;
+	TArray<UEdGraph*> IntermediateGeneratedGraphs;
 
 	/** Set of functions actually compiled for this class */
 	UPROPERTY(transient, duplicatetransient)
-	TArray<class UEdGraph*> EventGraphs;
+	TArray<UEdGraph*> EventGraphs;
+
+	/** Cached cosmetic information about macro graphs, use GetCosmeticInfoForMacro() to access */
+	UPROPERTY(Transient)
+	TMap<UEdGraph*, FBlueprintMacroCosmeticInfo> PRIVATE_CachedMacroInfo;
 
 	/** 
 	 * Flag indicating that a read only duplicate of this blueprint is being created, used to disable logic in ::PostDuplicate,
@@ -586,6 +624,12 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITOR
+	static bool ForceLoad(UObject* Obj);
+
+	static void ForceLoadMembers(UObject* InObject);
+
+	static void ForceLoadMetaData(UObject* InObject);
+
 	static bool ValidateGeneratedClass(const UClass* InClass);
 
 	/** Find the object in the TemplateObjects array with the supplied name */
@@ -666,6 +710,7 @@ public:
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
 	virtual bool IsCachedCookedPlatformDataLoaded(const ITargetPlatform* TargetPlatform) override;
 	virtual void ClearAllCachedCookedPlatformData() override;

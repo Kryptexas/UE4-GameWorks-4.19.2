@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -426,7 +426,7 @@ Ps::IntBool Sc::ShapeSim::updateSweptBounds()
 	Cm::getDynamicGlobalPoseAligned(rigidBody.mLastTransform, shapeCore.getShape2Actor(), bodyCore.getBody2Actor(), shape2World);
 	PxBounds3 startBounds = computeBounds(shapeCore.getGeometry(), shape2World, !physx::gUnifiedHeightfieldCollision);
 
-	Ps::IntBool isFastMoving = (startBounds.getCenter() - endOrigin).magnitudeSquared() >= ccdThreshold * ccdThreshold ? 1 : 0;;
+	const Ps::IntBool isFastMoving = (startBounds.getCenter() - endOrigin).magnitudeSquared() >= ccdThreshold * ccdThreshold ? 1 : 0;
 
 	if (isFastMoving)
 		bounds.include(startBounds);

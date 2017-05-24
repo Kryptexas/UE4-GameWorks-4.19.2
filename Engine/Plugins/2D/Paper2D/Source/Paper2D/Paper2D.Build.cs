@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Paper2D : ModuleRules
 {
-	public Paper2D(TargetInfo Target)
+	public Paper2D(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Paper2D/Private");
 
@@ -16,12 +16,13 @@ public class Paper2D : ModuleRules
 				"ShaderCore",
 				"RenderCore",
 				"RHI",
+                "SlateCore",
+                "Slate"
 			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Slate",
 				"Renderer",
 			}
 		);

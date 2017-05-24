@@ -171,7 +171,7 @@ void FActionMappingsNodeBuilder::AddActionMappingButton_OnClick()
 		}
 		while (!bFoundUniqueName);
 
-		DelayedGroupExpansionStates.Add(TPairInitializer<FName, bool>(NewActionMappingName, true));
+		DelayedGroupExpansionStates.Emplace(NewActionMappingName, true);
 		FInputActionKeyMapping NewMapping(NewActionMappingName);
 		InputSettings->ActionMappings.Add(NewMapping);
 
@@ -205,7 +205,7 @@ void FActionMappingsNodeBuilder::OnActionMappingNameCommitted(const FText& InNam
 
 		if (MappingSet.DetailGroup)
 		{
-			DelayedGroupExpansionStates.Add(TPairInitializer<FName, bool>(NewName, MappingSet.DetailGroup->GetExpansionState()));
+			DelayedGroupExpansionStates.Emplace(NewName, MappingSet.DetailGroup->GetExpansionState());
 
 			// Don't want to save expansion state of old name
 			MappingSet.DetailGroup->ToggleExpansion(false);
@@ -226,7 +226,7 @@ void FActionMappingsNodeBuilder::AddActionMappingToGroupButton_OnClick(const FMa
 		InputSettings->Modify();
 		ActionMappingsPropertyHandle->NotifyPreChange();
 
-		DelayedGroupExpansionStates.Add(TPairInitializer<FName, bool>(MappingSet.SharedName, true));
+		DelayedGroupExpansionStates.Emplace(MappingSet.SharedName, true);
 		FInputActionKeyMapping NewMapping(MappingSet.SharedName);
 		InputSettings->ActionMappings.Add(NewMapping);
 
@@ -478,7 +478,7 @@ void FAxisMappingsNodeBuilder::AddAxisMappingButton_OnClick()
 		}
 		while (!bFoundUniqueName);
 
-		DelayedGroupExpansionStates.Add(TPairInitializer<FName, bool>(NewAxisMappingName, true));
+		DelayedGroupExpansionStates.Emplace(NewAxisMappingName, true);
 		FInputAxisKeyMapping NewMapping(NewAxisMappingName);
 		InputSettings->AxisMappings.Add(NewMapping);
 
@@ -512,7 +512,7 @@ void FAxisMappingsNodeBuilder::OnAxisMappingNameCommitted(const FText& InName, E
 
 		if (MappingSet.DetailGroup)
 		{
-			DelayedGroupExpansionStates.Add(TPairInitializer<FName, bool>(NewName, MappingSet.DetailGroup->GetExpansionState()));
+			DelayedGroupExpansionStates.Emplace(NewName, MappingSet.DetailGroup->GetExpansionState());
 
 			// Don't want to save expansion state of old name
 			MappingSet.DetailGroup->ToggleExpansion(false);
@@ -533,7 +533,7 @@ void FAxisMappingsNodeBuilder::AddAxisMappingToGroupButton_OnClick(const FMappin
 		InputSettings->Modify();
 		AxisMappingsPropertyHandle->NotifyPreChange();
 
-		DelayedGroupExpansionStates.Add(TPairInitializer<FName, bool>(MappingSet.SharedName, true));
+		DelayedGroupExpansionStates.Emplace(MappingSet.SharedName, true);
 		FInputAxisKeyMapping NewMapping(MappingSet.SharedName);
 		InputSettings->AxisMappings.Add(NewMapping);
 

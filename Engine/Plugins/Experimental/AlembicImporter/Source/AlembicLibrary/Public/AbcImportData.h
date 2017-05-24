@@ -46,9 +46,8 @@ struct FAbcMeshSample
 		TangentX = InSample.TangentX;
 		TangentY = InSample.TangentY;
 		UVs = InSample.UVs;
-		/*Colours = InSample.Colours;
-		ColourIndices = InSample.ColourIndices;
-		Visibility = InSample.Visibility;
+		Colors = InSample.Colors;
+		/*Visibility = InSample.Visibility;
 		VisibilityIndices = InSample.VisibilityIndices;*/
 		MaterialIndices = InSample.MaterialIndices;
 		SmoothingGroupIndices = InSample.SmoothingGroupIndices;
@@ -66,9 +65,8 @@ struct FAbcMeshSample
 	TArray<FVector> TangentY;
 	TArray<FVector2D> UVs;
 
-	/*TArray<FVector2D> Colours;
-	TArray<uint32> ColourIndices;
-	TArray<FVector2D> Visibility;
+	TArray<FLinearColor> Colors;
+	/*TArray<FVector2D> Visibility;
 	TArray<uint32> VisibilityIndices;*/
 
 	// Per Face material and smoothing group index
@@ -217,7 +215,7 @@ struct FMeshSection
 	TArray<FVector> TangentY;
 	TArray<FVector> TangentZ;
 	TArray<FVector2D> UVs;
-	TArray<FColor> Colours;
+	TArray<FColor> Colors;
 	uint32 NumFaces;
 };
 
@@ -235,13 +233,14 @@ public:
 		, MaxFrameIndex(TNumericLimits<uint32>::Min())
 		, NumTotalMaterials(0)
 		, ImportSettings(nullptr)
+		, bBackedSupportsMultithreading(false)
 	{		
 	}
 
 	~FAbcImportData()
 	{
 		// Clear up unused materials (this could be due to reimporting, or overriding existing assets)
-		for (TPair<FString, UMaterial*>& Pair : MaterialMap)
+		for (TPair<FString, UMaterialInterface*>& Pair : MaterialMap)
 		{
 			if (Pair.Value != nullptr && Pair.Value->IsValidLowLevel() && Pair.Value->GetOutermost() == GetTransientPackage())
 			{
@@ -263,7 +262,7 @@ public:
 	TArray<FCompressedAbcData> CompressedMeshData;
 	
 	/** Map of material created for the imported alembic file identified by material names */
-	TMap<FString, UMaterial*> MaterialMap;
+	TMap<FString, UMaterialInterface*> MaterialMap;
 
 	/** Total (max) number of frames in the Alembic file */
 	uint32 NumFrames;
@@ -291,6 +290,11 @@ public:
 	/** Keeps track of total number of materials during importing, to ensure correct material indices per object */
 	uint32 NumTotalMaterials;
 
+	float ArchiveTimePerCycle;
+
 	/** Settings (retrieved from import UI window) determining various import settings */
 	UAbcImportSettings* ImportSettings;
+
+	/** Flag to know whether or not we can run the data retrieval in parallel */
+	bool bBackedSupportsMultithreading;
 };

@@ -255,7 +255,7 @@ SDiffuseAndSpecular ReconstructLighting(float2 UVSceneColor, uint ReconstructMet
 
 	  // todo: We could alternate the diagonal with TemporalAA or even only only 1 sample for low spec or 4 for high spec
 
-	  float3 Quant0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor).rgb;
+	  float3 Quant0 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVSceneColor, 0).rgb;
 
 	  // todo: expose as scalability setting (can be evaluate best without TemporalAA)
 	  // 0:fast but pattern can appear, 1:better, 2: even better, 3: best but expensive
@@ -309,7 +309,7 @@ SDiffuseAndSpecular ReconstructLighting(float2 UVSceneColor, uint ReconstructMet
 #else // SUBSURFACE_PROFILE_CHECKERBOARD
 	{
 	  // If we're not doing checkerboard encoding, we just need to read a single pixel and decode (combined diffuse/spec in RGB)
-	  float4 CenterSample = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVSceneColor);
+	  float4 CenterSample = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVSceneColor, 0);
 	  float3 CombinedColor = CenterSample.rgb;
 	  float DiffuseLuminance = CenterSample.a;
   
@@ -333,7 +333,7 @@ float4 SetupSubsurfaceForOnePixel(float2 UVSceneColor)
 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UVSceneColor);
 
-	FLATTEN if (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
+	BRANCH if (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
 	{
 		// '1' is lower quality but that is acceptable here
 		SDiffuseAndSpecular DiffuseAndSpecular = ReconstructLighting(UVSceneColor, 1);
@@ -503,4 +503,3 @@ void SubsurfaceRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, floa
 
 	OutColor = float4(SubsurfaceLighting * StoredBaseColor + ExtractedNonSubsurface, 0); 
 }
-

@@ -1,64 +1,45 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: How to Setup an IDE for UE4
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper
-Description:Learn how to setup your IDE to build and run UE4 on Linux.
+﻿INTSourceChangelist:3298291
+Availability:Public
+Title:IDE で UE4 を使用するための設定
+Crumbs:
+Description:IDE で UE4 をビルドおよび実行の設定方法を学習します。
 Platform:Linux
-Version: 4.13
+Version:4.14
 type:how to
-parent:Platforms/Linux/BeginnerLinuxDeveloper
-order: 3
+parent:Platforms/Linux
+order:3
 tags:Linux
 SkillLevel:Beginner
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+topic-image:IDE_HowToTopic.png
 
-[VAR:Params]
-[PARAM:image]
-	![%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:title%](linuxHT_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:title%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
 
 [REGION:imagetable]
 ![](CompiledEditor_LinuxIDE.png)(w:1280)  
-At the end of this tutorial, you'll have an **Integrated Development Environment** (IDE) configured to build and run Unreal Engine 4 (UE4).
+このチュートリアルでは、アンリアル エンジン 4 (UE4) をビルドおよび実行する Integrated Development Environment (IDE) の一通りの設定を習得することができます。
 [/REGION]
 
-## Goal
+## 目標
 
-The focus of this guide is to show you how to setup an IDE to build and run UE4. 
+UE4 をビルドおよび実行するための IDE の設定方法を中心に説明します。 
 
-## Objectives
+## 目的
 
-After working through this tutorial, you'll know the following:
+このチュートリアルでは、以下の習得を目指します。
 
-* How to configure your IDE to build UE4 in debug and release mode.
-* How to configure your IDE to run UE4 in debug and release mode.
-* How to build UE4 from your IDE.
-* How to run UE4 from your IDE.
-* How to create and configure a new Blueprint project from your IDE.
-* How to create and configure a new CPP project from your IDE.
+* IDE を Debug モードと Release モードで UE4 をビルドするための設定方法
+* IDE を Debug モードと Release モードで UE4 を実行するための設定方法
+*IDE から UE4 をビルドする方法
+* IDE から UE4 を実行する方法
+* IDE からブループリント プロジェクトを作成および設定する方法
+* IDE から CPP プロジェクトを作成および設定する方法
 
 [OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -68,5 +49,5 @@ After working through this tutorial, you'll know the following:
 [/OBJECT]
 
 [REGION:call_to_action]
-	[Click to Start](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1:title%")
+	[クリックして始めましょう](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1:title%")
 [/REGION]

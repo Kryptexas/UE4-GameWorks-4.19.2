@@ -29,8 +29,8 @@ PackageIsInstalled()
 # main
 set -e
 
-TOP_DIR=$(cd $SCRIPT_DIR/../../.. ; pwd)
-cd ${TOP_DIR}
+TOP_DIR=$(cd "$SCRIPT_DIR/../../.." ; pwd)
+cd "${TOP_DIR}"
 
 IS_GITHUB_BUILD=true
 if [ -e Build/PerforceBuild.txt ]; then
@@ -43,7 +43,7 @@ if [ -e /etc/os-release ]; then
   if [[ "$ID" == "ubuntu" ]] || [[ "$ID_LIKE" == "ubuntu" ]] || [[ "$ID" == "debian" ]] || [[ "$ID_LIKE" == "debian" ]] || [[ "$ID" == "tanglu" ]] || [[ "$ID_LIKE" == "tanglu" ]]; then
     # Install the necessary dependencies (require clang-3.8 on 16.04, although 3.3 and 3.5 through 3.7 should work too for this release)
      # mono-devel is needed for making the installed build (particularly installing resgen2 tool)
-    if [[ "$VERSION_ID" < 16.04 ]]; then
+    if [ -n "$VERSION_ID" ] && [[ "$VERSION_ID" < 16.04 ]]; then
      DEPS="mono-xbuild \
        mono-dmcs \
        libmono-microsoft-build-tasks-v4.0-4.0-cil \
@@ -59,7 +59,7 @@ if [ -e /etc/os-release ]; then
        clang-3.5
        build-essential
        "
-    elif [[ "$VERSION_ID" == 16.04 ]]; then
+    elif [ -n "$VERSION_ID" ] && [[ "$VERSION_ID" == 16.04 ]]; then
      DEPS="mono-xbuild \
        mono-dmcs \
        libmono-microsoft-build-tasks-v4.0-4.0-cil \
@@ -76,7 +76,23 @@ if [ -e /etc/os-release ]; then
        clang-3.8
        build-essential
        "
-    else # assume the latest, this is going to be a moving target
+    elif [[ $PRETTY_NAME == *sid ]] || [[ $PRETTY_NAME == *stretch ]]; then
+     DEPS="mono-xbuild \
+       mono-dmcs \
+       libmono-microsoft-build-tasks-v4.0-4.0-cil \
+       libmono-system-data-datasetextensions4.0-cil
+       libmono-system-web-extensions4.0-cil
+       libmono-system-management4.0-cil
+       libmono-system-xml-linq4.0-cil
+       libmono-corlib4.5-cil
+       libmono-windowsbase4.0-cil
+       libmono-system-io-compression4.0-cil
+       libmono-system-io-compression-filesystem4.0-cil
+       libmono-system-runtime4.0-cil
+       mono-devel
+       clang-3.8
+       "
+    else # assume the latest Ubuntu, this is going to be a moving target
      DEPS="mono-xbuild \
        mono-dmcs \
        libmono-microsoft-build-tasks-v4.0-4.0-cil \
@@ -141,6 +157,7 @@ if [ -e /etc/os-release ]; then
       qt-devel
       dos2unix
       cmake
+      clang
       "
 
     for DEP in $DEPS; do
@@ -156,7 +173,7 @@ if [ -e /etc/os-release ]; then
 
   # Arch Linux
   if [[ "$ID" == "arch" ]] || [[ "$ID_LIKE" == "arch" ]]; then
-    DEPS="clang35 mono python sdl2 qt4 dos2unix cmake"
+    DEPS="clang mono python sdl2 qt4 dos2unix cmake"
     MISSING=false
     for DEP in $DEPS; do
       if ! pacman -Qs $DEP > /dev/null 2>&1; then
@@ -214,4 +231,42 @@ pushd Build/BatchFiles/Linux > /dev/null
 ./BuildThirdParty.sh
 popd > /dev/null
 
+# Creation of user shortcuts and addition of Mime types for Ubuntu
+if [ -e /etc/os-release ]; then
+  source /etc/os-release
+  # Ubuntu/Debian/Mint
+  if [[ "$ID" == "ubuntu" ]] || [[ "$ID_LIKE" == "ubuntu" ]] || [[ "$ID" == "debian" ]] || [[ "$ID_LIKE" == "debian" ]] || [[ "$ID" == "tanglu" ]] || [[ "$ID_LIKE" == "tanglu" ]]; then
+    echo "Installing UE4 project types associations"
+    # Place icon in system icon folder
+    if [ ! -f ~/.local/share/icons/ue4editor.png ]; then
+        mkdir -p ~/.local/share/icons
+        cp "$TOP_DIR/Source/Programs/UnrealVS/Resources/Preview.png" ~/.local/share/icons/ue4editor.png
+    fi
+    # Generate Mime type file
+    if [ ! -f ~/.local/share/mime/packages/uproject.xml ]; then
+        mkdir -p ~/.local/share/mime/packages/
+        cp "$TOP_DIR/Build/Linux/uproject.xml" ~/.local/share/mime/packages/
+        update-mime-database ~/.local/share/mime
+    fi
+    # Generate .desktop file
+    if [ -d ~/.local/share/applications ] && [ ! -f ~/.local/share/applications/UE4Editor.desktop ]; then
+        ICON_DIR=$(cd $TOP_DIR/../../.. ; pwd)
+        echo "#!/usr/bin/env xdg-open
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=$TOP_DIR/Binaries/Linux/UE4Editor %f
+Path=$TOP_DIR/Binaries/Linux
+Name=Unreal Engine Editor
+Icon=ue4editor
+Terminal=false
+StartupWMClass=UE4Editor
+MimeType=application/uproject;" > ~/.local/share/applications/UE4Editor.desktop
+        chmod u+x ~/.local/share/applications/UE4Editor.desktop
+        update-desktop-database ~/.local/share/applications
+    fi
+  fi
+fi
+
+echo "Setup successful."
 touch Build/OneTimeSetupPerformed

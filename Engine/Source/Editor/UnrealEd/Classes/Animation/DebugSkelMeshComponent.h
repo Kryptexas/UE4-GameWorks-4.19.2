@@ -60,6 +60,63 @@ namespace EPersonaTurnTableMode
 	};
 };
 
+//////////////////////////////////////////////////////////////////////////
+// FDebugSkelMeshSceneProxy
+
+class UDebugSkelMeshComponent;
+
+class FDebugSkelMeshDynamicData
+{
+public:
+
+	FDebugSkelMeshDynamicData(UDebugSkelMeshComponent* InComponent);
+
+	bool bDrawMesh;
+	bool bDrawNormals;
+	bool bDrawTangents;
+	bool bDrawBinormals;
+	bool bDrawClothPaintPreview;
+
+	int32 ClothingSimDataIndexWhenPainting;
+	TArray<uint32> ClothingSimIndices;
+	int32 ClothingVisiblePropertyIndex;
+
+	TArray<float> ClothingVisiblePropertyValues;
+
+	TArray<FVector> SkinnedPositions;
+	TArray<FVector> SkinnedNormals;
+};
+
+/**
+* A skeletal mesh component scene proxy with additional debugging options.
+*/
+class FDebugSkelMeshSceneProxy : public FSkeletalMeshSceneProxy
+{
+public:
+	/**
+	* Constructor.
+	* @param	Component - skeletal mesh primitive being added
+	*/
+	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor = FColor::White);
+
+	virtual ~FDebugSkelMeshSceneProxy()
+	{}
+
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
+
+	FDebugSkelMeshDynamicData* DynamicData;
+
+	uint32 GetAllocatedSize() const
+	{
+		return FSkeletalMeshSceneProxy::GetAllocatedSize();
+	}
+
+	virtual uint32 GetMemoryFootprint() const override
+	{
+		return sizeof(*this) + GetAllocatedSize();
+	}
+};
+
 UCLASS(transient, MinimalAPI)
 class UDebugSkelMeshComponent : public USkeletalMeshComponent
 {
@@ -139,6 +196,12 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	uint32 bPreviewRootMotion:1;
 
+	UPROPERTY(transient)
+	uint32 bShowClothData : 1;
+
+	UPROPERTY(transient)
+	int32 VisibleClothProperty;
+
 	/** Non Compressed SpaceBases for when bDisplayRawAnimation == true **/
 	TArray<FTransform> UncompressedSpaceBases;
 
@@ -206,6 +269,7 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	virtual bool ShouldCPUSkin() override;
 	virtual void PostInitMeshObject(class FSkeletalMeshObject* MeshObject) override;
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
+	virtual int32 GetLODBias() const override { return 0; }
 	//~ End SkinnedMeshComponent Interface
 
 	//~ Begin SkeletalMeshComponent Interface
@@ -255,6 +319,13 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	 */
 	UNREALED_API void ConsumeRootMotion(const FVector& FloorMin, const FVector& FloorMax);
 
+	/** Sets the flag used to determine whether or not the current active cloth sim mesh should be rendered */
+	UNREALED_API void SetShowClothProperty(bool bState);
+
+	/** Sets the cloth propert which should be visualized on the rendered sim mesh */
+	UNREALED_API void SetVisibleClothProperty(int32 ClothProperty);
+
+
 #if WITH_EDITOR
 	//TODO - This is a really poor way to post errors to the user. Work out a better way.
 	struct FAnimNotifyErrors
@@ -269,8 +340,6 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify) override;
 	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify) override;
 #endif
-
-#if WITH_APEX_CLOTHING
 
 	enum ESectionDisplayMode
 	{
@@ -292,15 +361,39 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	/** Restore all section visibilities to original states for all LODs */
 	UNREALED_API void RestoreClothSectionsVisibility();
 
+	/** 
+	 * To normal game/runtime code we don't want to expose a non-const pointer to the simulation, so we can only get
+	 * one from this editor-only component. Intended for debug options/visualisations/editor-only code to poke the sim
+	 */
+	UNREALED_API IClothingSimulation* GetMutableClothingSimulation();
+
 	int32 FindCurrentSectionDisplayMode();
 
 	/** to avoid clothing reset while modifying properties in Persona */
 	virtual void CheckClothTeleport() override;
 
-#endif //#if WITH_APEX_CLOTHING
+	/** The currently selected asset guid if we're painting, used to build dynamic mesh to paint sim parameters */
+	FGuid SelectedClothingGuidForPainting;
+
+	/** The currently selected LOD for painting */
+	int32 SelectedClothingLodForPainting;
+
+	UNREALED_API void ToggleMeshSectionForCloth(FGuid InClothGuid);
+
+	// fixes up the disabled flags so clothing is enabled and originals are disabled as
+	// ToggleMeshSectionForCloth will make these get out of sync
+	UNREALED_API void ResetMeshSectionVisibility();
+
+	// Rebuilds the fixed parameter on the mesh to mesh data, to be used if the editor has
+	// changed a vert to be fixed or unfixed otherwise the simulation will not work
+	UNREALED_API void RebuildClothingSectionsFixedVerts();
+
+	TArray<FVector> SkinnedSelectedClothingPositions;
+	TArray<FVector> SkinnedSelectedClothingNormals;
 
 private:
 
+private:
 	// Helper function to generate space bases for current frame
 	void GenSpaceBases(TArray<FTransform>& OutSpaceBases);
 
@@ -312,6 +405,9 @@ protected:
 	// Overridden to support single clothing ticks
 	virtual bool ShouldRunClothTick() const override;
 
+
+	virtual void SendRenderDynamicData_Concurrent() override;
+
 public:
 	/** Current turn table mode */
 	EPersonaTurnTableMode::Type TurnTableMode;
@@ -319,7 +415,9 @@ public:
 	float TurnTableSpeedScaling;
 	
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+
+	void UNREALED_API RefreshSelectedClothingSkinnedPositions();
+
+	virtual void GetUsedMaterials(TArray<UMaterialInterface *>& OutMaterials, bool bGetDebugMaterials = false) const override;
+
 };
-
-
-

@@ -3,6 +3,7 @@ Title:Blueprint Interface Migration
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/BlueprintComms
 Description:The migration path for moving Blueprint Interface functions into Blueprints.
 Version: 4.9
+tags:Blueprints
 
 [TOC(start:2)]
 

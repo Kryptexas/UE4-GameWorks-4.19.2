@@ -1,8 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PLUGIN_NAME.h"
-#include "PLUGIN_NAMEEdMode.h"
 #include "PLUGIN_NAMEEdModeToolkit.h"
+#include "PLUGIN_NAMEEdMode.h"
+#include "Engine/Selection.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorModeManager.h"
 
 #define LOCTEXT_NAMESPACE "FPLUGIN_NAMEEdModeToolkit"
 

@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class LocationServicesIOSImpl : ModuleRules
 	{
-		public LocationServicesIOSImpl(TargetInfo Target)
+		public LocationServicesIOSImpl(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePathModuleNames.AddRange
 			(

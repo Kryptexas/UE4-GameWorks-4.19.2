@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244012
 Availability: Public
 Title:게임플레이에서 시퀀스 발동
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -10,6 +10,7 @@ order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 시네마틱 시퀀스를 만들었으면, 게임플레이 도중 컷씬의 일부로 호출하여 재생시키고 싶을 것입니다.
 아마도 캐릭터가 방에 걸어들어갈 때 컷씬 재생을 시작하거나, 캐릭터가 적을 죽일 때 엔딩 시네마틱을 재생시키면 좋을 것입니다.

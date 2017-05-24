@@ -7,27 +7,18 @@
 #include "Misc/Guid.h"
 #include "Templates/SubclassOf.h"
 #include "Templates/Casts.h"
+#include "MovieSceneFwd.h"
 #include "MovieSceneSpawnable.h"
 #include "MovieSceneBinding.h"
 #include "MovieScenePossessable.h"
 #include "MovieSceneSignedObject.h"
+#include "MovieSceneSequenceID.h"
+#include "MovieSceneObjectBindingID.h"
 #include "MovieScene.generated.h"
 
 class UMovieSceneFolder;
 class UMovieSceneSection;
 class UMovieSceneTrack;
-
-MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogMovieScene, Log, All);
-
-USTRUCT(BlueprintType)
-struct FMovieSceneObjectBindingPtr
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, Category="Binding")
-	FGuid Guid;
-};
-
 
 /** @todo: remove this type when support for intrinsics on TMap values is added? */
 USTRUCT()
@@ -236,7 +227,7 @@ public:
 	* Adds a given track.
 	*
 	* @param InTrack The track to add.
-	* @param ObjectGuid The runtime object guid that the type should bind to.
+	* @param ObjectGuid The runtime object guid that the type should bind to
 	* @see  FindTrack, RemoveTrack
 	* @return true if the track is successfully added, false otherwise.
 	*/
@@ -331,6 +322,15 @@ public:
 	}
 
 	/**
+	* Adds a given track as a master track
+	*
+	* @param InTrack The track to add.
+	* @see  FindTrack, RemoveTrack
+	* @return true if the track is successfully added, false otherwise.
+	*/
+	bool AddGivenMasterTrack(UMovieSceneTrack* InTrack);
+
+	/**
 	 * Finds a master track (one not bound to a runtime objects).
 	 *
 	 * @param TrackClass The class of the track to find.
@@ -399,6 +399,8 @@ public:
 
 	/** Removes the camera cut track if it exists. */
 	void RemoveCameraCutTrack();
+
+	void SetCameraCutTrack(UMovieSceneTrack* Track);
 
 public:
 

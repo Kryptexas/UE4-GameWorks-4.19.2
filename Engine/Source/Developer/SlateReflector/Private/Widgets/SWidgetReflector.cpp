@@ -47,7 +47,6 @@
 #define LOCTEXT_NAMESPACE "SWidgetReflector"
 #define WITH_EVENT_LOGGING 0
 
-extern SLATECORE_API int32 bFoldTick;
 #if SLATE_STATS
 extern SLATECORE_API int32 GSlateStatsFlatEnable;
 extern SLATECORE_API int32 GSlateStatsFlatLogOutput;
@@ -482,7 +481,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 		[
 			SNew(SVerticalBox)
 				
-			+SVerticalBox::Slot()
+			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.Padding(FMargin(0.0f, 0.0f, 0.0f, 6.0f))
 			[
@@ -496,7 +495,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 					.Text(LOCTEXT("AppScale", "Application Scale: "))
 				]
 
-				+SHorizontalBox::Slot()
+				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SBox)
@@ -509,32 +508,6 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 						.MaxValue(3.0f)
 						.Delta(0.01f)
 						.OnValueChanged(this, &SWidgetReflector::HandleAppScaleSliderChanged)
-					]
-				]
-
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(FMargin(5.0f, 0.0f))
-				[
-					SNew(SCheckBox)
-					.Style( FCoreStyle::Get(), "ToggleButtonCheckbox" )
-					.IsChecked_Lambda([]()
-					{
-						return bFoldTick == 0 ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
-					})
-					.OnCheckStateChanged_Lambda([]( const ECheckBoxState NewState )
-					{
-						bFoldTick = (NewState == ECheckBoxState::Checked) ? 1 : 0;
-					})
-					[
-						SNew(SBox)
-						.VAlign( VAlign_Center )
-						.HAlign( HAlign_Center )
-						.Padding(FMargin(4.0, 2.0))
-						[
-							SNew(STextBlock)	
-							.Text( LOCTEXT("ToggleTickFolding", "Fold Tick") )
-						]
 					]
 				]
 

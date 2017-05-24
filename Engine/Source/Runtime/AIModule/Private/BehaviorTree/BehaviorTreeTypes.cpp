@@ -303,9 +303,10 @@ void FBlackboardKeySelector::InitSelection(const UBlackboardData& BlackboardAsse
 			const FBlackboardEntry& EntryInfo = It->Keys[KeyIndex];
 			if (EntryInfo.KeyType)
 			{
-				bool bFilterPassed = false;
+				bool bFilterPassed = true;
 				if (AllowedTypes.Num())
 				{
+					bFilterPassed = false;
 					for (int32 FilterIndex = 0; FilterIndex < AllowedTypes.Num(); FilterIndex++)
 					{
 						if (EntryInfo.KeyType->IsAllowedByFilter(AllowedTypes[FilterIndex]))
@@ -315,13 +316,12 @@ void FBlackboardKeySelector::InitSelection(const UBlackboardData& BlackboardAsse
 						}
 					}
 				}
-				else
-				{
-					bFilterPassed = true;
-				}
 
-				SelectedKeyName = EntryInfo.EntryName;
-				break;
+				if (bFilterPassed)
+				{
+					SelectedKeyName = EntryInfo.EntryName;
+					break;
+				}
 			}
 		}
 	}

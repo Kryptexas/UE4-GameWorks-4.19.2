@@ -21,6 +21,7 @@
 #include "Detour/DetourNavMeshBuilder.h"
 #include "DetourTileCache/DetourTileCacheBuilder.h"
 #include "AI/Navigation/RecastHelpers.h"
+#include "AI/Navigation/NavAreas/NavArea_LowHeight.h"
 #include "AI/NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLoggerTypes.h"
 #include "PhysicsEngine/ConvexElem.h"
@@ -491,7 +492,7 @@ void ExportPxHeightField(PxHeightField const * const HeightField, const FTransfo
 	{
 		for (int32 X = 0; X < NumCols - 1; X++)
 		{
-			const int32 SampleIdx = (bMirrored ? X : (NumCols - X - 1))*NumCols + Y;
+			const int32 SampleIdx = (bMirrored ? X : (NumCols - X - 1 - 1))*NumCols + Y;
 			const PxHeightFieldSample& Sample = HFSamples[SampleIdx];
 			const bool bIsHole = (Sample.materialIndex0 == PxHeightFieldMaterial::eHOLE);
 			if (bIsHole)
@@ -2563,12 +2564,6 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 		// Rasterize obstacles.
 		MarkDynamicAreas(*GenerationContext.Layer);
 
-		// remove all low area marking at this point
-		if (TileConfig.bMarkLowHeightAreas)
-		{
-			dtReplaceArea(*GenerationContext.Layer, RECAST_NULL_AREA, RECAST_LOW_AREA);
-		}
-
 		{
 			RECAST_STAT(STAT_Navigation_Async_Recast_BuildRegions)
 			// Build regions
@@ -2781,45 +2776,93 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 
 void FRecastTileGenerator::MarkDynamicAreas(dtTileCacheLayer& Layer)
 {
-	if (Modifiers.Num() == 0)
-	{
-		return;
-	}
-	
 	RECAST_STAT(STAT_Navigation_Async_MarkAreas);
 
-	if (AdditionalCachedData.bUseSortFunction && AdditionalCachedData.ActorOwner && Modifiers.Num() > 1)
+	if (Modifiers.Num())
 	{
-		AdditionalCachedData.ActorOwner->SortAreasForGenerator(Modifiers);
-	}
-		
-	for (const FRecastAreaNavModifierElement& Element : Modifiers)
-	{
-		for (const FAreaNavModifier& Area : Element.Areas)
+		if (AdditionalCachedData.bUseSortFunction && AdditionalCachedData.ActorOwner && Modifiers.Num() > 1)
 		{
-			for (const FTransform& LocalToWorld : Element.PerInstanceTransform)
+			AdditionalCachedData.ActorOwner->SortAreasForGenerator(Modifiers);
+		}
+
+		// 1: if navmesh is using low areas, apply only low area replacements
+		if (TileConfig.bMarkLowHeightAreas)
+		{
+			const int32 LowAreaId = RECAST_LOW_AREA;
+			for (int32 ModIdx = 0; ModIdx < Modifiers.Num(); ModIdx++)
 			{
-				MarkDynamicArea(Area, LocalToWorld, Layer);
+				FRecastAreaNavModifierElement& Element = Modifiers[ModIdx];
+				for (int32 AreaIdx = Element.Areas.Num() - 1; AreaIdx >= 0; AreaIdx--)
+				{
+					const FAreaNavModifier& AreaMod = Element.Areas[AreaIdx];
+					if (AreaMod.GetAreaClassToReplace() == UNavArea_LowHeight::StaticClass())
+					{
+						const int32* AreaIDPtr = AdditionalCachedData.AreaClassToIdMap.Find(AreaMod.GetAreaClass());
+						if (AreaIDPtr != nullptr)
+						{
+							for (const FTransform& LocalToWorld : Element.PerInstanceTransform)
+							{
+								MarkDynamicArea(AreaMod, LocalToWorld, Layer, *AreaIDPtr, &LowAreaId);
+							}
+
+							if (Element.PerInstanceTransform.Num() == 0)
+							{
+								MarkDynamicArea(AreaMod, FTransform::Identity, Layer, *AreaIDPtr, &LowAreaId);
+							}
+						}
+
+						Element.Areas.RemoveAt(AreaIdx, 1, false);
+					}
+				}
 			}
 
-			if (Element.PerInstanceTransform.Num() == 0)
+			// 2. remove all low area marking
+			dtReplaceArea(Layer, RECAST_NULL_AREA, RECAST_LOW_AREA);
+		}
+
+		// 3. apply remaining modifiers
+		for (const FRecastAreaNavModifierElement& Element : Modifiers)
+		{
+			for (const FAreaNavModifier& Area : Element.Areas)
 			{
-				MarkDynamicArea(Area, FTransform::Identity, Layer);
+				const int32* AreaIDPtr = AdditionalCachedData.AreaClassToIdMap.Find(Area.GetAreaClass());
+				const int32* ReplaceIDPtr = Area.GetAreaClassToReplace() ? AdditionalCachedData.AreaClassToIdMap.Find(Area.GetAreaClassToReplace()) : nullptr;
+				if (AreaIDPtr)
+				{
+					for (const FTransform& LocalToWorld : Element.PerInstanceTransform)
+					{
+						MarkDynamicArea(Area, LocalToWorld, Layer, *AreaIDPtr, ReplaceIDPtr);
+					}
+
+					if (Element.PerInstanceTransform.Num() == 0)
+					{
+						MarkDynamicArea(Area, FTransform::Identity, Layer, *AreaIDPtr, ReplaceIDPtr);
+					}
+				}
 			}
+		}
+	}
+	else
+	{
+		if (TileConfig.bMarkLowHeightAreas)
+		{
+			dtReplaceArea(Layer, RECAST_NULL_AREA, RECAST_LOW_AREA);
 		}
 	}
 }
 
 void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, const FTransform& LocalToWorld, dtTileCacheLayer& Layer)
 {
-	const int32* AreaID = AdditionalCachedData.AreaClassToIdMap.Find(Modifier.GetAreaClass());
-	const int32* ReplaceID = AdditionalCachedData.AreaClassToIdMap.Find(Modifier.GetAreaClassToReplace());
-	if (AreaID == NULL)
+	const int32* AreaIDPtr = AdditionalCachedData.AreaClassToIdMap.Find(Modifier.GetAreaClass());
+	const int32* ReplaceIDPtr = Modifier.GetAreaClassToReplace() ? AdditionalCachedData.AreaClassToIdMap.Find(Modifier.GetAreaClassToReplace()) : nullptr;
+	if (AreaIDPtr)
 	{
-		// happens when area is not supported by agent owning this navmesh
-		return;
+		MarkDynamicArea(Modifier, LocalToWorld, Layer, *AreaIDPtr, ReplaceIDPtr);
 	}
+}
 
+void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, const FTransform& LocalToWorld, dtTileCacheLayer& Layer, const int32 AreaID, const int32* ReplaceIDPtr)
+{
 	const float ExpandBy = TileConfig.AgentRadius;
 
 	// Expand by 1 cell height up and down to cover for voxel grid inaccuracy
@@ -2858,15 +2901,15 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 			
 			FVector RecastPos = Unreal2RecastPoint(CylinderData.Origin);
 
-			if (ReplaceID)
+			if (ReplaceIDPtr)
 			{
 				dtReplaceCylinderArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-					&(RecastPos.X), CylinderData.Radius, CylinderData.Height, *AreaID, *ReplaceID);
+					&(RecastPos.X), CylinderData.Radius, CylinderData.Height, AreaID, *ReplaceIDPtr);
 			}
 			else
 			{
 				dtMarkCylinderArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-					&(RecastPos.X), CylinderData.Radius, CylinderData.Height, *AreaID);
+					&(RecastPos.X), CylinderData.Radius, CylinderData.Height, AreaID);
 			}
 		}
 		break;
@@ -2886,15 +2929,15 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 			FVector RecastExtent;
 			RacastBox.GetCenterAndExtents(RecastPos, RecastExtent);
 				
-			if (ReplaceID)
+			if (ReplaceIDPtr)
 			{
 				dtReplaceBoxArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-					&(RecastPos.X), &(RecastExtent.X), *AreaID, *ReplaceID);
+					&(RecastPos.X), &(RecastExtent.X), AreaID, *ReplaceIDPtr);
 			}
 			else
 			{
 				dtMarkBoxArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-					&(RecastPos.X), &(RecastExtent.X), *AreaID);
+					&(RecastPos.X), &(RecastExtent.X), AreaID);
 			}
 		}
 		break;
@@ -2925,15 +2968,15 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 					*ItCoord = RecastV.Z; ItCoord++;
 				}
 
-				if (ReplaceID)
+				if (ReplaceIDPtr)
 				{
 					dtReplaceConvexArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-						ConvexCoords.GetData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, *AreaID, *ReplaceID);
+						ConvexCoords.GetData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, AreaID, *ReplaceIDPtr);
 				}
 				else
 				{
 					dtMarkConvexArea(Layer, LayerRecastOrig, TileConfig.cs, TileConfig.ch,
-						ConvexCoords.GetData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, *AreaID);
+						ConvexCoords.GetData(), ConvexVerts.Num(), ConvexData.MinZ, ConvexData.MaxZ, AreaID);
 				}
 			}
 		}
@@ -2950,7 +2993,6 @@ uint32 FRecastTileGenerator::GetUsedMemCount() const
 	TotalMemory += Modifiers.GetAllocatedSize();
 	TotalMemory += OffmeshLinks.GetAllocatedSize();
 	TotalMemory += RawGeometry.GetAllocatedSize();
-	TotalMemory += Modifiers.GetAllocatedSize();
 	
 	for (const FRecastRawGeometryElement& Element : RawGeometry)
 	{
@@ -3180,7 +3222,7 @@ void FRecastNavMeshGenerator::UpdateNavigationBounds()
 	const TSet<FNavigationBounds>& NavigationBoundsSet = NavSys->GetNavigationBounds();
 	const int32 AgentIndex = NavSys->GetSupportedAgentIndex(DestNavMesh);
 
-	TotalNavBounds = FBox(0);
+	TotalNavBounds = FBox(ForceInit);
 	InclusionBounds.Empty(NavigationBoundsSet.Num());
 
 	// Collect bounding geometry
@@ -3386,7 +3428,7 @@ void FRecastNavMeshGenerator::TickAsyncBuild(float DeltaSeconds)
 	if (UpdatedTileIndices.Num() > 0)
 	{
 		// Invalidate active paths that go through regenerated tiles
-		DestNavMesh->InvalidateAffectedPaths(UpdatedTileIndices);
+		DestNavMesh->OnNavMeshTilesUpdated(UpdatedTileIndices);
 		bRequestDrawingUpdate = true;
 
 #if	WITH_EDITOR
@@ -4547,7 +4589,7 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 			ExportGeomToOBJFile(FilePathName, CoordBuffer, IndexBuffer, AdditionalData);
 		}
 	}
-	UE_LOG(LogNavigation, Error, TEXT("ExportNavigation time: %.3f sec ."), FPlatformTime::Seconds() - StartExportTime);
+	UE_LOG(LogNavigation, Log, TEXT("ExportNavigation time: %.3f sec ."), FPlatformTime::Seconds() - StartExportTime);
 }
 #endif
 

@@ -77,7 +77,9 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	int64 Int64NegativeValue = -12345;
 
 	FInternationalization& I18N = FInternationalization::Get();
-	const FString OriginalCulture = I18N.GetCurrentCulture()->GetName();
+	
+	FInternationalization::FCultureStateSnapshot OriginalCultureState;
+	I18N.BackupCultureState(OriginalCultureState);
 
 	if (I18N.SetCurrentCulture("en-US"))
 	{
@@ -308,7 +310,7 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 		AddWarning(FString::Printf(TEXT("Internationalization data for %s missing - test is partially disabled."), TEXT("hi-IN")));
 	}
 
-	I18N.SetCurrentCulture( OriginalCulture );
+	I18N.RestoreCultureState(OriginalCultureState);
 
 	FText Number = FText::AsNumber(Int64NegativeValue);
 	FText Percent = FText::AsPercent(DoubleValue);

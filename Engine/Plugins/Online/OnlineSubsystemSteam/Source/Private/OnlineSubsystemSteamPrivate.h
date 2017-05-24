@@ -8,10 +8,6 @@
 
 #define INVALID_INDEX -1
 
-/** Compile Steam SDK version in use */
-#define STEAM_SDK_VER TEXT("1.32")
-/** Path of the current Steam SDK version in use */
-#define STEAM_SDK_VER_PATH TEXT("Steamv132")
 /** Root location of Steam SDK */
 #define STEAM_SDK_ROOT_PATH TEXT("Binaries/ThirdParty/Steamworks")
 
@@ -39,7 +35,17 @@
 #error Steam SDK not located.  Expected to be found in Engine/Source/ThirdParty/Steamworks/{SteamVersion}
 #endif
 
+#if USING_CODE_ANALYSIS
+MSVC_PRAGMA(warning(push))
+MSVC_PRAGMA(warning(disable : ALL_CODE_ANALYSIS_WARNINGS))
+#endif	// USING_CODE_ANALYSIS
+
 #include "steam/steam_api.h"
+
+#if USING_CODE_ANALYSIS
+MSVC_PRAGMA(warning(pop))
+#endif	// USING_CODE_ANALYSIS
+
 #include "steam/steam_gameserver.h"
 
 #pragma pop_macro("ARRAY_COUNT")

@@ -6,6 +6,7 @@
 #include "HAL/PlatformTime.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/Runnable.h"
+#include "HAL/ThreadSafeBool.h"
 #include "Misc/SingleThreadRunnable.h"
 #include "OnlineSubsystemPackage.h"
 
@@ -266,18 +267,19 @@ public:
  */
 class ONLINESUBSYSTEM_API FOnlineAsyncTaskManager : public FRunnable, FSingleThreadRunnable 
 {
+private:
+	
+	/** The current active task processed serially by the async task manager */
+	FOnlineAsyncTask* ActiveTask;
+	/** Critical section for modifying the active task */
+	FCriticalSection ActiveTaskLock;
+
 protected:
 
 	/** Game thread async tasks are queued up here for processing on the online thread */
 	TArray<FOnlineAsyncTask*> InQueue;
 	/** Critical section for thread safe operation of the event in queue */
 	FCriticalSection InQueueLock;
-
-	/** blah */
-	FOnlineAsyncTask* ActiveTask;
-
-	/** blah */
-	FCriticalSection ActiveTaskLock;
 
 	/** This queue is for tasks that are safe to run in parallel with one another */
 	TArray<FOnlineAsyncTask*> ParallelTasks;
@@ -296,7 +298,7 @@ protected:
 	uint32 PollingInterval;
 
 	/** Should this manager and the thread exit */
-	int32 bRequestingExit;
+	FThreadSafeBool bRequestingExit;
 
 	/** Number of async task managers running currently */
 	static int32 InvocationCount;
@@ -426,8 +428,7 @@ public:
 
 	// FSingleThreadRunnable interface
 	/**
-	 *  Non blocking version of FOnlineAsyncTaskManager::Run.
-	 *  
+	 * Tick() is called by both multithreaded and single threaded runnable
 	 */
 	virtual void Tick();
 

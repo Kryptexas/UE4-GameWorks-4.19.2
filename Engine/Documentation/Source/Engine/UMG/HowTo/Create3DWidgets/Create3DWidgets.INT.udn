@@ -1,12 +1,13 @@
-Availability: Public
+Availability:Docs
 Title:Creating 3D Widgets
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:Create an interactive 3D menu that appears in the game world instead of 2D screen space. 
 Version: 4.10
 SkillLevel: Intermediate
-parent:Engine/Editor
+parent:Engine/UMG/HowTo
 order:1
-checkpoint: editorqs
+checkpoint: umg_create_3d_howto
+tags:UMG UI Designer
 
 [REGION:warning]
 This is an experimental feature that is currently undergoing development. Some aspects may not work as expected or may change in future revisions.

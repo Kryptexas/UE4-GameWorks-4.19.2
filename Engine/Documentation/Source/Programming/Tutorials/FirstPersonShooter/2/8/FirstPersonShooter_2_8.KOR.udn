@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3238697
 Availability: Public
 Title: 2.8 - 캐릭터에 일인칭 메시 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -161,10 +161,12 @@ FPS 게임 제작시 흔히 사용되는 접근법이라면, 전신 바디 메�
 			public:
 				// Sets default values for this character's properties
 				AFPSCharacter();
-			
+
+			protected:			
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-				
+			
+			public:	
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 			

@@ -241,7 +241,7 @@ protected:
 	TWeakPtr<SGraphNode> OwnerNodePtr;
 
 	/** Image of pin */
-	TSharedPtr<SImage> PinImage;
+	TSharedPtr<SWidget> PinImage;
 
 	/** Horizontal box that holds the full detail pin widget, useful for outsiders to inject widgets into the pin */
 	TWeakPtr<SHorizontalBox> FullPinHorizontalRowWidget;

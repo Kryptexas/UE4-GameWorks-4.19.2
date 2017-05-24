@@ -8,7 +8,6 @@
 #include "Internationalization/ITextData.h"
 #include "Misc/ScopeLock.h"
 
-class FTextHistory;
 
 /** 
  * Implementation of ITextData that stores the common data and functionality.
@@ -37,6 +36,11 @@ public:
 
 	virtual ~TTextData()
 	{
+	}
+
+	virtual bool OwnsLocalizedString() const override
+	{
+		return true;
 	}
 
 	virtual FTextDisplayStringPtr GetLocalizedString() const override
@@ -162,4 +166,78 @@ public:
 protected:
 	FString DisplayString;
 	FCriticalSection PersistTextCS;
+};
+
+
+/** 
+ * Implementation of ITextData optimized for storing indirect display string references via its text history.
+ * The history type used must provide a GetDisplayString function that returns a FTextDisplayStringRef.
+ */
+template <typename THistoryType>
+class TIndirectTextData : public ITextData
+{
+public:
+	TIndirectTextData()
+		: History()
+	{
+	}
+
+	explicit TIndirectTextData(THistoryType&& InHistory)
+		: History(MoveTemp(InHistory))
+	{
+	}
+
+	virtual ~TIndirectTextData()
+	{
+	}
+
+	virtual bool OwnsLocalizedString() const override
+	{
+		return false;
+	}
+
+	virtual const FString& GetDisplayString() const override
+	{
+		return *History.GetDisplayString();
+	}
+
+	virtual FTextDisplayStringPtr GetLocalizedString() const override
+	{
+		return History.GetDisplayString();
+	}
+
+	virtual FTextDisplayStringPtr& GetMutableLocalizedString() override
+	{
+		check(0); // Should never be called since OwnsLocalizedString returns false
+		
+		static FTextDisplayStringPtr DummyPtr;
+		return DummyPtr;
+	}
+
+	virtual const FTextHistory& GetTextHistory() const override
+	{
+		return History;
+	}
+
+	virtual FTextHistory& GetMutableTextHistory() override
+	{
+		return History;
+	}
+
+	virtual void PersistText() override
+	{
+	}
+
+	virtual uint16 GetGlobalHistoryRevision() const override
+	{
+		return History.GetRevision();
+	}
+
+	virtual uint16 GetLocalHistoryRevision() const override
+	{
+		return FTextLocalizationManager::Get().GetLocalRevisionForDisplayString(History.GetDisplayString());
+	}
+
+protected:
+	THistoryType History;
 };

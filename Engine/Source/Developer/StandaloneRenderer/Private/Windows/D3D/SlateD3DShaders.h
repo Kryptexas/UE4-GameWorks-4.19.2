@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "StandaloneRendererPlatformHeaders.h"
 #include "SlateD3DConstantBuffer.h"
+#include "Rendering/RenderingCommon.h"
 
 class FSlateD3DShaderParameter
 {
@@ -173,7 +174,7 @@ public:
 	}
 
 	void SetShaderType( uint32 InShaderType );
-	void SetDrawEffects( uint32 InDrawEffects );
+	void SetDrawEffects(ESlateDrawEffect InDrawEffects );
 	void SetShaderParams( const FVector4& InShaderParams );
 	void SetGammaValues(const FVector2D& InGammaValues);
 protected:

@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __FbxAnimUtils_h__
-#define __FbxAnimUtils_h__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -26,5 +24,3 @@ namespace FbxAnimUtils
 	UNREALED_API bool ImportCurveTableFromNode(const FString& InFbxFilename, const FString& InCurveNodeName, UCurveTable* InOutCurveTable, float& OutPreRoll);
 
 } // namespace FbxAnimUtils
-
-#endif //__FbxAnimUtils_h__

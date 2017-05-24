@@ -185,6 +185,8 @@ public:
 
 	virtual bool IsAttached();
 
+	virtual bool CanBeUsedOnAnyThread() const override;
+
 	/**
 	 * Displays text on the console and scrolls if necessary.
 	 *

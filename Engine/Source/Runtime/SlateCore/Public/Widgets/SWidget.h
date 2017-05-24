@@ -54,6 +54,12 @@ DECLARE_DELEGATE_OneParam(
 
 enum class EPopupMethod : uint8;
 
+namespace SharedPointerInternals
+{
+	template <typename ObjectType>
+	class TIntrusiveReferenceController;
+}
+
 class SLATECORE_API FSlateControlledConstruction
 {
 public:
@@ -62,10 +68,10 @@ public:
 	
 private:
 	/** UI objects cannot be copy-constructed */
-	FSlateControlledConstruction(const FSlateControlledConstruction& Other){}
+	FSlateControlledConstruction(const FSlateControlledConstruction& Other) = delete;
 	
 	/** UI objects cannot be copied. */
-	void operator= (const FSlateControlledConstruction& Other){}
+	void operator= (const FSlateControlledConstruction& Other) = delete;
 
 	/** Widgets should only ever be constructed via SNew or SAssignNew */
 	void* operator new ( const size_t InSize )
@@ -73,8 +79,17 @@ private:
 		return FMemory::Malloc(InSize);
 	}
 
+	/** Widgets should only ever be constructed via SNew or SAssignNew */
+	void* operator new ( const size_t InSize, void* Addr )
+	{
+		return Addr;
+	}
+
 	template<class WidgetType, bool bIsUserWidget>
 	friend struct TWidgetAllocator;
+
+	template <typename ObjectType>
+	friend class SharedPointerInternals::TIntrusiveReferenceController;
 
 public:
 	void operator delete(void* mem)
@@ -143,6 +158,27 @@ private:
 
 
 class IToolTip;
+
+/**
+ * HOW TO DEPRECATE SLATE_ATTRIBUTES
+ * 
+ * SLATE_ATTRIBUTE(ECheckBoxState, IsChecked)
+ *
+ * DEPRECATED(4.3, "Please use IsChecked(TAttribute<ECheckBoxState>)")
+ * FArguments& IsChecked(bool InIsChecked)
+ * {
+ * 		_IsChecked = InIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+ * 		return Me();
+ * }
+ *
+ * // This version would prevent ambiguous conversions.
+ * FArguments& IsChecked(ECheckBoxState InIsChecked)
+ * {
+ *		_IsChecked = InIsChecked;
+ * 		return Me();
+ * }
+ */
+
 
 /**
  * Abstract base class for Slate widgets.
@@ -617,8 +653,10 @@ public:
 	 */
 	private: virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const = 0;
 
-public:
+private:
 	void CreateStatID() const;
+
+public:
 
 	FORCEINLINE TStatId GetStatID() const
 	{
@@ -1181,72 +1219,9 @@ private:
 	/** Iterates over the active timer handles on the widget and executes them if their interval has elapsed. */
 	void ExecuteActiveTimers(double CurrentTime, float DeltaTime);
 
-	/** The list of active timer handles for this widget. */
-	TArray<TSharedRef<FActiveTimerHandle>> ActiveTimers;
-
 protected:
 	/** Dtor ensures that active timer handles are UnRegistered with the SlateApplication. */
 	~SWidget();
-
-	//	DEBUG INFORMATION
-	// @todo Slate: Should compile out in final release builds?
-	FName TypeOfWidget;
-
-#if !UE_BUILD_SHIPPING
-
-	/** Full file path (and line) in which this widget was created */
-	FName CreatedInLocation;
-
-#endif
-
-	/** Tag for this widget */
-	FName Tag;
-
-	/** Metadata associated with this widget */
-	TArray<TSharedRef<ISlateMetaData>> MetaData;
-
-	/** The cursor to show when the mouse is hovering over this widget. */
-	TAttribute< TOptional<EMouseCursor::Type> > Cursor;
-
-	/** Whether or not this widget is enabled */
-	TAttribute< bool > EnabledState;
-
-	/** Is this widget visible, hidden or collapsed */
-	TAttribute< EVisibility > Visibility;
-
-	/** Render transform of this widget. TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
-	TAttribute< TOptional<FSlateRenderTransform> > RenderTransform;
-
-	/** Render transform pivot of this widget (in normalized local space) */
-	TAttribute< FVector2D > RenderTransformPivot;
-
-private:
-
-	/**
-	 * Stores the ideal size this widget wants to be.
-	 * This member is intentionally private, because only the very base class (Widget) can write DesiredSize.
-	 * See CacheDesiredSize(), ComputeDesiredSize()
-	 */
-	FVector2D DesiredSize;
-
-	/**
-	 * Stores the cached Tick Geometry of the widget.  This information can and will be outdated, that's the
-	 * nature of it.  However, users were found to often need access to the geometry at times inconvenient to always
-	 * need to be located in Widget Tick.
-	 */
-	mutable FGeometry CachedGeometry;
-
-	/** Tool tip content for this widget */
-	TSharedPtr<IToolTip> ToolTip;
-
-	/** The current layout cache that may need to invalidated by changes to this widget. */
-	mutable TWeakPtr<ILayoutCache> LayoutCache;
-
-	STAT(mutable TStatId				StatID;)
-
-private:
-	// Events
-	TMap<FName, FPointerEventHandler> PointerEvents;
 
 protected:
 	/** Is this widget hovered? */
@@ -1280,8 +1255,79 @@ private:
 
 	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
 	mutable bool bInheritedVolatility : 1;
+
+private:
+
+	/**
+	 * Stores the ideal size this widget wants to be.
+	 * This member is intentionally private, because only the very base class (Widget) can write DesiredSize.
+	 * See CacheDesiredSize(), ComputeDesiredSize()
+	 */
+	FVector2D DesiredSize;
+
+	/**
+	 * Stores the cached Tick Geometry of the widget.  This information can and will be outdated, that's the
+	 * nature of it.  However, users were found to often need access to the geometry at times inconvenient to always
+	 * need to be located in Widget Tick.
+	 */
+	mutable FGeometry CachedGeometry;
+
+private:
+	/** The list of active timer handles for this widget. */
+	TArray<TSharedRef<FActiveTimerHandle>> ActiveTimers;
+
+protected:
+
+	/** Whether or not this widget is enabled */
+	TAttribute< bool > EnabledState;
+
+	/** Is this widget visible, hidden or collapsed */
+	TAttribute< EVisibility > Visibility;
+
+	/** Render transform of this widget. TOptional<> to allow code to skip expensive overhead if there is no render transform applied. */
+	TAttribute< TOptional<FSlateRenderTransform> > RenderTransform;
+
+	/** Render transform pivot of this widget (in normalized local space) */
+	TAttribute< FVector2D > RenderTransformPivot;
+
+protected:
+
+	/** Debugging information on the type of widget we're creating for the Widget Reflector. */
+	FName TypeOfWidget;
+
+#if !UE_BUILD_SHIPPING
+
+	/** Full file path (and line) in which this widget was created */
+	FName CreatedInLocation;
+
+#endif
+
+	/** Tag for this widget */
+	FName Tag;
+
+	/** Metadata associated with this widget */
+	TArray<TSharedRef<ISlateMetaData>> MetaData;
+
+	/** The cursor to show when the mouse is hovering over this widget. */
+	TAttribute< TOptional<EMouseCursor::Type> > Cursor;
+
+private:
+
+	/** Tool tip content for this widget */
+	TSharedPtr<IToolTip> ToolTip;
+
+	/** The current layout cache that may need to invalidated by changes to this widget. */
+	mutable TWeakPtr<ILayoutCache> LayoutCache;
+
+private:
+	// Events
+	TMap<FName, FPointerEventHandler> PointerEvents;
+
 	FNoReplyPointerEventHandler MouseEnterHandler;
 	FSimpleNoReplyPointerEventHandler MouseLeaveHandler;
+
+private:
+	STAT(mutable TStatId				StatID;)
 };
 
 //=================================================================

@@ -18,6 +18,16 @@ UPanelSlot* UContentWidget::GetContentSlot() const
 	return Slots.Num() > 0 ? Slots[0] : nullptr;
 }
 
+UWidget* UContentWidget::GetContent() const
+{
+	if ( UPanelSlot* ContentSlot = GetContentSlot() )
+	{
+		return ContentSlot->Content;
+	}
+
+	return nullptr;
+}
+
 UPanelSlot* UContentWidget::SetContent(UWidget* Content)
 {
 	ClearChildren();

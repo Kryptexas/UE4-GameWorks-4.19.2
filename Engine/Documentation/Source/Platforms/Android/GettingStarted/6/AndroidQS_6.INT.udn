@@ -21,14 +21,14 @@ try and accomplish the following using what you have learned from this Quick Sta
 
 * Create a new project using one of the default templates and then try and get that project running on your Android device.
 * Try packaging your project using different Android Texture formats and see which ones will work for your Android device.
-* Check the size of your packaged and then using the [Reducing APK Package size](Platforms/Android/ReducingAPKSize) document and try reducing the size of your packaged game.
-* Check out the [Gear VR Debugging](Platforms/GearVR/Debugging) document and then try and deploy your project to your Android device over a wireless network.
+* Check the size of your package, and then, using the [Reducing APK Package size](Platforms/Android/ReducingAPKSize) document, try reducing the size of your packaged game.
+* Check out the [Gear VR Debugging](Platforms/GearVR/Debugging) document and then try to deploy your project to an Android device over a wireless network.
 
 
 The following selection of links can help you with everything from which Android devices will work with UE4 to things you should consider when creating content that is aimed at mobile devices. 
-If you have not gone through these links before it is highly recommended that you do as they contain a plethora of very valuable information.
+If you have not gone through these links before it is highly recommended that you do as they contain a plethora of valuable information.
 
-For more information about device compatibility and performance checkout the following links:
+For more information about device compatibility and performance, checkout the following links:
 
 * [](Platforms\Android\DeviceCompatibility)
 * [](Platforms\DeviceProfiles)

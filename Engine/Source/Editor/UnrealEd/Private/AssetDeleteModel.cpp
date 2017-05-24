@@ -167,7 +167,7 @@ void FAssetDeleteModel::DiscoverSourceFileReferences(FPendingDelete& PendingDele
 	TArray<FString> SourceContentFiles;
 	Utils::ExtractSourceFilePaths(PendingDelete.GetObject(), SourceContentFiles);
 
-	if ( GUnrealEd->AutoReimportManager )
+	if (GUnrealEd && GUnrealEd->AutoReimportManager )
 	{
 		TArray<FPathAndMountPoint> MonitoredDirectories = GUnrealEd->AutoReimportManager->GetMonitoredDirectories();
 
@@ -552,7 +552,6 @@ void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 		TArray<UObject*> AssetsInRedirectorPackage;
 		
 		GetObjectsWithOuter(RedirectorPackage, AssetsInRedirectorPackage, /*bIncludeNestedObjects=*/false);
-		UMetaData* PackageMetaData = NULL;
 		bool bContainsAtLeastOneOtherAsset = false;
 
 		for ( auto ObjIt = AssetsInRedirectorPackage.CreateConstIterator(); ObjIt; ++ObjIt )
@@ -560,30 +559,21 @@ void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 			if ( UObjectRedirector* Redirector = Cast<UObjectRedirector>(*ObjIt) )
 			{
 				Redirector->RemoveFromRoot();
+				continue;
 			}
-			else if ( UMetaData* MetaData = Cast<UMetaData>(*ObjIt) )
+			
+			if ( UMetaData* MetaData = Cast<UMetaData>(*ObjIt) )
 			{
-				PackageMetaData = MetaData;
+				// Nothing to do; ObjectTools::CleanUpAfterSuccessfulDelete will take care of this if needed
+				continue;
 			}
-			else
-			{
-				bContainsAtLeastOneOtherAsset = true;
-			}
+			
+			bContainsAtLeastOneOtherAsset = true;
 		}
 
 		if ( !bContainsAtLeastOneOtherAsset )
 		{
 			RedirectorPackage->RemoveFromRoot();
-
-			// @todo we shouldnt be worrying about metadata objects here, ObjectTools::CleanUpAfterSuccessfulDelete should
-			if ( PackageMetaData )
-			{
-				PackageMetaData->RemoveFromRoot();
-				if (!PendingDeletes.ContainsByPredicate([=](const TSharedPtr<FPendingDelete>& A) { return A->GetObject() == PackageMetaData; }))
-				{
-					PendingDeletes.Add(MakeShareable(new FPendingDelete(PackageMetaData)));
-				}
-			}
 		}
 	}
 }
@@ -688,9 +678,15 @@ void FPendingDelete::CheckForReferences()
 	bool bReferencedInMemoryOrUndoStack = IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesIncludingUndo);
 
 	// Determine the in-memory references, *excluding* the undo buffer
-	GEditor->Trans->DisableObjectSerialization();
+	if (GEditor && GEditor->Trans)
+	{
+		GEditor->Trans->DisableObjectSerialization();
+	}
 	bIsReferencedInMemoryByNonUndo = IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &MemoryReferences);
-	GEditor->Trans->EnableObjectSerialization();
+	if (GEditor && GEditor->Trans)
+	{
+		GEditor->Trans->EnableObjectSerialization();
+	}
 
 	// see if this object is the transaction buffer - set a flag so we know we need to clear the undo stack
 	const int32 TotalReferenceCount = ReferencesIncludingUndo.ExternalReferences.Num() + ReferencesIncludingUndo.InternalReferences.Num();
@@ -713,15 +709,20 @@ void FPendingDelete::CheckForReferences()
 				{
 					if (IsReferenced(RefInfo.Referencer, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesIncludingUndo))
 					{
-						GEditor->Trans->DisableObjectSerialization();
+						if (GEditor && GEditor->Trans)
+						{
+							GEditor->Trans->DisableObjectSerialization();
+						}
 
 						FReferencerInformationList ReferencesExcludingUndo;
 						if (IsReferenced(RefInfo.Referencer, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags, true, &ReferencesExcludingUndo))
 						{
 							bIsReferencedInMemoryByUndo = ( ReferencesIncludingUndo.InternalReferences.Num() + ReferencesIncludingUndo.ExternalReferences.Num() ) > ( ReferencesExcludingUndo.InternalReferences.Num() + ReferencesExcludingUndo.ExternalReferences.Num() );
 						}
-
-						GEditor->Trans->EnableObjectSerialization();
+						if (GEditor && GEditor->Trans)
+						{
+							GEditor->Trans->EnableObjectSerialization();
+						}
 					}
 				}
 			}

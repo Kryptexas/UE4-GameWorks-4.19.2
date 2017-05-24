@@ -18,14 +18,16 @@ struct FKBoxElem : public FKShapeElem
 
 	UPROPERTY()
 	FMatrix TM_DEPRECATED;
+	UPROPERTY()
+	FQuat Orientation_DEPRECATED;
 
 	/** Position of the box's origin */
 	UPROPERTY(Category=Box, EditAnywhere)
 	FVector Center;
 
-	/** Orientation of the box */
-	UPROPERTY(Category= Box, EditAnywhere)
-	FQuat Orientation;
+	/** Rotation of the box */
+	UPROPERTY(Category=Box, EditAnywhere, meta = (ClampMin = "-360", ClampMax = "360"))
+	FRotator Rotation;
 
 	/** Extent of the box along the y-axis */
 	UPROPERTY(Category= Box, EditAnywhere, meta =(DisplayName = "X Extent"))
@@ -42,8 +44,9 @@ struct FKBoxElem : public FKShapeElem
 
 	FKBoxElem()
 	: FKShapeElem(EAggCollisionShape::Box)
+	, Orientation_DEPRECATED( FQuat::Identity )
 	, Center( FVector::ZeroVector )
-	, Orientation( FQuat::Identity )
+	, Rotation( FRotator::ZeroRotator )
 	, X(1), Y(1), Z(1)
 	{
 
@@ -51,8 +54,9 @@ struct FKBoxElem : public FKShapeElem
 
 	FKBoxElem( float s )
 	: FKShapeElem(EAggCollisionShape::Box)
+	, Orientation_DEPRECATED( FQuat::Identity )
 	, Center( FVector::ZeroVector )
-	, Orientation( FQuat::Identity )
+	, Rotation(FRotator::ZeroRotator)
 	, X(s), Y(s), Z(s)
 	{
 
@@ -60,20 +64,21 @@ struct FKBoxElem : public FKShapeElem
 
 	FKBoxElem( float InX, float InY, float InZ ) 
 	: FKShapeElem(EAggCollisionShape::Box)
+	, Orientation_DEPRECATED( FQuat::Identity )
 	, Center( FVector::ZeroVector )
-	, Orientation( FQuat::Identity )
+	, Rotation(FRotator::ZeroRotator)
 	, X(InX), Y(InY), Z(InZ)
 
 	{
 
 	}
 
-	void Serialize( const FArchive& Ar );
+	void FixupDeprecated( FArchive& Ar );
 
 	friend bool operator==( const FKBoxElem& LHS, const FKBoxElem& RHS )
 	{
 		return ( LHS.Center == RHS.Center &&
-			LHS.Orientation == RHS.Orientation &&
+			LHS.Rotation == RHS.Rotation &&
 			LHS.X == RHS.X &&
 			LHS.Y == RHS.Y &&
 			LHS.Z == RHS.Z );
@@ -82,13 +87,13 @@ struct FKBoxElem : public FKShapeElem
 	// Utility function that builds an FTransform from the current data
 	FTransform GetTransform() const
 	{
-		return FTransform( Orientation, Center );
+		return FTransform( Rotation, Center );
 	};
 
 	void SetTransform( const FTransform& InTransform )
 	{
 		ensure(InTransform.IsValid());
-		Orientation = InTransform.GetRotation();
+		Rotation = InTransform.Rotator();
 		Center = InTransform.GetLocation();
 	}
 

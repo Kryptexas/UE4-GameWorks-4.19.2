@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2706343
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:1.必要なプロジェクト設定
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:HUDで使用する Widget ブループリントを作成し、HUDに情報を渡すようにキャラクターをセットアップします。 
 version:4.9
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -130,7 +131,7 @@ version:4.9
 
 	これで毎回プレイヤーが発射物を発砲するたびに弾薬を 1 つ差し引いて、HUD に表示するものが与えられます。 
 
-1. 	**コンパイル** し **保存** してから、ブループリントを閉じます。 
+1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 
 
 次のステップでは、HUD のヘルス、エネルギー、弾薬の変数の表示をセットアップし、ゲーム内で動作するようにします。 

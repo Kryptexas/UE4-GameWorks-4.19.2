@@ -3,12 +3,13 @@
 	
 	"FriendlyName" : "Online Subsystem Oculus",
 	"Version" : 1,
-	"VersionName" : "1.10",
-	"EngineVersion" : "4.2.0",
+	"VersionName" : "1.12",
 	"Description" : "Access to Oculus Platform",
 	"Category" : "Online Platform",
 	"CreatedBy" : "Oculus",
 	"CreatedByURL" : "https://developer.oculus.com/",
+  "DocsURL" : "https://developer3.oculus.com/documentation/game-engines/latest/concepts/unreal-platform/",
+  "SupportURL" : "https://forums.oculus.com/developer/categories/unreal",
 	"EnabledByDefault" : false,
 
     "Modules": [
@@ -22,5 +23,11 @@
                 "Android",
 			]
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemOculus",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

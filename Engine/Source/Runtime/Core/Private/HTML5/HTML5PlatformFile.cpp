@@ -2,6 +2,11 @@
 
 /*=============================================================================
 	HTML5File.cpp: HTML5 platform implementations of File functions
+
+	NOTE: this file should closely match [ LinuxPlatformFile.cpp ]
+		the only difference is "local" storage has special handler (which is
+		going to change in the near future when wasm starts using the ASMFS)
+
 =============================================================================*/
 
 #include "CoreTypes.h"
@@ -13,43 +18,52 @@
 #include "Templates/Function.h"
 #include "Containers/UnrealString.h"
 #include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Paths.h"
+#include "Misc/App.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #if PLATFORM_HTML5_WIN32
-#include <io.h>
-#include <direct.h>
+	#include <io.h>
+	#include <direct.h>
 #else
-#include <unistd.h>
+	#include <unistd.h>
 #endif
+
 #include <errno.h>
 #include <fcntl.h>
+
 #if PLATFORM_HTML5_WIN32
-# ifndef S_ISDIR /* NEXT */
-# define S_ISDIR(m) (((m)&S_IFMT)==S_IFDIR)
-# define S_ISREG(m) (((m)&S_IFMT)==S_IFREG)
-# endif
+	#ifndef S_ISDIR /* NEXT */
+		#define S_ISDIR(m) (((m)&S_IFMT)==S_IFDIR)
+		#define S_ISREG(m) (((m)&S_IFMT)==S_IFREG)
+	#endif
+	
+	#ifndef S_IRUSR
+		#define S_IRUSR S_IREAD
+		#define S_IWUSR S_IWRITE
+		#define S_IXUSR S_IEXEC
+	#endif
 
-# ifndef S_IRUSR
-# define S_IRUSR S_IREAD
-# define S_IWUSR S_IWRITE
-# define S_IXUSR S_IEXEC
-# endif	/* S_IRUSR */
-
-/* access function */
-#define	F_OK		0	/* test for existence of file */
-#define	X_OK		0x01	/* test for execute or search permission */
-#define	W_OK		0x02	/* test for write permission */
-#define	R_OK		0x04	/* test for read permission */
-#include <sys/utime.h>
+	/* access function */
+	#define	F_OK		0		/* test for existence of file */
+	#define	X_OK		0x01	/* test for execute or search permission */
+	#define	W_OK		0x02	/* test for write permission */
+	#define	R_OK		0x04	/* test for read permission */
+	#include <sys/utime.h>
 #else
-#include <dirent.h>
-#include <utime.h>
+	#include <dirent.h>
+	#include <utime.h>
 #endif
 
 #ifndef O_BINARY
-#define O_BINARY 0
+	#define O_BINARY 0
 #endif
+
+
+DEFINE_LOG_CATEGORY_STATIC(LogHTML5PlatformFile, Log, All);
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
 const FDateTime HTML5Epoch(1970, 1, 1);
@@ -67,9 +81,9 @@ namespace
 		}
 
 		return FFileStatData(
-			HTML5Epoch + FTimespan(0, 0, FileInfo.st_ctime), 
-			HTML5Epoch + FTimespan(0, 0, FileInfo.st_atime), 
-			HTML5Epoch + FTimespan(0, 0, FileInfo.st_mtime), 
+			HTML5Epoch + FTimespan(0, 0, FileInfo.st_ctime),
+			HTML5Epoch + FTimespan(0, 0, FileInfo.st_atime),
+			HTML5Epoch + FTimespan(0, 0, FileInfo.st_mtime),
 			FileSize,
 			bIsDirectory,
 			!!(FileInfo.st_mode & S_IWUSR)
@@ -77,7 +91,7 @@ namespace
 	}
 }
 
-/** 
+/**
  * HTML5 file handle implementation
 **/
 class CORE_API FFileHandleHTML5 : public IFileHandle
@@ -91,9 +105,20 @@ class CORE_API FFileHandleHTML5 : public IFileHandle
 	}
 
 public:
-	FFileHandleHTML5(int32 InFileHandle = -1)
+	FFileHandleHTML5(int32 InFileHandle, const TCHAR* InFilename)
 		: FileHandle(InFileHandle)
+		, Filename(InFilename)
 	{
+		check(FileHandle > -1);
+		check(Filename.Len() > 0);
+
+		bUseLocalStorage = Filename.Contains(FString(FApp::GetGameName()) + TEXT("/Saved/"));
+		if ( bUseLocalStorage )
+		{
+			// currently, need to setup IndexDB mount point -- but this is going to change in the near future to ASMFS
+			// currently, SaveGame only really needs this for now -- but, that stuff is implimented in HTML5SaveGameSystem.cpp
+			// OTOH, Saved/Config/*.ini could also use this persistent feature
+		}
 	}
 
 	virtual ~FFileHandleHTML5()
@@ -125,6 +150,7 @@ public:
 	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		check(IsValid());
+
 		while (BytesToRead)
 		{
 			check(BytesToRead >= 0);
@@ -157,6 +183,10 @@ public:
 		}
 		return true;
 	}
+
+private:
+	FString Filename;
+	bool bUseLocalStorage;
 };
 
 /**
@@ -167,44 +197,16 @@ class CORE_API FHTML5PlatformFile : public IPhysicalPlatformFile
 protected:
 	virtual FString NormalizeFilename(const TCHAR* Filename)
 	{
-#if PLATFORM_HTML5_WIN32
 		FString Result(Filename);
 		FPaths::NormalizeFilename(Result);
-		if (Result.StartsWith(TEXT("//")))
-		{
-			Result = FString(TEXT("\\\\")) + Result.RightChop(2);
-		}
 		return FPaths::ConvertRelativePathToFull(Result);
-#else
-		FString Result(Filename);
-		Result.ReplaceInline(TEXT("\\"), TEXT("/"));
-		Result.ReplaceInline(TEXT("../"), TEXT(""));
-		Result.ReplaceInline(TEXT(".."), TEXT(""));
-		Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
-		Result = FString(TEXT("/")) + Result; 
-		return Result; 
-#endif
 	}
 
 	virtual FString NormalizeDirectory(const TCHAR* Directory)
 	{
-#if PLATFORM_HTML5_WIN32
 		FString Result(Directory);
 		FPaths::NormalizeDirectoryName(Result);
-		if (Result.StartsWith(TEXT("//")))
-		{
-			Result = FString(TEXT("\\\\")) + Result.RightChop(2);
-		}
 		return FPaths::ConvertRelativePathToFull(Result);
-#else
-		FString Result(Directory);
-		Result.ReplaceInline(TEXT("\\"), TEXT("/"));
-		if (Result.EndsWith(TEXT("/")))
-		{
-			Result.LeftChop(1);
-		}
-		return Result;
-#endif
 	}
 
 public:
@@ -267,7 +269,7 @@ public:
 			{
 				FileInfo.st_mode |= S_IWUSR;
 			}
-			return chmod(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), FileInfo.st_mode) > 0;
+			return chmod(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), FileInfo.st_mode) == 0;
 		}
 		return false;
 	}
@@ -327,12 +329,12 @@ public:
 		int32 Handle = open(TCHAR_TO_UTF8(*fn), O_RDONLY | O_BINARY);
 		if (Handle != -1)
 		{
-			return new FFileHandleHTML5(Handle);
+			return new FFileHandleHTML5(Handle, Filename);
 		}
 
 #if PLATFORM_HTML5_WIN32
 		int err = errno;
-		UE_LOG(LogTemp, Display, TEXT("OpenRead: %s failed, errno %d"), (*fn), err);
+		UE_LOG(LogHTML5PlatformFile, Display, TEXT("OpenRead: %s failed, errno %d"), (*fn), err);
 #endif
 		return NULL;
 	}
@@ -356,10 +358,17 @@ public:
 		{
 			Flags |= O_WRONLY;
 		}
+
+		// create directories if needed.
+		if (!CreateDirectoriesFromPath(Filename))
+		{
+			return NULL;
+		}
+
 		int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), Flags, S_IRUSR | S_IWUSR);
 		if (Handle != -1)
 		{
-			FFileHandleHTML5* FileHandleHTML5 = new FFileHandleHTML5(Handle);
+			FFileHandleHTML5* FileHandleHTML5 = new FFileHandleHTML5(Handle, Filename);
 			if (bAppend)
 			{
 				FileHandleHTML5->SeekFromEnd(0);
@@ -382,29 +391,29 @@ public:
 	{
 #if PLATFORM_HTML5_WIN32
 		return _mkdir(TCHAR_TO_ANSI(*NormalizeFilename(Directory))) || (errno == EEXIST);
-#else 
-		return mkdir(TCHAR_TO_ANSI(*NormalizeFilename(Directory)), S_IRWXG) || (errno == EEXIST);
-#endif 
+#else
+		return mkdir(TCHAR_TO_UTF8(*NormalizeFilename(Directory)), 0755) == 0;
+#endif
 	}
 
 	virtual bool DeleteDirectory(const TCHAR* Directory) override
 	{
 #if PLATFORM_HTML5_WIN32
-		return false;
+		return _rmdir(TCHAR_TO_UTF8(*NormalizeFilename(Directory))) == 0;
 #else
-		return rmdir(TCHAR_TO_UTF8(*NormalizeFilename(Directory)));
+		return rmdir(TCHAR_TO_UTF8(*NormalizeFilename(Directory))) == 0;
 #endif
 	}
 
 	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) override
 	{
 		struct stat FileInfo;
-		if (stat(TCHAR_TO_UTF8(*NormalizeFilename(FilenameOrDirectory)), &FileInfo) != -1)
+		if (stat(TCHAR_TO_UTF8(*NormalizeFilename(FilenameOrDirectory)), &FileInfo) == -1)
 		{
-			return HTML5StatToUEFileData(FileInfo);
+			return FFileStatData();
 		}
 
-		return FFileStatData();
+		return HTML5StatToUEFileData(FileInfo);
 	}
 
 	virtual bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) override
@@ -442,9 +451,9 @@ public:
 			}
 
 			const FFileStatData StatData(
-				HTML5Epoch + FTimespan(0, 0, InFindData.time_create), 
-				HTML5Epoch + FTimespan(0, 0, InFindData.time_access), 
-				HTML5Epoch + FTimespan(0, 0, InFindData.time_write), 
+				HTML5Epoch + FTimespan(0, 0, InFindData.time_create),
+				HTML5Epoch + FTimespan(0, 0, InFindData.time_access),
+				HTML5Epoch + FTimespan(0, 0, InFindData.time_write),
 				FileSize,
 				bIsDirectory,
 				((InFindData.attrib & _A_RDONLY) != 0)
@@ -457,10 +466,13 @@ public:
 		const FString NormalizedDirectoryStr = NormalizeFilename(Directory);
 		return IterateDirectoryCommon(Directory, [&](struct dirent* InEntry) -> bool
 		{
+			const FString UnicodeEntryName = UTF8_TO_TCHAR(InEntry->d_name);
+
 			struct stat FileInfo;
-			if (stat(TCHAR_TO_UTF8(*(NormalizedDirectoryStr / UTF8_TO_TCHAR(InEntry->d_name))), &FileInfo) != -1)
+			const FString AbsoluteUnicodeName = NormalizedDirectoryStr / UnicodeEntryName;
+			if (stat(TCHAR_TO_UTF8(*AbsoluteUnicodeName), &FileInfo) != -1)
 			{
-				return Visitor.Visit(*(DirectoryStr / UTF8_TO_TCHAR(InEntry->d_name)), HTML5StatToUEFileData(FileInfo));
+				return Visitor.Visit(*(DirectoryStr / UnicodeEntryName), HTML5StatToUEFileData(FileInfo));
 			}
 			return true;
 		});
@@ -512,7 +524,53 @@ public:
 		return Result;
 	}
 #endif
-}; 
+
+	bool CreateDirectoriesFromPath(const TCHAR* Path)
+	{
+		// if the file already exists, then directories exist.
+		struct stat FileInfo;
+		if (stat(TCHAR_TO_UTF8(*NormalizeFilename(Path)), &FileInfo) != -1)
+		{
+			return true;
+		}
+
+		// convert path to native char string.
+		int32 Len = strlen(TCHAR_TO_UTF8(*NormalizeFilename(Path)));
+		char *DirPath = reinterpret_cast<char *>(FMemory::Malloc((Len+2) * sizeof(char)));
+		char *SubPath = reinterpret_cast<char *>(FMemory::Malloc((Len+2) * sizeof(char)));
+		strcpy(DirPath, TCHAR_TO_UTF8(*NormalizeFilename(Path)));
+	
+		for (int32 i=0; i<Len; ++i)
+		{
+			SubPath[i] = DirPath[i];
+	
+			if (SubPath[i] == '/')
+			{
+				SubPath[i+1] = 0;
+	
+				// directory exists?
+				struct stat SubPathFileInfo;
+				if (stat(SubPath, &SubPathFileInfo) == -1)
+				{
+					// nope. create it.
+					if (mkdir(SubPath, 0755) == -1)
+					{
+						int ErrNo = errno;
+						UE_LOG(LogHTML5PlatformFile, Warning, TEXT( "create dir('%s') failed: errno=%d (%s)" ),
+																	DirPath, ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
+						FMemory::Free(DirPath);
+						FMemory::Free(SubPath);
+						return false;
+					}
+				}
+			}
+		}
+	
+		FMemory::Free(DirPath);
+		FMemory::Free(SubPath);
+		return true;
+	}
+};
 
 IPlatformFile& IPlatformFile::GetPlatformPhysical()
 {

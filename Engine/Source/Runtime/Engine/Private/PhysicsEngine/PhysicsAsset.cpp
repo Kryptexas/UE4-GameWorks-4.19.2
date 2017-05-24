@@ -13,6 +13,7 @@
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "UObject/ReleaseObjectVersion.h"
 #include "Logging/MessageLog.h"
+#include "UObjectIterator.h"
 
 #define LOCTEXT_NAMESPACE "PhysicsAsset"
 
@@ -263,7 +264,7 @@ void UPhysicsAsset::DisableCollision(int32 BodyIndexA, int32 BodyIndexB)
 
 FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTransform& LocalToWorld) const
 {
-	FBox Box(0);
+	FBox Box(ForceInit);
 
 	if (!MeshComp)
 	{
@@ -331,7 +332,7 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTrans
 		Box = FBox( LocalToWorld.GetLocation(), LocalToWorld.GetLocation() );
 	}
 
-	const float MinBoundSize = 30.f;
+	const float MinBoundSize = 1.f;
 	const FVector BoxSize = Box.GetSize();
 
 	if(BoxSize.GetMin() < MinBoundSize)

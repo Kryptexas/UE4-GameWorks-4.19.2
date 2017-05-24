@@ -1,43 +1,49 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 4 - Running UE4 from your IDE
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
-Description:Learn how to run Unreal Engine from your IDE.
-Version: 4.13
+﻿INTSourceChangelist:3262227
+Availability:Public
+Title:4 - 从 IDE 运行 UE4
+Crumbs:
+Description:学习如何从 IDE 运行虚幻引擎。
+Version:4.14
 type:how to
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
-order: 4
+order:4
 tags:Linux
 SkillLevel:Beginner
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/5 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+编译引擎后，即可开始运行编辑器。在该步骤中，您将使用 IDE 运行 UE4。
 
-You're finally ready to run UE4 from the IDE.
+1.	如果需要在运行 UE4 时查看应用程序的状态，则要打开 **Application Output** 窗口面板。按下 **Alt+3** 组合键即可打开 **Application Output** 窗口面板。
 
-1.	To run UE4 from the IDE, click the **Run** button. Alternatively, you can press the **Ctrl+R** keyboard combination to run UE4 from the IDE.
+	[REGION:lightbox]
+		[![](SetupIDE_Step17a.png)(w:720)](SetupIDE_Step17a.png)
+	[/REGION]
+	
+	[REGION:caption]
+		点击查看全图。
+	[/REGION]
 
-	![](SetupIDE_Step17.png)
+1.	点击 **Run** 按钮即可从 IDE 运行 UE4。此外，按下 **Ctrl+R** 组合键也可从 IDE 运行 UE4。
 
-## End Result
+	[REGION:lightbox]
+		[![](SetupIDE_Step17.png)(w:720)](SetupIDE_Step17.png)
+	[/REGION]
+	
+	[REGION:caption]
+		点击查看全图。
+	[/REGION]
 
-![](SetupIDE_Step18.png)
+## 最终结果
 
-Congratulations! You should now see UE4 running from your IDE.
+[REGION:lightbox]
+	[![](SetupIDE_Step18.png)(w:720)](SetupIDE_Step18.png)
+[/REGION]
 
-%Steps%
+[REGION:caption]
+	点击查看全图。
+[/REGION]
+
+恭喜！您现在应该可以看到 UE4 在 IDE 中运行。
+
+[NAV]

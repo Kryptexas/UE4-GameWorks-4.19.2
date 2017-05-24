@@ -38,7 +38,7 @@ void UMaterialGraph::RebuildGraph()
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Specular", "Specular"), MP_Specular, LOCTEXT("SpecularToolTip", "Used to scale the current amount of specularity on non-metallic surfaces and is a value between 0 and 1, default at 0.5") ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT( "Roughness", "Roughness" ), MP_Roughness, LOCTEXT( "RoughnessToolTip", "Controls how rough the Material is. Roughness of 0 (smooth) is a mirror reflection and 1 (rough) is completely matte or diffuse" ) ) );
 		MaterialInputs.Add( FMaterialInputInfo( GetEmissivePinName(), MP_EmissiveColor, LOCTEXT( "EmissiveToolTip", "Controls which parts of your Material will appear to glow" ) ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Opacity", "Opacity"), MP_Opacity, LOCTEXT( "OpacityToolTip", "Controls the transluecency of the Material" ) ) );
+		MaterialInputs.Add( FMaterialInputInfo( GetOpacityPinName(), MP_Opacity, LOCTEXT( "OpacityToolTip", "Controls the transluecency of the Material" ) ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("OpacityMask", "Opacity Mask"), MP_OpacityMask, LOCTEXT( "OpacityMaskToolTip", "When in Masked mode, a Material is either completely visible or completely invisible" ) ) );
 		MaterialInputs.Add( FMaterialInputInfo( GetNormalPinName(), MP_Normal, LOCTEXT( "NormalToolTip", "Takes the input of a normal map" ) ) );
 		MaterialInputs.Add( FMaterialInputInfo( GetWorldPositionOffsetPinName(), MP_WorldPositionOffset, LOCTEXT( "WorldPositionOffsetToolTip", "Allows for the vertices of a mesh to be manipulated in world space by the Material" ) ) );
@@ -168,7 +168,8 @@ void UMaterialGraph::LinkGraphNodesFromMaterial()
 			{
 				UEdGraphPin* InputPin = CastChecked<UMaterialGraphNode>(Expression->GraphNode)->GetInputPin(InputIndex);
 
-				if ( ExpressionInputs[InputIndex]->Expression)
+				// InputPin can be null during a PostEditChange when there is a circular dependency between nodes, and nodes have pins that are dynamically created
+				if (InputPin != nullptr && ExpressionInputs[InputIndex]->Expression)
 				{
 					UMaterialGraphNode* GraphNode = CastChecked<UMaterialGraphNode>(ExpressionInputs[InputIndex]->Expression->GraphNode);
 					InputPin->MakeLinkTo(GraphNode->GetOutputPin(GetValidOutputIndex(ExpressionInputs[InputIndex])));
@@ -482,7 +483,12 @@ FText UMaterialGraph::GetEmissivePinName() const
 
 FText UMaterialGraph::GetBaseColorPinName() const
 {
-	return LOCTEXT("BaseColor", "Base Color");
+	return Material->MaterialDomain == MD_Volume ? LOCTEXT("Albedo", "Albedo") : LOCTEXT("BaseColor", "Base Color");
+}
+
+FText UMaterialGraph::GetOpacityPinName() const
+{
+	return Material->MaterialDomain == MD_Volume ? LOCTEXT("Extinction", "Extinction") : LOCTEXT("Opacity", "Opacity");
 }
 
 FText UMaterialGraph::GetMetallicPinName() const

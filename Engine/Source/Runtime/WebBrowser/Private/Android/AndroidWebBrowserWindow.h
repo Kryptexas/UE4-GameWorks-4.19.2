@@ -168,6 +168,11 @@ public:
 		return DismissAllDialogsDelegate;
 	}
 
+	virtual FOnSuppressContextMenu& OnSuppressContextMenu() override
+	{
+		return SuppressContextMenuDelgate;
+	}
+
 public:
 
 	/**
@@ -240,6 +245,9 @@ private:
 
 	/** Delegate for dismissing all dialogs. */
 	FOnDismissAllDialogs DismissAllDialogsDelegate;
+
+	/** Delegate for suppressing context menu */
+	FOnSuppressContextMenu SuppressContextMenuDelgate;
 
 	/** Current state of the document being loaded. */
 	EWebBrowserDocumentState DocumentState;

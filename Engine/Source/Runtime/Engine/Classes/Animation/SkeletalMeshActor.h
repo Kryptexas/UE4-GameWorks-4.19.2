@@ -69,9 +69,6 @@ public:
 	//~ Begin UObject Interface
 protected:
 	virtual FString GetDetailedInfoInternal() const override;
-#if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
-#endif // WITH_EDITOR
 public:
 	//~ End UObject Interface
 

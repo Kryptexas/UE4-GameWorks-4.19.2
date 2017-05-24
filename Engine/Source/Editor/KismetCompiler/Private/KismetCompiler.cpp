@@ -6,6 +6,7 @@
 
 
 #include "KismetCompiler.h"
+#include "AnimBlueprintCompiler.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Misc/CoreMisc.h"
 #include "Components/ActorComponent.h"
@@ -86,12 +87,12 @@ namespace
 		for (UEdGraphNode* Node : Graph->Nodes)
 		{
 			const bool bRootSetByType = Node && (Node->IsA<UK2Node_FunctionEntry>() || Node->IsA<UK2Node_Event>() || Node->IsA<UK2Node_Timeline>());
-			bool bIsRootSet = bRootSetByType;
+			UK2Node* K2Node = Cast<UK2Node>(Node);
+			bool bIsRootSet = bRootSetByType || (K2Node && K2Node->IsNodeRootSet());
 
 			if (Node && bIncludeNodesThatCouldBeExpandedToRootSet && !bIsRootSet)
 			{
 				//Include non-pure K2Nodes, without input pins
-				UK2Node* K2Node = Cast<UK2Node>(Node);
 				auto HasInputPins = [](UK2Node* InNode) -> bool
 				{
 					for (UEdGraphPin* Pin : InNode->Pins)
@@ -126,6 +127,14 @@ FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompil
 	, NewClass(NULL)
 	, ConsolidatedEventGraph(NULL)
 	, UbergraphContext(NULL)
+	, bIsFullCompile(false)
+	, bIsSkeletonOnly(false)
+	, OldCDO(nullptr)
+	, OldGenLinkerIdx(INDEX_NONE)
+	, OldLinker(nullptr)
+	, TargetClass(nullptr)
+	, bAssignDelegateSignatureFunction(false)
+	, bGenerateSubInstanceVariables(false)
 {
 	MacroRowMaxHeight = 0;
 
@@ -207,7 +216,7 @@ bool FKismetCompilerContext::FSubobjectCollection::operator()(const UObject* con
 	return ( NULL != Collection.Find(RemovalCandidate) );
 }
 
-void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOldCDO)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CleanAndSanitizeClass);
 
@@ -232,28 +241,29 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	}
 	TransientClass->ClassAddReferencedObjects = ParentClass->AddReferencedObjects;
 	TransientClass->ClassGeneratedBy = Blueprint;
-	
-	NewClass = ClassToClean;
-	OldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
-	
-	const ERenameFlags RenFlags = REN_DontCreateRedirectors | (bRecompilingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
+	TransientClass->ClassFlags |= CLASS_CompiledFromBlueprint;
 
-	if( OldCDO )
+	NewClass = ClassToClean;
+	InOldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
+	
+	const ERenameFlags RenFlags = REN_DontCreateRedirectors |  ((bRecompilingOnLoad) ? REN_ForceNoResetLoaders : 0) | REN_NonTransactional | REN_DoNotDirty;
+
+	if( InOldCDO )
 	{
-		FString TransientCDOString = FString::Printf(TEXT("TRASH_%s"), *OldCDO->GetName());
+		FString TransientCDOString = FString::Printf(TEXT("TRASH_%s"), *InOldCDO->GetName());
 		FName TransientCDOName = MakeUniqueObjectName(GetTransientPackage(), TransientClass, FName(*TransientCDOString));
-		OldCDO->Rename(*TransientCDOName.ToString(), GetTransientPackage(), RenFlags);
-		FLinkerLoad::InvalidateExport(OldCDO);
+		InOldCDO->Rename(*TransientCDOName.ToString(), GetTransientPackage(), RenFlags);
+		FLinkerLoad::InvalidateExport(InOldCDO);
 	}
 
 	// Purge all subobjects (properties, functions, params) of the class, as they will be regenerated
 	TArray<UObject*> ClassSubObjects;
-	GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);
+	GetObjectsWithOuter(ClassToClean, ClassSubObjects, false);
 
 	{
 		// Save subobjects, that won't be regenerated.
 		FSubobjectCollection SubObjectsToSave;
-		SaveSubObjectsFromCleanAndSanitizeClass(SubObjectsToSave, ClassToClean, OldCDO);
+		SaveSubObjectsFromCleanAndSanitizeClass(SubObjectsToSave, ClassToClean);
 
 		ClassSubObjects.RemoveAllSwap(SubObjectsToSave);
 	}
@@ -261,7 +271,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	for( auto SubObjIt = ClassSubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
 	{
 		UObject* CurrSubObj = *SubObjIt;
-		CurrSubObj->Rename(nullptr, TransientClass, RenFlags);
+		CurrSubObj->Rename(*CurrSubObj->GetName(), TransientClass, RenFlags);
 		if( UProperty* Prop = Cast<UProperty>(CurrSubObj) )
 		{
 			FKismetCompilerUtilities::InvalidatePropertyExport(Prop);
@@ -282,7 +292,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	ClassToClean->DebugData = FBlueprintDebugData();
 }
 
-void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean)
 {
 	SubObjectsToSave.AddObjects(Blueprint->ComponentTemplates);
 	SubObjectsToSave.AddObjects(Blueprint->Timelines);
@@ -453,7 +463,10 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 	{
 		if (UK2Node_FunctionResult* OwningNode = Cast<UK2Node_FunctionResult>(OwningNodeUnchecked))
 		{
-			MessageLog.Warning(*LOCTEXT("ReturnNodeExecPinUnconnected", "ReturnNode Exec pin has no connections on @@").ToString(), Pin);
+			if(OwningNode->Pins.Num() > 1)
+			{
+				MessageLog.Warning(*LOCTEXT("ReturnNodeExecPinUnconnected", "ReturnNode Exec pin has no connections on @@").ToString(), Pin);
+			}
 		}
 	}
 }
@@ -600,6 +613,15 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 		UProperty* NewProperty = CreateVariable(Variable.VarName, Variable.VarType);
 		if (NewProperty != NULL)
 		{
+			if(bAssignDelegateSignatureFunction)
+			{
+				if(UMulticastDelegateProperty* AsDelegate = Cast<UMulticastDelegateProperty>(NewProperty))
+				{
+					AsDelegate->SignatureFunction = FindField<UFunction>(NewClass, *(Variable.VarName.ToString() + HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX));
+					ensure(AsDelegate->SignatureFunction);
+				}
+			}
+
 			NewProperty->SetPropertyFlags(Variable.PropertyFlags);
 			NewProperty->SetMetaData(TEXT("DisplayName"), *Variable.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *Variable.Category.ToString());
@@ -868,7 +890,52 @@ static void SwapElementsInSingleLinkedList(UField* & PtrToFirstElement, UField* 
 	PtrToFirstElement = TempSecond;
 }
 
-void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionContext& Context, UFunction* ParameterSignature)
+void FKismetCompilerContext::CreateParametersForFunction(FKismetFunctionContext& Context, UFunction* ParameterSignature, UField**& FunctionPropertyStorageLocation)
+{
+	const bool bArePropertiesLocal = true;
+	CreatePropertiesFromList(Context.Function, FunctionPropertyStorageLocation, Context.Parameters, CPF_Parm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
+	CreatePropertiesFromList(Context.Function, FunctionPropertyStorageLocation, Context.Results, CPF_Parm | CPF_OutParm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
+
+	//MAKE SURE THE PARAMETERS ORDER MATCHES THE OVERRIDEN FUNCTION
+	if (ParameterSignature)
+	{
+		UField** CurrentFieldStorageLocation = &Context.Function->Children;
+		for (TFieldIterator<UProperty> SignatureIt(ParameterSignature); SignatureIt && ((SignatureIt->PropertyFlags & CPF_Parm) != 0); ++SignatureIt)
+		{
+			const FName WantedName = SignatureIt->GetFName();
+			if (!*CurrentFieldStorageLocation || (WantedName != (*CurrentFieldStorageLocation)->GetFName()))
+			{
+				//Find Field with the proper name
+				UField** FoundFieldStorageLocation = *CurrentFieldStorageLocation ? &((*CurrentFieldStorageLocation)->Next) : nullptr;
+				while (FoundFieldStorageLocation && *FoundFieldStorageLocation && (WantedName != (*FoundFieldStorageLocation)->GetFName()))
+				{
+					FoundFieldStorageLocation = &((*FoundFieldStorageLocation)->Next);
+				}
+
+				if (FoundFieldStorageLocation && *FoundFieldStorageLocation)
+				{
+					// swap the found field and OverridenIt
+					SwapElementsInSingleLinkedList(*CurrentFieldStorageLocation, *FoundFieldStorageLocation); //FoundFieldStorageLocation points now a random element 
+				}
+				else
+				{
+					MessageLog.Error(*FString::Printf(*LOCTEXT("WrongParameterOrder_Error", "Cannot order parameters %s in function %s.").ToString(), *WantedName.ToString(), *Context.Function->GetName()));
+					break;
+				}
+			}
+			CurrentFieldStorageLocation = &((*CurrentFieldStorageLocation)->Next);
+		}
+		FunctionPropertyStorageLocation = CurrentFieldStorageLocation;
+
+		// There is no guarantee that CurrentFieldStorageLocation points the last parameter's next. We need to ensure that.
+		while (*FunctionPropertyStorageLocation)
+		{
+			FunctionPropertyStorageLocation = &((*FunctionPropertyStorageLocation)->Next);
+		}
+	}
+}
+
+void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& FunctionPropertyStorageLocation)
 {
 	ensure(Context.IsEventGraph() || !Context.EventGraphLocals.Num());
 	ensure(!Context.IsEventGraph() || !Context.Locals.Num() || !UsePersistentUberGraphFrame());
@@ -878,62 +945,11 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 	{
 		const bool bArePropertiesLocal = true;
 
-		// Pull the local properties generated out of the function, they will be put at the end of the list
-		UField* LocalProperties = Context.Function->Children;
-		Context.Function->Children = nullptr;
-
-		UField** PropertyStorageLocation = &Context.Function->Children;
-		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Parameters, CPF_Parm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
-		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Results, CPF_Parm | CPF_OutParm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
-
-		//MAKE SURE THE PARAMETERS ORDER MATCHES THE OVERRIDEN FUNCTION
-		if (ParameterSignature)
-		{
-			UField** CurrentFieldStorageLocation = &Context.Function->Children;
-			for (TFieldIterator<UProperty> SignatureIt(ParameterSignature); SignatureIt && ((SignatureIt->PropertyFlags & CPF_Parm) != 0); ++SignatureIt)
-			{
-				const FName WantedName = SignatureIt->GetFName();
-				if (!*CurrentFieldStorageLocation || (WantedName != (*CurrentFieldStorageLocation)->GetFName()))
-				{
-					//Find Field with the proper name
-					UField** FoundFieldStorageLocation = *CurrentFieldStorageLocation ? &((*CurrentFieldStorageLocation)->Next) : nullptr;
-					while (FoundFieldStorageLocation && *FoundFieldStorageLocation && (WantedName != (*FoundFieldStorageLocation)->GetFName()))
-					{
-						FoundFieldStorageLocation = &((*FoundFieldStorageLocation)->Next);
-					}
-
-					if (FoundFieldStorageLocation && *FoundFieldStorageLocation)
-					{
-						// swap the found field and OverridenIt
-						SwapElementsInSingleLinkedList(*CurrentFieldStorageLocation, *FoundFieldStorageLocation); //FoundFieldStorageLocation points now a random element 
-					}
-					else
-					{
-						MessageLog.Error(*FString::Printf(*LOCTEXT("WrongParameterOrder_Error", "Cannot order parameters %s in function %s.").ToString(), *WantedName.ToString(), *Context.Function->GetName()));
-						break;
-					}
-				}
-				CurrentFieldStorageLocation = &((*CurrentFieldStorageLocation)->Next);
-			}
-			PropertyStorageLocation = CurrentFieldStorageLocation;
-			// There is no guarantee that CurrentFieldStorageLocation points the last parameter's next. We need to ensure that.
-			while (*PropertyStorageLocation)
-			{
-				PropertyStorageLocation = &((*PropertyStorageLocation)->Next);
-			}
-		}
-
-		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Locals, 0, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
+		CreatePropertiesFromList(Context.Function, FunctionPropertyStorageLocation, Context.Locals, 0, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 
 		if (bPersistentUberGraphFrame)
 		{
-			CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.EventGraphLocals, 0, bArePropertiesLocal, true);
-		}
-
-		// If there were local properties, place them at the end of the property storage location
-		if(LocalProperties)
-		{
-			*PropertyStorageLocation = LocalProperties;
+			CreatePropertiesFromList(Context.Function, FunctionPropertyStorageLocation, Context.EventGraphLocals, 0, bArePropertiesLocal, true);
 		}
 
 		// Create debug data for variable reads/writes
@@ -975,34 +991,32 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 	// Class
 	{
 		int32 PropertySafetyCounter = 100000;
-		UField** PropertyStorageLocation = &(NewClass->Children);
-		while (*PropertyStorageLocation != NULL)
+		UField** ClassPropertyStorageLocation = &(NewClass->Children);
+		while (*ClassPropertyStorageLocation != NULL)
 		{
 			if (--PropertySafetyCounter == 0)
 			{
 				checkf(false, TEXT("Property chain is corrupted;  The most likely causes are multiple properties with the same name.") );
 			}
 
-			PropertyStorageLocation = &((*PropertyStorageLocation)->Next);
+			ClassPropertyStorageLocation = &((*ClassPropertyStorageLocation)->Next);
 		}
 
 		const bool bArePropertiesLocal = false;
 		const uint64 UbergraphHiddenVarFlags = CPF_Transient | CPF_DuplicateTransient;
 		if (!bPersistentUberGraphFrame)
 		{
-			CreatePropertiesFromList(NewClass, PropertyStorageLocation, Context.EventGraphLocals, UbergraphHiddenVarFlags, bArePropertiesLocal);
+			CreatePropertiesFromList(NewClass, ClassPropertyStorageLocation, Context.EventGraphLocals, UbergraphHiddenVarFlags, bArePropertiesLocal);
 		}
 
 		// Handle level actor references
 		const uint64 LevelActorReferenceVarFlags = 0/*CPF_Edit*/;
-		CreatePropertiesFromList(NewClass, PropertyStorageLocation, Context.LevelActorReferences, LevelActorReferenceVarFlags, false);
+		CreatePropertiesFromList(NewClass, ClassPropertyStorageLocation, Context.LevelActorReferences, LevelActorReferenceVarFlags, false);
 	}
 }
 
-void FKismetCompilerContext::CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& PropertyStorageLocation)
+void FKismetCompilerContext::CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& FunctionPropertyStorageLocation)
 {
-	check(Context.Function->Children == NULL);
-
 	// Create local variables from the Context entry point
 	for (int32 i = 0; i < Context.EntryPoint->LocalVariables.Num(); ++i)
 	{
@@ -1013,8 +1027,8 @@ void FKismetCompilerContext::CreateUserDefinedLocalVariablesForFunction(FKismetF
 		if (NewProperty != NULL)
 		{
 			// Link this object to the tail of the list (so properties remain in the desired order)
-			*PropertyStorageLocation = NewProperty;
-			PropertyStorageLocation = &(NewProperty->Next);
+			*FunctionPropertyStorageLocation = NewProperty;
+			FunctionPropertyStorageLocation = &(NewProperty->Next);
 		}
 
 		if (NewProperty != NULL)
@@ -1388,9 +1402,11 @@ void FKismetCompilerContext::ValidateNoWildcardPinsInGraph(const UEdGraph* Sourc
  *   - Schedules execution of each node based on data dependencies
  *   - Creates a UFunction object containing parameters and local variables (but no script code yet)
  */
-void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
+void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context, EInternalCompilerFlags InternalFlags)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_PrecompileFunction);
+
+	const bool bImmediatelyGenerateLocals = !(InternalFlags & EInternalCompilerFlags::PostponeLocalsGenerationUntilPhaseTwo);
 
 	// Find the root node, which will drive everything else
 	TArray<UK2Node_FunctionEntry*> EntryPoints;
@@ -1431,7 +1447,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		// Create the function stub
 		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->SignatureName;
-		if(Context.IsDelegateSignature())
+		if (Context.IsDelegateSignature())
 		{
 			// prefix with the the blueprint name to avoid conflicts with natively defined delegate signatures
 			FString Name = NewFunctionName.ToString();
@@ -1450,7 +1466,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			MessageLog.Error(*FString::Printf(*LOCTEXT("DuplicateFunctionName_Error", "Found more than one function with the same name %s; second occurance at @@").ToString(), *NewFunctionNameString), Context.EntryPoint);
 			return;
 		}
-		else if(NULL != FindField<UProperty>(NewClass, NewFunctionName))
+		else if (NULL != FindField<UProperty>(NewClass, NewFunctionName))
 		{
 			MessageLog.Error(*FString::Printf(*LOCTEXT("DuplicateFieldName_Error", "Name collision - function and property have the same name - '%s'. @@").ToString(), *NewFunctionNameString), Context.EntryPoint);
 			return;
@@ -1477,25 +1493,31 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		// Set up the function category
 		FKismetUserDeclaredFunctionMetadata& FunctionMetaData = Context.EntryPoint->MetaData;
-		if( !FunctionMetaData.Category.IsEmpty() )
+		if (!FunctionMetaData.Category.IsEmpty())
 		{
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category.ToString());
 		}
 
 		// Set up the function keywords
-		if( !FunctionMetaData.Keywords.IsEmpty() )
+		if (!FunctionMetaData.Keywords.IsEmpty())
 		{
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionKeywords, *FunctionMetaData.Keywords.ToString());
 		}
 
 		// Set up the function compact node title
-		if( !FunctionMetaData.CompactNodeTitle.IsEmpty() )
+		if (!FunctionMetaData.CompactNodeTitle.IsEmpty())
 		{
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_CompactNodeTitle, *FunctionMetaData.CompactNodeTitle.ToString());
 		}
 
+		// Set up the function tooltip
+		if (!FunctionMetaData.ToolTip.IsEmpty())
+		{
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *FunctionMetaData.ToolTip.ToString());
+		}
+
 		// Set as blutility function
-		if( FunctionMetaData.bCallInEditor )
+		if (FunctionMetaData.bCallInEditor)
 		{
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_CallInEditor, TEXT( "true" ));
 		}
@@ -1571,72 +1593,103 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			NewClass->UberGraphFunction = Context.Function;
 		}
 
-		// Create any user defined variables, this must occur before registering nets so that the properties are in place
-		UField** PropertyStorageLocation = &(Context.Function->Children);
-		CreateUserDefinedLocalVariablesForFunction(Context, PropertyStorageLocation);
-
-		//@TODO: Prune pure functions that don't have any consumers
-		if (bIsFullCompile)
+		// Register nets from function entry/exit nodes first, even for skeleton compiles (as they form the signature)
+		// We're violating the FNodeHandlingFunctor abstraction here because we want to make sure that the signature
+		// matches even if all result nodes were pruned:
+		bool bReturnNodeFound = false;
+		for (UEdGraphNode* Node : Context.SourceGraph->Nodes)
 		{
-			if (!Blueprint->bIsRegeneratingOnLoad)
+			if(Node->IsA(UK2Node_FunctionResult::StaticClass()))
 			{
-				BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_AnalyzeExecutionPath);
-				FKismetCompilerUtilities::ValidateProperEndExecutionPath(Context);
+				bReturnNodeFound = true;
 			}
 
-			// Find the execution path (and make sure it has no cycles)
-			CreateExecutionSchedule(Context.SourceGraph->Nodes, Context.LinearExecutionList);
-
-			for (int32 NodeIndex = 0; NodeIndex < Context.LinearExecutionList.Num(); ++NodeIndex)
+			if (FNodeHandlingFunctor* Handler = NodeHandlers.FindRef(Node->GetClass()))
 			{
-				UEdGraphNode* Node = Context.LinearExecutionList[NodeIndex];
-
-				// Register nets in the schedule
-				if (FNodeHandlingFunctor* Handler = NodeHandlers.FindRef(Node->GetClass()))
+				if (Handler->RequiresRegisterNetsBeforeScheduling())
 				{
 					Handler->RegisterNets(Context, Node);
 				}
-				else
-				{
-					MessageLog.Error(*FString::Printf(*LOCTEXT("UnexpectedNodeType_Error", "Unexpected node type %s encountered at @@").ToString(), *(Node->GetClass()->GetName())), Node);
-				}
 			}
 		}
-		else
+
+		if(!bReturnNodeFound &&
+			!Context.IsEventGraph() &&
+			!Context.bIsSimpleStubGraphWithNoParams &&
+			Context.CanBeCalledByKismet() &&
+			Context.Function->GetFName() != Context.Schema->FN_UserConstructionScript)
 		{
-			for (UEdGraphNode* Node : Context.SourceGraph->Nodes)
+			// dig into the (actual) source graph and find the original return node:
+			UObject* Object = Context.MessageLog.FindSourceObject(Context.SourceGraph);
+			if(Object)
 			{
-				const bool bGenerateParameters = Node->IsA<UK2Node_FunctionEntry>();
-				const bool bGenerateResult = Node->IsA<UK2Node_FunctionResult>();
-				if (bGenerateParameters || bGenerateResult)
+				UEdGraph* RealSourceGraph = Cast<UEdGraph>(Object);
+				if( RealSourceGraph )
 				{
-					if (FNodeHandlingFunctor* Handler = NodeHandlers.FindRef(Node->GetClass()))
+					TArray<UK2Node_FunctionResult*> ResultNodes;
+					RealSourceGraph->GetNodesOfClass<UK2Node_FunctionResult>(ResultNodes);
+					if(ResultNodes.Num() > 0)
 					{
-						Handler->RegisterNets(Context, Node);
+						// Use whatever signature the first result node specifies:
+						UK2Node_FunctionResult* FirstResultNode = ResultNodes[0];
+						if (FNodeHandlingFunctor* Handler = NodeHandlers.FindRef(UK2Node_FunctionResult::StaticClass()))
+						{
+							if (Handler->RequiresRegisterNetsBeforeScheduling())
+							{
+								Handler->RegisterNets(Context, FirstResultNode);
+							}
+						}
+
+						// We can't reliably warn here because FBlueprintGraphActionDetails::OnAddNewOutputClicked calls 
+						// OnParamsChanged immediately after adding a param to a single node, so only the first result node
+						// is guaranteed to be coherent/up to date.. For now we just rely on the editor to make uniform 
+						// result nodes.
 					}
 				}
 			}
 		}
-	
-		// Create variable declarations
-		CreateLocalVariablesForFunction(Context, ParentFunction ? ParentFunction : OverridenFunction);
 
-		//Validate AccessSpecifier
+		UField** FunctionPropertyStorageLocation = &(Context.Function->Children);
+
+		// Create input/output parameter variables, this must occur before registering nets so that the properties are in place
+		CreateParametersForFunction(Context, ParentFunction ? ParentFunction : OverridenFunction, FunctionPropertyStorageLocation);
+
+		if(bImmediatelyGenerateLocals)
+		{
+			CreateLocalsAndRegisterNets(Context, FunctionPropertyStorageLocation);
+		}
+		else
+		{
+			// Fix up the return value - this used to be done by CreateLocalVariablesForFunction.
+			// This should probably be done in CreateParametersForFunction
+			const FName RetValName = FName(TEXT("ReturnValue"));
+			for (TFieldIterator<UProperty> It(Context.Function); It && (It->PropertyFlags & CPF_Parm); ++It)
+			{
+				UProperty* Property = *It;
+				if ((Property->GetFName() == RetValName) && Property->HasAnyPropertyFlags(CPF_OutParm))
+				{
+					Property->SetPropertyFlags(CPF_ReturnParm);
+				}
+			}
+		}
+
+		// Validate AccessSpecifier
 		const uint32 AccessSpecifierFlag = FUNC_AccessSpecifiers & Context.EntryPoint->GetExtraFlags();
 		const bool bAcceptedAccessSpecifier = 
 			(0 == AccessSpecifierFlag) || (FUNC_Public == AccessSpecifierFlag) || (FUNC_Protected == AccessSpecifierFlag) || (FUNC_Private == AccessSpecifierFlag);
-		if(!bAcceptedAccessSpecifier)
+		if (!bAcceptedAccessSpecifier)
 		{
 			MessageLog.Warning(*LOCTEXT("WrongAccessSpecifier_Error", "Wrong access specifier @@").ToString(), Context.EntryPoint);
 		}
 
+		Context.LastFunctionPropertyStorageLocation = FunctionPropertyStorageLocation;
 		Context.Function->FunctionFlags |= Context.GetNetFlags();
-
+		
 		// Parameter list needs to be linked before signatures are compared. 
 		Context.Function->StaticLink(true);
 
 		// Make sure the function signature is valid if this is an override
-		if (ParentFunction)
+		if (ParentFunction != nullptr)
 		{
 			// Verify the signature
 			if (!ParentFunction->IsSignatureCompatibleWith(Context.Function))
@@ -1650,7 +1703,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			}
 			const bool bEmptyCase = (0 == AccessSpecifierFlag);
 			const bool bDifferentAccessSpecifiers = AccessSpecifierFlag != (ParentFunction->FunctionFlags & FUNC_AccessSpecifiers);
-			if( !bEmptyCase && bDifferentAccessSpecifiers )
+			if (!bEmptyCase && bDifferentAccessSpecifiers)
 			{
 				MessageLog.Warning(*LOCTEXT("IncompatibleAccessSpecifier_Error", "Access specifier is not compatible the parent function @@").ToString(), Context.EntryPoint);
 			}
@@ -1670,11 +1723,10 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		////////////////////////////////////////
 
-		if(Context.IsDelegateSignature())
+		if (Context.IsDelegateSignature())
 		{
 			Context.Function->FunctionFlags |= FUNC_Delegate;
-			UMulticastDelegateProperty* Property = FindObject<UMulticastDelegateProperty>(Context.NewClass, *Context.DelegateSignatureName.ToString());
-			if(Property)
+			if(UMulticastDelegateProperty* Property = FindObject<UMulticastDelegateProperty>(Context.NewClass, *Context.DelegateSignatureName.ToString()))
 			{
 				Property->SignatureFunction = Context.Function;
 			}
@@ -1719,7 +1771,7 @@ void OrderedInsertIntoArray(TArray<DataType>& Array, const TMap<DataType, SortKe
 void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileFunction);
-
+		
 	check(Context.IsValid());
 
 	// Generate statements for each node in the linear execution order (which should roughly correspond to the final execution order)
@@ -1971,7 +2023,7 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	UK2Node_FunctionEntry* EntryNode = CastChecked<UK2Node_FunctionEntry>(Context.EntryPoint);
 	if (!EntryNode->MetaData.ToolTip.IsEmpty())
 	{
-		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip);
+		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip.ToString());
 	}
 	if (EntryNode->MetaData.bCallInEditor)
 	{
@@ -2123,10 +2175,10 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		}
 	}
 
-	// Set class metadata as needed
+	// Verify class metadata as needed
 	if (FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint))
 	{
-		NewClass->ClassFlags |= CLASS_Interface;
+		ensure( NewClass->HasAllClassFlags( CLASS_Interface ) );
 	}
 
 	{
@@ -2783,6 +2835,39 @@ void FKismetCompilerContext::DetermineNodeExecLinks(UEdGraphNode* SourceNode, TM
 	}
 }
 
+void FKismetCompilerContext::CreateLocalsAndRegisterNets(FKismetFunctionContext& Context, UField**& FunctionPropertyStorageLocation)
+{
+	// Create any user defined variables, this must occur before registering nets so that the properties are in place
+	CreateUserDefinedLocalVariablesForFunction(Context, FunctionPropertyStorageLocation);
+
+	check(Context.IsValid());
+	//@TODO: Prune pure functions that don't have any consumers
+	if (bIsFullCompile)
+	{
+		// Find the execution path (and make sure it has no cycles)
+		CreateExecutionSchedule(Context.SourceGraph->Nodes, Context.LinearExecutionList);
+
+		// Register nets for any nodes still in the schedule (as long as they didn't get registered in the initial all-nodes pass)
+		for (UEdGraphNode* Node : Context.LinearExecutionList)
+		{
+			if (FNodeHandlingFunctor* Handler = NodeHandlers.FindRef(Node->GetClass()))
+			{
+				if (!Handler->RequiresRegisterNetsBeforeScheduling())
+				{
+					Handler->RegisterNets(Context, Node);
+				}
+			}
+			else
+			{
+				MessageLog.Error(*FString::Printf(*LOCTEXT("UnexpectedNodeType_Error", "Unexpected node type %s encountered at @@").ToString(), *(Node->GetClass()->GetName())), Node);
+			}
+		}
+	}
+
+	// Create net variable declarations
+	CreateLocalVariablesForFunction(Context, FunctionPropertyStorageLocation);
+}
+
 void FKismetCompilerContext::VerifyValidOverrideEvent(const UEdGraph* Graph)
 {
 	check(NULL != Graph);
@@ -2938,7 +3023,7 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		{
 			if (OldEventGraph)
 			{
-				OldEventGraph->Rename(NULL, GetTransientPackage(), Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0);
+				OldEventGraph->Rename(NULL, GetTransientPackage(), (Blueprint->bIsRegeneratingOnLoad) ? REN_ForceNoResetLoaders : 0);
 			}
 		}
 	}
@@ -3092,7 +3177,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 			// regenerated on load (thanks cyclic dependencies!), and in certain
 			// cases the nodes found within the macro may be out of date 
 			// (function signatures, etc.), so let's force a reconstruct of the 
-			// nodes we inject from the macro (just in case)
+			// nodes we inject from the macro (just in case).
 			const bool bForceRegenNodes = bIsLoading && MacroBlueprint && (MacroBlueprint != Blueprint) && !MacroBlueprint->bHasBeenRegenerated;
 
 			// Clone the macro graph, then move all of its children, keeping a list of nodes from the macro
@@ -3197,7 +3282,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 				}
 			}
 
-			ClonedGraph->MoveNodesToAnotherGraph(SourceGraph, IsAsyncLoading() || bIsLoading);
+			ClonedGraph->MoveNodesToAnotherGraph(SourceGraph, IsAsyncLoading() || bIsLoading, Blueprint && Blueprint->bBeingCompiled);
 			FEdGraphUtilities::MergeChildrenGraphsIn(SourceGraph, ClonedGraph, /*bRequireSchemaMatch=*/ true);
 
 			// When emitting intermediate products; make an effort to make them readable by preventing overlaps and adding informative comments
@@ -3448,8 +3533,10 @@ FKismetFunctionContext* FKismetCompilerContext::CreateFunctionContext()
 }
 
 /** Compile a blueprint into a class and a set of functions */
-void FKismetCompilerContext::Compile()
+void FKismetCompilerContext::CompileClassLayout(EInternalCompilerFlags InternalFlags)
 {
+	PreCompile();
+
 	// Interfaces only need function signatures, so we only need to perform the first phase of compilation for them
 	bIsFullCompile = CompileOptions.DoesRequireBytecodeGeneration() && (Blueprint->BlueprintType != BPTYPE_Interface);
 
@@ -3473,14 +3560,14 @@ void FKismetCompilerContext::Compile()
 	// Make sure the parent class exists and can be used
 	check(Blueprint->ParentClass && Blueprint->ParentClass->GetPropertiesSize());
 
-	const bool bIsSkeletonOnly = (CompileOptions.CompileType == EKismetCompileType::SkeletonOnly);
+	bIsSkeletonOnly = (CompileOptions.CompileType == EKismetCompileType::SkeletonOnly);
 	UClass* TargetUClass = bIsSkeletonOnly ? Blueprint->SkeletonGeneratedClass : Blueprint->GeneratedClass;
 
 	// >>> Backwards Compatibility:  Make sure this is an actual UBlueprintGeneratedClass / UAnimBlueprintGeneratedClass, as opposed to the old UClass
 	EnsureProperGeneratedClass(TargetUClass);
 	// <<< End Backwards Compatibility
 
-	UBlueprintGeneratedClass* TargetClass = Cast<UBlueprintGeneratedClass>(TargetUClass);
+	TargetClass = Cast<UBlueprintGeneratedClass>(TargetUClass);
 
 	// >>> Backwards Compatibility: Make sure that skeleton generated classes have the proper "SKEL_" naming convention
 	const FString SkeletonPrefix(TEXT("SKEL_"));
@@ -3514,7 +3601,7 @@ void FKismetCompilerContext::Compile()
 			}
 		}
  
-		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0));
+		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|((Blueprint->bIsRegeneratingOnLoad)? REN_ForceNoResetLoaders : 0));
 		TargetClass->Rename(*NewName, NULL, RenameFlags);
 	}
 	// <<< End Backwards Compatibility
@@ -3591,9 +3678,9 @@ void FKismetCompilerContext::Compile()
 	// This validation requires CDO object.
 	ValidateVariableNames();
 
-	UObject* OldCDO = NULL;
-	int32 OldGenLinkerIdx = INDEX_NONE;
-	FLinkerLoad* OldLinker = Blueprint->GetLinker();
+	OldCDO = NULL;
+	OldGenLinkerIdx = INDEX_NONE;
+	OldLinker = Blueprint->GetLinker();
 
 	if (OldLinker)
 	{
@@ -3622,15 +3709,19 @@ void FKismetCompilerContext::Compile()
 
 	CleanAndSanitizeClass(TargetClass, OldCDO);
 
-	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
-
 	NewClass->ClassGeneratedBy = Blueprint;
-
+	
+	// Set class metadata as needed
 	UClass* ParentClass = NewClass->ClassWithin;
 	NewClass->SetSuperStruct(ParentClass);
 	NewClass->ClassFlags |= (ParentClass->ClassFlags & CLASS_Inherit);
 	NewClass->ClassCastFlags |= ParentClass->ClassCastFlags;
 	
+	if (FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint))
+	{
+		TargetClass->ClassFlags |= CLASS_Interface;
+	}
+
 	if(Blueprint->bGenerateConstClass)
 	{
 		NewClass->ClassFlags |= CLASS_Const;
@@ -3670,7 +3761,7 @@ void FKismetCompilerContext::Compile()
 	{
 		if(FunctionList[i].IsDelegateSignature())
 		{
-			PrecompileFunction(FunctionList[i]);
+			PrecompileFunction(FunctionList[i], InternalFlags);
 		}
 	}
 
@@ -3678,7 +3769,7 @@ void FKismetCompilerContext::Compile()
 	{
 		if(!FunctionList[i].IsDelegateSignature())
 		{
-			PrecompileFunction(FunctionList[i]);
+			PrecompileFunction(FunctionList[i], InternalFlags);
 		}
 	}
 
@@ -3695,6 +3786,24 @@ void FKismetCompilerContext::Compile()
 		// Relink the class
 		NewClass->Bind();
 		NewClass->StaticLink(true);
+	}
+}
+
+void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFlags)
+{
+	const bool bGenerateLocals = !!(InternalFlags & EInternalCompilerFlags::PostponeLocalsGenerationUntilPhaseTwo);
+	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
+
+	if( bGenerateLocals )
+	{
+		for (int32 i = 0; i < FunctionList.Num(); ++i)
+		{
+			if (FunctionList[i].IsValid())
+			{
+				FKismetFunctionContext& Context = FunctionList[i];
+				CreateLocalsAndRegisterNets(Context, Context.LastFunctionPropertyStorageLocation);
+			}
+		}
 	}
 
 	if (bIsFullCompile && !MessageLog.NumErrors)
@@ -4003,7 +4112,7 @@ void FKismetCompilerContext::Compile()
 		for (UBlueprint* CurrentBP : DependentBlueprints)
 		{
 			// Get the current dirty state of the package
-			UPackage* const Package = Cast<UPackage>(CurrentBP->GetOutermost());
+			UPackage* const Package = CurrentBP->GetOutermost();
 			const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
 			const EBlueprintStatus OriginalStatus = CurrentBP->Status;
 
@@ -4168,6 +4277,12 @@ void FKismetCompilerContext::Compile()
 	PostCompile();
 }
 
+void FKismetCompilerContext::Compile()
+{
+	CompileClassLayout(EInternalCompilerFlags::None);
+	CompileFunctions(EInternalCompilerFlags::None);
+}
+
 bool FKismetCompilerContext::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)
 {
 	// Our CDO should be properly constructed by this point and should always exist
@@ -4308,6 +4423,18 @@ FString FKismetCompilerContext::GetGuid(const UEdGraphNode* Node) const
 	FGuid Ret = Node->NodeGuid;
 	Ret.D = ResultCRC;
 	return Ret.ToString();
+}
+
+TUniquePtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
+{
+	if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(BP))
+	{
+		return TUniquePtr<FKismetCompilerContext>(new FAnimBlueprintCompiler(AnimBP, InMessageLog, InCompileOptions, nullptr));
+	}
+	else
+	{
+		return TUniquePtr<FKismetCompilerContext>(new FKismetCompilerContext(BP, InMessageLog, InCompileOptions, nullptr));
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

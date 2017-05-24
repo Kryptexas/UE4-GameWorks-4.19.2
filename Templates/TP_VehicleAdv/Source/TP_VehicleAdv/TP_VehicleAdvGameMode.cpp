@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_VehicleAdv.h"
 #include "TP_VehicleAdvGameMode.h"
 #include "TP_VehicleAdvPawn.h"
 #include "TP_VehicleAdvHud.h"

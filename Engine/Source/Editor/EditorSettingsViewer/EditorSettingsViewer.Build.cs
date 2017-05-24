@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class EditorSettingsViewer : ModuleRules
 	{
-		public EditorSettingsViewer(TargetInfo Target)
+		public EditorSettingsViewer(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
@@ -26,7 +26,8 @@ namespace UnrealBuildTool.Rules
                     "InternationalizationSettings",
 					"BlueprintGraph",
                     "EditorStyle",
-                    "Analytics"
+                    "Analytics",
+                    "VREditor"
 				}
 			);
 

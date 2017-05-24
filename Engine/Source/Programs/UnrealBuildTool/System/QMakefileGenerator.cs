@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Represents a folder within the master project (e.g. Visual Studio solution)
 	/// </summary>
-	public class QMakefileFolder : MasterProjectFolder
+	class QMakefileFolder : MasterProjectFolder
 	{
 		/// <summary>
 		/// Constructor
@@ -22,7 +22,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public class QMakefileProjectFile : ProjectFile
+	class QMakefileProjectFile : ProjectFile
 	{
 		public QMakefileProjectFile(FileReference InitFilePath)
 			: base(InitFilePath)
@@ -33,7 +33,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// QMakefile project file generator implementation
 	/// </summary>
-	public class QMakefileGenerator : ProjectFileGenerator
+	class QMakefileGenerator : ProjectFileGenerator
 	{
 		/// Default constructor
 		public QMakefileGenerator(FileReference InOnlyGameProject)
@@ -232,7 +232,7 @@ namespace UnrealBuildTool
 				BuildCommand = "build=bash $$unrealRootPath/Engine/Build/BatchFiles/Linux/Build.sh\n";
 			}
 
-			var UnrealRootPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+			var UnrealRootPath = UnrealBuildTool.RootDirectory.FullName;
 
 			var FileName = MasterProjectName + ".pro";
 
@@ -302,13 +302,9 @@ namespace UnrealBuildTool
 								{
 									QMakeSourceFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\" \\\n");
 								}
-								else if (!String.IsNullOrEmpty(GameProjectName))
-								{
-									QMakeSourceFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
-								}
 								else
 								{
-									System.Console.WriteLine("Error!, you should not be here.");
+									QMakeSourceFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								}
 							}
 						}
@@ -326,13 +322,9 @@ namespace UnrealBuildTool
 									// SourceFileRelativeToRoot = SourceFileRelativeToRoot.Substring (3);
 									QMakeHeaderFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\" \\\n");
 								}
-								else if (!String.IsNullOrEmpty(GameProjectName))
-								{
-									QMakeHeaderFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
-								}
 								else
 								{
-									System.Console.WriteLine("Error!, you should not be here.");
+									QMakeHeaderFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								}
 							}
 						}
@@ -351,13 +343,9 @@ namespace UnrealBuildTool
 									// SourceFileRelativeToRoot = SourceFileRelativeToRoot.Substring (3);
 									QMakeConfigFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\" \\\n");
 								}
-								else if (!String.IsNullOrEmpty(GameProjectName))
-								{
-									QMakeConfigFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
-								}
 								else
 								{
-									System.Console.WriteLine("Error!, you should not be here.");
+									QMakeConfigFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								}
 							}
 						}

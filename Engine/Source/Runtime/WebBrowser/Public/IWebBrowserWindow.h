@@ -343,6 +343,10 @@ public:
 	DECLARE_DELEGATE(FOnDismissAllDialogs)
 	virtual FOnDismissAllDialogs& OnDismissAllDialogs() = 0;
 
+	/** Should return true if this dialog wants to suppress the context menu */
+	DECLARE_DELEGATE_RetVal(bool, FOnSuppressContextMenu);
+	virtual FOnSuppressContextMenu& OnSuppressContextMenu() = 0;
+
 protected:
 
 	/** Virtual Destructor. */

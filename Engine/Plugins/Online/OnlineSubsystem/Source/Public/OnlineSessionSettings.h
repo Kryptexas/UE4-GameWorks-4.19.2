@@ -56,7 +56,6 @@
 struct FOnlineSessionSetting
 {
 public:
-
 	/** Settings value */
 	FVariantData Data;
 	/** How is this session setting advertised with the backend or searches */
@@ -64,37 +63,38 @@ public:
 	/** Optional ID used in some platforms as the index instead of the session name */
 	int32 ID;
 
+public:
 	/** Default constructor, used when serializing a network packet */
-	FOnlineSessionSetting() :
-		AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise),
-		ID(-1)
+	FOnlineSessionSetting()
+		: AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise)
+		, ID(-1)
 	{
 	}
 
 	/** Constructor for settings created/defined on the host for a session */
 	template<typename Type>
-	FOnlineSessionSetting(const Type& InData) :
-		Data(InData),
-		AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise),
-		ID(-1)
+	FOnlineSessionSetting(Type&& InData)
+		: Data(Forward<Type>(InData))
+		, AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise)
+		, ID(-1)
 	{
 	}
 
 	/** Constructor for settings created/defined on the host for a session */
 	template<typename Type>
-	FOnlineSessionSetting(const Type& InData, EOnlineDataAdvertisementType::Type InAdvertisementType) :
-		Data(InData),
-		AdvertisementType(InAdvertisementType),
-		ID(-1)
+	FOnlineSessionSetting(Type&& InData, EOnlineDataAdvertisementType::Type InAdvertisementType)
+		: Data(Forward<Type>(InData))
+		, AdvertisementType(InAdvertisementType)
+		, ID(-1)
 	{
 	}
 
 	/** Constructor for settings created/defined on the host for a session */
 	template<typename Type>
-	FOnlineSessionSetting(const Type& InData, EOnlineDataAdvertisementType::Type InAdvertisementType, int32 InID) :
-		Data(InData),
-		AdvertisementType(InAdvertisementType),
-		ID(InID)
+	FOnlineSessionSetting(Type&& InData, EOnlineDataAdvertisementType::Type InAdvertisementType, int32 InID)
+		: Data(Forward<Type>(InData))
+		, AdvertisementType(InAdvertisementType)
+		, ID(InID)
 	{
 	}
 
@@ -105,6 +105,11 @@ public:
 	{
 		// Advertisement type not compared because it is not passed to clients
 		return Data == Other.Data;
+	}
+
+	bool operator!=(const FOnlineSessionSetting& Other) const
+	{
+		return !operator==(Other);
 	}
 
 	FString ToString() const
@@ -120,17 +125,13 @@ typedef FOnlineKeyValuePairs<FName, FOnlineSessionSetting> FSessionSettings;
  *	One search parameter in an online session query
  *  contains a value and how this setting is compared
  */
-class FOnlineSessionSearchParam 
+class FOnlineSessionSearchParam
 {
 private:
 	/** Hidden on purpose */
-	FOnlineSessionSearchParam() :
-	   ComparisonOp(EOnlineComparisonOp::Equals)
-	{
-	}
+	FOnlineSessionSearchParam() = delete;
 
 public:
-
 	/** Search value */
 	FVariantData Data;
 	/** How is this session setting compared on the backend searches */
@@ -138,30 +139,31 @@ public:
 	/** Optional ID used on some platform to index the session setting */
 	int32 ID;
 
+public:
 	/** Constructor for setting search parameters in a query */
-	template<typename Type> 
-	FOnlineSessionSearchParam(const Type& InData) :
-		Data(InData),
-		ComparisonOp(EOnlineComparisonOp::Equals),
-		ID(-1)
-	{
-	}
-
-	/** Constructor for setting search parameters in a query */
-	template<typename Type> 
-	FOnlineSessionSearchParam(const Type& InData, EOnlineComparisonOp::Type InComparisonOp) :
-		Data(InData),
-		ComparisonOp(InComparisonOp),
-		ID(-1)
+	template<typename Type>
+	FOnlineSessionSearchParam(Type&& InData)
+		: Data(Forward<Type>(InData))
+		, ComparisonOp(EOnlineComparisonOp::Equals)
+		, ID(-1)
 	{
 	}
 
 	/** Constructor for setting search parameters in a query */
 	template<typename Type>
-	FOnlineSessionSearchParam(const Type& InData, EOnlineComparisonOp::Type InComparisonOp, int32 InID) :
-		Data(InData),
-		ComparisonOp(InComparisonOp),
-		ID(InID)
+	FOnlineSessionSearchParam(Type&& InData, EOnlineComparisonOp::Type InComparisonOp)
+		: Data(Forward<Type>(InData))
+		, ComparisonOp(InComparisonOp)
+		, ID(-1)
+	{
+	}
+
+	/** Constructor for setting search parameters in a query */
+	template<typename Type>
+	FOnlineSessionSearchParam(Type&& InData, EOnlineComparisonOp::Type InComparisonOp, int32 InID)
+		: Data(Forward<Type>(InData))
+		, ComparisonOp(InComparisonOp)
+		, ID(InID)
 	{
 	}
 
@@ -172,6 +174,11 @@ public:
 	{
 		// Don't compare ComparisonOp so we don't get the same data with different ops
 		return Data == Other.Data;
+	}
+
+	bool operator!=(const FOnlineSessionSearchParam& Other) const
+	{
+		return !operator==(Other);
 	}
 
 	FString ToString() const
@@ -189,17 +196,54 @@ typedef FOnlineKeyValuePairs<FName, FOnlineSessionSearchParam> FSearchParams;
 class ONLINESUBSYSTEM_API FOnlineSearchSettings
 {
 public:
-
 	/** Array of custom search settings */
 	FSearchParams SearchParams;
 
+public:
 	FOnlineSearchSettings()
 	{
 	}
 
-	virtual ~FOnlineSearchSettings() 
+	virtual ~FOnlineSearchSettings()
 	{
 	}
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FOnlineSearchSettings(const FOnlineSearchSettings& Other) = default;
+	FOnlineSearchSettings(FOnlineSearchSettings&& Other) = default;
+	FOnlineSearchSettings& operator=(const FOnlineSearchSettings& Other) = default;
+	FOnlineSearchSettings& operator=(FOnlineSearchSettings&& Other) = default;
+#else
+	FOnlineSearchSettings(const FOnlineSearchSettings& Other)
+		: SearchParams(Other.SearchParams)
+	{
+	}
+
+	FOnlineSearchSettings(FOnlineSearchSettings&& Other)
+		: SearchParams(MoveTemp(Other.SearchParams))
+	{
+	}
+
+	FOnlineSearchSettings& operator=(const FOnlineSearchSettings& Other)
+	{
+		if (this != &Other)
+		{
+			SearchParams = Other.SearchParams;
+		}
+
+		return *this;
+	}
+
+	FOnlineSearchSettings& operator=(FOnlineSearchSettings&& Other)
+	{
+		if (this != &Other)
+		{
+			SearchParams = MoveTemp(Other.SearchParams);
+		}
+
+		return *this;
+	}
+#endif
 
 	/**
 	 *	Sets a key value pair combination that defines a search parameter
@@ -209,7 +253,7 @@ public:
 	 * @param InType type of comparison
 	 * @param ID ID of comparison
 	 */
-	template<typename ValueType> 
+	template<typename ValueType>
 	void Set(FName Key, const ValueType& Value, EOnlineComparisonOp::Type InType, int32 ID);
 
 	/**
@@ -219,7 +263,7 @@ public:
 	 * @param Value value of the setting
 	 * @param InType type of comparison
 	 */
-	template<typename ValueType> 
+	template<typename ValueType>
 	void Set(FName Key, const ValueType& Value, EOnlineComparisonOp::Type InType);
 
 	/**
@@ -230,14 +274,14 @@ public:
 	 *
 	 * @return true if found, false otherwise
 	 */
-	template<typename ValueType> 
+	template<typename ValueType>
 	bool Get(FName Key, ValueType& Value) const;
 
-	/** 
+	/**
 	 * Retrieve a search parameter comparison op
 	 *
 	 * @param Key key of the setting
-	 * 
+	 *
 	 * @return the comparison op for the setting
 	 */
 	EOnlineComparisonOp::Type GetComparisonOp(FName Key) const;
@@ -248,9 +292,7 @@ public:
  */
 class ONLINESUBSYSTEM_API FOnlineSessionSettings
 {
-
 public:
-
 	/** The number of publicly available connections advertised */
 	int32 NumPublicConnections;
 	/** The number of connections that are private (invite/password) only */
@@ -280,28 +322,125 @@ public:
 	/** Array of custom session settings */
 	FSessionSettings Settings;
 
+public:
 	/** Default constructor, used when serializing a network packet */
-	FOnlineSessionSettings() :
-		NumPublicConnections(0),
-		NumPrivateConnections(0),
-		bShouldAdvertise(false),
-		bAllowJoinInProgress(false),
-		bIsLANMatch(false),
-		bIsDedicated(false),
-		bUsesStats(false),
-		bAllowInvites(false),
-		bUsesPresence(false),
-		bAllowJoinViaPresence(false),
-		bAllowJoinViaPresenceFriendsOnly(false),
-		bAntiCheatProtected(false),
-		BuildUniqueId(0)
+	FOnlineSessionSettings()
+		: NumPublicConnections(0)
+		, NumPrivateConnections(0)
+		, bShouldAdvertise(false)
+		, bAllowJoinInProgress(false)
+		, bIsLANMatch(false)
+		, bIsDedicated(false)
+		, bUsesStats(false)
+		, bAllowInvites(false)
+		, bUsesPresence(false)
+		, bAllowJoinViaPresence(false)
+		, bAllowJoinViaPresenceFriendsOnly(false)
+		, bAntiCheatProtected(false)
+		, BuildUniqueId(0)
 	{
-// 		Set(SETTING_MAPNAME, FString(TEXT("")), EOnlineDataAdvertisementType::ViaOnlineService);
-// 		Set(SETTING_NUMBOTS, 0, EOnlineDataAdvertisementType::ViaOnlineService);
-// 		Set(SETTING_GAMEMODE, FString(TEXT("")), EOnlineDataAdvertisementType::ViaOnlineService);
+		// Example usage of settings
+//		Set(SETTING_MAPNAME, FString(TEXT("")), EOnlineDataAdvertisementType::ViaOnlineService);
+//		Set(SETTING_NUMBOTS, 0, EOnlineDataAdvertisementType::ViaOnlineService);
+//		Set(SETTING_GAMEMODE, FString(TEXT("")), EOnlineDataAdvertisementType::ViaOnlineService);
 	}
 
-	virtual ~FOnlineSessionSettings() {}
+	virtual ~FOnlineSessionSettings()
+	{
+	}
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FOnlineSessionSettings(const FOnlineSessionSettings& Other) = default;
+	FOnlineSessionSettings(FOnlineSessionSettings&& Other) = default;
+	FOnlineSessionSettings& operator=(const FOnlineSessionSettings& Other) = default;
+	FOnlineSessionSettings& operator=(FOnlineSessionSettings&& Other) = default;
+#else
+	/** Copy Constructor */
+	FOnlineSessionSettings(const FOnlineSessionSettings& Other)
+		: NumPublicConnections(Other.NumPublicConnections)
+		, NumPrivateConnections(Other.NumPrivateConnections)
+		, bShouldAdvertise(Other.bShouldAdvertise)
+		, bAllowJoinInProgress(Other.bAllowJoinInProgress)
+		, bIsLANMatch(Other.bIsLANMatch)
+		, bIsDedicated(Other.bIsDedicated)
+		, bUsesStats(Other.bUsesStats)
+		, bAllowInvites(Other.bAllowInvites)
+		, bUsesPresence(Other.bUsesPresence)
+		, bAllowJoinViaPresence(Other.bAllowJoinViaPresence)
+		, bAllowJoinViaPresenceFriendsOnly(Other.bAllowJoinViaPresenceFriendsOnly)
+		, bAntiCheatProtected(Other.bAntiCheatProtected)
+		, BuildUniqueId(Other.BuildUniqueId)
+		, Settings(Other.Settings)
+	{
+	}
+
+	/** Move Constructor */
+	FOnlineSessionSettings(FOnlineSessionSettings&& Other)
+		: NumPublicConnections(Other.NumPublicConnections)
+		, NumPrivateConnections(Other.NumPrivateConnections)
+		, bShouldAdvertise(Other.bShouldAdvertise)
+		, bAllowJoinInProgress(Other.bAllowJoinInProgress)
+		, bIsLANMatch(Other.bIsLANMatch)
+		, bIsDedicated(Other.bIsDedicated)
+		, bUsesStats(Other.bUsesStats)
+		, bAllowInvites(Other.bAllowInvites)
+		, bUsesPresence(Other.bUsesPresence)
+		, bAllowJoinViaPresence(Other.bAllowJoinViaPresence)
+		, bAllowJoinViaPresenceFriendsOnly(Other.bAllowJoinViaPresenceFriendsOnly)
+		, bAntiCheatProtected(Other.bAntiCheatProtected)
+		, BuildUniqueId(Other.BuildUniqueId)
+		, Settings(MoveTemp(Other.Settings))
+	{
+	}
+
+	/** Copy Assignment Operator */
+	FOnlineSessionSettings& operator=(const FOnlineSessionSettings& Other)
+	{
+		if (this != &Other)
+		{
+			NumPublicConnections = Other.NumPublicConnections,
+			NumPrivateConnections = Other.NumPrivateConnections,
+			bShouldAdvertise = Other.bShouldAdvertise,
+			bAllowJoinInProgress = Other.bAllowJoinInProgress,
+			bIsLANMatch = Other.bIsLANMatch,
+			bIsDedicated = Other.bIsDedicated,
+			bUsesStats = Other.bUsesStats,
+			bAllowInvites = Other.bAllowInvites,
+			bUsesPresence = Other.bUsesPresence,
+			bAllowJoinViaPresence = Other.bAllowJoinViaPresence,
+			bAllowJoinViaPresenceFriendsOnly = Other.bAllowJoinViaPresenceFriendsOnly,
+			bAntiCheatProtected = Other.bAntiCheatProtected,
+			BuildUniqueId = Other.BuildUniqueId;
+			Settings = Other.Settings;
+		}
+
+		return *this;
+	}
+
+	/** Move Assignment Operator */
+	FOnlineSessionSettings& operator=(FOnlineSessionSettings&& Other)
+	{
+		if (this != &Other)
+		{
+			NumPublicConnections = Other.NumPublicConnections,
+			NumPrivateConnections = Other.NumPrivateConnections,
+			bShouldAdvertise = Other.bShouldAdvertise,
+			bAllowJoinInProgress = Other.bAllowJoinInProgress,
+			bIsLANMatch = Other.bIsLANMatch,
+			bIsDedicated = Other.bIsDedicated,
+			bUsesStats = Other.bUsesStats,
+			bAllowInvites = Other.bAllowInvites,
+			bUsesPresence = Other.bUsesPresence,
+			bAllowJoinViaPresence = Other.bAllowJoinViaPresence,
+			bAllowJoinViaPresenceFriendsOnly = Other.bAllowJoinViaPresenceFriendsOnly,
+			bAntiCheatProtected = Other.bAntiCheatProtected,
+			BuildUniqueId = Other.BuildUniqueId;
+			Settings = MoveTemp(Other.Settings);
+		}
+
+		return *this;
+	}
+#endif
 
 	/**
 	 *	Sets a key value pair combination that defines a session setting with an ID
@@ -321,7 +460,7 @@ public:
 	 * @param Value value of the setting
 	 * @param InType type of online advertisement
 	 */
-	template<typename ValueType> 
+	template<typename ValueType>
 	void Set(FName Key, const ValueType& Value, EOnlineDataAdvertisementType::Type InType);
 
 	/**
@@ -341,23 +480,23 @@ public:
 	 *
 	 * @return true if found, false otherwise
 	 */
-	template<typename ValueType> 
+	template<typename ValueType>
 	bool Get(FName Key, ValueType& Value) const;
 
 	/**
 	 *  Removes a key value pair combination
 	 *
 	 * @param Key key to remove
-	 * 
+	 *
 	 * @return true if found and removed, false otherwise
 	 */
 	bool Remove(FName Key);
 
-	/** 
+	/**
 	 * Retrieve a session setting's advertisement type
 	 *
 	 * @param Key key of the setting
-	 * 
+	 *
 	 * @return the advertisement type for the setting
 	 */
 	EOnlineDataAdvertisementType::Type GetAdvertisementType(FName Key) const;
@@ -376,9 +515,7 @@ public:
 /** Basic session information serializable into a NamedSession or SearchResults */
 class FOnlineSession
 {
-
 public:
-
 	/** Owner of the session */
 	TSharedPtr<const FUniqueNetId> OwningUserId;
 	/** Owner name of the session */
@@ -392,10 +529,11 @@ public:
 	/** The number of publicly available connections that are available (read only) */
 	int32 NumOpenPublicConnections;
 
+public:
 	/** Default constructor, used when serializing a network packet */
 	FOnlineSession() :
-		OwningUserId(NULL),
-		SessionInfo(NULL),
+		OwningUserId(nullptr),
+		SessionInfo(nullptr),
 		NumOpenPrivateConnections(0),
 		NumOpenPublicConnections(0)
 	{
@@ -403,15 +541,78 @@ public:
 
 	/** Constructor */
 	FOnlineSession(const FOnlineSessionSettings& InSessionSettings) :
-		OwningUserId(NULL),
+		OwningUserId(nullptr),
 		SessionSettings(InSessionSettings),
-		SessionInfo(NULL),
+		SessionInfo(nullptr),
 		NumOpenPrivateConnections(0),
 		NumOpenPublicConnections(0)
 	{
 	}
 
-	virtual ~FOnlineSession() {}
+	virtual ~FOnlineSession()
+	{
+	}
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FOnlineSession(const FOnlineSession& Other) = default;
+	FOnlineSession(FOnlineSession&& Other) = default;
+	FOnlineSession& operator=(const FOnlineSession& Other) = default;
+	FOnlineSession& operator=(FOnlineSession&& Other) = default;
+#else
+	/** Copy Constructor */
+	FOnlineSession(const FOnlineSession& Other)
+		: OwningUserId(Other.OwningUserId)
+		, OwningUserName(Other.OwningUserName)
+		, SessionSettings(Other.SessionSettings)
+		, SessionInfo(Other.SessionInfo)
+		, NumOpenPrivateConnections(Other.NumOpenPrivateConnections)
+		, NumOpenPublicConnections(Other.NumOpenPublicConnections)
+	{
+	}
+
+	/** Move Constructor */
+	FOnlineSession(FOnlineSession&& Other)
+		: OwningUserId(MoveTemp(Other.OwningUserId))
+		, OwningUserName(MoveTemp(Other.OwningUserName))
+		, SessionSettings(MoveTemp(Other.SessionSettings))
+		, SessionInfo(MoveTemp(Other.SessionInfo))
+		, NumOpenPrivateConnections(Other.NumOpenPrivateConnections)
+		, NumOpenPublicConnections(Other.NumOpenPublicConnections)
+	{
+	}
+
+	/** Copy Assignment Operator */
+	FOnlineSession& operator=(const FOnlineSession& Other)
+	{
+		if (this != &Other)
+		{
+			OwningUserId = Other.OwningUserId;
+			OwningUserName = Other.OwningUserName;
+			SessionSettings = Other.SessionSettings;
+			SessionInfo = Other.SessionInfo;
+			NumOpenPrivateConnections = Other.NumOpenPrivateConnections;
+			NumOpenPublicConnections = Other.NumOpenPublicConnections;
+		}
+
+		return *this;
+	}
+
+	/** Move Assignment Operator */
+	FOnlineSession& operator=(FOnlineSession&& Other)
+	{
+		if (this != &Other)
+		{
+			OwningUserId = MoveTemp(Other.OwningUserId);
+			OwningUserName = MoveTemp(Other.OwningUserName);
+			SessionSettings = MoveTemp(Other.SessionSettings);
+			SessionInfo = MoveTemp(Other.SessionInfo);
+			NumOpenPrivateConnections = Other.NumOpenPrivateConnections;
+			NumOpenPublicConnections = Other.NumOpenPublicConnections;
+		}
+
+		return *this;
+	}
+#endif
 
 	/** @return the session id for a given session */
 	FString GetSessionIdStr() const
@@ -437,11 +638,10 @@ protected:
 	}
 
 public:
-
 	/** The name of the session */
 	const FName SessionName;
 	/** Index of the player who created the session [host] or joined it [client] */
-	int32 HostingPlayerNum;	
+	int32 HostingPlayerNum;
 	/** Whether or not the local player is hosting this session */
 	bool bHosting;
 
@@ -454,26 +654,59 @@ public:
 	EOnlineSessionState::Type SessionState;
 
 	/** Constructor used to create a named session directly */
-	FNamedOnlineSession(FName InSessionName, const FOnlineSessionSettings& InSessionSettings) :
-		FOnlineSession(InSessionSettings),
-		SessionName(InSessionName),
-		HostingPlayerNum(INDEX_NONE),
-		bHosting(false),
-		SessionState(EOnlineSessionState::NoSession)
+	FNamedOnlineSession(FName InSessionName, const FOnlineSessionSettings& InSessionSettings)
+		: FOnlineSession(InSessionSettings)
+		, SessionName(InSessionName)
+		, HostingPlayerNum(INDEX_NONE)
+		, bHosting(false)
+		, SessionState(EOnlineSessionState::NoSession)
 	{
 	}
 
 	/** Constructor used to create a named session directly */
-	FNamedOnlineSession(FName InSessionName, const FOnlineSession& Session) :
-		FOnlineSession(Session),
-		SessionName(InSessionName),
-		HostingPlayerNum(INDEX_NONE),
-		bHosting(false),
-		SessionState(EOnlineSessionState::NoSession)
+	FNamedOnlineSession(FName InSessionName, const FOnlineSession& Session)
+		: FOnlineSession(Session)
+		, SessionName(InSessionName)
+		, HostingPlayerNum(INDEX_NONE)
+		, bHosting(false)
+		, SessionState(EOnlineSessionState::NoSession)
 	{
 	}
 
-	virtual ~FNamedOnlineSession() {}
+	virtual ~FNamedOnlineSession()
+	{
+	}
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FNamedOnlineSession(const FNamedOnlineSession& Other) = default;
+	FNamedOnlineSession(FNamedOnlineSession&& Other) = default;
+#else
+	FNamedOnlineSession(const FNamedOnlineSession& Other)
+		: FOnlineSession(Other)
+		, SessionName(Other.SessionName)
+		, HostingPlayerNum(Other.HostingPlayerNum)
+		, bHosting(Other.bHosting)
+		, LocalOwnerId(Other.LocalOwnerId)
+		, RegisteredPlayers(Other.RegisteredPlayers)
+		, SessionState(Other.SessionState)
+	{
+	}
+
+	FNamedOnlineSession(FNamedOnlineSession&& Other)
+		: FOnlineSession(MoveTemp(Other))
+		, SessionName(Other.SessionName)
+		, HostingPlayerNum(Other.HostingPlayerNum)
+		, bHosting(Other.bHosting)
+		, LocalOwnerId(MoveTemp(Other.LocalOwnerId))
+		, RegisteredPlayers(MoveTemp(Other.RegisteredPlayers))
+		, SessionState(Other.SessionState)
+	{
+	}
+#endif
+
+	// We delete the equals operator as SessionName is immutable
+	FNamedOnlineSession& operator=(const FNamedOnlineSession& Other) = delete;
+	FNamedOnlineSession& operator=(FNamedOnlineSession&& Other) = delete;
 
 	/**
 	 * Calculate the possible joinability state of this session
@@ -510,7 +743,7 @@ public:
 			// Valid session, joinable or otherwise
 			return true;
 		}
-		
+
 		// Invalid session
 		return false;
 	}
@@ -528,16 +761,8 @@ public:
 	/** Ping to the search result, MAX_QUERY_PING is unreachable */
 	int32 PingInMs;
 
-	FOnlineSessionSearchResult() : 
-		PingInMs(MAX_QUERY_PING)
-	{}
-
-	~FOnlineSessionSearchResult() {}
-
-	/** Copy Constructor */
-	FOnlineSessionSearchResult(const FOnlineSessionSearchResult& Src) :
-		Session(Src.Session),
-		PingInMs(Src.PingInMs)
+	FOnlineSessionSearchResult()
+		: PingInMs(MAX_QUERY_PING)
 	{
 	}
 
@@ -550,8 +775,8 @@ public:
 	}
 
 	/** @return the session id for a given session search result */
-	FString GetSessionIdStr() const 
-	{ 
+	FString GetSessionIdStr() const
+	{
 		return Session.GetSessionIdStr();
 	}
 };
@@ -581,7 +806,7 @@ public:
 /** Selection method used to determine which match to join when multiple are returned (valid only on Switch) */
 #define SEARCH_SWITCH_SELECTION_METHOD FName(TEXT("SWITCHSELECTIONMETHOD"))
 
-/** 
+/**
  * Encapsulation of a search for sessions request.
  * Contains all the search parameters and any search results returned after
  * the OnFindSessionsCompleteDelegate has triggered
@@ -590,7 +815,6 @@ public:
 class FOnlineSessionSearch
 {
 public:
-
 	/** Array of all sessions found when searching for the given criteria */
 	TArray<FOnlineSessionSearchResult> SearchResults;
 	/** State of the search */
@@ -611,14 +835,15 @@ public:
 	/** Amount of time to wait for the search results. May not apply to all platforms. */
 	float TimeoutInSeconds;
 
+public:
 	/** Constructor */
-	FOnlineSessionSearch() :
-		SearchState(EOnlineAsyncTaskState::NotStarted),
-		MaxSearchResults(1),
-		bIsLanQuery(false),
-		PingBucketSize(0),
-		PlatformHash(0),
-		TimeoutInSeconds(0.0f)
+	FOnlineSessionSearch()
+		: SearchState(EOnlineAsyncTaskState::NotStarted)
+		, MaxSearchResults(1)
+		, bIsLanQuery(false)
+		, PingBucketSize(0)
+		, PlatformHash(0)
+		, TimeoutInSeconds(0.0f)
 	{
 		QuerySettings.Set(SETTING_MAPNAME, FString(TEXT("")), EOnlineComparisonOp::Equals);
 		QuerySettings.Set(SEARCH_DEDICATED_ONLY, false, EOnlineComparisonOp::Equals);
@@ -626,7 +851,78 @@ public:
 		QuerySettings.Set(SEARCH_SECURE_SERVERS_ONLY, false, EOnlineComparisonOp::Equals);
 	}
 
-	virtual ~FOnlineSessionSearch() {}
+	virtual ~FOnlineSessionSearch()
+	{
+	}
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FOnlineSessionSearch(const FOnlineSessionSearch& Other) = default;
+	FOnlineSessionSearch(FOnlineSessionSearch&& Other) = default;
+	FOnlineSessionSearch& operator=(const FOnlineSessionSearch& Other) = default;
+	FOnlineSessionSearch& operator=(FOnlineSessionSearch&& Other) = default;
+#else
+	/** Copy Constructor */
+	FOnlineSessionSearch(const FOnlineSessionSearch& Other)
+		: SearchResults(Other.SearchResults)
+		, SearchState(Other.SearchState)
+		, MaxSearchResults(Other.MaxSearchResults)
+		, QuerySettings(Other.QuerySettings)
+		, bIsLanQuery(Other.bIsLanQuery)
+		, PingBucketSize(Other.PingBucketSize)
+		, PlatformHash(Other.PlatformHash)
+		, TimeoutInSeconds(Other.TimeoutInSeconds)
+	{
+	}
+
+	/** Move Constructor */
+	FOnlineSessionSearch(FOnlineSessionSearch&& Other)
+		: SearchResults(MoveTemp(Other.SearchResults))
+		, SearchState(Other.SearchState)
+		, MaxSearchResults(Other.MaxSearchResults)
+		, QuerySettings(MoveTemp(Other.QuerySettings))
+		, bIsLanQuery(Other.bIsLanQuery)
+		, PingBucketSize(Other.PingBucketSize)
+		, PlatformHash(Other.PlatformHash)
+		, TimeoutInSeconds(Other.TimeoutInSeconds)
+	{
+	}
+
+	/** Copy Assignment Operator */
+	FOnlineSessionSearch& operator=(const FOnlineSessionSearch& Other)
+	{
+		if (this != &Other)
+		{
+			SearchResults = Other.SearchResults;
+			SearchState = Other.SearchState;
+			MaxSearchResults = Other.MaxSearchResults;
+			QuerySettings = Other.QuerySettings;
+			bIsLanQuery = Other.bIsLanQuery;
+			PingBucketSize = Other.PingBucketSize;
+			PlatformHash = Other.PlatformHash;
+			TimeoutInSeconds = Other.TimeoutInSeconds;
+		}
+
+		return *this;
+	}
+
+	/** Move Assignment Operator */
+	FOnlineSessionSearch& operator=(FOnlineSessionSearch&& Other)
+	{
+		if (this != &Other)
+		{
+			SearchResults = MoveTemp(Other.SearchResults);
+			SearchState = Other.SearchState;
+			MaxSearchResults = Other.MaxSearchResults;
+			QuerySettings = MoveTemp(Other.QuerySettings);
+			bIsLanQuery = Other.bIsLanQuery;
+			PingBucketSize = Other.PingBucketSize;
+			PlatformHash = Other.PlatformHash;
+			TimeoutInSeconds = Other.TimeoutInSeconds;
+		}
+
+		return *this;
+	}
+#endif
 
 	/**
 	 *	Give the game a chance to sort the returned results
@@ -638,9 +934,9 @@ public:
 	 * Allows games to set reasonable defaults that aren't advertised
 	 * but would be setup for each instantiated search result
 	 */
-	virtual TSharedPtr<FOnlineSessionSettings> GetDefaultSessionSettings() const 
-	{ 
-		return MakeShareable(new FOnlineSessionSettings()); 
+	virtual TSharedPtr<FOnlineSessionSettings> GetDefaultSessionSettings() const
+	{
+		return MakeShared<FOnlineSessionSettings>();
 	}
 };
 
@@ -664,7 +960,4 @@ void ONLINESUBSYSTEM_API DumpSession(const FOnlineSession* Session);
  * @param SessionSettings the session to log the information for
  */
 void ONLINESUBSYSTEM_API DumpSessionSettings(const FOnlineSessionSettings* SessionSettings);
-
-
-
 

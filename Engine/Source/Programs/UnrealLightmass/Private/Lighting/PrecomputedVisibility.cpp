@@ -180,7 +180,7 @@ public:
 	FBox Bounds;
 
 	FVisibilityMeshSortInfo() :
-		Bounds(FBox(0))
+		Bounds(FBox(ForceInit))
 	{}
 };
 
@@ -545,7 +545,7 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 		};
 		SortMeshes.Sort(FCompareMeshesByDistance());
 
-		VisibilityGridBounds = FBox(0);
+		VisibilityGridBounds = FBox(ForceInit);
 		// Drop last 10% of meshes which will expand the grid bounds 
 		// This is to handle distant skybox type meshes
 		const int32 MaxMeshIndex = FMath::Min(FMath::Max(FMath::TruncToInt(.9f * SortMeshes.Num()), 1), SortMeshes.Num() - 1);
@@ -579,7 +579,7 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 
 		for (int32 VisibilityMeshIndex = 0; VisibilityMeshIndex < VisibilityMeshes.Num(); VisibilityMeshIndex++)
 		{
-			FBox MeshBounds(0);
+			FBox MeshBounds(ForceInit);
 
 			for (int32 OriginalMeshIndex = 0; OriginalMeshIndex < VisibilityMeshes[VisibilityMeshIndex].Meshes.Num(); OriginalMeshIndex++)
 			{
@@ -630,7 +630,7 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 		for (int32 GroupIndex = 0; GroupIndex < VisibilityGroups.Num(); GroupIndex++)
 		{
 			FVisibilityMeshGroup& Group = VisibilityGroups[GroupIndex];
-			Group.GroupBounds = FBox(0);
+			Group.GroupBounds = FBox(ForceInit);
 
 			for (int32 EntryIndex = 0; EntryIndex < Group.VisibilityIds.Num(); EntryIndex++)
 			{
@@ -1132,7 +1132,7 @@ void FStaticLightingSystem::CalculatePrecomputedVisibility(int32 BucketIndex)
 		{
 			const FVisibilityMesh& VisibilityMesh = VisibilityMeshes[VisibilityMeshIndex];
 
-			FBox OriginalMeshBounds(0);
+			FBox OriginalMeshBounds(ForceInit);
 			// Combine mesh bounds, usually only BSP has multiple meshes per VisibilityId
 			//@todo - could explicitly sample each bounds separately, but they tend to be pretty close together in world space
 			for (int32 OriginalMeshIndex = 0; OriginalMeshIndex < VisibilityMesh.Meshes.Num(); OriginalMeshIndex++)

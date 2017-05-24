@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3216146
-availability:docs
-title:1. Project Setup
-description:Going over the Project Setup for creating a Fluid Surface Blueprint.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:1. 프로젝트 구성
+description:플루이드 서피스 블루프린트 제작을 위한 프로젝트 구성 안내입니다.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
@@ -14,17 +14,17 @@ checkpoint:FSB
 
 [NAV]
 
-In this section, we will go over how to set your project up so that you can create a fluid surface Blueprint.
+여기서는 플루이드 서피스 (유체 표면) 블루프린트를 만들 수 있도록 프로젝트를 구성하는 법에 대해 다뤄보겠습니다.
 
 
-## Project Setup
-The project setup for the Fluid surface is the same as for the Height Field Painter. If you have not done so, read the **Project Setup** section of the [](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter) How To guide. 
-When completed you should now have a new Game Mode and HUD. When you run the project, you should see something similar to the image below. 
+## 프로젝트 구성
+유체 표면 프로젝트 구성은 하이트 필드 페인터와 똑같습니다. 확인한 적이 없다면, [](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter) 문서의 **프로젝트 구성** 부분을 참고하세요.
+완료되었으면 새로운 Game Mode 와 HUD 가 있을 것입니다. 프로젝트를 실행시키면, 아래 그림과 같은 화면이 보일 것입니다.
 
 ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_07.png)
 
 
- In the next section we will take a look at creating all of the required assets to create a Fluid Surface Blueprint.
+ 다음에는 플루이드 서피스 블루프린트 생성에 필요한 애셋을 생성하는 방법을 살펴보겠습니다.
 
 
 [NAV]

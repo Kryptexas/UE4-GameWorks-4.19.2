@@ -607,6 +607,11 @@ FArchive& operator<<( FArchive& Ar, FSHAHash& G )
 	return Ar;
 }
 
+uint32 GetTypeHash(FSHAHash const& InKey)
+{
+	return FCrc::MemCrc32(InKey.Hash, sizeof(InKey.Hash));
+}
+
 FSHA1::FSHA1()
 {
 	m_block = (SHA1_WORKSPACE_BLOCK *)m_workspace;
@@ -668,6 +673,13 @@ void FSHA1::Transform(uint32 *state, const uint8 *buffer)
 	state[3] += d;
 	state[4] += e;
 }
+
+// do not remove #undefs, or you can get name collision with libc++'s <functional>
+#undef _R0
+#undef _R1
+#undef _R2
+#undef _R3
+#undef _R4
 
 // Use this function to hash in binary data
 void FSHA1::Update(const uint8 *data, uint32 len)

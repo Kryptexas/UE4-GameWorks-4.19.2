@@ -47,6 +47,10 @@ void FPluginBrowserModule::StartupModule()
 		.SetDisplayName(LOCTEXT("NewPluginTabHeader", "New Plugin"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
+	// Register a default size for this tab
+	FVector2D DefaultSize(1000.0f, 750.0f);
+	FTabManager::RegisterDefaultTabWindowSize(PluginCreatorTabName, DefaultSize);
+
 	// Get a list of the installed plugins we've seen before
 	TArray<FString> PreviousInstalledPlugins;
 	GConfig->GetArray(TEXT("PluginBrowser"), TEXT("InstalledPlugins"), PreviousInstalledPlugins, GEditorPerProjectIni);

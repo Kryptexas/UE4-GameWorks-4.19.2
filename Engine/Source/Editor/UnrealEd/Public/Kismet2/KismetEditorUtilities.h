@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __KismetEditorUtilities_h__
-#define __KismetEditorUtilities_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,6 +13,42 @@
 class IBlueprintEditor;
 class UEdGraph;
 struct Rect;
+
+enum class EBlueprintBytecodeRecompileOptions
+{
+	None = 0x0,
+
+	// in batch compile mode we don't 'BroadcastCompiled/BroadcastBlueprintCompiled'
+	BatchCompile           = 0x1,
+	// normally we create a REINST_ version even when doing the bytecode compilation
+	// this flag can be used of the blueprints GeneratedClass is being reinstanced by 
+	// calling code:
+	SkipReinstancing	   = 0x2  
+};
+
+ENUM_CLASS_FLAGS(EBlueprintBytecodeRecompileOptions)
+
+enum class EBlueprintCompileOptions
+{
+	None = 0x0,
+
+	/** This flag has several effects, but its behavior is to 'make things work' when regenerating a blueprint on load */
+	IsRegeneratingOnLoad = 0x1, 
+	/** Skips garbage collection at the end of compile, useful if caller will collect garbage themselves */
+	SkipGarbageCollection = 0x2, 
+	/** Prevents intermediate products from being garbage collected, useful for debugging macro/node expansion */
+	SaveIntermediateProducts = 0x4, 
+	/** Indicates that the skeleton is up to date, and therefore the skeleton compile pass can be skipped */
+	SkeletonUpToDate = 0x8, 
+	/** Indicates this is a batch compile and that BroadcastCompiled and BroadcastBlueprintCompiled should be skipped */
+	BatchCompile = 0x10,
+	/** Triggers profiling information to be generated */
+	AddInstrumentation = 0x20,
+	/** Skips creating a reinstancer and running reinstancing routines - useful if calling code is performing reinstancing */
+	SkipReinstancing = 0x40,
+};
+
+ENUM_CLASS_FLAGS(EBlueprintCompileOptions)
 
 //////////////////////////////////////////////////////////////////////////
 // FKismetEditorUtilities
@@ -105,13 +137,13 @@ public:
 	static void CreateDefaultEventGraphs(UBlueprint* Blueprint);
 
 	/** Tries to compile a blueprint, updating any actors in the editor who are using the old class, etc... */
-	static void CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad = false, bool bSkipGarbageCollection = false, bool bSaveIntermediateProducts = false, class FCompilerResultsLog* pResults = nullptr, bool bSkeletonUpToDate = false, bool bBatchCompile = false, bool bAddInstrumentation = false);
+	static void CompileBlueprint(UBlueprint* BlueprintObj, EBlueprintCompileOptions CompileFlags = EBlueprintCompileOptions::None, class FCompilerResultsLog* pResults = nullptr );
 
 	/** Generates a blueprint skeleton only.  Minimal compile, no notifications will be sent, no GC, etc.  Only successful if there isn't already a skeleton generated */
 	static bool GenerateBlueprintSkeleton(UBlueprint* BlueprintObj, bool bForceRegeneration = false);
 
 	/** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
-	static void RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded = nullptr, bool bBatchCompile = false);
+	static void RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded = nullptr, EBlueprintBytecodeRecompileOptions Flags = EBlueprintBytecodeRecompileOptions::None);
 
 	/** Tries to make sure that a data-only blueprint is conformed to its native parent, in case any native class flags have changed */
 	static void ConformBlueprintFlagsAndComponents(UBlueprint* BlueprintObj);
@@ -314,7 +346,3 @@ private:
 
 	FKismetEditorUtilities() {}
 };
-
-
-
-#endif//__KismetEditorUtilities_h__

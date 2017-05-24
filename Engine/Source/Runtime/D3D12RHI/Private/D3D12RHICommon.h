@@ -1,10 +1,12 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-D3D12BaseRHIPrivate.h: Private D3D RHI definitions for Windows.
+D3D12RHICommon.h: Common D3D12 RHI definitions for Windows.
 =============================================================================*/
 
 #pragma once
+
+DECLARE_STATS_GROUP(TEXT("D3D12RHI"), STATGROUP_D3D12RHI, STATCAT_Advanced);
 
 #include "WindowsHWrapper.h"
 
@@ -26,7 +28,7 @@ protected:
 public:
 	FD3D12AdapterChild(FD3D12Adapter* InParent = nullptr) : ParentAdapter(InParent) {}
 
-	inline FD3D12Adapter* GetParentAdapter() const
+	FORCEINLINE FD3D12Adapter* GetParentAdapter() const
 	{
 		// If this fires an object was likely created with a default constructor i.e in an STL container
 		// and is therefore an orphan
@@ -50,7 +52,7 @@ protected:
 public:
 	FD3D12DeviceChild(FD3D12Device* InParent = nullptr) : Parent(InParent) {}
 
-	inline FD3D12Device* GetParentDevice() const
+	FORCEINLINE FD3D12Device* GetParentDevice() const
 	{
 		// If this fires an object was likely created with a default constructor i.e in an STL container
 		// and is therefore an orphan

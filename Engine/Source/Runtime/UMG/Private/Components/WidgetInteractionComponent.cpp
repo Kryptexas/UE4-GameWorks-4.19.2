@@ -6,6 +6,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/ArrowComponent.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 
 #include "Components/WidgetComponent.h"
 
@@ -109,6 +111,8 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 {
 	FWidgetTraceResult TraceResult;
 
+	TArray<FHitResult> MultiHits;
+
 	switch( InteractionSource )
 	{
 		case EWidgetInteractionSource::World:
@@ -123,7 +127,7 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 			FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
 			Params.AddIgnoredComponents(PrimitiveChildren);
 
-			TraceResult.bWasHit = GetWorld()->LineTraceSingleByChannel(TraceResult.HitResult, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), TraceChannel, Params);
+			GetWorld()->LineTraceMultiByChannel(MultiHits, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), TraceChannel, Params);
 			break;
 		}
 		case EWidgetInteractionSource::Mouse:
@@ -136,9 +140,8 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 			Params.AddIgnoredComponents(PrimitiveChildren);
 
 			APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-
 			ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
-			TraceResult.bWasHit = false;
+			
 			if ( LocalPlayer && LocalPlayer->ViewportClient )
 			{
 				if ( InteractionSource == EWidgetInteractionSource::Mouse )
@@ -146,7 +149,12 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 					FVector2D MousePosition;
 					if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
 					{
-						TraceResult.bWasHit = PlayerController->GetHitResultAtScreenPosition(MousePosition, TraceChannel, Params, TraceResult.HitResult);
+						FVector WorldOrigin;
+						FVector WorldDirection;
+						if ( UGameplayStatics::DeprojectScreenToWorld(PlayerController, MousePosition, WorldOrigin, WorldDirection) == true )
+						{
+							GetWorld()->LineTraceMultiByChannel(MultiHits, WorldOrigin, WorldOrigin + WorldDirection * InteractionDistance, TraceChannel, Params);
+						}
 					}
 				}
 				else if ( InteractionSource == EWidgetInteractionSource::CenterScreen )
@@ -154,15 +162,11 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 					FVector2D ViewportSize;
 					LocalPlayer->ViewportClient->GetViewportSize(ViewportSize);
 
-					TraceResult.bWasHit = PlayerController->GetHitResultAtScreenPosition(ViewportSize * 0.5f, TraceChannel, Params, TraceResult.HitResult);
-				}
-
-				// Don't allow infinite distance hit testing.
-				if ( TraceResult.bWasHit )
-				{
-					if ( TraceResult.HitResult.Distance > InteractionDistance )
+					FVector WorldOrigin;
+					FVector WorldDirection;
+					if ( UGameplayStatics::DeprojectScreenToWorld(PlayerController, ViewportSize * 0.5f, WorldOrigin, WorldDirection) == true )
 					{
-						TraceResult = FWidgetTraceResult();
+						GetWorld()->LineTraceMultiByChannel(MultiHits, WorldOrigin, WorldOrigin + WorldDirection * InteractionDistance, TraceChannel, Params);
 					}
 				}
 			}
@@ -173,6 +177,27 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 			TraceResult.HitResult = CustomHitResult;
 			TraceResult.bWasHit = CustomHitResult.bBlockingHit;
 			break;
+		}
+	}
+
+	// If it's not a custom interaction, we do some custom filtering to ignore invisible widgets.
+	if ( InteractionSource != EWidgetInteractionSource::Custom )
+	{
+		for ( const FHitResult& HitResult : MultiHits )
+		{
+			if ( UWidgetComponent* HitWidgetComponent = Cast<UWidgetComponent>(HitResult.GetComponent()) )
+			{
+				if ( HitWidgetComponent->IsVisible() )
+				{
+					TraceResult.bWasHit = true;
+					TraceResult.HitResult = HitResult;
+				}
+			}
+			else
+			{
+				// If we hit something that wasn't a widget component, we're done.
+				break;
+			}
 		}
 	}
 
@@ -196,7 +221,7 @@ UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::Per
 			else
 			{
 				ensure(TraceResult.HitWidgetComponent->GetGeometryMode() == EWidgetGeometryMode::Plane);
-				TraceResult.HitWidgetComponent->GetLocalHitLocation(LastHitResult.ImpactPoint, TraceResult.LocalHitLocation);
+				TraceResult.HitWidgetComponent->GetLocalHitLocation(TraceResult.HitResult.ImpactPoint, TraceResult.LocalHitLocation);
 			}
 			TraceResult.HitWidgetPath = FindHoveredWidgetPath(TraceResult);
 		}
@@ -245,24 +270,19 @@ bool UWidgetInteractionComponent::CanInteractWithComponent(UWidgetComponent* Com
 	return bCanInteract;
 }
 
-void UWidgetInteractionComponent::SimulatePointerMovement()
+FWidgetPath UWidgetInteractionComponent::DetermineWidgetUnderPointer()
 {
+	FWidgetPath WidgetPathUnderPointer;
+
 	bIsHoveredWidgetInteractable = false;
 	bIsHoveredWidgetFocusable = false;
 	bIsHoveredWidgetHitTestVisible = false;
 
-	if ( !bEnableHitTesting )
-	{
-		return;
-	}
+	LocalHitLocation = LastLocalHitLocation;
 
-	if ( !CanSendInput() )
-	{
-		return;
-	}
-	
-	FWidgetPath WidgetPathUnderFinger;
 	UWidgetComponent* OldHoveredWidget = HoveredWidgetComponent;
+
+	HoveredWidgetComponent = nullptr;
 
 	FWidgetTraceResult TraceResult = PerformTrace();
 	LastHitResult = TraceResult.HitResult;
@@ -270,8 +290,9 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 	LocalHitLocation = TraceResult.bWasHit
 		? TraceResult.LocalHitLocation
 		: LastLocalHitLocation;
-	WidgetPathUnderFinger = TraceResult.HitWidgetPath;
+	WidgetPathUnderPointer = TraceResult.HitWidgetPath;
 
+#if ENABLE_DRAW_DEBUG
 	if ( bShowDebug )
 	{
 		if ( HoveredWidgetComponent )
@@ -291,31 +312,7 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 			}
 		}
 	}
-	
-	FPointerEvent PointerEvent(
-		VirtualUser->GetUserIndex(),
-		PointerIndex,
-		LocalHitLocation,
-		LastLocalHitLocation,
-		PressedKeys,
-		FKey(),
-		0.0f,
-		ModifierKeys);
-	
-	if (WidgetPathUnderFinger.IsValid())
-	{
-		check(HoveredWidgetComponent);
-		LastWigetPath = WidgetPathUnderFinger;
-		
-		FSlateApplication::Get().RoutePointerMoveEvent(WidgetPathUnderFinger, PointerEvent, false);
-	}
-	else
-	{
-		FWidgetPath EmptyWidgetPath;
-		FSlateApplication::Get().RoutePointerMoveEvent(EmptyWidgetPath, PointerEvent, false);
-
-		LastWigetPath = FWeakWidgetPath();
-	}
+#endif // ENABLE_DRAW_DEBUG
 
 	if ( HoveredWidgetComponent )
 	{
@@ -324,20 +321,23 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 
 	LastLocalHitLocation = LocalHitLocation;
 
-	if ( WidgetPathUnderFinger.IsValid() )
+	if ( WidgetPathUnderPointer.IsValid() )
 	{
-		const FArrangedChildren::FArrangedWidgetArray& AllArrangedWidgets = WidgetPathUnderFinger.Widgets.GetInternalArray();
+		const FArrangedChildren::FArrangedWidgetArray& AllArrangedWidgets = WidgetPathUnderPointer.Widgets.GetInternalArray();
 		for ( const FArrangedWidget& ArrangedWidget : AllArrangedWidgets )
 		{
 			const TSharedRef<SWidget>& Widget = ArrangedWidget.Widget;
-			if ( Widget->IsInteractable() )
+			if ( Widget->IsEnabled() )
 			{
-				bIsHoveredWidgetInteractable = true;
-			}
+				if ( Widget->IsInteractable() )
+				{
+					bIsHoveredWidgetInteractable = true;
+				}
 
-			if ( Widget->SupportsKeyboardFocus() )
-			{
-				bIsHoveredWidgetFocusable = true;
+				if ( Widget->SupportsKeyboardFocus() )
+				{
+					bIsHoveredWidgetFocusable = true;
+				}
 			}
 
 			if ( Widget->GetVisibility().IsHitTestVisible() )
@@ -354,7 +354,49 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 			OldHoveredWidget->RequestRedraw();
 		}
 
-		OnHoveredWidgetChanged.Broadcast(HoveredWidgetComponent, OldHoveredWidget);
+		OnHoveredWidgetChanged.Broadcast( HoveredWidgetComponent, OldHoveredWidget );
+	}
+
+	return WidgetPathUnderPointer;
+}
+
+void UWidgetInteractionComponent::SimulatePointerMovement()
+{
+	if ( !bEnableHitTesting )
+	{
+		return;
+	}
+
+	if ( !CanSendInput() )
+	{
+		return;
+	}
+	
+	FWidgetPath WidgetPathUnderFinger = DetermineWidgetUnderPointer();
+	
+	FPointerEvent PointerEvent(
+		VirtualUser->GetUserIndex(),
+		PointerIndex,
+		LocalHitLocation,
+		LastLocalHitLocation,
+		PressedKeys,
+		FKey(),
+		0.0f,
+		ModifierKeys);
+	
+	if (WidgetPathUnderFinger.IsValid())
+	{
+		check(HoveredWidgetComponent);
+		LastWidgetPath = WidgetPathUnderFinger;
+		
+		FSlateApplication::Get().RoutePointerMoveEvent(WidgetPathUnderFinger, PointerEvent, false);
+	}
+	else
+	{
+		FWidgetPath EmptyWidgetPath;
+		FSlateApplication::Get().RoutePointerMoveEvent(EmptyWidgetPath, PointerEvent, false);
+
+		LastWidgetPath = FWeakWidgetPath();
 	}
 }
 
@@ -372,7 +414,13 @@ void UWidgetInteractionComponent::PressPointerKey(FKey Key)
 	
 	PressedKeys.Add(Key);
 	
-	FWidgetPath WidgetPathUnderFinger = LastWigetPath.ToWidgetPath();
+	if ( !LastWidgetPath.IsValid() )
+	{
+		// If the cached widget path isn't valid, attempt to find a valid widget since we might have received a touch input
+		LastWidgetPath = DetermineWidgetUnderPointer();
+	}
+
+	FWidgetPath WidgetPathUnderFinger = LastWidgetPath.ToWidgetPath();
 		
 	FPointerEvent PointerEvent(
 		VirtualUser->GetUserIndex(),
@@ -405,8 +453,8 @@ void UWidgetInteractionComponent::ReleasePointerKey(FKey Key)
 	
 	PressedKeys.Remove(Key);
 	
-	FWidgetPath WidgetPathUnderFinger = LastWigetPath.ToWidgetPath();
-		
+	FWidgetPath WidgetPathUnderFinger = LastWidgetPath.ToWidgetPath();
+
 	FPointerEvent PointerEvent(
 		VirtualUser->GetUserIndex(),
 		PointerIndex,
@@ -427,17 +475,14 @@ bool UWidgetInteractionComponent::PressKey(FKey Key, bool bRepeat)
 		return false;
 	}
 
-	const uint32* KeyCodePtr;
-	const uint32* CharCodePtr;
-	FInputKeyManager::Get().GetCodesFromKey(Key, KeyCodePtr, CharCodePtr);
-
-	uint32 KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
-	uint32 CharCode = CharCodePtr ? *CharCodePtr : 0;
+	bool bHasKeyCode, bHasCharCode;
+	uint32 KeyCode, CharCode;
+	GetKeyAndCharCodes(Key, bHasKeyCode, KeyCode, bHasCharCode, CharCode);
 
 	FKeyEvent KeyEvent(Key, ModifierKeys, VirtualUser->GetUserIndex(), bRepeat, KeyCode, CharCode);
 	bool DownResult = FSlateApplication::Get().ProcessKeyDownEvent(KeyEvent);
 
-	if ( CharCodePtr )
+	if (bHasCharCode)
 	{
 		FCharacterEvent CharacterEvent(CharCode, ModifierKeys, VirtualUser->GetUserIndex(), bRepeat);
 		return FSlateApplication::Get().ProcessKeyCharEvent(CharacterEvent);
@@ -453,15 +498,46 @@ bool UWidgetInteractionComponent::ReleaseKey(FKey Key)
 		return false;
 	}
 
+	bool bHasKeyCode, bHasCharCode;
+	uint32 KeyCode, CharCode;
+	GetKeyAndCharCodes(Key, bHasKeyCode, KeyCode, bHasCharCode, CharCode);
+
+	FKeyEvent KeyEvent(Key, ModifierKeys, VirtualUser->GetUserIndex(), false, KeyCode, CharCode);
+	return FSlateApplication::Get().ProcessKeyUpEvent(KeyEvent);
+}
+
+void UWidgetInteractionComponent::GetKeyAndCharCodes(const FKey& Key, bool& bHasKeyCode, uint32& KeyCode, bool& bHasCharCode, uint32& CharCode)
+{
 	const uint32* KeyCodePtr;
 	const uint32* CharCodePtr;
 	FInputKeyManager::Get().GetCodesFromKey(Key, KeyCodePtr, CharCodePtr);
 
-	uint32 KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
-	uint32 CharCode = CharCodePtr ? *CharCodePtr : 0;
+	bHasKeyCode = KeyCodePtr ? true : false;
+	bHasCharCode = CharCodePtr ? true : false;
 
-	FKeyEvent KeyEvent(Key, ModifierKeys, VirtualUser->GetUserIndex(), false, KeyCode, CharCode);
-	return FSlateApplication::Get().ProcessKeyUpEvent(KeyEvent);
+	KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
+	CharCode = CharCodePtr ? *CharCodePtr : 0;
+
+	// These special keys are not handled by the platform layer, and while not printable
+	// have character mappings that several widgets look for, since the hardware sends them.
+	if (CharCodePtr == nullptr)
+	{
+		if (Key == EKeys::Tab)
+		{
+			CharCode = '\t';
+			bHasCharCode = true;
+		}
+		else if (Key == EKeys::BackSpace)
+		{
+			CharCode = '\b';
+			bHasCharCode = true;
+		}
+		else if (Key == EKeys::Enter)
+		{
+			CharCode = '\n';
+			bHasCharCode = true;
+		}
+	}
 }
 
 bool UWidgetInteractionComponent::PressAndReleaseKey(FKey Key)
@@ -499,7 +575,7 @@ void UWidgetInteractionComponent::ScrollWheel(float ScrollDelta)
 		return;
 	}
 
-	FWidgetPath WidgetPathUnderFinger = LastWigetPath.ToWidgetPath();
+	FWidgetPath WidgetPathUnderFinger = LastWidgetPath.ToWidgetPath();
 	
 	FPointerEvent MouseWheelEvent(
 		VirtualUser->GetUserIndex(),
@@ -536,7 +612,7 @@ bool UWidgetInteractionComponent::IsOverHitTestVisibleWidget() const
 
 const FWeakWidgetPath& UWidgetInteractionComponent::GetHoveredWidgetPath() const
 {
-	return LastWigetPath;
+	return LastWidgetPath;
 }
 
 const FHitResult& UWidgetInteractionComponent::GetLastHitResult() const

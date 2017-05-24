@@ -201,7 +201,7 @@ void FD3D12TextureStats::D3D12TextureDeleted(TD3D12Texture2D<BaseResourceType>& 
 	{
 		const D3D12_RESOURCE_DESC& Desc = D3D12Texture2D->GetDesc();
 		const int64 TextureSize = Texture.GetMemorySize();
-		check(TextureSize > 0);
+		check(TextureSize > 0 || (Texture.Flags & TexCreate_Virtual));
 
 		UpdateD3D12TextureStats(Desc, -TextureSize, false, Texture.IsCubemap());
 	}
@@ -779,7 +779,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D12Texture2D(uint32
 
 		if (Flags & TexCreate_CPUReadback)
 		{
-			const uint32 BlockBytes = GPixelFormats[PlatformResourceFormat].BlockBytes;
+			const uint32 BlockBytes = GPixelFormats[Format].BlockBytes;
 			const uint32 XBytesAligned = Align((uint32)SizeX * BlockBytes, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 			D3D12_SUBRESOURCE_FOOTPRINT DestSubresource;
 			DestSubresource.Depth = SizeZ;
@@ -1663,7 +1663,7 @@ void TD3D12Texture2D<RHIResourceType>::UnlockInternal(class FRHICommandListImmed
 	check(LockedResource);
 
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
-	if (GetParentDevice()->GetOwningRHI()->HandleSpecialUnlock(MipIndex, GetFlags(), GetTextureLayout(), RawTextureMemory))
+	if (GetParentDevice()->GetOwningRHI()->HandleSpecialUnlock(RHICmdList, MipIndex, GetFlags(), GetTextureLayout(), RawTextureMemory))
 	{
 		// nothing left to do...
 	}
@@ -1743,9 +1743,11 @@ void TD3D12Texture2D<RHIResourceType>::UpdateTexture2D(class FRHICommandListImme
 
 		byte* pRowData = (byte*)pData;
 		byte* pSourceRowData = (byte*)SourceData;
+		uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[GetFormat()].BlockBytes;
+		check(CopyPitch <= SourcePitch);
 		for (uint32 i = 0; i < UpdateRegion.Height; i++)
 		{
-			FMemory::Memcpy(pRowData, pSourceRowData, SourcePitch);
+			FMemory::Memcpy(pRowData, pSourceRowData, CopyPitch);
 			pSourceRowData += SourcePitch;
 			pRowData += AlignedSourcePitch;
 		}
@@ -1873,11 +1875,14 @@ void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint
 	byte* pRowData = (byte*)pData;
 	byte* pSourceRowData = (byte*)SourceData;
 	byte* pSourceDepthSlice = (byte*)SourceData;
+
+	uint32 CopyPitch = UpdateRegion.Width * GPixelFormats[Texture->GetFormat()].BlockBytes;
+	check(CopyPitch <= SourceRowPitch);
 	for (uint32 i = 0; i < UpdateRegion.Depth; i++)
 	{
 		for (uint32 j = 0; j < UpdateRegion.Height; j++)
 		{
-			FMemory::Memcpy(pRowData, pSourceRowData, SourceRowPitch);
+			FMemory::Memcpy(pRowData, pSourceRowData, CopyPitch);
 			pSourceRowData += SourceRowPitch;
 			pRowData += AlignedSourcePitch;
 		}
@@ -1978,12 +1983,9 @@ void FD3D12DynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef TextureC
 
 void FD3D12DynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, const TCHAR* Name)
 {
-#if !UE_BUILD_SHIPPING
-
-#if !UE_BUILD_TEST
+#if NAME_OBJECTS
 	FName DebugName(Name);
 	TextureRHI->SetName(DebugName);
-#endif
 
 	FD3D12Resource* Resource = GetD3D12TextureFromRHITexture(TextureRHI)->GetResource();
 	SetName(Resource, Name);
@@ -2150,7 +2152,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 
 		if (Flags & TexCreate_CPUReadback)
 		{
-			const uint32 BlockBytes = GPixelFormats[PlatformResourceFormat].BlockBytes;
+			const uint32 BlockBytes = GPixelFormats[Format].BlockBytes;
 			const uint32 XBytesAligned = Align((uint32)SizeX * BlockBytes, FD3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 			D3D12_SUBRESOURCE_FOOTPRINT DestSubresource;
 			DestSubresource.Depth = SizeZ;

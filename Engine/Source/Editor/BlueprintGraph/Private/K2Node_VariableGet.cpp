@@ -211,7 +211,7 @@ FText UK2Node_VariableGet::GetPropertyTooltip(UProperty const* VariableProperty)
 			if (UBlueprint* VarBlueprint = Cast<UBlueprint>(SourceClass->ClassGeneratedBy))
 			{
 				FString UserTooltipData;
-				if (FBlueprintEditorUtils::GetBlueprintVariableMetaData(VarBlueprint, VarName, /*InLocalVarScope =*/nullptr, TooltipMetaKey, UserTooltipData))
+				if (FBlueprintEditorUtils::GetBlueprintVariableMetaData(VarBlueprint, VarName, VariableProperty->GetOwnerStruct(), TooltipMetaKey, UserTooltipData))
 				{
 					SubTooltip = FText::FromString(UserTooltipData);
 				}

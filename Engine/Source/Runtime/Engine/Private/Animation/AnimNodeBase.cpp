@@ -115,6 +115,11 @@ void FPoseLinkBase::SetLinkNode(struct FAnimNode_Base* NewLinkNode)
 	LinkedNode = NewLinkNode;
 }
 
+FAnimNode_Base* FPoseLinkBase::GetLinkNode()
+{
+	return LinkedNode;
+}
+
 void FPoseLinkBase::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 #if DO_CHECK
@@ -184,7 +189,7 @@ void FPoseLinkBase::GatherDebugData(FNodeDebugData& DebugData)
 /////////////////////////////////////////////////////
 // FPoseLink
 
-void FPoseLink::Evaluate(FPoseContext& Output)
+void FPoseLink::Evaluate(FPoseContext& Output, bool bExpectsAdditivePose)
 {
 #if DO_CHECK
 	checkf( !bProcessed, TEXT( "Evaluate already in progress, circular link for AnimInstance [%s] Blueprint [%s]" ), \
@@ -220,6 +225,10 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 #if WITH_EDITOR
 		Output.AnimInstanceProxy->RegisterWatchedPose(Output.Pose, LinkID);
 #endif
+	}
+	else if (bExpectsAdditivePose)
+	{
+		Output.ResetToAdditiveIdentity();
 	}
 	else
 	{

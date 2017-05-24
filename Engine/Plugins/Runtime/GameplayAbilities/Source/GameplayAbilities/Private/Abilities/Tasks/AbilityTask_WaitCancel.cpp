@@ -17,7 +17,10 @@ void UAbilityTask_WaitCancel::OnCancelCallback()
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey());
-		OnCancel.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnCancel.Broadcast();
+		}
 		EndTask();
 	}
 }

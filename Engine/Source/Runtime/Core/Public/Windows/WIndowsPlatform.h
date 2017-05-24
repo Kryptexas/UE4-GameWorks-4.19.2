@@ -63,6 +63,7 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define PLATFORM_SUPPORTS_NAMED_PIPES						1
 #if defined(_MSC_VER) && _MSC_VER < 1900
 	#define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS		0
+	#define PLATFORM_COMPILER_HAS_AUTO_RETURN_TYPES			0
 #endif
 #define PLATFORM_COMPILER_HAS_TCHAR_WMAIN					1
 

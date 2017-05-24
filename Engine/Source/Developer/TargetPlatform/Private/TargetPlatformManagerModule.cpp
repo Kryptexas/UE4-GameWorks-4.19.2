@@ -921,7 +921,7 @@ RETRY_SETUPANDVALIDATE:
 		UBTProcess->OnOutput().BindStatic(&FTargetPlatformManagerModule::OnStatusOutput);
 		SDKStatusMessage = TEXT("");
 		UBTProcess->Launch();
-		while(UBTProcess->IsRunning())
+		while(UBTProcess->Update())
 		{
 			FPlatformProcess::Sleep(0.01f);
 		}

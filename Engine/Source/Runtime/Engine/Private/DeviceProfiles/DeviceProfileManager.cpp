@@ -29,10 +29,16 @@ FString UDeviceProfileManager::DeviceProfileFileName;
 
 UDeviceProfileManager* UDeviceProfileManager::DeviceProfileManagerSingleton = nullptr;
 
-UDeviceProfileManager& UDeviceProfileManager::Get()
+UDeviceProfileManager& UDeviceProfileManager::Get(bool bFromPostCDOContruct)
 {
 	if (DeviceProfileManagerSingleton == nullptr)
 	{
+		static bool bEntered = false;
+		if (bEntered && bFromPostCDOContruct)
+		{
+			return *(UDeviceProfileManager*)0x3; // we know that the return value is never used, linux hates null here, which would be less weird. 
+		}
+		bEntered = true;
 		DeviceProfileManagerSingleton = NewObject<UDeviceProfileManager>();
 
 		DeviceProfileManagerSingleton->AddToRoot();
@@ -187,17 +193,24 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile(bool bPushSett
 }
 
 
-UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& InSpecifyParentName )
+UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& InSpecifyParentName, const TCHAR* ConfigPlatform )
 {
 	UDeviceProfile* DeviceProfile = FindObject<UDeviceProfile>( GetTransientPackage(), *ProfileName );
-	if( DeviceProfile == NULL )
+	if (DeviceProfile == NULL)
 	{
+		// use ConfigPlatform ini hierarchy to look in for the parent profile
+		// @todo config: we could likely cache local ini files to speed this up,
+		// along with the ones we load in LoadConfig
+		// NOTE: This happens at runtime, so maybe only do this if !RequiresCookedData()?
+		FConfigFile PlatformConfigFile;
+		FConfigCacheIni::LoadLocalIniFile(PlatformConfigFile, TEXT("DeviceProfiles"), true, ConfigPlatform);
+
 		// Build Parent objects first. Important for setup
 		FString ParentName = InSpecifyParentName;
 		if (ParentName.Len() == 0)
 		{
 			const FString SectionName = FString::Printf(TEXT("%s %s"), *ProfileName, *UDeviceProfile::StaticClass()->GetName());
-			GConfig->GetString(*SectionName, TEXT("BaseProfileName"), ParentName, GetDeviceProfileIniName());
+			PlatformConfigFile.GetString(*SectionName, TEXT("BaseProfileName"), ParentName);
 		}
 
 		UObject* ParentObject = nullptr;
@@ -207,13 +220,27 @@ UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName
 			ParentObject = FindObject<UDeviceProfile>(GetTransientPackage(), *ParentName);
 			if (ParentObject == nullptr)
 			{
-				ParentObject = CreateProfile(ParentName, ProfileType);
+				ParentObject = CreateProfile(ParentName, ProfileType, TEXT(""), ConfigPlatform);
 			}
 		}
 
 		// Create the profile after it's parents have been created.
 		DeviceProfile = NewObject<UDeviceProfile>(GetTransientPackage(), *ProfileName);
-		DeviceProfile->DeviceType = DeviceProfile->DeviceType.Len() > 0 ? DeviceProfile->DeviceType : ProfileType;
+		if (ConfigPlatform != nullptr)
+		{
+			// if the config needs to come from a platform, set it now, then reload the config
+			DeviceProfile->ConfigPlatform = ConfigPlatform;
+			DeviceProfile->LoadConfig();
+			DeviceProfile->ValidateProfile();
+		}
+
+		// if the config didn't specify a DeviceType, use the passed in one
+		if (DeviceProfile->DeviceType.IsEmpty())
+		{
+			DeviceProfile->DeviceType = ProfileType;
+		}
+
+		// final fixups
 		DeviceProfile->BaseProfileName = DeviceProfile->BaseProfileName.Len() > 0 ? DeviceProfile->BaseProfileName : ParentName;
 		DeviceProfile->Parent = ParentObject;
 		// the DP manager can be marked as Disregard for GC, so what it points to needs to be in the Root set
@@ -269,18 +296,56 @@ void UDeviceProfileManager::LoadProfiles()
 {
 	if( !HasAnyFlags( RF_ClassDefaultObject ) )
 	{
-		TArray< FString > DeviceProfileMapArray;
-		GConfig->GetArray(TEXT("DeviceProfiles"), TEXT("DeviceProfileNameAndTypes"), DeviceProfileMapArray, DeviceProfileFileName);
+		TMap<FString, FString> DeviceProfileToPlatformConfigMap;
+		TArray<FString> ConfidentialPlatforms = FPlatformMisc::GetConfidentialPlatforms();
+		
+		checkf(ConfidentialPlatforms.Contains(FString(FPlatformProperties::IniPlatformName())) == false,
+			TEXT("UDeviceProfileManager::LoadProfiles is called from a confidential platform (%s). Confidential platforms are not expected to be editor/non-cooked builds."), 
+			ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName()));
 
-		for (int32 DeviceProfileIndex = 0; DeviceProfileIndex < DeviceProfileMapArray.Num(); ++DeviceProfileIndex)
+		// go over all the platforms we find, starting with the current platform
+		for (int32 PlatformIndex = 0; PlatformIndex <= ConfidentialPlatforms.Num(); PlatformIndex++)
 		{
-			FString NewDeviceProfileSelectorPlatformName;
-			FString NewDeviceProfileSelectorPlatformType;
-			DeviceProfileMapArray[DeviceProfileIndex].Split(TEXT(","), &NewDeviceProfileSelectorPlatformName, &NewDeviceProfileSelectorPlatformType);
+			// which platform's set of ini files should we load from?
+			FString ConfigLoadPlatform = PlatformIndex == 0 ? FString(FPlatformProperties::IniPlatformName()) : ConfidentialPlatforms[PlatformIndex - 1];
 
-			if (FindObject<UDeviceProfile>(GetTransientPackage(), *NewDeviceProfileSelectorPlatformName) == NULL)
+			// load the DP.ini files (from current platform and then by the extra confidential platforms)
+			FConfigFile PlatformConfigFile;
+			FConfigCacheIni::LoadLocalIniFile(PlatformConfigFile, TEXT("DeviceProfiles"), true, *ConfigLoadPlatform);
+
+			// load all of the DeviceProfiles
+			TArray<FString> ProfileDescriptions;
+			PlatformConfigFile.GetArray(TEXT("DeviceProfiles"), TEXT("DeviceProfileNameAndTypes"), ProfileDescriptions);
+
+
+			// add them to our collection of profiles by platform
+			for (const FString& Desc : ProfileDescriptions)
 			{
-				CreateProfile(NewDeviceProfileSelectorPlatformName, NewDeviceProfileSelectorPlatformType);
+				if (!DeviceProfileToPlatformConfigMap.Contains(Desc))
+				{
+					DeviceProfileToPlatformConfigMap.Add(Desc, ConfigLoadPlatform);
+				}
+			}
+		}
+
+		// now that we have gathered all the unique DPs, load them from the proper platform hierarchy
+		for (auto It = DeviceProfileToPlatformConfigMap.CreateIterator(); It; ++It)
+		{
+			// the value of the map is in the format Name,DeviceType (DeviceType is usually platform)
+			FString Name, DeviceType;
+			It.Key().Split(TEXT(","), &Name, &DeviceType);
+
+			if (FindObject<UDeviceProfile>(GetTransientPackage(), *Name) == NULL)
+			{
+				// set the config platform if it's not the current platform
+				if (It.Value() != FPlatformProperties::IniPlatformName())
+				{
+					CreateProfile(Name, DeviceType, TEXT(""), *It.Value());
+				}
+				else
+				{
+					CreateProfile(Name, DeviceType);
+				}
 			}
 		}
 

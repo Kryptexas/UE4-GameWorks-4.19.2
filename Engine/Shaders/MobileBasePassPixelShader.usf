@@ -176,8 +176,8 @@ half3 BlendReflectionCapture(FMaterialPixelParameters MaterialParameters, half R
 
 	// Fetch from cubemap and convert to linear HDR
 	float4 Reflection = ReflectionCube.SampleLevel(ReflectionSampler, ProjectedCaptureVector.xyz, MipLevel);
-	half3 SpecularIBL = RGBMDecode(Reflection, 16.0f) * ProjectedCaptureVector.w * BlendFactor;
-	SpecularIBL = SpecularIBL * SpecularIBL * InvReflectionCubemapAverageBrightness;
+	half3 SpecularIBL = RGBMDecode(Reflection, 16.0f);
+	SpecularIBL = SpecularIBL * SpecularIBL * (InvReflectionCubemapAverageBrightness * ProjectedCaptureVector.w * BlendFactor);
 
 	BlendFactor = BlendFactor * (1.0 - ProjectedCaptureVector.w);
 	return SpecularIBL;
@@ -435,6 +435,12 @@ void Main(
 	#endif
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT
+		half MaterialAO = GetMaterialAmbientOcclusion(PixelMaterialInputs);
+		Color *= MaterialAO;	
+		IndirectIrradiance *= MaterialAO;
+	#endif
+
+	#if !MATERIAL_SHADINGMODEL_UNLIT
 		half Shadow = GetPrimaryPrecomputedShadowMask(Interpolants).r;
 		#if DIRECTIONAL_LIGHT_CSM && !MOBILE_MULTI_VIEW
 		// Cascaded Shadow Map
@@ -448,42 +454,44 @@ void Main(
 			Settings.DensityMulConstant = 0;
 			Settings.ProjectionDepthBiasParameters = 0;
 
-			float4 ShadowPosition;
+			float4 ShadowPosition = float4(0,0,0,0);
 			for (int i = 0; i < MAX_MOBILE_SHADOWCASCADES; i++)
 			{
-				if (i == (MAX_MOBILE_SHADOWCASCADES - 1) // ignore test for last shadow map.
-					|| MaterialParameters.ScreenPosition.w < MobileDirectionalLight.DirectionalLightShadowDistances[i])
+				if (MaterialParameters.ScreenPosition.w < MobileDirectionalLight.DirectionalLightShadowDistances[i])
 				{
 					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), MobileDirectionalLight.DirectionalLightScreenToShadow[i]);
 					break; // position found.
 				}
 			}
 
-			// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
-			// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
-			float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
-			Settings.SceneDepth = LightSpacePixelDepthForOpaque;
+			// Process CSM only when ShadowPosition is valid.
+			if (ShadowPosition.z > 0)
+			{
+				// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
+				// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
+				float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
+				Settings.SceneDepth = LightSpacePixelDepthForOpaque;
 
-			#if MOBILE_CSM_QUALITY == 0
-				half ShadowMap = ManualNoFiltering(ShadowPosition.xy, Settings);
-			#elif MOBILE_CSM_QUALITY == 1
-				half ShadowMap = Manual1x1PCF(ShadowPosition.xy, Settings);
-			#elif MOBILE_CSM_QUALITY == 2
-				half ShadowMap = Manual2x2PCF(ShadowPosition.xy, Settings);
-			#else
-				#error Unsupported MOBILE_CSM_QUALITY value.
-			#endif
-
-			#if MOVABLE_DIRECTIONAL_LIGHT
-				Shadow = ShadowMap;
-			#else
-				Shadow = min(ShadowMap, Shadow);
-			#endif
+				#if MOBILE_CSM_QUALITY == 0
+					half ShadowMap = ManualNoFiltering(ShadowPosition.xy, Settings);
+				#elif MOBILE_CSM_QUALITY == 1
+					half ShadowMap = Manual1x1PCF(ShadowPosition.xy, Settings);
+				#elif MOBILE_CSM_QUALITY == 2
+					half ShadowMap = Manual2x2PCF(ShadowPosition.xy, Settings);
+				#else
+					#error Unsupported MOBILE_CSM_QUALITY value.
+				#endif
+				#if MOVABLE_DIRECTIONAL_LIGHT
+					Shadow = ShadowMap;
+				#else
+					Shadow = min(ShadowMap, Shadow);
+				#endif
+			}
 		}
 		#endif /* DIRECTIONAL_LIGHT_CSM */
 
-		float NoL = max(0, dot(MaterialParameters.WorldNormal, MobileDirectionalLight.DirectionalLightDirection));
-		float RoL = max(0, dot(MaterialParameters.ReflectionVector, MobileDirectionalLight.DirectionalLightDirection));
+		float NoL = max(0, dot(float3(MaterialParameters.WorldNormal), float3(MobileDirectionalLight.DirectionalLightDirection)));
+		float RoL = max(0, dot(float3(MaterialParameters.ReflectionVector), float3(MobileDirectionalLight.DirectionalLightDirection)));
 
 		#if FULLY_ROUGH
 			Color += (Shadow * NoL) * MobileDirectionalLight.DirectionalLightColor.rgb * DiffuseColor;
@@ -551,7 +559,7 @@ void Main(
 				}
 
 				#if !FULLY_ROUGH
-					Color += (Attenuation * PointNoL) * LightColorAndFalloffExponent[i].rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, PointRoL));
+					Color += min(65000.0, (Attenuation * PointNoL) * LightColorAndFalloffExponent[i].rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, PointRoL)));
 				#else
 					Color += (Attenuation * PointNoL) * LightColorAndFalloffExponent[i].rgb * DiffuseColor;
 				#endif
@@ -636,8 +644,12 @@ void Main(
 	#endif
 
 	// We write to alpha here for mono far field mask computation
-	#if MONOSCOPIC_FAR_FIELD && !MATERIALBLENDING_ANY_TRANSLUCENT
-	OutColor.a = 1.0;
+	#if MONOSCOPIC_FAR_FIELD
+		#if MATERIALBLENDING_ANY_TRANSLUCENT
+			OutColor.a = Opacity;
+		#else
+			OutColor.a = 1.0;
+		#endif
 	#endif
 #endif
 }

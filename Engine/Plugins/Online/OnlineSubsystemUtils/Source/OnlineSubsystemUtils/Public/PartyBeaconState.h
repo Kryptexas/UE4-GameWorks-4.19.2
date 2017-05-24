@@ -201,6 +201,15 @@ struct ONLINESUBSYSTEMUTILS_API FPartyReservation
 
 	/** Is this data well formed */
 	bool IsValid() const;
+
+	/** 
+	 * Checks if a player from a different reservation can migrate to this reservation
+	 * For example, TeamNum must match
+	 *
+	 * @param Other the other reservation the player is in
+	 * @return true if the player can migrate, false if not
+	 */
+	bool CanPlayerMigrateFromReservation(const FPartyReservation& Other) const;
 };
 
 /**
@@ -518,7 +527,12 @@ protected:
 	 * allowing larger parties to fit into this session
 	 * Since teams change, this shouldn't be used after the teams have been set in the game logic
 	 */
-	void BestFitTeamAssignmentJiggle();
+	virtual void BestFitTeamAssignmentJiggle();
+
+	/** 
+	 * Check that our reservations are in a good state
+	 */
+	void SanityCheckReservations();
 
 	friend class APartyBeaconHost;
 };

@@ -3,6 +3,7 @@
 #include "MovieSceneSequencePlayer.h"
 #include "MovieScene.h"
 #include "MovieSceneSequence.h"
+#include "Engine/Engine.h"
 
 
 bool FMovieSceneSequencePlaybackSettings::SerializeFromMismatchedTag( const FPropertyTag& Tag, FArchive& Ar )
@@ -41,7 +42,7 @@ FMovieSceneSpawnRegister& UMovieSceneSequencePlayer::GetSpawnRegister()
 
 void UMovieSceneSequencePlayer::ResolveBoundObjects(const FGuid& InBindingId, FMovieSceneSequenceID SequenceID, UMovieSceneSequence& InSequence, UObject* ResolutionContext, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const
 {
-	bool bAllowDefault = PlaybackSettings.BindingOverrides ? PlaybackSettings.BindingOverrides->LocateBoundObjects(InBindingId, OutObjects) : true;
+	bool bAllowDefault = PlaybackSettings.BindingOverrides ? PlaybackSettings.BindingOverrides->LocateBoundObjects(InBindingId, SequenceID, OutObjects) : true;
 
 	if (bAllowDefault)
 	{
@@ -90,6 +91,12 @@ void UMovieSceneSequencePlayer::PlayInternal()
 
 		UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
 		TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+
+		OldMaxTickRate = GEngine->GetMaxFPS();
+		if (FixedFrameInterval.IsSet() && MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback())
+		{
+			GEngine->SetMaxFPS(1.f / FixedFrameInterval.GetValue());
+		}
 
 		// Ensure we're at the current sequence position
 		PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
@@ -181,6 +188,8 @@ void UMovieSceneSequencePlayer::Stop()
 		}
 
 		RootTemplateInstance.Finish(*this);
+
+		GEngine->SetMaxFPS(OldMaxTickRate);
 
 		OnStopped();
 
@@ -358,4 +367,17 @@ void UMovieSceneSequencePlayer::ApplyLatentActions()
 		case ELatentAction::Pause:	Pause(); break;
 		}
 	}
+}
+
+TArray<UObject*> UMovieSceneSequencePlayer::GetBoundObjects(FMovieSceneObjectBindingID ObjectBinding)
+{
+	TArray<UObject*> Objects;
+	for (TWeakObjectPtr<> WeakObject : FindBoundObjects(ObjectBinding.GetGuid(), ObjectBinding.GetSequenceID()))
+	{
+		if (UObject* Object = WeakObject.Get())
+		{
+			Objects.Add(Object);
+		}
+	}
+	return Objects;
 }

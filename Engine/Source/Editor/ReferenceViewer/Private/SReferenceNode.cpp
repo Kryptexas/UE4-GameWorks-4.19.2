@@ -61,9 +61,11 @@ void SReferenceNode::UpdateGraphNode()
 	TSharedRef<SWidget> ThumbnailWidget = SNullWidget::NullWidget;
 	if ( AssetThumbnail.IsValid() )
 	{
+		UEdGraphNode_Reference* RefGraphNode = CastChecked<UEdGraphNode_Reference>(GraphNode);
+
 		FAssetThumbnailConfig ThumbnailConfig;
-		ThumbnailConfig.bAllowFadeIn = bUsesThumbnail;
-		ThumbnailConfig.bForceGenericThumbnail = !bUsesThumbnail;
+		ThumbnailConfig.bAllowFadeIn = RefGraphNode->UsesThumbnail();
+		ThumbnailConfig.bForceGenericThumbnail = !RefGraphNode->UsesThumbnail();
 
 		ThumbnailWidget =
 			SNew(SBox)

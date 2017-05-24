@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AutomationDriver : ModuleRules
 {
-    public AutomationDriver(TargetInfo Target)
+    public AutomationDriver(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicIncludePaths.AddRange(
             new string[] {

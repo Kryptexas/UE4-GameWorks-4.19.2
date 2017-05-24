@@ -186,6 +186,12 @@ class UDataTable
 
 	ENGINE_API TArray<FName> GetRowNames() const;
 
+	/** Removes a single row from the DataTable by name. Just returns if row is not found. */
+	ENGINE_API void RemoveRow(FName RowName);
+
+	/** Copies RowData into table. That is: create Row if not found and copy data into the RowMap based on RowData. This is a "copy in" operation, so changing the passed in RowData after the fact does nothing. */
+	ENGINE_API void AddRow(FName RowName, const FTableRowBase& RowData);
+
 #if WITH_EDITOR
 
 private:
@@ -253,6 +259,9 @@ private:
 	 * @param OutCollectedImportProblems	[OUT] Array of strings of import problems
 	 */
 	void OnPostDataImported(OUT TArray<FString>& OutCollectedImportProblems);
+
+
+	UScriptStruct& GetEmptyUsingStruct() const;
 };
 
 
@@ -315,7 +324,7 @@ struct ENGINE_API FDataTableRowHandle
 };
 
 template<>
-struct TStructOpsTypeTraits< FDataTableRowHandle > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FDataTableRowHandle > : public TStructOpsTypeTraitsBase2< FDataTableRowHandle >
 {
 	enum
 	{

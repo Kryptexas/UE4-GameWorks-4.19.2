@@ -424,7 +424,7 @@ UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& Packa
 
 	UPackage* Pkg = CreatePackage(nullptr,*PackageName);
 	UObject* NewObj = nullptr;
-	EObjectFlags Flags = RF_Public|RF_Standalone;
+	EObjectFlags Flags = RF_Public|RF_Standalone|RF_Transactional;
 	if ( Factory )
 	{
 		NewObj = Factory->FactoryCreateNew(ClassToUse, Pkg, FName( *AssetName ), Flags, nullptr, GWarn, CallingContext);
@@ -689,7 +689,7 @@ void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString&
 		else
 		{
 			// Add any files and their destination path.
-			FilesAndDestinations.Add(TPairInitializer<FString, FString>(Filename, DestinationPath));
+			FilesAndDestinations.Emplace(Filename, DestinationPath);
 		}
 	}
 }
@@ -716,7 +716,7 @@ void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const 
 	const FString BaseAssetNameWithSuffix = FPackageName::GetLongPackageAssetName(SanitizedBasePackageName) + InSuffix;
 	const FString SanitizedBaseAssetName = ObjectTools::SanitizeObjectName(BaseAssetNameWithSuffix);
 
-	int32 IntSuffix = 1;
+	int32 IntSuffix = 0;
 	bool bObjectExists = false;
 
 	int32 CharIndex = SanitizedBaseAssetName.Len() - 1;
@@ -744,7 +744,7 @@ void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const 
 	do
 	{
 		bObjectExists = false;
-		if ( IntSuffix <= 1 )
+		if ( IntSuffix < 1 )
 		{
 			OutAssetName = SanitizedBaseAssetName;
 		}
@@ -1092,11 +1092,10 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 	TArray<UObject*> ReturnObjects;
 	TMap< FString, TArray<UFactory*> > ExtensionToFactoriesMap;
 
-	FScopedSlowTask SlowTask(Files.Num() + 3, LOCTEXT("ImportSlowTask", "Importing"));
+	FScopedSlowTask SlowTask(Files.Num(), LOCTEXT("ImportSlowTask", "Importing"));
 	SlowTask.MakeDialog();
 
 
-	SlowTask.EnterProgressFrame();
 	TArray<TPair<FString, FString>> FilesAndDestinations;
 	if (FilesAndDestinationsPtr == nullptr)
 	{
@@ -1107,16 +1106,13 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 		FilesAndDestinations = (*FilesAndDestinationsPtr);
 	}
 
-	SlowTask.EnterProgressFrame(1, LOCTEXT("Import_DeterminingImportTypes", "Determining asset types"));
-
-
 	if(SpecifiedFactory == nullptr)
 	{
 		// First instantiate one factory for each file extension encountered that supports the extension
 		// @todo import: gmp: show dialog in case of multiple matching factories
 		for(TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
-			if(!(*ClassIt)->IsChildOf(UFactory::StaticClass()) || ((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)))
+			if(!(*ClassIt)->IsChildOf(UFactory::StaticClass()) || ((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)) || (*ClassIt)->IsChildOf(USceneImportFactory::StaticClass()))
 			{
 				continue;
 			}
@@ -1225,6 +1221,8 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 	bool bDontOverwriteAny = false;
 	bool bDontReplaceAny = false;
 
+	TArray<UFactory*> UsedFactories;
+
 	// Now iterate over the input files and use the same factory object for each file with the same extension
 	for(int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
 	{
@@ -1286,8 +1284,12 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 		if(Factory != nullptr)
 		{
 			// Reset the 'Do you want to overwrite the existing object?' Yes to All / No to All prompt, to make sure the
-			// user gets a chance to select something
-			Factory->ResetState();
+			// user gets a chance to select something when the factory is first used during this import
+			if (!UsedFactories.Contains(Factory))
+			{
+				Factory->ResetState();
+				UsedFactories.AddUnique(Factory);
+			}
 
 			UClass* ImportAssetType = Factory->SupportedClass;
 			bool bImportSucceeded = false;
@@ -1295,7 +1297,7 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 			FDateTime ImportStartTime = FDateTime::UtcNow();
 
 			FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Filename));
-			FString PackageName = DestinationPath + TEXT("/") + Name;
+			FString PackageName = FPaths::Combine(*DestinationPath, *Name);
 
 			// We can not create assets that share the name of a map file in the same location
 			if(FEditorFileUtils::IsMapPackageAsset(PackageName))
@@ -1458,7 +1460,7 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 			Factory->SetAutomatedAssetImportData(Params.ImportData);
 
 			ImportAssetType = Factory->ResolveSupportedClass();
-			UObject* Result = Factory->ImportObject(ImportAssetType, Pkg, FName(*Name), RF_Public | RF_Standalone, Filename, nullptr, bImportWasCancelled);
+			UObject* Result = Factory->ImportObject(ImportAssetType, Pkg, FName(*Name), RF_Public | RF_Standalone | RF_Transactional, Filename, nullptr, bImportWasCancelled);
 
 			Factory->SetAutomatedAssetImportData(nullptr);
 
@@ -1495,8 +1497,6 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 			// A factory or extension was not found. The extension warning is above. If a factory was not found, the user likely canceled a factory configuration dialog.
 		}
 	}
-
-	SlowTask.EnterProgressFrame(1);
 
 	// Clean up and remove the factories we created from the root set
 	for(auto ExtensionIt = ExtensionToFactoriesMap.CreateConstIterator(); ExtensionIt; ++ExtensionIt)

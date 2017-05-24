@@ -8,12 +8,19 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SGridPanel.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "EditorStyleSet.h"
+#include "PackageName.h"
+#include "AssetRegistryModule.h"
+#include "StringTable.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
+#include "Internationalization/StringTableCore.h"
+#include "Internationalization/StringTableRegistry.h"
 #include "Serialization/TextReferenceCollector.h"
 
 #define LOCTEXT_NAMESPACE "STextPropertyEditableTextBox"
@@ -74,6 +81,341 @@ void IEditableTextProperty::StaticStableTextId(UPackage* InPackage, const ETextP
 
 #endif // USE_STABLE_LOCALIZATION_KEYS
 
+void STextPropertyEditableStringTableReference::Construct(const FArguments& InArgs, const TSharedRef<IEditableTextProperty>& InEditableTextProperty)
+{
+	EditableTextProperty = InEditableTextProperty;
+
+	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+
+	HorizontalBox->AddSlot()
+		[
+			SAssignNew(StringTableCombo, SComboBox<TSharedPtr<FAvailableStringTable>>)
+			.ComboBoxStyle(InArgs._ComboStyle)
+			.OptionsSource(&StringTableComboOptions)
+			.OnGenerateWidget(this, &STextPropertyEditableStringTableReference::MakeStringTableComboWidget)
+			.OnSelectionChanged(this, &STextPropertyEditableStringTableReference::OnStringTableComboChanged)
+			.OnComboBoxOpening(this, &STextPropertyEditableStringTableReference::OnStringTableComboOpening)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(this, &STextPropertyEditableStringTableReference::GetStringTableComboContent)
+				.ToolTipText(this, &STextPropertyEditableStringTableReference::GetStringTableComboToolTip)
+			]
+		];
+
+	HorizontalBox->AddSlot()
+		[
+			SAssignNew(KeyCombo, SComboBox<TSharedPtr<FString>>)
+			.ComboBoxStyle(InArgs._ComboStyle)
+			.OptionsSource(&KeyComboOptions)
+			.OnGenerateWidget(this, &STextPropertyEditableStringTableReference::MakeKeyComboWidget)
+			.OnSelectionChanged(this, &STextPropertyEditableStringTableReference::OnKeyComboChanged)
+			.OnComboBoxOpening(this, &STextPropertyEditableStringTableReference::OnKeyComboOpening)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(this, &STextPropertyEditableStringTableReference::GetKeyComboContent)
+				.ToolTipText(this, &STextPropertyEditableStringTableReference::GetKeyComboToolTip)
+			]
+		];
+
+	if (InArgs._AllowUnlink)
+	{
+		HorizontalBox->AddSlot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ButtonStyle(InArgs._ButtonStyle)
+				.Text(LOCTEXT("UnlinkStringTable", "Unlink"))
+				.IsEnabled(this, &STextPropertyEditableStringTableReference::IsUnlinkEnabled)
+				.OnClicked(this, &STextPropertyEditableStringTableReference::OnUnlinkClicked)
+			];
+	}
+
+	ChildSlot
+	[
+		HorizontalBox
+	];
+}
+
+void STextPropertyEditableStringTableReference::GetTableIdAndKey(FName& OutTableId, FString& OutKey) const
+{
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+	if (NumTexts > 0)
+	{
+		const FText PropertyValue = EditableTextProperty->GetText(0);
+		FStringTableRegistry::Get().FindTableIdAndKey(PropertyValue, OutTableId, OutKey);
+
+		// Verify that all texts are using the same string table and key
+		for (int32 TextIndex = 1; TextIndex < NumTexts; ++TextIndex)
+		{
+			FName TmpTableId;
+			FString TmpKey;
+			if (FStringTableRegistry::Get().FindTableIdAndKey(PropertyValue, TmpTableId, TmpKey) && OutTableId == TmpTableId)
+			{
+				if (!OutKey.Equals(TmpKey, ESearchCase::CaseSensitive))
+				{
+					// Not using the same key - clear the key but keep the table and keep enumerating to verify the table on the remaining texts
+					OutKey.Reset();
+				}
+			}
+			else
+			{
+				// Not using a string table, or using a different string table - clear both table ID and key
+				OutTableId = FName();
+				OutKey.Reset();
+				break;
+			}
+		}
+	}
+}
+
+void STextPropertyEditableStringTableReference::SetTableIdAndKey(const FName InTableId, const FString& InKey)
+{
+	const FText TextToSet = FText::FromStringTable(InTableId, InKey);
+	if (TextToSet.IsFromStringTable())
+	{
+		const int32 NumTexts = EditableTextProperty->GetNumTexts();
+		for (int32 TextIndex = 0; TextIndex < NumTexts; ++TextIndex)
+		{
+			EditableTextProperty->SetText(TextIndex, TextToSet);
+		}
+	}
+}
+
+TSharedRef<SWidget> STextPropertyEditableStringTableReference::MakeStringTableComboWidget(TSharedPtr<FAvailableStringTable> InItem)
+{
+	return SNew(STextBlock)
+		.Text(InItem->DisplayName)
+		.ToolTipText(FText::FromName(InItem->TableId));
+}
+
+void STextPropertyEditableStringTableReference::OnStringTableComboChanged(TSharedPtr<FAvailableStringTable> NewSelection, ESelectInfo::Type SelectInfo)
+{
+	// If it's set from code, we did that on purpose
+	if (SelectInfo != ESelectInfo::Direct && NewSelection.IsValid())
+	{
+		// Make sure any selected string table asset is loaded
+		FName TableId = NewSelection->TableId;
+		IStringTableEngineBridge::RedirectAndLoadStringTableAsset(TableId, EStringTableLoadingPolicy::FindOrFullyLoad);
+
+		FStringTableConstPtr StringTable = FStringTableRegistry::Get().FindStringTable(TableId);
+		if (StringTable.IsValid())
+		{
+			// Just use the first key when changing the string table
+			StringTable->EnumerateSourceStrings([&](const FString& InKey, const FString& InSourceString) -> bool
+			{
+				SetTableIdAndKey(TableId, InKey);
+				return false; // stop enumeration
+			});
+		}
+	}
+}
+
+void STextPropertyEditableStringTableReference::OnStringTableComboOpening()
+{
+	FName CurrentTableId;
+	{
+		FString TmpKey;
+		GetTableIdAndKey(CurrentTableId, TmpKey);
+	}
+
+	TSharedPtr<FAvailableStringTable> SelectedStringTableComboEntry;
+	StringTableComboOptions.Reset();
+
+	// Process assets first (as they may currently be unloaded)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName);
+		
+		TArray<FAssetData> StringTableAssets;
+		AssetRegistryModule.Get().GetAssetsByClass(UStringTable::StaticClass()->GetFName(), StringTableAssets);
+		
+		for (const FAssetData& StringTableAsset : StringTableAssets)
+		{
+			TSharedRef<FAvailableStringTable> AvailableStringTableEntry = MakeShared<FAvailableStringTable>();
+			AvailableStringTableEntry->TableId = StringTableAsset.ObjectPath;
+			AvailableStringTableEntry->DisplayName = FText::FromName(StringTableAsset.AssetName);
+			if (StringTableAsset.ObjectPath == CurrentTableId)
+			{
+				SelectedStringTableComboEntry = AvailableStringTableEntry;
+			}
+			StringTableComboOptions.Add(AvailableStringTableEntry);
+		}
+	}
+
+	// Process the remaining non-asset string tables now
+	FStringTableRegistry::Get().EnumerateStringTables([&](const FName& InTableId, const FStringTableConstRef& InStringTable) -> bool
+	{
+		const bool bAlreadyAdded = StringTableComboOptions.ContainsByPredicate([InTableId](const TSharedPtr<FAvailableStringTable>& InAvailableStringTable)
+		{
+			return InAvailableStringTable->TableId == InTableId;
+		});
+
+		if (!bAlreadyAdded)
+		{
+			TSharedRef<FAvailableStringTable> AvailableStringTableEntry = MakeShared<FAvailableStringTable>();
+			AvailableStringTableEntry->TableId = InTableId;
+			AvailableStringTableEntry->DisplayName = FText::FromName(InTableId);
+			if (InTableId == CurrentTableId)
+			{
+				SelectedStringTableComboEntry = AvailableStringTableEntry;
+			}
+			StringTableComboOptions.Add(AvailableStringTableEntry);
+		}
+
+		return true; // continue enumeration
+	});
+
+	StringTableComboOptions.Sort([](const TSharedPtr<FAvailableStringTable>& InOne, const TSharedPtr<FAvailableStringTable>& InTwo)
+	{
+		return InOne->DisplayName.ToString() < InTwo->DisplayName.ToString();
+	});
+
+	if (SelectedStringTableComboEntry.IsValid())
+	{
+		StringTableCombo->SetSelectedItem(SelectedStringTableComboEntry);
+	}
+	else
+	{
+		StringTableCombo->ClearSelection();
+	}
+}
+
+FText STextPropertyEditableStringTableReference::GetStringTableComboContent() const
+{
+	FName CurrentTableId;
+	{
+		FString TmpKey;
+		GetTableIdAndKey(CurrentTableId, TmpKey);
+	}
+
+	return FText::FromString(FPackageName::GetLongPackageAssetName(CurrentTableId.ToString()));
+}
+
+FText STextPropertyEditableStringTableReference::GetStringTableComboToolTip() const
+{
+	FName CurrentTableId;
+	{
+		FString TmpKey;
+		GetTableIdAndKey(CurrentTableId, TmpKey);
+	}
+
+	return FText::FromName(CurrentTableId);
+}
+
+TSharedRef<SWidget> STextPropertyEditableStringTableReference::MakeKeyComboWidget(TSharedPtr<FString> InItem)
+{
+	return SNew(STextBlock)
+		.Text(FText::FromString(*InItem))
+		.ToolTipText(FText::FromString(*InItem));
+}
+
+void STextPropertyEditableStringTableReference::OnKeyComboChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
+{
+	// If it's set from code, we did that on purpose
+	if (SelectInfo != ESelectInfo::Direct && NewSelection.IsValid())
+	{
+		FName CurrentTableId;
+		{
+			FString TmpKey;
+			GetTableIdAndKey(CurrentTableId, TmpKey);
+		}
+
+		SetTableIdAndKey(CurrentTableId, *NewSelection);
+	}
+}
+
+void STextPropertyEditableStringTableReference::OnKeyComboOpening()
+{
+	FName CurrentTableId;
+	FString CurrentKey;
+	GetTableIdAndKey(CurrentTableId, CurrentKey);
+
+	TSharedPtr<FString> SelectedKeyComboEntry;
+	KeyComboOptions.Reset();
+
+	if (!CurrentTableId.IsNone())
+	{
+		FStringTableConstPtr StringTable = FStringTableRegistry::Get().FindStringTable(CurrentTableId);
+		if (StringTable.IsValid())
+		{
+			StringTable->EnumerateSourceStrings([&](const FString& InKey, const FString& InSourceString) -> bool
+			{
+				TSharedRef<FString> KeyComboEntry = MakeShared<FString>(InKey);
+				if (InKey.Equals(CurrentKey, ESearchCase::CaseSensitive))
+				{
+					SelectedKeyComboEntry = KeyComboEntry;
+				}
+				KeyComboOptions.Add(KeyComboEntry);
+				return true; // continue enumeration
+			});
+		}
+	}
+
+	KeyComboOptions.Sort([](const TSharedPtr<FString>& InOne, const TSharedPtr<FString>& InTwo)
+	{
+		return *InOne < *InTwo;
+	});
+
+	if (SelectedKeyComboEntry.IsValid())
+	{
+		KeyCombo->SetSelectedItem(SelectedKeyComboEntry);
+	}
+	else
+	{
+		KeyCombo->ClearSelection();
+	}
+}
+
+FText STextPropertyEditableStringTableReference::GetKeyComboContent() const
+{
+	FString CurrentKey;
+	{
+		FName TmpTableId;
+		GetTableIdAndKey(TmpTableId, CurrentKey);
+	}
+
+	return FText::FromString(MoveTemp(CurrentKey));
+}
+
+FText STextPropertyEditableStringTableReference::GetKeyComboToolTip() const
+{
+	return GetKeyComboContent();
+}
+
+bool STextPropertyEditableStringTableReference::IsUnlinkEnabled() const
+{
+	bool bEnabled = false;
+
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+	for (int32 TextIndex = 0; TextIndex < NumTexts; ++TextIndex)
+	{
+		const FText CurrentText = EditableTextProperty->GetText(TextIndex);
+		if (CurrentText.IsFromStringTable())
+		{
+			bEnabled = true;
+			break;
+		}
+	}
+
+	return bEnabled;
+}
+
+FReply STextPropertyEditableStringTableReference::OnUnlinkClicked()
+{
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+	for (int32 TextIndex = 0; TextIndex < NumTexts; ++TextIndex)
+	{
+		const FText CurrentText = EditableTextProperty->GetText(TextIndex);
+		if (CurrentText.IsFromStringTable())
+		{
+			EditableTextProperty->SetText(TextIndex, FText::GetEmpty());
+		}
+	}
+
+	return FReply::Handled();
+}
+
 void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSharedRef<IEditableTextProperty>& InEditableTextProperty)
 {
 	EditableTextProperty = InEditableTextProperty;
@@ -105,7 +447,7 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 					.OnTextChanged(this, &STextPropertyEditableTextBox::OnTextChanged)
 					.OnTextCommitted(this, &STextPropertyEditableTextBox::OnTextCommitted)
 					.SelectAllTextOnCommit(false)
-					.IsReadOnly(this, &STextPropertyEditableTextBox::IsReadOnly)
+					.IsReadOnly(this, &STextPropertyEditableTextBox::IsSourceTextReadOnly)
 					.AutoWrapText(InArgs._AutoWrapText)
 					.WrapTextAt(InArgs._WrapTextAt)
 					.ModiferKeyForNewLine(EModifierKey::Shift)
@@ -138,7 +480,7 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 					.OnTextChanged(this, &STextPropertyEditableTextBox::OnTextChanged)
 					.OnTextCommitted(this, &STextPropertyEditableTextBox::OnTextCommitted)
 					.SelectAllTextOnCommit(true)
-					.IsReadOnly(this, &STextPropertyEditableTextBox::IsReadOnly)
+					.IsReadOnly(this, &STextPropertyEditableTextBox::IsSourceTextReadOnly)
 					.IsPassword(bIsPassword)
 				]
 			]
@@ -166,15 +508,28 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 					SNew(SGridPanel)
 					.FillColumn(1, 1.0f)
 
-					// Localizable?
+					// Inline Text
 					+SGridPanel::Slot(0, 0)
+					.ColumnSpan(2)
+					.Padding(2)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "LargeText")
+						.Text(LOCTEXT("TextInlineTextLabel", "Inline Text"))
+					]
+
+					// Localizable?
+					+SGridPanel::Slot(0, 1)
 					.Padding(2)
 					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TextLocalizableLabel", "Localizable:"))
 					]
-					+SGridPanel::Slot(1, 0)
+					+SGridPanel::Slot(1, 1)
 					.Padding(2)
 					[
 						SNew(SHorizontalBox)
@@ -193,6 +548,7 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 								.ToolTipText(LOCTEXT("TextLocalizableToggleYesToolTip", "Assign this text a key and allow it to be gathered for localization."))
 								.Padding(FMargin(4, 2))
 								.HAlign(HAlign_Center)
+								.IsEnabled(this, &STextPropertyEditableTextBox::IsCultureInvariantFlagEnabled)
 								.IsChecked(this, &STextPropertyEditableTextBox::GetLocalizableCheckState, true/*bActiveState*/)
 								.OnCheckStateChanged(this, &STextPropertyEditableTextBox::HandleLocalizableCheckStateChanged, true/*bActiveState*/)
 								[
@@ -208,6 +564,7 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 								.ToolTipText(LOCTEXT("TextLocalizableToggleNoToolTip", "Mark this text as 'culture invariant' to prevent it being gathered for localization."))
 								.Padding(FMargin(4, 2))
 								.HAlign(HAlign_Center)
+								.IsEnabled(this, &STextPropertyEditableTextBox::IsCultureInvariantFlagEnabled)
 								.IsChecked(this, &STextPropertyEditableTextBox::GetLocalizableCheckState, false/*bActiveState*/)
 								.OnCheckStateChanged(this, &STextPropertyEditableTextBox::HandleLocalizableCheckStateChanged, false/*bActiveState*/)
 								[
@@ -220,14 +577,15 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 
 #if USE_STABLE_LOCALIZATION_KEYS
 					// Package
-					+SGridPanel::Slot(0, 1)
+					+SGridPanel::Slot(0, 2)
 					.Padding(2)
 					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TextPackageLabel", "Package:"))
 					]
-					+SGridPanel::Slot(1, 1)
+					+SGridPanel::Slot(1, 2)
 					.Padding(2)
 					[
 						SNew(SEditableTextBox)
@@ -237,14 +595,15 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 #endif // USE_STABLE_LOCALIZATION_KEYS
 
 					// Namespace
-					+SGridPanel::Slot(0, 2)
+					+SGridPanel::Slot(0, 3)
 					.Padding(2)
 					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TextNamespaceLabel", "Namespace:"))
 					]
-					+SGridPanel::Slot(1, 2)
+					+SGridPanel::Slot(1, 3)
 					.Padding(2)
 					[
 						SAssignNew(NamespaceEditableTextBox, SEditableTextBox)
@@ -258,14 +617,15 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 					]
 
 					// Key
-					+SGridPanel::Slot(0, 3)
+					+SGridPanel::Slot(0, 4)
 					.Padding(2)
 					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("TextKeyLabel", "Key:"))
 					]
-					+SGridPanel::Slot(1, 3)
+					+SGridPanel::Slot(1, 4)
 					.Padding(2)
 					[
 						SAssignNew(KeyEditableTextBox, SEditableTextBox)
@@ -280,6 +640,35 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 #else	// USE_STABLE_LOCALIZATION_KEYS
 						.IsReadOnly(true)
 #endif	// USE_STABLE_LOCALIZATION_KEYS
+					]
+
+					// Referenced Text
+					+SGridPanel::Slot(0, 5)
+					.ColumnSpan(2)
+					.Padding(2)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "LargeText")
+						.Text(LOCTEXT("TextReferencedTextLabel", "Referenced Text"))
+					]
+
+					// String Table
+					+SGridPanel::Slot(0, 6)
+					.Padding(2)
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("TextStringTableLabel", "String Table:"))
+					]
+					+SGridPanel::Slot(1, 6)
+					.Padding(2)
+					[
+						SNew(STextPropertyEditableStringTableReference, InEditableTextProperty)
+						.AllowUnlink(true)
+						.IsEnabled(this, &STextPropertyEditableTextBox::CanEdit)
 					]
 				]
 			]
@@ -339,9 +728,30 @@ bool STextPropertyEditableTextBox::CanEdit() const
 	return !EditableTextProperty->IsReadOnly();
 }
 
-bool STextPropertyEditableTextBox::IsReadOnly() const
+bool STextPropertyEditableTextBox::IsCultureInvariantFlagEnabled() const
 {
-	return EditableTextProperty->IsReadOnly();
+	return !IsSourceTextReadOnly();
+}
+
+bool STextPropertyEditableTextBox::IsSourceTextReadOnly() const
+{
+	if (EditableTextProperty->IsReadOnly())
+	{
+		return true;
+	}
+
+	// We can't edit the source string of string table references
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+	if (NumTexts == 1)
+	{
+		const FText TextValue = EditableTextProperty->GetText(0);
+		if (TextValue.IsFromStringTable())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool STextPropertyEditableTextBox::IsIdentityReadOnly() const
@@ -351,12 +761,12 @@ bool STextPropertyEditableTextBox::IsIdentityReadOnly() const
 		return true;
 	}
 
-	// We can't edit the identity of culture invariant texts
+	// We can't edit the identity of texts that don't gather for localization
 	const int32 NumTexts = EditableTextProperty->GetNumTexts();
 	if (NumTexts == 1)
 	{
 		const FText TextValue = EditableTextProperty->GetText(0);
-		if (TextValue.IsCultureInvariant())
+		if (!TextValue.ShouldGatherForLocalization())
 		{
 			return true;
 		}
@@ -373,25 +783,39 @@ FText STextPropertyEditableTextBox::GetToolTipText() const
 	{
 		const FText TextValue = EditableTextProperty->GetText(0);
 
-		bool bIsLocalized = false;
-		FString Namespace;
-		FString Key;
-		const FString* SourceString = FTextInspector::GetSourceString(TextValue);
-
-		if (SourceString && TextValue.ShouldGatherForLocalization())
+		if (TextValue.IsFromStringTable())
 		{
-			bIsLocalized = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(FTextInspector::GetSharedDisplayString(TextValue), Namespace, Key);
-		}
-
-		if (bIsLocalized)
-		{
-			const FString PackageNamespace = TextNamespaceUtil::ExtractPackageNamespace(Namespace);
-			const FString TextNamespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
+			FName TableId;
+			FString Key;
+			FStringTableRegistry::Get().FindTableIdAndKey(TextValue, TableId, Key);
 
 			LocalizedTextToolTip = FText::Format(
-				LOCTEXT("LocalizedTextToolTipFmt", "--- Localized Text ---\nPackage: {0}\nNamespace: {1}\nKey: {2}\nSource: {3}"), 
-				FText::FromString(PackageNamespace), FText::FromString(TextNamespace), FText::FromString(Key), FText::FromString(*SourceString)
+				LOCTEXT("StringTableTextToolTipFmt", "--- String Table Reference ---\nTable ID: {0}\nKey: {1}"), 
+				FText::FromName(TableId), FText::FromString(Key)
 				);
+		}
+		else
+		{
+			bool bIsLocalized = false;
+			FString Namespace;
+			FString Key;
+			const FString* SourceString = FTextInspector::GetSourceString(TextValue);
+
+			if (SourceString && TextValue.ShouldGatherForLocalization())
+			{
+				bIsLocalized = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(FTextInspector::GetSharedDisplayString(TextValue), Namespace, Key);
+			}
+
+			if (bIsLocalized)
+			{
+				const FString PackageNamespace = TextNamespaceUtil::ExtractPackageNamespace(Namespace);
+				const FString TextNamespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
+
+				LocalizedTextToolTip = FText::Format(
+					LOCTEXT("LocalizedTextToolTipFmt", "--- Localized Text ---\nPackage: {0}\nNamespace: {1}\nKey: {2}\nSource: {3}"), 
+					FText::FromString(PackageNamespace), FText::FromString(TextNamespace), FText::FromString(Key), FText::FromString(*SourceString)
+					);
+			}
 		}
 	}
 	
@@ -446,7 +870,7 @@ void STextPropertyEditableTextBox::OnTextCommitted(const FText& NewText, ETextCo
 	const int32 NumTexts = EditableTextProperty->GetNumTexts();
 
 	// Don't commit the Multiple Values text if there are multiple properties being set
-	if (NumTexts > 0 && (NumTexts == 1 || NewText.ToString().Equals(MultipleValuesText.ToString(), ESearchCase::CaseSensitive)))
+	if (NumTexts > 0 && (NumTexts == 1 || !NewText.ToString().Equals(MultipleValuesText.ToString(), ESearchCase::CaseSensitive)))
 	{
 		FText TextErrorMsg;
 		if (EditableTextProperty->IsValidText(NewText, TextErrorMsg))
@@ -469,6 +893,13 @@ void STextPropertyEditableTextBox::OnTextCommitted(const FText& NewText, ETextCo
 			// Only apply the change if the new text is different
 			if (PropertyValue.ToString().Equals(NewText.ToString(), ESearchCase::CaseSensitive))
 			{
+				continue;
+			}
+
+			// Is the new text is empty, just use the empty instance
+			if (NewText.IsEmpty())
+			{
+				EditableTextProperty->SetText(TextIndex, FText::GetEmpty());
 				continue;
 			}
 

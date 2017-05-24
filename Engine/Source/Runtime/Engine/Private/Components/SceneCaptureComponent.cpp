@@ -31,6 +31,8 @@
 
 #define LOCTEXT_NAMESPACE "SceneCaptureComponent"
 
+static TMultiMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<USceneCaptureComponent> > SceneCapturesToUpdateMap;
+
 ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -169,7 +171,9 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
 {
 	bCaptureEveryFrame = true;
 	bCaptureOnMovement = true;
+	LODDistanceFactor = 1.0f;
 	MaxViewDistanceOverride = -1;
+	CaptureSortPriority = 0;
 
 	// Disable features that are not desired when capturing the scene
 	ShowFlags.SetMotionBlur(0); // motion blur doesn't work correctly with scene captures.
@@ -179,28 +183,17 @@ USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectI
     CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
 }
 
-void USceneCaptureComponent::PostLoad()
-{
-	Super::PostLoad();
-
-	// Make sure any loaded saved flag settings are reflected in our FEngineShowFlags
-	UpdateShowFlags();
-}
-
 void USceneCaptureComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	USceneCaptureComponent* This = CastChecked<USceneCaptureComponent>(InThis);
 
-	FSceneViewStateInterface* Ref = This->ViewState.GetReference();
-	if (Ref)
+	for (int32 ViewIndex = 0; ViewIndex < This->ViewStates.Num(); ViewIndex++)
 	{
-		Ref->AddReferencedObjects(Collector);
-	}
-	
-	FSceneViewStateInterface* StereoRef = This->StereoViewState.GetReference();
-	if (StereoRef)
-	{
-		StereoRef->AddReferencedObjects(Collector);
+		FSceneViewStateInterface* Ref = This->ViewStates[ViewIndex].GetReference();
+		if (Ref)
+		{
+			Ref->AddReferencedObjects(Collector);
+		}
 	}
 
 	Super::AddReferencedObjects(This, Collector);
@@ -271,33 +264,27 @@ void USceneCaptureComponent::ClearShowOnlyComponents(UPrimitiveComponent* InComp
 	ShowOnlyComponents.Reset();
 }
 
-FSceneViewStateInterface* USceneCaptureComponent::GetViewState()
+void USceneCaptureComponent::SetCaptureSortPriority(int32 NewCaptureSortPriority)
 {
-	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();
-	if (bCaptureEveryFrame && ViewStateInterface == NULL)
-	{
-		ViewState.Allocate();
-		ViewStateInterface = ViewState.GetReference();
-	}
-	else if (!bCaptureEveryFrame && ViewStateInterface)
-	{
-		ViewState.Destroy();
-		ViewStateInterface = NULL;
-	}
-	return ViewStateInterface;
+	CaptureSortPriority = NewCaptureSortPriority;
 }
 
-FSceneViewStateInterface* USceneCaptureComponent::GetStereoViewState()
+FSceneViewStateInterface* USceneCaptureComponent::GetViewState(int32 ViewIndex)
 {
-	FSceneViewStateInterface* ViewStateInterface = StereoViewState.GetReference();
+	if (ViewIndex >= ViewStates.Num())
+	{
+		ViewStates.AddZeroed(ViewIndex - ViewStates.Num() + 1);
+	}
+
+	FSceneViewStateInterface* ViewStateInterface = ViewStates[ViewIndex].GetReference();
 	if (bCaptureEveryFrame && ViewStateInterface == NULL)
 	{
-		StereoViewState.Allocate();
-		ViewStateInterface = StereoViewState.GetReference();
+		ViewStates[ViewIndex].Allocate();
+		ViewStateInterface = ViewStates[ViewIndex].GetReference();
 	}
 	else if (!bCaptureEveryFrame && ViewStateInterface)
 	{
-		StereoViewState.Destroy();
+		ViewStates[ViewIndex].Destroy();
 		ViewStateInterface = NULL;
 	}
 	return ViewStateInterface;
@@ -346,6 +333,43 @@ bool USceneCaptureComponent::GetSettingForShowFlag(FString FlagName, FEngineShow
 	return HasSetting;
 }
 
+void USceneCaptureComponent::UpdateDeferredCaptures(FSceneInterface* Scene)
+{
+	UWorld* World = Scene->GetWorld();
+	if (!World || SceneCapturesToUpdateMap.Num() == 0)
+	{
+		return;
+	}
+
+	// Only update the scene captures associated with the current scene.
+	// Updating others not associated with the scene would cause invalid data to be rendered into the target
+	TArray< TWeakObjectPtr<USceneCaptureComponent> > SceneCapturesToUpdate;
+	SceneCapturesToUpdateMap.MultiFind(World, SceneCapturesToUpdate);
+	SceneCapturesToUpdate.Sort([](const TWeakObjectPtr<USceneCaptureComponent>& A, const TWeakObjectPtr<USceneCaptureComponent>& B)
+	{
+		if (!A.IsValid())
+		{
+			return false;
+		}
+		else if (!B.IsValid())
+		{
+			return true;
+		}
+		return A->CaptureSortPriority > B->CaptureSortPriority;
+	});
+
+	for (TWeakObjectPtr<USceneCaptureComponent> Component : SceneCapturesToUpdate)
+	{
+		if (Component.IsValid())
+		{
+			Component->UpdateSceneCaptureContents(Scene);
+		}
+	}
+
+	// All scene captures for this world have been updated
+	SceneCapturesToUpdateMap.Remove(World);
+}
+
 // -----------------------------------------------
 
 
@@ -367,11 +391,16 @@ USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& Obj
 	CaptureStereoPass = EStereoscopicPass::eSSP_FULL;
 	CustomProjectionMatrix.SetIdentity();
 	ClipPlaneNormal = FVector(0, 0, 1);
+	// previous behavior was to capture 2d scene captures before cube scene captures.
+	CaptureSortPriority = 1;
 }
 
 void USceneCaptureComponent2D::OnRegister()
 {
 	Super::OnRegister();
+
+	// Make sure any loaded saved flag settings are reflected in our FEngineShowFlags
+	UpdateShowFlags();
 
 #if WITH_EDITOR
 	// Update content on register to have at least one frames worth of good data.
@@ -400,8 +429,6 @@ void USceneCaptureComponent2D::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 }
 
-static TMultiMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<USceneCaptureComponent2D>> SceneCapturesToUpdateMap;
-
 void USceneCaptureComponent2D::CaptureSceneDeferred()
 {
 	UWorld* World = GetWorld();
@@ -428,29 +455,6 @@ void USceneCaptureComponent2D::CaptureScene()
 	if (bCaptureEveryFrame)
 	{
 		FMessageLog("Blueprint").Warning(LOCTEXT("CaptureScene", "CaptureScene: Scene capture with bCaptureEveryFrame enabled was told to update - major inefficiency."));
-	}
-}
-
-void USceneCaptureComponent2D::UpdateDeferredCaptures( FSceneInterface* Scene )
-{
-	UWorld* World = Scene->GetWorld();
-	if( World && SceneCapturesToUpdateMap.Num() > 0 )
-	{
-		// Only update the scene captures associated with the current scene.
-		// Updating others not associated with the scene would cause invalid data to be rendered into the target
-		TArray< TWeakObjectPtr<USceneCaptureComponent2D> > SceneCapturesToUpdate;
-		SceneCapturesToUpdateMap.MultiFind( World, SceneCapturesToUpdate );
-		
-		for( TWeakObjectPtr<USceneCaptureComponent2D> Component : SceneCapturesToUpdate )
-		{
-			if( Component.IsValid() )
-			{
-				Scene->UpdateSceneCaptureContents( Component.Get() );
-			}
-		}
-		
-		// All scene captures for this world have been updated
-		SceneCapturesToUpdateMap.Remove( World );
 	}
 }
 
@@ -523,6 +527,12 @@ void USceneCaptureComponent2D::Serialize(FArchive& Ar)
 		PostProcessSettings.OnAfterLoad();
 	}
 }
+
+void USceneCaptureComponent2D::UpdateSceneCaptureContents(FSceneInterface* Scene)
+{
+	Scene->UpdateSceneCaptureContents(this);
+}
+
 
 // -----------------------------------------------
 
@@ -653,8 +663,10 @@ UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer&
 	ProjectionWithExtraFOV[0] = FMatrix::Identity;
 	ProjectionWithExtraFOV[1] = FMatrix::Identity;
 
+	// Disable screen space effects that don't work properly with the clip plane
 	ShowFlags.SetLightShafts(0);
 	ShowFlags.SetContactShadows(0);
+	ShowFlags.SetScreenSpaceReflections(0);
 
 	NextPlanarReflectionId++;
 	PlanarReflectionId = NextPlanarReflectionId;
@@ -724,9 +736,12 @@ void UPlanarReflectionComponent::PostEditChangeProperty(FPropertyChangedEvent& P
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	// Recreate the view state to reset temporal history so that property changes can be seen immediately
-	ViewState.Destroy();
-	ViewState.Allocate();
+	for (int32 ViewIndex = 0; ViewIndex < ViewStates.Num(); ViewIndex++)
+	{
+		// Recreate the view state to reset temporal history so that property changes can be seen immediately
+		ViewStates[ViewIndex].Destroy();
+		ViewStates[ViewIndex].Allocate();
+	}
 }
 
 #endif
@@ -808,8 +823,6 @@ void USceneCaptureComponentCube::TickComponent(float DeltaTime, enum ELevelTick 
 	}
 }
 
-static TMultiMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<USceneCaptureComponentCube> > CubedSceneCapturesToUpdateMap;
-
 void USceneCaptureComponentCube::CaptureSceneDeferred()
 {
 	UWorld* World = GetWorld();
@@ -819,7 +832,7 @@ void USceneCaptureComponentCube::CaptureSceneDeferred()
 		// Needs some CS because of parallel updates.
 		static FCriticalSection CriticalSection;
 		FScopeLock ScopeLock(&CriticalSection);
-		CubedSceneCapturesToUpdateMap.AddUnique( World, this );
+		SceneCapturesToUpdateMap.AddUnique( World, this );
 	}	
 }
 
@@ -839,29 +852,9 @@ void USceneCaptureComponentCube::CaptureScene()
 	}
 }
 
-void USceneCaptureComponentCube::UpdateDeferredCaptures( FSceneInterface* Scene )
+void USceneCaptureComponentCube::UpdateSceneCaptureContents(FSceneInterface* Scene)
 {
-	UWorld* World = Scene->GetWorld();
-	
-	if( World && CubedSceneCapturesToUpdateMap.Num() > 0 )
-	{
-		// Only update the scene captures associated with the current scene.
-		// Updating others not associated with the scene would cause invalid data to be rendered into the target
-		TArray< TWeakObjectPtr<USceneCaptureComponentCube> > SceneCapturesToUpdate;
-		CubedSceneCapturesToUpdateMap.MultiFind( World, SceneCapturesToUpdate );
-		
-		for( TWeakObjectPtr<USceneCaptureComponentCube> Component : SceneCapturesToUpdate )
-		{
-			if( Component.IsValid() )
-			{
-				Scene->UpdateSceneCaptureContents( Component.Get() );
-			}
-		}
-		
-		// All scene captures for this world have been updated
-		CubedSceneCapturesToUpdateMap.Remove( World );
-	}
-
+	Scene->UpdateSceneCaptureContents(this);
 }
 
 #if WITH_EDITOR

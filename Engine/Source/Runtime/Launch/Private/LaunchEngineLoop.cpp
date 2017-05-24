@@ -36,7 +36,6 @@
 #include "Interfaces/IProjectManager.h"
 #include "Misc/UProjectInfo.h"
 #include "Misc/EngineVersion.h"
-#include "HAL/IOBase.h"
 
 #include "Misc/CoreDelegates.h"
 #include "Modules/ModuleManager.h"
@@ -55,9 +54,11 @@
 	#include "UObject/UObjectHash.h"
 	#include "UObject/Package.h"
 	#include "UObject/Linker.h"
+	#include "UObject/LinkerLoad.h"
 #endif
 
 #if WITH_EDITOR
+	#include "Blueprint/BlueprintSupport.h"
 	#include "EditorStyleSet.h"
 	#include "Misc/RemoteConfigIni.h"
 	#include "EditorCommandLineUtils.h"
@@ -90,15 +91,19 @@
 	#include "EngineStats.h"
 	#include "EngineGlobals.h"
 	#include "AudioThread.h"
+#if WITH_ENGINE && !UE_BUILD_SHIPPING
 	#include "Interfaces/IAutomationControllerModule.h"
+#endif // WITH_ENGINE && !UE_BUILD_SHIPPING
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
 	#include "ShaderCompiler.h"
 	#include "DistanceFieldAtlas.h"
 	#include "GlobalShader.h"
+	#include "ShaderCodeLibrary.h"
 	#include "Materials/MaterialInterface.h"
 	#include "TextureResource.h"
 	#include "Engine/Texture2D.h"
+	#include "StringTable.h"
 	#include "SceneUtils.h"
 	#include "ParticleHelper.h"
 	#include "PhysicsPublic.h"
@@ -127,6 +132,9 @@
 #endif
 
 	#include "MoviePlayer.h"
+
+	#include "ShaderCodeLibrary.h"
+	#include "ShaderCache.h"
 
 #if !UE_BUILD_SHIPPING
 	#include "STaskGraph.h"
@@ -241,14 +249,19 @@ public:
 	{
 	}
 
+	virtual bool CanBeUsedOnAnyThread() const override
+	{
+		return true;
+	}
+
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		if ( (bAllowLogVerbosity && Verbosity <= ELogVerbosity::Log) || (Verbosity <= ELogVerbosity::Display) )
 		{
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
-			wprintf(TEXT("\n%ls"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("%ls\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #else
-			wprintf(TEXT("\n%s"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("%s\n"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #endif
 			fflush(stdout);
 		}
@@ -854,6 +867,8 @@ DECLARE_CYCLE_STAT( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_
 
 int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
+	FPlatformMisc::InitTaggedStorage(1024);
+
 	if (FParse::Param(CmdLine, TEXT("UTF8Output")))
 	{
 		FPlatformMisc::SetUTF8Output();
@@ -1217,7 +1232,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// "-Deterministic" is a shortcut for "-UseFixedTimeStep -FixedSeed"
 	bool bDeterministic = FParse::Param(FCommandLine::Get(), TEXT("Deterministic"));
 
+#if PLATFORM_HTML5_BROWSER
+	bool bUseFixedTimeStep = false;
+	GConfig->GetBool(TEXT("/Script/HTML5PlatformEditor.HTML5TargetSettings"), TEXT("UseFixedTimeStep"), bUseFixedTimeStep, GEngineIni);
+	FApp::SetUseFixedTimeStep(bUseFixedTimeStep);
+#else
 	FApp::SetUseFixedTimeStep(bDeterministic || FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
+#endif
 
 	FApp::bUseFixedSeed = bDeterministic || FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FixedSeed"));
 
@@ -1367,13 +1388,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 	
 #if WITH_COREUOBJECT
-	GNewAsyncIO = IsEventDrivenLoaderEnabled();
 	FPlatformFileManager::Get().InitializeNewAsyncIO();
 #endif
 
 	if (FPlatformProcess::SupportsMultithreading())
 	{
-		if (GNewAsyncIO)
 		{
 			GIOThreadPool = FQueuedThreadPool::Allocate();
 			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfIOWorkerThreadsToSpawn();
@@ -1381,7 +1400,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			{
 				NumThreadsInThreadPool = 2;
 			}
-			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
+			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 64 * 1024, TPri_AboveNormal));
 		}
 	}
 
@@ -1533,11 +1552,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InitializeStdOutDevice();
 	}
 
-	if (!GNewAsyncIO)
-	{
-		FIOSystem::Get(); // force it to be created if it isn't already
-	}
-
 	// allow the platform to start up any features it may need
 	IPlatformFeaturesModule::Get();
 
@@ -1579,6 +1593,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if WITH_ENGINE
 
 	EndInitTextLocalization();
+
+	UStringTable::InitializeEngineBridge();
 
 	if (FApp::ShouldUseThreadingForPerformance() && FPlatformMisc::AllowAudioThread())
 	{
@@ -1624,9 +1640,29 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InPackageLocalizationManager.InitializeFromCache(MakeShareable(new FEnginePackageLocalizationCache()));
 	});
 #endif	// USE_LOCALIZED_PACKAGE_CACHE
-
+	
+	
+	// Without optimisation the shader loading can be so slow we mustn't attempt to preload all the shaders at load.
+	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
+	if (CVar->GetInt() == 0)
+	{
+		FShaderCache::InitShaderCache(SCO_NoShaderPreload);
+	}
+	else
+	{
+		FShaderCache::InitShaderCache(SCO_Default);
+	}
+	
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
+	
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		// Will open material shader code storage if project was packaged with it
+		FShaderCodeLibrary::InitForRuntime(GMaxRHIShaderPlatform);
+	}
+	
+	FShaderCache::LoadBinaryCache();
 
 	if (!FPlatformProperties::RequiresCookedData())
 	{
@@ -1654,6 +1690,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			Commandline.Contains(TEXT("run=cook")) == false )
 		// if (FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")) == false)
 		{
+			CompileGlobalShaderMap(false);
 			if (GetGlobalShaderMap(GMaxRHIFeatureLevel) == nullptr && GIsRequestingExit)
 			{
 				// This means we can't continue without the global shader map.
@@ -1664,8 +1701,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		{
 			GetDerivedDataCacheRef();
 		}
-
-
+		
+		CreateMoviePlayer();
 		// If platforms support early movie playback we have to start the rendering thread much earlier
 #if PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 		RHIPostInit();
@@ -1685,6 +1722,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					GUseRHIThread = false;
 				}
 			}
+
 			StartRenderingThread();
 		}
 #endif
@@ -1703,23 +1741,26 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			// Create the engine font services now that the Slate renderer is ready
 			FEngineFontServices::Create();
 
-			GetMoviePlayer()->SetSlateRenderer(SlateRenderer);
-
 			// allow the movie player to load a sequence from the .inis (a PreLoadingScreen module could have already initialized a sequence, in which case
 			// it wouldn't have anything in it's .ini file)
 			GetMoviePlayer()->SetupLoadingScreenFromIni();
 
 			if(GetMoviePlayer()->HasEarlyStartupMovie())
 			{
-				GetMoviePlayer()->Initialize();
+				GetMoviePlayer()->Initialize(SlateRenderer);
 
 				// hide splash screen now
-				FPlatformMisc::PlatformPostInit(false);
+				FPlatformMisc::PlatformHandleSplashScreen(false);
 
 				// only allowed to play any movies marked as early startup.  These movies or widgets can have no interaction whatsoever with uobjects or engine features
 				GetMoviePlayer()->PlayEarlyStartupMovies();
 			}
 
+		}
+		else if ( IsRunningCommandlet() )
+		{
+			// Create the engine font services now that the Slate renderer is ready
+			FEngineFontServices::Create();
 		}
 #endif
 
@@ -1728,6 +1769,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPackageName::RegisterShortPackageNamesForUObjectModules();
 
 		SlowTask.EnterProgressFrame(5);
+
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+		// If we don't do this now and the async loading thread is active, then we will attempt to load this module from a thread
+		if (GEventDrivenLoaderEnabled)
+		{
+			FModuleManager::Get().LoadModule("AssetRegistry");
+		}
+#endif
 
 		// Make sure all UObject classes are registered and default properties have been initialized
 		ProcessNewlyLoadedUObjects();
@@ -1778,28 +1828,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 
 #if !UE_SERVER// && !UE_EDITOR
-	if(!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
+	if (!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
 	{
-		GetMoviePlayer()->Initialize();
-
-		// Play any non-early startup loading movies.
-		GetMoviePlayer()->PlayMovie();
-	
+		GetMoviePlayer()->Initialize(FSlateApplication::Get().GetRenderer());
 	}
 #endif
 
-#if !UE_SERVER
-	if ( !IsRunningDedicatedServer() )
-	{
-		// do any post appInit processing, before the render thread is started.
-		FPlatformMisc::PlatformPostInit(!GetMoviePlayer()->IsMovieCurrentlyPlaying());
-	}
-	else
-#endif
-	{
-		// do any post appInit processing, before the render thread is started.
-		FPlatformMisc::PlatformPostInit(true);
-	}
+	// do any post appInit processing, before the render thread is started.
+	FPlatformMisc::PlatformPostInit();
 	SlowTask.EnterProgressFrame(5);
 
 #if !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
@@ -1824,6 +1860,34 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif // !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 	
+
+	// Playing a movie can only happen after the rendering thread is started.
+#if !UE_SERVER// && !UE_EDITOR
+	if (!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
+	{
+		// Play any non-early startup loading movies.
+		GetMoviePlayer()->PlayMovie();
+	}
+#endif
+
+#if !UE_SERVER
+	if (!IsRunningDedicatedServer())
+	{
+		// show or hide splash screen based on movie
+		FPlatformMisc::PlatformHandleSplashScreen(!GetMoviePlayer()->IsMovieCurrentlyPlaying());
+	}
+	else
+#endif
+	{
+		// show splash screen
+		FPlatformMisc::PlatformHandleSplashScreen(true);
+	}
+
+	{
+		FCoreUObjectDelegates::PreGarbageCollectConditionalBeginDestroy.AddStatic(StartRenderCommandFenceBundler);
+		FCoreUObjectDelegates::PostGarbageCollectConditionalBeginDestroy.AddStatic(StopRenderCommandFenceBundler);
+	}
+
 #if WITH_EDITOR
 	// We need to mount the shared resources for templates (if there are any) before we try and load and game classes
 	FUnrealEdMisc::Get().MountTemplateSharedPaths();
@@ -1848,6 +1912,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		GUObjectArray.CloseDisregardForGC();
 	}
+	NotifyRegistrationComplete();
 #endif // WITH_COREUOBJECT
 
 #if WITH_ENGINE
@@ -2248,6 +2313,7 @@ void FEngineLoop::LoadPreInitModules()
 #if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 	// Load audio editor module before engine class CDOs are loaded
 	FModuleManager::Get().LoadModule(TEXT("AudioEditor"));
+	FModuleManager::Get().LoadModule(TEXT("AnimationModifiers"));
 #endif
 
 }
@@ -2335,6 +2401,9 @@ bool FEngineLoop::LoadStartupCoreModules()
 	IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
 	AudioEditorModule->RegisterAssetActions();
 
+	// Load the StringTableEditor module to register its asset actions
+	FModuleManager::Get().LoadModule("StringTableEditor");
+
 	if( !IsRunningDedicatedServer() )
 	{
 		// VREditor needs to be loaded in non-server editor builds early, so engine content Blueprints can be loaded during DDC generation
@@ -2374,6 +2443,12 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("MediaAssets"));
 	}
 #endif
+
+	FModuleManager::Get().LoadModule(TEXT("ClothingSystemRuntime"));
+#if WITH_EDITOR
+	FModuleManager::Get().LoadModule(TEXT("ClothingSystemEditor"));
+#endif
+
 
 	return bSuccess;
 }
@@ -2591,7 +2666,6 @@ void FEngineLoop::Exit()
 	FVisualLogger::Get().Shutdown();
 #endif
 
-	GetMoviePlayer()->Shutdown();
 
 	// Make sure we're not in the middle of loading something.
 	FlushAsyncLoading();
@@ -2653,6 +2727,13 @@ void FEngineLoop::Exit()
 
 	// Stop the rendering thread.
 	StopRenderingThread();
+	
+
+	// Disable the shader cache
+	FShaderCache::ShutdownShaderCache();
+	
+	// Close shader code map, if any
+	FShaderCodeLibrary::Shutdown();
 
 	// Tear down the RHI.
 	RHIExitAndStopRHIThread();
@@ -2673,6 +2754,8 @@ void FEngineLoop::Exit()
 	FModuleManager::Get().UnloadModulesAtShutdown();
 #endif // !ANDROID
 
+	DestroyMoviePlayer();
+
 	// Move earlier?
 #if STATS
 	FThreadStats::StopThread();
@@ -2680,10 +2763,8 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 	IStreamingManager::Shutdown();
-	if (!GNewAsyncIO)
-	{
-		FIOSystem::Shutdown();
-	}
+
+	FPlatformMisc::ShutdownTaggedStorage();
 }
 
 
@@ -2993,15 +3074,28 @@ void FEngineLoop::Tick()
 
 		// @todo vreditor urgent: Temporary hack to allow world-to-meters to be set before
 		// input is polled for motion controller devices each frame.
-#if WITH_ENGINE
 		extern ENGINE_API float GNewWorldToMetersScale;
-		UWorld* HackGWorld = GWorld;
-		if( GNewWorldToMetersScale != 0.0f && HackGWorld != nullptr )
+		if( GNewWorldToMetersScale != 0.0f  )
 		{
-			if( GNewWorldToMetersScale != HackGWorld->GetWorldSettings()->WorldToMeters )
+#if WITH_ENGINE
+			UWorld* WorldToScale = GWorld;
+
+#if WITH_EDITOR
+			if( GIsEditor && GEditor->PlayWorld != nullptr && GEditor->bIsSimulatingInEditor )
 			{
-				HackGWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
+				WorldToScale = GEditor->PlayWorld;
 			}
+#endif	// WITH_EDITOR
+
+			if( WorldToScale != nullptr )
+			{
+				if( GNewWorldToMetersScale != WorldToScale->GetWorldSettings()->WorldToMeters )
+				{
+					WorldToScale->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
+				}
+			}
+
+			GNewWorldToMetersScale = 0.0f;
 		}
 #endif	// WITH_ENGINE
 
@@ -3047,24 +3141,26 @@ void FEngineLoop::Tick()
 		if (bDoConcurrentSlateTick)
 		{
 			const float DeltaSeconds = FApp::GetDeltaTime();
-			UGameViewportClient* const GameViewport = GEngine->GameViewport;
-			ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-				[GameViewport, DeltaSeconds]()
-				{
-					if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
+			const UGameViewportClient* const GameViewport = GEngine->GameViewport;
+			const UWorld* const GameViewportWorld = GameViewport ? GameViewport->GetWorld() : nullptr;
+			UDemoNetDriver* const CurrentDemoNetDriver = GameViewportWorld ? GameViewportWorld->DemoNetDriver : nullptr;
+
+			if (CurrentDemoNetDriver && CurrentDemoNetDriver->ShouldTickFlushAsyncEndOfFrame())
+			{
+				ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+					[CurrentDemoNetDriver, DeltaSeconds]()
 					{
-						FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
-					}
-					if (GameViewport != nullptr)
-					{
-						UWorld* const World = GameViewport->GetWorld();
-						if (World && World->DemoNetDriver)
+						if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
 						{
-							World->DemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
+							FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
+						}
+						if (CurrentDemoNetDriver != nullptr)
+						{
+							CurrentDemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
 						}
 					}
-				}
-			);
+				);
+			}
 		}
 #endif
 
@@ -3097,7 +3193,7 @@ void FEngineLoop::Tick()
 		ClearPendingStatGroups();
 #endif
 
-#if WITH_EDITOR
+#if WITH_EDITOR && !UE_BUILD_SHIPPING
 		{
 			QUICK_SCOPE_CYCLE_COUNTER( STAT_FEngineLoop_Tick_AutomationController );
 			static FName AutomationController( "AutomationController" );
@@ -3290,6 +3386,37 @@ bool FEngineLoop::AppInit( )
 
 	// Avoiding potential exploits by not exposing command line overrides in the shipping games.
 #if !UE_BUILD_SHIPPING && WITH_EDITORONLY_DATA
+	FString CmdLineFile;
+
+	if (FParse::Value(FCommandLine::Get(), TEXT("-CmdLineFile="), CmdLineFile))
+	{
+		if (CmdLineFile.EndsWith(TEXT(".txt")))
+		{
+			FString FileCmds;
+
+			if (FFileHelper::LoadFileToString(FileCmds, *CmdLineFile))
+			{
+				FileCmds = FString(TEXT(" ")) + FileCmds.Trim().TrimTrailing();
+
+				if (FileCmds.Len() > 1)
+				{
+					UE_LOG(LogInit, Log, TEXT("Appending commandline from file:%s"), *FileCmds);
+
+					FCommandLine::Append(*FileCmds);
+				}
+			}
+			else
+			{
+				UE_LOG(LogInit, Warning, TEXT("Failed to load commandline file '%s'."), *CmdLineFile);
+			}
+		}
+		else
+		{
+			UE_LOG(LogInit, Warning, TEXT("Can only load commandline files ending with .txt, can't load: %s"), *CmdLineFile);
+		}
+	}
+
+
 	// 8192 is the maximum length of the command line on Windows XP.
 	TCHAR CmdLineEnv[8192];
 
@@ -3371,6 +3498,10 @@ bool FEngineLoop::AppInit( )
 
 	// Now that configs have been initialized, setup stack walking options
 	FPlatformStackWalk::Init();
+
+#if WITH_EDITOR
+	FBlueprintSupport::InitializeCompilationManager();
+#endif
 
 	CheckForPrintTimesOverride();
 
@@ -3626,6 +3757,13 @@ void FEngineLoop::AppPreExit( )
 
 	FCoreDelegates::OnExit.Broadcast();
 
+#if WITH_EDITOR
+	if (GLargeThreadPool != nullptr)
+	{
+		GLargeThreadPool->Destroy();
+	}
+#endif // WITH_EDITOR
+
 	// Clean up the thread pool
 	if (GThreadPool != nullptr)
 	{
@@ -3651,6 +3789,11 @@ void FEngineLoop::AppPreExit( )
 
 void FEngineLoop::AppExit( )
 {
+#if !WITH_ENGINE
+	// when compiled WITH_ENGINE, this will happen in FEngineLoop::Exit()
+	FTaskGraphInterface::Shutdown();
+#endif // WITH_ENGINE
+
 	UE_LOG(LogExit, Log, TEXT("Exiting."));
 
 	FPlatformMisc::PlatformTearDown();
@@ -3681,17 +3824,22 @@ void FEngineLoop::PreInitHMDDevice()
 		IModularFeatures& ModularFeatures = IModularFeatures::Get();
 		TArray<IHeadMountedDisplayModule*> HMDModules = ModularFeatures.GetModularFeatureImplementations<IHeadMountedDisplayModule>(Type);
 
-		// Iterate over modules, calling PreInit
+		// Check whether the user passed in an explicit HMD module on the command line
+		FString ExplicitHMDName;
+		bool bUseExplicitHMDName = FParse::Value(FCommandLine::Get(), TEXT("hmd="), ExplicitHMDName);
+		
+		// Iterate over modules, checking ExplicitHMDName and calling PreInit
 		for (auto HMDModuleIt = HMDModules.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
 		{
 			IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
 
-			if (!HMDModule->PreInit())
+			if ((bUseExplicitHMDName && !ExplicitHMDName.Equals(HMDModule->GetModuleKeyName(), ESearchCase::IgnoreCase)) || !HMDModule->PreInit())
 			{
-				// Unregister modules which fail PreInit
+				// Unregister modules which don't match ExplicitHMDName, or which fail PreInit
 				ModularFeatures.UnregisterModularFeature(Type, HMDModule);
 			}
 		}
+		// Note we do not disable or warn here if no HMD modules matched ExplicitHMDName, as not all HMD plugins have been loaded yet.
 	}
 #endif // #if WITH_ENGINE && !UE_SERVER
 }

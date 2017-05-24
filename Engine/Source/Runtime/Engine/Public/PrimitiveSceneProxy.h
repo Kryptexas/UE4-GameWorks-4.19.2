@@ -32,6 +32,7 @@ public:
 	FVector Color;
 	float Radius;
 	float Exponent;
+	float VolumetricScatteringIntensity;
 	bool bAffectTranslucency;
 };
 
@@ -242,13 +243,15 @@ public:
 		bShadowMapped = false;
 	}
 
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const 
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FVector2D& OutDistanceMinMax, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const 
 	{
-		LocalVolumeBounds = FBox(0);
+		LocalVolumeBounds = FBox(ForceInit);
+		OutDistanceMinMax = FVector2D(0, 0);
 		OutBlockMin = FIntVector(-1, -1, -1);
 		OutBlockSize = FIntVector(0, 0, 0);
 		bOutBuiltAsIfTwoSided = false;
 		bMeshWasPlane = false;
+		SelfShadowBias = 0;
 	}
 
 	virtual void GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const
@@ -399,6 +402,7 @@ public:
 	inline bool WantsSelectionOutline() const { return bWantsSelectionOutline; }
 	inline bool ShouldRenderCustomDepth() const { return bRenderCustomDepth; }
 	inline uint8 GetCustomDepthStencilValue() const { return CustomDepthStencilValue; }
+	inline EStencilMask GetStencilWriteMask() const { return CustomDepthStencilWriteMask; }
 	inline uint8 GetLightingChannelMask() const { return LightingChannelMask; }
 	inline uint8 GetLightingChannelStencilValue() const 
 	{ 
@@ -459,10 +463,8 @@ public:
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
 
-	inline void AddUsedMaterialForVerification(UMaterialInterface* Material)
-	{
-		UsedMaterialsForVerification.AddUnique(Material);
-	}
+	/** This function exist only to perform an update of the UsedMaterialsForVerification on the render thread*/
+	ENGINE_API void SetUsedMaterialForVerification(const TArray<UMaterialInterface*>& InUsedMaterialsForVerification);
 #endif
 
 	inline FLinearColor GetWireframeColor() const { return WireframeColor; }
@@ -802,6 +804,9 @@ private:
 
 	/** Optionally write this stencil value during the CustomDepth pass */
 	uint8 CustomDepthStencilValue;
+
+	/** When writing custom depth stencil, use this write mask */
+	EStencilMask CustomDepthStencilWriteMask;
 
 	uint8 LightingChannelMask;
 

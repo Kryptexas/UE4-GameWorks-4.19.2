@@ -66,7 +66,7 @@ class ENGINE_API UActorChannel
 	double	LastUpdateTime;			// Last time this actor was replicated.
 	uint32  SpawnAcked:1;			// Whether spawn has been acknowledged.
 	uint32  bForceCompareProperties:1;	// Force this actor to compare all properties for a single frame
-	uint32  bIsReplicatingActor:1;		// true when in this channel's ReplicateActor() to avoid recursion as that can cause invalid data to be sent
+	uint32  bIsReplicatingActor:1;	// true when in this channel's ReplicateActor() to avoid recursion as that can cause invalid data to be sent
 	
 	/** whether we should nullptr references to this channel's Actor in other channels' Recent data when this channel is closed
 	 * set to false in cases where the Actor can't become relevant again (e.g. destruction) as it's unnecessary in that case

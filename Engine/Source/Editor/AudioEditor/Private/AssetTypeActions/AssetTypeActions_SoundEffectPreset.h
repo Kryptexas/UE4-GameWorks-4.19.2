@@ -34,6 +34,17 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Sounds; }
 };
 
+class FAssetTypeActions_SoundEffectSourcePresetChain : public FAssetTypeActions_Base
+{
+public:
+	// IAssetTypeActions Implementation
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_SoundSourcePresetChain", "Source Effect Preset Chain"); }
+	virtual FColor GetTypeColor() const override { return FColor(175, 200, 100); }
+	virtual UClass* GetSupportedClass() const override { return USoundEffectSourcePresetChain::StaticClass(); }
+	virtual uint32 GetCategories() override { return EAssetTypeCategories::Sounds; }
+};
+
+
 
 class FAssetTypeActions_SoundEffectPreset : public FAssetTypeActions_Base
 {
@@ -42,7 +53,7 @@ public:
 
 	//~ Begin FAssetTypeActions_Base
 	virtual FText GetName() const override;
-	virtual FColor GetTypeColor() const override { return FColor(20.0f, 20.0f, 20.0f); }
+	virtual FColor GetTypeColor() const override { return EffectPreset->GetPresetColor(); }
 	virtual UClass* GetSupportedClass() const override;
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Sounds; }
 	//~ End FAssetTypeActions_Base

@@ -1,94 +1,22 @@
 Availability: Public
-Title:Calling Custom Events
-Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Shows how you can use the Event Track to call Custom Events and script in Blueprint. 
-Version: 4.12
+Title:Using Custom Events and Structs
+Crumbs:
+Description:Shows how you can use the Event Track to call Custom Events with Custom Structs for use in Blueprint. 
+Version: 4.15
 SkillLevel: Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related: Engine/Sequencer/ReferenceEditor
+tags:Sequencer
 
-The **Event Track** can be used to call [**Custom Events**](Engine/Blueprints/UserGuide/Events/Custom) and fire off [**Blueprint Script**](Engine/Blueprints) inside the  [**Level Blueprint**](Engine/Blueprints/UserGuide/Types/LevelBlueprint). 
+The **Event Track** can be used to call [Custom Events](Engine/Blueprints/UserGuide/Events/Custom) and fire off [Blueprint Script](Engine/Blueprints) inside the  [Level Blueprint](Engine/Blueprints/UserGuide/Types/LevelBlueprint). 
 Once the Custom Event is called, any script attached to it will also be executed and can be used for any number of scenarios based on your needs. 
+When using the Event Track and calling a Custom Event, you can also pass through your own Custom [Struct](Engine/Blueprints/UserGuide/Variables/Structs) which can be used to update the variables contained within. 
+This can be useful in situations where you want to update other variables during the playback of a level sequence. 
 
-In this example, we will execute an Event which will be used to activate a particle effect in the level. 
-
-## Steps
-
-[REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
-[/REGION]
-
-1.	From the **Main Toolbar** click the **Cinematics** button and **Add Level Sequence**. 
-
-	![](EventTrack1.png)
-
-	Choose a Save Location and give the Level Sequence a name when prompted. 
-
-1.	In Sequencer, click the **Add** button and select to add an **Event Track**. 
-
-	![](EventTrack2.png)
-
-1.	On the **Event Track**, move the Timeline Marker to **75** then click the **+** sign to add a key. 
-
-	![](EventTrack3.png)
-
-1.	**Right-click** on the key, then under **Properties** enter the name **MyEvent** for the **Value**. 
-
-	![](EventTrack4.png)
-
-	The name you provide here is the name you **must** use when creating your **Custom Event** that you want to call. 
-
-1.	In the **Content Browser** under **StarterContent/Particles**, drag the **P_Explosion** into the level. 
-
-	![](EventTrack5.png)
-
-1.	With the **P_Explosion** asset selected, in the **Details** panel un-check the **Auto Activate** option. 
-
-	![](EventTrack6.png)
-
-	This will ensure that the particle effect is not played upon starting the level. 
-
-1.	With the **P_Explosion** asset still selected, click the **Blueprints** button from the Toolbar and select **Open Level Blueprint**. 
-
-	![](EventTrack7.png)
-
-1.	In the **Level Blueprint**, **Right-click** and select **Create a Reference to P_Explosion**. 
-
-	![](EventTrack8.png)
-
-1.	**Right-click** in the graph again and search for and add a **Custom Event** node and name it **MyEvent** (the same as in **Step 4**). 
-
-	![](EventTrack9.png)
-	
-	[REGION:note]
-	This must be the text you entered as the value in Step 4. You can press the **F2** key on the node to rename it. 
-	[/REGION]
-
-1.	**Left-click** drag off the **P_Explosion** node and search for and add the **Activate (ParticleSystemComponent)** node. 
-
-	![](EventTrack10.png)
-
-1.	Connect the **Custom Event** to the **Activate** node as shown below. 
-
-	![](EventTrack11.png)
-
-	When the event is called it will activate (turn on) the particle effect we placed in the level.
-
-1.	In the Main Editor window from the **World Outliner** select your Level Sequence then in the **Details** enable **Auto Play**. 
-
-	![](EventTrack12.png)
-
-	When we play in the level, this Level Sequence will automatically play and trigger our effect. 
-
-1.	Click the **Play** button from the Main Toolbar to play in the editor. 
-
-
-## End Result
-
-When playing in the editor after a few seconds, the explosion will activate.
+In this example, we will use the Event Track to call a Custom Event with a Custom Struct that is used to move an object in the level when the sequence plays. 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -98,12 +26,120 @@ When playing in the editor after a few seconds, the explosion will activate.
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-krFTHenh9zw
+wlLcUr8BXvY
 [/PARAMLITERAL]
 [/OBJECT]
 
-In the video above, we also illustrate that you will not see the script being executed when you click the **Play** button inside Sequencer.
-You will only be able to preview your scripted events being called from your Event Track during gameplay when the Level Sequence is played.
+In the example above, when we press a key, the level sequence plays and our event to move the cube upwards is executed each time. 
+
+## Steps
+
+[REGION:note]
+For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+[/REGION]
+
+1.	From the **Content Browser** under the **Content/StarterContent/Shapes** folder, drag any mesh into the level. 
+
+	![](EventTrack1.png)
+
+	Position the mesh anywhere inside the level. 
+
+1.	In the **Details** panel for your mesh, set the mesh to **Movable**. 
+
+	![](EventTrack1b.png)
+
+	This will allow us to move the mesh during gameplay.
+
+1.	Click the **Add New** button, then under **Blueprints**, select the **Structure** option. 
+
+	![](EventTrack2.png)
+
+1.	Enter the name **MyStruct**, then open the asset and add a **Vector** variable called **MoveCube**. 
+
+	![](EventTrack3.png)
+
+	Naming of your variables is important here as these names will need to be used when you want to reference them later. 
+
+1.	Add a new **Level Sequence** from the **Cinematics** button called **Master** to the level, then inside **Sequencer** add an **Event Track**. 
+
+	![](EventTrack4.png)
+
+1.	Move the timeline to frame **5** and add a key, then **Right-click** the key and name the event **LiftCube**, assign **MyStruct** and set the **Z** value to **100**. 
+
+	![](EventTrack5.png)
+
+	When we get to this keyframe in our sequence, we are going to move our mesh up by 100 units along the Z axis. 
+
+1.	Move the timeline to frame **10** and press the **]** key to end the sequence at frame 10. 
+
+	![](EventTrack6.png)
+
+1.	Select your mesh that you added and the Level Sequence in the level, then click the **Blueprints** button from the toolbar and select **Open Level Blueprint**. 
+
+	![](EventTrack7.png)
+
+1.	In the **Level Blueprint**, **Right-click** and search for **Reference** then select **Create Reference to 2 selected Actors**. 
+
+	![](EventTrack8.png)
+
+1.	**Right-click** in the graph and add a **1** Keyboard Event, then drag off your **Master** Level Sequence and search for and add the **Set Playback Position** node. 
+
+	![](EventTrack9.png)
+
+	This will be used to reset our sequence whenever we start to play it before we actually issue a play function call. 	
+	
+1.	Drag off the **Sequence Player** node that is added and use the **Play** node and connect as shown below. 
+
+	![](EventTrack10.png)
+
+1.	**Right-click** in the graph and create a **Custom Event** called **LiftCube**. 
+
+	![](EventTrack11.png)
+
+	[REGION:warning]
+	Your Custom Event name must be the same name that is specified under **Event Name** for your key in Sequencer or it will not get called. 
+	[/REGION]
+
+1.	In the **Details** panel for the Custom Event, click the **+** button to add an input and name it **MoveCube** with the variable type of **Vector**. 
+
+	![](EventTrack12.png)
+
+	[REGION:warning]
+	Your Input names must be the same names that are used in your Struct or the event will not get called. 
+	Also, the number of inputs must match the number of variables defined in your custom struct or the event will not get called. 
+	For example, if you struct has 2 variables in it, your Custom Event must have 2 inputs with the correct variable names and types. 
+	[/REGION]
+	
+1.	Drag off your mesh reference and search for and use the **AddActorLocalOffset** node. 
+
+	![](EventTrack13.png)
+
+1.	Connect the **MoveCube** vector pin to the **Delta Location** pin and the **LiftCube** executable to the **AddActorLocalOffset** node as shown below. 
+
+	![](EventTrack14.png)
+
+1.	Click the **Play** button from the Main Toolbar to play in the editor. 
+
+
+## End Result
+
+When playing in the editor, each time you press the **1** key, the cube will move up along the **Z** axis. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+wlLcUr8BXvY
+[/PARAMLITERAL]
+[/OBJECT]
+
+In this example we are not assigning a camera to view our cinematic from but instead are using Sequencer and Blueprint to perform scripted sequences. 
+In your projects, an Event Track with a Custom Event and Custom Struct can be used to update player information during a cutscene (such as the player receiving a health increase, new weapon, or other gameplay related effects of your choosing). 
+
 
 
 

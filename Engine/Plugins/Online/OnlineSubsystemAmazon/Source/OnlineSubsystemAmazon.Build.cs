@@ -5,7 +5,7 @@ using System.IO;
 
 public class OnlineSubsystemAmazon : ModuleRules
 {
-	public OnlineSubsystemAmazon(TargetInfo Target)
+	public OnlineSubsystemAmazon(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("ONLINESUBSYSTEMAMAZON_PACKAGE=1");	
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;

@@ -67,7 +67,7 @@ public:
 		MTLRenderPipelineColorAttachmentDescriptor* BlendState;
 		uint8 BlendStateKey;
 	};
-	FBlendPerMRT RenderTargetStates[MaxMetalRenderTargets];
+	FBlendPerMRT RenderTargetStates[MaxSimultaneousRenderTargets];
 
 private:
 	// this tracks blend settings (in a bit flag) into a unique key that uses few bits, for PipelineState MRT setup

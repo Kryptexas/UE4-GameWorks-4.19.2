@@ -17,6 +17,8 @@ TAutoConsoleVariable<FString> FDumpTransitionsHelper::CVarDumpTransitionsForReso
 	TEXT("Name of the resource to dump"),
 	ECVF_Default);
 
+RHI_API FRHILockTracker GRHILockTracker;
+
 FName FDumpTransitionsHelper::DumpTransitionForResource = NAME_None;
 void FDumpTransitionsHelper::DumpTransitionForResourceHandler()
 {
@@ -39,3 +41,34 @@ void FDumpTransitionsHelper::DumpResourceTransition(const FName& ResourceName, c
 }
 
 FAutoConsoleVariableSink FDumpTransitionsHelper::CVarDumpTransitionsForResourceSink(FConsoleCommandDelegate::CreateStatic(&FDumpTransitionsHelper::DumpTransitionForResourceHandler));
+
+void EnableDepthBoundsTest(FRHICommandList& RHICmdList, float WorldSpaceDepthNear, float WorldSpaceDepthFar, const FMatrix& ProjectionMatrix)
+{
+	if (GSupportsDepthBoundsTest)
+	{
+		FVector4 Near = ProjectionMatrix.TransformFVector4(FVector4(0, 0, WorldSpaceDepthNear));
+		FVector4 Far = ProjectionMatrix.TransformFVector4(FVector4(0, 0, WorldSpaceDepthFar));
+		float DepthNear = Near.Z / Near.W;
+		float DepthFar = Far.Z / Far.W;
+
+		DepthFar = FMath::Clamp(DepthFar, 0.0f, 1.0f);
+		DepthNear = FMath::Clamp(DepthNear, 0.0f, 1.0f);
+
+		if (DepthNear <= DepthFar)
+		{
+			DepthNear = 1.0f;
+			DepthFar = 0.0f;
+		}
+
+		// Note, using a reversed z depth surface
+		RHICmdList.EnableDepthBoundsTest(true, DepthFar, DepthNear);
+	}
+}
+
+void DisableDepthBoundsTest(FRHICommandList& RHICmdList)
+{
+	if (GSupportsDepthBoundsTest)
+	{
+		RHICmdList.EnableDepthBoundsTest(false, 0, 1);
+	}
+}

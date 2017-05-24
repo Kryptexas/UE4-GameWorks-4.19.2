@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlslcc.h" />
+    <ClInclude Include="..\..\..\src\hlslcc_lib\HlslccDefinitions.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlslcc_private.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\IRDump.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\ir_track_image_access.h" />

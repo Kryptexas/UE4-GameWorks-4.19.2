@@ -12,10 +12,12 @@
 #include "ShaderParameters.h"
 #include "SkeletalMeshTypes.h"
 #include "Components/SkinnedMeshComponent.h"
-#include "ClothSimData.h"
 #include "GlobalShader.h"
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalRenderPublic.h"
+#include "ClothingSystemRuntimeTypes.h"
+
+class FGPUSkinCache;
 
 /** 
 * Stores the updated matrices needed to skin the verts.
@@ -79,7 +81,7 @@ public:
 	int32 NumWeightedActiveMorphTargets;
 
 	/** data for updating cloth section */
-	TMap<int32, FClothSimulData> ClothSimulUpdateData;
+	TMap<int32, FClothSimulData> ClothingSimData;
 
 	/** a weight factor to blend between simulated positions and skinned positions */	
 	float ClothBlendWeight;
@@ -247,9 +249,9 @@ public:
 	virtual void InitResources(USkinnedMeshComponent* InMeshComponent) override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights) override;
-	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, uint32 FrameNumberToPrepare);
+	void UpdateDynamicData_RenderThread(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, FSceneInterface* Scene, uint32 FrameNumberToPrepare);
 	virtual void UpdateRecomputeTangent(int32 MaterialIndex, int32 LODIndex, bool bRecomputeTangent) override;
-	virtual void PreGDMECallback(uint32 FrameNumber) override;
+	virtual void PreGDMECallback(FGPUSkinCache* GPUSkinCache, uint32 FrameNumber) override;
 	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex,int32 ChunkIdx) const override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}
 	virtual bool IsCPUSkinned() const override { return false; }
@@ -295,6 +297,8 @@ public:
 	}
 	//~ End FSkeletalMeshObject Interface
 
+	FSkinWeightVertexBuffer* GetSkinWeightVertexBuffer(int32 LODIndex) const;
+
 	/** 
 	 * Vertex buffers that can be used for GPU skinning factories 
 	 */
@@ -313,7 +317,7 @@ public:
 		FSkinWeightVertexBuffer* SkinWeightVertexBuffer;
 		FColorVertexBuffer*	ColorVertexBuffer;
 		FMorphVertexBuffer* MorphVertexBuffer;
-		FSkeletalMeshVertexAPEXClothBuffer*	APEXClothVertexBuffer;
+		FSkeletalMeshVertexClothBuffer*	APEXClothVertexBuffer;
 	};
 
 private:
@@ -409,6 +413,8 @@ private:
 		:	SkelMeshResource(InSkelMeshResource)
 		,	LODIndex(InLOD)
 		,	MorphVertexBuffer(InSkelMeshResource,LODIndex)
+		,	MeshObjectWeightBuffer(nullptr)
+		,	MeshObjectColorBuffer(nullptr)
 		{
 		}
 
@@ -468,6 +474,12 @@ private:
 		/** Default GPU skinning vertex factories and matrices */
 		FVertexFactoryData GPUSkinVertexFactories;
 
+		/** Skin weight buffer to use, could be from asset or component override */
+		FSkinWeightVertexBuffer* MeshObjectWeightBuffer;
+
+		/** Color buffer to user, could be from asset or component override */
+		FColorVertexBuffer* MeshObjectColorBuffer;
+
 		/**
 		 * Update the contents of the morphtarget vertex buffer by accumulating all 
 		 * delta positions and delta normals from the set of active morph targets
@@ -481,7 +493,7 @@ private:
 		 *
 		 * @param OutVertexBuffers output vertex buffers
 		 */
-		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel,const FSkelMeshObjectLODInfo& MeshLODInfo, FSkelMeshComponentLODInfo* CompLODInfo);
+		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel);
 
 		// Temporary arrays used on UpdateMorphVertexBuffer(); these grow to the max and are not thread safe.
 		static TArray<FVector> MorphDeltaTangentZAccumulationArray;
@@ -498,7 +510,7 @@ private:
 	*/
 	void ReleaseMorphResources();
 
-	void ProcessUpdatedDynamicData(FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, bool bMorphNeedsUpdate);
+	void ProcessUpdatedDynamicData(FGPUSkinCache* GPUSkinCache, FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, bool bMorphNeedsUpdate);
 
 	void WaitForRHIThreadFenceForDynamicData();
 

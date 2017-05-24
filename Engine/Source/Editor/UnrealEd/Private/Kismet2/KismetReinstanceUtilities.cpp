@@ -21,6 +21,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Layers/ILayers.h"
 #include "Editor.h"
+#include "Serialization/ArchiveHasReferences.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
@@ -29,6 +30,8 @@
 #include "BlueprintEditor.h"
 #include "Engine/Selection.h"
 #include "BlueprintEditorSettings.h"
+
+extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 DECLARE_CYCLE_STAT(TEXT("Replace Instances"), EKismetReinstancerStats_ReplaceInstancesOfClass, STATGROUP_KismetReinstancer );
 DECLARE_CYCLE_STAT(TEXT("Find Referencers"), EKismetReinstancerStats_FindReferencers, STATGROUP_KismetReinstancer );
@@ -73,28 +76,24 @@ struct FReplaceReferenceHelper
 
 	static void FindAndReplaceReferences(const TArray<UObject*>& SourceObjects, TSet<UObject*>* ObjectsThatShouldUseOldStuff, const TArray<UObject*>& ObjectsToReplace, const TMap<UObject*, UObject*>& OldToNewInstanceMap, const TMap<FStringAssetReference, UObject*>& ReinstancedObjectsWeakReferenceMap)
 	{
+		if(SourceObjects.Num() == 0 && ObjectsToReplace.Num() == 0 )
+		{
+			return;
+		}
+
 		// Find everything that references these objects
-		TSet<UObject *> Targets;
+		TArray<UObject *> Targets;
 		{
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_FindReferencers);
 
-			TFindObjectReferencers<UObject> Referencers(SourceObjects, nullptr, false);
-			for (TFindObjectReferencers<UObject>::TIterator It(Referencers); It; ++It)
-			{
-				UObject* Referencer = It.Value();
-				if (!ObjectsThatShouldUseOldStuff || !ObjectsThatShouldUseOldStuff->Contains(Referencer))
-				{
-					Targets.Add(Referencer);
-				}
-			}
+			Targets = FArchiveHasReferences::GetAllReferencers(SourceObjects, ObjectsThatShouldUseOldStuff);
 		}
 
 		{
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_ReplaceReferences);
 
-			for (TSet<UObject *>::TIterator It(Targets); It; ++It)
+			for (UObject* Obj : Targets)
 			{
-				UObject* Obj = *It;
 				if (!ObjectsToReplace.Contains(Obj)) // Don't bother trying to fix old objects, this would break them
 				{
 					// The class for finding and replacing weak references.
@@ -213,12 +212,11 @@ TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::CompiledBlueprint
 UClass* FBlueprintCompileReinstancer::HotReloadedOldClass = nullptr;
 UClass* FBlueprintCompileReinstancer::HotReloadedNewClass = nullptr;
 
-FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC, bool bAutoInferSaveOnCompile/* = true*/)
+FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, EBlueprintCompileReinstancerFlags Flags)
 	: ClassToReinstance(InClassToReinstance)
 	, DuplicatedClass(nullptr)
 	, OriginalCDO(nullptr)
 	, bHasReinstanced(false)
-	, bSkipGarbageCollection(bSkipGC)
 	, ReinstClassType(RCT_Unknown)
 	, ClassToReinstanceDefaultValuesCRC(0)
 	, bIsRootReinstancer(false)
@@ -226,6 +224,10 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 {
 	if( InClassToReinstance != nullptr )
 	{
+		bool bAutoInferSaveOnCompile = !!(Flags & EBlueprintCompileReinstancerFlags::AutoInferSaveOnCompile);
+		bool bIsBytecodeOnly = !!(Flags & EBlueprintCompileReinstancerFlags::BytecodeOnly);
+		bool bAvoidCDODuplication = !!(Flags & EBlueprintCompileReinstancerFlags::AvoidCDODuplication);
+
 		if (FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToReinstance))
 		{
 			ReinstClassType = RCT_BpSkeleton;
@@ -248,7 +250,14 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Duplicate the class we're reinstancing into the transient package.  We'll re-class all objects we find to point to this new class
 		GIsDuplicatingClassForReinstancing = true;
 		ClassToReinstance->ClassFlags |= CLASS_NewerVersionExists;
-		const FName ReinstanceName = MakeUniqueObjectName(GetTransientPackage(), ClassToReinstance->GetClass(), *FString::Printf(TEXT("REINST_%s"), *ClassToReinstance->GetName()));
+
+		if(bAvoidCDODuplication)
+		{
+			// clear the CDO so that we don't duplicate it, it's stored in OriginalCDO now
+			ClassToReinstance->ClassDefaultObject = nullptr;
+		}
+
+		const FName ReinstanceName = MakeUniqueObjectName(GetTransientPackage(), ClassToReinstance->GetClass(), *(FString(TEXT("REINST_")) + *ClassToReinstance->GetName()));
 		DuplicatedClass = (UClass*)StaticDuplicateObject(ClassToReinstance, GetTransientPackage(), ReinstanceName, ~RF_Transactional); 
 		// If you compile a blueprint that is part of the rootset, there's no reason for the REINST version to be part of the rootset:
 		DuplicatedClass->RemoveFromRoot();
@@ -273,23 +282,27 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Bind and link the duplicate class, so that it has the proper duplicate property offsets
 		DuplicatedClass->Bind();
 		DuplicatedClass->StaticLink(true);
+		
+		if(bAvoidCDODuplication)
+		{
+			// give the OriginalCDO to the DuplicatedClass:
+			OriginalCDO->Rename(*OriginalCDO->GetName(), DuplicatedClass, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+			DuplicatedClass->ClassDefaultObject = OriginalCDO;
+		}
 
-		// Copy over the ComponentNametoDefaultObjectMap, which tells CopyPropertiesForUnrelatedObjects which components are instanced and which aren't
-
-		// Temporarily suspend the undo buffer; we don't need to record the duplicated CDO until it is fully resolved
- 		ITransaction* CurrentTransaction = GUndo;
- 		GUndo = nullptr;
-		DuplicatedClass->ClassDefaultObject = GetClassCDODuplicate(ClassToReinstance->GetDefaultObject(), DuplicatedClass->GetDefaultObjectName());
-
-		// Restore the undo buffer
-		GUndo = CurrentTransaction;
-		DuplicatedClass->ClassDefaultObject->SetFlags(RF_ClassDefaultObject);
 		DuplicatedClass->ClassDefaultObject->SetClass(DuplicatedClass);
+	
+		if(!bAvoidCDODuplication)
+		{
+			ensure( ClassToReinstance->ClassDefaultObject->GetClass() == DuplicatedClass );
+			ClassToReinstance->ClassDefaultObject->Rename(nullptr, GetTransientPackage(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+		}
+		
+		// Note that we can't clear ClassToReinstance->ClassDefaultObject even though
+		// we have moved it aside CleanAndSanitizeClass will want to grab the old CDO 
+		// so it can propagate values to the new one note that until that happens we are 
+		// in an extraordinary state: this class has a CDO of a different type
 
-		// The CDO is fully duplicated and ready to be placed in the undo buffer
-		DuplicatedClass->ClassDefaultObject->Modify();
-
-		ClassToReinstance->GetDefaultObject()->SetClass(DuplicatedClass);
 		ObjectsThatShouldUseOldStuff.Add(DuplicatedClass); //CDO of REINST_ class can be used as archetype
 
 		if( !bIsBytecodeOnly )
@@ -427,7 +440,7 @@ void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
 {
 	if (HotReloadedNewClass)
 	{
-		UPackage* const Package = Cast<UPackage>(CurrentBP->GetOutermost());
+		UPackage* const Package = CurrentBP->GetOutermost();
 		const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
 
 		FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP, HotReloadedNewClass);
@@ -636,8 +649,12 @@ void FBlueprintCompileReinstancer::CompileChildren()
 			// skeletons were kept in-sync (updated/reinstanced when the parent 
 			// was updated); however, if this is a native class (like when hot-
 			// reloading), then we want to make sure to update the skel as well
-			const bool bSkeletonUpToDate = !ClassToReinstance->HasAnyClassFlags(CLASS_Native);
-			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, bSkeletonUpToDate, false);
+			EBlueprintCompileOptions Options = EBlueprintCompileOptions::SkipGarbageCollection;
+			if(!ClassToReinstance->HasAnyClassFlags(CLASS_Native))
+			{
+				Options |= EBlueprintCompileOptions::SkeletonUpToDate;
+			}
+			FKismetEditorUtilities::CompileBlueprint(BP, Options);
 		}
 		else if (IsReinstancingSkeleton())
 		{
@@ -792,10 +809,8 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 						{
 							// it's unsafe to GC in the middle of reinstancing because there may be other reinstancers still alive with references to 
 							// otherwise unreferenced classes:
-							const bool bSkipGC = true;
 							// Full compiles first recompile all skeleton classes, so they are up-to-date
-							const bool bSkeletonUpToDate = true;
-							FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGC, false, nullptr, bSkeletonUpToDate, true);
+							FKismetEditorUtilities::CompileBlueprint(BP, EBlueprintCompileOptions::SkipGarbageCollection | EBlueprintCompileOptions::SkeletonUpToDate);
 							CompiledBlueprints.Add(BP);
 						}
 
@@ -895,9 +910,24 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				for (int I = 0; I != OrderedBytecodeRecompile.Num(); ++I)
 				{
 					UBlueprint* BP = OrderedBytecodeRecompile[I];
-					FKismetEditorUtilities::RecompileBlueprintBytecode(BP, nullptr, true);
+					FKismetEditorUtilities::RecompileBlueprintBytecode(BP, nullptr, EBlueprintBytecodeRecompileOptions::BatchCompile);
 					ensure(0 == DependentBlueprintsToRecompile.Num());
 					CompiledBlueprints.Add(BP);
+
+					// We won't re-instance (and thus won't finalize) objects of this type, but we still need to know if the current
+					// Actor selection in the level editor includes instances of this type, and force a refresh on the selection if so.
+					// Note: If this is a Component BP instead of an Actor BP, the refresh is handled by IWCE's OnCompiled() BP delegate.
+					if (GEditor && BP->ParentClass && BP->ParentClass->IsChildOf<AActor>())
+					{
+						for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+						{
+							AActor* ActorInstance = CastChecked<AActor>(*It);
+							if (ActorInstance->IsA(BP->GeneratedClass))
+							{
+								GEditor->SelectActor(ActorInstance, /*bInSelected =*/true, /*bNotify =*/true, false, true);
+							}
+						}
+					}
 				}
 
 
@@ -1496,7 +1526,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 		return;
 	}
 
-	USelection* SelectedActors;
+	USelection* SelectedActors = nullptr;
 	bool bSelectionChanged = false;
 	TArray<UObject*> ObjectsToReplace;
 	const bool bLogConversions = false; // for debugging
@@ -1531,12 +1561,20 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 		TMap<UObject*, UObject*> ReplacedObjects;
 	} ObjectRemappingHelper;
 
-	FDelegateHandle OnObjectsReplacedHandle = GEditor->OnObjectsReplaced().AddRaw(&ObjectRemappingHelper, &FObjectRemappingHelper::OnObjectsReplaced);
+	FDelegateHandle OnObjectsReplacedHandle = FDelegateHandle();
+	if(GEditor)
 	{
-		SelectedActors = GEditor->GetSelectedActors();
-		SelectedActors->BeginBatchSelectOperation();
-		SelectedActors->Modify();
+		OnObjectsReplacedHandle = GEditor->OnObjectsReplaced().AddRaw(&ObjectRemappingHelper, &FObjectRemappingHelper::OnObjectsReplaced);
+	}
 
+	{
+		if(GEditor && GEditor->GetSelectedActors())
+		{
+			SelectedActors = GEditor->GetSelectedActors();
+			SelectedActors->BeginBatchSelectOperation();
+			SelectedActors->Modify();
+		}
+		
 		for (TPair<UClass*, UClass*> OldToNewClass : InOldToNewClassMap)
 		{
 			UClass* OldClass = OldToNewClass.Key;
@@ -1650,7 +1688,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						SpawnInfo.bDeferConstruction = true;
 						SpawnInfo.Name = OldActor->GetFName();
 
-						OldActor->UObject::Rename(nullptr, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
+						OldActor->UObject::Rename(nullptr, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | (GBlueprintUseCompilationManager ? REN_ForceNoResetLoaders : 0));
 
 						AActor* NewActor = nullptr;
 						{
@@ -1771,12 +1809,12 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 								for (UObject* OldArchetypeObject : OldArchetypeObjects)
 								{
 									OldToNewNameMap.Add(OldArchetypeObject, OldName);
-									OldArchetypeObject->Rename(*OldArchetypeName, OldArchetypeObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
+									OldArchetypeObject->Rename(*OldArchetypeName, OldArchetypeObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | (GBlueprintUseCompilationManager ? REN_ForceNoResetLoaders : 0));
 								}
 							}
 							else
 							{
-								OldObject->Rename(nullptr, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
+								OldObject->Rename(nullptr, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | (GBlueprintUseCompilationManager ? REN_ForceNoResetLoaders : 0));
 							}
 						}
 						
@@ -1795,7 +1833,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 
 						check(NewUObject != nullptr);
 
-						const EObjectFlags FlagMask = RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient | RF_TextExportTransient | RF_InheritableComponentTemplate; //TODO: what about RF_RootSet and RF_Standalone ?
+						const EObjectFlags FlagMask = RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient | RF_TextExportTransient | RF_InheritableComponentTemplate | RF_Standalone; //TODO: what about RF_RootSet?
 						NewUObject->SetFlags(OldFlags & FlagMask);
 
 						InstancedPropertyUtils::FInstancedPropertyMap InstancedPropertyMap;
@@ -1898,7 +1936,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 			}
 		}
 	}
-	GEditor->OnObjectsReplaced().Remove(OnObjectsReplacedHandle);
+
+	if(GEditor)
+	{
+		GEditor->OnObjectsReplaced().Remove(OnObjectsReplacedHandle);
+	}
 
 	// Now replace any pointers to the old archetypes/instances with pointers to the new one
 	TArray<UObject*> SourceObjects;
@@ -1959,7 +2001,11 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 		}
 	}
 
-	SelectedActors->EndBatchSelectOperation();
+	if(SelectedActors)
+	{
+		SelectedActors->EndBatchSelectOperation();
+	}
+
 	if (bSelectionChanged && GEditor)
 	{
 		GEditor->NoteSelectionChange();
@@ -2080,6 +2126,21 @@ void FBlueprintCompileReinstancer::ReparentChild(UClass* ChildClass)
 	ChildClass->SetSuperStruct(DuplicatedClass);
 	ChildClass->Bind();
 	ChildClass->StaticLink(true);
+}
+
+void FBlueprintCompileReinstancer::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject )
+{
+	InstancedPropertyUtils::FInstancedPropertyMap InstancedPropertyMap;
+	InstancedPropertyUtils::FArchiveInstancedSubObjCollector  InstancedSubObjCollector(OldObject, InstancedPropertyMap);
+
+	UEngine::FCopyPropertiesForUnrelatedObjectsParams Params;
+	Params.bAggressiveDefaultSubobjectReplacement = false;//true;
+	Params.bDoDelta = false;
+	Params.bCopyDeprecatedProperties = true;
+	Params.bSkipCompilerGeneratedDefaults = true;
+	UEngine::CopyPropertiesForUnrelatedObjects(OldObject, NewObject, Params);
+
+	InstancedPropertyUtils::FArchiveInsertInstancedSubObjects InstancedSubObjSpawner(NewObject, InstancedPropertyMap);
 }
 
 UObject* FBlueprintCompileReinstancer::GetClassCDODuplicate(UObject* CDO, FName Name)

@@ -6,9 +6,8 @@
 <string name="cancel_button" msgid="2401572676578172896">"取消"</string>
 <string name="dialog_button_got_it" msgid="2482357845034618478">"我知道了"</string>
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"開啟說明中心"</string>
-<string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"必須使用支援 Daydream 平台的手機。請造訪 Daydream 說明中心瞭解詳情。"</string>
+<string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"必須使用支援 Daydream 的手機。請造訪 Daydream 說明中心瞭解詳情。"</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"取得 Cardboard 應用程式，以便設定你的觀影盒。"</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"調整你的觀影盒設定以取得最佳使用體驗。"</string>
 <string name="dialog_title" msgid="7887077605817014784">"設定"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"手機不相容"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"必須完成設定"</string>

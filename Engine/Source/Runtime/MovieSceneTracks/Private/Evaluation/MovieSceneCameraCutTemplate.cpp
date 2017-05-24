@@ -4,9 +4,62 @@
 #include "Sections/MovieSceneCameraCutSection.h"
 #include "MovieSceneEvaluation.h"
 #include "IMovieScenePlayer.h"
-
+#include "GameFramework/Actor.h"
+#include "ContentStreaming.h"
 
 DECLARE_CYCLE_STAT(TEXT("Camera Cut Track Token Execute"), MovieSceneEval_CameraCutTrack_TokenExecute, STATGROUP_MovieSceneEval);
+
+/** A movie scene execution token that sets up the streaming system with the camera cut location */
+struct FCameraCutPreRollExecutionToken : IMovieSceneExecutionToken
+{
+	FGuid CameraGuid;
+	FTransform CutTransform;
+	bool bHasCutTransform;
+
+	FCameraCutPreRollExecutionToken(const FGuid& InCameraGuid, const FTransform& InCutTransform, bool bInHasCutTransform)
+		: CameraGuid(InCameraGuid)
+		, CutTransform(InCutTransform)
+		, bHasCutTransform(bInHasCutTransform)
+	{}
+
+	static FMovieSceneAnimTypeID GetAnimTypeID()
+	{
+		return TMovieSceneAnimTypeID<FCameraCutPreRollExecutionToken>();
+	}
+	
+	/** Execute this token, operating on all objects referenced by 'Operand' */
+	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
+	{
+		FVector Location;
+
+		if (bHasCutTransform)
+		{
+			Location = CutTransform.GetLocation();
+		}
+		else
+		{
+			// If the transform is set, otherwise use the bound actor's transform
+			FMovieSceneEvaluationOperand CameraOperand(Operand.SequenceID, CameraGuid);
+		
+			TArrayView<TWeakObjectPtr<>> Objects = Player.FindBoundObjects(CameraOperand);
+			if (!Objects.Num())
+			{
+				return;
+			}
+
+			// Only ever deal with one camera
+			UObject* CameraObject = Objects[0].Get();
+			
+			AActor* Actor = Cast<AActor>(CameraObject);
+			if (Actor)
+			{
+				Location = Actor->GetActorLocation();
+			}
+		}
+
+		IStreamingManager::Get().AddViewSlaveLocation( Location );
+	}
+};
 
 struct FCameraCutTrackData : IPersistentEvaluationData
 {
@@ -76,12 +129,21 @@ struct FCameraCutExecutionToken : IMovieSceneExecutionToken
 };
 
 
-FMovieSceneCameraCutSectionTemplate::FMovieSceneCameraCutSectionTemplate(const UMovieSceneCameraCutSection& Section)
+FMovieSceneCameraCutSectionTemplate::FMovieSceneCameraCutSectionTemplate(const UMovieSceneCameraCutSection& Section, TOptional<FTransform> InCutTransform)
 	: CameraGuid(Section.GetCameraGuid())
+	, CutTransform(InCutTransform.Get(FTransform()))
+	, bHasCutTransform(InCutTransform.IsSet())
 {
 }
 
 void FMovieSceneCameraCutSectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
 {
-	ExecutionTokens.Add(FCameraCutExecutionToken(CameraGuid));
+	if (Context.IsPreRoll())
+	{
+		ExecutionTokens.Add(FCameraCutPreRollExecutionToken(CameraGuid, CutTransform, bHasCutTransform));
+	}
+	else
+	{
+		ExecutionTokens.Add(FCameraCutExecutionToken(CameraGuid));
+	}
 }

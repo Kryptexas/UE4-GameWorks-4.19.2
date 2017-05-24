@@ -309,7 +309,7 @@ public:
 			Out.Add(this);
 		}
 
-		for (auto* IncludedScope : IncludedScopes)
+		for (FFileScope* IncludedScope : IncludedScopes)
 		{
 			if (!Out.Contains(IncludedScope))
 			{
@@ -388,17 +388,17 @@ public:
 	// Constructor.
 	TDeepScopeTypeIterator(ScopeType* Scope)
 	{
-		const auto* CurrentScope = Scope;
+		const ScopeType* CurrentScope = Scope;
 
 		while (!CurrentScope->IsFileScope())
 		{
 			ScopesToTraverse.Add(Scope);
 
-			auto* Struct = ((FStructScope*)CurrentScope)->GetStruct();
+			UStruct* Struct = ((FStructScope*)CurrentScope)->GetStruct();
 
 			if (Struct->IsA<UClass>())
 			{
-				auto* Class = ((UClass*)Struct)->GetSuperClass();
+				UClass* Class = ((UClass*)Struct)->GetSuperClass();
 
 				while (Class && !(Class->ClassFlags & EClassFlags::CLASS_Intrinsic))
 				{

@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: 2 - Configuring your IDE to Run UE4
 Crumbs:
 Description:Learn how to configure your IDE to run UE4 in Debug and Release mode.
@@ -9,23 +9,7 @@ order: 2
 tags:Linux
 SkillLevel:Beginner
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/1:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/3:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 At this point, you've configured UE4 to build in both Debug and Release mode. Now, you're ready to configure Qt Creator to run UE4.
 
@@ -91,4 +75,4 @@ At this point, you've configured UE4 to build in both Debug and Release mode. No
 
 You're now ready to build and run UE4 with Qt Creator in both Debug and Release mode. 
 
-%Steps%
+[NAV]

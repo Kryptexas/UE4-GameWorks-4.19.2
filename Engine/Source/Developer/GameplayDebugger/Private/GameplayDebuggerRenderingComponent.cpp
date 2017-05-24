@@ -118,11 +118,6 @@ void FGameplayDebuggerDebugDrawDelegateHelper::AddDelegateHelper(FDebugDrawDeleg
 	DebugDrawDelegateHelpers.Add(InDebugDrawDelegateHelper);
 }
 
-void FGameplayDebuggerDebugDrawDelegateHelper::InitDelegateHelper(const FGameplayDebuggerCompositeSceneProxy* InSceneProxy)
-{
-	Super::InitDelegateHelper(InSceneProxy);
-}
-
 //////////////////////////////////////////////////////////////////////////
 // UGameplayDebuggerRenderingComponent
 
@@ -145,12 +140,16 @@ FPrimitiveSceneProxy* UGameplayDebuggerRenderingComponent::CreateSceneProxy()
 			TSharedRef<FGameplayDebuggerCategory> Category = OwnerReplicator->GetCategory(Idx);
 			if (Category->IsCategoryEnabled())
 			{
-				FDebugDrawDelegateHelper* DebugDrawDelegateHelper;
+				FDebugDrawDelegateHelper* DebugDrawDelegateHelper = nullptr;
 				FDebugRenderSceneProxy* CategorySceneProxy = Category->CreateDebugSceneProxy(this, DebugDrawDelegateHelper);
 				if (CategorySceneProxy)
 				{
-					GameplayDebuggerDebugDrawDelegateHelper.AddDelegateHelper(DebugDrawDelegateHelper);
 					SceneProxies.Add(CategorySceneProxy);
+				}
+
+				if (DebugDrawDelegateHelper)
+				{
+					GameplayDebuggerDebugDrawDelegateHelper.AddDelegateHelper(DebugDrawDelegateHelper);
 				}
 			}
 		}

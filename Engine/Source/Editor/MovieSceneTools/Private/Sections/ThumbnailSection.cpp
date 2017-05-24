@@ -15,6 +15,7 @@
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
+#include "IVREditorModule.h"
 
 
 #define LOCTEXT_NAMESPACE "FThumbnailSection"
@@ -31,10 +32,24 @@ namespace ThumbnailSectionConstants
 /* FThumbnailSection structors
  *****************************************************************************/
 
-FThumbnailSection::FThumbnailSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection)
+FThumbnailSection::FThumbnailSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, IViewportThumbnailClient* InViewportThumbanilClient, UMovieSceneSection& InSection)
 	: Section(&InSection)
 	, SequencerPtr(InSequencer)
-	, ThumbnailCache(InThumbnailPool, this)
+	, ThumbnailCache(InThumbnailPool, InViewportThumbanilClient)
+	, AdditionalDrawEffect(ESlateDrawEffect::None)
+	, TimeSpace(ETimeSpace::Global)
+{
+	WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
+	GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().AddRaw(this, &FThumbnailSection::RedrawThumbnails);
+}
+
+
+FThumbnailSection::FThumbnailSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, ICustomThumbnailClient* InCustomThumbnailClient, UMovieSceneSection& InSection)
+	: Section(&InSection)
+	, SequencerPtr(InSequencer)
+	, ThumbnailCache(InThumbnailPool, InCustomThumbnailClient)
+	, AdditionalDrawEffect(ESlateDrawEffect::None)
+	, TimeSpace(ETimeSpace::Global)
 {
 	WhiteBrush = FEditorStyle::GetBrush("WhiteBrush");
 	GetMutableDefault<UMovieSceneUserThumbnailSettings>()->OnForceRedraw().AddRaw(this, &FThumbnailSection::RedrawThumbnails);
@@ -50,43 +65,6 @@ FThumbnailSection::~FThumbnailSection()
 void FThumbnailSection::RedrawThumbnails()
 {
 	ThumbnailCache.ForceRedraw();
-}
-
-
-/* FThumbnailSection interface
- *****************************************************************************/
-
-void FThumbnailSection::PreDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorViewportClient& ViewportClient, FSceneViewport& SceneViewport)
-{
-	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
-	if (Sequencer.IsValid())
-	{
-		Sequencer->EnterSilentMode();
-
-		AActor* Camera = nullptr;
-		FDelegateHandle Handle = Sequencer->OnCameraCut().AddLambda([&](UObject* InObject, bool){
-			Camera = Cast<AActor>(InObject);
-		});
-
-		SavedPlaybackStatus = Sequencer->GetPlaybackStatus();
-		Sequencer->SetPlaybackStatus(EMovieScenePlayerStatus::Jumping);
-		Sequencer->SetLocalTimeDirectly(Thumbnail.GetEvalPosition());
-		Sequencer->ForceEvaluate();
-
-		ViewportClient.SetActorLock(Camera);
-		Sequencer->OnCameraCut().Remove(Handle);
-	}
-}
-
-
-void FThumbnailSection::PostDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorViewportClient& ViewportClient, FSceneViewport& SceneViewport)
-{
-	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
-	if (Sequencer.IsValid())
-	{
-		Thumbnail.SetupFade(Sequencer->GetSequencerWidget());
-		Sequencer->ExitSilentMode();
-	}
 }
 
 
@@ -228,7 +206,7 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 
 	static const float SectionThumbnailPadding = 4.f;
 
-	const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	ESlateDrawEffect DrawEffects = InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	int32 LayerId = InPainter.LayerId;
 
@@ -236,10 +214,10 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 
 	// @todo Sequencer: Need a way to visualize the key here
 
-	const TRange<float> VisibleRange = SequencerPtr.Pin()->GetViewRange();
-	const TRange<float> SectionRange = Section->IsInfinite() ? VisibleRange : Section->GetRange();
+	const TRange<float> VisibleRange = GetVisibleRange();
+	const TRange<float> GenerationRange = GetTotalRange();
 
-	const float TimePerPx = SectionRange.Size<float>() / InPainter.SectionGeometry.GetLocalSize().X;
+	const float TimePerPx = GenerationRange.Size<float>() / InPainter.SectionGeometry.GetLocalSize().X;
 	
 	FSlateRect ThumbnailClipRect = SectionGeometry.GetClippingRect().InsetBy(FMargin(SectionThumbnailPadding, 0.f)).IntersectionWith(InPainter.SectionClippingRect);
 
@@ -251,11 +229,11 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 		// Calculate the paint geometry for this thumbnail
 		TOptional<float> SingleReferenceFrame = ThumbnailCache.GetSingleReferenceFrame();
 
-		// Single thumbnails are always draw at the start of the section, clamped to the visible range
-		// Thumbnail sequences draw relative to their actual position in the sequence
+		// Single thumbnails are always drawn at the start of the section, clamped to the visible range
+		// Thumbnail sequences draw relative to their actual position in the sequence/section
 		const int32 Offset = SingleReferenceFrame.IsSet() ?
-			FMath::Max((VisibleRange.GetLowerBoundValue() - SectionRange.GetLowerBoundValue()) / TimePerPx, 0.f) + SectionThumbnailPadding :
-			(Thumbnail->GetTimeRange().GetLowerBoundValue() - SectionRange.GetLowerBoundValue()) / TimePerPx;
+			FMath::Max((VisibleRange.GetLowerBoundValue() - GenerationRange.GetLowerBoundValue()) / TimePerPx, 0.f) + SectionThumbnailPadding :
+			(Thumbnail->GetTimeRange().GetLowerBoundValue() - GenerationRange.GetLowerBoundValue()) / TimePerPx;
 
 		FPaintGeometry PaintGeometry = SectionGeometry.ToPaintGeometry(
 			ThumbnailSize,
@@ -267,13 +245,22 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 
 		if (Fade <= 1.f)
 		{
+			DrawEffects |= ESlateDrawEffect::NoGamma;
+
+			if (IVREditorModule::Get().IsVREditorModeActive())
+			{
+				// In VR editor every widget is in the world and gamma corrected by the scene renderer.  Thumbnails will have already been gamma
+				// corrected and so they need to be reversed
+				DrawEffects |= ESlateDrawEffect::ReverseGamma;
+			}
+
 			FSlateDrawElement::MakeViewport(
 				InPainter.DrawElements,
 				LayerId,
 				PaintGeometry,
 				Thumbnail,
 				ThumbnailClipRect,
-				DrawEffects | ESlateDrawEffect::NoGamma,
+				DrawEffects | AdditionalDrawEffect,
 				FLinearColor(1.f, 1.f, 1.f, 1.f - Fade)
 				);
 		}
@@ -282,6 +269,35 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 	return LayerId + 2;
 }
 
+TRange<float> FThumbnailSection::GetVisibleRange() const
+{
+	TRange<float> GlobalVisibleRange = SequencerPtr.Pin()->GetViewRange();
+	if (TimeSpace == ETimeSpace::Global)
+	{
+		return GlobalVisibleRange;
+	}
+	
+	return TRange<float>(
+		GlobalVisibleRange.GetLowerBoundValue() - Section->GetStartTime(),
+		GlobalVisibleRange.GetUpperBoundValue() - Section->GetStartTime()
+	);
+}
+
+TRange<float> FThumbnailSection::GetTotalRange() const
+{
+	if (Section->IsInfinite())
+	{
+		return GetVisibleRange();
+	}
+	else if (TimeSpace == ETimeSpace::Global)
+	{
+		return Section->GetRange();
+	}
+	else
+	{
+		return TRange<float>(0.f, Section->GetRange().Size<float>());
+	}
+}
 
 void FThumbnailSection::Tick(const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime)
 {
@@ -292,10 +308,47 @@ void FThumbnailSection::Tick(const FGeometry& AllottedGeometry, const FGeometry&
 		FIntPoint AllocatedSize = AllottedGeometry.GetLocalSize().IntPoint();
 		AllocatedSize.X = FMath::Max(AllocatedSize.X, 1);
 
-		const TRange<float> VisibleRange = SequencerPtr.Pin()->GetViewRange();
-		const TRange<float> SectionRange = Section->IsInfinite() ? VisibleRange : Section->GetRange();
+		ThumbnailCache.Update(GetTotalRange(), GetVisibleRange(), AllocatedSize, Settings->ThumbnailSize, Settings->Quality, InCurrentTime);
+	}
+}
 
-		ThumbnailCache.Update(SectionRange, VisibleRange, AllocatedSize, Settings->ThumbnailSize, Settings->Quality, InCurrentTime);
+
+FViewportThumbnailSection::FViewportThumbnailSection(TSharedPtr<ISequencer> InSequencer, TSharedPtr<FTrackEditorThumbnailPool> InThumbnailPool, UMovieSceneSection& InSection)
+	: FThumbnailSection(InSequencer, InThumbnailPool, this, InSection)
+{
+}
+
+
+void FViewportThumbnailSection::PreDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorViewportClient& ViewportClient, FSceneViewport& SceneViewport)
+{
+	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
+	if (Sequencer.IsValid())
+	{
+		Sequencer->EnterSilentMode();
+
+		AActor* Camera = nullptr;
+		FDelegateHandle Handle = Sequencer->OnCameraCut().AddLambda([&](UObject* InObject, bool){
+			Camera = Cast<AActor>(InObject);
+		});
+
+		SavedPlaybackStatus = Sequencer->GetPlaybackStatus();
+		Sequencer->SetPlaybackStatus(EMovieScenePlayerStatus::Jumping);
+		Sequencer->SetLocalTimeDirectly(Thumbnail.GetEvalPosition());
+		Sequencer->ForceEvaluate();
+
+		ViewportClient.SetActorLock(Camera);
+		Sequencer->OnCameraCut().Remove(Handle);
+	}
+}
+
+
+void FViewportThumbnailSection::PostDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorViewportClient& ViewportClient, FSceneViewport& SceneViewport)
+{
+	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
+	if (Sequencer.IsValid())
+	{
+		Thumbnail.SetupFade(Sequencer->GetSequencerWidget());
+		Sequencer->ExitSilentMode();
 	}
 }
 

@@ -280,7 +280,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 **기타 C++ 개선사항**
 * 델리게이트가 있는 C++ 11 lambdas 가 새로이 지원(아래 참고)되며, 새로운 (경량 lambda wrapper 인) TFunction 클래스도 지원됩니다.
 * TSubobjectPtr 을 제거하고 있습니다. 이상하고 혼동을 유발했었습니다. 이제 서브 오브젝트에 그냥 보통 포인터를 사용하세요!
-* 소스 파일에 구조체와 열거형만 있는 경우, 더이상 '더미' UObject 를 합성할 필요가 없습니다.
+* 소스 파일에 구조체와 Enum 만 있는 경우, 더이상 '더미' UObject 를 합성할 필요가 없습니다.
 
 #### UI: 게임 콘트롤러 지원
 이제 조이스틱을 사용해서 UI 요소 사이를 이동 가능합니다!

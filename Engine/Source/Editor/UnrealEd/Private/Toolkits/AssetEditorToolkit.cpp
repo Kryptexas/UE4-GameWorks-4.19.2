@@ -492,11 +492,15 @@ void FAssetEditorToolkit::GetSaveableObjects(TArray<UObject*>& OutObjects) const
 {
 	for (const auto Object : EditingObjects)
 	{
-		// don't allow user to perform certain actions on objects that
-		// aren't actually assets (e.g. Level Script blueprint objects)
-		if ((Object != nullptr) && Object->IsAsset())
+		// If we are editing a subobject of asset (e.g., a level script blueprint which is contained in a map asset), still provide the
+		// option to work with it but treat save operations/etc... as working on the top level asset itself
+		for (UObject* TestObject = Object; TestObject != nullptr; TestObject = TestObject->GetOuter())
 		{
-			OutObjects.Add(Object);
+			if (TestObject->IsAsset())
+			{
+				OutObjects.Add(TestObject);
+				break;
+			}
 		}
 	}
 }
@@ -747,20 +751,11 @@ void FAssetEditorToolkit::SwitchToWorldCentricEditor_Execute( TWeakPtr< FAssetEd
 
 void FAssetEditorToolkit::FindInContentBrowser_Execute()
 {
-	if( ensure( EditingObjects.Num() > 0 ) )
+	TArray< UObject* > ObjectsToSyncTo;
+	GetSaveableObjects(ObjectsToSyncTo);
+
+	if (ObjectsToSyncTo.Num() > 0)
 	{
-		TArray< UObject* > ObjectsToSyncTo;
-
-		for( auto ObjectIter = EditingObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
-		{
-			// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
-			const auto EditingObject = *ObjectIter;
-			if( EditingObject != NULL && EditingObject->IsAsset() )
-			{
-				ObjectsToSyncTo.Add( EditingObject );
-			}
-		}
-
 		GEditor->SyncBrowserToObjects( ObjectsToSyncTo );
 	}
 }
@@ -903,12 +898,12 @@ TSharedRef<SDockTab> FAssetEditorToolkit::SpawnTab_Toolbar( const FSpawnTabArgs&
 
 void FAssetEditorToolkit::FillDefaultFileMenuCommands( FMenuBuilder& MenuBuilder )
 {
+	MenuBuilder.AddMenuEntry(FAssetEditorCommonCommands::Get().SaveAsset, "SaveAsset", TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "AssetEditor.SaveAsset.Greyscale"));
 	if( IsActuallyAnAsset() )
 	{
-		MenuBuilder.AddMenuEntry(FAssetEditorCommonCommands::Get().SaveAsset, "SaveAsset", TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "AssetEditor.SaveAsset.Greyscale"));
 		MenuBuilder.AddMenuEntry(FAssetEditorCommonCommands::Get().SaveAssetAs, "SaveAssetAs", TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "AssetEditor.SaveAssetAs.Small"));
-		MenuBuilder.AddMenuSeparator();
 	}
+	MenuBuilder.AddMenuSeparator();
 
 	if( IsWorldCentricAssetEditor() )
 	{
@@ -932,10 +927,11 @@ void FAssetEditorToolkit::FillDefaultFileMenuCommands( FMenuBuilder& MenuBuilder
 
 void FAssetEditorToolkit::FillDefaultAssetMenuCommands( FMenuBuilder& MenuBuilder )
 {
+	MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser, "FindInContentBrowser", LOCTEXT("FindInContentBrowser", "Find in Content Browser..."));
+
 	// Commands we only want to be accessible when editing an asset should go here 
 	if( IsActuallyAnAsset() )
 	{
-		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().FindInContentBrowser, "FindInContentBrowser", LOCTEXT("FindInContentBrowser", "Find in Content Browser...") );
 		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().ViewReferences);
 		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().ViewSizeMap);
 
@@ -980,11 +976,8 @@ void FAssetEditorToolkit::GenerateToolbar()
 	ToolbarBuilder.SetIsFocusable(bIsToolbarFocusable);
 	ToolbarBuilder.BeginSection("Asset");
 	{
-		if( IsActuallyAnAsset() )
-		{
-			ToolbarBuilder.AddToolBarButton(FAssetEditorCommonCommands::Get().SaveAsset);
-			ToolbarBuilder.AddToolBarButton(FGlobalEditorCommonCommands::Get().FindInContentBrowser, NAME_None, LOCTEXT("FindInContentBrowserButton", "Find in CB"));
-		}
+		ToolbarBuilder.AddToolBarButton(FAssetEditorCommonCommands::Get().SaveAsset);
+		ToolbarBuilder.AddToolBarButton(FGlobalEditorCommonCommands::Get().FindInContentBrowser, NAME_None, LOCTEXT("FindInContentBrowserButton", "Find in CB"));
 	}
 	ToolbarBuilder.EndSection();
 

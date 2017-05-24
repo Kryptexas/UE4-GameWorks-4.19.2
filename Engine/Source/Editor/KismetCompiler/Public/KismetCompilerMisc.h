@@ -176,6 +176,12 @@ public:
 
 	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node);
 
+	// Returns true if this kind of node needs to be handled in the first pass, prior to execution scheduling (this is only used for function entry and return nodes)
+	virtual bool RequiresRegisterNetsBeforeScheduling() const
+	{
+		return false;
+	}
+
 	/**
 	 * Creates a sanitized name.
 	 *

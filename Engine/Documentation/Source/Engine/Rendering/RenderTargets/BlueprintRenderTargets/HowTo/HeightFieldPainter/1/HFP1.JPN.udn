@@ -1,84 +1,84 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:1. Project Setup
-description:Going over the Project Setup for creating a Height Map painter.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:1.プロジェクト設定
+description:高さマップ ペインタを作成するためのプロジェクト設定の説明
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Intermediate
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/HeightFieldPainter
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:1
-checkpoint:HFP
+checkpoint: animpropertyblend
 
 [NAV]
 
-In this section of the Height Map Painter How - To, we will go over creating a new level for our project to use.
+まずこのセクションでは、使用するプロジェクト用に新規レベルを作成する方法を説明します。
 
-## Project Setup
-Before we can start to create and setup the required Actors for the Height Field Painter, we will first need to create and setup a **Gamemode Override**. In the following section, 
-we will take a look at how this can be accomplished in your project.
+## プロジェクト設定
+ハイト フィールド ペインターに必要なアクタの作成と設定を開始する前に、**Gamemode Override** の作成と設定が必要になります。次のセクションでは、 
+プロジェクトを完成させる手順を説明します。
 
 [region:note]
-If you are working out of the **Content Examples** map, you can skip this step and use the **MyGame** game mode. This game mode can be found under **Content** > **Blueprints** > **MyGame**.
+**コンテンツ サンプル** マップを使用していない場合は、このステップは飛ばして **MyGame** ゲーム モードを使ってください。場所は **[Content]** > **[Blueprints]** > **[MyGame]** です。
 
  ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_00.png)
 [/region]
 
-## Creating a New Game Mode & HUD
-In order to see the crosshair that will let the user know where they are shooting, we will need to create and setup new Game Mode and HUD Blueprints. In the following section, we will take a 
-look at how to setup all of this so that it will work with our Height Field Painter.
+## 新規ゲームモードおよび HUD の作成
+どこに向かって撃っているのかをユーザーに知らせるクロスヘアを確認するために、新規ゲームモードと HUD ブループリントの作成と設定が必要になります。次のセクションでは、 
+これらのすべてを設定する方法を見て、ハイト フィールド ペインターを使って作業できるようにします。
 
-1. Right-click in the **Content Browser** and from the menu in the **Create Basic Asset** section, click on the **Blueprint Class** option.
-	
+1. **コンテンツ ブラウザ** を右クリックして、**[Create Basic Asset (基本アセットの作成)]** セクションの **[Blueprint Class]** オプションをクリックします。
+
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Setup_00.png)
 
-1. From the **Pick Parent Class** Window, click on the **Game Mode** option, naming the new game mode, `HighFieldPainterGameMode`.
+1. **[Pick Parent Class]** ウィンドウの **[Game Mode]** オプションをクリックして、新規ゲームモードに `HighFieldPainterGameMode` と名前を付けます。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_01.png)
 
-1. Right-click in the Content Browser again to bring up the Create Basic Asset menu and then click on the **Blueprint Class** option.
+1. コンテンツ ブラウザを再度クリックして [Create Basic Asset] メニューを開いて **[Blueprint Class]** オプションをクリックします。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Setup_09.png)
 
-1. When the Pick Parent Class window is displayed, expand the **All Classes** option and input **HUD** into the search box. Look for the **HUD** option and when located, click on it and then press the **Select** button to create it.
+1. [Pick Parent Class] ウィンドウが表示されたら **[All Classes]** オプションを展開して、検索ボックスに **「HUD」** と入力します。検索結果で見つかった **[HUD]** オプションをクリックして **[Select (選択)]** ボタンを押して作成します。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_02.png)
 
-1. Name the newly created HUD Blueprint, `HeightFieldPainterHUD`, and then double-click on the **HeightFieldPainterGameMode** Blueprint to open it up.
+1. 新規作成した HUD ブループリントに `HeightFieldPainterHUD` という名前を付けて、**HighFieldPainterGameMode** ブループリントをダブルクリックして開きます。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_04.png)
 
-1. In the **Details** panel of the HeightFieldPainterGameMode under the **Classes** section, set the **HUD Class** to the  `HeightFieldPainterHUD` Blueprint that was just created. 
+1. HighFieldPainterGameMode の **[Details (詳細)]** パネルの **[Classes]** セクションで、**[HUD Class]** を新規作成した [`HeightFieldPainterHUD` Blueprint] に設定します。 
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_03.png)
 
-1. Now, **Compile** and **Save** the HeightFieldPainterGameMode Blueprint and then open the HeightFieldPainterHUD Blueprint by double-clicking on it in the Content Browser.
+1. 次に、HeightFieldPainterGameMode ブループリントを **コンパイル** および **保存** して、コンテンツ ブラウザでダブルクリックして HeightFieldPainterHUD ブループリントを開きます。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_05.png)
 
-1. Inside of the HeightFieldPainterHUD Blueprint, go to the **Event Graph** and copy-paste the following Blueprint code into the graph. 
+1. HeightFieldPainterHUD ブループリント内の **イベント グラフ** をコピーして、以下のブループリント コードをグラフにペーストします。 
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\1\#HUD]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Compile and Save your Blueprint so that it can be used.
+	必ずブループリントをコンパイルおよび保存して使えるようにしてください。
 	[/region]
 
-	This Blueprint code is telling the HUD to draw the specified Material so that it will be centered on the player's screen while the game is running. To see if everything has been setup correctly, press the **Play** button to run the game and you should now have a crosshair positioned in the center of the screen (as shown in the following image).
+	このブループリントは、ゲームの実行中にプレイヤーの画面の中央にくるように特定のマテリアルを描画するように HUD に命令します。すべて正しく設定されているか確認するために、**[Play (再生)]** ボタンを押してゲームを実行します。以下の画像のように画面のど真ん中にクロスヘアがあるはずです。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_07.png)
 
 	[region:note]
-	If you don't see a cross hair on the screen, check to make sure that the **Material** input on the **Draw Material** node has something inputted into the Material input.
+	クロスヘアが画面上にない場合、**Draw Material** ノード上の **Material** 入力が Material 入力への何かしら入力になっているかを確認してください。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_08.png)
 	[/region]
 
-Now that the level and HUD have been created, in the next section we will take a look at what assets need to be created and how to set them up.
+レベルと HUD の作成はこれで完了です。次のセクションでは、UE4 で使用する設定について説明します。
 
 [NAV]
 

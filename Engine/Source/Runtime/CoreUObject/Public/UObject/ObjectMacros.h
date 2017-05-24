@@ -59,7 +59,7 @@ typedef	uint64 ScriptPointerType;
 enum ELoadFlags
 {
 	LOAD_None						= 0x00000000,	// No flags.
-	LOAD_Async					= 0x00000001,	// Loads the package using async loading path/ reader
+	LOAD_Async						= 0x00000001,	// Loads the package using async loading path/ reader
 	LOAD_NoWarn						= 0x00000002,	// Don't display warning if load fails.
 	LOAD_EditorOnly					= 0x00000004, // Load for editor-only purposes and by editor-only code
 	LOAD_ResolvingDeferredExports	= 0x00000008,	// Denotes that we should not defer export loading (as we're resolving them)
@@ -67,7 +67,7 @@ enum ELoadFlags
 	LOAD_AllowDll					= 0x00000020,	// Allow plain DLLs.
 //	LOAD_Unused						= 0x00000040
 	LOAD_NoVerify					= 0x00000080,   // Don't verify imports yet.
-	LOAD_IsVerifying			= 0x00000100,		// Is verifying imports
+	LOAD_IsVerifying				= 0x00000100,		// Is verifying imports
 //	LOAD_Unused						= 0x00000200,
 //	LOAD_Unused						= 0x00000400,
 //	LOAD_Unused						= 0x00000800,
@@ -128,8 +128,8 @@ enum EPackageFlags
 //	PKG_Unused						= 0x00400000,
 //	PKG_Unused						= 0x00800000,
 //	PKG_Unused						= 0x01000000,	
-	PKG_StoreCompressed				= 0x02000000,	// Package is being stored compressed, requires archive support for compression
-	PKG_StoreFullyCompressed		= 0x04000000,	// Package is serialized normally, and then fully compressed after (must be decompressed before LoadPackage is called)
+//	PKG_Unused						= 0x02000000,	
+//	PKG_Unused						= 0x04000000,
 //	PKG_Unused						= 0x08000000,	
 //	PKG_Unused						= 0x10000000,	
 //	PKG_Unused						= 0x20000000,
@@ -148,7 +148,6 @@ enum EStaticConstructor				{EC_StaticConstructor};
 enum EInternal						{EC_InternalUseOnlyConstructor};
 enum ECppProperty					{EC_CppProperty};
 
-#if WITH_HOT_RELOAD_CTORS
 /** DO NOT USE. Helper class to invoke specialized hot-reload constructor. */
 class FVTableHelper
 {
@@ -159,7 +158,6 @@ public:
 		EnsureRetrievingVTablePtrDuringCtor(TEXT("FVTableHelper()"));
 	}
 };
-#endif // WITH_HOT_RELOAD_CTORS
 
 /** Empty API definition.  Used as a placeholder parameter when no DLL export/import API is needed for a UObject class */
 #define NO_API
@@ -414,7 +412,7 @@ typedef uint64 EClassCastFlags;
 #define CPF_NonPIEDuplicateTransient		DECLARE_UINT64(0x0000800000000000)		// Property should only be copied in PIE
 #define CPF_ExposeOnSpawn					DECLARE_UINT64(0x0001000000000000)		// Property is exposed on spawn
 #define CPF_PersistentInstance				DECLARE_UINT64(0x0002000000000000)		// A object referenced by the property is duplicated like a component. (Each actor should have an own instance.)
-#define CPF_UObjectWrapper					DECLARE_UINT64(0x0004000000000000)		// Property was parsed as a wrapper class like TSubobjectOf<T>, FScriptInterface etc., rather than a USomething*
+#define CPF_UObjectWrapper					DECLARE_UINT64(0x0004000000000000)		// Property was parsed as a wrapper class like TSubclassOf<T>, FScriptInterface etc., rather than a USomething*
 #define CPF_HasGetValueTypeHash				DECLARE_UINT64(0x0008000000000000)		// This property can generate a meaningful hash value.
 #define CPF_NativeAccessSpecifierPublic		DECLARE_UINT64(0x0010000000000000)		// Public native access specifier
 #define CPF_NativeAccessSpecifierProtected	DECLARE_UINT64(0x0020000000000000)		// Protected native access specifier
@@ -492,10 +490,11 @@ enum EObjectFlags
 	RF_StrongRefOnFrame			= 0x01000000,	///< References to this object from persistent function frame are handled as strong ones.
 	RF_NonPIEDuplicateTransient		= 0x02000000,  ///< Object should not be included for duplication unless it's being duplicated for a PIE session
 	RF_Dynamic = 0x04000000, // Field Only. Dynamic field - doesn't get constructed during static initialization, can be constructed multiple times
+	RF_WillBeLoaded = 0x08000000, // This object was constructed during load and will be loaded shortly
 };
 
 	// Special all and none masks
-#define RF_AllFlags				(EObjectFlags)0x07ffffff	///< All flags, used mainly for error checking
+#define RF_AllFlags				(EObjectFlags)0x0fffffff	///< All flags, used mainly for error checking
 
 	// Predefined groups of the above
 #define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate | RF_DuplicateTransient | RF_NonPIEDuplicateTransient)) // Flags to load from Unrealfiles.
@@ -638,9 +637,6 @@ namespace UC
 		/// This keyword is used to set the actor group that the class is show in, in the editor.
 		classGroup,
 
-		/// This keyword specifies that this class cannot have its code generated until the given class has been processed.
-		DependsOn,
-
 		/// Declares that instances of this class should always have an outer of the specified class.  This is inherited by subclasses unless overridden.
 		Within, /* =OuterClassName */
 
@@ -754,9 +750,6 @@ namespace UI
 	// valid keywords for the UINTERFACE macro, see the UCLASS versions, above
 	enum 
 	{
-		/// This keyword specifies that this class cannot have its code generated until the given class has been processed.
-		DependsOn,
-
 		/// This keyword indicates that the interface should be accessible outside of it's module, but does not need all methods exported.
 		/// It exports only the autogenerated methods required for dynamic_cast<>, etc... to work.
 		MinimalAPI,
@@ -823,6 +816,9 @@ namespace UF
 
 		/// This function is cosmetic and will not run on dedicated servers
 		BlueprintCosmetic,
+
+		/// This function can be called in the editor on selected instances via a button in the details panel.
+		CallInEditor,
 
 		/// The UnrealHeaderTool code generator will not produce a execFoo thunk for this function; it is up to the user to provide one.
 		CustomThunk,
@@ -1039,6 +1035,9 @@ namespace UM
 
 		//[ClassMetadata] Only valid on Blueprint Function Libraries. Mark the functions in this class as callable on non-game threads in an Animation Blueprint.
 		BlueprintThreadSafe,
+
+		/// [ClassMetadata] Indicates the class uses hierarchical data. Used to instantiate hierarchical editing features in details panels
+		UsesHierarchy,
 	};
 
 	// Metadata usable in USTRUCT
@@ -1057,7 +1056,7 @@ namespace UM
 	// Metadata usable in UPROPERTY for customizing the behavior when displaying the property in a property panel
 	enum
 	{
-		/// [PropertyMetadata] Used for FStringClassReference properties.  Indicates whether abstract class types should be shown in the class picker.
+		/// [PropertyMetadata] Used for Subclass and StringClassReference properties.  Indicates whether abstract class types should be shown in the class picker.
 		AllowAbstract,
 
 		/// [PropertyMetadata] Used for FStringAssetReference properties.  Comma delimited list that indicates the class type(s) of assets to be displayed in the asset picker.
@@ -1069,11 +1068,26 @@ namespace UM
 		/// [PropertyMetadata] Used for integer properties.  Clamps the valid values that can be entered in the UI to be between 0 and the length of the array specified.
 		ArrayClamp,
 
+		/// [PropertyMetadata] Used for AssetPtr/StringAssetReference properties. Comma separated list of Bundle names used inside PrimaryDataAssets to specify which bundles this reference is part of
+		AssetBundles,
+
+		/// [PropertyMetadata] Used for Subclass and StringClassReference properties.  Indicates whether only blueprint classes should be shown in the class picker.
+		BlueprintBaseOnly,
+
+		/// [PropertyMetadata] Property defaults are generated by the Blueprint compiler and will not be copied when CopyPropertiesForUnrelatedObjects is called post-compile.
+		BlueprintCompilerGeneratedDefaults,
+
 		/// [PropertyMetadata] Used for float and integer properties.  Specifies the minimum value that may be entered for the property.
 		ClampMin,
 
 		/// [PropertyMetadata] Used for float and integer properties.  Specifies the maximum value that may be entered for the property.
 		ClampMax,
+
+		/// [PropertyMetadata] Property is serialized to config and we should be able to set it anywhere along the config hierarchy.
+		ConfigHierarchyEditable,
+
+		/// [PropertyMetadata] Used by FDirectoryPath properties. Indicates that the path will be picked using the Slate-style directory picker inside the game Content dir.
+		ContentDir,
 
 		/// [ClassMetadata] [PropertyMetadata] [FunctionMetadata] The name to display for this class, property, or function instead of auto-generating it from the name.
 		// DisplayName, (Commented out so as to avoid duplicate name with version in the Class section, but still show in the property section)
@@ -1093,20 +1107,23 @@ namespace UM
 		/// [PropertyMetadata] Specifies whether the property should be exposed on a Spawn Actor for the class type.
 		ExposeOnSpawn,
 
+		/// [PropertyMetadata] Used by FFilePath properties. Indicates the path filter to display in the file picker.
+		FilePathFilter,
+
 		/// [PropertyMetadata] Deprecated.
 		FixedIncrement,
 
 		/// [PropertyMetadata] Used for FColor and FLinearColor properties. Indicates that the Alpha property should be hidden when displaying the property widget in the details.
 		HideAlphaChannel,
 
+		/// [PropertyMetadata] Used for Subclass and StringClassReference properties. Specifies to hide the ability to change view options in the class picker
+		HideViewOptions,
+
 		/// [PropertyMetadata] Signifies that the bool property is only displayed inline as an edit condition toggle in other properties, and should not be shown on its own row.
 		InlineEditConditionToggle,
 
-		/// [PropertyMetadata] Used for FStringClassReference properties.  Indicates whether only blueprint classes should be shown in the class picker.
-		IsBlueprintBaseOnly,
-
-		/// [PropertyMetadata] Used for Subclass properties. Indicates whether only placeable classes should be shown in the class picker.
-		OnlyPlaceable,
+		/// [PropertyMetadata] Used by FDirectoryPath properties.  Converts the path to a long package name
+		LongPackageName,
 
 		/// [PropertyMetadata] Used for Transform/Rotator properties (also works on arrays of them). Indicates that the property should be exposed in the viewport as a movable widget.
 		MakeEditWidget,
@@ -1116,6 +1133,9 @@ namespace UM
 
 		/// [PropertyMetadata] Used FStringClassReference properties. Indicates the parent class that the class picker will use when filtering which classes to display.
 		MetaClass,
+
+		/// [PropertyMetadata] Used for Subclass and StringClassReference properties. Indicates the selected class must implement a specific interface
+		MustImplement,
 
 		/// [PropertyMetadata] Used for numeric properties. Stipulates that the value must be a multiple of the metadata value.
 		Multiple,
@@ -1129,23 +1149,26 @@ namespace UM
 		/// [PropertyMetadata] Used for array properties. Indicates that the duplicate icon should not be shown for entries of this array in the property panel.
 		NoElementDuplicate,
 
+		/// [PropertyMetadata] Property wont have a 'reset to default' button when displayed in property windows
+		NoResetToDefault,
+
 		/// [PropertyMetadata] Used for integer and float properties. Indicates that the spin box element of the number editing widget should not be displayed.
 		NoSpinbox,
 
-		/// [PropertyMetadata] Used by FFilePath properties. Indicates the path filter to display in the file picker.
-		FilePathFilter,
+		/// [PropertyMetadata] Used for Subclass properties. Indicates whether only placeable classes should be shown in the class picker.
+		OnlyPlaceable,
 
-		/// [PropertyMetadta] Used by FDirectoryPath properties. Indicates that the directory dialog will output a relative path when setting the property.
+		/// [PropertyMetadata] Used by FDirectoryPath properties. Indicates that the directory dialog will output a relative path when setting the property.
 		RelativePath,
 
-		/// [PropertyMetadta] Used by FDirectoryPath properties. Indicates that the directory dialog will output a path relative to the game content directory when setting the property.
+		/// [PropertyMetadata] Used by FDirectoryPath properties. Indicates that the directory dialog will output a path relative to the game content directory when setting the property.
 		RelativeToGameContentDir,
-
-		/// [PropertyMetadta] Used by FDirectoryPath properties. Indicates that the path will be picked using the Slate-style directory picker inside the game Content dir.
-		ContentDir,
 
 		// [PropertyMetadata] Used by struct properties. Indicates that the inner properties will not be shown inside an expandable struct, but promoted up a level.
 		ShowOnlyInnerProperties,
+
+		/// [PropertyMetadata] Used for Subclass and StringClassReference properties. Shows the picker as a tree view instead of as a list
+		ShowTreeView,
 
 		// [PropertyMetadata] Used by numeric properties. Indicates how rapidly the value will grow when moving an unbounded slider.
 		SliderExponent,
@@ -1156,17 +1179,11 @@ namespace UM
 		/// [PropertyMetadata] Used for float and integer properties.  Specifies the highest that the value slider should represent.
 		UIMax,
 
-		/// [PropertyMetadata] Property is serialized to config and we should be able to set it anywhere along the config hierarchy.
-		ConfigHierarchyEditable,
+		/// [PropertyMetadata] Indicates that the property should be exposed as an input for an animation controller
+		AnimationInput,
 
-		/// [PropertyMetadata] Property defaults are generated by the Blueprint compiler and will not be copied when CopyPropertiesForUnrelatedObjects is called post-compile.
-		BlueprintCompilerGeneratedDefaults,
-
-		/// [PropertyMetadata] Used by FDirectoryPath properties.  Converts the path to a long package name
-		LongPackageName,
-
-		/// [PropertyMetadata] Property wont have a 'reset to default' button when displayed in property windows
-		NoResetToDefault,
+		/// [PropertyMetadata] Indicates that the property should be exposed as an output for an animation controller
+		AnimationOutput,
 	};
 
 	// Metadata usable in UPROPERTY for customizing the behavior of Persona and UMG
@@ -1319,7 +1336,7 @@ Class declaration macros.
 private: \
     TClass& operator=(TClass&&);   \
     TClass& operator=(const TClass&);   \
-	TRequiredAPI static UClass* GetPrivateStaticClass(const TCHAR* Package); \
+	TRequiredAPI static UClass* GetPrivateStaticClass(); \
 public: \
 	/** Bitwise union of #EClassFlags pertaining to this class.*/ \
 	enum {StaticClassFlags=TStaticFlags}; \
@@ -1330,7 +1347,12 @@ public: \
 	/** Returns a UClass object representing this class at runtime */ \
 	inline static UClass* StaticClass() \
 	{ \
-		return GetPrivateStaticClass(TPackage); \
+		return GetPrivateStaticClass(); \
+	} \
+	/** Returns the package this class belongs in */ \
+	inline static const TCHAR* StaticPackage() \
+	{ \
+		return TPackage; \
 	} \
 	/** Returns the StaticClassFlags for this class */ \
 	inline static EClassCastFlags StaticClassCastFlags() \
@@ -1362,141 +1384,95 @@ public: \
 #define DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
 	static void __DefaultConstructor(const FObjectInitializer& X) { new((EInternal*)X.GetObj())TClass(X); }
 
-#if WITH_HOT_RELOAD_CTORS
-	#define DECLARE_VTABLE_PTR_HELPER_CTOR(API, TClass) \
-		/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
-		API TClass(FVTableHelper& Helper);
+#define DECLARE_VTABLE_PTR_HELPER_CTOR(API, TClass) \
+	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
+	API TClass(FVTableHelper& Helper);
 
-	#define DEFINE_VTABLE_PTR_HELPER_CTOR(TClass) \
-		TClass::TClass(FVTableHelper& Helper) : Super(Helper) {};
+#define DEFINE_VTABLE_PTR_HELPER_CTOR(TClass) \
+	TClass::TClass(FVTableHelper& Helper) : Super(Helper) {};
 
-	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER_DUMMY() \
-		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
-		{ \
-			return nullptr; \
-		}
+#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER_DUMMY() \
+	static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+	{ \
+		return nullptr; \
+	}
 
-	#if WITH_HOT_RELOAD
-		#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(TClass) \
-			static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
-			{ \
-				return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
-			}
-	#else // WITH_HOT_RELOAD
-		#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(TClass) \
-			DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER_DUMMY()
-	#endif // WITH_HOT_RELOAD
-
-	#define DECLARE_CLASS_INTRINSIC_NO_CTOR(TClass,TSuperClass,TStaticFlags,TPackage) \
-		DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, CASTCLASS_None, TPackage, NO_API) \
-		enum { IsIntrinsic = 1 }; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+#if WITH_HOT_RELOAD
+	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(TClass) \
 		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
 		{ \
 			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
 		}
+#else // WITH_HOT_RELOAD
+	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(TClass) \
+		DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER_DUMMY()
+#endif // WITH_HOT_RELOAD
 
-	#define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
-		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \
-		RELAY_CONSTRUCTOR(TClass, TSuperClass) \
-		/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
-		TClass(FVTableHelper& Helper) : Super(Helper) {}; \
-		enum {IsIntrinsic=1}; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
-		{ \
-			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
-		}
+#define DECLARE_CLASS_INTRINSIC_NO_CTOR(TClass,TSuperClass,TStaticFlags,TPackage) \
+	DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, CASTCLASS_None, TPackage, NO_API) \
+	enum { IsIntrinsic = 1 }; \
+	static void StaticRegisterNatives##TClass() {} \
+	DECLARE_SERIALIZER(TClass) \
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+	static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+	{ \
+		return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+	}
 
-	#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-		DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, TStaticCastFlags, TPackage, TRequiredAPI) \
-		enum { IsIntrinsic = 1 }; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
-		{ \
-			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
-		}
+#define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
+	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \
+	RELAY_CONSTRUCTOR(TClass, TSuperClass) \
+	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
+	TClass(FVTableHelper& Helper) : Super(Helper) {}; \
+	enum {IsIntrinsic=1}; \
+	static void StaticRegisterNatives##TClass() {} \
+	DECLARE_SERIALIZER(TClass) \
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+	static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+	{ \
+		return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+	}
 
-	#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage,TRequiredAPI ) \
-		RELAY_CONSTRUCTOR(TClass, TSuperClass) \
-		/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
-		TClass(FVTableHelper& Helper) : Super(Helper) {}; \
-		enum {IsIntrinsic=1}; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
-		{ \
-			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
-		}
+#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+	DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, TStaticCastFlags, TPackage, TRequiredAPI) \
+	enum { IsIntrinsic = 1 }; \
+	static void StaticRegisterNatives##TClass() {} \
+	DECLARE_SERIALIZER(TClass) \
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+	static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+	{ \
+		return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+	}
 
-	#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage, TRequiredAPI ) \
-		enum {IsIntrinsic=1}; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
-		{ \
-			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
-		}
+#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage,TRequiredAPI ) \
+	RELAY_CONSTRUCTOR(TClass, TSuperClass) \
+	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
+	TClass(FVTableHelper& Helper) : Super(Helper) {}; \
+	enum {IsIntrinsic=1}; \
+	static void StaticRegisterNatives##TClass() {} \
+	DECLARE_SERIALIZER(TClass) \
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+	static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+	{ \
+		return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+	}
 
-	#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-		DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-		/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
-		TClass(FVTableHelper& Helper) : Super(Helper) {}; \
+#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage, TRequiredAPI ) \
+	enum {IsIntrinsic=1}; \
+	static void StaticRegisterNatives##TClass() {} \
+	DECLARE_SERIALIZER(TClass) \
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+	static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+	{ \
+		return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+	}
 
-#else // WITH_HOT_RELOAD_CTORS
-	#define DECLARE_VTABLE_PTR_HELPER_CTOR(API, TClass)
-	#define DEFINE_VTABLE_PTR_HELPER_CTOR(TClass)
-	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(TClass)
-	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER_DUMMY()
-
-	#define DECLARE_CLASS_INTRINSIC_NO_CTOR(TClass,TSuperClass,TStaticFlags,TPackage) \
-		DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, CASTCLASS_None, TPackage, NO_API) \
-		enum { IsIntrinsic = 1 }; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-
-	#define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
-		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \
-		RELAY_CONSTRUCTOR(TClass, TSuperClass) \
-		enum {IsIntrinsic=1}; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-
-	#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-		DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, TStaticCastFlags, TPackage, TRequiredAPI) \
-		enum { IsIntrinsic = 1 }; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-
-	#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage,TRequiredAPI ) \
-		RELAY_CONSTRUCTOR(TClass, TSuperClass) \
-		enum {IsIntrinsic=1}; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-
-	#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage, TRequiredAPI ) \
-		enum {IsIntrinsic=1}; \
-		static void StaticRegisterNatives##TClass() {} \
-		DECLARE_SERIALIZER(TClass) \
-		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
-
-#endif // WITH_HOT_RELOAD_CTORS
+#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
+	TClass(FVTableHelper& Helper) : Super(Helper) {}; \
 
 
 #define DECLARE_CASTED_CLASS_INTRINSIC( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags ) \
@@ -1511,14 +1487,14 @@ public: \
 // Register a class at startup time.
 #define IMPLEMENT_CLASS(TClass, TClassCrc) \
 	static TClassCompiledInDefer<TClass> AutoInitialize##TClass(TEXT(#TClass), sizeof(TClass), TClassCrc); \
-	UClass* TClass::GetPrivateStaticClass(const TCHAR* Package) \
+	UClass* TClass::GetPrivateStaticClass() \
 	{ \
 		static UClass* PrivateStaticClass = NULL; \
 		if (!PrivateStaticClass) \
 		{ \
 			/* this could be handled with templates, but we want it external to avoid code bloat */ \
 			GetPrivateStaticClassBody( \
-				Package, \
+				StaticPackage(), \
 				(TCHAR*)TEXT(#TClass) + 1 + ((StaticClassFlags & CLASS_Deprecated) ? 11 : 0), \
 				PrivateStaticClass, \
 				StaticRegisterNatives##TClass, \
@@ -1537,7 +1513,7 @@ public: \
 	}
 
 // Used for intrinsics, this sets up the boiler plate, plus an initialization singleton, which can create properties and GC tokens
-#define IMPLEMENT_INTRINSIC_CLASS(TClass, TRequiredAPI, TSuperClass, TSuperRequiredAPI, InitCode) \
+#define IMPLEMENT_INTRINSIC_CLASS(TClass, TRequiredAPI, TSuperClass, TSuperRequiredAPI, TPackage, InitCode) \
 	IMPLEMENT_CLASS(TClass, 0) \
 	TRequiredAPI UClass* Z_Construct_UClass_##TClass(); \
 	UClass* Z_Construct_UClass_##TClass() \
@@ -1556,16 +1532,16 @@ public: \
 		check(Class->GetClass()); \
 		return Class; \
 	} \
-	static FCompiledInDefer Z_CompiledInDefer_UClass_##TClass(Z_Construct_UClass_##TClass, &TClass::StaticClass, TEXT(#TClass), false);
+	static FCompiledInDefer Z_CompiledInDefer_UClass_##TClass(Z_Construct_UClass_##TClass, &TClass::StaticClass, TEXT(TPackage), TEXT(#TClass), false);
 
 #define IMPLEMENT_CORE_INTRINSIC_CLASS(TClass, TSuperClass, InitCode) \
-	IMPLEMENT_INTRINSIC_CLASS(TClass, COREUOBJECT_API, TSuperClass, COREUOBJECT_API, InitCode)
+	IMPLEMENT_INTRINSIC_CLASS(TClass, COREUOBJECT_API, TSuperClass, COREUOBJECT_API, "/Script/CoreUObject" ,InitCode)
 
 // Register a dynamic class (created at runtime, not startup). Explicit ClassName parameter because Blueprint types can have names that can't be used natively:
 #define IMPLEMENT_DYNAMIC_CLASS(TClass, ClassName, TClassCrc) \
-	UClass* TClass::GetPrivateStaticClass(const TCHAR* Package) \
+	UClass* TClass::GetPrivateStaticClass() \
 	{ \
-		UPackage* PrivateStaticClassOuter = FindOrConstructDynamicTypePackage(Package); \
+		UPackage* PrivateStaticClassOuter = FindOrConstructDynamicTypePackage(StaticPackage()); \
 		UClass* PrivateStaticClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), PrivateStaticClassOuter, (TCHAR*)ClassName)); \
 		if (!PrivateStaticClass) \
 		{ \
@@ -1578,7 +1554,7 @@ public: \
 		{ \
 			/* this could be handled with templates, but we want it external to avoid code bloat */ \
 			GetPrivateStaticClassBody( \
-			Package, \
+			StaticPackage(), \
 			(TCHAR*)ClassName, \
 			PrivateStaticClass, \
 			StaticRegisterNatives##TClass, \
@@ -1672,5 +1648,3 @@ public:
 	**/
 	virtual void Restore() const=0;
 };
-
-

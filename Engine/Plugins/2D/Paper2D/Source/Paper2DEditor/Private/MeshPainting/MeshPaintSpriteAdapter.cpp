@@ -2,48 +2,44 @@
 
 #include "MeshPainting/MeshPaintSpriteAdapter.h"
 #include "Paper2DModule.h"
-#include "MeshPaintEdMode.h"
 #include "PaperSpriteComponent.h"
 #include "PaperSprite.h"
+#include "MeshPaintTypes.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintSpriteAdapter
 
-bool FMeshPaintSpriteAdapter::Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex)
+bool FMeshPaintSpriteAdapter::Construct(UMeshComponent* InComponent, int32 InMeshLODIndex)
 {
 	SpriteComponent = CastChecked<UPaperSpriteComponent>(InComponent);
-	return SpriteComponent->GetSprite() != nullptr;
+	return SpriteComponent->GetSprite() != nullptr && Initialize();
 }
 
-int32 FMeshPaintSpriteAdapter::GetNumTexCoords() const
+bool FMeshPaintSpriteAdapter::Initialize()
 {
-	return 1;
-}
-
-void FMeshPaintSpriteAdapter::GetTriangleInfo(int32 TriIndex, struct FTexturePaintTriangleInfo& OutTriInfo) const
-{
-	UPaperSprite* Sprite = SpriteComponent->GetSprite();
+	Sprite = SpriteComponent->GetSprite();
 	checkSlow(Sprite != nullptr);
+	const int32 NumTriangles = Sprite->BakedRenderData.Num() / 3;
+	const int32 NumIndices = NumTriangles * 3;
+	const int32 NumVertices = Sprite->BakedRenderData.Num();
 
-	// Grab the vertex indices and points for this triangle
 	const TArray<FVector4>& BakedPoints = Sprite->BakedRenderData;
-
-	for (int32 TriVertexNum = 0; TriVertexNum < 3; ++TriVertexNum)
+	for (int32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
 	{
-		const int32 VertexIndex = (TriIndex * 3) + TriVertexNum;
 		const FVector4& XYUV = BakedPoints[VertexIndex];
-
-		OutTriInfo.TriVertices[TriVertexNum] = (PaperAxisX * XYUV.X) + (PaperAxisY * XYUV.Y);
-		OutTriInfo.TriUVs[TriVertexNum] = FVector2D(XYUV.Z, XYUV.W);
+		MeshVertices.Add(FVector(PaperAxisX * XYUV.X) + (PaperAxisY * XYUV.Y));
 	}
-}
 
+	for (int32 Index = 0; Index < NumIndices; ++Index)
+	{
+		MeshIndices.Add(Index);
+	}
+
+	return MeshVertices.Num() > 0 && MeshIndices.Num() > 0;
+}
 
 bool FMeshPaintSpriteAdapter::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params) const
 {
-	UPaperSprite* Sprite = SpriteComponent->GetSprite();
-	checkSlow(Sprite != nullptr);
-
 	const FTransform& ComponentToWorld = SpriteComponent->ComponentToWorld;
 
 	// Can we possibly intersect with the sprite?
@@ -102,9 +98,6 @@ bool FMeshPaintSpriteAdapter::LineTraceComponent(struct FHitResult& OutHit, cons
 
 TArray<uint32> FMeshPaintSpriteAdapter::SphereIntersectTriangles(const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition, const FVector& ComponentSpaceCameraPosition, const bool bOnlyFrontFacing) const
 {
-	UPaperSprite* Sprite = SpriteComponent->GetSprite();
-	checkSlow(Sprite != nullptr);
-
 	//@TODO: MESHPAINT: This isn't very precise..., but since the sprite is planar it shouldn't cause any actual issues with paint UX other than being suboptimal
 	const uint32 NumTriangles = Sprite->BakedRenderData.Num() / 3;
 	TArray<uint32> OutTriangles;
@@ -119,9 +112,6 @@ TArray<uint32> FMeshPaintSpriteAdapter::SphereIntersectTriangles(const float Com
 
 void FMeshPaintSpriteAdapter::QueryPaintableTextures(int32 MaterialIndex, int32& OutDefaultIndex, TArray<struct FPaintableTexture>& InOutTextureList)
 {
-	UPaperSprite* Sprite = SpriteComponent->GetSprite();
-	checkSlow(Sprite != nullptr);
-
 	// Grab the sprite texture first
 	int32 ForceIndex = INDEX_NONE;
 	if (UTexture2D* SourceTexture = Sprite->GetBakedTexture())
@@ -160,17 +150,102 @@ void FMeshPaintSpriteAdapter::ApplyOrRemoveTextureOverride(UTexture* SourceTextu
 	DefaultApplyOrRemoveTextureOverride(SpriteComponent, SourceTexture, OverrideTexture);
 }
 
+void FMeshPaintSpriteAdapter::PreEdit()
+{
+}
+
+void FMeshPaintSpriteAdapter::PostEdit()
+{
+}
+
+void FMeshPaintSpriteAdapter::GetVertexColor(int32 VertexIndex, FColor& OutColor, bool bInstance /*= true*/) const
+{
+	// Do nothing
+	OutColor = FColor::White;
+}
+
+void FMeshPaintSpriteAdapter::SetVertexColor(int32 VertexIndex, FColor Color, bool bInstance /*= true*/)
+{
+	// Do nothing
+}
+
+void FMeshPaintSpriteAdapter::GetTextureCoordinate(int32 VertexIndex, int32 ChannelIndex, FVector2D& OutTextureCoordinate) const
+{
+	OutTextureCoordinate.X = Sprite->BakedRenderData[VertexIndex].Z;
+	OutTextureCoordinate.Y = Sprite->BakedRenderData[VertexIndex].W;	
+}
+
+void FMeshPaintSpriteAdapter::GetVertexPosition(int32 VertexIndex, FVector& OutVertex) const
+{
+	OutVertex = MeshVertices[VertexIndex];
+}
+
+FMatrix FMeshPaintSpriteAdapter::GetComponentToWorldMatrix() const
+{
+	return SpriteComponent->GetComponentToWorld().ToMatrixWithScale();
+}
+
+void FMeshPaintSpriteAdapter::GetInfluencedVertexIndices(const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition, const FVector& ComponentSpaceCameraPosition, const bool bOnlyFrontFacing, TSet<int32> &InfluencedVertices) const
+{
+	// Get a list of (optionally front-facing) triangles that are within a reasonable distance to the brush
+	TArray<uint32> InfluencedTriangles = SphereIntersectTriangles(
+		ComponentSpaceSquaredBrushRadius,
+		ComponentSpaceBrushPosition,
+		ComponentSpaceCameraPosition,
+		bOnlyFrontFacing);
+
+	// Make sure we're dealing with triangle lists
+	const int32 NumIndexBufferIndices = MeshIndices.Num();
+	check(NumIndexBufferIndices % 3 == 0);
+
+	InfluencedVertices.Reserve(InfluencedTriangles.Num());
+	for (int32 InfluencedTriangle : InfluencedTriangles)
+	{
+		InfluencedVertices.Add(MeshIndices[InfluencedTriangle * 3 + 0]);
+		InfluencedVertices.Add(MeshIndices[InfluencedTriangle * 3 + 1]);
+		InfluencedVertices.Add(MeshIndices[InfluencedTriangle * 3 + 2]);
+	}
+}
+
+TArray<FVector> FMeshPaintSpriteAdapter::SphereIntersectVertices(const float ComponentSpaceSquaredBrushRadius, const FVector& ComponentSpaceBrushPosition, const FVector& ComponentSpaceCameraPosition, const bool bOnlyFrontFacing) const
+{
+	const TArray<uint32> IntersectedTriangles = SphereIntersectTriangles(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, bOnlyFrontFacing);
+
+	// Get a list of unique vertices indexed by the influenced triangles
+	TSet<int32> InfluencedVertices;
+	InfluencedVertices.Reserve(IntersectedTriangles.Num());
+	for (int32 IntersectedTriangle : IntersectedTriangles)
+	{
+		InfluencedVertices.Add(MeshIndices[IntersectedTriangle * 3 + 0]);
+		InfluencedVertices.Add(MeshIndices[IntersectedTriangle * 3 + 1]);
+		InfluencedVertices.Add(MeshIndices[IntersectedTriangle * 3 + 2]);
+	}
+
+	TArray<FVector> InRangeVertices;
+	InRangeVertices.Empty(MeshVertices.Num());
+	for (int32 VertexIndex : InfluencedVertices)
+	{
+		const FVector& Vertex = MeshVertices[VertexIndex];
+		if (FVector::DistSquared(ComponentSpaceBrushPosition, Vertex) <= ComponentSpaceSquaredBrushRadius)
+		{
+			InRangeVertices.Add(Vertex);
+		}
+	}
+
+	return InRangeVertices;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintSpriteAdapterFactory
 
-TSharedPtr<IMeshPaintGeometryAdapter> FMeshPaintSpriteAdapterFactory::Construct(class UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) const
+TSharedPtr<IMeshPaintGeometryAdapter> FMeshPaintSpriteAdapterFactory::Construct(class UMeshComponent* InComponent, int32 InMeshLODIndex) const
 {
 	if (UPaperSpriteComponent* SpriteComponent = Cast<UPaperSpriteComponent>(InComponent))
 	{
 		if (SpriteComponent->GetSprite() != nullptr)
 		{
 			TSharedRef<FMeshPaintSpriteAdapter> Result = MakeShareable(new FMeshPaintSpriteAdapter());
-			if (Result->Construct(InComponent, InPaintingMeshLODIndex, InUVChannelIndex))
+			if (Result->Construct(InComponent, InMeshLODIndex))
 			{
 				return Result;
 			}

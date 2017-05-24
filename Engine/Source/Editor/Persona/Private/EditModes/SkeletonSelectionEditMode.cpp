@@ -321,7 +321,7 @@ void FSkeletonSelectionEditMode::DrawHUD(FEditorViewportClient* ViewportClient, 
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
 
 	// Draw name of selected bone
-	if (GetAnimPreviewScene().GetSelectedBoneIndex() != INDEX_NONE)
+	if (IsSelectedBoneRequired())
 	{
 		const FIntPoint ViewPortSize = Viewport->GetSizeXY();
 		const int32 HalfX = ViewPortSize.X / 2;
@@ -374,12 +374,29 @@ bool FSkeletonSelectionEditMode::AllowWidgetMove()
 	return !PreviewMeshComponent->IsAnimBlueprintInstanced();
 }
 
+bool FSkeletonSelectionEditMode::IsSelectedBoneRequired() const
+{
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
+	int32 SelectedBoneIndex = GetAnimPreviewScene().GetSelectedBoneIndex();
+	if (SelectedBoneIndex != INDEX_NONE && PreviewMeshComponent->SkeletalMesh && PreviewMeshComponent->SkeletalMesh->GetImportedResource())
+	{
+		//Get current LOD
+		const int32 LODIndex = FMath::Clamp(PreviewMeshComponent->PredictedLODLevel, 0, PreviewMeshComponent->SkeletalMesh->GetImportedResource()->LODModels.Num() - 1);
+		FStaticLODModel& LODModel = PreviewMeshComponent->SkeletalMesh->GetImportedResource()->LODModels[LODIndex];
+
+		//Check whether the bone is vertex weighted
+		return LODModel.RequiredBones.Find(SelectedBoneIndex) != INDEX_NONE;
+	}
+
+	return false;
+}
+
 bool FSkeletonSelectionEditMode::ShouldDrawWidget() const
 {
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
 	if (!PreviewMeshComponent->IsAnimBlueprintInstanced())
 	{
-		return (GetAnimPreviewScene().GetSelectedBoneIndex() != INDEX_NONE) || GetAnimPreviewScene().GetSelectedSocket().IsValid() || GetAnimPreviewScene().GetSelectedActor() != nullptr;
+		return IsSelectedBoneRequired() || GetAnimPreviewScene().GetSelectedSocket().IsValid() || GetAnimPreviewScene().GetSelectedActor() != nullptr;
 	}
 
 	return false;
@@ -463,6 +480,7 @@ FVector FSkeletonSelectionEditMode::GetWidgetLocation() const
 bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click)
 {
 	bool bHandled = false;
+	const bool bSelectingSections = GetAnimPreviewScene().AllowMeshHitProxies();
 
 	if ( HitProxy )
 	{
@@ -478,13 +496,15 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 			static_cast<FAnimationViewportClient*>(InViewportClient)->GetSkeletonTree()->SetSelectedBone(static_cast<HPersonaBoneProxy*>(HitProxy)->BoneName);
 			bHandled = true;
 		}
-		else if ( HitProxy->IsA( HActor::StaticGetType() ) )
+		else if ( HitProxy->IsA( HActor::StaticGetType() ) && bSelectingSections)
 		{
-			GetAnimPreviewScene().SetSelectedActor(static_cast<HActor*>(HitProxy)->Actor);
+			HActor* ActorHitProxy = static_cast<HActor*>(HitProxy);
+			GetAnimPreviewScene().BroadcastMeshClick(ActorHitProxy, Click);
 			bHandled = true;
 		}
 	}
-	else
+	
+	if ( !bHandled && !bSelectingSections )
 	{
 		// Cast for phys bodies if we didn't get any hit proxies
 		FHitResult Result(1.0f);
@@ -500,6 +520,18 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 		{
 			// We didn't hit a proxy or a physics object, so deselect all objects
 			static_cast<FAnimationViewportClient*>(InViewportClient)->GetSkeletonTree()->DeselectAll();
+		}
+	}
+
+	if(!HitProxy || !HitProxy->IsA(HActor::StaticGetType()))
+	{
+		// Deselect mesh sections
+		if(USkeletalMeshComponent* MeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent())
+		{
+			if(USkeletalMesh* SkelMesh = MeshComponent->SkeletalMesh)
+			{
+				SkelMesh->SelectedEditorSection = INDEX_NONE;
+			}
 		}
 	}
 

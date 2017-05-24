@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3317178
 Availability:Docs
 Title: 전문 노드 그룹
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -7,6 +7,7 @@ version: 4.9
 parent:Engine/Blueprints
 order:3
 type:reference
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -57,6 +58,7 @@ type:reference
 %Engine/Blueprints/UserGuide/OnlineNodes:topiccompact%
 %Engine/Blueprints/UserGuide/MathNode:topiccompact%
 %Engine/Blueprints/UserGuide/RandomStreams:topiccompact%
+%Engine/Blueprints/UserGuide/PatchingNodes:topiccompact%
 
 
 [/REGION]

@@ -7,6 +7,7 @@
 #include "Misc/CoreDelegates.h"
 #include "Engine/GameEngine.h"
 #include "Engine/Canvas.h"
+#include "RenderUtils.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS && PLATFORM_ANDROID
 
@@ -28,11 +29,11 @@
 #if GEARVR_SUPPORTED_PLATFORMS
 extern bool AndroidThunkCpp_IsGearVRApplication();
 
-static TAutoConsoleVariable<int32> CVarGearVREnableMSAA(TEXT("gearvr.EnableMSAA"), 1, TEXT("Enables 4xMSAA when rendering on GearVR."));
+static TAutoConsoleVariable<int32> CVarGearVREnableMSAA(TEXT("vr.oculus.EnableMSAA"), 1, TEXT("Enable 4xMSAA when rendering on GearVR."));
 
-static TAutoConsoleVariable<int32> CVarGearVREnableQueueAhead(TEXT("gearvr.EnableQueueAhead"), 1, TEXT("Enable full-frame queue ahead for rendering on GearVR"));
+static TAutoConsoleVariable<int32> CVarGearVREnableQueueAhead(TEXT("vr.oculus.EnableQueueAhead"), 1, TEXT("Enable full-frame queue ahead for rendering on GearVR"), ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarGearVRBackButton(TEXT("gearvr.HandleBackButton"), 1, TEXT("GearVR plugin will handle the 'back' button"));
+static TAutoConsoleVariable<int32> CVarGearVRBackButton(TEXT("vr.oculus.HandleBackButton"), 1, TEXT("GearVR plugin will handle the 'back' button"));
 
 static const ovrQuatf QuatIdentity = {0,0,0,1};
 
@@ -158,18 +159,17 @@ bool FGearVRPlugin::IsHMDConnected()
 #if GEARVR_SUPPORTED_PLATFORMS
 FSettings::FSettings()
 	: RenderTargetSize(OVR_DEFAULT_EYE_RENDER_TARGET_WIDTH * 2, OVR_DEFAULT_EYE_RENDER_TARGET_HEIGHT)
+	, CpuLevel(2)
+	, GpuLevel(3)
+	, HFOVInRadians(HALF_PI)
+	, VFOVInRadians(HALF_PI)
 {
-	CpuLevel = 2;
-	GpuLevel = 3;
-	HFOVInRadians = FMath::DegreesToRadians(90.f);
-	VFOVInRadians = FMath::DegreesToRadians(90.f);
-	IdealScreenPercentage = ScreenPercentage = 100.f;
 
 	HeadModelParms = vrapi_DefaultHeadModelParms();
 	InterpupillaryDistance = HeadModelParms.InterpupillaryDistance;
 
 	Flags.bStereoEnabled = false; Flags.bHMDEnabled = true;
-	Flags.bUpdateOnRT = Flags.bTimeWarp = true;
+	Flags.bUpdateOnRT = true;
 }
 
 TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FSettings::Clone() const
@@ -221,7 +221,7 @@ bool FGearVR::OnStartGameFrame( FWorldContext& WorldContext )
 	// actual state of docking. We are switching to stereo at the start
 	// (missing the first frame to let it render at least once; otherwise
 	// a blurry image may appear on Note4 with Adreno 420).
-	if (GFrameNumber > 2 && !Settings->Flags.bStereoEnforced)
+	if (GFrameNumber > 2)
 	{
 		EnableStereo(true);
 	}
@@ -229,7 +229,7 @@ bool FGearVR::OnStartGameFrame( FWorldContext& WorldContext )
 #if 0 // temporarily out of order. Until ovr_DeviceIsDocked returns the actual state.
 	if (ovr_DeviceIsDocked() != Settings->IsStereoEnabled())
 	{
-		if (!Settings->IsStereoEnabled() || !Settings->Flags.bStereoEnforced)
+		if (!Settings->IsStereoEnabled())
 		{
 			UE_LOG(LogHMD, Log, TEXT("Device is docked/undocked, changing stereo mode to %s"), (ovr_DeviceIsDocked()) ? TEXT("ON") : TEXT("OFF"));
 			EnableStereo(ovr_DeviceIsDocked());
@@ -310,11 +310,6 @@ bool FGearVR::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
 bool FGearVR::IsHMDConnected()
 {
 	// consider HMD connected all the time if GearVR enabled
-	return true;
-}
-
-bool FGearVR::IsInLowPersistenceMode() const
-{
 	return true;
 }
 
@@ -438,216 +433,138 @@ void FGearVR::ResetStereoRenderingParams()
 	Settings->InterpupillaryDistance = headModelParms.InterpupillaryDistance;
 }
 
-bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
+void FGearVR::FOVCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar, bool bIsVertical)
 {
-	if (FHeadMountedDisplay::Exec(InWorld, Cmd, Ar))
-	{
-		return true;
-	}
-	else if (FParse::Command(&Cmd, TEXT("HMD")))
-	{
-		if (FParse::Command(&Cmd, TEXT("QAHEAD"))) // pixel density
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
+	static const auto DevOverridesTCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.Debug.bEnableDevOverrides"));
+	const bool bEnableDevOverrides = (DevOverridesTCVar && DevOverridesTCVar->GetValueOnAnyThread() != 0);
+	const TCHAR* FieldName = bIsVertical ? TEXT("VFOV") : TEXT("HFOV");
+	FSettings* CurrentSettings = GetSettings();
+	float& Field = bIsVertical ? CurrentSettings->VFOVInRadians : CurrentSettings->VFOVInRadians;
 
-			if (!FCString::Stricmp(*CmdName, TEXT("ON")))
-			{
-				pGearVRBridge->bExtraLatencyMode = true;
-			}
-			else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
-			{
-				pGearVRBridge->bExtraLatencyMode = false;
-			}
-			else
-			{
-				pGearVRBridge->bExtraLatencyMode = !pGearVRBridge->bExtraLatencyMode;
-			}
-			Ar.Log(TEXT("Restart stereo for change to make effect"));
-			return true;
+	if (Args.Num() > 0)
+	{
+		if (!bEnableDevOverrides)
+		{
+			Ar.Logf(TEXT("Error: vr.oculus.Dev.%s can only be modified when dev overrides are enabled"), FieldName);
+			return;
 		}
+		Field = FMath::DegreesToRadians(FCString::Atof(*Args[0]));
+		CurrentSettings->bOverrideFOV = (Field > 0);
+		Flags.bNeedUpdateStereoRenderingParams = true;
+	}
+	Ar.Logf(TEXT("vr.oculus.Dev.%s = %1.2f"), FieldName, FMath::RadiansToDegrees(Field));
+}
+
+void FGearVR::ShowGlobalMenuCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	// fire off the global menu from the render thread
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(OVRGlobalMenu,
+		FGearVR*, Plugin, this,
+		{
+			Plugin->StartOVRGlobalMenu();
+		});
+}
+
+void FGearVR::ShowQuitMenuCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	// fire off the global menu from the render thread
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(OVRQuitMenu,
+		FGearVR*, Plugin, this,
+		{
+			Plugin->StartOVRQuitMenu();
+		});
+}
+
+#if !UE_BUILD_SHIPPING
+void FGearVR::ToggleLoadingIconModeCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	SetLoadingIconMode(!IsInLoadingIconMode());
+}
+#endif
+
+/**
+Clutch to ensure stereo rendering params are recalculated when the r.ScreenPercentage console variable is modified.
+*/
+void FGearVR::CVarSinkHandler()
+{
+	static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+	static float PreviousValue = ScreenPercentageCVar->GetValueOnAnyThread();
+
+	if (GEngine && GEngine->HMDDevice.IsValid())
+	{
+		float CurrentValue = ScreenPercentageCVar->GetValueOnAnyThread();
+		if (CurrentValue != PreviousValue)
+		{
+			auto HMDType = GEngine->HMDDevice->GetHMDDeviceType();
+			if (HMDType == EHMDDeviceType::DT_GearVR)
+			{
+				FGearVR* HMD = static_cast<FGearVR*>(GEngine->HMDDevice.Get());
+				HMD->Flags.bNeedUpdateStereoRenderingParams = true;
+			}
+			PreviousValue = CurrentValue;
+		}
+	}
+}
+
+FAutoConsoleVariableSink FGearVR::CVarSink(FConsoleCommandDelegate::CreateStatic(&FGearVR::CVarSinkHandler));
+
+bool FGearVRCompat::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	const TCHAR* OrigCmd = Cmd;
+	FString AliasedCommand;
+	if (FParse::Command(&Cmd, TEXT("HMD")) && FParse::Command(&Cmd, TEXT("QAHEAD")))
+	{
+		FString CmdName = FParse::Token(Cmd, 0);
+		int Value;
+		if (!FCString::Stricmp(*CmdName, TEXT("ON")))
+		{
+			Value = 1;
+		}
+		else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
+		{
+			Value = 0;
+		}
+		else
+		{
+			Value = CVarGearVREnableQueueAhead.GetValueOnAnyThread() == 0 ? 1 : 0;
+		}
+		AliasedCommand = FString::Printf(TEXT("vr.oculus.EnableQueueAhead %d"), Value);
+	}
+	else if (FParse::Command(&Cmd, TEXT("gearvr.EnableQueueAhead")))
+	{
+		FString CmdName = FParse::Token(Cmd, 0);
+		AliasedCommand = FString::Printf(TEXT("vr.oculus.EnableQueueAhead %s"), *CmdName);
+	}
+	else if (FParse::Command(&Cmd, TEXT("gearvr.EnableMSAA")))
+	{
+		FString CmdName = FParse::Token(Cmd, 0);
+		AliasedCommand = FString::Printf(TEXT("vr.oculus.EnableMSAA %s"), *CmdName);
+	}
+	else if (FParse::Command(&Cmd, TEXT("gearvr.HandleBackButton")))
+	{
+		FString CmdName = FParse::Token(Cmd, 0);
+		AliasedCommand = FString::Printf(TEXT("vr.oculus.HandleBackButton %s"), *CmdName);
 	}
 	else if (FParse::Command(&Cmd, TEXT("OVRGLOBALMENU")))
 	{
-		// fire off the global menu from the render thread
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(OVRGlobalMenu,
-			FGearVR*, Plugin, this,
-			{
-				Plugin->StartOVRGlobalMenu();
-			});
-		return true;
+		AliasedCommand = TEXT("vr.oculus.ShowGlobalMenu");
 	}
 	else if (FParse::Command(&Cmd, TEXT("OVRQUITMENU")))
 	{
-		// fire off the global menu from the render thread
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(OVRQuitMenu,
-			FGearVR*, Plugin, this,
-			{
-				Plugin->StartOVRQuitMenu();
-			});
-		return true;
+		AliasedCommand = TEXT("vr.oculus.ShowQuitMenu");
 	}
 #if !UE_BUILD_SHIPPING
 	else if (FParse::Command(&Cmd, TEXT("OVRLD")))
 	{
-		SetLoadingIconMode(!IsInLoadingIconMode());
-		return true;
+		AliasedCommand = TEXT("vr.oculus.Debug.ToggleLoadingIconMode");
 	}
-	else if (FParse::Command(&Cmd, TEXT("OVRLDI")))
-	{
-		if (!IsInLoadingIconMode())
-		{
-			const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
-			//const TCHAR* iconPath = TEXT("/Game/Loading/LoadingIconTexture.LoadingIconTexture");
-			UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
-			UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
-			UE_LOG(LogHMD, Log, TEXT("...EEE"));
-			if (LoadingTexture != nullptr)
-			{
-				LoadingTexture->AddToRoot();
-				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				SetRenderLoadingTex,
-				FGearVR*, pGearVR, this,
-				UTexture2D*, LoadingTexture, LoadingTexture,
-				{
-					UE_LOG(LogHMD, Log, TEXT("...Success. Loading icon format %d"), int(LoadingTexture->Resource->TextureRHI->GetFormat()));
-					pGearVR->SetLoadingIconTexture(LoadingTexture->Resource->TextureRHI);
-				});
-				FlushRenderingCommands();
-			}
-			else
-			{
-				UE_LOG(LogHMD, Warning, TEXT("Can't load texture %s for loading icon"), iconPath);
-			}
-			return true;
-		}
-		else
-		{
-			SetLoadingIconTexture(nullptr);
-		}
-	}
-	else if (FParse::Command(&Cmd, TEXT("TESTL"))) 
-	{
-		static uint32 LID1 = ~0u, LID2 = ~0u, LID3 = ~0u;
-		IStereoLayers* StereoL = this;
-
-		FString ValueStr = FParse::Token(Cmd, 0);
-		int t = FCString::Atoi(*ValueStr);
-		int maxt = 0;
-
-		if (!FCString::Stricmp(*ValueStr, TEXT("OFF")))
-		{
-			t = -1;
-		}
-		if (!FCString::Stricmp(*ValueStr, TEXT("ALL")))
-		{
-			t = 0;
-			maxt = 3;
-		}
-
-		do 
-		{
-		switch(t)
-		{
-			case 0:
-			{
-				if (LID1 != ~0u) break;
-				const TCHAR* iconPath = TEXT("/Game/Tuscany_LoadScreen.Tuscany_LoadScreen");
-				UE_LOG(LogHMD, Log, TEXT("LID1: Loading texture for loading icon %s..."), iconPath);
-				TAssetPtr<UTexture2D> LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
-				UE_LOG(LogHMD, Log, TEXT("...EEE"));
-
-				if (LoadingTexture != nullptr)
-				{
-					UE_LOG(LogHMD, Log, TEXT("...Success. "));
-					LoadingTexture->UpdateResource();
-					//BeginUpdateResourceRHI(LoadingTexture->Resource);
-					FlushRenderingCommands();
-
-					IStereoLayers::FLayerDesc LayerDesc;
-					LayerDesc.Texture = LoadingTexture->Resource->TextureRHI;
-					LayerDesc.Priority = 10;
-					LayerDesc.Transform = FTransform(FVector(400, 30, 130));
-					LayerDesc.QuadSize = FVector2D(200, 200);
-					LayerDesc.PositionType = IStereoLayers::ELayerType::WorldLocked;
-					LayerDesc.ShapeType = IStereoLayers::ELayerShape::QuadLayer;
-
-					LID1 = StereoL->CreateLayer(LayerDesc);
-				}
-			}
-			break;
-			case 1:
-			{
-				if (LID2 != ~0u) break;
-				//const TCHAR* iconPath = TEXT("/Game/alpha.alpha");
-				const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
-				UE_LOG(LogHMD, Log, TEXT("LID2: Loading texture for loading icon %s..."), iconPath);
-				TAssetPtr<UTexture2D> LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
-				if (LoadingTexture != nullptr)
-				{
-					UE_LOG(LogHMD, Log, TEXT("...Success. "));
-					LoadingTexture->UpdateResource();
-					FlushRenderingCommands();
-
-					IStereoLayers::FLayerDesc LayerDesc;
-					LayerDesc.Texture = LoadingTexture->Resource->TextureRHI;
-					LayerDesc.Priority = 10;
-					LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 0, 0));
-					LayerDesc.QuadSize = FVector2D(200, 200);
-					LayerDesc.PositionType = IStereoLayers::ELayerType::FaceLocked;
-					LayerDesc.ShapeType = IStereoLayers::ELayerShape::QuadLayer;
-
-					LID2 = StereoL->CreateLayer(LayerDesc);
-				}
-			}
-			break;
-			case 2:
-			{
-				if (LID3 != ~0u) break;
-				//const TCHAR* iconPath = TEXT("/Game/alpha.alpha");
-				const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
-				UE_LOG(LogHMD, Log, TEXT("LID3: Loading texture for loading icon %s..."), iconPath);
-				TAssetPtr<UTexture2D> LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
-				if (LoadingTexture != nullptr)
-				{
-					UE_LOG(LogHMD, Log, TEXT("...Success. "));
-					LoadingTexture->UpdateResource();
-					FlushRenderingCommands();
-
-					IStereoLayers::FLayerDesc LayerDesc;
-					LayerDesc.Texture = LoadingTexture->Resource->TextureRHI;
-					LayerDesc.Priority = 10;
-					LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 100, 0));
-					LayerDesc.QuadSize = FVector2D(200, 200);
-					LayerDesc.PositionType = IStereoLayers::ELayerType::TrackerLocked;
-					LayerDesc.ShapeType = IStereoLayers::ELayerShape::QuadLayer;
-
-					LID3 = StereoL->CreateLayer(LayerDesc);
-				}
-			}
-			break;
-			case 3: 
-			{
-				IStereoLayers::FLayerDesc LayerDesc;
-				StereoL->GetLayerDesc(LID2, LayerDesc);
-				FTransform tr(FRotator(0, -30, 0), FVector(100, 0, 0));
-
-				LayerDesc.Transform = tr;
-				LayerDesc.QuadSize = FVector2D(200, 200);
-				StereoL->SetLayerDesc(LID2, LayerDesc);
-			} 
-			break;
-			case -1: 
-			{
-				UE_LOG(LogHMD, Log, TEXT("Destroy layers %d %d %d"), LID1, LID2, LID3);
-				StereoL->DestroyLayer(LID1);
-				StereoL->DestroyLayer(LID2);
-				StereoL->DestroyLayer(LID3);
-			}
-		}
-		} while (++t < maxt);
-	}
-
 #endif
+
+	if (!AliasedCommand.IsEmpty())
+	{
+		Ar.Logf(ELogVerbosity::Warning, TEXT("%s is deprecated. Use %s instead"), OrigCmd, *AliasedCommand);
+		return IConsoleManager::Get().ProcessUserConsoleInput(*AliasedCommand, Ar, InWorld);
+	}
 	return false;
 }
 
@@ -679,11 +596,6 @@ bool FGearVR::IsPositionalTrackingEnabled() const
 	return false;
 }
 
-bool FGearVR::EnablePositionalTracking(bool enable)
-{
-	return false;
-}
-
 static class FSceneViewport* FindSceneViewport()
 {
 	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
@@ -692,7 +604,6 @@ static class FSceneViewport* FindSceneViewport()
 
 bool FGearVR::EnableStereo(bool bStereo)
 {
-	Settings->Flags.bStereoEnforced = false;
 	if (bStereo)
 	{
 		Flags.bNeedEnableStereo = true;
@@ -742,36 +653,17 @@ void FGearVR::ApplySystemOverridesOnStereo(bool bForce)
 {
 	if (Settings->Flags.bStereoEnabled || bForce)
 	{
-		// Set the current VSync state
-		if (Settings->Flags.bOverrideVSync)
-		{
-			static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-			CVSyncVar->Set((bool) Settings->Flags.bVSync);
-		}
-		else
-		{
-			static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-			Settings->Flags.bVSync = CVSyncVar->GetInt() != 0;
-		}
-
-		static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
-		CFinishFrameVar->Set((bool) Settings->Flags.bAllowFinishCurrentFrame);
+		static const auto CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
+		CFinishFrameVar->Set(0); // TODO: Figure out if this is the correct value
 	}
 }
 
 void FGearVR::SaveSystemValues()
 {
-	static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-	Settings->Flags.bSavedVSync = CVSyncVar->GetInt() != 0;
 }
 
 void FGearVR::RestoreSystemValues()
 {
-	static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-	CVSyncVar->Set((bool) Settings->Flags.bSavedVSync);
-
-	static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
-	CFinishFrameVar->Set(false);
 }
 
 void FGearVR::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
@@ -845,6 +737,7 @@ void FGearVR::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, 
 void FGearVR::ResetOrientationAndPosition(float yaw)
 {
 	check (IsInGameThread());
+	Settings->Flags.bHeadTrackingEnforced = false;
 
 	FOvrMobileSynced OvrMobile = GetMobileSynced();
 
@@ -876,15 +769,15 @@ void FGearVR::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& Ou
 {
 }
 
-FMatrix FGearVR::GetStereoProjectionMatrix(enum EStereoscopicPass StereoPassType, const float FOV) const
+FMatrix FGearVR::GetStereoProjectionMatrix(enum EStereoscopicPass StereoPassType, const float /* FOV - unused */) const
 {
-	auto frame = GetFrame();
-	check(frame);
+	auto CurrentFrame = GetFrame();
+	check(CurrentFrame);
 	check(IsStereoEnabled());
 
 	const int32 ViewIndex = ViewIndexFromStereoPass(StereoPassType);
 
-	const FSettings* FrameSettings = frame->GetSettings();
+	const FSettings* FrameSettings = CurrentFrame->GetSettings();
 
 	const float ProjectionCenterOffset = 0.0f;
 	const float PassProjectionOffset = (StereoPassType == eSSP_LEFT_EYE) ? ProjectionCenterOffset : ((StereoPassType == eSSP_RIGHT_EYE) ? -ProjectionCenterOffset : 0);
@@ -900,7 +793,7 @@ FMatrix FGearVR::GetStereoProjectionMatrix(enum EStereoscopicPass StereoPassType
 	float InFarZ = (FrameSettings->FarClippingPlane) ? FrameSettings->FarClippingPlane : GNearClippingPlane;
 	if (StereoPassType == eSSP_MONOSCOPIC_EYE)
 	{
-		InNearZ = InFarZ = frame->MonoCullingDistance;
+		InNearZ = InFarZ = CurrentFrame->MonoCullingDistance;
 	}
 
 	const float M_2_2 = (InNearZ == InFarZ) ? 0.0f    : InNearZ / (InNearZ - InFarZ);
@@ -915,7 +808,7 @@ FMatrix FGearVR::GetStereoProjectionMatrix(enum EStereoscopicPass StereoPassType
 		* FTranslationMatrix(FVector(PassProjectionOffset,0,0));
 	
 	ovrMatrix4f tanAngleMatrix = ToMatrix4f(proj);
-	frame->TanAngleMatrix = ovrMatrix4f_TanAngleMatrixFromProjection(&tanAngleMatrix);
+	CurrentFrame->TanAngleMatrix = ovrMatrix4f_TanAngleMatrixFromProjection(&tanAngleMatrix);
 	return proj;
 }
 
@@ -966,17 +859,40 @@ void FGearVR::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 }
 
 FGearVR::FGearVR()
-	: DeltaControlRotation(FRotator::ZeroRotator)
+	: HFOVCommand(TEXT("vr.oculus.Dev.HFOV"),
+		*NSLOCTEXT("GearVR", "CCommandText_HFOV",
+			"Oculus GearVR specific extension.\n"
+			"The current horizontal field-of-view setting.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGearVR::FOVCommandHandler, false))
+	, VFOVCommand(TEXT("vr.oculus.Dev.VFOV"),
+		*NSLOCTEXT("GearVR", "CCommandText_VFOV",
+			"Oculus GearVR specific extension.\n"
+			"The current vertical field-of-view setting.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGearVR::FOVCommandHandler, true))
+	, ShowGlobalMenuCommand(TEXT("vr.oculus.ShowGlobalMenu"),
+		*NSLOCTEXT("GearVR", "CCommandText_GlobalMenu",
+			"Oculus GearVR specific extension.\n"
+			"Opens the global menu.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGearVR::ShowGlobalMenuCommandHandler))
+	, ShowQuitMenuCommand(TEXT("vr.oculus.ShowQuitMenu"),
+		*NSLOCTEXT("GearVR", "CCommandText_QuitMenu",
+			"Oculus GearVR specific extension.\n"
+			"Opens the quit menu.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGearVR::ShowQuitMenuCommandHandler))
+#if !UE_BUILD_SHIPPING
+	, ToggleLoadingIconModeCommand(TEXT("vr.oculus.Debug.ToggleLoadingIconMode"),
+		*NSLOCTEXT("GearVR", "CCommandText_IconMode",
+			"Oculus GearVR specific extension.\n"
+			"Toggles loading icon mode.").ToString(),
+		FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateRaw(this, &FGearVR::ToggleLoadingIconModeCommandHandler))
+#endif
+	, DeltaControlRotation(FRotator::ZeroRotator)
+	, ResetToYaw(0.f)
+	, BackButtonState(BACK_BUTTON_STATE_NONE)
+	, BackButtonDown(false)
+	, BackButtonDownStartTime(0.0)
 {
-	OCFlags.Raw = 0;
-	DeltaControlRotation = FRotator::ZeroRotator;
-	ResetToYaw = 0.f;
-
 	Settings = MakeShareable(new FSettings);
-
-	BackButtonState = BACK_BUTTON_STATE_NONE;
-	BackButtonDown = false;
-	BackButtonDownStartTime = 0.0;
 
 	Startup();
 }
@@ -1090,7 +1006,6 @@ void FGearVR::Startup()
 			CVarMobileMSAA->Set(GetSettings()->MaxFullspeedMSAASamples);
 		}
 	}
-	pGearVRBridge->bExtraLatencyMode = CVarGearVREnableQueueAhead.GetValueOnAnyThread() != 0;
 
 	Splash = MakeShareable(new FGearVRSplash(this));
 	Splash->Startup();
@@ -1169,16 +1084,24 @@ void FGearVR::UpdateStereoRenderingParams()
 	}
 	if (IsInitialized())
 	{
+		static const auto ScreenPercentageTCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+		 
 		const int SuggestedEyeResolutionWidth  = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH);
 		const int SuggestedEyeResolutionHeight = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT);
 
-		CurrentSettings->RenderTargetSize.X = SuggestedEyeResolutionWidth * 2 * CurrentSettings->ScreenPercentage / 100;
-		CurrentSettings->RenderTargetSize.Y = SuggestedEyeResolutionHeight * CurrentSettings->ScreenPercentage / 100;
+		float ScreenScaleFactor = ScreenPercentageTCVar->GetValueOnGameThread() / 100.f;
+		CurrentSettings->RenderTargetSize.X = ScreenScaleFactor * 2.f * SuggestedEyeResolutionWidth;
+		CurrentSettings->RenderTargetSize.Y = ScreenScaleFactor * SuggestedEyeResolutionHeight;
 
-		const float SuggestedEyeFovDegreesX = vrapi_GetSystemPropertyFloat(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
-		const float SuggestedEyeFovDegreesY = vrapi_GetSystemPropertyFloat(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
-		CurrentSettings->HFOVInRadians = FMath::DegreesToRadians(SuggestedEyeFovDegreesX);
-		CurrentSettings->VFOVInRadians = FMath::DegreesToRadians(SuggestedEyeFovDegreesY);
+		QuantizeSceneBufferSize(CurrentSettings->RenderTargetSize.X, CurrentSettings->RenderTargetSize.Y);
+
+		if (!CurrentSettings->bOverrideFOV)
+		{
+			const float SuggestedEyeFovDegreesX = vrapi_GetSystemPropertyFloat(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
+			const float SuggestedEyeFovDegreesY = vrapi_GetSystemPropertyFloat(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
+			CurrentSettings->HFOVInRadians = FMath::DegreesToRadians(SuggestedEyeFovDegreesX);
+			CurrentSettings->VFOVInRadians = FMath::DegreesToRadians(SuggestedEyeFovDegreesY);
+		}
 
 		const int32 RTSizeX = CurrentSettings->RenderTargetSize.X;
 		const int32 RTSizeY = CurrentSettings->RenderTargetSize.Y;
@@ -1200,10 +1123,7 @@ void FGearVR::LoadFromIni()
 	{
 		CurrentSettings->Flags.bChromaAbCorrectionEnabled = v;
 	}
-	if (GConfig->GetBool(GearVRSettings, TEXT("bDevSettingsEnabled"), v, GEngineIni))
-	{
-		CurrentSettings->Flags.bDevSettingsEnabled = v;
-	}
+	
 	if (GConfig->GetBool(GearVRSettings, TEXT("bOverrideIPD"), v, GEngineIni))
 	{
 		CurrentSettings->Flags.bOverrideIPD = v;
@@ -1215,40 +1135,20 @@ void FGearVR::LoadFromIni()
 			}
 		}
 	}
-	if (GConfig->GetBool(GearVRSettings, TEXT("bOverrideStereo"), v, GEngineIni))
+	if (GConfig->GetBool(GearVRSettings, TEXT("bOverrideFOV"), v, GEngineIni))
 	{
-		CurrentSettings->Flags.bOverrideStereo = v;
-		if (CurrentSettings->Flags.bOverrideStereo)
+		CurrentSettings->bOverrideFOV = v;
+		if (CurrentSettings->bOverrideFOV)
 		{
 			if (GConfig->GetFloat(GearVRSettings, TEXT("HFOV"), f, GEngineIni))
 			{
-				CurrentSettings->HFOVInRadians = f;
+				CurrentSettings->HFOVInRadians = FMath::DegreesToRadians(f);
 			}
 			if (GConfig->GetFloat(GearVRSettings, TEXT("VFOV"), f, GEngineIni))
 			{
-				CurrentSettings->VFOVInRadians = f;
+				CurrentSettings->VFOVInRadians = FMath::DegreesToRadians(f);
 			}
 		}
-	}
-	if (GConfig->GetBool(GearVRSettings, TEXT("bOverrideVSync"), v, GEngineIni))
-	{
-		CurrentSettings->Flags.bOverrideVSync = v;
-		if (GConfig->GetBool(GearVRSettings, TEXT("bVSync"), v, GEngineIni))
-		{
-			CurrentSettings->Flags.bVSync = v;
-		}
-	}
-	if (GConfig->GetBool(GearVRSettings, TEXT("bOverrideScreenPercentage"), v, GEngineIni))
-	{
-		CurrentSettings->Flags.bOverrideScreenPercentage = v;
-		if (GConfig->GetFloat(GearVRSettings, TEXT("ScreenPercentage"), f, GEngineIni))
-		{
-			CurrentSettings->ScreenPercentage = f;
-		}
-	}
-	if (GConfig->GetBool(GearVRSettings, TEXT("bAllowFinishCurrentFrame"), v, GEngineIni))
-	{
-		CurrentSettings->Flags.bAllowFinishCurrentFrame = v;
 	}
 	if (GConfig->GetBool(GearVRSettings, TEXT("bUpdateOnRT"), v, GEngineIni))
 	{
@@ -1270,6 +1170,14 @@ void FGearVR::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDista
 	
 	// note, this is not right way, this is hack. The proper orthoproj matrix should be used. @TODO!
 	OrthoProjection[1] = FTranslationMatrix(FVector(OrthoProjection[1].M[0][3] * RTWidth * .25 + RTWidth * .5, 0 , 0));
+}
+
+void FGearVR::GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const
+{
+	auto CurrentSettings = GetSettings();
+	check(CurrentSettings);
+	InOutHFOVInDegrees = FMath::RadiansToDegrees(CurrentSettings->HFOVInRadians);
+	InOutVFOVInDegrees = FMath::RadiansToDegrees(CurrentSettings->VFOVInRadians);
 }
 
 void FGearVR::StartSystemActivity_RenderThread(const char * commandString)
@@ -1337,27 +1245,6 @@ void FGearVR::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InV
 	check(pGearVRBridge);
 
 	pGearVRBridge->UpdateViewport(InViewport, ViewportRHI);
-}
-
-void FGearVR::DrawDebug(UCanvas* Canvas)
-{
-#if !UE_BUILD_SHIPPING
-	check(IsInGameThread());
-	const auto frame = GetCurrentFrame();
-	if (frame && Canvas && Canvas->SceneView)
-	{
-		if (frame->Settings->Flags.bDrawSensorFrustum)
-		{
-			DrawDebugTrackingCameraFrustum(GWorld, Canvas->SceneView->ViewRotation, Canvas->SceneView->ViewLocation);
-		}
-
-		if(Canvas && Canvas->SceneView)
-		{
-			DrawSeaOfCubes(GWorld, Canvas->SceneView->ViewLocation);
-		}
-	}
-
-#endif // #if !UE_BUILD_SHIPPING
 }
 
 float FGearVR::GetBatteryLevel() const
@@ -1748,6 +1635,7 @@ bool FGearVRPlugin::IsInLoadingIconMode() const
 #if PLATFORM_ANDROID || !IS_MONOLITHIC
 
 #include <HeadMountedDisplayCommon.cpp>
+#include <HeadMountedDisplayCommonCmd.cpp>
 #include <AsyncLoadingSplash.cpp>
 #include <OculusStressTests.cpp>
 

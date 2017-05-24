@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -91,7 +91,6 @@ public:
 	FilterPairManager()
 	: mPairs(PX_DEBUG_EXP("FilterPairManager Array"))
 	, mFree(INVALID_FILTER_PAIR_INDEX)
-	, mInteractionToIndex(PX_DEBUG_EXP("FilterPairManager Hash"))
 	{}
 
 	PxU32 acquireIndex()
@@ -112,18 +111,14 @@ public:
 	}
 
 	void releaseIndex(PxU32 index)
-	{
-		if(mPairs[index].getType()!=FilterPair::INVALID)
-			mInteractionToIndex.erase(mPairs[index].getPtr<void*>());
-		
+	{		
 		mPairs[index].ptrAndType = mFree;
 		mFree = index;
 	}
 
-	void set(PxU32 index, void* ptr, FilterPair::Enum type)
+	void setPair(PxU32 index, Sc::ElementSimInteraction* ptr, FilterPair::Enum type)
 	{
 		mPairs[index] = FilterPair(ptr, type);
-		mInteractionToIndex[ptr] = index;
 	}
 
 	FilterPair&	operator[](PxU32 index)
@@ -131,10 +126,9 @@ public:
 		return mPairs[index];
 	}
 
-	PxU32 findIndex(void* ptr)
+	PxU32 findIndex(Sc::ElementSimInteraction* ptr)
 	{
-		const InteractionToIndex::Entry* pair = mInteractionToIndex.find(ptr);
-		return pair ? pair->second : INVALID_FILTER_PAIR_INDEX;
+		return ptr->getFilterPairIndex();
 	}
 
 private:	
@@ -142,7 +136,6 @@ private:
 
 	Ps::Array<FilterPair> mPairs;	
 	uintptr_t mFree;
-	InteractionToIndex mInteractionToIndex;
 };
 
 /* Sc::NPhaseCore methods */
@@ -711,7 +704,8 @@ Sc::ElementSimInteraction* Sc::NPhaseCore::createRbElementInteraction(const PxFi
 		pair->raiseInteractionFlag(InteractionFlag::eIS_FILTER_PAIR);
 
 		// Filter callback pair: Set the link to the interaction
-		mFilterPairManager->set(finfo.filterPairIndex, pair, FilterPair::ELEMENT_ELEMENT);
+		mFilterPairManager->setPair(finfo.filterPairIndex, pair, FilterPair::ELEMENT_ELEMENT);
+		pair->setFilterPairIndex(finfo.filterPairIndex);
 	}
 
 	return pair;
@@ -790,8 +784,11 @@ Sc::ElementSimInteraction* Sc::NPhaseCore::createParticlePacketBodyInteraction(P
 
 		actorElementPair->markAsFilterPair(finfo.filterPairIndex != INVALID_FILTER_PAIR_INDEX);
 
-		if(finfo.filterPairIndex != INVALID_FILTER_PAIR_INDEX)
-			mFilterPairManager->set(finfo.filterPairIndex, NULL, FilterPair::ELEMENT_ACTOR);
+		if (finfo.filterPairIndex != INVALID_FILTER_PAIR_INDEX)
+		{
+			mFilterPairManager->setPair(finfo.filterPairIndex, NULL, FilterPair::ELEMENT_ACTOR);
+			pbi->setFilterPairIndex(INVALID_FILTER_PAIR_INDEX);
+		}
 	}
 
 	ElementSimInteraction* pair = insertParticleElementRbElementPair(ps, s, actorElementPair, ccdPass);
@@ -1143,7 +1140,7 @@ Sc::ElementSimInteraction* Sc::NPhaseCore::refilterInteraction(ElementSimInterac
 						PxU32 filterPairIndex = INVALID_FILTER_PAIR_INDEX;
 						if (pbi->readInteractionFlag(InteractionFlag::eIS_FILTER_PAIR))
 						{
-							filterPairIndex = mFilterPairManager->findIndex(aep);
+							filterPairIndex = mFilterPairManager->findIndex(pbi);
 							PX_ASSERT(filterPairIndex!=INVALID_FILTER_PAIR_INDEX);
 
 							callPairLost(pbi->getElement0(), pbi->getElement1(), filterPairIndex, false);
@@ -1456,11 +1453,11 @@ Sc::ActorPair* Sc::NPhaseCore::findActorPair(ShapeSim* s0, ShapeSim* s1, Ps::Int
 	RigidSim* aLess = &s0->getRbSim();
 	RigidSim* aMore = &s1->getRbSim();
 
-	if(aLess > aMore)
+	if (aLess->getID() > aMore->getID())
 		Ps::swap(aLess, aMore);
 
-	key.mSim0 = aLess;
-	key.mSim1 = aMore;
+	key.mSim0 = aLess->getID();
+	key.mSim1 = aMore->getID();
 
 	Sc::ActorPair*& actorPair = mActorPairMap[key];
 	
@@ -1574,7 +1571,8 @@ Sc::ElementSimInteraction* Sc::NPhaseCore::convert(ElementSimInteraction* pair, 
 		// Mark the new interaction as a filter callback pair
 		result->raiseInteractionFlag(InteractionFlag::eIS_FILTER_PAIR);
 
-		mFilterPairManager->set(filterInfo.filterPairIndex, result, FilterPair::ELEMENT_ELEMENT);
+		mFilterPairManager->setPair(filterInfo.filterPairIndex, result, FilterPair::ELEMENT_ELEMENT);
+		result->setFilterPairIndex(filterInfo.filterPairIndex);
 	}
 
 	if (pair->readInteractionFlag(InteractionFlag::eIS_FILTER_PAIR))
@@ -2213,12 +2211,14 @@ void Sc::NPhaseCore::lostTouchReports(ShapeInteraction* si, PxU32 flags, PxU32 c
 	{
 		RigidSim* sim0 = static_cast<RigidSim*>(&si->getActor0());
 		RigidSim* sim1 = static_cast<RigidSim*>(&si->getActor1());
-		if (sim0 > sim1)
-			Ps::swap(sim0, sim1);
 
 		BodyPairKey pair;
-		pair.mSim0 = sim0;
-		pair.mSim1 = sim1;
+
+		if (sim0->getID() > sim1->getID())
+			Ps::swap(sim0, sim1);
+
+		pair.mSim0 = sim0->getID();
+		pair.mSim1 = sim1->getID();
 
 		mActorPairMap.erase(pair);
 
@@ -2285,16 +2285,11 @@ void Sc::NPhaseCore::clearContactReportActorPairs(bool shrinkToZero)
 		}
 		else
 		{
-			
-			RigidSim* sim0 = &aPair->getActorA();
-			RigidSim* sim1 = &aPair->getActorB();
-
-			if(sim0 > sim1)
-				Ps::swap(sim0, sim1);
-
 			BodyPairKey pair;
-			pair.mSim0 = sim0;
-			pair.mSim1 = sim1;
+			PxU32 actorAID = aPair->getActorAID();
+			PxU32 actorBID = aPair->getActorBID();
+			pair.mSim0 = PxMin(actorAID, actorBID);
+			pair.mSim1 = PxMax(actorAID, actorBID);
 
 			mActorPairMap.erase(pair);
 			destroyActorPairReport(*aPair);

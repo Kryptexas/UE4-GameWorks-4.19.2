@@ -75,7 +75,8 @@ FMainFrameCommands::FMainFrameCommands()
 
 void FMainFrameCommands::RegisterCommands()
 {
-	if ( !IsRunningCommandlet() )
+	// Some commands cannot be processed in a commandlet or if the editor is started without a project
+	if ( !IsRunningCommandlet() && FApp::HasGameName() )
 	{
 		// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
 		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
@@ -391,9 +392,7 @@ void FMainFrameActionCallbacks::CookContent(const FName InPlatformInfoName)
 
 	OptionalParams += GetCookingOptionalParams();
 
-	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-
-	if (bRunningDebug)
+	if (FApp::IsRunningDebug())
 	{
 		OptionalParams += TEXT(" -UseDebugParamForEditorExe");
 	}
@@ -683,14 +682,12 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += FString::Printf(TEXT(" -NumCookersToSpawn=%d"), NumCookers); 
 	}
 
-	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-
-	if (bRunningDebug)
+	if (FApp::IsRunningDebug())
 	{
 		OptionalParams += TEXT(" -UseDebugParamForEditorExe");
 	}
 
-	FString Configuration = FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetEnumName(PackagingSettings->BuildConfiguration);
+	FString Configuration = FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetNameStringByValue(PackagingSettings->BuildConfiguration);
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");

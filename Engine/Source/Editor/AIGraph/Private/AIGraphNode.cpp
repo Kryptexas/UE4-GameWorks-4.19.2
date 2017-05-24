@@ -244,56 +244,27 @@ bool UAIGraphNode::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSc
 	return false;
 }
 
-void UAIGraphNode::DiffProperties(UStruct* Struct, void* DataA, void* DataB, FDiffResults& Results, FDiffSingleResult& Diff)
+FString UAIGraphNode::GetPropertyNameAndValueForDiff(const UProperty* Prop, const uint8* PropertyAddr) const
 {
-	for (TFieldIterator<UProperty> PropertyIt(Struct, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-	{
-		UProperty* Prop = *PropertyIt;
-		// skip properties we cant see
-		if (!Prop->HasAnyPropertyFlags(CPF_Edit | CPF_BlueprintVisible) ||
-			Prop->HasAnyPropertyFlags(CPF_Transient) ||
-			Prop->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ||
-			Prop->IsA(UFunction::StaticClass()) ||
-			Prop->IsA(UDelegateProperty::StaticClass()) ||
-			Prop->IsA(UMulticastDelegateProperty::StaticClass()))
-		{
-			continue;
-		}
-
-		FString ValueStringA = BlueprintNodeHelpers::DescribeProperty(Prop, Prop->ContainerPtrToValuePtr<uint8>(DataA));
-		FString ValueStringB = BlueprintNodeHelpers::DescribeProperty(Prop, Prop->ContainerPtrToValuePtr<uint8>(DataB));
-
-		if (ValueStringA != ValueStringB)
-		{
-			// Only bother setting up the display data if we're storing the result
-			if(Results.CanStoreResults())
-			{
-				Diff.DisplayString = FText::Format(LOCTEXT("DIF_NodePropertyFmt", "Property Changed: {0} "), FText::FromString(Prop->GetName()));
-			}
-			Results.Add(Diff);
-		}
-	}
+	return BlueprintNodeHelpers::DescribeProperty(Prop, PropertyAddr);
 }
 
 void UAIGraphNode::FindDiffs(UEdGraphNode* OtherNode, FDiffResults& Results)
 {
 	Super::FindDiffs(OtherNode, Results);
 
-	FDiffSingleResult Diff;
-	Diff.Diff = EDiffType::NODE_PROPERTY;
-	Diff.Node1 = this;
-	Diff.Node2 = OtherNode;
-	Diff.ToolTip = LOCTEXT("DIF_NodePropertyToolTip", "A Property of the node has changed");
-	Diff.DisplayColor = FLinearColor(0.25f, 0.71f, 0.85f);
-
-	UAIGraphNode* OtherGraphNode = Cast<UAIGraphNode>(OtherNode);
-	if (OtherGraphNode)
+	if (UAIGraphNode* OtherGraphNode = Cast<UAIGraphNode>(OtherNode))
 	{
-		DiffProperties(GetClass(), this, OtherGraphNode, Results, Diff);
-
 		if (NodeInstance && OtherGraphNode->NodeInstance)
 		{
-			DiffProperties(NodeInstance->GetClass(), NodeInstance, OtherGraphNode->NodeInstance, Results, Diff);
+			FDiffSingleResult Diff;
+			Diff.Diff = EDiffType::NODE_PROPERTY;
+			Diff.Node1 = this;
+			Diff.Node2 = OtherNode;
+			Diff.ToolTip = LOCTEXT("DIF_NodeInstancePropertyToolTip", "A property of the node instance has changed");
+			Diff.DisplayColor = FLinearColor(0.25f, 0.71f, 0.85f);
+
+			DiffProperties(NodeInstance->GetClass(), OtherGraphNode->NodeInstance->GetClass(), NodeInstance, OtherGraphNode->NodeInstance, Results, Diff);
 		}
 	}
 }

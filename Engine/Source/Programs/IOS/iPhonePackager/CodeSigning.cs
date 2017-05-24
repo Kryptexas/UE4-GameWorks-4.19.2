@@ -299,6 +299,12 @@ namespace iPhonePackager
 		/// </summary>
 		public static void FindProvisions(string CFBundleIdentifier)
 		{
+			if (!Directory.Exists(Config.ProvisionDirectory))
+			{
+				Program.Error("Could not find provision directory '{0}'.", Config.ProvisionDirectory);
+				Program.ReturnCode = (int)ErrorCodes.Error_ProvisionNotFound;
+				return;
+			}
 			// cache the provision library
 			string SelectedProvision = "";
 			string SelectedCert = "";

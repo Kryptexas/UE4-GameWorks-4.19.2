@@ -35,7 +35,8 @@ public:
 	TSharedPtr< FUICommandInfo > SetDrawUVs;
 	TSharedPtr< FUICommandInfo > SetShowGrid;
 	TSharedPtr< FUICommandInfo > SetShowBounds;
-	TSharedPtr< FUICommandInfo > SetShowCollision;
+	TSharedPtr< FUICommandInfo > SetShowSimpleCollision;
+	TSharedPtr< FUICommandInfo > SetShowComplexCollision;
 	TSharedPtr< FUICommandInfo > ResetCamera;
 	TSharedPtr< FUICommandInfo > SetShowSockets;
 	TSharedPtr< FUICommandInfo > SetDrawAdditionalData;

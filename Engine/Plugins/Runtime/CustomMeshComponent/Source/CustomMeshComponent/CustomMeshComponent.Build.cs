@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class CustomMeshComponent : ModuleRules
 	{
-        public CustomMeshComponent(TargetInfo Target)
+        public CustomMeshComponent(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.Add("CustommeshComponent/Private");
 

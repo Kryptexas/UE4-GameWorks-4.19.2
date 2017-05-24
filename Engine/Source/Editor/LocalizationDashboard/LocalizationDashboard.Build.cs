@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LocalizationDashboard : ModuleRules
 {
-	public LocalizationDashboard(TargetInfo Target)
+	public LocalizationDashboard(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]
@@ -31,7 +31,9 @@ public class LocalizationDashboard : ModuleRules
                 "SourceControl",
                 "SharedSettingsWidgets",
                 "Localization",
-                "LocalizationService"
+				"LocalizationCommandletExecution",
+				"LocalizationService",
+				"InternationalizationSettings",
 			}
 		);
 

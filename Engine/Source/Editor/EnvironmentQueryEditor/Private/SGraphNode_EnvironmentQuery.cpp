@@ -321,6 +321,19 @@ void SGraphNode_EnvironmentQuery::UpdateGraphNode()
 							SAssignNew(RightNodeBox, SVerticalBox)
 						]
 					]
+
+					// Profiler overlay: option
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SBorder)
+						.BorderBackgroundColor(EnvironmentQueryColors::Action::Profiler)
+						.Visibility(this, &SGraphNode_EnvironmentQuery::GetProfilerOptionVisibility)
+						[
+							SNew(STextBlock)
+							.Text(this, &SGraphNode_EnvironmentQuery::GetProfilerDescOption)
+						]
+					]
 				]
 
 				// Drag marker overlay
@@ -336,6 +349,49 @@ void SGraphNode_EnvironmentQuery::UpdateGraphNode()
 					[
 						SNew(SBox)
 						.HeightOverride(4)
+					]
+				]
+
+				// Profiler overlay: test
+				+SOverlay::Slot()
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Fill)
+				.Padding(10, 5)
+				[
+					SNew(SBorder)
+					.BorderBackgroundColor(EnvironmentQueryColors::Action::Profiler)
+					.BorderImage(FEditorStyle::GetBrush("Graph.StateNode.Body"))
+					.Visibility(this, &SGraphNode_EnvironmentQuery::GetProfilerTestVisibility)
+					[
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("Graph.StateNode.Body"))
+							.BorderBackgroundColor(this, &SGraphNode_EnvironmentQuery::GetProfilerTestSlateColor)
+							[
+								SNew(SBox)
+								.WidthOverride(10.0f)
+							]
+						]
+						+SHorizontalBox::Slot()
+						.Padding(2, 0, 0, 0)
+						[
+							SNew(SVerticalBox)
+							+SVerticalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text(this, &SGraphNode_EnvironmentQuery::GetProfilerDescAverage)
+							]
+							+SVerticalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text(this, &SGraphNode_EnvironmentQuery::GetProfilerDescWorst)
+							]
+						]
 					]
 				]
 			]
@@ -440,6 +496,88 @@ void SGraphNode_EnvironmentQuery::OnTestToggleChanged(ECheckBoxState NewState)
 			MyGraph->UpdateAsset();
 		}
 	}
+}
+
+FSlateColor SGraphNode_EnvironmentQuery::GetProfilerTestSlateColor() const
+{
+	UEnvironmentQueryGraphNode_Test* MyTestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
+	if (MyTestNode)
+	{
+		return MyTestNode->Stats.AvgTime >= 5 ? FLinearColor::Red :
+			MyTestNode->Stats.AvgTime >= 2 ? FLinearColor::Yellow :
+			FLinearColor::Green;
+	}
+
+	return FLinearColor::White;		
+}
+
+EVisibility SGraphNode_EnvironmentQuery::GetProfilerTestVisibility() const
+{
+	UEnvironmentQueryGraphNode_Test* MyTestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
+	return MyTestNode && MyTestNode->bStatShowOverlay ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SGraphNode_EnvironmentQuery::GetProfilerOptionVisibility() const
+{
+	UEnvironmentQueryGraphNode_Option* MyOptionNode = Cast<UEnvironmentQueryGraphNode_Option>(GraphNode);
+	return MyOptionNode && MyOptionNode->bStatShowOverlay ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+FText SGraphNode_EnvironmentQuery::GetProfilerDescAverage() const
+{
+	UEnvironmentQueryGraphNode_Test* MyTestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
+	if (MyTestNode && MyTestNode->bStatShowOverlay)
+	{
+		FNumberFormattingOptions FmtOptions;
+		FmtOptions.SetMaximumFractionalDigits(2);
+
+		return FText::Format(LOCTEXT("ProfilerOverlayAvg", "Average run: {0} ms"), FText::AsNumber(MyTestNode->Stats.AvgTime, &FmtOptions));
+	}
+
+	return FText::GetEmpty();
+}
+
+FText SGraphNode_EnvironmentQuery::GetProfilerDescWorst() const
+{
+	UEnvironmentQueryGraphNode_Test* MyTestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
+	if (MyTestNode && MyTestNode->bStatShowOverlay)
+	{
+		FNumberFormattingOptions FmtOptions;
+		FmtOptions.SetMaximumFractionalDigits(2);
+		
+		return FText::Format(LOCTEXT("ProfilerOverlayMax", "Worst run: {0} ms, {1} items"), FText::AsNumber(MyTestNode->Stats.MaxTime, &FmtOptions), FText::AsNumber(MyTestNode->Stats.MaxNumProcessedItems));
+	}
+
+	return FText::GetEmpty();
+}
+
+FText SGraphNode_EnvironmentQuery::GetProfilerDescOption() const
+{
+	UEnvironmentQueryGraphNode_Option* MyOptionNode = Cast<UEnvironmentQueryGraphNode_Option>(GraphNode);
+	if (MyOptionNode && MyOptionNode->bStatShowOverlay)
+	{
+		FTextBuilder DescBuilder;
+
+		FNumberFormattingOptions FmtOptions;
+		FmtOptions.SetMaximumFractionalDigits(2);
+
+		for (int32 Idx = 0; Idx < MyOptionNode->StatsPerGenerator.Num(); Idx++)
+		{
+			DescBuilder.AppendLineFormat(LOCTEXT("ProfilerOverlayGen", "Generator[{0}]"), Idx);
+			DescBuilder.Indent();
+
+			DescBuilder.AppendLineFormat(LOCTEXT("ProfilerOverlayAvg", "Average run: {0} ms"), FText::AsNumber(MyOptionNode->StatsPerGenerator[Idx].AvgTime, &FmtOptions));
+			DescBuilder.AppendLineFormat(LOCTEXT("ProfilerOverlayMax", "Worst run: {0} ms, {1} items"), FText::AsNumber(MyOptionNode->StatsPerGenerator[Idx].MaxTime, &FmtOptions), FText::AsNumber(MyOptionNode->StatsPerGenerator[Idx].MaxNumProcessedItems));
+
+			DescBuilder.Unindent();
+		}
+
+		DescBuilder.AppendLine();
+		DescBuilder.AppendLineFormat(LOCTEXT("ProfilerOverlayPickRate", "Pick rate: {0}"), FText::AsPercent(MyOptionNode->StatAvgPickRate));
+		return DescBuilder.ToText();
+	}
+
+	return FText::GetEmpty();
 }
 
 #undef LOCTEXT_NAMESPACE

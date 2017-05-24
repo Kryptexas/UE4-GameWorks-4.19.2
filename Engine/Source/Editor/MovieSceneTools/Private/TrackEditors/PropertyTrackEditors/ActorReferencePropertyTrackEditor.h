@@ -8,6 +8,7 @@
 #include "ISequencerSection.h"
 #include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
+#include "GameFramework/Actor.h"
 #include "Tracks/MovieSceneActorReferenceTrack.h"
 #include "Sections/MovieSceneActorReferenceSection.h"
 
@@ -25,8 +26,17 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FActorReferencePropertyTrackEditor(TSharedRef<ISequencer> InSequencer)
-		: FPropertyTrackEditor(InSequencer, NAME_ObjectProperty)
-	{ }
+		: FPropertyTrackEditor(InSequencer, GetAnimatedPropertyTypes())
+	{
+	}
+
+	/**
+	 * Retrieve a list of all property types that this track editor animates
+	 */
+	static TArray<FAnimatedPropertyKey, TInlineAllocator<1>> GetAnimatedPropertyTypes()
+	{
+		return TArray<FAnimatedPropertyKey, TInlineAllocator<1>>({ FAnimatedPropertyKey::FromObjectType(AActor::StaticClass()) });
+	}
 
 	/**
 	 * Creates an instance of this class (called by a sequencer).

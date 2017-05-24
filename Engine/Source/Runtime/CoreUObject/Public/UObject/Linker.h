@@ -483,7 +483,7 @@ public:
 			return true;
 		}
 #if WITH_EDITOR
-		if (!Export.bNotForEditorGame)
+		if (!Export.bNotAlwaysLoadedForEditorGame) // Always load, even if is editor only
 		{
 			return false;
 		}
@@ -503,7 +503,6 @@ public:
 		return false;
 	}
 
-	FORCEINLINE bool IsCompressed() const { return !!(Summary.PackageFlags & PKG_StoreCompressed); }
 };
 
 

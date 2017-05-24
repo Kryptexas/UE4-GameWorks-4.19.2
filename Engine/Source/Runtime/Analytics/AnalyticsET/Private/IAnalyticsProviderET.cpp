@@ -180,6 +180,8 @@ public:
 	virtual void EndSession() override;
 	virtual void FlushEvents() override;
 
+	virtual void SetAppID(const FString&& AppID) override;
+	virtual const FString& GetAppID() const override;
 	virtual void SetUserID(const FString& InUserID) override;
 	virtual FString GetUserID() const override;
 
@@ -279,6 +281,42 @@ private:
 	void EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, TSharedPtr< TArray<FAnalyticsEventEntry> > FlushedEvents);
 };
 
+class FAnalyticsProviderETNULL :
+	public IAnalyticsProviderET,
+	public TSharedFromThis<FAnalyticsProviderETNULL>
+{
+public:
+	FAnalyticsProviderETNULL(const FAnalyticsET::Config& ConfigValues) {};
+
+	// IAnalyticsProvider
+
+	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) override { return true; }
+	virtual bool StartSession(TArray<FAnalyticsEventAttribute>&& Attributes) override { return true; }
+	virtual void EndSession() override { }
+	virtual void FlushEvents() override { }
+
+	virtual void SetAppID(const FString&& AppID) override { APIKey = AppID; }
+	virtual const FString& GetAppID() const override { return APIKey; }
+	virtual void SetUserID(const FString& InUserID) override { UserID = InUserID; }
+	virtual FString GetUserID() const override { return UserID; }
+
+	virtual FString GetSessionID() const override { return SessionID; }
+	virtual bool SetSessionID(const FString& InSessionID) override { SessionID = InSessionID; return true; }
+
+	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override {}
+	virtual void RecordEvent(FString EventName, TArray<FAnalyticsEventAttribute>&& Attributes) override {}
+	virtual void RecordEventJson(FString EventName, TArray<FAnalyticsEventAttribute>&& AttributesJson) override {}
+	virtual void SetDefaultEventAttributes(TArray<FAnalyticsEventAttribute>&& Attributes) override {}
+
+	virtual ~FAnalyticsProviderETNULL() {};
+
+	FString GetAPIKey() const { return APIKey; }
+
+	FString APIKey;
+	FString UserID;
+	FString SessionID;
+};
+
 TSharedPtr<IAnalyticsProviderET> FAnalyticsET::CreateAnalyticsProvider(const Config& ConfigValues) const
 {
 	// If we didn't have a proper APIKey, return NULL
@@ -287,7 +325,12 @@ TSharedPtr<IAnalyticsProviderET> FAnalyticsET::CreateAnalyticsProvider(const Con
 		UE_LOG(LogAnalytics, Warning, TEXT("CreateAnalyticsProvider config not contain required parameter %s"), *Config::GetKeyNameForAPIKey());
 		return NULL;
 	}
+	//@todo sz
+#if 0
+	return TSharedPtr<IAnalyticsProviderET>(new FAnalyticsProviderETNULL(ConfigValues));
+#else
 	return TSharedPtr<IAnalyticsProviderET>(new FAnalyticsProviderET(ConfigValues));
+#endif
 }
 
 /**
@@ -648,12 +691,29 @@ void FAnalyticsProviderET::FlushEvents()
 	ANALYTICS_FLUSH_TRACKING_END(PayloadSize, EventCount);
 }
 
+void FAnalyticsProviderET::SetAppID(const FString&& InAppID)
+{
+	if (APIKey != InAppID)
+	{
+		// Flush any cached events that would be using the old AppID.
+		FlushEvents();
+		APIKey = MoveTemp(InAppID);
+	}
+}
+
+const FString& FAnalyticsProviderET::GetAppID() const
+{
+	return APIKey;
+}
+
 void FAnalyticsProviderET::SetUserID(const FString& InUserID)
 {
 	// command-line specified user ID overrides all attempts to reset it.
 	if (!FParse::Value(FCommandLine::Get(), TEXT("ANALYTICSUSERID="), UserID, false))
 	{
 		UE_LOG(LogAnalytics, Log, TEXT("[%s] SetUserId %s"), *APIKey, *InUserID);
+		// Flush any cached events that would be using the old UserID.
+		FlushEvents();
 		UserID = InUserID;
 	}
 	else if (UserID != InUserID)
@@ -674,8 +734,13 @@ FString FAnalyticsProviderET::GetSessionID() const
 
 bool FAnalyticsProviderET::SetSessionID(const FString& InSessionID)
 {
-	SessionID = InSessionID;
-	UE_LOG(LogAnalytics, Log, TEXT("[%s] Forcing SessionID to %s."), *APIKey, *SessionID);
+	if (SessionID != InSessionID)
+	{
+		// Flush any cached events that would be using the old SessionID.
+		FlushEvents();
+		SessionID = InSessionID;
+		UE_LOG(LogAnalytics, Log, TEXT("[%s] Forcing SessionID to %s."), *APIKey, *SessionID);
+	}
 	return true;
 }
 

@@ -73,8 +73,8 @@ void UAnimSequenceBase::PostLoad()
 			// fix up curve flags to skeleton
 			for (const FFloatCurve& Curve : RawCurveData.FloatCurves)
 			{
-				bool bMorphtargetSet = Curve.GetCurveTypeFlag(ACF_DriveMorphTarget_DEPRECATED);
-				bool bMaterialSet = Curve.GetCurveTypeFlag(ACF_DriveMaterial_DEPRECATED);
+				bool bMorphtargetSet = Curve.GetCurveTypeFlag(AACF_DriveMorphTarget_DEPRECATED);
+				bool bMaterialSet = Curve.GetCurveTypeFlag(AACF_DriveMaterial_DEPRECATED);
 
 				// only add this if that has to 
 				if (bMorphtargetSet || bMaterialSet)
@@ -128,6 +128,29 @@ bool UAnimSequenceBase::IsNotifyAvailable() const
 {
 	return (Notifies.Num() != 0) && (SequenceLength > 0.f);
 }
+
+#if WITH_EDITOR
+void UAnimSequenceBase::RegisterOnAnimCurvesChanged(const FOnAnimCurvesChanged& Delegate)
+{
+	OnAnimCurvesChanged.Add(Delegate);	
+}
+
+void UAnimSequenceBase::UnregisterOnAnimCurvesChanged(void* Unregister)
+{
+	OnAnimCurvesChanged.RemoveAll(Unregister);
+}
+
+void UAnimSequenceBase::RegisterOnAnimTrackCurvesChanged(const FOnAnimTrackCurvesChanged& Delegate)
+{
+	OnAnimTrackCurvesChanged.Add(Delegate);
+}
+
+void UAnimSequenceBase::UnregisterOnAnimTrackCurvesChanged(void* Unregister)
+{
+	OnAnimTrackCurvesChanged.RemoveAll(Unregister);
+}
+#endif 
+
 /** 
  * Retrieves AnimNotifies given a StartTime and a DeltaTime.
  * Time will be advanced and support looping if bAllowLooping is true.
@@ -445,6 +468,12 @@ void UAnimSequenceBase::RefreshCacheData()
 }
 
 #if WITH_EDITOR
+void UAnimSequenceBase::RefreshCurveData()
+{
+	OnAnimCurvesChanged.Broadcast();
+	OnAnimTrackCurvesChanged.Broadcast();
+}
+
 void UAnimSequenceBase::InitializeNotifyTrack()
 {
 	if ( AnimNotifyTracks.Num() == 0 ) 

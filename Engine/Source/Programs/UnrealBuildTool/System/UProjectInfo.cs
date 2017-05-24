@@ -12,12 +12,34 @@ using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// Stores information about a project
+	/// </summary>
 	public class UProjectInfo
 	{
+		/// <summary>
+		/// Name of the project
+		/// </summary>
 		public string GameName;
+
+		/// <summary>
+		/// Name of the .uproject file
+		/// </summary>
 		public string FileName;
+
+		/// <summary>
+		/// Full path to the project on disk
+		/// </summary>
 		public FileReference FilePath;
+
+		/// <summary>
+		/// Folder containing the project
+		/// </summary>
 		public DirectoryReference Folder;
+
+		/// <summary>
+		/// Whether the project has source code
+		/// </summary>
 		public bool bIsCodeProject;
 
 		UProjectInfo(FileReference InFilePath, bool bInIsCodeProject)
@@ -44,6 +66,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		static Dictionary<string, FileReference> TargetToProjectDictionary = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
 
+		/// <summary>
+		/// Find all the target files under the given folder and add them to the TargetToProjectDictionary map
+		/// </summary>
+		/// <param name="InTargetFolder">Folder to search</param>
+		/// <returns>True if any target files were found</returns>
 		public static bool FindTargetFilesInFolder(DirectoryReference InTargetFolder)
 		{
 			bool bFoundTargetFiles = false;
@@ -78,6 +105,12 @@ namespace UnrealBuildTool
 			return bFoundTargetFiles;
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="CurrentTopDirectory"></param>
+		/// <param name="bOutFoundTargetFiles"></param>
+		/// <returns></returns>
 		public static bool FindTargetFiles(DirectoryReference CurrentTopDirectory, ref bool bOutFoundTargetFiles)
 		{
 			// We will only search as deep as the first target file found
@@ -121,7 +154,7 @@ namespace UnrealBuildTool
 				// Check if it's a code project
 				DirectoryReference SourceFolder = DirectoryReference.Combine(ProjectDirectory, "Source");
 				DirectoryReference IntermediateSourceFolder = DirectoryReference.Combine(ProjectDirectory, "Intermediate", "Source");
-				bool bIsCodeProject = SourceFolder.Exists() || IntermediateSourceFolder.Exists();
+				bool bIsCodeProject = DirectoryReference.Exists(SourceFolder) || DirectoryReference.Exists(IntermediateSourceFolder);
 
 				// Create the project, and check the name is unique
 				UProjectInfo NewProjectInfo = new UProjectInfo(ProjectFile, bIsCodeProject);
@@ -139,11 +172,11 @@ namespace UnrealBuildTool
 				if (bIsCodeProject)
 				{
 					bool bFoundTargetFiles = false;
-					if (SourceFolder.Exists() && !FindTargetFiles(SourceFolder, ref bFoundTargetFiles))
+					if (DirectoryReference.Exists(SourceFolder) && !FindTargetFiles(SourceFolder, ref bFoundTargetFiles))
 					{
 						Log.TraceVerbose("No target files found under " + SourceFolder);
 					}
-					if (IntermediateSourceFolder.Exists() && !FindTargetFiles(IntermediateSourceFolder, ref bFoundTargetFiles))
+					if (DirectoryReference.Exists(IntermediateSourceFolder) && !FindTargetFiles(IntermediateSourceFolder, ref bFoundTargetFiles))
 					{
 						Log.TraceVerbose("No target files found under " + IntermediateSourceFolder);
 					}
@@ -163,7 +196,7 @@ namespace UnrealBuildTool
 			// Find all the .uprojectdirs files contained in the root folder and add their entries to the search array
 			string EngineSourceDirectory = Path.GetFullPath(Path.Combine(RootDirectory, "Engine", "Source"));
 
-			foreach (FileReference ProjectDirsFile in UnrealBuildTool.RootDirectory.EnumerateFileReferences("*.uprojectdirs", SearchOption.TopDirectoryOnly))
+			foreach (FileReference ProjectDirsFile in DirectoryReference.EnumerateFiles(UnrealBuildTool.RootDirectory, "*.uprojectdirs", SearchOption.TopDirectoryOnly))
 			{
 				Log.TraceVerbose("\tFound uprojectdirs file {0}", ProjectDirsFile.FullName);
 				foreach(string Line in File.ReadAllLines(ProjectDirsFile.FullName))
@@ -189,12 +222,12 @@ namespace UnrealBuildTool
 			foreach (DirectoryReference DirToSearch in DirectoriesToSearch)
 			{
 				Log.TraceVerbose("\t\tSearching {0}", DirToSearch.FullName);
-				if (DirToSearch.Exists())
+				if (DirectoryReference.Exists(DirToSearch))
 				{
-					foreach (DirectoryReference SubDir in DirToSearch.EnumerateDirectoryReferences("*", SearchOption.TopDirectoryOnly))
+					foreach (DirectoryReference SubDir in DirectoryReference.EnumerateDirectories(DirToSearch, "*", SearchOption.TopDirectoryOnly))
 					{
 						Log.TraceVerbose("\t\t\tFound subdir {0}", SubDir.FullName);
-						foreach(FileReference UProjFile in SubDir.EnumerateFileReferences("*.uproject", SearchOption.TopDirectoryOnly))
+						foreach(FileReference UProjFile in DirectoryReference.EnumerateFiles(SubDir, "*.uproject", SearchOption.TopDirectoryOnly))
 						{
 							Log.TraceVerbose("\t\t\t\t{0}", UProjFile.FullName);
 							AddProject(UProjFile);
@@ -209,13 +242,16 @@ namespace UnrealBuildTool
 
 			DateTime StopTime = DateTime.Now;
 
-			if (BuildConfiguration.bPrintPerformanceInfo)
+			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
 				TimeSpan TotalProjectInfoTime = StopTime - StartTime;
-				Log.TraceInformation("FillProjectInfo took {0} milliseconds", TotalProjectInfoTime.Milliseconds);
+				Log.TraceInformation("FillProjectInfo took {0} milliseconds", TotalProjectInfoTime.TotalMilliseconds);
 			}
 		}
 
+		/// <summary>
+		/// Print out all the info for known projects
+		/// </summary>
 		public static void DumpProjectInfo()
 		{
 			Log.TraceInformation("Dumping project info...");
@@ -263,6 +299,24 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Check to see if a project name is a Game
+		/// </summary>
+		/// <param name="GameNameFilter"></param>
+		/// <returns>true if it is a game</returns>
+		public static bool IsGameProject(string GameNameFilter)
+		{
+			List<UProjectInfo> Projects = new List<UProjectInfo>();
+			foreach (KeyValuePair<FileReference, UProjectInfo> Entry in ProjectInfoDictionary)
+			{
+				if(Entry.Value.GameName == GameNameFilter)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/// <summary>
 		/// Get the project folder for the given target name
 		/// </summary>
 		/// <param name="InTargetName">Name of the target of interest</param>
@@ -290,8 +344,9 @@ namespace UnrealBuildTool
 		/// <param name="Project">The project to check</param>
 		/// <param name="Plugin">Information about the plugin</param>
 		/// <param name="Platform">The target platform</param>
+		/// <param name="Target"></param>
 		/// <returns>True if the plugin should be enabled for this project</returns>
-		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetRules.TargetType Target)
+		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType Target)
 		{
 			bool bEnabled = Plugin.Descriptor.bEnabledByDefault;
 			if (Project != null && Project.Plugins != null)
@@ -307,14 +362,18 @@ namespace UnrealBuildTool
 			return bEnabled;
 		}
 
-		/// <summary>
-		/// Determine if a plugin is enabled for a given project
-		/// </summary>
-		/// <param name="Project">The project to check</param>
-		/// <param name="Plugin">Information about the plugin</param>
-		/// <param name="Platform">The target platform</param>
-		/// <returns>True if the plugin should be enabled for this project</returns>
-		public static bool IsPluginDescriptorRequiredForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetRules.TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor)
+        /// <summary>
+        /// Determine if a plugin is enabled for a given project
+        /// </summary>
+        /// <param name="Project">The project to check</param>
+        /// <param name="Plugin">Information about the plugin</param>
+        /// <param name="Platform">The target platform</param>
+        /// <param name="TargetType"></param>
+        /// <param name="bBuildDeveloperTools"></param>
+        /// <param name="bBuildEditor"></param>
+        /// <param name="bBuildRequiresCookedData"></param>
+        /// <returns>True if the plugin should be enabled for this project</returns>
+        public static bool IsPluginDescriptorRequiredForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor, bool bBuildRequiresCookedData)
 		{
 			// Check if it's referenced by name from the project descriptor. If it is, we'll need the plugin to be included with the project regardless of whether it has
 			// any platform-specific modules or content, just so the runtime can make the call.
@@ -338,7 +397,7 @@ namespace UnrealBuildTool
 			// Check if the plugin has any modules for the given target
 			foreach (ModuleDescriptor Module in Plugin.Descriptor.Modules)
 			{
-				if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+				if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor, bBuildRequiresCookedData))
 				{
 					return true;
 				}

@@ -1,15 +1,16 @@
-﻿INTSourceChangelist:2996736
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:シーンのフェードイン、フェードアウト
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:レベル シーケンスでフェード トラックを使ってフェードイン、フェードアウトする方法の例。
-Version: 4.12
-SkillLevel: Beginner
+Version:4.12
+SkillLevel:Beginner
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 
 シネマティックス内でシーンをフェードインまたはフェードアウトさせたい場合があるかもしれません。 
@@ -40,13 +41,11 @@ Related: Engine\Sequencer\ReferenceEditor\
 
 	 ![](FadeTrack3b.png)
 
-
 1.	タイムライン マーカーを **50** に移動します。次に、その値を **0.0** に変更し、キーを追加します (**Enter** を押すか、**+** をクリックします)。 
 
 	![](FadeTrack4.png)
 
 	フェード値を 0 に戻した後、レベル ビューポートが通常通り表示されます (すなわちティントなし)。 
-
 
 	[REGION:tip]
 	**CTRL** キーを押しながら **マウス ホイール** を前後に動かすと、タイムラインをズームインまたはズームアウトすることができます。 

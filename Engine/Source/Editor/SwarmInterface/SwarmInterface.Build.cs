@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SwarmInterface : ModuleRules
 {
-	public SwarmInterface(TargetInfo Target)
+	public SwarmInterface(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.AddRange(
 			new string[] {

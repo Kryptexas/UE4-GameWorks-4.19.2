@@ -1,4 +1,4 @@
-availability:Docs
+availability:Public
 title:Blueprints and Render Targets Overview
 description:Taking a high level look at how to use Blueprints and Render Targets togther in UE4.
 crumbs:%ROOT%, Engine, Engine/Rendering, Engine/Rendering/RenderTargets, Engine/Rendering/RenderTargets/BlueprintRenderTargets
@@ -9,7 +9,7 @@ parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
 order:1
 Navigation:topic
 tags: Render Targets
-tags: Blueprint
+tags: Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Overview.png
 
 ![](BP_RT_Overview.png)

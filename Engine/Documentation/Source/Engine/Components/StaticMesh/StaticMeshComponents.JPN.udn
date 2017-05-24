@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2659210
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:Static Mesh コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:Static Mesh コンポーネントとその設定および使用方法 
+Description:Static Mesh コンポーネントの概要とその設定および使用方法 
 Related:Engine/Content/Types/StaticMeshes
 Related:Engine/Actors/StaticMeshActor
 Related:Engine/Physics/Collision/Reference
 Related:Engine/Blueprints/UserGuide/Components
-SkillLevel:初心者向け
+SkillLevel:Beginner
 Version:4.9
 
 Static Mesh コンポーネントでは、別のアクタのサブオブジェクトとしてひとつのジオメトリを使用することができます。 

@@ -100,20 +100,20 @@ public:
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const override
 	{
 		OutFormats.Add(FName(TEXT("EncodedHDR")));
+		OutFormats.Add(FName(TEXT("FullHDR")));
 	}
 
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override;
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;
 	}
 
 	virtual void GetTextureFormats( const UTexture* Texture, TArray<FName>& OutFormats ) const override;
+
+	virtual void GetAllTextureFormats( TArray<FName>& OutFormats) const override;
 
 	virtual const UTextureLODSettings& GetTextureLODSettings() const override;
 
@@ -123,6 +123,7 @@ public:
 	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
+	virtual void GetAllWaveFormats(TArray<FName>& OutFormat) const override;
 #endif // WITH_ENGINE
 
 	virtual void GetBuildProjectSettingKeys(FString& OutSection, TArray<FString>& InBoolKeys, TArray<FString>& InIntKeys, TArray<FString>& InStringKeys) const override
@@ -206,7 +207,7 @@ private:
 #endif // WITH_ENGINE
 
     // holds usb device helper
-    FIOSDeviceHelper DeviceHelper;
+	FIOSDeviceHelper DeviceHelper;
 
 private:
 

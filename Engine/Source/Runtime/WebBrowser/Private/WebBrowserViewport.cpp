@@ -22,19 +22,12 @@ void FWebBrowserViewport::Tick( const FGeometry& AllottedGeometry, double InCurr
 {
 	if (!bIsPopup)
 	{
-		// Calculate max corner of the viewport using same method as Slate
-		FVector2D MaxPos = AllottedGeometry.AbsolutePosition + AllottedGeometry.GetLocalSize();
-		// Get size by subtracting as int to avoid incorrect rounding when size and position are .5
-		WebBrowserWindow->SetViewportSize(MaxPos.IntPoint() - AllottedGeometry.AbsolutePosition.IntPoint(), AllottedGeometry.AbsolutePosition.IntPoint());
+		FVector2D AbsoluteSize = AllottedGeometry.GetLocalSize() * AllottedGeometry.Scale;
+		WebBrowserWindow->SetViewportSize(AbsoluteSize.IntPoint());
 	}
 }
 
 bool FWebBrowserViewport::RequiresVsync() const
-{
-	return false;
-}
-
-bool FWebBrowserViewport::AllowScaling() const
 {
 	return false;
 }

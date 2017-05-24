@@ -196,7 +196,12 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static void PlatformPreInit();
 	static void PlatformInit() { }
-	static void PlatformPostInit(bool ShowSplashScreen = false) { }
+	static void PlatformPostInit() { }
+
+	/**
+	* Called to dismiss splash screen
+	*/
+	static void PlatformHandleSplashScreen(bool ShowSplashScreen = false) { }
 
 	/**
 	 * Called during AppExit(). Log, Config still exist at this point, but not much else does.
@@ -355,6 +360,13 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 
+	/**
+	 * Gets a string representing the numeric OS version (as opposed to a translated OS version that GetOSVersions returns).
+	 * The returned string should try to be brief and avoid newlines and symbols, but there's technically no restriction on the string it can return.
+	 * If the implementation does not support this, it should return an empty string.
+	 */
+	static FString GetOSVersion();
+
 	/** Retrieves information about the total number of bytes and number of free bytes for the specified disk path. */
 	static bool GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes );
 
@@ -448,6 +460,27 @@ public:
 	 * Platform specific function for closing a named event that can be viewed in PIX
 	 */
 	FORCEINLINE static void EndNamedEvent()
+	{
+	}
+
+    /**
+	* Platform specific function for initializing storage of tagged memory buffers
+	*/
+	FORCEINLINE static void InitTaggedStorage(uint32 NumTags)
+	{
+	}
+
+    /**
+	* Platform specific function for freeing storage of tagged memory buffers
+	*/
+	FORCEINLINE static void ShutdownTaggedStorage()
+	{
+	}
+
+    /**
+	* Platform specific function for tagging a memory buffer with a label. Helps see memory access in profilers
+	*/
+	FORCEINLINE static void TagBuffer(const char* Label, uint32 Category, const void* Buffer, size_t BufferSize)
 	{
 	}
 
@@ -643,11 +676,7 @@ public:
 	 *
 	 * @return true if allows, false if shouldn't allow thread heartbeat hang detection
 	 */
-	static bool AllowThreadHeartBeat()
-	{
-		// allow if not overridden
-		return true;
-	}
+	static bool AllowThreadHeartBeat();
 
 	/**
 	 * return the number of hardware CPU cores
@@ -806,6 +835,23 @@ public:
 	*/
 	static bool GetSHA256Signature(const void* Data, uint32 ByteSize, FSHA256Signature& OutSignature);	
 
+	/**
+	 * Get the default language (for localization) used by this platform.
+	 * @note This is typically the same as GetDefaultLocale unless the platform distinguishes between the two.
+	 * @note This should be returned in IETF language tag form:
+	 *  - A two-letter ISO 639-1 language code (eg, "zh").
+	 *  - An optional four-letter ISO 15924 script code (eg, "Hans").
+	 *  - An optional two-letter ISO 3166-1 country code (eg, "CN").
+	 */
+	static FString GetDefaultLanguage();
+
+	/**
+	 * Get the default locale (for internationalization) used by this platform.
+	 * @note This should be returned in IETF language tag form:
+	 *  - A two-letter ISO 639-1 language code (eg, "zh").
+	 *  - An optional four-letter ISO 15924 script code (eg, "Hans").
+	 *  - An optional two-letter ISO 3166-1 country code (eg, "CN").
+	 */
 	static FString GetDefaultLocale();
 
 	/**
@@ -1056,6 +1102,21 @@ public:
 	static bool ShouldDisablePluginAtRuntime(const FString& PluginName)
 	{
 		return false;
+	}
+
+	/**
+	 * Returns a list of platforms that are confidential in nature. To avoid hardcoding the list, this
+	 * looks on disk the first time for special files, so it is non-instant.
+	 */
+	static const TArray<FString>& GetConfidentialPlatforms();
+
+	
+	/**
+	 * Returns true if the platform allows network traffic for anonymous end user usage data
+	 */
+	static bool AllowSendAnonymousGameUsageDataToEpic()
+	{
+		return true;
 	}
 
 #if !UE_BUILD_SHIPPING

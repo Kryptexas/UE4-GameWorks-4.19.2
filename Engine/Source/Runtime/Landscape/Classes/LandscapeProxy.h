@@ -195,6 +195,19 @@ enum class ELandscapeLayerPaintingRestriction : uint8
 };
 
 UENUM()
+enum class ELandscapeLayerDisplayMode : uint8
+{
+	/** Material sorting display mode */
+	Default,
+
+	/** Alphabetical sorting display mode */
+	Alphabetical,
+
+	/** User specific sorting display mode */
+	UserSpecific,
+};
+
+UENUM()
 namespace ELandscapeLODFalloff
 {
 	enum Type
@@ -350,6 +363,14 @@ public:
 	/** LOD level to use when exporting the landscape to obj or FBX */
 	UPROPERTY(EditAnywhere, Category=LOD, AdvancedDisplay)
 	int32 ExportLOD;
+
+	/** Display Order of the targets */
+	UPROPERTY(NonTransactional)
+	TArray<FName> TargetDisplayOrderList;
+
+	/** Display Order mode for the targets */
+	UPROPERTY(NonTransactional)
+	ELandscapeLayerDisplayMode TargetDisplayOrder;
 #endif
 
 	/** LOD level to use when running lightmass (increase to 1 or 2 for large landscapes to stop lightmass crashing) */
@@ -428,11 +449,27 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting, meta=(DisplayName = "Far Shadow"))
 	uint32 bCastFarShadow:1;
 	
+	/**
+	* Channels that this Landscape should be in.  Lights with matching channels will affect the Landscape.
+	* These channels only apply to opaque materials, direct lighting, and dynamic lighting and shadowing.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Lighting)
+	FLightingChannels LightingChannels;
+
 	/** Whether to use the landscape material's vertical world position offset when calculating static lighting.
 		Note: Only z (vertical) offset is supported. XY offsets are ignored.
 		Does not work correctly with an XY offset map (mesh collision) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting)
 	uint32 bUseMaterialPositionOffsetInStaticLighting:1;
+
+	/** If true, the Landscape will be rendered in the CustomDepth pass (usually used for outlines) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering, meta=(DisplayName = "Render CustomDepth Pass"))
+	uint32 bRenderCustomDepth:1;
+
+	/** Optionally write this 0-255 value to the stencil buffer in CustomDepth pass (Requires project setting or r.CustomDepth == 3) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering,  meta=(UIMin = "0", UIMax = "255", editcondition = "bRenderCustomDepth", DisplayName = "CustomDepth Stencil Value"))
+	int32 CustomDepthStencilValue;
+
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(transient)

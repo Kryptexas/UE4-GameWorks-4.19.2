@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AssetData.h"
 #include "UObject/Linker.h"
 
 class FPackageDependencyData : public FLinkerTables
@@ -10,6 +11,9 @@ class FPackageDependencyData : public FLinkerTables
 public:
 	/** The name of the package that dependency data is gathered from */
 	FName PackageName;
+
+	/** Asset Package data, gathered at the same time as dependency data */
+	FAssetPackageData PackageData;
 
 	/**
 	 * Return the package name of the UObject represented by the specified import. 
@@ -23,16 +27,13 @@ public:
 	/** Operator for serialization */
 	friend FArchive& operator<<(FArchive& Ar, FPackageDependencyData& DependencyData)
 	{
-		// serialize out the asset info
+		// serialize out the asset info, this is tied to CacheSerializationVersion
 		Ar << DependencyData.PackageName;
+		Ar << DependencyData.PackageData;
 		Ar << DependencyData.ImportMap;
 		Ar << DependencyData.StringAssetReferencesMap;
-
-		if (Ar.UE4Ver() >= VER_UE4_ADDED_SEARCHABLE_NAMES)
-		{
-			Ar << DependencyData.SearchableNamesMap;
-		}
-
+		Ar << DependencyData.SearchableNamesMap;
+		
 		return Ar;
 	}
 };

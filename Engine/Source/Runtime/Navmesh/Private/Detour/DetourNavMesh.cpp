@@ -773,7 +773,7 @@ dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 	m_nextFree = 0;
 	for (int i = m_maxTiles-1; i >= 0; --i)
 	{
-		m_tiles[i].salt = 1;
+		m_tiles[i].salt = DT_SALT_BASE;
 		m_tiles[i].next = m_nextFree;
 		m_nextFree = &m_tiles[i];
 	}

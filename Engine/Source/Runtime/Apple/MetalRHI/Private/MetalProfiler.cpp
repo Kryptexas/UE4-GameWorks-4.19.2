@@ -62,8 +62,10 @@ DEFINE_STAT(STAT_MetalTextureMemUpdate);
 DEFINE_STAT(STAT_MetalPrivateTextureCount);
 DEFINE_STAT(STAT_MetalManagedTextureCount);
 DEFINE_STAT(STAT_MetalTexturePageOnTime);
+DEFINE_STAT(STAT_MetalPrivateTextureMem);
+DEFINE_STAT(STAT_MetalManagedTextureMem);
 #if STATS
-uint64 GMetalTexturePageOnTime = 0;
+int64 volatile GMetalTexturePageOnTime = 0;
 #endif
 
 DEFINE_STAT(STAT_MetalCommandBufferCreatedPerFrame);
@@ -86,6 +88,13 @@ void FMetalEventNode::GetStats(FMetalPipelineStats& OutStats)
 		OutStats.ClipperInvocations += DrawStat.ClipperInvocations;
 		OutStats.ClipperPrimitives += DrawStat.ClipperPrimitives;
 		OutStats.FragmentFunctionInvocations += DrawStat.FragmentFunctionInvocations;
+	}
+	
+	uint32 Num = DrawStats.Num();
+	if (Num > 0)
+	{
+		OutStats.VertexFunctionCost /= Num;
+		OutStats.FragmentFunctionCost /= Num;
 	}
 }
 
@@ -198,13 +207,12 @@ void FMetalEventNode::StartTiming()
 	Context->StartTiming(this);
 }
 
-void FMetalEventNode::Start(id<MTLCommandBuffer> Buffer)
+MTLCommandBufferHandler FMetalEventNode::Start(void)
 {
-	check(Buffer);
-	[Buffer addCompletedHandler:^(id<MTLCommandBuffer>)
+	return Block_copy(^(id<MTLCommandBuffer>)
 	{
 		StartTime = mach_absolute_time();
-	}];
+	});
 }
 
 void FMetalEventNode::StopTiming()
@@ -212,21 +220,21 @@ void FMetalEventNode::StopTiming()
 	Context->EndTiming(this);
 }
 
-void FMetalEventNode::Stop(id<MTLCommandBuffer> Buffer)
+MTLCommandBufferHandler FMetalEventNode::Stop(void)
 {
-	[Buffer addCompletedHandler:^(id<MTLCommandBuffer>)
+	return Block_copy(^(id<MTLCommandBuffer>)
 	{
 		EndTime = mach_absolute_time();
-     
-        if(bRoot)
-        {
-            GGPUFrameTime = FMath::TruncToInt( double(GetTiming()) / double(FPlatformTime::GetSecondsPerCycle()) );
-            if(!bFullProfiling)
-            {
-                delete this;
-            }
-        }
-	}];
+	 
+		if(bRoot)
+		{
+			GGPUFrameTime = FMath::TruncToInt( double(GetTiming()) / double(FPlatformTime::GetSecondsPerCycle()) );
+			if(!bFullProfiling)
+			{
+				delete this;
+			}
+		}
+	});
 }
 
 #if METAL_STATISTICS
@@ -262,7 +270,7 @@ void FMetalEventNodeFrame::EndFrame()
 /** Calculates root timing base frequency (if needed by this RHI) */
 float FMetalEventNodeFrame::GetRootTimingResults()
 {
-    return RootNode->GetTiming();
+	return RootNode->GetTiming();
 }
 
 void FMetalEventNodeFrame::LogDisjointQuery()
@@ -272,8 +280,12 @@ void FMetalEventNodeFrame::LogDisjointQuery()
 
 FGPUProfilerEventNode* FMetalGPUProfiler::CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent)
 {
+#if ENABLE_METAL_GPUPROFILE
 	FMetalEventNode* EventNode = new FMetalEventNode(FMetalContext::GetCurrentContext(), InName, InParent, false, false);
 	return EventNode;
+#else
+	return nullptr;
+#endif
 }
 
 void FMetalGPUProfiler::Cleanup()
@@ -294,29 +306,26 @@ void FMetalGPUProfiler::PopEvent()
 //TGlobalResource<FVector4VertexDeclaration> GMetalVector4VertexDeclaration;
 TGlobalResource<FTexture> GMetalLongTaskRT;
 
-static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
-
 void FMetalGPUProfiler::BeginFrame()
 {
-    if(!CurrentEventNodeFrame)
-    {
-        // Start tracking the frame
-        CurrentEventNodeFrame = new FMetalEventNodeFrame(Context, GTriggerGPUProfile);
-        CurrentEventNodeFrame->StartFrame();
-        
-        if(GTriggerGPUProfile)
-        {
-            bTrackingEvents = true;
-            bLatchedGProfilingGPU = true;
-            
-            GTriggerGPUProfile = false;
+	if(!CurrentEventNodeFrame)
+	{
+		// Start tracking the frame
+		CurrentEventNodeFrame = new FMetalEventNodeFrame(Context, GTriggerGPUProfile);
+		CurrentEventNodeFrame->StartFrame();
+		
+		if(GTriggerGPUProfile)
+		{
+			bTrackingEvents = true;
+			bLatchedGProfilingGPU = true;
+			
+			GTriggerGPUProfile = false;
 
 #if METAL_STATISTICS
 			if(Context->GetCommandQueue().GetStatistics())
-            {
-				Context->GetCommandQueue().GetStatistics()->BeginSamplingStatistics();
+			{
 				bActiveStats = true;
-            }
+			}
 #endif
 			
 			/*if (bLatchedGProfilingGPU)
@@ -332,15 +341,24 @@ void FMetalGPUProfiler::BeginFrame()
 					GMetalLongTaskRT.TextureRHI = RHICreateTexture2D(1920, 1080, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable, Info);
 				}
 				SetRenderTarget(RHICmdList, GMetalLongTaskRT.TextureRHI->GetTexture2D(), FTextureRHIRef());
-				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+				FGraphicsPipelineStateInitializer GraphicsPSOInit;
+				RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+				GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+				GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
+				GraphicsPSOInit.SetBlendFactor(FLinearColor::Black);
+				GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+				GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 				
 				auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 				TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 				TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
-				
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, LongGPUTaskBoundShaderState, GMetalVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
+		
+				GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI =  GMetalVector4VertexDeclaration.VertexDeclarationRHI;
+				GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 				
 				// Draw a fullscreen quad
 				FVector4 Vertices[4];
@@ -353,47 +371,51 @@ void FMetalGPUProfiler::BeginFrame()
 				RHICmdList.SubmitCommandsHint();
 				// RHICmdList flushes on destruction
 			}*/
-        }
-        
-        PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
-    }
-    NumNestedFrames++;
+		}
+		
+		PushEvent(TEXT("FRAME"), FColor(0, 255, 0, 255));
+	}
+	NumNestedFrames++;
 }
 
 void FMetalGPUProfiler::EndFrame()
 {
-    if(--NumNestedFrames == 0)
-    {
+	if(--NumNestedFrames == 0)
+	{
 		PopEvent();
 		
 #if PLATFORM_MAC
-        FPlatformMisc::UpdateDriverMonitorStatistics(GetMetalDeviceContext().GetDeviceIndex());
+		FPlatformMisc::UpdateDriverMonitorStatistics(GetMetalDeviceContext().GetDeviceIndex());
+#elif METAL_STATISTICS
+		if(Context->GetCommandQueue().GetStatistics())
+		{
+			Context->GetCommandQueue().GetStatistics()->UpdateDriverMonitorStatistics();
+		}
 #endif
 #if STATS
 		SET_CYCLE_COUNTER(STAT_MetalTexturePageOnTime, GMetalTexturePageOnTime);
 		GMetalTexturePageOnTime = 0;
 #endif
 		
-        if(CurrentEventNodeFrame)
-        {
-            CurrentEventNodeFrame->EndFrame();
+		if(CurrentEventNodeFrame)
+		{
+			CurrentEventNodeFrame->EndFrame();
 			
 			if(bLatchedGProfilingGPU)
 			{
 #if METAL_STATISTICS
 				if(Context->GetCommandQueue().GetStatistics())
 				{
-					Context->GetCommandQueue().GetStatistics()->FinishSamplingStatistics();
 					bActiveStats = false;
 				}
 #endif
 				
-                bTrackingEvents = false;
-                bLatchedGProfilingGPU = false;
-            
-                UE_LOG(LogRHI, Warning, TEXT(""));
-                UE_LOG(LogRHI, Warning, TEXT(""));
-                CurrentEventNodeFrame->DumpEventTree();
+				bTrackingEvents = false;
+				bLatchedGProfilingGPU = false;
+			
+				UE_LOG(LogRHI, Warning, TEXT(""));
+				UE_LOG(LogRHI, Warning, TEXT(""));
+				CurrentEventNodeFrame->DumpEventTree();
 				
 #if METAL_STATISTICS
 				if(Context->GetCommandQueue().GetStatistics())
@@ -412,12 +434,12 @@ void FMetalGPUProfiler::EndFrame()
 					}
 				}
 #endif
-            }
+			}
 			
-            delete CurrentEventNodeFrame;
-            CurrentEventNodeFrame = NULL;
-        }
-    }
+			delete CurrentEventNodeFrame;
+			CurrentEventNodeFrame = NULL;
+		}
+	}
 }
 
 void FMetalGPUProfiler::StartGPUWork(uint32 StartPoint, uint32 EndPoint, uint32 NumPrimitives, uint32 NumVertices)

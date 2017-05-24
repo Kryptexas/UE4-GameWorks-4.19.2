@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3041684
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:ショットとテイクを作成する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -10,6 +10,7 @@ order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 従来の映像エディタと同様に、**Shot (ショット) トラック** ではレベル シーケンスを追加、配置、再配置し、配置した順序で再生することができます。
 追加する各レベル シーケンスは **ショット** と呼ばれ、各ショットには複数の **テイク** が含まれることがあります。テイクでは、ショットを代わりのバージョンに素早く置き換えて、シネマティックスで異なる外観を試すことができます。 
@@ -106,10 +107,10 @@ Related:Engine\Sequencer\ReferenceEditor\
 	[REGION:note]
 	現在、初めてテイクを作ったときに、メニューには Take 2 としてリストされます。Take 1 (オリジナル) はリストされませんが、**コンテンツ ブラウザ** には存在します。この回避策として、テイク (オリジナルとして使用するもの) を作成し、次に別のテイクを作成し修正することができます (テイク メニューを使ってこのテイク間を迅速に切り替えることができます)。 
 	[/REGION]
+	## 最終結果
 
 
 
-## 最終結果
 
 **Shots トラック** を使って、ショットをアレンジして、こうしたショットを別のテイクと迅速に置き換えることができます。以下の例では、Shot Track を使ってショットが再生される順序を迅速に変更する方法とテイク システムでショットを入れ替わる方法を説明しました。テイクを使うと、ショットがどのように再生されるかを自由に試すことができます。複製されたショットはオリジナルのテイクに切り替えることで素早く元に戻すことができるからです。
 

@@ -52,6 +52,7 @@ public:
 		AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SAssetShortcut::HandleFilesLoaded);
 		AssetRegistryModule.Get().OnAssetAdded().AddSP(this, &SAssetShortcut::HandleAssetAdded);
 		AssetRegistryModule.Get().OnAssetRemoved().AddSP(this, &SAssetShortcut::HandleAssetRemoved);
+		AssetRegistryModule.Get().OnAssetRenamed().AddSP(this, &SAssetShortcut::HandleAssetRenamed);
 
 		FAssetEditorManager::Get().OnAssetEditorRequestedOpen().AddSP(this, &SAssetShortcut::HandleAssetOpened);
 		AssetFamily->GetOnAssetOpened().AddSP(this, &SAssetShortcut::HandleAssetOpened);
@@ -161,7 +162,7 @@ public:
 				.ForegroundColor(FSlateColor::UseForeground())
 				.ButtonStyle(FEditorStyle::Get(), "Toolbar.Button")
 				.OnGetMenuContent(this, &SAssetShortcut::HandleGetMenuContent)
-				.ToolTipText(LOCTEXT("AssetComboTooltip", "Find other assets of this type and perform asset operations."))
+				.ToolTipText(LOCTEXT("AssetComboTooltip", "Find other assets of this type and perform asset operations./nShift-Click to open in new window."))
 			]
 		];
 
@@ -178,6 +179,7 @@ public:
 			AssetRegistryModule.Get().OnFilesLoaded().RemoveAll(this);
 			AssetRegistryModule.Get().OnAssetAdded().RemoveAll(this);
 			AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
+			AssetRegistryModule.Get().OnAssetRenamed().RemoveAll(this);
 		}
 
 		AssetFamily->GetOnAssetOpened().RemoveAll(this);
@@ -187,9 +189,12 @@ public:
 
 	void HandleOpenAssetShortcut(ECheckBoxState InState)
 	{
-		TArray<UObject*> Assets;
-		Assets.Add(AssetData.GetAsset());
-		FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		if(AssetData.IsValid())
+		{
+			TArray<UObject*> Assets;
+			Assets.Add(AssetData.GetAsset());
+			FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		}
 	}
 
 	FText GetAssetText() const
@@ -275,9 +280,12 @@ public:
 	{
 		FSlateApplication::Get().DismissAllMenus();
 
-		TArray<UObject*> Assets;
-		Assets.Add(InAssetData.GetAsset());
-		FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		if (InAssetData.IsValid())
+		{
+			TArray<UObject*> Assets;
+			Assets.Add(InAssetData.GetAsset());
+			FAssetEditorManager::Get().OpenEditorForAssets(Assets);
+		}
 	}
 
 	bool HandleFilterAsset(const class FAssetData& InAssetData)
@@ -309,6 +317,19 @@ public:
 			TArray<FAssetData> Assets;
 			AssetFamily->FindAssetsOfType(AssetData.GetClass(), Assets);
 			bMultipleAssetsExist = Assets.Num() > 1;
+		}
+	}
+
+	void HandleAssetRenamed(const FAssetData& InAssetData, const FString& InOldObjectPath)
+	{
+		if (AssetFamily->IsAssetCompatible(InAssetData))
+		{
+			if(InOldObjectPath == AssetData.ObjectPath.ToString())
+			{
+				AssetData = InAssetData;
+
+				RegenerateThumbnail();
+			}
 		}
 	}
 
@@ -373,7 +394,14 @@ public:
 		{
 			AssetData = NewAssetData;
 
-			// regenerate thumbnail
+			RegenerateThumbnail();
+		}
+	}
+
+	void RegenerateThumbnail()
+	{
+		if(AssetData.IsValid())
+		{
 			AssetThumbnail = MakeShareable(new FAssetThumbnail(AssetData, AssetShortcutConstants::ThumbnailSize, AssetShortcutConstants::ThumbnailSize, ThumbnailPoolPtr.Pin()));
 			AssetThumbnailSmall = MakeShareable(new FAssetThumbnail(AssetData, AssetShortcutConstants::ThumbnailSizeSmall, AssetShortcutConstants::ThumbnailSizeSmall, ThumbnailPoolPtr.Pin()));
 

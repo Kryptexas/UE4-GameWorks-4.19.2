@@ -3,6 +3,8 @@
 #include "WideCustomResolveShaders.h"
 #include "StaticBoundShaderState.h"
 #include "ShaderParameterUtils.h"
+#include "PipelineStateCache.h"
+#include "RenderUtils.h"
 
 IMPLEMENT_SHADER_TYPE(, FWideCustomResolveVS, TEXT("WideCustomResolveShaders"), TEXT("WideCustomResolveVS"), SF_Vertex);
 
@@ -24,6 +26,7 @@ IMPLEMENT_RESOLVE_SHADER(4, 3);
 template <unsigned Width, unsigned MSAA>
 static void ResolveColorWideInternal2(
 	FRHICommandList& RHICmdList,
+	FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 	const ERHIFeatureLevel::Type CurrentFeatureLevel,
 	const FTextureRHIRef& SrcTexture,
 	const FIntPoint& SrcOrigin)
@@ -32,8 +35,14 @@ static void ResolveColorWideInternal2(
 
 	TShaderMapRef<FWideCustomResolveVS> VertexShader(ShaderMap);
 	TShaderMapRef<FWideCustomResolvePS<MSAA, Width>> PixelShader(ShaderMap);
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(RHICmdList, CurrentFeatureLevel, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
+
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+	
 	PixelShader->SetParameters(RHICmdList, SrcTexture, SrcOrigin);
 
 	RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
@@ -42,6 +51,7 @@ static void ResolveColorWideInternal2(
 template <unsigned MSAA>
 static void ResolveColorWideInternal(
 	FRHICommandList& RHICmdList, 
+	FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 	const ERHIFeatureLevel::Type CurrentFeatureLevel,
 	const FTextureRHIRef& SrcTexture,
 	const FIntPoint& SrcOrigin, 
@@ -49,15 +59,16 @@ static void ResolveColorWideInternal(
 {
 	switch (WideFilterWidth)
 	{
-	case 0: ResolveColorWideInternal2<0, MSAA>(RHICmdList, CurrentFeatureLevel, SrcTexture, SrcOrigin); break;
-	case 1: ResolveColorWideInternal2<1, MSAA>(RHICmdList, CurrentFeatureLevel, SrcTexture, SrcOrigin); break;
-	case 2: ResolveColorWideInternal2<2, MSAA>(RHICmdList, CurrentFeatureLevel, SrcTexture, SrcOrigin); break;
-	case 3: ResolveColorWideInternal2<3, MSAA>(RHICmdList, CurrentFeatureLevel, SrcTexture, SrcOrigin); break;
+	case 0: ResolveColorWideInternal2<0, MSAA>(RHICmdList, GraphicsPSOInit, CurrentFeatureLevel, SrcTexture, SrcOrigin); break;
+	case 1: ResolveColorWideInternal2<1, MSAA>(RHICmdList, GraphicsPSOInit, CurrentFeatureLevel, SrcTexture, SrcOrigin); break;
+	case 2: ResolveColorWideInternal2<2, MSAA>(RHICmdList, GraphicsPSOInit, CurrentFeatureLevel, SrcTexture, SrcOrigin); break;
+	case 3: ResolveColorWideInternal2<3, MSAA>(RHICmdList, GraphicsPSOInit, CurrentFeatureLevel, SrcTexture, SrcOrigin); break;
 	}
 }
 
 void ResolveFilterWide(
 	FRHICommandList& RHICmdList, 
+	FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 	const ERHIFeatureLevel::Type CurrentFeatureLevel,
 	const FTextureRHIRef& SrcTexture,
 	const FIntPoint& SrcOrigin, 
@@ -66,15 +77,15 @@ void ResolveFilterWide(
 {				
 	if (NumSamples <= 1)
 	{
-		ResolveColorWideInternal2<1, 0>(RHICmdList, CurrentFeatureLevel, SrcTexture, SrcOrigin);
+		ResolveColorWideInternal2<1, 0>(RHICmdList, GraphicsPSOInit, CurrentFeatureLevel, SrcTexture, SrcOrigin);
 	}
 	else if (NumSamples == 2)
 	{
-		ResolveColorWideInternal<2>(RHICmdList, CurrentFeatureLevel, SrcTexture, SrcOrigin, WideFilterWidth);
+		ResolveColorWideInternal<2>(RHICmdList, GraphicsPSOInit, CurrentFeatureLevel, SrcTexture, SrcOrigin, WideFilterWidth);
 	}
 	else if (NumSamples == 4)
 	{
-		ResolveColorWideInternal<4>(RHICmdList, CurrentFeatureLevel, SrcTexture, SrcOrigin, WideFilterWidth);
+		ResolveColorWideInternal<4>(RHICmdList, GraphicsPSOInit, CurrentFeatureLevel, SrcTexture, SrcOrigin, WideFilterWidth);
 	}
 	else
 	{

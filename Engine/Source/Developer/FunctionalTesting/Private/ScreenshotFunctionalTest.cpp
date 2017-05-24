@@ -4,7 +4,6 @@
 
 #include "Engine/GameViewportClient.h"
 #include "AutomationBlueprintFunctionLibrary.h"
-#include "BufferVisualizationData.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -14,6 +13,7 @@
 
 AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	: AFunctionalTest(ObjectInitializer)
+	, ScreenshotOptions(EComparisonTolerance::Low)
 {
 	ScreenshotCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	ScreenshotCamera->SetupAttachment(RootComponent);
@@ -24,21 +24,27 @@ void AScreenshotFunctionalTest::PrepareTest()
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	PlayerController->SetViewTarget(this, FViewTargetTransitionParams());
 
-	SetupVisualizeBuffer();
+	// It's possible the defaults for certain tolerance levels have changed, so reset them on test start.
+	ScreenshotOptions.SetToleranceAmounts(ScreenshotOptions.Tolerance);
 
 	Super::PrepareTest();
 }
 
 bool AScreenshotFunctionalTest::IsReady_Implementation()
 {
-	return (GFrameNumber - RunFrame) > 2;
+	if ( (GetWorld()->GetTimeSeconds() - StartTime) > ScreenshotOptions.Delay )
+	{
+		return ( GFrameNumber - RunFrame ) > 5;
+	}
+	
+	return false;
 }
 
 void AScreenshotFunctionalTest::StartTest()
 {
 	Super::StartTest();
 
-	UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(GetName(), ScreenshotOptions);
+	UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(this, GetName(), ScreenshotOptions);
 
 	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddUObject(this, &AScreenshotFunctionalTest::OnScreenshotTakenAndCompared);
 }
@@ -48,26 +54,6 @@ void AScreenshotFunctionalTest::OnScreenshotTakenAndCompared()
 	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
 
 	FinishTest(EFunctionalTestResult::Succeeded, TEXT(""));
-}
-
-void AScreenshotFunctionalTest::SetupVisualizeBuffer()
-{
-	UWorld* World = GetWorld();
-	if ( World && World->IsGameWorld() )
-	{
-		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
-		{
-			static IConsoleVariable* ICVar = IConsoleManager::Get().FindConsoleVariable(FBufferVisualizationData::GetVisualizationTargetConsoleCommandName());
-			if ( ICVar )
-			{
-				if ( ViewportClient->GetEngineShowFlags() )
-				{
-					ViewportClient->GetEngineShowFlags()->SetVisualizeBuffer( ScreenshotOptions.VisualizeBuffer == NAME_None ? false : true);
-					ICVar->Set(*ScreenshotOptions.VisualizeBuffer.ToString());
-				}
-			}
-		}
-	}
 }
 
 #if WITH_EDITOR

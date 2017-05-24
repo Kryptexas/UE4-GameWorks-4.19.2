@@ -2,217 +2,105 @@
 
 #include "OnlineSubsystemFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
-#include "IOSAppDelegate.h"
-#include "Misc/CommandLine.h"
-
 #include "OnlineSharingFacebook.h"
 #include "OnlineUserFacebook.h"
 
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 
-FOnlineSubsystemFacebook::FOnlineSubsystemFacebook()
-	: FacebookIdentity(nullptr)
-	, FacebookFriends(nullptr)
-	, FacebookSharing(nullptr)
-	, FacebookUser(nullptr)
-{
+#include "CoreDelegates.h"
+#include "IOSAppDelegate.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
 
+FOnlineSubsystemFacebook::FOnlineSubsystemFacebook()
+{
+}
+
+FOnlineSubsystemFacebook::FOnlineSubsystemFacebook(FName InInstanceName)
+	: FOnlineSubsystemFacebookCommon(InInstanceName)
+{
+	FString IOSFacebookAppID;
+	if (!GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("FacebookAppID"), IOSFacebookAppID, GEngineIni))
+	{
+		UE_LOG(LogOnline, Warning, TEXT("The [IOSRuntimeSettings]:FacebookAppID has not been set"));
+	}
+
+	if (ClientId.IsEmpty() || IOSFacebookAppID.IsEmpty() || (IOSFacebookAppID != ClientId))
+	{
+		UE_LOG(LogOnline, Warning, TEXT("Inconsistency between OnlineSubsystemFacebook AppId [%s] and IOSRuntimeSettings AppId [%s]"), *ClientId, *IOSFacebookAppID);
+	}
 }
 
 FOnlineSubsystemFacebook::~FOnlineSubsystemFacebook()
 {
-	FacebookIdentity = nullptr;
-	FacebookFriends = nullptr;
-	FacebookSharing = nullptr; 
-	FacebookUser = nullptr;
 }
 
-IOnlineSessionPtr FOnlineSubsystemFacebook::GetSessionInterface() const
-{
-	return nullptr;
-}
-
-IOnlineIdentityPtr FOnlineSubsystemFacebook::GetIdentityInterface() const
-{
-	return FacebookIdentity;
-}
-
-IOnlineFriendsPtr FOnlineSubsystemFacebook::GetFriendsInterface() const
-{
-	return FacebookFriends;
-}
-
-IOnlineGroupsPtr FOnlineSubsystemFacebook::GetGroupsInterface() const
-{
-	return nullptr;
-}
-
-IOnlinePartyPtr FOnlineSubsystemFacebook::GetPartyInterface() const
-{
-	return nullptr;
-}
-
-IOnlineSharedCloudPtr FOnlineSubsystemFacebook::GetSharedCloudInterface() const
-{
-	return nullptr;
-}
-
-IOnlineUserCloudPtr FOnlineSubsystemFacebook::GetUserCloudInterface() const
-{
-	return nullptr;
-}
-
-IOnlineLeaderboardsPtr FOnlineSubsystemFacebook::GetLeaderboardsInterface() const
-{
-	return nullptr;
-}
-
-IOnlineVoicePtr FOnlineSubsystemFacebook::GetVoiceInterface() const
-{
-	return nullptr;
-}
-
-IOnlineExternalUIPtr FOnlineSubsystemFacebook::GetExternalUIInterface() const	
-{
-	return nullptr;
-}
-
-IOnlineTimePtr FOnlineSubsystemFacebook::GetTimeInterface() const
-{
-	return nullptr;
-}
-
-IOnlineTitleFilePtr FOnlineSubsystemFacebook::GetTitleFileInterface() const
-{
-	return nullptr;
-}
-
-IOnlineEntitlementsPtr FOnlineSubsystemFacebook::GetEntitlementsInterface() const
-{
-	return nullptr;
-}
-
-IOnlineStorePtr FOnlineSubsystemFacebook::GetStoreInterface() const
-{
-	return nullptr;
-}
-
-IOnlineEventsPtr FOnlineSubsystemFacebook::GetEventsInterface() const
-{
-	return nullptr;
-}
-
-IOnlineAchievementsPtr FOnlineSubsystemFacebook::GetAchievementsInterface() const
-{
-	return nullptr;
-}
-
-IOnlineSharingPtr FOnlineSubsystemFacebook::GetSharingInterface() const
-{
-	return FacebookSharing;
-}
-
-IOnlineUserPtr FOnlineSubsystemFacebook::GetUserInterface() const
-{
-	return FacebookUser;
-}
-
-IOnlineMessagePtr FOnlineSubsystemFacebook::GetMessageInterface() const
-{
-	return nullptr;
-}
-
-IOnlinePresencePtr FOnlineSubsystemFacebook::GetPresenceInterface() const
-{
-	return nullptr;
-}
-
-IOnlineChatPtr FOnlineSubsystemFacebook::GetChatInterface() const
-{
-	return nullptr;
-}
-
-IOnlineTurnBasedPtr FOnlineSubsystemFacebook::GetTurnBasedInterface() const
-{
-	return nullptr;
-}
-
-static void ListenFacebookOpenURL(UIApplication* application, NSURL* url, NSString* sourceApplication, id annotation)
+static void OnFacebookOpenURL(UIApplication* application, NSURL* url, NSString* sourceApplication, id annotation)
 {
 	[[FBSDKApplicationDelegate sharedInstance] application:application
-												   openURL:url
-										 sourceApplication:sourceApplication
-												annotation:annotation];
+		openURL : url
+		sourceApplication : sourceApplication
+		annotation : annotation];
 }
 
-bool FOnlineSubsystemFacebook::Init() 
+static void OnFacebookAppDidBecomeActive()
 {
-	bool bSuccessfullyStartedUp = true;
+	dispatch_async(dispatch_get_main_queue(), ^
+	{
+		[FBSDKAppEvents activateApp];
+	});
+}
 
-	[FBSDKAppEvents activateApp];
-	FIOSCoreDelegates::OnOpenURL.AddStatic(&ListenFacebookOpenURL);
-	
-	[[FBSDKApplicationDelegate sharedInstance] application:[UIApplication sharedApplication]
-							 didFinishLaunchingWithOptions:[IOSAppDelegate GetDelegate].launchOptions];
-	
-	FacebookIdentity = MakeShareable(new FOnlineIdentityFacebook());
-	FacebookSharing = MakeShareable(new FOnlineSharingFacebook(this));
-	FacebookFriends = MakeShareable(new FOnlineFriendsFacebook(this));
-	FacebookUser = MakeShareable(new FOnlineUserFacebook(this));
-	
+bool FOnlineSubsystemFacebook::Init()
+{
+	bool bSuccessfullyStartedUp = false;
+	if (FOnlineSubsystemFacebookCommon::Init())
+	{
+		FIOSCoreDelegates::OnOpenURL.AddStatic(&OnFacebookOpenURL);
+		FCoreDelegates::ApplicationHasReactivatedDelegate.AddStatic(&OnFacebookAppDidBecomeActive);
+
+		FOnlineIdentityFacebookPtr TempPtr = MakeShareable(new FOnlineIdentityFacebook(this));
+		TempPtr->Init();
+		FacebookIdentity = TempPtr;
+		FacebookSharing = MakeShareable(new FOnlineSharingFacebook(this));
+		FacebookFriends = MakeShareable(new FOnlineFriendsFacebook(this));
+		FacebookUser = MakeShareable(new FOnlineUserFacebook(this));
+
+		// Trigger Facebook SDK last now that everything is setup
+		dispatch_async(dispatch_get_main_queue(), ^
+		{
+			UIApplication* sharedApp = [UIApplication sharedApplication];
+			NSDictionary* launchDict = [IOSAppDelegate GetDelegate].launchOptions;
+			[FBSDKAppEvents activateApp];
+			[[FBSDKApplicationDelegate sharedInstance] application:sharedApp didFinishLaunchingWithOptions : launchDict];
+		});
+
+		bSuccessfullyStartedUp = true;
+	}
 	return bSuccessfullyStartedUp;
 }
 
 bool FOnlineSubsystemFacebook::Shutdown() 
 {
 	bool bSuccessfullyShutdown = true;
+	StaticCastSharedPtr<FOnlineIdentityFacebook>(FacebookIdentity)->Shutdown();
 
-	bSuccessfullyShutdown = FOnlineSubsystemImpl::Shutdown();
+	bSuccessfullyShutdown = FOnlineSubsystemFacebookCommon::Shutdown();
 	return bSuccessfullyShutdown;
 }
 
-FString FOnlineSubsystemFacebook::GetAppId() const 
+bool FOnlineSubsystemFacebook::IsEnabled() const
 {
-	return TEXT( "" );
-}
-
-bool FOnlineSubsystemFacebook::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)  
-{
-	if (FOnlineSubsystemImpl::Exec(InWorld, Cmd, Ar))
-	{
-		return true;
-	}
-	return false;
-}
-
-bool FOnlineSubsystemFacebook::Tick(float DeltaTime)
-{
-	if (!FOnlineSubsystemImpl::Tick(DeltaTime))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-bool FOnlineSubsystemFacebook::IsEnabled()
-{
-	// Check the ini for disabling Facebook
 	bool bEnableFacebookSupport = false;
-	// Whilst we deprecate the old warning, let's still check if it's available
-	if (!GConfig->GetBool(TEXT("OnlineSubsystemFacebook"), TEXT("bEnabled"), bEnableFacebookSupport, GEngineIni))
-	{
-		GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bEnableFacebookSupport"), bEnableFacebookSupport, GEngineIni);
-	}
-	else
-	{
-		UE_LOG(LogOnline, Warning, TEXT("The [OnlineSubsystemFacebook]:bEnabled flag has been moved to the IOS Project Settings, please update your preferences and App ID there."));
-	}
 
-#if !UE_BUILD_SHIPPING
-	// Check the commandline for disabling Facebook
-	bEnableFacebookSupport = bEnableFacebookSupport && !FParse::Param(FCommandLine::Get(), TEXT("NOFACEBOOK"));
-#endif
+	// IOSRuntimeSettings holds a value for editor ease of use
+	if (!GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bEnableFacebookSupport"), bEnableFacebookSupport, GEngineIni))
+	{
+		UE_LOG(LogOnline, Warning, TEXT("The [IOSRuntimeSettings]:bEnableFacebookSupport flag has not been set"));
+
+		// Fallback to regular OSS location
+		bEnableFacebookSupport = FOnlineSubsystemFacebookCommon::IsEnabled();
+	}
 
 	return bEnableFacebookSupport;
 }

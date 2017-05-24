@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3095085
+﻿INTSourceChangelist:3188564
 Title:Android OpenGL ES 3.1 モバイル レンダラー
 Description:UE4 Android プロジェクトをOpenGL ES 3.1 モバイル レンダラーで使用するための設定方法
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/OpenGLES31MobileRenderer/
-Availability:Docs
-version:4.12
+Availability:Public
+Version:4.12
 Parent:Platforms/Android
 tags:Mobile
 tags:Android
@@ -22,7 +22,7 @@ Related:Programming/Development/BuildingUnrealEngine
 
 ## OpenGL ES 3.1 UE4 エディタ プレビューを有効にする 
 
-UE4 エディタでの OpenGL ES 3.1 の見え方をプレビューするには、まず最初に以下の手順に従ってエディタ プレビューを有効にします。
+UE4 エディタでの OpenGL ES 3.1 の表示をプレビューするには、まず最初に以下の手順に従ってエディタ プレビューを有効にします。
 
 1. **メイン ツールバー** の **[Edit (編集)]** オプションから **[Editor Preferences (エディタの環境設定)]** オプションを選びます。
 
@@ -52,7 +52,7 @@ UE4 エディタでの OpenGL ES 3.1 の見え方をプレビューするには�
 	クリックしてフルサイズで表示
 	[/REGION]
 
-1. UE4 エディタ ビューポートの右下隅をみると、OpenGL ES 3.1 を使ったプレビューが可能であることを知らせる **Feature Level:ES3_1** というテキストが表示されているはずです。
+1. UE4 エディタ ビューポートの右下隅をみると、OpenGL ES 3.1 の機能セットを使ってレベルのプレビューが可能なことを示す **Feature Level:ES3_1 というテキストが表示されているはずです。
 
 	[REGION:lightbox]
 	[![](OGL3_02.png)(w:404)](OGL3_02.png)
@@ -143,7 +143,7 @@ OpenGL ES 3.1 Support は、Github からダウンロードおよびコンパイ
 
 	![](OGL3_08.png)
 
-1. ビルド進捗バーが UE4 エディタの右下隅に表示されます。ビルドの詳細を確認するには、**[Show Output Log]** をクリックします。
+1. ビルド プログレス バーが UE4 エディタの右下隅に表示されます。ビルドの詳細を確認するには、**[Show Output Log]** をクリックします。
 
 	![](OGL3_09.png)
 

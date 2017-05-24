@@ -696,6 +696,25 @@ macro(CheckOpenGLX11)
   endif()
 endmacro()
 
+
+macro(CheckVulkanX11)
+  if(VIDEO_VULKAN)
+    set(SDL_CFLAGS "${SDL_CFLAGS} -I$ENV{VULKAN_SDK}/include")
+    message(STATUS "Checking for Vulkan SDK: -I$ENV{VULKAN_SDK}/include" )
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I$ENV{VULKAN_SDK}/include")
+    link_directories($ENV{VULKAN_SDK}/lib)
+    list(APPEND EXTRA_LIBS vulkan)
+    # hack: assume vulkan availability for now
+    set(HAVE_VIDEO_VULKAN TRUE)
+    if(HAVE_VIDEO_VULKAN)
+      set(HAVE_VIDEO_VULKAN TRUE)
+      set(SDL_VIDEO_VULKAN 1)
+      set(SDL_VIDEO_VULKAN_X11 1)
+      set(SDL_VIDEO_RENDER_VULKAN 1)
+    endif()
+  endif()
+endmacro()
+
 # Requires:
 # - nada
 macro(CheckOpenGLESX11)

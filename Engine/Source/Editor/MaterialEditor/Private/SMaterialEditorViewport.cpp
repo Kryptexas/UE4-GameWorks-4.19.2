@@ -368,25 +368,25 @@ void SMaterialEditor3DPreviewViewport::BindCommands()
 	// Add the commands to the toolkit command list so that the toolbar buttons can find them
 	CommandList->MapAction(
 		Commands.SetCylinderPreview,
-		FExecuteAction::CreateSP( this, &SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive, TPT_Cylinder ),
+		FExecuteAction::CreateSP( this, &SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive, TPT_Cylinder, false ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditor3DPreviewViewport::IsPreviewPrimitiveChecked, TPT_Cylinder ) );
 
 	CommandList->MapAction(
 		Commands.SetSpherePreview,
-		FExecuteAction::CreateSP( this, &SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive, TPT_Sphere ),
+		FExecuteAction::CreateSP( this, &SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive, TPT_Sphere, false ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditor3DPreviewViewport::IsPreviewPrimitiveChecked, TPT_Sphere ) );
 
 	CommandList->MapAction(
 		Commands.SetPlanePreview,
-		FExecuteAction::CreateSP( this, &SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive, TPT_Plane ),
+		FExecuteAction::CreateSP( this, &SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive, TPT_Plane, false ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditor3DPreviewViewport::IsPreviewPrimitiveChecked, TPT_Plane ) );
 
 	CommandList->MapAction(
 		Commands.SetCubePreview,
-		FExecuteAction::CreateSP( this, &SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive, TPT_Cube ),
+		FExecuteAction::CreateSP( this, &SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive, TPT_Cube, false ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditor3DPreviewViewport::IsPreviewPrimitiveChecked, TPT_Cube ) );
 
@@ -417,7 +417,7 @@ void SMaterialEditor3DPreviewViewport::OnFocusViewportToSelection()
 	}
 }
 
-void SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive(EThumbnailPrimType PrimType)
+void SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive(EThumbnailPrimType PrimType, bool bInitialLoad)
 {
 	if (SceneViewport.IsValid())
 	{
@@ -433,6 +433,18 @@ void SMaterialEditor3DPreviewViewport::OnSetPreviewPrimitive(EThumbnailPrimType 
 		if (Primitive != nullptr)
 		{
 			SetPreviewAsset(Primitive);
+			
+			// Clear the thumbnail preview mesh
+			if (UMaterialInterface* MaterialInterface = MaterialEditorPtr.Pin()->GetMaterialInterface())
+			{
+				MaterialInterface->PreviewMesh = nullptr;
+				FMaterialEditor::UpdateThumbnailInfoPreviewMesh(MaterialInterface);
+				if (!bInitialLoad)
+				{
+					MaterialInterface->MarkPackageDirty();
+				}
+			}
+			
 			RefreshViewport();
 		}
 	}

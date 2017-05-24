@@ -179,13 +179,6 @@ void UMediaSoundWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	// do nothing
 }
 
-
-void UMediaSoundWave::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-}
-
-
 void UMediaSoundWave::Serialize(FArchive& Ar)
 {
 	// do not call the USoundWave version of serialize

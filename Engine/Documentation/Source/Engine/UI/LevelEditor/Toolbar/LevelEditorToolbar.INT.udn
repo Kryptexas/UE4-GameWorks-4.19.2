@@ -4,26 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:Collection of commands that provide quick access to commonly used tools and operations.
 Version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 The **Toolbar** panel, like in most applications, is a group of commands providing quick access to commonly used tools and operations.
 
 [REGION:fullwidth]
@@ -51,6 +31,3 @@ Starts the game in simulation mode. See the [Simulate In Editor](Engine/UI/Level
 Starts the game in normal play mode. Clicking the arrow displays the **Play Options** menu. See the [Play In Editor](Engine/UI/LevelEditor/InEditorTesting#PlayInEditor) section for more information.
 [/EXCERPT:playin]
 -->
-
-
-%playlistnav%

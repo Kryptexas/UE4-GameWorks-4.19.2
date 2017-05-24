@@ -5,7 +5,8 @@
 #include "Misc/App.h"
 #include "Shader.h"
 #include "SimpleElementShaders.h"
-
+#include "DrawingPolicy.h"
+#include "PipelineStateCache.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBatchedElements, Log, All);
 
@@ -328,11 +329,11 @@ void FBatchedElements::AddSprite(
 }
 
 /** Translates a ESimpleElementBlendMode into a RHI state change for rendering a mesh with the blend mode normally. */
-static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode BlendMode, bool bEncodedHDR)
+static void SetBlendState(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, ESimpleElementBlendMode BlendMode, bool bEncodedHDR)
 {
 	if (bEncodedHDR)
 	{
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 		return;
 	}
 
@@ -340,7 +341,9 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 	static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
 	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 
-	const bool bCompositeUI = CVarCompositeMode->GetValueOnRenderThread() != 0 && GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+	const bool bCompositeUI = GRHISupportsHDROutput
+		&& CVarCompositeMode && CVarCompositeMode->GetValueOnRenderThread() != 0 
+		&& CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
 
 	if (bCompositeUI)
 	{
@@ -366,25 +369,25 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 	case SE_BLEND_Masked:
 	case SE_BLEND_MaskedDistanceField:
 	case SE_BLEND_MaskedDistanceFieldShadowed:
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 		break;
 	case SE_BLEND_Translucent:
 	case SE_BLEND_TranslucentDistanceField:
 	case SE_BLEND_TranslucentDistanceFieldShadowed:
 	case SE_BLEND_TranslucentAlphaOnly:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI();
 		break;
 	case SE_BLEND_Additive:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI();
 		break;
 	case SE_BLEND_Modulate:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI();
 		break;
 	case SE_BLEND_AlphaComposite:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI();
 		break;
 	case SE_BLEND_AlphaBlend:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI();
 		break;
 	case SE_BLEND_RGBA_MASK_END:
 	case SE_BLEND_RGBA_MASK_START:
@@ -393,17 +396,17 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 }
 
 /** Translates a ESimpleElementBlendMode into a RHI state change for rendering a mesh with the blend mode for hit testing. */
-static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode BlendMode)
+static void SetHitTestingBlendState(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, ESimpleElementBlendMode BlendMode)
 {
 	switch(BlendMode)
 	{
 	case SE_BLEND_Opaque:
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 		break;
 	case SE_BLEND_Masked:
 	case SE_BLEND_MaskedDistanceField:
 	case SE_BLEND_MaskedDistanceFieldShadowed:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 		break;
 	case SE_BLEND_AlphaComposite:
 	case SE_BLEND_AlphaBlend:
@@ -411,30 +414,19 @@ static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementB
 	case SE_BLEND_TranslucentDistanceField:
 	case SE_BLEND_TranslucentDistanceFieldShadowed:
 	case SE_BLEND_TranslucentAlphaOnly:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 		break;
 	case SE_BLEND_Additive:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 		break;
 	case SE_BLEND_Modulate:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI();
 		break;
 	case SE_BLEND_RGBA_MASK_END:
 	case SE_BLEND_RGBA_MASK_START:
 		break;
 	}
 }
-
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::SimpleBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularSRGBBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularLinearBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedSRGBBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedLinearBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::DistanceFieldBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::HitTestingBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::ColorChannelMaskShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::AlphaOnlyShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::GammaAlphaOnlyShaderState;
 
 /** Global alpha ref test value for rendering masked batched elements */
 float GBatchedElementAlphaRefVal = 128.f;
@@ -514,6 +506,7 @@ static bool Is32BppHDREncoded(const FSceneView* View, ERHIFeatureLevel::Type Fea
  */
 void FBatchedElements::PrepareShaders(
 	FRHICommandList& RHICmdList,
+	FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 	ERHIFeatureLevel::Type FeatureLevel,
 	ESimpleElementBlendMode BlendMode,
 	const FMatrix& Transform,
@@ -565,14 +558,14 @@ void FBatchedElements::PrepareShaders(
 		if( bAlphaOnly )
 		{
 			MaskedBlendMode = SE_BLEND_Opaque;
-			SetBlendState(RHICmdList, MaskedBlendMode, bEncodedHDR);
+			SetBlendState(RHICmdList, GraphicsPSOInit, MaskedBlendMode, bEncodedHDR);
 			
 			R.W = G.W = B.W = 1.0f;
 		}
 		else
 		{
 			MaskedBlendMode = !bAlphaChannel ? SE_BLEND_Opaque : SE_BLEND_Translucent;  // If alpha channel is disabled, do not allow alpha blending
-			SetBlendState(RHICmdList, MaskedBlendMode, bEncodedHDR);
+			SetBlendState(RHICmdList, GraphicsPSOInit, MaskedBlendMode, bEncodedHDR);
 
 			// Determine the red, green, blue and alpha components of their respective weights to enable that colours prominence
 			R.X = bRedChannel ? 1.0f : 0.0f;
@@ -602,21 +595,25 @@ void FBatchedElements::PrepareShaders(
 	if( BatchedElementParameters != NULL )
 	{
 		// Use the vertex/pixel shader that we were given
-		BatchedElementParameters->BindShaders(RHICmdList, FeatureLevel, Transform, GammaToUse, ColorWeights, Texture);
+		BatchedElementParameters->BindShaders(RHICmdList, GraphicsPSOInit, FeatureLevel, Transform, GammaToUse, ColorWeights, Texture);
 	}
 	else
 	{
 		TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
 			
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GSimpleElementVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+
 		if (bHitTesting)
 		{
+			SetHitTestingBlendState(RHICmdList, GraphicsPSOInit, BlendMode);
+
 			TShaderMapRef<FSimpleElementHitProxyPS> HitTestingPixelShader(GetGlobalShaderMap(FeatureLevel));
-			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, HitTestingBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-				*VertexShader, *HitTestingPixelShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*HitTestingPixelShader);
+
+			SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 			HitTestingPixelShader->SetParameters(RHICmdList, Texture);
-			SetHitTestingBlendState(RHICmdList, BlendMode);
-			
 		}
 		else
 		{
@@ -624,13 +621,14 @@ void FBatchedElements::PrepareShaders(
 			{
 				// use clip() in the shader instead of alpha testing as cards that don't support floating point blending
 				// also don't support alpha testing to floating point render targets
-				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+				GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
 				if (Texture->bSRGB)
 				{
 					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_SRGB>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedSRGBBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, MaskedPixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(MaskedPixelShader);
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 					MaskedPixelShader->SetParameters(RHICmdList, Texture, Gamma, GBatchedElementAlphaRefVal / 255.0f, BlendMode);
@@ -638,8 +636,9 @@ void FBatchedElements::PrepareShaders(
 				else
 				{
 					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_Linear>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedLinearBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, MaskedPixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(MaskedPixelShader);
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 					MaskedPixelShader->SetParameters(RHICmdList, Texture, Gamma, GBatchedElementAlphaRefVal / 255.0f, BlendMode);
@@ -659,19 +658,20 @@ void FBatchedElements::PrepareShaders(
 					// enable alpha blending and disable clip ref value for translucent rendering
 					if (!bEncodedHDR)
 					{
-						RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
+						GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
 					}
 					AlphaRefVal = 0.0f;
 				}
 				else
 				{
 					// clip is done in shader so just render opaque
-					RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+					GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 				}
 				
 				TShaderMapRef<FSimpleElementDistanceFieldGammaPS> DistanceFieldPixelShader(GetGlobalShaderMap(FeatureLevel));
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DistanceFieldBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-					*VertexShader, *DistanceFieldPixelShader );			
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*DistanceFieldPixelShader);
+
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 				// @todo - expose these as options for batch rendering
 				static FVector2D ShadowDirection(-1.0f/Texture->GetSizeX(),-1.0f/Texture->GetSizeY());
@@ -699,13 +699,14 @@ void FBatchedElements::PrepareShaders(
 			}
 			else if(BlendMode == SE_BLEND_TranslucentAlphaOnly)
 			{
-				SetBlendState(RHICmdList, BlendMode, bEncodedHDR);
+				SetBlendState(RHICmdList, GraphicsPSOInit, BlendMode, bEncodedHDR);
 
 				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
 				{
 					auto* AlphaOnlyPixelShader = GetPixelShader<FSimpleElementAlphaOnlyPS>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, AlphaOnlyPixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(AlphaOnlyPixelShader);
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					AlphaOnlyPixelShader->SetParameters(RHICmdList, Texture);
 					AlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -713,8 +714,9 @@ void FBatchedElements::PrepareShaders(
 				else
 				{
 					auto* GammaAlphaOnlyPixelShader = GetPixelShader<FSimpleElementGammaAlphaOnlyPS>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, GammaAlphaOnlyShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, GammaAlphaOnlyPixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(GammaAlphaOnlyPixelShader);
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					GammaAlphaOnlyPixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
 					GammaAlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -723,44 +725,35 @@ void FBatchedElements::PrepareShaders(
 			else if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 			{
 				TShaderMapRef<FSimpleElementColorChannelMaskPS> ColorChannelMaskPixelShader(GetGlobalShaderMap(FeatureLevel));
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, ColorChannelMaskShaderState.GetBSS(bEncodedHDR, MaskedBlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-					*VertexShader, *ColorChannelMaskPixelShader );
+				GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ColorChannelMaskPixelShader);
+
+				SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 			
 				ColorChannelMaskPixelShader->SetParameters(RHICmdList, Texture, ColorWeights, GammaToUse );
 			}
 			else
 			{
-				SetBlendState(RHICmdList, BlendMode, bEncodedHDR);
+				SetBlendState(RHICmdList, GraphicsPSOInit, BlendMode, bEncodedHDR);
 	
 				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
 				{
 					TShaderMapRef<FSimpleElementPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, SimpleBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, *PixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					PixelShader->SetParameters(RHICmdList, Texture);
 					PixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 				}
 				else
 				{
-					FSimpleElementGammaBasePS* BasePixelShader;
-					FGlobalBoundShaderState* BoundShaderState;
-
 					TShaderMapRef<FSimpleElementGammaPS_SRGB> PixelShader_SRGB(GetGlobalShaderMap(FeatureLevel));
 					TShaderMapRef<FSimpleElementGammaPS_Linear> PixelShader_Linear(GetGlobalShaderMap(FeatureLevel));
-					if (Texture->bSRGB)
-					{
-						BasePixelShader = *PixelShader_SRGB;
-						BoundShaderState = &RegularSRGBBoundShaderState.GetBSS(bEncodedHDR, BlendMode);
-					}
-					else
-					{
-						BasePixelShader = *PixelShader_Linear;
-						BoundShaderState = &RegularLinearBoundShaderState.GetBSS(bEncodedHDR, BlendMode);
-					}
+					
+					FSimpleElementGammaBasePS* BasePixelShader = Texture->bSRGB ? static_cast<FSimpleElementGammaBasePS*>(*PixelShader_SRGB) : *PixelShader_Linear;
 
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, *BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, BasePixelShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(BasePixelShader);
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 					BasePixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
 					BasePixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -772,12 +765,6 @@ void FBatchedElements::PrepareShaders(
 		VertexShader->SetParameters(RHICmdList, Transform, bSwitchVerticalAxis);
 	}
 }
-
-
-//@todo.VC10: Apparent VC10 compiler bug here causes an access violation when drawing Point arrays (TTP 213844), this occurred in the next two methods
-#ifdef _MSC_VER
-PRAGMA_DISABLE_OPTIMIZATION
-#endif
 
 void FBatchedElements::DrawPointElements(FRHICommandList& RHICmdList, const FMatrix& Transform, const uint32 ViewportSizeX, const uint32 ViewportSizeY, const FVector& CameraX, const FVector& CameraY) const
 {
@@ -831,7 +818,7 @@ FSceneView FBatchedElements::CreateProxySceneView(const FMatrix& ProjectionMatri
 	return FSceneView(ProxyViewInitOptions);
 }
 
-bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
+bool FBatchedElements::Draw(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
 {
 	if ( View )
 	{
@@ -840,21 +827,28 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 		check(ViewportSizeX == View->ViewRect.Width());
 		check(ViewportSizeY == View->ViewRect.Height());
 
-		return Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, *View, bHitTesting, Gamma, DepthTexture, Filter);
+		return Draw(RHICmdList, DrawRenderState, FeatureLevel, bNeedToSwitchVerticalAxis, *View, bHitTesting, Gamma, DepthTexture, Filter);
 	}
 	else
 	{
 		FIntRect ViewRect = FIntRect(0, 0, ViewportSizeX, ViewportSizeY);
 
-		return Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, CreateProxySceneView(Transform, ViewRect), bHitTesting, Gamma, DepthTexture, Filter);
+		return Draw(RHICmdList, DrawRenderState, FeatureLevel, bNeedToSwitchVerticalAxis, CreateProxySceneView(Transform, ViewRect), bHitTesting, Gamma, DepthTexture, Filter);
 	}
 }
 
-bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FSceneView& View, bool bHitTesting, float Gamma /* = 1.0f */, FTexture2DRHIRef DepthTexture /* = FTexture2DRHIRef() */, EBlendModeFilter::Type Filter /* = EBlendModeFilter::All */) const
+bool FBatchedElements::Draw(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FSceneView& View, bool bHitTesting, float Gamma /* = 1.0f */, FTexture2DRHIRef DepthTexture /* = FTexture2DRHIRef() */, EBlendModeFilter::Type Filter /* = EBlendModeFilter::All */) const
 {
 	const FMatrix& Transform = View.ViewMatrices.GetViewProjectionMatrix();
 	const uint32 ViewportSizeX = View.ViewRect.Width();
 	const uint32 ViewportSizeY = View.ViewRect.Height();
+
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	DrawRenderState.ApplyToPSO(GraphicsPSOInit);
+	uint32 StencilRef = DrawRenderState.GetStencilRef();
+
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 	if (UNLIKELY(!FApp::CanEverRender()))
 	{
@@ -868,7 +862,8 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 		FVector CameraY = InvTransform.TransformVector(FVector(0,1,0)).GetSafeNormal();
 		FVector CameraZ = InvTransform.TransformVector(FVector(0,0,1)).GetSafeNormal();
 
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 		if( (LineVertices.Num() > 0 || Points.Num() > 0 || ThickLines.Num() > 0 || WireTris.Num() > 0)
 			&& (Filter & EBlendModeFilter::OpaqueAndMasked))
@@ -876,12 +871,15 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 			// Lines/points don't support batched element parameters (yet!)
 			FBatchedElementParameters* BatchedElementParameters = NULL;
 
-			// Set the appropriate pixel shader parameters & shader state for the non-textured elements.
-			PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
-
 			// Draw the line elements.
 			if( LineVertices.Num() > 0 )
 			{
+				GraphicsPSOInit.PrimitiveType = PT_LineList;
+
+				// Set the appropriate pixel shader parameters & shader state for the non-textured elements.
+				PrepareShaders(RHICmdList, GraphicsPSOInit, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
+				RHICmdList.SetStencilRef(StencilRef);
+
 				int32 MaxVerticesAllowed = ((GDrawUPVertexCheckCount / sizeof(FSimpleElementVertex)) / 2) * 2;
 				/*
 				hack to avoid a crash when trying to render large numbers of line segments.
@@ -898,12 +896,17 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 				}
 			}
 
+			GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+			// Set the appropriate pixel shader parameters & shader state for the non-textured elements.
+			PrepareShaders(RHICmdList, GraphicsPSOInit, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
+			RHICmdList.SetStencilRef(StencilRef);
+
 			// Draw points
 			DrawPointElements(RHICmdList, Transform, ViewportSizeX, ViewportSizeY, CameraX, CameraY);
 
 			if ( ThickLines.Num() > 0 )
 			{
-				PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Translucent, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 				float OrthoZoomFactor = 1.0f;
 
 				const bool bIsPerspective = View.ViewMatrices.GetProjectionMatrix().M[3][3] < 1.0f ? true : false;
@@ -931,7 +934,10 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					const bool bEnableMSAA = true;
 					const bool bEnableLineAA = false;
 					FRasterizerStateInitializerRHI Initializer = { FM_Solid, CM_None, 0, DepthBiasThisBatch, bEnableMSAA, bEnableLineAA };
-					RHICmdList.SetRasterizerState(RHICreateRasterizerState(Initializer).GetReference());
+					auto RasterState = RHICreateRasterizerState(Initializer);
+					GraphicsPSOInit.RasterizerState = RasterState.GetReference();
+					PrepareShaders(RHICmdList, GraphicsPSOInit, FeatureLevel, SE_BLEND_Translucent, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
+					RHICmdList.SetStencilRef(StencilRef);
 
 					void* ThickVertexData = NULL;
 					RHICmdList.BeginDrawPrimitiveUP(PT_TriangleList, 8 * NumLinesThisBatch, 8 * 3 * NumLinesThisBatch, sizeof(FSimpleElementVertex), ThickVertexData);
@@ -1008,7 +1014,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					RHICmdList.EndDrawPrimitiveUP();
 				}
 
-				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+				GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 			}
 			// Draw the wireframe triangles.
 			if (WireTris.Num() > 0)
@@ -1043,14 +1049,17 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					}
 
 					Initializer.DepthBias = DepthBias;
-					RHICmdList.SetRasterizerState(RHICreateRasterizerState(Initializer).GetReference());
+					auto RasterState = RHICreateRasterizerState(Initializer);
+					GraphicsPSOInit.RasterizerState = RasterState.GetReference();
+					PrepareShaders(RHICmdList, GraphicsPSOInit, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
+					RHICmdList.SetStencilRef(StencilRef);
 
 					int32 NumTris = MaxTri - MinTri;
 					DrawPrimitiveUP(RHICmdList, PT_TriangleList, NumTris, &WireTriVerts[MinTri * 3], sizeof(FSimpleElementVertex));
 					MinTri = MaxTri;
 				}
 
-				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+				GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 			}
 		}
 
@@ -1091,7 +1100,9 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						//New batch, draw previous and clear
 						const int32 VertexCount = SpriteList.Num();
 						const int32 PrimCount = VertexCount / 3;
-						PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
+						PrepareShaders(RHICmdList, GraphicsPSOInit, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
+						RHICmdList.SetStencilRef(StencilRef);
+
 						DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 
 						SpriteList.Empty(6);
@@ -1131,7 +1142,9 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					//Draw last batch
 					const int32 VertexCount = SpriteList.Num();
 					const int32 PrimCount = VertexCount / 3;
-					PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
+					PrepareShaders(RHICmdList, GraphicsPSOInit, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
+					RHICmdList.SetStencilRef(StencilRef);
+
 					DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 				}
 			}
@@ -1149,7 +1162,8 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 				if (Filter & MeshFilter)
 				{
 					// Set the appropriate pixel shader for the mesh.
-					PrepareShaders(RHICmdList, FeatureLevel, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, MeshElement.BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma, &MeshElement.GlowInfo, &View);
+					PrepareShaders(RHICmdList, GraphicsPSOInit, FeatureLevel, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, MeshElement.BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma, &MeshElement.GlowInfo, &View);
+					RHICmdList.SetStencilRef(StencilRef);
 
 					// Draw the mesh.
 					DrawIndexedPrimitiveUP(
@@ -1174,11 +1188,6 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 		return false;
 	}
 }
-
-#ifdef _MSC_VER
-PRAGMA_ENABLE_OPTIMIZATION
-#endif
-
 
 void FBatchedElements::Clear()
 {

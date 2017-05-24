@@ -351,6 +351,31 @@ void SRowEditor::OnRowRenamed(const FText& Text, ETextCommit::Type CommitType)
 	}
 }
 
+FReply SRowEditor::OnResetToDefaultClicked()
+{
+	if (DataTable.IsValid() && SelectedName.IsValid())
+	{
+		FDataTableEditorUtils::ResetToDefault(DataTable.Get(), *SelectedName.Get());
+	}
+
+	return FReply::Handled();
+}
+
+EVisibility SRowEditor::GetResetToDefaultVisibility() const
+{
+	EVisibility VisibleState = EVisibility::Collapsed;
+
+	if (DataTable.IsValid() && SelectedName.IsValid())
+	{
+		if (FDataTableEditorUtils::DiffersFromDefault(DataTable.Get(), *SelectedName.Get()))
+		{
+			VisibleState = EVisibility::Visible;
+		}
+	}
+
+	return VisibleState;
+}
+
 void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 {
 	DataTable = Changed;
@@ -431,6 +456,26 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 					]
 				]
 			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SButton)
+				.OnClicked(this, &SRowEditor::OnResetToDefaultClicked)
+				.Visibility(this, &SRowEditor::GetResetToDefaultVisibility)
+				.ContentPadding(FMargin(5.f, 0.f))
+				.ToolTipText(LOCTEXT("ResetToDefaultToolTip", "Reset to Default"))
+				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				]
+			]
+
 			+ SHorizontalBox::Slot()
 			[
 				SNew(SSpacer)

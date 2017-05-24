@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:Component （コンポーネント） ウィンドウ
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -7,9 +7,10 @@ Related:Engine/Blueprints/UserGuide/Graphs
 Related:Engine/Blueprints/UserGuide/Variables
 Related:Engine/Blueprints/UserGuide/Events
 Related:Engine/Blueprints/UserGuide/Functions
-Version:4.9
+version:4.9
 Parent:Engine/Blueprints/Anatomy
 Tags:Components
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -66,7 +67,7 @@ Tags:Components
 コンポーネントを理解すれば、**ブループリント エディタ** 内の **[Components]** ウィンドウを使ってコンポーネントをブループリントに追加することができるようになります。これにより、 
 CapsuleComponents や BoxComponents や SphereComponents 経由でのコリジョン ジオメトリの追加、 
 StaticMeshComponents または SkeletalMeshComponents の形でのレンダリングされたジオメトリの追加、 
- MovementComponents を利用した動作の制御を実現します。コンポーネント リストに追加されたコンポーネントは、 
+MovementComponents を利用した動作の制御を実現します。コンポーネント リストに追加されたコンポーネントは、 
 インスタンス変数に割り当てることによって、コンポーネントのイベントグラフや別のブループリントからコンポーネントへのアクセスを可能とします。
 [/EXCERPT:Intro]
 
@@ -103,27 +104,27 @@ StaticMeshComponents または SkeletalMeshComponents の形でのレンダリ�
 ![](delete_component.png)
 
 [REGION:tip]
-ウィンドウでコンポーネントを選んで、 **[Delete]** キーを押すだけでも削除できます。 
+ウィンドウでコンポーネントを選んで、**[Delete]** キーを押すだけでも削除できます。 
 [/REGION]
 
 
 ## コンポーネントの変形
 
-レベルのインスタンスに追加されたコンポーネントは、デフォルトでインスタンスの位置へ配置されます。ただし、コンポーネントは、 [アクタの変形する](GettingStarted/HowTo/ManipulatingActors) 方法と同じ要領で **[Details (詳細)]** ペインまたは **ビューポート** で変形、回転、そしてスケーリングすることができます。 
+レベルのインスタンスに追加されたコンポーネントは、デフォルトでインスタンスの位置へ配置されます。ただし、コンポーネントは、[アクタの変形する](GettingStarted/HowTo/ManipulatingActors) 方法と同じ要領で **[Details (詳細)]** ペインまたは **ビューポート** で変形、回転、そしてスケーリングすることができます。 
 
-変形するコンポーネントは、 **[Components]** ウィンドウで名前をクリック、または **ビューポート** でコンポーネントを直接クリックして選択します。**ビューポート** でコンポーネントを変形、回転、またはスケーリングする際は、スナップを有効にするため **[Shift]** キーを押します。このスナップは **レベル エディタ** でスナップを有効することが必要であり、 **レベル エディタ** から **[Snap Grid (グリッドをスナップ)]** 設定を使用します (グリッド スナップの詳細は [](Engine/UI/LevelEditor/Viewports/ViewportToolbar) を参照)。
+変形するコンポーネントは、**[Components]** ウィンドウで名前をクリック、または **ビューポート** でコンポーネントを直接クリックして選択します。**ビューポート** でコンポーネントを変形、回転、またはスケーリングする際は、スナップを有効にするため **[Shift]** キーを押します。このスナップは **レベル エディタ** でスナップを有効することが必要であり、 **レベル エディタ** から **[Snap Grid (グリッドをスナップ)]** 設定を使用します (グリッド スナップの詳細は [](Engine/UI/LevelEditor/Viewports/ViewportToolbar) を参照)。
 
-選択したコンポーネントの **位置** 、**回転** 、**スケーリング** の正確な値は **[Details]** パネルで入力します。
+選択したコンポーネントの **位置**、**回転**、**スケーリング** の正確な値は **[Details(詳細)]** パネルで入力します。
 
 ![](transform_details.png)
 
 [REGION:note]
-親コンポーネントの変形、回転、スケーリングは、これらの変形を子コンポーネントへ伝播します。
+親コンポーネントのトランスフォーム、回転、スケーリングは、これらの変形を子コンポーネントへ伝播します。
 [/REGION]
 
 ## Component アセット
 
-コンポーネントを追加したら、アセットがそのコンポーネントを占有するように指定する必要があります (StaticMeshComponent 用にスタティックメッシュを使うように割り当てるなど)。使用するアセットをコンポーネントの種類として割り当てる方法がいくつかありｋます。 
+コンポーネントを追加したら、アセットがそのコンポーネントを占有するように指定する必要があります (StaticMeshComponent 用にスタティックメッシュを使うように割り当てるなど)。使用するアセットをコンポーネントの種類として割り当てる方法がいくつかあります。 
 
 
 ### Component アセットの割り当て
@@ -144,7 +145,7 @@ StaticMeshComponents または SkeletalMeshComponents の形でのレンダリ�
 	![](selectComponentList.png)
 	[/REGION]
 
-アセットは、 **コンテンツ ブラウザ** からも割り当てが可能です。 
+アセットは、**コンテンツ ブラウザ** からも割り当てが可能です。 
 
 1.	**コンテンツ ブラウザ** のコンポーネントと一緒に使用するように割り当てたいアセットを選択します。 
 
@@ -183,7 +184,7 @@ StaticMeshComponents または SkeletalMeshComponents の形でのレンダリ�
 	いずれの手法でも、アセットはコンポーネントに割り当てられた時に削除されます。 
 
 
-### Component  アセットのブラウズ
+### Component アセットのブラウズ
 
 **コンポーネント ブラウザ** で検索して、現在割り当てられているコンポーネントのアセットをブラウズすることもできます。 
 
@@ -200,9 +201,9 @@ StaticMeshComponents または SkeletalMeshComponents の形でのレンダリ�
 
 ## コンポーネント インスタンス変数名の変更
 
-**コンポーネント** で作成されたコンポーネントは、そのタイプに応じて自動生成されたインスタンス変数名を持ちます。  
+**[Components]** ウィンドウで作成されたコンポーネントは、タイプに応じてインスタンス変数名が自動的に付けられます。  
 
-こうした変数名を変更するには、以下の手順に従います。
+その変数名を変更するには、以下の手順に従います。
 
 1. **[Components]** ウィンドウでコンポーネントを選択すると、その詳細が **[Details]** パネルに表示されます。
 
@@ -210,16 +211,16 @@ StaticMeshComponents または SkeletalMeshComponents の形でのレンダリ�
 	![](new_component_details.png)
 	[/REGION:raw]
 
-1. **[Details]** パネルの **[Variable Name (変数名)]** フィールドに選択したコンポーネントの新しい名前を入力します。続いて、 **[Enter]** を押してそのコンポーネントを確定します。 
+1. **[Details]** パネルの **[Variable Name (変数名)]** フィールドで対象のコンポーネントの名前を変更します。次に **[Enter]** を押して確定します。 
 
 	[REGION:tip]
-	**[Components]** ウィンドウでそれを選択すれば、コンポーネントの名前をすぐ変えることができます。 
+	**[Components]** ウィンドウでコンポーネントを選択して **F2** を押せば、コンポーネント名の変更がすぐにできます。 
 	[/REGION]
 
 
-## コンポーネントのイベントと関数
+## Component Events と Componenet 関数
 
-別の方法で、イベントまたは関数ベースのコンポーネントをブループリントの **イベント グラフ** にすぐに追加することができます。このような方法で作成されたイベントまたは関数は、特定の関数に対して固有となり、関連したコンポーネントを確認するテストは必要ありません。
+別の方法で、イベントまたは関数ベースのコンポーネントをブループリントの **イベント グラフ** にすぐに追加することができます。このような方法で作成されたイベントまたは関数は、特定の関数に固有なので、関連したコンポーネントを確認するテストは必要ありません。
 
 1. BoxComponent など、イベントが作成されるコンポーネントを追加します。
 
@@ -246,7 +247,7 @@ StaticMeshComponents または SkeletalMeshComponents の形でのレンダリ�
 
 イベントおよび関数は **[My Blueprint]** ウィンドウの **イベント グラフ** からコンポーネント用に追加することもできます。 
 
-1. **[My Blueprint]** ウィンドウの **Components** でコンポーネントを選択します。 
+1. **[My Blueprint]** ウィンドウの **[Components]** でコンポーネントを選択します。 
 
 1. グラフを **右クリック** してコンテキスト メニューを表示します。 
 
@@ -254,10 +255,10 @@ StaticMeshComponents または SkeletalMeshComponents の形でのレンダリ�
 	![](EventsAndFunctionsArea.png)
 	[/REGION:raw]
 
-	コンポーネントに関連したイベントまたは関数がある場合は、リスト上部に表示されます。
+	コンポーネントに関連したイベントまたは関数があれば、リスト上部に表示されます。
 
 	[REGION:note]
-		全てのコンポーネントに関連するイベントがあるわけではありません。例えば PointLightComponent には関数しかありません。
+		すべてのコンポーネントに関連するイベントがあるわけではありません。例えば PointLightComponent には関数しかありません。
 	[/REGION]
 
 	**[My Blueprint]** ウィンドウのコンポーネントを **右クリック** して **[Add Event]** コンテキスト メニューからイベントを選択します。 

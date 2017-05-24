@@ -1,11 +1,12 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_VehicleAdv.h"
 #include "TP_VehicleAdvHud.h"
 #include "TP_VehicleAdvPawn.h"
 #include "Engine/Canvas.h"
 #include "Engine/Font.h"
 #include "CanvasItem.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Engine/Engine.h"
 
 // Needed for VR Headset
 #include "Engine.h"

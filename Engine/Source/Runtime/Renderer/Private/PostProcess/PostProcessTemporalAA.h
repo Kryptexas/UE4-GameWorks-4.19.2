@@ -30,10 +30,25 @@ public:
 class FRCPassPostProcessDOFTemporalAA : public TRenderingCompositePassBase<4, 1>
 {
 public:
+	FRCPassPostProcessDOFTemporalAA(bool bInIsComputePass)
+	{
+		bIsComputePass = bInIsComputePass;
+		bPreferAsyncCompute = false;
+		bPreferAsyncCompute &= (GNumActiveGPUsForRendering == 1); // Can't handle multi-frame updates on async pipe
+	}
+
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
+
+private:
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, FTextureRHIParamRef EyeAdaptationTex);
+
+	FComputeFenceRHIRef AsyncEndFence;
 };
 
 // ePId_Input0: Half Res DOF input (point)
@@ -71,8 +86,23 @@ public:
 class FRCPassPostProcessTemporalAA : public TRenderingCompositePassBase<4, 1>
 {
 public:
+	FRCPassPostProcessTemporalAA(bool bInIsComputePass)
+	{
+		bIsComputePass = bInIsComputePass;
+		bPreferAsyncCompute = false;
+		bPreferAsyncCompute &= (GNumActiveGPUsForRendering == 1); // Can't handle multi-frame updates on async pipe
+	}
+
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
+
+private:
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, const bool bUseFast, const bool bUseDither, FTextureRHIParamRef EyeAdaptationTex);
+
+	FComputeFenceRHIRef AsyncEndFence;
 };

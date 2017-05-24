@@ -421,7 +421,7 @@ bool FExpressionGrammar::HasPostUnaryOperator(const FGuid& InTypeId) const
 	return PostUnaryOperators.Contains(InTypeId);
 }
 
-const int* FExpressionGrammar::GetBinaryOperatorPrecedence(const FGuid& InTypeId) const
+const FOpParameters* FExpressionGrammar::GetBinaryOperatorDefParameters(const FGuid& InTypeId) const
 {
 	return BinaryOperators.Find(InTypeId);
 }
@@ -504,7 +504,7 @@ struct FExpressionCompiler
 					// Make this a unary op
 					OperatorStack.Emplace(FCompiledToken(FCompiledToken::PreUnaryOperator, MoveTemp(Token)));
 				}
-				else if (Grammar.GetBinaryOperatorPrecedence(TypeId))
+				else if (Grammar.GetBinaryOperatorDefParameters(TypeId))
 				{
 					return FExpressionError(FText::Format(LOCTEXT("SyntaxError_NoBinaryOperand", "Syntax error: No operand specified for operator '{0}'"), FText::FromString(Token.Context.GetString())));
 				}
@@ -545,16 +545,21 @@ struct FExpressionCompiler
 				else
 				{
 					// Checking for binary operators
-					if (const int32* Prec = Grammar.GetBinaryOperatorPrecedence(TypeId))
+					if (const FOpParameters* OpParms = Grammar.GetBinaryOperatorDefParameters(TypeId))
 					{
-						// Pop off anything of higher precedence than this one onto the command stack
-						while (OperatorStack.Num() > 0 && OperatorStack.Last().Precedence < *Prec)
+						auto CheckPrecedence = [OpParms](int32 LastPrec, int32 Prec)
+							{
+								return (OpParms->Associativity == EAssociativity::LeftToRight ? (LastPrec <= Prec) : (LastPrec < Prec));
+							};
+
+						// Pop off anything of higher (or equal, if LTR associative) precedence than this one onto the command stack
+						while (OperatorStack.Num() > 0 && CheckPrecedence(OperatorStack.Last().Precedence, OpParms->Precedence))
 						{
 							Commands.Add(OperatorStack.Pop(false).Steal());
 						}
 
 						// Add the operator itself to the op stack
-						OperatorStack.Emplace(FCompiledToken(FCompiledToken::BinaryOperator, MoveTemp(Token)), *Prec);
+						OperatorStack.Emplace(FCompiledToken(FCompiledToken::BinaryOperator, MoveTemp(Token)), OpParms->Precedence);
 
 						// Check for a unary op again
 						State = EState::PreUnary;

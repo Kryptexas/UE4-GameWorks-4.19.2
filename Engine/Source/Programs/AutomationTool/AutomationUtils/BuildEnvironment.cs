@@ -33,7 +33,6 @@ namespace AutomationTool
 		static public readonly string Client = "uebp_CLIENT";
 		static public readonly string BuildRootP4 = "uebp_BuildRoot_P4";
 		static public readonly string BuildRootEscaped = "uebp_BuildRoot_Escaped";		
-		static public readonly string LabelToSync = "uebp_LabelToSync";
 		static public readonly string P4Password = "uebp_PASS";
 	}
 
@@ -61,7 +60,6 @@ namespace AutomationTool
 		public string TimestampAsString { get; protected set; }
 		public bool HasCapabilityToCompile { get; protected set; }
 		public string MsBuildExe { get; protected set; }
-		public string MsDevExe { get; protected set; }
 		public string MallocNanoZone { get; protected set; }
 
 		#endregion
@@ -80,7 +78,7 @@ namespace AutomationTool
 			{
 				UATExe = Assembly.GetEntryAssembly().GetOriginalLocation();
 			}
-			if (!CommandUtils.FileExists_NoExceptions(UATExe))
+			if (!CommandUtils.FileExists(UATExe))
 			{
 				throw new AutomationException("Could not find AutomationTool.exe. Reflection indicated it was here: {0}", UATExe);
 			}
@@ -194,7 +192,6 @@ namespace AutomationTool
 			Log.TraceVerbose("LogFolder={0}", LogFolder);
 			Log.TraceVerbose("MountExe={0}", MountExe);
 			Log.TraceVerbose("MsBuildExe={0}", MsBuildExe);
-			Log.TraceVerbose("MsDevExe={0}", MsDevExe);
 			Log.TraceVerbose("RobocopyExe={0}", RobocopyExe);
 			Log.TraceVerbose("TimestampAsString={0}", TimestampAsString);
 			Log.TraceVerbose("UATExe={0}", UATExe);			
@@ -225,23 +222,8 @@ namespace AutomationTool
 				}
 			}
 
-			if (HasCapabilityToCompile)
-			{
-				try
-				{
-					MsDevExe = HostPlatform.Current.GetMsDevExe();
-				}
-				catch (Exception Ex)
-				{
-					Log.WriteLine(LogEventType.Warning, Ex.Message);
-					Log.WriteLine(LogEventType.Warning, "Assuming no solution compilation capability.");
-					MsDevExe = "";
-				}
-			}
-
 			Log.TraceVerbose("CompilationEvironment.HasCapabilityToCompile={0}", HasCapabilityToCompile);
 			Log.TraceVerbose("CompilationEvironment.MsBuildExe={0}", MsBuildExe);
-			Log.TraceVerbose("CompilationEvironment.MsDevExe={0}", MsDevExe);
 		}
 
 		#endregion

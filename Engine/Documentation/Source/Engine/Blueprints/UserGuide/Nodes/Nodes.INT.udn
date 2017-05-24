@@ -5,6 +5,7 @@ Description:Node graph that uses events and function calls to perform actions in
 version: 4.9
 parent:Engine/Blueprints/Scripting
 tags:Execution Flow
+tags:Blueprints
 order:4
 
 

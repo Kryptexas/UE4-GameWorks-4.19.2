@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AudioFormatOpus : ModuleRules
 {
-	public AudioFormatOpus(TargetInfo Target)
+	public AudioFormatOpus(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 
@@ -18,7 +18,8 @@ public class AudioFormatOpus : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32) ||
             (Target.Platform == UnrealTargetPlatform.Linux) ||
-			(Target.Platform == UnrealTargetPlatform.Mac)
+            (Target.Platform == UnrealTargetPlatform.Mac) ||
+            (Target.Platform == UnrealTargetPlatform.XboxOne)
             //(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
             )
 		{

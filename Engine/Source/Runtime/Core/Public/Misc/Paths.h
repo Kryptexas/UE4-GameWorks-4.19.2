@@ -333,8 +333,11 @@ public:
 	// Returns the path in front of the filename
 	static FString GetPath(FString&& InPath);
 
-	// Changes the extension of the given filename
+	/** Changes the extension of the given filename (does nothing if the file has no extension) */
 	static FString ChangeExtension(const FString& InPath, const FString& InNewExtension);
+
+	/** Sets the extension of the given filename (like ChangeExtension, but also applies the extension if the file doesn't have one) */
+	static FString SetExtension(const FString& InPath, const FString& InNewExtension);
 
 	/** @return true if this file was found, false otherwise */
 	static bool FileExists(const FString& InPath);
@@ -478,57 +481,30 @@ public:
 	/** Gets the relative path to get from BaseDir to RootDirectory  */
 	static const FString& GetRelativePathToRoot();
 
-	FORCEINLINE static FString Combine(const TCHAR* PathA, const TCHAR* PathB) 
-	{ 
-		const TCHAR* Pathes[] = { PathA, PathB };
-		FString Out;
-		
-		CombineInternal(Out, Pathes, 2);
-		return Out;
-	}
-
-	FORCEINLINE static FString Combine(const TCHAR* PathA, const TCHAR* PathB, const TCHAR* PathC) 
-	{ 
-		const TCHAR* Pathes[] = { PathA, PathB, PathC };
-		FString Out;
-		
-		CombineInternal(Out, Pathes, 3);
-		return Out;
-	}
-	
-	FORCEINLINE static FString Combine(const TCHAR* PathA, const TCHAR* PathB, const TCHAR* PathC, const TCHAR* PathD) 
-	{ 
-		const TCHAR* Pathes[] = { PathA, PathB, PathC, PathD };
-		FString Out;
-		
-		CombineInternal(Out, Pathes, 4);
-		return Out;
-	}
-
-	FORCEINLINE static FString Combine(const TCHAR* PathA, const TCHAR* PathB, const TCHAR* PathC, const TCHAR* PathD, const TCHAR* PathE) 
-	{ 
-		const TCHAR* Pathes[] = { PathA, PathB, PathC, PathD, PathE };
-		FString Out;
-		
-		CombineInternal(Out, Pathes, 5);
-		return Out;
-	}
-
-	FORCEINLINE static FString Combine(const FString& PathA, const FString& PathB)
-	{ 
-		return Combine(*PathA, *PathB);
-	}
-
-	FORCEINLINE static FString Combine(const FString& PathA, const FString& PathB, const FString& PathC)
+	template <typename... PathTypes>
+	FORCEINLINE static FString Combine(PathTypes&&... InPaths)
 	{
-		return Combine(*PathA, *PathB, *PathC);
+		const TCHAR* Paths[] = { GetTCharPtr(Forward<PathTypes>(InPaths))... };
+		FString Out;
+		
+		CombineInternal(Out, Paths, ARRAY_COUNT(Paths));
+		return Out;
 	}
 
 protected:
 
-	static void CombineInternal(FString& OutPath, const TCHAR** Pathes, int32 NumPathes);
+	static void CombineInternal(FString& OutPath, const TCHAR** Paths, int32 NumPaths);
 
 private:
+	FORCEINLINE static const TCHAR* GetTCharPtr(const TCHAR* Ptr)
+	{
+		return Ptr;
+	}
+
+	FORCEINLINE static const TCHAR* GetTCharPtr(const FString& Str)
+	{
+		return *Str;
+	}
 
 	/** Holds the path to the currently loaded game project file. */
 	static FString GameProjectFilePath;

@@ -88,6 +88,11 @@ void FUICommandInfo::MakeCommandInfo( const TSharedRef<class FBindingContext>& I
 	FInputBindingManager::Get().CreateInputCommand( InContext, OutCommand.ToSharedRef() );
 }
 
+void FUICommandInfo::UnregisterCommandInfo(const TSharedRef<class FBindingContext>& InContext, const TSharedRef<FUICommandInfo>& InCommand)
+{
+	FInputBindingManager::Get().RemoveInputCommand(InContext, InCommand);
+}
+
 void FUICommandInfo::SetActiveChord( const FInputChord& NewChord )
 {
 	ActiveChord->Set( NewChord );

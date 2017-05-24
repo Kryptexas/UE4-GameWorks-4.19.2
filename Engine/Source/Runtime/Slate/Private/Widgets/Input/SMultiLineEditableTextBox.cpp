@@ -284,6 +284,11 @@ void SMultiLineEditableTextBox::SetAllowContextMenu(const TAttribute< bool >& In
 	EditableText->SetAllowContextMenu(InAllowContextMenu);
 }
 
+void SMultiLineEditableTextBox::SetIsReadOnly(const TAttribute<bool>& InIsReadOnly)
+{
+	EditableText->SetIsReadOnly(InIsReadOnly);
+}
+
 void SMultiLineEditableTextBox::SetError( const FText& InError )
 {
 	SetError( InError.ToString() );

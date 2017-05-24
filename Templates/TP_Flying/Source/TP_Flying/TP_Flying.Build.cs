@@ -4,8 +4,10 @@ using UnrealBuildTool;
 
 public class TP_Flying : ModuleRules
 {
-	public TP_Flying(TargetInfo Target)
+	public TP_Flying(ReadOnlyTargetRules Target) : base(Target)
 	{
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 	}
 }

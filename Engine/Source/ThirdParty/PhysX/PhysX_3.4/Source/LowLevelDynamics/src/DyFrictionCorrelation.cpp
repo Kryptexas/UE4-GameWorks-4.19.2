@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -179,7 +179,7 @@ void growPatches(CorrelationBuffer& fb,
 				 const ContactPoint* cb,
 				 const PxTransform& bodyFrame0,
 				 const PxTransform& bodyFrame1,
-				 PxReal	,	//unused correlationDistance
+				 PxReal correlationDistance,
 				 PxU32 frictionPatchStartIndex,
 				 PxReal frictionOffsetThreshold)
 {
@@ -221,7 +221,7 @@ void growPatches(CorrelationBuffer& fb,
 						break;
 					case 1:
 						pointDistSq = (worldPoint-worldAnchors[0]).magnitudeSquared(); 
-						if (pointDistSq > (0.025f * 0.025f))
+						if (pointDistSq > (correlationDistance * correlationDistance))
 						{
 							fb.contactID[i][1] = PxU16(cp.start+j);
 							worldAnchors[1] = worldPoint;

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class IOSFlurry : ModuleRules
 	{
-        public IOSFlurry(TargetInfo Target)
+        public IOSFlurry(ReadOnlyTargetRules Target) : base(Target)
 		{
 			BinariesSubFolder = "NotForLicensees";
 

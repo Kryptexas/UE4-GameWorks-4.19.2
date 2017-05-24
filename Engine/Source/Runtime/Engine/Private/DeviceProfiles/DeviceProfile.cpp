@@ -53,13 +53,22 @@ UTextureLODSettings* UDeviceProfile::GetTextureLODSettings() const
 void UDeviceProfile::PostInitProperties()
 {
 	Super::PostInitProperties();
+	ValidateTextureLODGroups();
+}
 
+void UDeviceProfile::ValidateProfile()
+{
+	ValidateTextureLODGroups();
+}
+
+void UDeviceProfile::ValidateTextureLODGroups()
+{
 	// Ensure the Texture LOD Groups are in order of TextureGroup Enum
 	TextureLODGroups.Sort([]
-		(const FTextureLODGroup& Lhs, const FTextureLODGroup& Rhs)
-		{
-			return (int32)Lhs.Group < (int32)Rhs.Group;
-		}
+	(const FTextureLODGroup& Lhs, const FTextureLODGroup& Rhs)
+	{
+		return (int32)Lhs.Group < (int32)Rhs.Group;
+	}
 	);
 
 	// Make sure every Texture Group has an entry, any that aren't specified for this profile should use it's parents values, or the defaults.
@@ -80,7 +89,15 @@ void UDeviceProfile::PostInitProperties()
 	{
 		if (TextureLODGroups.Num() < (GroupId + 1) || TextureLODGroups[GroupId].Group > GroupId)
 		{
-			TextureLODGroups.Insert((ParentProfile ? ParentProfile->TextureLODGroups[GroupId] : FTextureLODGroup()), GroupId);
+			if (ParentProfile && (ParentProfile->TextureLODGroups.Num() > GroupId))
+			{
+				TextureLODGroups.Insert(ParentProfile->TextureLODGroups[GroupId], GroupId);
+			}
+			else
+			{
+				TextureLODGroups.Insert(FTextureLODGroup(), GroupId);
+			}
+
 			TextureLODGroups[GroupId].Group = (TextureGroup)GroupId;
 		}
 	}
@@ -166,6 +183,57 @@ void UDeviceProfile::PostEditChangeProperty( FPropertyChangedEvent& PropertyChan
 	else if(PropertyChangedEvent.Property->GetFName() == TEXT("CVars"))
 	{
 		OnCVarsUpdated().ExecuteIfBound();
+	}
+}
+
+bool UDeviceProfile::ModifyCVarValue(const FString& ChangeCVarName, const FString& NewCVarValue, bool bAddIfNonExistant)
+{
+	auto Index = CVars.IndexOfByPredicate(
+		[&ChangeCVarName](const FString& CVar) {
+		FString CVarName;
+		CVar.Split(TEXT("="), &CVarName, NULL);
+		return CVarName == ChangeCVarName;
+	} );
+
+	if (Index != INDEX_NONE)
+	{
+		FString CVarName;
+		CVars[Index].Split(TEXT("="), &CVarName, NULL);
+		check(CVarName == ChangeCVarName);
+		CVars[Index] = FString::Printf(TEXT("%s=%s"), *CVarName, *NewCVarValue);
+
+		OnCVarsUpdated().ExecuteIfBound();
+		return true;
+	}
+	else if(bAddIfNonExistant)
+	{
+		CVars.Add(FString::Printf(TEXT("%s=%s"), *ChangeCVarName, *NewCVarValue));
+		
+		OnCVarsUpdated().ExecuteIfBound();
+		return true;
+	}
+
+	return false;
+}
+
+FString UDeviceProfile::GetCVarValue(const FString& CVarName)
+{
+	auto Index = CVars.IndexOfByPredicate(
+		[&CVarName](const FString& CVar) {
+		FString Name;
+		CVar.Split(TEXT("="), &Name, NULL);
+		return Name == CVarName;
+	});
+
+	if (Index != INDEX_NONE)
+	{
+		FString Value;
+		CVars[Index].Split(TEXT("="), NULL, &Value);
+		return Value;
+	}
+	else
+	{
+		return FString();
 	}
 }
 

@@ -25,6 +25,7 @@
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "PhATAnimInstance.h"
 
 #define LOCTEXT_NAMESPACE "PhATShared"
 
@@ -120,10 +121,6 @@ void FPhATSharedData::Initialize()
 
 	PhysicalAnimationComponent = NewObject<UPhysicalAnimationComponent>();
 	PhysicalAnimationComponent->SetSkeletalMeshComponent(EditorSkelComp);
-	
-	// first disable collision first to avoid creating physics body
-	EditorSkelComp->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	EditorSkelComp->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
 
 	// Create floor component
 	UStaticMesh* FloorMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PhAT_FloorBox.PhAT_FloorBox"), NULL, LOAD_None, NULL);
@@ -302,12 +299,12 @@ void FPhATSharedData::Mirror()
 			FQuat ArtistMirrorConvention(0,0,1,0);   // how Epic Maya artists rig the right and left orientation differently.  todo: perhaps move to cvar 
 			for (FKSphylElem& Sphyl : DestBody->AggGeom.SphylElems)
 			{
-				Sphyl.Orientation = ArtistMirrorConvention*Sphyl.Orientation;
-				Sphyl.Center = ArtistMirrorConvention.RotateVector(Sphyl.Center);
+				Sphyl.Rotation	= (ArtistMirrorConvention*Sphyl.Rotation.Quaternion()).Rotator();
+				Sphyl.Center	= ArtistMirrorConvention.RotateVector(Sphyl.Center);
 			}
 			for (FKBoxElem& Box : DestBody->AggGeom.BoxElems)
 			{
-				Box.Orientation = ArtistMirrorConvention*Box.Orientation;
+				Box.Rotation	= (ArtistMirrorConvention*Box.Rotation.Quaternion()).Rotator();
 				Box.Center      = ArtistMirrorConvention.RotateVector(Box.Center);
 			}
 			for (FKSphereElem& Sphere : DestBody->AggGeom.SphereElems)
@@ -490,7 +487,7 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 		TArray<UObject*> Objs;
 		for(int i=0; i<SelectedBodies.Num(); ++i)
 		{
-			Objs.Add(PhysicsAsset->SkeletalBodySetups[SelectedBodies[i].Index]);
+			Objs.AddUnique(PhysicsAsset->SkeletalBodySetups[SelectedBodies[i].Index]);
 		}
 		
 		GroupSelectionChangedEvent.Broadcast(Objs);
@@ -935,6 +932,8 @@ void FPhATSharedData::InitConstraintSetup(UPhysicsConstraintTemplate* Constraint
 	ConstraintSetup->DefaultInstance.PriAxis2 = RelTM.GetUnitAxis( EAxis::X );
 	ConstraintSetup->DefaultInstance.SecAxis2 = RelTM.GetUnitAxis( EAxis::Y );
 
+	ConstraintSetup->SetDefaultProfile(ConstraintSetup->DefaultInstance);
+
 	// Disable collision between constrained bodies by default.
 	SetCollisionBetween(ChildBodyIndex, ParentBodyIndex, false);
 }
@@ -966,11 +965,11 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex, bool bAutoSelect)
 	// Create a new physics body for this bone.
 	if (NewBodyData.VertWeight == EVW_DominantWeight)
 	{
-		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, DominantWeightBoneInfos);
+		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, DominantWeightBoneInfos[NewBoneIndex]);
 	}
 	else
 	{
-		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, AnyWeightBoneInfos);
+		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, AnyWeightBoneInfos[NewBoneIndex]);
 	}
 
 	if (bCreatedBody == false)
@@ -1495,11 +1494,18 @@ void FPhATSharedData::EnableSimulation(bool bEnableSimulation)
 		// Flush geometry cache inside the asset (don't want to use cached version of old geometry!)
 		PhysicsAsset->InvalidateAllPhysicsMeshes();
 
+		EditorSkelComp->RecreatePhysicsState();
+		
 		// We should not already have an instance (destroyed when stopping sim).
 		EditorSkelComp->SetSimulatePhysics(true);
 		EditorSkelComp->SetPhysicsBlendWeight(EditorSimOptions->PhysicsBlend);
-		EditorSkelComp->InitArticulated(PreviewScene.GetWorld()->GetPhysicsScene());
 		PhysicalAnimationComponent->SetSkeletalMeshComponent(EditorSkelComp);
+		
+		EditorSkelComp->SetAnimationMode(EAnimationMode::AnimationCustomMode);
+		EditorSkelComp->AnimScriptInstance = NewObject<UPhATAnimInstance>(EditorSkelComp, TEXT("PhatAnimScriptInstance"));
+		EditorSkelComp->AnimScriptInstance->InitializeAnimation();
+		EditorSkelComp->InitAnim(true);
+
 
 		// Make it start simulating
 		EditorSkelComp->WakeAllRigidBodies();
@@ -1509,13 +1515,14 @@ void FPhATSharedData::EnableSimulation(bool bEnableSimulation)
 	}
 	else
 	{
-		// Stop any animation and clear node when stopping simulation.
-		EditorSkelComp->SetAnimation(NULL);
-		PhysicalAnimationComponent->SetSkeletalMeshComponent(nullptr);
+		EditorSkelComp->AnimScriptInstance = nullptr;
+		EditorSkelComp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 
-		// Turn off/remove the physics instance for this thing, and move back to start location.
-		EditorSkelComp->TermArticulated();
-		EditorSkelComp->SetSimulatePhysics(false);
+		// Stop any animation and clear node when stopping simulation.
+		PhysicalAnimationComponent->SetSkeletalMeshComponent(nullptr);
+		
+
+		EditorSkelComp->DestroyPhysicsState();
 		EditorSkelComp->SetPhysicsBlendWeight(0.f);
 
 		// Since simulation, actor location changes. Reset to identity 

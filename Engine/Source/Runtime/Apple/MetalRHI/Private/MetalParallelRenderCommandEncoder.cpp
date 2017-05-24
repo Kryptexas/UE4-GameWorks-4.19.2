@@ -18,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 @synthesize Buffer;
 @synthesize RenderPassDescriptor;
 
+APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalDebugParallelRenderCommandEncoder)
+
 -(id)initWithEncoder:(id<MTLParallelRenderCommandEncoder>)Encoder andCommandBuffer:(FMetalDebugCommandBuffer*)SourceBuffer withDescriptor:(MTLRenderPassDescriptor *)Desc
 {
 	id Self = [super init];

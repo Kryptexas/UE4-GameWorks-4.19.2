@@ -586,6 +586,15 @@ void FCEFBrowserHandler::OnResetDialogState(CefRefPtr<CefBrowser> Browser)
 }
 
 
+void FCEFBrowserHandler::OnBeforeContextMenu(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefContextMenuParams> Params, CefRefPtr<CefMenuModel> Model)
+{
+	TSharedPtr<FCEFWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if ( BrowserWindow.IsValid() && BrowserWindow->OnSuppressContextMenu().IsBound() && BrowserWindow->OnSuppressContextMenu().Execute() )
+	{
+		Model->Clear();
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
 
 #endif // WITH_CEF

@@ -36,6 +36,11 @@ UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInit
 
 	// disabled by default
 	FogCutoffDistance = 0;
+
+	VolumetricFogScatteringDistribution = .2f;
+	VolumetricFogAlbedo = FColor::White;
+	VolumetricFogExtinctionScale = 1.0f;
+	VolumetricFogDistance = 6000.0f;
 }
 
 void UExponentialHeightFogComponent::AddFogIfNeeded()
@@ -84,7 +89,8 @@ bool UExponentialHeightFogComponent::CanEditChange(const UProperty* InProperty) 
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, FullyDirectionalInscatteringColorDistance) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, NonDirectionalInscatteringColorDistance) ||
-			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, InscatteringTextureTint))
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, InscatteringTextureTint) ||
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UExponentialHeightFogComponent, InscatteringColorCubemapAngle))
 		{
 			return InscatteringColorCubemap != NULL;
 		}
@@ -102,7 +108,8 @@ void UExponentialHeightFogComponent::PostEditChangeProperty(FPropertyChangedEven
 	FogCutoffDistance = FMath::Clamp(FogCutoffDistance, 0.0f, (float)(10 * WORLD_MAX));
 	FullyDirectionalInscatteringColorDistance = FMath::Clamp(FullyDirectionalInscatteringColorDistance, 0.0f, (float)WORLD_MAX);
 	NonDirectionalInscatteringColorDistance = FMath::Clamp(NonDirectionalInscatteringColorDistance, 0.0f, FullyDirectionalInscatteringColorDistance);
-	
+	InscatteringColorCubemapAngle = FMath::Clamp(InscatteringColorCubemapAngle, 0.0f, 360.0f);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif // WITH_EDITOR
@@ -137,6 +144,15 @@ void UExponentialHeightFogComponent::SetInscatteringColorCubemap(UTextureCube* V
 	if(InscatteringColorCubemap != Value)
 	{
 		InscatteringColorCubemap = Value;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetInscatteringColorCubemapAngle(float Value)
+{
+	if(InscatteringColorCubemapAngle != Value)
+	{
+		InscatteringColorCubemapAngle = Value;
 		MarkRenderStateDirty();
 	}
 }
@@ -227,6 +243,60 @@ void UExponentialHeightFogComponent::SetFogCutoffDistance(float Value)
 	if(FogCutoffDistance != Value)
 	{
 		FogCutoffDistance = Value;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFog(bool bNewValue)
+{
+	if(bEnableVolumetricFog != bNewValue)
+	{
+		bEnableVolumetricFog = bNewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogScatteringDistribution(float NewValue)
+{
+	if(VolumetricFogScatteringDistribution != NewValue)
+	{
+		VolumetricFogScatteringDistribution = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogExtinctionScale(float NewValue)
+{
+	if (VolumetricFogExtinctionScale != NewValue)
+	{
+		VolumetricFogExtinctionScale = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogAlbedo(FColor NewValue)
+{
+	if (VolumetricFogAlbedo != NewValue)
+	{
+		VolumetricFogAlbedo = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogEmissive(FLinearColor NewValue)
+{
+	if (VolumetricFogEmissive != NewValue)
+	{
+		VolumetricFogEmissive = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UExponentialHeightFogComponent::SetVolumetricFogDistance(float NewValue)
+{
+	if(VolumetricFogDistance != NewValue)
+	{
+		VolumetricFogDistance = NewValue;
 		MarkRenderStateDirty();
 	}
 }

@@ -109,6 +109,7 @@ public:
 		case TPri_Normal: return THREAD_PRIORITY_NORMAL;
 		case TPri_BelowNormal: return THREAD_PRIORITY_BELOW_NORMAL;
 		case TPri_Highest: return THREAD_PRIORITY_HIGHEST;
+		case TPri_TimeCritical: return THREAD_PRIORITY_TIME_CRITICAL;
 		case TPri_Lowest: return THREAD_PRIORITY_LOWEST;
 		case TPri_SlightlyBelowNormal: return THREAD_PRIORITY_NORMAL - 1;
 		default: UE_LOG(LogHAL, Fatal, TEXT("Unknown Priority passed to TranslateThreadPriority()")); return TPri_Normal;
@@ -201,6 +202,9 @@ protected:
 			ThreadInitSyncEvent->Wait(INFINITE);
 			ThreadName = InThreadName ? InThreadName : TEXT("Unnamed UE4");
 			SetThreadName( ThreadID, TCHAR_TO_ANSI( *ThreadName ) );
+#if PLATFORM_XBOXONE
+			::SetThreadName( Thread, *ThreadName );
+#endif
 			SetThreadPriority(InThreadPri);
 		}
 

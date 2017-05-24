@@ -74,7 +74,7 @@ class BuildTarget : BuildCommand
 		foreach (string Target in TargetList)
 		{
 			SingleTargetProperties TargetData;
-			if (!Properties.Targets.TryGetValue((TargetRules.TargetType)Enum.Parse(typeof(TargetRules.TargetType), Target), out TargetData))
+			if (!Properties.Targets.TryGetValue((TargetType)Enum.Parse(typeof(TargetType), Target), out TargetData))
 			{
 				throw new AutomationException("Project does not support specified target: {0}", Target);
 			}

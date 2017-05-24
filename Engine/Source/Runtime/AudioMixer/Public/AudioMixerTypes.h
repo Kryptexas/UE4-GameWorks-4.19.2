@@ -14,6 +14,8 @@ namespace Audio {
 			CoreAudio,
 			OpenAL,
 			Html5,
+			OpenSLES,
+			Switch,
 			Null,
 		};
 	}

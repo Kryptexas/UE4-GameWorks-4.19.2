@@ -14,6 +14,21 @@ public:
 	using IAnalyticsProvider::StartSession;
 
 	/**
+	 * Special setter to set the AppID, something that is not normally allowed for third party analytics providers.
+	 *
+	 * @param AppID The new AppID to set
+	 */
+	virtual void SetAppID(const FString&& AppID) = 0;
+
+	
+	/**
+	 * Method to get the AppID (APIKey)
+	 *
+	 * @return the AppID (APIKey)
+	 */
+	virtual const FString& GetAppID() const = 0;
+
+	/**
 	* Optimization for StartSession that avoids the array copy using rvalue references.
 	*
 	* @param AttributesJson	array of key/value attribute pairs

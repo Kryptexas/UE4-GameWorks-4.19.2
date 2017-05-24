@@ -1,47 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3262203
 Availability: Public
 Title:피직스 바디 참고서
 Crumbs: %ROOT%
 Description:피직스 바디, 또는 바디 인스턴스의 프로퍼티 참고서입니다.
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhysicsBodies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhysicsBodies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicsBodies]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhysicsBodies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhysicsBodies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicsBodies]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Physics/physics_topic.png
 
 이 글은 프로퍼티 중 Physics (피직스) 및 Collision (콜리전) 카테고리의 프로퍼티 참고 목록입니다. Collision Responses (콜리전 반응)이나 Collision Presets (콜리전 프리셋) 관련해서는, [](Engine/Physics/Collision/Reference) 문서를 참고하세요.
 
@@ -53,28 +15,28 @@ Physics Body (피직스 바디), 또는 Body Instance (바디 인스턴스)의 �
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		phys
+		PhysicsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
 		Physics (피직스)
 	[/PARAM]
 	[PARAM:content]
-		%p1%
+		%c3%
 	[/PARAM]
 [/OBJECT]
 
-[VAR:p1]
+[VAR:c3]
 
 ![](physicsProps.png)
 
 [REGION:raw]
 | 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
-| **Simulate Physics** || %doxygen:FBodyInstance::bSimulatePhysics% |
-| **Mass in KG** || KG 단위 바디 질량입니다. |
-| **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
-| **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
-| **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
+| **Simulate Physics** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bSimulatePhysics" output:"block")] |
+| **Mass in KG** || Mass of the body in KG. |
+| **Angular Damping** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:AngularDamping" output:"block")] |
+| **Linear Damping** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:LinearDamping" output:"block")] |
+| **Enable Gravity** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bEnableGravity" output:"block")] |
 |[REGION:tablesection]**Constraints**[/REGION]|||
 | **Lock Position** || [INCLUDE:#lockpos] |
 | **Lock Rotation** || [INCLUDE:#lockrot] |
@@ -88,22 +50,22 @@ Physics Body (피직스 바디), 또는 Body Instance (바디 인스턴스)의 �
 [REGION:raw]
 | 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
-| **Auto Weld** || %doxygen:FBodyInstance::bAutoWeld% |
-| **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
-| **Center Of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
-| **Mass Scale** || %doxygen:FBodyInstance::MassScale% |
-| **Max Angular Velocity** || %doxygen:FBodyInstance::MaxAngularVelocity% |
-| **Use Async Scene** || %doxygen:FBodyInstance::bUseAsyncScene% |
-| **Override Max Depenetration Velocity** || %doxygen:FBodyInstance::bOverrideMaxDepenetrationVelocity% |
-| **Max Depenetration Velocity** || %doxygen:FBodyInstance::MaxDepenetrationVelocity% |
-| **Override Walkable Slope on Instance** || %doxygen:FBodyInstance::bOverrideWalkableSlopeOnInstance% |
-| **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% See the **[](Engine/Physics/WalkableSlope)** documentation for usage information. |
-| **Walkable Slope Behavior** || %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
-| **Walkable Slope Angle** || %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% 
-| **Sleep Family** || %doxygen:FBodyInstance::SleepFamily% |
-| **Position Solver Iteration Count** || %doxygen:FBodyInstance::PositionSolverIterationCount% |
-| **Velocity Solver Iteration Count** || %doxygen:FBodyInstance::VelocitySolverIterationCount% |
-| **Should Update Physics Volume** || %doxygen:USceneComponent::bShouldUpdatePhysicsVolume% |
+| **Auto Weld** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bAutoWeld" output:"block")] |
+| **Start Awake** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bStartAwake" output:"block")] |
+| **Center Of Mass Offset** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:COMNudge" output:"block")] |
+| **Mass Scale** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:MassScale" output:"block")] |
+| **Max Angular Velocity** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:MaxAngularVelocity" output:"block")] |
+| **Use Async Scene** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bUseAsyncScene" output:"block")] |
+| **Override Max Depenetration Velocity** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bOverrideMaxDepenetrationVelocity" output:"block")] |
+| **Max Depenetration Velocity** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:MaxDepenetrationVelocity" output:"block")] |
+| **Override Walkable Slope on Instance** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bOverrideWalkableSlopeOnInstance" output:"block")] |
+| **Walkable Slope Override** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodySetup:WalkableSlopeOverride" output:"block")] See the **[](Engine/Physics/WalkableSlope)** documentation for usage information. |
+| **Walkable Slope Behavior** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"WalkableSlopeOverride:WalkableSlopeBehavior" output:"block")] |
+| **Walkable Slope Angle** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"WalkableSlopeOverride:WalkableSlopeAngle" output:"block")] |
+| **Sleep Family** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:SleepFamily" output:"block")] |
+| **Position Solver Iteration Count** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:PositionSolverIterationCount" output:"block")] |
+| **Velocity Solver Iteration Count** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:VelocitySolverIterationCount" output:"block")] |
+| **Should Update Physics Volume** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"SceneComponent:bShouldUpdatePhysicsVolume" output:"block")] |
 
 [/REGION]
 
@@ -129,10 +91,10 @@ Physics Body (피직스 바디), 또는 Body Instance (바디 인스턴스)의 �
 [REGION:raw]
 | 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
-| **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
-| **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
-| **Generate Overlap Events** || %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
-| **Collision Responses** || 자세한 정보는 **[](Engine/Physics/Collision/Reference)** 문서를 참고하세요. |
+| **Simulation Generates Hit Events** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bNotifyRigidBodyCollision" output:"block")] |
+| **Phys Material Override** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:PhysMaterialOverride" output:"block")] |
+| **Generate Overlap Events** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bGenerateOverlapEvents" output:"block")] |
+| **Collision Responses** || See the **[](Engine/Physics/Collision/Reference)** documentation for more information. |
 [/REGION]
 
 ### 고급
@@ -142,13 +104,13 @@ Physics Body (피직스 바디), 또는 Body Instance (바디 인스턴스)의 �
 [REGION:raw]
 | 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
-| **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
-| **Always Create Physics State** || %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
-| **Multi Body Overlap** || %doxygen:UPrimitiveComponent::bMultiBodyOverlap% | 
-| **Check Async Scene On Move** || %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
-| **Trace Complex On Move** || %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
-| **Return Material On Move** || %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
-| **Can Ever Affect Navigation** || 이 컴포넌트가 내비게이션에 영향을 끼칠 수 있을 것인지 입니다. |
+| **Use CCD** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bUseCCD" output:"block")] |
+| **Always Create Physics State** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bAlwaysCreatePhysicsState" output:"block")] |
+| **Multi Body Overlap** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bMultiBodyOverlap" output:"block")] | 
+| **Check Async Scene On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bCheckAsyncSceneOnMove" output:"block")] |
+| **Trace Complex On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bTraceComplexOnMove" output:"block")] |
+| **Return Material On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bReturnMaterialOnMove" output:"block")] |
+| **Can Ever Affect Navigation** || Whether this component can potentially influence navigation |
 
 [/REGION]
 
@@ -161,44 +123,44 @@ Physics Body (피직스 바디), 또는 Body Instance (바디 인스턴스)의 �
 <!--
 [EXCERPT:lockpos]
 
-%doxygen:FBodyInstance::bLockTranslation%
+[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockTranslation" output:"block")]
 
-[REGION:raw]
-| 프로퍼티 | %spacer2% | 문서 |
-| --- | :---: | :--- |
-| **Lock X Translation** || %doxygen:FBodyInstance::bLockXTranslation% |
-| **Lock Y Translation** || %doxygen:FBodyInstance::bLockYTranslation% |
-| **Lock Z Translation** || %doxygen:FBodyInstance::bLockZTranslation% |
+[REGION:simpletable]
+| 프로퍼티 | 설명 |
+| --- | :--- |
+| **Lock X Translation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockXTranslation" output:"block")] |
+| **Lock Y Translation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockYTranslation" output:"block")] |
+| **Lock Z Translation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockZTranslation" output:"block")] |
 [/REGION]
 [/EXCERPT]
 
 [EXCERPT:lockrot]
 
-%doxygen:FBodyInstance::bLockRotation%
+[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockRotation" output:"block")]
 
-[REGION:raw]
-| 프로퍼티 | %spacer2% | 문서 |
-| --- | :---: | :--- |
-| **Lock X Rotation** || %doxygen:FBodyInstance::bLockXRotation% |
-| **Lock Y Rotation** || %doxygen:FBodyInstance::bLockYRotation% |
-| **Lock Z Rotation** || %doxygen:FBodyInstance::bLockZRotation% |
+[REGION:simpletable]
+| 프로퍼티 | 설명 |
+| --- | :--- |
+| **Lock X Rotation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockXRotation" output:"block")] |
+| **Lock Y Rotation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockYRotation" output:"block")] |
+| **Lock Z Rotation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockZRotation" output:"block")] |
 [/REGION]
 [/EXCERPT]
 
 [EXCERPT:mode]
 
-%doxygen:FBodyInstance::DOFMode%
+[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:DOFMode" output:"block")]
 
-[REGION:raw]
-| 프로퍼티 | %spacer2% | 문서 |
-| --- | :---: | :--- |
-| **Default** || 프로젝트 세팅에서 자유도를 물려받습니다. |
-| **Six DOF** || 이동과 회전을 고정시킬 축을 지정합니다. |
-| **YZPlane** || Y-Z 면의 2D 운동이 가능합니다. |
-| **XZPlane** || X-Z 면의 2D 운동이 가능합니다. |
-| **XYPlane** || X-Y 면의 2D 운동이 가능합니다. |
-| **Custom Plane** || 주어진 노멀 면으로의 2D 운동이 가능합니다. |
-| **None** || 컨스트레인트가 없습니다. |
+[REGION:simpletable]
+| 프로퍼티 | 설명 |
+| --- | :--- |
+| **Default** | 프로젝트 세팅에서 자유도를 물려받습니다. |
+| **Six DOF** | 이동과 회전을 고정시킬 축을 지정합니다. |
+| **YZPlane** | Y-Z 면의 2D 운동이 가능합니다. |
+| **XZPlane** | X-Z 면의 2D 운동이 가능합니다. |
+| **XYPlane** | X-Y 면의 2D 운동이 가능합니다. |
+| **Custom Plane** | 주어진 노멀 면으로의 2D 운동이 가능합니다. |
+| **None** | 컨스트레인트가 없습니다. |
 [/REGION]
 [/EXCERPT]
 -->

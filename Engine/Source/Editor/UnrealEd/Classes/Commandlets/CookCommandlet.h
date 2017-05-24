@@ -14,6 +14,7 @@
 #include "Misc/PackageName.h"
 #include "Commandlets/Commandlet.h"
 #include "UniquePtr.h"
+#include "IPlatformFileSandboxWrapper.h"
 #include "CookCommandlet.generated.h"
 
 class FSandboxPlatformFile;
@@ -31,8 +32,6 @@ class UCookCommandlet
 
 	/** If true, iterative cooking is being done */
 	bool bIterativeCooking;
-	/** If true, packages are cooked compressed */
-	bool bCompressed;
 	/** Prototype cook-on-the-fly server */
 	bool bCookOnTheFly; 
 	/** Cook everything */
@@ -73,48 +72,14 @@ class UCookCommandlet
 	 */
 	bool CookOnTheFly( FGuid InstanceId, int32 Timeout = 180, bool bForceClose = false );
 
-	/**
-	 * Returns cooker output directory.
-	 *
-	 * @param PlatformName Target platform name.
-	 * @return Cooker output directory for the specified platform.
-	 */
-	FString GetOutputDirectory( const FString& PlatformName ) const;
+	/** Cooks specified list of files */
+	bool CookByTheBook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath);
 
-	/**
-	 *	Get the given packages 'cooked' timestamp (i.e. account for dependencies)
-	 *
-	 *	@param	InFilename			The filename of the package
-	 *	@param	OutDateTime			The timestamp the cooked file should have
-	 *
-	 *	@return	bool				true if the package timestamp was found, false if not
-	 */
-	bool GetPackageTimestamp( const FString& InFilename, FDateTime& OutDateTime );
+	/** See if the cooker has exceeded max memory allowance in this case the cooker should force a garbage collection */
+	bool HasExceededMaxMemory(uint64 MaxMemoryAllowance) const;
 
-	/**
-	 *	Cook (save) the given package
-	 *
-	 *	@param	Package				The package to cook/save
-	 *	@param	SaveFlags			The flags to pass to the SavePackage function
-	 *	@param	bOutWasUpToDate		Upon return, if true then the cooked package was cached (up to date)
-	 *
-	 *	@return	bool			true if packages was cooked
-	 */
-	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate );
-	/**
-	 *	Cook (save) the given package
-	 *
-	 *	@param	Package				The package to cook/save
-	 *	@param	SaveFlags			The flags to pass to the SavePackage function
-	 *	@param	bOutWasUpToDate		Upon return, if true then the cooked package was cached (up to date)
-	 *	@param  TargetPlatformNames Only cook for target platforms which are included in this array (if empty cook for all target platforms specified on commandline options)
-	 *									TargetPlatformNames is in and out value returns the platforms which the SaveCookedPackage function saved for
-	 *
-	 *	@return	bool			true if packages was cooked
-	 */
-	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FString> &TargetPlatformNames );
-
-	bool ShouldCook(const FString& InFilename, const FString &InPlatformname = TEXT(""));
+	/**	Process deferred commands */
+	void ProcessDeferredCommands();
 
 public:
 
@@ -124,56 +89,4 @@ public:
 	
 	//~ End UCommandlet Interface
 
-private:
-
-	/** Holds the sandbox file wrapper to handle sandbox path conversion. */
-	TUniquePtr<class FSandboxPlatformFile> SandboxFile;
-
-	/** We hook this up to a delegate to avoid reloading textures and whatnot */
-	TSet<FString> PackagesToNotReload;
-
-	/** Leak test: last gc items */
-	TSet<FWeakObjectPtr> LastGCItems;
-
-	void MaybeMarkPackageAsAlreadyLoaded(UPackage *Package);
-
-	/** See if the cooker has exceeded max memory allowance in this case the cooker should force a garbage collection */
-	bool HasExceededMaxMemory(uint64 MaxMemoryAllowance) const;
-
-	/** Gets the output directory respecting any command line overrides */
-	FString GetOutputDirectoryOverride() const;
-
-	/** Cleans sandbox folders for all target platforms */
-	void CleanSandbox(const TArray<ITargetPlatform*>& Platforms);
-
-	/** Generates asset registry */
-	void GenerateAssetRegistry(const TArray<ITargetPlatform*>& Platforms);
-
-	/** Saves global shader map files */
-	void SaveGlobalShaderMapFiles(const TArray<ITargetPlatform*>& Platforms);
-
-	/** Collects all files to be cooked. This includes all commandline specified maps */
-	void CollectFilesToCook(TArray<FString>& FilesInPath);
-
-	/** Generates long package names for all files to be cooked */
-	void GenerateLongPackageNames(TArray<FString>& FilesInPath);
-
-	/** Cooks all files */
-	bool Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath);
-
-	/** Cooks all files newly (in a new way) */
-	bool NewCook(const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath);
-
-
-	/**	Process deferred commands */
-	void ProcessDeferredCommands();
-
-	/** Adds a unique package filename to cook. Rejects script packages. */
-	FORCEINLINE void AddFileToCook(TArray<FString>& InOutFilesToCook, const FString& InFilename) const
-	{
-		if (!FPackageName::IsScriptPackage(InFilename))
-		{
-			InOutFilesToCook.AddUnique(InFilename);
-		}
-	}
 };

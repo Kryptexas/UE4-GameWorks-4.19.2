@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:굴절 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ Related: Resources/ContentExamples/MaterialProperties/1_11
 Related: Engine/Rendering/Materials/MaterialInputs
 Version: 4.9
 SkillLevel: Intermediate
+tags:Materials
 
 
 [TOC(start:2 end:3)]
@@ -115,7 +116,7 @@ Index of Refraction (줄여서 IOR, 굴절지수)는 빛이 한 매체에서 다
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-## 굴절 팁 & 꼼수
+## 굴절 팁 & 정보
 
 다음 섹션에서는 굴절과 함께 머티리얼 에디터의 여러 면을 조합해서 매우 재미난 결과를 내는 여러 방법을 살펴보도록 하겠습니다.
 

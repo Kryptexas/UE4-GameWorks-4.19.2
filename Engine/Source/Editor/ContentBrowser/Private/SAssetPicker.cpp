@@ -70,6 +70,14 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		}
 	}
 
+	for (auto DelegateIt = InArgs._AssetPickerConfig.RefreshAssetViewDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
+	{
+		if ((*DelegateIt) != NULL)
+		{
+			(**DelegateIt) = FRefreshAssetViewDelegate::CreateSP(this, &SAssetPicker::RefreshAssetView);
+		}
+	}
+
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
 	ChildSlot
@@ -223,6 +231,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.OnAssetSelected(InArgs._AssetPickerConfig.OnAssetSelected)
 		.OnAssetsActivated(this, &SAssetPicker::HandleAssetsActivated)
 		.OnGetAssetContextMenu(InArgs._AssetPickerConfig.OnGetAssetContextMenu)
+		.OnGetFolderContextMenu(InArgs._AssetPickerConfig.OnGetFolderContextMenu)
 		.OnGetCustomAssetToolTip(InArgs._AssetPickerConfig.OnGetCustomAssetToolTip)
 		.OnVisualizeAssetToolTip(InArgs._AssetPickerConfig.OnVisualizeAssetToolTip)
 		.OnAssetToolTipClosing(InArgs._AssetPickerConfig.OnAssetToolTipClosing)
@@ -252,6 +261,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.AllowFocusOnSync(false)	// Stop the asset view from stealing focus (we're in control of that)
 		.OnPathSelected(this, &SAssetPicker::FolderEntered)
 		.HiddenColumnNames(InArgs._AssetPickerConfig.HiddenColumnNames)
+		.CustomColumns(InArgs._AssetPickerConfig.CustomColumns)
 	];
 
 	LoadSettings();
@@ -438,6 +448,18 @@ void SAssetPicker::SyncToAssets(const TArray<FAssetData>& AssetDataList)
 TArray< FAssetData > SAssetPicker::GetCurrentSelection()
 {
 	return AssetViewPtr->GetSelectedAssets();
+}
+
+void SAssetPicker::RefreshAssetView(bool bRefreshSources)
+{
+	if (bRefreshSources)
+	{
+		AssetViewPtr->RequestSlowFullListRefresh();
+	}
+	else
+	{
+		AssetViewPtr->RequestQuickFrontendListRefresh();
+	}
 }
 
 FText SAssetPicker::GetShowOtherDevelopersToolTip() const

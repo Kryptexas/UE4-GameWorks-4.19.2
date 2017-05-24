@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3238697
 Availability: Public
 Title: 3.5 - 뷰포트에 조준선 추가
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
@@ -175,9 +175,11 @@ Version: 4.11
 				// Sets default values for this actor's properties.
 				AFPSProjectile();
 			
-				// Called when the game starts or when spawned.
+			protected:
+				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-				
+			
+			public:
 				// Called every frame.
 				virtual void Tick( float DeltaSeconds ) override;
 			
@@ -277,9 +279,11 @@ Version: 4.11
 				// Sets default values for this character's properties.
 				AFPSCharacter();
 			
-				// Called when the game starts or when spawned.
+			protected:
+				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-				
+			
+			public:
 				// Called every frame.
 				virtual void Tick( float DeltaSeconds ) override;
 			

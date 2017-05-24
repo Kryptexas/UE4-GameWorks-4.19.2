@@ -1,12 +1,25 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class Voice : ModuleRules
 {
-	public Voice(TargetInfo Target)
+	public Voice(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Definitions.Add("VOICE_PACKAGE=1");
+
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"AndroidPermission"
+			}
+			);
+
+		PublicDependencyModuleNames.AddRange(
+			new string[] {
+				"Engine",
+			}
+			);
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -31,7 +44,13 @@ public class Voice : ModuleRules
 		}
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "libOpus");
-    }
+
+		if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			string ModulePath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
+			AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(ModulePath, "AndroidVoiceImpl_UPL.xml")));
+		}
+	}
 }
 
 

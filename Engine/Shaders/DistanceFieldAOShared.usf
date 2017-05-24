@@ -38,74 +38,40 @@ float GetAOMaxDistance()
 	return max(AOObjectMaxDistance, AOGlobalMaxOcclusionDistance);
 }
 
-#define USE_DEPTH_RANGE_LISTS 1
+// Pass a debug value through the pipeline instead of a bent normal
+#define PASS_THROUGH_DEBUG_VALUE 0
 
-#if USE_DEPTH_RANGE_LISTS
-	// One for near, one for far
-	#define NUM_CULLED_OBJECT_LISTS 2
-#else
-	// Objects are culled into one of 3 lists based on depth from the tile
-	#define NUM_CULLED_OBJECT_LISTS 3
-#endif
-
-void GetPhaseParameters(uint Phase, out uint StartIndex, out uint EndIndex)
-{
-	if (Phase == 0)
-	{
-		StartIndex = 0;
-		EndIndex = 4;
-	}
-	else if (Phase == 1)
-	{
-		StartIndex = 5;
-		EndIndex = 7;
-	}
-	else
-	{
-		StartIndex = 8;
-		EndIndex = 9;
-	}
-}
+// One for near, one for far
+#define NUM_CULLED_OBJECT_LISTS 2
 
 float GetStepOffset(float StepIndex)
 {
-	return AOStepScale * exp2(AOStepExponentScale * StepIndex);
+	// Original heuristic
+	//return AOStepScale * exp2(AOStepExponentScale * StepIndex);
+
+	float temp = AOStepExponentScale * StepIndex;
+	return AOStepScale * (temp * temp + 1);
 }
 
-Buffer<uint> TileHeadDataUnpacked;
-Buffer<uint> TileArrayData;
 uint2 TileListGroupSize;
  
-uint4 GetTileHead(uint2 TileCoordinate) 
-{ 
-	uint TileIndex = TileCoordinate.y * TileListGroupSize.x + TileCoordinate.x;
-
-	return uint4(
-		TileHeadDataUnpacked[TileIndex * 4 + 0], 
-		min(TileHeadDataUnpacked[TileIndex * 4 + 1], (uint)MAX_OBJECTS_PER_TILE),
-		min(TileHeadDataUnpacked[TileIndex * 4 + 2], (uint)MAX_OBJECTS_PER_TILE),
-		min(TileHeadDataUnpacked[TileIndex * 4 + 3], (uint)MAX_OBJECTS_PER_TILE));
-}
-
 Texture2D DistanceFieldNormalTexture;
 SamplerState DistanceFieldNormalSampler;
 
 float4 EncodeDownsampledGBuffer(FGBufferData GBufferData, float SceneDepth)
 {
 	float DepthSign = HasDistanceFieldRepresentation(GBufferData) > 0 ? 1 : -1;
-	//float ZSign = HasHeightfieldRepresentation(GBufferData)> 0 ? 1 : -1;
-	//@todo - restore HasHeightfieldRepresentation support from GBuffer
-	float ZSign = -1;
+	float ZSign = GBufferData.ShadingModelID == SHADINGMODELID_UNLIT ? -1 : 1;
 	float ZChannel = GBufferData.WorldNormal.z > 0 ? .5f : 1;
 	float4 OutValue = float4(GBufferData.WorldNormal.xy, ZChannel * ZSign, DepthSign * SceneDepth);
 	return OutValue;
 }
 
-void GetDownsampledGBuffer(float2 ScreenUV, out float3 OutNormal, out float OutDepth, out bool bHasDistanceFieldRepresentation, out bool bHasHeightfieldRepresentation)
+void GetDownsampledGBuffer(float2 ScreenUV, out float3 OutNormal, out float OutDepth, out bool bHasDistanceFieldRepresentation, out bool bLit)
 {
 	float4 TextureValue = Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, ScreenUV, 0);
 	bHasDistanceFieldRepresentation = TextureValue.w > 0;
-	bHasHeightfieldRepresentation = TextureValue.z > 0; 
+	bLit = TextureValue.z > 0; 
 	OutDepth = abs(TextureValue.w);
 	OutNormal = float3(TextureValue.xy, sqrt(1 - dot(TextureValue.xy, TextureValue.xy)));
 	OutNormal.z *= abs(TextureValue.z) > .75f ? -1 : 1;
@@ -174,6 +140,13 @@ bool SphereIntersectConeWithDepthRanges(float4 SphereCenterAndRadius, float3 Con
 Buffer<float> RecordConeVisibility;
 float BentNormalNormalizeFactor;
 
+void FindBestAxisVectors2(float3 InZAxis, out float3 OutXAxis, out float3 OutYAxis )
+{
+	float3 UpVector = abs(InZAxis.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
+	OutXAxis = normalize( cross( UpVector, InZAxis ) );
+	OutYAxis = cross( InZAxis, OutXAxis );
+}
+
 float3 ComputeBentNormal(float3 RecordWorldNormal, uint RelativeRecordIndex)
 {
 	float3 TangentX;
@@ -200,10 +173,19 @@ float3 ComputeBentNormal(float3 RecordWorldNormal, uint RelativeRecordIndex)
 #ifndef CULLED_TILE_SIZEX
 #define CULLED_TILE_SIZEX 4
 #endif
-
+ 
 #ifndef TRACE_DOWNSAMPLE_FACTOR
 #define TRACE_DOWNSAMPLE_FACTOR 1
 #endif
+ 
+#ifndef CONE_TRACE_OBJECTS_THREADGROUP_SIZE
+#define CONE_TRACE_OBJECTS_THREADGROUP_SIZE 16
+#endif
+
+// Size of a culled tile at the resolution that cone tracing is done, in one dimension
+#define CONE_TILE_SIZEX (CULLED_TILE_SIZEX / TRACE_DOWNSAMPLE_FACTOR) 
+// Number of culled tiles per cone tracing threadgroup
+#define CONE_TRACE_TILES_PER_THREADGROUP (CONE_TRACE_OBJECTS_THREADGROUP_SIZE / (CONE_TILE_SIZEX * CONE_TILE_SIZEX))
 
 uint2 ScreenGridConeVisibilitySize;
 float2 JitterOffset;
@@ -236,79 +218,14 @@ float2 GetScreenUVFromScreenGrid(uint2 OutputCoordinate)
 	return GetScreenUVFromScreenGrid(OutputCoordinate, 1);
 }
 
-RWBuffer<uint> RWTileHeadDataUnpacked;
-RWBuffer<uint> RWTileArrayData;
+Buffer<uint> CulledTilesStartOffsetArray;
 
-/** Used for object <-> tile culling */
-void IntersectObjectWithConeDepthRange(
-	float3 TileConeVertex, 
-	float3 TileConeAxis, 
-	float TileConeAngleCos, 
-	float TileConeAngleSin, 
-	float2 ConeDepthRange, 
-	float2 ConeAxisDistanceMinMax, 
-	uint TileIndex, 
-	uint ListIndex, 
-	uint ObjectIndex,
-	uint TotalNumGroups)
-{
-	BRANCH
-	if (ConeAxisDistanceMinMax.x > ConeDepthRange.x && ConeAxisDistanceMinMax.y < ConeDepthRange.y)
-	{
-#define USE_DISTANCE_FIELD_FOR_OBJECT_CULLING 1
-#if USE_DISTANCE_FIELD_FOR_OBJECT_CULLING
-		// Use the position halfway between the depth ranges as the center for the bounding sphere of this tile depth range
-		float3 ViewTileBoundingSphereCenter = TileConeVertex + TileConeAxis * (.5f * (ConeDepthRange.x + ConeDepthRange.y));
-		float3 WorldTileBoundingSphereCenter = mul(float4(ViewTileBoundingSphereCenter.xyz, 1), View.ViewToTranslatedWorld).xyz - View.PreViewTranslation.xyz;
-		float DistanceAlongAxis = .5f * (ConeDepthRange.x - ConeDepthRange.y);
-		float FarDepthDistanceToEdgeOfCone = ConeDepthRange.y * TileConeAngleSin / TileConeAngleCos;
-		float TileBoundingSphereRadius = sqrt(DistanceAlongAxis * DistanceAlongAxis + FarDepthDistanceToEdgeOfCone * FarDepthDistanceToEdgeOfCone);
+RWBuffer<uint> RWNumCulledTilesArray;
+RWBuffer<uint> RWCulledTilesStartOffsetArray;
+RWBuffer<uint> RWCulledTileDataArray;
 
-		float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
-		float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
-		bool bGeneratedAsTwoSided;
-		float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex, bGeneratedAsTwoSided);
-		float3 VolumeTileBoundingSphereCenter = mul(float4(WorldTileBoundingSphereCenter, 1), WorldToVolume).xyz;
-		float BoxDistance = ComputeDistanceFromBoxToPoint(-LocalPositionExtent, LocalPositionExtent, VolumeTileBoundingSphereCenter) * UVScaleAndVolumeScale.w;
+#define INVALID_TILE_INDEX 0xFFFF
 
-		BRANCH
-		if (BoxDistance < TileBoundingSphereRadius + AOObjectMaxDistance)
-		{
-			float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
-
-			float3 ClampedSamplePosition = clamp(VolumeTileBoundingSphereCenter, -LocalPositionExtent, LocalPositionExtent);
-			float DistanceToClamped = length(VolumeTileBoundingSphereCenter - ClampedSamplePosition);
-
-			float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
-			float DistanceToOccluder = (Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped) * UVScaleAndVolumeScale.w;
-
-			BRANCH
-			if (DistanceToOccluder < TileBoundingSphereRadius + AOObjectMaxDistance)
-			{
-				uint ArrayIndex;
-				InterlockedAdd(RWTileHeadDataUnpacked[TileIndex * 4 + 1 + ListIndex], 1U, ArrayIndex);
-
-				if (ArrayIndex < MAX_OBJECTS_PER_TILE)
-				{
-					// Note: indexing so that threads are writing to RWTileArrayData coherently, has a huge impact on speed, even though the array data for one record is no longer dense
-					uint DataIndex = (ArrayIndex * TotalNumGroups + TileIndex) * NUM_CULLED_OBJECT_LISTS + ListIndex;
-
-					RWTileArrayData[DataIndex] = ObjectIndex;
-				}
-			}
-		}
-#else
-		uint ListIndex = 0;
-		uint ArrayIndex;
-		InterlockedAdd(RWTileHeadDataUnpacked[TileIndex * 4 + 1 + ListIndex], 1U, ArrayIndex);
-
-		if (ArrayIndex < MAX_OBJECTS_PER_TILE)
-		{
-			// Note: indexing so that threads are writing to RWTileArrayData coherently, has a huge impact on speed, even though the array data for one record is no longer dense
-			uint DataIndex = (ArrayIndex * TotalNumGroups + TileIndex) * NUM_CULLED_OBJECT_LISTS + ListIndex;
-
-			RWTileArrayData[DataIndex] = ObjectIndex;
-		}
+#ifndef CULLED_TILE_DATA_STRIDE
+#define CULLED_TILE_DATA_STRIDE 1
 #endif
-	}
-}

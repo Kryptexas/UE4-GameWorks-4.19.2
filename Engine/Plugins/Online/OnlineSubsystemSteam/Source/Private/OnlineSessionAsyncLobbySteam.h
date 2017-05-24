@@ -229,23 +229,14 @@ public:
 /** 
  *  Async task for any search query to find Steam lobbies based on search criteria
  */
-class FOnlineAsyncTaskSteamFindLobbies : public FOnlineAsyncTaskSteam
+class FOnlineAsyncTaskSteamFindLobbiesBase : public FOnlineAsyncTaskSteam
 {
 private:
-
-	/** Has this request been started */
-	bool bInit;
-	/** Has the lobby request portion been complete */
-	bool bLobbyRequestComplete;
-	/** Search settings specified for the query */
-	TSharedPtr<class FOnlineSessionSearch> SearchSettings;
 	/** Cached instance of Steam interface */
 	ISteamMatchmaking* SteamMatchmakingPtr;
 
 	/** Hidden on purpose */
-	FOnlineAsyncTaskSteamFindLobbies() : 
-		bInit(false),
-		bLobbyRequestComplete(false),
+	FOnlineAsyncTaskSteamFindLobbiesBase() :
 		SteamMatchmakingPtr(NULL)
 	{	
 	}
@@ -257,18 +248,32 @@ private:
 
 PACKAGE_SCOPE:
 
+	enum class EFindLobbiesState : uint8
+	{
+		Init,
+		RequestLobbyList,
+		RequestLobbyData,
+		WaitForRequestLobbyData,
+		Finished
+	};
+
+	/** Search settings specified for the query */
+	TSharedPtr<class FOnlineSessionSearch> SearchSettings;
+
+	EFindLobbiesState FindLobbiesState;
 	/** Lobby search callback data */
 	LobbyMatchList_t CallbackResults;
+
+	TArray<CSteamID> LobbyIDs;
 
 public:
 
 	/** Constructor */
-	FOnlineAsyncTaskSteamFindLobbies(class FOnlineSubsystemSteam* InSubsystem, const TSharedPtr<FOnlineSessionSearch>& InSearchSettings) :
+	FOnlineAsyncTaskSteamFindLobbiesBase(class FOnlineSubsystemSteam* InSubsystem, const TSharedPtr<FOnlineSessionSearch>& InSearchSettings) :
 		FOnlineAsyncTaskSteam(InSubsystem, k_uAPICallInvalid),
-		bInit(false),
-		bLobbyRequestComplete(false),
+		SteamMatchmakingPtr(SteamMatchmaking()),
 		SearchSettings(InSearchSettings),
-		SteamMatchmakingPtr(SteamMatchmaking())
+		FindLobbiesState(EFindLobbiesState::Init)
 	{
 	}
 
@@ -278,11 +283,6 @@ public:
 	 * @param LobbyId lobby to create the search result for
 	 */
 	void ParseSearchResult(FUniqueNetIdSteam& LobbyId);
-
-	/**
-	 *	Get a human readable description of task
-	 */
-	virtual FString ToString() const override;
 
 	/**
 	 * Give the async task time to do its work
@@ -295,105 +295,96 @@ public:
 	 * Can only be called on the game thread by the async task manager
 	 */
 	virtual void Finalize() override;
-	
+};
+
+/**
+*  Async task for any search query to find Steam lobbies based on search criteria
+*/
+class FOnlineAsyncTaskSteamFindLobbies : public FOnlineAsyncTaskSteamFindLobbiesBase
+{
+
+public:
+
+	/** Constructor */
+	FOnlineAsyncTaskSteamFindLobbies(class FOnlineSubsystemSteam* InSubsystem, const TSharedPtr<FOnlineSessionSearch>& InSearchSettings) :
+		FOnlineAsyncTaskSteamFindLobbiesBase(InSubsystem, InSearchSettings)
+	{
+	}
+
 	/**
-	 *	Async task is given a chance to trigger it's delegates
-	 */
+	*	Get a human readable description of task
+	*/
+	virtual FString ToString() const override;
+
+	/**
+	*	Async task is given a chance to trigger it's delegates
+	*/
 	virtual void TriggerDelegates() override;
 };
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnAsyncFindLobbyCompleteWithNetId, const bool, const int32, TSharedPtr< const FUniqueNetId >, const class FOnlineSessionSearchResult&);
 typedef FOnAsyncFindLobbyCompleteWithNetId::FDelegate FOnAsyncFindLobbyCompleteDelegateWithNetId;
 
-/** 
- *  Async task for any search query to find Steam lobbies based on search criteria
- */
-class FOnlineAsyncTaskSteamFindLobby : public FOnlineAsyncTaskSteam
+class FOnlineAsyncTaskSteamFindLobbiesForInviteSession : public FOnlineAsyncTaskSteamFindLobbiesBase
 {
+public:
+	/** Constructor */
+	FOnlineAsyncTaskSteamFindLobbiesForInviteSession(class FOnlineSubsystemSteam* InSubsystem, const FUniqueNetIdSteam& InLobbyId, const TSharedPtr<FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, const FOnAsyncFindLobbyCompleteWithNetId& InOnFindLobbyCompleteDelegates) :
+		FOnlineAsyncTaskSteamFindLobbiesBase(InSubsystem, InSearchSettings),
+		LocalUserNum(InLocalUserNum),
+		OnFindLobbyCompleteWithNetIdDelegate(InOnFindLobbyCompleteDelegates)
+	{
+		LobbyIDs.Add(CSteamID(*(uint64*)InLobbyId.GetBytes()));
+		FindLobbiesState = FOnlineAsyncTaskSteamFindLobbiesBase::EFindLobbiesState::RequestLobbyData;
+	}
+
+	/**
+	*	Get a human readable description of task
+	*/
+	virtual FString ToString() const override;
+
+	/**
+	*	Async task is given a chance to trigger it's delegates
+	*/
+	virtual void TriggerDelegates() override;
+
 private:
 
-	/** Has this request been started */
-	bool bInit;
-	/** Lobby Id to search for */
-	FUniqueNetIdSteam LobbyId;
-	/** Search settings ignored except to hold the final search result */
-	TSharedPtr<class FOnlineSessionSearch> SearchSettings;
-	/** User that initiated the request */
+	/** User initiating the request */
 	int32 LocalUserNum;
-	/** Delegates to fire when the search is complete. Only one of these will be called based on which constructor was used. */
-	FOnSingleSessionResultComplete OnFindLobbyCompleteDelegates;
+
 	FOnAsyncFindLobbyCompleteWithNetId OnFindLobbyCompleteWithNetIdDelegate;
-	/** This is true if the delegate passed in to the constructor was a FOnAsyncFindLobbyCompleteWithNetId delegate, false otherwise. */
-	bool bIsUsingNetIdDelegate;
+};
 
-	/** Cached instance of Steam interface */
-	ISteamMatchmaking* SteamMatchmakingPtr;
-
-	/** Hidden on purpose */
-	FOnlineAsyncTaskSteamFindLobby() : 
-		bInit(false),
-		SteamMatchmakingPtr(NULL)
-	{	
-	}
-
+class FOnlineAsyncTaskSteamFindLobbiesForFriendSession : public FOnlineAsyncTaskSteamFindLobbiesBase
+{
 public:
-
 	/** Constructor */
-	FOnlineAsyncTaskSteamFindLobby(class FOnlineSubsystemSteam* InSubsystem, const FUniqueNetIdSteam& InLobbyId, const TSharedPtr<FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, const FOnSingleSessionResultComplete& InOnFindLobbyCompleteDelegates) :
-		FOnlineAsyncTaskSteam(InSubsystem, k_uAPICallInvalid),
-		bInit(false),
-		LobbyId(InLobbyId),
-		SearchSettings(InSearchSettings),
+	FOnlineAsyncTaskSteamFindLobbiesForFriendSession(class FOnlineSubsystemSteam* InSubsystem, const FUniqueNetIdSteam& InLobbyId, const TSharedPtr<FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, const FOnFindFriendSessionComplete& InOnFindFriendSessionCompleteDelegate) :
+		FOnlineAsyncTaskSteamFindLobbiesBase(InSubsystem, InSearchSettings),
 		LocalUserNum(InLocalUserNum),
-		OnFindLobbyCompleteDelegates(InOnFindLobbyCompleteDelegates),
-        bIsUsingNetIdDelegate(false),
-        SteamMatchmakingPtr(SteamMatchmaking())
+		OnFindFriendSessionCompleteDelegate(InOnFindFriendSessionCompleteDelegate)
 	{
-	}
-
-	FOnlineAsyncTaskSteamFindLobby(class FOnlineSubsystemSteam* InSubsystem, const FUniqueNetIdSteam& InLobbyId, const TSharedPtr<FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, const FOnAsyncFindLobbyCompleteWithNetId& InOnFindLobbyCompleteDelegates) :
-		FOnlineAsyncTaskSteam(InSubsystem, k_uAPICallInvalid),
-		bInit(false),
-		LobbyId(InLobbyId),
-		SearchSettings(InSearchSettings),
-		LocalUserNum(InLocalUserNum),
-		OnFindLobbyCompleteWithNetIdDelegate(InOnFindLobbyCompleteDelegates),
-		bIsUsingNetIdDelegate(true),
-        SteamMatchmakingPtr(SteamMatchmaking())
-	{
+		LobbyIDs.Add(CSteamID(*(uint64*)InLobbyId.GetBytes()));
+		FindLobbiesState = FOnlineAsyncTaskSteamFindLobbiesBase::EFindLobbiesState::RequestLobbyData;
 	}
 
 	/**
-	 *	Create a search result from a specified lobby id 
-	 *
-	 * @param LobbyId lobby to create the search result for
-	 */
-	void ParseSearchResult(FUniqueNetIdSteam& LobbyId);
+	*	Get a human readable description of task
+	*/
+	virtual FString ToString() const override;
 
 	/**
-	 *	Get a human readable description of task
-	 */
-	virtual FString ToString() const override
-	{
-		return FString::Printf(TEXT("FOnlineAsyncTaskSteamFindLobby bWasSuccessful: %d LobbyId: %s"), bWasSuccessful, *LobbyId.ToDebugString());
-	}
-
-	/**
-	 * Give the async task time to do its work
-	 * Can only be called on the async task manager thread
-	 */
-	virtual void Tick() override;
-
-	/**
-	 * Give the async task a chance to marshal its data back to the game thread
-	 * Can only be called on the game thread by the async task manager
-	 */
-	virtual void Finalize() override;
-	
-	/**
-	 *	Async task is given a chance to trigger it's delegates
-	 */
+	*	Async task is given a chance to trigger it's delegates
+	*/
 	virtual void TriggerDelegates() override;
+
+private:
+
+	/** User initiating the request */
+	int32 LocalUserNum;
+
+	FOnFindFriendSessionComplete OnFindFriendSessionCompleteDelegate;
 };
 
 /**

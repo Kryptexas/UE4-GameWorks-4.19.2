@@ -193,11 +193,13 @@ public:
 	/**
 	 * Takes two manifests as input and outputs the details of the patch.
 	 * @param   ManifestFilePathA          A full file path for the manifest to be used as the source.
+	 * @param   TagSetA                    The tag set to use to filter desired files from ManifestA.
 	 * @param   ManifestFilePathB          A full file path for the manifest to be used as the target.
+	 * @param   TagSetB                    The tag set to use to filter desired files from ManifestB.
 	 * @param   OutputFilePath             A full file path where a JSON object will be saved for the diff details. Empty string if not desired.
 	 * @return  true if successful
 	 */
-	virtual bool DiffManifests(const FString& ManifestFilePathA, const FString& ManifestFilePathB, const FString& OutputFilePath) = 0;
+	virtual bool DiffManifests(const FString& ManifestFilePathA, const TSet<FString>& TagSetA, const FString& ManifestFilePathB, const TSet<FString>& TagSetB, const FString& OutputFilePath) = 0;
 
 	/**
 	 * Deprecated function, use MakeManifestFromData instead

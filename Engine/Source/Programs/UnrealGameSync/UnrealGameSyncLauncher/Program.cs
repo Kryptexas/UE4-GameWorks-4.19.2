@@ -36,8 +36,11 @@ namespace UnrealGameSyncLauncher
 			{
 				if(!bFirstInstance)
 				{
-					MessageBox.Show("UnrealGameSync is already running. Please close any existing instances.");
-					return 1;
+					using(EventWaitHandle ActivateEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "ActivateUnrealGameSync"))
+					{
+						ActivateEvent.Set();
+					}
+					return 0;
 				}
 
 				StringWriter LogWriter = new StringWriter();

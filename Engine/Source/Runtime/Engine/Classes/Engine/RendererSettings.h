@@ -221,11 +221,25 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bGenerateMeshDistanceFields:1;
 
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		EditCondition = "bGenerateMeshDistanceFields",
+		ConsoleVariable="r.DistanceFieldBuild.EightBit",
+		ToolTip="Whether to store mesh distance fields in an 8 bit fixed point format instead of 16 bit floating point.  8 bit uses half the memory, but introduces artifacts for large meshes or thin meshes.  Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bEightBitMeshDistanceFields:1;
+
 	UPROPERTY(config, EditAnywhere, Category = Lighting, meta = (
 		EditCondition = "bGenerateMeshDistanceFields",
 		ConsoleVariable = "r.GenerateLandscapeGIData", DisplayName = "Generate Landscape Real-time GI Data",
 		ToolTip = "Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.  This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage."))
 	uint32 bGenerateLandscapeGIData : 1;
+
+	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
+		EditCondition = "bGenerateMeshDistanceFields",
+		ConsoleVariable="r.DistanceFieldBuild.Compress",
+		ToolTip="Whether to store mesh distance fields compressed in memory, which reduces how much memory they take, but also causes serious hitches when making new levels visible.  Only enable if your project does not stream levels in-game.  Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bCompressMeshDistanceFields:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Tessellation, meta=(
 		ConsoleVariable="r.TessellationAdaptivePixelsPerTriangle",DisplayName="Adaptive pixels per triangle",
@@ -239,7 +253,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category=Translucency, meta=(
 		ConsoleVariable="r.TranslucentSortPolicy",DisplayName="Translucent Sort Policy",
-		ToolTip="The sort mode for translucent primitives, affecting how they are ordered and how they change order as the camera moves."))
+		ToolTip="The sort mode for translucent primitives, affecting how they are ordered and how they change order as the camera moves. Requires that Separate Translucency (under Postprocessing) is true."))
 	TEnumAsByte<ETranslucentSortPolicy::Type> TranslucentSortPolicy;
 
 	UPROPERTY(config, EditAnywhere, Category=Translucency, meta=(
@@ -364,6 +378,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Whether to use original CPU method (loop per morph then by vertex) or use a GPU-based method on Shader Model 5 hardware."))
 	uint32 bUseGPUMorphTargets : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Debugging, meta = (
+		ConsoleVariable = "r.GPUCrashDebugging", DisplayName = "Enable vendor specific GPU crash analysis tools",
+		ToolTip = "Enables vendor specific GPU crash analysis tools.  Currently only supports NVIDIA Aftermath on DX11.",
+		ConfigRestartRequired = true))
+		uint32 bNvidiaAftermathEnabled : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=VR, meta=(
 		ConsoleVariable="vr.InstancedStereo", DisplayName="Instanced Stereo",
 		ToolTip="Enable instanced stereo rendering (only available for D3D SM5 or PS4).",
@@ -378,13 +398,20 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	uint32 bMultiView : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
-		ConsoleVariable = "vr.MobileMultiView", DisplayName = "Mobile Multi-View (Experimental)",
-		ToolTip = "Enable mobile multi-view rendering (only available on some GearVR Android devices using OpenGL ES 3.1).",
+		ConsoleVariable = "vr.MobileMultiView", DisplayName = "Mobile Multi-View",
+		ToolTip = "Enable mobile multi-view rendering (only available on some GearVR Android devices using OpenGL ES 2.0).",
 		ConfigRestartRequired = true))
 		uint32 bMobileMultiView : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
-		ConsoleVariable = "vr.MonoscopicFarField", DisplayName = "Monoscopic Far Field (Experimental)",
+		EditCondition = "bMobileMultiView",
+		ConsoleVariable = "vr.MobileMultiView.Direct", DisplayName = "Mobile Multi-View Direct",
+		ToolTip = "Enable direct mobile multi-view rendering (only available on multi-view enabled GearVR Android devices).",
+		ConfigRestartRequired = true))
+		uint32 bMobileMultiViewDirect : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
+		ConsoleVariable = "vr.MonoscopicFarField", DisplayName = "Monoscopic Far Field",
 		ToolTip = "Enable monoscopic far field rendering (only available for mobile).",
 		ConfigRestartRequired = true))
 		uint32 bMonoscopicFarField : 1;
@@ -403,7 +430,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		uint32 bSupportStationarySkylight : 1;
 
 	/**
-	"Low quality lightmap requires permutations of the lightmap rendering shaders.  Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
+	"Low quality lightmap requires permutations of the lightmap rendering shaders.  Disabling will reduce the number of shader permutations required per material. Note that the mobile renderer requires low quality lightmaps, so disabling this setting is not recommended for mobile titles using static lighting. Changing this setting requires restarting the editor."
 	*/
 	UPROPERTY(config, EditAnywhere, Category = ShaderPermutationReduction, meta = (
 		ConsoleVariable = "r.SupportLowQualityLightmaps", DisplayName = "Support low quality lightmap shader permutations",
@@ -466,6 +493,11 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 		uint32 bMobileDynamicPointLightsUseStaticBranch : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.SkinCache.SceneMemoryLimitInMB", DisplayName = "Maximum memory for Compute Skincache per world (MB)",
+		ToolTip = "Maximum amount of memory (in MB) per world/scene allowed for the Compute Skincache to generate output vertex data and recompute tangents."))
+		float SkinCacheSceneMemoryLimitInMB;
+
 public:
 
 	//~ Begin UObject Interface
@@ -494,6 +526,11 @@ class ENGINE_API URendererOverrideSettings : public UDeveloperSettings
 		ConsoleVariable = "r.SupportAllShaderPermutations", DisplayName = "Force all shader permutation support",
 		ConfigRestartRequired = true))
 		uint32 bSupportAllShaderPermutations : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Miscellaneous, meta = (
+		ConsoleVariable = "r.SkinCache.ForceRecomputeTangents", DisplayName = "Force all skinned meshes to recompute tangents (also forces Compute SkinCache)",
+		ConfigRestartRequired = true))
+		uint32 bForceRecomputeTangents : 1;
 
 public:
 

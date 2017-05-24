@@ -37,7 +37,13 @@ class IInterface_AssetUserData
 	template<typename T>
 	T* GetAssetUserData()
 	{
-		return CastChecked<T>( GetAssetUserDataOfClass(T::StaticClass()) );
+		return Cast<T>( GetAssetUserDataOfClass(T::StaticClass()) );
+	}
+
+	template<typename T>
+	T* GetAssetUserDataChecked()
+	{
+		return CastChecked<T>(GetAssetUserDataOfClass(T::StaticClass()));
 	}
 
 	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) {}

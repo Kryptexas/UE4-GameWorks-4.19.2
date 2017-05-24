@@ -3,6 +3,7 @@ Title:Location Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Location modules affect the position of particles at various times throughout their lives.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

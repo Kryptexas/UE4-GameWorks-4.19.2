@@ -142,7 +142,7 @@ public:
 		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
 		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName); 
 		return OSSModule.GetOnlineSubsystem(SubsystemName); 
-  	}
+	}
 
 	/** 
 	 * Get the online subsystem based on current platform
@@ -182,7 +182,7 @@ public:
 			}
 		}
 		return nullptr;
-  	}
+	}
 
 	/** 
 	 * Destroy a single online subsystem instance
@@ -238,6 +238,13 @@ public:
 		}
 		return false;
 	}
+
+	/**
+	 * Return the name of the subsystem @see OnlineSubsystemNames.h
+	 *
+	 * @return the name of the subsystem, as used in calls to IOnlineSubsystem::Get()
+	 */
+	virtual FName GetSubsystemName() const = 0;
 
 	/**
 	 * Get the instance name, which is typically "default" or "none" but distinguishes
@@ -577,3 +584,11 @@ ONLINESUBSYSTEM_API int32 GetBuildUniqueId();
  */
 ONLINESUBSYSTEM_API bool IsPlayerInSessionImpl(class IOnlineSession* SessionInt, FName SessionName, const FUniqueNetId& UniqueId);
 
+/**
+ * Retrieve the beacon port from the specified session settings
+ *
+ * @param SessionSettings the session settings that contains the BEACON_PORT setting
+ *
+ * @return the port if found, otherwise DEFAULT_BEACON_PORT
+ */
+ONLINESUBSYSTEM_API int32 GetBeaconPortFromSessionSettings(const class FOnlineSessionSettings& SessionSettings);

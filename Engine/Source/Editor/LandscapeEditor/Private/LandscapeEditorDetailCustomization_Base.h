@@ -25,9 +25,14 @@ protected:
 	static bool IsToolActive(FName ToolName);
 	static bool IsBrushSetActive(FName BrushSetName);
 
-	static TOptional<int32> OnGetValue(TSharedRef<IPropertyHandle> PropertyHandle);
-	static void OnValueChanged(int32 NewValue, TSharedRef<IPropertyHandle> PropertyHandle);
-	static void OnValueCommitted(int32 NewValue, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> PropertyHandle);
+	template<typename type>
+	static TOptional<type> OnGetValue(TSharedRef<IPropertyHandle> PropertyHandle);
+	
+	template<typename type>
+	static void OnValueChanged(type NewValue, TSharedRef<IPropertyHandle> PropertyHandle);
+	
+	template<typename type>
+	static void OnValueCommitted(type NewValue, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> PropertyHandle);
 
 	template<typename type>
 	static type GetPropertyValue(TSharedRef<IPropertyHandle> PropertyHandle);
@@ -43,6 +48,32 @@ protected:
 	template<typename type>
 	static void SetPropertyValue(type NewValue, ETextCommit::Type CommitInfo, TSharedRef<IPropertyHandle> PropertyHandle);
 };
+
+template<typename type>
+TOptional<type> FLandscapeEditorDetailCustomization_Base::OnGetValue(TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	type Value;
+	if (ensure(PropertyHandle->GetValue(Value) == FPropertyAccess::Success))
+	{
+		return TOptional<type>(Value);
+	}
+
+	// Value couldn't be accessed. Return an unset value
+	return TOptional<type>();
+}
+
+template<typename type>
+void FLandscapeEditorDetailCustomization_Base::OnValueChanged(type NewValue, TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	const EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::InteractiveChange;
+	ensure(PropertyHandle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+}
+
+template<typename type>
+void FLandscapeEditorDetailCustomization_Base::OnValueCommitted(type NewValue, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	ensure(PropertyHandle->SetValue(NewValue) == FPropertyAccess::Success);
+}
 
 template<typename type>
 type FLandscapeEditorDetailCustomization_Base::GetPropertyValue(TSharedRef<IPropertyHandle> PropertyHandle)

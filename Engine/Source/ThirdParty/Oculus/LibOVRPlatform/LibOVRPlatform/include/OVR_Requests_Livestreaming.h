@@ -17,4 +17,24 @@
 /// Extract the payload from the message handle with ::ovr_Message_GetLivestreamingStatus().
 OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Livestreaming_GetStatus();
 
+/// Pauses the livestreaming session if there is one. Otherwise it no-ops
+///
+/// A message with type ::ovrMessage_Livestreaming_PauseStream will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrLivestreamingStatusHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetLivestreamingStatus().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Livestreaming_PauseStream();
+
+/// Resumes the livestreaming session if one is running. Otherwise it no-ops.
+///
+/// A message with type ::ovrMessage_Livestreaming_ResumeStream will be generated in response.
+///
+/// First call ::ovr_Message_IsError() to check if an error occurred.
+///
+/// If no error occurred, the message will contain a payload of type ::ovrLivestreamingStatusHandle.
+/// Extract the payload from the message handle with ::ovr_Message_GetLivestreamingStatus().
+OVRP_PUBLIC_FUNCTION(ovrRequest) ovr_Livestreaming_ResumeStream();
+
 #endif

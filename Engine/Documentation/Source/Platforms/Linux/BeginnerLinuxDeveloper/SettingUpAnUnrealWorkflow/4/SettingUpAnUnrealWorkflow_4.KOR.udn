@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 4 - Running UE4 on Linux
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
-Description:Learn how to run Unreal Engine on Linux.
-Version: 4.11
-type:HowTo
+﻿INTSourceChangelist:3332303
+Availability: Public
+Title: 4 - 리눅스에서 UE4 실행
+Crumbs:
+Description:리눅스에서 언리얼 엔진을 실행하는 법을 배워봅니다.
+Version: 4.13
+type:quick start
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 order: 4
 tags:Linux
@@ -13,39 +13,51 @@ SkillLevel:Beginner
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/3:title%")
+		[예전 단계](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/3:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper)
+		[리눅스 퀵 스타트 홈](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow)
 	[/PARAM]
 	[PARAM:next]
+		[다음 단계](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/5 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/5:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-As you worked your way to this final step, you linked your Epic Games account with your GitHub username, you downloaded the Unreal Engine source code from our 
-GitHub site, and you compiled a binary of UE4 on your Linux system. The only remaining task is for you to run the UE4 Editor so that you can start making 
-games for the Linux platform.
+최종 단계에 이르기까지, 에픽 게임스 계정에 GitHub 사용자명을 연동시키고, GitHub 사이트에서 언리얼 엔진 소스 코드를 다운로드한 뒤, 
+리눅스 시스템에서 UE4 바이너리를 컴파일했습니다. 이제 남은 작업은 UE4 에디터를 실행시켜 리눅스 플랫폼에서 
+게임 제작을 시작하는 것입니다.
 
 [INCLUDE:Programming/Development/BuildingUnrealEngine#linuxrun]
 
-## End Result
+## 리눅스에서 UE4 실행
+
+리눅스에서 소스 코드로 엔진을 컴파일했기 때문에, 엔진은 UE4 실행 이후 몇 분동안 셰이더를 컴파일합니다.
+
+![](howTo_compilingshaders.png)
+
+## 첫 프로젝트 생성
+
+UE4 작업에 쓸 통합 개발 환경(IDE) 구성을 해 두지 않았다면, **블루프린트** 프로젝트를 만들어 구성해 주실 것을 추천합니다.
+
+![](howTo_creatingprrjwithoutIDE.png)
+
+## 최종 결과
 
 ![](howTo_endResult.png)
 
-If you're creating your first game on Linux, you just learned how to establish your primary UE4 workflow on Linux. As you worked your way through this tutorial, 
-you learned:
+리눅스에서 게임을 제작하려는 경우, 이제 막 리눅스에서의 기본적인 UE4 작업방식을 수립하는 법을 배우신 것입니다. 이 튜토리얼에서 배운 내용은 
+다음과 같습니다:
 
-&#x2713; How to setup Git to download the source code for Unreal Engine.  
-&#x2713; How to fork and clone Unreal Engine's source code.  
-&#x2713; How to build Unreal Engine from source.  
-&#x2713; How to run Unreal Engine on your Linux machine.  
+&#x2713; Git 구성 및 언리얼 엔진 소스 코드 다운로드 방법.
+&#x2713; 언리얼 엔진 소스 코드 fork 및 clone 방법.
+&#x2713; 소스로 언리얼 엔진 빌드 방법.
+&#x2713; 리눅스 머신에서 언리얼 엔진 실행 방법.
 
-Throughout the course of this tutorial, you spent most of your time using the terminal. In the next tutorial, you'll learn how to setup an integrated development 
-environment (IDE), enabling you to harness the context rich features of an IDE to help you build and debug UE4 games.
+이제 직접 만들어 볼 준비 되셨나요?
 
 %Steps%

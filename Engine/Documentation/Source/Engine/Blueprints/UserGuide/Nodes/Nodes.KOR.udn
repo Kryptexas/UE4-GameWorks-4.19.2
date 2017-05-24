@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -6,6 +6,7 @@ Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관
 version: 4.9
 parent:Engine/Blueprints/Scripting
 tags:Execution Flow
+tags:Blueprints
 order:4
 
 

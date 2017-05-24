@@ -4,6 +4,7 @@
 #include "Internationalization/ITextData.h"
 #include "UObject/PropertyPortFlags.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
+#include "Internationalization/StringTableRegistry.h"
 
 bool UTextProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
 {
@@ -121,7 +122,7 @@ const TCHAR* UTextProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 
 	FString PackageNamespace;
 #if USE_STABLE_LOCALIZATION_KEYS
-	if (GIsEditor && !(PortFlags & PPF_DuplicateForPIE))
+	if (GIsEditor && !(PortFlags & (PPF_DuplicateVerbatim | PPF_DuplicateForPIE)))
 	{
 		PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(Parent);
 	}
@@ -146,6 +147,28 @@ FString UTextProperty::GenerateCppCodeForTextValue(const FText& InValue, const F
 	if (InValue.IsEmpty())
 	{
 		CppCode += TEXT("FText::GetEmpty()");
+	}
+	else if (InValue.IsFromStringTable())
+	{
+		FName TableId;
+		FString Key;
+		FStringTableRegistry::Get().FindTableIdAndKey(InValue, TableId, Key);
+
+		// Produces FText::FromStringTable(TEXT("..."), TEXT("..."))
+		CppCode += TEXT("FText::FromStringTable(\n");
+
+		CppCode += Indent;
+		CppCode += TEXT("\t");
+		CppCode += UStrProperty::ExportCppHardcodedText(TableId.ToString(), Indent + TEXT("\t\t"));
+		CppCode += TEXT(", /* String Table ID */\n");
+
+		CppCode += Indent;
+		CppCode += TEXT("\t");
+		CppCode += UStrProperty::ExportCppHardcodedText(Key, Indent + TEXT("\t\t"));
+		CppCode += TEXT(" /* Key */\n");
+
+		CppCode += Indent;
+		CppCode += TEXT("\t)");
 	}
 	else if (InValue.IsCultureInvariant())
 	{

@@ -76,7 +76,7 @@ void SAnimationEditorViewport::OnUndoRedo()
 void SAnimationEditorViewport::OnFocusViewportToSelection()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->FocusViewportOnPreviewMesh();
+	AnimViewportClient->FocusViewportOnPreviewMesh(false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -288,6 +288,15 @@ bool SAnimationEditorViewportTabBody::IsVisible() const
 	return ViewportWidget.IsValid();
 }
 
+FReply SAnimationEditorViewportTabBody::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (UICommandList.IsValid() && UICommandList->ProcessCommandBindings(InKeyEvent))
+	{
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
+
 
 void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs, const TSharedRef<class ISkeletonTree>& InSkeletonTree, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class FAssetEditorToolkit>& InAssetEditorToolkit, FSimpleMulticastDelegate& InOnUndoRedo)
 {
@@ -408,6 +417,20 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ToggleCameraFollow),
 		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanChangeCameraMode),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsCameraFollowEnabled));
+
+	CommandList.MapAction(
+		MenuActions.JumpToDefaultCamera,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::JumpToDefaultCamera),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::HasDefaultCameraSet));
+
+	CommandList.MapAction(
+		MenuActions.SaveCameraAsDefault,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::SaveCameraAsDefault));
+
+	CommandList.MapAction(
+		MenuActions.ClearDefaultCamera,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::ClearDefaultCamera),
+		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::HasDefaultCameraSet));
 
 	CommandList.MapAction(
 		MenuActions.PreviewSceneSettings,
@@ -610,6 +633,7 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLocalAxesModeSet, (int32)ELocalAxesMode::All));
 
 #if WITH_APEX_CLOTHING
+
 	//Clothing show options
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.DisableClothSimulation,
@@ -623,55 +647,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnApplyClothWind),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsApplyingClothWind));
-	
-	//Cloth simulation normal
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowClothSimulationNormals,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowClothSimulationNormals),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingClothSimulationNormals));
-
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowClothGraphicalTangents,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowClothGraphicalTangents),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingClothGraphicalTangents));
-
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowClothCollisionVolumes,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowClothCollisionVolumes),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingClothCollisionVolumes));
 
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.EnableCollisionWithAttachedClothChildren,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnEnableCollisionWithAttachedClothChildren),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsEnablingCollisionWithAttachedClothChildren));
-
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowClothPhysicalMeshWire,
-		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothPhysicalMeshWire ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothPhysicalMeshWire ) );
-
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowClothMaxDistances,
-		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothMaxDistances ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothMaxDistances ) );
-
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowClothBackstop,
-		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothBackstops ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothBackstops ) );
-
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowClothFixedVertices,
-		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothFixedVertices ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothFixedVertices ) );
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.PauseClothWithAnim,
@@ -1410,6 +1391,30 @@ bool SAnimationEditorViewportTabBody::IsCameraFollowEnabled() const
 	return (AnimViewportClient->IsSetCameraFollowChecked());
 }
 
+void SAnimationEditorViewportTabBody::SaveCameraAsDefault()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->SaveCameraAsDefault();
+}
+
+void SAnimationEditorViewportTabBody::ClearDefaultCamera()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->ClearDefaultCamera();
+}
+
+void SAnimationEditorViewportTabBody::JumpToDefaultCamera()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->JumpToDefaultCamera();
+}
+
+bool SAnimationEditorViewportTabBody::HasDefaultCameraSet() const
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	return (AnimViewportClient->HasDefaultCameraSet());
+}
+
 bool SAnimationEditorViewportTabBody::CanChangeCameraMode() const
 {
 	//Not allowed to change camera type when we are in an ortho camera
@@ -1467,18 +1472,6 @@ void SAnimationEditorViewportTabBody::OnDisableClothSimulation()
 	if( PreviewComponent )
 	{
 		PreviewComponent->bDisableClothSimulation = !PreviewComponent->bDisableClothSimulation;
-
-		// if the user turns on cloth simulation option while displaying max distances, then turns off max distance option
-		if(!PreviewComponent->bDisableClothSimulation && PreviewComponent->bDisplayClothMaxDistances)
-		{
-			PreviewComponent->bDisplayClothMaxDistances = false;
-		}
-
-		// if the user turns on cloth simulation option while displaying back stops, then turns off back stops option
-		if (!PreviewComponent->bDisableClothSimulation && PreviewComponent->bDisplayClothBackstops)
-		{
-			PreviewComponent->bDisplayClothBackstops = false;
-		}
 
 		RefreshViewport();
 	}
@@ -1556,75 +1549,6 @@ FText SAnimationEditorViewportTabBody::GetWindStrengthLabel() const
 	return FText::AsNumber(SliderValue, &FormatOptions);
 }
 
-void SAnimationEditorViewportTabBody::OnShowClothSimulationNormals()
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		PreviewComponent->bDisplayClothingNormals = !PreviewComponent->bDisplayClothingNormals;
-		RefreshViewport();
-	}
-}
-
-bool SAnimationEditorViewportTabBody::IsShowingClothSimulationNormals() const
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		return PreviewComponent->bDisplayClothingNormals;
-	}
-
-	return false;
-}
-
-void SAnimationEditorViewportTabBody::OnShowClothGraphicalTangents()
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		PreviewComponent->bDisplayClothingTangents = !PreviewComponent->bDisplayClothingTangents;
-		RefreshViewport();
-	}
-}
-
-bool SAnimationEditorViewportTabBody::IsShowingClothGraphicalTangents() const
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		return PreviewComponent->bDisplayClothingTangents;
-	}
-
-	return false;
-}
-
-void SAnimationEditorViewportTabBody::OnShowClothCollisionVolumes()
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		PreviewComponent->bDisplayClothingCollisionVolumes = !PreviewComponent->bDisplayClothingCollisionVolumes;
-		RefreshViewport();
-	}
-}
-
-bool SAnimationEditorViewportTabBody::IsShowingClothCollisionVolumes() const
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		return PreviewComponent->bDisplayClothingCollisionVolumes;
-	}
-
-	return false;
-}
-
 void SAnimationEditorViewportTabBody::SetGravityScale(float SliderPos)
 {
 	GetPreviewScene()->SetGravityScale(SliderPos);
@@ -1665,118 +1589,6 @@ bool SAnimationEditorViewportTabBody::IsEnablingCollisionWithAttachedClothChildr
 	if( PreviewComponent )
 	{
 		return PreviewComponent->bCollideWithAttachedChildren;
-	}
-
-	return false;
-}
-
-void SAnimationEditorViewportTabBody::OnShowClothPhysicalMeshWire()
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		PreviewComponent->bDisplayClothPhysicalMeshWire = !PreviewComponent->bDisplayClothPhysicalMeshWire;
-		RefreshViewport();
-	}
-}
-
-bool SAnimationEditorViewportTabBody::IsShowingClothPhysicalMeshWire() const
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		return PreviewComponent->bDisplayClothPhysicalMeshWire;
-	}
-
-	return false;
-}
-
-void SAnimationEditorViewportTabBody::OnShowClothMaxDistances()
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		PreviewComponent->bDisplayClothMaxDistances = !PreviewComponent->bDisplayClothMaxDistances;
-
-		// disables cloth simulation and stop animation because showing max distances is only useful when the cloth is not moving
-		if(PreviewComponent->bDisplayClothMaxDistances)
-		{
-			PreviewComponent->bPrevDisableClothSimulation = PreviewComponent->bDisableClothSimulation;
-			PreviewComponent->bDisableClothSimulation = true;
-			PreviewComponent->InitAnim(false);
-		}
-		else
-		{
-			// restore previous state
-			PreviewComponent->bDisableClothSimulation = PreviewComponent->bPrevDisableClothSimulation;
-		}
-
-		RefreshViewport();
-	}
-}
-
-bool SAnimationEditorViewportTabBody::IsShowingClothMaxDistances() const
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		return PreviewComponent->bDisplayClothMaxDistances;
-	}
-
-	return false;
-}
-
-void SAnimationEditorViewportTabBody::OnShowClothBackstops()
-{
-	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
-
-	if( PreviewComponent )
-	{
-		PreviewComponent->bDisplayClothBackstops = !PreviewComponent->bDisplayClothBackstops;
-		// disables cloth simulation and stop animation because showing back stops is only useful when the cloth is not moving
-		if (PreviewComponent->bDisplayClothBackstops)
-		{
-			PreviewComponent->bPrevDisableClothSimulation = PreviewComponent->bDisableClothSimulation;
-			PreviewComponent->bDisableClothSimulation = true;
-			PreviewComponent->InitAnim(false);
-		}
-		else
-		{
-			// restore previous state
-			PreviewComponent->bDisableClothSimulation = PreviewComponent->bPrevDisableClothSimulation;
-		}
-		RefreshViewport();
-	}
-}
-
-bool SAnimationEditorViewportTabBody::IsShowingClothBackstops() const
-{
-	if (UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent())
-	{
-		return PreviewComponent->bDisplayClothBackstops;
-	}
-
-	return false;
-}
-
-void SAnimationEditorViewportTabBody::OnShowClothFixedVertices()
-{
-	if (UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent())
-	{
-		PreviewComponent->bDisplayClothFixedVertices = !PreviewComponent->bDisplayClothFixedVertices;
-		RefreshViewport();
-	}
-}
-
-bool SAnimationEditorViewportTabBody::IsShowingClothFixedVertices() const
-{
-	if (UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent())
-	{
-		return PreviewComponent->bDisplayClothFixedVertices;
 	}
 
 	return false;
@@ -1914,7 +1726,7 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 void SAnimationEditorViewportTabBody::HandleFocusCamera()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
-	AnimViewportClient->FocusViewportOnPreviewMesh();
+	AnimViewportClient->FocusViewportOnPreviewMesh(false);
 }
 
 #undef LOCTEXT_NAMESPACE

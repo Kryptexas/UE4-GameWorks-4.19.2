@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class InMemoryNetworkReplayStreaming : ModuleRules
 	{
-		public InMemoryNetworkReplayStreaming( TargetInfo Target )
+		public InMemoryNetworkReplayStreaming( ReadOnlyTargetRules Target ) : base(Target)
 		{
 			PublicIncludePathModuleNames.Add("Engine");
 

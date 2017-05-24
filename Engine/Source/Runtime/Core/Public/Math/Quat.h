@@ -1094,7 +1094,10 @@ FORCEINLINE float FQuat::ErrorAutoNormalize(const FQuat& A, const FQuat& B)
 	return FQuat::Error(Q1, Q2);
 }
 
-
+/**
+ * Fast Linear Quaternion Interpolation.
+ * Result is NOT normalized.
+ */
 FORCEINLINE FQuat FQuat::FastLerp(const FQuat& A, const FQuat& B, const float Alpha)
 {
 	// To ensure the 'shortest route', we make sure the dot product between the both rotations is positive.

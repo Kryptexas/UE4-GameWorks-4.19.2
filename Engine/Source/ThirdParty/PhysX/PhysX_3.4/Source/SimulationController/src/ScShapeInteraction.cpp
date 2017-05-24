@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
            
@@ -110,8 +110,6 @@ Sc::ShapeInteraction::ShapeInteraction(ShapeSim& s1, ShapeSim& s2, ActorPair* aP
 	{
 		onActivate(contactManager);
 	}
-
-	PX_ASSERT((&getShape0()) && (&getShape1()));
 
 	if(aPair)
 		aPair->incRefCount();
@@ -868,6 +866,9 @@ void Sc::ShapeInteraction::updateState(const PxU8 externalDirtyFlags)
 		// B) The contact notification or processing state has changed.
 		//    All existing managers need to be deleted and recreated with the correct flag set
 		//    These flags can only be set at creation in LL
+		//KS - added this code here because it is no longer done in destroyManager() - a side-effect of the parallelization of the interaction management code
+		if (mEdgeIndex != IG_INVALID_EDGE)
+			scene.getSimpleIslandManager()->clearEdgeRigidCM(mEdgeIndex);
 		destroyManager();
 		createManager(NULL);
 	}

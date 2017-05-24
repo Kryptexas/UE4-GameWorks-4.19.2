@@ -4,7 +4,6 @@
 	"FriendlyName" : "Online Subsystem Facebook",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"EngineVersion" : "4.2.0",
 	"Description" : "Access to Facebook platform",
 	"Category" : "Online Platform",
 	"CreatedBy" : "Epic Games, Inc.",
@@ -19,8 +18,15 @@
 			"WhitelistPlatforms" :
 			[
 				"IOS",
+				"Android",
 				"Win64","Win32"
 			]
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemFacebook",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

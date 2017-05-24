@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3158648
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:머티리얼 함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ parent:Engine/Rendering/Materials
 order:10
 topic-image:Engine/Rendering/Materials/FunctionTopic.png
 type:overview
+tags:Materials
 
 [REGION:full_feature]
 [/REGION]

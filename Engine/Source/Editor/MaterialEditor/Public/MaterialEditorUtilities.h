@@ -188,6 +188,9 @@ public:
 	 */
 	static void BuildTextureStreamingData(UMaterialInterface* MaterialInterface);
 
+	/** Get IMaterialEditor for given object, if it exists */
+	static TSharedPtr<class IMaterialEditor> GetIMaterialEditorForObject(const UObject* ObjectToFocusOn);
+
 private:
 
 	/**
@@ -202,9 +205,6 @@ private:
 		UMaterialInstance* MaterialInstance, 
 		TArray<FGuid>& VisibleExpressions, 
 		TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack);
-
-	/** Get IMaterialEditor for given object, if it exists */
-	static TSharedPtr<class IMaterialEditor> GetIMaterialEditorForObject(const UObject* ObjectToFocusOn);
 
 	/**
 	 * Adds a category of Material Expressions to an action builder

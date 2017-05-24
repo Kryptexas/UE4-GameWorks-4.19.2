@@ -166,17 +166,17 @@ For more information, see: [](Engine/Levels), [](Engine/UI/LevelEditor), [](Reso
 [EXCERPT:gamemode]
 **GameModes**
 [INCLUDE:Shared\Glossary\G#glossary_gamemode] 
-For more information, see: [](Gameplay/Framework/GameMode), [](Gameplay/HowTo/SettingUpAGameMode/Blueprints) 
+For more information, see: [GameMode](Gameplay/Framework/GameMode), [](Gameplay/HowTo/SettingUpAGameMode/Blueprints) 
 [/EXCERPT:gamemode]
 
 
 [EXCERPT:gamestate]
 **GameStates**
 [INCLUDE:Shared\Glossary\G#glossary_gamestate] 
-For more information, see: [](Gameplay/Framework/GameState)
+For more information, see: [GameState](Gameplay/Framework/GameMode#gamestate)
 [/EXCERPT:gamestate]
 
-
+ 
 [EXCERPT:playerstate]
 **PlayerStates**
 [INCLUDE:Shared\Glossary\P#glossary_playerstate] 

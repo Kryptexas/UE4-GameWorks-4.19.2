@@ -18,6 +18,7 @@ namespace physx
 	class PxVehicleDrive;
 	class PxVehicleWheels;
 	class PxVehicleWheelsSimData;
+	class PxRigidBody;
 }
 
 struct FBodyInstance;
@@ -153,7 +154,12 @@ struct PHYSXVEHICLES_API FVehicleInputRate
 	float InterpInputValue( float DeltaTime, float CurrentValue, float NewValue ) const
 	{
 		const float DeltaValue = NewValue - CurrentValue;
-		const bool bRising = ( DeltaValue > 0.0f ) == ( CurrentValue > 0.0f );
+
+		// We are "rising" when DeltaValue has the same sign as CurrentValue (i.e. delta causes an absolute magnitude gain)
+		// OR we were at 0 before, and our delta is no longer 0.
+		const bool bRising = (( DeltaValue > 0.0f ) == ( CurrentValue > 0.0f )) ||
+								(( DeltaValue != 0.f ) && ( CurrentValue == 0.f ));
+
 		const float MaxDeltaValue = DeltaTime * ( bRising ? RiseRate : FallRate );
 		const float ClampedDeltaValue = FMath::Clamp( DeltaValue, -MaxDeltaValue, MaxDeltaValue );
 		return CurrentValue + ClampedDeltaValue;
@@ -318,6 +324,7 @@ class PHYSXVEHICLES_API UWheeledVehicleMovementComponent : public UPawnMovementC
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif //WITH_EDITOR
 
+	virtual void StopMovementImmediately() override;
 
 	/** Set the user input for the vehicle throttle */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
@@ -539,8 +546,23 @@ protected:
 	/** Compute throttle input */
 	virtual float CalcThrottleInput();
 
-	/** Clear all interpolated inputs to default values */
+	/**
+	* Clear all interpolated inputs to default values.
+	* Raw input won't be cleared, the vehicle may resume input based movement next frame.
+	*/
 	virtual void ClearInput();
+	
+	/**
+	* Clear all raw inputs to default values.
+	* Interpolated input won't be cleared, the vehicle will begin interpolating to no input.
+	*/
+	virtual void ClearRawInput();
+
+	void ClearAllInput()
+	{
+		ClearRawInput();
+		ClearInput();
+	}
 
 	/** Updates the COMOffset on the actual body instance */
 
@@ -613,6 +635,8 @@ protected:
 
 	/** Adjust the PhysX actor's mass */
 	virtual void SetupVehicleMass();
+
+	virtual void SetupWheelMassProperties_AssumesLocked(const uint32 NumWheels, physx::PxVehicleWheelsSimData* PWheelsSimData, physx::PxRigidBody* PVehicleActor);
 
 	/** Set up the wheel data */
 	virtual void SetupWheels(physx::PxVehicleWheelsSimData* PWheelsSimData);

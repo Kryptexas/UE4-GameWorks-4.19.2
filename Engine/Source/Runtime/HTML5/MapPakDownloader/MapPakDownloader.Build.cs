@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class MapPakDownloader: ModuleRules
 	{
-        public MapPakDownloader(TargetInfo Target)
+        public MapPakDownloader(ReadOnlyTargetRules Target) : base(Target)
 		{
     		PublicDependencyModuleNames.AddRange(
 				new string[]

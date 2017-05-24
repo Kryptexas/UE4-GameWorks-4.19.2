@@ -82,7 +82,7 @@ public:
 
 	// UAnimGraphNode_SkeletalControlBase
 	virtual void Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* PreviewSkelMeshComp) const override;
-	virtual void GetOnScreenDebugInfo(TArray<FText>& DebugInfo, USkeletalMeshComponent* PreviewSkelMeshComp) const override;
+	virtual void GetOnScreenDebugInfo(TArray<FText>& DebugInfo, FAnimNode_Base* RuntimeAnimNode, USkeletalMeshComponent* PreviewSkelMeshComp) const override;
 
 	FAnimNode_AnimDynamics* GetPreviewDynamicsNode() const;
 

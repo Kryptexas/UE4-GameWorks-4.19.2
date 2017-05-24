@@ -9,6 +9,9 @@
 // Dependencies
 #include "VulkanRHI.h"
 #include "VulkanPipeline.h"
+#include "VulkanGlobalUniformBuffer.h"
+#include "VulkanPipelineState.h"
+#include "VulkanBoundShaderState.h"
 
 typedef uint32 FStateKey;
 
@@ -124,72 +127,156 @@ namespace VulkanRHI
 	};
 };
 
-class FVulkanPendingState
-{
-public:
-	FVulkanPendingState(FVulkanDevice* InDevice);
-	virtual ~FVulkanPendingState();
-
-	inline FVulkanGlobalUniformPool& GetGlobalUniformPool()
-	{
-		return *GlobalUniformPool;
-	}
-
-protected:
-	FVulkanDevice* Device;
-
-	FVulkanGlobalUniformPool* GlobalUniformPool;
-
-	friend class FVulkanCommandListContext;
-};
-
-class FVulkanPendingComputeState : public FVulkanPendingState
+// All the current compute pipeline states in use
+class FVulkanPendingComputeState : public VulkanRHI::FDeviceChild
 {
 public:
 	FVulkanPendingComputeState(FVulkanDevice* InDevice)
-		: FVulkanPendingState(InDevice)
+		: VulkanRHI::FDeviceChild(InDevice)
 	{
 	}
 
-	inline void SetComputeShader(FVulkanComputeShader* InComputeShader)
+	~FVulkanPendingComputeState()
 	{
-		TRefCountPtr<FVulkanComputeShaderState>* Found = ComputeShaderStates.Find(InComputeShader);
-		FVulkanComputeShaderState* CSS = nullptr;
-		if (Found)
+		//#todo-rco: Delete all
+		ensure(0);
+	}
+
+	inline FVulkanGlobalUniformPool& GetGlobalUniformPool()
+	{
+		return GlobalUniformPool;
+	}
+
+	void SetComputePipeline(FVulkanComputePipeline* InComputePipeline)
+	{
+		if (InComputePipeline != CurrentPipeline)
 		{
-			CSS = *Found;
+			CurrentPipeline = InComputePipeline;
+			FVulkanComputePipelineState** Found = PipelineStates.Find(InComputePipeline);
+			if (Found)
+			{
+				CurrentState = *Found;
+			}
+			else
+			{
+				CurrentState = new FVulkanComputePipelineState(Device, InComputePipeline);
+				PipelineStates.Add(CurrentPipeline, CurrentState);
+			}
+
+			CurrentState->DSRingBuffer.Reset();
+		}
+	}
+
+	void PrepareForDispatch(FVulkanCommandListContext* Context, FVulkanCmdBuffer* CmdBuffer);
+
+	inline const FVulkanComputeShader* GetCurrentShader() const
+	{
+		return CurrentPipeline ? CurrentPipeline->GetShader() : nullptr;
+	}
+
+	inline void AddUAVForAutoFlush(FVulkanUnorderedAccessView* UAV)
+	{
+		UAVListForAutoFlush.Add(UAV);
+	}
+
+	inline void SetUAV(uint32 UAVIndex, FVulkanUnorderedAccessView* UAV)
+	{
+		if (UAV)
+		{
+			// make sure any dynamically backed UAV points to current memory
+			UAV->UpdateView();
+			if (UAV->BufferView)
+			{
+				CurrentState->SetUAVBufferViewState(UAVIndex, UAV->BufferView);
+			}
+			else if (UAV->SourceTexture)
+			{
+				CurrentState->SetUAVTextureView(UAVIndex, UAV->TextureView);
+			}
+			else
+			{
+				ensure(0);
+			}
+		}
+	}
+
+	inline void SetTexture(uint32 BindPoint, const FVulkanTextureBase* TextureBase)
+	{
+		CurrentState->SetTexture(BindPoint, TextureBase);
+	}
+
+	void SetSRV(uint32 TextureIndex, FVulkanShaderResourceView* SRV)
+	{
+		if (SRV)
+		{
+			// make sure any dynamically backed SRV points to current memory
+			SRV->UpdateView();
+			if (SRV->BufferView)
+			{
+				checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
+				CurrentState->SetSRVBufferViewState(TextureIndex, SRV->BufferView);
+			}
+			else
+			{
+				checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
+				CurrentState->SetSRVTextureView(TextureIndex, SRV->TextureView);
+			}
 		}
 		else
 		{
-			CSS = new FVulkanComputeShaderState(Device, InComputeShader);
-			ComputeShaderStates.Add(InComputeShader, CSS);
+			CurrentState->SetSRVBufferViewState(TextureIndex, nullptr);
 		}
-
-		CSS->ResetState();
-		CurrentState.CSS = CSS;
 	}
 
-	void PrepareDispatch(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer);
+	inline void SetShaderParameter(uint32 BufferIndex, uint32 ByteOffset, uint32 NumBytes, const void* NewValue)
+	{
+		CurrentState->SetShaderParameter(BufferIndex, ByteOffset, NumBytes, NewValue);
+	}
 
-private:
-	FVulkanComputePipelineState CurrentState;
-	TMap<FVulkanComputeShader*, TRefCountPtr<FVulkanComputeShaderState>> ComputeShaderStates;
+	inline void SetUniformBufferConstantData(uint32 BindPoint, const TArray<uint8>& ConstantData)
+	{
+		CurrentState->SetUniformBufferConstantData(BindPoint, ConstantData);
+	}
+
+	inline void SetSamplerState(uint32 BindPoint, FVulkanSamplerState* Sampler)
+	{
+		CurrentState->SetSamplerState(BindPoint, Sampler);
+	}
+
+	//#todo-rco: Move to pipeline cache
+	FVulkanComputePipeline* GetOrCreateComputePipeline(FVulkanComputeShader* ComputeShader);
+
+protected:
+	FVulkanGlobalUniformPool GlobalUniformPool;
+	TArray<FVulkanUnorderedAccessView*> UAVListForAutoFlush;
+
+	FVulkanComputePipeline* CurrentPipeline;
+	FVulkanComputePipelineState* CurrentState;
+
+	TMap<FVulkanComputePipeline*, FVulkanComputePipelineState*> PipelineStates;
+
+	//#todo-rco: Move to pipeline cache
+	TMap<FVulkanComputeShader*, FVulkanComputePipeline*> ComputePipelineCache;
 
 	friend class FVulkanCommandListContext;
 };
 
-class FVulkanPendingGfxState : public FVulkanPendingState
+class FOLDVulkanPendingGfxState
 {
 public:
 	typedef TMap<FStateKey, FVulkanRenderPass*> FMapRenderPass;
 	typedef TMap<FStateKey, TArray<FVulkanFramebuffer*> > FMapFrameBufferArray;
 
-	FVulkanPendingGfxState(FVulkanDevice* InDevice);
-	virtual ~FVulkanPendingGfxState();
+	FOLDVulkanPendingGfxState(FVulkanDevice* InDevice);
 
 	void Reset();
 
 	void PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology);
+
+	inline FVulkanGlobalUniformPool& GetGlobalUniformPool()
+	{
+		return GlobalUniformPool;
+	}
 
 	void SetBoundShaderState(TRefCountPtr<FVulkanBoundShaderState> InBoundShaderState);
 
@@ -261,6 +348,7 @@ private:
 	bool bScissorEnable;
 
 	FVulkanGfxPipelineState CurrentState;
+	FVulkanGlobalUniformPool GlobalUniformPool;
 
 	friend class FVulkanCommandListContext;
 

@@ -9,9 +9,9 @@
 
 namespace VREd
 {
-	static FAutoConsoleVariable GizmoSelectionAnimationDuration( TEXT( "VREd.GizmoSelectionAnimationDuration" ), 0.15f, TEXT( "How long to animate the gizmo after objects are selected" ) );
-	static FAutoConsoleVariable GizmoSelectionAnimationCurvePower( TEXT( "VREd.GizmoSelectionAnimationCurvePower" ), 2.0f, TEXT( "Controls the animation curve for the gizmo after objects are selected" ) );
-	static FAutoConsoleVariable GizmoShowMeasurementText( TEXT( "VREd.GizmoShowMeasurementText" ), 0, TEXT( "When enabled, gizmo measurements will always be visible.  Otherwise, only when hovering over a scale/stretch gizmo handle" ) );
+	static FAutoConsoleVariable GizmoSelectionAnimationDuration( TEXT( "VI.GizmoSelectionAnimationDuration" ), 0.15f, TEXT( "How long to animate the gizmo after objects are selected" ) );
+	static FAutoConsoleVariable GizmoSelectionAnimationCurvePower( TEXT( "VI.GizmoSelectionAnimationCurvePower" ), 2.0f, TEXT( "Controls the animation curve for the gizmo after objects are selected" ) );
+	static FAutoConsoleVariable GizmoShowMeasurementText( TEXT( "VI.GizmoShowMeasurementText" ), 0, TEXT( "When enabled, gizmo measurements will always be visible.  Otherwise, only when hovering over a scale/stretch gizmo handle" ) );
 }
 
 ABaseTransformGizmo::ABaseTransformGizmo( ) :
@@ -111,6 +111,11 @@ void ABaseTransformGizmo::SetOwnerWorldInteraction( class UViewportWorldInteract
 class UViewportWorldInteraction* ABaseTransformGizmo::GetOwnerWorldInteraction() const
 {
 	return WorldInteraction;
+}
+
+EGizmoHandleTypes ABaseTransformGizmo::GetGizmoType() const
+{
+	return GizmoType;
 }
 
 void ABaseTransformGizmo::GetBoundingBoxEdge( const FBox& Box, const int32 AxisIndex, const int32 EdgeIndex, FVector& OutVertex0, FVector& OutVertex1 )
@@ -216,20 +221,20 @@ void ABaseTransformGizmo::GetBoundingBoxEdge( const FBox& Box, const int32 AxisI
 
 
 
-void ABaseTransformGizmo::UpdateHandleVisibility( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, UActorComponent* DraggingHandle )
+void ABaseTransformGizmo::UpdateHandleVisibility(const EGizmoHandleTypes InGizmoType, const ECoordSystem InGizmoCoordinateSpace, const bool bInAllHandlesVisible, UActorComponent* DraggingHandle)
 {
 	for ( UGizmoHandleGroup* HandleGroup : AllHandleGroups )
 	{
 		if ( HandleGroup != nullptr )
 		{
-			const bool bIsTypeSupported = ( GizmoType == EGizmoHandleTypes::All && HandleGroup->GetShowOnUniversalGizmo() ) || HandleGroup->GetHandleType() == GizmoType;
-			const bool bSupportsCurrentCoordinateSpace = HandleGroup->SupportsWorldCoordinateSpace() || GizmoCoordinateSpace != COORD_World;
+			const bool bIsTypeSupported = ( InGizmoType == EGizmoHandleTypes::All && HandleGroup->GetShowOnUniversalGizmo() ) || HandleGroup->GetHandleType() == InGizmoType;
+			const bool bSupportsCurrentCoordinateSpace = HandleGroup->SupportsWorldCoordinateSpace() || InGizmoCoordinateSpace != COORD_World;
 
 			for ( FGizmoHandle& Handle : HandleGroup->GetHandles() )
 			{
 				if( Handle.HandleMesh != nullptr )
 				{
-					const bool bShowIt = ( bIsTypeSupported && bSupportsCurrentCoordinateSpace && bAllHandlesVisible ) || ( DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh );
+					const bool bShowIt = ( bIsTypeSupported && bSupportsCurrentCoordinateSpace && bInAllHandlesVisible ) || ( DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh );
 
 					Handle.HandleMesh->SetVisibility( bShowIt );
 

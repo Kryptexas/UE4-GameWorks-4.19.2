@@ -65,6 +65,7 @@ protected:
 	FShaderParameter ClearColor;
 };
 
+template< typename T >
 class FClearTexture2DReplacementCS : public FGlobalShader
 {
 	DECLARE_EXPORTED_SHADER_TYPE(FClearTexture2DReplacementCS, Global, UTILITYSHADERS_API);
@@ -85,12 +86,18 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 	
-	void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value);
-	void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4]);
+	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
 	
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine( TEXT("Type"), TIsSame< T, float >::Value ? TEXT("float4") : TEXT("uint4") );
 	}
 	
 	const FShaderParameter& GetClearColorParameter()
@@ -106,6 +113,106 @@ public:
 protected:
 	FShaderParameter ClearColor;
 	FShaderResourceParameter ClearTextureRW;
+};
+
+template< typename T >
+class FClearTexture2DArrayReplacementCS : public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FClearTexture2DArrayReplacementCS, Global, UTILITYSHADERS_API);
+public:
+	FClearTexture2DArrayReplacementCS() {}
+	FClearTexture2DArrayReplacementCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		ClearColor.Bind(Initializer.ParameterMap, TEXT("ClearColor"), SPF_Mandatory);
+		ClearTextureArrayRW.Bind(Initializer.ParameterMap, TEXT("ClearTextureArrayRW"), SPF_Mandatory);
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << ClearColor << ClearTextureArrayRW;
+		return bShaderHasOutdatedParameters;
+	}
+
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4]);
+	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine( TEXT("Type"), TIsSame< T, float >::Value ? TEXT("float4") : TEXT("uint4") );
+	}
+
+	const FShaderParameter& GetClearColorParameter()
+	{
+		return ClearColor;
+	}
+
+	const FShaderResourceParameter& GetClearTextureRWParameter()
+	{
+		return ClearTextureArrayRW;
+	}
+
+protected:
+	FShaderParameter ClearColor;
+	FShaderResourceParameter ClearTextureArrayRW;
+};
+
+template< typename T >
+class FClearVolumeReplacementCS : public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FClearVolumeReplacementCS, Global, UTILITYSHADERS_API);
+public:
+	FClearVolumeReplacementCS() {}
+	FClearVolumeReplacementCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		ClearColor.Bind(Initializer.ParameterMap, TEXT("ClearColor"), SPF_Mandatory);
+		ClearVolumeRW.Bind(Initializer.ParameterMap, TEXT("ClearVolumeRW"), SPF_Mandatory);
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << ClearColor << ClearVolumeRW;
+		return bShaderHasOutdatedParameters;
+	}
+
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, const T(&Values)[4]);
+	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine( TEXT("Type"), TIsSame< T, float >::Value ? TEXT("float4") : TEXT("uint4") );
+	}
+
+	const FShaderParameter& GetClearColorParameter()
+	{
+		return ClearColor;
+	}
+
+	const FShaderResourceParameter& GetClearTextureRWParameter()
+	{
+		return ClearVolumeRW;
+	}
+
+protected:
+	FShaderParameter ClearColor;
+	FShaderResourceParameter ClearVolumeRW;
 };
 
 class FClearTexture2DReplacementScissorCS : public FGlobalShader
@@ -129,8 +236,8 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor ClearColor, const FVector4& InTargetBounds);
-	void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor ClearColor, const FVector4& InTargetBounds);
+	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
@@ -170,8 +277,8 @@ public:
 		ClearBufferRW.Bind(Initializer.ParameterMap, TEXT("ClearBufferRW"), SPF_Mandatory);
 	}
 	
-	void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 Dword);
-	void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 Dword);
+	UTILITYSHADERS_API void FinalizeParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW);
 	
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override

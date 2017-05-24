@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3126630
+﻿INTSourceChangelist:3356804
 Availability:Public
 Title:BuildGraph スクリプトのエレメント
 Crumbs:
@@ -6,6 +6,7 @@ Description:BuildGraph のエレメントについて学習しましょう。
 version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
+tags:Programming
 tags:BuildGraph
 
 [VAR:TopicCompact]

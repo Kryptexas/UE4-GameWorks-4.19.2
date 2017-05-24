@@ -115,6 +115,7 @@ CefRefPtr<CefDictionaryValue> FCEFJSScripting::GetPermanentBindings()
 
 void FCEFJSScripting::BindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
 {
+	const FString ExposedName = GetBindingName(Name, Object);
 	CefRefPtr<CefDictionaryValue> Converted = ConvertObject(Object);
 	if (bIsPermanent)
 	{
@@ -124,18 +125,18 @@ void FCEFJSScripting::BindUObject(const FString& Name, UObject* Object, bool bIs
 			return;
 		}
 		// Existing permanent objects must be removed first
-		if (PermanentUObjectsByName.Contains(Name))
+		if (PermanentUObjectsByName.Contains(ExposedName))
 		{
 			return;
 		}
 		BoundObjects[Object]={true, -1};
-		PermanentUObjectsByName.Add(Name, Object);
+		PermanentUObjectsByName.Add(ExposedName, Object);
 	}
 
 	CefRefPtr<CefProcessMessage> SetValueMessage = CefProcessMessage::Create(TEXT("UE::SetValue"));
 	CefRefPtr<CefListValue>MessageArguments = SetValueMessage->GetArgumentList();
 	CefRefPtr<CefDictionaryValue> Value = CefDictionaryValue::Create();
-	Value->SetString("name", *Name);
+	Value->SetString("name", *ExposedName);
 	Value->SetDictionary("value", Converted);
 	Value->SetBool("permanent", bIsPermanent);
 
@@ -145,12 +146,14 @@ void FCEFJSScripting::BindUObject(const FString& Name, UObject* Object, bool bIs
 
 void FCEFJSScripting::UnbindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
 {
+	const FString ExposedName = GetBindingName(Name, Object);
+
 	if (bIsPermanent)
 	{
 		// If overriding an existing permanent object, make it non-permanent
-		if (PermanentUObjectsByName.Contains(Name) && (Object == nullptr || PermanentUObjectsByName[Name] == Object))
+		if (PermanentUObjectsByName.Contains(ExposedName) && (Object == nullptr || PermanentUObjectsByName[ExposedName] == Object))
 		{
-			Object = PermanentUObjectsByName.FindAndRemoveChecked(Name);
+			Object = PermanentUObjectsByName.FindAndRemoveChecked(ExposedName);
 			BoundObjects.Remove(Object);
 			return;
 		}
@@ -163,7 +166,7 @@ void FCEFJSScripting::UnbindUObject(const FString& Name, UObject* Object, bool b
 	CefRefPtr<CefProcessMessage> DeleteValueMessage = CefProcessMessage::Create(TEXT("UE::DeleteValue"));
 	CefRefPtr<CefListValue>MessageArguments = DeleteValueMessage->GetArgumentList();
 	CefRefPtr<CefDictionaryValue> Info = CefDictionaryValue::Create();
-	Info->SetString("name", *Name);
+	Info->SetString("name", *ExposedName);
 	Info->SetString("id", *PtrToGuid(Object).ToString(EGuidFormats::Digits));
 	Info->SetBool("permanent", bIsPermanent);
 

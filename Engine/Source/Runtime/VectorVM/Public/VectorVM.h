@@ -10,18 +10,22 @@
 #define VECTOR_WIDTH_BYTES (16)
 #define VECTOR_WIDTH_FLOATS (4)
 
-class FVectorVMSharedDataView;
+DECLARE_DELEGATE_OneParam(FVMExternalFunction, struct FVectorVMContext& /*Context*/);
+
+UENUM()
+enum class EVectorVMBaseTypes : uint8
+{
+	Float,
+	Int,
+	Bool,
+	Num UMETA(Hidden),
+};
 
 UENUM()
 enum class EVectorVMOperandLocation : uint8
 {
-	TemporaryRegister,
-	InputRegister,
-	OutputRegister,
+	Register,
 	Constant,
-	DataObjConstant,
-	SharedData,
-	Undefined,
 	Num
 };
 
@@ -32,6 +36,7 @@ enum class EVectorVMOp : uint8
 	add,
 	sub,
 	mul,
+	div,
 	mad,
 	lerp,
 	rcp,
@@ -61,37 +66,99 @@ enum class EVectorVMOp : uint8
 	pow,
 	sign,
 	step,
-	dot,
-	cross,
-	normalize,
 	random,
-	length,
 	noise,
-	splatx,
-	splaty,
-	splatz,
-	splatw,
-	compose,
-	composex,
-	composey,
-	composez,
-	composew,
 	output,
-	lessthan,
+
+	//Comparison ops.
+	cmplt,
+	cmple,
+	cmpgt,
+	cmpge,
+	cmpeq,
+	cmpneq,
 	select,
-	sample,
-	bufferwrite,
-	easein,
-	easeinout,
-	div,
-	aquireshareddataindex,
-	aquireshareddataindexwrap,
-	consumeshareddataindex,
-	consumeshareddataindexwrap,
-	shareddataread,
-	shareddatawrite,
-	shareddataindexvalid,
+
+// 	easein,  Pretty sure these can be replaced with just a single smoothstep implementation.
+// 	easeinout,
+
+	//Integer ops
+	addi,
+	subi,
+	muli,
+	//divi,//SSE Integer division is not implemented as an intrinsic. Will have to do some manual implementation.
+	clampi,
+	mini,
+	maxi,
+	absi,
+	negi,
+	signi,
+	cmplti,
+	cmplei,
+	cmpgti,
+	cmpgei,
+	cmpeqi,
+	cmpneqi,
+	bit_and,
+	bit_or,
+	bit_xor,
+	bit_not,
+
+	//"Boolean" ops. Currently handling bools as integers.
+	logic_and,
+	logic_or,
+	logic_xor,
+	logic_not,
+
+	//conversions
+	f2i,
+	i2f,
+	f2b,
+	b2f,
+	i2b,
+	b2i,
+
+	// data read/write
+	inputdata_32bit,
+	inputdata_noadvance_32bit,
+	outputdata_32bit,
+	acquireindex,
+
+	external_func_call,
+
+	/** Returns the index of each instance in the current execution context. */
+	exec_index,
+
+	noise2D,
+	noise3D,
+
+	/** Utility ops for hooking into the stats system for performance analysis. */
+	enter_stat_scope,
+	exit_stat_scope,
+
+	//TODO: Move back to the float ops when we can auto recompile existing data.
+	round,
+
+
 	NumOpcodes
+};
+
+
+struct FDataSetMeta
+{
+	uint8 **InputRegisters;
+	uint8 NumVariables;
+	uint32 DataSetSizeInBytes;
+	int32 DataSetAccessIndex;	// index for individual elements of this set
+	int32 DataSetOffset;		// offset in the register table
+
+	FDataSetMeta(uint32 DataSetSize, uint8 **Data = nullptr, uint8 InNumVariables = 0)
+		: InputRegisters(Data), NumVariables(InNumVariables), DataSetSizeInBytes(DataSetSize), DataSetAccessIndex(0), DataSetOffset(0)
+	{}
+
+	FDataSetMeta()
+		: InputRegisters(nullptr), NumVariables(0), DataSetSizeInBytes(0), DataSetAccessIndex(0), DataSetOffset(0)
+	{}
 };
 
 namespace VectorVM
@@ -103,9 +170,9 @@ namespace VectorVM
 		MaxInputRegisters = 100,
 		MaxOutputRegisters = MaxInputRegisters,
 		MaxConstants = 256,
+		FirstTempRegister = 0,
 		FirstInputRegister = NumTempRegisters,
 		FirstOutputRegister = FirstInputRegister + MaxInputRegisters,
-		FirstConstantRegister = FirstOutputRegister + MaxOutputRegisters,
 		MaxRegisters = NumTempRegisters + MaxInputRegisters + MaxOutputRegisters + MaxConstants,
 	};
 
@@ -117,82 +184,268 @@ namespace VectorVM
 	VECTORVM_API FString GetOperandLocationName(EVectorVMOperandLocation Location);
 #endif
 
-	VECTORVM_API uint8 CreateSrcOperandMask(EVectorVMOperandLocation Type1, EVectorVMOperandLocation Type2 = EVectorVMOperandLocation::TemporaryRegister, EVectorVMOperandLocation Type3 = EVectorVMOperandLocation::TemporaryRegister, EVectorVMOperandLocation Type4 = EVectorVMOperandLocation::TemporaryRegister);
+	VECTORVM_API uint8 CreateSrcOperandMask(EVectorVMOperandLocation Type0, EVectorVMOperandLocation Type1 = EVectorVMOperandLocation::Register, EVectorVMOperandLocation Type2 = EVectorVMOperandLocation::Register);
 
 	/**
 	 * Execute VectorVM bytecode.
 	 */
 	VECTORVM_API void Exec(
 		uint8 const* Code,
-		VectorRegister** InputRegisters,
+		uint8** InputRegisters,
+		uint8* InputRegisterSizes,
 		int32 NumInputRegisters,
-		VectorRegister** OutputRegisters,
+		uint8** OutputRegisters,
+		uint8* OutputRegisterSizes,
 		int32 NumOutputRegisters,
-		FVector4 const* ConstantTable,
-		FVectorVMSharedDataView* SharedDataTable,
-		int32 NumVectors
+		uint8 const* ConstantTable,
+		TArray<FDataSetMeta> &DataSetMetaTable,
+		FVMExternalFunction* ExternalFunctionTable,
+		int32 NumInstances
+
+#if STATS
+		, TArray<TStatId>& StatScopes
+#endif
 		);
 
 	VECTORVM_API void Init();
 } // namespace VectorVM
 
 
-/**
-Encapsulates a view of a number of shared data buffers with a shared counter and size.
-This is temporary until we can use integers in the constants for the size and counter.
-*/
-class FVectorVMSharedDataView
+
+
+  /**
+  * Context information passed around during VM execution.
+  */
+struct FVectorVMContext
 {
-private:
-	/** Array of data buffers.*/
-	TArray<FVector4*> Buffers;
-	/** Total size of buffer in vectors. */
-	int32 Size;
-	/** Counter used to acquire and release slots for reading and writing. */
-	int32 Counter;//Need to ensure this is atomically updated if threading withing a single VM script run. Though I don't think we should do that.
+	/** Pointer to the next element in the byte code. */
+	uint8 const* RESTRICT Code;
+	/** Pointer to the table of vector register arrays. */
+	uint8* RESTRICT * RESTRICT RegisterTable;
+	/** Pointer to the constant table. */
+	uint8 const* RESTRICT ConstantTable;
+	/** Pointer to the data set index counter table */
+	int32* RESTRICT DataSetIndexTable;
+	int32* RESTRICT DataSetOffsetTable;
+	int32 NumSecondaryDataSets;
+	/** Pointer to the shared data table. */
+	FVMExternalFunction* RESTRICT ExternalFunctionTable;
+	/** Number of instances to process. */
+	int32 NumInstances;
+	/** Start instance of current chunk. */
+	int32 StartInstance;
 
-	// Dummy read and write data for when the VM requests an invalid buffer pointer.
-	// This can happen because we have no branching currently. Writing to OOB indices must still continue but just not do any damage.
-	FVector4 DummyRead;
-	FVector4 DummyWrite;
+#if STATS
+	TArray<FCycleCounter> StatCounterStack;
+	TArray<TStatId>& StatScopes;
+#endif
 
-public:
-	FVectorVMSharedDataView(int32 InSize, int32 InCounter)
-		: Size(InSize)
-		, Counter(InCounter)
-		, DummyRead(FVector4(0.0f, 0.0f, 0.0f, 0.0f))
+	/** Initialization constructor. */
+	FVectorVMContext(
+		const uint8* InCode,
+		uint8** InRegisterTable,
+		const uint8* InConstantTable,
+		int32 *InDataSetIndexTable,
+		int32 *InDataSetOffsetTable,
+		FVMExternalFunction* InExternalFunctionTable,
+		int32 InNumInstances,
+		int32 InStartInstance
+#if STATS
+		, TArray<TStatId>& InStatScopes
+#endif
+	)
+		: Code(InCode)
+		, RegisterTable(InRegisterTable)
+		, ConstantTable(InConstantTable)
+		, DataSetIndexTable(InDataSetIndexTable)
+		, DataSetOffsetTable(InDataSetOffsetTable)
+		, ExternalFunctionTable(InExternalFunctionTable)
+		, NumInstances(InNumInstances)
+		, StartInstance(InStartInstance)
+#if STATS
+		, StatScopes(InStatScopes)
+#endif
+	{
+#if STATS
+		StatCounterStack.Reserve(StatScopes.Num());
+#endif
+	}
+};
+
+static FORCEINLINE uint8 DecodeU8(FVectorVMContext& Context)
+{
+	return *Context.Code++;
+}
+
+static FORCEINLINE uint16 DecodeU16(FVectorVMContext& Context)
+{
+	return ((uint16)DecodeU8(Context) << 8) + DecodeU8(Context);
+}
+
+static FORCEINLINE uint32 DecodeU32(FVectorVMContext& Context)
+{
+	return ((uint32)DecodeU8(Context) << 24) + (uint32)(DecodeU8(Context) << 16) + (uint32)(DecodeU8(Context) << 8) + DecodeU8(Context);
+}
+
+/** Decode the next operation contained in the bytecode. */
+static FORCEINLINE EVectorVMOp DecodeOp(FVectorVMContext& Context)
+{
+	return static_cast<EVectorVMOp>(DecodeU8(Context));
+}
+
+static FORCEINLINE uint8 DecodeSrcOperandTypes(FVectorVMContext& Context)
+{
+	return DecodeU8(Context);
+}
+
+//////////////////////////////////////////////////////////////////////////
+/** Constant handler. */
+
+struct FConstantHandlerBase
+{
+	uint16 ConstantIndex;
+	FConstantHandlerBase(FVectorVMContext& Context)
+		: ConstantIndex(DecodeU16(Context))
+	{}
+
+	FORCEINLINE void Advance() { }
+};
+
+template<typename T>
+struct FConstantHandler : public FConstantHandlerBase
+{
+	T Constant;
+	FConstantHandler(FVectorVMContext& Context)
+		: FConstantHandlerBase(Context)
+		, Constant(*((T*)(Context.ConstantTable + ConstantIndex)))
+	{}
+	FORCEINLINE const T& Get() { return Constant; }
+};
+
+
+
+struct FDataSetOffsetHandler : FConstantHandlerBase
+{
+	uint32 Offset;
+	FDataSetOffsetHandler(FVectorVMContext& Context)
+		: FConstantHandlerBase(Context)
+		, Offset(Context.DataSetOffsetTable[ConstantIndex])
+	{}
+	FORCEINLINE const uint32 Get() { return Offset; }
+};
+
+
+
+template<>
+struct FConstantHandler<VectorRegister> : public FConstantHandlerBase
+{
+	VectorRegister Constant;
+	FConstantHandler(FVectorVMContext& Context)
+		: FConstantHandlerBase(Context)
+		, Constant(VectorLoadFloat1(&Context.ConstantTable[ConstantIndex]))
+	{}
+	FORCEINLINE const VectorRegister Get() { return Constant; }
+};
+
+template<>
+struct FConstantHandler<VectorRegisterInt> : public FConstantHandlerBase
+{
+	VectorRegisterInt Constant;
+	FConstantHandler(FVectorVMContext& Context)
+		: FConstantHandlerBase(Context)
+		, Constant(VectorIntLoad1(&Context.ConstantTable[ConstantIndex]))
+	{}
+	FORCEINLINE const VectorRegisterInt Get() { return Constant; }
+};
+
+//////////////////////////////////////////////////////////////////////////
+// Register handlers.
+// Handle reading of a register, advancing the pointer with each read.
+
+struct FRegisterHandlerBase
+{
+	int32 RegisterIndex;
+	FRegisterHandlerBase(FVectorVMContext& Context)
+		: RegisterIndex(DecodeU16(Context))
+	{}
+};
+
+template<typename T>
+struct FRegisterHandler : public FRegisterHandlerBase
+{
+	T* RESTRICT Register;
+	FRegisterHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((T*)Context.RegisterTable[RegisterIndex])
+	{}
+	FORCEINLINE const T Get() { return *Register; }
+	FORCEINLINE T* GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+template<> struct FRegisterHandler<VectorRegister> : public FRegisterHandlerBase
+{
+	VectorRegister* RESTRICT Register;
+
+	FRegisterHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((VectorRegister*)Context.RegisterTable[RegisterIndex])
+	{}
+	FORCEINLINE const VectorRegister Get() { return VectorLoadAligned(Register); }
+	FORCEINLINE VectorRegister* GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+template<> struct FRegisterHandler<VectorRegisterInt> : public FRegisterHandlerBase
+{
+	VectorRegisterInt* RESTRICT Register;
+
+	FRegisterHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((VectorRegisterInt*)Context.RegisterTable[RegisterIndex])
+	{}
+	FORCEINLINE const VectorRegisterInt Get() { return VectorIntLoadAligned(Register); }
+	FORCEINLINE VectorRegisterInt* GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+/** Handles writing to a register, advancing the pointer with each write. */
+template<typename T>
+struct FRegisterDestHandler : public FRegisterHandlerBase
+{
+	T* RESTRICT Register;
+	FRegisterDestHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((T*)Context.RegisterTable[RegisterIndex])
+	{}
+	FORCEINLINE T* RESTRICT GetDest() { return Register; }
+	FORCEINLINE T GetValue() { return *Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
+
+template<> struct FRegisterDestHandler<VectorRegister> : public FRegisterHandlerBase
+{
+	VectorRegister* RESTRICT Register;
+	FRegisterDestHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((VectorRegister*)Context.RegisterTable[RegisterIndex])
 	{
 	}
 
-	FORCEINLINE bool ValidIndex(int32 Index){ return Index >= 0 && Index < Size; }
+	FORCEINLINE VectorRegister* RESTRICT GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
+};
 
-	FORCEINLINE FVector4* GetReadBuffer(int32 BufferIndex, int32 DataIndex) { return ValidIndex(DataIndex) && Buffers[BufferIndex] ? Buffers[BufferIndex] + DataIndex : &DummyRead; }
-	FORCEINLINE FVector4* GetWriteBuffer(int32 BufferIndex, int32 DataIndex) { return ValidIndex(DataIndex) && Buffers[BufferIndex] ? Buffers[BufferIndex] + DataIndex : &DummyWrite; }
-
-	FORCEINLINE void AddBuffer(FVector4* Buffer)
+template<> struct FRegisterDestHandler<VectorRegisterInt> : public FRegisterHandlerBase
+{
+	VectorRegisterInt* RESTRICT Register;
+	FRegisterDestHandler(FVectorVMContext& Context)
+		: FRegisterHandlerBase(Context)
+		, Register((VectorRegisterInt*)Context.RegisterTable[RegisterIndex])
 	{
-		Buffers.Add(Buffer);
 	}
 
-	FORCEINLINE int32 GetCounter(){ return Counter; }
-	FORCEINLINE int32 GetSize(){ return Size; }
-
-	FORCEINLINE int32 AcquireIndexWrap(){ int32 Index = Counter; IncrementWrap(); return Index; }
-	FORCEINLINE int32 AcquireIndex(){ int32 Index = Counter; Increment(); return Index; }
-
-	FORCEINLINE int32 ConsumeIndexWrap(){ int32 Index = Counter; DecrementWrap(); return Index; }
-	FORCEINLINE int32 ConsumeIndex(){ int32 Index = Counter; Decrement(); return Index; }
-
-	FORCEINLINE void Increment(){ Counter = FMath::Min(Counter + 1, Size); }
-	FORCEINLINE void Decrement(){ Counter = FMath::Max(Counter - 1, 0); }
-
-	FORCEINLINE int32 Modulo(int32 X, int32 Max)
-	{
-		return Max == 0
-			? 0
-			: (X < 0 ? (X % Max) + Max : (X % Max));
-	}
-	FORCEINLINE void IncrementWrap(){ Counter = Size == 0 ? INDEX_NONE : Modulo(Counter + 1, Size - 1); }
-	FORCEINLINE void DecrementWrap(){ Counter = Size == 0 ? INDEX_NONE : Modulo(Counter - 1, Size - 1); }
+	FORCEINLINE VectorRegisterInt* RESTRICT GetDest() { return Register; }
+	FORCEINLINE void Advance() { ++Register; }
 };
 

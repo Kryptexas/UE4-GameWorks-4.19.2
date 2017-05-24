@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3051723
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:ゲームプレイからシーケンスをトリガーする
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -10,6 +10,7 @@ order:1
 checkpoint: editorqs
 Related:Engine/Sequencer/Overview
 Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 シネマティック シーケンスを作成したらカットシーンの一部としてゲームプレイ中にそれを呼び出しプレイすることができます。 
 例えば、キャラクターが部屋に入ると、カットシーンが始まったり、キャラクターが敵をキルしたらプレイするエンディング シネマティックスがあるかもしれません。 
@@ -75,8 +76,8 @@ Related:Engine\Sequencer\ReferenceEditor\
 
 	現在のセットアップでは、キャラクターはシネマティックスのプレイ中にまだ自由に動き回ることができます。 
 	シネマティックスの再生には何とか成功しましたが、シネマティックスのプレイ中にプレイヤーをロックしたり、または表示されないように **Set Hidden in Game (インゲームで非表示に設定)** したりすることができます。 
+	1.	**Level ブループリント** 内を **右クリック** して、 **Disable Input** ノードを追加します。 
 
-1.	**Level ブループリント** 内を **右クリック** して、 **Disable Input** ノードを追加します。 
 	![](Trigger08.png)
 
 	レベルでレベル シーケンスをまだ選択した状態であれば、2 つのオプションが表示されます (それ自体による **入力** の下にあるものを選択します)。 
@@ -157,7 +158,6 @@ Related:Engine\Sequencer\ReferenceEditor\
 	**Playback Position** をデフォルトで **0.0** で開始するようにすると、シーケンスはプレイされる度に最初から開始します。 
 
 1.	**[Play (プレイ)]** ボタンをクリックして、エディタでプレイします。 	
-
 
 ## 最終結果
 

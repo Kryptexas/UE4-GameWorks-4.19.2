@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class NetcodeUnitTest : ModuleRules
 	{
-		public NetcodeUnitTest(TargetInfo Target)
+		public NetcodeUnitTest(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.Add("NetcodeUnitTest/Private");
 
@@ -34,7 +34,7 @@ namespace UnrealBuildTool.Rules
 			);
 
 			// @todo #JohnBLowpri: Currently don't support standalone commandlet, with static builds (can't get past linker error in Win32)
-			if (!Target.IsMonolithic)
+			if (Target.LinkType != TargetLinkType.Monolithic)
 			{
 				PrivateDependencyModuleNames.AddRange
 				(

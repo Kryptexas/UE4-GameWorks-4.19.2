@@ -71,33 +71,35 @@ namespace AutomationTool
 				Directory.CreateDirectory(SymbolsFolder);
 
 				// Get the Windows toolchain
-				UEToolChain WindowsToolChain = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Win64).CreateContext(null, null).CreateToolChain(CPPTargetPlatform.Win64);
+				Platform WindowsTargetPlatform = Platform.GetPlatform(UnrealTargetPlatform.Win64);
 
 				// Figure out all the files for the archive
-				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
-				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
-				foreach(string BuildProduct in Builder.BuildProductFiles)
-				{
-					if(!File.Exists(BuildProduct))
-					{
-						throw new AutomationException("Missing build product: {0}", BuildProduct);
-					}
-					if(BuildProduct.EndsWith(".pdb", StringComparison.InvariantCultureIgnoreCase))
-					{
-						string StrippedFileName = CommandUtils.MakeRerootedFilePath(BuildProduct, CommandUtils.CmdEnv.LocalRoot, SymbolsFolder);
-						Directory.CreateDirectory(Path.GetDirectoryName(StrippedFileName));
-						WindowsToolChain.StripSymbols(BuildProduct, StrippedFileName);
-						Zip.AddFile(StrippedFileName, Path.GetDirectoryName(CommandUtils.StripBaseDirectory(StrippedFileName, SymbolsFolder)));
-					}
-					else
-					{
-						Zip.AddFile(BuildProduct, Path.GetDirectoryName(CommandUtils.StripBaseDirectory(BuildProduct, CommandUtils.CmdEnv.LocalRoot)));
-					}
-				}
-				// Create the zip file
 				string ZipFileName = Path.Combine(OutputFolder, "Archive.zip");
-				Console.WriteLine("Writing {0}...", ZipFileName);
-				Zip.Save(ZipFileName);
+				using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile())
+				{
+					Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
+					foreach(string BuildProduct in Builder.BuildProductFiles)
+					{
+						if(!File.Exists(BuildProduct))
+						{
+							throw new AutomationException("Missing build product: {0}", BuildProduct);
+						}
+						if(BuildProduct.EndsWith(".pdb", StringComparison.InvariantCultureIgnoreCase))
+						{
+							string StrippedFileName = CommandUtils.MakeRerootedFilePath(BuildProduct, CommandUtils.CmdEnv.LocalRoot, SymbolsFolder);
+							Directory.CreateDirectory(Path.GetDirectoryName(StrippedFileName));
+							WindowsTargetPlatform.StripSymbols(new FileReference(BuildProduct), new FileReference(StrippedFileName));
+							Zip.AddFile(StrippedFileName, Path.GetDirectoryName(CommandUtils.StripBaseDirectory(StrippedFileName, SymbolsFolder)));
+						}
+						else
+						{
+							Zip.AddFile(BuildProduct, Path.GetDirectoryName(CommandUtils.StripBaseDirectory(BuildProduct, CommandUtils.CmdEnv.LocalRoot)));
+						}
+					}
+					// Create the zip file
+					Console.WriteLine("Writing {0}...", ZipFileName);
+					Zip.Save(ZipFileName);
+				}
 
 				// Submit it to Perforce if required
 				if(CommandUtils.AllowSubmit)

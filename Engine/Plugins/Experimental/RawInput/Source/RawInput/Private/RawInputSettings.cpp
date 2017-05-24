@@ -9,8 +9,8 @@
 
 FRawInputDeviceConfiguration::FRawInputDeviceConfiguration()
 {
-	ButtonProperties.AddDefaulted(12);
-	AxisProperties.AddDefaulted(8);
+	ButtonProperties.AddDefaulted(MAX_NUM_CONTROLLER_BUTTONS);
+	AxisProperties.AddDefaulted(MAX_NUM_CONTROLLER_ANALOG);
 
 	ButtonProperties[0].Key = FRawInputKeys::GenericUSBController_Button1;
 	ButtonProperties[1].Key = FRawInputKeys::GenericUSBController_Button2;
@@ -24,6 +24,14 @@ FRawInputDeviceConfiguration::FRawInputDeviceConfiguration()
 	ButtonProperties[9].Key = FRawInputKeys::GenericUSBController_Button10;
 	ButtonProperties[10].Key = FRawInputKeys::GenericUSBController_Button11;
 	ButtonProperties[11].Key = FRawInputKeys::GenericUSBController_Button12;
+	ButtonProperties[12].Key = FRawInputKeys::GenericUSBController_Button13;
+	ButtonProperties[13].Key = FRawInputKeys::GenericUSBController_Button14;
+	ButtonProperties[14].Key = FRawInputKeys::GenericUSBController_Button15;
+	ButtonProperties[15].Key = FRawInputKeys::GenericUSBController_Button16;
+	ButtonProperties[16].Key = FRawInputKeys::GenericUSBController_Button17;
+	ButtonProperties[17].Key = FRawInputKeys::GenericUSBController_Button18;
+	ButtonProperties[18].Key = FRawInputKeys::GenericUSBController_Button19;
+	ButtonProperties[19].Key = FRawInputKeys::GenericUSBController_Button20;
 
 	AxisProperties[0].Key = FRawInputKeys::GenericUSBController_Axis1;
 	AxisProperties[1].Key = FRawInputKeys::GenericUSBController_Axis2;

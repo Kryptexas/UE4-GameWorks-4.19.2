@@ -53,6 +53,7 @@ ACameraRig_Rail::ACameraRig_Rail(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
+#if WITH_EDITORONLY_DATA
 USplineMeshComponent* ACameraRig_Rail::CreateSplinePreviewSegment()
 {
 	USplineMeshComponent* const Segment = NewObject<USplineMeshComponent>(this);
@@ -143,6 +144,7 @@ void ACameraRig_Rail::UpdatePreviewMeshes()
 		}
 	}
 }
+#endif
 
 void ACameraRig_Rail::UpdateRailComponents()
 {

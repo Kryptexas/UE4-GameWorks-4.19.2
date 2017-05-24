@@ -11,6 +11,9 @@
 #include "RHIStaticStates.h"
 #include "Engine/Engine.h"
 #include "OpenGLDrvPrivate.h"
+#include "PipelineStateCache.h"
+#include "Engine/GameViewportClient.h"
+
 
 IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 
@@ -380,8 +383,6 @@ float FOpenGLEventNode::GetTiming()
 	return Result;
 }
 
-static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
-
 void FOpenGLDynamicRHI::IssueLongGPUTask()
 {
 	int32 LargestViewportIndex = INDEX_NONE;
@@ -405,16 +406,25 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
 
 		FRHICommandList_RecursiveHazardous RHICmdList(this);
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
 		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, LongGPUTaskBoundShaderState, GOpenGLVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GOpenGLVector4VertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+		RHICmdList.SetBlendFactor(FLinearColor::Black);
 
 		// Draw a fullscreen quad
 		FVector4 Vertices[4];
@@ -514,7 +524,14 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 		bAmdWorkaround = true;
 #endif
 	}
-	else if (VendorName.Contains(TEXT("Intel ")))
+#if PLATFORM_LINUX
+	else if (VendorName.Contains(TEXT("X.Org")))
+	{
+		GRHIVendorId = 0x1002;
+		bAmdWorkaround = true;
+	}
+#endif
+	else if (VendorName.Contains(TEXT("Intel ")) || VendorName == TEXT("Intel"))
 	{
 		GRHIVendorId = 0x8086;
 #if PLATFORM_WINDOWS || PLATFORM_LINUX
@@ -537,6 +554,30 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 	{
 		GRHIVendorId = 0x5143;
 	}
+
+	if (GRHIVendorId == 0x0)
+	{
+		// Fix for Mesa Radeon
+		const ANSICHAR* AnsiVersion = (const ANSICHAR*)glGetString(GL_VERSION);
+		const ANSICHAR* AnsiRenderer = (const ANSICHAR*)glGetString(GL_RENDERER);
+		if (AnsiVersion && AnsiRenderer)
+		{
+			if (FCStringAnsi::Strstr(AnsiVersion, "Mesa") &&
+				(FCStringAnsi::Strstr(AnsiRenderer, "AMD") || FCStringAnsi::Strstr(AnsiRenderer, "ATI")))
+			{
+				// Radeon
+				GRHIVendorId = 0x1002;
+			}
+		}
+	}
+
+#if PLATFORM_WINDOWS
+	auto* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseStagingBuffer"));
+	if (CVar)
+	{
+		CVar->Set(false);
+	}
+#endif
 #endif
 
 	// Setup CVars that require the RHI initialized

@@ -158,9 +158,7 @@ struct FVertexFactoryIntermediates
 {
 	float4 InputPosition;
 	float3 LocalPosition;
-#if USING_TESSELLATION
 	float3 WorldNormal;
-#endif
 };
 
 float3 GetLocalPosition(FVertexFactoryIntermediates Intermediates)
@@ -462,10 +460,40 @@ float2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 }
 #endif
 
-float CalcLOD(float2 xy, float2 Subsection)
+float CalcLOD_ES2(float2 xy, float2 Subsection)
 {
 	// LOD value based on Barycentric coordinate
+	float4 L0 = float4(xy.y, xy.x, (1 - xy.x), (1 - xy.y)) * 2;
 
+	float4 LODCalculated4 = lerp(
+								(lerp(L0 * SectionLods.x + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[0],
+									  L0 * SectionLods.y + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[1],
+									  Subsection.x)),
+								(lerp(L0 * SectionLods.z + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[2],
+									  L0 * SectionLods.w + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[3],
+									  Subsection.x)),
+								Subsection.y);
+
+	// Find which quadrant of the subsection we're in - top, left, right or bottom.
+	// 0 --------- 1 X  1 ----- 2  1          1 
+	//   | \ 0 / |        \   /    | \      / | 
+	//   | 1 + 2 |          0      |  0    0  |      0       
+	//   | / 3 \ |                 | /      \ |    /   \     
+	// 2 --------- 3               2          2  1 ----- 2   
+	float LODCalculated = ((xy.x + xy.y) > 1) ? 
+							(xy.x < xy.y ? LODCalculated4.w : LODCalculated4.z) :
+							(xy.x < xy.y ? LODCalculated4.y : LODCalculated4.x);
+
+	return LODCalculated;
+}
+
+float CalcLOD(float2 xy, float2 Subsection)
+{
+#if ES2_PROFILE
+	// less branchy version for ES2 devices
+	return CalcLOD_ES2(xy, Subsection); 
+#else
+	// LOD value based on Barycentric coordinate
 	float4 L0 = float4(xy.y, xy.x, (1 - xy.x), (1 - xy.y)) * 2;
 
 	float4 LODCalculated4;
@@ -527,6 +555,7 @@ float CalcLOD(float2 xy, float2 Subsection)
 	}
 
 	return LODCalculated;
+#endif
 }
 
 FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
@@ -554,52 +583,18 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float2 ActualLODCoordsInt = floor(Intermediates.InputPosition.xy * pow(2, -(LodValue - LodValues.x)));
 	float InvLODScaleFactor = pow(2, -LodValue);
 #else
-	// select the height values from the vertex input corresponding to the current and next LOD
-	float InputHeight;
-	float InputHeightNextLOD;
-	// we can hardcode InvLODScaleFactor
-	float InvLODScaleFactor;
+	float3 HeightData = (LodValue < 1 ? float3(1.0, Input.LODHeights[1][0], Input.LODHeights[1][1]) :
+						(LodValue < 2 ? float3(0.5, Input.LODHeights[1][1], Input.LODHeights[1][2]) :
+						(LodValue < 3 ? float3(0.25, Input.LODHeights[1][2], Input.LODHeights[1][3]) :
+						(LodValue < 4 ? float3(0.125, Input.LODHeights[1][3], LOD45[0]) :
+						(LodValue < 5 ? float3(0.0625, LOD45[0], LOD45[1]) :
+						(float3(0.03125, LOD45[1], LOD45[1])))))));
 
-	if( LodValue < 1 )
-	{
-		InvLODScaleFactor	= 1.0;
-		InputHeight			= Input.LODHeights[1][0];
-		InputHeightNextLOD	= Input.LODHeights[1][1];
-	}
-	else
-	if( LodValue < 2 )
-	{
-		InvLODScaleFactor	= 0.5;
-		InputHeight			= Input.LODHeights[1][1];
-		InputHeightNextLOD	= Input.LODHeights[1][2];
-	}
-	else
-	if( LodValue < 3 )
-	{
-		InvLODScaleFactor	= 0.25;
-		InputHeight			= Input.LODHeights[1][2];
-		InputHeightNextLOD	= Input.LODHeights[1][3];
-	}
-	else
-	if (LodValue < 4)
-	{
-		InvLODScaleFactor	= 0.125;
-		InputHeight			= Input.LODHeights[1][3];
-		InputHeightNextLOD	= LOD45[0];
-	}
-	else
-	if( LodValue < 5 )
-	{
-		InvLODScaleFactor	= 0.0625;
-		InputHeight			= LOD45[0];
-		InputHeightNextLOD	= LOD45[1];
-	}
-	else
-	{
-		InvLODScaleFactor	= 0.03125;
-		InputHeight			= LOD45[1];
-		InputHeightNextLOD	= LOD45[1];	// clamp to last LOD.
-	}
+	// we can hardcode InvLODScaleFactor
+	float InvLODScaleFactor = HeightData.x;
+	// select the height values from the vertex input corresponding to the current and next LOD
+	float InputHeight = HeightData.y;
+	float InputHeightNextLOD = HeightData.z;
 
 	float MinHeight = DecodePackedHeight(Input.LODHeights[0].xy);
 	float MaxHeight = DecodePackedHeight(Input.LODHeights[0].zw);
@@ -645,13 +640,15 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 	Intermediates.LocalPosition = lerp( float3(InputPositionLODAdjusted, Height), float3(InputPositionNextLOD, HeightNextLOD), MorphAlpha );
 
-#if USING_TESSELLATION
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	float2 Normal = float2(SampleValue.b, SampleValue.a);
 	float2 NormalNextLOD = float2(SampleValueNextLOD.b, SampleValueNextLOD.a);
 	float2 InterpNormal = lerp( Normal, NormalNextLOD, MorphAlpha ) * float2(2.0,2.0) - float2(1.0,1.0);
 	Intermediates.WorldNormal = float3( InterpNormal, sqrt(max(1.0-dot(InterpNormal,InterpNormal),0.0)) );
+#else
+	Intermediates.WorldNormal = float3( 0.0, 0.0, 1.0 );
 #endif
-
+	
 	return Intermediates;
 }
 
@@ -690,7 +687,7 @@ float2 LandscapeVertexFactorySampleHeight(FVertexFactoryInput Input, FVertexFact
 */
 float3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates )
 {
-	float3x3 Result = float3x3(float3(1,0,0),float3(0,1,0),float3(0,0,1));
+	float3x3 Result = CalcTangentBasisFromWorldNormal(Intermediates.WorldNormal);
 	return Result;
 }
 
@@ -870,3 +867,8 @@ uint VertexFactoryGetEyeIndex(uint InstanceId)
 	return InstanceId & 1;
 }
 #endif
+
+float4 VertexFactoryGetTranslatedPrimitiveVolumeBounds(FVertexFactoryInterpolantsVSToPS Interpolants)
+{
+	return 0;
+}

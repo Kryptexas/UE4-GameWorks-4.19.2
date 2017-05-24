@@ -3,6 +3,7 @@ Title: Palette
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:Non-context sensitive listing of all functions and variables for Palette that can be used in Blueprints.
 version: 4.9
+tags:Blueprints
 
 
 [TOC (start:2)]

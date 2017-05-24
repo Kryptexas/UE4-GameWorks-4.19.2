@@ -5,25 +5,6 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description: 一组用于控制关卡编辑器当前所处模式、调整画刷形状、创建画刷几何体及体积的工具集。
 Version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [EXCERPT:main]
 [INCLUDE:Shared/Glossary/M#glossary_modes_panel]
@@ -43,4 +24,3 @@ Version: 4.9
 | ![](LE_Tools_Brush.png) | 切换 [**几何体编辑** 模式](Engine/Actors/Brushes) 来将画刷修改为几何体。| **Shift + 5**|
 [/EXCERPT:main]
 
-%playlistnav%

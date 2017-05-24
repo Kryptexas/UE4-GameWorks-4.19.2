@@ -77,6 +77,7 @@
 #include "DesktopPlatformModule.h"
 #include "UserActivityTracking.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "IVREditorModule.h"
 
 #define USE_UNIT_TESTS 0
 
@@ -272,7 +273,7 @@ void FUnrealEdMisc::OnInit()
 	FUserActivityTracking::SetActivity(FUserActivity(TEXT("EditorInit"), EUserActivityContext::Editor));
 
 	FEditorModeRegistry::Initialize();
-	GLevelEditorModeTools().ActivateDefaultMode();
+
 
 	// Are we in immersive mode?
 	const TCHAR* ParsedCmdLine = FCommandLine::Get();
@@ -586,6 +587,29 @@ void FUnrealEdMisc::InitEngineAnalytics()
 	}
 }
 
+/*
+* @EventName Editor.Usage.Heartbeat
+*
+* @Trigger Every minute of non-idle time in the editor
+*
+* @Type Dynamic
+*
+* @EventParam Idle (bool) Whether the user is idle
+* @EventParam AverageFrameTime (float) Average frame time
+* @EventParam AverageGameThreadTime (float) Average game thread time
+* @EventParam AverageRenderThreadTime (float) Average render thread time
+* @EventParam AverageGPUFrameTime (float) Average GPU frame time
+* @EventParam IsVanilla (bool) Whether the editor is vanilla launcher install with no marketplace plugins
+* @EventParam IntervalSec (int32) The time since the last heartbeat
+* @EventParam IsDebugger (bool) Whether the debugger is currently present
+* @EventParam WasDebuggerPresent (bool) Whether the debugger was present previously
+* @EventParam IsInVRMode (bool) If the current heartbeat occurred while VR mode was active
+*
+* @Source Editor
+*
+* @Owner Matt.Kuhlenschmidt
+*
+*/
 void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 {
 	// Don't attempt to send the heartbeat if analytics isn't available
@@ -602,7 +626,7 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	{
 		bWasDebuggerPresent = bIsDebuggerPresent;
 	}
-	
+	const bool bInVRMode = IVREditorModule::Get().IsVREditorModeActive();
 	double LastInteractionTime = FSlateApplication::Get().GetLastUserInteractionTime();
 	
 	// Did the user interact since the last heartbeat
@@ -624,6 +648,7 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("IntervalSec"), UnrealEdMiscDefs::HeartbeatIntervalSeconds));
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), bIsDebuggerPresent));
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("WasDebuggerPresent"), bWasDebuggerPresent));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsInVRMode"), bInVRMode));
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();
@@ -1205,7 +1230,7 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 						while (Blueprint == nullptr && ParentObject != nullptr)
 						{
 							Blueprint = UBlueprint::GetBlueprintFromClass(ParentObject->GetClass());
-							ParentObject = Object->GetOuter();
+							ParentObject = ParentObject->GetOuter();
 						}
 
 						if (Blueprint != nullptr)

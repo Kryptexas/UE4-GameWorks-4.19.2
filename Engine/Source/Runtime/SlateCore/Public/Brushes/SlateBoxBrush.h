@@ -133,4 +133,29 @@ struct SLATECORE_API FSlateBoxBrush
 	FORCENOINLINE FSlateBoxBrush( const TCHAR* InImageName, const FVector2D& ImageSize, const FMargin& InMargin, const FSlateColor& InColorAndOpacity, ESlateBrushImageType::Type InImageType = ESlateBrushImageType::FullColor )
 		: FSlateBrush(ESlateBrushDrawType::Box, InImageName, InMargin, ESlateBrushTileType::NoTile, InImageType, ImageSize, InColorAndOpacity)
 	{ }
+
+	/**
+	 * Make a 3x3 box that stretches the texture.
+	 *
+	 * @param InResourceObject	The image to render for this brush, can be a UTexture, UMaterialInterface, or AtlasedTextureInterface
+	 * @param InMargin			The size of corners and sides in normalized texture UV space.
+	 * @param InColorAndOpacity	Color and opacity scale.
+	 */
+
+	FORCENOINLINE FSlateBoxBrush(UObject* InResourceObject, const FMargin& InMargin, const FSlateColor& InColorAndOpacity = FSlateColor(FLinearColor(1, 1, 1, 1)), ESlateBrushImageType::Type InImageType = ESlateBrushImageType::FullColor)
+		: FSlateBrush(ESlateBrushDrawType::Box, NAME_None, InMargin, ESlateBrushTileType::NoTile, InImageType, FVector2D::ZeroVector, InColorAndOpacity, InResourceObject)
+	{ }
+
+	/**
+	 * Make a 3x3 box that stretches the texture.
+	 *
+	 * @param InImageName       The name of image to make into a box
+	 * @param ImageSize         The size of the resource as we want it to appear in slate units.
+	 * @param InMargin          The size of corners and sides in texture space.
+	 * @param InColorAndOpacity	Color and opacity scale. Note of the image type is ImageType_TintMask, this value should be in HSV
+	 */
+
+	FORCENOINLINE FSlateBoxBrush(UObject* InResourceObject, const FVector2D& ImageSize, const FMargin& InMargin, const FSlateColor& InColorAndOpacity = FSlateColor(FLinearColor(1, 1, 1, 1)), ESlateBrushImageType::Type InImageType = ESlateBrushImageType::FullColor)
+		: FSlateBrush(ESlateBrushDrawType::Box, NAME_None, InMargin, ESlateBrushTileType::NoTile, InImageType, ImageSize, InColorAndOpacity, InResourceObject)
+	{ }
 };

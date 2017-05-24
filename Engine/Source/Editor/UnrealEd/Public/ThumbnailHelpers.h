@@ -76,8 +76,8 @@ protected:
 protected:
 	/** The static mesh actor used to display all material thumbnails */
 	class AStaticMeshActor* PreviewActor;
-	/** Material being rendered is for UI */
-	bool bIsUIMaterial;
+	/** Material being used for something that only makes sense to visualize as a plane (UI, particle sprites)*/
+	bool bForcePlaneThumbnail;
 };
 
 class UNREALED_API FSkeletalMeshThumbnailScene : public FThumbnailPreviewScene

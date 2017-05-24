@@ -512,10 +512,22 @@ bool FGameplayCueTranslationManager::TranslateTag_Internal(FGameplayCueTranslato
 		int32 TranslationIndex = Link.RulesCDO->GameplayCueToTranslationIndex(TagName, TargetActor, Parameters);
 		if (TranslationIndex != INDEX_NONE)
 		{
+			if (Link.NodeLookup.IsValidIndex(TranslationIndex) == false)
+			{
+				UE_LOG(LogGameplayCueTranslator, Error, TEXT("FGameplayCueTranslationManager::TranslateTag_Internal %s invalid index %d was returned from GameplayCueToTranslationIndex. NodeLookup.Num=%d. Tag %s"), *GetNameSafe(Link.RulesCDO), TranslationIndex, Link.NodeLookup.Num(), *TagName.ToString());
+				continue;
+			}
+
 			// Use the link's NodeLookup to get the real NodeIndex
 			FGameplayCueTranslatorNodeIndex NodeIndex = Link.NodeLookup[TranslationIndex];
 			if (NodeIndex != INDEX_NONE)
 			{
+				if (TranslationLUT.IsValidIndex(NodeIndex) == false)
+				{
+					UE_LOG(LogGameplayCueTranslator, Error, TEXT("FGameplayCueTranslationManager::TranslateTag_Internal %s invalid index %d was returned from NodeLookup. NodeLookup.Num=%d. Tag %s"), *GetNameSafe(Link.RulesCDO), NodeIndex, TranslationLUT.Num(), *TagName.ToString());
+					continue;
+				}
+
 				// Warn if more links?
 				FGameplayCueTranslatorNode& InnerNode = TranslationLUT[NodeIndex];
 

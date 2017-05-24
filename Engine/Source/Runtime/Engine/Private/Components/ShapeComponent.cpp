@@ -117,6 +117,9 @@ void UShapeComponent::CreateShapeBodySetupIfNeeded()
 			ShapeBodySetup->AddToRoot();
 		}
 
+		// If this component is in GC cluster, make sure we add the body setup to it to
+		ShapeBodySetup->AddToCluster(this);
+		
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		AddShapeToGeomArray<ShapeElemType>();
 		ShapeBodySetup->bNeverNeedsCookedCollisionData = true;
@@ -128,12 +131,20 @@ void UShapeComponent::CreateShapeBodySetupIfNeeded()
 			if(BodyInstance.IsValidBodyInstance())
 			{
 #if WITH_PHYSX
-				SCOPED_SCENE_READ_LOCK(GetPhysXSceneFromIndex(BodyInstance.GetSceneIndex()));
-				TArray<PxShape *> PShapes;
-				BodyInstance.GetAllShapes_AssumesLocked(PShapes);
+				BodyInstance.ExecuteOnPhysicsReadWrite([this]
+				{
+					TArray<PxShape *> PShapes;
+					BodyInstance.GetAllShapes_AssumesLocked(PShapes);
 
-				check(PShapes.Num() == 1);	//Shape component should only have 1 shape
-				SetShapeToNewGeom<ShapeElemType>(PShapes[0]);
+					for(PxShape* PShape : PShapes)	//The reason we iterate is we may have multiple scenes and thus multiple shapes, but they are all pointing to the same geometry
+					{
+						//Update shape with the new body setup. Make sure to only update shapes owned by this body instance
+						if(BodyInstance.IsShapeBoundToBody(PShape))
+						{
+							SetShapeToNewGeom<ShapeElemType>(PShape);
+						}
+					}
+				});
 #endif
 			}
 		}

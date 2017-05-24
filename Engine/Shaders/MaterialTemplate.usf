@@ -18,6 +18,8 @@
 
 #define NUM_MATERIAL_TEXCOORDS_VERTEX %s
 #define NUM_MATERIAL_TEXCOORDS %s
+#define NUM_CUSTOM_VERTEX_INTERPOLATORS %s
+#define NUM_TEX_COORD_INTERPOLATORS %s
 
 #ifdef MIN_MATERIAL_TEXCOORDS 
 	#include "MinMaterialTexCoords.usf"
@@ -57,6 +59,8 @@
 #define USE_EDITOR_COMPOSITING (USE_EDITOR_SHADERS && EDITOR_PRIMITIVE_MATERIAL)
 
 #define MATERIALBLENDING_ANY_TRANSLUCENT (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE)
+
+#define IS_MESHPARTICLE_FACTORY (PARTICLE_MESH_FACTORY || NIAGARA_MESH_FACTORY)
 
 /**
  * Parameters used by vertex and pixel shaders to access particle properties.
@@ -116,8 +120,8 @@ struct FPixelMaterialInputs
  */
 struct FMaterialPixelParameters
 {
-#if NUM_MATERIAL_TEXCOORDS
-	float2 TexCoords[NUM_MATERIAL_TEXCOORDS];
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2 TexCoords[NUM_TEX_COORD_INTERPOLATORS];
 #endif
 
 	/** Interpolated vertex color, in linear color space. */
@@ -138,7 +142,7 @@ struct FMaterialPixelParameters
 	/**
 	 * Like SV_Position (.xy is pixel position at pixel center, z:DeviceZ, .w:SceneDepth)
 	 * using shader generated value SV_POSITION
-	 * Warning: unlike SV_Position, this is not relative to the current viewport.  SV_Position = MaterialParameters.SvPosition.xy - View.ViewRectMin.xy;
+	 * Note: this is not relative to the current viewport.  RelativePixelPosition = MaterialParameters.SvPosition.xy - View.ViewRectMin.xy;
 	 */
 	float4 SvPosition;
 		
@@ -233,8 +237,8 @@ struct FMaterialTessellationParameters
 {
 	// Note: Customized UVs are only evaluated in the vertex shader, which is not really what you want with tessellation, but keeps the code simpler 
 	// (tessellation texcoords are the same as pixels shader texcoords)
-#if NUM_MATERIAL_TEXCOORDS
-	float2 TexCoords[NUM_MATERIAL_TEXCOORDS];
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2 TexCoords[NUM_TEX_COORD_INTERPOLATORS];
 #endif
 	float4 VertexColor;
 	// TODO: Non translated world position
@@ -262,7 +266,7 @@ struct FMaterialVertexParameters
 	float4x4 InstanceLocalToWorld;
 	float3 InstanceLocalPosition;
 	float4 PerInstanceParams;
-#elif PARTICLE_MESH_FACTORY
+#elif IS_MESHPARTICLE_FACTORY 
 	/** Per-particle properties. */
 	float4x4 InstanceLocalToWorld;
 #endif
@@ -337,17 +341,37 @@ float3 GetTranslatedWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Par
 	return Parameters.WorldPosition_NoOffsets_CamRelative;
 }
 
-// using this function allows to write the same code for VS and PS
 float4 GetScreenPosition(FMaterialVertexParameters Parameters)
 {
 	return mul(float4(Parameters.WorldPosition, 1.0f), ResolvedView.TranslatedWorldToClip);
 }
 
-// using this function allows to write the same code for VS and PS
 float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 {
 	return Parameters.ScreenPosition;
 }
+
+float2 GetSceneTextureUV(FMaterialVertexParameters Parameters)
+{
+	return ScreenAlignedPosition(GetScreenPosition(Parameters));
+}
+
+float2 GetSceneTextureUV(FMaterialPixelParameters Parameters)
+{
+	return SvPositionToBufferUV(Parameters.SvPosition);
+}
+
+float2 GetViewportUV(FMaterialVertexParameters Parameters)
+{
+	return BufferUVToViewportUV(GetSceneTextureUV(Parameters));
+}
+
+float2 GetViewportUV(FMaterialPixelParameters Parameters)
+{
+	return SvPositionToViewportUV(Parameters.SvPosition);
+}
+
+
 
 #if DECAL_PRIMITIVE && NUM_MATERIAL_TEXCOORDS
 	/*
@@ -481,7 +505,7 @@ MaterialFloat3 TransformTangentVectorToView(FMaterialPixelParameters Parameters,
 /** Transforms a vector from local space to world space (VS version) */
 MaterialFloat3 TransformLocalVectorToWorld(FMaterialVertexParameters Parameters,MaterialFloat3 InLocalVector)
 {
-	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
+	#if USE_INSTANCING || IS_MESHPARTICLE_FACTORY
 		return mul(InLocalVector, (MaterialFloat3x3)Parameters.InstanceLocalToWorld);
 	#else
 		return mul(InLocalVector, GetLocalToWorld3x3());
@@ -511,7 +535,7 @@ float3 TransformLocalPositionToWorld(FMaterialPixelParameters Parameters,float3 
 /** Transforms a position from local space to absolute world space */
 float3 TransformLocalPositionToWorld(FMaterialVertexParameters Parameters,float3 InLocalPosition)
 {
-	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
+	#if USE_INSTANCING || IS_MESHPARTICLE_FACTORY
 		return mul(float4(InLocalPosition, 1), Parameters.InstanceLocalToWorld).xyz;
 	#else
 		return mul(float4(InLocalPosition, 1), Primitive.LocalToWorld).xyz;
@@ -536,7 +560,7 @@ float3 GetObjectWorldPosition(FMaterialTessellationParameters Parameters)
 /** Return the object's position in world space. For instanced meshes, this returns the instance position. */
 float3 GetObjectWorldPosition(FMaterialVertexParameters Parameters)
 {
-	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
+	#if USE_INSTANCING || IS_MESHPARTICLE_FACTORY
 		return Parameters.InstanceLocalToWorld[3].xyz;
 	#else
 		return Primitive.ObjectWorldPositionAndRadius.xyz;
@@ -873,7 +897,7 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 /** Vertex offset for SpeedTree wind and LOD */
 float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold, FSpeedTreeData STData) 
 {
-	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || PARTICLE_MESH_FACTORY
+	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || IS_MESHPARTICLE_FACTORY
 		return float4(0,0,0);
 	#endif
 
@@ -1538,8 +1562,13 @@ half2 GetMaterialRefraction(FPixelMaterialInputs PixelMaterialInputs)
 	return PixelMaterialInputs.Refraction;
 }
 
-#if NUM_MATERIAL_TEXCOORDS
-void GetMaterialCustomizedUVs(FMaterialVertexParameters Parameters, out float2 OutTexCoords[NUM_MATERIAL_TEXCOORDS])
+#if NUM_TEX_COORD_INTERPOLATORS
+void GetMaterialCustomizedUVs(FMaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
+{
+%s
+}
+
+void GetCustomInterpolators(FMaterialVertexParameters Parameters, inout float2 OutTexCoords[NUM_TEX_COORD_INTERPOLATORS])
 {
 %s
 }

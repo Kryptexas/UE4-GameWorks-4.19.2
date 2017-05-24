@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:3108692
 Availability: Public
-Title:Atmospheric Fog 사용 안내서
+Title:애트머스페릭 포그 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
 Description:Atmospheric Fog, 애트머스페릭 포그 액터는 대기를 매개로 공기 밀도, 빛의 산란 등의 대기 표현에 사실감을 더해주는 액터입니다.
 version: 4.9
@@ -71,7 +71,7 @@ Atmospheric Fog (애트머스페릭 포그)는 지구의 대기권을 통과하�
 ![AtmoActor.png](AtmoActor.png)(w:420)
 
 
-## Atmospheric Fog 프로퍼티
+## 애트머스페릭 포그 프로퍼티
 
 Atmospheric Fog 액터에 있는 프로퍼티는 다음과 같습니다:
 

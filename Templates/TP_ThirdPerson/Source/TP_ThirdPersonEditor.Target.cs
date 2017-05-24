@@ -5,21 +5,9 @@ using System.Collections.Generic;
 
 public class TP_ThirdPersonEditorTarget : TargetRules
 {
-	public TP_ThirdPersonEditorTarget(TargetInfo Target)
+	public TP_ThirdPersonEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
-	}
-
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("TP_ThirdPerson");
+		ExtraModuleNames.Add("TP_ThirdPerson");
 	}
 }

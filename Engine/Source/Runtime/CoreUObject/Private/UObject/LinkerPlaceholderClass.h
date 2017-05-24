@@ -22,7 +22,6 @@ public:
 	ULinkerPlaceholderClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UObject interface.
- 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
 	// End of UObject interface.
 

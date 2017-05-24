@@ -1,22 +1,22 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:4. End Result
-description:Going over using the Fluid Surface Blueprint.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:4.最終結果
+description:Fluid Surface ブループリントの使用方法
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Advanced
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/FluidSurface
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:4
 checkpoint:FSB
 
 [NAV]
 
-When all of the various pieces of the fluid surface Blueprint have been connected, and the fluid surface Blueprint has been compiled and saved, add it to a level. Once placed in a level, you can play the level and then interact with the fluid surface Blueprint by holding down the left mouse button to shoot at it or by walking over it with your character. Below are some videos that show both these types of interaction.
+流体サーフェスの様々な構成用をがすべて Fluid Surface ブループリントに接続され、Fluid Surface ブループリントのコンパイルと保存が完了すると、レベルに追加されます。レベル内に配置されたら、マウスの左ボタンを押して流体サーフェスめがけて撃つ、もしくはキャラクターにその上を歩かせると、レベルのプレイおよび Fluid Surface ブループリントとのインタラクトが可能になります。以下の動画で、この 2 種類のインタラクションを確認できます。
 
-* This video shows what happens when you shoot at the fluid surface Blueprint.
+* まずこちらは、流体サーフェスめがけて撃った場合です。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -30,7 +30,7 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-* This video shows what happens when you walk over the fluid surface Blueprint with a Pawn-based character.
+* そしてこちらは、ポーン ベースのキャラクターに Fluid Surface ブループリント上を歩かせた場合です。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -44,7 +44,7 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-* Here is a copy of the entire completed fluid surface Blueprint.
+* こちらは、完成した Fluid Surface ブループリント全体のコピーです。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\4\#CompBP]
@@ -144,7 +144,7 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 			   CustomProperties Pin (PinId=A92EB2EA4CEB745BB289AFA4E8D3E083,PinName="execute",PinToolTip="\nExec",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_247 02B0A2C04D69D8337E659FB041A48B3D,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=CDC0C36240D9C55CD3C4E0989677D9CB,PinName="then",PinToolTip="\nExec",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_248 826FD10A429E7982FC6C50A368A2EF8B,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=8DDBD5C941067A40EC75EBBB4E6BCD74,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nCanvas Reference",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.Canvas',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_247 DADFC7E349838F790BC569A556130F8B,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=98FDDE614179E45081FD66B0BF94C79E,PinName="RenderMaterial",PinToolTip="Render Material\nMaterial Interface Reference\n\nMaterial to use when rendering. Remember that only the emissive channel is able to be rendered as no lighting is performed when rendering to the Canvas.",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.MaterialInterface',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallMaterialParameterCollectionFunction_42 89FB58F843256CED989D709D84629586,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=98FDDE614179E45081FD66B0BF94C79E,PinName="RenderMaterial",PinToolTip="Render Material\nMaterial Interface Reference\n\nMaterial to use when rendering.Remember that only the emissive channel is able to be rendered as no lighting is performed when rendering to the Canvas.",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.MaterialInterface',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallMaterialParameterCollectionFunction_42 89FB58F843256CED989D709D84629586,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=32DE39B6447A79161862EC858DDBB3C0,PinName="ScreenPosition",PinToolTip="Screen Position\nVector 2D Structure\n\nScreen space position to render the texture.",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector2D',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=A27FA11345BBF4A4A5C25785C432EE8C,PinName="ScreenSize",PinToolTip="Screen Size\nVector 2D Structure\n\nScreen space size to render the texture.",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector2D',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_247 2D8E4C1A462BB80E885F9D890A179F7D,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=21966F7C41F610934660EB967A63AD8C,PinName="CoordinatePosition",PinToolTip="Coordinate Position\nVector 2D Structure\n\nNormalized UV starting coordinate to use when rendering the texture.",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector2D',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)

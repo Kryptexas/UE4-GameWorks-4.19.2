@@ -20,9 +20,8 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-PRAGMA_DISABLE_OPTIMIZATION
-
 float UEnvQueryTypes::SkippedItemValue = -FLT_MAX;
+float UEnvQueryTypes::UnlimitedStepTime = -1.f;
 
 //----------------------------------------------------------------------//
 // FEnvQueryResult
@@ -160,7 +159,7 @@ FText FEnvTraceData::ToText(FEnvTraceData::EDescriptionMode DescMode) const
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("ExtentDescription"), Desc);
 			Args.Add(TEXT("ProjectionTraceDesc"), bCanProjectDown ? LOCTEXT("Projection", "projection") : LOCTEXT("Trace", "trace"));
-			Args.Add(TEXT("Channel"), ChannelEnum->GetEnumText(TraceChannel));
+			Args.Add(TEXT("Channel"), ChannelEnum->GetDisplayNameTextByValue(TraceChannel));
 
 			Desc = FText::Format(LOCTEXT("GeometryBriefDescription", "{ExtentDescription} {ProjectionTraceDesc} on {Channel}"), Args);
 		}
@@ -297,18 +296,21 @@ FEnvQueryInstance::FEnvQueryInstance()
 	, CurrentTestStartingItem(INDEX_NONE)
 	, NumValidItems(0)
 	, ValueSize(0)
+#if USE_EQS_DEBUGGER
+	, NumProcessedItems(0)
+	, bStoreDebugInfo(bDebuggingInfoEnabled)
+#endif // USE_EQS_DEBUGGER
 	, bFoundSingleResult(false)
 	, bPassOnSingleResult(false)
 	, bHasLoggedTimeLimitWarning(false)
-#if USE_EQS_DEBUGGER
-	, bStoreDebugInfo(bDebuggingInfoEnabled)
-#endif // USE_EQS_DEBUGGER
+	, StartTime(0)
+	, TotalExecutionTime(0)
+	, CurrentStepTimeLimit(0)
 	, Mode(EEnvQueryRunMode::SingleResult)
 	, ItemTypeVectorCDO(nullptr)
 	, ItemTypeActorCDO(nullptr)
 {
 	IncStats();
-	CurrentStepTimeLimit = TotalExecutionTime = GenerationExecutionTime = 0.0;
 }
 
 FEnvQueryInstance::FEnvQueryInstance(const FEnvQueryInstance& Other) 
@@ -497,6 +499,39 @@ void FEQSParametrizedQueryExecutionRequest::PostEditChangeProperty(UObject& Owne
 }
 #endif // WITH_EDITOR
 
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FStep& Data)
+{
+	Ar << Data.ExecutionTime;
+	Ar << Data.NumProcessedItems;
+	return Ar;
+}
+
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FOptionStat& Data)
+{
+	Ar << Data.StepData;
+	Ar << Data.NumRuns;
+	return Ar;
+}
+
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData::FOptionData& Data)
+{
+	Ar << Data.NumGenerators;
+	Ar << Data.GeneratorNames;
+	Ar << Data.OptionIdx;
+	Ar << Data.TestIndices;
+	return Ar;
+}
+
+FArchive& operator<<(FArchive& Ar, FEnvQueryDebugProfileData& Data)
+{
+	int32 VersionNum = 1;
+	Ar << VersionNum;
+
+	Ar << Data.OptionStats;
+	Ar << Data.OptionData;
+	return Ar;
+}
+
 //----------------------------------------------------------------------//
 // DEPRECATED
 //----------------------------------------------------------------------//
@@ -513,5 +548,3 @@ namespace FEQSHelpers
 #endif // WITH_RECAST
 
 #undef LOCTEXT_NAMESPACE
-
-PRAGMA_ENABLE_OPTIMIZATION

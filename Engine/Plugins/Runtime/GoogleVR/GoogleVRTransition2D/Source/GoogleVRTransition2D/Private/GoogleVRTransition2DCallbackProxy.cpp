@@ -38,7 +38,7 @@ UGoogleVRTransition2DCallbackProxy *UGoogleVRTransition2DCallbackProxy::GetInsta
 
 
 #if PLATFORM_ANDROID
-extern "C" void Java_com_google_vr_sdk_samples_transition_GVRTransitionHelper_onTransitionTo2D(JNIEnv *env, jclass clazz, jobject thiz) 
+JNI_METHOD void Java_com_google_vr_sdk_samples_transition_GVRTransitionHelper_onTransitionTo2D(JNIEnv *env, jclass clazz, jobject thiz)
 {
 	if (!pProxy) return;
 

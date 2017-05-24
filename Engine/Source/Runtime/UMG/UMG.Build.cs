@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UMG : ModuleRules
 {
-	public UMG(TargetInfo Target)
+	public UMG(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.AddRange(
             new string[] {
@@ -37,10 +37,11 @@ public class UMG : ModuleRules
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
 				"ImageWrapper",
-			}
+                 "TargetPlatform",
+            }
         );
 
-		if (Target.Type != TargetRules.TargetType.Server)
+		if (Target.Type != TargetType.Server)
 		{
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {

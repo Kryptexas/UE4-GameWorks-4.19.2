@@ -2,7 +2,9 @@
 
 #pragma once
 
-#import <Cocoa/Cocoa.h>
+#include "CoreMinimal.h"
+#include "Mac/MacSystemIncludes.h"
+#include "Misc/Paths.h"
 
 @interface FUE4EditorServicesAppDelegate : NSObject <NSApplicationDelegate, NSFileManagerDelegate>
 {

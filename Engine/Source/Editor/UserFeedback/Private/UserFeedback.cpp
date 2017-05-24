@@ -599,7 +599,7 @@ private:
 			.SupportsMaximize(false)
 			.SupportsMinimize(false)
 			.FocusWhenFirstShown(true)
-			.ActivateWhenFirstShown(true)
+			.ActivationPolicy(EWindowActivationPolicy::Always)
 			.Content()
 			[
 				FeedbackWidget

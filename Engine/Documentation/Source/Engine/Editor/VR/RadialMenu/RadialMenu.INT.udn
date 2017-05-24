@@ -6,46 +6,17 @@ parent: Engine/Editor/VR
 type: reference
 order: 3
 tags: VR
-version: 4.11
+version: 4.15
 skilllevel: intermediate
+topic-image:radialmenu.png
+prereq:Engine/Editor/VR/ActivateVRMode
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/RadialMenu:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/RadialMenu]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/RadialMenu:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu.png)(fill:#919293)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/RadialMenu:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/RadialMenu]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/RadialMenu:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:1 end:4)]
 
 The **Radial Menu** provides access to common actions like undo, redo, paste, etc.
 
-![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu_world.png)(w:640)
+![%Engine/Editor/VR/RadialMenu:title%](Engine/Editor/VR/RadialMenu/radialmenu_world.png)(w:450)
 
 ## Using the Radial Menu
 
@@ -55,13 +26,19 @@ The **Radial Menu** provides access to common actions like undo, redo, paste, et
 
 ## Radial Menu Options
 
+These are the available options when you open up the Radial Menu in the VR Editor. 
+
 | Option | Description |
 | ------ | ----------- |
-| Universal Gizmo | Toggles the Universal Gizmo on or off. |
-| Delete | Deletes the selected Actor(s). |
-| Duplicate | Creates duplicates of the selected Actor(s). |
-| Copy | Copies the selected Actor(s) to the clipboard. |
-| Paste | Pastes the contents of the clipboard into the world. |
-| Undo | Reverts the last action performed. |
-| Redo | Performs the last undone action. |
-| Snap To Ground | Moves the selected Actor(s) down until they collide with other geometry. |
+| **Snap Actors to Ground** | Moves the selected Actor(s) down until they collide with other geometry. |
+| **Undo** | Reverts the last action performed. |
+| **Paste** | Pastes the contents of the clipboard into the world. |
+| **Duplicate** | Creates duplicates of the selected Actor(s). |
+| **Copy** | Copies the selected Actor(s) to the clipboard. |
+| **Redo** | Performs the last undone action. |
+| **Delete** | Deletes the selected Actor(s). |
+| **Cut** | Copies the selected Actor(s) to the clipboard and removes it from the scene. |
+
+
+
+

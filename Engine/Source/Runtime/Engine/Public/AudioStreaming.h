@@ -9,6 +9,7 @@ AudioStreaming.h: Definitions of classes used for audio streaming.
 #include "CoreMinimal.h"
 #include "HAL/ThreadSafeCounter.h"
 #include "Containers/IndirectArray.h"
+#include "Containers/Queue.h"
 #include "Stats/Stats.h"
 #include "ContentStreaming.h"
 #include "Async/AsyncWork.h"
@@ -16,6 +17,7 @@ AudioStreaming.h: Definitions of classes used for audio streaming.
 
 class FSoundSource;
 class USoundWave;
+struct FAudioStreamingManager;
 struct FWaveInstance;
 
 /** Lists possible states used by Thread-safe counter. */
@@ -108,6 +110,11 @@ struct FLoadedAudioChunk
 		, Index(0)
 	{
 	}
+
+	~FLoadedAudioChunk()
+	{
+		checkf(Data == nullptr, TEXT("Audio chunk Data ptr not null (%p), DataSize: %d"), Data, DataSize);
+	}
 };
 
 /**
@@ -123,7 +130,7 @@ struct FStreamingWaveData final
 	 *
 	 * @param SoundWave	The SoundWave we are managing
 	 */
-	void Initialize(USoundWave* SoundWave);
+	void Initialize(USoundWave* SoundWave, FAudioStreamingManager* InStreamingManager);
 
 	/**
 	 * Updates the streaming status of the sound wave and performs finalization when appropriate. The function returns
@@ -177,7 +184,8 @@ private:
 	FStreamingWaveData(const FStreamingWaveData& that);
 	FStreamingWaveData& operator=(FStreamingWaveData const&);
 
-	FLoadedAudioChunk* AddNewLoadedChunk(int32 ChunkSize);
+	// Creates a new chunk, returns the chunk index
+	int32 AddNewLoadedChunk(int32 ChunkSize);
 	void FreeLoadedChunk(FLoadedAudioChunk& LoadedChunk);
 
 public:
@@ -191,10 +199,6 @@ public:
 	TArray<FLoadedAudioChunk> LoadedChunks;
 
 	class IAsyncReadFileHandle* IORequestHandle;
-	FAsyncFileCallBack AsyncFileCallBack;
-
-	/** Potentially outstanding audio chunk I/O requests */
-	TArray<uint64>	IORequestIndices;
 
 	/** Indices of chunks that are currently loaded */
 	TArray<uint32>	LoadedChunkIndices;
@@ -206,7 +210,30 @@ public:
 	/** Pending async derived data streaming tasks */
 	TIndirectArray<FAsyncStreamDerivedChunkTask> PendingAsyncStreamDerivedChunkTasks;
 #endif // #if WITH_EDITORONLY_DATA
+
+	/** Ptr to owning audio streaming manager. */
+	FAudioStreamingManager* AudioStreamingManager;
 };
+
+/** Struct used to store results of an async file load. */
+struct FASyncAudioChunkLoadResult
+{
+	// Place to safely copy the ptr of a loaded audio chunk when load result is finished
+	uint8* DataResults;
+
+	// Actual storage of the loaded audio chunk, will be filled on audio thread.
+	FStreamingWaveData* StreamingWaveData;
+
+	// Loaded audio chunk index
+	int32 LoadedAudioChunkIndex;
+
+	FASyncAudioChunkLoadResult()
+		: DataResults(nullptr)
+		, StreamingWaveData(nullptr)
+		, LoadedAudioChunkIndex(INDEX_NONE)
+	{}
+};
+
 
 /**
 * Streaming manager dealing with audio.
@@ -240,7 +267,14 @@ struct FAudioStreamingManager : public IAudioStreamingManager
 	virtual const uint8* GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex, uint32* OutChunkSize = NULL) const override;
 	// End IAudioStreamingManager interface
 
+	/** Called when an async callback is made on an async loading audio chunk request. */
+	void OnAsyncFileCallback(FStreamingWaveData* StreamingWaveData, int32 LoadedAudioChunkIndex, IAsyncReadRequest* ReadRequest);
+
+	/** Processes pending async file IO results. */
+	void ProcessPendingAsyncFileResults();
+
 protected:
+
 	/**
 	 * Gets Wave request associated with a specific wave
 	 *
@@ -257,4 +291,10 @@ protected:
 
 	/** Map of requests to make next time sound waves are ready */
 	TMap<USoundWave*, FWaveRequest> WaveRequests;
+
+	/** Results of async loading audio chunks. */
+	TQueue<FASyncAudioChunkLoadResult*> AsyncAudioStreamChunkResults;
+
+	/** Critical section to protect usage of shared gamethread/audiothread members */
+	mutable FCriticalSection CriticalSection;
 };

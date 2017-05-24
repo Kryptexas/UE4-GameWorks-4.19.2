@@ -24,7 +24,7 @@ version: 4.9
 
 이것의 커다란 장점 중 하나는, 대역폭이 저장된다는 점입니다. 이 액터의 자율 프록시 버전이 있는 클라이언트는 이 프로퍼티에 대해 알 필요가 없다고 한 것이기 때문입니다 (예를 들면 이 클라이언트는 이 프로퍼티를 예측 목적으로 직접 설정하고 있습니다). 또 한가지 장점은, 이 프로퍼티를 받지 않는 클라이언트의 경우, 서버가 클라이언트의 로컬 사본을 짓밟지 않는다는 점입니다.
 
-현재 지원되는 조건 목록을 한 눈에 나타낸 것으로, `Engine\Source\Runtime\CoreUObject\Public\UObject\CoreNet.h` 의 `ELifetimeCondition` 열거형에 지정된 것입니다:
+현재 지원되는 조건 목록을 한 눈에 나타낸 것으로, `Engine\Source\Runtime\CoreUObject\Public\UObject\CoreNet.h` 의 `ELifetimeCondition` Enum 에 지정된 것입니다:
 
 | 조건 | 설명 |
 |-----------|-------------|

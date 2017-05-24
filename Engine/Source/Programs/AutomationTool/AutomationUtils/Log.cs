@@ -34,6 +34,7 @@ namespace AutomationTool
 				InLogLevel: (UnrealBuildTool.LogEventType)Enum.Parse(typeof(UnrealBuildTool.LogEventType), CommandUtils.ParseParamValue(CommandLine, "-Verbose=", "Log")),
                 bLogSeverity: true,
                 bLogSources: true,
+				bLogSourcesToConsole: true,
                 bColorConsoleOutput: true,
                 TraceListeners: new TraceListener[]
                 {

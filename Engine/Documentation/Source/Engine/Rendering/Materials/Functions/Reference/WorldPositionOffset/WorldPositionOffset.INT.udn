@@ -3,6 +3,7 @@ title:WorldPositionOffset
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions for handling vertex manipulation using world position offset.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

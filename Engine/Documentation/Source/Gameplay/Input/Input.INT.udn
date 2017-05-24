@@ -2,7 +2,10 @@ Availability: Public
 Title:Input
 Crumbs:%ROOT%, Gameplay
 Description:The Input object is responsible for converting input from the player into data in a form Actors can understand and make use of.
-version: 4.9
+version: 4.15
+skilllevel:Beginner
+Parent:Engine/Gameplay
+type:overview
 
 
 The **PlayerInput** object is responsible for converting input from the player into data in a form that Actors, like PlayerControllers or Pawns, 
@@ -15,7 +18,7 @@ For an example of setting up Input, refer to the [](Gameplay\HowTo\SetUpInput) d
 [TOC (start:2 end:4)]
 
 ## Hardware Input
-Hardware input from a player is very straightforward.  It most commonly includes key presses, mouse clicks or mouse movement, and controller button presses or joystick movement. 
+Hardware input from a player is very straightforward.  It most commonly includes key presses, mouse clicks or mouse movement, and controller button presses or joystick movement. Specialized input devices that don't conform to standard axis or button indices, or that have unusual input ranges, can be configured manually by using the [](Gameplay\Input\RawInput).
 
 
 ## PlayerInput

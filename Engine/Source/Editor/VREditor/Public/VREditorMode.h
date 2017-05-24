@@ -8,32 +8,30 @@
 #include "InputCoreTypes.h"
 #include "Templates/SubclassOf.h"
 #include "Editor/UnrealEdTypes.h"
+#include "EditorWorldExtension.h"
 #include "ShowFlags.h"
 #include "Misc/App.h"
 #include "Widgets/SWindow.h"
 #include "HeadMountedDisplayTypes.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "UI/VRRadialMenuHandler.h"
 #include "VREditorMode.generated.h"
 
 class AActor;
 class FEditorViewportClient;
 class SLevelViewport;
-enum class EGizmoHandleTypes : uint8;
+enum class EAutoKeyMode : uint8;
+class UStaticMesh;
+class UStaticMeshComponent;
+class USoundBase;
+class UMaterialInterface;
 
 // Forward declare the GizmoHandleTypes that is defined in VIBaseTransformGizmo.h
 enum class EGizmoHandleTypes : uint8;
 
-/** Reason for exiting the VR editor */
-enum EVREditorExitType
-{
-	Normal = 0,
-	PIE_VR = 1,		//Play in editor with VR
-	SIE_VR = 2		//Simulate in editor with VR
-};
-
 /**
-* Types of actions that can be performed with VR controller devices
-*/
+ * Types of actions that can be performed with VR controller devices
+ */
 namespace VRActionTypes
 {
 	static const FName Touch( "Touch" );
@@ -46,18 +44,38 @@ namespace VRActionTypes
 }
 
 /**
- * VR Editor Mode.  Extends editor viewports with functionality for VR controls and object manipulation
+ * VR Editor Mode. Extends editor viewports with functionality for VR controls and object manipulation
  */
 UCLASS()
-class VREDITOR_API UVREditorMode : public UObject
+class VREDITOR_API UVREditorMode : public UEditorWorldExtension
 {
-
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
 
+	/** Default constructor */
+	UVREditorMode();
+
 	/** Cleans up this mode, called when the editor is shutting down */
 	virtual ~UVREditorMode();
+
+	/** Initialize the VREditor */
+	virtual void Init() override;
+
+	/** Shutdown the VREditor */
+	virtual void Shutdown() override;	
+	
+	/** When the user actually enters the VR Editor mode */
+	void Enter();
+
+	/** When the user leaves the VR Editor mode */
+	void Exit( const bool bShouldDisableStereo );
+
+	/** Tick before the ViewportWorldInteraction is ticked */
+	void PreTick( const float DeltaTime );
+
+	/** Tick after the ViewportWorldInteraction is ticked */
+	void PostTick( const float DeltaTime );
 
 	/** Static: Sets whether we should actually use an HMD.  Call this before activating VR mode */
 	void SetActuallyUsingVR( const bool bShouldActuallyUseVR )
@@ -78,47 +96,8 @@ public:
 	}
 
 	/** Call this to start exiting VR mode */
-	void StartExitingVRMode( const EVREditorExitType InExitType = EVREditorExitType::Normal );
-
-	/** Gets the reason for exiting the mode */
-	EVREditorExitType GetExitType() const
-	{
-		return ExitType;
-	}
-
-	/** EditorWorldManager initializes the start of the editor */
-	void Init( class UViewportWorldInteraction* InViewportWorldInteraction );
-
-	/** EditorWorldManager shuts down the VREditor when closing the editor */
-	void Shutdown();
-
-	/** When the user actually enters the VR Editor mode */
-	void Enter(const bool bReenteringVREditing);
-
-	/** When the user leaves the VR Editor mode */
-	void Exit(const bool bHMDShouldExitStereo);
-
-	/** Tick before the ViewportWorldInteraction is ticked */
-	void PreTick( const float DeltaTime );
-
-	/** Tick after the ViewportWorldInteraction is ticked */
-	void Tick( const float DeltaTime );
+	void StartExitingVRMode();
 	
-	//bool InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event );
-	//bool InputAxis( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime );
-	//bool IsCompatibleWith( FEditorModeID OtherModeID ) const;
-	//void Render( const FSceneView* SceneView, FViewport* Viewport, FPrimitiveDrawInterface* PDI );	
-
-	/**
-	 * Gets our avatar's mesh actor
-	 *
-	 * @return	The mesh actor
-	 */
-	AActor* GetAvatarMeshActor();
-
-	/** Gets the World from the ViewportWorldInteraction used by this mode */
-	UWorld* GetWorld() const;
-
 	/** Gets the world space transform of the calibrated VR room origin.  When using a seated VR device, this will feel like the
 	camera's world transform (before any HMD positional or rotation adjustments are applied.) */
 	FTransform GetRoomTransform() const;
@@ -145,9 +124,6 @@ public:
 	/** If the mode was completely initialized */
 	bool IsFullyInitialized() const;
 
-	/** If the mode is currently running */
-	bool IsActive() const;
-	
 	/** * Gets the tick handle to give external systems the change to be ticked right after the ViewportWorldInteraction is ticked */
 	DECLARE_EVENT_OneParam(UVREditorMode, FOnVRTickHandle, const float /* DeltaTime */);
 	FOnVRTickHandle& OnTickHandle()
@@ -182,19 +158,6 @@ public:
 		return 1.0f - ( ( Alpha * ( ( OvershootAmount + 1 ) * Alpha + OvershootAmount ) + 1 ) - 1.0f );
 	}
 
-	/** Spawns a transient actor that we can use in the editor world (templated for convenience) */
-	template<class T>
-	T* SpawnTransientSceneActor( const FString& ActorName, const bool bWithSceneComponent ) const
-	{
-		return CastChecked<T>( SpawnTransientSceneActor( T::StaticClass(), ActorName, bWithSceneComponent ) );
-	}
-
-	/** Spawns a transient actor that we can use in the editor world */
-	AActor* SpawnTransientSceneActor( TSubclassOf<class AActor> ActorClass, const FString& ActorName, const bool bWithSceneComponent ) const;
-
-	/** Destroys a transient actor we created earlier and nulls out the pointer */
-	void DestroyTransientActor( AActor* Actor ) const;
-
 	/** Gets access to the VR UI system (const) */
 	const class UVREditorUISystem& GetUISystem() const
 	{
@@ -221,12 +184,6 @@ public:
 	/** Gets the world scale factor, which can be multiplied by a scale vector to convert to room space */
 	float GetWorldScaleFactor() const;
 
-	/** Sets up our avatar mesh, if not already spawned */
-	void SpawnAvatarMeshActor();
-
-	/** Called internally when the user changes maps, enters/exits PIE or SIE, or switched between PIE/SIE */
-	void CleanUpActorsBeforeMapChangeOrSimulate();
-
 	/** Spawns a flashlight on the specified hand */
 	void ToggleFlashlight( class UVREditorInteractor* Interactor );
 
@@ -239,14 +196,11 @@ public:
 	/** @return Returns the type of HMD we're dealing with */
 	EHMDDeviceType::Type GetHMDDeviceType() const;
 
-	/** @return Checks to see if the specified hand is aiming roughly toward the specified capsule */
-	bool IsHandAimingTowardsCapsule( class UViewportInteractor* Interactor, const FTransform& CapsuleTransform, const FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule ) const;
-	
+	/** @return Checks to see if the specified interactor is aiming roughly toward the specified capsule */
+	bool IsHandAimingTowardsCapsule(class UViewportInteractor* Interactor, const FTransform& CapsuleTransform, const FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule) const;
+
 	/** Gets the hand interactor  */
 	class UVREditorInteractor* GetHandInteractor( const EControllerHand ControllerHand ) const;
-
-	/** Stops the haptic feedback for the left and right hand interactors for the oculus */
-	void StopOldHapticEffects();
 
 	/** Snaps the current selected actor to the ground */
 	void SnapSelectedActorsToGround();
@@ -265,23 +219,31 @@ public:
 		bool bRealTime;
 		float DragTriggerDistance;
 		bool bOnScreenMessages;
+		float TransformGizmoScale;
 		EHMDTrackingOrigin::Type TrackingOrigin;
 		float WorldToMetersScale;
+		bool bCinematicPreviewViewport;
+		bool bKeyAllEnabled;
+		EAutoKeyMode AutoKeyMode;
 
 		FSavedEditorState()
-			: ViewportType( LVT_Perspective ),
-			  ViewLocation( FVector::ZeroVector ),
-			  ViewRotation( FRotator::ZeroRotator ),
-			  ShowFlags( ESFIM_Editor ),
-			  bLockedPitch( false ),
-			  bGameView( false ),
-			  bAlwaysShowModeWidgetAfterSelectionChanges( false ),
-			  NearClipPlane( 0.0f ),
-			  bRealTime( false ),
-			  DragTriggerDistance( 0.0f ),
-			  bOnScreenMessages( false ),
-			  TrackingOrigin( EHMDTrackingOrigin::Eye ),
-			  WorldToMetersScale( 100.0f )
+			: ViewportType(LVT_Perspective),
+			  ViewLocation(FVector::ZeroVector),
+			  ViewRotation(FRotator::ZeroRotator),
+ 			  ShowFlags(ESFIM_Editor),
+			  bLockedPitch(false),
+			  bGameView(false),
+			  bAlwaysShowModeWidgetAfterSelectionChanges(false),
+			  NearClipPlane(0.0f),
+			  bRealTime(false),
+			  DragTriggerDistance(0.0f),
+			  bOnScreenMessages(false),
+			  TransformGizmoScale( 1.0f ),
+			  TrackingOrigin(EHMDTrackingOrigin::Eye),
+			  WorldToMetersScale(100.0f),
+			  bCinematicPreviewViewport(false),
+			  bKeyAllEnabled(false),
+			  AutoKeyMode()
 		{
 		}
 	};
@@ -289,21 +251,88 @@ public:
 	/** Gets the saved editor state from entering the mode */
 	const FSavedEditorState& GetSavedEditorState() const;
 
+	DECLARE_DELEGATE(FOnVREditingModeExit);
+	/** Used to override dockable area restoration behavior */
+	FOnVREditingModeExit OnVREditingModeExit_Handler;
+
+	void SaveSequencerSettings(bool bInKeyAllEnabled, EAutoKeyMode InAutoKeyMode, const class USequencerSettings& InSequencerSettings);
+
+	/** Start or stop simulate-in-editor mode */
+	void ToggleSIEAndVREditor();
+
+	/** Start or stop play-in-editor mode */
+	void TogglePIEAndVREditor();
+
+	/** Create a static motion controller mesh for the current HMD platform */
+	UStaticMeshComponent* CreateMotionControllerMesh( AActor* OwningActor, USceneComponent* AttachmentToComponent );
+
+	/** Helper functions to create a static mesh */
+	UStaticMeshComponent* CreateMesh( AActor* OwningActor, const FString& MeshName, USceneComponent* AttachmentToComponent /*= nullptr */ );
+	UStaticMeshComponent* CreateMesh(AActor* OwningActor, UStaticMesh* Mesh, USceneComponent* AttachmentToComponent /*= nullptr */);
+
+	/** Sets a delegate for the context-specific actions menu */
+	void SetActionsMenuGenerator(const FOnRadialMenuGenerated NewMenuGenerator, const FText NewLabel);
+
+	/** Resets the delegate and button for the context-specific actions menu */
+	void ResetActionsMenuGenerator();
+
+	/** Gets access to VREditorWorldInteraction */
+	class UVREditorPlacement* GetPlacementSystem()
+	{
+		return PlacementSystem;
+	}
+
+	/** Returns true if we started the play in editor session from this VR Editor */
+	bool GetStartedPlayFromVREditor() const;
+	
+	/** Gets the container for all the assets of VREditor. */
+	const class UVREditorAssetContainer& GetAssetContainer() const;
+	
+	/** Plays sound at location. */
+	void PlaySound(USoundBase* SoundBase, const FVector& InWorldLocation, const float InVolume = 1.0f);
+
+	/** Delegate to be called when a material is placed **/
+	DECLARE_EVENT_ThreeParams( UVREditorPlacement, FOnPlaceDraggedMaterial, UPrimitiveComponent*, UMaterialInterface*, bool& );
+	FOnPlaceDraggedMaterial& OnPlaceDraggedMaterial() { return OnPlaceDraggedMaterialEvent; };
+
+	/** Call this to force the 'Actions' radial menu to refresh.  This is useful if the menu generator that you've bound
+	    needs to be re-run (usually because it switches on something that has changed since the last time it ran.) */
+	void RefreshRadialMenuActionsSubmenu();
+
+	/** Return true if currently aiming to teleport. */
+	bool IsAimingTeleport() const;
+
+protected:
+
+	virtual void TransitionWorld(UWorld* NewWorld) override;
+	virtual void LeftSimulateInEditor(UWorld* SimulateWorld) override;
+
 private:
 
 	/** Called when the editor is closed */
 	void OnEditorClosed();
 
-	//Handles closing the VR mode by escape key
-	void InputKey(const FEditorViewportClient& InViewportClient, const FKey InKey, const EInputEvent InEvent, bool& bOutWasHandled);
-
 	/** Called when someone closes a standalone VR Editor window */
 	void OnVREditorWindowClosed( const TSharedRef<SWindow>& ClosedWindow );
 
 	/** FEditorDelegates callbacks */
-	void OnBeginPIE( const bool bIsSimulatingInEditor );
-	void OnEndPIE( const bool bIsSimulatingInEditor );
-	void OnSwitchBetweenPIEAndSIE( const bool bIsSimulatingInEditor );
+	void PostPIEStarted( bool bIsSimulatingInEditor );
+	void PrePIEEnded( bool bWasSimulatingInEditor );
+	void OnEndPIE( bool bWasSimulatingInEditor );
+	void OnPreSwitchPIEAndSIE(bool bIsSimulatingInEditor);
+	void OnSwitchPIEAndSIE(bool bIsSimulatingInEditor);
+
+	/** Start using the viewport passed */
+	void StartViewport( TSharedPtr<SLevelViewport> Viewport );
+	
+	/** Close the current viewport */
+	void CloseViewport( const bool bShouldDisableStereo );
+
+	/** Resets all the settings when exiting PIE to VR Editor. */
+	void RestoreFromPIE();
+
+	/** Restore the world to meters to the saved one when entering VR Editor */
+	void RestoreWorldToMeters();
 
 protected:
 
@@ -325,9 +354,6 @@ protected:
 
 	/** True if we currently want to exit VR mode.  This is used to defer exiting until it is safe to do that */
 	bool bWantsToExitMode;
-
-	/** The reason for exiting the mode, so the module can close the mode and take further actions on what should happen next */
-	EVREditorExitType ExitType;
 
 	/** True if VR mode is fully initialized and ready to render */
 	bool bIsFullyInitialized;
@@ -368,6 +394,9 @@ protected:
 
 	FOnVRTickHandle TickHandle;
 
+	/** Event broadcast when a material is placed */
+	FOnPlaceDraggedMaterial OnPlaceDraggedMaterialEvent;
+
 	//
 	// Subsystems
 	//
@@ -378,7 +407,7 @@ protected:
 
 	/** Teleporter system */
 	UPROPERTY()
-	class UVREditorTeleporter* TeleporterSystem;
+	class AVREditorTeleporter* TeleportActor;
 
 	/** Automatic scale system */
 	UPROPERTY()
@@ -396,15 +425,11 @@ protected:
 	EGizmoHandleTypes CurrentGizmoType;
 
 	UPROPERTY()
-	class UVREditorWorldInteraction* VRWorldInteractionExtension;
+	class UVREditorPlacement* PlacementSystem;
 
 	//
 	// Interactors
 	//
-
-	/** The mouse cursor interactor (currently only available when not in VR) */
-	UPROPERTY()
-	class UMouseCursorInteractor* MouseCursorInteractor;
 
 	/** The right motion controller */
 	UPROPERTY()
@@ -423,15 +448,8 @@ public:
 	{
 		DefaultColor,
 		SelectionColor,
-		TeleportColor,
-		WorldDraggingColor_OneHand,
-		WorldDraggingColor_TwoHands,
-		RedGizmoColor,
-		GreenGizmoColor,
-		BlueGizmoColor,
-		WhiteGizmoColor,
-		HoverGizmoColor,
-		DraggingGizmoColor,
+		WorldDraggingColor,
+		UIColor,
 		UISelectionBarColor,
 		UISelectionBarHoverColor,
 		UICloseButtonColor,
@@ -445,6 +463,15 @@ public:
 	// Get the default near clipping plane for VR editing
 	float GetDefaultVRNearClipPlane() const;
 
+	/** Runtime and plugin modules can force VR Editor to refresh using this function */
+	void RefreshVREditorSequencer(class ISequencer* InCurrentSequencer);
+
+	/** Returns the currently active sequencer */
+	class ISequencer* GetCurrentSequencer();
+
+	/** The asset container path */
+	static const FString AssetContainerPath;
+
 private:
 
 	// All the colors for this mode
@@ -453,9 +480,19 @@ private:
 	/** If this is the first tick or before */
 	bool bFirstTick;
 
-	/** If the coordinate system was in world space before entering (local) scale mode */
-	bool bWasInWorldSpaceBeforeScaleMode;
+	/** Pointer to the current Sequencer */
+	class ISequencer* CurrentSequencer;
 
-	/** If this current mode is running */
-	bool bIsActive;
+	/** The world to meters scale when leaving PIE simulate to restore when back in the editor world. */
+	float SavedWorldToMetersScaleForPIE;
+
+	/** If we started play in editor from the VR Editor*/
+	bool bStartedPlayFromVREditor;	
+
+	/** If we started play in editor from the VR Editor while in simulate. */
+	bool bStartedPlayFromVREditorSimulate;
+	
+	/** Container of assets */
+	UPROPERTY()
+	class UVREditorAssetContainer* AssetContainer;
 };

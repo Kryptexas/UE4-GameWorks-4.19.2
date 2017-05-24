@@ -202,7 +202,7 @@ TSharedPtr<ITextFormatArgumentModifier> FTextFormatArgumentModifier_PluralForm::
 void FTextFormatArgumentModifier_PluralForm::Evaluate(const FFormatArgumentValue& InValue, const FPrivateTextFormatArguments& InFormatArgs, FString& OutResult) const
 {
 	FInternationalization& I18N = FInternationalization::Get();
-	const FCulture& Culture = *I18N.GetCurrentCulture();
+	const FCulture& Culture = *I18N.GetCurrentLanguage();
 
 	ETextPluralForm ValuePluralForm = ETextPluralForm::Other;
 	switch (InValue.GetType())

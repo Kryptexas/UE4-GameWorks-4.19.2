@@ -36,11 +36,11 @@ float4x4 PreviousLocalToWorld;
 #if USE_INSTANCING
 
 #if USE_DITHERED_LOD_TRANSITION
-    float4 InstancingViewZCompareZero;  // w contains random lod scale 
-    float4 InstancingViewZCompareOne;
-    float4 InstancingViewZConstant;
-    float4 InstancingWorldViewOriginZero;
-    float4 InstancingWorldViewOriginOne;
+	float4 InstancingViewZCompareZero;  // w contains random lod scale 
+	float4 InstancingViewZCompareOne;
+	float4 InstancingViewZConstant;
+	float4 InstancingWorldViewOriginZero;
+	float4 InstancingWorldViewOriginOne;
 #endif
 
 float4 InstancingFadeOutParams;
@@ -106,18 +106,25 @@ struct FVertexFactoryInput
 #endif	// METAL_PROFILE
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
-
-	#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
-		float4	PackedTexCoords4[NUM_MATERIAL_TEXCOORDS_VERTEX/2] : ATTRIBUTE4;
-	#endif
-	#if NUM_MATERIAL_TEXCOORDS_VERTEX == 1
-		float2	PackedTexCoords2 : ATTRIBUTE4;
-	#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 3
-		float2	PackedTexCoords2 : ATTRIBUTE5;
-	#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 5
-		float2	PackedTexCoords2 : ATTRIBUTE6;
-	#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 7
-		float2	PackedTexCoords2 : ATTRIBUTE7;
+	#if GPUSKIN_PASS_THROUGH
+		// These must match GPUSkinVertexFactory.usf
+		float2	TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX] : ATTRIBUTE4;
+		#if NUM_MATERIAL_TEXCOORDS_VERTEX > 4
+			#error Too many texture coordinate sets defined on GPUSkin vertex input. Max: 4.
+		#endif
+	#else
+		#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+			float4	PackedTexCoords4[NUM_MATERIAL_TEXCOORDS_VERTEX/2] : ATTRIBUTE4;
+		#endif
+		#if NUM_MATERIAL_TEXCOORDS_VERTEX == 1
+			float2	PackedTexCoords2 : ATTRIBUTE4;
+		#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 3
+			float2	PackedTexCoords2 : ATTRIBUTE5;
+		#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 5
+			float2	PackedTexCoords2 : ATTRIBUTE6;
+		#elif NUM_MATERIAL_TEXCOORDS_VERTEX == 7
+			float2	PackedTexCoords2 : ATTRIBUTE7;
+		#endif
 	#endif
 
 #elif USE_PARTICLE_SUBUVS
@@ -287,13 +294,13 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	// GetMaterialPixelParameters is responsible for fully initializing the result
 	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
 
-#if NUM_MATERIAL_TEXCOORDS
+#if NUM_TEX_COORD_INTERPOLATORS
 	UNROLL
-	for( int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++ )
+	for( int CoordinateIndex = 0; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++ )
 	{
 		Result.TexCoords[CoordinateIndex] = GetUV(Interpolants, CoordinateIndex);
 	}
-#endif	// NUM_MATERIAL_TEXCOORDS
+#endif
 
 #if USE_PARTICLE_SUBUVS
 	// Output TexCoord0 for when previewing materials that use ParticleSubUV.
@@ -360,20 +367,27 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 	Result.PreSkinnedNormal = Input.TangentZ.xyz * 2.f - 1.f;
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
-	#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
-		UNROLL
-		for(int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX-1; CoordinateIndex+=2)
+	#if GPUSKIN_PASS_THROUGH
+		for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++)
 		{
-			Result.TexCoords[CoordinateIndex] = Input.PackedTexCoords4[CoordinateIndex/2].xy;
-			if( CoordinateIndex+1 < NUM_MATERIAL_TEXCOORDS_VERTEX )
-			{
-				Result.TexCoords[CoordinateIndex+1] = Input.PackedTexCoords4[CoordinateIndex/2].zw;
-			}
+			Result.TexCoords[CoordinateIndex] = Input.TexCoords[CoordinateIndex].xy;
 		}
-	#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX > 1
-	#if NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
-		Result.TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX-1] = Input.PackedTexCoords2;
-	#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
+	#else
+		#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+			UNROLL
+			for(int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX-1; CoordinateIndex+=2)
+			{
+				Result.TexCoords[CoordinateIndex] = Input.PackedTexCoords4[CoordinateIndex/2].xy;
+				if( CoordinateIndex+1 < NUM_MATERIAL_TEXCOORDS_VERTEX )
+				{
+					Result.TexCoords[CoordinateIndex+1] = Input.PackedTexCoords4[CoordinateIndex/2].zw;
+				}
+			}
+		#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+		#if NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
+			Result.TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX-1] = Input.PackedTexCoords2;
+		#endif	// NUM_MATERIAL_TEXCOORDS_VERTEX % 2 == 1
+	#endif
 #endif	// NUM_MATERIAL_TEXCOORDS_VERTEX
 	return Result;
 }
@@ -626,20 +640,20 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	// Really only the last two components of the packed UVs have the opportunity to be uninitialized
 	Interpolants = (FVertexFactoryInterpolantsVSToPS)0;
 
-#if NUM_MATERIAL_TEXCOORDS
-
-	float2 CustomizedUVs[NUM_MATERIAL_TEXCOORDS];
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2 CustomizedUVs[NUM_TEX_COORD_INTERPOLATORS];
 	GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
+	GetCustomInterpolators(VertexParameters, CustomizedUVs);
 	
 	UNROLL
-	for (int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++)
+	for (int CoordinateIndex = 0; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++)
 	{
 		SetUV(Interpolants, CoordinateIndex, CustomizedUVs[CoordinateIndex]);
 	}
 
 #elif NUM_MATERIAL_TEXCOORDS_VERTEX == 0 && USE_PARTICLE_SUBUVS
 	SetUV(Interpolants, 0, Input.TexCoords[0]);
-#endif	// NUM_MATERIAL_TEXCOORDS
+#endif
 
 #if NEEDS_LIGHTMAP_COORDINATE
 	float2 LightMapCoordinate = 0;
@@ -745,17 +759,17 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 	FMaterialTessellationParameters GetMaterialTessellationParameters(FVertexFactoryInterpolantsVSToDS Interpolants, float3 CameraLocalWorldPosition)
 	{
 		FMaterialTessellationParameters	Result;
-	#if NUM_MATERIAL_TEXCOORDS
+	#if NUM_TEX_COORD_INTERPOLATORS
 		UNROLL
-		for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex += 2)
+		for(int CoordinateIndex = 0;CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS;CoordinateIndex += 2)
 		{
 			Result.TexCoords[CoordinateIndex] = Interpolants.InterpolantsVSToPS.TexCoords[CoordinateIndex/2].xy;
-			if(CoordinateIndex + 1 < NUM_MATERIAL_TEXCOORDS)
+			if(CoordinateIndex + 1 < NUM_TEX_COORD_INTERPOLATORS)
 			{
 				Result.TexCoords[CoordinateIndex + 1] = Interpolants.InterpolantsVSToPS.TexCoords[CoordinateIndex/2].zw;
 			}
 		}
-	#endif	// NUM_MATERIAL_TEXCOORDS
+	#endif // NUM_TEX_COORD_INTERPOLATORS
 
 		half3 TangentToWorld0 = Interpolants.InterpolantsVSToPS.TangentToWorld0.xyz;
 		half4 TangentToWorld2 = Interpolants.InterpolantsVSToPS.TangentToWorld2;
@@ -800,9 +814,9 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 		TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.LightMapCoordinate);
 	#endif
 
-	#if NUM_MATERIAL_TEXCOORDS
+	#if NUM_TEX_COORD_INTERPOLATORS
 		UNROLL
-		for(int tc = 0; tc < (NUM_MATERIAL_TEXCOORDS+1)/2; ++tc)
+		for(int tc = 0; tc < (NUM_TEX_COORD_INTERPOLATORS+1)/2; ++tc)
 		{
 			TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.TexCoords[tc]);
 		}
@@ -849,3 +863,8 @@ uint VertexFactoryGetEyeIndex(uint InstanceId)
 	#endif
 }
 #endif
+
+float4 VertexFactoryGetTranslatedPrimitiveVolumeBounds(FVertexFactoryInterpolantsVSToPS Interpolants)
+{
+	return 0;
+}

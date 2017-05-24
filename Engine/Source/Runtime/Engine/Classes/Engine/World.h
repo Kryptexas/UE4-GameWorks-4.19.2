@@ -376,7 +376,7 @@ struct FStartPhysicsTickFunction : public FTickFunction
 };
 
 template<>
-struct TStructOpsTypeTraits<FStartPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FStartPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FStartPhysicsTickFunction>
 {
 	enum
 	{
@@ -408,7 +408,7 @@ struct FEndPhysicsTickFunction : public FTickFunction
 };
 
 template<>
-struct TStructOpsTypeTraits<FEndPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FEndPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FEndPhysicsTickFunction>
 {
 	enum
 	{
@@ -440,7 +440,7 @@ struct FStartAsyncSimulationFunction : public FTickFunction
 };
 
 template<>
-struct TStructOpsTypeTraits<FStartAsyncSimulationFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FStartAsyncSimulationFunction> : public TStructOpsTypeTraitsBase2<FStartAsyncSimulationFunction>
 {
 	enum
 	{
@@ -667,7 +667,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FLevelCollection> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FLevelCollection> : public TStructOpsTypeTraitsBase2<FLevelCollection>
 {
 	enum
 	{
@@ -922,6 +922,8 @@ public:
 
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bShowSlowProgressDialog = true);
+
+	void RecreateScene(ERHIFeatureLevel::Type InFeatureLevel);
 
 #endif // WITH_EDITOR
 
@@ -2006,7 +2008,7 @@ public:
 	 *
 	 * @return AWorldSettings actor associated with this world
 	 */
-	AWorldSettings* GetWorldSettings( bool bCheckStreamingPesistent = false, bool bChecked = true ) const;
+	AWorldSettings* GetWorldSettings( bool bCheckStreamingPersistent = false, bool bChecked = true ) const;
 
 	/**
 	 * Returns the current levels BSP model.
@@ -2114,6 +2116,7 @@ public:
 	virtual bool PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook) override;
 	virtual void PostSaveRoot( bool bCleanupIsRequired ) override;
 	virtual UWorld* GetWorld() const override;
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
@@ -2972,9 +2975,6 @@ public:
 	/** Returns the actor count. */
 	int32 GetActorCount();
 	
-	/** Returns the net relevant actor count. */
-	int32 GetNetRelevantActorCount();
-
 public:
 
 	/**
@@ -3324,7 +3324,7 @@ FORCEINLINE_DEBUGGABLE float UWorld::TimeSince(float Time) const
 	return GetTimeSeconds() - Time;
 }
 
-FORCEINLINE_DEBUGGABLE bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UPrimitiveComponent* PrimComp, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+FORCEINLINE_DEBUGGABLE bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UPrimitiveComponent* PrimComp, const FVector& Pos, const FRotator& Rot, const FComponentQueryParams& Params, const FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// Pass through to FQuat version.
 	return ComponentOverlapMulti(OutOverlaps, PrimComp, Pos, Rot.Quaternion(), Params, ObjectQueryParams);
@@ -3336,7 +3336,7 @@ FORCEINLINE_DEBUGGABLE bool UWorld::ComponentOverlapMultiByChannel(TArray<struct
 	return ComponentOverlapMultiByChannel(OutOverlaps, PrimComp, Pos, Rot.Quaternion(), TraceChannel, Params);
 }
 
-FORCEINLINE_DEBUGGABLE bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrimitiveComponent* PrimComp, const FVector& Start, const FVector& End, const FRotator& Rot, const struct FComponentQueryParams& Params) const
+FORCEINLINE_DEBUGGABLE bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrimitiveComponent* PrimComp, const FVector& Start, const FVector& End, const FRotator& Rot, const FComponentQueryParams& Params) const
 {
 	// Pass through to FQuat version.
 	return ComponentSweepMulti(OutHits, PrimComp, Start, End, Rot.Quaternion(), Params);

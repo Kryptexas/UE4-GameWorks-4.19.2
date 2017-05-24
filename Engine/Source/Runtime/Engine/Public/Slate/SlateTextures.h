@@ -163,6 +163,8 @@ public:
 	virtual void ReleaseDynamicRHI() override;
 
 	// FRenderTarget interface
+	virtual uint32 GetSizeX() const override;
+	virtual uint32 GetSizeY() const override;
 	virtual FIntPoint GetSizeXY() const override;
 	virtual float GetDisplayGamma() const override;
 

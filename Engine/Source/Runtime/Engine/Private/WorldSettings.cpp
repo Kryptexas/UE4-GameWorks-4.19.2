@@ -104,14 +104,18 @@ void AWorldSettings::PreInitializeComponents()
 		// only create once - 
 		if (World->MyParticleEventManager == NULL && !GEngine->ParticleEventManagerClassPath.IsEmpty())
 		{
-			TSubclassOf<AParticleEventManager> ParticleEventManagerClass = Cast<UClass>(StaticLoadObject(UClass::StaticClass(), NULL, *GEngine->ParticleEventManagerClassPath, NULL, LOAD_NoWarn, NULL));
-			if (ParticleEventManagerClass != NULL)
+			UObject* Object = StaticLoadObject(UClass::StaticClass(), NULL, *GEngine->ParticleEventManagerClassPath, NULL, LOAD_NoWarn, NULL);
+			if (Object != NULL)
 			{
-				FActorSpawnParameters SpawnParameters;
-				SpawnParameters.Owner = this;
-				SpawnParameters.Instigator = Instigator;
-				SpawnParameters.ObjectFlags |= RF_Transient;	// We never want to save particle event managers into a map
-				World->MyParticleEventManager = World->SpawnActor<AParticleEventManager>(ParticleEventManagerClass, SpawnParameters );
+				TSubclassOf<AParticleEventManager> ParticleEventManagerClass = Cast<UClass>(Object);
+				if (ParticleEventManagerClass != NULL)
+				{
+					FActorSpawnParameters SpawnParameters;
+					SpawnParameters.Owner = this;
+					SpawnParameters.Instigator = Instigator;
+					SpawnParameters.ObjectFlags |= RF_Transient;	// We never want to save particle event managers into a map
+					World->MyParticleEventManager = World->SpawnActor<AParticleEventManager>(ParticleEventManagerClass, SpawnParameters);
+				}
 			}
 		}
 	}

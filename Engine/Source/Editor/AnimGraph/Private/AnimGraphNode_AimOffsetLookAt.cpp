@@ -150,7 +150,11 @@ void UAnimGraphNode_AimOffsetLookAt::ValidateAnimNodeDuringCompilation(class USk
 
 	if (!BlendSpaceToCheck)
 	{
-		MessageLog.Error(TEXT("@@ references an unknown blend space"), this);
+		// we may have a connected node
+		if (BlendSpacePin == nullptr || BlendSpacePin->LinkedTo.Num() == 0)
+		{
+			MessageLog.Error(TEXT("@@ references an unknown blend space"), this);
+		}
 	}
 	else if (Cast<UAimOffsetBlendSpace>(BlendSpaceToCheck) == nullptr &&
 		Cast<UAimOffsetBlendSpace1D>(BlendSpaceToCheck) == nullptr)

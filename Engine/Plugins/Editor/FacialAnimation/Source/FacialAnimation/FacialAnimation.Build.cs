@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class FacialAnimation : ModuleRules
 	{
-		public FacialAnimation(TargetInfo Target)
+		public FacialAnimation(ReadOnlyTargetRules Target) : base(Target)
 		{			
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

@@ -268,7 +268,7 @@ void USoundCueGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Cont
 
 	if (!ContextMenuBuilder.FromPin && FSoundCueEditorUtilities::CanPasteNodes(ContextMenuBuilder.CurrentGraph))
 	{
-		TSharedPtr<FSoundCueGraphSchemaAction_Paste> NewAction( new FSoundCueGraphSchemaAction_Paste(FText::GetEmpty(), LOCTEXT("PasteHereAction", "Paste here"), TEXT(""), 0) );
+		TSharedPtr<FSoundCueGraphSchemaAction_Paste> NewAction( new FSoundCueGraphSchemaAction_Paste(FText::GetEmpty(), LOCTEXT("PasteHereAction", "Paste here"), FText::GetEmpty(), 0) );
 		ContextMenuBuilder.AddAction( NewAction );
 	}
 }
@@ -634,7 +634,7 @@ void USoundCueGraphSchema::GetAllSoundNodeActions(FGraphActionMenuBuilder& Actio
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Name"), Name);
 				const FText AddToolTip = FText::Format(LOCTEXT("NewSoundCueNodeTooltip", "Adds {Name} node here"), Arguments);
-				TSharedPtr<FSoundCueGraphSchemaAction_NewNode> NewNodeAction(new FSoundCueGraphSchemaAction_NewNode(LOCTEXT("SoundNodeAction", "Sound Node"), Name, AddToolTip.ToString(), 0));
+				TSharedPtr<FSoundCueGraphSchemaAction_NewNode> NewNodeAction(new FSoundCueGraphSchemaAction_NewNode(LOCTEXT("SoundNodeAction", "Sound Node"), Name, AddToolTip, 0));
 				ActionMenuBuilder.AddAction(NewNodeAction);
 				NewNodeAction->SoundNodeClass = SoundNodeClass;
 			}
@@ -651,7 +651,7 @@ void USoundCueGraphSchema::GetAllSoundNodeActions(FGraphActionMenuBuilder& Actio
 				const FText ToolTip = FText::Format(LOCTEXT("NewSoundNodeRandomTooltip", "Adds a {Name} node for {SelectedItems} here"), Arguments);
 				TSharedPtr<FSoundCueGraphSchemaAction_NewFromSelected> NewNodeAction(new FSoundCueGraphSchemaAction_NewFromSelected(LOCTEXT("FromSelected", "From Selected"),
 					MenuDesc,
-					ToolTip.ToString(), 0));
+					ToolTip, 0));
 				ActionMenuBuilder.AddAction(NewNodeAction);
 				NewNodeAction->SoundNodeClass = (SoundNodeClass == USoundNodeWavePlayer::StaticClass() || SoundNodeClass == USoundNodeDialoguePlayer::StaticClass() ? NULL : SoundNodeClass);
 			}
@@ -665,7 +665,7 @@ void USoundCueGraphSchema::GetCommentAction(FGraphActionMenuBuilder& ActionMenuB
 	{
 		const bool bIsManyNodesSelected = CurrentGraph ? (FSoundCueEditorUtilities::GetNumberOfSelectedNodes(CurrentGraph) > 0) : false;
 		const FText MenuDescription = bIsManyNodesSelected ? LOCTEXT("CreateCommentAction", "Create Comment from Selection") : LOCTEXT("AddCommentAction", "Add Comment...");
-		const FString ToolTip = LOCTEXT("CreateCommentToolTip", "Creates a comment.").ToString();
+		const FText ToolTip = LOCTEXT("CreateCommentToolTip", "Creates a comment.");
 
 		TSharedPtr<FSoundCueGraphSchemaAction_NewComment> NewAction(new FSoundCueGraphSchemaAction_NewComment(FText::GetEmpty(), MenuDescription, ToolTip, 0));
 		ActionMenuBuilder.AddAction( NewAction );

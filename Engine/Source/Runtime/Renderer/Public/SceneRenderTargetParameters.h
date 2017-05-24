@@ -8,6 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "ShaderParameters.h"
+#include "MaterialShared.h"
 
 class FSceneView;
 class FShaderParameterMap;
@@ -16,9 +17,14 @@ namespace ESceneRenderTargetsMode
 {
 	enum Type
 	{
+		//scene textures are valid, and materials may bind them.  attempt to bind.
 		SetTextures,
-		DontSet,
+		//we know based on the kind of the material that the scenetextures will not attempt to bind.  this is an optimization
+		DontSet, 
 		DontSetIgnoreBoundByEditorCompositing,
+		//we are in a context where the scenetargets are not valid, but materials will want to bind them.  set some defaults.  
+		//required for safe FRendererModule::DrawTileMesh rendering of materials which bind scene texture
+		InvalidScene,
 	};
 }
 
@@ -35,6 +41,7 @@ public:
 		TRHICmdList& RHICmdList,
 		const ShaderRHIParamRef& ShaderRHI,
 		const FSceneView& View,
+		const EDeferredParamStrictness ParamStrictness = EDeferredParamStrictness::ELoose,
 		ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures,
 		ESamplerFilter ColorFilter = SF_Point
 	) const;
@@ -64,6 +71,8 @@ private:
 
 	FShaderResourceParameter MobileCustomStencilTexture;
 	FShaderResourceParameter MobileCustomStencilTextureSampler;
+
+	FShaderResourceParameter SceneStencilTextureParameter;
 };
 
 /** Pixel shader parameters needed for deferred passes. */
@@ -77,6 +86,7 @@ public:
 		TRHICmdList& RHICmdList,
 		const ShaderRHIParamRef ShaderRHI,
 		const FSceneView& View,
+		EMaterialDomain MaterialDomain,
 		ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures
 	) const;
 

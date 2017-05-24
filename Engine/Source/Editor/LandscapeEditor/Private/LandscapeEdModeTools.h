@@ -964,6 +964,7 @@ struct FAlphamapAccessor
 			ALandscapeProxy::InvalidateGeneratedComponentData(Components);
 
 			LandscapeEdit.SetAlphaData(LayerInfo, X1, Y1, X2, Y2, Data, 0, PaintingRestriction, bBlendWeight, bUseTotalNormalize);
+			//LayerInfo->IsReferencedFromLoadedData = true;
 			ModifiedComponents.Append(Components);
 		}
 	}
@@ -1309,29 +1310,31 @@ class FLandscapeToolBase : public FLandscapeTool
 {
 public:
 	FLandscapeToolBase(FEdModeLandscape* InEdMode)
-		: EdMode(InEdMode)
-		, bToolActive(false)
+		: LastInteractorPosition(FVector2D::ZeroVector)
+		, TimeSinceLastInteractorMove(0.0f)
+		, EdMode(InEdMode)
+		, bCanToolBeActivated(true)
+		, ToolStroke()
+		, bExternalModifierPressed(false)
 	{
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
 		if (!ensure(InteractorPositions.Num() == 0))
 		{
 			InteractorPositions.Empty(1);
 		}
 
-		if( !bToolActive )
+		if( !IsToolActive() )
 		{
 			ToolStroke.Emplace( EdMode, ViewportClient, InTarget );
 			EdMode->CurrentBrush->BeginStroke( InHitLocation.X, InHitLocation.Y, this );
 		}
 
-		bToolActive = true;
-
 		// Save the mouse position
 		LastInteractorPosition = FVector2D(InHitLocation);
-		InteractorPositions.Emplace(LastInteractorPosition, ViewportClient ? IsModifierPressed(ViewportClient, Interactor) : false); // Copy tool sometimes activates without a specific viewport via ctrl+c hotkey
+		InteractorPositions.Emplace(LastInteractorPosition, ViewportClient ? IsModifierPressed(ViewportClient) : false); // Copy tool sometimes activates without a specific viewport via ctrl+c hotkey
 		TimeSinceLastInteractorMove = 0.0f;
 
 		ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, InteractorPositions);
@@ -1342,7 +1345,7 @@ public:
 
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override
 	{
-		if (bToolActive)
+		if (IsToolActive())
 		{
 			if (InteractorPositions.Num() > 0)
 			{
@@ -1366,62 +1369,91 @@ public:
 
 	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
-		if (bToolActive && InteractorPositions.Num())
+		if (IsToolActive() && InteractorPositions.Num())
 		{
 			ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, InteractorPositions);
 			InteractorPositions.Empty(1);
 		}
 
 		ToolStroke.Reset();
-		bToolActive = false;
 		EdMode->CurrentBrush->EndStroke();
+		EdMode->UpdateLayerUsageInformation();
+		bExternalModifierPressed = false;
 	}
 
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
 	{
-		FVector HitLocation;
-		if (EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation))
+		if (ViewportClient != nullptr && Viewport != nullptr)
 		{
-			if (EdMode->CurrentBrush)
+			FVector HitLocation;
+			if (EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation))
 			{
-				// Inform the brush of the current location, to update the cursor
-				EdMode->CurrentBrush->MouseMove(HitLocation.X, HitLocation.Y);
-			}
-
-			if (bToolActive)
-			{
-				// Save the interactor position
-				if (InteractorPositions.Num() == 0 || LastInteractorPosition != FVector2D(HitLocation))
+				if (EdMode->CurrentBrush)
 				{
-					LastInteractorPosition = FVector2D(HitLocation);
-					InteractorPositions.Emplace(LastInteractorPosition, IsModifierPressed(ViewportClient));
+					// Inform the brush of the current location, to update the cursor
+					EdMode->CurrentBrush->MouseMove(HitLocation.X, HitLocation.Y);
 				}
-				TimeSinceLastInteractorMove = 0.0f;
+
+				if (IsToolActive())
+				{
+					// Save the interactor position
+					if (InteractorPositions.Num() == 0 || LastInteractorPosition != FVector2D(HitLocation))
+					{
+						LastInteractorPosition = FVector2D(HitLocation);
+						InteractorPositions.Emplace(LastInteractorPosition, IsModifierPressed(ViewportClient));
+					}
+					TimeSinceLastInteractorMove = 0.0f;
+				}
 			}
+		}
+		else
+		{
+			const FVector2D NewPosition(x, y);
+			if (InteractorPositions.Num() == 0 || LastInteractorPosition != FVector2D(NewPosition))
+			{
+				LastInteractorPosition = FVector2D(NewPosition);
+				InteractorPositions.Emplace(LastInteractorPosition, IsModifierPressed());
+			}
+			TimeSinceLastInteractorMove = 0.0f;
 		}
 
 		return true;
 	}
 
-	virtual bool IsToolActive() const override { return bToolActive;  }
+	virtual bool IsToolActive() const override { return ToolStroke.IsSet();  }
+
+	virtual void SetCanToolBeActivated(bool Value) { bCanToolBeActivated = Value; }
+	virtual bool CanToolBeActivated() const {	return bCanToolBeActivated; }
+
+	virtual void SetExternalModifierPressed(const bool bPressed) override
+	{
+		bExternalModifierPressed = bPressed;
+	}
 
 protected:
 	TArray<FLandscapeToolInteractorPosition> InteractorPositions;
 	FVector2D LastInteractorPosition;
 	float TimeSinceLastInteractorMove;
 	FEdModeLandscape* EdMode;
-	bool bToolActive;
+	bool bCanToolBeActivated;
 	TOptional<TStrokeClass> ToolStroke;
 
-	bool IsModifierPressed(const class FEditorViewportClient* ViewportClient, const UViewportInteractor* Interactor = nullptr)
-	{
-		bool bIsInteractorModifierPressed = false;
-		if (Interactor != nullptr)
-		{
-			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-			bIsInteractorModifierPressed = VRInteractor->IsModifierPressed();
-		}
+	/** Whether a modifier was pressed in another system (VREditor). */
+	bool bExternalModifierPressed;
 
-		return IsShiftDown(ViewportClient->Viewport) || bIsInteractorModifierPressed;
+	bool IsModifierPressed(const class FEditorViewportClient* ViewportClient = nullptr)
+	{
+		return bExternalModifierPressed || (ViewportClient != nullptr && IsShiftDown(ViewportClient->Viewport));
 	}
+};
+
+struct FToolFlattenCustomData
+{
+	FToolFlattenCustomData()
+		: ActiveEyeDropperMode(false)
+		, EyeDropperModeHeight(0.0f)
+	{}
+
+	bool ActiveEyeDropperMode;
+	float EyeDropperModeHeight;
 };

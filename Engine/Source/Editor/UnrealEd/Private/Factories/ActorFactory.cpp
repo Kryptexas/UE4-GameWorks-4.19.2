@@ -21,7 +21,6 @@ ActorFactory.cpp:
 #include "ActorFactories/ActorFactoryBoxVolume.h"
 #include "ActorFactories/ActorFactoryCameraActor.h"
 #include "ActorFactories/ActorFactoryCharacter.h"
-#include "ActorFactories/ActorFactorySubDSurface.h"
 #include "ActorFactories/ActorFactoryClass.h"
 #include "ActorFactories/ActorFactoryCylinderVolume.h"
 #include "ActorFactories/ActorFactoryDeferredDecal.h"
@@ -75,7 +74,6 @@ ActorFactory.cpp:
 #include "Sound/SoundBase.h"
 #include "Sound/AmbientSound.h"
 #include "GameFramework/Volume.h"
-#include "Engine/SubDSurface.h"
 #include "Engine/DecalActor.h"
 #include "Atmosphere/AtmosphericFog.h"
 #include "Engine/ExponentialHeightFog.h"
@@ -113,8 +111,6 @@ ActorFactory.cpp:
 #include "Engine/TriggerSphere.h"
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TextRenderActor.h"
-#include "Engine/SubDSurfaceActor.h"
-#include "Components/SubDSurfaceComponent.h"
 
 #include "Engine/DestructibleMesh.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -266,6 +262,12 @@ AActor* UActorFactory::CreateActor( UObject* Asset, ULevel* InLevel, FTransform 
 		if ( NewActor )
 		{
 			PostSpawnActor(Asset, NewActor);
+
+			// Only do this if the actor wasn't already given a name
+			if (Name == NAME_None && Asset)
+			{
+				FActorLabelUtilities::SetActorLabelUnique(NewActor, Asset->GetName());
+			}
 		}
 	}
 
@@ -306,11 +308,6 @@ AActor* UActorFactory::SpawnActor( UObject* Asset, ULevel* InLevel, const FTrans
 
 void UActorFactory::PostSpawnActor( UObject* Asset, AActor* NewActor)
 {
-	// Subclasses may implement this to modify the actor after it has been spawned
-	if (Asset)
-	{
-		FActorLabelUtilities::SetActorLabelUnique(NewActor, Asset->GetName());
-	}
 }
 
 void UActorFactory::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -584,50 +581,8 @@ UActorFactoryTextRender::UActorFactoryTextRender(const FObjectInitializer& Objec
 {
 	// Property initialization
 	DisplayName = LOCTEXT("TextRenderDisplayName", "Text Render");
-	NewActorClass = ATextRenderActor::GetPrivateStaticClass(L"...");
+	NewActorClass = ATextRenderActor::StaticClass();
 	bUseSurfaceOrientation = true;
-}
-
-/*-----------------------------------------------------------------------------
-UActorFactorySubDSurface
------------------------------------------------------------------------------*/
-UActorFactorySubDSurface::UActorFactorySubDSurface(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	// Property initialization
-	DisplayName = LOCTEXT("SubDSurfaceDisplayName", "Subdivision Surface");
-	NewActorClass = ASubDSurfaceActor::GetPrivateStaticClass(L"...");
-	bUseSurfaceOrientation = true;
-}
-
-bool UActorFactorySubDSurface::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
-{
-	// We allow creating ASubDSurfaceActor without an existing asset
-	if ( UActorFactory::CanCreateActorFrom( AssetData, OutErrorMsg ) )
-	{
-		return true;
-	}
-
-	if ( !AssetData.IsValid() || !AssetData.GetClass()->IsChildOf( USubDSurface::StaticClass() ) )
-	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSubDSurface", "A valid SubDSurface must be specified.");
-		return false;
-	}
-
-	return true;
-}
-
-void UActorFactorySubDSurface::PostSpawnActor( UObject* Asset, AActor* NewActor )
-{
-	Super::PostSpawnActor(Asset, NewActor);
-
-	USubDSurface* SubDSurface = Cast<USubDSurface>(Asset);
-	ASubDSurfaceActor* SubDSurfaceActor = CastChecked<ASubDSurfaceActor>(NewActor);
-
-	if(SubDSurface && SubDSurfaceActor)
-	{
-		SubDSurfaceActor->SubDSurface->SetMesh(SubDSurface);
-	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -789,7 +744,7 @@ void UActorFactoryPhysicsAsset::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	NewSkelActor->GetSkeletalMeshComponent()->PhysicsAssetOverride = PhysicsAsset;
 
 	// set physics setup
-	NewSkelActor->GetSkeletalMeshComponent()->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
+	NewSkelActor->GetSkeletalMeshComponent()->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipSimulatingBones;
 	NewSkelActor->GetSkeletalMeshComponent()->BodyInstance.bSimulatePhysics = true;
 	NewSkelActor->GetSkeletalMeshComponent()->bBlendPhysics = true;
 
@@ -818,7 +773,7 @@ void UActorFactoryPhysicsAsset::PostCreateBlueprint( UObject* Asset, AActor* CDO
 		}
 
 		// set physics setup
-		SkeletalPhysicsActor->GetSkeletalMeshComponent()->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
+		SkeletalPhysicsActor->GetSkeletalMeshComponent()->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipSimulatingBones;
 		SkeletalPhysicsActor->GetSkeletalMeshComponent()->BodyInstance.bSimulatePhysics = true;
 		SkeletalPhysicsActor->GetSkeletalMeshComponent()->bBlendPhysics = true;
 
@@ -912,12 +867,15 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 USkeletalMesh* UActorFactoryAnimationAsset::GetSkeletalMeshFromAsset( UObject* Asset ) const
 {
 	USkeletalMesh* SkeletalMesh = NULL;
-	UAnimSequenceBase* AnimationAsset = Cast<UAnimSequenceBase>( Asset );
-
-	if( AnimationAsset != NULL )
+	
+	if(UAnimSequenceBase* AnimationAsset = Cast<UAnimSequenceBase>(Asset))
 	{
 		// base it on preview skeletal mesh, just to have something
-		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetAssetPreviewMesh(AnimationAsset) : NULL;
+		SkeletalMesh = AnimationAsset->GetSkeleton() ? AnimationAsset->GetSkeleton()->GetAssetPreviewMesh(AnimationAsset) : nullptr;
+	}
+	else if(UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Asset))
+	{
+		SkeletalMesh = AnimBlueprint->TargetSkeleton ? AnimBlueprint->TargetSkeleton->GetAssetPreviewMesh(AnimBlueprint) : nullptr;
 	}
 
 	// Check to see if it's actually a DestructibleMesh, in which case we won't use this factory
@@ -1188,6 +1146,7 @@ UActorFactoryEmptyActor::UActorFactoryEmptyActor(const FObjectInitializer& Objec
 {
 	DisplayName = LOCTEXT("ActorFactoryEmptyActorDisplayName", "Empty Actor");
 	NewActorClass = AActor::StaticClass();
+	bVisualizeActor = true;
 }
 
 bool UActorFactoryEmptyActor::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
@@ -1204,7 +1163,7 @@ AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, co
 
 		USceneComponent* RootComponent = NewObject<USceneComponent>(NewActor, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
 		RootComponent->Mobility = EComponentMobility::Movable;
-		RootComponent->bVisualizeComponent = true;
+		RootComponent->bVisualizeComponent = bVisualizeActor;
 		RootComponent->SetWorldTransform(Transform);
 
 		NewActor->SetRootComponent(RootComponent);

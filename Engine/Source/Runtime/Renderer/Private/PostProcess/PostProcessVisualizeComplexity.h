@@ -13,6 +13,7 @@
 #include "RendererInterface.h"
 #include "PostProcessParameters.h"
 #include "PostProcess/RenderingCompositionGraph.h"
+#include "DebugViewModeHelpers.h"
 
 /**
 * The number of shader complexity colors from the engine ini that will be passed to the shader. 

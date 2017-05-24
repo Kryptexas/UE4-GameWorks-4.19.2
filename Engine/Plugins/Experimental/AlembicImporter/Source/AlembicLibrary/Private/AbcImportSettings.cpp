@@ -2,6 +2,7 @@
 
 #include "AbcImportSettings.h"
 #include "UObject/Class.h"
+#include "UObject/Package.h"
 
 UAbcImportSettings::UAbcImportSettings(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -12,7 +13,13 @@ UAbcImportSettings::UAbcImportSettings(const FObjectInitializer& ObjectInitializ
 
 UAbcImportSettings* UAbcImportSettings::Get()
 {	
-	// This is a singleton, use default object
-	UAbcImportSettings* DefaultSettings = GetMutableDefault<UAbcImportSettings>();	
+	static UAbcImportSettings* DefaultSettings = nullptr;
+	if (!DefaultSettings)
+	{
+		// This is a singleton, use default object
+		DefaultSettings = DuplicateObject(GetMutableDefault<UAbcImportSettings>(), GetTransientPackage());
+		DefaultSettings->AddToRoot();
+	}
+	
 	return DefaultSettings;
 }

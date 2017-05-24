@@ -68,6 +68,10 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Settings/EditorProjectSettings.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentStreaming.h"
+#include "IHeadMountedDisplay.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -2076,10 +2080,10 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 		GPerspViewMatrix = View->ViewMatrices.GetViewMatrix();
 	}
 
-	UpdateViewForLockedActor();
+	UpdateViewForLockedActor(DeltaTime);
 }
 
-void FLevelEditorViewportClient::UpdateViewForLockedActor()
+void FLevelEditorViewportClient::UpdateViewForLockedActor(float DeltaTime)
 {
 	// We can't be locked to a matinee actor if this viewport doesn't allow matinee control
 	if ( !bAllowCinematicPreview && ActorLockedByMatinee.IsValid() )
@@ -2119,7 +2123,7 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 				if (CameraComponent != nullptr)
 				{
 					bUseControllingActorViewInfo = true;
-					CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+					CameraComponent->GetCameraView(DeltaTime, ControllingActorViewInfo);
 					CameraComponent->GetExtraPostProcessBlends(ControllingActorExtraPostProcessBlends, ControllingActorExtraPostProcessBlendWeights);
 
 					// Post processing is handled by OverridePostProcessingSettings
@@ -4134,15 +4138,24 @@ void FLevelEditorViewportClient::UpdateAudioListener(const FSceneView& View)
 	{
 		if (FAudioDevice* AudioDevice = ViewportWorld->GetAudioDevice())
 		{
-			const FVector& ViewLocation = GetViewLocation();
+			FVector ViewLocation = GetViewLocation();
 
-			FMatrix CameraToWorld = View.ViewMatrices.GetInvViewMatrix();
-			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));
-			FVector ProjRight = CameraToWorld.TransformVector(FVector(1000, 0, 0));
+			const bool bStereoRendering = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D( Viewport );
+			if( bStereoRendering && GEngine->HMDDevice->IsHeadTrackingAllowed() )
+			{
+				FQuat RoomSpaceHeadOrientation;
+				FVector RoomSpaceHeadLocation;
+				GEngine->HMDDevice->GetCurrentOrientationAndPosition( /* Out */ RoomSpaceHeadOrientation, /* Out */ RoomSpaceHeadLocation );
 
-			FTransform ListenerTransform(FRotationMatrix::MakeFromZY(ProjUp, ProjRight));
-			ListenerTransform.SetTranslation(ViewLocation);
-			ListenerTransform.NormalizeRotation();
+				// NOTE: The RoomSpaceHeadLocation has already been adjusted for WorldToMetersScale
+				const FVector WorldSpaceHeadLocation = GetViewLocation() + GetViewRotation().RotateVector( RoomSpaceHeadLocation );
+				ViewLocation = WorldSpaceHeadLocation;
+			}
+
+			const FRotator& ViewRotation = GetViewRotation();
+
+			FTransform ListenerTransform(ViewRotation);
+			ListenerTransform.SetLocation(ViewLocation);
 
 			AudioDevice->SetListener(ViewportWorld, 0, ListenerTransform, 0.f);
 		}
@@ -4206,39 +4219,36 @@ void FLevelEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& 
  */
 void FLevelEditorViewportClient::DrawTextureStreamingBounds(const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
-#if 0 //@todo
-	// Iterate each level
-	for (TObjectIterator<ULevel> It; It; ++It)
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	TArray<FAssetData> SelectedAssetData;
+	ContentBrowserModule.Get().GetSelectedAssets(SelectedAssetData);
+
+	TArray<const UTexture2D*> SelectedTextures;
+	for (auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt)
 	{
-		ULevel* Level = *It;
-		// Grab the streaming bounds entries for the level
-		UTexture2D* TargetTexture = NULL;
-		TArray<FStreamableTextureInstance>* STIA = Level->GetStreamableTextureInstances(TargetTexture);
-		if (STIA)
+		if (AssetIt->IsAssetLoaded())
 		{
-			for (int32 Index = 0; Index < STIA->Num(); Index++)
-			{
-				FStreamableTextureInstance& STI = (*STIA)[Index];
-#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
-				FVector InMin = STI.BoundingSphere.Center;
-				FVector InMax = STI.BoundingSphere.Center;
-				float Max = STI.BoundingSphere.W;
-				InMin -= FVector(Max);
-				InMax += FVector(Max);
-				FBox Box = FBox(InMin, InMax);
-				DrawWireBox(PDI, Box, FColorList::Yellow, SDPG_World);
-#else	//#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
-				// Draw bounding spheres
-				FVector Origin = STI.Bounds.Origin;
-				float Radius = STI.Bounds.SphereRadius;
-				DrawCircle(PDI, Origin, FVector(1, 0, 0), FVector(0, 1, 0), FColorList::Yellow, Radius, 32, SDPG_World);
-				DrawCircle(PDI, Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColorList::Yellow, Radius, 32, SDPG_World);
-				DrawCircle(PDI, Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColorList::Yellow, Radius, 32, SDPG_World);
-#endif	//#if defined(_STREAMING_BOUNDS_DRAW_BOX_)
+			const UTexture2D* Texture = Cast<UTexture2D>(AssetIt->GetAsset());
+			if (Texture)
+	{
+				SelectedTextures.Add(Texture);
 			}
 		}
 	}
-#endif
+
+	TArray<FBox> AssetBoxes;
+	if (IStreamingManager::Get().IsTextureStreamingEnabled())
+		{
+		for (const UTexture2D* Texture : SelectedTextures)
+			{
+			IStreamingManager::Get().GetTextureStreamingManager().GetObjectReferenceBounds(Texture, AssetBoxes);
+			}
+		}
+
+	for (const FBox& Box : AssetBoxes)
+	{
+		DrawWireBox(PDI, Box, FColorList::Yellow, SDPG_World);
+	}
 }
 
 
@@ -4526,8 +4536,7 @@ UWorld* FLevelEditorViewportClient::GetWorld() const
 {
 	if (bIsSimulateInEditorViewport)
 	{
-		// TODO: Find a proper way to get this
-		return GWorld;
+		return GEditor->PlayWorld;
 	}
 	else if (World)
 	{

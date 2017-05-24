@@ -277,10 +277,6 @@ struct FAutomationWorkerRunTests
 	UPROPERTY()
 	FString BeautifiedTestName;
 
-	/** If true, we will save out screenshots for tests that support them. */
-	UPROPERTY(EditAnywhere, Category="Message")
-	bool bScreenshotsEnabled;
-
 	/** If true, send results to analytics when complete */
 	UPROPERTY()
 	bool bSendAnalytics;
@@ -289,54 +285,13 @@ struct FAutomationWorkerRunTests
 	FAutomationWorkerRunTests( ) { }
 
 	/** Creates and initializes a new instance. */
-	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, FString InBeautifiedTestName, bool InScreenshotsEnabled, bool InSendAnalytics)
+	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, FString InBeautifiedTestName, bool InSendAnalytics)
 		: ExecutionCount(InExecutionCount)
 		, RoleIndex(InRoleIndex)
 		, TestName(InTestName)
 		, BeautifiedTestName(InBeautifiedTestName)
-		, bScreenshotsEnabled(InScreenshotsEnabled)
 		, bSendAnalytics(InSendAnalytics)
 	{ }
-};
-
-USTRUCT()
-struct FAutomationWorkerEvent
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Event")
-	FString Message;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Event")
-	FString Context;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Event")
-	FString Filename;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Event")
-	int32 LineNumber;
-
-	FAutomationWorkerEvent()
-		: LineNumber(0)
-	{
-	}
-
-	FAutomationWorkerEvent(const FAutomationEvent& Event)
-		: Message(Event.Message)
-		, Context(Event.Context)
-		, Filename(Event.Filename)
-		, LineNumber(Event.LineNumber)
-	{
-	}
-
-	FAutomationEvent ToAutomationEvent() const
-	{
-		return FAutomationEvent(Message, Context, Filename, LineNumber);
-	}
 };
 
 /**
@@ -347,25 +302,7 @@ struct FAutomationWorkerRunTestsReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	float Duration;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	TArray<FAutomationWorkerEvent> Errors;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	uint32 ExecutionCount;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	TArray<FString> Logs;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category="Message")
-	bool Success;
+public:
 
 	/** */
 	UPROPERTY(EditAnywhere, Category="Message")
@@ -373,7 +310,25 @@ struct FAutomationWorkerRunTestsReply
 
 	/** */
 	UPROPERTY(EditAnywhere, Category="Message")
-	TArray<FString> Warnings;
+	TArray<FAutomationEvent> Events;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 WarningTotal;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 ErrorTotal;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category="Message")
+	float Duration;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint32 ExecutionCount;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool Success;
 };
 
 
@@ -419,6 +374,8 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="Message")
 	FGuid Id;
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString Commit;
 
 	UPROPERTY(EditAnywhere, Category="Message")
 	int32 Width;
@@ -504,6 +461,7 @@ public:
 
 		// Unique Id so we know if this screenshot has already been imported.
 		Id = Data.Id;
+		Commit = Data.Commit;
 
 		// Resolution Details
 		Width = Data.Width;
@@ -659,9 +617,12 @@ public:
 	{
 	}
 
-	FAutomationWorkerImageComparisonResults(bool InIsNew, bool InAreSimilar)
+	FAutomationWorkerImageComparisonResults(bool InIsNew, bool InAreSimilar, double InMaxLocalDifference, double InGlobalDifference, FString InErrorMessage)
 		: bNew(InIsNew)
 		, bSimilar(InAreSimilar)
+		, MaxLocalDifference(InMaxLocalDifference)
+		, GlobalDifference(InGlobalDifference)
+		, ErrorMessage(InErrorMessage)
 	{
 	}
 
@@ -672,4 +633,13 @@ public:
 	/** Were the images similar?  If they're not you should log an error. */
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool bSimilar;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	double MaxLocalDifference;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	double GlobalDifference;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString ErrorMessage;
 };

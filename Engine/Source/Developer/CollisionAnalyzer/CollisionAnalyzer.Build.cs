@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CollisionAnalyzer : ModuleRules
 {
-	public CollisionAnalyzer(TargetInfo Target)
+	public CollisionAnalyzer(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePathModuleNames.AddRange(
             new string[] {

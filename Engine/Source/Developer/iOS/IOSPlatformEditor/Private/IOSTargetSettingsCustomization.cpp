@@ -33,6 +33,8 @@
 #include "SNumericDropDown.h"
 #include "Misc/MessageDialog.h"
 #include "Widgets/Notifications/SErrorText.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "IOSTargetSettings"
 DEFINE_LOG_CATEGORY_STATIC(LogIOSTargetSettings, Log, All);
@@ -126,7 +128,7 @@ static void OnOutput(FString Message)
 {
 	OutputMessage += Message;
 	OutputMessage += "\n";
-	UE_LOG(LogTemp, Display, TEXT("%s\n"), *Message);
+	UE_LOG(LogTemp, Log, TEXT("%s"), *Message);
 }
 
 void FIOSTargetSettingsCustomization::UpdateStatus()
@@ -285,6 +287,10 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	SignCertificateProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, SigningCertificate));
 	BuildCategory.AddProperty(SignCertificateProperty)
 		.Visibility(EVisibility::Hidden);
+	AutomaticSigningProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bAutomaticSigning));
+	BuildCategory.AddProperty(AutomaticSigningProperty)
+		.Visibility(EVisibility::Hidden);
+	ProvisionCategory.AddProperty(AutomaticSigningProperty);
 
 /*	ProvisionCategory.AddCustomRow(TEXT("Certificate Request"), false)
 		.NameContent()
@@ -711,14 +717,31 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
 
 	FSimpleDelegate OnUpdateShaderStandardWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateShaderStandardWarning);
+	FSimpleDelegate OnUpdateOSVersionWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateOSVersionWarning);
 
-	GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
+/*	GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
 	GLES2PropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
 	RenderCategory.AddProperty(GLES2PropertyHandle);
 
 	MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
 	MinOSPropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
-	OSInfoCategory.AddProperty(MinOSPropertyHandle);
+	OSInfoCategory.AddProperty(MinOSPropertyHandle);*/
+
+	DevArmV7PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7));
+	DevArmV7PropertyHandle->SetOnPropertyValueChanged(OnUpdateOSVersionWarning);
+	BuildCategory.AddProperty(DevArmV7PropertyHandle);
+
+	DevArmV7sPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bDevForArmV7S));
+	DevArmV7sPropertyHandle->SetOnPropertyValueChanged(OnUpdateOSVersionWarning);
+	BuildCategory.AddProperty(DevArmV7sPropertyHandle);
+
+	ShipArmV7PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArmV7));
+	ShipArmV7PropertyHandle->SetOnPropertyValueChanged(OnUpdateOSVersionWarning);
+	BuildCategory.AddProperty(ShipArmV7PropertyHandle);
+
+	ShipArmV7sPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bShipForArmV7S));
+	ShipArmV7sPropertyHandle->SetOnPropertyValueChanged(OnUpdateOSVersionWarning);
+	BuildCategory.AddProperty(ShipArmV7sPropertyHandle);
 
 	SETUP_PLIST_PROP(BundleDisplayName, BundleCategory);
 	SETUP_PLIST_PROP(BundleName, BundleCategory);
@@ -772,6 +795,89 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 		
 		UpdateShaderStandardWarning();
     }
+
+	// Handle max. shader version a little specially.
+	{
+		MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
+
+		// Drop-downs for setting type of lower and upper bound normalization
+		IDetailPropertyRow& MinOSPropertyRow = OSInfoCategory.AddProperty(MinOSPropertyHandle.ToSharedRef());
+		MinOSPropertyRow.CustomWidget()
+		.NameContent()
+		[
+			MinOSPropertyHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		.HAlign(HAlign_Fill)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2)
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &FIOSTargetSettingsCustomization::OnGetMinVersionContent)
+				.ContentPadding(FMargin(2.0f, 2.0f))
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Text(this, &FIOSTargetSettingsCustomization::GetMinVersionDesc)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Fill)
+			.Padding(2)
+			[
+				SAssignNew(IOSVersionWarningTextBox, SErrorText)
+				.AutoWrapText(true)
+			]
+		];
+
+		UpdateOSVersionWarning();
+	}
+
+	// Handle max. shader version a little specially.
+	{
+		FSimpleDelegate OnUpdateGLVersionWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateGLVersionWarning);
+		GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
+		GLES2PropertyHandle->SetOnPropertyValueChanged(OnUpdateGLVersionWarning);
+		bool bIsChecked = false;
+		GLES2PropertyHandle->GetValue(bIsChecked);
+
+		// Drop-downs for setting type of lower and upper bound normalization
+		IDetailPropertyRow& GLPropertyRow = RenderCategory.AddProperty(GLES2PropertyHandle.ToSharedRef());
+		GLPropertyRow.CustomWidget()
+			.NameContent()
+			[
+				GLES2PropertyHandle->CreatePropertyNameWidget()
+			]
+			.ValueContent()
+			.HAlign(HAlign_Fill)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2)
+				[
+					SNew(SCheckBox)
+					.IsChecked(bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+					.OnCheckStateChanged(this, &FIOSTargetSettingsCustomization::HandleGLES2CheckBoxCheckStateChanged)
+					.Padding(FMargin(2.0, 2.0))
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.HAlign(HAlign_Fill)
+				.Padding(2)
+				[
+					SAssignNew(GLVersionWarningTextBox, SErrorText)
+					.AutoWrapText(true)
+				]
+			];
+
+		UpdateGLVersionWarning();
+	}
 
 	SETUP_PLIST_PROP(bSupportsIPad, DeviceCategory);
 	SETUP_PLIST_PROP(bSupportsIPhone, DeviceCategory);
@@ -886,6 +992,10 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 	IDetailPropertyRow& SSHPrivateKeyOverridePathPropertyRow = RemoteBuildingGroup.AddPropertyRow(SSHPrivateKeyOverridePathPropertyHandle);
 	SSHPrivateKeyOverridePathPropertyRow
 		.ToolTip(LOCTEXT("SSHPrivateKeyOverridePathToolTip", "Override the existing SSH Private Key with one from a specified location."));
+
+	// delta copy path
+	TSharedRef<IPropertyHandle> DeltaCopyOverridePathPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, DeltaCopyInstallPath));
+	IDetailPropertyRow& DeltaCopyOverridePathPropertyRow = RemoteBuildingGroup.AddPropertyRow(DeltaCopyOverridePathPropertyHandle);
 
 	const FText GenerateSSHText = LOCTEXT("GenerateSSHKey", "Generate SSH Key");
 
@@ -1295,7 +1405,7 @@ bool FIOSTargetSettingsCustomization::UpdateStatusDelegate(float DeltaTime)
 {
 	if (IPPProcess.IsValid())
 	{
-		if (IPPProcess->IsRunning())
+		if (IPPProcess->Update())
 		{
 			return true;
 		}
@@ -1548,7 +1658,7 @@ TSharedRef<SWidget> FIOSTargetSettingsCustomization::OnGetShaderVersionContent()
 		if (Enum->IsValidEnumValue(i))
 		{
 			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FIOSTargetSettingsCustomization::SetShaderStandard, i));
-			MenuBuilder.AddMenuEntry(Enum->GetEnumTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
+			MenuBuilder.AddMenuEntry(Enum->GetDisplayNameTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
 		}
 	}
 	
@@ -1564,9 +1674,42 @@ FText FIOSTargetSettingsCustomization::GetShaderVersionDesc() const
 	
 	if (EnumValue < Enum->GetMaxEnumValue() && Enum->IsValidEnumValue(EnumValue))
 	{
-		return Enum->GetEnumTextByValue(EnumValue);
+		return Enum->GetDisplayNameTextByValue(EnumValue);
 	}
 	
+	return FText::GetEmpty();
+}
+
+TSharedRef<SWidget> FIOSTargetSettingsCustomization::OnGetMinVersionContent()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EIOSVersion"), true);
+
+	for (int32 i = 0; i < Enum->GetMaxEnumValue(); i++)
+	{
+		if (Enum->IsValidEnumValue(i) && !Enum->HasMetaData(TEXT("Hidden"), Enum->GetIndexByValue(i)))
+		{
+			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FIOSTargetSettingsCustomization::SetMinVersion, i));
+			MenuBuilder.AddMenuEntry(Enum->GetDisplayNameTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
+		}
+	}
+
+	return MenuBuilder.MakeWidget();
+}
+
+FText FIOSTargetSettingsCustomization::GetMinVersionDesc() const
+{
+	uint8 EnumValue;
+	MinOSPropertyHandle->GetValue(EnumValue);
+
+	UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EIOSVersion"), true);
+
+	if (EnumValue < Enum->GetMaxEnumValue() && Enum->IsValidEnumValue(EnumValue))
+	{
+		return Enum->GetDisplayNameTextByValue(EnumValue);
+	}
+
 	return FText::GetEmpty();
 }
 
@@ -1576,8 +1719,11 @@ void FIOSTargetSettingsCustomization::SetShaderStandard(int32 Value)
     {
         FText Message;
         
-		uint8 EnumValue = 0;
+		uint8 EnumValue = (uint8)EIOSVersion::IOS_10;
+		if (MinOSPropertyHandle.IsValid())
+		{
 		MinOSPropertyHandle->GetValue(EnumValue);
+		}
 		
 		bool bHasGL = false;
 		GLES2PropertyHandle->GetValue(bHasGL);
@@ -1611,6 +1757,70 @@ void FIOSTargetSettingsCustomization::UpdateShaderStandardWarning()
 	uint8 EnumValue;
 	ShaderVersionPropertyHandle->GetValue(EnumValue);
 	SetShaderStandard(EnumValue);
+}
+
+void FIOSTargetSettingsCustomization::UpdateOSVersionWarning()
+{
+	bool ArchValue;
+	bool bEnabled = false;
+	DevArmV7PropertyHandle->GetValue(ArchValue);
+	bEnabled |= ArchValue;
+
+	DevArmV7sPropertyHandle->GetValue(ArchValue);
+	bEnabled |= ArchValue;
+
+	ShipArmV7PropertyHandle->GetValue(ArchValue);
+	bEnabled |= ArchValue;
+
+	ShipArmV7sPropertyHandle->GetValue(ArchValue);
+	bEnabled |= ArchValue;
+
+	FText Message;
+	Message = LOCTEXT("IOSDeprecation", "Enabling ArmV7 or ArmV7S will no longer be supported in 4.17.");
+
+	// Update the UI
+	if (bEnabled)
+	{
+		IOSVersionWarningTextBox->SetError(Message);
+	}
+	else
+	{
+		IOSVersionWarningTextBox->SetError(TEXT(""));
+	}
+}
+
+void FIOSTargetSettingsCustomization::UpdateGLVersionWarning()
+{
+	bool bEnabled = false;
+	GLES2PropertyHandle->GetValue(bEnabled);
+
+	FText Message;
+	Message = LOCTEXT("GLES2Deprecation", "GLES2 will no longer be supported in 4.17.");
+
+	// Update the UI
+	if (bEnabled)
+	{
+		GLVersionWarningTextBox->SetError(Message);
+	}
+	else
+	{
+		GLVersionWarningTextBox->SetError(TEXT(""));
+	}
+
+	UpdateShaderStandardWarning();
+}
+
+void FIOSTargetSettingsCustomization::SetMinVersion(int32 Value)
+{
+	FPropertyAccess::Result Res = MinOSPropertyHandle->SetValue((uint8)Value);
+	check(Res == FPropertyAccess::Success);
+}
+
+void FIOSTargetSettingsCustomization::HandleGLES2CheckBoxCheckStateChanged(ECheckBoxState NewState)
+{
+	GLES2PropertyHandle->SetValue(NewState == ECheckBoxState::Checked ? true : false);
+
+	UpdateGLVersionWarning();
 }
 
 //////////////////////////////////////////////////////////////////////////

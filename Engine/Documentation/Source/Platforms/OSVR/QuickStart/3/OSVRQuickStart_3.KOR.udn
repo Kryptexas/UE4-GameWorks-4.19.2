@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:Docs
-Title:3.Using OSVR in UE4
+Title:3. UE4 에서 OSVR 사용
 Crumbs:%ROOT%, Platforms/GoogleVR
-Description:Enabling the OSVR Plugin.
+Description:OSVR 플러그인 활성화 방법입니다.
 Navigation:platform
 Skilllevel: Intermediate
 Version: 4.12
@@ -14,26 +14,26 @@ tags:OSVR
 
 [NAV]
 
- In this part of the OSVR Quick Start, we will go over how to enable the OSVR plugin so the OSVR HMD can be used in UE4.
+ 이번 OSVR 퀵 스타트에서는 UE4 에서 OSVR HMD 를 사용할 수 있도록 OSVR 플러그인을 활성화시키는 방법을 알아봅니다.
 
-1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Edit** tab and select the **Plugins** menu item.
+1. UE4 에디터가 로드된 이후 **메인 툴바** 에서 **편집** 탭을 열고 **플러그인** 메뉴 항목을 선택합니다.
 	
 	![](Platforms\GoogleVR\QuickStart\2\GVRQS_Pligin_Menu_00.png)
 
-1. Inside of the **Plugins menu**, go the **Virtual Reality** section locate the **OSVR Plugin** then enable it by clicking on the checkmark box next to its name.
+1. **플러그인 메뉴** 안에서 **Virtual Reality** 섹션 아래 **OSVR Plugin** 을 찾은 뒤 그 이름 옆 박스를 체크하여 활성화시킵니다.
 
 	![](OSVR_Enable_Plugin.png)
 
-1. Press the **Restart Now** button to restart the UE4 Editor with the OSVR plugin enabled.
+1. **지금 재시작** 버튼을 눌러 UE4 에디터를 재시작하면 OSVR 플러그인이 활성화됩니다.
 
 	![](OSVR_Restart_Editor.png)
 
-1. Once the Editor has re-started click on the **Main Toolbar**, select the **Play this Level in VR** option and then put on your HMD.
+1. 에디터가 재시작된 이후 **메인 툴바** 를 클릭하고 **이 레벨을 VR 에서 플레이** 를 선택한 뒤 HMD 를 씁니다.
 
 	![](OSVR_Play_In_VR.png)
 
-1. When the project is launched, you should see a window being displayed that is similar to the image below
-and you should also be able to freely rotate your head around and see that movement reflected in the UE4 camera.
+1. 프로젝트가 실행되면, 아래 그림과 비슷한 창이 보일 것이며,
+머리를 자유롭게 돌려보면 UE4 카메라에 그 이동이 반영되는 것도 보일 것입니다.
 
 	![](OSVR_Preview_Window.png)
 

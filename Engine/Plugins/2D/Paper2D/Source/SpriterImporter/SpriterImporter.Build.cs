@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SpriterImporter : ModuleRules
 {
-	public SpriterImporter(TargetInfo Target)
+	public SpriterImporter(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

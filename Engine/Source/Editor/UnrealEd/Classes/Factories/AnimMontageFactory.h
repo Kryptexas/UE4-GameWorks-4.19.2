@@ -13,6 +13,7 @@
 
 class FAssetData;
 class SWindow;
+class UAnimMontage;
 
 UCLASS(HideCategories=Object,MinimalAPI)
 class UAnimMontageFactory : public UFactory
@@ -26,10 +27,17 @@ class UAnimMontageFactory : public UFactory
 	UPROPERTY()
 	class UAnimSequence* SourceAnimation;
 
+	/** The preview mesh to use with this animation */
+	UPROPERTY()
+	class USkeletalMesh* PreviewSkeletalMesh;
+
 	//~ Begin UFactory Interface
 	virtual bool ConfigureProperties() override;
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
 	//~ Begin UFactory Interface	
+
+	/** Ensure there is at least one section in the montage and that the first section starts at T=0.f */
+	static UNREALED_API bool EnsureStartingSection(UAnimMontage* Montage);
 
 private:
 	void OnTargetSkeletonSelected(const FAssetData& SelectedAsset);

@@ -160,6 +160,12 @@ public:
 	/** Returns true if none of the ability's tags are blocked and if it doesn't have a "Blocking" tag and has all "Required" tags. */
 	bool DoesAbilitySatisfyTagRequirements(const UAbilitySystemComponent& AbilitySystemComponent, const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const;
 
+	/** Takes in the ability spec and checks if we should allow replication on the ability spec, this will NOT stop replication of the ability UObject just the spec inside the UAbilitySystemComponenet ActivatableAbilities for this ability */
+	virtual bool ShouldReplicatedAbilitySpec(const FGameplayAbilitySpec& AbilitySpec) const
+	{
+		return true;
+	}
+
 	EGameplayAbilityInstancingPolicy::Type GetInstancingPolicy() const
 	{
 		return InstancingPolicy;
@@ -290,6 +296,9 @@ public:
 	/** Input binding stub. */
 	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) {};
 
+	virtual void OnWaitingForConfirmInputBegin() {}
+	virtual void OnWaitingForConfirmInputEnd() {}
+
 	/** If true, this ability will always replicate input press/release events to the server. */
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	bool bReplicateInputDirectly;
@@ -303,6 +312,10 @@ public:
 
 	/** Returns true if an an ability should be activated */
 	virtual bool ShouldActivateAbility(ENetRole Role) const;
+
+	/* Call from Blueprint to cancel the ability naturally */
+	UFUNCTION(BlueprintCallable, Category = Ability, DisplayName = "CancelAbility")
+	void K2_CancelAbility();
 
 protected:
 
@@ -692,7 +705,7 @@ protected:
 	/** Deprecated? This GameplayEffect represents the cooldown. It will be applied when the ability is committed and the ability cannot be used again until it is expired. */
 	UPROPERTY(EditDefaultsOnly, Category = Cooldowns)
 	TSubclassOf<class UGameplayEffect> CooldownGameplayEffectClass;
-	
+
 	// ----------------------------------------------------------------------------------------------------------------
 	//
 	//	Ability exclusion / canceling

@@ -54,6 +54,8 @@ private:
 	void CheckForRebuild(bool bRebuildAll = false);
 
 	float GetSlateUnitsPerFrame() const { return SlateUnitsPerFrame; }
+
+	void AnimationScrollBar_OnUserScrolled(float ScrollOffset);
 private:
 	TSharedPtr<SHorizontalBox> BackgroundPerFrameSlices;
 	TSharedPtr<class STimelineHeader> TimelineHeader;
@@ -64,6 +66,7 @@ private:
 	TSharedPtr<FUICommandList> CommandList;
 	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
 	float SlateUnitsPerFrame;
+	float AnimationScrollBarPosition;
 
 	// Observer values (used to detect if the widget needs to be rebuilt)
 	int32 NumFramesFromLastRebuild;

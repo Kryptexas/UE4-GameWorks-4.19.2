@@ -96,6 +96,11 @@ USoundSubmix* USoundBase::GetSoundSubmix() const
 	return SoundSubmixObject;
 }
 
+void USoundBase::GetSoundSubmixSends(TArray<FSoundSubmixSendInfo>& OutSends) const
+{
+	OutSends = SoundSubmixSends;
+}
+
 const FSoundConcurrencySettings* USoundBase::GetSoundConcurrencySettingsToApply()
 {
 	if (bOverrideConcurrency)

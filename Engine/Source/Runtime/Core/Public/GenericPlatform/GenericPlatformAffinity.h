@@ -23,6 +23,7 @@ enum EThreadPriority
 	TPri_Highest,
 	TPri_Lowest,
 	TPri_SlightlyBelowNormal,
+	TPri_TimeCritical
 };
 
 class FGenericPlatformAffinity
@@ -69,6 +70,11 @@ public:
 	}
 
 	static const CORE_API uint64 GetNoAffinityMask()
+	{
+		return 0xFFFFFFFFFFFFFFFF;
+	}
+
+	static const CORE_API uint64 GetTaskGraphBackgroundTaskMask()
 	{
 		return 0xFFFFFFFFFFFFFFFF;
 	}

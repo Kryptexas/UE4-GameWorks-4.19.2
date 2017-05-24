@@ -18,7 +18,8 @@ SSizeMap::SSizeMap()
 	  RootTreeMapNode( new FTreeMapNodeData() ),
 
 	  // @todo sizemap: Hard-coded thumbnail pool size.  Not a big deal, but ideally move the constants elsewhere
-  	  AssetThumbnailPool( new FAssetThumbnailPool(1024) )
+  	  AssetThumbnailPool( new FAssetThumbnailPool(1024) ),
+	  SelectAssetOnDoubleClick(true)
 {
 }
 
@@ -35,6 +36,8 @@ SSizeMap::~SSizeMap()
 
 void SSizeMap::Construct( const FArguments& InArgs )
 {
+	SelectAssetOnDoubleClick = InArgs._SelectAssetOnDoubleClick;
+
 	ChildSlot
 	[
 		SAssignNew( TreeMapWidget, STreeMap, RootTreeMapNode.ToSharedRef(), nullptr )
@@ -569,12 +572,15 @@ void SSizeMap::OnInitialAssetRegistrySearchComplete()
 
 void SSizeMap::OnTreeMapNodeDoubleClicked( FTreeMapNodeData& TreeMapNodeData )
 {
-	const FNodeSizeMapData* NodeSizeMapData = NodeSizeMapDataMap.Find( TreeMapNodeData.AsShared() );
-	if( NodeSizeMapData != nullptr )
+	if (SelectAssetOnDoubleClick)
 	{
-		TArray<FAssetData> Assets;
-		Assets.Add( NodeSizeMapData->AssetData );
-		GEditor->SyncBrowserToObjects( Assets );
+		const FNodeSizeMapData* NodeSizeMapData = NodeSizeMapDataMap.Find(TreeMapNodeData.AsShared());
+		if (NodeSizeMapData != nullptr)
+		{
+			TArray<FAssetData> Assets;
+			Assets.Add(NodeSizeMapData->AssetData);
+			GEditor->SyncBrowserToObjects(Assets);
+		}
 	}
 }
 

@@ -2,35 +2,59 @@
 
 
 #include "Sound/SoundEffectBase.h"
-#include "UObject/UnrealType.h"
-#include "Sound/SoundEffectPreset.h"
 
-/*-----------------------------------------------------------------------------
-	FSoundEffectBase Implementation
------------------------------------------------------------------------------*/
 
 FSoundEffectBase::FSoundEffectBase()
-	: bIsRunning(false)
+	: bChanged(false)
+	, Preset(nullptr)
+	, ParentPreset(nullptr)
+	, bIsRunning(false)
 	, bIsActive(false)
 {}
 
-void FSoundEffectBase::SetPreset(USoundEffectPreset* InPreset)
+FSoundEffectBase::~FSoundEffectBase()
 {
-	const FPresetSettings& PresetSettings = InPreset->GetPresetSettings();
-
-	// Reset the preset data scratch buffer to the size of the settings
-	RawPresetDataScratchInputBuffer.Init(0, PresetSettings.Size);
-
-	// Copy the data to the raw data array
-	UProperty* Property = PresetSettings.Struct->PropertyLink;
-	while (Property)
-	{
-		uint32 PropertyOffset = Property->GetOffset_ForInternal();
-		Property->CopyCompleteValue((uint8*)RawPresetDataScratchInputBuffer.GetData() + PropertyOffset, (const uint8*)PresetSettings.Data + PropertyOffset);
-		Property = Property->PropertyLinkNext;
-	}
-
-	// Queuing the data will copy the data to the queue
-	EffectSettingsQueue.Enqueue(RawPresetDataScratchInputBuffer);
 }
+
+bool FSoundEffectBase::IsActive() const
+{ 
+	return bIsActive; 
+}
+
+void FSoundEffectBase::SetEnabled(const bool bInIsEnabled)
+{ 
+	bIsActive = bInIsEnabled; 
+}
+
+void FSoundEffectBase::SetPreset(USoundEffectPreset* Inpreset)
+{
+	Preset = Inpreset;
+	bChanged = true;
+}
+
+void FSoundEffectBase::Update()
+{
+	if (bChanged && Preset)
+	{
+		OnPresetChanged();
+		bChanged = false;
+	}
+}
+
+void FSoundEffectBase::RegisterWithPreset(USoundEffectPreset* InParentPreset)
+{
+	ParentPreset = InParentPreset;
+	ParentPreset->AddEffectInstance(this);
+}
+
+void FSoundEffectBase::UnregisterWithPreset()
+{
+	ParentPreset->RemoveEffectInstance(this);
+}
+
+bool FSoundEffectBase::IsParentPreset(USoundEffectPreset* InPreset) const
+{
+	return ParentPreset == InPreset;
+}
+
 

@@ -57,6 +57,15 @@ public class AndroidPlatform : Platform
 		return ApkName;
 	}
 
+	private static string GetFinalSymbolizedSODirectory(DeploymentContext SC, string Architecture, string GPUArchitecture)
+	{
+		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(SC.RawProjectPath), SC.StageTargetPlatform.PlatformType);
+		int StoreVersion;
+		Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "StoreVersion", out StoreVersion);
+
+		return SC.ShortProjectName + "_Symbols_v" + StoreVersion + "/" + SC.ShortProjectName + Architecture + GPUArchitecture;
+	}
+
 	private static string GetFinalObbName(string ApkName)
 	{
 		// calculate the name for the .obb file
@@ -105,7 +114,13 @@ public class AndroidPlatform : Platform
 		}
     }
 
-	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture, string GPUArchitecture, bool bNoOBBInstall, bool bUninstall, UnrealTargetPlatform Target)
+	enum EBatchType
+	{
+		Install,
+		Uninstall,
+		Symbolize,
+	};
+	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture, string GPUArchitecture, bool bNoOBBInstall, EBatchType BatchType, UnrealTargetPlatform Target)
 	{
 		string Extension = ".bat";
 		switch (Target)
@@ -123,7 +138,16 @@ public class AndroidPlatform : Platform
 				Extension = ".command";
 				break;
 		}
-		return Path.Combine(Path.GetDirectoryName(ApkName), (bUninstall ? "Uninstall_" : "Install_") + Params.ShortProjectName + (!bNoOBBInstall ? "_" : "_NoOBBInstall_") + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + Extension);
+
+		switch(BatchType)
+		{
+			case EBatchType.Install:
+			case EBatchType.Uninstall:
+				return Path.Combine(Path.GetDirectoryName(ApkName), (BatchType == EBatchType.Uninstall ? "Uninstall_" : "Install_") + Params.ShortProjectName + (!bNoOBBInstall ? "_" : "_NoOBBInstall_") + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + Extension);
+			case EBatchType.Symbolize:
+				return Path.Combine(Path.GetDirectoryName(ApkName), "SymobilzeCrashDump_"  + Params.ShortProjectName + Architecture + GPUArchitecture + Extension);
+		}
+		return "";
 	}
 
 	private List<string> CollectPluginDataPaths(DeploymentContext SC)
@@ -147,15 +171,30 @@ public class AndroidPlatform : Platform
 		}
 		return PluginExtras;
 	}
+	private bool BuildWithHiddenSymbolVisibility(DeploymentContext SC)
+	{
+		UnrealTargetConfiguration TargetConfiguration = SC.StageTargetConfigurations[0];
+		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(SC.RawProjectPath), SC.StageTargetPlatform.PlatformType);
+		bool bBuild = false;
+		return TargetConfiguration == UnrealTargetConfiguration.Shipping && (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildWithHiddenSymbolVisibility", out bBuild) && bBuild);
+	}
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-		AndroidToolChain ToolChain = new AndroidToolChain(Params.RawProjectPath);
+		if (SC.StageTargetConfigurations.Count != 1)
+		{
+			throw new AutomationException(ExitCode.Error_OnlyOneTargetConfigurationSupported, "Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+		}
+
+		UnrealTargetConfiguration TargetConfiguration = SC.StageTargetConfigurations[0];
+
+		IAndroidToolChain ToolChain = AndroidExports.CreateToolChain(Params.RawProjectPath);
 		var Architectures = ToolChain.GetAllArchitectures();
 		var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
-		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.AndroidExports.ShouldMakeSeparateApks();
+		bool bBuildWithHiddenSymbolVisibility = BuildWithHiddenSymbolVisibility(SC);
 
-		var Deploy = new UEDeployAndroid(Params.RawProjectPath);
+		var Deploy = AndroidExports.CreateDeploymentHandler(Params.RawProjectPath);
 		bool bPackageDataInsideApk = Deploy.PackageDataInsideApk(false);
 
 		string BaseApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "", "");
@@ -252,20 +291,31 @@ public class AndroidPlatform : Platform
 				{
 					bool bIsPC = (Target == UnrealTargetPlatform.Win64);
 					// Write install batch file(s).
-					string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, false, Target);
+					string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, EBatchType.Install, Target);
 					string PackageName = GetPackageInfo(ApkName, false);
 					// make a batch file that can be used to install the .apk and .obb files
 					string[] BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bIsPC);
 					File.WriteAllLines(BatchName, BatchLines);
 					// make a batch file that can be used to uninstall the .apk and .obb files
-					string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, true, Target);
+					string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, EBatchType.Uninstall, Target);
 					BatchLines = GenerateUninstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bIsPC);
 					File.WriteAllLines(UninstallBatchName, BatchLines);
+
+					string SymbolizeBatchName = GetFinalBatchName(ApkName, Params, Architecture, GPUArchitecture, false, EBatchType.Symbolize, Target);
+					if(bBuildWithHiddenSymbolVisibility)
+					{
+						BatchLines = GenerateSymbolizeBatchFile(Params, PackageName, SC, Architecture, GPUArchitecture, bIsPC);
+						File.WriteAllLines(SymbolizeBatchName, BatchLines);
+					}
 
 					if (Utils.IsRunningOnMono)
 					{
 						CommandUtils.FixUnixFilePermissions(BatchName);
 						CommandUtils.FixUnixFilePermissions(UninstallBatchName);
+						if(bBuildWithHiddenSymbolVisibility)
+						{
+							CommandUtils.FixUnixFilePermissions(SymbolizeBatchName);
+						}
 						//if(File.Exists(NoInstallBatchName)) 
 						//{
 						//    CommandUtils.FixUnixFilePermissions(NoInstallBatchName);
@@ -456,6 +506,51 @@ public class AndroidPlatform : Platform
 		return BatchLines;
 	}
 
+	private string[] GenerateSymbolizeBatchFile(ProjectParams Params, string PackageName, DeploymentContext SC, string Architecture, string GPUArchitecture, bool bIsPC)
+	{
+		string[] BatchLines = null;
+
+		if (!bIsPC)
+		{
+			Log("Writing shell script for symbolize with {0}", "data in APK" );
+			BatchLines = new string[] {
+				"#!/bin/sh",
+				"if [ $? -ne 0]; then",
+				 "echo \"Required argument missing, pass a dump of adb crash log.\"",
+				 "exit 1",
+				"fi",
+				"cd \"`dirname \"$0\"`\"",
+				"NDKSTACK=",
+				"if [ \"$ANDROID_NDK_ROOT\" != \"\" ]; then NDKSTACK=$%ANDROID_NDK_ROOT/ndk-stack; else ADB=" + Environment.GetEnvironmentVariable("ANDROID_NDK_ROOT") + "/ndk-stack; fi",
+				"$NDKSTACK -sym " + GetFinalSymbolizedSODirectory(SC, Architecture, GPUArchitecture) + " -dump \"%1\" > " + Params.ShortProjectName + "_SymbolizedCallStackOutput.txt",
+				"exit 0",
+				};
+		}
+		else
+		{
+			Log("Writing bat for symbolize");
+			BatchLines = new string[] {
+						"@echo off",
+						"IF %1.==. GOTO NoArgs",
+						"setlocal",
+						"set NDK_ROOT=%ANDROID_NDK_ROOT%",
+						"if \"%ANDROID_NDK_ROOT%\"==\"\" set NDK_ROOT=\""+Environment.GetEnvironmentVariable("ANDROID_NDK_ROOT")+"\"",
+						"set NDKSTACK=%NDK_ROOT%\ndk-stack.cmd",
+						"",
+						"%NDKSTACK% -sym "+GetFinalSymbolizedSODirectory(SC, Architecture, GPUArchitecture)+" -dump \"%1\" > "+ Params.ShortProjectName+"_SymbolizedCallStackOutput.txt",
+						"",
+						"goto:eof",
+						"",
+						"",
+						":NoArgs",
+						"echo.",
+						"echo Required argument missing, pass a dump of adb crash log. (SymboliseCallStackDump C:\\adbcrashlog.txt)",
+						"pause"
+					};
+		}
+		return BatchLines;
+	}
+
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
 	{
 		if (SC.StageTargetConfigurations.Count != 1)
@@ -463,11 +558,12 @@ public class AndroidPlatform : Platform
 			throw new AutomationException(ExitCode.Error_OnlyOneTargetConfigurationSupported, "Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 
-		AndroidToolChain ToolChain = new AndroidToolChain(Params.RawProjectPath);
+		UnrealTargetConfiguration TargetConfiguration = SC.StageTargetConfigurations[0];
+		IAndroidToolChain ToolChain = AndroidExports.CreateToolChain(Params.RawProjectPath);
 		var Architectures = ToolChain.GetAllArchitectures();
 		var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
-		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
-		bool bPackageDataInsideApk = new UnrealBuildTool.UEDeployAndroid(Params.RawProjectPath).PackageDataInsideApk(false);
+		bool bMakeSeparateApks = UnrealBuildTool.AndroidExports.ShouldMakeSeparateApks();
+		bool bPackageDataInsideApk = UnrealBuildTool.AndroidExports.CreateDeploymentHandler(Params.RawProjectPath).PackageDataInsideApk(false);
 
 		bool bAddedOBB = false;
 		foreach (string Architecture in Architectures)
@@ -476,6 +572,7 @@ public class AndroidPlatform : Platform
 			{
 				string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "");
 				string ObbName = GetFinalObbName(ApkName);
+				bool bBuildWithHiddenSymbolVisibility = BuildWithHiddenSymbolVisibility(SC);
 				//string NoOBBBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", true, false);
 
 				// verify the files exist
@@ -486,6 +583,19 @@ public class AndroidPlatform : Platform
 				if (!bPackageDataInsideApk && !FileExists(ObbName))
 				{
                     throw new AutomationException(ExitCode.Error_ObbNotFound, "ARCHIVE FAILED - {0} was not found", ObbName);
+				}
+
+				if (bBuildWithHiddenSymbolVisibility)
+				{
+					string SymbolizedSODirectory = GetFinalSymbolizedSODirectory(SC, Architecture, GPUArchitecture);
+					string SymbolizedSOPath = Path.Combine(Path.Combine(Path.GetDirectoryName(ApkName), SymbolizedSODirectory), "libUE4.so");
+					if (!FileExists(SymbolizedSOPath))
+					{
+						throw new AutomationException(ExitCode.Error_SymbolizedSONotFound, "ARCHIVE FAILED - {0} was not found", SymbolizedSOPath);
+					}
+
+					// Add symbolized .so directory
+					SC.ArchiveFiles(Path.GetDirectoryName(SymbolizedSOPath), Path.GetFileName(SymbolizedSOPath), true, null, SymbolizedSODirectory);
 				}
 
 				SC.ArchiveFiles(Path.GetDirectoryName(ApkName), Path.GetFileName(ApkName));
@@ -503,11 +613,17 @@ public class AndroidPlatform : Platform
 				//helper delegate to prevent code duplication but allow us access to all the local variables we need
 				var CreateBatchFilesAndArchiveAction = new Action<UnrealTargetPlatform>(Target =>
 				{
-					string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, false, Target);
-					string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, true, Target);
+					string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, EBatchType.Install, Target);
+					string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, EBatchType.Uninstall, Target);
 
 					SC.ArchiveFiles(Path.GetDirectoryName(BatchName), Path.GetFileName(BatchName));
 					SC.ArchiveFiles(Path.GetDirectoryName(UninstallBatchName), Path.GetFileName(UninstallBatchName));
+
+					if(bBuildWithHiddenSymbolVisibility)
+					{
+						string SymbolizeBatchName = GetFinalBatchName(ApkName, Params, Architecture, GPUArchitecture, false, EBatchType.Symbolize, Target);
+						SC.ArchiveFiles(Path.GetDirectoryName(SymbolizeBatchName), Path.GetFileName(SymbolizeBatchName));
+					}
 					//SC.ArchiveFiles(Path.GetDirectoryName(NoOBBBatchName), Path.GetFileName(NoOBBBatchName));
 				}
 				);
@@ -727,7 +843,9 @@ public class AndroidPlatform : Platform
 
     public override void Deploy(ProjectParams Params, DeploymentContext SC)
     {
-        foreach (var DeviceName in Params.DeviceNames)
+		var AppArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllArchitectures();
+
+		foreach (var DeviceName in Params.DeviceNames)
         {
             string DeviceArchitecture = GetBestDeviceArchitecture(Params, DeviceName);
             string GPUArchitecture = GetBestGPUArchitecture(Params, DeviceName);
@@ -735,14 +853,12 @@ public class AndroidPlatform : Platform
             string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, DeviceArchitecture, GPUArchitecture);
 
             // make sure APK is up to date (this is fast if so)
-            var Deploy = new UEDeployAndroid(Params.RawProjectPath);
+            var Deploy = AndroidExports.CreateDeploymentHandler(Params.RawProjectPath);
             if (!Params.Prebuilt)
             {
                 string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
-                string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
-                List<string> Architectures = new List<string>();
-                Architectures.Add(DeviceArchitecture);
-                Deploy.SetAndroidPluginData(Architectures, CollectPluginDataPaths(SC));
+				string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
+				Deploy.SetAndroidPluginData(AppArchitectures, CollectPluginDataPaths(SC));
                 Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, true);
             }
 
@@ -1210,20 +1326,20 @@ public class AndroidPlatform : Platform
 
 	private string GetBestDeviceArchitecture(ProjectParams Params, string DeviceName)
 	{
-		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.AndroidExports.ShouldMakeSeparateApks();
 		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
 		if (!bMakeSeparateApks)
 		{
 			return "";
 		}
 
-		var AppArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllArchitectures();
+		var AppArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllArchitectures();
 
 		// ask the device
 		IProcessResult ABIResult = RunAdbCommand(Params, DeviceName, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
 
 		// the output is just the architecture
-		string DeviceArch = UnrealBuildTool.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
+		string DeviceArch = UnrealBuildTool.AndroidExports.GetUE4Arch(ABIResult.Output.Trim());
 
 		// if the architecture wasn't built, look for a backup
 		if (!AppArchitectures.Contains(DeviceArch))
@@ -1275,14 +1391,14 @@ public class AndroidPlatform : Platform
 
 	private string GetBestGPUArchitecture(ProjectParams Params, string DeviceName)
 	{
-		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.AndroidExports.ShouldMakeSeparateApks();
 		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
 		if (!bMakeSeparateApks)
 		{
 			return "";
 		}
 
-		var AppGPUArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
+		var AppGPUArchitectures = AndroidExports.CreateToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
 
 		// get the device extensions
 		IProcessResult ExtensionsResult = RunAdbCommand(Params, DeviceName, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
@@ -1307,6 +1423,18 @@ public class AndroidPlatform : Platform
 		//same with the package names
 		List<string> PackageNames = new List<string>();
 
+		//strip off the device, GPU architecture and extension (.so)
+		int DashIndex = ClientApp.LastIndexOf("-");
+		if (DashIndex >= 0)
+		{
+			ClientApp = ClientApp.Substring(0, DashIndex);
+			DashIndex = ClientApp.LastIndexOf("-");
+			if (DashIndex >= 0)
+			{
+				ClientApp = ClientApp.Substring(0, DashIndex);
+			}
+		}
+
 		foreach (string DeviceName in Params.DeviceNames)
 		{
 			//save the device name
@@ -1315,10 +1443,10 @@ public class AndroidPlatform : Platform
 			//get the package name and save that
 			string DeviceArchitecture = GetBestDeviceArchitecture(Params, DeviceName);
 			string GPUArchitecture = GetBestGPUArchitecture(Params, DeviceName);
-			string ApkName = ClientApp + DeviceArchitecture + ".apk";
+			string ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true, DeviceArchitecture, GPUArchitecture);
 			if (!File.Exists(ApkName))
 			{
-				ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true, DeviceArchitecture, GPUArchitecture);
+				throw new AutomationException(ExitCode.Error_AppNotFound, "Failed to find application " + ApkName);
 			}
 			Console.WriteLine("Apk='{0}', ClientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.ProjectGameExeFilename);
 
@@ -1465,6 +1593,11 @@ public class AndroidPlatform : Platform
 	public override List<string> GetDebugFileExtentions()
 	{
 		return new List<string> { };
+	}
+
+	public override void StripSymbols(FileReference SourceFile, FileReference TargetFile)
+	{
+		AndroidExports.StripSymbols(SourceFile, TargetFile);
 	}
 }
 

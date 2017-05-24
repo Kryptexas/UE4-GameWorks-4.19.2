@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3149178
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:カスタム レンダー パスをエクスポートする
 Crumbs: %ROOT%, Engine
@@ -9,6 +9,7 @@ order:1
 Version:4.13
 Related:Engine\Sequencer\Overview
 Related:Engine/Sequencer/HowTo
+tags:Sequencer
 
 このページでは、**シーケンサー** 内の **[Render Movie Settings (ムービー出力設定)]** ウィンドウからカスタム パスを出力する方法を説明します。 
 カスタム レンダー パスを使うと、指定したレンダー パスに基づきシーケンスを一連の画像ファイルに出力します。 

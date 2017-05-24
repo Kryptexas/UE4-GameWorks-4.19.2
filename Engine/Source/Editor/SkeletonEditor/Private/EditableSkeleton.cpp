@@ -185,6 +185,11 @@ EBoneTranslationRetargetingMode::Type FEditableSkeleton::GetBoneTranslationRetar
 	return Skeleton->GetBoneTranslationRetargetingMode(BoneIndex);
 }
 
+void FEditableSkeleton::RefreshBoneTree()
+{
+	OnTreeRefresh.Broadcast();
+}
+
 bool FEditableSkeleton::DoesSocketAlreadyExist(const USkeletalMeshSocket* InSocket, const FText& InSocketName, ESocketParentType SocketParentType, USkeletalMesh* InSkeletalMesh) const
 {
 	TArray<USkeletalMeshSocket*>* SocketArrayPtr = nullptr;
@@ -853,6 +858,27 @@ void FEditableSkeleton::HandleDeleteVirtualBones(const TArray<FName>& InVirtualB
 {
 	FScopedTransaction Transaction(LOCTEXT("RemoveVirtualBone", "Remove Virtual Bone from Skeleton"));
 	Skeleton->RemoveVirtualBones(InVirtualBoneInfo);
+
+	OnTreeRefresh.Broadcast();
+}
+
+bool FEditableSkeleton::DoesVirtualBoneAlreadyExist(const FString& InVBName) const
+{
+	FName NewVBName = FName(*InVBName);
+	for (const FVirtualBone& VB : Skeleton->GetVirtualBones())
+	{
+		if (VB.VirtualBoneName == NewVBName)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void FEditableSkeleton::RenameVirtualBone(const FName& OriginalName, const FName& InVBName)
+{
+	FScopedTransaction Transaction(LOCTEXT("RenameVirtualBone", "Rename Virtual Bone in Skeleton"));
+	Skeleton->RenameVirtualBone(OriginalName, InVBName);
 
 	OnTreeRefresh.Broadcast();
 }

@@ -91,7 +91,7 @@ namespace Win.Automation
 
 			// Get the path to the generated SRCSRV.INI file
 			FileReference SrcSrvIni = FileReference.Combine(CommandUtils.RootDirectory, "Engine", "Intermediate", "SrcSrv.ini");
-			SrcSrvIni.Directory.CreateDirectory();
+			DirectoryReference.CreateDirectory(SrcSrvIni.Directory);
 
 			// Generate the SRCSRV.INI file
 			using (StreamWriter Writer = new StreamWriter(SrcSrvIni.FullName))
@@ -226,10 +226,10 @@ namespace Win.Automation
 
 			// Check for the 64-bit toolchain first, then the 32-bit toolchain
 			FileReference CheckPdbStrExe = FileReference.Combine(new DirectoryReference(SdkFolder), "Debuggers", "x64", "SrcSrv", "PdbStr.exe");
-			if (!CheckPdbStrExe.Exists())
+			if (!FileReference.Exists(CheckPdbStrExe))
 			{
 				CheckPdbStrExe = FileReference.Combine(new DirectoryReference(SdkFolder), "Debuggers", "x86", "SrcSrv", "PdbStr.exe");
-				if (!CheckPdbStrExe.Exists())
+				if (!FileReference.Exists(CheckPdbStrExe))
 				{
 					PdbStrExe = null;
 					return false;

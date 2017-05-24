@@ -9,7 +9,7 @@
 namespace Audio
 {
 	// Circular Buffer Delay Line
-	class FDelay
+	class AUDIOMIXER_API FDelay
 	{
 	public:
 		// Constructor
@@ -20,13 +20,19 @@ namespace Audio
 
 	public:
 		// Initialization of the delay with given sample rate and max buffer size in samples.
-		void Init(const int32 InSampleRate, const int32 InBufferSizeSamples);
+		void Init(const float InSampleRate, const float InBufferLengthSec = 2.0f);
 
 		// Resets the delay line state, flushes buffer and resets read/write pointers.
 		void Reset();
 
 		// Sets the delay line length. Will clamp to within range of the max initialized delay line length (won't resize).
 		void SetDelayMsec(const float InDelayMsec);
+
+		// Sets the delay line length but using the internal easing function for smooth delay line interpolation.
+		void SetEasedDelayMsec(const float InDelayMsec, const bool bIsInit = false);
+
+		// Sets the single delay line feedback param
+		void SetFeedback(const float InFeedback);
 
 		// Sets the output attenuation in DB
 		void SetOutputAttenuationDB(const float InDelayAttenDB);
@@ -44,12 +50,12 @@ namespace Audio
 		void WriteDelayAndInc(const float InDelayInput);
 
 		// Process audio input and output buffer
-		virtual void ProcessAudio(const float* pInput, float* pOutput);
+		virtual void ProcessAudio(const float* InAudio, float* OutAudio);
 
 	protected:
 
 		// Updates delay line based on any recent changes to settings
-		void Update();
+		void Update(bool bForce = false);
 
 		// Pointer to the circular buffer of audio.
 		float* AudioBuffer;
@@ -64,12 +70,15 @@ namespace Audio
 		int32 WriteIndex;
 
 		// Sample rate
-		int32 SampleRate;
+		float SampleRate;
 
 		// Delay in samples; float supports fractional delay
 		float DelayInSamples;
 
-		// Delay in msec
+		// Eased delay in msec
+		FExponentialEase EaseDelayMsec;
+
+		// Current delay in msec
 		float DelayMsec;
 
 		// Output attenuation value.

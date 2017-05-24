@@ -38,6 +38,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bDecal = bDecal;
 	OutViewRelevance.bTranslucentSurfaceLighting = bTranslucentSurfaceLighting;
 	OutViewRelevance.bUsesSceneDepth = bUsesSceneDepth;
+	OutViewRelevance.bHasVolumeMaterialDomain = bHasVolumeMaterialDomain;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -47,8 +48,13 @@ UMaterialInterface::UMaterialInterface(const FObjectInitializer& ObjectInitializ
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		InitDefaultMaterials();
-		AssertDefaultMaterialsExist();
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+		if (!GIsInitialLoad || !GEventDrivenLoaderEnabled)
+#endif
+		{
+			InitDefaultMaterials();
+			AssertDefaultMaterialsExist();
+		}
 
 		if (SamplerTypeEnum == nullptr)
 		{
@@ -63,7 +69,12 @@ UMaterialInterface::UMaterialInterface(const FObjectInitializer& ObjectInitializ
 void UMaterialInterface::PostLoad()
 {
 	Super::PostLoad();
-	PostLoadDefaultMaterials();
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+	if (!GEventDrivenLoaderEnabled)
+#endif
+	{
+		PostLoadDefaultMaterials();
+	}
 }
 
 void UMaterialInterface::GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray< TArray<int32> >& OutIndices, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) const
@@ -108,6 +119,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 			ETranslucencyLightingMode TranslucencyLightingMode = MaterialResource->GetTranslucencyLightingMode();
 			MaterialRelevance.bTranslucentSurfaceLighting = bIsTranslucent && (TranslucencyLightingMode == TLM_SurfacePerPixelLighting || TranslucencyLightingMode == TLM_Surface);
 			MaterialRelevance.bUsesSceneDepth = MaterialResource->MaterialUsesSceneDepthLookup_GameThread();
+			MaterialRelevance.bHasVolumeMaterialDomain = MaterialResource->IsVolumetricPrimitive();
 		}
 		return MaterialRelevance;
 	}

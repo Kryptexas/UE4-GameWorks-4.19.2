@@ -748,7 +748,6 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 			}
 
 			// Use the uniform expressions from the lowest material instance with static parameters in the chain, if one exists
-			// Otherwise, use the uniform expressions from the base material
 			const UMaterialInterface* MaterialToUse = (MaterialInstanceToUse && MaterialInstanceToUse->bHasStaticPermutationResource) ? (const UMaterialInterface*)MaterialInstanceToUse : (const UMaterialInterface*)BaseMaterial;
 
 			// Parse all relevant quality and feature levels.
@@ -756,7 +755,6 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 			{
 				for (int32 FeatureLevelIndex = FeatureLevelRange.GetLowerBoundValue(); FeatureLevelIndex <= FeatureLevelRange.GetUpperBoundValue(); ++FeatureLevelIndex)
 				{
-					//@todo - GetUsedTextures is incorrect during cooking since we don't cache shaders for the current platform during cooking
 					const FMaterialResource* MaterialResource = MaterialToUse->GetMaterialResource((ERHIFeatureLevel::Type)FeatureLevelIndex, (EMaterialQualityLevel::Type)QualityLevelIndex);
 					if (MaterialResource)
 					{
@@ -1036,22 +1034,24 @@ float UMaterialInstance::GetScalarParameterDefault(FName ParameterName, ERHIFeat
 		if (FApp::CanEverRender())
 		{
 			const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
-			check(SourceMaterialResource);
-			const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
-
-			// Iterate over each of the material's texture expressions.
-			for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+			if (ensureAlways(SourceMaterialResource))
 			{
-				FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
-				if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
-				{
-					FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+				const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
 
-					if (ScalarExpression->GetParameterName() == ParameterName)
+				// Iterate over each of the material's texture expressions.
+				for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+				{
+					FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
+					if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
 					{
-						float Value = 0.f;
-						ScalarExpression->GetDefaultValue(Value);
-						return Value;
+						FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+						if (ScalarExpression->GetParameterName() == ParameterName)
+						{
+							float Value = 0.f;
+							ScalarExpression->GetDefaultValue(Value);
+							return Value;
+						}
 					}
 				}
 			}
@@ -1102,24 +1102,23 @@ bool UMaterialInstance::CheckMaterialUsage_Concurrent(const EMaterialUsage Usage
 					UMaterialInstance* Material;
 					EMaterialUsage Usage;
 					bool bSkipPrim;
-					bool& bUsageSetSuccessfully;
 
-					FCallSMU(UMaterialInstance* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim, bool& bInUsageSetSuccessfully)
+					FCallSMU(UMaterialInstance* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim)
 						: Material(InMaterial)
 						, Usage(InUsage)
 						, bSkipPrim(bInSkipPrim)
-						, bUsageSetSuccessfully(bInUsageSetSuccessfully)
 					{
 					}
 
 					void Task()
 					{
-						bUsageSetSuccessfully = Material->CheckMaterialUsage(Usage, bSkipPrim);
+						Material->CheckMaterialUsage(Usage, bSkipPrim);
 					}
 				};
-				UE_LOG(LogMaterial, Warning, TEXT("Has to pass SMU back to game thread. This stalls the tasks graph, but since it is editor only, is not such a big deal."));
+				UE_LOG(LogMaterial, Log, TEXT("Had to pass SMU back to game thread. Please ensure correct material usage flags."));
 
-				TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterialInstance*>(this), Usage, bSkipPrim, bUsageSetSuccessfully));
+				TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterialInstance*>(this), Usage, bSkipPrim));
+				bUsageSetSuccessfully = false;
 
 				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
 					STAT_FSimpleDelegateGraphTask_CheckMaterialUsage,
@@ -2032,11 +2031,12 @@ void UMaterialInstance::PostLoad()
 	AssertDefaultMaterialsPostLoaded();
 
 	// Ensure that the instance's parent is PostLoaded before the instance.
-	if(Parent)
+	if (Parent)
 	{
-#if !WITH_EDITORONLY_DATA
-		check(!GEventDrivenLoaderEnabled || !Parent->HasAnyFlags(RF_NeedLoad));
-#endif
+		if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+		{
+			check(!Parent->HasAnyFlags(RF_NeedLoad));
+		}
 		Parent->ConditionalPostLoad();
 	}
 

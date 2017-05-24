@@ -12,6 +12,7 @@
 #include "UObject/StructOnScope.h"
 #include "Serialization/MemoryReader.h"
 #include "Engine/Engine.h"
+#include "StringAssetReference.h"
 #include "MovieSceneEventSection.generated.h"
 
 struct EventData;
@@ -55,7 +56,7 @@ struct FMovieSceneEventParameters
 
 	void GetInstance(FStructOnScope& OutStruct) const
 	{
-		UStruct* StructPtr = StructType.Get();
+		UStruct* StructPtr = GetStructType();
 		OutStruct.Initialize(StructPtr);
 		uint8* Memory = OutStruct.GetStructMemory();
 		if (StructPtr && StructPtr->GetStructureSize() > 0 && StructBytes.Num())
@@ -67,7 +68,7 @@ struct FMovieSceneEventParameters
 
 	UStruct* GetStructType() const
 	{
-		return StructType.Get();
+		return Cast<UStruct>(StructType.TryLoad());
 	}
 
 	void Reassign(UStruct* NewStruct)
@@ -80,16 +81,7 @@ struct FMovieSceneEventParameters
 		}
 	}
 
-	bool Serialize(FArchive& Ar)
-	{
-		UStruct* StructTypePtr = StructType.Get();
-		Ar << StructTypePtr;
-		StructType = StructTypePtr;
-		
-		Ar << StructBytes;
-
-		return true;
-	}
+	MOVIESCENETRACKS_API bool Serialize(FArchive& Ar);
 
 	friend FArchive& operator<<(FArchive& Ar, FMovieSceneEventParameters& Payload)
 	{
@@ -99,12 +91,12 @@ struct FMovieSceneEventParameters
 
 private:
 
-	TWeakObjectPtr<UStruct> StructType;
+	FStringAssetReference StructType;
 	TArray<uint8> StructBytes;
 };
 
 template<>
-struct TStructOpsTypeTraits<FMovieSceneEventParameters> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FMovieSceneEventParameters> : public TStructOpsTypeTraitsBase2<FMovieSceneEventParameters>
 {
 	enum 
 	{

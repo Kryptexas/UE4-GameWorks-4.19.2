@@ -182,7 +182,7 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 	UFUNCTION(BlueprintCallable, Category="Game|Components|ProjectileMovement")
 	virtual void StopSimulating(const FHitResult& HitResult);
 
-	bool HasStoppedSimulation() { return UpdatedComponent == NULL; }
+	bool HasStoppedSimulation() { return (UpdatedComponent == nullptr) || (bIsActive == false); }
 
 	/**
 	 * Compute remaining time step given remaining time and current iterations.

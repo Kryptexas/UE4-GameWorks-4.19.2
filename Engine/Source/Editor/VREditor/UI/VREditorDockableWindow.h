@@ -40,8 +40,11 @@ public:
 	/** Gets the selection bar component */
 	UStaticMeshComponent* GetSelectionBarMeshComponent() const;
 
-	/** Gets the distance between the interactor and the window when sta	rting drag */
+	/** Gets the distance between the interactor and the window when starting drag */
 	float GetDockSelectDistance() const;
+
+	/** Set the distance between the interactor and the window when starting drag */
+	void SetDockSelectDistance(const float InDockDistance);
 
 	// IViewportInteractableInterface
 	virtual void OnPressed( UViewportInteractor* Interactor, const FHitResult& InHitResult, bool& bOutResultedInDrag ) override;
@@ -59,6 +62,7 @@ protected:
 
 	// AVREditorFloatingUI overrides
 	virtual void SetupWidgetComponent() override;
+	virtual void SetCollision(const ECollisionEnabled::Type InCollisionType, const ECollisionResponse InCollisionResponse, const ECollisionChannel InCollisionChannel) override;
 
 private:
 
@@ -67,10 +71,6 @@ private:
 
 	/** Set the color on the dynamic materials of the close button */
 	void SetCloseButtonColor( const FLinearColor& LinearColor );
-
-	/** The dockable window mesh */
-	UPROPERTY()
-	class UStaticMeshComponent* WindowMeshComponent;
 
 	/** Mesh underneath the window for easy selecting and dragging */
 	UPROPERTY()
@@ -133,4 +133,10 @@ public:
 
 	// IViewportDragOperation
 	virtual void ExecuteDrag( class UViewportInteractor* Interactor, IViewportInteractableInterface* Interactable ) override;
+
+	/** Last frame's UIToWorld transform */
+	TOptional<FTransform> LastUIToWorld;
+
+	/** last frame's LaserImpactToWorld transform */
+	TOptional<FTransform> LastLaserImpactToWorld;
 };

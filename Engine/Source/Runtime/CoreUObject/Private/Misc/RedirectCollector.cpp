@@ -135,17 +135,10 @@ void FRedirectCollector::LogTimers() const
 	LOG_REDIRECT_TIMERS();
 }
 
-void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
+void FRedirectCollector::ResolveStringAssetReference(FName FilterPackageFName, bool bProcessAlreadyResolvedPackages)
 {
 	SCOPE_REDIRECT_TIMER(ResolveTimeTotal);
 	
-	
-	FName FilterPackageFName = NAME_None;
-	if (!FilterPackage.IsEmpty())
-	{
-		FilterPackageFName = FName(*FilterPackage);
-	}
-
 	TMultiMap<FName, FPackagePropertyPair> SkippedReferences;
 	SkippedReferences.Empty(StringAssetReferences.Num());
 	while ( StringAssetReferences.Num())
@@ -180,7 +173,15 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 					continue;
 				}
 			}
-			
+#if WITH_EDITOR
+			if ( (bProcessAlreadyResolvedPackages == false) && 
+				AlreadyRemapped.Contains(ToLoadFName) )
+			{
+				// don't load this package again because we already did it once before
+				// once is enough for somethings.
+				continue;
+			}
+#endif
 			if (ToLoad.Len() > 0 )
 			{
 				SCOPE_REDIRECT_TIMER(ResolveTimeLoad);
@@ -190,7 +191,19 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 
 				StringAssetRefFilenameStack.Push(RefFilenameAndProperty.GetPackage().ToString());
 
-				UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, RefFilenameAndProperty.GetReferencedByEditorOnlyProperty() ? LOAD_EditorOnly : LOAD_None, NULL);
+				// LoadObject will mark any failed loads as "KnownMissing", so since we want to print out the referencer if it was missing and not-known-missing
+				// then check here before attempting to load (TODO: Can we just not even do the load? Seems like we should be able to...)
+
+				int32 DotIndex = ToLoad.Find(TEXT("."));
+				FString PackageName = DotIndex != INDEX_NONE ? ToLoad.Left(DotIndex) : ToLoad;
+
+				// If is known missing don't try
+				if (FLinkerLoad::IsKnownMissingPackage(FName(*PackageName)))
+				{
+					continue;
+				}
+
+				UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, RefFilenameAndProperty.GetReferencedByEditorOnlyProperty() ? LOAD_EditorOnly | LOAD_NoWarn : LOAD_NoWarn, NULL);
 				StringAssetRefFilenameStack.Pop();
 
 				UObjectRedirector* Redirector = dynamic_cast<UObjectRedirector*>(Loaded);
@@ -218,19 +231,14 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 					{
 						StringAssetRemap.Add(ToLoad, Dest);
 					}
+#if WITH_EDITOR
+					AlreadyRemapped.Add(ToLoadFName);
+#endif
 				}
 				else
 				{
 					const FString Referencer = RefFilenameAndProperty.GetProperty().ToString().Len() ? RefFilenameAndProperty.GetProperty().ToString() : TEXT("Unknown");
-
-					int32 DotIndex = ToLoad.Find(TEXT("."));
-
-					FString PackageName = DotIndex != INDEX_NONE ? ToLoad.Left(DotIndex) : ToLoad;
-
-					if (FLinkerLoad::IsKnownMissingPackage(FName(*PackageName)) == false)
-					{
-						UE_LOG(LogRedirectors, Warning, TEXT("String Asset Reference '%s' was not found! (Referencer '%s')"), *ToLoad, *Referencer);
-					}
+					UE_LOG(LogRedirectors, Warning, TEXT("String Asset Reference '%s' was not found! (Referencer '%s')"), *ToLoad, *Referencer);
 				}
 			}
 
@@ -244,7 +252,36 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 	check((StringAssetReferences.Num() == 0) || (FilterPackageFName != NAME_None));
 }
 
+void FRedirectCollector::GetStringAssetReferencePackageList(FName FilterPackage, TSet<FName>& ReferencedPackages)
+{
+	for (const auto& CurrentReference : StringAssetReferences)
+	{
+		const FName& ToLoadFName = CurrentReference.Key;
+		const FPackagePropertyPair& RefFilenameAndProperty = CurrentReference.Value;
 
+		// Package name may be null, if so return the set of things not associated with a package
+		if (FilterPackage == RefFilenameAndProperty.GetCachedPackageName())
+		{
+			FString PackageNameString = FPackageName::ObjectPathToPackageName(ToLoadFName.ToString());
+
+			ReferencedPackages.Add(FName(*PackageNameString));
+		}
+	}
+}
+
+void FRedirectCollector::AddStringAssetReferenceRedirection(const FString& OriginalPath, const FString& RedirectedPath)
+{
+	FString* Found = StringAssetRemap.Find(OriginalPath);
+
+	if (Found)
+	{
+		ensureMsgf(*Found == RedirectedPath, TEXT("Cannot remap %s to %s, it is already mapped to %s!"), *OriginalPath, *RedirectedPath, **Found);
+	}
+	else
+	{
+		StringAssetRemap.Add(OriginalPath, RedirectedPath);
+	}
+}
 
 FRedirectCollector GRedirectCollector;
 

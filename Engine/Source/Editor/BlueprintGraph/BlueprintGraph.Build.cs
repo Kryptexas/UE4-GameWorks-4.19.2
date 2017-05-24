@@ -5,7 +5,7 @@ using System.IO;
 
 public class BlueprintGraph : ModuleRules
 {
-	public BlueprintGraph(TargetInfo Target)
+	public BlueprintGraph(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
             new string[] {

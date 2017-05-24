@@ -186,6 +186,15 @@ typedef unsigned int uintptr_t;
 #define SDL_VIDEO_RENDER_D3D11	0
 #endif
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+/* Enable Vulkan support */
+#ifndef SDL_VIDEO_VULKAN
+#define SDL_VIDEO_VULKAN    1
+#endif
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
 /* Enable OpenGL support */
 #ifndef SDL_VIDEO_OPENGL
 #define SDL_VIDEO_OPENGL    1

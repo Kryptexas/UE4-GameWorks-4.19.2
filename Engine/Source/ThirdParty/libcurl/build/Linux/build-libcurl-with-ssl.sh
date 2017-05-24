@@ -9,9 +9,10 @@
 # configuration
 
 # library versions - expected to match tarball and directory names
-CURL_VER=curl-7.46.0
-OPENSSL_VER=openssl-1.0.2d
-OPENSSL_ARCH=linux-x86_64
+CURL_VER=curl-7.48.0
+OPENSSL_VER=openssl-1.0.2h
+OPENSSL_ARCH=linux-elf
+#OPENSSL_ARCH=linux-x86_64
 #OPENSSL_ARCH=linux-aarch64
 
 # don't forget to match archive options with tarball type (bz/gz)
@@ -43,7 +44,8 @@ tar xjf $CURL_TARBALL -C $SCRATCH_DIR
 cd $OPENSSL_DIR
 echo "#######################################"
 echo "# Configuring $OPENSSL_VER for $OPENSSL_ARCH"
-./Configure shared threads no-ssl2 no-zlib $OPENSSL_ARCH --prefix=$OPENSSL_DIR > $DEST_DIR/openssl-configure.log
+# Don't forget to remove -m32 for 64-bit builds
+./Configure shared threads no-ssl2 no-zlib $OPENSSL_ARCH -m32 --prefix=$OPENSSL_DIR > $DEST_DIR/openssl-configure.log
 echo "# Building $OPENSSL_VER"
 make > $DEST_DIR/openssl-build.log
 if [ $? -ne 0 ]; then

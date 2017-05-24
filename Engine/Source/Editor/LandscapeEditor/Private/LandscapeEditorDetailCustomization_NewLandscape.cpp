@@ -332,9 +332,9 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			.MaxSliderValue(32)
 			.AllowSpin(true)
 			.UndeterminedString(NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values"))
-			.Value_Static(&FLandscapeEditorDetailCustomization_Base::OnGetValue, PropertyHandle_ComponentCount_X)
-			.OnValueChanged_Static(&FLandscapeEditorDetailCustomization_Base::OnValueChanged, PropertyHandle_ComponentCount_X)
-			.OnValueCommitted_Static(&FLandscapeEditorDetailCustomization_Base::OnValueCommitted, PropertyHandle_ComponentCount_X)
+			.Value_Static(&FLandscapeEditorDetailCustomization_Base::OnGetValue<int32>, PropertyHandle_ComponentCount_X)
+			.OnValueChanged_Static(&FLandscapeEditorDetailCustomization_Base::OnValueChanged<int32>, PropertyHandle_ComponentCount_X)
+			.OnValueCommitted_Static(&FLandscapeEditorDetailCustomization_Base::OnValueCommitted<int32>, PropertyHandle_ComponentCount_X)
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
@@ -357,9 +357,9 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 			.MaxSliderValue(32)
 			.AllowSpin(true)
 			.UndeterminedString(NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values"))
-			.Value_Static(&FLandscapeEditorDetailCustomization_Base::OnGetValue, PropertyHandle_ComponentCount_Y)
-			.OnValueChanged_Static(&FLandscapeEditorDetailCustomization_Base::OnValueChanged, PropertyHandle_ComponentCount_Y)
-			.OnValueCommitted_Static(&FLandscapeEditorDetailCustomization_Base::OnValueCommitted, PropertyHandle_ComponentCount_Y)
+			.Value_Static(&FLandscapeEditorDetailCustomization_Base::OnGetValue<int32>, PropertyHandle_ComponentCount_Y)
+			.OnValueChanged_Static(&FLandscapeEditorDetailCustomization_Base::OnValueChanged<int32>, PropertyHandle_ComponentCount_Y)
+			.OnValueCommitted_Static(&FLandscapeEditorDetailCustomization_Base::OnValueCommitted<int32>, PropertyHandle_ComponentCount_Y)
 		]
 	];
 

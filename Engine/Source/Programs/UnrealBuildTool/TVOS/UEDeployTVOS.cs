@@ -11,7 +11,7 @@ using System.Xml.Linq;
 
 namespace UnrealBuildTool
 {
-	public class UEDeployTVOS : UEDeployIOS
+	class UEDeployTVOS : UEDeployIOS
 	{
 
         public UEDeployTVOS()
@@ -328,7 +328,7 @@ namespace UnrealBuildTool
 			return bSkipDefaultPNGs;
 		}
 
-		public override bool GeneratePList(UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+		public override bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
 			return GenerateTVOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
 		}

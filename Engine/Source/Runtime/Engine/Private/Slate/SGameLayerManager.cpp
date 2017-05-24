@@ -10,12 +10,14 @@
 #include "Types/NavigationMetaData.h"
 
 
+#include "Engine/GameEngine.h"
 #include "Engine/UserInterfaceSettings.h"
 
 #include "Widgets/LayerManager/STooltipPresenter.h"
 #include "Widgets/Layout/SScissorRectBox.h"
 #include "Widgets/Layout/SDPIScaler.h"
 #include "Widgets/Layout/SPopup.h"
+#include "Widgets/Layout/SWindowTitleBarArea.h"
 
 /* SGameLayerManager interface
  *****************************************************************************/
@@ -32,23 +34,52 @@ void SGameLayerManager::Construct(const SGameLayerManager::FArguments& InArgs)
 		SNew(SDPIScaler)
 		.DPIScale(this, &SGameLayerManager::GetGameViewportDPIScale)
 		[
-			SNew(SOverlay)
-				
-			+ SOverlay::Slot()
-			[
-				SAssignNew(PlayerCanvas, SCanvas)
-			]
+			// All user widgets live inside this vertical box.
+			SAssignNew(WidgetHost, SVerticalBox)
 
-			+ SOverlay::Slot()
+			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				InArgs._Content.Widget
-			]
-
-			+ SOverlay::Slot()
-			[
-				SNew(SPopup)
+				SAssignNew(TitleBarAreaVerticalBox, SWindowTitleBarArea)
 				[
-					SAssignNew(TooltipPresenter, STooltipPresenter)
+					SAssignNew(WindowTitleBarVerticalBox, SBox)
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			[
+				SNew(SOverlay)
+
+				+ SOverlay::Slot()
+				[
+					SAssignNew(PlayerCanvas, SCanvas)
+				]
+
+				+ SOverlay::Slot()
+				[
+					InArgs._Content.Widget
+				]
+
+				+ SOverlay::Slot()
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SAssignNew(TitleBarAreaOverlay, SWindowTitleBarArea)
+						[
+							SAssignNew(WindowTitleBarOverlay, SBox)
+						]
+					]
+				]
+
+				+ SOverlay::Slot()
+				[
+					SNew(SPopup)
+					[
+						SAssignNew(TooltipPresenter, STooltipPresenter)
+					]
 				]
 			]
 		];
@@ -70,6 +101,36 @@ void SGameLayerManager::Construct(const SGameLayerManager::FArguments& InArgs)
 			DPIScaler
 		];
 	}
+
+	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+	if (GameEngine != nullptr)
+	{
+		TSharedPtr<SWindow> GameViewportWindow = GameEngine->GameViewportWindow.Pin();
+		if (GameViewportWindow.IsValid())
+		{
+			TitleBarAreaOverlay->SetGameWindow(GameViewportWindow);
+			TitleBarAreaVerticalBox->SetGameWindow(GameViewportWindow);
+		}
+	}
+
+	bIsWindowTitleBarVisible = false;
+
+	DefaultWindowTitleBarHeight = 64.0f;
+	DefaultWindowTitleBarContent.Mode = EWindowTitleBarMode::Overlay;
+	DefaultWindowTitleBarContent.ContentWidget =
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SBox).HeightOverride(this, &SGameLayerManager::GetDefaultWindowTitleBarHeight)
+		];
+
+	SetDefaultWindowTitleBarContentAsCurrent();
+}
+
+const FGeometry& SGameLayerManager::GetViewportWidgetHostGeometry() const
+{
+	return WidgetHost->GetCachedGeometry();
 }
 
 void SGameLayerManager::NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer)
@@ -161,6 +222,10 @@ void SGameLayerManager::ClearWidgets()
 		}
 	}
 	PlayerLayers.Reset();
+
+	WindowTitleBarContentStack.Empty();
+	bIsWindowTitleBarVisible = false;
+	SetDefaultWindowTitleBarContentAsCurrent();
 }
 
 void SGameLayerManager::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -202,6 +267,11 @@ float SGameLayerManager::GetGameViewportDPIScale() const
 	}
 
 	return 1;
+}
+
+FOptionalSize SGameLayerManager::GetDefaultWindowTitleBarHeight() const
+{
+	return DefaultWindowTitleBarHeight;
 }
 
 void SGameLayerManager::UpdateLayout()
@@ -325,6 +395,15 @@ void SGameLayerManager::AddOrUpdatePlayerLayers(const FGeometry& AllottedGeometr
 			Size = ( Size * AllottedGeometry.GetLocalSize() - ( AspectRatioInset * 2.0f ) ) * InverseDPIScale;
 			Position = ( Position * AllottedGeometry.GetLocalSize() + AspectRatioInset ) * InverseDPIScale;
 
+			if (bIsWindowTitleBarVisible)
+			{
+				const FWindowTitleBarContent& WindowTitleBarContent = WindowTitleBarContentStack.Top();
+				if (WindowTitleBarContent.Mode == EWindowTitleBarMode::VerticalBox && Size.Y > WindowTitleBarVerticalBox->GetDesiredSize().Y)
+				{
+					Size.Y -= WindowTitleBarVerticalBox->GetDesiredSize().Y;
+				}
+			}
+
 			PlayerLayer->Slot->Size(Size);
 			PlayerLayer->Slot->Position(Position);
 		}
@@ -349,4 +428,58 @@ FVector2D SGameLayerManager::GetAspectRatioInset(ULocalPlayer* LocalPlayer) cons
 	}
 
 	return Offset;
+}
+
+void SGameLayerManager::SetDefaultWindowTitleBarHeight(float Height)
+{
+	DefaultWindowTitleBarHeight = Height;
+}
+
+void SGameLayerManager::SetWindowTitleBarContent(const TSharedPtr<SWidget>& TitleBarContent, EWindowTitleBarMode Mode)
+{
+	WindowTitleBarContentStack.Push(FWindowTitleBarContent(TitleBarContent, Mode));
+	UpdateWindowTitleBar();
+}
+
+void SGameLayerManager::RestorePreviousWindowTitleBarContent()
+{
+	WindowTitleBarContentStack.Pop();
+	UpdateWindowTitleBar();
+}
+
+void SGameLayerManager::SetDefaultWindowTitleBarContentAsCurrent()
+{
+	WindowTitleBarContentStack.Push(DefaultWindowTitleBarContent);
+	UpdateWindowTitleBar();
+}
+
+void SGameLayerManager::SetWindowTitleBarVisibility(bool bIsVisible)
+{
+	bIsWindowTitleBarVisible = bIsVisible;
+	UpdateWindowTitleBarVisibility();
+}
+
+void SGameLayerManager::UpdateWindowTitleBar()
+{
+	const FWindowTitleBarContent& WindowTitleBarContent = WindowTitleBarContentStack.Top();
+	if (WindowTitleBarContent.ContentWidget.IsValid())
+	{
+		if (WindowTitleBarContent.Mode == EWindowTitleBarMode::Overlay)
+		{
+			WindowTitleBarOverlay->SetContent(WindowTitleBarContent.ContentWidget.ToSharedRef());
+		}
+		else if (WindowTitleBarContent.Mode == EWindowTitleBarMode::VerticalBox)
+		{
+			WindowTitleBarVerticalBox->SetContent(WindowTitleBarContent.ContentWidget.ToSharedRef());
+		}
+	}
+
+	UpdateWindowTitleBarVisibility();
+}
+
+void SGameLayerManager::UpdateWindowTitleBarVisibility()
+{
+	const FWindowTitleBarContent& WindowTitleBarContent = WindowTitleBarContentStack.Top();
+	TitleBarAreaOverlay->SetVisibility(bIsWindowTitleBarVisible && WindowTitleBarContent.Mode == EWindowTitleBarMode::Overlay ? EVisibility::Visible : EVisibility::Collapsed);
+	TitleBarAreaVerticalBox->SetVisibility(bIsWindowTitleBarVisible && WindowTitleBarContent.Mode == EWindowTitleBarMode::VerticalBox ? EVisibility::Visible : EVisibility::Collapsed);
 }

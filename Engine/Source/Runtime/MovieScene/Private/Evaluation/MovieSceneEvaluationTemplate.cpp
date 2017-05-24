@@ -38,6 +38,11 @@ void FCachedMovieSceneEvaluationTemplate::ForceRegenerate(const FMovieSceneTrack
 
 void FCachedMovieSceneEvaluationTemplate::RegenerateImpl(const FMovieSceneTrackCompilationParams& Params)
 {
+	if (Params.bDuringBlueprintCompile != CachedCompilationParams.bDuringBlueprintCompile)
+	{
+		ResetGeneratedData();
+	}
+
 	CachedSignatures.Reset();
 	CachedCompilationParams = Params;
 
@@ -75,103 +80,41 @@ bool FCachedMovieSceneEvaluationTemplate::IsOutOfDate(const FMovieSceneTrackComp
 
 #endif // WITH_EDITORONLY_DATA
 
-bool FMovieSceneGenerationLedger::Serialize(FArchive& Ar)
-{
-	if (Ar.IsLoading())
-	{
-		int32 NumReferenceCounts = 0;
-
-		Ar << NumReferenceCounts;
-		for (int32 Index = 0; Index < NumReferenceCounts; ++Index)
-		{
-			FMovieSceneTrackIdentifier Identifier;
-			FMovieSceneTrackIdentifier::StaticStruct()->SerializeItem(Ar, &Identifier, nullptr);
-
-			int32 Count = 0;
-			Ar << Count;
-
-			TrackReferenceCounts.Add(Identifier, Count);
-		}
-
-		int32 SignatureToTrackIDs = 0;
-		Ar << SignatureToTrackIDs;
-
-		for (int32 Index = 0; Index < SignatureToTrackIDs; ++Index)
-		{
-			FGuid Signature;
-			Ar << Signature;
-
-			TArray<FMovieSceneTrackIdentifier, TInlineAllocator<1>>& Identifiers = TrackSignatureToTrackIdentifier.Add(Signature);
-
-			int32 NumIdentifiers = 0;
-			Ar << NumIdentifiers;
-			for (int32 IdentifierIndex = 0; IdentifierIndex < NumIdentifiers; ++IdentifierIndex)
-			{
-				FMovieSceneTrackIdentifier Identifier;
-				FMovieSceneTrackIdentifier::StaticStruct()->SerializeItem(Ar, &Identifier, nullptr);
-
-				Identifiers.Add(Identifier);
-			}
-		}
-
-		return true;
-	}
-	else if (Ar.IsSaving())
-	{
-		int32 NumReferenceCounts = TrackReferenceCounts.Num();
-
-		Ar << NumReferenceCounts;
-		for (auto& Pair : TrackReferenceCounts)
-		{
-			FMovieSceneTrackIdentifier Identifier = Pair.Key;
-			FMovieSceneTrackIdentifier::StaticStruct()->SerializeItem(Ar, &Identifier, nullptr);
-
-			int32 Count = Pair.Value;
-			Ar << Count;
-		}
-
-		int32 SignatureToTrackIDs = TrackSignatureToTrackIdentifier.Num();
-		Ar << SignatureToTrackIDs;
-
-		for (auto& Pair : TrackSignatureToTrackIdentifier)
-		{
-			FGuid Signature = Pair.Key;
-			Ar << Signature;
-
-			int32 NumIdentifiers = Pair.Value.Num();
-			Ar << NumIdentifiers;
-
-			for (FMovieSceneTrackIdentifier Identifier : Pair.Value)
-			{
-				FMovieSceneTrackIdentifier::StaticStruct()->SerializeItem(Ar, &Identifier, nullptr);
-			}
-		}
-
-		return true;
-	}
-
-	return false;
-}
-
-TArrayView<FMovieSceneTrackIdentifier> FMovieSceneGenerationLedger::FindTracks(const FGuid& InSignature)
+TArrayView<FMovieSceneTrackIdentifier> FMovieSceneTemplateGenerationLedger::FindTracks(const FGuid& InSignature)
 {
 	if (auto* Tracks = TrackSignatureToTrackIdentifier.Find(InSignature))
 	{
-		return *Tracks;
+		return Tracks->Data;
 	}
 	return TArrayView<FMovieSceneTrackIdentifier>();
 }
 
-void FMovieSceneGenerationLedger::AddTrack(const FGuid& InSignature, FMovieSceneTrackIdentifier Identifier)
+void FMovieSceneTemplateGenerationLedger::AddTrack(const FGuid& InSignature, FMovieSceneTrackIdentifier Identifier)
 {
-	TrackSignatureToTrackIdentifier.FindOrAdd(InSignature).Add(Identifier);
+	TrackSignatureToTrackIdentifier.FindOrAdd(InSignature).Data.Add(Identifier);
 	++TrackReferenceCounts.FindOrAdd(Identifier);
+}
+
+void FMovieSceneEvaluationTemplate::PostSerialize(const FArchive& Ar)
+{
+	if (Ar.IsLoading())
+	{
+		for (auto& Pair : Tracks)
+		{
+			if (TemplateLedger.LastTrackIdentifier == FMovieSceneTrackIdentifier::Invalid() || TemplateLedger.LastTrackIdentifier.Value < Pair.Key)
+			{
+				// Reset previously serialized, invalid data
+				ResetGeneratedData();
+				break;
+			}
+		}
+	}
 }
 
 void FMovieSceneEvaluationTemplate::ResetGeneratedData()
 {
-	Ledger.TrackSignatureToTrackIdentifier.Reset();
-	Ledger.TrackReferenceCounts.Reset();
+	TemplateLedger.TrackSignatureToTrackIdentifier.Reset();
+	TemplateLedger.TrackReferenceCounts.Reset();
 
 	Tracks.Reset();
 	StaleTracks.Reset();
@@ -182,20 +125,20 @@ void FMovieSceneEvaluationTemplate::ResetGeneratedData()
 
 FMovieSceneTrackIdentifier FMovieSceneEvaluationTemplate::AddTrack(const FGuid& InSignature, FMovieSceneEvaluationTrack&& InTrack)
 {
-	FMovieSceneTrackIdentifier NewIdentifier = ++Ledger.LastTrackIdentifier;
+	FMovieSceneTrackIdentifier NewIdentifier = ++TemplateLedger.LastTrackIdentifier;
 	
 	InTrack.SetupOverrides();
 	Tracks.Add(NewIdentifier.Value, MoveTemp(InTrack));
-	Ledger.AddTrack(InSignature, NewIdentifier);
+	TemplateLedger.AddTrack(InSignature, NewIdentifier);
 
 	return NewIdentifier;
 }
 
 void FMovieSceneEvaluationTemplate::RemoveTrack(const FGuid& InSignature)
 {
-	for (FMovieSceneTrackIdentifier TrackIdentifier : Ledger.FindTracks(InSignature))
+	for (FMovieSceneTrackIdentifier TrackIdentifier : TemplateLedger.FindTracks(InSignature))
 	{
-		int32* RefCount = Ledger.TrackReferenceCounts.Find(TrackIdentifier);
+		int32* RefCount = TemplateLedger.TrackReferenceCounts.Find(TrackIdentifier);
 		if (ensure(RefCount) && --(*RefCount) == 0)
 		{
 			if (bKeepStaleTracks)
@@ -207,10 +150,10 @@ void FMovieSceneEvaluationTemplate::RemoveTrack(const FGuid& InSignature)
 			}
 			
 			Tracks.Remove(TrackIdentifier.Value);
-			Ledger.TrackReferenceCounts.Remove(TrackIdentifier);
+			TemplateLedger.TrackReferenceCounts.Remove(TrackIdentifier);
 		}
 	}
-	Ledger.TrackSignatureToTrackIdentifier.Remove(InSignature);
+	TemplateLedger.TrackSignatureToTrackIdentifier.Remove(InSignature);
 }
 
 const TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& FMovieSceneEvaluationTemplate::GetTracks() const
@@ -220,7 +163,14 @@ const TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& FMovieSceneE
 	return *reinterpret_cast<const TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>*>(&Tracks);
 }
 
+TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>& FMovieSceneEvaluationTemplate::GetTracks()
+{
+	// Reinterpret the uint32 as FMovieSceneTrackIdentifier
+	static_assert(sizeof(FMovieSceneTrackIdentifier) == sizeof(uint32), "FMovieSceneTrackIdentifier is not convertible directly to/from uint32.");
+	return *reinterpret_cast<TMap<FMovieSceneTrackIdentifier, FMovieSceneEvaluationTrack>*>(&Tracks);
+}
+
 TArrayView<FMovieSceneTrackIdentifier> FMovieSceneEvaluationTemplate::FindTracks(const FGuid& InSignature)
 {
-	return Ledger.FindTracks(InSignature);
+	return TemplateLedger.FindTracks(InSignature);
 }

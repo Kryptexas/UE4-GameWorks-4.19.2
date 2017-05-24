@@ -110,8 +110,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 	static const FName DefaultForegroundName("DefaultForeground");
 
-	FContentBrowserCommands::Register();
-
 	BindCommands();
 
 	ChildSlot
@@ -775,6 +773,10 @@ void SContentBrowser::BindCommands()
 	Commands->MapAction(FContentBrowserCommands::Get().SaveAllCurrentFolder, FUIAction(
 		FExecuteAction::CreateSP(this, &SContentBrowser::HandleSaveAllCurrentFolderCommand)
 	));
+
+	Commands->MapAction(FContentBrowserCommands::Get().ResaveAllCurrentFolder, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::HandleResaveAllCurrentFolderCommand)
+	));
 }
 
 EVisibility SContentBrowser::GetCollectionViewVisibility() const
@@ -1283,6 +1285,29 @@ void SContentBrowser::PathPickerPathSelected(const FString& FolderPath)
 	}
 
 	PathSelected(FolderPath);
+}
+
+void SContentBrowser::SetSelectedPaths(const TArray<FString>& FolderPaths, bool bNeedsRefresh/* = false */)
+{
+	if (FolderPaths.Num() > 0)
+	{
+		if (bNeedsRefresh)
+		{
+			PathViewPtr->Populate();
+		}
+
+		PathViewPtr->SetSelectedPaths(FolderPaths);
+
+		PathSelected(FolderPaths[0]);
+	}
+}
+
+void SContentBrowser::ForceShowPluginContent(bool bEnginePlugin)
+{
+	if (AssetViewPtr.IsValid())
+	{
+		AssetViewPtr->ForceShowPluginFolder(bEnginePlugin);
+	}
 }
 
 void SContentBrowser::PathPickerCollectionSelected(const FCollectionNameType& SelectedCollection)
@@ -1998,6 +2023,11 @@ void SContentBrowser::HandleSaveAllCurrentFolderCommand() const
 	PathContextMenu->ExecuteSaveFolder();
 }
 
+void SContentBrowser::HandleResaveAllCurrentFolderCommand() const
+{
+	PathContextMenu->ExecuteResaveFolder();
+}
+
 void SContentBrowser::HandleRenameCommand()
 {
 	const TArray<TSharedPtr<FAssetViewItem>>& SelectedItems = AssetViewPtr->GetSelectedItems();
@@ -2350,6 +2380,8 @@ void SContentBrowser::OnOpenedFolderDeleted()
 
 	FSourcesData DefaultSourcesData(FName("/Game"));
 	AssetViewPtr->SetSourcesData(DefaultSourcesData);
+
+	UpdatePath();
 }
 
 void SContentBrowser::OnDuplicateRequested(const TWeakObjectPtr<UObject>& OriginalObject)

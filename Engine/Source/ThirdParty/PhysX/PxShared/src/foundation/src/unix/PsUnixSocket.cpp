@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -39,7 +39,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #else
-#include <ps4/PsPS4Socket.h>
+#include <PS4/PsPS4Socket.h>
 #endif
 #include <fcntl.h>
 #include <errno.h>

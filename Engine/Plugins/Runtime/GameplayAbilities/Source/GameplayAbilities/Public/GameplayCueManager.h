@@ -176,7 +176,6 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	// Will return the Runtime cue set and the EditorCueSet, if the EditorCueSet is available. This is used mainly for handling asset created/deleted in the editor
 	TArray<UGameplayCueSet*> GetGlobalCueSets();
-	
 
 #if WITH_EDITOR
 	/** Called from editor to soft load all gameplay cue notifies for the GameplayCueEditor */
@@ -222,6 +221,9 @@ protected:
 	UPROPERTY(transient)
 	FGameplayCueObjectLibrary EditorGameplayCueObjectLibrary;
 
+	/** Handle to maintain ownership of gameplay cue assets. */
+	TSharedPtr<FStreamableHandle> GameplayCueAssetHandle;
+
 public:		
 
 	/** Called before loading any gameplay cue notifies from object libraries. Allows subclasses to skip notifies. */
@@ -229,7 +231,6 @@ public:
 	
 	int32 FinishLoadingGameplayCueNotifies();
 
-	UPROPERTY(transient)
 	FStreamableManager	StreamableManager;
 	
 	TMap<FGCNotifyActorKey, TWeakObjectPtr<AGameplayCueNotify_Actor> > NotifyMapActor;
@@ -239,6 +240,11 @@ public:
 	virtual void PrintLoadedGameplayCueNotifyClasses();
 
 	virtual class UWorld* GetWorld() const override;
+
+	static UWorld* GetCachedWorldForGameplayCueNotifies();
+
+	DECLARE_EVENT_FourParams(UGameplayCueManager, FOnRouteGameplayCue, AActor*, FGameplayTag, EGameplayCueEvent::Type, const FGameplayCueParameters&);
+	FOnRouteGameplayCue& OnGameplayCueRouted() { return OnRouteGameplayCue; }
 
 #if WITH_EDITOR
 
@@ -277,6 +283,15 @@ public:
 	virtual FGameplayCueDebugInfo* GetDebugInfo(int32 Handle, bool Reset=false);
 #endif
 
+	/** If true, this will synchronously load missing gameplay cues */
+	virtual bool ShouldSyncLoadMissingGameplayCues() const;
+
+	/** If true, this will asynchronously load missing gameplay cues, and execute cue when the load finishes */
+	virtual bool ShouldAsyncLoadMissingGameplayCues() const;
+
+	/** Handles what to do if a missing cue is requested. If return true, this was loaded and execution should continue */
+	virtual bool HandleMissingGameplayCue(UGameplayCueSet* OwningSet, struct FGameplayCueNotifyData& CueData, AActor* TargetActor, EGameplayCueEvent::Type EventType, FGameplayCueParameters& Parameters);
+
 protected:
 
 #if WITH_EDITOR
@@ -290,6 +305,8 @@ protected:
 	void CheckForTooManyRPCs(FName FuncName, const FGameplayCuePendingExecute& PendingCue, const FString& CueID, const FGameplayEffectContext* EffectContext);
 
 	void OnGameplayCueNotifyAsyncLoadComplete(TArray<FStringAssetReference> StringRef);
+
+	void OnMissingCueAsyncLoadComplete(FStringAssetReference LoadedObject, TWeakObjectPtr<UGameplayCueSet> OwningSet, FGameplayTag GameplayCueTag, TWeakObjectPtr<AActor> TargetActor, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
 	void CheckForPreallocation(UClass* GCClass);
 
@@ -310,10 +327,12 @@ protected:
 	int32 GameplayCueSendContextCount;
 
 	/** Cached world we are currently handling cues for. Used for non instanced GC Notifies that need world. */
-	UWorld* CurrentWorld;
+	static UWorld* CurrentWorld;
 
 	FPreallocationInfo& GetPreallocationInfo(UWorld* World);
 
 	UPROPERTY(transient)
 	TArray<FPreallocationInfo>	PreallocationInfoList_Internal;
+
+	FOnRouteGameplayCue OnRouteGameplayCue;
 };

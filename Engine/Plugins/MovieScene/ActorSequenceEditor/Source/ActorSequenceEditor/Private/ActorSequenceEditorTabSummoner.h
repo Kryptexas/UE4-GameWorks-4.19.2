@@ -21,6 +21,7 @@ public:
 
 	void Construct(const FArguments&, TWeakPtr<FBlueprintEditor> InBlueprintEditor);
 	void AssignSequence(UActorSequence* NewActorSequence);
+	UActorSequence* GetSequence() const;
 	FText GetDisplayLabel() const;
 
 private:

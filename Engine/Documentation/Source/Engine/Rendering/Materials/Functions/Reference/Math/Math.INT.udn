@@ -3,6 +3,7 @@ title:Math
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Preconfigured mathematical functions such as calculation of pi, addition of vector components, and others.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

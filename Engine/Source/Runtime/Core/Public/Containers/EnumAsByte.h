@@ -129,6 +129,12 @@ private:
 
 	/** Holds the value as a byte. **/
 	uint8 Value;
+
+
+	FORCEINLINE friend uint32 GetTypeHash(const TEnumAsByte& Enum)
+	{
+		return GetTypeHash(Enum.Value);
+	}
 };
 
 

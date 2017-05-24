@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LocationServicesIOSEditor : ModuleRules
 {
-    public LocationServicesIOSEditor(TargetInfo Target)
+    public LocationServicesIOSEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 				new string[]
@@ -24,7 +24,7 @@ public class LocationServicesIOSEditor : ModuleRules
 			}
 		);
 
-		if (Target.Type == TargetRules.TargetType.Editor)
+		if (Target.Type == TargetType.Editor)
 		{
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] 

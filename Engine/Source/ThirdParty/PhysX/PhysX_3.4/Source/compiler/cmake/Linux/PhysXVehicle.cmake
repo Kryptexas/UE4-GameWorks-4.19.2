@@ -2,9 +2,6 @@
 # Build PhysXVehicle
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/PhysXVehicle/src)
@@ -34,6 +31,8 @@ elseif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "release")
 else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	MESSAGE(FATAL_ERROR "Unknown configuration ${CMAKE_BUILD_TYPE}")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
+
+SET(PHYSXVEHICLE_LIBTYPE STATIC)
 
 # include common PhysXVehicle settings
 INCLUDE(../common/PhysXVehicle.cmake)

@@ -19,6 +19,7 @@
 #include "PostProcess/RenderTargetPool.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "GPUProfiler.h"
+#include "PipelineStateCache.h"
 
 static const uint32 GBenchmarkResolution = 512;
 static const uint32 GBenchmarkPrimitives = 200000;
@@ -70,7 +71,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, InputTexture, InputTextureSampler, TStaticSamplerState<>::GetRHI(), Src->GetRenderTargetItem().ShaderResourceTexture);
 	}
@@ -133,7 +134,7 @@ public:
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
 	}
 };
 
@@ -193,6 +194,12 @@ void RunBenchmarkShader(FRHICommandList& RHICmdList, FVertexBufferRHIParamRef Ve
 {
 	auto ShaderMap = GetGlobalShaderMap(View.GetFeatureLevel());
 
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
 	TShaderMapRef<FPostProcessBenchmarkVS<VsMethod>> VertexShader(ShaderMap);
 	TShaderMapRef<FPostProcessBenchmarkPS<PsMethod>> PixelShader(ShaderMap);
 
@@ -201,8 +208,12 @@ void RunBenchmarkShader(FRHICommandList& RHICmdList, FVertexBufferRHIParamRef Ve
 		? GVertexThroughputDeclaration.DeclRHI
 		: GFilterVertexDeclaration.VertexDeclarationRHI;
 
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, VertexDeclaration, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = VertexDeclaration;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	PixelShader->SetParameters(RHICmdList, View, Src);
 	VertexShader->SetParameters(RHICmdList, View);
@@ -437,11 +448,6 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, RTItems[2], TEXT("BenchmarkReadback"));
 	}
 
-	// set the state
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-
 	{
 		// larger number means more accuracy but slower, some slower GPUs might timeout with a number to large
 		const uint32 IterationCount = 70;
@@ -502,34 +508,26 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 		{
 			UE_LOG(LogSynthBenchmark, Warning, TEXT("GPU driver does not support timer queries."));
 
-			// Temporary workaround for GL_TIMESTAMP being unavailable and GL_TIME_ELAPSED workaround breaking drivers
+			// Workaround for Metal not having a timing API and some drivers not properly supporting command-buffer completion handler based implementation...
 #if PLATFORM_MAC
-			GLint RendererID = 0;
+			FTextureMemoryStats MemStats;
+			RHIGetTextureMemoryStats(MemStats);
+			
 			float PerfScale = 1.0f;
-			[[NSOpenGLContext currentContext] getValues:&RendererID forParameter:NSOpenGLCPCurrentRendererID];
+			if(MemStats.TotalGraphicsMemory < (2ll * 1024ll * 1024ll * 1024ll))
 			{
-				switch((RendererID & kCGLRendererIDMatchingMask))
-				{
-					case kCGLRendererATIRadeonX4000ID: // AMD 7xx0 & Dx00 series - should be pretty beefy
-						PerfScale = 1.2f;
-						break;
-					case kCGLRendererATIRadeonX3000ID: // AMD 5xx0, 6xx0 series - mostly OK
-					case kCGLRendererGeForceID: // Nvidia 6x0 & 7x0 series - mostly OK
-						PerfScale = 2.0f;
-						break;
-					case kCGLRendererIntelHD5000ID: // Intel HD 5000, Iris, Iris Pro - not dreadful
-						PerfScale = 4.2f;
-						break;
-					case kCGLRendererIntelHD4000ID: // Intel HD 4000 - quite slow
-						PerfScale = 7.5f;
-						break;
-					case kCGLRendererATIRadeonX2000ID: // ATi 4xx0, 3xx0, 2xx0 - almost all very slow and drivers are now very buggy
-					case kCGLRendererGeForce8xxxID: // Nvidia 3x0, 2x0, 1x0, 9xx0, 8xx0 - almost all very slow
-					case kCGLRendererIntelHDID: // Intel HD 3000 - very, very slow and very buggy driver
-					default:
-						PerfScale = 10.0f;
-						break;
-				}
+				// Assume Intel HD 5000, Iris, Iris Pro performance - not dreadful
+				PerfScale = 4.2f;
+			}
+			else if(MemStats.TotalGraphicsMemory < (3ll * 1024ll * 1024ll * 1024ll))
+			{
+				// Assume Nvidia 6x0 & 7x0 series/AMD M370X or Radeon Pro 4x0 series - mostly OK
+				PerfScale = 2.0f;
+			}
+			else
+			{
+				// AMD 7xx0 & Dx00 series - should be pretty beefy
+				PerfScale = 1.2f;
 			}
 
 			for (int32 Index = 0; Index < MethodCount; ++Index)

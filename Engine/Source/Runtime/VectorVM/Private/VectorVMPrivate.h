@@ -14,19 +14,14 @@ namespace VectorVM
 	/** Constants. */
 	enum
 	{
-		ChunkSize = 128,
-		ElementsPerVector = 4,
-		VectorsPerChunk = ChunkSize / ElementsPerVector,
+		InstancesPerChunk = 128,
+		MaxInstanceSizeBytes = 4,
 	};
 }
 
 struct FDummyHandler
 {
 	FORCEINLINE void Advance(){ }
-	FORCEINLINE int32 GetLocationIndex(){ return INDEX_NONE; }
-	FORCEINLINE int32 GetSecondaryIndex(){ return INDEX_NONE; }
-	FORCEINLINE int32 GetTertiaryIndex(){ return INDEX_NONE; }
-	FORCEINLINE EVectorVMOperandLocation GetLocation(){ return EVectorVMOperandLocation::Undefined; }
 	FORCEINLINE VectorRegister Get(){ return GlobalVectorConstants::FloatZero; }
 	FORCEINLINE VectorRegister GetValue(){ return GlobalVectorConstants::FloatZero; }
 };

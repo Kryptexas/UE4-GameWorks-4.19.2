@@ -367,22 +367,11 @@ FText FMaterialInstanceParameterDetails::GetParameterExpressionDescription(UDEdi
 	UMaterial* BaseMaterial = MaterialEditorInstance->SourceInstance->GetMaterial();
 	if ( BaseMaterial )
 	{
-		UMaterialExpressionParameter* Expression = BaseMaterial->FindExpressionByGUID<UMaterialExpressionParameter>( Parameter->ExpressionId );
-		if ( Expression )
-		{
-			return FText::FromString(Expression->Desc);
-		}
+		UMaterialExpression* MaterialExpression = BaseMaterial->FindExpressionByGUID<UMaterialExpression>(Parameter->ExpressionId);
 
-		UMaterialExpressionTextureSampleParameter* TextureExpression = BaseMaterial->FindExpressionByGUID<UMaterialExpressionTextureSampleParameter>( Parameter->ExpressionId );
-		if ( TextureExpression )
+		if (MaterialExpression)
 		{
-			return FText::FromString(TextureExpression->Desc);
-		}
-
-		UMaterialExpressionFontSampleParameter* FontExpression = BaseMaterial->FindExpressionByGUID<UMaterialExpressionFontSampleParameter>( Parameter->ExpressionId );
-		if ( FontExpression )
-		{
-			return FText::FromString(FontExpression->Desc);
+			return FText::FromString(MaterialExpression->Desc);
 		}
 	}
 

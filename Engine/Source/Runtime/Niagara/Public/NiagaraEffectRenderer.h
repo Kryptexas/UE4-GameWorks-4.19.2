@@ -16,6 +16,8 @@ NiagaraEffectRenderer.h: Base class for Niagara render modules
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.h"
 #include "NiagaraMeshRendererProperties.h"
+#include "NiagaraLightRendererProperties.h"
+#include "RenderingThread.h"
 
 class FNiagaraDataSet;
 
@@ -23,6 +25,7 @@ class FNiagaraDataSet;
 struct FNiagaraDynamicDataBase
 {
 };
+
 
 
 class SimpleTimer
@@ -51,7 +54,7 @@ private:
 * Base class for Niagara effect renderers. Effect renderers handle generating vertex data for and
 * drawing of simulation data coming out of FNiagaraSimulation instances.
 */
-class NiagaraEffectRenderer
+class NiagaraEffectRenderer 
 {
 public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const = 0;
@@ -59,14 +62,14 @@ public:
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) = 0;
 	virtual void CreateRenderThreadResources() = 0;
 	virtual void ReleaseRenderThreadResources() = 0;
-	virtual FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraDataSet &Data) = 0;
+	virtual FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraSceneProxy* Proxy, const FNiagaraDataSet &Data) = 0;
 	virtual int GetDynamicDataSize() = 0;
 
 	virtual bool HasDynamicData() = 0;
 
 	virtual bool SetMaterialUsage() = 0;
 
-	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() = 0;
+	virtual const TArray<FNiagaraVariable>& GetRequiredAttributes() = 0;
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View, const FNiagaraSceneProxy *SceneProxy)
 	{
@@ -97,30 +100,36 @@ public:
 		check(Material);
 		MaterialRelevance = Material->GetRelevance(FeatureLevel);
 	}
-
-	virtual ~NiagaraEffectRenderer() {}
-
+	
 	virtual UClass *GetPropertiesClass() = 0;
 	virtual void SetRendererProperties(UNiagaraEffectRendererProperties *Props) = 0;
 
 	float GetCPUTimeMS() { return CPUTimeMS; }
-	FBox GetBounds()	{ return CachedBounds;  }
+
+	void SetLocalSpace(bool bInLocalSpace) { bLocalSpace = bInLocalSpace; }
+
+	/** Release enqueues the effect renderer to be killed on the render thread safely.*/
+	void Release();
+
+	FNiagaraDynamicDataBase *GetDynamicData() { return DynamicDataRender; }
 
 protected:
-	NiagaraEffectRenderer()	
-		: TickState(NTS_Running)
-
+	NiagaraEffectRenderer()
+		: CPUTimeMS(0.0f)
+		, DynamicDataRender(nullptr)
 	{
 		Material = UMaterial::GetDefaultMaterial(MD_Surface);
 	}
 
+	virtual ~NiagaraEffectRenderer();
+
 	mutable float CPUTimeMS;
 	UMaterial* Material;
-	FBox CachedBounds;
+	bool bLocalSpace;
 
-private:
 	FMaterialRelevance MaterialRelevance;
-	ENiagaraTickState TickState;
+
+	struct FNiagaraDynamicDataBase *DynamicDataRender;
 };
 
 
@@ -131,7 +140,7 @@ private:
 */
 class NIAGARA_API NiagaraEffectRendererSprites : public NiagaraEffectRenderer
 {
-public:	
+public:
 
 	explicit NiagaraEffectRendererSprites(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *Props);
 	~NiagaraEffectRendererSprites()
@@ -148,7 +157,7 @@ public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
 	virtual bool SetMaterialUsage() override;
 	/** Update render data buffer from attributes */
-	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraDataSet &Data) override;
+	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraSceneProxy* Proxy, const FNiagaraDataSet &Data) override;
 
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) override;
 	int GetDynamicDataSize() override;
@@ -157,95 +166,44 @@ public:
 	UClass *GetPropertiesClass() override { return UNiagaraSpriteRendererProperties::StaticClass(); }
 	void SetRendererProperties(UNiagaraEffectRendererProperties *Props) override { Properties = Cast<UNiagaraSpriteRendererProperties>(Props); }
 
-	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() override;
+	virtual const TArray<FNiagaraVariable>& GetRequiredAttributes() override;
 
 private:
 	UNiagaraSpriteRendererProperties *Properties;
-	struct FNiagaraDynamicDataSprites *DynamicDataRender;
 	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
-	class FParticleSpriteVertexFactory* VertexFactory;
+	class FNiagaraSpriteVertexFactory* VertexFactory;
 };
 
 
-
-
-
 /**
-* NiagaraEffectRendererRibbon renders an FNiagaraSimulation as a ribbon connecting all particles
-* in order by particle age.
+* NiagaraEffectRendererLights renders an FNiagaraSimulation as simple lights
 */
-class NIAGARA_API NiagaraEffectRendererRibbon : public NiagaraEffectRenderer
+class NIAGARA_API NiagaraEffectRendererLights : public NiagaraEffectRenderer
 {
 public:
-	NiagaraEffectRendererRibbon(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *Props);
-	~NiagaraEffectRendererRibbon()
+	struct SimpleLightData
+	{
+		FSimpleLightEntry LightEntry;
+		FSimpleLightPerViewEntry PerViewEntry;
+	};
+	explicit NiagaraEffectRendererLights(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *Props);
+
+	~NiagaraEffectRendererLights()
 	{
 		ReleaseRenderThreadResources();
 	}
 
-	virtual void ReleaseRenderThreadResources() override;
-	virtual void CreateRenderThreadResources() override;
 
-
-	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
-
-	virtual bool SetMaterialUsage() override;
-
-	/** Update render data buffer from attributes */
-	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraDataSet &Data) override;
-
-	void AddRibbonVert(TArray<FParticleBeamTrailVertex>& RenderData, FVector ParticlePos, const FNiagaraDataSet &Data, FVector2D UV1,
-		const FVector4 &Color, const FVector4 &Age, const FVector4 &Rotation)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View, const FNiagaraSceneProxy *SceneProxy) override
 	{
-		FParticleBeamTrailVertex& NewVertex = *new(RenderData)FParticleBeamTrailVertex;
-		NewVertex.Position = ParticlePos;
-		NewVertex.OldPosition = NewVertex.Position;
-		NewVertex.Color = FLinearColor(Color);
-		NewVertex.ParticleId = 0;
-		NewVertex.RelativeTime = Age.X;
-		NewVertex.Size = FVector2D(Rotation.Y, Rotation.Z);
-		NewVertex.Rotation = Rotation.X;
-		NewVertex.SubImageIndex = 0.f;
-		NewVertex.Tex_U = UV1.X;
-		NewVertex.Tex_V = UV1.Y;
-		NewVertex.Tex_U2 = UV1.X;
-		NewVertex.Tex_V2 = UV1.Y;
-	}
-
-
-
-	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) override;
-	int GetDynamicDataSize() override;
-	bool HasDynamicData() override;
-
-	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() override;
-
-	UClass *GetPropertiesClass() override { return UNiagaraRibbonRendererProperties::StaticClass(); }
-	void SetRendererProperties(UNiagaraEffectRendererProperties *Props) override { Properties = Cast<UNiagaraRibbonRendererProperties>(Props); }
-
-private:
-	class FParticleBeamTrailVertexFactory *VertexFactory;
-	UNiagaraRibbonRendererProperties *Properties;
-	struct FNiagaraDynamicDataRibbon *DynamicDataRender;
-	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
-};
-
-
-
-
-
-
-/**
-* NiagaraEffectRendererSprites renders an FNiagaraSimulation as sprite particles
-*/
-class NIAGARA_API NiagaraEffectRendererMeshes : public NiagaraEffectRenderer
-{
-public:
-
-	explicit NiagaraEffectRendererMeshes(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *Props);
-	~NiagaraEffectRendererMeshes()
-	{
-		ReleaseRenderThreadResources();
+		FPrimitiveViewRelevance Result;
+		Result.bDrawRelevance = false;
+		Result.bShadowRelevance = false;
+		Result.bDynamicRelevance = false;
+		Result.bOpaqueRelevance = false;
+		Result.bHasSimpleLights = true;
+		//MaterialRelevance.SetPrimitiveViewRelevance(Result);
+		return Result;
 	}
 
 
@@ -257,20 +215,30 @@ public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector, const FNiagaraSceneProxy *SceneProxy) const override;
 	virtual bool SetMaterialUsage() override;
 	/** Update render data buffer from attributes */
-	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraDataSet &Data) override;
+	FNiagaraDynamicDataBase *GenerateVertexData(const FNiagaraSceneProxy* Proxy, const FNiagaraDataSet &Data) override;
 
 	virtual void SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData) override;
 	int GetDynamicDataSize() override;
 	bool HasDynamicData() override;
 
-	UClass *GetPropertiesClass() override { return UNiagaraMeshRendererProperties::StaticClass(); }
-	void SetRendererProperties(UNiagaraEffectRendererProperties *Props) override { Properties = Cast<UNiagaraMeshRendererProperties>(Props); }
-	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() override;
+	UClass *GetPropertiesClass() override { return UNiagaraLightRendererProperties::StaticClass(); }
+	void SetRendererProperties(UNiagaraEffectRendererProperties *Props) override { Properties = Cast<UNiagaraLightRendererProperties>(Props); }
 
-	void SetupVertexFactory(FMeshParticleVertexFactory *InVertexFactory, const FStaticMeshLODResources& LODResources) const;
+	virtual const TArray<FNiagaraVariable>& GetRequiredAttributes() override;
+	TArray<SimpleLightData> &GetLights() { return LightArray; }
 private:
-	UNiagaraMeshRendererProperties *Properties;
-	struct FNiagaraDynamicDataMesh *DynamicDataRender;
-	mutable TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
-	class FMeshParticleVertexFactory* VertexFactory;
+	UNiagaraLightRendererProperties *Properties;
+	TArray<SimpleLightData>LightArray;
 };
+
+
+struct FNiagaraDynamicDataLights : public FNiagaraDynamicDataBase
+{
+	TArray<NiagaraEffectRendererLights::SimpleLightData> LightArray;
+};
+
+
+
+
+
+

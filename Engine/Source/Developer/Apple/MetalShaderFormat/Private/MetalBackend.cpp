@@ -427,6 +427,10 @@ protected:
 
 	// Do we need to add #include <compute_shaders>
 	bool bNeedsComputeInclude;
+	
+	// Do we need to add CubemapTo2DArrayFace functions?
+	bool bCubeArrayHackFloat4;
+	bool bCubeArrayHackFloat3;
 
     const char *shaderPrefix()
     {
@@ -560,7 +564,14 @@ protected:
 				}
 				else if (t->sampler_dimensionality == GLSL_SAMPLER_DIM_CUBE && t->sampler_array)
 				{
-					ralloc_asprintf_append(buffer, "texturecube_array");
+					if (Backend->bIsDesktop == EMetalGPUSemanticsImmediateDesktop)
+					{
+						ralloc_asprintf_append(buffer, "texturecube_array");
+					}
+					else
+					{
+						ralloc_asprintf_append(buffer, t->sampler_shadow ? "depth2d_array" : "texture2d_array");
+					}
 					bDone = true;
 				}
 				else if (t->sampler_dimensionality == GLSL_SAMPLER_DIM_2D && t->sampler_ms)
@@ -745,7 +756,7 @@ protected:
 				check(!PtrType->is_array() && PtrType->inner_type);
 
 				// Buffer
-				int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+				int BufferIndex = Buffers.GetIndex(var);
 				check(BufferIndex >= 0);
 				if (var->type->sampler_buffer)
 				{
@@ -768,20 +779,41 @@ protected:
 				}
 				else
 				{
-					check(PtrType->inner_type->is_numeric());
-					auto* Found = strstr(PtrType->name, "image");
-					check(Found);
-					Found += 5;	//strlen("image")
-					char Temp[16];
-					char* TempPtr = Temp;
-					do
+					auto ImageToMetalType = [](const char* Src, char* Dest, SIZE_T DestLen)
 					{
-						*TempPtr++ = tolower(*Found);
-						++Found;
-					}
-					while (*Found);
-					*TempPtr = 0;
-					ralloc_asprintf_append(buffer, "texture%s<", Temp);
+						auto* Found = strstr(Src, "image");
+						check(Found);
+						Src = Found + 5;	// strlen("image")
+						FCStringAnsi::Strcpy(Dest, DestLen, "texture");
+						Dest += 7;	// strlen("texture")
+						if (Src[0] >= '1' && Src[0] <= '3')
+						{
+							*Dest++ = *Src++;
+							*Dest++ = 'd';
+							*Dest = 0;
+							check(*Src == 'D');
+							Src++;
+						}
+						else if (strncmp(Src, "Cube", 4) == 0)
+						{
+							FCStringAnsi::Strcpy(Dest, DestLen, "cube");
+							Dest += 4;
+						}
+						else
+						{
+							check(0);
+						}
+
+						if (strncmp(Src, "Array", 5) == 0)
+						{
+							FCStringAnsi::Strcpy(Dest, DestLen, "_array");
+						}
+					};
+
+					check(PtrType->inner_type->is_numeric());
+					char Temp[32];
+					ImageToMetalType(PtrType->name, Temp, sizeof(Temp) - 1);
+					ralloc_asprintf_append(buffer, "%s<", Temp);
 					// UAVs require type per channel, not including # of channels
 					print_type_pre(PtrType->inner_type->get_scalar_type());
                     
@@ -825,7 +857,7 @@ protected:
 						if (var->type->sampler_buffer)
 						{
 							// Buffer
-							int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+							int BufferIndex = Buffers.GetIndex(var);
 							check(BufferIndex >= 0 && BufferIndex <= 30);
 							ralloc_asprintf_append(
 								buffer,
@@ -889,7 +921,7 @@ protected:
 								}
 							}
                             
-                            int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+                            int BufferIndex = Buffers.GetIndex(var);
                             check(BufferIndex >= 0);
                             
 							ralloc_asprintf_append(
@@ -904,7 +936,7 @@ protected:
 					}
 					else
 					{
-						int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+						int BufferIndex = Buffers.GetIndex(var);
 						bool bNeedsPointer = (var->semantic && (strlen(var->semantic) == 1));
 						check(BufferIndex >= 0 && BufferIndex <= 30);
 						ralloc_asprintf_append(
@@ -954,7 +986,7 @@ protected:
 						check(var->semantic);
                         if (strlen(var->semantic) == 0)
                         {
-                            int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+                            int BufferIndex = Buffers.GetIndex(var);
                             check(BufferIndex >= 0 && BufferIndex <= 30);
                             ralloc_asprintf_append(
                                 buffer,
@@ -1005,7 +1037,7 @@ protected:
                     check(var->semantic);
                     if (strlen(var->semantic) == 0)
                     {
-                        int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+                        int BufferIndex = Buffers.GetIndex(var);
                         check(BufferIndex >= 0 && BufferIndex <= 30);
                         ralloc_asprintf_append(
                                                buffer,
@@ -1112,14 +1144,14 @@ protected:
             patchCount->semantic = "u";
             Buffers.Buffers.Add(patchCount);
             
-            int32 patchIndex = Buffers.GetIndex(patchCount, Backend->bIsDesktop);
+            int32 patchIndex = Buffers.GetIndex(patchCount);
             check(patchIndex >= 0 && patchIndex < 30);
             
             ir_variable* indexBuffer = new(ParseState)ir_variable(glsl_type::void_type, "indexBuffer", ir_var_in);
             indexBuffer->semantic = "";
             Buffers.Buffers.Add(indexBuffer);
             
-            int32 IndexBufferIndex = Buffers.GetIndex(indexBuffer, Backend->bIsDesktop);
+            int32 IndexBufferIndex = Buffers.GetIndex(indexBuffer);
             check(IndexBufferIndex >= 0 && IndexBufferIndex < 30);
             
             ralloc_asprintf_append(
@@ -1330,11 +1362,7 @@ protected:
 		}
 		else if (op >= ir_unop_fasu && op <= ir_unop_uasf)
 		{
-		
-		
-		
-		
-			if (expr->type != expr->operands[0]->type)
+            if (expr->type != expr->operands[0]->type)
 			{
 				ralloc_asprintf_append(buffer, "as_type<");
 				print_type_full(expr->type);
@@ -1467,7 +1495,16 @@ protected:
 			ralloc_asprintf_append(buffer, "popcount(");
 			expr->operands[0]->accept(this);
 			ralloc_asprintf_append(buffer, ")");
-		}
+        }
+        else if (op == ir_unop_abs && !expr->operands[0]->type->is_float())
+        {
+            ralloc_asprintf_append(buffer, "abs(");
+            for (int i = 0; i < numOps; ++i)
+            {
+                expr->operands[i]->accept(this);
+                ralloc_asprintf_append(buffer, MetalExpressionTable[op][i+1]);
+            }
+        }
 		else if (numOps < 4)
 		{
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][0]);
@@ -1509,12 +1546,11 @@ protected:
 			int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(tex->SamplerStateName, false, bDummy);
 			check(SamplerStateIndex != INDEX_NONE);
 			ralloc_asprintf_append(buffer, "s%d, ", SamplerStateIndex);
+			
+			bool bLocalCubeArrayHacks = false;
 			if (tex->sampler->type->sampler_array)
 			{
 				// Need to split the coordinate
-				ralloc_asprintf_append(buffer, "(");
-				tex->coordinate->accept(this);
-				
 				char const* CoordSwizzle = "";
 				char const* IndexSwizzle = "y";
 				switch(tex->sampler->type->sampler_dimensionality)
@@ -1531,10 +1567,36 @@ protected:
 						break;
 					}
 					case GLSL_SAMPLER_DIM_3D:
-					case GLSL_SAMPLER_DIM_CUBE:
 					{
 						CoordSwizzle = "yz";
 						IndexSwizzle = "w";
+						break;
+					}
+					case GLSL_SAMPLER_DIM_CUBE:
+					{
+						if (Backend->bIsDesktop == EMetalGPUSemanticsImmediateDesktop)
+						{
+							CoordSwizzle = "yz";
+							IndexSwizzle = "w";
+						}
+						else
+						{
+							CoordSwizzle = "y";
+							IndexSwizzle = "z";
+							bLocalCubeArrayHacks = true;
+							
+							switch(tex->coordinate->type->components())
+							{
+								case 3:
+									bCubeArrayHackFloat3 = true;
+									break;
+								case 4:
+									bCubeArrayHackFloat4 = true;
+									break;
+								default:
+									break;
+							}
+						}
 						break;
 					}
 					case GLSL_SAMPLER_DIM_BUF:
@@ -1546,7 +1608,10 @@ protected:
 					}
 				}
 				
-				ralloc_asprintf_append(buffer, ").x%s, (uint)(", CoordSwizzle);
+				ralloc_asprintf_append(buffer, "%s(", bLocalCubeArrayHacks ? "CubemapTo2DArrayFace" : "");
+				tex->coordinate->accept(this);
+				
+				ralloc_asprintf_append(buffer, ").x%s, (uint)%s(", CoordSwizzle, bLocalCubeArrayHacks ? "CubemapTo2DArrayFace" : "");
 				tex->coordinate->accept(this);
 				ralloc_asprintf_append(buffer, ").%s", IndexSwizzle);
 			}
@@ -1591,7 +1656,14 @@ protected:
 					}
 					case GLSL_SAMPLER_DIM_CUBE:
 					{
-						GradientType = "gradientcube";
+						if (!bLocalCubeArrayHacks)
+						{
+							GradientType = "gradientcube";
+						}
+						else
+						{
+							GradientType = "gradient2d";
+						}
 						break;
 					}
 					case GLSL_SAMPLER_DIM_1D:
@@ -1624,7 +1696,7 @@ protected:
 			if (tex->sampler->type->is_sampler() && tex->sampler->type->sampler_buffer)
 			{
 				auto* Texture = tex->sampler->variable_referenced();
-				int Index = Buffers.GetIndex(Texture, Backend->bIsDesktop);
+				int Index = Buffers.GetIndex(Texture);
 				check(Index >= 0 && Index <= 30);
 				
 				ralloc_asprintf_append(buffer, "(");
@@ -1901,6 +1973,7 @@ protected:
 		if ( deref->op == ir_image_access)
 		{
 			bool bIsRWTexture = !deref->image->type->sampler_buffer;
+			bool bIsArray = bIsRWTexture && strstr(deref->image->type->name, "Array") != nullptr;
 			if (src == nullptr)
 			{
 				if (bIsRWTexture)
@@ -1913,7 +1986,7 @@ protected:
 				else
 				{
 					auto* Texture = deref->image->variable_referenced();
-					int Index = Buffers.GetIndex(Texture, Backend->bIsDesktop);
+					int Index = Buffers.GetIndex(Texture);
 					check(Index >= 0 && Index <= 30);
 					
 					ralloc_asprintf_append(buffer, "(");
@@ -2014,19 +2087,40 @@ protected:
 
 					//#todo-rco: Add language spec to know if indices need to be uint
 					ralloc_asprintf_append(buffer, ",(uint");
-					switch (deref->image_index->type->vector_elements)
+					if (bIsArray && deref->image_index->type->vector_elements == 3)
 					{
-					case 4:
-					case 3:
-					case 2:
-						ralloc_asprintf_append(buffer, "%u", deref->image_index->type->vector_elements);
-						//fallthrough
-					case 1:
-						ralloc_asprintf_append(buffer, ")(");
-						break;
+						//RWTexture2DArray
+						ralloc_asprintf_append(buffer, "2)(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ".xy), (uint(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ".z)))");
 					}
-					deref->image_index->accept(this);
-					ralloc_asprintf_append(buffer, "))");
+					else if (bIsArray && deref->image_index->type->vector_elements == 2)
+					{
+						//RWTexture1DArray
+						ralloc_asprintf_append(buffer, ")(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ".x), (uint(");
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, ".y)))");
+					}
+					else
+					{
+						switch (deref->image_index->type->vector_elements)
+						{
+						case 4:
+						case 3:
+						case 2:
+							ralloc_asprintf_append(buffer, "%u", deref->image_index->type->vector_elements);
+							//fallthrough
+						case 1:
+							ralloc_asprintf_append(buffer, ")(");
+							break;
+						}
+						deref->image_index->accept(this);
+						ralloc_asprintf_append(buffer, "))");
+					}
 				}
 				else
 				{
@@ -2038,7 +2132,7 @@ protected:
 						ralloc_asprintf_append(buffer, ",");
 						
 						auto* Texture = deref->image->variable_referenced();
-						int Index = Buffers.GetIndex(Texture, Backend->bIsDesktop);
+						int Index = Buffers.GetIndex(Texture);
 						check(Index >= 0 && Index <= 30);
 						
 						ralloc_asprintf_append(buffer, "(BufferSizes[%d] / sizeof(", Index);
@@ -2964,7 +3058,7 @@ protected:
 			}
 
 			// Try to find SRV index
-			uint32 Offset = Buffers.GetIndex(Sampler.CB_PackedSampler, false);
+			uint32 Offset = Buffers.GetIndex(Sampler.CB_PackedSampler);
             check(Offset >= 0);
             
 			ralloc_asprintf_append(
@@ -2990,7 +3084,7 @@ protected:
 			glsl_packed_uniform& Uniform = *Iter;
 			ANSICHAR Name[32];
 			FCStringAnsi::Sprintf(Name, "%si%u", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
-			int32 Offset = Buffers.GetIndex(Name, Backend->bIsDesktop);
+			int32 Offset = Buffers.GetIndex(Name);
             check(Offset >= 0);
 			ralloc_asprintf_append(
 				buffer,
@@ -3366,7 +3460,7 @@ protected:
 			ralloc_asprintf_append(buffer, "// @TessellationPatchesPerThreadGroup: %d\n", Backend->patchesPerThreadgroup);
             
             FCustomStdString patchCountName("patchCount");
-            int32 patchIndex = Buffers.GetIndex(patchCountName, Backend->bIsDesktop);
+            int32 patchIndex = Buffers.GetIndex(patchCountName);
             if(patchIndex < 0 || patchIndex > 30)
             {
                 _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationPatchCountBuffer.", patchIndex);
@@ -3374,7 +3468,7 @@ protected:
             ralloc_asprintf_append(buffer, "// @TessellationPatchCountBuffer: %u\n", (uint32)patchIndex);
 
             FCustomStdString indexBufferName("indexBuffer");
-            int32 ibIndex = Buffers.GetIndex(indexBufferName, Backend->bIsDesktop);
+            int32 ibIndex = Buffers.GetIndex(indexBufferName);
             if (ibIndex >= 0)
             {
                 check(ibIndex < 30);
@@ -3382,7 +3476,7 @@ protected:
             }
             
             FCustomStdString HSOutName("__HSOut");
-            int32 hsOutIndex = Buffers.GetIndex(HSOutName, Backend->bIsDesktop);
+            int32 hsOutIndex = Buffers.GetIndex(HSOutName);
             if(hsOutIndex > 30)
             {
                 _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationHSOutBuffer.", hsOutIndex);
@@ -3390,7 +3484,7 @@ protected:
 			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %u\n", (uint32)hsOutIndex);
 			
 			FCustomStdString PatchControlPointOutBufferName("PatchControlPointOutBuffer");
-			int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName, Backend->bIsDesktop);
+			int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName);
             if(patchControlIndex < 0 || patchControlIndex > 30)
             {
                 _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationControlPointOutBuffer.", patchControlIndex);
@@ -3398,7 +3492,7 @@ protected:
 			ralloc_asprintf_append(buffer, "// @TessellationControlPointOutBuffer: %u\n", (uint32)patchControlIndex);
 
             FCustomStdString HSTFOutName("__HSTFOut");
-            int32 hstfOutIndex = Buffers.GetIndex(HSTFOutName, Backend->bIsDesktop);
+            int32 hstfOutIndex = Buffers.GetIndex(HSTFOutName);
             if(hstfOutIndex < 0 || hstfOutIndex > 30)
             {
                 _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationHSTFOutBuffer.", hstfOutIndex);
@@ -3465,7 +3559,7 @@ protected:
 			ralloc_asprintf_append(buffer, "\n");
 			
 			FCustomStdString HSOutName("__DSStageIn");
-            int32 hsOutIndex = Buffers.GetIndex(HSOutName, Backend->bIsDesktop);
+            int32 hsOutIndex = Buffers.GetIndex(HSOutName);
             if(hsOutIndex > 30)
             {
                 _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationHSOutBuffer.", hsOutIndex);
@@ -3473,7 +3567,7 @@ protected:
 			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %u\n", (uint32)hsOutIndex);
 			
 			FCustomStdString PatchControlPointOutBufferName("__DSPatch");
-            int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName, Backend->bIsDesktop);
+            int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName);
             if(patchControlIndex < 0 || patchControlIndex > 30)
             {
                 _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point (%d) for the TessellationControlPointOutBuffer.", patchControlIndex);
@@ -3518,6 +3612,8 @@ public:
 		, bStageInEmitted(false)
 		, bUsePacked(false)
 		, bNeedsComputeInclude(false)
+		, bCubeArrayHackFloat4(false)
+		, bCubeArrayHackFloat3(false)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(128, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -3599,13 +3695,63 @@ public:
 		}
 
         buffer = 0;
+		
+		char* CubemapHack = ralloc_asprintf(mem_ctx, "");
+		// Convert CubeMapArray to 2DArray for iOS/tvOS: x=>x, y=>y, z=>Face
+		if (Backend->bIsDesktop == EMetalGPUSemanticsTBDRDesktop && (bCubeArrayHackFloat4 || bCubeArrayHackFloat3))
+		{
+			buffer = &CubemapHack;
+			if (bCubeArrayHackFloat4)
+			{
+				ralloc_asprintf_append(buffer, "static float3 CubemapTo2DArrayFace(float4 P)\n");
+				ralloc_asprintf_append(buffer, "{\n");
+				ralloc_asprintf_append(buffer, "	\tfloat ArrayIndex = P.w * 6;\n");
+				ralloc_asprintf_append(buffer, "	\tfloat3 Coords = abs(P.xyz);\n");
+				ralloc_asprintf_append(buffer, "	\tif(Coords.x >= Coords.y && Coords.x >= Coords.z)\n");
+				ralloc_asprintf_append(buffer, "	\t{\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.xy = P.zy / P.x;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.z = P.x >= 0 ? 0 : 1;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.x *= -(1 - Coords.z);\n");
+				ralloc_asprintf_append(buffer, "	\t}\n");
+				ralloc_asprintf_append(buffer, "	\telse if(Coords.y >= Coords.x && Coords.y >= Coords.z)\n");
+				ralloc_asprintf_append(buffer, "	\t{\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.xy = P.xz / P.y;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.z = P.y >= 0 ? 0 : 1;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.y *= -(1 - Coords.z);\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.z += 2;\n");
+				ralloc_asprintf_append(buffer, "	\t}\n");
+				ralloc_asprintf_append(buffer, "	\telse\n");
+				ralloc_asprintf_append(buffer, "	\t{\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.xy = P.xy / P.z;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.z = P.z >= 0 ? 0 : 1;\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.x *= -(Coords.z);\n");
+				ralloc_asprintf_append(buffer, "	\t	\tCoords.z += 4;\n");
+				ralloc_asprintf_append(buffer, "	\t}\n");
+				ralloc_asprintf_append(buffer, "	\tCoords.xy = 0.5 * (Coords.xy + 1);\n");
+				ralloc_asprintf_append(buffer, "	\tCoords.z += ArrayIndex;\n");
+				ralloc_asprintf_append(buffer, "	\treturn Coords;\n");
+				ralloc_asprintf_append(buffer, "}\n");
+				ralloc_asprintf_append(buffer, "\n");
+			}
+			if (bCubeArrayHackFloat3)
+			{
+				ralloc_asprintf_append(buffer, "static float3 CubemapTo2DArrayFace(float3 P)\n");
+				ralloc_asprintf_append(buffer, "{\n");
+				ralloc_asprintf_append(buffer, "	\tfloat4 Coords = P.xyzx;\n");
+				ralloc_asprintf_append(buffer, "	\tCoords.w = 0;\n");
+				ralloc_asprintf_append(buffer, "	\treturn CubemapTo2DArrayFace(Coords);\n");
+				ralloc_asprintf_append(buffer, "}\n\n");
+			}
+			buffer = 0;
+		}
 
 		char* full_buffer = ralloc_asprintf(
 			ParseState,
-			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s",
+			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s%s",
 			signature,
 			metal_defines,
 			bNeedsComputeInclude ? "#include <metal_compute>" : "",
+			CubemapHack,
 			decl_buffer,
 			code_buffer
 			);
@@ -4556,7 +4702,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 
 			// call barrier() to ensure that all threads have computed the per-input-patch computation
 			{
-				ir_function *Function = ParseState->symbols->get_function(bIsDesktop ? GROUP_MEMORY_BARRIER : SIMDGROUP_MEMORY_BARRIER);
+				ir_function *Function = ParseState->symbols->get_function(bIsDesktop == EMetalGPUSemanticsImmediateDesktop ? GROUP_MEMORY_BARRIER : SIMDGROUP_MEMORY_BARRIER);
 				check(Function);
 				check(Function->signatures.get_head() == Function->signatures.get_tail());
 				exec_list VoidParameter;
@@ -4572,7 +4718,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 
 			// call barrier() to ensure that all threads have computed the per-output-patch computation
 			{
-				ir_function *Function = ParseState->symbols->get_function(bIsDesktop ? GROUP_MEMORY_BARRIER : SIMDGROUP_MEMORY_BARRIER);
+				ir_function *Function = ParseState->symbols->get_function(bIsDesktop == EMetalGPUSemanticsImmediateDesktop ? GROUP_MEMORY_BARRIER : SIMDGROUP_MEMORY_BARRIER);
 				check(Function);
 				check(Function->signatures.get_head() == Function->signatures.get_tail());
 				exec_list VoidParameter;
@@ -4915,7 +5061,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	MainSig->tessellation = ParseState->tessellation;
 
 	// Generate the Main() function
-	auto* MainFunction = new(ParseState)ir_function("Main");
+	auto* MainFunction = new(ParseState)ir_function("Main_00000000_00000000");
 	MainFunction->add_signature(MainSig);
 	// Adds uniforms as globals
 	Instructions->append_list(&DeclInstructions);
@@ -5160,7 +5306,7 @@ void FMetalCodeBackend::CallPatchConstantFunction(_mesa_glsl_parse_state* ParseS
 	pv_if->then_instructions.push_tail(thread_if);
 }
 
-FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 InVersion, bool bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks) :
+FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 InVersion, EMetalGPUSemantics bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks) :
 	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1),
 	TessAttribs(TessOutputAttribs)
 {

@@ -67,17 +67,3 @@ private:
 	static FStringAssetReference GetOrCreateIDForObject(const UObject *Object);
 };
 
-template<>
-struct TStructOpsTypeTraits<FStringClassReference> : public TStructOpsTypeTraitsBase
-{
-	enum 
-	{
-		WithZeroConstructor = true,
-		WithSerializer = true,
-		WithCopy = true,
-		WithIdenticalViaEquality = true,
-		WithExportTextItem = true,
-		WithImportTextItem = true,
-		WithSerializeFromMismatchedTag = true,
-	};
-};

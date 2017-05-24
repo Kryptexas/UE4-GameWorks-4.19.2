@@ -235,8 +235,19 @@ FAppEventManager::FAppEventManager():
 {
 	pthread_mutex_init(&MainMutex, NULL);
 	pthread_mutex_init(&QueueMutex, NULL);
+
+	IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor"));
+	check(CVar);
+	CVar->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&FAppEventManager::OnScaleFactorChanged));
 }
 
+void FAppEventManager::OnScaleFactorChanged(IConsoleVariable* CVar)
+{
+	if (CVar->GetFlags() & ECVF_SetByConsole)
+	{
+		FAppEventManager::GetInstance()->ExecWindowResized();
+	}
+}
 
 void FAppEventManager::HandleWindowCreated(void* InWindow)
 {
@@ -483,6 +494,13 @@ bool FAppEventManager::IsGamePaused()
 {
 	return !bRunning;
 }
+
+
+bool FAppEventManager::IsGameInFocus()
+{
+	return (bWindowInFocus && bHaveWindow);
+}
+
 
 bool FAppEventManager::WaitForEventInQueue(EAppEventState InState, double TimeoutSeconds)
 {

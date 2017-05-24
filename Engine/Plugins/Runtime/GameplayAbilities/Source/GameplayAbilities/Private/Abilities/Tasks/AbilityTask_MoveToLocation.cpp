@@ -81,7 +81,10 @@ void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
 			if (!bIsSimulating)
 			{
 				MyActor->ForceNetUpdate();
-				OnTargetLocationReached.Broadcast();
+				if (ShouldBroadcastAbilityTaskDelegates())
+				{
+					OnTargetLocationReached.Broadcast();
+				}
 				EndTask();
 			}
 		}

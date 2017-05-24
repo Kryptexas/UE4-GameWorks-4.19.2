@@ -516,6 +516,22 @@ bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UUserDefinedStr
 	return bResult;
 }
 
+bool FStructureEditorUtils::DiffersFromDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)
+{
+	bool bDiffers = false;
+	if (Struct && StructData)
+	{
+		UUserDefinedStructEditorData* StructEditorData = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData);
+		const uint8* DefaultInstance = StructEditorData->GetDefaultInstance();
+		if (DefaultInstance)
+		{
+			const int32 PortFlags = PPF_None;
+			bDiffers = !Struct->CompareScriptStruct(StructData, DefaultInstance, PortFlags);
+		}
+	}
+	return bDiffers;
+}
+
 bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UProperty* Property, uint8* PropertyData)
 {
 	bool bResult = true;

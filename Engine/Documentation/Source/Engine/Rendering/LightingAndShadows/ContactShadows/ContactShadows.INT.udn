@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: Contact Shadows
 Crumbs: 
 Description: This page provides an overview of Contact Shadows in UE4.
@@ -9,21 +9,7 @@ Tags: Rendering
 Type: Reference
 reference-image: ContactShadow.gif
 Related: Engine/Rendering/LightingAndShadows/LightTypes/Point
-
-[VAR:Params]
-[PARAM:image]
-	![%Engine/Rendering/LightingAndShadows/ContactShadows:title%](ContactShadow_Topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Engine/Rendering/LightingAndShadows/ContactShadows:title%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Engine/Rendering/LightingAndShadows/ContactShadows]
-[/PARAM]
-[/VAR]
+topic-image:ContactShadow_Topic.png
 
 [TOC(start:1 end:4)]
 

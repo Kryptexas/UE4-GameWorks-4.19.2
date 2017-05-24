@@ -182,23 +182,28 @@ void FCurveColorCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InS
 	}
 }
 
+static const FName RedCurveName(TEXT("R"));
+static const FName GreenCurveName(TEXT("G"));
+static const FName BlueCurveName(TEXT("B"));
+static const FName AlphaCurveName(TEXT("A"));
+
 TArray<FRichCurveEditInfoConst> FCurveColorCustomization::GetCurves() const
 {
 	TArray<FRichCurveEditInfoConst> Curves;
-	for (int Index = 0; Index < 4; Index++)
-	{
-		Curves.Add(FRichCurveEditInfoConst(&RuntimeCurve->ColorCurves[Index]));
-	}
+	Curves.Add(FRichCurveEditInfoConst(&RuntimeCurve->ColorCurves[0], RedCurveName));
+	Curves.Add(FRichCurveEditInfoConst(&RuntimeCurve->ColorCurves[1], GreenCurveName));
+	Curves.Add(FRichCurveEditInfoConst(&RuntimeCurve->ColorCurves[2], BlueCurveName));
+	Curves.Add(FRichCurveEditInfoConst(&RuntimeCurve->ColorCurves[3], AlphaCurveName));
 	return Curves;
 }
 
 TArray<FRichCurveEditInfo> FCurveColorCustomization::GetCurves()
 {
 	TArray<FRichCurveEditInfo> Curves;
-	for (int Index = 0; Index < 4; Index++)
-	{
-		Curves.Add(FRichCurveEditInfo(&RuntimeCurve->ColorCurves[Index]));
-	}
+	Curves.Add(FRichCurveEditInfo(&RuntimeCurve->ColorCurves[0], RedCurveName));
+	Curves.Add(FRichCurveEditInfo(&RuntimeCurve->ColorCurves[1], GreenCurveName));
+	Curves.Add(FRichCurveEditInfo(&RuntimeCurve->ColorCurves[2], BlueCurveName));
+	Curves.Add(FRichCurveEditInfo(&RuntimeCurve->ColorCurves[3], AlphaCurveName));
 	return Curves;
 }
 

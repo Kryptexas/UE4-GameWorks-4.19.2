@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Containers/DynamicRHIResourceArray.h"
-#include "StaticMeshResources.h"
+#include "Rendering/StaticMeshVertexDataInterface.h"
 
 /** The implementation of the static mesh vertex data storage type. */
 template<typename VertexDataType>

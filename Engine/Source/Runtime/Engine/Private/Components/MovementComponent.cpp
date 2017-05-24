@@ -14,6 +14,11 @@
 #define LOCTEXT_NAMESPACE "MovementComponent"
 DEFINE_LOG_CATEGORY_STATIC(LogMovement, Log, All);
 
+namespace MovementComponentStatics
+{
+	static const FName TestOverlapName = FName(TEXT("MovementOverlapTest"));
+}
+
 //----------------------------------------------------------------------//
 // UMovementComponent
 //----------------------------------------------------------------------//
@@ -212,6 +217,15 @@ void UMovementComponent::PostLoad()
 }
 
 
+void UMovementComponent::Deactivate()
+{
+	Super::Deactivate();
+	if (!IsActive())
+	{
+		StopMovementImmediately();
+	}
+}
+
 #if WITH_EDITOR
 void UMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -361,8 +375,7 @@ void UMovementComponent::InitCollisionParams(FCollisionQueryParams &OutParams, F
 
 bool UMovementComponent::OverlapTest(const FVector& Location, const FQuat& RotationQuat, const ECollisionChannel CollisionChannel, const FCollisionShape& CollisionShape, const AActor* IgnoreActor) const
 {
-	static FName NAME_TestOverlap = FName(TEXT("MovementOverlapTest"));
-	FCollisionQueryParams QueryParams(NAME_TestOverlap, false, IgnoreActor);
+	FCollisionQueryParams QueryParams(MovementComponentStatics::TestOverlapName, false, IgnoreActor);
 	FCollisionResponseParams ResponseParam;
 	InitCollisionParams(QueryParams, ResponseParam);
 	return GetWorld()->OverlapBlockingTestByChannel(Location, RotationQuat, CollisionChannel, CollisionShape, QueryParams, ResponseParam);
@@ -509,7 +522,7 @@ bool UMovementComponent::K2_MoveUpdatedComponent(FVector Delta, FRotator NewRota
 // Typically we want to depenetrate regardless of direction, so we can get all the way out of penetration quickly.
 // Our rules for "moving with depenetration normal" only get us so far out of the object. We'd prefer to pop out by the full MTD amount.
 // Depenetration moves (in ResolvePenetration) then ignore blocking overlaps to be able to move out by the MTD amount.
-static int32 MoveIgnoreFirstBlockingOverlap = 1;
+static int32 MoveIgnoreFirstBlockingOverlap = 0;
 
 static FAutoConsoleVariableRef CVarMoveIgnoreFirstBlockingOverlap(
 	TEXT("p.MoveIgnoreFirstBlockingOverlap"),
@@ -533,7 +546,8 @@ bool UMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta, const FQ
 	// Scope for move flags
 	{
 		// Conditionally ignore blocking overlaps (based on CVar)
-		TGuardValue<EMoveComponentFlags> ScopedFlagRestore(MoveComponentFlags, MoveIgnoreFirstBlockingOverlap ? MoveComponentFlags : (MoveComponentFlags | MOVECOMP_NeverIgnoreBlockingOverlaps));
+		const EMoveComponentFlags IncludeBlockingOverlapsWithoutEvents = (MOVECOMP_NeverIgnoreBlockingOverlaps | MOVECOMP_DisableBlockingOverlapDispatch);
+		TGuardValue<EMoveComponentFlags> ScopedFlagRestore(MoveComponentFlags, MoveIgnoreFirstBlockingOverlap ? MoveComponentFlags : (MoveComponentFlags | IncludeBlockingOverlapsWithoutEvents));
 		bMoveResult = MoveUpdatedComponent(Delta, NewRotation, bSweep, &OutHit, Teleport);
 	}
 

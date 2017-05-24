@@ -440,6 +440,38 @@ FORCEINLINE VectorRegister VectorCompareGE( const VectorRegister& Vec1, const Ve
 }
 
 /**
+* Creates a four-part mask based on component-wise < compares of the input vectors
+*
+* @param Vec1	1st vector
+* @param Vec2	2nd vector
+* @return		VectorRegister( Vec1.x < Vec2.x ? 0xFFFFFFFF : 0, same for yzw )
+*/
+FORCEINLINE VectorRegister VectorCompareLT(const VectorRegister& Vec1, const VectorRegister& Vec2)
+{
+	return MakeVectorRegister(
+		(uint32)(Vec1.V[0] < Vec2.V[0] ? 0xFFFFFFFF : 0),
+		Vec1.V[1] < Vec2.V[1] ? 0xFFFFFFFF : 0,
+		Vec1.V[2] < Vec2.V[2] ? 0xFFFFFFFF : 0,
+		Vec1.V[3] < Vec2.V[3] ? 0xFFFFFFFF : 0);
+}
+
+/**
+* Creates a four-part mask based on component-wise <= compares of the input vectors
+*
+* @param Vec1	1st vector
+* @param Vec2	2nd vector
+* @return		VectorRegister( Vec1.x <= Vec2.x ? 0xFFFFFFFF : 0, same for yzw )
+*/
+FORCEINLINE VectorRegister VectorCompareLE(const VectorRegister& Vec1, const VectorRegister& Vec2)
+{
+	return MakeVectorRegister(
+		(uint32)(Vec1.V[0] <= Vec2.V[0] ? 0xFFFFFFFF : 0),
+		Vec1.V[1] <= Vec2.V[1] ? 0xFFFFFFFF : 0,
+		Vec1.V[2] <= Vec2.V[2] ? 0xFFFFFFFF : 0,
+		Vec1.V[3] <= Vec2.V[3] ? 0xFFFFFFFF : 0);
+}
+
+/**
  * Does a bitwise vector selection based on a mask (e.g., created from VectorCompareXX)
  *
  * @param Mask  Mask (when 1: use the corresponding bit from Vec1 otherwise from Vec2)
@@ -1237,6 +1269,285 @@ FORCEINLINE void VectorStoreURGBA16N(const VectorRegister& Vec, void* Ptr)
 	Out[1] = (uint16)Tmp.V[0];
 	Out[2] = (uint16)Tmp.V[0];
 	Out[3] = (uint16)Tmp.V[0];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//Integer ops
+
+//Bitwise
+/** = a & b */
+FORCEINLINE VectorRegisterInt VectorIntAnd(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] & B.V[0],
+		A.V[1] & B.V[1],
+		A.V[2] & B.V[2],
+		A.V[3] & B.V[3]);
+}
+
+/** = a | b */
+FORCEINLINE VectorRegisterInt VectorIntOr(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] | B.V[0],
+		A.V[1] | B.V[1],
+		A.V[2] | B.V[2],
+		A.V[3] | B.V[3]);
+}
+/** = a ^ b */
+FORCEINLINE VectorRegisterInt VectorIntXor(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] ^ B.V[0],
+		A.V[1] ^ B.V[1],
+		A.V[2] ^ B.V[2],
+		A.V[3] ^ B.V[3]);
+}
+
+/** = (~a) & b to match _mm_andnot_si128 */
+FORCEINLINE VectorRegisterInt VectorIntAndNot(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		(~A.V[0]) & B.V[0],
+		(~A.V[1]) & B.V[1],
+		(~A.V[2]) & B.V[2],
+		(~A.V[3]) & B.V[3]);
+}
+/** = ~a */
+FORCEINLINE VectorRegisterInt VectorIntNot(const VectorRegisterInt& A)
+{
+	return MakeVectorRegisterInt(
+		~A.V[0],
+		~A.V[1],
+		~A.V[2],
+		~A.V[3]);
+}
+
+//Comparison
+FORCEINLINE VectorRegisterInt VectorIntCompareEQ(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] == B.V[0] ? 0xFFFFFFFF : 0,
+		A.V[1] == B.V[1] ? 0xFFFFFFFF : 0,
+		A.V[2] == B.V[2] ? 0xFFFFFFFF : 0,
+		A.V[3] == B.V[3] ? 0xFFFFFFFF : 0);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntCompareNEQ(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] != B.V[0] ? 0xFFFFFFFF : 0,
+		A.V[1] != B.V[1] ? 0xFFFFFFFF : 0,
+		A.V[2] != B.V[2] ? 0xFFFFFFFF : 0,
+		A.V[3] != B.V[3] ? 0xFFFFFFFF : 0);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntCompareGT(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] > B.V[0] ? 0xFFFFFFFF : 0,
+		A.V[1] > B.V[1] ? 0xFFFFFFFF : 0,
+		A.V[2] > B.V[2] ? 0xFFFFFFFF : 0,
+		A.V[3] > B.V[3] ? 0xFFFFFFFF : 0);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntCompareLT(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] < B.V[0] ? 0xFFFFFFFF : 0,
+		A.V[1] < B.V[1] ? 0xFFFFFFFF : 0,
+		A.V[2] < B.V[2] ? 0xFFFFFFFF : 0,
+		A.V[3] < B.V[3] ? 0xFFFFFFFF : 0);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntCompareGE(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] >= B.V[0] ? 0xFFFFFFFF : 0,
+		A.V[1] >= B.V[1] ? 0xFFFFFFFF : 0,
+		A.V[2] >= B.V[2] ? 0xFFFFFFFF : 0,
+		A.V[3] >= B.V[3] ? 0xFFFFFFFF : 0);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntCompareLE(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] <= B.V[0] ? 0xFFFFFFFF : 0,
+		A.V[1] <= B.V[1] ? 0xFFFFFFFF : 0,
+		A.V[2] <= B.V[2] ? 0xFFFFFFFF : 0,
+		A.V[3] <= B.V[3] ? 0xFFFFFFFF : 0);
+}
+
+
+FORCEINLINE VectorRegisterInt VectorIntSelect(const VectorRegisterInt& Mask, const VectorRegisterInt& Vec1, const VectorRegisterInt& Vec2)
+{
+	return VectorIntXor(Vec2, VectorIntAnd(Mask, VectorIntXor(Vec1, Vec2)));
+}
+
+//Arithmetic
+FORCEINLINE VectorRegisterInt VectorIntAdd(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] + B.V[0],
+		A.V[1] + B.V[1],
+		A.V[2] + B.V[2],
+		A.V[3] + B.V[3]);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntSubtract(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] - B.V[0],
+		A.V[1] - B.V[1],
+		A.V[2] - B.V[2],
+		A.V[3] - B.V[3]);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntMultiply(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		A.V[0] * B.V[0],
+		A.V[1] * B.V[1],
+		A.V[2] * B.V[2],
+		A.V[3] * B.V[3]);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntNegate(const VectorRegisterInt& A)
+{
+	return MakeVectorRegisterInt(
+		-A.V[0],
+		-A.V[1],
+		-A.V[2],
+		-A.V[3]);
+}
+
+FORCEINLINE VectorRegisterInt VectorIntMin(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		FMath::Min(A.V[0] , B.V[0]),
+		FMath::Min(A.V[1] , B.V[1]),
+		FMath::Min(A.V[2] , B.V[2]),
+		FMath::Min(A.V[3] , B.V[3]));
+}
+
+FORCEINLINE VectorRegisterInt VectorIntMax(const VectorRegisterInt& A, const VectorRegisterInt& B)
+{
+	return MakeVectorRegisterInt(
+		FMath::Max(A.V[0], B.V[0]),
+		FMath::Max(A.V[1], B.V[1]),
+		FMath::Max(A.V[2], B.V[2]),
+		FMath::Max(A.V[3], B.V[3]));
+}
+
+FORCEINLINE VectorRegisterInt VectorIntAbs(const VectorRegisterInt& A)
+{
+	return MakeVectorRegisterInt(
+		FMath::Abs(A.V[0]),
+		FMath::Abs(A.V[1]),
+		FMath::Abs(A.V[2]),
+		FMath::Abs(A.V[3]));
+}
+
+#define VectorIntSign(A) VectorIntSelect( VectorIntCompareGE(A, GlobalVectorConstants::IntZero), GlobalVectorConstants::IntOne, GlobalVectorConstants::IntMinusOne )
+
+FORCEINLINE VectorRegister VectorIntToFloat(const VectorRegisterInt& A)
+{
+	return MakeVectorRegister(
+		(float)A.V[0],
+		(float)A.V[1],
+		(float)A.V[2],
+		(float)A.V[3]);
+}
+
+FORCEINLINE VectorRegisterInt VectorFloatToInt(const VectorRegister& A)
+{
+	return MakeVectorRegisterInt(
+		(int32)A.V[0],
+		(int32)A.V[1],
+		(int32)A.V[2],
+		(int32)A.V[3]);
+}
+
+//Loads and stores
+
+/**
+* Stores a vector to memory (aligned or unaligned).
+*
+* @param Vec	Vector to store
+* @param Ptr	Memory pointer
+*/
+FORCEINLINE void VectorIntStore(const VectorRegisterInt& A, const void* Ptr)
+{
+	int32* IntPtr = (int32*)Ptr;	
+	IntPtr[0] = A.V[0];
+	IntPtr[1] = A.V[1];
+	IntPtr[2] = A.V[2];
+	IntPtr[3] = A.V[3];
+}
+
+/**
+* Loads 4 int32s from unaligned memory.
+*
+* @param Ptr	Unaligned memory pointer to the 4 int32s
+* @return		VectorRegisterInt(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
+*/
+
+FORCEINLINE VectorRegisterInt VectorIntLoad(const void* Ptr)
+{
+	int32* IntPtr = (int32*)Ptr;
+	return MakeVectorRegisterInt(
+		IntPtr[0],
+		IntPtr[1],
+		IntPtr[2],
+		IntPtr[3]);
+}
+
+/**
+* Stores a vector to memory (aligned).
+*
+* @param Vec	Vector to store
+* @param Ptr	Aligned Memory pointer
+*/
+FORCEINLINE void VectorIntStoreAligned(const VectorRegisterInt& A, const void* Ptr)
+{
+	int32* IntPtr = (int32*)Ptr;
+	IntPtr[0] = A.V[0];
+	IntPtr[1] = A.V[1];
+	IntPtr[2] = A.V[2];
+	IntPtr[3] = A.V[3];
+}
+
+/**
+* Loads 4 int32s from aligned memory.
+*
+* @param Ptr	Aligned memory pointer to the 4 int32s
+* @return		VectorRegisterInt(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
+*/
+FORCEINLINE VectorRegisterInt VectorIntLoadAligned(const void* Ptr)
+{
+	int32* IntPtr = (int32*)Ptr;
+	return MakeVectorRegisterInt(
+		IntPtr[0],
+		IntPtr[1],
+		IntPtr[2],
+		IntPtr[3]);
+}
+
+/**
+* Loads 1 int32 from unaligned memory into all components of a vector register.
+*
+* @param Ptr	Unaligned memory pointer to the 4 int32s
+* @return		VectorRegisterInt(*Ptr, *Ptr, *Ptr, *Ptr)
+*/
+FORCEINLINE VectorRegisterInt VectorIntLoad1(const void* Ptr)
+{
+	int32 IntSplat = *(int32*)Ptr;
+
+	return MakeVectorRegisterInt(
+		IntSplat,
+		IntSplat,
+		IntSplat,
+		IntSplat);
 }
 
 // To be continued...

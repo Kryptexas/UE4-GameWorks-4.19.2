@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class IntroTutorials : ModuleRules
 	{
-		public IntroTutorials(TargetInfo Target)
+		public IntroTutorials(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

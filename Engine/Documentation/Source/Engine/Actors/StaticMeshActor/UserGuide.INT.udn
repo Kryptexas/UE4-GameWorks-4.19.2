@@ -4,27 +4,6 @@ Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Guide to placing and working with StaticMeshActors for creating world geometry in your environments.
 version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Types "%Engine/Actors/Types:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
-
 [TOC(start:2)]
 
 
@@ -131,6 +110,3 @@ By default, if a StaticMesh has Physics Bodies, either generated in your desired
 (see: [](Engine/Physics/Collision/Reference)), it will have collision and it will be set to **Block All**. See the 
 [](Engine/Physics/Collision) documentation for more information on Collision Channels and adjusting Collision settings.
 
-
-
-%playlistnav%

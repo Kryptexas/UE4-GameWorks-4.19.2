@@ -11,6 +11,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SOverlay.h"
 #include "GraphEditor.h"
+#include "EdGraph/EdGraphPin.h" // for FEdGraphPinReference
 
 class SGraphPanel;
 class UEdGraph;
@@ -58,8 +59,9 @@ private:
 	TSharedPtr<SGraphPanel> GraphPanel;
 	TSharedPtr<SWidget>	TitleBar;
 
-	UEdGraphPin* GraphPinForMenu;
-	UEdGraphNode* GraphNodeForMenu;
+	FEdGraphPinReference  GraphPinForMenu;
+	TWeakObjectPtr<UEdGraphNode> GraphNodeForMenu;
+	bool bResetMenuContext;
 
 	/** Info on the appearance */
 	TAttribute<FGraphAppearanceInfo> Appearance;

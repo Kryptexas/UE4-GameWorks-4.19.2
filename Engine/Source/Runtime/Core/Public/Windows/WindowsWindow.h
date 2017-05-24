@@ -35,14 +35,7 @@ public:
 	/** Destructor. */
 	~FWindowsWindow();
 
-	/** Create a new FWin32Window.
-	 *
-	 * @param SlateWindows List of all top level Slate windows.  This function will add the owner window to this list.
-	 * @param OwnerWindow The SlateWindow for which we are crating a backing Win32Window.
-	 * @param InHInstance Win32 application instance handle.
-	 * @param InParent Parent Win32 window; usually NULL.
-	 * @param bShowImmediately True to show this window as soon as its initialized.
-	 */
+	/** Create a new FWin32Window. */
 	static TSharedRef<FWindowsWindow> Make();
 
 	/**
@@ -189,7 +182,16 @@ private:
 	/** Current aspect ratio of window's client area */
 	float AspectRatio;
 
+	/** Whether the window is currently shown */
 	bool bIsVisible : 1;
+
+	/** Whether the window is yet to have its first Show() call. This is set false after first Show(). */
+	bool bIsFirstTimeVisible : 1;
+
+	/** We cache the min/max state for any Minimize, Maximize, or Restore calls that were made before the first Show */
+	bool bInitiallyMinimized : 1;
+	bool bInitiallyMaximized : 1;
+
 	/**
 	 * Ratio of pixels to SlateUnits in this window.
 	 * E.g. DPIScale of 2.0 means there is a 2x2 pixel square for every 1x1 SlateUnit.

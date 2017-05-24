@@ -28,7 +28,7 @@ struct FStartPhysics2DTickFunction : public FTickFunction
 };
 
 template<>
-struct TStructOpsTypeTraits<FStartPhysics2DTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FStartPhysics2DTickFunction> : public TStructOpsTypeTraitsBase2<FStartPhysics2DTickFunction>
 {
 	enum
 	{
@@ -48,7 +48,7 @@ struct FEndPhysics2DTickFunction : public FTickFunction
 };
 
 template<>
-struct TStructOpsTypeTraits<FEndPhysics2DTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FEndPhysics2DTickFunction> : public TStructOpsTypeTraitsBase2<FEndPhysics2DTickFunction>
 {
 	enum
 	{

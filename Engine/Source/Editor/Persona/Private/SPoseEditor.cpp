@@ -7,9 +7,11 @@
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Layout/SSplitter.h"
 #include "Animation/DebugSkelMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "ScopedTransaction.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Animation/AnimSingleNodeInstance.h"
+#include "UObjectIterator.h"
 
 #include "Widgets/Text/SInlineEditableTextBlock.h"
 
@@ -299,18 +301,13 @@ void SPoseViewer::Construct(const FArguments& InArgs, const TSharedRef<IPersonaT
 	EditableSkeletonPtr = InEditableSkeleton;
 	PoseAssetPtr = InArgs._PoseAsset;
 
-	CachedPreviewInstance = nullptr;
-
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateSP(this, &SPoseViewer::OnPreviewMeshChanged));
-	InPreviewScene->RegisterOnAnimChanged(FOnAnimChanged::CreateSP(this, &SPoseViewer::OnAssetChanged));
 
 	OnDelegatePoseListChangedDelegateHandle = PoseAssetPtr->RegisterOnPoseListChanged(UPoseAsset::FOnPoseListChanged::CreateSP(this, &SPoseViewer::OnPoseAssetModified));
 
 	// Register and bind all our menu commands
 	FPoseEditorCommands::Register();
 	BindCommands();
-
-	RefreshCachePreviewInstance();
 
 	ChildSlot
 	[
@@ -396,34 +393,8 @@ void SPoseViewer::Construct(const FArguments& InArgs, const TSharedRef<IPersonaT
 	CreateCurveList();
 }
 
-void SPoseViewer::OnAssetChanged(UAnimationAsset* NewAsset) 
-{
-	// this is odd that we're adding delegate
-	// this is because we're caching anim instance here
-	// and that change won't make it when this is constructed
-	// but so this is to refresh cached anim instance
-	RefreshCachePreviewInstance();
-}
-
-void SPoseViewer::RefreshCachePreviewInstance()
-{
-	if (CachedPreviewInstance.IsValid() && OnAddAnimationCurveDelegate.IsBound())
-	{
-		CachedPreviewInstance.Get()->RemoveDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-	}
-	CachedPreviewInstance = Cast<UAnimSingleNodeInstance>(PreviewScenePtr.Pin()->GetPreviewMeshComponent()->GetAnimInstance());
-
-	if (CachedPreviewInstance.IsValid())
-	{
-		OnAddAnimationCurveDelegate.Unbind();
-		OnAddAnimationCurveDelegate.BindRaw(this, &SPoseViewer::ApplyCustomCurveOverride);
-		CachedPreviewInstance.Get()->AddDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-	}
-}
-
 void SPoseViewer::OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh)
 {
-	RefreshCachePreviewInstance();
 	CreatePoseList(NameFilterBox->GetText().ToString());
 	CreateCurveList(NameFilterBox->GetText().ToString());
 }
@@ -484,6 +455,19 @@ bool SPoseViewer::IsCurveSelected() const
 	return SelectedRows.Num() > 0;
 }
 
+// Restart Animation state for all instnace that belong to the current Skeleton
+void RestartAnimations(const USkeleton* CurrentSkeleton) 
+{
+	for (FObjectIterator Iter(USkeletalMeshComponent::StaticClass()); Iter; ++Iter)
+	{
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(*Iter);
+		if (SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Skeleton == CurrentSkeleton)
+		{
+			SkeletalMeshComponent->InitAnim(true);
+		}
+	}
+}
+
 void SPoseViewer::OnDeletePoses()
 {
 	TArray< TSharedPtr< FDisplayedPoseInfo > > SelectedRows = PoseListView->GetSelectedItems();
@@ -498,6 +482,10 @@ void SPoseViewer::OnDeletePoses()
 	}
 
 	PoseAssetPtr.Get()->DeletePoses(PosesToDelete);
+
+	// reinit animation
+	RestartAnimations(&(EditableSkeletonPtr.Pin()->GetSkeleton()));
+	RestartPreviewComponent();
 
 	CreatePoseList(NameFilterBox->GetText().ToString());
 }
@@ -749,14 +737,15 @@ void SPoseViewer::CreateCurveList(const FString& SearchText)
 	CurveListView->RequestListRefresh();
 }
 
-void SPoseViewer::AddCurveOverride(FName& Name, float Weight)
+void SPoseViewer::AddCurveOverride(const FName& Name, float Weight)
 {
 	float& Value = OverrideCurves.FindOrAdd(Name);
 	Value = Weight;
 
-	if (CachedPreviewInstance.IsValid())
+	UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(GetAnimInstance());
+	if (SingleNodeInstance)
 	{
-		CachedPreviewInstance->SetPreviewCurveOverride(Name, Value, false);
+		SingleNodeInstance->SetPreviewCurveOverride(Name, Value, false);
 	}
 }
 
@@ -764,9 +753,10 @@ void SPoseViewer::RemoveCurveOverride(FName& Name)
 {
 	OverrideCurves.Remove(Name);
 
-	if (CachedPreviewInstance.IsValid())
+	UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(GetAnimInstance());
+	if (SingleNodeInstance)
 	{
-		CachedPreviewInstance->SetPreviewCurveOverride(Name, 0.f, true);
+		SingleNodeInstance->SetPreviewCurveOverride(Name, 0.f, true);
 	}
 }
 
@@ -774,14 +764,6 @@ SPoseViewer::~SPoseViewer()
 {
 	if (PreviewScenePtr.IsValid())
 	{
-		// @Todo: change this in curve editor
-		// and it won't work with this one delegate idea, so just think of a better way to do
-		// if persona isn't there, we probably don't have the preview mesh either, so no valid anim instance
-		if (CachedPreviewInstance.IsValid() && OnAddAnimationCurveDelegate.IsBound())
-		{
-			CachedPreviewInstance.Get()->RemoveDelegate_AddCustomAnimationCurve(OnAddAnimationCurveDelegate);
-		}
-
 		PreviewScenePtr.Pin()->UnregisterOnPreviewMeshChanged(this);
 		PreviewScenePtr.Pin()->UnregisterOnAnimChanged(this);
 	}
@@ -792,11 +774,8 @@ SPoseViewer::~SPoseViewer()
 	}
 }
 
-void SPoseViewer::OnPoseAssetModified()
+void SPoseViewer::RestartPreviewComponent()
 {
-	CreatePoseList(NameFilterBox->GetText().ToString());
-	CreateCurveList(NameFilterBox->GetText().ToString());
-
 	// it needs reinitialization of animation system
 	// so that pose blender can reinitialize names and so on correctly
 	if (PreviewScenePtr.IsValid())
@@ -805,9 +784,20 @@ void SPoseViewer::OnPoseAssetModified()
 		if (PreviewComponent)
 		{
 			PreviewComponent->InitAnim(true);
+			for (auto Iter = OverrideCurves.CreateConstIterator(); Iter; ++Iter)
+			{
+				// refresh curve names that are active
+				AddCurveOverride(Iter.Key(), Iter.Value());
+			}
 		}
 	}
-	
+}
+
+void SPoseViewer::OnPoseAssetModified()
+{
+	CreatePoseList(NameFilterBox->GetText().ToString());
+	CreateCurveList(NameFilterBox->GetText().ToString());
+	RestartPreviewComponent();
 }
 
 void SPoseViewer::ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const
@@ -817,6 +807,11 @@ void SPoseViewer::ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const
 		// @todo we might want to save original curve flags? or just change curve to apply flags only
 		AnimInstance->AddCurveValue(Iter.Key(), Iter.Value());
 	}
+}
+
+UAnimInstance* SPoseViewer::GetAnimInstance() const
+{
+	return PreviewScenePtr.Pin()->GetPreviewMeshComponent()->GetAnimInstance();
 }
 
 bool SPoseViewer::ModifyName(FName OldName, FName NewName, bool bSilence)

@@ -232,132 +232,6 @@ namespace IncludeTool
 		};
 
 		/// <summary>
-		/// Tries to resolve an include path from a file, given a set of candidates
-		/// </summary>
-		/// <param name="FromFile">The file containing the #include directive</param>
-		/// <param name="IncludePath">The path being included</param>
-		/// <param name="InitialCandidateFiles">Set of candidate files to pick from</param>
-		/// <param name="bIsSystemInclude">Whether the include path is for a system header. If these aren't found, we don't fail.</param>
-		/// <param name="IncludedFile">On success, the matching file</param>
-		/// <param name="Log">Log instance for output messages</param>
-		/// <returns>True if the include path was resolved, false otherwise</returns>
-		public static bool ResolveInclude(WorkspaceFile FromFile, string IncludePath, IEnumerable<WorkspaceFile> InitialCandidateFiles, bool bIsSystemInclude, out WorkspaceFile IncludedFile, TextWriter Log)
-		{
-			List<WorkspaceFile> CandidateFiles = new List<WorkspaceFile>(InitialCandidateFiles);
-
-			// Check if it's a direct file reference
-			WorkspaceFile DirectlyReferencedFile = CandidateFiles.FirstOrDefault(x => x.Location == FileReference.Combine(FromFile.Location.Directory, IncludePath));
-			if (DirectlyReferencedFile != null)
-			{
-				IncludedFile = DirectlyReferencedFile;
-				return true;
-			}
-
-			// Apply any of the ignore patterns
-			for (int Idx = 0; Idx < IgnoreIncludePatterns.GetLength(0); Idx++)
-			{
-				if (FromFile.NormalizedPathFromBranchRoot.StartsWith(IgnoreIncludePatterns[Idx, 0]))
-				{
-					CandidateFiles.RemoveAll(x => x.NormalizedPathFromBranchRoot.Contains(IgnoreIncludePatterns[Idx, 1]));
-				}
-			}
-
-			// Remove any candidate files that don't have the same suffix as the include path
-			string IncludeSuffix = IncludePath.ToLowerInvariant().Replace('\\', '/');
-			while (IncludeSuffix.StartsWith("../"))
-			{
-				IncludeSuffix = IncludeSuffix.Substring(3);
-			}
-			CandidateFiles.RemoveAll(x => !x.NormalizedPathFromBranchRoot.EndsWith(IncludeSuffix));
-
-			// Remove any files from a different project. We do occasionally cross this boundary via explicitly referenced paths, so skip if there's already only one match.
-			if (CandidateFiles.Count > 1)
-			{
-				if (FromFile.ProjectDirectory == null)
-				{
-					CandidateFiles.RemoveAll(x => x.ProjectDirectory != null);
-				}
-				else
-				{
-					CandidateFiles.RemoveAll(x => x.ProjectDirectory != FromFile.ProjectDirectory && x.ProjectDirectory != null);
-				}
-			}
-
-			// If we're including Engine.h and haven't explicitly referenced the UEngine header, assume it's referencing the header for the engine module
-			if (CandidateFiles.Count > 2 && IncludeSuffix == "engine.h")
-			{
-				if(CandidateFiles.Any(x => x.NormalizedPathFromBranchRoot == "/engine/source/runtime/engine/public/engine.h"))
-				{
-					CandidateFiles.RemoveAll(x => x.NormalizedPathFromBranchRoot == "/engine/source/runtime/engine/classes/engine/engine.h");
-				}
-			}
-
-			// Use case to disambiguate if we still have mismatches. This actually weeds out quite a lot of false positives, expecially with TPS
-			// (the typical pattern is that Epic code uses TitleCase but OSS uses all lowercase).
-			if (CandidateFiles.Count > 1)
-			{
-				List<WorkspaceFile> ExactCaseMatches = CandidateFiles.Where(x => x.Location.FullName.EndsWith(IncludePath.Replace('/', Path.DirectorySeparatorChar))).ToList();
-				if(ExactCaseMatches.Count == 1)
-				{
-					CandidateFiles.Clear();
-					CandidateFiles.AddRange(ExactCaseMatches);
-				}
-			}
-
-			// Use case to disambiguate if we still have mismatches. This actually weeds out quite a lot of false positives, expecially with TPS
-			// (the typical pattern is that Epic code uses TitleCase but OSS uses all lowercase).
-			if (CandidateFiles.Count > 1)
-			{
-				List<WorkspaceFile> NonThirdPartyCandidates = CandidateFiles.Where(x => !x.NormalizedPathFromBranchRoot.Contains("/thirdparty/")).ToList();
-				if (NonThirdPartyCandidates.Count == 1)
-				{
-					CandidateFiles.Clear();
-					CandidateFiles.AddRange(NonThirdPartyCandidates);
-				}
-			}
-
-			// Check if we've got an exact match
-			if (CandidateFiles.Count == 1)
-			{
-				IncludedFile = CandidateFiles[0];
-				return true;
-			}
-
-			// If it's a system header, it's ok if we didn't resolve it
-			if (CandidateFiles.Count == 0 && bIsSystemInclude)
-			{
-				IncludedFile = null;
-				return true;
-			}
-
-			// If they're all third party files, just treat it as an external include
-			if(CandidateFiles.Count > 1 && CandidateFiles.All(x => x.NormalizedPathFromBranchRoot.Contains("/thirdparty/")))
-			{
-				IncludedFile = null;
-				return true;
-			}
-
-			// Allow generated headers to be excluded for now
-			if (IncludePath.EndsWith("Classes.h") || IncludePath.EndsWith(".generated.h"))
-			{
-				IncludedFile = null;
-				return true;
-			}
-
-			// Otherwise print the remaining candidates
-			Log.WriteLine("Failed to resolve include of \"{0}\" from \"{1}\". {2} candidate files.", IncludePath, FromFile.Location, CandidateFiles.Count);
-			foreach (WorkspaceFile FinalCandidateFile in CandidateFiles)
-			{
-				Log.WriteLine("  Could be: {0}", FinalCandidateFile.Location);
-			}
-			Log.WriteLine();
-
-			// ...and fail
-			IncludedFile = null;
-			return false;
-		}
-
-		/// <summary>
 		/// Checks to see if the given token is a known include macro
 		/// </summary>
 		/// <param name="TokenName"></param>
@@ -380,7 +254,6 @@ namespace IncludeTool
 		static readonly HashSet<string> InlineFileNames = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
 		{
 			//"/Engine/Source/Runtime/Core/Public/Delegates/DelegateCombinations.h",
-			"/Engine/Source/Runtime/Core/Public/Misc/MonolithicHeaderBoilerplate.h",
 			"/Engine/Source/Runtime/Core/Public/UObject/PendingVersions.h",
 			"/Engine/Source/Runtime/CoreUObject/Public/UObject/ScriptSerialization.h",
 			"/Engine/Source/Runtime/Online/HTTP/Public/HttpPackage.h",
@@ -407,7 +280,11 @@ namespace IncludeTool
 			"/Engine/Source/Programs/UnrealHeaderTool/Private/Specifiers/VariableSpecifiers.def",
 			"/Engine/Source/Runtime/Engine/Public/ShowFlagsValues.inl",
 			"/Engine/Source/Runtime/Engine/Public/Animation/AnimMTStats.h",
-		};
+            "/FortniteGame/Plugins/Online/OnlineSubsystem/Source/Public/OnlineSubsystemPackage.h",
+            "/FortniteGame/Plugins/Online/NotForLicensees/OnlineSubsystemMcp/Source/Public/OnlineSubsystemMcpPackage.h",
+			"/FortniteGame/Plugins/Online/OnlineSubsystemNull/Source/Public/OnlineSubsystemNullPackage.h",
+			"/FortniteGame/Plugins/Online/OnlineSubsystemUtils/Source/OnlineSubsystemUtils/Public/OnlineSubsystemUtilsPackage.h"
+        };
 
 		/// <summary>
 		/// List of files whose includes are pinned to the file they are included from
@@ -558,6 +435,7 @@ namespace IncludeTool
 			"/Engine/Source/Runtime/SlateCore/Public/Fonts/ShapedTextFwd.h", // Typedef isn't a forward declaration
 			"/Engine/Source/Runtime/Slate/Public/Framework/Text/ShapedTextCacheFwd.h", // Typedef isn't a forward declaration
 			"/Engine/Source/Runtime/MovieScene/Public/MovieSceneFwd.h",
+			"/Engine/Source/Runtime/Core/Public/Internationalization/StringTableCoreFwd.h", // Typedef isn't a forward declaration
 		};
 
 		/// <summary>
@@ -714,7 +592,7 @@ namespace IncludeTool
         /// <returns></returns>
         public static bool AllowSymbol(string Name)
         {
-            if(Name == "FNode" || Name == "FFunctionExpression")
+            if(Name == "FNode" || Name == "FFunctionExpression" || Name == "ITextData")
             {
                 return false;
             }

@@ -35,7 +35,10 @@ void UAbilityTask_WaitGameplayEvent::Activate()
 
 void UAbilityTask_WaitGameplayEvent::GameplayEventCallback(const FGameplayEventData* Payload)
 {
-	EventReceived.Broadcast(*Payload);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		EventReceived.Broadcast(*Payload);
+	}
 	if(OnlyTriggerOnce)
 	{
 		EndTask();

@@ -5,7 +5,7 @@ Description:Overview of Media Framework functionality in Unreal Engine 4.
 Navigation:topic
 parent:Engine/MediaFramework
 order:2
-Version: 4.13
+Version: 4.15
 Related: Engine\MediaFramework\TechReference
 Related: Engine\MediaFramework\HowTo
 
@@ -32,12 +32,13 @@ Please see the [](Engine\MediaFramework\TechReference\) page for information on 
 
 The **File Media Source** asset is used for media files stored on your device or in a shared local network file. The **File Path** section is where you specify where the media file resides. 
 While a media file can exist anywhere, it's typically a good practice to move your media files to the **Content/Movies** folder of your project and then point to the media file. 
-This will ensure that your media is packaged correctly with your project. You will also see a yellow exclamation point when pointing to a file outside of this location as a warning. 
+This will ensure that your media is packaged correctly with your project. You will also see a yellow exclamation point (as shown above) when pointing to a file outside of this location as a warning. 
 
-This type of source asset can be used to load the entire media file into memory and play it from there by enabling the **Precache File** option. 
+This type of source asset can be used to load the entire media file into memory and play it from there by enabling the **Precache File** option (under the Advanced Options section). 
 Based on the size of your file, caching time may vary, so take that into consideration when choosing this option. 
+Each File Media Source asset can have its native media player plug-in overridden on a per platform basis (depicted below) or the player plug-in can be seleclted automatically. 
 
-Each source asset supports a name, in the **Default Player** field, to identify the appropriate native media player for that asset. If you leave this field empty, the media player will be detected automatically. 
+![](PlatformOverride.png)
 
 [REGION:note]
 Please see the [](Engine\MediaFramework\HowTo\FileMediaSource) how-to for working with File Media Source assets. 
@@ -48,7 +49,7 @@ Please see the [](Engine\MediaFramework\HowTo\FileMediaSource) how-to for workin
 ![](MediaSource_Stream.png)
 
 This **Stream Media Source** asset takes a URL as the source of your media, and pulls it from the internet. Currently, linking to a YouTube or DailyMotion style URL is not supported, and you will need to link directly to a hosted file. 
-Please note that the URL shown above is just an example, and cannot be used.
+Like the File Media Source asset, Stream Media Source assets can have their player plug-in overridden on a per platform basis or the player plug-in can be selected automatically. 
 
 [REGION:note]
 Please see the [](Engine\MediaFramework\HowTo\StreamMediaSource) how-to for working with Stream Media Source assets. 
@@ -58,14 +59,8 @@ Please see the [](Engine\MediaFramework\HowTo\StreamMediaSource) how-to for work
 
 ![](MediaSource_Platform.png)
 
-The **Platform Media Source** asset supports overriding Media Sources on a per-platform basis. You can specify the Media Source to be used if no source was specified for a target platform, as well as define the Media Sources per platform. 
-
+The **Platform Media Source** asset supports overriding a Media Source on a per-platform basis. 
 For example, supppose you want a particluar video to play only on Android Devices or only on PS4. Inside the **Media Sources** section, you can designate which videos play on which platforms. Leaving the Media Source blank will cause the **Default Source** to be used. 
-
-[REGION:warning]
-The Platform Media Source asset is experimental and is not expected to work in version 4.13 of the engine. It is planned for a 4.14 release.
-[/REGION]
-
 
 ## Media Playlists
 
@@ -96,7 +91,7 @@ From the **Add New** button under **Media**, select the **Media Sound Wave** ass
 
 ![](MediaPlayerSoundWindow.png)
 
-The Media Sound Wave asset provides **Debug**, **Concurrency** and **Attenuation** settings that can be adjusted to define how the asset is processed. 
+The Media Sound Wave asset provides **Curve**, **Debug**, **Concurrency** and **Attenuation** settings that can be adjusted to define how the asset is processed. 
 When linked to a Media Player asset, audio attached to a video source will automatically play back along with the video. 
 Typically, you can leave the default settings for a newly created Media Sound Wave asset. However, if you need more control over how the sound is perceived, you can adjust the Concurrency and Attenuation settings. 
 
@@ -146,10 +141,6 @@ You can play, pause, rewind, or skip to the beginning or end of a video from the
 
 In the lower-right **Details** panel, you can define options for **Playback** or assign the **Sound Wave** and **Video Textures** (or an **Image Texture**) associated with the Media Player. 
 There is also an **Info** panel which will display info about the source such as the stream type, codecs, sample rate, dimensions and more. 
-
-[REGION:warning]
-Still Image Texture output is currently not implemented by any of the Media Player plug-ins and this feature is considered experimental.
-[/REGION]
 
 ## Media Assets & Scripting
 

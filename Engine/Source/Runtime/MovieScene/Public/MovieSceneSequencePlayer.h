@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/ScriptMacros.h"
 #include "IMovieScenePlayer.h"
+#include "MovieScene.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "MovieSceneBindingOverridesInterface.h"
 #include "MovieSceneSequencePlayer.generated.h"
@@ -55,7 +56,7 @@ struct FMovieSceneSequencePlaybackSettings
 	MOVIESCENE_API bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 };
 
-template<> struct TStructOpsTypeTraits<FMovieSceneSequencePlaybackSettings> : public TStructOpsTypeTraitsBase
+template<> struct TStructOpsTypeTraits<FMovieSceneSequencePlaybackSettings> : public TStructOpsTypeTraitsBase2<FMovieSceneSequencePlaybackSettings>
 {
 	enum { WithCopy = true, WithSerializeFromMismatchedTag = true };
 };
@@ -168,6 +169,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Game|Cinematic")
 	FOnMovieSceneSequencePlayerEvent OnPause;
 
+
+public:
+
+	/** Retrieve all objects currently bound to the specified binding identifier */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	TArray<UObject*> GetBoundObjects(FMovieSceneObjectBindingID ObjectBinding);
+
 public:
 
 	/** Update based on the specified delta seconds */
@@ -208,6 +216,7 @@ protected:
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override {}
 	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) override {}
 	virtual void ResolveBoundObjects(const FGuid& InBindingId, FMovieSceneSequenceID SequenceID, UMovieSceneSequence& Sequence, UObject* ResolutionContext, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const override;
+	virtual const IMovieSceneBindingOverridesInterface* GetBindingOverrides() const override { return PlaybackSettings.BindingOverrides ? &*PlaybackSettings.BindingOverrides : nullptr; }
 
 protected:
 
@@ -283,4 +292,7 @@ private:
 
 	/** The event that will be broadcast every time the sequence is updated */
 	mutable FOnMovieSceneSequencePlayerUpdated OnMovieSceneSequencePlayerUpdate;
+
+	/** The maximum tick rate prior to playing (used for overriding delta time during playback). */
+	double OldMaxTickRate;
 };

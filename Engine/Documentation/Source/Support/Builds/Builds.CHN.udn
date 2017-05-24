@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3006014
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title: 版本信息
 Crumbs:%ROOT%
 Description: 虚幻引擎版本的版本说明。
 parent:%ROOT%
 order:9
+type:landing
 
 [VAR:Params]
 [PARAM:image]

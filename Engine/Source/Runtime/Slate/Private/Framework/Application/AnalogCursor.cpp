@@ -264,10 +264,14 @@ void FAnalogCursor::UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef
 	const FVector2D OldPosition = Cursor->GetPosition();
 
 	//make sure we are actually moving
-	if (OldPosition != NewPosition)
+	int32 NewIntPosX = NewPosition.X;
+	int32 NewIntPosY = NewPosition.Y;
+	int32 OldIntPosX = OldPosition.X;
+	int32 OldIntPosY = OldPosition.Y;
+	if (OldIntPosX != NewIntPosX || OldIntPosY != NewIntPosY)
 	{
 		//put the cursor in the correct spot
-		Cursor->SetPosition(NewPosition.X, NewPosition.Y);
+		Cursor->SetPosition(NewIntPosX, NewIntPosY);
 	
 		// Since the cursor may have been locked and its location clamped, get the actual new position
 		const FVector2D UpdatedPosition = Cursor->GetPosition();

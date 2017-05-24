@@ -589,7 +589,7 @@ namespace UnrealGameSync
 								{
 									Build.Url = Reader.GetString(4);
 									Build.Project = Reader.IsDBNull(5)? null : Reader.GetString(5);
-									if(Build.Project == null || String.Compare(Build.Project, Project, true) == 0)
+									if(Build.Project == null || String.Compare(Build.Project, Project, true) == 0 || MatchesWildcard(Build.Project, Project))
 									{
 										IncomingBuilds.Enqueue(Build);
 									}
@@ -609,6 +609,11 @@ namespace UnrealGameSync
 				LastStatusMessage = String.Format("Last update failed: ({0})", Ex.ToString());
 				return false;
 			}
+		}
+
+		static bool MatchesWildcard(string Wildcard, string Project)
+		{
+			return Wildcard.EndsWith("...") && Project.StartsWith(Wildcard.Substring(0, Wildcard.Length - 3), StringComparison.InvariantCultureIgnoreCase);
 		}
 
 		public void PostEvent(int ChangeNumber, EventType Type)

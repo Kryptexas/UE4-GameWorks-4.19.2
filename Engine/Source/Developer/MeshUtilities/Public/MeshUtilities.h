@@ -34,6 +34,13 @@ namespace ETangentOptions
 	};
 };
 
+enum class ELightmapUVVersion : int32
+{
+	BitByBit = 0,
+	Segments = 1,
+	Latest = Segments
+};
+
 /**
  * Mesh reduction interface.
  */
@@ -146,6 +153,7 @@ public:
 		class FStaticMeshRenderData& OutRenderData,
 		TArray<struct FStaticMeshSourceModel>& SourceModels,
 		const class FStaticMeshLODGroup& LODGroup,
+		int32 LightmapUVVersion,
 		int32 ImportVersion
 		) = 0;
 
@@ -168,17 +176,18 @@ public:
 	 */
 	virtual bool GenerateStaticMeshLODs(
 		TArray<struct FStaticMeshSourceModel>& Models,
-		const class FStaticMeshLODGroup& LODGroup
+		const class FStaticMeshLODGroup& LODGroup,
+		int32 LightmapUVVersion
 		) = 0;
 
 	/** Builds a signed distance field volume for the given LODModel. */
 	virtual void GenerateSignedDistanceFieldVolumeData(
+		FString MeshName,
 		const FStaticMeshLODResources& LODModel,
 		class FQueuedThreadPool& ThreadPool,
 		const TArray<EBlendMode>& MaterialBlendModes,
 		const FBoxSphereBounds& Bounds,
 		float DistanceFieldResolutionScale,
-		float DistanceFieldBias,
 		bool bGenerateAsIfTwoSided,
 		class FDistanceFieldVolumeData& OutData) = 0;
 
@@ -383,6 +392,8 @@ public:
 		const FString& ProxyBasePackageName,
 		TArray<UObject*>& OutAssetsToSync, 		
 		const float ScreenAreaSize = 1.0f) = 0;
+	
+	virtual void ExportStaticMeshLOD(const FStaticMeshLODResources& StaticMeshLOD, FRawMesh& OutRawMesh) const = 0;
 
 	/**
 	* FlattenMaterialsWithMeshData

@@ -178,7 +178,7 @@ public:
 	 * @param InTranslation The value to use for the translation component
 	 * @param InScale3D The value to use for the scale component
 	 */
-	FORCEINLINE FTransform(const FQuat& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector(1.f)) 
+	FORCEINLINE FTransform(const FQuat& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector::OneVector)
 	{
 		// Rotation = InRotation
 		Rotation =  VectorLoadAligned( &InRotation.X );
@@ -212,7 +212,7 @@ public:
 	 * @param InTranslation The value to use for the translation component
 	 * @param InScale3D The value to use for the scale component
 	 */
-	FORCEINLINE FTransform(const FRotator& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector(1.f))
+	FORCEINLINE FTransform(const FRotator& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector::OneVector)
 	{
 		FQuat InQuatRotation = InRotation.Quaternion();
 		// Rotation = InRotation
@@ -531,6 +531,7 @@ public:
 	FORCEINLINE FTransform		operator*(const FQuat& Other) const;
 	FORCEINLINE void			operator*=(const FQuat& Other);
 
+	FORCEINLINE static bool AnyHasNegativeScale(const FVector& InScale3D, const FVector& InOtherScale3D);
 	FORCEINLINE void ScaleTranslation(const FVector& InScale3D);
 	FORCEINLINE void ScaleTranslation(const float& Scale);
 	FORCEINLINE void RemoveScaling(float Tolerance=SMALL_NUMBER);
@@ -678,6 +679,11 @@ public:
 	*/
 
 private:
+
+	inline static bool Private_AnyHasNegativeScale(const VectorRegister& InScale3D, const  VectorRegister& InOtherScale3D)
+	{
+		return !!VectorAnyLesserThan(VectorMin(InScale3D, InOtherScale3D), GlobalVectorConstants::FloatZero);
+	}
 
 	inline bool Private_RotationEquals( const VectorRegister& InRotation, const ScalarRegister& Tolerance = ScalarRegister(GlobalVectorConstants::KindaSmallNumber)) const
 	{			
@@ -945,9 +951,9 @@ public:
 	* Accumulates another transform with this one, with a blending weight
 	*
 	* Let SourceAtom = Atom * BlendWeight
-	* Rotation is accumulated multiplicatively (Rotation = Atom.Rotation * Rotation).
-	* Translation is accumulated additively (Translation += Atom.Translation)
-	* Scale3D is accumulated multiplicatively (Scale3D *= Atom.Scale3D)
+	* Rotation is accumulated multiplicatively (Rotation = SourceAtom.Rotation * Rotation).
+	* Translation is accumulated additively (Translation += SourceAtom.Translation)
+	* Scale3D is accumulated multiplicatively (Scale3D *= SourceAtom.Scale3D)
 	*
 	* Note: Rotation will not be normalized! Will have to be done manually.
 	*
@@ -958,6 +964,9 @@ public:
 	{
 		// SourceAtom = Atom * BlendWeight;
 		const VectorRegister BlendedRotation = VectorMultiply(Atom.Rotation, BlendWeight.Value);
+		const VectorRegister BlendedTranslation = VectorMultiply(Atom.Translation, BlendWeight.Value);
+		const VectorRegister BlendedScale = VectorMultiply(Atom.Scale3D, BlendWeight.Value);
+
 		const VectorRegister RotationW = VectorReplicate(BlendedRotation, 3);
 
 		// Add ref pose relative animation to base animation, only if rotation is significant.
@@ -970,8 +979,8 @@ public:
 
 		// Translation += SourceAtom.Translation;
 		// Scale *= SourceAtom.Scale;
-		Translation = VectorAdd(Translation, Atom.Translation);
-		Scale3D = VectorMultiply(Scale3D, Atom.Scale3D);
+		Translation = VectorAdd(Translation, BlendedTranslation);
+		Scale3D = VectorMultiply(Scale3D, BlendedScale);
 
 		DiagnosticCheckNaN_All();
 	}
@@ -1018,8 +1027,12 @@ public:
 	FORCEINLINE void AccumulateWithAdditiveScale(const FTransform& Atom, const ScalarRegister& BlendWeight)
 	{
 		const VectorRegister DefaultScale = MakeVectorRegister(1.f, 1.f, 1.f, 0.f);
+
 		// SourceAtom = Atom * BlendWeight;
 		const VectorRegister BlendedRotation = VectorMultiply(Atom.Rotation, BlendWeight.Value);
+		const VectorRegister BlendedScale = VectorMultiply(Atom.Scale3D, BlendWeight.Value);
+		const VectorRegister BlendedTranslation = VectorMultiply(Atom.Translation, BlendWeight.Value);
+
 		const VectorRegister RotationW = VectorReplicate(BlendedRotation, 3);
 
 		// Add ref pose relative animation to base animation, only if rotation is significant.
@@ -1032,8 +1045,8 @@ public:
 
 		// Translation += SourceAtom.Translation;
 		// Scale *= SourceAtom.Scale;
-		Translation = VectorAdd(Translation, Atom.Translation);
-		Scale3D = VectorMultiply(Scale3D, VectorAdd(DefaultScale, Atom.Scale3D));
+		Translation = VectorAdd(Translation, BlendedTranslation);
+		Scale3D = VectorMultiply(Scale3D, VectorAdd(DefaultScale, BlendedScale));
 
 		DiagnosticCheckNaN_All();
 	}
@@ -1449,6 +1462,14 @@ private:
 
 template <> struct TIsPODType<FTransform> { enum { Value = true }; };
 
+FORCEINLINE bool FTransform::AnyHasNegativeScale(const FVector& InScale3D, const FVector& InOtherScale3D)
+{
+	VectorRegister VectorInScale3D = VectorLoadFloat3_W0(&InScale3D);
+	VectorRegister VectorInOtherScale3D = VectorLoadFloat3_W0(&InOtherScale3D);
+
+	return Private_AnyHasNegativeScale(VectorInScale3D, VectorInOtherScale3D);
+}
+
 /** Scale the translation part of the Transform by the supplied vector. */
 FORCEINLINE void FTransform::ScaleTranslation(const FVector& InScale3D)
 {
@@ -1535,7 +1556,7 @@ FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform
 	checkSlow(VectorGetComponent(A->Scale3D, 3) == 0.f);
 	checkSlow(VectorGetComponent(B->Scale3D, 3) == 0.f);
 
-	if (VectorAnyLesserThan(VectorMin(A->Scale3D, B->Scale3D), GlobalVectorConstants::FloatZero))
+	if (Private_AnyHasNegativeScale(A->Scale3D, B->Scale3D))
 	{
 		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
 		MultiplyUsingMatrixWithScale(OutTransform, A, B);
@@ -1806,14 +1827,14 @@ FORCEINLINE void FTransform::operator*=(const FTransform& Other)
 
 FORCEINLINE FTransform FTransform::operator*(const FQuat& Other) const
 {
-	FTransform Output, OtherTransform(Other, FVector::ZeroVector, FVector(1.f));
+	FTransform Output, OtherTransform(Other, FVector::ZeroVector, FVector::OneVector);
 	Multiply(&Output, this, &OtherTransform);
 	return Output;
 }
 
 FORCEINLINE void FTransform::operator*=(const FQuat& Other)
 {
-	FTransform OtherTransform(Other, FVector::ZeroVector, FVector(1.f));
+	FTransform OtherTransform(Other, FVector::ZeroVector, FVector::OneVector);
 	Multiply(this, this, &OtherTransform);
 }
 

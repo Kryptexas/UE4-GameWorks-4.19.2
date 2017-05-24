@@ -2,6 +2,7 @@
 //
 #include "CoreMinimal.h"
 #include "SteamVRPrivate.h"
+#include "StereoLayerManager.h"
 #include "SteamVRHMD.h"
 #include "Misc/ScopeLock.h"
 
@@ -15,24 +16,11 @@ static vr::EVROverlayError sOvrError;
 #define OVR_VERIFY(x) x
 #endif
 
-
 /*=============================================================================
 *
 * Helper functions
 *
 */
-
-//=============================================================================
-static uint32 IdToIndex(uint32 LayerId)
-{
-	return LayerId - 1;
-}
-
-//=============================================================================
-static uint32 IndexToId(uint32 LayerIndex)
-{
-	return LayerIndex + 1;
-}
 
 //=============================================================================
 static void TransformToSteamSpace(const FTransform& In, vr::HmdMatrix34_t& Out, float WorldToMeterScale)
@@ -53,100 +41,31 @@ static void TransformToSteamSpace(const FTransform& In, vr::HmdMatrix34_t& Out, 
 
 /*=============================================================================
 *
-* FSteamVRHMD's IStereoLayer implementation
+* FSteamVRHMD's IStereoLayer implementation via TStereLayerManager<>
 *
 */
 
 //=============================================================================
-uint32 FSteamVRHMD::CreateLayer(const FLayerDesc& InLayerDesc)
+void SetLayerDescMember(FSteamVRLayer& Layer, const IStereoLayers::FLayerDesc& InLayerDesc)
 {
-	FScopeLock LayerLock(&LayerCritSect);
-
-	uint32 NewIndex;
-	if (LayerFreeIndices.Num())
+	if (InLayerDesc.Texture != Layer.LayerDesc.Texture)
 	{
-		NewIndex = LayerFreeIndices.Pop(false);
+		Layer.bUpdateTexture = true;
 	}
-	else
-	{
-		NewIndex = Layers.AddUninitialized();
-	}
-	check(NewIndex < (uint32)Layers.Num());
-	
-	FLayer* NewLayer = Layers.GetData() + NewIndex;
-	FMemory::Memzero(NewLayer, sizeof(*NewLayer));
-
-	NewLayer->LayerId = IndexToId(NewIndex);
-	NewLayer->LayerDesc = InLayerDesc;
-	NewLayer->OverlayHandle = vr::k_ulOverlayHandleInvalid;
-
-	UpdateLayer(*NewLayer);
-
-	return NewLayer->LayerId;
-}
-
-//=============================================================================
-void FSteamVRHMD::DestroyLayer(uint32 LayerId)
-{
-	if (!LayerId)
-	{
-		return;
-	}
-
-	FScopeLock LayerLock(&LayerCritSect);
-
-	uint32 LayerIndex = IdToIndex(LayerId);
-	check(LayerIndex < (uint32)Layers.Num());
-
-	FLayer* ObsoleteLayer = Layers.GetData() + LayerIndex;
-	ObsoleteLayer->LayerId = 0;
-	ObsoleteLayer->LayerDesc.Texture = nullptr;
-
-	UpdateLayer(*ObsoleteLayer);
-
-	LayerFreeIndices.Push(LayerIndex);
-}
-
-//=============================================================================
-void FSteamVRHMD::SetLayerDesc(uint32 LayerId, const FLayerDesc& InLayerDesc)
-{
-	if (!LayerId)
-	{
-		return;
-	}
-
-	FScopeLock LayerLock(&LayerCritSect);
-
-	uint32 LayerIndex = IdToIndex(LayerId);
-	FLayer& Layer = Layers[LayerIndex];
 	Layer.LayerDesc = InLayerDesc;
-
-	UpdateLayer(Layer);
 }
 
 //=============================================================================
-bool FSteamVRHMD::GetLayerDesc(uint32 LayerId, FLayerDesc& OutLayerDesc)
+bool GetLayerDescMember(const FSteamVRLayer& Layer, IStereoLayers::FLayerDesc& OutLayerDesc)
 {
-	if (!LayerId)
-	{
-		return false;
-	}
-
-	uint32 LayerIndex = IdToIndex(LayerId);
-	OutLayerDesc = Layers[LayerIndex].LayerDesc;
+	OutLayerDesc = Layer.LayerDesc;
 	return true;
 }
 
 //=============================================================================
-void FSteamVRHMD::MarkTextureForUpdate(uint32 LayerId)
+void MarkLayerTextureForUpdate(FSteamVRLayer& Layer)
 {
-	if (!LayerId)
-	{
-		return;
-	}
-
-	uint32 LayerIndex = IdToIndex(LayerId);
-	Layers[LayerIndex].bUpdateTexture = true;
+	Layer.bUpdateTexture = true;
 }
 
 //=============================================================================
@@ -189,19 +108,17 @@ void FSteamVRHMD::UpdateSplashScreen()
 }
 
 //=============================================================================
-void FSteamVRHMD::UpdateLayer(FLayer& Layer) const
+void FSteamVRHMD::UpdateLayer(struct FSteamVRLayer& Layer, uint32 LayerId, bool bIsValid) const
 {
-	FScopeLock LayerLock(&LayerCritSect);
-
-	if (Layer.LayerDesc.Texture.IsValid() && Layer.OverlayHandle == vr::k_ulOverlayHandleInvalid)
+	if (bIsValid && Layer.OverlayHandle == vr::k_ulOverlayHandleInvalid)
 	{
-		FString OverlayName = FString::Printf(TEXT("StereoLayer:%u"), Layer.LayerId);
+		FString OverlayName = FString::Printf(TEXT("StereoLayer:%u"), LayerId);
 		const char* OverlayNameAnsiStr = TCHAR_TO_ANSI(*OverlayName);
 		OVR_VERIFY(VROverlay->CreateOverlay(OverlayNameAnsiStr, OverlayNameAnsiStr, &Layer.OverlayHandle));
 		OVR_VERIFY(VROverlay->HideOverlay(Layer.OverlayHandle));
 		Layer.bUpdateTexture = true;
 	}
-	else if (!Layer.LayerDesc.Texture.IsValid() && Layer.OverlayHandle != vr::k_ulOverlayHandleInvalid)
+	else if (!bIsValid && Layer.OverlayHandle != vr::k_ulOverlayHandleInvalid)
 	{
 		OVR_VERIFY(VROverlay->DestroyOverlay(Layer.OverlayHandle));
 		Layer.OverlayHandle = vr::k_ulOverlayHandleInvalid;
@@ -222,7 +139,10 @@ void FSteamVRHMD::UpdateLayer(FLayer& Layer) const
 	const float WorldToMeterScale = FMath::Max(GetWorldToMetersScale(), 0.1f);
 	OVR_VERIFY(VROverlay->SetOverlayWidthInMeters(Layer.OverlayHandle, Layer.LayerDesc.QuadSize.X / WorldToMeterScale));
 	OVR_VERIFY(VROverlay->SetOverlayTexelAspect(Layer.OverlayHandle, Layer.LayerDesc.QuadSize.X / Layer.LayerDesc.QuadSize.Y));
-	OVR_VERIFY(VROverlay->SetOverlaySortOrder(Layer.OverlayHandle, Layer.LayerDesc.Priority));
+
+	// Shift layer priority values up by -INT32_MIN, as SteamVR uses unsigned integers for the layer order where UE uses signed integers.
+	// This will preserve the correct order between layers with negative and positive priorities
+	OVR_VERIFY(VROverlay->SetOverlaySortOrder(Layer.OverlayHandle, Layer.LayerDesc.Priority-INT32_MIN)); 
 
 	// Transform
 	switch (Layer.LayerDesc.PositionType)
@@ -260,30 +180,43 @@ void FSteamVRHMD::UpdateLayer(FLayer& Layer) const
 	};
 }
 
+
 //=============================================================================
-void FSteamVRHMD::UpdateLayerTextures() const
+void FSteamVRHMD::UpdateLayerTextures()
 {
-	FScopeLock LayerLock(&LayerCritSect);
-
-	for (auto Layer : Layers)
+	// If there have been no layer changes since last frame we can return
+	// Additionally, if we don't have a valid tracking position, the calls to ShowOverlay/SetOverlayTexture below will not have any effect.
+	if (!GetStereoLayersDirty() || !HasValidTrackingPosition())
 	{
-		if (Layer.OverlayHandle == vr::k_ulOverlayHandleInvalid)
-		{
-			continue;
-		}
-
-		if (Layer.bUpdateTexture || (Layer.LayerDesc.Flags & LAYER_FLAG_TEX_CONTINUOUS_UPDATE))
-		{
-			vr::Texture_t Texture;
-			Texture.handle = Layer.LayerDesc.Texture->GetNativeResource();
-			Texture.eType = vr::API_DirectX;
-			Texture.eColorSpace = vr::ColorSpace_Auto;
-			OVR_VERIFY(VROverlay->SetOverlayTexture(Layer.OverlayHandle, &Texture));
-			OVR_VERIFY(VROverlay->ShowOverlay(Layer.OverlayHandle));
-
-			Layer.bUpdateTexture = false;
-		}
+		return;
 	}
+
+	ForEachLayer([=](uint32 /* unused */, FSteamVRLayer& Layer)
+	{
+		if (Layer.OverlayHandle != vr::k_ulOverlayHandleInvalid)
+		{
+
+			if (Layer.bUpdateTexture || (Layer.LayerDesc.Flags & LAYER_FLAG_TEX_CONTINUOUS_UPDATE))
+			{
+				vr::Texture_t Texture;
+				Texture.handle = Layer.LayerDesc.Texture->GetNativeResource();
+#if PLATFORM_LINUX
+#if STEAMVR_USE_VULKAN_RHI
+				Texture.eType = vr::TextureType_Vulkan;
+#else
+				Texture.eType = vr::TextureType_OpenGL;
+#endif
+#else
+				Texture.eType = vr::TextureType_DirectX;
+#endif
+				Texture.eColorSpace = vr::ColorSpace_Auto;
+				OVR_VERIFY(VROverlay->SetOverlayTexture(Layer.OverlayHandle, &Texture));
+				OVR_VERIFY(VROverlay->ShowOverlay(Layer.OverlayHandle));
+
+				Layer.bUpdateTexture = false;
+			}
+		}
+	});
 }
 
 //=============================================================================

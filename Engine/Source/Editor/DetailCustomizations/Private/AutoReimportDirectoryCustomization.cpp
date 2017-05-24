@@ -6,16 +6,20 @@
 #include "Engine/GameViewportClient.h"
 #include "Misc/PackageName.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
 #include "Styling/SlateTypes.h"
 #include "Widgets/Text/STextBlock.h"
 #include "PropertyHandle.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SComboButton.h"
 #include "Settings/EditorLoadingSavingSettings.h"
 #include "IDetailChildrenBuilder.h"
 #include "DetailWidgetRow.h"
 #include "DetailLayoutBuilder.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 
 #include "DesktopPlatformModule.h"
 
@@ -137,6 +141,7 @@ void FAutoReimportDirectoryCustomization::CustomizeHeader(TSharedRef<IPropertyHa
 		.AutoWidth()
 		[
 			SNew(SButton)
+			.ContentPadding(FMargin(4.0f, 2.0f))
 			.OnClicked(this, &FAutoReimportDirectoryCustomization::BrowseForFolder)
 			.ToolTipText(LOCTEXT("BrowseForDirectory", "Browse for a directory"))
 			.Text(LOCTEXT("Browse", "Browse"))
@@ -167,21 +172,69 @@ void FAutoReimportDirectoryCustomization::CustomizeChildren(TSharedRef<IProperty
 			SNew(SHorizontalBox)
 
 			+SHorizontalBox::Slot()
+			.Padding(FMargin(0.0f, 0.0f, 4.0f, 0.0f))
+			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
-				SNew(SOverlay)
+				SNew(STextBlock)
+				.Text(this, &FAutoReimportDirectoryCustomization::GetMountPointText)
+			]
 
-				+ SOverlay::Slot()
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SAssignNew(PathPickerButton, SComboButton)
+				.HasDownArrow(false)
+				.ToolTipText(LOCTEXT("BrowseForMountPoint", "Choose a path"))
+				.OnGetMenuContent(this, &FAutoReimportDirectoryCustomization::GetPathPickerContent)
+				.ContentPadding(FMargin(4.0f, 2.0f))
+				.ButtonContent()
 				[
-					SNew(SEditableTextBox)
-					.Text(this, &FAutoReimportDirectoryCustomization::GetMountPointText)
-					.OnTextChanged(this, &FAutoReimportDirectoryCustomization::OnMountPointChanged)
-					.OnTextCommitted(this, &FAutoReimportDirectoryCustomization::OnMountPointCommitted)
+					SNew(STextBlock)
+					.Text(LOCTEXT("Browse", "Browse"))
 				]
 			]
 		];
 	}
 
 	InStructBuilder.AddChildProperty(WildcardsProperty.ToSharedRef());
+}
+
+TSharedRef<SWidget> FAutoReimportDirectoryCustomization::GetPathPickerContent()
+{
+	FPathPickerConfig PathPickerConfig;
+
+	MountPointProperty->GetValueAsFormattedString(PathPickerConfig.DefaultPath);
+	PathPickerConfig.DefaultPath.ReplaceInline(TEXT("\\"), TEXT("/"));
+
+	PathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP(this, &FAutoReimportDirectoryCustomization::PathPickerPathSelected);
+	PathPickerConfig.bAllowClassesFolder = false;
+	PathPickerConfig.bAddDefaultPath = false;
+	PathPickerConfig.bAllowContextMenu = false;
+	PathPickerConfig.bFocusSearchBoxWhenOpened = false;
+
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+
+	return SNew(SBox)
+		.WidthOverride(300)
+		.HeightOverride(500)
+		.Padding(4)
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.FillHeight(1.f)
+			[
+				ContentBrowserModule.Get().CreatePathPicker(PathPickerConfig)
+			]
+		];
+}
+
+void FAutoReimportDirectoryCustomization::PathPickerPathSelected(const FString& FolderPath)
+{
+	PathPickerButton->SetIsOpen(false);
+
+	MountPointProperty->SetValue(FolderPath);
 }
 
 EVisibility FAutoReimportDirectoryCustomization::GetMountPathVisibility() const
@@ -211,16 +264,6 @@ FText FAutoReimportDirectoryCustomization::GetMountPointText() const
 	FText Ret;
 	MountPointProperty->GetValueAsFormattedText(Ret);
 	return Ret;
-}
-
-void FAutoReimportDirectoryCustomization::OnMountPointCommitted(const FText& InValue, ETextCommit::Type CommitType)
-{
-	MountPointProperty->SetValue(InValue.ToString());
-}
-
-void FAutoReimportDirectoryCustomization::OnMountPointChanged(const FText& InValue)
-{
-	MountPointProperty->SetValue(InValue.ToString());
 }
 
 FReply FAutoReimportDirectoryCustomization::BrowseForFolder()
@@ -262,46 +305,37 @@ FReply FAutoReimportDirectoryCustomization::BrowseForFolder()
 	return FReply::Handled();
 }
 
-void FAutoReimportDirectoryCustomization::SetSourcePath(FString InSourceDir)
+void FAutoReimportDirectoryCustomization::SetSourcePath(const FString& InSourceDir)
 {
 	MountPathVisibility = EVisibility::Visible;
 
 	// Don't log errors and warnings
 	FAutoReimportDirectoryConfig::FParseContext Context(false);
 
-	FString MountPoint;
-	if (FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(InSourceDir, MountPoint, Context))
-	{
-		// If we have a mount point from the source path, we use that as the source path
-		if (!MountPoint.IsEmpty())
-		{
-			SourceDirProperty->SetValue(MountPoint);
-			MountPointProperty->SetValue(FString());
-			MountPathVisibility = EVisibility::Collapsed;
-		}
-		else
-		{
-			FString ExistingMountPath;
-			MountPointProperty->GetValue(ExistingMountPath);
+	// Check to see if we need to reset mount point to empty string.
+	FString ExistingMountPath, ExisitingSourceDir, DerivedMountPoint, ParseSourceDir = InSourceDir;
+	SourceDirProperty->GetValue(ExisitingSourceDir);
+	MountPointProperty->GetValue(ExistingMountPath);
+	FString MountPoint(ExistingMountPath);
 
-			if (ExistingMountPath.IsEmpty())
-			{
-				MountPointProperty->SetValue(MountPoint);	
-			}
-			SourceDirProperty->SetValue(InSourceDir);
-		}
-	}
-	else
+	// Does the supplied directory resolve successfully?
+	if (FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(ParseSourceDir, MountPoint, Context))
 	{
-		SourceDirProperty->SetValue(InSourceDir);
-		MountPathVisibility = InSourceDir.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
+		// Parse previous path to determine if the mount point was implicit. If parsing fails keep existing mount point.
+		if (FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(ExisitingSourceDir, DerivedMountPoint, Context))
+		{
+			// Set to empty to use implicit empty string mount point
+			// Otherwise keep explicit mount point intact so user may change the source for the mount without losing the value.
+			if (ExistingMountPath == DerivedMountPoint)
+			{
+				MountPointProperty->SetValue(FString());
+			}
+		}
 	}
 	
-}
-
-void FAutoReimportDirectoryCustomization::UpdateMountPath()
-{
-
+	// Set source dir regardless of it parsed and resolved correctly.
+	// Could be in intermediate state from user typing for example.
+	SourceDirProperty->SetValue(InSourceDir);
 }
 
 #undef LOCTEXT_NAMESPACE

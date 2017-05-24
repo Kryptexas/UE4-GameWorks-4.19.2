@@ -9,6 +9,7 @@
 #include "GameFramework/Actor.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "FoliageInstanceBase.h"
+#include "InstancedFoliage.h"
 
 #include "InstancedFoliageActor.generated.h"
 
@@ -101,7 +102,7 @@ public:
 
 #if WITH_EDITOR
 	static FOLIAGE_API bool FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag = NAME_None, bool InbReturnFaceIndex = false, const FFoliageTraceFilterFunc& FilterFunc = FFoliageTraceFilterFunc());
-	static FOLIAGE_API bool CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation);
+	static FOLIAGE_API bool CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation, UPrimitiveComponent* HitComponent);
 
 	virtual void PostEditUndo() override;
 	virtual bool ShouldExport() override;
@@ -157,6 +158,9 @@ public:
 	// Whether actor has selected instances
 	FOLIAGE_API bool HasSelectedInstances() const;
 
+	// Will return all the foliage type used by currently selected instances
+	FOLIAGE_API TMap<UFoliageType*, FFoliageMeshInfo*> GetSelectedInstancesFoliageType();
+
 	// Propagate the selected instances to the actual render components
 	FOLIAGE_API void ApplySelectionToComponents(bool bApply);
 
@@ -168,6 +172,7 @@ public:
 
 	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
 	void NotifyFoliageTypeChanged(UFoliageType* FoliageType, bool bMeshChanged);
+	void NotifyFoliageTypeWillChange(UFoliageType* FoliageType, bool bMeshChanged);
 
 	DECLARE_EVENT_OneParam(AInstancedFoliageActor, FOnFoliageTypeMeshChanged, UFoliageType*);
 	FOnFoliageTypeMeshChanged& OnFoliageTypeMeshChanged() { return OnFoliageTypeMeshChangedEvent; }

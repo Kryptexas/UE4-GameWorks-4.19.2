@@ -24,6 +24,7 @@
 #include "Widgets/Input/SEditableText.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Colors/SColorBlock.h"
+#include "UnrealString.h"
 
 /**
  * Implementation for a box that only accepts a numeric value or that can display an undetermined value via a string
@@ -52,6 +53,9 @@ public:
 	/** Notification for committing undetermined values */
 	DECLARE_DELEGATE_TwoParams(FOnUndeterminedValueCommitted, FText /*NewValue*/, ETextCommit::Type /*CommitType*/);
 
+	/** Notification when the max/min spinner values are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
+	DECLARE_DELEGATE_FourParams(FOnDynamicSliderMinMaxValueChanged, NumericType, TWeakPtr<SWidget>, bool, bool);
+
 public:
 
 	SLATE_BEGIN_ARGS( SNumericEntryBox<NumericType> )
@@ -64,16 +68,16 @@ public:
 		, _UndeterminedString( SNumericEntryBox<NumericType>::DefaultUndeterminedString )
 		, _AllowSpin(false)
 		, _UseDarkStyle(false)
-		, _ColorIndex(-1)
 		, _ShiftMouseMovePixelPerDelta(1)
+		, _SupportDynamicSliderMaxValue(false)
+		, _SupportDynamicSliderMinValue(false)
 		, _Delta(0)
 		, _MinValue(TNumericLimits<NumericType>::Lowest())
 		, _MaxValue(TNumericLimits<NumericType>::Max())
 		, _MinSliderValue(0)				
 		, _MaxSliderValue(100)
 		, _SliderExponent(1.f)
-		, _MinDesiredValueWidth(0)
-		
+		, _MinDesiredValueWidth(0)		
 	{}		
 
 		/** Style to use for the editable text box within this widget */
@@ -99,10 +103,16 @@ public:
 		SLATE_ARGUMENT( bool, AllowSpin )
 		/** Whether or not the user should be able to change the value by dragging with the mouse cursor */
 		SLATE_ARGUMENT(bool, UseDarkStyle)
-		/** The color index to draw the line at the bottom of the numeric box (-1= no Line, 0=Red, 1=Green 2=Blue 3=White) */
-		SLATE_ARGUMENT( int32, ColorIndex )
 		/** How many pixel the mouse must move to change the value of the delta step (only use if there is a spinbox allow) */
 		SLATE_ARGUMENT( int32, ShiftMouseMovePixelPerDelta )
+		/** Tell us if we want to support dynamically changing of the max value using ctrl  (only use if there is a spinbox allow) */
+		SLATE_ATTRIBUTE(bool, SupportDynamicSliderMaxValue)
+		/** Tell us if we want to support dynamically changing of the min value using ctrl  (only use if there is a spinbox allow) */
+		SLATE_ATTRIBUTE(bool, SupportDynamicSliderMinValue)
+		/** Called right after the spinner max value is changed (only relevant if SupportDynamicSliderMaxValue is true) */
+		SLATE_EVENT(FOnDynamicSliderMinMaxValueChanged, OnDynamicSliderMaxValueChanged)
+		/** Called right after the spinner min value is changed (only relevant if SupportDynamicSliderMinValue is true) */
+		SLATE_EVENT(FOnDynamicSliderMinMaxValueChanged, OnDynamicSliderMinValueChanged)
 		/** Delta to increment the value as the slider moves.  If not specified will determine automatically */
 		SLATE_ATTRIBUTE( NumericType, Delta )
 		/** The minimum value that can be entered into the text edit box */
@@ -158,7 +168,6 @@ public:
 		BorderImageHovered = &InArgs._EditableTextBoxStyle->BackgroundImageHovered;
 		BorderImageFocused = &InArgs._EditableTextBoxStyle->BackgroundImageFocused;
 		Interface = InArgs._TypeInterface.IsValid() ? InArgs._TypeInterface : MakeShareable( new TDefaultNumericTypeInterface<NumericType> );
-		int32 InColorIndex = InArgs._ColorIndex;
 
 		TAttribute<FMargin> TextMargin = InArgs._OverrideTextMargin.IsSet() ? InArgs._OverrideTextMargin : InArgs._EditableTextBoxStyle->Padding;
 		const bool bAllowSpin = InArgs._AllowSpin;
@@ -173,6 +182,10 @@ public:
 				.Value( this, &SNumericEntryBox<NumericType>::OnGetValueForSpinBox )
 				.Delta( InArgs._Delta )
 				.ShiftMouseMovePixelPerDelta(InArgs._ShiftMouseMovePixelPerDelta)
+				.SupportDynamicSliderMaxValue(InArgs._SupportDynamicSliderMaxValue)
+				.SupportDynamicSliderMinValue(InArgs._SupportDynamicSliderMinValue)
+				.OnDynamicSliderMaxValueChanged(InArgs._OnDynamicSliderMaxValueChanged)
+				.OnDynamicSliderMinValueChanged(InArgs._OnDynamicSliderMinValueChanged)
 				.OnValueChanged( OnValueChanged )
 				.OnValueCommitted( OnValueCommitted )
 				.MinSliderValue(InArgs._MinSliderValue)
@@ -201,31 +214,7 @@ public:
 			.MinDesiredWidth(InArgs._MinDesiredValueWidth);
 
 		TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
-		TSharedRef<SWidget> BoxToAdd = HorizontalBox;
-
-		if (InColorIndex != INDEX_NONE)
-		{
-			TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-			FColor Color[4] = { FColor::Red, FColor::Green, FColor::Blue, FColor::White };
-			//Add the horizontal box
-			VerticalBox->AddSlot()
-				.FillHeight(1)
-				.AutoHeight()
-				[
-					HorizontalBox
-				];
-			//Add the color line
-			VerticalBox->AddSlot()
-				.AutoHeight()
-				.MaxHeight(2.0f)
-				.Padding(3.0f, 0.0f)
-				[
-					SNew(SColorBlock)
-					.Color(Color[InColorIndex])
-				];
-			BoxToAdd = VerticalBox;
-		}
-		
+	
 		if( InArgs._Label.Widget != SNullWidget::NullWidget )
 		{
 			HorizontalBox->AddSlot()
@@ -267,28 +256,29 @@ public:
 				.ForegroundColor( InArgs._BorderForegroundColor )
 				.Padding(0)
 				[
-					BoxToAdd
+					HorizontalBox
 				]
 			];
 	}
 
-
-	/** Build a generic label with specified text, foreground color and background color */
-	static TSharedRef<SWidget> BuildLabel( const FText& LabelText, const FSlateColor& ForegroundColor, const FSlateColor& BackgroundColor )
+	static TSharedRef<SWidget> BuildLabel(TAttribute<FText> LabelText, const FSlateColor& ForegroundColor, const FSlateColor& BackgroundColor)
 	{
 		return
 			SNew(SBorder)
-			.BorderImage( FCoreStyle::Get().GetBrush("NumericEntrySpinBox.Decorator") )
-			.BorderBackgroundColor( BackgroundColor )
-			.ForegroundColor( ForegroundColor )
+			.BorderImage(FCoreStyle::Get().GetBrush("NumericEntrySpinBox.Decorator"))
+			.BorderBackgroundColor(BackgroundColor)
+			.ForegroundColor(ForegroundColor)
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Left)
-			.Padding( FMargin(1, 0, 6, 0) )
+			.Padding(FMargin(1, 0, 6, 0))
 			[
-				SNew( STextBlock )
-				.Text( LabelText )
+				SNew(STextBlock)
+				.Text(LabelText)
 			];
 	}
+
+	/** Return the internally created SpinBox if bAllowSpin is true */
+	TSharedPtr<SWidget> GetSpinBox() const { return SpinBox; }
 
 private:
 
@@ -479,7 +469,7 @@ private:
 		else
 		{
 			NumericType NumericValue;
-			if (Lex::TryParseString(NumericValue, *NewValue.ToString()))
+			if (LexicalConversion::TryParseString(NumericValue, *NewValue.ToString()))
 			{
 				OnValueChanged.ExecuteIfBound( NumericValue );
 			}

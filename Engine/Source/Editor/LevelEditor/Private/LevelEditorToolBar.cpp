@@ -47,6 +47,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Widgets/Input/SVolumeControl.h"
 #include "Features/IModularFeatures.h"
 #include "EngineUtils.h"
@@ -907,8 +908,13 @@ void LevelEditorActionHelpers::OnSelectGameStateClassPicked(UClass* InChosenClas
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("LevelEditorCommands", "SelectGameStateClassAction", "Set Game State Class") );
 		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
-		ActiveGameMode->Modify();
 		ActiveGameMode->GameStateClass = InChosenClass;
+
+		UBlueprint* Blueprint = Cast<UBlueprint>(GameModeClass->ClassGeneratedBy);
+		if (ensure(Blueprint))
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+		}
 	}
 
 	FSlateApplication::Get().DismissAllMenus();
@@ -977,8 +983,13 @@ void LevelEditorActionHelpers::OnSelectPawnClassPicked(UClass* InChosenClass, TW
 		const FScopedTransaction Transaction( NSLOCTEXT("LevelEditorCommands", "SelectPawnClassAction", "Set Pawn Class") );
 
 		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
-		ActiveGameMode->Modify();
 		ActiveGameMode->DefaultPawnClass = InChosenClass;
+
+		UBlueprint* Blueprint = Cast<UBlueprint>(GameModeClass->ClassGeneratedBy);
+		if (ensure(Blueprint))
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+		}
 	}
 
 	FSlateApplication::Get().DismissAllMenus();
@@ -1046,8 +1057,13 @@ void LevelEditorActionHelpers::OnSelectHUDClassPicked(UClass* InChosenClass, TWe
 		const FScopedTransaction Transaction( NSLOCTEXT("LevelEditorCommands", "SelectHUDClassAction", "Set HUD Class") );
 
 		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
-		ActiveGameMode->Modify();
 		ActiveGameMode->HUDClass = InChosenClass;
+
+		UBlueprint* Blueprint = Cast<UBlueprint>(GameModeClass->ClassGeneratedBy);
+		if (ensure(Blueprint))
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+		}
 	}
 
 	FSlateApplication::Get().DismissAllMenus();
@@ -1115,8 +1131,13 @@ void LevelEditorActionHelpers::OnSelectPlayerControllerClassPicked(UClass* InCho
 		const FScopedTransaction Transaction( NSLOCTEXT("LevelEditorCommands", "SelectPlayerControllerClassAction", "Set Player Controller Class") );
 
 		AGameModeBase* ActiveGameMode = Cast<AGameModeBase>(GameModeClass->GetDefaultObject());
-		ActiveGameMode->Modify();
 		ActiveGameMode->PlayerControllerClass = InChosenClass;
+
+		UBlueprint* Blueprint = Cast<UBlueprint>(GameModeClass->ClassGeneratedBy);
+		if (ensure(Blueprint))
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+		}
 	}
 	FSlateApplication::Get().DismissAllMenus();
 }
@@ -1269,7 +1290,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::MakeLevelEditorToolBar( const TShared
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.EditMatinee") 
 			);
 
-		ToolbarBuilder.AddToolBarButton( FLevelEditorCommands::Get().ToggleVR, NAME_None, LOCTEXT("ToggleVR", "VR") );
+		ToolbarBuilder.AddToolBarButton( FLevelEditorCommands::Get().ToggleVR, NAME_None, LOCTEXT("ToggleVR", "VR Mode") );
 	}
 	ToolbarBuilder.EndSection();
 	

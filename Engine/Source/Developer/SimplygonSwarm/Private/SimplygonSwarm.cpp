@@ -33,7 +33,7 @@ static const TCHAR* ROUGHNESS_CHANNEL = TEXT("Roughness");
 static const TCHAR* NORMAL_CHANNEL = TEXT("Normals");
 static const TCHAR* OPACITY_CHANNEL = TEXT("Opacity");
 static const TCHAR* EMISSIVE_CHANNEL = TEXT("Emissive");
-static const TCHAR* OPACITY_MASK_CHANNEL = TEXT("Opacity Mask");
+static const TCHAR* OPACITY_MASK_CHANNEL = TEXT("OpacityMask");
 static const TCHAR* AO_CHANNEL = TEXT("AmbientOcclusion");
 static const TCHAR* MATERIAL_MASK_CHANNEL = TEXT("MaterialMask");
 static const TCHAR* OUTPUT_LOD = TEXT("outputlod_0");
@@ -855,13 +855,13 @@ private:
 				bHasOpacity = true;
 				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 			}
-			/*else if (ChannelName.Compare(OPACITY_MASK_CHANNEL) == 0)
+			else if (ChannelName.Compare(OPACITY_MASK_CHANNEL) == 0)
 			{
-				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
-				ExtractTextureDescriptors(SceneGraph, Channel, InBaseTexturesPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);
+				FIntPoint Size = OutMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask);
+				ExtractTextureDescriptors(SceneGraph, Channel, InBaseTexturesPath, ChannelName, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask), Size);
 				bHasOpacityMask = true;
-				OutMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
-			}*/
+				OutMaterial.SetPropertySize(EFlattenMaterialProperties::OpacityMask, Size);
+			}/**/
 			//NOTE: We have AO_CHANNEL support  in the advance integration. We will move it it a later CL after the basic minimum is ready for 4.14.
 			/*else if (ChannelName.Compare(AO_CHANNEL) == 0)
 			{
@@ -978,7 +978,7 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 
 		UatProcess->OnOutput().BindLambda([&](FString Message) {UE_CLOG(bEnableDebugging, LogSimplygonSwarm, Log, TEXT("UatTask Output %s"), *Message); });
 
-		while (UatProcess->IsRunning())
+		while (UatProcess->Update())
 		{
 			FPlatformProcess::Sleep(0.1f);
 		}
@@ -1109,7 +1109,11 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 
 		if (InMaterialProxySettings.bOpacityMap)
 		{
-			SetupOpacityCaster(InSplProcessNode, InOutputMaterialBlendMode == BLEND_Translucent ? OPACITY_CHANNEL : OPACITY_MASK_CHANNEL);
+			SetupOpacityCaster(InSplProcessNode, OPACITY_CHANNEL);
+		}
+		else if (InMaterialProxySettings.bOpacityMaskMap)
+		{
+			SetupColorCaster(InSplProcessNode, OPACITY_MASK_CHANNEL);
 		}
 
       //NOTE: Enable this block once AO feature is moved into vanilla integration.
@@ -1599,6 +1603,13 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 			 {
 				 FString ChannelName(OPACITY_CHANNEL);
 				 ssf::pssfMaterialChannel OpacityChannel = CreateSsfMaterialChannel(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity), SsfTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), BaseTexturePath);
+				 SsfMaterial->MaterialChannelList.push_back(OpacityChannel);
+			 }
+
+			 if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::OpacityMask))
+			 {
+				 FString ChannelName(OPACITY_MASK_CHANNEL);
+				 ssf::pssfMaterialChannel OpacityChannel = CreateSsfMaterialChannel(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask), SsfTextureTable, ChannelName, FString::Printf(TEXT("%s%s"), *MaterialName, *ChannelName), BaseTexturePath);
 				 SsfMaterial->MaterialChannelList.push_back(OpacityChannel);
 			 }
 

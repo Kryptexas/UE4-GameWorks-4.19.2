@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:UMG 실전 사례
 Crumbs:%ROOT%, Engine\UMG\UserGuide
-Description:UMG, 언리얼 모션 그래픽 관련 팁과 꼼수입니다.
+Description:UMG, 언리얼 모션 그래픽 관련 팁과 정보입니다.
 version: 4.10
 parent:Engine/UMG	
 order:2
 type:how-to
+tags:UMG UI Designer
 
 
 [VAR:Topic]
@@ -110,9 +111,9 @@ UMG 안에는 텍스처를 다른 세팅으로 그릴 수 있는 **Draw As** 옵
 
 
 
-## 팁과 꼼수
+## 팁과 정보
 
-여기서는 UMG 에 사용할 애셋이나 UMG 작업 관련 팁과 꼼수를 몇 가지 살펴보겠습니다.
+여기서는 UMG 에 사용할 애셋이나 UMG 작업 관련 팁과 정보를 몇 가지 살펴보겠습니다.
 
 ### 포맷 팁
 

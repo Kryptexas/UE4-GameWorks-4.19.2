@@ -39,7 +39,7 @@ public:
 		SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
 
 		FTexture2DRHIRef Texture2DRHI;
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(FLinearColor::Black) };
 
 		RHICreateTargetableShaderResource2D(
 			GetSizeX(), 
@@ -119,6 +119,7 @@ public:
 	FVector PlanarReflectionParameters;
 	FVector2D PlanarReflectionParameters2;
 	FMatrix ProjectionWithExtraFOV[2];
+	FVector4 ScreenScaleBias[2];
 	FVector4 InverseTransposeMirrorMatrix[3];
 	FName OwnerName;
 	int32 PlanarReflectionId;

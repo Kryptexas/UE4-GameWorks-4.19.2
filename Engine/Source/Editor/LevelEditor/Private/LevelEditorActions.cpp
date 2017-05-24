@@ -84,6 +84,9 @@
 #include "MaterialShaderQualitySettings.h"
 #include "IVREditorModule.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LevelStreamingKismet.h"
+#include "EditorLevelUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -383,13 +386,49 @@ void FLevelEditorActionCallbacks::Save()
 	FEditorFileUtils::SaveCurrentLevel();
 }
 
-void FLevelEditorActionCallbacks::SaveAs()
+void FLevelEditorActionCallbacks::SaveCurrentAs()
 {
-	FString SavedFilename;
-	bool bSaved = FEditorFileUtils::SaveLevelAs( GetWorld()->PersistentLevel, &SavedFilename );
-	if (bSaved)
+	UWorld* World = GetWorld();
+	ULevel* CurrentLevel = World->GetCurrentLevel();
+	
+	UClass* CurrentStreamingLevelClass = ULevelStreamingKismet::StaticClass();
+
+	for (ULevelStreaming* StreamingLevel : World->StreamingLevels)
 	{
-		FEditorFileUtils::LoadMap(SavedFilename);
+		if (StreamingLevel->GetLoadedLevel() == CurrentLevel)
+		{
+			CurrentStreamingLevelClass = StreamingLevel->GetClass();
+			break;
+		}
+	}
+
+	
+	const bool bSavedPersistentLevelAs = CurrentLevel == World->PersistentLevel;
+	FString SavedFilename;
+	bool bSaved = FEditorFileUtils::SaveLevelAs(CurrentLevel, &SavedFilename);
+	if(bSaved)
+	{
+		if (bSavedPersistentLevelAs)
+		{
+			FEditorFileUtils::LoadMap(SavedFilename);
+		}
+		else
+		{
+			// Remove the level we just saved over
+			EditorLevelUtils::RemoveLevelFromWorld(CurrentLevel);
+
+			// Add the new level we just saved as to the plevel
+			FString PackageName;
+			if (FPackageName::TryConvertFilenameToLongPackageName(SavedFilename, PackageName))
+			{
+				ULevel* Level = EditorLevelUtils::AddLevelToWorld(World, *PackageName, CurrentStreamingLevelClass);
+
+				// Make the level we just added current because the expectation is that the new level replaces the existing current level
+				EditorLevelUtils::MakeLevelCurrent(Level);
+			}
+
+			FEditorDelegates::RefreshLevelBrowser.Broadcast();
+		}
 	}
 }
 
@@ -590,6 +629,10 @@ void FLevelEditorActionCallbacks::Build_Execute()
 	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildAll );
 }
 
+bool FLevelEditorActionCallbacks::Build_CanExecute()
+{
+	return !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
+}
 
 void FLevelEditorActionCallbacks::BuildAndSubmitToSourceControl_Execute()
 {
@@ -612,7 +655,7 @@ bool FLevelEditorActionCallbacks::BuildLighting_CanExecute()
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-	return bAllowStaticLighting;
+	return bAllowStaticLighting && !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
 }
 
 void FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_Execute()
@@ -2083,7 +2126,7 @@ void FLevelEditorActionCallbacks::ToggleVR()
 bool FLevelEditorActionCallbacks::ToggleVR_CanExecute()
 {
 	IVREditorModule& VREditorModule = IVREditorModule::Get();
-	return VREditorModule.IsVREditorAvailable() && !GEditor->bIsSimulatingInEditor;
+	return VREditorModule.IsVREditorAvailable();
 }
 
 
@@ -2092,13 +2135,6 @@ bool FLevelEditorActionCallbacks::ToggleVR_IsChecked()
 	IVREditorModule& VREditorModule = IVREditorModule::Get();
 	return VREditorModule.IsVREditorEnabled();
 }
-
-
-bool FLevelEditorActionCallbacks::ToggleVR_IsVisible()
-{
-	return GetDefault<UEditorExperimentalSettings>()->bEnableVREditing;
-}
-
 
 bool FLevelEditorActionCallbacks::CanSelectGameModeBlueprint()
 {
@@ -2566,7 +2602,7 @@ bool FLevelEditorActionCallbacks::IsWidgetModeActive( FWidget::EWidgetMode Widge
 
 bool FLevelEditorActionCallbacks::CanSetWidgetMode( FWidget::EWidgetMode WidgetMode )
 {
-	return GLevelEditorModeTools().GetShowWidget() == true;
+	return GLevelEditorModeTools().UsesTransformWidget(WidgetMode) == true;
 }
 
 bool FLevelEditorActionCallbacks::IsTranslateRotateModeVisible()

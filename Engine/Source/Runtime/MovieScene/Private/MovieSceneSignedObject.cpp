@@ -33,7 +33,10 @@ void UMovieSceneSignedObject::MarkAsChanged()
 bool UMovieSceneSignedObject::Modify(bool bAlwaysMarkDirty)
 {
 	bool bModified = Super::Modify(bAlwaysMarkDirty);
-	MarkAsChanged();
+	if ( bAlwaysMarkDirty )
+	{
+		MarkAsChanged();
+	}
 	return bModified;
 }
 

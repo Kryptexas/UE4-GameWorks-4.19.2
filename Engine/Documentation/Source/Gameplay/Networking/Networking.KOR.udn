@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3143336
 Availability:Public
 Title: 네트워킹과 멀티플레이
 Crumbs:%ROOT%, Gameplay, Gameplay/Framework
@@ -30,6 +30,7 @@ version: 4.9
 			* [](Gameplay/Networking/Actors/Roles "%Gameplay/Networking/Actors/Roles:Description%")
 			* [](Gameplay/Networking/Actors/OwningConnections "%Gameplay/Networking/Actors/OwningConnections:Description%")
 			* [](Gameplay/Networking/Actors/ReplicationFlow "%Gameplay/Networking/Actors/ReplicationFlow:Description%")
+		* [](Gameplay/Networking/OnlineBeacons "%Gameplay/Networking/OnlineBeacons:Description%")
 		* [](Gameplay/Networking/Travelling "%Gameplay/Networking/Travelling:Description%")
 		* [](Gameplay/Networking/CharacterMovementComponent "%Gameplay/Networking/CharacterMovementComponent:Description%")
 		* [](Gameplay/Networking/Actors/ReplicationPerformance "%Gameplay/Networking/Actors/ReplicationPerformance:Description%")

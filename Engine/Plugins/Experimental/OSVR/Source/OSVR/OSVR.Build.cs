@@ -3,7 +3,7 @@ using System.IO;
 
 public class OSVR : ModuleRules
 {
-    public OSVR(TargetInfo Target)
+    public OSVR(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePathModuleNames.Add("TargetPlatform");
 

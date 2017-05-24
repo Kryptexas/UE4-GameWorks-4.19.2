@@ -6,14 +6,15 @@ namespace UnrealBuildTool.Rules
 {
 	public class LocationServicesAndroidImpl : ModuleRules
 	{
-        public LocationServicesAndroidImpl(TargetInfo Target)
+        public LocationServicesAndroidImpl(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePathModuleNames.AddRange
 			(
 				new string[]
 				{
 					"LocationServicesBPLibrary",
-					"LocationServicesAndroidImpl"
+					"LocationServicesAndroidImpl", 
+					"AndroidPermission"
 				}
 			);
 					

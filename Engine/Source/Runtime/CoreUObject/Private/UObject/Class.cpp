@@ -33,6 +33,7 @@
 #include "UObject/LinkerPlaceholderFunction.h"
 #include "UObject/StructScriptLoader.h"
 #include "UObject/PropertyHelper.h"
+#include "UObject/CoreRedirects.h"
 #include "Serialization/ArchiveScriptReferenceCollector.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
@@ -68,6 +69,8 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 	const TCHAR* Name
 	)
 {
+	NotifyRegistrationEvent(PackageName, Name, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Started);
+
 	/* No recursive ::StaticClass calls allowed. Setup extras. */
 	if (TClass_Super_StaticClass != TClass_PrivateStaticClass)
 	{
@@ -91,6 +94,7 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 		// Register immediately (don't let the function name mistake you!)
 		TClass_PrivateStaticClass->DeferredRegister(UDynamicClass::StaticClass(), PackageName, Name);
 	}
+	NotifyRegistrationEvent(PackageName, Name, ENotifyRegistrationType::NRT_Class, ENotifyRegistrationPhase::NRP_Finished);
 }
 
 void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const ANSICHAR* InName, Native InPointer)
@@ -101,6 +105,22 @@ void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const ANSIC
 void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const WIDECHAR* InName, Native InPointer)
 {
 	Class->AddNativeFunction(InName, InPointer);
+}
+
+void FNativeFunctionRegistrar::RegisterFunctions(class UClass* Class, const TNameNativePtrPair<ANSICHAR>* InArray, int32 NumFunctions)
+{
+	for (; NumFunctions; ++InArray, --NumFunctions)
+	{
+		Class->AddNativeFunction(InArray->Name, InArray->Pointer);
+	}
+}
+
+void FNativeFunctionRegistrar::RegisterFunctions(class UClass* Class, const TNameNativePtrPair<WIDECHAR>* InArray, int32 NumFunctions)
+{
+	for (; NumFunctions; ++InArray, --NumFunctions)
+	{
+		Class->AddNativeFunction(InArray->Name, InArray->Pointer);
+	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -757,19 +777,18 @@ void UStruct::InitializeStruct(void* InDest, int32 ArrayDim/* = 1*/) const
 	//@todo UE4 optimize
 	FMemory::Memzero(Dest, 1 * Stride);
 
-	bool bHitBase = false;
-	for (UProperty* Property = PropertyLink; Property && !bHitBase; Property = Property->PropertyLinkNext)
+	for (UProperty* Property = PropertyLink; Property; Property = Property->PropertyLinkNext)
 	{
-		if (!Property->IsInContainer(0))
+		if (ensure(Property->IsInContainer(Stride)))
 		{
-			for (int32 ArrayIndex = 0; ArrayIndex < 1; ArrayIndex++)
+			for (int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++)
 			{
 				Property->InitializeValue_InContainer(Dest + ArrayIndex * Stride);
 			}
 		}
 		else
 		{
-			bHitBase = true;
+			break;
 		}
 	}
 }
@@ -782,9 +801,9 @@ void UStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
 	bool bHitBase = false;
 	for (UProperty* P = DestructorLink; P  && !bHitBase; P = P->DestructorLinkNext)
 	{
-		if (!P->IsInContainer(0))
+		if (!P->HasAnyPropertyFlags(CPF_NoDestructor))
 		{
-			if (!P->HasAnyPropertyFlags(CPF_NoDestructor))
+			if (P->IsInContainer(Stride))
 			{
 				for ( int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++ )
 				{
@@ -853,47 +872,10 @@ void UStruct::SerializeBinEx( FArchive& Ar, void* Data, void const* DefaultData,
 	}
 }
 
-TMap<FName,TMap<FName,FName> > UStruct::TaggedPropertyRedirects;
-void UStruct::InitTaggedPropertyRedirectsMap()
-{
-	if( GConfig )
-	{
-		// Go over all configs so that plugins/etc have a chance to register TaggedPropertyRedirects
-		for (const auto& ConfigPair : *GConfig)
-		{
-			const FString& ConfigFilename = ConfigPair.Key;
-
-			if (FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, ConfigFilename ))
-			{
-				for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
-				{
-					if( It.Key() == TEXT("TaggedPropertyRedirects") )
-					{
-						FName ClassName = NAME_None;
-						FName OldPropertyName = NAME_None;
-						FName NewPropertyName = NAME_None;
-
-						FParse::Value( *It.Value().GetValue(), TEXT("ClassName="), ClassName );
-						FParse::Value( *It.Value().GetValue(), TEXT("OldPropertyName="), OldPropertyName );
-						FParse::Value( *It.Value().GetValue(), TEXT("NewPropertyName="), NewPropertyName );
-
-						check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
-						TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
-					}
-				}
-			}
-		}
-	}
-	else
-	{
-		UE_LOG(LogClass, Warning, TEXT(" **** TAGGED PROPERTY REDIRECTS UNABLE TO INITIALIZE! **** "));
-	}
-}
-
 void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
 	//SCOPED_LOADTIMER(SerializeTaggedPropertiesTime);
-	
+
 	// Determine if this struct supports optional property guid's (UBlueprintGeneratedClasses Only)
 	const bool bArePropertyGuidsAvailable = (Ar.UE4Ver() >= VER_UE4_PROPERTY_GUID_IN_PROPERTY_TAG) && !FPlatformProperties::RequiresCookedData() && ArePropertyGuidsAvailable();
 
@@ -951,44 +933,26 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			if( Property == nullptr || Property->GetFName() != Tag.Name )
 			{
 				// No need to check redirects on platforms where everything is cooked. Always check for save games
-				if (!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame())
+				if ((!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame()) && !Ar.HasAnyPortFlags(PPF_DuplicateForPIE|PPF_Duplicate))
 				{
-					// Look in the redirect table to see if we're searching for a different name
-					static bool bAlreadyInitialized_TaggedPropertyRedirectsMap = false;
-					if( !bAlreadyInitialized_TaggedPropertyRedirectsMap )
-					{
-						InitTaggedPropertyRedirectsMap();
-						bAlreadyInitialized_TaggedPropertyRedirectsMap = true;
-					}
-					
 					FName EachName = GetFName();
+					FName PackageName = GetOutermost()->GetFName();
 					// Search the current class first, then work up the class hierarchy to see if theres a match for our fixup.
 					UStruct* Owner = GetOwnerStruct();
 					if( Owner )
 					{
-						UStruct* SuperClass = Owner->GetSuperStruct();
-						while( EachName != NAME_None)
+						UStruct* CheckStruct = Owner;
+						while(CheckStruct)
 						{
-							const TMap<FName, FName>* ClassTaggedPropertyRedirects = TaggedPropertyRedirects.Find( EachName );
-							if (ClassTaggedPropertyRedirects)
+							FName NewTagName = UProperty::FindRedirectedPropertyName(CheckStruct, Tag.Name);
+
+							if (NewTagName != NAME_None)
 							{
-								const FName* NewPropertyName = ClassTaggedPropertyRedirects->Find(Tag.Name);
-								if (NewPropertyName)
-								{
-									Tag.Name = *NewPropertyName;
-									break;
-								}
+								Tag.Name = NewTagName;
+								break;
 							}
-							// If theres another class name to check get it, otherwise flag the end.
-							if( SuperClass != nullptr )
-							{
-								EachName = SuperClass->GetFName();
-								SuperClass = SuperClass->GetSuperStruct();
-							}
-							else
-							{
-								EachName = NAME_None;
-							}
+
+							CheckStruct = CheckStruct->GetSuperStruct();
 						}
 					}
 				}
@@ -1122,7 +1086,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 	}
 	else
 	{
-		check(Ar.IsSaving());
+		check(Ar.IsSaving() || Ar.IsCountingMemory());
 
 		UScriptStruct* DefaultsScriptStruct = dynamic_cast<UScriptStruct*>(DefaultsStruct);
 
@@ -1337,16 +1301,9 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		Collector.AddReferencedObject( This->SuperStruct, This );
 		Collector.AddReferencedObject( This->Children, This );
 
-		TArray<UObject*> ScriptObjectReferences;
-		FArchiveScriptReferenceCollector ObjectReferenceCollector( ScriptObjectReferences );
-		int32 iCode = 0;
-		while( iCode < This->Script.Num() )
-		{	
-			This->SerializeExpr( iCode, ObjectReferenceCollector );
-		}
-		for( int32 Index = 0; Index < ScriptObjectReferences.Num(); Index++ )
+		for( int32 Index = 0; Index < This->ScriptObjectReferences.Num(); Index++ )
 		{
-			Collector.AddReferencedObject( ScriptObjectReferences[ Index ], This );
+			Collector.AddReferencedObject( This->ScriptObjectReferences[ Index ], This );
 		}
 	}
 
@@ -1378,7 +1335,7 @@ void UStruct::SerializeSuperStruct(FArchive& Ar)
 	Ar << SuperStruct;
 }
 
-#if WITH_EDITOR
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
 bool UStruct::GetBoolMetaDataHierarchical(const FName& Key) const
 {
 	bool bResult = false;
@@ -1642,7 +1599,7 @@ struct ENGINE_API FTestStruct
 };
 
 template<>
-struct TStructOpsTypeTraits<FTestStruct> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTestStruct> : public TStructOpsTypeTraitsBase2<FTestStruct>
 {
 	enum 
 	{
@@ -2513,6 +2470,9 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UScriptStruct, UStruct,
 	UClass implementation.
 -----------------------------------------------------------------------------*/
 
+/** Default C++ class type information, used for all new UClass objects. */
+static TCppClassTypeInfo<FCppClassTypeTraitsBase> DefaultCppClassTypeInfo;
+
 void UClass::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -2604,10 +2564,8 @@ class FRestoreClassInfo: public FRestoreForUObjectOverwrite
 	EClassCastFlags	CastFlags;
 	/** Saved ClassConstructor **/
 	UClass::ClassConstructorType Constructor;
-#if WITH_HOT_RELOAD_CTORS
 	/** Saved ClassVTableHelperCtorCaller **/
 	UClass::ClassVTableHelperCtorCallerType ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 	/** Saved ClassConstructor **/
 	UClass::ClassAddReferencedObjectsType AddReferencedObjects;
 	/** Saved NativeFunctionLookupTable. */
@@ -2627,9 +2585,7 @@ public:
 		Flags(Save->ClassFlags & CLASS_Abstract),
 		CastFlags(Save->ClassCastFlags),
 		Constructor(Save->ClassConstructor),
-#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCaller(Save->ClassVTableHelperCtorCaller),
-#endif // WITH_HOT_RELOAD_CTORS
 		AddReferencedObjects(Save->ClassAddReferencedObjects),
 		NativeFunctionLookupTable(Save->NativeFunctionLookupTable)
 	{
@@ -2644,9 +2600,7 @@ public:
 		Target->ClassFlags |= Flags;
 		Target->ClassCastFlags |= CastFlags;
 		Target->ClassConstructor = Constructor;
-#if WITH_HOT_RELOAD_CTORS
 		Target->ClassVTableHelperCtorCaller = ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 		Target->ClassAddReferencedObjects = AddReferencedObjects;
 		Target->NativeFunctionLookupTable = NativeFunctionLookupTable;
 	}
@@ -2713,6 +2667,17 @@ UObject* UClass::CreateDefaultObject()
 			// NULL (so we don't invalidate one that has already been setup)
 			if (ClassDefaultObject == NULL)
 			{
+				FString PackageName;
+				FString CDOName;
+				bool bDoNotify = false;
+				if (GIsInitialLoad && GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn))
+				{
+					PackageName = GetOutermost()->GetFName().ToString();
+					CDOName = GetDefaultObjectName().ToString();
+					NotifyRegistrationEvent(*PackageName, *CDOName, ENotifyRegistrationType::NRT_ClassCDO, ENotifyRegistrationPhase::NRP_Started);
+					bDoNotify = true;
+				}
+
 				// RF_ArchetypeObject flag is often redundant to RF_ClassDefaultObject, but we need to tag
 				// the CDO as RF_ArchetypeObject in order to propagate that flag to any default sub objects.
 				ClassDefaultObject = StaticAllocateObject(this, GetOuter(), NAME_None, EObjectFlags(RF_Public|RF_ClassDefaultObject|RF_ArchetypeObject));
@@ -2720,6 +2685,11 @@ UObject* UClass::CreateDefaultObject()
 				// Blueprint CDOs have their properties always initialized.
 				const bool bShouldInitializeProperties = !HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
 				(*ClassConstructor)(FObjectInitializer(ClassDefaultObject, ParentDefaultObject, false, bShouldInitializeProperties));
+				if (bDoNotify)
+				{
+					NotifyRegistrationEvent(*PackageName, *CDOName, ENotifyRegistrationType::NRT_ClassCDO, ENotifyRegistrationPhase::NRP_Finished);
+				}
+				ClassDefaultObject->PostCDOContruct();
 			}
 		}
 	}
@@ -2870,9 +2840,7 @@ void UClass::Bind()
 
 	UClass* SuperClass = GetSuperClass();
 	if (SuperClass && (ClassConstructor == nullptr || ClassAddReferencedObjects == nullptr
-#if WITH_HOT_RELOAD_CTORS
 		|| ClassVTableHelperCtorCaller == nullptr
-#endif // WITH_HOT_RELOAD_CTORS
 		))
 	{
 		// Chase down constructor in parent class.
@@ -2881,12 +2849,10 @@ void UClass::Bind()
 		{
 			ClassConstructor = SuperClass->ClassConstructor;
 		}
-#if WITH_HOT_RELOAD_CTORS
 		if (!ClassVTableHelperCtorCaller)
 		{
 			ClassVTableHelperCtorCaller = SuperClass->ClassVTableHelperCtorCaller;
 		}
-#endif // WITH_HOT_RELOAD_CTORS
 		if (!ClassAddReferencedObjects)
 		{
 			ClassAddReferencedObjects = SuperClass->ClassAddReferencedObjects;
@@ -3618,13 +3584,7 @@ void UClass::Serialize( FArchive& Ar )
 	}
 	else
 	{
-		check(GetDefaultsCount()==GetPropertiesSize());
-
-		// Ensure that we have a valid CDO if this is a non-native class
-		if( !HasAnyClassFlags(CLASS_Native) && (ClassDefaultObject == NULL) )
-		{
-			GetDefaultObject();	
-		}
+		check(!ClassDefaultObject || GetDefaultsCount()==GetPropertiesSize());
 
 		// only serialize the class default object if the archive allows serialization of ObjectArchetype
 		// otherwise, serialize the properties that the ClassDefaultObject references
@@ -3637,7 +3597,7 @@ void UClass::Serialize( FArchive& Ar )
 		{
 			Ar << ClassDefaultObject;
 		}
-		else if ( ClassDefaultObject != NULL )
+		else if( !Ar.HasAnyPortFlags(PPF_DuplicateForPIE|PPF_Duplicate) || ClassDefaultObject != nullptr )
 		{
 			ClassDefaultObject->Serialize(Ar);
 		}
@@ -3657,7 +3617,7 @@ void UClass::Serialize( FArchive& Ar )
 			// we do this later anyway, once we find it and set it in the export table. 
 			// ClassDefaultObject->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
 			}
-			else
+			else if( !Ar.HasAnyPortFlags(PPF_DuplicateForPIE|PPF_Duplicate) )
 			{
 			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName());
 			ensure(ClassDefaultObject != NULL);
@@ -3735,9 +3695,7 @@ UObject* UClass::GetArchetypeForCDO() const
 void UClass::PurgeClass(bool bRecompilingOnLoad)
 {
 	ClassConstructor = nullptr;
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCaller = nullptr;
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassFlags = 0;
 	ClassCastFlags = 0;
 	ClassUnique = 0;
@@ -3839,9 +3797,10 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
 ,	ClassWithin( UObject::StaticClass() )
-,	ClassGeneratedBy(NULL)
+,	ClassGeneratedBy(nullptr)
 ,	bCooked(false)
-,	ClassDefaultObject(NULL)
+,	ClassDefaultObject(nullptr)
+,	CppTypeInfo(&DefaultCppClassTypeInfo)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 }
@@ -3850,14 +3809,15 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
  * Create a new UClass given its superclass.
  */
 UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
-: UStruct(ObjectInitializer, InBaseClass)
+:	UStruct(ObjectInitializer, InBaseClass)
 ,	ClassUnique(0)
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
-, ClassWithin(UObject::StaticClass())
-,	ClassGeneratedBy(NULL)
+,	ClassWithin(UObject::StaticClass())
+,	ClassGeneratedBy(nullptr)
 ,	bCooked(false)
-,	ClassDefaultObject(NULL)
+,	ClassDefaultObject(nullptr)
+,	CppTypeInfo(&DefaultCppClassTypeInfo)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
@@ -3894,26 +3854,23 @@ UClass::UClass
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,
 	ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassAddReferencedObjectsType InClassAddReferencedObjects
 )
 :	UStruct					( EC_StaticConstructor, InSize, InFlags )
 ,	ClassConstructor		( InClassConstructor )
-#if WITH_HOT_RELOAD_CTORS
 ,	ClassVTableHelperCtorCaller(InClassVTableHelperCtorCaller)
-#endif // WITH_HOT_RELOAD_CTORS
 ,	ClassAddReferencedObjects( InClassAddReferencedObjects )
 ,	ClassUnique				( 0 )
 ,	ClassFlags				( InClassFlags | CLASS_Native )
 ,	ClassCastFlags			( InClassCastFlags )
-,	ClassWithin				( NULL )
-,	ClassGeneratedBy		( NULL )
+,	ClassWithin				( nullptr )
+,	ClassGeneratedBy		( nullptr )
 ,	ClassConfigName			()
 ,	bCooked					( false )
 ,	NetFields				()
-,	ClassDefaultObject		( NULL )
+,	ClassDefaultObject		( nullptr )
+,	CppTypeInfo				( &DefaultCppClassTypeInfo )
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
@@ -3932,9 +3889,7 @@ bool UClass::HotReloadPrivateStaticClass(
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassAddReferencedObjectsType InClassAddReferencedObjects,
 	class UClass* TClass_Super_StaticClass,
 	class UClass* TClass_WithinClass_StaticClass
@@ -3955,9 +3910,7 @@ bool UClass::HotReloadPrivateStaticClass(
 	//@todo safe? ClassConfigName = InConfigName;
 	ClassConstructorType OldClassConstructor = ClassConstructor;
 	ClassConstructor = InClassConstructor;
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCaller = InClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassAddReferencedObjects = InClassAddReferencedObjects;
 	/* No recursive ::StaticClass calls allowed. Setup extras. */
 	/* @todo safe? 
@@ -3975,7 +3928,6 @@ bool UClass::HotReloadPrivateStaticClass(
 	UE_LOG(LogClass, Verbose, TEXT("Attempting to change VTable for class %s."),*GetName());
 	ClassWithin = UPackage::StaticClass();  // We are just avoiding error checks with this...we don't care about this temp object other than to get the vtable.
 
-#if WITH_HOT_RELOAD_CTORS
 	static struct FUseVTableConstructorsCache
 	{
 		FUseVTableConstructorsCache()
@@ -3988,19 +3940,11 @@ bool UClass::HotReloadPrivateStaticClass(
 	} UseVTableConstructorsCache;
 
 	UObject* TempObjectForVTable = nullptr;
-	if (UseVTableConstructorsCache.bUseVTableConstructors)
 	{
 		TGuardValue<bool> Guard(GIsRetrievingVTablePtr, true);
-		auto Helper = FVTableHelper();
+		FVTableHelper Helper;
 		TempObjectForVTable = ClassVTableHelperCtorCaller(Helper);
 	}
-	else
-	{
-		TempObjectForVTable = StaticConstructObject_Internal(this, GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp);
-	}
-#else // WITH_HOT_RELOAD_CTORS
-	UObject* TempObjectForVTable = StaticConstructObject_Internal(this, GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	if( !TempObjectForVTable->IsRooted() )
 	{
@@ -4032,9 +3976,7 @@ bool UClass::HotReloadPrivateStaticClass(
 				if (Class->ClassConstructor == OldClassConstructor)
 				{
 					Class->ClassConstructor = ClassConstructor;
-#if WITH_HOT_RELOAD_CTORS
 					Class->ClassVTableHelperCtorCaller = ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 					Class->ClassAddReferencedObjects = ClassAddReferencedObjects;
 					CountClass++;
 				}
@@ -4376,9 +4318,7 @@ void GetPrivateStaticClassBody(
 				InClassCastFlags,
 				InConfigName,
 				InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 				InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 				InClassAddReferencedObjects,
 				InSuperClassFn(),
 				InWithinClassFn()
@@ -4410,9 +4350,7 @@ void GetPrivateStaticClassBody(
 			InConfigName,
 			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_MarkAsNative | RF_MarkAsRootSet),
 			InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 			InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 			InClassAddReferencedObjects
 			);
 		check(ReturnClass);
@@ -4431,9 +4369,7 @@ void GetPrivateStaticClassBody(
 			InConfigName,
 			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Dynamic | (GIsInitialLoad ? RF_MarkAsRootSet : RF_NoFlags)),
 			InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 			InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 			InClassAddReferencedObjects
 			);
 		check(ReturnClass);
@@ -4686,6 +4622,32 @@ bool FStructUtils::TheSameLayout(const UStruct* StructA, const UStruct* StructB,
 	return bResult;
 }
 
+UStruct* FStructUtils::FindStructureInPackageChecked(const TCHAR* StructName, const TCHAR* PackageName)
+{
+	const FName StructPackageFName(PackageName);
+	if (StructPackageFName != NAME_None)
+	{
+		static TMap<FName, UPackage*> StaticStructPackageMap;
+
+		UPackage* StructPackage;
+		UPackage** StructPackagePtr = StaticStructPackageMap.Find(StructPackageFName);
+		if (StructPackagePtr != nullptr)
+		{
+			StructPackage = *StructPackagePtr;
+		}
+		else
+		{
+			StructPackage = StaticStructPackageMap.Add(StructPackageFName, FindObjectChecked<UPackage>(nullptr, PackageName));
+		}
+
+		return FindObjectChecked<UStruct>(StructPackage, StructName);
+	}
+	else
+	{
+		return FindObjectChecked<UStruct>(ANY_PACKAGE, StructName);
+	}
+}
+
 bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const
 {
 	// Early out if they're exactly the same function
@@ -4831,6 +4793,29 @@ UScriptStruct* TBaseStructure<FInt32Interval>::Get()
 	return ScriptStruct;
 }
 
+UScriptStruct* TBaseStructure<FStringAssetReference>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("StringAssetReference"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FStringClassReference>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("StringClassReference"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FPrimaryAssetType>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("PrimaryAssetType"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FPrimaryAssetId>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("PrimaryAssetId"));
+	return ScriptStruct;
+}
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UFunction, UStruct,
 	{
@@ -4889,9 +4874,7 @@ UDynamicClass::UDynamicClass(
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,
 	ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 	ClassAddReferencedObjectsType InClassAddReferencedObjects)
 : UClass(
   EC_StaticConstructor
@@ -4902,9 +4885,7 @@ UDynamicClass::UDynamicClass(
 , InConfigName
 , InFlags
 , InClassConstructor
-#if WITH_HOT_RELOAD_CTORS
 , InClassVTableHelperCtorCaller
-#endif // WITH_HOT_RELOAD_CTORS
 , InClassAddReferencedObjects)
 , AnimClassImplementation(nullptr)
 {
@@ -4924,6 +4905,17 @@ void UDynamicClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	Collector.AddReferencedObject(This->AnimClassImplementation, This);
 
 	Super::AddReferencedObjects(This, Collector);
+}
+
+UObject* UDynamicClass::CreateDefaultObject()
+{
+#if DO_CHECK
+	if (!HasAnyFlags(RF_ClassDefaultObject) && (0 == (ClassFlags & CLASS_Constructed)))
+	{
+		UE_LOG(LogClass, Error, TEXT("CDO is created for a dynamic class, before the class was constructed. %s"), *GetPathName());
+	}
+#endif
+	return Super::CreateDefaultObject();
 }
 
 void UDynamicClass::PurgeClass(bool bRecompilingOnLoad)

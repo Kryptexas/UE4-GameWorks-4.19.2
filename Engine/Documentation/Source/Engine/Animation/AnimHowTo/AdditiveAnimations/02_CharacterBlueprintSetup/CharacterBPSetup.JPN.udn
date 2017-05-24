@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3232646
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:2 - Character ブループリントを更新する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:このステップでは、Character ブループリント内でスクリプトを作り、武器の発砲をシミュレーションします。 
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 
 [VAR:Steps]
 [OBJECT:Navigation]

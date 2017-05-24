@@ -118,6 +118,10 @@ public:
 	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) override;
 	virtual FEditorViewportClient& GetViewportClient() const override;
 	
+	/** SWidget interface */
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+
+
 	void RefreshViewport();
 
 	/**
@@ -340,6 +344,11 @@ private:
 	void ToggleCameraFollow();
 	bool IsCameraFollowEnabled() const;
 
+	void SaveCameraAsDefault();
+	void ClearDefaultCamera();
+	void JumpToDefaultCamera();
+	bool HasDefaultCameraSet() const;
+
 	/** Focus the viewport on the preview mesh */
 	void HandleFocusCamera();
 
@@ -388,37 +397,9 @@ private:
 	void OnPauseClothingSimWithAnim();
 	bool IsPausingClothingSimWithAnim();
 
-	/** Show cloth simulation normals */
-	void OnShowClothSimulationNormals();
-	bool IsShowingClothSimulationNormals() const;
-
-	/** Show cloth graphical tangents */
-	void OnShowClothGraphicalTangents();
-	bool IsShowingClothGraphicalTangents() const;
-
-	/** Show cloth collision volumes */
-	void OnShowClothCollisionVolumes();
-	bool IsShowingClothCollisionVolumes() const;
-
 	/** Enable collision with clothes on attached children */
 	void OnEnableCollisionWithAttachedClothChildren();
 	bool IsEnablingCollisionWithAttachedClothChildren() const;
-
-	/** Show cloth physical mesh wire */
-	void OnShowClothPhysicalMeshWire();
-	bool IsShowingClothPhysicalMeshWire() const;
-
-	/** Show cloth max distances */
-	void OnShowClothMaxDistances();
-	bool IsShowingClothMaxDistances() const;
-
-	/** Show cloth back stops */
-	void OnShowClothBackstops();
-	bool IsShowingClothBackstops() const;
-
-	/** Show only fixed vertices */
-	void OnShowClothFixedVertices();
-	bool IsShowingClothFixedVertices() const;
 
 	/** Show all sections which means the original state */
 	void OnSetSectionsDisplayMode(int32 DisplayMode);

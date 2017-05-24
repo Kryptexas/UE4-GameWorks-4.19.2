@@ -19,9 +19,6 @@ public:
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	// IViewportWorldInteractionManager overrides
-	virtual void Tick( float DeltaTime ) override;
-	virtual FOnWorldInteractionTick& OnPreWorldInteractionTick() override { return OnPreWorldInteractionTickEvent; };
-	virtual FOnWorldInteractionTick& OnPostWorldInteractionTick() override { return OnPostWorldInteractionTickEvent; };
 	virtual void SetCurrentViewportWorldInteraction( class UViewportWorldInteraction* WorldInteraction ) override;
 
 	//
@@ -29,26 +26,16 @@ public:
 	//
 
 	/** Passes the input key to the current world interaction */
-	bool HandleInputKey( const FKey Key, const EInputEvent Event );
+	bool PreprocessedInputKey( const FKey Key, const EInputEvent Event );
 
 	/** Passes the input axis to the current world interaction */
-	bool HandleInputAxis( const int32 ControllerId, const FKey Key, const float Delta, const float DeltaTime );
+	bool PreprocessedInputAxis( const int32 ControllerId, const FKey Key, const float Delta, const float DeltaTime );
 
 
 private:
 
 	/** The current world interaction that is ticking */
 	class UViewportWorldInteraction* CurrentWorldInteraction;
-
-	//
-	// Events
-	//
-
-	/** Event to tick before the worldinteraction ticks */
-	FOnWorldInteractionTick OnPreWorldInteractionTickEvent;
-
-	/** Event to tick after the worldinteraction has ticked */
-	FOnWorldInteractionTick OnPostWorldInteractionTickEvent;
 
 	//
 	// Input

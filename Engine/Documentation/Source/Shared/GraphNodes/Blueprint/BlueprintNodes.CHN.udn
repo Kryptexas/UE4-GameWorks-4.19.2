@@ -1,38 +1,36 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2621989
 Availability:NoPublish
-Title:Blueprint Editor
+Title:蓝图编辑器
 Crumbs:
-Description:Overview of the Blueprint nodes.
+Description:蓝图节点总览。
 
 [EXCERPT:UK2Node_ExecutionSequence]
-The Sequence node allows for a single execution pulse to to trigger a series of events in order.
+Sequence 可发出单一执行脉冲，依次触发一系列事件。
 
-The node may have any number of outputs, all of which get called as soon as the Sequence node receives an input. They will always get called in order, but without any delay.
+节点可能拥有任意数量的输出。这些输出在 Sequence 节点接收到输入时立即被调用。它们将被依次调用，但不存在延迟。
 [/EXCERPT:UK2Node_ExecutionSequence]
 
 [EXCERPT:UK2Node_IfThenElse]
 
 
-The Branch node serves as a simple way to create decision-based flow from a single _True/False_ condition. 
-Once executed, the Branch node looks at the incoming value of the attached Boolean, and outputs an execution 
-pulse down the appropriate output.
+Branch 节点可作为从单一 _True/False_ 条件创建基于决策流程的一种简单方式。 
+一旦执行后，Branch 节点将查看附加布尔的输入值，并输出一个执行脉冲到恰当的输出。
 
-In this simple example, the branch is checking the current state of a boolean variable. If _true_, it sets 
-the color of a light to be red. If _false_, it sets it to blue.
+在这个简单的例子中，分支正在检查一个布尔变量的当前状态。如为 _true_，它将把灯光颜色设为红色。如为 _false_，则设为蓝色。
 
 ---
 
-**Input Pins**
+**输入引脚**
 
-Unlabeled Execution Pin - This execution input triggers the branch check. 
-Condition - Takes in an boolean value used to indicate which output pin will be triggered. 
+Unlabeled Execution Pin - 此执行输入触发分支检查。 
+Condition - 接收一个布尔值，用于指出将被触发的输出引脚。 
 
 ---
 
-**Output Pins**
+**输出引脚**
 
-True - This outputs an execution pulse if the incoming condition was *true*. 
-False - This outputs an execution pulse if the incoming condition was *false*. 
+True - 如输入条件为 *true*，它将输出一个执行脉冲。 
+False - 如输入条件为 *false*，它将输出一个执行脉冲。 
 
 [/EXCERPT:UK2Node_IfThenElse]
 
@@ -42,21 +40,20 @@ False - This outputs an execution pulse if the incoming condition was *false*.
 [EXCERPT:UK2Node_SwitchEnum]
 
 
-The "Switch on ..." nodes allow you to pick a path of execution based on a single Enum value. A "Switch on ..." node is available for each Enum and has a variable number of output pins (one for each possible enum value).
-Once executed, this node looks at the incoming value of the attached Enum, and outputs an execution 
-pulse down the appropriate output.
+通过“Switch on ...”节点可基于一个单一枚举值选择一条执行路径。“Switch on ...”节点可用于每个枚举，输出引脚的数量可变（每个可能的枚举值都有输出引脚）。
+一旦执行后，此节点将查看附加枚举的输入值，并输出一个执行脉冲到恰当的输出。
 
 ---
 
-**Input Pins**
+**输入引脚**
 
-Selection - Takes in an Enum value used to indicate which output pin will be triggered. 
+Selection - 接收一个枚举值，用于指出将被触发的输出引脚。 
 
 ---
 
-**Output Pins**
+**输出引脚**
 
-Variable Number of Execution Pins -  There is an output pin for each Enum value. An execution pulse will but output from the one matching the "Selection" input. 
+Variable Number of Execution Pins - 每个枚举值都有一个输出引脚。执行脉冲将从与“Selection”输入相匹配的引脚进行输出。 
 
 [/EXCERPT:UK2Node_SwitchEnum]
 
@@ -66,25 +63,25 @@ Variable Number of Execution Pins -  There is an output pin for each Enum value.
 [EXCERPT:UK2Node_SpawnActor]
 
 
-The "Spawn Actor from Blueprint Node" node takes a Blueprint template (specified via the 'Blueprint' input) and attempts to spawn an instance of that in the world.
+“Spawn Actor from Blueprint Node”节点接收一个蓝图模板（通过“Blueprint”输入指定）并尝试在世界场景中生成一个该模板的实例。
 
-The 'Spawn Transform' input is used to define the Actor's spawn location (and its initial orientation). If that location is blocked by some collider, then the Actor will fail to spawn unless you set the 'Spawn Even if Colliding' input to _True_.
-
----
-
-**Input Pins**
-
-Unlabeled Execution Pin - This execution input triggers the spawning. 
-Spawn Transform - Takes in a Transform used to position and orient the Actor in the world. 
-Spawn Even if Colliding - Takes in a Boolean value used to determine if the Actor should be spawned when something is blocking the spawn location.  
-Blueprint - Denotes the Blueprint Actor you wish to spawn (required). 
+“Spawn Transform”输入用于定义 Actor 的生成位置（及其初始朝向）。如该位置被一些碰撞物阻挡，Actor 将无法生成，除非将“'Spawn Even if Colliding”输入设为 _True_。
 
 ---
 
-**Output Pins**
+**输入引脚**
 
-Unlabeled Execution Pin - This is an execution output.
-Return Value - This outputs the new Actor instance that was spawned. 
+Unlabeled Execution Pin - 此执行输入触发生成。 
+Spawn Transform - 接收一个变形，用于在世界场景中放置 Actor 并调整其朝向。 
+Spawn Even if Colliding - 接收一个布尔值，用于在生成位置被阻挡时确定 Actor 是否应该被生成。  
+Blueprint - 指示需要生成的蓝图 Actor（必需）。 
+
+---
+
+**输出引脚**
+
+Unlabeled Execution Pin - 这是一个执行输出。
+Return Value - 这将输出生成的新 Actor 实例。 
 
 [/EXCERPT:UK2Node_SpawnActor]
 
@@ -93,25 +90,25 @@ Return Value - This outputs the new Actor instance that was spawned.
 [EXCERPT:UK2Node_SpawnActorFromClass]
 
 
-The "Spawn Actor from Class Node" node takes an Actor Class (specified via the 'Class' input) and attempts to spawn an instance of that in the world.
+“Spawn Actor from Class Node”节点接收一个 Actor 类（通过“Class”输入指定）并尝试在世界场景中生成一个该类的实例。
 
-The 'Spawn Transform' input is used to define the Actor's spawn location (and its initial orientation). If that location is blocked by some collider, then the Actor will fail to spawn unless you set the 'Spawn Even if Colliding' input to _True_.
-
----
-
-**Input Pins**
-
-Unlabeled Execution Pin - This execution input triggers the spawning. 
-Class - Denotes the Actor Class you wish to spawn (required). 
-Spawn Transform - Takes in a Transform used to position and orient the Actor in the world. 
-Spawn Even if Colliding - Takes in a Boolean value used to determine if the Actor should be spawned when something is blocking the spawn location.  
+“Spawn Transform”输入用于定义 Actor 的生成位置（及其初始朝向）。
 
 ---
 
-**Output Pins**
+**输入引脚**
 
-Unlabeled Execution Pin - This is an execution output.
-Return Value - This outputs the new Actor instance that was spawned. 
+Unlabeled Execution Pin - 此执行输入触发生成。 
+Class - 指示需要生成的 Actor 类（必需）。 
+Spawn Transform - 接收一个变形，用于在世界场景中放置 Actor 并调整其朝向。 
+Collision Handling Override - 覆盖生成位置被阻挡情况处理方式的 actor 类设置。如选中“Default”，则使用 actor 类的 SpawnCollisionHandlingMethod。
+
+---
+
+**输出引脚**
+
+Unlabeled Execution Pin - 这是一个执行输出。
+Return Value - 这将输出生成的新 Actor 实例。 
 
 
 [/EXCERPT:UK2Node_SpawnActorFromClass]
@@ -120,21 +117,21 @@ Return Value - This outputs the new Actor instance that was spawned.
 
 [EXCERPT:UK2Node_FormatText]
 
-The Format Text Node is one of the more powerful Blueprint nodes, as it changes depending on if you give it a literal value or input from another node. It starts out looking pretty plain, a single input and a single output. But if you add text to the "Format" input, and add sections encapsulated with { } (refered to as "Specifiers") you will get more input pins named with the text contained within the { }'s, like this:
+Format Text 是一个强力的蓝图节点，因为它的改变取决于是否从另一个节点对其赋予字面值或输入。最初它看上去并无太多格式，只是一个单一输入和一个单一输出。但如果将文本添加到“Format”输入，并添加以 { } 封装的分段（被称为“说明符”），则会获得更多以 { } 中所含文本命名的输入引脚，如：
 
 ![](FText_02.png)
 
-This results in "You have 3.50 Dollars" being displayed on screen.
+这会将“You have 3.50 Dollars”显示在屏幕上。
 
-However, if you give it input from another node, the Format Text node will not exactly know what is being fed into it. In this case, you can add pins to the node:
+然而如果从另一个节点对其赋予输入，Format Text 节点不会准确了解填入的内容。在此情形下可将引脚添加到节点：
 
 ![](FText_04.png)
 
-And you define what the pins are looking for by selecting the Format Text node, and editing the "Arguments" in the Details pane with the "Specifiers" you want the Format Text node to look for:
+并定义引脚查找的内容 - 选中 Format Text 节点，并在 Details 面板中使用需要 Format Text 节点进行查找的“说明符”对“参数”进行编辑：
 
 ![](FText_03.5.png)
 
-Not every argument has to be found, so you can load a Format Text node with many possible items to look for and it will only give you what it finds in the "Format" input.
+并非每个参数都需要被找到，因此加载 Format Text 时可添加许多可能需要进行查找的项目，它只会提供在“Format”输入中找到的内容。
 
 
 [VAR:ToolTipFullLink]
@@ -144,48 +141,47 @@ Programming/UnrealArchitecture/StringHandling/FText
 [/EXCERPT:UK2Node_FormatText]
 
 [EXCERPT:UK2Node_Timeline]
-A Timeline is a special node that allows you to keyframe and modify values over time. Double-clicking on this node will open the Timeline Editor tab, where you can add tracks. Each track you create adds an output pin to this node. The Update execution output pin is fired each frame the Timeline is playing, and allows you to connect any nodes you like to make use the new values.
+Timeline 是一个特殊节点，可用于设置关键帧，并随时间修改数值。双击此节点将打开 Timeline Editor 标签，可在此添加轨迹。创建的每个轨迹均会添加一个输出引脚到此节点。Update 执行输出引脚在 Timeline 播放的每帧进行发射，可用于连接使用新值的所有节点。
 
 ---
 
-**Input Pins**
+**输入引脚**
 
-Play - Start playback from current time
-Play from Start - Start playback from beginning
-Stop - Stop playback at current time
-Reverse - Start reverse playback from current time
-Reverse from End - Start reverse playback from end
-Set New Time - Jump playback position to time specified by New Time input
-New Time - Time to jump to when Set New Time is fired
+Play - 从当前时间开始播放
+Play from Start - 从开头开始播放
+Stop - 在当前时间停止播放
+Reverse - 从当前时间开始逆向播放
+Reverse from End - 从末尾开始逆向播放
+Set New Time - 将播放位置跳至 New Time 输入指定的时间
+New Time - Set New Time 发射时跳至的时间
 
 ---
 
-**Output Pins**
+**输出引脚**
 
-Update - Fires every frame while the Timeline is playing
-Finished - This outputs fires when the Timeline reaches the end. It does _not_ fire when you manually stop playback.
-Direction - Current direction of playback
+Update - 在 Timeline 播放时发射每帧
+Finished - 在 Timeline 到达末尾时输出发射。手动停止播放时 _并不会_ 发射。
+Direction - 播放的当前方向
 
-Additional output data pins are added for each Timeline track
+额外的输出数据引脚将被添加到每个 Timeline 轨迹
 
 
 [/EXCERPT:UK2Node_Timeline]
 
 [EXCERPT:UK2Node_CustomEvent]
-A Custom Event is an Event node you can create and give your own name and output pins. You can then call that Event from inside this Blueprint or from other Blueprints.
+Custom Event 是可自行创建并设置命名和输出引脚的事件节点。可从此蓝图或其他蓝图中调用该事件。
 
-An example might be a barrel Blueprint where you add an 'Explode' event that can be fired from the Level Blueprint during a scripted sequence.
+举例而言，可对一个木桶蓝图添加一个“爆炸”事件，在脚本化序列中从关卡蓝图发射。
 [/EXCERPT:UK2Node_CustomEvent]
 
 [EXCERPT:UEdGraphNode_Documentation]
-Documentation Nodes provide the ability to display UDN excerpts in graphs. 
-The user must enter the UDN path to the documentation page as the link relative to /Engine/Documentation/Source in the details view,
-then select a valid excerpt from the list box.
+利用 Documentation 节点可在图表中显示 UDN 摘录。 
+用户必须在细节视图中将文档页面的 UDN 路径输入为相对于 /Engine/Documentation/Source 的链接，然后从列表框选择一个有效摘录。
 [/EXCERPT:UEdGraphNode_Documentation]
 
 
 [EXCERPT:UK2Node_MathExpression]
-The Math Expression node acts like a collapsed graph. It is a single node that you can double-click to open the sub-graph that makes up its functionality. Initially, the name/expression is blank. Whenever you rename the node, then the new expression is parsed and a new sub-graph is generated. 
+Math Expression 节点的作用类似于一个重叠图表。它是一个单一节点，可双击打开构成其功能的子图表。最初，命名/表达式为空。重命名节点时，新表达式将被解析，并生成一个新的子图表。 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/MathNode
 [/VAR]

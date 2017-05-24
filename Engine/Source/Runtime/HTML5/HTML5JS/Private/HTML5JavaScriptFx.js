@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-var UE_JavaScriptLibary = {
+var UE_JavascriptLibrary = {
   UE_SendAndRecievePayLoad: function (url, indata, insize, outdataptr, outsizeptr) {
 
     // NOTE: C++ calling this function are written with syncronus logic
@@ -37,8 +37,7 @@ var UE_JavaScriptLibary = {
   // ================================================================================
   // ================================================================================
 
-  UE_SaveGame: function (name, userIndex, indata, insize) {
-    // user index is not used.
+  UE_SaveGame: function (name, indata, insize) {
     var _name = Pointer_stringify(name);
     var gamedata = Module.HEAPU8.subarray(indata, indata + insize);
     // local storage only takes strings, we need to convert string to base64 before storing.
@@ -47,7 +46,7 @@ var UE_JavaScriptLibary = {
     return true;
   },
 
-  UE_LoadGame: function (name, userIndex, outdataptr, outsizeptr) {
+  UE_LoadGame: function (name, outdataptr, outsizeptr) {
     var _name = Pointer_stringify(name);
     // local storage only takes strings, we need to convert string to base64 before storing.
     var b64encoded = $.jStorage.get(_name);
@@ -67,10 +66,20 @@ var UE_JavaScriptLibary = {
     return true;
   },
 
-  UE_DoesSaveGameExist: function (name, userIndex){
+  UE_DeleteSavedGame: function (name){
     var _name = Pointer_stringify(name);
-    var b64encoded = $.jStorage.get(_name);
-    return !!b64encoded;
+    return $.jStorage.deleteKey(_name);
+  },
+
+  UE_DoesSaveGameExist: function (name){
+    var _name = Pointer_stringify(name);
+    var keys = $.jStorage.index();
+    for (var i in keys)
+    {
+    	if (keys[i] == _name)
+    		return true;
+    }
+    return false;
   },
 
   // ================================================================================
@@ -296,15 +305,6 @@ var UE_JavaScriptLibary = {
     onBeforeUnload_setup: function() {
       window.addEventListener("beforeunload", UE_JSlib.onBeforeUnload);
     },
-
-
-    // --------------------------------------------------------------------------------
-    // GSystemResolution - helpers to obtain game's resolution for JS
-    // --------------------------------------------------------------------------------
-
-	// defaults -- see HTMLOpenGL.cpp::FPlatformOpenGLDevice()
-	UE_GSystemResolution_ResX: function() { return 800; },
-	UE_GSystemResolution_ResY: function() { return 600; },
   },
 
   // ================================================================================
@@ -368,7 +368,16 @@ var UE_JavaScriptLibary = {
     };
   },
  
+  UE_EngineRegisterCanvasResizeListener: function(listener) {
+    UE_JSlib.UE_CanvasSizeChanged = function() {
+      Runtime.dynCall('v', listener);
+    }
+  },
+
+  UE_BrowserWebGLVersion: function() {
+    return Module['WEBGL_VERSION'];
+  }
 };
 
-autoAddDeps(UE_JavaScriptLibary,'$UE_JSlib');
-mergeInto(LibraryManager.library, UE_JavaScriptLibary);
+autoAddDeps(UE_JavascriptLibrary,'$UE_JSlib');
+mergeInto(LibraryManager.library, UE_JavascriptLibrary);

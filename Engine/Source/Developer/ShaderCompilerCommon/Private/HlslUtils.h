@@ -92,7 +92,7 @@ namespace CrossCompiler
 
 			const auto Length = FCString::Strlen(String);
 			const auto Size = (Length + 1) * sizeof(TCHAR);
-			auto* Data = (TCHAR*)Alloc(Size);
+			auto* Data = (TCHAR*)Alloc(Size, sizeof(TCHAR));
 			FCString::Strcpy(Data, Length, String);
 			return Data;
 		}

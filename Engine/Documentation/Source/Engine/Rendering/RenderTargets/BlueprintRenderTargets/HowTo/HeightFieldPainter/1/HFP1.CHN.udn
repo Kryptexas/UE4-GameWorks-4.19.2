@@ -1,84 +1,82 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:1. Project Setup
-description:Going over the Project Setup for creating a Height Map painter.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:1.项目设置
+description:了解创建高度图绘制器的项目设置。
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Intermediate
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/HeightFieldPainter
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:1
 checkpoint:HFP
 
 [NAV]
 
-In this section of the Height Map Painter How - To, we will go over creating a new level for our project to use.
+该部分中我们将详细了解项目关卡的新建方法。
 
-## Project Setup
-Before we can start to create and setup the required Actors for the Height Field Painter, we will first need to create and setup a **Gamemode Override**. In the following section, 
-we will take a look at how this can be accomplished in your project.
+## 项目设置
+开始为高度场绘制器创建和设置必需的 Actor 时，首先需要创建并设置一个 **Gamemode Override**。在以下部分中，我们将查看如何在项目中完成此操作。
 
 [region:note]
-If you are working out of the **Content Examples** map, you can skip this step and use the **MyGame** game mode. This game mode can be found under **Content** > **Blueprints** > **MyGame**.
+如您使用的是 **Content Examples** 地图，则可跳过该步骤并使用 **MyGame** 游戏模式。可在 **Content** > **Blueprints** > **MyGame** 下找到该游戏模式。
 
  ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_00.png)
 [/region]
 
-## Creating a New Game Mode & HUD
-In order to see the crosshair that will let the user know where they are shooting, we will need to create and setup new Game Mode and HUD Blueprints. In the following section, we will take a 
-look at how to setup all of this so that it will work with our Height Field Painter.
+## 新建游戏模式和 HUD
+我们需要创建和设置新游戏模式和 HUD 蓝图，为玩家提供射击准星。在以下部分中，我们将详细了解如何进行设置，使其和高度场绘制器共用。
 
-1. Right-click in the **Content Browser** and from the menu in the **Create Basic Asset** section, click on the **Blueprint Class** option.
+1. 在 **Content Browser** 中点击右键，点击菜单 **Create Basic Asset** 部分的 **Blueprint Class** 选项。
 	
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Setup_00.png)
 
-1. From the **Pick Parent Class** Window, click on the **Game Mode** option, naming the new game mode, `HighFieldPainterGameMode`.
+1. 在 **Pick Parent Class** 窗口中点击 **Game Mode** 选项，将新游戏模式命名为 `HighFieldPainterGameMode`。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_01.png)
 
-1. Right-click in the Content Browser again to bring up the Create Basic Asset menu and then click on the **Blueprint Class** option.
+1. 再次在 Content Browser 中点击右键呼出 Create Basic Asset 菜单，然后点击 **Blueprint Class** 选项。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Setup_09.png)
 
-1. When the Pick Parent Class window is displayed, expand the **All Classes** option and input **HUD** into the search box. Look for the **HUD** option and when located, click on it and then press the **Select** button to create it.
+1. Pick Parent Class 窗口出现后，展开 **All Classes** 选项并在搜索框中输入 **HUD**。查找 **HUD** 选项，找到之后点击该选项并按下 **Select** 按钮进行创建。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_02.png)
 
-1. Name the newly created HUD Blueprint, `HeightFieldPainterHUD`, and then double-click on the **HeightFieldPainterGameMode** Blueprint to open it up.
+1. 将新建的 HUD 蓝图命名为 `HeightFieldPainterHUD`，然后双击 **HeightFieldPainterGameMode** 蓝图将其打开。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_04.png)
 
-1. In the **Details** panel of the HeightFieldPainterGameMode under the **Classes** section, set the **HUD Class** to the  `HeightFieldPainterHUD` Blueprint that was just created. 
+1. 在 **Classes** 部分下 HeightFieldPainterGameMode 的 **Details** 面板中，将 **HUD Class** 设为刚刚创建的 `HeightFieldPainterHUD` 蓝图。 
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_03.png)
 
-1. Now, **Compile** and **Save** the HeightFieldPainterGameMode Blueprint and then open the HeightFieldPainterHUD Blueprint by double-clicking on it in the Content Browser.
+1. 现在 **编译** 并 **保存** HeightFieldPainterGameMode 蓝图，并在 Content Browser 中双击 HeightFieldPainterHUD 蓝图将其打开。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_05.png)
 
-1. Inside of the HeightFieldPainterHUD Blueprint, go to the **Event Graph** and copy-paste the following Blueprint code into the graph. 
+1. 在 HeightFieldPainterHUD 蓝图中，前往 **Event Graph**，将以下蓝图代码复制到图表中。 
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\1\#HUD]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Compile and Save your Blueprint so that it can be used.
+	编译并保存蓝图以便使用。
 	[/region]
 
-	This Blueprint code is telling the HUD to draw the specified Material so that it will be centered on the player's screen while the game is running. To see if everything has been setup correctly, press the **Play** button to run the game and you should now have a crosshair positioned in the center of the screen (as shown in the following image).
+	此蓝图代码将告知 HUD 绘制特定材质，使其在游戏运行时位于玩家的屏幕中央。检查所有内容是否已正确设置的方法：按下 **Play** 按钮运行游戏，屏幕中央将会出现一个准星（如下图所示）。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_07.png)
 
 	[region:note]
-	If you don't see a cross hair on the screen, check to make sure that the **Material** input on the **Draw Material** node has something inputted into the Material input.
+	如屏幕上未出现准星，则需要进行检查，确保 **Draw Material** 节点上的 **Material** 输入对材质实际进行了输入。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_08.png)
 	[/region]
 
-Now that the level and HUD have been created, in the next section we will take a look at what assets need to be created and how to set them up.
+关卡和 HUD 创建完成后，下一部分我们将了解哪些资源需要创建，以及如何对其进行设置。
 
 [NAV]
 

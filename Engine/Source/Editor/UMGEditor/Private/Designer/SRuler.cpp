@@ -72,7 +72,7 @@ struct FDrawTickArgs
 	/** Start layer for elements */
 	int32 StartLayer;
 	/** Draw effects to apply */
-	ESlateDrawEffect::Type DrawEffects;
+	ESlateDrawEffect DrawEffects;
 	/** Whether or not to only draw major ticks */
 	bool bOnlyDrawMajorTicks;
 };
@@ -295,7 +295,7 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 int32 SRuler::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bEnabled = bParentEnabled;
-	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	static const FSlateBrush* WhiteBrush = FCoreStyle::Get().GetBrush("GenericWhiteBox");
 

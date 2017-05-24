@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class OculusRift : ModuleRules
 	{
-		public OculusRift(TargetInfo Target)
+		public OculusRift(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {
@@ -32,6 +32,7 @@ namespace UnrealBuildTool.Rules
 					"ImageWrapper",
                     "MediaAssets",
 					"Analytics",
+					"Renderer",
 					"UtilityShaders",
 				});
 

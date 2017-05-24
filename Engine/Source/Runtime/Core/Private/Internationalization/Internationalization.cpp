@@ -49,14 +49,212 @@ FText FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_Create
 	return FTextCache::Get().FindOrCache(InTextLiteral, InNamespace, InKey);
 }
 
-bool FInternationalization::SetCurrentCulture(const FString& Name)
+bool FInternationalization::SetCurrentCulture(const FString& InCultureName)
 {
-	return Implementation->SetCurrentCulture(Name);
+	FCulturePtr NewCulture = Implementation->GetCulture(InCultureName);
+
+	if (NewCulture.IsValid())
+	{
+		if (CurrentLanguage != NewCulture || CurrentLocale != NewCulture || CurrentAssetGroupCultures.Num() > 0)
+		{
+			CurrentLanguage = NewCulture;
+			CurrentLocale = NewCulture;
+			CurrentAssetGroupCultures.Reset();
+	
+			Implementation->HandleLanguageChanged(InCultureName);
+	
+			BroadcastCultureChanged();
+		}
+	}
+
+	return CurrentLanguage == NewCulture && CurrentLocale == NewCulture && CurrentAssetGroupCultures.Num() == 0;
 }
 
-FCulturePtr FInternationalization::GetCulture(const FString& Name)
+bool FInternationalization::SetCurrentLanguage(const FString& InCultureName)
 {
-	return Implementation->GetCulture(Name);
+	FCulturePtr NewCulture = Implementation->GetCulture(InCultureName);
+
+	if (NewCulture.IsValid())
+	{
+		if (CurrentLanguage != NewCulture)
+		{
+			CurrentLanguage = NewCulture;
+
+			Implementation->HandleLanguageChanged(InCultureName);
+
+			BroadcastCultureChanged();
+		}
+	}
+
+	return CurrentLanguage == NewCulture;
+}
+
+bool FInternationalization::SetCurrentLocale(const FString& InCultureName)
+{
+	FCulturePtr NewCulture = Implementation->GetCulture(InCultureName);
+
+	if (NewCulture.IsValid())
+	{
+		if (CurrentLocale != NewCulture)
+		{
+			CurrentLocale = NewCulture;
+
+			BroadcastCultureChanged();
+		}
+	}
+
+	return CurrentLocale == NewCulture;
+}
+
+bool FInternationalization::SetCurrentLanguageAndLocale(const FString& InCultureName)
+{
+	FCulturePtr NewCulture = Implementation->GetCulture(InCultureName);
+
+	if (NewCulture.IsValid())
+	{
+		if (CurrentLanguage != NewCulture || CurrentLocale != NewCulture)
+		{
+			CurrentLanguage = NewCulture;
+			CurrentLocale = NewCulture;
+
+			Implementation->HandleLanguageChanged(InCultureName);
+
+			BroadcastCultureChanged();
+		}
+	}
+
+	return CurrentLanguage == NewCulture && CurrentLocale == NewCulture;
+}
+
+bool FInternationalization::SetCurrentAssetGroupCulture(const FName& InAssetGroupName, const FString& InCultureName)
+{
+	FCulturePtr NewCulture = Implementation->GetCulture(InCultureName);
+
+	if (NewCulture.IsValid())
+	{
+		TTuple<FName, FCulturePtr>* EntryToUpdate = CurrentAssetGroupCultures.FindByPredicate([InAssetGroupName](const TTuple<FName, FCulturePtr>& InCurrentAssetGroupCulturePair)
+		{
+			return InCurrentAssetGroupCulturePair.Key == InAssetGroupName;
+		});
+
+		bool bChangedCulture = false;
+		if (EntryToUpdate)
+		{
+			if (EntryToUpdate->Value != NewCulture)
+			{
+				bChangedCulture = true;
+				EntryToUpdate->Value = NewCulture;
+			}
+		}
+		else
+		{
+			bChangedCulture = true;
+			CurrentAssetGroupCultures.Add(MakeTuple(InAssetGroupName, NewCulture));
+		}
+
+		if (bChangedCulture)
+		{
+			BroadcastCultureChanged();
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+FCultureRef FInternationalization::GetCurrentAssetGroupCulture(const FName& InAssetGroupName) const
+{
+	for (const auto& CurrentAssetGroupCulturePair : CurrentAssetGroupCultures)
+	{
+		if (CurrentAssetGroupCulturePair.Key == InAssetGroupName)
+		{
+			return CurrentAssetGroupCulturePair.Value.ToSharedRef();
+		}
+	}
+	return GetCurrentLanguage();
+}
+
+void FInternationalization::ClearCurrentAssetGroupCulture(const FName& InAssetGroupName)
+{
+	CurrentAssetGroupCultures.RemoveAll([InAssetGroupName](const TTuple<FName, FCulturePtr>& InCurrentAssetGroupCulturePair)
+	{
+		return InCurrentAssetGroupCulturePair.Key == InAssetGroupName;
+	});
+}
+
+void FInternationalization::BackupCultureState(FCultureStateSnapshot& OutSnapshot) const
+{
+	OutSnapshot.Language = CurrentLanguage->GetName();
+	OutSnapshot.Locale = CurrentLocale->GetName();
+
+	OutSnapshot.AssetGroups.Reset(CurrentAssetGroupCultures.Num());
+	for (const auto& CurrentAssetGroupCulturePair : CurrentAssetGroupCultures)
+	{
+		OutSnapshot.AssetGroups.Add(MakeTuple(CurrentAssetGroupCulturePair.Key, CurrentAssetGroupCulturePair.Value->GetName()));
+	}
+}
+
+void FInternationalization::RestoreCultureState(const FCultureStateSnapshot& InSnapshot)
+{
+	bool bChangedCulture = false;
+
+	// Apply the language
+	if (!InSnapshot.Language.IsEmpty())
+	{
+		FCulturePtr NewCulture = Implementation->GetCulture(InSnapshot.Language);
+
+		if (NewCulture.IsValid())
+		{
+			if (CurrentLanguage != NewCulture)
+			{
+				bChangedCulture = true;
+
+				CurrentLanguage = NewCulture;
+
+				Implementation->HandleLanguageChanged(InSnapshot.Language);
+			}
+		}
+	}
+
+	// Apply the locale
+	if (!InSnapshot.Locale.IsEmpty())
+	{
+		FCulturePtr NewCulture = Implementation->GetCulture(InSnapshot.Locale);
+
+		if (NewCulture.IsValid())
+		{
+			if (CurrentLocale != NewCulture)
+			{
+				bChangedCulture = true;
+
+				CurrentLocale = NewCulture;
+			}
+		}
+	}
+
+	// Apply the asset groups
+	bChangedCulture |= CurrentAssetGroupCultures.Num() > 0;
+	CurrentAssetGroupCultures.Reset(InSnapshot.AssetGroups.Num());
+	for (const auto& AssetGroupCultureNamePair : InSnapshot.AssetGroups)
+	{
+		FCulturePtr NewCulture = Implementation->GetCulture(AssetGroupCultureNamePair.Value);
+		if (NewCulture.IsValid())
+		{
+			bChangedCulture = true;
+			CurrentAssetGroupCultures.Add(MakeTuple(AssetGroupCultureNamePair.Key, NewCulture));
+		}
+	}
+
+	if (bChangedCulture)
+	{
+		BroadcastCultureChanged();
+	}
+}
+
+FCulturePtr FInternationalization::GetCulture(const FString& InCultureName)
+{
+	return Implementation->GetCulture(InCultureName);
 }
 
 void FInternationalization::Initialize()
@@ -78,9 +276,14 @@ void FInternationalization::Initialize()
 
 void FInternationalization::Terminate()
 {
-	DefaultCulture.Reset();
+	CurrentLanguage.Reset();
+	CurrentLocale.Reset();
+	CurrentAssetGroupCultures.Reset();
+
+	DefaultLanguage.Reset();
+	DefaultLocale.Reset();
+
 	InvariantCulture.Reset();
-	CurrentCulture.Reset();
 
 	Implementation->Terminate();
 

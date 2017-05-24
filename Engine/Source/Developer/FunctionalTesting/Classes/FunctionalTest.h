@@ -256,23 +256,50 @@ public:
 	AFunctionalTest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private_subobject:
-	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 
 protected:
+	/**
+	 * Allows a test to be disabled.  If a test is disabled, it will not appear in the set of
+	 * runnable tests (after saving the map).
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Functional Testing")
 	uint32 bIsEnabled:1;
 
+	/**
+	 * If this is enabled, any warning logged while this functional test is running is treated as
+	 * an error.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Functional Testing")
 	uint32 bWarningsAsErrors:1;
 
+	/**
+	 * The author is the group or person responsible for the test.  Generally you should use a group name
+	 * like 'Editor Team' or 'Rendering Team'.  When a test fails it may not be obvious who should investigate
+	 * so this provides a associate responsible groups with tests.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Functional Testing", meta=( MultiLine="true" ))
+	FString Author;
+
+	/**
+	 * A description of the test, like what is this test trying to determine.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Functional Testing", meta=( MultiLine="true" ))
 	FString Description;
 
+	/**
+	 * Allows you to specify another actor to view the test from.  Usually this is a camera you place
+	 * in the map to observe the test.  Not useful when running on a build farm, but provides a handy
+	 * way to observe the test from a different location than you place the functional test actor.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Functional Testing")
 	AActor* ObservationPoint;
 
+	/**
+	 * A random number stream that you can use during testing.  This number stream will be consistent
+	 * every time the test is run.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Functional Testing", AdvancedDisplay)
 	FRandomStream RandomNumbersStream;
 
@@ -577,7 +604,9 @@ public:
 	float TotalTime;
 
 	uint32 RunFrame;
+
 	uint32 StartFrame;
+	float StartTime;
 
 private:
 	bool bIsReady;

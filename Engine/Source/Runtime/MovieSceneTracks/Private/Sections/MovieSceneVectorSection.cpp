@@ -2,7 +2,7 @@
 
 #include "Sections/MovieSceneVectorSection.h"
 #include "UObject/StructOnScope.h"
-
+#include "SequencerObjectVersion.h"
 
 /* FMovieSceneVectorKeyStruct interface
  *****************************************************************************/
@@ -33,6 +33,8 @@ UMovieSceneVectorSection::UMovieSceneVectorSection(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 	ChannelsUsed = 0;
+
+	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
 }
 
 /* UMovieSceneSection interface

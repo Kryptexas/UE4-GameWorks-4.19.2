@@ -66,7 +66,7 @@ FString 은 검색, 변경에 다른 스트링과의 비교도 가능합니다. 
 ## 비교
 
 오버로딩된 `==` 연산자를 사용해서 두 FString 을 비교하거나, 하나의 FString 과 TCHAR*s 배열을 비교할 수 있습니다. `FString::Equals()` 메소드도 있는데, 검사 대상 
-FString 과, 비교시 대소문자를 무시할 것인지를 나타내는 `ESearchCase` 열거형을 받습니다. 대소문자 상관없는 비교를 하려는 경우 `ESearchCase::IgnoreCase` 를,
+FString 과, 비교시 대소문자를 무시할 것인지를 나타내는 `ESearchCase` Enum 을 받습니다. 대소문자 상관없는 비교를 하려는 경우 `ESearchCase::IgnoreCase` 를,
 아닌 경우 `ESearchCase::CaseSensitive` 를 사용합니다..
 
 	TestHUDString.Equals(TEXT("Test"), ESearchCase::CaseSensitive);
@@ -75,7 +75,7 @@ FString 과, 비교시 대소문자를 무시할 것인지를 나타내는 `ESea
 ## 검색
 
 FString 안에서 검색을 할 때는, 두 가지 검색 유형이 있습니다. 첫째, `FString::Contains()` 는 서브스트링을 찾은 경우 _true_ 를, 아니면 _false_ 를 반환합니다. `FString::Contains()` 의 검색 대상은 
-`FString` 거나 `TCHAR*` 의 서브스트링입니다. `ESearchCase` 열거형을 사용해서 검색시 대소문자를 무시할 것인지를 지정할 수 있습니다. 또한, `ESearchDir` 열거형을 사용해서는 
+`FString` 거나 `TCHAR*` 의 서브스트링입니다. `ESearchCase` Enum 을 사용해서 검색시 대소문자를 무시할 것인지를 지정할 수 있습니다. 또한, `ESearchDir` Enum 을 사용해서는 
 검색 방향을 지정할 수 있습니다. 검색 기본값은 대소문자 무시이며, 처음서부터 시작합니다.
 
 	TestHUDString.Contains(TEXT("Test"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
@@ -174,7 +174,7 @@ FString 은 **뷰포트** 에 출력할 수도, 디버깅 용으로 **출력 로
 	UE_LOG(LogClass, Log, TEXT("This is a testing statement. %s"), *TestHUDString);
 
 * `LogClass` 는 로그 카테고리입니다. (`OutputDevices.h` 에 `DECLARE_LOG_CATEGORY_EXTERN` 으로 설정된) 기존 카테고리를 사용할 수도, DEFINE_LOG_CATEGORY_STATIC 을 사용해서 자체적으로 정의할 수도 있습니다.
-* `Log` 는 상세도입니다. 상세도는 `ELogVerbosity` 열거형에 정의됩니다. 가능한 값은 `Fatal`, `Error`, `Warning`, `Display`, `Log`, `Verbose`, `VeryVerbose` 입니다.
+* `Log` 는 상세도입니다. 상세도는 `ELogVerbosity` Enum 에 정의됩니다. 가능한 값은 `Fatal`, `Error`, `Warning`, `Display`, `Log`, `Verbose`, `VeryVerbose` 입니다.
 * 다음 인수는 출력하고자 하는 텍스트로, 파라미터 마크업 포함입니다.
 
 [REGION:tip]

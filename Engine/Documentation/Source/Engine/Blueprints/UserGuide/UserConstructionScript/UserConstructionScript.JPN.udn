@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:コンストラクション スクリプト
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -6,6 +6,7 @@ Description:初期化を行うためにブループリントのインスタン�
 version:4.9
 Parent:Engine/Blueprints/Anatomy
 Tags:Graphs
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

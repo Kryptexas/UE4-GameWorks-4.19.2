@@ -3,6 +3,7 @@ Title:Rotation Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Rotation modules control how particles will be rotated at various points in their lives.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

@@ -13,6 +13,7 @@
 struct FMovieSceneEvaluationOperand;
 struct FMovieSceneEvaluationTrack;
 struct FMovieSceneExecutionTokens;
+struct FMovieSceneInterrogationData;
 
 
 /**
@@ -82,6 +83,17 @@ public:
 		ensureMsgf(false, TEXT("FMovieSceneTrackImplementation::Evaluate has not been implemented. Did you erroneously call EnableOverrides(CustomEvaluateFlag)?"));
 	}
 
+	/**
+	 * Interrogate this template for its output. Should not have any side effects.
+	 *
+	 * @param Context				Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
+	 * @param Container				Container to populate with the desired output from this track
+	 */
+	virtual bool Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container) const
+	{
+		return false;
+	}
+
 protected:
 
 	/**
@@ -114,8 +126,10 @@ struct FMovieSceneTrackImplementationPtr
 	FMovieSceneTrackImplementationPtr(T&& In)
 		: TInlineValue(Forward<T>(In))
 	{
+		static_assert(!TIsSame<typename TDecay<T>::Type, FMovieSceneTrackImplementation>::Value, "Direct usage of FMovieSceneTrackImplementation is prohibited.");
+
 #if WITH_EDITOR
-		checkf(T::StaticStruct() == &In.GetScriptStruct(), TEXT("%s type does not correctly override GetScriptStructImpl. Track will not serialize correctly."), *T::StaticStruct()->GetName());
+		checkf(T::StaticStruct() == &In.GetScriptStruct() && T::StaticStruct() != FMovieSceneTrackImplementation::StaticStruct(), TEXT("%s type does not correctly override GetScriptStructImpl. Track will not serialize correctly."), *T::StaticStruct()->GetName());
 #endif
 	}
 	
@@ -154,7 +168,7 @@ struct FMovieSceneTrackImplementationPtr
 	MOVIESCENE_API bool Serialize(FArchive& Ar);
 };
 
-template<> struct TStructOpsTypeTraits<FMovieSceneTrackImplementationPtr> : public TStructOpsTypeTraitsBase
+template<> struct TStructOpsTypeTraits<FMovieSceneTrackImplementationPtr> : public TStructOpsTypeTraitsBase2<FMovieSceneTrackImplementationPtr>
 {
 	enum { WithSerializer = true, WithCopy = true };
 };

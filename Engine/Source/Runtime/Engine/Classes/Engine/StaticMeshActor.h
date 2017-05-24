@@ -45,7 +45,7 @@ public:
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 	virtual void Serialize(FArchive& Ar) override;
-	virtual void PostLoad() override;
+	virtual void PostLoad() override;	
 	//~ End AActor Interface
 #endif // WITH_EDITOR	
 

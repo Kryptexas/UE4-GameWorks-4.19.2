@@ -104,16 +104,14 @@ void FMacTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 {
 	FSimpleDelegate OnUpdateShaderStandardWarning = FSimpleDelegate::CreateSP(this, &FMacTargetSettingsDetails::UpdateShaderStandardWarning);
 	
-	// Setup the supported/targeted RHI property view
-	TargetShaderFormatsDetails = MakeShareable(new FMacShaderFormatsPropertyDetails(&DetailBuilder, TEXT("TargetedRHIs"), TEXT("Targeted RHIs")));
-	TargetShaderFormatsDetails->SetOnUpdateShaderWarning(OnUpdateShaderStandardWarning);
-	TargetShaderFormatsDetails->CreateTargetShaderFormatsPropertyView();
+	ITargetPlatform* TargetPlatform = FModuleManager::GetModuleChecked<ITargetPlatformModule>("MacTargetPlatform").GetTargetPlatform();
 	
 	// Setup the supported/targeted RHI property view
-	CachedShaderFormatsDetails = MakeShareable(new FMacShaderFormatsPropertyDetails(&DetailBuilder, TEXT("CachedShaderFormats"), TEXT("Cached Shader Formats")));
-	CachedShaderFormatsDetails->CreateTargetShaderFormatsPropertyView();
-    
-    // Setup the shader version property view
+	TargetShaderFormatsDetails = MakeShareable(new FShaderFormatsPropertyDetails(&DetailBuilder, TEXT("TargetedRHIs"), TEXT("Targeted RHIs")));
+	TargetShaderFormatsDetails->SetOnUpdateShaderWarning(OnUpdateShaderStandardWarning);
+	TargetShaderFormatsDetails->CreateTargetShaderFormatsPropertyView(TargetPlatform);
+	
+	// Setup the shader version property view
     // Handle max. shader version a little specially.
     {
         IDetailCategoryBuilder& RenderCategory = DetailBuilder.EditCategory(TEXT("Rendering"));
@@ -292,7 +290,7 @@ TSharedRef<SWidget> FMacTargetSettingsDetails::OnGetShaderVersionContent()
 		if (Enum->IsValidEnumValue(i))
 		{
 			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FMacTargetSettingsDetails::SetShaderStandard, i));
-			MenuBuilder.AddMenuEntry(Enum->GetEnumTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
+			MenuBuilder.AddMenuEntry(Enum->GetDisplayNameTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
 		}
 	}
 	
@@ -308,7 +306,7 @@ FText FMacTargetSettingsDetails::GetShaderVersionDesc() const
 	
 	if (EnumValue < Enum->GetMaxEnumValue() && Enum->IsValidEnumValue(EnumValue))
 	{
-		return Enum->GetEnumTextByValue(EnumValue);
+		return Enum->GetDisplayNameTextByValue(EnumValue);
 	}
 	
 	return FText::GetEmpty();
@@ -335,126 +333,6 @@ void FMacTargetSettingsDetails::UpdateShaderStandardWarning()
 	uint8 EnumValue;
 	ShaderVersionPropertyHandle->GetValue(EnumValue);
 	SetShaderStandard(EnumValue);
-}
-
-FText GetFriendlyNameFromRHINameMac(const FString& InRHIName)
-{
-	FText FriendlyRHIName = LOCTEXT("UnknownRHI", "UnknownRHI");
-	if (InRHIName == TEXT("GLSL_150_MAC"))
-	{
-		FriendlyRHIName = LOCTEXT("OpenGL3", "OpenGL 3 (SM4, Deprecated)");
-	}
-	else if (InRHIName == TEXT("SF_METAL_MACES3_1"))
-	{
-		FriendlyRHIName = LOCTEXT("MetalES3.1", "Metal (ES3.1, Mobile Preview)");
-	}
-	else if (InRHIName == TEXT("SF_METAL_SM4"))
-	{
-		FriendlyRHIName = LOCTEXT("MetalSM4", "Metal (SM4, OS X El Capitan 10.11.4 or later)");
-	}
-	else if (InRHIName == TEXT("SF_METAL_SM5"))
-	{
-		FriendlyRHIName = LOCTEXT("MetalSM5", "Metal (SM5, OS X El Capitan 10.11.5 or later)");
-	}
-	
-	return FriendlyRHIName;
-}
-
-FMacShaderFormatsPropertyDetails::FMacShaderFormatsPropertyDetails(IDetailLayoutBuilder* InDetailBuilder, FString InProperty, FString InTitle)
-: DetailBuilder(InDetailBuilder)
-, Property(InProperty)
-, Title(InTitle)
-{
-	ShaderFormatsPropertyHandle = DetailBuilder->GetProperty(*Property);
-	ensure(ShaderFormatsPropertyHandle.IsValid());
-}
-
-void FMacShaderFormatsPropertyDetails::SetOnUpdateShaderWarning(FSimpleDelegate const& Delegate)
-{
-	ShaderFormatsPropertyHandle->SetOnPropertyValueChanged(Delegate);
-}
-
-void FMacShaderFormatsPropertyDetails::CreateTargetShaderFormatsPropertyView()
-{
-	DetailBuilder->HideProperty(ShaderFormatsPropertyHandle);
-	
-	// List of supported RHI's and selected targets
-	ITargetPlatform* TargetPlatform = FModuleManager::GetModuleChecked<ITargetPlatformModule>("MacTargetPlatform").GetTargetPlatform();
-	TArray<FName> ShaderFormats;
-	TargetPlatform->GetAllPossibleShaderFormats(ShaderFormats);
-	
-	IDetailCategoryBuilder& TargetedRHICategoryBuilder = DetailBuilder->EditCategory(*Title);
-	
-	for (const FName& ShaderFormat : ShaderFormats)
-	{
-		FText FriendlyShaderFormatName = GetFriendlyNameFromRHINameMac(ShaderFormat.ToString());
-		
-		FDetailWidgetRow& TargetedRHIWidgetRow = TargetedRHICategoryBuilder.AddCustomRow(FriendlyShaderFormatName);
-		
-		TargetedRHIWidgetRow
-		.NameContent()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.Padding(FMargin(0, 1, 0, 1))
-			.FillWidth(1.0f)
-			[
-				SNew(STextBlock)
-				.Text(FriendlyShaderFormatName)
-				.Font(DetailBuilder->GetDetailFont())
-			 ]
-		 ]
-		.ValueContent()
-		[
-			SNew(SCheckBox)
-			.OnCheckStateChanged(this, &FMacShaderFormatsPropertyDetails::OnTargetedRHIChanged, ShaderFormat)
-			.IsChecked(this, &FMacShaderFormatsPropertyDetails::IsTargetedRHIChecked, ShaderFormat)
-		 ];
-	}
-}
-
-
-void FMacShaderFormatsPropertyDetails::OnTargetedRHIChanged(ECheckBoxState InNewValue, FName InRHIName)
-{
-	TArray<void*> RawPtrs;
-	ShaderFormatsPropertyHandle->AccessRawData(RawPtrs);
-	
-	// Update the CVars with the selection
-	{
-		ShaderFormatsPropertyHandle->NotifyPreChange();
-		for (void* RawPtr : RawPtrs)
-		{
-			TArray<FString>& Array = *(TArray<FString>*)RawPtr;
-			if(InNewValue == ECheckBoxState::Checked)
-			{
-				Array.Add(InRHIName.ToString());
-			}
-			else
-			{
-				Array.Remove(InRHIName.ToString());
-			}
-		}
-		ShaderFormatsPropertyHandle->NotifyPostChange();
-	}
-}
-
-
-ECheckBoxState FMacShaderFormatsPropertyDetails::IsTargetedRHIChecked(FName InRHIName) const
-{
-	ECheckBoxState CheckState = ECheckBoxState::Unchecked;
-	
-	TArray<void*> RawPtrs;
-	ShaderFormatsPropertyHandle->AccessRawData(RawPtrs);
-	
-	for(void* RawPtr : RawPtrs)
-	{
-		TArray<FString>& Array = *(TArray<FString>*)RawPtr;
-		if(Array.Contains(InRHIName.ToString()))
-		{
-			CheckState = ECheckBoxState::Checked;
-		}
-	}
-	return CheckState;
 }
 
 #undef LOCTEXT_NAMESPACE

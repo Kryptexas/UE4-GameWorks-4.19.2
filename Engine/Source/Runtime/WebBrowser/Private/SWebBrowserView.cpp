@@ -173,6 +173,10 @@ void SWebBrowserView::Construct(const FArguments& InArgs, const TSharedPtr<IWebB
 		BrowserWindow->OnDismissAllDialogs().BindSP(this, &SWebBrowserView::HandleDismissAllDialogs);
 		BrowserWindow->OnShowPopup().AddSP(this, &SWebBrowserView::HandleShowPopup);
 		BrowserWindow->OnDismissPopup().AddSP(this, &SWebBrowserView::HandleDismissPopup);
+
+		BrowserWindow->OnSuppressContextMenu().BindSP(this, &SWebBrowserView::HandleSuppressContextMenu);
+		OnSuppressContextMenu = InArgs._OnSuppressContextMenu;
+
 		BrowserViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow));
 #if WITH_CEF3
 		BrowserWidget->SetViewportInterface(BrowserViewport.ToSharedRef());
@@ -569,5 +573,14 @@ void SWebBrowserView::HandleDismissPopup()
 	}
 }
 
+bool SWebBrowserView::HandleSuppressContextMenu()
+{
+	if (OnSuppressContextMenu.IsBound())
+	{
+		return OnSuppressContextMenu.Execute();
+	}
+
+	return false;
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -16,6 +16,7 @@
 #include "Engine/MapBuildDataRegistry.h"
 #include "Components/LightComponent.h"
 #include "ShadowMap.h"
+#include "Engine/StaticMesh.h"
 
 /**
  * Creates a static lighting vertex to represent the given static mesh vertex.
@@ -303,7 +304,7 @@ void UStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& O
 		GetLightMapResolution( BaseLightMapWidth, BaseLightMapHeight );
 
 		TArray<FStaticMeshStaticLightingMesh*> StaticLightingMeshes;
-		bool bCanLODsShareStaticLighting = StaticMesh_CanLODsShareStaticLighting(GetStaticMesh());
+		bool bCanLODsShareStaticLighting = GetStaticMesh()->CanLODsShareStaticLighting();
 		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : GetStaticMesh()->RenderData->LODResources.Num();
 		for(int32 LODIndex = 0;LODIndex < NumLODs;LODIndex++)
 		{

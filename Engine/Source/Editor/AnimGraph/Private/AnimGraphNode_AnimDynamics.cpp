@@ -192,16 +192,15 @@ void UAnimGraphNode_AnimDynamics::Draw(FPrimitiveDrawInterface* PDI, USkeletalMe
 	}
 }
 
-void UAnimGraphNode_AnimDynamics::GetOnScreenDebugInfo(TArray<FText>& DebugInfo, USkeletalMeshComponent* PreviewSkelMeshComp) const
+void UAnimGraphNode_AnimDynamics::GetOnScreenDebugInfo(TArray<FText>& DebugInfo, FAnimNode_Base* RuntimeAnimNode, USkeletalMeshComponent* PreviewSkelMeshComp) const
 {
-
-	FAnimNode_AnimDynamics* ActivePreviewNode = GetPreviewDynamicsNode();
-	if(ActivePreviewNode)
+	if(RuntimeAnimNode)
 	{
-		int32 NumBones = ActivePreviewNode->GetNumBoundBones();
+		FAnimNode_AnimDynamics* PreviewNode = static_cast<FAnimNode_AnimDynamics*>(RuntimeAnimNode);
+		int32 NumBones = PreviewNode->GetNumBoundBones();
 		for(int32 ChainBoneIndex = 0; ChainBoneIndex < NumBones; ++ChainBoneIndex)
 		{
-			if(const FBoneReference* BoneRef = ActivePreviewNode->GetBoundBoneReference(ChainBoneIndex))
+			if(const FBoneReference* BoneRef = PreviewNode->GetBoundBoneReference(ChainBoneIndex))
 			{
 				const int32 SkelBoneIndex = PreviewSkelMeshComp->GetBoneIndex(BoneRef->BoneName);
 				if(SkelBoneIndex != INDEX_NONE)

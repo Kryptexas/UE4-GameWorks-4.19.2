@@ -119,7 +119,7 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 
 	// when writing, write a zero here for now.  will come back and fill it in later.
 	uint32 RecastNavMeshSizeBytes = 0;
-	int32 RecastNavMeshSizePos = Ar.Tell();
+	int64 RecastNavMeshSizePos = Ar.Tell();
 	Ar << RecastNavMeshSizeBytes;
 
 	if (Ar.IsLoading())
@@ -228,6 +228,7 @@ ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
 	, bMarkLowHeightAreas(false)
 	, bStoreEmptyTileLayers(false)
 	, bUseVirtualFilters(true)
+	, bAllowNavLinkAsPathEnd(false)
 	, TileSetUpdateInterval(1.0f)
 	, NavMeshVersion(NAVMESHVER_LATEST)	
 	, RecastNavMeshImpl(NULL)
@@ -707,7 +708,7 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 	
 	// when writing, write a zero here for now.  will come back and fill it in later.
 	uint32 RecastNavMeshSizeBytes = 0;
-	int32 RecastNavMeshSizePos = Ar.Tell();
+	int64 RecastNavMeshSizePos = Ar.Tell();
 	{
 #if WITH_EDITOR
 		FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
@@ -748,7 +749,7 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 
 		if (Ar.IsSaving())
 		{
-			int32 CurPos = Ar.Tell();
+			int64 CurPos = Ar.Tell();
 			RecastNavMeshSizeBytes = CurPos - RecastNavMeshSizePos;
 			Ar.Seek(RecastNavMeshSizePos);
 			Ar << RecastNavMeshSizeBytes;
@@ -1141,7 +1142,14 @@ void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workl
 		for (int32 Idx = 0; Idx < Workload.Num(); Idx++)
 		{
 			FVector RcPoint = Unreal2RecastPoint(Workload[Idx].Point);
-			NavQuery.findNearestPoly(&RcPoint.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint);
+			if (Workload[Idx].bHintProjection2D)
+			{
+				NavQuery.findNearestPoly2D(&RcPoint.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint);
+			}
+			else
+			{
+				NavQuery.findNearestPoly(&RcPoint.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint);
+			}
 
 			// one last step required due to recast's BVTree imprecision
 			if (PolyRef > 0)
@@ -1183,7 +1191,14 @@ void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workl
 			const FVector RcExtent = Unreal2RecastPoint(ModifiedExtent).GetAbs();
 			const FVector RcBoxCenter = Unreal2RecastPoint(Work.ProjectionLimit.GetCenter());
 
-			NavQuery.findNearestPoly(&RcBoxCenter.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint, &RcReferencePoint.X);
+			if (Work.bHintProjection2D)
+			{
+				NavQuery.findNearestPoly2D(&RcBoxCenter.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint, &RcReferencePoint.X);
+			}
+			else
+			{
+				NavQuery.findNearestPoly(&RcBoxCenter.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint, &RcReferencePoint.X);
+			}
 
 			// one last step required due to recast's BVTree imprecision
 			if (PolyRef > 0)
@@ -1442,8 +1457,9 @@ uint32 ARecastNavMesh::GetPolyAreaID(NavNodeRef PolyID) const
 	return AreaID;
 }
 
-void ARecastNavMesh::SetPolyArea(NavNodeRef PolyID, TSubclassOf<UNavArea> AreaClass)
+bool ARecastNavMesh::SetPolyArea(NavNodeRef PolyID, TSubclassOf<UNavArea> AreaClass)
 {
+	bool bSuccess = false;
 	if (AreaClass && RecastNavMeshImpl)
 	{
 		dtNavMesh* NavMesh = RecastNavMeshImpl->GetRecastMesh();
@@ -1452,10 +1468,12 @@ void ARecastNavMesh::SetPolyArea(NavNodeRef PolyID, TSubclassOf<UNavArea> AreaCl
 		
 		if (AreaId != INDEX_NONE && NavMesh)
 		{
-			NavMesh->setPolyArea(PolyID, AreaId);
-			NavMesh->setPolyFlags(PolyID, AreaId);
+			// @todo implement a single detour function that would do both
+			bSuccess = dtStatusSucceed(NavMesh->setPolyArea(PolyID, AreaId));
+			bSuccess = (bSuccess && dtStatusSucceed(NavMesh->setPolyFlags(PolyID, AreaId)));
 		}
 	}
+	return bSuccess;
 }
 
 void ARecastNavMesh::SetPolyArrayArea(const TArray<FNavPoly>& Polys, TSubclassOf<UNavArea> AreaClass)
@@ -1665,6 +1683,11 @@ void ARecastNavMesh::DrawDebugPathCorridor(NavNodeRef const* PathPolys, int32 Nu
 		}
 	}
 #endif // ENABLE_DRAW_DEBUG
+}
+
+void ARecastNavMesh::OnNavMeshTilesUpdated(const TArray<uint32>& ChangedTiles)
+{
+	InvalidateAffectedPaths(ChangedTiles);
 }
 
 void ARecastNavMesh::InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles)

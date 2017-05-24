@@ -1,57 +1,23 @@
-﻿INTSourceChangeList:3124689
-availability:docs
+﻿INTSourceChangelist:3264165
+availability:Public
 title:ブループリントとレンダー ターゲット - 操作ガイド
-description:ブループリントの使用方法およびレンダー ターゲットの操作方法 
-crumbs:
+description:ブループリント使用方法およびレンダー ターゲットの操作方法 
+crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
-Type:topic
-SkillLevel:Intermediate
-parent:Engine
-order:2
-Navigation:topic
+Type:how-to
+parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
+Navigation:landing
+tags:Render Targets
+tags:Blueprints
+topic-image:Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png
 
-**ブループリントとレンダー ターゲット - 操作ガイド** では、アンリアル エンジン 4 (UE4) プロジェクトでブループリントとレンダー ターゲットの使用方法をステップごとにサンプルを使って説明します。リファレンスのリンク先も追加情報として掲載しています。
+**ブループリントとレンダー ターゲット - 操作ガイド** では、アンリアル エンジン 4 (UE4) プロジェクトでブループリントとレンダー ターゲットの使用方法をサンプルを使ってステップごとに説明します。 
+<!--リファレンスのリンク先も追加情報として掲載しています。-->
 
 ## 中級者向け
-[REGION:wrapper transparent]
-[](FANCY:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\CreatingTextures "%Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\CreatingTextures:description%")
-[](FANCY:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter "%Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter:description%")
-[/REGION]
 
+[DIR(output:"fancy" parent:"Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo" skill_level:"Intermediate")]
 
 ## 上級者向け
-[REGION:wrapper transparent]
 
-[](FANCY:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface "%Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface:description%")
-[/REGION]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[DIR(output:"fancy" parent:"Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo" skill_level:"Advanced")]

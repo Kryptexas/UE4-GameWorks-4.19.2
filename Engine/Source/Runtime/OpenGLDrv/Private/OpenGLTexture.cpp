@@ -365,7 +365,7 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 			glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
 		}
 		
-		TextureMipLimits.Add(TextureID, TPairInitializer<GLenum, GLenum>(0, NumMips - 1));
+		TextureMipLimits.Add(TextureID, TPair<GLenum, GLenum>(0, NumMips - 1));
 		
 		if (FOpenGL::SupportsTextureSwizzle() && GLFormat.bBGRA && !(Flags & TexCreate_RenderTargetable))
 		{
@@ -531,6 +531,8 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 					}
 				}
 			}
+
+			BulkData->Discard();
 		}
 	}
 	else
@@ -1517,7 +1519,7 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 	glTexParameteri(Target, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
 	
-	TextureMipLimits.Add(TextureID, TPairInitializer<GLenum, GLenum>(0, NumMips - 1));
+	TextureMipLimits.Add(TextureID, TPair<GLenum, GLenum>(0, NumMips - 1));
 
 	const bool bSRGB = (Flags&TexCreate_SRGB) != 0;
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
@@ -1558,6 +1560,8 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 			uint32 SysMemSlicePitch =  FMath::Max<uint32>(1,SizeY >> MipIndex) * SysMemPitch;
 			MipOffset               += SizeZ * SysMemSlicePitch;
 		}
+
+		Info.BulkData->Discard();
 	}
 	
 	// Determine the attachment point for the texture.	
@@ -1629,7 +1633,7 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 	glTexParameteri(Target, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(Target, GL_TEXTURE_MAX_LEVEL, NumMips - 1);
 	
-	TextureMipLimits.Add(TextureID, TPairInitializer<GLenum, GLenum>(0, NumMips - 1));
+	TextureMipLimits.Add(TextureID, TPair<GLenum, GLenum>(0, NumMips - 1));
 
 	const bool bSRGB = (Flags&TexCreate_SRGB) != 0;
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
@@ -1668,6 +1672,8 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 			uint32 SysMemSlicePitch =  FMath::Max<uint32>(1,SizeY >> MipIndex) * SysMemPitch;
 			MipOffset               += FMath::Max<uint32>(1,SizeZ >> MipIndex) * SysMemSlicePitch;
 		}
+
+		CreateInfo.BulkData->Discard();
 	}
 	
 	// Determine the attachment point for the texture.	
@@ -1924,7 +1930,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 		const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[TextureCube->GetFormat()];
 		const bool bSRGB = (TextureCube->GetFlags()&TexCreate_SRGB) != 0;
 		
-		FOpenGL::TextureView( Resource, TextureCube->Target, TextureCube->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, 1, 0, 1);
+		FOpenGL::TextureView( Resource, TextureCube->Target, TextureCube->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, 1, 0, 6);
 		
 		View = new FOpenGLShaderResourceView(this, Resource, TextureCube->Target, MipLevel, true);
 	}

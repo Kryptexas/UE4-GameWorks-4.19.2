@@ -12,17 +12,87 @@
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
+#include "EnvironmentQuery/Generators/EnvQueryGenerator_Composite.h"
 #include "AISystem.h"
 
 //----------------------------------------------------------------------//
-// FEQSQueryDebugData
+// FEnvQueryDebugData
 //----------------------------------------------------------------------//
 
-void FEQSQueryDebugData::Store(const FEnvQueryInstance* QueryInstance)
+void FEnvQueryDebugData::Store(const FEnvQueryInstance& QueryInstance, const float ExecutionTime, const bool bStepDone)
 {
-	DebugItemDetails = QueryInstance->ItemDetails;
-	DebugItems = QueryInstance->Items;
-	RawData = QueryInstance->RawData;
+#if USE_EQS_DEBUGGER
+	const int32 NumGenerators = OptionData[QueryInstance.OptionIndex].NumGenerators;
+	const int32 StepIdx = (QueryInstance.CurrentTest + NumGenerators);
+	OptionStats[QueryInstance.OptionIndex].StepData[StepIdx].ExecutionTime += ExecutionTime;
+
+	if (bStepDone)
+	{
+		DebugItemDetails = QueryInstance.ItemDetails;
+		DebugItems = QueryInstance.Items;
+		RawData = QueryInstance.RawData;
+
+		OptionStats[QueryInstance.OptionIndex].StepData[StepIdx].NumProcessedItems = QueryInstance.NumProcessedItems;
+	}
+#endif // USE_EQS_DEBUGGER
+}
+
+void FEnvQueryDebugData::PrepareOption(const FEnvQueryInstance& QueryInstance, const TArray<UEnvQueryGenerator*>& Generators, const int32 NumTests)
+{
+#if USE_EQS_DEBUGGER
+	const int32 NumGenerators = FMath::Max(Generators.Num(), 1);
+	const int32 NumSteps = NumGenerators + NumTests;
+
+	OptionStats.AddDefaulted(1);
+	OptionStats.Last().StepData.AddZeroed(NumSteps);
+	OptionStats.Last().NumRuns = 1;
+
+	OptionData[QueryInstance.OptionIndex].NumGenerators = NumGenerators;
+
+	// fill in generator names only when Generators array was provided (composite generator), usually it won't be
+	for (int32 Idx = 0; Idx < Generators.Num(); Idx++)
+	{
+		check(Generators[Idx]);
+		OptionData[QueryInstance.OptionIndex].GeneratorNames.Add(Generators[Idx]->GetFName());
+	}
+
+	DebugItems.Reset();
+	DebugItemDetails.Reset();
+	RawData.Reset();
+	PerformedTestNames.Reset();
+	bSingleItemResult = false;
+#endif // USE_EQS_DEBUGGER
+}
+
+void FEnvQueryDebugProfileData::Add(const FEnvQueryDebugProfileData& Other)
+{
+	if (Other.OptionStats.Num() > OptionStats.Num())
+	{
+		OptionStats.AddDefaulted(Other.OptionStats.Num() - OptionStats.Num());
+	}
+
+	for (int32 OptionIdx = 0; OptionIdx < Other.OptionStats.Num(); OptionIdx++)
+	{
+		const FOptionStat& OtherStat = Other.OptionStats[OptionIdx];
+		FOptionStat& OptionStat = OptionStats[OptionIdx];
+
+		if (OptionStat.StepData.Num() < OtherStat.StepData.Num())
+		{
+			OptionStat.StepData.AddZeroed(OtherStat.StepData.Num() - OptionStat.StepData.Num());
+		}
+
+		OptionStat.NumRuns += OtherStat.NumRuns;
+		for (int32 StepIdx = 0; StepIdx < OtherStat.StepData.Num(); StepIdx++)
+		{
+			OptionStat.StepData[StepIdx].ExecutionTime += OtherStat.StepData[StepIdx].ExecutionTime;
+			OptionStat.StepData[StepIdx].NumProcessedItems += OtherStat.StepData[StepIdx].NumProcessedItems;
+		}
+	}
+
+	if (Other.OptionData.Num() > OptionData.Num())
+	{
+		OptionData = Other.OptionData;
+	}
 }
 
 //----------------------------------------------------------------------//
@@ -188,7 +258,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<AActor*>& Data)
 	return Data.Num() > 0;
 }
 
-void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
+void FEnvQueryInstance::ExecuteOneStep(float TimeLimit)
 {
 	if (!Owner.IsValid())
 	{
@@ -208,27 +278,81 @@ void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
 	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_ExecuteOneStep);
 
 	FEnvQueryOptionInstance& OptionItem = Options[OptionIndex];
-	const double StepStartTime = FPlatformTime::Seconds();
+	double StepStartTime = FPlatformTime::Seconds();
 
 	const bool bDoingLastTest = (CurrentTest >= OptionItem.Tests.Num() - 1);
 	bool bStepDone = true;
-	CurrentStepTimeLimit = InCurrentStepTimeLimit;
+	CurrentStepTimeLimit = TimeLimit;
 
 	if (CurrentTest < 0)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime);
 		DEC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
 
-		TotalExecutionTime = 0.0;
-		GenerationExecutionTime = 0.0;
-		PerStepExecutionTime.Empty(OptionItem.Tests.Num());
-		PerStepExecutionTime.AddZeroed(OptionItem.Tests.Num());
 		RawData.Reset();
 		Items.Reset();
 		ItemType = OptionItem.ItemType;
 		bPassOnSingleResult = false;
 		ValueSize = (ItemType->GetDefaultObject<UEnvQueryItemType>())->GetValueSize();
-		
+
+		bool bRunGenerator = true;
+#if USE_EQS_DEBUGGER
+		int32 LastValidItems = 0;
+		if (bStoreDebugInfo)
+		{
+			UEnvQueryGenerator_Composite* CompositeGen = Cast<UEnvQueryGenerator_Composite>(OptionItem.Generator);
+			TArray<UEnvQueryGenerator*> GeneratorList;
+
+			if (CompositeGen)
+			{
+				// resolve nested composites while on it
+				GeneratorList.Append(CompositeGen->Generators);
+				for (int32 InnerIdx = 0; InnerIdx < GeneratorList.Num(); InnerIdx++)
+				{
+					UEnvQueryGenerator_Composite* InnerCompositeGen = Cast<UEnvQueryGenerator_Composite>(GeneratorList[InnerIdx]);
+					if (InnerCompositeGen)
+					{
+						GeneratorList.Append(InnerCompositeGen->Generators);
+						GeneratorList.RemoveAt(InnerIdx, 1, false);
+						InnerIdx--;
+					}
+				}
+			}
+
+			DebugData.PrepareOption(*this, GeneratorList, OptionItem.Tests.Num());
+
+			// special case for composite generator: run each inner generator separately and record times
+			if (GeneratorList.Num())
+			{
+				bRunGenerator = false;
+
+				for (int32 GeneratorIdx = 0; GeneratorIdx < GeneratorList.Num() - 1; GeneratorIdx++)
+				{
+					{
+						FScopeCycleCounterUObject GeneratorScope(GeneratorList[GeneratorIdx]);
+						GeneratorList[GeneratorIdx]->GenerateItems(*this);
+					}
+
+					const double GenTime = FPlatformTime::Seconds();
+					const float StepExecutionTime = GenTime - StepStartTime;
+					TotalExecutionTime += StepExecutionTime;
+					StartTime = GenTime;
+					NumProcessedItems = Items.Num() - LastValidItems;
+					LastValidItems = Items.Num();
+
+					DebugData.Store(*this, StepExecutionTime, false);
+					NumProcessedItems = 0;
+				}
+
+				{
+					FScopeCycleCounterUObject GeneratorScope(GeneratorList.Last());
+					GeneratorList.Last()->GenerateItems(*this);
+				}
+			}
+		}
+#endif // USE_EQS_DEBUGGER
+
+		if (bRunGenerator)
 		{
 			FScopeCycleCounterUObject GeneratorScope(OptionItem.Generator);
 			OptionItem.Generator->GenerateItems(*this);
@@ -236,8 +360,9 @@ void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
 
 		FinalizeGeneration();
 
-		GenerationExecutionTime = FPlatformTime::Seconds() - StepStartTime;
-		TotalExecutionTime += GenerationExecutionTime;
+#if USE_EQS_DEBUGGER
+		NumProcessedItems = Items.Num() - LastValidItems;
+#endif // USE_EQS_DEBUGGER
 	}
 	else if (OptionItem.Tests.IsValidIndex(CurrentTest))
 	{
@@ -283,33 +408,34 @@ void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
 		{
 			FinalizeTest();
 		}
-
-		const double StepTime = (FPlatformTime::Seconds() - StepStartTime);
-		PerStepExecutionTime[CurrentTest] += StepTime;
-		TotalExecutionTime += StepTime;
 	}
 	else
 	{
 		UE_LOG(LogEQS, Warning, TEXT("Query [%s] is trying to execute non existing test! [option:%d test:%d]"), 
 			*QueryName, OptionIndex, CurrentTest);
 	}
+
+	const float StepExecutionTime = FPlatformTime::Seconds() - StepStartTime;
+	TotalExecutionTime += StepExecutionTime;
+
+#if USE_EQS_DEBUGGER
+	if (bStoreDebugInfo)
+	{
+		DebugData.Store(*this, StepExecutionTime, bStepDone);
+	}
+#endif // USE_EQS_DEBUGGER
 	
 	if (bStepDone)
 	{
-#if USE_EQS_DEBUGGER
-		if (bStoreDebugInfo)
-		{
-			DebugData.Store(this);
-		}
-#endif // USE_EQS_DEBUGGER
-
 		CurrentTest++;
 		CurrentTestStartingItem = 0;
+#if USE_EQS_DEBUGGER
+		NumProcessedItems = 0;
+#endif // USE_EQS_DEBUGGER
 	}
 
 	// sort results or switch to next option when all tests are performed
-	if (IsFinished() == false &&
-		(OptionItem.Tests.Num() == CurrentTest || NumValidItems <= 0))
+	if (IsFinished() == false && (OptionItem.Tests.Num() == CurrentTest || NumValidItems <= 0))
 	{
 		if (NumValidItems > 0)
 		{
@@ -326,15 +452,8 @@ void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
 			}
 			else
 			{
-				// not doing it always for debugging purposes
 				OptionIndex++;
 				CurrentTest = -1;
-#if USE_EQS_DEBUGGER
-				if (bStoreDebugInfo)
-				{
-					DebugData.Reset();
-				}
-#endif // USE_EQS_DEBUGGER
 			}
 		}
 	}
@@ -342,45 +461,44 @@ void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
 
 FString FEnvQueryInstance::GetExecutionTimeDescription() const
 {
-	FString ExecutionTimeDescription = FString::Printf(TEXT("Total Execution Time: %f - Generation Execution Time: %f"), TotalExecutionTime, GenerationExecutionTime);
+	FString Description = FString::Printf(TEXT("Total Execution Time: %.2f ms"), TotalExecutionTime * 1000.f);
 
-	if (Options.IsValidIndex(OptionIndex))
+#if USE_EQS_DEBUGGER
+	for (int32 OptionIdx = 0; OptionIdx <= OptionIndex; OptionIdx++)
 	{
-		const FEnvQueryOptionInstance& OptionItem = Options[OptionIndex];
-		const int32 LastTestToDescribe = IsFinished() ? (OptionItem.Tests.Num() - 1) : CurrentTest;
+		const FEnvQueryOptionInstance& OptionItem = Options[OptionIdx];
+		const int32 LastTestIndex = IsFinished() ? (OptionItem.Tests.Num() - 1) : CurrentTest;
+		const int32 NumGenerators = DebugData.OptionData.IsValidIndex(OptionIdx) ? DebugData.OptionData[OptionIdx].NumGenerators : 1;
 
-		if (PerStepExecutionTime.IsValidIndex(LastTestToDescribe))
+		for (int32 StepIdx = 0; StepIdx <= LastTestIndex; StepIdx++)
 		{
-			FString TestDetails;
-			for (int32 StepIndex = 0; StepIndex <= LastTestToDescribe; ++StepIndex)
+			Description += (StepIdx < NumGenerators) ? TEXT("\n  generator[") : TEXT("\n    test[");
+			Description += TTypeToString<int32>().ToString((StepIdx < NumGenerators) ? StepIdx : (StepIdx - NumGenerators));
+			Description += TEXT("]: ");
+			
+			if (DebugData.OptionStats.IsValidIndex(OptionIdx) && DebugData.OptionStats[OptionIdx].StepData.IsValidIndex(StepIdx))
 			{
-				if (PerStepExecutionTime[StepIndex] > 0.0)
-				{
-					UEnvQueryTest* Test = nullptr;
-					if (OptionItem.Tests.IsValidIndex(StepIndex))
-					{
-						Test = OptionItem.Tests[StepIndex];
-					}
-
-					TestDetails.Append(FString::Printf(TEXT("%s (Index: %d) took %f seconds"), *GetNameSafe(Test), StepIndex, PerStepExecutionTime[StepIndex]));
-
-					if (StepIndex != LastTestToDescribe)
-					{
-						TestDetails.Append(TEXT(", "));
-					}
-				}
+				Description += FString::Printf(TEXT("%.2f ms (items:%d)"),
+					DebugData.OptionStats[OptionIdx].StepData[StepIdx].ExecutionTime * 1000.0f,
+					DebugData.OptionStats[OptionIdx].StepData[StepIdx].NumProcessedItems);
+			}
+			else
+			{
+				Description += TEXT("N/A");
 			}
 
-			if (!TestDetails.IsEmpty())
-			{
-				ExecutionTimeDescription.Append(TEXT(" ("));
-				ExecutionTimeDescription.Append(TestDetails);
-				ExecutionTimeDescription.Append(TEXT(")"));
-			}
+			Description += FString::Printf(TEXT(" (%s)"), StepIdx >= NumGenerators ?
+				(OptionItem.Tests.IsValidIndex(StepIdx - NumGenerators) ? *GetNameSafe(OptionItem.Tests[StepIdx - NumGenerators]) : TEXT("unknown test!")) :
+				(DebugData.OptionData.IsValidIndex(OptionIdx) && DebugData.OptionData[OptionIdx].GeneratorNames.Num() ?
+					(DebugData.OptionData[OptionIdx].GeneratorNames.IsValidIndex(StepIdx) ? *DebugData.OptionData[OptionIdx].GeneratorNames[StepIdx].ToString() : TEXT("unknown generator!")) :
+					*GetNameSafe(OptionItem.Generator)));
 		}
 	}
+#else
+	Description += TEXT(" (detailed data not available without USE_EQS_DEBUGGER)");
+#endif // USE_EQS_DEBUGGER
 
-	return ExecutionTimeDescription;
+	return Description;
 }
 
 #if !NO_LOGGING
@@ -399,9 +517,8 @@ void FEnvQueryInstance::ReserveItemData(const int32 NumAdditionalItems)
 	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize());
 }
 
-FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex)
-	: Instance(&QueryInstance)
-	, CurrentItem(StartingItemIndex != INDEX_NONE ? StartingItemIndex : QueryInstance.CurrentTestStartingItem)
+FEnvQueryInstance::FItemIterator::FItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex)
+	: FConstItemIterator(QueryInstance, StartingItemIndex)
 {
 	check(QueryTest);
 
@@ -410,40 +527,42 @@ FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FE
 	bIsFiltering = (QueryTest->TestPurpose == EEnvTestPurpose::Filter) || (QueryTest->TestPurpose == EEnvTestPurpose::FilterAndScore);
 
 	Deadline = QueryInstance.CurrentStepTimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.CurrentStepTimeLimit) : -1.0;
-	// it's possible item 'CurrentItem' has been already discarded. Find a valid starting index
-	--CurrentItem;
-	FindNextValidIndex();
 	InitItemScore();
 }
 
-void FEnvQueryInstance::ItemIterator::HandleFailedTestResult()
+void FEnvQueryInstance::FItemIterator::HandleFailedTestResult()
 {
 	ItemScore = -1.f;
-	Instance->Items[CurrentItem].Discard();
+	Instance.Items[CurrentItem].Discard();
 #if USE_EQS_DEBUGGER
-	Instance->ItemDetails[CurrentItem].FailedTestIndex = Instance->CurrentTest;
+	Instance.ItemDetails[CurrentItem].FailedTestIndex = Instance.CurrentTest;
 #endif
-	Instance->NumValidItems--;
+	Instance.NumValidItems--;
 }
 
-void FEnvQueryInstance::ItemIterator::StoreTestResult()
+void FEnvQueryInstance::FItemIterator::StoreTestResult()
 {
 	CheckItemPassed();
 	ensureAlways(FMath::IsNaN(ItemScore) == false);
 
-	if (Instance->IsInSingleItemFinalSearch())
+#if USE_EQS_DEBUGGER
+	Instance.NumProcessedItems++;
+#endif // USE_EQS_DEBUGGER
+
+	if (Instance.IsInSingleItemFinalSearch())
 	{
 		// handle SingleResult mode
+		// this also implies we're not in 'score-only' mode
 		if (bPassed)
 		{
 			if (bForced)
 			{
 				// store item value in case it's using special "skipped" constant
-				Instance->ItemDetails[CurrentItem].TestResults[Instance->CurrentTest] = ItemScore;
+				Instance.ItemDetails[CurrentItem].TestResults[Instance.CurrentTest] = ItemScore;
 			}
 
-			Instance->PickSingleItem(CurrentItem);
-			Instance->bFoundSingleResult = true;
+			Instance.PickSingleItem(CurrentItem);
+			Instance.bFoundSingleResult = true;
 		}
 		else if (!bPassed)
 		{
@@ -452,7 +571,7 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 	}
 	else
 	{
-		if (!bPassed)
+		if (!bPassed && bIsFiltering)
 		{
 			HandleFailedTestResult();
 		}
@@ -462,7 +581,7 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 			ItemScore /= NumPassedForItem;
 		}
 
-		Instance->ItemDetails[CurrentItem].TestResults[Instance->CurrentTest] = ItemScore;
+		Instance.ItemDetails[CurrentItem].TestResults[Instance.CurrentTest] = ItemScore;
 	}
 }
 
@@ -541,7 +660,7 @@ void FEnvQueryInstance::StripRedundantData()
 #if USE_EQS_DEBUGGER
 	if (bStoreDebugInfo)
 	{
-		DebugData.Reset();
+		DebugData = FEnvQueryDebugData();
 	}
 #endif // USE_EQS_DEBUGGER
 	Items.SetNum(NumValidItems);
@@ -760,7 +879,7 @@ FBox FEnvQueryInstance::GetBoundingBox() const
 #endif // USE_EQS_DEBUGGER
 		RawData;
 
-	FBox BBox(0);
+	FBox BBox(ForceInit);
 
 	if (ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 	{

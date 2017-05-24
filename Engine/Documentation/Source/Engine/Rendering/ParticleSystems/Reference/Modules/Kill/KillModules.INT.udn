@@ -3,6 +3,7 @@ Title:Kill Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:Kill modules will kill a given particle if it meets the rules defined by specific implementations. 
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

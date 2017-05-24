@@ -5,9 +5,10 @@
 		bool UE_SendAndRecievePayLoad( char *URL, char* indata, int insize, char** outdata, int* outsize );
 
 		// SaveGame
-		bool UE_DoesSaveGameExist(const char* Name, const int UserIndex);
-		bool UE_SaveGame(const char* Name, const int UserIndex, const char* indata, int insize);
-		bool UE_LoadGame(const char* Name, const int UserIndex, char **outdata, int* outsize);
+		bool UE_SaveGame(const char* Name, const char* indata, int insize);
+		bool UE_LoadGame(const char* Name, char **outdata, int* outsize);
+		bool UE_DeleteSavedGame(const char* Name);
+		bool UE_DoesSaveGameExist(const char* Name);
 
 		// MessageBox
 		int UE_MessageBox( int MsgType, const char* Text, const char* Caption);
@@ -34,5 +35,11 @@
 
 		// GSystemResolution
 		void UE_GSystemResolution( int(*resX)(), int(*rexY)() );
+
+		void UE_EngineRegisterCanvasResizeListener(void(*listener)());
+
+		// Returns the WebGL major version number that the browser supports (e.g. 2, 1 or 0)
+		// This function can be called even before creating any GL contexts on C/C++ side.
+		int UE_BrowserWebGLVersion();
 	}
 

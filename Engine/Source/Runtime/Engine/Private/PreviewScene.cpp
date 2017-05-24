@@ -30,14 +30,14 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	PreviewWorld->InitializeNewWorld(UWorld::InitializationValues()
 										.AllowAudioPlayback(CVS.bAllowAudioPlayback)
 										.CreatePhysicsScene(CVS.bCreatePhysicsScene)
-										.RequiresHitProxies(false)
+										.RequiresHitProxies(true)
 										.CreateNavigation(false)
 										.CreateAISystem(false)
 										.ShouldSimulatePhysics(CVS.bShouldSimulatePhysics)
 										.SetTransactional(CVS.bTransactional));
 	PreviewWorld->InitializeActorsForPlay(FURL());
 
-	DirectionalLight = NewObject<UDirectionalLightComponent>(GetTransientPackage());
+	DirectionalLight = NewObject<UDirectionalLightComponent>(GetTransientPackage(), NAME_None, RF_Transient);
 	DirectionalLight->Intensity = CVS.LightBrightness;
 	DirectionalLight->LightColor = FColor::White;
 	AddComponent(DirectionalLight, FTransform(CVS.LightRotation));

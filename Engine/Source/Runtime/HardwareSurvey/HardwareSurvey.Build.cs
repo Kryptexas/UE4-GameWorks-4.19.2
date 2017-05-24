@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class HardwareSurvey : ModuleRules
 {
-	public HardwareSurvey(TargetInfo Target)
+	public HardwareSurvey(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]

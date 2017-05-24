@@ -10,7 +10,6 @@
 #include "Logging/LogMacros.h"
 #include "HAL/FileManager.h"
 #include "Misc/Parse.h"
-#include "Misc/ScopeLock.h"
 #include "Misc/Paths.h"
 #include "HAL/TlsAutoCleanup.h"
 #include "Misc/App.h"
@@ -22,6 +21,9 @@
 #include "MallocProfiler.h"
 #include "ModuleManager.h"
 #include "MemoryMisc.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/ConfigCacheIni.h"
 
 
 CORE_API FMallocProfiler* GMallocProfiler;
@@ -673,9 +675,18 @@ void FMallocProfiler::EndProfiling()
 		WriteAdditionalSnapshotMemoryStats();
 
 #if SERIALIZE_SYMBOL_INFO
+		double LastTimeUpdatedOnProgress = FPlatformTime::Seconds();
+		double kProgressUpdateIntervalSeconds = 60;
 		// Look up symbols on platforms supporting it at runtime.
 		for( int32 AddressIndex=0; AddressIndex<CallStackAddressInfoArray.Num(); AddressIndex++ )
 		{
+			double CurrentTime = FPlatformTime::Seconds();
+			if (UNLIKELY(CurrentTime - LastTimeUpdatedOnProgress > kProgressUpdateIntervalSeconds))
+			{
+				LastTimeUpdatedOnProgress = CurrentTime;
+				UE_LOG(LogProfilingDebugging, Log, TEXT("FMallocProfiler: %d/%d addresses symbolicated (%f%%)"), AddressIndex, CallStackAddressInfoArray.Num(), 100.0 * (double)AddressIndex / (double)CallStackAddressInfoArray.Num());
+			}
+
 			FCallStackAddressInfo&	AddressInfo = CallStackAddressInfoArray[AddressIndex];
 			// Look up symbols.
 			FProgramCounterSymbolInfo SymbolInfo;

@@ -17,7 +17,7 @@
 
 #include "IGoogleVRHMDPlugin.h"
 #include "HeadMountedDisplay.h"
-#include "IHeadMountedDisplay.h"
+#include "HeadMountedDisplayBase.h"
 #include "SceneViewExtension.h"
 #include "RHIStaticStates.h"
 #include "SceneViewport.h"
@@ -175,7 +175,7 @@ public:
 /**
  * GoogleVR Head Mounted Display
  */
-class FGoogleVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, public TSharedFromThis<FGoogleVRHMD, ESPMode::ThreadSafe>
+class FGoogleVRHMD : public FHeadMountedDisplayBase, public ISceneViewExtension, public FSelfRegisteringExec, public TSharedFromThis<FGoogleVRHMD, ESPMode::ThreadSafe>
 {
 	friend class FGoogleVRHMDCustomPresent;
 	friend class FGoogleVRSplash;
@@ -183,6 +183,12 @@ public:
 
 	FGoogleVRHMD();
 	~FGoogleVRHMD();
+
+	virtual FName GetDeviceName() const override
+	{
+		static FName DefaultName(TEXT("FGoogleVRHMD"));
+		return DefaultName;
+	}
 
 	/** @return	True if the HMD was initialized OK */
 	bool IsInitialized() const;
@@ -306,9 +312,27 @@ private:
 	/** Function get called when start loading a map*/
 	void OnPreLoadMap(const FString&);
 
+	/** Console command handlers */
+	void DistortEnableCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void DistortMethodCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void RenderTargetSizeCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void NeckModelScaleCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	void DistortMeshSizeCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void ShowSplashCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void SplashScreenDistanceCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void SplashScreenRenderScaleCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	void EnableSustainedPerformanceModeHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+
+	/**
+	Clutch to ensure that changes in r.ScreenPercentage are reflected in render target size.
+	*/
+	void CVarSinkHandler();
+#endif
 public:
 
-	// public fucntiosn for In editor distortion previews
+	// public function for In editor distortion previews
 	enum EViewerPreview
 	{
 		EVP_None				= 0,
@@ -323,7 +347,7 @@ public:
 	/** Check which viewer is being used for previewing */
 	static EViewerPreview GetPreviewViewerType();
 
-	/** Get preview viewer interpuppilary distance */
+	/** Get preview viewer interpupillary distance */
 	static float GetPreviewViewerInterpupillaryDistance();
 
 	/** Get preview viewer stereo projection matrix */
@@ -393,6 +417,23 @@ private:
 	uint32 NumVerts;
 	uint32 NumTris;
 	uint32 NumIndices;
+
+	/** Console commands */
+	FAutoConsoleCommand DistortEnableCommand;
+	FAutoConsoleCommand DistortMethodCommand;
+	FAutoConsoleCommand RenderTargetSizeCommand;
+	FAutoConsoleCommand NeckModelScaleCommand;
+
+#if GOOGLEVRHMD_SUPPORTED_PLATFORMS
+	FAutoConsoleCommand DistortMeshSizeCommand;
+	FAutoConsoleCommand ShowSplashCommand;
+	FAutoConsoleCommand SplashScreenDistanceCommand;
+	FAutoConsoleCommand SplashScreenRenderScaleCommand;
+	FAutoConsoleCommand EnableSustainedPerformanceModeCommand;
+
+	FAutoConsoleVariableSink CVarSink;
+#endif
+
 public:
 
 	//////////////////////////////////////////////////////
@@ -656,28 +697,10 @@ public:
 	virtual bool IsPositionalTrackingEnabled() const override;
 
 	/**
-	 * Tries to enable positional tracking.
-	 * Returns the actual status of positional tracking.
-	 */
-	virtual bool EnablePositionalTracking(bool enable) override;
-
-	/**
 	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
 	 * but some overrides are possible.
 	 */
 	virtual bool IsHeadTrackingAllowed() const override;
-
-	/**
-	 * Returns true, if HMD is in low persistence mode. 'false' otherwise.
-	 */
-	virtual bool IsInLowPersistenceMode() const override;
-
-	/**
-	 * Switches between low and full persistence modes.
-	 *
-	 * @param Enable			(in) 'true' to enable low persistence mode; 'false' otherwise
-	 */
-	virtual void EnableLowPersistenceMode(bool Enable = true) override;
 
 	/**
 	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction and assuming
@@ -846,13 +869,10 @@ public:
 
 	//virtual bool NeedsUpscalePostProcessPass()  { return false; }
 
-	/**
-	 * Record analytics
-	 */
-	virtual void RecordAnalytics() override;
 
 	/**
 	 * Returns version string.
 	 */
 	virtual FString GetVersionString() const override;
+
 };

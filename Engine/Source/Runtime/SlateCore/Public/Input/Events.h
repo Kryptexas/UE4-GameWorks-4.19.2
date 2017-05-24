@@ -360,7 +360,7 @@ protected:
 };
 
 template<>
-struct TStructOpsTypeTraits<FInputEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FInputEvent> : public TStructOpsTypeTraitsBase2<FInputEvent>
 {
 	enum
 	{
@@ -453,7 +453,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FKeyEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FKeyEvent> : public TStructOpsTypeTraitsBase2<FKeyEvent>
 {
 	enum
 	{
@@ -535,7 +535,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FAnalogInputEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FAnalogInputEvent> : public TStructOpsTypeTraitsBase2<FAnalogInputEvent>
 {
 	enum
 	{
@@ -587,7 +587,7 @@ private:
 
 
 template<>
-struct TStructOpsTypeTraits<FCharacterEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FCharacterEvent> : public TStructOpsTypeTraitsBase2<FCharacterEvent>
 {
 	enum
 	{
@@ -861,7 +861,7 @@ private:
 
 
 template<>
-struct TStructOpsTypeTraits<FPointerEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPointerEvent> : public TStructOpsTypeTraitsBase2<FPointerEvent>
 {
 	enum
 	{
@@ -901,7 +901,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FControllerEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FControllerEvent> : public TStructOpsTypeTraitsBase2<FControllerEvent>
 {
 	enum
 	{
@@ -979,7 +979,7 @@ private:
 
 
 template<>
-struct TStructOpsTypeTraits<FMotionEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FMotionEvent> : public TStructOpsTypeTraitsBase2<FMotionEvent>
 {
 	enum
 	{
@@ -1003,11 +1003,13 @@ public:
 	*/
 	FNavigationEvent()
 		: NavigationType(EUINavigation::Invalid)
+		, NavigationGenesis(ENavigationGenesis::User)
 	{ }
 
-	FNavigationEvent(uint32 InUserIndex, EUINavigation InNavigationType)
-		: FInputEvent(FModifierKeysState(), InUserIndex, false)
+	FNavigationEvent(const FModifierKeysState& InModifierKeys, const int32 InUserIndex, EUINavigation InNavigationType, ENavigationGenesis InNavigationGenesis)
+		: FInputEvent(InModifierKeys, InUserIndex, false)
 		, NavigationType(InNavigationType)
+		, NavigationGenesis(InNavigationGenesis)
 	{ }
 
 public:
@@ -1015,15 +1017,21 @@ public:
 	/** @return the type of navigation request (Left, Right, Up, Down) */
 	EUINavigation GetNavigationType() const { return NavigationType; }
 
+	/** @return the genesis of the navigation request (Keyboard, Controller, User) */
+	ENavigationGenesis GetNavigationGenesis() const { return NavigationGenesis; }
+
 private:
 
 	// The navigation type
 	EUINavigation NavigationType;
+
+	// The navigation genesis
+	ENavigationGenesis NavigationGenesis;
 };
 
 
 template<>
-struct TStructOpsTypeTraits<FNavigationEvent> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FNavigationEvent> : public TStructOpsTypeTraitsBase2<FNavigationEvent>
 {
 	enum
 	{

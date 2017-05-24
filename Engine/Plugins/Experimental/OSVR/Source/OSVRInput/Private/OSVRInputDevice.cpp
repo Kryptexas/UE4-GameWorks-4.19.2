@@ -297,9 +297,10 @@ void FOSVRInputDevice::EventReport(const FKey& Key, const FVector& Translation, 
 * @param DeviceHand		Which hand, within the controller set for the player, to get the orientation and position for
 * @param OutOrientation	(out) If tracked, the orientation (in calibrated-space) of the controller in the specified hand
 * @param OutPosition		(out) If tracked, the position (in calibrated-space) of the controller in the specified hand
+* @param WorldToMetersScale The world scaling factor.
 * @return					True if the device requested is valid and tracked, false otherwise
 */
-bool FOSVRInputDevice::GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const
+bool FOSVRInputDevice::GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 {
     bool bRet = false;
     if (ControllerIndex == 0)
@@ -313,9 +314,7 @@ bool FOSVRInputDevice::GetControllerOrientationAndPosition(const int32 Controlle
             OSVR_TimeValue tvalue;
             if (osvrGetPoseState(iface, &tvalue, &state) == OSVR_RETURN_SUCCESS)
             {
-                // @todo: how do we get the world to meters scale without the HMD?
-                float worldToMetersScale = mOSVRHMD.IsValid() ? mOSVRHMD->GetWorldToMetersScale() : 100.0f;
-                OutPosition = OSVR2FVector(state.translation, worldToMetersScale);
+                OutPosition = OSVR2FVector(state.translation, WorldToMetersScale);
                 OutOrientation = OSVR2FQuat(state.rotation).Rotator();
                 bRet = true;
             }

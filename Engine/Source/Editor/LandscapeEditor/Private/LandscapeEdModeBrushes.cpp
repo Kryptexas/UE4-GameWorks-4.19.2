@@ -100,11 +100,13 @@ public:
 	{
 		for (ULandscapeComponent* Component : BrushMaterialComponents)
 		{
-			if (Component && Component->EditToolRenderData)
+			if (Component)
 			{
-				Component->EditToolRenderData->Update(nullptr);
+				Component->EditToolRenderData.ToolMaterial = nullptr;
+				Component->UpdateEditToolRenderData();
 			}
 		}
+
 		TArray<UMaterialInstanceDynamic*> BrushMaterialInstances;
 		BrushMaterialInstanceMap.GenerateValueArray(BrushMaterialInstances);
 		BrushMaterialFreeInstances += BrushMaterialInstances;
@@ -148,30 +150,26 @@ public:
 		{
 			BrushMaterialFreeInstances.Push(BrushMaterialInstanceMap.FindAndRemoveChecked(RemovedComponent));
 
-			if (ensure(RemovedComponent->EditToolRenderData != nullptr))
-			{
-				RemovedComponent->EditToolRenderData->Update(nullptr);
-			}
+			RemovedComponent->EditToolRenderData.ToolMaterial = nullptr;
+			RemovedComponent->UpdateEditToolRenderData();
 		}
 
 		// Set brush material for components in new region
 		TSet<ULandscapeComponent*> AddedComponents = NewComponents.Difference(BrushMaterialComponents);
 		for (ULandscapeComponent* AddedComponent : AddedComponents)
 		{
-			if (ensure(AddedComponent->EditToolRenderData != nullptr))
+			UMaterialInstanceDynamic* BrushMaterialInstance = nullptr;
+			if (BrushMaterialFreeInstances.Num() > 0)
 			{
-				UMaterialInstanceDynamic* BrushMaterialInstance = nullptr;
-				if (BrushMaterialFreeInstances.Num() > 0)
-				{
-					BrushMaterialInstance = BrushMaterialFreeInstances.Pop();
-				}
-				else
-				{
-					BrushMaterialInstance = UMaterialInstanceDynamic::Create(BrushMaterial, nullptr);
-				}
-				BrushMaterialInstanceMap.Add(AddedComponent, BrushMaterialInstance);
-				AddedComponent->EditToolRenderData->Update(BrushMaterialInstance);
+				BrushMaterialInstance = BrushMaterialFreeInstances.Pop();
 			}
+			else
+			{
+				BrushMaterialInstance = UMaterialInstanceDynamic::Create(BrushMaterial, nullptr);
+			}
+			BrushMaterialInstanceMap.Add(AddedComponent, BrushMaterialInstance);
+			AddedComponent->EditToolRenderData.ToolMaterial = BrushMaterialInstance;
+			AddedComponent->UpdateEditToolRenderData();
 		}
 
 		BrushMaterialComponents = MoveTemp(NewComponents);
@@ -185,11 +183,12 @@ public:
 			UMaterialInstanceDynamic* const MaterialInstance = BrushMaterialInstancePair.Value;
 
 				// Painting can cause the EditToolRenderData to be destructed, so update it if necessary
-			if (!AddedComponents.Contains(Component) && ensure(Component->EditToolRenderData != nullptr))
+			if (!AddedComponents.Contains(Component))
 			{
-				if (Component->EditToolRenderData->ToolMaterial == nullptr)
+				if (Component->EditToolRenderData.ToolMaterial == nullptr)
 				{
-					Component->EditToolRenderData->Update(MaterialInstance);
+					Component->EditToolRenderData.ToolMaterial = MaterialInstance;
+					Component->UpdateEditToolRenderData();
 				}
 			}
 
@@ -376,9 +375,10 @@ public:
 	{
 		for (TSet<ULandscapeComponent*>::TIterator It(BrushMaterialComponents); It; ++It)
 		{
-			if ((*It) != nullptr && (*It)->EditToolRenderData != nullptr)
+			if ((*It) != nullptr)
 			{
-				(*It)->EditToolRenderData->Update(nullptr);
+				(*It)->EditToolRenderData.ToolMaterial = nullptr;
+				(*It)->UpdateEditToolRenderData();
 			}
 		}
 		BrushMaterialComponents.Empty();
@@ -432,10 +432,8 @@ public:
 				// Set brush material for components in new region
 				for (ULandscapeComponent* NewComponent : NewComponents)
 				{
-					if (NewComponent->EditToolRenderData != nullptr)
-					{
-						NewComponent->EditToolRenderData->Update(BrushMaterial);
-					}
+					NewComponent->EditToolRenderData.ToolMaterial = BrushMaterial;
+					NewComponent->UpdateEditToolRenderData();
 				}
 			}
 		}
@@ -444,9 +442,10 @@ public:
 		TSet<ULandscapeComponent*> RemovedComponents = BrushMaterialComponents.Difference(NewComponents);
 		for (ULandscapeComponent* RemovedComponent : RemovedComponents)
 		{
-			if (RemovedComponent != nullptr && RemovedComponent->EditToolRenderData != nullptr)
+			if (RemovedComponent != nullptr)
 			{
-				RemovedComponent->EditToolRenderData->Update(nullptr);
+				RemovedComponent->EditToolRenderData.ToolMaterial = nullptr;
+				RemovedComponent->UpdateEditToolRenderData();
 			}
 		}
 
@@ -582,9 +581,10 @@ public:
 	{
 		for (TSet<ULandscapeComponent*>::TIterator It(BrushMaterialComponents); It; ++It)
 		{
-			if ((*It) != nullptr && (*It)->EditToolRenderData != nullptr)
+			if ((*It) != nullptr)
 			{
-				(*It)->EditToolRenderData->Update(nullptr);
+				(*It)->EditToolRenderData.ToolMaterial = nullptr;
+				(*It)->UpdateEditToolRenderData();
 			}
 		}
 		BrushMaterialComponents.Empty();
@@ -640,19 +640,18 @@ public:
 					// Set brush material for components in new region
 					for (ULandscapeComponent* NewComponent : NewComponents)
 					{
-						if (NewComponent->EditToolRenderData != nullptr)
-						{
-							NewComponent->EditToolRenderData->UpdateGizmo((Gizmo->DataType != LGT_None) && (GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo) ? BrushMaterial : nullptr);
-						}
+						NewComponent->EditToolRenderData.GizmoMaterial = ((Gizmo->DataType != LGT_None) && (GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo) ? BrushMaterial : nullptr);
+						NewComponent->UpdateEditToolRenderData();
 					}
 
 					// Remove the material from any old components that are no longer in the region
 					TSet<ULandscapeComponent*> RemovedComponents = BrushMaterialComponents.Difference(NewComponents);
 					for (ULandscapeComponent* RemovedComponent : RemovedComponents)
 					{
-						if (RemovedComponent != nullptr && RemovedComponent->EditToolRenderData != nullptr)
+						if (RemovedComponent != nullptr)
 						{
-							RemovedComponent->EditToolRenderData->UpdateGizmo(nullptr);
+							RemovedComponent->EditToolRenderData.GizmoMaterial = nullptr;
+							RemovedComponent->UpdateEditToolRenderData();
 						}
 					}
 

@@ -569,6 +569,14 @@
 #define SDL_GL_GetSwapInterval SDL_GL_GetSwapInterval_REAL
 #define SDL_GL_SwapWindow SDL_GL_SwapWindow_REAL
 #define SDL_GL_DeleteContext SDL_GL_DeleteContext_REAL
+
+
+#define SDL_VK_LoadLibrary SDL_VK_LoadLibrary_REAL
+#define SDL_VK_UnloadLibrary SDL_VK_UnloadLibrary_REAL
+#define SDL_VK_GetRequiredInstanceExtensions SDL_VK_GetRequiredInstanceExtensions_REAL
+#define SDL_VK_CreateSurface SDL_VK_CreateSurface_REAL
+
+
 #define SDL_vsscanf SDL_vsscanf_REAL
 #define SDL_GameControllerAddMappingsFromRW SDL_GameControllerAddMappingsFromRW_REAL
 #define SDL_GL_ResetAttributes SDL_GL_ResetAttributes_REAL

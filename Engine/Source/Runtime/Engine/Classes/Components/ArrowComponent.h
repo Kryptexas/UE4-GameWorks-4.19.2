@@ -55,14 +55,9 @@ class ENGINE_API UArrowComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ArrowComponent)
 	bool bUseInEditorScaling;	
 #endif // WITH_EDITORONLY_DATA
-	// @NOTE!!!!! please remove _NEW when we can remove all _DEPRECATED functions and create redirect in BaseEngine.INI
-	/** Updates the arrow's colour, and tells it to refresh */
-	UFUNCTION(BlueprintCallable, Category="Components|Arrow", meta=(DeprecatedFunction, DeprecationMessage = "Use new SetArrowColor"))
-	virtual void SetArrowColor_DEPRECATED(FColor NewColor);
-
 	/** Updates the arrow's colour, and tells it to refresh */
 	UFUNCTION(BlueprintCallable, DisplayName="SetArrowColor", Category="Components|Arrow")
-	virtual void SetArrowColor_New(FLinearColor NewColor);
+	virtual void SetArrowColor(FLinearColor NewColor);
 
 	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;

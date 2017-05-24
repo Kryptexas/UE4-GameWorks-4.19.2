@@ -10,44 +10,6 @@
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_TwistCorrectiveNode.generated.h"
 
-/** Axis to represent direction */
-USTRUCT()
-struct FAxis
-{
-	GENERATED_USTRUCT_BODY()
-
-	static FVector DefaultAxis;
-
-	UPROPERTY(EditAnywhere, Category = "FAxis")
-	FVector Axis;
-
-	UPROPERTY(EditAnywhere, Category = "FAxis")
-	bool bInLocalSpace;
-
-	FAxis()
-		: Axis(DefaultAxis)
-		, bInLocalSpace(true) {};
-
-	/** return transformed axis based on ComponentSpaceTransform */
-	FVector GetTransformedAxis(const FTransform& ComponentSpaceTransform) const;
-
-	/** Initialize the set up */
-	void Initialize()
-	{
-		if ( !Axis.Normalize() )
-		{
-			// if failed, set default axis
-			Axis = DefaultAxis;
-		}
-	}
-
-	/** return true if Valid data */
-	bool IsValid() const
-	{
-		return Axis.IsNormalized();
-	}
-};
-
 /** Reference Bone Frame */
 USTRUCT()
 struct FReferenceBoneFrame

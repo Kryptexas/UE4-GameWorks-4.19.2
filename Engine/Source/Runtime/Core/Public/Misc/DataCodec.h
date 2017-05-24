@@ -238,7 +238,7 @@ private:
 public:
 	bool Encode( FArchive& In, FArchive& Out )
 	{
-		int32 SavedPos = In.Tell();
+		int64 SavedPos = In.Tell();
 		int32 Total=0, i;
 
 		// Compute character frequencies.

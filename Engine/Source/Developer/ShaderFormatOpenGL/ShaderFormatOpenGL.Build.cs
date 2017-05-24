@@ -4,11 +4,13 @@ using UnrealBuildTool;
 
 public class ShaderFormatOpenGL : ModuleRules
 {
-	public ShaderFormatOpenGL(TargetInfo Target)
+	public ShaderFormatOpenGL(ReadOnlyTargetRules Target) : base(Target)
 	{
 
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
-		PrivateIncludePathModuleNames.Add("OpenGLDrv"); 
+
+		PrivateIncludePaths.Add("Runtime/OpenGLDrv/Private");
+		PrivateIncludePaths.Add("Runtime/OpenGLDrv/Public");
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

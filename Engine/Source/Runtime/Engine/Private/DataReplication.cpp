@@ -16,9 +16,13 @@
 #include "Engine/ActorChannel.h"
 #include "Engine/DemoNetDriver.h"
 
+
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );
+static TAutoConsoleVariable<int32> CVarDelayUnmappedRPCs( TEXT("net.DelayUnmappedRPCs" ), 0, TEXT( "If >0 delay received RPCs with unmapped properties" ) );
 static TAutoConsoleVariable<int32> CVarShareShadowState( TEXT( "net.ShareShadowState" ), 1, TEXT( "If true, work done to compare properties will be shared across connections" ) );
 static TAutoConsoleVariable<float> CVarMaxUpdateDelay( TEXT( "net.MaxSharedShadowStateUpdateDelayInSeconds" ), 1.0f / 4.0f, TEXT( "When a new changelist is available for a particular connection (using shared shadow state), but too much time has passed, force another compare against all the properties" ) );
+
+extern TAutoConsoleVariable<int32> CVarNetPartialBunchReliableThreshold;
 
 class FNetSerializeCB : public INetSerializeCB
 {
@@ -421,6 +425,7 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 	}
 
 	Retirement.Empty();
+	PendingLocalRPCs.Empty();
 
 	if ( RemoteFunctions != NULL )
 	{
@@ -462,7 +467,7 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 				}
 				else if ( NakPacketId >= Rec->OutPacketIdRange.First && NakPacketId <= Rec->OutPacketIdRange.Last )
 				{
-					UE_LOG(LogNet, Verbose, TEXT("Restoring Previous Base State of dynamic property Channel %d. NakId: %d  (%d -%d)"), OwningChannel->ChIndex, NakPacketId, Rec->OutPacketIdRange.First, Rec->OutPacketIdRange.Last);
+					UE_LOG(LogNet, Verbose, TEXT("Restoring Previous Base State of dynamic property. Channel: %d, NakId: %d, First: %d, Last: %d, Address: %s)"), OwningChannel->ChIndex, NakPacketId, Rec->OutPacketIdRange.First, Rec->OutPacketIdRange.Last, *Connection->LowLevelGetRemoteAddress(true));
 
 					// The Nack'd packet did update this property, so we need to replace the buffer in RecentDynamic
 					// with the buffer we used to create this update (which was dropped), so that the update will be recreated on the next replicate actor
@@ -515,6 +520,7 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 	UPackageMap * PackageMap = OwningChannel->Connection->PackageMap;
 
 	const bool bIsServer = OwningChannel->Connection->Driver->IsServer();
+	const bool bCanDelayRPCs = (CVarDelayUnmappedRPCs.GetValueOnGameThread() > 0) && !bIsServer;
 
 	const FClassNetCache * ClassCache = OwningChannel->Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
 
@@ -710,90 +716,23 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 		// Handle function call
 		else if ( Cast< UFunction >( FieldCache->Field ) )
 		{
-			FName FunctionName = FieldCache->Field->GetFName();
-			UFunction * Function = Object->FindFunction( FunctionName );
+			bool bDelayFunction = false;
+			TSet<FNetworkGUID> UnmappedGuids;
+			bool bSuccess = ReceivedRPC(Reader, RepFlags, FieldCache, bCanDelayRPCs, bDelayFunction, UnmappedGuids);
 
-			if ( Function == NULL )
+			if (!bSuccess)
 			{
-				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Function not found. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				HANDLE_INCOMPATIBLE_PROP
+				return false;
 			}
-
-			if ( ( Function->FunctionFlags & FUNC_Net ) == 0 )
+			else if (bDelayFunction)
 			{
-				UE_LOG( LogRep, Error, TEXT( "Rejected non RPC function. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				HANDLE_INCOMPATIBLE_PROP
+				// This invalidates Reader's buffer
+				PendingLocalRPCs.Emplace(FieldCache, RepFlags, Reader, UnmappedGuids);
+				bOutHasUnmapped = true;
+				bGuidsChanged = true;
+				bForceUpdateUnmapped = true;
 			}
-
-			if ( ( Function->FunctionFlags & ( bIsServer ? FUNC_NetServer : ( FUNC_NetClient | FUNC_NetMulticast ) ) ) == 0 )
-			{
-				UE_LOG( LogRep, Error, TEXT( "Rejected RPC function due to access rights. Object: %s, Function: %s" ), *Object->GetFullName(), *FunctionName.ToString() );
-				HANDLE_INCOMPATIBLE_PROP
-			}
-
-			UE_LOG( LogRepTraffic, Log, TEXT( "      Received RPC: %s" ), *FunctionName.ToString() );
-
-			// validate that the function is callable here
-			const bool bCanExecute = ( !bIsServer || RepFlags.bNetOwner );		// we are client or net owner
-
-			if ( bCanExecute )
-			{
-				// Get the parameters.
-				FMemMark Mark( FMemStack::Get() );
-				uint8* Parms = new( FMemStack::Get(), MEM_Zeroed, Function->ParmsSize )uint8;
-
-				// Use the replication layout to receive the rpc parameter values
-				TSharedPtr<FRepLayout> FuncRepLayout = OwningChannel->Connection->Driver->GetFunctionRepLayout( Function );
-
-				FuncRepLayout->ReceivePropertiesForRPC( Object, Function, OwningChannel, Reader, Parms );
-
-				if ( Reader.IsError() )
-				{
-					UE_LOG( LogRep, Error, TEXT( "ReceivedBunch: ReceivePropertiesForRPC - Reader.IsError() == true: Function: %s, Object: %s" ), *FunctionName.ToString(), *Object->GetFullName() );
-					HANDLE_INCOMPATIBLE_PROP
-				}
-
-				if ( Reader.GetBitsLeft() != 0 )
-				{
-					UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: ReceivePropertiesForRPC - Mismatch read. Function: %s, Object: %s" ), *FunctionName.ToString(), *Object->GetFullName() );
-					HANDLE_INCOMPATIBLE_PROP
-				}
-
-				// Forward the RPC to a client recorded replay, if needed.
-				const UWorld* const OwningDriverWorld = OwningChannel->Connection->Driver->World;
-				if (OwningDriverWorld && OwningDriverWorld->IsRecordingClientReplay())
-				{
-					// If Object is not the channel actor, assume the target of the RPC is a subobject.
-					UObject* const SubObject = Object != OwningChannel->Actor ? Object : nullptr;
-					OwningDriverWorld->DemoNetDriver->ProcessRemoteFunction(OwningChannel->Actor, Function, Parms, nullptr, nullptr, SubObject);
-				}
-
-				// Call the function.
-				RPC_ResetLastFailedReason();
-
-				Object->ProcessEvent( Function, Parms );
-
-				// Destroy the parameters.
-				// warning: highly dependent on UObject::ProcessEvent freeing of parms!
-				for ( TFieldIterator<UProperty> It( Function ); It && ( It->PropertyFlags & ( CPF_Parm | CPF_ReturnParm ) ) == CPF_Parm; ++It )
-				{
-					It->DestroyValue_InContainer( Parms );
-				}
-
-				Mark.Pop();
-
-				if ( RPC_GetLastFailedReason() != NULL )
-				{
-					UE_LOG(LogRep, Error, TEXT("ReceivedBunch: RPC_GetLastFailedReason: %s"), RPC_GetLastFailedReason());
-					return false;
-				}
-			}
-			else
-			{
-				UE_LOG( LogRep, Verbose, TEXT( "Rejected unwanted function %s in %s" ), *FunctionName.ToString(), *Object->GetFullName() );
-			}
-
-			if ( Object == NULL || Object->IsPendingKill() )
+			else if (Object == nullptr || Object->IsPendingKill())
 			{
 				// replicated function destroyed Object
 				return true;
@@ -810,6 +749,118 @@ bool FObjectReplicator::ReceivedBunch( FNetBitReader& Bunch, const FReplicationF
 	if ( !bIsServer && bGuidsChanged )
 	{
 		UpdateGuidToReplicatorMap();
+	}
+
+	return true;
+}
+
+#define HANDLE_INCOMPATIBLE_RPC			\
+	if ( bIsServer )					\
+	{									\
+		return false;					\
+	}									\
+	FieldCache->bIncompatible = true;	\
+	return true;						\
+
+bool FObjectReplicator::ReceivedRPC(FNetBitReader& Reader, const FReplicationFlags& RepFlags, const FFieldNetCache* FieldCache, const bool bCanDelayRPC, bool& bOutDelayRPC, TSet<FNetworkGUID>& UnmappedGuids)
+{
+	const bool bIsServer = Connection->Driver->IsServer();
+	UObject* Object = GetObject();
+	FName FunctionName = FieldCache->Field->GetFName();
+	UFunction * Function = Object->FindFunction(FunctionName);
+
+	if (Function == nullptr)
+	{
+		UE_LOG(LogNet, Error, TEXT("ReceivedRPC: Function not found. Object: %s, Function: %s"), *Object->GetFullName(), *FunctionName.ToString());
+		HANDLE_INCOMPATIBLE_RPC
+	}
+
+	if ((Function->FunctionFlags & FUNC_Net) == 0)
+	{
+		UE_LOG(LogRep, Error, TEXT("Rejected non RPC function. Object: %s, Function: %s"), *Object->GetFullName(), *FunctionName.ToString());
+		HANDLE_INCOMPATIBLE_RPC
+	}
+
+	if ((Function->FunctionFlags & (bIsServer ? FUNC_NetServer : (FUNC_NetClient | FUNC_NetMulticast))) == 0)
+	{
+		UE_LOG(LogRep, Error, TEXT("Rejected RPC function due to access rights. Object: %s, Function: %s"), *Object->GetFullName(), *FunctionName.ToString());
+		HANDLE_INCOMPATIBLE_RPC
+	}
+
+	UE_LOG(LogRepTraffic, Log, TEXT("      Received RPC: %s"), *FunctionName.ToString());
+
+	// validate that the function is callable here
+	const bool bCanExecute = (!bIsServer || RepFlags.bNetOwner);		// we are client or net owner
+
+	if (bCanExecute)
+	{
+		// Only delay if reliable and CVar is enabled
+		bool bCanDelayUnmapped = bCanDelayRPC && Function->FunctionFlags & FUNC_NetReliable;
+
+		// Get the parameters.
+		FMemMark Mark(FMemStack::Get());
+		uint8* Parms = new(FMemStack::Get(), MEM_Zeroed, Function->ParmsSize)uint8;
+
+		// Use the replication layout to receive the rpc parameter values
+		TSharedPtr<FRepLayout> FuncRepLayout = Connection->Driver->GetFunctionRepLayout(Function);
+
+		FuncRepLayout->ReceivePropertiesForRPC(Object, Function, OwningChannel, Reader, Parms, UnmappedGuids);
+
+		if (Reader.IsError())
+		{
+			UE_LOG(LogRep, Error, TEXT("ReceivedRPC: ReceivePropertiesForRPC - Reader.IsError() == true: Function: %s, Object: %s"), *FunctionName.ToString(), *Object->GetFullName());
+			HANDLE_INCOMPATIBLE_RPC
+		}
+
+		if (Reader.GetBitsLeft() != 0)
+		{
+			UE_LOG(LogNet, Error, TEXT("ReceivedRPC: ReceivePropertiesForRPC - Mismatch read. Function: %s, Object: %s"), *FunctionName.ToString(), *Object->GetFullName());
+			HANDLE_INCOMPATIBLE_RPC
+		}
+
+		RPC_ResetLastFailedReason();
+
+		if (bCanDelayUnmapped && (UnmappedGuids.Num() > 0 || PendingLocalRPCs.Num() > 0))
+		{
+			// If this has unmapped guids or there are already some queued, add to queue
+			bOutDelayRPC = true;	
+		}
+		else
+		{
+			// Forward the RPC to a client recorded replay, if needed.
+			const UWorld* const OwningDriverWorld = Connection->Driver->World;
+			if (OwningDriverWorld && OwningDriverWorld->IsRecordingClientReplay())
+			{
+				// If Object is not the channel actor, assume the target of the RPC is a subobject.
+				UObject* const SubObject = Object != OwningChannel->Actor ? Object : nullptr;
+				OwningDriverWorld->DemoNetDriver->ProcessRemoteFunction(OwningChannel->Actor, Function, Parms, nullptr, nullptr, SubObject);
+			}
+
+			// Reset errors from replay driver
+			RPC_ResetLastFailedReason();
+
+			// Call the function.
+			Object->ProcessEvent(Function, Parms);
+		}
+
+		// Destroy the parameters.
+		// warning: highly dependent on UObject::ProcessEvent freeing of parms!
+		for (TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm | CPF_ReturnParm)) == CPF_Parm; ++It)
+		{
+			It->DestroyValue_InContainer(Parms);
+		}
+
+		Mark.Pop();
+
+		if (RPC_GetLastFailedReason() != nullptr)
+		{
+			UE_LOG(LogRep, Error, TEXT("ReceivedRPC: RPC_GetLastFailedReason: %s"), RPC_GetLastFailedReason());
+			return false;
+		}
+	}
+	else
+	{
+		UE_LOG(LogRep, Verbose, TEXT("Rejected unwanted function %s in %s"), *FunctionName.ToString(), *Object->GetFullName());
 	}
 
 	return true;
@@ -859,6 +910,18 @@ void FObjectReplicator::UpdateGuidToReplicatorMap()
 		if ( Object != nullptr )
 		{
 			CppStructOps->NetDeltaSerialize( Parms, StructProperty->ContainerPtrToValuePtr<void>( Object, Rep->Index ) );
+		}
+	}
+
+	// Gather RPC guids
+	for (const FRPCPendingLocalCall& PendingRPC : PendingLocalRPCs)
+	{
+		for (const FNetworkGUID& NetGuid : PendingRPC.UnmappedGuids)
+		{
+			LocalReferencedGuids.Add(NetGuid);
+
+			LocalTrackedGuidMemoryBytes += PendingRPC.UnmappedGuids.GetAllocatedSize();
+			LocalTrackedGuidMemoryBytes += PendingRPC.Buffer.Num();
 		}
 	}
 
@@ -1227,28 +1290,50 @@ void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReli
 		return;
 	}
 
-	RepLayout->PostReplicate( RepState, PacketRange, bReliable ? true : false );
+	// Don't update retirement records for reliable properties. This is ok to do only if we also pause replication on the channel until the acks have gone through.
+	bool SkipRetirementUpdate = OwningChannel->bPausedUntilReliableACK;
+
+	if (!SkipRetirementUpdate)
+	{
+		// Don't call if reliable, since the bunch will be resent. We dont want this to end up in the changelist history
+		// But is that enough? How does it know to delta against this latest state?
+
+		RepLayout->PostReplicate( RepState, PacketRange, bReliable ? true : false );
+	}
 
 	for ( int32 i = 0; i < LifetimeCustomDeltaProperties.Num(); i++ )
 	{
 		FPropertyRetirement & Retire = Retirement[LifetimeCustomDeltaProperties[i]];
 
-		FPropertyRetirement * Next = Retire.Next;
+		FPropertyRetirement* Next = Retire.Next;
+		FPropertyRetirement* Prev = &Retire;
 
-		while ( Next != NULL )
+		while ( Next != nullptr )
 		{
 			// This is updating the dynamic properties retirement record that was created above during property replication
 			// (we have to wait until we actually send the bunch to know the packetID, which is why we look for .First==INDEX_NONE)
 			if ( Next->OutPacketIdRange.First == INDEX_NONE )
 			{
-				Next->OutPacketIdRange	= PacketRange;
-				Next->Reliable			= bReliable;
 
-				// Mark the last time on this retirement slot that a property actually changed
-				Retire.OutPacketIdRange = PacketRange;
-				Retire.Reliable			= bReliable;
+				if (!SkipRetirementUpdate)
+				{
+					Next->OutPacketIdRange	= PacketRange;
+					Next->Reliable			= bReliable;
+
+					// Mark the last time on this retirement slot that a property actually changed
+					Retire.OutPacketIdRange = PacketRange;
+					Retire.Reliable			= bReliable;
+				}
+				else
+				{
+					// We need to remove the retirement entry here!
+					Prev->Next = Next->Next;
+					delete Next;
+					Next = Prev;
+				}
 			}
 
+			Prev = Next;
 			Next = Next->Next;
 		}
 
@@ -1454,7 +1539,7 @@ void FObjectReplicator::CallRepNotifies(bool bSkipIfChannelHasQueuedBunches)
 void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 {
 	UObject* Object = GetObject();
-
+	
 	if ( Object == NULL || Object->IsPendingKill() )
 	{
 		bOutHasMoreUnmapped = false;
@@ -1534,6 +1619,88 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 		PostNetReceive();
 
 		UpdateGuidToReplicatorMap();
+	}
+
+	UPackageMapClient * PackageMapClient = Cast< UPackageMapClient >(Connection->PackageMap);
+
+	if (PackageMapClient && OwningChannel)
+	{
+		const bool bIsServer = Connection->Driver->IsServer();
+		const FClassNetCache * ClassCache = Connection->Driver->NetCache->GetClassNetCache(ObjectClass);
+
+		// Handle pending RPCs, in order
+		for (int32 RPCIndex = 0; RPCIndex < PendingLocalRPCs.Num(); RPCIndex++)
+		{
+			FRPCPendingLocalCall& Pending = PendingLocalRPCs[RPCIndex];
+			const FFieldNetCache * FieldCache = ClassCache->GetFromIndex(Pending.RPCFieldIndex);
+
+			FNetBitReader Reader(Connection->PackageMap, Pending.Buffer.GetData(), Pending.NumBits);
+
+			bool bIsGuidPending = false;
+
+			for (const FNetworkGUID& Guid : Pending.UnmappedGuids)
+			{
+				if (PackageMapClient->IsGUIDPending(Guid))
+				{ 
+					bIsGuidPending = true;
+					break;
+				}
+			}
+
+			TSet<FNetworkGUID> UnmappedGuids;
+			bool bCanDelayRPCs = bIsGuidPending; // Force execute if none of our RPC guids are pending, even if other guids are. This is more consistent behavior as it is less dependent on unrelated actors
+			bool bFunctionWasUnmapped = false;
+			bool bSuccess = true;
+			FString FunctionName = TEXT("(Unknown)");
+			
+			if (FieldCache == nullptr)
+			{
+				UE_LOG(LogNet, Warning, TEXT("FObjectReplicator::UpdateUnmappedObjects: FieldCache not found. Object: %s"), *Object->GetFullName());
+				bSuccess = false;
+			}
+			else
+			{
+				FunctionName = FieldCache->Field->GetName();
+				bSuccess = ReceivedRPC(Reader, Pending.RepFlags, FieldCache, bCanDelayRPCs, bFunctionWasUnmapped, UnmappedGuids);
+			}
+
+			if (!bSuccess)
+			{
+				if (bIsServer && !Connection->InternalAck)
+				{
+					// Close our connection and abort rpcs as things are invalid
+					PendingLocalRPCs.Empty();
+					bOutHasMoreUnmapped = false;
+
+					UE_LOG(LogNet, Error, TEXT("FObjectReplicator::UpdateUnmappedObjects: Failed executing delayed RPC %s on Object %s, closing connection!"), *FunctionName, *Object->GetFullName());
+
+					Connection->Close();
+					return;
+				}
+				else
+				{
+					UE_LOG(LogNet, Warning, TEXT("FObjectReplicator::UpdateUnmappedObjects: Failed executing delayed RPC %s on Object %s, skipping RPC!"), *FunctionName, *Object->GetFullName());
+
+					// Skip this RPC, it was marked invalid internally
+					PendingLocalRPCs.RemoveAt(RPCIndex);
+					RPCIndex--;
+				}
+			}
+			else if (bFunctionWasUnmapped)
+			{
+				// Still unmapped, update unmapped list
+				Pending.UnmappedGuids = UnmappedGuids;
+				bOutHasMoreUnmapped = true;
+				
+				break;
+			}
+			else
+			{
+				// We executed, remove this one and continue;
+				PendingLocalRPCs.RemoveAt(RPCIndex);
+				RPCIndex--;
+			}
+		}
 	}
 }
 

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GameplayAbilities : ModuleRules
 	{
-		public GameplayAbilities(TargetInfo Target)
+		public GameplayAbilities(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.Add("GameplayAbilities/Private");
 			

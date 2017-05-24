@@ -1,29 +1,9 @@
-﻿INTSourceChangelist:2693444
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title:レベル エディタ モード
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
-Description:レベル エディタには、現在のモードを制御し、ビルダ ブラシの再形成、新規 ブラシ ジオメトリやボリュームを作成するためのツールセットがあります。
+Description:レベル エディタには、現在のモードを制御し、ビルダ ブラシの再形成、新規のブラシ ジオメトリやボリュームを作成するためのツールセットがあります。
 Version:4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[前のトピック](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
-	[/PARAM]
-	[PARAM:next]
-		[次のトピック](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [EXCERPT:main]
 [INCLUDE:Shared/Glossary/M#glossary_modes_panel]
@@ -42,5 +22,3 @@ Version:4.9
 | ![](LE_Tools_Foliage.png) | インスタンス化されたフォリッジをペイントする [**Foliage (フォリッジ) モード**](Engine/Foliage) を切り替えます。| **Shift + 4**|
 | ![](LE_Tools_Brush.png) | ジオメトリに対してブラシを修正する [**Geometry Editing (ジオメトリ編集) モード**](Engine/Actors/Brushes) を切り替えます。 | **Shift + 5**|
 [/EXCERPT:main]
-
-%playlistnav%

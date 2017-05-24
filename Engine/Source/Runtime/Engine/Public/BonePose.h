@@ -525,7 +525,8 @@ template<class PoseType>
 const FTransform& FCSPose<PoseType>::GetComponentSpaceTransform(BoneIndexType BoneIndex)
 {
 	checkSlow(Pose.IsValid());
-	check(Pose.IsValidIndex(BoneIndex));
+	check(Pose.IsValidIndex(BoneIndex));	// Invalid index supplied. If this came from an FBoneReference make sure you are
+											// handling lod changes properly. (for instance: if on an anim node initialize the reference in CacheBones)
 
 	check(!Pose[BoneIndex].ContainsNaN());
 	// if not evaluate, calculate it

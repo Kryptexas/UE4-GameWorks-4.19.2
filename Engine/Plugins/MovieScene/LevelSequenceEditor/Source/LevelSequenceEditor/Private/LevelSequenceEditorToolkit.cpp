@@ -16,6 +16,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Engine/Selection.h"
 #include "LevelSequenceEditorModule.h"
+#include "Settings/LevelEditorPlaySettings.h"
 #include "Misc/LevelSequenceEditorSettings.h"
 #include "Misc/LevelSequenceEditorSpawnRegister.h"
 #include "Misc/LevelSequenceEditorHelpers.h"
@@ -48,8 +49,14 @@
 #include "UnrealEdMisc.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
+
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
+
+// To override Sequencer editor behavior for VR Editor 
+#include "EditorWorldExtension.h"
+#include "VREditorMode.h"
+
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
@@ -104,13 +111,17 @@ UObject* GetLevelSequenceEditorPlaybackContext()
 	IMovieSceneCaptureDialogModule* CaptureDialogModule = FModuleManager::GetModulePtr<IMovieSceneCaptureDialogModule>("MovieSceneCaptureDialog");
 	UWorld* RecordingWorld = CaptureDialogModule ? CaptureDialogModule->GetCurrentlyRecordingWorld() : nullptr;
 
+	bool bIsSimulatingInEditor = GEditor && GEditor->bIsSimulatingInEditor;
+	bool bUsePIEWorld = (!bIsSimulatingInEditor && GetDefault<ULevelEditorPlaySettings>()->bBindSequencerToPIE)
+					|| (bIsSimulatingInEditor && GetDefault<ULevelEditorPlaySettings>()->bBindSequencerToSimulate);
+
 	// Return PIE worlds if there are any
 	for (const FWorldContext& Context : GEngine->GetWorldContexts())
 	{
 		if (Context.WorldType == EWorldType::PIE)
 		{
 			UWorld* ThisWorld = Context.World();
-			if (RecordingWorld != ThisWorld)
+			if (bUsePIEWorld && RecordingWorld != ThisWorld)
 			{
 				PIEWorld = ThisWorld;
 			}
@@ -119,6 +130,10 @@ UObject* GetLevelSequenceEditorPlaybackContext()
 		{
 			// We can always animate PIE worlds
 			EditorWorld = Context.World();
+			if (!bUsePIEWorld)
+			{
+				return EditorWorld;
+			}
 		}
 	}
 
@@ -156,6 +171,7 @@ FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkit(const TSharedRef<ISlate
 	int32 NewIndex = SequencerModule.GetAddTrackMenuExtensibilityManager()->GetExtenderDelegates().Add(
 		FAssetEditorExtender::CreateRaw(this, &FLevelSequenceEditorToolkit::HandleMenuExtensibilityGetExtender));
 	SequencerExtenderHandle = SequencerModule.GetAddTrackMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
+
 
 	OpenToolkits.Add(this);
 }
@@ -226,23 +242,6 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		SequencerInitParams.EventContexts.BindStatic(GetLevelSequenceEditorEventContexts);
 		SequencerInitParams.PlaybackContext.BindStatic(GetLevelSequenceEditorPlaybackContext);
 
-		TSharedRef<FExtender> AddMenuExtender = MakeShareable(new FExtender);
-
-		AddMenuExtender->AddMenuExtension("AddTracks", EExtensionHook::Before, nullptr,
-			FMenuExtensionDelegate::CreateLambda([=](FMenuBuilder& MenuBuilder){
-
-				MenuBuilder.AddSubMenu(
-					LOCTEXT("AddActor_Label", "Actor To Sequencer"),
-					LOCTEXT("AddActor_ToolTip", "Allow sequencer to possess an actor that already exists in the current level"),
-					FNewMenuDelegate::CreateRaw(this, &FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions),
-					false /*bInOpenSubMenuOnClick*/,
-					FSlateIcon("LevelSequenceEditorStyle", "LevelSequenceEditor.PossessNewActor")
-					);
-
-			})
-		);
-
-		SequencerInitParams.ViewParams.AddMenuExtender = AddMenuExtender;
 		SequencerInitParams.ViewParams.UniqueName = "LevelSequenceEditor";
 		SequencerInitParams.ViewParams.OnReceivedFocus.BindRaw(this, &FLevelSequenceEditorToolkit::OnSequencerReceivedFocus);
 	}
@@ -271,6 +270,22 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 	LevelSequenceEditorModule.OnMasterSequenceCreated().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMasterSequenceCreated);
 
 	FLevelSequenceEditorToolkit::OnOpened().Broadcast(*this);
+
+	{
+		UWorld* World = CastChecked<UWorld>( GetLevelSequenceEditorPlaybackContext() );
+		UVREditorMode* VRMode = Cast<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
+		if (VRMode != nullptr)
+		{
+			VRMode->OnVREditingModeExit_Handler.BindSP(this, &FLevelSequenceEditorToolkit::HandleVREditorModeExit);
+			USequencerSettings& SavedSequencerSettings = *Sequencer->GetSequencerSettings();
+			VRMode->SaveSequencerSettings(Sequencer->GetKeyAllEnabled(), Sequencer->GetAutoKeyMode(), SavedSequencerSettings);
+			// Override currently set autokey behavior to always autokey all
+			Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyAll);
+			Sequencer->SetKeyAllEnabled(true);
+			// Tell the VR Editor mode that Sequencer has refreshed
+			VRMode->RefreshVREditorSequencer(Sequencer.Get());
+		}
+	}
 }
 
 
@@ -333,22 +348,6 @@ void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class F
 
 /* FLevelSequenceEditorToolkit implementation
  *****************************************************************************/
-
-void FLevelSequenceEditorToolkit::AddActorsToSequencer(AActor*const* InActors, int32 NumActors)
-{
-	TArray<TWeakObjectPtr<AActor>> Actors;
-
-	while (NumActors--)
-	{
-		AActor* ThisActor = *InActors;
-		Actors.Add(ThisActor);
-
-		InActors++;
-	}
-
-	Sequencer->AddActors(Actors);
-}
-
 
 void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const FGuid Binding)
 {
@@ -475,7 +474,6 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 
 			for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : ExcludeTrackSettings.ExcludeDefaultPropertyTracks)
 			{
-				TArray<UProperty*> PropertyPath;
 				UObject* PropertyOwner = &Actor;
 
 				// determine object hierarchy
@@ -505,7 +503,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 		// add tracks by property
 		for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : TrackSettings.DefaultPropertyTracks)
 		{
-			TArray<UProperty*> PropertyPath;
+			TSharedRef<FPropertyPath> PropertyPath = FPropertyPath::CreateEmpty();
 			UObject* PropertyOwner = &Actor;
 
 			// determine object hierarchy
@@ -533,7 +531,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 				// skip past excluded properties
 				if (ExcludePropertyTracksMap.Contains(PropertyOwner) && ExcludePropertyTracksMap[PropertyOwner].Contains(PropertyName))
 				{
-					PropertyPath.Empty();
+					PropertyPath = FPropertyPath::CreateEmpty();
 					break;
 				}
 
@@ -541,7 +539,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 
 				if (Property != nullptr)
 				{
-					PropertyPath.Add(Property);
+					PropertyPath->AddProperty(FPropertyInfo(Property));
 				}
 
 				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
@@ -563,99 +561,19 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 				break;
 			}
 
-			if (!Sequencer->CanKeyProperty(FCanKeyPropertyParams(Actor.GetClass(), PropertyPath)))
+			if (!Sequencer->CanKeyProperty(FCanKeyPropertyParams(Actor.GetClass(), *PropertyPath)))
 			{
 				continue;
 			}
 
 			// key property
-			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), PropertyPath, ESequencerKeyMode::ManualKey);
+			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), *PropertyPath, ESequencerKeyMode::ManualKey);
 
 			Sequencer->KeyProperty(KeyPropertyParams);
 
 			Sequencer->UpdateRuntimeInstances();
 		}
 	}
-}
-
-
-void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder)
-{
-	auto IsActorValidForPossession = [=](const AActor* Actor){
-		bool bCreateHandleIfMissing = false;
-		if (Sequencer.IsValid())
-		{
-			return !Sequencer->GetHandleToObject((UObject*)Actor, bCreateHandleIfMissing).IsValid();
-		}
-
-		return true;
-	};
-
-	// Set up a menu entry to add the selected actor(s) to the sequencer
-	TArray<AActor*> ActorsValidForPossession;
-	GEditor->GetSelectedActors()->GetSelectedObjects(ActorsValidForPossession);
-	ActorsValidForPossession.RemoveAll([&](AActor* In){ return !IsActorValidForPossession(In); });
-
-	FText SelectedLabel;
-	FSlateIcon ActorIcon = FSlateIconFinder::FindIconForClass(AActor::StaticClass());
-	if (ActorsValidForPossession.Num() == 1)
-	{
-		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add '{0}'"), FText::FromString(ActorsValidForPossession[0]->GetActorLabel()));
-		ActorIcon = FSlateIconFinder::FindIconForClass(ActorsValidForPossession[0]->GetClass());
-	}
-	else if (ActorsValidForPossession.Num() > 1)
-	{
-		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add Current Selection ({0} actors)"), FText::AsNumber(ActorsValidForPossession.Num()));
-	}
-
-	if (!SelectedLabel.IsEmpty())
-	{
-		// Copy the array into the lambda - probably not that big a deal
-		MenuBuilder.AddMenuEntry(SelectedLabel, FText(), ActorIcon, FExecuteAction::CreateLambda([=]{
-			FSlateApplication::Get().DismissAllMenus();
-			AddActorsToSequencer(ActorsValidForPossession.GetData(), ActorsValidForPossession.Num());
-		}));
-	}
-	
-	MenuBuilder.BeginSection("ChooseActorSection", LOCTEXT("ChooseActor", "Choose Actor:"));
-
-	using namespace SceneOutliner;
-
-	// Set up a menu entry to add any arbitrary actor to the sequencer
-	FInitializationOptions InitOptions;
-	{
-		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-
-		// We hide the header row to keep the UI compact.
-		InitOptions.bShowHeaderRow = false;
-		InitOptions.bShowSearchBox = true;
-		InitOptions.bShowCreateNewFolder = false;
-		// Only want the actor label column
-		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0));
-
-		// Only display actors that are not possessed already
-		InitOptions.Filters->AddFilterPredicate(FActorFilterPredicate::CreateLambda(IsActorValidForPossession));
-	}
-
-	// actor selector to allow the user to choose an actor
-	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
-	TSharedRef< SWidget > MiniSceneOutliner =
-		SNew(SBox)
-		.MaxDesiredHeight(400.0f)
-		.WidthOverride(300.0f)
-		[
-			SceneOutlinerModule.CreateSceneOutliner(
-				InitOptions,
-				FOnActorPicked::CreateLambda([=](AActor* Actor){
-					// Create a new binding for this actor
-					FSlateApplication::Get().DismissAllMenus();
-					AddActorsToSequencer(&Actor, 1);
-				})
-			)
-		];
-
-	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), true);
-	MenuBuilder.EndSection();
 }
 
 
@@ -702,6 +620,17 @@ void FLevelSequenceEditorToolkit::HandleActorAddedToSequencer(AActor* Actor, con
 }
 
 
+void FLevelSequenceEditorToolkit::HandleVREditorModeExit()
+{
+	UWorld* World = Cast<UWorld>(GetLevelSequenceEditorPlaybackContext());
+	UVREditorMode* VRMode = CastChecked<UVREditorMode>( GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( World )->FindExtension( UVREditorMode::StaticClass() ) );
+
+	// Reset sequencer settings
+	Sequencer->SetAutoKeyMode(VRMode->GetSavedEditorState().AutoKeyMode);
+	Sequencer->SetKeyAllEnabled(VRMode->GetSavedEditorState().bKeyAllEnabled);
+	VRMode->OnVREditingModeExit_Handler.Unbind();
+}
+
 void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
 	// @todo sequencer: We should only wipe/respawn puppets that are affected by the world that is being changed! (multi-UWorld support)
@@ -712,7 +641,7 @@ void FLevelSequenceEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapC
 	}
 }
 
-void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate)
+void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate, const FString& FirstShotAssetName)
 {
 	// Create a level sequence asset for the shot
 	UObject* ShotAsset = LevelSequenceEditorHelpers::CreateLevelSequenceAsset(ShotAssetName, ShotPackagePath, AssetToDuplicate);
@@ -740,11 +669,39 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 		for (auto SubSequenceName : MasterSequenceSettings->SubSequenceNames)
 		{
 			FString SubSequenceAssetName = ShotAssetName + ProjectSettings->SubSequenceSeparator + SubSequenceName.ToString();
-			UObject* SubSequenceAsset = LevelSequenceEditorHelpers::CreateLevelSequenceAsset(SubSequenceAssetName, ShotPackagePath);
-			UMovieSceneSequence* SubSequence = Cast<UMovieSceneSequence>(SubSequenceAsset);
-			UMovieSceneSubSection* SubSection = SubTrack->AddSequence(SubSequence, ShotStartTime, ShotEndTime-ShotStartTime);
-			SubSection->SetRowIndex(RowIndex++);
-			SubSection->SetStartTime(ShotStartTime);
+
+			UMovieSceneSequence* SubSequence = nullptr;
+			if (!MasterSequenceSettings->bInstanceSubSequences || ShotTrack->GetAllSections().Num() == 1)
+			{
+				UObject* SubSequenceAsset = LevelSequenceEditorHelpers::CreateLevelSequenceAsset(SubSequenceAssetName, ShotPackagePath);
+				SubSequence = Cast<UMovieSceneSequence>(SubSequenceAsset);
+			}
+			else
+			{
+				// Get the corresponding sequence from the first shot
+				UMovieSceneSubSection* FirstShotSubSection = Cast<UMovieSceneSubSection>(ShotTrack->GetAllSections()[0]);
+				UMovieSceneSequence* FirstShotSequence = FirstShotSubSection->GetSequence();
+				UMovieSceneSubTrack* FirstShotSubTrack = Cast<UMovieSceneSubTrack>(FirstShotSequence->GetMovieScene()->FindMasterTrack(UMovieSceneSubTrack::StaticClass()));
+			
+				FString FirstShotSubSequenceAssetName = FirstShotAssetName + ProjectSettings->SubSequenceSeparator + SubSequenceName.ToString();
+
+				for (auto Section : FirstShotSubTrack->GetAllSections())
+				{
+					UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Section);
+					if (SubSection->GetSequence()->GetDisplayName().ToString() == FirstShotSubSequenceAssetName)
+					{
+						SubSequence = SubSection->GetSequence();
+						break;
+					}
+				}
+			}
+
+			if (SubSequence != nullptr)
+			{
+				UMovieSceneSubSection* SubSection = SubTrack->AddSequence(SubSequence, 0.f, ShotEndTime-ShotStartTime);
+				SubSection->SetRowIndex(RowIndex++);
+				SubSection->SetStartTime(0.f);
+			}
 		}
 	}
 
@@ -774,7 +731,6 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 		{
 			CameraGuid = GetSequencer()->CreateBinding(*NewCamera, NewCamera->GetActorLabel());
 		}
-
 		NewCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
 		NewCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
 		//pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV; //@todo set the focal length from this field of view
@@ -808,6 +764,7 @@ void FLevelSequenceEditorToolkit::HandleMasterSequenceCreated(UObject* MasterSeq
 	float SequenceStartTime = ProjectSettings->DefaultStartTime;
 	float ShotStartTime = SequenceStartTime;
 	float ShotEndTime = ShotStartTime;
+	FString FirstShotName; 
 	for (uint32 ShotIndex = 0; ShotIndex < NumShots; ++ShotIndex)
 	{
 		ShotEndTime += ProjectSettings->DefaultDuration;
@@ -815,7 +772,12 @@ void FLevelSequenceEditorToolkit::HandleMasterSequenceCreated(UObject* MasterSeq
 		FString ShotName = MovieSceneToolHelpers::GenerateNewShotName(ShotTrack->GetAllSections(), ShotStartTime);
 		FString ShotPackagePath = MovieSceneToolHelpers::GenerateNewShotPath(MasterSequence->GetMovieScene(), ShotName);
 
-		AddShot(ShotTrack, ShotName, ShotPackagePath, ShotStartTime, ShotEndTime, AssetToDuplicate);
+		if (ShotIndex == 0)
+		{
+			FirstShotName = ShotName;
+		}
+
+		AddShot(ShotTrack, ShotName, ShotPackagePath, ShotStartTime, ShotEndTime, AssetToDuplicate, FirstShotName);
 		GetSequencer()->ResetToNewRootSequence(*MasterSequence);
 
 		ShotStartTime = ShotEndTime;
@@ -935,6 +897,13 @@ void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack(FMenuBuilder&
 
 bool FLevelSequenceEditorToolkit::OnRequestClose()
 {
+	UWorld* World = CastChecked<UWorld>(GetLevelSequenceEditorPlaybackContext());
+	UVREditorMode* VRMode = Cast<UVREditorMode>(GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(World)->FindExtension(UVREditorMode::StaticClass()));
+	if (VRMode != nullptr)
+	{
+		// Null out the VR Mode's sequencer pointer
+		VRMode->RefreshVREditorSequencer(nullptr);
+	}
 	OpenToolkits.Remove(this);
 	OnClosedEvent.Broadcast();
 	return true;

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class FacialAnimationEditor : ModuleRules
 	{
-		public FacialAnimationEditor(TargetInfo Target)
+		public FacialAnimationEditor(ReadOnlyTargetRules Target) : base(Target)
 		{			
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {

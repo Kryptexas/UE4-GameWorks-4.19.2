@@ -56,7 +56,7 @@ namespace
 	FString GetComparisonAsString(EComparisonMethod comparison)
 	{
 		UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EComparisonMethod"), true);
-		return Enum->GetEnumName((uint8)comparison).ToLower().Replace(TEXT("_"), TEXT(" "));
+		return Enum->GetNameStringByValue((uint8)comparison).ToLower().Replace(TEXT("_"), TEXT(" "));
 	}
 
 	FString TransformToString(const FTransform &transform)
@@ -94,6 +94,7 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	, TotalTime(0.f)
 	, RunFrame(0)
 	, StartFrame(0)
+	, StartTime(0.0f)
 	, bIsReady(false)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -154,7 +155,6 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	{
 		TestName->bHiddenInGame = true;
 		TestName->SetHorizontalAlignment(EHTA_Center);
-		TestName->SetTextRenderColor(FColor(11, 255, 0));
 		TestName->SetRelativeLocation(FVector(0, 0, 80));
 		TestName->SetRelativeRotation(FRotator(0, 0, 0));
 		TestName->PostPhysicsComponentTick.bCanEverTick = false;
@@ -170,7 +170,16 @@ void AFunctionalTest::OnConstruction(const FTransform& Transform)
 #if WITH_EDITOR
 	if ( TestName )
 	{
-		TestName->SetText(FText::FromString(GetActorLabel()));
+		if ( bIsEnabled )
+		{
+			TestName->SetTextRenderColor(FColor(11, 255, 0));
+			TestName->SetText(FText::FromString(GetActorLabel()));
+		}
+		else
+		{
+			TestName->SetTextRenderColor(FColor(55, 55, 55));
+			TestName->SetText(FText::FromString(GetActorLabel() + TEXT("\n") + TEXT("# Disabled #")));
+		}
 	}
 #endif
 }
@@ -214,6 +223,7 @@ void AFunctionalTest::StartTest()
 {
 	TotalTime = 0.f;
 	StartFrame = GFrameNumber;
+	StartTime = GetWorld()->GetTimeSeconds();
 
 	ReceiveStartTest();
 	OnTestStart.Broadcast();
@@ -299,12 +309,11 @@ void AFunctionalTest::FinishTest(EFunctionalTestResult TestResult, const FString
 		}
 	}
 
-	const FText ResultText = FTestResultTypeEnum->GetEnumText( (int32)TestResult );
+	const FText ResultText = FTestResultTypeEnum->GetDisplayNameTextByValue( (int64)TestResult );
 	const FString OutMessage = FString::Printf(TEXT("%s %s: \"%s\"")
 		, *GetName()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );
-	const FString AdditionalDetails = FString::Printf(TEXT("%s %s, time %.2fs"), *GetAdditionalTestFinishedMessage(TestResult), *OnAdditionalTestFinishedMessageRequest(TestResult), TotalTime);
 
 	AutoDestroyActors.Reset();
 		
@@ -328,10 +337,11 @@ void AFunctionalTest::FinishTest(EFunctionalTestResult TestResult, const FString
 			break;
 	}
 	
-	if (AdditionalDetails.IsEmpty() == false)
-	{
-		UE_LOG(LogFunctionalTest, Log, TEXT("%s"), *AdditionalDetails);
-	}
+	//if (AdditionalDetails.IsEmpty() == false)
+	//{
+	//	const FString AdditionalDetails = FString::Printf(TEXT("%s %s, time %.2fs"), *GetAdditionalTestFinishedMessage(TestResult), *OnAdditionalTestFinishedMessageRequest(TestResult), TotalTime);
+	//	UE_LOG(LogFunctionalTest, Log, TEXT("%s"), *AdditionalDetails);
+	//}
 
 	TestFinishedObserver.ExecuteIfBound(this);
 

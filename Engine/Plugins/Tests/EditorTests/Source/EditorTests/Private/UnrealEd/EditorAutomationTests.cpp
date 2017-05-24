@@ -113,24 +113,6 @@ bool PointLightDuplicationCommand::Update()
 	return true;
 }
 
-/**
-* This will then take a screenshot of the editor, only if it has been enabled.
-*/
-void TakeLatentAutomationScreenshot(struct WindowScreenshotParameters ScreenshotParameters, FString BaseFileName, FString ScreenshotTitle, FString ScreenshotFolderName)
-{
-	//Update the screenshot name, then take a screenshot.
-	if (FAutomationTestFramework::Get().IsScreenshotAllowed())
-	{
-		//Update the screenshot name and get the location of where it will be saved.
-		ScreenshotParameters.ScreenshotName = TEXT("ScreenshotTitle");
-		FString TestName = FString::Printf(TEXT("%s/%s"), *BaseFileName, *ScreenshotFolderName);
-		AutomationCommon::GetScreenshotPath(TestName, ScreenshotParameters.ScreenshotName);
-
-		//Take a screenshot
-		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(ScreenshotParameters));
-	}
-}
-
 //////////////////////////////////////////////////////////////////////////
 
 /**
@@ -178,8 +160,6 @@ void FGenericImportAssetsAutomationTest::GetTests(TArray<FString>& OutBeautified
  */
 bool FGenericImportAssetsAutomationTest::RunTest(const FString& Parameters)
 {
-	int32 CurErrorIndex = 0, CurWarningIndex = 0, CurLogItemIndex = 0;
-
 	TArray<FString> CurFileToImport;
 	CurFileToImport.Add( *Parameters );
 	FString CleanFilename = FPaths::GetCleanFilename(CurFileToImport[0]);
@@ -189,28 +169,11 @@ bool FGenericImportAssetsAutomationTest::RunTest(const FString& Parameters)
 	GConfig->GetString( TEXT("AutomationTesting"), TEXT("ImportTestPackagePath"), PackagePath, GEngineIni );
 
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	PushContext(CleanFilename);
 	TArray<UObject*> ImportedObjects = AssetToolsModule.Get().ImportAssets(CurFileToImport, PackagePath);
-	const bool CurTestSuccessful = ImportedObjects.Num() == 1;
-
-	// Any errors, warnings, or log items that are caught during this unit test aren't guaranteed to include the name of the file that generated them,
-	// which can be confusing when reading results. Alleviate the issue by injecting the file name for each error, warning, or log item, where appropriate.
-	for ( int32 ErrorStartIndex = CurErrorIndex; ErrorStartIndex < ExecutionInfo.Errors.Num(); ++ErrorStartIndex )
-	{
-		ExecutionInfo.Errors[ErrorStartIndex].Context = CleanFilename;
-	}
-	for ( int32 WarningStartIndex = CurWarningIndex; WarningStartIndex < ExecutionInfo.Warnings.Num(); ++WarningStartIndex )
-	{
-		ExecutionInfo.Warnings[WarningStartIndex] = FString::Printf( TEXT("%s: %s"), *CleanFilename, *ExecutionInfo.Warnings[WarningStartIndex] );
-	}
-	for ( int32 LogItemStartIndex = CurLogItemIndex; LogItemStartIndex < ExecutionInfo.LogItems.Num(); ++LogItemStartIndex )
-	{
-		ExecutionInfo.LogItems[LogItemStartIndex] = FString::Printf( TEXT("%s: %s"), *CleanFilename, *ExecutionInfo.LogItems[LogItemStartIndex] );
-	}
-	CurErrorIndex = ExecutionInfo.Errors.Num();
-	CurWarningIndex = ExecutionInfo.Warnings.Num();
-	CurLogItemIndex = ExecutionInfo.LogItems.Num();
-
-	return CurTestSuccessful;
+	PopContext();
+	
+	return ImportedObjects.Num() == 1;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -300,8 +263,6 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 	}
 	
 
-	const bool bTakeScreenshots = FAutomationTestFramework::Get().IsScreenshotAllowed();
-	if( bTakeScreenshots )
 	{
 		//Find the main editor window
 		TArray<TSharedRef<SWindow> > AllWindows;
@@ -336,17 +297,6 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 			//Give the contents some time to load
 			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.5f));
 		}
-		//Take the screen shot
-		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
-	}
-	else
-	{
-		//Get the current number of seconds.  This will be used to track how long it took to load the map.
-		MapLoadStartTime = FPlatformTime::Seconds();
-				//Load the map
-		FAutomationEditorCommonUtils::LoadMap(MapName);
-		//Log how long it took to launch the map.
-		UE_LOG(LogEditorAutomationTests, Display, TEXT("Map '%s' took %.3f to load"), *MapName, FPlatformTime::Seconds() - MapLoadStartTime);
 	}
 
 	return true;
@@ -596,8 +546,6 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 			UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to save ConvertToBSPToStaticMesh."));
 		}
 	}
-
-	TakeLatentAutomationScreenshot(ConvertMeshParameters, BaseFileName, FString::Printf(TEXT("FinalConvertMesh")), FString::Printf(TEXT("04_Final")));
 	
 	//Wait to give the screenshot capture some time to complete.
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
@@ -775,27 +723,12 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 	//Wait
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
 
-	//Take a screenshot of the newly placed point light.
-	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("PlacedPointLight")), FString::Printf(TEXT("01_Placed")));
-
 	//Duplicate the point light.
 	LightParameters.LightLocation = FVector(10.0f, 10.0f, 400.0f);
 	ADD_LATENT_AUTOMATION_COMMAND(PointLightDuplicationCommand(LightParameters));
 
-	//Wait
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
-
-	//Take a screenshot of the duplicated point light.
-	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("DuplicatedLight")), FString::Printf(TEXT("02_Dupe")));
-
 	//Undo the duplication.
 	ADD_LATENT_AUTOMATION_COMMAND(FUndoRedoCommand(true));
-
-	//Wait
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
-
-	//Take a screenshot of the scene after the duplication has been undone.
-	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("UndoDuplicationPointLight")), FString::Printf(TEXT("03_Undo")));
 
 	//Redo the duplication.
 	ADD_LATENT_AUTOMATION_COMMAND(FUndoRedoCommand(false));
@@ -808,10 +741,6 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 
 	//Wait
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
-
-	//Take a screenshot of the final scene.
-	//It is expected to show two movable point lights (one red, one white) and a static mesh.
-	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("FinalPointLight")), FString::Printf(TEXT("04_Final")));
 
 	return true;
 }

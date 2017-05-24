@@ -33,7 +33,7 @@ enum EBulkDataFlags
 	BULKDATA_PayloadInSeperateFile				= 1 << 8,
 	/** If set, payload is compressed using platform specific bit window			*/
 	BULKDATA_SerializeCompressedBitWindow		= 1<<9,
-	/** Only used with GNewAsyncIO, which changes the default to inline unless you opt out */
+	/** There is a new default to inline unless you opt out */
 	BULKDATA_Force_NOT_InlinePayload = 1 << 10,
 };
 

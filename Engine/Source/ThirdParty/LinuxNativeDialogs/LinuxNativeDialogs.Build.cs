@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Not really Epic, but Freenode #ue4linux's RushPL and amigo 
 using UnrealBuildTool;
 
 public class LinuxNativeDialogs : ModuleRules
 {
-	public LinuxNativeDialogs(TargetInfo Target)
+	public LinuxNativeDialogs(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

@@ -15,18 +15,57 @@
 #include "MoviePlayer.h"
 #include "TickableObjectRenderThread.h"
 
+
+class FWidgetRenderer;
+class SVirtualWindow;
+
+class FMoviePlayerWidgetRenderer
+{
+public:
+	FMoviePlayerWidgetRenderer(TSharedPtr<SWindow> InMainWindow, TSharedPtr<SVirtualWindow> InVirtualRenderWindowWindow, TSharedPtr<FSlateRenderer> InRenderer);
+
+	void DrawWindow(float DeltaTime);
+
+private:
+	/** The actual window content will be drawn to */
+	/** Note: This is raw as we SWindows registered with SlateApplication are not thread safe */
+	SWindow* MainWindow;
+
+	/** Virtual window that we render to instead of the main slate window (for thread safety).  Shares only the same backbuffer as the main window */
+	TSharedRef<class SVirtualWindow> VirtualRenderWindow;
+
+	TSharedPtr<FHittestGrid> HittestGrid;
+
+	TSharedPtr<FSlateRenderer> SlateRenderer;
+
+	FViewportRHIRef ViewportRHI;
+};
+
 /** An implementation of the movie player/loading screen we will use */
 class FDefaultGameMoviePlayer : public FTickableObjectRenderThread, public IGameMoviePlayer,
 	public TSharedFromThis<FDefaultGameMoviePlayer>
 {
 public:
-	static TSharedPtr<FDefaultGameMoviePlayer> Get();
+	static void Create()
+	{
+		check(IsInGameThread() && !IsInSlateThread());
+		check(!MoviePlayer.IsValid());
+
+		MoviePlayer = MakeShareable(new FDefaultGameMoviePlayer);
+	}
+
+	static void Destroy()
+	{
+		check(IsInGameThread() && !IsInSlateThread());
+		MoviePlayer.Reset();
+	}
+
+	static FDefaultGameMoviePlayer* Get();
 	~FDefaultGameMoviePlayer();
 
 	/** IGameMoviePlayer Interface */
 	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) override;
-	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) override;
-	virtual void Initialize() override;
+	virtual void Initialize(TSharedPtr<FSlateRenderer> InSlateRenderer) override;
 	virtual void Shutdown() override;
 	virtual void PassLoadingScreenWindowBackToGame() const override;
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& LoadingScreenAttributes) override;
@@ -83,7 +122,7 @@ private:
 	void OnPreLoadMap(const FString& LevelName);
 	
 	/** Called via a delegate in the engine when maps finish loading */
-	void OnPostLoadMap();
+	void OnPostLoadMap(UWorld* LoadedWorld);
 private:
 	FDefaultGameMoviePlayer();
 
@@ -93,13 +132,13 @@ private:
 	TSharedPtr<IMovieStreamer> MovieStreamer;
 	
 	/** The window that the loading screen resides in */
-	TWeakPtr<class SWindow> LoadingScreenWindowPtr;
-	/** Holds a handle to the slate renderer for our threaded drawing */
-	TWeakPtr<class FSlateRenderer> RendererPtr;
+	TWeakPtr<class SWindow> MainWindow;
 	/** The widget which includes all contents of the loading screen, widgets and movie player and all */
 	TSharedPtr<class SWidget> LoadingScreenContents;
 	/** The widget which holds the loading screen widget passed in via the FLoadingScreenAttributes */
-	TSharedPtr<class SBorder> LoadingScreenWidgetHolder;
+	TSharedPtr<class SBorder> UserWidgetHolder;
+	/** Virtual window that we render to instead of the main slate window (for thread safety).  Shares only the same backbuffer as the main window */
+	TSharedPtr<class SVirtualWindow> VirtualRenderWindow;
 
 	/** The threading mechanism with which we handle running slate on another thread */
 	class FSlateLoadingSynchronizationMechanism* SyncMechanism;
@@ -123,17 +162,20 @@ private:
 
 	FOnMovieClipFinished OnMovieClipFinishedDelegate;
 
-
 	/** The last time a movie was started */
 	double LastPlayTime;
 
 	/** True if the movie player has been initialized */
 	bool bInitialized;
 
+	/** Critical section to allow the slate loading thread and the render thread to safely utilize the synchronization mechanism for ticking Slate. */
+	FCriticalSection SyncMechanismCriticalSection;
+
+	/** Widget renderer used to tick and paint windows in a thread safe way */
+	TSharedPtr<FMoviePlayerWidgetRenderer, ESPMode::ThreadSafe> WidgetRenderer;
 private:
 	/** Singleton handle */
 	static TSharedPtr<FDefaultGameMoviePlayer> MoviePlayer;
 
-	/** Critical section to allow the slate loading thread and the render thread to safely utilize the synchronization mechanism for ticking Slate. */
-	FCriticalSection SyncMechanismCriticalSection;
+
 };

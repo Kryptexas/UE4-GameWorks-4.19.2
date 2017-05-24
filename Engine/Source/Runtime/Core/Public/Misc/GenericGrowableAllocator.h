@@ -8,14 +8,14 @@
 
 #include "CoreMinimal.h"
 #include "ScopeLock.h"
-
+#include "Stats/Stats.h"
 
 
 //////////////
 // - Don't use a shared CriticalSection, must pass in to the GrowableAllocator
 // - Use this with GPU allocations
-// - search for @todo hjere and in the WOlfAUdioBuffer code
-// - Move this into the FWOlfAudioDevice
+// - search for @todo here and in the SwitchAudioBuffer code
+// - Move this into the FSwitchAudioDevice
 // - Pass this over some code reviews on slack or something for maybe a better way to structure instead of Template and Pure virtual
 // - Can maybe just make virtuals in FGrowableAllocationBase ??
 /////////////

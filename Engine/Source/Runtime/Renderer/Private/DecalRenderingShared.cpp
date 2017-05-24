@@ -12,6 +12,7 @@
 #include "MaterialShader.h"
 #include "DebugViewModeRendering.h"
 #include "ScenePrivate.h"
+#include "PipelineStateCache.h"
 
 static TAutoConsoleVariable<float> CVarDecalFadeScreenSizeMultiplier(
 	TEXT("r.Decal.FadeScreenSizeMult"),
@@ -70,11 +71,11 @@ public:
 		FrustumComponentToClip.Bind(Initializer.ParameterMap, TEXT("FrustumComponentToClip"));
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMatrix& InFrustumComponentToClip)
+	void SetParameters(FRHICommandList& RHICmdList, const FUniformBufferRHIParamRef ViewUniformBuffer, const FMatrix& InFrustumComponentToClip)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, ViewUniformBuffer);
 		SetShaderValue(RHICmdList, ShaderRHI, FrustumComponentToClip, InFrustumComponentToClip);
 	}
 
@@ -235,7 +236,7 @@ void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo
 			// filter out decals with blend modes that are not supported on current platform
 			if (IsBlendModeSupported(ShaderPlatform, Data.DecalBlendMode))
 			{
-				if (bIsPerspectiveProjection && Data.DecalProxy->Component->FadeScreenSize != 0.0f)
+				if (bIsPerspectiveProjection && Data.DecalProxy->FadeScreenSize != 0.0f)
 				{
 					float Distance = (View.ViewMatrices.GetViewOrigin() - ComponentToWorldMatrix.GetOrigin()).Size();
 					float Radius = ComponentToWorldMatrix.GetMaximumAxisScale();
@@ -245,7 +246,7 @@ void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo
 					// FadeCoeffScale is an empirically determined constant to bring us back roughly to fraction of screen size for FadeScreenSize
 					const float FadeCoeffScale = 600.0f;
 					float FOVFactor = ((2.0f/View.ViewMatrices.GetProjectionMatrix().M[0][0]) / View.ViewRect.Width()) * FadeCoeffScale;
-					float FadeCoeff = Data.DecalProxy->Component->FadeScreenSize * FOVFactor;
+					float FadeCoeff = Data.DecalProxy->FadeScreenSize * FOVFactor;
 					float FadeRange = FadeCoeff * 0.5f;
 
 					float Alpha = (CurrentScreenSize - FadeCoeff) / FadeRange;
@@ -305,7 +306,7 @@ FMatrix FDecalRendering::ComputeComponentToClipMatrix(const FViewInfo& View, con
 	return ComponentToWorldMatrixTrans * View.ViewMatrices.GetTranslatedViewProjectionMatrix();
 }
 
-void FDecalRendering::SetShader(FRHICommandList& RHICmdList, const FViewInfo& View, const FTransientDecalRenderData& DecalData, const FMatrix& FrustumComponentToClip)
+void FDecalRendering::SetShader(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, const FViewInfo& View, const FTransientDecalRenderData& DecalData, const FMatrix& FrustumComponentToClip)
 {
 	const FMaterialShaderMap* MaterialShaderMap = DecalData.MaterialResource->GetRenderingThreadShaderMap();
 	auto PixelShader = MaterialShaderMap->GetShader<FDeferredDecalPS>();
@@ -321,17 +322,24 @@ void FDecalRendering::SetShader(FRHICommandList& RHICmdList, const FViewInfo& Vi
 		const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 		const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
 
-		static FGlobalBoundShaderState BoundShaderState[DVSM_MAX];
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState[(uint32)DebugViewShaderMode], GetVertexDeclarationFVector4(), *VertexShader, DebugPixelShader->GetShader());
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(DebugPixelShader->GetShader());
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit, EApplyRendertargetOption::ForceApply);
 
 		DebugPixelShader->SetParameters(RHICmdList, *VertexShader, PixelShader, DecalData.MaterialProxy, *DecalData.MaterialResource, View);
 		DebugPixelShader->SetMesh(RHICmdList, View);
 	}
 	else
 	{
-		// first Bind, then SetParameters()
-		RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(GetVertexDeclarationFVector4(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = PixelShader->GetPixelShader();
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
+		RHICmdList.SetLocalGraphicsPipelineState(RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit));
 		PixelShader->SetParameters(RHICmdList, View, DecalData.MaterialProxy, *DecalData.DecalProxy, DecalData.FadeAlpha);
 	}
 
@@ -355,12 +363,17 @@ void FDecalRendering::SetShader(FRHICommandList& RHICmdList, const FViewInfo& Vi
 		}
 	}
 
-	VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);
+	VertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer, FrustumComponentToClip);
 }
 
-void FDecalRendering::SetVertexShaderOnly(FRHICommandList& RHICmdList, const FViewInfo& View, const FMatrix& FrustumComponentToClip)
+void FDecalRendering::SetVertexShaderOnly(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, const FViewInfo& View, const FMatrix& FrustumComponentToClip)
 {
 	TShaderMapRef<FDeferredDecalVS> VertexShader(View.ShaderMap);
-	RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(GetVertexDeclarationFVector4(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), NULL, FGeometryShaderRHIRef()));
-	VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);
+
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = VertexShader->GetVertexShader();
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	RHICmdList.SetLocalGraphicsPipelineState(RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit));
+	VertexShader->SetParameters(RHICmdList, View.ViewUniformBuffer, FrustumComponentToClip);
 }

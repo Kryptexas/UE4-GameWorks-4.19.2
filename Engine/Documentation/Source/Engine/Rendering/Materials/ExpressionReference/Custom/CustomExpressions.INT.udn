@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/E
 Description:Expressions that allow the use of custom, plain shader code.
 Skilllevel: Advanced
 Version: 4.9
+tags:Materials
 
 ## Custom
 

@@ -6,6 +6,7 @@ Related: Engine/Blueprints/UserGuide/Functions
 Related: Engine/Blueprints/UserGuide/Functions/FunctionCalls
 version:4.9
 skilllevel:Intermediate
+tags:Blueprints
 
 [INCLUDE:Engine/Blueprints/UserGuide/Functions#intro]
 

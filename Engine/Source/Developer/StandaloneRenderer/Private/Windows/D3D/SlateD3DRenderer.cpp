@@ -16,6 +16,7 @@ SLATE_DECLARE_CYCLE_COUNTER(GRendererDrawElements, "Renderer DrawElements");
 
 TRefCountPtr<ID3D11Device> GD3DDevice;
 TRefCountPtr<ID3D11DeviceContext> GD3DDeviceContext;
+bool GEncounteredCriticalD3DDeviceError = false;
 
 static FMatrix CreateProjectionMatrixD3D( uint32 Width, uint32 Height )
 {
@@ -32,6 +33,51 @@ static FMatrix CreateProjectionMatrixD3D( uint32 Width, uint32 Height )
 					 FPlane(0,							0,							1/(ZNear-ZFar),		0 ),
 					 FPlane((Left+Right)/(Left-Right),	(Top+Bottom)/(Bottom-Top),	ZNear/(ZNear-ZFar), 1 ) );
 
+}
+
+FString GetReadableResult(HRESULT Hr)
+{
+	switch (Hr)
+	{
+#define CASE(A) case A: return TEXT(#A);
+		CASE(DXGI_ERROR_DEVICE_HUNG)
+		CASE(DXGI_ERROR_DEVICE_REMOVED)
+		CASE(DXGI_ERROR_DEVICE_RESET)
+		CASE(DXGI_ERROR_DRIVER_INTERNAL_ERROR)
+		CASE(DXGI_ERROR_FRAME_STATISTICS_DISJOINT)
+		CASE(DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE)
+		CASE(DXGI_ERROR_INVALID_CALL)
+		CASE(DXGI_ERROR_MORE_DATA)
+		CASE(DXGI_ERROR_NONEXCLUSIVE)
+		CASE(DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
+		CASE(DXGI_ERROR_NOT_FOUND)
+		CASE(DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED)
+		CASE(DXGI_ERROR_REMOTE_OUTOFMEMORY)
+		CASE(DXGI_ERROR_WAS_STILL_DRAWING)
+		CASE(DXGI_ERROR_UNSUPPORTED)
+		CASE(DXGI_ERROR_ACCESS_LOST)
+		CASE(DXGI_ERROR_WAIT_TIMEOUT)
+		CASE(DXGI_ERROR_SESSION_DISCONNECTED)
+		CASE(DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE)
+		CASE(DXGI_ERROR_CANNOT_PROTECT_CONTENT)
+		CASE(DXGI_ERROR_ACCESS_DENIED)
+		CASE(DXGI_ERROR_NAME_ALREADY_EXISTS)
+		CASE(DXGI_ERROR_SDK_COMPONENT_MISSING)
+#undef CASE
+	}
+
+	return FString::Printf(TEXT("DXGI_ERROR_%08X"), (int32)Hr);
+}
+
+void LogSlateD3DRendererFailure(const FString& Description, HRESULT Hr)
+{
+	UE_LOG(LogStandaloneRenderer, Log, TEXT("%s Result: %s [%X]"), *Description, *GetReadableResult(Hr), Hr);
+
+	if (Hr == DXGI_ERROR_DEVICE_REMOVED && IsValidRef(GD3DDevice))
+	{
+		HRESULT ReasonHr = GD3DDevice->GetDeviceRemovedReason();
+		UE_LOG(LogStandaloneRenderer, Log, TEXT("%s Reason: %s [%X]"), *Description, *GetReadableResult(ReasonHr), ReasonHr);
+	}
 }
 
 class FSlateD3DFontAtlasFactory : public ISlateFontAtlasFactory
@@ -73,6 +119,7 @@ TSharedRef<FSlateFontServices> CreateD3DFontServices()
 
 FSlateD3DRenderer::FSlateD3DRenderer( const ISlateStyle& InStyle )
 	: FSlateRenderer( CreateD3DFontServices() )
+	, bHasAttemptedInitialization(false)
 {
 
 	ViewMatrix = FMatrix(	FPlane(1,	0,	0,	0),
@@ -88,19 +135,29 @@ FSlateD3DRenderer::~FSlateD3DRenderer()
 
 bool FSlateD3DRenderer::Initialize()
 {
-	bool bResult = CreateDevice();
-	if (bResult)
+	if (!bHasAttemptedInitialization)
 	{
-		TextureManager = MakeShareable(new FSlateD3DTextureManager);
-		FSlateDataPayload::ResourceManager = TextureManager.Get();
+		bool bResult = CreateDevice();
+		if (bResult)
+		{
+			TextureManager = MakeShareable(new FSlateD3DTextureManager);
+			FSlateDataPayload::ResourceManager = TextureManager.Get();
 
-		TextureManager->LoadUsedTextures();
+			TextureManager->LoadUsedTextures();
 
-		RenderingPolicy = MakeShareable(new FSlateD3D11RenderingPolicy(SlateFontServices.ToSharedRef(), TextureManager.ToSharedRef()));
+			RenderingPolicy = MakeShareable(new FSlateD3D11RenderingPolicy(SlateFontServices.ToSharedRef(), TextureManager.ToSharedRef()));
 
-		ElementBatcher = MakeShareable(new FSlateElementBatcher(RenderingPolicy.ToSharedRef()));
+			ElementBatcher = MakeShareable(new FSlateElementBatcher(RenderingPolicy.ToSharedRef()));
+			GEncounteredCriticalD3DDeviceError = false;
+		}
+		else
+		{
+			GEncounteredCriticalD3DDeviceError = true;
+		}
 	}
-	return bResult;
+
+	bHasAttemptedInitialization = true;
+	return bHasAttemptedInitialization && !GEncounteredCriticalD3DDeviceError;
 }
 
 void FSlateD3DRenderer::Destroy()
@@ -112,6 +169,7 @@ void FSlateD3DRenderer::Destroy()
 	GD3DDevice.SafeRelease();
 	GD3DDeviceContext.SafeRelease();
 }
+
 bool FSlateD3DRenderer::CreateDevice()
 {
 	bool bResult = true;
@@ -130,9 +188,15 @@ bool FSlateD3DRenderer::CreateDevice()
 		const D3D_FEATURE_LEVEL FeatureLevels[] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_9_3 };
 		D3D_FEATURE_LEVEL CreatedFeatureLevel;
 		HRESULT Hr = D3D11CreateDevice( NULL, DriverType, NULL, DeviceCreationFlags, FeatureLevels, sizeof(FeatureLevels)/sizeof(D3D_FEATURE_LEVEL), D3D11_SDK_VERSION, GD3DDevice.GetInitReference(), &CreatedFeatureLevel, GD3DDeviceContext.GetInitReference() );
-		UE_LOG(LogStandaloneRenderer, Log, TEXT("D3D11CreateDevice Result: %X"), Hr);	
-		bResult = SUCCEEDED(Hr);
+		
+		if (FAILED(Hr))
+		{
+			bResult = false;
+			LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::CreateDevice() - D3D11CreateDevice"), Hr);
+			GEncounteredCriticalD3DDeviceError = true;
+		}
 	}
+
 	return bResult;
 }
 
@@ -215,23 +279,48 @@ void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, co
 
 	TRefCountPtr<IDXGIDevice1> DXGIDevice;
 	HRESULT Hr = GD3DDevice->QueryInterface( __uuidof(IDXGIDevice1), (void**)DXGIDevice.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (!SUCCEEDED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - ID3D11Device::QueryInterface"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	TRefCountPtr<IDXGIAdapter1> DXGIAdapter;
-	Hr = DXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)DXGIAdapter.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	Hr = DXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)DXGIAdapter.GetInitReference());
+	if (!SUCCEEDED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - IDXGIDevice1::GetParent"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	TRefCountPtr<IDXGIFactory1> DXGIFactory;
 	Hr = DXGIAdapter->GetParent(__uuidof(IDXGIFactory1), (void **)DXGIFactory.GetInitReference());
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (!SUCCEEDED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - IDXGIAdapter1::GetParent"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	FSlateD3DViewport Viewport;
 
-	Hr = DXGIFactory->CreateSwapChain(DXGIDevice.GetReference(), &SwapChainDesc, Viewport.D3DSwapChain.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	Hr = DXGIFactory->CreateSwapChain(DXGIDevice.GetReference(), &SwapChainDesc, Viewport.D3DSwapChain.GetInitReference());
+	if (!SUCCEEDED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - IDXGIFactory1::CreateSwapChain"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
-	Hr = DXGIFactory->MakeWindowAssociation((HWND)NativeWindow->GetOSWindowHandle(),DXGI_MWA_NO_ALT_ENTER);
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	Hr = DXGIFactory->MakeWindowAssociation((HWND)NativeWindow->GetOSWindowHandle(), DXGI_MWA_NO_ALT_ENTER);
+	if (!SUCCEEDED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_CreateViewport() - IDXGIFactory1::MakeWindowAssociation"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	uint32 Width = FMath::TruncToInt(WindowSize.X);
 	uint32 Height = FMath::TruncToInt(WindowSize.Y);
@@ -242,13 +331,12 @@ void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, co
 	Viewport.ViewportInfo.Height = Height;
 	Viewport.ViewportInfo.TopLeftX = 0;
 	Viewport.ViewportInfo.TopLeftY = 0;
-	
-	CreateBackBufferResources( Viewport.D3DSwapChain, Viewport.BackBufferTexture, Viewport.RenderTargetView );
 
-	Viewport.ProjectionMatrix = CreateProjectionMatrixD3D( Width, Height );
+	CreateBackBufferResources(Viewport.D3DSwapChain, Viewport.BackBufferTexture, Viewport.RenderTargetView);
 
-	WindowToViewportMap.Add( &InWindow.Get(), Viewport );
+	Viewport.ProjectionMatrix = CreateProjectionMatrixD3D(Width, Height);
 
+	WindowToViewportMap.Add(&InWindow.Get(), Viewport);
 }
 
 void FSlateD3DRenderer::RequestResize( const TSharedPtr<SWindow>& InWindow, uint32 NewSizeX, uint32 NewSizeY )
@@ -264,17 +352,32 @@ void FSlateD3DRenderer::UpdateFullscreenState( const TSharedRef<SWindow> InWindo
 
 void FSlateD3DRenderer::ReleaseDynamicResource( const FSlateBrush& Brush )
 {
-	TextureManager->ReleaseDynamicTextureResource( Brush );
+	if (TextureManager.IsValid())
+	{
+		TextureManager->ReleaseDynamicTextureResource( Brush );
+	}
 }
 
 bool FSlateD3DRenderer::GenerateDynamicImageResource(FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes)
 {
-	return TextureManager->CreateDynamicTextureResource(ResourceName, Width, Height, Bytes) != NULL;
+	FSlateShaderResourceProxy* Result = nullptr;
+
+	if (TextureManager.IsValid())
+	{
+		Result = TextureManager->CreateDynamicTextureResource(ResourceName, Width, Height, Bytes);
+	}
+
+	return Result != nullptr;
 }
 
 FSlateResourceHandle FSlateD3DRenderer::GetResourceHandle( const FSlateBrush& Brush )
 {
-	return TextureManager->GetResourceHandle( Brush );
+	if (!TextureManager.IsValid())
+	{
+		return FSlateResourceHandle();
+	}
+
+	return TextureManager->GetResourceHandle(Brush);
 }
 
 void FSlateD3DRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
@@ -302,9 +405,16 @@ void FSlateD3DRenderer::Private_ResizeViewport( const TSharedRef<SWindow> InWind
 		DXGI_SWAP_CHAIN_DESC Desc;
 		Viewport->D3DSwapChain->GetDesc( &Desc );
 		HRESULT Hr = Viewport->D3DSwapChain->ResizeBuffers( Desc.BufferCount, Viewport->ViewportInfo.Width, Viewport->ViewportInfo.Height, Desc.BufferDesc.Format, Desc.Flags );
-		checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
 
-		CreateBackBufferResources( Viewport->D3DSwapChain, Viewport->BackBufferTexture,Viewport->RenderTargetView );
+		if (SUCCEEDED(Hr))
+		{
+			CreateBackBufferResources(Viewport->D3DSwapChain, Viewport->BackBufferTexture, Viewport->RenderTargetView);
+		}
+		else
+		{
+			LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::Private_ResizeViewport() - FSlateD3DViewport::IDXGISwapChain::ResizeBuffers"), Hr);
+			GEncounteredCriticalD3DDeviceError = true;
+		}
 	}
 }
 
@@ -317,7 +427,11 @@ void FSlateD3DRenderer::CreateBackBufferResources( TRefCountPtr<IDXGISwapChain>&
 	RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 	RTVDesc.Texture2D.MipSlice = 0;
 	HRESULT Hr = GD3DDevice->CreateRenderTargetView( OutBackBuffer, &RTVDesc, OutRTV.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (!SUCCEEDED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::CreateBackBufferResources() - ID3D11Device::CreateRenderTargetView"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+	}
 }
 
 void FSlateD3DRenderer::CreateViewport( const TSharedRef<SWindow> InWindow )
@@ -354,25 +468,46 @@ void FSlateD3DRenderer::CreateDepthStencilBuffer( FSlateD3DViewport& Viewport )
 	DescDepth.CPUAccessFlags = 0;
 	DescDepth.MiscFlags = 0;
 	HRESULT Hr = GD3DDevice->CreateTexture2D( &DescDepth, NULL, DepthStencil.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
-
-	D3D11_DEPTH_STENCIL_VIEW_DESC DescDSV;
+	if (SUCCEEDED(Hr))
+	{
+		D3D11_DEPTH_STENCIL_VIEW_DESC DescDSV;
 #if DEPTH_32_BIT_CONVERSION
-	DescDSV.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT ;
+		DescDSV.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 #else
-	DescDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT ;
+		DescDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 #endif
-	DescDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	DescDSV.Texture2D.MipSlice = 0;
-	DescDSV.Flags = 0;
+		DescDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		DescDSV.Texture2D.MipSlice = 0;
+		DescDSV.Flags = 0;
 
-	// Create the depth stencil view
-	Hr = GD3DDevice->CreateDepthStencilView( DepthStencil, &DescDSV, Viewport.DepthStencilView.GetInitReference() ); 
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+		// Create the depth stencil view
+		Hr = GD3DDevice->CreateDepthStencilView(DepthStencil, &DescDSV, Viewport.DepthStencilView.GetInitReference());
+
+		if (!SUCCEEDED(Hr))
+		{
+			LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::CreateDepthStencilBuffer() - ID3D11Device::CreateDepthStencilView"), Hr);
+			GEncounteredCriticalD3DDeviceError = true;
+		}
+	}
+	else
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DRenderer::CreateDepthStencilBuffer() - ID3D11Device::CreateTexture2D"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+	}
+}
+
+bool FSlateD3DRenderer::HasLostDevice() const
+{
+	return (bHasAttemptedInitialization && (GEncounteredCriticalD3DDeviceError || !IsValidRef(GD3DDevice) || FAILED(GD3DDevice->GetDeviceRemovedReason())));
 }
 
 void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 {
+	if (HasLostDevice())
+	{
+		return;
+	}
+
 	const TSharedRef<FSlateFontCache> FontCache = SlateFontServices->GetFontCache();
 
 	// Iterate through each element list and set up an RHI window for it if needed

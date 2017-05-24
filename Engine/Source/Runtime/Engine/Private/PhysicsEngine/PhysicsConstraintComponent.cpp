@@ -81,7 +81,17 @@ UPrimitiveComponent* UPhysicsConstraintComponent::GetComponentInternal(EConstrai
 				{
 					if(Comp->GetFName() == ComponentName)
 					{
-						PrimComp = Cast<UPrimitiveComponent>(Comp);
+						if (UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>(Comp))
+						{
+							if (AActor* ChildActor = ChildActorComp->GetChildActor())
+							{
+								PrimComp = Cast<UPrimitiveComponent>(ChildActor->GetRootComponent());
+							}
+						}
+						else
+						{
+							PrimComp = Cast<UPrimitiveComponent>(Comp);
+						}
 						break;
 					}
 				}
@@ -152,7 +162,7 @@ FTransform UPhysicsConstraintComponent::GetBodyTransformInternal(EConstraintFram
 
 FBox UPhysicsConstraintComponent::GetBodyBoxInternal(EConstraintFrame::Type Frame, FName InBoneName) const
 {
-	FBox ResultBox(0);
+	FBox ResultBox(ForceInit);
 
 	UPrimitiveComponent* PrimComp  = GetComponentInternal(Frame);
 
@@ -380,6 +390,11 @@ void UPhysicsConstraintComponent::PostLoad()
 }
 
 #if WITH_EDITOR
+void UPhysicsConstraintComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	ConstraintInstance.ProfileInstance.SyncChangedConstraintProperties(PropertyChangedEvent);
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
 
 void UPhysicsConstraintComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

@@ -6,7 +6,6 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "UObject/WeakObjectPtr.h"
-#include "portmidi.h"
 #include "MIDIDeviceController.generated.h"
 
 
@@ -82,7 +81,7 @@ protected:
 	// ...
 
 	/** The PortMidi stream used for MIDI input for this device */
-	PortMidiStream* PMMIDIInputStream;
+	void* PMMIDIInputStream;
 
 	/** Size of the MIDI buffer in bytes */
 	int32 MIDIBufferSize;

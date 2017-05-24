@@ -10,6 +10,8 @@
 #include "VoiceInterfaceImpl.h"
 #include "OnlineAchievementsInterfaceNull.h"
 
+FThreadSafeCounter FOnlineSubsystemNull::TaskCounter;
+
 IOnlineSessionPtr FOnlineSubsystemNull::GetSessionInterface() const
 {
 	return SessionInterface;
@@ -164,7 +166,7 @@ bool FOnlineSubsystemNull::Init()
 		// Create the online async task thread
 		OnlineAsyncTaskThreadRunnable = new FOnlineAsyncTaskManagerNull(this);
 		check(OnlineAsyncTaskThreadRunnable);
-		OnlineAsyncTaskThread = FRunnableThread::Create(OnlineAsyncTaskThreadRunnable, *FString::Printf(TEXT("OnlineAsyncTaskThreadNull %s"), *InstanceName.ToString()), 128 * 1024, TPri_Normal);
+		OnlineAsyncTaskThread = FRunnableThread::Create(OnlineAsyncTaskThreadRunnable, *FString::Printf(TEXT("OnlineAsyncTaskThreadNull %s(%d)"), *InstanceName.ToString(), TaskCounter.Increment()), 128 * 1024, TPri_Normal);
 		check(OnlineAsyncTaskThread);
 		UE_LOG_ONLINE(Verbose, TEXT("Created thread (ID:%d)."), OnlineAsyncTaskThread->GetThreadID());
 
@@ -206,7 +208,7 @@ bool FOnlineSubsystemNull::Shutdown()
 		VoiceInterface->Shutdown();
 	}
 	
- 	#define DESTRUCT_INTERFACE(Interface) \
+#define DESTRUCT_INTERFACE(Interface) \
  	if (Interface.IsValid()) \
  	{ \
  		ensure(Interface.IsUnique()); \
@@ -220,7 +222,7 @@ bool FOnlineSubsystemNull::Shutdown()
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
  	DESTRUCT_INTERFACE(SessionInterface);
 	
-	#undef DESTRUCT_INTERFACE
+#undef DESTRUCT_INTERFACE
 	
 	return true;
 }

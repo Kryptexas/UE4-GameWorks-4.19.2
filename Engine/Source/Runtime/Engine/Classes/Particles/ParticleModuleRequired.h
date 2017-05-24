@@ -428,7 +428,7 @@ class UParticleModuleRequired : public UParticleModule
 
 	inline const FVector2D* GetFrameData(int32 FrameIndex) const
 	{
-		return &DerivedData.BoundingGeometry[FrameIndex * GetNumFrames()];
+		return &DerivedData.BoundingGeometry[FrameIndex * GetNumBoundingVertices()];
 	}
 
 protected:

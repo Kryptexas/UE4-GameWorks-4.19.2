@@ -88,26 +88,44 @@ namespace LinuxStackWalkHelpers
 		 * For more info on DWARF format, see http://www.dwarfstd.org/Download.php , http://www.ibm.com/developerworks/library/os-debugging/
 		 * Note: that function is not exactly traversing the tree, but this "seems to work"(tm). Not sure if we need to descend properly (taking child of every sibling), this
 		 * takes too much time (and callstacks seem to be fine without it).
+		 *
+		 * The function will always deallocate the DIE passed to it.
+		 *
+		 * @param DebugInfo handle to the opened DWARF data
+		 * @param InDiePtr Pointer to Debugging Infromation Entry that this function will use. This DIE will be deallocated and zeroed upon function return.
+		 * @param Addr address for which we're looking for the function name
+		 * @param OutFuncName pointer to the return function name
+		 *
 		 */
-		static void FindFunctionNameInDIEAndChildren(Dwarf_Debug DebugInfo, Dwarf_Die Die, Dwarf_Addr Addr, const char **OutFuncName);
+		static void FindFunctionNameInDIEAndChildren(Dwarf_Debug DebugInfo, Dwarf_Die* InDiePtr, Dwarf_Addr Addr, const char **OutFuncName);
 
 		/**
 		 * Finds a function name in DWARF DIE (Debug Information Entry).
 		 * For more info on DWARF format, see http://www.dwarfstd.org/Download.php , http://www.ibm.com/developerworks/library/os-debugging/
 		 *
+		 * The function will deallocate the DIE passed if it returns true.
+		 *
+		 * @param DebugInfo handle to the opened DWARF data
+		 * @param InDiePtr Pointer to Debugging Infromation Entry that this function will use. This DIE will be deallocated and zeroed if function is successful.
+		 * @param Addr address for which we're looking for the function name
+		 * @param OutFuncName pointer to the return function name
+		 *
 		 * @return true if we need to stop search (i.e. either found it or some error happened)
 		 */
-		static bool FindFunctionNameInDIE(Dwarf_Debug DebugInfo, Dwarf_Die Die, Dwarf_Addr Addr, const char **OutFuncName);
+		static bool FindFunctionNameInDIE(Dwarf_Debug DebugInfo, Dwarf_Die* InDiePtr, Dwarf_Addr Addr, const char **OutFuncName);
 
 		/**
 		 * Tries all usable attributes in DIE to determine function name (i.e. DW_AT_MIPS_linkage_name, DW_AT_linkage_name, DW_AT_name)
 		 *
-		 * @param Die Debugging Infromation Entry
+		 * The function will deallocate the DIE passed if it returns true.
+		 *
+		 * @param DebugInfo handle to the opened DWARF data
+		 * @param InDiePtr Pointer to Debugging Infromation Entry that this function will use. This DIE will be deallocated and zeroed if function is successful.
 		 * @param OutFuncName Pointer to function name (volatile, copy it after call). Will not be touched if function returns false
 		 *
 		 * @return true if found
 		 */
-		static bool FindNameAttributeInDIE(Dwarf_Die Die, const char **OutFuncName);
+		static bool FindNameAttributeInDIE(Dwarf_Debug DebugInfo, Dwarf_Die* InDiePtr, const char **OutFuncName);
 	};
 
 	enum
@@ -183,7 +201,7 @@ namespace LinuxStackWalkHelpers
 			return false;
 		}
 
-		Dwarf_Die Die;
+		Dwarf_Die Die = nullptr;
 		Dwarf_Unsigned Addr = reinterpret_cast< Dwarf_Unsigned >( Address ), LineNumber = 0;
 		const char * SrcFile = NULL;
 
@@ -196,26 +214,47 @@ namespace LinuxStackWalkHelpers
 		const int32 kMaxBufferLinesAllowed = 16 * 1024 * 1024;	// safeguard to prevent too long line loop
 		for(;;)
 		{
-			if (--MaxCompileUnitsAllowed <= 0)
+			if (UNLIKELY(--MaxCompileUnitsAllowed <= 0))
 			{
 				fprintf(stderr, "Breaking out from what seems to be an infinite loop during DWARF parsing (too many compile units).\n");
 				ReturnCode = DW_DLE_DIE_NO_CU_CONTEXT;	// invalidate
 				break;
 			}
 
-			if (bExitHeaderLoop)
+			if (UNLIKELY(bExitHeaderLoop))
 				break;
 
 			ReturnCode = dwarf_next_cu_header(DebugInfo, NULL, NULL, NULL, NULL, NULL, &ErrorInfo);
-			if (ReturnCode != DW_DLV_OK)
-				break;
-
-			Die = NULL;
-
-			while(dwarf_siblingof(DebugInfo, Die, &Die, &ErrorInfo) == DW_DLV_OK)
+			if (UNLIKELY(ReturnCode != DW_DLV_OK))
 			{
+				break;
+			}
+
+			if (LIKELY(Die))
+			{
+				dwarf_dealloc(DebugInfo, Die, DW_DLA_DIE);
+				Die = nullptr;
+			}
+
+			// find compile unit
+			for (;;)
+			{
+				Dwarf_Die SiblingDie = nullptr;
+				bool bStopTraversingSiblings = dwarf_siblingof(DebugInfo, Die, &SiblingDie, &ErrorInfo) != DW_DLV_OK;
+				if (LIKELY(Die))
+				{
+					dwarf_dealloc(DebugInfo, Die, DW_DLA_DIE);
+				}
+				Die = SiblingDie;
+
+				if (UNLIKELY(bStopTraversingSiblings))
+				{
+					break;
+				}
+
+				// move on to the next sibling
 				Dwarf_Half Tag;
-				if (dwarf_tag(Die, &Tag, &ErrorInfo) != DW_DLV_OK)
+				if (UNLIKELY(dwarf_tag(Die, &Tag, &ErrorInfo) != DW_DLV_OK))
 				{
 					bExitHeaderLoop = true;
 					break;
@@ -233,20 +272,24 @@ namespace LinuxStackWalkHelpers
 			}
 
 			// check if address is inside this CU
-			if (!CheckAddressInRange(DebugInfo, Die, Addr))
+			if (LIKELY(!CheckAddressInRange(DebugInfo, Die, Addr)))
 			{
+				dwarf_dealloc(DebugInfo, Die, DW_DLA_DIE);
+				Die = nullptr;
 				continue;
 			}
 
 			Dwarf_Line * LineBuf;
 			Dwarf_Signed NumLines = kMaxBufferLinesAllowed;
-			if (dwarf_srclines(Die, &LineBuf, &NumLines, &ErrorInfo) != DW_DLV_OK)
+			if (UNLIKELY(dwarf_srclines(Die, &LineBuf, &NumLines, &ErrorInfo) != DW_DLV_OK))
 			{
 				// could not get line info for some reason
+				dwarf_dealloc(DebugInfo, Die, DW_DLA_DIE);
+				Die = nullptr;
 				continue;
 			}
 
-			if (NumLines >= kMaxBufferLinesAllowed)
+			if (UNLIKELY(NumLines >= kMaxBufferLinesAllowed))
 			{
 				fprintf(stderr, "Number of lines associated with a DIE looks unreasonable (%d), early quitting.\n", static_cast<int32>(NumLines));
 				ReturnCode = DW_DLE_DIE_NO_CU_CONTEXT;	// invalidate
@@ -304,7 +347,8 @@ namespace LinuxStackWalkHelpers
 			if (LIKELY(OutFunctionNamePtr != nullptr))
 			{
 				const char * FunctionName = nullptr;
-				FindFunctionNameInDIEAndChildren(DebugInfo, Die, Addr, &FunctionName);
+				// this function will deallocate the die
+				FindFunctionNameInDIEAndChildren(DebugInfo, &Die, Addr, &FunctionName);
 				if (LIKELY(FunctionName != nullptr))
 				{
 					*OutFunctionNamePtr = FunctionName;
@@ -352,6 +396,13 @@ namespace LinuxStackWalkHelpers
 					*OutModuleNamePtr = "Unknown";
 				}
 			}
+		}
+
+		// catch-all
+		if (Die)
+		{
+			dwarf_dealloc(DebugInfo, Die, DW_DLA_DIE);
+			Die = nullptr;
 		}
 
 		// Resets internal CU pointer, so next time we get here it begins from the start
@@ -475,10 +526,11 @@ namespace LinuxStackWalkHelpers
 		return LowAddr <= Addr && Addr < HighAddr;
 	}
 
-	bool LinuxBacktraceSymbols::FindNameAttributeInDIE(Dwarf_Die Die, const char **OutFuncName)
+	bool LinuxBacktraceSymbols::FindNameAttributeInDIE(Dwarf_Debug DebugInfo, Dwarf_Die* InDiePtr, const char **OutFuncName)
 	{
 		Dwarf_Error ErrorInfo;
 		int ReturnCode;
+		Dwarf_Die Die = *InDiePtr;
 
 		// look first for DW_AT_linkage_name or DW_AT_MIPS_linkage_name, since they hold fully qualified (albeit mangled) name
 		Dwarf_Attribute LinkageNameAt;
@@ -515,6 +567,10 @@ namespace LinuxStackWalkHelpers
 				{
 					free(Demangled);
 				}
+
+				// deallocate the DIE
+				dwarf_dealloc(DebugInfo, Die, DW_DLA_DIE);
+				*InDiePtr = nullptr;
 				return true;
 			}
 		}
@@ -524,22 +580,21 @@ namespace LinuxStackWalkHelpers
 		if (LIKELY(dwarf_attrval_string(Die, DW_AT_name, &TempMethodName, &ErrorInfo) == DW_DLV_OK))
 		{
 			*OutFuncName = TempMethodName;
+
+			// deallocate the DIE
+			dwarf_dealloc(DebugInfo, Die, DW_DLA_DIE);
+			*InDiePtr = nullptr;
 			return true;
 		}
 
 		return false;
 	}
 
-	/**
-	 * Finds a function name in DWARF DIE (Debug Information Entry).
-	 * For more info on DWARF format, see http://www.dwarfstd.org/Download.php , http://www.ibm.com/developerworks/library/os-debugging/
-	 *
-	 * @return true if we need to stop search (i.e. either found it or some error happened)
-	 */
-	bool LinuxBacktraceSymbols::FindFunctionNameInDIE(Dwarf_Debug DebugInfo, Dwarf_Die Die, Dwarf_Addr Addr, const char **OutFuncName)
+	bool LinuxBacktraceSymbols::FindFunctionNameInDIE(Dwarf_Debug DebugInfo, Dwarf_Die* InDiePtr, Dwarf_Addr Addr, const char **OutFuncName)
 	{
 		Dwarf_Error ErrorInfo;
 		Dwarf_Half Tag;
+		Dwarf_Die Die = *InDiePtr;
 
 		if (dwarf_tag(Die, &Tag, &ErrorInfo) != DW_DLV_OK || Tag != DW_TAG_subprogram)
 		{
@@ -553,8 +608,9 @@ namespace LinuxStackWalkHelpers
 		}
 
 		// attempt to find the name in DW_TAG_subprogram DIE
-		if (FindNameAttributeInDIE(Die, OutFuncName))
+		if (FindNameAttributeInDIE(DebugInfo, &Die, OutFuncName))	// this function will allocate the DIE on success
 		{
+			*InDiePtr = nullptr;
 			return true;
 		}
 
@@ -562,7 +618,7 @@ namespace LinuxStackWalkHelpers
 		Dwarf_Attribute SpecAt;
 		if (UNLIKELY(dwarf_attr(Die, DW_AT_specification, &SpecAt, &ErrorInfo) != DW_DLV_OK))
 		{
-			// no specificaation die
+			// no specification die
 			return false;
 		}
 
@@ -578,73 +634,95 @@ namespace LinuxStackWalkHelpers
 			return false;
 		}
 
-		return FindNameAttributeInDIE(SpecDie, OutFuncName);
+		if (FindNameAttributeInDIE(DebugInfo, &SpecDie, OutFuncName))	// this function will allocate the DIE on success
+		{
+			// but we still need to deallocate our original DIE
+			dwarf_dealloc(DebugInfo, Die, DW_DLA_DIE);
+			*InDiePtr = nullptr;
+
+			return true;
+		}
+
+		return false;
 	}
 
-	/**
-	 * Finds a function name in DWARF DIE (Debug Information Entry) and its children.
-	 * For more info on DWARF format, see http://www.dwarfstd.org/Download.php , http://www.ibm.com/developerworks/library/os-debugging/
-	 * Note: that function is not exactly traversing the tree, but this "seems to work"(tm). Not sure if we need to descend properly (taking child of every sibling), this
-	 * takes too much time (and callstacks seem to be fine without it).
-	 */
-	void LinuxBacktraceSymbols::FindFunctionNameInDIEAndChildren(Dwarf_Debug DebugInfo, Dwarf_Die Die, Dwarf_Addr Addr, const char **OutFuncName)
+	void LinuxBacktraceSymbols::FindFunctionNameInDIEAndChildren(Dwarf_Debug DebugInfo, Dwarf_Die* InDiePtr, Dwarf_Addr Addr, const char **OutFuncName)
 	{
 		if (OutFuncName == NULL || *OutFuncName != NULL)
 		{
+			dwarf_dealloc(DebugInfo, *InDiePtr, DW_DLA_DIE);
+			*InDiePtr = nullptr;
 			return;
 		}
 
-		// search for this Die
-		if (FindFunctionNameInDIE(DebugInfo, Die, Addr, OutFuncName))
+		// search for this Die  (FFNID will deallocate the Die if successful)
+		if (FindFunctionNameInDIE(DebugInfo, InDiePtr, Addr, OutFuncName))
 		{
 			return;
 		}
 
-		Dwarf_Die PrevChild = Die, Current = NULL;
+		Dwarf_Die PrevChild = *InDiePtr, Current = nullptr;
+		*InDiePtr = nullptr;	// mark input Die as deallocated so the caller doesn't use it
 		Dwarf_Error ErrorInfo;
 
 		int32 MaxChildrenAllowed = 32 * 1024 * 1024;	// safeguard to make sure we never get into an infinite loop
 		for(;;)
 		{
-			if (--MaxChildrenAllowed <= 0)
+			if (UNLIKELY(--MaxChildrenAllowed <= 0))
 			{
 				fprintf(stderr, "Breaking out from what seems to be an infinite loop during DWARF parsing (too many children).\n");
+				dwarf_dealloc(DebugInfo, PrevChild, DW_DLA_DIE);
 				return;
 			}
 
 			// Get the child
-			if (dwarf_child(PrevChild, &Current, &ErrorInfo) != DW_DLV_OK)
+			if (UNLIKELY(dwarf_child(PrevChild, &Current, &ErrorInfo) != DW_DLV_OK))
 			{
+				dwarf_dealloc(DebugInfo, PrevChild, DW_DLA_DIE);
 				return;	// bail out
 			}
 
+			// Current cannot be nullptr because if we had no child, dwarf_child() would not return Ok
+
+			// prev child needs to be disposed of first.
+			dwarf_dealloc(DebugInfo, PrevChild, DW_DLA_DIE);
 			PrevChild = Current;
 
 			// look for in the child
-			if (FindFunctionNameInDIE(DebugInfo, Current, Addr, OutFuncName))
+			if (UNLIKELY(FindFunctionNameInDIE(DebugInfo, &Current, Addr, OutFuncName)))
 			{
 				return;	// got the function name!
 			}
 
-			// search among child's siblings
+			// search among Current's siblings. Do not deallocate Current (== PrevChild), because we may need it if we don't find
 			int32 MaxSiblingsAllowed = 64 * 1024 * 1024;	// safeguard to make sure we never get into an infinite loop
-			for(;;)
+			Dwarf_Die CurSibling = nullptr;
+			if (dwarf_siblingof(DebugInfo, Current, &CurSibling, &ErrorInfo) == DW_DLV_OK)
 			{
-				if (--MaxSiblingsAllowed <= 0)
+				for (;;)
 				{
-					fprintf(stderr, "Breaking out from what seems to be an infinite loop during DWARF parsing (too many siblings).\n");
-					break;
-				}
+					if (UNLIKELY(--MaxSiblingsAllowed <= 0))
+					{
+						fprintf(stderr, "Breaking out from what seems to be an infinite loop during DWARF parsing (too many siblings).\n");
+						break;
+					}
 
-				Dwarf_Die Prev = Current;
-				if (dwarf_siblingof(DebugInfo, Prev, &Current, &ErrorInfo) != DW_DLV_OK || Current == NULL)
-				{
-					break;
-				}
+					Dwarf_Die NewSibling;
+					bool bStopLookingForSiblings = dwarf_siblingof(DebugInfo, CurSibling, &NewSibling, &ErrorInfo) != DW_DLV_OK;
+					dwarf_dealloc(DebugInfo, CurSibling, DW_DLA_DIE);
+					if (UNLIKELY(bStopLookingForSiblings))
+					{
+						break;
+					}
+					CurSibling = NewSibling;
 
-				if (FindFunctionNameInDIE(DebugInfo, Current, Addr, OutFuncName))
-				{
-					return;	// got the function name!
+					// this function will deallocate cursibling on success
+					if (UNLIKELY(FindFunctionNameInDIE(DebugInfo, &CurSibling, Addr, OutFuncName)))
+					{
+						// deallocate Current as we don't need it anymore
+						dwarf_dealloc(DebugInfo, Current, DW_DLA_DIE);
+						return;	// got the function name!
+					}
 				}
 			}
 		};

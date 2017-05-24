@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine\Sequencer
 Description:A How To Guide for creating cinematic sequences with the Sequencer Editor. 
 Related: Engine\Sequencer
 version: 4.11
+tags:Sequencer
 
 
 The **Sequencer - How To...** pages provide step-by-step examples on how to work with the **Sequencer** Editor in various capacties inside Unreal Engine 4. 
@@ -37,14 +38,13 @@ Refer to the table below for more information and click each link to view its co
 
 ## Advanced
 [REGION:wrapper transparent]
+[](FANCY:Engine\Sequencer\HowTo\AnimateDynamicObjects "%Engine\Sequencer\HowTo\AnimateDynamicObjects:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksSub "%Engine\Sequencer\HowTo\TracksSub:description%")
 [](FANCY:Engine\Sequencer\HowTo\Spawnables "%Engine\Sequencer\HowTo\Spawnables:description%")
 [](FANCY:Engine\Sequencer\HowTo\SequenceRecorder "%Engine\Sequencer\HowTo\SequenceRecorder:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksLevelVisibility "%Engine\Sequencer\HowTo\TracksLevelVisibility:description%")
 [](FANCY:Engine\Sequencer\HowTo\CustomBurnIns "%Engine\Sequencer\HowTo\CustomBurnIns:description%")
-[PUBLISH:docs]
 [](FANCY:Engine\Sequencer\HowTo\ImportExportEDLs "%Engine\Sequencer\HowTo\ImportExportEDLs:description%")
-[/PUBLISH:docs]
 [/REGION]
 
 

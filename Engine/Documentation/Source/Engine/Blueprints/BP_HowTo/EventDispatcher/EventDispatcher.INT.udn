@@ -7,6 +7,7 @@ Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
 version:4.9
 skilllevel:Advanced
+tags:Blueprints
 
 When an [Event Dispatcher](Engine/Blueprints/UserGuide/EventDispatcher) is called, any Blueprints that implement and have Events bound to the Event Dispatcher will also execute when the Event Dispatcher is called. In other words, whenever the Event Dispatcher is called, any Events that are bound to it are also called allowing you to execute multiple Events at once from a single source. 
 

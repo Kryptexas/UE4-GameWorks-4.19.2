@@ -414,14 +414,18 @@ bool FPngImageWrapper::LoadPNGHeader()
 /* FPngImageWrapper static implementation
  *****************************************************************************/
 
-void FPngImageWrapper::user_read_compressed( png_structp png_ptr, png_bytep data, png_size_t length )
+void FPngImageWrapper::user_read_compressed(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-	FPngImageWrapper* ctx = (FPngImageWrapper*) png_get_io_ptr(png_ptr);
-	check(ctx->ReadOffset + length <= (uint32)ctx->CompressedData.Num());
-
-	FMemory::Memcpy(data, &ctx->CompressedData[ctx->ReadOffset], length);
-
-	ctx->ReadOffset += length;
+	FPngImageWrapper* ctx = (FPngImageWrapper*)png_get_io_ptr(png_ptr);
+	if (ctx->ReadOffset + length <= (uint32)ctx->CompressedData.Num())
+	{
+		FMemory::Memcpy(data, &ctx->CompressedData[ctx->ReadOffset], length);
+		ctx->ReadOffset += length;
+	}
+	else
+	{
+		ctx->SetError(TEXT("Invalid read position for CompressedData."));
+	}
 }
 
 

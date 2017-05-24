@@ -4,8 +4,8 @@ SCRIPT_DIR=$(cd "$(dirname "$BASH_SOURCE")" ; pwd)
 
 set -e
 
-TOP_DIR=$(cd $SCRIPT_DIR/../../.. ; pwd)
-cd ${TOP_DIR}
+TOP_DIR=$(cd "$SCRIPT_DIR/../../.." ; pwd)
+cd "${TOP_DIR}"
 
 if [ ! -e Build/OneTimeSetupPerformed ]; then
 	echo

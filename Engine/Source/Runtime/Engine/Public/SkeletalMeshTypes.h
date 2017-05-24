@@ -228,21 +228,26 @@ struct FSoftSkinVertex
 
 
 /**
- * A structure for holding the APEX cloth physical-to-render mapping data
+ * A structure for holding mesh-to-mesh triangle influences to skin one mesh to another (similar to a wrap deformer)
  */
-struct FApexClothPhysToRenderVertData
+struct FMeshToMeshVertData
 {
-	/**
-	\brief xyz : Barycentric coordinates of the graphical vertex relative to the simulated triangle.
-		   w : distance from the mesh
-
-	\note PX_MAX_F32 values represent invalid coordinates.
-	*/
-
+	// Barycentric coords and distance along normal for the position of the final vert
 	FVector4 PositionBaryCoordsAndDist;
+
+	// Barycentric coords and distance along normal for the location of the unit normal endpoint
+	// Actual normal = ResolvedNormalPosition - ResolvedPosition
 	FVector4 NormalBaryCoordsAndDist;
+
+	// Barycentric coords and distance along normal for the location of the unit Tangent endpoint
+	// Actual normal = ResolvedNormalPosition - ResolvedPosition
 	FVector4 TangentBaryCoordsAndDist;
-	uint16	 SimulMeshVertIndices[4];
+
+	// Contains the 3 indices for verts in the source mesh forming a triangle, the last element
+	// is a flag to decide how the skinning works, 0xffff uses no simulation, and just normal
+	// skinning, anything else uses the source mesh and the above skin data to get the final position
+	uint16	 SourceMeshVertIndices[4];
+
 	// Dummy for alignment (16 bytes)
 	uint32	 Padding[2];
 
@@ -253,25 +258,20 @@ struct FApexClothPhysToRenderVertData
 	 * @param V - vertex to serialize
 	 * @return archive that was used
 	 */
-	friend FArchive& operator<<(FArchive& Ar, FApexClothPhysToRenderVertData& V)
+	friend FArchive& operator<<(FArchive& Ar, FMeshToMeshVertData& V)
 	{
 		Ar	<< V.PositionBaryCoordsAndDist 
 			<< V.NormalBaryCoordsAndDist
 			<< V.TangentBaryCoordsAndDist
-			<< V.SimulMeshVertIndices[0]
-			<< V.SimulMeshVertIndices[1]
-			<< V.SimulMeshVertIndices[2]
-			<< V.SimulMeshVertIndices[3]
+			<< V.SourceMeshVertIndices[0]
+			<< V.SourceMeshVertIndices[1]
+			<< V.SourceMeshVertIndices[2]
+			<< V.SourceMeshVertIndices[3]
 			<< V.Padding[0]
 			<< V.Padding[1];
 		return Ar;
 	}
 };
-
-
-
-
-
 
 /** Helper to convert the above enum to string */
 static const TCHAR* TriangleSortOptionToString(ETriangleSortOption Option)
@@ -292,6 +292,33 @@ static const TCHAR* TriangleSortOptionToString(ETriangleSortOption Option)
 			return TEXT("None");
 	}
 }
+
+struct FClothingSectionData
+{
+	FClothingSectionData()
+		: AssetGuid()
+		, AssetLodIndex(INDEX_NONE)
+	{}
+
+	bool IsValid()
+	{
+		return AssetGuid.IsValid() && AssetLodIndex != INDEX_NONE;
+	}
+
+	/** Guid of the clothing asset applied to this section */
+	FGuid AssetGuid;
+
+	/** LOD inside the applied asset that is used */
+	int32 AssetLodIndex;
+
+	friend FArchive& operator<<(FArchive& Ar, FClothingSectionData& Data)
+	{
+		Ar << Data.AssetGuid;
+		Ar << Data.AssetLodIndex;
+
+		return Ar;
+	}
+};
 
 /**
  * A set of skeletal mesh triangles which use the same material
@@ -339,7 +366,7 @@ struct FSkelMeshSection
 	TArray<FSoftSkinVertex> SoftVertices;
 
 	/** The extra vertex data for mapping to an APEX clothing simulation mesh. */
-	TArray<FApexClothPhysToRenderVertData> ApexClothMappingData;
+	TArray<FMeshToMeshVertData> ClothMappingData;
 
 	/** The physical mesh vertices imported from the APEX file. */
 	TArray<FVector> PhysicalMeshVertices;
@@ -358,9 +385,9 @@ struct FSkelMeshSection
 
 	// INDEX_NONE if not set
 	int16 CorrespondClothAssetIndex;
-	// INDEX_NONE if not set
-	int16 ClothAssetSubmeshIndex;
 
+	/** Clothing data for this section, clothing is only present if ClothingData.IsValid() returns true */
+	FClothingSectionData ClothingData;
 
 	FSkelMeshSection()
 		: MaterialIndex(0)
@@ -375,8 +402,6 @@ struct FSkelMeshSection
 		, BaseVertexIndex(0)
 		, NumVertices(0)
 		, MaxBoneInfluences(4)
-		, CorrespondClothAssetIndex(INDEX_NONE)
-		, ClothAssetSubmeshIndex(INDEX_NONE)
 	{}
 
 
@@ -401,15 +426,9 @@ struct FSkelMeshSection
 	/**
 	* @return TRUE if we have cloth data for this section
 	*/
-	FORCEINLINE bool HasApexClothData() const
+	FORCEINLINE bool HasClothingData() const
 	{
-		return (ApexClothMappingData.Num() > 0);
-	}
-
-	FORCEINLINE void SetClothSubmeshIndex(int16 AssetIndex, int16 AssetSubmeshIndex)
-	{
-		CorrespondClothAssetIndex = AssetIndex;
-		ClothAssetSubmeshIndex = AssetSubmeshIndex;
+		return (ClothMappingData.Num() > 0);
 	}
 
 	/**
@@ -966,28 +985,28 @@ private:
  * A vertex buffer for holding skeletal mesh per APEX cloth information only. 
  * This buffer sits along side FSkeletalMeshVertexBuffer in each skeletal mesh lod
  */
-class FSkeletalMeshVertexAPEXClothBuffer : public FVertexBuffer
+class FSkeletalMeshVertexClothBuffer : public FVertexBuffer
 {
 public:
 	/**
 	 * Constructor
 	 */
-	ENGINE_API FSkeletalMeshVertexAPEXClothBuffer();
+	ENGINE_API FSkeletalMeshVertexClothBuffer();
 
 	/**
 	 * Destructor
 	 */
-	ENGINE_API virtual ~FSkeletalMeshVertexAPEXClothBuffer();
+	ENGINE_API virtual ~FSkeletalMeshVertexClothBuffer();
 
 	/**
 	 * Assignment. Assumes that vertex buffer will be rebuilt 
 	 */
-	ENGINE_API FSkeletalMeshVertexAPEXClothBuffer& operator=(const FSkeletalMeshVertexAPEXClothBuffer& Other);
+	ENGINE_API FSkeletalMeshVertexClothBuffer& operator=(const FSkeletalMeshVertexClothBuffer& Other);
 	
 	/**
 	 * Constructor (copy)
 	 */
-	ENGINE_API FSkeletalMeshVertexAPEXClothBuffer(const FSkeletalMeshVertexAPEXClothBuffer& Other);
+	ENGINE_API FSkeletalMeshVertexClothBuffer(const FSkeletalMeshVertexClothBuffer& Other);
 
 	/** 
 	 * Delete existing resources 
@@ -998,14 +1017,14 @@ public:
 	 * Initializes the buffer with the given vertices.
 	 * @param InVertices - The vertices to initialize the buffer with.
 	 */
-	void Init(const TArray<FApexClothPhysToRenderVertData>& InMappingData);
+	void Init(const TArray<FMeshToMeshVertData>& InMappingData);
 
 	/**
 	 * Serializer for this class
 	 * @param Ar - archive to serialize to
 	 * @param B - data to serialize
 	 */
-	friend FArchive& operator<<(FArchive& Ar,FSkeletalMeshVertexAPEXClothBuffer& VertexBuffer);
+	friend FArchive& operator<<(FArchive& Ar,FSkeletalMeshVertexClothBuffer& VertexBuffer);
 
 	//~ Begin FRenderResource interface.
 
@@ -1023,15 +1042,15 @@ public:
 
 	//~ Vertex data accessors.
 	
-	FORCEINLINE FApexClothPhysToRenderVertData& MappingData(uint32 VertexIndex)
+	FORCEINLINE FMeshToMeshVertData& MappingData(uint32 VertexIndex)
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return *((FApexClothPhysToRenderVertData*)(Data + VertexIndex * Stride));
+		return *((FMeshToMeshVertData*)(Data + VertexIndex * Stride));
 	}
-	FORCEINLINE const FApexClothPhysToRenderVertData& MappingData(uint32 VertexIndex) const
+	FORCEINLINE const FMeshToMeshVertData& MappingData(uint32 VertexIndex) const
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return *((FApexClothPhysToRenderVertData*)(Data + VertexIndex * Stride));
+		return *((FMeshToMeshVertData*)(Data + VertexIndex * Stride));
 	}
 
 	/** 
@@ -1264,8 +1283,8 @@ public:
 	/** A buffer for vertex colors */
 	FColorVertexBuffer			ColorVertexBuffer;
 
-	/** A buffer for APEX cloth mesh-mesh mapping */
-	FSkeletalMeshVertexAPEXClothBuffer	APEXClothVertexBuffer;
+	/** A buffer for cloth mesh-mesh mapping */
+	FSkeletalMeshVertexClothBuffer	ClothVertexBuffer;
 
 	/** Editor only data: array of the original point (wedge) indices for each of the vertices in a FStaticLODModel */
 	FIntBulkData				RawPointIndices;
@@ -1326,7 +1345,7 @@ public:
 	*
 	* @param MappingData Array to fill.
 	*/
-	void GetApexClothMappingData(TArray<FApexClothPhysToRenderVertData>& MappingData) const;
+	void GetApexClothMappingData(TArray<FMeshToMeshVertData>& MappingData) const;
 
 	/** Flags used when building vertex buffers. */
 	struct EVertexFlags
@@ -1367,11 +1386,11 @@ public:
 	/**
 	* @return true if any chunks have cloth data.
 	*/
-	bool HasApexClothData() const
+	bool HasClothData() const
 	{
 		for( int32 SectionIdx=0; SectionIdx<Sections.Num(); SectionIdx++ )
 		{
-			if(Sections[SectionIdx].HasApexClothData() )
+			if(Sections[SectionIdx].HasClothingData() )
 			{
 				return true;
 			}
@@ -1386,7 +1405,7 @@ public:
 		uint32 Count = 0;
 		for( int32 SectionIdx =0; SectionIdx<Sections.Num(); SectionIdx++ )
 		{
-			if(Sections[SectionIdx].HasApexClothData() )
+			if(Sections[SectionIdx].HasClothingData() )
 			{
 				SectionIndices.Add(SectionIdx);
 				Count++;
@@ -1395,9 +1414,9 @@ public:
 		return Count;
 	}
 
-	bool HasApexClothData(int32 SectionIndex) const
+	bool HasClothData(int32 SectionIndex) const
 	{
-		return Sections[SectionIndex].HasApexClothData();
+		return Sections[SectionIndex].HasClothingData();
 	}
 
 	int32 NumNonClothingSections() const
@@ -1683,3 +1702,23 @@ protected:
 
 	void GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bInSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const;
 };
+
+/** Used to recreate all skeletal mesh components for a given skeletal mesh */
+class ENGINE_API FSkeletalMeshComponentRecreateRenderStateContext
+{
+public:
+
+	/** Initialization constructor. */
+	FSkeletalMeshComponentRecreateRenderStateContext(USkeletalMesh* InSkeletalMesh, bool InRefreshBounds = false);
+
+
+	/** Destructor: recreates render state for all components that had their render states destroyed in the constructor. */
+	~FSkeletalMeshComponentRecreateRenderStateContext();
+	
+
+private:
+
+	TArray< class USkeletalMeshComponent*> SkeletalMeshComponents;
+	bool bRefreshBounds;
+};
+

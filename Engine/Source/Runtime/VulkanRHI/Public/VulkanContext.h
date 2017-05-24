@@ -10,7 +10,7 @@
 
 class FVulkanDevice;
 class FVulkanCommandBufferManager;
-class FVulkanPendingGfxState;
+class FOLDVulkanPendingGfxState;
 class FVulkanPendingComputeState;
 
 class FVulkanCommandListContext : public IRHICommandContext
@@ -75,30 +75,20 @@ public:
 	virtual void RHIEndDrawPrimitiveUP() final override;
 	virtual void RHIBeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData) final override;
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override;
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) final override
-	{
-		RHIClear(true, Color, false, 0, false, 0, ExcludeRect);
-	}
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) final override
-	{
-		RHIClear(false, FLinearColor::Black, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil, ExcludeRect);
-	}
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) final override
-	{
-		RHIClearMRT(true, NumTextures, ColorArray, false, 0, false, 0, ExcludeRect);
-	}
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
 	virtual void RHIPopEvent() final override;
 
 	virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) final override;
+	virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState) final override;
+	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;
 	virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) final override;
 	virtual void RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
 	virtual void RHIAutomaticCacheFlushAfterComputeShader(bool bEnable) final override;
 
 	virtual void RHIFlushComputeShaderCache() final override;
 	virtual void RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data) final override;
-	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
+	virtual void RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
 	virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) final override;
 	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InRenderTargets, int32 NumTextures) final override;
 	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFence) final override;
@@ -131,7 +121,7 @@ public:
 		return TempFrameAllocationBuffer;
 	}
 
-	inline FVulkanPendingGfxState* GetPendingGfxState()
+	inline FOLDVulkanPendingGfxState* GetPendingGfxState()
 	{
 		return PendingGfxState;
 	}
@@ -144,7 +134,10 @@ public:
 	// OutSets must have been previously pre-allocated
 	FVulkanDescriptorPool* AllocateDescriptorSets(const VkDescriptorSetAllocateInfo& DescriptorSetAllocateInfo, const FVulkanDescriptorSetsLayout& Layout, VkDescriptorSet* OutSets);
 
-	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
+	inline void NotifyDeletedRenderTarget(VkImage Image)
+	{
+		TransitionState.NotifyDeletedRenderTarget(*Device, Image);
+	}
 
 	inline FVulkanRenderPass* GetCurrentRenderPass()
 	{
@@ -242,8 +235,8 @@ protected:
 		};
 		TMap<uint32, FFramebufferList*> Framebuffers;
 
-		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, const FVulkanTextureBase* Texture);
-		
+		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, VkImage Image);
+
 		VkImageLayout FindOrAddLayout(VkImage Image, VkImageLayout LayoutIfNotFound)
 		{
 			VkImageLayout* Found = CurrentLayout.Find(Image);
@@ -297,17 +290,22 @@ protected:
 	FOcclusionQueryData CurrentOcclusionQueryData;
 
 	//#todo-rco: Temp!
-	FVulkanPendingGfxState* PendingGfxState;
+	FOLDVulkanPendingGfxState* PendingGfxState;
 	FVulkanPendingComputeState* PendingComputeState;
 
 	void PrepareForCPURead();
 	void RequestSubmitCurrentCommands();
 
-	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
+	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
+
+public:
+	inline FTransitionState& GetTransitionState()
+	{
+		return TransitionState;
+	}
 
 private:
-	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
-	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
+	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil);
 
 	inline bool SafePointSubmit()
 	{

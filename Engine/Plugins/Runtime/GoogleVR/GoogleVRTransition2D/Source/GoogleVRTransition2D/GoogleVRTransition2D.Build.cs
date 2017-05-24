@@ -18,7 +18,7 @@ using UnrealBuildTool;
 
 public class GoogleVRTransition2D : ModuleRules
 {
-	public GoogleVRTransition2D(TargetInfo Target)
+	public GoogleVRTransition2D(ReadOnlyTargetRules Target) : base(Target)
 	{
 		
 		PublicIncludePaths.AddRange(

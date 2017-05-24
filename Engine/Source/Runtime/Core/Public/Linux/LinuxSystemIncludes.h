@@ -32,7 +32,7 @@
 #include <execinfo.h>
 #include <signal.h>
 #include <sys/sysctl.h>
-#ifdef __x86_64__
+#if PLATFORM_ENABLE_VECTORINTRINSICS
 #include <xmmintrin.h>
 #endif // PLATFORM_RASPBERRY
 #include <sys/utsname.h>

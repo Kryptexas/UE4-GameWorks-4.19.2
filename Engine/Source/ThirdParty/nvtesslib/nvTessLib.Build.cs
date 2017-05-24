@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class nvTessLib : ModuleRules
 {
-	public nvTessLib(TargetInfo Target)
+	public nvTessLib(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

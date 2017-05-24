@@ -52,22 +52,24 @@ bool FAnalyticStartUpSimTest::RunTest(const FString& Parameters)
 
 
 		//Verify record event is holding the actual data.  This only triggers if the command line argument of 'AnalyticsDisableCaching' was used.
-		if (CommandLineArgs.Contains(TEXT("AnalyticsDisableCaching")))
+		if ( CommandLineArgs.Contains(TEXT("AnalyticsDisableCaching")) )
 		{
 			FString FullLoginIDTestEventName = FString::Printf(TEXT("LoginID\":\"%s"), *LoginIDTest);
 			FString FullAccountIDTestEventName = FString::Printf(TEXT("AccountID\":\"%s"), *AccountIDTest);
 			FString FullOSIDTestEventName = FString::Printf(TEXT("OSID\":\"%s"), *OSID);
 
-			for (int32 i = 0; i < ExecutionInfo.LogItems.Num(); i++)
+			for ( const FAutomationEvent& Event : ExecutionInfo.GetEvents() )
 			{
-				if (ExecutionInfo.LogItems[i].Contains(TEXT("Engine.AutomationTest.Analytics.ProgramStartedEvent")))
+				if ( Event.Type == EAutomationEventType::Info && Event.Message.Contains(TEXT("Engine.AutomationTest.Analytics.ProgramStartedEvent")) )
 				{
-					TestTrue(TEXT("Recorded event name is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(TEXT("Engine.AutomationTest.Analytics.ProgramStartedEvent")));
-					TestTrue(TEXT("'LoginID' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*FullLoginIDTestEventName));
-					TestTrue(TEXT("'AccountID' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*FullAccountIDTestEventName));
-					TestTrue(TEXT("'OperatingSystemID' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*FullOSIDTestEventName));
-					TestTrue(TEXT("'GameName' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*GameNameTest));
-					TestTrue(TEXT("'CommandLine arguments' are expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(TEXT("AnalyticsDisableCaching")));
+					const FString& Message = Event.Message;
+
+					TestTrue(TEXT("Recorded event name is expected to be in the sent event."), Message.Contains(TEXT("Engine.AutomationTest.Analytics.ProgramStartedEvent")));
+					TestTrue(TEXT("'LoginID' is expected to be in the sent event."), Message.Contains(*FullLoginIDTestEventName));
+					TestTrue(TEXT("'AccountID' is expected to be in the sent event."), Message.Contains(*FullAccountIDTestEventName));
+					TestTrue(TEXT("'OperatingSystemID' is expected to be in the sent event."), Message.Contains(*FullOSIDTestEventName));
+					TestTrue(TEXT("'GameName' is expected to be in the sent event."), Message.Contains(*GameNameTest));
+					TestTrue(TEXT("'CommandLine arguments' are expected to be in the sent event."), Message.Contains(TEXT("AnalyticsDisableCaching")));
 				}
 			}
 		}
@@ -77,7 +79,8 @@ bool FAnalyticStartUpSimTest::RunTest(const FString& Parameters)
 		return true;
 	}
 
-	ExecutionInfo.LogItems.Add(TEXT("SKIPPED 'FAnalyticStartUpSimTest' test.  EngineAnalytics are not currently available."));
+	ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Info, TEXT("SKIPPED 'FAnalyticStartUpSimTest' test.  EngineAnalytics are not currently available.")));
+
 	return true;	
 }
 
@@ -139,7 +142,8 @@ bool FAnalyticsEventAttributeUnitTest::RunTest(const FString& Parameters)
 		return true;
 	}
 
-	ExecutionInfo.LogItems.Add(TEXT("SKIPPED 'FAnalyticsEventAttributeUnitTest' test.  EngineAnalytics are not currently available."));
+	ExecutionInfo.AddEvent(FAutomationEvent(EAutomationEventType::Info, TEXT("SKIPPED 'FAnalyticsEventAttributeUnitTest' test.  EngineAnalytics are not currently available.")));
+
 	return true;
 }
 

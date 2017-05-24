@@ -14,18 +14,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
     
     public partial class Crash
     {
-        public Crash()
-        {
-            this.Buggs = new HashSet<Bugg>();
-        }
-    
         public int Id { get; set; }
-        public string Title { get; set; }
         public string Summary { get; set; }
         public string GameName { get; set; }
         public string Status { get; set; }
-        public Nullable<System.DateTime> TimeOfCrash { get; set; }
-        public string ChangeListVersion { get; set; }
+        public System.DateTime TimeOfCrash { get; set; }
+        public string ChangelistVersion { get; set; }
         public string PlatformName { get; set; }
         public string EngineMode { get; set; }
         public string Description { get; set; }
@@ -33,40 +27,32 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         public string Pattern { get; set; }
         public string CommandLine { get; set; }
         public string ComputerName { get; set; }
-        public Nullable<bool> Selected { get; set; }
         public string FixedChangeList { get; set; }
         public string LanguageExt { get; set; }
         public string Module { get; set; }
         public string BuildVersion { get; set; }
         public string BaseDir { get; set; }
-        public Nullable<int> Version { get; set; }
-        public string UserName { get; set; }
         public string Jira { get; set; }
-        public Nullable<int> AutoReporterID { get; set; }
-        public Nullable<bool> Processed { get; set; }
         public Nullable<bool> HasLogFile { get; set; }
         public Nullable<bool> HasMiniDumpFile { get; set; }
         public Nullable<bool> HasVideoFile { get; set; }
-        public Nullable<bool> HasDiagnosticsFile { get; set; }
-        public Nullable<bool> HasNewLogFile { get; set; }
         public string Branch { get; set; }
         public short CrashType { get; set; }
-        public Nullable<int> UserNameId { get; set; }
-        public Nullable<bool> HasMetaData { get; set; }
         public string SourceContext { get; set; }
         public string EpicAccountId { get; set; }
         public string EngineVersion { get; set; }
         public string UserActivityHint { get; set; }
-        public Nullable<System.DateTime> InsertTS { get; set; }
+        public int UserId { get; set; }
         public Nullable<int> PatternId { get; set; }
         public Nullable<int> ErrorMessageId { get; set; }
         public Nullable<int> BuggId { get; set; }
         public Nullable<bool> ProcessFailed { get; set; }
+        public Nullable<bool> IsVanilla { get; set; }
+        public string UserName { get; set; }
     
-        public virtual CallStackPattern CallStackPattern { get; set; }
-        public virtual User User { get; set; }
         public virtual Bugg Bugg { get; set; }
+        public virtual CallStackPattern CallStackPattern { get; set; }
         public virtual ErrorMessage ErrorMessage { get; set; }
-        public virtual ICollection<Bugg> Buggs { get; set; }
+        public virtual User User { get; set; }
     }
 }

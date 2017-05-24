@@ -2,9 +2,6 @@
 # Build PhysXCharacterKinematic
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/PhysXCharacterKinematic/src)
@@ -12,7 +9,7 @@ SET(LL_SOURCE_DIR ${PHYSX_SOURCE_DIR}/PhysXCharacterKinematic/src)
 # Use generator expressions to set config specific preprocessor definitions
 SET(PHYSXCHARACTERKINEMATICS_COMPILE_DEFS 
 	# Common to all configurations
-	${PHYSX_LINUX_COMPILE_DEFS};PX_PHYSX_CHARACTER_EXPORTS;PX_PHYSX_CORE_EXPORTS;PX_FOUNDATION_DLL=1;
+	${PHYSX_LINUX_COMPILE_DEFS};PX_PHYSX_CHARACTER_STATIC_LIB;PX_PHYSX_STATIC_LIB;
 )
 
 if(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
@@ -35,6 +32,7 @@ else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	MESSAGE(FATAL_ERROR "Unknown configuration ${CMAKE_BUILD_TYPE}")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
+SET(PHYSXCHARACTERKINEMATIC_LIBTYPE STATIC)
 
 
 # include common PhysXCharacterKinematic settings
@@ -42,3 +40,4 @@ INCLUDE(../common/PhysXCharacterKinematic.cmake)
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(PhysXCharacterKinematic PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+

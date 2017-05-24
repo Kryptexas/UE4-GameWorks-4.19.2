@@ -43,60 +43,6 @@ void IHeadMountedDisplay::GatherLateUpdatePrimitives(USceneComponent* Component,
 	}
 }
 
-/**
-* HMD device console vars
-*/
-static TAutoConsoleVariable<int32> CVarHiddenAreaMask(
-	TEXT("vr.HiddenAreaMask"),
-	1,
-	TEXT("0 to disable hidden area mask, 1 to enable."),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarMonoscopicFarField(
-	TEXT("vr.MonoscopicFarField"),
-	0,
-	TEXT("0 to disable (default), 1 to enable."),
-	ECVF_ReadOnly | ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarMonoscopicFarFieldMode(
-	TEXT("vr.MonoscopicFarFieldMode"),
-	1,
-	TEXT("Experimental, mobile only")
-	TEXT(", 0 to disable, 1 to enable (default)")
-	TEXT(", 2 stereo near field only")
-	TEXT(", 3 stereo near field with far field pixel depth test disabled")
-	TEXT(", 4 mono far field only"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-static void SetTrackingOrigin(const TArray<FString>& Args)
-{
-	int Origin = 0;
-	if (Args.Num())
-	{
-		Origin = FCString::Atoi(*Args[0]);
-		if (GEngine && GEngine->HMDDevice.IsValid())
-		{
-			GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Type(Origin));
-		}
-	}
-	else
-	{
-		if (GEngine && GEngine->HMDDevice.IsValid())
-		{
-			Origin = GEngine->HMDDevice->GetTrackingOrigin();
-		}
-		if (GLog)
-		{
-			GLog->Logf(ELogVerbosity::Display, TEXT("Tracking orgin is set to %d"), Origin);
-		}
-	}
-}
-
-static FAutoConsoleCommand CTrackingOriginCmd(
-	TEXT("vr.SetTrackingOrigin"),
-	TEXT("0 - tracking origin is at the floor, 1 - tracking origin is at the eyes."),
-	FConsoleCommandWithArgsDelegate::CreateStatic(SetTrackingOrigin));
-
 class FHeadMountedDisplayModule : public IHeadMountedDisplayModule
 {
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay()

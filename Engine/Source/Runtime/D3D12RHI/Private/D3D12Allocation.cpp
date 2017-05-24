@@ -9,6 +9,29 @@
 #include "D3D12Allocation.h"
 #include "Misc/BufferedOutputDevice.h"
 
+#if PLATFORM_XBOXONE
+#define PIX_MEMORY_PROFILING XBOXONE_PROFILING_ENABLED
+#else
+#define PIX_MEMORY_PROFILING 0
+#endif
+
+#if PIX_MEMORY_PROFILING
+#include "AllowWindowsPlatformTypes.h"
+#include <windows.h>
+#include <pixmemory.h>
+#endif
+
+namespace ED3D12AllocatorID
+{
+	enum Type
+	{
+		DefaultBufferAllocator,
+		DynamicHeapAllocator,
+		TextureAllocator,
+		DefaultBufferAllocatorFullResources
+	};
+};
+
 //-----------------------------------------------------------------------------
 //	Allocator Base
 //-----------------------------------------------------------------------------
@@ -51,6 +74,7 @@ FD3D12BuddyAllocator::FD3D12BuddyAllocator(FD3D12Device* ParentDevice,
 	D3D12_HEAP_FLAGS HeapFlags,
 	D3D12_RESOURCE_FLAGS Flags,
 	uint32 MaxSizeForPooling,
+	uint32 InAllocatorID,
 	uint32 InMaxBlockSize,
 	uint32 InMinBlockSize)
 	: AllocationStrategy(InAllocationStrategy)
@@ -60,6 +84,7 @@ FD3D12BuddyAllocator::FD3D12BuddyAllocator(FD3D12Device* ParentDevice,
 	, BackingHeap(nullptr)
 	, HeapFullMessageDisplayed(false)
 	, TotalSizeUsed(0)
+	, AllocatorID(InAllocatorID)
 	, FD3D12ResourceAllocator(ParentDevice, VisibleNodes, Name, HeapType, Flags, MaxSizeForPooling)
 {
 	// maxBlockSize should be evenly dividable by MinBlockSize and  
@@ -96,7 +121,8 @@ void FD3D12BuddyAllocator::Initialize()
 		BackingHeap = new FD3D12Heap(GetParentDevice(), GetVisibilityMask());
 		BackingHeap->SetHeap(Heap);
 
-		if (IsCPUWritable(HeapType) == false)
+		// Only track resources that cannot be accessed on the CPU.
+		if (IsCPUInaccessible(HeapType))
 		{
 			BackingHeap->BeginTrackingResidency(Desc.SizeInBytes);
 		}
@@ -254,6 +280,11 @@ void FD3D12BuddyAllocator::Allocate(uint32 SizeInBytes, uint32 Alignment, FD3D12
 		check(uint64(ResourceLocation.GetMappedBaseAddress()) % Alignment == 0);
 		check(uint64(ResourceLocation.GetGPUVirtualAddress()) % Alignment == 0);
 	}
+
+#if PIX_MEMORY_PROFILING
+	uint64 Addr = (ResourceLocation.GetGPUVirtualAddress() != 0ull) ? (uint64)ResourceLocation.GetGPUVirtualAddress() : AlignedOffsetFromResourceBase;
+	PIXRecordMemoryAllocationEvent(AllocatorID,     (void*)(Addr), SizeInBytes, MaximumAllocationSizeForPooling);
+#endif
 }
 
 bool FD3D12BuddyAllocator::TryAllocate(uint32 SizeInBytes, uint32 Alignment, FD3D12ResourceLocation& ResourceLocation)
@@ -298,6 +329,11 @@ void FD3D12BuddyAllocator::Deallocate(FD3D12ResourceLocation& ResourceLocation)
 	}
 
 	INCREASE_ALLOC_COUNTER(NumBlocksInDeferredDeletionQueue, 1);
+
+#if PIX_MEMORY_PROFILING
+	uint64 Addr = (ResourceLocation.GetGPUVirtualAddress() != 0ull) ? (uint64)ResourceLocation.GetGPUVirtualAddress() : ResourceLocation.GetOffsetFromBaseOfResource();
+	PIXRecordMemoryFreeEvent(AllocatorID, (void*)Addr, 0, MaximumAllocationSizeForPooling);
+#endif
 }
 
 void FD3D12BuddyAllocator::DeallocateInternal(RetiredBlock& Block)
@@ -452,12 +488,14 @@ FD3D12MultiBuddyAllocator::FD3D12MultiBuddyAllocator(FD3D12Device* ParentDevice,
 	D3D12_HEAP_FLAGS InHeapFlags,
 	D3D12_RESOURCE_FLAGS Flags,
 	uint32 MaxSizeForPooling,
+	uint32 InAllocatorID,
 	uint32 InMaxBlockSize,
 	uint32 InMinBlockSize) :
 	AllocationStrategy(InAllocationStrategy)
 	, HeapFlags(InHeapFlags)
 	, MaxBlockSize(InMaxBlockSize)
 	, MinBlockSize(InMinBlockSize)
+	, AllocatorID(InAllocatorID)
 	, FD3D12ResourceAllocator(ParentDevice, VisibleNodes, Name, HeapType, Flags, MaxSizeForPooling)
 {}
 
@@ -494,6 +532,7 @@ FD3D12BuddyAllocator* FD3D12MultiBuddyAllocator::CreateNewAllocator()
 		HeapFlags,
 		ResourceFlags,
 		MaximumAllocationSizeForPooling,
+		AllocatorID,
 		MaxBlockSize,
 		MinBlockSize);
 }
@@ -789,6 +828,7 @@ FD3D12DynamicHeapAllocator::FD3D12DynamicHeapAllocator(FD3D12Adapter* InParent, 
 		D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
 		D3D12_RESOURCE_FLAG_NONE,
 		InMaxSizeForPooling,
+		ED3D12AllocatorID::DynamicHeapAllocator,
 		InMaxBlockSize,
 		InMinBlockSize)
 #endif
@@ -901,6 +941,14 @@ void FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC& De
 	VERIFYD3D12RESULT(Adapter->CreateBuffer(D3D12_HEAP_TYPE_DEFAULT, GetNodeMask(), GetVisibilityMask(), Desc.Width, &NewResource, Allocator->ResourceFlags));
 	SetName(NewResource, L"Stand Alone Default Buffer");
 
+#if PIX_MEMORY_PROFILING && 0
+	// Track absolute memory usage
+	{
+		D3D12_RESOURCE_ALLOCATION_INFO Info = Device->GetDevice()->GetResourceAllocationInfo(0, 1, &Desc);
+		PIXRecordMemoryAllocationEvent(ED3D12AllocatorID::DefaultBufferAllocatorFullResources, (void*)(NewResource->GetGPUVirtualAddress()), Info.SizeInBytes, 0);
+	}
+#endif
+
 	ResourceLocation.AsStandAlone(NewResource, Desc.Width);
 }
 
@@ -955,6 +1003,7 @@ HRESULT FD3D12DefaultBufferAllocator::AllocDefaultResource(const D3D12_RESOURCE_
 				D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
 				Desc.Flags,
 				DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE,
+				ED3D12AllocatorID::DefaultBufferAllocator,
 				DEFAULT_BUFFER_POOL_SIZE,
 				16);
 #endif
@@ -1008,6 +1057,7 @@ FD3D12TextureAllocator::FD3D12TextureAllocator(FD3D12Device* Device,
 		Flags | D3D12_HEAP_FLAG_DENY_BUFFERS,
 		D3D12_RESOURCE_FLAG_NONE,
 		D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+		ED3D12AllocatorID::TextureAllocator,
 		HeapSize,
 		D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT)
 {
@@ -1339,7 +1389,11 @@ void FD3D12FastConstantAllocator::ReallocBuffer()
 	UnderlyingResource.AsStandAlone(NewBuffer, PageSize);
 }
 
+#if USE_STATIC_ROOT_SIGNATURE
+void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation& OutLocation, FD3D12ConstantBufferView* OutCBView)
+#else
 void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation& OutLocation)
+#endif
 {
 	check(Bytes <= PageSize);
 
@@ -1357,7 +1411,11 @@ void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation
 
 		UE_LOG(LogD3D12RHI, Warning, TEXT("Constant Allocator had to grow! Consider making it larger to begin with. New size: %d bytes"), PageSize);
 
+#if USE_STATIC_ROOT_SIGNATURE
+		return Allocate(Bytes, OutLocation, OutCBView);
+#else
 		return Allocate(Bytes, OutLocation);
+#endif
 	}
 
 	// Useful when trying to tweak initial size
@@ -1371,5 +1429,15 @@ void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation
 		UnderlyingResource.GetMappedBaseAddress(),
 		Offset);
 
+#if USE_STATIC_ROOT_SIGNATURE
+	if (OutCBView)
+	{
+		OutCBView->Create(UnderlyingResource.GetGPUVirtualAddress() + Offset, AlignedSize);
+	}
+#endif
 	return OutLocation.GetMappedBaseAddress();
 }
+
+#if PIX_MEMORY_PROFILING
+#include "HideWindowsPlatformTypes.h"
+#endif

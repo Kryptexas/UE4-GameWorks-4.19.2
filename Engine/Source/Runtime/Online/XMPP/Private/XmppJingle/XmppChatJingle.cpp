@@ -247,7 +247,7 @@ static void DebugPrintChat(const FXmppChatMessage& ChatMessage)
 	UE_LOG(LogXmpp, Log, TEXT("   Body= %s"), *ChatMessage.Body);
 }
 
-bool FXmppChatJingle::SendChat(FString RecipientId, const FXmppChatMessage& ChatMessage)
+bool FXmppChatJingle::SendChat(const FString& RecipientId, const FXmppChatMessage& ChatMessage)
 {
 	FXmppChatMessageJingle* NewChat = new FXmppChatMessageJingle();
 	ConvertFromMessage(*NewChat, ChatMessage);

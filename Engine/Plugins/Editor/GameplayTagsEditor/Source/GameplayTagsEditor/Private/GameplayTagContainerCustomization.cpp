@@ -129,14 +129,25 @@ TSharedRef<SWidget> FGameplayTagContainerCustomization::GetListContent()
 		return SNullWidget::NullWidget;
 	}
 
+	FString Categories;
+	{
+		TSharedPtr<IPropertyHandle> PropertyHandle = StructPropertyHandle;
+		while(PropertyHandle.IsValid())
+		{
+			if (PropertyHandle->GetProperty() != nullptr)
+			{
+				if (PropertyHandle->GetProperty()->HasMetaData( TEXT("Categories") ))
+				{
+					Categories = PropertyHandle->GetProperty()->GetMetaData( TEXT("Categories") );
+					break;
+				}
+			}
+			PropertyHandle = PropertyHandle->GetParentHandle();
+		}
+	}
+
 	TArray<UObject*> OuterObjects;
 	StructPropertyHandle->GetOuterObjects(OuterObjects);
-
-	FString Categories;
-	if (StructPropertyHandle->GetProperty()->HasMetaData(TEXT("Categories")))
-	{
-		Categories = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("Categories"));
-	}
 
 	bool bReadOnly = StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst);
 

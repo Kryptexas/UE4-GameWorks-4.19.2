@@ -21,16 +21,13 @@ public:
 	FScriptBlueprintCompiler(UScriptBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded);
 	virtual ~FScriptBlueprintCompiler();
 
-	// FKismetCompilerContext
-	virtual void Compile() override;
-	// End FKismetCompilerContext
-
 protected:
 	UScriptBlueprint* ScriptBlueprint() const { return Cast<UScriptBlueprint>(Blueprint); }
 
 	// FKismetCompilerContext
+	virtual void PreCompile() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
-	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) override;
+	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& InOldCDO) override;
 	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) override;
 	virtual void CreateClassVariablesFromBlueprint() override;
 	virtual void CreateFunctionList() override;

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TextureEditor : ModuleRules
 {
-	public TextureEditor(TargetInfo Target)
+	public TextureEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {

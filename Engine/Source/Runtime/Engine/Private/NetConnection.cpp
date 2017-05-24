@@ -23,6 +23,7 @@
 #include "Engine/ChildConnection.h"
 #include "Net/DataChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "Engine/NetworkObjectList.h"
 
 #include "Net/PerfCountersHelpers.h"
 #include "GameDelegates.h"
@@ -288,7 +289,6 @@ void UNetConnection::Serialize( FArchive& Ar )
 		OpenChannels.CountBytes(Ar);
 		SentTemporaries.CountBytes(Ar);
 		ActorChannels.CountBytes(Ar);
-		DormantActors.CountBytes(Ar);
 	}
 }
 
@@ -1068,6 +1068,18 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			if ( Bunch.bHasPackageMapExports )
 			{
 				Driver->NetGUIDInBytes += (BunchDataBits + (HeaderPos - IncomingStartPos)) >> 3;
+
+				if ( InternalAck )
+				{
+					// NOTE - For replays, we do this even earlier, to try and load this as soon as possible, in case there is an issue creating the channel
+					// If a replay fails to create a channel, we want to salvage as much as possible
+					Cast<UPackageMapClient>( PackageMap )->ReceiveNetGUIDBunch( Bunch );
+
+					if ( Bunch.IsError() )
+					{
+						UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Bunch.IsError() after ReceiveNetGUIDBunch. ChIndex: %i" ), Bunch.ChIndex );
+					}
+				}
 			}
 
 			if( Bunch.bReliable )
@@ -1600,7 +1612,12 @@ void UNetConnection::Tick()
 			{
 				OutBunch->ReceivedAck = 1;
 			}
-			It->OpenAcked = 1;
+
+			if (Driver->IsServer() || It->OpenedLocally)
+			{
+				It->OpenAcked = 1;
+			}
+
 			It->ReceivedAcks();
 		}
 	}
@@ -1976,21 +1993,13 @@ bool UNetConnection::ShouldReplicateVoicePacketFrom(const FUniqueNetId& Sender)
 	return false;
 }
 
-bool UNetConnection::ActorIsAvailableOnClient(const AActor* ThisActor)
-{
-	return (ActorChannels.Contains(ThisActor) || DormantActors.Contains(ThisActor) || RecentlyDormantActors.Contains(ThisActor));
-}
-
 void UNetConnection::ResetGameWorldState()
 {
 	//Clear out references and do whatever else so that nothing holds onto references that it doesn't need to.
 	DestroyedStartupOrDormantActors.Empty();
-	RecentlyDormantActors.Empty();
-	DormantActors.Empty();
 	ClientVisibleLevelNames.Empty();
 	KeepProcessingActorChannelBunchesMap.Empty();
 	DormantReplicatorMap.Empty();
-
 	CleanupDormantActorState();
 }
 
@@ -2003,8 +2012,7 @@ void UNetConnection::FlushDormancy(class AActor* Actor)
 {
 	UE_LOG( LogNetDormancy, Verbose, TEXT( "FlushDormancy: %s. Connection: %s" ), *Actor->GetName(), *GetName() );
 	
-	// Remove actor from dormant list
-	if ( DormantActors.Remove( Actor ) > 0 )
+	if ( Driver->GetNetworkObjectList().MarkActive( Actor, this, Driver->NetDriverName ) )
 	{
 		FlushDormancyForObject( Actor );
 
@@ -2015,10 +2023,6 @@ void UNetConnection::FlushDormancy(class AActor* Actor)
 				FlushDormancyForObject( ActorComp );
 			}
 		}
-
-		UE_LOG( LogNetDormancy, Verbose, TEXT( "    Found in DormantActors list!" ) );
-
-		RecentlyDormantActors.Add( Actor );
 	}
 
 	// If channel is pending dormancy, cancel it

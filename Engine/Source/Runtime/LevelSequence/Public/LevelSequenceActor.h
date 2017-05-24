@@ -79,6 +79,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="General", meta=(AllowedClasses="LevelSequence"))
 	FStringAssetReference LevelSequence;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category="General")
+	TArray<AActor*> AdditionalEventReceivers;
+
 	UPROPERTY(Instanced, VisibleAnywhere, AdvancedDisplay, BlueprintReadOnly, Category="General")
 	ULevelSequenceBurnInOptions* BurnInOptions;
 
@@ -107,6 +110,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void SetSequence(ULevelSequence* InSequence);
 
+	/**
+	 * Set an array of additional actors that will receive events triggerd from this sequence actor
+	 *
+	 * @param AdditionalReceivers An array of actors to receive events
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void SetEventReceivers(TArray<AActor*> AdditionalReceivers);
+
 	/** Refresh this actor's burn in */
 	void RefreshBurnIn();
 
@@ -114,45 +125,45 @@ public:
 
 	/** Overrides the specified binding with the specified actors, optionally still allowing the bindings defined in the Level Sequence asset */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
-	void SetBinding(FMovieSceneObjectBindingPtr Binding, const TArray<AActor*>& Actors, bool bAllowBindingsFromAsset = false)
+	void SetBinding(FMovieSceneObjectBindingID Binding, const TArray<AActor*>& Actors, bool bAllowBindingsFromAsset = false)
 	{
 		BindingOverrides->SetBinding(Binding, TArray<UObject*>(Actors), bAllowBindingsFromAsset);
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.Invalidate(Binding.Guid, MovieSceneSequenceID::Root);
+			SequencePlayer->State.Invalidate(Binding.GetGuid(), Binding.GetSequenceID());
 		}
 	}
 
 	/** Adds the specified actor to the overridden bindings for the specified binding ID, optionally still allowing the bindings defined in the Level Sequence asset */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
-	void AddBinding(FMovieSceneObjectBindingPtr Binding, AActor* Actor, bool bAllowBindingsFromAsset = false)
+	void AddBinding(FMovieSceneObjectBindingID Binding, AActor* Actor, bool bAllowBindingsFromAsset = false)
 	{
 		BindingOverrides->AddBinding(Binding, Actor);
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.Invalidate(Binding.Guid, MovieSceneSequenceID::Root);
+			SequencePlayer->State.Invalidate(Binding.GetGuid(), Binding.GetSequenceID());
 		}
 	}
 
 	/** Removes the specified actor from the specified binding's actor array */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
-	void RemoveBinding(FMovieSceneObjectBindingPtr Binding, AActor* Actor)
+	void RemoveBinding(FMovieSceneObjectBindingID Binding, AActor* Actor)
 	{
 		BindingOverrides->RemoveBinding(Binding, Actor);
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.Invalidate(Binding.Guid, MovieSceneSequenceID::Root);
+			SequencePlayer->State.Invalidate(Binding.GetGuid(), Binding.GetSequenceID());
 		}
 	}
 
 	/** Resets the specified binding back to the defaults defined by the Level Sequence asset */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
-	void ResetBinding(FMovieSceneObjectBindingPtr Binding)
+	void ResetBinding(FMovieSceneObjectBindingID Binding)
 	{
 		BindingOverrides->ResetBinding(Binding);
 		if (SequencePlayer)
 		{
-			SequencePlayer->State.Invalidate(Binding.Guid, MovieSceneSequenceID::Root);
+			SequencePlayer->State.Invalidate(Binding.GetGuid(), Binding.GetSequenceID());
 		}
 	}
 

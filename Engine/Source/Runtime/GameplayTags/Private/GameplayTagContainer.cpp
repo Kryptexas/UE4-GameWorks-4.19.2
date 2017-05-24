@@ -921,14 +921,21 @@ bool FGameplayTagContainer::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags
 	return true;
 }
 
-FString FGameplayTagContainer::ToStringSimple() const
+FString FGameplayTagContainer::ToStringSimple(bool bQuoted) const
 {
 	FString RetString;
 	for (int i = 0; i < GameplayTags.Num(); ++i)
 	{
-		RetString += TEXT("\"");
+		if (bQuoted)
+		{
+			RetString += TEXT("\"");
+		}
 		RetString += GameplayTags[i].ToString();
-		RetString += TEXT("\"");
+		if (bQuoted)
+		{
+			RetString += TEXT("\"");
+		}
+		
 		if (i < GameplayTags.Num() - 1)
 		{
 			RetString += TEXT(", ");
@@ -1084,7 +1091,7 @@ bool FGameplayTag::MatchesTag(const FGameplayTag& TagToCheck) const
 	}
 
 	// This should always be invalid if the node is missing
-	ensure(!IsValid());
+	ensureMsgf(!IsValid(), TEXT("Valid tag failed to conver to single tag container. %s"), *GetTagName().ToString());
 
 	return false;
 }
@@ -1103,8 +1110,7 @@ bool FGameplayTag::MatchesAny(const FGameplayTagContainer& ContainerToCheck) con
 	}
 
 	// This should always be invalid if the node is missing
-	ensure(!IsValid());
-
+	ensureMsgf(!IsValid(), TEXT("Valid tag failed to conver to single tag container. %s"), *GetTagName().ToString() );
 	return false;
 }
 

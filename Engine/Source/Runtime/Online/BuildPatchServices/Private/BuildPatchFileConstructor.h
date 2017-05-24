@@ -36,6 +36,9 @@ private:
 	// A flag marking that we told the chunk cache to queue required downloads
 	bool bIsDownloadStarted;
 
+	// A flag marking that we have made the initial disk space check following resume logic compelte
+	bool bInitialDiskSizeCheck;
+
 	// A critical section to protect the flags and variables
 	FCriticalSection ThreadLock;
 
@@ -150,6 +153,11 @@ private:
 	 * @return true if there was a chunk guid in the list
 	 */
 	bool GetFileToConstruct( FString& Filename );
+
+	/**
+	 * @return the total bytes size of files not yet started construction
+	 */
+	int64 GetRemainingBytes();
 
 	/**
 	 * Get whether a piece of file data is currently available

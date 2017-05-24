@@ -100,7 +100,7 @@ struct FIOSBuildResourceFilePath
  *	Setup our resource filepath to make it easier to parse in UBT
  */
 template<>
-struct TStructOpsTypeTraits<FIOSBuildResourceFilePath> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FIOSBuildResourceFilePath> : public TStructOpsTypeTraitsBase2<FIOSBuildResourceFilePath>
 {
 	enum
 	{
@@ -153,7 +153,7 @@ struct FIOSBuildResourceDirectory
 *	Setup our resource Directory to make it easier to parse in UBT
 */
 template<>
-struct TStructOpsTypeTraits<FIOSBuildResourceDirectory> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FIOSBuildResourceDirectory> : public TStructOpsTypeTraitsBase2<FIOSBuildResourceDirectory>
 {
 	enum
 	{
@@ -192,6 +192,14 @@ public:
 	// Whether or not to add support for deferred rendering Metal API (requires IOS8 and A8 processors)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "[Work in Progress] Support Deferred Rendering with Metal (A8 and up devices)"))
 	bool bSupportsMetalMRT;
+	
+	// Whether or not to add support for PVRTC textures
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Cook PVRTC texture data for OpenGL ES or Metal on A7 and earlier devices"))
+	bool bCookPVRTCTextures;
+
+	// Whether or not to add support for ASTC textures
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Cook ASTC texture data for Metal on A8 or later devices"))
+	bool bCookASTCTextures;
 	
 	// Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering)
@@ -326,7 +334,7 @@ public:
 	EPowerUsageFrameRateLock FrameRateLock;
 
 	// Minimum iOS version this game supports
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = OSInfo)
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = OSInfo, meta = (DisplayName = "Minimum iOS Version"))
 	EIOSVersion MinimumiOSVersion;
 
 	// Whether or not to add support for iPad devices
@@ -356,11 +364,15 @@ public:
 	// Signing certificate to utilize when signing
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
 	FString SigningCertificate;
+	
+	// Whether to use automatic signing through Xcode
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+	bool bAutomaticSigning;
 
     // The maximum supported Metal shader langauge version.
     // This defines what features may be used and OS versions supported.
     UPROPERTY(EditAnywhere, config, Category=Rendering, meta = (DisplayName = "Max. Metal Shader Standard To Target", ConfigRestartRequired = true))
-    uint8 MaxShaderLanguageVersion;
+	uint8 MaxShaderLanguageVersion;
 
 #if WITH_EDITOR
 	// UObject interface

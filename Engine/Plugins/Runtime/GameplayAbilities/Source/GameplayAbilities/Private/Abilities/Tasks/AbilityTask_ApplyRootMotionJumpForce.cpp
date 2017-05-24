@@ -16,7 +16,8 @@ UAbilityTask_ApplyRootMotionJumpForce::UAbilityTask_ApplyRootMotionJumpForce(con
 	bHasLanded = false;
 }
 
-UAbilityTask_ApplyRootMotionJumpForce* UAbilityTask_ApplyRootMotionJumpForce::ApplyRootMotionJumpForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FRotator Rotation, float Distance, float Height, float Duration, float MinimumLandedTriggerTime, bool bFinishOnLanded, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve)
+UAbilityTask_ApplyRootMotionJumpForce* UAbilityTask_ApplyRootMotionJumpForce::ApplyRootMotionJumpForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FRotator Rotation, float Distance, float Height, float Duration, float MinimumLandedTriggerTime,
+	bool bFinishOnLanded, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve)
 {
 	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
 
@@ -29,6 +30,9 @@ UAbilityTask_ApplyRootMotionJumpForce* UAbilityTask_ApplyRootMotionJumpForce::Ap
 	MyTask->Duration = FMath::Max(Duration, KINDA_SMALL_NUMBER); // No zero duration
 	MyTask->MinimumLandedTriggerTime = MinimumLandedTriggerTime * Duration; // MinimumLandedTriggerTime is normalized
 	MyTask->bFinishOnLanded = bFinishOnLanded;
+	MyTask->FinishVelocityMode = VelocityOnFinishMode;
+	MyTask->FinishSetVelocity = SetVelocityOnFinish;
+	MyTask->FinishClampVelocity = ClampVelocityOnFinish;
 	MyTask->PathOffsetCurve = PathOffsetCurve;
 	MyTask->TimeMappingCurve = TimeMappingCurve;
 	MyTask->SharedInitAndApply();
@@ -68,7 +72,10 @@ void UAbilityTask_ApplyRootMotionJumpForce::OnLandedCallback(const FHitResult& H
 
 void UAbilityTask_ApplyRootMotionJumpForce::TriggerLanded()
 {
-	OnLanded.Broadcast();
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnLanded.Broadcast();
+	}
 
 	if (bFinishOnLanded)
 	{
@@ -99,6 +106,9 @@ void UAbilityTask_ApplyRootMotionJumpForce::SharedInitAndApply()
 			JumpForce->bDisableTimeout = bFinishOnLanded; // If we finish on landed, we need to disable force's timeout
 			JumpForce->PathOffsetCurve = PathOffsetCurve;
 			JumpForce->TimeMappingCurve = TimeMappingCurve;
+			JumpForce->FinishVelocityParams.Mode = FinishVelocityMode;
+			JumpForce->FinishVelocityParams.SetVelocity = FinishSetVelocity;
+			JumpForce->FinishVelocityParams.ClampVelocity = FinishClampVelocity;
 			RootMotionSourceID = MovementComponent->ApplyRootMotionSource(JumpForce);
 
 			if (Ability)
@@ -125,7 +135,10 @@ void UAbilityTask_ApplyRootMotionJumpForce::Finish()
 		if (MyActor)
 		{
 			MyActor->ForceNetUpdate();
-			OnFinish.Broadcast();
+			if (ShouldBroadcastAbilityTaskDelegates())
+			{
+				OnFinish.Broadcast();
+			}
 		}
 	}
 
@@ -152,7 +165,9 @@ void UAbilityTask_ApplyRootMotionJumpForce::TickTask(float DeltaTime)
 	AActor* MyActor = GetAvatarActor();
 	if (MyActor)
 	{
-		if (!bFinishOnLanded && CurrentTime >= EndTime)
+		const bool bTimedOut = HasTimedOut();
+
+		if (!bFinishOnLanded && bTimedOut)
 		{
 			// Task has finished
 			Finish();

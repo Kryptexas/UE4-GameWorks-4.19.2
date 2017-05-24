@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MoviePlayer : ModuleRules
 {
-	public MoviePlayer(TargetInfo Target)
+	public MoviePlayer(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("Runtime/MoviePlayer/Private");
 
@@ -19,6 +19,7 @@ public class MoviePlayer : ModuleRules
                     "Core",
                     "InputCore",
                     "RenderCore",
+                    "ShaderCore",
                     "CoreUObject",
                     "RHI",
                     "Slate",

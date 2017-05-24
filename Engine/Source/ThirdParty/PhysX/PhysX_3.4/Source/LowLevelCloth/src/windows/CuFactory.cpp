@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -249,21 +249,21 @@ void cloth::CuFactory::extractCollisionData(const Cloth& cloth, Range<PxVec4> sp
 
 	// collision spheres are in pinned memory, so memcpy directly
 	if(!cuCloth.mStartCollisionSpheres.empty() && !spheres.empty())
-		memcpy(spheres.begin(), &cuCloth.mStartCollisionSpheres.front(),
+		PxMemCopy(spheres.begin(), &cuCloth.mStartCollisionSpheres.front(),
 		       cuCloth.mStartCollisionSpheres.size() * sizeof(PxVec4));
 
 	if(!cuCloth.mCapsuleIndices.empty() && !capsules.empty())
-		memcpy(capsules.begin(), &cuCloth.mCapsuleIndices.front(), cuCloth.mCapsuleIndices.size() * sizeof(IndexPair));
+		PxMemCopy(capsules.begin(), &cuCloth.mCapsuleIndices.front(), cuCloth.mCapsuleIndices.size() * sizeof(IndexPair));
 
 	if(!cuCloth.mStartCollisionPlanes.empty() && !planes.empty())
-		memcpy(planes.begin(), &cuCloth.mStartCollisionPlanes.front(),
+		PxMemCopy(planes.begin(), &cuCloth.mStartCollisionPlanes.front(),
 		       cuCloth.mStartCollisionPlanes.size() * sizeof(PxVec4));
 
 	if(!cuCloth.mConvexMasks.empty() && !convexes.empty())
-		memcpy(convexes.begin(), &cuCloth.mConvexMasks.front(), cuCloth.mConvexMasks.size() * sizeof(uint32_t));
+		PxMemCopy(convexes.begin(), &cuCloth.mConvexMasks.front(), cuCloth.mConvexMasks.size() * sizeof(uint32_t));
 
 	if(!cuCloth.mStartCollisionTriangles.empty() && !triangles.empty())
-		memcpy(triangles.begin(), &cuCloth.mStartCollisionTriangles.front(),
+		PxMemCopy(triangles.begin(), &cuCloth.mStartCollisionTriangles.front(),
 		       cuCloth.mStartCollisionTriangles.size() * sizeof(PxVec3));
 }
 

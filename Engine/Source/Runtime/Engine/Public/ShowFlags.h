@@ -147,14 +147,12 @@ struct FEngineShowFlags
 		Init(InitMode);
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	FEngineShowFlags()
 	{
 		EnsureRetrievingVTablePtrDuringCtor(TEXT("FEngineShowFlags()"));
 		Init(ESFIM_Game);
 	}
-#endif // WITH_HOT_RELOAD_CTORS
 
 	static bool CanBeToggledInEditor(const TCHAR* Name)
 	{
@@ -193,8 +191,7 @@ struct FEngineShowFlags
 		SetStereoRendering(false);
 		SetDistanceFieldAO(false);
 		SetDistanceFieldGI(false);
-		// hiding the SkinCache would break thumbnail caching
-		SetSkinCache(true);
+		SetVolumetricFog(false);
 	}
 
 	void EnableAdvancedFeatures()
@@ -335,6 +332,7 @@ private:
 		SetHLODColoration(false);
 		SetVisualizeLPV(false);
 		SetStreamingBounds(false);
+		SetFoliageOcclusionBounds(false);
 		SetConstraints(false);
 		SetMassProperties(false);
 		SetCameraFrustums(false);
@@ -376,6 +374,7 @@ private:
 		// we enable it manually on the editor view ports
 		SetSnap(false);
 		SetVisualizeMeshDistanceFields(false);
+		SetVisualizeGlobalDistanceField(false);
 		SetVisualizeDistanceFieldAO(false);
 		SetVisualizeDistanceFieldGI(false);
 		SetVisualizeSSR(false);

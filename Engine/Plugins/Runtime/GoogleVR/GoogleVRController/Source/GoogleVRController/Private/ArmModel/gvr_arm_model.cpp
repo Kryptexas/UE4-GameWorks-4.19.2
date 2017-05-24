@@ -36,6 +36,7 @@ Controller::Controller()
 , use_accelerometer(false)
 , fade_distance_from_face(0.32f)
 , tooltip_min_distance_from_face(0.45f)
+, tooltip_max_angle_from_camera(80)
 , elbow_offset()
 , zero_accel(0.0f, GRAVITY_FORCE, 0.0f)
 , controller_alpha_value(1.0f)
@@ -118,6 +119,20 @@ float Controller::GetTooltipMinDistanceFromFace() const {
 
 void Controller::SetTooltipMinDistanceFromFace(float distance_from_face) {
   tooltip_min_distance_from_face = distance_from_face;
+}
+
+int Controller::GetTooltipMaxAngleFromCamera() const {
+  return tooltip_max_angle_from_camera;
+}
+
+void Controller::SetTooltipMaxAngleFromCamera(int max_angle_from_camera) {
+  if (max_angle_from_camera < 0) {
+    max_angle_from_camera = 0;
+  } else if (max_angle_from_camera > 180) {
+    max_angle_from_camera = 180;
+  }
+
+  tooltip_max_angle_from_camera = max_angle_from_camera;
 }
 
 float Controller::GetControllerAlphaValue() const {
@@ -286,7 +301,10 @@ void Controller::UpdateTransparency(const UpdateData &update_data) {
     controller_alpha_value = Util::Clampf(controller_alpha_value + DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
   }
 
-  if (distance_to_face < fade_distance_from_face || distance_to_face > tooltip_min_distance_from_face) {
+  Vector3 wrist_from_head = wrist_position.Normalized() * -1.0f;
+  float dot = wrist_rotation.Rotated(UP).Dot(wrist_from_head);
+  float min_dot = (tooltip_max_angle_from_camera - 90.0f) / -90.0f;
+  if (distance_to_face < fade_distance_from_face || distance_to_face > tooltip_min_distance_from_face || dot < min_dot) {
     tooltip_alpha_value = Util::Clampf(tooltip_alpha_value - DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);
   } else {
     tooltip_alpha_value = Util::Clampf(tooltip_alpha_value + DELTA_ALPHA * update_data.deltaTimeSeconds, 0.0f, 1.0f);

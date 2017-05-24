@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Internationalization/TextLocalizationManager.h"
+#include "Internationalization/TextLocalizationResource.h"
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "HAL/FileManager.h"
 #include "Misc/Parse.h"
@@ -10,6 +11,7 @@
 #include "Misc/Paths.h"
 #include "Internationalization/Culture.h"
 #include "Internationalization/Internationalization.h"
+#include "Internationalization/StringTableCore.h"
 #include "Stats/Stats.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/App.h"
@@ -32,6 +34,8 @@ void EndInitTextLocalization()
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("EndInitTextLocalization"), STAT_EndInitTextLocalization, STATGROUP_LoadTime);
 
+	FStringTableRedirects::InitStringTableRedirects();
+
 	const bool ShouldLoadEditor = WITH_EDITOR;
 	const bool ShouldLoadGame = FApp::IsGame();
 
@@ -46,210 +50,213 @@ void EndInitTextLocalization()
 	else
 #endif
 	{
-		FString RequestedCultureName;
-		if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), RequestedCultureName))
+		FString RequestedLanguage;
+		FString RequestedLocale;
+		TArray<TTuple<FName, FString>> RequestedAssetGroups;
+
+		auto ReadSettingsFromCommandLine = [&RequestedLanguage, &RequestedLocale]()
 		{
+			if (RequestedLanguage.IsEmpty() && FParse::Value(FCommandLine::Get(), TEXT("LANGUAGE="), RequestedLanguage))
+			{
+				UE_LOG(LogInit, Log, TEXT("Overriding language with language command-line option (%s)."), *RequestedLanguage);
+			}
+
+			if (RequestedLocale.IsEmpty() && FParse::Value(FCommandLine::Get(), TEXT("LOCALE="), RequestedLocale))
+			{
+				UE_LOG(LogInit, Log, TEXT("Overriding locale with locale command-line option (%s)."), *RequestedLocale);
+			}
+
+			FString CultureOverride;
+			if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), CultureOverride))
+			{
+				if (RequestedLanguage.IsEmpty())
+				{
+					RequestedLanguage = CultureOverride;
+					UE_LOG(LogInit, Log, TEXT("Overriding language with culture command-line option (%s)."), *RequestedLanguage);
+				}
+				if (RequestedLocale.IsEmpty())
+				{
+					RequestedLocale = CultureOverride;
+					UE_LOG(LogInit, Log, TEXT("Overriding locale with culture command-line option (%s)."), *RequestedLocale);
+				}
+			}
+		};
+
+		auto ReadSettingsFromConfig = [&RequestedLanguage, &RequestedLocale, &RequestedAssetGroups](const TCHAR* InConfigLogName, const FString& InConfigFilename)
+		{
+			if (RequestedLanguage.IsEmpty())
+			{
+				if (const FConfigSection* AssetGroupCulturesSection = GConfig->GetSectionPrivate(TEXT("Internationalization.AssetGroupCultures"), false, true, InConfigFilename))
+				{
+					for (const auto& SectionEntryPair : *AssetGroupCulturesSection)
+					{
+						const bool bAlreadyExists = RequestedAssetGroups.ContainsByPredicate([&](const TTuple<FName, FString>& InRequestedAssetGroup)
+						{
+							return InRequestedAssetGroup.Key == SectionEntryPair.Key;
+						});
+
+						if (!bAlreadyExists)
+						{
+							RequestedAssetGroups.Add(MakeTuple(SectionEntryPair.Key, SectionEntryPair.Value.GetValue()));
+							UE_LOG(LogInit, Log, TEXT("Overriding asset group '%s' with %s configuration option (%s)."), *SectionEntryPair.Key.ToString(), InConfigLogName, *SectionEntryPair.Value.GetValue());
+						}
+					}
+				}
+			}
+
+			if (RequestedLanguage.IsEmpty() && GConfig->GetString(TEXT("Internationalization"), TEXT("Language"), RequestedLanguage, InConfigFilename))
+			{
+				UE_LOG(LogInit, Log, TEXT("Overriding language with %s language configuration option (%s)."), InConfigLogName, *RequestedLanguage);
+			}
+
+			if (RequestedLocale.IsEmpty() && GConfig->GetString(TEXT("Internationalization"), TEXT("Locale"), RequestedLocale, InConfigFilename))
+			{
+				UE_LOG(LogInit, Log, TEXT("Overriding locale with %s locale configuration option (%s)."), InConfigLogName, *RequestedLocale);
+			}
+
+			FString CultureOverride;
+			if (GConfig->GetString(TEXT("Internationalization"), TEXT("Culture"), CultureOverride, InConfigFilename))
+			{
+				if (RequestedLanguage.IsEmpty())
+				{
+					RequestedLanguage = CultureOverride;
+					UE_LOG(LogInit, Log, TEXT("Overriding language with %s culture configuration option (%s)."), InConfigLogName, *RequestedLanguage);
+				}
+				if (RequestedLocale.IsEmpty())
+				{
+					RequestedLocale = CultureOverride;
+					UE_LOG(LogInit, Log, TEXT("Overriding locale with %s culture configuration option (%s)."), InConfigLogName, *RequestedLocale);
+				}
+			}
+		};
+
+		auto ReadSettingsFromDefaults = [&RequestedLanguage, &RequestedLocale, &I18N]()
+		{
+			if (RequestedLanguage.IsEmpty())
+			{
+				RequestedLanguage = I18N.GetDefaultLanguage()->GetName();
+				UE_LOG(LogInit, Log, TEXT("Using OS detected language (%s)."), *RequestedLanguage);
+			}
+
+			if (RequestedLocale.IsEmpty())
+			{
+				RequestedLocale = I18N.GetDefaultLocale()->GetName();
+				UE_LOG(LogInit, Log, TEXT("Using OS detected locale (%s)."), *RequestedLocale);
+			}
+		};
+
+		if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), RequestedLanguage))
+		{
+			RequestedLocale = RequestedLanguage;
+
 			// Write the culture passed in if first install...
 			if (FParse::Param(FCommandLine::Get(), TEXT("firstinstall")))
 			{
-				GConfig->SetString(TEXT("Internationalization"), TEXT("Culture"), *RequestedCultureName, GEngineIni);
+				GConfig->SetString(TEXT("Internationalization"), TEXT("Language"), *RequestedLanguage, GEngineIni);
+				GConfig->SetString(TEXT("Internationalization"), TEXT("Locale"), *RequestedLocale, GEngineIni);
 			}
+
+			UE_LOG(LogInit, Log, TEXT("Overriding language with culture cook command-line option (%s)."), *RequestedLanguage);
+			UE_LOG(LogInit, Log, TEXT("Overriding locale with culture cook command-line option (%s)."), *RequestedLocale);
 		}
-		// Use culture override specified on commandline.
-		else if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), RequestedCultureName))
-		{
-			UE_LOG(LogInit, Log, TEXT("Overriding culture %s with command-line option."), *RequestedCultureName);
-		}
-		else
+		// Read setting override specified on commandline.
+		ReadSettingsFromCommandLine();
 #if WITH_EDITOR
-			// See if we've been provided a culture override in the editor
-			if(GIsEditor && GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorSettingsIni ))
-			{
-				UE_LOG(LogInit, Log, TEXT("Overriding culture %s with editor configuration."), *RequestedCultureName);
-			}
-			else
+		// Read setting specified in editor configuration.
+		if(GIsEditor)
+		{
+			ReadSettingsFromConfig(TEXT("editor"), GEditorSettingsIni);
+		}
 #endif // WITH_EDITOR
-				// Use culture specified in game configuration.
-				if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GGameUserSettingsIni ))
+		// Read setting specified in game configurations.
+		ReadSettingsFromConfig(TEXT("game user settings"), GGameUserSettingsIni);
+		ReadSettingsFromConfig(TEXT("game"), GGameIni);
+		// Read setting specified in engine configuration.
+		ReadSettingsFromConfig(TEXT("engine"), GEngineIni);
+		// Read defaults
+		ReadSettingsFromDefaults();
+
+		auto ValidateRequestedCulture = [ShouldLoadEditor, ShouldLoadGame, &I18N](const FString& InRequestedCulture, const FString& InFallbackCulture, const TCHAR* InLogDesc, const bool bWarnIfNotExactMatch) -> FString
+		{
+			FString TargetCultureName = InRequestedCulture;
+
+#if ENABLE_LOC_TESTING
+			if (TargetCultureName != TEXT("LEET"))
+#endif
+			{
+				TArray<FString> LocalizationPaths;
+				if (ShouldLoadEditor)
 				{
-					UE_LOG(LogInit, Log, TEXT("Overriding culture %s with game configuration."), *RequestedCultureName);
+					LocalizationPaths += FPaths::GetEditorLocalizationPaths();
 				}
-				// Use culture specified in engine configuration.
-				else if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEngineIni ))
+				if (ShouldLoadGame)
 				{
-					UE_LOG(LogInit, Log, TEXT("Overriding culture %s with engine configuration."), *RequestedCultureName);
+					LocalizationPaths += FPaths::GetGameLocalizationPaths();
+				}
+				LocalizationPaths += FPaths::GetEngineLocalizationPaths();
+
+				// Validate the locale has data or fallback to one that does.
+				TArray< FCultureRef > AvailableCultures;
+				I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures, false);
+
+				FString ValidCultureName;
+				const TArray<FString> PrioritizedCultureNames = I18N.GetPrioritizedCultureNames(TargetCultureName);
+				for (const FString& CultureName : PrioritizedCultureNames)
+				{
+					const bool bIsValidCulture = AvailableCultures.ContainsByPredicate([&](const FCultureRef& PotentialCulture) -> bool
+					{
+						return PotentialCulture->GetName() == CultureName;
+					});
+
+					if (bIsValidCulture)
+					{
+						ValidCultureName = CultureName;
+						break;
+					}
+				}
+
+				if (!ValidCultureName.IsEmpty())
+				{
+					if (bWarnIfNotExactMatch && InRequestedCulture != ValidCultureName)
+					{
+						// Make the user aware that the localization data belongs to a parent culture.
+						UE_LOG(LogTextLocalizationManager, Log, TEXT("No specific localization for '%s' exists, so the '%s' localization will be used."), *InRequestedCulture, *ValidCultureName, InLogDesc);
+					}
 				}
 				else
 				{
-					RequestedCultureName = I18N.GetDefaultCulture()->GetName();
+					UE_LOG(LogTextLocalizationManager, Log, TEXT("No localization for '%s' exists, so '%s' will be used for the %s."), *InRequestedCulture, *InFallbackCulture, InLogDesc);
+					TargetCultureName = InFallbackCulture;
 				}
+			}
 
-				FString TargetCultureName = RequestedCultureName;
-				{
-					TArray<FString> LocalizationPaths;
-					if(ShouldLoadEditor)
-					{
-						LocalizationPaths += FPaths::GetEditorLocalizationPaths();
-					}
-					if(ShouldLoadGame)
-					{
-						LocalizationPaths += FPaths::GetGameLocalizationPaths();
-					}
-					LocalizationPaths += FPaths::GetEngineLocalizationPaths();
+			return TargetCultureName;
+		};
 
-					// Validate the locale has data or fallback to one that does.
-					TArray< FCultureRef > AvailableCultures;
-					I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures, false);
+		const FString TargetLanguage = ValidateRequestedCulture(RequestedLanguage, TEXT("en"), TEXT("language"), true);
+		const FString TargetLocale = ValidateRequestedCulture(RequestedLocale, TargetLanguage, TEXT("locale"), false);
+		if (TargetLanguage == TargetLocale)
+		{
+			I18N.SetCurrentLanguageAndLocale(TargetLanguage);
+		}
+		else
+		{
+			I18N.SetCurrentLanguage(TargetLanguage);
+			I18N.SetCurrentLocale(TargetLocale);
+		}
 
-					FString ValidCultureName;
-					const TArray<FString> PrioritizedCultureNames = I18N.GetPrioritizedCultureNames(TargetCultureName);
-					for (const FString& CultureName : PrioritizedCultureNames)
-					{
-						const bool bIsValidCulture = AvailableCultures.ContainsByPredicate([&](const FCultureRef& PotentialCulture) -> bool
-						{
-							return PotentialCulture->GetName() == CultureName;
-						});
-
-						if (bIsValidCulture)
-						{
-							ValidCultureName = CultureName;
-							break;
-						}
-					}
-
-					if(!ValidCultureName.IsEmpty())
-					{
-						if(RequestedCultureName != ValidCultureName)
-						{
-							// Make the user aware that the localization data belongs to a parent culture.
-							UE_LOG(LogTextLocalizationManager, Log, TEXT("No specific translations for ('%s') exist, so ('%s') translations will be used."), *RequestedCultureName, *ValidCultureName);
-						}
-					}
-					else
-					{
-						// Fallback to English.
-						UE_LOG(LogTextLocalizationManager, Log, TEXT("No translations for ('%s') exist, falling back to 'en' for localization and internationalization data."), *RequestedCultureName);
-						TargetCultureName = TEXT("en");
-					}
-				}
-
-				I18N.SetCurrentCulture(TargetCultureName);
+		for (const auto& RequestedAssetGroupPair : RequestedAssetGroups)
+		{
+			const FString TargetAssetGroupCulture = ValidateRequestedCulture(RequestedAssetGroupPair.Value, TargetLanguage, *FString::Printf(TEXT("'%s' asset group"), *RequestedAssetGroupPair.Key.ToString()), false);
+			if (TargetAssetGroupCulture != TargetLanguage)
+			{
+				I18N.SetCurrentAssetGroupCulture(RequestedAssetGroupPair.Key, TargetAssetGroupCulture);
+			}
+		}
 	}
 
-	FTextLocalizationManager::Get().LoadLocalizationResourcesForCulture(I18N.GetCurrentCulture()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	FTextLocalizationManager::Get().LoadLocalizationResourcesForCulture(I18N.GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
 	FTextLocalizationManager::Get().bIsInitialized = true;
-}
-
-void FTextLocalizationManager::FLocalizationEntryTracker::LoadFromDirectory(const FString& DirectoryPath)
-{
-	// Find resources in the specified folder.
-	TArray<FString> ResourceFileNames;
-	IFileManager::Get().FindFiles(ResourceFileNames, *(DirectoryPath / TEXT("*.locres")), true, false);
-
-	for (const FString& ResourceFileName : ResourceFileNames)
-	{
-		LoadFromFile( FPaths::ConvertRelativePathToFull(DirectoryPath / ResourceFileName) );
-	}
-}
-
-bool FTextLocalizationManager::FLocalizationEntryTracker::LoadFromFile(const FString& FilePath)
-{
-	TUniquePtr<FArchive> Reader(IFileManager::Get().CreateFileReader( *FilePath ));
-	if( !Reader )
-	{
-		return false;
-	}
-
-	Reader->SetForceUnicode(true);
-
-	LoadFromLocalizationResource(*Reader, FilePath);
-
-	bool Success = Reader->Close();
-
-	return Success;
-}
-
-void FTextLocalizationManager::FLocalizationEntryTracker::LoadFromLocalizationResource(FArchive& Archive, const FString& LocalizationResourceIdentifier)
-{
-	// Read namespace count
-	uint32 NamespaceCount;
-	Archive << NamespaceCount;
-
-	for(uint32 i = 0; i < NamespaceCount; ++i)
-	{
-		// Read namespace
-		FString Namespace;
-		Archive << Namespace;
-
-		// Read key count
-		uint32 KeyCount;
-		Archive << KeyCount;
-
-		FLocalizationEntryTracker::FKeysTable& KeyTable = Namespaces.FindOrAdd(*Namespace);
-
-		for(uint32 j = 0; j < KeyCount; ++j)
-		{
-			// Read key
-			FString Key;
-			Archive << Key;
-
-			FLocalizationEntryTracker::FEntryArray& EntryArray = KeyTable.FindOrAdd( *Key );
-
-			FLocalizationEntryTracker::FEntry NewEntry;
-			NewEntry.LocResID = LocalizationResourceIdentifier;
-
-			// Read string entry.
-			Archive << NewEntry.SourceStringHash;
-			Archive << NewEntry.LocalizedString;
-
-			EntryArray.Add(NewEntry);
-		}
-	}
-}
-
-void FTextLocalizationManager::FLocalizationEntryTracker::DetectAndLogConflicts() const
-{
-	for (const auto& NamespaceEntry : Namespaces)
-	{
-		const FString& NamespaceName = NamespaceEntry.Key;
-		const FKeysTable& KeyTable = NamespaceEntry.Value;
-		for (const auto& KeyEntry : KeyTable)
-		{
-			const FString& KeyName = KeyEntry.Key;
-			const FEntryArray& EntryArray = KeyEntry.Value;
-
-			bool WasConflictDetected = false;
-			for(int32 k = 0; k < EntryArray.Num(); ++k)
-			{
-				const FEntry& LeftEntry = EntryArray[k];
-				for(int32 l = k + 1; l < EntryArray.Num(); ++l)
-				{
-					const FEntry& RightEntry = EntryArray[l];
-					const bool bDoesSourceStringHashDiffer = LeftEntry.SourceStringHash != RightEntry.SourceStringHash;
-					const bool bDoesLocalizedStringDiffer = LeftEntry.LocalizedString != RightEntry.LocalizedString;
-					WasConflictDetected = bDoesSourceStringHashDiffer || bDoesLocalizedStringDiffer;
-				}
-			}
-
-			if(WasConflictDetected)
-			{
-				FString CollidingEntryListString;
-				for(int32 k = 0; k < EntryArray.Num(); ++k)
-				{
-					const FEntry& Entry = EntryArray[k];
-
-					if( !(CollidingEntryListString.IsEmpty()) )
-					{
-						CollidingEntryListString += TEXT('\n');
-					}
-
-					CollidingEntryListString += FString::Printf( TEXT("Localization Resource: (%s) Source String Hash: (%d) Localized String: (%s)"), *(Entry.LocResID), Entry.SourceStringHash, *(Entry.LocalizedString) );
-				}
-
-				UE_LOG(LogTextLocalizationManager, Warning, TEXT("Loaded localization resources contain conflicting entries for (Namespace:%s, Key:%s):\n%s"), *NamespaceName, *KeyName, *CollidingEntryListString);
-			}
-		}
-	}
 }
 
 void FTextLocalizationManager::FDisplayStringLookupTable::Find(const FString& InNamespace, FKeysTable*& OutKeysTableForNamespace, const FString& InKey, FDisplayStringEntry*& OutDisplayStringEntry)
@@ -305,11 +312,11 @@ FTextDisplayStringRef FTextLocalizationManager::GetDisplayString(const FString& 
 	// Hack fix for old assets that don't have namespace/key info.
 	if(Namespace.IsEmpty() && Key.IsEmpty())
 	{
-		return MakeShareable( new FString( SourceString ? **SourceString : TEXT("") ) );
+		return MakeShared<FString, ESPMode::ThreadSafe>(SourceString ? *SourceString : FString());
 	}
 
 #if ENABLE_LOC_TESTING
-	const bool bShouldLEETIFYAll = bIsInitialized && FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("LEET");
+	const bool bShouldLEETIFYAll = bIsInitialized && FInternationalization::Get().GetCurrentLanguage()->GetName() == TEXT("LEET");
 
 	// Attempt to set bShouldLEETIFYUnlocalizedString appropriately, only once, after the commandline is initialized and parsed.
 	static bool bShouldLEETIFYUnlocalizedString = false;
@@ -334,14 +341,14 @@ FTextDisplayStringRef FTextLocalizationManager::GetDisplayString(const FString& 
 		const uint32 SourceStringHash = SourceString ? FCrc::StrCrc32(**SourceString) : 0;
 
 		// If the source string (hash) is different, the local source has changed and should override - can't be localized.
-		if( SourceStringHash != 0 && SourceStringHash != LiveEntry->SourceStringHash )
+		if(SourceString && SourceStringHash != LiveEntry->SourceStringHash)
 		{
 			LiveEntry->SourceStringHash = SourceStringHash;
-			LiveEntry->DisplayString.Get() = SourceString ? **SourceString : TEXT("");
+			*LiveEntry->DisplayString = *SourceString;
 			DirtyLocalRevisionForDisplayString(LiveEntry->DisplayString);
 
 #if ENABLE_LOC_TESTING
-			if( (bShouldLEETIFYAll || bShouldLEETIFYUnlocalizedString) && SourceString )
+			if(bShouldLEETIFYAll || bShouldLEETIFYUnlocalizedString)
 			{
 				FInternationalization::Leetify(*LiveEntry->DisplayString);
 				if(*LiveEntry->DisplayString == *SourceString)
@@ -371,7 +378,7 @@ FTextDisplayStringRef FTextLocalizationManager::GetDisplayString(const FString& 
 			UE_LOG(LogTextLocalizationManager, Verbose, TEXT("An attempt was made to get a localized string (Namespace:%s, Key:%s, Source:%s), but it did not exist."), *Namespace, *Key, SourceString ? **SourceString : TEXT(""));
 		}
 
-		const FTextDisplayStringRef UnlocalizedString = MakeShareable( new FString( SourceString ? **SourceString : TEXT("") ) );
+		const FTextDisplayStringRef UnlocalizedString = MakeShared<FString, ESPMode::ThreadSafe>(SourceString ? *SourceString : FString());
 
 #if ENABLE_LOC_TESTING
 		if( (bShouldLEETIFYAll || bShouldLEETIFYUnlocalizedString) && SourceString )
@@ -395,11 +402,11 @@ FTextDisplayStringRef FTextLocalizationManager::GetDisplayString(const FString& 
 		// Make entries so that they can be updated when system is initialized or a culture swap occurs.
 		FDisplayStringLookupTable::FDisplayStringEntry NewEntry(
 #if ENABLE_LOC_TESTING
-			bShouldLEETIFYAll						/*bIsLocalized*/
+			bShouldLEETIFYAll									/*bIsLocalized*/
 #else
 			false												/*bIsLocalized*/
 #endif
-			, TEXT("")
+			, FString()
 			, SourceString ? FCrc::StrCrc32(**SourceString) : 0	/*SourceStringHash*/
 			, UnlocalizedString									/*String*/
 			);
@@ -477,7 +484,7 @@ bool FTextLocalizationManager::AddDisplayString(const FTextDisplayStringRef& Dis
 
 	// Add the necessary associations in both directions.
 	FDisplayStringLookupTable::FKeysTable& KeysTableForNamespace = DisplayStringLookupTable.NamespacesTable.FindOrAdd(Namespace);
-	KeysTableForNamespace.Add(Key, FDisplayStringLookupTable::FDisplayStringEntry(false, TEXT(""), FCrc::StrCrc32(*DisplayString.Get()), DisplayString));
+	KeysTableForNamespace.Add(Key, FDisplayStringLookupTable::FDisplayStringEntry(false, FString(), FCrc::StrCrc32(**DisplayString), DisplayString));
 	NamespaceKeyLookupTable.Add(DisplayString, FNamespaceKeyEntry(Namespace, Key));
 
 	return true;
@@ -536,67 +543,43 @@ bool FTextLocalizationManager::UpdateDisplayString(const FTextDisplayStringRef& 
 
 void FTextLocalizationManager::UpdateFromLocalizationResource(const FString& LocalizationResourceFilePath)
 {
-	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
+	TArray<FTextLocalizationResource> TextLocalizationResources;
 
-	FLocalizationEntryTracker& LocalizationEntryTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
-	LocalizationEntryTracker.LoadFromFile(LocalizationResourceFilePath);
-	LocalizationEntryTracker.DetectAndLogConflicts();
+	FTextLocalizationResource& TextLocalizationResource = TextLocalizationResources[TextLocalizationResources.AddDefaulted()];
+	TextLocalizationResource.LoadFromFile(LocalizationResourceFilePath);
+	TextLocalizationResource.DetectAndLogConflicts();
 
-	UpdateFromLocalizations(LocalizationEntryTrackers);
+	UpdateFromLocalizations(TextLocalizationResources);
 }
 
-void FTextLocalizationManager::UpdateFromLocalizationResource(FArchive& LocResArchive, const FString& LocResID)
+void FTextLocalizationManager::UpdateFromLocalizationResources(const TArray<FTextLocalizationResource>& TextLocalizationResources)
 {
-	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
-
-	FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
-	CultureTracker.LoadFromLocalizationResource(LocResArchive, LocResID);
-	CultureTracker.DetectAndLogConflicts();
-
-	UpdateFromLocalizations(LocalizationEntryTrackers);
+	UpdateFromLocalizations(TextLocalizationResources);
 }
 
 void FTextLocalizationManager::RefreshResources()
 {
 	const bool ShouldLoadEditor = WITH_EDITOR;
 	const bool ShouldLoadGame = FApp::IsGame();
-	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentCulture()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
 }
 
 void FTextLocalizationManager::OnCultureChanged()
 {
+	if (!bIsInitialized)
+	{
+		// Ignore culture changes while the text localization manager is still being initialized
+		// The correct data will be loaded by EndInitTextLocalization
+		return;
+	}
+
 	const bool ShouldLoadEditor = bIsInitialized && WITH_EDITOR;
 	const bool ShouldLoadGame = bIsInitialized && FApp::IsGame();
-	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentCulture()->GetName(), ShouldLoadEditor, ShouldLoadGame);
+	LoadLocalizationResourcesForCulture(FInternationalization::Get().GetCurrentLanguage()->GetName(), ShouldLoadEditor, ShouldLoadGame);
 }
 
 void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString& CultureName, const bool ShouldLoadEditor, const bool ShouldLoadGame)
 {
-#if ENABLE_LOC_TESTING
-	{
-		// The leet culture is fake. Just leet-ify existing strings.
-		if(CultureName == TEXT("LEET"))
-		{
-			for(auto NamespaceIterator = DisplayStringLookupTable.NamespacesTable.CreateIterator(); NamespaceIterator; ++NamespaceIterator)
-			{
-				const FString& Namespace = NamespaceIterator.Key();
-				FDisplayStringLookupTable::FKeysTable& LiveKeyTable = NamespaceIterator.Value();
-				for(auto KeyIterator = LiveKeyTable.CreateIterator(); KeyIterator; ++KeyIterator)
-				{
-					const FString& Key = KeyIterator.Key();
-					FDisplayStringLookupTable::FDisplayStringEntry& LiveStringEntry = KeyIterator.Value();
-					LiveStringEntry.bIsLocalized = true;
-					FInternationalization::Leetify( *LiveStringEntry.DisplayString );
-				}
-			}
-
-			// Early-out, there can be no localization resources to load for the fake leet culture.
-			DirtyTextRevision();
-			return;
-		}
-	}
-#endif
-
 	const FCulturePtr Culture = FInternationalization::Get().GetCulture(CultureName);
 
 	// Can't load localization resources for a culture that doesn't exist, early-out.
@@ -607,22 +590,22 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 
 	// Collect the localization paths to load from.
 	TArray<FString> GameLocalizationPaths;
-	if(ShouldLoadGame || GIsEditor)
+	if (ShouldLoadGame || GIsEditor)
 	{
 		GameLocalizationPaths += FPaths::GetGameLocalizationPaths();
 	}
 	TArray<FString> EditorLocalizationPaths;
-	if(ShouldLoadEditor)
+	if (ShouldLoadEditor)
 	{
 		EditorLocalizationPaths += FPaths::GetEditorLocalizationPaths();
 		EditorLocalizationPaths += FPaths::GetToolTipLocalizationPaths();
 
 		bool bShouldLoadLocalizedPropertyNames = true;
-		if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni ) )
+		if (!GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni))
 		{
-			GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
+			GConfig->GetBool(TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni);
 		}
-		if(bShouldLoadLocalizedPropertyNames)
+		if (bShouldLoadLocalizedPropertyNames)
 		{
 			EditorLocalizationPaths += FPaths::GetPropertyNameLocalizationPaths();
 		}
@@ -634,64 +617,6 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	TArray<FString> AdditionalLocalizationPaths;
 	GatherAdditionalLocResPathsCallback.Broadcast(AdditionalLocalizationPaths);
 
-	// Prioritized array of localization entry trackers.
-	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
-
-	const auto MapCulturesToDirectories = [](const FString& LocalizationPath) -> TMap<FString, FString>
-	{
-		TMap<FString, FString> CultureToDirectoryMap;
-		IFileManager& FileManager = IFileManager::Get();
-
-		/* Visitor class used to enumerate directories of culture. */
-		class FCultureDirectoryMapperVistor : public IPlatformFile::FDirectoryVisitor
-		{
-		public:
-			FCultureDirectoryMapperVistor( TMap<FString, FString>& OutCultureToDirectoryMap )
-				: CultureToDirectoryMap(OutCultureToDirectoryMap)
-			{
-			}
-
-			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
-			{
-				if(bIsDirectory)
-				{
-					// UE localization resource folders use "en-US" style while ICU uses "en_US".
-					const FString LocalizationFolder = FPaths::GetCleanFilename(FilenameOrDirectory);
-					const FString CanonicalName = FCulture::GetCanonicalName(LocalizationFolder);
-					CultureToDirectoryMap.Add(CanonicalName, LocalizationFolder);
-				}
-
-				return true;
-			}
-
-			/** Array to fill with the names of the UE localization folders available at the given path. */
-			TMap<FString, FString>& CultureToDirectoryMap;
-		};
-
-		FCultureDirectoryMapperVistor CultureEnumeratorVistor(CultureToDirectoryMap);
-		FileManager.IterateDirectory(*LocalizationPath, CultureEnumeratorVistor);
-
-		return CultureToDirectoryMap;
-	};
-
-	TMap< FString, TMap<FString, FString> > LocalizationPathToCultureDirectoryMap;
-	for (const FString& LocalizationPath : GameLocalizationPaths)
-	{
-		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
-	}
-	for (const FString& LocalizationPath : EditorLocalizationPaths)
-	{
-		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
-	}
-	for (const FString& LocalizationPath : EngineLocalizationPaths)
-	{
-		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
-	}
-	for (const FString& LocalizationPath : AdditionalLocalizationPaths)
-	{
-		LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
-	}
-
 	TArray<FString> PrioritizedLocalizationPaths;
 	if (!GIsEditor)
 	{
@@ -701,52 +626,249 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 	PrioritizedLocalizationPaths += EngineLocalizationPaths;
 	PrioritizedLocalizationPaths += AdditionalLocalizationPaths;
 
-	// The editor cheats and loads the native culture's localizations.
-	if (GIsEditor)
+	// Load the native texts first to ensure we always apply translations to a consistent base
 	{
-		FString NativeCultureName = TEXT("");
-		GConfig->GetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), NativeCultureName, GEditorSettingsIni );
+		TArray<FTextLocalizationResource> TextLocalizationResources;
 
-		if (!NativeCultureName.IsEmpty())
-		{
-			FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
-			for (const FString& LocalizationPath : GameLocalizationPaths)
-			{
-				const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(NativeCultureName));
-				if (Entry)
-				{
-					const FString CulturePath = LocalizationPath / (*Entry);
-
-					CultureTracker.LoadFromDirectory(CulturePath);
-				}
-			}
-			CultureTracker.DetectAndLogConflicts();
-		}
-	}
-
-	// Read culture localization resources.
-	const TArray<FString> PrioritizedCultureNames = FInternationalization::Get().GetPrioritizedCultureNames(CultureName);
-	for (const FString& ParentCultureName : PrioritizedCultureNames)
-	{
-		FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
 		for (const FString& LocalizationPath : PrioritizedLocalizationPaths)
 		{
-			const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(ParentCultureName));
-			if (Entry)
-			{
-				const FString CulturePath = LocalizationPath / (*Entry);
+			TArray<FString> LocMetaFilenames;
+			IFileManager::Get().FindFiles(LocMetaFilenames, *(LocalizationPath / TEXT("*.locmeta")), true, false);
 
-				CultureTracker.LoadFromDirectory(CulturePath);
+			// There should only be zero or one LocMeta file
+			check(LocMetaFilenames.Num() <= 1);
+
+			if (LocMetaFilenames.Num() == 1)
+			{
+				FTextLocalizationMetaDataResource LocMetaResource;
+				if (LocMetaResource.LoadFromFile(LocalizationPath / LocMetaFilenames[0]))
+				{
+					// We skip loading the native text if we're transitioning to the native culture when loc testing is disabled as there's no extra work that 
+					// needs to be done (when loc testing is enabled, UpdateFromNative also takes care of restoring non-localized text)
+#if !ENABLE_LOC_TESTING
+					if (CultureName != LocMetaResource.NativeCulture)
+#endif
+					{
+						FTextLocalizationResource& TextLocalizationResource = TextLocalizationResources[TextLocalizationResources.AddDefaulted()];
+						TextLocalizationResource.LoadFromFile(LocalizationPath / LocMetaResource.NativeLocRes);
+					}
+				}
 			}
 		}
-		CultureTracker.DetectAndLogConflicts();
+
+#if !ENABLE_LOC_TESTING
+		if (TextLocalizationResources.Num() > 0)
+#endif
+		{
+			UpdateFromNative(TextLocalizationResources);
+		}
 	}
 
-	// Replace localizations with those of the loaded localization resources.
-	UpdateFromLocalizations(LocalizationEntryTrackers);
+#if ENABLE_LOC_TESTING
+	// The leet culture is fake. Just leet-ify existing strings.
+	if (CultureName == TEXT("LEET"))
+	{
+		for (auto NamespaceIterator = DisplayStringLookupTable.NamespacesTable.CreateIterator(); NamespaceIterator; ++NamespaceIterator)
+		{
+			const FString& Namespace = NamespaceIterator.Key();
+			FDisplayStringLookupTable::FKeysTable& LiveKeyTable = NamespaceIterator.Value();
+			for (auto KeyIterator = LiveKeyTable.CreateIterator(); KeyIterator; ++KeyIterator)
+			{
+				const FString& Key = KeyIterator.Key();
+				FDisplayStringLookupTable::FDisplayStringEntry& LiveStringEntry = KeyIterator.Value();
+				LiveStringEntry.bIsLocalized = true;
+				LiveStringEntry.NativeStringBackup = *LiveStringEntry.DisplayString;
+				FInternationalization::Leetify(*LiveStringEntry.DisplayString);
+			}
+		}
+
+		// Early-out, there can be no localization resources to load for the fake leet culture.
+		DirtyTextRevision();
+	}
+	else
+#endif
+	{
+		// Prioritized array of localization resources.
+		TArray<FTextLocalizationResource> TextLocalizationResources;
+
+		auto MapCulturesToDirectories = [](const FString& LocalizationPath) -> TMap<FString, FString>
+		{
+			TMap<FString, FString> CultureToDirectoryMap;
+
+			TArray<FString> CultureFolders;
+			IFileManager::Get().FindFiles(CultureFolders, *(LocalizationPath / TEXT("*")), false, true);
+
+			for (const FString& CultureFolder : CultureFolders)
+			{
+				CultureToDirectoryMap.Add(FCulture::GetCanonicalName(CultureFolder), CultureFolder);
+			}
+
+			return CultureToDirectoryMap;
+		};
+
+		TMap< FString, TMap<FString, FString> > LocalizationPathToCultureDirectoryMap;
+		for (const FString& LocalizationPath : GameLocalizationPaths)
+		{
+			LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
+		}
+		for (const FString& LocalizationPath : EditorLocalizationPaths)
+		{
+			LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
+		}
+		for (const FString& LocalizationPath : EngineLocalizationPaths)
+		{
+			LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
+		}
+		for (const FString& LocalizationPath : AdditionalLocalizationPaths)
+		{
+			LocalizationPathToCultureDirectoryMap.Add(LocalizationPath, MapCulturesToDirectories(LocalizationPath));
+		}
+
+		// The editor cheats and loads the native culture's localizations.
+		if (GIsEditor)
+		{
+			FString NativeCultureName;
+			GConfig->GetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), NativeCultureName, GEditorSettingsIni );
+
+			if (!NativeCultureName.IsEmpty() && GameLocalizationPaths.Num() > 0)
+			{
+				FTextLocalizationResource& TextLocalizationResource = TextLocalizationResources[TextLocalizationResources.AddDefaulted()];
+				for (const FString& LocalizationPath : GameLocalizationPaths)
+				{
+					const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(NativeCultureName));
+					if (Entry)
+					{
+						const FString CulturePath = LocalizationPath / (*Entry);
+						TextLocalizationResource.LoadFromDirectory(CulturePath);
+					}
+				}
+				TextLocalizationResource.DetectAndLogConflicts();
+			}
+		}
+
+		// Read culture localization resources.
+		const TArray<FString> PrioritizedCultureNames = FInternationalization::Get().GetPrioritizedCultureNames(CultureName);
+		for (const FString& ParentCultureName : PrioritizedCultureNames)
+		{
+			if (PrioritizedLocalizationPaths.Num() > 0)
+			{
+				FTextLocalizationResource& TextLocalizationResource = TextLocalizationResources[TextLocalizationResources.AddDefaulted()];
+				for (const FString& LocalizationPath : PrioritizedLocalizationPaths)
+				{
+					const FString* const Entry = LocalizationPathToCultureDirectoryMap[LocalizationPath].Find(FCulture::GetCanonicalName(ParentCultureName));
+					if (Entry)
+					{
+						const FString CulturePath = LocalizationPath / (*Entry);
+						TextLocalizationResource.LoadFromDirectory(CulturePath);
+					}
+				}
+				TextLocalizationResource.DetectAndLogConflicts();
+			}
+		}
+
+		if (TextLocalizationResources.Num() > 0)
+		{
+			// Replace localizations with those of the loaded localization resources.
+			UpdateFromLocalizations(TextLocalizationResources);
+		}
+	}
 }
 
-void FTextLocalizationManager::UpdateFromLocalizations(const TArray<FLocalizationEntryTracker>& LocalizationEntryTrackers)
+void FTextLocalizationManager::UpdateFromNative(const TArray<FTextLocalizationResource>& TextLocalizationResources)
+{
+	// Note: This code doesn't handle "leet-ification" itself as it is resetting everything to a known "good" state ("leet-ification" happens later on the "good" native text)
+
+	// Update existing entries to use the new native text
+	for (auto& Namespace : DisplayStringLookupTable.NamespacesTable)
+	{
+		const FString& NamespaceName = Namespace.Key;
+		FDisplayStringLookupTable::FKeysTable& LiveKeyTable = Namespace.Value;
+		for (auto& Key : LiveKeyTable)
+		{
+			const FString& KeyName = Key.Key;
+			FDisplayStringLookupTable::FDisplayStringEntry& LiveStringEntry = Key.Value;
+
+			const FTextLocalizationResource::FEntry* SourceEntryForUpdate = nullptr;
+
+			// Attempt to use resources in prioritized order until we find an entry.
+			for (const FTextLocalizationResource& TextLocalizationResource : TextLocalizationResources)
+			{
+				const FTextLocalizationResource::FKeysTable* const UpdateKeyTable = TextLocalizationResource.Namespaces.Find(NamespaceName);
+				const FTextLocalizationResource::FEntryArray* const UpdateEntryArray = UpdateKeyTable ? UpdateKeyTable->Find(KeyName) : nullptr;
+				const FTextLocalizationResource::FEntry* Entry = UpdateEntryArray && UpdateEntryArray->Num() ? &((*UpdateEntryArray)[0]) : nullptr;
+				if (Entry)
+				{
+					SourceEntryForUpdate = Entry;
+					break;
+				}
+			}
+
+			// Update the display string with the new native string
+			if (SourceEntryForUpdate && LiveStringEntry.SourceStringHash == SourceEntryForUpdate->SourceStringHash)
+			{
+				*LiveStringEntry.DisplayString = SourceEntryForUpdate->LocalizedString;
+			}
+			else
+			{
+				if (!LiveStringEntry.bIsLocalized && *LiveStringEntry.DisplayString == AccessedStringBeforeLocLoadedErrorMsg)
+				{
+					*LiveStringEntry.DisplayString = FString();
+				}
+
+#if ENABLE_LOC_TESTING
+				// Restore the pre-leet state (if any)
+				if (!LiveStringEntry.NativeStringBackup.IsEmpty())
+				{
+					*LiveStringEntry.DisplayString = MoveTemp(LiveStringEntry.NativeStringBackup);
+				}
+#endif
+			}
+
+			LiveStringEntry.LocResID = FString();
+			LiveStringEntry.bIsLocalized = false;
+
+#if ENABLE_LOC_TESTING
+			LiveStringEntry.NativeStringBackup.Reset();
+#endif
+		}
+	}
+
+	// Add new entries
+	for (const FTextLocalizationResource& TextLocalizationResource : TextLocalizationResources)
+	{
+		for (const auto& Namespace : TextLocalizationResource.Namespaces)
+		{
+			const FString& NamespaceName = Namespace.Key;
+			const FTextLocalizationResource::FKeysTable& NewKeyTable = Namespace.Value;
+			for (const auto& Key : NewKeyTable)
+			{
+				const FString& KeyName = Key.Key;
+				const FTextLocalizationResource::FEntryArray& NewEntryArray = Key.Value;
+				const FTextLocalizationResource::FEntry& NewEntry = NewEntryArray[0];
+
+				FDisplayStringLookupTable::FKeysTable& LiveKeyTable = DisplayStringLookupTable.NamespacesTable.FindOrAdd(NamespaceName);
+				FDisplayStringLookupTable::FDisplayStringEntry* const LiveStringEntry = LiveKeyTable.Find(KeyName);
+				// Note: Anything we find in the table has already been updated above.
+				if (!LiveStringEntry)
+				{
+					FDisplayStringLookupTable::FDisplayStringEntry NewLiveEntry(
+						false,																/*bIsLocalized*/
+						FString(),															/*LocResID*/
+						NewEntry.SourceStringHash,											/*SourceStringHash*/
+						MakeShared<FString, ESPMode::ThreadSafe>(NewEntry.LocalizedString)	/*String*/
+						);
+					LiveKeyTable.Add(KeyName, NewLiveEntry);
+
+					NamespaceKeyLookupTable.Add(NewLiveEntry.DisplayString, FNamespaceKeyEntry(NamespaceName, KeyName));
+				}
+			}
+		}
+	}
+
+	DirtyTextRevision();
+}
+
+void FTextLocalizationManager::UpdateFromLocalizations(const TArray<FTextLocalizationResource>& TextLocalizationResources)
 {
 	// Update existing localized entries/flag existing newly-unlocalized entries.
 	for (auto& Namespace : DisplayStringLookupTable.NamespacesTable)
@@ -758,14 +880,14 @@ void FTextLocalizationManager::UpdateFromLocalizations(const TArray<FLocalizatio
 			const FString& KeyName = Key.Key;
 			FDisplayStringLookupTable::FDisplayStringEntry& LiveStringEntry = Key.Value;
 
-			const FLocalizationEntryTracker::FEntry* SourceEntryForUpdate = nullptr;
+			const FTextLocalizationResource::FEntry* SourceEntryForUpdate = nullptr;
 
 			// Attempt to use resources in prioritized order until we find an entry.
-			for(const FLocalizationEntryTracker& Tracker : LocalizationEntryTrackers)
+			for(const FTextLocalizationResource& TextLocalizationResource : TextLocalizationResources)
 			{
-				const FLocalizationEntryTracker::FKeysTable* const UpdateKeyTable = Tracker.Namespaces.Find(NamespaceName);
-				const FLocalizationEntryTracker::FEntryArray* const UpdateEntryArray = UpdateKeyTable ? UpdateKeyTable->Find(KeyName) : nullptr;
-				const FLocalizationEntryTracker::FEntry* Entry = UpdateEntryArray && UpdateEntryArray->Num() ? &((*UpdateEntryArray)[0]) : nullptr;
+				const FTextLocalizationResource::FKeysTable* const UpdateKeyTable = TextLocalizationResource.Namespaces.Find(NamespaceName);
+				const FTextLocalizationResource::FEntryArray* const UpdateEntryArray = UpdateKeyTable ? UpdateKeyTable->Find(KeyName) : nullptr;
+				const FTextLocalizationResource::FEntry* Entry = UpdateEntryArray && UpdateEntryArray->Num() ? &((*UpdateEntryArray)[0]) : nullptr;
 				if(Entry)
 				{
 					SourceEntryForUpdate = Entry;
@@ -778,16 +900,18 @@ void FTextLocalizationManager::UpdateFromLocalizations(const TArray<FLocalizatio
 			if (SourceEntryForUpdate && LiveStringEntry.SourceStringHash == SourceEntryForUpdate->SourceStringHash)
 			{
 				LiveStringEntry.bIsLocalized = true;
+				LiveStringEntry.LocResID = SourceEntryForUpdate->LocResID;
 				*(LiveStringEntry.DisplayString) = SourceEntryForUpdate->LocalizedString;
 			}
 			else
 			{
-				if ( !LiveStringEntry.bIsLocalized && LiveStringEntry.DisplayString.Get() == AccessedStringBeforeLocLoadedErrorMsg )
+				if ( !LiveStringEntry.bIsLocalized && *LiveStringEntry.DisplayString == AccessedStringBeforeLocLoadedErrorMsg )
 				{
-					*(LiveStringEntry.DisplayString) = TEXT("");
+					*(LiveStringEntry.DisplayString) = FString();
 				}
 
 				LiveStringEntry.bIsLocalized = false;
+				LiveStringEntry.LocResID = FString();
 
 #if ENABLE_LOC_TESTING
 				const bool bShouldLEETIFYUnlocalizedString = FParse::Param(FCommandLine::Get(), TEXT("LEETIFYUnlocalized"));
@@ -801,17 +925,17 @@ void FTextLocalizationManager::UpdateFromLocalizations(const TArray<FLocalizatio
 	}
 
 	// Add new entries. 
-	for(const auto& Tracker : LocalizationEntryTrackers)
+	for(const FTextLocalizationResource& TextLocalizationResource : TextLocalizationResources)
 	{
-		for(const auto& Namespace : Tracker.Namespaces)
+		for(const auto& Namespace : TextLocalizationResource.Namespaces)
 		{
 			const FString& NamespaceName = Namespace.Key;
-			const FLocalizationEntryTracker::FKeysTable& NewKeyTable = Namespace.Value;
+			const FTextLocalizationResource::FKeysTable& NewKeyTable = Namespace.Value;
 			for(const auto& Key : NewKeyTable)
 			{
 				const FString& KeyName = Key.Key;
-				const FLocalizationEntryTracker::FEntryArray& NewEntryArray = Key.Value;
-				const FLocalizationEntryTracker::FEntry& NewEntry = NewEntryArray[0];
+				const FTextLocalizationResource::FEntryArray& NewEntryArray = Key.Value;
+				const FTextLocalizationResource::FEntry& NewEntry = NewEntryArray[0];
 
 				FDisplayStringLookupTable::FKeysTable& LiveKeyTable = DisplayStringLookupTable.NamespacesTable.FindOrAdd(NamespaceName);
 				FDisplayStringLookupTable::FDisplayStringEntry* const LiveStringEntry = LiveKeyTable.Find(KeyName);
@@ -819,10 +943,10 @@ void FTextLocalizationManager::UpdateFromLocalizations(const TArray<FLocalizatio
 				if( !LiveStringEntry )
 				{
 					FDisplayStringLookupTable::FDisplayStringEntry NewLiveEntry(
-						true,													/*bIsLocalized*/
-						NewEntry.LocResID,
-						NewEntry.SourceStringHash,								/*SourceStringHash*/
-						MakeShareable( new FString(NewEntry.LocalizedString) )	/*String*/
+						true,																/*bIsLocalized*/
+						NewEntry.LocResID,													/*LocResID*/
+						NewEntry.SourceStringHash,											/*SourceStringHash*/
+						MakeShared<FString, ESPMode::ThreadSafe>(NewEntry.LocalizedString)	/*String*/
 						);
 					LiveKeyTable.Add( KeyName, NewLiveEntry );
 

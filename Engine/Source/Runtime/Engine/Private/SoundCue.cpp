@@ -96,16 +96,12 @@ void USoundCue::PostLoad()
 
 	// Game doesn't care if there are NULL graph nodes
 #if WITH_EDITOR
-	if (GIsEditor )
+	if (GIsEditor && !GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
-		if (SoundCueGraph)
+		// we should have a soundcuegraph unless we are contained in a package which is missing editor only data
+		if (ensure(SoundCueGraph))
 		{
 			USoundCue::GetSoundCueAudioEditor()->RemoveNullNodes(this);
-		}
-		else
-		{
-			// we should have a soundcuegraph unless we are contained in a package which is missing editor only data
-			check( GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly) );
 		}
 
 		// Always load all sound waves in the editor
@@ -187,27 +183,6 @@ void USoundCue::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyCha
 	}
 }
 #endif
-
-template<typename T> ENGINE_API void USoundCue::RecursiveFindNode( USoundNode* Node, TArray<T*>& OutNodes )
-{
-	if( Node )
-	{
-		// Record the node if it is the desired type
-		if( Node->IsA( T::StaticClass() ) )
-		{
-			OutNodes.AddUnique( static_cast<T*>( Node ) );
-		}
-
-		// Recurse.
-		const int32 MaxChildNodes = Node->GetMaxChildNodes();
-		for( int32 ChildIndex = 0 ; ChildIndex < Node->ChildNodes.Num() && ChildIndex < MaxChildNodes ; ++ChildIndex )
-		{
-			RecursiveFindNode<T>( Node->ChildNodes[ ChildIndex ], OutNodes );
-		}
-	}
-}
-// Explicitly instantiate the USoundNodeMixer template so it can be found by ContentAuditCommandlet
-template ENGINE_API void USoundCue::RecursiveFindNode<USoundNodeMixer>(USoundNode* Node, TArray<USoundNodeMixer*>& OutNodes);
 
 void USoundCue::RecursiveFindAttenuation( USoundNode* Node, TArray<class USoundNodeAttenuation*> &OutNodes )
 {

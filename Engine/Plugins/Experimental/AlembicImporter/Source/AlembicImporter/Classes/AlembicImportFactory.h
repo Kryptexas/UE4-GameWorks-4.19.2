@@ -11,6 +11,7 @@ class FAbcImporter;
 class UGeometryCache;
 class UStaticMesh;
 class USkeletalMesh;
+class UAbcAssetImportData;
 class SAlembicImportOptions;
 class SAlembicTrackSelectionWindow;
 
@@ -99,4 +100,6 @@ class UAlembicImportFactory : public UFactory, public FReimportHandler
 	* @return EReimportResult::Type
 	*/
 	EReimportResult::Type ReimportSkeletalMesh(USkeletalMesh* SkeletalMesh);
+
+	void PopulateOptionsWithImportData(UAbcAssetImportData* ImportData);
 };

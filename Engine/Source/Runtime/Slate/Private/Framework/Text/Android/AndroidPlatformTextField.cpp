@@ -2,7 +2,8 @@
 
 #include "Framework/Text/Android/AndroidPlatformTextField.h"
 #include "Widgets/Input/IVirtualKeyboardEntry.h"
-#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
+#include "IConsoleManager.h"
 
 // Java InputType class
 #define TYPE_CLASS_TEXT						0x00000001
@@ -21,6 +22,12 @@
 // Java InputType text flags
 #define TYPE_TEXT_FLAG_NO_SUGGESTIONS		0x00080000
 
+int32 GAndroidNewKeyboard = 0;
+static FAutoConsoleVariableRef CVarAndroidNewKeyboard(
+	TEXT("Android.NewKeyboard"),
+	GAndroidNewKeyboard,
+	TEXT("Controls usage of experimental new keyboard input. 0 uses the checkbox setting, 1 forces new keyboard, 2 forces dialog. (Default: 0)"),
+	ECVF_Default );
 
 void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget)
 {
@@ -53,15 +60,28 @@ void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex,
 		// Do not make suggestions as user types
 		InputType |= TYPE_TEXT_FLAG_NO_SUGGESTIONS;
 	}
+
+	// read the value from the config file
+	static bool bEnableNewKeyboardConfig = false;
+	GConfig->GetBool( TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableNewKeyboard"), bEnableNewKeyboardConfig, GEngineIni );
 	
-	// This option is tied to a command line parameter (same as IOS)
-	static int IsUsingIntegratedKeyboard = -1;
-	if (IsUsingIntegratedKeyboard == -1)
+	// use integrated keyboard if the runtime setting is set or the console variable is set to 1
+	bool bIsUsingIntegratedKeyboard = bEnableNewKeyboardConfig;
+	switch (GAndroidNewKeyboard)
 	{
-		IsUsingIntegratedKeyboard = FParse::Param(FCommandLine::Get(), TEXT("NewKeyboard")) ? 1 : 0;
+		case 1:
+			GAndroidNewKeyboard = true;
+			break;
+
+		case 2:
+			GAndroidNewKeyboard = false;
+			break;
+
+		default:
+			break;
 	}
 	
-	if (IsUsingIntegratedKeyboard > 0)
+	if (bIsUsingIntegratedKeyboard)
 	{
 		if (bShow)
 		{

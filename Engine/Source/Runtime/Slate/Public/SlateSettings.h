@@ -22,7 +22,10 @@ class SLATE_API USlateSettings : public UObject
 	UPROPERTY(config, EditAnywhere, Category="VirtualKeyboard")
 	bool bVirtualKeyboardDisplayOnFocus;
 
-	/** Allow children of SConstraintCanvas to share render layers. Children must set explicit ZOrder on their slots to control render order. */
+	/** 
+	 * Allow children of SConstraintCanvas to share render layers. Children must set explicit ZOrder on their slots to control render order. 
+	 * Recommendation: Enable for mobile platforms.
+	 */
 	UPROPERTY(config, EditAnywhere, Category="ConstraintCanvas")
 	bool bExplicitCanvasChildZOrder;
 };

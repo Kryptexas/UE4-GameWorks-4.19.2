@@ -113,7 +113,7 @@ private:
 	FAIMessageObserver& operator=(const FAIMessageObserver&);
 };
 
-UCLASS(abstract, BlueprintType)
+UCLASS(BlueprintType)
 class AIMODULE_API UBrainComponent : public UActorComponent, public IAIResourceInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -154,8 +154,12 @@ protected:
 	 *	handled in a different way and no other actions are required (false)*/
 	virtual EAILogicResuming::Type ResumeLogic(const FString& Reason);
 public:
-	virtual bool IsRunning() const { return false; }
-	virtual bool IsPaused() const { return false; }
+
+	UFUNCTION(BlueprintPure, Category = "AI|Logic")
+	virtual bool IsRunning() const;
+
+	UFUNCTION(BlueprintPure, Category = "AI|Logic")
+	virtual bool IsPaused() const;
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;

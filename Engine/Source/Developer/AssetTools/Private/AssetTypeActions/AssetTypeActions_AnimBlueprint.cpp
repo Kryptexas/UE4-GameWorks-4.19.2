@@ -94,7 +94,7 @@ UThumbnailInfo* FAssetTypeActions_AnimBlueprint::GetThumbnailInfo(UObject* Asset
 	UThumbnailInfo* ThumbnailInfo = AnimBlueprint->ThumbnailInfo;
 	if (ThumbnailInfo == NULL)
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfo>(AnimBlueprint);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(AnimBlueprint, NAME_None, RF_Transactional);
 		AnimBlueprint->ThumbnailInfo = ThumbnailInfo;
 	}
 

@@ -769,6 +769,8 @@ private:
 
 	enum { NumInlineHashBuckets = (NumInlineElements + AverageNumberOfElementsPerHashBucket - 1) / AverageNumberOfElementsPerHashBucket };
 
+	static_assert(!(NumInlineHashBuckets & (NumInlineHashBuckets - 1)), "Number of inline buckets must be a power of two");
+
 public:
 
 	/** Computes the number of hash buckets to use for a given number of elements. */

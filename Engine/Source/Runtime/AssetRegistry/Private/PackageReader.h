@@ -70,4 +70,5 @@ private:
 	FArchive* Loader;
 	FPackageFileSummary PackageFileSummary;
 	TArray<FName> NameMap;
+	int64 PackageFileSize;
 };

@@ -3,6 +3,7 @@ title:Texturing
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:A wide variety of functions designed to aid in working with textures, such as reprojecting UVs, cropping, and many more.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

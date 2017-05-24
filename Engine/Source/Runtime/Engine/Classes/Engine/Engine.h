@@ -718,7 +718,7 @@ public:
 	FStringClassReference LevelScriptActorClassName;
 	
 	/** Name of the base class to use for new blueprints, configurable on a per-game basis */
-	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Object", AllowAbstract="true", IsBlueprintBaseOnly="true", DisplayName="Default Blueprint Base Class"), AdvancedDisplay)
+	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Object", DisplayName="Default Blueprint Base Class", AllowAbstract, BlueprintBaseOnly), AdvancedDisplay)
 	FStringClassReference DefaultBlueprintBaseClassName;
 
 	/** Name of a singleton class to create at startup time, configurable per game */
@@ -728,6 +728,14 @@ public:
 	/** A UObject spawned at initialization time to handle game-specific data */
 	UPROPERTY()
 	UObject *GameSingleton;
+
+	/** Name of a singleton class to spawn as the AssetManager, configurable per game. If empty, it will not spawn one */
+	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Object", DisplayName="Asset Manager Class"), AdvancedDisplay)
+	FStringClassReference AssetManagerClassName;
+
+	/** A UObject spawned at initialization time to handle game-specific data */
+	UPROPERTY()
+	class UAssetManager *AssetManager;
 
 	/** Path that levels for play on console will be saved to (relative to FPaths::GameSavedDir()) */
 	UPROPERTY(config)
@@ -772,6 +780,14 @@ public:
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FStringAssetReference DefaultBokehTextureName;
+
+	/** Texture used to bloom when using FFT, mimics characteristic bloom produced in a camera from a signle bright source */
+	UPROPERTY()
+	class UTexture2D* DefaultBloomKernelTexture;
+
+	/** @todo document */
+	UPROPERTY(globalconfig)
+	FStringAssetReference DefaultBloomKernelTextureName;
 
 	/** The material used to render wireframe meshes. */
 	UPROPERTY()
@@ -903,6 +919,14 @@ public:
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FStringAssetReference BoneWeightMaterialName;
+
+	/** Material used to render cloth properties on skeletal meshes */
+	UPROPERTY()
+	class UMaterial* ClothPaintMaterial;
+
+	/** @todo document */
+	UPROPERTY(globalconfig)
+	FStringAssetReference ClothPaintMaterialName;
 #endif
 
 	/** Material used to render constraint limits */
@@ -1710,9 +1734,6 @@ public:
 	bool HandleViewnamesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleFreezeStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );		// Smedis
 	bool HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );			// Smedis
-
-	bool HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar );						// Smedis
-	bool HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 
 	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 	bool HandleToggleAsyncComputeCommand( const TCHAR* Cmd, FOutputDevice& Ar );

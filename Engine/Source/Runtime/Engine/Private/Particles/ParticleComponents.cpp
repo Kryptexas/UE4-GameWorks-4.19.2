@@ -45,6 +45,7 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 #include "Misc/MapErrors.h"
+#include "Engine/StaticMesh.h"
 #if WITH_EDITOR
 #include "Engine/InterpCurveEdSetup.h"
 #include "ObjectEditorUtils.h"
@@ -59,7 +60,7 @@
 #include "Particles/Event/ParticleModuleEventReceiverBase.h"
 #include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
 #include "Particles/Lifetime/ParticleModuleLifetime.h"
-#include "Particles/Light/ParticleModuleLightBase.h"
+#include "Particles/Light/ParticleModuleLight.h"
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
 #include "Particles/Modules/Location/ParticleModulePivotOffset.h"
 #include "Particles/Orbit/ParticleModuleOrbit.h"
@@ -1613,6 +1614,7 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 	MeshMaterials.Empty();
 	DynamicParameterDataOffset = 0;
 	LightDataOffset = 0;
+	LightVolumetricScatteringIntensity = 0;
 	CameraPayloadOffset = 0;
 	ParticleSize = sizeof(FBaseParticle);
 	ReqInstanceBytes = 0;
@@ -1668,8 +1670,10 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 				{
 					DynamicParameterDataOffset = ParticleSize;
 				}
-				if (ParticleModule->IsA(UParticleModuleLightBase::StaticClass()) && (LightDataOffset == 0))
+				if (ParticleModule->IsA(UParticleModuleLight::StaticClass()) && (LightDataOffset == 0))
 				{
+					UParticleModuleLight* ParticleModuleLight = Cast<UParticleModuleLight>(ParticleModule);
+					LightVolumetricScatteringIntensity = ParticleModuleLight->VolumetricScatteringIntensity;
 					LightDataOffset = ParticleSize;
 				}
 				if (ParticleModule->IsA(UParticleModuleCameraOffset::StaticClass()) && (CameraPayloadOffset == 0))
@@ -3105,6 +3109,10 @@ bool UParticleSystem::HasGPUEmitter() const
 {
 	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
 	{
+		if (Emitters[EmitterIndex] == nullptr)
+		{
+			continue;
+		}
 		// We can just check for the GPU type data at the highest LOD.
 		UParticleLODLevel* LODLevel = Emitters[EmitterIndex]->LODLevels[0];
 		if( LODLevel )
@@ -4983,6 +4991,7 @@ void UParticleSystemComponent::InitParticles()
 				if (Instance)
 				{
 					Instance->SetHaltSpawning(false);
+					Instance->SetHaltSpawningExternal(false);
 				}
 				else
 				{
@@ -5330,6 +5339,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 				{
 					EmitterInstances[i]->Rewind();
 					EmitterInstances[i]->SetHaltSpawning(false);
+					EmitterInstances[i]->SetHaltSpawningExternal(false);
 				}
 			}
 		}
@@ -6193,7 +6203,7 @@ void UParticleSystemComponent::SetEmitterEnable(FName EmitterName, bool bNewEnab
 		{
 			if (EmitterInst->SpriteTemplate->EmitterName == EmitterName)
 			{
-				EmitterInst->SetHaltSpawning(!bNewEnableState);
+				EmitterInst->SetHaltSpawningExternal(!bNewEnableState);
 			}
 		}
 	}

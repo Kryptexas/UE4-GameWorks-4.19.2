@@ -30,9 +30,14 @@ public:
 
 	void WaitUntilIdle();
 
-	inline FVulkanQueue* GetQueue()
+	inline FVulkanQueue* GetGraphicsQueue()
 	{
-		return Queue;
+		return GfxQueue;
+	}
+
+	inline FVulkanQueue* GetTransferQueue()
+	{
+		return TransferQueue;
 	}
 
 	inline VkPhysicalDevice GetPhysicalHandle() const
@@ -110,7 +115,7 @@ public:
 		return *ImmediateContext;
 	}
 
-	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
+	void NotifyDeletedRenderTarget(VkImage Image);
 
 #if VULKAN_ENABLE_DRAW_MARKERS
 	PFN_vkCmdDebugMarkerBeginEXT GetCmdDbgMarkerBegin() const
@@ -187,7 +192,8 @@ private:
 	TArray<FVulkanOcclusionQueryPool*> OcclusionQueryPools;
 	FVulkanTimestampPool* TimestampQueryPool;
 
-	FVulkanQueue* Queue;
+	FVulkanQueue* GfxQueue;
+	FVulkanQueue* TransferQueue;
 
 	VkComponentMapping PixelFormatComponentMapping[PF_MAX];
 
@@ -203,9 +209,7 @@ private:
 	friend class FVulkanCommandListContext;
 #endif
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	class FVulkanPipelineStateCache* PipelineStateCache;
 	friend class FVulkanDynamicRHI;
 	friend class FVulkanBoundShaderState;
-#endif
 };

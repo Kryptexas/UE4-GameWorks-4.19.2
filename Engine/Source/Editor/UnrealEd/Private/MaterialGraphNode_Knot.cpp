@@ -34,7 +34,7 @@ void UMaterialGraphNode_Knot::AllocateDefaultPins()
 FText UMaterialGraphNode_Knot::GetTooltipText() const
 {
 	//@TODO: Should pull the tooltip from the source pin
-	return FText::FromString(MaterialExpression->GetCreationDescription());
+	return MaterialExpression->GetCreationDescription();
 }
 
 FText UMaterialGraphNode_Knot::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -45,7 +45,7 @@ FText UMaterialGraphNode_Knot::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	}
 	else if (TitleType == ENodeTitleType::MenuTitle)
 	{
-		return FText::FromString(MaterialExpression->GetCreationName());
+		return MaterialExpression->GetCreationName();
 	}
 	else
 	{

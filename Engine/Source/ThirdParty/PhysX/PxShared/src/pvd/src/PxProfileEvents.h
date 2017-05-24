@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 
 #ifndef PXPVDSDK_PXPROFILEEVENTS_H
 #define PXPVDSDK_PXPROFILEEVENTS_H
@@ -103,7 +103,7 @@ namespace physx { namespace profile {
 		};
 	};
 
-#if (PX_PS4) || (PX_APPLE_FAMILY)
+#if (PX_PS4) || (PX_APPLE_FAMILY) || (PX_LINUX && PX_X86)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wimplicit-fallthrough"
 #endif
@@ -162,7 +162,7 @@ namespace physx { namespace profile {
 		return EventStreamCompressionFlags::U32;
 	}
 
-#if (PX_PS4) || (PX_APPLE_FAMILY)
+#if (PX_PS4) || (PX_APPLE_FAMILY) || (PX_LINUX && PX_X86)
 #pragma clang diagnostic pop
 #endif
 

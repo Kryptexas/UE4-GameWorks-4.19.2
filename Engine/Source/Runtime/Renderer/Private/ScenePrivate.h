@@ -284,6 +284,25 @@ public:
 	bool bValid;
 };
 
+enum FGlobalDFCacheType
+{
+	GDF_MostlyStatic,
+	GDF_Full,
+	GDF_Num
+};
+
+class FGlobalDistanceFieldCacheTypeState
+{
+public:
+
+	FGlobalDistanceFieldCacheTypeState()
+	{
+	}
+
+	TArray<FVector4> PrimitiveModifiedBounds;
+	TRefCountPtr<IPooledRenderTarget> VolumeTexture;
+};
+
 class FGlobalDistanceFieldClipmapState
 {
 public:
@@ -294,14 +313,16 @@ public:
 		LastPartialUpdateOrigin = FIntVector::ZeroValue;
 		CachedMaxOcclusionDistance = 0;
 		CachedGlobalDistanceFieldViewDistance = 0;
+		CacheMostlyStaticSeparately = 1;
 	}
 
 	FIntVector FullUpdateOrigin;
 	FIntVector LastPartialUpdateOrigin;
-	TArray<FVector4> PrimitiveModifiedBounds;
 	float CachedMaxOcclusionDistance;
 	float CachedGlobalDistanceFieldViewDistance;
-	TRefCountPtr<IPooledRenderTarget> VolumeTexture;
+	uint32 CacheMostlyStaticSeparately;
+	
+	FGlobalDistanceFieldCacheTypeState Cache[GDF_Num];
 };
 
 /** Maps a single primitive to it's per-view fading state data */
@@ -410,8 +431,14 @@ public:
 		return PrimitiveFadingOutLODMap[PrimIndex];
 	}
 
+	bool IsNodeHidden(const int32 PrimIndex) const
+	{
+		return HiddenChildPrimitiveMap.IsValidIndex(PrimIndex) && HiddenChildPrimitiveMap[PrimIndex];
+	}
+
 	TBitArray<>	PrimitiveFadingLODMap;
 	TBitArray<>	PrimitiveFadingOutLODMap;
+	TBitArray<>	HiddenChildPrimitiveMap;
 	float		TemporalLODSyncTime;
 	uint16		UpdateCount;
 };
@@ -528,7 +555,7 @@ public:
 	TMap<int32, FIndividualOcclusionHistory> PlanarReflectionOcclusionHistories;
 
 	// Array of ClipmapIndex
-	TArray<int32> DeferredGlobalDistanceFieldUpdates;
+	TArray<int32> DeferredGlobalDistanceFieldUpdates[GDF_Num];
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Are we currently in the state of freezing rendering? (1 frame where we gather what was rendered) */
@@ -596,7 +623,11 @@ private:
 			if (!PooledRenderTarget[BufferNumber].IsValid())
 			{
 				// Create the texture needed for EyeAdaptation
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F /*PF_R32_FLOAT*/, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_G32R32F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
+				if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+				{
+					Desc.TargetableFlags |= TexCreate_UAV;
+				}
 				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, PooledRenderTarget[BufferNumber], TEXT("EyeAdaptation"));
 			}
 
@@ -657,6 +688,7 @@ public:
 	// Temporal AA result for light shafts of last frame
 	TMap<const ULightComponent*, TRefCountPtr<IPooledRenderTarget> > LightShaftBloomHistoryRTs;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOHistoryRT;
+	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOConfidenceHistoryRT;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldIrradianceHistoryRT;
 	// Mobile temporal AA surfaces.
 	TRefCountPtr<IPooledRenderTarget> MobileAaBloomSunVignette0;
@@ -664,11 +696,37 @@ public:
 	TRefCountPtr<IPooledRenderTarget> MobileAaColor0;
 	TRefCountPtr<IPooledRenderTarget> MobileAaColor1;
 
+	// Pre-computed filter in spectral (i.e. FFT) domain along with data to determine if we need to up date it
+	struct {
+		void SafeRelease() { Spectral.SafeRelease(); CenterWeight.SafeRelease(); }
+		// The 2d fourier transform of the physical space texture.
+		TRefCountPtr<IPooledRenderTarget> Spectral;
+		TRefCountPtr<IPooledRenderTarget> CenterWeight; // a 1-pixel buffer that holds blend weights for half-resolution fft.
+
+														// The physical space source texture
+		UTexture2D* Physical = NULL;
+
+		// The Scale * 100 = percentage of the image space that the physical kernel represents.
+		// e.g. Scale = 1 indicates that the physical kernel image occupies the same size 
+		// as the image to be processed with the FFT convolution.
+		float Scale = 0.f;
+
+		// The size of the viewport for which the spectral kernel was calculated. 
+		FIntPoint ImageSize;
+
+		FVector2D CenterUV;
+
+		// Mip level of the physical space source texture used when caching the spectral space texture.
+		uint32 PhysicalMipLevel;
+	} BloomFFTKernel;
+
 	// cache for stencil reads to a avoid reallocations of the SRV, Key is to detect if the object has changed
 	FTextureRHIRef SelectionOutlineCacheKey;
 	TRefCountPtr<FRHIShaderResourceView> SelectionOutlineCacheValue;
 
 	FForwardLightingViewResources ForwardLightingResources;
+
+	TRefCountPtr<IPooledRenderTarget> LightScatteringHistory;
 
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
@@ -893,23 +951,22 @@ public:
 	
 
 	// Returns a reference to the render target used for the LUT.  Allocated on the first request.
-	FSceneRenderTargetItem& GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT)
+	FSceneRenderTargetItem& GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV)
 	{
-		
-
 		if (CombinedLUTRenderTarget.IsValid() == false || 
 			CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize ||
-			((CombinedLUTRenderTarget->GetDesc().Depth != 0) != bUseVolumeLUT))
+			((CombinedLUTRenderTarget->GetDesc().Depth != 0) != bUseVolumeLUT) ||
+			!!(CombinedLUTRenderTarget->GetDesc().TargetableFlags & TexCreate_UAV) != bNeedUAV)
 		{
 			// Create the texture needed for the tonemapping LUT
-
 			EPixelFormat LUTPixelFormat = PF_A2B10G10R10;
 			if (!GPixelFormats[LUTPixelFormat].Supported)
 			{
 				LUTPixelFormat = PF_R8G8B8A8;
 			}
 
-			FPooledRenderTargetDesc Desc = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(LUTSize * LUTSize, LUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
+			FPooledRenderTargetDesc Desc = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(LUTSize * LUTSize, LUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_ShaderResource, false);
+			Desc.TargetableFlags |= bNeedUAV ? TexCreate_UAV : TexCreate_RenderTargetable;
 
 			if (bUseVolumeLUT)
 			{
@@ -920,7 +977,6 @@ public:
 			Desc.DebugName = TEXT("CombineLUTs");
 			
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CombinedLUTRenderTarget, Desc.DebugName);
-
 		}
 
 		FSceneRenderTargetItem& RenderTarget = CombinedLUTRenderTarget.GetReference()->GetRenderTargetItem();
@@ -963,17 +1019,23 @@ public:
 		LightShaftOcclusionHistoryRT.SafeRelease();
 		LightShaftBloomHistoryRTs.Empty();
 		DistanceFieldAOHistoryRT.SafeRelease();
+		DistanceFieldAOConfidenceHistoryRT.SafeRelease();
+		DistanceFieldAOConfidenceHistoryRT.SafeRelease();
 		DistanceFieldIrradianceHistoryRT.SafeRelease();
 		MobileAaBloomSunVignette0.SafeRelease();
 		MobileAaBloomSunVignette1.SafeRelease();
 		MobileAaColor0.SafeRelease();
 		MobileAaColor1.SafeRelease();
+		BloomFFTKernel.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
 
 		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(GlobalDistanceFieldClipmapState); CascadeIndex++)
 		{
-			GlobalDistanceFieldClipmapState[CascadeIndex].VolumeTexture.SafeRelease();
+			for (int32 CacheType = 0; CacheType < ARRAY_COUNT(GlobalDistanceFieldClipmapState[CascadeIndex].Cache); CacheType++)
+			{
+				GlobalDistanceFieldClipmapState[CascadeIndex].Cache[CacheType].VolumeTexture.SafeRelease();
+			}
 		}
 
 		IndirectShadowCapsuleShapesVertexBuffer.SafeRelease();
@@ -986,6 +1048,7 @@ public:
 		TranslucencyTimer.Release();
 		SeparateTranslucencyTimer.Release();
 		ForwardLightingResources.Release();
+		LightScatteringHistory.SafeRelease();
 	}
 
 	// FSceneViewStateInterface
@@ -998,9 +1061,12 @@ public:
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
-		for(UMaterialInstanceDynamic*& MID : MIDPool)
+
+		Collector.AddReferencedObjects(MIDPool);
+	
+		if (BloomFFTKernel.Physical)
 		{
-			Collector.AddReferencedObject(MID);
+			Collector.AddReferencedObject(BloomFFTKernel.Physical);
 		}
 	}
 
@@ -1318,6 +1384,7 @@ class FPrimitiveRemoveInfo
 public:
 	FPrimitiveRemoveInfo(const FPrimitiveSceneInfo* InPrimitive) :
 		Primitive(InPrimitive),
+		bOftenMoving(InPrimitive->Proxy->IsOftenMoving()),
 		DistanceFieldInstanceIndices(Primitive->DistanceFieldInstanceIndices)
 	{}
 
@@ -1326,6 +1393,8 @@ public:
 	 * Value of the pointer is still useful for map lookups
 	 */
 	const FPrimitiveSceneInfo* Primitive;
+
+	bool bOftenMoving;
 
 	TArray<int32, TInlineAllocator<1>> DistanceFieldInstanceIndices;
 };
@@ -1384,6 +1453,11 @@ public:
 		return false;
 	}
 
+	inline bool CanUse16BitObjectIndices() const
+	{
+		return bCanUse16BitObjectIndices && (NumObjectsInBuffer < (1 << 16));
+	}
+
 	int32 NumObjectsInBuffer;
 	class FDistanceFieldObjectBuffers* ObjectBuffers;
 
@@ -1401,12 +1475,13 @@ public:
 	TArray<FPrimitiveSceneInfo*> PendingAddOperations;
 	TSet<FPrimitiveSceneInfo*> PendingUpdateOperations;
 	TArray<FPrimitiveRemoveInfo> PendingRemoveOperations;
-	TArray<FVector4> PrimitiveModifiedBounds;
+	TArray<FVector4> PrimitiveModifiedBounds[GDF_Num];
 
 	/** Used to detect atlas reallocations, since objects store UVs into the atlas and need to be updated when it changes. */
 	int32 AtlasGeneration;
 
 	bool bTrackAllPrimitives;
+	bool bCanUse16BitObjectIndices;
 };
 
 /** Stores data for an allocation in the FIndirectLightingCache. */
@@ -1788,16 +1863,6 @@ class FScene : public FSceneInterface
 {
 public:
 
-	struct FReadOnlyCVARCache
-	{
-		FReadOnlyCVARCache();
-		bool bEnablePointLightShadows;
-		bool bEnableStationarySkylight;
-		bool bEnableAtmosphericFog;
-		bool bEnableLowQualityLightmaps;
-		bool bEnableVertexFoggingForOpaque;
-	};
-
 	/** An optional world associated with the scene. */
 	UWorld* World;
 
@@ -1933,9 +1998,6 @@ public:
 	/** Interpolates and caches indirect lighting for dynamic objects. */
 	FIndirectLightingCache IndirectLightingCache;
 
-	/** Scene state of distance field AO.  NULL if the scene doesn't use the feature. */
-	class FSurfaceCacheResources* SurfaceCacheResources;
-
 	/** Distance field object scene data. */
 	FDistanceFieldSceneData DistanceFieldSceneData;
 	
@@ -1990,7 +2052,14 @@ public:
 	/** Set by the rendering thread to signal to the game thread that the scene needs a static lighting build. */
 	volatile mutable int32 NumUncachedStaticLightingInteractions;
 
+	/** Track numbers of various lights types on mobile, used to show warnings for disabled shader permutations. */
+	int32 NumMobileStaticAndCSMLights_RenderThread;
+	int32 NumMobileMovableDirectionalLights_RenderThread;
+
 	FMotionBlurInfoData MotionBlurInfoData;
+
+	/** GPU Skinning cache, if enabled */
+	class FGPUSkinCache* GPUSkinCache;
 
 	/** Uniform buffers for parameter collections with the corresponding Ids. */
 	TMap<FGuid, FUniformBufferRHIRef> ParameterCollections;
@@ -2004,7 +2073,7 @@ public:
 
 	float DynamicIndirectShadowsSelfShadowingIntensity;
 
-	FReadOnlyCVARCache ReadOnlyCVARCache;
+	const FReadOnlyCVARCache& ReadOnlyCVARCache;
 
 #if WITH_EDITOR
 	/** Editor Pixel inspector */
@@ -2044,7 +2113,6 @@ public:
 	virtual void UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer) override;
 	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures) override;
 	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap) override; 
-	virtual void PreCullStaticMeshes(const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes) override;
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void UpdateLightTransform(ULightComponent* Light) override;
@@ -2134,6 +2202,11 @@ public:
 
 	virtual void UpdateSceneSettings(AWorldSettings* WorldSettings) override;
 
+	virtual class FGPUSkinCache* GetGPUSkinCache() override
+	{
+		return GPUSkinCache;
+	}
+
 	/**
 	 * Sets the FX system associated with the scene.
 	 */
@@ -2178,26 +2251,29 @@ public:
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
 
-	bool ShouldRenderSkylight(EBlendMode BlendMode) const
-	{
-		return ShouldRenderSkylight_Internal(BlendMode) && ReadOnlyCVARCache.bEnableStationarySkylight;
+	bool ShouldRenderSkylightInBasePass(EBlendMode BlendMode) const
+	{		
+		const bool bStationarySkylight = SkyLight && SkyLight->bWantsStaticShadowing;
+		return ShouldRenderSkylightInBasePass_Internal(BlendMode) && (ReadOnlyCVARCache.bEnableStationarySkylight || !bStationarySkylight);
 	}
 
-	bool ShouldRenderSkylight_Internal(EBlendMode BlendMode) const
+	bool ShouldRenderSkylightInBasePass_Internal(EBlendMode BlendMode) const
 	{
 		if (IsTranslucentBlendMode(BlendMode))
 		{
+			//both stationary and movable skylights are applied during actual translucency render
 			return SkyLight && !SkyLight->bHasStaticLighting;
 		}
 		else
-	{
-		const bool bRenderSkylight = SkyLight
-			&& !SkyLight->bHasStaticLighting
-			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
-			&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
+		{
+			const bool bRenderSkylight = SkyLight
+				&& !SkyLight->bHasStaticLighting
+				// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+				// bWantsStaticShadowing means 'stationary skylight'
+				&& (SkyLight->bWantsStaticShadowing || IsAnyForwardShadingEnabled(GetShaderPlatform()));
 
-		return bRenderSkylight;
-	}
+			return bRenderSkylight;
+		}
 	}
 
 	virtual TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const override
@@ -2210,6 +2286,16 @@ public:
 
 	virtual bool AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest) override;
 #endif //WITH_EDITOR
+
+	virtual uint32 GetFrameNumber() const override
+	{
+		return SceneFrameNumber;
+	}
+
+	virtual void IncrementFrameNumber() override
+	{
+		++SceneFrameNumber;
+	}
 
 private:
 
@@ -2312,7 +2398,17 @@ private:
 
 	/** This scene's feature level */
 	ERHIFeatureLevel::Type FeatureLevel;
+
+	/** Frame number incremented per-family viewing this scene. */
+	uint32 SceneFrameNumber;
 };
+
+inline bool ShouldIncludeDomainInMeshPass(EMaterialDomain Domain)
+{
+	// Non-Surface domains can be applied to static meshes for thumbnails or material editor preview
+	// Volume domain materials however must only be rendered in the voxelization pass
+	return Domain != MD_Volume;
+}
 
 #include "BasePassRendering.inl"
 

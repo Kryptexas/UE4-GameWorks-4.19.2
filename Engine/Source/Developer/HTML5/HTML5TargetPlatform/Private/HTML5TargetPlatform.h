@@ -74,12 +74,11 @@ public:
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override;
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings() const override;
 
 	virtual void GetTextureFormats( const UTexture* InTexture, TArray<FName>& OutFormats ) const override;
+
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override;
 
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const override
 	{
@@ -94,6 +93,7 @@ public:
 	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
+	virtual void GetAllWaveFormats(TArray<FName>& OutFormats) const override;
 #endif // WITH_ENGINE
 
 	DECLARE_DERIVED_EVENT(FHTML5TargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
@@ -137,5 +137,7 @@ private:
 
 	// Holds a critical section for locking access to the collection of devices.
 	static FCriticalSection DevicesCriticalSection;
+
+	void PopulateDevices(TArray<FString>& DeviceMaps, FString prefix);
 
 };

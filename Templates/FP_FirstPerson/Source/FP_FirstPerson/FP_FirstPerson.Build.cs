@@ -4,8 +4,10 @@ using UnrealBuildTool;
 
 public class FP_FirstPerson : ModuleRules
 {
-	public FP_FirstPerson(TargetInfo Target)
+	public FP_FirstPerson(ReadOnlyTargetRules Target) : base(Target)
 	{
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 	}
 }

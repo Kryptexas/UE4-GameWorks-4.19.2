@@ -6,32 +6,33 @@
 #include "UObject/ObjectMacros.h"
 #include "NiagaraCommon.h"
 #include "NiagaraEditorCommon.h"
-#include "NiagaraNode.h"
+#include "NiagaraNodeDataSetBase.h"
 #include "NiagaraNodeWriteDataSet.generated.h"
 
 UCLASS(MinimalAPI)
-class UNiagaraNodeWriteDataSet : public UNiagaraNode
+class UNiagaraNodeWriteDataSet : public UNiagaraNodeDataSetBase
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
-	UPROPERTY(EditAnywhere, Category = DataSet)
-	FNiagaraDataSetID DataSet;
 
-	UPROPERTY(EditAnywhere, Category = Variables)
-	TArray<FNiagaraVariableInfo> Variables;
-
-	//~ Begin UObject Interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	//TODO: DIRECT AND APPEND-CONSUME 
+// 	UPROPERTY(EditAnywhere, Category = DataSet)
+// 	ENiagaraDataSetAccessMode AccessMode;
+	
+	//~ Begin UObject interface
+	virtual void PostLoad() override;
 	//~ End UObject Interface
 
 	//~ Begin EdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FLinearColor GetNodeTitleColor() const override;
 	//~ End EdGraphNode Interface
 
-	virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)override;
+	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs)override;
+
+protected:
+	void AddConditionPin(int32 PinIndex = -1);
 };
 

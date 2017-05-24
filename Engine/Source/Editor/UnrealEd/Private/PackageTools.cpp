@@ -29,6 +29,7 @@
 #include "KismetEditorUtilities.h"
 #include "BusyCursor.h"
 
+#include "FileHelpers.h"
 
 #include "AssetRegistryModule.h"
 #include "Logging/MessageLog.h"
@@ -860,7 +861,45 @@ namespace PackageTools
 		return bHasExternalPackageRefs;
 	}
 
-	bool IsSingleAssetPackage (const FString& PackageName)
+	bool SavePackagesForObjects(const TArray<UObject*>& ObjectsToSave)
+	{
+		// Retrieve all dirty packages for the objects 
+		TArray<UPackage*> PackagesToSave;
+		for (UObject* Object : ObjectsToSave)
+		{
+			if (Object->GetOutermost()->IsDirty())
+			{
+				PackagesToSave.AddUnique(Object->GetOutermost());
+			}
+		}
+
+		TArray< UPackage* > PackagesWithExternalRefs;
+		FString PackageNames;
+		if (PackageTools::CheckForReferencesToExternalPackages(&PackagesToSave, &PackagesWithExternalRefs))
+		{
+			for (int32 PkgIdx = 0; PkgIdx < PackagesWithExternalRefs.Num(); ++PkgIdx)
+			{
+				PackageNames += FString::Printf(TEXT("%s\n"), *PackagesWithExternalRefs[PkgIdx]->GetName());
+			}
+			bool bProceed = EAppReturnType::Yes == FMessageDialog::Open(
+				EAppMsgType::YesNo,
+				FText::Format(
+					NSLOCTEXT("UnrealEd", "Warning_ExternalPackageRef", "The following assets have references to external assets: \n{0}\nExternal assets won't be found when in a game and all references will be broken.  Proceed?"),
+					FText::FromString(PackageNames)));
+			if (!bProceed)
+			{
+				return false;
+			}
+		}
+
+		const bool bCheckDirty = false;
+		const bool bPromptToSave = false;
+		const FEditorFileUtils::EPromptReturnCode Return = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
+		
+		return (PackagesToSave.Num() > 0) && Return == FEditorFileUtils::EPromptReturnCode::PR_Success;
+	}
+
+	bool IsSingleAssetPackage(const FString& PackageName)
 	{
 		FString PackageFileName;
 		if ( FPackageName::DoesPackageExist(PackageName, NULL, &PackageFileName) )

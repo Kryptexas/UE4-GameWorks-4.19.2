@@ -15,7 +15,7 @@ QOS_API DECLARE_LOG_CATEGORY_EXTERN(LogQos, Display, All);
 /**
  * Module for QoS service utilities
  */
-class FQosModule : 
+class QOS_API FQosModule :
 	public IModuleInterface, public FSelfRegisteringExec
 {
 

@@ -9,6 +9,7 @@
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 #include "VulkanMemory.h"
+#include "PipelineStateCache.h"
 
 static FVulkanTimestampQueryPool* GTimestampQueryPool = nullptr;
 
@@ -309,8 +310,6 @@ void FVulkanGPUProfiler::EndFrame()
 #include "VulkanRHI.h"
 #include "StaticBoundShaderState.h"
 
-static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
-
 /** Vertex declaration for just one FVector4 position. */
 class FVulkanVector4VertexDeclaration : public FRenderResource
 {
@@ -354,15 +353,24 @@ void FVulkanDynamicRHI::IssueLongGPUTask()
 
 		FRHICommandList_RecursiveHazardous RHICmdList(&Device->GetImmediateContext());
 		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(RHICmdList), FTextureRHIRef());
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 		TShaderMap<FGlobalShaderType>* ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 		TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, LongGPUTaskBoundShaderState, GVulkanVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GVulkanVector4VertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+		RHICmdList.SetBlendFactor(FLinearColor::Black);
 
 		// Draw a fullscreen quad
 		FVector4 Vertices[4];

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "UnrealEd.h" 
-#include "Editor.h"
+#include "CoreMinimal.h"
+#include "EdMode.h"
 
 class FPLUGIN_NAMEEdMode : public FEdMode
 {

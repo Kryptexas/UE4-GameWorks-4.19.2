@@ -3,6 +3,7 @@ Title:Acceleration Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules provide the ability to apply a change in velocity over time to particles.
 Version: 4.9
+tags:Particles
 
 
 [TOC(start:2 end:3)]

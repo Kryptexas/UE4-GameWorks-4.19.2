@@ -14,6 +14,7 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SSlider.h"
+#include "Widgets/Images/SImage.h"
 #include "EditorStyleSet.h"
 #include "Engine/MeshMerging.h"
 #include "GameFramework/WorldSettings.h"
@@ -83,17 +84,54 @@ namespace HLODOutliner
 				.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
 				[
 					SNew(SOverlay)
-
-					// Overlay slot for the main HLOD window area
-					+ SOverlay::Slot()
+					+SOverlay::Slot()
 					[
-						MainContentPanel.ToSharedRef()
-					]		
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
+							.BorderBackgroundColor(FColor(166,137,0))							
+							[
+								SNew(SHorizontalBox)
+								.Visibility_Lambda([this]() -> EVisibility 
+								{
+									bool bVisible = !bNeedsRefresh && CurrentWorld && HierarchicalLODUtilities->IsWorldUsedForStreaming(CurrentWorld);
+									return bVisible ? EVisibility::Visible : EVisibility::Collapsed;
+								})
+
+								+ SHorizontalBox::Slot()
+								.VAlign(VAlign_Center)
+								.AutoWidth()
+								.Padding(4.0f, 0.0f, 4.0f, 0.0f)
+								[
+									SNew(SImage)
+									.Image(FEditorStyle::GetBrush("SettingsEditor.WarningIcon"))
+								]
+
+								+SHorizontalBox::Slot()
+								.VAlign(VAlign_Center)
+								.AutoWidth()
+								.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("HLODDisabledSublevel", "Changing the HLOD settings is disabled for sub-levels"))
+								]
+							]
+						]
+
+						// Overlay slot for the main HLOD window area
+						+ SVerticalBox::Slot()
+						[
+							MainContentPanel.ToSharedRef()
+						]							
+					]						
 				]
 			];
 
 		// Disable panel if system is not enabled
-		MainContentPanel->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SHLODOutliner::IsHLODEnabledInWorldSettings)));
+		MainContentPanel->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SHLODOutliner::OutlinerEnabled)));
 
 		MainContentPanel->AddSlot()
 			.AutoHeight()
@@ -1686,13 +1724,22 @@ namespace HLODOutliner
 		return FReply::Handled();
 	}
 
-	bool SHLODOutliner::IsHLODEnabledInWorldSettings() const
+	bool SHLODOutliner::OutlinerEnabled() const
 	{
 		bool bHLODEnabled = false;
-		if (CurrentWorldSettings != nullptr)
+
+		if (!bNeedsRefresh)
 		{
-			bHLODEnabled = CurrentWorldSettings->bEnableHierarchicalLODSystem;
-		}
+			if (CurrentWorldSettings != nullptr)
+			{
+				bHLODEnabled = CurrentWorldSettings->bEnableHierarchicalLODSystem;
+			}
+
+			if (CurrentWorld != nullptr)
+			{
+				bHLODEnabled = !HierarchicalLODUtilities->IsWorldUsedForStreaming(CurrentWorld);
+			}
+		}	
 
 		return bHLODEnabled;
 	}

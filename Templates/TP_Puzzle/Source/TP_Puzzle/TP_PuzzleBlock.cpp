@@ -1,8 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_Puzzle.h"
 #include "TP_PuzzleBlock.h"
 #include "TP_PuzzleBlockGrid.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstance.h"
 
 ATP_PuzzleBlock::ATP_PuzzleBlock()
 {

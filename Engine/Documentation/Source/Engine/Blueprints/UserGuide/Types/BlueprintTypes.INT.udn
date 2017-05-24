@@ -3,6 +3,7 @@ Title: Types of Blueprints
 Crumbs: %ROOT%, Engine/Blueprints
 Description:Landing page for information on different types of Blueprints.
 version: 4.9
+tags:Blueprints
 
 
 Sometimes it is difficult to tell which type of **Blueprint** you should use at first glance, especially 

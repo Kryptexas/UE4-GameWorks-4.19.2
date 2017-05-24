@@ -758,8 +758,8 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 						}
 
 						// Check if this window is different then the currently active one. If it is another one
-						// activate that window and if neccessary deactivate the one which was active.
-						if (CurrentlyActiveWindow != CurrentEventWindow && CurrentEventWindow->IsActivateWhenFirstShown())
+						// activate that window and if necessary deactivate the one which was active.
+						if (CurrentlyActiveWindow != CurrentEventWindow && CurrentEventWindow->GetActivationPolicy() != EWindowActivationPolicy::Never)
 						{
 							ActivateWindow(CurrentEventWindow);
 						}

@@ -65,7 +65,7 @@ public:
 	// float4(0,1,0,1)
 	TRefCountPtr<IPooledRenderTarget> GreenDummy;
 	// float4(0.5,0.5,0.5,1)
-	TRefCountPtr<IPooledRenderTarget> MidGrayDummy;
+	TRefCountPtr<IPooledRenderTarget> DefaultNormal8Bit;
 
 protected:
 	/** Maximum feature level that the textures have been initialized up to */

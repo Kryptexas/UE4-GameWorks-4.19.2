@@ -19,8 +19,7 @@ class FScreenComparisonModel;
  * Implements a Slate widget for browsing active game sessions.
  */
 
-class SScreenShotBrowser
-	: public SCompoundWidget
+class SScreenShotBrowser : public SCompoundWidget
 {
 public:
 
@@ -36,6 +35,9 @@ public:
  	 * @param InScreenShotManager - The screen shot manager containing the screen shot data.
 	 */
 	void Construct( const FArguments& InArgs, IScreenShotManagerRef InScreenShotManager );
+	virtual ~SScreenShotBrowser();
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 public:
 
@@ -44,6 +46,10 @@ public:
 private:
 
 	void OnDirectoryChanged(const FString& Directory);
+
+	void RefreshDirectoryWatcher();
+
+	void OnReportsChanged(const TArray<struct FFileChangeData>& /*FileChanges*/);
 
 	/**
 	 * Regenerate the widgets when the filter changes
@@ -58,11 +64,8 @@ private:
 	/** The directory where we're imported comparisons from. */
 	FString ComparisonRoot;
 
-	/** The directory where we're imported comparisons from, with changelist */
-	FString ComparisonDirectory;
-
 	/** The imported screenshot results */
-	TSharedPtr<FComparisonResults> CurrentComparisons;
+	TArray<FComparisonReport> CurrentReports;
 
 	/** The imported screenshot results copied into an array usable by the list view */
 	TArray<TSharedPtr<FScreenComparisonModel>> ComparisonList;
@@ -70,6 +73,9 @@ private:
 	/**  */
 	TSharedPtr< SListView< TSharedPtr<FScreenComparisonModel> > > ComparisonView;
 
-	// Delegate to call when screen shot data changes 
-	FOnScreenFilterChanged ScreenShotDelegate;
+	/** Directory watching handle */
+	FDelegateHandle DirectoryWatchingHandle;
+
+	/**  */
+	bool bReportsChanged;
 };

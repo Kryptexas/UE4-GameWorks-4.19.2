@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/NetConnection.h"
 
 class AActor;
 
@@ -15,6 +16,15 @@ struct FNetworkObjectInfo
 	/** Pointer to the replicated actor. */
 	AActor* Actor;
 
+	/** List of connections that this actor is dormant on */
+	TSet<TWeakObjectPtr<UNetConnection>> DormantConnections;
+
+	/** A list of connections that this actor has recently been dormant on, but the actor doesn't have a channel open yet.
+	*  These need to be differentiated from actors that the client doesn't know about, but there's no explicit list for just those actors.
+	*  (this list will be very transient, with connections being moved off the DormantConnections list, onto this list, and then off once the actor has a channel again)
+	*/
+	TSet<TWeakObjectPtr<UNetConnection>> RecentlyDormantConnections;
+
 	/** Next time to consider replicating the actor. Based on FPlatformTime::Seconds(). */
 	double NextUpdateTime;
 
@@ -24,17 +34,28 @@ struct FNetworkObjectInfo
 	/** Optimal delta between replication updates based on how frequently actor properties are actually changing */
 	float OptimalNetUpdateDelta;
 
+	/** Last time this actor was updated for replication via NextUpdateTime
+	* @warning: internal net driver time, not related to WorldSettings.TimeSeconds */
+	float LastNetUpdateTime;
+
+	/** Is this object still pending a full net update due to clients that weren't able to replicate the actor at the time of LastNetUpdateTime */
+	bool bPendingNetUpdate;
+
 	FNetworkObjectInfo()
 		: Actor(nullptr)
 		, NextUpdateTime(0.0)
 		, LastNetReplicateTime(0.0)
-		, OptimalNetUpdateDelta(0.0f) {}
+		, OptimalNetUpdateDelta(0.0f)
+		, LastNetUpdateTime(0.0f)
+		, bPendingNetUpdate(false) {}
 
 	FNetworkObjectInfo(AActor* InActor)
 		: Actor(InActor)
 		, NextUpdateTime(0.0)
 		, LastNetReplicateTime(0.0)
-		, OptimalNetUpdateDelta(0.0f) {}
+		, OptimalNetUpdateDelta(0.0f) 
+		, LastNetUpdateTime(0.0f)
+		, bPendingNetUpdate(false) {}
 };
 
 /**
@@ -84,14 +105,44 @@ public:
 	void AddInitialObjects(UWorld* const World, const FName NetDriverName);
 
 	/** Adds Actor to the internal list if its NetDriverName matches, or if we're adding to the demo net driver. */
-	void Add(AActor* const Actor, const FName NetDriverName);
+	TSharedPtr<FNetworkObjectInfo>* Add(AActor* const Actor, const FName NetDriverName);
 
-	/** Returns a reference to the set of tracked actors. */
-	FNetworkObjectSet& GetObjects() { return NetworkObjects; }
+	/** Removes actor from the internal list, and any cleanup that is necessary (i.e. resetting dormancy state) */
+	void Remove(AActor* const Actor);
 
-	/** Returns a const reference to the set of tracked actors. */
-	const FNetworkObjectSet& GetObjects() const { return NetworkObjects; }
+	/** Marks this object as dormant for the passed in connection */
+	void MarkDormant(AActor* const Actor, UNetConnection* const Connection, const int32 NumConnections, const FName NetDriverName);
+
+	/** Marks this object as active for the passed in connection */
+	bool MarkActive(AActor* const Actor, UNetConnection* const Connection, const FName NetDriverName);
+
+	/** Removes the recently dormant status from the passed in connection */
+	void ClearRecentlyDormantConnection(AActor* const Actor, UNetConnection* const Connection, const FName NetDriverName);
+
+	/** 
+	 *	Does the necessary house keeping when a new connection is added 
+	 *	When a new connection is added, we must add all objects back to the active list so the new connection will process it
+	 *	Once the objects is dormant on that connection, it will then be removed from the active list again
+	*/
+	void HandleConnectionAdded();
+
+	/** Clears all state related to dormancy */
+	void ResetDormancyState();
+
+	/** Returns a const reference to the entire set of tracked actors. */
+	const FNetworkObjectSet& GetAllObjects() const { return AllNetworkObjects; }
+
+	/** Returns a const reference to the active set of tracked actors. */
+	const FNetworkObjectSet& GetActiveObjects() const { return ActiveNetworkObjects; }
+
+	int32 GetNumDormantActorsForConnection( UNetConnection* const Connection ) const;
+
+	void Reset();
 
 private:
-	FNetworkObjectSet NetworkObjects;
+	FNetworkObjectSet AllNetworkObjects;
+	FNetworkObjectSet ActiveNetworkObjects;
+	FNetworkObjectSet ObjectsDormantOnAllConnections;
+
+	TMap<TWeakObjectPtr<UNetConnection>, int32 > NumDormantObjectsPerConnection;
 };

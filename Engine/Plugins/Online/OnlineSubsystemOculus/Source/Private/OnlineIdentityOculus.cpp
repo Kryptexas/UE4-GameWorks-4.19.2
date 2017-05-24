@@ -48,12 +48,15 @@ bool FOnlineIdentityOculus::Login(int32 LocalUserNum, const FOnlineAccountCreden
 		TSharedPtr<const FUniqueNetId>* UserId = UserIds.Find(LocalUserNum);
 		if (UserId == nullptr)
 		{
-			if (ovr_GetLoggedInUserID() == 0)
+			auto OculusId = ovr_GetLoggedInUserID();
+			if (OculusId == 0)
 			{
 				ErrorStr = TEXT("Not currently logged into Oculus.  Make sure Oculus is running and you are entitled to the app.");
 			}
 			else
 			{
+				// Immediately add the Oculus ID to our cache list
+				UserIds.Add(LocalUserNum, MakeShareable(new FUniqueNetIdOculus(OculusId)));
 				OculusSubsystem.AddRequestDelegate(
 					ovr_User_GetLoggedInUser(),
 					FOculusMessageOnCompleteDelegate::CreateRaw(this, &FOnlineIdentityOculus::OnLoginComplete, LocalUserNum));
@@ -62,12 +65,7 @@ bool FOnlineIdentityOculus::Login(int32 LocalUserNum, const FOnlineAccountCreden
 		}
 		else
 		{
-			const FUniqueNetIdOculus* UniqueIdStr = (FUniqueNetIdOculus*)(UserId->Get());
-			TSharedRef<FUserOnlineAccountOculus>* TempPtr = UserAccounts.Find(*UniqueIdStr);
-			check(TempPtr);
-			UserAccountPtr = *TempPtr;
-
-			TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserAccountPtr->GetUserId(), *ErrorStr);
+			TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserId->Get(), *ErrorStr);
 		}
 	}
 
@@ -95,20 +93,23 @@ void FOnlineIdentityOculus::OnLoginComplete(ovrMessageHandle Message, bool bIsEr
 		auto Id = ovr_User_GetID(User);
 		FString Name(ovr_User_GetOculusID(User));
 
-		FUniqueNetIdOculus* NewUserId = new FUniqueNetIdOculus(Id);
+		TSharedPtr<const FUniqueNetId>* NewUserId = UserIds.Find(LocalUserNum);
+		if (NewUserId == nullptr || !NewUserId->IsValid() || static_cast<const FUniqueNetIdOculus>(*NewUserId->Get()).GetID() != Id)
+		{
+			UserIds.Add(LocalUserNum, MakeShareable(new FUniqueNetIdOculus(Id)));
+			NewUserId = UserIds.Find(LocalUserNum);
+		}
+		
 		if (!NewUserId->IsValid())
 		{
 			ErrorStr = FString(TEXT("Unable to get a valid ID"));
 		}
 		else
 		{
-			TSharedRef<FUserOnlineAccountOculus> UserAccountRef(new FUserOnlineAccountOculus(MakeShareable(NewUserId), *Name));
+			TSharedRef<FUserOnlineAccountOculus> UserAccountRef(new FUserOnlineAccountOculus(NewUserId->ToSharedRef(), Name));
 
 			// update/add cached entry for user
 			UserAccounts.Add(static_cast<FUniqueNetIdOculus>(*UserAccountRef->GetUserId()), UserAccountRef);
-
-			// keep track of user ids for local users
-			UserIds.Add(LocalUserNum, UserAccountRef->GetUserId());
 
 			TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserAccountRef->GetUserId(), *ErrorStr);
 			TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::LoggedIn, *UserAccountRef->GetUserId());

@@ -17,7 +17,7 @@ namespace Audio
 		Add = InAdd;
 	}
 
-	float FWhiteNoise::operator()()
+	float FWhiteNoise::Generate()
 	{
 		return Add + Scale * FMath::FRandRange(-1.0f, 1.0f);
 	}
@@ -53,9 +53,9 @@ namespace Audio
 		Noise.SetScaleAdd(InScale, InAdd);
 	}
 
-	float FPinkNoise::operator()()
+	float FPinkNoise::Generate()
 	{
-		X[0] = Noise();
+		X[0] = Noise.Generate();
 
 		float Output = 0.0f;
 		for (int32 i = 0; i < 4; ++i)

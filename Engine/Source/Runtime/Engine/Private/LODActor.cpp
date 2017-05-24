@@ -12,6 +12,7 @@
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
+#include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
 #include "EngineUtils.h"
 #include "UObject/FrameworkObjectVersion.h"
@@ -482,6 +483,7 @@ void ALODActor::DetermineShadowingFlags()
 	bool bCastsShadow = false;
 	bool bCastsStaticShadow = false;
 	bool bCastsDynamicShadow = false;
+	bool bCastFarShadow = false;
 	for (AActor* Actor : SubActors)
 	{
 		TArray<UStaticMeshComponent*> StaticMeshComponents;
@@ -491,12 +493,14 @@ void ALODActor::DetermineShadowingFlags()
 			bCastsShadow |= Component->CastShadow;
 			bCastsStaticShadow |= Component->bCastStaticShadow;
 			bCastsDynamicShadow |= Component->bCastDynamicShadow;
+			bCastFarShadow |= Component->bCastFarShadow;
 		}
 	}
 
 	StaticMeshComponent->CastShadow = bCastsShadow;
 	StaticMeshComponent->bCastStaticShadow = bCastsStaticShadow;
 	StaticMeshComponent->bCastDynamicShadow = bCastsDynamicShadow;
+	StaticMeshComponent->bCastFarShadow = bCastFarShadow;
 	StaticMeshComponent->MarkRenderStateDirty();
 }
 
@@ -675,16 +679,9 @@ void ALODActor::RecalculateDrawingDistance(const float InTransitionScreenSize)
 	static const float FOVRad = 90.0f * (float)PI / 360.0f;
 	static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
 	FBoxSphereBounds Bounds = GetStaticMeshComponent()->CalcBounds(FTransform());
+	LODDrawDistance = ComputeBoundsDrawDistance(InTransitionScreenSize, Bounds.SphereRadius, ProjectionMatrix);
 
-	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(1920.0f / 2.0f * ProjectionMatrix.M[0][0],
-		1080.0f / 2.0f * ProjectionMatrix.M[1][1]);
-
-	// ScreenSize is the projected diameter, so halve it
-	const float ScreenRadius = FMath::Max(SMALL_NUMBER, InTransitionScreenSize * 0.5f);
-
-	// Invert the calcs in ComputeBoundsScreenSize
-	LODDrawDistance = FMath::Sqrt(FMath::Abs((FMath::Square((ScreenMultiple * Bounds.SphereRadius) / ScreenRadius)) + FMath::Square(Bounds.SphereRadius)));
+	StaticMeshComponent->MinDrawDistance = LODDrawDistance;	
 
 	UpdateSubActorLODParents();
 }
@@ -699,7 +696,7 @@ FBox ALODActor::GetComponentsBoundingBox(bool bNonColliding) const
 	// If BoundBox ends up to nothing create a new invalid one
 	if (BoundBox.GetVolume() == 0.0f)
 	{
-		BoundBox = FBox(0);
+		BoundBox = FBox(ForceInit);
 	}
 
 	if (bNonColliding)

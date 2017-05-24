@@ -21,7 +21,7 @@ FAnimationBlueprintEditorMode::FAnimationBlueprintEditorMode(const TSharedRef<FA
 	PreviewScenePtr = InAnimationBlueprintEditor->GetPreviewScene();
 	AnimBlueprintPtr = CastChecked<UAnimBlueprint>(InAnimationBlueprintEditor->GetBlueprintObj());
 
-	TabLayout = FTabManager::NewLayout( "Stanalone_AnimationBlueprintEditMode_Layout_v1.2" )
+	TabLayout = FTabManager::NewLayout( "Stanalone_AnimationBlueprintEditMode_Layout_v1.3" )
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -98,7 +98,7 @@ FAnimationBlueprintEditorMode::FAnimationBlueprintEditorMode(const TSharedRef<FA
 						->SetHideTabWell(false)
 						->SetSizeCoefficient(0.5f)
 						->AddTab(FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab)
-						->AddTab(AnimationBlueprintEditorTabs::AdvancedPreviewTab, ETabState::ClosedTab)
+						->AddTab(AnimationBlueprintEditorTabs::AdvancedPreviewTab, ETabState::OpenedTab)
 						->AddTab(AnimationBlueprintEditorTabs::AssetOverridesTab, ETabState::ClosedTab)
 						->SetForegroundTab(FBlueprintEditorTabs::DetailsID)
 					)

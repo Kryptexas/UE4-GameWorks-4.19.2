@@ -14,6 +14,7 @@
 #include "Serialization/BulkData.h"
 #include "Engine/TextureDefines.h"
 #include "MaterialShared.h"
+#include "TextureResource.h"
 #include "Texture.generated.h"
 
 class ITargetPlatform;
@@ -341,8 +342,8 @@ struct FTexturePlatformData
 	void Cache(
 		class UTexture& InTexture,
 		const struct FTextureBuildSettings& InSettings,
-		uint32 InFlags
-		);
+		uint32 InFlags,
+		class ITextureCompressorModule* Compressor);
 	void FinishCache();
 	ENGINE_API bool TryInlineMipData();
 	bool AreDerivedMipsAvailable() const;
@@ -648,7 +649,7 @@ public:
 	 * @param bAsyncCache spawn a thread to cache the platform data 
 	 * @param bAllowAsyncBuild allow the building of the texture to happen on another thread !!!load BulkData and cache the Source mip data on the main thread before checking DDC!!!
 	 */
-	void CachePlatformData(bool bAsyncCache = false, bool bAllowAsyncBuild = false);
+	void CachePlatformData(bool bAsyncCache = false, bool bAllowAsyncBuild = false, class ITextureCompressorModule* Compressor = nullptr);
 
 	/**
 	 * Begins caching platform data in the background for the platform requested
@@ -726,6 +727,7 @@ public:
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void FinishDestroy() override;
+	ENGINE_API virtual void PostCDOContruct() override;
 #if WITH_EDITORONLY_DATA
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif

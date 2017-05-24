@@ -110,7 +110,7 @@ Version: 4.9
 
 ### EOnlineAsyncTaskState
 
-**EOnlineAsyncTaskState** 는 비동기 작업에 가능한 상태를 나타내는 단순 열거형입니다.
+**EOnlineAsyncTaskState** 는 비동기 작업에 가능한 상태를 나타내는 단순 Enum 입니다.
 
 
 		/** 태스크 시작되지 않음 */

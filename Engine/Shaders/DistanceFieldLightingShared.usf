@@ -24,9 +24,6 @@
 #define UPDATEOBJECTS_THREADGROUP_SIZE 1
 #endif
 
-// Must match C++
-#define MAX_OBJECTS_PER_TILE 512
-
 float3 DistanceFieldVolumePositionToUV(float3 VolumePosition, float3 UVScale, float3 UVAdd)
 {
 	float3 VolumeUV = VolumePosition * UVScale + UVAdd;
@@ -35,6 +32,16 @@ float3 DistanceFieldVolumePositionToUV(float3 VolumePosition, float3 UVScale, fl
 
 Texture3D DistanceFieldTexture;
 SamplerState DistanceFieldSampler;
+
+float SampleMeshDistanceField(float3 VolumeUV, float2 ObjectDistanceFieldMAD)
+{
+	float TextureValue = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0);
+#if EIGHT_BIT_MESH_DISTANCE_FIELDS
+	TextureValue = TextureValue * ObjectDistanceFieldMAD.x + ObjectDistanceFieldMAD.y;
+#endif
+	return TextureValue;
+}
+
 float3 DistanceFieldAtlasTexelSize;
 
 RWBuffer<uint> RWObjectIndirectArguments;
@@ -47,7 +54,7 @@ uint GetCulledNumObjects()
 }
 
 // In float4's.  Must match equivalent C++ variables.
-#define OBJECT_DATA_STRIDE 16
+#define OBJECT_DATA_STRIDE 18
 
 uint NumSceneObjects;
 
@@ -97,64 +104,95 @@ float3 LoadGlobalObjectUVAdd(uint ObjectIndex)
 	return float3(ObjectData[VectorIndex + 0], ObjectData[VectorIndex + 1], ObjectData[VectorIndex + 2]);
 }
 
+float2 LoadGlobalObjectDistanceFieldMAD(uint ObjectIndex)
+{
+	uint VectorIndex = (ObjectIndex * OBJECT_DATA_STRIDE + 7) * 4;
+	return float2(ObjectData[VectorIndex + 0], ObjectData[VectorIndex + 1]);
+}
+
+void LoadGlobalObjectLocalVolumeBoundsMinMax(uint ObjectIndex, out float3 LocalVolumeBoundsMin, out float3 LocalVolumeBoundsMax)
+{
+	uint VectorIndex = 4 * (ObjectIndex * OBJECT_DATA_STRIDE + 16);
+	LocalVolumeBoundsMin = float3(ObjectData[VectorIndex + 0], ObjectData[VectorIndex + 1], ObjectData[VectorIndex + 2]);
+
+	VectorIndex = 4 * (ObjectIndex * OBJECT_DATA_STRIDE + 17);
+	LocalVolumeBoundsMax = float3(ObjectData[VectorIndex + 0], ObjectData[VectorIndex + 1], ObjectData[VectorIndex + 2]);
+}
+
+uint LoadGlobalObjectOftenMoving(uint ObjectIndex)
+{
+	uint VectorIndex = (ObjectIndex * OBJECT_DATA_STRIDE + 17) * 4;
+	return ObjectData[VectorIndex + 3] > 0.0f ? 1 : 0;
+}
+
 // In float4's.  Must match equivalent C++ variables.
 #define CULLED_OBJECT_DATA_STRIDE 16
 #define CULLED_OBJECT_BOX_BOUNDS_STRIDE 5
 
-float4 LoadObjectPositionAndRadiusFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+float4 LoadObjectPositionAndRadiusFromBuffer(uint ObjectIndex, StructuredBuffer<float4> InBuffer)
 {
-	return InBuffer.Load(ObjectIndex);
+	return InBuffer[ObjectIndex];
 }
 
-float4x4 LoadObjectWorldToVolumeFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+float4x4 LoadObjectWorldToVolumeFromBuffer(uint ObjectIndex, StructuredBuffer<float4> InBuffer)
 {
-	float4 M0 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 0);
-	float4 M1 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 1);
-	float4 M2 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 2);
-	float4 M3 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 3);
+	float4 M0 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 0];
+	float4 M1 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 1];
+	float4 M2 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 2];
+	float4 M3 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 3];
 
 	return float4x4(M0, M1, M2, M3);
 }
  
-float3 LoadObjectLocalPositionExtentFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+float3 LoadObjectLocalPositionExtentFromBuffer(uint ObjectIndex, StructuredBuffer<float4> InBuffer)
 {
-	return InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 4).xyz;
+	return InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 4].xyz;
 }
 
-float4 LoadObjectUVScaleFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer, out bool bGeneratedAsTwoSided)
+float4 LoadObjectUVScaleFromBuffer(uint ObjectIndex, StructuredBuffer<float4> InBuffer, out bool bGeneratedAsTwoSided)
 {
-	float4 Value = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 5).xyzw;
+	float4 Value = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 5].xyzw;
 	bGeneratedAsTwoSided = Value.w < 0;
 	return float4(Value.xyz, abs(Value.w));
 }
 
-float3 LoadObjectUVAddFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+float4 LoadObjectUVAddAndSelfShadowBiasFromBuffer(uint ObjectIndex, StructuredBuffer<float4> InBuffer)
 {
-	return InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 6).xyz;
+	return InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 6];
 }
 
-float3x3 LoadObjectVolumeToWorldFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+float2 LoadObjectDistanceFieldMADFromBuffer(uint ObjectIndex, StructuredBuffer<float4> InBuffer)
 {
-	float3 M0 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 8).xyz;
-	float3 M1 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 9).xyz;
-	float3 M2 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 10).xyz;
+	return InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 7].xy;
+}
+
+float3x3 LoadObjectVolumeToWorldFromBuffer(uint ObjectIndex, StructuredBuffer<float4> InBuffer)
+{
+	float3 M0 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 8].xyz;
+	float3 M1 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 9].xyz;
+	float3 M2 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 10].xyz;
 
 	return float3x3(M0, M1, M2);
 }
 
-float4x4 LoadObjectLocalToWorldFromBuffer(uint ObjectIndex, Buffer<float4> InBuffer)
+float4x4 LoadObjectLocalToWorldFromBuffer(uint ObjectIndex, StructuredBuffer<float4> InBuffer)
 {
-	float4 M0 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 11);
-	float4 M1 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 12);
-	float4 M2 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 13);
-	float4 M3 = InBuffer.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 14);
+	float4 M0 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 11];
+	float4 M1 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 12];
+	float4 M2 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 13];
+	float4 M3 = InBuffer[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 14];
 
 	return float4x4(M0, M1, M2, M3);
 }
 
-Buffer<float4> CulledObjectBounds;
-Buffer<float4> CulledObjectData;
-Buffer<float4> CulledObjectBoxBounds;
+// These are structured buffers so they can be scalar memory loads on GCN
+StructuredBuffer<float4> CulledObjectBounds;
+StructuredBuffer<float4> CulledObjectData;
+StructuredBuffer<float4> CulledObjectBoxBounds;
+
+RWStructuredBuffer<float4> RWCulledObjectBounds;
+RWStructuredBuffer<float4> RWCulledObjectData;
+RWStructuredBuffer<float4> RWCulledObjectBoxBounds;
 
 float4 LoadObjectPositionAndRadius(uint ObjectIndex)
 {
@@ -182,9 +220,14 @@ float4 LoadObjectUVScale(uint ObjectIndex, out bool bGeneratedAsTwoSided)
 	return LoadObjectUVScaleFromBuffer(ObjectIndex, CulledObjectData, bGeneratedAsTwoSided);
 }
 
-float3 LoadObjectUVAdd(uint ObjectIndex)
+float4 LoadObjectUVAddAndSelfShadowBias(uint ObjectIndex)
 {
-	return LoadObjectUVAddFromBuffer(ObjectIndex, CulledObjectData);
+	return LoadObjectUVAddAndSelfShadowBiasFromBuffer(ObjectIndex, CulledObjectData);
+}
+
+float2 LoadObjectDistanceFieldMAD(uint ObjectIndex)
+{
+	return LoadObjectDistanceFieldMADFromBuffer(ObjectIndex, CulledObjectData);
 }
 
 float3x3 LoadObjectVolumeToWorld(uint ObjectIndex)
@@ -200,27 +243,20 @@ float4x4 LoadObjectLocalToWorld(uint ObjectIndex)
 // x = Offset in global buffer, y = NumLOD0, z = NumSurfels (all LODs), W = instance index
 uint4 LoadObjectSurfelCoordinate(uint ObjectIndex)
 {
-	return (uint4)CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 15);
+	return (uint4)CulledObjectData[ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 15];
 }
 
 void LoadObjectViewSpaceBox(uint ObjectIndex, out float3 ObjectViewSpaceMin, out float3 ObjectViewSpaceMax)
 {
-	ObjectViewSpaceMin = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 0).xyz;
-	ObjectViewSpaceMax = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 1).xyz;
+	ObjectViewSpaceMin = CulledObjectBoxBounds[ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 0].xyz;
+	ObjectViewSpaceMax = CulledObjectBoxBounds[ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 1].xyz;
 }
 
 void LoadObjectAxes(uint ObjectIndex, out float3 ObjectAxisX, out float3 ObjectAxisY, out float3 ObjectAxisZ)
 {
-	ObjectAxisX = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 2).xyz;
-	ObjectAxisY = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 3).xyz;
-	ObjectAxisZ = CulledObjectBoxBounds.Load(ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 4).xyz;
-}
-
-void FindBestAxisVectors2(float3 InZAxis, out float3 OutXAxis, out float3 OutYAxis )
-{
-	float3 UpVector = abs(InZAxis.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
-	OutXAxis = normalize( cross( UpVector, InZAxis ) );
-	OutYAxis = cross( InZAxis, OutXAxis );
+	ObjectAxisX = CulledObjectBoxBounds[ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 2].xyz;
+	ObjectAxisY = CulledObjectBoxBounds[ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 3].xyz;
+	ObjectAxisZ = CulledObjectBoxBounds[ObjectIndex * CULLED_OBJECT_BOX_BOUNDS_STRIDE + 4].xyz;
 }
 
 // VPLs generated by raytracing from the light

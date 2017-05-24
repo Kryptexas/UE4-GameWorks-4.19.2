@@ -3,6 +3,7 @@ Title:3. Spawning the Shootable Rock
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:In this step we will allow the player to press a button to spawn our shootable rock at one of our spawn locations. 
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

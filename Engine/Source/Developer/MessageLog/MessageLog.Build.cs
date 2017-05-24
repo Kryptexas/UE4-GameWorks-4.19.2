@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MessageLog : ModuleRules
 {
-	public MessageLog(TargetInfo Target)
+	public MessageLog(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.AddRange(
             new string[] {

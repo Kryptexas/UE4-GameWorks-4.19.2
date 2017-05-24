@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability: Public
 Title:2. 생명력, 에너지, 탄창 표시하기
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:In this step we will hook up and display the Health, Energy and Ammo of the player on our HUD. Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, 탄창을 연결하여 표시하도록 합니다.
 version: 4.9
+tags:UMG UI Designer
 
 
 [VAR:Steps]

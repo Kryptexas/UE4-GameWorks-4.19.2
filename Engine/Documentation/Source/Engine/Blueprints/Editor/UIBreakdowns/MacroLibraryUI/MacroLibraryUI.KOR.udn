@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:매크로 라이브러리 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:블루프린트 매크로 라이브러리 작업시 블루프린트 에디터의 UI 요소에 대한 분석입니다.
 version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

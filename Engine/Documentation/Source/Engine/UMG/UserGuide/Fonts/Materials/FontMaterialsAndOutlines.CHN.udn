@@ -1,52 +1,57 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Font Materials and Outlines
-Description:Examples of how you can style your UMG fonts using colors, Materials, and outlines.
+﻿INTSourceChangelist:3244089
+Availability:Public
+Title:字体材质和外框
+Description:使用颜色、材质和外框设计 UMG 字体的范例。
 Crumbs:
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide/Fonts
-Related: Engine/UMG/UserGuide/Styling
-Version: 4.14
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide/Fonts
+Related:Engine/UMG/UserGuide/Styling
+Version:4.14
+Parent:Engine/UMG/UserGuide/Fonts
+order:1
+tags: User Interface
+tags:UMG UI Designer
 
 [TOC]
 
-In addition to being able to set a **Color and Opacity** for your **Font** in UMG, you can also use Materials and font outlines for additional **Font** styling.
+在 UMG 中除能够为 **字体** 设置 **颜色和不透明度** 之外，还可使用材质和字体外框进行更多 **字体** 设计。
 
-## Font Colors
+## 字体颜色
 
-You can set the **Vertex Color** for your **Font** by setting its **Color and Opacity**. 
+对 **字体** 的 **颜色和不透明度（Color and Opacity）** 进行设置即可设置其 **顶点颜色**。 
 
 ![](GreenFontNoMaterial.png)
 
-Without a **Font Material** specified, this will apply a solid color to your text.
+如未指定 **字体材质（Font Material）**，此操作将对文本应用纯色。
 
 ![](GreenFontNoMaterialDisplay.png)
  
-## Font Materials
+## 字体材质
 
-You can specify a **Font Material** for your **Font** in the **Details** panel.
+可在 **Details** 面板中指定 **字体** 的 **字体材质**。
 
 ![](ColorAndOpacity.png)
 
-If your **Font Material** doesn't have a **Vertex Color** node, the effect is like a simple multiplication. 
+如 **字体材质** 不含 **顶点颜色（Vertex Color）** 节点，效果就像是简单乘法。 
 
 [REGION:imagetable]
 | [INCLUDE:#basecolorgraph] | ![](BaseColorFinalFontMat.png)(w:200)|![](BaseColorFinalDisplay.png)(w:550) |
 |---- |----- |----- |
-| Font Material Setup |  Font Material Preview | Final Font |
+| 字体材质设置 |  字体材质预览 | 最终字体 |
 [/REGION]
 
-However, if you place a **Vertex Color** node in your **Font Material**, you can use its outputs to do math within your shader. 
+然而如果在 **字体材质** 中放置一个 **Vertex Color** 节点，即可使用其输出在着色器中执行计算。 
 
 [REGION:imagetable]
 |[INCLUDE:#vertexcolorgraph] | ![](VertexColorFinalMat.png)(w:200)|![](VertexColorFont.png)(w:550) |
 |---- |----- |----- |
-| Font Material Setup |  Font Material Preview | Final Font |
+| 字体材质设置 |  字体材质预览 | 最终字体 |
 [/REGION]
 
-Materials used as font materials must be in the **User Interface** domain.
+用作字体材质的材质必须在 **User Interface** 域中。
 
-![](UserInterface.png)
+![](UI.png)
+
 <!--
 [EXCERPT:BaseColorGraph]
 [REGION:lightbox]
@@ -60,22 +65,24 @@ Materials used as font materials must be in the **User Interface** domain.
 [/REGION]
 [/EXCERPT]
 -->
-## Font Outlines
+## 字体外框
 
-You can specify a different **Outline Color** as well as a different Material to use for a font outline. 
+您可指定字体外框使用不同的 **外框颜色** 及材质。 
 
 ![](FontOutlineSettings.png)
 
-The size of the outline is specified in Slate units, but when the font's scale is 1.0, 1 Slate unit is 1 pixel. 
+指定的外框尺寸以 Slate 单位计。但字体大小为 1.0 时，1 个 Slate 单位等于 1 像素。 
 
 ![](FontOutline5Display.png)
 
-One interesting point to note is that you can specify whether or not to use a **Separate Fill Alpha**. When this is enabled, the outline is completely translucent
-where the filled area will be, allowing you to completely adjust the alphas of the font and the font outline independently. When it is disabled, the font is overlaid
-on the outline, so the alphas are additive and the outline color and Material is visible through a font with an alpha less than 1.
+有趣的一点是您可以指定是否使用 **Separate Fill Alpha**。 
+
+![](SeparateFill.png)
+
+启用此项后，填充区域的外框为透明，可对字体透明度和字体外框进行单独调整。禁用此项后字体将覆盖在外框之上，因此可添加透明度；通过透明度小于 1 的字体即可看到外框颜色和材质。
 
 [REGION:imagetable]
 |![](SeparateAlphaOff.png)(w:550) | ![](SeparateAlphaOn.png)(w:550)|
 |---|----|
-| Font Color Alpha = 0.5, **Separate Fill Alpha** disabled | Font Color Alpha = 0.5, **Separate Fill Alpha** enable |
+| Font Color Alpha = 0.5，**Separate Fill Alpha** 禁用 | Font Color Alpha = 0.5， **Separate Fill Alpha** 启用 |
 [/REGION]

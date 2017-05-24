@@ -380,7 +380,7 @@ FString UGameplayTask::GetTaskStateName() const
 {
 	static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayTaskState"));
 	check(Enum);
-	return Enum->GetEnumName(int32(TaskState));
+	return Enum->GetNameStringByValue(int64(TaskState));
 }
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

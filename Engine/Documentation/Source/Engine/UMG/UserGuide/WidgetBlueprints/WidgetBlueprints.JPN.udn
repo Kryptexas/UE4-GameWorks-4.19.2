@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2709547
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:Widget ブループリント
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
-Description:Widget ブループリントの作成方法とWidget ブループリント インターフェースの概要
+Description:Widget ブループリントの作成方法と Widget ブループリント インターフェースの概要
 Version:4.9
+tags:UMG UI Designer
 
 Unreal Motion Graphics (UMG) で作業を開始するためには、まず以下のように **Widget ブループリント** を作成する必要があります。 
 
@@ -27,7 +28,7 @@ Unreal Motion Graphics (UMG) で作業を開始するためには、まず以下
 	[![](WidgetBPWindow.png)(w:520)](WidgetBPWindow.png)
 	[/REGION]
 
-	_クリックしてフルサイズで表示_
+	_フルサイズ表示するにはここをクリック_
 
 ## Widget ブループリント エディタ
 
@@ -37,7 +38,7 @@ Unreal Motion Graphics (UMG) で作業を開始するためには、まず以下
 	[![](WidgetBlueprintNumbers.png)(w:840 h:480)](WidgetBlueprintNumbers.png)
 [/REGION]
 
-_クリックしてフルサイズで表示_
+_フルサイズ表示するにはここをクリック_
 
 |   番号    | ウィンドウ | 説明 |
 | :-----: | -------- | ----------- |
@@ -60,7 +61,7 @@ _クリックしてフルサイズで表示_
 	[![](WidgetBlueprintGraph.png)(w:840)](WidgetBlueprintGraph.png)
 [/REGION]
 
-_クリックしてフルサイズで表示_
+_フルサイズ表示するにはここをクリック_
 
 [グラフ] タブは、デフォルトのブループリント エディタと同じように機能します。[グラフ] タブの詳しい情報については、[](Engine/Blueprints/Editor/UIComponents/GraphEditor) のドキュメントをご覧ください。 
 

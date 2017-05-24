@@ -1,14 +1,27 @@
-﻿INTSourceChangeList:3232461
-Availability:Docs
+﻿INTSourceChangelist:3339912
+Availability:Public
 Title:Stereo Panoramic Capture のリファレンス
 Crumbs:%ROOT%, Platforms, Platforms/VR
 Description:Stereo Panoramic のプロパティの詳細
 Navigation:platform
 Version:4.13
 parent:Platforms/VR/StereoPanoramicCapture
+order:3
 type:reference
 related:Gameplay/HowTo/UsingCameras/
 related:Engine/Performance/Scalability/ScalabilityReference/
+Topic-Image:SPE_Topic_Image_00.png
+tags:VR
+Tags:Cinematics
+Tags:GearVR
+Tags:Google VR	
+Tags:SteamVR
+Tags:Oculus Rift
+Tags:Virtual Reality
+Tags:Plugins
+Tags:Sequencer
+
+[TOC(start:2)]
 
 Stereo Panoramic Capture プラグインで使用できるオプションと制御、出力画像に対するオプションの効果を詳しく説明します。オプションは機能別に分けてあります。コマンドを入力するには、backtick または tilde キー (`) を押して UE4 コンソールを開いて **SP.** に続けて対象コマンドを入力します。
 
@@ -43,7 +56,7 @@ Stereo Panoramic Capture プラグインで使用できるオプションと制�
 |SP.EnableBilerp| true| 0 - フィルタなし 1- バイリニア フィルタ スライス サンプル|
 |SP.SuperSamplingMethod| 1| 0 - Supersampling なし、1 - Rotated Grid SS.|
 
-## デバッグの調整
+## デバッグの調節
 画像のキャプチャ方法を表示および調節することで、最終出力画像に起こり得る問題を簡単に追跡することができるオプションです。
 
 |プロパティ|デフォルト値|説明|

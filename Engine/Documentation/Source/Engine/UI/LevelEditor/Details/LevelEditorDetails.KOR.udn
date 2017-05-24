@@ -1,29 +1,9 @@
-﻿INTSourceChangelist:3180166
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title:디테일 패널
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:레벨 에디터에서 선택된 액터에 대한 정보와 특화된 편집 툴을 제공하는 패널입니다.
 Version: 4.12
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [TOC(start:2 end:3)]
 
@@ -318,6 +298,3 @@ Version: 4.12
 [/OBJECT]
 [/REGION]
 [/EXCERPT:CustomCategories]
-
-
-%playlistnav%

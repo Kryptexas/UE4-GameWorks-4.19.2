@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:디테일 텍스처 추가
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -10,6 +10,7 @@ Related: Platforms/Oculus
 Related: Engine/Rendering/Materials/ExpressionReference/Textures
 Version:4.9
 SkillLevel: Intermediate
+tags:Materials
 
 [TOC(start:2 end:3)]
 
@@ -166,9 +167,9 @@ Detail Texturing 의 실용 예는 이렇습니다.
 	![](DT_Complete_Material.jpg)
 
 
-## 디테일 텍스처링 팁 & 꼼수
+## 디테일 텍스처링 팁 & 정보
 
-머티리얼에서 Detail Texturing 을 활용할 수 있는 여러가지 방법에 대한 팁과 꼼수를 몇 가지 살펴보겠습니다.
+머티리얼에서 Detail Texturing 을 활용할 수 있는 여러가지 방법에 대한 팁과 정보를 몇 가지 살펴보겠습니다.
 
 ### 거리 기반 디테일 텍스처링
 터레인과 같은 거대한 표면의 경우, 타일링을 사용하는 텍스처일 지라도 눈에 띄는 반복 부분이 많아서 특히나 원거리에서 봤을 때 좋아보이지 않을 수가 있습니다.

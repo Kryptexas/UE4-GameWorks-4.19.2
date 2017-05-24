@@ -18,18 +18,6 @@
 
 class SBorder;
 
-/** DEPRECATED 4.6 - Do not use */
-//@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.
-namespace ESlateCheckBoxState
-{
-	DEPRECATED(4.6, "ESlateCheckBoxState::Type is deprecated and was renamed to ECheckBoxState. Please use that type instead.")
-	typedef ::ECheckBoxState Type;
-
-	const ECheckBoxState Unchecked = ECheckBoxState::Unchecked;
-	const ECheckBoxState Checked = ECheckBoxState::Checked;
-	const ECheckBoxState Undetermined = ECheckBoxState::Undetermined;
-}
-
 
 /** Delegate that is executed when the check box state changes */
 DECLARE_DELEGATE_OneParam( FOnCheckStateChanged, ECheckBoxState );
@@ -79,22 +67,6 @@ public:
 
 		/** Whether the check box is currently in a checked state */
 		SLATE_ATTRIBUTE( ECheckBoxState, IsChecked )
-
-		// TODO Remove this function when IsChecked(bool InIsChecked) is removed.  It has to be here to prevent ambiguous conversions.
-		/** Whether the check box is currently in a checked state */
-		FArguments& IsChecked(ECheckBoxState InIsChecked)
-		{
-			_IsChecked = InIsChecked;
-			return Me();
-		}
-
-		/** Whether the check box is currently in a checked state */
-		DEPRECATED(4.3, "Please use IsChecked(TAttribute<ECheckBoxState>)")
-		FArguments& IsChecked(bool InIsChecked)
-		{
-			_IsChecked = InIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-			return Me();
-		}
 
 		/** How the content of the toggle button should align within the given space*/
 		SLATE_ARGUMENT( EHorizontalAlignment, HAlign )

@@ -43,7 +43,12 @@ public:
 			ForwardLightingResources.ForwardLocalLightBuffer.Initialize(sizeof(FVector4), sizeof(FForwardLocalLightData) / sizeof(FVector4), PF_A32B32G32R32F, BUF_Dynamic);
 			ForwardLightingResources.ForwardGlobalLightData = TUniformBufferRef<FForwardGlobalLightData>::CreateUniformBufferImmediate(FForwardGlobalLightData(), UniformBuffer_MultiFrame);
 			ForwardLightingResources.NumCulledLightsGrid.Initialize(sizeof(uint32), 1, PF_R32_UINT);
+			// @todo Metal lacks SRV format conversions.
+#if !PLATFORM_MAC && !PLATFORM_IOS
 			ForwardLightingResources.CulledLightDataGrid.Initialize(sizeof(uint16), 1, PF_R16_UINT);
+#else
+			ForwardLightingResources.CulledLightDataGrid.Initialize(sizeof(uint32), 1, PF_R32_UINT);
+#endif
 		}
 	}
 	
@@ -53,7 +58,7 @@ public:
 	}
 };
 
-static TGlobalResource<FMinimalDummyForwardLightingResources> GMinimalDummyForwardLightingResources;
+static TGlobalResource<FMinimalDummyForwardLightingResources>* GMinimalDummyForwardLightingResources = NULL;
 
 DEFINE_LOG_CATEGORY(LogRenderer);
 
@@ -83,7 +88,7 @@ void FRendererModule::InitializeSystemTextures(FRHICommandListImmediate& RHICmdL
 	GSystemTextures.InitializeTextures(RHICmdList, GMaxRHIFeatureLevel);
 }
 
-void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
+void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
 {
 	if (!GUsingNullRHI)
 	{
@@ -91,13 +96,15 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		//@todo - reuse this view for multiple tiles, this is going to be slow for each tile
 		FViewInfo View(&SceneView);
 		
+		if (!GMinimalDummyForwardLightingResources)
+		{
+			GMinimalDummyForwardLightingResources = new TGlobalResource<FMinimalDummyForwardLightingResources>();
+		}
+
 		//Apply the minimal forward lighting resources
-		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources.ForwardLightingResources;
+		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources->ForwardLightingResources;
 		
 		View.InitRHIResources();
-
-		//TODO ResetState
-		FDrawingPolicyRenderState DrawRenderState(&RHICmdList, SceneView);
 
 		const auto FeatureLevel = View.GetFeatureLevel();
 	
@@ -106,26 +113,29 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		//get the blend mode of the material
 		const EBlendMode MaterialBlendMode = Material->GetBlendMode();
 
-		FSceneRenderTargets::Get(RHICmdList).SetLightAttenuationMode(false);
 		GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
+
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+		SceneContext.AllocDummyGBufferTargets(RHICmdList);
+		SceneContext.SetLightAttenuationMode(false);		
 
 		// handle translucent material blend modes, not relevant in MaterialTexCoordScalesAnalysis since it outputs the scales.
 		if (IsTranslucentBlendMode(MaterialBlendMode) && View.Family->GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
 		{
 			if (FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
-				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(nullptr, ETranslucencyPass::TPT_AllTranslucency, true), Mesh, false, DrawRenderState, NULL, HitProxyId);
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(nullptr, ETranslucencyPass::TPT_AllTranslucency, true, ESceneRenderTargetsMode::InvalidScene), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 			else
 			{
-				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(false), Mesh, false, DrawRenderState, NULL, HitProxyId);
+				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::InvalidScene, false), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 		}
 		// handle opaque materials
 		else
 		{
 			// make sure we are doing opaque drawing
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
+			DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			// draw the mesh
 			if (bIsHitTesting)
@@ -136,11 +146,11 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 			{
 				if (FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
-					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, DrawRenderState, NULL, HitProxyId);
+					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::InvalidScene), Mesh, false, DrawRenderState, NULL, HitProxyId);
 				}
 				else
 				{
-					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, DrawRenderState, NULL, HitProxyId);
+					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::InvalidScene), Mesh, false, DrawRenderState, NULL, HitProxyId);
 				}
 			}
 		}	

@@ -18,6 +18,7 @@ class UEdGraph;
 class UMovieScene;
 class UUserWidget;
 class UWidgetAnimation;
+class FKismetCompilerContext;
 
 /** */
 USTRUCT()
@@ -164,7 +165,7 @@ struct FWidgetAnimation_DEPRECATED
 };
 
 template<>
-struct TStructOpsTypeTraits<FWidgetAnimation_DEPRECATED> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FWidgetAnimation_DEPRECATED> : public TStructOpsTypeTraitsBase2<FWidgetAnimation_DEPRECATED>
 {
 	enum
 	{
@@ -204,6 +205,9 @@ public:
 	 */
 	UPROPERTY(AssetRegistrySearchable)
 	FString PaletteCategory;
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=WidgetBlueprintOptions)
+	bool bForceSlowConstructionPath;
 #endif
 
 public:
@@ -211,6 +215,9 @@ public:
 	/** UObject interface */
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void Serialize(FArchive& Ar) override;
+
+	UPackage* GetWidgetTemplatePackage() const;
 
 	virtual void ReplaceDeprecatedNodes() override;
 	
@@ -236,4 +243,6 @@ public:
 	bool IsWidgetFreeFromCircularReferences(UUserWidget* UserWidget) const;
 
 	static bool ValidateGeneratedClass(const UClass* InClass);
+	
+	static TUniquePtr<FKismetCompilerContext> GetCompilerForWidgetBP(UWidgetBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
 };

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 기본 스크립팅
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description: 블루프린트 비주얼 스크립팅 시스템의 실행 흐름과 변수에 대한 일반적인 개요입니다.
 version: 4.12
 parent:Engine/Blueprints
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -20,28 +20,44 @@ void FAnimNode_CurveSource::PreUpdate(const UAnimInstance* AnimInstance)
 	{
 		ICurveSourceInterface* PotentialCurveSource = nullptr;
 
+		auto IsSpecifiedCurveSource = [&PotentialCurveSource](UObject* InObject, const FName& InSourceBinding, TScriptInterface<ICurveSourceInterface>& InOutCurveSource)
+		{
+			PotentialCurveSource = Cast<ICurveSourceInterface>(InObject);
+			if (PotentialCurveSource && PotentialCurveSource->Execute_GetBindingName(InObject) == InSourceBinding)
+			{
+				InOutCurveSource.SetObject(InObject);
+				InOutCurveSource.SetInterface(PotentialCurveSource);
+				return true;
+			}
+
+			return false;
+		};
+
 		AActor* Actor = AnimInstance->GetOwningActor();
 		if (Actor)
 		{
 			// check if our actor implements our interface
-			PotentialCurveSource = Cast<ICurveSourceInterface>(Actor);
-			if (PotentialCurveSource && PotentialCurveSource->Execute_GetBindingName(Actor) == SourceBinding)
+			if (IsSpecifiedCurveSource(Actor, SourceBinding, CurveSource))
 			{
-				CurveSource.SetObject(Actor);
-				CurveSource.SetInterface(PotentialCurveSource);
+				return;
 			}
-			else
+
+			for (TFieldIterator<UObjectProperty> PropertyIt(Actor->GetClass(), EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 			{
-				// then check each compoennt on the actor
-				const TSet<UActorComponent*>& ActorOwnedComponents = Actor->GetComponents();
-				for (UActorComponent* OwnedComponent : ActorOwnedComponents)
+				UObjectProperty* ObjProp = *PropertyIt;
+				UActorComponent* ActorComponent = Cast<UActorComponent>(ObjProp->GetObjectPropertyValue(ObjProp->ContainerPtrToValuePtr<void>(Actor)));
+				if (IsSpecifiedCurveSource(ActorComponent, SourceBinding, CurveSource))
 				{
-					PotentialCurveSource = Cast<ICurveSourceInterface>(OwnedComponent);
-					if (PotentialCurveSource && PotentialCurveSource->Execute_GetBindingName(OwnedComponent) == SourceBinding)
-					{
-						CurveSource.SetObject(OwnedComponent);
-						CurveSource.SetInterface(PotentialCurveSource);
-					}
+					return;
+				}
+			}
+
+			const TSet<UActorComponent*>& ActorOwnedComponents = Actor->GetComponents();
+			for (UActorComponent* OwnedComponent : ActorOwnedComponents)
+			{
+				if (IsSpecifiedCurveSource(OwnedComponent, SourceBinding, CurveSource))
+				{
+					return;
 				}
 			}
 		}

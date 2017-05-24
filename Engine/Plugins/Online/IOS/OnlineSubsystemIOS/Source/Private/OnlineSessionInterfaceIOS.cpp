@@ -604,22 +604,37 @@ bool FOnlineSessionIOS::JoinSession(const FUniqueNetId& PlayerId, FName SessionN
 
 bool FOnlineSessionIOS::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
-	bool bSuccessfullyJointFriendSession = false;
-	
-	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionIOS::FindFriendSession - not implemented"));
-	
-	FOnlineSessionSearchResult EmptyResult;
-	TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, bSuccessfullyJointFriendSession, EmptyResult);
+	if (LocalUserNum == PLATFORMUSERID_NONE)
+	{
+		TArray<FOnlineSessionSearchResult> EmptyResult;
+		TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptyResult);
+		return false;
+	}
 
-	return bSuccessfullyJointFriendSession;
+	return FindFriendSession(*IOSSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum).ToSharedRef(), Friend);
 }
 
 
 bool FOnlineSessionIOS::FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend)
 {
-	return FindFriendSession(0, Friend);
+	TArray<TSharedRef<const FUniqueNetId>> FriendList;
+	FriendList.Add(Friend.AsShared());
+	return FindFriendSession(LocalUserId, FriendList);
 }
 
+bool FOnlineSessionIOS::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList)
+{
+	bool bSuccessfullyJoinedFriendSession = false;
+
+	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionIOS::FindFriendSession - not implemented"));
+
+	int32 LocalUserNum = IOSSubsystem->GetIdentityInterface()->GetPlatformUserIdFromUniqueNetId(LocalUserId);
+
+	TArray<FOnlineSessionSearchResult> EmptyResult;
+	TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, bSuccessfullyJoinedFriendSession, EmptyResult);
+
+	return bSuccessfullyJoinedFriendSession;
+}
 
 bool FOnlineSessionIOS::SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend)
 {
@@ -657,7 +672,7 @@ bool FOnlineSessionIOS::SendSessionInviteToFriends(const FUniqueNetId& LocalUser
 }
 
 
-bool FOnlineSessionIOS::GetResolvedConnectString(FName SessionName, FString& ConnectInfo)
+bool FOnlineSessionIOS::GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType)
 {
 	bool bSuccessfullyGotResolvedConnectString = false;
 	

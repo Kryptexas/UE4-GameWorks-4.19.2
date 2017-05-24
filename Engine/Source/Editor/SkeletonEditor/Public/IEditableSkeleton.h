@@ -169,4 +169,13 @@ public:
 
 	/** Wrap USkeleton::GetBoneTranslationRetargetingMode */
 	virtual EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName) const = 0;
+
+	/** Function to tell you if a virtual bone name is already in use */
+	virtual bool DoesVirtualBoneAlreadyExist(const FString& InVBName) const = 0;
+
+	/** Rename an existing virtual bone */
+	virtual void RenameVirtualBone(const FName& OriginalName, const FName& InVBName) = 0;
+
+	/** Broadcasts tree refresh delegate */
+	virtual void RefreshBoneTree() = 0;
 };

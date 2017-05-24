@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SBehaviorTreeBlackboardView.h"
+#include "SBehaviorTreeBlackboardEditor.h"
 #include "Styling/SlateBrush.h"
 #include "Fonts/SlateFontInfo.h"
 #include "Misc/Paths.h"
@@ -62,7 +63,7 @@ FEdGraphSchemaAction_BlackboardEntry::FEdGraphSchemaAction_BlackboardEntry( UBla
 
 void FEdGraphSchemaAction_BlackboardEntry::Update()
 {
-	UpdateSearchData(FText::FromName(Key.EntryName), FText::Format(LOCTEXT("BlackboardEntryFormat", "{0} '{1}'"), Key.KeyType ? Key.KeyType->GetClass()->GetDisplayNameText() : LOCTEXT("NullKeyDesc", "None"), FText::FromName(Key.EntryName)).ToString(), FText(), FText());
+	UpdateSearchData(FText::FromName(Key.EntryName), FText::Format(LOCTEXT("BlackboardEntryFormat", "{0} '{1}'"), Key.KeyType ? Key.KeyType->GetClass()->GetDisplayNameText() : LOCTEXT("NullKeyDesc", "None"), FText::FromName(Key.EntryName)), FText(), FText());
 	SectionID = bIsInherited ? EBlackboardSectionTitles::InheritedKeys : EBlackboardSectionTitles::Keys;
 }
 
@@ -98,7 +99,7 @@ class SBehaviorTreeBlackboardItem : public SGraphPaletteItem
 		FSlateBrush const* IconBrush   = FEditorStyle::GetBrush(TEXT("NoBrush"));
 		GetPaletteItemIcon(GraphAction, IconBrush);
 
-		TSharedRef<SWidget> IconWidget = CreateIconWidget( FText::FromString(GraphAction->GetTooltipDescription()), IconBrush, FLinearColor::White );
+		TSharedRef<SWidget> IconWidget = CreateIconWidget( GraphAction->GetTooltipDescription(), IconBrush, FLinearColor::White );
 		TSharedRef<SWidget> NameSlotWidget = CreateTextSlotWidget( NameFont, InCreateData, BlackboardEntryAction->bIsInherited );
 		TSharedRef<SWidget> DebugSlotWidget = CreateDebugSlotWidget( NameFont );
 
@@ -182,16 +183,25 @@ private:
 
 	virtual FText GetItemTooltip() const override
 	{
-		return FText::FromString(ActionPtr.Pin()->GetTooltipDescription());
+		return ActionPtr.Pin()->GetTooltipDescription();
 	}
 
 	virtual void OnNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit) override
 	{
 		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_BlackboardEntry::StaticGetTypeId());
+		
+		const FString AsString = *NewText.ToString();
+
+		if (AsString.Len() > NAME_SIZE)
+		{
+			UE_LOG(LogBlackboardEditor, Error, TEXT("%s is not a valid Blackboard key name. Needs to be shorter than 1024 characters."), *NewText.ToString());
+			return;
+		}
+
 		TSharedPtr<FEdGraphSchemaAction_BlackboardEntry> BlackboardEntryAction = StaticCastSharedPtr<FEdGraphSchemaAction_BlackboardEntry>(ActionPtr.Pin());
 
 		FName OldName = BlackboardEntryAction->Key.EntryName;
-		FName NewName = FName(*NewText.ToString());
+		FName NewName = FName(*AsString);
 		if(NewName != OldName)
 		{
 			if(!BlackboardEntryAction->bIsNew)

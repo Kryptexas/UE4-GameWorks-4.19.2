@@ -7,6 +7,10 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanSwapChain.h"
 
+#if PLATFORM_LINUX
+#include <SDL.h>
+#endif
+
 FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevice, void* WindowHandle, EPixelFormat& InOutPixelFormat, uint32 Width, uint32 Height,
 	uint32* InOutDesiredNumBackBuffers, TArray<VkImage>& OutImages)
 	: SwapChain(VK_NULL_HANDLE)
@@ -30,6 +34,12 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	SurfaceCreateInfo.window = (ANativeWindow*)WindowHandle;
 
 	VERIFYVULKANRESULT(vkCreateAndroidSurfaceKHR(Instance, &SurfaceCreateInfo, nullptr, &Surface));
+#elif PLATFORM_LINUX
+	if(SDL_VK_CreateSurface((SDL_Window*)WindowHandle, (SDL_VkInstance)Instance, (SDL_VkSurface*)&Surface) == SDL_FALSE)
+    {
+		UE_LOG(LogInit, Error, TEXT("Error initializing SDL Vulkan Surface: %s"), SDL_GetError());
+		check(0);
+	}
 #else
 	static_assert(false, "Unsupported Vulkan platform!");
 #endif
@@ -46,26 +56,62 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 		Formats.AddZeroed(NumFormats);
 		VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetPhysicalDeviceSurfaceFormatsKHR(Device.GetPhysicalHandle(), Surface, &NumFormats, Formats.GetData()));
 
-		if (Formats.Num() == 1 && Formats[0].format == VK_FORMAT_UNDEFINED && InOutPixelFormat == PF_Unknown)
+		if (InOutPixelFormat != PF_Unknown)
 		{
-			InOutPixelFormat = PF_B8G8R8A8;
-		}
-		else if (InOutPixelFormat == PF_Unknown)
-		{
-			// Reverse lookup
-			check(Formats[0].format != VK_FORMAT_UNDEFINED);
-			for (int32 Index = 0; Index < PF_MAX; ++Index)
+			bool bFound = false;
+			if (GPixelFormats[InOutPixelFormat].Supported)
 			{
-				if (Formats[0].format == GPixelFormats[Index].PlatformFormat)
+				VkFormat Requested = (VkFormat)GPixelFormats[InOutPixelFormat].PlatformFormat;
+				for (int32 Index = 0; Index < Formats.Num(); ++Index)
 				{
-					InOutPixelFormat = (EPixelFormat)Index;
-					CurrFormat = Formats[0];
+					if (Formats[Index].format == Requested)
+					{
+						CurrFormat = Formats[Index];
+						bFound = true;
+						break;
+					}
+				}
+
+				if (!bFound)
+				{
+					UE_LOG(LogVulkanRHI, Warning, TEXT("Requested PixelFormat %d not supported by this swapchain! Falling back to supported swapchain formats..."), (uint32)InOutPixelFormat);
+					InOutPixelFormat = PF_Unknown;
+				}
+			}
+			else
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Requested PixelFormat %d not supported by this Vulkan implementation!"), (uint32)InOutPixelFormat);
+				InOutPixelFormat = PF_Unknown;
+			}
+		}
+
+		if (InOutPixelFormat == PF_Unknown)
+		{
+			for (int32 Index = 0; Index < Formats.Num(); ++Index)
+			{
+				// Reverse lookup
+				check(Formats[Index].format != VK_FORMAT_UNDEFINED);
+				for (int32 PFIndex = 0; PFIndex < PF_MAX; ++PFIndex)
+				{
+					if (Formats[Index].format == GPixelFormats[PFIndex].PlatformFormat)
+					{
+						InOutPixelFormat = (EPixelFormat)PFIndex;
+						CurrFormat = Formats[Index];
+						UE_LOG(LogVulkanRHI, Display, TEXT("No swapchain format requested, picking up VulkanFormat %d"), (uint32)CurrFormat.format);
+						break;
+					}
+				}
+
+				if (InOutPixelFormat != PF_Unknown)
+				{
 					break;
 				}
 			}
 		}
-		else
+
+		if (InOutPixelFormat == PF_Unknown)
 		{
+			UE_LOG(LogVulkanRHI, Warning, TEXT("Can't find a proper pixel format for the swapchain, trying to pick up the first available"));
 			VkFormat PlatformFormat = UEToVkFormat(InOutPixelFormat, false);
 			bool bSupported = false;
 			for (int32 Index = 0; Index < Formats.Num(); ++Index)
@@ -80,13 +126,35 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 
 			check(bSupported);
 		}
+
+		if (InOutPixelFormat == PF_Unknown)
+		{
+			FString Msg;
+			for (int32 Index = 0; Index < Formats.Num(); ++Index)
+			{
+				if (Index == 0)
+				{
+					Msg += TEXT("(");
+				}
+				else
+				{
+					Msg += TEXT(", ");
+				}
+				Msg += FString::Printf(TEXT("%d"), (int32)Formats[Index].format);
+			}
+			if (Formats.Num())
+			{
+				Msg += TEXT(")");
+			}
+			UE_LOG(LogVulkanRHI, Fatal, TEXT("Unable to find a pixel format for the swapchain; swapchain returned %d Vulkan formats %s"), Formats.Num(), *Msg);
+		}
 	}
 
 	VkFormat PlatformFormat = UEToVkFormat(InOutPixelFormat, false);
 
 	//#todo-rco: Check multiple Gfx Queues?
 	VkBool32 bSupportsPresent = VK_FALSE;
-	VERIFYVULKANRESULT(VulkanRHI::vkGetPhysicalDeviceSurfaceSupportKHR(Device.GetPhysicalHandle(), Device.GetQueue()->GetFamilyIndex(), Surface, &bSupportsPresent));
+	VERIFYVULKANRESULT(VulkanRHI::vkGetPhysicalDeviceSurfaceSupportKHR(Device.GetPhysicalHandle(), Device.GetGraphicsQueue()->GetFamilyIndex(), Surface, &bSupportsPresent));
 	//#todo-rco: Find separate present queue if the gfx one doesn't support presents
 	check(bSupportsPresent);
 
@@ -136,7 +204,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	}
 	// 0 means no limit, so use the requested number
 	uint32 DesiredNumBuffers = SurfProperties.maxImageCount > 0 ? FMath::Clamp(*InOutDesiredNumBackBuffers, SurfProperties.minImageCount, SurfProperties.maxImageCount) : *InOutDesiredNumBackBuffers;
-	
+
 	VkSwapchainCreateInfoKHR SwapChainInfo;
 	FMemory::Memzero(SwapChainInfo);
 	SwapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -144,8 +212,8 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	SwapChainInfo.minImageCount = DesiredNumBuffers;
 	SwapChainInfo.imageFormat = CurrFormat.format;
 	SwapChainInfo.imageColorSpace = CurrFormat.colorSpace;
-	SwapChainInfo.imageExtent.width = PLATFORM_ANDROID ? Width : (SurfProperties.currentExtent.width == -1 ? Width : SurfProperties.currentExtent.width);
-	SwapChainInfo.imageExtent.height = PLATFORM_ANDROID ? Height : (SurfProperties.currentExtent.height == -1 ? Height : SurfProperties.currentExtent.height);
+	SwapChainInfo.imageExtent.width = PLATFORM_ANDROID ? Width : (SurfProperties.currentExtent.width == 0xFFFFFFFF ? Width : SurfProperties.currentExtent.width);
+	SwapChainInfo.imageExtent.height = PLATFORM_ANDROID ? Height : (SurfProperties.currentExtent.height == 0xFFFFFFFF ? Height : SurfProperties.currentExtent.height);
 	SwapChainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	SwapChainInfo.preTransform = PreTransform;
 	SwapChainInfo.imageArrayLayers = 1;
@@ -156,6 +224,22 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	SwapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 	*InOutDesiredNumBackBuffers = DesiredNumBuffers;
+
+	{
+		//#todo-rco: Crappy workaround
+		if (SwapChainInfo.imageExtent.width == 0)
+		{
+			SwapChainInfo.imageExtent.width = Width;
+		}
+		if (SwapChainInfo.imageExtent.height == 0)
+		{
+			SwapChainInfo.imageExtent.height = Height;
+		}
+	}
+
+
+	ensure(SwapChainInfo.imageExtent.width >= SurfProperties.minImageExtent.width && SwapChainInfo.imageExtent.width <= SurfProperties.maxImageExtent.width);
+	ensure(SwapChainInfo.imageExtent.height >= SurfProperties.minImageExtent.height && SwapChainInfo.imageExtent.height <= SurfProperties.maxImageExtent.height);
 
 	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateSwapchainKHR(Device.GetInstanceHandle(), &SwapChainInfo, nullptr, &SwapChain));
 

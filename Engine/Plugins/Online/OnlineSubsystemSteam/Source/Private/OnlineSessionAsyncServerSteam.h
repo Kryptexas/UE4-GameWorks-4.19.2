@@ -332,48 +332,57 @@ public:
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnAsyncFindServerInviteCompleteWithNetId, const bool, const int32, TSharedPtr< const FUniqueNetId >, const class FOnlineSessionSearchResult&);
 typedef FOnAsyncFindServerInviteCompleteWithNetId::FDelegate FOnAsyncFindServerInviteCompleteWithNetIdDelegate;
 
-/**
- *	Async task for finding a single server and returning that search result to a properly defined delegate
- */
-class FOnlineAsyncTaskSteamFindServer : public FOnlineAsyncTaskSteamFindServerBase
+class FOnlineAsyncTaskSteamFindServerForInviteSession : public FOnlineAsyncTaskSteamFindServerBase
 {
 protected:
 	/** User initiating the request */
 	int32 LocalUserNum;
 
-	/** Delegates that are called when the find server request completes. Only one is used at a time, depending on which constructor is used.*/
-	FOnSingleSessionResultComplete FindServerInviteCompleteDelegates;
 	FOnAsyncFindServerInviteCompleteWithNetId FindServerInviteCompleteWithUserIdDelegates;
 
-	/** Set to true if the constructor with the FOnAsyncFindServerInviteCompleteWithNetId delegate is called, false if not */
-	bool bIsUsingNetIdDelegate;
-
 public:
-
-	FOnlineAsyncTaskSteamFindServer(class FOnlineSubsystemSteam* InSubsystem, const TSharedPtr<class FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, FOnSingleSessionResultComplete& InDelegates) :
-		FOnlineAsyncTaskSteamFindServerBase(InSubsystem, InSearchSettings),
-		LocalUserNum(InLocalUserNum),
-		FindServerInviteCompleteDelegates(InDelegates),
-		bIsUsingNetIdDelegate(false)
-	{	
-	}
-
-	FOnlineAsyncTaskSteamFindServer(class FOnlineSubsystemSteam* InSubsystem, const TSharedPtr<class FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, FOnAsyncFindServerInviteCompleteWithNetId& InDelegates) :
-		FOnlineAsyncTaskSteamFindServerBase(InSubsystem, InSearchSettings),
-		LocalUserNum(InLocalUserNum),
-		FindServerInviteCompleteWithUserIdDelegates(InDelegates),
-		bIsUsingNetIdDelegate(true)
+	FOnlineAsyncTaskSteamFindServerForInviteSession(class FOnlineSubsystemSteam* InSubsystem, const TSharedPtr<class FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, FOnAsyncFindServerInviteCompleteWithNetId& InDelegates)
+		: FOnlineAsyncTaskSteamFindServerBase(InSubsystem, InSearchSettings)
+		, LocalUserNum(InLocalUserNum)
+		, FindServerInviteCompleteWithUserIdDelegates(InDelegates)
 	{
 	}
 
 	/**
-	 *	Get a human readable description of task
-	 */
+	*	Get a human readable description of task
+	*/
 	virtual FString ToString() const override;
 
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
+	virtual void TriggerDelegates() override;
+};
+
+class FOnlineAsyncTaskSteamFindServerForFriendSession : public FOnlineAsyncTaskSteamFindServerBase
+{
+protected:
+	/** User initiating the request */
+	int32 LocalUserNum;
+
+	FOnFindFriendSessionComplete FindServerInviteCompleteDelegates;
+
+public:
+	FOnlineAsyncTaskSteamFindServerForFriendSession(class FOnlineSubsystemSteam* InSubsystem, const TSharedPtr<class FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, FOnFindFriendSessionComplete& InDelegates)
+		: FOnlineAsyncTaskSteamFindServerBase(InSubsystem, InSearchSettings)
+		, LocalUserNum(InLocalUserNum)
+		, FindServerInviteCompleteDelegates(InDelegates)
+	{
+	}
+
+	/**
+	*	Get a human readable description of task
+	*/
+	virtual FString ToString() const override;
+
+	/**
+	*	Async task is given a chance to trigger it's delegates
+	*/
 	virtual void TriggerDelegates() override;
 };
 

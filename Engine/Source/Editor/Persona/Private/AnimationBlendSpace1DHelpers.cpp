@@ -56,7 +56,7 @@ void FLineElementGenerator::Init(const FBlendParameter& BlendParameter)
 void FLineElementGenerator::CalculateEditorElements()
 {	
 	// Always clear line elements
-	LineElements.Empty(SamplePointList.Num() - 1);
+	LineElements.Empty(SamplePointList.Num() > 1 ? SamplePointList.Num() - 1 : 0);
 	
 	// Only create lines if we have more than one point to draw between
 	if (SamplePointList.Num() > 1)

@@ -170,11 +170,8 @@ public:
 		FFeedbackContext* Warn,
 		UPackage* LimitOuter,
 		const FManifestModule& Module,
-		TArray<class IScriptGeneratorPluginInterface*>& ScriptPlugins
-#if WITH_HOT_RELOAD_CTORS
-		, bool bExportVTableConstructors
-#endif // WITH_HOT_RELOAD_CTORS
-		, FUHTMakefile& UHTMakefile
+		TArray<class IScriptGeneratorPluginInterface*>& ScriptPlugins,
+		FUHTMakefile& UHTMakefile
 	);
 
 	// Performs a preliminary parse of the text in the specified buffer, pulling out:
@@ -471,12 +468,9 @@ protected:
 	static void ExportNativeHeaders(
 		UPackage* CurrentPackage,
 		FClasses& AllClasses,
-		bool bAllowSaveExportedHeaders
-#if WITH_HOT_RELOAD_CTORS
-		, bool bExportVTableConstructors
-#endif // WITH_HOT_RELOAD_CTORS
-		, FUHTMakefile& UHTMakefile
-		, const FManifestModule& Module
+		bool bAllowSaveExportedHeaders,
+		FUHTMakefile& UHTMakefile,
+		const FManifestModule& Module
 	);
 
 	// FContextSupplier interface.
@@ -753,8 +747,16 @@ public:
 	{
 	}
 
-	void ParseClassDeclaration(const TCHAR* InputText, int32 InLineNumber, const TCHAR* StartingMatchID, FString& out_ClassName, FString& out_BaseClassName, TArray<FHeaderProvider>& out_ClassNames, const TArray<FSimplifiedParsingClassInfo>& ParsedClassArray);
-
-private:
-	void AddDependencyIfNeeded(const TArray<FSimplifiedParsingClassInfo>& ParsedClassArray, const FString& DependencyClassName, TArray<FHeaderProvider>& RequiredIncludes) const;
+	void ParseClassDeclaration(
+		const TCHAR* Filename,
+		const TCHAR* InputText,
+		int32 InLineNumber,
+		const TCHAR*
+		StartingMatchID,
+		FName& out_StrippedClassName,
+		FString& out_ClassName,
+		FString& out_BaseClassName,
+		TArray<FHeaderProvider>& out_ClassNames,
+		const TArray<FSimplifiedParsingClassInfo>& ParsedClassArray
+	);
 };

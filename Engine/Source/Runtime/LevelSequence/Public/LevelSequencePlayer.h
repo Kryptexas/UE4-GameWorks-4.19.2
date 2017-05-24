@@ -3,12 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "UObject/ScriptMacros.h"
 #include "IMovieScenePlayer.h"
 #include "Evaluation/MovieScenePlayback.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/PersistentEvaluationData.h"
 #include "MovieSceneSequencePlayer.h"
 #include "LevelSequence.h"
 #include "LevelSequencePlayer.generated.h"
@@ -123,6 +125,7 @@ protected:
 
 	// IMovieScenePlayer interface
 	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) override;
+	virtual void NotifyBindingUpdate(const FGuid& InGuid, FMovieSceneSequenceIDRef InSequenceID, TArrayView<TWeakObjectPtr<>> Objects) override;
 	virtual UObject* GetPlaybackContext() const override;
 	virtual TArray<UObject*> GetEventContexts() const override;
 
@@ -135,6 +138,13 @@ public:
 
 	/** Populate the specified array with any given event contexts for the specified world */
 	static void GetEventContexts(UWorld& InWorld, TArray<UObject*>& OutContexts);
+
+	/**
+	 * Set an array of additional actors that will receive events triggerd from this sequence player
+	 *
+	 * @param AdditionalReceivers An array of actors to receive events
+	 */
+	void SetEventReceivers(TArray<UObject*>&& AdditionalReceivers) { AdditionalEventReceivers = MoveTemp(AdditionalReceivers); }
 
 	/** Take a snapshot of the current state of this player */
 	void TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSnapshot) const;
@@ -154,10 +164,20 @@ private:
 	/** The last view target to reset to when updating camera cuts to null */
 	TWeakObjectPtr<AActor> LastViewTarget;
 
+	/** The last aspect ratio axis constraint to reset to when the camera cut is null */
+	EAspectRatioAxisConstraint LastAspectRatioAxisConstraint;
+
 protected:
 
 	/** How to take snapshots */
 	FLevelSequenceSnapshotSettings SnapshotSettings;
 
 	TWeakObjectPtr<UCameraComponent> CachedCameraComponent;
+
+	/** Array of additional event receivers */
+	UPROPERTY(transient)
+	TArray<UObject*> AdditionalEventReceivers;
+
+	/** Set of actors that have been added as tick prerequisites to the parent actor */
+	TSet<FObjectKey> PrerequisiteActors;
 };

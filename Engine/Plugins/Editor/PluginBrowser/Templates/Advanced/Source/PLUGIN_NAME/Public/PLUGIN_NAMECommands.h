@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Framework/Commands/Commands.h"
 #include "PLUGIN_NAMEStyle.h"
 
 class FPLUGIN_NAMECommands : public TCommands<FPLUGIN_NAMECommands>

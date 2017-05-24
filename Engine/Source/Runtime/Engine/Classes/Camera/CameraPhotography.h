@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 
+class UWorld;
 class APlayerCameraManager;
 class ICameraPhotography;
 struct FMinimalViewInfo;
@@ -21,7 +22,7 @@ public:
 	/** Destroy current FCameraPhotography (if any); recreated by next Get() */
 	ENGINE_API static void Destroy();
 	/** @return Returns false if definitely unavailable at compile-time or run-time */
-	ENGINE_API static bool IsSupported();
+	ENGINE_API static bool IsSupported(UWorld* InWorld);
 
 	/** Modify input camera according to cumulative free-camera transforms (if any).
 	* Safe to call this even if IsSupported()==false, in which case it will leave camera

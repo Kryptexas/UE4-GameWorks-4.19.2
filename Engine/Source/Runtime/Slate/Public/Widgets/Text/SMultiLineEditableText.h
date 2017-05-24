@@ -231,6 +231,9 @@ public:
 	/** See the AllowContextMenu attribute */
 	void SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu);
 
+	/** Sets the ReadOnly attribute */
+	void SetIsReadOnly(const TAttribute< bool >& InIsReadOnly);
+
 	/** Query to see if any text is selected within the document */
 	bool AnyTextSelected() const;
 
@@ -338,6 +341,7 @@ protected:
 	virtual void EnsureActiveTick() override;
 	virtual EKeyboardType GetVirtualKeyboardType() const override;
 	virtual TSharedRef<SWidget> GetSlateWidget() override;
+	virtual TSharedPtr<SWidget> GetSlateWidgetPtr() override;
 	virtual TSharedPtr<SWidget> BuildContextMenuContent() const override;
 	virtual void OnTextChanged(const FText& InText) override;
 	virtual void OnTextCommitted(const FText& InText, const ETextCommit::Type InTextAction) override;

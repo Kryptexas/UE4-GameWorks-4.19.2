@@ -36,14 +36,12 @@ UBehaviorTreeComponent::UBehaviorTreeComponent(const FObjectInitializer& ObjectI
 	bIsPaused = false;
 }
 
-#if WITH_HOT_RELOAD_CTORS
 UBehaviorTreeComponent::UBehaviorTreeComponent(FVTableHelper& Helper)
 	: Super(Helper)
 	, SearchData(*this)
 {
 
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 void UBehaviorTreeComponent::UninitializeComponent()
 {
@@ -878,7 +876,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	if ((!bAlreadyHasRequest && bSwitchToHigherPriority) ||
 		(ExecutionRequest.SearchEnd.IsSet() && ExecutionRequest.SearchEnd.TakesPriorityOver(SearchEnd)))
 	{
-		UE_CVLOG(bAlreadyHasRequest, GetOwner(), LogBehaviorTree, Log, (SearchEnd.ExecutionIndex < MAX_uint16) ? TEXT("> expanding end of search range!") : TEXT("> removing limit from end of search range!"));
+		UE_CVLOG(bAlreadyHasRequest, GetOwner(), LogBehaviorTree, Log, TEXT("%s"), (SearchEnd.ExecutionIndex < MAX_uint16) ? TEXT("> expanding end of search range!") : TEXT("> removing limit from end of search range!"));
 		ExecutionRequest.SearchEnd = SearchEnd;
 	}
 
@@ -2034,7 +2032,7 @@ bool SetDynamicSubtreeHelper(const UBTCompositeNode* TestComposite,
 		const FBTCompositeChild& ChildInfo = TestComposite->Children[Idx];
 		if (ChildInfo.ChildComposite)
 		{
-			bInjected = (bInjected || SetDynamicSubtreeHelper(ChildInfo.ChildComposite, InstanceInfo, OwnerComp, InjectTag, BehaviorAsset));
+			bInjected = (SetDynamicSubtreeHelper(ChildInfo.ChildComposite, InstanceInfo, OwnerComp, InjectTag, BehaviorAsset) || bInjected);
 		}
 		else
 		{
@@ -2067,7 +2065,7 @@ void UBehaviorTreeComponent::SetDynamicSubtree(FGameplayTag InjectTag, UBehavior
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
 	{
 		const FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIndex];
-		bInjected = (bInjected || SetDynamicSubtreeHelper(InstanceInfo.RootNode, InstanceInfo, this, InjectTag, BehaviorAsset));
+		bInjected = (SetDynamicSubtreeHelper(InstanceInfo.RootNode, InstanceInfo, this, InjectTag, BehaviorAsset) || bInjected);
 	}
 
 	// restart subtree if it was replaced

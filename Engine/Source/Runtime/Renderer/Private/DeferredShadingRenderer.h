@@ -25,8 +25,6 @@ public:
 	TRefCountPtr<IPooledRenderTarget> LightShaftOcclusion;
 };
 
-extern bool SupportSceneAlpha();
-
 /**
  * Scene renderer that implements a deferred shading pipeline and associated features.
  */
@@ -97,19 +95,19 @@ public:
 	void RenderBasePassDynamicDataParallel(FParallelCommandListSet& ParallelCommandListSet);
 
 	/** Renders the basepass for a given View, in parallel */
-	void RenderBasePassViewParallel(FViewInfo& View, FRHICommandListImmediate& ParentCmdList);
+	void RenderBasePassViewParallel(FViewInfo& View, FRHICommandListImmediate& ParentCmdList, FExclusiveDepthStencil::Type BasePassDepthStencilAccess);
 
 	/** Renders the basepass for a given View. */
-	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess);
 
 	/** Renders editor primitives for a given View. */
-	void RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
+	void RenderEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FExclusiveDepthStencil::Type BasePassDepthStencilAccess, bool& bOutDirty);
 	
 	/** 
 	* Renders the scene's base pass 
 	* @return true if anything was rendered
 	*/
-	bool RenderBasePass(FRHICommandListImmediate& RHICmdList);
+	bool RenderBasePass(FRHICommandListImmediate& RHICmdList, FExclusiveDepthStencil::Type BasePassDepthStencilAccess);
 
 	/** Finishes the view family rendering. */
 	void RenderFinish(FRHICommandListImmediate& RHICmdList);
@@ -125,12 +123,6 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	void RenderVisualizeTexturePool(FRHICommandListImmediate& RHICmdList);
 #endif
-
-	/** Offline culling of static triangles that won't be seen at runtime. */
-	void PreCullStaticMeshes(FRHICommandListImmediate& RHICmdList, const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes);
-
-	/** bound shader state for occlusion test prims */
-	static FGlobalBoundShaderState OcclusionTestBoundShaderState;
 
 private:
 
@@ -175,6 +167,8 @@ private:
 	* @return true if the depth was cleared
 	*/
 	bool PreRenderPrePass(FRHICommandListImmediate& RHICmdList);
+
+	void RenderPrePassEditorPrimitives(FRHICommandList& RHICmdList, const FViewInfo& View, FDepthDrawingPolicyFactory::ContextType Context);
 
 	/**
 	 * Renders the scene's prepass and occlusion queries.
@@ -230,14 +224,6 @@ private:
 		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance);
-
-	void RenderDistanceFieldSpecularOcclusion(
-		FRHICommandListImmediate& RHICmdList, 
-		const FViewInfo& View,
-		FIntPoint TileListGroupSize,
-		const FDistanceFieldAOParameters& Parameters, 
-		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
-		TRefCountPtr<IPooledRenderTarget>& OutSpecularOcclusion);
 
 	void RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters);
 
@@ -394,14 +380,46 @@ private:
 	/** Filters the translucency lighting volumes to reduce aliasing. */
 	void FilterTranslucentVolumeLighting(FRHICommandListImmediate& RHICmdList);
 
+	void SetupVolumetricFog();
+
+	void RenderLocalLightsForVolumetricFog(
+		FRHICommandListImmediate& RHICmdList,
+		FViewInfo& View,
+		const FExponentialHeightFogSceneInfo& FogInfo,
+		IPooledRenderTarget* VBufferA,
+		FIntVector VolumetricFogGridSize,
+		FVector GridZParams,
+		const FPooledRenderTargetDesc& VolumeDesc,
+		TRefCountPtr<IPooledRenderTarget>& OutLocalShadowedLightScattering);
+
+	void RenderLightFunctionForVolumetricFog(
+		FRHICommandListImmediate& RHICmdList,
+		FViewInfo& View,
+		FIntVector VolumetricFogGridSize,
+		float VolumetricFogMaxDistance,
+		FMatrix& OutLightFunctionWorldToShadow,
+		TRefCountPtr<IPooledRenderTarget>& OutLightFunctionTexture,
+		bool& bOutUseDirectionalLightShadowing);
+
+	void VoxelizeFogVolumePrimitives(
+		FRHICommandListImmediate& RHICmdList,
+		const FViewInfo& View,
+		FIntVector VolumetricFogGridSize,
+		FVector GridZParams,
+		float VolumetricFogDistance,
+		IPooledRenderTarget* VBufferA,
+		IPooledRenderTarget* VBufferB);
+
+	void ComputeVolumetricFog(FRHICommandListImmediate& RHICmdList);
+
 	/** Output SpecularColor * IndirectDiffuseGI for metals so they are not black in reflections */
-	void RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList);
+	void RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandListImmediate& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit);
 
 	/** Render image based reflections (SSR, Env, SkyLight) with compute shaders */
 	void RenderTiledDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
 
 	/** Render image based reflections (SSR, Env, SkyLight) without compute shaders */
-	void RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
+	void RenderStandardDeferredImageBasedReflections(FRHICommandListImmediate& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, bool bReflectionEnv, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
 
 	bool RenderDeferredPlanarReflections(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bLightAccumulationIsInUse, TRefCountPtr<IPooledRenderTarget>& Output);
 

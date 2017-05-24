@@ -2,7 +2,19 @@
 # Build PhysXCharacterKinematic common
 #
 
-ADD_LIBRARY(PhysXCharacterKinematic STATIC 
+SET(PHYSXCCT_HEADERS
+	${PHYSX_ROOT_DIR}/Include/characterkinematic/PxBoxController.h
+	${PHYSX_ROOT_DIR}/Include/characterkinematic/PxCapsuleController.h
+	${PHYSX_ROOT_DIR}/Include/characterkinematic/PxCharacter.h
+	${PHYSX_ROOT_DIR}/Include/characterkinematic/PxController.h
+	${PHYSX_ROOT_DIR}/Include/characterkinematic/PxControllerBehavior.h
+	${PHYSX_ROOT_DIR}/Include/characterkinematic/PxControllerManager.h
+	${PHYSX_ROOT_DIR}/Include/characterkinematic/PxControllerObstacles.h
+	${PHYSX_ROOT_DIR}/Include/characterkinematic/PxExtended.h
+)
+SOURCE_GROUP(include FILES ${PHYSXCCT_HEADERS})
+
+SET(PHYSXCCT_SOURCE
 	${LL_SOURCE_DIR}/CctBoxController.cpp
 	${LL_SOURCE_DIR}/CctCapsuleController.cpp
 	${LL_SOURCE_DIR}/CctCharacterController.cpp
@@ -13,9 +25,24 @@ ADD_LIBRARY(PhysXCharacterKinematic STATIC
 	${LL_SOURCE_DIR}/CctSweptBox.cpp
 	${LL_SOURCE_DIR}/CctSweptCapsule.cpp
 	${LL_SOURCE_DIR}/CctSweptVolume.cpp
+	${LL_SOURCE_DIR}/CctBoxController.h
+	${LL_SOURCE_DIR}/CctCapsuleController.h
+	${LL_SOURCE_DIR}/CctCharacterController.h
+	${LL_SOURCE_DIR}/CctCharacterControllerManager.h
+	${LL_SOURCE_DIR}/CctController.h
+	${LL_SOURCE_DIR}/CctInternalStructs.h
+	${LL_SOURCE_DIR}/CctObstacleContext.h
+	${LL_SOURCE_DIR}/CctSweptBox.h
+	${LL_SOURCE_DIR}/CctSweptCapsule.h
+	${LL_SOURCE_DIR}/CctSweptVolume.h
+	${LL_SOURCE_DIR}/CctUtils.h
 )
+SOURCE_GROUP(src FILES ${PHYSXCCT_SOURCE})
 
-# Target specific compile options
+ADD_LIBRARY(PhysXCharacterKinematic ${PHYSXCHARACTERKINEMATIC_LIBTYPE}
+	${PHYSXCCT_HEADERS}
+	${PHYSXCCT_SOURCE}
+)
 
 TARGET_INCLUDE_DIRECTORIES(PhysXCharacterKinematic 
 
@@ -54,10 +81,6 @@ TARGET_COMPILE_DEFINITIONS(PhysXCharacterKinematic
 	# Common to all configurations
 	PRIVATE ${PHYSXCHARACTERKINEMATICS_COMPILE_DEFS}
 )
-
-
-# Add linked libraries
-TARGET_LINK_LIBRARIES(PhysXCharacterKinematic PUBLIC PhysXCommon PhysXExtensions PxFoundation)
 
 SET_TARGET_PROPERTIES(PhysXCharacterKinematic PROPERTIES
 	OUTPUT_NAME PhysX3CharacterKinematic

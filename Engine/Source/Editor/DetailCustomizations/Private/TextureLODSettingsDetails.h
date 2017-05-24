@@ -48,9 +48,9 @@ private:
 	void OnMaxLODSizeCommitted(uint32 NewValue, ETextCommit::Type TextCommitType);
 
 	// Controls for the LOD Bias property editing
-	uint32 GetLODBias() const;
-	void OnLODBiasChanged(uint32 NewValue);
-	void OnLODBiasCommitted(uint32 NewValue, ETextCommit::Type TextCommitType);
+	int32 GetLODBias() const;
+	void OnLODBiasChanged(int32 NewValue);
+	void OnLODBiasCommitted(int32 NewValue, ETextCommit::Type TextCommitType);
 
 	// Controls for the MinMag Filter property editing
 	TSharedRef<SWidget> MakeMinMagFilterComboWidget(TSharedPtr<FName> InItem);

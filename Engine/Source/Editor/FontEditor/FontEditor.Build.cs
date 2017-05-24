@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class FontEditor : ModuleRules
 {
-	public FontEditor(TargetInfo Target)
+	public FontEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

@@ -12,14 +12,16 @@ struct FOnPaintHandlerParams;
 
 struct FOnPaintHandlerParams
 {
+	const FPaintArgs& Args;
 	const FGeometry& Geometry;
 	const FSlateRect& ClippingRect;
 	FSlateWindowElementList& OutDrawElements;
 	const int32 Layer;
 	const bool bEnabled;
 
-	FOnPaintHandlerParams( const FGeometry& InGeometry, const FSlateRect& InClippingRect, FSlateWindowElementList& InOutDrawElements, int32 InLayer, bool bInEnabled )
-		: Geometry( InGeometry )
+	FOnPaintHandlerParams(const FPaintArgs& InArgs, const FGeometry& InGeometry, const FSlateRect& InClippingRect, FSlateWindowElementList& InOutDrawElements, int32 InLayer, bool bInEnabled )
+		: Args(InArgs)
+		, Geometry( InGeometry )
 		, ClippingRect( InClippingRect )
 		, OutDrawElements( InOutDrawElements )
 		, Layer( InLayer )
@@ -70,7 +72,7 @@ public:
 	{
 		if( OnPaintHandler.IsBound() )
 		{
-			FOnPaintHandlerParams Params( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, bParentEnabled && IsEnabled() ); 
+			FOnPaintHandlerParams Params(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, bParentEnabled && IsEnabled() );
 			OnPaintHandler.Execute( Params );
 		}
 		else

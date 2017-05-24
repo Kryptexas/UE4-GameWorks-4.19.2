@@ -9,6 +9,7 @@
 #include "Widgets/SWidget.h"
 #include "Framework/Commands/UIAction.h"
 #include "Widgets/Layout/SSpacer.h"
+#include "PropertyHandle.h"
 
 class FDetailWidgetRow;
 
@@ -221,6 +222,20 @@ public:
 		return *this;
 	}
 
+	/**
+	* Used to provide all the property handles this WidgetRow represent
+	*/
+	FDetailWidgetRow& PropertyHandleList(const TArray<TSharedPtr<IPropertyHandle>>& InPropertyHandles)
+	{
+		PropertyHandles = InPropertyHandles;
+		return *this;
+	}
+
+	/**
+	* Return all the property handles this WidgetRow represent
+	*/
+	const TArray<TSharedPtr<IPropertyHandle>>& GetPropertyHandles() const { return PropertyHandles;  }
+
 public:
 	/** Name column content */
 	FDetailWidgetDecl NameWidget;
@@ -242,5 +257,7 @@ public:
 	FName	RowTagName;
 	/* Flag to track if property has been modified from default */
 	TAttribute<bool> DiffersFromDefaultAttr;
+	/* All property handle that this custom widget represent */
+	TArray<TSharedPtr<IPropertyHandle>> PropertyHandles;
 };
 

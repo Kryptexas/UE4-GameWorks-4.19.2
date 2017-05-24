@@ -17,7 +17,7 @@ FEnumArchiveProxy::FEnumArchiveProxy(FUHTMakefile& UHTMakefile, const UEnum* Enu
 	{
 		FName EnumName = Enum->GetNameByIndex(i);
 		int64 Value = Enum->GetValueByIndex(i);
-		EnumValuesX.Add(TPairInitializer<FNameArchiveProxy, int64>(FNameArchiveProxy(UHTMakefile, EnumName), Value));
+		EnumValuesX.Emplace(FNameArchiveProxy(UHTMakefile, EnumName), Value);
 	}
 
 	CppType = Enum->CppType;
@@ -39,7 +39,7 @@ void FEnumArchiveProxy::PostConstruct(UEnum* Enum, const FUHTMakefile& UHTMakefi
 	Names.Empty(EnumValuesX.Num());
 	for (auto& Kvp : EnumValuesX)
 	{
-		Names.Add(TPairInitializer<FName, int64>(Kvp.Key.CreateName(UHTMakefile), Kvp.Value));
+		Names.Emplace(Kvp.Key.CreateName(UHTMakefile), Kvp.Value);
 	}
 
 	Enum->SetEnums(Names, (UEnum::ECppForm)CppForm);

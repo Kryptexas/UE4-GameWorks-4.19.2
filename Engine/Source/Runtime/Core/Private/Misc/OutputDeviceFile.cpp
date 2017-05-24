@@ -59,12 +59,23 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 	FCriticalSection BufferPosCritical;
 	/** [CLIENT/WRITER THREAD] Outstanding serialize request counter. This is to make sure we flush all requests. */
 	FThreadSafeCounter SerializeRequestCounter;
+	/** [CLIENT/WRITER THREAD] Tells the writer thread, the client requested flush. */
+	FThreadSafeCounter WantsArchiveFlush;
 
 	/** [WRITER THREAD] Last time the archive was flushed. used in threaded situations to flush the underlying archive at a certain maximum rate. */
 	double LastArchiveFlushTime;
 
 	/** [WRITER THREAD] Archive flush interval. */
 	double ArchiveFlushIntervalSec;
+
+	/** [WRITER THREAD] Flushes the archive and reset the flush timer. */
+	void FlushArchiveAndResetTimer()
+	{
+		// This should be the one and only place where we flush because we want the flush to happen only on the 
+		// async writer thread (if threading is enabled)
+		Ar.Flush();
+		LastArchiveFlushTime = FPlatformTime::Seconds();
+	}
 
 	/** [WRITER THREAD] Serialize the contents of the ring buffer to disk */
 	void SerializeBufferToArchive()
@@ -89,19 +100,27 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 			// Modify the start pos. Only the worker thread modifies this value so it's ok to not guard it with a critical section.
 			BufferStartPos = ThisThreadEndPos;
 
+			// Decrement the request counter, we now know we serialized at least one request.
+			// We might have serialized more requests but it's irrelevant, the counter will go down to 0 eventually
+			SerializeRequestCounter.Decrement();
+
 			// Flush the archive periodically if running on a separate thread
 			if (Thread)
 			{
 				if ((FPlatformTime::Seconds() - LastArchiveFlushTime) > ArchiveFlushIntervalSec)
 				{
-					Ar.Flush();
-					LastArchiveFlushTime = FPlatformTime::Seconds();
+					FlushArchiveAndResetTimer();
 				}
 			}
-
-			// Decrement the request counter, we now know we serialized at least one request.
-			// We might have serialized more requests but it's irrelevant, the counter will go down to 0 eventually
-			SerializeRequestCounter.Decrement();
+			// If no threading is available or when we explicitly requested flush (see FlushBuffer), flush immediately after writing.
+			// In some rare cases we may flush twice (see above) but that's ok. We need a clear division between flushing because of the timer
+			// and force flush on demand.
+			if (WantsArchiveFlush.GetValue() > 0)
+			{
+				FlushArchiveAndResetTimer();
+				int32 FlushCount = WantsArchiveFlush.Decrement();
+				check(FlushCount >= 0);
+			}
 		}
 	}
 
@@ -217,10 +236,8 @@ public:
 	void Flush()
 	{
 		FScopeLock WriteLock(&BufferPosCritical);
+		WantsArchiveFlush.Increment();
 		FlushBuffer();
-		// At this point the serialize queue should be empty and the writer thread should no longer
-		// be accessing the Archive so we should be safe to flush it from here.
-		Ar.Flush();
 	}
 
 	//~ Begin FRunnable Interface.
@@ -238,11 +255,11 @@ public:
 			}
 			else if ((FPlatformTime::Seconds() - LastArchiveFlushTime) > ArchiveFlushIntervalSec)
 			{
-				SerializeRequestCounter.Increment();
+				FlushArchiveAndResetTimer();
 			}
 			else
 			{
-				FPlatformProcess::Sleep(0.01f);
+				FPlatformProcess::SleepNoStats(0.01f);
 			}
 		}
 		return 0;

@@ -78,7 +78,7 @@ public:
 
 
 	/** Event handlers */
-	void OnSetPreviewPrimitive(EThumbnailPrimType PrimType);
+	void OnSetPreviewPrimitive(EThumbnailPrimType PrimType, bool bInitialLoad = false);
 	bool IsPreviewPrimitiveChecked(EThumbnailPrimType PrimType) const;
 	void OnSetPreviewMeshFromSelection();
 	bool IsPreviewMeshFromSelectionChecked() const;

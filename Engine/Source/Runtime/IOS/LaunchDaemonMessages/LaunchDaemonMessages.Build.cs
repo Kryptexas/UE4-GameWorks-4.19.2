@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class LaunchDaemonMessages : ModuleRules
 	{
-        public LaunchDaemonMessages(TargetInfo Target)
+        public LaunchDaemonMessages(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

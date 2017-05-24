@@ -305,17 +305,22 @@ FGraphicsPipelineStateRHIRef FD3D12DynamicRHI::RHICreateGraphicsPipelineState(co
 {
 	FD3D12PipelineStateCache& PSOCache = GetAdapter().GetPSOCache();
 
+	FBoundShaderStateRHIRef BoundShaderState = RHICreateBoundShaderState(
+		Initializer.BoundShaderState.VertexDeclarationRHI,
+		Initializer.BoundShaderState.VertexShaderRHI,
+		Initializer.BoundShaderState.HullShaderRHI,
+		Initializer.BoundShaderState.DomainShaderRHI,
+		Initializer.BoundShaderState.PixelShaderRHI,
+		Initializer.BoundShaderState.GeometryShaderRHI);
+
 	FD3D12HighLevelGraphicsPipelineStateDesc GraphicsDesc = {};
-	GraphicsDesc.BoundShaderState = FD3D12DynamicRHI::ResourceCast(
-		RHICreateBoundShaderState(
-			Initializer.BoundShaderState.VertexDeclarationRHI,
-			Initializer.BoundShaderState.VertexShaderRHI,
-			Initializer.BoundShaderState.HullShaderRHI,
-			Initializer.BoundShaderState.DomainShaderRHI,
-			Initializer.BoundShaderState.PixelShaderRHI,
-			Initializer.BoundShaderState.GeometryShaderRHI
-		).GetReference()
-	);
+
+	// Zero the RTV array - this is necessary to prevent uninitialized memory affecting the PSO cache hash generation
+	// Note that the above GraphicsDesc = {} does not clear down the array, probably because it's a TStaticArray rather 
+	// than a standard C array. 
+	FMemory::Memzero(&GraphicsDesc.RTVFormats[0], sizeof(GraphicsDesc.RTVFormats[0]) * GraphicsDesc.RTVFormats.Num());
+
+	GraphicsDesc.BoundShaderState = FD3D12DynamicRHI::ResourceCast(BoundShaderState.GetReference());
 	GraphicsDesc.BlendState = &FD3D12DynamicRHI::ResourceCast(Initializer.BlendState)->Desc;
 	GraphicsDesc.RasterizerState = &FD3D12DynamicRHI::ResourceCast(Initializer.RasterizerState)->Desc;
 	GraphicsDesc.DepthStencilState = &FD3D12DynamicRHI::ResourceCast(Initializer.DepthStencilState)->Desc;
@@ -323,7 +328,7 @@ FGraphicsPipelineStateRHIRef FD3D12DynamicRHI::RHICreateGraphicsPipelineState(co
 	GraphicsDesc.PrimitiveTopologyType = D3D12PrimitiveTypeToTopologyType(TranslatePrimitiveType(Initializer.PrimitiveType));
 
 	TranslateRenderTargetFormats(Initializer, GraphicsDesc.RTVFormats, GraphicsDesc.DSVFormat);
-	GraphicsDesc.NumRenderTargets = Initializer.RenderTargetsEnabled;
+	GraphicsDesc.NumRenderTargets = Initializer.ComputeNumValidRenderTargets();
 	GraphicsDesc.SampleDesc.Count = Initializer.NumSamples;
 	GraphicsDesc.SampleDesc.Quality = GetMaxMSAAQuality(Initializer.NumSamples);
 
@@ -338,7 +343,8 @@ FD3D12SamplerState::FD3D12SamplerState(FD3D12Device* InParent, const D3D12_SAMPL
 	Descriptor.ptr = 0;
 	FD3D12OfflineDescriptorManager& DescriptorAllocator = GetParentDevice()->GetSamplerDescriptorAllocator();
 	Descriptor = DescriptorAllocator.AllocateHeapSlot(DescriptorHeapIndex);
-	GetParentDevice()->GetDevice()->CreateSampler(&Desc, Descriptor);
+
+	GetParentDevice()->CreateSamplerInternal(Desc, Descriptor);
 }
 
 FD3D12SamplerState::~FD3D12SamplerState()

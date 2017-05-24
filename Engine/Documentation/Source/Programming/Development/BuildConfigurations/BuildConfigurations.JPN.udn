@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2895621
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:ビルド コンフィギュレーションのリファレンス
 Description:ソリューションとプロジェクトのビルド コンフィギュレーションのリファレンス ガイド。
@@ -8,7 +8,7 @@ Related:GettingStarted/DownloadingUnrealEngine
 Related:Programming/Development/BuildingUnrealEngine
 Related:Programming/Development/CompilingProjects
 Related:Support/Builds
-Version:4.8
+Version:4.9
 
 [TOC (start:2 end:3)]
 

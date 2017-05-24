@@ -207,8 +207,8 @@ protected:
 	float LockedOrthoWidth;
 
 public:
-	/** Default aspect ratio */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerCameraManager)
+	/** Default aspect ratio (used when a view target override the aspect ratio and bConstrainAspectRatio is set; most of the time the value from a camera component will be used instead) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerCameraManager, meta=(EditCondition=bDefaultConstrainAspectRatio))
 	float DefaultAspectRatio;
 
 	/** Color to fade to (when bEnableFading == true). */
@@ -350,6 +350,10 @@ public:
 	/** True when this camera should use an orthographic perspective instead of FOV */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerCameraManager)
 	uint32 bIsOrthographic : 1;
+
+	/** True if black bars should be added if the destination view has a different aspect ratio (only used when a view target doesn't specify whether or not to constrain the aspect ratio; most of the time the value from a camera component is used instead) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerCameraManager)
+	uint32 bDefaultConstrainAspectRatio : 1;
 
 	/** True if we should apply FadeColor/FadeAmount to the screen. */
 	uint32 bEnableFading : 1;
@@ -621,6 +625,11 @@ protected:
 	/** Internal function conditionally called from UpdateCamera to do the actual work of updating the camera. */
 	virtual void DoUpdateCamera(float DeltaTime);
 
+	/** Updates the photography camera. Return true if a cut occurred */
+	virtual bool UpdatePhotographyCamera(FMinimalViewInfo& NewPOV);
+
+	/** Whether or not we allow photography mode */
+	virtual bool AllowPhotographyMode() const;
 	/** Internal. Applies appropriate audio fading to the audio system. */
 	virtual void ApplyAudioFade();
 	virtual void StopAudioFade();

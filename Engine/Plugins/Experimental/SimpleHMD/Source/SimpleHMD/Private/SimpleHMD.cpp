@@ -170,17 +170,7 @@ bool FSimpleHMD::IsChromaAbCorrectionEnabled() const
 	return false;
 }
 
-bool FSimpleHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	return false;
-}
-
 bool FSimpleHMD::IsPositionalTrackingEnabled() const
-{
-	return false;
-}
-
-bool FSimpleHMD::EnablePositionalTracking(bool enable)
 {
 	return false;
 }
@@ -188,15 +178,6 @@ bool FSimpleHMD::EnablePositionalTracking(bool enable)
 bool FSimpleHMD::IsHeadTrackingAllowed() const
 {
 	return true;
-}
-
-bool FSimpleHMD::IsInLowPersistenceMode() const
-{
-	return false;
-}
-
-void FSimpleHMD::EnableLowPersistenceMode(bool Enable)
-{
 }
 
 void FSimpleHMD::ResetOrientationAndPosition(float yaw)

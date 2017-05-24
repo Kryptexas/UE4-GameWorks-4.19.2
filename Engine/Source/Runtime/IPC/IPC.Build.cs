@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class IPC : ModuleRules
 {
-	public IPC(TargetInfo Target)
+	public IPC(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
 	}

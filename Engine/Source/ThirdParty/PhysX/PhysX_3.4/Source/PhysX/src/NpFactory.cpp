@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -1231,23 +1231,23 @@ namespace physx
 	{
 		switch(base.getScbType())
 		{
-			case ScbType::SHAPE_EXCLUSIVE:
-			case ScbType::SHAPE_SHARED:					{ NpDestroyShape(static_cast<Scb::Shape&>(base));							}break;
-			case ScbType::BODY:							{ NpDestroyRigidDynamic(static_cast<Scb::Body&>(base));						}break;
-			case ScbType::BODY_FROM_ARTICULATION_LINK:	{ NpDestroyArticulationLink(static_cast<Scb::Body&>(base));					}break;
-			case ScbType::RIGID_STATIC:					{ NpDestroyRigidActor(static_cast<Scb::RigidStatic&>(base));				}break;
-			case ScbType::CONSTRAINT:					{ NpDestroyConstraint(static_cast<Scb::Constraint&>(base));					}break;
+			case ScbType::eSHAPE_EXCLUSIVE:
+			case ScbType::eSHAPE_SHARED:				{ NpDestroyShape(static_cast<Scb::Shape&>(base));							}break;
+			case ScbType::eBODY:						{ NpDestroyRigidDynamic(static_cast<Scb::Body&>(base));						}break;
+			case ScbType::eBODY_FROM_ARTICULATION_LINK:	{ NpDestroyArticulationLink(static_cast<Scb::Body&>(base));					}break;
+			case ScbType::eRIGID_STATIC:				{ NpDestroyRigidActor(static_cast<Scb::RigidStatic&>(base));				}break;
+			case ScbType::eCONSTRAINT:					{ NpDestroyConstraint(static_cast<Scb::Constraint&>(base));					}break;
 #if PX_USE_PARTICLE_SYSTEM_API
-			case ScbType::PARTICLE_SYSTEM:				{ NpDestroyParticleSystem(static_cast<Scb::ParticleSystem&>(base));			}break;
+			case ScbType::ePARTICLE_SYSTEM:				{ NpDestroyParticleSystem(static_cast<Scb::ParticleSystem&>(base));			}break;
 #endif
-			case ScbType::ARTICULATION:					{ NpDestroyArticulation(static_cast<Scb::Articulation&>(base));				}break;
-			case ScbType::ARTICULATION_JOINT:			{ NpDestroyArticulationJoint(static_cast<Scb::ArticulationJoint&>(base));	}break;
-			case ScbType::AGGREGATE:					{ NpDestroyAggregate(static_cast<Scb::Aggregate&>(base));					}break;
+			case ScbType::eARTICULATION:				{ NpDestroyArticulation(static_cast<Scb::Articulation&>(base));				}break;
+			case ScbType::eARTICULATION_JOINT:			{ NpDestroyArticulationJoint(static_cast<Scb::ArticulationJoint&>(base));	}break;
+			case ScbType::eAGGREGATE:					{ NpDestroyAggregate(static_cast<Scb::Aggregate&>(base));					}break;
 #if PX_USE_CLOTH_API
-			case ScbType::CLOTH:						{ NpDestroyCloth(static_cast<Scb::Cloth&>(base));							}break;
+			case ScbType::eCLOTH:						{ NpDestroyCloth(static_cast<Scb::Cloth&>(base));							}break;
 #endif
-			case ScbType::UNDEFINED:
-			case ScbType::TYPE_COUNT:
+			case ScbType::eUNDEFINED:
+			case ScbType::eTYPE_COUNT:
 				PX_ALWAYS_ASSERT_MESSAGE("NpDestroy: missing type!");
 				break;
 		}

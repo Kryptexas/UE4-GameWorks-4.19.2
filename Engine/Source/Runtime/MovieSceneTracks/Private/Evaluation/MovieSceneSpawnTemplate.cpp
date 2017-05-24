@@ -35,12 +35,12 @@ struct FSpawnObjectToken : IMovieSceneExecutionToken
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
 	{
 		MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_SpawnTrack_TokenExecute)
-
-		const bool bHasBoundObjects = Player.FindBoundObjects(Operand).Num() != 0;
+		
+		bool bHasSpawnedObject = Player.GetSpawnRegister().FindSpawnedObject(Operand.ObjectBindingID, Operand.SequenceID) != nullptr;
 		if (bSpawned)
 		{
 			// If it's not spawned, spawn it
-			if (!bHasBoundObjects)
+			if (!bHasSpawnedObject)
 			{
 				const UMovieSceneSequence* Sequence = Player.State.FindSequence(Operand.SequenceID);
 				if (Sequence)
@@ -58,7 +58,7 @@ struct FSpawnObjectToken : IMovieSceneExecutionToken
 				}
 			}
 		}
-		else if (!bSpawned && bHasBoundObjects)
+		else if (!bSpawned && bHasSpawnedObject)
 		{
 			Player.GetSpawnRegister().DestroySpawnedObject(Operand.ObjectBindingID, Operand.SequenceID, Player);
 		}

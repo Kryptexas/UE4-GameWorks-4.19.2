@@ -8,6 +8,7 @@
 typedef enum ovrLeaderboardStartAt_ {
   ovrLeaderboard_StartAtTop,
   ovrLeaderboard_StartAtCenteredOnViewer,
+  ovrLeaderboard_StartAtCenteredOnViewerOrTop,
   ovrLeaderboard_StartAtUnknown,
 } ovrLeaderboardStartAt;
 

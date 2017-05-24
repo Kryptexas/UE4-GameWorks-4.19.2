@@ -9,6 +9,7 @@ topic-image:physically_based_topic.png
 type:overview
 tags:Physically Based Shading
 tags:PBR
+tags:Materials
 
 [REGION:fullwidth]
 ![](PhysMatHeader.png)

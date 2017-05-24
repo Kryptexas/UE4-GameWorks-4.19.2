@@ -24,16 +24,18 @@ private:
 public:
 	SLATE_BEGIN_ARGS(SCSVImportOptions)
 		: _WidgetWindow()
-	{}
+		, _FullPath()
+		{}
 
-	SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow)
-		SLATE_END_ARGS()
+		SLATE_ARGUMENT(TSharedPtr<SWindow>, WidgetWindow)
+		SLATE_ARGUMENT(FText, FullPath)
+	SLATE_END_ARGS()
 
-		SCSVImportOptions()
+	SCSVImportOptions()
 		: bImport(false)
 		, SelectedImportType(ECSVImportType::ECSV_DataTable)
 		, SelectedStruct(NULL)
-	{}
+		{}
 
 	void Construct(const FArguments& InArgs);
 

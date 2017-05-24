@@ -19,7 +19,7 @@ public:
 
 	FNavigationMetaData()
 	{
-		for (auto Rule : Rules)
+		for (SNavData& Rule : Rules)
 		{
 			Rule.BoundaryRule = EUINavigationRule::Escape;
 			Rule.FocusRecipient = nullptr;

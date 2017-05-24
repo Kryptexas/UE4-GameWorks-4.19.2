@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2743766
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title: 虚幻编辑器手册
 Crumbs:%ROOT%, Engine
@@ -6,6 +6,7 @@ Description: 使用和配置虚幻编辑器工具集的指南。
 Navigation:topic
 parent:%ROOT%
 order:2
+type:landing
 
 [VAR:Params]
 [PARAM:image]

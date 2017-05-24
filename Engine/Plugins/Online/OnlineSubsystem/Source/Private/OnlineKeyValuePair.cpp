@@ -18,8 +18,8 @@
  *
  * @param Other the other structure to copy
  */
-FVariantData::FVariantData(const FVariantData& Other) :
-	Type(EOnlineKeyValuePairDataType::Empty)
+FVariantData::FVariantData(const FVariantData& Other)
+	: Type(EOnlineKeyValuePairDataType::Empty)
 {
 	// Use common methods for doing deep copy or just do a simple shallow copy
 	if (Other.Type == EOnlineKeyValuePairDataType::String)
@@ -35,6 +35,18 @@ FVariantData::FVariantData(const FVariantData& Other) :
 		// Shallow copy is safe
 		FMemory::Memcpy(this, &Other, sizeof(FVariantData));
 	}
+}
+
+FVariantData::FVariantData(FVariantData&& Other)
+	: Type(EOnlineKeyValuePairDataType::Empty)
+{
+	// Copy values/pointers
+	FMemory::Memcpy(this, &Other, sizeof(FVariantData));
+
+	// Reset other to empty now so it doesn't try to delete pointers
+	Other.Type = EOnlineKeyValuePairDataType::Empty;
+	// Clear saved values
+	Other.Empty();
 }
 
 /**
@@ -62,6 +74,22 @@ FVariantData& FVariantData::operator=(const FVariantData& Other)
 			FMemory::Memcpy(this, &Other, sizeof(FVariantData));
 		}
 	}
+	return *this;
+}
+
+FVariantData& FVariantData::operator=(FVariantData&& Other)
+{
+	if (this != &Other)
+	{
+		// Copy values/pointers
+		FMemory::Memcpy(this, &Other, sizeof(FVariantData));
+
+		// Reset other to empty now so it doesn't try to delete pointers
+		Other.Type = EOnlineKeyValuePairDataType::Empty;
+		// Clear saved values
+		Other.Empty();
+	}
+
 	return *this;
 }
 
@@ -1147,7 +1175,7 @@ bool FVariantDataConverter::ConvertScalarUPropertyToVariant(UProperty* Property,
 	{
 		// export enums as strings
 		UEnum* EnumDef = EnumProperty->GetEnum();
-		FString StringValue = EnumDef->GetEnumName(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(Value));
+		FString StringValue = EnumDef->GetNameStringByValue(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(Value));
 		OutVariantData.SetValue(StringValue);
 	}
 	else if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
@@ -1157,7 +1185,7 @@ bool FVariantDataConverter::ConvertScalarUPropertyToVariant(UProperty* Property,
 		if (EnumDef != NULL)
 		{
 			// export enums as strings
-			FString StringValue = EnumDef->GetEnumName(NumericProperty->GetSignedIntPropertyValue(Value));
+			FString StringValue = EnumDef->GetNameStringByValue(NumericProperty->GetSignedIntPropertyValue(Value));
 			OutVariantData.SetValue(StringValue);
 		}
 		// We want to export numbers as numbers

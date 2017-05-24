@@ -105,8 +105,8 @@
 #include "Factories/SoundMixFactory.h"
 #include "Factories/ReimportSoundSurroundFactory.h"
 #include "Factories/StructureFactory.h"
+#include "Factories/StringTableFactory.h"
 #include "Factories/SubsurfaceProfileFactory.h"
-#include "Factories/SubDSurfaceFactory.h"
 #include "Factories/Texture2dFactoryNew.h"
 #include "Engine/Texture.h"
 #include "Factories/TextureFactory.h"
@@ -136,7 +136,6 @@
 #include "Sound/SoundWave.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/SubsurfaceProfile.h"
-#include "Engine/SubDSurface.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FeedbackContext.h"
 #include "GameFramework/WorldSettings.h"
@@ -165,6 +164,7 @@
 #include "GameFramework/TouchInterface.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
+#include "Internationalization/StringTable.h"
 #include "Editor.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpGroupCamera.h"
@@ -246,6 +246,7 @@
 #include "Engine/PreviewMeshCollection.h"
 #include "Factories/PreviewMeshCollectionFactory.h"
 #include "Factories/ForceFeedbackAttenuationFactory.h"
+#include "FileHelper.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -258,20 +259,42 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 class FAssetClassParentFilter : public IClassViewerFilter
 {
 public:
+	FAssetClassParentFilter()
+		: DisallowedClassFlags(0), bDisallowBlueprintBase(false)
+	{}
+
 	/** All children of these classes will be included unless filtered out by another setting. */
 	TSet< const UClass* > AllowedChildrenOfClasses;
 
 	/** Disallowed class flags. */
 	uint32 DisallowedClassFlags;
 
+	/** Disallow blueprint base classes. */
+	bool bDisallowBlueprintBase;
+
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 	{
-		return !InClass->HasAnyClassFlags(DisallowedClassFlags)
+		bool bAllowed= !InClass->HasAnyClassFlags(DisallowedClassFlags)
 			&& InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed;
+
+		if (bAllowed && bDisallowBlueprintBase)
+		{
+			if (FKismetEditorUtilities::CanCreateBlueprintOfClass(InClass))
+			{
+				return false;
+			}
+		}
+
+		return bAllowed;
 	}
 
 	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 	{
+		if (bDisallowBlueprintBase)
+		{
+			return false;
+		}
+
 		return !InUnloadedClassData->HasAnyClassFlags(DisallowedClassFlags)
 			&& InFilterFuncs->IfInChildOfClassesSet(AllowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Failed;
 	}
@@ -670,7 +693,7 @@ UObject* ULevelFactory::FactoryCreateText
 					{
 						NewBP->ClearFlags(RF_Standalone);
 
-						FKismetEditorUtilities::CompileBlueprint(NewBP, false, true);
+						FKismetEditorUtilities::CompileBlueprint(NewBP, EBlueprintCompileOptions::SkipGarbageCollection);
 
 						TempClass = NewBP->GeneratedClass;
 
@@ -2625,8 +2648,9 @@ UTexture2D* UTextureFactory::CreateTexture2D( UObject* InParent, FName Name, EOb
 
 UTextureCube* UTextureFactory::CreateTextureCube( UObject* InParent, FName Name, EObjectFlags Flags )
 {
-	UTextureCube* NewTextureCube = CastChecked<UTextureCube>( CreateOrOverwriteAsset(UTextureCube::StaticClass(), InParent, Name, Flags) );
-	return NewTextureCube;
+	// CreateOrOverwriteAsset could fail if this cubemap replaces an asset that still has references.
+	UObject* NewObject = CreateOrOverwriteAsset(UTextureCube::StaticClass(), InParent, Name, Flags);
+	return NewObject ? CastChecked<UTextureCube>(NewObject) : nullptr;
 }
 
 void UTextureFactory::SuppressImportOverwriteDialog()
@@ -4976,6 +5000,12 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 		GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, bIsAutomated, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_StaticMesh );
 	}
 
+	//We do not touch bAutoComputeLodDistances when we re-import, setting it to true will make sure we do not change anything.
+	//We set the LODDistance only when the value is false.
+	ImportOptions->bAutoComputeLodDistances = true;
+	ImportOptions->LodNumber = 0;
+	ImportOptions->MinimumLodNumber = 0;
+
 	if( !bOperationCanceled && ensure(ImportData) )
 	{
 		const FString Filename = ImportData->GetFirstFilename();
@@ -5400,7 +5430,7 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	UnFbx::FFbxImporter* Importer = UnFbx::FFbxImporter::GetInstance();
 
 	//Pop the message log in case of error
-	UnFbx::FFbxLoggerSetter Logger(Importer, true);
+	UnFbx::FFbxLoggerSetter Logger(Importer, false);
 
 	CurrentFilename = Filename;
 
@@ -6057,6 +6087,11 @@ UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 /*------------------------------------------------------------------------------
 	UDestructibleMeshFactory implementation.
 ------------------------------------------------------------------------------*/
+namespace DestructibleFactoryConstants
+{
+	static const FString DestructibleAssetClass("DestructibleAssetParameters");
+}
+
 UDestructibleMeshFactory::UDestructibleMeshFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -6074,6 +6109,41 @@ FText UDestructibleMeshFactory::GetDisplayName() const
 }
 
 #if WITH_APEX
+
+bool UDestructibleMeshFactory::FactoryCanImport(const FString& Filename)
+{
+	// Need to read in the file and try to create an asset to get it's type
+	TArray<uint8> FileBuffer; 
+	if(FFileHelper::LoadFileToArray(FileBuffer, *Filename, FILEREAD_Silent))
+	{
+		physx::PxFileBuf* Stream = GApexSDK->createMemoryReadStream(FileBuffer.GetData(), FileBuffer.Num());
+			if(Stream)
+			{
+				NvParameterized::Serializer::SerializeType SerializeType = GApexSDK->getSerializeType(*Stream);
+				if(NvParameterized::Serializer* Serializer = GApexSDK->createSerializer(SerializeType))
+				{
+					NvParameterized::Serializer::DeserializedData DeserializedData;
+					Serializer->deserialize(*Stream, DeserializedData);
+
+					if(DeserializedData.size() > 0)
+					{
+						NvParameterized::Interface* AssetInterface = DeserializedData[0];
+
+						int32 StringLength = StringCast<TCHAR>(AssetInterface->className()).Length();
+						FString ClassName(StringLength, StringCast<TCHAR>(AssetInterface->className()).Get());
+
+						if(ClassName == DestructibleFactoryConstants::DestructibleAssetClass)
+						{
+							return true;
+						}
+					}
+				}
+
+				GApexSDK->releaseMemoryReadStream(*Stream);
+			}
+	}
+	return false;
+}
 
 UObject* UDestructibleMeshFactory::FactoryCreateBinary
 (
@@ -6311,6 +6381,10 @@ UObject* UBlendSpaceFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent
 		UBlendSpace * BlendSpace = NewObject<UBlendSpace>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			BlendSpace->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return BlendSpace;
 	}
@@ -6381,6 +6455,10 @@ UObject* UBlendSpaceFactory1D::FactoryCreateNew(UClass* Class,UObject* InParent,
 		UBlendSpace1D * BlendSpace = NewObject<UBlendSpace1D>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			BlendSpace->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return BlendSpace;
 	}
@@ -6411,6 +6489,10 @@ UObject* UAimOffsetBlendSpaceFactoryNew::FactoryCreateNew(UClass* Class,UObject*
 		UAimOffsetBlendSpace * BlendSpace = NewObject<UAimOffsetBlendSpace>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			BlendSpace->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return BlendSpace;
 	}
@@ -6435,6 +6517,10 @@ UObject* UAimOffsetBlendSpaceFactory1D::FactoryCreateNew(UClass* Class,UObject* 
 		UAimOffsetBlendSpace1D * BlendSpace = NewObject<UAimOffsetBlendSpace1D>(InParent, Class, Name, Flags);
 
 		BlendSpace->SetSkeleton(TargetSkeleton);
+		if (PreviewSkeletalMesh)
+		{
+			BlendSpace->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return BlendSpace;
 	}
@@ -6594,25 +6680,6 @@ USubsurfaceProfileFactory::USubsurfaceProfileFactory(const FObjectInitializer& O
 UObject* USubsurfaceProfileFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	return NewObject<USubsurfaceProfile>(InParent, InName, Flags);
-}
-
-
-/*-----------------------------------------------------------------------------
-USubDSurfaceFactory implementation.
------------------------------------------------------------------------------*/
-USubDSurfaceFactory::USubDSurfaceFactory(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-
-	SupportedClass = USubDSurface::StaticClass();
-	bCreateNew = true;
-	bEditorImport = false;
-	bEditAfterNew = true;
-}
-
-UObject* USubDSurfaceFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
-{
-	return NewObject<USubDSurface>(InParent, USubDSurface::StaticClass(), InName, Flags);
 }
 
 /*-----------------------------------------------------------------------------
@@ -6809,6 +6876,22 @@ UObject* UDataTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 		}
 	}
 	return DataTable;
+}
+
+/*------------------------------------------------------------------------------
+UStringTableFactory implementation.
+------------------------------------------------------------------------------*/
+UStringTableFactory::UStringTableFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UStringTable::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+UObject* UStringTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	return NewObject<UStringTable>(InParent, Name, Flags);
 }
 
 /*------------------------------------------------------------------------------

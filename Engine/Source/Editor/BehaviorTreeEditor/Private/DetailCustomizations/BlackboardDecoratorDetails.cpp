@@ -176,7 +176,7 @@ void FBlackboardDecoratorDetails::OnKeyIDChanged()
 		{
 			for (int32 i = 0; i < CachedCustomObjectType->NumEnums() - 1; i++)
 			{
-				FString DisplayedName = CachedCustomObjectType->GetEnumText(i).ToString();
+				FString DisplayedName = CachedCustomObjectType->GetDisplayNameTextByIndex(i).ToString();
 				EnumPropValues.Add(DisplayedName);
 			}
 		}

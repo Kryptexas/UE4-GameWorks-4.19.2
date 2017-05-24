@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 
 #ifndef PXPVDSDK_PXPVDCOMMSTREAMEVENTS_H
 #define PXPVDSDK_PXPVDCOMMSTREAMEVENTS_H
@@ -137,6 +137,7 @@ struct PvdCommStreamEventTypes
 		DECLARE_COMM_STREAM_EVENTS
 #undef DECLARE_PVD_COMM_STREAM_EVENT_NO_COMMA
 #undef DECLARE_PVD_COMM_STREAM_EVENT
+        , Last
 	};
 };
 

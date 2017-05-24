@@ -94,7 +94,8 @@ QOSREPORTER_API void FQoSReporter::Initialize()
 		return;
 	}
 
-	SetBackendDeploymentName(StoredDeploymentName);
+	// set this directly as SetBackendDeploymentName will early-out on same value
+	Analytics->SetLocation(StoredDeploymentName);
 
 	// check if Configs override the heartbeat interval
 	float ConfigHeartbeatInterval = 0.0;
@@ -160,6 +161,11 @@ void FQoSReporter::ReportStartupCompleteEvent()
 
 void FQoSReporter::SetBackendDeploymentName(const FString & InDeploymentName)
 {
+	if (StoredDeploymentName == InDeploymentName)
+	{
+		return;
+	}
+
 	StoredDeploymentName = InDeploymentName;
 
 	if (Analytics.IsValid())
@@ -214,7 +220,8 @@ void FQoSReporter::Tick()
 	}
 
 	// detect too long pauses between ticks, unless configured to ignore them or running under debugger
-	if (!QOS_IGNORE_HITCHES && bCountHitches && !FPlatformMisc::IsDebuggerPresent())
+#if !QOS_IGNORE_HITCHES
+	if (bCountHitches && !FPlatformMisc::IsDebuggerPresent())
 	{
 		const double DeltaBetweenTicks = CurrentTime - PreviousTickTime;
 
@@ -244,6 +251,7 @@ void FQoSReporter::Tick()
 				DeltaBetweenTicks, GAverageFPS);
 		}
 	}
+#endif
 
 	PreviousTickTime = CurrentTime;
 }

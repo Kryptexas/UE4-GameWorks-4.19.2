@@ -15,7 +15,7 @@ class FTrackEditorThumbnailPool;
  * CameraCut section, which paints and ticks the appropriate section.
  */
 class FCameraCutSection
-	: public FThumbnailSection
+	: public FViewportThumbnailSection
 {
 public:
 

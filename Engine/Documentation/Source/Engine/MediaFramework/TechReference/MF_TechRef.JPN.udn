@@ -1,12 +1,12 @@
-﻿INTSourceChangeList:3140278
-Availability:Docs
+﻿INTSourceChangelist:3256943
+Availability:Public
 Title:Media Framework 技術リファレンス
 Crumbs:%ROOT%, Engine
 Description:アンリアル エンジン 4 の Media Framework 関連の技術情報
 Navigation:topic
 parent:Engine/MediaFramework
 order:2
-Version:4.13
+Version:4.14
 Related:Engine\MediaFramework\Overview
 Related:Engine\MediaFramework\HowTo
 
@@ -23,44 +23,26 @@ Related:Engine\MediaFramework\HowTo
 
 以下は、メディア プレイヤー プラットフォームごとにサポート対象の拡張子の表です。 
 
-| | Android Media Player | AVF Media Player | PS4 Media Player | WMF Media Player | Xbox One Media Player |
-| --- | --- | --- |--- | --- | --- |
-| **.3g2** | なし | なし | なし | あり | なし |
-| **.3gp** | なし | なし | なし | あり | なし |
-| **.3gp2** | なし | なし | なし | あり | なし |
-| **.3gpp** | あり | なし | なし | あり | なし |
-| **.aac** | あり | なし | なし | あり | なし |
-| **.adts** | なし | なし | なし | あり | なし |
-| **.asf** | なし | なし | なし | あり | なし |
-| **.avi** | なし | あり | なし | あり | なし |
-| **.m4a** | なし | なし | なし | あり | なし |
-| **.m4v** | なし | あり | なし | あり | なし |
-| **.mov** | なし | あり | なし | あり | なし |
-| **.mp3** | なし | なし | なし | あり | なし |
-| **.mp4** | あり | あり | あり | あり | なし |
-| **.sami** | なし | なし | なし | あり | なし |
-| **.smi** | なし | なし | なし | あり | なし |
-| **.wav** | なし | なし | なし | あり | なし |
-| **.wma** | なし | なし | なし | あり | なし |
-| **.wmv** | なし | なし | なし | あり | なし |
+_サポート対象のファイルおよび URL をまとめた表 (.xlsx 形式) をダウンロードするには画像をクリックしてください。_
+
+[REGION:raw]
+[![](MediaFrameworkExtentions.png)](SupportedExtentions.xlsx)
+[/REGION]
+
+<!-- Editor Note - you can update the table inside the Attachments folder if need be. -->
+
+上記のサポート対象ファイル形式一覧は作成中であり、サポート対象ファイル拡張子が追加された場合は今後エンジンのアップデート時にオンラインで公開します。互換性とパフォーマンスを最善にするためには、H.264での **.mp4** の使用を推奨します。 
+上記の表にも記載してある通り、拡張子はエンジン リリース 4.15 時点を想定しています。 
 
 [REGION:warning]
-XboxOne 用の MfMedia プレイヤー プラグインは現在開発中のため、4.13 では使用できません。MacOS および iOS 用の AvfMedia プレイヤー プラグインは実験段階のため、全部の機能が期待どおりの動作をしない可能性があります。今後のエンジン リリースでの対処を目指して、この両方の問題の解決の取り組んでいます。  
+XboxOne 用の MfMedia プレイヤー プラグインは現在開発中のため、UE4 が Windows 7 以降向けにビルドされている場合は一部の機能がサポートされます。MacOS および iOS 用の AvfMedia プレイヤー プラグインは実験段階のため、全部の機能が期待どおりの動作をしない可能性があります。今後のエンジン リリースでの対処を目指して、この両方の問題の解決の取り組んでいます。  
 [/REGION]
 
 以下は、メディア プレイヤー プラットフォーム別にサポート対象の URL の表です。 
 
-| | Android Media Player | AVF Media Player | PS4 Media Player | WMF Media Player | Xbox One Media Player |
-| --- | --- | --- |--- | --- | --- |
-| **file://** | あり | あり | あり | あり | なし |
-| **http://** | あり | なし | あり | あり | なし |
-| **httpd://** | あり | なし | なし | あり | なし |
-| **http://** | あり | なし | あり | あり | なし |
-| **mms://** | あり | なし | なし | あり | なし |
-| **rtsp://** | あり | なし | なし | あり | なし |
-| **rtspt://** | あり | なし | なし | あり | なし |
-| **rtspu://** | あり | あり | なし | あり | なし |
-
+[REGION:raw]
+![](URLSheet.png)
+[/REGION]
 
 ## WMF コンフィギュレーション設定
 
@@ -107,6 +89,7 @@ Windows Media Foundation (WMF) は Windows プラットフォーム上で標準�
 [/REGION]
 
 Media Player アセット内のおよび **[Info (情報)]** タブでも、メディアソースの情報を確認できます。 
+ここにはメディア ソールに対して使用可能なオプション (Forward/Reverse Rates nad Scrubbing/Seeking)、様々なオーディオおよびビデオ ストリーム、各ストリームの情報が表示されます。 
 
 ![](InfoWindow.png)
 
@@ -144,4 +127,7 @@ Windows Media Foundation (WMF) ベースのプレイヤー プラグイン WmfMe
 	* 複数のオーディオ トラックのあるビデオの中には開けないものがあります。
 	* QuickTime movie (.mov) が Windows 7 以降でサポートされていますが、現在は信頼できません。 
 		*	Workaround:この形式の使用は、現在お勧めしておりません。 
+
+
+
 

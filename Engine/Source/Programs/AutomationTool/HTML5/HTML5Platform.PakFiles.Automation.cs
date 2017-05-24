@@ -73,7 +73,7 @@ public class HTMLPakAutomation
 			// we need to operate in the root
 			using (new PushedDirectory(Path.Combine(PackagePath)))
 			{
-				string CmdLine = string.Format("\"{0}\" \"{1}\" --preload \"{2}\" --js-output=\"{1}.js\"", PackagerPath, FinalDataLocation, SC.ShortProjectName);
+				string CmdLine = string.Format("\"{0}\" \"{1}\" --preload \"{2}\" --js-output=\"{1}.js\" --no-heap-copy", PackagerPath, FinalDataLocation, SC.ShortProjectName);
 				CommandUtils.RunAndLog(CommandUtils.CmdEnv, PythonPath, CmdLine);
 			}
 		}

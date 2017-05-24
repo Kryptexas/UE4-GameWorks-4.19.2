@@ -171,7 +171,7 @@ FText UK2Node_Composite::GetTooltipText() const
 	{
 		if (!InputSinkNode->MetaData.ToolTip.IsEmpty())
 		{
-			return FText::FromString(InputSinkNode->MetaData.ToolTip);
+			return InputSinkNode->MetaData.ToolTip;
 		}
 	}
 

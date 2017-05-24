@@ -63,12 +63,12 @@ namespace
 
 bool FTextTest::RunTest (const FString& Parameters)
 {
-	AddLogItem(TEXT("This test is destructive to existing culture invariant text! All culture invariant text will appear in LEET afterwards!"));
-
 	FInternationalization& I18N = FInternationalization::Get();
 	const bool OriginalEnableErrorCheckingValue = FText::GetEnableErrorCheckingResults();
 	const bool OriginalSuppressWarningsValue = FText::GetSuppressWarnings();
-	const FString OriginalCulture = I18N.GetCurrentCulture()->GetName();
+	
+	FInternationalization::FCultureStateSnapshot OriginalCultureState;
+	I18N.BackupCultureState(OriginalCultureState);
 
 	FText::SetEnableErrorCheckingResults(true);
 	FText::SetSuppressWarnings(true);
@@ -410,7 +410,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 #if UE_ENABLE_ICU
 	{
-		I18N.SetCurrentCulture(OriginalCulture);
+		I18N.RestoreCultureState(OriginalCultureState);
 
 		TArray<uint8> FormattedHistoryAsEnglish;
 		TArray<uint8> FormattedHistoryAsFrenchCanadian;
@@ -567,7 +567,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 			FormattedTestLayer2.ToString();
 
 			{
-				I18N.SetCurrentCulture(OriginalCulture);
+				I18N.RestoreCultureState(OriginalCultureState);
 
 				FText InvariantFText;
 
@@ -621,7 +621,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 		AddError( TEXT("FromString should never produce a Transient Text") );
 	}
 
-	I18N.SetCurrentCulture(OriginalCulture);
+	I18N.RestoreCultureState(OriginalCultureState);
 
 	return true;
 }

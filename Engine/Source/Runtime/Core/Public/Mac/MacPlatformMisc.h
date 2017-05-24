@@ -8,6 +8,10 @@
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Mac/MacSystemIncludes.h"
 
+#ifndef MAC_PROFILING_ENABLED
+#define MAC_PROFILING_ENABLED (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT)
+#endif
+
 typedef void (*UpdateCachedMacMenuStateProc)(void);
 
 /**
@@ -17,7 +21,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit(bool ShowSplashScreen = false);
+	static void PlatformPostInit();
 	static void PlatformTearDown();
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
@@ -80,7 +84,9 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	FORCEINLINE static void MemoryBarrier()
 	{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		OSMemoryBarrier();
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 
 	static void PumpMessages(bool bFromMainLoop);
@@ -102,6 +108,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static FString GetPrimaryGPUBrand();
 	static struct FGPUDriverInfo GetGPUDriverInfo(const FString& DeviceDescription);
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
+	static FString GetOSVersion();
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
 	static bool HasSeparateChannelForDebugOutput();
@@ -153,6 +160,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext& Context));
 
+	static FString GetDefaultLanguage();
 	static FString GetDefaultLocale();
 
 	/** @return Get the name of the platform specific file manager (Finder) */
@@ -225,6 +233,14 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
     static void UpdateDriverMonitorStatistics(int32 DeviceIndex);
 
 	static float GetDPIScaleFactorAtPoint(float X, float Y);
+	
+#if MAC_PROFILING_ENABLED
+	static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text);
+	static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text);
+	static void EndNamedEvent();
+#endif
+	static void* CreateAutoreleasePool();
+	static void ReleaseAutoreleasePool(void *Pool);
 };
 
 #ifdef __OBJC__

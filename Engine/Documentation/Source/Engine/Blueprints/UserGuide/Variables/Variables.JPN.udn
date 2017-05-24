@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3244370
 Availability:Public
-Title:ブループリントの変数
+Title:ブループリント変数
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
 Description:ワールド内のオブジェクトやアクタの値またはリファレンスをもつプロパティ
 version:4.9
-skillLevel:Intermediate
+skilllevel:Intermediate
 Parent:Engine/Blueprints/Scripting
 tags:Data Types
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,31 +51,31 @@ tags:Data Types
 [TOC (start:2)]
 
 [EXCERPT:Intro]
-**変数** とは、ワールド内のオブジェクトやアクタの値または参照を保持するプロパティです。これらプロパティは、 
-レベルに配置されたブループリントのインスタンスで作業をしているデザイナーが変更を加えられるように、 
-外部からのアクセスが 
-可能となっています。
+**変数** とは、ワールド内のオブジェクトやアクタの値または参照を保持するプロパティです。これらを含む **ブループリント** には内部からアクセス可能です。 
+また、 
+レベルに配置された **ブループリント** のインスタンスで作業をしているデザイナーが変更を加えられるように、 
+外部からのアクセスも可能となっています。
 [/EXCERPT:Intro]
 
-変数は、角丸の四角の中に名前が入って表示されます。
+変数は、角丸の四角内に名前が入って表示されます。
 
 ![Variable Nodes](k2_node_variables.png)
 
 
 [REGION:tip]
-マチネを使用した特別な型の変数値の修正方法については、 [](Engine/Matinee\UserGuide\BlueprintComponents) をご覧ください。
+マチネを使用した特別型の変数値の修正方法については、[](Engine/Matinee\UserGuide\BlueprintComponents) をご覧ください。
 [/REGION]
 
 
 ## 変数の型
 
-変数は様々な型で作成が可能です。例えば、Boolean、integer、float などのデータ型や、オブジェクト、アクタ、特定クラスなどを保持するリファレンス型です。 
-それぞれの変数型で [配列](Engine/Blueprints\UserGuide\Arrays) の作成も可能です。それぞれの型は見やすいように色分けされています。
+変数は、Boolean、integer、float などのデータ型や、オブジェクト、アクタ、特定クラスなどを保持するリファレンス型など、様々な型での作成が可能です。 
+それぞれの変数型の [配列](Engine/Blueprints\UserGuide\Arrays) の作成も可能です。それぞれの型は見やすいように色分けされています。
 
 [EXCERPT:VarColor]
 
 | 変数の型 | 色 | 例 | 使用方法 |
-| -----------   | ------  | --- | --- |
+| --- | --- | --- | --- |
 | **Boolean**   | Red     | ![](RedWire.png) | 赤の変数は Boolean (true/false)  データを表します。 |
 | **Integer**   | Cyan    | ![](CyanWire.png) | シアン色の変数は整数または小数点以下の部分を含まない 0、152、-226 等のデータを表します。
 | **Float**     | Green   | ![](GreenWire.png) | 緑の変数は浮動小数値または小数点以下の部分を含む 0.0553、101.2887、-78.322 等のデータを表します。
@@ -304,7 +305,7 @@ tags:Data Types
 
 	![](rename_variable_menu.png)
 
-1. テキスト欄に新規変数名を入力し、 **[Enter]** を押して保存します。
+1. テキスト欄に新規変数名を入力し、**[Enter]** を押して保存します。
 
 	![](rename_variable.png)
 
@@ -314,7 +315,7 @@ tags:Data Types
 
 |プロパティ|説明|
 |--------|-----------|
-|**Variable Type** | ドロップダウン メニューから変数の種類を設定し、変数が配列かどうかを判断します。| 
+|**Variable Type** | ドロップダウン メニューから変数の型を設定し、変数が配列かどうかを判断します。| 
 |**Editable**| **クラスのデフォルト** とブループリントの **[Details (詳細)]** タブで変数の値を編集可能にするかどうかを設定します。 |
 |**Tooltip**| 変数のツールチップを設定します。 |
 |**Private** | 変数をプライベートにし、派生したブループリントから修正はできないように設定します。 |
@@ -323,7 +324,7 @@ tags:Data Types
 
 ### 変数値の取得と設定
 
-Get ノードおよび Set ノードにより、変数をブループリント ネットワークの一部として編集することも可能です。その一番簡単な方法は、[Variables (変数)] タブから変数をイベント グラフへ直接ドラッグすることです。小さなメニューが表示され、 Get ノードあるいは Set ノードを作成するか聞いてきます。 
+Get ノードおよび Set ノードにより、変数をブループリント ネットワークの一部として編集することも可能です。その一番簡単な方法は、[Variables (変数)] タブから変数をイベント グラフへ直接ドラッグすることです。小さなメニューが表示され、Get ノードあるいは Set ノードを作成するかを聞いてきます。 
 
 
 ![](VariableGetSet.png)(w:600)
@@ -331,7 +332,7 @@ Get ノードおよび Set ノードにより、変数をブループリント �
 
 #### Get ノード
 
-Get ノードはネットワークの一部に変数値を与えます。作成されたこれらのノードは、適切な種類であるすべてのノードへのプラグインが可能になります。
+Get ノードはネットワークの一部に変数値を与えます。作成されたこれらのノードは、適切なタイプのすべてのノードに接可能になります。
 
 ![](GetVariable.png)
 
@@ -343,6 +344,6 @@ Set ノードで変数の値を変更することができます。これらの�
 
 | **My Blueprint タブのドラッグによるショートカット** | |
 |--- | --- |
-|**Ctrl-drag** | Get ノードを作成します。 |
-|**Alt-drag** | Set ノードを作成します。 |
+|**Ctrl - ドラッグ** | Get ノードを作成します。 |
+|**Alt - ドラッグ** | Set ノードを作成します。 |
 

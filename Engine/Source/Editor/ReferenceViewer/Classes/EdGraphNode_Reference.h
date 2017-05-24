@@ -55,6 +55,7 @@ private:
 
 	bool bUsesThumbnail;
 	bool bIsPackage;
+	bool bIsPrimaryAsset;
 	bool bIsCollapsed;
 	FAssetData CachedAssetData;
 

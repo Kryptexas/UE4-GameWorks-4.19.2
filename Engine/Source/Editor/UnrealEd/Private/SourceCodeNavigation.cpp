@@ -1516,7 +1516,7 @@ FText FSourceCodeNavigation::GetSuggestedSourceCodeIDE(bool bShortIDEName)
 	}
 	else
 	{
-		return LOCTEXT("SuggestedCodeIDE_Windows", "Visual Studio 2015");
+		return LOCTEXT("SuggestedCodeIDE_Windows", "Visual Studio 2017");
 	}
 #elif PLATFORM_MAC
 	return LOCTEXT("SuggestedCodeIDE_Mac", "Xcode");
@@ -1855,8 +1855,8 @@ FString FSourceCodeNavigationImpl::GetSuggestedIDEInstallerFileName()
 void FSourceCodeNavigationImpl::LaunchIDEInstaller(const FString& Filepath)
 {
 #if PLATFORM_WINDOWS
-	auto Params = TEXT("/PromptRestart /InstallSelectableItems NativeLanguageSupport_Group /ChainingPackage EpicGames_UE4");
-	FPlatformProcess::CreateProc(*Filepath, Params, true, false, false, nullptr, 0, nullptr, nullptr);
+	auto Params = TEXT("--productId \"Microsoft.VisualStudio.Product.Community\" --add \"Microsoft.VisualStudio.Workload.NativeGame\" --add \"Component.Unreal\" --campaign \"EpicGames_UE4\"");
+	FPlatformProcess::ExecElevatedProcess(*Filepath, Params, nullptr);
 #endif
 }
 

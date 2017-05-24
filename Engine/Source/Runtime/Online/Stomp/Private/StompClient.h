@@ -140,7 +140,10 @@ private:
 	// "pong" is the minimum how often we should expect activity from the server (counting commands and empty heartbeat frames)
 	FTimespan PingInterval, PongInterval;
 	FDateTime LastSent;
-	FDateTime LastReceived;
+	FDateTime LastReceivedPacket;
+	FDateTime LastReceivedFrame;
+
+	bool bReportedNoHeartbeatError;
 
 	bool bIsConnected;
 	FString SessionId;

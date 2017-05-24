@@ -167,7 +167,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 	}
 	if (bPresent)
 	{
-		AndroidEGL::GetInstance()->SwapBuffers();
+		AndroidEGL::GetInstance()->SwapBuffers(bLockToVsync ? SyncInterval : 0);
 	}
 	return bPresent;
 }
@@ -491,9 +491,8 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	const bool bIsAdrenoBased = RendererString.Contains(TEXT("Adreno"));
 	if (bIsAdrenoBased)
 	{
-		// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
+		// This is to avoid a bug in Adreno drivers that define GL_ARM_shader_framebuffer_fetch_depth_stencil even when device does not support this extension
 		// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
-		bRequiresShaderFramebufferFetchUndef = !bSupportsShaderFramebufferFetch;
 		bRequiresARMShaderFramebufferFetchDepthStencilUndef = !bSupportsShaderDepthStencilFetch;
 
 		// Adreno 2xx doesn't work with packed depth stencil enabled

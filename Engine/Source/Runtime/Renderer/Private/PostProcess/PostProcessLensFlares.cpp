@@ -11,11 +11,13 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessing.h"
 #include "ClearQuad.h"
+#include "PipelineStateCache.h"
 
 /** Encapsulates a simple copy pixel shader. */
-class FPostProcessLensFlareBasePS : public FGlobalShader
+template <bool bClearRegion = false>
+class TPostProcessLensFlareBasePS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(FPostProcessLensFlareBasePS, Global);
+	DECLARE_SHADER_TYPE(TPostProcessLensFlareBasePS, Global);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
@@ -23,19 +25,30 @@ class FPostProcessLensFlareBasePS : public FGlobalShader
 	}
 
 	/** Default constructor. */
-	FPostProcessLensFlareBasePS() {}
+	TPostProcessLensFlareBasePS() {}
 
 public:
 	FPostProcessPassParameters PostprocessParameter;
+	FShaderParameter CompositeBloomParameter;
 
 	/** Initialization constructor. */
-	FPostProcessLensFlareBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	TPostProcessLensFlareBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
 	// FShader interface.
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		if (bClearRegion)
+		{
+			OutEnvironment.SetDefine(TEXT("CLEAR_REGION"), 1);
+		}
+	}
+
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
@@ -47,13 +60,20 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessLensFlareBasePS,TEXT("PostProcessLensFlares"),TEXT("CopyPS"),SF_Pixel);
+#define IMPLEMENT_LENSE_FLARE_BASE(_bClearRegion) \
+typedef TPostProcessLensFlareBasePS< _bClearRegion > FPostProcessLensFlareBasePS##_bClearRegion ;\
+IMPLEMENT_SHADER_TYPE(template<>,FPostProcessLensFlareBasePS##_bClearRegion ,TEXT("PostProcessLensFlares"),TEXT("CopyPS"),SF_Pixel);
+
+IMPLEMENT_LENSE_FLARE_BASE(true)
+IMPLEMENT_LENSE_FLARE_BASE(false)
+
+#undef IMPLEMENT_LENSE_FLARE_BASE
 
 
 /** Encapsulates the post processing lens flare pixel shader. */
@@ -95,7 +115,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
@@ -107,8 +127,8 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessLensFlaresPS,TEXT("PostProcessLensFlares"),TE
 
 
 
-FRCPassPostProcessLensFlares::FRCPassPostProcessLensFlares(float InSizeScale)
-	: SizeScale(InSizeScale)
+FRCPassPostProcessLensFlares::FRCPassPostProcessLensFlares(float InSizeScale, bool InbCompositeBloom)
+	: SizeScale(InSizeScale), bCompositeBloom(InbCompositeBloom)
 {
 }
 
@@ -146,26 +166,38 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 		
-	// is optimized away if possible (RT size=view size, )
-	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
+	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
+	{
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0);
+	}
+	else
+	{
+		// is optimized away if possible (RT size=view size, )
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ViewRect1);
+	}
 
 	Context.SetViewportAndCallRHI(ViewRect1);
 
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
 	
 	// setup background (bloom), can be implemented to use additive blending to avoid the read here
+	if (bCompositeBloom)
 	{
-		TShaderMapRef<FPostProcessLensFlareBasePS> PixelShader(Context.GetShaderMap());
+		TShaderMapRef<TPostProcessLensFlareBasePS<false>> PixelShader(Context.GetShaderMap());
 
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		VertexShader->SetParameters(Context);
 		PixelShader->SetParameters(Context);
@@ -182,17 +214,47 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
+	else
+	{
+		TShaderMapRef<TPostProcessLensFlareBasePS<true>> PixelShader(Context.GetShaderMap());
+
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
+
+		VertexShader->SetParameters(Context);
+		PixelShader->SetParameters(Context);
+
+		// Draw a quad mapping scene color to the view's render target
+		DrawRectangle(
+			Context.RHICmdList,
+			0, 0,
+			ViewSize1.X, ViewSize1.Y,
+			ViewRect1.Min.X, ViewRect1.Min.Y,
+			ViewSize1.X, ViewSize1.Y,
+			ViewSize1,
+			TexSize1,
+			*VertexShader,
+			EDRF_UseTriangleOptimization);
+
+	}
 
 	// additive blend
-	Context.RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
+	GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI();
 
 	// add lens flares on top of that
 	{
 		TShaderMapRef<FPostProcessLensFlaresPS> PixelShader(Context.GetShaderMap());
 
-		static FGlobalBoundShaderState BoundShaderState;
-		
-		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 		FVector2D TexScaleValue = FVector2D(TexSize2) / ViewSize2;
 

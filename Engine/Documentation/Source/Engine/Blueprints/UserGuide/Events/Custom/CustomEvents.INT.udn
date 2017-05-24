@@ -5,6 +5,7 @@ Description: Custom user-created events that can be fired off from within a Grap
 version: 4.9
 Parent:Engine/Blueprints/Scripting
 tags:Execution Flow
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

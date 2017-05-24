@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef _EditorShowFlags_h_
-#define _EditorShowFlags_h_
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Framework/Commands/InputChord.h"
@@ -56,5 +54,3 @@ public:
 };
 
 UNREALED_API TArray<FShowFlagData>& GetShowFlagMenuItems();
-
-#endif

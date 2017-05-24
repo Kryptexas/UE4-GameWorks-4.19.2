@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -14,7 +14,7 @@ public class PhysX : ModuleRules
 		Shipping
 	}
 
-	static PhysXLibraryMode GetPhysXLibraryMode(UnrealTargetConfiguration Config)
+	PhysXLibraryMode GetPhysXLibraryMode(UnrealTargetConfiguration Config)
 	{
 		switch (Config)
 		{
@@ -65,21 +65,13 @@ public class PhysX : ModuleRules
 		}
 	}
 
-	public PhysX(TargetInfo Target)
+	public PhysX(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
 		// Determine which kind of libraries to link against
 		PhysXLibraryMode LibraryMode = GetPhysXLibraryMode(Target.Configuration);
 		string LibrarySuffix = GetPhysXLibrarySuffix(LibraryMode);
-
-		Definitions.Add("WITH_PHYSX=1");
-		if (UEBuildConfiguration.bCompileAPEX == false)
-		{
-			// Since APEX is dependent on PhysX, if APEX is not being include, set the flag properly.
-			// This will properly cover the case where PhysX is compiled but APEX is not.
-			Definitions.Add("WITH_APEX=0");
-		}
 
 		if (LibraryMode == PhysXLibraryMode.Shipping)
 		{
@@ -255,8 +247,8 @@ public class PhysX : ModuleRules
 			string[] DynamicLibrariesMac = new string[] {
 				"/libPhysX3{0}.dylib",
 				"/libPhysX3Cooking{0}.dylib",
-				"/libPhysX3Common{0}.dylib",
-				"/libPxFoundation{0}.dylib",
+                "/libPhysX3Common{0}.dylib",
+                "/libPxFoundation{0}.dylib",
 				"/libPxPvdSDK{0}.dylib",
 			};
 
@@ -286,20 +278,12 @@ public class PhysX : ModuleRules
 			PublicLibraryPaths.Add(PxSharedLibDir + "Android/x64");
 
 			string[] StaticLibrariesAndroid = new string[] {
-				"LowLevel{0}",
-				"LowLevelAABB{0}",
-				"LowLevelCloth{0}",
-				"LowLevelDynamics{0}",
-				"LowLevelParticles{0}",
 				"PhysX3{0}",
 				"PhysX3Extensions{0}",
 				// "PhysX3Cooking{0}", // not needed until Apex
 				"PhysX3Common{0}",
 				//"PhysXVisualDebuggerSDK{0}",
-				"SceneQuery{0}",
-				"SimulationController{0}",
 				"PxFoundation{0}",
-				"PxTask{0}",
 				"PxPvdSDK{0}",
 				"PsFastXml{0}"
 			};
@@ -325,19 +309,11 @@ public class PhysX : ModuleRules
 
 			string[] StaticLibrariesPhysXLinux = new string[] {
 				"rt",
-				"LowLevel{0}",
-				"LowLevelAABB{0}",
-				"LowLevelCloth{0}",
-				"LowLevelDynamics{0}",
-				"LowLevelParticles{0}",
-                "PhysX3{0}",
+				"PhysX3{0}",
 				"PhysX3Extensions{0}",
 				"PhysX3Cooking{0}",
 				"PhysX3Common{0}",
-				"SceneQuery{0}",
-				"SimulationController{0}",
 				"PxFoundation{0}",
-				"PxTask{0}",
 				"PxPvdSDK{0}",
 				"PsFastXml{0}"
 			};
@@ -504,7 +480,7 @@ public class PhysX : ModuleRules
 			Definitions.Add("PX_PHYSX_STATIC_LIB=1");
 			Definitions.Add("_XBOX_ONE=1");
 
-			PublicLibraryPaths.Add(Path.Combine(PhysXLibDir,"XboxOne\\VS" + WindowsPlatform.GetVisualStudioCompilerVersionName()));
+			PublicLibraryPaths.Add(Path.Combine(PhysXLibDir,"XboxOne\\VS2015"));
 
 			string[] StaticLibrariesXB1 = new string[] {
 				"PhysX3{0}.lib",
@@ -542,7 +518,7 @@ public class PhysX : ModuleRules
 					"LowLevelParticles",
 					"PhysX3",
 					"PhysX3Common",
-					// "PhysX3Cooking", // not needed until Apex
+					"PhysX3Cooking",
 					"PhysX3Extensions",
 					"SceneQuery",
 					"SimulationController",

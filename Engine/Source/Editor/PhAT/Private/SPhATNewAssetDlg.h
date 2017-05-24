@@ -46,7 +46,7 @@ private:
 	void OnCollisionGeometrySelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	void OnWeightOptionSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	void OnAngularConstraintModeSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-	void OnToggleOrientAlongBone(ECheckBoxState InCheckboxState);
+	void OnToggleAutoOrient(ECheckBoxState InCheckboxState);
 	void OnToggleCreateJoints(ECheckBoxState InCheckboxState);
 	void OnToggleWalkPastSmallBones(ECheckBoxState InCheckboxState);
 	void OnToggleCreateBodyForAllBones(ECheckBoxState InCheckboxState);

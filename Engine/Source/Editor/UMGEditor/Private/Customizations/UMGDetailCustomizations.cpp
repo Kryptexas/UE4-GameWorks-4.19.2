@@ -48,7 +48,7 @@ public:
 			.TextStyle(FEditorStyle::Get(), "NormalText")
 			.HAlign(HAlign_Center)
 			.ForegroundColor(FSlateColor::UseForeground())
-			.ToolTipText(FText::FromString(Action->GetTooltipDescription()))
+			.ToolTipText(Action->GetTooltipDescription())
 			.OnClicked(this, &SGraphSchemaActionButton::AddOrViewEventBinding)
 			[
 				InArgs._Content.Widget
@@ -170,10 +170,10 @@ void FBlueprintWidgetCustomization::CreateMulticastEventCustomization(IDetailLay
 		return;
 	}
 
-	FString PropertyTooltip = DelegateProperty->GetToolTipText().ToString();
+	FText PropertyTooltip = DelegateProperty->GetToolTipText();
 	if ( PropertyTooltip.IsEmpty() )
 	{
-		PropertyTooltip = DelegateProperty->GetName();
+		PropertyTooltip = FText::FromString(DelegateProperty->GetName());
 	}
 
 	// Add on category for delegate property

@@ -4,6 +4,7 @@
 #include "Animation/AnimInstanceProxy.h"
 #include "AnimationRuntime.h"
 #include "Animation/BlendSpaceBase.h"
+#include "Animation/BlendSpace1D.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "DrawDebugHelpers.h"
 #include "EngineGlobals.h"
@@ -21,10 +22,28 @@ void FAnimNode_AimOffsetLookAt::Initialize(const FAnimationInitializeContext& Co
 	BasePose.Initialize(Context);
 }
 
-void FAnimNode_AimOffsetLookAt::CacheBones(const FAnimationCacheBonesContext& Context)
+void FAnimNode_AimOffsetLookAt::RootInitialize(const FAnimInstanceProxy* InProxy)
 {
-	FAnimNode_BlendSpacePlayer::CacheBones(Context);
-	BasePose.CacheBones(Context);
+	FAnimNode_BlendSpacePlayer::RootInitialize(InProxy);
+
+	SocketBoneReference.BoneName = NAME_None;
+	if (USkeletalMeshComponent* SkelMeshComp = InProxy->GetSkelMeshComponent())
+	{
+		if (USkeletalMesh* SkelMesh = SkelMeshComp->SkeletalMesh)
+		{
+			if (const USkeletalMeshSocket* Socket = SkelMesh->FindSocket(SourceSocketName))
+			{
+				SocketLocalTransform = Socket->GetSocketLocalTransform();
+				SocketBoneReference.BoneName = Socket->BoneName;
+			}
+
+			if (const USkeletalMeshSocket* Socket = SkelMesh->FindSocket(PivotSocketName))
+			{
+				PivotSocketLocalTransform = Socket->GetSocketLocalTransform();
+				PivotSocketBoneReference.BoneName = Socket->BoneName;
+			}
+		}
+	}
 }
 
 void FAnimNode_AimOffsetLookAt::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
@@ -43,6 +62,15 @@ void FAnimNode_AimOffsetLookAt::UpdateAssetPlayer(const FAnimationUpdateContext&
 // 	}
 
 	BasePose.Update(Context);
+}
+
+void FAnimNode_AimOffsetLookAt::CacheBones(const FAnimationCacheBonesContext& Context)
+{
+	FAnimNode_BlendSpacePlayer::CacheBones(Context);
+	BasePose.CacheBones(Context);
+
+	SocketBoneReference.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
+	PivotSocketBoneReference.Initialize(Context.AnimInstanceProxy->GetRequiredBones());
 }
 
 void FAnimNode_AimOffsetLookAt::Evaluate(FPoseContext& Context)
@@ -68,76 +96,73 @@ void FAnimNode_AimOffsetLookAt::Evaluate(FPoseContext& Context)
 
 void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseContext)
 {
+	FVector BlendInput(X, Y, Z);
+
 	const FBoneContainer& RequiredBones = LocalPoseContext.Pose.GetBoneContainer();
-	if (RequiredBones.GetSkeletalMeshAsset())
+	if (BlendSpace && SocketBoneReference.IsValid(RequiredBones))
 	{
 		FCSPose<FCompactPose> GlobalPose;
 		GlobalPose.InitPose(LocalPoseContext.Pose);
 
-		USkeletalMeshComponent* Component = LocalPoseContext.AnimInstanceProxy->GetSkelMeshComponent();
-		AActor* Actor = Component ? Component->GetOwner() : nullptr;
+		const FCompactPoseBoneIndex SocketBoneIndex = SocketBoneReference.GetCompactPoseIndex(RequiredBones);
+		const FTransform BoneTransform = GlobalPose.GetComponentSpaceTransform(SocketBoneIndex);
 
-		FVector BlendInput(EForceInit::ForceInitToZero);
-		if (Component && Actor && BlendSpace)
+		FTransform SourceComponentTransform = SocketLocalTransform * BoneTransform;
+		if (PivotSocketBoneReference.IsValid(RequiredBones))
 		{
-			const USkeletalMeshSocket* Socket = RequiredBones.GetSkeletalMeshAsset()->FindSocket(SourceSocketName);
-			if (Socket)
-			{
-				const FTransform SocketLocalTransform = Socket->GetSocketLocalTransform();
-				FBoneReference SocketBoneReference;
-				SocketBoneReference.BoneName = Socket->BoneName;
-				SocketBoneReference.Initialize(RequiredBones);
-				// Only calculate blend space input if we have a valid source socket
-				if (SocketBoneReference.IsValid(RequiredBones))
-				{
-					const FCompactPoseBoneIndex SocketBoneIndex = SocketBoneReference.GetCompactPoseIndex(RequiredBones);
-					const FTransform ActorTransform = Actor->GetTransform();
+			const FCompactPoseBoneIndex PivotSocketBoneIndex = PivotSocketBoneReference.GetCompactPoseIndex(RequiredBones);
+			const FTransform PivotBoneComponentTransform = GlobalPose.GetComponentSpaceTransform(PivotSocketBoneIndex);
 
-					const FTransform BoneTransform = GlobalPose.GetComponentSpaceTransform(SocketBoneIndex);
-					const FTransform SocketWorldTransform = SocketLocalTransform * BoneTransform * Component->ComponentToWorld;
+			SourceComponentTransform.SetTranslation(PivotBoneComponentTransform.GetTranslation());
+		}
 
-					// Convert Target to Actor Space
-					const FTransform TargetWorldTransform(LookAtLocation);
+		FAnimInstanceProxy* AnimProxy = LocalPoseContext.AnimInstanceProxy;
+		check(AnimProxy);
+		const FTransform SourceWorldTransform = SourceComponentTransform * AnimProxy->GetSkelMeshCompLocalToWorld();
+		const FTransform ActorTransform = AnimProxy->GetSkelMeshCompOwnerTransform();
 
-					const FVector DirectionToTarget = ActorTransform.InverseTransformVectorNoScale(TargetWorldTransform.GetLocation() - SocketWorldTransform.GetLocation()).GetSafeNormal();
-					const FVector CurrentDirection = ActorTransform.InverseTransformVectorNoScale(SocketWorldTransform.GetUnitAxis(EAxis::X));
+		// Convert Target to Actor Space
+		const FTransform TargetWorldTransform(LookAtLocation);
 
-					const FVector AxisX = FVector::ForwardVector;
-					const FVector AxisY = FVector::RightVector;
-					const FVector AxisZ = FVector::UpVector;
+		const FVector DirectionToTarget = ActorTransform.InverseTransformVectorNoScale(TargetWorldTransform.GetLocation() - SourceWorldTransform.GetLocation()).GetSafeNormal();
+		const FVector CurrentDirection = ActorTransform.InverseTransformVectorNoScale(SourceWorldTransform.GetUnitAxis(EAxis::X));
 
-					const FVector2D CurrentCoords = FMath::GetAzimuthAndElevation(CurrentDirection, AxisX, AxisY, AxisZ);
-					const FVector2D TargetCoords = FMath::GetAzimuthAndElevation(DirectionToTarget, AxisX, AxisY, AxisZ);
-					BlendInput.X = FRotator::NormalizeAxis(FMath::RadiansToDegrees(TargetCoords.X - CurrentCoords.X));
-					BlendInput.Y = FRotator::NormalizeAxis(FMath::RadiansToDegrees(TargetCoords.Y - CurrentCoords.Y));
+		const FVector AxisX = FVector::ForwardVector;
+		const FVector AxisY = FVector::RightVector;
+		const FVector AxisZ = FVector::UpVector;
+
+		const FVector2D CurrentCoords = FMath::GetAzimuthAndElevation(CurrentDirection, AxisX, AxisY, AxisZ);
+		const FVector2D TargetCoords = FMath::GetAzimuthAndElevation(DirectionToTarget, AxisX, AxisY, AxisZ);
+		BlendInput.X = FRotator::NormalizeAxis(FMath::RadiansToDegrees(TargetCoords.X - CurrentCoords.X));
+		BlendInput.Y = FRotator::NormalizeAxis(FMath::RadiansToDegrees(TargetCoords.Y - CurrentCoords.Y));
 
 #if ENABLE_DRAW_DEBUG
-					if (CVarAimOffsetLookAtDebug.GetValueOnAnyThread() == 1)
-					{
-						DrawDebugLine(Component->GetWorld(), SocketWorldTransform.GetLocation(), TargetWorldTransform.GetLocation(), FColor::Green);
-						DrawDebugLine(Component->GetWorld(), SocketWorldTransform.GetLocation(), SocketWorldTransform.GetLocation() + SocketWorldTransform.GetUnitAxis(EAxis::X) * (TargetWorldTransform.GetLocation() - SocketWorldTransform.GetLocation()).Size(), FColor::Red);
-						DrawDebugCoordinateSystem(Component->GetWorld(), ActorTransform.GetLocation(), ActorTransform.GetRotation().Rotator(), 100.f);
+		if (CVarAimOffsetLookAtDebug.GetValueOnAnyThread() == 1)
+		{
+			AnimProxy->AnimDrawDebugLine(SourceWorldTransform.GetLocation(), TargetWorldTransform.GetLocation(), FColor::Green);
+			AnimProxy->AnimDrawDebugLine(SourceWorldTransform.GetLocation(), SourceWorldTransform.GetLocation() + SourceWorldTransform.GetUnitAxis(EAxis::X) * (TargetWorldTransform.GetLocation() - SourceWorldTransform.GetLocation()).Size(), FColor::Red);
+			AnimProxy->AnimDrawDebugCoordinateSystem(ActorTransform.GetLocation(), ActorTransform.GetRotation().Rotator(), 100.f);
 
-						FString DebugString = FString::Printf(TEXT("Socket (X:%f, Y:%f), Target (X:%f, Y:%f), Result (X:%f, Y:%f)")
-							, FMath::RadiansToDegrees(CurrentCoords.X)
-							, FMath::RadiansToDegrees(CurrentCoords.Y)
-							, FMath::RadiansToDegrees(TargetCoords.X)
-							, FMath::RadiansToDegrees(TargetCoords.Y)
-							, BlendInput.X
-							, BlendInput.Y);
-						GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, FColor::Red, DebugString, false);
-					}
-#endif // ENABLE_DRAW_DEBUG
-				}
-			}
-
-			// Set X and Y, so ticking next frame is based on correct weights.
-			X = BlendInput.X;
-			Y = BlendInput.Y;
-
-			// Generate BlendSampleDataCache from inputs.
-			BlendSpace->GetSamplesFromBlendInput(BlendInput, BlendSampleDataCache);
+			FString DebugString = FString::Printf(TEXT("Socket (X:%f, Y:%f), Target (X:%f, Y:%f), Result (X:%f, Y:%f)")
+				, FMath::RadiansToDegrees(CurrentCoords.X)
+				, FMath::RadiansToDegrees(CurrentCoords.Y)
+				, FMath::RadiansToDegrees(TargetCoords.X)
+				, FMath::RadiansToDegrees(TargetCoords.Y)
+				, BlendInput.X
+				, BlendInput.Y);
+			AnimProxy->AnimDrawDebugOnScreenMessage(DebugString, FColor::Red);
 		}
+#endif // ENABLE_DRAW_DEBUG
+	}
+
+	// Set X and Y, so ticking next frame is based on correct weights.
+	X = BlendInput.X;
+	Y = BlendInput.Y;
+
+	// Generate BlendSampleDataCache from inputs.
+	if (BlendSpace)
+	{
+		BlendSpace->GetSamplesFromBlendInput(BlendInput, BlendSampleDataCache);
 	}
 }
 

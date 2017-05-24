@@ -2,6 +2,8 @@
 
 #pragma once
 
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+
 // Include the intrinsic functions header
 #include <arm_neon.h>
 
@@ -11,7 +13,7 @@
 
 /** 16-byte vector register type */
 typedef float32x4_t __attribute((aligned(16))) VectorRegister;
-typedef uint32x4_t  __attribute((aligned(16))) IntVectorRegister;
+typedef int32x4_t  __attribute((aligned(16))) VectorRegisterInt;
 
 #define DECLARE_VECTOR_REGISTER(X, Y, Z, W) { X, Y, Z, W }
 
@@ -50,6 +52,25 @@ FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float 
 	Tmp.F[1] = Y;
 	Tmp.F[2] = Z;
 	Tmp.F[3] = W;
+	return Tmp.V;
+}
+
+/**
+* Returns a vector based on 4 int32.
+*
+* @param X		1st int32 component
+* @param Y		2nd int32 component
+* @param Z		3rd int32 component
+* @param W		4th int32 component
+* @return		Vector of the 4 int32
+*/
+FORCEINLINE VectorRegisterInt MakeVectorRegisterInt(int32 X, int32 Y, int32 Z, int32 W)
+{
+	union { VectorRegisterInt V; int32 I[4]; } Tmp;
+	Tmp.I[0] = X;
+	Tmp.I[1] = Y;
+	Tmp.I[2] = Z;
+	Tmp.I[3] = W;
 	return Tmp.V;
 }
 
@@ -412,6 +433,30 @@ FORCEINLINE VectorRegister VectorCompareGE( const VectorRegister& Vec1, const Ve
 }
 
 /**
+* Creates a four-part mask based on component-wise < compares of the input vectors
+*
+* @param Vec1	1st vector
+* @param Vec2	2nd vector
+* @return		VectorRegister( Vec1.x < Vec2.x ? 0xFFFFFFFF : 0, same for yzw )
+*/
+FORCEINLINE VectorRegister VectorCompareLT(const VectorRegister& Vec1, const VectorRegister& Vec2)
+{
+	return (VectorRegister)vcltq_f32(Vec1, Vec2);
+}
+
+/**
+* Creates a four-part mask based on component-wise <= compares of the input vectors
+*
+* @param Vec1	1st vector
+* @param Vec2	2nd vector
+* @return		VectorRegister( Vec1.x <= Vec2.x ? 0xFFFFFFFF : 0, same for yzw )
+*/
+FORCEINLINE VectorRegister VectorCompareLE(const VectorRegister& Vec1, const VectorRegister& Vec2)
+{
+	return (VectorRegister)vcleq_f32(Vec1, Vec2);
+}
+
+/**
  * Does a bitwise vector selection based on a mask (e.g., created from VectorCompareXX)
  *
  * @param Mask  Mask (when 1: use the corresponding bit from Vec1 otherwise from Vec2)
@@ -423,7 +468,7 @@ FORCEINLINE VectorRegister VectorCompareGE( const VectorRegister& Vec1, const Ve
 
 FORCEINLINE VectorRegister VectorSelect(const VectorRegister& Mask, const VectorRegister& Vec1, const VectorRegister& Vec2 )
 {
-	return vbslq_f32((IntVectorRegister)Mask, Vec1, Vec2);
+	return vbslq_f32((VectorRegisterInt)Mask, Vec1, Vec2);
 }
 
 /**
@@ -435,7 +480,7 @@ FORCEINLINE VectorRegister VectorSelect(const VectorRegister& Mask, const Vector
  */
 FORCEINLINE VectorRegister VectorBitwiseOr(const VectorRegister& Vec1, const VectorRegister& Vec2 )
 {
-	return (VectorRegister)vorrq_u32( (IntVectorRegister)Vec1, (IntVectorRegister)Vec2 );
+	return (VectorRegister)vorrq_u32( (VectorRegisterInt)Vec1, (VectorRegisterInt)Vec2 );
 }
 
 /**
@@ -447,7 +492,7 @@ FORCEINLINE VectorRegister VectorBitwiseOr(const VectorRegister& Vec1, const Vec
  */
 FORCEINLINE VectorRegister VectorBitwiseAnd(const VectorRegister& Vec1, const VectorRegister& Vec2 )
 {
-	return (VectorRegister)vandq_u32( (IntVectorRegister)Vec1, (IntVectorRegister)Vec2 );
+	return (VectorRegister)vandq_u32( (VectorRegisterInt)Vec1, (VectorRegisterInt)Vec2 );
 }
 
 /**
@@ -459,7 +504,7 @@ FORCEINLINE VectorRegister VectorBitwiseAnd(const VectorRegister& Vec1, const Ve
  */
 FORCEINLINE VectorRegister VectorBitwiseXor(const VectorRegister& Vec1, const VectorRegister& Vec2 )
 {
-	return (VectorRegister)veorq_u32( (IntVectorRegister)Vec1, (IntVectorRegister)Vec2 );
+	return (VectorRegister)veorq_u32( (VectorRegisterInt)Vec1, (VectorRegisterInt)Vec2 );
 }
 
 
@@ -1226,4 +1271,91 @@ FORCEINLINE void VectorStoreURGBA16N(const VectorRegister& Vec, void* Ptr)
 	Out[3] = (uint16)VectorGetComponent(Tmp, 3);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//Integer ops
+
+//Bitwise
+/** = a & b */
+#define VectorIntAnd(A, B)		vandq_s32(A, B)
+/** = a | b */
+#define VectorIntOr(A, B)		vorrq_s32(A, B)
+/** = a ^ b */
+#define VectorIntXor(A, B)		veorq_s32(A, B)
+/** = (~a) & b to match _mm_andnot_si128 */
+#define VectorIntAndNot(A, B)	vandq_s32(vmvnq_s32(A), B)
+/** = ~a */
+#define VectorIntNot(A)	vmvnq_s32(A)
+
+//Comparison
+#define VectorIntCompareEQ(A, B)	vceqq_s32(A,B)
+#define VectorIntCompareNEQ(A, B)	VectorIntNot(VectorIntCompareEQ(A,B))
+#define VectorIntCompareGT(A, B)	vcgtq_s32(A,B)
+#define VectorIntCompareLT(A, B)	vcltq_s32(A,B)
+#define VectorIntCompareGE(A, B)	vcgeq_s32(A,B)
+#define VectorIntCompareLE(A, B)	vcleq_s32(A,B)
+
+
+FORCEINLINE VectorRegisterInt VectorIntSelect(const VectorRegisterInt& Mask, const VectorRegisterInt& Vec1, const VectorRegisterInt& Vec2)
+{
+	return VectorIntXor(Vec2, VectorIntAnd(Mask, VectorIntXor(Vec1, Vec2)));
+}
+
+//Arithmetic
+#define VectorIntAdd(A, B)	vaddq_s32(A, B)
+#define VectorIntSubtract(A, B)	vsubq_s32(A, B)
+#define VectorIntMultiply(A, B) vmulq_s32(A, B)
+#define VectorIntNegate(A) VectorIntSubtract( GlobalVectorConstants::IntZero, A)
+#define VectorIntMin(A, B) vminq_s32(A,B)
+#define VectorIntMax(A, B) vmaxq_s32(A,B)
+#define VectorIntAbs(A) vabdq_s32(A, GlobalVectorConstants::IntZero)
+
+#define VectorIntSign(A) VectorIntSelect( VectorIntCompareGE(A, GlobalVectorConstants::IntZero), GlobalVectorConstants::IntOne, GlobalVectorConstants::IntMinusOne )
+
+#define VectorIntToFloat(A) vcvtq_f32_s32(A)
+#define VectorFloatToInt(A) vcvtq_s32_f32(A)
+
+//Loads and stores
+
+/**
+* Stores a vector to memory (aligned or unaligned).
+*
+* @param Vec	Vector to store
+* @param Ptr	Memory pointer
+*/
+#define VectorIntStore( Vec, Ptr )			vst1q_s32( (VectorRegisterInt*)(Ptr), Vec )
+
+/**
+* Loads 4 int32s from unaligned memory.
+*
+* @param Ptr	Unaligned memory pointer to the 4 int32s
+* @return		VectorRegisterInt(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
+*/
+#define VectorIntLoad( Ptr )				vld1q_s32( (int32*)((void*)(Ptr)) )
+
+/**
+* Stores a vector to memory (aligned).
+*
+* @param Vec	Vector to store
+* @param Ptr	Aligned Memory pointer
+*/
+#define VectorIntStoreAligned( Vec, Ptr )			vst1q_s32( (VectorRegisterInt*)(Ptr), Vec )
+
+/**
+* Loads 4 int32s from aligned memory.
+*
+* @param Ptr	Aligned memory pointer to the 4 int32s
+* @return		VectorRegisterInt(Ptr[0], Ptr[1], Ptr[2], Ptr[3])
+*/
+#define VectorIntLoadAligned( Ptr )				vld1q_s32( (int32*)((void*)(Ptr)) )
+
+/**
+* Loads 1 int32 from unaligned memory into all components of a vector register.
+*
+* @param Ptr	Unaligned memory pointer to the 4 int32s
+* @return		VectorRegisterInt(*Ptr, *Ptr, *Ptr, *Ptr)
+*/
+#define VectorIntLoad1( Ptr )	vld1q_dup_s32((int32*)Ptr)
+
 // To be continued...
+
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS

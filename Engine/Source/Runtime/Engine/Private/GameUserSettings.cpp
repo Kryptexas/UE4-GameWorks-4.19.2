@@ -128,12 +128,11 @@ bool UGameUserSettings::IsScreenResolutionDirty() const
 bool UGameUserSettings::IsFullscreenModeDirty() const
 {
 	bool bIsDirty = false;
-	if ( GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame )
+	if (GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 	{
-		EWindowMode::Type WindowMode = GEngine->GameViewport->IsFullScreenViewport() ? EWindowMode::Fullscreen : EWindowMode::Windowed;
-		EWindowMode::Type CurrentFullscreenMode = GetWindowModeType(WindowMode);
+		EWindowMode::Type CurrentFullscreenMode = GEngine->GameViewport->Viewport->GetWindowMode();
 		EWindowMode::Type NewFullscreenMode = GetFullscreenMode();
-		bIsDirty = (CurrentFullscreenMode != NewFullscreenMode) ? true : false;
+		bIsDirty = (CurrentFullscreenMode != NewFullscreenMode);
 	}
 	return bIsDirty;
 }
@@ -247,6 +246,13 @@ float UGameUserSettings::GetDefaultResolutionScale()
 	const float DesiredResQuality = FindResolutionQualityForScreenSize(DesiredScreenWidth, DesiredScreenHeight);
 
 	return FMath::Max(DesiredResQuality, MinResolutionScale);
+}
+
+float UGameUserSettings::GetRecommendedResolutionScale()
+{
+	const float RecommendedResQuality = FindResolutionQualityForScreenSize(LastRecommendedScreenWidth, LastRecommendedScreenHeight);
+
+	return FMath::Max(RecommendedResQuality, MinResolutionScale);
 }
 
 float UGameUserSettings::FindResolutionQualityForScreenSize(float Width, float Height)
@@ -386,9 +392,21 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
-	if (bUseHDRDisplayOutput)
+	bool bWithEditor = false;
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		bWithEditor = true;
+	}
+#endif
+
+	if (bUseHDRDisplayOutput && !bWithEditor)
 	{
 		EnableHDRDisplayOutput(true, HDRDisplayOutputNits);
+	}
+	else
+	{
+		EnableHDRDisplayOutput(false, HDRDisplayOutputNits);
 	}
 }
 
@@ -488,6 +506,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 	int32 ResolutionY = GetDefaultResolution().Y;
 	EWindowMode::Type WindowMode = GetDefaultWindowMode();
 	bool bUseDesktopResolution = false;
+	bool bUseHDR = false;
 
 	int32 Version=0;
 	if( GConfig->GetInt(*GameUserSettingsCategory, TEXT("Version"), Version, GGameUserSettingsIni ) && Version == UE_GAMEUSERSETTINGS_VERSION )
@@ -512,6 +531,15 @@ void UGameUserSettings::PreloadResolutionSettings()
 			ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
 		}
 #endif
+
+		if (GConfig->GetBool(*GameUserSettingsCategory, TEXT("bUseHDRDisplayOutput"), bUseHDR, GGameUserSettingsIni))
+		{
+			static auto CVarHDROutputEnabled = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.EnableHDROutput"));
+			if (CVarHDROutputEnabled)
+			{
+				CVarHDROutputEnabled->Set(bUseHDR ? 1 : 0, ECVF_SetByGameSetting);
+			}
+		}
 	}
 
 	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);
@@ -531,7 +559,8 @@ FIntPoint UGameUserSettings::GetDefaultWindowPosition()
 
 EWindowMode::Type UGameUserSettings::GetDefaultWindowMode()
 {
-	return EWindowMode::Windowed;
+	// WindowedFullscreen should be the general default or games
+	return EWindowMode::WindowedFullscreen;
 }
 
 void UGameUserSettings::ResetToCurrentSettings()
@@ -731,7 +760,7 @@ void UGameUserSettings::ApplyHardwareBenchmarkResults()
 	SaveSettings();
 }
 
-bool UGameUserSettings::SupportsHDRDisplayOutput()
+bool UGameUserSettings::SupportsHDRDisplayOutput() const
 {
 	return GRHISupportsHDROutput;
 }
@@ -760,7 +789,7 @@ void UGameUserSettings::EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits /
 			int32 ColorGamut = 0;
 
 #if PLATFORM_WINDOWS
-			if (IsRHIDeviceNVIDIA())
+			if (IsRHIDeviceNVIDIA() || IsRHIDeviceAMD())
 			{
 				// ScRGB, 1000 or 2000 nits, Rec2020
 				OutputDevice = (DisplayNitLevel == 1000) ? 5 : 6;
@@ -810,4 +839,14 @@ void UGameUserSettings::EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits /
 		bUseHDRDisplayOutput = bEnable;
 		HDRDisplayOutputNits = DisplayNitLevel;
 	}
+}
+
+int32 UGameUserSettings::GetCurrentHDRDisplayNits() const
+{
+	return bUseHDRDisplayOutput ? HDRDisplayOutputNits : 0;
+}
+
+bool UGameUserSettings::IsHDREnabled() const
+{
+	return bUseHDRDisplayOutput;
 }

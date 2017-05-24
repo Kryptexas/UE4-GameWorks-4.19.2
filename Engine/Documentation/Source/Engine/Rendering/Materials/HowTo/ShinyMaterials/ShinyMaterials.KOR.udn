@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:광택 머티리얼 제작
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -9,6 +9,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_2
 Related: Resources/ContentExamples/MaterialNodes/1_3
 Version: 4.9
 SkillLevel:Intermediate
+tags:Materials
 
 
 [TOC(start:2 end:3)]

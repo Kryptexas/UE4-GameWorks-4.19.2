@@ -8,8 +8,8 @@
 #include "SceneUtils.h"
 #include "ScenePrivate.h"
 #include "DecalRenderingShared.h"
-
-
+#include "ClearQuad.h"
+#include "PipelineStateCache.h"
 
 
 static TAutoConsoleVariable<int32> CVarGenerateDecalRTWriteMaskTexture(
@@ -62,11 +62,11 @@ public:
 		UtilizeMask.Bind(Initializer.ParameterMap, TEXT("UtilizeMask"));
 	}
 
-	void SetCS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FSceneView& View, FIntPoint WriteMaskDimensions)
+	void SetCS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint WriteMaskDimensions)
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 		//PostprocessParameter.SetCS(ShaderRHI, Context, Context.RHICmdList, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -104,7 +104,7 @@ static TAutoConsoleVariable<float> CVarStencilSizeThreshold(
 	TEXT("  <0: optimization is disabled\n")
 	TEXT("   0: optimization is enabled no matter how small (screen space) the decal is\n")
 	TEXT("0..1: optimization is enabled, value defines the minimum size (screen space) to trigger the optimization (default 0.1)")
-	);
+);
 
 enum EDecalDepthInputState
 {
@@ -144,21 +144,21 @@ enum EDecalRasterizerState
 };
 
 // @param RenderState 0:before BasePass, 1:before lighting, (later we could add "after lighting" and multiply)
-void SetDecalBlendState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const ERHIFeatureLevel::Type SMFeatureLevel, EDecalRenderStage InDecalRenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal)
+FBlendStateRHIParamRef GetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, EDecalRenderStage InDecalRenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal)
 {
-	if(InDecalRenderStage == DRS_BeforeBasePass)
+	if (InDecalRenderStage == DRS_BeforeBasePass)
 	{
 		// before base pass (for DBuffer decals)
 
-		if(SMFeatureLevel == ERHIFeatureLevel::SM4)
+		if (SMFeatureLevel == ERHIFeatureLevel::SM4)
 		{
 			// DX10 doesn't support masking/using different blend modes per MRT.
 			// We set the opacity in the shader to 0 so we can use the same frame buffer blend.
 
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
+			return TStaticBlendState<
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
-				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI());;
+				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 		}
 		else
 		{
@@ -166,169 +166,157 @@ void SetDecalBlendState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& 
 			// As we set the opacity in the shader we don't need to set different frame buffer blend modes but we like to hint to the driver that we
 			// don't need to output there. We also could replace this with many SetRenderTarget calls but it might be slower (needs to be tested).
 
-			switch(DecalBlendMode)
+			switch (DecalBlendMode)
 			{
 			case DBM_DBuffer_ColorNormalRoughness:
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI());		
-				break;
+				return TStaticBlendState<
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 
 			case DBM_DBuffer_Color:
 				// we can optimize using less MRT later
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI());		
-				break;
+				return TStaticBlendState<
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI();
 
 			case DBM_DBuffer_ColorNormal:
 				// we can optimize using less MRT later
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One >::GetRHI());		
-				break;
+				return TStaticBlendState<
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One >::GetRHI();
 
 			case DBM_DBuffer_ColorRoughness:
 				// we can optimize using less MRT later
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI());		
-				break;
+				return TStaticBlendState<
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 
 			case DBM_DBuffer_Normal:
 				// we can optimize using less MRT later
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI());		
-				break;
+				return TStaticBlendState<
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI();
 
 			case DBM_DBuffer_NormalRoughness:
 				// we can optimize using less MRT later
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI());		
-				break;
+				return TStaticBlendState<
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 
 			case DBM_DBuffer_Roughness:
 				// we can optimize using less MRT later
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
-					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI());		
-				break;
+				return TStaticBlendState<
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+					CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha >::GetRHI();
 
 			default:
 				// the decal type should not be rendered in this pass - internal error
-				check(0);	
-				break;
+				check(0);
+				return nullptr;
 			}
 		}
-
-		return;
 	}
-	else if(InDecalRenderStage == DRS_AfterBasePass)
+	else if (InDecalRenderStage == DRS_AfterBasePass)
 	{
 		ensure(DecalBlendMode == DBM_Volumetric_DistanceFunction);
 
-		DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
-	}	
+		return TStaticBlendState<>::GetRHI();
+	}
 	else
 	{
 		// before lighting (for non DBuffer decals)
 
-		switch(DecalBlendMode)
+		switch (DecalBlendMode)
 		{
 		case DBM_Translucent:
 			// @todo: Feature Level 10 does not support separate blends modes for each render target. This could result in the
 			// translucent and stain blend modes looking incorrect when running in this mode.
-			if(GSupportsSeparateRenderTargetBlendState)
+			if (GSupportsSeparateRenderTargetBlendState)
 			{
-				if(bHasNormal)
+				if (bHasNormal)
 				{
-					DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
-					>::GetRHI());
+					return TStaticBlendState<
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Normal
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
+					>::GetRHI();
 				}
 				else
 				{
-					DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
-						CW_RGB, BO_Add, BF_Zero,		BF_One,						BO_Add, BF_Zero, BF_One,	// Normal
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
-					>::GetRHI());
+					return TStaticBlendState<
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+						CW_RGB, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,	// Normal
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
+					>::GetRHI();
 				}
 			}
-			else if(SMFeatureLevel == ERHIFeatureLevel::SM4)
+			else if (SMFeatureLevel == ERHIFeatureLevel::SM4)
 			{
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Emissive
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Normal
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-					CW_RGB, BO_Add, BF_SourceAlpha,	BF_One,							BO_Add, BF_Zero, BF_One		// BaseColor
-				>::GetRHI());
+				return TStaticBlendState<
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Normal
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One		// BaseColor
+				>::GetRHI();
 			}
-			break;
 
 		case DBM_Stain:
-			if(GSupportsSeparateRenderTargetBlendState)
+			if (GSupportsSeparateRenderTargetBlendState)
 			{
-				if(bHasNormal)
+				if (bHasNormal)
 				{
-					DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-						CW_RGB, BO_Add, BF_DestColor,	BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
-					>::GetRHI());
+					return TStaticBlendState<
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Normal
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+						CW_RGB, BO_Add, BF_DestColor, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
+					>::GetRHI();
 				}
 				else
 				{
-					DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
-						CW_RGB, BO_Add, BF_Zero,		BF_One,						BO_Add, BF_Zero, BF_One,	// Normal
-						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-						CW_RGB, BO_Add, BF_DestColor,	BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
-					>::GetRHI());
+					return TStaticBlendState<
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_One, BO_Add, BF_Zero, BF_One,	// Emissive
+						CW_RGB, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,	// Normal
+						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+						CW_RGB, BO_Add, BF_DestColor, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
+					>::GetRHI();
 				}
 			}
-			else if(SMFeatureLevel == ERHIFeatureLevel::SM4)
+			else if (SMFeatureLevel == ERHIFeatureLevel::SM4)
 			{
-				DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Emissive
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Normal
-					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-					CW_RGB, BO_Add, BF_SourceAlpha,	BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One		// BaseColor
-				>::GetRHI());
+				return TStaticBlendState<
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Emissive
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Normal
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
+				>::GetRHI();
 			}
-			break;
 
 		case DBM_Normal:
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha >::GetRHI());
-			break;
+			return TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha >::GetRHI();
+
 
 		case DBM_Emissive:
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_One >::GetRHI());
-			break;
+			return TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_One >::GetRHI();
 
 		default:
 			// the decal type should not be rendered in this pass - internal error
-			check(0);	
-			break;
+			check(0);
+			return nullptr;
 		}
 	}
 }
 
-bool RenderPreStencil(FRenderingCompositePassContext& Context, FDrawingPolicyRenderState& DrawRenderState, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
+bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
 {
 	const FViewInfo& View = Context.View;
 
@@ -336,39 +324,43 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, FDrawingPolicyRen
 	float Radius = ComponentToWorldMatrix.GetMaximumAxisScale();
 
 	// if not inside
-	if(Distance > Radius)
+	if (Distance > Radius)
 	{
 		float EstimatedDecalSize = Radius / Distance;
-		
+
 		float StencilSizeThreshold = CVarStencilSizeThreshold.GetValueOnRenderThread();
 
 		// Check if it's large enough on screen
-		if(EstimatedDecalSize < StencilSizeThreshold)
+		if (EstimatedDecalSize < StencilSizeThreshold)
 		{
 			return false;
 		}
 	}
-	
-	FDecalRendering::SetVertexShaderOnly(Context.RHICmdList, View, FrustumComponentToClip);
+
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 	// Set states, the state cache helps us avoiding redundant sets
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 	// all the same to have DX10 working
-	DrawRenderState.SetBlendState(Context.RHICmdList, TStaticBlendState<
-		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Emissive
-		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
-		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
-		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
-	>::GetRHI());
+	GraphicsPSOInit.BlendState = TStaticBlendState<
+		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Emissive
+		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Normal
+		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One,	// Metallic, Specular, Roughness
+		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One		// BaseColor
+	>::GetRHI();
 
 	// Carmack's reverse the sandbox stencil bit on the bounds
-	DrawRenderState.SetDepthStencilState(Context.RHICmdList, TStaticDepthStencilState<
-		false,CF_LessEqual,
-		true,CF_Always,SO_Keep,SO_Keep,SO_Invert,
-		true,CF_Always,SO_Keep,SO_Keep,SO_Invert,
-		STENCIL_SANDBOX_MASK,STENCIL_SANDBOX_MASK
-	>::GetRHI(), 0);
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+		false, CF_LessEqual,
+		true, CF_Always, SO_Keep, SO_Keep, SO_Invert,
+		true, CF_Always, SO_Keep, SO_Keep, SO_Invert,
+		STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK
+	>::GetRHI();
+
+	FDecalRendering::SetVertexShaderOnly(Context.RHICmdList, GraphicsPSOInit, View, FrustumComponentToClip);
+	Context.RHICmdList.SetStencilRef(0);
 
 	// Render decal mask
 	Context.RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
@@ -388,12 +380,12 @@ static EDecalRasterizerState ComputeDecalRasterizerState(bool bInsideDecal, bool
 {
 	bool bClockwise = bInsideDecal;
 
-	if(View.bReverseCulling)
+	if (View.bReverseCulling)
 	{
 		bClockwise = !bClockwise;
 	}
 
-	if (bIsInverted) 
+	if (bIsInverted)
 	{
 		bClockwise = !bClockwise;
 	}
@@ -410,8 +402,8 @@ static FDecalDepthState ComputeDecalDepthState(EDecalRenderStage LocalDecalStage
 	FDecalDepthState Ret;
 
 	Ret.bDepthOutput = (LocalDecalStage == DRS_AfterBasePass);
-				
-	if(Ret.bDepthOutput)
+
+	if (Ret.bDepthOutput)
 	{
 		// can be made one enum
 		Ret.DepthTest = DDS_DepthTest;
@@ -420,9 +412,9 @@ static FDecalDepthState ComputeDecalDepthState(EDecalRenderStage LocalDecalStage
 
 	const bool bGBufferDecal = LocalDecalStage == DRS_BeforeLighting;
 
-	if(bInsideDecal)
+	if (bInsideDecal)
 	{
-		if(bThisDecalUsesStencil)
+		if (bThisDecalUsesStencil)
 		{
 			Ret.DepthTest = bGBufferDecal ? DDS_DepthAlways_StencilEqual1 : DDS_DepthAlways_StencilEqual1_IgnoreMask;
 		}
@@ -433,7 +425,7 @@ static FDecalDepthState ComputeDecalDepthState(EDecalRenderStage LocalDecalStage
 	}
 	else
 	{
-		if(bThisDecalUsesStencil)
+		if (bThisDecalUsesStencil)
 		{
 			Ret.DepthTest = bGBufferDecal ? DDS_DepthTest_StencilEqual1 : DDS_DepthTest_StencilEqual1_IgnoreMask;
 		}
@@ -446,106 +438,94 @@ static FDecalDepthState ComputeDecalDepthState(EDecalRenderStage LocalDecalStage
 	return Ret;
 }
 
-static void SetDecalDepthState(FDecalDepthState DecalDepthState, FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState)
+static FDepthStencilStateRHIParamRef GetDecalDepthState(uint32& StencilRef, FDecalDepthState DecalDepthState)
 {
-	switch(DecalDepthState.DepthTest)
+	switch (DecalDepthState.DepthTest)
 	{
-		case DDS_DepthAlways_StencilEqual1:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			DrawRenderState.SetDepthStencilState(RHICmdList,
-				TStaticDepthStencilState<
-				false, CF_Always,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), STENCIL_SANDBOX_MASK>::GetRHI(),
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1));
-			break;
-			
-		case DDS_DepthAlways_StencilEqual1_IgnoreMask:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			DrawRenderState.SetDepthStencilState(RHICmdList, 
-				TStaticDepthStencilState<
-				false, CF_Always,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI(),
-				STENCIL_SANDBOX_MASK);
-			break;
+	case DDS_DepthAlways_StencilEqual1:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
+		return TStaticDepthStencilState<
+			false, CF_Always,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), STENCIL_SANDBOX_MASK>::GetRHI();
 
-		case DDS_DepthAlways_StencilEqual0:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			DrawRenderState.SetDepthStencilState(RHICmdList, 
-				TStaticDepthStencilState<
-				false, CF_Always,
-				true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
-				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI(),
-				GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1));
-			break;
+	case DDS_DepthAlways_StencilEqual1_IgnoreMask:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = STENCIL_SANDBOX_MASK;
+		return TStaticDepthStencilState<
+			false, CF_Always,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI();
 
-		case DDS_Always:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			DrawRenderState.SetDepthStencilState(RHICmdList, 
-				TStaticDepthStencilState<
-				false, CF_Always>::GetRHI());
-			break;
+	case DDS_DepthAlways_StencilEqual0:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
+		return TStaticDepthStencilState<
+			false, CF_Always,
+			true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+			false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+			STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI();
 
-		case DDS_DepthTest_StencilEqual1:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			DrawRenderState.SetDepthStencilState(RHICmdList, 
-				TStaticDepthStencilState<
-				false, CF_DepthNearOrEqual,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), STENCIL_SANDBOX_MASK>::GetRHI(),
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1));
-			break;
-			
-		case DDS_DepthTest_StencilEqual1_IgnoreMask:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			DrawRenderState.SetDepthStencilState(RHICmdList,
-				TStaticDepthStencilState<
-				false, CF_DepthNearOrEqual,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
-				STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI(),
-				STENCIL_SANDBOX_MASK);
-			break;
+	case DDS_Always:
+		check(!DecalDepthState.bDepthOutput);			// todo 
+		StencilRef = 0;
+		return TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
-		case DDS_DepthTest_StencilEqual0:
-			check(!DecalDepthState.bDepthOutput);			// todo
-			DrawRenderState.SetDepthStencilState(RHICmdList, 
-				TStaticDepthStencilState<
-				false, CF_DepthNearOrEqual,
-				true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
-				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-				STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI(),
-				GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1));
-			break;
+	case DDS_DepthTest_StencilEqual1:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
+		return TStaticDepthStencilState<
+			false, CF_DepthNearOrEqual,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), STENCIL_SANDBOX_MASK>::GetRHI();
 
-		case DDS_DepthTest:
-			if(DecalDepthState.bDepthOutput)
-			{
-				DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI(), 0);
-			}
-			else
-			{
-				DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI(), 0);
-			}
-			break;
+	case DDS_DepthTest_StencilEqual1_IgnoreMask:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = STENCIL_SANDBOX_MASK;
+		return TStaticDepthStencilState<
+			false, CF_DepthNearOrEqual,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+			STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI();
 
-		default:
-			check(0);
+	case DDS_DepthTest_StencilEqual0:
+		check(!DecalDepthState.bDepthOutput);			// todo
+		StencilRef = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1);
+		return TStaticDepthStencilState<
+			false, CF_DepthNearOrEqual,
+			true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+			false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+			STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI();
+
+	case DDS_DepthTest:
+		if (DecalDepthState.bDepthOutput)
+		{
+			StencilRef = 0;
+			return TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI();
+		}
+		else
+		{
+			StencilRef = 0;
+			return TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI();
+		}
+
+	default:
+		check(0);
+		return nullptr;
 	}
 }
 
-static void SetDecalRasterizerState(EDecalRasterizerState DecalRasterizerState, FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState)
+static FRasterizerStateRHIParamRef GetDecalRasterizerState(EDecalRasterizerState DecalRasterizerState)
 {
 	switch (DecalRasterizerState)
 	{
-		case DRS_CW: RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI()); break;
-		case DRS_CCW: RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI()); break;
-		default: check(0);
+	case DRS_CW: return TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
+	case DRS_CCW: return TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI();
+	default: check(0); return nullptr;
 	}
 }
 
@@ -558,12 +538,12 @@ const TCHAR* GetStageName(EDecalRenderStage Stage)
 {
 	// could be implemented with enum reflections as well
 
-	switch(Stage)
+	switch (Stage)
 	{
-		case DRS_BeforeBasePass: return TEXT("DRS_BeforeBasePass");
-		case DRS_AfterBasePass: return TEXT("DRS_AfterBasePass");
-		case DRS_BeforeLighting: return TEXT("DRS_BeforeLighting");
-		case DRS_Mobile: return TEXT("DRS_Mobile");
+	case DRS_BeforeBasePass: return TEXT("DRS_BeforeBasePass");
+	case DRS_AfterBasePass: return TEXT("DRS_AfterBasePass");
+	case DRS_BeforeLighting: return TEXT("DRS_BeforeLighting");
+	case DRS_Mobile: return TEXT("DRS_Mobile");
 	}
 	return TEXT("<UNKNOWN>");
 }
@@ -605,7 +585,7 @@ void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePass
 
 	// set destination
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutCombinedRTWriteMask.GetBaseIndex(), SceneContext.DBufferMask->GetRenderTargetItem().UAV);
-	ComputeShader->SetCS(Context.RHICmdList, Context, Context.View, RTWriteMaskDims);
+	ComputeShader->SetCS(Context.RHICmdList, Context, RTWriteMaskDims);
 
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EGfxToCompute, SceneContext.DBufferMask->GetRenderTargetItem().UAV);
 	{
@@ -636,7 +616,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 {
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	FDrawingPolicyRenderState DrawRenderState(&RHICmdList, Context.View);
 
 	const bool bShaderComplexity = Context.View.Family->EngineShowFlags.ShaderComplexity;
 	const bool bDBuffer = IsDBufferEnabled();
@@ -653,74 +632,74 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	{
 		// before BasePass, only if DBuffer is enabled
 		check(bDBuffer);
-		
+
 		// If we're rendering dbuffer decals but there are no decals in the scene, we avoid the 
 		// clears/decompresses and set the targets to NULL		
 		// The DBufferA-C will be replaced with dummy textures in FDeferredPixelShaderParameters
 		if (ViewFamily.EngineShowFlags.Decals)
-	    {
-		    FScene& Scene = *(FScene*)ViewFamily.Scene;
-		    if (Scene.Decals.Num() > 0 || Context.View.MeshDecalPrimSet.NumPrims() > 0)
-		    {
+		{
+			FScene& Scene = *(FScene*)ViewFamily.Scene;
+			if (Scene.Decals.Num() > 0 || Context.View.MeshDecalPrimSet.NumPrims() > 0)
+			{
 				bNeedsDBufferTargets = true;
 			}
 		}
 
 		// If we need dbuffer targets, initialize them
-		if ( bNeedsDBufferTargets )
+		if (bNeedsDBufferTargets)
 		{
 			FPooledRenderTargetDesc GBufferADesc;
 			SceneContext.GetGBufferADesc(GBufferADesc);
-			
-			// DBuffer: Decal buffer
-		    FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GBufferADesc.Extent,
-			    PF_B8G8R8A8,
-			    FClearValueBinding::None,
-			    TexCreate_None,
-			    TexCreate_ShaderResource | TexCreate_RenderTargetable,
-			    false,
-			    1, 
-			    true, 
-			    true));
-    
-		    if (!SceneContext.DBufferA)
-		    {
-			    Desc.ClearValue = FClearValueBinding::Black;
-			    GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferA, TEXT("DBufferA"));
-		    }
-    
-		    if (!SceneContext.DBufferB)
-		    {
-			    Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
-			    GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferB, TEXT("DBufferB"));
-		    }
-    
-		    Desc.Format = PF_R8G8;
-    
-		    if (!SceneContext.DBufferC)
-		    {
-			    Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
-			    GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferC, TEXT("DBufferC"));
-		    }
 
-		    // we assume views are non overlapping, then we need to clear only once in the beginning, otherwise we would need to set scissor rects
-		    // and don't get FastClear any more.
-		    bool bFirstView = Context.View.Family->Views[0] == &Context.View;
-    
-		    if (bFirstView)
-		    {
-			    SCOPED_DRAW_EVENT(RHICmdList, DBufferClear);
-    
-			    FRHIRenderTargetView RenderTargets[3];
-			    RenderTargets[0] = FRHIRenderTargetView(SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-			    RenderTargets[1] = FRHIRenderTargetView(SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-			    RenderTargets[2] = FRHIRenderTargetView(SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-    
-			    FRHIDepthRenderTargetView DepthView(SceneContext.GetSceneDepthTexture(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
-    
-			    FRHISetRenderTargetsInfo Info(3, RenderTargets, DepthView);
-			    RHICmdList.SetRenderTargetsAndClear(Info);
-		    }
+			// DBuffer: Decal buffer
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GBufferADesc.Extent,
+				PF_B8G8R8A8,
+				FClearValueBinding::None,
+				TexCreate_None,
+				TexCreate_ShaderResource | TexCreate_RenderTargetable,
+				false,
+				1,
+				true,
+				true));
+
+			if (!SceneContext.DBufferA)
+			{
+				Desc.ClearValue = FClearValueBinding::Black;
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferA, TEXT("DBufferA"));
+			}
+
+			if (!SceneContext.DBufferB)
+			{
+				Desc.ClearValue = FClearValueBinding(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferB, TEXT("DBufferB"));
+			}
+
+			Desc.Format = PF_R8G8;
+
+			if (!SceneContext.DBufferC)
+			{
+				Desc.ClearValue = FClearValueBinding(FLinearColor(0, 1, 0, 1));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneContext.DBufferC, TEXT("DBufferC"));
+			}
+
+			// we assume views are non overlapping, then we need to clear only once in the beginning, otherwise we would need to set scissor rects
+			// and don't get FastClear any more.
+			bool bFirstView = Context.View.Family->Views[0] == &Context.View;
+
+			if (bFirstView)
+			{
+				SCOPED_DRAW_EVENT(RHICmdList, DBufferClear);
+
+				FRHIRenderTargetView RenderTargets[3];
+				RenderTargets[0] = FRHIRenderTargetView(SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+				RenderTargets[1] = FRHIRenderTargetView(SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+				RenderTargets[2] = FRHIRenderTargetView(SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+
+				FRHIDepthRenderTargetView DepthView(SceneContext.GetSceneDepthTexture(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
+
+				FRHISetRenderTargetsInfo Info(3, RenderTargets, DepthView);
+				RHICmdList.SetRenderTargetsAndClear(Info);
+			}
 		} // if ( bNeedsDBufferTargets )
 	}
 
@@ -733,7 +712,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			if (Context.View.MeshDecalPrimSet.NumPrims() > 0)
 			{
 				check(bNeedsDBufferTargets || CurrentStage != DRS_BeforeBasePass);
-				RenderMeshDecals(Context, DrawRenderState, CurrentStage);
+				RenderMeshDecals(Context, CurrentStage);
 			}
 		}
 
@@ -742,7 +721,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		//don't early return. Resolves must be run for fast clears to work.
 		if (Scene.Decals.Num())
 		{
-			check(bNeedsDBufferTargets || CurrentStage != DRS_BeforeBasePass );
+			check(bNeedsDBufferTargets || CurrentStage != DRS_BeforeBasePass);
 			FDecalRenderTargetManager RenderTargetManager(RHICmdList, Context.GetShaderPlatform(), CurrentStage);
 
 			// Build a list of decals that need to be rendered for this view
@@ -753,12 +732,16 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			{
 				SCOPED_DRAW_EVENTF(RHICmdList, DeferredDecalsInner, TEXT("DeferredDecalsInner %d/%d"), SortedDecals.Num(), Scene.Decals.Num());
 
+				FGraphicsPipelineStateInitializer GraphicsPSOInit;
+				RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 				// optimization to have less state changes
 				EDecalRasterizerState LastDecalRasterizerState = DRS_Undefined;
 				FDecalDepthState LastDecalDepthState;
 				int32 LastDecalBlendMode = -1;
 				int32 LastDecalHasNormal = -1; // Decal state can change based on its normal property.(SM5)
-			
+				uint32 StencilRef = 0;
+
 				FDecalRenderingCommon::ERenderTargetMode LastRenderTargetMode = FDecalRenderingCommon::RTM_Unknown;
 				const ERHIFeatureLevel::Type SMFeatureLevel = Context.GetFeatureLevel();
 
@@ -787,9 +770,9 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 					// Here we assume that GBuffer can only be WorldNormal since it is the only GBufferTarget handled correctly.
 					if (RenderTargetManager.bGufferADirty && DecalData.MaterialResource->NeedsGBuffer())
-					{ 
+					{
 						RHICmdList.CopyToResolveTarget(SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture, SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture, true, FResolveParams());
-						RenderTargetManager.TargetsToResolve[FDecalRenderTargetManager::GBufferAIndex] =  nullptr;
+						RenderTargetManager.TargetsToResolve[FDecalRenderTargetManager::GBufferAIndex] = nullptr;
 						RenderTargetManager.bGufferADirty = false;
 					}
 
@@ -800,6 +783,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 						RenderTargetManager.SetRenderTargetMode(CurrentRenderTargetMode, DecalData.bHasNormal);
 						Context.SetViewportAndCallRHI(Context.View.ViewRect);
+						RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 					}
 
 					bool bThisDecalUsesStencil = false;
@@ -807,7 +791,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					if (bStencilThisDecal && bStencilSizeThreshold)
 					{
 						// note this is after a SetStreamSource (in if CurrentRenderTargetMode != LastRenderTargetMode) call as it needs to get the VB input
-						bThisDecalUsesStencil = RenderPreStencil(Context, DrawRenderState, ComponentToWorldMatrix, FrustumComponentToClip);
+						bThisDecalUsesStencil = RenderPreStencil(Context, ComponentToWorldMatrix, FrustumComponentToClip);
 
 						LastDecalRasterizerState = DRS_Undefined;
 						LastDecalDepthState = FDecalDepthState();
@@ -825,7 +809,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						LastDecalBlendMode = DecalBlendMode;
 						LastDecalHasNormal = (int32)DecalData.bHasNormal;
 
-						SetDecalBlendState(RHICmdList, DrawRenderState, SMFeatureLevel, CurrentStage, (EDecalBlendMode)LastDecalBlendMode, DecalData.bHasNormal);
+						GraphicsPSOInit.BlendState = GetDecalBlendState(SMFeatureLevel, CurrentStage, (EDecalBlendMode)LastDecalBlendMode, DecalData.bHasNormal);
 					}
 
 					// todo
@@ -840,14 +824,14 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						{
 							// Account for the reversal of handedness caused by negative scale on the decal
 							const auto& Scale3d = DecalProxy.ComponentTrans.GetScale3D();
-							bReverseHanded =  Scale3d[0] * Scale3d[1] * Scale3d[2] < 0.f;
+							bReverseHanded = Scale3d[0] * Scale3d[1] * Scale3d[2] < 0.f;
 						}
 						EDecalRasterizerState DecalRasterizerState = ComputeDecalRasterizerState(bInsideDecal, bReverseHanded, View);
 
 						if (LastDecalRasterizerState != DecalRasterizerState)
 						{
 							LastDecalRasterizerState = DecalRasterizerState;
-							SetDecalRasterizerState(DecalRasterizerState, RHICmdList, DrawRenderState);
+							GraphicsPSOInit.RasterizerState = GetDecalRasterizerState(DecalRasterizerState);
 						}
 					}
 
@@ -858,11 +842,14 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						if (LastDecalDepthState != DecalDepthState)
 						{
 							LastDecalDepthState = DecalDepthState;
-							SetDecalDepthState(DecalDepthState, RHICmdList, DrawRenderState);
+							GraphicsPSOInit.DepthStencilState = GetDecalDepthState(StencilRef, DecalDepthState);
 						}
 					}
 
-					FDecalRendering::SetShader(RHICmdList, View, DecalData, FrustumComponentToClip);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+					FDecalRendering::SetShader(RHICmdList, GraphicsPSOInit, View, DecalData, FrustumComponentToClip);
+					RHICmdList.SetStencilRef(StencilRef);
 
 					RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
 					RenderTargetManager.bGufferADirty |= (RenderTargetManager.TargetsToResolve[FDecalRenderTargetManager::GBufferAIndex] != nullptr);
@@ -870,7 +857,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 				// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 				// Clear stencil to 0, which is the assumed default by other passes
-				RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0, 0, FIntRect());
+				DrawClearQuad(RHICmdList, SMFeatureLevel, false, FLinearColor(), false, 0, true, 0, SceneContext.GetSceneDepthSurface()->GetSizeXY(), FIntRect());
 			}
 
 			if (CurrentStage == DRS_BeforeBasePass)
@@ -888,7 +875,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			RenderTargetManager.ResolveTargets();
 		}
 
-		if (CurrentStage == DRS_BeforeBasePass && bNeedsDBufferTargets )
+		if (CurrentStage == DRS_BeforeBasePass && bNeedsDBufferTargets)
 		{
 			// before BasePass
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.DBufferA);
@@ -910,7 +897,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDeferredDecals::ComputeOutputDesc(EPas
 {
 	// This pass creates it's own output so the compositing graph output isn't needed.
 	FPooledRenderTargetDesc Ret;
-	
+
 	Ret.DebugName = TEXT("DeferredDecals");
 
 	return Ret;
@@ -933,7 +920,7 @@ void FDecalRenderTargetManager::ResolveTargets()
 	FResolveParams ResolveParams;
 	for (int32 i = 0; i < ResolveBufferMax; ++i)
 	{
-		if (TargetsToResolve[i] )
+		if (TargetsToResolve[i])
 		{
 			RHICmdList.CopyToResolveTarget(TargetsToResolve[i], TargetsToResolve[i], true, ResolveParams);
 		}

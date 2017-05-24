@@ -56,7 +56,6 @@ struct FExpressionInput
 	/** Material expression name that this input is connected to, or None if not connected. Used only in cooked builds */
 	UPROPERTY()
 	FName ExpressionName;
-
 };
 
 USTRUCT(noexport)
@@ -160,6 +159,10 @@ class ENGINE_API UMaterialExpression : public UObject
 	UPROPERTY()
 	uint32 bShowOutputNameOnPin:1;
 
+	/** If true, changes the pin color to match the output mask */
+	UPROPERTY()
+	uint32 bShowMaskColorsOnPin:1;
+
 	/** If true, do not render the preview window for the expression */
 	UPROPERTY()
 	uint32 bHidePreviewWindow:1;
@@ -249,8 +252,8 @@ class ENGINE_API UMaterialExpression : public UObject
 	virtual uint32 GetInputType(int32 InputIndex);
 	virtual uint32 GetOutputType(int32 OutputIndex);
 
-	virtual FString GetCreationDescription() const;
-	virtual FString GetCreationName() const;
+	virtual FText GetCreationDescription() const;
+	virtual FText GetCreationName() const;
 #endif
 
 	/**

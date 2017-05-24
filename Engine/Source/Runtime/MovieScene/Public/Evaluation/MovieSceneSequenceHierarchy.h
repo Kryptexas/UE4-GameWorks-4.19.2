@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Evaluation/MovieSceneSequenceTransform.h"
 #include "Evaluation/MovieSceneSectionParameters.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneSequenceHierarchy.generated.h"
 
 class UMovieSceneSequence;
@@ -36,7 +37,11 @@ struct FMovieSceneSubSequenceData
 #endif
 		)
 		: Sequence(&InSequence)
+		, SequenceKeyObject(nullptr)
 		, DeterministicSequenceID(InDeterministicSequenceID)
+		, PreRollRange(TRange<float>::Empty())
+		, PostRollRange(TRange<float>::Empty())
+		, HierarchicalBias(0)
 #if WITH_EDITORONLY_DATA
 		, SectionPath(InSectionPath)
 		, ValidPlayRange(InValidPlayRange)
@@ -46,6 +51,10 @@ struct FMovieSceneSubSequenceData
 	/** The sequence that the sub section references */
 	UPROPERTY()
 	UMovieSceneSequence* Sequence;
+
+	/** The key object that the sub section uses. Usually either the sequence or the section. */
+	UPROPERTY()
+	const UObject* SequenceKeyObject;
 
 	/** Transform that transforms a given time from the sequences outer space, to its authored space. */
 	UPROPERTY()
@@ -58,6 +67,19 @@ struct FMovieSceneSubSequenceData
 	/** This sequence's deterministic sequence ID. Used in editor to reduce the risk of collisions on recompilation */ 
 	UPROPERTY()
 	FMovieSceneSequenceID DeterministicSequenceID;
+
+
+	/** The sequence preroll range considering the start offset */
+	UPROPERTY()
+	FFloatRange PreRollRange;
+
+	/** The sequence postroll range considering the start offset */
+	UPROPERTY()
+	FFloatRange PostRollRange;
+
+	/** The accumulated hierarchical bias of this sequence. Higher bias will take precedence */
+	UPROPERTY()
+	int32 HierarchicalBias;
 
 #if WITH_EDITORONLY_DATA
 

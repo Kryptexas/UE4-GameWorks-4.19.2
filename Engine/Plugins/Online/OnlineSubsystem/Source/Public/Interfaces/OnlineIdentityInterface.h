@@ -124,7 +124,7 @@ protected:
 
 public:
 
-	enum class EPrivilegeResults
+	enum class EPrivilegeResults : uint32
 	{
 		/** The user has the requested privilege */
 		NoFailures				=	0,
@@ -146,6 +146,8 @@ public:
 		UGCRestriction			=	1 << 7,
 		/** Platform failed for unknown reason and handles its own dialogs */
 		GenericFailure			=	1 << 8, 
+		/** Online play is restricted */
+		OnlinePlayRestricted	=	1 << 9, 
 	};
 
 	virtual ~IOnlineIdentity() {};
@@ -238,8 +240,6 @@ public:
 
 	/**
 	 * Obtain list of all known/registered user accounts
-	 *
-	 * @param UserId user to search for
 	 *
 	 * @return info about the user if found, NULL otherwise
 	 */

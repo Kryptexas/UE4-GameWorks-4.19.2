@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2741693
+﻿INTSourceChangelist:3243860
 Availability:Public
 Title:ビジュアルとパフォーマンスのバランスを取る
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:ビジュアルの忠実度とパフォーマンス負荷のバランスをとるためにトレードオフを行い、代替方法を使用します。
 Version:4.9
+tags:Particles
 
 
 

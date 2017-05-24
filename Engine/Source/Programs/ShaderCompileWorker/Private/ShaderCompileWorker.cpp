@@ -567,7 +567,8 @@ static FName NAME_PCD3D_ES2(TEXT("PCD3D_ES2"));
 static FName NAME_GLSL_150(TEXT("GLSL_150"));
 static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 static FName NAME_SF_PS4(TEXT("SF_PS4"));
-static FName NAME_SF_XBOXONE(TEXT("SF_XBOXONE"));
+static FName NAME_SF_XBOXONE_D3D11(TEXT("SF_XBOXONE_D3D11"));
+static FName NAME_SF_XBOXONE_D3D12(TEXT("SF_XBOXONE_D3D12"));
 static FName NAME_GLSL_430(TEXT("GLSL_430"));
 static FName NAME_GLSL_150_ES2(TEXT("GLSL_150_ES2"));
 static FName NAME_GLSL_150_ES2_NOUB(TEXT("GLSL_150_ES2_NOUB"));
@@ -596,11 +597,12 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	if (ShaderFormat == NAME_PCD3D_ES2)			return SP_PCD3D_ES2;
 	if (ShaderFormat == NAME_GLSL_150)			return SP_OPENGL_SM4;
 	if (ShaderFormat == NAME_GLSL_150_MAC)		return SP_OPENGL_SM4_MAC;
-	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
-	if (ShaderFormat == NAME_SF_XBOXONE)			return SP_XBOXONE;
+	if (ShaderFormat == NAME_SF_PS4)			return SP_PS4;
+	if (ShaderFormat == NAME_SF_XBOXONE_D3D11)	return SP_XBOXONE_D3D11;
+	if (ShaderFormat == NAME_SF_XBOXONE_D3D12)	return SP_XBOXONE_D3D12;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
-	if (ShaderFormat == NAME_GLSL_150_ES2)			return SP_OPENGL_PCES2;
-	if (ShaderFormat == NAME_GLSL_150_ES2_NOUB)		return SP_OPENGL_PCES2;
+	if (ShaderFormat == NAME_GLSL_150_ES2)		return SP_OPENGL_PCES2;
+	if (ShaderFormat == NAME_GLSL_150_ES2_NOUB)	return SP_OPENGL_PCES2;
 	if (ShaderFormat == NAME_GLSL_150_ES31)		return SP_OPENGL_PCES3_1;
 	if (ShaderFormat == NAME_GLSL_ES2)			return SP_OPENGL_ES2_ANDROID;
 	if (ShaderFormat == NAME_GLSL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
@@ -620,7 +622,7 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	return SP_NumPlatforms;
 }
 
-static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormats)
+static void DirectCompile(const TArray<const class IShaderFormat*>& ShaderFormats)
 {
 	// Find all the info required for compiling a single shader
 	TArray<FString> Tokens, Switches;
@@ -720,7 +722,7 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 		Map.Add(Name, LambdaEntry);
 	};
 
-	// Sample setup for Uniform Buffers as SCW does not rely on the Engine/Renderer. These change quite unfrequently...
+	// Sample setup for Uniform Buffers as SCW does not rely on the Engine/Renderer. These change quite infrequently...
 	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("View"), 178850472);
 	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("InstancedView"), 178257920);
 	Input.Environment.ResourceTableLayoutHashes.Add(TEXT("BuiltinSamplers"), 134219776);
@@ -782,6 +784,22 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("GBuffers_GBufferVelocityTextureSampler"), TEXT("GBuffers"), 8, 23);
 	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Clamp_WorldGroupSettings"), TEXT("Material"), 8, 1);
 	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Wrap_WorldGroupSettings"), TEXT("Material"), 8, 0);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_0"), TEXT("Material"), 9, 0);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_1"), TEXT("Material"), 9, 1);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_2"), TEXT("Material"), 9, 2);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_3"), TEXT("Material"), 9, 3);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_4"), TEXT("Material"), 9, 4);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_5"), TEXT("Material"), 9, 5);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_6"), TEXT("Material"), 9, 6);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_7"), TEXT("Material"), 9, 7);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_0Sampler"), TEXT("Material"), 8, 8);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_1Sampler"), TEXT("Material"), 8, 9);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_2Sampler"), TEXT("Material"), 8, 10);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_3Sampler"), TEXT("Material"), 8, 11);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_4Sampler"), TEXT("Material"), 8, 12);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_5Sampler"), TEXT("Material"), 8, 13);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_6Sampler"), TEXT("Material"), 8, 14);
+	AddResourceTableEntry(Input.Environment.ResourceTableMap, TEXT("Material_Texture2D_7Sampler"), TEXT("Material"), 8, 15);
 
 
 	uint32 CFlag = 0;
@@ -855,7 +873,7 @@ static int32 GuardedMain(int32 argc, TCHAR* argv[], bool bDirectMode)
 
 	if (bDirectMode)
 	{
-		CompileDirect(ShaderFormats);
+		DirectCompile(ShaderFormats);
 	}
 	else
 	{

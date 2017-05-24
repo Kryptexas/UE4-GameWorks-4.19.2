@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability: Public
 Title:3. 액터를 블루프린트 클래스로 변환하기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
@@ -7,6 +7,7 @@ version: 4.9
 parent:Engine/Blueprints/QuickStart
 order:3
 type:multi-step
+tags:Blueprints
 
 [VAR:Steps]
 [OBJECT:Navigation]

@@ -7,6 +7,14 @@
 #include "Common.usf"
 #include "DeferredShadingCommon.usf"
 
+float4 EncodeFloatRGBA( float v )
+{
+	float4 Enc = float4(1.0, 255.0, 65025.0, 16581375.0) * v;
+	Enc = frac(Enc);
+	Enc -= Enc.yzww * 1.0/255.0;
+	return Enc;
+}
+
 void Main(
 	FScreenVertexOutput Input,
 	out float4 OutColor : SV_Target0
@@ -30,5 +38,9 @@ void Main(
 #elif SOURCE_MODE_BASE_COLOR
 	FGBufferData GBufferData = GetGBufferData(Input.UV);
 	OutColor = float4(GBufferData.BaseColor, 0);
+#elif SOURCE_MODE_DEVICE_DEPTH
+	float Depth = 1 - LookupDeviceZ(Input.UV);
+	OutColor.rgba = EncodeFloatRGBA(Depth).rgba;
+	OutColor.a = 1;
 #endif
 }

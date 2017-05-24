@@ -19,11 +19,7 @@
 		{
 			"Name" : "PhysXVehicles",
 			"Type" : "Runtime",
-			"LoadingPhase" : "PreDefault",
-			"BlacklistPlatforms" :
-			[
-				"HTML5"
-			]
+			"LoadingPhase" : "PreDefault"
 		},
 		{
 			"Name" : "PhysXVehiclesEditor",

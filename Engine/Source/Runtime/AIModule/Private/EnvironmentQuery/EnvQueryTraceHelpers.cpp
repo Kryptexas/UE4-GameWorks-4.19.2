@@ -3,8 +3,6 @@
 #include "EnvironmentQuery/EnvQueryTraceHelpers.h"
 #include "AI/Navigation/NavigationData.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
-
 template<>
 void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::Line>(const FVector& Source, TArray<FNavLocation>& Points)
 {
@@ -506,5 +504,3 @@ void FEQSHelpers::RunNavProjection(const ANavigationData& NavData, const FEnvTra
 {
 	RunNavProjection(NavData, NavData, TraceData, Points, TraceMode);
 }
-
-PRAGMA_ENABLE_OPTIMIZATION

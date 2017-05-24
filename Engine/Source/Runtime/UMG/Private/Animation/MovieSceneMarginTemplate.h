@@ -13,6 +13,8 @@
 class UMovieSceneMarginSection;
 class UMovieScenePropertyTrack;
 
+Expose_TNameOf(FMargin);
+
 USTRUCT()
 struct FMovieSceneMarginSectionTemplate : public FMovieSceneEvalTemplate
 {

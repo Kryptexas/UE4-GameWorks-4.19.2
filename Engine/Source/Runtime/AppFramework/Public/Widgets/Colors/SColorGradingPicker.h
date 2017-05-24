@@ -9,9 +9,10 @@
 #include "Widgets/SLeafWidget.h"
 #include "Framework/SlateDelegates.h"
 #include "SCompoundWidget.h"
+#include "SNumericEntryBox.h"
 
 /** Callback to get the current FVector4 value */
-DECLARE_DELEGATE_OneParam(FOnGetCurrentVector4Value, FVector4&)
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnGetCurrentVector4Value, FVector4&)
 
 /**
 * Enumerates color picker modes.
@@ -22,7 +23,8 @@ enum class EColorGradingModes
 	Contrast,
 	Gamma,
 	Gain,
-	Offset
+	Offset,
+	Invalid
 };
 
 
@@ -35,10 +37,17 @@ class APPFRAMEWORK_API SColorGradingPicker
 	: public SCompoundWidget
 {
 public:
+	/** Notification when the max/min spinner values are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
+	DECLARE_MULTICAST_DELEGATE_FourParams(FOnNumericEntryBoxDynamicSliderMinMaxValueChanged, float, TWeakPtr<SWidget>, bool, bool);
+
+	// Delegate called when the widget Color Data changed
+	DECLARE_DELEGATE_TwoParams(FOnColorGradingPickerValueChanged, FVector4&, bool);
+
 
 	SLATE_BEGIN_ARGS(SColorGradingPicker)
-		: _ValuesMin(0.0f)
-		, _ValuesMax(2.0f)
+		: _AllowSpin(true)
+		, _SupportDynamicSliderMaxValue(false)
+		, _SupportDynamicSliderMinValue(false)
 		, _MainDelta(0.01f)
 		, _MainShiftMouseMovePixelPerDelta(10)
 		, _ColorGradingModes(EColorGradingModes::Saturation)
@@ -46,9 +55,16 @@ public:
 		, _OnQueryCurrentColor()
 	{ }
 		
-		SLATE_ARGUMENT( float, ValuesMin )
+		SLATE_ARGUMENT(TOptional<float>, ValueMin )
+		SLATE_ARGUMENT(TOptional<float>, ValueMax )
+		SLATE_ARGUMENT(TOptional<float>, SliderValueMin)
+		SLATE_ARGUMENT(TOptional<float>, SliderValueMax)
+		SLATE_ATTRIBUTE(bool, AllowSpin)
 
-		SLATE_ARGUMENT( float, ValuesMax )
+		/** Tell us if we want to support dynamically changing of the max value using ctrl */
+		SLATE_ATTRIBUTE(bool, SupportDynamicSliderMaxValue)
+		/** Tell us if we want to support dynamically changing of the min value using ctrl */
+		SLATE_ATTRIBUTE(bool, SupportDynamicSliderMinValue)
 
 		SLATE_ARGUMENT( float, MainDelta )
 
@@ -57,9 +73,9 @@ public:
 		SLATE_ARGUMENT( EColorGradingModes, ColorGradingModes)
 
 		/** The event called when the color is committed */
-		SLATE_EVENT( FOnVector4ValueChanged, OnColorCommitted )
+		SLATE_EVENT(FOnColorGradingPickerValueChanged, OnColorCommitted )
 
-			/** Callback to get the current FVector4 value */
+		/** Callback to get the current FVector4 value */
 		SLATE_EVENT(FOnGetCurrentVector4Value, OnQueryCurrentColor)
 
 	SLATE_END_ARGS()
@@ -76,6 +92,13 @@ public:
 	 */
 	void Construct(const FArguments& InArgs );
 
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged& GetOnNumericEntryBoxDynamicSliderMaxValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMaxValueChanged; }
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged& GetOnNumericEntryBoxDynamicSliderMinValueChangedDelegate() { return OnNumericEntryBoxDynamicSliderMinValueChanged; }
+
+	/** Callback when the max/min spinner value are changed (only apply if SupportDynamicSliderMaxValue or SupportDynamicSliderMinValue are true) */
+	void OnDynamicSliderMaxValueChanged(float NewMaxSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfHigher);
+	void OnDynamicSliderMinValueChanged(float NewMinSliderValue, TWeakPtr<SWidget> InValueChangedSourceWidget, bool IsOriginator, bool UpdateOnlyIfLower);
+
 protected:
 
 	void TransformLinearColorRangeToColorGradingRange(FVector4 &VectorValue) const;
@@ -83,20 +106,34 @@ protected:
 	void TransformColorGradingRangeToLinearColorRange(float &FloatValue);
 
 	TOptional<float> OnGetMainValue() const;
-	void OnMainValueChanged(float InValue);
+	void OnMainValueChanged(float InValue, bool ShouldCommitValueChanges);
 	FLinearColor GetCurrentLinearColor();
 
-	// Callback for value changes in the color spectrum picker.
-	void HandleCurrentColorValueChanged(FLinearColor NewValue);
+	bool IsEntryBoxEnabled() const;
 
-	float ValuesMin;
-	float ValuesMax;
+	// Callback for value changes in the color spectrum picker.
+	void HandleCurrentColorValueChanged(const FLinearColor& NewValue, bool ShouldCommitValueChanges);
+	void HandleColorWheelMouseCaptureEnd();
+
+	void OnBeginSliderMovement();
+	void OnEndSliderMovement(float NewValue);
+	void AdjustRatioValue(FVector4 &NewValue);
+
+	bool bIsMouseDragging;
+	FVector4 StartDragRatio;
+
+	float SliderValueMin;
+	float SliderValueMax;
 	float MainDelta;
 	int32 MainShiftMouseMovePixelPerDelta;
 	EColorGradingModes ColorGradingModes;
 
+	TSharedPtr<SNumericEntryBox<float>> NumericEntryBoxWidget;
+
 	/** Invoked when a new value is selected on the color wheel */
-	FOnVector4ValueChanged OnColorCommitted;
+	FOnColorGradingPickerValueChanged OnColorCommitted;
 
 	FOnGetCurrentVector4Value OnQueryCurrentColor;
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged OnNumericEntryBoxDynamicSliderMaxValueChanged;
+	FOnNumericEntryBoxDynamicSliderMinMaxValueChanged OnNumericEntryBoxDynamicSliderMinValueChanged;
 };

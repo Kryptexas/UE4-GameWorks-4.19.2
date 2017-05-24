@@ -23,7 +23,7 @@
 #include "SSequencerSectionAreaView.h"
 #include "CommonMovieSceneTools.h"
 #include "Framework/Commands/GenericCommands.h"
-
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
 
@@ -175,6 +175,27 @@ void FSequencerDisplayNode::Initialize(float InVirtualTop, float InVirtualBottom
 void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode)
 {
 	AddChildAndSetParent( ObjectBindingNode );
+}
+
+
+TSharedPtr<FSequencerObjectBindingNode> FSequencerDisplayNode::FindParentObjectBindingNode() const
+{
+	TSharedPtr<FSequencerDisplayNode> CurrentParentNode = GetParent();
+
+	while (CurrentParentNode.IsValid())
+	{
+		if (CurrentParentNode.Get()->GetType() == ESequencerNode::Object)
+		{
+			TSharedPtr<FSequencerObjectBindingNode> ObjectNode = StaticCastSharedPtr<FSequencerObjectBindingNode>(CurrentParentNode);
+			if (ObjectNode.IsValid())
+			{
+				return ObjectNode;
+			}
+		}
+		CurrentParentNode = CurrentParentNode->GetParent();
+	}
+
+	return nullptr;
 }
 
 
@@ -460,6 +481,44 @@ TSharedPtr<SWidget> FSequencerDisplayNode::OnSummonContextMenu()
 }
 
 
+namespace
+{
+	void AddEvalOptionsPropertyMenuItem(FMenuBuilder& MenuBuilder, FCanExecuteAction InCanExecute, const TArray<UMovieSceneTrack*>& AllTracks, const UBoolProperty* Property, TFunction<bool(UMovieSceneTrack*)> Validator = nullptr)
+	{
+		bool bIsChecked = AllTracks.ContainsByPredicate(
+			[=](UMovieSceneTrack* InTrack)
+			{
+				return (!Validator || Validator(InTrack)) && Property->GetPropertyValue(Property->ContainerPtrToValuePtr<void>(&InTrack->EvalOptions));
+			});
+
+		MenuBuilder.AddMenuEntry(
+			Property->GetDisplayNameText(),
+			Property->GetToolTipText(),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateLambda([AllTracks, Property, Validator, bIsChecked]{
+					FScopedTransaction Transaction(FText::Format(NSLOCTEXT("Sequencer", "TrackNodeSetRoundEvaluation", "Set '{0}'"), Property->GetDisplayNameText()));
+					for (UMovieSceneTrack* Track : AllTracks)
+					{
+						if (Validator && !Validator(Track))
+						{
+							continue;
+						}
+						void* PropertyContainer = Property->ContainerPtrToValuePtr<void>(&Track->EvalOptions);
+						Track->Modify();
+						Property->SetPropertyValue(PropertyContainer, !bIsChecked);
+					}
+				}),
+				InCanExecute,
+				FIsActionChecked::CreateLambda([=]{ return bIsChecked; })
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check
+		);
+	}
+}
+
+
 void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
 	TSharedRef<FSequencerDisplayNode> ThisNode = SharedThis(this);
@@ -521,6 +580,48 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 		);
 	}
 	MenuBuilder.EndSection();
+
+	TArray<UMovieSceneTrack*> AllTracks;
+	for (TSharedRef<FSequencerDisplayNode> Node : GetSequencer().GetSelection().GetSelectedOutlinerNodes())
+	{
+		if (Node->GetType() == ESequencerNode::Track)
+		{
+			UMovieSceneTrack* Track = static_cast<FSequencerTrackNode&>(Node.Get()).GetTrack();
+			if (Track)
+			{
+				AllTracks.Add(Track);
+			}
+		}
+	}
+	
+	if (AllTracks.Num())
+	{
+		MenuBuilder.BeginSection("GeneralTrackOptions", NSLOCTEXT("Sequencer", "TrackNodeGeneralOptions", "Track Options"));
+		{
+			UStruct* EvalOptionsStruct = FMovieSceneTrackEvalOptions::StaticStruct();
+
+			const UBoolProperty* NearestSectionProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateNearestSection)));
+			auto CanEvaluateNearest = [](UMovieSceneTrack* InTrack) { return InTrack->EvalOptions.bCanEvaluateNearestSection != 0; };
+			if (NearestSectionProperty && AllTracks.ContainsByPredicate(CanEvaluateNearest))
+			{
+				TFunction<bool(UMovieSceneTrack*)> Validator = CanEvaluateNearest;
+				AddEvalOptionsPropertyMenuItem(MenuBuilder, CanExecute, AllTracks, NearestSectionProperty, Validator);
+			}
+
+			const UBoolProperty* PrerollProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateInPreroll)));
+			if (PrerollProperty)
+			{
+				AddEvalOptionsPropertyMenuItem(MenuBuilder, CanExecute, AllTracks, PrerollProperty);
+			}
+
+			const UBoolProperty* PostrollProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateInPostroll)));
+			if (PostrollProperty)
+			{
+				AddEvalOptionsPropertyMenuItem(MenuBuilder, CanExecute, AllTracks, PostrollProperty);
+			}
+		}
+		MenuBuilder.EndSection();
+	}
 }
 
 

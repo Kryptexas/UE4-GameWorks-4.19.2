@@ -1872,10 +1872,40 @@ void FLandscapeEditDataInterface::FillLayer(ULandscapeLayerInfoObject* LayerInfo
 		return;
 	}
 
+	LayerInfo->IsReferencedFromLoadedData = true;
+
 	for (auto& XYComponentPair : LandscapeInfo->XYtoComponentMap)
 	{
 		ULandscapeComponent* Component = XYComponentPair.Value;
 		Component->FillLayer(LayerInfo, *this);
+	}	
+
+	// Flush dynamic data (e.g. grass)
+	TSet<ULandscapeComponent*> Components;
+	for (auto& XYComponentPair : LandscapeInfo->XYtoComponentMap)
+	{
+		Components.Add(XYComponentPair.Value);
+	}
+	ALandscapeProxy::InvalidateGeneratedComponentData(Components);
+}
+
+void FLandscapeEditDataInterface::FillEmptyLayers(ULandscapeLayerInfoObject* LayerInfo)
+{
+	if (!LandscapeInfo)
+	{
+		return;
+	}
+
+	LayerInfo->IsReferencedFromLoadedData = true;
+
+	for (auto& XYComponentPair : LandscapeInfo->XYtoComponentMap)
+	{
+		ULandscapeComponent* Component = XYComponentPair.Value;
+
+		if (Component->WeightmapLayerAllocations.Num() == 0)
+		{
+			Component->FillLayer(LayerInfo, *this);
+		}
 	}
 
 	// Flush dynamic data (e.g. grass)
@@ -2590,10 +2620,10 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 				Component->ReallocateWeightmaps(this);
 
 				Component->UpdateMaterialInstances();
-				if( Component->EditToolRenderData )
-				{
-					Component->EditToolRenderData->UpdateDebugColorMaterial();
-				}
+
+				Component->EditToolRenderData.UpdateDebugColorMaterial(Component);
+
+				Component->UpdateEditToolRenderData();
 			}
 
 			// Lock data for all the weightmaps
@@ -2895,10 +2925,9 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 			{
 				Component->UpdateMaterialInstances();
 
-				if (Component->EditToolRenderData)
-				{
-					Component->EditToolRenderData->UpdateDebugColorMaterial();
-				}
+				Component->EditToolRenderData.UpdateDebugColorMaterial(Component);
+
+				Component->UpdateEditToolRenderData();
 			}
 		}
 	}
@@ -3000,10 +3029,10 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 					}
 					Component->ReallocateWeightmaps(this);
 					Component->UpdateMaterialInstances();
-					if (Component->EditToolRenderData)
-					{
-						Component->EditToolRenderData->UpdateDebugColorMaterial();
-					}
+					
+					Component->EditToolRenderData.UpdateDebugColorMaterial(Component);
+
+					Component->UpdateEditToolRenderData();
 				}
 			}
 
@@ -3172,10 +3201,9 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 			{
 				Component->UpdateMaterialInstances();
 
-				if (Component->EditToolRenderData)
-				{
-					Component->EditToolRenderData->UpdateDebugColorMaterial();
-				}
+				Component->EditToolRenderData.UpdateDebugColorMaterial(Component);
+
+				Component->UpdateEditToolRenderData();
 			}
 		}
 	}
@@ -4138,9 +4166,9 @@ void FLandscapeEditDataInterface::GetSelectDataTempl(const int32 X1, const int32
 
 			FLandscapeTextureDataInfo* TexDataInfo = NULL;
 			uint8* SelectTextureData = NULL;
-			if( Component && Component->EditToolRenderData && Component->EditToolRenderData->DataTexture )
+			if( Component && Component->EditToolRenderData.DataTexture )
 			{
-				TexDataInfo = GetTextureDataInfo(Component->EditToolRenderData->DataTexture);
+				TexDataInfo = GetTextureDataInfo(Component->EditToolRenderData.DataTexture);
 				SelectTextureData = (uint8*)TexDataInfo->GetMipData(0);
 			}
 
@@ -4178,8 +4206,8 @@ void FLandscapeEditDataInterface::GetSelectDataTempl(const int32 X1, const int32
 							if( Component && SelectTextureData )
 							{
 								// Find the texture data corresponding to this vertex
-								int32 SizeU = Component->EditToolRenderData->DataTexture->Source.GetSizeX();
-								int32 SizeV = Component->EditToolRenderData->DataTexture->Source.GetSizeY();
+								int32 SizeU = Component->EditToolRenderData.DataTexture->Source.GetSizeX();
+								int32 SizeV = Component->EditToolRenderData.DataTexture->Source.GetSizeY();
 								int32 WeightmapOffsetX = Component->WeightmapScaleBias.Z * (float)SizeU;
 								int32 WeightmapOffsetY = Component->WeightmapScaleBias.W * (float)SizeV;
 
@@ -4239,11 +4267,11 @@ void FLandscapeEditDataInterface::SetSelectData(int32 X1, int32 Y1, int32 X2, in
 
 			UTexture2D* DataTexture = NULL;
 			// if NULL, it was painted away
-			if( Component==NULL || Component->EditToolRenderData==NULL)
+			if( Component==NULL)
 			{
 				continue;
 			}
-			else if (Component->EditToolRenderData->DataTexture==NULL)
+			else if (Component->EditToolRenderData.DataTexture == NULL)
 			{
 				//FlushRenderingCommands();
 				// Construct Texture...
@@ -4265,18 +4293,12 @@ void FLandscapeEditDataInterface::SetSelectData(int32 X1, int32 Y1, int32 X2, in
 				}
 				ULandscapeComponent::UpdateDataMips(ComponentNumSubsections, SubsectionSizeQuads, DataTexture, TextureMipData, 0, 0, MAX_int32, MAX_int32, TexDataInfo);
 				
-				Component->SelectDataTexture = DataTexture;
-				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-					UpdateEditToolRenderDataDataTexture,
-					FLandscapeEditToolRenderData*, LandscapeEditToolRenderData, Component->EditToolRenderData,
-					UTexture2D*, InDataTexture, DataTexture,
-				{
-					LandscapeEditToolRenderData->DataTexture  = InDataTexture;
-				});	
+				Component->EditToolRenderData.DataTexture = DataTexture;
+				Component->UpdateEditToolRenderData();
 			}
 			else
 			{
-				DataTexture = Component->EditToolRenderData->DataTexture;
+				DataTexture = Component->EditToolRenderData.DataTexture;
 			}
 
 			FLandscapeTextureDataInfo* TexDataInfo = GetTextureDataInfo(DataTexture);

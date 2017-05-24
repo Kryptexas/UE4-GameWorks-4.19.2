@@ -2,9 +2,9 @@
 
 #include "RejoinCheck.h"
 #include "Engine/GameInstance.h"
+#include "OnlineSubsystemUtils.h"
 #include "Engine/LocalPlayer.h"
 #include "TimerManager.h"
-#include "OnlineSubsystemUtils.h"
 
 #define REJOIN_CHECK_TIMER 30.0f
 
@@ -106,8 +106,8 @@ void URejoinCheck::CheckRejoinStatus(const FOnRejoinCheckComplete& InCompletionD
 
 		if (!bSuccess)
 		{
-			FOnlineSessionSearchResult EmptySearchResult;
-			ProcessRejoinCheck(false, EmptySearchResult, InCompletionDelegate);
+			TArray<FOnlineSessionSearchResult> EmptySearchResults;
+			ProcessRejoinCheck(false, EmptySearchResults, InCompletionDelegate);
 		}
 	}
 	else
@@ -117,7 +117,7 @@ void URejoinCheck::CheckRejoinStatus(const FOnRejoinCheckComplete& InCompletionD
 	}
 }
 
-void URejoinCheck::OnCheckRejoinComplete(int32 ControllerId, bool bWasSuccessful, const FOnlineSessionSearchResult& InSearchResult, FOnRejoinCheckComplete InCompletionDelegate)
+void URejoinCheck::OnCheckRejoinComplete(int32 ControllerId, bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& InSearchResults, FOnRejoinCheckComplete InCompletionDelegate)
 {
 	UWorld* World = GetWorld();
 	check(World);
@@ -128,10 +128,10 @@ void URejoinCheck::OnCheckRejoinComplete(int32 ControllerId, bool bWasSuccessful
 		SessionInt->ClearOnFindFriendSessionCompleteDelegate_Handle(ControllerId, FindFriendSessionCompleteDelegateHandle);
 	}
 
-	ProcessRejoinCheck(bWasSuccessful, InSearchResult, InCompletionDelegate);
+	ProcessRejoinCheck(bWasSuccessful, InSearchResults, InCompletionDelegate);
 }
 
-void URejoinCheck::ProcessRejoinCheck(bool bWasSuccessful, const FOnlineSessionSearchResult& InSearchResult, const FOnRejoinCheckComplete& InCompletionDelegate)
+void URejoinCheck::ProcessRejoinCheck(bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& InSearchResults, const FOnRejoinCheckComplete& InCompletionDelegate)
 {
 	if (LastKnownStatus == ERejoinStatus::UpdatingStatus)
 	{
@@ -139,20 +139,20 @@ void URejoinCheck::ProcessRejoinCheck(bool bWasSuccessful, const FOnlineSessionS
 		if (bWasSuccessful)
 		{
 			NewStatus = ERejoinStatus::NoMatchToRejoin;
-			if (InSearchResult.IsValid())
+			if (InSearchResults.Num() > 0 && InSearchResults[0].IsValid())
 			{
-				NewStatus = GetRejoinStateFromSearchResult(InSearchResult);
+				NewStatus = GetRejoinStateFromSearchResult(InSearchResults[0]);
 			}
 
-			if (NewStatus == ERejoinStatus::RejoinAvailable)
+			if (NewStatus == ERejoinStatus::RejoinAvailable && InSearchResults.Num() > 0)
 			{
-				if (InSearchResult.GetSessionIdStr() != SearchResult.GetSessionIdStr())
+				if (InSearchResults[0].GetSessionIdStr() != SearchResult.GetSessionIdStr())
 				{
 					// Record the analytics before the search result assignment
 					// so the event is only sent once per unique session id
-					Analytics_RecordRejoinDetected(InSearchResult);
+					Analytics_RecordRejoinDetected(InSearchResults[0]);
 				}
-				SearchResult = InSearchResult;
+				SearchResult = InSearchResults[0];
 			}
 			else
 			{
@@ -292,12 +292,8 @@ void URejoinCheck::TravelToSession()
 	// TODO: What should we do if this fails? Will need to destroy session, etc.
 	UGameInstance* GameInstance = GetGameInstance<UGameInstance>();
 	check(GameInstance);
-#ifdef ADDED_CLIENTTRAVELTOSESSION
-	bool bResult = GameInstance->ClientTravelToSession(0, GameSessionName);
-#else
-	bool bResult = false;
-#endif
 
+	bool bResult = GameInstance->ClientTravelToSession(0, GameSessionName);
 	if (bResult)
 	{
 		// Record the result of the attempt to rejoin

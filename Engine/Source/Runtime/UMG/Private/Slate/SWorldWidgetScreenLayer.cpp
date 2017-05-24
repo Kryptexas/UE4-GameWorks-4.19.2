@@ -4,7 +4,9 @@
 #include "Widgets/Layout/SBox.h"
 #include "Components/WidgetComponent.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
-
+#include "Engine/GameViewportClient.h"
+#include "Widgets/SViewport.h"
+#include "Slate/SGameLayerManager.h"
 
 void SWorldWidgetScreenLayer::Construct(const FArguments& InArgs, const FLocalPlayerContext& InPlayerContext)
 {
@@ -72,52 +74,60 @@ void SWorldWidgetScreenLayer::Tick(const FGeometry& AllottedGeometry, const doub
 
 	if ( APlayerController* PlayerController = PlayerContext.GetPlayerController() )
 	{
-		for ( auto It = ComponentMap.CreateIterator(); It; ++It )
+		if ( UGameViewportClient* ViewportClient = PlayerController->GetWorld()->GetGameViewport() )
 		{
-			FComponentEntry& Entry = It.Value();
+			const FGeometry& ViewportGeometry = ViewportClient->GetGameLayerManager()->GetViewportWidgetHostGeometry();
 
-			if ( USceneComponent* SceneComponent = Entry.Component.Get() )
+			for ( auto It = ComponentMap.CreateIterator(); It; ++It )
 			{
-				FVector WorldLocation = SceneComponent->GetComponentLocation();
+				FComponentEntry& Entry = It.Value();
 
-				FVector ScreenPosition;
-				const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(PlayerController, WorldLocation, ScreenPosition);
-
-				if ( bProjected )
+				if ( USceneComponent* SceneComponent = Entry.Component.Get() )
 				{
-					Entry.ContainerWidget->SetVisibility(EVisibility::SelfHitTestInvisible);
+					FVector WorldLocation = SceneComponent->GetComponentLocation();
 
-					if ( SConstraintCanvas::FSlot* CanvasSlot = Entry.Slot )
+					FVector ViewportPosition;
+					const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPositionWithDistance(PlayerController, WorldLocation, ViewportPosition);
+
+					if ( bProjected )
 					{
-						if ( Entry.WidgetComponent )
-						{
-							FVector2D ComponentDrawSize = Entry.WidgetComponent->GetDrawSize();
-							FVector2D ComponentPivot = Entry.WidgetComponent->GetPivot();
+						Entry.ContainerWidget->SetVisibility(EVisibility::SelfHitTestInvisible);
 
-							CanvasSlot->AutoSize(ComponentDrawSize.IsZero() || Entry.WidgetComponent->GetDrawAtDesiredSize());
-							CanvasSlot->Offset(FMargin(ScreenPosition.X, ScreenPosition.Y, ComponentDrawSize.X, ComponentDrawSize.Y));
-							CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
-							CanvasSlot->Alignment(ComponentPivot);
-							CanvasSlot->ZOrder(-ScreenPosition.Z);
-						}
-						else
+						if ( SConstraintCanvas::FSlot* CanvasSlot = Entry.Slot )
 						{
-							CanvasSlot->AutoSize(DrawSize.IsZero());
-							CanvasSlot->Offset(FMargin(ScreenPosition.X, ScreenPosition.Y, DrawSize.X, DrawSize.Y));
-							CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
-							CanvasSlot->Alignment(Pivot);
-							CanvasSlot->ZOrder(-ScreenPosition.Z);
+							FVector2D AbsoluteProjectedLocation = ViewportGeometry.LocalToAbsolute(FVector2D(ViewportPosition.X, ViewportPosition.Y));
+							FVector2D LocalPosition = AllottedGeometry.AbsoluteToLocal(AbsoluteProjectedLocation);
+
+							if ( Entry.WidgetComponent )
+							{
+								FVector2D ComponentDrawSize = Entry.WidgetComponent->GetDrawSize();
+								FVector2D ComponentPivot = Entry.WidgetComponent->GetPivot();
+								
+								CanvasSlot->AutoSize(ComponentDrawSize.IsZero() || Entry.WidgetComponent->GetDrawAtDesiredSize());
+								CanvasSlot->Offset(FMargin(LocalPosition.X, LocalPosition.Y, ComponentDrawSize.X, ComponentDrawSize.Y));
+								CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
+								CanvasSlot->Alignment(ComponentPivot);
+								CanvasSlot->ZOrder(-ViewportPosition.Z);
+							}
+							else
+							{
+								CanvasSlot->AutoSize(DrawSize.IsZero());
+								CanvasSlot->Offset(FMargin(LocalPosition.X, LocalPosition.Y, DrawSize.X, DrawSize.Y));
+								CanvasSlot->Anchors(FAnchors(0, 0, 0, 0));
+								CanvasSlot->Alignment(Pivot);
+								CanvasSlot->ZOrder(-ViewportPosition.Z);
+							}
 						}
+					}
+					else
+					{
+						Entry.ContainerWidget->SetVisibility(EVisibility::Collapsed);
 					}
 				}
 				else
 				{
-					Entry.ContainerWidget->SetVisibility(EVisibility::Collapsed);
+					DeadComponents.Add(SceneComponent);
 				}
-			}
-			else
-			{
-				DeadComponents.Add(SceneComponent);
 			}
 		}
 	}

@@ -6,7 +6,7 @@ using System.IO;
 
 public class VulkanRHI : ModuleRules
 {
-	public VulkanRHI(TargetInfo Target)
+	public VulkanRHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		bOutputPubliclyDistributable = true;
 
@@ -29,31 +29,57 @@ public class VulkanRHI : ModuleRules
 		{
 			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
 			bool bSDKInstalled = !String.IsNullOrEmpty(VulkanSDKPath);
+			bool bUseThirdParty = true;
 			if (bSDKInstalled)
 			{
-				// If the user has an installed SDK, use that instead
-				PrivateIncludePaths.Add(VulkanSDKPath + "/Include");
-				// Older SDKs have an extra subfolder
-				PrivateIncludePaths.Add(VulkanSDKPath + "/Include/vulkan");
-
-				if (Target.Platform == UnrealTargetPlatform.Win32)
+				// Check if the installed SDK is newer or the same than the provided headers distributed with the Engine
+				int ThirdPartyVersion = GetThirdPartyVersion();
+				int SDKVersion = GetSDKVersion(VulkanSDKPath);
+				if (SDKVersion >= ThirdPartyVersion)
 				{
-					PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib32");
-				}
-				else
-				{
-					PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib");
-				}
+					// If the user has an installed SDK, use that instead
+					PrivateIncludePaths.Add(VulkanSDKPath + "/Include");
+					// Older SDKs have an extra subfolder
+					PrivateIncludePaths.Add(VulkanSDKPath + "/Include/vulkan");
 
-				PublicAdditionalLibraries.Add("vulkan-1.lib");
-				PublicAdditionalLibraries.Add("vkstatic.1.lib");
+					if (Target.Platform == UnrealTargetPlatform.Win32)
+					{
+						PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib32");
+					}
+					else
+					{
+						PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib");
+					}
+
+					PublicAdditionalLibraries.Add("vulkan-1.lib");
+					PublicAdditionalLibraries.Add("vkstatic.1.lib");
+					bUseThirdParty = false;
+				}
 			}
-			else
+			if (bUseThirdParty)
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
 			}
 		}
-		else
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
+
+			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+			bool bSDKInstalled = !String.IsNullOrEmpty(VulkanSDKPath);
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Linux || !bSDKInstalled)
+			{
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "Vulkan");
+			}
+			else
+			{
+				PrivateIncludePaths.Add(VulkanSDKPath + "/include");
+				PrivateIncludePaths.Add(VulkanSDKPath + "/include/vulkan");
+				PublicLibraryPaths.Add(VulkanSDKPath + "/lib");
+				PublicAdditionalLibraries.Add("vulkan");
+			}
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Android || Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
 
@@ -119,5 +145,63 @@ public class VulkanRHI : ModuleRules
 				PrecompileForTargets = PrecompileTargetsType.None;
 			}
 		}
+		else
+		{
+			PrecompileForTargets = PrecompileTargetsType.None;
+		}
+	}
+
+	static int GetVersionFromString(string Text)
+	{
+		string Token = "#define VK_HEADER_VERSION ";
+		Int32 FoundIndex = Text.IndexOf(Token);
+		if (FoundIndex > 0)
+		{
+			string Version = Text.Substring(FoundIndex + Token.Length, 5);
+			int Index = 0;
+			while (Version[Index] >= '0' && Version[Index] <= '9')
+			{
+				++Index;
+			}
+
+			Version = Version.Substring(0, Index);
+
+			int VersionNumber = Convert.ToInt32(Version);
+			return VersionNumber;
+		}
+
+		return -1;
+	}
+
+	static int GetThirdPartyVersion()
+	{
+		try
+		{
+			// Extract current version on ThirdParty
+			string Text = File.ReadAllText("ThirdParty/Vulkan/Windows/Include/vulkan/vulkan.h");
+			return GetVersionFromString(Text);
+		}
+		catch(Exception)
+		{
+		}
+
+		return -1;
+	}
+
+	static int GetSDKVersion(string VulkanSDKPath)
+	{
+		try
+		{
+			// Extract current version on the SDK folder
+			string Header = Path.Combine(VulkanSDKPath, "Include/vulkan/vulkan.h");
+			string Text = File.ReadAllText(Header);
+			return GetVersionFromString(Text);
+		}
+		catch (Exception)
+		{
+		}
+
+		return -1;
 	}
 }
+

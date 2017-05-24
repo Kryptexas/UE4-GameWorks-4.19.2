@@ -11,11 +11,11 @@ namespace UnrealBuildTool
 	/// <summary>
 	///  Base class to handle deploy of a target for a given platform
 	/// </summary>
-	public class BaseWindowsDeploy : UEBuildDeploy
+	class BaseWindowsDeploy : UEBuildDeploy
 	{
 
-        // public virtual bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
-        public bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        // public virtual bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, List<UnrealTargetConfiguration> TargetConfigurations, List<string> ExecutablePaths, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        public bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, List<UnrealTargetConfiguration> TargetConfigurations, List<string> ExecutablePaths, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
         {
             string ApplicationIconPath = Path.Combine(ProjectDirectory, "Build/Windows/Application.ico");
             // Does a Project icon exist?
@@ -35,13 +35,16 @@ namespace UnrealBuildTool
                 GroupIconResource GroupIcon = null;
                 GroupIcon = GroupIconResource.FromIco(ApplicationIconPath);
 
-                // Update the icon on the original exe because this will be used when the game is running in the task bar
-                using (ModuleResourceUpdate Update = new ModuleResourceUpdate(ExecutablePath, false))
+                foreach (string ExecutablePath in ExecutablePaths)
                 {
-                    const int IconResourceId = 123; // As defined in Engine\Source\Runtime\Launch\Resources\Windows\resource.h
-                    if (GroupIcon != null)
+                    // Update the icon on the original exe because this will be used when the game is running in the task bar
+                    using (ModuleResourceUpdate Update = new ModuleResourceUpdate(ExecutablePath, false))
                     {
-                        Update.SetIcons(IconResourceId, GroupIcon);
+                        const int IconResourceId = 123; // As defined in Engine\Source\Runtime\Launch\Resources\Windows\resource.h
+                        if (GroupIcon != null)
+                        {
+                            Update.SetIcons(IconResourceId, GroupIcon);
+                        }
                     }
                 }
             }
@@ -53,13 +56,16 @@ namespace UnrealBuildTool
 
 		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
-			if ((InTarget.TargetType != TargetRules.TargetType.Editor && InTarget.TargetType != TargetRules.TargetType.Program) && (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64))
+			if ((InTarget.TargetType != TargetType.Editor && InTarget.TargetType != TargetType.Program) && (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64))
 			{
 				string InAppName = InTarget.AppName;
 				Log.TraceInformation("Prepping {0} for deployment to {1}", InAppName, InTarget.Platform.ToString());
 				System.DateTime PrepDeployStartTime = DateTime.UtcNow;
 
-                PrepForUATPackageOrDeploy(InTarget.ProjectFile, InAppName, InTarget.ProjectDirectory.FullName, InTarget.OutputPath.FullName, BuildConfiguration.RelativeEnginePath, false, "", false);
+                List<UnrealTargetConfiguration> TargetConfigs = new List<UnrealTargetConfiguration> { InTarget.Configuration };
+                List<string> ExePaths = new List<string> { InTarget.OutputPath.FullName };
+				string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
+                PrepForUATPackageOrDeploy(InTarget.ProjectFile, InAppName, InTarget.ProjectDirectory.FullName, TargetConfigs, ExePaths, RelativeEnginePath, false, "", false);
 			}
 			return true;
 		}

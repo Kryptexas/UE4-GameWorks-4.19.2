@@ -58,7 +58,8 @@ namespace AutomationTool
         Error_DeviceNotSetupForDevelopment = 150,
         Error_DeviceOSNewerThanSDK = 151,
 		Error_TestFailure = 152,
-    };
+		Error_SymbolizedSONotFound = 153,
+	};
 
     /// <summary>
     /// Exception class used by the AutomationTool to throw exceptions. Allows setting an exit code that will be passed to the entry routine to return to the system on program exit.
@@ -67,24 +68,11 @@ namespace AutomationTool
     public class AutomationException : System.Exception
 	{
         public ExitCode ErrorCode = ExitCode.Error_Unknown;
-        public string LogFileName = "";
-        public int ErrorNumber;
-
-		public AutomationException()
-		{
-		}
 
 		public AutomationException(string Msg)
 			:base(Msg)
 		{
 		}
-
-        public AutomationException(string LogFilename, int ErrorNumber, string Format, params object[] Args)
-            :base(string.Format(Format,Args))
-        {
-            this.LogFileName = LogFilename;
-            this.ErrorNumber = ErrorNumber;
-        }
 
         public AutomationException(ExitCode ErrorCode, string Msg)
             : base(Msg)
@@ -92,14 +80,8 @@ namespace AutomationTool
             this.ErrorCode = ErrorCode;
         }
 
-        [Obsolete]
-        public AutomationException(string Msg, System.Exception InnerException)
-            : base(Msg, InnerException)
-        {
-        }
-
         public AutomationException(Exception InnerException, string Format, params object[] Args)
-			:base(string.Format(Format, Args), InnerException)
+			: base(string.Format(Format, Args), InnerException)
 		{
 		}
 
@@ -110,13 +92,14 @@ namespace AutomationTool
         }
 
         public AutomationException(string Format, params object[] Args)
-			: base(string.Format(Format, Args)) { }
+			: base(string.Format(Format, Args))
+		{
+		}
 
         public AutomationException(ExitCode ErrorCode, string Format, params object[] Args)
             : base(string.Format(Format, Args)) 
         {
             this.ErrorCode = ErrorCode;
         }
-
     }
 }

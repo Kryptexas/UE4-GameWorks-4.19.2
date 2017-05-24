@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SharedSettingsWidgets : ModuleRules
 {
-	public SharedSettingsWidgets(TargetInfo Target)
+	public SharedSettingsWidgets(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
@@ -16,7 +16,9 @@ public class SharedSettingsWidgets : ModuleRules
 				"Slate",
 				"SlateCore",
 				"EditorStyle",
+				"RHI",
 				"SourceControl",
+				"TargetPlatform",
 			}
 		);
 

@@ -54,6 +54,10 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 				CurrentAsset = nullptr;
 			}
 		}
+		
+		// We've changed the animation asset, and the next frame could be wildly different from the frame we're
+		// on now. In this case of a single node instance, we reset the clothing on the next update.
+		MeshComponent->ClothTeleportMode = EClothingTeleportMode::TeleportAndReset;
 	}
 	
 	Proxy.SetAnimationAsset(NewAsset, GetSkelMeshComponent(), bInIsLooping, InPlayRate);
@@ -73,6 +77,7 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 		if ( Montage->SlotAnimTracks.Num() > 0 )
 		{
 			Proxy.RegisterSlotNodeWithAnimInstance(Montage->SlotAnimTracks[0].SlotName);
+			Proxy.SetMontagePreviewSlot(Montage->SlotAnimTracks[0].SlotName);
 		}
 		RestartMontage( Montage );
 		SetPlaying(IsPlaying());
@@ -139,6 +144,12 @@ void UAnimSingleNodeInstance::SetMontageLoop(UAnimMontage* Montage, bool bIsLoop
 		}
 		// else the default is already looping
 	}
+}
+
+void UAnimSingleNodeInstance::SetMontagePreviewSlot(FName PreviewSlot)
+{
+	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+	Proxy.SetMontagePreviewSlot(PreviewSlot);
 }
 
 void UAnimSingleNodeInstance::UpdateMontageWeightForTimeSkip(float TimeDifference)

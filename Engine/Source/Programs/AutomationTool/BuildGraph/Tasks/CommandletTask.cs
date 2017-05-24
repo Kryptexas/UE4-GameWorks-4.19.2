@@ -88,7 +88,7 @@ namespace AutomationTool.Tasks
 			}
 
 			// Make sure the editor exists
-			if(!EditorExe.Exists())
+			if(!FileReference.Exists(EditorExe))
 			{
 				CommandUtils.LogError("{0} does not exist", EditorExe.FullName);
 				return false;

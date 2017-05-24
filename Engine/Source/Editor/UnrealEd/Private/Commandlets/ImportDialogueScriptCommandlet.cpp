@@ -278,7 +278,7 @@ bool UImportDialogueScriptCommandlet::ImportDialogueScriptForCulture(FLocTextHel
 	if (bHasUpdatedArchive)
 	{
 		FText SaveError;
-		if (!InLocTextHelper.SaveForeignArchive(InCultureName, &SaveError))
+		if (!InLocTextHelper.SaveArchive(InCultureName, &SaveError))
 		{
 			UE_LOG(LogImportDialogueScriptCommandlet, Error, TEXT("%s"), *SaveError.ToString());
 			return false;

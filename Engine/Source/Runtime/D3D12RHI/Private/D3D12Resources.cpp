@@ -33,7 +33,7 @@ void FD3D12DeferredDeletionQueue::EnqueueResource(FD3D12Resource* pResource)
 	// Useful message for identifying when resources are released on the rendering thread.
 	//UE_CLOG(IsInActualRenderingThread(), LogD3D12RHI, Display, TEXT("Rendering Thread: Deleting %#016llx when done with frame fence %llu"), pResource, CurrentFrameFence);
 
-	const TPairInitializer<FD3D12Resource*, uint64> FencedObject(pResource, CurrentFrameFence);
+	const FencedObjectType FencedObject(pResource, CurrentFrameFence);
 	DeferredReleaseQueue.Enqueue(FencedObject);
 }
 
@@ -198,16 +198,13 @@ FD3D12Resource::~FD3D12Resource()
 void FD3D12Resource::StartTrackingForResidency()
 {
 #if ENABLE_RESIDENCY_MANAGEMENT
-	// No need to track CPU resources
-	if (IsCPUWritable(HeapType) == false)
-	{
-		check(D3DX12Residency::IsInitialized(ResidencyHandle) == false);
-		const D3D12_RESOURCE_DESC ResourceDesc = Resource->GetDesc();
-		const D3D12_RESOURCE_ALLOCATION_INFO Info = GetParentDevice()->GetDevice()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
+	check(IsCPUInaccessible(HeapType));	// This is checked at a higher level before calling this function.
+	check(D3DX12Residency::IsInitialized(ResidencyHandle) == false);
+	const D3D12_RESOURCE_DESC ResourceDesc = Resource->GetDesc();
+	const D3D12_RESOURCE_ALLOCATION_INFO Info = GetParentDevice()->GetDevice()->GetResourceAllocationInfo(0, 1, &ResourceDesc);
 
-		D3DX12Residency::Initialize(ResidencyHandle, Resource.GetReference(), Info.SizeInBytes);
-		D3DX12Residency::BeginTrackingObject(GetParentDevice()->GetResidencyManager(), ResidencyHandle);
-	}
+	D3DX12Residency::Initialize(ResidencyHandle, Resource.GetReference(), Info.SizeInBytes);
+	D3DX12Residency::BeginTrackingObject(GetParentDevice()->GetResidencyManager(), ResidencyHandle);
 #endif
 }
 
@@ -291,8 +288,8 @@ HRESULT FD3D12Adapter::CreateCommittedResource(const D3D12_RESOURCE_DESC& InDesc
 		*ppOutResource = new FD3D12Resource(GetDevice(HeapProps.CreationNodeMask), HeapProps.VisibleNodeMask, pResource, InitialUsage, InDesc, nullptr, HeapProps.Type);
 		(*ppOutResource)->AddRef();
 
-		// Only track resources in local VRam
-		if (IsCPUWritable(HeapProps.Type) == false)
+		// Only track resources that cannot be accessed on the CPU.
+		if (IsCPUInaccessible(HeapProps.Type))
 		{
 			(*ppOutResource)->StartTrackingForResidency();
 		}

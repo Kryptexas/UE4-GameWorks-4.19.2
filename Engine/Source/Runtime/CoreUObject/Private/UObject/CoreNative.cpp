@@ -162,7 +162,15 @@ UObject* FObjectInstancingGraph::GetInstancedSubobject( UObject* SourceSubobject
 							// will be used as the Outer for the destination component
 							UObject* SubobjectOuter = GetDestinationObject(SourceSubobject->GetOuter());
 
-							checkf(SubobjectOuter, TEXT("No corresponding destination object found for '%s' while attempting to instance component '%s'"), *SourceSubobject->GetOuter()->GetFullName(), *SourceSubobject->GetFullName());
+							// In the event we're templated off a deep nested UObject hierarchy, with several links to objects nested in the object
+							// graph, it's entirely possible that we'll encounter UObjects that we haven't yet discovered and instanced a copy of their
+							// outer.  In that case - we need to go ahead and instance that outer.
+							if ( SubobjectOuter == nullptr )
+							{
+								SubobjectOuter = GetInstancedSubobject(SourceSubobject->GetOuter(), SourceSubobject->GetOuter(), CurrentObject, bDoNotCreateNewInstance, bAllowSelfReference);
+
+								checkf(SubobjectOuter, TEXT("No corresponding destination object found for '%s' while attempting to instance component '%s'"), *SourceSubobject->GetOuter()->GetFullName(), *SourceSubobject->GetFullName());
+							}
 
 							FName SubobjectName = SourceSubobject->GetFName();
 

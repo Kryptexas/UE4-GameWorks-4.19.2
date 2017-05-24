@@ -4,9 +4,8 @@ Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:In this step, we take each of our aim poses and create our Aim Offset which will blend between each of the poses. 
 version: 4.14
 skilllevel: Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 tags:Aim Offset
 
 [VAR:Steps]

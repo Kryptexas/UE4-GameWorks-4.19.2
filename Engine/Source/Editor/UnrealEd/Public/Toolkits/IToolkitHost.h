@@ -23,6 +23,9 @@ public:
 	/** Gets a tab stack to place a new tab for the specified toolkit area */
 	virtual TSharedRef< class SDockTabStack > GetTabSpot( const EToolkitTabSpot::Type TabSpot ) = 0;
 
+	/** Access the toolkit host's tab manager */
+	virtual TSharedPtr< class FTabManager > GetTabManager() const = 0;
+
 	/** Called when a toolkit is opened within this host */
 	virtual void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit ) = 0;
 

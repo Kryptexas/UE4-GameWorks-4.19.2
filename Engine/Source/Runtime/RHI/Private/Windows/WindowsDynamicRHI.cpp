@@ -29,15 +29,21 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 	bool bForceSM5  = FParse::Param(FCommandLine::Get(),TEXT("sm5"));
 	bool bForceSM4  = FParse::Param(FCommandLine::Get(), TEXT("sm4"));
 	bool bForceVulkan = FParse::Param(FCommandLine::Get(), TEXT("vulkan"));
-	bool bForceD3D10 = FParse::Param(FCommandLine::Get(),TEXT("d3d10")) || FParse::Param(FCommandLine::Get(),TEXT("dx10")) || (bForceSM4 && !bForceVulkan);
-	bool bForceD3D11 = FParse::Param(FCommandLine::Get(),TEXT("d3d11")) || FParse::Param(FCommandLine::Get(),TEXT("dx11")) || (bForceSM5 && !bForceVulkan);
-	bool bForceD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
 	bool bForceOpenGL = FWindowsPlatformMisc::VerifyWindowsVersion(6, 0) == false || FParse::Param(FCommandLine::Get(), TEXT("opengl")) || FParse::Param(FCommandLine::Get(), TEXT("opengl3")) || FParse::Param(FCommandLine::Get(), TEXT("opengl4"));
+	bool bForceD3D10 = FParse::Param(FCommandLine::Get(),TEXT("d3d10")) || FParse::Param(FCommandLine::Get(),TEXT("dx10")) || (bForceSM4 && !bForceVulkan && !bForceOpenGL);
+	bool bForceD3D11 = FParse::Param(FCommandLine::Get(),TEXT("d3d11")) || FParse::Param(FCommandLine::Get(),TEXT("dx11")) || (bForceSM5 && !bForceVulkan && !bForceOpenGL);
+	bool bForceD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
 	ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::Num;
 	int32 Sum = ((bForceD3D12 ? 1 : 0) + (bForceD3D11 ? 1 : 0) + (bForceD3D10 ? 1 : 0) + (bForceOpenGL ? 1 : 0) + (bForceVulkan ? 1 : 0));
+
+	if (bForceSM5 && bForceSM4)
+	{
+		UE_LOG(LogRHI, Fatal, TEXT("-sm4 and -sm5 are mutually exclusive options, but more than one was specified on the command-line."));
+	}
+
 	if (Sum > 1)
 	{
-		UE_LOG(LogRHI, Fatal,TEXT("-d3d12, -d3d11, -d3d10, -vulkan, and -opengl[3|4] mutually exclusive options, but more than one was specified on the command-line."));
+		UE_LOG(LogRHI, Fatal,TEXT("-d3d12, -d3d11, -d3d10, -vulkan, and -opengl[3|4] are mutually exclusive options, but more than one was specified on the command-line."));
 	}
 	else if (Sum == 0)
 	{
@@ -53,6 +59,18 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 			bForceD3D11 = IsD3DPlatform(TargetedPlatform, false);
 			bForceOpenGL = IsOpenGLPlatform(TargetedPlatform);
 			RequestedFeatureLevel = GetMaxSupportedFeatureLevel(TargetedPlatform);
+		}
+	}
+	else
+	{
+		if (bForceSM5)
+		{
+			RequestedFeatureLevel = ERHIFeatureLevel::SM5;
+		}
+
+		if (bForceSM4)
+		{
+			RequestedFeatureLevel = ERHIFeatureLevel::SM4;
 		}
 	}
 
@@ -75,7 +93,7 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 			DynamicRHIModule = NULL;
 		}
 	}
-	else 
+	else
 #endif
 
 	if (bForceOpenGL)

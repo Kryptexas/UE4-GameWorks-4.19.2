@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2755926
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:2.Nav Mesh Bounds ボリュームの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -32,7 +32,7 @@ version:4.9
 
 ## ステップ
 
-1. [REGION:raw]**[Modes]** パネル %arrow% **[Volumes]** %arrow% **[Volumes]**.[/REGION]
+1. [REGION:raw]**[Modes]** パネル %arrow% **[Volumes]** %arrow% **[Volumes]**[/REGION]
 
 1. **[Nav Mesh Bounds Volume]** をクリックしてマップへドラッグします。
 

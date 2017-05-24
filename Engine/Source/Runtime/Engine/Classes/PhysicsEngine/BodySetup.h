@@ -23,6 +23,13 @@ namespace physx
 {
 	class PxTriangleMesh;
 	class PxRigidActor;
+	class PxTransform;
+	class PxSphereGeometry;
+	class PxBoxGeometry;
+	class PxCapsuleGeometry;
+	class PxConvexMeshGeometry;
+	class PxTriangleMesh;
+	class PxTriangleMeshGeometry;
 }
 
 enum class EPhysXMeshCookFlags : uint8;
@@ -231,7 +238,7 @@ public:
 	/** Returns the physics material used for this body. If none, specified, returns the default engine material. */
 	ENGINE_API class UPhysicalMaterial* GetPhysMaterial() const;
 
-#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 	/** Clear all simple collision */
 	ENGINE_API void RemoveSimpleCollision();
 
@@ -331,6 +338,43 @@ public:
 	ENGINE_API void AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstance, physx::PxRigidActor* PDestActor, EPhysicsSceneType SceneType, FVector& Scale3D, physx::PxMaterial* SimpleMaterial, TArray<UPhysicalMaterial*>& ComplexMaterials, FShapeData& ShapeData, const FTransform& RelativeTM = FTransform::Identity, TArray<physx::PxShape*>* NewShapes = NULL, bool bShapeSharing = false);
 #endif // WITH_PHYSX
 
-	friend struct FAddShapesHelper;
+	friend struct FIterateBodySetupHelper;
 
 };
+
+/** Helper struct for iterating over shapes in a body setup.*/
+struct ENGINE_API FBodySetupShapeIterator
+{
+	FBodySetupShapeIterator(const UBodySetup& InBodySetup, FVector& InScale3D, const FTransform& InRelativeTM);
+
+	/** Iterates over the elements array and creates the needed geometry and local pose. Note that this memory is on the stack so it's illegal to use it by reference outside the lambda */
+	template <typename ElemType, typename GeomType>
+	void ForEachShape(const TArray<ElemType>& Elements, TFunctionRef<void(const ElemType& Elem, const GeomType& Geom, const physx::PxTransform& LocalPose, float ContactOffset)> VisitorFunc) const;
+
+private:
+
+	template <typename ElemType, typename GeomType> bool PopulatePhysXGeometryAndTransform(const ElemType& Elem, GeomType& Geom, physx::PxTransform& OutTM) const;
+	template <typename GeomType> float ComputeContactOffset(const GeomType& Geom) const;
+	template <typename ElemType> FString GetDebugName() const;
+
+private:
+	const UBodySetup& BodySetup;
+	FVector& Scale3D;
+	const FTransform& RelativeTM;
+
+	float MinScaleAbs;
+	float MinScale;
+	FVector ShapeScale3DAbs;
+	FVector ShapeScale3D;
+
+	float ContactOffsetFactor;
+	float MinContactOffset;
+	float MaxContactOffset;
+};
+
+//Explicit export of template instantiation 
+extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<FKSphereElem>&, TFunctionRef<void(const FKSphereElem&, const physx::PxSphereGeometry&, const physx::PxTransform& , float )>) const;
+extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<FKBoxElem>&, TFunctionRef<void(const FKBoxElem&, const physx::PxBoxGeometry&, const physx::PxTransform&, float)>) const;
+extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<FKSphylElem>&, TFunctionRef<void(const FKSphylElem&, const physx::PxCapsuleGeometry&, const physx::PxTransform&, float)>) const;
+extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<FKConvexElem>&, TFunctionRef<void(const FKConvexElem&, const physx::PxConvexMeshGeometry&, const physx::PxTransform&, float)>) const;
+extern template ENGINE_API void FBodySetupShapeIterator::ForEachShape(const TArray<physx::PxTriangleMesh*>&,TFunctionRef<void (physx::PxTriangleMesh* const &, const physx::PxTriangleMeshGeometry&, const physx::PxTransform&,float)>) const;

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3350329
 Title: VR 에서의 액터 트랜스폼
 Description: VR 에서 액터 이동, 회전, 스케일 조절에 사용되는 트랜스폼 위젯입니다.
 Crumbs:
@@ -9,43 +9,16 @@ order: 4
 tags: VR
 version: 4.13
 skilllevel: intermediate
+topic-image:universalgizmo_topic.png
+prereq:Engine/Editor/VR/ActivateVRMode
+prereq:Engine/Editor/VR/Setup
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/UniversalGizmo:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/UniversalGizmo:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/UniversalGizmo:title%](Engine/Editor/VR/UniversalGizmo/universalgizmo_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/UniversalGizmo:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/UniversalGizmo]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/UniversalGizmo:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:1 end:4)]
 
 **Universal Gizmo** (유니버설 기즈모)는 VR 모드 작업시 액터의 이동, 회전, 스케일 조절을 위해 디자인된 트랜스폼 위젯입니다. 좌표계는 로컬과 월드 두 가지가 있는데, [](Engine/Editor/VR/QuickSelect) 방법으로 전환할 수 있습니다.
 유니버설 기즈모의 각 요소는 빨강, 초록, 파랑으로 각각 X, Y, Z 축을 나타냅니다. 표준 에디터와 마찬가지로 액터의 이동, 회전, 스케일 조절을 위한 툴이 따로 준비되어 있습니다. 이들 각각의 로컬 / 월드 좌표계 버전은 [](Engine/Editor/VR/QuickSelect) 방법으로 전환 가능합니다. 
+
+## 기즈모
 
 | 기즈모 | 월드 | 로컬 |
 | ---- |-------| -----|
@@ -124,3 +97,4 @@ skilllevel: intermediate
 
 
 
+  

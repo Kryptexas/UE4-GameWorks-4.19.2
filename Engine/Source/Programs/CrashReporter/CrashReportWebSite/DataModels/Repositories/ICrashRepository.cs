@@ -8,12 +8,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
     /// <summary>
     /// 
     /// </summary>
-    public interface ICrashRepository: IDataRepository<Crash>
+    public interface ICrashRepository : IDataRepository<Crash>
     {
         List<SelectListItem> GetBranchesAsListItems();
         List<SelectListItem> GetPlatformsAsListItems();
         List<SelectListItem> GetEngineModesAsListItems();
         List<SelectListItem> GetVersionsAsListItems();
         List<SelectListItem> GetEngineVersionsAsListItems();
+        void SetStatusByBuggId(int buggId, string status);
+        void SetFixedCLByBuggId(int buggId, string fixedCl);
+        void SetJiraByBuggId(int buggId, string jira);
     }
 }

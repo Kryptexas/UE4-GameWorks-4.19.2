@@ -32,6 +32,7 @@ class UK2Node_CallArrayFunction : public UK2Node_CallFunction
 	//~ Begin UK2Node Interface
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual bool DoesInputWildcardPinAcceptArray(const UEdGraphPin* Pin) const override { return false; }
+	virtual void ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges) override;
 	//~ End UK2Node Interface
 
 	/** Retrieves the target pin for the function */

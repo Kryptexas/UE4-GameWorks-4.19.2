@@ -2,9 +2,6 @@
 # Build PhysX (PROJECT not SOLUTION)
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-FIND_PACKAGE(PxShared REQUIRED)
-
 SET(PHYSX_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../)
 
 SET(PX_SOURCE_DIR ${PHYSX_SOURCE_DIR}/PhysX/src)
@@ -24,26 +21,34 @@ SET(PHYSX_PLATFORM_SRC_FILES
 	${PX_SOURCE_DIR}/gpu/PxParticleGpu.cpp
 	${PX_SOURCE_DIR}/gpu/PxPhysXGpuModuleLoader.cpp
 	${PX_SOURCE_DIR}/gpu/PxPhysXIndicatorDeviceExclusive.cpp
+	$<TARGET_OBJECTS:LowLevel>
+	$<TARGET_OBJECTS:LowLevelAABB>
+	$<TARGET_OBJECTS:LowLevelCloth>
+	$<TARGET_OBJECTS:LowLevelDynamics>
+	$<TARGET_OBJECTS:LowLevelParticles>
+	$<TARGET_OBJECTS:PxTask>
+	$<TARGET_OBJECTS:SceneQuery>
+	$<TARGET_OBJECTS:SimulationController>	  
 )
 
 
 # Use generator expressions to set config specific preprocessor definitions
 SET(PHYSX_COMPILE_DEFS
 	# Common to all configurations
-	${PHYSX_ANDROID_COMPILE_DEFS};PX_PHYSX_CORE_EXPORTS
+	${PHYSX_ANDROID_COMPILE_DEFS};PX_PHYSX_STATIC_LIB;
 )
 
 if(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	LIST(APPEND PHYSX_COMPILE_DEFS
-		${PHYSX_ANDROID_DEBUG_COMPILE_DEFS};PX_PHYSX_DLL_NAME_POSTFIX=DEBUG;
+		${PHYSX_ANDROID_DEBUG_COMPILE_DEFS};
 	)
 elseif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "checked")
 	LIST(APPEND PHYSX_COMPILE_DEFS
-		${PHYSX_ANDROID_CHECKED_COMPILE_DEFS};PX_PHYSX_DLL_NAME_POSTFIX=CHECKED;
+		${PHYSX_ANDROID_CHECKED_COMPILE_DEFS};
 	)
 elseif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "profile")
 	LIST(APPEND PHYSX_COMPILE_DEFS
-		${PHYSX_ANDROID_PROFILE_COMPILE_DEFS};PX_PHYSX_DLL_NAME_POSTFIX=PROFILE;
+		${PHYSX_ANDROID_PROFILE_COMPILE_DEFS};
 	)
 elseif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "release")
 	LIST(APPEND PHYSX_COMPILE_DEFS
@@ -53,8 +58,6 @@ else(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 	MESSAGE(FATAL_ERROR "Unknown configuration ${CMAKE_BUILD_TYPE}")
 endif(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")
 
-
-
 SET(PHYSX_LIBTYPE STATIC)
 
 # include common PhysX settings
@@ -62,16 +65,9 @@ INCLUDE(../common/PhysX.cmake)
 
 
 # Add linked libraries
-# TARGET_LINK_LIBRARIES(PhysX PUBLIC ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PhysXGpu PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
+# TARGET_LINK_LIBRARIES(PhysX PUBLIC -Wl,--start-group LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController -Wl,--end-group)
 
-TARGET_LINK_LIBRARIES(PhysX PUBLIC ${NVTOOLSEXT_LIBRARIES} LowLevel LowLevelAABB LowLevelCloth LowLevelDynamics LowLevelParticles PhysXCommon PxFoundation PxPvdSDK PxTask SceneQuery SimulationController)
-
-SET_TARGET_PROPERTIES(PhysX PROPERTIES 
-	LINK_FLAGS_DEBUG ""
-	LINK_FLAGS_CHECKED ""
-	LINK_FLAGS_PROFILE ""
-	LINK_FLAGS_RELEASE ""
-)
+TARGET_LINK_LIBRARIES(PhysX PUBLIC PhysXCommon PxFoundation PxPvdSDK)
 
 # enable -fPIC so we can link static libs with the editor
 SET_TARGET_PROPERTIES(PhysX PROPERTIES POSITION_INDEPENDENT_CODE TRUE)

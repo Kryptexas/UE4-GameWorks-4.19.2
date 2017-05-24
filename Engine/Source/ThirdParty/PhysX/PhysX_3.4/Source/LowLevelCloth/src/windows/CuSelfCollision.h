@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -202,8 +202,6 @@ __device__ void CuSelfCollision::operator()(CurrentT& current)
 	if(min(gClothData.mSelfCollisionDistance, gFrameData.mSelfCollisionStiffness) <= 0.0f)
 		return;
 
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::SELFCOLLIDE);
-
 	if(threadIdx.x < 3)
 	{
 		float upper = gFrameData.mParticleBounds[threadIdx.x * 2];
@@ -250,8 +248,6 @@ __device__ void CuSelfCollision::operator()(CurrentT& current)
 template <typename CurrentT>
 __device__ void CuSelfCollision::buildAcceleration(const CurrentT& current)
 {
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::SELFCOLLIDE_ACCELERATION);
-
 	int32_t numIndices = gClothData.mNumSelfCollisionIndices;
 	const int32_t* indices = reinterpret_cast<const int32_t*>(gClothData.mSelfCollisionIndices);
 	int32_t* sortedKeys = reinterpret_cast<int32_t*>(gClothData.mSelfCollisionKeys);
@@ -305,8 +301,6 @@ __device__ void CuSelfCollision::buildAcceleration(const CurrentT& current)
 template <bool useRestPositions, typename CurrentT>
 __device__ void CuSelfCollision::collideParticles(CurrentT& current) const
 {
-	ProfileDetailZone zone(cloth::CuProfileZoneIds::SELFCOLLIDE_PARTICLES);
-
 	const int32_t* sortedKeys = reinterpret_cast<const int32_t*>(gClothData.mSelfCollisionKeys);
 	float* sortedParticles = gClothData.mSelfCollisionParticles;
 	int16_t* cellStart = reinterpret_cast<int16_t*>(gClothData.mSelfCollisionCellStart);

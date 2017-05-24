@@ -343,12 +343,12 @@ Not all Android devices are made the same. In particular, there are 4 different 
 [EXCERPT:AndroidFormats]
 |Format | Description|
 |-------|------------|
-|ETC1 |Supported by all Android based devices but cannot compress alpha textures (they are stored uncompressed).  Recommend using an RGB and a separate alpha texture if need alpha to get better compression.|
-|ETC2 |Supported by all OpenGL 3.x class devices and supports alpha compression.|
-|ATC |Supported by Qualcomm Adreno GPUs and supports alpha compression.|
-|DXT |Supported by Nvidia Tegra GPUs and supports alpha compression.|
-|PVRTC |supported by PowerVR GPUs and supports alpha compression.|
-|ASTC  |Latest Texture compression format allowing more quality control by specifying block size and supports alpha compression. Available on some devices at this point and will be required for Vulkan Level 1.
+|**ETC1** |Supported by all Android based devices but cannot compress alpha textures (they are stored uncompressed).  Recommend using an RGB and a separate alpha texture if need alpha to get better compression.|
+|**ETC2** |Supported by all OpenGL 3.x class devices and supports alpha compression.|
+|**ATC** |Supported by Qualcomm Adreno GPUs and supports alpha compression.|
+|**DXT** |Supported by Nvidia Tegra GPUs and supports alpha compression.|
+|**PVRTC** |supported by PowerVR GPUs and supports alpha compression.|
+|**ASTC**  |Latest Texture compression format allowing more quality control by specifying block size and supports alpha compression. Available on some devices at this point and will be required for Vulkan Level 1.
 |
 [/EXCERPT:AndroidFormats]
 

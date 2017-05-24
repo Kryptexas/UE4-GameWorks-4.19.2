@@ -31,18 +31,15 @@ private:
 	/** The number of replies received from players */
 	int32 ResponsesReceived;
 
-	/** The status update object we are posting to the facebook news feed */
+	/** The status update object we are posting to the platform news feed */
 	FOnlineStatusUpdate TestStatusUpdate;
-
 
 private:
 	
-
 	/**
 	 * Use the OSS to request permissions so we can post to the news feed.
 	 */
 	void RequestPermissionsToSharePosts();
-
 
 	/**
 	 * Delegate fired when we have a response after we have requested publish permissions to a users news feed.
@@ -65,7 +62,6 @@ private:
 	 */
 	void RequestPermissionsToReadNewsFeed();
 
-
 	/**
 	 * Delegate fired when we have a response after we have requested read permissions of a users news feed
 	 *
@@ -81,7 +77,6 @@ private:
 
 	/** Per-player handles for the above delegate */
 	TMap<int32, FDelegateHandle> RequestPermissionsToReadFeedDelegateHandles;
-
 
 private:
 

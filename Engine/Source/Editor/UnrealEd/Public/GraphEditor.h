@@ -21,6 +21,7 @@ struct Rect;
 
 DECLARE_DELEGATE_ThreeParams( FOnNodeTextCommitted, const FText&, ETextCommit::Type, UEdGraphNode* );
 DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnNodeVerifyTextCommit, const FText&, UEdGraphNode*, FText& );
+DECLARE_MULTICAST_DELEGATE(FOnGraphContentMenuDismissed);
 
 typedef TSet<class UObject*> FGraphPanelSelectionSet;
 
@@ -63,6 +64,7 @@ struct FActionMenuContent
 
 	TSharedRef<SWidget> Content;
 	TSharedPtr<SWidget> WidgetToFocus;
+	FOnGraphContentMenuDismissed OnMenuDismissed;
 };
 
 /**

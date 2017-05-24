@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SteamVRController : ModuleRules
 {
-    public SteamVRController(TargetInfo Target)
+    public SteamVRController(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePathModuleNames.AddRange(new string[]
 		{
@@ -27,8 +27,12 @@ public class SteamVRController : ModuleRules
 // 			"SteamVR",
 // 		});
 
-		AddEngineThirdPartyPrivateStaticDependencies(Target,
-            "OpenVR"
-        );
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenVR");
+
+        if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
+        {
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+            PrivateDependencyModuleNames.Add("OpenGLDrv");
+        }
     }
 }

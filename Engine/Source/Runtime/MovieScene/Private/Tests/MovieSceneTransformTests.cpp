@@ -5,8 +5,9 @@
 #include "Evaluation/MovieSceneSectionParameters.h"
 #include "Containers/ArrayView.h"
 #include "Misc/AutomationTest.h"
+#include "MovieSceneTestsCommon.h"
 
-#define LOCTEXT_NAMESPACE "MovieSceneSubTrack"
+#define LOCTEXT_NAMESPACE "MovieSceneTransformTests"
 
 bool IsNearly(TRangeBound<float> A, TRangeBound<float> B)
 {
@@ -34,15 +35,15 @@ namespace Lex
 		TRangeBound<float> SourceLower = InRange.GetLowerBound();
 		TRangeBound<float> SourceUpper = InRange.GetUpperBound();
 
-		return *FString::Printf(TEXT("%s, %s"),
+		return *FString::Printf(TEXT("%s-%s"),
 			SourceLower.IsOpen() ? 
-				TEXT("...") : 
+				TEXT("[...") : 
 				SourceLower.IsInclusive() ?
 					*FString::Printf(TEXT("[%.5f"), SourceLower.GetValue()) :
 					*FString::Printf(TEXT("(%.5f"), SourceLower.GetValue()),
 
 			SourceUpper.IsOpen() ? 
-				TEXT("...") : 
+				TEXT("...]") : 
 				SourceUpper.IsInclusive() ?
 					*FString::Printf(TEXT("%.5f]"), SourceUpper.GetValue()) :
 					*FString::Printf(TEXT("%.5f)"), SourceUpper.GetValue())

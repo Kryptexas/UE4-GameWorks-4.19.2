@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3304580
 Availability: Public
 Title:핵심 머티리얼 개념
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,26 +8,7 @@ SkillLevel: Beginner
 topic-image:Engine/Rendering/Materials/EssentialImage.png
 order:1
 type:overview
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Rendering/LightingAndShadows/Basics "%Engine/Rendering/LightingAndShadows/Basics:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
+tags:Materials
 
 
 [REGION:fullwidth]
@@ -156,5 +137,3 @@ UE4 의 머티리얼에 대해 고려할 때, 다수의 표현식이 **각각의
 
 	![](AddingMaterialToBox.png)![](RedOnBox.png)(w:700)
 
-
-%playlistnav%

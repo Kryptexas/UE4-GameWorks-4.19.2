@@ -1,7 +1,8 @@
 Availability:Public
 Title: Components Mode
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description: Allows you to add Components to your Blueprint, manage the details of or arrange existing Components. 
+Description: Allows you to add Components to your Blueprint, manage the details of or arrange existing Components.
+tags:Blueprints
 
 [INCLUDE:Globals#bpmodesremoved]
 

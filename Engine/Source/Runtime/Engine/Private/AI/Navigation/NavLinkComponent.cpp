@@ -4,6 +4,7 @@
 #include "AI/NavigationOctree.h"
 #include "AI/NavLinkRenderingProxy.h"
 #include "AI/NavigationSystemHelpers.h"
+#include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "Engine/CollisionProfile.h"
 
 UNavLinkComponent::UNavLinkComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -16,12 +17,15 @@ UNavLinkComponent::UNavLinkComponent(const FObjectInitializer& ObjectInitializer
 	bCanEverAffectNavigation = true;
 	bNavigationRelevant = true;
 
-	Links.Add(FNavigationLink());
+	FNavigationLink DefLink;
+	DefLink.SetAreaClass(UNavArea_Default::StaticClass());
+
+	Links.Add(DefLink);
 }
 
 FBoxSphereBounds UNavLinkComponent::CalcBounds(const FTransform &LocalToWorld) const
 {
-	FBox LocalBounds(0);
+	FBox LocalBounds(ForceInit);
 	for (int32 Idx = 0; Idx < Links.Num(); Idx++)
 	{
 		LocalBounds += Links[Idx].Left;
@@ -52,3 +56,40 @@ FPrimitiveSceneProxy* UNavLinkComponent::CreateSceneProxy()
 {
 	return new FNavLinkRenderingProxy(this);
 }
+
+#if WITH_EDITOR
+
+void UNavLinkComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UNavLinkComponent, Links))
+	{
+		for (FNavigationLink& Link : Links)
+		{
+			Link.InitializeAreaClass(/*bForceRefresh=*/true);
+		}
+	}
+}
+
+void UNavLinkComponent::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	for (FNavigationLink& Link : Links)
+	{
+		Link.InitializeAreaClass(/*bForceRefresh=*/true);
+	}
+}
+
+void UNavLinkComponent::PostEditImport()
+{
+	Super::PostEditImport();
+
+	for (FNavigationLink& Link : Links)
+	{
+		Link.InitializeAreaClass(/*bForceRefresh=*/true);
+	}
+}
+
+#endif // WITH_EDITOR

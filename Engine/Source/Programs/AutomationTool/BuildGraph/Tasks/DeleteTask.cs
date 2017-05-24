@@ -101,6 +101,12 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the directory was deleted, false if not</returns>
 		static bool TryDeleteEmptyDirectory(DirectoryReference CandidateDirectory)
 		{
+			// Make sure the directory exists
+			if(!DirectoryReference.Exists(CandidateDirectory))
+			{
+				return false;
+			}
+
 			// Check if there are any files in it. If there are, don't bother trying to delete it.
 			if(Directory.EnumerateFiles(CandidateDirectory.FullName).Any() || Directory.EnumerateDirectories(CandidateDirectory.FullName).Any())
 			{

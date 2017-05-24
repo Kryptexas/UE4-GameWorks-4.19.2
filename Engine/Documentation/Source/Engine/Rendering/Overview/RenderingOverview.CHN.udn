@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2691839
+﻿INTSourceChangelist:3243860
 Availability:Public
 Title: 渲染概述
 Crumbs: %ROOT%, Engine
 Description: 渲染子系统主要功能概述。
 Version: 4.9
+parent:Engine/Rendering
+order:1
+type:landing
+tags:Rendering
 
 [VAR:Topic]
 [OBJECT:Topic]

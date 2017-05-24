@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class portmidi : ModuleRules
 {
-	public portmidi(TargetInfo Target)
+	public portmidi(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

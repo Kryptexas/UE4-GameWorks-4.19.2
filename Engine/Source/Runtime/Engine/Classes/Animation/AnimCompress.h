@@ -12,6 +12,7 @@
 #include "UObject/Object.h"
 #include "Animation/AnimSequence.h"
 #include "AnimationUtils.h"
+#include "AnimEnums.h"
 #include "AnimCompress.generated.h"
 
 //Helper function for ddc key generation
@@ -87,6 +88,10 @@ class UAnimCompress : public UObject
 	/** Format for bitwise compression of scale data. */
 	UPROPERTY()
 	TEnumAsByte<AnimationCompressionFormat> ScaleCompressionFormat;
+
+	/** Max error for compression of curves using remove redundant keys */
+	UPROPERTY(Category = Compression, EditAnywhere)
+	float MaxCurveError;
 
 #if WITH_EDITOR
 public:

@@ -16,6 +16,11 @@ USoundSubmixGraphNode::USoundSubmixGraphNode(const FObjectInitializer& ObjectIni
 
 bool USoundSubmixGraphNode::CheckRepresentsSoundSubmix()
 {
+	if (!SoundSubmix)
+	{
+		return false;
+	}
+
 	for (int32 ChildIndex = 0; ChildIndex < ChildPin->LinkedTo.Num(); ChildIndex++)
 	{
 		USoundSubmixGraphNode* ChildNode = CastChecked<USoundSubmixGraphNode>(ChildPin->LinkedTo[ChildIndex]->GetOwningNode());

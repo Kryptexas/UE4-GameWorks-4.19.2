@@ -285,15 +285,15 @@ private:
 	void ReleaseResources(int32 Slack = 0);
 
 	/**
-	 * Copies and adds the 'Socket' to the 'MergeMesh' only if the socket does not already exist on the merged mesh.
+	 * Copies and adds the 'NewSocket' to the MergeMesh's MeshOnlySocketList only if the socket does not already exist.
 	 * @return 'true' if the socket is added; 'false' otherwise.
 	 */
-	bool AddSocket(const USkeletalMeshSocket* Socket);
+	bool AddSocket(const USkeletalMeshSocket* NewSocket, bool bIsSkeletonSocket);
 
 	/**
-	 * Adds only the new sockets from the 'SocketList' to the 'MergeMesh'.
+	 * Adds only the new sockets from the 'NewSockets' array to the 'ExistingSocketList'.
 	 */
-	void AddSockets(const TArray<USkeletalMeshSocket*>& SocketList);
+	void AddSockets(const TArray<USkeletalMeshSocket*>& NewSockets, bool bAreSkeletonSockets);
 
 	/**
 	 * Builds a new 'SocketList' from the sockets in the 'SourceMeshList'.

@@ -78,6 +78,7 @@ public:
 	//~ End AActor Interface
 
 	//~ Begin AGameStateBase Interface
+	virtual void ReceivedGameModeClass() override;
 	virtual bool HasMatchStarted() const override;
 	virtual void HandleBeginPlay() override;
 	virtual float GetPlayerStartTime(class AController* Controller) const override;

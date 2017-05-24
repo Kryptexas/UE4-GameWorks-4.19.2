@@ -3,3 +3,4 @@
 #include "Common.usf"
 #include "PostProcessCommon.usf"
 #include "PS4/PostProcessHMDMorpheus.usf"
+#include "PS4/RGBAToYUV420.usf"

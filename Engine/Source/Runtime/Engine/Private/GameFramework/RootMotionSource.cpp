@@ -6,22 +6,37 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Curves/CurveVector.h"
 #include "Curves/CurveFloat.h"
+#include "Engine/Engine.h"
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static TAutoConsoleVariable<int32> CVarDebugRootMotionSources(
-	TEXT("p.DebugRootMotionSources"),
+#if ROOT_MOTION_DEBUG
+TAutoConsoleVariable<int32> RootMotionSourceDebug::CVarDebugRootMotionSources(
+	TEXT("p.RootMotion.Debug"),
 	0,
 	TEXT("Whether to draw root motion source debug information.\n")
 	TEXT("0: Disable, 1: Enable"),
 	ECVF_Cheat);
 
 static TAutoConsoleVariable<float> CVarDebugRootMotionSourcesLifetime(
-	TEXT("p.DebugRootMotionSourcesLifetime"),
+	TEXT("p.RootMotion.DebugSourceLifeTime"),
 	6.f,
 	TEXT("How long a visualized root motion source persists.\n")
 	TEXT("Time in seconds each visualized root motion source persists."),
 	ECVF_Cheat);
+
+void RootMotionSourceDebug::PrintOnScreen(const ACharacter& InCharacter, const FString& InString)
+{
+	const FString AdjustedDebugString = FString::Printf(TEXT("[%d] [%s] %s"), GFrameCounter, *InCharacter.GetName(), *InString);
+
+	const FColor DebugColor = (InCharacter.IsLocallyControlled()) ? FColor::Green : FColor::Red;
+	GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, DebugColor, AdjustedDebugString, false, FVector2D::UnitVector * 1.5f);
+
+	UE_LOG(LogRootMotion, Verbose, TEXT("%s"), *AdjustedDebugString);
+}
+
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+
+const float RootMotionSource_InvalidStartTime = -BIG_NUMBER;
 
 //
 // FRootMotionServerToLocalIDMapping
@@ -111,12 +126,11 @@ FRootMotionSourceSettings& FRootMotionSourceSettings::operator+=(const FRootMoti
 FRootMotionSource::FRootMotionSource()
 	: Priority(0)
 	, LocalID((uint16)ERootMotionSourceID::Invalid)
-	, StartTime(-1.0f)
+	, StartTime(RootMotionSource_InvalidStartTime)
 	, CurrentTime(0.0f)
 	, PreviousTime(0.0f)
 	, Duration(-1.0f)
 	, bInLocalSpace(false)
-	, bImpartsVelocityOnRemoval(true)
 	, bNeedsSimulatedCatchup(false)
 {
 }
@@ -129,6 +143,11 @@ float FRootMotionSource::GetTime() const
 float FRootMotionSource::GetStartTime() const
 {
 	return StartTime;
+}
+
+bool FRootMotionSource::IsStartTimeValid() const
+{
+	return (StartTime != RootMotionSource_InvalidStartTime);
 }
 
 float FRootMotionSource::GetDuration() const
@@ -279,6 +298,10 @@ FRootMotionSource_ConstantForce::FRootMotionSource_ConstantForce()
 	: Force(EForceInit::ForceInitToZero)
 	, StrengthOverTime(nullptr)
 {
+	// Disable Partial End Tick for Constant Forces.
+	// Otherwise we end up with very inconsistent velocities on the last frame.
+	// This ensures that the ending velocity is maintained and consistent.
+	Settings.SetFlag(ERootMotionSourceSettingsFlags::DisablePartialEndTick);
 }
 
 FRootMotionSource* FRootMotionSource_ConstantForce::Clone() const
@@ -347,11 +370,17 @@ void FRootMotionSource_ConstantForce::PrepareRootMotion
 	//     To catch up with server state we need to apply
 	//     3 seconds of this root motion in 1 second of
 	//     movement tick time -> we apply 600 cm for this frame
-	if (SimulationTime != MovementTickTime && MovementTickTime > SMALL_NUMBER)
+	const float Multiplier = (MovementTickTime > SMALL_NUMBER) ? (SimulationTime / MovementTickTime) : 1.f;
+	NewTransform.ScaleTranslation(Multiplier);
+
+#if ROOT_MOTION_DEBUG
+	if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
 	{
-		const float Multiplier = SimulationTime / MovementTickTime;
-		NewTransform.ScaleTranslation(Multiplier);
+		FString AdjustedDebugString = FString::Printf(TEXT("FRootMotionSource_ConstantForce::PrepareRootMotion NewTransform(%s) Multiplier(%f)"),
+			*NewTransform.GetTranslation().ToCompactString(), Multiplier);
+		RootMotionSourceDebug::PrintOnScreen(Character, AdjustedDebugString);
 	}
+#endif
 
 	RootMotionParams.Set(NewTransform);
 
@@ -688,8 +717,8 @@ void FRootMotionSource_MoveToForce::PrepareRootMotion
 		}
 
 		// Debug
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (CVarDebugRootMotionSources.GetValueOnGameThread() != 0)
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnGameThread() != 0)
 		{
 			const FVector LocDiff = MoveComponent.UpdatedComponent->GetComponentLocation() - CurrentLocation;
 			const float DebugLifetime = CVarDebugRootMotionSourcesLifetime.GetValueOnGameThread();
@@ -880,8 +909,8 @@ void FRootMotionSource_MoveToDynamicForce::PrepareRootMotion
 		}
 
 		// Debug
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (CVarDebugRootMotionSources.GetValueOnGameThread() != 0)
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnGameThread() != 0)
 		{
 			const FVector LocDiff = MoveComponent.UpdatedComponent->GetComponentLocation() - CurrentLocation;
 			const float DebugLifetime = CVarDebugRootMotionSourcesLifetime.GetValueOnGameThread();
@@ -1099,8 +1128,8 @@ void FRootMotionSource_JumpForce::PrepareRootMotion
 		FVector Force = (TargetRelativeLocation - CurrentRelativeLocation) / MovementTickTime;
 
 		// Debug
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (CVarDebugRootMotionSources.GetValueOnGameThread() != 0)
+#if ROOT_MOTION_DEBUG
+		if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnGameThread() != 0)
 		{
 			const FVector CurrentLocation = Character.GetActorLocation();
 			const FVector CurrentTargetLocation = CurrentLocation + (TargetRelativeLocation - CurrentRelativeLocation);
@@ -1228,51 +1257,107 @@ bool FRootMotionSourceGroup::HasRootMotionToApply() const
 	return HasActiveRootMotionSources();
 }
 
-void FRootMotionSourceGroup::PrepareRootMotion(float DeltaTime, const ACharacter& Character, const UCharacterMovementComponent& MoveComponent, bool bForcePrepareAll)
+void FRootMotionSourceGroup::CleanUpInvalidRootMotion(float DeltaTime, const ACharacter& Character, UCharacterMovementComponent& MoveComponent)
 {
 	// Remove active sources marked for removal or that are invalid
-	RootMotionSources.RemoveAll([this, DeltaTime, &Character, &MoveComponent](const TSharedPtr<FRootMotionSource>& RootSource) 
-		{ 
-			if (RootSource.IsValid())
+	RootMotionSources.RemoveAll([this, DeltaTime, &Character, &MoveComponent](const TSharedPtr<FRootMotionSource>& RootSource)
+	{
+		if (RootSource.IsValid())
+		{
+			if (!RootSource->Status.HasFlag(ERootMotionSourceStatusFlags::MarkedForRemoval) &&
+				!RootSource->Status.HasFlag(ERootMotionSourceStatusFlags::Finished))
 			{
-				if (!RootSource->Status.HasFlag(ERootMotionSourceStatusFlags::MarkedForRemoval) &&
-					!RootSource->Status.HasFlag(ERootMotionSourceStatusFlags::Finished))
-				{
-					return false;
-				}
-
-				// When additive root motion sources are removed we add their effects back to Velocity
-				// so that any maintained momentum/velocity that they were contributing affects character
-				// velocity and it's not a sudden stop
-				if (RootSource->AccumulateMode == ERootMotionAccumulateMode::Additive &&
-					RootSource->bImpartsVelocityOnRemoval)
-				{
-					if (bIsAdditiveVelocityApplied)
-					{
-						AccumulateRootMotionVelocityFromSource(*RootSource, DeltaTime, Character, MoveComponent, LastPreAdditiveVelocity);
-					}
-				}
-				UE_LOG(LogRootMotion, VeryVerbose, TEXT("RootMotionSource being removed: %s"), *RootSource->ToSimpleString());
+				return false;
 			}
-			return true;
-		});
+
+			// When additive root motion sources are removed we add their effects back to Velocity
+			// so that any maintained momentum/velocity that they were contributing affects character
+			// velocity and it's not a sudden stop
+			if (RootSource->AccumulateMode == ERootMotionAccumulateMode::Additive)
+			{
+				if (bIsAdditiveVelocityApplied)
+				{
+					const FVector PreviousLastPreAdditiveVelocity = LastPreAdditiveVelocity;
+					AccumulateRootMotionVelocityFromSource(*RootSource, DeltaTime, Character, MoveComponent, LastPreAdditiveVelocity);
+
+#if ROOT_MOTION_DEBUG
+					if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+					{
+						FString AdjustedDebugString = FString::Printf(TEXT("PrepareRootMotion RemovingAdditiveSource LastPreAdditiveVelocity(%s) Old(%s)"),
+							*LastPreAdditiveVelocity.ToCompactString(), *PreviousLastPreAdditiveVelocity.ToCompactString());
+						RootMotionSourceDebug::PrintOnScreen(Character, AdjustedDebugString);
+					}
+#endif
+				}
+			}
+
+			// Process FinishVelocity options when RootMotionSource is removed.
+			if (RootSource->FinishVelocityParams.Mode == ERootMotionFinishVelocityMode::ClampVelocity)
+			{
+				// For Z, only clamp positive values to prevent shooting off, we don't want to slow down a fall.
+				MoveComponent.Velocity = MoveComponent.Velocity.GetClampedToMaxSize2D(RootSource->FinishVelocityParams.ClampVelocity);
+				MoveComponent.Velocity.Z = FMath::Min(MoveComponent.Velocity.Z, RootSource->FinishVelocityParams.ClampVelocity);
+
+				// if we have additive velocity applied, LastPreAdditiveVelocity will stomp velocity, so make sure it gets clamped too.
+				if (bIsAdditiveVelocityApplied)
+				{
+					// For Z, only clamp positive values to prevent shooting off, we don't want to slow down a fall.
+					LastPreAdditiveVelocity = LastPreAdditiveVelocity.GetClampedToMaxSize2D(RootSource->FinishVelocityParams.ClampVelocity);
+					LastPreAdditiveVelocity.Z = FMath::Min(LastPreAdditiveVelocity.Z, RootSource->FinishVelocityParams.ClampVelocity);
+				}
+			}
+			else if (RootSource->FinishVelocityParams.Mode == ERootMotionFinishVelocityMode::SetVelocity)
+			{
+				MoveComponent.Velocity = RootSource->FinishVelocityParams.SetVelocity;
+				// if we have additive velocity applied, LastPreAdditiveVelocity will stomp velocity, so make sure this gets set too.
+				if (bIsAdditiveVelocityApplied)
+				{
+					LastPreAdditiveVelocity = RootSource->FinishVelocityParams.SetVelocity;
+				}
+			}
+
+			UE_LOG(LogRootMotion, VeryVerbose, TEXT("RootMotionSource being removed: %s"), *RootSource->ToSimpleString());
+
+#if ROOT_MOTION_DEBUG
+			if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+			{
+				FString AdjustedDebugString = FString::Printf(TEXT("PrepareRootMotion Removing RootMotionSource(%s)"),
+					*RootSource->ToSimpleString());
+				RootMotionSourceDebug::PrintOnScreen(Character, AdjustedDebugString);
+			}
+#endif
+		}
+		return true;
+	});
 
 	// Remove pending sources that could have been marked for removal before they were made active
-	PendingAddRootMotionSources.RemoveAll([](const TSharedPtr<FRootMotionSource>& RootSource) 
-		{ 
-			if (RootSource.IsValid())
+	PendingAddRootMotionSources.RemoveAll([&Character](const TSharedPtr<FRootMotionSource>& RootSource)
+	{
+		if (RootSource.IsValid())
+		{
+			if (!RootSource->Status.HasFlag(ERootMotionSourceStatusFlags::MarkedForRemoval) &&
+				!RootSource->Status.HasFlag(ERootMotionSourceStatusFlags::Finished))
 			{
-				if (!RootSource->Status.HasFlag(ERootMotionSourceStatusFlags::MarkedForRemoval) &&
-					!RootSource->Status.HasFlag(ERootMotionSourceStatusFlags::Finished))
-				{
-					return false;
-				}
-
-				UE_LOG(LogRootMotion, VeryVerbose, TEXT("Pending RootMotionSource being removed: %s"), *RootSource->ToSimpleString());
+				return false;
 			}
-			return true;
-		});
 
+			UE_LOG(LogRootMotion, VeryVerbose, TEXT("Pending RootMotionSource being removed: %s"), *RootSource->ToSimpleString());
+
+#if ROOT_MOTION_DEBUG
+			if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+			{
+				FString AdjustedDebugString = FString::Printf(TEXT("PrepareRootMotion Removing PendingAddRootMotionSource(%s)"),
+					*RootSource->ToSimpleString());
+				RootMotionSourceDebug::PrintOnScreen(Character, AdjustedDebugString);
+			}
+#endif
+		}
+		return true;
+	});
+}
+
+void FRootMotionSourceGroup::PrepareRootMotion(float DeltaTime, const ACharacter& Character, const UCharacterMovementComponent& MoveComponent, bool bForcePrepareAll)
+{
 	// Add pending sources
 	{
 		RootMotionSources.Append(PendingAddRootMotionSources);
@@ -1348,7 +1433,7 @@ void FRootMotionSourceGroup::PrepareRootMotion(float DeltaTime, const ACharacter
 						// Start of root motion (Root motion StartTime vs. character movement time)
 						{
 							const bool bRootMotionHasNotStarted = RootMotionSource->GetTime() == 0.f;
-							const bool bRootMotionHasValidStartTime = RootMotionSource->GetStartTime() >= 0.f;
+							const bool bRootMotionHasValidStartTime = RootMotionSource->IsStartTimeValid();
 							if (bRootMotionHasNotStarted && bRootMotionHasValidStartTime)
 							{
 								float CharacterMovementTime = -1.f;
@@ -1382,7 +1467,6 @@ void FRootMotionSourceGroup::PrepareRootMotion(float DeltaTime, const ACharacter
 								}
 
 								const bool bHasValidMovementTime = CharacterMovementTime >= 0.f;
-								//const bool bHasTimeResetHit = false; // TODO: The below start time check would be the case if we hit a time reset too - for now we don't reset timestamp during root motion (see ::UpdateTimeStampAndDeltaTime)
 								const bool bHasSourceNotStarted = RootMotionSource->GetStartTime() > CharacterMovementTime;
 								if (bHasValidMovementTime && bHasSourceNotStarted)
 								{
@@ -1437,7 +1521,27 @@ void FRootMotionSourceGroup::PrepareRootMotion(float DeltaTime, const ACharacter
 					LastAccumulatedSettings += RootMotionSource->Settings;
 					RootMotionSource->Status.SetFlag(ERootMotionSourceStatusFlags::Prepared);
 
+#if ROOT_MOTION_DEBUG
+					if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+					{
+						FString AdjustedDebugString = FString::Printf(TEXT("PrepareRootMotion Prepared RootMotionSource(%s)"),
+							*RootMotionSource->ToSimpleString());
+						RootMotionSourceDebug::PrintOnScreen(Character, AdjustedDebugString);
+					}
+#endif
+
 					RootMotionSource->bNeedsSimulatedCatchup = false;
+				}
+				else // if (!RootMotionSource->Status.HasFlag(ERootMotionSourceStatusFlags::Prepared) || bForcePrepareAll)
+				{
+#if ROOT_MOTION_DEBUG
+					if (RootMotionSourceDebug::CVarDebugRootMotionSources.GetValueOnAnyThread() == 1)
+					{
+						FString AdjustedDebugString = FString::Printf(TEXT("PrepareRootMotion AlreadyPrepared RootMotionSource(%s)"),
+							*RootMotionSource->ToSimpleString());
+						RootMotionSourceDebug::PrintOnScreen(Character, AdjustedDebugString);
+					}
+#endif
 				}
 
 				if (RootMotionSource->AccumulateMode == ERootMotionAccumulateMode::Additive)
@@ -1548,6 +1652,31 @@ void FRootMotionSourceGroup::SetPendingRootMotionSourceMinStartTimes(float NewSt
 	}
 }
 
+void FRootMotionSourceGroup::ApplyTimeStampReset(float DeltaTime)
+{
+	check(-DeltaTime > RootMotionSource_InvalidStartTime);
+
+	for (auto& RootMotionSource : RootMotionSources)
+	{
+		if (RootMotionSource.IsValid() && RootMotionSource->IsStartTimeValid())
+		{
+			const float PreviousStartTime = RootMotionSource->StartTime;
+			RootMotionSource->StartTime -= DeltaTime;
+			UE_LOG(LogRootMotion, VeryVerbose, TEXT("Applying time stamp reset to RootMotionSource %s StartTime: previous(%f), new(%f)"), *RootMotionSource->ToSimpleString(), PreviousStartTime, RootMotionSource->StartTime);
+		}
+	}
+
+	for (auto& RootMotionSource : PendingAddRootMotionSources)
+	{
+		if (RootMotionSource.IsValid() && RootMotionSource->IsStartTimeValid())
+		{
+			const float PreviousStartTime = RootMotionSource->StartTime;
+			RootMotionSource->StartTime -= DeltaTime;
+			UE_LOG(LogRootMotion, VeryVerbose, TEXT("Applying time stamp reset to PendingAddRootMotionSource %s StartTime: previous(%f), new(%f)"), *RootMotionSource->ToSimpleString(), PreviousStartTime, RootMotionSource->StartTime);
+		}
+	}
+}
+
 uint16 FRootMotionSourceGroup::ApplyRootMotionSource(FRootMotionSource* SourcePtr)
 {
 	if (SourcePtr != nullptr)
@@ -1590,12 +1719,28 @@ TSharedPtr<FRootMotionSource> FRootMotionSourceGroup::GetRootMotionSource(FName 
 		}
 	}
 
+	for (const auto& RootMotionSource : PendingAddRootMotionSources)
+	{
+		if (RootMotionSource.IsValid() && RootMotionSource->InstanceName == InstanceName)
+		{
+			return TSharedPtr<FRootMotionSource>(RootMotionSource);
+		}
+	}
+
 	return TSharedPtr<FRootMotionSource>(nullptr);
 }
 
 TSharedPtr<FRootMotionSource> FRootMotionSourceGroup::GetRootMotionSourceByID(uint16 RootMotionSourceID)
 {
 	for (const auto& RootMotionSource : RootMotionSources)
+	{
+		if (RootMotionSource.IsValid() && RootMotionSource->LocalID == RootMotionSourceID)
+		{
+			return TSharedPtr<FRootMotionSource>(RootMotionSource);
+		}
+	}
+
+	for (const auto& RootMotionSource : PendingAddRootMotionSources)
 	{
 		if (RootMotionSource.IsValid() && RootMotionSource->LocalID == RootMotionSourceID)
 		{
@@ -1668,8 +1813,37 @@ void FRootMotionSourceGroup::UpdateStateFrom(const FRootMotionSourceGroup& Group
 				{
 					// We rely on the 'Matches' rule to be exact, verify that it is still correct here.
 					// If not, we're matching different root motion sources, or we're using properties that change over time for matching.
-					ensureMsgf(RootMotionSource->Matches(TakeFromRootMotionSource.Get()), TEXT("UpdateStateFrom RootMotionSource(%s) has the same LocalID(%d) as a non-matching TakeFromRootMotionSource(%s)!"),
-						*RootMotionSource->ToSimpleString(), RootMotionSource->LocalID, *TakeFromRootMotionSource->ToSimpleString());
+					if (!RootMotionSource->Matches(TakeFromRootMotionSource.Get()))
+					{
+						ensureMsgf(false, TEXT("UpdateStateFrom RootMotionSource(%s) has the same LocalID(%d) as a non-matching TakeFromRootMotionSource(%s)!"),
+							*RootMotionSource->ToSimpleString(), RootMotionSource->LocalID, *TakeFromRootMotionSource->ToSimpleString());
+						
+						// See if multiple local sources match this ServerRootMotionSource by rules
+						UE_LOG(LogRootMotion, Warning, TEXT("Finding Matches by rules for TakeFromRootMotionSource(%s)"), *TakeFromRootMotionSource->ToSimpleString());
+						for (int32 Index=0; Index<RootMotionSources.Num(); Index++)
+						{
+							const TSharedPtr<FRootMotionSource>& TestRootMotionSource = RootMotionSources[Index];
+							if (TestRootMotionSource.IsValid())
+							{
+								UE_LOG(LogRootMotion, Warning, TEXT("[%d/%d] Matches(%s) ? (%d)"),
+									Index + 1, RootMotionSources.Num(), *TestRootMotionSource->ToSimpleString(), TestRootMotionSource->Matches(TakeFromRootMotionSource.Get()));
+							}
+						}
+
+						// See if multiple local sources match this ServerRootMotionSource by ID
+						UE_LOG(LogRootMotion, Warning, TEXT("Finding Matches by ID for TakeFromRootMotionSource(%s)"), *TakeFromRootMotionSource->ToSimpleString());
+						for (int32 Index = 0; Index < RootMotionSources.Num(); Index++)
+						{
+							const TSharedPtr<FRootMotionSource>& TestRootMotionSource = RootMotionSources[Index];
+							if (TestRootMotionSource.IsValid())
+							{
+								UE_LOG(LogRootMotion, Warning, TEXT("[%d/%d] Matches(%s) ? (%d)"),
+									Index + 1, RootMotionSources.Num(), *TestRootMotionSource->ToSimpleString(), TestRootMotionSource->LocalID == TakeFromRootMotionSource->LocalID);
+							}
+						}
+
+						continue;
+					}
 
 					const bool bSuccess = RootMotionSource->UpdateStateFrom(TakeFromRootMotionSource.Get(), bMarkForSimulatedCatchup);
 					if (bSuccess)

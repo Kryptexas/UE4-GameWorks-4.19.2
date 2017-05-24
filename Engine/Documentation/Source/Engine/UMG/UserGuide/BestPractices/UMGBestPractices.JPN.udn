@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:UMG のベスト プラクティス
 Crumbs:%ROOT%, Engine\UMG\UserGuide
@@ -7,6 +7,7 @@ version:4.10
 parent:Engine/UMG	
 order:2
 type:how-to
+tags:UMG UI Designer
 
 
 [VAR:Topic]
@@ -67,7 +68,7 @@ UMG でコンテンツを制作する場合、ターゲットの解像度を念�
 ![](OneScale.png)
 
 [REGION:caption]
-現在の画面サイズとスケーリングは、グラフ下部の **Designer** タブでご覧いただけます。 
+現在の画面サイズとスケーリングは、グラフ下部の **[Designer]** タブでご覧いただけます。 
 [/REGION]
 
 これにより、作成したものが何でも同じスケーリングに見えるようにするだけでなく、すべての Widget ブループリントに統一したスケーリングが適用されていれば大小の画面サイズに簡単にスケーリングすることができます。 
@@ -188,12 +189,12 @@ Widget ブループリント内の **Designer** タブで、背景としてグ�
 プレビュー バックグラウンドを使用すると、ウィジェットを確実に適切なサイズにスケーリングするのに役立ちます。 
 [/REGION]
 
-これを行うには、**Hierarchy (階層)** で **Root (ルート)** を選択し、**Details** で使用するテクスチャを割り当てることができます。 
+これを行うには、**Hierarchy (階層)** で **Root (ルート)** を選択し、**[Details]** で使用するテクスチャを割り当てることができます。 
 
 
 ### ユーザー ウィジェット / コンテンツの再利用
 
-任意のコンテンツで Widget ブループリントを作成する場合は常に **User Widget (ユーザー ウィジェット)** とみなされます。こうしたユーザー ウィジェットは、**Designer** タブの **Palette** ウィンドウの **User Created** セクションに表示され、他のウィジェット同様にグラフ内にドラッグ＆ドロップすることができます。 
+任意のコンテンツで Widget ブループリントを作成する場合は常に **User Widget (ユーザー ウィジェット)** とみなされます。こうしたユーザー ウィジェットは、**[Designer]** タブの **[Palette]** ウィンドウの **User Created** セクションに表示され、他のウィジェット同様にグラフ内にドラッグ＆ドロップすることができます。 
 
 ![](UserWidgets.png)
 

@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3025593
+﻿INTSourceChangelist:3178047
 Availability:Public
 Title: レベル ストリーミング
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:レベルを非同期的にロード / アンロードして、メモリを削減し、シームレスなワールドを作成する方法
+Version:4.12
 parent:Engine
-order:10
+order:12
 tags:Level Streaming
 
 [VAR:Topic]
@@ -52,10 +53,10 @@ tags:Level Streaming
 ワールド内でプレイするプレイヤーのサイズがとても小さく感じてしまうほどです。
 [/EXCERPT:Intro]
 
-[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"Level Streaming" org:"hierarchy" end:0)]
+[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"Level Streaming" org:"hierarchy")]
 
 ## ワールド合成
 
 ワールド合成機能は、大きなワールドを作成する時に使うレベル ストリーミングの特別な機能です。レベルは平面グリッドに配置され、プレイヤーが近づくとストリームされます。
 
-[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"World Composition")]
+[DIR(output:"listbutton" parent:"Engine/LevelStreaming" tags:"World Composition" org:"hierarchy")]

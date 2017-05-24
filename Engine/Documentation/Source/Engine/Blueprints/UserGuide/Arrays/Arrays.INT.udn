@@ -5,6 +5,7 @@ Description:Documentation over Blueprint Arrays, including creation, editing, an
 version: 4.9
 parent:Engine/Blueprints/Scripting
 tags:Arrays and Structures
+tags:Blueprints
 order:1
 
 ![](Arrays.png)

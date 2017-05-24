@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability: Public
 Title:4. 메인 메뉴 스크립트
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:이번 단계에서는 메인 메뉴와 게임 로드 함수성 스크립트를 짜도록 하겠습니다.
 version: 4.9
+tags:UMG UI Designer
 
 
 [VAR:Steps]

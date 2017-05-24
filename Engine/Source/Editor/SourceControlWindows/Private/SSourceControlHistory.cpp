@@ -957,7 +957,8 @@ private:
 	/** Get the last selected revision's changelist number */
 	FText GetChangelistNumber() const
 	{
-		if(LastSelectedRevisionItem.IsValid())
+		static const bool bUsesChangelists = ISourceControlModule::Get().GetProvider().UsesChangelists();
+		if(LastSelectedRevisionItem.IsValid() && bUsesChangelists)
 		{
 			// don't group the CL# as Perforce doesn't display it that way
 			return FText::AsNumber(LastSelectedRevisionItem.Pin()->ChangelistNumber, &FNumberFormattingOptions::DefaultNoGrouping());

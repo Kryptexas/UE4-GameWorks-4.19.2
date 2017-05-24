@@ -14,31 +14,7 @@ namespace AutomationTool
 	{
 		public override string GetMsBuildExe()
 		{
-			return VCEnvironment.GetMSBuildToolPath();
-		}
-
-		public override string GetMsDevExe()
-		{
-			WindowsCompiler Compiler = WindowsPlatform.GetDefaultCompiler(new string[0], null);
-
-			// Locate MsDevEnv executable
-			DirectoryReference VSInstallDir;
-			if(!WindowsPlatform.TryGetVSInstallDir(Compiler, out VSInstallDir))
-			{
-				throw new NotSupportedException("Couldn't find installation of Visual Studio");
-			}
-
-			string PotentialMsDevExe = Path.Combine(VSInstallDir.FullName, "Common7", "IDE", "Devenv.com");
-
-			var Info = new System.IO.FileInfo(PotentialMsDevExe);
-			if (Info.Exists)
-			{
-				return PotentialMsDevExe;
-			}
-			else
-			{				
-				throw new NotSupportedException(String.Format("{0} does not exist.", PotentialMsDevExe));
-			}
+			return WindowsExports.GetMSBuildToolPath();
 		}
 
 		public override string RelativeBinariesFolder

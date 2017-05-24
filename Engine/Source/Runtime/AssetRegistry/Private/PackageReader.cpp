@@ -11,7 +11,8 @@
 
 FPackageReader::FPackageReader()
 {
-	Loader = NULL;
+	Loader = nullptr;
+	PackageFileSize = 0;
 	ArIsLoading		= true;
 	ArIsPersistent	= true;
 }
@@ -48,7 +49,7 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 		}
 	};
 
-	if( Loader == NULL )
+	if( Loader == nullptr )
 	{
 		// Couldn't open the file
 		SetPackageErrorCode(EOpenPackageResult::NoLoader);
@@ -100,27 +101,6 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 		}
 	}
 
-	// check if this is a compressed package and decompress header 
-	if ( !!(PackageFileSummary.PackageFlags & PKG_StoreCompressed) )
-	{
-		checkf(!GNewAsyncIO, TEXT("Package level compression cannot be used with the async io scheme."));
-		check(PackageFileSummary.CompressedChunks.Num() > 0);
-
-		int64 CurPos = Loader->Tell();
-
-		if ( !Loader->SetCompressionMap(&PackageFileSummary.CompressedChunks, (ECompressionFlags)PackageFileSummary.CompressionFlags) )
-		{
-			delete Loader;
-
-			Loader = new FArchiveAsync(*PackageFilename);
-			check(!Loader->IsError());
-
-			verify(Loader->SetCompressionMap(&PackageFileSummary.CompressedChunks, (ECompressionFlags)PackageFileSummary.CompressionFlags));
-		}
-		
-		Seek(Loader->Tell());
-	}
-
 	//make sure the filereader gets the correct version number (it defaults to latest version)
 	SetUE4Ver(PackageFileSummary.GetFileVersionUE4());
 	SetLicenseeUE4Ver(PackageFileSummary.GetFileVersionLicenseeUE4());
@@ -132,6 +112,8 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 	const FCustomVersionContainer& PackageFileSummaryVersions = PackageFileSummary.GetCustomVersionContainer();
 	SetCustomVersions(PackageFileSummaryVersions);
 	Loader->SetCustomVersions(PackageFileSummaryVersions);
+
+	PackageFileSize = Loader->TotalSize();
 
 	SetPackageErrorCode(EOpenPackageResult::Success);
 	return true;
@@ -349,9 +331,11 @@ bool FPackageReader::ReadAssetRegistryDataIfCookedPackage(TArray<FAssetData*>& A
 	return false;
 }
 
-bool FPackageReader::ReadDependencyData (FPackageDependencyData& OutDependencyData)
+bool FPackageReader::ReadDependencyData(FPackageDependencyData& OutDependencyData)
 {
 	OutDependencyData.PackageName = FName(*FPackageName::FilenameToLongPackageName(PackageFilename));
+	OutDependencyData.PackageData.DiskSize = PackageFileSize;
+	OutDependencyData.PackageData.PackageGuid = PackageFileSummary.Guid;
 
 	SerializeNameMap();
 	SerializeImportMap(OutDependencyData.ImportMap);

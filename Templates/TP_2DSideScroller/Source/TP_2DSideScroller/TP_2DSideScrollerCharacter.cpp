@@ -1,20 +1,22 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_2DSideScroller.h"
 #include "TP_2DSideScrollerCharacter.h"
 #include "PaperFlipbookComponent.h"
 #include "Components/TextRenderComponent.h"
-
-
+#include "Components/CapsuleComponent.h"
+#include "Components/InputComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Controller.h"
+#include "Camera/CameraComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(SideScrollerCharacter, Log, All);
+
 //////////////////////////////////////////////////////////////////////////
 // ATP_2DSideScrollerCharacter
 
 ATP_2DSideScrollerCharacter::ATP_2DSideScrollerCharacter()
 {
-
-
 	// Use only Yaw from the controller and ignore the rest of the rotation.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = true;
@@ -63,11 +65,11 @@ ATP_2DSideScrollerCharacter::ATP_2DSideScrollerCharacter()
 	// behavior on the edge of a ledge versus inclines by setting this to true or false
 	GetCharacterMovement()->bUseFlatBaseForFloorChecks = true;
 
-// 	TextComponent = CreateDefaultSubobject<UTextRenderComponent>(TEXT("IncarGear"));
-// 	TextComponent->SetRelativeScale3D(FVector(3.0f, 3.0f, 3.0f));
-// 	TextComponent->SetRelativeLocation(FVector(35.0f, 5.0f, 20.0f));
-// 	TextComponent->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
-// 	TextComponent->SetupAttachment(RootComponent);
+    // 	TextComponent = CreateDefaultSubobject<UTextRenderComponent>(TEXT("IncarGear"));
+    // 	TextComponent->SetRelativeScale3D(FVector(3.0f, 3.0f, 3.0f));
+    // 	TextComponent->SetRelativeLocation(FVector(35.0f, 5.0f, 20.0f));
+    // 	TextComponent->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+    // 	TextComponent->SetupAttachment(RootComponent);
 
 	// Enable replication on the Sprite component so animations show up when networked
 	GetSprite()->SetIsReplicated(true);
@@ -122,12 +124,13 @@ void ATP_2DSideScrollerCharacter::MoveRight(float Value)
 
 void ATP_2DSideScrollerCharacter::TouchStarted(const ETouchIndex::Type FingerIndex, const FVector Location)
 {
-	// jump on any touch
+	// Jump on any touch
 	Jump();
 }
 
 void ATP_2DSideScrollerCharacter::TouchStopped(const ETouchIndex::Type FingerIndex, const FVector Location)
 {
+	// Cease jumping once touch stopped
 	StopJumping();
 }
 

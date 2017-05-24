@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2719462
+﻿INTSourceChangelist:3275257
 Availability:Public
-Title:UNREAL ENGINE の用語
+Title:Unreal Engine 4 の用語
 Crumbs: %ROOT%, Gameplay, GettingStarted
 Description:このページでは アンリアル エンジン 4 で作業する場合に一般的に使用する用語を説明します。 
 version:4.9
@@ -71,7 +71,7 @@ version:4.9
 
 
 [EXCERPT:world]
-**ワールド**
+ワールド
 
 [INCLUDE:Shared\Glossary\W#glossary_world]
 
@@ -131,20 +131,20 @@ version:4.9
 
 
 [EXCERPT:characters]
-**キャラクター**
+キャラクター
 [INCLUDE:Shared\Glossary\C#glossary_character]
 詳細は、以下をご覧ください。[](Gameplay/Framework/Pawn/Character), [キャラクターのセットアップ](Engine/Animation/CharacterSetupOverview), [キャラクターの移動の操作ガイド](Gameplay/HowTo/CharacterMovement/Blueprints)
 [/EXCERPT:characters]
 
 
 [EXCERPT:pawn]
-**ポーン**
+ポーン
 [INCLUDE:Shared\Glossary\P#glossary_pawn] 
 詳細は、以下をご覧ください。[](Gameplay/Framework/Pawn), [](Gameplay/HowTo/PossessPawns)
 [/EXCERPT:pawn]
 
 [EXCERPT:controller]
-**コントローラ**
+**コントローラー**
 [INCLUDE:Shared\Glossary\C#glossary_controller_class] 
 詳細は、以下をご覧ください。[](Gameplay/Framework/Controller), [](Gameplay/Framework/Controller/PlayerController), [](Gameplay/Framework/Controller/AIController)
 [/EXCERPT:controller]
@@ -167,17 +167,17 @@ version:4.9
 [EXCERPT:gamemode]
 **ゲーム モード**
 [INCLUDE:Shared\Glossary\G#glossary_gamemode] 
-詳細は、以下をご覧ください。[](Gameplay/Framework/GameMode), [](Gameplay/HowTo/SettingUpAGameMode/Blueprints) 
+詳細は、以下をご覧ください。[GameMode](Gameplay/Framework/GameMode), [](Gameplay/HowTo/SettingUpAGameMode/Blueprints) 
 [/EXCERPT:gamemode]
 
 
 [EXCERPT:gamestate]
 **ゲーム ステート**
 [INCLUDE:Shared\Glossary\G#glossary_gamestate] 
-詳細は、以下をご覧ください。[](Gameplay/Framework/GameState)
+詳細は、以下をご覧ください。[GameState](Gameplay/Framework/GameMode#gamestate)
 [/EXCERPT:gamestate]
 
-
+ 
 [EXCERPT:playerstate]
 **プレイヤー ステート**
 [INCLUDE:Shared\Glossary\P#glossary_playerstate] 

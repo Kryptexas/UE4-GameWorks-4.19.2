@@ -134,7 +134,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "EngineModule.h"
 
-#include "EditorWorldManager.h"
+#include "EditorWorldExtension.h"
 
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -316,6 +316,8 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	bIsEndingPlay = false;
 	NumOnlinePIEInstances = 0;
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
+
+	EditorWorldExtensionsManager = nullptr;
 
 #if !UE_BUILD_SHIPPING
 	if (!AutomationCommon::OnEditorAutomationMapLoadDelegate().IsBound())
@@ -613,7 +615,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	TimerManager = MakeShareable(new FTimerManager());
 
 	// create the editor world manager
-	EditorWorldManager = MakeShareable(new FEditorWorldManager());
+	EditorWorldExtensionsManager = NewObject<UEditorWorldExtensionManager>();
 
 	// Settings.
 	FBSPOps::GFastRebuild = 0;
@@ -745,8 +747,7 @@ void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageRel
 			{
 				CompilingBlueprintsSlowTask.EnterProgressFrame(1.0f);
 
-				//FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintToRecompile, FPropertyChangedEvent(nullptr, EPropertyChangeType::Redirected));
-				FKismetEditorUtilities::CompileBlueprint(BlueprintToRecompile, /*bIsRegeneratingOnLoad*/false, /*bSkipGarbageCollection*/true);
+				FKismetEditorUtilities::CompileBlueprint(BlueprintToRecompile, EBlueprintCompileOptions::SkipGarbageCollection);
 			}
 		}
 		BlueprintsToRecompileThisBatch.Reset();
@@ -960,6 +961,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 		FModuleManager::Get().LoadModule(TEXT("LogVisualizer"));
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
+
+		FModuleManager::Get().LoadModuleChecked(TEXT("ClothPainter"));
 
 		// Load VR Editor support
 		FModuleManager::Get().LoadModuleChecked( TEXT( "ViewportInteraction" ) );
@@ -1699,8 +1702,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 	}
 
-	// Updates the ViewportWorldInteraction
-	EditorWorldManager->Tick( DeltaSeconds );
+	// Updates all the extensions for all the editor worlds
+	EditorWorldExtensionsManager->Tick(DeltaSeconds);
 
 	bool bIsMouseOverAnyLevelViewport = false;
 
@@ -1789,6 +1792,9 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				}
 			}
 		}
+
+		// Some tasks can only be done once we finish all scenes/viewports
+		GetRendererModule().PostRenderAllViewports();
 	}
 
 	ISourceControlModule::Get().Tick();
@@ -2261,13 +2267,18 @@ void UEditorEngine::PlayEditorSound( const FString& SoundAssetName )
 void UEditorEngine::PlayEditorSound( USoundBase* InSound )
 {
 	// Only play sounds if the user has that feature enabled
-	if (!GIsSavingPackage && IsInGameThread() && GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds)
+	if (!GIsSavingPackage && CanPlayEditorSound())
 	{
 		if (InSound != nullptr)
 		{
 			GEditor->PlayPreviewSound(InSound);
 		}
 	}
+}
+
+bool UEditorEngine::CanPlayEditorSound() const
+{
+	return IsInGameThread() && GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds;
 }
 
 void UEditorEngine::ClearPreviewComponents()
@@ -2723,15 +2734,11 @@ void UEditorEngine::ApplyDeltaToComponent(USceneComponent* InComponent,
 		{
 			if ( bDelta )
 			{
-				const FScaleMatrix ScaleMatrix( FVector( InDeltaScale.X , InDeltaScale.Y, InDeltaScale.Z ) );
-
-				FVector DeltaScale3D = ScaleMatrix.TransformPosition( InComponent->RelativeScale3D );
-				InComponent->SetRelativeScale3D(InComponent->RelativeScale3D + DeltaScale3D);
-
+				InComponent->SetRelativeScale3D(InComponent->RelativeScale3D + InDeltaScale);
 
 				FVector NewCompLocation = InComponent->RelativeLocation;
 				NewCompLocation -= PivotLocation;
-				NewCompLocation += ScaleMatrix.TransformPosition( NewCompLocation );
+				NewCompLocation += FScaleMatrix( InDeltaScale ).TransformPosition( NewCompLocation );
 				NewCompLocation += PivotLocation;
 				InComponent->SetRelativeLocation(NewCompLocation);
 			}
@@ -3181,8 +3188,8 @@ bool UEditorEngine::AreAnySelectedActorsInLevelScript()
 		ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint(true);
 		if( LSB != NULL )
 		{
-			int32 NumRefs = FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor);
-			if(NumRefs > 0)
+			TArray<UK2Node*> ReferencedToActors;
+			if(FBlueprintEditorUtils::FindReferencesToActorFromLevelScript(LSB, Actor, ReferencedToActors))
 			{
 				return true;
 			}
@@ -3234,7 +3241,7 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.OverrideLevel = CurActorLevel;
-			ABrush* NewVolume = World->SpawnActor<ABrush>( VolumeClass, CurBrushActor->GetActorTransform());
+			ABrush* NewVolume = World->SpawnActor<ABrush>( VolumeClass, CurBrushActor->GetActorTransform(), SpawnInfo);
 			if ( NewVolume )
 			{
 				NewVolume->PreEditChange( NULL );
@@ -3760,9 +3767,8 @@ void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 	OnOpenMatinee();
 }
 
-void UEditorEngine::UpdateReflectionCaptures()
+void UEditorEngine::UpdateReflectionCaptures(UWorld* World)
 {
-	UWorld* World = GWorld;
 	const ERHIFeatureLevel::Type ActiveFeatureLevel = World->FeatureLevel;
 	if (ActiveFeatureLevel < ERHIFeatureLevel::SM4 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
@@ -4085,7 +4091,7 @@ void UEditorEngine::OnSourceControlDialogClosed(bool bEnabled)
 	}
 }
 
-ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
+FSavePackageResultStruct UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 				 FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
 				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
 {
@@ -4097,7 +4103,7 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 	if (bForceLoadStringAssetReferences)
 	{
 		const FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
-		GRedirectCollector.ResolveStringAssetReference(PackageName);
+		GRedirectCollector.ResolveStringAssetReference(FName(*PackageName));
 	}
 
 	UObject* Base = InBase;
@@ -4174,7 +4180,7 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 	SlowTask.EnterProgressFrame(70);
 
 	UPackage::PreSavePackageEvent.Broadcast(InOuter);
-	const ESavePackageResult Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+	const FSavePackageResultStruct Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 
 	SlowTask.EnterProgressFrame(10);
 
@@ -4232,7 +4238,7 @@ bool UEditorEngine::SavePackage(UPackage* InOuter, UObject* InBase, EObjectFlags
 	uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask)
 {
 	// Workaround to avoid function signature change while keeping both bool and ESavePackageResult versions of SavePackage
-	const ESavePackageResult Result = Save(InOuter, InBase, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping,
+	const FSavePackageResultStruct Result = Save(InOuter, InBase, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping,
 		bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 	return Result == ESavePackageResult::Success;
 }
@@ -6999,11 +7005,9 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 		}
 	}
 
-	//should really be wait until the map is properly loaded....in PIE or gameplay....
 	if (bNeedPieStart)
 	{
-		//TODO NICKD We need a better way to determine when to start the map.
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitForMapToLoadCommand);
 	}
 #endif
 	return;

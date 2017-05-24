@@ -1,9 +1,9 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class DirectSound : ModuleRules
 {
-	public DirectSound(TargetInfo Target)
+	public DirectSound(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

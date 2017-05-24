@@ -39,6 +39,10 @@ class SLATE_API SSafeZone : public SBox
 		, _PadRight( true )
 		, _PadTop( true )
 		, _PadBottom( true )
+#if WITH_EDITOR
+		, _OverrideScreenSize()
+		, _OverrideDpiScale()
+#endif
 		{}
 
 		/** Horizontal alignment of content in the area allotted to the SBox by its parent */
@@ -74,6 +78,14 @@ class SLATE_API SSafeZone : public SBox
 		/** If this safe zone should pad for the bottom of the screen's safe zone */
 		SLATE_ARGUMENT( bool, PadBottom )
 
+#if WITH_EDITOR
+		/** Force a particular screen size to be used instead of the reported device size. */
+		SLATE_ARGUMENT( TOptional<FVector2D>, OverrideScreenSize )
+
+		/** Force a particular screen size to be used instead of the reported device size. */
+		SLATE_ARGUMENT(TOptional<float>, OverrideDpiScale )
+#endif
+
 	SLATE_END_ARGS()
 
 public:
@@ -85,6 +97,10 @@ public:
 	void SetSafeAreaScale(FMargin InSafeAreaScale);
 
 	void SetSidesToPad( bool InPadLeft, bool InPadRight, bool InPadTop, bool InPadBottom );
+
+#if WITH_EDITOR
+	void SetOverrideScreenInformation(TOptional<FVector2D> InScreenSize, TOptional<float> InOverrideDpiScale);
+#endif
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual FVector2D ComputeDesiredSize(float LayoutScale) const override;
@@ -101,6 +117,11 @@ private:
 	bool bPadRight;
 	bool bPadTop;
 	bool bPadBottom;
+
+#if WITH_EDITOR
+	TOptional<FVector2D> OverrideScreenSize;
+	TOptional<float> OverrideDpiScale;
+#endif
 
 	/** Screen space margin */
 	FMargin SafeMargin;

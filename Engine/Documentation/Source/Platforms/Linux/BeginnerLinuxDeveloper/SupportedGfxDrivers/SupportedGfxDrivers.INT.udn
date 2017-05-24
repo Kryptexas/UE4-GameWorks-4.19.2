@@ -1,36 +1,17 @@
 Availability: Public
 Title: Supported Graphics Drivers
-Crumbs: %ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper
+Crumbs:
 Description:This page provides an overview of supported graphics drivers for Linux game developers.
 version: 4.13
-parent:Platforms/Linux/BeginnerLinuxDeveloper
-order: 1
+parent:Platforms/Linux
+order: 4
 tags:Linux
 type:Reference
 related:GettingStarted/RecommendedSpecifications
+topic-image:supportedgfxdrivers_topic.png
 
 [TOC(start:1 end:4)]
 
-[VAR:Params]
-[PARAM:image]
-	![%Platforms/Linux/BeginnerLinuxDeveloper:title%](supportedgfxdrivers_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers:title%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
 
 Unreal Engine requires compatible hardware and software support in order to run smoothly on your 
 machine. In an effort to help you determine your ideal development environment, we're providing 

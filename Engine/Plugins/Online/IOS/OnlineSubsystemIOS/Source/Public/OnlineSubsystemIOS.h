@@ -7,6 +7,7 @@
 #include "OnlineSubsystemIOSPackage.h"
 
 @class FStoreKitHelperV2;
+@class FAppStoreUtils;
 
 
 /**
@@ -17,7 +18,7 @@ class ONLINESUBSYSTEMIOS_API FOnlineSubsystemIOS :
 {
 
 public:
-	FOnlineSubsystemIOS();
+	
 	virtual ~FOnlineSubsystemIOS() {};
 
 	//~ Begin IOnlineSubsystem Interface
@@ -54,6 +55,10 @@ public:
 
 PACKAGE_SCOPE:
 
+	/** Only the factory makes instances */
+	FOnlineSubsystemIOS();
+	FOnlineSubsystemIOS(FName InInstanceName);
+
 	/**
 	 * Is IOS available for use
 	 * @return true if IOS is available, false otherwise
@@ -71,17 +76,28 @@ PACKAGE_SCOPE:
 	 * @return true if enabled, false otherwise
 	 */
 	bool IsV2StoreEnabled();
+	
+	/**
+	 * @return access to the app store utility class
+	 */
+	FAppStoreUtils* GetAppStoreUtils();
 
 private:
 	
 	void InitStoreKitHelper();
 	void CleanupStoreKitHelper();
+	
+	void InitAppStoreHelper();
+	void CleanupAppStoreHelper();
 
 	/** Online async task thread */
 	class FRunnableThread* OnlineAsyncTaskThread;
 	
 	/** Store kit helper for interfacing with app store */
 	FStoreKitHelperV2* StoreHelper;
+	
+	/** App store util helper */
+	FAppStoreUtils* AppStoreHelper;
 
 	/** Interface to the session services */
 	FOnlineSessionIOSPtr SessionInterface;

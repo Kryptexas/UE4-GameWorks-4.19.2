@@ -26,15 +26,18 @@ build_modes = [('', 'Debug'),
                ('-O3', 'Release'),
                ('-Oz', 'MinSizeRel')]
 
-src_directory = os.path.realpath(os.path.dirname(__file__))
+src_directory = os.path.normpath(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..', '..', '..', '..'))
 
 output_lib_directory = os.path.normpath(os.path.join(src_directory, 'Lib', 'HTML5'))
 if 'rebuild' in sys.argv:
-	for f in [os.path.join(output_lib_directory, f) for f in os.listdir(output_lib_directory) if f.endswith(".bc")]:
-		print 'Clearing ' + f
-		os.remove(f)
+	try:
+		for f in [os.path.join(output_lib_directory, f) for f in os.listdir(output_lib_directory) if f.endswith(".bc")]:
+			print 'Clearing ' + f
+			os.remove(f)
+	except Exception, e:
+		pass
 
-cmake_src_directory = os.path.join(src_directory, 'APEX_1.4', 'compiler', 'cmake', 'HTML5')
+cmake_src_directory = os.path.join(src_directory, 'PhysX_3.4', 'Source', 'compiler', 'cmake', 'html5')
 print 'Build source directory: ' + cmake_src_directory
 
 print 'Output libraries to directory: ' + output_lib_directory
@@ -52,7 +55,17 @@ for (mode, cmake_build_type) in build_modes:
 	# C & C++ compiler flags to use for the build.
 	compile_flags = mode + ' -Wno-double-promotion -Wno-comma -Wno-expansion-to-defined -Wno-undefined-func-template -Wno-disabled-macro-expansion -Wno-missing-noreturn '
 	compile_flags += ' -D_DEBUG ' if cmake_build_type == 'Debug' else ' -DNDEBUG '
-	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags, '-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags]
+	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags,
+		'-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags]
+
+# BUG: Would like to enable the following flags, but that gives missing symbols when linking:
+#     "UATHelper: Packaging (HTML5): UnrealBuildTool: warning: unresolved symbol: _ZN5physx6shdfnd14NamedAllocatorD1Ev, _ZN5physx6shdfnd14NamedAllocatorD2Ev, _ZN5physx6shdfnd14NamedAllocatorC1EPKc, _ZN5physx6shdfnd14NamedAllocator10deallocateEPv, _ZN5physx6shdfnd14NamedAllocatorC2ERKS1_, _ZN5physx6shdfnd14NamedAllocator8allocateEjPKci"
+# Not really sure why that occurs and whether it is an Emscripten or an UE4 issue, but for now, disable linker optimization flags (below).
+
+#		'-DCMAKE_STATIC_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+#		'-DCMAKE_SHARED_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+#		'-DCMAKE_MODULE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+#		'-DCMAKE_EXE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode]
 
 	# Configure the build via CMake
 	run([os.path.join(os.getenv('EMSCRIPTEN'), bat_file('emcmake')), 'cmake',
@@ -69,7 +82,7 @@ for (mode, cmake_build_type) in build_modes:
 	run(cmd)
 
 	# Deploy the output to the libraries directory.
-	output_lib_directories = [build_dir, os.path.join(build_dir, 'physx_bin'), os.path.join(build_dir, 'physx_bin', 'pxshared_bin')]
+	output_lib_directories = [build_dir, os.path.join(build_dir, 'pxshared_bin')]
 	for d in output_lib_directories:
 		for output_file in os.listdir(d):
 			if output_file.endswith('.bc'):

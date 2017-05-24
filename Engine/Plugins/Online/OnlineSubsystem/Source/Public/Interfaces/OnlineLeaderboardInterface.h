@@ -60,6 +60,32 @@ public:
 	virtual bool ReadLeaderboardsForFriends(int32 LocalUserNum, FOnlineLeaderboardReadRef& ReadObject) = 0;
 
 	/**
+	* Reads stats for a given rank in the leaderboard, as well as a range of stats above and below that rank.
+	* For example, if Rank = 100 and Range = 10, entries for ranks 90-110 will be returned.
+	*
+	* @param Rank the rank for which stats should be returned
+	* @Param Range the range above and below Rank to return as well
+	* @param ReadObject holds the definitions of the tables to read the data from and
+	*		  results are copied into the specified object
+	*
+	* @return true if the call is successful, false otherwise
+	*/
+	virtual bool ReadLeaderboardsAroundRank(int32 Rank, uint32 Range, FOnlineLeaderboardReadRef& ReadObject) = 0;
+
+	/**
+	* Reads stats for a given player in the leaderboard, as well as a range of stats above and below that user.
+	* For example, if the player is 100th in the leaderboard and Range = 10, entries for ranks 90-110 will be returned.
+	*
+	* @param Player the player for which stats should be returned
+	* @Param Range the range above and below the player's rank to return as well
+	* @param ReadObject holds the definitions of the tables to read the data from and
+	*		  results are copied into the specified object
+	*
+	* @return true if the call is successful, false otherwise
+	*/
+	virtual bool ReadLeaderboardsAroundUser(TSharedRef<const FUniqueNetId> Player, uint32 Range, FOnlineLeaderboardReadRef& ReadObject) = 0;
+
+	/**
 	 * Notifies the interested party that the last stats read has completed
 	 *
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error

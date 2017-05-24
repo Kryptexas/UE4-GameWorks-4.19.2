@@ -30,6 +30,7 @@ class UGameInstance;
 class ULocalPlayer;
 class UNetDriver;
 struct FStringClassReference;
+class FHardwareCursor;
 
 /**
  * Stereoscopic rendering passes.  FULL implies stereoscopic rendering isn't enabled for this pass
@@ -42,6 +43,8 @@ enum EStereoscopicPass
 	eSSP_MONOSCOPIC_EYE
 };
 
+/** Delegate for overriding the behavior when a navigation action is taken, Not to be confused with FNavigationDelegate which allows a specific widget to override behavior for itself */
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FCustomNavigationHandler, const uint32, TSharedPtr<SWidget>);
 
 /**
  * A game viewport (FViewport) is a high-level abstract interface for the
@@ -63,10 +66,8 @@ class ENGINE_API UGameViewportClient : public UScriptViewportClient, public FExe
 	GENERATED_UCLASS_BODY()
 
 public:
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UGameViewportClient(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	virtual ~UGameViewportClient();
 
@@ -546,11 +547,19 @@ public:
 		return TickDelegate;
 	}
 
+	/** Set an override handler for navigation. */
+	FCustomNavigationHandler& OnNavigationOverride()
+	{
+		return CustomNavigationEvent;
+	}
+
 	/** Return the engine show flags for this viewport */
 	virtual FEngineShowFlags* GetEngineShowFlags() override
 	{ 
 		return &EngineShowFlags; 
 	}
+
+	bool SetHardwareCursor(EMouseCursor::Type CursorShape, FName GameContentPath, FVector2D HotSpot);
 
 public:
 	/** The show flags used by the viewport's players. */
@@ -718,7 +727,15 @@ public:
 		return bHideCursorDuringCapture;
 	}
 
+	/** 
+	 * Should we make new windows for popups or create an overlay in the current window.
+	 */
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
+
+	/**
+	* Optionally do custom handling of a navigation.
+	*/
+	virtual bool HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination) override;
 
 	/**
 	 * Sets whether or not the software cursor widgets are used.
@@ -744,6 +761,9 @@ public:
 	}
 
 private:
+	/** Resets the platform type shape to nullptr, to restore it to the OS default. */
+	void ResetHardwareCursorStates();
+
 	/**
 	 * Set a specific stat to either enabled or disabled (returns the number of remaining enabled stats)
 	 */
@@ -787,7 +807,7 @@ private:
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
 	
 	/** Adds a cursor to the set based on the enum and the class reference to it. */
-	void AddCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass);
+	void AddSoftwareCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass);
 
 private:
 	/** Slate window associated with this viewport client.  The same window may host more than one viewport client. */
@@ -804,6 +824,12 @@ private:
 
 	/** Weak pointer to the highres screenshot dialog if it's open */
 	TWeakPtr<SWindow> HighResScreenshotDialog;
+
+	/** Hardware Cursor Cache */
+	TMap<FName, TSharedPtr<FHardwareCursor>> HardwareCursorCache;
+
+	/** Hardware cursor mapping for default cursor shapes. */
+	TMap<EMouseCursor::Type, TSharedPtr<FHardwareCursor>> HardwareCursors;
 
 	/** Map of Software Cursor Widgets*/
 	TMap<EMouseCursor::Type, TSharedRef<SWidget>> CursorWidgets;
@@ -859,6 +885,9 @@ private:
 	/** Delegate called when the engine toggles fullscreen */
 	FOnToggleFullscreen ToggleFullscreenDelegate;
 
+	/** Delegate for custom navigation behavior */
+	FCustomNavigationHandler CustomNavigationEvent;
+
 	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
 	FStatUnitData* StatUnitData;
 
@@ -891,7 +920,7 @@ private:
 
 	/** Whether or not this audio device is in audio-focus */
 	bool bHasAudioFocus;
+
+	/** Is the mouse currently over the viewport client */
+	bool bIsMouseOverClient;
 };
-
-
-

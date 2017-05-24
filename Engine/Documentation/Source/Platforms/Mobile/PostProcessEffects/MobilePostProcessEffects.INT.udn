@@ -1,12 +1,13 @@
 Availability:Public
 Title:Post Process Effects on Mobile Platforms
-Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Crumbs:
 Description:Using Post Process Effects on mobile games.
 Platform:Mobile
 Version: 4.14
 parent:Platforms/Mobile
 order:5
 type:overview
+skilllevel:Intermediate
 tags:mobile
 reference-image:Mobile_PostProcessEffect.gif
 
@@ -16,14 +17,12 @@ Mobile Post Processing is implemented as a separate code path from PC/Console Po
 To enable Post Processing for your mobile applications, please make sure that **Mobile HDR** is enabled in your **Project Settings** as most of the settings below require Mobile HDR to be enabled for the effect(s) to work.
 
 [region: lightbox]
-[![](MobileHDR_Enabled.png)(w:400 h:200)](MobileHDR_Enabled.png)
+[![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
 [/region]
 
 [region:caption]
 Click for full image.
 [/region]
-
-The following categories can be found in a Post Process volume (or a camera Actor). 
 
 ## Enabling Tonemapper for Mobile Devices
 To use the Tonemapper Post Processing options on Mobile Devices, you will need to set the value of **r.tonemapperfilm** from its default of **0** to **1**.  You can change, enable, or disable the Tonemapper inside of the Unreal Engine 4 (UE4) Editor in the following ways: 
@@ -101,127 +100,119 @@ Click for full image.
 ### White Balance
 |Post Process Property| Supported|R.tonemapperfilm Value| 
 |--------------------|-----------|--------------|
-|Temp|Yes|1|
-|Tint|Yes|1|
+|**Temp**|Yes|1|
+|**Tint**|Yes|1|
 
 ### Color Grading
 |Post Process Property| Supported|R.tonemapperfilm Value| 
 |--------------------|-----------|--------------|
-|Saturation|Yes|1|
-|Contrast|Yes|1|
-|Gamma|Yes|1|
-|Gain|Yes|1|
-|Offset|Yes|1|
+|**Saturation**|Yes|1|
+|**Contrast**|Yes|1|
+|**Gamma**|Yes|1|
+|**Gain**|Yes|1|
+|**Offset**|Yes|1|
 
 ### Film
 |Post Process Property| Supported|R.tonemapperfilm Value| 
 |--------------------|-----------|--------------|
-|Tint|Yes|0|
-|Tint Shadow|Yes|0|
-|Tint Shadow Blend|Yes|0|
-|Tint Shadow Amount|Yes|0|
-|Saturation|Yes|0|
-|Channel Mixer Red|Yes|0|
-|Channel Mixer Green|Yes|0|
-|Channel Mixer Blue|Yes|0|
-|Contrast|Yes|0|
-|Crush Shadows|Yes|0|
-|Crush Highlights|Yes|0|
-|Dynamic Range|Yes|0|
-|Slope|Yes|1|
-|Toe|Yes|1|
-|Shoulder|Yes|1|
-|Black Clip|Yes|1|
-|White Clip|Yes|1|
+|**Tint**|Yes|0|
+|**Tint Shadow**|Yes|0|
+|**Tint Shadow Blend**|Yes|0|
+|**Tint Shadow Amount**|Yes|0|
+|**Saturation**|Yes|0|
+|**Channel Mixer Red**|Yes|0|
+|**Channel Mixer Green**|Yes|0|
+|**Channel Mixer Blue**|Yes|0|
+|**Contrast**|Yes|0|
+|**Crush Shadows**|Yes|0|
+|**Crush Highlights**|Yes|0|
+|**Dynamic Range**|Yes|0|
+|**Slope**|Yes|1|
+|**Toe**|Yes|1|
+|**Shoulder**|Yes|1|
+|**Black Clip**|Yes|1|
+|**White Clip**|Yes|1|
 
 ### Scene Color
 |Post Process Property| Supported|R.tonemapperfilm Value| 
 |--------------------|-----------|--------------|
-|Scene Color Tint|Yes|1|
-|Fringe Intensity|Yes|0 & 1|
-|Vignette Intensity|Yes|0 & 1|
-|Grain Jitter |Yes|0 & 1|
-|Grain Intensity |Yes|0 & 1|
-|Color Grading Intensity |Yes|1|
-|Color Grading |Yes|1|
+|**Scene Color Tint**|Yes|1|
+|**Fringe Intensity**|Yes|0 & 1|
+|**Vignette Intensity**|Yes|0 & 1|
+|**Grain Jitter**|Yes|0 & 1|
+|**Grain Intensity**|Yes|0 & 1|
+|**Color Grading Intensity**|Yes|1|
+|**Color Grading**|Yes|1|
 
 ### Bloom
 |Post Process Property| Supported|R.tonemapperfilm Value| 
 |--------------------|-----------|--------------|
-|Intensity|Yes|0 & 1|
-|Threshold|Yes|0 & 1|
-|Size Scale |Yes|0 & 1|
-|#1 Size|No|n/a|
-|#2 Size|No|n/a|
-|#3 Size|No|n/a|
-|#4 Size|No|n/a|
-|#5 Size|No|n/a|
-|#1 Tint|No|n/a|
-|#2 Tint|No|n/a|
-|#3 Tint|No|n/a|
-|#4 Tint|No|n/a|
-|#5 Tint|No|n/a|
-|#6 Tint|No|n/a|
-|Dirt Mask Intensity|Yes|1|
-|Dirt Mask Tint |Yes|1|
-|Dirt Mask |Yes|1|
+|**Intensity**|Yes|0 & 1|
+|**Threshold**|Yes|0 & 1|
+|**Size Scale**|Yes|0 & 1|
+|**#1 Size**|No|n/a|
+|**#2 Size**|No|n/a|
+|**#3 Size**|No|n/a|
+|**#4 Size**|No|n/a|
+|**#5 Size**|No|n/a|
+|**#1 Tint**|No|n/a|
+|**#2 Tint**|No|n/a|
+|**#3 Tint**|No|n/a|
+|**#4 Tint**|No|n/a|
+|**#5 Tint**|No|n/a|
+|**#6 Tint**|No|n/a|
+|**Dirt Mask Intensity**|Yes|1|
+|**Dirt Mask Tint**|Yes|1|
+|**Dirt Mask**|Yes|1|
 
 ### Auto Exposure
 |Post Process Property| Supported|R.tonemapperfilm Value| 
 |--------------------|-----------|--------------|
-|Auto Exposure Histogram|Yes|0 & 1|
-|Auto Exposure Basic|Yes|0 & 1|
-|Low Percent|No|n/a|
-|High Percent|No|n/a|
-|Min Brightness|No|n/a|
-|Max Brightness|No|n/a|
-|Speed Up|No|n/a|
-|Speed Down|No|n/a|
-|Exposure Bias|Yes|0 & 1|
-|Histogram Log Min|No|n/a|
-|Histogram Log Max|No|n/a|
+|**Auto Exposure Histogram**|Yes|0 & 1|
+|**Auto Exposure Basic**|Yes|0 & 1|
+|**Low Percent**|No|n/a|
+|**High Percent**|No|n/a|
+|**Min Brightness**|No|n/a|
+|**Max Brightness**|No|n/a|
+|**Speed Up**|No|n/a|
+|**Speed Down**|No|n/a|
+|**Exposure Bias**|Yes|0 & 1|
+|**Histogram Log Min**|No|n/a|
+|**Histogram Log Max**|No|n/a|
 
 ### Depth Of Field
 |Post Process Property| Supported|R.tonemapperfilm Value| 
 |--------------------|-----------|--------------|
-|BokehDOF|Yes|0 |
-|GaussianDOF|Yes|0 |
-|CircleDOF|No|n/a |
-|High Quality Gaussian DoF on Mobile|Yes|1|
-|Aperture F - Stop|No|n/a|
-|Focal Distance |Yes|0|
-|Depth Blur km for 50%|No|n/a|
-|Depth Blur Radius|No|n/a|
-|Focal Region|No|n/a|
-|Near Transition Region|Yes|0|
-|Far Transition Region|Yes|0|
-|Scale|Yes|0|
-|Max Bokeh Size|No|n/a|
-|Near Blur Size|No|n/a|
-|Far Blur Size|No|n/a|
-|Shape|No|n/a|
-|Occlusion|No|n/a|
-|Color Threshold|No|n/a|
-|Sky Distance|No|n/a|
-|Vignette Size|No|n/a|
+|**BokehDOF**|Yes|0 |
+|**GaussianDOF**|Yes|0 |
+|**CircleDOF**|No|n/a |
+|**High Quality Gaussian DoF on Mobile**|Yes|1|
+|**Aperture F - Stop**|No|n/a|
+|**Focal Distance**|Yes|0|
+|**Depth Blur km for 50%**|No|n/a|
+|**Depth Blur Radius**|No|n/a|
+|**Focal Region**|No|n/a|
+|**Near Transition Region**|Yes|0|
+|**Far Transition Region**|Yes|0|
+|**Scale**|Yes|0|
+|**Max Bokeh Size**|No|n/a|
+|**Near Blur Size**|No|n/a|
+|**Far Blur Size**|No|n/a|
+|**Shape**|No|n/a|
+|**Occlusion**|No|n/a|
+|**Color Threshold**|No|n/a|
+|**Sky Distance**|No|n/a|
+|**Vignette Size**|No|n/a|
 
 
 ### Misc
 |Post Process Property| Supported|R.tonemapperfilm Value| 
 |--------------------|-----------|--------------|
-|Screen Percentage|No|n/a |
-|AA Methods|Yes|0 & 1|
+|**Screen Percentage**|No|n/a |
+|**AA Methods**|Yes|0 & 1|
 [region:note]
 The AA Method supports "None" (the fastest) and "TemporalAA" which provides a special mobile temporal AA which provides something around 2xSGSSAA with a little bit of judder in motion
 [/region]
-
-### Screen Space Reflections
-|Post Process Property| Supported|R.tonemapperfilm Value| 
-|--------------------|-----------|--------------|
-|Intensity|Yes|0 & 1|
-|Quality|Yes|0 & 1|
-|Max Roughness|Yes|0 & 1|
-
 
 ## Custom Post Process Materials
 
@@ -250,11 +241,19 @@ You can now use the **Custom Depth** Post Process option with the Mobile renderi
 
 As this features requires Post-Processing to work correctly, **Mobile HDR** must be enabled. To enable Mobile HDR go to **Project Settings** > **Engine** > **Rendering** > **Mobile** and make sure that **Mobile HDR** is checked.
 
+[region: lightbox]
+[![](MobileHDR_Enabled.png)(w:400)](MobileHDR_Enabled.png)
+[/region]
+
+[region:caption]
+Click for full image.
+[/region]
+
 [region:warning]
 Please note that this feature also does not currently work while **Mobile MSAA** is enabled so Mobile MSAA will have to be disabled for you to see the effect on the device.
 [/region]
 
-## General Performance Tips
+## General Post Process Performance Tips
 
 * For best performance and quality, you should stick to using just Bloom and TemporalAA.
 

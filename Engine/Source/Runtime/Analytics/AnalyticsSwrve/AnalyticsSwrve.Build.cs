@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AnalyticsSwrve : ModuleRules
 	{
-		public AnalyticsSwrve(TargetInfo Target)
+		public AnalyticsSwrve(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.Add("Core");
 

@@ -5,7 +5,7 @@ using System.IO;
 
 public class WebBrowser : ModuleRules
 {
-	public WebBrowser(TargetInfo Target)
+	public WebBrowser(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Runtime/WebBrowser/Public");
 		PrivateIncludePaths.Add("Runtime/WebBrowser/Private");
@@ -57,9 +57,10 @@ public class WebBrowser : ModuleRules
 			}
 		}
 
-		if (Target.Platform == UnrealTargetPlatform.PS4)
+		if (Target.Platform == UnrealTargetPlatform.PS4 &&
+			UEBuildConfiguration.bCompileAgainstEngine)
 		{
-			PrivateDependencyModuleNames.Add("OnlineSubsystem");
+			PrivateDependencyModuleNames.Add("Engine");
 		}
 
 		bEnableShadowVariableWarnings = false;

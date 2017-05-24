@@ -43,6 +43,7 @@ class UBehaviorTreeGraph : public UAIGraph
 	void UpdatePinConnectionTypes();
 	void UpdateDeprecatedNodes();
 	bool UpdateInjectedNodes();
+	void UpdateBrokenComposites();
 	class UEdGraphNode* FindInjectedNode(int32 Index);
 	void ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphNode* NewNode);
 	void RebuildExecutionOrder();

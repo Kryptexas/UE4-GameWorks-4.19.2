@@ -4,26 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Actor that can be activated and cause events to occur in the level.
 version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Volumes "%Engine/Actors/Volumes:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Rendering/Materials/IntroductionToMaterials "%Engine/Rendering/Materials/IntroductionToMaterials:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [TOC(start:2)]
 
 [EXCERPT:Intro]
@@ -69,4 +49,3 @@ overlaps (or runs through) the Trigger:
 
 <!-- Add GIF/slider showing overlap during play and pin firing in graph -->
 
-%playlistnav%

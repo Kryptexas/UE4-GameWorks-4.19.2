@@ -43,6 +43,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "VectorField/VectorField.h"
+#include "PipelineStateCache.h"
 
 DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation"), Stat_GPU_ParticleSimulation, STATGROUP_GPU);
@@ -1074,7 +1075,7 @@ public:
 		const FParticleStateTextures& TextureResources,
 		const FParticleAttributesTexture& InAttributesTexture,
 		const FParticleAttributesTexture& InRenderAttributesTexture,
-		const FSceneView* CollisionView,
+		const FUniformBufferRHIParamRef ViewUniformBuffer,
 		const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
 		FTexture2DRHIParamRef SceneDepthTexture,
 		FTexture2DRHIParamRef GBufferATexture
@@ -1090,8 +1091,8 @@ public:
 
 		if (CollisionMode == PCM_DepthBuffer)
 		{
-			check(CollisionView != NULL);
-			FGlobalShader::SetParameters(RHICmdList, PixelShaderRHI,*CollisionView);
+			check(ViewUniformBuffer != NULL);
+			FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, PixelShaderRHI, ViewUniformBuffer);
 			SetTextureParameter(
 				RHICmdList, 
 				PixelShaderRHI,
@@ -1406,10 +1407,11 @@ struct FSimulationCommandGPU
 template <EParticleCollisionShaderMode CollisionMode>
 void ExecuteSimulationCommands(
 	FRHICommandList& RHICmdList,
+	FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 	ERHIFeatureLevel::Type FeatureLevel,
 	const TArray<FSimulationCommandGPU>& SimulationCommands,
 	FParticleSimulationResources* ParticleSimulationResources,
-	const FSceneView* CollisionView,
+	const FUniformBufferRHIParamRef ViewUniformBuffer,
 	const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
 	FTexture2DRHIParamRef SceneDepthTexture,
 	FTexture2DRHIParamRef GBufferATexture,
@@ -1433,20 +1435,14 @@ void ExecuteSimulationCommands(
 	TShaderMapRef<FParticleTileVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
 	TShaderMapRef<TParticleSimulationPS<CollisionMode> > PixelShader(GetGlobalShaderMap(FeatureLevel));
 
-	// Bound shader state.
-	
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(
-		RHICmdList,
-		FeatureLevel,
-		BoundShaderState,
-		GParticleTileVertexDeclaration.VertexDeclarationRHI,
-		*VertexShader,
-		*PixelShader,
-		0
-		);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GParticleTileVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
-	PixelShader->SetParameters(RHICmdList, TextureResources, AttributeTexture, RenderAttributeTexture, CollisionView, GlobalDistanceFieldParameterData, SceneDepthTexture, GBufferATexture);
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+
+	PixelShader->SetParameters(RHICmdList, TextureResources, AttributeTexture, RenderAttributeTexture, ViewUniformBuffer, GlobalDistanceFieldParameterData, SceneDepthTexture, GBufferATexture);
 
 	// Draw tiles to perform the simulation step.
 	const int32 CommandCount = SimulationCommands.Num();
@@ -1470,24 +1466,26 @@ void ExecuteSimulationCommands(
 
 void ExecuteSimulationCommands(
 	FRHICommandList& RHICmdList,
+	FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 	ERHIFeatureLevel::Type FeatureLevel,
 	const TArray<FSimulationCommandGPU>& SimulationCommands,
 	FParticleSimulationResources* ParticleSimulationResources,
-	const FSceneView* CollisionView,
+	const FUniformBufferRHIParamRef ViewUniformBuffer,
 	const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
 	FTexture2DRHIParamRef SceneDepthTexture,
 	FTexture2DRHIParamRef GBufferATexture,
 	EParticleSimulatePhase::Type Phase,
 	bool bUseFixDT)
 {
-	if (Phase == EParticleSimulatePhase::CollisionDepthBuffer && CollisionView)
+	if (Phase == EParticleSimulatePhase::CollisionDepthBuffer && ViewUniformBuffer)
 	{
 		ExecuteSimulationCommands<PCM_DepthBuffer>(
 			RHICmdList,
+			GraphicsPSOInit,
 			FeatureLevel,
 			SimulationCommands,
 			ParticleSimulationResources,
-			CollisionView,
+			ViewUniformBuffer,
 			GlobalDistanceFieldParameterData,
 			SceneDepthTexture,
 			GBufferATexture,
@@ -1497,10 +1495,11 @@ void ExecuteSimulationCommands(
 	{
 		ExecuteSimulationCommands<PCM_DistanceField>(
 			RHICmdList,
+			GraphicsPSOInit,
 			FeatureLevel,
 			SimulationCommands,
 			ParticleSimulationResources,
-			CollisionView,
+			ViewUniformBuffer,
 			GlobalDistanceFieldParameterData,
 			SceneDepthTexture,
 			GBufferATexture,
@@ -1510,6 +1509,7 @@ void ExecuteSimulationCommands(
 	{
 		ExecuteSimulationCommands<PCM_None>(
 			RHICmdList,
+			GraphicsPSOInit,
 			FeatureLevel,
 			SimulationCommands,
 			ParticleSimulationResources,
@@ -1525,7 +1525,7 @@ void ExecuteSimulationCommands(
  * Invokes the clear simulation shader for each particle in each tile.
  * @param Tiles - The list of tiles to clear.
  */
-void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<uint32>& Tiles)
+void ClearTiles(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, ERHIFeatureLevel::Type FeatureLevel, const TArray<uint32>& Tiles)
 {
 	if (!CVarSimulateGPUParticles.GetValueOnAnyThread())
 	{
@@ -1550,18 +1550,12 @@ void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel
 	TShaderMapRef<FParticleTileVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
 	TShaderMapRef<FParticleSimulationClearPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
 	
-	// Bound shader state.
-	
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(
-		RHICmdList,
-		FeatureLevel,
-		BoundShaderState,
-		GParticleTileVertexDeclaration.VertexDeclarationRHI,
-		*VertexShader,
-		*PixelShader,
-		0
-		);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GParticleTileVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	while (TileCount > 0)
 	{
@@ -1753,7 +1747,7 @@ TGlobalResource<FParticleInjectionVertexDeclaration> GParticleInjectionVertexDec
  * @param NewParticles - A list of particles to inject in to the simulation.
  */
 template<bool StaticPropertiesOnly>
-void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<FNewParticle>& NewParticles)
+void InjectNewParticles(FRHICommandList& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit,  ERHIFeatureLevel::Type FeatureLevel, const TArray<FNewParticle>& NewParticles)
 {
 	if (GIsRenderingThreadSuspended || !CVarSimulateGPUParticles.GetValueOnAnyThread())
 	{
@@ -1781,18 +1775,12 @@ void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Feat
 		TShaderMapRef<FParticleInjectionVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
 		TShaderMapRef<TParticleInjectionPS<StaticPropertiesOnly> > PixelShader(GetGlobalShaderMap(FeatureLevel));
 
-		// Bound shader state.
-		
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(
-			RHICmdList,
-			FeatureLevel,
-			BoundShaderState,
-			GParticleInjectionVertexDeclaration.VertexDeclarationRHI,
-			*VertexShader,
-			*PixelShader,
-			0
-			);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GParticleInjectionVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		
 		VertexShader->SetParameters(RHICmdList);
@@ -1992,29 +1980,28 @@ static void VisualizeGPUSimulation(
 	const float DisplayOffsetX = 60.0f;
 	const float DisplayOffsetY = 60.0f;
 	
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+
 	// Setup render states.
 	FIntPoint TargetSize = RenderTarget->GetSizeXY();
 	SetRenderTarget(RHICmdList, RenderTarget->GetRenderTargetTexture(), FTextureRHIParamRef());
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 	RHICmdList.SetViewport(0, 0, 0.0f, TargetSize.X, TargetSize.Y, 1.0f);
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
 	// Grab shaders.
 	TShaderMapRef<FParticleSimVisualizeVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
 	TShaderMapRef<FParticleSimVisualizePS> PixelShader(GetGlobalShaderMap(FeatureLevel));
 
-	// Bound shader state.
-	
-	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(
-		RHICmdList,
-		FeatureLevel,
-		BoundShaderState,
-		GParticleSimVisualizeVertexDeclaration.VertexDeclarationRHI,
-		*VertexShader,
-		*PixelShader
-		);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GParticleSimVisualizeVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 	// Parameters for the visualization.
 	FParticleSimVisualizeParameters Parameters;
@@ -3490,7 +3477,7 @@ public:
 
 			// Spawn particles.
 			bool bRefreshTiles = false;
-			const bool bPreventSpawning = bHaltSpawning || bSuppressSpawning;
+			const bool bPreventSpawning = bHaltSpawning || bHaltSpawningExternal || bSuppressSpawning;
 			const bool bValidEmitterTime = (EmitterTime >= 0.0f);
 			const bool bValidLoop = AllowedLoopCount == 0 || LoopCount < AllowedLoopCount;
 			if (!bPreventSpawning && bValidEmitterTime && bValidLoop)
@@ -4497,7 +4484,7 @@ void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList)
 void FFXSystem::SimulateGPUParticles(
 	FRHICommandListImmediate& RHICmdList,
 	EParticleSimulatePhase::Type Phase,
-	const class FSceneView* CollisionView,
+	const FUniformBufferRHIParamRef ViewUniformBuffer,
 	const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
 	FTexture2DRHIParamRef SceneDepthTexture,
 	FTexture2DRHIParamRef GBufferATexture
@@ -4553,15 +4540,18 @@ void FFXSystem::SimulateGPUParticles(
 		}
 	}	
 	
+
 	RHICmdList.BeginUpdateMultiFrameResource(CurrentStateRenderTargets[0]);
 	RHICmdList.BeginUpdateMultiFrameResource(CurrentStateRenderTargets[1]);
 
 	SetRenderTargets(RHICmdList, 2, CurrentStateRenderTargets, FTextureRHIParamRef(), 0, NULL);
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
 	RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
 	// Simulations that don't use vector fields can share some state.
 	FVectorFieldUniformBufferRef EmptyVectorFieldUniformBuffer;
@@ -4666,28 +4656,32 @@ void FFXSystem::SimulateGPUParticles(
 			Simulation->PerFrameSimulationParameters.ResetDeltaSeconds();
 		}
 	}
-
-	// Simulate particles in all active tiles.
-	if ( SimulationCommands.Num() )
+	
+	if ( SimulationCommands.Num() || TilesToClear.Num())
 	{
-		ExecuteSimulationCommands(
-					RHICmdList,
-					FeatureLevel,
-					SimulationCommands,
-					ParticleSimulationResources,
-					CollisionView,
-					GlobalDistanceFieldParameterData,
-					SceneDepthTexture,
-					GBufferATexture,
-					Phase,
-					FixDeltaSeconds > 0
-					);
-	}
+		// Simulate particles in all active tiles.
+		if ( SimulationCommands.Num() )
+		{
+			ExecuteSimulationCommands(
+						RHICmdList,
+						GraphicsPSOInit,
+						FeatureLevel,
+						SimulationCommands,
+						ParticleSimulationResources,
+						ViewUniformBuffer,
+						GlobalDistanceFieldParameterData,
+						SceneDepthTexture,
+						GBufferATexture,
+						Phase,
+						FixDeltaSeconds > 0
+						);
+		}
 
-	// Clear any newly allocated tiles.
-	if (TilesToClear.Num())
-	{
-		ClearTiles(RHICmdList, FeatureLevel, TilesToClear);
+		// Clear any newly allocated tiles.
+		if (TilesToClear.Num())
+		{
+			ClearTiles(RHICmdList, GraphicsPSOInit, FeatureLevel, TilesToClear);
+		}
 	}
 
 	// Inject any new particles that have spawned into the simulation.
@@ -4708,13 +4702,15 @@ void FFXSystem::SimulateGPUParticles(
 		RHICmdList.BeginUpdateMultiFrameResource(ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI);
 
 		SetRenderTargets(RHICmdList, 4, InjectRenderTargets, FTextureRHIParamRef(), 0, NULL, true);
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		
 		RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
 		// Inject particles.
-		InjectNewParticles<false>(RHICmdList, FeatureLevel, NewParticles);
+		InjectNewParticles<false>(RHICmdList, GraphicsPSOInit, FeatureLevel, NewParticles);
 
 		// Resolve attributes textures. State textures are resolved later.
 		RHICmdList.CopyToResolveTarget(
@@ -4756,12 +4752,14 @@ void FFXSystem::SimulateGPUParticles(
 		RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, VisualizeStateRHIs, 2);
 		
 		SetRenderTargets(RHICmdList, 2, VisualizeStateRHIs, FTextureRHIParamRef(), 0, NULL);
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 		ExecuteSimulationCommands(
 					RHICmdList,
+					GraphicsPSOInit,
 					FeatureLevel,
 					SimulationCommands,
 					ParticleSimulationResources,
-					CollisionView,
+					ViewUniformBuffer,
 					GlobalDistanceFieldParameterData,
 					SceneDepthTexture,
 					GBufferATexture,
@@ -4801,12 +4799,14 @@ void FFXSystem::UpdateMultiGPUResources(FRHICommandListImmediate& RHICmdList)
 		};
 		SetRenderTargets(RHICmdList, 2, InjectRenderTargets, FTextureRHIParamRef(), 0, NULL, true);
 		RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 
 		// Inject particles.
-		InjectNewParticles<true>(RHICmdList, FeatureLevel, LastFrameNewParticles);
+		InjectNewParticles<true>(RHICmdList, GraphicsPSOInit, FeatureLevel, LastFrameNewParticles);
 
 		// Resolve attributes textures. State textures are resolved later.
 		RHICmdList.CopyToResolveTarget(

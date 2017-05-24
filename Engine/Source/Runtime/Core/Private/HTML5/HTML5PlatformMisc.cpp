@@ -10,9 +10,8 @@
 
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
-#endif 
-
-#include "trace.h"
+#include <emscripten/trace.h>
+#endif
 
 THIRD_PARTY_INCLUDES_START
 	#include "unicode/locid.h"
@@ -106,6 +105,12 @@ uint32 FHTML5Misc::GetKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMapp
 	return NumMappings;
 }
 
+// Defines the PlatformFeatures module name for HTML5, used by PlatformFeatures.h.
+const TCHAR* FHTML5Misc::GetPlatformFeaturesModuleName()
+{
+	return TEXT("HTML5PlatformFeatures");
+}
+
 FString FHTML5Misc::GetDefaultLocale()
 {
 #if PLATFORM_HTML5_BROWSER
@@ -125,19 +130,19 @@ FString FHTML5Misc::GetDefaultLocale()
 EAppReturnType::Type FHTML5Misc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
 
-#if PLATFORM_HTML5_BROWSER 
+#if PLATFORM_HTML5_BROWSER
 
 	ANSICHAR* AText = TCHAR_TO_ANSI(Text);
 	ANSICHAR* ACaption = TCHAR_TO_ANSI(Caption);
 	return static_cast<EAppReturnType::Type>(UE_MessageBox(MsgType,AText,ACaption));
 
-#endif 
+#endif
 
 #if PLATFORM_HTML5_WIN32
 
-	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption); 
+	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
 
-#endif 
+#endif
 
 }
 
@@ -146,7 +151,7 @@ void (*GHTML5CrashHandler)(const FGenericCrashContext& Context) = nullptr;
 extern "C"
 {
 #if PLATFORM_HTML5_BROWSER
-	// callback from javascript. 
+	// callback from javascript.
 	void on_fatal(const char* msg, const char* error)
 	{
 #ifdef __EMSCRIPTEN_TRACING__
@@ -160,7 +165,7 @@ extern "C"
 			GHTML5CrashHandler(Ctx);
 		}
 	}
-#endif 
+#endif
 }
 
 void FHTML5Misc::SetCrashHandler(void(* CrashHandler)(const FGenericCrashContext& Context))
@@ -174,7 +179,7 @@ const void FHTML5Misc::PreLoadMap(FString& Map, FString& LastMap, void* DynData)
 	Downloader->Cache(Map, LastMap, DynData);
 }
 
-void FHTML5Misc::PlatformPostInit(bool ShowSplashScreen /*= false*/)
+void FHTML5Misc::PlatformPostInit()
 {
 	FModuleManager::Get().LoadModule("MapPakDownloader");
 }

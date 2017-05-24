@@ -3,24 +3,6 @@ Title:Transforming Actors
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Modifying the location, rotation, and scale of Actors placed in levels.
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Selection "%Engine/Actors/Selection:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Mobility "%Engine/Actors/Mobility:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -60,8 +42,6 @@ Description:Modifying the location, rotation, and scale of Actors placed in leve
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 
 [TOC(start:2)]
@@ -243,11 +223,6 @@ Using the V key while dragging, we are able to snap the object to the appropriat
 By repeating this process, we can get nicely positioned meshes. This technique is useful for walkways, walls, doors, or anything that needs precision placement with regards to another mesh or object.
 
 ![](snappedMeshes.png)(w:500)
-
-
-
-%playlistnav%
-
 
 
 

@@ -11,7 +11,7 @@
 
 #include "hidsdi.h"
 
-#define MAX_NUM_CONTROLLER_BUTTONS 12
+#define MAX_NUM_CONTROLLER_BUTTONS 20
 #define MAX_NUM_CONTROLLER_ANALOG 8
 #define RAW_INPUT_ERROR (uint32)(-1)
 

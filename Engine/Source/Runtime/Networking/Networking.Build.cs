@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Networking : ModuleRules
 	{
-		public Networking(TargetInfo Target)
+		public Networking(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.Add("Runtime/Networking/Private");
 

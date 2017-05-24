@@ -84,6 +84,12 @@ struct ENGINE_API FNavMeshNodeFlags
 	FNavMeshNodeFlags(uint32 Flags) : PathFlags(Flags), Area(Flags >> 8), AreaFlags(Flags >> 16) {}
 	uint32 Pack() const { return PathFlags | ((uint32)Area << 8) | ((uint32)AreaFlags << 16); }
 	bool IsNavLink() const { return (PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;  }
+
+	FNavMeshNodeFlags& AddAreaFlags(const uint16 InAreaFlags) 
+	{
+		AreaFlags = (AreaFlags | InAreaFlags);
+		return *this;
+	}
 };
 
 struct ENGINE_API FNavMeshPath : public FNavigationPath
@@ -378,7 +384,7 @@ struct FNavMeshTileData
 	FNavMeshTileData() : LayerIndex(0), DataSize(0) { }
 	~FNavMeshTileData();
 	
-	explicit FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx = 0, FBox LayerBounds = FBox(0));
+	explicit FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx = 0, FBox LayerBounds = FBox(ForceInit));
 		
 	FORCEINLINE uint8* GetData()
 	{
@@ -623,6 +629,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(config)
 	uint32 bUseVirtualFilters : 1;
 
+	/** If set, paths can end at navlink poly (not the ground one!) */
+	UPROPERTY(config)
+	uint32 bAllowNavLinkAsPathEnd : 1;
+
 private:
 	/** Cache rasterized voxels instead of just collision vertices/indices in navigation octree */
 	UPROPERTY(config)
@@ -795,8 +805,8 @@ public:
 	/** Creates a task to be executed on GameThread calling UpdateDrawing */
 	void RequestDrawingUpdate(bool bForce = false);
 
-	/** Invalidates active paths that go through changed tiles  */
-	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);
+	/** called after regenerating tiles */
+	virtual void OnNavMeshTilesUpdated(const TArray<uint32>& ChangedTiles);
 
 	/** Event from generator that navmesh build has finished */
 	virtual void OnNavMeshGenerationFinished();
@@ -903,7 +913,7 @@ public:
 	uint32 GetPolyAreaID(NavNodeRef PolyID) const;
 
 	/** Sets area ID for the specified polygon. */
-	void SetPolyArea(NavNodeRef PolyID, TSubclassOf<UNavArea> AreaClass);
+	bool SetPolyArea(NavNodeRef PolyID, TSubclassOf<UNavArea> AreaClass);
 
 	/** Sets area ID for the specified polygons */
 	void SetPolyArrayArea(const TArray<FNavPoly>& Polys, TSubclassOf<UNavArea> AreaClass);
@@ -1011,6 +1021,9 @@ protected:
 
 	void UpdatePolyRefBitsPreview();
 	
+	/** Invalidates active paths that go through changed tiles  */
+	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);
+
 	/** Spawns an ARecastNavMesh instance, and configures it if AgentProps != NULL */
 	static ARecastNavMesh* SpawnInstance(UNavigationSystem* NavSys, const FNavDataConfig* AgentProps = NULL);
 

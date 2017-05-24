@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MovieSceneTools : ModuleRules
 {
-	public MovieSceneTools(TargetInfo Target)
+	public MovieSceneTools(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
             new string[] {
@@ -39,12 +39,14 @@ public class MovieSceneTools : ModuleRules
 				"MovieSceneTracks",
 				"BlueprintGraph",
 				"KismetCompiler",
+                "GraphEditor",
                 "ContentBrowser",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
 				"EditorWidgets",
 				"PropertyEditor",
+                "MaterialEditor",
 				"RenderCore",
 				"RHI",
 				"ShaderCore",

@@ -14,21 +14,6 @@ class FPrimitiveDrawInterface;
 class USkeletalMeshComponent;
 
 UENUM()
-namespace EAxisOption
-{
-	enum Type
-	{
-		X,
-		Y,
-		Z, 
-		X_Neg, 
-		Y_Neg, 
-		Z_Neg
-	};
-}
-
-
-UENUM()
 /** Various ways to interpolate TAlphaBlend. */
 namespace EInterpolationBlend
 {
@@ -57,28 +42,43 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl) 
 	FBoneReference BoneToModify;
 
-	/** Target Bone to look at - you can't use LookAtLocation as alternative as you'll get a delay on bone location if you query directly **/
+	/** Target Bone to look at - You can use  LookAtLocation if you need offset from this point. That location will be used in their local space. **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Target)
 	FBoneReference LookAtBone;
 
+	/** Target socket to look at. Used if LookAtBone is empty. - You can use  LookAtLocation if you need offset from this point. That location will be used in their local space. **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Target)
 	FName LookAtSocket;
 
-	/** Target Location in world space if LookAtBone is empty */
+	/** Target Offset. It's in world space if LookAtBone is empty or it is based on LookAtBone or LookAtSocket in their local space*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Target, meta = (PinHiddenByDefault))
 	FVector LookAtLocation;
 
 	/** Look at axis, which axis to align to look at point */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl) 
-	TEnumAsByte<EAxisOption::Type>	LookAtAxis;
+	UPROPERTY() 
+	TEnumAsByte<EAxisOption::Type>	LookAtAxis_DEPRECATED;
+
+	/** Custom look up axis in local space. Only used if LookAtAxis==EAxisOption::Custom */
+	UPROPERTY()
+	FVector	CustomLookAtAxis_DEPRECATED;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkeletalControl)
+	FAxis LookAt_Axis;
 
 	/** Whether or not to use Look up axis */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
 	bool bUseLookUpAxis;
 
 	/** Look up axis in local space */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
-	TEnumAsByte<EAxisOption::Type>	LookUpAxis;
+	UPROPERTY()
+	TEnumAsByte<EAxisOption::Type>	LookUpAxis_DEPRECATED;
+
+	/** Custom look up axis in local space. Only used if LookUpAxis==EAxisOption::Custom */
+	UPROPERTY()
+	FVector	CustomLookUpAxis_DEPRECATED;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkeletalControl)
+	FAxis LookUp_Axis;
 
 	/** Look at Clamp value in degree - if you're look at axis is Z, only X, Y degree of clamp will be used*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl, meta=(PinHiddenByDefault))
@@ -93,9 +93,6 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl, meta=(PinHiddenByDefault))
 	float	InterpolationTriggerThreashold;
 
-	UPROPERTY(EditAnywhere, Category=SkeletalControl)
-	bool	bEnableDebug;
-
 	// in the future, it would be nice to have more options, -i.e. lag, interpolation speed
 	FAnimNode_LookAt();
 
@@ -106,18 +103,21 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface
-	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) override;
+	virtual void EvaluateComponentSpaceInternal(FComponentSpacePoseContext& Context) override;
+	virtual void EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms) override;
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
-	void ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* MeshComp);
+	FVector GetCachedTargetLocation() const {	return 	CachedCurrentTargetLocation;	}
+
+#if WITH_EDITOR
+	void ConditionalDebugDraw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* MeshComp) const;
+#endif // WITH_EDITOR
 
 private:
 	// FAnimNode_SkeletalControlBase interface
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
-
-	FVector GetAlignVector(const FTransform& Transform, EAxisOption::Type AxisOption);
 
 	EAlphaBlendType GetInterpolationType()
 	{
@@ -155,10 +155,13 @@ private:
 	FCompactPoseBoneIndex CachedLookAtSocketBoneIndex;
 	FTransform CachedSocketLocalTransform;
 
+#if !UE_BUILD_SHIPPING
 	/** Debug draw cached data */
-	FVector CachedComponentBoneLocation;
+	FTransform CachedOriginalTransform;
+	FTransform CachedLookAtTransform;
+	FTransform CachedTargetTransform;
 	FVector CachedPreviousTargetLocation;
-	FVector CachedCurrentTargetLocation;
 	FVector CachedCurrentLookAtLocation;
-	
+#endif // UE_BUILD_SHIPPING
+	FVector CachedCurrentTargetLocation;
 };

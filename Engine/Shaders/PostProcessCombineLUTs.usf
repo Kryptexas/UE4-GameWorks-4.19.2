@@ -230,24 +230,21 @@ uint GetOutputDevice()
 #endif 
 }
 
-// todo: Weight[0] should be used for neutral, Texture* name should start with 1, color correction should apply on top of that
-#if USE_VOLUME_LUT == 1
-void MainPS(FWriteToSliceGeometryOutput Input, out float4 OutColor : SV_Target0)
+float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
 {
+#if USE_VOLUME_LUT == 1
 	// construct the neutral color from a 3d position volume texture	
 	float4 Neutral;
 	{
-		float2 UV = Input.Vertex.UV - float2(0.5f / LUTSize, 0.5f / LUTSize);
+		float2 UV = InUV - float2(0.5f / LUTSize, 0.5f / LUTSize);
 
-		Neutral = float4(UV * LUTSize / (LUTSize - 1), Input.LayerIndex / (LUTSize - 1), 0);
+		Neutral = float4(UV * LUTSize / (LUTSize - 1), InLayerIndex / (LUTSize - 1), 0);
 	}
 #else
-void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
-{
 	// construct the neutral color from a 2d position in 256x16
 	float4 Neutral;
 	{ 
-		float2 UV = InUV.xy;
+		float2 UV = InUV;
 
 		// 0.49999f instead of 0.5f to avoid getting into negative values
 		UV -= float2(0.49999f / (LUTSize * LUTSize), 0.49999f / LUTSize);
@@ -264,6 +261,8 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	}
 #endif
 
+	float4 OutColor = 0;
+	
 	// AP1 to Working space matrices
 	const float3x3 sRGB_2_AP1    = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
 	const float3x3 AP1_2_sRGB    = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
@@ -276,7 +275,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 		LinearColor = ST2084ToLinear( LUTEncodedColor );
 	// Decode log values
 	else
-		LinearColor = LogToLin( LUTEncodedColor );
+		LinearColor = LogToLin( LUTEncodedColor ) - LogToLin( 0 );
 
 	float3 BalancedColor = WhiteBalance( LinearColor );
 	float3 GradedColor = ColorGrade( BalancedColor );
@@ -409,7 +408,54 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	// Better to saturate(lerp(a,b,t)) than lerp(saturate(a),saturate(b),t)
 	OutColor.rgb = OutDeviceColor / 1.05;
 	OutColor.a = 0;
+
+	return OutColor;
 }
 
+// todo: Weight[0] should be used for neutral, Texture* name should start with 1, color correction should apply on top of that
+#if USE_VOLUME_LUT == 1
+void MainPS(FWriteToSliceGeometryOutput Input, out float4 OutColor : SV_Target0)
+{
+	OutColor = CombineLUTsCommon(Input.Vertex.UV, Input.LayerIndex);
+}
+#else
+void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	OutColor = CombineLUTsCommon(InUV.xy, 0);
+}
+#endif
 
+#if COMPUTESHADER
+// xy: Unused, zw: ThreadToUVScale
+float4 CombineLUTsComputeParams;
 
+#if USE_VOLUME_LUT == 1
+RWTexture3D<float4> RWOutComputeTex;
+
+[numthreads(THREADGROUP_SIZE, THREADGROUP_SIZE, THREADGROUP_SIZE)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID) 
+{
+	float2 UV = ((float2)DispatchThreadId.xy + 0.5f) * CombineLUTsComputeParams.zw;
+	uint LayerIndex = DispatchThreadId.z;
+	
+	float4 OutColor = CombineLUTsCommon(UV, LayerIndex);
+
+	uint3 PixelPos = DispatchThreadId;
+	RWOutComputeTex[PixelPos] = OutColor;
+}
+#else
+RWTexture2D<float4> RWOutComputeTex;
+
+[numthreads(THREADGROUP_SIZE, THREADGROUP_SIZE, 1)]
+void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
+{
+	float2 UV = ((float2)DispatchThreadId + 0.5f) * CombineLUTsComputeParams.zw;
+	uint LayerIndex = 0;
+	
+	float4 OutColor = CombineLUTsCommon(UV, LayerIndex);
+
+	uint2 PixelPos = DispatchThreadId;
+	RWOutComputeTex[PixelPos] = OutColor;
+}
+#endif
+#endif

@@ -39,6 +39,15 @@ namespace AutomationTool
 			CommandUtils.CreateDirectory(CommandUtils.GetDirectoryName(InstalledBuildFile));
 			CommandUtils.WriteAllText(InstalledBuildFile, "");
 
+			// Write InstalledBuild.txt to indicate Engine is installed
+			string Project = ParseParamValue("Project");
+			if(Project != null)
+			{
+				string InstalledProjectBuildFile = CommandUtils.CombinePaths(OutputDir, "Engine/Build/InstalledProjectBuild.txt");
+				CommandUtils.CreateDirectory(CommandUtils.GetDirectoryName(InstalledProjectBuildFile));
+				CommandUtils.WriteAllText(InstalledProjectBuildFile, new FileReference(Project).MakeRelativeTo(new DirectoryReference(OutputDir)));
+			}
+
 			string OutputEnginePath = Path.Combine(OutputDir, "Engine");
 			string OutputBaseEnginePath = Path.Combine(OutputEnginePath, "Config", "BaseEngine.ini");
 			FileAttributes OutputAttributes = FileAttributes.ReadOnly;
@@ -60,12 +69,14 @@ namespace AutomationTool
 			// Create list of platform configurations installed in a Rocket build
 			List<InstalledPlatformInfo.InstalledPlatformConfiguration> InstalledConfigs = new List<InstalledPlatformInfo.InstalledPlatformConfiguration>();
 
+			// Add the editor platform, otherwise we'll never be able to run UAT
+			InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(UnrealTargetConfiguration.Development, HostPlatform.Current.HostEditorPlatform, TargetRules.TargetType.Editor, "", "", EProjectType.Unknown, false));
+
 			foreach (UnrealTargetPlatform CodeTargetPlatform in Enum.GetValues(typeof(UnrealTargetPlatform)))
 			{
-				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CodeTargetPlatform, true);
-				if (BuildPlatform != null)
+				if (PlatformExports.IsPlatformAvailable(CodeTargetPlatform))
 				{
-					string Architecture = BuildPlatform.CreateContext(null, null).GetActiveArchitecture();
+					string Architecture = PlatformExports.GetDefaultArchitecture(CodeTargetPlatform, null);
 
 					// Try to parse additional Architectures from the command line
 					string Architectures = ParseParamValue(CodeTargetPlatform.ToString() + "Architectures");
@@ -111,12 +122,12 @@ namespace AutomationTool
 							{
 								foreach (string Arch in AllArchNames)
 								{
-									InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetRules.TargetType.Game, Arch, ReceiptFileName, ProjectType, bCanBeDisplayed));
+									InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetType.Game, Arch, ReceiptFileName, ProjectType, bCanBeDisplayed));
 								}
 							}
 							else
 							{
-								InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetRules.TargetType.Game, Architecture, ReceiptFileName, ProjectType, bCanBeDisplayed));
+								InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetType.Game, Architecture, ReceiptFileName, ProjectType, bCanBeDisplayed));
 							}
 						}
 					}

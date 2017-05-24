@@ -45,6 +45,7 @@
 #include "NativeClassHierarchy.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
+#include "SSplitter.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -158,12 +159,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	TileViewThumbnailSize = 128;
 	TileViewThumbnailPadding = 5;
 
-	const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
-	if( bIsVREditorDemo )
-	{
-		TileViewThumbnailPadding = 0;
-	}
-
 	TileViewNameHeight = 36;
 	ThumbnailScaleSliderValue = InArgs._ThumbnailScale; 
 
@@ -228,6 +223,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bAllowFocusOnSync = InArgs._AllowFocusOnSync;
 	OnPathSelected = InArgs._OnPathSelected;
 	HiddenColumnNames = DefaultHiddenColumnNames = InArgs._HiddenColumnNames;
+	CustomColumns = InArgs._CustomColumns;
 
 	if ( InArgs._InitialViewType >= 0 && InArgs._InitialViewType < EAssetViewType::MAX )
 	{
@@ -564,7 +560,7 @@ void SAssetView::DeferredCreateNewAsset()
 
 		NewItem->bRenameWhenScrolledIntoview = true;
 		FilteredAssetItems.Insert( NewItem, 0 );
-		SortManager.SortList(FilteredAssetItems, MajorityAssetType);
+		SortManager.SortList(FilteredAssetItems, MajorityAssetType, CustomColumns);
 
 		SetSelection(NewItem);
 		RequestScrollIntoView(NewItem);
@@ -604,7 +600,7 @@ void SAssetView::DuplicateAsset(const FString& PackagePath, const TWeakObjectPtr
 
 	// Insert into the list and sort
 	FilteredAssetItems.Insert( NewItem, 0 );
-	SortManager.SortList(FilteredAssetItems, MajorityAssetType);
+	SortManager.SortList(FilteredAssetItems, MajorityAssetType, CustomColumns);
 
 	SetSelection(NewItem);
 	RequestScrollIntoView(NewItem);
@@ -864,7 +860,16 @@ void SAssetView::ProcessRecentlyLoadedOrChangedAssets()
 					else
 					{
 						// Update the asset data on the item
-							ItemAsAsset->SetAssetData( AssetData );
+						ItemAsAsset->SetAssetData(AssetData);
+
+						// Update the custom column data
+						for (const FAssetViewCustomColumn& Column : CustomColumns)
+						{
+							if (ItemAsAsset->CustomColumnData.Find(Column.ColumnName))
+							{
+								ItemAsAsset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(ItemAsAsset->Data, Column.ColumnName));
+							}
+						}
 					}
 
 					RefreshList();
@@ -905,44 +910,50 @@ void SAssetView::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		bPendingUpdateThumbnails = false;
 	}
 
-	if ( bSlowFullListRefreshRequested || bQuickFrontendListRefreshRequested )
+	if (bSlowFullListRefreshRequested)
 	{
-		ResetQuickJump();
-		
-		if ( bSlowFullListRefreshRequested )
-		{
-			RefreshSourceItems();
-		}
-
-		RefreshFilteredItems();
-		RefreshFolders();
-		// Don't sync to selection if we are just going to do it below
-		SortList(!PendingSyncAssets.Num());
-
+		RefreshSourceItems();
 		bSlowFullListRefreshRequested = false;
-		bQuickFrontendListRefreshRequested = false;
+		bQuickFrontendListRefreshRequested = true;
 	}
 
-	if ( QueriedAssetItems.Num() > 0 )
+	if (QueriedAssetItems.Num() > 0)
 	{
-		check( OnShouldFilterAsset.IsBound() );
+		check(OnShouldFilterAsset.IsBound());
 		double TickStartTime = FPlatformTime::Seconds();
 
 		// Mark the first amortize time
-		if ( AmortizeStartTime == 0 )
+		if (AmortizeStartTime == 0)
 		{
 			AmortizeStartTime = FPlatformTime::Seconds();
 			bIsWorking = true;
 		}
 
-		ProcessQueriedItems( TickStartTime );
+		ProcessQueriedItems(TickStartTime);
 
-		if ( QueriedAssetItems.Num() == 0 )
+		if (QueriedAssetItems.Num() == 0)
 		{
 			TotalAmortizeTime += FPlatformTime::Seconds() - AmortizeStartTime;
 			AmortizeStartTime = 0;
 			bIsWorking = false;
 		}
+		else
+		{
+			// Need to finish processing queried items before rest of function is safe
+			return;
+		}
+	}
+
+	if (bQuickFrontendListRefreshRequested)
+	{
+		ResetQuickJump();
+		
+		RefreshFilteredItems();
+		RefreshFolders();
+		// Don't sync to selection if we are just going to do it below
+		SortList(!PendingSyncAssets.Num());
+
+		bQuickFrontendListRefreshRequested = false;
 	}
 
 	if ( PendingSyncAssets.Num() )
@@ -986,7 +997,6 @@ void SAssetView::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 		// Default to always notifying
 		bShouldNotifyNextAssetSync = true;
-
 
 		PendingSyncAssets.Empty();
 
@@ -1049,12 +1059,6 @@ void SAssetView::CalculateFillScale( const FGeometry& AllottedGeometry )
 	if ( bFillEmptySpaceInTileView && CurrentViewType == EAssetViewType::Tile )
 	{
 		float ItemWidth = GetTileViewItemBaseWidth();
-
- 		const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
-		if( bIsVREditorDemo )
-		{
-			ItemWidth /= AllottedGeometry.Scale;
-		}
 
 		// Scrollbars are 16, but we add 1 to deal with half pixels.
 		const float ScrollbarWidth = 16 + 1;
@@ -1128,14 +1132,7 @@ void SAssetView::ProcessQueriedItems( const double TickStartTime )
 		{
 			AssetItems.Add( QueriedAssetItems[AssetIndex] );
 
-			if ( !IsFrontendFilterActive() )
-			{
-				const FAssetData& AssetData = QueriedAssetItems[AssetIndex];
-				FilteredAssetItems.Add(MakeShareable(new FAssetViewAsset(AssetData)));
-				ListNeedsRefresh = true;
-				bPendingSortFilteredItems = true;
-			}
-			else if ( PassesCurrentFrontendFilter( QueriedAssetItems[AssetIndex] ) )
+			if ( !IsFrontendFilterActive() || PassesCurrentFrontendFilter(QueriedAssetItems[AssetIndex]))
 			{
 				const FAssetData& AssetData = QueriedAssetItems[AssetIndex];
 				FilteredAssetItems.Add(MakeShareable(new FAssetViewAsset(AssetData)));
@@ -1543,6 +1540,7 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 		.HeaderRow
 		(
 			SNew(SHeaderRow)
+			.ResizeMode(ESplitterResizeMode::FixedSize)
 			+ SHeaderRow::Column(SortManager.NameColumnId)
 			.FillWidth(300)
 			.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, SortManager.NameColumnId ) ) )
@@ -1555,6 +1553,9 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 				CreateRowHeaderMenuContent(SortManager.NameColumnId.ToString())
 			]
 		);
+
+	NewColumnView->GetHeaderRow()->SetOnGetMaxRowSizeForColumn(FOnGetMaxRowSizeForColumn::CreateRaw(NewColumnView.Get(), &SAssetColumnView::GetMaxRowSizeForColumn));
+
 
 	NumVisibleColumns = HiddenColumnNames.Contains(SortManager.NameColumnId.ToString()) ? 0 : 1;
 
@@ -1802,6 +1803,10 @@ void SAssetView::RefreshFilteredItems()
 		if(FilteredAssetItems[Index].IsValid() && FilteredAssetItems[Index]->GetType() != EAssetItemType::Folder)
 		{
 			TSharedPtr<FAssetViewAsset> Item = StaticCastSharedPtr<FAssetViewAsset>(FilteredAssetItems[Index]);
+
+			// Clear custom column data
+			Item->CustomColumnData.Reset();
+
 			ItemToObjectPath.Add( Item->Data.ObjectPath, Item );
 		}
 	}
@@ -2070,6 +2075,8 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 
 		MajorityAssetType = NewMajorityAssetType;
 
+		TArray<FName> AddedColumns;
+
 		// Since the asset type has changed, remove all columns except name and class
 		const TIndirectArray<SHeaderRow::FColumn>& Columns = ColumnView->GetHeaderRow()->GetColumns();
 
@@ -2108,6 +2115,43 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 			}
 		}
 
+		// Add custom columns
+		for (const FAssetViewCustomColumn& Column : CustomColumns)
+		{
+			FName TagName = Column.ColumnName;
+
+			if (AddedColumns.Contains(TagName))
+			{
+				continue;
+			}
+			AddedColumns.Add(TagName);
+
+			ColumnView->GetHeaderRow()->AddColumn(
+				SHeaderRow::Column(TagName)
+				.SortMode(TAttribute< EColumnSortMode::Type >::Create(TAttribute< EColumnSortMode::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortMode, TagName)))
+				.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, TagName)))
+				.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
+				.DefaultLabel(Column.DisplayName)
+				.DefaultTooltip(Column.TooltipText)
+				.FillWidth(180)
+				.ShouldGenerateWidget(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SAssetView::ShouldColumnGenerateWidget, TagName.ToString())))
+				.MenuContent()
+				[
+					CreateRowHeaderMenuContent(TagName.ToString())
+				]);
+
+			NumVisibleColumns += HiddenColumnNames.Contains(TagName.ToString()) ? 0 : 1;
+
+			// If we found a tag the matches the column we are currently sorting on, there will be no need to change the column
+			for (int32 SortIdx = 0; SortIdx < CurrentSortOrder.Num(); SortIdx++)
+			{
+				if (TagName == CurrentSortOrder[SortIdx].SortColumn)
+				{
+					CurrentSortOrder[SortIdx].bSortRelevant = true;
+				}
+			}
+		}
+
 		// If we have a new majority type, add the new type's columns
 		if ( NewMajorityAssetType != NAME_None )
 		{
@@ -2130,6 +2174,12 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 
 							if ( !OnAssetTagWantsToBeDisplayed.IsBound() || OnAssetTagWantsToBeDisplayed.Execute(NewMajorityAssetType, TagName) )
 							{
+								if (AddedColumns.Contains(TagName))
+								{
+									continue;
+								}
+								AddedColumns.Add(TagName);
+
 								// Get tag metadata
 								TMap<FName, UObject::FAssetRegistryTagMetadata> MetadataMap;
 								CDO->GetAssetRegistryTagMetadata(MetadataMap);
@@ -2164,7 +2214,6 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 									.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
 									.DefaultLabel(DisplayName)
 									.DefaultTooltip(TooltipText)
-									.HAlignCell((TagIt->Type == UObject::FAssetRegistryTag::TT_Numerical) ? HAlign_Right : HAlign_Left)
 									.FillWidth(180)
 									.ShouldGenerateWidget(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SAssetView::ShouldColumnGenerateWidget, TagName.ToString())))
 									.MenuContent()
@@ -2567,7 +2616,7 @@ void SAssetView::SortList(bool bSyncToSelection)
 {
 	if ( !IsRenamingAsset() )
 	{
-		SortManager.SortList(FilteredAssetItems, MajorityAssetType);
+		SortManager.SortList(FilteredAssetItems, MajorityAssetType, CustomColumns);
 
 		// Update the thumbnails we were using since the order has changed
 		bPendingUpdateThumbnails = true;
@@ -3331,6 +3380,19 @@ TSharedRef<ITableRow> SAssetView::MakeColumnViewWidget(TSharedPtr<FAssetViewItem
 			.Style(FEditorStyle::Get(), "ContentBrowser.AssetListView.TableRow");
 	}
 
+	// Update the cached custom data
+	if (AssetItem->GetType() == EAssetItemType::Normal)
+	{
+		const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(AssetItem);
+		for (const FAssetViewCustomColumn& Column : CustomColumns)
+		{
+			if (!ItemAsAsset->CustomColumnData.Find(Column.ColumnName))
+			{
+				ItemAsAsset->CustomColumnData.Add(Column.ColumnName, Column.OnGetColumnData.Execute(ItemAsAsset->Data, Column.ColumnName));
+			}
+		}
+	}
+	
 	return
 		SNew( SAssetColumnViewRow, OwnerTable )
 		.OnDragDetected( this, &SAssetView::OnDraggingAssetItem )
@@ -3721,8 +3783,12 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 			if( InAssetData.Num() > 0 )
 			{
 				UActorFactory* FactoryToUse = nullptr;
-				FEditorDelegates::OnAssetDragStarted.Broadcast( InAssetData, FactoryToUse );
-				if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
+				if( FEditorDelegates::OnAssetDragStarted.IsBound() )
+				{
+					FEditorDelegates::OnAssetDragStarted.Broadcast( InAssetData, FactoryToUse );
+					return FReply::Handled();
+				}
+				else if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
 				{
 					return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( InAssetData ) );
 				}
@@ -4475,6 +4541,19 @@ TSharedRef<SWidget> SAssetView::CreateRowHeaderMenuContent(const FString ColumnN
 		EUserInterfaceActionType::Button);
 
 	return MenuBuilder.MakeWidget();
+}
+
+void SAssetView::ForceShowPluginFolder(bool bEnginePlugin)
+{
+	if (bEnginePlugin && !IsShowingEngineFolder())
+	{
+		ToggleShowEngineFolder();
+	}
+
+	if (!IsShowingPluginFolders())
+	{
+		ToggleShowPluginFolders();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

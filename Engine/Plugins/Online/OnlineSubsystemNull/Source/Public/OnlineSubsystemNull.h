@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemNullPackage.h"
+#include "HAL/ThreadSafeCounter.h"
 
 class FOnlineAchievementsNull;
 class FOnlineIdentityNull;
@@ -84,7 +85,7 @@ PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
 	FOnlineSubsystemNull(FName InInstanceName) :
-		FOnlineSubsystemImpl(InInstanceName),
+		FOnlineSubsystemImpl(NULL_SUBSYSTEM, InInstanceName),
 		SessionInterface(nullptr),
 		VoiceInterface(nullptr),
 		bVoiceInterfaceInitialized(false),
@@ -131,6 +132,9 @@ private:
 
 	/** Online async task thread */
 	class FRunnableThread* OnlineAsyncTaskThread;
+
+	// task counter, used to generate unique thread names for each task
+	static FThreadSafeCounter TaskCounter;
 };
 
 typedef TSharedPtr<FOnlineSubsystemNull, ESPMode::ThreadSafe> FOnlineSubsystemNullPtr;

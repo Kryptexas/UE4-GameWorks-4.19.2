@@ -46,12 +46,23 @@ UComboBoxString::UComboBoxString(const FObjectInitializer& ObjectInitializer)
 	}
 }
 
+void UComboBoxString::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	// Initialize the set of options from the default set only once.
+	for (const FString& DefaultOption : DefaultOptions)
+	{
+		AddOption(DefaultOption);
+	}
+}
+
 void UComboBoxString::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
 	MyComboBox.Reset();
-	ComoboBoxContent.Reset();
+	ComboBoxContent.Reset();
 }
 
 void UComboBoxString::PostLoad()
@@ -59,7 +70,7 @@ void UComboBoxString::PostLoad()
 	Super::PostLoad();
 
 	// Initialize the set of options from the default set only once.
-	for ( const FString& DefaultOption : DefaultOptions )
+	for (const FString& DefaultOption : DefaultOptions)
 	{
 		AddOption(DefaultOption);
 	}
@@ -68,8 +79,6 @@ void UComboBoxString::PostLoad()
 	{
 		EnableGamepadNavigationMode = false;
 	}
-
-
 }
 
 TSharedRef<SWidget> UComboBoxString::RebuildWidget()
@@ -96,21 +105,16 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 		.OnComboBoxOpening(BIND_UOBJECT_DELEGATE(FOnComboBoxOpening, HandleOpening))
 		.IsFocusable(bIsFocusable)
 		[
-			SAssignNew(ComoboBoxContent, SBox)
+			SAssignNew(ComboBoxContent, SBox)
 		];
 
 	if ( InitialIndex != -1 )
 	{
 		// Generate the widget for the initially selected widget if needed
-		ComoboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
+		ComboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
 	}
 
 	return MyComboBox.ToSharedRef();
-}
-
-void UComboBoxString::SynchronizeProperties()
-{
-	Super::SynchronizeProperties();
 }
 
 void UComboBoxString::AddOption(const FString& Option)
@@ -186,9 +190,9 @@ void UComboBoxString::ClearSelection()
 		MyComboBox->ClearSelection();
 	}
 
-	if ( ComoboBoxContent.IsValid() )
+	if ( ComboBoxContent.IsValid() )
 	{
-		ComoboBoxContent->SetContent(SNullWidget::NullWidget);
+		ComboBoxContent->SetContent(SNullWidget::NullWidget);
 	}
 }
 
@@ -208,10 +212,10 @@ void UComboBoxString::SetSelectedOption(FString Option)
 		CurrentOptionPtr = Options[InitialIndex];
 		SelectedOption = Option;
 
-		if ( ComoboBoxContent.IsValid() )
+		if ( ComboBoxContent.IsValid() )
 		{
 			MyComboBox->SetSelectedItem(CurrentOptionPtr);
-			ComoboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
+			ComboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
 		}
 	}
 }
@@ -255,13 +259,13 @@ void UComboBoxString::HandleSelectionChanged(TSharedPtr<FString> Item, ESelectIn
 	CurrentOptionPtr = Item;
 	SelectedOption = CurrentOptionPtr.IsValid() ? CurrentOptionPtr.ToSharedRef().Get() : FString();
 
+	// When the selection changes we always generate another widget to represent the content area of the combobox.
+	ComboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
+
 	if ( !IsDesignTime() )
 	{
 		OnSelectionChanged.Broadcast(Item.IsValid() ? *Item : FString(), SelectionType);
 	}
-
-	// When the selection changes we always generate another widget to represent the content area of the comobox.
-	ComoboBoxContent->SetContent( HandleGenerateWidget(CurrentOptionPtr) );
 }
 
 void UComboBoxString::HandleOpening()

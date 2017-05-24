@@ -17,6 +17,9 @@ namespace EUserInterfaceActionType
 {
 	enum Type
 	{
+		/** An action which should not be associated with a user interface action */
+		None,
+
 		/** Momentary buttons or menu items.  These support enable state, and execute a delegate when clicked. */
 		Button,
 
@@ -27,7 +30,10 @@ namespace EUserInterfaceActionType
 		RadioButton,
 
 		/** Similar to Button but will display a readonly checkbox next to the item. */
-		Check
+		Check,
+
+		/** Similar to Button but has the checkbox area collapsed */
+		CollapsedButton
 	};
 };
 
@@ -184,6 +190,9 @@ public:
 
 	/** Utility function to make an FUICommandInfo */
 	static void MakeCommandInfo( const TSharedRef<class FBindingContext>& InContext, TSharedPtr< FUICommandInfo >& OutCommand, const FName InCommandName, const FText& InCommandLabel, const FText& InCommandDesc, const FSlateIcon& InIcon, const EUserInterfaceActionType::Type InUserInterfaceType, const FInputChord& InDefaultChord );
+
+	/** Utility function to unregister an FUICommandInfo */
+	static void UnregisterCommandInfo(const TSharedRef<class FBindingContext>& InContext, const TSharedRef<FUICommandInfo>& InCommand);
 
 	/** @return The display label for this command */
 	const FText& GetLabel() const { return Label; }

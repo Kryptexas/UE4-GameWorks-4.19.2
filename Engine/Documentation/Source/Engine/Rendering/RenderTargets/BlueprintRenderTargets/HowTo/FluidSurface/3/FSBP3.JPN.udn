@@ -1,40 +1,40 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:3. Blueprint Setup
-description:Going over setting up the Fluid Surface Blueprint.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:3.ブループリントの設定
+description:Fluid Surface ブループリントの設定方法
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Advanced
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/FluidSurface
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:3
 checkpoint:FSB
 
 [NAV]
 
 
-Now that the required Materials and Render Targets have been created and setup, it is now time to create a new Blueprint and configure it to work as the fluid surface Actor. 
+必要なマテリアルとレンダー ターゲットを作成し設定したら、次はブループリントを新規作成し、流体サーフェス アクタとして機能するように設定します。 
 
-## Blueprint Creation & Variable Setup 
-1. Right-click in the Content Browser and from the menu in the **Create Basic Asset** section, click on the **Blueprint Class** option.
+## ブループリントの作成と変数の設定 
+1. コンテンツ ブラウザを右クリックして、**[Create Basic Asset (基本アセットの作成)]** セクションの **[Blueprint Class]** オプションをクリックします。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Setup_00.png)
 
-1. From the **Pick Parent Class** window, select **Actor**, naming it `WaterSurface_BP`.
+1. **[Pick Parent Class]** ウィンドウから **[Actor]** を選択して、「`WaterSurface_BP`」と名前を付けます。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\FS_Water_BP_Creation.png)
 
-1. Double-click on the WaterSurface_BP to open it up and then add the following variable types.
+1. WaterSurface_BP をダブルクリックして開き、以下の変数型を追加します。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\FS_Var_Creation.png)
 
-1. Now, set the variables to the following default values:
+1. 次に、変数を次のデフォルト値に設定します。
 
-	|Variable Name| Variable Type|Default Value|
+	|変数名| 変数型|デフォルト値|
 	|--------|------------|---|
-	|WaterMeshAsset|Static Mesh|SM_Plane1000_512 (Included in the Content Example Maps)|
+	|WaterMeshAsset|Static Mesh|SM_Plane1000_512 (コンテンツ サンプル マップに含まれる)|
 	|WaterMaterial|Material Interface|WaterMaterial|
 	|HeightState|Integer|0|
 	|TimeAccumulator|Float|0.0|
@@ -45,134 +45,134 @@ Now that the required Materials and Render Targets have been created and setup, 
 	|InteractionDistance|Float|1.0|
 	|MouseDown|Bool|Un-Checked|
 
-## Blueprint Function Creation & Setup
-Now that the Blueprint has been created with its required variables, it is now time to create some functions. In the following section, we will go over what the three functions are and how you go about setting them up.
+## ブループリント関数の作成と設定
+必要な変数でブループリントを作成したら、次は関数を作成します。次のセクションでは、この 3 つの関数と設定方法について説明します。
 
 [region:note]
-Do not forget to Compile and Save your Blueprint so that it can be used.
+必ずブループリントをコンパイルおよび保存して使えるようにしてください。
 [/region]
 
-* The **GetHeightRT** function will get and store the height of the render target so that it can be used later. Before you start to create this function, make sure you setup the function's Inputs and Outputs with the following information.
-	* **Inputs**:
-		* Name: Index 
-		* Type:Integer
-	* **Outputs**:
-		* Name: Heigh RT 
-		* Type:Texture Render Target 2D
+* **GetHeightRT** は、後で使用できるように、レンダー ターゲットの高さを取得および格納する関数です。この関数を作成する前に、次のデータを使って関数の入力と出力を設定してください。
+	* **入力**:
+		* 名前:インデックス 
+		* 型:整数
+	* **出力**:
+		* 名前:Heigh RT 
+		* 型:Texture Render Target 2D
 
 		[REGION:fullwidth]
 		[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#HeightFunction]
 		[/REGION]
 
 		[region:note]
-		Do not forget to add each of the three render targets to the **Height RT** inputs on the Return Node.
+		3 のレンダー ターゲットのいずれかを Return ノードの **Height RT** 入力に必ず追加してください。
 		[/region]
 
-* The **GetLastHeight** function will store the last known height for the fluid surface for later use. Before you start to create this function, make sure you setup the function's Inputs and Outputs with the following information.
-	* **Inputs**:
-		* Name: CurrentHeightIndex 
-		* Type:Integer
-		* Name: NumFramesOld
-		* Type:Integer
-	* **Outputs**:
-		* Name: Heigh RT 
-		* Type:Texture Render Target 2D
+* **GetLastHeight** は、最後に取得した流体サーフェスの高さを後で使うために格納しておく関数です。この関数を作成する前に、次のデータを使って関数の入力と出力を設定してください。
+	* **入力**:
+		* 名前:CurrentHeightIndex 
+		* 型:整数
+		* 名前:NumFramesOld
+		* 型:整数
+	* **出力**:
+		* 名前:Heigh RT 
+		* 型:Texture Render Target 2D
 
 		[REGION:fullwidth]
 		[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#GetLastHeight]
 		[/REGION]
 
-* **Trace From Camera** is the same trace that was used in the Height Field Painter Blueprint. For this function, there are no input or output variables that need to be setup.
+* **Trace From Camera** は、Height Field Painter ブループリントで使用したトレースと同じものです。この関数は、入力と出力の変数を設定する必要はありません。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#CameraTrace]
 	[/REGION]
 
-## Blueprint Construction Graph Setup
-The Construction Graph is used to create and set both of the Static Meshes and Materials that fluid simulation needs to function correctly. In the following section, we will go over what the three functions are, and how you go about setting them up.
+## ブループリントのコンストラクション グラフの設定
+コンストラクション グラフは、流体シミュレーションを正しく機能させるために必要なスタティックメッシュとマテリアルの両方を作成し設定します。次のセクションでは、この 3 つの関数と設定方法について説明します。
 
 [region:note]
-Do not forget to Compile and Save your Blueprint so that it can be used.
+必ずブループリントをコンパイルおよび保存して使えるようにしてください。
 [/region]
 
-* In the Construction Graph, we are going to create a Static Mesh that is needed for the water surface and then create and apply a Dynamic Material Instance to that Static Mesh, which will simulate the water's surface.
-	
+* コンストラクション グラフを使って、流体サーフェスに必要なスタティックメッシュを作成し、動的マテリアル インスタンスを作成して水面をシミュレーションするスタティックメッシュに適用します。
+
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#ConScript]
 	[/REGION]
 
-## Blueprint Event Graph Setup
-The Event graph is where everything that is needed for this effect to work correctly is added and connected. In the following section, we will go over what each section of the Event Graph does and how it affects the final Blueprint that is placed in the world.
+## ブループリントのイベント グラフの設定
+このエフェクトを正しく機能させるために必要なすべてが入っている場所であるイベント グラフを追加して接続します。次のセクションでは、イベント グラフの各セクションの機能と、ワールドに配置された最終的なブループリントの影響について説明します。
 
 [region:note]
-Do not forget to Compile and Save your Blueprint so that it can be used.
+必ずブループリントをコンパイルおよび保存して使えるようにしてください。
 [/region]
 
-* **Clear all render targets of data** is the part of the Blueprint that clears all of the render targets of any previous data that they might contain in order to ensure that no artifacts appear the first time the Blueprint is run.  
+* **Clear all render targets of data** は、ブループリントの初回実行時にアーティファクトの発生を確実に防ぐために、含まれている可能性のある以前のデータのレンダー ターゲットをすべてクリアします。  
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#ClearRT]
 	[/REGION]
 
 	[region:note]
-	Do not forget to add each of the three render targets to the *Height RT** inputs on the Return Node.
+	3 のレンダー ターゲットのいずれかを Return ノードの *Height RT** 入力に必ず追加してください。
 	[/region]
 
-* **Check to see if Left Mouse Button is held down** is the part of the Blueprint that checks to see if the user has the Left Mouse Button held down or not. If the user has the Left Mouse button held down, the **MouseDown** is set to true; otherwise, it is set to false.
+* **Check to see if Left Mouse Button is held down** は、ユーザーがマウスの左ボタンを押しているかどうかを確認します。ユーザーがマウスの左ボタンを押していれば **MouseDown** が true に設定され、そうでなければ false に設定されます。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#MouseDown]
 	[/REGION]
 
-* The **Take Damage Force** section finds the location on the Static Mesh that was hit and applies the **ForceSplat** Material to that section so that it can offset the surface that is simulating an impact event.
+* **Take Damage Force** セクションは、衝撃イベントをシミュレーション中のサーフェスをオフセットできるように、ヒットして **ForceSplat** マテリアルをそのセクションに適用する場所をスタティックメッシュ状に見つけます。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#TakeDamage]
 	[/REGION]
 
-* The **Begin & End Overlap** section checks to see if the player is currently touching the fluid surface Actor that has been placed in the world or not. 
-	
+* **Begin & End Overlap** セクションは、プレイヤーがワールドに配置された流体サーフェス アクタに今触れているかどうかを確認するセクションです。 
+
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#Overlap]
 	[/REGION]
 
-* **Shoot when mouse is down** is the part of the Blueprint that checks each Tick to see if the Left Mouse button is held down. When the Left Mouse button is held down, the **Trace From Camera** function is called, which traces from the center of the camera into the world.  
+* **Shoot when mouse is down** は、ユーザーがマウスの左ボタンを押しているかどうかをティックごとに確認します。マウスの左ボタンが押されていると、**Trace From Camera** 関数が呼び出されて、カメラの中心からワールドの中へトレースします。  
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#ShootWhenMouseDown]
 	[/REGION]
 
-* **Touching Character Force** is the part of the Blueprint that is responsible for applying and updating the force that is applied to the fluid surface Actor when a player is touching it.  
+* **Touching Character Force** は、プレイヤーが流体サーフェスに触れた時に、流体サーフェスに適用しているフォースの適用と更新を行います。  
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#TouchingCarForce]
 	[/REGION]
 
-* **Fixed timestep, so fluid speed is framerate independent** is the part of the Blueprint that makes sure that the propagation of the waves through the fluid surface has a frame rate that is not tied to the frame rate of the project. Essentially, the waves in the fluid surface will not slow down or speed up based on what is currently happening in the level.
+* **Fixed timestep, so fluid speed is framerate independent** は、流体サーフェスを伝わる波動伝搬がプロジェクトのフレームレートに結びついていない独自のフレームレートをもっていることを確認します。基本的に、流体サーフェスの波はレベル内で起きていることに速度を左右されることがなくなります。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#FixedFrameRate]
 	[/REGION]
 
-* **Cycle Active heightfield** is the part of the Blueprint that cycles through the various render targets for the fluid surface so that the fluid surface has a more dynamic look when shot or touched.
+* **Cycle Active heightfield** は、流体サー流体サーフェスに発射物が当たったり触られた時に、外見をより動的にするためにフェス用の各種レンダー ターゲットを周期的に繰り返します。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#CycleActiveHeightfield]
 	[/REGION]
 
-* **Apply fluid surface simulation kernel, which propagates waves** is the part of the Blueprint that handles the propagation of the waves through the fluid surface Actor making it look like the waves die out over time.
+* **Apply fluid surface simulation kernel, which propagates waves** は、流体サーフェス上で波動伝搬処理をすることで、時間経過と共に波が消えていくように見せます。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#ApplySim]
 	[/REGION]
 
-* **Compute Surface Normal** is a section of the Blueprint that applies a normal to the surface of the fluid which helps make the ripples more pronounced and easier to see. 
+* **Compute Surface Normal** は、表面に作るさざ波がもっとはっきり見えるように揺らすための法線をサーフェスに適用します。 
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\3\#CompSurfNorm]
 	[/REGION]
 
-Now that the Blueprints have been setup in the next section we will take a look at how to set all of this up for use in UE4.
+ブループリントの設定はこれで完了です。次のセクションでは、UE4 で使用する設定について説明します。
 [NAV]
 
 <!--
@@ -501,7 +501,7 @@ Now that the Blueprints have been setup in the next section we will take a look 
 			   NodePosX=1984
 			   NodePosY=-432
 			   ErrorType=4
-			   ErrorMsg="Info The execution path doesn\'t end with a return node.  Is Not Valid "
+			   ErrorMsg="Info The execution path doesn\'t end with a return node.Is Not Valid "
 			   NodeGuid=269E6BC649B1DF4406573EB2C13D874A
 			   CustomProperties Pin (PinId=54DCDF6A4C18DFFBF71F54AE24DA40C0,PinName="exec",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_IfThenElse_161 8DD9A5BC40D019A1AFD6F284F8C15FFD,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=C3FB28AC47AAD2B5998C2AA9D4862C2E,PinName="InputObject",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/CoreUObject.Object',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_65759 F1D6985542953219C7EF09A3FBFA8AF0,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
@@ -624,13 +624,13 @@ Now that the Blueprints have been setup in the next section we will take a look 
 			   CustomProperties Pin (PinId=CF78D28A455F553D39502496BC89B70E,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nGameplay Statics Reference",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.GameplayStatics',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultObject="/Script/Engine.Default__GameplayStatics",PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=9BE54D1545016821EA539F83438E9077,PinName="Hit",PinToolTip="Hit\nHit Result Structure (by ref)\n\nThe source HitResult.",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/Engine.HitResult',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=True,PinType.bIsConst=True,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_65598 43A3FD1943054F5E9C27A298298CE721,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=True,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=42FAE549473540FC07A70799D95A29B3,PinName="bBlockingHit",PinToolTip="Blocking Hit\nBoolean\n\nTrue if there was a blocking hit, false otherwise.",Direction="EGPD_Output",PinType.PinCategory="bool",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="false",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=31399B19487BF09D8EF1088E8ED56118,PinName="bInitialOverlap",PinToolTip="Initial Overlap\nBoolean\n\nTrue if the hit started in an initial overlap. In this case some other values should be interpreted differently. Time will be 0, ImpactPoint will equal Location, and normals will be equal and indicate a depenetration vector.",Direction="EGPD_Output",PinType.PinCategory="bool",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="false",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=4312416249D19F19294CADA26CDE64E5,PinName="Time",PinToolTip="Time\nFloat\n\n\'Time\' of impact along trace direction ranging from [0.0 to 1.0) if there is a hit, indicating time between start and end. Equals 1.0 if there is no hit.",Direction="EGPD_Output",PinType.PinCategory="float",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0.0",AutogeneratedDefaultValue="0.0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=C3E1DE9D4B514E4FCDA1159FEA7E7832,PinName="Location",PinToolTip="Location\nVector \n\nLocation of the hit in world space. If this was a swept shape test, this is the location where we can place the shape in the world where it will not penetrate.",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=EB9F6AED44EDCC7D8F313FB63A3B4139,PinName="ImpactPoint",PinToolTip="Impact Point\nVector \n\nLocation of the actual contact point of the trace shape with the surface of the hit object. Equal to Location in the case of an initial overlap.",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=AC37F9C247A40EF82D1755B03A6EF0AF,PinName="Normal",PinToolTip="Normal\nVector \n\nNormal of the hit in world space, for the object that was swept (e.g. for a sphere trace this points towards the sphere\'s center). Equal to ImpactNormal for line tests.",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=31399B19487BF09D8EF1088E8ED56118,PinName="bInitialOverlap",PinToolTip="Initial Overlap\nBoolean\n\nTrue if the hit started in an initial overlap.In this case some other values should be interpreted differently.Time will be 0, ImpactPoint will equal Location, and normals will be equal and indicate a depenetration vector.",Direction="EGPD_Output",PinType.PinCategory="bool",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="false",AutogeneratedDefaultValue="false",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=4312416249D19F19294CADA26CDE64E5,PinName="Time",PinToolTip="Time\nFloat\n\n\'Time\' of impact along trace direction ranging from [0.0 to 1.0) if there is a hit, indicating time between start and end.Equals 1.0 if there is no hit.",Direction="EGPD_Output",PinType.PinCategory="float",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0.0",AutogeneratedDefaultValue="0.0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=C3E1DE9D4B514E4FCDA1159FEA7E7832,PinName="Location",PinToolTip="Location\nVector \n\nLocation of the hit in world space.If this was a swept shape test, this is the location where we can place the shape in the world where it will not penetrate.",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=EB9F6AED44EDCC7D8F313FB63A3B4139,PinName="ImpactPoint",PinToolTip="Impact Point\nVector \n\nLocation of the actual contact point of the trace shape with the surface of the hit object.Equal to Location in the case of an initial overlap.",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=AC37F9C247A40EF82D1755B03A6EF0AF,PinName="Normal",PinToolTip="Normal\nVector \n\nNormal of the hit in world space, for the object that was swept (e.g. for a sphere trace this points towards the sphere\'s center).Equal to ImpactNormal for line tests.",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=43DE840740F7EDB5AEEE2BA59BA63807,PinName="ImpactNormal",PinToolTip="Impact Normal\nVector \n\nNormal of the hit in world space, for the object that was hit by the sweep.",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,AutogeneratedDefaultValue="0, 0, 0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=532D29F44B5DCE5F021B698ED58D27C4,PinName="PhysMat",PinToolTip="Phys Mat\nPhysical Material Reference\n\nPhysical material that was hit. Must set bReturnPhysicalMaterial to true in the query params for this to be returned.",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.PhysicalMaterial',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=532D29F44B5DCE5F021B698ED58D27C4,PinName="PhysMat",PinToolTip="Phys Mat\nPhysical Material Reference\n\nPhysical material that was hit.Must set bReturnPhysicalMaterial to true in the query params for this to be returned.",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.PhysicalMaterial',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=F1D6985542953219C7EF09A3FBFA8AF0,PinName="HitActor",PinToolTip="Hit Actor\nActor Reference\n\nActor hit by the trace.",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.Actor',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_MacroInstance_65 C3FB28AC47AAD2B5998C2AA9D4862C2E,K2Node_CallFunction_1861 BB747167446E2DDBEFFFDD982A9CD245,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=FDFC05184366EBC9BDC42AA3A95EF523,PinName="HitComponent",PinToolTip="Hit Component\nPrimitive Component Reference\n\nPrimitiveComponent hit by the trace.",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.PrimitiveComponent',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=CE3689BE4446FD1C971B7A9942E7AC24,PinName="HitBoneName",PinToolTip="Hit Bone Name\nName\n\nName of the bone hit (valid only if we hit a skeletal mesh).",Direction="EGPD_Output",PinType.PinCategory="name",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="None",AutogeneratedDefaultValue="None",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
@@ -654,7 +654,7 @@ Now that the Blueprints have been setup in the next section we will take a look 
 			   NodePosX=1600
 			   NodePosY=-432
 			   ErrorType=4
-			   ErrorMsg="Info The execution path doesn\'t end with a return node.  False "
+			   ErrorMsg="Info The execution path doesn\'t end with a return node.False "
 			   NodeGuid=C447E33540D01EDA1CD72EAB0CFEE477
 			   CustomProperties Pin (PinId=66D340DC4A52DC8D727C43ABA6E818C4,PinName="execute",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_65598 E001912C48BB5BEC656460843FE151FA,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=1144399140FB3DC67E1A66B5FEB4A1E1,PinName="Condition",PinType.PinCategory="bool",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="true",AutogeneratedDefaultValue="true",LinkedTo=(K2Node_CallFunction_65598 3A64487743C81996C17E56B543685516,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
@@ -794,7 +794,7 @@ Now that the Blueprints have been setup in the next section we will take a look 
 			   CustomProperties Pin (PinId=DDFBB4294203AC5FB928DDBC3A82DC1E,PinName="execute",PinToolTip="\nExec",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_0 B9881C0142A99A1A7ACD86946C02DD98,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=2D2DC36F42CDB2E197632BA2B6AEC5DB,PinName="then",PinToolTip="\nExec",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableSet_54 823A98AD45AF085CE5C7BABE671A72C9,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=C428EDF34B24E1BDAC09BFADBBE2D412,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nPrimitive Component Reference",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.PrimitiveComponent',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_31 A57F7863412610395909CBB241520793,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=D31EE7E4499FA64E16AB04976C183DF3,PinName="ElementIndex",PinToolTip="Element Index\nInteger\n\nThe index of the skin to replace the material for.  If invalid, the material is unchanged and NULL is returned.",PinType.PinCategory="int",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0",AutogeneratedDefaultValue="0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=D31EE7E4499FA64E16AB04976C183DF3,PinName="ElementIndex",PinToolTip="Element Index\nInteger\n\nThe index of the skin to replace the material for.If invalid, the material is unchanged and NULL is returned.",PinType.PinCategory="int",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,DefaultValue="0",AutogeneratedDefaultValue="0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=2D6C20F4445A6B3CEAE4E4A5C9D49C82,PinName="SourceMaterial",PinToolTip="Source Material\nMaterial Interface Reference",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.MaterialInterface',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_96 CA0EE3824870973F0E0D27B2A34E54EC,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=ABCDC3F1428BBCD3C67176AB6DB2F642,PinName="ReturnValue",PinToolTip="Return Value\nMaterial Instance Dynamic Reference",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.MaterialInstanceDynamic',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_1 5C7FC206400C1639B8D25CA515017C30,K2Node_VariableSet_54 8DEE861149A44436A09E2385403877DF,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			End Object
@@ -1853,7 +1853,7 @@ Now that the Blueprints have been setup in the next section we will take a look 
 			   CustomProperties Pin (PinId=A92EB2EA4CEB745BB289AFA4E8D3E083,PinName="execute",PinToolTip="\nExec",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_247 02B0A2C04D69D8337E659FB041A48B3D,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=CDC0C36240D9C55CD3C4E0989677D9CB,PinName="then",PinToolTip="\nExec",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_248 826FD10A429E7982FC6C50A368A2EF8B,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=8DDBD5C941067A40EC75EBBB4E6BCD74,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinToolTip="Target\nCanvas Reference",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.Canvas',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_247 DADFC7E349838F790BC569A556130F8B,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
-			   CustomProperties Pin (PinId=98FDDE614179E45081FD66B0BF94C79E,PinName="RenderMaterial",PinToolTip="Render Material\nMaterial Interface Reference\n\nMaterial to use when rendering. Remember that only the emissive channel is able to be rendered as no lighting is performed when rendering to the Canvas.",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.MaterialInterface',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallMaterialParameterCollectionFunction_42 89FB58F843256CED989D709D84629586,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
+			   CustomProperties Pin (PinId=98FDDE614179E45081FD66B0BF94C79E,PinName="RenderMaterial",PinToolTip="Render Material\nMaterial Interface Reference\n\nMaterial to use when rendering.Remember that only the emissive channel is able to be rendered as no lighting is performed when rendering to the Canvas.",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.MaterialInterface',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallMaterialParameterCollectionFunction_42 89FB58F843256CED989D709D84629586,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=32DE39B6447A79161862EC858DDBB3C0,PinName="ScreenPosition",PinToolTip="Screen Position\nVector 2D Structure\n\nScreen space position to render the texture.",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector2D',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=A27FA11345BBF4A4A5C25785C432EE8C,PinName="ScreenSize",PinToolTip="Screen Size\nVector 2D Structure\n\nScreen space size to render the texture.",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector2D',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_247 2D8E4C1A462BB80E885F9D890A179F7D,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 			   CustomProperties Pin (PinId=21966F7C41F610934660EB967A63AD8C,PinName="CoordinatePosition",PinToolTip="Coordinate Position\nVector 2D Structure\n\nNormalized UV starting coordinate to use when rendering the texture.",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/CoreUObject.Vector2D',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)

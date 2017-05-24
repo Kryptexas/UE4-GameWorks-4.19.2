@@ -26,14 +26,14 @@ int32 SWorldTileImage::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	if ((ImageBrush != nullptr) && (ImageBrush->DrawAs != ESlateBrushDrawType::NoDrawType))
 	{
 		const bool bIsEnabled = EditableTile.Get() && ShouldBeEnabled(bParentEnabled);
-		const uint32 DrawEffects = bIsEnabled ? 0 : ESlateDrawEffect::DisabledEffect;
+		const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 		FSlateDrawElement::MakeBox(
 			OutDrawElements, 
 			LayerId, 
 			AllottedGeometry.ToPaintGeometry(), 
 			ImageBrush, 
 			MyClippingRect, 
-			DrawEffects|ESlateDrawEffect::IgnoreTextureAlpha, 
+			DrawEffects | ESlateDrawEffect::IgnoreTextureAlpha, 
 			FColor::White);
 	}
 	return LayerId;

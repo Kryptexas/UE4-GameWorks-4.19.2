@@ -109,8 +109,9 @@ class SRenderMovieSceneSettings : public SCompoundWidget, public FGCObject
 			.Padding(5.f)
 			[
 				SNew(SButton)
+				.IsEnabled(this, &SRenderMovieSceneSettings::CanStartCapture)
 				.ContentPadding(FMargin(10, 5))
-				.Text(LOCTEXT("Export", "Capture Movie"))
+				.Text(this, &SRenderMovieSceneSettings::GetStartCaptureText)
 				.OnClicked(this, &SRenderMovieSceneSettings::OnStartClicked)
 			]
 			
@@ -153,6 +154,44 @@ private:
 		ErrorText->SetVisibility(Error.IsEmpty() ? EVisibility::Hidden : EVisibility::Visible);
 
 		return FReply::Handled();
+	}
+
+	FText GetStartCaptureText() const
+	{
+		if (MovieSceneCapture && !MovieSceneCapture->bUseSeparateProcess)
+		{
+			for (const FWorldContext& Context : GEngine->GetWorldContexts())
+			{
+				if (Context.WorldType == EWorldType::PIE)
+				{
+					return LOCTEXT("ExportExitPIE", "(Exit PIE to start)");
+				}
+			}
+		}
+
+		return LOCTEXT("Export", "Capture Movie");
+	}
+
+	bool CanStartCapture() const
+	{
+		if (!MovieSceneCapture)
+		{
+			return false;
+		}
+		else if (MovieSceneCapture->bUseSeparateProcess)
+		{
+			return true;
+		}
+
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		{
+			if (Context.WorldType == EWorldType::PIE)
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	TSharedPtr<IDetailsView> DetailView;
@@ -457,7 +496,7 @@ private:
 			.AutoCenter(EAutoCenter::PrimaryWorkArea)
 			.UseOSWindowBorder(true)
 			.FocusWhenFirstShown(false)
-			.ActivateWhenFirstShown(false)
+			.ActivationPolicy(EWindowActivationPolicy::Never)
 			.HasCloseButton(true)
 			.SupportsMaximize(false)
 			.SupportsMinimize(true)
@@ -473,7 +512,7 @@ private:
 		PlayInEditorSettings->GameGetsMouseControl = false;
 		PlayInEditorSettings->ShowMouseControlLabel = false;
 		PlayInEditorSettings->ViewportGetsHMDControl = false;
-		PlayInEditorSettings->EnableSound = false;
+		PlayInEditorSettings->EnableGameSound = false;
 		PlayInEditorSettings->bOnlyLoadVisibleLevelsInPIE = false;
 		PlayInEditorSettings->bPreferToStreamLevelsInPIE = false;
 		PlayInEditorSettings->PIEAlwaysOnTop = false;

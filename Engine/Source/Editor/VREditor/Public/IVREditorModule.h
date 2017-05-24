@@ -65,12 +65,15 @@ public:
 	 * @return True if the VREditor is currently running 
 	 */
 	virtual bool IsVREditorModeActive() = 0;
+	/** 
+	* Get the current VREditor running
+	*
+	* @return The current VREditor running
+	*/
+	virtual class UVREditorMode* GetVRMode() = 0;
 
-	/**
-	 * Gets the current VR Editor mode that is running
-	 *
-	 * @return The current VREditor
-	 */
-	virtual class UVREditorMode* GetVREditorMode() = 0;
+	/** Gets the radial menu extender.  This can be used to add your own menu items to the VR radial menu */
+	virtual const TSharedRef<class FExtender>& GetRadialMenuExtender() = 0;
+
 };
 

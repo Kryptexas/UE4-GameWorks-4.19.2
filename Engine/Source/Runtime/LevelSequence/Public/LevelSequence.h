@@ -6,7 +6,8 @@
 #include "UObject/ObjectMacros.h"
 #include "MovieSceneSequence.h"
 #include "LevelSequenceObject.h"
-#include "LevelSequenceObjectReference.h"
+#include "LevelSequenceBindingReference.h"
+#include "LevelSequenceLegacyObjectReference.h"
 #include "LevelSequence.generated.h"
 
 class UMovieScene;
@@ -29,7 +30,7 @@ public:
 public:
 
 	/** Initialize this level sequence. */
-	void Initialize();
+	virtual void Initialize();
 
 	/** Convert old-style lazy object ptrs to new-style references using the specified context */
 	void ConvertPersistentBindingsToDefault(UObject* FixupContext);
@@ -46,17 +47,19 @@ public:
 	virtual bool AllowsSpawnableObjects() const override;
 	virtual bool CanRebindPossessable(const FMovieScenePossessable& InPossessable) const override;
 	virtual UObject* MakeSpawnableTemplateFromInstance(UObject& InSourceObject, FName ObjectName) override;
+	virtual bool CanAnimateObject(UObject& InObject) const override;
 
 	virtual void PostLoad() override;
 
-	/** Bind a posessable object with an explicitly-supplied ObjectReference */
-	void BindPossessableObject(const FGuid& ObjectId, const FLevelSequenceObjectReference& ObjectReference);
+protected:
 
-private:
-
-	/** Collection of possessed objects. */
+	/** Legacy object references - should be read-only. Not deprecated because they need to still be saved */
 	UPROPERTY()
 	FLevelSequenceObjectReferenceMap ObjectReferences;
+
+	/** References to bound objects. */
+	UPROPERTY()
+	FLevelSequenceBindingReferences BindingReferences;
 
 	/** Deprecated property housing old possessed object bindings */
 	UPROPERTY()

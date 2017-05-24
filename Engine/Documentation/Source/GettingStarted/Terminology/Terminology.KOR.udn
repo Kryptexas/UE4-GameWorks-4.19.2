@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275257
 Availability: Public
 Title:언리얼 엔진 4 용어
 Crumbs: %ROOT%, Gameplay, GettingStarted
@@ -174,10 +174,10 @@ version: 4.9
 [EXCERPT:gamestate]
 **GameStates** 게임 스테이트
 [INCLUDE:Shared\Glossary\G#glossary_gamestate] 
-상세 정보: [](Gameplay/Framework/GameState)
+상세 정보: [](Gameplay/Framework/GameMode)
 [/EXCERPT:gamestate]
 
-
+ 
 [EXCERPT:playerstate]
 **PlayerStates** 플레이어 스테이트
 [INCLUDE:Shared\Glossary\P#glossary_playerstate] 

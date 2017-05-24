@@ -92,7 +92,16 @@ namespace EditorAnimUtils
 			}
 			else if( UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Asset) )
 			{
-				AnimBlueprintsToRetarget.AddUnique(AnimBlueprint);
+
+				// Add parents blueprint. 
+				UAnimBlueprint* ParentBP = Cast<UAnimBlueprint>(AnimBlueprint->ParentClass->ClassGeneratedBy);
+				while (ParentBP)
+				{
+					AnimBlueprintsToRetarget.AddUnique(ParentBP);
+					ParentBP = Cast<UAnimBlueprint>(ParentBP->ParentClass->ClassGeneratedBy);
+				}
+				
+				AnimBlueprintsToRetarget.AddUnique(AnimBlueprint);				
 			}
 		}
 		
@@ -240,7 +249,7 @@ namespace EditorAnimUtils
 				// Copy curve data from source asset, preserving data in the target if present.
 				if (OldSkeleton)
 				{
-					EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AnimSequenceToRetarget, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
+					EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AnimSequenceToRetarget, USkeleton::AnimCurveMappingName, ERawCurveTrackTypes::RCT_Float);
 
 					// clear transform curves since those curves won't work in new skeleton
 					// since we're deleting curves, mark this rebake flag off
@@ -267,15 +276,27 @@ namespace EditorAnimUtils
 
 			AnimBlueprint->TargetSkeleton = NewSkeleton;
 
+			if (HasDuplicates())
+			{
+				// if they have parent blueprint, make sure to re-link to the new one also
+				UAnimBlueprint* CurrentParentBP = Cast<UAnimBlueprint>(AnimBlueprint->ParentClass->ClassGeneratedBy);
+				if (CurrentParentBP)
+				{
+					UAnimBlueprint* const * ParentBP = DuplicatedBlueprints.Find(CurrentParentBP);
+					if (ParentBP)
+					{
+						AnimBlueprint->ParentClass = (*ParentBP)->GeneratedClass;
+					}
+				}
+			}
+
 			if(RemappedAnimAssets.Num() > 0)
 			{
 				ReplaceReferredAnimationsInBlueprint(AnimBlueprint, RemappedAnimAssets);
 			}
 
-			bool bIsRegeneratingOnLoad = false;
-			bool bSkipGarbageCollection = true;
 			FBlueprintEditorUtils::RefreshAllNodes(AnimBlueprint);
-			FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+			FKismetEditorUtilities::CompileBlueprint(AnimBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 			AnimBlueprint->PostEditChange();
 			AnimBlueprint->MarkPackageDirty();
 		}
@@ -477,7 +498,7 @@ namespace EditorAnimUtils
 		}
 	}
 
-	void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, FRawCurveTracks::ESupportedCurveType CurveType )
+	void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, ERawCurveTrackTypes CurveType )
 	{
 		// Copy curve data from source asset, preserving data in the target if present.
 		const FSmartNameMapping* OldNameMapping = OldSkeleton->GetSmartNameContainer(ContainerName);
@@ -485,7 +506,7 @@ namespace EditorAnimUtils
 
 		switch (CurveType)
 		{
-		case FRawCurveTracks::FloatType:
+		case ERawCurveTrackTypes::RCT_Float:
 			{
 				for(FFloatCurve& Curve : SequenceBase->RawCurveData.FloatCurves)
 				{
@@ -493,7 +514,7 @@ namespace EditorAnimUtils
 				}
 				break;
 			}
-		case FRawCurveTracks::VectorType:
+		case ERawCurveTrackTypes::RCT_Vector:
 			{
 				for(FVectorCurve& Curve : SequenceBase->RawCurveData.VectorCurves)
 				{
@@ -501,7 +522,7 @@ namespace EditorAnimUtils
 				}
 				break;
 			}
-		case FRawCurveTracks::TransformType:
+		case ERawCurveTrackTypes::RCT_Transform:
 			{
 				for(FTransformCurve& Curve : SequenceBase->RawCurveData.TransformCurves)
 				{

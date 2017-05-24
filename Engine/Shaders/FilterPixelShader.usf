@@ -5,37 +5,34 @@
 =============================================================================*/
 
 #include "Common.usf"
+#include "PostProcessCommon.usf"
 
 #ifndef NUM_SAMPLES
 #define NUM_SAMPLES 4
 #endif
 
+#define DYNAMIC_NUM_SAMPLES	(NUM_SAMPLES==0)
+#define COMBINE_WEIGHTED	(COMBINE_METHOD==0)
+#define COMBINE_ADDITIVE	(COMBINE_METHOD==1)
+#define COMBINE_MAX			(COMBINE_METHOD==2)
+#define UNPACKED_UVS		(ES2_PROFILE || ES3_1_PROFILE)
+
 // main input texture
 SamplerState FilterTextureSampler;
 Texture2D FilterTexture;
 
-#if COMBINE_METHOD == 1
+#if COMBINE_ADDITIVE
 // optional texture that is additively blended on top of the many samples from the filter texture
 SamplerState AdditiveTextureSampler;
 Texture2D AdditiveTexture;
 #endif
 
-// UV.y and UV.wz are the input UV coordinates
-half ComputeMask(float2 UV)
+void Combine(inout MaterialFloat4 Dest, MaterialFloat4 Src, float4 Weight)
 {
-	// Deactivated for now as with bilinear filtering it can cause artifacts.
-	// Todo: Solution would be to have border color or a 1 pixel border around the content if
-	// it's embedded into a bigger texture. Then we can reactivate that code and make sure
-	// it doesn't clip this last pixel.
-	return 1;
-}
-
-void Combine(inout float4 Dest, float4 Src, float4 Weight)
-{
-#if COMBINE_METHOD == 0 || COMBINE_METHOD == 1 
+#if UNPACKED_UVS || COMBINE_WEIGHTED || COMBINE_ADDITIVE
 	// weighted additive, for bloom
 	Dest += Src * Weight;
-#else // COMBINE_METHOD == 2
+#else // COMBINE_MAX
 	// max magnitude of the 2d vector, for motionblur
 	float DestLen = dot(Dest.xy, Dest.xy);
 	float SrcLen = dot(Src.xy, Src.xy);
@@ -47,216 +44,129 @@ void Combine(inout float4 Dest, float4 Src, float4 Weight)
 #endif
 }
 
-#if NUM_SAMPLES==0
-// dynamic number of sample
-
+#if DYNAMIC_NUM_SAMPLES
 float4 SampleOffsets[(MAX_NUM_SAMPLES + 1) / 2];
-half4 SampleWeights[MAX_NUM_SAMPLES];
+float4 SampleWeights[MAX_NUM_SAMPLES];
 int SampleCount;
 
-# if (ES2_PROFILE || ES3_1_PROFILE)
-
 void Main(
 	noperspective float2 InUV : TEXCOORD0,
-	out half4 OutColor : SV_Target0
+	out MaterialFloat4 OutColor : SV_Target0
 	)
 {
-	half4 Dest = 0;
-	
+	MaterialFloat4 Dest = 0;
+
 	int SampleIndex;
 	LOOP for (SampleIndex = 0; SampleIndex < SampleCount - 1; SampleIndex += 2)
 	{
-		{
-			const float2 UV = InUV + SampleOffsets[SampleIndex / 2].xy;
-			Dest += FilterTexture.Sample(FilterTextureSampler, UV) * SampleWeights[SampleIndex + 0];
-		}
-		
-		{
-			const float2 UV = InUV + SampleOffsets[SampleIndex / 2].wz;
-			Dest += FilterTexture.Sample(FilterTextureSampler, UV) * SampleWeights[SampleIndex + 1];
-		}
+		float4 UVUV = InUV.xyxy + SampleOffsets[SampleIndex / 2];
+		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.xy, 0), SampleWeights[SampleIndex + 0]);
+		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.zw, 0), SampleWeights[SampleIndex + 1]);
 	}
+
 	BRANCH if (SampleIndex < SampleCount)
 	{
-		const float2 UV = InUV + SampleOffsets[SampleIndex / 2].xy;
-		Dest += FilterTexture.Sample(FilterTextureSampler, UV) * SampleWeights[SampleIndex + 1];
+		float2 UV = InUV + SampleOffsets[SampleIndex / 2].xy;
+		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UV, 0), SampleWeights[SampleIndex + 0]);
 	}
 
-#  if COMBINE_METHOD == 1
-	Dest += Texture2DSample(AdditiveTexture, AdditiveTextureSampler, InUV);
-#  endif
-
-	// RETURN_COLOR not needed unless writing to SceneColor;
-	OutColor = half4(Dest);
-}
-
-# else //!(ES2_PROFILE || ES3_1_PROFILE)
-
-void Main(
-	noperspective float2 InUV : TEXCOORD0,
-	out half4 OutColor : SV_Target0
-	)
-{
-	half4 Dest = 0;
-	
-	int SampleIndex;
-	LOOP for (SampleIndex = 0; SampleIndex < SampleCount - 1; SampleIndex += 2)
-	{
-		{
-			const float2 UV = InUV + SampleOffsets[SampleIndex / 2].xy;
-			const half Mask = ComputeMask(UV);
-			Combine(Dest, Texture2DSample(FilterTexture, FilterTextureSampler, UV), Mask * SampleWeights[SampleIndex + 0]);
-		}
-		
-		{
-			const float2 UV = InUV + SampleOffsets[SampleIndex / 2].wz;
-			const half Mask = ComputeMask(UV);
-			Combine(Dest, Texture2DSample(FilterTexture, FilterTextureSampler, UV), Mask * SampleWeights[SampleIndex + 1]);
-		}
-	}
-	BRANCH if (SampleIndex < SampleCount)
-	{
-		const float2 UV = InUV + SampleOffsets[SampleIndex / 2].xy;
-		const half Mask = ComputeMask(UV);
-		Combine(Dest, Texture2DSample(FilterTexture, FilterTextureSampler, UV), Mask * SampleWeights[SampleIndex + 0]);
-	}
-
-#  if COMBINE_METHOD == 1
-	Dest += Texture2DSample(AdditiveTexture, AdditiveTextureSampler, InUV);
-#  endif
-
-	// RETURN_COLOR not needed unless writing to SceneColor;
-	OutColor = Dest;
-}
-
-# endif //!(ES2_PROFILE || ES3_1_PROFILE)
-
-#else //NUM_SAMPLES!=0
-
-half4 SampleWeights[NUM_SAMPLES];
-
-# if (ES2_PROFILE || ES3_1_PROFILE)
-
-void Main(
-	noperspective float2 InUV : TEXCOORD0,
-	noperspective float2 InOffsetUVs[NUM_SAMPLES] : TEXCOORD1,
-	out half4 OutColor : SV_Target0
-	)
-{
-	half4 Dest = 0;
-	UNROLL for( int i = 0; i < NUM_SAMPLES; i++ )
-	{
-		Dest += FilterTexture.Sample(FilterTextureSampler, InOffsetUVs[i]) * SampleWeights[i];
-	}
-
-#  if COMBINE_METHOD == 1
-	Dest += AdditiveTexture.Sample(AdditiveTextureSampler, InUV);
-#  endif
-
-	OutColor = Dest;
-}
-
-# else //!(ES2_PROFILE || ES3_1_PROFILE)
-
-void Main(
-	noperspective float2 InUV : TEXCOORD0,
-	noperspective float4 InOffsetUVs[(NUM_SAMPLES + 1) / 2] : TEXCOORD1,
-	out float4 OutColor : SV_Target0
-	)
-{
-	int SampleIndex;
-	half4 Dest = 0;
-	UNROLL for(SampleIndex = 0;SampleIndex < NUM_SAMPLES - 1;SampleIndex += 2)
-	{
-		half Mask; 
-		float4 UVUV = InOffsetUVs[SampleIndex / 2];
-		
-		Mask = ComputeMask(UVUV.xy);
-		Combine(Dest, Texture2DSample(FilterTexture, FilterTextureSampler,UVUV.xy), Mask * SampleWeights[SampleIndex + 0]);
-
-		Mask = ComputeMask(UVUV.wz);
-		Combine(Dest, Texture2DSample(FilterTexture, FilterTextureSampler,UVUV.wz), Mask * SampleWeights[SampleIndex + 1]);
-	}
-	FLATTEN if(SampleIndex < NUM_SAMPLES)
-	{
-		float4 UVUV = InOffsetUVs[SampleIndex / 2];
-
-		half Mask = ComputeMask(UVUV.xy);
-		Combine(Dest, Texture2DSample(FilterTexture, FilterTextureSampler,UVUV.xy), Mask * SampleWeights[SampleIndex + 0]);
-	}
-
-#  if COMBINE_METHOD == 1
-	Dest += Texture2DSample(AdditiveTexture, AdditiveTextureSampler, InUV);
-#  endif
-
-	// RETURN_COLOR not needed unless writing to SceneColor;
-	OutColor = Dest;
-}
-
-# endif //!(ES2_PROFILE || ES3_1_PROFILE)
-#endif //NUM_SAMPLES!=0
-
-// currently only used for downsampling, doesn't need to be masked as it doesn't read outside bounds
-// reads 4 samples
-void DownsampleScene(
-	noperspective float4 InOffsetUVs[2] : TEXCOORD0,
-	out float4 OutColor : SV_Target0
-	)
-{
-	int SampleIndex;
-	half4 Sum = 0;
-
-	UNROLL for(SampleIndex = 0;SampleIndex < 4 - 1;SampleIndex += 2)
-	{
-		{
-			float2 UV = InOffsetUVs[SampleIndex / 2].xy;
-
-			Sum.rgb += Texture2DSample(FilterTexture, FilterTextureSampler, UV).rgb;
-		}
-		{
-			float2 UV = InOffsetUVs[SampleIndex / 2].wz;
-
-			Sum.rgb += Texture2DSample(FilterTexture, FilterTextureSampler, UV).rgb;
-		}
-	}
-
-	Sum.rgb *= 0.25f;
-
-	// depth in alpha feature
-	{
-		float Best;
-		{
-			// to avoid leaking between far and near blur we don't do average on depth
-			// we take the sample that is nearest to the average
-
-			float4 Samples;
-			
-			Samples.x = CalcSceneDepth(InOffsetUVs[0].xy);
-			Samples.y = CalcSceneDepth(InOffsetUVs[0].wz);
-			Samples.z = CalcSceneDepth(InOffsetUVs[1].xy);
-			Samples.w = CalcSceneDepth(InOffsetUVs[1].wz);
-
-			float Avg = dot(Samples, 0.25f);
-
-			Samples -= Avg;
-
-			float Chosen = Samples.x;
-			Chosen = (abs(Samples.y) < abs(Chosen)) ? Samples.y : Chosen;
-			Chosen = (abs(Samples.z) < abs(Chosen)) ? Samples.z : Chosen;
-			Chosen = (abs(Samples.w) < abs(Chosen)) ? Samples.w : Chosen;
-
-			Best = Chosen + Avg;
-		}
-
-		Sum.a = 1;
-	}
-
-	// RETURN_COLOR not needed unless writing to SceneColor;
-	OutColor = Sum;
-}
-
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-
-// --------------------
-
+#if COMBINE_ADDITIVE
+	Dest += Texture2DSampleLevel(AdditiveTexture, AdditiveTextureSampler, InUV, 0);
 #endif
+
+	OutColor = Dest;
+}
+
+#else // DYNAMIC_NUM_SAMPLES
+float4 SampleOffsets[(NUM_SAMPLES + 1) / 2];
+float4 SampleWeights[NUM_SAMPLES];
+
+void Main(
+	noperspective float2 InUV : TEXCOORD0,
+#if UNPACKED_UVS
+	noperspective float2 InOffsetUVs[NUM_SAMPLES] : TEXCOORD1,
+#else
+	noperspective float4 InOffsetUVs[((NUM_SAMPLES + 1) / 2)] : TEXCOORD1,
+#endif
+	out MaterialFloat4 OutColor : SV_Target0
+	)
+{
+	MaterialFloat4 Dest = 0;
+
+#if UNPACKED_UVS
+	UNROLL for (int i = 0; i < NUM_SAMPLES; ++i)
+	{
+		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, InOffsetUVs[i], 0), SampleWeights[i]);
+	}
+#else
+	int SampleIndex = 0;
+	UNROLL for (; SampleIndex < NUM_SAMPLES - 1; SampleIndex += 2)
+	{
+		float4 UVUV = InOffsetUVs[SampleIndex / 2];	
+		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.xy, 0), SampleWeights[SampleIndex + 0]);
+		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.zw, 0), SampleWeights[SampleIndex + 1]);
+	}
+
+	FLATTEN if (SampleIndex < NUM_SAMPLES)
+	{
+		float2 UV = InOffsetUVs[SampleIndex / 2].xy;
+		Combine(Dest, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UV, 0), SampleWeights[SampleIndex + 0]);
+	}
+#endif
+
+#if COMBINE_ADDITIVE
+	Dest += Texture2DSampleLevel(AdditiveTexture, AdditiveTextureSampler, InUV, 0);
+#endif
+
+	OutColor = Dest;
+}
+
+#endif // DYNAMIC_NUM_SAMPLES
+
+
+#if COMPUTESHADER
+// xy: Unused, zw: ThreadToUVScale
+float4 FilterComputeParams;
+RWTexture2D<float4> OutComputeTex;
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
+{
+	float2 BaseUV = ((float2)DispatchThreadId + View.ViewRectMin.xy + 0.5f) * FilterComputeParams.zw;
+	float4 OutColor = 0;
+	int SampleIndex = 0;
+
+	if (IsComputeUVOutOfBounds(BaseUV))
+	{
+		return;
+	}
+
+#if DYNAMIC_NUM_SAMPLES
+	LOOP for(; SampleIndex < SampleCount - 1; SampleIndex += 2)
+#else
+	UNROLL for(; SampleIndex < NUM_SAMPLES - 1; SampleIndex += 2)
+#endif
+	{
+		float4 UVUV = BaseUV.xyxy + SampleOffsets[SampleIndex / 2];
+		Combine(OutColor, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.xy, 0), SampleWeights[SampleIndex + 0]);
+		Combine(OutColor, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UVUV.zw, 0), SampleWeights[SampleIndex + 1]);
+	}
+
+#if DYNAMIC_NUM_SAMPLES
+	BRANCH if(SampleIndex < SampleCount)
+#else
+	FLATTEN if(SampleIndex < NUM_SAMPLES)
+#endif
+	{
+		float2 UV = BaseUV + SampleOffsets[SampleIndex / 2].xy;
+		Combine(OutColor, Texture2DSampleLevel(FilterTexture, FilterTextureSampler, UV, 0), SampleWeights[SampleIndex + 0]);
+	}
+
+#if COMBINE_ADDITIVE
+	OutColor += Texture2DSampleLevel(AdditiveTexture, AdditiveTextureSampler, BaseUV, 0);
+#endif
+
+	uint2 PixelPos = DispatchThreadId + (uint2)View.ViewRectMin.xy;
+	OutComputeTex[PixelPos] = OutColor;
+}
+#endif 

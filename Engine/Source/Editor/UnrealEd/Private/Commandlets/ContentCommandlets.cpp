@@ -542,11 +542,15 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
 							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+
+							FilesToSubmit.Add(Filename);
 						}
 						else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
 						{
 							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
 							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+
+							FilesToSubmit.Add(Filename);
 						}
 						else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
 						{
@@ -973,18 +977,24 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 		GWorld = World;
 
 		TArray<FString> SublevelFilenames;
-		
 		auto CheckOutLevelFile = [this,&bShouldProceedWithRebuild, &SublevelFilenames](ULevel* InLevel)
 		{
 			if (InLevel && InLevel->MapBuildData)
 			{
 				UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
-				FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
 				if (MapBuildDataPackage != InLevel->GetOutermost())
 				{
-					if (CheckoutFile(MapBuildDataPackageName))
+					FString MapBuildDataPackageName;
+					if (FPackageName::DoesPackageExist(MapBuildDataPackage->GetName(), NULL, &MapBuildDataPackageName))
 					{
-						SublevelFilenames.Add(MapBuildDataPackageName);
+						if (CheckoutFile(MapBuildDataPackageName))
+						{
+							SublevelFilenames.Add(MapBuildDataPackageName);
+						}
+						else
+						{
+							bShouldProceedWithRebuild = false;
+						}
 					}
 					else
 					{
@@ -1062,29 +1072,28 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			if (bShouldBuildLighting)
 			{
 				// This does not seem to have any use for the texture streaming build but slows down considerably the process.
-				GRedirectCollector.ResolveStringAssetReference();
+			GRedirectCollector.ResolveStringAssetReference();
 
-				FLightingBuildOptions LightingOptions;
-				// Always build on production
-				LightingOptions.QualityLevel = Quality_Production;
+			FLightingBuildOptions LightingOptions;
+			// Always build on production
+			LightingOptions.QualityLevel = Quality_Production;
 
 				auto BuildFailedDelegate = [&bShouldProceedWithRebuild,&World]() {
-					UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());
+				UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());
 					bShouldProceedWithRebuild = false;
-				};
+			};
 
-				FDelegateHandle BuildFailedDelegateHandle = FEditorDelegates::OnLightingBuildFailed.AddLambda(BuildFailedDelegate);
+			FDelegateHandle BuildFailedDelegateHandle = FEditorDelegates::OnLightingBuildFailed.AddLambda(BuildFailedDelegate);
 
-				GEditor->BuildLighting(LightingOptions);
-				while (GEditor->IsLightingBuildCurrentlyRunning())
-				{
-					GEditor->UpdateBuildLighting();
-				}
-
-				FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
+			GEditor->BuildLighting(LightingOptions);
+			while (GEditor->IsLightingBuildCurrentlyRunning())
+			{
+				GEditor->UpdateBuildLighting();
 			}
 
-			auto SaveMapBuildData = [this, &SublevelFilenames] (ULevel* InLevel) 
+			FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
+			}
+			auto SaveMapBuildData = [this, &SublevelFilenames](ULevel* InLevel)
 			{
 				if (InLevel && InLevel->MapBuildData && bShouldBuildLighting)
 				{
@@ -1095,12 +1104,24 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 					{
 						FString MapBuildDataFilename;
 
-						if ( FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetMapPackageExtension() ) )
+						if (FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetAssetPackageExtension()))
 						{
-							SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename);
-							if ( IFileManager::Get().FileExists(*MapBuildDataFilename))
+							if (IFileManager::Get().FileExists(*MapBuildDataFilename))
 							{
-								CheckoutFile(MapBuildDataFilename, true);
+								if ( CheckoutFile(MapBuildDataFilename, true) )
+								{
+									SublevelFilenames.Add(MapBuildDataFilename);
+								}
+
+								SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename); 
+							}
+							else
+							{
+								SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename);
+								if (CheckoutFile(MapBuildDataFilename, true))
+								{
+									SublevelFilenames.Add(MapBuildDataFilename);
+								}
 							}
 						}
 					}

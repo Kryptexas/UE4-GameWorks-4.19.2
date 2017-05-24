@@ -9,6 +9,8 @@
 #include "ScreenRendering.h"
 #include "RHIStaticStates.h"
 #include "ResolveShader.h"
+#include "SceneUtils.h"
+#include "PipelineStateCache.h"
 
 static inline DXGI_FORMAT ConvertTypelessToUnorm(DXGI_FORMAT Format)
 {
@@ -58,10 +60,12 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 	uint32 NumSavedViewports = StateCache.GetNumViewports();
 	StateCache.GetViewports(&NumSavedViewports, SavedViewports);
 
+	SCOPED_DRAW_EVENT(RHICmdList, ResolveTextureUsingShader);
+
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
 	// No alpha blending, no depth tests or writes, no stencil tests or writes, no backface culling.
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI(), FLinearColor::White);
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 	// Make sure the destination is not bound as a shader resource.
 	if (DestTexture)
@@ -97,14 +101,18 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 			CommandListHandle.UpdateResidency(DestTextureDSV->GetResource());
 		}
 
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Always>::GetRHI(), 0);
-		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
-
 		// Write to the dest texture as a depth-stencil target.
-		FD3D12RenderTargetView* NullRTV = NULL;
-
+		FD3D12RenderTargetView* NullRTV = nullptr;
 		StateCache.SetRenderTargets(1, &NullRTV, DestTextureDSV);
 
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<true, CF_Always>::GetRHI();
+
+		if (DestTexture)
+		{
+			GraphicsPSOInit.DepthStencilTargetFormat = DestTexture->GetFormat();
+			GraphicsPSOInit.DepthStencilTargetFlag = DestTexture->GetFlags();
+			GraphicsPSOInit.NumSamples = DestTexture->GetNumSamples();
+		}
 	}
 	else
 	{
@@ -126,13 +134,20 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 			CommandListHandle.UpdateResidency(DestTextureRTV->GetResource());
 		}
 
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
-
 		// Write to the dest surface as a render target.
-		StateCache.SetRenderTargets(1, &DestTextureRTV, NULL);
+		StateCache.SetRenderTargets(1, &DestTextureRTV, nullptr);
+
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
+		if (DestTexture)
+		{
+			GraphicsPSOInit.RenderTargetFormats[0] = DestTexture->GetFormat();
+			GraphicsPSOInit.RenderTargetFlags[0] = DestTexture->GetFlags();
+			GraphicsPSOInit.NumSamples = DestTexture->GetNumSamples();
+		}
 	}
 
+	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 	RHICmdList.SetViewport(0.0f, 0.0f, 0.0f, (uint32)ResolveTargetDesc.Width, ResolveTargetDesc.Height, 1.0f);
 
 	// Generate the vertices used to copy from the source surface to the destination surface.
@@ -145,14 +160,18 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 	const float MaxX = -1.f + DestRect.X2 / ((float)ResolveTargetDesc.Width * 0.5f);
 	const float MaxY = +1.f - DestRect.Y2 / ((float)ResolveTargetDesc.Height * 0.5f);
 
-	// MSFT: Seb: Does this need to be extern?
-	static FGlobalBoundShaderState ResolveBoundShaderState;
-
 	// Set the vertex and pixel shader
 	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 	TShaderMapRef<FResolveVS> ResolveVertexShader(ShaderMap);
 	TShaderMapRef<TPixelShader> ResolvePixelShader(ShaderMap);
-	SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
+
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GScreenVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*ResolveVertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*ResolvePixelShader);
+	GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+	SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit, EApplyRendertargetOption::DoNothing);
+	RHICmdList.SetBlendFactor(FLinearColor::White);
 
 	ResolvePixelShader->SetParameters(RHICmdList, PixelShaderParameter);
 	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.

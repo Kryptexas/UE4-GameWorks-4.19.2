@@ -332,7 +332,7 @@ namespace SceneOutliner
 
 		// See if a disabled effect should be used
 		bool bEnabled = ShouldBeEnabled( bParentEnabled );
-		ESlateDrawEffect::Type DrawEffects = (bEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+		ESlateDrawEffect DrawEffects = (bEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 		const double CurrentTime = FSlateApplication::Get().GetCurrentTime();
 

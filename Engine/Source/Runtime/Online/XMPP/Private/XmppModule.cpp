@@ -11,6 +11,8 @@
 #include "XmppNull.h"
 #if WITH_XMPP_JINGLE
 #include "XmppJingle/XmppJingle.h"
+#elif WITH_XMPP_STROPHE
+#include "XmppStrophe/XmppStrophe.h"
 #endif
 
 DEFINE_LOG_CATEGORY(LogXmpp);
@@ -19,7 +21,7 @@ DEFINE_LOG_CATEGORY(LogXmpp);
 
 IMPLEMENT_MODULE(FXmppModule, XMPP);
 
-FXmppModule* FXmppModule::Singleton = NULL;
+FXmppModule* FXmppModule::Singleton = nullptr;
 
 void FXmppModule::StartupModule()
 {
@@ -28,12 +30,14 @@ void FXmppModule::StartupModule()
 	bEnabled = true;
 	GConfig->GetBool(TEXT("XMPP"), TEXT("bEnabled"), bEnabled, GEngineIni);
 
-#if WITH_XMPP_JINGLE
 	if (bEnabled)
 	{
+#if WITH_XMPP_JINGLE
 		FXmppJingle::Init();
-	}
+#elif WITH_XMPP_STROPHE
+		FXmppStrophe::Init();
 #endif
+	}
 }
 
 void FXmppModule::ShutdownModule()
@@ -43,14 +47,16 @@ void FXmppModule::ShutdownModule()
 		CleanupConnection(It.Value());
 	}
 
-#if WITH_XMPP_JINGLE
 	if (bEnabled)
 	{
+#if WITH_XMPP_JINGLE
 		FXmppJingle::Cleanup();
-	}
+#elif WITH_XMPP_STROPHE
+		FXmppStrophe::Cleanup();
 #endif
+	}
 
-	Singleton = NULL;
+	Singleton = nullptr;
 }
 
 bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
@@ -439,6 +445,7 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			FString UserName = FParse::Token(Cmd, false);	// Assumes user is already logged in
 			FString RoomId = FParse::Token(Cmd, false);		// room to join
 			FString Body = FParse::Token(Cmd, false);		// payload to send
+			FString ExtraInfo = FParse::Token(Cmd, false);	// optional extra info to send (typically json payload)
 
 			if (UserName.IsEmpty() || RoomId.IsEmpty() || Body.IsEmpty())
 			{
@@ -455,7 +462,7 @@ bool FXmppModule::HandleXmppCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				{
 					if (Connection->MultiUserChat().IsValid())
 					{
-						Connection->MultiUserChat()->SendChat(RoomId, Body);
+						Connection->MultiUserChat()->SendChat(RoomId, Body, ExtraInfo);
 					}
 				}
 			}
@@ -660,18 +667,18 @@ bool FXmppModule::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 
 FXmppModule& FXmppModule::Get()
 {
-	if (Singleton == NULL)
+	if (Singleton == nullptr)
 	{
 		check(IsInGameThread());
 		FModuleManager::LoadModuleChecked<FXmppModule>("XMPP");
 	}
-	check(Singleton != NULL);
+	check(Singleton != nullptr);
 	return *Singleton;
 }
 
 bool FXmppModule::IsAvailable()
 {
-	return Singleton != NULL;
+	return Singleton != nullptr;
 }
 
 TSharedRef<IXmppConnection> FXmppModule::CreateConnection(const FString& UserId)
@@ -689,10 +696,17 @@ TSharedRef<IXmppConnection> FXmppModule::CreateConnection(const FString& UserId)
 			Connection = FXmppJingle::CreateConnection();
 		}
 		else
+#elif WITH_XMPP_STROPHE
+		if (bEnabled)
+		{
+			Connection = FXmppStrophe::CreateConnection();
+		}
+		else
 #endif
 		{
 			Connection = FXmppNull::CreateConnection();
 		}
+
 		return ActiveConnections.Add(UserId, Connection.ToSharedRef());
 	}
 }
@@ -702,7 +716,7 @@ TSharedPtr<IXmppConnection> FXmppModule::GetConnection(const FString& UserId) co
 	TSharedPtr<IXmppConnection> Result;
 
 	const TSharedRef<IXmppConnection>* Found = ActiveConnections.Find(UserId);
-	if (Found != NULL)
+	if (Found != nullptr)
 	{
 		Result = *Found;
 	}
@@ -751,7 +765,7 @@ void FXmppModule::CleanupConnection(const TSharedRef<class IXmppConnection>& Con
 
 void FXmppModule::OnXmppRoomCreated(const TSharedRef<IXmppConnection>& Connection, bool bSuccess, const FXmppRoomId& RoomId, const FString& Error)
 {
-	Connection->MultiUserChat()->OnRoomCreated().RemoveAll(this);	
+	Connection->MultiUserChat()->OnRoomCreated().RemoveAll(this);
 
 	UE_LOG(LogXmpp, Log, TEXT("FXmppModule::OnXmppRoomCreated - entered - user(%s) room(%s)"), *Connection->GetUserJid().Id, *RoomId);
 }

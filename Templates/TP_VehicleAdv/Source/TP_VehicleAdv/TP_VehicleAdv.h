@@ -1,10 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __TP_VehicleAdvADV_H__
-#define __TP_VehicleAdvADV_H__
+#pragma once
 
-#include "EngineMinimal.h"
-
-#define HMD_MODULE_INCLUDED 1
-
-#endif
+#include "CoreMinimal.h"

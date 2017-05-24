@@ -25,8 +25,21 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FColorPropertyTrackEditor(TSharedRef<ISequencer> InSequencer)
-		: FPropertyTrackEditor<UMovieSceneColorTrack, UMovieSceneColorSection, FColorKey>(InSequencer, NAME_Color, NAME_LinearColor, "SlateColor")
-	{ }
+		: FPropertyTrackEditor<UMovieSceneColorTrack, UMovieSceneColorSection, FColorKey>(InSequencer, GetAnimatedPropertyTypes())
+	{
+	}
+
+	/**
+	 * Retrieve a list of all property types that this track editor animates
+	 */
+	static TArray<FAnimatedPropertyKey, TInlineAllocator<3>> GetAnimatedPropertyTypes()
+	{
+		return TArray<FAnimatedPropertyKey, TInlineAllocator<3>>({
+			FAnimatedPropertyKey::FromStructType(NAME_Color),
+			FAnimatedPropertyKey::FromStructType(NAME_LinearColor),
+			FAnimatedPropertyKey::FromStructType("SlateColor")
+		});
+	}
 
 	/**
 	 * Creates an instance of this class (called by a sequencer).
@@ -58,4 +71,5 @@ private:
 	static FName GreenName;
 	static FName BlueName;
 	static FName AlphaName;
+	static FName SpecifiedColorName;
 };

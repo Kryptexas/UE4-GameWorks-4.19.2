@@ -5,7 +5,7 @@ using System.IO;
 
 public class StaticMeshEditor : ModuleRules
 {
-	public StaticMeshEditor(TargetInfo Target)
+	public StaticMeshEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
@@ -36,6 +36,7 @@ public class StaticMeshEditor : ModuleRules
 				"MeshUtilities",
                 "Json",
                 "JsonUtilities",
+                "AdvancedPreviewScene",
             }
 		);
 

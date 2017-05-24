@@ -13,6 +13,10 @@ tags:Google VR
 
 [NAV]
 
+[region:note]
+Google has a provided a very detailed document that goes over everything you need to know to get the most out of Daydream. You can find the documents by going to the [Offical Google Daydream Unreal](https://developers.google.com/vr/unreal/) help site.
+[/region]
+
  In this part of the Google VR Quick Start, we will go over how to create a new UE4 project that has the best settings for Google VR development.
 
 1. From the UE4 Launcher make sure that you have UE4 version **4.12** or later downloaded and installed then press the **Launch** button to open the **Unreal Project Browser**.

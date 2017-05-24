@@ -168,6 +168,8 @@ public:
 
 	uint32 GetSizeZ() const { return SizeZ; }
 
+	FIntVector GetSize() const { return FIntVector(SizeX, SizeY, SizeZ); }
+
 	uint32 GetMaxSizeX() const 
 	{
 		return Nodes[0].SizeX;

@@ -117,7 +117,7 @@ FRotator UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerOrientation()
 	{
 		FRotator orientation;
 		FVector position;
-		GVRController->GetControllerOrientationAndPosition(0, EControllerHand::Right, orientation, position);
+		GVRController->GetControllerOrientationAndPosition(0, EControllerHand::Right, orientation, position, GVRController->GetWorldToMetersScale());
 		return orientation;
 	}
 	return FRotator::ZeroRotator;
@@ -156,7 +156,7 @@ FVector UGoogleVRControllerFunctionLibrary::GetArmModelPointerPositionOffset()
 	if(GVRController != nullptr)
 	{
 		const gvr_arm_model::Vector3& Position = GVRController->GetArmModelController().GetPointerPositionOffset();
-		return GVRController->ConvertGvrVectorToUnreal(Position.x(), Position.y(), Position.z());
+		return GVRController->ConvertGvrVectorToUnreal(Position.x(), Position.y(), Position.z(), GVRController->GetWorldToMetersScale());
 	}
 #endif
 
@@ -359,6 +359,30 @@ void UGoogleVRControllerFunctionLibrary::SetTooltipMinDistanceFromFace(float Dis
 #endif
 }
 
+int UGoogleVRControllerFunctionLibrary::GetTooltipMaxAngleFromCamera()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	FGoogleVRController* GVRController = GetGoogleVRController();
+	if(GVRController != nullptr)
+	{
+		return GVRController->GetArmModelController().GetTooltipMaxAngleFromCamera();
+	}
+#endif
+
+	return 0.0f;
+}
+
+void UGoogleVRControllerFunctionLibrary::SetTooltipMaxAngleFromCamera(int AngleFromCamera)
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	FGoogleVRController* GVRController = GetGoogleVRController();
+	if(GVRController != nullptr)
+	{
+		GVRController->GetArmModelController().SetTooltipMaxAngleFromCamera(AngleFromCamera);
+	}
+#endif
+}
+
 float UGoogleVRControllerFunctionLibrary::GetControllerAlphaValue()
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
@@ -381,6 +405,45 @@ float UGoogleVRControllerFunctionLibrary::GetTooltipAlphaValue()
 		return GVRController->GetArmModelController().GetTooltipAlphaValue();
 	}
 #endif
-	
+
 	return 0.0f;
+}
+
+bool UGoogleVRControllerFunctionLibrary::GetBatteryCharging()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	FGoogleVRController* GVRController = GetGoogleVRController();
+	if(GVRController != nullptr)
+	{
+		return GVRController->GetBatteryCharging();
+	}
+#endif
+
+	return false;
+}
+
+EGoogleVRControllerBatteryLevel UGoogleVRControllerFunctionLibrary::GetBatteryLevel()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	FGoogleVRController* GVRController = GetGoogleVRController();
+	if(GVRController != nullptr)
+	{
+		return GVRController->GetBatteryLevel();
+	}
+#endif
+
+	return EGoogleVRControllerBatteryLevel::Unknown;
+}
+
+int64_t UGoogleVRControllerFunctionLibrary::GetLastBatteryTimestamp()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	FGoogleVRController* GVRController = GetGoogleVRController();
+	if(GVRController != nullptr)
+	{
+		return GVRController->GetLastBatteryTimestamp();
+	}
+#endif
+
+	return 0;
 }

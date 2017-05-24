@@ -56,6 +56,7 @@ void FMovieScenePlaybackPosition::Reset(float StartPos)
 {
 	PreviousPosition = StartPos;
 	PreviousPlayEvalPosition.Reset();
+	LastRange.Reset();
 }
 
 FMovieSceneEvaluationRange FMovieScenePlaybackPosition::JumpTo(float NewPosition, TOptional<float> FixedInterval)
@@ -64,7 +65,10 @@ FMovieSceneEvaluationRange FMovieScenePlaybackPosition::JumpTo(float NewPosition
 
 	PreviousPosition = NewPosition;
 	float EvalPosition = FixedInterval.IsSet() ? UMovieScene::CalculateFixedFrameTime(NewPosition, FixedInterval.GetValue()) : NewPosition;
-	return FMovieSceneEvaluationRange(TRange<float>(EvalPosition), EPlayDirection::Forwards);
+
+	FMovieSceneEvaluationRange Range(TRange<float>(EvalPosition), EPlayDirection::Forwards);
+	LastRange = Range;
+	return Range;
 }
 
 FMovieSceneEvaluationRange FMovieScenePlaybackPosition::PlayTo(float NewPosition, TOptional<float> FixedInterval)
@@ -76,5 +80,13 @@ FMovieSceneEvaluationRange FMovieScenePlaybackPosition::PlayTo(float NewPosition
 
 	PreviousPosition = NewPosition;
 	PreviousPlayEvalPosition = EvalPositionTo;
+
+	LastRange = Range;
+
 	return Range;
+}
+
+TOptional<FMovieSceneEvaluationRange> FMovieScenePlaybackPosition::GetLastRange() const
+{
+	return LastRange;
 }

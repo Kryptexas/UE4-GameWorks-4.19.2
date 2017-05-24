@@ -103,6 +103,10 @@ public:
 	virtual void ShowLeaderboardUI(UWorld* World, const FString& CategoryName) override;
 	virtual void ShowAchievementsUI(UWorld* World, int32 LocalUserNum) override;
 	virtual void BindToExternalUIOpening(const FOnlineExternalUIChanged& Delegate) override;
+#ifdef OSS_ADDED_SHOW_WEB
+	virtual void ShowWebURL(const FString& CurrentURL, const UOnlineEngineInterface::FShowWebUrlParams& ShowParams, const FOnlineShowWebUrlClosed& CompletionDelegate) override;
+	virtual bool CloseWebURL() override;
+#endif
 
 private:
 

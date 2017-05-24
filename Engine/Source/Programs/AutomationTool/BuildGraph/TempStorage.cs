@@ -142,20 +142,58 @@ namespace AutomationTool
 		/// <returns>True if the files are identical, false otherwise</returns>
 		public bool Compare(DirectoryReference RootDir)
 		{
+			string Message;
+			if(CompareInternal(RootDir, out Message))
+			{
+				if(Message != null)
+				{
+					CommandUtils.Log(Message);
+				}
+				return true;
+			}
+			else
+			{
+				if(Message != null)
+				{
+					CommandUtils.LogError(Message);
+				}
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Compare stored for this file with the one on disk, and output an error if they differ.
+		/// </summary>
+		/// <param name="RootDir">Root directory for this branch</param>
+		/// <returns>True if the files are identical, false otherwise</returns>
+		public bool CompareSilent(DirectoryReference RootDir)
+		{
+			string Message;
+			return CompareInternal(RootDir, out Message);
+		}
+
+		/// <summary>
+		/// Compare stored for this file with the one on disk, and output an error if they differ.
+		/// </summary>
+		/// <param name="RootDir">Root directory for this branch</param>
+		/// <param name="Message">Message describing the difference</param>
+		/// <returns>True if the files are identical, false otherwise</returns>
+		bool CompareInternal(DirectoryReference RootDir, out string Message)
+		{
 			FileReference LocalFile = ToFileReference(RootDir);
 
 			// Get the local file info, and check it exists
 			FileInfo Info = new FileInfo(LocalFile.FullName);
 			if(!Info.Exists)
 			{
-				CommandUtils.LogError("Missing file from manifest - {0}", RelativePath);
+				Message = String.Format("Missing file from manifest - {0}", RelativePath);
 				return false;
 			}
 
 			// Check the size matches
 			if(Info.Length != Length)
 			{
-				CommandUtils.LogError("File size differs from manifest - {0} is {1} bytes, expected {2} bytes", RelativePath, Info.Length, Length);
+				Message = String.Format("File size differs from manifest - {0} is {1} bytes, expected {2} bytes", RelativePath, Info.Length, Length);
 				return false;
 			}
 
@@ -166,13 +204,20 @@ namespace AutomationTool
 				DateTime ExpectedLocal = new DateTime(LastWriteTimeUtcTicks, DateTimeKind.Utc).ToLocalTime();
 				if(RequireMatchingTimestamps())
 				{
-					CommandUtils.LogError("File date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
+					Message = String.Format("File date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
 					return false;
 				}
-				CommandUtils.Log("File date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
+				else
+				{
+					Message = String.Format("Ignored file date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
+					return true;
+				}
 			}
-
-			return true;
+			else
+			{
+				Message = null;
+				return true;
+			}
 		}
 
 		/// <summary>
@@ -476,7 +521,7 @@ namespace AutomationTool
 		public void CleanLocalNode(string NodeName)
 		{
 			DirectoryReference NodeDir = GetDirectoryForNode(LocalDir, NodeName);
-			if(NodeDir.Exists())
+			if(DirectoryReference.Exists(NodeDir))
 			{
 				CommandUtils.DeleteDirectoryContents(NodeDir.FullName);
 				CommandUtils.DeleteDirectory_NoExceptions(NodeDir.FullName);
@@ -492,7 +537,7 @@ namespace AutomationTool
 		{
 			// Check if it already exists locally
 			FileReference LocalFile = GetCompleteMarkerFile(LocalDir, NodeName);
-			if(LocalFile.Exists())
+			if(FileReference.Exists(LocalFile))
 			{
 				return true;
 			}
@@ -501,7 +546,7 @@ namespace AutomationTool
 			if(SharedDir != null)
 			{
 				FileReference SharedFile = GetCompleteMarkerFile(SharedDir, NodeName);
-				if(SharedFile.Exists())
+				if(FileReference.Exists(SharedFile))
 				{
 					return true;
 				}
@@ -519,14 +564,14 @@ namespace AutomationTool
 		{
 			// Create the marker locally
 			FileReference LocalFile = GetCompleteMarkerFile(LocalDir, NodeName);
-			LocalFile.Directory.CreateDirectory();
+			DirectoryReference.CreateDirectory(LocalFile.Directory);
 			File.OpenWrite(LocalFile.FullName).Close();
 
 			// Create the marker in the shared directory
 			if(SharedDir != null && bWriteToSharedStorage)
 			{
 				FileReference SharedFile = GetCompleteMarkerFile(SharedDir, NodeName);
-				SharedFile.Directory.CreateDirectory();
+				DirectoryReference.CreateDirectory(SharedFile.Directory);
 				File.OpenWrite(SharedFile.FullName).Close();
 			}
 		}
@@ -541,7 +586,7 @@ namespace AutomationTool
 		{
 			// If the node is not locally complete, fail immediately.
 			FileReference CompleteMarkerFile = GetCompleteMarkerFile(LocalDir, NodeName);
-			if(!CompleteMarkerFile.Exists())
+			if(!FileReference.Exists(CompleteMarkerFile))
 			{
 				return false;
 			}
@@ -552,7 +597,7 @@ namespace AutomationTool
 			{
 				// Check the local manifest exists
 				FileReference LocalFileListLocation = GetTaggedFileListLocation(LocalDir, NodeName, TagName);
-				if(!LocalFileListLocation.Exists())
+				if(!FileReference.Exists(LocalFileListLocation))
 				{
 					return false;
 				}
@@ -562,7 +607,7 @@ namespace AutomationTool
 				{
 					// Check the shared manifest exists
 					FileReference SharedFileListLocation = GetManifestLocation(SharedDir, NodeName, TagName);
-					if(!SharedFileListLocation.Exists())
+					if(!FileReference.Exists(SharedFileListLocation))
 					{
 						return false;
 					}
@@ -586,7 +631,7 @@ namespace AutomationTool
 			{
 				// Check the local manifest exists
 				FileReference LocalManifestFile = GetManifestLocation(LocalDir, Block.NodeName, Block.OutputName);
-				if(!LocalManifestFile.Exists())
+				if(!FileReference.Exists(LocalManifestFile))
 				{
 					return false;
 				}
@@ -596,7 +641,7 @@ namespace AutomationTool
 				{
 					// Check the shared manifest exists
 					FileReference SharedManifestFile = GetManifestLocation(SharedDir, Block.NodeName, Block.OutputName);
-					if(!SharedManifestFile.Exists())
+					if(!FileReference.Exists(SharedManifestFile))
 					{
 						return false;
 					}
@@ -612,6 +657,9 @@ namespace AutomationTool
 
 				// Read the manifest and check the files
 				TempStorageManifest LocalManifest = TempStorageManifest.Load(LocalManifestFile);
+
+
+
 				if(LocalManifest.Files.Any(x => !x.Compare(RootDir)))
 				{
 					return false;
@@ -632,7 +680,7 @@ namespace AutomationTool
 
 			// Try to read the tag set from the local directory
 			FileReference LocalFileListLocation = GetTaggedFileListLocation(LocalDir, NodeName, TagName);
-			if(LocalFileListLocation.Exists())
+			if(FileReference.Exists(LocalFileListLocation))
 			{
 				CommandUtils.Log("Reading local file list from {0}", LocalFileListLocation.FullName);
 				FileList = TempStorageFileList.Load(LocalFileListLocation);
@@ -647,7 +695,7 @@ namespace AutomationTool
 
 				// Make sure the manifest exists
 				FileReference SharedFileListLocation = GetTaggedFileListLocation(SharedDir, NodeName, TagName);
-				if(!SharedFileListLocation.Exists())
+				if(!FileReference.Exists(SharedFileListLocation))
 				{
 					throw new AutomationException("Missing local or shared file list - {0}", SharedFileListLocation.FullName);
 				}
@@ -657,7 +705,7 @@ namespace AutomationTool
 				FileList = TempStorageFileList.Load(SharedFileListLocation);
 
 				// Save the manifest locally
-				LocalFileListLocation.Directory.CreateDirectory();
+				DirectoryReference.CreateDirectory(LocalFileListLocation.Directory);
 				FileList.Save(LocalFileListLocation);
 			}
 			return FileList;
@@ -683,7 +731,7 @@ namespace AutomationTool
 				FileReference SharedFileListLocation = GetTaggedFileListLocation(SharedDir, NodeName, TagName);
 				CommandUtils.Log("Saving file list to {0} and {1}", LocalFileListLocation.FullName, SharedFileListLocation.FullName);
 
-				SharedFileListLocation.Directory.CreateDirectory();
+				DirectoryReference.CreateDirectory(SharedFileListLocation.Directory);
 				FileList.Save(SharedFileListLocation);
 			}
 			else
@@ -692,7 +740,7 @@ namespace AutomationTool
 			}
 
 			// Save the local file list
-			LocalFileListLocation.Directory.CreateDirectory();
+			DirectoryReference.CreateDirectory(LocalFileListLocation.Directory);
 			FileList.Save(LocalFileListLocation);
 		}
 
@@ -714,7 +762,7 @@ namespace AutomationTool
 
 				// Create the local directory for this node
 				DirectoryReference LocalNodeDir = GetDirectoryForNode(LocalDir, NodeName);
-				LocalNodeDir.CreateDirectory();
+				DirectoryReference.CreateDirectory(LocalNodeDir);
 
 				// Compress the files and copy to shared storage if necessary
 				bool bRemote = SharedDir != null && bPushToRemote && bWriteToSharedStorage;
@@ -722,7 +770,7 @@ namespace AutomationTool
 				{
 					// Create the shared directory for this node
 					FileReference SharedManifestFile = GetManifestLocation(SharedDir, NodeName, BlockName);
-					SharedManifestFile.Directory.CreateDirectory();
+					DirectoryReference.CreateDirectory(SharedManifestFile.Directory);
 
 					// Zip all the build products
 					FileInfo[] ZipFiles = ParallelZipFiles(Files, RootDir, SharedManifestFile.Directory, LocalNodeDir, SharedManifestFile.GetFileNameWithoutExtension());
@@ -757,7 +805,7 @@ namespace AutomationTool
 			{
 				// Get the path to the local manifest
 				FileReference LocalManifestFile = GetManifestLocation(LocalDir, NodeName, OutputName);
-				bool bLocal = LocalManifestFile.Exists();
+				bool bLocal = FileReference.Exists(LocalManifestFile);
 
 				// Read the manifest, either from local storage or shared storage
 				TempStorageManifest Manifest;
@@ -778,7 +826,7 @@ namespace AutomationTool
 					FileReference SharedManifestFile = GetManifestLocation(SharedDir, NodeName, OutputName);
 
 					// Make sure the manifest exists
-					if(!SharedManifestFile.Exists())
+					if(!FileReference.Exists(SharedManifestFile))
 					{
 						throw new AutomationException("Missing local or shared manifest for node - {0}", SharedManifestFile.FullName);
 					}
@@ -804,7 +852,7 @@ namespace AutomationTool
 					}
 
 					// Save the manifest locally
-					LocalManifestFile.Directory.CreateDirectory();
+					DirectoryReference.CreateDirectory(LocalManifestFile.Directory);
 					Manifest.Save(LocalManifestFile);
 				}
 
@@ -1114,6 +1162,7 @@ namespace AutomationTool
 			try
 			{
 				TempStore.Retreive("TestNode", null);
+				bGotManifest = true;
 			}
 			catch
 			{
@@ -1165,7 +1214,7 @@ namespace AutomationTool
 			foreach(TempStorageFile ManifestFile in Manifest.Files)
 			{
 				FileReference File = ManifestFile.ToFileReference(RootDir);
-				if(!File.Exists())
+				if(!FileReference.Exists(File))
 				{
 					throw new AutomationException("File in manifest does not exist");
 				}

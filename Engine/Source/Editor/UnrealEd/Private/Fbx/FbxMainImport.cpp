@@ -25,6 +25,8 @@
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Package.h"
 
 DEFINE_LOG_CATEGORY(LogFbx);
 
@@ -72,7 +74,6 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		}
 
 		ImportUI->bImportAsSkeletal = ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;
-		ImportUI->bImportAsSubDSurface = ImportUI->MeshTypeToImport == FBXIT_SubDSurface;
 		ImportUI->bImportMesh = ImportUI->MeshTypeToImport != FBXIT_Animation;
 		ImportUI->bIsObjImport = bIsObjFormat;
 
@@ -87,10 +88,22 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			ParentWindow = MainFrame.GetParentWindow();
 		}
 
+		// Compute centered window position based on max window size, which include when all categories are expanded
+		const float FbxImportWindowWidth = 410.0f;
+		const float FbxImportWindowHeight = 750.0f;
+		const FVector2D FbxImportWindowSize = FVector2D(FbxImportWindowWidth, FbxImportWindowHeight); // Max window size it can get based on current slate
+
+		FSlateRect WorkAreaRect = FSlateApplicationBase::Get().GetPreferredWorkArea();
+		FVector2D DisplayTopLeft(WorkAreaRect.Left, WorkAreaRect.Top);
+		FVector2D DisplaySize(WorkAreaRect.Right - WorkAreaRect.Left, WorkAreaRect.Bottom - WorkAreaRect.Top);
+		FVector2D WindowPosition = DisplayTopLeft + (DisplaySize - FbxImportWindowSize) / 2.0f;
+
 		TSharedRef<SWindow> Window = SNew(SWindow)
 			.Title(NSLOCTEXT("UnrealEd", "FBXImportOpionsTitle", "FBX Import Options"))
-			.SizingRule( ESizingRule::Autosized );
-
+			.SizingRule( ESizingRule::Autosized )
+			.AutoCenter(EAutoCenter::None)
+			.ScreenPosition(WindowPosition);
+		
 		TSharedPtr<SFbxOptionWindow> FbxOptionWindow;
 		Window->SetContent
 		(
@@ -100,6 +113,8 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			.FullPath(FText::FromString(FullPath))
 			.ForcedImportType( bForceImportType ? TOptional<EFBXImportType>( ImportType ) : TOptional<EFBXImportType>() )
 			.IsObjFormat( bIsObjFormat )
+			.MaxWindowHeight(FbxImportWindowHeight)
+			.MaxWindowWidth(FbxImportWindowWidth)
 		);
 
 		// @todo: we can make this slow as showing progress bar later
@@ -127,22 +142,22 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 
 		if( ImportUI->StaticMeshImportData )
 		{
-			ImportUI->StaticMeshImportData->SaveConfig();
+			ImportUI->StaticMeshImportData->SaveOptions();
 		}
 
 		if( ImportUI->SkeletalMeshImportData )
 		{
-			ImportUI->SkeletalMeshImportData->SaveConfig();
+			ImportUI->SkeletalMeshImportData->SaveOptions();
 		}
 
 		if( ImportUI->AnimSequenceImportData )
 		{
-			ImportUI->AnimSequenceImportData->SaveConfig();
+			ImportUI->AnimSequenceImportData->SaveOptions();
 		}
 
 		if( ImportUI->TextureImportData )
 		{
-			ImportUI->TextureImportData->SaveConfig();
+			ImportUI->TextureImportData->SaveOptions();
 		}
 
 		if (FbxOptionWindow->ShouldImport())
@@ -198,6 +213,20 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bUsedAsFullName = ImportUI->bOverrideFullName;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
+	InOutImportOptions.ImportType = ImportUI->MeshTypeToImport;
+
+	InOutImportOptions.bAutoComputeLodDistances = ImportUI->bAutoComputeLodDistances;
+	InOutImportOptions.LodDistances.Empty(8);
+	InOutImportOptions.LodDistances.Add(ImportUI->LodDistance0);
+	InOutImportOptions.LodDistances.Add(ImportUI->LodDistance1);
+	InOutImportOptions.LodDistances.Add(ImportUI->LodDistance2);
+	InOutImportOptions.LodDistances.Add(ImportUI->LodDistance3);
+	InOutImportOptions.LodDistances.Add(ImportUI->LodDistance4);
+	InOutImportOptions.LodDistances.Add(ImportUI->LodDistance5);
+	InOutImportOptions.LodDistances.Add(ImportUI->LodDistance6);
+	InOutImportOptions.LodDistances.Add(ImportUI->LodDistance7);
+	InOutImportOptions.LodNumber = ImportUI->LodNumber;
+	InOutImportOptions.MinimumLodNumber = ImportUI->MinimumLodNumber;
 
 	if ( ImportUI->MeshTypeToImport == FBXIT_StaticMesh )
 	{
@@ -812,7 +841,21 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 	}
 	
 	const bool bImportStatus = Importer->Initialize(TCHAR_TO_UTF8(*Filename));
-
+	
+	FbxCreator = EFbxCreator::Unknow;
+	FbxIOFileHeaderInfo *FileHeaderInfo = Importer->GetFileHeaderInfo();
+	if (FileHeaderInfo)
+	{
+		//Example of creator file info string
+		//Blender (stable FBX IO) - 2.78 (sub 0) - 3.7.7
+		//Maya and Max use the same string where they specify the fbx sdk version, so we cannot know it is coming from which software
+		//We need blender creator when importing skeletal mesh containing the "armature" dummy node as the parent of the root joint. We want to remove this dummy "armature" node
+		FString CreatorStr(FileHeaderInfo->mCreator.Buffer());
+		if (CreatorStr.StartsWith(TEXT("Blender")))
+		{
+			FbxCreator = EFbxCreator::Blender;
+		}
+	}
 	GWarn->StatusForceUpdate(100, 100, LOCTEXT("OpeningFile", "Reading File"));
 	GWarn->EndSlowTask();
 	if( !bImportStatus )  // Problem with the file to be imported
@@ -940,6 +983,7 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 
 	// Get the version number of the FBX file format.
 	Importer->GetFileVersion(FileMajor, FileMinor, FileRevision);
+	FbxFileVersion = FString::Printf(TEXT("%d.%d.%d"), FileMajor, FileMinor, FileRevision);
 
 	// output result
 	if(bStatus)
@@ -1006,6 +1050,9 @@ void FFbxImporter::ConvertScene()
 	{
 		FbxSystemUnit::cm.ConvertScene(Scene);
 	}
+
+	//Reset all the transform evaluation cache since we change some node transform
+	Scene->GetAnimationEvaluator()->Reset();
 }
 
 //-------------------------------------------------------------------------
@@ -1047,6 +1094,7 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 				{
 					if( FEngineAnalytics::IsAvailable() )
 					{
+						const static UEnum* FBXImportTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EFBXImportType"));
 						TArray<FAnalyticsEventAttribute> Attribs;
 
 						FString OriginalVendor(UTF8_TO_TCHAR(DocInfo->Original_ApplicationVendor.Get().Buffer()));
@@ -1057,6 +1105,8 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 						FString LastSavedAppName(UTF8_TO_TCHAR(DocInfo->LastSaved_ApplicationName.Get().Buffer()));
 						FString LastSavedAppVersion(UTF8_TO_TCHAR(DocInfo->LastSaved_ApplicationVersion.Get().Buffer()));
 
+						FString FilenameHash = FMD5::HashAnsiString(*Filename);
+
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Vendor"), OriginalVendor));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Name"), OriginalAppName));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Version"), OriginalAppVersion));
@@ -1064,6 +1114,11 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Vendor"), LastSavedVendor));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Name"), LastSavedAppName));
 						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Version"), LastSavedAppVersion));
+
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("FBX Version"), FbxFileVersion));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("Filename Hash"), FilenameHash));
+
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("Import Type"), FBXImportTypeEnum->GetNameStringByValue(ImportOptions->ImportType)));
 
 						FString EventString = FString::Printf(TEXT("Editor.Usage.FBX.Import"));
 						FEngineAnalytics::GetProvider().RecordEvent(EventString, Attribs);
@@ -1332,6 +1387,25 @@ int32 FFbxImporter::GetFbxMeshCount( FbxNode* Node, bool bCountLODs, int32& OutN
 }
 
 /**
+* Fill the collision models array by going through all mesh node recursively
+*
+* @param Node Root node to find collision meshes
+*/
+void FFbxImporter::FillFbxCollisionMeshArray(FbxNode* Node)
+{
+	if (Node->GetMesh())
+	{
+		FillCollisionModelList(Node);
+	}
+
+	int32 ChildIndex;
+	for (ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+	{
+		FillFbxCollisionMeshArray(Node->GetChild(ChildIndex));
+	}
+}
+
+/**
 * Get all Fbx mesh objects
 *
 * @param Node Root node to find meshes
@@ -1551,10 +1625,21 @@ FbxNode* FFbxImporter::GetRootSkeleton(FbxNode* Link)
 	// mesh and dummy are used as bone if they are in the skeleton hierarchy
 	while (RootBone && RootBone->GetParent())
 	{
+		bool bIsBlenderArmatureBone = false;
+		if (FbxCreator == EFbxCreator::Blender)
+		{
+			//Hack to support armature dummy node from blender
+			//Users do not want the null attribute node named armature which is the parent of the real root bone in blender fbx file
+			//This is a hack since if a rigid mesh group root node is named "armature" it will be skip
+			const FString RootBoneParentName(RootBone->GetParent()->GetName());
+			FbxNode *GrandFather = RootBone->GetParent()->GetParent();
+			bIsBlenderArmatureBone = (GrandFather == nullptr || GrandFather == Scene->GetRootNode()) && (RootBoneParentName.Compare(TEXT("armature"), ESearchCase::IgnoreCase) == 0);
+		}
+
 		FbxNodeAttribute* Attr = RootBone->GetParent()->GetNodeAttribute();
 		if (Attr && 
 			(Attr->GetAttributeType() == FbxNodeAttribute::eMesh || 
-			 Attr->GetAttributeType() == FbxNodeAttribute::eNull ||
+			 (Attr->GetAttributeType() == FbxNodeAttribute::eNull && !bIsBlenderArmatureBone) ||
 			 Attr->GetAttributeType() == FbxNodeAttribute::eSkeleton) &&
 			RootBone->GetParent() != Scene->GetRootNode())
 		{
@@ -1637,6 +1722,12 @@ void FFbxImporter::ApplyTransformSettingsToFbxNode(FbxNode* Node, UFbxAssetImpor
 {
 	check(Node);
 	check(AssetData);
+	
+	if (TransformSettingsToFbxApply.Contains(Node))
+	{
+		return;
+	}
+	TransformSettingsToFbxApply.Add(Node);
 
 	FbxAMatrix TransformMatrix;
 	BuildFbxMatrixForImportTransform(TransformMatrix, AssetData);
@@ -1667,6 +1758,12 @@ void FFbxImporter::RemoveTransformSettingsFromFbxNode(FbxNode* Node, UFbxAssetIm
 {
 	check(Node);
 	check(AssetData);
+
+	if (!TransformSettingsToFbxApply.Contains(Node))
+	{
+		return;
+	}
+	TransformSettingsToFbxApply.Remove(Node);
 
 	FbxAMatrix TransformMatrix;
 	BuildFbxMatrixForImportTransform(TransformMatrix, AssetData);
@@ -2014,6 +2111,17 @@ void FFbxImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<Fbx
 				for (FbxNode *InspectedNode : NodeArray)
 				{
 					FbxMesh* Mesh = InspectedNode->GetMesh();
+
+					FbxLODGroup* LodGroup = InspectedNode->GetLodGroup();
+					if (LodGroup != nullptr)
+					{
+						FbxNode* SkelMeshNode = FindLODGroupNode(InspectedNode, 0);
+						if (SkelMeshNode != nullptr)
+						{
+							Mesh = SkelMeshNode->GetMesh();
+						}
+					}
+
 					if (Mesh == nullptr)
 					{
 						continue;

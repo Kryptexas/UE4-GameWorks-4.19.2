@@ -7,6 +7,7 @@ parent:Engine
 order:4
 social-image:sequencer_social.png
 related: Engine/Matinee
+tags:Sequencer
 
 [VAR:Topic]
 [OBJECT:Topic]

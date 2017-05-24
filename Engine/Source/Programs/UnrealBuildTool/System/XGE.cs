@@ -14,9 +14,32 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
-	public class XGE : ActionExecutor
+	class XGE : ActionExecutor
 	{
+		/// <summary>
+		/// Whether to use the no_watchdog_thread option to prevent VS2015 toolchain stalls.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		bool bXGENoWatchdogThread = false;
+
+		/// <summary>
+		/// Whether to display the XGE build monitor.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		bool bShowXGEMonitor = false;
+
+		/// <summary>
+		/// When enabled, XGE will stop compiling targets after a compile error occurs.  Recommended, as it saves computing resources for others.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		bool bStopXGECompilationAfterErrors = true;
+
 		private const string ProgressMarkupPrefix = "@action";
+
+		public XGE()
+		{
+			XmlConfig.ApplyTo(this);
+		}
 
 		public override string Name
 		{
@@ -51,29 +74,30 @@ namespace UnrealBuildTool
 			}
 			return false;
 		}
-	
-		public static void SaveXGEFile(string XGETaskFilePath)
-		{
-			int FileNum = 0;
-			string OutFile;
-			while (true)
-			{
-				OutFile = Path.Combine(BuildConfiguration.BaseIntermediatePath, String.Format("UBTExport.{0}.xge.xml", FileNum.ToString("D3")));
-				FileInfo ItemInfo = new FileInfo(OutFile);
-				if (!ItemInfo.Exists)
-				{
-					break;
-				}
-				FileNum++;
-			}
-			File.Copy(XGETaskFilePath, OutFile);
-			Log.TraceInformation("XGEEXPORT: Exported '{0}'", OutFile);
-		}
 
 		// precompile the Regex needed to parse the XGE output (the ones we want are of the form "File (Duration at +time)"
 		private static Regex XGEDurationRegex = new Regex(@"(?<Filename>.*) *\((?<Duration>[0-9:\.]+) at [0-9\+:\.]+\)", RegexOptions.ExplicitCapture);
 
-		public override bool ExecuteActions(List<Action> ActionsToExecute)
+		public static void ExportActions(List<Action> ActionsToExecute)
+		{
+			for(int FileNum = 0;;FileNum++)
+			{
+				string OutFile = Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Intermediate", "Build", String.Format("UBTExport.{0}.xge.xml", FileNum.ToString("D3")));
+				if(!File.Exists(OutFile))
+				{
+					ExportActions(ActionsToExecute, OutFile);
+					break;
+				}
+			}
+		}
+
+		public static void ExportActions(List<Action> ActionsToExecute, string OutFile)
+		{
+			WriteTaskFile(ActionsToExecute, OutFile, ProgressWriter.bWriteMarkup, bXGEExport: true);
+			Log.TraceInformation("XGEEXPORT: Exported '{0}'", OutFile);
+		}
+
+		public override bool ExecuteActions(List<Action> ActionsToExecute, bool bLogDetailedActionStats)
 		{
 			bool XGEResult = true;
 
@@ -89,75 +113,68 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					XGEResult = XGE.ExecuteActionBatch(ActionBatch);
+					XGEResult = ExecuteActionBatch(ActionBatch);
 					ActionBatch.Clear();
 					ActionBatch.Add(CurrentAction);
 				}
 			}
 			if (ActionBatch.Count > 0 && XGEResult)
 			{
-				XGEResult = XGE.ExecuteActionBatch(ActionBatch);
+				XGEResult = ExecuteActionBatch(ActionBatch);
 				ActionBatch.Clear();
 			}
 
 			return XGEResult;
 		}
 
-		static bool ExecuteActionBatch(List<Action> Actions)
+		bool ExecuteActionBatch(List<Action> Actions)
 		{
 			bool XGEResult = true;
 			if (Actions.Count > 0)
 			{
 				// Write the actions to execute to a XGE task file.
-				string XGETaskFilePath = Path.Combine(BuildConfiguration.BaseIntermediatePath, "XGETasks.xml");
-				WriteTaskFile(Actions, XGETaskFilePath, ProgressWriter.bWriteMarkup);
+				string XGETaskFilePath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", "XGETasks.xml").FullName;
+				WriteTaskFile(Actions, XGETaskFilePath, ProgressWriter.bWriteMarkup, false);
 
-				if (BuildConfiguration.bXGEExport)
+				// Try to execute the XGE tasks, and if XGE is available, skip the local execution fallback.
+				if (Telemetry.IsAvailable())
 				{
-					SaveXGEFile(XGETaskFilePath);
-				}
-				else
-				{
-					// Try to execute the XGE tasks, and if XGE is available, skip the local execution fallback.
-					if (Telemetry.IsAvailable())
+					try
 					{
-						try
-						{
-							const string BuilderKey = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Xoreax\\IncrediBuild\\Builder";
+						const string BuilderKey = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Xoreax\\IncrediBuild\\Builder";
 
-							string CPUUtilization = Registry.GetValue(BuilderKey, "ForceCPUCount", "").ToString();
-							string AvoidTaskExecutionOnLocalMachine = Registry.GetValue(BuilderKey, "AvoidLocalExec", "").ToString();
-							string RestartRemoteProcessesOnLocalMachine = Registry.GetValue(BuilderKey, "AllowDoubleTargets", "").ToString();
-							string LimitMaxNumberOfCores = Registry.GetValue(BuilderKey, "MaxHelpers", "").ToString();
-							string WriteOutputToDiskInBackground = Registry.GetValue(BuilderKey, "LazyOutputWriter_Beta", "").ToString();
-							string MaxConcurrentPDBs = Registry.GetValue(BuilderKey, "MaxConcurrentPDBs", "").ToString();
-							string EnabledAsHelper = Registry.GetValue(BuilderKey, "LastEnabled", "").ToString();
+						string CPUUtilization = Registry.GetValue(BuilderKey, "ForceCPUCount", "").ToString();
+						string AvoidTaskExecutionOnLocalMachine = Registry.GetValue(BuilderKey, "AvoidLocalExec", "").ToString();
+						string RestartRemoteProcessesOnLocalMachine = Registry.GetValue(BuilderKey, "AllowDoubleTargets", "").ToString();
+						string LimitMaxNumberOfCores = Registry.GetValue(BuilderKey, "MaxHelpers", "").ToString();
+						string WriteOutputToDiskInBackground = Registry.GetValue(BuilderKey, "LazyOutputWriter_Beta", "").ToString();
+						string MaxConcurrentPDBs = Registry.GetValue(BuilderKey, "MaxConcurrentPDBs", "").ToString();
+						string EnabledAsHelper = Registry.GetValue(BuilderKey, "LastEnabled", "").ToString();
 
-							Telemetry.SendEvent("XGESettings.2",
-								"CPUUtilization", CPUUtilization,
-								"AvoidTaskExecutionOnLocalMachine", AvoidTaskExecutionOnLocalMachine,
-								"RestartRemoteProcessesOnLocalMachine", RestartRemoteProcessesOnLocalMachine,
-								"LimitMaxNumberOfCores", LimitMaxNumberOfCores,
-								"WriteOutputToDiskInBackground", WriteOutputToDiskInBackground,
-								"MaxConcurrentPDBs", MaxConcurrentPDBs,
-								"EnabledAsHelper", EnabledAsHelper);
-						}
-						catch
-						{
-						}
+						Telemetry.SendEvent("XGESettings.2",
+							"CPUUtilization", CPUUtilization,
+							"AvoidTaskExecutionOnLocalMachine", AvoidTaskExecutionOnLocalMachine,
+							"RestartRemoteProcessesOnLocalMachine", RestartRemoteProcessesOnLocalMachine,
+							"LimitMaxNumberOfCores", LimitMaxNumberOfCores,
+							"WriteOutputToDiskInBackground", WriteOutputToDiskInBackground,
+							"MaxConcurrentPDBs", MaxConcurrentPDBs,
+							"EnabledAsHelper", EnabledAsHelper);
 					}
-					XGEResult = XGE.ExecuteTaskFileWithProgressMarkup(XGETaskFilePath, Actions.Count, (Sender, Args) =>
-						{
-							if (Actions[0].OutputEventHandler != null)
-							{
-								Actions[0].OutputEventHandler(Sender, Args);
-							}
-							else
-							{
-								Console.WriteLine(Args.Data);
-							}
-						});
+					catch
+					{
+					}
 				}
+				XGEResult = ExecuteTaskFileWithProgressMarkup(XGETaskFilePath, Actions.Count, (Sender, Args) =>
+					{
+						if (Actions[0].OutputEventHandler != null)
+						{
+							Actions[0].OutputEventHandler(Sender, Args);
+						}
+						else
+						{
+							Console.WriteLine(Args.Data);
+						}
+					});
 			}
 			return XGEResult;
 		}
@@ -180,12 +197,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Writes a XGE task file containing the specified actions to the specified file path.
 		/// </summary>
-		public static void WriteTaskFile(List<Action> InActions, string TaskFilePath, bool bProgressMarkup)
+		static void WriteTaskFile(List<Action> InActions, string TaskFilePath, bool bProgressMarkup, bool bXGEExport)
 		{
 			Dictionary<string, string> ExportEnv = new Dictionary<string, string>();
 
 			List<Action> Actions = InActions;
-			if (BuildConfiguration.bXGEExport)
+			if (bXGEExport)
 			{
 				IDictionary CurrentEnvironment = Environment.GetEnvironmentVariables();
 				foreach (System.Collections.DictionaryEntry Pair in CurrentEnvironment)
@@ -432,7 +449,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The possible result of executing tasks with XGE.
 		/// </summary>
-		public enum ExecutionResult
+		enum ExecutionResult
 		{
 			Unavailable,
 			TasksFailed,
@@ -443,19 +460,41 @@ namespace UnrealBuildTool
 		/// Executes the tasks in the specified file.
 		/// </summary>
 		/// <param name="TaskFilePath">- The path to the file containing the tasks to execute in XGE XML format.</param>
+		/// <param name="OutputEventHandler"></param>
+		/// <param name="ActionCount"></param>
 		/// <returns>Indicates whether the tasks were successfully executed.</returns>
-		public static bool ExecuteTaskFile(string TaskFilePath, DataReceivedEventHandler OutputEventHandler, int ActionCount)
+		bool ExecuteTaskFile(string TaskFilePath, DataReceivedEventHandler OutputEventHandler, int ActionCount)
 		{
+			// A bug in the UCRT can cause XGE to hang on VS2015 builds. Figure out if this hang is likely to effect this build and workaround it if able.
+			// @todo: There is a KB coming that will fix this. Once that KB is available, test if it is present. Stalls will not be a problem if it is.
+			//
+			// Stalls are possible. However there is a workaround in XGE build 1659 and newer that can avoid the issue.
+			string XGEVersion = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Xoreax\IncrediBuild\Builder", "Version", null);
+			if (XGEVersion != null)
+			{
+				int XGEBuildNumber;
+				if (Int32.TryParse(XGEVersion, out XGEBuildNumber))
+				{
+					// Per Xoreax support, subtract 1001000 from the registry value to get the build number of the installed XGE.
+					if (XGEBuildNumber - 1001000 >= 1659)
+					{
+						bXGENoWatchdogThread = true;
+					}
+					// @todo: Stalls are possible and we don't have a workaround. What should we do? Most people still won't encounter stalls, we don't really
+					// want to disable XGE on them if it would have worked.
+				}
+			}
+
 			bool bSilentCompileOutput = false;
 			string SilentOption = bSilentCompileOutput ? "/Silent" : "";
 
 			ProcessStartInfo XGEStartInfo = new ProcessStartInfo(
 				"xgConsole",
-				string.Format(@"{0} /Rebuild /NoWait {1} /NoLogo {2} /ShowTime {3}",
+				string.Format("\"{0}\" /Rebuild /NoWait {1} /NoLogo {2} /ShowTime {3}",
 					TaskFilePath,
-					BuildConfiguration.bStopXGECompilationAfterErrors ? "/StopOnErrors" : "",
+					bStopXGECompilationAfterErrors ? "/StopOnErrors" : "",
 					SilentOption,
-					BuildConfiguration.bXGENoWatchdogThread ? "/no_watchdog_thread" : "")
+					bXGENoWatchdogThread ? "/no_watchdog_thread" : "")
 				);
 			XGEStartInfo.UseShellExecute = false;
 
@@ -463,7 +502,7 @@ namespace UnrealBuildTool
 			XGEStartInfo.Arguments += " /UseIdeMonitor";
 
 			// Optionally display the external XGE monitor.
-			if (BuildConfiguration.bShowXGEMonitor)
+			if (bShowXGEMonitor)
 			{
 				XGEStartInfo.Arguments += " /OpenMonitor";
 			}
@@ -489,8 +528,7 @@ namespace UnrealBuildTool
 					XGEProcess.BeginErrorReadLine();
 				}
 
-				Log.TraceInformation("{0} {1} action{2} to XGE",
-					BuildConfiguration.bXGEExport ? "Exporting" : "Distributing",
+				Log.TraceInformation("Distributing {0} action{1} to XGE",
 					ActionCount,
 					ActionCount == 1 ? "" : "s");
 
@@ -507,7 +545,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Executes the tasks in the specified file, parsing progress markup as part of the output.
 		/// </summary>
-		public static bool ExecuteTaskFileWithProgressMarkup(string TaskFilePath, int NumActions, DataReceivedEventHandler OutputEventHandler)
+		bool ExecuteTaskFileWithProgressMarkup(string TaskFilePath, int NumActions, DataReceivedEventHandler OutputEventHandler)
 		{
 			using (ProgressWriter Writer = new ProgressWriter("Compiling C++ source files...", false))
 			{

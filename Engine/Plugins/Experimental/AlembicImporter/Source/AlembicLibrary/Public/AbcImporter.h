@@ -24,6 +24,7 @@ class UGeometryCacheTrack_FlipbookAnimation;
 class UGeometryCacheTrack_TransformAnimation;
 class UAbcImportSettings;
 class FSkeletalMeshImportData;
+class UAbcAssetImportData;
 
 struct FAbcImportData;
 struct FGeometryCacheMeshData;
@@ -123,6 +124,10 @@ public:
 
 	/** Returns the number of tracks found in the imported Alembic file */
 	const uint32 GetNumMeshTracks() const;
+
+
+	void UpdateAssetImportData(UAbcAssetImportData* AssetImportData);
+	void RetrieveAssetImportData(UAbcAssetImportData* ImportData);
 private:
 	/**
 	* Creates an template object instance taking into account existing Instances and Objects (on reimporting)
@@ -199,7 +204,7 @@ private:
 	void CacheHierarchyTransforms(const float StartSampleTime, const float EndSampleTime);
 	
 	/** Retrieves a material according to the given name and resaves it into the parent package*/
-	UMaterial* RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags );
+	UMaterialInterface* RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags );
 		
 	/** Compresses the imported animation data, returns true if compression was successful and compressed data was populated */
 	const bool CompressAnimationDataUsingPCA(const FAbcCompressionSettings& InCompressionSettings, const bool bRunComparison = false);	

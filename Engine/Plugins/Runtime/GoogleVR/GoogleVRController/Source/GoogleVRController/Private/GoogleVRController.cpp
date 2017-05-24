@@ -498,11 +498,8 @@ EGoogleVRControllerState FGoogleVRController::GetControllerState() const
 	return CurrentControllerState;
 }
 
-FVector FGoogleVRController::ConvertGvrVectorToUnreal(float x, float y, float z) const
+FVector FGoogleVRController::ConvertGvrVectorToUnreal(float x, float y, float z, float WorldToMetersScale) const
 {
-	// Number of Unreal Units per meter.
-	const float WorldToMetersScale = GetWorldToMetersScale();
-
 	FVector Result;
 
 	// Gvr: Negative Z is Forward, UE: Positive X is Forward.
@@ -520,6 +517,52 @@ FQuat FGoogleVRController::ConvertGvrQuaternionToUnreal(float w, float x, float 
 {
 	FQuat Result = FQuat(-z, x, y, -w);
 	return Result;
+}
+
+bool FGoogleVRController::GetBatteryCharging()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
+	return CachedControllerState.GetBatteryCharging();
+#else
+	return 0;
+#endif
+}
+
+EGoogleVRControllerBatteryLevel FGoogleVRController::GetBatteryLevel()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
+	switch (CachedControllerState.GetBatteryLevel())
+	{
+		case kControllerBatteryLevelCriticalLow:
+			return EGoogleVRControllerBatteryLevel::CriticalLow;
+
+		case kControllerBatteryLevelLow:
+			return EGoogleVRControllerBatteryLevel::Low;
+
+		case kControllerBatteryLevelMedium:
+			return EGoogleVRControllerBatteryLevel::Medium;
+
+		case kControllerBatteryLevelAlmostFull:
+			return EGoogleVRControllerBatteryLevel::AlmostFull;
+
+		case kControllerBatteryLevelFull:
+			return EGoogleVRControllerBatteryLevel::Full;
+
+		default:
+			break;
+    }
+#endif
+
+	return EGoogleVRControllerBatteryLevel::Unknown;
+}
+
+int64_t FGoogleVRController::GetLastBatteryTimestamp()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
+	return CachedControllerState.GetLastBatteryTimestamp();
+#else
+	return 0;
+#endif
 }
 
 bool FGoogleVRController::GetUseArmModel() const
@@ -580,7 +623,7 @@ void FGoogleVRController::SetChannelValues(int32 ControllerId, const FForceFeedb
 {
 }
 
-bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const
+bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 {
 	if(IsAvailable())
 	{
@@ -590,12 +633,9 @@ bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 Contro
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 		if (bUseArmModel)
 		{
-			// Number of Unreal Units per meter.
-			const float WorldToMetersScale = GetWorldToMetersScale();
-
 			const gvr_arm_model::Vector3& ControllerPosition = ArmModelController.GetControllerPosition();
 			const gvr_arm_model::Quaternion& ControllerRotation = ArmModelController.GetControllerRotation();
-			FVector Position = ConvertGvrVectorToUnreal(ControllerPosition.x(), ControllerPosition.y(), ControllerPosition.z());
+			FVector Position = ConvertGvrVectorToUnreal(ControllerPosition.x(), ControllerPosition.y(), ControllerPosition.z(), WorldToMetersScale);
 			FQuat Orientation = ConvertGvrQuaternionToUnreal(ControllerRotation.w(), ControllerRotation.x(), ControllerRotation.y(), ControllerRotation.z());
 
 			FQuat BaseOrientation;

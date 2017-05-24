@@ -84,27 +84,45 @@ namespace UnrealBuildTool
 			/// Process ID
 			/// </summary>
 			public int PID;
+
 			/// <summary>
 			/// Name of the process
 			/// </summary>
 			public string Name;
+
 			/// <summary>
 			/// Filename of the process binary
 			/// </summary>
 			public string Filename;
 
-			public ProcessInfo(int InPID, string InName, string InFilename, string[] InModules)
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="InPID">The process ID</param>
+			/// <param name="InName">The process name</param>
+			/// <param name="InFilename">The process filename</param>
+			public ProcessInfo(int InPID, string InName, string InFilename)
 			{
 				PID = InPID;
 				Name = InName;
 				Filename = InFilename;
 			}
+
+			/// <summary>
+			/// Constructor
+			/// </summary>
+			/// <param name="Proc">Process to take information from</param>
 			public ProcessInfo(Process Proc)
 			{
 				PID = Proc.Id;
 				Name = Proc.ProcessName;
 				Filename = Path.GetFullPath(Proc.MainModule.FileName);
 			}
+
+			/// <summary>
+			/// Format as a string for debugging
+			/// </summary>
+			/// <returns>String containing process info</returns>
 			public override string ToString()
 			{
 				return String.Format("{0}, {1}", Name, Filename);

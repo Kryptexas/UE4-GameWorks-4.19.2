@@ -23,6 +23,26 @@ const FText USafeZone::GetPaletteCategory()
 {
 	return LOCTEXT( "Panel", "Panel" );
 }
+
+void USafeZone::OnDesignerChanged(const FDesignerChangedEventArgs& EventArgs)
+{
+	if ( EventArgs.bScreenPreview )
+	{
+		DesignerSize = EventArgs.Size;
+	}
+	else
+	{
+		DesignerSize = FVector2D(0, 0);
+	}
+
+	DesignerDpi = EventArgs.DpiScale;
+
+	if ( MySafeZone.IsValid() )
+	{
+		MySafeZone->SetOverrideScreenInformation(DesignerSize, DesignerDpi);
+	}
+}
+
 #endif
 
 void USafeZone::OnSlotAdded( UPanelSlot* InSlot )
@@ -65,7 +85,7 @@ void USafeZone::UpdateWidgetProperties()
 TSharedRef<SWidget> USafeZone::RebuildWidget()
 {
 	USafeZoneSlot* SafeSlot = Slots.Num() > 0 ? Cast< USafeZoneSlot >( Slots[ 0 ] ) : nullptr;
-
+	
 	MySafeZone = SNew( SSafeZone )
 		.IsTitleSafe( SafeSlot ? SafeSlot->bIsTitleSafe : false )
 		.SafeAreaScale( SafeSlot ? SafeSlot->SafeAreaScale : FMargin(1,1,1,1))
@@ -76,6 +96,10 @@ TSharedRef<SWidget> USafeZone::RebuildWidget()
 		.PadRight( PadRight )
 		.PadTop( PadTop )
 		.PadBottom( PadBottom )
+#if WITH_EDITOR
+		.OverrideScreenSize(DesignerSize)
+		.OverrideDpiScale(DesignerDpi)
+#endif
 		[
 			GetChildAt( 0 ) ? GetChildAt( 0 )->TakeWidget() : SNullWidget::NullWidget
 		];

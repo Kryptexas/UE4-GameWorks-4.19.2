@@ -21,7 +21,6 @@ namespace AutomationTool
 
 	public class P4Exception : AutomationException
 	{
-		public P4Exception() { }
 		public P4Exception(string Msg)
 			: base(Msg) { }
 		public P4Exception(string Msg, Exception InnerException)
@@ -2047,101 +2046,6 @@ namespace AutomationTool
 			return false;
 		}
 
-		/// <summary>
-        /// returns the full name of a label. //depot/UE4/TEST-GUBP-Promotable-GameName-CL-CLNUMBER
-		/// </summary>
-		/// <param name="BuildNamePrefix">Label Prefix</param>
-        public string FullLabelName(P4Environment Env, string BuildNamePrefix)
-        {
-            CheckP4Enabled();
-			var Label = Env.LabelPrefix + BuildNamePrefix + "-CL-" + Env.ChangelistString;
-			CommandUtils.LogLog("Label prefix {0}", BuildNamePrefix);
-			CommandUtils.LogLog("Full Label name {0}", Label); 
-            return Label;
-        }
-
-		/// <summary>
-		/// Creates a downstream label.
-		/// </summary>
-		/// <param name="BuildNamePrefix">Label Prefix</param>
-		public void MakeDownstreamLabel(P4Environment Env, string BuildNamePrefix, List<string> Files = null)
-		{
-			CheckP4Enabled();
-			string DOWNSTREAM_LabelPrefix = CommandUtils.GetEnvVar("DOWNSTREAM_LabelPrefix");
-			if (!String.IsNullOrEmpty(DOWNSTREAM_LabelPrefix))
-			{
-				BuildNamePrefix = DOWNSTREAM_LabelPrefix;
-			}
-			if (String.IsNullOrEmpty(BuildNamePrefix))
-			{
-				throw new P4Exception("Need a downstream label");
-			}
-
-			{
-				CommandUtils.LogLog("Making downstream label");
-                var Label = FullLabelName(Env, BuildNamePrefix);
-
-				CommandUtils.LogLog("Deleting old label {0} (if any)...", Label);
-                DeleteLabel(Label, false);
-
-				CommandUtils.LogLog("Creating new label...");
-				CreateLabel(
-					Name: Label,
-					Description: "BVT Time " + CommandUtils.CmdEnv.TimestampAsString + "  CL " + Env.ChangelistString,
-					Options: "unlocked noautoreload",
-					View: CommandUtils.CombinePaths(PathSeparator.Depot, Env.BuildRootP4, "...")
-					);
-				if (Files == null)
-				{
-					CommandUtils.LogLog("Adding all files to new label {0}...", Label);
-					LabelSync(Label, false);
-				}
-				else
-				{
-					CommandUtils.LogLog("Adding build products to new label {0}...", Label);
-					foreach (string LabelFile in Files)
-					{
-						LabelSync(Label, false, LabelFile);
-					}
-				}
-			}
-		}
-
-        /// <summary>
-        /// Creates a downstream label.
-        /// </summary>
-        /// <param name="BuildNamePrefix">Label Prefix</param>
-		public void MakeDownstreamLabelFromLabel(P4Environment Env, string BuildNamePrefix, string CopyFromBuildNamePrefix)
-        {
-            CheckP4Enabled();
-			string DOWNSTREAM_LabelPrefix = CommandUtils.GetEnvVar("DOWNSTREAM_LabelPrefix");
-            if (!String.IsNullOrEmpty(DOWNSTREAM_LabelPrefix))
-            {
-                BuildNamePrefix = DOWNSTREAM_LabelPrefix;
-            }
-            if (String.IsNullOrEmpty(BuildNamePrefix) || String.IsNullOrEmpty(CopyFromBuildNamePrefix))
-            {
-                throw new P4Exception("Need a downstream label");
-            }
-
-            {
-				CommandUtils.LogLog("Making downstream label");
-                var Label = FullLabelName(Env, BuildNamePrefix);
-
-				CommandUtils.LogLog("Deleting old label {0} (if any)...", Label);
-                DeleteLabel(Label, false);
-
-				CommandUtils.LogLog("Creating new label...");
-                CreateLabel(
-                    Name: Label,
-					Description: "BVT Time " + CommandUtils.CmdEnv.TimestampAsString + "  CL " + Env.ChangelistString,
-                    Options: "unlocked noautoreload",
-					View: CommandUtils.CombinePaths(PathSeparator.Depot, Env.BuildRootP4, "...")
-                    );
-                LabelToLabelSync(FullLabelName(Env, CopyFromBuildNamePrefix), Label, false);
-            }
-        }
-
         /// <summary>
         /// Given a file path in the depot, returns the local disk mapping for the current view
         /// </summary>
@@ -2372,15 +2276,25 @@ namespace AutomationTool
 					var KeyEndIndex = TrimmedLine.IndexOf(':');
 					if (KeyEndIndex >= 0)
 					{
-						var Key = TrimmedLine.Substring(0, KeyEndIndex);
+						var BaseKey = TrimmedLine.Substring(0, KeyEndIndex);
+
+						// Uniquify the key before adding anything to the dictionary. P4 info can sometimes return multiple fields with identical names (eg. 'Broker address', 'Broker version')
+						DelayIndex = 0;
+						var Key = BaseKey;
+						while(Tags.ContainsKey(Key))
+						{
+							DelayIndex++;
+							Key = String.Format("{0}{1}", BaseKey, DelayIndex);
+						}
+
 						var Value = TrimmedLine.Substring(KeyEndIndex + 1).Trim();
                         if (Value == "")
                         {
-                            DelayKey = Key;
+                            DelayKey = BaseKey;
                         }
                         else
                         {
-                            Tags.Add(Key, Value);
+							Tags.Add(Key, Value);
                         }
 					}
 				}

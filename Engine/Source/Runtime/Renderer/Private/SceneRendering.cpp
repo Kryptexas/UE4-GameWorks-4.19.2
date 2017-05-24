@@ -31,6 +31,10 @@
 #include "Matinee/MatineeActor.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "PostProcess/PostProcessSubsurface.h"
+#include "HdrCustomResolveShaders.h"
+#include "WideCustomResolveShaders.h"
+#include "PipelineStateCache.h"
+#include "GPUSkinCache.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -93,6 +97,29 @@ static TAutoConsoleVariable<int32> CVarMobileMultiView(
 	0,
 	TEXT("0 to disable mobile multi-view, 1 to enable.\n"),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMobileMultiViewDirect(
+	TEXT("vr.MobileMultiView.Direct"),
+	0,
+	TEXT("0 to disable mobile multi-view direct, 1 to enable.\n")
+	TEXT("When enabled the scene color render target array is provided by the hmd plugin so we can skip the blit.\n"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMonoscopicFarField(
+	TEXT("vr.MonoscopicFarField"),
+	0,
+	TEXT("0 to disable (default), 1 to enable."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMonoscopicFarFieldMode(
+	TEXT("vr.MonoscopicFarFieldMode"),
+	1,
+	TEXT("Experimental, mobile only")
+	TEXT(", 0 to disable, 1 to enable (default)")
+	TEXT(", 2 stereo near field only")
+	TEXT(", 3 stereo near field with far field pixel depth test disabled")
+	TEXT(", 4 mono far field only"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
@@ -203,11 +230,26 @@ static TAutoConsoleVariable<int32> CVarRHICmdMinDrawsPerParallelCmdList(
 	64,
 	TEXT("The minimum number of draws per cmdlist. If the total number of draws is less than this, then no parallel work will be done at all. This can't always be honored or done correctly. More effective with RHICmdBalanceParallelLists."));
 
+static TAutoConsoleVariable<int32> CVarWideCustomResolve(
+	TEXT("r.WideCustomResolve"),
+	0,
+	TEXT("Use a wide custom resolve filter when MSAA is enabled")
+	TEXT("0: Disabled [hardware box filter]")
+	TEXT("1: Wide (r=1.25, 12 samples)")
+	TEXT("2: Wider (r=1.4, 16 samples)")
+	TEXT("3: Widest (r=1.5, 20 samples)"),
+	ECVF_RenderThreadSafe | ECVF_Scalability
+	);
+
 static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
+
+DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer MotionBlurStartFrame"), STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame, STATGROUP_SceneRendering);
+DECLARE_CYCLE_STAT(TEXT("DeferredShadingSceneRenderer UpdateMotionBlurCache"), STAT_FDeferredShadingSceneRenderer_UpdateMotionBlurCache, STATGROUP_SceneRendering);
+
 
 FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
 	: View(InView)
-	, DrawRenderState(nullptr, InView)
+	, DrawRenderState(InView)
 	, ParentCmdList(InParentCmdList)
 	, Snapshot(nullptr)
 	, ExecuteStat(InExecuteStat)
@@ -420,6 +462,7 @@ void FViewInfo::Init()
 	ExponentialFogColor = FVector::ZeroVector;
 	FogMaxOpacity = 1;
 	ExponentialFogParameters3 = FVector4(0, 0, 0, 0);
+	SinCosInscatteringColorCubemapRotation = FVector2D(0, 0);
 	FogInscatteringColorCubemap = NULL;
 	FogInscatteringTextureParameters = FVector::ZeroVector;
 
@@ -678,7 +721,7 @@ void FViewInfo::SetupUniformBufferParameters(
 
 	SetupDefaultGlobalDistanceFieldUniformBufferParameters(ViewUniformShaderParameters);
 
-
+	SetupVolumetricFogUniformBufferParameters(ViewUniformShaderParameters);
 
 	uint32 StateFrameIndexMod8 = 0;
 
@@ -970,23 +1013,23 @@ IPooledRenderTarget* FViewInfo::GetEyeAdaptation(FRHICommandList& RHICmdList) co
 IPooledRenderTarget* FViewInfo::GetEyeAdaptationRT(FRHICommandList& RHICmdList) const
 {
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
-	IPooledRenderTarget* result = NULL;
+	IPooledRenderTarget* Result = NULL;
 	if (EffectiveViewState)
 	{
-		result = EffectiveViewState->GetCurrentEyeAdaptationRT(RHICmdList);
+		Result = EffectiveViewState->GetCurrentEyeAdaptationRT(RHICmdList);
 	}
-	return result;
+	return Result;
 }
 
 IPooledRenderTarget* FViewInfo::GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const
 {
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
-	IPooledRenderTarget* result = NULL;
+	IPooledRenderTarget* Result = NULL;
 	if (EffectiveViewState)
 	{
-		result = EffectiveViewState->GetLastEyeAdaptationRT(RHICmdList);
+		Result = EffectiveViewState->GetLastEyeAdaptationRT(RHICmdList);
 	}
-	return result;
+	return Result;
 }
 
 void FViewInfo::SwapEyeAdaptationRTs() const
@@ -1036,13 +1079,13 @@ const FTextureRHIRef* FViewInfo::GetTonemappingLUTTexture() const
 	return TextureRHIRef;
 };
 
-FSceneRenderTargetItem* FViewInfo::GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT) const 
+FSceneRenderTargetItem* FViewInfo::GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT, const bool bNeedUAV) const 
 {
 	FSceneRenderTargetItem* TargetItem = NULL;
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
 	if (EffectiveViewState)
 	{
-		TargetItem = &(EffectiveViewState->GetTonemappingLUTRenderTarget(RHICmdList, LUTSize, bUseVolumeLUT));
+		TargetItem = &(EffectiveViewState->GetTonemappingLUTRenderTarget(RHICmdList, LUTSize, bUseVolumeLUT, bNeedUAV));
 	}
 	return TargetItem;
 }
@@ -1116,7 +1159,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 	check(Scene != NULL);
 
 	check(IsInGameThread());
-	ViewFamily.FrameNumber = GFrameNumber;
+	ViewFamily.FrameNumber = Scene ? Scene->GetFrameNumber() : GFrameNumber;
 
 	// Copy the individual views.
 	bool bAnyViewIsLocked = false;
@@ -1268,15 +1311,38 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 			}
 		}
 		
-		extern int32 GDistanceFieldAO;
-		const bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
+		const FReadOnlyCVARCache& ReadOnlyCVARCache = Scene->ReadOnlyCVARCache;
+		static auto* CVarSkinCacheOOM = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SkinCache.SceneMemoryLimitInMB"));
 
-		const bool bShowAtmosphericFogWarning = Scene->AtmosphericFog != nullptr && !Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
-		const bool bShowSkylightWarning = (Scene->ShouldRenderSkylight_Internal(BLEND_Opaque) || Scene->ShouldRenderSkylight_Internal(BLEND_Translucent)) && !Scene->ReadOnlyCVARCache.bEnableStationarySkylight;
-		const bool bShowPointLightWarning = UsedWholeScenePointLightNames.Num() > 0 && !Scene->ReadOnlyCVARCache.bEnablePointLightShadows;
+		uint64 GPUSkinCacheExtraRequiredMemory = 0;
+		extern ENGINE_API bool IsGPUSkinCacheAvailable();
+		if (IsGPUSkinCacheAvailable())
+		{
+			if (FGPUSkinCache* SkinCache = Scene->GetGPUSkinCache())
+			{
+				GPUSkinCacheExtraRequiredMemory = SkinCache->GetExtraRequiredMemoryAndReset();
+			}
+		}
+		const bool bShowSkinCacheOOM = CVarSkinCacheOOM != nullptr && GPUSkinCacheExtraRequiredMemory > 0;
+
+		extern int32 GDistanceFieldAO;
+		const bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeGlobalDistanceField || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
+
+		const bool bShowAtmosphericFogWarning = Scene->AtmosphericFog != nullptr && !ReadOnlyCVARCache.bEnableAtmosphericFog;
+
+		const bool bStationarySkylight = Scene->SkyLight && Scene->SkyLight->bWantsStaticShadowing;
+		const bool bShowSkylightWarning = bStationarySkylight && !ReadOnlyCVARCache.bEnableStationarySkylight;
+
+		const bool bShowPointLightWarning = UsedWholeScenePointLightNames.Num() > 0 && !ReadOnlyCVARCache.bEnablePointLightShadows;
 		const bool bShowShadowedLightOverflowWarning = Scene->OverflowingDynamicShadowedLights.Num() > 0;
 
-		const bool bAnyWarning = bShowPrecomputedVisibilityWarning || bShowGlobalClipPlaneWarning || bShowAtmosphericFogWarning || bShowSkylightWarning || bShowPointLightWarning || bShowDFAODisabledWarning || bShowShadowedLightOverflowWarning;
+		// Mobile-specific warnings
+		const bool bMobile = (FeatureLevel <= ERHIFeatureLevel::ES3_1);
+		const bool bShowMobileLowQualityLightmapWarning = bMobile && !ReadOnlyCVARCache.bEnableLowQualityLightmaps && ReadOnlyCVARCache.bAllowStaticLighting;
+		const bool bShowMobileDynamicCSMWarning = bMobile && Scene->NumMobileStaticAndCSMLights_RenderThread > 0 && !(ReadOnlyCVARCache.bMobileEnableStaticAndCSMShadowReceivers && ReadOnlyCVARCache.bMobileAllowDistanceFieldShadows);
+		const bool bShowMobileMovableDirectionalLightWarning = bMobile && Scene->NumMobileMovableDirectionalLights_RenderThread > 0 && !ReadOnlyCVARCache.bMobileAllowMovableDirectionalLights;
+
+		const bool bAnyWarning = bShowPrecomputedVisibilityWarning || bShowGlobalClipPlaneWarning || bShowAtmosphericFogWarning || bShowSkylightWarning || bShowPointLightWarning || bShowDFAODisabledWarning || bShowShadowedLightOverflowWarning || bShowMobileDynamicCSMWarning || bShowMobileLowQualityLightmapWarning || bShowMobileMovableDirectionalLightWarning || bShowSkinCacheOOM;
 
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
@@ -1361,6 +1427,33 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 							Canvas.DrawShadowedText(10, Y, FText::FromString(LightName.ToString()), GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 							Y += 14;
 						}
+					}
+					if (bShowMobileLowQualityLightmapWarning)
+					{
+						static const FText Message = NSLOCTEXT("Renderer", "MobileLQLightmap", "MOBILE PROJECTS SUPPORTING STATIC LIGHTING MUST HAVE LQ LIGHTMAPS ENABLED");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
+					}
+					if (bShowMobileMovableDirectionalLightWarning)
+					{
+						static const FText Message = NSLOCTEXT("Renderer", "MobileMovableDirectional", "PROJECT HAS MOVABLE DIRECTIONAL LIGHTS ON MOBILE DISABLED");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
+					}
+					if (bShowMobileDynamicCSMWarning)
+					{
+						static const FText Message = (!ReadOnlyCVARCache.bMobileEnableStaticAndCSMShadowReceivers)
+							? NSLOCTEXT("Renderer", "MobileDynamicCSM", "PROJECT HAS MOBILE CSM SHADOWS FROM STATIONARY DIRECTIONAL LIGHTS DISABLED")
+							: NSLOCTEXT("Renderer", "MobileDynamicCSMDistFieldShadows", "MOBILE CSM+STATIC REQUIRES DISTANCE FIELD SHADOWS ENABLED FOR PROJECT");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
+					}
+
+					if (bShowSkinCacheOOM)
+					{
+						FString String = FString::Printf(TEXT("OUT OF MEMORY FOR SKIN CACHE, REQUIRES %.3f extra MB (currently at %.3f)"), (float)GPUSkinCacheExtraRequiredMemory / 1048576.0f, CVarSkinCacheOOM->GetValueOnAnyThread());
+						Canvas.DrawShadowedText(10, Y, FText::FromString(String), GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
 					}
 
 					if (bLocked)
@@ -1505,17 +1598,17 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 
 			FViewInfo& View = Views[ViewIndex];
 
-			FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+			FDrawingPolicyRenderState DrawRenderState(View);
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
-			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
+			DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			const bool bWriteCustomStencilValues = SceneContext.IsCustomDepthPassWritingStencil();
 
 			if (!bWriteCustomStencilValues)
 			{
-				DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 			}
 
 			if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && (View.AntiAliasingMethod == AAM_TemporalAA))
@@ -1725,7 +1818,15 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 		}
 
 		// Only reset per-frame scene state once all views have processed their frame, including those in planar reflections
-		SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds.Reset();
+		for (int32 CacheType = 0; CacheType < ARRAY_COUNT(SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds); CacheType++)
+		{
+			SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds[CacheType].Reset();
+		}
+
+		{
+			SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_UpdateMotionBlurCache);
+			SceneRenderer->Scene->MotionBlurInfoData.UpdateMotionBlurCache(SceneRenderer->Scene);
+		}
 
 #if STATS
 		{
@@ -1748,11 +1849,11 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 			SET_MEMORY_STAT(STAT_LightInteractionMemory, FLightPrimitiveInteraction::GetMemoryPoolSize());
 		}
 #endif
+		
 
 		GRenderTargetPool.SetEventRecordingActive(false);
 
 		FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
-
 	}
 
 #if STATS
@@ -1833,12 +1934,17 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 	// Flush the canvas first.
 	Canvas->Flush_GameThread();
 
-	// Increment FrameNumber before render the scene. Wrapping around is no problem.
-	// This is the only spot we change GFrameNumber, other places can only read.
-	++GFrameNumber;
-
-	// this is passes to the render thread, better access that than GFrameNumberRenderThread
-	ViewFamily->FrameNumber = GFrameNumber;
+	if (Scene)
+	{
+		// We allow caching of per-frame, per-scene data
+		Scene->IncrementFrameNumber();
+		ViewFamily->FrameNumber = Scene->GetFrameNumber();
+	}
+	else
+	{
+		// this is passes to the render thread, better access that than GFrameNumberRenderThread
+		ViewFamily->FrameNumber = GFrameNumber;
+	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
@@ -1867,10 +1973,18 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 		// Construct the scene renderer.  This copies the view family attributes into its own structures.
 		FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily, Canvas->GetHitProxyConsumer());
 
+		bool bWorldIsPaused = ViewFamily->bWorldIsPaused;
+
+		ENQUEUE_RENDER_COMMAND(MotionBlurStartFrame)(
+			[Scene, bWorldIsPaused](FRHICommandList& RHICmdList)
+			{
+				SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame);
+				Scene->MotionBlurInfoData.StartFrame(bWorldIsPaused);
+			});
+
 		if (!SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
-			USceneCaptureComponent2D::UpdateDeferredCaptures(Scene);
-			USceneCaptureComponentCube::UpdateDeferredCaptures(Scene);
+			USceneCaptureComponent::UpdateDeferredCaptures(Scene);
 		}
 
 		// We need to execute the pre-render view extensions before we do any view dependent work.
@@ -1901,6 +2015,13 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily
 			FlushPendingDeleteRHIResources_RenderThread();
 		});
 	}
+}
+
+void FRendererModule::PostRenderAllViewports()
+{
+	// Increment FrameNumber before render the scene. Wrapping around is no problem.
+	// This is the only spot we change GFrameNumber, other places can only read.
+	++GFrameNumber;
 }
 
 void FRendererModule::UpdateMapNeedsLightingFullyRebuiltState(UWorld* World)
@@ -2025,10 +2146,6 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 
 		SetRenderTarget(RHICmdList, Family->RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
 		// further down to not intersect with "LIGHTING NEEDS TO BE REBUILT"
 		FVector2D Pos(30, 140);
 		const int32 FontSizeY = 14;
@@ -2141,3 +2258,118 @@ TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension()
 }
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+/**
+* Saves a previously rendered scene color target
+*/
+void FSceneRenderer::ResolveSceneColor(FRHICommandList& RHICmdList)
+{
+	SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneColor);
+
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	auto& CurrentSceneColor = SceneContext.GetSceneColor();
+	uint32 CurrentNumSamples = CurrentSceneColor->GetDesc().NumSamples;
+
+	const EShaderPlatform CurrentShaderPlatform = GShaderPlatformForFeatureLevel[SceneContext.GetCurrentFeatureLevel()];
+	if (CurrentNumSamples <= 1 || !RHISupportsSeparateMSAAAndResolveTextures(CurrentShaderPlatform))
+	{
+		RHICmdList.CopyToResolveTarget(SceneContext.GetSceneColorSurface(), SceneContext.GetSceneColorTexture(), true, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	}
+	else 
+	{
+		// Custom shader based color resolve for HDR color to emulate mobile.
+		SetRenderTarget(RHICmdList, SceneContext.GetSceneColorTexture(), FTextureRHIParamRef());
+		
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			const FViewInfo& View = Views[ViewIndex];
+
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+			GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+			RHICmdList.SetStreamSource(0, NULL, 0, 0);
+
+			// Resolve views individually
+			// In the case of adaptive resolution, the view family will be much larger than the views individually
+			RHICmdList.SetScissorRect(true, View.ViewRect.Min.X, View.ViewRect.Min.Y, View.ViewRect.Max.X, View.ViewRect.Max.Y);
+
+			int32 ResolveWidth = CVarWideCustomResolve.GetValueOnRenderThread();
+
+			if (CurrentNumSamples <= 1)
+			{
+				ResolveWidth = 0;
+			}
+
+			if (ResolveWidth != 0)
+			{
+				ResolveFilterWide(RHICmdList, GraphicsPSOInit, SceneContext.GetCurrentFeatureLevel(), CurrentSceneColor->GetRenderTargetItem().TargetableTexture, FIntPoint(0, 0), CurrentNumSamples, ResolveWidth);
+			}
+			else
+			{
+				auto ShaderMap = GetGlobalShaderMap(SceneContext.GetCurrentFeatureLevel());
+				TShaderMapRef<FHdrCustomResolveVS> VertexShader(ShaderMap);
+
+				if (CurrentNumSamples == 2)
+				{
+					TShaderMapRef<FHdrCustomResolve2xPS> PixelShader(ShaderMap);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+				}
+				else if (CurrentNumSamples == 4)
+				{
+					TShaderMapRef<FHdrCustomResolve4xPS> PixelShader(ShaderMap);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+				}
+				else if (CurrentNumSamples == 8)
+				{
+					TShaderMapRef<FHdrCustomResolve8xPS> PixelShader(ShaderMap);
+					GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GetVertexDeclarationFVector4();
+					GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+					GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+					GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+					SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
+					PixelShader->SetParameters(RHICmdList, CurrentSceneColor->GetRenderTargetItem().TargetableTexture);
+					RHICmdList.DrawPrimitive(PT_TriangleList, 0, 1, 1);
+				}
+				else
+				{
+					// Everything other than 2,4,8 samples is not implemented.
+					check(0);
+				}
+			}
+		}
+
+		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+	}
+}
+
+FTextureRHIParamRef FSceneRenderer::GetMultiViewSceneColor(const FSceneRenderTargets& SceneContext) const
+{
+	const FViewInfo& View = Views[0];
+
+	if (View.bIsMobileMultiViewEnabled && !View.bIsMobileMultiViewDirectEnabled)
+	{
+		return SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().TargetableTexture;
+	}
+	else
+	{
+		return static_cast<FTextureRHIRef>(ViewFamily.RenderTarget->GetRenderTargetTexture());
+	}
+}

@@ -8,6 +8,9 @@
 #include "HAL/PlatformFilemanager.h"
 #include "HAL/FileManager.h"
 #include "Misc/ScopeLock.h"
+#if PLATFORM_WINDOWS
+#include "Windows/WindowsPlatformMisc.h"
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5TargetPlatform, Log, All);
 
@@ -81,6 +84,20 @@ ITargetDevicePtr FHTML5TargetPlatform::GetDevice( const FTargetDeviceId& DeviceI
 
 bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
 {
+	// When the EMSDK environment variable is used, locate Emscripten SDK from the directory
+	// pointed to by that variable, instead of using a prepackaged SDK.
+	TCHAR EmsdkDirectory[1024] = { 0 };
+	FPlatformMisc::GetEnvironmentVariable(TEXT("EMSDK"), EmsdkDirectory, 1024);
+	if (EmsdkDirectory[0] != 0)
+	{
+		bool Exists = IFileManager::Get().DirectoryExists(EmsdkDirectory);
+		if (!Exists)
+		{
+			UE_LOG(LogTemp, Display, TEXT("Environment variable EMSDK is set to \"%s\", but that directory does not exist!"), EmsdkDirectory);
+		}
+		return Exists;
+	}
+
 	FString SDKPath = FPaths::EngineDir() / TEXT("Extras/ThirdPartyNotUE/emsdk") /
 #if PLATFORM_WINDOWS
 		TEXT("Win64");
@@ -98,6 +115,9 @@ bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocu
 	{
 		return true;
 	}
+
+	UE_LOG(LogTemp, Display, TEXT("HTML5 SDK path \"%s\", does not exist!"), *SDKDirectory);
+
 	return false;
 }
 
@@ -233,6 +253,33 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 	OutFormats.Add( TextureFormatName);
 }
 
+void FHTML5TargetPlatform::GetAllTextureFormats(TArray<FName>& OutFormats) const
+{
+
+#if WITH_EDITOR
+	// Supported texture format names.
+	static FName NameDXT1(TEXT("DXT1"));
+	static FName NameDXT3(TEXT("DXT3"));
+	static FName NameDXT5(TEXT("DXT5"));
+	static FName NameDXT5n(TEXT("DXT5n"));
+	static FName NameAutoDXT(TEXT("AutoDXT"));
+	static FName NameBGRA8(TEXT("BGRA8"));
+	static FName NameG8(TEXT("G8"));
+	static FName NameRGBA16F(TEXT("RGBA16F"));
+	static FName NameRGBA8(TEXT("RGBA8"));
+
+	// Supported texture format names.
+	OutFormats.Add(NameDXT1);
+	OutFormats.Add(NameDXT3);
+	OutFormats.Add(NameDXT5);
+	OutFormats.Add(NameDXT5n);
+	OutFormats.Add(NameAutoDXT);
+	OutFormats.Add(NameBGRA8);
+	OutFormats.Add(NameG8);
+	OutFormats.Add(NameRGBA16F);
+	OutFormats.Add(NameRGBA8);
+#endif
+}
 
 const UTextureLODSettings& FHTML5TargetPlatform::GetTextureLODSettings() const
 {
@@ -246,6 +293,14 @@ FName FHTML5TargetPlatform::GetWaveFormat( const USoundWave* Wave ) const
 	return NAME_OGG;
 }
 
+
+
+void FHTML5TargetPlatform::GetAllWaveFormats(TArray<FName>& OutFormats) const
+{
+	static FName NAME_OGG(TEXT("OGG"));
+	OutFormats.Add(NAME_OGG);
+}
+
 #endif // WITH_ENGINE
 
 void FHTML5TargetPlatform::RefreshHTML5Setup()
@@ -257,44 +312,49 @@ void FHTML5TargetPlatform::RefreshHTML5Setup()
 		return;
 	}
 
-	// update available devices
+	FScopeLock Lock( &DevicesCriticalSection );
+	// nuke everything and then repopulate
+	for (auto Iter = Devices.CreateIterator(); Iter; ++Iter)
+	{
+		FHTML5TargetDevicePtr Device = Iter->Value;
+		Iter.RemoveCurrent();
+		DeviceLostEvent.Broadcast(Device.ToSharedRef());
+	}
+
+	// fill optional items first - these may be empty...
 	TArray<FString> DeviceMaps;
-	GConfig->GetArray( TEXT("/Script/HTML5PlatformEditor.HTML5SDKSettings"), TEXT("DeviceMap"), DeviceMaps, GEngineIni );
+	GConfig->GetArray( TEXT("/Script/HTML5PlatformEditor.HTML5SDKSettings"), TEXT("BrowserLauncher"), DeviceMaps, GEngineIni );
+	PopulateDevices(DeviceMaps, TEXT("user: "));
+	DefaultDeviceName.Empty(); // force default to one of the common browsers
+
+	// fill with "common browsers" (if they are installed)...
+	DeviceMaps.Empty();
+	GConfig->GetArray( TEXT("/Script/HTML5PlatformEditor.HTML5Browsers"), TEXT("BrowserLauncher"), DeviceMaps, GEngineIni );
+	PopulateDevices(DeviceMaps, TEXT(""));
+}
+
+void FHTML5TargetPlatform::PopulateDevices(TArray<FString>& DeviceMaps, FString prefix)
+{
 	if ( ! DeviceMaps.Num() )
 	{
-		// trash can: nukes everything
-		// default list will be repopulated
-		FScopeLock Lock( &DevicesCriticalSection );
-		for (auto Iter = Devices.CreateIterator(); Iter; ++Iter)
-		{
-			FHTML5TargetDevicePtr Device = Iter->Value;
-			Iter.RemoveCurrent();
-			DeviceLostEvent.Broadcast(Device.ToSharedRef());
-		}
-		DefaultDeviceName.Empty();
+		return;
 	}
-	else
+
+	for (auto It : DeviceMaps)
 	{
-		// add or update
-		for (auto It : DeviceMaps)
+		FString DeviceName = "";
+		FString DevicePath = "";
+		if( FParse::Value( *It, TEXT( "BrowserName=" ), DeviceName ) && !DeviceName.IsEmpty() &&
+			FParse::Value( *It, TEXT( "BrowserPath=(FilePath=" ), DevicePath ) && !DevicePath.IsEmpty() )
 		{
-			FString DeviceName = "";
-			FString DevicePath = "";
-			if( FParse::Value( *It, TEXT( "DeviceName=" ), DeviceName ) && !DeviceName.IsEmpty() &&
-				FParse::Value( *It, TEXT( "DevicePath=(FilePath=" ), DevicePath ) && !DevicePath.IsEmpty() )
+
+			if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*DevicePath) ||
+			    FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*DevicePath))
 			{
-				if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*DevicePath) ||
-				    FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*DevicePath))
+				DeviceName = prefix + DeviceName;
+				FHTML5TargetDevicePtr& Device = Devices.FindOrAdd( DeviceName );
+				if( ! Device.IsValid() ) // do not override developer's entry
 				{
-					FScopeLock Lock( &DevicesCriticalSection );
-					DeviceName = TEXT("user: ") + DeviceName;
-					FHTML5TargetDevicePtr& Device = Devices.FindOrAdd( DeviceName );
-
-					if( Device.IsValid() )
-					{	// remove "existing" - so can "update" it
-						DeviceLostEvent.Broadcast(Device.ToSharedRef());
-					}
-
 					Device = MakeShareable( new FHTML5TargetDevice( *this, DeviceName, DevicePath ) );
 					DeviceDiscoveredEvent.Broadcast( Device.ToSharedRef() );
 					if ( DefaultDeviceName.IsEmpty() )
@@ -306,43 +366,33 @@ void FHTML5TargetPlatform::RefreshHTML5Setup()
 		}
 	}
 
-	struct FBrowserLocation
-	{
-		FString Name;
-		FString Path;
-	} PossibleLocations[] =
-	{
 #if PLATFORM_WINDOWS
-		{ TEXT("Nightly(64bit)"), TEXT("C:/Program Files/Nightly/firefox.exe") },
-		{ TEXT("Nightly"),        TEXT("C:/Program Files (x86)/Nightly/firefox.exe") },
-		{ TEXT("Firefox(64bit)"), TEXT("C:/Program Files/Mozilla Firefox/firefox.exe") },
-		{ TEXT("Firefox"),        TEXT("C:/Program Files (x86)/Mozilla Firefox/firefox.exe") },
-		{ TEXT("Chrome"),         TEXT("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe") },
-#elif PLATFORM_MAC
-		{ TEXT("Safari"),  TEXT("/Applications/Safari.app") },
-		{ TEXT("Firefox"), TEXT("/Applications/Firefox.app") },
-		{ TEXT("Chrome"),  TEXT("/Applications/Google Chrome.app") },
-#elif PLATFORM_LINUX
-		{ TEXT("Firefox"), TEXT("/usr/bin/firefox") },
-#else
-		{ TEXT("Firefox"), TEXT("") },
-#endif
-	};
-
-	// Add default devices..
-	for (const auto& Loc : PossibleLocations)
+	if ( prefix == "" )
 	{
-		if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*Loc.Path) || FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*Loc.Path))
+		// edge is launched via explorer.exe or start - which always exists but requires a parameter
+		// this may potentially be used with other browsers (the use of additional parameters)
+		// until then, special case this here...
+		FString out_OSVersionLabel;
+		FString out_OSSubVersionLabel;
+		FPlatformMisc::GetOSVersions(out_OSVersionLabel, out_OSSubVersionLabel);
 		{
-			FScopeLock Lock( &DevicesCriticalSection );
-
-			FHTML5TargetDevicePtr& Device = Devices.FindOrAdd( *Loc.Name );
-
-			if( !Device.IsValid() )
+			if (out_OSVersionLabel == "Windows 10")
 			{
-				Device = MakeShareable( new FHTML5TargetDevice( *this, *Loc.Name, *Loc.Path ) );
-				DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
+				FString DeviceName = "Edge";
+				FString DevicePath = "start microsoft-edge:";
+				FHTML5TargetDevicePtr& Device = Devices.FindOrAdd( DeviceName );
+				if( ! Device.IsValid() ) // do not override developer's entry
+				{
+					Device = MakeShareable( new FHTML5TargetDevice( *this, DeviceName, DevicePath ) );
+					DeviceDiscoveredEvent.Broadcast( Device.ToSharedRef() );
+					if ( DefaultDeviceName.IsEmpty() )
+					{
+						DefaultDeviceName = DeviceName;
+					}
+				}
 			}
 		}
 	}
+#endif
+
 }

@@ -1,11 +1,11 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
 
 public class WebRTC : ModuleRules
 {
-	public WebRTC(TargetInfo Target)
+	public WebRTC(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -18,7 +18,7 @@ public class WebRTC : ModuleRules
 		{
 			bShouldUseWebRTC = true;
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
 		{
 			bShouldUseWebRTC = true;
 		}

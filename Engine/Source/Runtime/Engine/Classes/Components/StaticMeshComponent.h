@@ -134,7 +134,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FStaticMeshComponentLODInfo> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FStaticMeshComponentLODInfo> : public TStructOpsTypeTraitsBase2<FStaticMeshComponentLODInfo>
 {
 	enum
 	{
@@ -193,9 +193,15 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** The section currently selected in the Editor. Used for highlighting */
 	UPROPERTY(transient)
 	int32 SelectedEditorSection;
+	/** The material currently selected in the Editor. Used for highlighting */
+	UPROPERTY(transient)
+	int32 SelectedEditorMaterial;
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered. Used for isolating in Static Mesh Tool **/
 	UPROPERTY(transient)
 	int32 SectionIndexPreview;
+	/** Index of the material to preview. If set to INDEX_NONE, all section will be rendered. Used for isolating in Static Mesh Tool **/
+	UPROPERTY(transient)
+	int32 MaterialIndexPreview;
 
 	/*
 	 * The import version of the static mesh when it was assign this is update when:
@@ -224,8 +230,10 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	uint32 bDisallowMeshPaintPerInstance : 1;
 
 #if !(UE_BUILD_SHIPPING)
-	/** Option to draw mesh collision in wireframe */
-	uint32 bDrawMeshCollisionWireframe : 1;
+	/** Draw mesh collision if used for complex collision */
+	uint32 bDrawMeshCollisionIfComplex : 1;
+	/** Draw mesh collision if used for simple collision */
+	uint32 bDrawMeshCollisionIfSimple : 1;
 #endif
 
 	/**
@@ -420,6 +428,7 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials, bool bGetDebugMaterials = false) const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual int32 GetMaterialIndex(FName MaterialSlotName) const override;
+	virtual UMaterialInterface* GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const override;
 	virtual TArray<FName> GetMaterialSlotNames() const override;
 	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const override;
 
@@ -530,6 +539,12 @@ public:
 	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
 	*/
 	void SetSectionPreview(int32 InSectionIndexPreview);
+
+	/**
+	*	Sets the value of the MaterialIndexPreview flag and reattaches the component as necessary.
+	*	@param	InMaterialIndexPreview		New value of MaterialIndexPreview.
+	*/
+	void SetMaterialPreview(int32 InMaterialIndexPreview);
 	
 	/** Sets the BodyInstance to use the mesh's body setup for external collision information*/
 	void UpdateCollisionFromStaticMesh();

@@ -16,9 +16,6 @@ UAbilityTask_ApplyRootMotionMoveToForce::UAbilityTask_ApplyRootMotionMoveToForce
 	PreviousMovementMode = EMovementMode::MOVE_None;
 	bRestrictSpeedToExpected = false;
 	PathOffsetCurve = nullptr;
-	VelocityOnFinishMode = ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity;
-	SetVelocityOnFinish = FVector::ZeroVector;
-	ClampVelocityOnFinish = 0.0f;
 }
 
 UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce::ApplyRootMotionMoveToForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector TargetLocation, float Duration, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish)
@@ -34,9 +31,9 @@ UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce
 	MyTask->NewMovementMode = MovementMode;
 	MyTask->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
 	MyTask->PathOffsetCurve = PathOffsetCurve;
-	MyTask->VelocityOnFinishMode = VelocityOnFinishMode;
-	MyTask->SetVelocityOnFinish = SetVelocityOnFinish;
-	MyTask->ClampVelocityOnFinish = ClampVelocityOnFinish;
+	MyTask->FinishVelocityMode = VelocityOnFinishMode;
+	MyTask->FinishSetVelocity = SetVelocityOnFinish;
+	MyTask->FinishClampVelocity = ClampVelocityOnFinish;
 	if (MyTask->GetAvatarActor() != nullptr)
 	{
 		MyTask->StartLocation = MyTask->GetAvatarActor()->GetActorLocation();
@@ -78,6 +75,9 @@ void UAbilityTask_ApplyRootMotionMoveToForce::SharedInitAndApply()
 			MoveToForce->Duration = Duration;
 			MoveToForce->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
 			MoveToForce->PathOffsetCurve = PathOffsetCurve;
+			MoveToForce->FinishVelocityParams.Mode = FinishVelocityMode;
+			MoveToForce->FinishVelocityParams.SetVelocity = FinishSetVelocity;
+			MoveToForce->FinishVelocityParams.ClampVelocity = FinishClampVelocity;
 			RootMotionSourceID = MovementComponent->ApplyRootMotionSource(MoveToForce);
 
 			if (Ability)
@@ -106,9 +106,7 @@ void UAbilityTask_ApplyRootMotionMoveToForce::TickTask(float DeltaTime)
 	AActor* MyActor = GetAvatarActor();
 	if (MyActor)
 	{
-		float CurrentTime = GetWorld()->GetTimeSeconds();
-		const bool bTimedOut = CurrentTime >= EndTime;
-
+		const bool bTimedOut = HasTimedOut();
 		const float ReachedDestinationDistanceSqr = 50.f * 50.f;
 		const bool bReachedDestination = FVector::DistSquared(TargetLocation, MyActor->GetActorLocation()) < ReachedDestinationDistanceSqr;
 
@@ -121,11 +119,17 @@ void UAbilityTask_ApplyRootMotionMoveToForce::TickTask(float DeltaTime)
 				MyActor->ForceNetUpdate();
 				if (bReachedDestination)
 				{
-					OnTimedOutAndDestinationReached.Broadcast();
+					if (ShouldBroadcastAbilityTaskDelegates())
+					{
+						OnTimedOutAndDestinationReached.Broadcast();
+					}
 				}
 				else
 				{
-					OnTimedOut.Broadcast();
+					if (ShouldBroadcastAbilityTaskDelegates())
+					{
+						OnTimedOut.Broadcast();
+					}
 				}
 				EndTask();
 			}
@@ -149,9 +153,6 @@ void UAbilityTask_ApplyRootMotionMoveToForce::GetLifetimeReplicatedProps(TArray<
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, NewMovementMode);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, bRestrictSpeedToExpected);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, PathOffsetCurve);
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, VelocityOnFinishMode);
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, SetVelocityOnFinish);
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, ClampVelocityOnFinish);
 }
 
 void UAbilityTask_ApplyRootMotionMoveToForce::PreDestroyFromReplication()
@@ -169,15 +170,6 @@ void UAbilityTask_ApplyRootMotionMoveToForce::OnDestroy(bool AbilityIsEnding)
 		if (bSetNewMovementMode)
 		{
 			MovementComponent->SetMovementMode(NewMovementMode);
-		}
-
-		if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::SetVelocity)
-		{
-			SetFinishVelocity(FName("AbilityTaskApplyRootMotionMoveToForce_EndForce"), SetVelocityOnFinish);
-		}
-		else if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::ClampVelocity)
-		{
-			ClampFinishVelocity(FName("AbilityTaskApplyRootMotionMoveToForce_VelocityClamp"), ClampVelocityOnFinish);
 		}
 	}
 

@@ -439,7 +439,7 @@ HTML 생성시 이렇게 변환됩니다:
 
 #### 내장형 Region
 
-note(참고, 주), tip(꼼수), warning(경고), quote(인용) 처럼 흔한 것에 쓰이는 region 스타일이 이미 있습니다.
+note(참고, 주), tip(팁), warning(경고), quote(인용) 처럼 흔한 것에 쓰이는 region 스타일이 이미 있습니다.
 
 	[REGION:note]
 	note 입니다. 노랑 상자 안에 있으며, 좌상단에 노트 아이콘을 볼 수 있습니다.

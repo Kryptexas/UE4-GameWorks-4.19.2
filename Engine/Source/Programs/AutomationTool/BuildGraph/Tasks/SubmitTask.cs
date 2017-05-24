@@ -50,6 +50,12 @@ namespace AutomationTool.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string RootDir;
+
+		/// <summary>
+		/// Whether to revert unchanged files before attempting to submit
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public bool RevertUnchanged;
 	}
 
 	/// <summary>
@@ -114,6 +120,17 @@ namespace AutomationTool.Tasks
 					if (Parameters.FileType != null)
 					{
 						SubmitP4.P4(String.Format("reopen -t \"{0}\" \"{1}\"", Parameters.FileType, File.FullName), AllowSpew: false);
+					}
+				}
+
+				// Revert any unchanged files
+				if(Parameters.RevertUnchanged)
+				{
+					SubmitP4.RevertUnchanged(NewCL);
+					if(SubmitP4.TryDeleteEmptyChange(NewCL))
+					{
+						CommandUtils.Log("No files to submit; ignored.");
+						return true;
 					}
 				}
 

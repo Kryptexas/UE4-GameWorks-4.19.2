@@ -9,6 +9,8 @@
 #include "Modules/ModuleManager.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Layout/SBox.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "EditorStyleSet.h"
 #include "GameFramework/PlayerController.h"
 #include "Sections/MovieSceneSubSection.h"
@@ -105,7 +107,7 @@ public:
 		}
 		else
 		{
-			return LOCTEXT("InvalidSequence", "No Sequence Selected");
+			return LOCTEXT("NoSequenceSelected", "No Sequence Selected");
 		}
 	}
 	
@@ -121,7 +123,7 @@ public:
 		}
 
 		const float DrawScale = InPainter.SectionGeometry.Size.X / SectionSize;
-		const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled
+		const ESlateDrawEffect DrawEffects = InPainter.bParentEnabled
 			? ESlateDrawEffect::None
 			: ESlateDrawEffect::DisabledEffect;
 
@@ -313,13 +315,6 @@ FSubTrackEditor::FSubTrackEditor(TSharedRef<ISequencer> InSequencer)
 
 void FSubTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
-	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
-
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
-	{
-		return;
-	}
-
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddSubTrack", "Subscenes Track"),
 		LOCTEXT("AddSubTooltip", "Adds a new track that can contain other sequences."),
@@ -384,6 +379,10 @@ bool FSubTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObject
 	return false;
 }
 
+bool FSubTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("LevelSequence"));
+}
 
 bool FSubTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 {
@@ -553,6 +552,10 @@ bool FSubTrackEditor::AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovie
 
 		return true;
 	}
+
+	FNotificationInfo Info(FText::Format( LOCTEXT("InvalidSequence", "Invalid level sequence {0}. There could be a circular dependency."), InMovieSceneSequence->GetDisplayName()));
+	Info.bUseLargeFont = false;
+	FSlateNotificationManager::Get().AddNotification(Info);
 
 	return false;
 }

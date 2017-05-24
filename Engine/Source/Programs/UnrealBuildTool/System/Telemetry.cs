@@ -79,7 +79,7 @@ namespace UnrealBuildTool
 				 // create the instance
 				 select (IProvider)Activator.CreateInstance(T)).FirstOrDefault();
 
-			if (BuildConfiguration.bPrintPerformanceInfo)
+			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
 				var TelemetryInitTime = (DateTime.UtcNow - TelemetryInitStartTime).TotalSeconds;
 				Log.TraceInformation("Telemetry initialization took " + TelemetryInitTime + "s. Provider Type = " + (Provider == null ? "null" : Provider.GetType().ToString()));
@@ -109,7 +109,11 @@ namespace UnrealBuildTool
 			SendEvent(EventName, Attributes.Where((value, index) => (index % 2) == 0).Zip(Attributes.Where((value, index) => (index % 2) == 1), (key, value) => Tuple.Create(key, value)));
 		}
 
-
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="EventName"></param>
+		/// <param name="Attributes"></param>
 		public static void SendEvent(string EventName, IEnumerable<Tuple<string, string>> Attributes)
 		{
 			if (Provider == null) return;

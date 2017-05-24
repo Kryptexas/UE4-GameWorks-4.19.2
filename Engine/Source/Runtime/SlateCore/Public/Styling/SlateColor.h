@@ -74,6 +74,9 @@ public:
 		, LinkedSpecifiedColor(InColor)
 	{ }
 
+	~FSlateColor()
+	{ }
+
 public:
 
 	/**
@@ -203,7 +206,7 @@ private:
 
 template<>
 struct TStructOpsTypeTraits<FSlateColor>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FSlateColor>
 {
 	enum 
 	{

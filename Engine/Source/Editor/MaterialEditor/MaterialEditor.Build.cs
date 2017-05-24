@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MaterialEditor : ModuleRules
 {
-	public MaterialEditor(TargetInfo Target)
+	public MaterialEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {

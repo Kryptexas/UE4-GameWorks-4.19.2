@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class StreamingPauseRendering : ModuleRules
 {
-    public StreamingPauseRendering(TargetInfo Target)
+    public StreamingPauseRendering(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("Runtime/StreamingPauseRendering/Private");
 

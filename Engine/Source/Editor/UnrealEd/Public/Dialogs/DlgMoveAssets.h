@@ -4,8 +4,7 @@
 	DlgMoveAssets.h: UnrealEd dialog for moving assets.
 =============================================================================*/
 
-#ifndef __DLGMOVEASSETS_H__
-#define __DLGMOVEASSETS_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -64,5 +63,3 @@ private:
 	/** Cached pointer to the message box held within the window */
 	TSharedPtr<class SDlgMoveAsset> MoveAssetWidget;
 };
-
-#endif // __DLGMOVEASSETS_H__

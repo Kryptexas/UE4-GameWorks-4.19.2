@@ -9,7 +9,7 @@
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
  * within this plugin.
  */
-class IOculusAudioPlugin : public IAudioSpatializationPlugin
+class IOculusAudioPlugin : public IAudioPlugin
 {
 
 public:
@@ -34,5 +34,8 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "OculusAudio" );
 	}
+
+	/** We are overriding spatialization. */
+	virtual bool ImplementsSpatialization() const override { return true; }
 };
 

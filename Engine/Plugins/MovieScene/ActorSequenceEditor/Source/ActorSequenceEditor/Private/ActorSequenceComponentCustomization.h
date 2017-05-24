@@ -14,6 +14,7 @@ class UActorSequence;
 class UActorSequenceComponent;
 class ISequencer;
 class FSCSEditorTreeNode;
+class IPropertyUtilities;
 
 class FActorSequenceComponentCustomization : public IDetailCustomization
 {
@@ -30,4 +31,5 @@ private:
 	TWeakObjectPtr<UActorSequenceComponent> WeakSequenceComponent;
 	TWeakPtr<FTabManager> WeakTabManager;
 	TSharedPtr<SBox> InlineSequencer;
+	TSharedPtr<IPropertyUtilities> PropertyUtilities;
 };

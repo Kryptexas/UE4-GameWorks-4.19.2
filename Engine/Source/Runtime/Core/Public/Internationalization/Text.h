@@ -12,12 +12,13 @@
 #include "Templates/SharedPointer.h"
 #include "Internationalization/CulturePointer.h"
 #include "Internationalization/TextLocalizationManager.h"
+#include "Internationalization/StringTableCoreFwd.h"
+#include "Internationalization/ITextData.h"
 #include "Misc/Optional.h"
 #include "Templates/UniquePtr.h"
 
 class FFormatArgumentValue;
 class FTextFormatData;
-class ITextData;
 
 class FText;
 class FTextHistory;
@@ -344,6 +345,12 @@ public:
 	static bool FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString = nullptr );
 
 	/**
+	 * Attempts to create an FText instance from a string table ID and key (this is the same as the LOCTABLE macro, except this can also work with non-literal string values).
+	 * @return The found text, or an dummy FText if not found.
+	 */
+	static FText FromStringTable(const FName InTableId, const FString& InKey, const EStringTableLoadingPolicy InLoadingPolicy = EStringTableLoadingPolicy::FindOrFullyLoad);
+
+	/**
 	 * Generate an FText representing the pass name
 	 */
 	static FText FromName( const FName& Val);
@@ -405,6 +412,18 @@ public:
 	bool IsEmptyOrWhitespace() const;
 
 	/**
+	 * Transforms the text to lowercase in a culture correct way.
+	 * @note The returned instance is linked to the original and will be rebuilt if the active culture is changed.
+	 */
+	FText ToLower() const;
+
+	/**
+	 * Transforms the text to uppercase in a culture correct way.
+	 * @note The returned instance is linked to the original and will be rebuilt if the active culture is changed.
+	 */
+	FText ToUpper() const;
+
+	/**
 	 * Removes whitespace characters from the front of the string.
 	 */
 	static FText TrimPreceding( const FText& );
@@ -426,8 +445,11 @@ public:
 
 	static void GetFormatPatternParameters(const FTextFormat& Fmt, TArray<FString>& ParameterNames);
 
-	static FText Format(FTextFormat Fmt, FFormatNamedArguments InArguments);
-	static FText Format(FTextFormat Fmt, FFormatOrderedArguments InArguments);
+	static FText Format(FTextFormat Fmt, const FFormatNamedArguments& InArguments);
+	static FText Format(FTextFormat Fmt, FFormatNamedArguments&& InArguments);
+
+	static FText Format(FTextFormat Fmt, const FFormatOrderedArguments& InArguments);
+	static FText Format(FTextFormat Fmt, FFormatOrderedArguments&& InArguments);
 
 	DEPRECATED(4.13, "The version of FText::Format taking FFormatArgumentData was internal to Blueprints and has been deprecated for C++ usage. Please use one of the other FText::Format(...) functions.")
 	static FText Format(FTextFormat Fmt, TArray< struct FFormatArgumentData > InArguments);
@@ -467,6 +489,7 @@ public:
 
 	bool IsTransient() const;
 	bool IsCultureInvariant() const;
+	bool IsFromStringTable() const;
 
 	bool ShouldGatherForLocalization() const;
 
@@ -487,21 +510,13 @@ private:
 
 	explicit FText( FString&& InSourceString );
 
+	FText( FName InTableId, FString InKey );
+
 	FText( FString&& InSourceString, FTextDisplayStringRef InDisplayString );
 
 	FText( FString&& InSourceString, const FString& InNamespace, const FString& InKey, uint32 InFlags=0 );
 
 	static void SerializeText( FArchive& Ar, FText& Value );
-
-	/**
-	 * Generate an FText for a string formatted numerically.
-	 */
-	static FText CreateNumericalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData);
-
-	/**
-	 * Generate an FText for a string formatted from a date/time.
-	 */
-	static FText CreateChronologicalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData);
 
 	/** Returns the source string of the FText */
 	const FString& GetSourceString() const;
@@ -542,13 +557,14 @@ public:
 	friend class FTextFormatData;
 	friend class FTextSnapshot;
 	friend class FTextInspector;
+	friend class FStringTableRegistry;
 	friend class FArchive;
 	friend class UTextProperty;
-	friend class UGatherTextFromAssetsCommandlet;
 	friend class FFormatArgumentValue;
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
+	friend class FTextHistory_Transform;
 	friend class FScopedTextIdentityPreserver;
 };
 
@@ -597,7 +613,13 @@ public:
 		DoubleValue = Value;
 	}
 
-	FFormatArgumentValue(FText Value)
+	FFormatArgumentValue(const FText& Value)
+		: Type(EFormatArgumentType::Text)
+		, TextValue(Value)
+	{
+	}
+
+	FFormatArgumentValue(FText&& Value)
 		: Type(EFormatArgumentType::Text)
 		, TextValue(MoveTemp(Value))
 	{
@@ -843,6 +865,7 @@ public:
 	static const FString* GetSourceString(const FText& Text);
 	static const FString& GetDisplayString(const FText& Text);
 	static const FTextDisplayStringRef GetSharedDisplayString(const FText& Text);
+	static bool GetTableIdAndKey(const FText& Text, FName& OutTableId, FString& OutKey);
 	static uint32 GetFlags(const FText& Text);
 	static void GetHistoricFormatData(const FText& Text, TArray<FHistoricTextFormatData>& OutHistoricFormatData);
 	static bool GetHistoricNumericData(const FText& Text, FHistoricTextNumericData& OutHistoricNumericData);
@@ -860,10 +883,11 @@ public:
 	 * @param PackageNamespace	The package namespace of the containing object (if loading for a property - see TextNamespaceUtil::GetPackageNamespace).
 	 * @param OutNumCharsRead	An optional output parameter to fill with the number of characters we read from the given buffer.
 	 * @param bRequiresQuotes	True if the read text literal must be surrounded by quotes (eg, when loading from a delimited list).
+	 * @param InLoadingPolicy	Controls how we should load any referenced string table assets.
 	 *
 	 * @return True if we read a valid FText instance into OutValue, false otherwise
 	 */
-	static bool ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace = nullptr, const TCHAR* PackageNamespace = nullptr, int32* OutNumCharsRead = nullptr, const bool bRequiresQuotes = false);
+	static bool ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace = nullptr, const TCHAR* PackageNamespace = nullptr, int32* OutNumCharsRead = nullptr, const bool bRequiresQuotes = false, const EStringTableLoadingPolicy InLoadingPolicy = EStringTableLoadingPolicy::FindOrFullyLoad);
 
 	/**
 	 * Write the given FText instance to a stream of text
@@ -884,12 +908,13 @@ public:
 	static bool IsComplexText(const TCHAR* Buffer);
 
 private:
-	static bool ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace, const TCHAR* PackageNamespace, int32* OutNumCharsRead);
+	static bool ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* TextNamespace, const TCHAR* PackageNamespace, int32* OutNumCharsRead, const EStringTableLoadingPolicy InLoadingPolicy);
 
 #define LOC_DEFINE_REGION
 	static const FString InvTextMarker;
 	static const FString NsLocTextMarker;
 	static const FString LocTextMarker;
+	static const FString LocTableMarker;
 #undef LOC_DEFINE_REGION
 };
 

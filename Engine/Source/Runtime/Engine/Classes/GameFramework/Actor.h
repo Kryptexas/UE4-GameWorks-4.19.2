@@ -31,6 +31,7 @@ class UNetDriver;
 class UPrimitiveComponent;
 struct FAttachedActorInfo;
 struct FNetViewer;
+struct FNetworkObjectInfo;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
  
@@ -172,7 +173,7 @@ public:
 	uint8 bExchangedRoles:1;
 
 	/** Is this actor still pending a full net update due to clients that weren't able to replicate the actor at the time of LastNetUpdateTime */
-	UPROPERTY(transient)
+	DEPRECATED(4.16, "bPendingNetUpdate has been deprecated. Please use bPendingNetUpdate that is now on FNetworkObjectInfo (obtained by calling GetNetworkObjectInfo)")
 	uint8 bPendingNetUpdate:1;
 
 	/** This actor will be loaded on network clients during map load */
@@ -343,7 +344,7 @@ public:
 	int32 NetTag;
 
 	/** Next time this actor will be considered for replication, set by SetNetUpdateTime() */
-	UPROPERTY(transient)
+	DEPRECATED(4.16, "NetUpdateTime has been deprecated. Please use NextUpdateTime that is now on FNetworkObjectInfo (obtained by calling GetNetworkObjectInfo)")
 	float NetUpdateTime;
 
 	/** How often (per second) this actor will be considered for replication, used to determine NetUpdateTime */
@@ -359,8 +360,8 @@ public:
 	float NetPriority;
 
 	/** Last time this actor was updated for replication via NetUpdateTime
-	 * @warning: internal net driver time, not related to WorldSettings.TimeSeconds */
-	UPROPERTY(transient)
+	* @warning: internal net driver time, not related to WorldSettings.TimeSeconds */
+	DEPRECATED(4.16, "LastNetUpdateTime has been deprecated. Please use LastNetUpdateTime that is now on FNetworkObjectInfo (obtained by calling GetNetworkObjectInfo)")
 	float LastNetUpdateTime;
 
 	/**
@@ -424,6 +425,14 @@ public:
     /** If true, this actor will generate overlap events when spawned as part of level streaming. You might enable this is in the case where a streaming level loads around an actor and you want overlaps to trigger. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Actor)
 	uint8 bGenerateOverlapEventsDuringLevelStreaming:1;
+
+protected:
+
+	/** If true, this actor can be put inside of a GC Cluster to improve Garbage Collection performance */
+	UPROPERTY(Category = Actor, EditAnywhere, AdvancedDisplay)
+	uint8 bCanBeInCluster:1;
+
+public:
 
 	/** Controls how to handle spawning this actor in a situation where it's colliding with something else. "Default" means AlwaysSpawn here. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Actor)
@@ -783,7 +792,7 @@ public:
 	FVector GetActorRightVector() const;
 
 	/**
-	 * Returns the bounding box of all components that make up this Actor.
+	 * Returns the bounding box of all components that make up this Actor (excluding ChildActorComponents).
 	 * @param	bOnlyCollidingComponents	If true, will only return the bounding box for components with collision enabled.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "GetActorBounds"))
@@ -1526,6 +1535,7 @@ public:
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
+	virtual bool CanBeInCluster() const override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
@@ -2068,6 +2078,15 @@ public:
 	  */
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
 
+	/**
+	* @param RealViewer - is the "controlling net object" associated with the client for which network relevancy is being checked (typically player controller)
+	* @param ViewTarget - is the Actor being used as the point of view for the RealViewer
+	* @param SrcLocation - is the viewing location
+	*
+	* @return bool - true if this actor is replay relevant to the client associated with RealViewer
+	*/
+	virtual bool IsReplayRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation, const float CullDistanceSquared) const;
+
 	DEPRECATED(4.8, "IsNetRelevantFor changed from PlayerController parameter to Actor parameter, please override that version.")
 	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
 
@@ -2114,7 +2133,7 @@ public:
 	void RemoveControllingMatineeActor( AMatineeActor& InMatineeActor );
 
 	/** Dispatches ReceiveHit virtual and OnComponentHit delegate */
-	void DispatchPhysicsCollisionHit(const struct FRigidBodyCollisionInfo& MyInfo, const struct FRigidBodyCollisionInfo& OtherInfo, const FCollisionImpactData& RigidCollisionData);
+	virtual void DispatchPhysicsCollisionHit(const struct FRigidBodyCollisionInfo& MyInfo, const struct FRigidBodyCollisionInfo& OtherInfo, const FCollisionImpactData& RigidCollisionData);
 	
 	/** @return the actor responsible for replication, if any.  Typically the player controller */
 	virtual const AActor* GetNetOwner() const;
@@ -2552,7 +2571,7 @@ public:
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult);
 
 	// Returns true if the actor contains an active camera component
-	virtual bool HasActiveCameraComponent();
+	virtual bool HasActiveCameraComponent() const;
 
 	// Returns true if the actor contains an active locked to HMD camera component
 	virtual bool HasActivePawnControlCameraComponent() const;
@@ -2585,6 +2604,9 @@ public:
 
 	/** Updates NetUpdateTime to the new value for future net relevancy checks */
 	void SetNetUpdateTime(float NewUpdateTime);
+
+	/** Return the FNetworkObjectInfo struct associated with this actor (for the main NetDriver) */
+	FNetworkObjectInfo* GetNetworkObjectInfo() const;
 
 	/** Force actor to be updated to clients */
 	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category="Networking")
@@ -2681,8 +2703,6 @@ public:
 	{
 		static_assert(TPointerIsConvertibleFromTo<T, const UActorComponent>::Value, "'T' template parameter to GetComponents must be derived from UActorComponent");
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
-
-		OutComponents.Reset(OwnedComponents.Num());
 
 		TArray<UChildActorComponent*> ChildActorComponents;
 
@@ -3173,34 +3193,6 @@ FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
 	{
 		return (InternalGetNetMode() == Mode);
 	}
-#endif
-}
-
-
-FORCEINLINE_DEBUGGABLE void AActor::SetNetUpdateTime(float NewUpdateTime)
-{
-	NetUpdateTime = NewUpdateTime;
-}
-
-//////////////////////////////////////////////////////////////////////////
-// UActorComponent inlines
-
-FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
-{
-#if WITH_EDITOR
-	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
-	if (bCanUseCachedOwner)
-	{
-		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-		return OwnerPrivate;
-	}
-	else
-	{
-		return GetTypedOuter<AActor>();
-	}
-#else
-	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-	return OwnerPrivate;
 #endif
 }
 

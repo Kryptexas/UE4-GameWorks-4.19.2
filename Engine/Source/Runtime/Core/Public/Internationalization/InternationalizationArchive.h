@@ -10,6 +10,7 @@
 #include "Containers/Map.h"
 #include "Templates/SharedPointer.h"
 #include "Internationalization/InternationalizationManifest.h"
+#include "LocKeyFuncs.h"
 
 class FLocMetadataObject;
 
@@ -26,23 +27,7 @@ public:
 	TSharedPtr<FLocMetadataObject> KeyMetadataObj;
 };
 
-struct FInternationalizationArchiveStringKeyFuncs : BaseKeyFuncs<TSharedRef< FArchiveEntry >, FString, true>
-{
-	static FORCEINLINE const FString& GetSetKey(const TPair<FString, TSharedRef< FArchiveEntry >>& Element)
-	{
-		return Element.Key;
-	}
-	static FORCEINLINE bool Matches(const FString& A, const FString& B)
-	{
-		return A.Equals(B, ESearchCase::CaseSensitive);
-	}
-	static FORCEINLINE uint32 GetKeyHash(const FString& Key)
-	{
-		return FCrc::StrCrc32<TCHAR>(*Key);
-	}
-};
-
-typedef TMultiMap< FString, TSharedRef< FArchiveEntry >, FDefaultSetAllocator, FInternationalizationArchiveStringKeyFuncs > FArchiveEntryByStringContainer;
+typedef TMultiMap< FString, TSharedRef< FArchiveEntry >, FDefaultSetAllocator, FLocKeyMultiMapFuncs< TSharedRef< FArchiveEntry > > > FArchiveEntryByStringContainer;
 
 class CORE_API FInternationalizationArchive 
 {

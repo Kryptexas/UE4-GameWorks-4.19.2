@@ -14,6 +14,21 @@ class FSceneView;
 class FSequencer;
 class FViewport;
 struct HMovieSceneKeyProxy;
+class UMovieScene3DTransformSection;
+class UMovieScene3DTransformTrack;
+
+/** Stores the transform track and associated mesh trail for each drawn track */
+struct FMeshTrailData
+{
+	class UMovieScene3DTransformTrack* Track;
+	class ASequencerMeshTrail* Trail;
+
+	FMeshTrailData(class UMovieScene3DTransformTrack* InTrack, class ASequencerMeshTrail* InTrail) :
+		Track(InTrack),
+		Trail(InTrail)
+	{
+	}
+};
 
 /**
  * FSequencerEdMode is the editor mode for additional drawing and handling sequencer hotkeys in the editor
@@ -34,6 +49,9 @@ public:
 	virtual bool InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
+	virtual bool UsesTransformWidget() const override { return false; }
+	virtual bool UsesTransformWidget(FWidget::EWidgetMode CheckMode) const override { return false; }
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	void AddSequencer(TWeakPtr<FSequencer> InSequencer) { Sequencers.AddUnique(InSequencer); }
 	void RemoveSequencer(TWeakPtr<FSequencer> InSequencer) { Sequencers.Remove(InSequencer); }
@@ -42,11 +60,30 @@ public:
 
 	void OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* KeyProxy);
 
+	/** Draw a single mesh transform track, given a key that is on that track */
+	void DrawMeshTransformTrailFromKey(const class ASequencerKeyActor* KeyActor);
+
+	/** Clean up any mesh trails and their associated key actors */
+	void CleanUpMeshTrails();
+
 protected:
-	void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI);
+	void DrawTracks3D(FPrimitiveDrawInterface* PDI);
+	void DrawTransformTrack(const TSharedPtr<FSequencer>& Sequencer, FPrimitiveDrawInterface* PDI, UMovieScene3DTransformTrack* TransformTrack, const TArray<TWeakObjectPtr<UObject>>& BoundObjects, const bool bIsSelected);
+
+protected:
+	static void GetLocationAtTime(const UMovieScene3DTransformSection* TransformSection, float KeyTime, FVector& KeyPos, FRotator& KeyRot);
+	static FTransform GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const UObject* InObject, float KeyTime);
+	static FTransform GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const AActor* Actor, float KeyTime);
+	static FTransform GetRefFrame(const TSharedPtr<FSequencer>& Sequencer, const USceneComponent* SceneComponent, float KeyTime);
 
 private:
 	TArray<TWeakPtr<FSequencer>> Sequencers;
+
+	/**Array of the transform tracks and their associated mesh trails */
+	TArray<FMeshTrailData> MeshTrails;
+
+	/** If true, draw mesh trails instead of debug lines*/
+	bool bDrawMeshTrails;
 };
 
 /**

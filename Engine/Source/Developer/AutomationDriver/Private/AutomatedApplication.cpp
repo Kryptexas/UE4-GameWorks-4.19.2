@@ -109,13 +109,13 @@ public:
 		}
 	}
 
-	virtual void SetCustomShape(void* CursorHandle) override
+	virtual void SetTypeShape(EMouseCursor::Type InCursorType, void* CursorHandle) override
 	{
 		if (bAllowMessageHandling)
 		{
 			if (RealCursor.IsValid())
 			{
-				RealCursor->SetCustomShape(CursorHandle);
+				RealCursor->SetTypeShape(InCursorType, CursorHandle);
 			}
 		}
 	}
@@ -378,16 +378,6 @@ public:
 	virtual void DestroyApplication() override
 	{
 		RealApplication->DestroyApplication();
-	}
-
-	virtual IForceFeedbackSystem* GetForceFeedbackSystem() override
-	{
-		return RealApplication->GetForceFeedbackSystem();
-	}
-
-	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() override
-	{
-		return RealApplication->DEPRECATED_GetForceFeedbackSystem();
 	}
 
 	virtual IInputInterface* GetInputInterface() override

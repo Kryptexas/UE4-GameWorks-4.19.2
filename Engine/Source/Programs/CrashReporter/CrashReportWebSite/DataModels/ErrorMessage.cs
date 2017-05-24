@@ -21,7 +21,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         }
     
         public int Id { get; set; }
-        public string Message { get; set; }
+        public string ErrorMessageText { get; set; }
     
         public virtual ICollection<Bugg> Buggs { get; set; }
         public virtual ICollection<Crash> Crashes { get; set; }

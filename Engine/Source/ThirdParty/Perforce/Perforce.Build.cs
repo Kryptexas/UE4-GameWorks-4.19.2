@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class Perforce : ModuleRules
 {
-	public Perforce(TargetInfo Target)
+	public Perforce(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -37,10 +37,6 @@ public class Perforce : ModuleRules
             if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
                 LibPostfixAndExt = "d.";
 
-            if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-            {
-                P4APIPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Perforce/p4api-2014.2/";
-            }
             LibPostfixAndExt += "lib";
             PublicLibraryPaths.Add(P4APIPath + LibFolder);
 

@@ -664,9 +664,11 @@ private:
 	TPendingTextureType* PendingTexture;
 	FThreadSafeCounter& Counter;
 	ULevel* LightingScenario;
+	class ITextureCompressorModule* Compressor;
+
 public:
 
-	FAsyncEncode(TPendingTextureType* InPendingTexture, ULevel* InLightingScenario, FThreadSafeCounter& InCounter) : PendingTexture(nullptr), Counter(InCounter)
+	FAsyncEncode(TPendingTextureType* InPendingTexture, ULevel* InLightingScenario, FThreadSafeCounter& InCounter, ITextureCompressorModule* InCompressor) : PendingTexture(nullptr), Counter(InCounter), Compressor(InCompressor)
 	{
 		LightingScenario = InLightingScenario;
 		PendingTexture = InPendingTexture;
@@ -674,13 +676,13 @@ public:
 
 	void Abandon()
 	{
-		PendingTexture->StartEncoding(LightingScenario);
+		PendingTexture->StartEncoding(LightingScenario, Compressor);
 		Counter.Decrement();
 	}
 
 	void DoThreadedWork()
 	{
-		PendingTexture->StartEncoding(LightingScenario);
+		PendingTexture->StartEncoding(LightingScenario, Compressor);
 		Counter.Decrement();
 	}
 };
@@ -810,7 +812,7 @@ public:
 inline bool DoesPlatformSupportDistanceFieldShadowing(EShaderPlatform Platform)
 {
 	// Hasn't been tested elsewhere yet
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_METAL_SM5 || Platform == SP_XBOXONE;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_METAL_SM5 || Platform == SP_XBOXONE_D3D12 || Platform == SP_XBOXONE_D3D11;
 }
 
 /** Represents a USkyLightComponent to the rendering thread. */
@@ -836,14 +838,18 @@ public:
 	bool bCastShadows;
 	bool bWantsStaticShadowing;
 	bool bHasStaticLighting;
+	bool bCastVolumetricShadow;
 	FLinearColor LightColor;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 	float AverageBrightness;
 	float IndirectLightingIntensity;
+	float VolumetricScatteringIntensity;
 	float OcclusionMaxDistance;
 	float Contrast;
+	float OcclusionExponent;
 	float MinOcclusion;
 	FLinearColor OcclusionTint;
+	EOcclusionCombineMode OcclusionCombineMode;
 };
 
 
@@ -1001,6 +1007,7 @@ public:
 	inline FVector4 GetPosition() const { return Position; }
 	inline const FLinearColor& GetColor() const { return Color; }
 	inline float GetIndirectLightingScale() const { return IndirectLightingScale; }
+	inline float GetVolumetricScatteringIntensity() const { return VolumetricScatteringIntensity; }
 	inline float GetShadowResolutionScale() const { return ShadowResolutionScale; }
 	inline FGuid GetLightGuid() const { return LightGuid; }
 	inline float GetShadowSharpen() const { return ShadowSharpen; }
@@ -1018,6 +1025,7 @@ public:
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
+	inline bool CastsVolumetricShadow() const { return bCastVolumetricShadow; }
 	inline bool CastsShadowsFromCinematicObjectsOnly() const { return bCastShadowsFromCinematicObjectsOnly; }
 	inline bool CastsModulatedShadows() const { return bCastModulatedShadows; }
 	inline const FLinearColor& GetModulatedShadowColor() const { return ModulatedShadowColor; }
@@ -1074,6 +1082,9 @@ protected:
 
 	/** Scale for indirect lighting from this light.  When 0, indirect lighting is disabled. */
 	float IndirectLightingScale;
+
+	/** Scales this light's intensity for volumetric scattering. */
+	float VolumetricScatteringIntensity;
 
 	float ShadowResolutionScale;
 
@@ -1139,6 +1150,8 @@ protected:
 
 	/** Whether the light is allowed to cast dynamic shadows from translucency. */
 	const uint32 bCastTranslucentShadows : 1;
+
+	const uint32 bCastVolumetricShadow : 1;
 
 	const uint32 bCastShadowsFromCinematicObjectsOnly : 1;
 
@@ -1247,6 +1260,8 @@ public:
 	*		FadeT = saturate((AbsTime * -InvFadeDuration) + ((FadeStartDelay + AbsSpawnTime + FadeDuration) * InvFadeDuration))
 	*/
 	float FadeStartDelayNormalized;
+
+	float FadeScreenSize;
 };
 
 /** Reflection capture shapes. */
@@ -1542,7 +1557,7 @@ public:
 		return 0;
 	}
 
-	void DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& InView, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
+	void DrawBatchedElements(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView& InView, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
 
 	/** The batched simple elements. */
 	FBatchedElements BatchedElements;
@@ -2207,8 +2222,9 @@ extern ENGINE_API void DrawDashedLine(class FPrimitiveDrawInterface* PDI, const 
  * @param	Size			Size of the diamond.
  * @param	InColor			Color of the diamond.
  * @param	DepthPriority	Depth priority for the diamond.
+ * @param	Thickness		How thick to draw diamond lines
  */
-extern ENGINE_API void DrawWireDiamond(class FPrimitiveDrawInterface* PDI, const FMatrix& DiamondMatrix, float Size, const FLinearColor& InColor, uint8 DepthPriority);
+extern ENGINE_API void DrawWireDiamond(class FPrimitiveDrawInterface* PDI, const FMatrix& DiamondMatrix, float Size, const FLinearColor& InColor, uint8 DepthPriority, float Thickness = 0.0f);
 
 extern ENGINE_API void DrawCoordinateSystem(FPrimitiveDrawInterface* PDI, FVector const& AxisLoc, FRotator const& AxisRot, float Scale, uint8 DepthPriority, float Thickness = 0.0f);
 
@@ -2437,3 +2453,36 @@ extern ENGINE_API FSharedSamplerState* Clamp_WorldGroupSettings;
 
 /** Initializes the shared sampler states. */
 extern ENGINE_API void InitializeSharedSamplerStates();
+
+/**
+* Cache of read-only console variables used by the scene renderer
+*/
+struct FReadOnlyCVARCache
+{
+	static const FReadOnlyCVARCache& Get()
+	{
+		if (!Singleton)
+		{
+			Singleton = new FReadOnlyCVARCache();
+		}
+		return *Singleton;
+	}
+
+	bool bEnablePointLightShadows;
+	bool bEnableStationarySkylight;
+	bool bEnableAtmosphericFog;
+	bool bEnableLowQualityLightmaps;
+	bool bEnableVertexFoggingForOpaque;
+	bool bAllowStaticLighting;
+
+	// Mobile specific
+	bool bMobileAllowMovableDirectionalLights;
+	bool bAllReceiveDynamicCSM;
+	bool bMobileAllowDistanceFieldShadows;
+	bool bMobileEnableStaticAndCSMShadowReceivers;
+	int32 NumMobileMovablePointLights;
+
+private:
+	FReadOnlyCVARCache();
+	static FReadOnlyCVARCache* Singleton;
+};

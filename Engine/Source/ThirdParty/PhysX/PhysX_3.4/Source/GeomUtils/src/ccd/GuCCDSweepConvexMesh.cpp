@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -610,7 +610,7 @@ PxReal SweepAnyShapeMesh(GU_SWEEP_METHOD_ARGS)
 				}
 			}	
 			PX_ASSERT(PxIsFinite(res));
-			resultNormal = convexPartOfMesh1.getPolygonNormal(0);			
+			resultNormal = transform1.rotate(convexPartOfMesh1.getPolygonNormal(0));			
 		}
 
 		if (res < minTOI)
@@ -623,7 +623,7 @@ PxReal SweepAnyShapeMesh(GU_SWEEP_METHOD_ARGS)
 		
 	}
 
-	worldNormal = transform1.rotate(tempWorldNormal);
+	worldNormal = tempWorldNormal;//transform1.rotate(tempWorldNormal);
 	worldPoint = tempWorldPoint;
 	outCCDFaceIndex = ccdFaceIndex;
 	return minTOI;

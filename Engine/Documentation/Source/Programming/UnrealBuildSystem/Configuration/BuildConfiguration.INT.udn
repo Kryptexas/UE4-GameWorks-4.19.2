@@ -1,28 +1,26 @@
 Availability:Public
 Title:Configuring Unreal Build System
-Crumbs: %ROOT%, Programming, Programming/UnrealBuildSystem
-Description:Configuring Unreal Build System to control how the engine is built.
+Crumbs:
+Description:Configure Unreal Build System to control how the engine is built.
 Version: 4.14
+tags:Programming
+tags:Unreal Build System
+level:Intermediate
+parent:Programming/UnrealBuildSystem
+topic-image:topic_buildConfigProps.png
+
+[TOC(start:2 end:4)]
 
 UnrealBuildTool reads settings from XML configuration files in the following locations:
 
-    * Engine/Programs/NotForLicensees/UnrealBuildTool/BuildConfiguration.xml
 	* Engine/Saved/UnrealBuildTool/BuildConfiguration.xml
 	* *User Folder/AppData*/Roaming/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml
 	* *My Documents*/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml
 
-The default settings are written to Engine/Programs/UnrealBuildTool/BuildConfiguration.xml as a reference. This file is generated whenever UnrealBuildTool runs; any settings you change here will be overwritten.
+These files are added to the generated UE4 project under the Config/UnrealBuildTool folder.
 
-## UnrealBuldTool Configuration Properties
+## UnrealBuildTool Configuration Properties
 
-$ bStopXGECompilationAfterErrors : If true, compilation with XGE will stop when an error occurs.
-    * Continuing compiling makes subsequent compiles much faster after you fix the odd error.
-    * It lets you see compile errors in all files before quitting the build.
-    * You can use **Ctrl + Break** to interrupt a failed build.
-$ bOmitPCDebugInfoInDevelopment : If true, debug info is not included when building in Development configuration.
-    * Set to false to always include debug info.
-    * Including debug info slows down compiling, but gives you line numbers and stack info in Development builds.
-$ bUseUnityBuild : Set to true when rebuilding the engine as a whole. This should be disabled when using fast iteration mode.
-$ bEnableFastIteration : If true, compile and link times are dramatically decreased. This should be disabled when creating unity builds.
-    * Setting to _true_ gives fastest iteration times.
-    * If you encounter weird "RPC" or "PDB" link errors, then you should set `bUseIncrementalLinking = false` in `ValidateConfiguration()`
+These properties will help you set and customize your build configuration(s).
+
+[INCLUDE:Programming/UnrealBuildSystem/Configuration/BuildConfigProperties]

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CrashTracker : ModuleRules
 {
-	public CrashTracker(TargetInfo Target)
+	public CrashTracker(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Developer/CrashTracker/Private");
 

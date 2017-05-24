@@ -83,6 +83,22 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		ModuleInfoFilename = FParse::Token(CmdLinePtr, false );
 	}
 
+	const static bool bVerbose = FParse::Param(*CmdLine,TEXT("VERBOSE"));
+	if (bVerbose)
+	{
+		LogCompile.SetVerbosity(ELogVerbosity::Verbose);
+	}
+
+	// Make sure the engine is properly cleaned up whenever we exit this function
+	struct FExitCleanup
+	{
+		~FExitCleanup()
+		{
+			FEngineLoop::AppPreExit();
+			FEngineLoop::AppExit();
+		}
+	} OnExitEngineCleanup;
+
 	GIsUCCMakeStandaloneHeaderGenerator = true;
 	if (GEngineLoop.PreInit(*ShortCmdLine) != 0)
 	{
@@ -108,9 +124,6 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 
 	extern ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename);
 	ECompilationResult::Type Result = UnrealHeaderTool_Main(ModuleInfoFilename);
-
-	FEngineLoop::AppPreExit();
-	FEngineLoop::AppExit();
 
 	if (Result == ECompilationResult::Succeeded && GUHTWarningLogged && GWarn->TreatWarningsAsErrors)
 	{

@@ -7,7 +7,7 @@ using System.IO;
 
 public class HTML5TargetPlatform : ModuleRules
 {
-	public HTML5TargetPlatform(TargetInfo Target)
+	public HTML5TargetPlatform(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "HTML5";
 

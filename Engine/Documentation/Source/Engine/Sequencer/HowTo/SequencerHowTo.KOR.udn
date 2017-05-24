@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3348041
 Availability: Public
 Title: 시퀀서 - 안내서
 Crumbs: %ROOT%, Engine, Engine\Sequencer
 Description:시퀀서 에디터로 시네마틱 시퀀스를 제작하는 법에 대한 안내서입니다.
 Related: Engine\Sequencer
 version: 4.11
+tags:Sequencer
 
 
 **시퀀서 - 안내서** 는 언리얼 엔진 4 에서 **시퀀서** 에디터를 여러가지 방법으로 활용하는 법을 단계별 예제와 함께 안내해 드립니다.
@@ -38,14 +39,13 @@ version: 4.11
 
 ## 고급
 [REGION:wrapper transparent]
+[](FANCY:Engine\Sequencer\HowTo\AnimateDynamicObjects "%Engine\Sequencer\HowTo\AnimateDynamicObjects:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksSub "%Engine\Sequencer\HowTo\TracksSub:description%")
 [](FANCY:Engine\Sequencer\HowTo\Spawnables "%Engine\Sequencer\HowTo\Spawnables:description%")
 [](FANCY:Engine\Sequencer\HowTo\SequenceRecorder "%Engine\Sequencer\HowTo\SequenceRecorder:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksLevelVisibility "%Engine\Sequencer\HowTo\TracksLevelVisibility:description%")
 [](FANCY:Engine\Sequencer\HowTo\CustomBurnIns "%Engine\Sequencer\HowTo\CustomBurnIns:description%")
-[PUBLISH:docs]
 [](FANCY:Engine\Sequencer\HowTo\ImportExportEDLs "%Engine\Sequencer\HowTo\ImportExportEDLs:description%")
-[/PUBLISH:docs]
 [/REGION]
 
 

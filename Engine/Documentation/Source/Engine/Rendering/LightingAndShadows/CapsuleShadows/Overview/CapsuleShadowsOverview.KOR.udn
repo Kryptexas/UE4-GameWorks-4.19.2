@@ -1,209 +1,174 @@
-﻿INTSourceChangelist:3178213
+﻿INTSourceChangelist:3348703
 Availability: Docs
-Title: Capsule Shadows Overview
-Crumbs: %ROOT%, Engine, 
-Description: Capsule Shadows Overview
-Version: 4.13
-
-
-[REGION:center]
-![](image_9.png)(w:900)
-[/REGION]
+Title: 캡슐 섀도 개요
+Crumbs:  
+Description: 언리얼 엔진 4 에 사용되는 캡슐 섀도 개요입니다.
+Version: 4.15
+Type: overview
+Parent: Engine/Rendering/LightingAndShadows/CapsuleShadows
+topic-image:cs_overview_topic.png
+tags: Lighting
 
 [TOC(start:2 end:3)]
 
+언리얼 엔진 4 (UE4) 에는 피직스 애셋으로 만든 캐릭터의 캡슐 표현인 **Capsule Shadows** (캡슐 섀도)로 라이팅 영역의 캐릭터에 소프트 섀도를 드리우는 기능을 지원합니다. 
+이 섀도잉 메소드는 간접광 영역에 있는 캐릭터에는 땅에 서있는 듯한 느낌을, 직사광 영역에는 소프트 섀도를 낼 수 있도록 해 주는데, 전통적인 섀도 매핑 기법으로는 
+가능하지 않은 일이었습니다.
 
-**Capsule Shadows** are used to generate soft shadows in lit areas by using a capsule representation of a character with a Physics Asset.
-This feature can make a character feel grounded in both direct and indirect lighting by producing consistent soft shadows.
+
+## 캐릭터 캡슐 표현
+
+[피직스 애셋](Engine/Physics/PhAT/) 을 사용하여 캐릭터의 추정한 표현을 만들어 매우 연한 그림자를 지원합니다. 캡슐은 캐릭터의 본에 붙으므로, 이를 통해 
+씬에서 그림자를 정확히 이동하며 드리울 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![캡슐 표현과 캐릭터](CapsuleShadowPA.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![캡슐 표현만](CapsuleShadowPA1.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+땅의 그림자는 캡슐 섀도 표현이 아닙니다.
+[/REGION]
 
 
-## How do they work?
+## 사용법
 
-Capsule Shadows start by using a unique Physics Asset that can be assigned to any Skeletal Mesh as a **Shadow Physics Asset**. This asset represents an approximation of the Skeletal Mesh 
-with respect to the shadows it should cast. Once this information is known, the [Indirect Lighting Samples](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) that are 
-generated after a light build can be used to cast a cone towards the direction of the light source. As the character nears this point, the cone is checked against the capsules to 
-see if there are any overlaps. If there are, then all the capsule shadows can be accumulated to build soft shadows for the character.
+![](ShadowPhysicsAsset.png)(w:400)
+
+스켈레탈 메시를 열고 **애셋 디테일** 패널에서 **섀도 피직스 애셋** 선택을 사용하여 캡슐 섀도에 사용할 피직스 애셋을 할당합니다.
+
+
+## 캡슐 섀도 세팅
+
+![](CapsuleShadowSettings.png)(w:400)
+[REGION:simpletable]
+| 프로퍼티 | 설명 |
+| -------- | ----------- |
+| **Capsule Direct Shadow** | 직접 캡슐 섀도 - 스켈레탈 메시의 섀도 피직스 애셋 슬롯에 캡슐 표현을 할당했을 때 (무버블) 직사광에서 소프트 섀도를 드리울 수 있도록 합니다. |
+| **Capsule Indirect Shadow** | 간접 캡슐 섀도 - 스켈레탈 메시의 섀도 피직스 애셋 슬롯에 캡슐 표현을 할당했을 때 프리컴퓨티드 라이팅(라이트맵 및 스카이라이트)에서 소프트 섀도를 드리울 수 있도록 합니다. |
+| **Capsule Indirect Shadow Min Visibility** | 간접 캡슐 섀도 최소 비저빌리티 - 간접광 영역에서 캡슐 섀도가 얼마나 진해질 수 있는지 아티스트가 제어할 수 있습니다. |
+[/REGION]
+
+
+### 간접 캡슐 섀도
+
+![](CapsuleShadowsSetting2.png)(w:400)
+
+**Capsule Indirect Shadow** (간접 캡슐 섀도) 옵션을 켜면, 배치된 [볼륨 라이팅 샘플](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) 에 따라 라이팅 빌드 도중 라이트매스가 계산한 디렉셔널 소프트 섀도를 드리우는 데 캐릭터의 캡슐 표현을 사용합니다. 
+간접 캡슐 섀도는 전통적인 섀도 매핑 방식이 잘 통하지 않는 이런 곳에 캐릭터가 땅 위에 있는 느낌을 낼 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![간접 캡슐 섀도 켬](CSEnabled.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![간접 캡슐 섀도 끔](CSDisabled.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+간접 캡슐 섀도가 켜지면, 반사광만 있는 지역에서도 캐릭터가 땅에 서있는 느낌을 낼 수 있도록 소프트 섀도를 드리웁니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![간접 캡슐 섀도 켬](SkylightCS1.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![간접 캡슐 섀도 끔](SkylightCS2.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+광원이 스카이 라이트만 있는 열린 공간에서는, 빛이 사방에서 오므로 방향성이 거의 없습니다. 이 때 프리컴퓨티드 라이팅을 사용하면 캐릭터 아래 
+미묘한 "blob" (방울) 소프트 섀도를 냅니다.
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	ns4QW1BFSHg
+	[/PARAMLITERAL]
+[/OBJECT]
+
+틈새를 통해 빛이 들어오는 닫힌 공간에서는, [간접 라이팅 캐시](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) 를 사용하여 
+캐릭터가 공간을 움직일 때 배치된 볼륨 라이팅 샘플끼리 보간하여 캡슐 섀도에 방향성을 주고 연하게 만듭니다. 통로에서 캐릭터의 그림자는 방향성이 적으므로 농도도 연하지만, 
+캐릭터가 통로에서 멀어질 수록 그림자의 농도와 방향성이 높아집니다.
+
+
+#### 간접 캡슐 섀도 최소 비저빌리티
+
+아티스트는 **Capsule Indirect Shadow Min Visibility** (간접 캡슐 섀도 최소 비저빌리티) 옵션을 조절하여 추가적인 제어가 가능합니다. 이를 통해 프리컴퓨티드 라이팅을 사용하여 간접광 영역에서 캡슐 섀도의 농도를 조절할 수 있습니다.
+이는 해당 영역에서 캡슐의 셀프 섀도를 줄이거나, 그림자의 농도를 연하게 하여, 주변 그림자와 멋지게 섞이도록 할 수 있습니다.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![캡슐 섀도 간접 최소 비저빌리티: 0.1 (기본값)](CSEnabled.png)(w:500)
+	[/PARAM]
+	[PARAM:after]
+	![캡슐 섀도 간접 최소 비저빌리티: 0.45](CSMinVisibility_45.png)(w:500)
+	[/PARAM]
+[/OBJECT]
+
+
+### 직접 캡슐 섀도
+
+![](CapsuleShadowsSetting1.png)(w:400)
+
+**Direct Capsule Shadow** (직접 캡슐 섀도) 옵션이 켜지면, 디렉셔널 라이트의 **Light Source Angle** (라이트 소스 각도)와 스포트 또는 포인트 라이트의 **Source Radius** (소스 반경)을 사용하여 그림자를 받는 표현에서의 연한 정도를 정의합니다.
+이를 통해 캡슐 섀도가 직접 라이팅되었을 때의 연한 정도를 직접 제어할 수 있습니다.
+
+#### 라이트 소스 각도
+
+디렉셔널 라이트의 **Light Source Angle** 프로퍼티는 다이내믹 섀도잉 메소드에서 소프트 에리어 섀도를 만드는 데 사용됩니다. 이 프로퍼티를 조정하면, 그림자를 드리우는 표면에서 멀어질 수록 
+그림자는 연해집니다.
 
 [REGION:imagetable]
-| ![](CS_Without.png)(w:370) | ![](CS_With.png)(w:370) |
-| ---- | ---- |
-| Without Capsule Shadows | With Capsule Shadows |
+| ![](CS_LSA1.png)(w:400) | ![](CS_LSA2.png)(w:400) |
+| --- | --- |
+| 라이트 소스 각도 : 1.0 (기본값) | 라이트 소스 각도: 2.0 |
 [/REGION]
 
-[REGION:left]
-[INCLUDE:Engine/Rendering/LightingAndShadows/CapsuleShadows\Overview#CapsuleShadowSlider]
-[/REGION]
+#### 소스 반경
 
-<!---
-[EXCERPT:CapsuleShadowSlider]
-[OBJECT:SliderSequence]
-	[PARAMLITERAL:max]
-	5
-	[/PARAMLITERAL]
-	[PARAMLITERAL:ext]
-	jpg
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	FS
-	[/PARAMLITERAL]
-	[PARAM:caption]
-	**Drag the slider to see what it takes to render the Capsule Shadows for a character.**
-	[/PARAM]
-	[PARAM:image_list]
-	![](CS_1.png)(w:750)
-	![](CS_2.png)(w:750)
-	![](CS_3.png)(w:750)
-	![](CS_4.png)(w:750)
-	![](CS_6.png)(w:750)
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:CapsuleShadowSlider]
--->
+디렉셔널 라이트의 라이트 소스 각도 작동 방식과 비슷하게, 스테이셔너리 스포트 / 포인트 라이트의 **Source Radius** (소스 반경)은 캐릭터에 소프트 섀도를 내는 데 사용됩니다. 소스 반경을 크게 할 수록, 라이트는 그림자를 드리우는 것이 표면에서 멀 수록 그림자를 연하게 만듭니다.
 
-The Physics asset that is created for Capsule Shadows and assigned to the Skeletal Mesh is used to represent the character in these indirectly-lit areas. Note that this is a mock-up representation of the capsules for the character. 
-
-1. Once lighting has been built for the scene, the character will have no shadowing in areas that have indirect lighting. 
-2. The Physics asset that is created for Capsule Shadows and assigned to the Skeletal Mesh is used to represent the character in these indirectly-lit areas. Note that this is a mock-up representation of the capsules for the character.
-3. With lighting built, the precomputed [volume lighting samples](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) are placed so that Skeletal Actors can blend in with the indirectly-lit environment by referencing the 
-lighting information stored in the placed samples.
-4. These light samples are used to draw a cone towards the capsule representaiton of the character based on the directional intensity of the light. The cone can be used to mask out shadowed areas to get a soft shadow representation for 
-the character.  
-5. The intesnity and directionality of the capsule shadow representation can be computed to ground the character in the environment giving us the final render with soft shadowing for movable actors in indirectly-lit areas. 
-
-[REGION:note]
-Capsule Shadows can also work in Dynamic lights, when **Capsule Direct Shadow** is enabled, to produce a soft shadow in directly-lit areas. See the [Capsule Direct Shadowing](Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview#CapsulesforDirectShadowing) section of this page.
-[/REGION]
-
-#### Capsule Representation of Character
-
-A Physics Asset is used to create a accurate representation of the character. Since the capsules are attached to the bones of the character this allows for the shadows to move with the character.
-
-For steps to setup your Phsyics Asset see the [How to Create a Shadow Phsyics Assets](Engine/Rendering/LightingAndShadows/CapsuleShadows/HowTo/CreateShadowAsset) page.
-
-For tips on setting up your Shadow Physics Asset see the [Best Practices](Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices) page for Capsule Shadows.
-
-[REGION:lightbox]
-[![](PA_WithoutArms.png)(w:500)](PA_withoutArms.png)
-[/REGION]
-
-[REGION:caption]
-_Capsule representation of a Skeletal Mesh character_
+[REGION:imagetable]
+| ![](CS_SR1.png)(w:400) | ![](CS_SR2.png)(w:400) |
+| --- | --- |
+| 소스 반경: 5.0 | 소스 반경: 15.0 |
 [/REGION]
 
 [REGION:note]
-The shadows on the ground are not representative Capsule Shadows. 
+씬에 대한 라이팅을 빌드한 이후에는, 라이팅을 리빌드할 필요 없이 **Source Radius** 프로퍼티를 조절할 수 있습니다. 이 프로퍼티는 캡슐 섀도 또는 메시 디스턴스 필드가 켜진 무버블 액터에만 영향을 줍니다.
 [/REGION]
 
+## 퍼포먼스
 
-## Capsule Shadow Settings
+캡슐 섀도의 GPU 퍼포먼스 비용은 사용된 캡슐 수, 캐릭터 수, 그림자가 영향을 주는 화면 크기에 비례합니다.
 
-You can enable Capsule Shadows for each Skeletal Mesh in your level by enabling the option for **Capsule Direct Shadows** and/or **Capsule Indirect Shadows** in its **Detail's** panel.
-
-![](EnableCapsuleShadows.png)(w:350)
-
-
-#### Capsules Direct Shadowing
-
-**Capsule Direct Shadows** enables soft shadowing for your character when in areas that are directly lit by any **Movable** or **Stationary** light source. 
-
-[REGION:lightbox]
-[![](DirectCapsuleShadows.png)(w:500)](DirectCapsuleShadows.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
+7870 의 1080p 해상도에서 예를 들면:
+ 
+[REGION:simpletable]
+| 캡슐이 10 개인 GPU 비용 | 밀리초 단위 시간 (ms) |
+| ---- | --- |
+| **화면에 캐릭터 하나** | 0.29 ms |
+| **화면에 캐릭터를 하나 추가할 때마다** | 0.05 ms |
 [/REGION]
 
-##### Light Source Angle
+이 구현은 매우 효율적인데, 절반 해상도롤 섀도잉 계산 후 깊이를 인식하는 업샘플을 하면서, 화면 타일 컬링 기법으로 섀도잉이 필요한 곳에만 일어나도록 하여 
+작업 양을 줄이기 때문입니다.
 
-For directly lit Capsule Shadows you can adjust the **Light Source Angle** of the Directional Light to soften the shadows. 
+## 한계
 
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Light Source Angle: 1.0 (Default)](DirectLightSourceAngle1.png)(w:500)
-	[/PARAM]
-	[PARAM:after]
-	![Light Source Angle: 2.0](DirectLightSourceAngle2.png)(w:500)
-	[/PARAM]
-[/OBJECT]
-
-#### Capsules Indirect Shadowing
-
-**Capsule Indirect Shadows** enables soft shadowing for your character in areas that are indirectly lit by any **Static** or **Stationary** light source. Capsule shadowing is created using the 
-[Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) that is generated during a light build. 
-
-[REGION:lightbox]
-[![](IndirectDefault.png)(w:500)](IndirectDefault.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
+* DirectX 11 가 필요한데, 컴퓨트 셰이더를 사용하는 타일드 디퍼드 구현 때문입니다.
+* 임의의 메시 셰이프에는 셀프 섀도 부작용이 있을 수 있습니다.
+* 캡슐 표현에는 스필 및 구체만 사용할 수 있습니다.
+* 캡슐 섀도가 너무 부드러워 져 앰비언트 오클루전이 되어버리는 경우, 진한 선이 나오는 섀도잉 부작용이 있습니다.
 
 
-## Directionality and Intensity of Indirect Shadows
-
-The directionality and intensity of the capsule shadowing is determined by the light samples generated after a light build. The brighter intensity of the lighting sample the less intense and softer the shadow will be since light is coming from many directions. 
-
-### Closed Area Shadowing
-
-When you have a opening for light to pour through, the intensity of the light will be brighter at the opening and dimmer at the back part of this area. 
-
-[REGION:lightbox]
-[![](CS_CaveFront.png)(w:500)](CS_CaveFront.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-In the front of this area the character's shadow is much softer since there is more light and the shadow has less directionality since more light is coming from above. 
-
-[REGION:lightbox]
-[![](CS_CaveBack.png)(w:500)](CS_CaveBack.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-However, at the back of this area the shadow is more intense, since it is more dimly lit and has more directionality. The majority of the light is coming from a single opening towards the front which means there will be
-less light traveling to the back of this area, and the character is lit more strongly from one direction.
-
-### Open Area Shadowing
-
-In open areas that receive indirect shadowing, Capsule Shadows will appear much softer, since the light can come from all around.
-
-[REGION:lightbox]
-[![](CS_openarea.png)(w:500)](CS_openarea.png)
-[/REGION]
-[REGION:caption]
-_Click the image for full size_
-[/REGION]
-
-
-
-
-## Performance
-
-Capsule Shadows are more efficient than standard shadow mapping techniques because of tile deferred culling which cull the capsule influences to only the tiles that could possibly 
-receive shadows from that capsule. This means that most of the areas on the screen were unaffected and did not require additional rendering work. The tiles that are potentially 
-receiving shadows will have to compute, for each pixel, the number of capsules that directly affect that pixel. Capsule Shadows perform better when there are fewer affected tiles on 
-the screen, as well as when there are fewer capsules.
-
-[OBJECT:ComparisonSlider]
-	[PARAM:before]
-	![Standard Shdow Mapping](DirectShadowMapping.png)(w:500)
-	[/PARAM]
-	[PARAM:after]
-	![Capsule Direct Shadows Enabled](DirectCapsuleShadows.png)(w:500)
-	[/PARAM]
-[/OBJECT]
-
-The performance benefit of Capsule Shadows is determined by the number of capsule bodies that are being used and the tiles influenced. Whereas, standard shadow mapping is more expensive because
-it needs to consider all the triangles in the shadow map, which means you can only get sharp shadows that have a little bit of blur to them.
-
-
-## Limitations
-
-* Requires DX 11 due to tiled deferred implementation using compute shaders.
-* Self-shadowing artifacts can exist for arbitrary mesh shapes.
-* Can only use Spheres and Sphylls for capsule representation.
-* Only support for Skeletal Meshes, but could be made to work with static meshes.
-* When capsule shadows get so soft that they become ambient occlusion, there's an artifact in the shadowing that causes a hard line. 

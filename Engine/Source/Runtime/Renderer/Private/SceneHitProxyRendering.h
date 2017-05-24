@@ -42,14 +42,14 @@ public:
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
 		DRAWING_POLICY_MATCH_END
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
 
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
@@ -79,7 +79,11 @@ public:
 
 	// FMeshDrawingPolicy interface.
 	void SetMeshRenderState( FRHICommandList& RHICmdList, const FSceneView& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh, int32 BatchElementIndex, const FDrawingPolicyRenderState& DrawRenderState, const FHitProxyId HitProxyId, const ContextDataType PolicyContext );
+	
+	void SetupPipelineState(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View) const;
 
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
+	
 	/**
 	 * Gets the value that should be written into the editor selection stencil buffer for a given primitive
 	 * There will be a unique stencil value for each primitive until the max stencil buffer value is written and then the values will repeat
@@ -115,7 +119,7 @@ public:
 
 	static void AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh,ContextType DrawingContext = ContextType());
 	static bool DrawDynamicMesh(
-		FRHICommandList& RHICmdList, 
+		FRHICommandList& RHICmdList,
 		const FSceneView& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,

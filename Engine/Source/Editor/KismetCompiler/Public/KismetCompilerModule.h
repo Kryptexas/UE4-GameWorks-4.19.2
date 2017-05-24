@@ -12,6 +12,7 @@ class UBlueprintGeneratedClass;
 class UUserDefinedEnum;
 class UUserDefinedStruct;
 struct FKismetCompilerOptions;
+struct FCompilerNativizationOptions;
 
 #define KISMET_COMPILER_MODULENAME "KismetCompiler"
 
@@ -59,6 +60,14 @@ public:
 	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<class FBlueprintCompileReinstancer> ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL)=0;
 
 	/**
+	 * Synchronizes Blueprint's GeneratedClass's properties with the NewVariable declarations in the blueprint
+	 * Used on load to ensure that all properties are present for instances.
+	 * 
+	 * @param Blueprint The blueprint that may be missing variables
+	 */
+	virtual void RefreshVariables(UBlueprint* Blueprint)=0;
+
+	/**
 	 * Compiles a user defined structure.
 	 *
 	 * @param	Struct		The structure to compile.
@@ -92,9 +101,9 @@ public:
 	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const = 0;
 
 	virtual void GenerateCppCodeForEnum(UUserDefinedEnum* UDEnum, FString& OutHeaderCode, FString& OutCPPCode) = 0;
-	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct) = 0;
+	virtual FString GenerateCppCodeForStruct(UUserDefinedStruct* UDStruct, const FCompilerNativizationOptions& NativizationOptions) = 0;
 	// Generate a wrapper class, that helps accessing non-native properties and calling non-native functions
-	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC) = 0;
+	virtual FString GenerateCppWrapper(UBlueprintGeneratedClass* BPGC, const FCompilerNativizationOptions& NativizationOptions) = 0;
 };
 
 

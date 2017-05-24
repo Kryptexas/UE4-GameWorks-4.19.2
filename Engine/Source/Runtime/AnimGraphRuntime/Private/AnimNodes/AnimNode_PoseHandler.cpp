@@ -29,9 +29,10 @@ void FAnimNode_PoseHandler::CacheBones(const FAnimationCacheBonesContext& Contex
 		for (const auto& TrackName : TrackNames)
 		{
 			int32 MeshBoneIndex = BoneContainer.GetPoseBoneIndexForBoneName(TrackName);
-			if (MeshBoneIndex != INDEX_NONE)
+			FCompactPoseBoneIndex CompactBoneIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(MeshBoneIndex));
+			if (CompactBoneIndex != INDEX_NONE)
 			{
-				BoneBlendWeights[MeshBoneIndex] = 1.f;
+				BoneBlendWeights[CompactBoneIndex.GetInt()] = 1.f;
 			}
 		}
 	}

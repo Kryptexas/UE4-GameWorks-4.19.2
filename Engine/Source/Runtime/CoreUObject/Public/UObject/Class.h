@@ -16,6 +16,7 @@
 #include "UObject/GarbageCollection.h"
 #include "UObject/CoreNative.h"
 #include "Templates/HasGetTypeHash.h"
+#include "Templates/IsAbstract.h"
 #include "Templates/IsEnum.h"
 
 struct FCustomPropertyListNode;
@@ -281,10 +282,6 @@ public:
 	/** Array of object references embedded in script code. Mirrored for easy access by realtime garbage collection code */
 	TArray<UObject*> ScriptObjectReferences;
 
-	/** Map of Class Name to Map of Old Property Name to New Property Name */
-	static TMap<FName,TMap<FName,FName> > TaggedPropertyRedirects;
-	static void InitTaggedPropertyRedirectsMap();
-
 public:
 	// Constructors.
 	UStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags );
@@ -433,7 +430,7 @@ public:
 		return InName.ToString();
 	}
 
-#if WITH_EDITOR
+#if WITH_EDITOR || HACK_HEADER_GENERATOR
 	/** Try and find boolean metadata with the given key. If not found on this class, work up hierarchy looking for it. */
 	bool GetBoolMetaDataHierarchical(const FName& Key) const;
 
@@ -534,7 +531,30 @@ enum EStructFlags
 
 
 /** type traits to cover the custom aspects of a script struct **/
-struct TStructOpsTypeTraitsBase
+template <class CPPSTRUCT>
+struct TStructOpsTypeTraitsBase2
+{
+	enum
+	{
+		WithZeroConstructor            = false,                         // struct can be constructed as a valid object by filling its memory footprint with zeroes.
+		WithNoInitConstructor          = false,                         // struct has a constructor which takes an EForceInit parameter which will force the constructor to perform initialization, where the default constructor performs 'uninitialization'.
+		WithNoDestructor               = false,                         // struct will not have its destructor called when it is destroyed.
+		WithCopy                       = !TIsPODType<CPPSTRUCT>::Value, // struct can be copied via its copy assignment operator.
+		WithIdenticalViaEquality       = false,                         // struct can be compared via its operator==.  This should be mutually exclusive with WithIdentical.
+		WithIdentical                  = false,                         // struct can be compared via an Identical(const T* Other, uint32 PortFlags) function.  This should be mutually exclusive with WithIdenticalViaEquality.
+		WithExportTextItem             = false,                         // struct has an ExportTextItem function used to serialize its state into a string.
+		WithImportTextItem             = false,                         // struct has an ImportTextItem function used to deserialize a string into an object of that class.
+		WithAddStructReferencedObjects = false,                         // struct has an AddStructReferencedObjects function which allows it to add references to the garbage collector.
+		WithSerializer                 = false,                         // struct has a Serialize function for serializing its state to an FArchive.
+		WithPostSerialize              = false,                         // struct has a PostSerialize function which is called after it is serialized
+		WithNetSerializer              = false,                         // struct has a NetSerialize function for serializing its state to an FArchive used for network replication.
+		WithNetDeltaSerializer         = false,                         // struct has a NetDeltaSerialize function for serializing differences in state from a previous NetSerialize operation.
+		WithSerializeFromMismatchedTag = false,                         // struct has a SerializeFromMismatchedTag function for converting from other property tags.
+	};
+};
+
+/** type traits to cover the custom aspects of a script struct **/
+struct DEPRECATED(4.16, "TStructOpsTypeTraitsBase has been deprecated, use TStructOpsTypeTraitsBase2<T> instead.") TStructOpsTypeTraitsBase
 {
 	enum
 	{
@@ -556,12 +576,8 @@ struct TStructOpsTypeTraitsBase
 };
 
 template<class CPPSTRUCT>
-struct TStructOpsTypeTraits : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits : public TStructOpsTypeTraitsBase2<CPPSTRUCT>
 {
-	enum
-	{
-		WithCopy = !TIsPODType<CPPSTRUCT>::Value
-	};
 };
 
 
@@ -906,6 +922,9 @@ public:
 
 		/** Returns property flag values that can be computed at compile time */
 		virtual uint64 GetComputedPropertyFlags() const = 0;
+
+		/** return true if this struct is abstract **/
+		virtual bool IsAbstract() const = 0;
 	private:
 		/** sizeof() of the structure **/
 		const int32 Size;
@@ -1057,6 +1076,10 @@ public:
 				| (TIsTriviallyDestructible<CPPSTRUCT>::Value ? CPF_NoDestructor : 0) 
 				| (TIsZeroConstructType<CPPSTRUCT>::Value ? CPF_ZeroConstructor : 0)
 				| (THasGetTypeHash<CPPSTRUCT>::Value ? CPF_HasGetValueTypeHash : 0);;
+		}
+		bool IsAbstract() const override
+		{
+			return TIsAbstract<CPPSTRUCT>::Value;
 		}
 	};
 
@@ -1431,13 +1454,8 @@ class COREUOBJECT_API UEnum : public UField
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UEnum, UField, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UEnum, NO_API)
 	UEnum(const FObjectInitializer& ObjectInitialzer);
 
-	/** Associate a function for looking up Enum display names by index, only intended for use by generated code: */
-	void SetEnumDisplayNameFn(FEnumDisplayNameFn InEnumDisplayNameFn)
-	{ 
-		EnumDisplayNameFn = InEnumDisplayNameFn; 
-	}
-
 public:
+	/** How this enum is declared in C++, affects the internal naming of enum values */
 	enum class ECppForm
 	{
 		Regular,
@@ -1445,23 +1463,70 @@ public:
 		EnumClass
 	};
 
-	// This will be the true type of the enum as a string, e.g. "ENamespacedEnum::InnerType" or "ERegularEnum" or "EEnumClass"
+	/** This will be the true type of the enum as a string, e.g. "ENamespacedEnum::InnerType" or "ERegularEnum" or "EEnumClass" */
 	FString CppType;
+
+	// Index is the internal index into the Enum array, and is not useful outside of the Enum system
+	// Value is the value set in the Enum Class in C++ or Blueprint
+	// Enums can be sparse, which means that not every valid Index is a proper Value, and they are not necessarily equal
+	// It is not safe to cast an Index to a Enum Class, always do that with a Value instead
+
+	/** Gets the internal index for an enum value. Returns INDEX_None if not valid */
+	FORCEINLINE int32 GetIndexByValue(int64 InValue) const
+	{
+		for (int32 i = 0; i < Names.Num(); ++i)
+		{
+			if (Names[i].Value == InValue)
+			{
+				return i;
+			}
+		}
+		return INDEX_NONE;
+	}
+
+	/** Gets enum value by index in Names array. Asserts on invalid index */
+	FORCEINLINE int64 GetValueByIndex(int32 Index) const
+	{
+		check(Names.IsValidIndex(Index));
+		return Names[Index].Value;
+	}
 
 	/** Gets enum name by index in Names array. Returns NAME_None if Index is not valid. */
 	FName GetNameByIndex(int32 Index) const;
 
-	/** Gets enum value by index in Names array. */
-	int64 GetValueByIndex(int32 Index) const;
+	/** Gets index of name in enum, returns INDEX_NONE and optionally errors when name is not found. This is faster than ByNameString if the FName is exact, but will fall back if needed */
+	int32 GetIndexByName(FName InName, bool bErrorIfNotFound = false) const;
 
 	/** Gets enum name by value. Returns NAME_None if value is not found. */
 	FName GetNameByValue(int64 InValue) const;
 
-	/** Gets enum value by name. Returns INDEX_NONE when name is not found. */
-	int64 GetValueByName(FName InName) const;
+	/** Gets enum value by name, returns INDEX_NONE and optionally errors when name is not found. This is faster than ByNameString if the FName is exact, but will fall back if needed */
+	int64 GetValueByName(FName InName, bool bErrorIfNotFound = false) const;
 
-	/** Gets index of name in enum. Returns INDEX_NONE when name is not found. */
-	int32 GetIndexByName(FName InName) const;
+	/** Returns the short name at the enum index, returns empty string if invalid */
+	FString GetNameStringByIndex(int32 InIndex) const;
+
+	/** Gets index of name in enum, returns INDEX_NONE and optionally errors when name is not found. Handles full or short names. */
+	int32 GetIndexByNameString(const FString& SearchString, bool bErrorIfNotFound = false) const;
+
+	/** Returns the short name matching the enum Value, returns empty string if invalid */
+	FString GetNameStringByValue(int64 InValue) const;
+
+	/** Gets enum value by name, returns INDEX_NONE and optionally errors when name is not found. Handles full or short names */
+	int64 GetValueByNameString(const FString& SearchString, bool bErrorIfNotFound = false) const;
+
+	/**
+	 * Finds the localized display name or native display name as a fallback.
+	 * If called from a cooked build this will normally return the short name as Metadata is not available.
+	 *
+	 * @param InIndex Index of the enum value to get Display Name for
+	 *
+	 * @return The display name for this object, or an empty text if Index is invalid
+	 */
+	virtual FText GetDisplayNameTextByIndex(int32 InIndex) const;
+
+	/** Version of GetDisplayNameTextByIndex that takes a value instead */
+	FText GetDisplayNameTextByValue(int64 InValue) const;
 
 	/** Gets max value of Enum. Defaults to zero if there are no entries. */
 	int64 GetMaxEnumValue() const;
@@ -1472,39 +1537,17 @@ public:
 	/** Checks if enum has entry with given name. Includes autogenerated _MAX entry. */
 	bool IsValidEnumName(FName InName) const;
 
-protected:
-	// Variables.
-	/** List of pairs of all enum names and values. */
-	TArray<TPair<FName, int64>> Names;
-
-	/** How the enum was originally defined. */
-	ECppForm CppForm;
-
-	/** pointer to function used to look up the enum's display name. Currently only assigned for UEnums generated for nativized blueprints */
-	FEnumDisplayNameFn EnumDisplayNameFn;
-
-	/** global list of all value names used by all enums in memory, used for property text import */
-	static TMap<FName, UEnum*> AllEnumNames;
-
-protected: 
-	
-	/** adds the Names in this enum to the master AllEnumNames list */
-	void AddNamesToMasterList();
-
-public:
-
-	/** removes the Names in this enum from the master AllEnumNames list */
+	/** Removes the Names in this enum from the master AllEnumNames list */
 	void RemoveNamesFromMasterList();
 
-	// UObject interface.
-	virtual void Serialize(FArchive& Ar) override;
-	virtual void BeginDestroy() override;
-	// End of UObject interface.
-
-	/*
-	 *	Try to update an out-of-date enum index after an enum's change
-	 */
+	/** Try to update an out-of-date enum index after an enum changes at runtime */
 	virtual int64 ResolveEnumerator(FArchive& Ar, int64 EnumeratorIndex) const;
+
+	/** Associate a function for looking up Enum display names by index, only intended for use by generated code */
+	void SetEnumDisplayNameFn(FEnumDisplayNameFn InEnumDisplayNameFn)
+	{
+		EnumDisplayNameFn = InEnumDisplayNameFn;
+	}
 
 	/**
 	 * Returns the type of enum: whether it's a regular enum, namespaced enum or C++11 enum class.
@@ -1528,16 +1571,7 @@ public:
 	}
 
 	/**
-	 * Generates full enum name give the enum type name and enum name.
-	 *
-	 * @param InEnum	 Enum Object
-	 * @param InEnumName Enum name.
-	 * @return Full enum name.
-	 */
-	static FString GenerateFullEnumName(const UEnum* InEnum, const TCHAR* InEnumName);
-
-	/**
-	 * Generates full enum name give enum name.
+	 * Generates full name including EnumName:: given enum name.
 	 *
 	 * @param InEnumName Enum name.
 	 * @return Full enum name.
@@ -1600,57 +1634,6 @@ public:
 	virtual bool SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing = true);
 
 	/**
-	 * @return	The enum name at the specified Index.
-	 */
-	FName GetEnum(int32 InIndex) const
-	{
-		if (Names.IsValidIndex(InIndex))
-		{
-			return Names[InIndex].Key;
-		}
-		return NAME_None;
-	}
-
-	int32 GetIndexByValue(int64 Value) const
-	{
-		for (int32 i = 0; i < Names.Num(); ++i)
-		{
-			if (Names[i].Value == Value)
-			{
-				return i;
-			}
-		}
-
-		return INDEX_NONE;
-	}
-	FString GetEnumNameStringByValue(int64 Value) const
-	{
-		int32 Index = GetIndexByValue(Value);
-		return GetEnumName(Index);
-	}
-
-	/**
-	 * @return	The short enum name at the specified Index.
-	 */
-	FString GetEnumName(int32 InIndex) const;
-
-	FText GetEnumTextByValue(int64 Value)
-	{
-		int32 Index = GetIndexByValue(Value);
-		return GetEnumText(Index);
-	}
-
-	/**
-	 * @return	The enum string at the specified index.
-	 */
-	virtual FText GetEnumText(int32 InIndex) const;
-
-	/**
-	 * @return	The index of the specified name, if it exists in the enum names list.
-	 */
-	int32 FindEnumIndex(FName InName) const;
-
-	/**
 	 * @return	 The number of enum names.
 	 */
 	int32 NumEnums() const
@@ -1668,23 +1651,16 @@ public:
 
 #if WITH_EDITOR
 	/**
-	* Finds the localized display name or native display name as a fallback.
-	 *
-	 * @param	NameIndex	if specified, will search for metadata linked to a specified value in this enum; otherwise, searches for metadata for the enum itself
-	 *
-	 * @return The display name for this object.
-	 */
-	virtual FText GetDisplayNameText(int32 NameIndex=INDEX_NONE) const;
-	FText GetDisplayNameTextByValue(int64 Value = INDEX_NONE) const;
-
-	/**
 	 * Finds the localized tooltip or native tooltip as a fallback.
 	 *
-	 * @param	NameIndex	if specified, will search for metadata linked to a specified value in this enum; otherwise, searches for metadata for the enum itself
+	 * @param NameIndex Index of the enum value to get tooltip for
 	 *
 	 * @return The tooltip for this object.
 	 */
-	FText GetToolTipText(int32 NameIndex=INDEX_NONE) const;
+	FText GetToolTipTextByIndex(int32 NameIndex) const;
+
+	DEPRECATED(4.16, "GetToolTipText with name index is deprecated, call GetToolTipTextByIndex instead")
+	FText GetToolTipText(int32 NameIndex) const { return GetToolTipTextByIndex(NameIndex); }
 #endif
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR
@@ -1727,97 +1703,121 @@ public:
 	 */
 	void RemoveMetaData( const TCHAR* Key, int32 NameIndex=INDEX_NONE ) const;
 #endif
-	/**
-	 * Find the enum and entry value from EnumRedirects
-	 * 
-	 * @param	Enum			Enum Object Ptr
-	 * @param	EnumEntryName	Name of the entry of the enum
-	 *
-	 */
-	static int32 FindEnumRedirects(const UEnum* Enum, FName EnumEntryName);
-
-
+	
 	/**
 	 * @param EnumPath         Full enum path.
-	 * @param EnumeratorIndex  Enumerator index.
+	 * @param EnumeratorValue  Enumerator VAlue.
 	 *
-	 * Note: Despite the name, this function actually uses the enumerator at a given index.  If the
-	 *       enum is not zero-based or is non-consecutive, this will give surprising results.
-	 *
-	 * @return the string associated with the enumerator at a given index for the enum specified by a path.
+	 * @return the string associated with the enumerator for the specified enum value for the enum specified by a path.
 	 */
 	template <typename T>
-	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const T EnumeratorIndex )
+	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const T EnumeratorValue)
 	{
 		// For the C++ enum.
 		static_assert(TIsEnum<T>::Value, "Should only call this with enum types");
-		return GetIndexAsString_Internal(EnumPath, (int32)EnumeratorIndex);
+		return GetValueAsString_Internal(EnumPath, (int64)EnumeratorValue);
 	}
 
 	template <typename T>
-	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const TEnumAsByte<T> EnumeratorIndex )
+	FORCEINLINE static FString GetValueAsString( const TCHAR* EnumPath, const TEnumAsByte<T> EnumeratorValue)
 	{
-		return GetIndexAsString_Internal(EnumPath, (int32)EnumeratorIndex.GetValue());
+		return GetValueAsString_Internal(EnumPath, (int64)EnumeratorValue.GetValue());
 	}
 
 	template< class T >
-	FORCEINLINE static void GetValueAsString( const TCHAR* EnumPath, const T EnumeratorIndex, FString& out_StringValue )
+	FORCEINLINE static void GetValueAsString( const TCHAR* EnumPath, const T EnumeratorValue, FString& out_StringValue )
 	{
-		out_StringValue = GetValueAsString( EnumPath, EnumeratorIndex );
+		out_StringValue = GetValueAsString( EnumPath, EnumeratorValue );
 	}
 
 	/**
 	 * @param EnumPath         Full enum path.
-	 * @param EnumeratorIndex  Enumerator index.
-	 *
-	 * Note: Despite the name, this function actually uses the enumerator at a given index.  If the
-	 *       enum is not zero-based or is non-consecutive, this will give surprising results.
+	 * @param EnumeratorValue  Enumerator Value.
 	 *
 	 * @return the localized display string associated with the specified enum value for the enum specified by a path
 	 */
 	template <typename T>
-	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumeratorIndex )
+	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumeratorValue )
 	{
 		// For the C++ enum.
 		static_assert(TIsEnum<T>::Value, "Should only call this with enum types");
-		return GetDisplayIndexAsText_Internal(EnumPath, (int32)EnumeratorIndex);
+		return GetDisplayValueAsText_Internal(EnumPath, (int64)EnumeratorValue);
 	}
 
 	template <typename T>
-	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const TEnumAsByte<T> EnumeratorIndex )
+	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const TEnumAsByte<T> EnumeratorValue)
 	{
-		return GetDisplayIndexAsText_Internal(EnumPath, (int32)EnumeratorIndex.GetValue());
+		return GetDisplayValueAsText_Internal(EnumPath, (int64)EnumeratorValue.GetValue());
 	}
 
 	template< class T >
-	FORCEINLINE static void GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumeratorIndex, FText& out_TextValue )
+	FORCEINLINE static void GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumeratorValue, FText& out_TextValue )
 	{
-		out_TextValue = GetDisplayValueAsText( EnumPath, EnumeratorIndex );
+		out_TextValue = GetDisplayValueAsText( EnumPath, EnumeratorValue);
 	}
 
-private:
-	/** Map of Enum Name to Map of Old Enum entry to New Enum entry */
-	static TMap<FName,TMap<FName,FName> > EnumRedirects;
-	/** Map of Enum Name to Map of Old Enum substring to New Enum substring, to handle many renames at once */
-	static TMap<FName,TMap<FString,FString> > EnumSubstringRedirects;
-	static void InitEnumRedirectsMap();
+	// Deprecated Functions
+	DEPRECATED(4.16, "FindEnumIndex is deprecated, call GetIndexByName or GetValueByName instead")
+	int32 FindEnumIndex(FName InName) const { return GetIndexByName(InName, true); }
 
-	FORCEINLINE static FString GetIndexAsString_Internal( const TCHAR* EnumPath, const int32 Index )
+	DEPRECATED(4.16, "FindEnumRedirects is deprecated, call GetIndexByNameString instead")
+	static int32 FindEnumRedirects(const UEnum* Enum, FName EnumEntryName) { return Enum->GetIndexByNameString(EnumEntryName.ToString()); }
+
+	DEPRECATED(4.16, "GetEnum is deprecated, call GetNameByIndex instead")
+	FName GetEnum(int32 InIndex) const { return GetNameByIndex(InIndex); }
+
+	DEPRECATED(4.16, "GetEnumNameStringByValue is deprecated, call GetNameStringByValue instead")
+	FString GetEnumNameStringByValue(int64 InValue) const { return GetNameStringByValue(InValue); }
+
+	DEPRECATED(4.16, "GetEnumName is deprecated, call GetNameStringByIndex instead")
+	FString GetEnumName(int32 InIndex) const { return GetNameStringByIndex(InIndex); }
+
+	DEPRECATED(4.16, "GetDisplayNameText with name index is deprecated, call GetDisplayNameTextByIndex instead")
+	FText GetDisplayNameText(int32 NameIndex) const { return GetDisplayNameTextByIndex(NameIndex); }
+
+	DEPRECATED(4.16, "GetEnumText with name index is deprecated, call GetDisplayNameTextByIndex instead")
+	FText GetEnumText(int32 NameIndex) const { return GetDisplayNameTextByIndex(NameIndex); }
+
+	DEPRECATED(4.16, "GetEnumTextByValue with name index is deprecated, call GetDisplayNameTextByValue instead")
+	FText GetEnumTextByValue(int64 Value) { return GetDisplayNameTextByValue(Value);  }
+
+	// UObject interface.
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
+	// End of UObject interface.
+
+protected:
+	/** List of pairs of all enum names and values. */
+	TArray<TPair<FName, int64>> Names;
+
+	/** How the enum was originally defined. */
+	ECppForm CppForm;
+
+	/** pointer to function used to look up the enum's display name. Currently only assigned for UEnums generated for nativized blueprints */
+	FEnumDisplayNameFn EnumDisplayNameFn;
+
+	/** global list of all value names used by all enums in memory, used for property text import */
+	static TMap<FName, UEnum*> AllEnumNames;
+
+	/** adds the Names in this enum to the master AllEnumNames list */
+	void AddNamesToMasterList();
+
+private:
+	FORCEINLINE static FString GetValueAsString_Internal( const TCHAR* EnumPath, const int64 EnumeratorValue)
 	{
 		UEnum* EnumClass = FindObject<UEnum>( nullptr, EnumPath );
 		UE_CLOG( !EnumClass, LogClass, Fatal, TEXT("Couldn't find enum '%s'"), EnumPath );
-		return EnumClass->GetEnumName(Index);
+		return EnumClass->GetNameStringByValue(EnumeratorValue);
 	}
 
-	FORCEINLINE static FText GetDisplayIndexAsText_Internal( const TCHAR* EnumPath, const int32 EnumeratorIndex )
+	FORCEINLINE static FText GetDisplayValueAsText_Internal( const TCHAR* EnumPath, const int64 EnumeratorValue )
 	{
 		UEnum* EnumClass = FindObject<UEnum>(nullptr, EnumPath);
 		UE_CLOG(!EnumClass, LogClass, Fatal, TEXT("Couldn't find enum '%s'"), EnumPath);
-		return EnumClass->GetEnumText(EnumeratorIndex);
+		return EnumClass->GetDisplayNameTextByValue(EnumeratorValue);
 	}
 
 	/**
-	 *
 	 * Renames enum values to use duplicated enum name instead of base one, e.g.:
 	 * 
 	 * MyEnum::MyVal
@@ -1827,8 +1827,7 @@ private:
 	 * 
 	 * MyDuplicatedEnum::MyVal
 	 * MyDuplicatedEnum::MyDuplicatedEnum_MAX
-	 * 
-	 **/
+	 */
 	void RenameNamesAfterDuplication();
 
 	/** Gets name of enum "this" is duplicate of. If we're not duplicating, just returns "this" name. */
@@ -1838,6 +1837,43 @@ private:
 /*-----------------------------------------------------------------------------
 	UClass.
 -----------------------------------------------------------------------------*/
+
+/** Base definition for C++ class type traits */
+struct FCppClassTypeTraitsBase
+{
+	enum
+	{
+		IsAbstract = false
+	};
+};
+
+
+/** Defines traits for specific C++ class types */
+template<class CPPCLASS>
+struct TCppClassTypeTraits : public FCppClassTypeTraitsBase
+{
+	enum
+	{
+		IsAbstract = TIsAbstract<CPPCLASS>::Value
+	};
+};
+
+
+/** Interface for accessing attributes of the underlying C++ class, for native class types */
+struct ICppClassTypeInfo
+{
+	/** Return true if the underlying C++ class is abstract (i.e. declares at least one pure virtual function) */
+	virtual bool IsAbstract() const = 0;
+};
+
+
+/** Implements the type information interface for specific C++ class types */
+template<typename TTraits>
+struct TCppClassTypeInfo : ICppClassTypeInfo
+{
+	bool IsAbstract() const { return TTraits::IsAbstract; }
+};
+
 
 /** information about an interface a class implements */
 struct COREUOBJECT_API FImplementedInterface
@@ -1962,16 +1998,12 @@ public:
 	friend class FRestoreClassInfo;
 
 	typedef void		(*ClassConstructorType)				(const FObjectInitializer&);
-#if WITH_HOT_RELOAD_CTORS
 	typedef UObject*	(*ClassVTableHelperCtorCallerType)	(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 	typedef void		(*ClassAddReferencedObjectsType)	(UObject*, class FReferenceCollector&);
 	typedef UClass* (*StaticClassFunctionType)();
 
 	ClassConstructorType ClassConstructor;
-#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD_CTORS
 	/** Pointer to a static AddReferencedObjects method. */
 	ClassAddReferencedObjectsType ClassAddReferencedObjects;
 
@@ -2047,6 +2079,9 @@ public:
 	static void AssembleReferenceTokenStreams();
 
 private:
+	/** Provides access to attributes of the underlying C++ class. Should never be NULL. */
+	ICppClassTypeInfo* CppTypeInfo;
+
 	/** Map of all functions by name contained in this class */
 	TMap<FName, UFunction*> FuncMap;
 
@@ -2091,9 +2126,7 @@ public:
 	explicit UClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
 	UClass( EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
 		const TCHAR* InClassConfigName, EObjectFlags InFlags, ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 		ClassAddReferencedObjectsType InClassAddReferencedObjects);
 
 #if WITH_HOT_RELOAD
@@ -2113,9 +2146,7 @@ public:
 		EClassCastFlags	InClassCastFlags,
 		const TCHAR*    InConfigName,
 		ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 		ClassAddReferencedObjectsType InClassAddReferencedObjects,
 		class UClass* TClass_Super_StaticClass,
 		class UClass* TClass_WithinClass_StaticClass
@@ -2143,6 +2174,7 @@ public:
 	{
 		return this;
 	}
+	const UClass* GetAuthoritativeClass() const { return const_cast<UClass*>(this)->GetAuthoritativeClass(); }
 
 	/**
 	 * Add a native function to the internal native function table
@@ -2212,6 +2244,19 @@ public:
 	virtual void SetSuperStruct(UStruct* NewSuperStruct) override;
 	virtual void SerializeSuperStruct(FArchive& Ar) override;
 	// End of UStruct interface.
+
+	/** Provides access to C++ type info. */
+	const ICppClassTypeInfo* GetCppTypeInfo() const
+	{
+		return CppTypeInfo;
+	}
+
+	/** Sets C++ type information. Should not be NULL. */
+	void SetCppTypeInfo(ICppClassTypeInfo* InCppTypeInfo)
+	{
+		check(InCppTypeInfo);
+		CppTypeInfo = InCppTypeInfo;
+	}
 	
 	/**
 	 * Translates the hardcoded script config names (engine, editor, input and 
@@ -2566,15 +2611,14 @@ public:
 	explicit UDynamicClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
 	UDynamicClass(EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
 		const TCHAR* InClassConfigName, EObjectFlags InFlags, ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD_CTORS
 		ClassAddReferencedObjectsType InClassAddReferencedObjects);
 
 	// UObject interface.
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	// UClass interface
+	virtual UObject* CreateDefaultObject();
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
 
@@ -2614,11 +2658,7 @@ void InternalConstructor( const FObjectInitializer& X )
 template<class T>
 UObject* InternalVTableHelperCtorCaller(FVTableHelper& Helper)
 {
-#if WITH_HOT_RELOAD_CTORS
 	return T::__VTableCtorCaller(Helper);
-#else
-	return nullptr;
-#endif // WITH_HOT_RELOAD_CTORS
 }
 
 COREUOBJECT_API void InitializePrivateStaticClass(
@@ -2943,6 +2983,9 @@ struct FStructUtils
 
 	// does structures have exactly the same memory layout
 	COREUOBJECT_API static bool TheSameLayout(const UStruct* StructA, const UStruct* StructB, bool bCheckPropertiesNames = false);
+
+	/** Locates a named structure in the package with the given name. Not expected to fail. */
+	COREUOBJECT_API static UStruct* FindStructureInPackageChecked(const TCHAR* StructName, const TCHAR* PackageName);
 };
 
 template< class T > struct TBaseStructure
@@ -3026,6 +3069,30 @@ template<> struct TBaseStructure<FFloatInterval>
 };
 
 template<> struct TBaseStructure<FInt32Interval>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+struct FStringAssetReference;
+template<> struct TBaseStructure<FStringAssetReference>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+struct FStringClassReference;
+template<> struct TBaseStructure<FStringClassReference>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+struct FPrimaryAssetType;
+template<> struct TBaseStructure<FPrimaryAssetType>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};
+
+struct FPrimaryAssetId;
+template<> struct TBaseStructure<FPrimaryAssetId>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };

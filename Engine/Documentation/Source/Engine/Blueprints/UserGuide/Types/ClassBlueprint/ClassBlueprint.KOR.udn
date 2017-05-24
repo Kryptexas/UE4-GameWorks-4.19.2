@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:블루프린트 클래스
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Anatomy
@@ -7,6 +7,7 @@ Version: 4.9
 SkillLevel: Beginner
 Parent:Engine/Blueprints/Anatomy
 Tags:Class Blueprints
+tags:Blueprints
 order:1
 
 [VAR:Topic]

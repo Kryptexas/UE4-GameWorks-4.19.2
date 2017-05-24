@@ -1,19 +1,32 @@
-﻿INTSourceChangelist:3102822
-Availability: Public
+﻿INTSourceChangelist:3343831
+Availability:Public
 Title:3D ウィジェットのインタラクションの作成
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:ゲームプレイ中に画面に UI エレメントを作成、表示、取り除く方法の例です。 
-Related: Engine\UMG\UserGuide\WidgetInteraction\
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide
-Version:4.13
+Description:ゲームプレイ中に画面に UI エレメントを作成、表示、削除する方法の例です。 
+Related:Engine\UMG\UserGuide\WidgetInteraction\
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
+Version:4.15
 SkillLevel:Intermediate
+tags:UMG UI Designer
 
 従来の UI は、2D または 3D のワールドに加えて 2D 空間で構成されます (例、メニュー、ヘルスバー、スコアの表示)。 
 ただし、3D 環境内にプレイヤーがインタラクションできる UI が必要になることがあるかもしれません (キーパッド、仮想メニュー、アイテム欄、その他のインタラクティブな UI エレメント)。 
 VR プロジェクトでは、こうしたものが多く使われ、UMG では [WidgetInteraction](Engine\UMG\UserGuide\WidgetInteraction) コンポーネントでこうしたインタラクションをサポートしています。 
 
-この操作ガイドでは、レベルに配置し、プレイヤーがクリックできるボタンを含むウィジェットを作成します。 
+この操作ガイドでは、レベルに配置し、プレイヤーがクリックできるボタンを含む以下の映像のようなウィジェットを作成します。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+bOZy7H9IMOI
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## ステップ
@@ -22,11 +35,7 @@ VR プロジェクトでは、こうしたものが多く使われ、UMG では 
 この操作ガイドでは **スターター コンテンツ** を有効にした状態で **Blueprint First Person** テンプレートを使用します。 
 [/REGION]
 
-1.	**「Content/FirstPersonBP/Blueprints」** フォルダ内で **FirstPersonCharacter** ブループリントを開きます。 
-
-	![](WidgetInteraction_01.png)
-
-1.	**[Add Component (コンポーネントを追加)]** ボタンをクリックして、 **Widget Interaction** コンポーネントを検索して追加します。 
+1.	**「Content/FirstPersonBP/Blueprints」** フォルダ内で **FirstPersonCharacter** ブループリントを開きます。次に、**Widget Interaction** タイプのコンポーネントを追加します。 
 
 	![](WidgetInteraction_02.png)
 
@@ -40,9 +49,7 @@ VR プロジェクトでは、こうしたものが多く使われ、UMG では 
 
 	![](WidgetInteraction_04.png)
 
-1.	**Event Graph** 内で、**Right Mouse Button** Mouse Event ノードを追加します。
-
-1.	Widget Interaction コンポーネントをグラフにドラッグします。次に、そこからドラッグして、**Press Pointer Key** ノードを追加します。 
+1.	**Event Graph** 内で、**Right Mouse Button** Mouse Event を追加し、Widget Interaction コンポーネントをドラッグして、**Press Pointer Key** ノードを追加します。 
 
 	![](WidgetInteraction_05.png)
 
@@ -69,10 +76,9 @@ VR プロジェクトでは、こうしたものが多く使われ、UMG では 
 
 	[REGION:caption]
 	クリックしてフルサイズで表示 
-	[/REGION]
+	[/REGION] 
 
-	この例では、単にクリックできるボタンを追加します。ボタン上のテキストには、プレイヤーがクリックした回数を示します。 
-	どのようなタイプのインタラクティブ ウィジェットでも作成して、Widget Interaction コンポーネントを使ってインタラクションすることができます (スライダー、コンボボックス、チェックボックスなどはワールド空間でインタラクション可能)。 
+	この例では、単にクリックできるボタンを追加します。ボタン上のテキストには、プレイヤーがクリックした回数を示します。どのようなタイプのインタラクティブ ウィジェットでも作成して、Widget Interaction コンポーネントを使ってインタラクションすることができます (スライダー、コンボボックス、チェックボックスなどはワールド空間でインタラクション可能)。
 
 1.	**Button** の **[Details (詳細)]** パネルの **Style/Hovered** で **Tint** を別の色に設定します。 
 
@@ -130,7 +136,7 @@ VR プロジェクトでは、こうしたものが多く使われ、UMG では 
 
 ## 最終結果
 
-エディタでプレイすると、以下のようになります。
+エディタでプレイすると、以下のようになります。**左マウスボタン** を使って武器を発射し、ボタンをポイントしている場合、**Hovered** ステートになります (そのスタイルを変更させます)。ボタン上で **Right Mouse Button** をクリックすると、押されるたびにテキスト値が増えます。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -144,11 +150,7 @@ bOZy7H9IMOI
 [/PARAMLITERAL]
 [/OBJECT]
 
-**左マウスボタン** を使って武器を発射し、ボタンをポイントしている場合、**Hovered** ステートになります (そのスタイルを変更させます)。 
-ボタン上で **Right Mouse Button** をクリックすると、押されるたびにテキスト値が増えます。 
-
-このステップで説明したように、右マウスボタンを使って click event を登録していますが、ゲームパッド ボタンのクリックを使って Pointer Key Presses/Releases または Motion Controller Trigger を押して (以下のように) 登録することができます。 
+このステップで説明したように、右マウスボタンを使って click event を登録していますが、ゲームパッド ボタンのクリックを使って Pointer Key Presses/Releases または Motion Controller Trigger を押して (以下のように) 登録することができます。ここでは、 Right Motion Controller (アタッチされた Widget Interaction コンポーネントと共に) でボタンをポイントして、Right Trigger を押してボタン クリックを登録します。
 
 ![](WidgetInteraction_21.png)
 
-ここでは、 Right Motion Controller (アタッチされた Widget Interaction コンポーネントと共に) でボタンをポイントして、Right Trigger を押してボタン クリックを登録します。

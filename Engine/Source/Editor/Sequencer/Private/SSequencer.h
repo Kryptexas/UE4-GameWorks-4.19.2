@@ -147,6 +147,9 @@ public:
 		/** Called when the user toggles the play back range lock */
 		SLATE_EVENT( FSimpleDelegate, OnTogglePlaybackRangeLocked )
 
+		/** The time snap interval */
+		SLATE_ATTRIBUTE( float, TimeSnapInterval )
+
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
 
@@ -173,6 +176,9 @@ public:
 
 		/** Extender to use for the add menu. */
 		SLATE_ARGUMENT( TSharedPtr<FExtender>, AddMenuExtender )
+
+		/** Extender to use for the toolbar. */
+		SLATE_ARGUMENT(TSharedPtr<FExtender>, ToolbarExtender)
 	SLATE_END_ARGS()
 
 
@@ -273,6 +279,9 @@ private:
 
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
+
+	/** Get context menu contents. */
+	void GetContextMenuContent(FMenuBuilder& MenuBuilder);
 
 	/** Makes the toolbar. */
 	TSharedRef<SWidget> MakeToolBar();
@@ -403,9 +412,6 @@ private:
 	/** Called when a column fill percentage is changed by a splitter slot. */
 	void OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex);
 
-	/** Called when the time snap interval is changed. */
-	void OnTimeSnapIntervalChanged();
-
 	/** Gets paint options for painting the playback range on sequencer */
 	FPaintPlaybackRangeArgs GetSectionPlaybackRangeArgs() const;
 
@@ -423,7 +429,7 @@ public:
 	void PasteTracks();
 
 	/** Open the paste menu */
-	void OpenPasteMenu();
+	bool OpenPasteMenu();
 	
 	/** Open the paste from history menu */
 	void PasteFromHistory();
@@ -477,6 +483,9 @@ private:
 
 	/** Extender to use for the 'add' menu */
 	TSharedPtr<FExtender> AddMenuExtender;
+
+	/** Extender to use for the toolbar */
+	TSharedPtr<FExtender> ToolbarExtender;
 
 	/** Numeric type interface used for converting parsing and generating strings from numbers */
 	TSharedPtr<INumericTypeInterface<float>> NumericTypeInterface;

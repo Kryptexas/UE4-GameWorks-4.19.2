@@ -5,7 +5,7 @@ using System.IO;
 
 public class BlockEncryptionHandlerComponent : ModuleRules
 {
-    public BlockEncryptionHandlerComponent(TargetInfo Target)
+    public BlockEncryptionHandlerComponent(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {

@@ -3,6 +3,7 @@ Title: Key Particle Concepts
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:Critical concepts for working with particles in Unreal and the Cascade particle editor.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

@@ -6,60 +6,6 @@ Description:有关 UE4 材质及其工作方式的介绍文档。
 Version:4.9
 SkillLevel:Beginner
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Rendering/LightingAndShadows/Basics "%Engine/Rendering/LightingAndShadows/Basics:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/IntroductionToMaterials:title%](Engine/Rendering/Materials/EssentialImage.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/Materials/IntroductionToMaterials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/Materials/IntroductionToMaterials:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/IntroductionToMaterials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/IntroductionToMaterials:title%](Engine/Rendering/Materials/EssentialImage.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/Materials/IntroductionToMaterials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/Materials/IntroductionToMaterials:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/IntroductionToMaterials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 
 [REGION:fullwidth]
 ![](IntroToMaterialsHeader.png)
@@ -188,4 +134,4 @@ SkillLevel:Beginner
 	![](AddingMaterialToBox.png)![](RedOnBox.png)(w:700)
 
 
-%playlistnav%
+

@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2757202
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:10.ビヘイビアツリーの基本
+Title:10. ビヘイビアツリーの基本
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 10ビヘイビアツリーの基本
 version:4.9
@@ -47,9 +47,9 @@ Root ノードの出力接続は 1 つだけです。ノードの下の部分に
 
 	![](sequence.png)
 
-2 つの主要な意思決定ノードをビヘイビアツリーで使用できます。**Selector** ノードは、どれか 1 つが成功するまで左から右へ子供全体に実行され、そこでツリーのバックアップが失敗します。一方、 **Sequence** ノードは、どれか 1 つが失敗するまで左から右へ子供全体に実行され、そこでツリーのバックアップが失敗します。
+2 つの主要な意思決定ノードをビヘイビアツリーで使用できます。**Selector** ノードは、どれか 1 つが成功するまで左から右へ子供全体に実行され、そこで制御が親ノードに戻ります。一方、 **Sequence** ノードは、どれか 1 つが失敗するまで左から右へ子供全体に実行され、そこで制御が親ノードに戻ります。
 
-Selector ノードと Sequence ノードはその下に多数の子供が付いているのに対して、 **Root** ノードには 1 つしかノードをアタッチされません。
+Selector ノードと Sequence ノードはその下に多数の子供が付いているのに対して、 **Root** ノードには 1 つしかノードがアタッチされません。
 
 ![](connected.png)
 

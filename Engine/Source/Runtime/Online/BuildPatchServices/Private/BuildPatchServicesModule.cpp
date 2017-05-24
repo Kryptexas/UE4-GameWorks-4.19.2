@@ -296,9 +296,9 @@ bool FBuildPatchServicesModule::MergeManifests(const FString& ManifestFilePathA,
 	return FBuildMergeManifests::MergeManifests(ManifestFilePathA, ManifestFilePathB, ManifestFilePathC, NewVersionString, SelectionDetailFilePath);
 }
 
-bool FBuildPatchServicesModule::DiffManifests(const FString& ManifestFilePathA, const FString& ManifestFilePathB, const FString& OutputFilePath)
+bool FBuildPatchServicesModule::DiffManifests(const FString& ManifestFilePathA, const TSet<FString>& TagSetA, const FString& ManifestFilePathB, const TSet<FString>& TagSetB, const FString& OutputFilePath)
 {
-	return FBuildDiffManifests::DiffManifests(ManifestFilePathA, ManifestFilePathB, OutputFilePath);
+	return FBuildDiffManifests::DiffManifests(ManifestFilePathA, TagSetA, ManifestFilePathB, TagSetB, OutputFilePath);
 }
 
 void FBuildPatchServicesModule::SetStagingDirectory( const FString& StagingDir )
@@ -373,7 +373,7 @@ void FBuildPatchServicesModule::CancelAllInstallers(bool WaitForThreads)
 			if (WaitForThreads)
 			{
 				// HACK #portal_debt
-				while (!Installer->IsComplete() && !Installer->IsCanceled())
+				while (!Installer->IsComplete())
 				{
 					FHttpModule::Get().GetHttpManager().Tick(0);
 				}
@@ -390,12 +390,14 @@ void FBuildPatchServicesModule::CancelAllInstallers(bool WaitForThreads)
 
 void FBuildPatchServicesModule::PreExit()
 {
-	// Set shutdown error so any running threads know to exit.
-	FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::ApplicationClosing, ApplicationClosedErrorCodes::ApplicationClosed);
-
 	// Cleanup installers
-	CancelAllInstallers(true);
-	BuildPatchInstallers.Empty();
+	if (BuildPatchInstallers.Num() > 0)
+	{
+		// Set shutdown error so any running threads know to exit.
+		FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::ApplicationClosing, ApplicationClosedErrorCodes::ApplicationClosed);
+		CancelAllInstallers(true);
+		BuildPatchInstallers.Empty();
+	}
 
 	// Release our ptr to analytics
 	FBuildPatchAnalytics::SetAnalyticsProvider(NULL);

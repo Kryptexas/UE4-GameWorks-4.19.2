@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:인스턴싱된 머티리얼
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ parent:Engine/Rendering/Materials
 order:6
 topic-image:Engine/Rendering/Materials/InstanceTopic.png
 type:overview
+tags:Materials
 
 
 ![](MICEditor.png)

@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
+#include "Runtime/Engine/Classes/Components/AudioComponent.h"
 #include "MovieSceneAudioSection.generated.h"
 
 class USoundBase;
@@ -13,8 +14,8 @@ class USoundBase;
 /**
  * Audio section, for use in the master audio, or by attached audio objects
  */
-UCLASS( MinimalAPI )
-class UMovieSceneAudioSection
+UCLASS()
+class MOVIESCENETRACKS_API UMovieSceneAudioSection
 	: public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()
@@ -36,7 +37,7 @@ public:
 	/**
 	 * @return The range of times that the sound plays, truncated by the section limits
 	 */
-	TRange<float> MOVIESCENETRACKS_API GetAudioRange() const;
+	TRange<float> GetAudioRange() const;
 	
 	DEPRECATED(4.15, "Audio true range no longer supported.")
 	TRange<float> GetAudioTrueRange() const;
@@ -101,16 +102,6 @@ public:
 		return Position >= AudioRange.GetLowerBoundValue() && Position <= AudioRange.GetUpperBoundValue();
 	}
 
-#if WITH_EDITORONLY_DATA
-	/**
-	 * @return Whether to show actual intensity on the waveform thumbnail or not
-	 */
-	bool ShouldShowIntensity() const
-	{
-		return bShowIntensity;
-	}
-#endif
-
 	/**
 	 * @return Whether subtitles should be suppressed
 	 */
@@ -120,6 +111,40 @@ public:
 	}
 	/** ~UObject interface */
 	virtual void PostLoad() override;
+
+	/** Called when subtitles are sent to the SubtitleManager.  Set this delegate if you want to hijack the subtitles for other purposes */
+	void SetOnQueueSubtitles(const FOnQueueSubtitles& InOnQueueSubtitles)
+	{
+		OnQueueSubtitles = InOnQueueSubtitles;
+	}
+
+	/** Called when subtitles are sent to the SubtitleManager.  Set this delegate if you want to hijack the subtitles for other purposes */
+	const FOnQueueSubtitles& GetOnQueueSubtitles() const
+	{
+		return OnQueueSubtitles;
+	}
+
+	/** called when we finish playing audio, either because it played to completion or because a Stop() call turned it off early */
+	void SetOnAudioFinished(const FOnAudioFinished& InOnAudioFinished)
+	{
+		OnAudioFinished = InOnAudioFinished;
+	}
+
+	/** called when we finish playing audio, either because it played to completion or because a Stop() call turned it off early */
+	const FOnAudioFinished& GetOnAudioFinished() const
+	{
+		return OnAudioFinished;
+	}
+	
+	void SetOnAudioPlaybackPercent(const FOnAudioPlaybackPercent& InOnAudioPlaybackPercent)
+	{
+		OnAudioPlaybackPercent = InOnAudioPlaybackPercent;
+	}
+
+	const FOnAudioPlaybackPercent& GetOnAudioPlaybackPercent() const
+	{
+		return OnAudioPlaybackPercent;
+	}
 
 public:
 
@@ -164,12 +189,17 @@ private:
 	UPROPERTY( EditAnywhere, Category = "Audio" )
 	FRichCurve PitchMultiplier;
 
-#if WITH_EDITORONLY_DATA
-	/** Whether to show the actual intensity of the wave on the thumbnail, as well as the smoothed RMS */
-	UPROPERTY(EditAnywhere, Category="Audio")
-	bool bShowIntensity;
-#endif
-
 	UPROPERTY(EditAnywhere, Category="Audio")
 	bool bSuppressSubtitles;
+
+	/** Called when subtitles are sent to the SubtitleManager.  Set this delegate if you want to hijack the subtitles for other purposes */
+	UPROPERTY()
+	FOnQueueSubtitles OnQueueSubtitles;
+
+	/** called when we finish playing audio, either because it played to completion or because a Stop() call turned it off early */
+	UPROPERTY()
+	FOnAudioFinished OnAudioFinished;
+
+	UPROPERTY()
+	FOnAudioPlaybackPercent OnAudioPlaybackPercent;
 };

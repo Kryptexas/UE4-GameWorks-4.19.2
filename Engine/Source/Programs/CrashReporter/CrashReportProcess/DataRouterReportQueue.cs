@@ -178,16 +178,13 @@ namespace Tools.CrashReporter.CrashReportProcess
 					string CrashFolderPath = Path.Combine(InLandingZone, CrashFolderName);
 
 					// Early check for duplicate processed report
-					lock (ReportIndexLock)
+					if (CrashReporterProcessServicer.ReportIndex.ContainsReport(CrashFolderName))
 					{
-						if (CrashReporterProcessServicer.ReportIndex.ContainsReport(CrashFolderName))
-						{
-							// Crash report not accepted by index
-							CrashReporterProcessServicer.WriteEvent(string.Format(
-								"DataRouterReportQueue: Duplicate report skipped early {0} in a DataRouterReportQueue", CrashFolderPath));
-							CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
-							return false; // this isn't an error so don't set error message
-						}
+						// Crash report not accepted by index
+						CrashReporterProcessServicer.WriteEvent(string.Format(
+							"DataRouterReportQueue: Duplicate report skipped early {0} in a DataRouterReportQueue", CrashFolderPath));
+						CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
+						return false; // this isn't an error so don't set error message
 					}
 
 					// Create target folder
@@ -230,16 +227,13 @@ namespace Tools.CrashReporter.CrashReportProcess
 					string CrashFolderPath = Path.Combine(InLandingZone, CrashFolderName);
 
 					// Early check for duplicate processed report
-					lock (ReportIndexLock)
+					if (CrashReporterProcessServicer.ReportIndex.ContainsReport(CrashFolderName))
 					{
-						if (CrashReporterProcessServicer.ReportIndex.ContainsReport(CrashFolderName))
-						{
-							// Crash report not accepted by index
-							CrashReporterProcessServicer.WriteEvent(string.Format(
-								"DataRouterReportQueue: Duplicate report skipped early {0} in a DataRouterReportQueue", CrashFolderPath));
-							CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
-							return false; // this isn't an error so don't set error message
-						}
+						// Crash report not accepted by index
+						CrashReporterProcessServicer.WriteEvent(string.Format(
+							"DataRouterReportQueue: Duplicate report skipped early {0} in a DataRouterReportQueue", CrashFolderPath));
+						CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.DuplicateRejected);
+						return false; // this isn't an error so don't set error message
 					}
 
 					// Create target folder

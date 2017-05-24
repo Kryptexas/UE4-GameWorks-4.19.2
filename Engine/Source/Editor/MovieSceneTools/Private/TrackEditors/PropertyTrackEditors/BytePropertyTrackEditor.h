@@ -26,8 +26,19 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FBytePropertyTrackEditor(TSharedRef<ISequencer> InSequencer)
-		: FPropertyTrackEditor(InSequencer, NAME_ByteProperty, NAME_EnumProperty)
+		: FPropertyTrackEditor(InSequencer, GetAnimatedPropertyTypes())
 	{ }
+
+	/**
+	 * Retrieve a list of all property types that this track editor animates
+	 */
+	static TArray<FAnimatedPropertyKey, TInlineAllocator<2>> GetAnimatedPropertyTypes()
+	{
+		return TArray<FAnimatedPropertyKey, TInlineAllocator<2>>({
+			FAnimatedPropertyKey::FromPropertyTypeName(NAME_ByteProperty),
+			FAnimatedPropertyKey::FromPropertyTypeName(NAME_EnumProperty)
+		});
+	}
 
 	/**
 	 * Creates an instance of this class (called by a sequencer).

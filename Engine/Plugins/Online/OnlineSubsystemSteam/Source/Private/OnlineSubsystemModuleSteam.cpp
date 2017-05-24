@@ -98,6 +98,14 @@ static FString GetSteamModulePath()
 		return FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER_PATH / TEXT("Win32/");
 	#endif	//PLATFORM_64BITS
 
+#elif PLATFORM_LINUX
+
+	#if PLATFORM_64BITS
+		return FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER_PATH / TEXT("x86_64-unknown-linux-gnu/");
+	#else
+		return FPaths::EngineDir() / STEAM_SDK_ROOT_PATH / STEAM_SDK_VER_PATH / TEXT("i686-unknown-linux-gnu/");
+	#endif	//PLATFORM_64BITS
+	
 #else
 
 	return FString();
@@ -110,29 +118,21 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 	UE_LOG_ONLINE(Display, TEXT("Loading Steam SDK %s"), STEAM_SDK_VER);
 
 #if PLATFORM_WINDOWS
-	#if PLATFORM_64BITS
-		FString RootSteamPath = GetSteamModulePath();
-		FPlatformProcess::PushDllDirectory(*RootSteamPath);
-		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api64.dll"));
-#if 0 //64 bit not supported well at present, use Steam Client dlls
-		// [RCL] 2015-02-09 the above comment ("64 bit not supported well...") is from (early) 2012, things might have changed
-		// Load the Steam dedicated server dlls (assumes no Steam Client running)
-		if (IsRunningDedicatedServer())
-		{
-			SteamServerDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steamclient64.dll"));
-		}
-#endif 
-		FPlatformProcess::PopDllDirectory(*RootSteamPath);
-	#else	//PLATFORM_64BITS
-		FString RootSteamPath = GetSteamModulePath();
-		FPlatformProcess::PushDllDirectory(*RootSteamPath);
-		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api.dll"));
-		if (IsRunningDedicatedServer())
-		{
-			SteamServerDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steamclient.dll"));
-		}
-		FPlatformProcess::PopDllDirectory(*RootSteamPath);
-	#endif	//PLATFORM_64BITS
+
+#if PLATFORM_64BITS
+	FString Suffix("64");
+#else
+	FString Suffix;
+#endif
+
+	FString RootSteamPath = GetSteamModulePath();
+	FPlatformProcess::PushDllDirectory(*RootSteamPath);
+	SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api" + Suffix + ".dll"));
+	if (IsRunningDedicatedServer())
+	{
+		SteamServerDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steamclient" + Suffix + ".dll"));
+	}
+	FPlatformProcess::PopDllDirectory(*RootSteamPath);
 #elif PLATFORM_MAC
 	SteamDLLHandle = FPlatformProcess::GetDllHandle(TEXT("libsteam_api.dylib"));
 #elif PLATFORM_LINUX
@@ -144,7 +144,7 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 	{
 		// try bundled one
 		UE_LOG_ONLINE(Warning, TEXT("Could not find system one, loading bundled libsteam_api.so."));
-		FString RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Linux/"), STEAM_SDK_VER_PATH);
+		FString RootSteamPath = GetSteamModulePath();
 		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "libsteam_api.so"));
 	}
 

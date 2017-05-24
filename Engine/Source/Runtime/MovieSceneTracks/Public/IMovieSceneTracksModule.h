@@ -7,6 +7,16 @@
 #include "Modules/ModuleManager.h"
 
 
+namespace EBuiltInEvaluationGroup
+{
+	enum Type
+	{
+		PreEvaluation,
+		SpawnObjects,
+		PostEvaluation,
+	};
+}
+
 /**
  * The public interface of the MovieSceneTracks module
  */
@@ -34,4 +44,9 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded("MovieSceneTracks");
 	}
+
+	/**
+	 * Retrieve the name of an evaluation group
+	 */
+	MOVIESCENETRACKS_API static FName GetEvaluationGroupName(EBuiltInEvaluationGroup::Type InEvalGroup);
 };

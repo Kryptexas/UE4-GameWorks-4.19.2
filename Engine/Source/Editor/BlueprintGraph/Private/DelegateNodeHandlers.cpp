@@ -53,8 +53,7 @@ struct FKCHandlerDelegateHelper
 				FString const OwnerName = PropertyOwnerClass->GetName();
 				FString const PropName = DelegateNode->GetPropertyName().ToString();
 
-				FText const ErrorFormat = LOCTEXT("DelegateNotFound", "Could not find an event-dispatcher named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
-				MessageLog.Error(*FString::Printf(*ErrorFormat.ToString(), *PropName, *OwnerName, *OwnerName), DelegateNode);
+				MessageLog.Error(*FText::Format(LOCTEXT("DelegateNotFoundFmt", "Could not find an event-dispatcher named \"{0}\" in '{1}'.\nMake sure '{2}' has been compiled for @@"), FText::FromString(PropName), FText::FromString(OwnerName), FText::FromString(OwnerName)).ToString(), DelegateNode);
 			}
 			return NULL;
 		}
@@ -208,9 +207,7 @@ void FKCHandler_CreateDelegate::RegisterNets(FKismetFunctionContext& Context, UE
 
 	if(!DelegateNode->GetDelegateSignature())
 	{
-		const FString ErrorStr = FString::Printf(
-			*LOCTEXT("NoDelegateFunction", "@@ : unable to determine expected signature - is the delegate pin connected?").ToString(),
-			*DelegateFunctionName.ToString());
+		const FString ErrorStr = LOCTEXT("NoDelegateFunction", "@@ : unable to determine expected signature - is the delegate pin connected?").ToString();
 		CompilerContext.MessageLog.Error(*ErrorStr, DelegateNode);
 		return;
 	}

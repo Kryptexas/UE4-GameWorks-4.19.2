@@ -2219,11 +2219,11 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 								LastSelectedParticleIndex++;
 								if (LastSelectedParticleIndex >= SourceEmitter->ActiveParticles)
 								{
-									LastSelectedParticleIndex = 0;
+									LastSelectedParticleIndex = -1;
 								}
 
 								// need to check if the next source index is in use, and go through until we find one that isn't
-								do
+								do 
 								{
 									bInUse = false;
 									for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
@@ -2236,8 +2236,8 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 									if (bInUse == true)
 									{
 										LastSelectedParticleIndex++;
-									}
-								} while (bInUse && LastSelectedParticleIndex < SourceEmitter->ActiveParticles);
+									}								
+								} while (bInUse && LastSelectedParticleIndex<SourceEmitter->ActiveParticles);
 
 								if (LastSelectedParticleIndex >= SourceEmitter->ActiveParticles)
 								{
@@ -2247,18 +2247,6 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 								Index = LastSelectedParticleIndex;
 							}
 							break;
-						}
-
-						for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
-						{
-							if (TrailCheckIdx != InTrailIdx)
-							{
-								if (SourceIndices[TrailCheckIdx] == SourceEmitter->ParticleIndices[Index])
-								{
-									Index = -1;
-									break;
-								}
-							}
 						}
 
 						SourceIndices[InTrailIdx] = Index != -1 ? SourceEmitter->ParticleIndices[Index] : -1;

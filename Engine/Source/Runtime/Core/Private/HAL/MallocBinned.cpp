@@ -603,7 +603,8 @@ struct FMallocBinned::Private
 					return Ret;
 				}
 			};
-			for (uint32 i=0; i < Allocator.FreedPageBlocksNum; ++i)
+			// Note the code below was similar to code removed by Arciel in his MallocBinned2 update and its removal fixes a memory leak
+/*			for (uint32 i=0; i < Allocator.FreedPageBlocksNum; ++i)
 			{
 				// is it possible (and worth i.e. <25% overhead) to use this block
 				if (Allocator.FreedPageBlocks[i].ByteSize >= NewSize && Allocator.FreedPageBlocks[i].ByteSize * 3 <= NewSize * 4)
@@ -619,7 +620,7 @@ struct FMallocBinned::Private
 					Allocator.FreedPageBlocksNum--;
 					return Ret;
 				}
-			};
+			};*/
 		}
 		OutActualSize = NewSize;
 		void* Ptr = FPlatformMemory::BinnedAllocFromOS(NewSize);

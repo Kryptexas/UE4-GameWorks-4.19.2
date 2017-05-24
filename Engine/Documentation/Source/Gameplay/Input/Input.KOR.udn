@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3340402
 Availability: Public
-Title:입력 (Input)
+Title:입력
 Crumbs:%ROOT%, Gameplay
 Description:Input 오브젝트는 플레이어로부터의 입력을 액터가 이해하고 활용할 수 있는 형태의 데이터로 변환하는 작업을 담당합니다.
-version: 4.9
+version: 4.15
+skilllevel:Beginner
+Parent:Engine/Gameplay
+type:overview
 
 
 **PlayerInput** 오브젝트는 플레이어로부터 받은 입력을 PlyaerController 나 Pawn 같은 액터가 이해하고 활용할 수 있는 형태의 데이터로 변환하는 작업을 담당합니다. 
@@ -16,7 +19,7 @@ version: 4.9
 [TOC (start:2 end:4)]
 
 ## 하드웨어 입력
-플레이어로부터의 하드웨어 입력은 매우 단순합니다. 가장 흔하게는 키 입력, 마우스 클릭, 마우스 이동, 콘트롤러 버튼 입력이나 조이스틱 이동 등이 포함됩니다.
+플레이어로부터의 하드웨어 입력은 매우 단순합니다. 가장 흔하게는 키 입력, 마우스 클릭, 마우스 이동, 콘트롤러 버튼 입력이나 조이스틱 이동 등이 포함됩니다. 표준 축 또는 버튼 인덱스가 아니거나 일반적이지 않은 입력 범위를 갖는 특수 입력 디바이스의 경우, [](Gameplay\Input\RawInput) 으로 수동 설정할 수 있습니다.
 
 
 ## PlayerInput

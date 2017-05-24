@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SlateViewer : ModuleRules
 {
-	public SlateViewer(TargetInfo Target)
+	public SlateViewer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 

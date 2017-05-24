@@ -22,7 +22,17 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	MSVC_PRAGMA(warning(disable : ALL_CODE_ANALYSIS_WARNINGS))
 #endif	// USING_CODE_ANALYSIS
 
-#pragma pack(push,8)
+#if PLATFORM_XBOXONE
+	#pragma pack(push,16)
+#elif PLATFORM_WINDOWS
+	#if PLATFORM_64BITS
+		#pragma pack(push,16)
+	#elif PLATFORM_32BITS
+		#pragma pack(push,8)
+	#endif
+#elif (PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && !PLATFORM_64BITS)
+	#pragma pack(push,16)
+#endif
 
 THIRD_PARTY_INCLUDES_START
 #include "Px.h"
@@ -31,6 +41,8 @@ THIRD_PARTY_INCLUDES_START
 #include "PxExtensionsAPI.h"
 #include "PxCollectionExt.h"
 #include "PxPvd.h"
+
+#include "PxImmediateMode.h"
 
 // utils
 #include "PxGeometryQuery.h"
@@ -60,7 +72,7 @@ THIRD_PARTY_INCLUDES_START
 
 #if WITH_APEX_CLOTHING
 #include "ModuleClothing.h"
-#include "ClothingAsset.h"
+#include "clothing/ClothingAsset.h"
 #include "ClothingActor.h"
 #include "ClothingCollision.h"
 #endif
@@ -76,7 +88,17 @@ THIRD_PARTY_INCLUDES_END
 
 #endif // #if WITH_APEX
 
-#pragma pack(pop)
+#if PLATFORM_XBOXONE
+	#pragma pack(pop)
+#elif PLATFORM_WINDOWS
+	#if PLATFORM_64BITS
+		#pragma pack(pop)
+	#elif PLATFORM_32BITS
+		#pragma pack(pop)
+	#endif
+#elif (PLATFORM_LINUX && PLATFORM_CPU_X86_FAMILY && !PLATFORM_64BITS)
+	#pragma pack(pop)
+#endif
 
 #if USING_CODE_ANALYSIS
 	MSVC_PRAGMA(warning(pop))

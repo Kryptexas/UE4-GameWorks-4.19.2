@@ -122,6 +122,9 @@ public:
 	static const TCHAR* ImportSingleProperty( const TCHAR* Str, void* DestData, class UStruct* ObjectStruct, UObject* SubobjectOuter, int32 PortFlags,
 											FOutputDevice* Warn, TArray<struct FDefinedProperty>& DefinedProperties );
 
+	/** Gets a redirected property name, will return NAME_None if no redirection was found */
+	static FName FindRedirectedPropertyName(UStruct* ObjectStruct, FName OldName);
+
 	// UHT interface
 	void ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride = NULL, uint32 AdditionalExportCPPFlags = 0
 		, bool bSkipParameterName = false, const FString* ActualCppType = nullptr, const FString* ActualExtendedType = nullptr, const FString* ActualParameterName = nullptr) const;
@@ -982,10 +985,8 @@ public:
 		SetElementSize();
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TProperty(FVTableHelper& Helper) : Super(Helper) {};
-#endif // WITH_HOT_RELOAD_CTORS
 
 	// UHT interface
 	virtual FString GetCPPType( FString* ExtendedTypeText=NULL, uint32 CPPExportFlags=0 ) const override
@@ -1023,13 +1024,16 @@ public:
 	}
 	virtual void InitializeValueInternal( void* Dest ) const override
 	{
-		TTypeFundamentals::InitializePropertyValue(Dest);
+		for (int32 i = 0; i < this->ArrayDim; ++i)
+		{
+			TTypeFundamentals::InitializePropertyValue((uint8*)Dest + i * this->ElementSize);
+		}
 	}
 	virtual void DestroyValueInternal( void* Dest ) const override
 	{
-		for( int32 i = 0; i < this->ArrayDim; ++i )
+		for (int32 i = 0; i < this->ArrayDim; ++i)
 		{
-			TTypeFundamentals::DestroyPropertyValue((uint8*) Dest + i * this->ElementSize);
+			TTypeFundamentals::DestroyPropertyValue((uint8*)Dest + i * this->ElementSize);
 		}
 	}
 
@@ -1089,10 +1093,8 @@ public:
 	{
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TProperty_WithEqualityAndSerializer(FVTableHelper& Helper) : Super(Helper) {};
-#endif // WITH_HOT_RELOAD_CTORS
 
 	// UProperty interface.
 	virtual bool Identical( const void* A, const void* B, uint32 PortFlags=0 ) const override
@@ -1249,10 +1251,8 @@ public:
 	{
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TProperty_Numeric(FVTableHelper& Helper) : Super(Helper) {};
-#endif // WITH_HOT_RELOAD_CTORS
 
 	virtual FString GetCPPTypeForwardDeclaration() const override
 	{
@@ -1275,7 +1275,7 @@ protected:
 		this->SetPropertyValue_InContainer(Obj, NewValue, Tag.ArrayIndex);
 
 		UE_CLOG(
-			(TIsSigned<OldIntType>::Value && !TIsSigned<TCppType>::Value && OldValue < 0) || (sizeof(TCppType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
+			(TIsSigned<OldIntType>::Value && (!TIsSigned<TCppType>::Value && !TIsFloatingPoint<TCppType>::Value) && OldValue < 0) || (sizeof(TCppType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
 			LogClass,
 			Warning,
 			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),
@@ -1994,10 +1994,8 @@ public:
 		this->PropertyClass = InClass;
 	}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TUObjectPropertyBase(FVTableHelper& Helper) : Super(Helper) {};
-#endif // WITH_HOT_RELOAD_CTORS
 
 	// UProperty interface.
 	virtual bool ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const override
@@ -3363,7 +3361,27 @@ public:
 		return false;
 	}
 
+	static FScriptMapHelper CreateHelperFormInnerProperties(UProperty* InKeyProperty, UProperty* InValProperty, const void *InMap)
+	{
+		check(InKeyProperty && InValProperty);
+
+		FScriptMapHelper ScriptMapHelper;
+		ScriptMapHelper.KeyProp = InKeyProperty;
+		ScriptMapHelper.ValueProp = InValProperty;
+		ScriptMapHelper.Map = (FScriptMap*)InMap;
+		ScriptMapHelper.MapLayout = FScriptMap::GetScriptLayout(InKeyProperty->GetSize(), InKeyProperty->GetMinAlignment(), InValProperty->GetSize(), InValProperty->GetMinAlignment());
+
+		return ScriptMapHelper;
+	}
+
 private:
+	FScriptMapHelper()
+		: KeyProp(nullptr)
+		, ValueProp(nullptr)
+		, Map(nullptr)
+		, MapLayout(FScriptMap::GetScriptLayout(0, 1, 0, 1))
+	{}
+
 	/**
 	 * Internal function to call into the property system to construct / initialize elements.
 	 *
@@ -3834,7 +3852,28 @@ public:
 		return false;
 	}
 
-private:
+	static FScriptSetHelper CreateHelperFormElementProperty(UProperty* InElementProperty, const void *InSet)
+	{
+		check(InElementProperty);
+
+		FScriptSetHelper ScriptSetHelper;
+		ScriptSetHelper.ElementProp = InElementProperty;
+		ScriptSetHelper.Set = (FScriptSet*)InSet;
+
+		const int32 ElementPropSize = InElementProperty->GetSize();
+		const int32 ElementPropAlignment = InElementProperty->GetMinAlignment();
+		ScriptSetHelper.SetLayout = FScriptSet::GetScriptLayout(ElementPropSize, ElementPropAlignment);
+
+		return ScriptSetHelper;
+	}
+
+private: 
+	FScriptSetHelper()
+		: ElementProp(nullptr)
+		, Set(nullptr)
+		, SetLayout(FScriptSet::GetScriptLayout(0, 1))
+	{}
+
 	/**
 	* Internal function to call into the property system to construct / initialize elements.
 	*
@@ -4600,23 +4639,243 @@ T* FindFieldChecked( const UStruct* Scope, FName FieldName )
 	return NULL;
 }
 
-/**
- * Dynamically cast a property to the specified type; if the type is a UArrayProperty, will return the UArrayProperty's Inner member, if it is of the correct type.
- */
-template<typename T>
-T* SmartCastProperty( UProperty* Src )
+/*-----------------------------------------------------------------------------*
+ * PropertyValueIterator
+ *-----------------------------------------------------------------------------*/
+
+/** FPropertyValueIterator construction flags */
+enum class EPropertyValueIteratorFlags : uint8
 {
-	T* Result = dynamic_cast<T*>(Src);
-	if ( Result == NULL )
+	NoRecursion = 0,	// Don't recurse at all, only do top level properties
+	FullRecursion = 1,	// Recurse into containers and structs
+};
+
+/** For recursively iterating over a UStruct to find nested UProperty pointers and values */
+class FPropertyValueIterator
+{
+public:
+	typedef TPair<const UProperty*, const void*> BasePairType;
+
+	/** 
+	 * Construct an iterator using a struct and struct value
+	 *
+	 * @param InPropertyClass	The UClass of the UProperty type you are looking for
+	 * @param InStruct			The UClass or UScriptStruct containing properties to search for
+	 * @param InStructValue		Address in memory of struct to search for property values
+	 * @param InRecursionFlags	Rather to recurse into container and struct properties
+	 * @param InDeprecatedPropertyFlags	Rather to iterate over deprecated properties
+	 */
+	FPropertyValueIterator(const UClass* InPropertyClass, const UStruct* InStruct, const void* InStructValue,
+		EPropertyValueIteratorFlags						InRecursionFlags = EPropertyValueIteratorFlags::FullRecursion,
+		EFieldIteratorFlags::DeprecatedPropertyFlags	InDeprecatedPropertyFlags = EFieldIteratorFlags::IncludeDeprecated)
+		: PropertyClass(InPropertyClass)
+		, RecursionFlags(InRecursionFlags)
+		, DeprecatedPropertyFlags(InDeprecatedPropertyFlags)
+		, bSkipRecursionOnce(false)
 	{
-		UArrayProperty* ArrayProp = dynamic_cast<UArrayProperty*>(Src);
-		if ( ArrayProp != NULL )
-		{
-			Result = dynamic_cast<T*>(ArrayProp->Inner);
-		}
+		PropertyIteratorStack.Emplace(InStruct, InStructValue, InDeprecatedPropertyFlags);
+		IterateToNext();
 	}
-	return Result;
-}
+
+	/** Invalid iterator, start with empty stack */
+	FPropertyValueIterator()
+		: PropertyClass(nullptr)
+		, RecursionFlags(EPropertyValueIteratorFlags::FullRecursion)
+		, DeprecatedPropertyFlags(EFieldIteratorFlags::IncludeDeprecated)
+		, bSkipRecursionOnce(false)
+	{
+	}
+
+	/** Conversion to "bool" returning true if the iterator is valid */
+	FORCEINLINE explicit operator bool() const
+	{
+		// If nothing left in the stack, iteration is complete
+		if (PropertyIteratorStack.Num() > 0)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	FORCEINLINE friend bool operator==(const FPropertyValueIterator& Lhs, const FPropertyValueIterator& Rhs) 
+	{
+		return Lhs.PropertyIteratorStack == Rhs.PropertyIteratorStack;
+	}
+	
+	FORCEINLINE friend bool operator!=(const FPropertyValueIterator& Lhs, const FPropertyValueIterator& Rhs)
+	{
+		return !(Lhs.PropertyIteratorStack == Rhs.PropertyIteratorStack);
+	}
+
+	/** Returns a TPair containing Property/Value currently being iterated */
+	FORCEINLINE const BasePairType& operator*() const
+	{
+		const FPropertyValueStackEntry& Entry = PropertyIteratorStack.Last();
+		return Entry.GetPropertyValue();
+	}
+
+	FORCEINLINE const BasePairType* operator->() const
+	{
+		const FPropertyValueStackEntry& Entry = PropertyIteratorStack.Last();
+		return &Entry.GetPropertyValue();
+	}
+
+	/** Returns Property currently being iterated */
+	FORCEINLINE const UProperty* Key() const 
+	{
+		return (*this)->Key; 
+	}
+	
+	/** Returns memory address currently being iterated */
+	FORCEINLINE const void* Value() const
+	{
+		return (*this)->Value;
+	}
+
+	/** Increments iterator */
+	FORCEINLINE void operator++()
+	{
+		IterateToNext();
+	}
+
+	/** Call when iterating a recursive property such as Array or Struct to stop it from iterating into that property */
+	FORCEINLINE void SkipRecursiveProperty()
+	{
+		bSkipRecursionOnce = true;
+	}
+
+	/** 
+	 * Returns the full stack of properties for the property currently being iterated. This includes struct and container properties
+	 *
+	 * @param PropertyChain	Filled in with ordered list of Properties, with currently active property first and top parent last
+	 */
+	COREUOBJECT_API void GetPropertyChain(TArray<const UProperty*>& PropertyChain) const;
+
+private:
+	struct FPropertyValueStackEntry
+	{
+		/** Field iterator within a UStruct */
+		TFieldIterator<const UProperty> FieldIterator;
+
+		/** Address of owning UStruct */
+		const void* StructValue;
+		
+		/** List of current root property+value pairs for the current top level UProperty */
+		TArray<BasePairType> ValueArray;
+
+		/** Current position inside ValueArray */
+		int32 ValueIndex;
+
+		FPropertyValueStackEntry(const UStruct* InStruct, const void* InValue, EFieldIteratorFlags::DeprecatedPropertyFlags InDeprecatedPropertyFlags)
+			: FieldIterator(InStruct, EFieldIteratorFlags::IncludeSuper, InDeprecatedPropertyFlags, EFieldIteratorFlags::ExcludeInterfaces)
+			, StructValue(InValue)
+			, ValueIndex(0)
+		{}
+
+		FORCEINLINE friend bool operator==(const FPropertyValueStackEntry& Lhs, const FPropertyValueStackEntry& Rhs)
+		{
+			return Lhs.ValueIndex == Rhs.ValueIndex && Lhs.FieldIterator == Rhs.FieldIterator && Lhs.StructValue == Rhs.StructValue;
+		}
+
+		FORCEINLINE const BasePairType& GetPropertyValue() const
+		{
+			// Index has to be valid to get this far
+			return ValueArray[ValueIndex];
+		}
+	};
+
+	/** Internal stack, one per UStruct */
+	TArray<FPropertyValueStackEntry> PropertyIteratorStack;
+
+	/** Property type that is explicitly checked for */
+	const UClass* PropertyClass;
+
+	/** Whether to recurse into containers and StructProperties */
+	const EPropertyValueIteratorFlags RecursionFlags;
+
+	/** Inherits to child field iterator */
+	const EFieldIteratorFlags::DeprecatedPropertyFlags DeprecatedPropertyFlags;
+
+	/** If true, next iteration will skip recursing into containers/structs */
+	bool bSkipRecursionOnce;
+
+	/** Goes to the next Property/value pair. Returns true if next value is valid */
+	bool NextValue(EPropertyValueIteratorFlags RecursionFlags);
+
+	/** Iterates to next property being checked for or until reaching the end of the structure */
+	COREUOBJECT_API void IterateToNext();
+};
+
+/** Templated version, will verify the property type is correct and will skip any properties that are not */
+template <class T>
+class TPropertyValueIterator : public FPropertyValueIterator
+{
+public:
+	typedef TPair<T*, const void*> PairType;
+	
+	/** 
+	 * Construct an iterator using a struct and struct value
+	 *
+	 * @param InStruct			The UClass or UScriptStruct containing properties to search for
+	 * @param InStructValue		Address in memory of struct to search for property values
+	 * @param InRecursionFlags	Rather to recurse into container and struct properties
+	 * @param InDeprecatedPropertyFlags	Rather to iterate over deprecated properties
+	 */
+	TPropertyValueIterator(const UStruct* InStruct, const void* InStructValue,
+		EPropertyValueIteratorFlags						InRecursionFlags = EPropertyValueIteratorFlags::FullRecursion,
+		EFieldIteratorFlags::DeprecatedPropertyFlags	InDeprecatedPropertyFlags = EFieldIteratorFlags::IncludeDeprecated)
+		: FPropertyValueIterator(T::StaticClass(), InStruct, InStructValue, InRecursionFlags, InDeprecatedPropertyFlags)
+	{
+	}
+
+	/** Invalid iterator, start with empty stack */
+	TPropertyValueIterator() 
+		: FPropertyValueIterator()
+	{
+	}
+
+	/** Returns a TPair containing Property/Value currently being iterated */
+	FORCEINLINE const PairType& operator*() const
+	{
+		return (const PairType&)FPropertyValueIterator::operator*();
+	}
+
+	FORCEINLINE const PairType* operator->() const
+	{
+		return (const PairType*)FPropertyValueIterator::operator->();
+	}
+
+	/** Returns Property currently being iterated */
+	FORCEINLINE T* Key() const
+	{
+		return (*this)->Key;
+	}
+};
+
+/** Templated range to allow ranged-for syntax */
+template <class T>
+struct TPropertyValueRange
+{
+	/** 
+	 * Construct a range using a struct and struct value
+	 *
+	 * @param InStruct			The UClass or UScriptStruct containing properties to search for
+	 * @param InStructValue		Address in memory of struct to search for property values
+	 * @param InRecursionFlags	Rather to recurse into container and struct properties
+	 * @param InDeprecatedPropertyFlags	Rather to iterate over deprecated properties
+	 */
+	TPropertyValueRange(const UStruct* InStruct, const void* InStructValue,
+		EPropertyValueIteratorFlags						InRecursionFlags = EPropertyValueIteratorFlags::FullRecursion,
+		EFieldIteratorFlags::DeprecatedPropertyFlags	InDeprecatedPropertyFlags = EFieldIteratorFlags::IncludeDeprecated)
+		: Begin(InStruct, InStructValue, InRecursionFlags, InDeprecatedPropertyFlags)
+	{
+	}
+
+	friend TPropertyValueIterator<T> begin(const TPropertyValueRange& Range) { return Range.Begin; }
+	friend TPropertyValueIterator<T> end(const TPropertyValueRange& Range) { return TPropertyValueIterator<T>(); }
+
+	TPropertyValueIterator<T> Begin;
+};
 
 /**
  * Determine if this object has SomeObject in its archetype chain.

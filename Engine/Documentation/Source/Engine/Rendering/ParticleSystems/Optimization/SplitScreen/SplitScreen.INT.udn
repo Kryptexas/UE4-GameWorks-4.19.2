@@ -3,6 +3,7 @@ Title:Split Screen
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:Using detail mode and profiling commands to optimize effects for split screen.
 Version: 4.9
+tags:Particles
 
 [TOC]
 

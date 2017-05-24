@@ -139,7 +139,7 @@ bool FCodeLiteSourceCodeAccessor::CanRunCodeLite(FString& OutPath) const
 
 bool FCodeLiteSourceCodeAccessor::IsIDERunning()
 {
-#ifdef PLATFORM_LINUX
+#if PLATFORM_LINUX
 	pid_t pid = FindProcess("codelite");
 	if(pid == -1)
 	{
@@ -165,7 +165,7 @@ FString FCodeLiteSourceCodeAccessor::GetSolutionPath() const
 	return CachedSolutionPath;
 }
 
-#ifdef PLATFORM_LINUX
+#if PLATFORM_LINUX
 // This needs to be changed to use platform abstraction layer (see FPlatformProcess::FProcEnumerator)
 pid_t FCodeLiteSourceCodeAccessor::FindProcess(const char* name)
 {

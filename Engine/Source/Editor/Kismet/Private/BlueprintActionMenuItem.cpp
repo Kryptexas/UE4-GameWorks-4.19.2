@@ -203,7 +203,7 @@ static UEdGraphNode* FBlueprintMenuActionItemImpl::AutowireSpawnedNodes(UEdGraph
 
 //------------------------------------------------------------------------------
 FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiSpec, IBlueprintNodeBinder::FBindingSet const& InBindings, FText InNodeCategory, int32 InGrouping)
-	: FEdGraphSchemaAction(MoveTemp(InNodeCategory), UiSpec.MenuName, UiSpec.Tooltip.ToString(), InGrouping, UiSpec.Keywords)
+	: FEdGraphSchemaAction(MoveTemp(InNodeCategory), UiSpec.MenuName, UiSpec.Tooltip, InGrouping, UiSpec.Keywords)
 	, Action(NodeSpawner)
 	, IconTint(UiSpec.IconTint)
 	, IconBrush(UiSpec.Icon.GetOptionalIcon())
@@ -345,7 +345,7 @@ void FBlueprintActionMenuItem::AppendBindings(const FBlueprintActionContext& Con
 	//        MenuBuilder level
 	//Category  = UiSpec.Category.ToString();
 	
-	UpdateSearchData(UiSpec.MenuName, UiSpec.Tooltip.ToString(), FText(), UiSpec.Keywords);
+	UpdateSearchData(UiSpec.MenuName, UiSpec.Tooltip, FText(), UiSpec.Keywords);
 
 	IconBrush = UiSpec.Icon.GetOptionalIcon();
 	IconTint  = UiSpec.IconTint;

@@ -1,5 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-// .
+// ..
 
 #include "VulkanShaderFormat.h"
 #include "VulkanConfiguration.h"
@@ -929,7 +929,11 @@ static FString CreateShaderCompileCommandLine(FCompilerInfo& CompilerInfo, EHlsl
 	CmdLine += CrossCompiler::CreateBatchFileContents(DumpedUSFFile, GLSLFile, CompilerInfo.Frequency, CompilerInfo.Input.EntryPointName, VersionSwitch, CompilerInfo.CCFlags);
 
 	CmdLine += TEXT("\n\"");
+#if PLATFORM_WINDOWS
 	CmdLine += *(FPaths::RootDir() / TEXT("Engine/Binaries/ThirdParty/glslang/glslangValidator.exe"));
+#elif PLATFORM_LINUX
+	CmdLine += *(FPaths::RootDir() / TEXT("Engine/Binaries/ThirdParty/glslang/glslangValidator"));
+#endif
 	CmdLine += TEXT("\"");
 	CmdLine += TEXT(" -V -H -r -o \"") + SPVFile + TEXT("\" \"") + GLSLFile + TEXT("\" > \"" + SPVDisasmFile + "\"");
 	CmdLine += TEXT("\npause\n");

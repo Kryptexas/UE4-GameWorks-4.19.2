@@ -494,6 +494,7 @@ void UMediaPlayer::BeginDestroy()
 {
 	Super::BeginDestroy();
 
+	FlushRenderingCommands();
 	Close();
 
 	SetOverlays(nullptr);

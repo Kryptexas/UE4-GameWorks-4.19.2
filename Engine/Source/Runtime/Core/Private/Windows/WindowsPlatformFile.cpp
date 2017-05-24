@@ -660,13 +660,37 @@ public:
 		uint32  Access    = GENERIC_READ;
 		uint32  WinFlags  = FILE_SHARE_READ | (bAllowWrite ? FILE_SHARE_WRITE : 0);
 		uint32  Create    = OPEN_EXISTING;
+#define USE_OVERLAPPED_IO 1
+
+#if USE_OVERLAPPED_IO
 		HANDLE Handle    = CreateFileW(*NormalizeFilename(Filename), Access, WinFlags, NULL, Create, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
 		if (Handle != INVALID_HANDLE_VALUE)
 		{
 			return new FAsyncBufferedFileReaderWindows(Handle);
 		}
+#else
+		HANDLE Handle = CreateFileW(*NormalizeFilename(Filename), Access, WinFlags, NULL, Create, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (Handle != INVALID_HANDLE_VALUE)
+		{
+			return new FFileHandleWindows(Handle);
+		}
+#endif
 		return NULL;
 	}
+
+	virtual IFileHandle* OpenReadNoBuffering(const TCHAR* Filename, bool bAllowWrite = false) override
+	{
+		uint32  Access = GENERIC_READ;
+		uint32  WinFlags = FILE_SHARE_READ | (bAllowWrite ? FILE_SHARE_WRITE : 0);
+		uint32  Create = OPEN_EXISTING;
+		HANDLE Handle = CreateFileW(*NormalizeFilename(Filename), Access, WinFlags, NULL, Create, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (Handle != INVALID_HANDLE_VALUE)
+		{
+			return new FFileHandleWindows(Handle);
+		}
+		return NULL;
+	}
+
 	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		uint32  Access    = GENERIC_WRITE;

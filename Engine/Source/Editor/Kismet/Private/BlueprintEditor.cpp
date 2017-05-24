@@ -3278,7 +3278,16 @@ void FBlueprintEditor::Compile()
 		LogResults.BeginEvent(TEXT("Compile"));
 		LogResults.bLogDetailedResults = GetDefault<UBlueprintEditorSettings>()->bShowDetailedCompileResults;
 		LogResults.EventDisplayThresholdMs = GetDefault<UBlueprintEditorSettings>()->CompileEventDisplayThresholdMs;
-		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, false, false, bSaveIntermediateBuildProducts, &LogResults, false, false, bAddInstrumentation);
+		EBlueprintCompileOptions CompileOptions = EBlueprintCompileOptions::None;
+		if( bSaveIntermediateBuildProducts )
+		{
+			CompileOptions |= EBlueprintCompileOptions::SaveIntermediateProducts;
+		}
+		if(bAddInstrumentation)
+		{
+			CompileOptions |= EBlueprintCompileOptions::AddInstrumentation;
+		}
+		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, CompileOptions, &LogResults);
 
 		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
 		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);
@@ -3399,6 +3408,8 @@ void FBlueprintEditor::DeleteUnusedVariables_OnClicked()
 
 void FBlueprintEditor::FindInBlueprints_OnClicked()
 {
+	SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+
 	TabManager->InvokeTab(FBlueprintEditorTabs::FindResultsID);
 	FindResults->FocusForUse(false);
 }
@@ -4995,58 +5006,43 @@ bool FBlueprintEditor::CanPromoteSelectionToMacro() const
 
 void FBlueprintEditor::OnExpandNodes()
 {
-	const FScopedTransaction Transaction( FGraphEditorCommands::Get().ExpandNodes->GetDescription() );
+	const FScopedTransaction Transaction( FGraphEditorCommands::Get().ExpandNodes->GetLabel() );
 	GetBlueprintObj()->Modify();
 
-	// Expand all composite nodes back in place
 	TSet<UEdGraphNode*> ExpandedNodes;
-
 	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
 
+	// Expand selected nodes into the focused graph context.
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
 	for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
 	{
+		ExpandedNodes.Empty();
+		bool bExpandedNodesNeedUniqueGuid = true;
+
+		DocumentManager->CleanInvalidTabs();
+
 		if (UK2Node_MacroInstance* SelectedMacroInstanceNode = Cast<UK2Node_MacroInstance>(*NodeIt))
 		{
 			UEdGraph* MacroGraph = SelectedMacroInstanceNode->GetMacroGraph();
 			if(MacroGraph)
 			{
-				DocumentManager->CleanInvalidTabs();
-
 				// Clone the graph so that we do not delete the original
 				UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(MacroGraph, NULL);
 				ExpandNode(SelectedMacroInstanceNode, ClonedGraph, /*inout*/ ExpandedNodes);
 
-				//Remove this node from selection
-				FocusedGraphEd->SetNodeSelection(SelectedMacroInstanceNode, false);
-
 				ClonedGraph->MarkPendingKill();
-
-				//Add expanded nodes to selection
-				for (UEdGraphNode* ExpandedNode : ExpandedNodes)
-				{
-					FocusedGraphEd->SetNodeSelection(ExpandedNode, true);
-				}
 			}
 		}
 		else if (UK2Node_Composite* SelectedCompositeNode = Cast<UK2Node_Composite>(*NodeIt))
 		{
-			DocumentManager->CleanInvalidTabs();
+			// No need to assign unique GUIDs since the source graph will be removed.
+			bExpandedNodesNeedUniqueGuid = false;
 
 			// Expand the composite node back into the world
 			UEdGraph* SourceGraph = SelectedCompositeNode->BoundGraph;
-
 			ExpandNode(SelectedCompositeNode, SourceGraph, /*inout*/ ExpandedNodes);
+
 			FBlueprintEditorUtils::RemoveGraph(GetBlueprintObj(), SourceGraph, EGraphRemoveFlags::Recompile);
-
-			//Remove this node from selection
-			FocusedGraphEd->SetNodeSelection(SelectedCompositeNode, false);
-
-			//Add expanded nodes to selection
-			for (UEdGraphNode* ExpandedNode : ExpandedNodes)
-			{
-				FocusedGraphEd->SetNodeSelection(ExpandedNode, true);
-			}
 		}
 		else if (UK2Node_CallFunction* SelectedCallFunctionNode = Cast<UK2Node_CallFunction>(*NodeIt))
 		{
@@ -5058,22 +5054,47 @@ void FBlueprintEditor::OnExpandNodes()
 
 			if(FunctionGraph)
 			{
-				DocumentManager->CleanInvalidTabs();
-
 				// Clone the graph so that we do not delete the original
 				UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(FunctionGraph, NULL);
 				ExpandNode(SelectedCallFunctionNode, ClonedGraph, ExpandedNodes);
 
-				//Remove this node from selection
-				FocusedGraphEd->SetNodeSelection(SelectedCallFunctionNode, false);
-
 				ClonedGraph->MarkPendingKill();
+			}
+		}
 
-				//Add expanded nodes to selection
-				for (UEdGraphNode* ExpandedNode : ExpandedNodes)
+		if (ExpandedNodes.Num() > 0)
+		{
+			FVector2D AvgNodePosition(0.0f, 0.0f);
+
+			for (TSet<UEdGraphNode*>::TIterator It(ExpandedNodes); It; ++It)
+			{
+				UEdGraphNode* Node = *It;
+				AvgNodePosition.X += Node->NodePosX;
+				AvgNodePosition.Y += Node->NodePosY;
+			}
+
+			float InvNumNodes = 1.0f / float(ExpandedNodes.Num());
+			AvgNodePosition.X *= InvNumNodes;
+			AvgNodePosition.Y *= InvNumNodes;
+
+			//Remove source node from selection
+			UEdGraphNode* SourceNode = CastChecked<UEdGraphNode>(*NodeIt);
+			FocusedGraphEd->SetNodeSelection(SourceNode, false);
+
+			for (UEdGraphNode* ExpandedNode : ExpandedNodes)
+			{
+				ExpandedNode->NodePosX = (ExpandedNode->NodePosX - AvgNodePosition.X) + SourceNode->NodePosX;
+				ExpandedNode->NodePosY = (ExpandedNode->NodePosY - AvgNodePosition.Y) + SourceNode->NodePosY;
+
+				ExpandedNode->SnapToGrid(SNodePanel::GetSnapGridSize());
+
+				if (bExpandedNodesNeedUniqueGuid)
 				{
-					FocusedGraphEd->SetNodeSelection(ExpandedNode, true);
+					ExpandedNode->CreateNewGuid();
 				}
+
+				//Add expanded node to selection
+				FocusedGraphEd->SetNodeSelection(ExpandedNode, true);
 			}
 		}
 	}
@@ -7495,18 +7516,35 @@ void FBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyCha
 		FocusedGraphEdPtr.Pin()->NotifyPostPropertyChange(PropertyChangedEvent, PropertyName);
 	}
 	
-	// Note: if change type is "interactive," hold off on applying the change (e.g. this will occur if the user is scrubbing a spinbox value; we don't want to apply the change until the mouse is released, for performance reasons)
-	if( IsEditingSingleBlueprint() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
-	{
-		UBlueprint* Blueprint = GetBlueprintObj();
-		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint, PropertyChangedEvent);
+	UBlueprint* Blueprint = GetBlueprintObj();
+	UPackage* BlueprintPackage = Blueprint->GetOutermost();
 
-		// Call PostEditChange() on any Actors that might be based on this Blueprint
-		FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
+	// if any of the objects being edited are in our package, mark us as dirty
+	bool bPropertyInBlueprint = false;
+	for (int32 ObjectIndex = 0; ObjectIndex < PropertyChangedEvent.GetNumObjectsBeingEdited(); ++ObjectIndex)
+	{
+		const UObject* Object = PropertyChangedEvent.GetObjectBeingEdited(ObjectIndex);
+		if (Object && Object->GetOutermost() == BlueprintPackage)
+		{
+			bPropertyInBlueprint = true;
+			break;
+		}
 	}
 
-	// Force updates to occur immediately during interactive mode (otherwise the preview won't refresh because it won't be ticking)
-	UpdateSCSPreview(PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive);
+	if (bPropertyInBlueprint)
+	{
+		// Note: if change type is "interactive," hold off on applying the change (e.g. this will occur if the user is scrubbing a spinbox value; we don't want to apply the change until the mouse is released, for performance reasons)
+		if (IsEditingSingleBlueprint() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint, PropertyChangedEvent);
+
+			// Call PostEditChange() on any Actors that might be based on this Blueprint
+			FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
+		}
+
+		// Force updates to occur immediately during interactive mode (otherwise the preview won't refresh because it won't be ticking)
+		UpdateSCSPreview(PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive);
+	}
 }
 
 void FBlueprintEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)

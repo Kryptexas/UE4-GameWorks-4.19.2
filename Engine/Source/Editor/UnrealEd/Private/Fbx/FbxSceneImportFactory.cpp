@@ -549,7 +549,7 @@ TSharedPtr<FFbxSceneInfo> UFbxSceneImportFactory::ConvertSceneInfo(void* VoidFbx
 		MeshInfoPtr->OptionName = DefaultOptionName;
 
 		MeshInfoPtr->IsLod = MeshInfoPtr->LODLevel > 0;
-		MeshInfoPtr->IsCollision = MeshInfoPtr->Name.Contains(TEXT("UCX")) || MeshInfoPtr->Name.Contains(TEXT("UBX")) || MeshInfoPtr->Name.Contains(TEXT("MCDCX")) || MeshInfoPtr->Name.Contains(TEXT("USP"));
+		MeshInfoPtr->IsCollision = MeshInfoPtr->Name.Contains(TEXT("UCX")) || MeshInfoPtr->Name.Contains(TEXT("UBX")) || MeshInfoPtr->Name.Contains(TEXT("MCDCX")) || MeshInfoPtr->Name.Contains(TEXT("USP")) || MeshInfoPtr->Name.Contains(TEXT("UCP"));
 
 		SceneInfoPtr->MeshInfo.Add(MeshInfoPtr);
 	}
@@ -709,7 +709,11 @@ UObject *FFbxAttributeInfo::GetContentObject()
 	ContentObject = nullptr;
 	FString ImportPath = PackageTools::SanitizePackageName(GetImportPath());
 	FString AssetName = GetFullImportName();
-	ContentPackage = LoadPackage(nullptr, *ImportPath, LOAD_Verify | LOAD_NoWarn);
+	if (!ImportPath.IsEmpty())
+	{
+		ContentPackage = LoadPackage(nullptr, *ImportPath, LOAD_Verify | LOAD_NoWarn);
+	}
+
 	if (ContentPackage != nullptr)
 	{
 		ContentPackage->FullyLoad();
@@ -835,6 +839,18 @@ UObject* UFbxSceneImportFactory::FactoryCreateBinary
 	return ReturnObject;
 }
 
+bool UFbxSceneImportFactory::FactoryCanImport(const FString& Filename)
+{
+	const FString Extension = FPaths::GetExtension(Filename);
+
+	if (Extension == TEXT("fbx") || Extension == TEXT("obj"))
+	{
+		return true;
+	}
+	return false;
+}
+
+
 TSharedPtr<FFbxNodeInfo> GetNodeInfoPtrById(TArray<TSharedPtr<FFbxNodeInfo>> &HierarchyInfo, uint64 SearchId)
 {
 	for (TSharedPtr<FFbxNodeInfo> NodeInfoPtr : HierarchyInfo)
@@ -880,6 +896,7 @@ void UFbxSceneImportFactory::ChangeFrontAxis(void* VoidFbxImporter, void* VoidSc
 				{
 					continue;
 				}
+
 				LocalNodeInfo.Transform = RealFbxNode->EvaluateLocalTransform();
 				TSharedPtr<FFbxNodeInfo> LocalNodeInfoPtr = GetNodeInfoPtrById(SceneInfoPtr->HierarchyInfo, LocalNodeInfo.UniqueId);
 				if (LocalNodeInfoPtr.IsValid())
@@ -891,6 +908,24 @@ void UFbxSceneImportFactory::ChangeFrontAxis(void* VoidFbxImporter, void* VoidSc
 					LocalNodeInfoPtr->Transform.SetTranslation(UnFbx::FFbxDataConverter::ConvertPos(NewLocalT));
 					LocalNodeInfoPtr->Transform.SetScale3D(UnFbx::FFbxDataConverter::ConvertScale(NewLocalS));
 					LocalNodeInfoPtr->Transform.SetRotation(UnFbx::FFbxDataConverter::ConvertRotToQuat(NewLocalQ));
+
+					FString AttributeType = LocalNodeInfo.AttributeType;
+					if (AttributeType.Compare(TEXT("eLight")) == 0)
+					{
+						//Add the z rotation of 90 degree locally for every light. Light direction differ from fbx to unreal 
+						FRotator LightRotator(0.0f, 90.0f, 0.0f);
+						FTransform LightTransform = FTransform(LightRotator);
+						LocalNodeInfoPtr->Transform = LightTransform * LocalNodeInfoPtr->Transform;
+					}
+					if (AttributeType.Compare(TEXT("eCamera")) == 0)
+					{
+						//Add a roll of -90 degree locally for every cameras. Camera up vector differ from fbx to unreal
+						FRotator CameraRotator(0.0f, 0.0f, -90.0f);
+						FTransform CameraTransform = FTransform(CameraRotator);
+						//Remove the scale of the node holding a camera (the mesh is provide by the engine and can be different in size)
+						LocalNodeInfoPtr->Transform.SetScale3D(FVector(1.0f));
+						LocalNodeInfoPtr->Transform = CameraTransform * LocalNodeInfoPtr->Transform;
+					}
 				}
 			}
 		}
@@ -1791,7 +1826,7 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			}
 		}
 	}
-
+	MaxLODLevel = FMath::Min(MAX_SKELETAL_MESH_LODS, MaxLODLevel);
 	int32 LODIndex;
 	for (LODIndex = 0; LODIndex < MaxLODLevel; LODIndex++)
 	{
@@ -1857,7 +1892,15 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			RootNodeInfo->AttributeInfo->SetOriginalImportPath(PackageName);
 			FName SkeletalMeshFName = FName(*SkeletalMeshName);
 			//Import the skeletal mesh
-			USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh(Pkg, bUseSkelMeshNodePivotArray ? SkelMeshNodePivotArray : SkelMeshNodeArray, SkeletalMeshFName, Flags, SkeletalMeshImportData, LODIndex);
+			UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
+			ImportSkeletalMeshArgs.InParent = Pkg;
+			ImportSkeletalMeshArgs.NodeArray = bUseSkelMeshNodePivotArray ? SkelMeshNodePivotArray : SkelMeshNodeArray;
+			ImportSkeletalMeshArgs.Name = SkeletalMeshFName;
+			ImportSkeletalMeshArgs.Flags = Flags;
+			ImportSkeletalMeshArgs.TemplateImportData = SkeletalMeshImportData;
+			ImportSkeletalMeshArgs.LodIndex = LODIndex;
+
+			USkeletalMesh* NewMesh = FbxImporter->ImportSkeletalMesh( ImportSkeletalMeshArgs );
 			NewObject = NewMesh;
 			if (NewMesh)
 			{
@@ -1887,7 +1930,15 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewObject);
 			FName LODObjectName = NAME_None;
 			//Import skeletal mesh LOD
-			USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(BaseSkeletalMesh->GetOutermost(), bUseSkelMeshNodePivotArray ? SkelMeshNodePivotArray : SkelMeshNodeArray, LODObjectName, RF_Transient, SkeletalMeshImportData, LODIndex);
+			UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
+			ImportSkeletalMeshArgs.InParent = BaseSkeletalMesh->GetOutermost();
+			ImportSkeletalMeshArgs.NodeArray = bUseSkelMeshNodePivotArray ? SkelMeshNodePivotArray : SkelMeshNodeArray;
+			ImportSkeletalMeshArgs.Name = LODObjectName;
+			ImportSkeletalMeshArgs.Flags = RF_Transient;
+			ImportSkeletalMeshArgs.TemplateImportData = SkeletalMeshImportData;
+			ImportSkeletalMeshArgs.LodIndex = LODIndex;
+
+			USkeletalMesh *LODObject = FbxImporter->ImportSkeletalMesh(ImportSkeletalMeshArgs);
 			bool bImportSucceeded = FbxImporter->ImportSkeletalMeshLOD(LODObject, BaseSkeletalMesh, LODIndex);
 			if (bImportSucceeded)
 			{
@@ -2033,6 +2084,11 @@ UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void
 				// import LOD meshes
 				for (int32 LODIndex = 1; LODIndex < Node->GetChildCount(); LODIndex++)
 				{
+					if (LODIndex >= MAX_STATIC_MESH_LODS)
+					{
+						FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("ImporterLimits_MaximumStaticMeshLODReach", "Reach the maximum LOD number({0}) for a staticmesh."), FText::AsNumber(MAX_STATIC_MESH_LODS))), FFbxErrors::Generic_Mesh_TooManyLODs);
+						continue;
+					}
 					AllNodeInLod.Empty();
 					FFbxImporter->FindAllLODGroupNode(AllNodeInLod, Node, LODIndex);
 					TmpVoidArray.Empty();
@@ -2042,6 +2098,13 @@ UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void
 					}
 					ImportANode(VoidFbxImporter, TmpVoidArray, Flags, NodeIndex, SceneInfo, OutNodeInfo, PackagePath, Total, NewObject, LODIndex);
 				}
+			}
+			UStaticMesh *NewStaticMesh = Cast<UStaticMesh>(NewObject);
+			if (NewStaticMesh != nullptr)
+			{
+				//Build the staticmesh
+				FFbxImporter->FindAllLODGroupNode(AllNodeInLod, Node, 0);
+				FFbxImporter->PostImportStaticMesh(NewStaticMesh, AllNodeInLod);
 			}
 		}
 	}
@@ -2057,6 +2120,15 @@ UObject* UFbxSceneImportFactory::RecursiveImportNode(void* VoidFbxImporter, void
 			{
 				//We should always have a valid attribute if we just create a new asset
 				check(OutNodeInfo.IsValid() && OutNodeInfo->AttributeInfo.IsValid());
+
+				UStaticMesh *NewStaticMesh = Cast<UStaticMesh>(FirstBaseObject);
+				if (NewStaticMesh != nullptr)
+				{
+					//Build the staticmesh
+					TArray<FbxNode*> AllNodeInLod;
+					AllNodeInLod.Add(Node);
+					FFbxImporter->PostImportStaticMesh(NewStaticMesh, AllNodeInLod);
+				}
 
 				AllNewAssets.Add(OutNodeInfo->AttributeInfo, FirstBaseObject);
 			}
@@ -2127,7 +2199,7 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, TArray<void*
 	UObject* NewObject = nullptr;
 	// skip collision models
 	if (NodeName.Find("UCX") != -1 || NodeName.Find("MCDCX") != -1 ||
-		NodeName.Find("UBX") != -1 || NodeName.Find("USP") != -1)
+		NodeName.Find("UBX") != -1 || NodeName.Find("USP") != -1 || NodeName.Find("UCP") != -1)
 	{
 		return nullptr;
 	}

@@ -28,18 +28,39 @@ struct FUObjectItem
 	// Internal flags
 	int32 Flags;
 	// UObject Owner Cluster Index
-	int32 ClusterIndex;	
+	int32 ClusterRootIndex;	
 	// Weak Object Pointer Serial number associated with the object
 	int32 SerialNumber;
 
+	FUObjectItem()
+		: Object(nullptr)
+		, Flags(0)
+		, ClusterRootIndex(0)
+		, SerialNumber(0)
+	{
+	}
+
 	FORCEINLINE void SetOwnerIndex(int32 OwnerIndex)
 	{
-		ClusterIndex = OwnerIndex;
+		ClusterRootIndex = OwnerIndex;
 	}
 
 	FORCEINLINE int32 GetOwnerIndex() const
 	{
-		return ClusterIndex;
+		return ClusterRootIndex;
+	}
+
+	/** Encodes the cluster index in the ClusterRootIndex variable */
+	FORCEINLINE void SetClusterIndex(int32 ClusterIndex)
+	{
+		ClusterRootIndex = -ClusterIndex - 1;
+	}
+
+	/** Decodes the cluster index from the ClusterRootIndex variable */
+	FORCEINLINE int32 GetClusterIndex() const
+	{
+		checkSlow(ClusterRootIndex < 0);
+		return -ClusterRootIndex - 1;
 	}
 
 	FORCEINLINE int32 GetSerialNumber() const
@@ -176,7 +197,7 @@ struct FUObjectItem
 	FORCEINLINE void ResetSerialNumberAndFlags()
 	{
 		Flags = 0;
-		ClusterIndex = 0;
+		ClusterRootIndex = 0;
 		SerialNumber = 0;
 	}
 };
@@ -204,7 +225,7 @@ public:
 
 	~FFixedUObjectArray()
 	{
-		FMemory::Free(Objects);
+		delete [] Objects;
 	}
 
 	/**
@@ -214,8 +235,7 @@ public:
 	void PreAllocate(int32 InMaxElements)
 	{
 		check(!Objects);
-		Objects = (FUObjectItem*)FMemory::Malloc(sizeof(FUObjectItem)* InMaxElements);
-		FMemory::Memzero(Objects, sizeof(FUObjectItem)* InMaxElements);
+		Objects = new FUObjectItem[InMaxElements];
 		MaxElements = InMaxElements;
 	}
 
@@ -242,6 +262,12 @@ public:
 	}
 
 	FORCEINLINE FUObjectItem const* GetObjectPtr(int32 Index) const
+	{
+		check(Index >= 0 && Index < NumElements);
+		return &Objects[Index];
+	}
+
+	FORCEINLINE FUObjectItem* GetObjectPtr(int32 Index)
 	{
 		check(Index >= 0 && Index < NumElements);
 		return &Objects[Index];
@@ -275,6 +301,13 @@ public:
 	FORCEINLINE FUObjectItem const& operator[](int32 Index) const
 	{
 		FUObjectItem const* ItemPtr = GetObjectPtr(Index);
+		check(ItemPtr);
+		return *ItemPtr;
+	}
+
+	FORCEINLINE FUObjectItem& operator[](int32 Index)
+	{
+		FUObjectItem* ItemPtr = GetObjectPtr(Index);
 		check(ItemPtr);
 		return *ItemPtr;
 	}
@@ -406,7 +439,7 @@ public:
 	 * @param Object object to get the index of
 	 * @return index of this object
 	 */
-	FORCEINLINE int32 ObjectToIndex(const class UObjectBase* Object)
+	FORCEINLINE int32 ObjectToIndex(const class UObjectBase* Object) const
 	{
 		return Object->InternalIndex;
 	}
@@ -762,17 +795,89 @@ private:
 /** UObject cluster. Groups UObjects into a single unit for GC. */
 struct FUObjectCluster
 {
+	FUObjectCluster()
+		: RootIndex(INDEX_NONE)
+		, bNeedsDissolving(false)
+	{}
+
+	/** Root object index */
+	int32 RootIndex;
 	/** Objects that belong to this cluster */
 	TArray<int32> Objects;
 	/** Other clusters referenced by this cluster */
 	TArray<int32> ReferencedClusters;
 	/** Objects that could not be added to the cluster but still need to be referenced by it */
 	TArray<int32> MutableObjects;
+	/** List of clusters that direcly reference this cluster. Used when dissolving a cluster. */
+	TArray<int32> ReferencedByClusters;
+
+	/** Cluster needs dissolving, probably due to PendingKill reference */
+	bool bNeedsDissolving;
+};
+
+class COREUOBJECT_API FUObjectClusterContainer
+{
+	/** List of all clusters */
+	TArray<FUObjectCluster> Clusters;
+	/** List of available cluster indices */
+	TArray<int32> FreeClusterIndices;
+	/** Number of allocated clusters */
+	int32 NumAllocatedClusters;
+	/** Clusters need dissolving, probably due to PendingKill reference */
+	bool bClustersNeedDissolving;
+
+	/** Dissolves a cluster */
+	void DissolveCluster(FUObjectCluster& Cluster);
+
+public:
+
+	FUObjectClusterContainer();
+
+	FORCEINLINE FUObjectCluster& operator[](int32 Index)
+	{
+		return Clusters[Index];
+	}
+
+	/** Returns an index to a new cluster */
+	int32 AllocateCluster(int32 InRootObjectIndex);
+
+	/** Frees the cluster at the specified index */
+	void FreeCluster(int32 InClusterIndex);
+
+	/** Dissolve all clusters marked for dissolving */
+	void DissolveClusters();
+
+	/** Dissolve the specified cluster and all clusters that reference it */
+	void DissolveClusterAndMarkObjectsAsUnreachable(const int32 CurrentIndex, FUObjectItem* RootObjectItem);
+
+	/** Gets the clusters array (for internal use only!) */
+	TArray<FUObjectCluster>& GetClustersUnsafe() 
+	{ 
+		return Clusters;  
+	}
+
+	/** Returns the number of currently allocated clusters */
+	int32 GetNumAllocatedClusters() const
+	{
+		return NumAllocatedClusters;
+	}
+
+	/** Lets the FUObjectClusterContainer know some clusters need dissolving */
+	void SetClustersNeedDissolving()
+	{
+		bClustersNeedDissolving = true;
+	}
+	
+	/** Checks if any clusters need dissolving */
+	bool ClustersNeedDissolving() const
+	{
+		return bClustersNeedDissolving;
+	}
 };
 
 /** Global UObject allocator							*/
 extern COREUOBJECT_API FUObjectArray GUObjectArray;
-extern COREUOBJECT_API TMap<int32, FUObjectCluster* > GUObjectClusters;
+extern COREUOBJECT_API FUObjectClusterContainer GUObjectClusters;
 
 /**
 	* Static version of IndexToObject for use with TWeakObjectPtr.

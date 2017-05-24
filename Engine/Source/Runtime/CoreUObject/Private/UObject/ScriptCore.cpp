@@ -880,12 +880,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	{
 		if (!GIsReinstancing)
 		{
-			static int32 num = 0;
-			num++;
-			if (num < 5)
-			{
-				ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
-			}
+			ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
 		}
 		return;
 	}
@@ -1101,7 +1096,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("Message"), FText::FromName( Message ));
 			Arguments.Add(TEXT("PropertyName"), FText::FromString( It->GetName() ));
-			Ar.Logf( *FText::Format( NSLOCTEXT( "Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}'" ), Arguments ).ToString() );
+			Ar.Logf( TEXT("%s"), *FText::Format( NSLOCTEXT( "Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}'" ), Arguments ).ToString() );
 			Failed = true;
 
 			break;
@@ -1885,6 +1880,7 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 
 	FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayAddr);
 	Stack.MostRecentProperty = ArrayProperty->Inner;
+
 	// Add a little safety for Blueprints to not hard crash
 	if (ArrayHelper.IsValidIndex(ArrayIndex))
 	{
@@ -1897,6 +1893,13 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 	}
 	else
 	{
+		// clear so other methods don't try to use a stale value (depends on this method succeeding)
+		Stack.MostRecentPropertyAddress = nullptr;
+		// sometimes other exec functions guard on MostRecentProperty, and expect 
+		// MostRecentPropertyAddress to be filled out; since this was a failure
+		// clear this too (so all reliant execs can properly detect)
+		Stack.MostRecentProperty = nullptr;
+
 		FBlueprintExceptionInfo ExceptionInfo(
 			EBlueprintExceptionType::AccessViolation,
 			FText::Format(
@@ -2112,7 +2115,20 @@ IMPLEMENT_VM_FUNCTION( EX_LetMulticastDelegate, execLetMulticastDelegate );
 void UObject::execSelf( FFrame& Stack, RESULT_DECL )
 {
 	// Get Self actor for this context.
-	*(UObject**)RESULT_PARAM = this;
+	if (RESULT_PARAM != nullptr)
+	{
+		*(UObject**)RESULT_PARAM = this;
+	}
+	// likely it's expecting us to fill out Stack.MostRecentProperty, which you 
+	// cannot because 'self' is not a UProperty (it is essentially a constant)
+	else 
+	{
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation,
+			LOCTEXT("AccessSelfAddress", "Attempted to reference 'self' as an addressable property.")
+		);
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+	}
 }
 IMPLEMENT_VM_FUNCTION( EX_Self, execSelf );
 
@@ -2469,6 +2485,20 @@ void UObject::execTextConst( FFrame& Stack, RESULT_DECL )
 		}
 		break;
 
+	case EBlueprintTextLiteralType::StringTableEntry:
+		{
+			Stack.ReadObject(); // String Table asset (if any)
+
+			FString TableIdString;
+			Stack.Step(Stack.Object, &TableIdString);
+
+			FString KeyString;
+			Stack.Step(Stack.Object, &KeyString);
+
+			*(FText*)RESULT_PARAM = FText::FromStringTable(FName(*TableIdString), KeyString);
+		}
+		break;
+
 	default:
 		checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update UObject::execTextConst to handle this type of text."));
 		break;
@@ -2628,11 +2658,11 @@ void UObject::execSetSet( FFrame& Stack, RESULT_DECL )
  	SetHelper.EmptyElements(Num);
  
  	// Read in the parameters one at a time
- 	int32 i = 0;
  	while(*Stack.Code != EX_EndSet)
  	{
- 		SetHelper.AddUninitializedValue();
- 		Stack.Step(Stack.Object, SetHelper.GetElementPtr(i++));
+		// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over  
+ 		int32 Index = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
+ 		Stack.Step(Stack.Object, SetHelper.GetElementPtr(Index));
  	}
 	SetHelper.Rehash();
  
@@ -2653,12 +2683,12 @@ void UObject::execSetMap( FFrame& Stack, RESULT_DECL )
  	MapHelper.EmptyValues(Num);
  
  	// Read in the parameters one at a time
- 	int32 i = 0;
  	while(*Stack.Code != EX_EndMap)
  	{
- 		MapHelper.AddUninitializedValue();
- 		Stack.Step(Stack.Object, MapHelper.GetKeyPtr(i));
- 		Stack.Step(Stack.Object, MapHelper.GetValuePtr(i++));
+		// needs to be an initialized/constructed value, in case the op is a literal that gets assigned over 
+		int32 Index = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
+ 		Stack.Step(Stack.Object, MapHelper.GetKeyPtr(Index));
+ 		Stack.Step(Stack.Object, MapHelper.GetValuePtr(Index));
  	}
 	MapHelper.Rehash();
  
@@ -2685,6 +2715,48 @@ void UObject::execArrayConst(FFrame& Stack, RESULT_DECL)
 	P_FINISH;	// EX_EndArrayConst
 }
 IMPLEMENT_VM_FUNCTION(EX_ArrayConst, execArrayConst);
+
+void UObject::execSetConst(FFrame& Stack, RESULT_DECL)
+{
+	UProperty* InnerProperty = CastChecked<UProperty>(Stack.ReadObject());
+	int32 Num = Stack.ReadInt<int32>();
+	check(RESULT_PARAM);
+
+	FScriptSetHelper SetHelper = FScriptSetHelper::CreateHelperFormElementProperty(InnerProperty, RESULT_PARAM);
+	SetHelper.EmptyElements(Num);
+
+	while (*Stack.Code != EX_EndSetConst)
+	{
+		int32 Index = SetHelper.AddDefaultValue_Invalid_NeedsRehash();
+		Stack.Step(Stack.Object, SetHelper.GetElementPtr(Index));
+	}
+	SetHelper.Rehash();
+
+	P_FINISH;	// EX_EndSetConst
+}
+IMPLEMENT_VM_FUNCTION(EX_SetConst, execSetConst);
+
+void UObject::execMapConst(FFrame& Stack, RESULT_DECL)
+{
+	UProperty* KeyProperty = CastChecked<UProperty>(Stack.ReadObject());
+	UProperty* ValProperty = CastChecked<UProperty>(Stack.ReadObject());
+	int32 Num = Stack.ReadInt<int32>();
+	check(RESULT_PARAM);
+
+	FScriptMapHelper MapHelper = FScriptMapHelper::CreateHelperFormInnerProperties(KeyProperty, ValProperty, RESULT_PARAM);
+	MapHelper.EmptyValues(Num);
+
+	while (*Stack.Code != EX_EndMapConst)
+	{
+		int32 Index = MapHelper.AddDefaultValue_Invalid_NeedsRehash();
+		Stack.Step(Stack.Object, MapHelper.GetKeyPtr(Index));
+		Stack.Step(Stack.Object, MapHelper.GetValuePtr(Index));
+	}
+	MapHelper.Rehash();
+
+	P_FINISH;	// EX_EndMapConst
+}
+IMPLEMENT_VM_FUNCTION(EX_MapConst, execMapConst);
 
 void UObject::execIntZero( FFrame& Stack, RESULT_DECL )
 {

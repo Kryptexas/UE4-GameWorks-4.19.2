@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class OneSkyLocalizationService : ModuleRules
 {
-    public OneSkyLocalizationService(TargetInfo Target)
+    public OneSkyLocalizationService(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateDependencyModuleNames.AddRange(
             new string[] {
@@ -17,21 +17,12 @@ public class OneSkyLocalizationService : ModuleRules
                 "EditorStyle",
                 "LocalizationService",
                 "Json",
-                "Internationalization",
                 "HTTP",
                 "Serialization",
 				"Localization",
+				"LocalizationCommandletExecution",
 				"MainFrame",
 			}
 		);
-
-        PrivateIncludePathModuleNames.AddRange(
-            new string[] {
-				"LocalizationService",
-				"Json",
-                "Internationalization",
-				"HTTP",
-			}
-        );
 	}
 }

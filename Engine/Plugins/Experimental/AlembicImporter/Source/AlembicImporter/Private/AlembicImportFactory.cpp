@@ -16,6 +16,7 @@
 #include "AbcImporter.h"
 #include "AbcImportLogger.h"
 #include "AbcImportSettings.h"
+#include "AbcAssetImportData.h"
 
 #include "GeometryCache.h"
 
@@ -39,7 +40,6 @@ UAlembicImportFactory::UAlembicImportFactory(const FObjectInitializer& ObjectIni
 void UAlembicImportFactory::PostInitProperties()
 {
 	Super::PostInitProperties();
-
 	ImportSettings = UAbcImportSettings::Get();
 }
 
@@ -171,11 +171,18 @@ TArray<UObject*> UAlembicImportFactory::ImportStaticMesh(FAbcImporter& Importer,
 			if (StaticMesh)
 			{
 				// Setup asset import data
-				if (!StaticMesh->AssetImportData)
+				if (!StaticMesh->AssetImportData || !StaticMesh->AssetImportData->IsA<UAbcAssetImportData>())
 				{
-					StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
+					StaticMesh->AssetImportData = NewObject<UAbcAssetImportData>(StaticMesh);
 				}
 				StaticMesh->AssetImportData->Update(UFactory::CurrentFilename);
+
+				UAbcAssetImportData* AssetImportData = Cast<UAbcAssetImportData>(StaticMesh->AssetImportData);
+				if (AssetImportData)
+				{
+					Importer.UpdateAssetImportData(AssetImportData);
+				}
+
 				Objects.Add(StaticMesh);
 			}
 		}	
@@ -201,11 +208,16 @@ UObject* UAlembicImportFactory::ImportGeometryCache(FAbcImporter& Importer, UObj
 		}
 
 		// Setup asset import data
-		if (!GeometryCache->AssetImportData)
+		if (!GeometryCache->AssetImportData || !GeometryCache->AssetImportData->IsA<UAbcAssetImportData>())
 		{
-			GeometryCache->AssetImportData = NewObject<UAssetImportData>(GeometryCache);
+			GeometryCache->AssetImportData = NewObject<UAbcAssetImportData>(GeometryCache);
 		}
 		GeometryCache->AssetImportData->Update(UFactory::CurrentFilename);
+		UAbcAssetImportData* AssetImportData = Cast<UAbcAssetImportData>(GeometryCache->AssetImportData);
+		if (AssetImportData)
+		{
+			Importer.UpdateAssetImportData(AssetImportData);
+		}
 
 		return GeometryCache;
 	}
@@ -234,11 +246,16 @@ UObject* UAlembicImportFactory::ImportSkeletalMesh(FAbcImporter& Importer, UObje
 		}
 
 		// Setup asset import data
-		if (!SkeletalMesh->AssetImportData)
+		if (!SkeletalMesh->AssetImportData || !SkeletalMesh->AssetImportData->IsA<UAbcAssetImportData>())
 		{
-			SkeletalMesh->AssetImportData = NewObject<UAssetImportData>(SkeletalMesh);
+			SkeletalMesh->AssetImportData = NewObject<UAbcAssetImportData>(SkeletalMesh);
 		}
 		SkeletalMesh->AssetImportData->Update(UFactory::CurrentFilename);
+		UAbcAssetImportData* AssetImportData = Cast<UAbcAssetImportData>(SkeletalMesh->AssetImportData);
+		if (AssetImportData)
+		{
+			Importer.UpdateAssetImportData(AssetImportData);
+		}
 
 		return SkeletalMesh;
 	}
@@ -397,6 +414,15 @@ EReimportResult::Type UAlembicImportFactory::ReimportGeometryCache(UGeometryCach
 		return EReimportResult::Failed;
 	}
 
+
+
+	if (Cache->AssetImportData && Cache->AssetImportData->IsA<UAbcAssetImportData>())
+	{
+		UAbcAssetImportData* ImportData = Cast<UAbcAssetImportData>(Cache->AssetImportData);
+		PopulateOptionsWithImportData(ImportData);
+		Importer.RetrieveAssetImportData(ImportData);
+	}
+
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::GeometryCache;
 	ImportSettings->SamplingSettings.FrameStart = 0;
@@ -432,12 +458,17 @@ EReimportResult::Type UAlembicImportFactory::ReimportGeometryCache(UGeometryCach
 	else
 	{
 		// Update file path/timestamp (Path could change if user has to browse for it manually)
-		if (!GeometryCache->AssetImportData)
+		if (!GeometryCache->AssetImportData || !GeometryCache->AssetImportData->IsA<UAbcAssetImportData>())
 		{
-			GeometryCache->AssetImportData = NewObject<UAssetImportData>(GeometryCache);
+			GeometryCache->AssetImportData = NewObject<UAbcAssetImportData>(GeometryCache);
 		}
 
 		GeometryCache->AssetImportData->Update(CurrentFilename);
+		UAbcAssetImportData* AssetImportData = Cast<UAbcAssetImportData>(GeometryCache->AssetImportData);
+		if (AssetImportData)
+		{
+			Importer.UpdateAssetImportData(AssetImportData);
+		}
 	}			
 
 	return EReimportResult::Succeeded;
@@ -458,6 +489,13 @@ EReimportResult::Type UAlembicImportFactory::ReimportSkeletalMesh(USkeletalMesh*
 	{
 		// Failed to read the file info, fail the re importing process 
 		return EReimportResult::Failed;
+	}
+	
+	if (SkeletalMesh->AssetImportData && SkeletalMesh->AssetImportData->IsA<UAbcAssetImportData>())
+	{
+		UAbcAssetImportData* ImportData = Cast<UAbcAssetImportData>(SkeletalMesh->AssetImportData);
+		PopulateOptionsWithImportData(ImportData);
+		Importer.RetrieveAssetImportData(ImportData);
 	}
 
 	TSharedPtr<SAlembicImportOptions> Options;
@@ -495,15 +533,25 @@ EReimportResult::Type UAlembicImportFactory::ReimportSkeletalMesh(USkeletalMesh*
 	else
 	{
 		// Update file path/timestamp (Path could change if user has to browse for it manually)
-		if (!NewSkeletalMesh->AssetImportData)
+		if (!NewSkeletalMesh->AssetImportData || !NewSkeletalMesh->AssetImportData->IsA<UAbcAssetImportData>())
 		{
-			NewSkeletalMesh->AssetImportData = NewObject<UAssetImportData>(NewSkeletalMesh);
+			NewSkeletalMesh->AssetImportData = NewObject<UAbcAssetImportData>(NewSkeletalMesh);
 		}
 
 		NewSkeletalMesh->AssetImportData->Update(CurrentFilename);
+		UAbcAssetImportData* AssetImportData = Cast<UAbcAssetImportData>(NewSkeletalMesh->AssetImportData);
+		if (AssetImportData)
+		{
+			Importer.UpdateAssetImportData(AssetImportData);
+		}
 	}
 
 	return EReimportResult::Succeeded;
+}
+
+void UAlembicImportFactory::PopulateOptionsWithImportData(UAbcAssetImportData* ImportData)
+{
+
 }
 
 EReimportResult::Type UAlembicImportFactory::ReimportStaticMesh(UStaticMesh* Mesh)
@@ -521,6 +569,13 @@ EReimportResult::Type UAlembicImportFactory::ReimportStaticMesh(UStaticMesh* Mes
 	{
 		// Failed to read the file info, fail the re importing process 
 		return EReimportResult::Failed;
+	}
+
+	if (Mesh->AssetImportData && Mesh->AssetImportData->IsA<UAbcAssetImportData>())
+	{
+		UAbcAssetImportData* ImportData = Cast<UAbcAssetImportData>(Mesh->AssetImportData);
+		PopulateOptionsWithImportData(ImportData);
+		Importer.RetrieveAssetImportData(ImportData);
 	}
 
 	TSharedPtr<SAlembicImportOptions> Options;
@@ -555,11 +610,16 @@ EReimportResult::Type UAlembicImportFactory::ReimportStaticMesh(UStaticMesh* Mes
 			if (StaticMesh)
 			{
 				// Setup asset import data
-				if (!StaticMesh->AssetImportData)
+				if (!StaticMesh->AssetImportData || !StaticMesh->AssetImportData->IsA<UAbcAssetImportData>())
 				{
-					StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
+					StaticMesh->AssetImportData = NewObject<UAbcAssetImportData>(StaticMesh);
 				}
 				StaticMesh->AssetImportData->Update(UFactory::CurrentFilename);
+				UAbcAssetImportData* AssetImportData = Cast<UAbcAssetImportData>(StaticMesh->AssetImportData);
+				if (AssetImportData)
+				{
+					Importer.UpdateAssetImportData(AssetImportData);
+				}
 			}
 		}
 

@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3194067
-Availability:Docs
+﻿INTSourceChangelist:3218993
+Availability:Public
 Title:1.ダイアログの音声の作成
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:各キャラクターの音声をセットアップします。
 version:4.13
 parent:Engine/Audio/Dialogue
 order:1
+type:quick start
 checkpoint:dialogueqs
 prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
@@ -14,22 +15,7 @@ related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/Audio/Dialogue)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/Audio/Dialogue/2 "%Engine/Audio/Dialogue/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 
 この例では、アンリアル エンジンのマーケットプレイスから無料で入手できる [Mixamo Animation Pack](https://www.unrealengine.com/marketplace/mixamo-animation-pack) のキャラクターを使います。 
@@ -99,10 +85,10 @@ Dialogue Voice キャラクターを特定するために以下を行います�
 
 1. ワールドにキャラクターを配置し、ビューポートに入れます。 
 1. **コンテンツ ブラウザ** の **Dialogue Voice** アセット上で右クリック します。
-1. **Asset Actions >> Capture Thumbnail** の順に選択します。
+1. **[Asset Actions]>> [Capture Thumbnail]** の順に選択します。
 
 	![](ThumbnailCapture.png)(w:500)
 
 [/REGION]
 
-%Steps%
+[NAV]

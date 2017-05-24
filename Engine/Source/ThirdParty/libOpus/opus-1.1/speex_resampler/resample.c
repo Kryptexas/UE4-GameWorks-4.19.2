@@ -63,6 +63,12 @@
 # define SPX_RESAMPLE_EXPORT
 #endif
 
+#ifdef ANDROID
+#ifndef OUTSIDE_SPEEX
+#define OUTSIDE_SPEEX
+#endif
+#endif
+
 #define RESAMPLE_HUGEMEM 1
 
 #ifdef OUTSIDE_SPEEX

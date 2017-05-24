@@ -14,12 +14,12 @@ class UUserDefinedStruct;
 class IBlueprintCompilerCppBackend
 {
 public:
-	virtual FString GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FCompilerNativizationOptions NativizationOptions, FString& OutCppBody) = 0;
+	virtual FString GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, const FCompilerNativizationOptions& NativizationOptions, FString& OutCppBody) = 0;
 	virtual void GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum, FString& OutHeaderCode, FString& OutCPPCode) = 0;
-	virtual FString GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) = 0;
+	virtual FString GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct, const FCompilerNativizationOptions& NativizationOptions) = 0;
 
 	// Generate a wrapper class, that helps accessing non-native properties and calling non-native functions
-	virtual FString GenerateWrapperForClass(UClass* SourceClass) = 0;
+	virtual FString GenerateWrapperForClass(UClass* SourceClass, const FCompilerNativizationOptions& NativizationOptions) = 0;
 
 	virtual ~IBlueprintCompilerCppBackend() {}
 };

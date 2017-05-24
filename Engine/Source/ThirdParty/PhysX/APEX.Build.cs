@@ -15,7 +15,7 @@ public class APEX : ModuleRules
 		Shipping
 	}
 
-	static APEXLibraryMode GetAPEXLibraryMode(UnrealTargetConfiguration Config)
+	APEXLibraryMode GetAPEXLibraryMode(UnrealTargetConfiguration Config)
 	{
 		switch (Config)
 		{
@@ -66,7 +66,7 @@ public class APEX : ModuleRules
 		}
 	}
 
-	public APEX(TargetInfo Target)
+	public APEX(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -74,9 +74,7 @@ public class APEX : ModuleRules
 		APEXLibraryMode LibraryMode = GetAPEXLibraryMode(Target.Configuration);
 		string LibrarySuffix = GetAPEXLibrarySuffix(LibraryMode);
 
-		Definitions.Add("WITH_APEX=1");
-
-        string ApexVersion = "APEX_1.4";
+		string ApexVersion = "APEX_1.4";
 
         string APEXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/" + ApexVersion + "/";
 
@@ -113,6 +111,9 @@ public class APEX : ModuleRules
 				"APEX_Clothing{0}",
 			});
 		string LibraryFormatString = null;
+
+		bool bIsApexStaticallyLinked = false;
+		bool bHasApexLegacy = true;
 
 		// Libraries and DLLs for windows platform
 		if (Target.Platform == UnrealTargetPlatform.Win64)
@@ -207,10 +208,10 @@ public class APEX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			if (Target.Architecture != "arm-unknown-linux-gnueabihf")
+			if (Target.Architecture.StartsWith("x86_64"))
 			{
 				APEXLibDir += "/Linux/" + Target.Architecture;
-				Definitions.Add("APEX_STATICALLY_LINKED=1");
+				bIsApexStaticallyLinked = true;
 
 				ApexLibraries.Add("APEX_Clothing{0}");
 				ApexLibraries.Add("APEX_Destructible{0}");
@@ -221,8 +222,8 @@ public class APEX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
-			Definitions.Add("APEX_STATICALLY_LINKED=1");
-			Definitions.Add("WITH_APEX_LEGACY=0");
+			bIsApexStaticallyLinked = true;
+			bHasApexLegacy = false;
 
 			APEXLibDir += "/PS4";
 			PublicLibraryPaths.Add(APEXLibDir);
@@ -234,14 +235,15 @@ public class APEX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
 		{
-			Definitions.Add("APEX_STATICALLY_LINKED=1");
-			Definitions.Add("WITH_APEX_LEGACY=0");
+			bIsApexStaticallyLinked = true;
+			bHasApexLegacy = false;
+
 			Definitions.Add("_XBOX_ONE=1");
 
 			// This MUST be defined for XboxOne!
 			Definitions.Add("PX_HAS_SECURE_STRCPY=1");
 
-			APEXLibDir += "/XboxOne/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			APEXLibDir += "/XboxOne/VS2015";
 			PublicLibraryPaths.Add(APEXLibDir);
 
 			ApexLibraries.Add("NvParameterized{0}");
@@ -251,16 +253,22 @@ public class APEX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
-			Definitions.Add("APEX_STATICALLY_LINKED=1");
-			Definitions.Add("WITH_APEX_LEGACY=0");
+			bIsApexStaticallyLinked = true;
+			bHasApexLegacy = false;
 
 			APEXLibDir += "/Switch";
 			PublicLibraryPaths.Add(APEXLibDir);
+
+			ApexLibraries.Add("NvParameterized{0}");
+			ApexLibraries.Add("RenderDebug{0}");
 
 			LibraryFormatString = "{0}";
 		}
 
 		Definitions.Add("APEX_UE4=1");
+
+		Definitions.Add(string.Format("APEX_STATICALLY_LINKED={0}", bIsApexStaticallyLinked ? 1 : 0));
+		Definitions.Add(string.Format("WITH_APEX_LEGACY={0}", bHasApexLegacy ? 1 : 0));
 
 		// Add the libraries needed (used for all platforms except Windows)
 		if (LibraryFormatString != null)

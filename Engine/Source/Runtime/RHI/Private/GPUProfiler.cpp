@@ -31,6 +31,12 @@ static TAutoConsoleVariable<FString> GProfileGPURootCVar(
 	TEXT("Allows to filter the tree when using ProfileGPU, the pattern match is case sensitive."),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> GProfileShowEventHistogram(
+	TEXT("r.ProfileGPU.ShowEventHistogram"),
+	0,
+	TEXT("Whether the event histogram should be shown."),
+	ECVF_Default);
+
 static TAutoConsoleVariable<int32> GProfileGPUShowEvents(
 	TEXT("r.ProfileGPU.ShowLeafEvents"),
 	0,
@@ -195,12 +201,9 @@ struct FGPUProfileStatSummary
 
 	void PrintSummary()
 	{
-		//@todo - calculate overhead instead of hardcoding
-		// This .012ms of overhead is based on what Nsight shows as the minimum draw call duration on a 580 GTX, 
-		// Which is apparently how long it takes to issue two timing events.
-		UE_LOG(LogRHI, Warning, TEXT("Total Nodes %u Draws %u approx overhead %.2fms"), TotalNumNodes, TotalNumDraws, .012f * TotalNumNodes);
-		UE_LOG(LogRHI, Warning, TEXT(""));
-		UE_LOG(LogRHI, Warning, TEXT(""));
+		UE_LOG(LogRHI, Log, TEXT("Total Nodes %u Draws %u"), TotalNumNodes, TotalNumDraws);
+		UE_LOG(LogRHI, Log, TEXT(""));
+		UE_LOG(LogRHI, Log, TEXT(""));
 
 		if (bGatherSummaryStats)
 		{
@@ -285,7 +288,7 @@ static void DumpStatsEventNode(FGPUProfilerEventNode* Node, float RootResult, in
 			}
 
 			// Print information about this node, padded to its depth in the tree
-			UE_LOG(LogRHI, Warning, TEXT("%s%4.1f%%%5.2fms   %s %u draws %u prims %u verts%s"), 
+			UE_LOG(LogRHI, Log, TEXT("%s%4.1f%%%5.2fms   %s %u draws %u prims %u verts%s"), 
 				*FString(TEXT("")).LeftPad(EffectiveDepth * 3), 
 				Percent,
 				Node->TimingResult,
@@ -347,7 +350,7 @@ static void DumpStatsEventNode(FGPUProfilerEventNode* Node, float RootResult, in
 		// Add an 'Other Children' node if necessary to show time spent in the current node that is not in any of its children
 		if (bMatchesFilter && Node->Children.Num() > 0 && TotalChildDraws > 0 && (UnaccountedPercent > 2.0f || UnaccountedTime > .2f))
 		{
-			UE_LOG(LogRHI, Warning, TEXT("%s%4.1f%%%5.2fms   Other Children"), 
+			UE_LOG(LogRHI, Log, TEXT("%s%4.1f%%%5.2fms   Other Children"), 
 				*FString(TEXT("")).LeftPad((EffectiveDepth + 1) * 3), 
 				UnaccountedPercent,
 				UnaccountedTime);
@@ -411,7 +414,7 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 	{
 		float RootResult = GetRootTimingResults();
 
-		UE_LOG(LogRHI, Warning, TEXT("Perf marker hierarchy, total GPU time %.2fms"), RootResult * 1000.0f);
+		UE_LOG(LogRHI, Log, TEXT("Perf marker hierarchy, total GPU time %.2fms"), RootResult * 1000.0f);
 
 		// Display a warning if this is a GPU profile and the GPU was profiled with v-sync enabled
 		FText VsyncEnabledWarningText = FText::GetEmpty();
@@ -420,7 +423,7 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 		{
 			VsyncEnabledWarningText = LOCTEXT("GpuProfileVsyncEnabledWarning",
 				"WARNING: This GPU profile was captured with v-sync enabled.  V-sync wait time may show up in any bucket, and as a result the data in this profile may be skewed. Please profile with v-sync disabled to obtain the most accurate data.");
-			UE_LOG(LogRHI, Warning, TEXT("%s"), *(VsyncEnabledWarningText.ToString()));
+			UE_LOG(LogRHI, Log, TEXT("%s"), *(VsyncEnabledWarningText.ToString()));
 		}
 
 		LogDisjointQuery();
@@ -442,13 +445,15 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 		}
 		Summary.PrintSummary();
 
-		if (RootWildcardString == TEXT("*"))
+		const bool bShowHistogram = GProfileShowEventHistogram.GetValueOnRenderThread() != 0;
+
+		if (RootWildcardString == TEXT("*") && bShowHistogram)
 		{
 			// Sort descending based on node duration
 			EventHistogram.ValueSort( FNodeStatsCompare() );
 
 			// Log stats about the node histogram
-			UE_LOG(LogRHI, Warning, TEXT("Node histogram %u buckets"), EventHistogram.Num());
+			UE_LOG(LogRHI, Log, TEXT("Node histogram %u buckets"), EventHistogram.Num());
 
 			static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ProfileGPU.Pattern"));
 
@@ -468,11 +473,11 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 
 			if(WildcardString.IsEmpty())
 			{
-				UE_LOG(LogRHI, Warning, TEXT(" r.ProfileGPU.Pattern = '*' (using threshold of %g ms)"), ThresholdInMS);
+				UE_LOG(LogRHI, Log, TEXT(" r.ProfileGPU.Pattern = '*' (using threshold of %g ms)"), ThresholdInMS);
 			}
 			else
 			{
-				UE_LOG(LogRHI, Warning, TEXT(" r.ProfileGPU.Pattern = '%s' (not using time threshold)"), *WildcardString);
+				UE_LOG(LogRHI, Log, TEXT(" r.ProfileGPU.Pattern = '%s' (not using time threshold)"), *WildcardString);
 			}
 
 			FWildcardString Wildcard(WildcardString);
@@ -492,7 +497,7 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 
 				if (bDump)
 				{
-					UE_LOG(LogRHI, Warning, TEXT("   %.2fms   %s   Events %u   Draws %u"), NodeStats.TimingResult, *It.Key(), NodeStats.NumEvents, NodeStats.NumDraws);
+					UE_LOG(LogRHI, Log, TEXT("   %.2fms   %s   Events %u   Draws %u"), NodeStats.TimingResult, *It.Key(), NodeStats.NumEvents, NodeStats.NumDraws);
 					Sum += NodeStats;
 				}
 				else
@@ -501,7 +506,7 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 				}
 			}
 
-			UE_LOG(LogRHI, Warning, TEXT("   Total %.2fms   Events %u   Draws %u,    %u buckets not shown"), 
+			UE_LOG(LogRHI, Log, TEXT("   Total %.2fms   Events %u   Draws %u,    %u buckets not shown"), 
 				Sum.TimingResult, Sum.NumEvents, Sum.NumDraws, NumNotShown);
 		}
 
@@ -548,6 +553,9 @@ void FGPUProfiler::PushEvent(const TCHAR* Name, FColor Color)
 {
 	if (bTrackingEvents)
 	{
+		check(StackDepth >= 0);
+		StackDepth++;
+
 		check(IsInRenderingThread() || IsInRHIThread());
 		if (CurrentEventNode)
 		{
@@ -572,6 +580,9 @@ void FGPUProfiler::PopEvent()
 {
 	if (bTrackingEvents)
 	{
+		check(StackDepth >= 1);
+		StackDepth--;
+
 		check(CurrentEventNode && (IsInRenderingThread() || IsInRHIThread()));
 		// Stop timing the current node and move one level up the tree
 		CurrentEventNode->StopTiming();

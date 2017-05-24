@@ -6,12 +6,21 @@
 #include "D3D12RHIPrivate.h"
 
 // Define template functions that are only declared in the header.
+#if USE_STATIC_ROOT_SIGNATURE
+template void FD3D12DescriptorCache::SetConstantBuffers<SF_Vertex>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
+template void FD3D12DescriptorCache::SetConstantBuffers<SF_Hull>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
+template void FD3D12DescriptorCache::SetConstantBuffers<SF_Domain>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
+template void FD3D12DescriptorCache::SetConstantBuffers<SF_Geometry>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
+template void FD3D12DescriptorCache::SetConstantBuffers<SF_Pixel>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
+template void FD3D12DescriptorCache::SetConstantBuffers<SF_Compute>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
+#else
 template void FD3D12DescriptorCache::SetConstantBuffers<SF_Vertex>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask);
 template void FD3D12DescriptorCache::SetConstantBuffers<SF_Hull>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask);
 template void FD3D12DescriptorCache::SetConstantBuffers<SF_Domain>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask);
 template void FD3D12DescriptorCache::SetConstantBuffers<SF_Geometry>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask);
 template void FD3D12DescriptorCache::SetConstantBuffers<SF_Pixel>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask);
 template void FD3D12DescriptorCache::SetConstantBuffers<SF_Compute>(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask);
+#endif
 
 template void FD3D12DescriptorCache::SetSRVs<SF_Vertex>(FD3D12ShaderResourceViewCache& Cache, const SRVSlotMask& SlotsNeededMask, uint32 SlotsNeeded, uint32& HeapSlot);
 template void FD3D12DescriptorCache::SetSRVs<SF_Hull>(FD3D12ShaderResourceViewCache& Cache, const SRVSlotMask& SlotsNeededMask, uint32 SlotsNeeded, uint32& HeapSlot);
@@ -106,6 +115,10 @@ void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* I
 	UAVDesc.Texture2D.MipSlice = 0;
 	pNullUAV = new FD3D12UnorderedAccessView(GetParentDevice(), &UAVDesc, nullptr);
 
+#if USE_STATIC_ROOT_SIGNATURE
+	pNullCBV = new FD3D12ConstantBufferView(GetParentDevice(), nullptr);
+#endif
+
 	const FSamplerStateInitializerRHI SamplerDesc(
 		SF_Trilinear,
 		AM_Clamp,
@@ -131,6 +144,9 @@ void FD3D12DescriptorCache::Clear()
 	pNullSRV = nullptr;
 	pNullUAV = nullptr;
 	pNullRTV = nullptr;
+#if USE_STATIC_ROOT_SIGNATURE
+	delete pNullCBV;
+#endif
 }
 
 void FD3D12DescriptorCache::BeginFrame()
@@ -621,49 +637,121 @@ void FD3D12DescriptorCache::SetSRVs(FD3D12ShaderResourceViewCache& Cache, const 
 }
 
 template <EShaderFrequency ShaderStage>
+#if USE_STATIC_ROOT_SIGNATURE
+void FD3D12DescriptorCache::SetConstantBuffers(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask, uint32 SlotsNeeded, uint32& HeapSlot)
+#else
 void FD3D12DescriptorCache::SetConstantBuffers(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask)
+#endif
 {
-	FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
 	CBVSlotMask& CurrentDirtySlotMask = Cache.DirtySlotMask[ShaderStage];
 	check(CurrentDirtySlotMask != 0);	// All dirty slots for the current shader stage.
 	check(SlotsNeededMask != 0);		// All dirty slots for the current shader stage AND used by the current shader stage.
 
-	// Set root descriptors.
-	// At least one needed root descriptor is dirty.
+	FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
+	ID3D12Device* Device = GetParentDevice()->GetDevice();
+
+	// Process root CBV
 	const CBVSlotMask RDCBVSlotsNeededMask = GRootCBVSlotMask & SlotsNeededMask;
 	check(RDCBVSlotsNeededMask); // Check this wasn't a wasted call.
 
-	const FD3D12RootSignature* pRootSignature = ShaderStage == SF_Compute ? CmdContext->StateCache.GetComputeRootSignature() : CmdContext->StateCache.GetGraphicsRootSignature();
-	const uint32 BaseIndex = pRootSignature->CBVRDBaseBindSlot(ShaderStage);
-	const uint32 RDCBVsNeeded = FMath::FloorLog2(RDCBVSlotsNeededMask) + 1;	// Get the index of the most significant bit that's set.
-	check(RDCBVsNeeded <= MAX_ROOT_CBVS);
-	for (uint32 SlotIndex = 0; SlotIndex < RDCBVsNeeded; SlotIndex++)
+#if USE_STATIC_ROOT_SIGNATURE
+	// Now desc table with CBV
+	auto& CBVHandles = Cache.CBHandles[ShaderStage];
+
+	// Reserve heap slots
+	uint32 FirstSlotIndex = HeapSlot;
+	check(SlotsNeeded != 0);
+	HeapSlot += SlotsNeeded;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor = CurrentViewHeap->GetCPUSlotHandle(FirstSlotIndex);
+	const uint32 DescriptorSize = CurrentViewHeap->GetDescriptorSize();
+
+	//Device->CopyDescriptors(1, &DestDescriptor, &DescriptorSize, SlotsNeeded, CBVHandles, SrcSizes, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	for (uint32 SlotIndex = 0; SlotIndex < SlotsNeeded; SlotIndex++)
 	{
-		// Only set the root descriptor if it's dirty and we need to set it (it can be used by the shader).
-		if (FD3D12ConstantBufferCache::IsSlotDirty(RDCBVSlotsNeededMask, SlotIndex))
+		if (CBVHandles[SlotIndex].ptr != 0)
 		{
-			const D3D12_GPU_VIRTUAL_ADDRESS& CurrentGPUVirtualAddress = Cache.CurrentGPUVirtualAddress[ShaderStage][SlotIndex];
-			check(CurrentGPUVirtualAddress != 0);
-			if (ShaderStage == SF_Compute)
-			{
-				CommandList->SetComputeRootConstantBufferView(BaseIndex + SlotIndex, CurrentGPUVirtualAddress);
-			}
-			else
-			{
-				CommandList->SetGraphicsRootConstantBufferView(BaseIndex + SlotIndex, CurrentGPUVirtualAddress);
-			}
+			Device->CopyDescriptorsSimple(1, DestDescriptor, CBVHandles[SlotIndex], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			// Update residency.
 			CommandList.UpdateResidency(Cache.ResidencyHandles[ShaderStage][SlotIndex]);
-
-			// Clear the dirty bit.
-			FD3D12ConstantBufferCache::CleanSlot(CurrentDirtySlotMask, SlotIndex);
 		}
-	}
-	check((CurrentDirtySlotMask & RDCBVSlotsNeededMask) == 0);	// Check all slots that needed to be set, were set.
+		else
+		{
+			Device->CopyDescriptorsSimple(1, DestDescriptor, pNullCBV->OfflineDescriptorHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 
-	static_assert(GDescriptorTableCBVSlotMask == 0, "FD3D12DescriptorCache::SetConstantBuffers needs to be updated to handle descriptor tables.");	// Check that all CBVs slots are controlled by root descriptors.
-	
+		DestDescriptor.ptr += DescriptorSize;
+
+		// Clear the dirty bit.
+		FD3D12ConstantBufferCache::CleanSlot(CurrentDirtySlotMask, SlotIndex);
+	}
+
+	check((CurrentDirtySlotMask & SlotsNeededMask) == 0);	// Check all slots that needed to be set, were set.
+
+	const D3D12_GPU_DESCRIPTOR_HANDLE BindDescriptor = CurrentViewHeap->GetGPUSlotHandle(FirstSlotIndex);
+
+	if (ShaderStage == SF_Compute)
+	{
+		const uint32 RDTIndex = CmdContext->StateCache.GetComputeRootSignature()->CBVRDTBindSlot(ShaderStage);
+		ensure(RDTIndex != 255);
+		CommandList->SetComputeRootDescriptorTable(RDTIndex, BindDescriptor);
+	}
+	else
+	{
+		const uint32 RDTIndex = CmdContext->StateCache.GetGraphicsRootSignature()->CBVRDTBindSlot(ShaderStage);
+		ensure(RDTIndex != 255);
+		CommandList->SetGraphicsRootDescriptorTable(RDTIndex, BindDescriptor);
+	}
+
+	// We changed the descriptor table, so all resources bound to slots outside of the table's range are now dirty.
+	// If a shader needs to use resources bound to these slots later, we need to set the descriptor table again to ensure those
+	// descriptors are valid.
+	const CBVSlotMask OutsideCurrentTableRegisterMask = ~((1 << SlotsNeeded) - 1);
+	Cache.Dirty(ShaderStage, OutsideCurrentTableRegisterMask);
+
+#ifdef VERBOSE_DESCRIPTOR_HEAP_DEBUG
+	FMsg::Logf(__FILE__, __LINE__, TEXT("DescriptorCache"), ELogVerbosity::Log, TEXT("SetShaderResourceViewTable [STAGE %d] to slots %d - %d"), (int32)ShaderStage, FirstSlotIndex, FirstSlotIndex + SlotsNeeded - 1);
+#endif
+#else
+	auto& CBVs = Cache.CurrentGPUVirtualAddress[ShaderStage];
+	{
+		// Set root descriptors.
+		// At least one needed root descriptor is dirty.
+
+		const FD3D12RootSignature* pRootSignature = ShaderStage == SF_Compute ? CmdContext->StateCache.GetComputeRootSignature() : CmdContext->StateCache.GetGraphicsRootSignature();
+		const uint32 BaseIndex = pRootSignature->CBVRDBaseBindSlot(ShaderStage);
+		ensure(BaseIndex != 255);
+		const uint32 RDCBVsNeeded = FMath::FloorLog2(RDCBVSlotsNeededMask) + 1;	// Get the index of the most significant bit that's set.
+		check(RDCBVsNeeded <= MAX_ROOT_CBVS);
+		for (uint32 SlotIndex = 0; SlotIndex < RDCBVsNeeded; SlotIndex++)
+		{
+			// Only set the root descriptor if it's dirty and we need to set it (it can be used by the shader).
+			if (FD3D12ConstantBufferCache::IsSlotDirty(RDCBVSlotsNeededMask, SlotIndex))
+			{
+				const D3D12_GPU_VIRTUAL_ADDRESS& CurrentGPUVirtualAddress = Cache.CurrentGPUVirtualAddress[ShaderStage][SlotIndex];
+				check(CurrentGPUVirtualAddress != 0);
+				if (ShaderStage == SF_Compute)
+				{
+					CommandList->SetComputeRootConstantBufferView(BaseIndex + SlotIndex, CurrentGPUVirtualAddress);
+				}
+				else
+				{
+					CommandList->SetGraphicsRootConstantBufferView(BaseIndex + SlotIndex, CurrentGPUVirtualAddress);
+				}
+
+				// Update residency.
+				CommandList.UpdateResidency(Cache.ResidencyHandles[ShaderStage][SlotIndex]);
+
+				// Clear the dirty bit.
+				FD3D12ConstantBufferCache::CleanSlot(CurrentDirtySlotMask, SlotIndex);
+			}
+		}
+		check((CurrentDirtySlotMask & RDCBVSlotsNeededMask) == 0);	// Check all slots that needed to be set, were set.
+
+		static_assert(GDescriptorTableCBVSlotMask == 0, "FD3D12DescriptorCache::SetConstantBuffers needs to be updated to handle descriptor tables.");	// Check that all CBVs slots are controlled by root descriptors.
+	}
+#endif	
 }
 
 bool FD3D12DescriptorCache::SwitchToContextLocalViewHeap()
@@ -936,16 +1024,6 @@ void FD3D12OnlineHeap::NotifyCurrentCommandList(const FD3D12CommandListHandle& C
 {
 	//Specialization should be called
 	check(false);
-}
-
-uint32 FD3D12OnlineHeap::GetTotalSize()
-{
-	return Desc.NumDescriptors;
-}
-
-uint32 FD3D12SubAllocatedOnlineHeap::GetTotalSize()
-{
-	return CurrentSubAllocation.Size;
 }
 
 void FD3D12SubAllocatedOnlineHeap::Init(SubAllocationDesc _Desc)

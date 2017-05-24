@@ -4,11 +4,12 @@
 #include "AnimationRuntime.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // AnimNode_Fabrik
 // Implementation of the FABRIK IK Algorithm
-// Please see http://andreasaristidou.com/publications/FABRIK.pdf for more details
+// Please see http://www.academia.edu/9165835/FABRIK_A_fast_iterative_solver_for_the_Inverse_Kinematics_problem for more details
 
 FAnimNode_Fabrik::FAnimNode_Fabrik()
 	: EffectorTransform(FTransform::Identity)
@@ -25,13 +26,13 @@ FVector FAnimNode_Fabrik::GetCurrentLocation(FCSPose<FCompactPose>& MeshBases, c
 	return MeshBases.GetComponentSpaceTransform(BoneIndex).GetLocation();
 }
 
-void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_Fabrik::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
-	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 
 	// Update EffectorLocation if it is based off a bone position
 	FTransform CSEffectorTransform = EffectorTransform;
-	FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, CSEffectorTransform, EffectorTransformBone.GetCompactPoseIndex(BoneContainer), EffectorTransformSpace);
+	FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, CSEffectorTransform, EffectorTransformBone.GetCompactPoseIndex(BoneContainer), EffectorTransformSpace);
 	
 	FVector const CSEffectorLocation = CSEffectorTransform.GetLocation();
 
@@ -48,7 +49,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 		do
 		{
 			BoneIndices.Insert(BoneIndex, 0);
-			BoneIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
+			BoneIndex = Output.Pose.GetPose().GetParentBoneIndex(BoneIndex);
 		} while (BoneIndex != RootIndex);
 		BoneIndices.Insert(BoneIndex, 0);
 	}
@@ -67,7 +68,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 	// Start with Root Bone
 	{
 		const FCompactPoseBoneIndex& RootBoneIndex = BoneIndices[0];
-		const FTransform& BoneCSTransform = MeshBases.GetComponentSpaceTransform(RootBoneIndex);
+		const FTransform& BoneCSTransform = Output.Pose.GetComponentSpaceTransform(RootBoneIndex);
 
 		OutBoneTransforms[0] = FBoneTransform(RootBoneIndex, BoneCSTransform);
 		Chain.Add(FABRIKChainLink(BoneCSTransform.GetLocation(), 0.f, RootBoneIndex, 0));
@@ -78,7 +79,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 	{
 		const FCompactPoseBoneIndex& BoneIndex = BoneIndices[TransformIndex];
 
-		const FTransform& BoneCSTransform = MeshBases.GetComponentSpaceTransform(BoneIndex);
+		const FTransform& BoneCSTransform = Output.Pose.GetComponentSpaceTransform(BoneIndex);
 		FVector const BoneCSPosition = BoneCSTransform.GetLocation();
 
 		OutBoneTransforms[TransformIndex] = FBoneTransform(BoneIndex, BoneCSTransform);
@@ -189,7 +190,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 			FABRIKChainLink const & ChildLink = Chain[LinkIndex + 1];
 
 			// Calculate pre-translation vector between this bone and child
-			FVector const OldDir = (GetCurrentLocation(MeshBases, ChildLink.BoneIndex) - GetCurrentLocation(MeshBases, CurrentLink.BoneIndex)).GetUnsafeNormal();
+			FVector const OldDir = (GetCurrentLocation(Output.Pose, ChildLink.BoneIndex) - GetCurrentLocation(Output.Pose, CurrentLink.BoneIndex)).GetUnsafeNormal();
 
 			// Get vector from the post-translation bone to it's child
 			FVector const NewDir = (ChildLink.Position - CurrentLink.Position).GetUnsafeNormal();
@@ -222,7 +223,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 	switch (EffectorRotationSource)
 	{
 	case BRS_KeepLocalSpaceRotation:
-		OutBoneTransforms[TipBoneTransformIndex].Transform = MeshBases.GetLocalSpaceTransform(BoneIndices[TipBoneTransformIndex]) * OutBoneTransforms[TipBoneTransformIndex - 1].Transform;
+		OutBoneTransforms[TipBoneTransformIndex].Transform = Output.Pose.GetLocalSpaceTransform(BoneIndices[TipBoneTransformIndex]) * OutBoneTransforms[TipBoneTransformIndex - 1].Transform;
 		break;
 	case BRS_CopyFromTarget:
 		OutBoneTransforms[TipBoneTransformIndex].Transform.SetRotation(CSEffectorTransform.GetRotation());

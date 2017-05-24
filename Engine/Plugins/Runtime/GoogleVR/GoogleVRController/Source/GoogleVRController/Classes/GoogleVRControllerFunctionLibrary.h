@@ -62,6 +62,18 @@ enum class EGoogleVRArmModelFollowGazeBehavior : uint8
 	Always // The shoulder will always follow the gaze.
 };
 
+// Represents the controller battery level.
+UENUM(BlueprintType)
+enum class EGoogleVRControllerBatteryLevel : uint8
+{
+	Unknown = 0,
+	CriticalLow = 1,
+	Low = 2,
+	Medium = 3,
+	AlmostFull = 4,
+	Full = 5,
+};
+
 /**
  * GoogleVRController Extensions Function Library
  */
@@ -74,38 +86,38 @@ public:
 	/**
 	 * Get the GoogleVR Controller API status
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static EGoogleVRControllerAPIStatus GetGoogleVRControllerAPIStatus();
 
 	/**
 	 * Get the GoogleVR Controller state
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static EGoogleVRControllerState GetGoogleVRControllerState();
 
 	/**
 	 * Get user's handedness preference from GVRSDK
 	 * @return A EGoogleVRControllerHandedness indicates the user's handedness preference in GoogleVR Settings.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static EGoogleVRControllerHandedness GetGoogleVRControllerHandedness();
 
 	/**
 	 * This function return the controller acceleration in gvr controller space.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static FVector GetGoogleVRControllerRawAccel();
 
 	/**
 	 * This function return the controller angular velocity about each axis (positive means clockwise when sighting along axis) in gvr controller space.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static FVector GetGoogleVRControllerRawGyro();
 
 	/**
 	 * This function return the orientation of the controller in unreal space.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static FRotator GetGoogleVRControllerOrientation();
 
 	/**
@@ -124,7 +136,7 @@ public:
 	/** Determine if the arm model is enabled
 	 *  @return true if the arm model is enabled
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool IsArmModelEnabled();
 
 	/** Set the arm model enabled/disabled
@@ -139,14 +151,14 @@ public:
 	 *  This should be used for any reticle / laser implementation.
 	 *  @return pointer position.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static FVector GetArmModelPointerPositionOffset();
 
 	/** Get the elbow height used by the arm model in meters.
 	 *  Used in the mathematical model for calculating the controller position/rotation.
 	 *  @return user height.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetArmModelAddedElbowHeight();
 
 	/** Set the elbow height used by the arm model in meters.
@@ -160,7 +172,7 @@ public:
 	 *  Used in the mathematical model for calculating the controller position/rotation.
 	 *  @return user height.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetArmModelAddedElbowDepth();
 
 	/** Set the elbow depth used by the arm model in meters.
@@ -173,7 +185,7 @@ public:
 	/** Get the pointer tilt angle.
 	 *  @return degrees downward that the pointer tilts.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetArmModelPointerTiltAngle();
 
 	/** Set the pointer tilt angle.
@@ -188,7 +200,7 @@ public:
 	 *  player to turn more than 90 degrees.
 	 *  @return gaze behavior.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static EGoogleVRArmModelFollowGazeBehavior GetArmModelGazeBehavior();
 
 	/** Set gaze behavior
@@ -205,7 +217,7 @@ public:
 	 *  around a physical object. Not as useful when just interacting with UI.
 	 *  @return true if accelerometer use is enabled
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool WillArmModelUseAccelerometer();
 
 	/** Set if the arm model will use accelerometer data
@@ -220,7 +232,7 @@ public:
 	/** Controller distance from the face after which the alpha value decreases (meters).
 	 *  @return fade distance from face in meters.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetFadeDistanceFromFace();
 
 	/** Controller distance from the face after which the alpha value decreases (meters).
@@ -232,7 +244,7 @@ public:
 	/** Controller distance from the face after which the tooltips appear (meters).
 	 *  @return tooltip mininum distance from face in meters.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetTooltipMinDistanceFromFace();
 
 	/** Controller distance from the face after which the tooltips appear (meters).
@@ -241,12 +253,30 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static void SetTooltipMinDistanceFromFace(float DistanceFromFace);
 
+	/** When the angle (degrees) between the controller and the head is larger than
+	 *  this value, the tooltip disappears.
+	 *  If the value is 180, then the tooltips are always shown.
+	 *  If the value is 90, the tooltips are only shown when they are facing the camera.
+	 *  @return tooltip max angle from camera in degrees.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	static int GetTooltipMaxAngleFromCamera();
+
+	/** When the angle (degrees) between the controller and the head is larger than
+	 *  this value, the tooltip disappears.
+	 *  If the value is 180, then the tooltips are always shown.
+	 *  If the value is 90, the tooltips are only shown when they are facing the camera.
+	 *  @param AngleFromCamera - value to set
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	static void SetTooltipMaxAngleFromCamera(int AngleFromCamera);
+
 	/** Get the current desired alpha value of the controller visual.
 	 *  This changes based on the FadeDistanceFromFace, and is used to prevent the controller
 	 *  From clipping awkwardly into the user's face.
 	 *  @return value between 0 and 1.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetControllerAlphaValue();
 
 	/** Get the current desired alpha value of the tooltip visual.
@@ -257,8 +287,24 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetTooltipAlphaValue();
-
-private:
-	static UGoogleVRControllerEventManager* ControllerEventManager;
 	
+	/** Get whether the controller battery is currently charging.
+	 *  This may not be real time information and may be slow to be updated.
+	 *  @return true if the battery is charging.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	static bool GetBatteryCharging();
+	
+	/** Get the bucketed controller battery level.
+	 *  Note this is an approximate level described by enumeration, not a percent.
+	 *  @return the approximate battery level, or unknown if the level can not be determined.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoogleVRController", meta = (Keywords = "Cardboard AVR GVR"))
+	static EGoogleVRControllerBatteryLevel GetBatteryLevel();
+	
+	/** Get the timestamp (nanos) when the last battery event was received.
+	 *  @return the timestamp, or zero if unavailable.
+	 */
+	static int64_t GetLastBatteryTimestamp();
+
 };

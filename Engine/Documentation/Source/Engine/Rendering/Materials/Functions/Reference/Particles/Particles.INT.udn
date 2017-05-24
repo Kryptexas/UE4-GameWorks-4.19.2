@@ -3,6 +3,7 @@ title:Particles
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Specialized functions designed to aid setting up the look of complex particle networks.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

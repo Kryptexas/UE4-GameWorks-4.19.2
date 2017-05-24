@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3235253
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:1 - ブレンドするアニメーションを設定する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:このステップではプレイヤー キャラクターを更新し、移動のアニメーションの上にレイヤー化したいアニメーションの AnimMontage を作成します。
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 
 [VAR:Steps]
 [OBJECT:Navigation]

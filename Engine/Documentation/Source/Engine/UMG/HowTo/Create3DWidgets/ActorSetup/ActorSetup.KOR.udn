@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3108692
-Availability: Public
+﻿INTSourceChangelist:3343833
+Availability:Docs
 Title:2. 액터 블루프린트 구성
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo, Engine\UMG\HowTo\Create3DWidgets
 Description:위젯 컴포넌트가 포함된 액터 블루프린트를 사용해서 위젯 블루프린트를 3D 월드 스페이스에 표시합니다.
@@ -8,7 +8,8 @@ Related: Engine/UMG/UserGuide
 Related: Engine/Blueprints
 Version: 4.10
 SkillLevel: Intermediate
-checkpoint: editorqs
+checkpoint: umg_create_3d_howto
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]

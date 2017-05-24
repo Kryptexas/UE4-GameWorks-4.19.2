@@ -56,7 +56,7 @@ void FTestSharingInterface::RequestPermissionsToSharePosts()
 	RequestPermissionsToPostToFeedDelegate = FOnRequestNewPublishPermissionsCompleteDelegate::CreateRaw(this, &FTestSharingInterface::OnStatusPostingPermissionsUpdated);
 
 	// We need to be permitted to post on the users behalf to share this update
-	EOnlineSharingPublishingCategory::Type PublishPermissions = EOnlineSharingPublishingCategory::Posts;
+	EOnlineSharingCategory PublishPermissions = EOnlineSharingCategory::SubmitPosts;
 
 	for (int32 PlayerIndex = 0; PlayerIndex < MAX_LOCAL_PLAYERS; PlayerIndex++)
 	{
@@ -118,7 +118,7 @@ void FTestSharingInterface::RequestPermissionsToReadNewsFeed()
 	RequestPermissionsToReadFeedDelegate = FOnRequestNewReadPermissionsCompleteDelegate::CreateRaw(this, &FTestSharingInterface::OnReadFeedPermissionsUpdated);
 
 	// We need to be permitted to post on the users behalf to share this update
-	EOnlineSharingReadCategory::Type ReadPermissions = EOnlineSharingReadCategory::Posts;
+	EOnlineSharingCategory ReadPermissions = EOnlineSharingCategory::ReadPosts;
 
 	for (int32 PlayerIndex = 0; PlayerIndex < MAX_LOCAL_PLAYERS; PlayerIndex++)
 	{

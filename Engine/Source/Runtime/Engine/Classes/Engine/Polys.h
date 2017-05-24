@@ -600,13 +600,11 @@ class UPolys : public UObject
 	, Element( )
 	{}
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UPolys(FVTableHelper& Helper)
 		: Super(Helper)
 		, Element()
 	{}
-#endif // WITH_HOT_RELOAD_CTORS
 
 	//~ Begin UObject Interface
 	ENGINE_API virtual bool Modify(bool bAlwaysMarkDirty = false) override;	

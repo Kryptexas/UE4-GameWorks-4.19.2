@@ -82,43 +82,45 @@ FSlateMaterialShaderPS::FSlateMaterialShaderPS(const FMaterialShaderType::Compil
 	TextureParameterSampler.Bind(Initializer.ParameterMap, TEXT("ElementTextureSampler"));
 }
 
-void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, float InDisplayGamma, const FVector4& InShaderParams )
+void FSlateMaterialShaderPS::SetBlendState(FGraphicsPipelineStateInitializer& GraphicsPSOInit, const FMaterial* Material)
 {
-	const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-
 	EBlendMode BlendMode = Material->GetBlendMode();
 
 	switch (BlendMode)
 	{
 	default:
 	case BLEND_Opaque:
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 		break;
 	case BLEND_Masked:
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 		break;
 	case BLEND_Translucent:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI();
 		break;
 	case BLEND_Additive:
 		// Add to the existing scene color
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI();
 		break;
 	case BLEND_Modulate:
 		// Modulate with the existing scene color
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_Zero, BF_SourceColor>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_Zero, BF_SourceColor>::GetRHI();
 		break;
 	case BLEND_AlphaComposite:
 		// Blend with existing scene color. New color is already pre-multiplied by alpha.
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
+		GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI();
 		break;
 	};
+}
+
+void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, const FVector4& InShaderParams)
+{
+	const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 	SetShaderValue( RHICmdList, ShaderRHI, ShaderParams, InShaderParams );
 
 	const bool bDeferredPass = false;
 	FMaterialShader::SetParameters<FPixelShaderRHIParamRef>(RHICmdList, ShaderRHI, MaterialRenderProxy, *Material, View, View.ViewUniformBuffer, bDeferredPass, ESceneRenderTargetsMode::SetTextures);
-
 }
 
 void FSlateMaterialShaderPS::SetAdditionalTexture( FRHICommandList& RHICmdList, const FTextureRHIParamRef InTexture, const FSamplerStateRHIRef SamplerState )
@@ -150,7 +152,6 @@ bool FSlateMaterialShaderPS::Serialize(FArchive& Ar)
 
 /** Instancing vertex shader */
 IMPLEMENT_SLATE_VERTEXMATERIALSHADER_TYPE(true);
-
 /** Non instancing vertex shader */
 IMPLEMENT_SLATE_VERTEXMATERIALSHADER_TYPE(false);
 
@@ -160,9 +161,9 @@ IMPLEMENT_SLATE_VERTEXMATERIALSHADER_TYPE(false);
 
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Custom, false)
 
-IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default,true);
-IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default,false);
-IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Border,true);
-IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Border,false);
+IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default, true);
+IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default, false);
+IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Border, true);
+IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Border, false);
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Font, true);
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Font, false);

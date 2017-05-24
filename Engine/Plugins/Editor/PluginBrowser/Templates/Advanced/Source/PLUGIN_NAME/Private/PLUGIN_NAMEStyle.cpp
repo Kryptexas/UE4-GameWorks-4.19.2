@@ -1,7 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PLUGIN_NAME.h"
 #include "PLUGIN_NAMEStyle.h"
+#include "Styling/SlateStyleRegistry.h"
+#include "Framework/Application/SlateApplication.h"
 #include "SlateGameResources.h"
 #include "IPluginManager.h"
 

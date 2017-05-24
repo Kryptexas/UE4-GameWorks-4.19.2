@@ -90,6 +90,13 @@ public:
 	*/
 	void AddObjectBindingNode( TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode );
 
+	/** 
+	 * Finds any parent object binding node above this node in the hierarchy
+	 *
+	 * @return the parent node, or nullptr if no object binding is found
+	 */
+	TSharedPtr<FSequencerObjectBindingNode> FindParentObjectBindingNode() const;
+
 	/**
 	 * Adds a category to this node
 	 * 
@@ -164,6 +171,22 @@ public:
 	 * @param NewDisplayName the display name to set.
 	 */
 	virtual void SetDisplayName(const FText& NewDisplayName) = 0;
+
+	/**
+	 * @return Whether this node handles resize events
+	 */
+	virtual bool IsResizable() const
+	{
+		return false;
+	}
+
+	/**
+	 * Resize this node
+	 */
+	virtual void Resize(float NewSize)
+	{
+		
+	}
 
 	/**
 	 * Generates a container widget for tree display in the animation outliner portion of the track area

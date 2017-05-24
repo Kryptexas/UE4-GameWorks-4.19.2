@@ -87,7 +87,7 @@ struct FBuffers
 		return Found;
 	}
 
-	int GetIndex(ir_variable* Var, bool bIsDesktop)
+	int GetIndex(ir_variable* Var)
 	{
 		for (int i = 0, n = Buffers.Num(); i < n; ++i)
 		{
@@ -108,7 +108,7 @@ struct FBuffers
 		return -1;
 	}
 
-	int GetIndex(const FCustomStdString& Name, bool bIsDesktop)
+	int GetIndex(const FCustomStdString& Name)
 	{
 		for (int i = 0, n = Buffers.Num(); i < n; ++i)
 		{
@@ -260,10 +260,10 @@ struct FSemanticQualifier
 
 namespace MetalUtils
 {
-	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* InputSemantic,
+	ir_dereference_variable* GenerateInput(EHlslShaderFrequency Frequency, uint32 bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* InputSemantic,
 		const glsl_type* InputType, exec_list* DeclInstructions, exec_list* PreCallInstructions);
 
-	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, bool bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* OutputSemantic,
+	ir_dereference_variable* GenerateOutput(EHlslShaderFrequency Frequency, uint32 bIsDesktop, _mesa_glsl_parse_state* ParseState, const char* OutputSemantic,
 		FSemanticQualifier Qualifier,
 		const glsl_type* OutputType, exec_list* DeclInstructions, exec_list* PreCallInstructions, exec_list* PostCallInstructions);
 }

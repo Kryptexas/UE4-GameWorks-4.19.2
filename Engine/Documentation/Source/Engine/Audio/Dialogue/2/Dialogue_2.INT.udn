@@ -16,7 +16,7 @@ related:Engine/Audio/SoundCues/NodeReference
 [NAV]
 
 
-For this example, we are just going to implement a greeting from Quest NPC to Adam and Zoe. For more information about complex dialogue, see the [Sound Cues and Dialogue section](#soundcuesanddialogue).
+For this example, we are just going to implement a greeting from Quest NPC to Adam and Zoe. For more information about complex dialogue, see the [Sound Cues and Dialogue](Engine/Audio/Dialogue/2) section.
 Each line of dialogue needs a **Dialogue Wave** asset associated with it.
 
 1. Go back to the **Content Browser**, and create a new **Dialogue Wave** asset. 

@@ -75,6 +75,10 @@ UObject* UAnimSequenceFactory::FactoryCreateNew(UClass* Class, UObject* InParent
 		AnimSequence->NumFrames = 0;
 		
 		AnimSequence->SetSkeleton( TargetSkeleton );
+		if (PreviewSkeletalMesh)
+		{
+			AnimSequence->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 
 		return AnimSequence;
 	}

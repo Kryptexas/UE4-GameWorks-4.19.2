@@ -637,21 +637,6 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass
 		}
 	}
 
-    // allow HMDs to override fov
-    if ((StereoPass != eSSP_FULL) && GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
-    {
-		float HFOV = OutViewInfo.FOV, VFOV = OutViewInfo.FOV;
-        GEngine->HMDDevice->GetFieldOfView(HFOV, VFOV);
-        if (VFOV > 0 && HFOV > 0)
-        {
-            OutViewInfo.FOV = FMath::Max(HFOV, VFOV);
-			// AspectRatio won't be used until bConstrainAspectRatio is set to true,
-			// but it doesn't really matter since HMD calcs its own projection matrix.
-			//OutViewInfo.AspectRatio = HFOV / VFOV;
-			//OutViewInfo.bConstrainAspectRatio = true;
-        }
-    }
-
 	for (int ViewExt = 0; ViewExt < GEngine->ViewExtensions.Num(); ViewExt++)
 	{
 		GEngine->ViewExtensions[ViewExt]->SetupViewPoint(PlayerController, OutViewInfo);
@@ -722,6 +707,7 @@ bool ULocalPlayer::CalcSceneViewInitOptions(
 		break;
 	}
 	ViewInitOptions.ViewActor = PlayerController->GetViewTarget();
+	ViewInitOptions.PlayerIndex = GetControllerId();
 	ViewInitOptions.ViewElementDrawer = ViewDrawer;
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.LODDistanceFactor = PlayerController->LocalPlayerCachedLODDistanceFactor;
@@ -1454,7 +1440,7 @@ void ULocalPlayer::ExecMacro( const TCHAR* Filename, FOutputDevice& Ar )
 	}
 	else
 	{
-		UE_SUPPRESS(LogExec, Warning, Ar.Logf(*FString::Printf( TEXT("Can't find file '%s'"), Filename) ));
+		UE_SUPPRESS(LogExec, Warning, Ar.Logf(TEXT("Can't find file '%s'"), Filename));
 	}
 }
 

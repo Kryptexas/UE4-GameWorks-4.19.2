@@ -181,6 +181,11 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->PreSkinnedNormal();
 	}
 
+	virtual int32 VertexInterpolator(uint32 InterpolatorIndex) override
+	{
+		return Compiler->VertexInterpolator(InterpolatorIndex);
+	}
+
 	virtual int32 LightVector() override
 	{
 		return Compiler->LightVector();
@@ -307,6 +312,7 @@ public:
 		case MP_AmbientOcclusion: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportAO; break;
 		case MP_EmissiveColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportEmissive; break;
 		case MP_Opacity: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportOpacity; break;
+		case MP_OpacityMask: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportOpacityMask; break;
 		case MP_SubsurfaceColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportSubSurfaceColor; break;
 		default:
 			ensureMsgf(false, TEXT("ExportMaterial has no usage for property %i.  Will likely reuse the normal rendering shader and crash later with a parameter mismatch"), (int32)InPropertyToCompile);
@@ -399,11 +405,7 @@ public:
 				// Emissive is ALWAYS returned...
 				return MaterialInterface->CompileProperty(&ProxyCompiler, MP_EmissiveColor, ForceCast_Exact_Replicate);
 			case MP_BaseColor:
-				// Only return for Opaque and Masked...
-				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
-				{
-					return MaterialInterface->CompileProperty(&ProxyCompiler, MP_BaseColor, ForceCast_Exact_Replicate);
-				}
+				return MaterialInterface->CompileProperty(&ProxyCompiler, MP_BaseColor, ForceCast_Exact_Replicate);
 				break;
 			case MP_Specular: 
 			case MP_Roughness:
@@ -415,6 +417,12 @@ public:
 					return MaterialInterface->CompileProperty(&ProxyCompiler, PropertyToCompile, ForceCast_Exact_Replicate);
 				}
 				break;
+
+			case MP_Opacity:
+			case MP_OpacityMask:
+			{
+				return MaterialInterface->CompileProperty(&ProxyCompiler, PropertyToCompile, ForceCast_Exact_Replicate);
+			}
 			case MP_Normal:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
@@ -448,9 +456,9 @@ public:
 
 	virtual FString GetMaterialUsageDescription() const override
 	{
-		return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL"));
+		return FString::Printf(TEXT("ExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL"));
 	}
-	virtual int32 GetMaterialDomain() const override
+	virtual EMaterialDomain GetMaterialDomain() const override
 	{
 		if (Material)
 		{
@@ -485,6 +493,10 @@ public:
 	virtual bool IsDeferredDecal() const override
 	{
 		return Material && Material->MaterialDomain == MD_DeferredDecal;
+	}
+	virtual bool IsVolumetricPrimitive() const override
+	{
+		return Material && Material->MaterialDomain == MD_Volume;
 	}
 	virtual bool IsSpecialEngineMaterial() const override
 	{
@@ -1380,6 +1392,8 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 		MaximumSize = (InMaterialLODSettings.bNormalMap && MaximumSize.X < InMaterialLODSettings.NormalTextureSize.X) ? MaximumSize : InMaterialLODSettings.NormalTextureSize;
 		MaximumSize = (InMaterialLODSettings.bEmissiveMap && MaximumSize.X < InMaterialLODSettings.EmissiveTextureSize.X) ? MaximumSize : InMaterialLODSettings.EmissiveTextureSize;
 		MaximumSize = (InMaterialLODSettings.bOpacityMap && MaximumSize.X < InMaterialLODSettings.OpacityTextureSize.X) ? MaximumSize : InMaterialLODSettings.OpacityTextureSize;
+
+		MaximumSize = (InMaterialLODSettings.bOpacityMaskMap && MaximumSize.X < InMaterialLODSettings.OpacityMaskTextureSize.X) ? MaximumSize : InMaterialLODSettings.OpacityMaskTextureSize;
 	}
 	
 	if (InMaterialLODSettings.TextureSizingType == TextureSizingType_UseManualOverrideTextureSize)
@@ -1393,6 +1407,7 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 		Material.SetPropertySize(EFlattenMaterialProperties::Normal, InMaterialLODSettings.bNormalMap ? InMaterialLODSettings.NormalTextureSize : FIntPoint::ZeroValue);
 		Material.SetPropertySize(EFlattenMaterialProperties::Emissive, InMaterialLODSettings.bEmissiveMap ? InMaterialLODSettings.EmissiveTextureSize : FIntPoint::ZeroValue);
 		Material.SetPropertySize(EFlattenMaterialProperties::Opacity, InMaterialLODSettings.bOpacityMap ? InMaterialLODSettings.OpacityTextureSize : FIntPoint::ZeroValue);
+		Material.SetPropertySize(EFlattenMaterialProperties::OpacityMask, InMaterialLODSettings.bOpacityMaskMap ? InMaterialLODSettings.OpacityMaskTextureSize : FIntPoint::ZeroValue);
 	}
 	else if (InMaterialLODSettings.TextureSizingType == TextureSizingType_UseAutomaticBiasedSizes)
 	{
@@ -1412,6 +1427,7 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 		Material.SetPropertySize(EFlattenMaterialProperties::Roughness, (InMaterialLODSettings.bRoughnessMap) ? PropertiesSize : FIntPoint::ZeroValue );
 		Material.SetPropertySize(EFlattenMaterialProperties::Emissive, (InMaterialLODSettings.bEmissiveMap) ? PropertiesSize : FIntPoint::ZeroValue );
 		Material.SetPropertySize(EFlattenMaterialProperties::Opacity, (InMaterialLODSettings.bOpacityMap) ? PropertiesSize : FIntPoint::ZeroValue );
+		Material.SetPropertySize(EFlattenMaterialProperties::OpacityMask, (InMaterialLODSettings.bOpacityMaskMap) ? PropertiesSize : FIntPoint::ZeroValue);
 	}
 	
 	Material.RenderSize = InMaterialLODSettings.TextureSize;
@@ -1422,6 +1438,7 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 	Material.SetPropertySize(EFlattenMaterialProperties::Normal,  (InMaterialLODSettings.bNormalMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
 	Material.SetPropertySize(EFlattenMaterialProperties::Emissive,  (InMaterialLODSettings.bEmissiveMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
 	Material.SetPropertySize(EFlattenMaterialProperties::Opacity,  (InMaterialLODSettings.bOpacityMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
+	Material.SetPropertySize(EFlattenMaterialProperties::OpacityMask, (InMaterialLODSettings.bOpacityMaskMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
 
 	return Material;
 }
@@ -1437,7 +1454,8 @@ void FMaterialUtilities::AnalyzeMaterial(UMaterialInterface* InMaterial, const s
 	PropertyBeingBaked[MP_Roughness] = InMaterialSettings.bRoughnessMap;
 	PropertyBeingBaked[MP_Metallic] = InMaterialSettings.bMetallicMap;
 	PropertyBeingBaked[MP_Normal] = InMaterialSettings.bNormalMap;
-	PropertyBeingBaked[MP_Metallic] = InMaterialSettings.bOpacityMap;
+	PropertyBeingBaked[MP_Opacity] = InMaterialSettings.bOpacityMap;
+	PropertyBeingBaked[MP_OpacityMask] = InMaterialSettings.bOpacityMaskMap;
 	PropertyBeingBaked[MP_EmissiveColor] = InMaterialSettings.bEmissiveMap;
 
 	for (int32 PropertyIndex = 0; PropertyIndex < ARRAY_COUNT(PropertyBeingBaked); ++PropertyIndex)
@@ -1691,6 +1709,15 @@ void FMaterialUtilities::ResizeFlattenMaterial(FFlattenMaterial& InFlattenMateri
 			InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity).Append(NewSamples);
 			InFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, FIntPoint(PropertiesSizeX, PropertiesSizeX));
 		}
+
+		if (InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask).Num() && MaterialSettings.bOpacityMaskMap && InFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask).X != PropertiesSizeX)
+		{
+			TArray<FColor> NewSamples;
+			FImageUtils::ImageResize(InFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask).X, InFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask).Y, InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask), PropertiesSizeX, PropertiesSizeX, NewSamples, false);
+			InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask).Reset(NewSamples.Num());
+			InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask).Append(NewSamples);
+			InFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::OpacityMask, FIntPoint(PropertiesSizeX, PropertiesSizeX));
+		}
 	}
 	else if (MaterialSettings.TextureSizingType == TextureSizingType_UseManualOverrideTextureSize)
 	{
@@ -1755,6 +1782,15 @@ void FMaterialUtilities::ResizeFlattenMaterial(FFlattenMaterial& InFlattenMateri
 			InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity).Reset(NewSamples.Num());
 			InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity).Append(NewSamples);
 			InFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, MaterialSettings.OpacityTextureSize);
+		}
+
+		if (InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask).Num() && MaterialSettings.bOpacityMaskMap && InFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask) != MaterialSettings.OpacityTextureSize)
+		{
+			TArray<FColor> NewSamples;
+			FImageUtils::ImageResize(InFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask).X, InFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask).Y, InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask), MaterialSettings.OpacityMaskTextureSize.X, MaterialSettings.OpacityMaskTextureSize.Y, NewSamples, false);
+			InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask).Reset(NewSamples.Num());
+			InFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask).Append(NewSamples);
+			InFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::OpacityMask, MaterialSettings.OpacityTextureSize);
 		}
 	}
 }
@@ -2101,7 +2137,7 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 	// Determine whether or not certain properties can be rendered
 	const bool bRenderNormal = (Material->GetMaterial()->HasNormalConnected() || Material->GetMaterial()->bUseMaterialAttributes) && OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Normal);
 	const bool bRenderEmissive = (Material->GetMaterial()->EmissiveColor.IsConnected() || Material->GetMaterial()->bUseMaterialAttributes) && OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Emissive);
-	const bool bRenderOpacityMask = Material->IsPropertyActive(MP_OpacityMask) && Material->GetBlendMode() == BLEND_Masked && OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Opacity);
+	const bool bRenderOpacityMask = Material->IsPropertyActive(MP_OpacityMask) && Material->GetBlendMode() == BLEND_Masked && OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::OpacityMask);
 	const bool bRenderOpacity = Material->IsPropertyActive(MP_Opacity) && IsTranslucentBlendMode(Material->GetBlendMode()) && OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Opacity);
 	const bool bRenderSubSurface = Material->IsPropertyActive(MP_SubsurfaceColor) && OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::SubSurface);
 	const bool bRenderMetallic = Material->IsPropertyActive(MP_Metallic) && OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Metallic);
@@ -2150,9 +2186,9 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 
 	if (bRenderOpacityMask)
 	{
-		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
-		RenderMaterialPropertyToTexture(InMaterialData, MP_OpacityMask, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity));
-		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
+		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::OpacityMask);
+		RenderMaterialPropertyToTexture(InMaterialData, MP_OpacityMask, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::OpacityMask));
+		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::OpacityMask, Size);
 	}
 	if (bRenderOpacity)
 	{
@@ -2161,6 +2197,7 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Opacity, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity));
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 	}
+
 	if (bRenderEmissive)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Emissive);
@@ -2326,25 +2363,6 @@ void FMaterialUtilities::ClearRenderTargetPool()
 		RenderTargetPool[RTIndex]->RemoveFromRoot();
 	}
 	RenderTargetPool.Empty();
-}
-
-void FMaterialUtilities::FullyLoadMaterialStatic(UMaterialInterface* Material)
-{
-	FLinkerLoad* Linker = Material->GetLinker();
-	if (Linker == nullptr)
-	{
-		return;
-	}
-	// Load material and all expressions.
-	Linker->LoadAllObjects(true);
-	Material->ConditionalPostLoad();
-	// Now load all used textures.
-	TArray<UTexture*> Textures;
-	Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, true, ERHIFeatureLevel::SM5, true);
-	for (UTexture* Texture : Textures)
-	{
-		Linker->Preload(Texture);
-	}
 }
 
 void FMaterialUtilities::OptimizeSampleArray(TArray<FColor>& InSamples, FIntPoint& InSampleSize)

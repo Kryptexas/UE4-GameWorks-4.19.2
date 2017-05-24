@@ -8,7 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "RHI.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
+#include "DistanceFieldAmbientOcclusion.h"
 
 // In float4's, must match usf
 const int32 VPLDataStride = 3;

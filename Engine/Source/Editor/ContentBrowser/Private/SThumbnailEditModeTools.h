@@ -9,6 +9,7 @@
 #include "Input/Reply.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
 
 class FAssetThumbnail;
 class USceneThumbnailInfo;
@@ -39,16 +40,24 @@ protected:
 	/** Gets the visibility for the primitives toolbar */
 	EVisibility GetPrimitiveToolsVisibility() const;
 
+	/** Gets the visibility for the the thumbnail reset to default button */
+	EVisibility GetPrimitiveToolsResetToDefaultVisibility() const;
+
 	/** Gets the brush used to display the currently used primitive */
 	const FSlateBrush* GetCurrentPrimitiveBrush() const;
 
 	/** Sets the primitive type for the supplied thumbnail, if possible */
 	FReply ChangePrimitive();
 
+	/** Resets the primitive to default */
+	FReply ResetToDefault();
+
 	/** Helper accessors for ThumbnailInfo objects */
 	USceneThumbnailInfo* GetSceneThumbnailInfo();
 	USceneThumbnailInfoWithPrimitive* GetSceneThumbnailInfoWithPrimitive();
 	USceneThumbnailInfoWithPrimitive* ConstGetSceneThumbnailInfoWithPrimitive() const;
+
+	EThumbnailPrimType GetDefaultThumbnailType() const;
 
 	/** Event fired when the asset data for this asset is loaded or changed */
 	void OnAssetDataChanged();

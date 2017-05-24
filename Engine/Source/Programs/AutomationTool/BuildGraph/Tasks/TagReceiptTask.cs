@@ -180,7 +180,7 @@ namespace AutomationTool.Tasks
 							{
 								// Only add files that exist as dependencies are assumed to always exist
 								FileReference DependencyPath = new FileReference(RuntimeDependency.Path);
-								if (DependencyPath.Exists())
+								if (FileReference.Exists(DependencyPath))
 								{
 									Files.Add(DependencyPath);
 								}
@@ -207,7 +207,7 @@ namespace AutomationTool.Tasks
 						{
 							// Only add files that exist as dependencies are assumed to always exist
 							FileReference DependencyPath = new FileReference(PrecompiledBuildDependency);
-							if (DependencyPath.Exists())
+							if (FileReference.Exists(DependencyPath))
 							{
 								Files.Add(DependencyPath);
 							}
@@ -233,7 +233,7 @@ namespace AutomationTool.Tasks
 						{
 							// Only add files that exist as dependencies are assumed to always exist
 							FileReference DependencyPath = new FileReference(PrecompiledRuntimeDependency);
-							if (DependencyPath.Exists())
+							if (FileReference.Exists(DependencyPath))
 							{
 								Files.Add(DependencyPath);
 							}

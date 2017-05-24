@@ -211,6 +211,8 @@ public:
 	}
 
 	friend CORE_API FArchive& operator<<( FArchive& Ar, FSHAHash& G );
+	
+	friend CORE_API uint32 GetTypeHash(FSHAHash const& InKey);
 };
 
 class CORE_API FSHA1

@@ -164,8 +164,8 @@ class OCULUSLIBRARY_API UOculusFunctionLibrary : public UBlueprintFunctionLibrar
 	 *
 	 * @param PosScale3D	(in) the scale to apply to the HMD position.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary")
-	static void SetPositionScale3D(FVector PosScale3D);
+	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary", meta = (DeprecatedFunction, DeprecationMessage = "This feature is no longer supported."))
+	static void SetPositionScale3D(FVector PosScale3D) { }
 
 	/**
 	 * Sets 'base rotation' - the rotation that will be subtracted from

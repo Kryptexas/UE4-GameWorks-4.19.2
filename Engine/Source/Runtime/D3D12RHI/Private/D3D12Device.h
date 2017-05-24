@@ -46,7 +46,11 @@ public:
 	template<> FD3D12OfflineDescriptorManager& GetViewDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>() { return RTVAllocator; }
 	template<> FD3D12OfflineDescriptorManager& GetViewDescriptorAllocator<D3D12_DEPTH_STENCIL_VIEW_DESC>() { return DSVAllocator; }
 	template<> FD3D12OfflineDescriptorManager& GetViewDescriptorAllocator<D3D12_UNORDERED_ACCESS_VIEW_DESC>() { return UAVAllocator; }
+#if USE_STATIC_ROOT_SIGNATURE
+	template<> FD3D12OfflineDescriptorManager& GetViewDescriptorAllocator<D3D12_CONSTANT_BUFFER_VIEW_DESC>() { return CBVAllocator; }
+#else
 	template<> FD3D12OfflineDescriptorManager& GetViewDescriptorAllocator<D3D12_CONSTANT_BUFFER_VIEW_DESC>() { check(false); }
+#endif
 
 	inline FD3D12OfflineDescriptorManager& GetSamplerDescriptorAllocator() { return SamplerAllocator; }
 	inline FD3D12CommandListManager& GetCommandListManager() { return CommandListManager; }
@@ -90,6 +94,7 @@ public:
 	void PopGPUEvent();
 
 	FD3D12SamplerState* CreateSampler(const FSamplerStateInitializerRHI& Initializer);
+	void CreateSamplerInternal(const D3D12_SAMPLER_DESC& Desc, D3D12_CPU_DESCRIPTOR_HANDLE Descriptor);
 
 	void GetLocalVideoMemoryInfo(DXGI_QUERY_VIDEO_MEMORY_INFO* LocalVideoMemoryInfo);
 
@@ -108,6 +113,9 @@ protected:
 	FD3D12OfflineDescriptorManager DSVAllocator;
 	FD3D12OfflineDescriptorManager SRVAllocator;
 	FD3D12OfflineDescriptorManager UAVAllocator;
+#if USE_STATIC_ROOT_SIGNATURE
+	FD3D12OfflineDescriptorManager CBVAllocator;
+#endif
 	FD3D12OfflineDescriptorManager SamplerAllocator;
 
 	FD3D12GlobalOnlineHeap GlobalSamplerHeap;

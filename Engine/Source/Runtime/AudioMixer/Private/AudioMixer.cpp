@@ -26,39 +26,122 @@ namespace Audio
 	IAudioMixerPlatformInterface::IAudioMixerPlatformInterface()
 		: AudioRenderThread(nullptr)
 		, AudioRenderEvent(nullptr)
+		, AudioFadeEvent(nullptr)
 		, CurrentBufferIndex(0)
 		, LastError(TEXT("None"))
 		, bAudioDeviceChanging(false)
+		, bFadingIn(true)
+		, bFadingOut(false)
+		, bFadedOut(false)
+		, FadeEnvelopeValue(0.0f)
 	{
+	}
+
+	IAudioMixerPlatformInterface::~IAudioMixerPlatformInterface()
+	{
+		check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Closed);
+	}
+
+	void IAudioMixerPlatformInterface::FadeOut()
+	{
+		if (FadeEnvelopeValue == 0.0f)
+		{
+			return;
+		}
+
+		bFadingOut = true;
+		AudioFadeEvent->Wait();
+	}
+
+	void IAudioMixerPlatformInterface::PerformFades()
+	{
+		// Perform fade in and fade out global attenuation to avoid clicks/pops on startup/shutdown
+		if (bFadingIn)
+		{
+			if (FadeEnvelopeValue >= 1.0f)
+			{
+				bFadingIn = false;
+				FadeEnvelopeValue = 1.0f;
+			}
+			else
+			{
+				TArray<float>& Buffer = OutputBuffers[CurrentBufferIndex];
+				const float Slope = 1.0f / Buffer.Num();
+				for (int32 i = 0; i < Buffer.Num(); ++i)
+				{
+					Buffer[i] *= FadeEnvelopeValue;
+					FadeEnvelopeValue += Slope;
+				}
+			}
+		}
+
+		if (bFadingOut)
+		{
+			if (FadeEnvelopeValue <= 0.0f)
+			{
+				bFadingOut = false;
+				bFadedOut = true;
+				FadeEnvelopeValue = 0.0f;
+
+				// We're done fading out, trigger the thread waiting to fade to continue
+				AudioFadeEvent->Trigger();
+			}
+			else
+			{
+				TArray<float>& Buffer = OutputBuffers[CurrentBufferIndex];
+				const float Slope = 1.0f / Buffer.Num();
+				for (int32 i = 0; i < Buffer.Num(); ++i)
+				{
+					Buffer[i] *= FadeEnvelopeValue;
+					FadeEnvelopeValue -= Slope;
+				}
+			}
+		}
+
+		if (bFadedOut)
+		{
+			// If we're faded out, then just zero the data.
+			TArray<float>& Buffer = OutputBuffers[CurrentBufferIndex];
+			FPlatformMemory::Memzero(Buffer.GetData(), sizeof(float)*Buffer.Num());
+		}
 	}
 
 	void IAudioMixerPlatformInterface::ReadNextBuffer()
 	{
-		// Don't read any more audio if we're not running
-		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Running)
+		// Don't read any more audio if we're not running or changing device
+		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Running || bAudioDeviceChanging)
 		{
 			return;
 		}
 
-		// Don't submit anything if we're switching audio devices
-		if (bAudioDeviceChanging)
+		PerformFades();
+
+		// We know that the last buffer has been consumed at this point so lets kick off the rendering of the next buffer now to overlap it with the submission of this buffer
+
+		// Remember the buffer we will be submitting before we switch it
+		uint32	myBufferIndex = CurrentBufferIndex;
+
+		// Switch to the next buffer
+		CurrentBufferIndex = !CurrentBufferIndex;
+
+		// Kick off rendering of the next buffer
+		AudioRenderEvent->Trigger();
+
+		// Ensure we have a buffer ready to be consumed, if we don't that means the audio processing thread can not keep up
+		if(OutputBufferReady[myBufferIndex] == false)
 		{
-			return;
+			if(!WarnedBufferUnderrun)
+			{
+				UE_LOG(LogAudioMixer, Warning, TEXT("Audio thread is not keeping up with the device, audio may stutter, try increasing buffer size or boosting the audio thread priority"));
+				WarnedBufferUnderrun = true;
+			}
 		}
 
-		{
-			FScopeLock Lock(&AudioRenderCritSect);
+		// Submit the buffer to the platform specific device
+		SubmitBuffer(OutputBuffers[myBufferIndex]);
 
-			SubmitBuffer(OutputBuffers[CurrentBufferIndex]);
-
-			// Increment the buffer index
-			CurrentBufferIndex = (CurrentBufferIndex + 1) % NumMixerBuffers;
-		}
-
-		if (AudioRenderEvent)
-		{
-			AudioRenderEvent->Trigger();
-		}
+		// Mark this buffer as used and hence ready to be filled
+		OutputBufferReady[myBufferIndex] = false;
 	}
 
 	void IAudioMixerPlatformInterface::BeginGeneratingAudio()
@@ -71,58 +154,98 @@ namespace Audio
 			OutputBuffers[Index].SetNumZeroed(DeviceInfo.NumSamples);
 		}
 
-		// Submit the first empty buffer. This will begin audio callback notifications on some platforms.
-		SubmitBuffer(OutputBuffers[CurrentBufferIndex++]);
+		WarnedBufferUnderrun = false;
 
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Running;
+
 		check(AudioRenderEvent == nullptr);
 		AudioRenderEvent = FPlatformProcess::GetSynchEventFromPool();
+		check(AudioRenderEvent != nullptr);
+
+		check(AudioFadeEvent == nullptr);
+		AudioFadeEvent = FPlatformProcess::GetSynchEventFromPool();
+		check(AudioFadeEvent != nullptr);
+
 		check(AudioRenderThread == nullptr);
-		AudioRenderThread = FRunnableThread::Create(this, TEXT("AudioMixerRenderThread"), 0, TPri_AboveNormal);
+		AudioRenderThread = FRunnableThread::Create(this, TEXT("AudioMixerRenderThread"), 0, TPri_TimeCritical);
+		check(AudioRenderThread != nullptr);
 	}
 
 	void IAudioMixerPlatformInterface::StopGeneratingAudio()
 	{
 		// Stop the FRunnable thread
+
+		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped)
 		{
-			FScopeLock Lock(&AudioRenderCritSect);
+			AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopping;
+		}
 
-			if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped)
-			{
-				AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopping;
-			}
-
+		if(AudioRenderEvent != nullptr)
+		{
 			// Make sure the thread wakes up
 			AudioRenderEvent->Trigger();
 		}
 
-		AudioRenderThread->WaitForCompletion();
-		check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Stopped);
+		if(AudioRenderThread != nullptr)
+		{
+			AudioRenderThread->WaitForCompletion();
+			check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Stopped);
 
-		delete AudioRenderThread;
-		AudioRenderThread = nullptr;
+			delete AudioRenderThread;
+			AudioRenderThread = nullptr;
+		}
 
-		FPlatformProcess::ReturnSynchEventToPool(AudioRenderEvent);
-		AudioRenderEvent = nullptr;
+		if(AudioRenderEvent != nullptr)
+		{
+			FPlatformProcess::ReturnSynchEventToPool(AudioRenderEvent);
+			AudioRenderEvent = nullptr;
+		}
+
+		FPlatformProcess::ReturnSynchEventToPool(AudioFadeEvent);
+		AudioFadeEvent = nullptr;
 	}
 
 	uint32 IAudioMixerPlatformInterface::Run()
 	{
+		// Lets prime the first buffer
+		FPlatformMemory::Memzero(OutputBuffers[0].GetData(), OutputBuffers[0].Num() * sizeof(float));
+		AudioStreamInfo.AudioMixer->OnProcessAudioStream(OutputBuffers[0]);
+
+		// Give the platform audio device this first buffer
+		SubmitBuffer(OutputBuffers[0]);
+
+		// Initialize the ready flags
+		OutputBufferReady[0] = false;
+		OutputBufferReady[1] = false;
+
+		CurrentBufferIndex = 1;
+
+		// Start immediately processing the next buffer
+
 		while (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopping)
 		{
 			{
-				FScopeLock Lock(&AudioRenderCritSect);
-
 				SCOPE_CYCLE_COUNTER(STAT_AudioMixerRenderAudio);
 
 				// Zero the current output buffer
 				FPlatformMemory::Memzero(OutputBuffers[CurrentBufferIndex].GetData(), OutputBuffers[CurrentBufferIndex].Num() * sizeof(float));
+
+				// Render
 				AudioStreamInfo.AudioMixer->OnProcessAudioStream(OutputBuffers[CurrentBufferIndex]);
+
+				// Mark this buffer as ready to be consumed
+				OutputBufferReady[CurrentBufferIndex] = true;
 			}
 
-			// Note that this wait has to be outside the scope lock to avoid deadlocking
+			// Now wait for a buffer to be consumed
 			AudioRenderEvent->Wait();
+
+			// At this point the output buffer will have been switched
 		}
+
+		// Do one more process
+		FPlatformMemory::Memzero(OutputBuffers[CurrentBufferIndex].GetData(), OutputBuffers[CurrentBufferIndex].Num() * sizeof(float));
+		AudioStreamInfo.AudioMixer->OnProcessAudioStream(OutputBuffers[CurrentBufferIndex]);
 
 		AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopped;
 		return 0;

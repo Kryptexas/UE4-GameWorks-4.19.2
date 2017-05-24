@@ -1,7 +1,11 @@
+INTSourceChangelist:3151855
 Availability: Public
 Title:雾特效
 Crumbs: %ROOT%, Engine
 Description:使用雾来渲染世界的气氛和设置环境的氛围。
+parent:Engine/Rendering
+order:6
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]

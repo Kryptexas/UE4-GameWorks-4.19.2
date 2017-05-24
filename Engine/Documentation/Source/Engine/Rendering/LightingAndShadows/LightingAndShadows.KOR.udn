@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3211850
+﻿INTSourceChangelist:3275207
 Availability:Public
 Title: 환경 라이팅
 Crumbs: %ROOT%, Engine
@@ -68,7 +68,7 @@ type:landing
 %Engine/Rendering/LightingAndShadows/IndirectLightingCache:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:Topic%
-%Engine/Rendering/LightingAndShadows/PrecomputedLightingScenarios:Topic%
+<!--%Engine/Rendering/LightingAndShadows/PrecomputedLightingScenarios:Topic%-->
 [/REGION]
 
 
@@ -80,6 +80,7 @@ type:landing
 %Engine/Rendering/LightingAndShadows/LightPropagationVolumes:Topic%
 %Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion:Topic%
 %Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing:Topic%
+%Engine/Rendering/LightingAndShadows/ContactShadows:Topic%
 [/REGION]
 
 ## 일반

@@ -31,11 +31,16 @@ public:
 		if (!KeyHandleLUT)
 		{
 			KeyHandleLUT = &TemporaryKeyHandleLUT;
+			for (int32 TimeIndex = 0; TimeIndex < KeyTimes->Num(); ++TimeIndex)
+			{
+				FKeyHandle Handle = KeyHandleLUT->AllocateHandle(TimeIndex);
+			}
 		}
 	}
 
 	TKeyFrameManipulator(const TKeyFrameManipulator&) = default;
 	TKeyFrameManipulator& operator=(const TKeyFrameManipulator&) = default;
+	virtual ~TKeyFrameManipulator() {}
 
 private:
 
@@ -45,6 +50,8 @@ private:
 	virtual void OnKeyRelocated(int32 OldIndex, int32 NewIndex) {}
 	/** Called when a key time has been removed from the array */
 	virtual void OnKeyRemoved(int32 Index) {}
+	/** Called when all key times have been removed */
+	virtual void OnReset() {}
 
 private:
 
@@ -114,6 +121,16 @@ public:
 
 			OnKeyRemoved(RemoveAtIndex);
 		}
+	}
+
+	/**
+	 * Removes all keys.
+	 */
+	void Reset()
+	{
+		KeyTimes->Empty();
+		KeyHandleLUT->Reset();
+		OnReset();
 	}
 
 public:

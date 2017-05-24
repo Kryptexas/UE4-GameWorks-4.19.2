@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class IntelTBB : ModuleRules
 {
-	public IntelTBB(TargetInfo Target)
+	public IntelTBB(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -15,7 +15,6 @@ public class IntelTBB : ModuleRules
 			{
 				case WindowsCompiler.VisualStudio2017:
 				case WindowsCompiler.VisualStudio2015: IntelTBBPath += "IntelTBB-4.4u3/"; break;
-				case WindowsCompiler.VisualStudio2013: IntelTBBPath += "IntelTBB-4.0/"; break;
 			}
 
 			PublicSystemIncludePaths.Add(IntelTBBPath + "Include");
@@ -26,20 +25,12 @@ public class IntelTBB : ModuleRules
 				{
 					PublicLibraryPaths.Add(IntelTBBPath + "lib/Win64/vc14");
 				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-				{
-					PublicLibraryPaths.Add(IntelTBBPath + "lib/Win64/vc12");
-				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Win32)
 			{
 				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 || WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
 				{
 					PublicLibraryPaths.Add(IntelTBBPath + "lib/Win32/vc14");
-				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-				{
-					PublicLibraryPaths.Add(IntelTBBPath + "lib/Win32/vc12");
 				}
 			}
 

@@ -3,6 +3,7 @@ title:Procedurals
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Procedurally generated textures and operations, such as the creation of normal maps from existing height maps.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

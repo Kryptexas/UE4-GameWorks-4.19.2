@@ -31,6 +31,7 @@ class IMaterialListBuilder;
 class SPropertyEditorAsset;
 class SPropertyEditorClass;
 class UFactory;
+class SToolTip;
 
 namespace SceneOutliner
 {
@@ -42,7 +43,9 @@ DECLARE_DELEGATE_OneParam(FOnAssetSelected, const FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldSetAsset, const FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldFilterAsset, const FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_OneParam( FOnGetActorFilters, TSharedPtr<SceneOutliner::FOutlinerFilters>& );
-
+DECLARE_DELEGATE_ThreeParams(FOnGetPropertyComboBoxStrings, TArray< TSharedPtr<FString> >&, TArray<TSharedPtr<SToolTip>>&, TArray<bool>&);
+DECLARE_DELEGATE_RetVal(FString, FOnGetPropertyComboBoxValue);
+DECLARE_DELEGATE_OneParam(FOnPropertyComboBoxValueSelected, const FString&);
 
 namespace PropertyCustomizationHelpers
 {
@@ -72,6 +75,16 @@ namespace PropertyCustomizationHelpers
 
 	/** Build a combo button allowing access to text property localization utilities */
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeTextLocalizationButton(const TSharedRef<IPropertyHandle>& InPropertyHandle);
+
+	/** 
+	 * Build a combo button that you bind to a Name or String property or use general delegates
+	 * 
+	 * @param InPropertyHandle	If set, will bind to a specific property. If this is null, all 3 delegates must be set
+	 * @param OnGetStrings		Delegate that will generate the list of possible strings. If not set will generate using property handle
+	 * @param OnGetValue		Delegate that is called to get the current string value to display. If not set will generate using property handle
+	 * @param OnValueSelected	Delegate called when a string is selected. If not set will set the property handle
+	 */
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakePropertyComboBox(const TSharedPtr<IPropertyHandle>& InPropertyHandle, FOnGetPropertyComboBoxStrings OnGetStrings = FOnGetPropertyComboBoxStrings(), FOnGetPropertyComboBoxValue OnGetValue = FOnGetPropertyComboBoxValue(), FOnPropertyComboBoxValueSelected OnValueSelected = FOnPropertyComboBoxValueSelected());
 }
 
 

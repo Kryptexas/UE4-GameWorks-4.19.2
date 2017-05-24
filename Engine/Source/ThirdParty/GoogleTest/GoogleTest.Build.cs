@@ -5,7 +5,7 @@ using System.IO;
 
 public class GoogleTest : ModuleRules
 {
-    public GoogleTest(TargetInfo Target)
+    public GoogleTest(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -63,7 +63,7 @@ public class GoogleTest : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
-            if (Target.IsMonolithic)
+            if (Target.LinkType == TargetLinkType.Monolithic)
             {
                 PartialLibraryPath += DefaultConfiguration + "/";
                 LibraryPath += PartialLibraryPath;
@@ -89,7 +89,7 @@ public class GoogleTest : ModuleRules
 
         Definitions.Add("GTEST_HAS_POSIX_RE=0");
 
-        if (!Target.IsMonolithic)
+        if (Target.LinkType != TargetLinkType.Monolithic)
         {
             //Definitions.Add("GTEST_LINKED_AS_SHARED_LIBRARY=1");
         }

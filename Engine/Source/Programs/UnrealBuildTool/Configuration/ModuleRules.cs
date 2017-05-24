@@ -19,7 +19,7 @@ namespace UnrealBuildTool
 		{
 			/// <summary>
 			/// C++
-			/// <summary>
+			/// </summary>
 			CPlusPlus,
 
 			/// <summary>
@@ -117,6 +117,11 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Rules for the target that this module belongs to
+		/// </summary>
+		public readonly ReadOnlyTargetRules Target;
+
+		/// <summary>
 		/// Type of module
 		/// </summary>
 		public ModuleType Type = ModuleType.CPlusPlus;
@@ -212,6 +217,11 @@ namespace UnrealBuildTool
 		public bool bOutputPubliclyDistributable = false;
 
 		/// <summary>
+		/// List of folders which are whitelisted to be referenced when compiling this binary, without propagating restricted folder names
+		/// </summary>
+		public List<string> WhitelistRestrictedFolders = new List<string>();
+
+		/// <summary>
 		/// Enforce "include what you use" rules when PCHUsage is set to ExplicitOrSharedPCH; warns when monolithic headers (Engine.h, UnrealEd.h, etc...) 
 		/// are used, and checks that source files include their matching header first.
 		/// </summary>
@@ -270,12 +280,12 @@ namespace UnrealBuildTool
 		public List<string> PublicAdditionalLibraries = new List<string>();
 
 		/// <summary>
-		// List of XCode frameworks (iOS and MacOS)
+		/// List of XCode frameworks (iOS and MacOS)
 		/// </summary>
 		public List<string> PublicFrameworks = new List<string>();
 
 		/// <summary>
-		// List of weak frameworks (for OS version transitions)
+		/// List of weak frameworks (for OS version transitions)
 		/// </summary>
 		public List<string> PublicWeakFrameworks = new List<string>();
 
@@ -307,11 +317,6 @@ namespace UnrealBuildTool
 		public List<string> Definitions = new List<string>();
 
 		/// <summary>
-		/// CLR modules only: The assemblies referenced by the module's private implementation.
-		/// </summary>
-		public List<string> PrivateAssemblyReferences = new List<string>();
-
-		/// <summary>
 		/// Addition modules this module may require at run-time 
 		/// </summary>
 		public List<string> DynamicallyLoadedModuleNames = new List<string>();
@@ -337,6 +342,11 @@ namespace UnrealBuildTool
 		public PrecompileTargetsType PrecompileForTargets = PrecompileTargetsType.Default;
 
 		/// <summary>
+		/// External files which invalidate the makefile if modified. Relative paths are resolved relative to the .build.cs file.
+		/// </summary>
+		public List<string> ExternalDependencies = new List<string>();
+
+		/// <summary>
 		/// Property for the directory containing this module. Useful for adding paths to third party dependencies.
 		/// </summary>
 		public string ModuleDirectory
@@ -348,13 +358,31 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Default constructor. Deprecated in 4.15.
+		/// </summary>
+		[Obsolete("Please change your module constructor to take a ReadOnlyTargetRules parameter, and pass it to the base class constructor (eg. \"MyModuleRules(ReadOnlyTargetRules Target) : base(Target)\").")]
+		public ModuleRules()
+		{
+		}
+
+		/// <summary>
+		/// Constructor. For backwards compatibility while the parameterless constructor is being phased out, initialization which would happen here is done by 
+		/// RulesAssembly.CreateModulRules instead.
+		/// </summary>
+		/// <param name="Target">Rules for building this target</param>
+		public ModuleRules(ReadOnlyTargetRules Target)
+		{
+		}
+
+		/// <summary>
 		/// Made Obsolete so that we can more clearly show that this should be used for third party modules within the Engine directory
 		/// </summary>
+		/// <param name="Target">The target this module belongs to</param>
 		/// <param name="ModuleNames">The names of the modules to add</param>
 		[Obsolete("Use AddEngineThirdPartyPrivateStaticDependencies to add dependencies on ThirdParty modules within the Engine Directory")]
-		public void AddThirdPartyPrivateStaticDependencies(TargetInfo Target, params string[] InModuleNames)
+		public void AddThirdPartyPrivateStaticDependencies(ReadOnlyTargetRules Target, params string[] ModuleNames)
 		{
-			AddEngineThirdPartyPrivateStaticDependencies(Target, InModuleNames);
+			AddEngineThirdPartyPrivateStaticDependencies(Target, ModuleNames);
 		}
 
 		/// <summary>
@@ -363,23 +391,25 @@ namespace UnrealBuildTool
 		///	Private, meaning the include paths for the included modules will not be exposed when giving this modules include paths
 		///	NOTE: There is no AddThirdPartyPublicStaticDependencies function.
 		/// </summary>
+		/// <param name="Target">The target this module belongs to</param>
 		/// <param name="ModuleNames">The names of the modules to add</param>
-		public void AddEngineThirdPartyPrivateStaticDependencies(TargetInfo Target, params string[] InModuleNames)
+		public void AddEngineThirdPartyPrivateStaticDependencies(ReadOnlyTargetRules Target, params string[] ModuleNames)
 		{
-			if (!UnrealBuildTool.IsEngineInstalled() || Target.IsMonolithic)
+			if (!UnrealBuildTool.IsEngineInstalled() || Target.LinkType == TargetLinkType.Monolithic)
 			{
-				PrivateDependencyModuleNames.AddRange(InModuleNames);
+				PrivateDependencyModuleNames.AddRange(ModuleNames);
 			}
 		}
 
 		/// <summary>
 		/// Made Obsolete so that we can more clearly show that this should be used for third party modules within the Engine directory
 		/// </summary>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <param name="ModuleNames">The names of the modules to add</param>
 		[Obsolete("Use AddEngineThirdPartyPrivateDynamicDependencies to add dependencies on ThirdParty modules within the Engine Directory")]
-		public void AddThirdPartyPrivateDynamicDependencies(TargetInfo Target, params string[] InModuleNames)
+		public void AddThirdPartyPrivateDynamicDependencies(ReadOnlyTargetRules Target, params string[] ModuleNames)
 		{
-			AddEngineThirdPartyPrivateDynamicDependencies(Target, InModuleNames);
+			AddEngineThirdPartyPrivateDynamicDependencies(Target, ModuleNames);
 		}
 
 		/// <summary>
@@ -388,42 +418,74 @@ namespace UnrealBuildTool
 		///	Private, meaning the include paths for the included modules will not be exposed when giving this modules include paths
 		///	NOTE: There is no AddThirdPartyPublicDynamicDependencies function.
 		/// </summary>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <param name="ModuleNames">The names of the modules to add</param>
-		public void AddEngineThirdPartyPrivateDynamicDependencies(TargetInfo Target, params string[] InModuleNames)
+		public void AddEngineThirdPartyPrivateDynamicDependencies(ReadOnlyTargetRules Target, params string[] ModuleNames)
 		{
-			if (!UnrealBuildTool.IsEngineInstalled() || Target.IsMonolithic)
+			if (!UnrealBuildTool.IsEngineInstalled() || Target.LinkType == TargetLinkType.Monolithic)
 			{
-				PrivateIncludePathModuleNames.AddRange(InModuleNames);
-				DynamicallyLoadedModuleNames.AddRange(InModuleNames);
+				PrivateIncludePathModuleNames.AddRange(ModuleNames);
+				DynamicallyLoadedModuleNames.AddRange(ModuleNames);
 			}
 		}
 
 		/// <summary>
 		/// Setup this module for PhysX/APEX support (based on the settings in UEBuildConfiguration)
 		/// </summary>
-		public void SetupModulePhysXAPEXSupport(TargetInfo Target)
+		public void SetupModulePhysXAPEXSupport(ReadOnlyTargetRules Target)
 		{
-			if (UEBuildConfiguration.bCompilePhysX == true)
+			// definitions used outside of PhysX/APEX need to be set here, not in PhysX.Build.cs or APEX.Build.cs, 
+			// since we need to make sure we always set it, even to 0 (because these are Private dependencies, the
+			// defines inside their Build.cs files won't leak out)
+			if (Target.bCompilePhysX == true)
 			{
 				AddEngineThirdPartyPrivateStaticDependencies(Target, "PhysX");
 				Definitions.Add("WITH_PHYSX=1");
-				if (UEBuildConfiguration.bCompileAPEX == true)
-				{
-					AddEngineThirdPartyPrivateStaticDependencies(Target, "APEX");
-					Definitions.Add("WITH_APEX=1");
-				}
-				else
-				{
-					Definitions.Add("WITH_APEX=0");
-				}
 			}
 			else
 			{
 				Definitions.Add("WITH_PHYSX=0");
-				Definitions.Add("WITH_APEX=0");
 			}
 
-			if (UEBuildConfiguration.bRuntimePhysicsCooking == true)
+			if (Target.bCompileAPEX == true)
+			{
+				if (!Target.bCompilePhysX)
+				{
+					throw new BuildException("APEX is enabled, without PhysX. This is not supported!");
+				}
+
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "APEX");
+				Definitions.Add("WITH_APEX=1");
+				Definitions.Add("WITH_APEX_CLOTHING=1");
+				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=1");
+				Definitions.Add("WITH_PHYSICS_COOKING=1");  // APEX currently relies on cooking even at runtime
+
+			}
+			else
+			{
+				Definitions.Add("WITH_APEX=0");
+				Definitions.Add("WITH_APEX_CLOTHING=0");
+				Definitions.Add("WITH_CLOTH_COLLISION_DETECTION=0");
+				Definitions.Add(string.Format("WITH_PHYSICS_COOKING={0}", UEBuildConfiguration.bBuildEditor ? 1 : 0));  // without APEX, we only need cooking in editor builds
+			}
+
+			if (Target.bCompileNvCloth == true)
+			{
+				if (!Target.bCompilePhysX)
+				{
+					throw new BuildException("NvCloth is enabled, without PhysX. This is not supported!");
+				}
+
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "NvCloth");
+                Definitions.Add("WITH_NVCLOTH=1");
+
+			}
+			else
+			{
+				Definitions.Add("WITH_NVCLOTH=0");
+			}
+
+			if (Target.bRuntimePhysicsCooking == true)
 			{
 				Definitions.Add("WITH_RUNTIME_PHYSICS_COOKING=1");
 			}
@@ -436,7 +498,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Setup this module for Box2D support (based on the settings in UEBuildConfiguration)
 		/// </summary>
-		public void SetupModuleBox2DSupport(TargetInfo Target)
+		public void SetupModuleBox2DSupport(ReadOnlyTargetRules Target)
 		{
 			//@TODO: This need to be kept in sync with RulesCompiler.cs for now
 			bool bSupported = false;
@@ -445,7 +507,7 @@ namespace UnrealBuildTool
 				bSupported = true;
 			}
 
-			bSupported = bSupported && UEBuildConfiguration.bCompileBox2D;
+			bSupported = bSupported && Target.bCompileBox2D;
 
 			if (bSupported)
 			{
@@ -454,6 +516,30 @@ namespace UnrealBuildTool
 
 			// Box2D included define (required because pointer types may be in public exported structures)
 			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
+		}
+
+		/// <summary>
+		/// Hack to allow deprecating existing code which references the static BuildConfiguration object; redirect it to use properties on this object.
+		/// </summary>
+		public ReadOnlyTargetRules BuildConfiguration
+		{
+			get { return Target; }
+		}
+
+		/// <summary>
+		/// Hack to allow deprecating existing code which references the static UEBuildConfiguration object; redirect it to use properties on this object.
+		/// </summary>
+		public ReadOnlyTargetRules UEBuildConfiguration
+		{
+			get { return Target; }
+		}
+
+		/// <summary>
+		/// Hack to allow deprecating existing code which references the static WindowsPlatform object; redirect it to use properties on the target rules.
+		/// </summary>
+		public ReadOnlyWindowsTargetRules WindowsPlatform
+		{
+			get { return Target.WindowsPlatform; }
 		}
 	}
 }

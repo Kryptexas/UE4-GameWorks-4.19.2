@@ -122,6 +122,7 @@ namespace UnrealGameSync
 			this.SyncPaths = SyncPaths.AsReadOnly();
 
 			ProjectConfigFile = ReadProjectConfigFile(InLocalRootPath, InSelectedLocalFileName, Log);
+			ProjectStreamFilter = ReadProjectStreamFilter(Perforce, ProjectConfigFile, Log);
 		}
 
 		public void Dispose()
@@ -130,6 +131,11 @@ namespace UnrealGameSync
 		}
 
 		public ConfigFile ProjectConfigFile
+		{
+			get; private set;
+		}
+
+		public IReadOnlyList<string> ProjectStreamFilter
 		{
 			get; private set;
 		}
@@ -314,6 +320,7 @@ namespace UnrealGameSync
 					{
 						// Read the new config file
 						ProjectConfigFile = ReadProjectConfigFile(LocalRootPath, SelectedLocalFileName, Log);
+						ProjectStreamFilter = ReadProjectStreamFilter(Perforce, ProjectConfigFile, Log);
 
 						// Get the branch name
 						string BranchOrStreamName;
@@ -356,7 +363,8 @@ namespace UnrealGameSync
 						if(ProjectConfigFile.GetValue("Options.UseFastModularVersioning", false))
 						{
 							Dictionary<string, string> BuildVersionStrings = new Dictionary<string,string>();
-							BuildVersionStrings["\"Changelist\":"] = String.Format(" {0},", VersionChangeNumber);
+							BuildVersionStrings["\"Changelist\":"] = String.Format(" {0},", PendingChangeNumber);
+							BuildVersionStrings["\"CompatibleChangelist\":"] = String.Format(" {0},", VersionChangeNumber);
 							BuildVersionStrings["\"BranchName\":"] = String.Format(" \"{0}\"", BranchOrStreamName.Replace('/', '+'));
 							BuildVersionStrings["\"IsPromotedBuild\":"] = " 0,";
 							if(!UpdateVersionFile(ClientRootPath + BuildVersionFileName, BuildVersionStrings, PendingChangeNumber))
@@ -631,9 +639,12 @@ namespace UnrealGameSync
 									int ResultFromBuild = Utility.ExecuteProcess(UnrealBuildToolPath, CommandLine + " -progress", null, new ProgressTextWriter(Progress, new PrefixedTextWriter("ubt> ", Log)));
 									if(ResultFromBuild != 0)
 									{
+										StepStopwatch.Stop("Failed");
 										StatusMessage = String.Format("Failed to compile {0}.", Step.Target);
 										return (HasModifiedSourceFiles() || Context.UserBuildStepObjects.Count > 0)? WorkspaceUpdateResult.FailedToCompile : WorkspaceUpdateResult.FailedToCompileWithCleanWorkspace;
 									}
+
+									StepStopwatch.Stop("Success");
 								}
 								break;
 							case BuildStepType.Cook:
@@ -646,9 +657,12 @@ namespace UnrealGameSync
 									int ResultFromUAT = Utility.ExecuteProcess(CmdExe, Arguments, null, new ProgressTextWriter(Progress, new PrefixedTextWriter("uat> ", Log)));
 									if(ResultFromUAT != 0)
 									{
+										StepStopwatch.Stop("Failed");
 										StatusMessage = String.Format("Cook failed. ({0})", ResultFromUAT);
 										return WorkspaceUpdateResult.FailedToCompile;
 									}
+
+									StepStopwatch.Stop("Success");
 								}
 								break;
 							case BuildStepType.Other:
@@ -663,6 +677,7 @@ namespace UnrealGameSync
 										int ResultFromTool = Utility.ExecuteProcess(ToolFileName, ToolArguments, null, new ProgressTextWriter(Progress, new PrefixedTextWriter("tool> ", Log)));
 										if(ResultFromTool != 0)
 										{
+											StepStopwatch.Stop("Failed");
 											StatusMessage = String.Format("Tool terminated with exit code {0}.", ResultFromTool);
 											return WorkspaceUpdateResult.FailedToCompile;
 										}
@@ -673,6 +688,8 @@ namespace UnrealGameSync
 										{
 										}
 									}
+
+									StepStopwatch.Stop("Success");
 								}
 								break;
 						}
@@ -751,6 +768,23 @@ namespace UnrealGameSync
 				}
 			}
 			return ProjectConfig;
+		}
+
+		static IReadOnlyList<string> ReadProjectStreamFilter(PerforceConnection Perforce, ConfigFile ProjectConfigFile, TextWriter Log)
+		{
+			string StreamListDepotPath = ProjectConfigFile.GetValue("Options.QuickSelectStreamList", null);
+			if(StreamListDepotPath == null)
+			{
+				return null;
+			}
+
+			List<string> Lines;
+			if(!Perforce.Print(StreamListDepotPath, out Lines, Log))
+			{
+				return null;
+			}
+
+			return Lines.Select(x => x.Trim()).Where(x => x.Length > 0).ToList().AsReadOnly();
 		}
 
 		static string FormatTime(long Seconds)

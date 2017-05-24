@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Paper2DEditor : ModuleRules
 {
-	public Paper2DEditor(TargetInfo Target)
+	public Paper2DEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Paper2DEditor/Private");
 

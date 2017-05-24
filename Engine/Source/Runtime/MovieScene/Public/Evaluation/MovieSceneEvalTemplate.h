@@ -14,6 +14,8 @@
 
 #include "MovieSceneEvalTemplate.generated.h"
 
+struct FMovieSceneInterrogationData;
+
 /**
  * Structure used for movie scene evaluation templates contained within a track. Typically these are defined as one per-section.
  * Serialized into a FMovieSceneEvaluationTemplate contained within the sequence itself (for fast initialization at runtime).
@@ -99,7 +101,7 @@ public:
 
 	/**
 	 * Evaluate this template over the given swept range, adding any execution tokens to the specified list.
-	 * @note 				Only called when the containing template has an evaluation method of EEvaluationMethod::Swept
+	 * @note 					Only called when the containing template has an evaluation method of EEvaluationMethod::Swept
 	 *							This function should perform any expensive or costly evaluation logic required to calculate the final animated state.
 	 * 							Potentially called on a thread, and as such has no access to the current evaluation environment.
 	 *
@@ -113,8 +115,29 @@ public:
 		ensureMsgf(false, TEXT("FMovieSceneEvalTemplate::EvaluateSwept has not been implemented. Verify that this template's evaluation track has correct evaluation method (usually set in UMovieSceneTrack::PostCompile), or implement this function."));
 	}
 
-protected:
+	/**
+	 * Interrogate this template for its output. Should not have any side effects.
+	 *
+	 * @param Context				Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
+	 * @param Container				Container to populate with the desired output from this track
+	 */
+	virtual void Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container) const
+	{
+	}
 
+	/**
+	 * Interrogate this template for its output. Should not have any side effects.
+	 *
+	 * @param Context				Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
+	 * @param SweptRange			The range to sweep, where this template evaluates with 'swept' evaluation
+	 * @param Container				Container to populate with the desired output from this track
+	 */
+	virtual void Interrogate(const FMovieSceneContext& Context, TRange<float> SweptRange, FMovieSceneInterrogationData& Container) const
+	{
+	}
+
+protected:
+	
 	/**
 	 * Enum evaluation flag structure defining which functions are to be called in implementations of this struct
 	 */
@@ -150,8 +173,10 @@ struct FMovieSceneEvalTemplatePtr
 	FMovieSceneEvalTemplatePtr(T&& In)
 		: TInlineValue(Forward<T>(In))
 	{
+		static_assert(!TIsSame<typename TDecay<T>::Type, FMovieSceneEvalTemplate>::Value, "Direct usage of FMovieSceneEvalTemplate is prohibited.");
+		
 #if WITH_EDITOR
-		checkf(T::StaticStruct() == &In.GetScriptStruct(), TEXT("%s does not correctly override GetScriptStructImpl. Template will not serialize correctly."), *T::StaticStruct()->GetName());
+		checkf(T::StaticStruct() == &In.GetScriptStruct() && T::StaticStruct() != FMovieSceneEvalTemplate::StaticStruct(), TEXT("%s does not correctly override GetScriptStructImpl. Template will not serialize correctly."), *T::StaticStruct()->GetName());
 #endif
 	}
 
@@ -187,7 +212,7 @@ struct FMovieSceneEvalTemplatePtr
 	MOVIESCENE_API bool Serialize(FArchive& Ar);
 };
 
-template<> struct TStructOpsTypeTraits<FMovieSceneEvalTemplatePtr> : public TStructOpsTypeTraitsBase
+template<> struct TStructOpsTypeTraits<FMovieSceneEvalTemplatePtr> : public TStructOpsTypeTraitsBase2<FMovieSceneEvalTemplatePtr>
 {
 	enum { WithSerializer = true, WithCopy = true };
 };

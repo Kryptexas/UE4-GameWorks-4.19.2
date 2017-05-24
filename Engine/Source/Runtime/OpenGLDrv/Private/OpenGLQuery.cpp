@@ -21,7 +21,7 @@ FRenderQueryRHIRef FOpenGLDynamicRHI::RHICreateRenderQuery(ERenderQueryType Quer
 {
 	VERIFY_GL_SCOPE();
 
-	check(QueryType == RQT_Occlusion || RQT_AbsoluteTime);
+	check(QueryType == RQT_Occlusion || QueryType == RQT_AbsoluteTime);
 
 	if(QueryType == RQT_AbsoluteTime && FOpenGL::SupportsTimestampQueries() == false)
 	{

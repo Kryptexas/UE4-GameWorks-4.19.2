@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:The general usage of Particle Systems and Cascade.
 Version: 4.9
 SkillLevel: Intermediate
+tags:Particles
 
 [TOC(start:2 end:3)]
 

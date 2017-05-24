@@ -59,6 +59,7 @@
 #include "VisualLogger/VisualLogger.h"
 #include "Logging/MessageLog.h"
 #include "SceneViewport.h"
+#include "Engine/NetworkObjectList.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -617,7 +618,12 @@ void APlayerController::ForceSingleNetUpdateFor(AActor* Target)
 			UActorChannel* Channel = Conn->ActorChannels.FindRef(Target);
 			if (Channel != NULL)
 			{
-				Target->bPendingNetUpdate = true; // will cause some other clients to do lesser checks too, but that's unavoidable with the current functionality
+				FNetworkObjectInfo* NetActor = Target->GetNetworkObjectInfo();
+
+				if (NetActor != nullptr)
+				{
+					NetActor->bPendingNetUpdate = true; // will cause some other clients to do lesser checks too, but that's unavoidable with the current functionality
+				}
 			}
 		}
 	}
@@ -1002,7 +1008,7 @@ void APlayerController::ServerShortTimeout_Implementation()
 				{
 					if ( (A->NetUpdateFrequency < 1) && !A->bOnlyRelevantToOwner )
 					{
-						A->SetNetUpdateTime(FMath::Min(A->NetUpdateTime, World->TimeSeconds + NetUpdateTimeOffset * FMath::FRand()));
+						A->SetNetUpdateTime(World->TimeSeconds + NetUpdateTimeOffset * FMath::FRand());
 					}
 				}
 			}
@@ -1145,7 +1151,7 @@ void APlayerController::ClientReset_Implementation()
 	ResetCameraMode();
 	SetViewTarget(this);
 
-	bPlayerIsWaiting = !PlayerState->bOnlySpectator;
+	bPlayerIsWaiting = (PlayerState == nullptr) || !PlayerState->bOnlySpectator;
 	ChangeState(NAME_Spectating);
 }
 
@@ -1386,6 +1392,13 @@ void APlayerController::BeginPlay()
 			LocalPlayer->GetSlateOperations().LockMouseToWidget( LocalPlayer->ViewportClient->GetGameViewportWidget().ToSharedRef() );
 		}
 	}
+
+	//If we are faking touch events show the cursor
+	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().IsFakingTouchEvents())
+	{
+		bShowMouseCursor = true;
+	}
+
 }
 
 void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -1679,12 +1692,13 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 		AGameModeBase* const GameMode = GetWorld()->GetAuthGameMode();
 		if (GameMode != nullptr)
 		{
-			if (bPause)
+			bool bCurrentPauseState = IsPaused();
+			if (bPause && !bCurrentPauseState)
 			{
 				// Pause gamepad rumbling too if needed
 				bResult = GameMode->SetPause(this, CanUnpauseDelegate);
 			}
-			else
+			else if (!bPause && bCurrentPauseState)
 			{
 				bResult = GameMode->ClearPause();
 			}
@@ -3245,7 +3259,7 @@ void APlayerController::ClientEndOnlineSession_Implementation()
 
 void APlayerController::ConsoleKey(FKey Key)
 {
-#if !UE_BUILD_SHIPPING
+#if ALLOW_CONSOLE
 	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
 	{
 		if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
@@ -3253,11 +3267,11 @@ void APlayerController::ConsoleKey(FKey Key)
 			LocalPlayer->ViewportClient->ViewportConsole->InputKey(0, Key, IE_Pressed);
 		}
 	}
-#endif // !UE_BUILD_SHIPPING
+#endif // ALLOW_CONSOLE
 }
 void APlayerController::SendToConsole(const FString& Command)
 {
-#if !UE_BUILD_SHIPPING
+#if ALLOW_CONSOLE
 	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player))
 	{
 		if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
@@ -3265,7 +3279,7 @@ void APlayerController::SendToConsole(const FString& Command)
 			LocalPlayer->ViewportClient->ViewportConsole->ConsoleCommand(Command);
 		}
 	}
-#endif // !UE_BUILD_SHIPPING
+#endif // ALLOW_CONSOLE
 }
 
 
@@ -3558,15 +3572,14 @@ public:
 	{
 	}
 
-	virtual void UpdateOperation(FLatentResponse& Response)
+	virtual void UpdateOperation(FLatentResponse& Response) override
 	{
 		// Update elapsed time
 		TimeElapsed += Response.ElapsedTime();
 
 		const bool bComplete = (!bRunning || (TotalTime >= 0.f && TimeElapsed >= TotalTime) || !PlayerController.IsValid());
 
-		APlayerController* PC = PlayerController.Get();
-		if (PC)
+		if (APlayerController* PC = PlayerController.Get())
 		{
 			if (bComplete)
 			{
@@ -3579,6 +3592,22 @@ public:
 		}
 		
 		Response.FinishAndTriggerIf(bComplete, ExecutionFunction, OutputLink, CallbackTarget);
+	}
+
+	virtual void NotifyObjectDestroyed() override
+	{
+		if (APlayerController* PC = PlayerController.Get())
+		{
+			PC->DynamicForceFeedbacks.Remove(LatentUUID);
+		}
+	}
+
+	virtual void NotifyActionAborted() override
+	{
+		if (APlayerController* PC = PlayerController.Get())
+		{
+			PC->DynamicForceFeedbacks.Remove(LatentUUID);
+		}
 	}
 };
 
@@ -4090,17 +4119,25 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->HasPredictionData_Server() ? NetworkPredictionInterface->GetPredictionData_Server() : nullptr;
 				if (ServerData)
 				{
-					const float TimeSinceUpdate = GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp;
-					const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
-					if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f, AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
+					if (ServerData->ServerTimeStamp != 0.f)
 					{
-						//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
-						const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
-						if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+						const float TimeSinceUpdate = GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp;
+						const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
+						if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f, AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
 						{
-							NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
-							ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
+							//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
+							const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
+							if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+							{
+								NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
+								ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
+							}
 						}
+					}
+					else
+					{
+						// If timestamp is zero, set to current time so we don't have a huge initial delta time for correction.
+						ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
 					}
 				}
 			}
@@ -4861,8 +4898,7 @@ void APlayerController::OnServerStartedVisualLogger_Implementation(bool bIsLoggi
 
 bool APlayerController::ShouldPerformFullTickWhenPaused() const
 {
-	bool bIsInVR = (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled() && GEngine->HMDDevice->IsHMDConnected());
-	return bIsInVR || bShouldPerformFullTickWhenPaused;
+	return bShouldPerformFullTickWhenPaused || (/*bIsInVr =*/GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled() && GEngine->HMDDevice->IsHMDConnected());
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -244,6 +244,14 @@ FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::MakeSpecHandle(UGamepl
 	return FGameplayEffectSpecHandle(new FGameplayEffectSpec(InGameplayEffect, FGameplayEffectContextHandle(EffectContext), InLevel));
 }
 
+FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::CloneSpecHandle(AActor* InNewInstigator, AActor* InEffectCauser, FGameplayEffectSpecHandle GameplayEffectSpecHandle_Clone)
+{
+	FGameplayEffectContext* EffectContext = new FGameplayEffectContext(InNewInstigator, InEffectCauser);
+
+	return FGameplayEffectSpecHandle(new FGameplayEffectSpec(*GameplayEffectSpecHandle_Clone.Data.Get(), FGameplayEffectContextHandle(EffectContext)));
+}
+
+
 FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(const FHitResult& HitResult)
 {
 	// Construct TargetData
@@ -752,6 +760,26 @@ FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddLinkedGameplayEffec
 	return SpecHandle;
 }
 
+FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddLinkedGameplayEffect(FGameplayEffectSpecHandle SpecHandle, TSubclassOf<UGameplayEffect> LinkedGameplayEffect)
+{
+	FGameplayEffectSpecHandle LinkedSpecHandle;
+	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+	if (Spec)
+	{
+		FGameplayEffectSpec* LinkedSpec = new FGameplayEffectSpec();
+		LinkedSpec->InitializeFromLinkedSpec(LinkedGameplayEffect->GetDefaultObject<UGameplayEffect>(), *Spec);
+
+		LinkedSpecHandle = FGameplayEffectSpecHandle(LinkedSpec);
+		Spec->TargetEffectSpecs.Add(LinkedSpecHandle);
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::AddLinkedGameplayEffectSpec called with invalid SpecHandle"));
+	}
+
+	return LinkedSpecHandle;
+}
+
 
 FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::SetStackCount(FGameplayEffectSpecHandle SpecHandle, int32 StackCount)
 {
@@ -783,8 +811,7 @@ FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::SetStackCountToMax(FGa
 
 FGameplayEffectContextHandle UAbilitySystemBlueprintLibrary::GetEffectContext(FGameplayEffectSpecHandle SpecHandle)
 {
-	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
-	if (Spec)
+	if (FGameplayEffectSpec* Spec = SpecHandle.Data.Get())
 	{
 		return Spec->GetEffectContext();
 	}
@@ -794,6 +821,21 @@ FGameplayEffectContextHandle UAbilitySystemBlueprintLibrary::GetEffectContext(FG
 	}
 
 	return FGameplayEffectContextHandle();
+}
+
+TArray<FGameplayEffectSpecHandle> UAbilitySystemBlueprintLibrary::GetAllLinkedGameplayEffectSpecHandles(FGameplayEffectSpecHandle SpecHandle)
+{
+	if (FGameplayEffectSpec* Spec = SpecHandle.Data.Get())
+	{
+		return Spec->TargetEffectSpecs;
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::GetEffectContext called with invalid SpecHandle"));
+	}
+
+	TArray<FGameplayEffectSpecHandle> Handles;
+	return Handles;
 }
 
 int32 UAbilitySystemBlueprintLibrary::GetActiveGameplayEffectStackCount(FActiveGameplayEffectHandle ActiveHandle)

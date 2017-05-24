@@ -574,6 +574,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, DynamicMeshElementsShadowCullFrustum(nullptr)
 	, PreShadowTranslation(FVector::ZeroVector)
 	, ViewActor(InitOptions.ViewActor)
+	, PlayerIndex(InitOptions.PlayerIndex)
 	, Drawer(InitOptions.ViewElementDrawer)
 	, ViewRect(InitOptions.GetConstrainedViewRect())
 	, UnscaledViewRect(InitOptions.GetConstrainedViewRect())
@@ -610,6 +611,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsInstancedStereoEnabled(false)
 	, bIsMultiViewEnabled(false)
 	, bIsMobileMultiViewEnabled(false)
+	, bIsMobileMultiViewDirectEnabled(false)
 	, bShouldBindInstancedViewUB(false)
 	, GlobalClippingPlane(FPlane(0, 0, 0, 0))
 #if WITH_EDITOR
@@ -721,8 +723,14 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	static const auto MultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 	bIsMultiViewEnabled = ShaderPlatform == EShaderPlatform::SP_PS4 && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
 
+#if PLATFORM_ANDROID
 	static const auto MobileMultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
-	bIsMobileMultiViewEnabled = (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+	bIsMobileMultiViewEnabled = StereoPass != eSSP_MONOSCOPIC_EYE && (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+
+	// TODO: Test platform support for direct
+	static const auto MobileMultiViewDirectCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView.Direct"));
+	bIsMobileMultiViewDirectEnabled = (MobileMultiViewDirectCVar && MobileMultiViewDirectCVar->GetValueOnAnyThread() != 0);
+#endif
 
 	bShouldBindInstancedViewUB = bIsInstancedStereoEnabled || bIsMobileMultiViewEnabled;
 
@@ -756,7 +764,7 @@ void FSceneView::SetupAntiAliasingMethod()
 	{
 		static IConsoleVariable* CVarMSAACount = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MSAACount"));
 
-		if (AntiAliasingMethod == AAM_MSAA && IsForwardShadingEnabled(FeatureLevel) && CVarMSAACount->GetInt() <= 1)
+		if (AntiAliasingMethod == AAM_MSAA && IsForwardShadingEnabled(FeatureLevel) && CVarMSAACount->GetInt() <= 0)
 		{
 			// Fallback to temporal AA so we can easily toggle methods with r.MSAACount
 			AntiAliasingMethod = AAM_TemporalAA;
@@ -987,9 +995,10 @@ FVector FSceneView::ScreenToWorld(const FVector4& ScreenPoint) const
 
 bool FSceneView::ScreenToPixel(const FVector4& ScreenPoint,FVector2D& OutPixelLocation) const
 {
-	if(ScreenPoint.W > 0.0f)
+	if(ScreenPoint.W != 0.0f)
 	{
-		float InvW = 1.0f / ScreenPoint.W;
+		//Reverse the W in the case it is negative, this allow to manipulate a manipulator in the same direction when the camera is really close to the manipulator.
+		float InvW = (ScreenPoint.W > 0.0f ? 1.0f : -1.0f) / ScreenPoint.W;
 		float Y = (GProjectionSignY > 0.0f) ? ScreenPoint.Y : 1.0f - ScreenPoint.Y;
 		OutPixelLocation = FVector2D(
 			UnscaledViewRect.Min.X + (0.5f + ScreenPoint.X * 0.5f * InvW) * UnscaledViewRect.Width(),
@@ -1283,6 +1292,9 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(Bloom6Size);
 		LERP_PP(BloomDirtMaskIntensity);
 		LERP_PP(BloomDirtMaskTint);
+		LERP_PP(BloomConvolutionSize);
+		LERP_PP(BloomConvolutionCenterUV);
+		LERP_PP(BloomConvolutionPreFilter);
 		LERP_PP(AmbientCubemapIntensity);
 		LERP_PP(AmbientCubemapTint);
 		LERP_PP(AutoExposureLowPercent);
@@ -1368,6 +1380,23 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 			Dest.BloomDirtMask = Src.BloomDirtMask;
 		}
 
+		IF_PP(BloomMethod)
+		{
+			Dest.BloomMethod = Src.BloomMethod;
+		}
+
+		// actual texture cannot be blended but the intensity can be blended
+		IF_PP(BloomConvolutionTexture)
+		{
+			Dest.BloomConvolutionTexture = Src.BloomConvolutionTexture;
+		}
+		
+		// A continuous blending of this value would result trashing the pre-convolved bloom kernel cache.
+		IF_PP(BloomConvolutionBufferScale)
+		{
+			Dest.BloomConvolutionBufferScale = Src.BloomConvolutionBufferScale;
+		}
+
 		// actual texture cannot be blended but the intensity can be blended
 		IF_PP(DepthOfFieldBokehShape)
 		{
@@ -1425,6 +1454,8 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		LERP_PP(LPVSpecularOcclusionExponent);
 		LERP_PP(LPVDiffuseOcclusionIntensity);
 		LERP_PP(LPVSpecularOcclusionIntensity);
+		LERP_PP(LPVFadeRange);
+		LERP_PP(LPVDirectionalOcclusionFadeRange);
 
 		if (Src.bOverride_LPVSize)
 		{
@@ -1799,12 +1830,11 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		}
 	}
 
-	// Not supported in ES2/3.
-	bool bES2Or3 = (SceneViewFeatureLevel == ERHIFeatureLevel::ES2) || (SceneViewFeatureLevel == ERHIFeatureLevel::ES3_1);
-
-	if(!Family->EngineShowFlags.ScreenPercentage || bIsSceneCapture || bIsReflectionCapture || bES2Or3)
+	// ScreenPercentage is not supported in ES2/3.1 with MobileHDR = false
+	const bool bIsMobileLDR = (SceneViewFeatureLevel <= ERHIFeatureLevel::ES3_1 && !IsMobileHDR());
+	if(!Family->EngineShowFlags.ScreenPercentage || bIsSceneCapture || bIsReflectionCapture || bIsMobileLDR)
 	{
-		FinalPostProcessSettings.ScreenPercentage = 100;
+		FinalPostProcessSettings.ScreenPercentage = 100.0f;
 	}
 
 	if(!Family->EngineShowFlags.AmbientOcclusion || !Family->EngineShowFlags.ScreenSpaceAO)
@@ -1966,6 +1996,14 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 			// compute the view rectangle with the ScreenPercentage applied
 			FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
 			QuantizeSceneBufferSize(ScreenPercentageAffectedViewRect.Max.X, ScreenPercentageAffectedViewRect.Max.Y);
+			// Mosaic needs to the viewport height to be a multiple of 2.
+			if (SceneViewFeatureLevel <= ERHIFeatureLevel::ES3_1 && IsMobileHDRMosaic())
+			{
+				if (((ScreenPercentageAffectedViewRect.Size().Y) & 1) == 1)
+				{
+					ScreenPercentageAffectedViewRect.Max.Y -= 1;
+				}
+			}
 			SetScaledViewRect(ScreenPercentageAffectedViewRect);
 		}
 	}
@@ -2228,6 +2266,9 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	FMatrix PrevViewProj = FTranslationMatrix(DeltaTranslation) * InPrevViewMatrices.GetTranslatedViewMatrix() * InPrevViewMatrices.ComputeProjectionNoAAMatrix();
 
 	ViewUniformShaderParameters.ClipToPrevClip = InvViewProj * PrevViewProj;
+	ViewUniformShaderParameters.TemporalAAJitter = FVector4(
+		InViewMatrices.GetTemporalAAJitter().X,		InViewMatrices.GetTemporalAAJitter().Y,
+		InPrevViewMatrices.GetTemporalAAJitter().X, InPrevViewMatrices.GetTemporalAAJitter().Y );
 
 	ViewUniformShaderParameters.UnlitViewmodeMask = !Family->EngineShowFlags.Lighting ? 1 : 0;
 	ViewUniformShaderParameters.OutOfBoundsMask = Family->EngineShowFlags.VisualizeOutOfBoundsPixels ? 1 : 0;

@@ -18,7 +18,10 @@ void UAbilityTask_WaitConfirmCancel::OnConfirmCallback()
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey());
-		OnConfirm.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnConfirm.Broadcast();
+		}
 		EndTask();
 	}
 }
@@ -28,7 +31,10 @@ void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey());
-		OnCancel.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnCancel.Broadcast();
+		}
 		EndTask();
 	}
 }
@@ -73,6 +79,8 @@ void UAbilityTask_WaitConfirmCancel::Activate()
 			AbilitySystemComponent->GenericLocalConfirmCallbacks.AddDynamic(this, &UAbilityTask_WaitConfirmCancel::OnLocalConfirmCallback);	// Tell me if the confirm input is pressed
 			AbilitySystemComponent->GenericLocalCancelCallbacks.AddDynamic(this, &UAbilityTask_WaitConfirmCancel::OnLocalCancelCallback);	// Tell me if the cancel input is pressed
 
+			Ability->OnWaitingForConfirmInputBegin();
+
 			RegisteredCallbacks = true;
 		}
 		else
@@ -97,6 +105,11 @@ void UAbilityTask_WaitConfirmCancel::OnDestroy(bool AbilityEnding)
 	{
 		AbilitySystemComponent->GenericLocalConfirmCallbacks.RemoveDynamic(this, &UAbilityTask_WaitConfirmCancel::OnLocalConfirmCallback);
 		AbilitySystemComponent->GenericLocalCancelCallbacks.RemoveDynamic(this, &UAbilityTask_WaitConfirmCancel::OnLocalCancelCallback);
+
+		if (Ability)
+		{
+			Ability->OnWaitingForConfirmInputEnd();
+		}
 	}
 
 	Super::OnDestroy(AbilityEnding);

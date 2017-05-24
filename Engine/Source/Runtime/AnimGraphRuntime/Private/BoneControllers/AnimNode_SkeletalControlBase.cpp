@@ -76,7 +76,7 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseCo
 		USkeletalMeshComponent* Component = Output.AnimInstanceProxy->GetSkelMeshComponent();
 
 		BoneTransforms.Reset(BoneTransforms.Num());
-		EvaluateBoneTransforms(Component, Output.Pose, BoneTransforms);
+		EvaluateSkeletalControl_AnyThread(Output, BoneTransforms);
 
 		checkSlow(!ContainsNaN(BoneTransforms));
 
@@ -91,4 +91,12 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseCo
 void FAnimNode_SkeletalControlBase::AddDebugNodeData(FString& OutDebugData)
 {
 	OutDebugData += FString::Printf(TEXT("Alpha: %.1f%%"), ActualAlpha*100.f);
+}
+
+void FAnimNode_SkeletalControlBase::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
+{
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	// Call legacy implementation for backwards compatibility
+	EvaluateBoneTransforms(Output.AnimInstanceProxy->GetSkelMeshComponent(), Output.Pose, OutBoneTransforms);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }

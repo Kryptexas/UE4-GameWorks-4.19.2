@@ -14,6 +14,9 @@
 #include "Misc/CommandLine.h"
 #include "GenericPlatformDriver.h"
 #include "Modules/ModuleManager.h"
+#include "VulkanPipelineState.h"
+
+#define LOCTEXT_NAMESPACE "VulkanRHI"
 
 #ifdef VK_API_VERSION
 // Check the SDK is least the API version we want to use
@@ -28,7 +31,7 @@ static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if PLATFORM_ANDROID
+#if PLATFORM_ANDROID || PLATFORM_LINUX
 
 // Vulkan function pointers
 
@@ -138,7 +141,7 @@ static inline int32 CountSetBits(int32 n)
 
 DEFINE_LOG_CATEGORY(LogVulkan)
 
-#if PLATFORM_ANDROID
+#if PLATFORM_ANDROID || PLATFORM_LINUX
 #include <dlfcn.h>
 
 static void *VulkanLib = nullptr;
@@ -153,7 +156,11 @@ static bool LoadVulkanLibrary()
 	bAttemptedLoad = true;
 
 	// try to load libvulkan.so
+#if PLATFORM_LINUX
+	VulkanLib = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+#else
 	VulkanLib = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+#endif
 	if (VulkanLib == nullptr)
 	{
 		return false;
@@ -290,8 +297,8 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
-	PendingGfxState = new FVulkanPendingGfxState(InDevice);
-	PendingComputeState = new FVulkanPendingComputeState(InDevice);
+	PendingGfxState = new FOLDVulkanPendingGfxState(Device);
+	PendingComputeState = new FVulkanPendingComputeState(Device);
 
 	// Add an initial pool
 	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
@@ -326,17 +333,15 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 	: Instance(VK_NULL_HANDLE)
 	, Device(nullptr)
 	, DrawingViewport(nullptr)
+	, SavePipelineCacheCmd(nullptr)
+	, RebuildPipelineCacheCmd(nullptr)
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	, DumpMemoryCmd(nullptr)
+#endif
 #if VULKAN_HAS_DEBUGGING_ENABLED
 	, MsgCallback(VK_NULL_HANDLE)
 #endif
 	, PresentCount(0)
-#if VULKAN_ENABLE_PIPELINE_CACHE
-	, SavePipelineCacheCmd(nullptr)
-	, RebuildPipelineCacheCmd(nullptr)
-#endif
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-	, DumpMemoryCmd(nullptr)
-#endif
 {
 	// This should be called once at the start 
 	check(IsInGameThread());
@@ -355,6 +360,11 @@ void FVulkanDynamicRHI::Init()
 {
 	if (!LoadVulkanLibrary())
 	{
+#if PLATFORM_LINUX
+		// be more verbose on Linux
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *LOCTEXT("UnableToInitializeVulkanLinux", "Unable to load Vulkan library and/or acquire the necessary function pointers. Make sure an up-to-date libvulkan.so.1 is installed.").ToString(),
+									 *LOCTEXT("UnableToInitializeVulkanLinuxTitle", "Unable to initialize Vulkan.").ToString());
+#endif // PLATFORM_LINUX
 		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points; make sure your driver supports Vulkan!"));
 	}
 
@@ -422,10 +432,8 @@ void FVulkanDynamicRHI::Shutdown()
 
 	VulkanRHI::vkDestroyInstance(Instance, nullptr);
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	IConsoleManager::Get().UnregisterConsoleObject(SavePipelineCacheCmd);
 	IConsoleManager::Get().UnregisterConsoleObject(RebuildPipelineCacheCmd);
-#endif
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	IConsoleManager::Get().UnregisterConsoleObject(DumpMemoryCmd);
@@ -655,7 +663,6 @@ void FVulkanDynamicRHI::InitInstance()
 
 		GIsRHIInitialized = true;
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 		SavePipelineCacheCmd = IConsoleManager::Get().RegisterConsoleCommand(
 			TEXT("r.Vulkan.SavePipelineCache"),
 			TEXT("Save pipeline cache."),
@@ -669,7 +676,6 @@ void FVulkanDynamicRHI::InitInstance()
 			FConsoleCommandDelegate::CreateStatic(RebuildPipelineCache),
 			ECVF_Default
 			);
-#endif
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		DumpMemoryCmd = IConsoleManager::Get().RegisterConsoleCommand(
@@ -737,7 +743,7 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 
 	WriteEndTimestamp(CmdBuffer);
 
-	bool bNativePresent = Viewport->Present(CmdBuffer, Device->GetQueue(), bLockToVsync);
+	bool bNativePresent = Viewport->Present(CmdBuffer, Device->GetGraphicsQueue(), bLockToVsync);
 	if (bNativePresent)
 	{
 		//#todo-rco: Check for r.FinishCurrentFrame
@@ -851,7 +857,7 @@ IRHICommandContext* FVulkanDynamicRHI::RHIGetDefaultContext()
 	return &Device->GetImmediateContext();
 }
 
-IRHICommandContextContainer* FVulkanDynamicRHI::RHIGetCommandContextContainer()
+IRHICommandContextContainer* FVulkanDynamicRHI::RHIGetCommandContextContainer(int32 Index, int32 Num)
 {
 	return nullptr;
 }
@@ -970,7 +976,7 @@ void FVulkanDescriptorSetsLayout::AddDescriptor(int32 DescriptorSetIndex, const 
 	LayoutTypes[Descriptor.descriptorType]++;
 
 	if (DescriptorSetIndex >= SetLayouts.Num())
-		{
+	{
 		SetLayouts.SetNum(DescriptorSetIndex + 1, false);
 	}
 
@@ -979,6 +985,11 @@ void FVulkanDescriptorSetsLayout::AddDescriptor(int32 DescriptorSetIndex, const 
 	VkDescriptorSetLayoutBinding* Binding = new(DescSetLayout.LayoutBindings) VkDescriptorSetLayoutBinding;
 	FMemory::Memzero(*Binding);
 	*Binding = Descriptor;
+
+	for (int32 Index = 0; Index < BindingIndex; ++Index)
+	{
+		ensure(DescSetLayout.LayoutBindings[Index].binding != BindingIndex || &DescSetLayout.LayoutBindings[Index] != Binding);
+	}
 }
 
 void FVulkanDescriptorSetsLayout::Compile()
@@ -1130,6 +1141,7 @@ FVulkanRenderPass::FVulkanRenderPass(FVulkanDevice& InDevice, const FVulkanRende
 	RTLayout(InRTLayout),
 #endif
 	RenderPass(VK_NULL_HANDLE),
+	NumUsedClearValues(InRTLayout.GetNumUsedClearValues()),
 	Device(InDevice)
 {
 	INC_DWORD_STAT(STAT_VulkanNumRenderPasses);
@@ -1230,9 +1242,9 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 	ResolveDesc.srcSubresource.baseArrayLayer = 0;
 	ResolveDesc.srcSubresource.mipLevel = 0;
 	ResolveDesc.srcSubresource.layerCount = 1;
-    ResolveDesc.srcOffset.x = 0;
-    ResolveDesc.srcOffset.y = 0;
-    ResolveDesc.srcOffset.z = 0;
+	ResolveDesc.srcOffset.x = 0;
+	ResolveDesc.srcOffset.y = 0;
+	ResolveDesc.srcOffset.z = 0;
 	ResolveDesc.dstSubresource.aspectMask = AspectMask;
 	ResolveDesc.dstSubresource.baseArrayLayer = 0;
 	ResolveDesc.dstSubresource.mipLevel = 0;
@@ -1240,9 +1252,9 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 	ResolveDesc.dstOffset.x = 0;
 	ResolveDesc.dstOffset.y = 0;
 	ResolveDesc.dstOffset.z = 0;
-    ResolveDesc.extent.width = Src->Surface.Width;
-    ResolveDesc.extent.height = Src->Surface.Height;
-    ResolveDesc.extent.depth = 1;
+	ResolveDesc.extent.width = Src->Surface.Width;
+	ResolveDesc.extent.height = Src->Surface.Height;
+	ResolveDesc.extent.depth = 1;
 
 	VulkanRHI::vkCmdResolveImage(Cmd,
 		Src->Surface.Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -1252,8 +1264,8 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 
 FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, VkFlags Usage, VkMemoryPropertyFlags MemPropertyFlags)
 	: VulkanRHI::FDeviceChild(InDevice)
-	, BufferOffset(0)
 	, BufferSize(TotalSize)
+	, BufferOffset(0)
 	, MinAlignment(0)
 {
 	FRHIResourceCreateInfo CreateInfo;
@@ -1284,7 +1296,6 @@ uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)
 	return AllocOffset;
 }
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 void FVulkanDynamicRHI::SavePipelineCache()
 {
 	FString CacheFile = FPaths::GameSavedDir() / TEXT("VulkanPSO.cache");
@@ -1298,7 +1309,6 @@ void FVulkanDynamicRHI::RebuildPipelineCache()
 	FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->PipelineStateCache->RebuildCache();
 }
-#endif
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 void FVulkanDynamicRHI::DumpMemory()
@@ -1312,7 +1322,7 @@ void FVulkanDynamicRHI::DumpMemory()
 
 void FVulkanDynamicRHI::RecreateSwapChain(void* NewNativeWindow)
 {
-	if(NewNativeWindow)
+	if (NewNativeWindow)
 	{
 		FlushRenderingCommands();
 		FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
@@ -1330,3 +1340,5 @@ void FVulkanDynamicRHI::RecreateSwapChain(void* NewNativeWindow)
 		FlushRenderingCommands();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

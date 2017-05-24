@@ -1,74 +1,74 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: VR Performance Testing
+﻿INTSourceChangelist:3260598
+Availability:Public
+Title:VR 性能测试
 Crumbs:%ROOT%, Platforms
-Description: Overview of the key principles for performance and profiling of UE4 virtual reality projects.
+Description:总览 UE4 虚拟现实项目性能与分析的核心原则。
 Version:4.14
 Skilllevel:Advanced
 Parent:Platforms/VR/Profiling
 order:1
+related:Platforms/VR/Profiling/Considerations
+related:Platforms/VR/Profiling/Tools
 
-In general, maintaining VR frame rates is extremely challenging even on recommended hardware. Frame rate consistency is more important than in regular real time rendering as dropping 
-frames can make your experience uncomfortable for the user.
+总体而言，维持 VR 项目的帧率挑战性极大，即使使用推荐硬件也同样如此。VR 帧率稳定性比常规实时渲染更为重要， 
+因为掉帧会对用户体验产生极大的破坏。
 
-With that in mind, you need to leave yourself a buffer to ensure you can absorb frames which may run longer than average. We don't allow pipelining multiple frames due to the input/tracking latency it 
-would introduce. This means the game thread is only one frame ahead of the render thread at all times and the GPU and render thread are in sync on the same frame. This means that you don't get 11 ms, you get closer to 8.5.
- Long frame times in the game thread due to gam play code overhead, the render thread due to draw call overhead, or the GPU due to transform or shading overhead can cause you to miss frame time. All three 
- need to be considered and balanced.
+因此需要预留缓冲，以便获取比普通帧运行时间更长的帧。由于其可能导致输入/追踪延迟，因此无法对多个帧进行指令管线化。这意味着游戏线程将固定比渲染线程提前一帧，GPU 和渲染线程则在同一帧上同步。因为二次投影存在系统开销，GPU 时间略微少于 11 ms。游戏代码开销会在游戏线程中造成较长的帧时、绘制调用开销会在渲染线程中造成较长的帧时、变形或着色开销会在 GPU 中造成较长的帧时。这些因素都会导致帧时的缺失。需要考虑这三个因素，并进行平衡。
 
-If you follow the console variable settings in the [Best Practices guide](Platforms/Oculus/BestPractices), your render thread performance should be around where it needs to be for performance. From there, 
-it's important to optimize your content and gameplay code to ensure that you make frame rate. On the content side, keep everything as simple as it can be. 
+如使用 [最佳方法指南](Platforms/Oculus/BestPractices) 中的控制台变量设置，渲染线程性能应该达到理想效果。因此，对内容和游戏代码进行优化十分重要，可借此榨取帧率。需要尽量简化所有内容。 
 
-General practices for simplifying content include the following.
-* Avoid dynamic lights and shadows. 
-* Avoid heavy use of translucency.
-* Instance where you can.
-* Make LODs for everything.
-* Keep material complexity and number of materials per object low. 
-* Bake out anything that you can get away with. 
+简化内容的常见方法如下。
+* 不使用动态光照和阴影。 
+* 不大量使用半透明。
+* 可见批次中的实例。如实例化群组中的一个元素为可见，则整个群组均会被绘制。
+* 为所有内容设置 LOD。
+* 简化材质复杂程度，减少每个物体的材质数量。 
+* 烘焙重要性不高的内容。 
+* 不使用能包含玩家的大型几何体。
+* 尽量使用预计算的可见体积域。
 
-See the [Bullet Train](https://s3.amazonaws.com/epiccms_epiccms_bucket/Resources/files/Going+Off+the+Rails.zip) and [Showdown](https://cdn2.unrealengine.com/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx) slide decks for 
-examples of how Epic has produced content for virtual reality that looks more complex than it actually is. Also, be aware that most screen space tricks don't behave as you'd expect in stereo. They generally look flat or simply wrong.
-
-Be sure to profile your work throughout the project and ensure you're always maintaining frame rate. Slowly adding complexity until you reach a tipping point is much easier to manage than trying to find areas to scale back down
-to meet the target performance a few days before shipping.
-
-Reducing draw calls really comes down to two techniques.  Make sure that you combine as many materials as possible and make sure to make heavy use of instanced static mesh components.  
-On PC, there's some potential in trying to automatically batch these things together, but on mobile, the cost is too high.
-
-The other thing that you may consider doing is using cull volumes to ensure that non-visible rooms are completely culled out when outside of them.  Our occlusion is slightly more liberal in what it 
-chooses to draw, and cull volumes help make this a bit more conservative in those choices.  Additionally, you can toggle visibility on Actors (or entire sublevels) to get the same effect, if your content is built like that.
-
-[REGION:note]
-Another important thing to remember is that if something has an alpha of zero, it may still be drawn.  So, if you don't want to render it, be sure to actually hide it to prevent it from being rendered.
+[REGION:tip]
+查看 [Bullet Train](https://s3.amazonaws.com/epiccms_epiccms_bucket/Resources/files/Going+Off+the+Rails.zip) 和 [Showdown](https://cdn2.unrealengine.com/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx) 范例，了解 Epic 时如何制作视觉效果极佳但实际却较为简单的虚拟现实内容。还需要注意的是多数屏幕空间技巧均无法在立体中使用。看上去会是扁平或错误的效果。
 [/REGION]
 
-## Getting General Stats
+必须在项目中对工作进行分析，维持帧率。慢慢增加复杂度到临界点的方式更为可取。在游戏发布前数日还需要下调效果来维持性能并非良好的工作方式。
 
-When in the game, there are a few ways to get general stats:
+减少绘制调用有两个技巧。尽量多地将材质组合起来，并大量使用实例化静态网格体组件。此外，实例化时需要注意的是——如果被实例化的内容有一部分为可见，则其整体均会被绘制。因此在一些情况下实例化的益处会大大减少。必须按批进行实例化，批中大多数物体从相同的点看上去均为可见或不可见。
 
-| Console Command | Description |
+可以另外考虑的方法是使用剔除体积域，将体积域之外的不可见空间全部剔除。遮蔽在其选择进行绘制的内容中稍显自由，而剔除体积域有助于使这些选择更为保守。如果内容以此方式构建，则可通过开启或关闭 Actor（或整个子关卡）的显示达到相同效果。
+
+[REGION:note]
+另外需要注意的是，透明度为零的内容可能仍会被绘制。因此，如果不需要对其进行渲染，则将其隐藏。
+[/REGION]
+
+## 获取整体数据
+
+Oculus 和 SteamVR 均有用于了解性能的第三方工具。建议使用这些工具查看实际的帧时和合成器开销。
+
+在 UE4 中可通过以下方式获取游戏中的整体数据。
+
+| 控制台命令 | 描述 |
 | --------------- | ----------- |
-| stat unit | This will give you general game thread, draw thread, and GPU time, as well as overall frame timing.  This is most useful for gathering whether the total frametime is where it needs to be, and what the game thread time is, but it should not be used for Draw Thread and GPU time.  Oculus has a variable delay that it adds in order to try and time GPU work with its compositor. |
-| startfpschart / stopfpschart | If you want to get an idea of what percentage of time is spent above 90Hz, you can run these commands.  It'll capture and aggregate stats data over the window between when you started and stopped, and then dump a file that has bucketed framerate information.  Note that since sometimes the game reports slightly under 90Hz when actually at 90, it's best to check the 80+ buckets to determine the actual time spent at framerate. |
-| stat gpu | This command, added in 4.14,  gives similar stats to the GPU profiler, but in a form that you can watch and monitor from in the game.  Great for checking quick costs on GPU work. |
+| stat unit | 可显示整体游戏线程、绘制线程和 GPU 时间，以及整体的帧时。这最适用于收集以下信息：整体总帧时是否处于理想区间、游戏线程时间，但不可用于收集绘制线程和 GPU 时间。|
+| startfpschart / stopfpschart | 如果需要了解 90Hz 以上花费的时间百分比，可运行这些命令。它将捕捉并聚合开始和结束之间窗口上的数据，并转存带有桶装帧率信息的文件。注意：游戏有时会报告略低于 90Hz，但实际却为 90。最好检查 80+ 的桶（bucket），确定在帧率上消耗的实际时间。|
+| stat gpu | 4.14 版本中添加了此命令，与 GPU 分析工具提供数据相似，玩家可在游戏中观察并监控这些数据。很适用于快速检查 GPU 工作的开销。|
 
-###  Real-Time GPU Profiler 
-To use the new real-time GPU profiler, type `stat gpu` in the game or editor. The stats are cumulative and non-hierarchical, so you can see the major categories without having to dig down through a tree of events. For example, shadow projection is the sum of all the shadow projections for all lights (across all the views). 
+### 实时 GPU 分析工具 
+在游戏或编辑器中输入 `stat gpu` 即可使用全新的实时 GPU 分析工具。这些数据为累积式，非层级式。因此不需要从事件树向下寻找即可看到主要类型。例如，阴影投影为所有光照的全部投影（在所有镜头中）的总和。 
 
 ![](StatGPU.png)
 
-The realtime stats are particularly useful if you want to gather stats during gameplay (e.g. for graphing later). You can use the realtime display to profile features enabled on console variables or quality settings, or for in-editor optimization where you want to see the results instantly. 
+如果需要在游戏进程中收集数据（例如用于图表中），实时数据则尤其实用。实时显示可用于分析在控制台变量或精度设置上启用的功能，或立即知晓结果在编辑器中进行优化。 
 
-Stats are declared in code as float counters, e.g.
+数据在代码中被声明为浮点计数器，如：
 `DECLARE_FLOAT_COUNTER_STAT(TEXT("Postprocessing"), Stat_GPU_Postprocessing, STATGROUP_GPU);`
 
-Renderthread code blocks can be instrumented with `SCOPED_GPU_STAT` macros, which work similarly to `SCOPED_DRAW_EVENT`, e.g:
+渲染线程代码块可与 `SCOPED_GPU_STAT` 宏一同被 instrument，工作原理与 `SCOPED_DRAW_EVENT` 相似，如：
 `SCOPED_GPU_STAT(RHICmdList, Stat_GPU_Postprocessing);`
 
-Unlike the draw events, GPU stats are cumulative. You can add multiple entries for the same stat, and these will get aggregated. 
+与绘制事件不同，GPU 数据为累积式。可为相同数据添加多个条目，它们将被聚合。 
 
-Anything not marked up explicitly should be included in the catch-all `[unaccounted]` stat. If that gets high, then it indicates something is not being caught in the explicit stats and more tracking macros should be added.
+为被显示标记的内容应被包含在包罗 `[unaccounted]` 数据中。如该数据较高，则说明尚有内容未包含在显式数据中，需要添加更多宏进行追踪。
 
 
 

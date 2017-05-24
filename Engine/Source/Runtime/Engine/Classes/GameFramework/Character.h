@@ -278,7 +278,15 @@ public:
 
 	/** Sets the component the Character is walking on, used by CharacterMovement walking movement to be able to follow dynamic objects. */
 	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
-	 
+	
+	/**
+	 * Cache mesh offset from capsule. This is used as the target for network smoothing interpolation, when the mesh is offset with lagged smoothing.
+	 * This is automatically called during initialization; call this at runtime if you intend to change the default mesh offset from the capsule.
+	 * @see GetBaseTranslationOffset(), GetBaseRotationOffset()
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	virtual void CacheInitialMeshOffset(FVector MeshRelativeLocation, FRotator MeshRelativeRotation);
+
 protected:
 
 	/** Info about our current movement base (object we are standing on). */
@@ -443,6 +451,7 @@ public:
 	uint32 bWasJumping:1;
 
 	//~ Begin AActor Interface.
+	virtual void BeginPlay() override;
 	virtual void ClearCrossLevelReferences() override;
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;

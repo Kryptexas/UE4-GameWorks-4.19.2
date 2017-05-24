@@ -159,11 +159,11 @@ UClass* UK2Node_AddComponent::GetSpawnedType() const
 {
 	if (TemplateType != nullptr)
 	{
-		return TemplateType;
+		return TemplateType->GetAuthoritativeClass();
 	}
 	
 	const UActorComponent* TemplateComponent = GetTemplateFromNode();
-	return TemplateComponent ? TemplateComponent->GetClass() : nullptr;
+	return TemplateComponent ? TemplateComponent->GetClass()->GetAuthoritativeClass() : nullptr;
 }
 
 void UK2Node_AddComponent::AllocateDefaultPinsWithoutExposedVariables()
@@ -246,7 +246,7 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 					MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "AddSelfComponent_Error", "@@ cannot add a '{ChildActorClass}' component in the construction script (could cause infinite recursion)."), Args).ToString(), this);
 				}
 			}
-			else if (ChildActorClass != nullptr)
+			else if (ChildActorClass != nullptr && ChildActorClass->ClassDefaultObject)
 			{
 				AActor const* ChildActor = Cast<AActor>(ChildActorClass->ClassDefaultObject);
 				check(ChildActor != nullptr);

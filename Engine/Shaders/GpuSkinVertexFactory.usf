@@ -2,24 +2,6 @@
 
 /*=============================================================================
 	GpuSkinVertexFactory.hlsl: GPU skinned vertex factory shader code
-
-	This code contains embedded portions of source code from dqconv.c Conversion routines between (regular quaternion, translation) and dual quaternion, Version 1.0.0, Copyright (C)2006-2007 University of Dublin, Trinity College, All Rights Reserved, which have been altered from their original version.
-
-	The following terms apply to dqconv.c Conversion routines between (regular quaternion, translation) and dual quaternion, Version 1.0.0:
-
-	This software is provided 'as-is', without any express or implied warranty.  In no event will the author(s) be held liable for any damages arising from the use of this software.
-
-	Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
-
-	1. The origin of this software must not be misrepresented; you must not
-	   claim that you wrote the original software. If you use this software
-	   in a product, an acknowledgment in the product documentation would be
-	   appreciated but is not required.
-	2. Altered source versions must be plainly marked as such, and must not be
-	   misrepresented as being the original software.
-	3. This notice may not be removed or altered from any source distribution.
-
-
 =============================================================================*/
 
 
@@ -83,6 +65,7 @@ struct FVertexFactoryInput
 
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
+	// If this changes make sure to update LocalVertexFactory.usf
 	float2	TexCoords[NUM_MATERIAL_TEXCOORDS_VERTEX] : ATTRIBUTE5;
 
 	#if NUM_MATERIAL_TEXCOORDS_VERTEX > 4
@@ -119,8 +102,8 @@ struct FVertexFactoryInterpolantsVSToPS
 
 	float4 Color : COLOR0;
 
-#if NUM_MATERIAL_TEXCOORDS
-	float2	TexCoords[NUM_MATERIAL_TEXCOORDS]	: TEXCOORD0;
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2	TexCoords[NUM_TEX_COORD_INTERPOLATORS]	: TEXCOORD0;
 #endif
 
 #if INSTANCED_STEREO
@@ -139,9 +122,9 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	// GetMaterialPixelParameters is responsible for fully initializing the result
 	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
 
-#if NUM_MATERIAL_TEXCOORDS	
+#if NUM_TEX_COORD_INTERPOLATORS	
 	UNROLL
-	for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
+	for(int CoordinateIndex = 0;CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS;CoordinateIndex++)
 	{
 		Result.TexCoords[CoordinateIndex] = Interpolants.TexCoords[CoordinateIndex];
 	}
@@ -479,7 +462,6 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	
 #endif
 
-	// DQ Note: This does not work with Scale
 	Intermediates.BlendMatrix = CalcBoneMatrix( Input );
 
 	// Fill TangentToLocal
@@ -557,8 +539,16 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 {
 	FVertexFactoryInterpolantsVSToPS Interpolants;
 
-#if NUM_MATERIAL_TEXCOORDS
-	GetMaterialCustomizedUVs(VertexParameters, Interpolants.TexCoords);
+#if NUM_TEX_COORD_INTERPOLATORS
+	float2 CustomizedUVs[NUM_TEX_COORD_INTERPOLATORS];
+	GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
+	GetCustomInterpolators(VertexParameters, CustomizedUVs);
+
+	UNROLL
+	for (int CoordinateIndex = 0; CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS; CoordinateIndex++)
+	{
+		Interpolants.TexCoords[CoordinateIndex] = CustomizedUVs[CoordinateIndex];
+	}
 #endif
 
 	Interpolants.TangentToWorld0.w = 0;
@@ -623,9 +613,9 @@ FVertexFactoryInterpolantsVSToDS VertexFactoryGetInterpolantsVSToDS(FVertexFacto
 FMaterialTessellationParameters GetMaterialTessellationParameters(FVertexFactoryInterpolantsVSToDS Interpolants, float3 CameraLocalWorldPosition)
 {
 	FMaterialTessellationParameters	Result;
-#if NUM_MATERIAL_TEXCOORDS
+#if NUM_TEX_COORD_INTERPOLATORS
 	UNROLL
-	for (int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
+	for (int CoordinateIndex = 0;CoordinateIndex < NUM_TEX_COORD_INTERPOLATORS;CoordinateIndex++)
 	{
 		Result.TexCoords[CoordinateIndex] = Interpolants.InterpolantsVSToPS.TexCoords[CoordinateIndex];
 	}
@@ -654,9 +644,9 @@ FVertexFactoryInterpolantsVSToDS VertexFactoryInterpolate(FVertexFactoryInterpol
 	TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.TangentToWorld2);
 	TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.Color);
 
-#if NUM_MATERIAL_TEXCOORDS
+#if NUM_TEX_COORD_INTERPOLATORS
 	UNROLL
-	for(int tc = 0; tc < NUM_MATERIAL_TEXCOORDS; ++tc)
+	for(int tc = 0; tc < NUM_TEX_COORD_INTERPOLATORS; ++tc)
 	{
 		TESSELLATION_INTERPOLATE_MEMBER(InterpolantsVSToPS.TexCoords[tc]);
 	}
@@ -686,3 +676,8 @@ uint VertexFactoryGetEyeIndex(uint InstanceId)
 	return InstanceId & 1;
 }
 #endif
+
+float4 VertexFactoryGetTranslatedPrimitiveVolumeBounds(FVertexFactoryInterpolantsVSToPS Interpolants)
+{
+	return 0;
+}

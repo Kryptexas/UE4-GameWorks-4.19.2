@@ -4,8 +4,12 @@
 #include "TimerManager.h"
 #include "Engine/GameInstance.h"
 #include "PartyModule.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/PlayerController.h"
 
 #include "OnlineSubsystemUtils.h"
+
+#include "PartyMemberState.h"
 
 #define LOCTEXT_NAMESPACE "Parties"
 
@@ -24,7 +28,7 @@ void UParty::Init()
 	check(GameInstance);
 	GameInstance->OnNotifyPreClientTravel().AddUObject(this, &ThisClass::NotifyPreClientTravel);
 
-	FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &ThisClass::OnPostLoadMap);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::OnPostLoadMap);
 }
 
 void UParty::InitPIE()
@@ -32,7 +36,7 @@ void UParty::InitPIE()
 	OnPostLoadMap();
 }
 
-void UParty::OnPostLoadMap()
+void UParty::OnPostLoadMap(UWorld*)
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -56,7 +60,7 @@ void UParty::OnShutdown()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+		FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 
 		UnregisterIdentityDelegates();
 		UnregisterPartyDelegates();
@@ -73,7 +77,7 @@ void UParty::OnLogoutComplete(int32 LocalUserNum, bool bWasSuccessful)
 {
 	if (JoinedParties.Num())
 	{
-		UE_LOG(LogParty, Log, TEXT("Party cleanup on logout"));
+		UE_LOG(LogParty, Log, TEXT("OnLogoutComplete: Party cleanup on logout"));
 		TArray<FOnlinePartyTypeId> PartiesToRemove;
 		for (const auto& PartyKeyValue : JoinedParties)
 		{
@@ -112,7 +116,7 @@ void UParty::OnLoginStatusChanged(int32 LocalUserNum, ELoginStatus::Type OldStat
 	{
 		if (JoinedParties.Num())
 		{
-			UE_LOG(LogParty, Log, TEXT("Party cleanup on logout"));
+			UE_LOG(LogParty, Log, TEXT("OnLoginStatusChanged: Party cleanup on logout"));
 			TArray<FOnlinePartyTypeId> PartiesToRemove;
 			for (const auto& PartyKeyValue : JoinedParties)
 			{
@@ -158,8 +162,6 @@ void UParty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 void UParty::RegisterIdentityDelegates()
 {
 	UWorld* World = GetWorld();
-	check(World);
-
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
@@ -216,10 +218,12 @@ void UParty::RegisterPartyDelegates()
 		PartyDataReceivedDelegateHandle = PartyInt->AddOnPartyDataReceivedDelegate_Handle(FOnPartyDataReceivedDelegate::CreateUObject(this, &ThisClass::PartyDataReceivedInternal));
 		PartyMemberDataReceivedDelegateHandle = PartyInt->AddOnPartyMemberDataReceivedDelegate_Handle(FOnPartyMemberDataReceivedDelegate::CreateUObject(this, &ThisClass::PartyMemberDataReceivedInternal));
 		PartyJoinRequestReceivedDelegateHandle = PartyInt->AddOnPartyJoinRequestReceivedDelegate_Handle(FOnPartyJoinRequestReceivedDelegate::CreateUObject(this, &ThisClass::PartyJoinRequestReceivedInternal));
-		PartyMemberChangedDelegateHandle = PartyInt->AddOnPartyMemberChangedDelegate_Handle(FOnPartyMemberChangedDelegate::CreateUObject(this, &ThisClass::PartyMemberChangedInternal));
+		PartyQueryJoinabilityReceivedDelegateHandle = PartyInt->AddOnQueryPartyJoinabilityReceivedDelegate_Handle(FOnPartyJoinRequestReceivedDelegate::CreateUObject(this, &ThisClass::PartyQueryJoinabilityReceivedInternal));
+		PartyMemberPromotedDelegateHandle = PartyInt->AddOnPartyMemberPromotedDelegate_Handle(FOnPartyMemberPromotedDelegate::CreateUObject(this, &ThisClass::PartyMemberPromotedInternal));
 		PartyMemberExitedDelegateHandle = PartyInt->AddOnPartyMemberExitedDelegate_Handle(FOnPartyMemberExitedDelegate::CreateUObject(this, &ThisClass::PartyMemberExitedInternal));
 		PartyPromotionLockoutChangedDelegateHandle = PartyInt->AddOnPartyPromotionLockoutChangedDelegate_Handle(FOnPartyPromotionLockoutChangedDelegate::CreateUObject(this, &ThisClass::PartyPromotionLockoutStateChangedInternal));
 		PartyExitedDelegateHandle = PartyInt->AddOnPartyExitedDelegate_Handle(FOnPartyExitedDelegate::CreateUObject(this, &ThisClass::PartyExitedInternal));
+		PartyStateChangedDelegateHandle = PartyInt->AddOnPartyStateChangedDelegate_Handle(FOnPartyStateChangedDelegate::CreateUObject(this, &ThisClass::PartyStateChanged));
 	}
 }
 
@@ -234,10 +238,12 @@ void UParty::UnregisterPartyDelegates()
 		PartyInt->ClearOnPartyDataReceivedDelegate_Handle(PartyDataReceivedDelegateHandle);
 		PartyInt->ClearOnPartyMemberDataReceivedDelegate_Handle(PartyMemberDataReceivedDelegateHandle);
 		PartyInt->ClearOnPartyJoinRequestReceivedDelegate_Handle(PartyJoinRequestReceivedDelegateHandle);
-		PartyInt->ClearOnPartyMemberChangedDelegate_Handle(PartyMemberChangedDelegateHandle);
+		PartyInt->ClearOnQueryPartyJoinabilityReceivedDelegate_Handle(PartyQueryJoinabilityReceivedDelegateHandle);
+		PartyInt->ClearOnPartyMemberPromotedDelegate_Handle(PartyMemberPromotedDelegateHandle);
 		PartyInt->ClearOnPartyMemberExitedDelegate_Handle(PartyMemberExitedDelegateHandle);
 		PartyInt->ClearOnPartyPromotionLockoutChangedDelegate_Handle(PartyPromotionLockoutChangedDelegateHandle);
 		PartyInt->ClearOnPartyExitedDelegate_Handle(PartyExitedDelegateHandle);
+		PartyInt->ClearOnPartyStateChangedDelegate_Handle(PartyStateChangedDelegateHandle);
 	}
 }
 
@@ -250,9 +256,23 @@ void UParty::NotifyPreClientTravel(const FString& PendingURL, ETravelType Travel
 	}
 }
 
-bool UParty::HasPendingPartyJoin()
+bool UParty::HasPendingPartyJoin() const
 {
 	return PendingPartyJoin.IsValid();
+}
+
+FName UParty::GetPlayerSessionName() const
+{
+	UGameInstance* GameInstance = Cast<UGameInstance>(GetOuter());
+	if (GameInstance)
+	{
+		APlayerController* PlayerController = GameInstance->GetPrimaryPlayerController();
+		if (PlayerController && PlayerController->PlayerState)
+		{
+			return PlayerController->PlayerState->SessionName;
+		}
+	}
+	return GameSessionName;
 }
 
 UPartyGameState* UParty::GetParty(const FOnlinePartyId& InPartyId) const
@@ -365,15 +385,28 @@ void UParty::PartyJoinRequestReceivedInternal(const FUniqueNetId& InLocalUserId,
 	}
 }
 
-void UParty::PartyMemberChangedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const EMemberChangedReason InReason)
+void UParty::PartyQueryJoinabilityReceivedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& SenderId)
 {
-	if (InLocalUserId == InMemberId)
+	UPartyGameState* PartyState = GetParty(InPartyId);
+	if (PartyState)
 	{
-		UE_LOG(LogParty, Log, TEXT("[%s] [%s] local member %s"), *InPartyId.ToString(), *InMemberId.ToString(), ToString(InReason));
+		PartyState->HandlePartyQueryJoinabilityRequestReceived(InLocalUserId, SenderId);
 	}
 	else
 	{
-		UE_LOG(LogParty, Log, TEXT("[%s] [%s] remote member %s"), *InPartyId.ToString(), *InMemberId.ToString(), ToString(InReason));
+		UE_LOG(LogParty, Warning, TEXT("[%s]: Missing party state to process join request."), *InPartyId.ToString());
+	}
+}
+
+void UParty::PartyMemberPromotedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InNewLeaderId)
+{
+	if (InLocalUserId == InNewLeaderId)
+	{
+		UE_LOG(LogParty, Log, TEXT("[%s] [%s] local member promoted"), *InPartyId.ToString(), *InNewLeaderId.ToString());
+	}
+	else
+	{
+		UE_LOG(LogParty, Log, TEXT("[%s] [%s] remote member promoted"), *InPartyId.ToString(), *InNewLeaderId.ToString());
 	}
 
 	UPartyGameState* PartyState = GetParty(InPartyId);
@@ -382,31 +415,17 @@ void UParty::PartyMemberChangedInternal(const FUniqueNetId& InLocalUserId, const
 		UE_LOG(LogParty, Warning, TEXT("[%s]: Missing party state during member change."), *InPartyId.ToString());
 	}
 
-	if (InReason == EMemberChangedReason::Disconnected)
+	if (PartyState)
 	{
-		// basically cleanup because they get kicked for now as long as party config says
-		// PartyConfig.bShouldRemoveOnDisconnection = true
-		// handled by PartyMemberLeft 
+		PartyState->HandlePartyMemberPromoted(InNewLeaderId);
 	}
-	else if (InReason == EMemberChangedReason::Rejoined)
-	{
-		// can't happen as long as 
-		// PartyConfig.bShouldRemoveOnDisconnection = true
-	}
-	else if (InReason == EMemberChangedReason::Promoted)
-	{
-		if (PartyState)
-		{
-			PartyState->HandlePartyMemberPromoted(InMemberId);
-		}
 
-		if (PersistentPartyId.IsValid() &&
-			(InPartyId == *PersistentPartyId))
-		{
-			FUniqueNetIdRepl NewPartyLeader;
-			NewPartyLeader.SetUniqueNetId(InMemberId.AsShared());
-			UpdatePersistentPartyLeader(NewPartyLeader);
-		}
+	if (PersistentPartyId.IsValid() &&
+		(InPartyId == *PersistentPartyId))
+	{
+		FUniqueNetIdRepl NewPartyLeader;
+		NewPartyLeader.SetUniqueNetId(InNewLeaderId.AsShared());
+		UpdatePersistentPartyLeader(NewPartyLeader);
 	}
 }
 
@@ -431,10 +450,7 @@ void UParty::PartyMemberExitedInternal(const FUniqueNetId& InLocalUserId, const 
 		{
 			UPartyGameState* PartyState = GetParty(InPartyId);
 
-			// EMemberExitedReason::Removed -> removed from other reasons beside kick (can't happen?)
-			// EMemberExitedReason::Disbanded -> leader kicked everyone
 			// EMemberExitedReason::Kicked -> party/leader kicked you
-			// EMemberExitedReason::Unknown -> bad but try to cleanup anyway
 			if (PartyState)
 			{
 				FOnlinePartyTypeId PartyTypeId = PartyState->GetPartyTypeId();
@@ -466,8 +482,8 @@ void UParty::PartyMemberExitedInternal(const FUniqueNetId& InLocalUserId, const 
 		{
 			// EMemberExitedReason::Left -> player chose to leave
 			// EMemberExitedReason::Removed -> player was removed forcibly (timeout from disconnect, etc)
-			// EMemberExitedReason::Disbanded -> leader kicked everyone (only leader should get this)
 			// EMemberExitedReason::Kicked -> party/leader kicked this player
+			// EMemberExitedReason::Unknown -> bad but try to cleanup anyway
 			PartyState->HandlePartyMemberLeft(InMemberId, InReason);
 		}
 	}
@@ -490,7 +506,7 @@ void UParty::PartyPromotionLockoutStateChangedInternal(const FUniqueNetId& Local
 
 void UParty::PartyExitedInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId)
 {
-	UE_LOG(LogParty, Log, TEXT("[%s] exited party %s"), *InPartyId.ToString(), *(InPartyId.ToDebugString()));
+	UE_LOG(LogParty, Log, TEXT("PartyExitedInternal: [%s] exited party %s"), *InPartyId.ToString(), *(InPartyId.ToDebugString()));
 
 	UPartyGameState* PartyState = GetParty(InPartyId);
 	if (PartyState != nullptr && (PartyState->OssParty->PartyTypeId == IOnlinePartySystem::GetPrimaryPartyTypeId()))
@@ -527,6 +543,159 @@ void UParty::OnPersistentPartyExitedInternalCompleted(const FUniqueNetId& LocalU
 	if (Result != ECreatePartyCompletionResult::Succeeded)
 	{
 		UE_LOG(LogParty, Warning, TEXT("Error when attempting to recreate persistent party on reconnection error=%s"), ToString(Result));
+	}
+}
+
+void UParty::PartyStateChanged(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, EPartyState State)
+{
+	UE_LOG(LogParty, Verbose, TEXT("PartyStateChanged: [%s] state changed to %s"), *InPartyId.ToString(), ToString(State));
+
+	UPartyGameState* PartyState = GetParty(InPartyId);
+	if (PartyState != nullptr && (PartyState->OssParty->PartyTypeId == IOnlinePartySystem::GetPrimaryPartyTypeId()))
+	{
+		if (State == EPartyState::Disconnected)
+		{
+			// If we have other members in our party, then we will try to rejoin this when we come back online
+			if (ShouldCacheDisconnectedPersistentPartyForRejoin(PartyState))
+			{
+				UE_LOG(LogParty, Log, TEXT("PartyStateChanged: [%s] Caching party for rejoin"), *InPartyId.ToString());
+				TArray<TSharedRef<const FUniqueNetId>> MemberIds;
+				
+				TArray<UPartyMemberState*> PartyMembers;
+				PartyState->GetAllPartyMembers(PartyMembers);
+				for (UPartyMemberState* PartyMember : PartyMembers)
+				{
+					if (PartyMember->UniqueId.IsValid() && *PartyMember->UniqueId != LocalUserId)
+					{
+						MemberIds.Add(PartyMember->UniqueId.GetUniqueNetId().ToSharedRef());
+					}
+				}
+				RejoinableParty = MakeShareable(new FRejoinableParty(PartyState->GetPartyId().ToSharedRef(), MemberIds));
+			}
+		}
+		else if (State == EPartyState::Active)
+		{
+			// If we are still in our party of one and have a rejoinable party, try to rejoin
+			if (RejoinableParty.IsValid())
+			{
+				if (PartyState->GetPartySize() == 1)
+				{
+					if (ShouldTryRejoiningPersistentParty(*RejoinableParty))
+					{
+						LeavePersistentPartyForRejoin();
+					}
+					else
+					{
+						// This is the only time we would try to rejoin
+						RejoinableParty = nullptr;
+					}
+				}
+				else
+				{
+					// We have a new party, no need to try to rejoin the previous party
+					RejoinableParty = nullptr;
+				}
+			}
+		}
+	}
+}
+
+bool UParty::ShouldCacheDisconnectedPersistentPartyForRejoin(UPartyGameState* PartyState)
+{
+	if (!RejoinableParty.IsValid())
+	{
+		int32 PartySize = PartyState->GetPartySize();
+		if (PartySize > 1)
+		{
+			UE_LOG(LogParty, VeryVerbose, TEXT("ShouldCacheDisconnectedPartyForRejoin: [%s] Considering party for rejoining"), *PartyState->GetPartyId()->ToString());
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogParty, VeryVerbose, TEXT("ShouldCacheDisconnectedPartyForRejoin: [%s] Not enough members (%d) to want to rejoin this party"), *PartyState->GetPartyId()->ToString(), PartySize);
+		}
+	}
+	else
+	{
+		UE_LOG(LogParty, VeryVerbose, TEXT("ShouldCacheDisconnectedPartyForRejoin: [%s] Already have rejoinable party"), *PartyState->GetPartyId()->ToString());
+	}
+	return false;
+}
+
+bool UParty::ShouldTryRejoiningPersistentParty(const FRejoinableParty& InRejoinableParty)
+{
+	// Game specific logic should determine if we are in a state where we should leave our current party to try to join the former party
+	// Note that we are not guaranteed to successfully join the former party (e.g., it became full, all members left, etc)
+	return false;
+}
+
+void UParty::LeavePersistentPartyForRejoin()
+{
+	check(RejoinableParty.IsValid());
+
+	UGameInstance* GameInstance = GetGameInstance();
+	check(GameInstance);
+
+	TSharedPtr<const FUniqueNetId> LocalUserId = GameInstance->GetPrimaryPlayerUniqueId();
+	if (ensure(LocalUserId.IsValid() && LocalUserId->IsValid()))
+	{
+		UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate;
+		CompletionDelegate.BindUObject(this, &ThisClass::OnLeavePersistentPartyForRejoinComplete);
+		LeavePersistentParty(*LocalUserId, CompletionDelegate);
+	}
+}
+
+void UParty::OnLeavePersistentPartyForRejoinComplete(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult LeaveResult)
+{
+	EJoinPartyCompletionResult JoinResult = EJoinPartyCompletionResult::UnknownClientFailure;
+	FString ErrorMsg;
+
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(GetWorld());
+	if (PartyInt.IsValid())
+	{
+		if (RejoinableParty.IsValid())
+		{
+			FOnJoinPartyComplete CompletionDelegate;
+			CompletionDelegate.BindUObject(this, &ThisClass::OnRejoinPartyComplete);
+			PartyInt->RejoinParty(LocalUserId, *RejoinableParty->PartyId, IOnlinePartySystem::GetPrimaryPartyTypeId(), RejoinableParty->Members, CompletionDelegate);
+			JoinResult = EJoinPartyCompletionResult::Succeeded;
+		}
+		else
+		{
+			JoinResult = EJoinPartyCompletionResult::JoinInfoInvalid;
+			ErrorMsg = TEXT("No rejoinable party");
+		}
+	}
+	else
+	{
+		JoinResult = EJoinPartyCompletionResult::UnknownClientFailure;
+		ErrorMsg = FString::Printf(TEXT("No party interface during OnLeavePersistentPartyForRejoinComplete()"));
+	}
+
+	if (JoinResult != EJoinPartyCompletionResult::Succeeded)
+	{
+		UE_LOG(LogParty, Warning, TEXT("%s"), *ErrorMsg);
+		RejoinableParty.Reset();
+		HandleJoinPersistentPartyFailure();
+	}
+}
+
+void UParty::OnRejoinPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode)
+{
+	if (Result != EJoinPartyCompletionResult::LoggedOut)
+	{
+		// If we were logged out in the middle of this operation, attempt again when we reconnect
+		RejoinableParty.Reset();
+	}
+	if (Result == EJoinPartyCompletionResult::Succeeded)
+	{
+		UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate;
+		CompletionDelegate.BindUObject(this, &ThisClass::OnJoinPersistentPartyComplete, UPartyDelegates::FOnJoinUPartyComplete());
+		OnJoinPartyInternalComplete(LocalUserId, PartyId, Result, DeniedResultCode, IOnlinePartySystem::GetPrimaryPartyTypeId(), CompletionDelegate);
+	}
+	else
+	{
+		HandleJoinPersistentPartyFailure();
 	}
 }
 
@@ -739,6 +908,7 @@ void UParty::LeavePartyInternal(const FUniqueNetId& InUserId, const FOnlineParty
 			}
 			else
 			{
+				UE_LOG(LogParty, Log, TEXT("LeavePartyInternal:  Removing party because we cannot call LeaveParty (missing ID)"));
 				// Manual cleanup here because we can't call the above delegate
 				PartyState->HandleRemovedFromParty(EMemberExitedReason::Left);
 				JoinedParties.Remove(InPartyTypeId);
@@ -806,6 +976,69 @@ void UParty::JoinParty(const FUniqueNetId& InUserId, const FPartyDetails& InPart
 void UParty::OnJoinPartyComplete(const FUniqueNetId& LocalUserId, EJoinPartyCompletionResult Result, int32 DeniedResultCode, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnJoinUPartyComplete InCompletionDelegate)
 {
 	UE_LOG(LogParty, Display, TEXT("OnJoinPartyComplete() type(0x%08x) %s"), InPartyTypeId.GetValue(), ToString(Result));
+
+	int32 OutDeniedResultCode = (Result == EJoinPartyCompletionResult::NotApproved) ? DeniedResultCode : 0;
+	InCompletionDelegate.ExecuteIfBound(LocalUserId, Result, OutDeniedResultCode);
+}
+
+void UParty::QueryPartyJoinability(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnQueryUPartyJoinabilityComplete& InCompletionDelegate)
+{
+	EJoinPartyCompletionResult Result = EJoinPartyCompletionResult::UnknownClientFailure;
+	FString ErrorMsg;
+
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(GetWorld());
+	if (PartyInt.IsValid())
+	{
+		if (InPartyDetails.IsValid())
+		{
+			const FOnlinePartyId& PartyId = *InPartyDetails.GetPartyId();
+			// High level party data check
+			UPartyGameState* PartyState = GetParty(PartyId);
+			// Interface level party data check should not be out of sync
+			TSharedPtr<const FOnlineParty> Party = PartyInt->GetParty(InUserId, PartyId);
+			if (!PartyState)
+			{
+				if (!Party.IsValid())
+				{
+					FOnQueryPartyJoinabilityComplete CompletionDelegate;
+					CompletionDelegate.BindUObject(this, &ThisClass::OnQueryPartyJoinabilityComplete, InPartyDetails.GetPartyTypeId(), InCompletionDelegate);
+					PartyInt->QueryPartyJoinability(InUserId, *(InPartyDetails.PartyJoinInfo), CompletionDelegate);
+					Result = EJoinPartyCompletionResult::Succeeded;
+				}
+				else
+				{
+					Result = EJoinPartyCompletionResult::AlreadyJoiningParty;
+					ErrorMsg = FString::Printf(TEXT("Already joining party %s, not joining again."), *InPartyDetails.GetPartyId()->ToString());
+				}
+			}
+			else
+			{
+				Result = EJoinPartyCompletionResult::AlreadyInParty;
+				ErrorMsg = FString::Printf(TEXT("Already in party %s, not joining again."), *InPartyDetails.GetPartyId()->ToString());
+			}
+		}
+		else
+		{
+			Result = EJoinPartyCompletionResult::JoinInfoInvalid;
+			ErrorMsg = FString::Printf(TEXT("Invalid party details, cannot join. Details: %s"), *InPartyDetails.ToString());
+		}
+	}
+	else
+	{
+		Result = EJoinPartyCompletionResult::UnknownClientFailure;
+		ErrorMsg = FString::Printf(TEXT("No party interface during JoinParty()"));
+	}
+
+	if (Result != EJoinPartyCompletionResult::Succeeded)
+	{
+		UE_LOG(LogParty, Warning, TEXT("%s"), *ErrorMsg);
+		InCompletionDelegate.ExecuteIfBound(InUserId, Result, 0);
+	}
+}
+
+void UParty::OnQueryPartyJoinabilityComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnQueryUPartyJoinabilityComplete InCompletionDelegate)
+{
+	UE_LOG(LogParty, Display, TEXT("OnQueryPartyJoinabilityComplete() type(0x%08x) %s"), InPartyTypeId.GetValue(), ToString(Result));
 
 	int32 OutDeniedResultCode = (Result == EJoinPartyCompletionResult::NotApproved) ? DeniedResultCode : 0;
 	InCompletionDelegate.ExecuteIfBound(LocalUserId, Result, OutDeniedResultCode);
@@ -1240,6 +1473,15 @@ void UParty::AddPendingPartyJoin(const FUniqueNetId& LocalUserId, TSharedRef<con
 void UParty::ClearPendingPartyJoin()
 {
 	PendingPartyJoin.Reset();
+}
+
+TSharedPtr<const FPartyDetails> UParty::GetPendingPartyJoinDetails() const
+{
+	if (HasPendingPartyJoin())
+	{
+		return PendingPartyJoin->PartyDetails;
+	}
+	return nullptr;
 }
 
 bool UParty::ProcessPendingPartyJoin()

@@ -232,13 +232,11 @@ UDestructibleFractureSettings::UDestructibleFractureSettings(const FObjectInitia
 	OriginalSubmeshCount = 0;
 }
 
-#if WITH_HOT_RELOAD_CTORS
 UDestructibleFractureSettings::UDestructibleFractureSettings(FVTableHelper& Helper)
 	: Super(Helper)
 {
 
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 void UDestructibleFractureSettings::Serialize(FArchive& Ar)
 {

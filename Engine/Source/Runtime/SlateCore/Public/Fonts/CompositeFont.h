@@ -37,6 +37,15 @@ enum class EFontLoadingPolicy : uint8
 	Inline,
 };
 
+UENUM()
+enum class EFontLayoutMethod : uint8
+{
+	/** Layout the font using the metrics data available in the font. This is typically the desired option, however some fonts have broken or incorrect metrics so may yield better results when using the bounding box values to layout the font. */
+	Metrics,
+	/** Layout the font using the values from its bounding box. This typically yields a larger line height for fonts that have valid metrics, however it can also produce much better results for fonts that have broken or incorrect metrics. */
+	BoundingBox,
+};
+
 typedef TSharedPtr<FFontFaceData, ESPMode::ThreadSafe> FFontFaceDataPtr;
 typedef TSharedRef<FFontFaceData, ESPMode::ThreadSafe> FFontFaceDataRef;
 typedef TSharedPtr<const FFontFaceData, ESPMode::ThreadSafe> FFontFaceDataConstPtr;
@@ -153,6 +162,9 @@ struct SLATECORE_API FFontData
 	/** Get the enum controlling how this font should be loaded at runtime. */
 	EFontLoadingPolicy GetLoadingPolicy() const;
 
+	/** Get the method to use when laying out the font? */
+	EFontLayoutMethod GetLayoutMethod() const;
+
 	/** Get the data buffer containing the data for the current font face. */
 	FFontFaceDataConstPtr GetFontFaceData() const;
 
@@ -252,7 +264,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FFontData> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FFontData> : public TStructOpsTypeTraitsBase2<FFontData>
 {
 	enum
 	{

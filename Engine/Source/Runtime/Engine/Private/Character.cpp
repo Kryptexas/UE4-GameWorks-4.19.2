@@ -116,19 +116,7 @@ void ACharacter::PostInitializeComponents()
 	{
 		if (Mesh)
 		{
-			BaseTranslationOffset = Mesh->RelativeLocation;
-			BaseRotationOffset = Mesh->RelativeRotation.Quaternion();
-
-#if ENABLE_NAN_DIAGNOSTIC
-			if (BaseRotationOffset.ContainsNaN())
-			{
-				logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in BaseRotationOffset! (%s)"), *BaseRotationOffset.ToString());
-			}
-			if (Mesh->RelativeRotation.ContainsNaN())
-			{
-				logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in Mesh->RelativeRotation! (%s)"), *Mesh->RelativeRotation.ToString());
-			}
-#endif
+			CacheInitialMeshOffset(Mesh->RelativeLocation, Mesh->RelativeRotation);
 
 			// force animation tick after movement component updates
 			if (Mesh->PrimaryComponentTick.bCanEverTick && CharacterMovement)
@@ -151,6 +139,34 @@ void ACharacter::PostInitializeComponents()
 		}
 	}
 }
+
+void ACharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	if (Mesh)
+	{
+		CacheInitialMeshOffset(Mesh->RelativeLocation, Mesh->RelativeRotation);
+	}
+}
+
+
+void ACharacter::CacheInitialMeshOffset(FVector MeshRelativeLocation, FRotator MeshRelativeRotation)
+{
+	BaseTranslationOffset = MeshRelativeLocation;
+	BaseRotationOffset = MeshRelativeRotation.Quaternion();
+
+#if ENABLE_NAN_DIAGNOSTIC
+	if (BaseRotationOffset.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in BaseRotationOffset! (%s)"), *BaseRotationOffset.ToString());
+	}
+	if (Mesh->RelativeRotation.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("ACharacter::PostInitializeComponents detected NaN in Mesh->RelativeRotation! (%s)"), *Mesh->RelativeRotation.ToString());
+	}
+#endif
+}
+
 
 UPawnMovementComponent* ACharacter::GetMovementComponent() const
 {
@@ -300,7 +316,7 @@ void ACharacter::OnJumped_Implementation()
 
 bool ACharacter::IsJumpProvidingForce() const
 {
-	return (bPressedJump && JumpKeyHoldTime > 0.0f && JumpKeyHoldTime < GetJumpMaxHoldTime());
+	return (bPressedJump && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
 
 // Deprecated
@@ -955,19 +971,30 @@ void ACharacter::CheckJumpInput(float DeltaTime)
 	{
 		if (bPressedJump)
 		{
-			// Increment our timer first so calls to IsJumpProvidingForce() will return true
-			JumpKeyHoldTime += DeltaTime;
-
-			if (CharacterMovement->IsFalling() && JumpCurrentCount == 0)
+			// If this is the first jump and we're already falling,
+			// then increment the JumpCount to compensate.
+			const bool bFirstJump = JumpCurrentCount == 0;
+			if (bFirstJump && CharacterMovement->IsFalling())
 			{
 				JumpCurrentCount++;
 			}
 
 			const bool bDidJump = CanJump() && CharacterMovement->DoJump(bClientUpdating);
-			if (!bWasJumping && bDidJump)
+			if (bDidJump)
 			{
-				JumpCurrentCount++;
-				OnJumped();
+				// Transistion from not (actively) jumping to jumping.
+				if (!bWasJumping)
+				{
+					JumpCurrentCount++;
+					OnJumped();
+				}
+				// Only increment the jump time if successfully jumped and it's
+				// the first jump. This prevents including the initial DeltaTime
+				// for the first frame of a jump.
+				if (!bFirstJump)
+				{
+					JumpKeyHoldTime += DeltaTime;
+				}
 			}
 
 			bWasJumping = bDidJump;
@@ -1091,7 +1118,7 @@ void ACharacter::OnRep_ReplicatedMovement()
 /** Get FAnimMontageInstance playing RootMotion */
 FAnimMontageInstance * ACharacter::GetRootMotionAnimMontageInstance() const
 {
-	return (Mesh && Mesh->GetAnimInstance()) ? Mesh->GetAnimInstance()->GetRootMotionMontageInstance() : NULL;
+	return (Mesh && Mesh->GetAnimInstance()) ? Mesh->GetAnimInstance()->GetRootMotionMontageInstance() : nullptr;
 }
 
 void ACharacter::OnRep_RootMotion()
@@ -1103,18 +1130,19 @@ void ACharacter::OnRep_RootMotion()
 		// Save received move in queue, we'll try to use it during Tick().
 		if( RepRootMotion.bIsActive )
 		{
-			// Add new move
-			FSimulatedRootMotionReplicatedMove NewMove;
-			NewMove.RootMotion = RepRootMotion;
-			NewMove.Time = GetWorld()->GetTimeSeconds();
-			// Convert RootMotionSource Server IDs -> Local IDs in AuthoritativeRootMotion and cull invalid
-			// so that when we use this root motion it has the correct IDs
 			if (CharacterMovement)
 			{
+				// Add new move
+				RootMotionRepMoves.AddZeroed(1);
+				FSimulatedRootMotionReplicatedMove& NewMove = RootMotionRepMoves.Last();
+				NewMove.RootMotion = RepRootMotion;
+				NewMove.Time = GetWorld()->GetTimeSeconds();
+
+				// Convert RootMotionSource Server IDs -> Local IDs in AuthoritativeRootMotion and cull invalid
+				// so that when we use this root motion it has the correct IDs
 				CharacterMovement->ConvertRootMotionServerIDsToLocalIDs(CharacterMovement->CurrentRootMotion, NewMove.RootMotion.AuthoritativeRootMotion, NewMove.Time);
 				NewMove.RootMotion.AuthoritativeRootMotion.CullInvalidSources();
 			}
-			RootMotionRepMoves.Add(NewMove);
 		}
 		else
 		{
@@ -1350,10 +1378,10 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 {
 	Super::PreReplication( ChangedPropertyTracker );
 
-	const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
-
-	if ( CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources() || RootMotionMontageInstance )
+	if (CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources() || IsPlayingNetworkedRootMotionMontage())
 	{
+		const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
+
 		RepRootMotion.bIsActive = true;
 		// Is position stored in local space?
 		RepRootMotion.bRelativePosition = BasedMovement.HasRelativeLocation();
@@ -1457,12 +1485,7 @@ bool ACharacter::IsPlayingRootMotion() const
 {
 	if (Mesh)
 	{
-		const UAnimInstance* const AnimInstance = Mesh->GetAnimInstance();
-		if(AnimInstance)
-		{
-			return (AnimInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything) ||
-				   (AnimInstance->GetRootMotionMontageInstance() != NULL);
-		}
+		return Mesh->IsPlayingRootMotion();
 	}
 	return false;
 }
@@ -1471,12 +1494,7 @@ bool ACharacter::IsPlayingNetworkedRootMotionMontage() const
 {
 	if (Mesh)
 	{
-		const UAnimInstance* const AnimInstance = Mesh->GetAnimInstance();
-		if (AnimInstance)
-		{
-			return (AnimInstance->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) &&
-				   (AnimInstance->GetRootMotionMontageInstance() != NULL);
-		}
+		return Mesh->IsPlayingNetworkedRootMotionMontage();
 	}
 	return false;
 }

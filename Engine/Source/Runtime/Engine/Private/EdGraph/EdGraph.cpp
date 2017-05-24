@@ -282,7 +282,7 @@ void UEdGraph::NotifyGraphChanged(const FEdGraphEditAction& InAction)
 	OnGraphChanged.Broadcast(InAction);
 }
 
-void UEdGraph::MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoading, bool bInIsCompiling/* = false*/)
+void UEdGraph::MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoading, bool bInIsCompiling)
 {
 	// Move one node over at a time
 	DestinationGraph->Nodes.Reserve(DestinationGraph->Nodes.Num() + Nodes.Num());
@@ -324,7 +324,7 @@ void UEdGraph::MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoadi
 			// Since this graph is always going to come from a cloned source graph, user readable names can come from the remap stored in a MessageLog.
 	
 			//@todo:  The bIsLoading check is to force no reset loaders when blueprints are compiling on load.  This might not catch all cases though!
-			Node->Rename(/*NewName=*/ NULL, /*NewOuter=*/ DestinationGraph, REN_DontCreateRedirectors | (bIsLoading ? REN_ForceNoResetLoaders : 0));
+			Node->Rename(/*NewName=*/ NULL, /*NewOuter=*/ DestinationGraph, REN_DontCreateRedirectors | (bIsLoading ? REN_ForceNoResetLoaders : 0) | (bInIsCompiling ? REN_NonTransactional : 0));
 	
 			DestinationGraph->Nodes.Add(Node);
 		}

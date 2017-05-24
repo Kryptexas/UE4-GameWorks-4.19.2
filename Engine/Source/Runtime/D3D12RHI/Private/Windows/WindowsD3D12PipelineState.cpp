@@ -206,7 +206,7 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 #endif
 		HighLevelCacheEntry = &HighLevelGraphicsPipelineStateCache.Add(
 			*Desc,
-			TPairInitializer<FD3D12PipelineState*, uint64>(PSO, BSSUniqueID)
+			TPair<FD3D12PipelineState*, uint64>(PSO, BSSUniqueID)
 			);
 	}
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangeList:3150518
+﻿INTSourceChangelist:3215926
 Availability:Public
 Title:Level Streaming Volumes でサブレベルをストリーミングする
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
@@ -31,8 +31,9 @@ tags:Level Streaming
 1. **ウィンドウ** 上をクリックして、**レベル** を選択します。
 
 	![](Engine/Levels/LevelsWindow/WindowLevels.png)
-
 1. **SunTemple_Streaming** を選択して **[Level Details]** アイコンをクリックします。
+
+	![](LevelDetails.png)
 
 1. **Streaming Volumes** の横にある [+] 記号をクリックして、ボリュームを追加します。次に、ドロップダウン メニューもしくはスポイトで、さきほどレベルにドラッグした **Level Streaming Volume** を選択します。
 	![](AddLSV.png)
@@ -43,4 +44,4 @@ tags:Level Streaming
 
 	![](LSVSettings.png)
 
-1. **Play in Editor** を使って、ストリーミング レベルをテストします。 
+	1. **Play in Editor** を使って、ストリーミング レベルをテストします。 

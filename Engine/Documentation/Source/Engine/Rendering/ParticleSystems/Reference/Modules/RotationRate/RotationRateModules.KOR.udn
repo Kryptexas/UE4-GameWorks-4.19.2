@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability: Public
 Title:Rotation Rate 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:파티클에 고정적인 회전율 - 또는 스핀 을 적용하는 모듈입니다.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

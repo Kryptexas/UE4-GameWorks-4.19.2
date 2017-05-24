@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:シーケンサー クイック スタート
 Crumbs: %ROOT%, Engine
@@ -9,6 +9,7 @@ order:1
 Version:4.12
 type:quick start
 checkpoint:sequencerqs
+tags:Sequencer
 
 [VAR:Topic]
 [OBJECT:Topic]

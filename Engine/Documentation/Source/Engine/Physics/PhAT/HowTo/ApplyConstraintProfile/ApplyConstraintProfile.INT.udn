@@ -1,4 +1,4 @@
-﻿Availability:Docs
+﻿Availability:Public
 Title:How-To Apply a Physics Constraint Profile
 Crumbs: %ROOT%, Engine
 Description:This how-to will show you how to apply a Physics Constraint Profile to a Skeletal Mesh Component using Blueprints.

@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:3076265
+﻿INTSourceChangelist:3150518
 Availability:Public
-Title:1. Gear VR プロジェクトの作成
+Title:1.Gear VR プロジェクトの作成
 Crumbs:%ROOT%, Platforms/GearVR
-Description:Gear VR ヘッドセットを使用する C++ ベースの UE4 プロジェクトの作成方法
+Description:Gear VR ヘッドセットに対応した C++ ベースの UE4 プロジェクトの作成方法
 Navigation:platform
 Version:4.9
 Skilllevel:Intermediate
 tags:VR
 tags:GearVR
-type:sequential
+type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:1
 Checkpoint:GearVRQS
@@ -27,7 +27,7 @@ Checkpoint:GearVRQS
 ## ステップ
 
 1. 最初に UE4 のバージョン **4.7.4** かそれ以降をダウンロードして、開発に使用する PC にインストールされていることを確認します。 
-UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジンランチャー](http://tinyurl.com/oawb7x2) か [Github](https://www.unrealengine.com/ue4-on-github) からダウンロードできます。 
+UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジンランチャー](http://tinyurl.com/oawb7x2) または [Github](https://www.unrealengine.com/ue4-on-github) からダウンロードできます。 
 
 	[Region:note]
 	**Setup.Bat** ファイルの実行に UE4 の [Github](https://www.unrealengine.com/ue4-on-github) バージョンを使用している場合は、先に進む前に開発PC に適切なファイルをダウンロード済みであることを確認してください。
@@ -42,16 +42,16 @@ UE4 のバージョン **4.7.4** かそれ以降は [アンリアルエンジン
 	4.8 以降であればこの制限はなく、C++ ベース、もしくはブループリントベースのプロジェクトを使用することができます。
 	[/REGION]
 
-1. 次に使用するテンプレートに **First Person Template** を選択して、以下のオプションを必ず変更してください。
+1. 次に使用するテンプレートに **[First Person Template]** を選択して、以下のオプションを必ず変更してください。
 	* **Mobile / Tablet**
 	* **Scalable 3D / 2D** 
-	* プロジェクトサイズを縮小するために **Starter Content (スターターコンテンツ)** は含まないでください。
+	* プロジェクトサイズを縮小するために **Starter Content (スターターコンテンツ)** は入れないでください。
 	![](GVR_New_Project_01.png)
 
-1. 最後にプロジェクトの保存場所を指定して名前を付けます。この例ではプロジェクトに **GearVR_QS** と名前を付けます。すべての手順が完了したら緑の **Create Project (プロジェクトを作成)** ボタンを押してプロジェクトを作成します。
+1. 最後に、プロジェクトの保存場所と名前を指定します。この例ではプロジェクトに **「GearVR_QS」** という名前を付けます。すべての手順が完了したら緑の **[Create Project (プロジェクトを作成)]** ボタンを押してプロジェクトを作成します。
 	![](GVR_New_Project_02.png)
 
 ## 最終結果
-完了すると、Gear VR HMD で使うプロジェクト用にすべて正しい設定で First Person プロジェクトが新規作成されます。
+完了すると、Gear VR HMD に対応するようにすべて正しい設定の First Person プロジェクトが新規作成されます。
 
 [nav]

@@ -3,6 +3,7 @@ Title:Creating Dispatcher Events
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/EventDispatcher
 Description: Creating events that can be bound and added to the Event Dispatcher's events list.
 version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -2,7 +2,7 @@
 Availability:Public
 Title:Unreal Match 3 ゲーム
 Crumbs:%ROOT%, Resources
-Description:Paper2D、UMG、Leaderboard (ランキング)、成績、アプリ内課金、高校などを含むモバイル ゲーム開発のベスト プラクティスを示すサンプル ゲームです。
+Description:Paper2D、UMG、Leaderboard (ランキング)、成績、アプリ内課金、広告などを含むモバイル ゲーム開発のベスト プラクティスを示すサンプル ゲームです。
 Version:4.10
 related:Platforms/Mobile
 related:Engine/Paper2D

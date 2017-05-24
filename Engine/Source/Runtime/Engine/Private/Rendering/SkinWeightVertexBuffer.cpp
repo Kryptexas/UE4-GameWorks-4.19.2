@@ -93,7 +93,7 @@ FArchive& operator<<(FArchive& Ar, FSkinWeightVertexBuffer& VertexBuffer)
 	Ar << VertexBuffer.bExtraBoneInfluences;
 	Ar << VertexBuffer.NumVertices;
 
-	if(Ar.IsLoading() || VertexBuffer.WeightData == NULL)
+	if (Ar.IsLoading() || VertexBuffer.WeightData == NULL)
 	{
 		// If we're loading, or we have no valid buffer, allocate container.
 		VertexBuffer.AllocateData();
@@ -106,9 +106,12 @@ FArchive& operator<<(FArchive& Ar, FSkinWeightVertexBuffer& VertexBuffer)
 		{
 			VertexBuffer.WeightData->Serialize(Ar);
 
-			// update cached buffer info
-			VertexBuffer.Data = (VertexBuffer.NumVertices > 0) ? VertexBuffer.WeightData->GetDataPointer() : nullptr;
-			VertexBuffer.Stride = VertexBuffer.WeightData->GetStride();
+			if (!Ar.IsCountingMemory())
+			{
+				// update cached buffer info
+				VertexBuffer.Data = (VertexBuffer.NumVertices > 0 && VertexBuffer.WeightData->GetResourceArray()->GetResourceDataSize()) ? VertexBuffer.WeightData->GetDataPointer() : nullptr;
+				VertexBuffer.Stride = VertexBuffer.WeightData->GetStride();
+			}
 		}
 	}
 

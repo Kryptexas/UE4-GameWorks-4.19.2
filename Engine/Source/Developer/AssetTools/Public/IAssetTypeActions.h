@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/SWidget.h"
 #include "Developer/Merge/Public/Merge.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
 
 class IToolkitHost;
 
@@ -88,6 +89,9 @@ public:
 
 	/** Returns the thumbnail info for the specified asset, if it has one. */
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const = 0;
+
+	/** Returns the default thumbnail type that should be rendered when rendering primitive shapes.  This does not need to be implemented if the asset does not render a primitive shape */
+	virtual EThumbnailPrimType GetDefaultThumbnailPrimitiveType(UObject* Asset) const = 0;
 
 	/** Optionally returns a custom widget to overlay on top of this assets' thumbnail */
 	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const class FAssetData& AssetData) const = 0;

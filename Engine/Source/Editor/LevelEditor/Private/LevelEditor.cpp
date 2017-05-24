@@ -171,6 +171,8 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 		GLevelEditorModeTools().RemoveDefaultMode( FBuiltinEditorModes::EM_Default );
 		GLevelEditorModeTools().AddDefaultMode( FBuiltinEditorModes::EM_Placement );
 		GLevelEditorModeTools().DeactivateAllModes();
+		GLevelEditorModeTools().ActivateDefaultMode();
+
 	}
 
 	IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));
@@ -270,8 +272,11 @@ void FLevelEditorModule::ShutdownModule()
 {
 	IProjectManager::Get().OnTargetPlatformsForCurrentProjectChanged().RemoveAll(this);
 
-	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-	MessageLogModule.UnregisterLogListing("BuildAndSubmitErrors");
+	if(FModuleManager::Get().IsModuleLoaded("MessageLog"))
+	{
+		FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
+		MessageLogModule.UnregisterLogListing("BuildAndSubmitErrors");
+	}
 
 	MenuExtensibilityManager.Reset();
 	ToolBarExtensibilityManager.Reset();
@@ -297,10 +302,10 @@ void FLevelEditorModule::ShutdownModule()
 	SetLevelEditorTabManager(nullptr);
 	WorkspaceMenu::GetModule().ResetLevelEditorCategory();
 
-	if ( FSlateApplication::IsInitialized() )
+	if (FSlateApplication::IsInitialized() && FModuleManager::Get().IsModuleLoaded("SlateReflector"))
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner("LevelEditor");
-		FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").UnregisterTabSpawner();
+		FModuleManager::GetModuleChecked<ISlateReflectorModule>("SlateReflector").UnregisterTabSpawner();
 	}	
 
 	FLevelEditorCommands::Unregister();
@@ -588,7 +593,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	ActionList.MapAction( Commands.NewLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::NewLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::NewLevel_CanExecute ) );
 	ActionList.MapAction(Commands.OpenLevel, FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OpenLevel), FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OpenLevel_CanExecute));
 	ActionList.MapAction( Commands.Save, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Save ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanSaveWorld ) );
-	ActionList.MapAction( Commands.SaveAs, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SaveAs ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanSaveWorld ) );
+	ActionList.MapAction( Commands.SaveAs, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SaveCurrentAs ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanSaveWorld ) );
 	ActionList.MapAction( Commands.SaveAllLevels, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SaveAllLevels ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanSaveWorld ) );
 	ActionList.MapAction( Commands.ToggleFavorite, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleFavorite ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleFavorite_CanExecute ), FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::ToggleFavorite_IsChecked ) );
 
@@ -614,7 +619,8 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExportSelected_CanExecute ) );
 
 	ActionList.MapAction( Commands.Build,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Build_Execute ) );
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Build_Execute ),
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Build_CanExecute ) );
 
 	ActionList.MapAction(
 		Commands.ConnectToSourceControl,

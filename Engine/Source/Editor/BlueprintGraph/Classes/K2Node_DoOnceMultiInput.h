@@ -26,8 +26,7 @@ class UK2Node_DoOnceMultiInput : public UK2Node
 	UPROPERTY(transient)
 	class UK2Node_TemporaryVariable* DataNode;
 
-	void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>&) override;
-	ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;
+	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;
 
 private:
 

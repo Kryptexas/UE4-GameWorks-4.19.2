@@ -4,6 +4,7 @@
 #include "DesktopPlatformPrivate.h"
 #include "FeedbackContextMarkup.h"
 #include "WindowsNativeFeedbackContext.h"
+#include "COMPointer.h"
 #include "Misc/Paths.h"
 #include "Misc/Guid.h"
 #include "HAL/FileManager.h"
@@ -43,60 +44,57 @@ bool FDesktopPlatformWindows::SaveFileDialog(const void* ParentWindowHandle, con
 	return FileDialogShared(true, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames, DummyFilterIndex );
 }
 
-static ::INT CALLBACK BrowseCallbackProc(HWND hwnd, ::UINT uMsg, LPARAM lParam, LPARAM lpData)
-{
-	// Set the path to the start path upon initialization.
-	switch (uMsg)
-	{
-		case BFFM_INITIALIZED:
-		if ( lpData )
-		{
-			SendMessageW(hwnd, BFFM_SETSELECTION, true, lpData);
-		}
-		break;
-	}
-
-	return 0;
-}
-
 bool FDesktopPlatformWindows::OpenDirectoryDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, FString& OutFolderName)
 {
 	FScopedSystemModalMode SystemModalScope;
 
-	BROWSEINFO bi;
-	ZeroMemory(&bi, sizeof(BROWSEINFO));
-
-	TCHAR FolderName[MAX_PATH];
-	ZeroMemory(FolderName, sizeof(TCHAR) * MAX_PATH);
-
-	const FString PathToSelect = DefaultPath.Replace(TEXT("/"), TEXT("\\"));
-
-	bi.hwndOwner = (HWND)ParentWindowHandle;
-	bi.pszDisplayName = FolderName;
-	bi.lpszTitle = *DialogTitle;
-	bi.ulFlags = BIF_USENEWUI | BIF_RETURNONLYFSDIRS | BIF_SHAREABLE;
-	bi.lpfn = BrowseCallbackProc;
-	bi.lParam = (LPARAM)(*PathToSelect);
 	bool bSuccess = false;
-	LPCITEMIDLIST Folder = ::SHBrowseForFolder(&bi);
-	if (Folder) 
-	{
-		bSuccess = ( ::SHGetPathFromIDList(Folder, FolderName) ? true : false );
-		if ( bSuccess )
-		{
-			OutFolderName = FolderName;
-			FPaths::NormalizeFilename(OutFolderName);
-		}
-		else
-		{
-			UE_LOG(LogDesktopPlatform, Warning, TEXT("Error converting the folder path to a string."));
-		}
-	}
-	else
-	{
-		UE_LOG(LogDesktopPlatform, Warning, TEXT("Error reading results of folder dialog."));
-	}
 
+	TComPtr<IFileOpenDialog> FileDialog;
+	if (SUCCEEDED(::CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&FileDialog))))
+	{
+		// Set this up as a folder picker
+		{
+			DWORD dwFlags = 0;
+			FileDialog->GetOptions(&dwFlags);
+			FileDialog->SetOptions(dwFlags | FOS_PICKFOLDERS);
+		}
+
+		// Set up common settings
+		FileDialog->SetTitle(*DialogTitle);
+		if (!DefaultPath.IsEmpty())
+		{
+			// SHCreateItemFromParsingName requires the given path be absolute and use \ rather than / as our normalized paths do
+			FString DefaultWindowsPath = FPaths::ConvertRelativePathToFull(DefaultPath);
+			DefaultWindowsPath.ReplaceInline(TEXT("/"), TEXT("\\"), ESearchCase::CaseSensitive);
+
+			TComPtr<IShellItem> DefaultPathItem;
+			if (SUCCEEDED(::SHCreateItemFromParsingName(*DefaultWindowsPath, nullptr, IID_PPV_ARGS(&DefaultPathItem))))
+			{
+				FileDialog->SetFolder(DefaultPathItem);
+			}
+		}
+
+		// Show the picker
+		if (SUCCEEDED(FileDialog->Show((HWND)ParentWindowHandle)))
+		{
+			TComPtr<IShellItem> Result;
+			if (SUCCEEDED(FileDialog->GetResult(&Result)))
+			{
+				PWSTR pFilePath = nullptr;
+				if (SUCCEEDED(Result->GetDisplayName(SIGDN_FILESYSPATH, &pFilePath)))
+				{
+					bSuccess = true;
+
+					OutFolderName = pFilePath;
+					FPaths::NormalizeDirectoryName(OutFolderName);
+
+					::CoTaskMemFree(pFilePath);
+				}
+			}
+		}
+	}
+	
 	return bSuccess;
 }
 
@@ -199,165 +197,153 @@ bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWin
 {
 	FScopedSystemModalMode SystemModalScope;
 
-	WCHAR Filename[MAX_FILENAME_STR];
-	FCString::Strcpy(Filename, MAX_FILENAME_STR, *(DefaultFile.Replace(TEXT("/"), TEXT("\\"))));
+	bool bSuccess = false;
 
-	// Convert the forward slashes in the path name to backslashes, otherwise it'll be ignored as invalid and use whatever is cached in the registry
-	WCHAR Pathname[MAX_FILENAME_STR];
-	FCString::Strcpy(Pathname, MAX_FILENAME_STR, *(FPaths::ConvertRelativePathToFull(DefaultPath).Replace(TEXT("/"), TEXT("\\"))));
-
-	// Convert the "|" delimited list of filetypes to NULL delimited then add a second NULL character to indicate the end of the list
-	WCHAR FileTypeStr[MAX_FILETYPES_STR];
-	WCHAR* FileTypesPtr = NULL;
-	const int32 FileTypesLen = FileTypes.Len();
-
-	// Nicely formatted file types for lookup later and suitable to append to filenames without extensions
-	TArray<FString> CleanExtensionList;
-
-	// The strings must be in pairs for windows.
-	// It is formatted as follows: Pair1String1|Pair1String2|Pair2String1|Pair2String2
-	// where the second string in the pair is the extension.  To get the clean extensions we only care about the second string in the pair
-	TArray<FString> UnformattedExtensions;
-	FileTypes.ParseIntoArray( UnformattedExtensions, TEXT("|"), true );
-	for( int32 ExtensionIndex = 1; ExtensionIndex < UnformattedExtensions.Num(); ExtensionIndex += 2)
+	TComPtr<IFileDialog> FileDialog;
+	if (SUCCEEDED(::CoCreateInstance(bSave ? CLSID_FileSaveDialog : CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, bSave ? IID_IFileSaveDialog : IID_IFileOpenDialog, IID_PPV_ARGS_Helper(&FileDialog))))
 	{
-		const FString& Extension = UnformattedExtensions[ExtensionIndex];
-		// Assume the user typed in an extension or doesnt want one when using the *.* extension. We can't determine what extension they wan't in that case
-		if( Extension != TEXT("*.*") )
+		if (bSave)
 		{
-			// Add to the clean extension list, first removing the * wildcard from the extension
-			int32 WildCardIndex = Extension.Find( TEXT("*") );
-			CleanExtensionList.Add( WildCardIndex != INDEX_NONE ? Extension.RightChop( WildCardIndex+1 ) : Extension );
-		}
-	}
-
-	if (FileTypesLen > 0 && FileTypesLen - 1 < MAX_FILETYPES_STR)
-	{
-		FileTypesPtr = FileTypeStr;
-		FCString::Strcpy(FileTypeStr, MAX_FILETYPES_STR, *FileTypes);
-
-		TCHAR* Pos = FileTypeStr;
-		while( Pos[0] != 0 )
-		{
-			if ( Pos[0] == '|' )
+			// Set the default "filename"
+			if (!DefaultFile.IsEmpty())
 			{
-				Pos[0] = 0;
-			}
-
-			Pos++;
-		}
-
-		// Add two trailing NULL characters to indicate the end of the list
-		FileTypeStr[FileTypesLen] = 0;
-		FileTypeStr[FileTypesLen + 1] = 0;
-	}
-
-	OPENFILENAME ofn;
-	FMemory::Memzero(&ofn, sizeof(OPENFILENAME));
-
-	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = (HWND)ParentWindowHandle;
-	ofn.lpstrFilter = FileTypesPtr;
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFile = Filename;
-	ofn.nMaxFile = MAX_FILENAME_STR;
-	ofn.lpstrInitialDir = Pathname;
-	ofn.lpstrTitle = *DialogTitle;
-	if(FileTypesLen > 0)
-	{
-		ofn.lpstrDefExt = &FileTypeStr[0];
-	}
-
-	ofn.Flags = OFN_HIDEREADONLY | OFN_ENABLESIZING | OFN_EXPLORER;
-
-	if ( bSave )
-	{
-		ofn.Flags |= OFN_CREATEPROMPT | OFN_OVERWRITEPROMPT | OFN_NOVALIDATE;
-	}
-	else
-	{
-		ofn.Flags |= OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-	}
-
-	if ( Flags & EFileDialogFlags::Multiple )
-	{
-		ofn.Flags |= OFN_ALLOWMULTISELECT;
-	}
-
-	bool bSuccess;
-	if ( bSave )
-	{
-		bSuccess = !!::GetSaveFileName(&ofn);
-	}
-	else
-	{
-		bSuccess = !!::GetOpenFileName(&ofn);
-	}
-
-	if ( bSuccess )
-	{
-		// GetOpenFileName/GetSaveFileName changes the CWD on success. Change it back immediately.
-		FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
-
-		if ( Flags & EFileDialogFlags::Multiple )
-		{
-			// When selecting multiple files, the returned string is a NULL delimited list
-			// where the first element is the directory and all remaining elements are filenames.
-			// There is an extra NULL character to indicate the end of the list.
-			FString DirectoryOrSingleFileName = FString(Filename);
-			TCHAR* Pos = Filename + DirectoryOrSingleFileName.Len() + 1;
-
-			if ( Pos[0] == 0 )
-			{
-				// One item selected. There was an extra trailing NULL character.
-				OutFilenames.Add(DirectoryOrSingleFileName);
-			}
-			else
-			{
-				// Multiple items selected. Keep adding filenames until two NULL characters.
-				FString SelectedFile;
-				do
-				{
-					SelectedFile = FString(Pos);
-					new(OutFilenames) FString(DirectoryOrSingleFileName / SelectedFile);
-					Pos += SelectedFile.Len() + 1;
-				}
-				while (Pos[0] != 0);
+				FileDialog->SetFileName(*FPaths::GetCleanFilename(DefaultFile));
 			}
 		}
 		else
 		{
-			new(OutFilenames) FString(Filename);
+			// Set this up as a multi-select picker
+			if (Flags & EFileDialogFlags::Multiple)
+			{
+				DWORD dwFlags = 0;
+				FileDialog->GetOptions(&dwFlags);
+				FileDialog->SetOptions(dwFlags | FOS_ALLOWMULTISELECT);
+			}
 		}
 
-		// The index of the filter in OPENFILENAME starts at 1.
-		OutFilterIndex = ofn.nFilterIndex - 1;
-
-		// Get the extension to add to the filename (if one doesnt already exist)
-		FString Extension = CleanExtensionList.IsValidIndex( OutFilterIndex ) ? CleanExtensionList[OutFilterIndex] : TEXT("");
-
-		// Make sure all filenames gathered have their paths normalized and proper extensions added
-		for ( auto OutFilenameIt = OutFilenames.CreateIterator(); OutFilenameIt; ++OutFilenameIt )
+		// Set up common settings
+		FileDialog->SetTitle(*DialogTitle);
+		if (!DefaultPath.IsEmpty())
 		{
-			FString& OutFilename = *OutFilenameIt;
-			
-			OutFilename = IFileManager::Get().ConvertToRelativePath(*OutFilename);
+			// SHCreateItemFromParsingName requires the given path be absolute and use \ rather than / as our normalized paths do
+			FString DefaultWindowsPath = FPaths::ConvertRelativePathToFull(DefaultPath);
+			DefaultWindowsPath.ReplaceInline(TEXT("/"), TEXT("\\"), ESearchCase::CaseSensitive);
 
-			if( FPaths::GetExtension(OutFilename).IsEmpty() && !Extension.IsEmpty() )
+			TComPtr<IShellItem> DefaultPathItem;
+			if (SUCCEEDED(::SHCreateItemFromParsingName(*DefaultWindowsPath, nullptr, IID_PPV_ARGS(&DefaultPathItem))))
 			{
-				// filename does not have an extension. Add an extension based on the filter that the user chose in the dialog
-				OutFilename += Extension;
+				FileDialog->SetFolder(DefaultPathItem);
+			}
+		}
+
+		// Set-up the file type filters
+		TArray<FString> UnformattedExtensions;
+		TArray<COMDLG_FILTERSPEC> FileDialogFilters;
+		{
+			// Split the given filter string (formatted as "Pair1String1|Pair1String2|Pair2String1|Pair2String2") into the Windows specific filter struct
+			FileTypes.ParseIntoArray(UnformattedExtensions, TEXT("|"), true);
+
+			if (UnformattedExtensions.Num() % 2 == 0)
+			{
+				FileDialogFilters.Reserve(UnformattedExtensions.Num() / 2);
+				for (int32 ExtensionIndex = 0; ExtensionIndex < UnformattedExtensions.Num();)
+				{
+					COMDLG_FILTERSPEC& NewFilterSpec = FileDialogFilters[FileDialogFilters.AddDefaulted()];
+					NewFilterSpec.pszName = *UnformattedExtensions[ExtensionIndex++];
+					NewFilterSpec.pszSpec = *UnformattedExtensions[ExtensionIndex++];
+				}
+			}
+		}
+		FileDialog->SetFileTypes(FileDialogFilters.Num(), FileDialogFilters.GetData());
+
+		// Show the picker
+		if (SUCCEEDED(FileDialog->Show((HWND)ParentWindowHandle)))
+		{
+			OutFilterIndex = 0;
+			if (SUCCEEDED(FileDialog->GetFileTypeIndex((UINT*)&OutFilterIndex)))
+			{
+				OutFilterIndex -= 1; // GetFileTypeIndex returns a 1-based index
 			}
 
-			FPaths::NormalizeFilename(OutFilename);
-		}
-	}
-	else
-	{
-		uint32 Error = ::CommDlgExtendedError();
-		if ( Error != ERROR_SUCCESS )
-		{
-			UE_LOG(LogDesktopPlatform, Warning, TEXT("Error reading results of file dialog. Error: 0x%04X"), Error);
+			auto AddOutFilename = [&OutFilenames](const FString& InFilename)
+			{
+				FString& OutFilename = OutFilenames[OutFilenames.Add(InFilename)];
+				OutFilename = IFileManager::Get().ConvertToRelativePath(*OutFilename);
+				FPaths::NormalizeFilename(OutFilename);
+			};
+
+			if (bSave)
+			{
+				TComPtr<IShellItem> Result;
+				if (SUCCEEDED(FileDialog->GetResult(&Result)))
+				{
+					PWSTR pFilePath = nullptr;
+					if (SUCCEEDED(Result->GetDisplayName(SIGDN_FILESYSPATH, &pFilePath)))
+					{
+						bSuccess = true;
+
+						// Apply the selected extension if the given filename doesn't already have one
+						FString SaveFilePath = pFilePath;
+						if (FileDialogFilters.IsValidIndex(OutFilterIndex))
+						{
+							// Build a "clean" version of the selected extension (without the wildcard)
+							FString CleanExtension = FileDialogFilters[OutFilterIndex].pszSpec;
+							if (CleanExtension == TEXT("*.*"))
+							{
+								CleanExtension.Reset();
+							}
+							else
+							{
+								const int32 WildCardIndex = CleanExtension.Find(TEXT("*"));
+								if (WildCardIndex != INDEX_NONE)
+								{
+									CleanExtension = CleanExtension.RightChop(WildCardIndex + 1);
+								}
+							}
+
+							// We need to split these before testing the extension to avoid anything within the path being treated as a file extension
+							FString SaveFileName = FPaths::GetCleanFilename(SaveFilePath);
+							SaveFilePath = FPaths::GetPath(SaveFilePath);
+
+							// Apply the extension if the file name doesn't already have one
+							if (FPaths::GetExtension(SaveFileName).IsEmpty() && !CleanExtension.IsEmpty())
+							{
+								SaveFileName = FPaths::SetExtension(SaveFileName, CleanExtension);
+							}
+
+							SaveFilePath /= SaveFileName;
+						}
+						AddOutFilename(SaveFilePath);
+
+						::CoTaskMemFree(pFilePath);
+					}
+				}
+			}
+			else
+			{
+				IFileOpenDialog* FileOpenDialog = static_cast<IFileOpenDialog*>(FileDialog.Get());
+
+				TComPtr<IShellItemArray> Results;
+				if (SUCCEEDED(FileOpenDialog->GetResults(&Results)))
+				{
+					DWORD NumResults = 0;
+					Results->GetCount(&NumResults);
+					for (DWORD ResultIndex = 0; ResultIndex < NumResults; ++ResultIndex)
+					{
+						TComPtr<IShellItem> Result;
+						if (SUCCEEDED(Results->GetItemAt(ResultIndex, &Result)))
+						{
+							PWSTR pFilePath = nullptr;
+							if (SUCCEEDED(Result->GetDisplayName(SIGDN_FILESYSPATH, &pFilePath)))
+							{
+								bSuccess = true;
+								AddOutFilename(pFilePath);
+								::CoTaskMemFree(pFilePath);
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 

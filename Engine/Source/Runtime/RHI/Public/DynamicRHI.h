@@ -70,6 +70,15 @@ public:
 	*/
 	virtual void RHISetComputeShader(FComputeShaderRHIParamRef ComputeShader) = 0;
 
+	virtual void RHISetComputePipelineState(FRHIComputePipelineState* ComputePipelineState)
+	{
+		if (ComputePipelineState)
+		{
+			FRHIComputePipelineStateFallback* FallbackState = static_cast<FRHIComputePipelineStateFallback*>(ComputePipelineState);
+			RHISetComputeShader(FallbackState->GetComputeShader());
+		}
+	}
+
 	virtual void RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) = 0;
 
 	virtual void RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) = 0;
@@ -133,8 +142,26 @@ public:
 	virtual void RHISubmitCommandsHint() = 0;
 };
 
+// These state is now set by the Pipeline State Object and is now deprecated
+class IRHIDeprecatedContext
+{
+public:
+	/**
+	* Set bound shader state. This will set the vertex decl/shader, and pixel shader
+	* @param BoundShaderState - state resource
+	*/
+	virtual void RHISetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState) = 0;
+
+	virtual void RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewState, uint32 StencilRef) = 0;
+
+	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) = 0;
+
+	// Allows to set the blend state, parameter can be created with RHICreateBlendState()
+	virtual void RHISetBlendState(FBlendStateRHIParamRef NewState, const FLinearColor& BlendFactor) = 0;
+};
+
 /** The interface RHI command context. Sometimes the RHI handles these. On platforms that can processes command lists in parallel, it is a separate object. */
-class IRHICommandContext : public IRHIComputeContext
+class IRHICommandContext : public IRHIComputeContext, public IRHIDeprecatedContext
 {
 public:
 	virtual ~IRHICommandContext()
@@ -178,7 +205,7 @@ public:
 	virtual void RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data) = 0;
 
 	/** Clears a UAV to the multi-component value provided. */
-	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) = 0;
+	virtual void RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) = 0;
 
 	/**
 	* Resolves from one texture to another.
@@ -296,8 +323,6 @@ public:
 
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) = 0;
 
-	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) = 0;
-
 	// @param MinX including like Win32 RECT
 	// @param MinY including like Win32 RECT
 	// @param MaxX excluding like Win32 RECT
@@ -313,12 +338,6 @@ public:
 	virtual void RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY) = 0;
 
 	/**
-	 * Set bound shader state. This will set the vertex decl/shader, and pixel shader
-	 * @param BoundShaderState - state resource
-	 */
-	virtual void RHISetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState) = 0;
-
-	/**
 	* This will set most relevant pipeline state. Legacy APIs are expected to set corresponding disjoint state as well.
 	* @param GraphicsShaderState - the graphics pipeline state
 	* This implementation is only in place while we transition/refactor.
@@ -328,12 +347,6 @@ public:
 		FRHIGraphicsPipelineStateFallBack* FallbackGraphicsState = static_cast<FRHIGraphicsPipelineStateFallBack*>(GraphicsState);
 
 		auto& PsoInit = FallbackGraphicsState->Initializer;
-
-		// Fragmented state setting APIs required setting the state and StencilRef/BlendFactor together.
-		// When using the fallback path we must unsure the new high level PSO setting still specified StencilRef/BlendFactor so we
-		// can actaully use the fragmented state setting API.
-		checkSlow(FallbackGraphicsState->Initializer.GetOptionalSetState() & FGraphicsPipelineStateInitializer::OptionalState::OS_SetStencilRef);
-		checkSlow(FallbackGraphicsState->Initializer.GetOptionalSetState() & FGraphicsPipelineStateInitializer::OptionalState::OS_SetBlendFactor);
 
 		RHISetBoundShaderState(
 			RHICreateBoundShaderState(
@@ -346,9 +359,9 @@ public:
 				).GetReference()
 			);
 
-		RHISetDepthStencilState(FallbackGraphicsState->Initializer.DepthStencilState, FallbackGraphicsState->Initializer.GetStencilRef());
+		RHISetDepthStencilState(FallbackGraphicsState->Initializer.DepthStencilState, 0);
 		RHISetRasterizerState(FallbackGraphicsState->Initializer.RasterizerState);
-		RHISetBlendState(FallbackGraphicsState->Initializer.BlendState, FallbackGraphicsState->Initializer.GetBlendFactor());
+		RHISetBlendState(FallbackGraphicsState->Initializer.BlendState, FLinearColor(1.0f, 1.0f, 1.0f));
 	}
 
 	/** Set the shader resource view of a surface.  This is used for binding TextureMS parameter types that need a multi sampled view. */
@@ -470,12 +483,7 @@ public:
 
 	virtual void RHISetShaderParameter(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue) = 0;
 
-	virtual void RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewState, uint32 StencilRef) = 0;
-
 	virtual void RHISetStencilRef(uint32 StencilRef) {}
-
-	// Allows to set the blend state, parameter can be created with RHICreateBlendState()
-	virtual void RHISetBlendState(FBlendStateRHIParamRef NewState, const FLinearColor& BlendFactor) = 0;
 
 	virtual void RHISetBlendFactor(const FLinearColor& BlendFactor) {}
 	
@@ -533,19 +541,6 @@ public:
 	 */
 	virtual void RHIEndDrawIndexedPrimitiveUP() = 0;
 
-	/*
-	* This method clears all MRT's, but to only one color value
-	* @param ExcludeRect within the viewport in pixels, is only a hint to optimize - if a fast clear can be done this is preferred
-	*/
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) = 0;
-
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) = 0;
-
-	/*
-	* @param ExcludeRect within the viewport in pixels, is only a hint to optimize - if a fast clear can be done this is preferred
-	*/
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) = 0;
-
 	/**
 	 * Enabled/Disables Depth Bounds Testing with the given min/max depth.
 	 * @param bEnable	Enable(non-zero)/disable(zero) the depth bounds test
@@ -599,30 +594,78 @@ public:
 	virtual FVertexDeclarationRHIRef RHICreateVertexDeclaration(const FVertexDeclarationElementList& Elements) = 0;
 
 	// FlushType: Wait RHI Thread
-	virtual FPixelShaderRHIRef RHICreatePixelShader(const TArray<uint8>& Code) = 0;
+	virtual FPixelShaderRHIRef RHICreatePixelShader(const TArray<uint8>& Code) = 0 ;
+	
+	// FlushType: Wait RHI Thread
+	virtual FPixelShaderRHIRef RHICreatePixelShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return nullptr;
+	}
 
 	// FlushType: Wait RHI Thread
 	virtual FVertexShaderRHIRef RHICreateVertexShader(const TArray<uint8>& Code) = 0;
+	
+	// FlushType: Wait RHI Thread
+	virtual FVertexShaderRHIRef RHICreateVertexShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return nullptr;
+	}
 
 	// FlushType: Wait RHI Thread
 	virtual FHullShaderRHIRef RHICreateHullShader(const TArray<uint8>& Code) = 0;
+	
+	// FlushType: Wait RHI Thread
+	virtual FHullShaderRHIRef RHICreateHullShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return nullptr;
+	}
 
 	// FlushType: Wait RHI Thread
 	virtual FDomainShaderRHIRef RHICreateDomainShader(const TArray<uint8>& Code) = 0;
+	
+	// FlushType: Wait RHI Thread
+	virtual FDomainShaderRHIRef RHICreateDomainShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return nullptr;
+	}
 
 	// FlushType: Wait RHI Thread
 	virtual FGeometryShaderRHIRef RHICreateGeometryShader(const TArray<uint8>& Code) = 0;
+	
+	// FlushType: Wait RHI Thread
+	virtual FGeometryShaderRHIRef RHICreateGeometryShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return nullptr;
+	}
 
 	/** Creates a geometry shader with stream output ability, defined by ElementList. */
 	// FlushType: Wait RHI Thread
 	virtual FGeometryShaderRHIRef RHICreateGeometryShaderWithStreamOutput(const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream) = 0;
+	
+	/** Creates a geometry shader with stream output ability, defined by ElementList. */
+	// FlushType: Wait RHI Thread
+	virtual FGeometryShaderRHIRef RHICreateGeometryShaderWithStreamOutput(const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream, FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return nullptr;
+	}
 
 	// Some RHIs can have pending messages/logs for error tracking, or debug modes
 	virtual void FlushPendingLogs() {}
 
 	// FlushType: Wait RHI Thread
 	virtual FComputeShaderRHIRef RHICreateComputeShader(const TArray<uint8>& Code) = 0;
-
+	
+	// FlushType: Wait RHI Thread
+	virtual FComputeShaderRHIRef RHICreateComputeShader(FRHIShaderLibraryParamRef Library, FSHAHash Hash)
+	{
+		return nullptr;
+	}
+	// FlushType: Wait RHI Thread
+	virtual FRHIShaderLibraryRef RHICreateShaderLibrary(EShaderPlatform Platform, FString FilePath)
+	{
+		return nullptr;
+	}
+	
 	/**
 	* Creates a compute fence.  Compute fences are named GPU fences which can be written to once before resetting.
 	* A command to write the fence must be enqueued before any commands to wait on them.  This is enforced on the CPU to avoid GPU hangs.
@@ -658,6 +701,11 @@ public:
 	virtual FGraphicsPipelineStateRHIRef RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer& Initializer)
 	{
 		return new FRHIGraphicsPipelineStateFallBack(Initializer);
+	}
+
+	virtual TRefCountPtr<FRHIComputePipelineState> RHICreateComputePipelineState(FRHIComputeShader* ComputeShader)
+	{
+		return new FRHIComputePipelineStateFallback(ComputeShader);
 	}
 
 	/**
@@ -1110,6 +1158,11 @@ public:
 	// FlushType: Thread safe
 	virtual FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewport) = 0;
 
+	virtual FUnorderedAccessViewRHIRef RHIGetViewportBackBufferUAV(FViewportRHIParamRef ViewportRHI)
+	{
+		return FUnorderedAccessViewRHIRef();
+	}
+
 	// Only relevant with an RHI thread, this advances the backbuffer for the purpose of GetViewportBackBuffer
 	// FlushType: Thread safe
 	virtual void RHIAdvanceFrameForGetViewportBackBuffer() = 0;
@@ -1242,7 +1295,7 @@ public:
 	}
 
 	// FlushType: Thread safe
-	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() = 0;
+	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) = 0;
 
 	///////// Pass through functions that allow RHIs to optimize certain calls.
 	virtual FVertexBufferRHIRef CreateAndLockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo, void*& OutDataBuffer);
@@ -1260,6 +1313,20 @@ public:
 	virtual void* LockIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef IndexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode);
 	virtual void UnlockIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef IndexBuffer);
 	virtual FVertexDeclarationRHIRef CreateVertexDeclaration_RenderThread(class FRHICommandListImmediate& RHICmdList, const FVertexDeclarationElementList& Elements);
+	virtual FVertexShaderRHIRef CreateVertexShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code);
+	virtual FVertexShaderRHIRef CreateVertexShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash);
+	virtual FPixelShaderRHIRef CreatePixelShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code);
+	virtual FPixelShaderRHIRef CreatePixelShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash);
+	virtual FGeometryShaderRHIRef CreateGeometryShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code);
+	virtual FGeometryShaderRHIRef CreateGeometryShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash);
+	virtual FGeometryShaderRHIRef CreateGeometryShaderWithStreamOutput_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream);
+	virtual FGeometryShaderRHIRef CreateGeometryShaderWithStreamOutput_RenderThread(class FRHICommandListImmediate& RHICmdList, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream, FRHIShaderLibraryParamRef Library, FSHAHash Hash);
+	virtual FComputeShaderRHIRef CreateComputeShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code);
+	virtual FComputeShaderRHIRef CreateComputeShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash);
+	virtual FHullShaderRHIRef CreateHullShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code);
+	virtual FHullShaderRHIRef CreateHullShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash);
+	virtual FDomainShaderRHIRef CreateDomainShader_RenderThread(class FRHICommandListImmediate& RHICmdList, const TArray<uint8>& Code);
+	virtual FDomainShaderRHIRef CreateDomainShader_RenderThread(class FRHICommandListImmediate& RHICmdList, FRHIShaderLibraryParamRef Library, FSHAHash Hash);
 	virtual void* LockTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail, bool bNeedsDefaultRHIFlush = true);
 	virtual void UnlockTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, bool bLockWithinMiptail, bool bNeedsDefaultRHIFlush = true);
 	virtual void UpdateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData);
@@ -1285,20 +1352,18 @@ public:
 
 	//Utilities
 	virtual void EnableIdealGPUCaptureOptions(bool bEnable);
+	
+	virtual void RHISetResourceAliasability_RenderThread(class FRHICommandListImmediate& RHICmdList, EResourceAliasability AliasMode, FTextureRHIParamRef* InTextures, int32 NumTextures) {}
+
+	//checks if the GPU is still alive.
+	virtual bool CheckGpuHeartbeat() const { return true; }
 
 	/* Copy the source box pixels in the destination box texture, return true if implemented for the current platform*/
 	virtual bool RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox) { return false; }
 };
 
-struct FRHIPacemaker
-{
-	//checks if the GPU is still alive.
-	virtual bool CheckGpuHeartbeat() const { return true; }
-};
-
 /** A global pointer to the dynamically bound RHI implementation. */
 extern RHI_API FDynamicRHI* GDynamicRHI;
-extern RHI_API FRHIPacemaker* GRHIPacemaker;
 
 FORCEINLINE FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer)
 {
@@ -1328,6 +1393,11 @@ FORCEINLINE FBoundShaderStateRHIRef RHICreateBoundShaderState(FVertexDeclaration
 FORCEINLINE FGraphicsPipelineStateRHIRef RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer& Initializer)
 {
 	return GDynamicRHI->RHICreateGraphicsPipelineState(Initializer);
+}
+
+FORCEINLINE TRefCountPtr<FRHIComputePipelineState> RHICreateComputePipelineState(FRHIComputeShader* ComputeShader)
+{
+	return GDynamicRHI->RHICreateComputePipelineState(ComputeShader);
 }
 
 FORCEINLINE FUniformBufferRHIRef RHICreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
@@ -1442,9 +1512,9 @@ FORCEINLINE class IRHIComputeContext* RHIGetDefaultAsyncComputeContext()
 
 
 
-FORCEINLINE class IRHICommandContextContainer* RHIGetCommandContextContainer()
+FORCEINLINE class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num)
 {
-	return GDynamicRHI->RHIGetCommandContextContainer();
+	return GDynamicRHI->RHIGetCommandContextContainer(Index, Num);
 }
 
 

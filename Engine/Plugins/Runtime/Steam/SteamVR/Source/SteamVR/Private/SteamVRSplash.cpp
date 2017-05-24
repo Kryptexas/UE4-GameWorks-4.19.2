@@ -14,13 +14,13 @@ FSteamSplashTicker::FSteamSplashTicker(class FSteamVRHMD* InSteamVRHMD)
 void FSteamSplashTicker::RegisterForMapLoad()
 {
 	FCoreUObjectDelegates::PreLoadMap.AddSP(this, &FSteamSplashTicker::OnPreLoadMap);
-	FCoreUObjectDelegates::PostLoadMap.AddSP(this, &FSteamSplashTicker::OnPostLoadMap);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddSP(this, &FSteamSplashTicker::OnPostLoadMap);
 }
 
 void FSteamSplashTicker::UnregisterForMapLoad()
 {
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
-	FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 };
 
 void FSteamSplashTicker::OnPreLoadMap(const FString&)
@@ -32,7 +32,7 @@ void FSteamSplashTicker::OnPreLoadMap(const FString&)
 		});
 }
 
-void FSteamSplashTicker::OnPostLoadMap()
+void FSteamSplashTicker::OnPostLoadMap(UWorld*)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UnregisterAsyncTick, 
 		FTickableObjectRenderThread*, Ticker, this,
@@ -43,13 +43,11 @@ void FSteamSplashTicker::OnPostLoadMap()
 
 void FSteamSplashTicker::Tick(float DeltaTime)
 {
-#if PLATFORM_WINDOWS
-	if (SteamVRHMD->pD3D11Bridge && SteamVRHMD->VRCompositor && SteamVRHMD->bSplashIsShown)
+	if (SteamVRHMD->pBridge && SteamVRHMD->VRCompositor && SteamVRHMD->bSplashIsShown)
 	{
-		SteamVRHMD->pD3D11Bridge->FinishRendering();
+		SteamVRHMD->pBridge->FinishRendering();
 		SteamVRHMD->VRCompositor->PostPresentHandoff();
 	}
-#endif
 }
 TStatId FSteamSplashTicker::GetStatId() const
 {

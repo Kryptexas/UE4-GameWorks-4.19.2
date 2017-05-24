@@ -744,7 +744,7 @@ FBoxSphereBounds UModelComponent::CalcBounds(const FTransform& LocalToWorld) con
 {
 	if(Model)
 	{
-		FBox	BoundingBox(0);
+		FBox	BoundingBox(ForceInit);
 		for(int32 NodeIndex = 0;NodeIndex < Nodes.Num();NodeIndex++)
 		{
 			FBspNode& Node = Model->Nodes[Nodes[NodeIndex]];

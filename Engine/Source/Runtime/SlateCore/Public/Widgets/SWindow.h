@@ -59,37 +59,31 @@ DECLARE_DELEGATE_RetVal_OneParam( int32, FOnSwitchWorldHack, int32 );
 
 
 /** Enum to describe how to auto-center an SWindow */
-namespace EAutoCenter
+enum class EAutoCenter : uint8
 {
-	enum Type
-	{
-		/** Don't auto-center the window */
-		None,
+	/** Don't auto-center the window */
+	None,
 
-		/** Auto-center the window on the primary work area */
-		PrimaryWorkArea,
+	/** Auto-center the window on the primary work area */
+	PrimaryWorkArea,
 
-		/** Auto-center the window on the preferred work area, determined using GetPreferredWorkArea() */
-		PreferredWorkArea,
-	};
-}
+	/** Auto-center the window on the preferred work area, determined using GetPreferredWorkArea() */
+	PreferredWorkArea,
+};
 
 
 /** Enum to describe how windows are sized */
-namespace ESizingRule
+enum class ESizingRule : uint8
 {
-	enum Type
-	{
-		/* The windows size fixed and cannot be resized **/
-		FixedSize,
-		
-		/** The window size is computed from its content and cannot be resized by users */
-		Autosized,
+	/* The windows size fixed and cannot be resized **/
+	FixedSize,
 
-		/** The window can be resized by users */
-		UserSized,
-	};
-}
+	/** The window size is computed from its content and cannot be resized by users */
+	Autosized,
+
+	/** The window can be resized by users */
+	UserSized,
+};
 
 /** Proxy structure to handle deprecated construction from bool */
 struct FWindowTransparency
@@ -141,8 +135,8 @@ public:
 		, _SizingRule( ESizingRule::UserSized )
 		, _IsPopupWindow( false )
 		, _IsTopmostWindow( false )
-		, _FocusWhenFirstShown( true )
-		, _ActivateWhenFirstShown( true )
+		, _FocusWhenFirstShown(true)
+		, _ActivationPolicy( EWindowActivationPolicy::Always )
 		, _UseOSWindowBorder( false )
 		, _HasCloseButton( true )
 		, _SupportsMaximize( true )
@@ -168,7 +162,7 @@ public:
 
 		/** The windows auto-centering mode. If set to anything other than None, then the
 			ScreenPosition value will be ignored */
-		SLATE_ARGUMENT( EAutoCenter::Type, AutoCenter )
+		SLATE_ARGUMENT( EAutoCenter, AutoCenter )
 
 		/** Screen-space position where the window should be initially located. */
 		SLATE_ARGUMENT( FVector2D, ScreenPosition )
@@ -189,7 +183,7 @@ public:
 		SLATE_ARGUMENT(bool, IsInitiallyMinimized)
 
 		/** How the window should be sized */
-		SLATE_ARGUMENT( ESizingRule::Type, SizingRule )
+		SLATE_ARGUMENT( ESizingRule, SizingRule )
 
 		/** True if this should be a 'pop-up' window */
 		SLATE_ARGUMENT( bool, IsPopupWindow )
@@ -199,9 +193,17 @@ public:
 
 		/** Should this window be focused immediately after it is shown? */
 		SLATE_ARGUMENT( bool, FocusWhenFirstShown )
-	
-		/** Should this window be activated immediately after it is shown? */
-		SLATE_ARGUMENT( bool, ActivateWhenFirstShown )
+
+		DEPRECATED(4.16, "ActivateWhenFirstShown(bool) is deprecated. Please use ActivationPolicy(EWindowActivationPolicy) instead")
+		FArguments& ActivateWhenFirstShown(bool bActivateWhenFirstShown)
+		{
+			// Previously ActivateWhenFirstShown was being used as always activating, so we use Always here to ensure same behavior.
+			_ActivationPolicy = bActivateWhenFirstShown ? EWindowActivationPolicy::Always : EWindowActivationPolicy::Never;
+			return Me();
+		}
+
+		/** When should this window be activated upon being shown? */
+		SLATE_ARGUMENT( EWindowActivationPolicy, ActivationPolicy )
 
 		/** Use the default os look for the border of the window */
 		SLATE_ARGUMENT( bool, UseOSWindowBorder )
@@ -615,8 +617,14 @@ public:
 		WidgetToFocusOnActivate = InWidget;
 	}
 
-	/** @return true if the window should be activated when first shown */
-	bool ActivateWhenFirstShown() const;
+	DEPRECATED(4.16, "ActivateWhenFirstShown() is deprecated. Please use ActivationPolicy() instead.")
+	bool ActivateWhenFirstShown() const
+	{
+		return ActivationPolicy() != EWindowActivationPolicy::Never;
+	}
+
+	/** @return the window activation policy used when showing the window */
+	EWindowActivationPolicy ActivationPolicy() const;
 
 	/** @return true if the window accepts input; false if the window is non-interactive */
 	bool AcceptsInput() const;
@@ -628,7 +636,7 @@ public:
 	bool IsAutosized() const;
 
 	/** Should this window automatically derive its size based on its content or be user-drive? */
-	void SetSizingRule( ESizingRule::Type InSizingRule );
+	void SetSizingRule( ESizingRule InSizingRule );
 
 	/** @return true if this is a vanilla window, or one being used for some special purpose: e.g. tooltip or menu */
 	bool IsRegularWindow() const;
@@ -870,6 +878,9 @@ protected:
 	/** Get the brush used to draw the window background */
 	const FSlateBrush* GetWindowBackground() const;
 
+	/** Get the color used to tint the window background */
+	FSlateColor GetWindowBackgroundColor() const;
+
 	/** Get the brush used to draw the window outline */
 	const FSlateBrush* GetWindowOutline() const;
 
@@ -894,10 +905,10 @@ protected:
 	float Opacity;
 
 	/** How to size the window */
-	ESizingRule::Type SizingRule;
+	ESizingRule SizingRule;
 
 	/** How to auto center the window */
-	EAutoCenter::Type AutoCenterRule;
+	EAutoCenter AutoCenterRule;
 
 	/** Transparency setting for this window */
 	EWindowTransparency TransparencySupport;
@@ -928,9 +939,6 @@ protected:
 	/** Focus this window immediately as it is shown */
 	bool bFocusWhenFirstShown : 1;
 
-	/** Activate this window immediately as it is shown */
-	bool bActivateWhenFirstShown : 1;
-
 	/** True if this window displays the os window border instead of drawing one in slate */
 	bool bHasOSWindowBorder : 1;
 
@@ -957,6 +965,9 @@ protected:
 
 	/** True if the window should preserve its aspect ratio when resized by user */
 	bool bShouldPreserveAspectRatio : 1;
+
+	/** When should the window be activated upon being shown */
+	EWindowActivationPolicy WindowActivationPolicy;
 
 	/** Initial desired position of the window's content in screen space */
 	FVector2D InitialDesiredScreenPosition;

@@ -216,6 +216,13 @@ public:
 		// Discard if the input size is the same as the backing store size, regardless of the input argument, as orphaning the backing store will typically be faster.
 		bDiscard = bDiscard || (!bReadOnly && InSize == RealSize);
 		
+#if PLATFORM_HTML5_BROWSER
+		// In browsers calling glBufferData() to discard-reupload is slower than calling glBufferSubData(),
+		// because changing glBufferData() with a different size from before incurs security related validation.
+		// Therefore never use the glBufferData() discard trick on HTML5 builds.
+		bDiscard = false;
+#endif
+
 		// Map buffer is faster in some circumstances and slower in others, decide when to use it carefully.
 		bool const bCanUseMapBuffer = FOpenGL::SupportsMapBuffer() && BaseType::GLSupportsType();
 		bool const bUseMapBuffer = bCanUseMapBuffer && (bReadOnly || OpenGLConsoleVariables::bUseMapBuffer);
@@ -276,6 +283,13 @@ public:
 		// Discard if the input size is the same as the backing store size, regardless of the input argument, as orphaning the backing store will typically be faster.
 		bDiscard = bDiscard || InSize == RealSize;
 		
+#if PLATFORM_HTML5_BROWSER
+		// In browsers calling glBufferData() to discard-reupload is slower than calling glBufferSubData(),
+		// because changing glBufferData() with a different size from before incurs security related validation.
+		// Therefore never use the glBufferData() discard trick on HTML5 builds.
+		bDiscard = false;
+#endif
+
 		// Map buffer is faster in some circumstances and slower in others, decide when to use it carefully.
 		bool const bCanUseMapBuffer = FOpenGL::SupportsMapBuffer() && BaseType::GLSupportsType();
 		bool const bUseMapBuffer = bCanUseMapBuffer && OpenGLConsoleVariables::bUseMapBuffer;
@@ -346,7 +360,14 @@ public:
 					// Check for the typical, optimized case
 					if( LockSize == RealSize )
 					{
+#if PLATFORM_HTML5_BROWSER
+						// In browsers using glBufferData() to upload data is slower
+						// than using glBufferSubData(), because glBufferData()
+						// can resize the buffer storage, and so incurs extra validation.
+						FOpenGL::BufferSubData(Type, 0, LockSize, LockBuffer);
+#else
 						glBufferData(Type, RealSize, LockBuffer, GetAccess());
+#endif
 						check( LockBuffer != NULL );
 					}
 					else
@@ -688,6 +709,12 @@ struct FOpenGLVertexElement
 	uint8 bNormalized;
 	uint8 AttributeIndex;
 	uint8 bShouldConvertToFloat;
+	uint8 Padding;
+
+	FOpenGLVertexElement()
+		: Padding(0)
+	{
+	}
 };
 
 /** Convenience typedef: preallocated array of OpenGL input element descriptions. */

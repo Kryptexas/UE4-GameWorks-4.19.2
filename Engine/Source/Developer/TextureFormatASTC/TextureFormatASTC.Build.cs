@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TextureFormatASTC : ModuleRules
 {
-	public TextureFormatASTC(TargetInfo Target)
+	public TextureFormatASTC(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePathModuleNames.AddRange(new string[] { "TargetPlatform", "TextureCompressor", "Engine" });
         PrivateDependencyModuleNames.AddRange(new string[] { "Core", "ImageCore", "ImageWrapper", "TextureFormatIntelISPCTexComp" });

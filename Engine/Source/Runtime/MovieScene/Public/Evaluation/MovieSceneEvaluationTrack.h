@@ -13,6 +13,8 @@
 #include "Evaluation/MovieSceneTrackImplementation.h"
 #include "MovieSceneEvaluationTrack.generated.h"
 
+struct FMovieSceneInterrogationData;
+
 /** Enumeration to determine how a track should be evaluated */
 UENUM()
 enum class EEvaluationMethod : uint8
@@ -93,6 +95,16 @@ public:
 	FORCEINLINE const FMovieSceneSegment& GetSegment(int32 SegmentIndex) const
 	{
 		return Segments[SegmentIndex];
+	}
+
+	/**
+	 * Get this track's child templates
+	 * NOTE that this is intended for use during the compilation phase in-editor.
+	 * Beware of using this to modify templates afterwards as it will almost certainly break evaluation.
+	 */
+	FORCEINLINE TArrayView<FMovieSceneEvalTemplatePtr> GetChildTemplates()
+	{
+		return TArrayView<FMovieSceneEvalTemplatePtr>(ChildTemplates.GetData(), ChildTemplates.Num());
 	}
 
 	/**
@@ -254,6 +266,14 @@ public:
 	 */
 	MOVIESCENE_API void DefaultEvaluate(int32 SegmentIndex, const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const;
 
+	/**
+	 * Interrogate this template for its output. Should not have any side effects.
+	 *
+	 * @param Context				Evaluation context specifying the current evaluation time, sub sequence transform and other relevant information.
+	 * @param Container				Container to populate with the desired output from this track
+	 */
+	MOVIESCENE_API  void Interrogate(const FMovieSceneContext& Context, FMovieSceneInterrogationData& Container) const;
+
 private:
 
 	/**
@@ -312,10 +332,7 @@ public:
 	/**
 	 * Post serialize function
 	 */
-	void PostSerialize(const FArchive& Ar)
-	{
-		SetupOverrides();
-	}
+	MOVIESCENE_API void PostSerialize(const FArchive& Ar);
 
 private:
 
@@ -323,6 +340,12 @@ private:
 	 * Validate the segment array and remove any invalid ptrs
 	 */
 	void ValidateSegments();
+
+	/**
+	 * Locate the segment that resides at the specified time
+	 * @return A segment index, or INDEX_NONE
+	 */
+	int32 FindSegmentIndex(float InTime) const;
 
 public:
 
@@ -395,4 +418,4 @@ private:
 	uint32 bEvaluateInPostroll : 1;
 };
 
-template<> struct TStructOpsTypeTraits<FMovieSceneEvaluationTrack> : public TStructOpsTypeTraitsBase { enum { WithPostSerialize = true, WithCopy = false }; };
+template<> struct TStructOpsTypeTraits<FMovieSceneEvaluationTrack> : public TStructOpsTypeTraitsBase2<FMovieSceneEvaluationTrack> { enum { WithPostSerialize = true, WithCopy = false }; };

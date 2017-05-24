@@ -8,7 +8,6 @@
 
 class IElementLocator;
 
-
 class IAsyncDriverSequence;
 class IAsyncDriverElement;
 class IAsyncDriverElementCollection;
@@ -97,7 +96,7 @@ public:
 	virtual bool Wait(const FDriverWaitDelegate& Delegate) = 0;
 
 	/**
-	 * @return a new driver sequence which can be used to issue a serious of commands to the driver
+	 * @return a new driver sequence which can be used to issue a series of commands to the driver
 	 */
 	virtual TSharedRef<IDriverSequence, ESPMode::ThreadSafe> CreateSequence() = 0;
 

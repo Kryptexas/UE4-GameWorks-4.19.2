@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:3. Set the Context
+﻿INTSourceChangelist:3218993
+Availability: Public
+Title:3. 컨텍스트 설정
 Crumbs: %ROOT%, Engine, Engine/Audio
-Description:Building a set of contexts, each with its own speaker and listener
+Description:별도의 청자와 화자로 구성된 컨텍스트 세트를 만들어 봅니다.
 version: 4.13
 parent:Engine/Audio/Dialogue
 order:3
+type:quick start
 checkpoint:dialogueqs
 prereq: Engine/Blueprints/QuickStart
 related:Engine/Audio
@@ -13,65 +14,49 @@ related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[Previous Step](Engine/Audio/Dialogue/2 "%Engine/Audio/Dialogue/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/Audio/Dialogue)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/Audio/Dialogue/4 "%Engine/Audio/Dialogue/4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+이제 **다이얼로그 보이스** 와 **다이얼로그 웨이브** 구성이 완료되었으니, 퀘스트 NPC 에게 인사를 건네기 위한 올바른 컨텍스트를 만드는 로직을 짜 주도록 하겠습니다.
+다시 말씀드리지만, **다이얼로그 컨텍스트** 에는 최소 두 개의 **다이얼로그 보이스** 와 하나의 **청자**, 그 대화의 **지시 대상** 이 되는 **다이얼로그 보이스** 최소 하나로 이루어집니다.
 
-Now that we have our **Dialogue Voices** and **Dialogue Wave** set up, we can give our quest NPC some logic to create the right context for her greeting.
-Again, a **Dialogue Context** involves at least two **Dialogue Voices**, a **Speaker** and at least one **Dialogue Voice** that the dialogue is **Directed At**.
-
-1. Add a **Box** component to the **Mixamo_SWAT** Blueprint.
+1. **Mixamo_SWAT** 블루프린트에 **Box** 컴포넌트를 추가합니다.
 	
 	![](AddBoxComponent.png)
-1. In the **Viewport**, adjust the **Box** component so it is around the height of the character, and extends some distance in front of her. Make sure it doesn't overlap her, or set her Capsule component to not generate overlap events, or she will trigger the 
-conversation logic herself.
+1. **뷰포트** 에서 캐릭터 높이까지 오도록 **Box** 컴포넌트를 조절한 뒤, 그 앞쪽으로 약간 돌출시킵니다. 이 박스가 캐릭터에게는 겹치지 않도록 하거나, 캐릭터의 캡슐 컴포넌트가 오버랩 이벤트를 생성하지 않도록 해야 합니다. 그렇지 않으면 스스로 
+대화 로직을 발동시키게 됩니다.
 
 	![](TriggerVolume.png)
 
-1. Add a new **Dialogue Wave** variable named **Greeting**.
+1. 새로운 **다이얼로그 웨이브** 변수를 추가하고 이름을 **Greeting** 이라 합니다.
 
-1. Compile your Blueprint and set the default value to the **QuestGreeting** **Dialogue Wave** you made previously.
+1. 블루프린트를 컴파일하고 기본값을 앞서 만든 **QuestGreeting** **다이얼로그 웨이브** 로 설정합니다.
 
 	![](QuestGreetingDetails.png)
 
-1. Set up the following Blueprint graph. 
+1. 다음과 같이 블루프린트 그래프를 구성합니다.
 
 	[INCLUDE:#graph]
 
-	This graph:
-	* Fires after something overlaps the Box component
-	* Casts the **Overlapping Actor** to our **MixamoCharacter_Master**, where we added the **Dialogue Voice** variable
-	* Gets the voice from the **Overlapping Actor** and uses it as the **Target** for our **Dialogue Context**.
-	* Uses the Quest NPC's voice for the **Speaker** for our **Dialogue Context**.
-	* Plays the **Dialogue Wave** named **Greeting** at our Quest NPC's location, using the correct **Dialogue Context**
+	이 그래프:
+	* 무언가가 박스 컴포넌트에 겹친 후 발동됩니다.
+	* **Overlapping Actor** (겹치는 액터)를 우리 **MixamoCharacter_Master** 로 형변환합니다. **다이얼로그 보이스** 변수를 추가한 곳입니다.
+	* **겹치는 액터** 에서 보이스를 구해온 뒤 **다이얼로그 컨텍스트** 의 **Target** (대상)으로 사용합니다.
+	* **다이얼로그 컨텍스트** 에 대한 **화자** 에 퀘스트 NPC 의 보이스를 사용합니다.
+	* 올바른 **다이얼로그 컨텍스트** 를 사용하여, 퀘스트 NPC 위치에서 이름이 **Greeting** 인 **다이얼로그 웨이브** 를 재생합니다.
 
-	The Mixamo Animation pack comes with a Game Mode we can use to test our dialogue setup.
+	믹사모 애니메이션 팩에 들어있는 게임 모드로 우리 대화 구성을 테스트해 볼 수 있습니다.
 
-1. Open **World Settings**.
+1. **월드 세팅** 을 엽니다.
 
-1. Set the **GameMode Override** to **MixamoGame**.
+1. **GameMode Override** (게임모드 대체값)을 **MixamoGame** 으로 설정합니다.
 
-1. Set the **Default Pawn Class** to **Mixamo_Adam** or **Mixamo_Zoe**.
+1. **Default Pawn Class** (기본 폰 클래스)를 **Mixamo_Adam** 또는 **Mixamo_Zoe** 로 설정합니다.
 
 	![](SetDefaultPawn.png)
 
-	Now, if the QuestNPC is placed in the level, you can run up to them with either Adam or Zoe and trigger the dialogue. 
+	이제 레벨에 QuestNPC 가 배치되면 아담이나 조를 가지고 근처로 달려가게 하여 대화를 발동시킬 수 있습니다.
 
-%Steps%
+[NAV]
 
 
 <!--

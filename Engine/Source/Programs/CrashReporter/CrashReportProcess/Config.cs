@@ -333,6 +333,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public int AddCrashRequestTimeoutSeconds { get; set; }
 
 		/// <summary>
+		/// Number of times to retry AddCrash after a bad response (doesn't count timeouts that are always retried).
+		/// </summary>
+		[XmlElement]
+		public int AddCrashRejectedRetries { get; set; }
+
+		/// <summary>
 		/// Time that we wait between a failed AddCrash call and a retry.
 		/// </summary>
 		[XmlElement]
@@ -355,6 +361,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public bool MonitorPerformance { get; set; }
+
+		/// <summary>
+		/// List of GameNames to blacklist. Since we take crashes from external games, we need to filter out stuff we don't want, especially high volume stuff.
+		/// </summary>
+		[XmlElement]
+		public string GameNamesToBlacklist { get; set; }
 
 		/// <summary>
 		/// Get the default config object (lazy loads it on first access)

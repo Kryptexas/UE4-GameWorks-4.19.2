@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:머티리얼 에디터 UI
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
 Description:머티리얼 에디터 UI 사용 안내서입니다.
 Version: 4.9
+tags:Materials
 
 
 [TOC(start:2)]

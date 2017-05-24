@@ -47,7 +47,7 @@ protected:
 		switch (Priority)
 		{
 			// 0 is the lowest, 31 is the highest possible priority for pthread
-			case TPri_Highest: return 30;
+			case TPri_Highest: case TPri_TimeCritical: return 30;
 			case TPri_AboveNormal: return 25;
 			case TPri_Normal: return 15;
 			case TPri_BelowNormal: return 5;

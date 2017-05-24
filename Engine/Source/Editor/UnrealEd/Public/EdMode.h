@@ -183,7 +183,7 @@ public:
 	 * @param	InBox	The selection box to use, in worldspace coordinates.
 	 * @return		true if something was selected/deselected, false otherwise.
 	 */
-	bool BoxSelect( FBox& InBox, bool InSelect = true );
+	virtual bool BoxSelect( FBox& InBox, bool InSelect = true );
 
 	/**
 	 * Lets each mode/tool handle frustum selection in its own way.
@@ -191,9 +191,9 @@ public:
 	 * @param	InFrustum	The selection box to use, in worldspace coordinates.
 	 * @return	true if something was selected/deselected, false otherwise.
 	 */
-	bool FrustumSelect( const FConvexVolume& InFrustum, bool InSelect = true );
+	virtual bool FrustumSelect( const FConvexVolume& InFrustum, bool InSelect = true );
 
-	void SelectNone();
+	virtual void SelectNone();
 	virtual void SelectionChanged() {}
 
 	virtual bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click);

@@ -1,14 +1,13 @@
-﻿INTSourceChangelist:3232646
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:レイヤー化されたアニメーションを使用する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:移動しながら武器を発砲できるキャラクターを作るアニメーションのブレンド方法
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 topic-image:LayerAnimationHowTo.png
 tags:Animation
-tags:How-To
 
 アニメーションのブレンドとは、単一のキャラクターもしくはスケルタルメッシュ上の 2 つ以上のアニメーション間を滑らかに遷移させる、ということです。UE4 には、こうしたブレンドを適用するための様々な方法があります。[](Engine/Animation/Blendspaces) を使用する、重み付けによるバイアスまたはアルファ値に基づいて文字通り 2 つのアニメーションを加算的に組み合わせる、または既存のポーズに直接オーバーライドすることもできます。 
 

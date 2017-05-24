@@ -112,12 +112,7 @@ FText SGraphPinEnum::OnGetFriendlyName(int32 EnumIndex)
 	check(EnumPtr);
 	check(EnumIndex < EnumPtr->NumEnums());
 
-	FText EnumValueName = EnumPtr->GetDisplayNameText(EnumIndex);
-	if (EnumValueName.IsEmpty()) 
-	{
-		EnumValueName = FText::FromString(EnumPtr->GetEnumName(EnumIndex));
-	}
-
+	FText EnumValueName = EnumPtr->GetDisplayNameTextByIndex(EnumIndex);
 	return EnumValueName;
 }
 
@@ -128,7 +123,7 @@ FText SGraphPinEnum::OnGetTooltip(int32 EnumIndex)
 	check(EnumPtr);
 	check(EnumIndex < EnumPtr->NumEnums());
 
-	FText EnumValueTooltip = EnumPtr->GetToolTipText(EnumIndex);
+	FText EnumValueTooltip = EnumPtr->GetToolTipTextByIndex(EnumIndex);
 	return EnumValueTooltip;
 }
 
@@ -141,7 +136,7 @@ void SGraphPinEnum::ComboBoxSelectionChanged( TSharedPtr<int32> NewSelection, ES
 	if (NewSelection.IsValid())
 	{
 		check(*NewSelection < EnumPtr->NumEnums() - 1);
-		EnumSelectionString  = EnumPtr->GetEnumName(*NewSelection);
+		EnumSelectionString  = EnumPtr->GetNameStringByIndex(*NewSelection);
 	}
 	else
 	{
@@ -172,9 +167,9 @@ FString SGraphPinEnum::OnGetText() const
 			// Ignore hidden enum values
 			if( !EnumPtr->HasMetaData(TEXT("Hidden"), EnumIdx ) )
 			{
-				if (SelectedString == EnumPtr->GetEnumName(EnumIdx))
+				if (SelectedString == EnumPtr->GetNameStringByIndex(EnumIdx))
 				{
-					FString EnumDisplayName = EnumPtr->GetDisplayNameText(EnumIdx).ToString();
+					FString EnumDisplayName = EnumPtr->GetDisplayNameTextByIndex(EnumIdx).ToString();
 					if (EnumDisplayName.Len() == 0)
 					{
 						return SelectedString;
@@ -187,7 +182,7 @@ FString SGraphPinEnum::OnGetText() const
 			}
 		}
 
-		if (SelectedString == EnumPtr->GetEnumName(MaxIndex))
+		if (SelectedString == EnumPtr->GetNameStringByIndex(MaxIndex))
 		{
 			return TEXT("(INVALID)");
 		}

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PropertyEditor : ModuleRules
 {
-	public PropertyEditor(TargetInfo Target)
+	public PropertyEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

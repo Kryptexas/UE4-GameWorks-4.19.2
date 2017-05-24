@@ -27,7 +27,9 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Constructs the module map with the given changelist
 		/// </summary>
-		/// <param name="InChangelist"></param>
+		/// <param name="InChangelist">The changelist that these modules were built from</param>
+		/// <param name="InCompatibleChangelist">The changelist that these modules are compatible with</param>
+		/// <param name="InBuildId">The unique build id</param>
 		public VersionManifest(int InChangelist, int InCompatibleChangelist, string InBuildId)
 		{
 			Changelist = InChangelist;
@@ -53,11 +55,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the standard path for an manifest
 		/// </summary>
-		/// <param name="DirectoryName">The directory containing this manifest</param>
 		/// <param name="AppName">The modular app name being built</param>
 		/// <param name="Configuration">The target configuration</param>
 		/// <param name="Platform">The target platform</param>
 		/// <param name="BuildArchitecture">The architecture of the target platform</param>
+		/// <param name="bIsGameDirectory"></param>
 		/// <returns>Filename for the app receipt</returns>
 		public static string GetStandardFileName(string AppName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string BuildArchitecture, bool bIsGameDirectory)
 		{
@@ -100,7 +102,7 @@ namespace UnrealBuildTool
 		/// Tries to read a receipt from disk.
 		/// </summary>
 		/// <param name="FileName">The filename that was read</param>
-		/// <param name="Receipt">If successful, the receipt that was read. Null otherwise.</param>
+		/// <param name="Result">If successful, the receipt that was read. Null otherwise.</param>
 		/// <returns>True if the file was read succesfully.</returns>
 		public static bool TryRead(string FileName, out VersionManifest Result)
 		{
@@ -124,34 +126,41 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Write the receipt to disk.
 		/// </summary>
-		/// <param name="EngineDir">The engine directory</param>
-		/// <param name="ProjectDir">The project directory</param>
-		/// <param name="AppName">The modular app name being built</param>
-		/// <param name="Configuration">The target configuration</param>
-		/// <param name="Platform">The target platform</param>
-		/// <param name="BuildArchitecture">The architecture of the target platform</param>
+		/// <param name="FileName">The file to write to</param>
 		public void Write(string FileName)
 		{
 			Directory.CreateDirectory(Path.GetDirectoryName(FileName));
-			using (JsonWriter Writer = new JsonWriter(FileName))
+			using(StreamWriter Writer = new StreamWriter(FileName))
 			{
-				Writer.WriteObjectStart();
+				Write(Writer);
+			}
+		}
 
-				Writer.WriteValue("Changelist", Changelist);
+		/// <summary>
+		/// Write the receipt to disk.
+		/// </summary>
+		/// <param name="Writer">The writer to output to</param>
+		public void Write(TextWriter Writer)
+		{
+			using (JsonWriter OutputWriter = new JsonWriter(Writer, true))
+			{
+				OutputWriter.WriteObjectStart();
+
+				OutputWriter.WriteValue("Changelist", Changelist);
 				if(CompatibleChangelist != Changelist)
 				{
-					Writer.WriteValue("CompatibleChangelist", CompatibleChangelist);
+					OutputWriter.WriteValue("CompatibleChangelist", CompatibleChangelist);
 				}
-				Writer.WriteValue("BuildId", BuildId);
+				OutputWriter.WriteValue("BuildId", BuildId);
 
-				Writer.WriteObjectStart("Modules");
-				foreach (KeyValuePair<string, string> ModuleNameToFileNamePair in ModuleNameToFileName)
+				OutputWriter.WriteObjectStart("Modules");
+				foreach (KeyValuePair<string, string> ModuleNameToFileNamePair in ModuleNameToFileName.OrderBy(x => x.Key))
 				{
-					Writer.WriteValue(ModuleNameToFileNamePair.Key, ModuleNameToFileNamePair.Value);
+					OutputWriter.WriteValue(ModuleNameToFileNamePair.Key, ModuleNameToFileNamePair.Value);
 				}
-				Writer.WriteObjectEnd();
+				OutputWriter.WriteObjectEnd();
 
-				Writer.WriteObjectEnd();
+				OutputWriter.WriteObjectEnd();
 			}
 		}
 	}

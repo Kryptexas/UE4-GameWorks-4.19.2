@@ -1,90 +1,82 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:How-To Apply a Physics Constraint Profile
+﻿INTSourceChangelist:3311353
+Availability:Public
+Title:如何应用物理约束配置文件
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to apply a Physics Constraint Profile to a Skeletal Mesh Component using Blueprints.
+Description:此指南说明如何使用蓝图应用物理约束配置文件到骨架网格体组件。
 parent:Engine/Physics/PhAT/HowTo
 order:1
-Version: 4.13
+Version:4.13
 skilllevel:Intermediate
-prereq: Engine/Blueprints/QuickStart
-prereq: Engine/Physics/PhAT/HowTo/CreateConstraintProfile
+prereq:Engine/Blueprints/QuickStart
+prereq:Engine/Physics/PhAT/HowTo/CreateConstraintProfile
 related:Videos/PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f/N1tDjbFXeOo
-related: Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile
+related:Engine/Physics/PhAT/HowTo/ApplyPhysicalAnimationProfile
+topic-image:Engine/Physics/physics_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/ApplyConstraintProfile:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-Below you will find the steps for creating a simple graph to enable a **Constraint Profile** on a **Skeletal Mesh Component** in a **Pawn**. 
+以下讲述创建简单图表的步骤，用以在 **Pawn** 中的 **骨架网格体组件** 上启用 **约束配置文件**。 
 
-## Steps
-1. Open or create a Blueprint with a **Skeletal Mesh Component**.
-	* Or, if your Blueprint doesn't contain a **Skeletal Mesh Component**, add one using the **Components Panel**.
-1. Adjust the **Skeletal Mesh Component** Collision settings.
-	* The Collision Preset needs to be changed so that that **Skeletal Mesh Component** has **Collision Enabled** but also so it doesn't interact with Pawns:
+## 步骤
+1. 打开或创建一个带 **骨架网格体组件** 的蓝图。
+	* 如蓝图不包含 **骨架网格体组件**，则使用 **Components 面板** 进行添加。
+
+	![](addSkelMeshComp.png)
+
+1. 调整 **骨架网格体组件** 的碰撞设置。
+	* 需要对 Collision Preset 进行修改，使 **骨架网格体组件** **启用碰撞**；如拥有一个 **Pawn** 胶囊体（或其他几何体），则需要确定碰撞设置兼容。如拥有一个 **Pawn** 胶囊体，则需要忽略 **Pawn** 碰撞：
 
 		![](Engine\Physics\PhAT\HowTo\ApplyPhysicalAnimationProfile\collisionSettings.png)
 
 		[REGION:note]
-		You'll notice that the **Object Type** is set to **Pawn** and that we're ignoring **Pawns** in our collision channels. This fixes the issue of the **Skeletal Mesh** trying to eject itself from 
-		the collision capsule. However, if you want the **Skeletal Mesh** to collide with other **Pawns** you'll need to adjust what **Object Type** your **Skeletal Mesh** is and then change 
-		how the **Capsule** interacts with that **Object Type**. See: **[](Engine/Physics/Collision/HowTo/AddCustomCollisionType)**, for more information on creating **Custom Collision Channels**.
+		您将注意到 **Object Type** 设为 **Pawn**，并且无视碰撞通道中的 **Pawn**。这能修复 **骨架网格体** 将自己从碰撞胶囊体中弹出 
+		的问题。然而，如果希望 **骨架网格体** 与其他 **Pawn** 发生碰撞，则需要调整 **骨架网格体** 的 **物体类型（Object Type）**，然后 
+		修改 **胶囊体** 与该 **物体类型** 进行交互的方式。可在 **[](Engine/Physics/Collision/HowTo/AddCustomCollisionType)** 查阅创建 **自定义碰撞通道** 的更多内容。
 		[/REGION]
 
-1. Add a **Physical Animation Component** to your Blueprint using the **Components Panel**.
-1. Add a Name Variable and call it **Bone Name**.
-1. Compile so we can set the value of the **Bone Name** variable.
-1. Change **Bone Name** Default Value to the desired target **Bone**, in this case `spine_01`.
-1. Switch to the **Event Graph**.
-1. Locate or create the **Event BeginPlay** event node.
-1. Add a reference to your **Skeletal Mesh Component**
-1. Pull off the blue pin on your **Skeletal Mesh Component** and search for _Set Constraint_.
-1. Add a **Set Constraint Profile for All** node.
-	* **Target** is your **Skeletal Mesh Component**.
-	* **Profile Name** is the name of the **Constraint Profile** that you created (or will create) in the **Physics Asset Tool**.
-	* (optional) **Default if Not Found** if a bone doesn't exist in the Profile, it will keep its current settings.
-1. Set All Bodies Below Simulate Physics Node connected to the **Apply Physcial Animation Profile Below** Node.
-	* **Target** is your **Skeletal Mesh Component**.
-	* **In Bone Name** will take the **Bone Name** variable as input.
-	* **New Simulate** should be set to **True**.
-	* Again, since we are using `spine_01` as the target bone **Include Self** should be checked.
-1. Final Graph:
+1. 使用 **Components 面板** 添加一个 **Physical Animation Component** 到蓝图。
+
+	![](addPhysAnimComp.png)
+
+1. 添加一个 Name 变量并将其命名为 **Bone Name**。
+
+	[REGION:raw]
+	![](variableName.png)
+	[/REGION]
+
+1. 编译，以便设置 **Bone Name** 变量的值。
+
+	![](compile.png)
+
+1. 将 **Bone Name** 的默认值设为设为所需的目标 **骨骼**，在此例中为 `spine_01`。
+
+	![](boneName.png)
+
+1. 切换至 **事件图表**。
+1. 找到或创建 **Event BeginPlay** 事件节点。
+
+	![](eventBP.png)
+
+1. 为 **骨架网格体组件** 添加引用。
+
+	![](addSKMPref.png)
+
+1. 在 **骨架网格体组件** 上连出蓝色引脚，并搜索 _Set Constraint_。
+
+	![](createSetAll.png)
+
+1. 添加一个 **Set Constraint Profile for All** 节点。
+	* **Target** 则是 **骨架网格体组件**。
+	* **Profile Name** 是在 **物理资源工具** 中创建（或将要创建）的 **约束配置文件** 的命名。
+	* （任选）**Default if Not Found** 如配置文件中不包含骨骼，则会保持其当前设置。
+
+	![](constraintProfNodeSettings.png)
+
+1. Set All Bodies Below Simulate Physics 节点连接到 **Apply Physcial Animation Profile Below** 节点。
+	* **Target** 是 **骨架网格体组件**。
+	* **In Bone Name** 将以 **Bone Name** 变量为输入。
+	* **New Simulate** 应被设为 **True**。
+	* 因为我们使用 `spine_01` 作为目标骨骼，则需要勾选 **Include Self**。
+1. 最终图表：
 
 	[OBJECT:Snippet]
 		[PARAMLITERAL:id]
@@ -101,25 +93,25 @@ Below you will find the steps for creating a simple graph to enable a **Constrai
 		[/PARAM]
 	[/OBJECT]
 
-	**Hidden Graph Information**
+	**隐藏图表信息**
 
 	[REGION:raw]
-	| Variable | Value | Description |
+	| 变量 | 值 | 描述 |
 	| --- | :--- | :--- |
-	| **Bone Name** %spacer2% | `spine_01` | We use it in the **Set All Bodies Below Simulate Physics** to define what parts of the Skeletal Mesh are simulating. |
+	| **Bone Name** %spacer2% | `spine_01` | 在 **Set All Bodies Below Simulate Physics** 中使用，定义模拟的骨架网格体部分。|
 	[/REGION]
 
-	| Component || Description |
-	| --- | :---: | :--- |
-	| **Skeletal Mesh Component** || The **Skeletal Mesh Component** that will be have the **Constraint Profile** applied to it. |
+	| 组件 || 描述 |
+	| --- | :---:| :--- |
+	| **Skeletal Mesh Component** || 将会应用 **约束配置文件** 的 **骨架网格体组件**。如继承自 **Character**，被命名为 `Mesh` 即可。|
 
-## Result
+## 结果
 
-Now when you play your game, the **Constraint Profile** will take over. Depending on your settings this could mean that your character falls apart, or has motors engaged to make their arms flail around.
+现在开始游戏后，**约束配置文件** 便会开始工作。基于设置不同可能出现多种效果，角色可能四分五裂，也可能胡乱挥舞手臂。
 
 ![](result.png)
 
-This effect was achieved by setting the **Linear Limits** on the upper arm constraints to **Free**.
+将上臂约束的 **Linear Limits** 设为 **Free** 即可达到此效果。
 
 ![](achievedBy.png)
 
@@ -185,6 +177,11 @@ This effect was achieved by setting the **Linear Limits** on the upper arm const
 	   CustomProperties Pin (PinId=F259489241A7853EE35268954C561767,PinName="self",PinFriendlyName=NSLOCTEXT("K2Node", "Target", "Target"),PinType.PinCategory="object",PinType.PinSubCategoryObject=BlueprintGeneratedClass'/Game/PhysAnimPawn.PhysAnimPawn_C',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PersistentGuid=00000000000000000000000000000000,bHidden=True,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 	End Object
 [/VAR]
+
+
+
+
+
 
 
 

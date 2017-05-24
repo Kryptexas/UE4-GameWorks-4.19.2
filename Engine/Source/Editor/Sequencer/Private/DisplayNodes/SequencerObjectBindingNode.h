@@ -6,6 +6,7 @@
 #include "Misc/Guid.h"
 #include "Widgets/SWidget.h"
 #include "DisplayNodes/SequencerDisplayNode.h"
+#include "PropertyPath.h"
 
 class FMenuBuilder;
 struct FSlateBrush;
@@ -70,7 +71,7 @@ public:
 
 protected:
 
-	void AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*>> KeyableProperties, int32 PropertyNameIndexStart = 0, int32 PropertyNameIndexEnd = -1);
+	void AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<FPropertyPath> KeyableProperties, int32 PropertyNameIndexStart = 0, int32 PropertyNameIndexEnd = -1);
 
 	void AddSpawnOwnershipMenu(FMenuBuilder& MenuBuilder);
 
@@ -81,11 +82,11 @@ private:
 	
 	TSharedRef<SWidget> HandleAddTrackComboButtonGetMenuContent();
 	
-	void HandleAddTrackSubMenuNew(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<UProperty*>> KeyablePropertyPath);
+	void HandleAddTrackSubMenuNew(FMenuBuilder& AddTrackMenuBuilder, TArray<FPropertyPath> KeyablePropertyPath, int32 PropertyNameIndexStart = 0);
 
 	void HandleLabelsSubMenuCreate(FMenuBuilder& MenuBuilder);
 	
-	void HandlePropertyMenuItemExecute(TArray<UProperty*> PropertyPath);
+	void HandlePropertyMenuItemExecute(FPropertyPath PropertyPath);
 
 private:
 

@@ -23,6 +23,9 @@ public:
 	 */
 	virtual void StartupModule() override
 	{
+		// Make sure the advanced preview scene module is loaded
+		FModuleManager::Get().LoadModuleChecked("AdvancedPreviewScene");
+
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 	}

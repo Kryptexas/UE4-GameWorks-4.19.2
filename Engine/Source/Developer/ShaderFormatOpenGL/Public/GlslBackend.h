@@ -26,7 +26,15 @@ public:
 
 	virtual bool SupportsIntegerModulo() const override
 	{
+#if PLATFORM_HTML5_BROWSER 
+		// For backwards compatibility when targeting WebGL 2 shaders,
+		// generate GLES2/WebGL 1 style shaders but with GLES3/WebGL 2
+		// constructs available.
+		// (TODO: Figure out how to make this cleanly upstreamable)
+		return true;
+#else
 		return !bIsES2;
+#endif
 	}
 
 	virtual bool SupportsMatrixConversions() const override { return true; }

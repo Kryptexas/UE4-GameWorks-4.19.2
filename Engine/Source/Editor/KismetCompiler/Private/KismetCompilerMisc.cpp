@@ -26,6 +26,7 @@
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_FunctionResult.h"
 #include "K2Node_Timeline.h"
+#include "K2Node_Variable.h"
 #include "KismetCompiledFunctionContext.h"
 #include "KismetCompiler.h"
 
@@ -395,8 +396,8 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 			SourcePin);
 	}
 
-	// Now check the direction
-	if (Property->HasAnyPropertyFlags(CPF_Parm))
+	// Now check the direction if it is parameter coming in or out of a function call style node (variable nodes are excluded since they maybe local parameters)
+	if (Property->HasAnyPropertyFlags(CPF_Parm) && !SourcePin->GetOwningNode()->IsA(UK2Node_Variable::StaticClass()))
 	{
 		// Parameters are directional
 		const bool bOutParam = Property->HasAllPropertyFlags(CPF_ReturnParm) || (Property->HasAllPropertyFlags(CPF_OutParm) && !Property->HasAnyPropertyFlags(CPF_ReferenceParm));
@@ -1066,7 +1067,9 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	{
 		if (UObject* ExistingObject = CheckPropertyNameOnScope(Scope, PropertyName))
 		{
-			MessageLog.Error(*FString::Printf(TEXT("Internal Compiler Error:  Tried to create a property %s in scope %s, but %s already exists there."), *PropertyName.ToString(), (Scope ? *Scope->GetName() : TEXT("None")), *ExistingObject->GetFullName()));
+			const FString ScopeName((Scope != nullptr) ? Scope->GetName() : FString(TEXT("None")));
+			const FString ExistingTypeAndPath(ExistingObject->GetFullName(Scope));
+			MessageLog.Error(*FString::Printf(TEXT("Internal Compiler Error: Tried to create a property %s in scope %s, but another object (%s) already already exists there."), *PropertyName.ToString(), *ScopeName, *ExistingTypeAndPath));
 
 			// Find a free name, so we can still create the property to make it easier to spot the duplicates, and avoid crashing
 			uint32 Counter = 0;
@@ -1698,10 +1701,11 @@ FString FNetNameMapping::MakeBaseName(const UAnimGraphNode_Base* Net)
 
 FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp, bool bInWantsInstrumentation)
 	: Blueprint(InBlueprint)
-	, SourceGraph(NULL)
-	, EntryPoint(NULL)
-	, Function(NULL)
+	, SourceGraph(nullptr)
+	, EntryPoint(nullptr)
+	, Function(nullptr)
 	, NewClass(InNewClass)
+	, LastFunctionPropertyStorageLocation(nullptr)
 	, MessageLog(InMessageLog)
 	, Schema(InSchema)
 	, bIsUbergraph(false)
@@ -1714,7 +1718,7 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
 	, NetFlags(0)
-	, SourceEventFromStubGraph(NULL)
+	, SourceEventFromStubGraph(nullptr)
 	, bGeneratingCpp(bInGeneratingCpp)
 	, bUseFlowStack(true)
 {

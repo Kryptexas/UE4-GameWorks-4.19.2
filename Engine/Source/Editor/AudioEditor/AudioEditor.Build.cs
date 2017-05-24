@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AudioEditor : ModuleRules
 {
-    public AudioEditor(TargetInfo Target)
+    public AudioEditor(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePaths.AddRange(
             new string[] {

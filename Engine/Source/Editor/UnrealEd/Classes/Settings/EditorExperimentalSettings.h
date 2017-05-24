@@ -42,14 +42,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Enable Details Panel Favorites"))
 	bool bEnableFavoriteSystem;
 
-	/** Enables content hot-reloading in the editor (eg, when syncing new assets via source control) */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Content Hot-Reloading"))
-	bool bEnableContentHotReloading;
 
-	/** Enable being able to subclass components in blueprints */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
-	bool bBlueprintableComponents;
-	
 	/** Device output log window (currently implemented for Android only)*/
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Device Output Log"))
 	bool bDeviceOutputLog;
@@ -81,10 +74,6 @@ public:
 	/** Whether to show Audio Streaming options for SoundWaves (disabling will not stop all audio streaming) */
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	bool bShowAudioStreamingOptions;
-
-	/** Whether to show AudioMixer-dependent editor data. Only enable if also running with the -audiomixer. */
-	UPROPERTY(EditAnywhere, config, Category = Audio)
-	bool bShowAudioMixerData;
 
 	/** Allows ChunkIDs to be assigned to assets to via the content browser context menu. */
 	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
@@ -125,25 +114,17 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Use OpenCL for convex hull decomposition"))
 	bool bUseOpenCLForConvexHullDecomp;
 
-	/** Enables a preview of the Unreal Editor in VR.  This adds a new tool bar button that allows you to toggle into "VR Mode" instantly.  This feature is still in development, but your feedback is appreciated! */
-	UPROPERTY(EditAnywhere, config, Category=VR, meta = (DisplayName="Enable VR Editing"))
-	bool bEnableVREditing;
-
-	/**If true, wearing a Vive or Oculus Rift headset will automatically enter VR Editing mode if Enable VR Editing is true. */
-	UPROPERTY(EditAnywhere, config, Category = VR, meta = (DisplayName = "Enable VR Mode Auto-Entry"))
-	bool bEnableAutoVREditMode;
-
-	/**If true, the tutorial window should always appear when the VR Editor is launched. */
-	UPROPERTY(EditAnywhere, config, Category = VR, meta = (DisplayName = "Always Show VR Tutorial at Start"))
-	bool bAlwaysShowVRTutorial;
-
 	/** Allows editing of potentially unsafe properties during PIE. Advanced use only - use with caution. */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Allow editing of potentially unsafe properties."))
 	bool bAllowPotentiallyUnsafePropertyEditing;
 
 	/** Enable experimental bulk facial animation importer (found in Developer Tools menu, requires editor restart) */
-	UPROPERTY(EditAnywhere, config, Category = Tools)
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
 	bool bFacialAnimationImporter;
+
+	/** Enable experimental clothing tools (parameter painting and simulation configuration) found in the skeletal mesh editor */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
+	bool bClothingTools;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

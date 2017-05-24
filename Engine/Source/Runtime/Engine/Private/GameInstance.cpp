@@ -367,6 +367,11 @@ UGameViewportClient* UGameInstance::GetGameViewportClient() const
 	return WC ? WC->GameViewport : nullptr;
 }
 
+// This can be defined in the target.cs file to allow map overrides in shipping builds
+#ifndef UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING
+#define UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING 0
+#endif
+
 void UGameInstance::StartGameInstance()
 {
 	UEngine* const Engine = GetEngine();
@@ -382,7 +387,7 @@ void UGameInstance::StartGameInstance()
 	
 	const TCHAR* Tmp = FCommandLine::Get();
 
-#if UE_BUILD_SHIPPING && !UE_SERVER
+#if UE_BUILD_SHIPPING && !UE_SERVER && !UE_ALLOW_MAP_OVERRIDE_IN_SHIPPING
 	// In shipping don't allow a map override unless on server
 	Tmp = TEXT("");
 #endif // UE_BUILD_SHIPPING && !UE_SERVER
@@ -790,18 +795,6 @@ const TArray<class ULocalPlayer*>& UGameInstance::GetLocalPlayers() const
 	return LocalPlayers;
 }
 
-void UGameInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UGameInstance* This = CastChecked<UGameInstance>(InThis);
-
-	for (ULocalPlayer* LocalPlayer : This->LocalPlayers)
-	{
-		Collector.AddReferencedObject(LocalPlayer, This);
-	}
-
-	Super::AddReferencedObjects(This, Collector);
-}
-
 void UGameInstance::StartRecordingReplay(const FString& Name, const FString& FriendlyName, const TArray<FString>& AdditionalOptions)
 {
 	if ( FParse::Param( FCommandLine::Get(),TEXT( "NOREPLAYS" ) ) )
@@ -890,7 +883,7 @@ void UGameInstance::StartRecordingReplay(const FString& Name, const FString& Fri
 		return;
 	}
 
-	UE_LOG(LogDemo, Log, TEXT( "Num Network Actors: %i" ), CurrentWorld->DemoNetDriver->GetNetworkObjectList().GetObjects().Num() );
+	UE_LOG(LogDemo, Log, TEXT( "Num Network Actors: %i" ), CurrentWorld->DemoNetDriver->GetNetworkObjectList().GetActiveObjects().Num() );
 }
 
 void UGameInstance::StopRecordingReplay()
@@ -903,7 +896,19 @@ void UGameInstance::StopRecordingReplay()
 		return;
 	}
 
+	bool LoadDefaultMap = false;
+
+	if ( CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsPlaying() )
+	{
+		LoadDefaultMap = true;
+	}
+
 	CurrentWorld->DestroyDemoNetDriver();
+
+	if ( LoadDefaultMap )
+	{
+		GEngine->BrowseToDefaultMap(*GetWorldContext());
+	}
 }
 
 void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const TArray<FString>& AdditionalOptions)

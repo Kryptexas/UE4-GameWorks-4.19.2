@@ -4,16 +4,37 @@ project(PhysX CXX)
 
 CMAKE_POLICY(SET CMP0057 NEW) # Enable IN_LIST
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
+# If GW_DEPS_ROOT is not defined we use the env variable
+IF(NOT DEFINED GW_DEPS_ROOT)
+	IF(NOT DEFINED ENV{GW_DEPS_ROOT})
+		MESSAGE(FATAL_ERROR "GW_DEPS_ROOT environmental variable must be set.")
+	ELSE()
+		SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
+	ENDIF()
+ENDIF()
+
+SET(CMAKE_MODULE_PATH ${GW_DEPS_ROOT}/sw/physx/tools/CMakeModules)
+
+IF(EXISTS ${GW_DEPS_ROOT}/Externals/CMakeModules)
+	SET(CMAKE_MODULE_PATH ${GW_DEPS_ROOT}/Externals/CMakeModules)
+ENDIF()
 
 # Add find modules to the path
-SET(CMAKE_MODULE_PATH $ENV{CMAKE_MODULE_PATH})
 IF(NOT EXISTS ${CMAKE_MODULE_PATH})
 	MESSAGE(FATAL_ERROR "Could not find CMakeModules at ${CMAKE_MODULE_PATH}")
 ENDIF()
 
 MESSAGE("PhysX Build Platform: " ${TARGET_BUILD_PLATFORM})
 MESSAGE("Using CXX Compiler: " ${CMAKE_CXX_COMPILER})
+
+SET(CMAKE_FIND_ROOT_PATH  "")
+
+# Add branch name into include path, adding a hint into FIND_PACKAGE does not work
+IF(DEFINED PX_SHARED_BRANCH_NAME)
+LIST(APPEND CMAKE_INCLUDE_PATH "${GW_DEPS_ROOT}/sw/physx/PxShared/${PX_SHARED_BRANCH_NAME}")
+ENDIF()
+
+FIND_PACKAGE(PxShared REQUIRED)
 
 # TODO: Fail if we didn't find deps
 

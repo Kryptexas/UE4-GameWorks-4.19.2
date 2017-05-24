@@ -5,9 +5,9 @@
 #include "HAL/RunnableThread.h"
 #include "Misc/ScopeLock.h"
 #include "Framework/Application/SlateApplication.h"
+#include "DefaultGameMoviePlayer.h"
 
-
-
+FThreadSafeCounter FSlateLoadingSynchronizationMechanism::LoadingThreadInstanceCounter;
 
 /**
  * The Slate thread is simply run on a worker thread.
@@ -36,7 +36,8 @@ private:
 
 
 
-FSlateLoadingSynchronizationMechanism::FSlateLoadingSynchronizationMechanism()
+FSlateLoadingSynchronizationMechanism::FSlateLoadingSynchronizationMechanism(TSharedPtr<FMoviePlayerWidgetRenderer, ESPMode::ThreadSafe> InWidgetRenderer)
+	: WidgetRenderer(InWidgetRenderer)
 {
 }
 
@@ -52,8 +53,11 @@ void FSlateLoadingSynchronizationMechanism::Initialize()
 
 	MainLoop.Lock();
 
+	FString ThreadName = TEXT("SlateLoadingThread");
+	ThreadName.AppendInt(LoadingThreadInstanceCounter.Increment());
+
 	SlateRunnableTask = new FSlateLoadingThreadTask( *this );
-	SlateLoadingThread = FRunnableThread::Create(SlateRunnableTask, TEXT("SlateLoadingThread"));
+	SlateLoadingThread = FRunnableThread::Create(SlateRunnableTask, *ThreadName);
 }
 
 void FSlateLoadingSynchronizationMechanism::DestroySlateThread()
@@ -122,15 +126,11 @@ void FSlateLoadingSynchronizationMechanism::SlateThreadRunMainLoop()
 
 		if (FSlateApplication::IsInitialized() && !IsSlateDrawPassEnqueued())
 		{
-			TSharedPtr<FSlateRenderer> SlateRenderer = FSlateApplication::Get().GetRenderer();
-			FScopeLock ScopeLock(SlateRenderer->GetResourceCriticalSection());
+			TSharedPtr<FSlateRenderer> MainSlateRenderer = FSlateApplication::Get().GetRenderer();
+			FScopeLock ScopeLock(MainSlateRenderer->GetResourceCriticalSection());
 
-			// We can't pump messages because this is not the main thread
-			// and that does not work at least in Windows
-			// (HWNDs can only be pumped on the thread they're created on)
-			// Thus, this function does nothing on the Slate thread
-			//FSlateApplication::Get().PumpMessages();
-			FSlateApplication::Get().Tick();
+			WidgetRenderer->DrawWindow(DeltaTime);
+
 			SetSlateDrawPassEnqueued();
 		}
 

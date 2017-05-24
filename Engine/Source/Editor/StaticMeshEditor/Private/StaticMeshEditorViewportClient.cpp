@@ -28,6 +28,7 @@
 
 #include "Engine/AssetUserData.h"
 
+#include "Editor/EditorPerProjectUserSettings.h"
 #include "AssetViewerSettings.h"
 
 #define LOCTEXT_NAMESPACE "FStaticMeshEditorViewportClient"
@@ -73,7 +74,8 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;
 
-	bShowCollision = false;
+	bShowSimpleCollision = false;
+	bShowComplexCollision = false;
 	bShowSockets = true;
 	bDrawUVs = false;
 	bDrawNormals = false;
@@ -92,7 +94,7 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	// Register delegate to update the show flags when the post processing is turned on or off
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FStaticMeshEditorViewportClient::OnAssetViewerSettingsChanged);
 	// Set correct flags according to current profile settings
-	SetAdvancedShowFlagsForScene();
+	SetAdvancedShowFlagsForScene(UAssetViewerSettings::Get()->Profiles[GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex].bPostProcessingEnabled);
 }
 
 FStaticMeshEditorViewportClient::~FStaticMeshEditorViewportClient()
@@ -447,13 +449,14 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 		return;
 	}
 
-	if (bShowCollision && StaticMesh->BodySetup)
+	// Draw simple shapes if we are showing simple, or showing complex but using simple as complex
+	if (StaticMesh->BodySetup && (bShowSimpleCollision || (bShowComplexCollision && StaticMesh->BodySetup->CollisionTraceFlag == ECollisionTraceFlag::CTF_UseSimpleAsComplex)))
 	{
 		// Ensure physics mesh is created before we try and draw it
 		StaticMesh->BodySetup->CreatePhysicsMeshes();
 
-		const FColor SelectedColor(149, 223, 157);
-		const FColor UnselectedColor(157, 149, 223);
+		const FColor SelectedColor(20, 220, 20);
+		const FColor UnselectedColor(0, 125, 0);
 
 		const FVector VectorScaleOne(1.0f);
 
@@ -783,7 +786,11 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 
 			if (VolumeData.Size.GetMax() > 0)
 			{
-				float MemoryMb = (VolumeData.Size.X * VolumeData.Size.Y * VolumeData.Size.Z * VolumeData.DistanceFieldVolume.GetTypeSize()) / (1024.0f * 1024.0f);
+				static const auto CVarEightBit = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFieldBuild.EightBit"));
+				const bool bEightBitFixedPoint = CVarEightBit->GetValueOnAnyThread() != 0;
+				const int32 FormatSize = GPixelFormats[bEightBitFixedPoint ? PF_G8 : PF_R16F].BlockBytes;
+
+				float MemoryMb = (VolumeData.Size.X * VolumeData.Size.Y * VolumeData.Size.Z * FormatSize + VolumeData.CompressedDistanceFieldVolume.Num() * VolumeData.CompressedDistanceFieldVolume.GetTypeSize()) / (1024.0f * 1024.0f);
 
 				FNumberFormattingOptions NumberOptions;
 				NumberOptions.MinimumFractionalDigits = 2;
@@ -1182,10 +1189,16 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 {
 	FEditorViewportClient::PerspectiveCameraMoved();
 
+	// If in the process of transitioning to a new location, don't update the orbit camera position.
+	// On the final update of the transition, we will get here with IsPlaying()==false, and the editor camera position will
+	// be correctly updated.
+	if (GetViewTransform().IsPlaying())
+	{
+		return;
+	}
+
 	// The static mesh editor saves the camera position in terms of an orbit camera, so ensure 
 	// that orbit mode is enabled before we store the current transform information.
-	// ToggleOrbitCamera affects the stored camera location, and information is lost in the transformation,
-	// so remember the current position here so it can be restored afterwards.
 	const bool bWasOrbit = bUsingOrbitCamera;
 	const FVector OldCameraLocation = GetViewLocation();
 	const FRotator OldCameraRotation = GetViewRotation();
@@ -1200,24 +1213,23 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 		);
 
 	ToggleOrbitCamera(bWasOrbit);
-	if (!GetViewTransform().IsPlaying())
-	{
-		SetViewLocation(OldCameraLocation);
-		SetViewRotation(OldCameraRotation);
-	}
 }
 
 void FStaticMeshEditorViewportClient::OnAssetViewerSettingsChanged(const FName& InPropertyName)
 {
-	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled))
+	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled) || InPropertyName == NAME_None)
 	{
-		SetAdvancedShowFlagsForScene();
+		UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+		const int32 ProfileIndex = AdvancedPreviewScene->GetCurrentProfileIndex();
+		if (Settings->Profiles.IsValidIndex(ProfileIndex))
+		{
+			SetAdvancedShowFlagsForScene(Settings->Profiles[ProfileIndex].bPostProcessingEnabled);
+		}		
 	}
 }
 
-void FStaticMeshEditorViewportClient::SetAdvancedShowFlagsForScene()
-{
-	const bool bAdvancedShowFlags = UAssetViewerSettings::Get()->Profiles[AdvancedPreviewScene->GetCurrentProfileIndex()].bPostProcessingEnabled;
+void FStaticMeshEditorViewportClient::SetAdvancedShowFlagsForScene(const bool bAdvancedShowFlags)
+{	
 	if (bAdvancedShowFlags)
 	{
 		EngineShowFlags.EnableAdvancedFeatures();
@@ -1234,54 +1246,58 @@ void FStaticMeshEditorViewportClient::SetFloorAndEnvironmentVisibility(const boo
 	AdvancedPreviewScene->SetEnvironmentVisibility(bVisible, true);
 }
 
-void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InStaticMeshComponent)
+void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InStaticMeshComponent, bool bResetCamera)
 {
 	StaticMesh = InStaticMesh;
 	StaticMeshComponent = InStaticMeshComponent;
 
 	if(StaticMeshComponent != nullptr)
 	{
-		StaticMeshComponent->bDrawMeshCollisionWireframe = bShowCollision;
+		StaticMeshComponent->bDrawMeshCollisionIfSimple = bShowSimpleCollision;
+		StaticMeshComponent->bDrawMeshCollisionIfComplex = bShowComplexCollision;
 		StaticMeshComponent->MarkRenderStateDirty();
 	}
-
-	// If we have a thumbnail transform, we will favor that over the camera position as the user may have customized this for a nice view
-	// If we have neither a custom thumbnail nor a valid camera position, then we'll just use the default thumbnail transform 
-	const USceneThumbnailInfo* const AssetThumbnailInfo = Cast<USceneThumbnailInfo>(StaticMesh->ThumbnailInfo);
-	const USceneThumbnailInfo* const DefaultThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
-
-	// Prefer the asset thumbnail if available
-	const USceneThumbnailInfo* const ThumbnailInfo = (AssetThumbnailInfo) ? AssetThumbnailInfo : DefaultThumbnailInfo;
-	check(ThumbnailInfo);
-
-	FRotator ThumbnailAngle;
-	ThumbnailAngle.Pitch = ThumbnailInfo->OrbitPitch;
-	ThumbnailAngle.Yaw = ThumbnailInfo->OrbitYaw;
-	ThumbnailAngle.Roll = 0;
-	const float ThumbnailDistance = ThumbnailInfo->OrbitZoom;
-
-	const float CameraY = StaticMesh->GetBounds().SphereRadius / (75.0f * PI / 360.0f);
-	SetCameraSetup(
-		FVector::ZeroVector, 
-		ThumbnailAngle,
-		FVector(0.0f, CameraY + ThumbnailDistance - AutoViewportOrbitCameraTranslate, 0.0f), 
-		StaticMesh->GetBounds().Origin, 
-		-FVector(0, CameraY, 0), 
-		FRotator(0,90.f,0)
-		);
-
-	if(!AssetThumbnailInfo && StaticMesh->EditorCameraPosition.bIsSet)
+	
+	if (bResetCamera)
 	{
-		// The static mesh editor saves the camera position in terms of an orbit camera, so ensure 
-		// that orbit mode is enabled before we set the new transform information
-		const bool bWasOrbit = bUsingOrbitCamera;
-		ToggleOrbitCamera(true);
+		// If we have a thumbnail transform, we will favor that over the camera position as the user may have customized this for a nice view
+		// If we have neither a custom thumbnail nor a valid camera position, then we'll just use the default thumbnail transform 
+		const USceneThumbnailInfo* const AssetThumbnailInfo = Cast<USceneThumbnailInfo>(StaticMesh->ThumbnailInfo);
+		const USceneThumbnailInfo* const DefaultThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
 
-		SetViewRotation(StaticMesh->EditorCameraPosition.CamOrbitRotation);
-		SetViewLocation(StaticMesh->EditorCameraPosition.CamOrbitPoint + StaticMesh->EditorCameraPosition.CamOrbitZoom);
-		SetLookAtLocation(StaticMesh->EditorCameraPosition.CamOrbitPoint);
+		// Prefer the asset thumbnail if available
+		const USceneThumbnailInfo* const ThumbnailInfo = (AssetThumbnailInfo) ? AssetThumbnailInfo : DefaultThumbnailInfo;
+		check(ThumbnailInfo);
 
-		ToggleOrbitCamera(bWasOrbit);
+		FRotator ThumbnailAngle;
+		ThumbnailAngle.Pitch = ThumbnailInfo->OrbitPitch;
+		ThumbnailAngle.Yaw = ThumbnailInfo->OrbitYaw;
+		ThumbnailAngle.Roll = 0;
+		const float ThumbnailDistance = ThumbnailInfo->OrbitZoom;
+
+		const float CameraY = StaticMesh->GetBounds().SphereRadius / (75.0f * PI / 360.0f);
+		SetCameraSetup(
+			FVector::ZeroVector,
+			ThumbnailAngle,
+			FVector(0.0f, CameraY + ThumbnailDistance - AutoViewportOrbitCameraTranslate, 0.0f),
+			StaticMesh->GetBounds().Origin,
+			-FVector(0, CameraY, 0),
+			FRotator(0, 90.f, 0)
+			);
+
+		if (!AssetThumbnailInfo && StaticMesh->EditorCameraPosition.bIsSet)
+		{
+			// The static mesh editor saves the camera position in terms of an orbit camera, so ensure 
+			// that orbit mode is enabled before we set the new transform information
+			const bool bWasOrbit = bUsingOrbitCamera;
+			ToggleOrbitCamera(true);
+
+			SetViewRotation(StaticMesh->EditorCameraPosition.CamOrbitRotation);
+			SetViewLocation(StaticMesh->EditorCameraPosition.CamOrbitPoint + StaticMesh->EditorCameraPosition.CamOrbitZoom);
+			SetLookAtLocation(StaticMesh->EditorCameraPosition.CamOrbitPoint);
+
+			ToggleOrbitCamera(bWasOrbit);
+		}
 	}
 }
 
@@ -1360,27 +1376,50 @@ bool FStaticMeshEditorViewportClient::IsSetDrawVerticesChecked() const
 	return bDrawVertices;
 }
 
-void FStaticMeshEditorViewportClient::SetShowWireframeCollision()
+void FStaticMeshEditorViewportClient::SetShowSimpleCollision()
 {
-	bShowCollision = !bShowCollision;
+	bShowSimpleCollision = !bShowSimpleCollision;
 
-	if(StaticMeshComponent != nullptr)
+	if (StaticMeshComponent != nullptr)
 	{
-		StaticMeshComponent->bDrawMeshCollisionWireframe = bShowCollision;
+		// Have to set this flag in case we are using 'use complex as simple'
+		StaticMeshComponent->bDrawMeshCollisionIfSimple = bShowSimpleCollision;
 		StaticMeshComponent->MarkRenderStateDirty();
 	}
 
 	if (FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bShowCollision"), bShowCollision ? TEXT("True") : TEXT("False"));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bShowCollision"), (bShowSimpleCollision || bShowComplexCollision) ? TEXT("True") : TEXT("False"));
 	}
 	StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
 	Invalidate();
 }
 
-bool FStaticMeshEditorViewportClient::IsSetShowWireframeCollisionChecked() const
+bool FStaticMeshEditorViewportClient::IsSetShowSimpleCollisionChecked() const
 {
-	return bShowCollision;
+	return bShowSimpleCollision;
+}
+
+void FStaticMeshEditorViewportClient::SetShowComplexCollision()
+{
+	bShowComplexCollision = !bShowComplexCollision;
+
+	if (StaticMeshComponent != nullptr)
+	{
+		StaticMeshComponent->bDrawMeshCollisionIfComplex = bShowComplexCollision;
+		StaticMeshComponent->MarkRenderStateDirty();
+	}
+
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bShowCollision"), (bShowSimpleCollision || bShowComplexCollision) ? TEXT("True") : TEXT("False"));
+	}
+	Invalidate();
+}
+
+bool FStaticMeshEditorViewportClient::IsSetShowComplexCollisionChecked() const
+{
+	return bShowComplexCollision;
 }
 
 void FStaticMeshEditorViewportClient::SetShowSockets()

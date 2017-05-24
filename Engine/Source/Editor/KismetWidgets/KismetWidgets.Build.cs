@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class KismetWidgets : ModuleRules
 {
-	public KismetWidgets(TargetInfo Target)
+	public KismetWidgets(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/KismetWidgets/Private");
 

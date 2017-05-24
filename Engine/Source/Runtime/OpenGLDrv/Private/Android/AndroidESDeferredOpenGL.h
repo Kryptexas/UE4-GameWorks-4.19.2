@@ -242,7 +242,6 @@ typedef void (GL_APIENTRYP PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC) (
 	EnumMacro(PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC, glFramebufferTextureMultiviewOVR)\
 	EnumMacro(PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC, glFramebufferTextureMultisampleMultiviewOVR)
 
-
 extern "C"
 {
 	extern PFNEGLGETSYSTEMTIMENVPROC eglGetSystemTimeNV_p;
@@ -250,7 +249,6 @@ extern "C"
 	extern PFNEGLDESTROYSYNCKHRPROC eglDestroySyncKHR_p;
 	extern PFNEGLCLIENTWAITSYNCKHRPROC eglClientWaitSyncKHR_p;
 }
-
 
 // List of all OpenGL entry points
 #define ENUM_GL_ENTRYPOINTS_ALL(EnumMacro) \

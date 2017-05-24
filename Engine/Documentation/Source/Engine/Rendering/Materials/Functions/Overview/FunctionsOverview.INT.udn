@@ -3,6 +3,7 @@ Title:Material Functions Overview
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:An overview of how material functions work and some critical concepts for their use.
 Version: 4.9
+tags:Materials
 
 [REGION:banner]
 ![](matfunc_overview_banner_NEW.jpg)

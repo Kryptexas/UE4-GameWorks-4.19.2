@@ -1390,17 +1390,16 @@ void SDetailsViewBase::UpdateFilteredDetails()
 			if(DetailLayout.IsValid())
 			{
 				DetailLayout->FilterDetailLayout(CurrentFilter);
-			}
 
-			FDetailNodeList& LayoutRoots = DetailLayout->GetRootTreeNodes();
-			if(LayoutRoots.Num() > 0)
-			{
-				// A top level object nodes has a non-filtered away root so add one to the total number we have
-				++NumVisbleTopLevelObjectNodes;
+				FDetailNodeList& LayoutRoots = DetailLayout->GetRootTreeNodes();
+				if (LayoutRoots.Num() > 0)
+				{
+					// A top level object nodes has a non-filtered away root so add one to the total number we have
+					++NumVisbleTopLevelObjectNodes;
 
-				InitialRootNodeList.Append(LayoutRoots);
+					InitialRootNodeList.Append(LayoutRoots);
+				}
 			}
-		
 		}
 	}
 

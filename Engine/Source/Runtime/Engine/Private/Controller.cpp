@@ -614,8 +614,7 @@ APawn* AController::K2_GetPawn() const
 
 const FNavAgentProperties& AController::GetNavAgentPropertiesRef() const
 {
-	UPawnMovementComponent* MovementComponent = (Pawn ? Pawn->GetMovementComponent() : nullptr);
-	return MovementComponent ? MovementComponent->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
+	return Pawn ? Pawn->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
 }
 
 FVector AController::GetNavAgentLocation() const
@@ -639,7 +638,7 @@ bool AController::ShouldPostponePathUpdates() const
 bool AController::IsFollowingAPath() const
 {
 	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
-	return (PathFollowingComp != nullptr) && PathFollowingComp->HasValidPath();
+	return (PathFollowingComp != nullptr) && (PathFollowingComp->GetStatus() != EPathFollowingStatus::Idle);
 }
 
 void AController::UpdateNavigationComponents()
@@ -678,7 +677,7 @@ void AController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutL
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( AController, PlayerState );
-	DOREPLIFETIME( AController, Pawn );
+	DOREPLIFETIME_CONDITION_NOTIFY(AController, Pawn, COND_None, REPNOTIFY_Always);
 }
 
 /** Returns TransformComponent subobject **/

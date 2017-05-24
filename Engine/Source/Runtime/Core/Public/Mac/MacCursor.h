@@ -29,7 +29,7 @@ public:
 
 	virtual void Lock(const RECT* const Bounds) override;
 
-	virtual void SetCustomShape(void* CursorHandle) override;
+	virtual void SetTypeShape(EMouseCursor::Type InCursorType, void* CursorHandle) override;
 
 public:
 
@@ -64,6 +64,7 @@ private:
 	EMouseCursor::Type CurrentType;
 
 	NSCursor* CursorHandles[EMouseCursor::TotalCursorCount];
+	NSCursor* CursorOverrideHandles[EMouseCursor::TotalCursorCount];
 
 	FIntRect CursorClipRect;
 

@@ -1,30 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title:액터 모빌리티
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:액터를 게임플레이 도중 어떤 방식으로 이동 또는 변화할 수 있도록 할지를 제어하는 세팅입니다.
 version: 4.9
-
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/Actors/Transform "%Engine/Actors/Transform:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/Actors/Grouping "%Engine/Actors/Grouping:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [EXCERPT:Intro]
 ![](TransformMobility.png)
@@ -63,6 +42,3 @@ _Stationary_ (스테이셔너리)는 움직이지 않는 **라이트 액터** �
 [/EXCERPT:Movable]
 
 -->
-
-
-%playlistnav%

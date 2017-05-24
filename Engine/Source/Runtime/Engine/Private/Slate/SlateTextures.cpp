@@ -3,6 +3,7 @@
 
 #include "Slate/SlateTextures.h"
 #include "RenderUtils.h"
+#include "ClearQuad.h"
 
 FSlateTexture2DRHIRef::FSlateTexture2DRHIRef( FTexture2DRHIRef InRef, uint32 InWidth, uint32 InHeight )
 	: TSlateTexture( InRef )
@@ -291,7 +292,7 @@ void FSlateTextureRenderTarget2DResource::InitDynamicRHI()
 	if( TargetSizeX > 0 && TargetSizeY > 0 )
 	{
 		// Create the RHI texture. Only one mip is used and the texture is targetable for resolve.
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo = { FClearValueBinding(ClearColor) };
 		RHICreateTargetableShaderResource2D(
 			TargetSizeX, 
 			TargetSizeY, 
@@ -339,13 +340,23 @@ void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandList
 	// Clear the target surface to green
 	if (bClearRenderTarget)
 	{
-		SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());
-		RHICmdList.SetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
-		RHICmdList.ClearColorTexture(RenderTargetTextureRHI, ClearColor, FIntRect());
+		FRHIRenderTargetView View = FRHIRenderTargetView(RenderTargetTextureRHI, ERenderTargetLoadAction::EClear);
+		FRHISetRenderTargetsInfo Info(1, &View, FRHIDepthRenderTargetView());
+		RHICmdList.SetRenderTargetsAndClear(Info);
 	}
 
 	// Copy surface to the texture for use
 	RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());
+}
+
+uint32 FSlateTextureRenderTarget2DResource::GetSizeX() const
+{ 
+	return TargetSizeX; 
+}
+
+uint32 FSlateTextureRenderTarget2DResource::GetSizeY() const
+{ 
+	return TargetSizeY; 
 }
 
 FIntPoint FSlateTextureRenderTarget2DResource::GetSizeXY() const

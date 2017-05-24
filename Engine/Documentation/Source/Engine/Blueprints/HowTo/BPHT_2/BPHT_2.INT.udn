@@ -3,6 +3,7 @@ Title:2. Required Character Setup
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:In this step we are going to make sure our playable character is setup correctly for our game. 
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

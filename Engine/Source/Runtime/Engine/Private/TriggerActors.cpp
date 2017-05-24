@@ -29,11 +29,12 @@ ATriggerCapsule::ATriggerCapsule(const FObjectInitializer& ObjectInitializer)
 
 	bCollideWhenPlacing = true;
 	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
+#if WITH_EDITORONLY_DATA
 	if (UBillboardComponent* TriggerSpriteComponent = GetSpriteComponent())
 	{
 		TriggerSpriteComponent->SetupAttachment(CapsuleCollisionComponent);
 	}
+#endif
 }
 
 #if WITH_EDITOR
@@ -94,11 +95,12 @@ ATriggerBox::ATriggerBox(const FObjectInitializer& ObjectInitializer)
 	BoxCollisionComponent->ShapeColor = TriggerBaseColor;
 	BoxCollisionComponent->InitBoxExtent(FVector(40.0f, 40.0f, 40.0f));
 	BoxCollisionComponent->SetCollisionProfileName(TriggerCollisionProfileName);
-
+#if WITH_EDITORONLY_DATA
 	if (UBillboardComponent* TriggerSpriteComponent = GetSpriteComponent())
 	{
 		TriggerSpriteComponent->SetupAttachment(BoxCollisionComponent);
 	}
+#endif
 }
 
 #if WITH_EDITOR
@@ -135,11 +137,12 @@ ATriggerSphere::ATriggerSphere(const FObjectInitializer& ObjectInitializer)
 	SphereCollisionComponent->ShapeColor = TriggerBaseColor;
 	SphereCollisionComponent->InitSphereRadius(+40.0f);
 	SphereCollisionComponent->SetCollisionProfileName(TriggerCollisionProfileName);
-
+#if WITH_EDITORONLY_DATA
 	if (UBillboardComponent* TriggerSpriteComponent = GetSpriteComponent())
 	{
 		TriggerSpriteComponent->SetupAttachment(SphereCollisionComponent);
 	}
+#endif
 }
 
 #if WITH_EDITOR

@@ -1,51 +1,37 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:5. Next Steps: Sound Cues and Dialogue
+﻿INTSourceChangelist:3218993
+Availability:Public
+Title:5.剩余步骤：声音提示和对话
 Crumbs: %ROOT%, Engine, Engine/Audio
-Description:A jumping off point to build a more complex dialogue manager system
-version: 4.13
+Description:构建更复杂对话管理员系统的起点
+version:4.13
 parent:Engine/Audio/Dialogue
 order:5
+type:quick start
 checkpoint:dialogueqs
-prereq: Engine/Blueprints/QuickStart
+prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[Previous Step](Engine/Audio/Dialogue/4 "%Engine/Audio/Dialogue/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/Audio/Dialogue)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-For a more complex conversation, you will likely want to use Sound Cues and Audio Components. Audio Components enable you to bind some functionality to when audio is finished playing, using the 
-**On Audio Finished** delegate.  
+对更复杂的对话而言，您可能需要使用声音提示（Sound Cues）和音频组件（Audio Components）。通过音频组件可利用 **On Audio Finished** 委托在音频播放完毕时绑定一些功能。  
 
 [REGION:note]
-One thing to consider, however, is that you cannot dynamically change the **Dialogue Context** when using Sound Cues, so your Blueprints or C++ logic will look 
-different than the above example. 
+然而需要考虑的是使用声音提示时无法动态修改 **对话语境**，因此您的蓝图或 C++ 逻辑和上例将有所不同。 
 [/REGION]
 
-To play **Dialogue Waves** using **Sound Cues**, there is a **Dialogue Player** node in the **Sound Cue Editor**.
+如要使用 **Sound Cues** 播放 **Dialogue Waves**，可使用 **Sound Cue Editor** 中的 **Dialogue Player** 节点。
 
 ![](DialoguePlayerNode.png)
 
-Select the **Dialogue Player** node and look at the **Details** panel. Here is where you can set the **Dialogue Wave** to use, as well as the **Speaker** and **Directed At** entries for the **Context**.
+选择 **Dialogue Player** 节点并查看 **Details** 面板。在此处可设定使用的 **Dialogue Wave**，以及 **Context** 的 **Speaker** 和 **Directed At** 条目。
 
 ![](DialogueNodeDetails.png)
 
-Here is some example Blueprint logic that shows how you could bind events to play the next piece of dialogue after the previous audio finishes playing.
+此处的蓝图逻辑范例将说明如何绑定事件在之前的音频完成播放后播放下一段对话。
 
 ![](AudioNextSteps.png)
 
-%Steps%
+[NAV]

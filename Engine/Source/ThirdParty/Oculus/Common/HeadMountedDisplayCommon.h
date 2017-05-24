@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Misc/ScopeLock.h"
 #include "IStereoLayers.h"
-#include "IHeadMountedDisplay.h"
+#include "HeadMountedDisplayBase.h"
 #include "SceneViewExtension.h"
 #include "ScenePrivate.h"
 #include "Runtime/UtilityShaders/Public/OculusShaders.h"
@@ -18,8 +18,10 @@ class FHeadMountedDisplay;
 	#if PLATFORM_ANDROID
 		#define OCULUS_STRESS_TESTS_ENABLED	0
 	#else
-		#define OCULUS_STRESS_TESTS_ENABLED	1
-	#endif
+		// Disabled since OculusStressTests.cpp is included by both OculusRift and GearVR plugins
+		// This causes self-registering console commands to get registers twice, which causes an error.
+		#define OCULUS_STRESS_TESTS_ENABLED	0
+#endif
 #endif	// #if UE_BUILD_SHIPPING
 
 
@@ -54,59 +56,14 @@ public:
 			/** Whether stereo is currently on or off. */
 			uint64 bStereoEnabled : 1;
 
-			/** Whether stereo was enforced by the console command. Doesn't make sense w/o bStereoEnabled == true. */
-			uint64 bStereoEnforced : 1;
-
 			/** Whether or not switching to stereo is allowed */
 			uint64 bHMDEnabled : 1;
-
-			/** Debugging:  Whether or not the stereo rendering settings have been manually overridden by an exec command.  They will no longer be auto-calculated */
-			uint64 bOverrideStereo : 1;
 
 			/** Debugging:  Whether or not the IPD setting have been manually overridden by an exec command. */
 			uint64 bOverrideIPD : 1;
 
-			/** Debugging:  Whether or not the distortion settings have been manually overridden by an exec command.  They will no longer be auto-calculated */
-			uint64 bOverrideDistortion : 1;
-
-			/** Debugging: Allows changing internal params, such as screen size, eye-to-screen distance, etc */
-			uint64 bDevSettingsEnabled : 1;
-
-			uint64 bOverrideFOV : 1;
-
-			/** Whether or not to override game VSync setting when switching to stereo */
-			uint64 bOverrideVSync : 1;
-
-			/** Overridden VSync value */
-			uint64 bVSync : 1;
-
-			/** Saved original values for VSync. */
-			uint64 bSavedVSync : 1;
-
-			/** Whether or not to override game ScreenPercentage setting when switching to stereo */
-			uint64 bOverrideScreenPercentage : 1;
-
-			/** Allows renderer to finish current frame. Setting this to 'true' may reduce the total 
-			 *  framerate (if it was above vsync) but will reduce latency. */
-			uint64 bAllowFinishCurrentFrame : 1;
-
-			/** Whether world-to-meters scale is overriden or not. */
-			uint64 bWorldToMetersOverride : 1;
-
-			/** Whether camera scale is overriden or not. */
-			uint64 bCameraScale3DOverride : 1;
-
-			/** Distortion on/off */
-			uint64 bHmdDistortion : 1;
-
 			/** Chromatic aberration correction on/off */
 			uint64 bChromaAbCorrectionEnabled : 1;
-
-			/** Yaw drift correction on/off */
-			uint64 bYawDriftCorrectionEnabled : 1;
-
-			/** Low persistence mode */
-			uint64 bLowPersistenceMode : 1;
 
 			/** Turns on/off updating view's orientation/position on a RenderThread. When it is on,
 				latency should be significantly lower. 
@@ -118,14 +75,8 @@ public:
 				See 'MOTION ENFORCE' console command. */
 			uint64 bHeadTrackingEnforced : 1;
 
-			/** Is mirroring enabled or not (see 'HMD MIRROR' console cmd) */
-			uint64 bMirrorToWindow : 1;
-
-			/** Whether timewarp is enabled or not */
-			uint64 bTimeWarp : 1;
-
-			/** True, if pos tracking is enabled */
-			uint64				bHmdPosTracking : 1;
+			/** Allocate an high quality OVR_FORMAT_R11G11B10_FLOAT buffer for Rift */
+			uint64 bHQBuffer : 1;
 
 			/** True, if Far/Mear clipping planes got overriden */
 			uint64				bClippingPlanesOverride : 1;
@@ -145,13 +96,6 @@ public:
 			/** HQ Distortion */
 			uint64				bHQDistortion : 1;
 #if !UE_BUILD_SHIPPING
-			/** Draw sensor frustum, for debugging purposes. 
-			 *  See 'HMDPOS SHOWCAMERA ON|OFF' console command.
-			 */
-			uint64				bDrawSensorFrustum : 1;
-
-			uint64				bDrawCubes : 1;
-
 			/** Turns off updating of orientation/position on game thread. See 'hmd updateongt' cmd */
 			uint64				bDoNotUpdateOnGT : 1;
 
@@ -160,47 +104,22 @@ public:
 
 			/** Draw lens centered grid */
 			uint64				bDrawGrid : 1;
-
-			/** Profiling mode, removed extra waits in Present (Direct Rendering). See 'hmd profile' cmd */
-			uint64				bProfiling : 1;
 #endif
 		};
 		uint64 Raw;
 	} Flags;
 
-	/** Used to update screen percentage based on the console var r.ScreenPercentage. */
-	float CurrentCVarScreenPercentage;
-
-	/** Overridden ScreenPercentage value */
-	float ScreenPercentage;
-
-	/** Ideal ScreenPercentage value for the HMD */
-	float IdealScreenPercentage;
-
 	/** Interpupillary distance, in meters (user configurable) */
 	float InterpupillaryDistance;
 
-	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
-	float WorldToMetersScale;
-
 	/** User-tunable modification to the interpupillary distance */
 	float UserDistanceToScreenModifier;
-
-	/** The FOV to render at (radians), based on the physical characteristics of the device */
-	float HFOVInRadians; // horizontal
-	float VFOVInRadians; // vertical
 
 	/** Optional far clipping plane for projection matrix */
 	float NearClippingPlane;
 
 	/** Optional far clipping plane for projection matrix */
 	float FarClippingPlane;
-
-	/** Scale the camera positional movement */
-	FVector		CameraScale3D;
-
-	/** Scale the positional movement */
-	FVector		PositionScale3D;
 
 	/** HMD base values, specify forward orientation and zero pos offset */
 	FVector2D				NeckToEyeInMeters;  // neck-to-eye vector, in meters (X - horizontal, Y - vertical)
@@ -225,8 +144,6 @@ public:
 	virtual void SetEyeRenderViewport(int OneEyeVPw, int OneEyeVPh);
 	virtual FIntPoint GetTextureSize() const;
 	
-	virtual float GetActualScreenPercentage() const;
-
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> Clone() const;
 };
 
@@ -238,8 +155,6 @@ public:
 
 	float					MonoCullingDistance;
 
-	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
-	float					WorldToMetersScale;
 	FVector					CameraScale3D;
 
 	FRotator				CachedViewRotation[3]; // cached view rotations
@@ -272,9 +187,6 @@ public:
 			uint64			bPositionChanged : 1;
 			/** True, if ApplyHmdRotation was used */
 			uint64			bPlayerControllerFollowsHmd : 1;
-
-			/** Indicates if CameraScale3D was already set by GetCurrentOrientAndPos */
-			uint64			bCameraScale3DAlreadySet : 1;
 		};
 		uint64 Raw;
 	} Flags;
@@ -291,6 +203,8 @@ public:
 
 	float GetWorldToMetersScale() const;
 	void SetWorldToMetersScale( const float NewWorldToMetersScale );
+	
+	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 	float WorldToMetersScaleWhileInFrame;
 
 private:
@@ -594,11 +508,37 @@ protected:
 	volatile bool bLayersChanged; // set when LayersToRender should be re-done (under LayersLock)
 };
 
+//-------------------------------------------------------------------------------------------------
+// FHMDCommonConsoleCommands - Wrapper around various console command handlers used by FHeadMountedDisplay
+//-------------------------------------------------------------------------------------------------
+class FHMDCommonConsoleCommands : private FSelfRegisteringExec
+{
+public:
+	FHMDCommonConsoleCommands(class FHeadMountedDisplay* InHMDPtr);
+private:
+	FAutoConsoleCommand UpdateOnRenderThreadCommand;
+#if !UE_BUILD_SHIPPING
+	// Debug console commands
+	FAutoConsoleCommand UpdateOnGameThreadCommand;
+	FAutoConsoleCommand PositionOffsetCommand;
+	FAutoConsoleCommand EnforceHeadTrackingCommand;
+#endif // !UE_BUILD_SHIPPING
+	FAutoConsoleCommand ShowSettingsCommand;
+	FAutoConsoleCommand ResetSettingsCommand;
+	FAutoConsoleCommand IPDCommand;
+	FAutoConsoleCommand FCPCommand;
+	FAutoConsoleCommand NCPCommand;
+
+	// Exec handler that aliases old deprecated Oculus console commands to the new ones.
+	bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+};
+
 /**
  * HMD device interface
  */
-class FHeadMountedDisplay : public IHeadMountedDisplay, public IStereoLayers
+class FHeadMountedDisplay : public FHeadMountedDisplayBase, public IStereoLayers
 {
+	friend class FHMDCommonConsoleCommands;
 public:
 	FHeadMountedDisplay();
 	~FHeadMountedDisplay();
@@ -643,18 +583,14 @@ public:
 	virtual bool HasValidTrackingPosition() override;
 	virtual void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
 
-	virtual bool IsInLowPersistenceMode() const override;
-	virtual void EnableLowPersistenceMode(bool Enable = true) override;
 	virtual bool IsHeadTrackingAllowed() const override;
 
 	virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
 	virtual float GetInterpupillaryDistance() const override;
-	virtual void GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const override;
 
 	virtual bool IsChromaAbCorrectionEnabled() const override;
 
 	virtual bool IsPositionalTrackingEnabled() const override;
-	virtual bool EnablePositionalTracking(bool enable) override;
 
 	virtual bool EnableStereo(bool stereo = true) override;
 	virtual bool IsStereoEnabled() const override;
@@ -668,9 +604,6 @@ public:
 
 	virtual void SetBaseOrientation(const FQuat& BaseOrient) override;
 	virtual FQuat GetBaseOrientation() const override;
-
-	virtual void SetPositionScale3D(FVector PosScale3D);
-	virtual FVector GetPositionScale3D() const;
 
 	// Returns true, if HMD is currently active
 	virtual bool IsHMDActive() { return IsHMDConnected(); }
@@ -743,11 +676,6 @@ public:
 	};
 	virtual bool GetUserProfile(UserProfile& OutProfile) { return false;  }
 
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-
-	virtual void SetScreenPercentage(float InScreenPercentage) override;
-	virtual float GetScreenPercentage() const override;
-
 	virtual void ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation) override;
 	virtual bool UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
 
@@ -799,12 +727,19 @@ protected:
 
 	virtual void ResetControlRotation() const;
 
-	virtual float GetActualScreenPercentage() const;
-
+protected:
+	FHMDCommonConsoleCommands CommonConsoleCommands;
+	virtual void UpdateOnRenderThreadCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 #if !UE_BUILD_SHIPPING
-	void DrawDebugTrackingCameraFrustum(class UWorld* InWorld, const FRotator& ViewRotation, const FVector& ViewLocation);
-	void DrawSeaOfCubes(UWorld* World, FVector ViewLocation);
-#endif // #if !UE_BUILD_SHIPPING
+	virtual void UpdateOnGameThreadCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	virtual void PositionOffsetCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	virtual void EnforceHeadTrackingCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+#endif
+	virtual void ShowSettingsCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	// The reset command calls ResetStereoRenderingParams directly
+	virtual void IPDCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	virtual void FCPCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
+	virtual void NCPCommandHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar);
 
 protected:
 	TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> Settings;
@@ -830,7 +765,6 @@ protected:
 			uint64	bNeedDisableStereo : 1;
 
 			uint64  bNeedUpdateDistortionCaps : 1;
-			uint64  bNeedUpdateHmdCaps : 1;
 
 			/** True, if vision was acquired at previous frame */
 			uint64	bHadVisionTracking : 1;
@@ -838,10 +772,6 @@ protected:
 		uint64 Raw;
 	} Flags;
 
-#if OCULUS_STRESS_TESTS_ENABLED
-	// Stress testing
-	class FOculusStressTester* StressTester;
-#endif
 
 	FHMDGameFrame* GetGameFrame()
 	{
@@ -887,9 +817,6 @@ public:
 
 	static void QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY, uint32 DividableBy = 32);
 
-private:
-	static void ScreenPercentageSinkHandler();
-	static FAutoConsoleVariableSink CVarScreenPercentageSink;
 };
 
 DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);

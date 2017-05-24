@@ -21,6 +21,14 @@ DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
 int32 FModuleManager::FModuleInfo::CurrentLoadOrder = 1;
 
+void FModuleManager::WarnIfItWasntSafeToLoadHere(const FName InModuleName)
+{
+	if ( !IsInGameThread() )
+	{
+		UE_LOG(LogModuleManager, Warning, TEXT("ModuleManager: Attempting to load '%s' outside the main thread.  This module was already loaded - so we didn't crash but this isn't safe.  Please call LoadModule on the main/game thread only.  You can use GetModule or GetModuleChecked instead, those are safe to call outside the game thread."), *InModuleName.ToString());
+	}
+}
+
 FModuleManager::ModuleInfoPtr FModuleManager::FindModule(FName InModuleName)
 {
 	FModuleManager::ModuleInfoPtr Result = nullptr;
@@ -554,7 +562,10 @@ bool FModuleManager::UnloadModule( const FName InModuleName, bool bIsShutdown )
 
 			// Verify that we have the only outstanding reference to this module.  No one should still be 
 			// referencing a module that is about to be destroyed!
-			check( ModuleInfo.Module.IsUnique() );
+			if (!ModuleInfo.Module.IsUnique())
+			{
+				UE_LOG(LogModuleManager, Fatal, TEXT("Outstanding reference to module '%s' while trying to unload it. Strong references to module interfaces should not be kept."), *InModuleName.ToString());
+			}
 
 			// Release reference to module interface.  This will actually destroy the module object.
 			ModuleInfo.Module.Reset();

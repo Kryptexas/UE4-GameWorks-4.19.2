@@ -2632,8 +2632,11 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 
 	FSCSEditorTreeNodePtrType NodePtr = GetNode();
 
-	check(NodePtr.IsValid() && NodePtr == SceneRootNodePtr);
-	check(DroppedNodePtr.IsValid());
+	// We cannot handle the drop action if any of these conditions fail on entry.
+	if (!ensure(NodePtr.IsValid()) || !ensure(DroppedNodePtr.IsValid()) || !ensure(NodePtr == SceneRootNodePtr))
+	{
+		return;
+	}
 
 	// Create a transaction record
 	const FScopedTransaction TransactionContext(LOCTEXT("MakeNewSceneRoot", "Make New Scene Root"));
@@ -2942,6 +2945,13 @@ bool SSCS_RowWidget::OnNameTextVerifyChanged(const FText& InNewText, FText& OutE
 		if (!FComponentEditorUtils::IsValidVariableNameString(NodePtr->GetComponentTemplate(), InNewText.ToString()))
 		{
 			OutErrorMessage = LOCTEXT("RenameFailed_EngineReservedName", "This name is reserved for engine use.");
+			return false;
+		}
+		else if (InNewText.ToString().Len() > NAME_SIZE)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("CharCount"), NAME_SIZE);
+			OutErrorMessage = FText::Format(LOCTEXT("ComponentRenameFailed_TooLong", "Component name must be less than {CharCount} characters long."), Arguments);
 			return false;
 		}
 		else if (!FComponentEditorUtils::IsComponentNameAvailable(InNewText.ToString(), ExistingNameSearchScope, NodePtr->GetComponentTemplate()))
@@ -3895,16 +3905,25 @@ void SSCSEditor::OnDuplicateComponent()
 					FSCSEditorTreeNodePtrType OriginalNodePtr = FindTreeNode(OriginalComponent);
 					if(OriginalNodePtr.IsValid())
 					{
-						// If the original node was parented, attempt to add the duplicate as a child of the same parent node
-						FSCSEditorTreeNodePtrType ParentNodePtr = OriginalNodePtr->GetParent();
-						if(ParentNodePtr.IsValid() && ParentNodePtr != SceneRootNodePtr)
+						// If we're duplicating the root then we're already a child of it so need to reparent, but we do need to reset the scale
+						// otherwise we'll end up with the square of the root's scale instead of being the same size.
+						if (OriginalNodePtr == SceneRootNodePtr)
 						{
-							// Locate the duplicate node (as a child of the current scene root node), and switch it to be a child of the original node's parent
-							FSCSEditorTreeNodePtrType NewChildNodePtr = SceneRootNodePtr->FindChild(NewSceneComponent);
-							if(NewChildNodePtr.IsValid())
+							NewSceneComponent->RelativeScale3D = FVector(1.f);
+						}
+						else
+						{
+							// If the original node was parented, attempt to add the duplicate as a child of the same parent node
+							FSCSEditorTreeNodePtrType ParentNodePtr = OriginalNodePtr->GetParent();
+							if (ParentNodePtr.IsValid())
 							{
-								// Note: This method will handle removal from the scene root node as well
-								ParentNodePtr->AddChild(NewChildNodePtr);
+								// Locate the duplicate node (as a child of the current scene root node), and switch it to be a child of the original node's parent
+								FSCSEditorTreeNodePtrType NewChildNodePtr = SceneRootNodePtr->FindChild(NewSceneComponent, true);
+								if (NewChildNodePtr.IsValid())
+								{
+									// Note: This method will handle removal from the scene root node as well
+									ParentNodePtr->AddChild(NewChildNodePtr);
+								}
 							}
 						}
 					}
@@ -3916,11 +3935,13 @@ void SSCSEditor::OnDuplicateComponent()
 
 void SSCSEditor::OnGetChildrenForTree( FSCSEditorTreeNodePtrType InNodePtr, TArray<FSCSEditorTreeNodePtrType>& OutChildren )
 {
-	OutChildren.Empty();
-
 	if(InNodePtr.IsValid())
 	{
 		OutChildren = InNodePtr->GetChildren();
+	}
+	else
+	{
+		OutChildren.Empty();
 	}
 }
 
@@ -4173,7 +4194,7 @@ void SSCSEditor::HighlightTreeNode(const USCS_Node* Node, FName Property)
 		FPropertyPath Path;
 		if( CurrentProp )
 		{
-			FPropertyInfo NewInfo = { CurrentProp, -1 };
+			FPropertyInfo NewInfo(CurrentProp, -1);
 			Path.ExtendPath(NewInfo);
 		}
 

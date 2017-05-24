@@ -1,4 +1,4 @@
-availability:docs
+availability:Public
 title:3. Blueprint Setup
 description:Going over setting up the Blueprint to work with Render Targets.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets

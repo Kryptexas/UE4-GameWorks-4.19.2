@@ -493,7 +493,8 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 				EVisibility::Hidden;
 
 	// Collapse (rather than Hide) the checkbox when using a custom menu widget with a button action, otherwise we add additional padding around the user defined widget
-	if (MenuEntryBlock->EntryWidget.IsValid() && UserInterfaceType == EUserInterfaceActionType::Button)
+	if ((MenuEntryBlock->EntryWidget.IsValid() && UserInterfaceType == EUserInterfaceActionType::Button) ||
+		UserInterfaceType == EUserInterfaceActionType::CollapsedButton)
 	{
 		CheckBoxVisibility = EVisibility::Collapsed;
 	}

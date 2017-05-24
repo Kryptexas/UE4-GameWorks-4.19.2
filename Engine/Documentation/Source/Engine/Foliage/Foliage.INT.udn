@@ -177,6 +177,10 @@ The Paint tool is Foliage Edit Mode's default tool. You can use it to paint inst
 
 ![](Foliage_Paint_Tool_Gimzo.png)
 
+[REGION:tip]
+Foliage painting also works in the VR Editor. For the controls for Foliage painting in VR, see the [](Engine/Editor/VR/Controls).
+[/REGION]
+
 **To add foliage to the brush area:**  
 * Hold down the **Left Mouse** button and **click** where you want to add foliage.
 All currently selected meshes in the mesh list will be added according to their current parameters and settings.
@@ -185,11 +189,6 @@ When painting meshes, the engine performs a number of line traces inside the sph
 
 **To erase foliage from the brush area:**  
 * Hold down **Shift** and **Left Mouse** button and **click** where you want to remove foliage.
-
-
-[REGION:tip]
-Foliage painting also works in the VR Editor. For the controls for foliage painting in VR, see the [](Engine/Editor/VR/Controls).
-[/REGION]
 
 ### Paint Settings
 

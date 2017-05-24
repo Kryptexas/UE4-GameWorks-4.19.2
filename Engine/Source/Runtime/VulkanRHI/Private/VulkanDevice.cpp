@@ -17,16 +17,15 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, DeferredDeletionQueue(this)
 	, DefaultSampler(VK_NULL_HANDLE)
 	, TimestampQueryPool(nullptr)
-	, Queue(nullptr)
+	, GfxQueue(nullptr)
+	, TransferQueue(nullptr)
 	, ImmediateContext(nullptr)
 #if VULKAN_ENABLE_DRAW_MARKERS
 	, CmdDbgMarkerBegin(nullptr)
 	, CmdDbgMarkerEnd(nullptr)
 	, DebugMarkerSetObjectName(nullptr)
 #endif
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	, PipelineStateCache(nullptr)
-#endif
 {
 	FMemory::Memzero(GpuProps);
 	FMemory::Memzero(Features);
@@ -65,24 +64,21 @@ void FVulkanDevice::CreateDevice()
 
 	// Setup Queue info
 	TArray<VkDeviceQueueCreateInfo> QueueFamilyInfos;
-	QueueFamilyInfos.AddZeroed(QueueFamilyProps.Num());
 	int32 GfxQueueFamilyIndex = -1;
+	int32 TransferQueueFamilyIndex = -1;
 	UE_LOG(LogVulkanRHI, Display, TEXT("Found %d Queue Families"), QueueFamilyProps.Num());
 	uint32 NumPriorities = 0;
 	for (int32 FamilyIndex = 0; FamilyIndex < QueueFamilyProps.Num(); ++FamilyIndex)
 	{
 		const VkQueueFamilyProperties& CurrProps = QueueFamilyProps[FamilyIndex];
-		VkDeviceQueueCreateInfo& CurrQueue = QueueFamilyInfos[FamilyIndex];
-		CurrQueue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		CurrQueue.queueFamilyIndex = FamilyIndex;
-		CurrQueue.queueCount = CurrProps.queueCount;
-		NumPriorities += CurrProps.queueCount;
 
+		bool bIsValidQueue = false;
 		if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT)
 		{
 			if (GfxQueueFamilyIndex == -1)
 			{
 				GfxQueueFamilyIndex = FamilyIndex;
+				bIsValidQueue = true;
 			}
 			else
 			{
@@ -90,46 +86,71 @@ void FVulkanDevice::CreateDevice()
 			}
 		}
 
-		auto GetQueueInfoString = [&]()
+		if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
+		{
+			// Prefer a non-gfx transfer queue
+			if (TransferQueueFamilyIndex == -1 && (CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) != VK_QUEUE_GRAPHICS_BIT)
 			{
-				FString Info;
-				if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT)
-				{
-					Info += TEXT(" Gfx");
-				}
-				if ((CurrProps.queueFlags & VK_QUEUE_COMPUTE_BIT) == VK_QUEUE_COMPUTE_BIT)
-				{
-					Info += TEXT(" Compute");
-				}
-				if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
-				{
-					Info += TEXT(" Xfer");
-				}
-				if ((CurrProps.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == VK_QUEUE_SPARSE_BINDING_BIT)
-				{
-					Info += TEXT(" Sparse");
-				}
+				TransferQueueFamilyIndex = FamilyIndex;
+				bIsValidQueue = true;
+			}
+		}
 
-				return Info;
-			};
-		UE_LOG(LogVulkanRHI, Display, TEXT("Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString());
+		auto GetQueueInfoString = [&]()
+		{
+			FString Info;
+			if ((CurrProps.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT)
+			{
+				Info += TEXT(" Gfx");
+			}
+			if ((CurrProps.queueFlags & VK_QUEUE_COMPUTE_BIT) == VK_QUEUE_COMPUTE_BIT)
+			{
+				Info += TEXT(" Compute");
+			}
+			if ((CurrProps.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT)
+			{
+				Info += TEXT(" Xfer");
+			}
+			if ((CurrProps.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == VK_QUEUE_SPARSE_BINDING_BIT)
+			{
+				Info += TEXT(" Sparse");
+			}
+
+			return Info;
+		};
+
+		if (!bIsValidQueue)
+		{
+			UE_LOG(LogVulkanRHI, Display, TEXT("Skipping unnecessary Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString());
+			continue;
+		}
+
+		int32 QueueIndex = QueueFamilyInfos.Num();
+		QueueFamilyInfos.AddZeroed(1);
+		VkDeviceQueueCreateInfo& CurrQueue = QueueFamilyInfos[QueueIndex];
+		CurrQueue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		CurrQueue.queueFamilyIndex = FamilyIndex;
+		CurrQueue.queueCount = CurrProps.queueCount;
+		NumPriorities += CurrProps.queueCount;
+		UE_LOG(LogVulkanRHI, Display, TEXT("Initializing Queue Family %d: %d queues%s"), FamilyIndex, CurrProps.queueCount, *GetQueueInfoString());
 	}
 
 	TArray<float> QueuePriorities;
 	QueuePriorities.AddUninitialized(NumPriorities);
 	float* CurrentPriority = QueuePriorities.GetData();
-	for (int32 Index = 0; Index < QueueFamilyProps.Num(); ++Index)
+	for (int32 Index = 0; Index < QueueFamilyInfos.Num(); ++Index)
 	{
-		const VkQueueFamilyProperties& CurrProps = QueueFamilyProps[Index];
 		VkDeviceQueueCreateInfo& CurrQueue = QueueFamilyInfos[Index];
 		CurrQueue.pQueuePriorities = CurrentPriority;
+
+		const VkQueueFamilyProperties& CurrProps = QueueFamilyProps[CurrQueue.queueFamilyIndex];
 		for (int32 QueueIndex = 0; QueueIndex < (int32)CurrProps.queueCount; ++QueueIndex)
 		{
 			*CurrentPriority++ = 1.0f;
 		}
 	}
 
-	DeviceInfo.queueCreateInfoCount = QueueFamilyProps.Num();
+	DeviceInfo.queueCreateInfoCount = QueueFamilyInfos.Num();
 	DeviceInfo.pQueueCreateInfos = QueueFamilyInfos.GetData();
 
 	DeviceInfo.pEnabledFeatures = &Features;
@@ -138,7 +159,13 @@ void FVulkanDevice::CreateDevice()
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateDevice(Gpu, &DeviceInfo, nullptr, &Device));
 
 	// Create Graphics Queue, here we submit command buffers for execution
-	Queue = new FVulkanQueue(this, GfxQueueFamilyIndex, 0);
+	GfxQueue = new FVulkanQueue(this, GfxQueueFamilyIndex, 0);
+	if (TransferQueueFamilyIndex == -1)
+	{
+		// If we didn't find a dedicated Queue, use the default one
+		TransferQueueFamilyIndex = GfxQueueFamilyIndex;
+	}
+	TransferQueue = new FVulkanQueue(this, TransferQueueFamilyIndex, 0);
 
 #if VULKAN_ENABLE_DRAW_MARKERS
 	if (bDebugMarkersFound || VULKAN_ENABLE_DUMP_LAYER)
@@ -194,13 +221,17 @@ void FVulkanDevice::SetupFormats()
 	MapFormatSupport(PF_FloatRGBA, VK_FORMAT_R16G16B16A16_SFLOAT, 8);
 	SetComponentMapping(PF_FloatRGBA, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A);
 
-	MapFormatSupport(PF_DepthStencil, VK_FORMAT_D24_UNORM_S8_UINT);
+	MapFormatSupport(PF_DepthStencil, VK_FORMAT_D32_SFLOAT_S8_UINT);
 	if (!GPixelFormats[PF_DepthStencil].Supported)
 	{
-		MapFormatSupport(PF_DepthStencil, VK_FORMAT_D32_SFLOAT_S8_UINT);
+		MapFormatSupport(PF_DepthStencil, VK_FORMAT_D24_UNORM_S8_UINT);
 		if (!GPixelFormats[PF_DepthStencil].Supported)
 		{
 			MapFormatSupport(PF_DepthStencil, VK_FORMAT_D16_UNORM_S8_UINT);
+			if (!GPixelFormats[PF_DepthStencil].Supported)
+			{
+				UE_LOG(LogVulkanRHI, Error, TEXT("No stencil texture format supported!"));
+			}
 		}
 	}
 	SetComponentMapping(PF_DepthStencil, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY);
@@ -389,7 +420,7 @@ void FVulkanDevice::MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanForma
 
 	if(!FormatInfo.Supported)
 	{
-		UE_LOG(LogVulkanRHI, Warning, TEXT("EPixelFormat(%d) is not supported"), (int32)UEFormat);
+		UE_LOG(LogVulkanRHI, Warning, TEXT("EPixelFormat(%d) is not supported with Vk format %d"), (int32)UEFormat, (int32)VulkanFormat);
 	}
 }
 
@@ -476,9 +507,8 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	FenceManager.Init(this);
 
-	StagingManager.Init(this, Queue);
+	StagingManager.Init(this, GfxQueue);
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	PipelineStateCache = new FVulkanPipelineStateCache(this);
 
 	TArray<FString> CacheFilenames;
@@ -488,7 +518,6 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	}
 	CacheFilenames.Add(FPaths::GameSavedDir() / TEXT("VulkanPSO.cache"));
 	PipelineStateCache->InitAndLoad(CacheFilenames);
-#endif
 
 	bool bSupportsTimestamps = (GpuProps.limits.timestampComputeAndGraphics == VK_TRUE);
 	if (bSupportsTimestamps)
@@ -533,9 +562,8 @@ void FVulkanDevice::Destroy()
 	}
 	OcclusionQueryPools.SetNum(0, false);
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 	delete PipelineStateCache;
-#endif
+	PipelineStateCache = nullptr;
 
 	delete DefaultSampler;
 	DefaultSampler = nullptr;
@@ -544,7 +572,8 @@ void FVulkanDevice::Destroy()
 
 	ResourceHeapManager.Deinit();
 
-	delete Queue;
+	delete TransferQueue;
+	delete GfxQueue;
 
 	FenceManager.Deinit();
 
@@ -598,10 +627,10 @@ const VkComponentMapping& FVulkanDevice::GetFormatComponentMapping(EPixelFormat 
 	return PixelFormatComponentMapping[UEFormat];
 }
 
-void FVulkanDevice::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
+void FVulkanDevice::NotifyDeletedRenderTarget(VkImage Image)
 {
 	//#todo-rco: Loop through all contexts!
-	GetImmediateContext().NotifyDeletedRenderTarget(Texture);
+	GetImmediateContext().NotifyDeletedRenderTarget(Image);
 }
 
 void FVulkanDevice::PrepareForCPURead()
@@ -615,6 +644,13 @@ void FVulkanDevice::SubmitCommandsAndFlushGPU()
 	//#todo-rco: Process other contexts first!
 
 	FVulkanCommandBufferManager* CmdMgr = ImmediateContext->GetCommandBufferManager();
-	CmdMgr->SubmitActiveCmdBuffer(true);
+	if (CmdMgr->HasPendingUploadCmdBuffer())
+	{
+		CmdMgr->SubmitUploadCmdBuffer(true);
+	}
+	if (CmdMgr->HasPendingActiveCmdBuffer())
+	{
+		CmdMgr->SubmitActiveCmdBuffer(true);
+	}
 	CmdMgr->PrepareForNewActiveCommandBuffer();
 }

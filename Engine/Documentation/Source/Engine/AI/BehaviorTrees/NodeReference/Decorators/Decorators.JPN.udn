@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2755881
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:Behavior Tree ノードのリファレンス:デコレーター
+Title:Behavior Tree ノードのリファレンス：Decorators
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree Decorator ノードの説明です。
 version:4.9
@@ -8,7 +8,7 @@ version:4.9
 [TOC(start:2 end:2)]
 
 
-他の Behavior Tree (ビヘイビアツリー) システムで条件式としても知られる **Decorator ノード** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) または [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をします。
+他の Behavior Tree (ビヘイビアツリー) システムで条件式としても知られる **Decorator** は [Composite](Engine/AI/BehaviorTrees/NodeReference/Composites) または [Task](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をします。
 
 ## Blackboard
 
@@ -21,7 +21,7 @@ Blackboard ノードは、任意の Blackboard Key に値が設定されてい�
 | **Notify Observer** | [INCLUDE:#subprop2] |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Key Query** | [INCLUDE:#subprop4] |
-| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Objects などの`None` を返すことができるデータ タイプの場合に非常に便利です。
+| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Object などの`None` を返すことができるデータ タイプの場合に非常に便利です。 |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
 <!--
@@ -91,7 +91,7 @@ Compare Blackboard Entries ノードは 2 つのブラックボード キーの�
 | -------- | ----------- |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 | **Key Query** | [INCLUDE:#subprop4] |
-| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Objects などの`None` を返すことができるデータ タイプの場合に非常に便利です。
+| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Object などの`None` を返すことができるデータ タイプの場合に非常に便利です。 |
 
 
 ## Cone Check
@@ -165,7 +165,7 @@ Compare Blackboard Entries ノードは 2 つのブラックボード キーの�
 | -------- | ----------- |
 | **Actor to Check** | チェックするアクタへのリファレンスを含む Blackboard Key です。 |
 | **Tags to Match** | デコレーターを **Gameplay Tags** プロパティにリストされているタグの **どれか** あるいは **すべて** に一致させるかどうかです。. |
-| **Gameplay Tags** | この デコレーターで使うタグを選択するために Gameplay Tag エディタをロードします。 |
+| **Gameplay Tags** | このデコレーターで使うタグを選択するために Gameplay Tag エディタをロードします。 |
 | **Inverse Condition** | このデコレーターの結果を反転しますか? (false を true に、 true は falseに) |
 | **Node Name** | Behavior Tree グラフでのノードの表示名です。 |
 
@@ -208,7 +208,7 @@ Compare Blackboard Entries ノードは 2 つのブラックボード キーの�
 
 ![](ReachedMoveGoal.png)
 
-**Reached Move Goal** ノードは、(Character Movement コンポーネントのある) ポーンのパスを確認し、ポーンが移動ゴールに到達すると成功を返します。
+**Reached Move Goal** ノードは、(Character Movement コンポーネントを持つ) ポーンのパスを確認し、ポーンが移動ゴールに到達すると成功を返します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
@@ -243,7 +243,7 @@ Compare Blackboard Entries ノードは 2 つのブラックボード キーの�
 
 ![](TimeLimit.png)
 
-**Time Limit** デコレーターは、ブランチまたはノードに、停止または失敗するまでの終了時間の長さを設定します。ノードがフォーカスを取得する都度、タイマーはリセットされます。
+**Time Limit** デコレーターは、ブランチまたはノードに、停止または失敗するまでの終了時間の長さを設定します。ノードがフォーカスされる度に、タイマーはリセットされます。
 
 | プロパティ | 説明 |
 | -------- | ----------- |

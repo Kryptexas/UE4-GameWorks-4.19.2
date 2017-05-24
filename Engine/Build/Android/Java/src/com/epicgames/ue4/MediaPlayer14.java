@@ -572,13 +572,16 @@ public class MediaPlayer14
 			mTriangleVerticesDirty = true;
 
 			// Set up GL state
-			GLES20.glDisable(GLES20.GL_BLEND);
-			GLES20.glDisable(GLES20.GL_CULL_FACE);
-			GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
-			GLES20.glDisable(GLES20.GL_STENCIL_TEST);
-			GLES20.glDisable(GLES20.GL_DEPTH_TEST);
-			GLES20.glDisable(GLES20.GL_DITHER);
-			GLES20.glColorMask(true,true,true,true);
+			if (mUseOwnContext)
+			{
+				GLES20.glDisable(GLES20.GL_BLEND);
+				GLES20.glDisable(GLES20.GL_CULL_FACE);
+				GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+				GLES20.glDisable(GLES20.GL_STENCIL_TEST);
+				GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+				GLES20.glDisable(GLES20.GL_DITHER);
+				GLES20.glColorMask(true,true,true,true);
+			}
 		}
 		
 		private void UpdateVertexData()
@@ -603,10 +606,7 @@ public class MediaPlayer14
 				mTriangleVertices, GLES20.GL_STATIC_DRAW);
 
 			// restore VBO state
-			if (previousVBO > 0)
-			{
-				GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, previousVBO);
-			}
+			GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, previousVBO);
 			
 			mTriangleVerticesDirty = false;
 		}
@@ -950,14 +950,14 @@ public class MediaPlayer14
 
 			// connect 'VideoTexture' to video source texture (mTextureID).
 			// mTextureID is bound to GL_TEXTURE_EXTERNAL_OES in updateTexImage
+			GLES20.glUniform1i(mTextureUniform, 0);
 			GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 			GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, mTextureID);
-			GLES20.glUniform1i(mTextureUniform, 0);
 
 			// Draw the video texture mesh.
 			GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
 
-			GLES20.glFinish();
+			GLES20.glFlush();
 
 			// Read the FBO texture pixels into raw data.
 			if (null != destData)
@@ -992,19 +992,13 @@ public class MediaPlayer14
 			}
 			else
 			{
-				if (previousFBO > 0)
-				{
-					GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, previousFBO);
-				}
+				GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, previousFBO);
 				if (null != destData && FBOTextureID > 0)
 				{
 					glInt[0] = FBOTextureID;
 					GLES20.glDeleteTextures(1, glInt, 0);
 				}
-				if (previousVBO > 0)
-				{
-					GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, previousVBO);
-				}
+				GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, previousVBO);
 
 				GLES20.glViewport(previousViewport[0], previousViewport[1],	previousViewport[2], previousViewport[3]);
 				if (previousBlend) GLES20.glEnable(GLES20.GL_BLEND);
@@ -1016,6 +1010,11 @@ public class MediaPlayer14
 
 				GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, previousMinFilter);
 				GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, previousMagFilter);
+
+				// invalidate cached state in RHI
+				GLES20.glDisableVertexAttribArray(mPositionAttrib);
+				GLES20.glDisableVertexAttribArray(mTexCoordsAttrib);
+				nativeClearCachedAttributeState(mPositionAttrib, mTexCoordsAttrib);
 			}
 
 			return true;
@@ -1354,4 +1353,7 @@ public class MediaPlayer14
 
 		return VideoTracks;
 	}
+
+	public native void nativeClearCachedAttributeState(int PositionAttrib, int TexCoordsAttrib);
+
 }

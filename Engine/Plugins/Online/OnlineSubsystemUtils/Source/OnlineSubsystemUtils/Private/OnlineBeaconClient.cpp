@@ -51,12 +51,14 @@ class UNetConnection* AOnlineBeaconClient::GetNetConnection() const
 
 bool AOnlineBeaconClient::DestroyNetworkActorHandled()
 {
-	if (BeaconConnection)
+	if (BeaconConnection && BeaconConnection->State != USOCK_Closed)
 	{
+		// This will be cleaned up in ~2 sec by UNetConnection Tick
 		BeaconConnection->bPendingDestroy = true;
 		return true;
 	}
 
+	// The UNetConnection is gone or has been closed (NetDriver destroyed) and needs to go away now
 	return false;
 }
 

@@ -3,7 +3,6 @@
 /*=============================================================================
 	PhysXLibs.cpp: PhysX library imports
 =============================================================================*/
-
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
 #include "EngineDefines.h"
@@ -14,6 +13,7 @@
 #if WITH_PHYSX 
 
 // PhysX library imports
+    
 
 
 #if PLATFORM_WINDOWS || PLATFORM_MAC
@@ -49,8 +49,6 @@ ENGINE_API void LoadPhysXModules()
 
 	#if _MSC_VER >= 1900
 		FString VSDirectory(TEXT("VS2015/"));
-	#elif _MSC_VER >= 1800
-		FString VSDirectory(TEXT("VS2013/"));
 	#else
 		#error "Unrecognized Visual Studio version."
 	#endif

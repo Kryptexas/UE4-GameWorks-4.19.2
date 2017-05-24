@@ -119,9 +119,9 @@ public:
 	}
 
 	/** Constructor starting with an initialized value/type */
-	template<typename ValueType> 
-	FVariantData(const ValueType& InData) :
-		Type(EOnlineKeyValuePairDataType::Empty)
+	template<typename ValueType>
+	FVariantData(const ValueType& InData)
+		: Type(EOnlineKeyValuePairDataType::Empty)
 	{
 		SetValue(InData);
 	}
@@ -134,11 +134,25 @@ public:
 	FVariantData(const FVariantData& Other);
 
 	/**
+	 * Move constructor. Moves the other into this object
+	 *
+	 * @param Other the other structure to move
+	 */
+	FVariantData(FVariantData&& Other);
+
+	/**
 	 * Assignment operator. Copies the other into this object
 	 *
 	 * @param Other the other structure to copy
 	 */
 	FVariantData& operator=(const FVariantData& Other);
+
+	/**
+	 * Move Assignment operator. Moves the other into this object
+	 *
+	 * @param Other the other structure to move
+	 */
+	FVariantData& operator=(FVariantData&& Other);
 
 	/**
 	 * Cleans up the data to prevent leaks
@@ -320,7 +334,7 @@ public:
 	FORCEINLINE void Increment(TYPE IncBy)
 	{
 		checkSlow(Type == EOnlineKeyValuePairDataType::Int32 || Type == EOnlineKeyValuePairDataType::Int64 ||
-                  Type == EOnlineKeyValuePairDataType::UInt32 || Type == EOnlineKeyValuePairDataType::UInt64 ||
+				  Type == EOnlineKeyValuePairDataType::UInt32 || Type == EOnlineKeyValuePairDataType::UInt64 ||
 				  Type == EOnlineKeyValuePairDataType::Float || Type == EOnlineKeyValuePairDataType::Double);
 		if (Type == ENUM_TYPE)
 		{
@@ -371,7 +385,7 @@ public:
 	 * @return json object representation
 	 */
 	TSharedRef<class FJsonObject> ToJson() const;
-	
+
 	/**
 	 * Convert json object to variant data from "type,value" fields
 	 *

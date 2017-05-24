@@ -13,12 +13,7 @@ void FSoundEffectSubmix::ProcessAudio(FSoundEffectSubmixInputData& InData, FSoun
 	bIsRunning = true;
 	InData.PresetData = nullptr;
 
-	// Update the latest version of the effect settings on the audio thread. If there are new settings,
-	// then RawPresetDataScratchOutputBuffer will have the last data.
-	if (EffectSettingsQueue.Dequeue(RawPresetDataScratchOutputBuffer))
-	{
-		InData.PresetData = RawPresetDataScratchOutputBuffer.GetData();
-	}
+	Update();
 
 	// Only process the effect if the effect is active
 	if (bIsActive)

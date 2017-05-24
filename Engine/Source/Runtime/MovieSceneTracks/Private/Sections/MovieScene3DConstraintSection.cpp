@@ -33,3 +33,13 @@ void UMovieScene3DConstraintSection::SetKeyTime(FKeyHandle KeyHandle, float Time
 {
 	// do nothing
 }
+
+
+void UMovieScene3DConstraintSection::OnBindingsUpdated(const TMap<FGuid, FGuid>& OldGuidToNewGuidMap)
+{
+	if (OldGuidToNewGuidMap.Contains(GetConstraintId()))
+	{
+		SetConstraintId(OldGuidToNewGuidMap[GetConstraintId()]);
+	}
+}
+

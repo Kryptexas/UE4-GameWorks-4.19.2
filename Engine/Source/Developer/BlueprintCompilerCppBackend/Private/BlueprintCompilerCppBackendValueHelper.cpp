@@ -40,24 +40,37 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	, EPropertyAccessOperator AccessOperator
 	, bool bAllowProtected)
 {
-	// Determine if the given property contains an instanced default subobject reference. We only get here if the values are not identical.
-	auto IsInstancedSubobjectLambda = [&](int32 ArrayIndex) -> bool
+	// Determine if the given property contains an instanced default subobject reference and obtain the reference value.
+	auto IsInstancedSubobjectLambda = [Property, DataContainer, OptionalDefaultDataContainer](int32 ArrayIndex, const UObject*& OutSubobject, const UObject*& OutDefaultSubobject) -> bool
 	{
+		OutSubobject = nullptr;
+		OutDefaultSubobject = nullptr;
+
 		if (auto ObjectProperty = Cast<UObjectProperty>(Property))
 		{
 			check(DataContainer);
-			check(OptionalDefaultDataContainer);
 
-			auto ObjectPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(DataContainer, ArrayIndex);
-			auto DefaultObjectPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(OptionalDefaultDataContainer, ArrayIndex);
-			if (ObjectPropertyValue && ObjectPropertyValue->IsDefaultSubobject() && DefaultObjectPropertyValue && DefaultObjectPropertyValue->IsDefaultSubobject() && ObjectPropertyValue->GetFName() == DefaultObjectPropertyValue->GetFName())
+			UObject* PropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(DataContainer, ArrayIndex);
+			if (PropertyValue && PropertyValue->IsDefaultSubobject())
 			{
+				OutSubobject = PropertyValue;
+
+				if (OptionalDefaultDataContainer)
+				{
+					UObject* DefaultPropertyValue = ObjectProperty->GetObjectPropertyValue_InContainer(OptionalDefaultDataContainer, ArrayIndex);
+					if (DefaultPropertyValue && DefaultPropertyValue->IsDefaultSubobject() && PropertyValue->GetFName() == DefaultPropertyValue->GetFName())
+					{
+						OutDefaultSubobject = DefaultPropertyValue;
+					}
+				}
+
 				return true;
 			}
 		}
 
 		return false;
 	};
+
 	check(Property);
 	if (Property->HasAnyPropertyFlags(CPF_EditorOnly | CPF_Transient))
 	{
@@ -74,17 +87,16 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	for (int32 ArrayIndex = 0; ArrayIndex < Property->ArrayDim; ++ArrayIndex)
 	{
 		if (!OptionalDefaultDataContainer
-			|| ((Property->PropertyFlags & CPF_Config) != 0) 
-			|| (!Property->Identical_InContainer(DataContainer, OptionalDefaultDataContainer, ArrayIndex) && !IsInstancedSubobjectLambda(ArrayIndex)))
+			|| Property->HasAnyPropertyFlags(CPF_Config)
+			|| !Property->Identical_InContainer(DataContainer, OptionalDefaultDataContainer, ArrayIndex))
 		{
 			FNativizationSummaryHelper::PropertyUsed(Context.GetCurrentlyGeneratedClass(), Property);
 
 			FString PathToMember;
 			UBlueprintGeneratedClass* PropertyOwnerAsBPGC = Cast<UBlueprintGeneratedClass>(Property->GetOwnerClass());
 			UScriptStruct* PropertyOwnerAsScriptStruct = Cast<UScriptStruct>(Property->GetOwnerStruct());
-			const bool bNoExportProperty = PropertyOwnerAsScriptStruct
-				&& PropertyOwnerAsScriptStruct->IsNative()
-				&& (PropertyOwnerAsScriptStruct->StructFlags & STRUCT_NoExport)
+			const bool bInaccessibleScriptStructProperty = PropertyOwnerAsScriptStruct
+				&& !FStructAccessHelper::CanEmitDirectFieldAccess(PropertyOwnerAsScriptStruct)
 				// && !PropertyOwnerAsScriptStruct->GetBoolMetaData(TEXT("BlueprintType"))
 				&& ensure(EPropertyAccessOperator::Dot == AccessOperator);
 			if (PropertyOwnerAsBPGC && !Context.Dependencies.WillClassBeConverted(PropertyOwnerAsBPGC))
@@ -95,8 +107,9 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 
 				PathToMember = FString::Printf(TEXT("FUnconvertedWrapper__%s(%s).GetRef__%s()"), *FEmitHelper::GetCppName(PropertyOwnerAsBPGC), *ContainerStr
 					, *UnicodeToCPPIdentifier(Property->GetName(), false, nullptr));
+				Context.MarkUnconvertedClassAsNecessary(PropertyOwnerAsBPGC);
 			}
-			else if (bNoExportProperty || Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
+			else if (bInaccessibleScriptStructProperty || Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
 			{
 				const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(Property);
 				const bool bBietfield = BoolProperty && !BoolProperty->IsNativeBool();
@@ -115,9 +128,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 						, ArrayIndex));
 					continue;
 				}
-				const FString GetPtrStr = bNoExportProperty
-					? FEmitHelper::AccessInaccessiblePropertyUsingOffset(Context, Property, ContainerStr, OperatorStr, ArrayIndex)
-					: FEmitHelper::AccessInaccessibleProperty(Context, Property, ContainerStr, OperatorStr, ArrayIndex, ENativizedTermUsage::UnspecifiedOrReference, nullptr);
+				const FString GetPtrStr = FEmitHelper::AccessInaccessibleProperty(Context, Property, ContainerStr, OperatorStr, ArrayIndex, ENativizedTermUsage::UnspecifiedOrReference, nullptr);
 				PathToMember = Context.GenerateUniqueLocalName();
 				Context.AddLine(FString::Printf(TEXT("auto& %s = %s;"), *PathToMember, *GetPtrStr));
 			}
@@ -130,6 +141,31 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				PathToMember = FString::Printf(TEXT("%s%s%s%s"), *OuterPath, *AccessOperatorStr, *FEmitHelper::GetCppName(Property), *ArrayPost);
 			}
 
+			const UObject* SubobjectInstance = nullptr;
+			const UObject* DefaultSubobjectInstance = nullptr;
+			if (IsInstancedSubobjectLambda(ArrayIndex, SubobjectInstance, DefaultSubobjectInstance))
+			{
+				// Recursively emit property values for nested default subobjects.
+				if (SubobjectInstance->HasAnyFlags(RF_DefaultSubObject) && !SubobjectInstance->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
+				{
+					check(SubobjectInstance != nullptr);
+
+					UClass* SubobjectInstanceClass = SubobjectInstance->GetClass();
+					check(DefaultSubobjectInstance == nullptr || SubobjectInstanceClass == DefaultSubobjectInstance->GetClass());
+
+					TArray<UObject*> NestedDefaultSubobjects;
+					SubobjectInstanceClass->GetDefaultObjectSubobjects(NestedDefaultSubobjects);
+
+					for (auto SubobjectProperty : TFieldRange<const UProperty>(SubobjectInstanceClass))
+					{
+						OuterGenerate(Context, SubobjectProperty, PathToMember,
+							reinterpret_cast<const uint8*>(SubobjectInstance),
+							reinterpret_cast<const uint8*>(DefaultSubobjectInstance),
+							EPropertyAccessOperator::Pointer);
+					}
+				}
+			}
+			else
 			{
 				const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
 				const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;
@@ -191,10 +227,9 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 				check(InnerInlineStruct);
 				FString StructConstructor;
 				bComplete = SpecialStructureConstructor(InnerInlineStruct, InlineValueData(StructProperty->Struct, LocalValuePtr), &StructConstructor);
-				const FString InnerConstructor = bComplete
-					? StructConstructor 
-					: FString::Printf(TEXT("%s%s"), *FEmitHelper::GetCppName(InnerInlineStruct), FEmitHelper::EmptyDefaultConstructor(InnerInlineStruct));
-				ValueStr = FString::Printf(TEXT("%s(%s)"), *FEmitHelper::GetCppName(StructProperty->Struct), *InnerConstructor);
+				ValueStr = bComplete
+					? FString::Printf(TEXT("%s(%s)"), *FEmitHelper::GetCppName(StructProperty->Struct), *StructConstructor)
+					: FString::Printf(TEXT("ConstructTInlineValue<%s>(%s::StaticStruct())"), *FEmitHelper::GetCppName(StructProperty->Struct), *FEmitHelper::GetCppName(InnerInlineStruct));
 			}
 			else
 			{
@@ -708,8 +743,8 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 		UObject* Object = ObjectProperty->GetPropertyValue(ValuePtr);
 		if (Object)
 		{
+			UClass* ObjectClassToUse = Context.GetFirstNativeOrConvertedClass(ObjectProperty->PropertyClass);
 			{
-				UClass* ObjectClassToUse = Context.GetFirstNativeOrConvertedClass(ObjectProperty->PropertyClass);
 				const FString MappedObject = Context.FindGloballyMappedObject(Object, ObjectClassToUse);
 				if (!MappedObject.IsEmpty())
 				{
@@ -717,9 +752,9 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 				}
 			}
 
+			auto BPGC = Context.GetCurrentlyGeneratedClass();
 			const bool bCreatingSubObjectsOfClass = (Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass);
 			{
-				auto BPGC = Context.GetCurrentlyGeneratedClass();
 				auto CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
 				if (BPGC && Object && CDO && Object->IsIn(BPGC) && !Object->IsIn(CDO) && bCreatingSubObjectsOfClass)
 				{
@@ -733,6 +768,20 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 				if (!CreateAsInstancedSubobject.IsEmpty())
 				{
 					return CreateAsInstancedSubobject;
+				}
+			}
+
+			if (!bCreatingSubObjectsOfClass && Object->IsIn(BPGC))
+			{
+				UChildActorComponent* OuterCAC = Cast<UChildActorComponent>(Object->GetOuter());
+				if (OuterCAC && OuterCAC->IsIn(BPGC) && OuterCAC->GetChildActorTemplate() == Object)
+				{
+					Context.TemplateFromSubobjectsOfClass.AddUnique(Object);
+					const FString MappedObject = Context.FindGloballyMappedObject(Object, ObjectClassToUse);
+					if (!MappedObject.IsEmpty())
+					{
+						return MappedObject;
+					}
 				}
 			}
 		}
@@ -756,6 +805,7 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 
 struct FNonativeComponentData
 {
+	const USCS_Node* SCSNode;
 	FString NativeVariablePropertyName;
 	UActorComponent* ComponentTemplate;
 	UObject* ObjectToCompare;
@@ -768,7 +818,8 @@ struct FNonativeComponentData
 	bool bIsRoot;
 
 	FNonativeComponentData()
-		: ComponentTemplate(nullptr)
+		: SCSNode(nullptr)
+		, ComponentTemplate(nullptr)
 		, ObjectToCompare(nullptr)
 		, bSetNativeCreationMethod(false)
 		, bIsRoot(false)
@@ -863,7 +914,10 @@ struct FNonativeComponentData
 	}
 };
 
-FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties, TArray<FString>& NativeCreatedComponentProperties, const USCS_Node* ParentNode, TArray<FNonativeComponentData>& ComponenntsToInit)
+FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node
+	, TSet<const UProperty*>& OutHandledProperties, TArray<FString>& NativeCreatedComponentProperties
+	, const USCS_Node* ParentNode, TArray<FNonativeComponentData>& ComponenntsToInit
+	, bool bBlockRecursion)
 {
 	check(Node);
 	check(Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::CommonConstructor);
@@ -885,11 +939,18 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 			NativeVariablePropertyName = VariableCleanName;
 		}
 
+		//TODO: UGLY HACK UE-40026
+		if (bBlockRecursion && Context.CommonSubobjectsMap.Contains(ComponentTemplate))
+		{
+			return FString();
+		}
+
 		Context.AddCommonSubObject_InConstructor(ComponentTemplate, NativeVariablePropertyName);
 
 		if (ComponentTemplate->GetOuter() == BPGC)
 		{
 			FNonativeComponentData NonativeComponentData;
+			NonativeComponentData.SCSNode = Node;
 			NonativeComponentData.NativeVariablePropertyName = NativeVariablePropertyName;
 			NonativeComponentData.ComponentTemplate = ComponentTemplate;
 			USCS_Node* RootComponentNode = nullptr;
@@ -935,9 +996,12 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 	}
 
 	// Recursively handle child nodes.
-	for (auto ChildNode : Node->ChildNodes)
+	if (!bBlockRecursion)
 	{
-		HandleNonNativeComponent(Context, ChildNode, OutHandledProperties, NativeCreatedComponentProperties, Node, ComponenntsToInit);
+		for (auto ChildNode : Node->ChildNodes)
+		{
+			HandleNonNativeComponent(Context, ChildNode, OutHandledProperties, NativeCreatedComponentProperties, Node, ComponenntsToInit, bBlockRecursion);
+		}
 	}
 
 	return NativeVariablePropertyName;
@@ -1019,7 +1083,7 @@ struct FFakeImportTableHelper
 						continue;
 					}
 					const UProperty* OwnerProperty = Property->GetOwnerProperty();
-					if (!ensure(IsValid(OwnerProperty)))
+					if (!IsValid(OwnerProperty))
 					{
 						continue;
 					}
@@ -1207,7 +1271,8 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		FakeImportTableHelper.FillDependencyData(InAsset, Result);
 		return Result;
 	};
-
+	const bool bBootTimeEDL = USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME;
+	const bool bEnableBootTimeEDLOptimization = IsEventDrivenLoaderEnabledInCookedBuilds() && bBootTimeEDL;
 	auto AddAssetArray = [&](const TArray<const UObject*>& Assets)
 	{
 		if (Assets.Num())
@@ -1244,14 +1309,39 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 			Context.AddLine(TEXT("};"));
 			Context.AddLine(TEXT("for(const FCompactBlueprintDependencyData CompactData : LocCompactBlueprintDependencyData)"));
 			Context.AddLine(TEXT("{"));
-			Context.AddLine(TEXT("\tAssetsToLoad.Add(FBlueprintDependencyData("));
+			if (bEnableBootTimeEDLOptimization)
+			{
+				Context.AddLine(TEXT("\tAssetsToLoad.Add(FBlueprintDependencyData("));
+			}
+			else
+			{
+				Context.AddLine(TEXT("\tAssetsToLoad.AddUnique(FBlueprintDependencyData("));
+			}
 			Context.AddLine(TEXT("\t\tF__NativeDependencies::Get(CompactData.ObjectRefIndex)"));
 			Context.AddLine(TEXT("\t\t,CompactData.ClassDependency"));
 			Context.AddLine(TEXT("\t\t,CompactData.CDODependency"));
+			Context.AddLine(TEXT("\t\t,CompactData.ObjectRefIndex"));
 			Context.AddLine(TEXT("\t));"));
 			Context.AddLine(TEXT("} "));
 		}
 	};
+
+	TSet<const UBlueprintGeneratedClass*> OtherBPGCs;
+	if (!bEnableBootTimeEDLOptimization)
+	{
+		for (const UObject* It : AllDependenciesToHandle)
+		{
+			if (const UBlueprintGeneratedClass* OtherBPGC = Cast<const UBlueprintGeneratedClass>(It))
+			{
+				const UBlueprint* BP = Cast<const UBlueprint>(OtherBPGC->ClassGeneratedBy);
+				if (Context.Dependencies.WillClassBeConverted(OtherBPGC) && BP && (BP->BlueprintType != EBlueprintType::BPTYPE_Interface))
+				{
+					OtherBPGCs.Add(OtherBPGC);
+				}
+			}
+		}
+	}
+
 
 	// 3. LIST OF UsedAssets
 	{
@@ -1276,7 +1366,72 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
-		Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(AssetsToLoad);")));
+
+		if (!OtherBPGCs.Num() || bEnableBootTimeEDLOptimization)
+		{
+			Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(AssetsToLoad);")));
+		}
+		else
+		{
+			// To reduce the size of __StaticDependenciesAssets, all __StaticDependenciesAssets of listed BPs will be called.
+			FNativizationSummary::FDependencyRecord& DependencyRecord = FDependenciesGlobalMapHelper::FindDependencyRecord(OriginalClass);
+			ensure(DependencyRecord.Index >= 0); 
+			if (DependencyRecord.NativeLine.IsEmpty())
+			{
+				DependencyRecord.NativeLine = CreateAssetToLoadString(OriginalClass);
+			}
+			Context.AddLine(FString::Printf(TEXT("const int16 __OwnIndex = %d;"), DependencyRecord.Index));
+			Context.AddLine(FString(TEXT("if(FBlueprintDependencyData::ContainsDependencyData(AssetsToLoad, __OwnIndex)) { return; }")));
+			Context.AddLine(TEXT("if(GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME){ __StaticDependencies_DirectlyUsedAssets(AssetsToLoad); }"));
+			Context.AddLine(TEXT("else"));
+			Context.AddLine(TEXT("{"));
+			Context.IncreaseIndent();
+			Context.AddLine(FString(TEXT("const bool __FirstFunctionCall = !AssetsToLoad.Num();")));
+			Context.AddLine(FString(TEXT("TArray<FBlueprintDependencyData> Temp;")));
+			// Other __StaticDependenciesAssets fucntions should not see the assets added by __StaticDependencies_DirectlyUsedAssets
+			// But in the first function called the assets from __StaticDependencies_DirectlyUsedAssets must go first in unchanged order (to satisfy FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass)
+			Context.AddLine(FString(TEXT("__StaticDependencies_DirectlyUsedAssets(__FirstFunctionCall ? AssetsToLoad : Temp);")));
+			Context.AddLine(FString(TEXT("TArray<FBlueprintDependencyData>& ArrayUnaffectedByDirectlyUsedAssets = __FirstFunctionCall ? Temp : AssetsToLoad;")));
+
+			Context.AddLine(FString(TEXT("ArrayUnaffectedByDirectlyUsedAssets.AddUnique(FBlueprintDependencyData(F__NativeDependencies::Get(__OwnIndex), {}, {}, __OwnIndex));")));
+
+			for (const UBlueprintGeneratedClass* OtherBPGC : OtherBPGCs)
+			{
+				Context.AddLine(FString::Printf(TEXT("%s::__StaticDependenciesAssets(ArrayUnaffectedByDirectlyUsedAssets);"), *FEmitHelper::GetCppName(OtherBPGC)));
+			}
+			Context.AddLine(FString(TEXT("FBlueprintDependencyData::AppendUniquely(AssetsToLoad, Temp);")));
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("}"));
+		}
+
+		if (bEnableBootTimeEDLOptimization)
+		{
+			//TODO: remove stuff from CoreUObject
+		}
+		else
+		{
+			//WIthout EDL we don't need the native stuff.
+			for (auto Iter = AllDependenciesToHandle.CreateIterator(); Iter; ++Iter)
+			{
+				const UObject* ItObj = *Iter;
+				if (auto ObjAsClass = Cast<const UClass>(ItObj))
+				{
+					if (ObjAsClass->HasAnyClassFlags(CLASS_Native))
+					{
+						Iter.RemoveCurrent();
+					}
+				}
+				else if (ItObj && ItObj->IsA<UScriptStruct>() && !ItObj->IsA<UUserDefinedStruct>())
+				{
+					Iter.RemoveCurrent();
+				}
+				else if (ItObj && ItObj->IsA<UEnum>() && !ItObj->IsA<UUserDefinedEnum>())
+				{
+					Iter.RemoveCurrent();
+				}
+			}
+		}
+		
 		AddAssetArray(AllDependenciesToHandle.Array());
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
@@ -1357,8 +1512,17 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 				continue;
 			}
 
-			const FString ClassConstructor = FDependenciesHelper::GenerateZConstructor(ClassToLoad);
-			Context.AddLine(FString::Printf(TEXT("extern UClass* %s;"), *ClassConstructor));
+			FString ClassConstructor;
+			if (ClassToLoad->HasAnyClassFlags(CLASS_Interface))
+			{
+				const FString ClassZConstructor = FDependenciesHelper::GenerateZConstructor(ClassToLoad);
+				Context.AddLine(FString::Printf(TEXT("extern UClass* %s;"), *ClassZConstructor));
+				ClassConstructor = ClassZConstructor;
+			}
+			else
+			{
+				ClassConstructor = FString::Printf(TEXT("%s::StaticClass()"), *FEmitHelper::GetCppName(ClassToLoad));
+			}
 			Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *ClassConstructor));
 
 			//Context.AddLine(FString::Printf(TEXT("InDynamicClass->ReferencedConvertedFields.Add(LoadObject<UClass>(nullptr, TEXT(\"%s\")));")
@@ -1379,6 +1543,12 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 		const FString StructConstructor = FDependenciesHelper::GenerateZConstructor(LocStruct);
 		Context.AddLine(FString::Printf(TEXT("extern UScriptStruct* %s;"), *StructConstructor));
 		Context.AddLine(FString::Printf(TEXT("InDynamicClass->%s.Add(%s);"), GET_MEMBER_NAME_STRING_CHECKED(UDynamicClass, ReferencedConvertedFields), *StructConstructor));
+	}
+
+	ensure(0 == Context.MiscConvertedSubobjects.Num());
+	for (UObject* LocalTemplate : Context.TemplateFromSubobjectsOfClass)
+	{
+		HandleClassSubobject(Context, LocalTemplate, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects, true, true, true);
 	}
 
 	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
@@ -1554,11 +1724,11 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 			{
 				if (BPGCStack[i]->SimpleConstructionScript)
 				{
-					for (auto Node : BPGCStack[i]->SimpleConstructionScript->GetRootNodes())
+					for (USCS_Node* Node : BPGCStack[i]->SimpleConstructionScript->GetRootNodes())
 					{
 						if (Node)
 						{
-							const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit);
+							const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit, false);
 
 							if (bNeedsRootComponentAssignment && Node->ComponentTemplate && Node->ComponentTemplate->IsA<USceneComponent>() && !NativeVariablePropertyName.IsEmpty())
 							{
@@ -1574,6 +1744,20 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 							}
 						}
 					}
+
+					//TODO: UGLY HACK for "zombie" nodes - UE-40026
+					for (USCS_Node* Node : BPGCStack[i]->SimpleConstructionScript->GetAllNodes())
+					{
+						if (Node)
+						{
+							const bool bNodeWasProcessed = nullptr != ComponentsToInit.FindByPredicate([=](const FNonativeComponentData& InData) { return Node == InData.SCSNode; });
+							if (!bNodeWasProcessed)
+							{
+								HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties, nullptr, ComponentsToInit, true);
+							}
+						}
+					}
+
 				}
 			}
 
@@ -1632,29 +1816,37 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 	Context.AddLine(TEXT("}"));
 }
 
-FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsType, bool bCreate, bool bInitialize)
+FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsType, bool bCreate, bool bInitialize, bool bForceSubobjectOfClass)
 {
 	ensure(Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass);
 
 	FString LocalNativeName;
 	if (bCreate)
 	{
-		FString OuterStr = Context.FindGloballyMappedObject(Object->GetOuter());
-		if (OuterStr.IsEmpty())
+		const bool bAddAsSubobjectOfClass = bForceSubobjectOfClass || (Object->GetOuter() == Context.GetCurrentlyGeneratedClass());
+		FString OuterStr;
+		if (bAddAsSubobjectOfClass)
 		{
-			OuterStr = HandleClassSubobject(Context, Object->GetOuter(), ListOfSubobjectsType, bCreate, bInitialize);
+			OuterStr = TEXT("InDynamicClass");
+		}
+		else
+		{
+			OuterStr = Context.FindGloballyMappedObject(Object->GetOuter());
 			if (OuterStr.IsEmpty())
 			{
-				return FString();
-			}
-			const FString AlreadyCreatedObject = Context.FindGloballyMappedObject(Object);
-			if (!AlreadyCreatedObject.IsEmpty())
-			{
-				return AlreadyCreatedObject;
+				OuterStr = HandleClassSubobject(Context, Object->GetOuter(), ListOfSubobjectsType, bCreate, bInitialize);
+				if (OuterStr.IsEmpty())
+				{
+					return FString();
+				}
+				const FString AlreadyCreatedObject = Context.FindGloballyMappedObject(Object);
+				if (!AlreadyCreatedObject.IsEmpty())
+				{
+					return AlreadyCreatedObject;
+				}
 			}
 		}
-
-		const bool bAddAsSubobjectOfClass = Object->GetOuter() == Context.GetCurrentlyGeneratedClass();
+		
 		LocalNativeName = Context.GenerateUniqueLocalName();
 		Context.AddClassSubObject_InConstructor(Object, LocalNativeName);
 		UClass* ObjectClass = Object->GetClass();
@@ -1669,7 +1861,7 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Cont
 			TEXT("auto %s = NewObject<%s>(%s, %s, TEXT(\"%s\"));")
 			, *LocalNativeName
 			, *NativeType
-			, bAddAsSubobjectOfClass ? TEXT("InDynamicClass") : *OuterStr
+			, *OuterStr
 			, *ActualClass
 			, *Object->GetName().ReplaceCharWithEscapedChar()));
 		if (bAddAsSubobjectOfClass)

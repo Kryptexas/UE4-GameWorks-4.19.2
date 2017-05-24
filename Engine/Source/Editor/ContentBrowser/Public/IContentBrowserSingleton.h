@@ -128,6 +128,9 @@ struct FAssetPickerConfig
 	/** A pointer to an existing delegate that, when executed, will set the filter an the asset picker after it is created. */
 	TArray<FSetARFilterDelegate*> SetFilterDelegates;
 
+	/** A pointer to an existing delegate that, when executed, will refresh the asset view. */
+	TArray<FRefreshAssetViewDelegate*> RefreshAssetViewDelegates;
+
 	/** The asset registry filter to use to cull results */
 	FARFilter Filter;
 
@@ -136,6 +139,9 @@ struct FAssetPickerConfig
 
 	/** The names of columns to hide by default in the column view */
 	TArray<FString> HiddenColumnNames;
+
+	/** List of custom columns that fill out data with a callback */
+	TArray<FAssetViewCustomColumn> CustomColumns;
 
 	/** The contents of the label on the thumbnail */
 	EThumbnailLabel::Type ThumbnailLabel;
@@ -166,6 +172,9 @@ struct FAssetPickerConfig
 
 	/** The delegate that fires when an asset is right clicked and a context menu is requested */
 	FOnGetAssetContextMenu OnGetAssetContextMenu;
+
+	/** The delegate that fires when a folder is right clicked and a context menu is requested */
+	FOnGetFolderContextMenu OnGetFolderContextMenu;
 
 	/** Fired when an asset item is constructed and a tooltip is requested. If unbound the item will use the default widget */
 	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
@@ -269,6 +278,9 @@ struct FPathPickerConfig
 
 	/** The delegate that fires when a path is right clicked and a context menu is requested */
 	FContentBrowserMenuExtender_SelectedPaths OnGetPathContextMenuExtender;
+
+	/** The delegate that fires when a folder is right clicked and a context menu is requested */
+	FOnGetFolderContextMenu OnGetFolderContextMenu;
 
 	/** A pointer to an existing delegate that, when executed, will set the paths for the path picker after it is created. */
 	TArray<FSetPathPickerPathsDelegate*> SetPathsDelegates;
@@ -477,4 +489,16 @@ public:
 	 * @param InAssetsToAssign - assets that should receive the new thumbnail ONLY if they are assets that use GenericThumbnails
 	 */
 	virtual void CaptureThumbnailFromViewport(FViewport* InViewport, TArray<FAssetData>& SelectedAssets) = 0;
+
+	/**
+	 * Sets the content browser to display the selected paths
+	 */
+	virtual void SetSelectedPaths(const TArray<FString>& FolderPaths, bool bNeedsRefresh = false) = 0;
+
+	/**
+	* Forces the content browser to show plugin content if it's not already showing.
+	*
+	* @param bEnginePlugin	If this is true, it will also force the content browser to show engine content
+	*/
+	virtual void ForceShowPluginContent(bool bEnginePlugin) = 0;
 };

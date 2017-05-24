@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class HTML5PlatformEditor : ModuleRules
 {
-	public HTML5PlatformEditor(TargetInfo Target)
+	public HTML5PlatformEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "HTML5";
 

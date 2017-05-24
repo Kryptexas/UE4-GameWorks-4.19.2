@@ -4,12 +4,12 @@ using UnrealBuildTool;
 
 public class VulkanShaderFormat : ModuleRules
 {
-	public VulkanShaderFormat(TargetInfo Target)
+	public VulkanShaderFormat(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 
 		// Do not link the module (as that would require the vulkan dll), only the include paths
-		PrivateIncludePaths.Add("Runtime/VulkanRHI/Public");
+		PublicIncludePaths.Add("Runtime/VulkanRHI/Public");
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -26,7 +26,7 @@ public class VulkanShaderFormat : ModuleRules
         AddEngineThirdPartyPrivateStaticDependencies(Target, "HLSLCC");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "GlsLang");
 
-		if (Target.Platform != UnrealTargetPlatform.Win64 || Target.Platform != UnrealTargetPlatform.Win32 || Target.Platform != UnrealTargetPlatform.Android)
+		if (Target.Platform != UnrealTargetPlatform.Win64 || Target.Platform != UnrealTargetPlatform.Win32 || Target.Platform != UnrealTargetPlatform.Android || Target.Platform != UnrealTargetPlatform.Linux)
 		{
 			PrecompileForTargets = PrecompileTargetsType.None;
 		}

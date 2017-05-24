@@ -54,19 +54,25 @@ With a valid Epic Games account, you're able to download our installer (Epic Gam
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	**Click** the **Download** button to get our installer.
-	
-		![](Download_Screen.png)
-	
-	1.	Once the download is complete, **Run** the installer.
-	
-		![](RunInstaller.png)
-	
-	1.	**Click** the **Install** button when the **Epic Games Launcher Setup** dialog box appears.
-	
-		![](RunEpicLauncherSetup.png)
+	[INCLUDE:#windows_install]
 	[/PARAM]
 [/OBJECT]
+
+<!--
+[EXCERPT:windows_install]
+1.	**Click** the **Download** button to get our installer.
+	
+	![](Download_Screen.png)
+	
+1.	Once the download is complete, **Run** the installer.
+	
+	![](RunInstaller.png)
+	
+1.	**Click** the **Install** button when the **Epic Games Launcher Setup** dialog box appears.
+	
+	![](RunEpicLauncherSetup.png)
+[/EXCERPT:windows_install]
+-->
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]

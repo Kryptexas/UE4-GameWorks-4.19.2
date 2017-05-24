@@ -58,10 +58,13 @@ class FRCPassPostProcessMotionBlur : public TRenderingCompositePassBase<4, 1>
 {
 public:
 	// @param InQuality 0xffffffff to visualize, 0:off(no shader is used), 1:low, 2:medium, 3:high, 4:very high
-	FRCPassPostProcessMotionBlur( uint32 InQuality, int32 InPass )
+	FRCPassPostProcessMotionBlur( uint32 InQuality, int32 InPass, bool InIsComputePass )
 		: Quality(InQuality)
 		, Pass(InPass)
 	{
+		bIsComputePass = InIsComputePass;
+		bPreferAsyncCompute = false;
+
 		// internal error
 		check(Quality >= 1 && Quality <= 4);
 	}
@@ -71,9 +74,17 @@ public:
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
+
 	// 1:low, 2:medium, 3:high, 4: very high
 	uint32	Quality;
 	int32	Pass;
+
+private:
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, float Scale);
+	
+	FComputeFenceRHIRef AsyncEndFence;
 };
 
 

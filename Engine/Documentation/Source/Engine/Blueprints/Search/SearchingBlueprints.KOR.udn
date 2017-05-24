@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 블루프린트 검색
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,6 +6,7 @@ Description:모든 블루프린트 색인에서 부터 고급 검색 문법까�
 version: 4.11
 parent:Engine/Blueprints/Workflow
 order:2
+tags:Blueprints
 
 
 ## 블루프린트 검색

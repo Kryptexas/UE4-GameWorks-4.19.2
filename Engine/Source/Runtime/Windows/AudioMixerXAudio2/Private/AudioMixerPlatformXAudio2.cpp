@@ -272,7 +272,6 @@ namespace Audio
 
 		AudioStreamInfo.OutputDeviceIndex = Params.OutputDeviceIndex;
 		AudioStreamInfo.NumOutputFrames = Params.NumFrames;
-		AudioStreamInfo.RequestedSampleRate = Params.SampleRate;
 		AudioStreamInfo.AudioMixer = Params.AudioMixer;
 
 		if (!GetOutputDeviceInfo(AudioStreamInfo.OutputDeviceIndex, AudioStreamInfo.DeviceInfo))
@@ -288,9 +287,8 @@ namespace Audio
 
 		AudioStreamInfo.DeviceInfo.NumFrames = Params.NumFrames;
 		AudioStreamInfo.DeviceInfo.NumSamples = AudioStreamInfo.DeviceInfo.NumFrames * AudioStreamInfo.DeviceInfo.NumChannels;
-		AudioStreamInfo.DeviceInfo.SampleRate = AudioStreamInfo.RequestedSampleRate;
 
-		HRESULT Result = XAudio2System->CreateMasteringVoice(&OutputAudioStreamMasteringVoice, AudioStreamInfo.DeviceInfo.NumChannels, AudioStreamInfo.RequestedSampleRate, 0, AudioStreamInfo.OutputDeviceIndex, nullptr);
+		HRESULT Result = XAudio2System->CreateMasteringVoice(&OutputAudioStreamMasteringVoice, AudioStreamInfo.DeviceInfo.NumChannels, AudioStreamInfo.DeviceInfo.SampleRate, 0, AudioStreamInfo.OutputDeviceIndex, nullptr);
 		XAUDIO2_CLEANUP_ON_FAIL(Result);
 
 		// Xaudio2 on windows, no need for byte swap
@@ -343,10 +341,8 @@ namespace Audio
 			}
 		}
 
-		if (XAudio2System)
-		{
-			XAudio2System->StopEngine();
-		}
+		check(XAudio2System);
+		XAudio2System->StopEngine();
 
 		if (OutputAudioStreamSourceVoice)
 		{
@@ -354,11 +350,9 @@ namespace Audio
 			OutputAudioStreamSourceVoice = nullptr;
 		}
 
-		if (OutputAudioStreamMasteringVoice)
-		{
-			OutputAudioStreamMasteringVoice->DestroyVoice();
-			OutputAudioStreamMasteringVoice = nullptr;
-		}
+		check(OutputAudioStreamMasteringVoice);
+		OutputAudioStreamMasteringVoice->DestroyVoice();
+		OutputAudioStreamMasteringVoice = nullptr;
 
 		bIsDeviceOpen = false;
 
@@ -398,8 +392,8 @@ namespace Audio
 			// Signal that the thread that is running the update that we're stopping
 			if (OutputAudioStreamSourceVoice)
 			{
-				OutputAudioStreamSourceVoice->FlushSourceBuffers();
-				OutputAudioStreamSourceVoice->Stop(0);
+				OutputAudioStreamSourceVoice->DestroyVoice();
+				OutputAudioStreamSourceVoice = nullptr;
 			}
 
 			if (AudioStreamInfo.StreamState == EAudioOutputStreamState::Running)
@@ -440,17 +434,13 @@ namespace Audio
 
 		if (OutputAudioStreamSourceVoice)
 		{
-			// Fush the buffers and stop it immediately
-			OutputAudioStreamSourceVoice->FlushSourceBuffers();
-			OutputAudioStreamSourceVoice->Stop(0);
-
 			// Then destroy the current audio stream source voice
 			OutputAudioStreamSourceVoice->DestroyVoice();
 			OutputAudioStreamSourceVoice = nullptr;
 		}
 
 		// Don't let the audio stream process while switching to new audio device!
-		FScopeLock Lock(&AudioRenderCritSect);
+		//FScopeLock Lock(&AudioRenderCritSect); XXX - Audio should be stopped then the device switched then audio started again
 
 		// Now destroy the mastering voice
 		if (OutputAudioStreamMasteringVoice)

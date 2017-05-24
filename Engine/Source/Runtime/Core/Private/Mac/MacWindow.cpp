@@ -365,7 +365,7 @@ void FMacWindow::Show()
 	SCOPED_AUTORELEASE_POOL;
 	if (!bIsClosed && !bIsVisible)
 	{
-		const bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && Definition->ActivateWhenFirstShown);
+		const bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && (Definition->ActivationPolicy != EWindowActivationPolicy::Never));
 		
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;

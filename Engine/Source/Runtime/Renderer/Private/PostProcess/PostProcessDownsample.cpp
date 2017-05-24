@@ -12,6 +12,10 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "SceneRenderTargetParameters.h"
 #include "SceneRendering.h"
+#include "PipelineStateCache.h"
+
+const int32 GDownsampleTileSizeX = 8;
+const int32 GDownsampleTileSizeY = 8;
 
 /** Encapsulates the post processing down sample pixel shader. */
 template <uint32 Method>
@@ -59,8 +63,8 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
-		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
 
 		// filter only if needed for better performance
 		FSamplerStateRHIParamRef Filter = (Method == 2) ? 
@@ -128,7 +132,7 @@ public:
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(Context.RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
 
 		const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
 
@@ -142,38 +146,127 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FPostProcessDownsampleVS,TEXT("PostProcessDownsample"),TEXT("MainDownsampleVS"),SF_Vertex);
 
+/** Encapsulates the post processing down sample compute shader. */
+template <uint32 Method>
+class FPostProcessDownsampleCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPostProcessDownsampleCS, Global);
 
-FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat, uint32 InQuality, const TCHAR *InDebugName)
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("METHOD"), Method);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GDownsampleTileSizeX);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GDownsampleTileSizeY);
+	}
+
+	/** Default constructor. */
+	FPostProcessDownsampleCS() {}
+
+public:
+	FPostProcessPassParameters PostprocessParameter;
+	FDeferredPixelShaderParameters DeferredParameters;
+	FShaderParameter DownsampleComputeParams;
+	FShaderParameter OutComputeTex;
+
+	/** Initialization constructor. */
+	FPostProcessDownsampleCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		DeferredParameters.Bind(Initializer.ParameterMap);
+		DownsampleComputeParams.Bind(Initializer.ParameterMap, TEXT("DownsampleComputeParams"));
+		OutComputeTex.Bind(Initializer.ParameterMap, TEXT("OutComputeTex"));
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << PostprocessParameter << DeferredParameters << DownsampleComputeParams << OutComputeTex;
+		return bShaderHasOutdatedParameters;
+	}
+
+	template <typename TRHICmdList>
+	void SetParameters(TRHICmdList& RHICmdList, const FRenderingCompositePassContext& Context, const FIntPoint& SrcSize, FUnorderedAccessViewRHIParamRef DestUAV)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, Context.View.ViewUniformBuffer);
+
+		// filter only if needed for better performance
+		FSamplerStateRHIParamRef Filter = (Method == 2) ? 
+			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI():
+			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+
+		PostprocessParameter.SetCS(ShaderRHI, Context, RHICmdList, Filter);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View, MD_PostProcess);
+		RHICmdList.SetUAVParameter(ShaderRHI, OutComputeTex.GetBaseIndex(), DestUAV);
+		
+		const float PixelScale = (Method == 2) ? 0.5f : 1.0f;
+		FVector4 DownsampleComputeValues(PixelScale / SrcSize.X, PixelScale / SrcSize.Y, 2.f / SrcSize.X, 2.f / SrcSize.Y);
+		SetShaderValue(RHICmdList, ShaderRHI, DownsampleComputeParams, DownsampleComputeValues);
+	}
+
+	template <typename TRHICmdList>
+	void UnsetParameters(TRHICmdList& RHICmdList)
+	{
+		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		RHICmdList.SetUAVParameter(ShaderRHI, OutComputeTex.GetBaseIndex(), NULL);
+	}
+};
+
+// #define avoids a lot of code duplication
+#define VARIATION1(A) typedef FPostProcessDownsampleCS<A> FPostProcessDownsampleCS##A; \
+	IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDownsampleCS##A,TEXT("PostProcessDownsample"),TEXT("MainCS"),SF_Compute);
+
+VARIATION1(0)			VARIATION1(1)			VARIATION1(2)
+#undef VARIATION1
+
+
+FRCPassPostProcessDownsample::FRCPassPostProcessDownsample(EPixelFormat InOverrideFormat, uint32 InQuality, bool bInIsComputePass, const TCHAR *InDebugName)
 	: OverrideFormat(InOverrideFormat)
 	, Quality(InQuality)
 	, DebugName(InDebugName)
 {
+	bIsComputePass = bInIsComputePass;
+	bPreferAsyncCompute = false;
 }
-
 
 template <uint32 Method>
 void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContext& Context, const FPooledRenderTargetDesc* InputDesc)
 {
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	Context.RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+	GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
 	auto ShaderMap = Context.GetShaderMap();
 	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(ShaderMap);
 	TShaderMapRef<FPostProcessDownsamplePS<Method> > PixelShader(ShaderMap);
 
-	static FGlobalBoundShaderState BoundShaderState;
-
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GFilterVertexDeclaration.VertexDeclarationRHI;
+	GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+	GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+	SetGraphicsPipelineState(Context.RHICmdList, GraphicsPSOInit);
 
 	PixelShader->SetParameters(Context, InputDesc);
 	VertexShader->SetParameters(Context);
 }
 
-
 void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Context)
 {
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
+	AsyncEndFence = FComputeFenceRHIRef();
 
-	if(!InputDesc)
+	if (!InputDesc)
 	{
-		// input is not hooked up correctly
 		return;
 	}
 
@@ -190,79 +283,146 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 	FIntRect DestRect = FIntRect::DivideAndRoundUp(SrcRect, 2);
 	SrcRect = DestRect * 2;
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, Downsample, TEXT("Downsample %dx%d"), DestRect.Width(), DestRect.Height());
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, Downsample, TEXT("Downsample%s %dx%d"), bIsComputePass?TEXT("Compute"):TEXT(""), DestRect.Width(), DestRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	const bool bIsDepthInputAvailable = (GetInputDesc(ePId_Input1) != nullptr);
 
-	// check if we have to clear the whole surface.
-	// Otherwise perform the clear when the dest rectangle has been computed.
-	auto FeatureLevel = Context.View.GetFeatureLevel();
-	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
-	{
-		// Set the view family's render target/viewport.
-		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
-		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
-	}
-	else
-	{
-		// Set the view family's render target/viewport.
-		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
-		Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);
-	}
+	if (bIsComputePass)
+	{	
+		DestRect = {View.ViewRect.Min, View.ViewRect.Min + DestSize};
 
-	// set the state
-	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		// Common setup
+		SetRenderTarget(Context.RHICmdList, nullptr, nullptr);
+		Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f);
+		
+		static FName AsyncEndFenceName(TEXT("AsyncDownsampleEndFence"));
+		AsyncEndFence = Context.RHICmdList.CreateComputeFence(AsyncEndFenceName);
 
-	// InflateSize increases the size of the source/dest rectangle to compensate for bilinear reads and UIBlur pass requirements.
-	int32 InflateSize;
-	// if second input is hooked up
-	if (IsDepthInputAvailable())
-	{
-		// also put depth in alpha
-		InflateSize = 2;
-		SetShader<2>(Context, InputDesc);
-	}
-	else
-	{
-		if (Quality == 0)
+		if (IsAsyncComputePass())
 		{
-			SetShader<0>(Context, InputDesc);
-			InflateSize = 1;
+			// Async path
+			FRHIAsyncComputeCommandListImmediate& RHICmdListComputeImmediate = FRHICommandListExecutor::GetImmediateAsyncComputeCommandList();
+			{
+	 			SCOPED_COMPUTE_EVENT(RHICmdListComputeImmediate, AsyncDownsample);
+
+				WaitForInputPassComputeFences(RHICmdListComputeImmediate);
+				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+
+				if (bIsDepthInputAvailable)
+				{
+					DispatchCS<2>(RHICmdListComputeImmediate, Context, SrcSize, DestRect, DestRenderTarget.UAV);
+				}
+				else if (Quality == 0)
+				{
+					DispatchCS<0>(RHICmdListComputeImmediate, Context, SrcSize, DestRect, DestRenderTarget.UAV);
+				}
+				else
+				{
+					DispatchCS<1>(RHICmdListComputeImmediate, Context, SrcSize, DestRect, DestRenderTarget.UAV);
+				}
+
+				RHICmdListComputeImmediate.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
+			}
+			FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(RHICmdListComputeImmediate);		
 		}
 		else
 		{
-			SetShader<1>(Context, InputDesc);
-			InflateSize = 2;
+			// Direct path
+			WaitForInputPassComputeFences(Context.RHICmdList);
+			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToCompute, DestRenderTarget.UAV);
+
+			if (bIsDepthInputAvailable)
+			{
+				DispatchCS<2>(Context.RHICmdList, Context, SrcSize, DestRect, DestRenderTarget.UAV);
+			}
+			else if (Quality == 0)
+			{
+				DispatchCS<0>(Context.RHICmdList, Context, SrcSize, DestRect, DestRenderTarget.UAV);
+			}
+			else
+			{
+				DispatchCS<1>(Context.RHICmdList, Context, SrcSize, DestRect, DestRenderTarget.UAV);
+			}
+
+			Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToGfx, DestRenderTarget.UAV, AsyncEndFence);
 		}
 	}
+	else
+	{
+		// check if we have to clear the whole surface.
+		// Otherwise perform the clear when the dest rectangle has been computed.
+		auto FeatureLevel = Context.View.GetFeatureLevel();
+		if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
+		{
+			// Set the view family's render target/viewport.
+			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+			Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
+		}
+		else
+		{
+			// Set the view family's render target/viewport.
+			SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
+			Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
+			DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);
+		}
 
-	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(Context.GetShaderMap());
+		// InflateSize increases the size of the source/dest rectangle to compensate for bilinear reads and UIBlur pass requirements.
+		int32 InflateSize;
+		// if second input is hooked up
+		if (bIsDepthInputAvailable)
+		{
+			// also put depth in alpha
+			InflateSize = 2;
+			SetShader<2>(Context, InputDesc);
+		}
+		else
+		{
+			if (Quality == 0)
+			{
+				SetShader<0>(Context, InputDesc);
+				InflateSize = 1;
+			}
+			else
+			{
+				SetShader<1>(Context, InputDesc);
+				InflateSize = 2;
+			}
+		}
 
-	DrawPostProcessPass(
-		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
-		DestRect.Width(), DestRect.Height(),
-		SrcRect.Min.X, SrcRect.Min.Y,
-		SrcRect.Width(), SrcRect.Height(),
-		DestSize,
-		SrcSize,
-		*VertexShader,
-		View.StereoPass,
-		false, // This pass is input for passes that can't use the hmd mask, so we need to disable it to ensure valid input data
-		EDRF_UseTriangleOptimization);
+		TShaderMapRef<FPostProcessDownsampleVS> VertexShader(Context.GetShaderMap());
 
-	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+		DrawPostProcessPass(
+			Context.RHICmdList,
+			DestRect.Min.X, DestRect.Min.Y,
+			DestRect.Width(), DestRect.Height(),
+			SrcRect.Min.X, SrcRect.Min.Y,
+			SrcRect.Width(), SrcRect.Height(),
+			DestSize,
+			SrcSize,
+			*VertexShader,
+			View.StereoPass,
+			false, // This pass is input for passes that can't use the hmd mask, so we need to disable it to ensure valid input data
+			EDRF_UseTriangleOptimization);
+
+		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	}
 }
 
-bool FRCPassPostProcessDownsample::IsDepthInputAvailable() const
+template <uint32 Method, typename TRHICmdList>
+void FRCPassPostProcessDownsample::DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntPoint& SrcSize, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV)
 {
-	// remove const
-	FRCPassPostProcessDownsample *This = (FRCPassPostProcessDownsample*)this;
+	auto ShaderMap = Context.GetShaderMap();
+	TShaderMapRef<FPostProcessDownsampleCS<Method>> ComputeShader(ShaderMap);
+	RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 
-	return This->GetInputDesc(ePId_Input1) != 0;
+	ComputeShader->SetParameters(RHICmdList, Context, SrcSize, DestUAV);
+
+	uint32 GroupSizeX = FMath::DivideAndRoundUp(DestRect.Width(), GDownsampleTileSizeX);
+	uint32 GroupSizeY = FMath::DivideAndRoundUp(DestRect.Height(), GDownsampleTileSizeY);
+	DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
+
+	ComputeShader->UnsetParameters(RHICmdList);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessDownsample::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -281,8 +441,8 @@ FPooledRenderTargetDesc FRCPassPostProcessDownsample::ComputeOutputDesc(EPassOut
 		Ret.Format = OverrideFormat;
 	}
 
-	Ret.TargetableFlags &= ~TexCreate_UAV;
-	Ret.TargetableFlags |= TexCreate_RenderTargetable;
+	Ret.TargetableFlags &= ~(TexCreate_RenderTargetable | TexCreate_UAV);
+	Ret.TargetableFlags |= bIsComputePass ? TexCreate_UAV : TexCreate_RenderTargetable;
 	Ret.AutoWritable = false;
 	Ret.DebugName = DebugName;
 

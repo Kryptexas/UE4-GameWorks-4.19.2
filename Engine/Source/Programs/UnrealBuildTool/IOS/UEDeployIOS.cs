@@ -12,19 +12,13 @@ using System.Xml.Linq;
 
 namespace UnrealBuildTool
 {
-	public class UEDeployIOS : UEBuildDeploy
+	class UEDeployIOS : UEBuildDeploy
 	{
         public UEDeployIOS()
         {
         }
 
         protected UnrealPluginLanguage UPL = null;
-
-		public void SetIOSPluginData(FileReference ProjectFile, List<string> Architectures, List<string> inPluginExtraData)
-		{
-			UPL = new UnrealPluginLanguage(ProjectFile, inPluginExtraData, Architectures, "", "", UnrealTargetPlatform.IOS);
-			//UPL.SetTrace ();
-		}
 
 		protected class VersionUtilities
 		{
@@ -181,7 +175,7 @@ namespace UnrealBuildTool
 			return result;
 		}
 
-		public static bool GenerateIOSPList(UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, UEDeployIOS InThis = null)
+		public static bool GenerateIOSPList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory, UEDeployIOS InThis = null)
 		{
 			// generate the Info.plist for future use
 			string BuildDirectory = ProjectDirectory + "/Build/IOS";
@@ -242,9 +236,10 @@ namespace UnrealBuildTool
             // required capabilities
             string RequiredCaps = "";
 
+			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(ProjectFile);
 			if (InThis != null)
 			{
-				List<string> Arches = (Config == UnrealTargetConfiguration.Shipping) ? IOSPlatformContext.GetShippingArchitectures(Ini) : IOSPlatformContext.GetNonShippingArchitectures(Ini);
+				List<string> Arches = ((Config == UnrealTargetConfiguration.Shipping) ? ProjectSettings.ShippingArchitectures : ProjectSettings.NonShippingArchitectures).ToList();
 				if (Arches.Count > 1)
 				{
 					RequiredCaps += "\t\t<string>armv7</string>\n";
@@ -281,6 +276,9 @@ namespace UnrealBuildTool
 						break;
 					case "IOS_9":
 						MinVersion = "9.0";
+						break;
+					case "IOS_10":
+						MinVersion = "10.0";
 						break;
 				}
 			}
@@ -382,6 +380,7 @@ namespace UnrealBuildTool
 				}
 			}
 			Text.AppendLine("\t</array>");
+
 			Text.AppendLine("\t<key>CFBundleIcons</key>");
 			Text.AppendLine("\t<dict>");
 			Text.AppendLine("\t\t<key>CFBundlePrimaryIcon</key>");
@@ -569,11 +568,11 @@ namespace UnrealBuildTool
 				InThis.UPL.ProcessPluginNode("None", "iosPListUpdates", "", ref XDoc);
                 string result = XDoc.Declaration.ToString() + "\n" + XDoc.ToString().Replace("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"[]>", "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
 				File.WriteAllText(PListFile, result);
+				
+				Text = new StringBuilder(result);
 			}
-			else
-			{
-				File.WriteAllText(PListFile, Text.ToString());
-			}
+			
+			File.WriteAllText(PListFile, Text.ToString());
 
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -587,9 +586,34 @@ namespace UnrealBuildTool
 			return bSkipDefaultPNGs;
 		}
 
-		public virtual bool GeneratePList(UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+		public virtual bool GeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
-			return GenerateIOSPList(Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
+			List<string> ProjectArches = new List<string>();
+			ProjectArches.Add("None");
+
+            string ReceiptFilename;
+            string BundlePath;
+
+            // get the receipt
+            if (bIsUE4Game)
+            {
+                ReceiptFilename = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory.ToString(), "UE4Game", UnrealTargetPlatform.IOS, Config, "");
+                BundlePath = Path.Combine(UnrealBuildTool.EngineDirectory.ToString(), "Intermediate", "IOS-Deploy", "UE4Game", Config.ToString(), "Payload", "UE4Game.app");
+            }
+            else
+            {
+                ReceiptFilename = TargetReceipt.GetDefaultPath(ProjectDirectory, ProjectName, UnrealTargetPlatform.IOS, Config, "");
+                BundlePath = Path.Combine(ProjectDirectory, "Binaries", "IOS", "Payload", ProjectName + ".app");
+            }
+
+            string RelativeEnginePath = UnrealBuildTool.EngineDirectory.MakeRelativeTo(DirectoryReference.GetCurrentDirectory());
+
+			UPL = new UnrealPluginLanguage(ProjectFile, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)), ProjectArches, "", "", UnrealTargetPlatform.IOS);
+
+			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
+			UPL.Init(ProjectArches, true, RelativeEnginePath, BundlePath, ProjectDirectory, Config.ToString());
+
+			return GenerateIOSPList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
 		}
 
 		protected virtual void CopyGraphicsResources(bool bSkipDefaultPNGs, string InEngineDir, string AppDirectory, string BuildDirectory, string IntermediateDir)
@@ -612,7 +636,7 @@ namespace UnrealBuildTool
             }
         }
 
-        public bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        public bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy, bool bCreateStubIPA)
 		{
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
@@ -772,7 +796,7 @@ namespace UnrealBuildTool
 //				LaunchXib = BuildDirectory + "/Resources/Interface/LaunchScreen.xib";
 //			}
 
-			bool bSkipDefaultPNGs = GeneratePList(Config, InProjectDirectory, bIsUE4Game, GameName, InProjectName, InEngineDir, AppDirectory);
+			bool bSkipDefaultPNGs = GeneratePList(ProjectFile, Config, InProjectDirectory, bIsUE4Game, GameName, InProjectName, InEngineDir, AppDirectory);
 
 			// ensure the destination is writable
 			if (File.Exists(AppDirectory + "/" + GameName))
@@ -784,7 +808,7 @@ namespace UnrealBuildTool
 			// copy the GameName binary
 			File.Copy(BinaryPath + "/" + GameExeName, AppDirectory + "/" + GameName, true);
 
-			if (!BuildConfiguration.bCreateStubIPA)
+			if (!bCreateStubIPA)
 			{
                 CopyGraphicsResources(bSkipDefaultPNGs, InEngineDir, AppDirectory, BuildDirectory, IntermediateDirectory);
 
@@ -828,45 +852,14 @@ namespace UnrealBuildTool
 				DecoratedGameName = String.Format("{0}-{1}-{2}", GameName, InTarget.Platform.ToString(), InTarget.Configuration.ToString());
 			}
 
-			// Run through iOS APL file
-			IOSPlatformContext PlatformContext = new IOSPlatformContext(InTarget.ProjectFile);
-            PlatformContext.SetUpProjectEnvironment(InTarget.Configuration);
-
-            string BaseSoName = InTarget.OutputPaths[0].FullName;
-
-            ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(InTarget.ProjectFile), InTarget.Platform);
-
-			List<string> ProjectArches;
-			if(InTarget.Configuration == UnrealTargetConfiguration.Shipping)
-			{
-				ProjectArches = IOSPlatformContext.GetShippingArchitectures(Ini);
-			}
-			else
-			{
-				ProjectArches = IOSPlatformContext.GetNonShippingArchitectures(Ini);
-			}
-
-			// get the receipt
-			UnrealTargetPlatform Platform = InTarget.Platform;
-			UnrealTargetConfiguration Configuration = InTarget.Configuration;
-			string ProjectBaseName = Path.GetFileName(BaseSoName).Replace("-" + Platform, "").Replace("-" + Configuration, "").Replace(".so", "");
-			string ReceiptFilename = TargetReceipt.GetDefaultPath(InTarget.ProjectDirectory.FullName, ProjectBaseName, Platform, Configuration, "");
-			Log.TraceInformation("Receipt Filename: {0}", ReceiptFilename);
-			SetIOSPluginData(InTarget.ProjectFile, ProjectArches, CollectPluginDataPaths(TargetReceipt.Read(ReceiptFilename)));
-
-			string BundlePath = Path.Combine (ProjectDirectory, "Binaries", "IOS", "Payload", ProjectBaseName + ".app");
-
-			// Passing in true for distribution is not ideal here but given the way that ios packaging happens and this call chain it seems unavoidable for now, maybe there is a way to correctly pass it in that I can't find?
-			UPL.Init (ProjectArches, true, BuildConfiguration.RelativeEnginePath, BundlePath, ProjectDirectory);
-
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && Environment.GetEnvironmentVariable("UBT_NO_POST_DEPLOY") != "true")
 			{
-				return PrepForUATPackageOrDeploy(InTarget.Configuration, InTarget.ProjectFile, GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false, "", false);
+				return PrepForUATPackageOrDeploy(InTarget.Configuration, InTarget.ProjectFile, GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false, "", false, InTarget.bCreateStubIPA);
 			}
 			else
 			{
 				// @todo tvos merge: This used to copy the bundle back - where did that code go? It needs to be fixed up for TVOS directories
-				GeneratePList(InTarget.Configuration, ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "");
+				GeneratePList(InTarget.ProjectFile, InTarget.Configuration, ProjectDirectory, bIsUE4Game, GameName, (InTarget.ProjectFile == null) ? "" : Path.GetFileNameWithoutExtension(InTarget.ProjectFile.FullName), "../../Engine", "");
 			}
 			return true;
 		}

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Layers : ModuleRules
 {
-	public Layers(TargetInfo Target)
+	public Layers(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

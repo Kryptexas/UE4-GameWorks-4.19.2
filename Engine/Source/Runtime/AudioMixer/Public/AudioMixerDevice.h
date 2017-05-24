@@ -28,6 +28,19 @@ namespace Audio
 		{}
 	};
 
+	// Master submixes
+	namespace EMasterSubmixType
+	{
+		enum Type
+		{
+			Master,
+			Reverb,
+			ReverbPlugin,
+			EQ,
+			Count,
+		};
+	}
+
 	class AUDIOMIXER_API FMixerDevice :	public FAudioDevice,
 										public IAudioMixer
 	{
@@ -36,45 +49,47 @@ namespace Audio
 		~FMixerDevice();
 
 		//~ Begin FAudioDevice
-		void GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) const override;
-		bool InitializeHardware() override;
-		void TeardownHardware() override;
-		void UpdateHardware() override;
+		virtual void GetAudioDeviceList(TArray<FString>& OutAudioDeviceNames) const override;
+		virtual bool InitializeHardware() override;
+		virtual void FadeOut() override;
+		virtual void TeardownHardware() override;
+		virtual void UpdateHardware() override;
+		virtual double GetAudioTime() const override;
+		virtual FAudioEffectsManager* CreateEffectsManager() override;
+		virtual FSoundSource* CreateSoundSource() override;
+		virtual FName GetRuntimeFormat(USoundWave* SoundWave) override;
+		virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
+		virtual bool SupportsRealtimeDecompression() const override;
+		virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) override;
+		virtual bool ValidateAPICall(const TCHAR* Function, uint32 ErrorCode) override;
+		virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
+		virtual void CountBytes(class FArchive& Ar) override;
+		virtual bool IsExernalBackgroundSoundActive() override;
+		virtual void ResumeContext() override;
+		virtual void SuspendContext() override;
+		virtual void EnableDebugAudioOutput() override;
+		virtual void InitSoundSubmixes() override;
+		virtual void RegisterSoundSubmix(USoundSubmix* SoundSubmix, bool bInit = true) override;
+		virtual void UnregisterSoundSubmix(USoundSubmix* SoundSubmix) override;
 
-		double GetAudioTime() const override;
+		virtual void InitSoundEffectPresets() override;
+		virtual int32 GetNumActiveSources() const override;
 
-		FAudioEffectsManager* CreateEffectsManager() override;
-		FSoundSource* CreateSoundSource() override;
-
-		FName GetRuntimeFormat(USoundWave* SoundWave) override;
-		bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
-		bool SupportsRealtimeDecompression() const override;
-		class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) override;
-		bool ValidateAPICall(const TCHAR* Function, uint32 ErrorCode) override;
-		bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-
-		void CountBytes(class FArchive& Ar) override;
-		bool IsExernalBackgroundSoundActive() override;
-		void Precache(USoundWave* InSoundWave, bool bSynchronous = false, bool bTrackMemory = true) override;
-		void ResumeContext() override;
-		void SuspendContext() override;
-		void EnableDebugAudioOutput() override;
-
-		void InitSoundSubmixes() override;
-		void RegisterSoundSubmix(USoundSubmix* SoundSubmix) override;
-		void UnregisterSoundSubmix(USoundSubmix* SoundSubmix) override;
-		FMixerSubmixPtr GetSubmixInstance(USoundSubmix* SoundSubmix);
-
-		int32 GetNumActiveSources() const override;
+		// Updates the source effect chain (using unique object id). 
+		virtual void UpdateSourceEffectChain(const uint32 SourceEffectChainId, const TArray<FSourceEffectChainEntry>& SourceEffectChain, const bool bPlayEffectChainTails) override;
+		virtual bool GetCurrentSourceEffectChain(const uint32 SourceEffectChainId, TArray<FSourceEffectChainEntry>& OutCurrentSourceEffectChainEntries) override;
 		//~ End FAudioDevice
 
 		//~ Begin IAudioMixer
 		bool OnProcessAudioStream(TArray<float>& OutputBuffer) override;
 		//~ End IAudioMixer
 
+		FMixerSubmixPtr GetSubmixInstance(USoundSubmix* SoundSubmix);
+
 		// Functions which check the thread it's called on and helps make sure functions are called from correct threads
 		void CheckAudioThread();
 		void CheckAudioRenderingThread();
+		bool IsAudioRenderingThread();
 
 		// Public Functions
 		FMixerSourceVoice* GetMixerSourceVoice(const FWaveInstance* InWaveInstance, ISourceBufferQueueListener* InBufferQueueListener, bool bUseHRTFSpatialization);
@@ -101,9 +116,19 @@ namespace Audio
 
 		FMixerSourceManager* GetSourceManager();
 
-		FMixerSubmixPtr GetMasterSubmix() { return MasterSubmix; }
-		FMixerSubmixPtr GetMasterReverbSubmix() { return MasterReverbSubmix; }
-		FMixerSubmixPtr GetMasterEQSubmix() { return MasterEQSubmix; }
+		FMixerSubmixPtr GetMasterSubmix(); 
+		FMixerSubmixPtr GetMasterReverbSubmix();
+		FMixerSubmixPtr GetMasterReverbPluginSubmix();
+		FMixerSubmixPtr GetMasterEQSubmix();
+
+		// Add submix effect to master submix
+		void AddMasterSubmixEffect(uint32 SubmixEffectId, FSoundEffectSubmix* SoundEffect);
+		
+		// Remove submix effect from master submix
+		void RemoveMasterSubmixEffect(uint32 SubmixEffectId);
+		
+		// Clear all submix effects from master submix
+		void ClearMasterSubmixEffects();
 
 	private:
 		// Resets the thread ID used for audio rendering
@@ -123,10 +148,17 @@ namespace Audio
 		bool IsMainAudioDevice() const;
 
 	private:
-		// Master submixes
-		static USoundSubmix* MasterSoundSubmix;
-		static USoundSubmix* MasterReverbSoundSubmix;
-		static USoundSubmix* MasterEQSoundSubmix;
+
+		bool IsMasterSubmixType(USoundSubmix* InSubmix) const;
+
+		// Pushes the command to a audio render thread command queue to be executed on render thead
+		void AudioRenderThreadCommand(TFunction<void()> Command);
+		
+		// Pumps the audio render thread command queue
+		void PumpCommandQueue();
+
+		static TArray<USoundSubmix*> MasterSubmixes;
+		TArray<FMixerSubmixPtr> MasterSubmixInstances;
 
 		/** Ptr to the platform interface, which handles streaming audio to the hardware device. */
 		IAudioMixerPlatformInterface* AudioMixerPlatform;
@@ -158,20 +190,13 @@ namespace Audio
 		/** The platform device info for this mixer device. */
 		FAudioPlatformDeviceInfo PlatformInfo;
 
-		/** The true root master submix which will always exist. */
-		FMixerSubmixPtr MasterSubmix;
-
-		/** The master submix for reverb effect. */
-		FMixerSubmixPtr MasterReverbSubmix;
-
-		/** The master submix for the EQ effect. */
-		FMixerSubmixPtr MasterEQSubmix;
-
 		/** Map of USoundSubmix static data objects to the dynamic audio mixer submix. */
 		TMap<USoundSubmix*, FMixerSubmixPtr> Submixes;
 
 		/** List of mixer source voices. */
 		TArray<FMixerSourceVoice*> SourceVoices;
+
+		TMap<uint32, TArray<FSourceEffectChainEntry>> SourceEffectChainOverrides;
 
 		/** The mixer source manager. */
 		FMixerSourceManager SourceManager;
@@ -181,6 +206,9 @@ namespace Audio
 
 		/** ThreadId for the low-level platform audio mixer. */
 		int32 AudioPlatformThreadId;
+
+		/** Command queue to send commands to audio render thread from game thread or audio thread. */
+		TQueue<TFunction<void()>> CommandQueue;
 
 		/** Whether or not we generate output audio to test multi-platform mixer. */
 		bool bDebugOutputEnabled;

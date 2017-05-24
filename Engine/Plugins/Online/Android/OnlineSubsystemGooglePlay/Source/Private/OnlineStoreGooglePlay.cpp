@@ -3,6 +3,10 @@
 #include "OnlineStoreGooglePlay.h"
 #include "OnlineSubsystemGooglePlay.h"
 #include "OnlineAsyncTaskGooglePlayQueryInAppPurchases.h"
+
+#include "Internationalization.h"
+#include "Internationalization/Culture.h"
+#include "FastDecimalFormat.h"
 #include "Misc/ConfigCacheIni.h"
 
 FOnlineStoreGooglePlayV2::FOnlineStoreGooglePlayV2(FOnlineSubsystemGooglePlay* InSubsystem)
@@ -59,12 +63,20 @@ TSharedRef<FOnlineStoreOffer> ConvertProductToStoreOffer(const FInAppPurchasePro
 	}
 
 	NewProductInfo->Title = FText::FromString(Title);
-	NewProductInfo->Description = FText::FromString(Product.DisplayDescription); // google has only one description, map it to (short) description to match iOS
+	NewProductInfo->Description = FText::FromString(Product.DisplayDescription); // Google has only one description, map it to (short) description to match iOS
 	//NewProductInfo->LongDescription = FText::FromString(Product.DisplayDescription); // leave this empty so we know it's not set (client can apply more info from MCP)
 	NewProductInfo->PriceText = FText::FromString(Product.DisplayPrice);
 	NewProductInfo->CurrencyCode = Product.CurrencyCode;
 
-	NewProductInfo->NumericPrice = FMath::TruncToInt(Product.RawPrice);
+	// Convert the backend stated price into its base units
+	FInternationalization& I18N = FInternationalization::Get();
+	const FCulture& Culture = *I18N.GetCurrentCulture();
+
+	const FDecimalNumberFormattingRules& FormattingRules = Culture.GetCurrencyFormattingRules(NewProductInfo->CurrencyCode);
+	const FNumberFormattingOptions& FormattingOptions = FormattingRules.CultureDefaultFormattingOptions;
+	double Val = static_cast<double>(Product.RawPrice) * static_cast<double>(FMath::Pow(10.0f, FormattingOptions.MaximumFractionalDigits));
+
+	NewProductInfo->NumericPrice = FMath::TruncToInt(Val + 0.5);
 
 	// Google doesn't support these fields, set to min and max defaults
 	NewProductInfo->ReleaseDate = FDateTime::MinValue();
@@ -92,10 +104,18 @@ void FOnlineStoreGooglePlayV2::OnGooglePlayAvailableIAPQueryComplete(EGooglePlay
 			NewProductOffer->NumericPrice);
 	}
 
-	CurrentQueryTask->ProcessQueryAvailablePurchasesResults(InResponseCode);
+	if (CurrentQueryTask)
+	{
+		CurrentQueryTask->ProcessQueryAvailablePurchasesResults(InResponseCode);
 
-	// clear the pointer, it will be destroyed by the async task manager
-	CurrentQueryTask = nullptr;
+		// clear the pointer, it will be destroyed by the async task manager
+		CurrentQueryTask = nullptr;
+	}
+	else
+	{
+		UE_LOG(LogOnline, Log, TEXT("OnGooglePlayAvailableIAPQueryComplete: No IAP query task in flight"));
+	}
+
 	bIsQueryInFlight = false;
 }
 
@@ -128,12 +148,12 @@ void FOnlineStoreGooglePlayV2::QueryOffersById(const FUniqueNetId& UserId, const
 	}
 	else
 	{
-		CurrentQueryTask = new FOnlineAsyncTaskGooglePlayQueryInAppPurchasesV2(
-			Subsystem,
-			OfferIds,
-			Delegate);
-		Subsystem->QueueAsyncTask(CurrentQueryTask);
-		
+	CurrentQueryTask = new FOnlineAsyncTaskGooglePlayQueryInAppPurchasesV2(
+		Subsystem,
+		OfferIds,
+		Delegate);
+	Subsystem->QueueAsyncTask(CurrentQueryTask);
+
 		bIsQueryInFlight = true;
 	}
 }

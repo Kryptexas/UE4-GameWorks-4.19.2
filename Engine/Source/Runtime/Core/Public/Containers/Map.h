@@ -12,8 +12,13 @@
 #include "Templates/Function.h"
 #include "Containers/Set.h"
 #include "Containers/Algo/Reverse.h"
+#include "Templates/Tuple.h"
+#include "HasGetTypeHash.h"
 
 #define ExchangeB(A,B) {bool T=A; A=B; B=T;}
+
+template <typename KeyType,typename ValueType>
+using TPair = TTuple<KeyType, ValueType>;
 
 /** An initializer type for pairs that's passed to the pair set when adding a new pair. */
 template <typename KeyInitType, typename ValueInitType>
@@ -29,6 +34,20 @@ public:
 		, Value(InValue)
 	{
 	}
+
+	/** Implicit conversion to pair initializer. */
+	template <typename KeyType, typename ValueType>
+	FORCEINLINE TPairInitializer(const TPair<KeyType, ValueType>& Pair)
+		: Key(Pair.Key)
+		, Value(Pair.Value)
+	{
+	}
+
+	template <typename KeyType, typename ValueType>
+	operator TPair<KeyType, ValueType>() const
+	{
+		return TPair<KeyType, ValueType>(StaticCast<KeyInitType>(Key), StaticCast<ValueInitType>(Value));
+	}
 };
 
 /** An initializer type for keys that's passed to the pair set when adding a new key. */
@@ -43,106 +62,11 @@ public:
 		: Key(InKey)
 	{
 	}
-};
 
-/** A key-value pair in the map. */
-template<typename InKeyType,typename InValueType>
-class TPair
-{
-public:
-	typedef typename TTypeTraits<InKeyType  >::ConstInitType KeyInitType;
-	typedef typename TTypeTraits<InValueType>::ConstInitType ValueInitType;
-	typedef InKeyType   KeyType;
-	typedef InValueType ValueType;
-
-	KeyType   Key;
-	ValueType Value;
-
-	/** Initialization constructor. */
-	template <typename InitKeyType, typename InitValueType>
-	FORCEINLINE TPair(const TPairInitializer<InitKeyType, InitValueType>& InInitializer)
-	:	Key  (StaticCast<InitKeyType  >(InInitializer.Key  ))
-	,	Value(StaticCast<InitValueType>(InInitializer.Value))
+	template <typename KeyType, typename ValueType>
+	operator TPair<KeyType, ValueType>() const
 	{
-		// The seemingly-pointless casts above are to enforce a move (i.e. equivalent to using MoveTemp) when
-		// the initializers are themselves rvalue references.
-	}
-
-	/** Key initialization constructor. */
-	template <typename InitKeyType>
-	FORCEINLINE explicit TPair(const TKeyInitializer<InitKeyType>& InInitializer)
-		: Key  (StaticCast<InitKeyType>(InInitializer.Key))
-		, Value()
-	{
-		// The seemingly-pointless cast above is to enforce a move (i.e. equivalent to using MoveTemp) when
-		// the initializer is itself an rvalue reference.
-	}
-
-	#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
-
-		FORCEINLINE TPair() = default;
-		FORCEINLINE TPair(TPair&&) = default;
-		FORCEINLINE TPair(const TPair&) = default;
-		FORCEINLINE TPair& operator=(TPair&&) = default;
-		FORCEINLINE TPair& operator=(const TPair&) = default;
-
-	#else
-
-		FORCEINLINE TPair()
-		{
-		}
-
-		FORCEINLINE TPair(TPair&& InInitializer)
-			: Key  (MoveTemp(InInitializer.Key))
-			, Value(MoveTemp(InInitializer.Value))
-		{
-		}
-
-		FORCEINLINE TPair(const TPair& InInitializer)
-			: Key  (InInitializer.Key)
-			, Value(InInitializer.Value)
-		{
-		}
-
-		FORCEINLINE TPair& operator=(TPair&& Other)
-		{
-			Key   = MoveTemp(Other.Key);
-			Value = MoveTemp(Other.Value);
-
-			return *this;
-		}
-
-		FORCEINLINE TPair& operator=(const TPair& Other)
-		{
-			Key   = Other.Key;
-			Value = Other.Value;
-
-			return *this;
-		}
-
-	#endif
-
-	/** Serializer. */
-	FORCEINLINE friend FArchive& operator<<(FArchive& Ar,TPair& Pair)
-	{
-		return Ar << Pair.Key << Pair.Value;
-	}
-
-	// Comparison operators
-	FORCEINLINE bool operator==(const TPair& Other) const
-	{
-		return Key == Other.Key && Value == Other.Value;
-	}
-
-	FORCEINLINE bool operator!=(const TPair& Other) const
-	{
-		return Key != Other.Key || Value != Other.Value;
-	}
-
-	/** Implicit conversion to pair initializer. */
-	FORCEINLINE operator TPairInitializer<KeyInitType, ValueInitType>() const
-	{
-		return TPairInitializer<KeyInitType, ValueInitType>(Key,Value);
+		return TPair<KeyType, ValueType>(StaticCast<KeyInitType>(Key), ValueType());
 	}
 };
 
@@ -165,6 +89,12 @@ struct TDefaultMapKeyFuncs : BaseKeyFuncs<TPair<KeyType,ValueType>,KeyType,bInAl
 	{
 		return GetTypeHash(Key);
 	}
+};
+
+template<typename KeyType, typename ValueType, bool bInAllowDuplicateKeys>
+struct TDefaultMapHashableKeyFuncs : TDefaultMapKeyFuncs<KeyType, ValueType, bInAllowDuplicateKeys>
+{
+	static_assert(THasGetTypeHash<KeyType>::Value, "TMap must have a hashable KeyType unless a custom key func is provided.");
 };
 
 /** 
@@ -928,7 +858,7 @@ private:
 class FScriptMap;
 
 /** A TMapBase specialization that only allows a single value associated with each key.*/
-template<typename KeyType,typename ValueType,typename SetAllocator /*= FDefaultSetAllocator*/,typename KeyFuncs /*= TDefaultMapKeyFuncs<KeyType,ValueType,false>*/>
+template<typename KeyType,typename ValueType,typename SetAllocator /*= FDefaultSetAllocator*/,typename KeyFuncs /*= TDefaultMapHashableKeyFuncs<KeyType,ValueType,false>*/>
 class TMap : public TSortableMapBase<KeyType, ValueType, SetAllocator, KeyFuncs>
 {
 	friend struct TContainerTraits<TMap>;
@@ -1056,7 +986,7 @@ public:
 };
 
 /** A TMapBase specialization that allows multiple values to be associated with each key. */
-template<typename KeyType,typename ValueType,typename SetAllocator /* = FDefaultSetAllocator */,typename KeyFuncs /*= TDefaultMapKeyFuncs<KeyType,ValueType,true>*/>
+template<typename KeyType,typename ValueType,typename SetAllocator /* = FDefaultSetAllocator */,typename KeyFuncs /*= TDefaultMapHashableKeyFuncs<KeyType,ValueType,true>*/>
 class TMultiMap : public TSortableMapBase<KeyType, ValueType, SetAllocator, KeyFuncs>
 {
 	friend struct TContainerTraits<TMultiMap>;

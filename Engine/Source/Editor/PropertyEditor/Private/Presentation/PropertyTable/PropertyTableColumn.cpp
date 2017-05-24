@@ -98,6 +98,8 @@ private:
 template<>
 FORCEINLINE bool FCompareRowByColumnAscending<UEnumProperty>::ComparePropertyValue( const TSharedPtr< IPropertyHandle >& LhsPropertyHandle, const TSharedPtr< IPropertyHandle >& RhsPropertyHandle ) const
 {
+	// Only Bytes work right now
+
 	// Get the basic uint8 values
 	uint8 LhsValue; 
 	LhsPropertyHandle->GetValue( LhsValue );
@@ -109,13 +111,15 @@ FORCEINLINE bool FCompareRowByColumnAscending<UEnumProperty>::ComparePropertyVal
 	UEnum* PropertyEnum = Property->GetEnum();
 
 	// Enums are sorted alphabetically based on the full enum entry name - must be sure that values are within Enum bounds!
-	bool bLhsEnumValid = LhsValue < PropertyEnum->NumEnums();
-	bool bRhsEnumValid = RhsValue < PropertyEnum->NumEnums();
-	if(bLhsEnumValid && bRhsEnumValid)
+	int32 LhsIndex = PropertyEnum->GetIndexByValue(LhsValue);
+	int32 RhsIndex = PropertyEnum->GetIndexByValue(RhsValue);
+	bool bLhsEnumValid = LhsIndex != INDEX_NONE;
+	bool bRhsEnumValid = RhsIndex != INDEX_NONE;
+	if (bLhsEnumValid && bRhsEnumValid)
 	{
-		FName LhsEnumName( PropertyEnum->GetEnum( LhsValue ) );
-		FName RhsEnumName( PropertyEnum->GetEnum( RhsValue ) );
-		return LhsEnumName.Compare( RhsEnumName ) < 0;
+		FName LhsEnumName(PropertyEnum->GetNameByIndex(LhsIndex));
+		FName RhsEnumName(PropertyEnum->GetNameByIndex(RhsIndex));
+		return LhsEnumName.Compare(RhsEnumName) < 0;
 	}
 	else if(bLhsEnumValid)
 	{
@@ -144,20 +148,22 @@ FORCEINLINE bool FCompareRowByColumnAscending<UByteProperty>::ComparePropertyVal
 
 	// Bytes are trivially sorted numerically
 	UEnum* PropertyEnum = Property->GetIntPropertyEnum();
-	if( PropertyEnum == NULL )
+	if(PropertyEnum == nullptr)
 	{
 		return LhsValue < RhsValue;
 	}
 	else
 	{
+		int32 LhsIndex = PropertyEnum->GetIndexByValue(LhsValue);
+		int32 RhsIndex = PropertyEnum->GetIndexByValue(RhsValue);
 		// But Enums are sorted alphabetically based on the full enum entry name - must be sure that values are within Enum bounds!
-		bool bLhsEnumValid = LhsValue < PropertyEnum->NumEnums();
-		bool bRhsEnumValid = RhsValue < PropertyEnum->NumEnums();
+		bool bLhsEnumValid = LhsIndex != INDEX_NONE;
+		bool bRhsEnumValid = RhsIndex != INDEX_NONE;
 		if(bLhsEnumValid && bRhsEnumValid)
 		{
-			FName LhsEnumName( PropertyEnum->GetEnum( LhsValue ) );
-			FName RhsEnumName( PropertyEnum->GetEnum( RhsValue ) );
-			return LhsEnumName.Compare( RhsEnumName ) < 0;
+			FName LhsEnumName(PropertyEnum->GetNameByIndex(LhsIndex));
+			FName RhsEnumName(PropertyEnum->GetNameByIndex(RhsIndex));
+			return LhsEnumName.Compare(RhsEnumName) < 0;
 		}
 		else if(bLhsEnumValid)
 		{

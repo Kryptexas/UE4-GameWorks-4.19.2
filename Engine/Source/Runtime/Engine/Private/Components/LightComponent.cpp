@@ -61,6 +61,16 @@ FLinearColor ULightComponentBase::GetLightColor() const
 	return FLinearColor(LightColor);
 }
 
+void ULightComponentBase::SetCastVolumetricShadow(bool bNewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& bCastVolumetricShadow != bNewValue)
+	{
+		bCastVolumetricShadow = bNewValue;
+		MarkRenderStateDirty();
+	}
+}
+
 void ULightComponentBase::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -184,6 +194,7 @@ FBoxSphereBounds ULightComponentBase::GetPlacementExtent() const
 FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	: LightComponent(InLightComponent)
 	, IndirectLightingScale(InLightComponent->IndirectLightingIntensity)
+	, VolumetricScatteringIntensity(FMath::Max(InLightComponent->VolumetricScatteringIntensity, 0.0f))
 	, ShadowResolutionScale(InLightComponent->ShadowResolutionScale)
 	, ShadowBias(InLightComponent->ShadowBias)
 	, ShadowSharpen(InLightComponent->ShadowSharpen)
@@ -197,6 +208,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, bCastDynamicShadow(InLightComponent->CastShadows && InLightComponent->CastDynamicShadows)
 	, bCastStaticShadow(InLightComponent->CastShadows && InLightComponent->CastStaticShadows)
 	, bCastTranslucentShadows(InLightComponent->CastTranslucentShadows)
+	, bCastVolumetricShadow(InLightComponent->bCastVolumetricShadow)
 	, bCastShadowsFromCinematicObjectsOnly(InLightComponent->bCastShadowsFromCinematicObjectsOnly)
 	, bAffectTranslucentLighting(InLightComponent->bAffectTranslucentLighting)
 	, bUsedAsAtmosphereSunLight(InLightComponent->IsUsedAsAtmosphereSunLight())
@@ -301,6 +313,7 @@ ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitial
 	Brightness_DEPRECATED = 3.1415926535897932f;
 	Intensity = 3.1415926535897932f;
 	LightColor = FColor::White;
+	VolumetricScatteringIntensity = 1.0f;
 	bAffectsWorld = true;
 	CastShadows = true;
 	CastStaticShadows = true;
@@ -341,13 +354,13 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	BloomTint = FColor::White;
 
 	RayStartOffsetDepthScale = .003f;
+
+	MaxDrawDistance = 0.0f;
+	MaxDistanceFadeRange = 0.0f;
 	bAddedToSceneVisible = false;
-}
 
-
-void ULightComponent::UpdateLightGUIDs()
-{
-	Super::UpdateLightGUIDs();
+	MaxDrawDistance = 0.0f;
+	MaxDistanceFadeRange = 0.0f;
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const
@@ -561,6 +574,8 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, RayStartOffsetDepthScale) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bVisible) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightingChannels) &&
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, VolumetricScatteringIntensity) &&
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bCastVolumetricShadow) &&
 		// Point light properties that shouldn't unbuild lighting
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UPointLightComponent, SourceRadius) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UPointLightComponent, SourceLength) &&
@@ -709,6 +724,24 @@ void ULightComponent::SetIndirectLightingIntensity(float NewIntensity)
 		&& IndirectLightingIntensity != NewIntensity)
 	{
 		IndirectLightingIntensity = NewIntensity;
+
+		// Use lightweight color and brightness update 
+		UWorld* World = GetWorld();
+		if( World && World->Scene )
+		{
+			//@todo - remove from scene if brightness or color becomes 0
+			World->Scene->UpdateLightColorAndBrightness( this );
+		}
+	}
+}
+
+void ULightComponent::SetVolumetricScatteringIntensity(float NewIntensity)
+{
+	// Can't set brightness on a static light
+	if (AreDynamicDataChangesAllowed()
+		&& VolumetricScatteringIntensity != NewIntensity)
+	{
+		VolumetricScatteringIntensity = NewIntensity;
 
 		// Use lightweight color and brightness update 
 		UWorld* World = GetWorld();
@@ -1094,6 +1127,7 @@ void ULightComponent::PostInterpChange(UProperty* PropertyThatChanged)
 	static FName IntensityName(TEXT("Intensity"));
 	static FName BrightnessName(TEXT("Brightness"));
 	static FName IndirectLightingIntensityName(TEXT("IndirectLightingIntensity"));
+	static FName VolumetricScatteringIntensityName(TEXT("VolumetricScatteringIntensity"));
 	static FName TemperatureName(TEXT("Temperature"));
 
 	FName PropertyName = PropertyThatChanged->GetFName();
@@ -1101,7 +1135,8 @@ void ULightComponent::PostInterpChange(UProperty* PropertyThatChanged)
 		|| PropertyName == IntensityName
 		|| PropertyName == BrightnessName
 		|| PropertyName == IndirectLightingIntensityName
-		|| PropertyName == TemperatureName)
+		|| PropertyName == TemperatureName
+		|| PropertyName == VolumetricScatteringIntensityName)
 	{
 		// Old brightness tracks will animate the deprecated value
 		if (PropertyName == BrightnessName)

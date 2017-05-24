@@ -25,6 +25,7 @@ class UAnimGraphNode_PoseHandler : public UAnimGraphNode_AssetPlayerBase
 	// End of UAnimGraphNode_AssetPlayerBase interface
 
 	// UAnimGraphNode_PoseHandler interface
+	virtual bool IsPoseAssetRequired() { return true; }
 	virtual FAnimNode_PoseHandler* GetPoseHandlerNode() PURE_VIRTUAL(UAnimGraphNode_PoseHandler::GetPoseHandlerNode, return nullptr;);
 	virtual const FAnimNode_PoseHandler* GetPoseHandlerNode() const PURE_VIRTUAL(UAnimGraphNode_PoseHandler::GetPoseHandlerNode, return nullptr;);
 	// End of UAnimGraphNode_PoseHandler interface

@@ -17,6 +17,8 @@
 	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
 #elif PLATFORM_ANDROID
 	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
+#elif PLATFORM_LINUX
+	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
 #else
 	#error Unsupported platform!
 #endif
@@ -96,14 +98,14 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_ENABLE_AGGRESSIVE_STATS							0
 
-#define VULKAN_ENABLE_PIPELINE_CACHE							1
-
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 
 #define VULKAN_REUSE_FENCES										1
 
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()
+#elif PLATFORM_LINUX
+	#define VULKAN_SIGNAL_UNIMPLEMENTED()	checkf(false, TEXT("Unimplemented vulkan functionality: %s"), __PRETTY_FUNCTION__)
 #else
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()				checkf(false, TEXT("Unimplemented vulkan functionality: %s"), TEXT(__FUNCTION__))
 #endif
@@ -164,3 +166,11 @@ namespace EVulkanBindingType
 		return 0;
 	}
 }
+
+/** How many back buffers to cycle through */
+enum
+{
+	NUM_RENDER_BUFFERS = 3,
+};
+
+DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);

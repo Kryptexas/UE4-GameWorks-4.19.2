@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class HeadMountedDisplay : ModuleRules
 {
-    public HeadMountedDisplay(TargetInfo Target)
+    public HeadMountedDisplay(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.AddRange(
 			new string[] {
@@ -20,8 +20,13 @@ public class HeadMountedDisplay : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
-                "RHI"
-			}
-		);
+                "RHI",
+                "Renderer",
+                "ShaderCore",
+                "RenderCore",
+                "UtilityShaders",
+                "Analytics"
+            }
+        );
 	}
 }

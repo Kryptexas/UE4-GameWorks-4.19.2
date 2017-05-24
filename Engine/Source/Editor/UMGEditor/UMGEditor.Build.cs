@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UMGEditor : ModuleRules
 {
-	public UMGEditor(TargetInfo Target)
+	public UMGEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -55,6 +55,7 @@ public class UMGEditor : ModuleRules
 				"DetailCustomizations",
                 "Settings",
 				"RenderCore",
+                "TargetPlatform"
 			}
 			);
 	}

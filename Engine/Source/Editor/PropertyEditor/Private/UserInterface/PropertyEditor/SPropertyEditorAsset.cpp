@@ -28,31 +28,16 @@
 DECLARE_DELEGATE( FOnCopy );
 DECLARE_DELEGATE( FOnPaste );
 
-bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs )
+bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs, const UClass* InObjectClass ) const
 {
-	// Decide whether we should display the thumbnail or not
-	bool bDisplayThumbnailByDefault = false;
-	if(PropertyEditor.IsValid())
-	{
-		UProperty* NodeProperty = PropertyEditor->GetPropertyNode()->GetProperty();
-		UClass* Class = GetObjectPropertyClass(NodeProperty);
-
-		bDisplayThumbnailByDefault |= Class->IsChildOf(UMaterialInterface::StaticClass()) ||
-									  Class->IsChildOf(UTexture::StaticClass()) ||
-									  Class->IsChildOf(UStaticMesh::StaticClass()) ||
-									  Class->IsChildOf(UStaticMeshComponent::StaticClass()) ||
-									  Class->IsChildOf(USkeletalMesh::StaticClass()) ||
-									  Class->IsChildOf(USkeletalMeshComponent::StaticClass()) ||
-									  Class->IsChildOf(UParticleSystem::StaticClass());
-	}
-
-	bool bDisplayThumbnail = ( bDisplayThumbnailByDefault || InArgs._DisplayThumbnail ) && InArgs._ThumbnailPool.IsValid();
-
+	bool bDisplayThumbnail = InArgs._DisplayThumbnail && InArgs._ThumbnailPool.IsValid() && (!InObjectClass || !InObjectClass->IsChildOf(AActor::StaticClass()));
+	
 	if(PropertyEditor.IsValid())
 	{
 		// also check metadata for thumbnail & text display
 		if(InArgs._ThumbnailPool.IsValid())
 		{
+
 			const UProperty* ArrayParent = PropertyEditorHelpers::GetArrayParent( *PropertyEditor->GetPropertyNode() );
 			const UProperty* SetParent = PropertyEditorHelpers::GetSetParent( *PropertyEditor->GetPropertyNode() );
 			const UProperty* MapParent = PropertyEditorHelpers::GetMapParent( *PropertyEditor->GetPropertyNode() );
@@ -73,12 +58,14 @@ bool SPropertyEditorAsset::ShouldDisplayThumbnail( const FArguments& InArgs )
 			}
 
 			FString DisplayThumbnailString = PropertyToCheck->GetMetaData(TEXT("DisplayThumbnail"));
-			if(DisplayThumbnailString.Len() > 0)
+			if (DisplayThumbnailString.Len() > 0)
 			{
 				bDisplayThumbnail = DisplayThumbnailString == TEXT("true");
 			}
 		}
+
 	}
+
 
 	return bDisplayThumbnail;
 }
@@ -198,11 +185,14 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	TAttribute<bool> IsEnabledAttribute(this, &SPropertyEditorAsset::CanEdit);
 	TAttribute<FText> TooltipAttribute(this, &SPropertyEditorAsset::OnGetToolTip);
 
-	if (Property && Property->HasAllPropertyFlags(CPF_DisableEditOnTemplate))
+	if (Property && Property->HasAnyPropertyFlags(CPF_EditConst | CPF_DisableEditOnTemplate))
 	{
 		// There are some cases where editing an Actor Property is not allowed, such as when it is contained within a struct or a CDO
 		TArray<UObject*> ObjectList;
-		PropertyEditor->GetPropertyHandle()->GetOuterObjects(ObjectList);
+		if (PropertyEditor.IsValid())
+		{
+			PropertyEditor->GetPropertyHandle()->GetOuterObjects(ObjectList);
+		}
 
 		// If there is no objects, that means we must have a struct asset managing this property
 		if (ObjectList.Num() == 0)
@@ -258,12 +248,27 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	
 	TSharedPtr<SVerticalBox> CustomContentBox;
 
-	if( ShouldDisplayThumbnail(InArgs) )
+	if(ShouldDisplayThumbnail(InArgs, ObjectClass))
 	{
 		FObjectOrAssetData Value; 
 		GetValue( Value );
 
 		AssetThumbnail = MakeShareable( new FAssetThumbnail( Value.AssetData, InArgs._ThumbnailSize.X, InArgs._ThumbnailSize.Y, InArgs._ThumbnailPool ) );
+
+
+		FAssetThumbnailConfig AssetThumbnailConfig;
+
+		TSharedPtr<IAssetTypeActions> AssetTypeActions;
+		if (ObjectClass != nullptr)
+		{
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(ObjectClass).Pin();
+
+			if (AssetTypeActions.IsValid())
+			{
+				AssetThumbnailConfig.AssetTypeColorOverride = AssetTypeActions->GetTypeColor();
+			}
+		}
 
 		ValueContentBox->AddSlot()
 		.Padding( 0.0f, 0.0f, 2.0f, 0.0f )
@@ -279,7 +284,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				.WidthOverride( InArgs._ThumbnailSize.X ) 
 				.HeightOverride( InArgs._ThumbnailSize.Y )
 				[
-					AssetThumbnail->MakeThumbnailWidget()
+					AssetThumbnail->MakeThumbnailWidget(AssetThumbnailConfig)
 				]
 			]
 		];

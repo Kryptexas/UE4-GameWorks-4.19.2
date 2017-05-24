@@ -81,7 +81,7 @@ class SProfilerThreadView
 	/** Holds current state provided by OnPaint function, used to simplify drawing. */
 	struct FSlateOnPaintState : public FNoncopyable
 	{
-		FSlateOnPaintState( const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect::Type InDrawEffects )
+		FSlateOnPaintState( const FGeometry& InAllottedGeometry, const FSlateRect& InMyClippingRect, FSlateWindowElementList& InOutDrawElements, int32& InLayerId, const FWidgetStyle& InWidgetStyle, ESlateDrawEffect InDrawEffects )
 			: AllottedGeometry( InAllottedGeometry )
 			, AbsoluteClippingRect( InMyClippingRect )
 			, LocalClippingRect( FVector2D::ZeroVector, InAllottedGeometry.Size )
@@ -107,7 +107,7 @@ class SProfilerThreadView
 		 
 		FSlateWindowElementList& OutDrawElements;
 		int32& LayerId;
-		const ESlateDrawEffect::Type DrawEffects;
+		const ESlateDrawEffect DrawEffects;
 
 		const TSharedRef< FSlateFontMeasure > FontMeasureService;
 

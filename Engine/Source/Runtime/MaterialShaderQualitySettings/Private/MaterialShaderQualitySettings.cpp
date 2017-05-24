@@ -42,17 +42,6 @@ void UMaterialShaderQualitySettings::SetPreviewPlatform(FName PlatformName)
 	 PreviewPlatformSettings = FoundPlatform == nullptr ? nullptr : *FoundPlatform;
 	 PreviewPlatformName = PlatformName;
 }
-
-void UMaterialShaderQualitySettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-
-void UMaterialShaderQualitySettings::PostInitProperties()
-{
-	Super::PostInitProperties();
-}
-
 #endif
 
 UShaderPlatformQualitySettings* UMaterialShaderQualitySettings::GetOrCreatePlatformSettings(FName PlatformName)

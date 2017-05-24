@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AIGraph : ModuleRules
 {
-    public AIGraph(TargetInfo Target)
+    public AIGraph(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePaths.AddRange(
             new string[] {

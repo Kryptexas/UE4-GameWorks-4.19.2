@@ -487,12 +487,22 @@ const TSharedPtr<FSequencerDisplayNode>& FSequencerNodeTree::GetHoveredNode() co
 	return HoveredNode;
 }
 
+static void AddChildNodes(const TSharedRef<FSequencerDisplayNode>& StartNode, TSet<TSharedRef<const FSequencerDisplayNode>>& OutFilteredNodes)
+{
+	OutFilteredNodes.Add(StartNode);
+
+	for (TSharedRef<FSequencerDisplayNode> ChildNode : StartNode->GetChildNodes())
+	{
+		AddChildNodes(ChildNode, OutFilteredNodes);
+	}
+}
+
 /*
  * Add node as filtered and include any parent folders
  */
 static void AddFilteredNode(const TSharedRef<FSequencerDisplayNode>& StartNode, TSet<TSharedRef<const FSequencerDisplayNode>>& OutFilteredNodes)
 {
-	OutFilteredNodes.Add(StartNode);
+	AddChildNodes(StartNode, OutFilteredNodes);
 
 	// Gather parent folders up the chain
 	TSharedPtr<FSequencerDisplayNode> ParentNode = StartNode->GetParent();
@@ -552,6 +562,7 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 	{
 		if (!String.StartsWith(TEXT("label:")) && !StartNode->GetDisplayName().ToString().Contains(String)) 
 		{
+			bPassedTextFilter = false;
 			break;
 		}
 	}
@@ -615,5 +626,27 @@ void FSequencerNodeTree::FilterNodes(const FString& InFilter)
 			// Recursively filter all nodes, matching them against the list of filter strings.  All filter strings must be matched
 			FilterNodesRecursive(Sequencer, It.Value().ToSharedRef(), FilterStrings, FilteredNodes);
 		}
+
+		for (auto It = RootNodes.CreateIterator(); It; ++It)
+		{
+			// Recursively filter all nodes, matching them against the list of filter strings.  All filter strings must be matched
+			FilterNodesRecursive(Sequencer, *It, FilterStrings, FilteredNodes);
+		}
 	}
+}
+
+TArray< TSharedRef<FSequencerDisplayNode> > FSequencerNodeTree::GetAllNodes() const
+{
+	TArray< TSharedRef<FSequencerDisplayNode> > AllNodes;
+
+	for (const TSharedRef<FSequencerDisplayNode>& Node : RootNodes)
+	{
+		Node->Traverse_ParentFirst([&](FSequencerDisplayNode& InNode) 
+		{
+			AllNodes.Add(InNode.AsShared());
+			return true;
+		});
+	}
+
+	return AllNodes;
 }

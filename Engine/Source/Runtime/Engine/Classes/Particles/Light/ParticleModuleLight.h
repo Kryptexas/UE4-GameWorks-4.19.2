@@ -66,9 +66,18 @@ class UParticleModuleLight : public UParticleModuleLightBase
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Light)
 	FLightingChannels LightingChannels;
 
+	/** Intensity of the volumetric scattering from this light.  This scales Intensity and LightColor. */
+	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(UIMin = "0.25", UIMax = "4.0"))
+	float VolumetricScatteringIntensity;
+
+	/** Converts the particle lights into high quality lights as if they came from a PointLightComponent.  High quality lights cost significantly more on both CPU and GPU. */
 	UPROPERTY(EditAnywhere, Category = Light)
 	bool bHighQualityLights;
 
+	/** 
+	 * Whether to cast shadows from the particle lights.  Requires High Quality Lights to be enabled.
+	 * Warning: This can be incredibly expensive on the GPU - use with caution.
+	 */
 	UPROPERTY(EditAnywhere, Category = Light)
 	bool bShadowCastingLights;	
 

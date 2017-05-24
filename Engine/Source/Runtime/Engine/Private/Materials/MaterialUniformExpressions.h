@@ -1428,6 +1428,54 @@ private:
 
 /**
  */
+class FMaterialUniformExpressionSign: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSign);
+public:
+
+	FMaterialUniformExpressionSign() {}
+	FMaterialUniformExpressionSign(FMaterialUniformExpression* InX):
+		X(InX)
+	{}
+
+	// FMaterialUniformExpression interface.
+	virtual void Serialize(FArchive& Ar)
+	{
+		Ar << X;
+	}
+	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
+	{
+		X->GetNumberValue(Context, OutValue);
+
+		OutValue.R = FMath::Sign(OutValue.R);
+		OutValue.G = FMath::Sign(OutValue.G);
+		OutValue.B = FMath::Sign(OutValue.B);
+		OutValue.A = FMath::Sign(OutValue.A);
+	}
+	virtual bool IsConstant() const
+	{
+		return X->IsConstant();
+	}
+	virtual bool IsChangingPerFrame() const
+	{
+		return X->IsChangingPerFrame();
+	}
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+		FMaterialUniformExpressionSign* OtherSign = (FMaterialUniformExpressionSign*)OtherExpression;
+		return X->IsIdentical(OtherSign->X);
+	}
+
+private:
+	TRefCountPtr<FMaterialUniformExpression> X;
+};
+
+/**
+ */
 class FMaterialUniformExpressionFrac: public FMaterialUniformExpression
 {
 	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFrac);

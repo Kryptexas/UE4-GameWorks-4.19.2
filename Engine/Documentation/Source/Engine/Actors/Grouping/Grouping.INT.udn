@@ -4,25 +4,6 @@ Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Guide to creating and working with groups of actors within Unreal Editor.
 version: 4.9
 
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Mobility "%Engine/Actors/Mobility:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Types "%Engine/Actors/Types:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -62,8 +43,6 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 
 [TOC(start:2)]
@@ -189,5 +168,3 @@ The **Add Actors to Group** option is only available when one group is selected 
 * Group pivots can be set by selecting the desired group and then holding down **Alt** and clicking the **Middle Mouse Button** in the viewport for the pivot location.
 * It is not possible to group Actors that are in different levels.  Moving an Actor that is currently in a group from one level to another will remove it from the existing group.  However, entire groups can be moved across levels.
 
-
-%playlistnav%

@@ -156,6 +156,9 @@ private:	// BRUSH SETTINGS
 	/** Checks if the filters should appear. Dependant on the current tool being used. */
 	EVisibility GetVisibility_Filters() const;
 
+	/** Checks if the Landscape filter should appear. Hidden for the Fill tool as it's not supported there. */
+	EVisibility GetVisibility_LandscapeFilter() const;
+	
 	/** Checks if the actions should appear. Dependant on the current tool being used. */
 	EVisibility GetVisibility_Actions() const;
 

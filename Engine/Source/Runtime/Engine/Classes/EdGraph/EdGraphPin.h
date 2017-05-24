@@ -204,7 +204,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits< FEdGraphPinType > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FEdGraphPinType > : public TStructOpsTypeTraitsBase2< FEdGraphPinType >
 {
 	enum 
 	{

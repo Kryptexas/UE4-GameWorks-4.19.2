@@ -172,8 +172,6 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 
 	if (bLayersWereChanged)
 	{
-		float WorldToMetersScale = CurrentFrame->Settings->WorldToMetersScale;
-
 		// Create array of ovrLayerHeaders, using LayersToRender array
 		LayersList = (ovrLayerHeader**)FMemory::Realloc(LayersList, NumLayers * sizeof(LayersList[0]));
 		LayersListLen = 0;
@@ -188,7 +186,7 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 		}
 	}
 
-	const float WorldToMetersScale = CurrentFrame->Settings->WorldToMetersScale;
+	const float WorldToMetersScale = CurrentFrame->GetWorldToMetersScale();
 
 	const FSettings* FrameSettings = CurrentFrame->GetSettings();
 

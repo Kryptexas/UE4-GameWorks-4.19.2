@@ -115,6 +115,7 @@
 #include "Materials/MaterialExpressionReroute.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
+#include "Materials/MaterialExpressionSign.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
@@ -176,6 +177,7 @@
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialExpressionVertexColor.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
 #include "Materials/MaterialExpressionViewProperty.h"
 #include "Materials/MaterialExpressionViewSize.h"
@@ -361,6 +363,7 @@ UMaterialExpression::UMaterialExpression(const FObjectInitializer& ObjectInitial
 	bShowInputs = true;
 	bShowOutputs = true;
 	bCollapsed = true;
+	bShowMaskColorsOnPin = true;
 }
 
 
@@ -717,14 +720,14 @@ FString UMaterialExpression::GetInputName(int32 InputIndex) const
 }
 
 #if WITH_EDITOR
-FString UMaterialExpression::GetCreationDescription() const
+FText UMaterialExpression::GetCreationDescription() const
 {
-	return FString();
+	return FText::GetEmpty();
 }
 
-FString UMaterialExpression::GetCreationName() const
+FText UMaterialExpression::GetCreationName() const
 {
-	return FString();
+	return FText::GetEmpty();
 }
 #endif
 
@@ -1425,8 +1428,8 @@ static bool VerifySamplerType(
 			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
-			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
-			FString TextureTypeDisplayName = SamplerTypeEnum->GetEnumText(CorrectSamplerType).ToString();
+			FString SamplerTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(SamplerType).ToString();
+			FString TextureTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(CorrectSamplerType).ToString();
 
 			Compiler->Errorf( TEXT("%s> Sampler type is %s, should be %s for %s"),
 				ExpressionDesc,
@@ -1440,7 +1443,7 @@ static bool VerifySamplerType(
 			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
-			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
+			FString SamplerTypeDisplayName = SamplerTypeEnum->GetDisplayNameTextByValue(SamplerType).ToString();
 
 			Compiler->Errorf( TEXT("%s> To use '%s' as sampler type, SRGB must be disabled for %s"),
 				ExpressionDesc,
@@ -1495,19 +1498,12 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				InputExpression  = RerouteInput->TraceInputsToRealExpression(ExpressionOutputIndex);
 				if (InputExpression == nullptr)
 				{
-					if (Desc.Len() > 0)
-					{
-						return Compiler->Errorf(TEXT("%s> Missing rerouted input texture"), *Desc);
-					}
-					else
-					{
-						return Compiler->Errorf(TEXT("TextureSample> Missing rerouted input texture"));
-					}
+					return CompilerError(Compiler, TEXT("Missing rerouted input texture"));
 				}
 				else if (OutputIndex >= 0)
 				{
 					uint32 OutputType = InputExpression->GetOutputType(OutputIndex);
-					if (OutputType != MCT_Texture2D && OutputType != MCT_TextureCube)
+					if (OutputType != MCT_Texture2D && OutputType != MCT_TextureCube && OutputType != MCT_Texture)
 					{
 						return Compiler->Errorf(TEXT("TextureSample> Reroute not bound to proper texture type!"));
 					}
@@ -1532,6 +1528,15 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 
 		if (EffectiveTexture && VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("TextureSample")), EffectiveTexture, EffectiveSamplerType))
 		{
+			if (TextureCodeIndex != INDEX_NONE)
+			{
+				const EMaterialValueType TextureType = Compiler->GetParameterType(TextureCodeIndex);
+				if (TextureType == MCT_TextureCube && !Coordinates.GetTracedInput().Expression)
+				{
+					return CompilerError(Compiler, TEXT("UV input required for cubemap sample"));
+				}
+			}
+
 			return Compiler->TextureSample(
 				TextureCodeIndex,
 				Coordinates.GetTracedInput().Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
@@ -1550,14 +1555,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 	}
 	else
 	{
-		if (Desc.Len() > 0)
-		{
-			return Compiler->Errorf(TEXT("%s> Missing input texture"), *Desc);
-		}
-		else
-		{
-			return Compiler->Errorf(TEXT("TextureSample> Missing input texture"));
-		}
+		return CompilerError(Compiler, TEXT("Missing input texture"));
 	}
 }
 #endif // WITH_EDITOR
@@ -2007,7 +2005,7 @@ void UMaterialExpressionTextureProperty::GetCaption(TArray<FString>& OutCaptions
 	const UEnum* TexturePropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedTextureProperty"));
 	check(TexturePropertyEnum);
 
-	const FString PropertyDisplayName = TexturePropertyEnum->GetDisplayNameText(Property).ToString();
+	const FString PropertyDisplayName = TexturePropertyEnum->GetDisplayNameTextByValue(Property).ToString();
 #else
 	const FString PropertyDisplayName = TEXT("");
 #endif
@@ -4103,6 +4101,19 @@ UMaterialExpressionMakeMaterialAttributes::UMaterialExpressionMakeMaterialAttrib
 #endif
 }
 
+void UMaterialExpressionMakeMaterialAttributes::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+	
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::FixedLegacyMaterialAttributeNodeTypes)
+	{
+		// Update the legacy masks else fail on vec3 to vec2 conversion
+		Refraction.SetMask(1, 1, 1, 0, 0);
+	}
+}
+
 #if WITH_EDITOR
 int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) 
 {
@@ -4175,6 +4186,7 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	static FConstructorStatics ConstructorStatics;
 
 	bShowOutputNameOnPin = true;
+	bShowMaskColorsOnPin = false;
 
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_MaterialAttributes);
@@ -4188,27 +4200,65 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT("BaseColor"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Metallic"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Specular"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Roughness"), 1, 1, 1, 1, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Metallic"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Specular"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Roughness"), 1, 1, 0, 0, 0));
 	Outputs.Add(FExpressionOutput(TEXT("EmissiveColor"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Opacity"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("OpacityMask"), 1, 1, 1, 1, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Opacity"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("OpacityMask"), 1, 1, 0, 0, 0));
 	Outputs.Add(FExpressionOutput(TEXT("Normal"), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT("WorldPositionOffset"), 1, 1, 1, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT("WorldDisplacement"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("TessellationMultiplier"), 1, 1, 1, 1, 0));
+	Outputs.Add(FExpressionOutput(TEXT("TessellationMultiplier"), 1, 1, 0, 0, 0));
 	Outputs.Add(FExpressionOutput(TEXT("SubsurfaceColor"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("ClearCoat"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("ClearCoatRoughness"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("AmbientOcclusion"), 1, 1, 1, 1, 0));
-	Outputs.Add(FExpressionOutput(TEXT("Refraction"), 1, 1, 1, 1, 0));
+	Outputs.Add(FExpressionOutput(TEXT("ClearCoat"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("ClearCoatRoughness"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("AmbientOcclusion"), 1, 1, 0, 0, 0));
+	Outputs.Add(FExpressionOutput(TEXT("Refraction"), 1, 1, 1, 0, 0));
 
 	for (int32 UVIndex = 0; UVIndex <= MP_CustomizedUVs7 - MP_CustomizedUVs0; UVIndex++)
 	{
 		Outputs.Add(FExpressionOutput(*FString::Printf(TEXT("CustomizedUV%u"), UVIndex), 1, 1, 1, 0, 0));
 	}
-	Outputs.Add(FExpressionOutput(TEXT("PixelDepthOffset"), 1, 1, 1, 1, 0));
+
+	Outputs.Add(FExpressionOutput(TEXT("PixelDepthOffset"), 1, 1, 0, 0, 0));
+}
+
+void UMaterialExpressionBreakMaterialAttributes::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::FixedLegacyMaterialAttributeNodeTypes)
+	{
+		// Update the masks for legacy content
+		int32 OutputIndex = 0;
+
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // BaseColor
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // Metallic
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // Specular
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // Roughness
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // EmissiveColor
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // Opacity
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // OpacityMask
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // Normal
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // WorldPositionOffset
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // WorldDisplacement
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // TessellationMultiplier
+		Outputs[OutputIndex].SetMask(1, 1, 1, 1, 0); ++OutputIndex; // SubsurfaceColor
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // ClearCoat
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // ClearCoatRoughness 
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); ++OutputIndex; // AmbientOcclusion
+		Outputs[OutputIndex].SetMask(1, 1, 1, 0, 0); ++OutputIndex; // Refraction
+		
+		for (int32 i = 0; i <= MP_CustomizedUVs7 - MP_CustomizedUVs0; ++i, ++OutputIndex)
+		{
+			Outputs[OutputIndex].SetMask(1, 1, 1, 0, 0);
+		}
+
+		Outputs[OutputIndex].SetMask(1, 1, 0, 0, 0); // PixelDepthOffset
+	}
 }
 
 #if WITH_EDITOR
@@ -4251,11 +4301,6 @@ int32 UMaterialExpressionBreakMaterialAttributes::Compile(class FMaterialCompile
 	if (!Property)
 	{
 		return Compiler->Errorf(TEXT("Tried to compile material attributes?"));
-	}
-	else if (*Property == MP_Refraction)
-	{
-		// Legacy hack: Defined component masks don't match actual types, so locally fixing with the intention of deprecating this node moving forward.
-		return Compiler->ForceCast(MaterialAttributes.CompileWithDefault(Compiler, FMaterialAttributeDefinitionMap::GetID(*Property)), MCT_Float3);
 	}
 	else
 	{
@@ -4708,9 +4753,6 @@ int32 UMaterialExpressionBlendMaterialAttributes::Compile(class FMaterialCompile
 {
 	const FGuid AttributeID = Compiler->GetMaterialAttribute();
 
-	int32 ResultA = A.CompileWithDefault(Compiler, AttributeID);
-	int32 ResultB = B.CompileWithDefault(Compiler, AttributeID);
-
 	// Blending is optional, can skip on a per-node basis
 	EMaterialAttributeBlend::Type BlendType;
 	EShaderFrequency AttributeFrequency = FMaterialAttributeDefinitionMap::GetShaderFrequency(AttributeID);
@@ -4727,13 +4769,15 @@ int32 UMaterialExpressionBlendMaterialAttributes::Compile(class FMaterialCompile
 
 	switch (BlendType)
 	{
-	case EMaterialAttributeBlend::UseA: return ResultA;
-	case EMaterialAttributeBlend::UseB: return ResultB;
+	case EMaterialAttributeBlend::UseA: return A.CompileWithDefault(Compiler, AttributeID);
+	case EMaterialAttributeBlend::UseB: return B.CompileWithDefault(Compiler, AttributeID);
 	default:
 		check(BlendType == EMaterialAttributeBlend::Blend);
 	}
 
 	// Allow custom blends or fallback to standard interpolation
+	int32 ResultA = A.CompileWithDefault(Compiler, AttributeID);
+	int32 ResultB = B.CompileWithDefault(Compiler, AttributeID);
 	int32 ResultAlpha = Alpha.Compile(Compiler);
 
 	MaterialAttributeBlendFunction BlendFunction = FMaterialAttributeDefinitionMap::GetBlendFunction(AttributeID);
@@ -4951,6 +4995,49 @@ void UMaterialExpressionTruncate::GetCaption(TArray<FString>& OutCaptions) const
 void UMaterialExpressionTruncate::GetExpressionToolTip(TArray<FString>& OutToolTip) 
 {
 	ConvertToMultilineToolTip(TEXT("Truncates a value by discarding the fractional part."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionSign
+//
+UMaterialExpressionSign::UMaterialExpressionSign(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionSign::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.GetTracedInput().Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Sign input"));
+	}
+	return Compiler->Sign(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionSign::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Sign"));
+}
+
+void UMaterialExpressionSign::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns -1 if the input is less than 0, 1 if greater, or 0 if equal."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 
@@ -6338,7 +6425,7 @@ void UMaterialExpressionScreenPosition::GetCaption(TArray<FString>& OutCaptions)
 	const UEnum* ScreenPositionMappingEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExpressionScreenPositionMapping"));
 	check(ScreenPositionMappingEnum);
 
-	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameText(Mapping).ToString();
+	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameTextByValue(Mapping).ToString();
 	OutCaptions.Add(MappingDisplayName);
 #endif
 	OutCaptions.Add(TEXT("ScreenPosition"));
@@ -6385,7 +6472,7 @@ void UMaterialExpressionViewProperty::GetCaption(TArray<FString>& OutCaptions) c
 	const UEnum* ViewPropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedViewProperty"));
 	check(ViewPropertyEnum);
 
-	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameText(Property).ToString();
+	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameTextByValue(Property).ToString();
 #else
 	const FString PropertyDisplayName = TEXT("");
 #endif
@@ -6618,7 +6705,7 @@ FString UMaterialExpressionSceneDepth::GetInputName(int32 InputIndex) const
 	{
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneDepth::StaticClass(), "InputMode" );
-		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
+		return InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
 	}
 	return TEXT("");
 }
@@ -6691,7 +6778,7 @@ int32 UMaterialExpressionSceneTexture::Compile(class FMaterialCompiler* Compiler
 		return Compiler->SceneTextureSize(SceneTextureId, OutputIndex == 2);
 	}
 
-	return Compiler->Errorf(TEXT("Invalid intput parameter"));
+	return Compiler->Errorf(TEXT("Invalid input parameter"));
 }
 
 void UMaterialExpressionSceneTexture::GetCaption(TArray<FString>& OutCaptions) const
@@ -6700,15 +6787,7 @@ void UMaterialExpressionSceneTexture::GetCaption(TArray<FString>& OutCaptions) c
 
 	check(Enum);
 
-#if WITH_EDITOR
-	FString Name = Enum->GetDisplayNameText(SceneTextureId).ToString();
-#else
-	FString Name = TEXT("");
-#endif
-	if(Name.IsEmpty())
-	{
-		Name = Enum->GetEnumName(SceneTextureId);
-	}
+	FString Name = Enum->GetDisplayNameTextByValue(SceneTextureId).ToString();
 
 	OutCaptions.Add(FString(TEXT("SceneTexture:")) + Name);
 }
@@ -6882,7 +6961,7 @@ FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
 	{
 		// Display the current InputMode enum's display name.
 		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneColor::StaticClass(), "InputMode" );
-		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
+		return InputModeProperty->Enum->GetNameStringByValue((int64)InputMode.GetValue());
 	}
 	return TEXT("");
 }
@@ -7098,15 +7177,15 @@ int32 UMaterialExpressionTransform::Compile(class FMaterialCompiler* Compiler, i
 void UMaterialExpressionTransform::GetCaption(TArray<FString>& OutCaptions) const
 {
 #if WITH_EDITOR
-	const UEnum* MVCTSEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialVectorCoordTransformSource"));
-	const UEnum* MVCTEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialVectorCoordTransform"));
+	const UEnum* MVCTSEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialVectorCoordTransformSource"));
+	const UEnum* MVCTEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialVectorCoordTransform"));
 	check(MVCTSEnum);
 	check(MVCTEnum);
 	
 	FString TransformDesc;
-	TransformDesc += MVCTSEnum->GetDisplayNameText(TransformSourceType).ToString();
+	TransformDesc += MVCTSEnum->GetDisplayNameTextByValue(TransformSourceType).ToString();
 	TransformDesc += TEXT(" to ");
-	TransformDesc += MVCTEnum->GetDisplayNameText(TransformType).ToString();
+	TransformDesc += MVCTEnum->GetDisplayNameTextByValue(TransformType).ToString();
 	OutCaptions.Add(TransformDesc);
 #else
 	OutCaptions.Add(TEXT(""));
@@ -7200,13 +7279,13 @@ int32 UMaterialExpressionTransformPosition::Compile(class FMaterialCompiler* Com
 void UMaterialExpressionTransformPosition::GetCaption(TArray<FString>& OutCaptions) const
 {
 #if WITH_EDITOR
-	const UEnum* MPTSEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialPositionTransformSource"));
+	const UEnum* MPTSEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EMaterialPositionTransformSource"));
 	check(MPTSEnum);
 	
 	FString TransformDesc;
-	TransformDesc += MPTSEnum->GetDisplayNameText(TransformSourceType).ToString();
+	TransformDesc += MPTSEnum->GetDisplayNameTextByValue(TransformSourceType).ToString();
 	TransformDesc += TEXT(" to ");
-	TransformDesc += MPTSEnum->GetDisplayNameText(TransformType).ToString();
+	TransformDesc += MPTSEnum->GetDisplayNameTextByValue(TransformType).ToString();
 	OutCaptions.Add(TransformDesc);
 #else
 	OutCaptions.Add(TEXT(""));
@@ -7331,7 +7410,10 @@ int32 UMaterialExpressionFresnel::Compile(class FMaterialCompiler* Compiler, int
 	int32 MaxArg = Compiler->Max(Compiler->Constant(0.f),DotArg);
 	int32 MinusArg = Compiler->Sub(Compiler->Constant(1.f),MaxArg);
 	int32 ExponentArg = ExponentIn.GetTracedInput().Expression ? ExponentIn.Compile(Compiler) : Compiler->Constant(Exponent);
-	int32 PowArg = Compiler->Power(MinusArg,ExponentArg);
+	// Compiler->Power got changed to call PositiveClampedPow instead of ClampedPow
+	// Manually implement ClampedPow to maintain backwards compatibility in the case where the input normal is not normalized (length > 1)
+	int32 AbsBaseArg = Compiler->Abs(MinusArg);
+	int32 PowArg = Compiler->Power(AbsBaseArg,ExponentArg);
 	int32 BaseReflectFractionArg = BaseReflectFractionIn.GetTracedInput().Expression ? BaseReflectFractionIn.Compile(Compiler) : Compiler->Constant(BaseReflectFraction);
 	int32 ScaleArg = Compiler->Mul(PowArg, Compiler->Sub(Compiler->Constant(1.f), BaseReflectFractionArg));
 	
@@ -7863,7 +7945,7 @@ UMaterialExpressionActorPositionWS::UMaterialExpressionActorPositionWS(const FOb
 #if WITH_EDITOR
 int32 UMaterialExpressionActorPositionWS::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (Material != nullptr && (Material->MaterialDomain != MD_Surface) && (Material->MaterialDomain != MD_DeferredDecal))
+	if (Material != nullptr && (Material->MaterialDomain != MD_Surface) && (Material->MaterialDomain != MD_DeferredDecal) && (Material->MaterialDomain != MD_Volume))
 	{
 		return CompilerError(Compiler, TEXT("Expression only available in the Surface and Deferred Decal material domains."));
 	}
@@ -10282,14 +10364,14 @@ void UMaterialExpressionReroute::GetCaption(TArray<FString>& OutCaptions) const
 }
 
 
-FString UMaterialExpressionReroute::GetCreationDescription() const 
+FText UMaterialExpressionReroute::GetCreationDescription() const 
 {
-	return LOCTEXT("RerouteNodeCreationDesc", "This node looks like a single pin and can be used to tidy up your graph by adding a movable control point to the connection spline.").ToString();
+	return LOCTEXT("RerouteNodeCreationDesc", "This node looks like a single pin and can be used to tidy up your graph by adding a movable control point to the connection spline.");
 }
 
-FString UMaterialExpressionReroute::GetCreationName() const
+FText UMaterialExpressionReroute::GetCreationName() const
 {
-	return LOCTEXT("RerouteNodeCreationName", "Add Reroute Node...").ToString();
+	return LOCTEXT("RerouteNodeCreationName", "Add Reroute Node...");
 }
 
 
@@ -12028,6 +12110,87 @@ void UMaterialExpressionClearCoatNormalCustomOutput::GetCaption(TArray<FString>&
 #endif // WITH_EDITOR
 
 FExpressionInput* UMaterialExpressionClearCoatNormalCustomOutput::GetInput(int32 InputIndex)
+{
+	return &Input;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Vertex to pixel interpolated data handler
+///////////////////////////////////////////////////////////////////////////////
+
+UMaterialExpressionVertexInterpolator::UMaterialExpressionVertexInterpolator(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+#endif
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT("PS"), 0, 0, 0, 0, 0));
+	bShowOutputNameOnPin = true;
+
+	InterpolatorIndex = INDEX_NONE;
+	InterpolatedType = MCT_Unknown;
+	InterpolatorOffset = INDEX_NONE;
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionVertexInterpolator::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if (Input.GetTracedInput().Expression)
+	{
+		if (InterpolatorIndex == INDEX_NONE)
+		{
+			return Compiler->Errorf(TEXT("Failed to compile interpolator input."));
+		}
+		else
+		{
+			return Compiler->VertexInterpolator(InterpolatorIndex);
+		}
+	}
+	else
+	{
+		return CompilerError(Compiler, TEXT("Input missing"));
+	}
+}
+
+int32 UMaterialExpressionVertexInterpolator::CompileInput(class FMaterialCompiler* Compiler, int32 AssignedInterpolatorIndex)
+{
+	int32 Ret = INDEX_NONE;
+	InterpolatorIndex = INDEX_NONE;
+	InterpolatedType = MCT_Unknown;
+	InterpolatorOffset = INDEX_NONE;
+
+	if (Input.GetTracedInput().Expression)
+	{
+		int32 InternalCode = Input.Compile(Compiler);
+		Compiler->CustomOutput(this, AssignedInterpolatorIndex, InternalCode);
+		InterpolatorIndex = AssignedInterpolatorIndex;
+		InterpolatedType = Compiler->GetType(InternalCode);
+		Ret = InternalCode;
+	}
+
+	return Ret;
+}
+
+void UMaterialExpressionVertexInterpolator::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString(TEXT("VertexInterpolator")));
+}
+#endif // WITH_EDITOR
+
+FExpressionInput* UMaterialExpressionVertexInterpolator::GetInput(int32 InputIndex)
 {
 	return &Input;
 }

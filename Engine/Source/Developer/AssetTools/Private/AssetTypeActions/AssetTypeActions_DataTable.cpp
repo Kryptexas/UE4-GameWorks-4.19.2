@@ -9,6 +9,7 @@
 
 #include "Editor/DataTableEditor/Public/DataTableEditorModule.h"
 #include "DesktopPlatformModule.h"
+#include "AssetToolsModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -192,6 +193,35 @@ void FAssetTypeActions_DataTable::GetResolvedSourceFilePaths(const TArray<UObjec
 	{
 		const auto DataTable = CastChecked<UDataTable>(Asset);
 		DataTable->AssetImportData->ExtractFilenames(OutSourceFilePaths);
+	}
+}
+
+// Attempts to export temporary CSV files and diff those. If that fails we fall back to diffing the data table assets directly.
+void FAssetTypeActions_DataTable::PerformAssetDiff(UObject* OldAsset, UObject* NewAsset, const FRevisionInfo& OldRevision, const FRevisionInfo& NewRevision) const
+{
+	UDataTable* OldDataTable = CastChecked<UDataTable>(OldAsset);
+	UDataTable* NewDataTable = CastChecked<UDataTable>(NewAsset);
+
+	// Build names for temp csv files
+	FString RelOldTempFileName = FString::Printf(TEXT("%sTemp%s-%s.csv"), *FPaths::DiffDir(), *OldAsset->GetName(), *OldRevision.Revision);
+	FString AbsoluteOldTempFileName = FPaths::ConvertRelativePathToFull(RelOldTempFileName);
+	FString RelNewTempFileName = FString::Printf(TEXT("%sTemp%s-%s.csv"), *FPaths::DiffDir(), *NewAsset->GetName(), *NewRevision.Revision);
+	FString AbsoluteNewTempFileName = FPaths::ConvertRelativePathToFull(RelNewTempFileName);
+
+	// save temp files
+	bool OldResult = FFileHelper::SaveStringToFile(OldDataTable->GetTableAsCSV(EDataTableExportFlags::UsePrettyPropertyNames | EDataTableExportFlags::UsePrettyEnumNames), *AbsoluteOldTempFileName);
+	bool NewResult = FFileHelper::SaveStringToFile(NewDataTable->GetTableAsCSV(EDataTableExportFlags::UsePrettyPropertyNames | EDataTableExportFlags::UsePrettyEnumNames), *AbsoluteNewTempFileName);
+
+	if (OldResult && NewResult)
+	{
+		FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
+
+		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		AssetToolsModule.Get().CreateDiffProcess(DiffCommand, AbsoluteOldTempFileName, AbsoluteNewTempFileName);
+	}
+	else
+	{
+		FAssetTypeActions_CSVAssetBase::PerformAssetDiff(OldAsset, NewAsset, OldRevision, NewRevision);
 	}
 }
 

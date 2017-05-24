@@ -95,7 +95,8 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bUseEditorCompositing(InComponent->bUseEditorCompositing)
 ,	bReceiveCombinedCSMAndStaticShadowsFromStationaryLights(InComponent->bReceiveCombinedCSMAndStaticShadowsFromStationaryLights)
 ,	bRenderCustomDepth(InComponent->bRenderCustomDepth)
-,	CustomDepthStencilValue((uint8)InComponent->CustomDepthStencilValue) 
+,	CustomDepthStencilValue(InComponent->CustomDepthStencilValue)
+,	CustomDepthStencilWriteMask(FRendererStencilMaskEvaluation::ToStencilMask(InComponent->CustomDepthStencilWriteMask))
 ,	LightingChannelMask(GetLightingChannelMaskForStruct(InComponent->LightingChannels))
 ,	LpvBiasMultiplier(InComponent->LpvBiasMultiplier)
 ,	IndirectLightingCacheQuality(InComponent->IndirectLightingCacheQuality)
@@ -142,7 +143,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 		// Otherwise they would light differently in editor and in game, even after a lighting rebuild
 		bNeedsUnbuiltPreviewLighting = false;
 	}
-
+	
 	if(InComponent->GetOwner())
 	{
 		DrawInGame &= !(InComponent->GetOwner()->bHidden);
@@ -175,8 +176,17 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 #if WITH_EDITOR
 	const bool bGetDebugMaterials = true;
 	InComponent->GetUsedMaterials(UsedMaterialsForVerification, bGetDebugMaterials);
-#endif
+#endif	
 }
+
+#if WITH_EDITOR
+void FPrimitiveSceneProxy::SetUsedMaterialForVerification(const TArray<UMaterialInterface*>& InUsedMaterialsForVerification)
+{
+	check(IsInRenderingThread());
+
+	UsedMaterialsForVerification = InUsedMaterialsForVerification;
+}
+#endif
 
 FPrimitiveSceneProxy::~FPrimitiveSceneProxy()
 {

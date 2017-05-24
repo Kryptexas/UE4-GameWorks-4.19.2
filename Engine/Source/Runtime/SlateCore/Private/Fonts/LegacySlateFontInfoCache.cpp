@@ -24,6 +24,8 @@ FLegacySlateFontInfoCache::FLegacySlateFontInfoCache()
 	, LocalizedFallbackFontDataHistoryVersion(0)
 	, LocalizedFallbackFontFrameCounter(0)
 {
+	LastResortFontPath = FPaths::EngineContentDir() / TEXT("SlateDebug/Fonts/LastResort.ttf");
+	bIsLastResortFontAvailable = FPaths::FileExists(LastResortFontPath);
 }
 
 TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetCompositeFont(const FName& InLegacyFontName, const EFontHinting InLegacyFontHinting)
@@ -61,9 +63,6 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetCompositeFont(con
 		}
 	}
 
-	// Don't allow GC while we perform this allocation
-	FGCScopeGuard GCGuard;
-
 	TSharedRef<const FCompositeFont> NewCompositeFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, LegacyFontPath, InLegacyFontHinting, EFontLoadingPolicy::LazyLoad));
 	LegacyFontNameToCompositeFont.Add(LegacyFontKey, NewCompositeFont);
 	return NewCompositeFont;
@@ -73,9 +72,6 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetSystemFont()
 {
 	if (!SystemFont.IsValid())
 	{
-		// Don't allow GC while we perform this allocation
-		FGCScopeGuard GCGuard;
-
 		const TArray<uint8> FontBytes = FPlatformMisc::GetSystemFontBytes();
 		if (FontBytes.Num() > 0)
 		{
@@ -103,9 +99,6 @@ const FFontData& FLegacySlateFontInfoCache::GetLocalizedFallbackFontData()
 	// By only allowing it to update once per-frame, we ensure that the font cache has been flushed (which happens at the end of the frame) before we return a new font
 	if (!LocalizedFallbackFontData.IsValid() || (LocalizedFallbackFontDataHistoryVersion != CurrentHistoryVersion && LocalizedFallbackFontFrameCounter != CurrentFrameCounter))
 	{
-		// Don't allow GC while we perform this allocation
-		FGCScopeGuard GCGuard;
-
 		LocalizedFallbackFontDataHistoryVersion = CurrentHistoryVersion;
 		LocalizedFallbackFontFrameCounter = CurrentFrameCounter;
 
@@ -135,12 +128,17 @@ uint16 FLegacySlateFontInfoCache::GetLocalizedFallbackFontRevision() const
 	return LocalizedFallbackFontRevision;
 }
 
+bool FLegacySlateFontInfoCache::IsLastResortFontAvailable() const
+{
+	return bIsLastResortFontAvailable;
+}
+
 TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetLastResortFont()
 {
 	// GetLastResortFont may be called from multiple threads at once
 	FScopeLock Lock(&LastResortFontCS);
 
-	if (!LastResortFont.IsValid())
+	if (!LastResortFont.IsValid() && bIsLastResortFontAvailable)
 	{
 		const FFontData& FontData = GetLastResortFontData();
 		LastResortFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, FontData.GetFontFilename(), FontData.GetHinting(), FontData.GetLoadingPolicy()));
@@ -156,11 +154,7 @@ const FFontData& FLegacySlateFontInfoCache::GetLastResortFontData()
 
 	if (!LastResortFontData.IsValid())
 	{
-		// Don't allow GC while we perform this allocation
-		FGCScopeGuard GCGuard;
-
-		const FString LastResortFontPath = FPaths::EngineContentDir() / TEXT("SlateDebug/Fonts/LastResort.ttf");
-		LastResortFontData = MakeShareable(new FFontData(LastResortFontPath, EFontHinting::Default, EFontLoadingPolicy::LazyLoad));
+		LastResortFontData = MakeShareable(new FFontData(bIsLastResortFontAvailable ? LastResortFontPath : FString(), EFontHinting::Default, EFontLoadingPolicy::LazyLoad));
 	}
 
 	return *LastResortFontData;

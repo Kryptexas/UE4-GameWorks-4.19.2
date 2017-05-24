@@ -2,7 +2,16 @@
 cmake_minimum_required(VERSION 2.8.11)
 
 # CMake script build HarfBuzz for using our pre-built third-party libraries
-if(${WIN32})
+
+option(BUILD_WITH_FREETYPE_2_6 OFF)
+if (${WIN32})
+	set(BUILD_WITH_FREETYPE_2_6 ON)
+endif()
+#if ( NOT $ENV{EMSCRIPTEN} EQUAL "" )
+#	set(BUILD_WITH_FREETYPE_2_6 ON)
+#endif()
+
+if(BUILD_WITH_FREETYPE_2_6)
 	set(FREETYPE2_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../FreeType2/FreeType2-2.6")
 else()
 	set(FREETYPE2_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../FreeType2/FreeType2-2.4.12")

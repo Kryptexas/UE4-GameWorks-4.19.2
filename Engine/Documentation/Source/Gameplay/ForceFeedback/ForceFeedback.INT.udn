@@ -1,8 +1,11 @@
 ﻿Availability:Public
-Title: Force Feedback
-Crumbs:
+Title: Force Feedback and the Force Feedback Component
+Crumbs:%ROOT%, Gameplay
 Description: Using the vibration functionality of mobile devices and controllers to convey a force occuring in the game to the player.
 Parent:Gameplay
+Related: Engine/Blueprints/UserGuide/Components
+version: 4.15
+
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -40,7 +43,9 @@ Parent:Gameplay
 
 [TOC]
 
+[EXCERPT:WhatIsForceFeedback]
 **Force Feedback** (sometimes referred to as rumble or haptic feedback) refers to the vibrating of a device or controller used in games to convey a force occuring in the game to the player. A simple example is when an explosion occurs in the game and force feedback is used to simulate the shockwave, which gives an additional dimension to the immersion.
+[/EXCERPT:WhatIsForceFeedback]
 
 Once implemented, Force Feedback will work on all platforms where it is supported. This includes iOS (as of 4.10), Android, and controllers.
 
@@ -86,6 +91,8 @@ Force Feedback Effect assets are created using the **Content Browser**:
 
 ## Playing Force Feedback
 
+### Directly To A Player
+
 Force Feedback is implemented in the base PlayerController class. You will need access to the local Player Controller in order to play the force feedback on the target device or controller.
 
 **Playing Force Feedback in Blueprints:**
@@ -116,6 +123,10 @@ Force Feedback is implemented in the base PlayerController class. You will need 
 
 **Playing Force Feedback in C++:**
 
-Call [](API:APlayerController::ClientPlayForceFeedback) on the local Player Controller, passing it the Force Feedback Effect to use as well as whether or not the effect should loop, and an optional tag for the effect. The tag allows you to stop the effect; if an effect with the same tag is already playing, it will be stopped and the new effect will play instead.
+Call [](API:APlayerController::ClientPlayForceFeedback) on the local Player Controller, passing it the Force Feedback Effect to use as well as whether or not the effect should loop, and an optional tag for the effect. If a tag is provided, and another Force Feedback Effect with the same tag is played before the original effect ends, the original will be stopped immediately and the new effect will play instead.
 
+### At A World Location
 
+To play a Force Feedback Effect that changes intensity based on distance from the observing player, place a **Force Feedback Component** in the world at the intended source of the effect. A Force Feedback component plays a Force Feedback Effect on command, but also has a physical location in the world. Like sound or light, the intensity of the force experienced by the player will change with the player's distance from the source, according to a data-defined attenuation setting.
+
+Force Feedback Components can be attached to any actor via the usual code or Blueprint editor methods, but they can also be added as they are needed during live gameplay. This can be accomplished by calling the utility functions `UGameplayStatics::SpawnForceFeedbackAtLocation` (to spawn at a given world location), or `UGameplayStatics::SpawnForceFeedbackAttached` (to attach to a specific pre-existing component). These functions will return the spawned Force Feedback Component, so you can continue to manipulate it if you like. However, if you have no use for the component after it finishes playing the effect, you can use the "Auto Destroy" option to have it remove itself once the effect ends.

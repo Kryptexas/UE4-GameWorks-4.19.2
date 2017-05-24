@@ -312,7 +312,7 @@ namespace iPhonePackager
 					string AbsoluteFilename = Path.GetFullPath(Filename);
 					string RelativeFilename = AbsoluteFilename.Substring(SourceDir.Length + 1).Replace('\\', '/');
 
-					string ZipAbsolutePath = String.Format("Payload/{0}{1}.app/{1}",
+					string ZipAbsolutePath = String.Format("Payload/{0}{1}.app/{2}",
 						Program.GameName,
 						Program.Architecture,
 						RelativeFilename);

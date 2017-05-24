@@ -101,7 +101,7 @@ void SAutomationGraphicalResultBox::PopulateData()
 					FTestResults* TestIt = &DeviceIt->Tests[TestIndex];
 					TestIt->Duration = TestResults.Duration;
 					TestIt->TestState = TestResults.State;
-					TestIt->bHasWarnings = TestResults.Warnings.Num() > 0;
+					TestIt->bHasWarnings = TestResults.GetWarningTotal() > 0;
 
 					DeviceIt->TotalTime += TestIt->Duration;
 					ClusterIt->TotalTime += TestIt->Duration;
@@ -279,7 +279,7 @@ void SAutomationGraphicalResultBox::CreateWidgets()
 }
 
 
-FSlateColor SAutomationGraphicalResultBox::GetColorForTestState(const EAutomationState::Type TestState, const bool bHasWarnings) const
+FSlateColor SAutomationGraphicalResultBox::GetColorForTestState(const EAutomationState TestState, const bool bHasWarnings) const
 {
 	switch(TestState)
 	{

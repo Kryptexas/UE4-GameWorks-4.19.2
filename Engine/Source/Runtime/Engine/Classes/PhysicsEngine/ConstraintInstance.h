@@ -101,6 +101,10 @@ struct ENGINE_API FConstraintProfileProperties
 	/** Updates physx joint flag based on profile properties */
 	void UpdatePhysXConstraintFlags_AssumesLocked(physx::PxD6Joint* Joint) const;
 #endif
+
+#if WITH_EDITOR
+	void SyncChangedConstraintProperties(struct FPropertyChangedChainEvent& PropertyChangedEvent);
+#endif
 };
 
 
@@ -590,6 +594,7 @@ private:
 public:
 
 	///////////////////////////// DEPRECATED
+	// Most of these properties have moved inside the ProfileInstance member (FConstraintProfileProperties struct)
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	uint32 bDisableCollision_DEPRECATED : 1;
@@ -711,7 +716,7 @@ public:
 };
 
 template<>
-struct TStructOpsTypeTraits<FConstraintInstance> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FConstraintInstance> : public TStructOpsTypeTraitsBase2<FConstraintInstance>
 {
 	enum 
 	{

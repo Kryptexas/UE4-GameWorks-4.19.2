@@ -20,6 +20,8 @@ class UEdGraphSchema;
 struct FEdGraphPinType;
 struct FPropertyChangedEvent;
 struct FSlateIcon;
+struct FDiffResults;
+struct FDiffSingleResult;
 
 /**
   * Struct used to define information for terminal types, e.g. types that can be contained
@@ -205,6 +207,10 @@ class ENGINE_API UEdGraphNode : public UObject
 	/** Comment bubble visibility */
 	UPROPERTY()
 	bool bCommentBubbleVisible;
+
+	/** Make comment bubble visible */
+	UPROPERTY(Transient)
+	bool bCommentBubbleMakeVisible;
 
 	/** Flag to store node specific compile error/warning*/
 	UPROPERTY()
@@ -556,7 +562,7 @@ public:
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const {}
 
 	/** Gives the node the option to customize how diffs are discovered within it.  */
-	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results ) ;
+	virtual void FindDiffs(class UEdGraphNode* OtherNode, FDiffResults& Results);
 
 	// This function gets menu items that can be created using this node given the specified context
 	virtual void GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBuilder) const {}
@@ -572,6 +578,9 @@ public:
 
 	// called when the node's comment bubble is toggled
 	virtual void OnCommentBubbleToggled( bool bInCommentBubbleVisible ) {}
+
+	// called when a pin is removed
+	virtual void OnPinRemoved( UEdGraphPin* InRemovedPin ) {}
 
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }
@@ -611,6 +620,29 @@ public:
 
 	/** Adds an upgrade note to this node */
 	void AddNodeUpgradeNote(FText InUpgradeNote);
+
+	/** If the comment bubble needs to be made visible immediately */
+	bool ShouldMakeCommentBubbleVisible() const;
+
+	/** Sets a flag if the comment bubble needs to be made visible immediately */
+	void SetMakeCommentBubbleVisible(bool MakeVisible);
+
+protected:
+	/**
+	 * Finds the difference in properties of node instance
+	 *
+	 * @param StructA The struct of the class we are looking at LHS
+	 * @param StructB The struct of the class we are looking at RHS
+	 * @param DataA The raw data for the UObject we are comparing LHS
+	 * @param DataB The raw data for the UObject we are comparing RHS
+	 * @param Results The Results where differences are stored
+	 * @param Diff The single result with default parameters setup
+	 */
+	virtual void DiffProperties(UClass* StructA, UClass* StructB, UObject* DataA, UObject* DataB, FDiffResults& Results, FDiffSingleResult& Diff) const;
+
+	// Returns a human-friendly description of the property in the form "PropertyName: Value"
+	virtual FString GetPropertyNameAndValueForDiff(const UProperty* Prop, const uint8* PropertyAddr) const;
+
 #endif // WITH_EDITOR
 
 protected:

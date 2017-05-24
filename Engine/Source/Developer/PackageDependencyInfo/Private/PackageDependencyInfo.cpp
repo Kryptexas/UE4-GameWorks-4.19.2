@@ -296,16 +296,22 @@ bool FPackageDependencyInfo::InitializeDependencyInfo( const TCHAR* InPackageNam
 		UE_LOG(LogPackageDependencyInfo, Display, TEXT("\tPackage Info not found for %s!"), InPackageName);
 		return false;
 	}
+	FPackageDependencyTrackingInfo* PkgInfo = *pPkgInfo;
+
+	if (PkgInfo->bValid == false)
+	{
+		UE_LOG(LogPackageDependencyInfo, Display, TEXT("\tPackage Info invalid for %s!"), InPackageName);
+		return false;
+	}
 
 	OutPkgInfo = *pPkgInfo;
 
-	FPackageDependencyTrackingInfo* PkgInfo = *pPkgInfo;
 	// Don't process if it was already processed
 	if (PkgInfo->bInitializedHashes)
 	{
 		return true;
 	}
-
+	
 	TSet<FPackageDependencyTrackingInfo*> PackagesToDetermineDependencies;
 	PackagesToDetermineDependencies.Add( PkgInfo );
 	TSet<FPackageDependencyTrackingInfo*> AllPackages;
@@ -338,7 +344,7 @@ bool FPackageDependencyInfo::InitializeDependencyInfo( const TCHAR* InPackageNam
 	for (FPackageDependencyTrackingInfo* DepPkgInfo : AllPackages)
 	{
 		check(DepPkgInfo->bBeingProcessed == false);
-		check(DepPkgInfo->bInitializedDependencies == true);
+		check(DepPkgInfo->bInitializedDependencies == true || DepPkgInfo->bValid == false);
 	}
 
 	for (FPackageDependencyTrackingInfo* DepPkgInfo : AllPackages)
@@ -350,7 +356,8 @@ bool FPackageDependencyInfo::InitializeDependencyInfo( const TCHAR* InPackageNam
 
 		FMD5 Hash;
 		FDateTime EarliestTime = DepPkgInfo->TimeStamp;
-		RecursiveResolveDependentHash(DepPkgInfo, Hash, EarliestTime);
+		TSet<FPackageDependencyTrackingInfo*> ReferencedPkgInfo;
+		RecursiveResolveDependentHash(DepPkgInfo, ReferencedPkgInfo, Hash, EarliestTime);
 		DepPkgInfo->DependentHash.Set(Hash);
 		DepPkgInfo->DependentTimeStamp = EarliestTime;
 		DepPkgInfo->bInitializedHashes = true;
@@ -359,7 +366,12 @@ bool FPackageDependencyInfo::InitializeDependencyInfo( const TCHAR* InPackageNam
 	for (FPackageDependencyTrackingInfo* DepPkgInfo : AllPackages)
 	{
 		check(DepPkgInfo->bBeingProcessed == false);
-		check(DepPkgInfo->bInitializedHashes == true);
+		check(DepPkgInfo->bInitializedHashes == true || DepPkgInfo->bValid == false);
+	}
+
+	if ( OutPkgInfo->bValid == false )
+	{
+		return false;
 	}
 
 	return true;
@@ -685,20 +697,10 @@ void FPackageDependencyInfo::AsyncDetermineAllDependentPackageInfo(const TArray<
 		check(DepPkgInfo->bInitializedDependencies == true || DepPkgInfo->bValid == false);
 	}
 
-	for (auto& DepPkgInfo : AllPackages)
-	{
-		if (DepPkgInfo->bInitializedHashes || (DepPkgInfo->bValid == false))
-		{
-			continue;
-		}
 
-		FMD5 Hash;
-		FDateTime EarliestTime = DepPkgInfo->TimeStamp;
-		RecursiveResolveDependentHash(DepPkgInfo, Hash, EarliestTime);
-		DepPkgInfo->DependentHash.Set(Hash);
-		DepPkgInfo->DependentTimeStamp = EarliestTime;
-		DepPkgInfo->bInitializedHashes = true;
-	}
+	ResolveDependentHashes( true, AllPackages, NumAsyncDependencyTasks);
+
+
 
 	for (auto& DepPkgInfo : AllPackages)
 	{
@@ -707,6 +709,113 @@ void FPackageDependencyInfo::AsyncDetermineAllDependentPackageInfo(const TArray<
 	}
 	// need to clean up linkers created in DeterminePackageDependencies as they were created with NoVerify and can mess up cooker operations
 	CollectGarbage(RF_NoFlags, true);
+}
+
+void FPackageDependencyInfo::ResolveDependentHashes(bool Async, TSet<FPackageDependencyTrackingInfo*> PackageInfoSet, int32 NumAsyncDependencyTasks)
+{
+
+	if (!Async)
+	{
+		for (auto& DepPkgInfo : PackageInfoSet)
+		{
+			if (DepPkgInfo->bInitializedHashes || (DepPkgInfo->bValid == false))
+			{
+				continue;
+			}
+
+			FMD5 Hash;
+			FDateTime EarliestTime = DepPkgInfo->TimeStamp;
+			TSet<FPackageDependencyTrackingInfo*> ReferencedPackageInfo;
+			RecursiveResolveDependentHash(DepPkgInfo, ReferencedPackageInfo, Hash, EarliestTime);
+			DepPkgInfo->DependentHash.Set(Hash);
+			DepPkgInfo->DependentTimeStamp = EarliestTime;
+			DepPkgInfo->bInitializedHashes = true;
+		}
+		return;
+	}
+	
+	TThreadSafeWorkList<FPackageDependencyTrackingInfo*> ThreadSafeQueue(PackageInfoSet);
+
+	class FResolveDependencyHashes : public FNonAbandonableTask
+	{
+	private:
+		TThreadSafeWorkList<FPackageDependencyTrackingInfo*>& ThreadSafeQueue;
+		FPackageDependencyInfo* PackageDependencyInfo;
+	public:
+
+		/** Constructor */
+		FResolveDependencyHashes(TThreadSafeWorkList<FPackageDependencyTrackingInfo*>& InThreadSafeQueue, FPackageDependencyInfo* InPackageDependencyInfo) :
+			ThreadSafeQueue(InThreadSafeQueue),
+			PackageDependencyInfo(InPackageDependencyInfo)
+		{
+		}
+
+		/** Performs work on thread */
+		void DoWork()
+		{
+			FPackageDependencyTrackingInfo* DepPkgInfo = nullptr;
+			while (ThreadSafeQueue.Pop(DepPkgInfo))
+			{
+				TSet<FPackageDependencyTrackingInfo*> AllPackages;
+		if (DepPkgInfo->bInitializedHashes || (DepPkgInfo->bValid == false))
+		{
+			continue;
+		}
+
+		FMD5 Hash;
+		FDateTime EarliestTime = DepPkgInfo->TimeStamp;
+				TSet<FPackageDependencyTrackingInfo*> ReferencedPackageInfo;
+				PackageDependencyInfo->RecursiveResolveDependentHash(DepPkgInfo, ReferencedPackageInfo, Hash, EarliestTime);
+		DepPkgInfo->DependentHash.Set(Hash);
+		DepPkgInfo->DependentTimeStamp = EarliestTime;
+		DepPkgInfo->bInitializedHashes = true;
+	}
+		}
+		FORCEINLINE TStatId GetStatId() const
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FResolveDependencyHashes, STATGROUP_ThreadPoolAsyncTasks);
+		}
+	};
+
+	typedef FAsyncTask<FResolveDependencyHashes> ResolveDependencyHashesTask;
+	TArray<ResolveDependencyHashesTask *> CurrentTasks;
+
+	for (int I = 0; I < NumAsyncDependencyTasks; ++I)
+	{
+		auto Task = new ResolveDependencyHashesTask(ThreadSafeQueue, this);
+		CurrentTasks.Add(Task);
+		Task->StartBackgroundTask(
+#if WITH_EDITOR
+			// use the large thread pool when it exists (editor)
+			GLargeThreadPool
+#endif
+		);
+	}
+
+
+	while (true)
+	{
+		bool bIsDone = true;
+		for (auto& Task : CurrentTasks)
+		{
+			if (!Task->IsDone())
+			{
+				bIsDone = false;
+				break;
+			}
+		}
+
+		if (bIsDone)
+			break;
+
+		FPlatformProcess::Sleep(0.01f);
+	}
+	for (auto& Task : CurrentTasks)
+	{
+		check(Task->IsDone());
+		delete Task;
+	}
+
 }
 
 
@@ -1055,7 +1164,7 @@ bool FPackageDependencyInfo::DeterminePackageDependencies(FPackageDependencyTrac
 	check(PkgInfo->bBeingProcessed == false);
 
 
-	if ( PkgInfo->bInitializedDependencies )
+	if ( PkgInfo->bInitializedDependencies || (PkgInfo->bValid == false) )
 	{
 		return true;
 	}
@@ -1082,12 +1191,12 @@ bool FPackageDependencyInfo::DeterminePackageDependencies(FPackageDependencyTrac
 			else
 			{
 				UE_LOG(LogPackageDependencyInfo, Warning, TEXT("Found package missing GUID %s calculating hash slow way"), *PkgInfo->PackageName);
-				FArchive* Loader = Linker->Loader;
-				int64 OriginalPos = Loader->Tell();
-				Loader->Seek(0);
-				PkgInfo->FullPackageHash = FMD5Hash::HashFileFromArchive(Loader);
-				Loader->Seek(OriginalPos);
-			}
+			FArchive* Loader = Linker->Loader;
+			int64 OriginalPos = Loader->Tell();
+			Loader->Seek(0);
+			PkgInfo->FullPackageHash = FMD5Hash::HashFileFromArchive(Loader);
+			Loader->Seek(OriginalPos);
+		}
 		}
 		// Start off with setting the dependent time to the package itself
 		PkgInfo->TimeStamp = PkgInfo->TimeStamp;
@@ -1169,6 +1278,8 @@ bool FPackageDependencyInfo::DeterminePackageDependencies(FPackageDependencyTrac
 			}
 		}
 
+		DependentPackages.StableSort();
+
 		for (int32 DependentIdx = 0; DependentIdx < DependentPackages.Num(); DependentIdx++)
 		{
 			FString PkgName = DependentPackages[DependentIdx].ToString();
@@ -1186,6 +1297,17 @@ bool FPackageDependencyInfo::DeterminePackageDependencies(FPackageDependencyTrac
 			}
 
 			FPackageDependencyTrackingInfo** pDepPkgInfo = PackageInformation.Find(LongName);
+
+			if ( pDepPkgInfo == nullptr )
+			{
+				pDepPkgInfo = PackageInformation.Find(LongName + FPackageName::GetMapPackageExtension());
+			}
+
+			if (pDepPkgInfo == nullptr)
+			{
+				pDepPkgInfo = PackageInformation.Find(LongName + FPackageName::GetAssetPackageExtension());
+			}
+
 			if ((pDepPkgInfo == NULL) || (*pDepPkgInfo == NULL))
 			{
 				continue;
@@ -1195,9 +1317,6 @@ bool FPackageDependencyInfo::DeterminePackageDependencies(FPackageDependencyTrac
 			PkgInfo->DependentPackages.Add(LongName, DepPkgInfo);
 			AllPackages.Add(DepPkgInfo);
 		}
-
-		DependentPackages.StableSort();
-		
 
 		PkgInfo->bInitializedDependencies = true;
 		PkgInfo->bBeingProcessed = false;
@@ -1216,17 +1335,21 @@ bool FPackageDependencyInfo::DeterminePackageDependencies(FPackageDependencyTrac
 	return true;
 }
 
-void FPackageDependencyInfo::RecursiveResolveDependentHash(FPackageDependencyTrackingInfo* PkgInfo, FMD5 &OutHash, FDateTime& EarliestTime)
+void FPackageDependencyInfo::RecursiveResolveDependentHash(FPackageDependencyTrackingInfo* PkgInfo, TSet<FPackageDependencyTrackingInfo*>& ReferencedPkgInfo, FMD5 &OutHash, FDateTime& EarliestTime)
 {
 	if (PkgInfo != NULL)
 	{
-		if ( PkgInfo->bBeingProcessed )
+		if ( PkgInfo->bValid == false )
 		{
-			// circular reference
 			return;
 		}
-		
-		PkgInfo->bBeingProcessed = true;
+
+		if ( ReferencedPkgInfo.Contains(PkgInfo) )
+		{
+			// circular reference or double reference
+			return;
+		}
+		ReferencedPkgInfo.Add(PkgInfo);
 
 
 		check(PkgInfo->bInitializedDependencies);
@@ -1250,10 +1373,8 @@ void FPackageDependencyInfo::RecursiveResolveDependentHash(FPackageDependencyTra
 
 		for (FPackageDependencyTrackingInfo* DependentPackage : SortedDependentPackages)
 		{
-			RecursiveResolveDependentHash(DependentPackage, OutHash, EarliestTime );
+			RecursiveResolveDependentHash(DependentPackage, ReferencedPkgInfo, OutHash, EarliestTime );
 		}
-
-		PkgInfo->bBeingProcessed = false;
 	}
 }
 

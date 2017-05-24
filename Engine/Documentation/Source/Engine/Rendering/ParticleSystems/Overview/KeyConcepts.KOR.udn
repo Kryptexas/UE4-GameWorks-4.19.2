@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability:Public
 Title: 핵심 파티클 개념
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:언리얼 내에서 그리고 캐스케이드 파티클 에디터에서 파티클 작업을 할 때의 핵심 개념입니다.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

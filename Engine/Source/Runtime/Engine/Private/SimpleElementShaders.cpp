@@ -6,6 +6,7 @@
 
 #include "SimpleElementShaders.h"
 #include "ShaderParameterUtils.h"
+#include "SceneView.h"
 
 /*------------------------------------------------------------------------------
 	Simple element vertex shader.
@@ -57,7 +58,7 @@ void FSimpleElementPS::SetEditorCompositingParameters(FRHICommandList& RHICmdLis
 {
 	if( View )
 	{
-		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), *View );
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, GetPixelShader(), View->ViewUniformBuffer );
 
 		FIntRect DestRect = View->ViewRect;
 		FIntPoint ViewportOffset = DestRect.Min;

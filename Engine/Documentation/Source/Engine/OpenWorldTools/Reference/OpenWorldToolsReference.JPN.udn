@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3013246
+﻿INTSourceChangelist:3278909
 Availability:Public
 Title:Open World ツールのプロパティ リファレンス
 Crumbs:
@@ -16,7 +16,7 @@ Open World ツールの作業中に目にするリファレンス プロパテ�
 
 ## Foliage Type
 
-### Mesh
+### メッシュ
 ![](FT_Mesh.png)
 
 | プロパティ | 説明 |
@@ -57,7 +57,6 @@ Open World ツールの作業中に目にするリファレンス プロパテ�
 |**Max Initial Age** | 新規作成時にシードの年齢が 0 以上になるようにします。新しいシードには、[0,MaxInitialAge] の範囲の年齢がランダムに割り当てられます。|
 |**Max Age** | できるだけシードが古くなるように指定します。この年齢に到達すると、インスタンスはシードを広げ続けますが、成長はしません。|
 |**Overlap Priority** | 2 つのインスタンスがオーバーラップする時、どちらのインスタンスを除去するのか決めなければなりません。OverlapPriority の低い方のインスタンスを除去します。OverlapPriority が同じ場合は、通常のシミュレーション ルールが適用されます。|
-|**Overlap Priority** | 2 つのインスタンスがオーバーラップする時、どちらのインスタンスを除去するのか決めなければなりません。OverlapPriority の低い方のインスタンスを除去します。OverlapPriority が同じ場合は、通常のシミュレーション ルールが適用されます。|
 |**Procedural Scale** | プロシージャルに生成された場合のスケール範囲です。Scale Curve で設定します。|
 |**Scale Curve** | 標準化された年齢 (例: Current Age / Max Age) としてのインスタンス スケール系スです。X = 0 は Age = 0 に相当、X = 1 は Age = Max Age に相当します。Y = 0 は Min Scale に相当、Y = 1 は Max Scale に相当します。|
 |**External Curve** | 外部のカーブ。|
@@ -71,7 +70,7 @@ Open World ツールの作業中に目にするリファレンス プロパテ�
 |**Cull Distance** | PerInstanceFadeAmount Material ノードを使っている場合に、インスタンスがフェードアウトし始める距離です。0 で無効になります。クラスタ全体がこの距離を超えると、クラスタは完全にカリングされて、何もレンダリングされなくなります。|
 |**Cast Shadow** | フォリッジがシャドウをキャストするかどうかを制御します。|
 | **Affect Dynamic Indirect Lighting** | フォリッジがライトを Light Propagation Volume に入れるかどうかを制御します。このフラグは、CastShadow が true の時のみ使用します。.|
-|**Affect Distance Field Lighting** |プリミティブが動的ディスタンス フィールド ライティング メソッドに影響を与えるかどうかを制御します。このフラグは CasrShadow が true の場合のみ使用します。. |
+|**Affect Distance Field Lighting** |プリミティブが動的ディスタンス フィールド ライティング メソッドに影響を与えるかどうかを制御します。このフラグは、CastShadow が true の時のみ使用します。.|
 |**Cast Dynamic Shadow** | 事前計算されていなシャドウイングの場合、フォリッジがシャドウをキャストするかどうか制御します。このフラグは、CastShadow が true の時のみ使用します。.|
 |**Cast Static Shadow** | フォリッジがシャドウキャスティング ライトからスタティックシャドウをキャストするかどうか制御します。このフラグは、CastShadow が true の時のみ使用します。.|
 |**Light Map Resolution** | スタティックメッシュで定義されたライトマップの解像度をオーバーライドします。 |
@@ -101,7 +100,7 @@ Open World ツールの作業中に目にするリファレンス プロパテ�
 |**Placement Jitter** | ジッター配置です。|
 |**Start Cull Distance** | PerInstanceFadeAmount マテリアル ノードを使っている場合に、インスタンスがフェードアウトし始める距離です。0 で無効になります。.|
 |**End Cull Distance** | PerInstanceFadeAmount マテリアル ノードを使っている場合に、インスタンスが完全にフェードアウトする距離です。0 で無効になります。クラスタ全体がこの距離を超えると、クラスタは完全にカリングされて、何もレンダリングされなくなります。|
-|**Min LOD** | このコンポーネントに使用する中で一番小さい LOD を指定します。-1(デフォルト) の場合、スタティックメッシュ アセットの MinLOD が代用されます。|
+|**Min LOD** | このコンポーネントに使用する中で一番小さい LOD を指定します。-1 (デフォルト) の場合、スタティックメッシュ アセットの MinLOD が代用されます。|
 |**Scaling** | グラス インスタンスのスケール タイプを指定します。|
 |**Scale X** | グラス インスタンスの X Scale プロパティを適用するために、最小から最大の間でスケール幅を指定します。 |
 |**Scale Y** | グラス インスタンスの Y Scale プロパティを適用するために、最小から最大の間でスケール幅を指定します。 |

@@ -274,7 +274,6 @@ void USoundClassGraph::RemoveAllNodes()
 
 USoundClassGraphNode* USoundClassGraph::CreateNode(USoundClass* SoundClass, int32 NodePosX, int32 NodePosY, bool bSelectNewNode/* = true*/)
 {
-
 	USoundClassGraphNode* GraphNode = FindExistingNode(SoundClass);
 
 	if (!GraphNode)

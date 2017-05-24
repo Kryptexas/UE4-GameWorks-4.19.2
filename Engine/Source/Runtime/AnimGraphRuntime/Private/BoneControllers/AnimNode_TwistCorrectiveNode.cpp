@@ -122,16 +122,3 @@ float FAnimNode_TwistCorrectiveNode::GetAngle(const FVector& Base, const FVector
 
 /////////////////////////////////////////////////////////
 
-FVector FAxis::DefaultAxis = FVector(1.f, 0.f, 0.f);
-
-FVector FAxis::GetTransformedAxis(const FTransform& ComponentSpaceTransform) const
-{
-	if (bInLocalSpace)
-	{
-		return ComponentSpaceTransform.TransformVector(Axis);
-	}
-
-	// if world transform, we don't have to transform
-	return Axis;
-}
-

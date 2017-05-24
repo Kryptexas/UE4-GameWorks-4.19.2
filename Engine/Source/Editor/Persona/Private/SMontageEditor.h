@@ -78,6 +78,9 @@ public:
 	void SetMontageObj(UAnimMontage * NewMontage);
 	UAnimMontage * GetMontageObj() const { return MontageObj; }
 
+	/** Handler for when the preview slot is changed */
+	void OnSetMontagePreviewSlot(int32 SlotIndex);
+
 	virtual UAnimationAsset* GetEditorObject() const override { return GetMontageObj(); }
 
 	void RestartPreview();

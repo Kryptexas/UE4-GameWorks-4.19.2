@@ -267,10 +267,10 @@ void Main(
 	#if INTERPOLATE_VF_ATTRIBUTES
 		// Masked materials need texture coords to clip
 		OutParameters.FactoryInterpolants = VertexFactoryGetInterpolantsVSToPS(Input, VFIntermediates, VertexParameters);
+	#endif
 
-		#if INTERPOLATE_POSITION
-			OutParameters.PixelPosition = WorldPos.xyz;
-		#endif
+	#if INTERPOLATE_POSITION
+		OutParameters.PixelPosition = WorldPos.xyz;
 	#endif
 
 	#if !PERSPECTIVE_CORRECT_DEPTH && !COMPILER_SUPPORTS_EMPTY_STRUCTS

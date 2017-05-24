@@ -99,14 +99,6 @@ void USoundWave::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	{
 		if (LocalAudioDevice->HasCompressedAudioInfoClass(this) && DecompressionType == DTYPE_Native)
 		{
-			// In non-editor builds ensure that the "native" sound wave has unloaded its compressed asset at this point.
-			// DTYPE_Native assets fully decompress themselves on load and are supposed to unload the compressed asset when it finishes.
-			// However, in the editor, it's possible for an asset to be DTYPE_Native and not referenced by currently loaded level and thus not
-			// actually loaded (and fully decompressed) before its ResourceSize is queried.
-			if (!GIsEditor)
-			{
-				ensureMsgf(ResourceSize == 0, TEXT("ResourceSize for DTYPE_Native USoundWave '%s' was not 0 (%d)."), *GetName(), ResourceSize);
-			}
 			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RawPCMDataSize);
 		}
 		else 
@@ -288,7 +280,7 @@ void USoundWave::LogSubtitle( FOutputDevice& Ar )
 #if WITH_EDITORONLY_DATA
 	Ar.Logf( TEXT( "Comment:   %s" ), *Comment );
 #endif // WITH_EDITORONLY_DATA
-	Ar.Logf( bMature ? TEXT( "Mature:    Yes" ) : TEXT( "Mature:    No" ) );
+	Ar.Logf( TEXT("Mature:    %s"), bMature ? TEXT( "Yes" ) : TEXT( "No" ) );
 }
 
 float USoundWave::GetSubtitlePriority() const
@@ -403,7 +395,7 @@ void USoundWave::PostLoad()
 	}
 
 	// Only add this streaming sound if we're not a dedicated server or if there is an audio device manager
-	if (IsStreaming() && !IsRunningDedicatedServer() && GEngine && GEngine->GetAudioDeviceManager())
+	if (IsStreaming() && FPlatformProperties::SupportsAudioStreaming()) 
 	{
 #if WITH_EDITORONLY_DATA
 		FinishCachePlatformData();
@@ -418,6 +410,13 @@ void USoundWave::PostLoad()
 		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
 		AssetImportData->SourceData = MoveTemp(Info);
 	}
+
+	// Log a warning after loading if the source has effect chains but has channels greater than 2.
+	if (SourceEffectChain && SourceEffectChain->Chain.Num() > 0 && NumChannels > 2)
+	{
+		UE_LOG(LogAudio, Warning, TEXT("Sound Wave '%s' has defined an effect chain but is not mono or stereo."), *GetName());
+	}
+
 #endif // #if WITH_EDITORONLY_DATA
 
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTime, Duration );
@@ -666,6 +665,11 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->ListenerToSoundDistance = ParseParams.ListenerToSoundDistance;
 		WaveInstance->AbsoluteAzimuth = ParseParams.AbsoluteAzimuth;
 
+		if (NumChannels <= 2)
+		{
+			WaveInstance->SourceEffectChain = ParseParams.SourceEffectChain;
+		}
+
 		bool bAlwaysPlay = false;
 
 		// Properties from the sound class
@@ -750,6 +754,10 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			WaveInstance->ReverbWetLevelMin = ParseParams.DefaultMasterReverbSendAmount;
 		}
 
+		// Copy over the submix sends.
+		WaveInstance->SoundSubmix = ParseParams.SoundSubmix;
+		WaveInstance->SoundSubmixSends = ParseParams.SoundSubmixSends;
+
 		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationAlgorithm == SPATIALIZATION_Default)
 		{
 			WaveInstance->SpatializationAlgorithm = SPATIALIZATION_HRTF;
@@ -758,6 +766,11 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		{
 			WaveInstance->SpatializationAlgorithm = ParseParams.SpatializationAlgorithm;
 		}
+
+		// Pass along plugin settings to the wave instance
+		WaveInstance->SpatializationPluginSettings = ParseParams.SpatializationPluginSettings;
+		WaveInstance->OcclusionPluginSettings = ParseParams.OcclusionPluginSettings;
+		WaveInstance->ReverbPluginSettings = ParseParams.ReverbPluginSettings;
 
 		bool bAddedWaveInstance = false;
 		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || (bVirtualizeWhenSilent && AudioDevice->VirtualSoundsEnabled()))
@@ -778,7 +791,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			static TSet<USoundWave*> ReportedSounds;
 			if (!ReportedSounds.Contains(this))
 			{
-				FString SoundWarningInfo = FString::Printf(TEXT("Spatialisation on stereo and multichannel sounds is not supported. SoundWave: %s"), *GetName());
+				FString SoundWarningInfo = FString::Printf(TEXT("Spatialisation on sounds with channels greater than 2 is not supported. SoundWave: %s"), *GetName());
 				if (ActiveSound.GetSound() != this)
 				{
 					SoundWarningInfo += FString::Printf(TEXT(" SoundCue: %s"), *ActiveSound.GetSound()->GetName());

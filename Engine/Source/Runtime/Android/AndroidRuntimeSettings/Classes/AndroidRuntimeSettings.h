@@ -221,6 +221,9 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Enable FullScreen Immersive on KitKat and above devices."))
 	bool bFullScreen;
 
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = ( DisplayName = "Enable improved virtual keyboard [Experimental]"))
+	bool bEnableNewKeyboard;
+	
 	// The preferred depth buffer bitcount for Android
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Preferred Depth Buffer format"))
 	TEnumAsByte<EAndroidDepthBufferPreference::Type> DepthBufferPreference;
@@ -249,6 +252,10 @@ public:
 	// or an optional file <Project>/Build/Android/ManifestRequirementsOverride.txt will replace the entire <!-- Requirements --> section)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Extra Permissions (e.g. 'android.permission.INTERNET')"))
 	TArray<FString> ExtraPermissions;
+
+	// Add required permission to support Voice chat
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Add permissions to support Voice chat (RECORD_AUDIO)"))
+	bool bAndroidVoiceEnabled;
 
 	// Configure AndroidManifest.xml for GearVR
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedAPKPackaging, Meta = (DisplayName = "Configure the AndroidManifest for deployment to GearVR"))
@@ -307,12 +314,16 @@ public:
 	bool bBuildForES31;
 
 	// Enable ES Deferred shading support? [CURRENTLY FOR FULL SOURCE GAMES ONLY. SUPPORTED BY NVIDIA K-1 AND X-1 ONLY.]
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES Deferred Shading Renderer"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL Deferred Renderer [Nvidia K1 & X1 only]"))
 	bool bBuildForESDeferred;
 
 	// Enable Vulkan rendering support?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support Vulkan [Experimental]"))
 	bool bSupportsVulkan;
+
+	// Build the shipping config with hidden visibility by default. Results in smaller .so file but will also removes symbols used to display callstack dumps.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = AdvancedBuild, meta = (DisplayName = "Build with hidden symbol visibility in shipping config. [Experimental]"))
+	bool bBuildWithHiddenSymbolVisibility;
 
 	// If selected, the checked architectures will be split into separate .apk files [CURRENTLY FOR FULL SOURCE GAMES ONLY]
 	// @todo android fat binary: Currently, there isn't much utility in merging multiple .so's into a single .apk except for debugging,
@@ -324,6 +335,10 @@ public:
 	// Should Google Play support be enabled?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
 	bool bEnableGooglePlaySupport;
+
+	// Enabling this adds GET_ACCOUNTS to manifest and user must give permission.  Required for reset achievements.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices, meta = (DisplayName = "Request Access Token On Connect"))
+	bool bUseGetAccounts;
 
 	// The app id obtained from the Google Play Developer Console
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
@@ -348,6 +363,10 @@ public:
 	// The unique identifier for this application (needed for IAP)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
 	FString GooglePlayLicenseKey;
+
+	// The sender id obtained from Firebase Console, leave blank to disable (associate this with your app in Google Player Developer Console).
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices, meta = (DisplayName = "Google Cloud Messaging Sender ID"))
+	FString GCMClientSenderID;
 
 	/** Show the launch image as a startup slash screen */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = LaunchImages, meta = (DisplayName = "Show launch image"))

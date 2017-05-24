@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275209
 Availability: Public
 Title:엔진 기능 예제
 Crumbs:%ROOT%, Resources
@@ -71,7 +71,7 @@ Version: 4.9
 	물 표면
 	[/PARAMLITERAL]
 	[PARAMLITERAL:playlistid]
-	PLZlv_N0_O1gYq4tiS45UAgghUxoF916rH
+	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	aJ1M0Ejd_ts
@@ -86,6 +86,9 @@ Version: 4.9
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
 	2014 기능 안내
+	[/PARAMLITERAL]
+	[PARAMLITERAL:playlistid]
+	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	FcxA_xYnHZ8

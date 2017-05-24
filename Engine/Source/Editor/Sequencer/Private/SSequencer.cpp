@@ -59,6 +59,7 @@
 #include "SSequencerGotoBox.h"
 #include "SSequencerTransformBox.h"
 #include "SSequencerDebugVisualizer.h"
+#include "ISequencerModule.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -129,12 +130,6 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	CachedViewRange = TRange<float>::Empty();
 
 	Settings = InSequencer->GetSettings();
-	Settings->GetOnTimeSnapIntervalChanged().AddSP(this, &SSequencer::OnTimeSnapIntervalChanged);
-	if ( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() > 0 )
-	{
-		Settings->SetTimeSnapInterval( InSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetFixedFrameInterval() );
-	}
-
 	InSequencer->OnActivateSequence().AddSP(this, &SSequencer::OnSequenceInstanceActivated);
 
 	ISequencerWidgetsModule& SequencerWidgets = FModuleManager::Get().LoadModuleChecked<ISequencerWidgetsModule>( "SequencerWidgets" );
@@ -162,6 +157,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 		TimeSliderArgs.OnClampRangeChanged = InArgs._OnClampRangeChanged;
 		TimeSliderArgs.IsPlaybackRangeLocked = InArgs._IsPlaybackRangeLocked;
 		TimeSliderArgs.OnTogglePlaybackRangeLocked = InArgs._OnTogglePlaybackRangeLocked;
+		TimeSliderArgs.TimeSnapInterval = InArgs._TimeSnapInterval;
 		TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
 		TimeSliderArgs.OnBeginScrubberMovement = InArgs._OnBeginScrubbing;
 		TimeSliderArgs.OnEndScrubberMovement = InArgs._OnEndScrubbing;
@@ -212,6 +208,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 
 	OnGetAddMenuContent = InArgs._OnGetAddMenuContent;
 	AddMenuExtender = InArgs._AddMenuExtender;
+	ToolbarExtender = InArgs._ToolbarExtender;
 
 	ColumnFillCoefficients[0] = 0.3f;
 	ColumnFillCoefficients[1] = 0.7f;
@@ -228,7 +225,8 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	SAssignNew(TrackOutliner, SSequencerTrackOutliner);
 	SAssignNew(TrackArea, SSequencerTrackArea, TimeSliderControllerRef, InSequencer);
 	SAssignNew(TreeView, SSequencerTreeView, InSequencer->GetNodeTree(), TrackArea.ToSharedRef())
-		.ExternalScrollbar(ScrollBar);
+		.ExternalScrollbar(ScrollBar)
+		.OnGetContextMenuContent(FOnGetContextMenuContent::CreateSP(this, &SSequencer::GetContextMenuContent));
 
 	SAssignNew(CurveEditor, SSequencerCurveEditor, InSequencer, TimeSliderControllerRef)
 		.Visibility(this, &SSequencer::GetCurveEditorVisibility)
@@ -721,20 +719,27 @@ TSharedRef<SWidget> SSequencer::MakeAddButton()
 
 TSharedRef<SWidget> SSequencer::MakeToolBar()
 {
-	FToolBarBuilder ToolBarBuilder( SequencerPtr.Pin()->GetCommandBindings(), FMultiBoxCustomization::None, TSharedPtr<FExtender>(), Orient_Horizontal, true);
+	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>("Sequencer");
+	TSharedPtr<FExtender> Extender = SequencerModule.GetToolBarExtensibilityManager()->GetAllExtenders();
+	if (ToolbarExtender.IsValid())
+	{
+		Extender = FExtender::Combine({ Extender, ToolbarExtender });
+	}
+
+	FToolBarBuilder ToolBarBuilder( SequencerPtr.Pin()->GetCommandBindings(), FMultiBoxCustomization::None, Extender, Orient_Horizontal, true);
 
 	const bool bIsReadOnly = SequencerPtr.Pin()->IsReadOnly();
 
 	ToolBarBuilder.BeginSection("Base Commands");
 	{
 		// General 
-		if( SequencerPtr.Pin()->IsLevelEditorSequencer() )
+		if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 		{
 			ToolBarBuilder.AddToolBarButton(
 				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnSaveMovieSceneClicked)),
 				NAME_None,
 				LOCTEXT("SaveDirtyPackages", "Save"),
-				LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current level sequence"),
+				LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current sequence"),
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Save")
 			);
 
@@ -742,7 +747,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnSaveMovieSceneAsClicked)),
 				NAME_None,
 				LOCTEXT("SaveAs", "Save As"),
-				LOCTEXT("SaveAsTooltip", "Saves the current level sequence under a different name"),
+				LOCTEXT("SaveAsTooltip", "Saves the current sequence under a different name"),
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.SaveAs")
 			);
 
@@ -751,7 +756,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().FindInContentBrowser );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().CreateCamera );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
-			ToolBarBuilder.AddSeparator();
+			ToolBarBuilder.AddSeparator("Level Sequence Separator");
 		}
 
 		ToolBarBuilder.AddComboButton(
@@ -877,31 +882,43 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 }
 
 
+void SSequencer::GetContextMenuContent(FMenuBuilder& MenuBuilder)
+{
+	// let toolkits populate the menu
+	MenuBuilder.BeginSection("MainMenu");
+	OnGetAddMenuContent.ExecuteIfBound(MenuBuilder, SequencerPtr.Pin().ToSharedRef());
+	MenuBuilder.EndSection();
+
+	// let track editors & object bindings populate the menu
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+	// Always create the section so that we afford extension
+	MenuBuilder.BeginSection("ObjectBindings");
+	if (Sequencer.IsValid())
+	{
+		Sequencer->BuildAddObjectBindingsMenu(MenuBuilder);
+	}
+	MenuBuilder.EndSection();
+
+	// Always create the section so that we afford extension
+	MenuBuilder.BeginSection("AddTracks");
+	if (Sequencer.IsValid())
+	{
+		Sequencer->BuildAddTrackMenu(MenuBuilder);
+	}
+	MenuBuilder.EndSection();
+}
+
+
 TSharedRef<SWidget> SSequencer::MakeAddMenu()
 {
 	FMenuBuilder MenuBuilder(true, nullptr, AddMenuExtender);
 	{
-
-		// let toolkits populate the menu
-		MenuBuilder.BeginSection("MainMenu");
-		OnGetAddMenuContent.ExecuteIfBound(MenuBuilder, SequencerPtr.Pin().ToSharedRef());
-		MenuBuilder.EndSection();
-
-		// let track editors populate the menu
-		TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
-
-		// Always create the section so that we afford extension
-		MenuBuilder.BeginSection("AddTracks");
-		if (Sequencer.IsValid())
-		{
-			Sequencer->BuildAddTrackMenu(MenuBuilder);
-		}
-		MenuBuilder.EndSection();
+		GetContextMenuContent(MenuBuilder);
 	}
 
 	return MenuBuilder.MakeWidget();
 }
-
 
 TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 {
@@ -914,6 +931,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLabelBrowser );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCombinedKeyframes );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleChannelColors );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowPreAndPostRoll );
 
 		if (Sequencer->IsLevelEditorSequencer())
 		{
@@ -934,6 +952,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 	{
 		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixActorReferences);
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().RebindPossessableReferences);
 	}
 	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixFrameTiming);
 
@@ -1130,6 +1149,7 @@ TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 	{
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapPlayTimeToInterval );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapPlayTimeToKeys );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapPlayTimeToPressedKey );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapPlayTimeToDraggedKey );
 	}
 	MenuBuilder.EndSection();
@@ -1187,7 +1207,6 @@ TSharedRef<SWidget> SSequencer::MakeTimeRange(const TSharedRef<SWidget>& InnerCo
 SSequencer::~SSequencer()
 {
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	Settings->GetOnTimeSnapIntervalChanged().RemoveAll(this);
 }
 
 
@@ -1394,13 +1413,13 @@ void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 
 float SSequencer::OnGetTimeSnapInterval() const
 {
-	return Settings->GetTimeSnapInterval();
-}
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+	if ( Sequencer.IsValid() )
+	{
+		return Sequencer->GetFixedFrameInterval();
+	}	
 
-
-void SSequencer::OnTimeSnapIntervalChanged( float InInterval )
-{
-	Settings->SetTimeSnapInterval(InInterval);
+	return 1.f;
 }
 
 
@@ -1957,17 +1976,21 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 }
 
 
-void SSequencer::OnTimeSnapIntervalChanged()
+void SSequencer::OnTimeSnapIntervalChanged(float InInterval)
 {
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 	if ( Sequencer.IsValid() )
 	{
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		if (!FMath::IsNearlyEqual(MovieScene->GetFixedFrameInterval(), Settings->GetTimeSnapInterval()))
+		if (!FMath::IsNearlyEqual(MovieScene->GetFixedFrameInterval(), InInterval))
 		{
 			FScopedTransaction SetFixedFrameIntervalTransaction( NSLOCTEXT( "Sequencer", "SetFixedFrameInterval", "Set scene fixed frame interval" ) );
 			MovieScene->Modify();
-			MovieScene->SetFixedFrameInterval( Settings->GetTimeSnapInterval() );
+			MovieScene->SetFixedFrameInterval( InInterval );
+
+			// Update the current time to the new interval
+			float NewTime = SequencerHelpers::SnapTimeToInterval(Sequencer->GetLocalTime(), InInterval);
+			Sequencer->SetLocalTime(NewTime);
 		}
 	}
 }
@@ -1998,7 +2021,7 @@ FPasteContextMenuArgs SSequencer::GeneratePasteArgs(float PasteAtTime, TSharedPt
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 	if (Settings->GetIsSnapEnabled())
 	{
-		PasteAtTime = Settings->SnapTimeToInterval(PasteAtTime);
+		PasteAtTime = SequencerHelpers::SnapTimeToInterval(PasteAtTime, Sequencer->GetFixedFrameInterval());
 	}
 
 	// Open a paste menu at the current mouse position
@@ -2040,12 +2063,13 @@ void SSequencer::OnPaste()
 	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetSelectedOutlinerNodes();
 	if (SelectedNodes.Num() == 0)
 	{
-		OpenPasteMenu();
+		if (OpenPasteMenu())
+		{
+			return;
+		}
 	}
-	else
-	{
-		PasteTracks();
-	}
+
+	PasteTracks();
 }
 
 bool SSequencer::CanPaste()
@@ -2084,30 +2108,10 @@ void SSequencer::PasteTracks()
 {
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 
-	TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetSelectedOutlinerNodes();
-	if (SelectedNodes.Num() == 0)
-	{
-		return;
-	}
-
-	TArray<TSharedPtr<FSequencerObjectBindingNode>> ObjectNodes;
-	for (TSharedRef<FSequencerDisplayNode> Node : SelectedNodes)
-	{
-		if (Node->GetType() != ESequencerNode::Object)
-		{
-			continue;
-		}
-
-		TSharedPtr<FSequencerObjectBindingNode> ObjectNode = StaticCastSharedRef<FSequencerObjectBindingNode>(Node);
-		if (ObjectNode.IsValid())
-		{
-			ObjectNodes.Add(ObjectNode);
-		}
-	}
-	Sequencer->PasteCopiedTracks(ObjectNodes);
+	Sequencer->PasteCopiedTracks();
 }
 
-void SSequencer::OpenPasteMenu()
+bool SSequencer::OpenPasteMenu()
 {
 	TSharedPtr<FPasteContextMenu> ContextMenu;
 
@@ -2120,11 +2124,11 @@ void SSequencer::OpenPasteMenu()
 
 	if (!ContextMenu.IsValid() || !ContextMenu->IsValidPaste())
 	{
-		return;
+		return false;
 	}
 	else if (ContextMenu->AutoPaste())
 	{
-		return;
+		return false;
 	}
 
 	const bool bShouldCloseWindowAfterMenuSelection = true;
@@ -2142,6 +2146,8 @@ void SSequencer::OpenPasteMenu()
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
 		);
+
+	return true;
 }
 
 void SSequencer::PasteFromHistory()
@@ -2181,9 +2187,9 @@ void SSequencer::OnSequenceInstanceActivated( FMovieSceneSequenceIDRef ActiveIns
 	if ( Sequencer.IsValid() )
 	{
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		if ( MovieScene->GetFixedFrameInterval() > 0 )
+		if ( MovieScene->GetFixedFrameInterval() == 0 )
 		{
-			Settings->SetTimeSnapInterval( MovieScene->GetFixedFrameInterval() );
+			OnTimeSnapIntervalChanged(Settings->GetTimeSnapInterval());
 		}
 	}
 }

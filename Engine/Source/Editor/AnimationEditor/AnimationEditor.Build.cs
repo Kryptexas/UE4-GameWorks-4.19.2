@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AnimationEditor : ModuleRules
 {
-	public AnimationEditor(TargetInfo Target)
+	public AnimationEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -20,6 +20,7 @@ public class AnimationEditor : ModuleRules
                 "SkeletonEditor",
                 "Kismet",
                 "AnimGraph",
+                "SequenceRecorder",
             }
 		);
 

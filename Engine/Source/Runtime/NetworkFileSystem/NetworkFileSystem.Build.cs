@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class NetworkFileSystem : ModuleRules
 	{
-		public NetworkFileSystem(TargetInfo Target)
+		public NetworkFileSystem(ReadOnlyTargetRules Target) : base(Target)
 		{
             PrivateIncludePaths.AddRange(
 	            new string[] {

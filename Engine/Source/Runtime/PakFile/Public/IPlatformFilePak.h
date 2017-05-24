@@ -50,8 +50,9 @@ struct FPakInfo
 		PakFile_Version_Initial = 1,
 		PakFile_Version_NoTimestamps = 2,
 		PakFile_Version_CompressionEncryption = 3,
+		PakFile_Version_IndexEncryption = 4,
 
-		PakFile_Version_Latest = PakFile_Version_CompressionEncryption
+		PakFile_Version_Latest = PakFile_Version_IndexEncryption
 	};
 
 	/** Pak file magic value. */
@@ -64,6 +65,8 @@ struct FPakInfo
 	int64 IndexSize;
 	/** Index SHA1 value. */
 	uint8 IndexHash[20];
+	/** Flag indicating if the pak index has been encrypted. */
+	uint8 bEncryptedIndex;
 
 	/**
 	 * Constructor.
@@ -73,6 +76,7 @@ struct FPakInfo
 		, Version(PakFile_Version_Latest)
 		, IndexOffset(-1)
 		, IndexSize(0)
+		, bEncryptedIndex(0)
 	{
 		FMemory::Memset(IndexHash, 0, sizeof(IndexHash));
 	}
@@ -84,7 +88,7 @@ struct FPakInfo
 	 */
 	int64 GetSerializedSize() const
 	{
-		return sizeof(Magic) + sizeof(Version) + sizeof(IndexOffset) + sizeof(IndexSize) + sizeof(IndexHash);
+		return sizeof(Magic) + sizeof(Version) + sizeof(IndexOffset) + sizeof(IndexSize) + sizeof(IndexHash) + sizeof(bEncryptedIndex);
 	}
 
 	/**
@@ -100,11 +104,17 @@ struct FPakInfo
 			return;
 		}
 
+		Ar << bEncryptedIndex;
 		Ar << Magic;
 		Ar << Version;
 		Ar << IndexOffset;
 		Ar << IndexSize;
 		Ar.Serialize(IndexHash, sizeof(IndexHash));
+
+		if (Ar.IsLoading() && Version < PakFile_Version_IndexEncryption)
+		{
+			bEncryptedIndex = false;
+		}
 	}
 };
 
@@ -1174,9 +1184,9 @@ public:
 		FDateTime Result = FDateTime::MinValue();
 		if (IsNonPakFilenameAllowed(Filename))
 		{
-			double StartTime = (GNewAsyncIO && UE_LOG_ACTIVE(LogPakFile, Verbose)) ? FPlatformTime::Seconds() : 0.0;
+			double StartTime = (UE_LOG_ACTIVE(LogPakFile, Verbose)) ? FPlatformTime::Seconds() : 0.0;
 			Result = LowerLevel->GetTimeStamp(Filename);
-			UE_CLOG(GNewAsyncIO, LogPakFile, Verbose, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
+			UE_LOG(LogPakFile, Verbose, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
 		}
 		return Result;
 	}

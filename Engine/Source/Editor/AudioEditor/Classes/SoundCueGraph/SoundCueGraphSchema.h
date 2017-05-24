@@ -27,7 +27,7 @@ struct AUDIOEDITOR_API FSoundCueGraphSchemaAction_NewNode : public FEdGraphSchem
 		, SoundNodeClass(NULL)
 	{}
 
-	FSoundCueGraphSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FSoundCueGraphSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, SoundNodeClass(NULL)
 	{}
@@ -51,8 +51,8 @@ struct AUDIOEDITOR_API FSoundCueGraphSchemaAction_NewFromSelected : public FSoun
 		: FSoundCueGraphSchemaAction_NewNode()
 	{}
 
-	FSoundCueGraphSchemaAction_NewFromSelected(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FSoundCueGraphSchemaAction_NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
+	FSoundCueGraphSchemaAction_NewFromSelected(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
+		: FSoundCueGraphSchemaAction_NewNode(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping) 
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface
@@ -70,7 +70,7 @@ struct AUDIOEDITOR_API FSoundCueGraphSchemaAction_NewComment : public FEdGraphSc
 		: FEdGraphSchemaAction()
 	{}
 
-	FSoundCueGraphSchemaAction_NewComment(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FSoundCueGraphSchemaAction_NewComment(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
@@ -89,7 +89,7 @@ struct AUDIOEDITOR_API FSoundCueGraphSchemaAction_Paste : public FEdGraphSchemaA
 		: FEdGraphSchemaAction()
 	{}
 
-	FSoundCueGraphSchemaAction_Paste(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+	FSoundCueGraphSchemaAction_Paste(FText InNodeCategory, FText InMenuDesc, FText InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 

@@ -3,6 +3,7 @@
 #include "Tracks/MovieScene3DTransformTrack.h"
 #include "MovieSceneCommonHelpers.h"
 #include "Sections/MovieScene3DTransformSection.h"
+#include "Compilation/MovieSceneTemplateInterrogation.h"
 #include "Compilation/MovieSceneSegmentCompiler.h"
 
 
@@ -22,4 +23,10 @@ UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FObjectInitializ
 UMovieSceneSection* UMovieScene3DTransformTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieScene3DTransformSection::StaticClass(), NAME_None, RF_Transactional);
+}
+
+FMovieSceneInterrogationKey UMovieScene3DTransformTrack::GetInterrogationKey()
+{
+	static FMovieSceneAnimTypeID TypeID = FMovieSceneAnimTypeID::Unique();
+	return TypeID;
 }

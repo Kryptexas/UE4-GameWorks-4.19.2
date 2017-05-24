@@ -121,7 +121,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 		FName PropertyIdentifier = PropertyChain[I];
 		const UProperty * ResolvedProperty = ::Resolve(ContainerStruct, PropertyIdentifier);
 			
-		FPropertyInfo Info = { ResolvedProperty, INDEX_NONE };
+		FPropertyInfo Info(ResolvedProperty, INDEX_NONE);
 		Ret.AddProperty(Info);
 
 		int32 PropertyIndex = TryReadIndex(PropertyChain, I);
@@ -136,7 +136,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 
 				UpdateContainerAddress( ArrayProperty->Inner, ArrayHelper.GetRawPtr(PropertyIndex), ContainerAddress, ContainerStruct );
 
-				FPropertyInfo ArrayInfo = { ArrayProperty->Inner, PropertyIndex };
+				FPropertyInfo ArrayInfo(ArrayProperty->Inner, PropertyIndex);
 				Ret.AddProperty(ArrayInfo);
 			}
 		}
@@ -159,7 +159,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 
 				UpdateContainerAddress( SetProperty->ElementProp, SetHelper.GetElementPtr(RealIndex), ContainerAddress, ContainerStruct );
 
-				FPropertyInfo SetInfo = { SetProperty->ElementProp, RealIndex };
+				FPropertyInfo SetInfo(SetProperty->ElementProp, RealIndex);
 				Ret.AddProperty(SetInfo);
 			}
 		}
@@ -189,7 +189,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 
 						UpdateContainerAddress( MapProperty->KeyProp, MapHelper.GetKeyPtr(RealIndex), ContainerAddress, ContainerStruct );
 
-						FPropertyInfo MakKeyInfo = { MapProperty->KeyProp, RealIndex };
+						FPropertyInfo MakKeyInfo(MapProperty->KeyProp, RealIndex);
 						Ret.AddProperty(MakKeyInfo);
 					}
 					else if(ensure( PropertyChain[I+1] == MapProperty->ValueProp->GetFName() ))
@@ -198,7 +198,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 
 						UpdateContainerAddress( MapProperty->ValueProp, MapHelper.GetValuePtr(RealIndex), ContainerAddress, ContainerStruct );
 						
-						FPropertyInfo MapValueInfo = { MapProperty->ValueProp, RealIndex };
+						FPropertyInfo MapValueInfo(MapProperty->ValueProp, RealIndex);
 						Ret.AddProperty(MapValueInfo);
 					}
 				}
@@ -211,7 +211,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 			// handle static arrays:
 			if(PropertyIndex != INDEX_NONE )
 			{
-				FPropertyInfo ObjectInfo = { ResolvedProperty, PropertyIndex };
+				FPropertyInfo ObjectInfo(ResolvedProperty, PropertyIndex);
 				Ret.AddProperty(ObjectInfo);
 			}
 		}
@@ -222,7 +222,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 			// handle static arrays:
 			if(PropertyIndex != INDEX_NONE )
 			{
-				FPropertyInfo StructInfo = { ResolvedProperty, PropertyIndex };
+				FPropertyInfo StructInfo(ResolvedProperty, PropertyIndex);
 				Ret.AddProperty(StructInfo);
 			}
 		}
@@ -231,7 +231,7 @@ FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 			// handle static arrays:
 			if(PropertyIndex != INDEX_NONE )
 			{
-				FPropertyInfo StaticArrayInfo = { ResolvedProperty, PropertyIndex };
+				FPropertyInfo StaticArrayInfo(ResolvedProperty, PropertyIndex);
 				Ret.AddProperty(StaticArrayInfo);
 			}
 		}
@@ -336,13 +336,33 @@ void DiffUtils::CompareUnrelatedSCS(const UBlueprint* Old, const TArray< FSCSRes
 
 		if (NewEntry != nullptr)
 		{
-			// did a property change?
-			TArray<FSingleObjectDiffEntry> DifferingProperties;
-			DiffUtils::CompareUnrelatedObjects(OldNode.Object, NewEntry->Object, DifferingProperties);
-			for (const auto& Property : DifferingProperties)
+			bool bShouldDiffProperties = true;
+
+			// did it change class?
+			const bool bObjectTypesDiffer = OldNode.Object != nullptr && NewEntry->Object != nullptr && OldNode.Object->GetClass() != NewEntry->Object->GetClass();
+			if (bObjectTypesDiffer)
 			{
-				FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_PROPERTY_CHANGED, Property };
+				FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_TYPE_CHANGED, FSingleObjectDiffEntry() };
 				OutDifferingEntries.Entries.Push(Diff);
+
+				// Only diff properties if we're still within the same class inheritance hierarchy.
+				bShouldDiffProperties = OldNode.Object->GetClass()->IsChildOf(NewEntry->Object->GetClass()) || NewEntry->Object->GetClass()->IsChildOf(OldNode.Object->GetClass());
+			}
+
+			// did a property change?
+			if(bShouldDiffProperties)
+			{
+				TArray<FSingleObjectDiffEntry> DifferingProperties;
+				DiffUtils::CompareUnrelatedObjects(OldNode.Object, NewEntry->Object, DifferingProperties);
+				for (const auto& Property : DifferingProperties)
+				{
+					// Only include property value change entries if the object types differ.
+					if (!bObjectTypesDiffer || Property.DiffType == EPropertyDiffType::PropertyValueChanged)
+					{
+						FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_PROPERTY_CHANGED, Property };
+						OutDifferingEntries.Entries.Push(Diff);
+					}
+				}
 			}
 
 			// did it move?
@@ -983,8 +1003,11 @@ FText DiffViewUtils::SCSDiffMessage(const FSCSDiffEntry& Difference, FText Objec
 	case ETreeDiffType::NODE_REMOVED:
 		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeRemoved", "Removed Node {0} from {1}"), NodeName, ObjectName);
 		break;
+	case ETreeDiffType::NODE_TYPE_CHANGED:
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeTypeChanged", "Node {0} changed type in {1}"), NodeName, ObjectName);
+		break;
 	case ETreeDiffType::NODE_PROPERTY_CHANGED:
-		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeChanged", "{0} on {1}"), DiffViewUtils::PropertyDiffMessage(Difference.PropertyDiff, NodeName), ObjectName);
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodePropertyChanged", "{0} on {1}"), DiffViewUtils::PropertyDiffMessage(Difference.PropertyDiff, NodeName), ObjectName);
 		break;
 	case ETreeDiffType::NODE_MOVED:
 		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeMoved", "Moved Node {0} in {1}"), NodeName, ObjectName);

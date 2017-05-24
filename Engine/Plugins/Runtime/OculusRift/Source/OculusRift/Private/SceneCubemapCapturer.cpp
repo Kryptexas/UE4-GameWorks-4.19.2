@@ -151,4 +151,5 @@ void USceneCubemapCapturer::Tick(float DeltaTime)
 		CaptureComponents[i]->UnregisterComponent();
 	}
 	CaptureComponents.SetNum(0);
+	RemoveFromRoot(); // We're done here, so remove ourselves from the root set. @TODO: Fix this later
 }

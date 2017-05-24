@@ -167,7 +167,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 			// Watch for the end of seamless travel
 			if (Command == TEXT("SeamlessTravelEnd"))
 			{
-				FCoreUObjectDelegates::PostLoadMap.AddStatic(&ANUTActor::NotifyPostLoadMap);
+				FCoreUObjectDelegates::PostLoadMapWithWorld.AddStatic(&ANUTActor::NotifyPostLoadMap);
 			}
 		}
 		// Event watch notification - should only be implemented by custom unit tests
@@ -294,7 +294,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 	return bHandledMessage;
 }
 
-void ANUTActor::NotifyPostLoadMap()
+void ANUTActor::NotifyPostLoadMap(UWorld*)
 {
 	if (VerifyEventWatcher())
 	{

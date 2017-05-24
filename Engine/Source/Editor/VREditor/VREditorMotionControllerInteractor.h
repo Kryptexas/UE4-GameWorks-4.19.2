@@ -39,29 +39,35 @@ public:
 	// IViewportInteractorInterface overrides
 	virtual void Shutdown() override;
 	virtual void Tick( const float DeltaTime ) override;
-	virtual void CalculateDragRay() override;
+	virtual void CalculateDragRay( float& InOutDragRayLength, float& InOutDragRayVelocity ) override;
 
 	/** @return Returns the type of HMD we're dealing with */
 	EHMDDeviceType::Type GetHMDDeviceType() const;
 
 	// UViewportInteractor
-	virtual void HandleInputKey( FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;
-	virtual bool GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector ) override;
+	virtual void PreviewInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;
+	virtual void HandleInputKey( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const EInputEvent Event, bool& bOutWasHandled ) override;
+	virtual bool GetTransformAndForwardVector( FTransform& OutHandTransform, FVector& OutForwardVector ) const override;
+	virtual bool GetIsLaserBlocked() const override;
 
-	/** Gets the Y delta of the trackpad */
-	float GetTrackpadSlideDelta();
+	/** 
+	 * Gets the trackpad delta of the axis passed. 
+	 * 
+	 * @param Axis	The axis of which we want the slide delta. 0 is X axis and 1 is Y axis.Default is axis Y
+	 */
+	float GetTrackpadSlideDelta( const bool Axis = 1 );
 
 	/** Starts haptic feedback for physical motion controller */
 	virtual void PlayHapticEffect( const float Strength ) override;
-	
-	/** Stops playing any haptic effects that have been going for a while.  Called every frame. */
-	void StopOldHapticEffects();
 	
 	/** Get the side of the controller */
 	EControllerHand GetControllerSide() const;
 
 	/** Get the motioncontroller component of this interactor */
 	class UMotionControllerComponent* GetMotionControllerComponent() const;
+	
+	/** Resets all the trackpad related values to default. */
+	void ResetTrackpad();
 
 	/** Check if the touchpad is currently touched */
 	bool IsTouchingTrackpad() const;
@@ -78,25 +84,34 @@ public:
 	/** Get when the last time the trackpad position was updated */
 	FTimespan& GetLastTrackpadPositionUpdateTime();
 
+	/** Get when the last time the trackpad position was updated */
+	FTimespan& GetLastActiveTrackpadUpdateTime();
+
+	/** Set if we want to force to show the laser*/
+	void SetForceShowLaser(const bool bInForceShow);
+
+	/** Next frame this will be used as color for the laser */
+	void SetForceLaserColor(const FLinearColor& InColor);
+
+	/** Toggles whether or not this controller is being used to scrub sequencer */
+	void ToggleSequencerScrubbingMode()
+	{
+		bIsScrubbingSequence = !bIsScrubbingSequence;
+	};
+
+	/** Returns whether or not this controller is being used to scrub sequencer */
+	bool IsScrubbingSequencer()
+	{
+		return bIsScrubbingSequence;
+	}
+
 protected:
 
 	// ViewportInteractor
-	virtual void HandleInputAxis( FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) override;
+	virtual void HandleInputAxis( class FEditorViewportClient& ViewportClient, FViewportActionKeyInput& Action, const FKey Key, const float Delta, const float DeltaTime, bool& bOutWasHandled ) override;
 
 	/** Polls input for the motion controllers transforms */
 	virtual void PollInput() override;
-
-	/** Check if the trigger is lightly pressed */
-	bool IsTriggerAtLeastLightlyPressed() const;
-
-	/** Get the real time the trigger was lightly pressed */
-	double GetRealTimeTriggerWasLightlyPressed() const;
-
-	/** Set that the trigger is at least lighty pressed */
-	void SetTriggerAtLeastLightlyPressed( const bool bInTriggerAtLeastLightlyPressed );
-
-	/** Set that the trigger has been released since last press */
-	void SetTriggerBeenReleasedSinceLastPress( const bool bInTriggerBeenReleasedSinceLastPress );
 
 private:
 
@@ -115,11 +130,30 @@ private:
 	/** Given a mesh and a key name, tries to find a socket on the mesh that matches a supported key */
 	UStaticMeshSocket* FindMeshSocketForKey( UStaticMesh* StaticMesh, const FKey Key );
 
+	/** Updates all the segments of the curved laser */
+	void UpdateSplineLaser(const FVector& InStartLocation, const FVector& InEndLocation, const FVector& InForward);
+	
+	/** Sets the visibility on all curved laser segments */
+	void SetLaserVisibility(const bool bVisible);
+
 	/** Sets the visuals of the LaserPointer */
 	void SetLaserVisuals( const FLinearColor& NewColor, const float CrawlFade, const float CrawlSpeed );
 
 	/** Updates the radial menu */
 	void UpdateRadialMenuInput( const float DeltaTime );
+
+	/** Directions the trackpad can be swiped to */
+	enum ETouchSwipeDirection
+	{
+		None = 0,
+		Left = 1,
+		Right = 2,
+		Up = 3,
+		Down = 4
+	};
+
+	/** Start undo or redo from swipe for the Vive */
+	void UndoRedoFromSwipe(const ETouchSwipeDirection InSwipeDirection);
 
 protected:
 	
@@ -135,9 +169,13 @@ protected:
 	UPROPERTY()
 	class UStaticMeshComponent* HandMeshComponent;
 
-	/** Mesh for this hand's laser pointer */
+	/** Spline for this hand's laser pointer */
 	UPROPERTY()
-	class UStaticMeshComponent* LaserPointerMeshComponent;
+	class USplineComponent* LaserSplineComponent;
+
+	/** Spline meshes for curved laser */
+	UPROPERTY()
+	TArray<class USplineMeshComponent*> LaserSplineMeshComponents;
 
 	/** MID for laser pointer material (opaque parts) */
 	UPROPERTY()
@@ -171,8 +209,8 @@ protected:
 	static const FName TriggerAxis;
 	static const FName MotionController_Left_FullyPressedTriggerAxis;
 	static const FName MotionController_Right_FullyPressedTriggerAxis;
-	static const FName MotionController_Left_LightlyPressedTriggerAxis;
-	static const FName MotionController_Right_LightlyPressedTriggerAxis;
+	static const FName MotionController_Left_PressedTriggerAxis;
+	static const FName MotionController_Right_PressedTriggerAxis;
 
 private:
 
@@ -184,21 +222,10 @@ private:
 	bool bIsTriggerFullyPressed;
 
 	/** True if the trigger is currently pulled far enough that we consider it in a "half pressed" state */
-	bool bIsTriggerAtLeastLightlyPressed;
-
-	/** Real time that the trigger became lightly pressed.  If the trigger remains lightly pressed for a reasonably 
-	long duration before being pressed fully, we'll continue to treat it as a light press in some cases */
-	double RealTimeTriggerWasLightlyPressed;
+	bool bIsTriggerPressed;
 
 	/** True if trigger has been fully released since the last press */
 	bool bHasTriggerBeenReleasedSinceLastPress;
-
-	//
-	// Haptic feedback
-	//
-
-	/** The last real time we played a haptic effect.  This is used to turn off haptic effects shortly after they're triggered. */
-	double LastHapticTime;
 
 	//
 	// Trackpad support
@@ -206,6 +233,9 @@ private:
 
 	/** True if the trackpad is actively being touched */
 	bool bIsTouchingTrackpad;
+
+	/** True if pressing trackpad button (or analog stick button is down) */
+	bool bIsPressingTrackpad;
 
 	/** Position of the touched trackpad */
 	FVector2D TrackpadPosition;
@@ -219,4 +249,28 @@ private:
 	/** Real time that the last trackpad position was last updated.  Used to filter out stale previous data. */
 	FTimespan LastTrackpadPositionUpdateTime;
 
+	/** Real time that the last trackpad position was over the dead zone threshold. */
+	FTimespan LastActiveTrackpadUpdateTime;
+
+	/** Forcing to show laser */
+	bool bForceShowLaser;
+
+	/** The color that will be used for one frame */
+	TOptional<FLinearColor> ForceLaserColor;
+
+	/**Whether a flick action was executed */
+	bool bFlickActionExecuted;
+
+	/** whether or not this controller is being used to scrub sequencer */
+	bool bIsScrubbingSequence;
+
+	//
+	// Swipe
+	//
+
+	/** Latest swipe direction on the trackpad */
+	ETouchSwipeDirection LastSwipe;
+
+	/** Initial position when starting to touch the trackpad */
+	FVector2D InitialTouchPosition;
 };

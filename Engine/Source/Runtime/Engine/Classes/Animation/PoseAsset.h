@@ -154,7 +154,7 @@ public:
 	* @param	PoseWeight			Weight of pose
 	*/
 	ENGINE_API bool GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
-	ENGINE_API void GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
+	ENGINE_API void GetBaseAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& OutCurve) const;
 	virtual bool HasRootMotion() const { return false; }
 	virtual bool IsValidAdditive() const { return bAdditivePose; }
 
@@ -167,6 +167,7 @@ public:
 public:
 	ENGINE_API int32 GetNumPoses() const;
 	ENGINE_API int32 GetNumCurves() const;
+	ENGINE_API int32 GetNumTracks() const;
 	ENGINE_API const TArray<FSmartName> GetPoseNames() const;
 	ENGINE_API const TArray<FName>		GetTrackNames() const;
 	ENGINE_API const TArray<FSmartName> GetCurveNames() const;
@@ -216,6 +217,10 @@ public:
 	ENGINE_API const FName GetPoseNameByIndex(int32 InBasePoseIndex) const { return PoseContainer.PoseNames.IsValidIndex(InBasePoseIndex)? PoseContainer.PoseNames[InBasePoseIndex].DisplayName : NAME_None; }
 
 	ENGINE_API const int32 GetCurveIndexByName(const FName& InCurveName) const;
+
+	/** Return full (local space, non additive) pose. Will do conversion if PoseAsset is Additive. */
+	ENGINE_API bool GetFullPose(int32 PoseIndex, TArray<FTransform>& OutTransforms) const;
+
 
 private: 
 	DECLARE_MULTICAST_DELEGATE(FOnPoseListChangedMulticaster)

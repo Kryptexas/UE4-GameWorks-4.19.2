@@ -117,19 +117,6 @@ public:
 	/** The identifier for the primitive in Scene->PrimitiveOctree. */
 	FOctreeElementId OctreeId;
 
-	/** 
-	 * Bound shader state used for rendering this light's contribution to the translucent lighting volume.
-	 * This is mutable because it is cached on first use, possibly when const 
-	 */
-	mutable FBoundShaderStateRHIRef TranslucentInjectBoundShaderState[LightType_MAX][2][2][2];
-
-	/** 
-	 * Tracks the shader map that was used when the bound shader state was cached.
-	 * This is needed to detect when the bound shader state should be invalidated due to a shader map switch,
-	 * Which happens during async shader compiling. 
-	 */
-	mutable const FMaterialShaderMap* TranslucentInjectCachedShaderMaps[LightType_MAX][2][2][2];
-
 	/** Tile intersection buffer for distance field shadowing, stored on the light to avoid reallocating each frame. */
 	mutable TUniquePtr<class FLightTileIntersectionResources> TileIntersectionResources;
 

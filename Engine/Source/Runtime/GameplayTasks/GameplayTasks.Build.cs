@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GameplayTasks : ModuleRules
 	{
-        public GameplayTasks(TargetInfo Target)
+        public GameplayTasks(ReadOnlyTargetRules Target) : base(Target)
 		{
             PrivateIncludePaths.Add("Runtime/GameplayTasks/Private");
             

@@ -7,6 +7,7 @@ parent:Engine/Rendering/Materials/LightingModels
 order:1
 topic-image:sss_topic.png
 type:overview
+tags:Materials
 
 Materials have a new subsurface shading model (**_MLM_Subsurface_**) which is intended for materials like wax or jade which appear opaque, but lighting scatters inside them allowing a portion of the light from the opposite side of the surface to show through.
 

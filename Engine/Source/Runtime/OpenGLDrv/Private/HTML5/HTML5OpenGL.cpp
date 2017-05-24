@@ -9,13 +9,16 @@ THIRD_PARTY_INCLUDES_START
 #endif
 THIRD_PARTY_INCLUDES_END
 #if PLATFORM_HTML5_BROWSER
-#include "HTML5JavascriptFX.h"
+#include "HTML5JavaScriptFx.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5OpenGL, Log, All);
 
 bool FHTML5OpenGL::bCombinedDepthStencilAttachment = false;
-
+bool FHTML5OpenGL::bSupportsDrawBuffers = false;
+bool FHTML5OpenGL::bSupportsInstancing = false;
+uint8_t FHTML5OpenGL::currentVertexAttribDivisor[64];
+bool FHTML5OpenGL::bIsWebGL2 = false;
 
 void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 {
@@ -34,6 +37,7 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsSGRB = ExtensionsString.Contains(TEXT("GL_EXT_sRGB"));
 	bSupportsColorBufferHalfFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
 	bSupportsShaderFramebufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch"));
+	bRequiresUEShaderFramebufferFetchDef = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch"));
 	// @todo ios7: SRGB support does not work with our texture format setup (ES2 docs indicate that internalFormat and format must match, but they don't at all with sRGB enabled)
 	//             One possible solution us to use GLFormat.InternalFormat[bSRGB] instead of GLFormat.Format
 	bSupportsSGRB = false;//ExtensionsString.Contains(TEXT("GL_EXT_sRGB"));
@@ -62,7 +66,23 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 		ExtensionsString.Contains(TEXT("GL_ANGLE_depth_texture")) || // for HTML5_WIN32 build with ANGLE
 		ExtensionsString.Contains(TEXT("GL_OES_depth_texture"));     // for a future HTML5 build without ANGLE
 
+	bSupportsDrawBuffers = ExtensionsString.Contains(TEXT("WEBGL_draw_buffers"));
+	bSupportsInstancing = ExtensionsString.Contains(TEXT("ANGLE_instanced_arrays"));
+
 #if PLATFORM_HTML5_BROWSER
+	// WebGL 1 extensions that were adopted to core WebGL 2 spec:
+	if (UE_BrowserWebGLVersion() == 2)
+	{
+		bSupportsStandardDerivativesExtension = bSupportsDrawBuffers = true;
+		bSupportsTextureFloat = bSupportsTextureHalfFloat = bSupportsColorBufferHalfFloat = true;
+		bSupportsVertexArrayObjects = bSupportsShaderTextureLod = bSupportsDepthTexture = true;
+		bSupportsInstancing = true;
+
+		bIsWebGL2 = true;
+	}
+
+	ResetVertexAttribDivisorCache();
+
 	// The core WebGL spec has a combined GL_DEPTH_STENCIL_ATTACHMENT, unlike the core GLES2 spec.
 	bCombinedDepthStencilAttachment = true;
 	// Note that WebGL always supports packed depth stencil renderbuffers (DEPTH_STENCIL renderbuffor format), but for textures
@@ -165,9 +185,6 @@ struct FPlatformOpenGLContext
 	}
 };
 
-extern "C"
-EM_BOOL request_fullscreen_callback(int eventType, const EmscriptenMouseEvent* evt, void* user);
-
 #if PLATFORM_HTML5_BROWSER
 extern "C" int GSystemResolution_ResX();
 extern "C" int GSystemResolution_ResY();
@@ -177,8 +194,6 @@ struct FPlatformOpenGLDevice
 {
 	FPlatformOpenGLDevice()
 	{
-		emscripten_set_click_callback("fullscreen_request", nullptr, true, request_fullscreen_callback);
-
 		SharedContext = new FPlatformOpenGLContext;
 
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 1);
@@ -193,12 +208,11 @@ struct FPlatformOpenGLDevice
 		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
+		int width, height, isFullscreen;
+		emscripten_get_canvas_size(&width, &height, &isFullscreen);
 		WindowHandle = SDL_CreateWindow("HTML5", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN| SDL_WINDOW_RESIZABLE);
+			width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 #if PLATFORM_HTML5_BROWSER
-//		EM_ASM(
-//			console.log("SDL_CreateWindow() 800x600");
-//		);
 		UE_GSystemResolution( GSystemResolution_ResX, GSystemResolution_ResY );
 #endif
 		PlatformCreateOpenGLContext(this,WindowHandle);
@@ -293,23 +307,14 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 
 	UE_LOG(LogHTML5OpenGL, Verbose, TEXT("SDL_SetWindowSize(%d,%d)"), SizeX, SizeY);
 	SDL_SetWindowSize(Device->WindowHandle,SizeX,SizeY);
-#if PLATFORM_HTML5_BROWSER
-	// let the browser know of possible new width:height ratio
-	EM_ASM(
-		window.dispatchEvent(new Event('resize'));
-	);
-#endif
 
 	glViewport(0, 0, SizeX, SizeY);
-	//@todo-mobile Do we need to clear here?
-	glClearColor(0, 0, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT);
-
 }
 
 void PlatformGetSupportedResolution(uint32 &Width, uint32 &Height)
 {
-	// how?
+	int isFullscreen;
+	emscripten_get_canvas_size((int*)&Width, (int*)&Height, &isFullscreen);
 }
 
 bool PlatformGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate)
@@ -374,28 +379,12 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 
 void PlatformRestoreDesktopDisplayMode()
 {
+#if PLATFORM_HTML5_BROWSER
+	EM_ASM( Module['canvas'].UE_canvas.bIsFullScreen = 0; );
+#endif
 }
 
 #if PLATFORM_HTML5_BROWSER
-extern "C"
-{
-	// callback from javascript.
-	EM_BOOL request_fullscreen_callback(int eventType, const EmscriptenMouseEvent* evt, void* user)
-	{
-#if __EMSCRIPTEN_major__  >= 1 && __EMSCRIPTEN_minor__  >= 29 && __EMSCRIPTEN_tiny__  >= 0
-		EmscriptenFullscreenStrategy FSStrat;
-		FMemory::Memzero(FSStrat);
-		FSStrat.scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;//EMSCRIPTEN_FULLSCREEN_SCALE_ASPECT;// : EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;
-		FSStrat.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_HIDEF;
-		FSStrat.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
-		emscripten_request_fullscreen_strategy("canvas", true, &FSStrat);
-#else
-		emscripten_request_fullscreen("canvas", true);
-#endif
-		return 0;
-	}
-}
-
 #include "UnrealEngine.h" // GSystemResolution
 extern "C"
 {

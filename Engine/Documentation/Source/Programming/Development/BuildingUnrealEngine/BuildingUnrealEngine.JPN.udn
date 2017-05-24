@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3092637
+﻿INTSourceChangelist:3355414
 Availability:Public
 Title:ソースからアンリアル エンジンをビルドする
 Crumbs: %ROOT%, Programming, Programming/Development
@@ -8,9 +8,12 @@ Related:GettingStarted
 Related:Engine/Content/QuickStart
 Related:Programming/QuickStart
 Related:Engine/QuickStart
-Related:Support/Builds
+Related: Programming/UnrealBuildSystem
 Version:4.11
 SkillLevel:Advanced
+topic-image:topic_buildingUE.png
+tags:Programming
+tags:Unreal Build System
 
 %Globals:osselect_linux%
 
@@ -195,7 +198,7 @@ XCode の最新版がインストール済であることを確認してから�
 [EXCERPT:macrun]
 
 1.	**Product > Run** の順に選択し、エディタを起動します。
-		
+
 	![](RunningMacEditor.png)
 
 1.	これで終わりです！エンジンをソースからコンパイルし、起動しました。

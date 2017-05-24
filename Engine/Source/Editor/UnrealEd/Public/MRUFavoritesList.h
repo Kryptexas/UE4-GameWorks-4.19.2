@@ -4,8 +4,8 @@
 	MRUFavoritesList : Helper class for handling MRU and favorited maps
 
 =============================================================================*/
-#ifndef __MAINMRUFAVORITESLIST_H__
-#define __MAINMRUFAVORITESLIST_H__
+
+#pragma once
 
 #include "CoreMinimal.h"
 #include "MRUList.h"
@@ -93,5 +93,3 @@ private:
 	/** INI section to read/write favorite items to */
 	static const FString FAVORITES_INI_SECTION;
 };
-
-#endif

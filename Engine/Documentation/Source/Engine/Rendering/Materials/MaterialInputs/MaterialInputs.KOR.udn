@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title:머티리얼 입력
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
@@ -8,6 +8,8 @@ parent:Engine/Rendering/Materials
 order:5
 topic-image:Engine/Rendering/Materials/MaterialInputsTopic.png
 type:reference
+tags:Materials
+
 
 여기서는 머티리얼 제작시 사용가능한 입력에 대해 살펴보겠습니다. 이러한 입력에 (상수, 파라미터, 텍스처 등의) 값을 물려주는 것으로 상상속의 어떤 물리적 표면도 정의해 낼 수 있습니다.
 

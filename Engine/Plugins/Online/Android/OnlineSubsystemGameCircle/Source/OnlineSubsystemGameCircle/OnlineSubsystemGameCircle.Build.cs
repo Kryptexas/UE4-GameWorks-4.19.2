@@ -6,8 +6,8 @@ namespace UnrealBuildTool.Rules
 {
 	public class OnlineSubsystemGameCircle : ModuleRules
 	{
-		public OnlineSubsystemGameCircle(TargetInfo Target)
-		{
+		public OnlineSubsystemGameCircle(ReadOnlyTargetRules Target) : base(Target)
+        {
 			Definitions.Add("ONLINESUBSYSTEMGAMECIRCLE_PACKAGE=1");
 			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 

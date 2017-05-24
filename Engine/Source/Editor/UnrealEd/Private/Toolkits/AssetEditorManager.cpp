@@ -212,6 +212,8 @@ void FAssetEditorManager::NotifyAssetOpened(UObject* Asset, IAssetEditorInstance
 	OpenedAssets.Add(Asset, InInstance);
 	OpenedEditors.Add(InInstance, Asset);
 
+	AssetOpenedInEditorEvent.Broadcast(Asset, InInstance);
+
 	SaveOpenAssetEditors(false);
 }
 
@@ -375,13 +377,15 @@ bool FAssetEditorManager::OpenEditorForAssets( const TArray< UObject* >& Assets,
 	}
 	else if (Assets.Num() > 0)
 	{
-		// If any of the assets are already open, remove them from the list of assets to open an editor for
-		TArray<UObject*> AlreadyOpenAssets;
+		TArray<UObject*> SkipOpenAssets;
 		for (auto Asset : Assets)
 		{
-			if( FindEditorForAsset(Asset, true) != nullptr )
+			// If any of the assets are already open or the package is cooked,
+			// remove them from the list of assets to open an editor for
+			UPackage* Package = Asset->GetOutermost();
+			if( FindEditorForAsset(Asset, true) != nullptr || (Package && Package->bIsCookedForEditor) )
 			{
-				AlreadyOpenAssets.Add(Asset);
+				SkipOpenAssets.Add(Asset);
 			}
 		}
 
@@ -398,7 +402,7 @@ bool FAssetEditorManager::OpenEditorForAssets( const TArray< UObject* >& Assets,
 		}
 
 		// If the classes don't match or any of the selected assets are already open, just open each asset in its own editor.
-		if (bAssetClassesMatch && AlreadyOpenAssets.Num() == 0)
+		if (bAssetClassesMatch && SkipOpenAssets.Num() == 0)
 		{
 			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
 			TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(AssetClass);
@@ -471,7 +475,7 @@ bool FAssetEditorManager::OpenEditorForAssets( const TArray< UObject* >& Assets,
 			// Asset types don't match or some are already open, so just open individual editors for the unopened ones
 			for (auto Asset : Assets)
 			{
-				if (!AlreadyOpenAssets.Contains(Asset))
+				if (!SkipOpenAssets.Contains(Asset))
 				{
 					OpenEditorForAsset(Asset, ToolkitMode, OpenedFromLevelEditor);
 				}

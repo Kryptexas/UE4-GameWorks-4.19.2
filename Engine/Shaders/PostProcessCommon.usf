@@ -194,10 +194,16 @@ half4 UnwrappedTexture3DSample( Texture2D Texture, SamplerState Sampler, float3 
 	float U = ( UVW.x + IntW ) / Size;
 	float V = UVW.y;
 
-	half4 RG0 = Texture.Sample( Sampler, float2(U, V) );
-	half4 RG1 = Texture.Sample( Sampler, float2(U + 1.0f / Size, V) );
+	half4 RG0 = Texture2DSample( Texture, Sampler, float2(U, V) );
+	half4 RG1 = Texture2DSample( Texture, Sampler, float2(U + 1.0f / Size, V) );
 
 	return lerp(RG0, RG1, FracW);
+}
+
+bool IsComputeUVOutOfBounds(in float2 UV)
+{
+	float2 CenterDist = abs(UV - 0.5f);
+	return (max(CenterDist.x, CenterDist.y) >= 0.5f);
 }
 
 #endif // __POST_PROCESS_COMMON__

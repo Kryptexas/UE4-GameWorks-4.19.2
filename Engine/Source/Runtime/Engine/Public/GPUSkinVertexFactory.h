@@ -2,24 +2,6 @@
 
 /*=============================================================================
 	GPUSkinVertexFactory.h: GPU skinning vertex factory definitions.
-	
-	This code contains embedded portions of source code from dqconv.c Conversion routines between (regular quaternion, translation) and dual quaternion, Version 1.0.0, Copyright (c) 2006-2007 University of Dublin, Trinity College, All Rights Reserved, which have been altered from their original version.
-
-	The following terms apply to dqconv.c Conversion routines between (regular quaternion, translation) and dual quaternion, Version 1.0.0:
-
-	This software is provided 'as-is', without any express or implied warranty.  In no event will the author(s) be held liable for any damages arising from the use of this software.
-
-	Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
-
-	1. The origin of this software must not be misrepresented; you must not
-	claim that you wrote the original software. If you use this software
-	in a product, an acknowledgment in the product documentation would be
-	appreciated but is not required.
-	2. Altered source versions must be plainly marked as such, and must not be
-	misrepresented as being the original software.
-	3. This notice may not be removed or altered from any source distribution.
-
-
 =============================================================================*/
 
 #pragma once
@@ -152,13 +134,13 @@ private:
 struct FVertexBufferAndSRV
 {
 	void SafeRelease()
-    {
-        VertexBufferRHI.SafeRelease();
-        VertexBufferSRV.SafeRelease();
-    }
+	{
+		VertexBufferRHI.SafeRelease();
+		VertexBufferSRV.SafeRelease();
+	}
 
-    FVertexBufferRHIRef VertexBufferRHI;
-    FShaderResourceViewRHIRef VertexBufferSRV;
+	FVertexBufferRHIRef VertexBufferRHI;
+	FShaderResourceViewRHIRef VertexBufferSRV;
 };
 
 /**
@@ -168,7 +150,7 @@ struct FVertexBufferAndSRV
  */
 inline bool IsValidRef(const FVertexBufferAndSRV& Buffer)
 {
-    return IsValidRef(Buffer.VertexBufferRHI) && IsValidRef(Buffer.VertexBufferSRV);
+	return IsValidRef(Buffer.VertexBufferRHI) && IsValidRef(Buffer.VertexBufferSRV);
 }
 
 /** The policy for pooling bone vertex buffers */
@@ -361,12 +343,12 @@ public:
 		// @param bPrevious true:previous, false:current
 		// @param FrameNumber usually from View.Family->FrameNumber
 		// @return IsValid() can fail, then you have to create the buffers first (or if the size changes)
-		FVertexBufferAndSRV& GetBoneBufferForWriting(bool bPrevious, uint32 FrameNumber)
+		FVertexBufferAndSRV& GetBoneBufferForWriting(uint32 FrameNumber)
 		{
 			const FShaderDataType* This = (const FShaderDataType*)this;
 
 			// non const version maps to const version
-			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(bPrevious, FrameNumber);
+			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(false, FrameNumber);
 		}
 
 	private:
@@ -563,7 +545,7 @@ public:
 		}
 	}
 
-	inline int32 GetStreamIndex(int32 RWBufferIndex) const
+	inline int32 GetStreamIndex() const
 	{
 		check(StreamIndex != -1);
 		return (uint32)StreamIndex;

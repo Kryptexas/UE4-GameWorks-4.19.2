@@ -49,6 +49,7 @@
 #include "Engine/DemoNetDriver.h"
 
 #include "Tickable.h"
+#include "AssetRegistryModule.h"
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -354,7 +355,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	const bool bAllowMinimize = GetDefault<UGeneralProjectSettings>()->bAllowMinimize;
 
 	// Allow optional winX/winY parameters to set initial window position
-	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
+	EAutoCenter AutoCenterType = EAutoCenter::PrimaryWorkArea;
 	int32 WinX=0;
 	int32 WinY=0;
 	if (FParse::Value(FCommandLine::Get(), TEXT("WinX="), WinX) && FParse::Value(FCommandLine::Get(), TEXT("WinY="), WinY))
@@ -1086,10 +1087,14 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - StaticTick"));
 		StaticTick(DeltaSeconds, !!GAsyncLoadingUseFullTimeLimit, GAsyncLoadingTimeLimit / 1000.f);
 	}
 
-	FEngineAnalytics::Tick(DeltaSeconds);
+	{
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - Analytics"));
+		FEngineAnalytics::Tick(DeltaSeconds);
+	}
 
 	// -----------------------------------------------------
 	// Begin ticking worlds
@@ -1138,6 +1143,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 		if (!bIdleMode)
 		{
+			SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - WorldTick"));
+
 			// Tick the world.
 			GameCycles=0;
 			CLOCK_CYCLES(GameCycles);
@@ -1193,8 +1200,10 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// ----------------------------
 	//	End per-world ticking
 	// ----------------------------
-
-	FTickableGameObject::TickObjects(nullptr, LEVELTICK_All, false, DeltaSeconds);
+	{
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - TickObjects"));
+		FTickableGameObject::TickObjects(nullptr, LEVELTICK_All, false, DeltaSeconds);
+	}
 
 	// Restore original GWorld*. This will go away one day.
 	if (OriginalGWorldContext != NAME_None)
@@ -1206,6 +1215,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Tick the viewport
 	if ( GameViewport != NULL && !bIdleMode )
 	{
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - TickViewport"));
 		SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
 		GameViewport->Tick(DeltaSeconds);
 	}
@@ -1230,6 +1240,9 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	{
 		// Render everything.
 		RedrawViewports();
+
+		// Some tasks can only be done once we finish all scenes/viewports
+		GetRendererModule().PostRenderAllViewports();
 	}
 
 	if( GIsClient )
@@ -1243,6 +1256,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	FAudioDeviceManager* GameAudioDeviceManager = GEngine->GetAudioDeviceManager();
 	if (GameAudioDeviceManager)
 	{
+		SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - Update Audio"));
 		GameAudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 
@@ -1265,6 +1279,9 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 #if WITH_EDITOR
 	BroadcastPostEditorTick(DeltaSeconds);
+
+	// Tick the asset registry
+	FAssetRegistryModule::TickAssetRegistry(DeltaSeconds);
 #endif
 }
 

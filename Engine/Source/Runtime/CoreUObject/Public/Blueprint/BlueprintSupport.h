@@ -7,6 +7,8 @@
 #include "UObject/UObjectGlobals.h"
 
 class UDynamicClass;
+struct FCompilerNativizationOptions;
+class ITargetPlatform;
 
 struct FBlueprintWarningDeclaration
 {
@@ -19,6 +21,8 @@ struct FBlueprintWarningDeclaration
 	FName WarningIdentifier;
 	FText WarningDescription;
 };
+
+typedef void (*FFlushReinstancingQueueFPtr)();
 
 /** 
  * This set of functions contains blueprint related UObject functionality.
@@ -44,6 +48,13 @@ struct FBlueprintSupport
 	static bool IsDeferredExportCreationDisabled();
 	static bool IsDeferredCDOInitializationDisabled();
 
+	/** Initializes the BP Compilation Manager if it's enabled: */
+	COREUOBJECT_API static void InitializeCompilationManager();
+
+	/** Checks for any old instances and reinstances them: */
+	static void FlushReinstancingQueue();
+	COREUOBJECT_API static void SetFlushReinstancingQueueFPtr(FFlushReinstancingQueueFPtr Ptr);
+
 	/** Tells if the specified object is one of the many flavors of FLinkerPlaceholderBase that we have. */
 	COREUOBJECT_API static bool IsDeferredDependencyPlaceholder(UObject* LoadedObj);
 
@@ -55,6 +66,14 @@ struct FBlueprintSupport
 	COREUOBJECT_API static void UpdateWarningBehavior(const TArray<FName>& WarningIdentifiersToTreatAsError, const TArray<FName>& WarningIdentifiersToSuppress);
 	COREUOBJECT_API static bool ShouldTreatWarningAsError(FName WarningIdentifier);
 	COREUOBJECT_API static bool ShouldSuppressWarning(FName WarningIdentifier);
+
+#if WITH_EDITOR
+	/** Function that walks the object graph, ensuring that there are no references to TRASH or REINST classes: */
+	COREUOBJECT_API static void ValidateNoRefsToOutOfDateClasses();
+
+	/** Function that walks the object graph, ensuring that there are no references to SKEL classes: */
+	COREUOBJECT_API static void ValidateNoExternalRefsToSkeletons();
+#endif
 };
 
 #if WITH_EDITOR
@@ -138,7 +157,7 @@ struct IBlueprintNativeCodeGenCore
 	 * @param Package	The package in question
 	 * @return Whether the package should be converted
 	 */
-	virtual EReplacementResult IsTargetedForReplacement(const UPackage* Package) const = 0;
+	virtual EReplacementResult IsTargetedForReplacement(const UPackage* Package, const FCompilerNativizationOptions& NativizationOptions) const = 0;
 	
 	/**
 	 * Determines whether the provided object needs to be replaced (in part or completely).
@@ -149,7 +168,7 @@ struct IBlueprintNativeCodeGenCore
 	 * @param Object	The package in question
 	 * @return Whether the object should be converted
 	 */
-	virtual EReplacementResult IsTargetedForReplacement(const UObject* Object) const = 0;
+	virtual EReplacementResult IsTargetedForReplacement(const UObject* Object, const FCompilerNativizationOptions& NativizationOptions) const = 0;
 
 	/** 
 	 * Function used to change the type of a class from, say, UBlueprintGeneratedClass to 
@@ -159,7 +178,7 @@ struct IBlueprintNativeCodeGenCore
 	 * @param Object whose class will be replaced
 	 * @return A replacement class ptr, null if none
 	 */
-	virtual UClass* FindReplacedClassForObject(const UObject* Object) const = 0;
+	virtual UClass* FindReplacedClassForObject(const UObject* Object, const FCompilerNativizationOptions& NativizationOptions) const = 0;
 	
 	/** 
 	 * Function used to change the path of subobject from a nativized class.
@@ -168,7 +187,12 @@ struct IBlueprintNativeCodeGenCore
 	 * @param OutName Referenced to name, that will be saved in import table.
 	 * @return An Outer object that should be saved in import table.
 	 */
-	virtual UObject* FindReplacedNameAndOuter(UObject* Object, FName& OutName) const = 0;
+	virtual UObject* FindReplacedNameAndOuter(UObject* Object, FName& OutName, const FCompilerNativizationOptions& NativizationOptions) const = 0;
+
+	/*
+	 * Return nativization options for given platform.
+	 */
+	virtual const FCompilerNativizationOptions& GetNativizationOptionsForPlatform(const ITargetPlatform* Platform) const = 0;
 };
 
 #endif // WITH_EDITOR
@@ -290,14 +314,26 @@ struct COREUOBJECT_API FBlueprintDependencyData
 	// 1 - dependency type for CD0
 	FBlueprintDependencyType DependencyTypes[2];
 
+	int16 ObjectRefIndex; // NativizationWithoutEDLBT
+
 	FBlueprintDependencyData(const FBlueprintDependencyObjectRef& InObjectRef
 		, FBlueprintDependencyType InClassDependency
-		, FBlueprintDependencyType InCDODependency)
+		, FBlueprintDependencyType InCDODependency
+		, int16 InObjectRefIndex)
 		: ObjectRef(InObjectRef)
+		, ObjectRefIndex(InObjectRefIndex)
 	{
 		DependencyTypes[0] = InClassDependency;
 		DependencyTypes[1] = InCDODependency;
 	}
+
+	bool operator==(const FBlueprintDependencyData& Other) const
+	{
+		return Other.ObjectRefIndex == ObjectRefIndex;
+	}
+
+	static bool ContainsDependencyData(TArray<FBlueprintDependencyData>& Assets, int16 ObjectRefIndex);
+	static void AppendUniquely(TArray<FBlueprintDependencyData>& Destination, const TArray<FBlueprintDependencyData>& AdditionalData);
 };
 
 /**

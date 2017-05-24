@@ -515,7 +515,7 @@ void UModel::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 
 #if WITH_EDITOR
 
-IMPLEMENT_INTRINSIC_CLASS(UModel, ENGINE_API, UObject, CORE_API, 
+IMPLEMENT_INTRINSIC_CLASS(UModel, ENGINE_API, UObject, CORE_API, "/Script/Engine",
 	{
 		Class->ClassAddReferencedObjects = &UModel::AddReferencedObjects;
 		Class->EmitObjectReference(STRUCT_OFFSET(UModel, Polys), TEXT("Polys"));
@@ -528,7 +528,7 @@ IMPLEMENT_INTRINSIC_CLASS(UModel, ENGINE_API, UObject, CORE_API,
 
 #else
 
-IMPLEMENT_INTRINSIC_CLASS(UModel, ENGINE_API, UObject, CORE_API, 
+IMPLEMENT_INTRINSIC_CLASS(UModel, ENGINE_API, UObject, CORE_API, "/Script/Engine",
 	{
 		Class->ClassAddReferencedObjects = &UModel::AddReferencedObjects;
 		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin(STRUCT_OFFSET(UModel, Surfs), TEXT("Surfs"), sizeof(FBspSurf));
@@ -613,7 +613,6 @@ UModel::UModel(const FObjectInitializer& ObjectInitializer)
 
 }
 
-#if WITH_HOT_RELOAD_CTORS
 UModel::UModel(FVTableHelper& Helper)
 	: Super(Helper)
 	, Nodes()
@@ -630,7 +629,6 @@ UModel::UModel(FVTableHelper& Helper)
 {
 
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 void UModel::Initialize(ABrush* Owner, bool InRootOutside)
 {

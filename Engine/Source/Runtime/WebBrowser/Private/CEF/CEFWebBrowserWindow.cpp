@@ -1518,7 +1518,7 @@ void FCEFWebBrowserWindow::OnCursorChange(CefCursorHandle CefCursor, CefRenderHa
 
 				if (PlatformCursor.IsValid())
 				{
-					PlatformCursor->SetCustomShape((void*)CefCursor);
+					PlatformCursor->SetTypeShape(EMouseCursor::Custom, (void*)CefCursor);
 					Cursor = EMouseCursor::Custom;
 				}
 			}
@@ -1692,7 +1692,7 @@ int32 FCEFWebBrowserWindow::GetCefMouseModifiers(const FPointerEvent& InMouseEve
 CefMouseEvent FCEFWebBrowserWindow::GetCefMouseEvent(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	CefMouseEvent Event;
-	FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) * MyGeometry.Scale;
 	if (bIsPopup)
 	{
 		LocalPos += PopupPosition;

@@ -28,6 +28,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Curves)
 	FName CurveSourceBindingName;
 
+	/** Offset in time applied to audio position when evaluating curves */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Curves)
+	float CurveSyncOffset;
+
 public:
 	/** UActorComponent interface */
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;

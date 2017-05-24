@@ -63,9 +63,7 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 
 	GConfig->LoadFile(*GatherTextConfigPath);
 
-	FConfigFile* ConfigFile = GConfig->FindConfigFile(*GatherTextConfigPath);
-
-	if( NULL == ConfigFile )
+	if (!GConfig->FindConfigFile(*GatherTextConfigPath))
 	{
 		UE_LOG(LogGatherTextCommandlet, Error, TEXT("Loading Config File \"%s\" failed."), *GatherTextConfigPath);
 		return -1; 
@@ -76,11 +74,11 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 
 	UE_LOG(LogGatherTextCommandlet, Log,TEXT("Beginning GatherText Commandlet."));
 
-	TSharedPtr< FGatherTextSCC > CommandletSourceControlInfo = nullptr;
+	TSharedPtr< FLocalizationSCC > CommandletSourceControlInfo = nullptr;
 
 	if( bEnableSourceControl )
 	{
-		CommandletSourceControlInfo = MakeShareable( new FGatherTextSCC() );
+		CommandletSourceControlInfo = MakeShareable( new FLocalizationSCC() );
 
 		FText SCCErrorStr;
 		if( !CommandletSourceControlInfo->IsReady( SCCErrorStr ) )
@@ -94,25 +92,37 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 	TSharedRef<FLocTextHelper> CommandletGatherManifestHelper = MakeShareable(new FLocTextHelper(MakeShareable(new FLocFileSCCNotifies(CommandletSourceControlInfo))));
 	CommandletGatherManifestHelper->LoadManifest(ELocTextHelperLoadFlags::Create);
 
-	int32 NumSteps = (ConfigFile->Find("CommonSettings") != NULL) ? ConfigFile->Num() - 1 :  ConfigFile->Num();
+	const FString GatherTextStepPrefix = TEXT("GatherTextStep");
+
+	// Read the list of steps from the config file (they all have the format GatherTextStep{N})
+	TArray<FString> StepNames;
+	GConfig->GetSectionNames(GatherTextConfigPath, StepNames);
+	StepNames.RemoveAllSwap([&GatherTextStepPrefix](const FString& InStepName)
+	{
+		return !InStepName.StartsWith(GatherTextStepPrefix);
+	});
+
+	// Make sure the steps are sorted in ascending order (by numerical suffix)
+	StepNames.Sort([&GatherTextStepPrefix](const FString& InStepNameOne, const FString& InStepNameTwo)
+	{
+		const FString NumericalSuffixOneStr = InStepNameOne.RightChop(GatherTextStepPrefix.Len());
+		const int32 NumericalSuffixOne = FCString::Atoi(*NumericalSuffixOneStr);
+
+		const FString NumericalSuffixTwoStr = InStepNameTwo.RightChop(GatherTextStepPrefix.Len());
+		const int32 NumericalSuffixTwo = FCString::Atoi(*NumericalSuffixTwoStr);
+
+		return NumericalSuffixOne < NumericalSuffixTwo;
+	});
 
 	//Execute each step defined in the config file.
-	for( int32 i=0; i<NumSteps ; ++i )
+	for (const FString& StepName : StepNames)
 	{
-		FString SectionName = FString::Printf(TEXT("GatherTextStep%d"),i);
-		FConfigSection* CurrCommandletSection = ConfigFile->Find(SectionName);
-		if( NULL == CurrCommandletSection )
-		{
-			UE_LOG(LogGatherTextCommandlet, Error, TEXT("Could not find %s"),*SectionName);
-			continue;
-		}
-
-		FString CommandletClassName = GConfig->GetStr( *SectionName, TEXT("CommandletClass"), GatherTextConfigPath ) + TEXT("Commandlet");
+		FString CommandletClassName = GConfig->GetStr( *StepName, TEXT("CommandletClass"), GatherTextConfigPath ) + TEXT("Commandlet");
 
 		UClass* CommandletClass = FindObject<UClass>(ANY_PACKAGE,*CommandletClassName,false);
 		if (!CommandletClass)
 		{
-			UE_LOG(LogGatherTextCommandlet, Error,TEXT("The commandlet name %s in section %s is invalid."), *CommandletClassName, *SectionName);
+			UE_LOG(LogGatherTextCommandlet, Error,TEXT("The commandlet name %s in section %s is invalid."), *CommandletClassName, *StepName);
 			continue;
 		}
 
@@ -124,10 +134,9 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 		// Execute the commandlet.
 		double CommandletExecutionStartTime = FPlatformTime::Seconds();
 
-		UE_LOG(LogGatherTextCommandlet, Log,TEXT("Executing %s: %s"), *SectionName, *CommandletClassName);
+		UE_LOG(LogGatherTextCommandlet, Log,TEXT("Executing %s: %s"), *StepName, *CommandletClassName);
 		
-		
-		FString GeneratedCmdLine = FString::Printf(TEXT("-Config=\"%s\" -Section=%s"), *GatherTextConfigPath , *SectionName);
+		FString GeneratedCmdLine = FString::Printf(TEXT("-Config=\"%s\" -Section=%s"), *GatherTextConfigPath , *StepName);
 
 		// Add all the command params with the exception of config
 		for(auto ParamIter = ParamVals.CreateConstIterator(); ParamIter; ++ParamIter)
@@ -149,7 +158,7 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 
 		if( 0 != Commandlet->Main( GeneratedCmdLine ) )
 		{
-			UE_LOG(LogGatherTextCommandlet, Error,TEXT("%s-%s reported an error."),*SectionName, *CommandletClassName);
+			UE_LOG(LogGatherTextCommandlet, Error,TEXT("%s-%s reported an error."), *StepName, *CommandletClassName);
 			if( CommandletSourceControlInfo.IsValid() )
 			{
 				FText SCCErrorStr;
@@ -161,7 +170,7 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 			return -1;
 		}
 
-		UE_LOG(LogGatherTextCommandlet, Log,TEXT("Completed %s: %s"), *SectionName, *CommandletClassName);
+		UE_LOG(LogGatherTextCommandlet, Log,TEXT("Completed %s: %s"), *StepName, *CommandletClassName);
 	}
 
 	if( CommandletSourceControlInfo.IsValid() && !bDisableSubmit )

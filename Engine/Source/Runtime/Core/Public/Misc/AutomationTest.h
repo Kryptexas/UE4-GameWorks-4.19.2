@@ -22,6 +22,10 @@
 #include "Future.h"
 #include "Async.h"
 #include "Misc/Guid.h"
+#include "Math/Vector.h"
+#include "Math/Color.h"
+#include "PlatformProcess.h"
+#include "Misc/AutomationEvent.h"
 
 /** Flags for specifying automation test requirements/behavior */
 namespace EAutomationTestFlags
@@ -30,25 +34,40 @@ namespace EAutomationTestFlags
 	{
 		//~ Application context required for the test - not specifying means it will be valid for any context
 		// Test is suitable for running within the editor
-		EditorContext				= 0x00000001,
+		EditorContext = 0x00000001,
 		// Test is suitable for running within the client
-		ClientContext				= 0x00000002,
+		ClientContext = 0x00000002,
 		// Test is suitable for running within the server
-		ServerContext				= 0x00000004,
+		ServerContext = 0x00000004,
 		// Test is suitable for running within a commandlet
-		CommandletContext			= 0x00000008,
-		ApplicationContextMask		= EditorContext | ClientContext | ServerContext | CommandletContext,
+		CommandletContext = 0x00000008,
+		ApplicationContextMask = EditorContext | ClientContext | ServerContext | CommandletContext,
 
 		//~ Features required for the test - not specifying means it is valid for any feature combination
 		// Test requires a non-null RHI to run correctly
-		NonNullRHI					= 0x00000100,
+		NonNullRHI = 0x00000100,
 		// Test requires a user instigated session
-		RequiresUser				= 0x00000200,
-		FeatureMask					= NonNullRHI | RequiresUser,
+		RequiresUser = 0x00000200,
+		FeatureMask = NonNullRHI | RequiresUser,
 
 		//~ One-off flag to allow for fast disabling of tests without commenting code out
 		// Temp disabled and never returns for a filter
-		Disabled					= 0x00010000,
+		Disabled = 0x00010000,
+
+		//~ Priority of the test
+		// The highest priority possible. Showstopper/blocker.
+		CriticalPriority			= 0x00100000,
+		// High priority. Major feature functionality etc. 
+		HighPriority				= 0x00200000,
+		// Mask for High on SetMinimumPriority
+		HighPriorityAndAbove		= CriticalPriority | HighPriority,
+		// Medium Priority. Minor feature functionality, major generic content issues.
+		MediumPriority				= 0x00400000,
+		// Mask for Medium on SetMinimumPriority
+		MediumPriorityAndAbove		= CriticalPriority | HighPriority | MediumPriority,
+		// Low Priority. Minor content bugs. String errors. Etc.
+		LowPriority					= 0x00800000,
+		PriorityMask = CriticalPriority | HighPriority | MediumPriority | LowPriority,
 
 		//~ Speed of the test
 		//Super Fast Filter
@@ -65,42 +84,16 @@ namespace EAutomationTestFlags
 	};
 };
 
-
-struct CORE_API FAutomationEvent
-{
-	FString Message;
-	FString Context;
-	FString Filename;
-	int32 LineNumber;
-
-	FAutomationEvent(FString InMessage)
-		: Message(InMessage)
-		, Context()
-		, Filename()
-		, LineNumber(-1)
-	{
-	}
-
-	FAutomationEvent(FString InMessage, FString InContext, FString InFilename, int32 InLineNumber)
-		: Message(InMessage)
-		, Context(InContext)
-		, Filename(InFilename)
-		, LineNumber(InLineNumber)
-	{
-	}
-
-	FString ToString() const;
-};
-
-
 /** Simple class to store the results of the execution of a automation test */
-class FAutomationTestExecutionInfo
+class CORE_API FAutomationTestExecutionInfo
 {
 public:
 	/** Constructor */
 	FAutomationTestExecutionInfo() 
 		: bSuccessful( false )
 		, Duration(0.0f)
+		, Errors(0)
+		, Warnings(0)
 	{}
 
 	/** Destructor */
@@ -110,34 +103,61 @@ public:
 	}
 
 	/** Helper method to clear out the results from a previous execution */
-	void Clear()
-	{
-		Context.Reset();
+	void Clear();
 
-		Errors.Empty();
-		Warnings.Empty();
-		LogItems.Empty();
-		AnalyticsItems.Empty();
+	int32 RemoveAllEvents(EAutomationEventType EventType);
+
+	int32 RemoveAllEvents(TFunctionRef<bool(FAutomationEvent&)> FilterPredicate);
+
+	/** Any errors that occurred during execution */
+	const TArray<FAutomationEvent>& GetEvents() const { return Events; }
+
+	void AddEvent(const FAutomationEvent& Event);
+
+	void AddWarning(const FString& WarningMessage);
+	void AddError(const FString& ErrorMessage);
+
+	int32 GetWarningTotal() const { return Warnings; }
+	int32 GetErrorTotal() const { return Errors; }
+
+	const FString& GetContext() const
+	{
+		static FString EmptyContext;
+		return ContextStack.Num() ? ContextStack.Top() : EmptyContext;
 	}
 
-	/**
-	 * Allows tests to set the current logging context set on the events, like if we're currently
-	 * importing a specific file, you might set the file as the context.
-	 */
-	FString Context;
+	void PushContext(const FString& Context)
+	{
+		ContextStack.Push(Context);
+	}
+
+	void PopContext()
+	{
+		if ( ContextStack.Num() > 0 )
+		{
+			ContextStack.Pop();
+		}
+	}
+
+public:
 
 	/** Whether the automation test completed successfully or not */
 	bool bSuccessful;
-	/** Any errors that occurred during execution */
-	TArray<FAutomationEvent> Errors;
-	/** Any warnings that occurred during execution */
-	TArray<FString> Warnings;
-	/** Any log items that occurred during execution */
-	TArray<FString> LogItems;
+	
 	/** Any analytics items that occurred during execution */
 	TArray<FString> AnalyticsItems;
+
 	/** Time to complete the task */
 	float Duration;
+
+private:
+	/** Any errors that occurred during execution */
+	TArray<FAutomationEvent> Events;
+
+	int32 Errors;
+	int32 Warnings;
+
+	TArray<FString> ContextStack;
 };
 
 /** Simple class to store the automation test info */
@@ -467,6 +487,7 @@ struct FAutomationScreenshotData
 	FString Context;
 
 	FGuid Id;
+	FString Commit;
 
 	int32 Width;
 	int32 Height;
@@ -510,7 +531,9 @@ struct FAutomationScreenshotData
 	FString Path;
 
 	FAutomationScreenshotData()
-		: Width(0)
+		: Id()
+		, Commit()
+		, Width(0)
 		, Height(0)
 		, bIsStereo(false)
 		, ResolutionQuality(1.0f)
@@ -546,7 +569,7 @@ struct FAutomationScreenshotData
  */
 DECLARE_DELEGATE_TwoParams(FOnTestScreenshotCaptured, const TArray<FColor>&, const FAutomationScreenshotData&);
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTestScreenshotComparisonComplete, bool /*bWasNew*/, bool /*bWasSimilar*/);
+DECLARE_MULTICAST_DELEGATE_FiveParams(FOnTestScreenshotComparisonComplete, bool /*bWasNew*/, bool /*bWasSimilar*/, double /*MaxLocalDifference*/, double /*GlobalDifference*/, FString /*ErrorMessage*/);
 
 /** Class representing the main framework for running automation tests */
 class CORE_API FAutomationTestFramework
@@ -700,22 +723,21 @@ public:
 	FOnTestScreenshotCaptured& OnScreenshotCaptured();
 
 	/**
-	 * Sets screenshot options
-	 * @param bInScreenshotsEnabled - If screenshots are enabled
-	 */
-	void SetScreenshotOptions( const bool bInScreenshotsEnabled );
-
-	/**
-	 * Gets if screenshots are allowed
-	 */
-	bool IsScreenshotAllowed() const;
-
-	/**
 	 * Sets forcing smoke tests.
 	 */
 	void SetForceSmokeTests(const bool bInForceSmokeTests)
 	{
 		bForceSmokeTests = bInForceSmokeTests;
+	}
+
+	bool GetCaptureStack() const
+	{
+		return bCaptureStack;
+	}
+
+	void SetCaptureStack(bool bCapture)
+	{
+		bCaptureStack = bCapture;
 	}
 
 	/**
@@ -736,7 +758,7 @@ public:
 	bool GetTreatWarningsAsErrors() const;
 	void SetTreatWarningsAsErrors(TOptional<bool> bTreatWarningsAsErrors);
 
-	void NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar);
+	void NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar, double MaxLocalDifference, double GlobalDifference, FString ErrorMessage);
 
 	void NotifyScreenshotTakenAndCompared();
 
@@ -824,9 +846,6 @@ private:
 	FAutomationTestFramework( const FAutomationTestFramework& );
 	FAutomationTestFramework& operator=( const FAutomationTestFramework& );
 
-	/** Cached feedback context, contains the contents of GWarn at the time of automation testing, restored to GWarn when automation testing is complete */
-	FFeedbackContext* CachedContext;
-
 	/** Specialized feedback context used for automation testing */
 	FAutomationTestFeedbackContext AutomationTestFeedbackContext;
 
@@ -857,9 +876,6 @@ private:
 	/** Whether we want to run automation tests on content within the Developer Directories */
 	bool bDeveloperDirectoryIncluded;
 
-	/** Wheather screenshots are enabled */
-	bool bScreenshotsEnabled;
-
 	/** Participation role as given by the automation controller */
 	uint32 NetworkRoleIndex;
 
@@ -868,6 +884,8 @@ private:
 
 	/** Forces running smoke tests */
 	bool bForceSmokeTests;
+
+	bool bCaptureStack;
 };
 
 
@@ -920,7 +938,6 @@ public:
 	 */
 	virtual void AddError( const FString& InError, int32 StackOffset = 0 );
 
-
 	/**
 	 * Adds an error message to this test
 	 *
@@ -931,24 +948,39 @@ public:
 	virtual void AddError(const FString& InError, const FString& InFilename, int32 InLineNumber);
 
 	/**
+	 * Adds an warning message to this test
+	 *
+	 * @param	InWarning	Warning message to add to this test
+	 * @param	InFilename	The filename the error originated in
+	 * @param	InLineNumber	The line number in the file this error originated in
+	 */
+	virtual void AddWarning(const FString& InWarning, const FString& InFilename, int32 InLineNumber);
+
+	/**
 	 * Adds a warning to this test
 	 *
 	 * @param	InWarning	Warning message to add to this test
 	 */
-	virtual void AddWarning( const FString& InWarning );
+	virtual void AddWarning( const FString& InWarning, int32 StackOffset = 0);
+
+	DEPRECATED(4.16, "Use AddInfo")
+	FORCEINLINE void AddLogItem(const FString& InLogItem)
+	{
+		AddInfo(InLogItem, 0);
+	}
 
 	/**
 	 * Adds a log item to this test
 	 *
 	 * @param	InLogItem	Log item to add to this test
 	 */
-	virtual void AddLogItem( const FString& InLogItem );
+	virtual void AddInfo( const FString& InLogItem, int32 StackOffset = 0);
 
 	/**
-	* Adds a analytics string to parse later
-	*
-	* @param	InLogItem	Log item to add to this test
-	*/
+	 * Adds a analytics string to parse later
+	 *
+	 * @param	InLogItem	Log item to add to this test
+	 */
 	virtual void AddAnalyticsItem(const FString& InAnalyticsItem);
 
 	/**
@@ -1039,23 +1071,22 @@ public:
 	/** Return an exec command to open the test associated with this parameter. */
 	virtual FString GetTestOpenCommand(const FString& Parameter) const { return TEXT(""); }
 
+	void PushContext(const FString& Context)
+	{
+		ExecutionInfo.PushContext(Context);
+	}
+
+	void PopContext()
+	{
+		ExecutionInfo.PopContext();
+	}
+
 public:
 
-	void TestEqual(const FString& What, const int32 Actual, const int32 Expected)
-	{
-		if ( Actual != Expected )
-		{
-			AddError(FString::Printf(TEXT("Expected '%s' to be %d, but it was %d."), *What, Expected, Actual), 1);
-		}
-	}
-
-	void TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance = 1.e-4)
-	{
-		if ( !FMath::IsNearlyEqual(Actual, Expected, Tolerance) )
-		{
-			AddError(FString::Printf(TEXT("Expected '%s' to be %f, but it was %f within tolerance %f."), *What, Expected, Actual, Tolerance), 1);
-		}
-	}
+	void TestEqual(const FString& What, const int32 Actual, const int32 Expected);
+	void TestEqual(const FString& What, const float Actual, const float Expected, float Tolerance = KINDA_SMALL_NUMBER);
+	void TestEqual(const FString& What, const FVector Actual, const FVector Expected, float Tolerance = KINDA_SMALL_NUMBER);
+	void TestEqual(const FString& What, const FColor Actual, const FColor Expected);
 
 	/**
 	 * Logs an error if the two values are not equal.
@@ -1107,13 +1138,7 @@ public:
 	 *
 	 * @see TestFalse
 	 */
-	void TestFalse(const FString& Description, bool Value)
-	{
-		if (Value)
-		{
-			AddError(FString::Printf(TEXT("%s: The value is not false."), *Description), 1);
-		}
-	}
+	void TestFalse(const FString& What, bool Value);
 
 	/**
 	 * Logs an error if the given shared pointer is valid.
@@ -1156,11 +1181,15 @@ public:
 	 *
 	 * @see TestNull
 	 */
-	template<typename ValueType> void TestNotNull(const FString& Description, ValueType* Pointer)
+	template<typename ValueType> void TestNotNull(const FString& What, ValueType* Pointer)
 	{
-		if (Pointer == NULL)
+		if (Pointer == nullptr)
 		{
-			AddError(FString::Printf(TEXT("%s: The pointer is NULL."), *Description), 1);
+			AddError(FString::Printf(TEXT("Expected '%s' to be not null."), *What), 1);
+		}
+		else
+		{
+			AddInfo(FString::Printf(TEXT("Expected '%s' to be not null."), *What), 1);
 		}
 	}
 
@@ -1189,13 +1218,7 @@ public:
 	 *
 	 * @see TestNotNull
 	 */
-	template<typename ValueType> void TestNull(const FString& Description, ValueType* Pointer)
-	{
-		if (Pointer != NULL)
-		{
-			AddError(FString::Printf(TEXT("%s: The pointer is not NULL."), *Description), 1);
-		}
-	}
+	void TestNull(const FString& What, void* Pointer);
 
 	/**
 	 * Logs an error if the two values are not the same object in memory.
@@ -1222,13 +1245,7 @@ public:
 	 *
 	 * @see TestFalse
 	 */
-	void TestTrue(const FString& Description, bool Value)
-	{
-		if (!Value)
-		{
-			AddError(FString::Printf(TEXT("%s: The value is not true."), *Description), 1);
-		}
-	}
+	void TestTrue(const FString& What, bool Value);
 
 	/** Macro version of above, uses the passed in expression as the description as well */
 	#define TestTrueExpr(Expression) TestTrue(TEXT(#Expression), Expression)
@@ -1248,7 +1265,6 @@ public:
 			AddError(FString::Printf(TEXT("%s: The shared pointer is not valid."), *Description), 1);
 		}
 	}
-
 
 protected:
 	/**
@@ -1272,6 +1288,8 @@ protected:
 	 */
 	virtual FString GetBeautifiedTestName() const = 0;
 
+protected:
+
 	//Flag to indicate if this is a complex task
 	bool bComplexTask;
 
@@ -1289,7 +1307,6 @@ protected:
 
 	//allow framework to call protected function
 	friend class FAutomationTestFramework;
-
 };
 
 class CORE_API FBDDAutomationTestBase : public FAutomationTestBase
@@ -2349,8 +2366,12 @@ public: \
 							"All AutomationTests must have exactly 1 filter type specified.  See AutomationTest.h."); \
 		} \
 		virtual uint32 GetTestFlags() const override { return TFlags; } \
+        using FAutomationSpecBase::GetTestSourceFileName; \
 		virtual FString GetTestSourceFileName() const override { return FileName; } \
+        using FAutomationSpecBase::GetTestSourceFileLine; \
 		virtual int32 GetTestSourceFileLine() const override { return LineNumber; } \
+		virtual FString GetTestSourceFileName(const FString&) const override { return GetTestSourceFileName(); } \
+		virtual int32 GetTestSourceFileLine(const FString&) const override { return GetTestSourceFileLine(); } \
 	protected: \
 		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 		virtual void Define() override; \

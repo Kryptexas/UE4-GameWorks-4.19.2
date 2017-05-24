@@ -77,9 +77,8 @@ public:
 					return false;
 				}
 
-				extern ENGINE_API int32 GEnableGPUSkinCacheShaders;
-
-				bool bSkinCache = GEnableGPUSkinCacheShaders && (VertexFactoryType == FindVertexFactoryType(FName(TEXT("FGPUSkinPassthroughVertexFactory"), FNAME_Find)));
+				extern ENGINE_API bool IsGPUSkinCacheAvailable();
+				bool bSkinCache = IsGPUSkinCacheAvailable() && (VertexFactoryType == FindVertexFactoryType(FName(TEXT("FGPUSkinPassthroughVertexFactory"), FNAME_Find)));
 					
 				if (
 					VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactoryfalse"), FNAME_Find)) &&

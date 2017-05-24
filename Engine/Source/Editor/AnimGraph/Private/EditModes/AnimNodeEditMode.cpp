@@ -39,7 +39,7 @@ void FAnimNodeEditMode::GetOnScreenDebugInfo(TArray<FText>& OutDebugInfo) const
 {
 	if (AnimNode != nullptr)
 	{
-		AnimNode->GetOnScreenDebugInfo(OutDebugInfo, GetAnimPreviewScene().GetPreviewMeshComponent());
+		AnimNode->GetOnScreenDebugInfo(OutDebugInfo, RuntimeAnimNode, GetAnimPreviewScene().GetPreviewMeshComponent());
 	}
 }
 
@@ -494,7 +494,7 @@ void FAnimNodeEditMode::ConvertToBoneSpaceTransform(const USkeletalMeshComponent
 
 FVector FAnimNodeEditMode::ConvertCSVectorToBoneSpace(const USkeletalMeshComponent* SkelComp, FVector& InCSVector, FCSPose<FCompactHeapPose>& MeshBases, const FName& BoneName, const EBoneControlSpace Space)
 {
-	FVector OutVector = InCSVector;
+	FVector OutVector = FVector::ZeroVector;
 
 	if (MeshBases.GetPose().IsValid())
 	{
@@ -507,23 +507,16 @@ FVector FAnimNodeEditMode::ConvertCSVectorToBoneSpace(const USkeletalMeshCompone
 		case BCS_WorldSpace:
 		case BCS_ComponentSpace:
 			// Component Space, no change.
+			OutVector = InCSVector;
 			break;
 
 		case BCS_ParentBoneSpace:
 		{
-			if (BoneIndex != INDEX_NONE)
+			const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
+			if (ParentIndex != INDEX_NONE)
 			{
-				const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
-
-				if (ParentIndex != INDEX_NONE)
-				{
-					const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
-					OutVector = ParentTM.InverseTransformVector(InCSVector);
-				}
-			}
-			else
-			{
-				UE_LOG(LogAnimation, Warning, TEXT("ConvertToComponentSpaceTransform: No Bone for BoneSpace is set for Mesh: %s"), *SkelComp->SkeletalMesh->GetFName().ToString());
+				const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
+				OutVector = ParentTM.InverseTransformVector(InCSVector);
 			}
 		}
 		break;
@@ -534,10 +527,6 @@ FVector FAnimNodeEditMode::ConvertCSVectorToBoneSpace(const USkeletalMeshCompone
 			{
 				const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
 				OutVector = BoneTM.InverseTransformVector(InCSVector);
-			}
-			else
-			{
-				UE_LOG(LogAnimation, Warning, TEXT("ConvertToComponentSpaceTransform: No Bone for BoneSpace is set for Mesh: %s"), *SkelComp->SkeletalMesh->GetFName().ToString());
 			}
 		}
 		break;
@@ -606,25 +595,32 @@ FVector FAnimNodeEditMode::ConvertWidgetLocation(const USkeletalMeshComponent* S
 {
 	FVector WidgetLoc = FVector::ZeroVector;
 
-	if (MeshBases.GetPose().IsValid())
+	auto GetCompactBoneIndex = [](const USkeletalMeshComponent* InSkelComp, FCSPose<FCompactHeapPose>& InMeshBases, const FName& InBoneName)
 	{
-		USkeleton * Skeleton = SkelComp->SkeletalMesh->Skeleton;
-		const FMeshPoseBoneIndex MeshBoneIndex(SkelComp->GetBoneIndex(BoneName));
-		const FCompactPoseBoneIndex CompactBoneIndex = MeshBases.GetPose().GetBoneContainer().MakeCompactPoseIndex(MeshBoneIndex);
-
-		switch (Space)
+		if (InMeshBases.GetPose().IsValid())
 		{
-			// ComponentToWorld must be Identity in preview window so same as ComponentSpace
-		case BCS_WorldSpace:
-		case BCS_ComponentSpace:
-		{
-			// Component Space, no change.
-			WidgetLoc = Location;
+			USkeleton* Skeleton = InSkelComp->SkeletalMesh->Skeleton;
+			const FMeshPoseBoneIndex MeshBoneIndex(InSkelComp->GetBoneIndex(InBoneName));
+			return InMeshBases.GetPose().GetBoneContainer().MakeCompactPoseIndex(MeshBoneIndex);
 		}
-		break;
 
-		case BCS_ParentBoneSpace:
+		return FCompactPoseBoneIndex(INDEX_NONE);
+	};
 
+	switch (Space)
+	{
+		// ComponentToWorld must be Identity in preview window so same as ComponentSpace
+	case BCS_WorldSpace:
+	case BCS_ComponentSpace:
+	{
+		// Component Space, no change.
+		WidgetLoc = Location;
+	}
+	break;
+
+	case BCS_ParentBoneSpace:
+		{
+			const FCompactPoseBoneIndex CompactBoneIndex = GetCompactBoneIndex(SkelComp, MeshBases, BoneName);
 			if (CompactBoneIndex != INDEX_NONE)
 			{
 				const FCompactPoseBoneIndex CompactParentIndex = MeshBases.GetPose().GetParentBoneIndex(CompactBoneIndex);
@@ -634,16 +630,19 @@ FVector FAnimNodeEditMode::ConvertWidgetLocation(const USkeletalMeshComponent* S
 					WidgetLoc = ParentTM.TransformPosition(Location);
 				}
 			}
-			break;
+		}
+		break;
 
-		case BCS_BoneSpace:
-
+	case BCS_BoneSpace:
+		{
+			const FCompactPoseBoneIndex CompactBoneIndex = GetCompactBoneIndex(SkelComp, MeshBases, BoneName);
 			if (CompactBoneIndex != INDEX_NONE)
 			{
 				const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(CompactBoneIndex);
 				WidgetLoc = BoneTM.TransformPosition(Location);
 			}
 		}
+		break;
 	}
 
 	return WidgetLoc;

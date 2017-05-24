@@ -25,8 +25,11 @@ void UAbilityTask_WaitGameplayTagAdded::Activate()
 {
 	UAbilitySystemComponent* ASC = GetTargetASC();
 	if (ASC && ASC->HasMatchingGameplayTag(Tag))
-	{			
-		Added.Broadcast();
+	{	
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			Added.Broadcast();
+		}
 		if(OnlyTriggerOnce)
 		{
 			EndTask();
@@ -41,7 +44,10 @@ void UAbilityTask_WaitGameplayTagAdded::GameplayTagCallback(const FGameplayTag I
 {
 	if (NewCount==1)
 	{
-		Added.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			Added.Broadcast();
+		}
 		if(OnlyTriggerOnce)
 		{
 			EndTask();
@@ -72,7 +78,10 @@ void UAbilityTask_WaitGameplayTagRemoved::Activate()
 	UAbilitySystemComponent* ASC = GetTargetASC();
 	if (ASC && ASC->HasMatchingGameplayTag(Tag) == false)
 	{			
-		Removed.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			Removed.Broadcast();
+		}
 		if(OnlyTriggerOnce)
 		{
 			EndTask();
@@ -87,7 +96,10 @@ void UAbilityTask_WaitGameplayTagRemoved::GameplayTagCallback(const FGameplayTag
 {
 	if (NewCount==0)
 	{
-		Removed.Broadcast();
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			Removed.Broadcast();
+		}
 		if(OnlyTriggerOnce)
 		{
 			EndTask();

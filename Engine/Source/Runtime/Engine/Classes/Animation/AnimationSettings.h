@@ -37,6 +37,10 @@ class ENGINE_API UAnimationSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Compression)
 	TEnumAsByte<AnimationCompressionFormat> TranslationCompressionFormat;
 
+	/** Max error for compression of curves using remove redundant keys */
+	UPROPERTY(config, EditAnywhere, Category = Compression)
+	float MaxCurveError;
+
 	/** The alternate error threshold (0.0 means don't try anything other than the current / default scheme) 
 	* 
 	* Determines the current setting for world-space error tolerance in the animation compressor.

@@ -25,16 +25,6 @@ public partial class Project : CommandUtils
 
 	private static readonly object SyncLock = new object();
 
-	private static readonly object EncryptionKeysLock = new object();
-	
-	private static void GetEncryptionKeys(ProjectParams InParams, UnrealTargetPlatform InTargetPlatform, out string[] OutRSAKeys, out string OutAESKey)
-	{
-		lock (EncryptionKeysLock)
-		{
-			UEBuildTarget.ParseEncryptionIni(new DirectoryReference(CommandUtils.GetDirectoryName(InParams.RawProjectPath.FullName)), InTargetPlatform, out OutRSAKeys, out OutAESKey);
-		}
-	}
-
 	/// <returns>The path for the BuildPatchTool executable depending on host platform.</returns>
 	private static string GetBuildPatchToolExecutable()
 	{
@@ -108,7 +98,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, bool EncryptEverything, String PatchSourceContentPath, String EngineDir, String ProjectDir, String Platform)
+    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, bool EncryptEverything, bool EncryptPakIndex, String PatchSourceContentPath, String EngineDir, String ProjectDir, String Platform)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -121,8 +111,9 @@ public partial class Project : CommandUtils
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
 		Log("Running UnrealPak *******");
 		string CmdLine = CommandUtils.MakePathSafeToUseWithCommandLine(OutputLocation) + " -create=" + CommandUtils.MakePathSafeToUseWithCommandLine(UnrealPakResponseFileName);
+		string LogFileName = CombinePaths(CmdEnv.LogFolder, "PakLog_" + PakName + ".log");
 
-		CmdLine += String.Format(" -encryptionini -enginedir=\"{0}\" -projectdir=\"{1}\" -platform={2}", EngineDir, ProjectDir, Platform);
+		CmdLine += String.Format(" -encryptionini -enginedir=\"{0}\" -projectdir=\"{1}\" -platform={2} -abslog=\"{3}\"", EngineDir, ProjectDir, Platform, LogFileName);
 
 		if (GlobalCommandLine.Installed)
 		{
@@ -136,6 +127,10 @@ public partial class Project : CommandUtils
         if (!String.IsNullOrEmpty(PatchSourceContentPath))
         {
             CmdLine += " -generatepatch=" + CommandUtils.MakePathSafeToUseWithCommandLine(PatchSourceContentPath) + " -tempfiles=" + CommandUtils.MakePathSafeToUseWithCommandLine(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "TempFiles"));
+        }
+        if (EncryptPakIndex)
+        {
+            CmdLine += " -encryptindex";
         }
 		CmdLine += " -multiprocess"; // Prevents warnings about being unable to write to config files
 		CmdLine += PlatformOptions;
@@ -215,7 +210,16 @@ public partial class Project : CommandUtils
 		}
 	}
 
-    private static void StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
+	private static void StageLocalizationDataForTarget(DeploymentContext SC, List<string> CulturesToStage, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
+	{
+		SC.StageFiles(StagedFileType.UFS, SourceDirectory, "*.locmeta", false, null, DestinationDirectory, true, bRemap);
+		foreach (string Culture in CulturesToStage)
+		{
+			StageLocalizationDataForCulture(SC, Culture, SourceDirectory, DestinationDirectory, bRemap);
+		}
+	}
+
+	private static void StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
     {
         CultureName = CultureName.Replace('-', '_');
 
@@ -240,7 +244,7 @@ public partial class Project : CommandUtils
             PotentialParentCultures.Add(LocaleTags[0]);
         }
 
-        string[] FoundDirectories = CommandUtils.FindDirectories(true, "*", false, new string[] { SourceDirectory });
+        string[] FoundDirectories = CommandUtils.FindDirectories(true, "*", false, SourceDirectory);
         foreach (string FoundDirectory in FoundDirectories)
         {
             string DirectoryName = CommandUtils.GetLastDirectoryName(FoundDirectory);
@@ -263,6 +267,14 @@ public partial class Project : CommandUtils
 
 		Log("Creating Staging Manifest...");
 
+		if (Params.IterateSharedCookedBuild)
+		{
+			// can't do shared cooked builds with DLC that's madness!!
+			//check( Params.HasDLCName == false );
+
+			// stage all the previously staged files
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Saved", "SharedIterativeBuild", SC.CookPlatform, "Staged"), "*", true, null, "", true); // remap to the root directory
+		}
         if (Params.HasDLCName)
         {
             string DLCName = Params.DLCName;
@@ -275,14 +287,15 @@ public partial class Project : CommandUtils
             SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Binaries"), "UE4Server-*.dll", true, null, null, true);
 
             // Put all of the cooked dir into the staged dir
-            string PlatformCookDir = CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform);
-            string[] ExcludeWildCards = {"AssetRegistry.bin"};
+            string PlatformCookDir = String.IsNullOrEmpty(Params.CookOutputDir)? CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform) : CombinePaths(Params.CookOutputDir, SC.CookPlatform);
+			string[] ExcludeWildCards = null; //{"AssetRegistry.bin"};
 
             // Stage any loose files in the root folder
+			// TODO: not sure if we should stage the loose files if we have pak files enabled... 
 			SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, SC.RelativeProjectRootForStage, true, !Params.UsePak(SC.StageTargetPlatform));
 
 			// Stage each sub directory separately so that we can skip Engine if need be
-			string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, new string[] { PlatformCookDir });
+			string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, PlatformCookDir);
 
             foreach (string SubDir in SubDirs)
             {
@@ -343,13 +356,7 @@ public partial class Project : CommandUtils
 
 
             // Initialize internationalization preset.
-            string InternationalizationPreset = null;
-
-            // Use parameters if provided.
-            if (string.IsNullOrEmpty(InternationalizationPreset))
-            {
-                InternationalizationPreset = Params.InternationalizationPreset;
-            }
+            string InternationalizationPreset = Params.InternationalizationPreset;
 
             // Use configuration if otherwise lacking an internationalization preset.
             if (string.IsNullOrEmpty(InternationalizationPreset))
@@ -396,10 +403,7 @@ public partial class Project : CommandUtils
             // Engine ufs (content)
             SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
 
-            foreach (string Culture in CulturesToStage)
-            {
-                StageLocalizationDataForCulture(SC, Culture, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), null, !Params.UsePak(SC.StageTargetPlatform));
-            }
+            StageLocalizationDataForTarget(SC, CulturesToStage, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), null, !Params.UsePak(SC.StageTargetPlatform));
 			
             // Game ufs (content)
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot), "*.uproject", false, null, CombinePaths(SC.RelativeProjectRootForStage), true, !Params.UsePak(SC.StageTargetPlatform));
@@ -432,13 +436,10 @@ public partial class Project : CommandUtils
 				var ProjectLocRootDirectory = CombinePaths(SC.ProjectRoot, "Content/Localization");
 				if (DirectoryExists(ProjectLocRootDirectory))
 				{
-					string[] ProjectLocTargetDirectories = CommandUtils.FindDirectories(true, "*", false, new string[] { ProjectLocRootDirectory });
+					string[] ProjectLocTargetDirectories = CommandUtils.FindDirectories(true, "*", false, ProjectLocRootDirectory);
 					foreach (string ProjectLocTargetDirectory in ProjectLocTargetDirectories)
 					{
-						foreach (string Culture in CulturesToStage)
-						{
-							StageLocalizationDataForCulture(SC, Culture, ProjectLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
-						}
+						StageLocalizationDataForTarget(SC, CulturesToStage, ProjectLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
 					}
 				}
 			}
@@ -450,8 +451,8 @@ public partial class Project : CommandUtils
 				List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), new FileReference(CombinePaths(SC.ProjectRoot, Params.ShortProjectName + ".uproject")), Project.AdditionalPluginDirectories);
 				foreach (var Plugin in AvailablePlugins)
 				{
-					if (!UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetRules.TargetType.Game) &&
-						UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetRules.TargetType.Client))
+					if (!UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetType.Game) &&
+						UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetType.Client))
 					{
 						// skip editor plugins
 						continue;
@@ -474,10 +475,7 @@ public partial class Project : CommandUtils
 						var PluginLocTargetDirectory = CombinePaths(Plugin.Directory.FullName, "Content", "Localization", LocalizationTarget.Name);
 						if (DirectoryExists(PluginLocTargetDirectory))
 						{
-							foreach (string Culture in CulturesToStage)
-							{
-								StageLocalizationDataForCulture(SC, Culture, PluginLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
-							}
+							StageLocalizationDataForTarget(SC, CulturesToStage, PluginLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
 						}
 					}
 				}
@@ -545,11 +543,11 @@ public partial class Project : CommandUtils
 			// eliminate the sand box
 			if (Params.CookInEditor)
 			{
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform)); 
+				SC.StageFiles(StagedFileType.UFS, String.IsNullOrEmpty(Params.CookOutputDir)? CombinePaths(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform) : CombinePaths(Params.CookOutputDir, SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform)); 
 			}
 			else
 			{
-				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
+				SC.StageFiles(StagedFileType.UFS, String.IsNullOrEmpty(Params.CookOutputDir)? CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform) : CombinePaths(Params.CookOutputDir, SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
 			}
 
             // CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
@@ -567,10 +565,9 @@ public partial class Project : CommandUtils
                 if (string.IsNullOrEmpty(Architecture))
                 {
                     Architecture = "";
-                    var BuildPlatform = UEBuildPlatform.GetBuildPlatform(SC.StageTargetPlatform.PlatformType, true);
-                    if (BuildPlatform != null)
+                    if (PlatformExports.IsPlatformAvailable(SC.StageTargetPlatform.PlatformType))
                     {
-                        Architecture = BuildPlatform.CreateContext(Params.RawProjectPath, null).GetActiveArchitecture();
+                        Architecture = PlatformExports.GetDefaultArchitecture(SC.StageTargetPlatform.PlatformType, Params.RawProjectPath);
                     }
                 }
 
@@ -594,7 +591,7 @@ public partial class Project : CommandUtils
                 SC.StageRuntimeDependenciesFromReceipt(Receipt, true, Params.UsePak(SC.StageTargetPlatform));
 
 				// Add config files.
-				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ) );
+				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ), bAllowNotForLicenseesFiles:false );
 			}
 
 			// check if the game will be verifying ssl connections - if not, we can skip staging files that won't be needed
@@ -839,13 +836,6 @@ public partial class Project : CommandUtils
 
 		var UnrealPakResponseFile = CreatePakResponseFileFromStagingManifest(SC);
 
-        if (Params.CreateChunkInstall)
-        {
-            string ChunkInstallBasePath = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform);
-            string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
-            InternalUtils.SafeDeleteDirectory(CloudDir, true);
-        }
-
         CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName);
 	}
 
@@ -959,7 +949,21 @@ public partial class Project : CommandUtils
         {
             PostFix += "_P";
         }
-		var OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.FinalCookPlatform + PostFix + ".pak");
+		if (Params.IterateSharedCookedBuild)
+		{
+			// shared cooked builds will produce a patch
+			// then be combined with the shared cooked build
+			PostFix += "_S_P";
+		}
+		string OutputRelativeLocation;
+		if(Params.HasDLCName)
+		{
+			OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Plugins/" + Params.DLCName + "/Content/Paks/" + SC.FinalCookPlatform, Params.DLCName + ".pak");
+		}
+		else
+		{
+			OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.FinalCookPlatform + PostFix + ".pak");
+		}
 		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
 		{
 			OutputRelativeLocation = OutputRelativeLocation.ToLowerInvariant();
@@ -1003,6 +1007,22 @@ public partial class Project : CommandUtils
 				{
 					Log("Copying source pak from {0} to {1} instead of creating new pak", SourceOutputLocation, OutputLocation);
 					bCopiedExistingPak = true;
+
+					string InSigFile = Path.ChangeExtension(SourceOutputLocation, ".sig");
+
+					if (File.Exists(InSigFile))
+					{
+						string OutSigFile = Path.ChangeExtension(OutputLocation, ".sig");
+
+						Log("Copying pak sig from {0} to {1}", InSigFile, OutSigFile);
+
+						if (!InternalUtils.SafeCopyFile(InSigFile, OutSigFile))
+						{
+							Log("Failed to copy pak sig {0} to {1}, creating new pak", InSigFile, InSigFile);
+							bCopiedExistingPak = false;
+						}
+					}
+
 				}
 			}
 			if (!bCopiedExistingPak)
@@ -1022,8 +1042,10 @@ public partial class Project : CommandUtils
 		ConfigHierarchy PlatformGameConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
 		bool PackageSettingsEncryptIniFiles = false;
 		PlatformGameConfig.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bEncryptIniFiles", out PackageSettingsEncryptIniFiles);
+        bool PackageSettingsEncryptPakIndex = false;
+        PlatformGameConfig.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bEncryptPakIndex", out PackageSettingsEncryptPakIndex);
 
-		if (!bCopiedExistingPak)
+        if (!bCopiedExistingPak)
 		{
 			if (File.Exists(OutputLocation))
 			{
@@ -1038,7 +1060,7 @@ public partial class Project : CommandUtils
 				String EngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
 				String ProjectDir = CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName);
 				String Platform = ConfigHierarchy.GetIniPlatformName(SC.StageTargetPlatform.IniPlatformType);
-				RunUnrealPak(UnrealPakResponseFile, OutputLocation, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, Params.EncryptEverything, PatchSourceContentPath, EngineDir, ProjectDir, Platform);
+				RunUnrealPak(UnrealPakResponseFile, OutputLocation, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, Params.EncryptEverything, Params.EncryptPakIndex || PackageSettingsEncryptPakIndex, PatchSourceContentPath, EngineDir, ProjectDir, Platform);
 			}
 		}
 
@@ -1111,7 +1133,6 @@ public partial class Project : CommandUtils
 				string AppLaunch = ""; // For a chunk install this value doesn't seem to matter
 				string ManifestFilename = AppName + VersionString + ".manifest";
 				string SourceManifestPath = CombinePaths(CloudDir, ManifestFilename);
-				string BackupManifestPath = CombinePaths(RawDataPath, ManifestFilename);
 				string DestManifestPath = CombinePaths(ManifestDir, ManifestFilename);
 				InternalUtils.SafeCreateDirectory(ManifestDir, true);
 
@@ -1125,7 +1146,6 @@ public partial class Project : CommandUtils
 				string UnrealPakLogFileName = "UnrealPak_" + PakName;
 				RunAndLog(CmdEnv, BPTExe, CmdLine, UnrealPakLogFileName, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 
-				InternalUtils.SafeCopyFile(SourceManifestPath, BackupManifestPath);
 				InternalUtils.SafeCopyFile(SourceManifestPath, DestManifestPath);
 			}
 			else
@@ -1214,14 +1234,7 @@ public partial class Project : CommandUtils
 		}
 
 		IEnumerable<Tuple<Dictionary<string,string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
-
-        if (Params.CreateChunkInstall)
-        {
-            string ChunkInstallBasePath = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform);
-            string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
-            InternalUtils.SafeDeleteDirectory(CloudDir, true);
-        }
-		
+	
 		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
 		{
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);
@@ -1781,10 +1794,9 @@ public partial class Project : CommandUtils
                         if (string.IsNullOrEmpty(Architecture))
                         {
                             Architecture = "";
-                            var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ReceiptPlatform, true);
-                            if (BuildPlatform != null)
-                            {
-                                Architecture = BuildPlatform.CreateContext(Params.RawProjectPath, null).GetActiveArchitecture();
+							if(PlatformExports.IsPlatformAvailable(ReceiptPlatform))
+							{
+                                Architecture = PlatformExports.GetDefaultArchitecture(ReceiptPlatform, Params.RawProjectPath);
                             }
                         }
 						string ReceiptFileName = TargetReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, Architecture);

@@ -1,29 +1,9 @@
-﻿INTSourceChangelist:3180166
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title:詳細パネル
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:レベル エディタで選択したアクタに対する情報とカスタム仕様の編集ツールを備えたパネルについての説明です。
 Version:4.12
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[前のトピック](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
-	[/PARAM]
-	[PARAM:next]
-		[次のトピック](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [TOC(start:2 end:3)]
 
@@ -318,6 +298,3 @@ Version:4.12
 [/OBJECT]
 [/REGION]
 [/EXCERPT:CustomCategories]
-
-
-%playlistnav%

@@ -1238,6 +1238,7 @@ FAnimMontageInstance::FAnimMontageInstance()
 	, DeltaMoved(0.f)
 	, PreviousPosition(0.f)
 	, SyncGroupIndex(INDEX_NONE)
+	, DisableRootMotionCount(0)
 	, MontageSyncLeader(NULL)
 	, MontageSyncUpdateFrameCounter(INDEX_NONE)
 {
@@ -1257,6 +1258,7 @@ FAnimMontageInstance::FAnimMontageInstance(UAnimInstance * InAnimInstance)
 	, DeltaMoved(0.f)
 	, PreviousPosition(0.f)
 	, SyncGroupIndex(INDEX_NONE)
+	, DisableRootMotionCount(0)
 	, MontageSyncLeader(NULL)
 	, MontageSyncUpdateFrameCounter(INDEX_NONE)
 {
@@ -1686,7 +1688,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition
 	const float CombinedPlayRate = PlayRate * Montage->RateScale;
 	const bool bPlayingForward = (CombinedPlayRate > 0.f);
 
-	const bool bExtractRootMotion = Montage->HasRootMotion();
+	const bool bExtractRootMotion = Montage->HasRootMotion() && !IsRootMotionDisabled();
 
 	float DesiredDeltaMove = CombinedPlayRate * DeltaTime;
 	float OriginalMoveDelta = DesiredDeltaMove;
@@ -1864,9 +1866,10 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 					if (bHaveMoved)
 					{
 						// Extract Root Motion for this time slice, and accumulate it.
-						if (bExtractRootMotion && AnimInstance.IsValid())
+						// IsRootMotionDisabled() can be changed by AnimNotifyState BranchingPoints while advancing, so it needs to be checked here.
+						if (bExtractRootMotion && AnimInstance.IsValid() && !IsRootMotionDisabled())
 						{
-							FTransform RootMotion = Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position);
+							const FTransform RootMotion = Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position);
 							if (bBlendRootMotion)
 							{
 								// Defer blending in our root motion until after we get our slot weight updated

@@ -7,7 +7,7 @@
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
 #include "UObject/UnrealType.h"
-
+#include "Widgets/Layout/SBox.h"
 TSharedRef<IPropertyTypeCustomization> FVector4StructCustomization::MakeInstance()
 {
 	return MakeShareable(new FVector4StructCustomization);
@@ -34,18 +34,10 @@ void FVector4StructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> 
 		if (!ColorGradingModeString.IsEmpty())
 		{
 			//Create our color grading customization shared pointer
-			if (!ColorGradingVectorCustomization.IsValid())
-			{
-				ColorGradingVectorCustomization = MakeShareable(new FColorGradingVectorCustomization);
-			}
+			TSharedPtr<FColorGradingVectorCustomization> ColorGradingCustomization = GetOrCreateColorGradingVectorCustomization(StructPropertyHandle);
 
 			//Customize the childrens
-			TArray<TWeakPtr<IPropertyHandle>> WeakChildArray;
-			for (TSharedRef<IPropertyHandle> PropertyHandleRef : SortedChildHandles)
-			{
-				WeakChildArray.Add(PropertyHandleRef);
-			}
-			ColorGradingVectorCustomization->CustomizeChildren(StructPropertyHandle, StructBuilder, StructCustomizationUtils, WeakChildArray);
+			ColorGradingVectorCustomization->CustomizeChildren(StructBuilder, StructCustomizationUtils);
 			
 			// We handle the customize Children so just return here
 			return;
@@ -56,9 +48,38 @@ void FVector4StructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> 
 	FMathStructCustomization::CustomizeChildren(StructPropertyHandle, StructBuilder, StructCustomizationUtils);
 }
 
-void FVector4StructCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row)
+TSharedPtr<FColorGradingVectorCustomization> FVector4StructCustomization::GetOrCreateColorGradingVectorCustomization(TSharedRef<IPropertyHandle>& StructPropertyHandle)
 {
+	//Create our color grading customization shared pointer
+	if (!ColorGradingVectorCustomization.IsValid())
+	{
+		TArray<TWeakPtr<IPropertyHandle>> WeakChildArray;
+		WeakChildArray.Append(SortedChildHandles);
+
+		ColorGradingVectorCustomization = MakeShareable(new FColorGradingVectorCustomization(StructPropertyHandle, WeakChildArray));
+	}
+
+	return ColorGradingVectorCustomization;
+}
+
+void FVector4StructCustomization::MakeHeaderRow(TSharedRef<IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row)
+{
+	UProperty* Property = StructPropertyHandle->GetProperty();
+	if (Property)
+	{
+		const FString& ColorGradingModeString = Property->GetMetaData(TEXT("ColorGradingMode"));
+		if (!ColorGradingModeString.IsEmpty())
+		{
+			//Create our color grading customization shared pointer
+			TSharedPtr<FColorGradingVectorCustomization> ColorGradingCustomization = GetOrCreateColorGradingVectorCustomization(StructPropertyHandle);
+
+			ColorGradingVectorCustomization->MakeHeaderRow(Row, StaticCastSharedRef<FVector4StructCustomization>(AsShared()));
+
+			// We handle the customize Children so just return here
+			return;
+		}
+	}
+
 	//Use the base class header row
 	FMathStructCustomization::MakeHeaderRow(StructPropertyHandle, Row);
 }
-

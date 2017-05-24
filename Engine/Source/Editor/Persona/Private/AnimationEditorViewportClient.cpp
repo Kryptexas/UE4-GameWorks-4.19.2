@@ -27,6 +27,8 @@
 #include "AssetViewerSettings.h"
 #include "IPersonaEditorModeManager.h"
 #include "SkeletalMeshTypes.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 namespace {
 	// Value from UE3
@@ -63,7 +65,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	, AssetEditorToolkitPtr(InAssetEditorToolkit)
 	, AnimationPlaybackSpeedMode(EAnimationPlaybackSpeeds::Normal)
 	, bFocusOnDraw(false)
-	, bInstantFocusOnDraw(true)
+	, bFocusUsingCustomCamera(false)
 	, bShowMeshStats(bInShowStats)
 	, bInitiallyFocused(false)
 {
@@ -130,7 +132,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	// Register delegate to update the show flags when the post processing is turned on or off
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FAnimationViewportClient::OnAssetViewerSettingsChanged);
 	// Set correct flags according to current profile settings
-	SetAdvancedShowFlagsForScene();
+	SetAdvancedShowFlagsForScene(UAssetViewerSettings::Get()->Profiles[GetMutableDefault<UEditorPerProjectUserSettings>()->AssetViewerProfileIndex].bPostProcessingEnabled);
 }
 
 FAnimationViewportClient::~FAnimationViewportClient()
@@ -264,7 +266,7 @@ void FAnimationViewportClient::SetCameraFollow()
 	}
 	else
 	{
-		FocusViewportOnPreviewMesh();
+		FocusViewportOnPreviewMesh(false);
 		Invalidate();
 	}
 }
@@ -272,6 +274,59 @@ void FAnimationViewportClient::SetCameraFollow()
 bool FAnimationViewportClient::IsSetCameraFollowChecked() const
 {
 	return bCameraFollow;
+}
+
+void FAnimationViewportClient::JumpToDefaultCamera()
+{
+	FocusViewportOnPreviewMesh(true);
+}
+
+
+void FAnimationViewportClient::SaveCameraAsDefault()
+{
+	USkeletalMesh* SkelMesh = GetAnimPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh;
+	if (SkelMesh)
+	{
+		FScopedTransaction Transaction(LOCTEXT("SaveCameraAsDefault", "Save Camera As Default"));
+
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+		SkelMesh->Modify();
+		SkelMesh->DefaultEditorCameraLocation = ViewTransform.GetLocation();
+		SkelMesh->DefaultEditorCameraRotation = ViewTransform.GetRotation();
+		SkelMesh->DefaultEditorCameraLookAt = ViewTransform.GetLookAt();
+		SkelMesh->DefaultEditorCameraOrthoZoom = ViewTransform.GetOrthoZoom();
+		SkelMesh->bHasCustomDefaultEditorCamera = true;
+
+		// Create and display a notification 
+		const FText NotificationText = FText::Format(LOCTEXT("SavedDefaultCamera", "Saved default camera for {0}"), FText::AsCultureInvariant(SkelMesh->GetName()));
+		FNotificationInfo Info(NotificationText);
+		Info.ExpireDuration = 2.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+}
+
+void FAnimationViewportClient::ClearDefaultCamera()
+{
+	USkeletalMesh* SkelMesh = GetAnimPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh;
+	if (SkelMesh)
+	{
+		FScopedTransaction Transaction(LOCTEXT("ClearDefaultCamera", "Clear Default Camera"));
+
+		SkelMesh->Modify();
+		SkelMesh->bHasCustomDefaultEditorCamera = false;
+
+		// Create and display a notification 
+		const FText NotificationText = FText::Format(LOCTEXT("ClearedDefaultCamera", "Cleared default camera for {0}"), FText::AsCultureInvariant(SkelMesh->GetName()));
+		FNotificationInfo Info(NotificationText);
+		Info.ExpireDuration = 2.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+}
+
+bool FAnimationViewportClient::HasDefaultCameraSet() const
+{
+	USkeletalMesh* SkelMesh = GetAnimPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh;
+	return (SkelMesh && SkelMesh->bHasCustomDefaultEditorCamera);
 }
 
 void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* OldSkeletalMesh, USkeletalMesh* NewSkeletalMesh)
@@ -282,7 +337,7 @@ void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* OldSkele
 
 		if (!bInitiallyFocused)
 		{
-			FocusViewportOnPreviewMesh();
+			FocusViewportOnPreviewMesh(true);
 			bInitiallyFocused = true;
 		}
 
@@ -348,46 +403,8 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 		
 		DrawWatchedPoses(PreviewMeshComponent, PDI);
 
-		// Display normal vectors of each simulation vertex
-		if (PreviewMeshComponent->bDisplayClothingNormals )
-		{
-			PreviewMeshComponent->DrawClothingNormals(PDI);
-		}
+		PreviewMeshComponent->DebugDrawClothing(PDI);
 
-		// Display tangent spaces of each graphical vertex
-		if (PreviewMeshComponent->bDisplayClothingTangents )
-		{
-			PreviewMeshComponent->DrawClothingTangents(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothingCollisionVolumes )
-		{
-			PreviewMeshComponent->DrawClothingCollisionVolumes(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothPhysicalMeshWire )
-		{
-			PreviewMeshComponent->DrawClothingPhysicalMeshWire(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothMaxDistances )
-		{
-			PreviewMeshComponent->DrawClothingMaxDistances(PDI);
-		}
-
-		// Display collision volumes of current selected cloth
-		if (PreviewMeshComponent->bDisplayClothBackstops )
-		{
-			PreviewMeshComponent->DrawClothingBackstops(PDI);
-		}
-
-		if(PreviewMeshComponent->bDisplayClothFixedVertices )
-		{
-			PreviewMeshComponent->DrawClothingFixedVertices(PDI);
-		}
 		
 		// Display socket hit points
 		if (PreviewMeshComponent->bDrawSockets )
@@ -407,7 +424,7 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 	if (bFocusOnDraw)
 	{
 		bFocusOnDraw = false;
-		FocusViewportOnPreviewMesh(bInstantFocusOnDraw);
+		FocusViewportOnPreviewMesh(bFocusUsingCustomCamera);
 	}
 }
 
@@ -529,6 +546,34 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 		{
 			continue;
 		}
+		if ((PreviewMeshComponent->MaterialIndexPreview >= 0))
+		{
+			TArray<int32> FoundSectionIndex;
+			for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+			{
+				if (LODModel.Sections[SectionIndex].MaterialIndex == PreviewMeshComponent->MaterialIndexPreview)
+				{
+					FoundSectionIndex.Add(SectionIndex);
+					break;
+				}
+			}
+			if (FoundSectionIndex.Num() > 0)
+			{
+				bool PreviewSectionContainBoneIndex = false;
+				for (int32 SectionIndex : FoundSectionIndex)
+				{
+					if (LODModel.Sections[SectionIndex].BoneMap.Contains(BoneIndex))
+					{
+						PreviewSectionContainBoneIndex = true;
+						break;
+					}
+				}
+				if (!PreviewSectionContainBoneIndex)
+				{
+					continue;
+				}
+			}
+		}
 
 		const FColor BoneColor = FColor::White;
 		if (BoneColor.A != 0)
@@ -634,7 +679,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 		if (MaterialsThatNeedMorphFlagOn.Num() > 0)
 		{
-			InfoString = FString::Printf( *LOCTEXT("MorphSupportNeeded", "The following materials need morph support ('Used with Morph Targets' in material editor):").ToString() );
+			InfoString = LOCTEXT("MorphSupportNeeded", "The following materials need morph support ('Used with Morph Targets' in material editor):").ToString();
 			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), HeadlineColour );
 
 			CurYOffset += YL + 2;
@@ -651,7 +696,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 		if (MaterialsThatNeedSaving.Num() > 0)
 		{
-			InfoString = FString::Printf( *LOCTEXT("MaterialsNeedSaving", "The following materials need saving to fully support morph targets:").ToString() );
+			InfoString = LOCTEXT("MaterialsNeedSaving", "The following materials need saving to fully support morph targets:").ToString();
 			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), HeadlineColour );
 
 			CurYOffset += YL + 2;
@@ -876,9 +921,17 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	{
 		// Notify the user if they are isolating a mesh section.
 		CurYOffset += YL + 2;
-		InfoString = FString::Printf(*LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden").ToString());
+		InfoString = LOCTEXT("MeshSectionsHiddenWarning", "Mesh Sections Hidden").ToString();
 		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
 		
+	}
+	if (PreviewMeshComponent->MaterialIndexPreview != INDEX_NONE)
+	{
+		// Notify the user if they are isolating a mesh section.
+		CurYOffset += YL + 2;
+		InfoString = FString::Printf(*LOCTEXT("MeshMaterialHiddenWarning", "Mesh Materials Hidden").ToString());
+		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+
 	}
 }
 
@@ -909,13 +962,16 @@ void FAnimationViewportClient::DrawNodeDebugLines(TArray<FText>& Lines, FCanvas*
 
 void FAnimationViewportClient::TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge )
 {
-	ModeTools->StartTracking(this, Viewport);
+	if (ModeTools->StartTracking(this, Viewport) && bIsDraggingWidget)
+	{
+		Widget->SetSnapEnabled(true);
+	}
 }
 
 void FAnimationViewportClient::TrackingStopped() 
 {
 	ModeTools->EndTracking(this, Viewport);
-
+	Widget->SetSnapEnabled(false);
 	Invalidate();
 }
 
@@ -957,13 +1013,13 @@ void FAnimationViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 void FAnimationViewportClient::SetViewportType(ELevelViewportType InViewportType)
 {
 	FEditorViewportClient::SetViewportType(InViewportType);
-	FocusViewportOnPreviewMesh();
+	FocusViewportOnPreviewMesh(true);
 }
 
 void FAnimationViewportClient::RotateViewportType()
 {
 	FEditorViewportClient::RotateViewportType();
-	FocusViewportOnPreviewMesh();
+	FocusViewportOnPreviewMesh(true);
 }
 
 bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
@@ -1474,7 +1530,7 @@ void FAnimationViewportClient::FocusViewportOnSphere( FSphere& Sphere, bool bIns
 	Invalidate();
 }
 
-void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bInstant /*= true*/)
+void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bUseCustomCamera)
 {
 	FIntPoint ViewportSize(FIntPoint::ZeroValue);
 	if (Viewport != nullptr)
@@ -1487,15 +1543,30 @@ void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bInstant /*= true
 		// We cannot focus fully right now as the viewport does not know its size
 		// and we must have the aspect to correctly focus on the component,
 		bFocusOnDraw = true;
-		bInstantFocusOnDraw = bInstant;
+		bFocusUsingCustomCamera = bUseCustomCamera;
 	}
 	else
 	{
 		// dont auto-focus if there is nothing to focus on
-		if (GetAnimPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh)
+		USkeletalMesh* SkelMesh = GetAnimPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh;
+		if (SkelMesh)
 		{
-			FSphere Sphere = GetCameraTarget();
-			FocusViewportOnSphere(Sphere);
+			if (bUseCustomCamera && SkelMesh->bHasCustomDefaultEditorCamera)
+			{
+				FViewportCameraTransform& ViewTransform = GetViewTransform();
+
+				ViewTransform.SetLocation(SkelMesh->DefaultEditorCameraLocation);
+				ViewTransform.SetRotation(SkelMesh->DefaultEditorCameraRotation);
+				ViewTransform.SetLookAt(SkelMesh->DefaultEditorCameraLookAt);
+				ViewTransform.SetOrthoZoom(SkelMesh->DefaultEditorCameraOrthoZoom);
+
+				Invalidate();
+			}
+			else
+			{
+				FSphere Sphere = GetCameraTarget();
+				FocusViewportOnSphere(Sphere);
+			}
 		}
 	}
 }
@@ -1651,15 +1722,19 @@ int32 FAnimationViewportClient::GetShowMeshStats() const
 
 void FAnimationViewportClient::OnAssetViewerSettingsChanged(const FName& InPropertyName)
 {
-	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled))
+	if (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, bPostProcessingEnabled) || InPropertyName == NAME_None)
 	{
-		SetAdvancedShowFlagsForScene();
+		UAssetViewerSettings* Settings = UAssetViewerSettings::Get();
+		const int32 ProfileIndex = GetPreviewScene()->GetCurrentProfileIndex();
+		if (Settings->Profiles.IsValidIndex(ProfileIndex))
+		{			
+			SetAdvancedShowFlagsForScene(Settings->Profiles[ProfileIndex].bPostProcessingEnabled);
+		}
 	}
 }
 
-void FAnimationViewportClient::SetAdvancedShowFlagsForScene()
-{
-	const bool bAdvancedShowFlags = UAssetViewerSettings::Get()->Profiles[GetPreviewScene()->GetCurrentProfileIndex()].bPostProcessingEnabled;
+void FAnimationViewportClient::SetAdvancedShowFlagsForScene(const bool bAdvancedShowFlags)
+{	
 	if (bAdvancedShowFlags)
 	{
 		EngineShowFlags.EnableAdvancedFeatures();
@@ -1702,7 +1777,7 @@ void FAnimationViewportClient::HandleInvalidateViews()
 
 void FAnimationViewportClient::HandleFocusViews()
 {
-	FocusViewportOnPreviewMesh();
+	FocusViewportOnPreviewMesh(false);
 }
 
 bool FAnimationViewportClient::CanCycleWidgetMode() const

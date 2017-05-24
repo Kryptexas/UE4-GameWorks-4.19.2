@@ -305,8 +305,7 @@ void FGearVRSplash::PushFrame()
 			CurrentFrame->Settings = pPlugin->GetSettings()->Clone();
 			CurrentFrame->FrameNumber = pPlugin->GetCurrentFrameNumber(); // make sure no 0 frame is used.
 			// keep units in meters rather than UU (because UU make not much sense).
-			CurrentFrame->Settings->WorldToMetersScale = 1.0f;
-			CurrentFrame->SetWorldToMetersScale(CurrentFrame->Settings->WorldToMetersScale);
+			CurrentFrame->SetWorldToMetersScale(1.0f);
 			CurrentFrame->GameThreadId = 0;//FPlatformTLS::GetCurrentThreadId();
 			
 			FSettings* CurrentSettings = static_cast<FSettings*>(CurrentFrame->Settings.Get());

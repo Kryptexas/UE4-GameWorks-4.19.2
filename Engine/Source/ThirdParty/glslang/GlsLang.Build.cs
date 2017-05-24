@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class GlsLang : ModuleRules
 {
-	public GlsLang(TargetInfo Target)
+	public GlsLang(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -58,6 +58,10 @@ public class GlsLang : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libglslang.a");
+			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libHLSL.a");
+			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libOGLCompiler.a");
+			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libOSDependent.a");
+			PublicAdditionalLibraries.Add(LibPath + "Linux/" + Target.Architecture + "/libSPIRV.a");
 		}
 		else
 		{

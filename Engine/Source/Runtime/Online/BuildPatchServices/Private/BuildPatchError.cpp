@@ -56,6 +56,7 @@ void FBuildPatchInstallError::Reset()
 	FScopeLock ScopeLock( &ThreadLock );
 	ErrorType = EBuildPatchInstallError::NoError;
 	ErrorCode = InstallErrorPrefixes::ErrorTypeStrings[static_cast<int32>(ErrorType)];
+	ErrorText = BuildPatchInstallError::GetStandardErrorText(ErrorType);
 }
 
 bool FBuildPatchInstallError::HasFatalError()
@@ -148,6 +149,21 @@ const FString& FBuildPatchInstallError::EnumToString( const EBuildPatchInstallEr
 		case EBuildPatchInstallError::OutOfDiskSpace: return OutOfDiskSpace;
 		default: return InvalidOrMax;
 	}
+}
+
+FText FBuildPatchInstallError::GetDiskSpaceMessage(const FString& Location, uint64 RequiredBytes, uint64 AvailableBytes, const FNumberFormattingOptions* FormatOptions)
+{
+	static const FText OutOfDiskSpace(LOCTEXT("InstallDirectoryDiskSpace", "There is not enough space at {Location}\n{RequiredBytes} is required.\n{AvailableBytes} is available.\nYou need an additional {SpaceAdditional} to perform the installation."));
+	static const FNumberFormattingOptions DefaultOptions = FNumberFormattingOptions()
+		.SetMinimumFractionalDigits(2)
+		.SetMaximumFractionalDigits(2);
+	FormatOptions = FormatOptions == nullptr ? &DefaultOptions : FormatOptions;
+	FFormatNamedArguments Arguments;
+	Arguments.Emplace(TEXT("Location"), FText::FromString(Location));
+	Arguments.Emplace(TEXT("RequiredBytes"), FText::AsMemory(RequiredBytes, FormatOptions));
+	Arguments.Emplace(TEXT("AvailableBytes"), FText::AsMemory(AvailableBytes, FormatOptions));
+	Arguments.Emplace(TEXT("SpaceAdditional"), FText::AsMemory(RequiredBytes - AvailableBytes, FormatOptions));
+	return FText::Format(OutOfDiskSpace, Arguments);
 }
 
 /**

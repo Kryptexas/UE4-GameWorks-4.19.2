@@ -169,7 +169,6 @@ private:
 	TOptional<float> GetBuildScaleY() const;
 	TOptional<float> GetBuildScaleZ() const;
 	float GetDistanceFieldResolutionScale() const;
-	float GetDistanceFieldBias() const;
 
 	void OnRecomputeNormalsChanged(ECheckBoxState NewState);
 	void OnRecomputeTangentsChanged(ECheckBoxState NewState);
@@ -190,8 +189,6 @@ private:
 
 	void OnDistanceFieldResolutionScaleChanged(float NewValue);
 	void OnDistanceFieldResolutionScaleCommitted(float NewValue, ETextCommit::Type TextCommitType);
-	void OnDistanceFieldBiasChanged(float NewValue);
-	void OnDistanceFieldBiasCommitted(float NewValue, ETextCommit::Type TextCommitType);
 	FString GetCurrentDistanceFieldReplacementMeshPath() const;
 	void OnDistanceFieldReplacementMeshSelected(const FAssetData& AssetData);
 
@@ -368,7 +365,13 @@ private:
 	void GetMaterials(class IMaterialListBuilder& ListBuilder);
 	void OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll);
 	TSharedRef<SWidget> OnGenerateWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
+	TSharedRef<SWidget> OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
 	void OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 SlotIndex);
+
+	ECheckBoxState IsMaterialHighlighted(int32 SlotIndex) const;
+	void OnMaterialHighlightedChanged(ECheckBoxState NewState, int32 SlotIndex);
+	ECheckBoxState IsMaterialIsolatedEnabled(int32 SlotIndex) const;
+	void OnMaterialIsolatedChanged(ECheckBoxState NewState, int32 SlotIndex);
 
 	FText GetOriginalImportMaterialNameText(int32 MaterialIndex) const;
 	FText GetMaterialNameText(int32 MaterialIndex) const;

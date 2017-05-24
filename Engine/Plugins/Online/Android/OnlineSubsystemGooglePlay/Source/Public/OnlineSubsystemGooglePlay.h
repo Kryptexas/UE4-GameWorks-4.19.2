@@ -37,7 +37,7 @@ class ONLINESUBSYSTEMGOOGLEPLAY_API FOnlineSubsystemGooglePlay :
 	public FOnlineSubsystemImpl
 {
 public:
-	FOnlineSubsystemGooglePlay();
+
 	virtual ~FOnlineSubsystemGooglePlay() {}
 
 	//~ Begin IOnlineSubsystem Interface
@@ -82,6 +82,9 @@ public:
 	virtual bool Tick(float DeltaTime) override;
 	
 PACKAGE_SCOPE:
+
+	FOnlineSubsystemGooglePlay();
+	FOnlineSubsystemGooglePlay(FName InInstanceName);
 
 	/**
 	 * Is Online Subsystem Android available for use

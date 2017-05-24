@@ -26,6 +26,7 @@ IMPLEMENT_APPLICATION(TestPAL, "TestPAL");
 #define ARG_STRINGPRECISION_TEST			"stringprecision"
 #define ARG_DSO_TEST						"dso"
 #define ARG_GET_ALLOCATION_SIZE_TEST		"getallocationsize"
+#define ARG_MALLOC_THREADING_TEST			"mallocthreadtest"
 
 namespace TestPAL
 {
@@ -366,7 +367,7 @@ int32 DynamicLibraryTest(const TCHAR* CommandLine)
 
 	if (PLATFORM_LINUX)
 	{
-		RootSteamPath = FPaths::EngineDir() / FString(TEXT("Binaries/ThirdParty/Steamworks/Steamv132/Linux/"));
+		RootSteamPath = FPaths::EngineDir() / FString(TEXT("Binaries/ThirdParty/Steamworks/Steamv139/x86_64-unknown-linux-gnu/"));
 		LibraryName = TEXT("libsteam_api.so");
 	}
 	else
@@ -508,7 +509,104 @@ int32 GetAllocationSizeTest(const TCHAR* CommandLine)
 	return 0;
 }
 
+/** An ugly way to pass a parameter to FRunnable; shouldn't matter for this test code. */
+int32 GMallocTestNumAllocs = 500000;
 
+/**
+ * Thread runnable
+ * bUseSystemMalloc Whether to use system malloc for speed comparison.
+ */
+template<bool bUseSystemMalloc>
+struct FMemoryAllocatingThread : public FRunnable
+{
+	virtual uint32 Run()
+	{
+		for (int32 IdxAlloc = 0; IdxAlloc < GMallocTestNumAllocs; ++IdxAlloc)
+		{
+			// allocate up to 4MB at a time
+			const SIZE_T ChunkSize = 65536 + (4096 * 1024 - 65536) * FMath::FRand();
+
+			if (bUseSystemMalloc)
+			{
+				void* Ptr = malloc(ChunkSize);
+				if (LIKELY(Ptr))
+				{
+					free(Ptr);
+				}
+			}
+			else
+			{
+				void* Ptr = FMemory::Malloc(ChunkSize);
+				if (LIKELY(Ptr))
+				{
+					FMemory::Free(Ptr);
+				}
+			}
+		}
+		return 0;
+	}
+};
+
+/**
+ * Malloc threading test
+ */
+int32 MallocThreadingTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+
+	TArray<FRunnable*> RunnableArray;
+	TArray<FRunnableThread*> ThreadArray;
+
+	bool bUseSystemMalloc = FParse::Param(CommandLine, TEXT("systemmalloc"));
+	int32 NumTestThreads = 32, InNumTestThreads = 0, InNumAllocs = 0;
+	if (FParse::Value(CommandLine, TEXT("numthreads="), InNumTestThreads))
+	{
+		NumTestThreads = FMath::Max(1, InNumTestThreads);
+	}
+	if (FParse::Value(CommandLine, TEXT("numallocs="), InNumAllocs))
+	{
+		GMallocTestNumAllocs = FMath::Max(1000, InNumAllocs * 1000);
+	}
+
+	UE_LOG(LogTestPAL, Display, TEXT("Running malloc threading test using %s malloc and %d threads, each doing %d allocations."),
+		bUseSystemMalloc ? TEXT("libc") : GMalloc->GetDescriptiveName(),
+		NumTestThreads,
+		GMallocTestNumAllocs
+		);
+
+	// start all threads
+	double WallTimeDuration = 0.0;
+	{
+		FSimpleScopeSecondsCounter Duration(WallTimeDuration);
+		for (int Idx = 0; Idx < NumTestThreads; ++Idx)
+		{
+			RunnableArray.Add( bUseSystemMalloc ? static_cast<FRunnable*>(new FMemoryAllocatingThread<true>()) : static_cast<FRunnable*>(new FMemoryAllocatingThread<false>()) );
+			ThreadArray.Add( FRunnableThread::Create(RunnableArray[Idx],
+				*FString::Printf(TEXT("MallocTest%d"), Idx)) );
+		}
+
+		GLog->FlushThreadedLogs();
+		GLog->Flush();
+
+		// join all threads
+		for (int Idx = 0; Idx < NumTestThreads; ++Idx)
+		{
+			ThreadArray[Idx]->WaitForCompletion();
+			delete ThreadArray[Idx];
+			ThreadArray[Idx] = nullptr;
+			delete RunnableArray[Idx];
+			RunnableArray[Idx] = nullptr;
+		}
+	}
+	UE_LOG(LogTestPAL, Display, TEXT("Test took %f seconds."), WallTimeDuration);
+
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
 
 /**
  * Selects and runs one of test cases.
@@ -565,6 +663,10 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return GetAllocationSizeTest(*TestPAL::CommandLine);
 		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_MALLOC_THREADING_TEST))
+		{
+			return MallocThreadingTest(*TestPAL::CommandLine);
+		}
 	}
 
 	FPlatformMisc::SetCrashHandler(NULL);
@@ -585,6 +687,7 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test passing %%*s in a format string"), ANSI_TO_TCHAR( ARG_STRINGPRECISION_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test APIs for dealing with dynamic libraries"), ANSI_TO_TCHAR( ARG_DSO_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test GMalloc->GetAllocationSize()"), UTF8_TO_TCHAR(ARG_GET_ALLOCATION_SIZE_TEST));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test malloc for thread-safety and performance. Pass -systemmalloc to use system malloc, -numthreads=N and -numallocs=M (in thousands)."), UTF8_TO_TCHAR(ARG_MALLOC_THREADING_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT(""));
 	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));
 

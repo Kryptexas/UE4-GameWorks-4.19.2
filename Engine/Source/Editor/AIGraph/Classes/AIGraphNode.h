@@ -60,6 +60,7 @@ class AIGRAPH_API UAIGraphNode : public UEdGraphNode
 	virtual void NodeConnectionListChanged() override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results) override;
+	virtual FString GetPropertyNameAndValueForDiff(const UProperty* Prop, const uint8* PropertyAddr) const override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin UObject Interface
@@ -92,17 +93,6 @@ class AIGRAPH_API UAIGraphNode : public UEdGraphNode
 
 	/** initialize instance object  */
 	virtual void InitializeInstance();
-
-	/**
-	* Finds the difference in properties of node instance
-	*
-	* @param Struct The struct of the class we are looking at
-	* @param Data The raw data for the UObject we are comparing LHS
-	* @param OtherData The raw data for the UObject we are comparing RHS
-	* @param Results The Results where differences are stored
-	* @param Diff The single result with default parameters setup
-	*/
-	void DiffProperties(UStruct* Struct, void* Data, void* OtherData, FDiffResults& Results, FDiffSingleResult& Diff);
 
 	/** reinitialize node instance */
 	virtual bool RefreshNodeClass();

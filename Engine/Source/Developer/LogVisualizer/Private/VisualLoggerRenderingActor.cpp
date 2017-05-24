@@ -62,25 +62,23 @@ FPrimitiveSceneProxy* UVisualLoggerRenderingComponent::CreateSceneProxy()
 	{
 		VLogSceneProxy->Spheres.Append(CurrentShapes.Value.Points);
 		VLogSceneProxy->Lines.Append(CurrentShapes.Value.Lines);
-		VLogSceneProxy->Cones.Append(CurrentShapes.Value.Cones);
 		VLogSceneProxy->Boxes.Append(CurrentShapes.Value.Boxes);
 		VLogSceneProxy->Meshes.Append(CurrentShapes.Value.Meshes);
 		VLogSceneProxy->Cones.Append(CurrentShapes.Value.Cones);
 		VLogSceneProxy->Texts.Append(CurrentShapes.Value.Texts);
 		VLogSceneProxy->Cylinders.Append(CurrentShapes.Value.Cylinders);
-		VLogSceneProxy->Capsles.Append(CurrentShapes.Value.Capsles);
+		VLogSceneProxy->Capsles.Append(CurrentShapes.Value.Capsules);
 	}
 
 	{
 		VLogSceneProxy->Spheres.Append(RenderingActor->TestDebugShapes.Points);
 		VLogSceneProxy->Lines.Append(RenderingActor->TestDebugShapes.Lines);
-		VLogSceneProxy->Cones.Append(RenderingActor->TestDebugShapes.Cones);
 		VLogSceneProxy->Boxes.Append(RenderingActor->TestDebugShapes.Boxes);
 		VLogSceneProxy->Meshes.Append(RenderingActor->TestDebugShapes.Meshes);
 		VLogSceneProxy->Cones.Append(RenderingActor->TestDebugShapes.Cones);
 		VLogSceneProxy->Texts.Append(RenderingActor->TestDebugShapes.Texts);
 		VLogSceneProxy->Cylinders.Append(RenderingActor->TestDebugShapes.Cylinders);
-		VLogSceneProxy->Capsles.Append(RenderingActor->TestDebugShapes.Capsles);
+		VLogSceneProxy->Capsles.Append(RenderingActor->TestDebugShapes.Capsules);
 	}
 
 #if WITH_EDITOR
@@ -286,7 +284,7 @@ void AVisualLoggerRenderingActor::AddDebugRendering()
 		const FVector YAxis = Axes.GetScaledAxis(EAxis::Y);
 		const FVector ZAxis = Axes.GetScaledAxis(EAxis::Z);
 
-		TestDebugShapes.Capsles.Add(FDebugRenderSceneProxy::FCapsule(Center, Radius, XAxis, YAxis, ZAxis, HalfHeight, FColor::Yellow));
+		TestDebugShapes.Capsules.Add(FDebugRenderSceneProxy::FCapsule(Center, Radius, XAxis, YAxis, ZAxis, HalfHeight, FColor::Yellow));
 	}
 	{
 		const float Radius = 50;
@@ -403,14 +401,26 @@ void AVisualLoggerRenderingActor::GetDebugShapes(const FVisualLogDevice::FVisual
 		{
 			const float Radius = float(ElementToDraw->Radius);
 			const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
-			for (int32 Index = 0; Index < ElementToDraw->Points.Num(); ++Index)
+			if (ElementToDraw->Points.Num() == 1)
 			{
-				const FVector& Point = ElementToDraw->Points[Index];
+				const FVector& Point = ElementToDraw->Points[0];
 				DebugShapes.Points.Add(FDebugRenderSceneProxy::FSphere(Radius, Point, Color));
 				if (bDrawLabel)
 				{
-					const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
-					DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(PrintString, Point, Color));
+					DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(ElementToDraw->Description, Point, Color));
+				}
+			}
+			else
+			{
+				for (int32 Index = 0; Index < ElementToDraw->Points.Num(); ++Index)
+				{
+					const FVector& Point = ElementToDraw->Points[Index];
+					DebugShapes.Points.Add(FDebugRenderSceneProxy::FSphere(Radius, Point, Color));
+					if (bDrawLabel)
+					{
+						const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
+						DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(PrintString, Point, Color));
+					}
 				}
 			}
 		}
@@ -468,16 +478,30 @@ void AVisualLoggerRenderingActor::GetDebugShapes(const FVisualLogDevice::FVisual
 			const float Thickness = float(ElementToDraw->Thicknes);
 			const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false && ElementToDraw->Points.Num() > 2;
 			const FVector* Location = ElementToDraw->Points.GetData();
-			for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, Location += 2)
+			
+			if (ElementToDraw->Points.Num() == 1)
 			{
 				DebugShapes.Lines.Add(FDebugRenderSceneProxy::FDebugLine(*Location, *(Location + 1), Color, Thickness));
 
 				if (bDrawLabel)
 				{
-					const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
-					DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(PrintString, (*Location + (*(Location + 1) - *Location) / 2), Color));
+					DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(ElementToDraw->Description, (*Location + (*(Location + 1) - *Location) / 2), Color));
 				}
 			}
+			else
+			{
+				for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, Location += 2)
+				{
+					DebugShapes.Lines.Add(FDebugRenderSceneProxy::FDebugLine(*Location, *(Location + 1), Color, Thickness));
+
+					if (bDrawLabel)
+					{
+						const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
+						DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(PrintString, (*Location + (*(Location + 1) - *Location) / 2), Color));
+					}
+				}
+			}
+
 			if (ElementToDraw->Description.IsEmpty() == false)
 			{
 				DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(ElementToDraw->Description, ElementToDraw->Points[0] + (ElementToDraw->Points[1] - ElementToDraw->Points[0]) / 2, Color));
@@ -501,17 +525,32 @@ void AVisualLoggerRenderingActor::GetDebugShapes(const FVisualLogDevice::FVisual
 			const float Thickness = float(ElementToDraw->Thicknes);
 			const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false && ElementToDraw->Points.Num() > 2;
 			const FVector* BoxExtent = ElementToDraw->Points.GetData();
-			for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, BoxExtent += 2)
+			
+			if (ElementToDraw->Points.Num() == 2)
 			{
 				const FBox Box = FBox(*BoxExtent, *(BoxExtent + 1));
 				DebugShapes.Boxes.Add(FDebugRenderSceneProxy::FDebugBox(Box, Color, FTransform(ElementToDraw->TransformationMatrix)));
 
 				if (bDrawLabel)
 				{
-					const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
-					DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(PrintString, Box.GetCenter(), Color));
+					DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(ElementToDraw->Description, Box.GetCenter(), Color));
 				}
 			}
+			else
+			{
+				for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, BoxExtent += 2)
+				{
+					const FBox Box = FBox(*BoxExtent, *(BoxExtent + 1));
+					DebugShapes.Boxes.Add(FDebugRenderSceneProxy::FDebugBox(Box, Color, FTransform(ElementToDraw->TransformationMatrix)));
+
+					if (bDrawLabel)
+					{
+						const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
+						DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(PrintString, Box.GetCenter(), Color));
+					}
+				}
+			}
+
 			if (ElementToDraw->Description.IsEmpty() == false)
 			{
 				DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(ElementToDraw->Description, ElementToDraw->Points[0] + (ElementToDraw->Points[1] - ElementToDraw->Points[0]) / 2, Color));
@@ -575,7 +614,7 @@ void AVisualLoggerRenderingActor::GetDebugShapes(const FVisualLogDevice::FVisual
 				const FVector YAxis = Axes.GetScaledAxis(EAxis::Y);
 				const FVector ZAxis = Axes.GetScaledAxis(EAxis::Z);
 
-				DebugShapes.Capsles.Add(FDebugRenderSceneProxy::FCapsule(Center, Radius, XAxis, YAxis, ZAxis, HalfHeight, Color));
+				DebugShapes.Capsules.Add(FDebugRenderSceneProxy::FCapsule(Center, Radius, XAxis, YAxis, ZAxis, HalfHeight, Color));
 				if (bDrawLabel)
 				{
 					DebugShapes.Texts.Add(FDebugRenderSceneProxy::FText3d(ElementToDraw->Description, Center, Color));

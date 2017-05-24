@@ -2,8 +2,6 @@
 # Build PsFastXml
 #
 
-SET(GW_DEPS_ROOT $ENV{GW_DEPS_ROOT})
-
 SET(PXSHARED_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../../src)
 
 SET(LL_SOURCE_DIR ${PXSHARED_SOURCE_DIR}/fastxml)
@@ -11,7 +9,7 @@ SET(LL_SOURCE_DIR ${PXSHARED_SOURCE_DIR}/fastxml)
 # Use generator expressions to set config specific preprocessor definitions
 SET(PSFASTXML_COMPILE_DEFS 
 	# Common to all configurations
-	${PXSHARED_Android_COMPILE_DEFS};PX_FOUNDATION_DLL=0;
+	${PXSHARED_ANDROID_COMPILE_DEFS};PX_FOUNDATION_DLL=0;PxShared_STATIC_LIB;
 )
 
 if(${CMAKE_BUILD_TYPE_LOWERCASE} STREQUAL "debug")

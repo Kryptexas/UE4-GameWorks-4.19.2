@@ -11,6 +11,13 @@ UGameplayCueNotify_Static::UGameplayCueNotify_Static(const FObjectInitializer& P
 : Super(PCIP)
 {
 	IsOverride = true;
+
+	
+	ReferenceHelper.OnGetGameplayTagName.BindLambda([](void* RawData)
+	{
+		UGameplayCueNotify_Static* ThisData = static_cast<UGameplayCueNotify_Static*>(RawData);
+		return ThisData->GameplayCueTag.GetTagName();
+	});
 }
 
 #if WITH_EDITOR
@@ -118,6 +125,5 @@ bool UGameplayCueNotify_Static::OnRemove_Implementation(AActor* MyTarget, const 
 
 UWorld* UGameplayCueNotify_Static::GetWorld() const
 {
-	static TWeakObjectPtr<UGameplayCueManager> CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
-	return CueManager.IsValid() ? CueManager->GetWorld() : nullptr;
+	return UGameplayCueManager::GetCachedWorldForGameplayCueNotifies();
 }

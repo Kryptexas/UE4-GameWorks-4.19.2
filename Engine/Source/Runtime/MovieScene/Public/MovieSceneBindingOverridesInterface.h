@@ -30,5 +30,5 @@ public:
 	 * @param OutObjects 		Array to populate with bound objects
 	 * @return true to prevent default lookup of the binding in the sequence itself, else false
 	 */
-	virtual bool LocateBoundObjects(const FGuid& InBindingId, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const = 0;
+	virtual bool LocateBoundObjects(const FGuid& InBindingId, FMovieSceneSequenceID InSequenceID, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const = 0;
 };

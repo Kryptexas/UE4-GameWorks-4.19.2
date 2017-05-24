@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Toolkits/IToolkitHost.h"
-#include "Developer/AssetTools/Private/AssetTypeActions/AssetTypeActions_Blueprint.h"
+#include "AssetTypeActions/AssetTypeActions_Blueprint.h"
 
 class UFactory;
 

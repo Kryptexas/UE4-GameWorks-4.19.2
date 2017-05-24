@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SGraphNodeK2Terminator_h__
-#define __SGraphNodeK2Terminator_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -23,5 +21,3 @@ public:
 protected:
 	virtual void UpdateGraphNode() override;
 };
-
-#endif // __SGraphNodeK2Terminator_h__

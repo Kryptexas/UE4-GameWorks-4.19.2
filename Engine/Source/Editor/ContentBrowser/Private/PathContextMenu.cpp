@@ -238,7 +238,10 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 					LOCTEXT("SaveFolderTooltip", "Saves all modified assets in this folder."),
 					FSlateIcon()
 					);
-    
+
+				// Resave
+				MenuBuilder.AddMenuEntry(FContentBrowserCommands::Get().ResaveAllCurrentFolder);
+
 				// Delete
 				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
 					LOCTEXT("DeleteFolder", "Delete"),
@@ -500,25 +503,7 @@ void FPathContextMenu::ExecuteExplore()
 
 bool FPathContextMenu::CanExecuteRename() const
 {
-	// We can't rename when we have more than one path selected
-	if (SelectedPaths.Num() != 1)
-	{
-		return false;
-	}
-
-	// We can't rename a root folder
-	if (ContentBrowserUtils::IsRootDir(SelectedPaths[0]))
-	{
-		return false;
-	}
-
-	// We can't rename *any* folders that belong to class roots
-	if (ContentBrowserUtils::IsClassPath(SelectedPaths[0]))
-	{
-		return false;
-	}
-
-	return true;
+	return ContentBrowserUtils::CanRenameFromPathView(SelectedPaths);
 }
 
 void FPathContextMenu::ExecuteRename()
@@ -638,13 +623,36 @@ void FPathContextMenu::ExecuteSaveFolder()
 	}
 }
 
+void FPathContextMenu::ExecuteResaveFolder()
+{
+	// Get a list of package names in the selected paths
+	TArray<FString> PackageNames;
+	GetPackageNamesInSelectedPaths(PackageNames);
+
+	TArray<UPackage*> Packages;
+	for (const FString& PackageName : PackageNames)
+	{
+		UPackage* Package = FindPackage(nullptr, *PackageName);
+		if (!Package)
+		{
+			Package = LoadPackage(nullptr, *PackageName, LOAD_None);
+		}
+
+		if (Package)
+		{
+			Packages.Add(Package);
+		}
+	}
+
+	if (Packages.Num())
+	{
+		ContentBrowserUtils::SavePackages(Packages);
+	}
+}
+
 bool FPathContextMenu::CanExecuteDelete() const
 {
-	int32 NumAssetPaths, NumClassPaths;
-	ContentBrowserUtils::CountPathTypes(SelectedPaths, NumAssetPaths, NumClassPaths);
-
-	// We can't delete folders containing classes
-	return NumAssetPaths > 0 && NumClassPaths == 0;
+	return ContentBrowserUtils::CanDeleteFromPathView(SelectedPaths);
 }
 
 void FPathContextMenu::ExecuteDelete()

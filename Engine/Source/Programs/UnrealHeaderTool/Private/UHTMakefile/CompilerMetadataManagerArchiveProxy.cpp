@@ -8,7 +8,7 @@ FCompilerMetadataManagerArchiveProxy::FCompilerMetadataManagerArchiveProxy(const
 {
 	for (auto& Kvp : CompilerMetadataManager)
 	{
-		Array.Add(TPairInitializer<FSerializeIndex, FClassMetaDataArchiveProxy>(UHTMakefile.GetStructIndex(Kvp.Key), FClassMetaDataArchiveProxy(UHTMakefile, Kvp.Value)));
+		Array.Emplace(UHTMakefile.GetStructIndex(Kvp.Key), FClassMetaDataArchiveProxy(UHTMakefile, Kvp.Value));
 	}
 }
 

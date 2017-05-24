@@ -3,6 +3,7 @@
 #include "Factories/SoundSubmixFactory.h"
 #include "Sound/SoundSubmix.h"
 #include "AudioDeviceManager.h"
+#include "Engine/Engine.h"
 
 USoundSubmixFactory::USoundSubmixFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -23,6 +23,9 @@ class FSceneViewFamily;
 class FSceneViewStateInterface;
 class FViewElementDrawer;
 class ISceneViewExtension;
+class FSceneViewFamily;
+class FForwardLightingViewResources;
+class FVolumetricFogViewResources;
 
 // Projection data for a FSceneView
 struct FSceneViewProjectionData
@@ -139,6 +142,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	const FSceneViewFamily* ViewFamily;
 	FSceneViewStateInterface* SceneViewStateInterface;
 	const AActor* ViewActor;
+	int32 PlayerIndex;
 	FViewElementDrawer* ViewElementDrawer;
 
 	FLinearColor BackgroundColor;
@@ -188,6 +192,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		: ViewFamily(NULL)
 		, SceneViewStateInterface(NULL)
 		, ViewActor(NULL)
+		, PlayerIndex(INDEX_NONE)
 		, ViewElementDrawer(NULL)
 		, BackgroundColor(FLinearColor::Transparent)
 		, OverlayColor(FLinearColor::Transparent)
@@ -419,6 +424,11 @@ public:
 		return ProjNoAAMatrix;
 	}
 
+	inline const FVector2D GetTemporalAAJitter() const
+	{
+		return TemporalAAProjectionJitter;
+	}
+
 	const FMatrix ComputeViewRotationProjectionMatrix() const
 	{
 		return ViewMatrix.RemoveTranslation() * ProjectionMatrix;
@@ -582,6 +592,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevInvViewProj) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, PrevScreenToTranslatedWorld) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FMatrix, ClipToPrevClip) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, TemporalAAJitter) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, GlobalClippingPlane) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, FieldOfViewWideAngles) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, PrevFieldOfViewWideAngles) \
@@ -663,7 +674,11 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeDimension_UB) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, GlobalVolumeTexelSize_UB) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, MaxGlobalDistance_UB) \
-	VIEW_UNIFORM_BUFFER_MEMBER(float, bCheckerboardSubsurfaceProfileRendering)
+	VIEW_UNIFORM_BUFFER_MEMBER(float, bCheckerboardSubsurfaceProfileRendering) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, VolumetricFogInvGridSize) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, VolumetricFogGridZParams) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, VolumetricFogSVPosToVolumeUV) \
+	VIEW_UNIFORM_BUFFER_MEMBER(float, VolumetricFogMaxDistance)
 
 #define VIEW_UNIFORM_BUFFER_MEMBER(type, identifier) \
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(type, identifier)
@@ -770,6 +785,9 @@ private:
 public:
 	/** The actor which is being viewed from. */
 	const AActor* ViewActor;
+	 
+	/** Player index this view is associated with or INDEX_NONE. */
+	int32 PlayerIndex;
 
 	/** An interaction which draws the view's interaction elements. */
 	FViewElementDrawer* Drawer;
@@ -913,6 +931,9 @@ public:
 
 	/** True if mobile multi-view is enabled. */
 	bool bIsMobileMultiViewEnabled;
+
+	/** True if mobile multi-view direct is enabled. */
+	bool bIsMobileMultiViewDirectEnabled;
 
 	/** True if we need to bind the instanced view uniform buffer parameters. */
 	bool bShouldBindInstancedViewUB;

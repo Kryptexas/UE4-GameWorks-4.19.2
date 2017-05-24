@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:3 - Implementing the Aim Offset
+﻿INTSourceChangelist:3255885
+Availability:Public
+Title:3 - 实现瞄准偏移
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:In this step, we add the Aim Offset to our Animation Blueprint and hook it up to our existing Anim Graph. 
-version: 4.14
-skilllevel: Advanced
-type:howto
+Description:在这步中，我们将把瞄准偏移添加到动画蓝图，并将其和我们现有的动画图表衔接起来。 
+version:4.14
+skilllevel:Advanced
+type:how-to
 tags:Animation
-tags:How-To
 tags:Aim Offset
 
 [VAR:Steps]
@@ -28,86 +27,86 @@ tags:Aim Offset
 
 %Steps%
 
-In this step, we add the Aim Offset to our Animation Blueprint and hook it up to our existing Anim Graph. 
+在这步中，我们将把瞄准偏移添加到动画蓝图，并将其和我们现有的动画图表衔接起来。 
 
-## Steps
+## 步骤
 
-1. In the **Content/AnimStarterPack** folder, open the **UE4ASP_HeroTPP_AnimBlueprint** and **Double-click** the **AnimGraph** in the **MyBlueprint** panel. 
+1. 在 **Content/AnimStarterPack** 文件夹中打开 **UE4ASP_HeroTPP_AnimBlueprint**，然后 **双击** **MyBlueprint** 面板中的 **AnimGraph**。 
 
 	![](step3_01.png)
 
-1. From the **Asset Browser** tab, drag in your Aim Offset asset. 
+1. 从 **Asset Browser** 标签拖入瞄准偏移资源。 
 
 	![](step3_02.png)
 
-1. Connect the Aim Offset as shown below, then **Right-click** on the **Yaw** and **Pitch** pins and **Promote to Variable** and name them **Aim Yaw** and **Aim Pitch**. 
+1. 将偏移资源进行如下连接，在 **Yaw** 和 **Pitch** 引脚上 **点击右键**，选择 **Promote to Variable**，然后将其命名为 **Aim Yaw** 和 **Aim Pitch**。 
 
 	![](step3_03.png)
 
-	These two variables will be populated by where the player is aiming using their mouse and will drive the pose in our Aim Offset. 
+	这两个变量将由使用鼠标进行的角色瞄准方向填充，将驱动瞄准偏移中的动作。 
 
-1. In the **MyBlueprint** panel, jump over to the **EventGraph**. 
+1. 在 **MyBlueprint** 面板中，跳至 **EventGraph**。 
 
 	![](step3_04.png)
 
-1. In the **EventGraph**, locate the **Sequence** node within the Movement portion of the script. 
+1. 在 **EventGraph** 中，找到脚本 Movement 部分中的 **Sequence** 节点。 
 
 	![](step3_05.png)
 
-	Click the **Add pin** button on the **Sequence** node. 
+	点击 **Sequence** 节点上的 **Add pin** 按钮。 
 
 	![](step3_05b.png)
 
-1. From the **MyBlueprint** panel, hold down **Alt** and drag in both the **Aim Yaw** and **Aim Pitch** and connect to **Sequence** node. 
+1. 在 **MyBlueprint** 面板中按住 **Alt** 并拖入 **Aim Yaw** 和 **Aim Pitch**，然后连接至 **Sequence** 节点。 
 
 	![](step3_06.png)
 
-1. Drag off the **Cast To Ue4ASP_Character** node and add the **Get Control Rotation** and **Get Actor Rotation** nodes. 
+1. 从 **Cast To Ue4ASP_Character** 节点连出引线，添加 **Get Control Rotation** 和 **Get Actor Rotation** 节点。 
 
 	![](step3_07.png)
 
-1. Drag off the **Get Control Rotation** node and add a **Delta(Rotator)** node. 
+1. 从 **Get Control Rotation** 节点连出引线，添加一个 **Delta(Rotator)** 节点。 
 
 	![](step3_08.png)
 
-1. Connect the **Get Actor Rotation** to the **Delta(Rotator) B Pin**, then off the **Return Value** add an **RInterp To** node (and swap the connection from Current to Target). 
+1. 将 **Get Actor Rotation** 连接到 **Delta(Rotator) B Pin**，然后从 **Return Value** 连出引线，添加一个 **RInterp To** 节点（并交换从 Current 到 Target 的连接）。 
 
 	![](step3_09.png)
 
 	[REGION:tip]
-	You can hold **Ctrl** and **Left-click** on the **Current** pin to drag its connection to the **Target** pin. 
+	可按住 **Ctrl** 并在 **Current** 引脚上 **点击左键**，将其连接拖至 **Target** 引脚。 
 	[/REGION]
 
-1. Drag off the **Current** pin of the **RInterp To** node and select **Make Rotator**. 
+1. 从 **RInterp To** 节点的 **Current** 引脚连出引线并选择 **Make Rotator**。 
 
 	![](step3_10.png)
 
-1. From the **MyBlueprint** panel, hold **Ctrl** and drag in the **Aim Pitch** and **Aim Yaw** variables and connect them to the **Make Rotator** node's **Pitch** and **Yaw**. 
+1. 在 **MyBlueprint** 面板中长按 **Ctrl** 拖入 **Aim Pitch** 和 **Aim Yaw** 变量，并将它们连接到 **Make Rotator** 节点的 **Pitch** 和 **Yaw**。 
 
 	![](step3_11.png)
 
-1. At the start of the **Movement** script, find the **Event Blueprint Update Animation** node and promote **Delta Time X** to a variable called **Time** and connect as shown. 
+1. 在 **Movement** 脚本的开头找到 **Event Blueprint Update Animation** 节点并将 **Delta Time X** 提升为一个名为 **Time** 的变量，并进行如下连接。 
 
 	![](step3_12.png)
 
-1. Back on the **RInterp To** node, connect the new **Time** variable and set the **Interp Speed** to **15**. 
+1. 返回到 **RInterp To** 节点上，连接新的 **Time** 变量并将 **Interp Speed** 设为 **15**。 
 
 	![](step3_13.png)
 
-	We are going to use the rotation of the character and the rotation of the player's input to create a new rotator that will limit how much the character can turn in a direction. 
+	我们将使用角色的旋转和玩家输入的旋转创建一个新旋转体，限制角色的方向旋转量。 
 
-1. Off the **RInterp To** node, add a **Break Rotator** and **Clamp Angle** of **Pitch** and **Yaw** with min/max angles set to **-90** and **90** respectively. 
+1. 从 **RInterp To** 节点连出引线，添加一个 **Break Rotator** 和 **Pitch** 和 **Yaw** 的 **Clamp Angle**，最小/最大角度相应设为 **-90** 和 **90**。 
 
 	![](step3_14.png)
 
-1. Connect the **Clamp Angle** from the **Pitch** to **Aim Pitch** and the **Yaw** to **Aim Yaw**. 
+1. 将 **Clamp Angle** 从 **Pitch** 连接到 **Aim Pitch**，从 **Yaw** 连接到 **Aim Yaw**。 
 
 	![](step3_15.png)
 
-	The Aim Yaw and Aim Pitch values that drive our Aim Offset now take into account the character's rotation, the player's current controller rotation and are clamped to prevent the character from turning too far in one direction. 
-	Without clamping the angle degrees, the character's legs could be pointed forwards while the character turns all the way around and points in the opposite direction which is probably something we want to avoid. 
+	驱动瞄准偏移的 Aim Yaw 和 Aim Pitch 数值将把角色的旋转、玩家当前的控制器旋转考虑在内，同时锁定（防止角色在某个方向上过度旋转）。 
+	如果不锁定角度，角色完成360转身面向反方向后腿部还会朝向前方。出现这样的情况就比较尴尬了。 
 
-We are just about done with our setup, in the next step, we will tie everything together and test out our character's ability to aim. 
+我们的设置即将完成。下一步中我们将把所有内容连接起来，测试角色的瞄准能力。 
 
 
 %Steps%

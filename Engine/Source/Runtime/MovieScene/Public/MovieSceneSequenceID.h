@@ -61,6 +61,12 @@ struct FMovieSceneSequenceID
 	{
 		return Value;
 	}
+
+	FORCEINLINE bool IsValid() const
+	{
+		return Value != -1;
+	}
+
 private:
 
 	UPROPERTY()
@@ -68,7 +74,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FMovieSceneSequenceID> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FMovieSceneSequenceID> : public TStructOpsTypeTraitsBase2<FMovieSceneSequenceID>
 {
 	enum
 	{

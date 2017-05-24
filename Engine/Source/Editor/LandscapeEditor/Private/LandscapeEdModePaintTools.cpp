@@ -733,18 +733,25 @@ public:
 						case ELandscapeToolNoiseMode::Add:
 							if (Delta < 0)
 							{
-								DataScanline[X] = FMath::Lerp(DataScanline[X], FlattenHeight, Strength);
+								DataScanline[X] = FMath::CeilToInt(FMath::Lerp((float)DataScanline[X], (float)FlattenHeight, Strength));
 							}
 							break;
 						case ELandscapeToolNoiseMode::Sub:
 							if (Delta > 0)
 							{
-								DataScanline[X] = FMath::Lerp(DataScanline[X], FlattenHeight, Strength);
+								DataScanline[X] = FMath::FloorToInt(FMath::Lerp((float)DataScanline[X], (float)FlattenHeight, Strength));
 							}
 							break;
 						default:
 						case ELandscapeToolNoiseMode::Both:
-							DataScanline[X] = FMath::Lerp(DataScanline[X], FlattenHeight, Strength);
+							if (Delta > 0)
+							{
+								DataScanline[X] = FMath::FloorToInt(FMath::Lerp((float)DataScanline[X], (float)FlattenHeight, Strength));
+							}
+							else
+							{
+								DataScanline[X] = FMath::CeilToInt(FMath::Lerp((float)DataScanline[X], (float)FlattenHeight, Strength));
+							}
 							break;
 						}
 					}
@@ -759,18 +766,25 @@ public:
 						case ELandscapeToolNoiseMode::Add:
 							if (PlaneDist < 0)
 							{
-								DataScanline[X] = FMath::Lerp(DataScanline[X], DestValue, Strength);
+								DataScanline[X] = FMath::CeilToInt(FMath::Lerp((float)DataScanline[X], (float)DestValue, Strength));
 							}
 							break;
 						case ELandscapeToolNoiseMode::Sub:
 							if (PlaneDist > 0)
 							{
-								DataScanline[X] = FMath::Lerp(DataScanline[X], DestValue, Strength);
+								DataScanline[X] = FMath::FloorToInt(FMath::Lerp((float)DataScanline[X], (float)DestValue, Strength));
 							}
 							break;
 						default:
 						case ELandscapeToolNoiseMode::Both:
-							DataScanline[X] = FMath::Lerp(DataScanline[X], DestValue, Strength);
+							if (PlaneDist > 0)
+							{
+								DataScanline[X] = FMath::FloorToInt(FMath::Lerp((float)DataScanline[X], (float)DestValue, Strength));
+							}
+							else
+							{
+								DataScanline[X] = FMath::CeilToInt(FMath::Lerp((float)DataScanline[X], (float)DestValue, Strength));
+							}
 							break;
 						}
 					}
@@ -789,14 +803,37 @@ class FLandscapeToolFlatten : public FLandscapeToolPaintBase < ToolTarget, FLand
 protected:
 	UStaticMesh* PlaneMesh;
 	UStaticMeshComponent* MeshComponent;
+	bool CanToolBeActivatedNextTick;
+	bool CanToolBeActivatedValue;
+	float EyeDropperFlattenTargetValue;
 
 public:
 	FLandscapeToolFlatten(FEdModeLandscape* InEdMode)
 		: FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>(InEdMode)
 		, PlaneMesh(LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorLandscapeResources/FlattenPlaneMesh.FlattenPlaneMesh")))
 		, MeshComponent(NULL)
+		, CanToolBeActivatedNextTick(false)
+		, CanToolBeActivatedValue(false)
+		, EyeDropperFlattenTargetValue(0.0f)
 	{
 		check(PlaneMesh);
+	}
+
+	virtual bool GetCursor(EMouseCursor::Type& OutCursor) const override
+	{ 
+		if (this->EdMode->UISettings->bFlattenEyeDropperModeActivated)
+		{
+			OutCursor = EMouseCursor::EyeDropper;
+			return true;
+		}
+		
+		return false; 
+	}
+
+	virtual void SetCanToolBeActivated(bool Value) override
+	{ 
+		CanToolBeActivatedNextTick = true;
+		CanToolBeActivatedValue = Value;
 	}
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
@@ -810,6 +847,12 @@ public:
 
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override
 	{
+		if (CanToolBeActivatedNextTick)
+		{
+			this->bCanToolBeActivated = CanToolBeActivatedValue;
+			CanToolBeActivatedNextTick = false;
+		}
+
 		FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>::Tick(ViewportClient, DeltaTime);
 
 		bool bShowGrid = this->EdMode->UISettings->bUseFlattenTarget && this->EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap && this->EdMode->UISettings->bShowFlattenTargetPreview;
@@ -831,6 +874,13 @@ public:
 			Origin.Y = FMath::RoundToFloat(MousePosition.Y);
 			Origin.Z = (FMath::RoundToFloat((this->EdMode->UISettings->FlattenTarget - LocalToWorld.GetTranslation().Z) / LocalToWorld.GetScale3D().Z * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
 			MeshComponent->SetRelativeLocation(Origin, false);
+
+			// Clamp the value to the height map
+			uint16 TexHeight = LandscapeDataAccess::GetTexHeight(MousePosition.Z);
+			float Height = LandscapeDataAccess::GetLocalHeight(TexHeight);
+
+			// Convert the height back to world space
+			this->EdMode->UISettings->FlattenEyeDropperModeDesiredTarget = (Height * LocalToWorld.GetScale3D().Z) + LocalToWorld.GetTranslation().Z;
 		}
 
 		return bResult;

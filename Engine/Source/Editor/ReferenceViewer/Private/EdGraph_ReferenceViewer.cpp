@@ -6,6 +6,8 @@
 #include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "AssetThumbnail.h"
+#include "SReferenceViewer.h"
+#include "GraphEditor.h"
 
 UEdGraph_ReferenceViewer::UEdGraph_ReferenceViewer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -19,6 +21,7 @@ UEdGraph_ReferenceViewer::UEdGraph_ReferenceViewer(const FObjectInitializer& Obj
 	bLimitSearchBreadth = true;
 	bIsShowSoftReferences = true;
 	bIsShowHardReferences = true;
+	bIsShowManagementReferences = false;
 	bIsShowSearchableNames = false;
 	bIsShowNativePackages = false;
 }
@@ -54,6 +57,38 @@ const TArray<FAssetIdentifier>& UEdGraph_ReferenceViewer::GetCurrentGraphRootIde
 	return CurrentGraphRootIdentifiers;
 }
 
+void UEdGraph_ReferenceViewer::SetReferenceViewer(TSharedPtr<SReferenceViewer> InViewer)
+{
+	ReferenceViewer = InViewer;
+}
+
+bool UEdGraph_ReferenceViewer::GetSelectedAssetsForMenuExtender(const class UEdGraphNode* Node, TArray<FAssetIdentifier>& SelectedAssets) const
+{
+	if (!ReferenceViewer.IsValid())
+	{
+		return false;
+	}
+	TSharedPtr<SGraphEditor> GraphEditor = ReferenceViewer.Pin()->GetGraphEditor();
+
+	if (!GraphEditor.IsValid())
+	{
+		return false;
+	}
+
+	TSet<UObject*> SelectedNodes = GraphEditor->GetSelectedNodes();
+	for (FGraphPanelSelectionSet::TConstIterator It(SelectedNodes); It; ++It)
+	{
+		if (UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(*It))
+		{
+			if (!ReferenceNode->IsCollapsed())
+			{
+				SelectedAssets.Add(ReferenceNode->GetIdentifier());
+			}
+		}
+	}
+	return true;
+}
+
 UEdGraphNode_Reference* UEdGraph_ReferenceViewer::RebuildGraph()
 {
 	RemoveAllNodes();
@@ -81,6 +116,11 @@ bool UEdGraph_ReferenceViewer::IsShowSoftReferences() const
 bool UEdGraph_ReferenceViewer::IsShowHardReferences() const
 {
 	return bIsShowHardReferences;
+}
+
+bool UEdGraph_ReferenceViewer::IsShowManagementReferences() const
+{
+	return bIsShowManagementReferences;
 }
 
 bool UEdGraph_ReferenceViewer::IsShowSearchableNames() const
@@ -111,6 +151,11 @@ void UEdGraph_ReferenceViewer::SetShowSoftReferencesEnabled(bool newEnabled)
 void UEdGraph_ReferenceViewer::SetShowHardReferencesEnabled(bool newEnabled)
 {
 	bIsShowHardReferences = newEnabled;
+}
+
+void UEdGraph_ReferenceViewer::SetShowManagementReferencesEnabled(bool newEnabled)
+{
+	bIsShowManagementReferences = newEnabled;
 }
 
 void UEdGraph_ReferenceViewer::SetShowSearchableNames(bool newEnabled)
@@ -159,7 +204,11 @@ EAssetRegistryDependencyType::Type UEdGraph_ReferenceViewer::GetReferenceSearchF
 	{
 		ReferenceFlags |= EAssetRegistryDependencyType::SearchableName;
 	}
-
+	if (bIsShowManagementReferences)
+	{
+		ReferenceFlags |= EAssetRegistryDependencyType::Manage;
+	}
+	
 	return (EAssetRegistryDependencyType::Type)ReferenceFlags;
 }
 

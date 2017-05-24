@@ -80,6 +80,16 @@ public:
 	/** Saves all persistent settings to config and returns a string identifier */
 	void SaveSettings() const;
 
+	/** Sets the content browser to show the specified paths */
+	void SetSelectedPaths(const TArray<FString>& FolderPaths, bool bNeedsRefresh = false);
+
+	/**
+	 * Forces the content browser to show plugin content
+	 *
+	 * @param bEnginePlugin		If true, the content browser will also be forced to show engine content
+	 */
+	void ForceShowPluginContent(bool bEnginePlugin);
+
 	/** Get the unique name of this content browser's in */
 	const FName GetInstanceName() const;
 
@@ -262,6 +272,9 @@ private:
 
 	/** Handler for SaveAll in folder */
 	void HandleSaveAllCurrentFolderCommand() const;
+
+	/** Handler for Resave on a folder */
+	void HandleResaveAllCurrentFolderCommand() const;
 
 	/** Handler to check to see if a delete command is allowed */
 	bool HandleDeleteCommandCanExecute() const;

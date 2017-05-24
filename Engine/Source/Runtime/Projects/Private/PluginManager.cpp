@@ -3,6 +3,7 @@
 #include "PluginManager.h"
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
@@ -10,6 +11,8 @@
 #include "Misc/ScopedSlowTask.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/FileHelper.h"
 #include "ProjectDescriptor.h"
 #include "Interfaces/IProjectManager.h"
 #include "Modules/ModuleManager.h"
@@ -317,7 +320,10 @@ void FPluginManager::FindPluginsInDirectory(const FString& PluginsDirectory, TAr
 	{
 		for(const FString& PluginDescriptor: Visitor.PluginDescriptors)
 		{
-			FileNames.Add(PluginDescriptor);
+			if (!FileNames.Contains(PluginDescriptor))
+			{
+				FileNames.Add(PluginDescriptor);
+			}
 		}
 	}
 }
@@ -335,7 +341,7 @@ public:
 		if (bIsDirectory == false)
 		{
 			FString Filename(FilenameOrDirectory);
-			if (Filename.MatchesWildcard(TEXT("*.pak")))
+			if (Filename.MatchesWildcard(TEXT("*.pak")) && !FoundFiles.Contains(Filename))
 			{
 				FoundFiles.Add(Filename);
 			}
@@ -421,6 +427,47 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				{
 					Plugin->bEnabled = false;
 					AllEnabledPlugins.Remove(Plugin->Name);
+				}
+
+				if (Plugin->bEnabled && Plugin->Descriptor.EngineVersion.Len() > 0)
+				{
+					FEngineVersion Version;
+					if (!FEngineVersion::Parse(Plugin->Descriptor.EngineVersion, Version))
+					{
+						UE_LOG(LogPluginManager, Warning, TEXT("Engine version string in %s could not be parsed (\"%s\")"), *Plugin->FileName, *Plugin->Descriptor.EngineVersion);
+					}
+					else
+					{
+						EVersionComparison Comparison = FEngineVersion::GetNewest(FEngineVersion::CompatibleWith(), Version, nullptr);
+						if (Comparison != EVersionComparison::Neither)
+						{
+							FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
+							if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "'{0}' plugin was designed for a different version of the engine. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
+							{
+								Plugin->bEnabled = false;
+								AllEnabledPlugins.Remove(Plugin->Name);
+								UE_LOG(LogPluginManager, Log, TEXT("Disabled plugin '%s' due to incompatibility"), *Plugin->FileName);
+							}
+							else
+							{
+								UE_LOG(LogPluginManager, Log, TEXT("Enabled plugin '%s' despite being built for CL %d"), *Plugin->FileName, Plugin->Descriptor.CompatibleChangelist);
+							}
+						}
+					}
+				}
+				else if (Plugin->bEnabled && Plugin->Descriptor.CompatibleChangelist != 0 && FEngineVersion::CompatibleWith().HasChangelist() && Plugin->Descriptor.CompatibleChangelist != FEngineVersion::CompatibleWith().GetChangelist())
+				{
+					FText Title = LOCTEXT("IncompatiblePluginTitle", "Incompatible Plugin");
+					if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginMessage", "'{0}' plugin was designed for a different version of the engine. Attempt to load it anyway?"), FText::FromString(Plugin->Descriptor.FriendlyName)), &Title) != EAppReturnType::Yes)
+					{
+						Plugin->bEnabled = false;
+						AllEnabledPlugins.Remove(Plugin->Name);
+						UE_LOG(LogPluginManager, Log, TEXT("Disabled plugin '%s' due to incompatibility"), *Plugin->FileName);
+					}
+					else
+					{
+						UE_LOG(LogPluginManager, Log, TEXT("Enabled plugin '%s' despite being built for CL %d"), *Plugin->FileName, Plugin->Descriptor.CompatibleChangelist);
+					}
 				}
 			}
 		}
@@ -523,18 +570,54 @@ bool FPluginManager::ConfigureEnabledPlugins()
 					}
 				}
 
-				// Load Default<PluginName>.ini config file if it exists
+				// Load <PluginName>.ini config file if it exists
 				FString PluginConfigDir = FPaths::GetPath(Plugin->FileName) / TEXT("Config/");
-				FConfigFile PluginConfig;
-				FConfigCacheIni::LoadExternalIniFile(PluginConfig, *Plugin->Name, *FPaths::EngineConfigDir(), *PluginConfigDir, true);
-				if (PluginConfig.Num() > 0)
+				FString EngineConfigDir = FPaths::EngineConfigDir();
+				FString SourceConfigDir = FPaths::SourceConfigDir();
+
+				// Load Engine plugins out of BasePluginName.ini and the engine directory, game plugins out of DefaultPluginName.ini
+				if (Plugin->LoadedFrom == EPluginLoadedFrom::Engine)
 				{
-					FString PlaformName = FPlatformProperties::PlatformName();
-					FString PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), *PlaformName, *Plugin->Name);
-					FConfigFile& NewConfigFile = GConfig->Add(PluginConfigFilename, FConfigFile());
-					NewConfigFile.AddMissingProperties(PluginConfig);
-					NewConfigFile.Write(PluginConfigFilename);
+					EngineConfigDir = PluginConfigDir;
 				}
+				else
+				{
+					SourceConfigDir = PluginConfigDir;
+				}
+
+				FString PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()), *Plugin->Name);
+				FConfigFile& PluginConfig = GConfig->Add(PluginConfigFilename, FConfigFile());
+
+				// This will write out an ini to PluginConfigFilename
+				if (!FConfigCacheIni::LoadExternalIniFile(PluginConfig, *Plugin->Name, *EngineConfigDir, *SourceConfigDir, true, nullptr, false, true))
+				{
+					// Nothing to add, remove from map
+					GConfig->Remove(PluginConfigFilename);
+				}
+
+				if (!GIsEditor)
+				{
+					// override config cache entries with plugin configs (Engine.ini, Game.ini, etc in <PluginDir>\Config\)
+					TArray<FString> PluginConfigs;
+					IFileManager::Get().FindFiles(PluginConfigs, *PluginConfigDir, TEXT("ini"));
+					for (const FString& ConfigFile : PluginConfigs)
+					{
+						FString PlaformName = FPlatformProperties::PlatformName();
+						PluginConfigFilename = FString::Printf(TEXT("%s%s/%s.ini"), *FPaths::GeneratedConfigDir(), *PlaformName, *FPaths::GetBaseFilename(ConfigFile));
+						FConfigFile* FoundConfig = GConfig->Find(PluginConfigFilename, false);
+						if (FoundConfig != nullptr)
+						{
+							FString PluginConfigContent;
+							if (FFileHelper::LoadFileToString(PluginConfigContent, *FPaths::Combine(PluginConfigDir, ConfigFile)))
+							{
+								FoundConfig->CombineFromBuffer(PluginConfigContent);
+								// if plugin config overrides are applied then don't save
+								FoundConfig->NoSave = true;
+							}
+						}
+					}
+				}
+
 			}
 		}
 
@@ -559,6 +642,11 @@ bool FPluginManager::ConfigureEnabledPlugins()
 						if (FCoreDelegates::OnMountPak.IsBound())
 						{
 							FCoreDelegates::OnMountPak.Execute(PakPath, 0, nullptr);
+							PluginsWithPakFile.AddUnique(Plugin);
+						}
+						else
+						{
+							UE_LOG(LogPluginManager, Warning, TEXT("PAK file (%s) could not be mounted because OnMountPak is not bound"), *PakPath)
 						}
 					}
 				}
@@ -581,26 +669,11 @@ TSharedPtr<FPlugin> FPluginManager::FindPluginInstance(const FString& Name)
 	}
 }
 
-bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
-{
-	// Figure out which plugins are enabled
-	if(!ConfigureEnabledPlugins())
-	{
-		return false;
-	}
 
-	FScopedSlowTask SlowTask(AllPlugins.Num());
-
-	// Load plugins!
-	for( const TPair<FString, TSharedRef< FPlugin >> PluginPair : AllPlugins )
-	{
-		const TSharedRef<FPlugin> &Plugin = PluginPair.Value;
-		SlowTask.EnterProgressFrame(1);
-
-		if ( Plugin->bEnabled )
+static bool TryLoadModulesForPlugin( const FPlugin& Plugin, const ELoadingPhase::Type LoadingPhase )
 		{
 			TMap<FName, EModuleLoadResult> ModuleLoadFailures;
-			FModuleDescriptor::LoadModulesForPhase(LoadingPhase, Plugin->Descriptor.Modules, ModuleLoadFailures);
+	FModuleDescriptor::LoadModulesForPhase(LoadingPhase, Plugin.Descriptor.Modules, ModuleLoadFailures);
 
 			FText FailureMessage;
 			for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
@@ -610,7 +683,7 @@ bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 
 				if( FailureReason != EModuleLoadResult::Success )
 				{
-					const FText PluginNameText = FText::FromString(Plugin->Name);
+			const FText PluginNameText = FText::FromString(Plugin.Name);
 					const FText TextModuleName = FText::FromName(FailureIt.Key());
 
 					if ( FailureReason == EModuleLoadResult::FileNotFound )
@@ -643,6 +716,32 @@ bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 			if( !FailureMessage.IsEmpty() )
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
+				return false;
+			}
+
+	return true;
+		}
+
+bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
+{
+	// Figure out which plugins are enabled
+	if(!ConfigureEnabledPlugins())
+	{
+		return false;
+	}
+
+	FScopedSlowTask SlowTask(AllPlugins.Num());
+
+	// Load plugins!
+	for( const TPair<FString, TSharedRef< FPlugin >> PluginPair : AllPlugins )
+	{
+		const TSharedRef<FPlugin> &Plugin = PluginPair.Value;
+		SlowTask.EnterProgressFrame(1);
+
+		if ( Plugin->bEnabled )
+		{
+			if (!TryLoadModulesForPlugin(Plugin.Get(), LoadingPhase))
+			{
 				return false;
 			}
 		}
@@ -782,6 +881,69 @@ void FPluginManager::AddPluginSearchPath(const FString& ExtraDiscoveryPath, bool
 	if (bRefresh)
 	{
 		RefreshPluginsList();
+	}
+}
+
+TArray<TSharedRef<IPlugin>> FPluginManager::GetPluginsWithPakFile() const
+{
+	return PluginsWithPakFile;
+}
+
+IPluginManager::FNewPluginMountedEvent& FPluginManager::OnNewPluginMounted()
+{
+	return NewPluginMountedEvent;
+}
+
+void FPluginManager::MountNewlyCreatedPlugin(const FString& PluginName)
+{
+	for(TMap<FString, TSharedRef<FPlugin>>::TIterator Iter(AllPlugins); Iter; ++Iter)
+	{
+		const TSharedRef<FPlugin>& Plugin = Iter.Value();
+		if (Plugin->Name == PluginName)
+		{
+			// Mark the plugin as enabled
+			Plugin->bEnabled = true;
+
+			// Mount the plugin content directory
+			if (Plugin->CanContainContent() && ensure(RegisterMountPointDelegate.IsBound()))
+			{
+				FString ContentDir = Plugin->GetContentDir();
+				RegisterMountPointDelegate.Execute(Plugin->GetMountedAssetPath(), ContentDir);
+
+				// Register this plugin's path with the list of content directories that the editor will search
+				if (FConfigFile* EngineConfigFile = GConfig->Find(GEngineIni, false))
+				{
+					if (FConfigSection* CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
+					{
+						CoreSystemSection->AddUnique("Paths", Plugin->GetContentDir());
+					}
+				}
+			}
+
+			// If it's a code module, also load the modules for it
+			if (Plugin->Descriptor.Modules.Num() > 0)
+			{
+				// Add the plugin binaries directory
+				const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin->FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
+				FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject);
+
+				// Load all the plugin modules
+				for (ELoadingPhase::Type LoadingPhase = (ELoadingPhase::Type)0; LoadingPhase < ELoadingPhase::Max; LoadingPhase = (ELoadingPhase::Type)(LoadingPhase + 1))
+				{
+					if (LoadingPhase != ELoadingPhase::None)
+					{
+						TryLoadModulesForPlugin(Plugin.Get(), LoadingPhase);
+					}
+				}
+			}
+
+			// Notify any listeners that a new plugin has been mounted
+			if (NewPluginMountedEvent.IsBound())
+			{
+				NewPluginMountedEvent.Broadcast(*Plugin);
+			}
+			break;
+		}
 	}
 }
 

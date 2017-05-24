@@ -120,10 +120,39 @@ FString UGameplayTagsK2Node_SwitchGameplayTagContainer::GetPinNameGivenIndex(int
 void UGameplayTagsK2Node_SwitchGameplayTagContainer::CreateCasePins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	for (int32 Index = 0; Index < PinNames.Num(); ++Index)
+
+	while (PinContainers.Num() > PinNames.Num())
+	{
+		FString PinName = GetUniquePinName();
+		PinNames.Add(FName(*PinName));
+	}
+
+	if (PinNames.Num() > PinContainers.Num())
+	{
+		PinNames.SetNum(PinContainers.Num());
+	}
+
+	for (int32 Index = 0; Index < PinContainers.Num(); ++Index)
   	{
-		UEdGraphPin * NewPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), nullptr, false, false, PinContainers[Index].ToString());
-		NewPin->PinFriendlyName = FText::FromString(PinNames[Index].ToString());
+		if (PinContainers[Index].IsValid())
+		{
+			PinNames[Index] = FName(*PinContainers[Index].ToString());
+		}
+		else
+		{
+			PinNames[Index] = FName(*GetUniquePinName());
+		}
+
+		UEdGraphPin * NewPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), nullptr, false, false, PinNames[Index].ToString());
+
+		if (PinContainers[Index].IsValid())
+		{
+			NewPin->PinFriendlyName = FText::FromString(PinContainers[Index].ToStringSimple());
+		}
+		else
+		{
+			NewPin->PinFriendlyName = FText::FromString(PinNames[Index].ToString());
+		}
   	}
 }
 
@@ -134,17 +163,7 @@ FString UGameplayTagsK2Node_SwitchGameplayTagContainer::GetUniquePinName()
 	while (true)
 	{
 		NewPinName = FString::Printf(TEXT("Case_%d"), Index++);
-		bool bFound = false;
-		for (int32 PinIdx = 0; PinIdx < Pins.Num(); PinIdx++)
-		{
-			FString PinName = Pins[PinIdx]->PinFriendlyName.ToString();
-			if (PinName == NewPinName)
-			{
-				bFound = true;
-				break;
-			}			
-		}
-		if (!bFound)
+		if (!FindPin(NewPinName))
 		{
 			break;
 		}
@@ -160,13 +179,26 @@ void UGameplayTagsK2Node_SwitchGameplayTagContainer::AddPinToSwitchNode()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	UEdGraphPin* NewPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), nullptr, false, false, PinName);
 	NewPin->PinFriendlyName = FText::FromString(PinName);
-	PinContainers.Add(FGameplayTagContainer());
+
+	if (PinContainers.Num() < PinNames.Num())
+	{
+		PinContainers.Add(FGameplayTagContainer());
+	}	
 }
 
 void UGameplayTagsK2Node_SwitchGameplayTagContainer::RemovePin(UEdGraphPin* TargetPin)
 {
 	checkSlow(TargetPin);
 
+	FName PinName = FName(*TargetPin->PinName);
 	// Clean-up pin name array
-	PinNames.Remove(FName(*TargetPin->PinFriendlyName.ToString()));
+	int32 Index = PinNames.IndexOfByKey(PinName);
+	if (Index >= 0)
+	{
+		if (Index < PinContainers.Num())
+		{
+			PinContainers.RemoveAt(Index);
+		}
+		PinNames.RemoveAt(Index);
+	}
 }

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability: Public
 Title:기본 Required, Spawn 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:이미터에 기본 포함되어 정상 작동에 필요한 모듈입니다.
 Version: 4.9
+tags:Particles
 
 
 [TOC(start:2 end:3)]
@@ -41,7 +42,7 @@ Version: 4.9
 | **Delay First Loop Only** | 첫 루핑에만 딜레이 - _True_ 면 EmitterDelay 가 0 보다 크고 EmitterLoops 가 1 보다 큰 이미터는 첫 번째 루핑에서만 딜레이가 적용됩니다. |
 | [REGION:tablesection]Sub UV[/REGION] ||
 | [REGION:note]Sub UV 데이터는 이미터가 적용된 텍스처의 서브 이미지를 활용할 것임을 나타냅니다. 파티클에 단순한 애니메이션을 구현하는 데 좋습니다.[/REGION] ||
-| **Interpolation Method** | 보간 메소드 - 두 개의 서브 이미지를 보간하는 데 활용할 메소드를 나타내는 열거형입니다. 가능한 옵션은 다음과 같습니다: [INCLUDE:#InterpMethod] |
+| **Interpolation Method** | 보간 메소드 - 두 개의 서브 이미지를 보간하는 데 활용할 메소드를 나타내는 Enum 입니다. 가능한 옵션은 다음과 같습니다: [INCLUDE:#InterpMethod] |
 | **Sub Images_Horizontal** | 서브 이미지_가로 - 텍스처의 가로 (X) 축에 있는 텍스처 서브 이미지 갯수입니다. |
 | **Sub Images_Vertical** | 서브 이미지_세로 - 텍스처의 세로 (Y) 축에 있는 텍스처 서브 이미지 갯수입니다. |
 | **Scale UV** | 스케일 UV - 서브 이미지 크기에 적절히 `맞추기` 위해 UV 값에 스케일을 적용해야 할지를 나타냅니다. 메시 이미터에만 사용됩니다. |

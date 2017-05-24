@@ -30,6 +30,10 @@ class UAnimBlueprintFactory : public UFactory
 	UPROPERTY(EditAnywhere, Category=AnimBlueprintFactory)
 	class USkeleton* TargetSkeleton;
 
+	// The preview mesh to use with this animation blueprint
+	UPROPERTY(EditAnywhere, Category=AnimBlueprintFactory)
+	class USkeletalMesh* PreviewSkeletalMesh;
+
 	//~ Begin UFactory Interface
 	virtual bool ConfigureProperties() override;
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;

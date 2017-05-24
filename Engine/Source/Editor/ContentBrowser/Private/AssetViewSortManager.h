@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/Views/SHeaderRow.h"
+#include "ContentBrowserDelegates.h"
 
 struct FAssetViewItem;
 
@@ -17,7 +18,7 @@ public:
 	void ResetSort();
 
 	/** Sorts a list using the current ColumnId and Mode. Supply a MajorityAssetType to help discover sorting type (numerical vs alphabetical) */
-	void SortList(TArray<TSharedPtr<struct FAssetViewItem>>& AssetItems, const FName& MajorityAssetType) const;
+	void SortList(TArray<TSharedPtr<struct FAssetViewItem>>& AssetItems, const FName& MajorityAssetType, const TArray<FAssetViewCustomColumn>& CustomColumns) const;
 
 	/** Sets the sort mode based on the column that was clicked, returns true if newly assigned */
 	bool SetOrToggleSortColumn(const EColumnSortPriority::Type InSortPriority, const FName& InColumnId);

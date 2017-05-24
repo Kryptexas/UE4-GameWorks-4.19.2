@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2690185
+﻿INTSourceChangelist:3200686
 Availability:Public
 Title:Vignette（ビネット効果）
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
@@ -10,10 +10,10 @@ Version:4.9
 [/REGION]
 
 [EXCERPT:Vignette_Desc]
-**Vignette** は、実際のカメラレンズがだんだん暗くなっていく様子をシミュレートする効果です。高品質レンズの場合、この効果は補正対象となります。エフェクトは、主に画像の輪郭に顕著に現れます。
+**Vignette** は、実際のカメラレンズがだんだん暗くなっていく様子をシミュレートするエフェクトです。高品質レンズの場合、このエフェクトは補正対象となります。エフェクトは、主に画像の輪郭に顕著に現れます。
 [/EXCERPT:Vignette_Desc]
 
-**Vignette (ビネット効果)** 設定は、**[Post Process Settings (ポストプロセス設定)]** の **[Scene Color (シーンカラー)]** にあります。
+**Vignette (ビネット エフェクト)** 設定は、**[Post Process Settings (ポストプロセス設定)]** の **[Scene Color (シーンカラー)]** にあります。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
@@ -23,7 +23,7 @@ Version:4.9
 [EXCERPT:Intensity]
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
-	![Vignetter Intensity - 0](vignette_off.png)(w:600)
+	![Vignette Intensity - 0](vignette_off.png)(w:600)
 	[/PARAM]
 	[PARAM:after]
 	![Vignette Intensity - 1](vignette_on.png)(w:600)

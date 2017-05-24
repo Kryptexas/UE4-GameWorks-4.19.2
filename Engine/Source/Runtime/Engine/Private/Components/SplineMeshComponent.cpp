@@ -13,6 +13,7 @@
 #include "AI/NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
+#include "Engine/StaticMesh.h"
 #include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
@@ -20,6 +21,12 @@
 #include "IHierarchicalLODUtilities.h"
 #include "HierarchicalLODUtilitiesModule.h"
 #endif // WITH_EDITOR
+
+int32 GNoRecreateSplineMeshProxy = 1;
+static FAutoConsoleVariableRef CVarNoRecreateSplineMeshProxy(
+	TEXT("r.SplineMesh.NoRecreateProxy"),
+	GNoRecreateSplineMeshProxy,
+	TEXT("Optimization. If true, spline mesh proxies will not be recreated every time they are changed. They are simply updated."));
 
 //////////////////////////////////////////////////////////////////////////
 // FSplineMeshVertexFactoryShaderParameters
@@ -513,9 +520,80 @@ void USplineMeshComponent::UpdateMesh()
 	}
 }
 
+void USplineMeshComponent::UpdateMesh_Concurrent()
+{
+	if (bMeshDirty)
+	{
+		UpdateRenderStateAndCollision_Internal(true);
+	}
+}
+
+void USplineMeshComponent::CalculateScaleZAndMinZ(float& OutScaleZ, float& OutMinZ) const
+{
+	if (FMath::IsNearlyEqual(SplineBoundaryMin, SplineBoundaryMax))
+	{
+		FBoxSphereBounds StaticMeshBounds = GetStaticMesh()->GetBounds();
+		OutScaleZ = 0.5f / USplineMeshComponent::GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis); // 1/(2 * Extent)
+		OutMinZ = USplineMeshComponent::GetAxisValue(StaticMeshBounds.Origin, ForwardAxis) * OutScaleZ - 0.5f;
+	}
+	else
+	{
+		OutScaleZ = 1.0f / (SplineBoundaryMax - SplineBoundaryMin);
+		OutMinZ = SplineBoundaryMin * OutScaleZ;
+	}
+}
+
 void USplineMeshComponent::UpdateRenderStateAndCollision()
 {
-	MarkRenderStateDirty();
+	UpdateRenderStateAndCollision_Internal(false);
+}
+
+void USplineMeshComponent::UpdateRenderStateAndCollision_Internal(bool bConcurrent)
+{
+	if (GNoRecreateSplineMeshProxy && bRenderStateCreated && SceneProxy)
+	{
+		if (bConcurrent)
+		{
+			SendRenderTransform_Concurrent();
+		}
+		else
+		{
+			MarkRenderTransformDirty();
+		}
+
+		FSplineMeshSceneProxy* SplineProxy = static_cast<FSplineMeshSceneProxy*>(SceneProxy);
+
+		float SplineMeshScaleZ = 1.f;
+		float SplineMeshMinZ = 1.f;
+		CalculateScaleZAndMinZ(SplineMeshScaleZ, SplineMeshMinZ);
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
+			UpdateSplineParamsRTCommand,
+			FSplineMeshSceneProxy*, SplineProxy, SplineProxy,
+			FSplineMeshParams, SplineParams, SplineParams,
+			TEnumAsByte<ESplineMeshAxis::Type>, ForwardAxis, ForwardAxis,
+			FVector, SplineUpDir, SplineUpDir,
+			float, SplineMeshScaleZ, SplineMeshScaleZ,
+			float, SplineMeshMinZ, SplineMeshMinZ,
+			{
+				SplineProxy->SplineParams = SplineParams;
+				SplineProxy->ForwardAxis = ForwardAxis;
+				SplineProxy->SplineUpDir = SplineUpDir;
+				SplineProxy->SplineMeshScaleZ = SplineMeshScaleZ;
+				SplineProxy->SplineMeshMinZ = SplineMeshMinZ;
+			});
+	}
+	else
+	{
+		if (bConcurrent)
+		{
+			RecreateRenderState_Concurrent();
+		}
+		else
+		{
+			MarkRenderStateDirty();
+		}
+	}
 
 #if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	CachedMeshBodySetupGuid.Invalidate();
@@ -624,7 +702,7 @@ FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld
 {
 	if (!GetStaticMesh())
 	{
-		return FBoxSphereBounds(FBox(0));
+		return FBoxSphereBounds(FBox(ForceInit));
 	}
 
 	float MinT = 0.0f;
@@ -656,7 +734,7 @@ FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld
 	const FVector FlattenedMeshExtent = MeshBounds.BoxExtent * AxisMask;
 	const FBox MeshBoundingBox = FBox(FlattenedMeshOrigin - FlattenedMeshExtent, FlattenedMeshOrigin + FlattenedMeshExtent);
 
-	FBox BoundingBox(0);
+	FBox BoundingBox(ForceInit);
 	BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(MinT));
 	BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(MaxT));
 

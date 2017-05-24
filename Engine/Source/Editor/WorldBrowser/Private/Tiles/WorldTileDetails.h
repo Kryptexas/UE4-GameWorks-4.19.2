@@ -99,16 +99,17 @@ class UWorldTileDetails : public UObject
 	// Events when user edits tile properties
 	DECLARE_EVENT( UWorldTileDetails, FTilePropertyChanged )
 
+	FTilePropertyChanged			PostUndoEvent;
 	FTilePropertyChanged			PositionChangedEvent;
 	FTilePropertyChanged			ParentPackageNameChangedEvent;
 	FTilePropertyChanged			LODSettingsChangedEvent;
 	FTilePropertyChanged			ZOrderChangedEvent;
 	FTilePropertyChanged			HideInTileViewChangedEvent;
-	
+		
 	// UObject interface
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	// todo: undo operations
-
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
+	
 public:
 	// Initialize tile details with values stored in FWorldTileInfo object
 	void SetInfo(const FWorldTileInfo& Info, ULevel* Level);

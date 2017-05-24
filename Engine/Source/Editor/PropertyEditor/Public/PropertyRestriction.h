@@ -20,6 +20,10 @@ public:
 	void AddHiddenValue(FString Value);
 	void AddDisabledValue(FString Value);
 
+	void RemoveHiddenValue(FString Value);
+	void RemoveDisabledValue(FString Value);
+	void RemoveAll();
+
 private:
 
 	TArray<FString> HiddenValues;

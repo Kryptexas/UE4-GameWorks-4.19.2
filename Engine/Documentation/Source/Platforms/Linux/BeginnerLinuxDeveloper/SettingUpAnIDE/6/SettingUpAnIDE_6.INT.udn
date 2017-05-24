@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: 6 - Creating a CPP Project from your IDE
 Crumbs:
 Description:Learn how to create and configure a CPP project form your IDE.
@@ -14,22 +14,7 @@ Related: Programming/QuickStart
 Related: Engine/QuickStart
 Related: Support/Builds
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/5 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Home](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 By now, you've learned how to configure your IDE to run UE4 in a Linux environment. Also, you've learned how to create a new Blueprint project using a Project template. In this section, we'll show you 
 how to create a new CPP project from UE4. For the purposes of this demonstration, let's suppose that you want to create a new CPP game with a driving mechanic.
@@ -69,7 +54,11 @@ how to create a new CPP project from UE4. For the purposes of this demonstration
 	After UE4 creates your new CPP project, an instance of Qt Creator for your new CPP project will be launched, closing UE4Editor in the process.
 	[/REGION]
 
-1.	At this point, you should see Qt Creator's **Configure Project** menu in the newly launched instance of Qt Creator. Use what you've learned thus far to configure your new CPP project to have the following Build Settings for Debug and Release Mode:
+1.	At this point, you should see Qt Creator's **Configure Project** menu in the newly launched instance of Qt Creator. Use what you've learned thus far to configure your new CPP project to have the following Build Settings for Debug Mode;
+
+	![](SetupIDE_Step27a.png)
+
+	And Release Mode:
 
 	![](SetupIDE_Step27.png)
 
@@ -148,9 +137,9 @@ As you worked your way through this tutorial, you learned:
 Learn how to use Unreal Engine by referring to our [](GettingStarted) documentation!
 
 If you're looking to quickly get started with UE4, refer to the following tutorials:
+
 *	[](Engine/Content/QuickStart)
 *	[](Programming/QuickStart)
 *	[](Engine/QuickStart)
 
-
-%Steps%
+[NAV]

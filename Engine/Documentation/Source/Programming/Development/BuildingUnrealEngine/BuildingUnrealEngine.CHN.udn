@@ -176,6 +176,56 @@ SkillLevel: Advanced
 [/EXCERPT:linuxcompile]
 -->
 
+<!--
+[EXCERPT:windowsrun]
+
+1.	Set your startup project to **UE4**.
+
+	![](SetUE4_StartPrj.png)
+
+1.	**Right-click** the **UE4** project, **hover over 'Debug'** and **click 'Start New Instance'** to launch the editor.
+
+	![](RunCompiledWindowsEditor.png)
+
+	[REGION:tip]
+	Alternatively, you can **press the F5 key** on your keyboard to start a new instance of the editor.
+	[/REGION]
+
+1.	Congratulations! You've compiled and launched the engine from source.
+
+	![](CompiledEditor_Windows.png)
+
+[/EXCERPT:windowsrun]
+
+[EXCERPT:macrun]
+		
+1.	Select **Product > Run** to launch the editor.
+		
+	![](RunningMacEditor.png)
+
+1.	Congratulations! You've compiled and launched the engine from source.
+
+	![](CompiledEditor_Mac.png)
+[/EXCERPT:macrun]
+
+[EXCERPT:linuxrun]
+
+[REGION:note]		
+If you're unable to create an OpenGL context as you're working through these steps, you may need to update your graphics drivers (refer to our documentation on [](Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers)).
+[/REGION]
+
+1.	Navigate to the editor's binary path by entering `cd Engine/Binaries/Linux/` into the terminal.
+
+1.	Run **UE4Editor** to launch the editor.
+
+	![](RunUE4Editor_Linux.png)
+
+1.	Congratulations! You've compiled and launched the engine from source.
+
+	![](CompiledEditor_Linux.png)
+[/EXCERPT:linuxrun]
+-->
+
 ## 开始使用虚幻引擎
 
 学习如何使用虚幻引擎，可以先参考 [](GettingStarted) 文档！

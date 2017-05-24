@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_Rolling.h"
 #include "TP_RollingGameMode.h"
 #include "TP_RollingBall.h"
 

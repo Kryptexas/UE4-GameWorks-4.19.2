@@ -13,20 +13,21 @@ class UMovieSceneSpawnSection;
 
 /** Spawn track eval template that evaluates a curve */
 USTRUCT()
-struct FMovieSceneSpawnSectionTemplate : public FMovieSceneEvalTemplate
+struct MOVIESCENETRACKS_API FMovieSceneSpawnSectionTemplate : public FMovieSceneEvalTemplate
 {
 	GENERATED_BODY()
 	
 	FMovieSceneSpawnSectionTemplate() {}
 	FMovieSceneSpawnSectionTemplate(const UMovieSceneSpawnSection& SpawnSection);
 
-	MOVIESCENETRACKS_API static FMovieSceneAnimTypeID GetAnimTypeID();
+	static FMovieSceneAnimTypeID GetAnimTypeID();
 	
 private:
 
 	virtual UScriptStruct& GetScriptStructImpl() const override { return *StaticStruct(); }
 	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
 
+protected:
 	UPROPERTY()
 	FIntegralCurve Curve;
 };

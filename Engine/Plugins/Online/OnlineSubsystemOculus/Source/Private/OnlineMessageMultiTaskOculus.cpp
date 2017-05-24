@@ -7,6 +7,7 @@
 
 void FOnlineMessageMultiTaskOculus::AddNewRequest(ovrRequest RequestId)
 {
+	InProgressRequests.Add(RequestId);
 	OculusSubsystem.AddRequestDelegate(
 		RequestId,
 		FOculusMessageOnCompleteDelegate::CreateLambda([this, RequestId](ovrMessageHandle Message, bool bIsError)

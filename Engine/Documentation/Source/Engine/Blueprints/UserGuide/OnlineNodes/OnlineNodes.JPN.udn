@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:Online Session ノード
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -9,7 +9,8 @@ Related:Gameplay/Networking/Actors
 Related:Resources/ContentExamples/Networking
 version:4.9
 Parent:Engine/Blueprints
-Type:guide
+type:overview
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -57,9 +58,9 @@ Type:guide
 
 ## オンライン セッション ノード
 
-以下は、 **ブループリント** 経由でマルチプレイヤー ゲームのホスト、検索、参加、退出を処理するノードです。 
+以下は、**Blueprints** 経由でマルチプレイヤー ゲームのホスト、検索、参加、退出を処理するノードです。 
 
-それぞれのノード操作はレイテンシ、つまりバックグラウンドで操作を行い (多くの場合、ネットワーク上での通信が必要な操作であるため)、その後どこかで終了します。ノードの右上端の時計アイコンで表示されます。
+それぞれのノード操作は _レイテンシ_ 、つまりバックグラウンドで操作を行い (多くの場合、ネットワーク上での通信が必要な操作であるため)、その後どこかで終了します。ノードの右上端の時計アイコンで表示されます。
 
 ### Create Session ノード
 
@@ -68,7 +69,7 @@ Type:guide
 **Create Session** ノードからすべてが開始します。ゲームが正常にセッションを作成したら、ゲームの他のインスタンスが (**Find Session** ノードで) 検索、および (**Join Session** ノードで) 参加ができるようになります。このノード上で、セッションに参加できるプレイヤー数とセッションを LAN モードで作成するかどうかを指定できます。サポートされているオンライン サブシステム モジュールの場合、LAN モードを false に設定するとインターネットゲームを作成しようとします。 
 
 [REGION:note]
-オンライン サブシステムとセッション インターフェースの概要は、 [](Programming/Online) ページを参照してください。
+オンライン サブシステムとセッション インターフェースの概要は、[](Programming/Online) ページを参照してください。
 [/REGION]
 
 ### Find Sessions ノード
@@ -81,13 +82,13 @@ Type:guide
 
 ![](JoinSession.png)
 
-参加したい **BlueprintSessionResult** を決めたら、 **Join Session** にそれをパスします。ゲームは正常にサーバーに接続されると、自動的にサーバーのマップにつながり、ゲームプレイに参加します。 
+参加したい **BlueprintSessionResult** を決めたら、**Join Session** にそれをパスします。ゲームは正常にサーバーに接続されると、自動的にサーバーのマップにつながり、ゲームプレイに参加します。 
 
 ### Destroy Session ノード
 
 ![](DestroySession.png)
 
-他のプレイヤーのゲームの検索と参加を締め切りたい場合、 **Destroy Session** ノードを呼び出します。これで効率的にセッションから離れることができますし、ゲームをホストしている場合は、セッションを終了するので、これ以上検索されることはありません。 
+他のプレイヤーのゲームの検索と参加を締め切りたい場合、**Destroy Session** ノードを呼び出します。これで効率的にセッションから離れることができますし、ゲームをホストしている場合は、セッションを終了するので、これ以上検索されることはありません。 
 
 [REGION:note]
 このノードはセッションから退出する際にも使用します。ゲームから退出する時に、クライアントはこのノードを呼び出す必要があります。
@@ -109,7 +110,7 @@ Type:guide
 
 ![](EventTravelError.png)
 
-**Travel Error** Event は、 **Network Error** Event ほど一般的ではありませんが、無効なマップのロードの試みなど、 **Network Error** が対応しないケースをゲームが処理できるようにします。 
+**Travel Error** Event は、**Network Error** Event ほど一般的ではありませんが、無効なマップのロードの試みなど、**Network Error** が対応しないケースをゲームが処理できるようにします。 
 
 [/EXCERPT:OnlineNodes]
 

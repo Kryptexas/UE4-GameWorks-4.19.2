@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:2950818
+﻿INTSourceChangelist:3150518
 Title:VR モードを有効にする
-Description: アンリアル エンジンで VR モードを有効にする方法を学習します。
+Description:アンリアル エンジンで VR モードを有効にする方法を学習します。
 Crumbs:
 Availability: public
 parent:Engine/Editor/VR
-type: howto
+type:how-to
 order:2
 tags:VR
-tags:Getting Started
-version:4.11
+tags:はじめよう
+version:4.13
 skilllevel: intermediate
 
 [VAR:Topic]
@@ -45,19 +45,21 @@ skilllevel: intermediate
 [/OBJECT]
 [/VAR]
 
+アンリアル エンジン 4.12 では、VR Editing Mode はエピック ゲームズ ランチャーで利用できるエンジンのバージョンで含まれています。最新のビルドは [GitHub](Engine/Editor/VR/Setup) でも取得できます。
+
 [EXCERPT:main]
 
 1. エディタをロードしたら、**[File (ファイル)] > [New (新規)]** をクリックして、新しく "VR-Basic" レベルを開きます。この環境は、いろいろいじりながら制御を学習できるのでお勧めです。
 
 	![](vr_map_template.png)
 
-1. [Editor Preferences (エディタの環境設定)]（**[Edit (編集] > [Editor Preferences (エディタの環境設定)**）で **[Experimental (実験的)]** カテゴリ、そして**[Enable VR Editing (VR 編集を有効にする)]** を選択します。
+1. [Editor Preferences (エディタの環境設定)]（**[Edit (編集] > [Editor Preferences (エディタの環境設定)**） で **[Experimental (実験的)]** カテゴリ、そして**[Enable VR Editing (VR 編集を有効にする)]** を選択します。
 
-1. VR モードにするには、エディタのメイン ツールバーの [New (新規)] ボタンをクリックして VR モードを有効にします。トラックしている空間が正しくキャリブレートされていれば、ヘルプと一緒にチュートリアルのフローティング ウィンドウが表示されるはずです。
+1. VR モードにするには、エディタのメイン ツールバーの [New (新規)] ボタンをクリックして** VR** モードを有効にします。トラックしている空間が正しくキャリブレートされていれば、ヘルプと一緒にチュートリアルのフローティング ウィンドウが表示されるはずです。
 
 	![](vrmode_toolbar.png)
-	[REGION:tip]
 
+	[REGION:tip]
 	コマンドラインで `-VREditor` と入力して UE4Editor.exe. を実行すれば、すぐに VR モードを開始することができます。
 	[/REGION]
 1. チュートリアルを使用するには、読みたいセクションの上にコントローラを合わせて、コントローラ トリガーを握ってそのセクションを開きます。 
@@ -65,3 +67,31 @@ skilllevel: intermediate
 [Home] ボタンを押せば、いつでもメニュー画面に戻って別のヘルプ セクションを選択することができます。
 
 [/EXCERPT:main]
+
+## VR 編集モードへの自動エントリ
+
+4.13 では、自動的に VR 編集モードになります。エディタがフォアグラウンドで VR Editing モードがオンになっている限り、ヘッドセットを装着すると自動的に VR 編集モードになります。ヘッドセットを外すと、編集モードが終了します。 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+cZJmh881FCo
+[/PARAMLITERAL]
+[/OBJECT]
+
+**VR 編集モード自動エントリのオン / オフの切り替え方法**
+1. **[Edit (編集)]** メニューで **[Editor Preferences (エディタ環境設定)]** をクリックして [Unreal Editor] オプションを表示します。
+
+	![](EditorPref.png)
+2. **[General (一般)]** の下の **[Experimental (実験的)]** セクションを選択し VR Editor オプションが含まれている **[VR]** カテゴリを選択します。
+
+	![](ExperimentalVR.png)
+3. **[Enable VR Mode Auto-Entry]** オプションで自動エントリ機能のオン / オフを切り替えます。
+
+	![](AutoEntryMenu_Highlight.png)
+

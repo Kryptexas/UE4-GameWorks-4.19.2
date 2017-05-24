@@ -1,7 +1,8 @@
 Availability:Docs
 Title:How To Use Blueprint Communications
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/BlueprintCommsUsage
-Description:Examples of how to setup and use different methods of Blueprint Communication. 
+Description:Examples of how to setup and use different methods of Blueprint Communication.
+tags:Blueprints
 
 [TOC(start:2 end:4)]
 

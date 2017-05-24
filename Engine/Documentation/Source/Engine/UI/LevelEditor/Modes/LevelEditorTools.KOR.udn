@@ -1,29 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title:레벨 에디터 모드
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:현재 레벨 에디터 모드 설정, 빌더 브러시 모양 변경, BSP 지오메트리와 볼륨을 새로 만드는 데 사용되는 툴 세트입니다.
 Version: 4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [EXCERPT:main]
 [INCLUDE:Shared/Glossary/M#glossary_modes_panel]
@@ -42,5 +22,3 @@ Version: 4.9
 | ![](LE_Tools_Foliage.png) | 인스턴싱된 폴리지를 칠할 수 있는 [**폴리지** 모드](Engine/Foliage) 를 토글합니다. | **Shift + 4**|
 | ![](LE_Tools_Brush.png) | 지오메트리의 브러시를 변경할 수 있는 [**지오메트리 편집** 모드](Engine/Actors/Brushes) 를 토글합니다. | **Shift + 5**|
 [/EXCERPT:main]
-
-%playlistnav%

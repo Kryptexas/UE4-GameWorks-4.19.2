@@ -10,6 +10,7 @@ Version: 4.9
 parent:Engine/Blueprints
 order:4
 type:how-to
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -78,7 +78,7 @@ int32 SButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry
 
 	const FSlateBrush* BrushResource = !bShowDisabledEffect && !bEnabled ? DisabledImage : GetBorder();
 	
-	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
+	ESlateDrawEffect DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
 
 	if (BrushResource && BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType)
 	{
@@ -286,13 +286,13 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 		{
 			Reply = FReply::Handled();
 		}
+	}
 
-		//If the user hasn't requested a new mouse captor and the button still has mouse capture,
-		//then the default behavior of the button is to release mouse capture.
-		if (Reply.GetMouseCaptor().IsValid() == false && HasMouseCapture())
-		{
-			Reply.ReleaseMouseCapture();
-		}
+	//If the user hasn't requested a new mouse captor and the button still has mouse capture,
+	//then the default behavior of the button is to release mouse capture.
+	if ( Reply.GetMouseCaptor().IsValid() == false && HasMouseCapture() )
+	{
+		Reply.ReleaseMouseCapture();
 	}
 
 	Invalidate(EInvalidateWidget::Layout);

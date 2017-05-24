@@ -22,6 +22,9 @@ class UPhysicsThrusterComponent : public USceneComponent
 	float ThrustStrength;
 
 	//~ Begin UActorComponent Interface
+#if WITH_EDITORONLY_DATA
+	virtual void OnRegister() override;
+#endif // WITH_EDITORONLY_DATA
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	//~ End UActorComponent Interface
 };

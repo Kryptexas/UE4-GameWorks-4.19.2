@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2828862
-Availability:Public
+﻿Availability:Public
+INTSourceChangelist:3244089
 Title:Named Slot
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
 Description:ユーザーが作成したウィジェットのための外部スロットを名前を付けたスロット (Named Slot) でエクスポーズします。
@@ -7,6 +7,7 @@ Related:Engine/UMG/UserGuide
 Related:Engine/UMG/UserGuide/Styling
 Related:Engine/UMG/UserGuide/Slots
 version:4.9
+tags:UMG UI Designer
 
 [TOC(start:2 end:2)]
 
@@ -58,7 +59,7 @@ version:4.9
 
 上の画面では、別の Button Template ウィジェットを作成しました。これは、キャンバス パネルを使用しており、ウィジェットをドラッグできるようになっています。 
 
-複数のウィジェットを Named Slot に追加し、様々なウィジェットを入れることができる「テンプレート」をセットアップすることができます。 
+複数のウィジェットを Named Slot に追加し、様々なウィジェットを入れることができるテンプレートをセットアップすることができます。 
 
 ![](NamedSlot10.png)(w:800)
 

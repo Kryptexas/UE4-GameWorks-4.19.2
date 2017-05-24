@@ -23,31 +23,31 @@
 
 static UDataTable* CreateGameplayDataTable()
 {
-	FString CSV(TEXT(",Tag,CategoryText,"));
-	CSV.Append(TEXT("\r\n0,Damage"));
-	CSV.Append(TEXT("\r\n1,Damage.Basic"));
-	CSV.Append(TEXT("\r\n2,Damage.Type1"));
-	CSV.Append(TEXT("\r\n3,Damage.Type2"));
-	CSV.Append(TEXT("\r\n4,Damage.Reduce"));
-	CSV.Append(TEXT("\r\n5,Damage.Buffable"));
-	CSV.Append(TEXT("\r\n6,Damage.Buff"));
-	CSV.Append(TEXT("\r\n7,Damage.Physical"));
-	CSV.Append(TEXT("\r\n8,Damage.Fire"));
-	CSV.Append(TEXT("\r\n9,Damage.Buffed.FireBuff"));
-	CSV.Append(TEXT("\r\n10,Damage.Mitigated.Armor"));
-	CSV.Append(TEXT("\r\n11,Lifesteal"));
-	CSV.Append(TEXT("\r\n12,Shield"));
-	CSV.Append(TEXT("\r\n13,Buff"));
-	CSV.Append(TEXT("\r\n14,Immune"));
-	CSV.Append(TEXT("\r\n15,FireDamage"));
-	CSV.Append(TEXT("\r\n16,ShieldAbsorb"));
-	CSV.Append(TEXT("\r\n17,Stackable"));
-	CSV.Append(TEXT("\r\n18,Stack"));
-	CSV.Append(TEXT("\r\n19,Stack.CappedNumber"));
-	CSV.Append(TEXT("\r\n20,Stack.DiminishingReturns"));
-	CSV.Append(TEXT("\r\n21,Protect.Damage"));
-	CSV.Append(TEXT("\r\n22,SpellDmg.Buff"));
-	CSV.Append(TEXT("\r\n23,GameplayCue.Burning"));
+	FString CSV(TEXT("---,Tag,DevComment"));
+	CSV.Append(TEXT("\r\n0,Damage,"));
+	CSV.Append(TEXT("\r\n1,Damage.Basic,"));
+	CSV.Append(TEXT("\r\n2,Damage.Type1,"));
+	CSV.Append(TEXT("\r\n3,Damage.Type2,"));
+	CSV.Append(TEXT("\r\n4,Damage.Reduce,"));
+	CSV.Append(TEXT("\r\n5,Damage.Buffable,"));
+	CSV.Append(TEXT("\r\n6,Damage.Buff,"));
+	CSV.Append(TEXT("\r\n7,Damage.Physical,"));
+	CSV.Append(TEXT("\r\n8,Damage.Fire,"));
+	CSV.Append(TEXT("\r\n9,Damage.Buffed.FireBuff,"));
+	CSV.Append(TEXT("\r\n10,Damage.Mitigated.Armor,"));
+	CSV.Append(TEXT("\r\n11,Lifesteal,"));
+	CSV.Append(TEXT("\r\n12,Shield,"));
+	CSV.Append(TEXT("\r\n13,Buff,"));
+	CSV.Append(TEXT("\r\n14,Immune,"));
+	CSV.Append(TEXT("\r\n15,FireDamage,"));
+	CSV.Append(TEXT("\r\n16,ShieldAbsorb,"));
+	CSV.Append(TEXT("\r\n17,Stackable,"));
+	CSV.Append(TEXT("\r\n18,Stack,"));
+	CSV.Append(TEXT("\r\n19,Stack.CappedNumber,"));
+	CSV.Append(TEXT("\r\n20,Stack.DiminishingReturns,"));
+	CSV.Append(TEXT("\r\n21,Protect.Damage,"));
+	CSV.Append(TEXT("\r\n22,SpellDmg.Buff,"));
+	CSV.Append(TEXT("\r\n23,GameplayCue.Burning,"));
 
 	auto DataTable = NewObject<UDataTable>(GetTransientPackage(), FName(TEXT("TempDataTable")));
 	DataTable->RowStruct = FGameplayTagTableRow::StaticStruct();
@@ -126,7 +126,7 @@ public: // the tests
 		}
 
 		// make sure health was reduced
-		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - DamageValue);
+		Test->TestEqual(TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - DamageValue);
 	}
 
 	void Test_InstantDamageRemap()
@@ -144,10 +144,10 @@ public: // the tests
 		}
 
 		// Now we should have lost some health
-		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - DamageValue);
+		Test->TestEqual(TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - DamageValue);
 
 		// Confirm the damage attribute itself was reset to 0 when it was applied to health
-		TestEqual(SKILL_TEST_TEXT("Damage Applied"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Damage, 0.f);
+		Test->TestEqual(TEXT("Damage Applied"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Damage, 0.f);
 	}
 
 	void Test_ManaBuff()
@@ -167,7 +167,7 @@ public: // the tests
 		}
 
 		// check that the value changed
-		TestEqual(SKILL_TEST_TEXT("Mana Buffed"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana, StartingMana + BuffValue);
+		Test->TestEqual(TEXT("Mana Buffed"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana, StartingMana + BuffValue);
 
 		// remove the effect
 		{
@@ -175,7 +175,7 @@ public: // the tests
 		}
 
 		// check that the value changed back
-		TestEqual(SKILL_TEST_TEXT("Mana Restored"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana, StartingMana);
+		Test->TestEqual(TEXT("Mana Restored"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana, StartingMana);
 	}
 
 	void Test_PeriodicDamage()
@@ -202,7 +202,7 @@ public: // the tests
 		TickWorld(SMALL_NUMBER);
 		++NumApplications;
 
-		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
+		Test->TestEqual(TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
 
 		// Tick a bit more to address possible floating point issues
 		TickWorld(PeriodSecs * .1f);
@@ -215,24 +215,19 @@ public: // the tests
 			++NumApplications;
 
 			// check that health has been reduced
-			TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
+			Test->TestEqual(TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
 		}
 
 		// advance time by one extra period
 		TickWorld(PeriodSecs);
 
 		// should not have reduced further
-		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
+		Test->TestEqual(TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
 
 		// TODO: test that the effect is no longer applied
 	}
 
 private: // test helpers
-
-	void TestEqual(const FString& TestText, float Actual, float Expected)
-	{
-		Test->TestEqual(FString::Printf(TEXT("%s: %f (actual) != %f (expected)"), *TestText, Actual, Expected), Actual, Expected);
-	}
 
 	template<typename MODIFIER_T>
 	FGameplayModifierInfo& AddModifier(UGameplayEffect* Effect, UProperty* Property, EGameplayModOp::Type Op, const MODIFIER_T& Magnitude)

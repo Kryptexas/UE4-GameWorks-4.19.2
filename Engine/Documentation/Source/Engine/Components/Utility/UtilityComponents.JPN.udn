@@ -1,27 +1,26 @@
-﻿INTSourceChangelist:2659215
+﻿INTSourceChangelist:3317795
 Availability:Public
 Title:Utility コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:ユーティリティ ベースのコンポーネントの説明と使用方法。 
+Description:ユーティリティ ベースのコンポーネントについて説明します。 
 Related:Engine/Blueprints/UserGuide/Components
-SkillLevel:初心者向け
-Version:4.9
+SkillLevel:Beginner
+Version:4.14
 
+[TOC (start:2 end:2)]
 
 ## ApplicationLifecycle コンポーネント
 
-**ApplicationLifecycle コンポーネント** は、アプリケーションのステート (起動、停止、終了など) について OS から通知を受け取る処理をします。 
+**ApplicationLifecycle コンポーネント** は、アプリケーションのステート (起動、停止、終了など) について OS (オペレーティング システム) から通知を受け取る処理をします。 
 
 ## Child Actor コンポーネント
 
-**ChildActor コンポーネント** は、登録時にアクタをスポーンして、登録削除時にアクタを破壊するコンポーネントです。 
+**ChildActor コンポーネント** は、登録時にアクタをスポーンして、登録削除時にアクタを破壊するコンポーネントです。
+
+ChildActor コンポーネントは、C++ クラスまたは Blueprint アセットを与えることによってスポーンされるアクタを指定します。クラスまたはアセットを選択すると、**Child Actor Template** 入力フィールドが表示されます。この入力フィールドを展開して、ブループリントで宣言されたパブリック変数を含む、指定された子アクタやそのコンポーネントのエクスポーズされ、編集可能な入力フィールドを編集することができます。
+
+![](ChildActorTemplate.png)
 
 ##Scene コンポーネント
 
-**Scene コンポーネント** は変形を持ち、アタッチメント機能をサポートしていますが、レンダリングやコリジョンの機能はありません。他のものをオフセットするために階層で「ダミー」コンポーネントとして役立ちます。 
-
-
-
-
-
-
+**Scene コンポーネント** はトランスフォームを持ち、アタッチメント機能をサポートしていますが、レンダリングやコリジョンの機能はありません。他のものをオフセットするために階層で「ダミー」コンポーネントとして役立ちます。 

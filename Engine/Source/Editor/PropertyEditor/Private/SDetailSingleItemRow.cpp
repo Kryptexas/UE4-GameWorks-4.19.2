@@ -9,6 +9,7 @@
 #include "IDetailKeyframeHandler.h"
 #include "IDetailPropertyExtensionHandler.h"
 #include "DetailPropertyRow.h"
+#include "DetailGroup.h"
 
 namespace DetailWidgetConstants
 {
@@ -372,11 +373,16 @@ bool SDetailSingleItemRow::OnContextMenuOpening( FMenuBuilder& MenuBuilder )
 		CopyAction = Customization->GetWidgetRow().CopyMenuAction;
 		PasteAction = Customization->GetWidgetRow().PasteMenuAction;
 	}
-	else if(Customization->HasPropertyNode())
+	else
 	{
-		static const FName DisableCopyPasteMetaDataName("DisableCopyPaste");
+		TSharedPtr<FPropertyNode> PropertyNode = Customization->GetPropertyNode();
+		if (!PropertyNode.IsValid() && Customization->DetailGroup.IsValid())
+		{
+			PropertyNode = Customization->DetailGroup->GetHeaderPropertyNode();
+		}
 
-		if(!Customization->GetPropertyNode()->ParentOrSelfHasMetaData(DisableCopyPasteMetaDataName))
+		static const FName DisableCopyPasteMetaDataName("DisableCopyPaste");
+		if (PropertyNode.IsValid() && !PropertyNode->ParentOrSelfHasMetaData(DisableCopyPasteMetaDataName))
 		{
 			CopyAction.ExecuteAction = FExecuteAction::CreateSP(this, &SDetailSingleItemRow::OnCopyProperty);
 			PasteAction.ExecuteAction = FExecuteAction::CreateSP(this, &SDetailSingleItemRow::OnPasteProperty);
@@ -414,14 +420,22 @@ void SDetailSingleItemRow::OnLeftColumnResized( float InNewWidth )
 
 void SDetailSingleItemRow::OnCopyProperty()
 {
-	if( Customization->HasPropertyNode() && OwnerTreeNode.IsValid() )
+	if (OwnerTreeNode.IsValid())
 	{
-		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle( Customization->GetPropertyNode().ToSharedRef(), OwnerTreeNode.Pin()->GetDetailsView().GetNotifyHook(),  OwnerTreeNode.Pin()->GetDetailsView().GetPropertyUtilities() );
-
-		FString Value;
-		if( Handle->GetValueAsFormattedString(Value, PPF_Copy) == FPropertyAccess::Success )
+		TSharedPtr<FPropertyNode> PropertyNode = Customization->GetPropertyNode();
+		if (!PropertyNode.IsValid() && Customization->DetailGroup.IsValid())
 		{
-			FPlatformMisc::ClipboardCopy(*Value);
+			PropertyNode = Customization->DetailGroup->GetHeaderPropertyNode();
+		}
+		if (PropertyNode.IsValid())
+		{
+			TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(PropertyNode.ToSharedRef(), OwnerTreeNode.Pin()->GetDetailsView().GetNotifyHook(), OwnerTreeNode.Pin()->GetDetailsView().GetPropertyUtilities());
+
+			FString Value;
+			if (Handle->GetValueAsFormattedString(Value, PPF_Copy) == FPropertyAccess::Success)
+			{
+				FPlatformMisc::ClipboardCopy(*Value);
+			}
 		}
 	}
 }
@@ -431,27 +445,37 @@ void SDetailSingleItemRow::OnPasteProperty()
 	FString ClipboardContent;
 	FPlatformMisc::ClipboardPaste(ClipboardContent);
 
-	if( !ClipboardContent.IsEmpty() && Customization->HasPropertyNode() && OwnerTreeNode.IsValid() )
+	if (!ClipboardContent.IsEmpty() && OwnerTreeNode.IsValid())
 	{
-		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(Customization->GetPropertyNode().ToSharedRef(), OwnerTreeNode.Pin()->GetDetailsView().GetNotifyHook(), OwnerTreeNode.Pin()->GetDetailsView().GetPropertyUtilities());
+		TSharedPtr<FPropertyNode> PropertyNode = Customization->GetPropertyNode();
+		if (!PropertyNode.IsValid() && Customization->DetailGroup.IsValid())
+		{
+			PropertyNode = Customization->DetailGroup->GetHeaderPropertyNode();
+		}
+		if (PropertyNode.IsValid())
+		{
+			TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(PropertyNode.ToSharedRef(), OwnerTreeNode.Pin()->GetDetailsView().GetNotifyHook(), OwnerTreeNode.Pin()->GetDetailsView().GetPropertyUtilities());
 
-		Handle->SetValueFromFormattedString( ClipboardContent );
+			Handle->SetValueFromFormattedString(ClipboardContent);
+		}
 	}
-
 }
 
 bool SDetailSingleItemRow::CanPasteProperty() const
 {
 	// Prevent paste from working if the property's edit condition is not met.
-	if (Customization->PropertyRow.IsValid())
+	TSharedPtr<FDetailPropertyRow> PropertyRow = Customization->PropertyRow;
+	if (!PropertyRow.IsValid() && Customization->DetailGroup.IsValid())
 	{
-		FPropertyEditor* PropertyEditor = Customization->PropertyRow->GetPropertyEditor().Get();
+		PropertyRow = Customization->DetailGroup->GetHeaderPropertyRow();
+	}
+
+	if (PropertyRow.IsValid())
+	{
+		FPropertyEditor* PropertyEditor = PropertyRow->GetPropertyEditor().Get();
 		if (PropertyEditor)
 		{
-			if ((PropertyEditor->HasEditCondition() && !PropertyEditor->IsEditConditionMet()) || PropertyEditor->IsEditConst())
-			{
-				return false;
-			}
+			return !PropertyEditor->IsEditConst() && (!PropertyEditor->HasEditCondition() || PropertyEditor->IsEditConditionMet());
 		}
 	}
 
@@ -526,7 +550,7 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCus
 		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
 
 		UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
-		SetKeyVisibility = KeyframeHandler.Pin()->IsPropertyKeyable(ObjectClass, *Handle) ? EVisibility::Visible : EVisibility::Hidden;
+		SetKeyVisibility = KeyframeHandler.Pin()->IsPropertyKeyable(ObjectClass, *Handle) ? EVisibility::Visible : EVisibility::Collapsed;
 		
 	}
 

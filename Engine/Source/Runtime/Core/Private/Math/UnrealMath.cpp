@@ -23,6 +23,7 @@ DECLARE_CYCLE_STAT( TEXT( "Convert Quat to Rotator" ), STAT_MathConvertQuatToRot
 -----------------------------------------------------------------------------*/
 
 CORE_API const FVector FVector::ZeroVector(0.0f, 0.0f, 0.0f);
+CORE_API const FVector FVector::OneVector(1.0f, 1.0f, 1.0f);
 CORE_API const FVector FVector::UpVector(0.0f, 0.0f, 1.0f);
 CORE_API const FVector FVector::ForwardVector(1.0f, 0.0f, 0.0f);
 CORE_API const FVector FVector::RightVector(0.0f, 1.0f, 0.0f);
@@ -423,7 +424,10 @@ FQuat FRotator::Quaternion() const
 	RotationQuat.W =  CR*CP*CY + SR*SP*SY;
 #endif // PLATFORM_ENABLE_VECTORINTRINSICS
 
-	RotationQuat.DiagnosticCheckNaN();
+#if ENABLE_NAN_DIAGNOSTIC || DO_CHECK
+	// Very large inputs can cause NaN's. Want to catch this here
+	ensureMsgf(!RotationQuat.ContainsNaN(), TEXT("Invalid input to FRotator::Quaternion - generated NaN output: %s"), *RotationQuat.ToString());
+#endif
 
 	return RotationQuat;
 }
@@ -1656,6 +1660,27 @@ bool FMath::SegmentPlaneIntersection(const FVector& StartPoint, const FVector& E
 	if (T > -KINDA_SMALL_NUMBER && T < 1.f + KINDA_SMALL_NUMBER)
 	{
 		out_IntersectionPoint = StartPoint + T * (EndPoint - StartPoint);
+		return true;
+	}
+	return false;
+}
+
+bool FMath::SegmentTriangleIntersection(const FVector& StartPoint, const FVector& EndPoint, const FVector& A, const FVector& B, const FVector& C, FVector& OutIntersectPoint, FVector& OutTriangleNormal)
+{
+	const FVector BA = A - B;
+	const FVector CB = B - C;
+	const FVector TriNormal = BA ^ CB;
+
+	bool bCollide = FMath::SegmentPlaneIntersection(StartPoint, EndPoint, FPlane(A, TriNormal), OutIntersectPoint);
+	if (!bCollide)
+	{
+		return false;
+	}
+
+	FVector BaryCentric = FMath::ComputeBaryCentric2D(OutIntersectPoint, A, B, C);
+	if (BaryCentric.X > 0.0f && BaryCentric.Y > 0.0f && BaryCentric.Z > 0.0f)
+	{
+		OutTriangleNormal = TriNormal;
 		return true;
 	}
 	return false;

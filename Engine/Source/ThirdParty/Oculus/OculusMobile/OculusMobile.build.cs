@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -9,7 +9,7 @@ public class OculusMobile : ModuleRules
 	public const int SDK_Major 	= 0;
 	public const int SDK_Minor 	= 3;
 
-	public OculusMobile(TargetInfo Target)
+	public OculusMobile(ReadOnlyTargetRules Target) : base(Target)
 	{
 		// current version of the OculusMobile Oculus SDK
 		Type = ModuleType.External;

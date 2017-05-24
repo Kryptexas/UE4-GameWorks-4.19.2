@@ -3,7 +3,10 @@
 #include "CoreMinimal.h"
 #include "Misc/ConfigCacheIni.h"
 #include "NiagaraEffect.h"
+#include "NiagaraScriptSource.h"
+#include "NiagaraGraph.h"
 #include "NiagaraEffectFactoryNew.h"
+#include "NiagaraSettings.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectFactory"
 
@@ -25,15 +28,33 @@ UObject* UNiagaraEffectFactoryNew::FactoryCreateNew(UClass* Class, UObject* InPa
 {
 	check(Class->IsChildOf(UNiagaraEffect::StaticClass()));
 
-	// First allocate runtime script 
-	UNiagaraEffect* NewEffect = NewObject<UNiagaraEffect>(InParent, Class, Name, Flags);
-	if (NewEffect != NULL)
+	const UNiagaraSettings* Settings = GetDefault<UNiagaraSettings>();
+	check(Settings);
+
+	UNiagaraEffect* NewEffect;
+	
+	if (UNiagaraEffect* Default = Cast<UNiagaraEffect>(Settings->DefaultEffect.TryLoad()))
 	{
-		// Then allocate editor-only objects
-		//FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
+		NewEffect = Cast<UNiagaraEffect>(StaticDuplicateObject(Default, InParent, Name, Flags, Class));
+	}
+	else
+	{
+		NewEffect = NewObject<UNiagaraEffect>(InParent, Class, Name, Flags | RF_Transactional);
 	}
 
+	InitializeEffect(NewEffect);
+
 	return NewEffect;
+}
+
+void UNiagaraEffectFactoryNew::InitializeEffect(UNiagaraEffect* Effect)
+{
+	UNiagaraScript* EffectScript = Effect->GetEffectScript();
+
+	UNiagaraScriptSource* EffectScriptSource = NewObject<UNiagaraScriptSource>(EffectScript, "EffectScriptSource", RF_Transactional);
+	EffectScriptSource->NodeGraph = NewObject<UNiagaraGraph>(EffectScriptSource, "EffectScriptGraph", RF_Transactional);
+
+	EffectScript->Source = EffectScriptSource;
 }
 
 #undef LOCTEXT_NAMESPACE

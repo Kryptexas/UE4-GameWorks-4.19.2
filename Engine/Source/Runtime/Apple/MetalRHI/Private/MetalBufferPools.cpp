@@ -9,166 +9,6 @@
 extern int32 GMetalBufferZeroFill;
 #endif
 
-FMetalPooledBuffer::FMetalPooledBuffer()
-: Buffer(nil)
-{
-	INC_DWORD_STAT(STAT_MetalFreePooledBufferCount);
-}
-
-FMetalPooledBuffer::FMetalPooledBuffer(FMetalPooledBuffer const& Other)
-: Buffer(nil)
-{
-	INC_DWORD_STAT(STAT_MetalFreePooledBufferCount);
-	operator=(Other);
-}
-
-FMetalPooledBuffer::FMetalPooledBuffer(id<MTLBuffer> Buf)
-: Buffer(Buf)
-{
-	INC_DWORD_STAT(STAT_MetalFreePooledBufferCount);
-	[Buffer retain];
-}
-
-FMetalPooledBuffer::~FMetalPooledBuffer()
-{
-	[Buffer release];
-	Buffer = nil;
-	DEC_DWORD_STAT(STAT_MetalFreePooledBufferCount);
-}
-
-FMetalPooledBuffer& FMetalPooledBuffer::operator=(FMetalPooledBuffer const& Other)
-{
-	if(this != &Other)
-	{
-		Buffer = [Other.Buffer retain];
-	}
-	return *this;
-}
-
-/** Get the pool bucket index from the size
- * @param Size the number of bytes for the resource
- * @returns The bucket index.
- */
-uint32 FMetalBufferPoolPolicyData::GetPoolBucketIndex(CreationArguments Args)
-{
-	// Only BUFFER_CACHE_MODE cached memory is acceptable
-	// Auto & Private memory is also forbidden in this pool
-#if PLATFORM_MAC
-	check(Args.Storage == MTLStorageModeShared || Args.Storage == MTLStorageModeManaged || Args.Storage == MTLStorageModePrivate);
-#endif
-	
-	uint32 Size = Args.Size;
-	
-	unsigned long Lower = 0;
-	unsigned long Upper = NumPoolBucketSizes;
-	unsigned long Middle;
-	
-	do
-	{
-		Middle = ( Upper + Lower ) >> 1;
-		if( Size <= BucketSizes[Middle-1] )
-		{
-			Upper = Middle;
-		}
-		else
-		{
-			Lower = Middle;
-		}
-	}
-	while( Upper - Lower > 1 );
-	
-	check( Size <= BucketSizes[Lower] );
-	check( (Lower == 0 ) || ( Size > BucketSizes[Lower-1] ) );
-	
-	// Managed buffers are placed into a different buffer than shared.
-	Lower += (NumPoolBucketSizes * Args.Storage);
-	
-	return Lower;
-}
-
-/** Get the pool bucket size from the index
- * @param Bucket the bucket index
- * @returns The bucket size.
- */
-uint32 FMetalBufferPoolPolicyData::GetPoolBucketSize(uint32 Bucket)
-{
-	check(Bucket < NumPoolBuckets);
-	uint32 Index = Bucket;
-	if(Index >= NumPoolBucketSizes)
-	{
-		Index -= NumPoolBucketSizes;
-	}
-	if(Index >= NumPoolBucketSizes)
-	{
-		Index -= NumPoolBucketSizes;
-	}
-	checkf(Index < NumPoolBucketSizes, TEXT("%d %d"), Index, NumPoolBucketSizes);
-	return BucketSizes[Index];
-}
-
-/** Creates the resource
- * @param Args The buffer size in bytes.
- * @returns A suitably sized buffer or NULL on failure.
- */
-FMetalPooledBuffer FMetalBufferPoolPolicyData::CreateResource(CreationArguments Args)
-{
-	// This manual construction is deliberate as newBuffer creates a resource with ref-cout == 1, so no need to retain
-	check(Args.Device);
-	FMetalPooledBuffer NewBuf;
-	uint32 BufferSize = GetPoolBucketSize(GetPoolBucketIndex(Args));
-	NewBuf.Buffer = [Args.Device newBufferWithLength: BufferSize options: BUFFER_CACHE_MODE
-#if METAL_API_1_1
-					 | (Args.Storage << MTLResourceStorageModeShift)
-#endif
-					 ];
-	check(NewBuf.Buffer);
-	TRACK_OBJECT(STAT_MetalBufferCount, NewBuf.Buffer);
-	INC_DWORD_STAT(STAT_MetalPooledBufferCount);
-	INC_MEMORY_STAT_BY(STAT_MetalPooledBufferMem, BufferSize);
-	INC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, BufferSize);
-	INC_DWORD_STAT(STAT_MetalBufferNativeAlloctations);
-	INC_DWORD_STAT_BY(STAT_MetalBufferNativeMemAlloc, BufferSize);
-	return NewBuf;
-}
-
-/** Gets the arguments used to create resource
- * @param Resource The buffer to get data for.
- * @returns The arguments used to create the buffer.
- */
-FMetalBufferPoolPolicyData::CreationArguments FMetalBufferPoolPolicyData::GetCreationArguments(FMetalPooledBuffer Resource)
-{
-#if PLATFORM_MAC
-	return FMetalBufferPoolPolicyData::CreationArguments(Resource.Buffer.device, Resource.Buffer.length, Resource.Buffer.storageMode);
-#else
-	return FMetalBufferPoolPolicyData::CreationArguments(Resource.Buffer.device, Resource.Buffer.length, MTLStorageModeShared);
-#endif
-}
-
-void FMetalBufferPoolPolicyData::FreeResource(FMetalPooledBuffer Resource)
-{
-	UNTRACK_OBJECT(STAT_MetalBufferCount, Resource.Buffer);
-	DEC_MEMORY_STAT_BY(STAT_MetalPooledBufferMem, Resource.Buffer.length);
-	DEC_DWORD_STAT(STAT_MetalPooledBufferCount);
-	DEC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Resource.Buffer.length);
-	INC_DWORD_STAT(STAT_MetalBufferNativeFreed);
-	INC_DWORD_STAT_BY(STAT_MetalBufferNativeMemFreed, Resource.Buffer.length);
-}
-
-/** The bucket sizes */
-uint32 FMetalBufferPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
-	256, 512, 768, 1024, 2048, 4096, 8192, 16384,
-	32768, 65536, 131072, 262144, 524288, 1048576, 2097152,
-	4194304, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456
-#if PLATFORM_MAC // Mac allows for up-to 1GB but iOS does not, so add a few more sizes
-	, 402653184, 536870912, 671088640, 805306368, 939524096, 1073741824
-#endif
-};
-
-/** Destructor */
-FMetalBufferPool::~FMetalBufferPool()
-{
-}
-
 void FMetalQueryBufferPool::Allocate(FMetalQueryResult& NewQuery)
 {
     FMetalQueryBuffer* QB = IsValidRef(CurrentBuffer) ? CurrentBuffer.GetReference() : GetCurrentQueryBuffer();
@@ -198,11 +38,7 @@ FMetalQueryBuffer* FMetalQueryBufferPool::GetCurrentQueryBuffer()
         }
         else
         {
-            Buffer = [Context->GetDevice() newBufferWithLength:EQueryBufferMaxSize options: BUFFER_CACHE_MODE
-#if METAL_API_1_1
-					  | MTLResourceStorageModeShared
-#endif
-					  ];
+            Buffer = [Context->GetDevice() newBufferWithLength:EQueryBufferMaxSize options: GetMetalDeviceContext().GetCommandQueue().GetCompatibleResourceOptions(BUFFER_CACHE_MODE | MTLResourceHazardTrackingModeUntracked | MTLResourceStorageModeShared)];
 			TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
         }
         CurrentBuffer = new FMetalQueryBuffer(Context, Buffer);
@@ -216,14 +52,44 @@ void FMetalQueryBufferPool::ReleaseQueryBuffer(id<MTLBuffer> Buffer)
     Buffers.Add(Buffer);
 }
 
-FRingBuffer::FRingBuffer(id<MTLDevice> Device, uint32 Size, uint32 InDefaultAlignment)
+FRingBuffer::FRingBuffer(id<MTLDevice> Device, MTLResourceOptions InOptions, uint32 Size, uint32 InDefaultAlignment)
 {
 	DefaultAlignment = InDefaultAlignment;
-	Buffer = [Device newBufferWithLength:Size options:BUFFER_CACHE_MODE];
+	InitialSize = Size;
+	Options = InOptions;
+	Buffer = [Device newBufferWithLength:Size options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
 	Offset = 0;
 	LastRead = Size;
 	LastWritten = 0;
+	FMemory::Memzero(FrameSize);
+	LastFrameChange = 0;
 	TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
+}
+
+void FRingBuffer::Shrink()
+{
+	uint32 FrameMax = 0;
+	for (uint32 i = 0; i < ARRAY_COUNT(FrameSize); i++)
+	{
+		FrameMax = FMath::Max(FrameMax, FrameSize[i]);
+	}
+	
+	uint32 NecessarySize = FMath::Max(FrameMax, InitialSize);
+	uint32 ThreeQuarterSize = Align((Buffer.length / 4) * 3, DefaultAlignment);
+	
+	if ((GFrameNumberRenderThread - LastFrameChange) >= 120 && NecessarySize < ThreeQuarterSize && NecessarySize < Buffer.length)
+	{
+		UE_LOG(LogMetal, Display, TEXT("Shrinking RingBuffer from %u to %u as max. usage is %u at frame %lld]"), (uint32)Buffer.length, ThreeQuarterSize, FrameMax, GFrameNumberRenderThread);
+		SafeReleaseMetalResource(Buffer);
+		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:ThreeQuarterSize options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
+		TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
+		Offset = 0;
+		LastRead = ThreeQuarterSize;
+		LastWritten = 0;
+		LastFrameChange = GFrameNumberRenderThread;
+	}
+	
+	FrameSize[GFrameNumberRenderThread % ARRAY_COUNT(FrameSize)] = 0;
 }
 
 uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
@@ -279,13 +145,15 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 	}
 	else
 	{
-		uint32 BufferSize = Buffer.length;
-		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, BufferSize * 2, Offset, LastRead, GFrameCounter);
+		const uint32 BufferSize = Buffer.length;
+		uint32 NewBufferSize = AlignArbitrary(BufferSize + Size, Buffer.length / 4);
+		
+		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, NewBufferSize, Offset, LastRead, GFrameCounter);
 		SafeReleaseMetalResource(Buffer);
-		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:BufferSize * 2 options:BUFFER_CACHE_MODE];
+		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:NewBufferSize options:((MTLResourceOptions)BUFFER_CACHE_MODE|Options)];
 		TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 		Offset = 0;
-		LastRead = Size;
+		LastRead = NewBufferSize;
 
 		// get current location
 		uint32 ReturnOffset = Offset;

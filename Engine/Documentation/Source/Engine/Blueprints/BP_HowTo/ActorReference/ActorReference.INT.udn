@@ -9,6 +9,7 @@ type:how-to
 parent:Engine/Blueprints/BP_HowTo
 order:1
 tags:Data Types
+tags:Blueprints
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 

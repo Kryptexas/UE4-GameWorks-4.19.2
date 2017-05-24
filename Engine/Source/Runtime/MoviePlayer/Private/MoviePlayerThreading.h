@@ -7,6 +7,7 @@
 #include "SpinLock.h"
 
 class FRunnable;
+class FMoviePlayerWidgetRenderer;
 
 /**
  * This class will handle all the nasty bits about running Slate on a separate thread
@@ -15,7 +16,7 @@ class FRunnable;
 class FSlateLoadingSynchronizationMechanism
 {
 public:
-	FSlateLoadingSynchronizationMechanism();
+	FSlateLoadingSynchronizationMechanism(TSharedPtr<FMoviePlayerWidgetRenderer, ESPMode::ThreadSafe> InWidgetRenderer);
 	~FSlateLoadingSynchronizationMechanism();
 	
 	/** Sets up the locks in their proper initial state for running */
@@ -53,8 +54,15 @@ private:
 	 * for passing Slate render draw passes between each other.
 	 */
 	FThreadSafeCounter IsSlateDrawEnqueued;
-	
+
+	/**
+	* This counter is used to generate a unique id for each new instance of the loading thread
+	*/
+	static FThreadSafeCounter LoadingThreadInstanceCounter;
+
 	/** The worker thread that will become the Slate thread */
 	FRunnableThread* SlateLoadingThread;
 	FRunnable* SlateRunnableTask;
+
+	TSharedPtr<FMoviePlayerWidgetRenderer, ESPMode::ThreadSafe> WidgetRenderer;
 };

@@ -36,6 +36,10 @@ enum EMaterialUsage
 	MATUSAGE_SplineMesh,
 	MATUSAGE_InstancedStaticMeshes,
 	MATUSAGE_Clothing,
+	MATUSAGE_NiagaraSprites,
+	MATUSAGE_NiagaraRibbons,
+	MATUSAGE_NiagaraMeshParticles,
+
 	MATUSAGE_MAX,
 };
 
@@ -58,6 +62,7 @@ struct ENGINE_API FMaterialRelevance
 	uint32 bDecal : 1;
 	uint32 bTranslucentSurfaceLighting : 1;
 	uint32 bUsesSceneDepth : 1;
+	uint32 bHasVolumeMaterialDomain : 1;
 
 	/** Default constructor */
 	FMaterialRelevance()
@@ -255,6 +260,8 @@ public:
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void PostLoad() override;
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	ENGINE_API virtual void PostCDOContruct() override;
+
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR

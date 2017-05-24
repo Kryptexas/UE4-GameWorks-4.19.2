@@ -44,8 +44,18 @@ enum EMetalFeatures
 	EMetalFeaturesGraphicsUAVs = 1 << 14,
 	/** Supports framework-level validation */
 	EMetalFeaturesValidation = 1 << 15,
+	/** Supports absolute-time emulation using command-buffer completion handlers */
+	EMetalFeaturesAbsoluteTimeQueries = 1 << 16,
 	/** Supports detailed statistics */
-	EMetalFeaturesStatistics= 1 << 16,
+	EMetalFeaturesStatistics= 1 << 17,
+	/** Supports memory-less texture resources */
+	EMetalFeaturesMemoryLessResources = 1 << 18,
+	/** Supports the explicit MTLHeap APIs */
+	EMetalFeaturesHeaps = 1 << 19,
+	/** Supports the explicit MTLFence APIs */
+	EMetalFeaturesFences = 1 << 20,
+	/** Supports deferred store action speficication */
+	EMetalFeaturesDeferredStoreActions = 1 << 21,
 };
 
 /**
@@ -89,29 +99,33 @@ public:
 	 */
 	void SubmitCommandBuffers(NSArray<id<MTLCommandBuffer>>* BufferList, uint32 Index, uint32 Count);
 
+	/** @returns Creates a new MTLFence or nil if this is unsupported */
+	id<MTLFence> CreateFence(NSString* Label) const;
+	
 #pragma mark - Public Command Queue Accessors -
 	
 	/** @returns The command queue's native device. */
 	id<MTLDevice> GetDevice(void) const;
 	
+	/** Converts a Metal v1.1+ resource option to something valid on the current version. */
+	NSUInteger GetCompatibleResourceOptions(MTLResourceOptions Options) const;
+	
 	/**
 	 * @param InFeature A specific Metal feature to check for.
 	 * @returns True if the requested feature is supported, else false.
 	 */
-	inline bool SupportsFeature(EMetalFeatures InFeature) { return ((Features & InFeature) != 0); }
+	static inline bool SupportsFeature(EMetalFeatures InFeature) { return ((Features & InFeature) != 0); }
 
 #pragma mark - Public Debug Support -
 
 	/** Inserts a boundary that marks the end of a frame for the debug capture tool. */
 	void InsertDebugCaptureBoundary(void);
 	
-#if METAL_DEBUG_OPTIONS
 	/** Enable or disable runtime debugging features. */
 	void SetRuntimeDebuggingLevel(int32 const Level);
 	
 	/** @returns The level of runtime debugging features enabled. */
 	int32 GetRuntimeDebuggingLevel(void) const;
-#endif
 
 #if METAL_STATISTICS
 #pragma mark - Public Statistics Extensions -
@@ -127,8 +141,7 @@ private:
 	class IMetalStatistics* Statistics;
 #endif
 	TArray<NSArray<id<MTLCommandBuffer>>*> CommandBuffers;
-#if METAL_DEBUG_OPTIONS
 	int32 RuntimeDebuggingLevel;
-#endif
-	uint32 Features;
+	NSUInteger PermittedOptions;
+	static uint32 Features;
 };

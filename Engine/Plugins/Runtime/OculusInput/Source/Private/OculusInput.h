@@ -77,7 +77,7 @@ public:
 	virtual void SetChannelValues( int32 ControllerId, const FForceFeedbackValues& Values ) override;
 
 	// IMotionController overrides
-	virtual bool GetControllerOrientationAndPosition( const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition ) const override;
+	virtual bool GetControllerOrientationAndPosition( const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale ) const override;
 	virtual ETrackingStatus GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const override;
 
 	// IHapticDevice overrides

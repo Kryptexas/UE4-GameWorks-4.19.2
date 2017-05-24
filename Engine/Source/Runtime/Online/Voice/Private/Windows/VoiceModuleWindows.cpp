@@ -9,12 +9,6 @@
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 #include "HAL/IConsoleManager.h"
 
-static TAutoConsoleVariable<int32> CVarHmdDirectSoundVoiceCaptureDeviceIndex(
-	TEXT("hmd.DirectSoundVoiceCaptureDeviceIndex"),
-	-1,
-	TEXT("Specifies the DirectSound device index to use when HMD is connected. (-1 == Unknown)\n"),
-	ECVF_Default);
-
 FVoiceCaptureDeviceWindows* FVoiceCaptureDeviceWindows::Singleton = NULL;
 
 /** Helper for printing MS guids */

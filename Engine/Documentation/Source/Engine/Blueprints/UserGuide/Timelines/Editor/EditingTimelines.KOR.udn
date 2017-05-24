@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 타임라인 편집
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: 블루프린트의 Timeline 노드 편집 방법에 대한 개요서입니다.
 version: 4.9
+tags:Blueprints
 
 Timeline (타임라인)은 그래프 탭이나 내 블루프린트 탭의 Timeline 노드에 **더블클릭** 하여 편집할 수 있습니다. 새로운 탭에 타임라인 에디터가 열립니다.
 

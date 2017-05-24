@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 using System.IO;
 
 public class SpeedTree : ModuleRules
 {
-	public SpeedTree(TargetInfo Target)
+	public SpeedTree(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -36,19 +36,6 @@ public class SpeedTree : ModuleRules
 						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC14_MTDLL64_Static.lib");
 					}
 				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-				{
-					PublicLibraryPaths.Add(SpeedTreePath + "Lib/Windows/VC12.x64");
-
-					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
-					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC12_MTDLL64_Static_d.lib");
-					}
-					else
-					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC12_MTDLL64_Static.lib");
-					}
-				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Win32)
 			{
@@ -63,19 +50,6 @@ public class SpeedTree : ModuleRules
 					else
 					{
                         PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC14_MTDLL_Static.lib");
-					}
-				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-				{
-					PublicLibraryPaths.Add(SpeedTreePath + "Lib/Windows/VC12");
-
-					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
-					{
-                        PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC12_MTDLL_Static_d.lib");
-					}
-					else
-					{
-                        PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC12_MTDLL_Static.lib");
 					}
 				}
 			}
@@ -93,7 +67,7 @@ public class SpeedTree : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
-				if (Target.IsMonolithic)
+				if (Target.LinkType == TargetLinkType.Monolithic)
 				{
 					PublicAdditionalLibraries.Add(SpeedTreePath + "Lib/Linux/" + Target.Architecture + "/Release/libSpeedTreeCore.a");
 				}

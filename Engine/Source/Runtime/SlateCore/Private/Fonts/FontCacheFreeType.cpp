@@ -88,6 +88,26 @@ FT_Error LoadGlyph(FT_Face InFace, const uint32 InGlyphIndex, const int32 InLoad
 	return FT_Load_Glyph(InFace, InGlyphIndex, InLoadFlags);
 }
 
+FT_Pos GetHeight(FT_Face InFace, const EFontLayoutMethod InLayoutMethod)
+{
+	return (InLayoutMethod == EFontLayoutMethod::Metrics) ? (FT_Pos)InFace->height : (InFace->bbox.yMax - InFace->bbox.yMin);
+}
+
+FT_Pos GetScaledHeight(FT_Face InFace, const EFontLayoutMethod InLayoutMethod)
+{
+	return (InLayoutMethod == EFontLayoutMethod::Metrics) ? InFace->size->metrics.height : FT_MulFix(InFace->bbox.yMax - InFace->bbox.yMin, InFace->size->metrics.y_scale);
+}
+
+FT_Pos GetAscender(FT_Face InFace, const EFontLayoutMethod InLayoutMethod)
+{
+	return (InLayoutMethod == EFontLayoutMethod::Metrics) ? InFace->size->metrics.ascender : FT_MulFix(InFace->bbox.yMax, InFace->size->metrics.y_scale);
+}
+
+FT_Pos GetDescender(FT_Face InFace, const EFontLayoutMethod InLayoutMethod)
+{
+	return (InLayoutMethod == EFontLayoutMethod::Metrics) ? InFace->size->metrics.descender : FT_MulFix(InFace->bbox.yMin, InFace->size->metrics.y_scale);
+}
+
 #endif // WITH_FREETYPE
 
 }
@@ -137,12 +157,14 @@ FFreeTypeLibrary::~FFreeTypeLibrary()
 }
 
 
-FFreeTypeFace::FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataConstRef InMemory)
+FFreeTypeFace::FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataConstRef InMemory, const EFontLayoutMethod InLayoutMethod)
 #if WITH_FREETYPE
 	: FTFace(nullptr)
 	, Memory(MoveTemp(InMemory))
 #endif // WITH_FREETYPE
 {
+	LayoutMethod = InLayoutMethod;
+
 #if WITH_FREETYPE
 	FT_New_Memory_Face(InFTLibrary->GetLibrary(), Memory->GetData().GetData(), static_cast<FT_Long>(Memory->GetData().Num()), 0, &FTFace);
 
@@ -155,12 +177,14 @@ FFreeTypeFace::FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataC
 #endif // WITH_FREETYPE
 }
 
-FFreeTypeFace::FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, const FString& InFilename)
+FFreeTypeFace::FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, const FString& InFilename, const EFontLayoutMethod InLayoutMethod)
 #if WITH_FREETYPE
 	: FTFace(nullptr)
 	, FTStreamHandler(InFilename)
 #endif // WITH_FREETYPE
 {
+	LayoutMethod = InLayoutMethod;
+
 #if WITH_FREETYPE
 	FMemory::Memzero(FTStream);
 	FTStream.size = FTStreamHandler.FontSizeBytes;
@@ -185,7 +209,7 @@ FFreeTypeFace::~FFreeTypeFace()
 #if WITH_FREETYPE
 	if (FTFace)
 	{
-		if (Memory->HasData())
+		if (Memory.IsValid() && Memory->HasData())
 		{
 			DEC_DWORD_STAT_BY(STAT_SlateResidentFontCount, 1);
 		}

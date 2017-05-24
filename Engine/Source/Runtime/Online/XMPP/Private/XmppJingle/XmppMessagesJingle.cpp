@@ -68,6 +68,8 @@ public:
 
 	/** signal callback for when message is received & processed */
 	sigslot::signal1<const FXmppMessageJingle& /*Message*/> SignalMessageReceived;
+	/** signal callback for when a message is returned, for example because the recipient is unavailable or invalid */
+	sigslot::signal1<const FXmppMessageJingle& /*Message*/> SignalMessageErrorReturned;
 
 protected:
 
@@ -96,15 +98,29 @@ protected:
 	{
 		check(Stanza != NULL);
 
+		bool bIsErrorMessage = false;
+		if (Stanza->HasAttr(buzz::QN_TYPE) && Stanza->Attr(buzz::QN_TYPE) == buzz::STR_ERROR)
+		{
+			bIsErrorMessage = true;
+		}
+		
 		const buzz::XmlElement* XmlBody = Stanza->FirstNamed(buzz::QN_BODY);
-
 		FXmppMessageJingle Message(
 			buzz::Jid(Stanza->Attr(buzz::QN_FROM)),
 			buzz::Jid(Stanza->Attr(buzz::QN_TO)),
 			XmlBody != NULL ? XmlBody->BodyText() : std::string()
 			);
-		
-		SignalMessageReceived(Message);
+
+		if (!bIsErrorMessage)
+		{
+			SignalMessageReceived(Message);
+		}
+		else
+		{
+			std::string FromString = Stanza->Attr(buzz::QN_FROM);
+			UE_LOG(LogXmpp, Verbose, TEXT("Received returned message to '%s'"), UTF8_TO_TCHAR(FromString.c_str()));
+			SignalMessageErrorReturned(Message);
+		}
 	}
 };
 
@@ -249,7 +265,7 @@ static void DebugPrintMessage(const FXmppMessage& Message)
 	UE_LOG(LogXmpp, Log, TEXT("   Payload= %s"), *Message.Payload);
 }
 
-bool FXmppMessagesJingle::SendMessage(FString RecipientId, const FXmppMessage& Message)
+bool FXmppMessagesJingle::SendMessage(const FString& RecipientId, const FXmppMessage& Message)
 {
 	bool bStarted = false;
 	if (Connection.GetLoginStatus() == EXmppLoginStatus::LoggedIn)

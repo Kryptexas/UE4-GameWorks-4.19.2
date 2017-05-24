@@ -128,7 +128,6 @@ public:
 	bool					bLoaderIsFArchiveAsync2;
 	FORCEINLINE FArchiveAsync2* GetFArchiveAsync2Loader()
 	{
-		check(GNewAsyncIO);
 		return bLoaderIsFArchiveAsync2 ? (FArchiveAsync2*)Loader : nullptr;
 	}
 
@@ -148,39 +147,6 @@ public:
 	* List of imports and exports that must be serialized before other exports...all packed together, see FirstExportDependency
 	*/
 	TArray<FPackageIndex> PreloadDependencies;
-
-	/** OldClassName to NewClassName for ImportMap */
-	static TMap<FName, FName> ObjectNameRedirects;
-	/** Additional info for some ObjectName redirects to also redirect the class and class package  */
-	static TMap<FName, TPair<FName, FName>> ObjectNameClassRedirects;
-	/** OldClassName to NewClassName for ExportMap */
-	static TMap<FName, FName> ObjectNameRedirectsInstanceOnly;
-	/** Object name to NewClassName for export map */
-	static TMap<FName, FName> ObjectNameRedirectsObjectOnly;	
-	/** Old game name to new game name for ImportMap */
-	static TMap<FName, FName> GameNameRedirects;
-	/** Add a new redirect from old game name to new game name for ImportMap */
-	COREUOBJECT_API static void AddGameNameRedirect(const FName OldName, const FName NewName);
-	/** Old struct name to new struct name mapping */
-	static TMap<FName, FName> StructNameRedirects;
-	/** Old plugin name to new plugin name mapping */
-	static TMap<FString, FString> PluginNameRedirects;
-
-	/** Object name to required class and new name for load-time remapping */
-	struct FSubobjectRedirect
-	{
-		FName MatchClass;
-		FName NewName;
-		FSubobjectRedirect(FName InMatchClass, FName InNewName)
-			: MatchClass(InMatchClass)
-			, NewName(InNewName)
-		{
-		}
-	};
-	static TMap<FName, FSubobjectRedirect> SubobjectNameRedirects;	
-
-	/* Makes sure active redirects map has been initialized */
-	static bool bActiveRedirectsMapInitialized;
 
 	/** 
 	 * Utility functions to query the object name redirects list for previous names for a class
@@ -224,14 +190,22 @@ public:
 	COREUOBJECT_API static void AddKnownMissingPackage(FName PackageName);
 
 	/**
-	* Checks if the linker has any objects in the export table that require loading.
-	*/
+	 * Register that a package is no longer known missing and that it should be searched for again in the future
+	 * @return true if the provided package was removed from the KnownMissingPackage list
+	 */
+	COREUOBJECT_API static bool RemoveKnownMissingPackage(FName PackageName);
+
+	/** 
+	 * Checks if the linker has any objects in the export table that require loading.
+	 */
 	COREUOBJECT_API bool HasAnyObjectsPendingLoad() const;
 
-private:
+	/** 
+	 * Add a new redirect from old game name to new game name for ImportMap 
+	 */
+	COREUOBJECT_API static void AddGameNameRedirect(const FName OldName, const FName NewName);
 
-	/** Packages that are known to be missing when verifying imports that we don't want a message about */
-	COREUOBJECT_API static TSet<FName> KnownMissingPackages;
+private:
 
 	// Variables used during async linker creation.
 
@@ -314,22 +288,15 @@ private:
 		}
 	};
 
-	/** Map that keeps track of any precached full package reads															*/
-	static TMap<FString, FPackagePrecacheInfo> PackagePrecacheMap;
-
-	/**
-	* Fills in the passed in TArray with the packages that are in its PrecacheMap
-	*
-	* @param TArray<FString> to be populated
-	*/
-public:
-	COREUOBJECT_API static void GetListOfPackagesInPackagePrecacheMap(TArray<FString>& ListOfPackages);
 private:
 
 	/** Allows access to UTexture2D::StaticClass() without linking Core with Engine											*/
 	static UClass* UTexture2DStaticClass;
 
 	static FName NAME_LoadErrors;
+
+	/** Makes sure the deprecated active redirects inis have been read */
+	static bool bActiveRedirectsMapInitialized;
 
 #if WITH_EDITOR
 	/** Feedback scope that is created to house the slow task of an asynchronous linker load. Raw ptr so we don't pull in TUniquePtr for everything. */
@@ -340,6 +307,22 @@ private:
 	{
 		return !IsAsyncLoading() && (LoadFlags & (LOAD_Quiet | LOAD_Async)) == 0;
 	}
+
+
+	virtual void PushDebugDataString(const FName& DebugData) override
+	{
+		FArchiveUObject::PushDebugDataString(DebugData);
+		if ( Loader )
+			Loader->PushDebugDataString(DebugData);
+	}
+
+	virtual void PopDebugDataString() override
+	{
+		FArchiveUObject::PopDebugDataString();
+		if ( Loader )
+			Loader->PopDebugDataString();
+	}
+
 #endif 
 
 public:
@@ -358,6 +341,11 @@ public:
 	 * Test whether the given package index is a valid import or export in this package
 	 */
 	bool IsValidPackageIndex(FPackageIndex InIndex);
+
+	/**
+	 * Locates package index for a UPackage import
+	 */
+	COREUOBJECT_API bool FindImportPackage(FName PackageName, FPackageIndex& PackageIdx);
 
 	/**
 	 * Locates the class adjusted index and its package adjusted index for a given class name in the import map
@@ -454,7 +442,7 @@ public:
 	 * @param bForcePreload	Whether to explicitly call Preload (serialize) right away instead of being
 	 *						called from EndLoad()
 	 */
-	COREUOBJECT_API void LoadAllObjects(bool bForcePreload = false);
+	COREUOBJECT_API void LoadAllObjects(bool bForcePreload);
 
 	/**
 	 * Returns the ObjectName associated with the resource indicated.
@@ -527,13 +515,6 @@ public:
 	COREUOBJECT_API bool WillTextureBeLoaded( UClass* Class, int32 ExportIndex );
 
 	/**
-	 * Kick off an async load of a package file into memory
-	 * 
-	 * @param PackageName Name of package to read in. Must be the same name as passed into LoadPackage/CreateLinker
-	 */
-	COREUOBJECT_API static void AsyncPreloadPackage(const TCHAR* PackageName);
-
-	/**
 	 * Called when an object begins serializing property data using script serialization.
 	 */
 	virtual void MarkScriptSerializationStart( const UObject* Obj ) override;
@@ -580,7 +561,7 @@ public:
 	COREUOBJECT_API static void InvalidateExport(UObject* OldObject);
 
 	/** Used by Matinee to fixup component renaming */
-	COREUOBJECT_API static FName FindSubobjectRedirectName(const FName& Name);
+	COREUOBJECT_API static FName FindSubobjectRedirectName(const FName& Name, UClass* Class);
 
 private:
 #if WITH_EDITOR
@@ -627,7 +608,7 @@ private:
 	 * @return If found returns index of meta data object in the export map,
 	 *         INDEX_NONE otherwise.
 	 */
-	int32 LoadMetaDataFromExportMap(bool bForcePreload = false);
+	int32 LoadMetaDataFromExportMap(bool bForcePreload);
 
 	UObject* CreateImport( int32 Index );
 
@@ -811,6 +792,7 @@ private:
 		, TFunction<void()>&& InSummaryReadyCallback	
 	);
 
+protected: // Daniel L: Made this protected so I can override the constructor and create a custom loader to load the header of the linker in the DiffFilesCommandlet
 	/**
 	 * Ticks an in-flight linker and spends InTimeLimit seconds on creation. This is a soft time limit used
 	 * if bInUseTimeLimit is true.
@@ -823,7 +805,6 @@ private:
 	 */
 	ELinkerStatus Tick( float InTimeLimit, bool bInUseTimeLimit, bool bInUseFullTimeLimit);
 
-protected: // Daniel L: Made this protected so I can override the constructor and create a custom loader to load the header of the linker in the DiffFilesCommandlet
 	/**
 	 * Private constructor, passing arguments through from CreateLinker.
 	 *
@@ -869,11 +850,6 @@ private:
 	 * Fixes up the import map, performing remapping for backward compatibility and such.
 	 */
 	ELinkerStatus FixupImportMap();
-
-	/**
-	 * Changes imports before the objects are created.
-	 */
-	ELinkerStatus RemapImports();
 
 	/**
 	 * Serializes the export map.
@@ -1126,3 +1102,23 @@ private:
 	// FLinkerLoad creation helpers END
 	//
 };
+
+// used by the EDL at boot time to coordinate loading with what is going on with the deferred registration stuff
+enum class ENotifyRegistrationType
+{
+	NRT_Class,
+	NRT_ClassCDO,
+	NRT_Struct,
+	NRT_Enum,
+	NRT_Package,
+};
+
+enum class ENotifyRegistrationPhase
+{
+	NRP_Added,
+	NRP_Started,
+	NRP_Finished,
+};
+
+COREUOBJECT_API void NotifyRegistrationEvent(const TCHAR* PackageName, const TCHAR* Name, ENotifyRegistrationType NotifyRegistrationType, ENotifyRegistrationPhase NotifyRegistrationPhase, UObject *(*InRegister)() = nullptr, bool InbDynamic = false);
+COREUOBJECT_API void NotifyRegistrationComplete();

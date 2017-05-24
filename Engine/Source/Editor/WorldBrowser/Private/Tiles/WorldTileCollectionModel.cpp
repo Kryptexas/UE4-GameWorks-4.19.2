@@ -16,6 +16,7 @@
 #include "EditorDirectories.h"
 #include "FileHelpers.h"
 #include "LevelCollectionCommands.h"
+#include "ScopedTransaction.h"
 
 #include "Engine/WorldComposition.h"
 #include "IDetailsView.h"
@@ -35,7 +36,6 @@
 #include "Misc/FeedbackContext.h"
 #include "UObject/UObjectIterator.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/WorldSettings.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
 #include "LandscapeMeshProxyActor.h"
@@ -205,6 +205,8 @@ void FWorldTileCollectionModel::TranslateLevels(const FLevelModelList& InLevels,
 	{
 		LevelsBBox = GetLevelsBoundingBox(TilesToMove, true);
 	}
+
+	const FScopedTransaction MoveLevelsTransaction(LOCTEXT("MoveLevelsTransaction", "Move Levels"));
 	
 	// Focus on levels destination bounding box, so the will stay visible after translation
 	if (LevelsBBox.IsValid)
@@ -303,7 +305,7 @@ void FWorldTileCollectionModel::BuildWorldCompositionMenu(FMenuBuilder& InMenuBu
 	// No selection, option to reset world origin
 	if (!AreAnyLevelsSelected())
 	{
-		if (GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+		if (IsOriginRebasingEnabled())
 		{
 			InMenuBuilder.AddMenuEntry(Commands.ResetWorldOrigin);
 		}
@@ -361,7 +363,7 @@ void FWorldTileCollectionModel::BuildWorldCompositionMenu(FMenuBuilder& InMenuBu
 		InMenuBuilder.AddMenuEntry(Commands.ResetLevelOrigin);
 		
 		// Move world orign to level position
-		if (IsOneLevelSelected() && GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+		if (IsOneLevelSelected() && IsOriginRebasingEnabled())
 		{
 			InMenuBuilder.AddMenuEntry(Commands.MoveWorldOrigin);
 		}
@@ -888,7 +890,7 @@ void FWorldTileCollectionModel::OnLevelsHierarchyChanged()
 void FWorldTileCollectionModel::OnPreLoadLevels(const FLevelModelList& InList)
 {
 	// Compute focus area for loading levels
-	FBox FocusArea(0);
+	FBox FocusArea(ForceInit);
 	for (auto It = InList.CreateConstIterator(); It; ++It)
 	{
 		TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(*It);
@@ -1045,7 +1047,7 @@ TSharedPtr<FLevelModel> FWorldTileCollectionModel::CreateNewEmptyLevel()
 
 void FWorldTileCollectionModel::Focus(FBox InArea, FocusStrategy InStrategy)
 {
-	if (IsReadOnly() || !InArea.IsValid || !GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	if (IsReadOnly() || !InArea.IsValid || !IsOriginRebasingEnabled())
 	{
 		return;
 	}
@@ -1803,7 +1805,7 @@ void FWorldTileCollectionModel::MoveWorldOrigin(const FIntPoint& InOrigin)
 
 void FWorldTileCollectionModel::MoveWorldOrigin_Executed()
 {
-	if (!IsOneLevelSelected() || !GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	if (!IsOneLevelSelected() || !IsOriginRebasingEnabled())
 	{
 		return;
 	}
@@ -1814,7 +1816,7 @@ void FWorldTileCollectionModel::MoveWorldOrigin_Executed()
 
 void FWorldTileCollectionModel::ResetWorldOrigin_Executed()
 {
-	if (GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	if (IsOriginRebasingEnabled())
 	{
 		FBox OriginArea = EditableWorldArea().ShiftBy(FVector(GetWorld()->OriginLocation));
 		Focus(OriginArea, OriginAtCenter);

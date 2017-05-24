@@ -58,14 +58,12 @@ void UAndroidSDKSettings::UpdateTargetModulePaths()
 		Values.Add(ANTPath.Path);
 	}
 
-#if PLATFORM_MAC == 0
 	if (!JavaPath.Path.IsEmpty())
 	{
 		FPaths::NormalizeFilename(JavaPath.Path);
 		Keys.Add(TEXT("JAVA_HOME"));
 		Values.Add(JavaPath.Path);
 	}
-#endif
 
 	SaveConfig();
 	

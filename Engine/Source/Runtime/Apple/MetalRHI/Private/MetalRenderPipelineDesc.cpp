@@ -6,6 +6,7 @@
 #include "MetalCommandQueue.h"
 #include "MetalCommandBuffer.h"
 #include "RenderUtils.h"
+#include <objc/runtime.h>
 
 static int32 GMetalTessellationForcePartitionMode = 0;
 static FAutoConsoleVariableRef CVarMetalTessellationForcePartitionMode(
@@ -40,9 +41,95 @@ TMap<FMetalRenderPipelineDesc::FMetalRenderPipelineKey, FMetalShaderPipeline*> F
 FMetalRenderPipelineDesc::FMetalRWMutex FMetalRenderPipelineDesc::MetalPipelineMutex;
 
 @implementation FMetalShaderPipeline
+
+APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalShaderPipeline)
+#if METAL_DEBUG_OPTIONS
+- (void)initResourceMask
+{
+	if (self.RenderPipelineReflection)
+	{
+		[self initResourceMask:EMetalShaderVertex];
+		[self initResourceMask:EMetalShaderFragment];
+	}
+	if (self.ComputePipelineReflection)
+	{
+		[self initResourceMask:EMetalShaderCompute];
+	}
+}
+- (void)initResourceMask:(EMetalShaderFrequency)Frequency
+{
+	NSArray<MTLArgument*>* Arguments = nil;
+	switch(Frequency)
+	{
+		case EMetalShaderVertex:
+		{
+			MTLRenderPipelineReflection* Reflection = self.RenderPipelineReflection;
+			check(Reflection);
+			
+			Arguments = Reflection.vertexArguments;
+			break;
+		}
+		case EMetalShaderFragment:
+		{
+			MTLRenderPipelineReflection* Reflection = self.RenderPipelineReflection;
+			check(Reflection);
+			
+			Arguments = Reflection.fragmentArguments;
+			break;
+		}
+		case EMetalShaderCompute:
+		{
+			MTLComputePipelineReflection* Reflection = self.ComputePipelineReflection;
+			check(Reflection);
+			
+			Arguments = Reflection.arguments;
+			break;
+		}
+		default:
+			check(false);
+			break;
+	}
+	
+	for (uint32 i = 0; i < Arguments.count; i++)
+	{
+		MTLArgument* Arg = [Arguments objectAtIndex:i];
+		check(Arg);
+		switch(Arg.type)
+		{
+			case MTLArgumentTypeBuffer:
+			{
+				checkf(Arg.index < ML_MaxBuffers, TEXT("Metal buffer index exceeded!"));
+				ResourceMask[Frequency].BufferMask |= (1 << Arg.index);
+				break;
+			}
+			case MTLArgumentTypeThreadgroupMemory:
+			{
+				break;
+			}
+			case MTLArgumentTypeTexture:
+			{
+				checkf(Arg.index < ML_MaxTextures, TEXT("Metal texture index exceeded!"));
+				ResourceMask[Frequency].TextureMask |= (1 << Arg.index);
+				break;
+			}
+			case MTLArgumentTypeSampler:
+			{
+				checkf(Arg.index < ML_MaxSamplers, TEXT("Metal sampler index exceeded!"));
+				ResourceMask[Frequency].SamplerMask |= (1 << Arg.index);
+				break;
+			}
+			default:
+				check(false);
+				break;
+		}
+	}
+}
+#endif
 @end
 
 @implementation FMetalTessellationPipelineDesc
+
+APPLE_PLATFORM_OBJECT_ALLOC_OVERRIDES(FMetalTessellationPipelineDesc)
 @end
 
 static_assert(Offset_RasterEnd < 64 && Offset_End < 128, "Offset_RasterEnd must be < 64 && Offset_End < 128");
@@ -56,7 +143,7 @@ FMetalRenderPipelineDesc::FMetalRenderPipelineDesc()
 {
 	Hash.RasterBits = 0;
 	Hash.TargetBits = 0;
-	for (int Index = 0; Index < MaxMetalRenderTargets; Index++)
+	for (int Index = 0; Index < MaxSimultaneousRenderTargets; Index++)
 	{
 		[PipelineDescriptor.colorAttachments setObject:[[MTLRenderPipelineColorAttachmentDescriptor new] autorelease] atIndexedSubscript:Index];
 	}
@@ -81,7 +168,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 	
 	// Disable blending and writing on unbound targets or Metal will assert/crash/abort depending on build.
 	// At least with this API all the state must match all of the time for it to work.
-	for (int Index = 0; Index < MaxMetalRenderTargets; Index++)
+	for (int Index = 0; Index < MaxSimultaneousRenderTargets; Index++)
 	{
 		MTLRenderPipelineColorAttachmentDescriptor* Desc = [PipelineDescriptor.colorAttachments objectAtIndexedSubscript:Index];
 		if(Desc.pixelFormat == MTLPixelFormatInvalid)
@@ -129,9 +216,9 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 	FMetalRenderPipelineKey ComparableDesc;
 	ComparableDesc.RenderPipelineHash = GetHash();
 	ComparableDesc.VertexDescriptorHash = VertexDesc;
-	ComparableDesc.VertexFunction = TPairInitializer<id<MTLFunction>, id<MTLLibrary>>(BSS->VertexShader->Function, BSS->VertexShader->Library);
-	ComparableDesc.PixelFunction = TPairInitializer<id<MTLFunction>, id<MTLLibrary>>(BSS->PixelShader ? BSS->PixelShader->Function : nil, BSS->PixelShader ? BSS->PixelShader->Library : nil);
-	ComparableDesc.DomainFunction = TPairInitializer<id<MTLFunction>, id<MTLLibrary>>(BSS->DomainShader ? BSS->DomainShader->Function : nil, BSS->DomainShader ? BSS->DomainShader->Library : nil);
+	ComparableDesc.VertexFunction = TPair<id<MTLFunction>, id<MTLLibrary>>(BSS->VertexShader->Function, BSS->VertexShader->Library);
+	ComparableDesc.PixelFunction = TPair<id<MTLFunction>, id<MTLLibrary>>(BSS->PixelShader ? BSS->PixelShader->Function : nil, BSS->PixelShader ? BSS->PixelShader->Library : nil);
+	ComparableDesc.DomainFunction = TPair<id<MTLFunction>, id<MTLLibrary>>(BSS->DomainShader ? BSS->DomainShader->Function : nil, BSS->DomainShader ? BSS->DomainShader->Library : nil);
 	ComparableDesc.FunctionConstants = FunctionConstants;
 	
 	FMetalShaderPipeline* statePack = MetalPipelineCache.FindRef(ComparableDesc);
@@ -146,6 +233,9 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 		
 		id<MTLDevice> Device = GetMetalDeviceContext().GetDevice();
 		statePack = [FMetalShaderPipeline new];
+		
+		METAL_DEBUG_OPTION(FMemory::Memzero(statePack->ResourceMask, sizeof(statePack->ResourceMask)));
+		
 		if(BSS->HullShader)
 		{
 			PipelineDescriptor.vertexDescriptor = [MTLVertexDescriptor new];
@@ -161,15 +251,17 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 			tessellationDesc.TessellationControlPointIndexBufferIndex = UINT_MAX;
 			tessellationDesc.DomainVertexDescriptor = PipelineDescriptor.vertexDescriptor;
 			
+			// Disambiguated function name.
+			NSString* Name = [NSString stringWithFormat:@"Main_%0.8x_%0.8x", BSS->VertexShader->SourceLen, BSS->VertexShader->SourceCRC];
 			if (FunctionConstants.Num())
 			{
 				MTLFunctionConstantValues* constantValues = [[MTLFunctionConstantValues new] autorelease];
 				[constantValues setConstantValues:FunctionConstants.GetData() type:MTLDataTypeUInt withRange:NSMakeRange(0, FunctionConstants.Num())];
-				computeFunction = [[BSS->VertexShader->Library newFunctionWithName:@"Main" constantValues:constantValues error:&Error] autorelease];
+				computeFunction = [[BSS->VertexShader->Library newFunctionWithName:Name constantValues:constantValues error:&Error] autorelease];
 			}
 			else
 			{
-				computeFunction = [[BSS->VertexShader->Library newFunctionWithName:@"Main"] autorelease];
+				computeFunction = [[BSS->VertexShader->Library newFunctionWithName:Name] autorelease];
 			}
 			
 			if (computeFunction == nil)
@@ -225,7 +317,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 			
 #if METAL_DEBUG_OPTIONS
 			MTLAutoreleasedComputePipelineReflection reflection = nil;
-			if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation)
+			if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelFastValidation)
 			{
 				statePack.ComputePipelineState = [Device newComputePipelineStateWithDescriptor:computePipelineDescriptor options:MTLPipelineOptionArgumentInfo|MTLPipelineOptionBufferTypeInfo reflection:&reflection error:&Error];
 				statePack.ComputePipelineReflection = reflection;
@@ -426,7 +518,7 @@ FMetalShaderPipeline* FMetalRenderPipelineDesc::CreatePipelineStateForBoundShade
 		}
 		
 #if METAL_DEBUG_OPTIONS
-		if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation)
+		if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelFastValidation)
 		{
 			MTLAutoreleasedRenderPipelineReflection Reflection;
 			statePack.RenderPipelineState = [Device newRenderPipelineStateWithDescriptor:PipelineDescriptor options:MTLPipelineOptionArgumentInfo reflection:&Reflection error:&Error];

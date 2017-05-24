@@ -6,27 +6,14 @@ using System.Collections.Generic;
 [SupportedPlatforms(UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac)]
 public class MinidumpDiagnosticsTarget : TargetRules
 {
-	public MinidumpDiagnosticsTarget( TargetInfo Target )
+	public MinidumpDiagnosticsTarget( TargetInfo Target ) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
+		LaunchModuleName = "MinidumpDiagnostics";
 	}
 
 	// TargetRules interface.
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
-											InModuleNames: new List<string>() { "MinidumpDiagnostics" })
-			);
-
-		UEBuildConfiguration.bCompileICU = false;
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,
@@ -35,6 +22,7 @@ public class MinidumpDiagnosticsTarget : TargetRules
 		)
 	{
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+		UEBuildConfiguration.bCompileICU = false;
 
 		// Don't need editor
 		UEBuildConfiguration.bBuildEditor = false;

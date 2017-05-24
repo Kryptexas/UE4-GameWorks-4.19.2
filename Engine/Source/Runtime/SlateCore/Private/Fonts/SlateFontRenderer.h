@@ -38,7 +38,7 @@ namespace SlateFontRendererUtils
 {
 
 /** Character used to substitute invalid font characters */
-const TCHAR InvalidSubChar = '\u001A';
+const TCHAR InvalidSubChar = TEXT('\uFFFD');
 
 #if WITH_FREETYPE
 
@@ -128,7 +128,6 @@ public:
 	 * @param InScale			The scale of the font
 	 * @param OutFallbackLevel	Outputs the fallback level of the font
 	 */
-	bool GetRenderData(const FFontData& InFontData, const int32 InSize, const FFontOutlineSettings& InOutlineSettings, TCHAR Char, FCharacterRenderData& OutRenderData, const float InScale, EFontFallback* OutFallbackLevel = nullptr) const;
 	bool GetRenderData(const FShapedGlyphEntry& InShapedGlyph, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const;
 
 private:

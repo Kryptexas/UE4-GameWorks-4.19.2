@@ -43,9 +43,19 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FVertex
 
 FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FIndexBufferRHIParamRef BufferRHI)
 {
-	UE_LOG(LogRHI, Fatal, TEXT("OpenGL RHI doesn't support RHICreateShaderResourceView with FIndexBufferRHIParamRef yet!"));
-	
-	return FShaderResourceViewRHIRef();
+	GLuint TextureID = 0;
+	if (FOpenGL::SupportsResourceView())
+	{
+		FOpenGLIndexBuffer* IndexBuffer = ResourceCast(BufferRHI);
+		FOpenGL::GenTextures(1, &TextureID);
+		CachedSetupTextureStage(GetContextStateForCurrentContext(), FOpenGL::GetMaxCombinedTextureImageUnits() - 1, GL_TEXTURE_BUFFER, TextureID, -1, 1);
+		uint32 Stride = BufferRHI->GetStride();
+		GLenum Format = (Stride == 2) ? GL_R16UI : GL_R32UI;
+		FOpenGL::TexBuffer(GL_TEXTURE_BUFFER, Format, IndexBuffer->Resource);
+	}
+
+	FShaderResourceViewRHIRef Result = new FOpenGLShaderResourceView(this, TextureID, GL_TEXTURE_BUFFER);
+	return Result;
 }
 
 FOpenGLShaderResourceView::~FOpenGLShaderResourceView()
@@ -142,7 +152,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FStruct
 	return new FOpenGLShaderResourceView(this,0,GL_TEXTURE_BUFFER);
 }
 
-void FOpenGLDynamicRHI::RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
+void FOpenGLDynamicRHI::RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
 {
 	FOpenGLUnorderedAccessView* Texture = ResourceCast(UnorderedAccessViewRHI);
 

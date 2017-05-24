@@ -1,6 +1,7 @@
 Availability:Public
 Title:Plugins
-Crumbs:%ROOT%, Programming
+Crumbs:
+Parent:Programming
 Description:How to create Unreal Engine plugins.
 Version: 4.9
 
@@ -70,10 +71,10 @@ into adding at a later date.
 Plugins are always located in your plugin's directory. In order for plugins to be found, they must be located in one of 
 the valid search paths for plugins in Unreal Engine. 
 
-| Plugin type      | Search path                                        |
-| ---------------- | -------------------------------------------------- |
-| Engine plugin    | /UE4 root/Engine/Plugins/My Engine Plugin/ |
-| Game plugin      | /My project/Plugins/My Game Plugin/        |
+| Plugin Type          | Search Path                                        |
+| -------------------- | -------------------------------------------------- |
+| **Engine**           | /UE4 Root/Engine/Plugins/My Engine Plugin/         |
+| **Game**             | /My Project/Plugins/My Game Plugin/                |
 
 You can also organize plugins into subdirectories under the base Plugins folder. The engine will scan all of your sub-folders 
 under the base Plugins folder for plugins to load, but it will never scan into subdirectories beneath where a plugin was already found.

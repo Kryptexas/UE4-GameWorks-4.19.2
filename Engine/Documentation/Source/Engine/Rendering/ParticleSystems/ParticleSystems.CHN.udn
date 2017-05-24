@@ -1,10 +1,14 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3243860
 Availability:Public
 Title: 级联粒子系统
 Crumbs: %ROOT%, Engine, Engine/Rendering 
 Description: 包含任意数量粒子发射器的资源，用于在场景世界中创建特效。
 Version: 4.9
 SkillLevel: Beginner
+parent:Engine/Rendering
+order:4
+type:landing
+tags:Particles
 
 [VAR:Topic]
 [OBJECT:Topic]

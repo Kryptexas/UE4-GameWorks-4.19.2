@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:3216146
-availability:docs
-title:1. Project Setup
-description:Going over the Project Setup for creating a Height Map painter.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:1. 프로젝트 구성
+description:하이트 맵 페인터 제작을 위한 프로젝트 구성 방법입니다.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
@@ -14,71 +14,71 @@ checkpoint:HFP
 
 [NAV]
 
-In this section of the Height Map Painter How - To, we will go over creating a new level for our project to use.
+하이트 맵 페인터 제작법, 여기서는 프로젝트에서 사용할 새 레벨을 만드는 법을 알아보겠습니다.
 
-## Project Setup
-Before we can start to create and setup the required Actors for the Height Field Painter, we will first need to create and setup a **Gamemode Override**. In the following section, 
-we will take a look at how this can be accomplished in your project.
+## 프로젝트 구성
+하이트 필드 페인터에 필요한 액터 생성 및 구성을 시작하기 전, 먼저 **Gamemode Override** (게임모드 오버라이드) 생성 및 구성을 해줘야 합니다. 다음 부분은
+프로젝트에서 그 작업을 하는 방법을 살펴보겠습니다.
 
 [region:note]
-If you are working out of the **Content Examples** map, you can skip this step and use the **MyGame** game mode. This game mode can be found under **Content** > **Blueprints** > **MyGame**.
+**Content Examples** (콘텐츠 예제) 맵에서 작업을 하는 경우, 이 단계를 건너뛰고 **MyGame** 게임 모드를 사용하면 됩니다. 이 게임 모드는 **Content** > **Blueprints** > **MyGame** 에서 찾을 수 있습니다.
 
  ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_00.png)
 [/region]
 
-## Creating a New Game Mode & HUD
-In order to see the crosshair that will let the user know where they are shooting, we will need to create and setup new Game Mode and HUD Blueprints. In the following section, we will take a 
-look at how to setup all of this so that it will work with our Height Field Painter.
+## 새로운 게임 모드 & HUD 생성
+사용자가 어디로 쏘는지 알려주는 조준선을 확인하기 위해서는, 새로운 게임 모드와 HUD 블루프린트를 생성하고 구성해 줘야 합니다. 다음 부분에서는 그 전부를 어떻게 구성해 줘야 
+하이트 필드 페인터에서 작동되도록 할 수 있는지 알아보겠습니다.
 
-1. Right-click in the **Content Browser** and from the menu in the **Create Basic Asset** section, click on the **Blueprint Class** option.
+1. **콘텐츠 브라우저** 의 우클릭 메뉴 아래 **기본 애셋 생성** 부분에서 **블루프린트 클래스** 옵션을 클릭합니다.
 	
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Setup_00.png)
 
-1. From the **Pick Parent Class** Window, click on the **Game Mode** option, naming the new game mode, `HighFieldPainterGameMode`.
+1. **부모 클래스 선택** 창에서 **Game Mode** 옵션을 클릭하고, 새로운 게임 모드 이름을 `HighFieldPainterGameMode` 라 합니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_01.png)
 
-1. Right-click in the Content Browser again to bring up the Create Basic Asset menu and then click on the **Blueprint Class** option.
+1. 콘텐츠 브라우저에 다시 우클릭하고 기본 애셋 생성 메뉴를 띄운 뒤 **블루프린트 클래스** 옵션을 선택합니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Setup_09.png)
 
-1. When the Pick Parent Class window is displayed, expand the **All Classes** option and input **HUD** into the search box. Look for the **HUD** option and when located, click on it and then press the **Select** button to create it.
+1. 부모 클래스 선택 창이 표시되면, **모든 클래스** 옵션을 펼치고 검색창에 **HUD** 라 입력합니다. **HUD** 옵션을 찾았으면 클릭한 뒤 **선택** 버튼을 눌러 생성합니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_02.png)
 
-1. Name the newly created HUD Blueprint, `HeightFieldPainterHUD`, and then double-click on the **HeightFieldPainterGameMode** Blueprint to open it up.
+1. 새로 생성된 HUD 블루프린트 이름을 `HeightFieldPainterHUD` 라 지은 뒤, **HeightFieldPainterGameMode** 블루프린트를 더블클릭하여 엽니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_04.png)
 
-1. In the **Details** panel of the HeightFieldPainterGameMode under the **Classes** section, set the **HUD Class** to the  `HeightFieldPainterHUD` Blueprint that was just created. 
+1. HeightFieldPainterGameMode 의 **디테일** 패널에서 **Classes** 섹션 아래 **HUD Class** 를 방금 만든 `HeightFieldPainterHUD` 블루프린트로 설정합니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_03.png)
 
-1. Now, **Compile** and **Save** the HeightFieldPainterGameMode Blueprint and then open the HeightFieldPainterHUD Blueprint by double-clicking on it in the Content Browser.
+1. 이제 HeightFieldPainterGameMode 블루프린트를 **컴파일**, **저장** 후 콘텐츠 브라우저에서 더블클릭하여 HeightFieldPainterHUD 블루프린트를 엽니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_05.png)
 
-1. Inside of the HeightFieldPainterHUD Blueprint, go to the **Event Graph** and copy-paste the following Blueprint code into the graph. 
+1. HeightFieldPainterHUD 블루프린트 안에서 **이벤트 그래프** 로 이동하여 다음 블루프린트 코드를 그래프에 복사해 붙여넣습니다.
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\1\#HUD]
 	[/REGION]
 
 	[region:note]
-	Do not forget to Compile and Save your Blueprint so that it can be used.
+	블루프린트를 컴파일하고 저장해야 사용할 수 있다는 점, 잊지 마세요.
 	[/region]
 
-	This Blueprint code is telling the HUD to draw the specified Material so that it will be centered on the player's screen while the game is running. To see if everything has been setup correctly, press the **Play** button to run the game and you should now have a crosshair positioned in the center of the screen (as shown in the following image).
+	이 블루프린트 코드는 게임이 실행중일 때 플레이어의 화면 정 중앙에 지정된 머티리얼이 그려지도록 HUD 에게 명령을 내립니다. 모두 제대로 구성되었는지 확인하려면, **재생** 버튼을 눌러 게임을 실행시킵니다. (다음 그림처럼) 화면 중앙에 조준선이 보일 것입니다.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_07.png)
 
 	[region:note]
-	If you don't see a cross hair on the screen, check to make sure that the **Material** input on the **Draw Material** node has something inputted into the Material input.
+	화면에 조준선이 보이지 않는 경우, **Draw Material** 노드의 **Material** 입력에서 머티리얼 입력에 입력된 것이 있는지 확인하세요.
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_PS_08.png)
 	[/region]
 
-Now that the level and HUD have been created, in the next section we will take a look at what assets need to be created and how to set them up.
+레벨과 HUD 가 생성되었으니, 다음 섹션에서는 어떤 애셋을 생성할지, 그리고 그 구성 방법은 어떻게 되는지 살펴보겠습니다.
 
 [NAV]
 

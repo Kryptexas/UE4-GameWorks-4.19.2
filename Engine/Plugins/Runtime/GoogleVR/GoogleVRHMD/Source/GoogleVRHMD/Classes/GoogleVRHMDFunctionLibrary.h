@@ -41,10 +41,10 @@ class GOOGLEVRHMD_API UGoogleVRHMDFunctionLibrary : public UBlueprintFunctionLib
 	GENERATED_UCLASS_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool IsGoogleVRHMDEnabled();
 
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool IsGoogleVRStereoRenderingEnabled();
 
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
@@ -64,7 +64,7 @@ public:
 	static void SetDistortionMeshSize(EDistortionMeshSizeEnum MeshSize);
 
 	/** Check if distortion correction is enabled */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool GetDistortionCorrectionEnabled();
 
 	/** Get the currently set viewer model */
@@ -76,17 +76,17 @@ public:
 	static FString GetViewerVendor();
 
 	/** Was the application launched in Vr. */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool IsVrLaunch();
 
 	/** Is the application running in Daydream mode. */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static bool IsInDaydreamMode();
 
 	/** Get the RenderTarget size GoogleVRHMD is using for rendering the scene.
 	 *  @return The render target size that is used when rendering the scene.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static FIntPoint GetGVRHMDRenderTargetSize();
 
 	/** Set the GoogleVR render target size to default value.
@@ -129,14 +129,14 @@ public:
 	 * interpolate between alternative (client-defined) neck models.
 	 *  @return the current neck model scale.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static float GetNeckModelScale();
 
 	/**
 	 * Returns the string representation of the data URI on which this activity's intent is operating.
 	 * See Intent.getDataString() in the Android documentation.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR"))
 	static FString GetIntentData();
 
 	/**
@@ -159,7 +159,7 @@ public:
 	/**
 	 * Get the distance in meter the daydream splash screen will be rendered at
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
 	static float GetDaydreamLoadingSplashScreenDistance();
 
 	/**
@@ -171,7 +171,7 @@ public:
 	/**
 	 * Get the render scale of the dayderam splash screen
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
 	static float GetDaydreamLoadingSplashScreenScale();
 
 	/**
@@ -183,7 +183,7 @@ public:
 	/**
 	 * Get the view angle of the dayderam splash screen
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
+	UFUNCTION(BlueprintPure, Category = "GoogleVRHMD", meta = (Keywords = "Cardboard AVR GVR Splash"))
 	static float GetDaydreamLoadingSplashScreenViewAngle();
 
 	/**

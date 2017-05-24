@@ -13,6 +13,8 @@
 #include "MovieSceneTrackEditor.h"
 #include "KeyframeTrackEditor.h"
 #include "ISequencerObjectChangeListener.h"
+#include "AnimatedPropertyKey.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 
 /**
 * Tools for animatable property types such as floats ands vectors
@@ -23,33 +25,37 @@ class FPropertyTrackEditor
 {
 public:
 	/**
-	* Constructor
-	*
-	* @param InSequencer The sequencer instance to be used by this tool
-	*/
+	 * Constructor
+	 *
+	 * @param InSequencer The sequencer instance to be used by this tool
+	 */
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
 		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{ }
 
 	/**
-	* Constructor
-	*
-	* @param InSequencer The sequencer instance to be used by this tool
-	* @param WatchedPropertyTypeName The property type name that this property track editor should watch for changes.
-	*/
+	 * Constructor
+	 *
+	 * @param InSequencer The sequencer instance to be used by this tool
+	 * @param InWatchedPropertyTypes A list of property types that this editor can animate
+	 */
+	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, TArrayView<const FAnimatedPropertyKey> InWatchedPropertyTypes )
+		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
+	{
+		for (const FAnimatedPropertyKey& Key : InWatchedPropertyTypes)
+		{
+			AddWatchedProperty(Key);
+		}
+	}
+
+	DEPRECATED(4.16, "Please use FPropertyTrackEditor(TSharedRef<ISequencer>, TArrayView<const FAnimatedPropertyKey>)")
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, FName WatchedPropertyTypeName )
 		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{
 		AddWatchedPropertyType( WatchedPropertyTypeName );
 	}
 
-	/**
-	* Constructor
-	*
-	* @param InSequencer The sequencer instance to be used by this tool
-	* @param WatchedPropertyTypeName1 The first property type name that this property track editor should watch for changes.
-	* @param WatchedPropertyTypeName2 The second property type name that this property track editor should watch for changes.
-	*/
+	DEPRECATED(4.16, "Please use FPropertyTrackEditor(TSharedRef<ISequencer>, TArrayView<const FAnimatedPropertyKey>)")
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, FName WatchedPropertyTypeName1, FName WatchedPropertyTypeName2 )
 		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{
@@ -57,14 +63,7 @@ public:
 		AddWatchedPropertyType( WatchedPropertyTypeName2 );
 	}
 
-	/**
-	* Constructor
-	*
-	* @param InSequencer The sequencer instance to be used by this tool
-	* @param WatchedPropertyTypeName1 The first property type name that this property track editor should watch for changes.
-	* @param WatchedPropertyTypeName2 The second property type name that this property track editor should watch for changes.
-	* @param WatchedPropertyTypeName3 The third property type name that this property track editor should watch for changes.
-	*/
+	DEPRECATED(4.16, "Please use FPropertyTrackEditor(TSharedRef<ISequencer>, TArrayView<const FAnimatedPropertyKey>)")
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, FName WatchedPropertyTypeName1, FName WatchedPropertyTypeName2, FName WatchedPropertyTypeName3 )
 		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{
@@ -73,12 +72,7 @@ public:
 		AddWatchedPropertyType( WatchedPropertyTypeName3 );
 	}
 
-	/**
-	* Constructor
-	*
-	* @param InSequencer The sequencer instance to be used by this tool
-	* @param WatchedPropertyTypeNameS An array of property type names that this property track editor should watch for changes.
-	*/
+	DEPRECATED(4.16, "Please use FPropertyTrackEditor(TSharedRef<ISequencer>, TArrayView<const FAnimatedPropertyKey>)")
 	FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer, TArray<FName> InWatchedPropertyTypeNames )
 		: FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>( InSequencer )
 	{
@@ -94,9 +88,9 @@ public:
 		if ( SequencerPtr.IsValid() )
 		{
 			ISequencerObjectChangeListener& ObjectChangeListener = SequencerPtr->GetObjectChangeListener();
-			for ( FName WatchedPropertyTypeName : WatchedPropertyTypeNames )
+			for ( FAnimatedPropertyKey PropertyKey : WatchedProperties )
 			{
-				ObjectChangeListener.GetOnAnimatablePropertyChanged( WatchedPropertyTypeName ).RemoveAll( this );
+				ObjectChangeListener.GetOnAnimatablePropertyChanged( PropertyKey ).RemoveAll( this );
 			}
 		}
 	}
@@ -132,18 +126,83 @@ protected:
 	 */
 	virtual void InitializeNewTrack( TrackType* NewTrack, FPropertyChangedParams PropertyChangedParams )
 	{
-		NewTrack->SetPropertyNameAndPath( PropertyChangedParams.PropertyPath.Last()->GetFName(), PropertyChangedParams.GetPropertyPathString() );
+		const UProperty* ChangedProperty = PropertyChangedParams.PropertyPath.GetLeafMostProperty().Property.Get();
+		if (ChangedProperty)
+		{
+			NewTrack->SetPropertyNameAndPath( ChangedProperty->GetFName(), PropertyChangedParams.GetPropertyPathString() );
 #if WITH_EDITORONLY_DATA
-		NewTrack->SetDisplayName(PropertyChangedParams.PropertyPath.Last()->GetDisplayNameText());
+
+			FText DisplayText;
+
+			// Set up the appropriate name for the track from an array/nested struct index if necessary
+			for (int32 PropertyIndex = PropertyChangedParams.PropertyPath.GetNumProperties() - 1; PropertyIndex >= 0; --PropertyIndex)
+			{
+				const FPropertyInfo& Info = PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex);
+				const UArrayProperty* ParentArrayProperty = PropertyIndex > 0 ? Cast<UArrayProperty>(PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex - 1).Property.Get()) : nullptr;
+
+				UProperty* ArrayInnerProperty = Info.Property.Get();
+				if (ArrayInnerProperty && Info.ArrayIndex != INDEX_NONE)
+				{
+					DisplayText = FText::Format(NSLOCTEXT("PropertyTrackEditor", "DisplayTextArrayFormat", "{0} ({1}[{2}])"),
+						ChangedProperty->GetDisplayNameText(),
+						(ParentArrayProperty ? ParentArrayProperty : ArrayInnerProperty)->GetDisplayNameText(),
+						FText::AsNumber(Info.ArrayIndex)
+					);
+					break;
+				}
+			}
+
+			if (DisplayText.IsEmpty())
+			{
+				for (int32 PropertyIndex = PropertyChangedParams.PropertyPath.GetNumProperties() - 1; PropertyIndex >= 0; --PropertyIndex)
+				{
+					const UStructProperty* ParentStructProperty = PropertyIndex > 0 ? Cast<UStructProperty>(PropertyChangedParams.PropertyPath.GetPropertyInfo(PropertyIndex - 1).Property.Get()) : nullptr;
+					if (ParentStructProperty)
+					{
+						DisplayText = FText::Format(NSLOCTEXT("PropertyTrackEditor", "DisplayTextStructFormat", "{0} ({1})"),
+							ChangedProperty->GetDisplayNameText(),
+							ParentStructProperty->GetDisplayNameText()
+						);
+						break;
+					}
+				}
+			}
+
+			if (DisplayText.IsEmpty())
+			{
+				DisplayText = ChangedProperty->GetDisplayNameText();
+			}
+
+			NewTrack->SetDisplayName(DisplayText);
 #endif
+		}
+	}
+
+	virtual UMovieSceneTrack* AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName) override
+	{
+		UMovieSceneTrack* Track = FocusedMovieScene->AddTrack(TrackClass, ObjectHandle);
+		if (UMovieScenePropertyTrack* PropertyTrack = Cast<UMovieScenePropertyTrack>(Track))
+		{
+			PropertyTrack->UniqueTrackName = UniqueTypeName;
+		}
+		return Track;
+	}
+
+protected:
+
+	/** Adds a callback for property changes for the supplied property type name. */
+	void AddWatchedProperty( FAnimatedPropertyKey PropertyKey )
+	{
+		FMovieSceneTrackEditor::GetSequencer()->GetObjectChangeListener().GetOnAnimatablePropertyChanged( PropertyKey ).AddRaw( this, &FPropertyTrackEditor<TrackType, SectionType, KeyDataType>::OnAnimatedPropertyChanged );
+		WatchedProperties.Add( PropertyKey );
 	}
 
 private:
+
 	/** Adds a callback for property changes for the supplied property type name. */
 	void AddWatchedPropertyType( FName WatchedPropertyTypeName )
 	{
-		FMovieSceneTrackEditor::GetSequencer()->GetObjectChangeListener().GetOnAnimatablePropertyChanged( WatchedPropertyTypeName ).AddRaw( this, &FPropertyTrackEditor<TrackType, SectionType, KeyDataType>::OnAnimatedPropertyChanged );
-		WatchedPropertyTypeNames.Add( WatchedPropertyTypeName );
+		AddWatchedProperty(FAnimatedPropertyKey::FromPropertyTypeName(WatchedPropertyTypeName));
 	}
 
 	/** Get a customized track class from the property if there is one, otherwise return nullptr. */
@@ -181,7 +240,13 @@ private:
 		TArray<KeyDataType> DefaultKeysForPropertyChange;
 		GenerateKeysFromPropertyChanged( PropertyChangedParams, NewKeysForPropertyChange, DefaultKeysForPropertyChange );
 
-		TSubclassOf<UMovieSceneTrack> CustomizedClass = GetCustomizedTrackClass( PropertyChangedParams.PropertyPath.Last() );
+		UProperty* Property = PropertyChangedParams.PropertyPath.GetLeafMostProperty().Property.Get();
+		if (!Property)
+		{
+			return false;
+		}
+
+		TSubclassOf<UMovieSceneTrack> CustomizedClass = GetCustomizedTrackClass( Property );
 		TSubclassOf<UMovieSceneTrack> TrackClass;
 		
 		if (CustomizedClass != nullptr)
@@ -192,6 +257,8 @@ private:
 		{
 			TrackClass = TrackType::StaticClass();
 		}
+
+		FName UniqueName(*PropertyChangedParams.PropertyPath.ToString(TEXT(".")));
 
 		// If the track class has been customized for this property then it's possible this track editor doesn't support it, 
 		// also check for track editors which should only be used for customization.
@@ -204,7 +271,7 @@ private:
 				DefaultKeysForPropertyChange,
 				PropertyChangedParams.KeyMode,
 				TrackClass,
-				PropertyChangedParams.PropertyPath.Last()->GetFName(),
+				UniqueName,
 				[&](TrackType* NewTrack) { InitializeNewTrack(NewTrack, PropertyChangedParams); }
 			);
 		}
@@ -217,5 +284,5 @@ private:
 private:
 
 	/** An array of property type names which are being watched for changes. */
-	TArray<FName> WatchedPropertyTypeNames;
+	TArray<FAnimatedPropertyKey> WatchedProperties;
 };

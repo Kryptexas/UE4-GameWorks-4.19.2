@@ -63,6 +63,10 @@ public:
 
 	virtual EMaterialShadingModel GetMaterialShadingModel() const = 0;
 
+	virtual EMaterialValueType GetParameterType(int32 Index) const = 0;
+
+	virtual FMaterialUniformExpression* GetParameterUniformExpression(int32 Index) const = 0;
+
 	/** 
 	 * Casts the passed in code to DestType, or generates a compile error if the cast is not valid. 
 	 * This will truncate a type (float4 -> float3) but not add components (float2 -> float3), however a float1 can be cast to any float type by replication. 
@@ -107,6 +111,7 @@ public:
 	virtual int32 Ceil(int32 X) = 0;
 	virtual int32 Round(int32 X) = 0;
 	virtual int32 Truncate(int32 X) = 0;
+	virtual int32 Sign(int32 X) = 0;
 	virtual int32 Frac(int32 X) = 0;
 	virtual int32 Fmod(int32 A, int32 B) = 0;
 	virtual int32 Abs(int32 X) = 0;
@@ -185,6 +190,8 @@ public:
 
 	virtual int32 PreSkinnedPosition() = 0;
 	virtual int32 PreSkinnedNormal() = 0;
+
+	virtual int32 VertexInterpolator(uint32 InterpolatorIndex) = 0;
 
 #if WITH_EDITOR
 	virtual int32 MaterialBakingWorldPosition() = 0;
@@ -269,6 +276,8 @@ public:
 	// Simple pass through all other material operations unmodified.
 
 	virtual EMaterialShadingModel GetMaterialShadingModel() const { return Compiler->GetMaterialShadingModel();  }
+	virtual EMaterialValueType GetParameterType(int32 Index) const { return Compiler->GetParameterType(Index); }
+	virtual FMaterialUniformExpression* GetParameterUniformExpression(int32 Index) const { return Compiler->GetParameterUniformExpression(Index); }
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) override { Compiler->SetMaterialProperty(InProperty, OverrideShaderFrequency, bUsePreviousFrameTime); }
 	virtual void PushMaterialAttribute(const FGuid& InAttributeID) override { Compiler->PushMaterialAttribute(InAttributeID); }
 	virtual FGuid PopMaterialAttribute() override { return Compiler->PopMaterialAttribute(); }
@@ -321,6 +330,7 @@ public:
 	virtual int32 Ceil(int32 X) override { return Compiler->Ceil(X); }
 	virtual int32 Round(int32 X) override { return Compiler->Round(X); }
 	virtual int32 Truncate(int32 X) override { return Compiler->Truncate(X); }
+	virtual int32 Sign(int32 X) override { return Compiler->Sign(X); }
 	virtual int32 Frac(int32 X) override { return Compiler->Frac(X); }
 	virtual int32 Fmod(int32 A, int32 B) override { return Compiler->Fmod(A,B); }
 	virtual int32 Abs(int32 X) override { return Compiler->Abs(X); }

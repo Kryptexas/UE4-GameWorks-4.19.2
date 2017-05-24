@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class ContentBrowser : ModuleRules
 {
-	public ContentBrowser(TargetInfo Target)
+	public ContentBrowser(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

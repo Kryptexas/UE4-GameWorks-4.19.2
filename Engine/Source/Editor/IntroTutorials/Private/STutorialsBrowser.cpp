@@ -151,7 +151,7 @@ public:
 						.AutoHeight()
 						[
 							SNew(STextBlock)
-							.Text(!Category.Title.IsEmpty() ? Category.Title : FText::FromString(CategoryName))
+							.Text(GetTitleText())
 							.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryHeader"))
 							.HighlightText(HighlightText)
 							.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"))
@@ -191,12 +191,6 @@ public:
 		return bPassesFilter && bPassesCategory;
 	}
 
-	FString GetTitleString() const override
-	{
-		const FString Title = !Category.Title.IsEmpty() ? Category.Title.ToString() : CategoryName;
-		return Title;
-	}
-
 	int32 GetSortOrder() const override
 	{
 		return Category.SortOrder;
@@ -209,7 +203,7 @@ public:
 
 	bool SortAgainst(TSharedRef<ITutorialListEntry> OtherEntry) const override
 	{
-		return (GetSortOrder() == OtherEntry->GetSortOrder()) ? (GetTitleString() > OtherEntry->GetTitleString()) : (GetSortOrder() < OtherEntry->GetSortOrder());
+		return (GetSortOrder() == OtherEntry->GetSortOrder()) ? (GetTitleText().CompareTo(OtherEntry->GetTitleText()) < 0) : (GetSortOrder() < OtherEntry->GetSortOrder());
 	}
 
 	void AddSubCategory(TSharedPtr<FTutorialListEntry_Category> InSubCategory)
@@ -381,7 +375,7 @@ public:
 								.FillWidth(1.0f)
 								[
 									SNew(STextBlock)
-									.Text(Tutorial->Title)
+									.Text(GetTitleText())
 									.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("Tutorials.Browser.SummaryHeader"))
 									.HighlightText(HighlightText)
 									.HighlightColor(FEditorStyle::Get().GetColor("Tutorials.Browser.HighlightTextColor"))
@@ -439,11 +433,6 @@ public:
 		return Tutorial->Title;
 	}
 
-	FString GetTitleString() const override
-	{
-		return Tutorial->Title.ToString();
-	}
-
 	int32 GetSortOrder() const override
 	{
 		return Tutorial->SortOrder;
@@ -451,7 +440,7 @@ public:
 
 	bool SortAgainst(TSharedRef<ITutorialListEntry> OtherEntry) const override
 	{
-		return (GetSortOrder() == OtherEntry->GetSortOrder()) ? (GetTitleString() > OtherEntry->GetTitleString()) : (GetSortOrder() < OtherEntry->GetSortOrder());
+		return (GetSortOrder() == OtherEntry->GetSortOrder()) ? (GetTitleText().CompareTo(OtherEntry->GetTitleText()) < 0) : (GetSortOrder() < OtherEntry->GetSortOrder());
 	}
 
 	FReply OnClicked(bool bRestart) const

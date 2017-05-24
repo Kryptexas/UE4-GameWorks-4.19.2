@@ -5,7 +5,7 @@ using System.IO;
 
 public class MaterialUtilities : ModuleRules
 {
-	public MaterialUtilities(TargetInfo Target)
+	public MaterialUtilities(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateDependencyModuleNames.AddRange(
 			new string [] {

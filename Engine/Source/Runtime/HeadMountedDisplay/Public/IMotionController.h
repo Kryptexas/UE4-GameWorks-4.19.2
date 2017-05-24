@@ -40,9 +40,11 @@ public:
 	 * @param DeviceHand		Which hand, within the controller set for the player, to get the orientation and position for
 	 * @param OutOrientation	(out) If tracked, the orientation (in calibrated-space) of the controller in the specified hand
 	 * @param OutPosition		(out) If tracked, the position (in calibrated-space) of the controller in the specified hand
+	 * @param WorldToMetersScale The world scaling factor.
+	 *
 	 * @return					True if the device requested is valid and tracked, false otherwise
 	 */
-	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition) const = 0;
+	virtual bool GetControllerOrientationAndPosition(const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const = 0;
 
 	/**
 	 * Returns the tracking status (e.g. not tracked, intertial-only, fully tracked) of the specified controller

@@ -15,6 +15,7 @@
 #include "Widgets/Input/SHyperlink.h"
 #include "Widgets/Images/SThrobber.h"
 #include "Widgets/Notifications/INotificationWidget.h"
+#include "Framework/Notifications/NotificationManager.h"
 
 /////////////////////////////////////////////////
 // SNotificationExtendable
@@ -682,53 +683,63 @@ TSharedRef<SNotificationItem> SNotificationList::AddNotification(const FNotifica
 {
 	TSharedPtr<SNotificationExtendable> NewItem;
 
-	if (Info.ContentWidget.IsValid())
+	if (FSlateNotificationManager::Get().AreNotificationsAllowed())
 	{
-		NewItem = SNew(SNotificationItemExternalImpl)
-			.ContentWidget(Info.ContentWidget)
-			.FadeInDuration(Info.FadeInDuration)
-			.ExpireDuration(Info.ExpireDuration)
-			.FadeOutDuration(Info.FadeOutDuration);
+		if (Info.ContentWidget.IsValid())
+		{
+			NewItem = SNew(SNotificationItemExternalImpl)
+				.ContentWidget(Info.ContentWidget)
+				.FadeInDuration(Info.FadeInDuration)
+				.ExpireDuration(Info.ExpireDuration)
+				.FadeOutDuration(Info.FadeOutDuration);
+		}
+		else
+		{
+			static const FSlateBrush* CachedImage = FCoreStyle::Get().GetBrush("NotificationList.DefaultMessage");
+
+			// Create notification.
+			NewItem = SNew(SNotificationItemImpl)
+				.Text(Info.Text)
+				.Font(Font)
+				.ButtonDetails(Info.ButtonDetails)
+				.Image((Info.Image != nullptr) ? Info.Image : CachedImage)
+				.FadeInDuration(Info.FadeInDuration)
+				.ExpireDuration(Info.ExpireDuration)
+				.FadeOutDuration(Info.FadeOutDuration)
+				.bUseThrobber(Info.bUseThrobber)
+				.bUseSuccessFailIcons(Info.bUseSuccessFailIcons)
+				.bUseLargeFont(Info.bUseLargeFont)
+				.WidthOverride(Info.WidthOverride)
+				.CheckBoxState(Info.CheckBoxState)
+				.CheckBoxStateChanged(Info.CheckBoxStateChanged)
+				.CheckBoxText(Info.CheckBoxText)
+				.Hyperlink(Info.Hyperlink)
+				.HyperlinkText(Info.HyperlinkText);
+		}
+		
+		NewItem->MyList = SharedThis(this);
+
+		MessageItemBoxPtr->AddSlot()
+			.AutoHeight()
+			.HAlign(HAlign_Right)
+			[
+				NewItem.ToSharedRef()
+			];
+
+		NewItem->Fadein( Info.bAllowThrottleWhenFrameRateIsLow );
+
+		if (Info.bFireAndForget)
+		{
+			NewItem->ExpireAndFadeout();
+		}
 	}
 	else
 	{
-		static const FSlateBrush* CachedImage = FCoreStyle::Get().GetBrush("NotificationList.DefaultMessage");
-
-		// Create notification.
-		NewItem = SNew(SNotificationItemImpl)
-			.Text(Info.Text)
-			.Font(Font)
-			.ButtonDetails(Info.ButtonDetails)
-			.Image((Info.Image != nullptr) ? Info.Image : CachedImage)
-			.FadeInDuration(Info.FadeInDuration)
-			.ExpireDuration(Info.ExpireDuration)
-			.FadeOutDuration(Info.FadeOutDuration)
-			.bUseThrobber(Info.bUseThrobber)
-			.bUseSuccessFailIcons(Info.bUseSuccessFailIcons)
-			.bUseLargeFont(Info.bUseLargeFont)
-			.WidthOverride(Info.WidthOverride)
-			.CheckBoxState(Info.CheckBoxState)
-			.CheckBoxStateChanged(Info.CheckBoxStateChanged)
-			.CheckBoxText(Info.CheckBoxText)
-			.Hyperlink(Info.Hyperlink)
-			.HyperlinkText(Info.HyperlinkText);
+		// When notifications are not allowed we want to return an empty notification.
+		NewItem = SNew(SNotificationItemImpl);
 	}
-		
-	NewItem->MyList = SharedThis(this);
 
-	MessageItemBoxPtr->AddSlot()
-		.AutoHeight()
-		.HAlign(HAlign_Right)
-		[
-			NewItem.ToSharedRef()
-		];
-
-	NewItem->Fadein( Info.bAllowThrottleWhenFrameRateIsLow );
-
-	if (Info.bFireAndForget)
-	{
-		NewItem->ExpireAndFadeout();
-	}
+	LastNotification = NewItem;
 
 	return NewItem.ToSharedRef();
 }

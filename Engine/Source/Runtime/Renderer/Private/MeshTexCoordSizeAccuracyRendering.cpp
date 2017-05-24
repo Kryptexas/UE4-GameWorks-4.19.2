@@ -34,7 +34,7 @@ void FMeshTexCoordSizeAccuracyPS::SetParameters(
 	}
 
 	// Bind view params
-	FGlobalShader::SetParameters(RHICmdList, FGlobalShader::GetPixelShader(), View);
+	FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, FGlobalShader::GetPixelShader(), View.ViewUniformBuffer);
 }
 
 void FMeshTexCoordSizeAccuracyPS::SetMesh(

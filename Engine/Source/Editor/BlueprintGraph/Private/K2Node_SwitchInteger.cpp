@@ -116,7 +116,7 @@ void UK2Node_SwitchInteger::ReallocatePinsDuringReconstruction(TArray<UEdGraphPi
 	}
 }
 
-void UK2Node_SwitchInteger::RemovePin(UEdGraphPin* /*TargetPin*/)
+void UK2Node_SwitchInteger::RemovePin(UEdGraphPin* TargetPin)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	int32 PinIndex = (StartIndex >= 0) ? StartIndex : 0;
@@ -126,7 +126,7 @@ void UK2Node_SwitchInteger::RemovePin(UEdGraphPin* /*TargetPin*/)
 	for (int32 i = 0; i < Pins.Num(); ++i)
 	{
 		UEdGraphPin* PotentialPin = Pins[i];
-		if (K2Schema->IsExecPin(*PotentialPin) && (PotentialPin->Direction == EGPD_Output) && (PotentialPin != DefaultPin))
+		if (K2Schema->IsExecPin(*PotentialPin) && (PotentialPin->Direction == EGPD_Output) && (PotentialPin != DefaultPin) && (PotentialPin != TargetPin))
 		{
 			PotentialPin->PinName = GetPinNameGivenIndex(PinIndex);
 			++PinIndex;

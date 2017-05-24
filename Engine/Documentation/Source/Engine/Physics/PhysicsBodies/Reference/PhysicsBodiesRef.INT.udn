@@ -2,45 +2,7 @@ Availability: Public
 Title:Physics Bodies Reference
 Crumbs: %ROOT%
 Description:Physics Body, or Body Instance, property reference.
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhysicsBodies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhysicsBodies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicsBodies]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhysicsBodies:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhysicsBodies:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhysicsBodies]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Physics/physics_topic.png
 
 This page contains a reference listing of properties in the Physics and Collision categories of properties. If you are looking for reference on Collision Responses or Collision Presets please see: [](Engine/Physics/Collision/Reference).
 
@@ -69,11 +31,11 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Simulate Physics** || %doxygen:FBodyInstance::bSimulatePhysics% |
+| **Simulate Physics** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bSimulatePhysics" output:"block")] |
 | **Mass in KG** || Mass of the body in KG. |
-| **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
-| **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
-| **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
+| **Angular Damping** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:AngularDamping" output:"block")] |
+| **Linear Damping** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:LinearDamping" output:"block")] |
+| **Enable Gravity** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bEnableGravity" output:"block")] |
 |[REGION:tablesection]**Constraints**[/REGION]|||
 | **Lock Position** || [INCLUDE:#lockpos] |
 | **Lock Rotation** || [INCLUDE:#lockrot] |
@@ -87,22 +49,22 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Auto Weld** || %doxygen:FBodyInstance::bAutoWeld% |
-| **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
-| **Center Of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
-| **Mass Scale** || %doxygen:FBodyInstance::MassScale% |
-| **Max Angular Velocity** || %doxygen:FBodyInstance::MaxAngularVelocity% |
-| **Use Async Scene** || %doxygen:FBodyInstance::bUseAsyncScene% |
-| **Override Max Depenetration Velocity** || %doxygen:FBodyInstance::bOverrideMaxDepenetrationVelocity% |
-| **Max Depenetration Velocity** || %doxygen:FBodyInstance::MaxDepenetrationVelocity% |
-| **Override Walkable Slope on Instance** || %doxygen:FBodyInstance::bOverrideWalkableSlopeOnInstance% |
-| **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% See the **[](Engine/Physics/WalkableSlope)** documentation for usage information. |
-| **Walkable Slope Behavior** || %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
-| **Walkable Slope Angle** || %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% 
-| **Sleep Family** || %doxygen:FBodyInstance::SleepFamily% |
-| **Position Solver Iteration Count** || %doxygen:FBodyInstance::PositionSolverIterationCount% |
-| **Velocity Solver Iteration Count** || %doxygen:FBodyInstance::VelocitySolverIterationCount% |
-| **Should Update Physics Volume** || %doxygen:USceneComponent::bShouldUpdatePhysicsVolume% |
+| **Auto Weld** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bAutoWeld" output:"block")] |
+| **Start Awake** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bStartAwake" output:"block")] |
+| **Center Of Mass Offset** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:COMNudge" output:"block")] |
+| **Mass Scale** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:MassScale" output:"block")] |
+| **Max Angular Velocity** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:MaxAngularVelocity" output:"block")] |
+| **Use Async Scene** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bUseAsyncScene" output:"block")] |
+| **Override Max Depenetration Velocity** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bOverrideMaxDepenetrationVelocity" output:"block")] |
+| **Max Depenetration Velocity** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:MaxDepenetrationVelocity" output:"block")] |
+| **Override Walkable Slope on Instance** ||[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bOverrideWalkableSlopeOnInstance" output:"block")] |
+| **Walkable Slope Override** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodySetup:WalkableSlopeOverride" output:"block")] See the **[](Engine/Physics/WalkableSlope)** documentation for usage information. |
+| **Walkable Slope Behavior** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"WalkableSlopeOverride:WalkableSlopeBehavior" output:"block")] |
+| **Walkable Slope Angle** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"WalkableSlopeOverride:WalkableSlopeAngle" output:"block")] |
+| **Sleep Family** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:SleepFamily" output:"block")] |
+| **Position Solver Iteration Count** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:PositionSolverIterationCount" output:"block")] |
+| **Velocity Solver Iteration Count** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:VelocitySolverIterationCount" output:"block")] |
+| **Should Update Physics Volume** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"SceneComponent:bShouldUpdatePhysicsVolume" output:"block")] |
 
 [/REGION]
 
@@ -128,9 +90,9 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
-| **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
-| **Generate Overlap Events** || %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
+| **Simulation Generates Hit Events** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bNotifyRigidBodyCollision" output:"block")] |
+| **Phys Material Override** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:PhysMaterialOverride" output:"block")] |
+| **Generate Overlap Events** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bGenerateOverlapEvents" output:"block")] |
 | **Collision Responses** || See the **[](Engine/Physics/Collision/Reference)** documentation for more information. |
 [/REGION]
 
@@ -141,12 +103,12 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
-| **Always Create Physics State** || %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
-| **Multi Body Overlap** || %doxygen:UPrimitiveComponent::bMultiBodyOverlap% | 
-| **Check Async Scene On Move** || %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
-| **Trace Complex On Move** || %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
-| **Return Material On Move** || %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
+| **Use CCD** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bUseCCD" output:"block")] |
+| **Always Create Physics State** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bAlwaysCreatePhysicsState" output:"block")] |
+| **Multi Body Overlap** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bMultiBodyOverlap" output:"block")] | 
+| **Check Async Scene On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bCheckAsyncSceneOnMove" output:"block")] |
+| **Trace Complex On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bTraceComplexOnMove" output:"block")] |
+| **Return Material On Move** || [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"PrimitiveComponent:bReturnMaterialOnMove" output:"block")] |
 | **Can Ever Affect Navigation** || Whether this component can potentially influence navigation |
 
 [/REGION]
@@ -160,44 +122,44 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 <!--
 [EXCERPT:lockpos]
 
-%doxygen:FBodyInstance::bLockTranslation%
+[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockTranslation" output:"block")]
 
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Lock X Translation** || %doxygen:FBodyInstance::bLockXTranslation% |
-| **Lock Y Translation** || %doxygen:FBodyInstance::bLockYTranslation% |
-| **Lock Z Translation** || %doxygen:FBodyInstance::bLockZTranslation% |
+[REGION:simpletable]
+| Property | Description |
+| --- | :--- |
+| **Lock X Translation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockXTranslation" output:"block")] |
+| **Lock Y Translation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockYTranslation" output:"block")] |
+| **Lock Z Translation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockZTranslation" output:"block")] |
 [/REGION]
 [/EXCERPT]
 
 [EXCERPT:lockrot]
 
-%doxygen:FBodyInstance::bLockRotation%
+[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockRotation" output:"block")]
 
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Lock X Rotation** || %doxygen:FBodyInstance::bLockXRotation% |
-| **Lock Y Rotation** || %doxygen:FBodyInstance::bLockYRotation% |
-| **Lock Z Rotation** || %doxygen:FBodyInstance::bLockZRotation% |
+[REGION:simpletable]
+| Property | Description |
+| --- | :--- |
+| **Lock X Rotation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockXRotation" output:"block")] |
+| **Lock Y Rotation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockYRotation" output:"block")] |
+| **Lock Z Rotation** | [TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:bLockZRotation" output:"block")] |
 [/REGION]
 [/EXCERPT]
 
 [EXCERPT:mode]
 
-%doxygen:FBodyInstance::DOFMode%
+[TEXT(type:"tooltip" namespace:"UObjectToolTips" key:"BodyInstance:DOFMode" output:"block")]
 
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Default** || Inherits the degrees of freedom from the project settings. |
-| **Six DOF** || Specifies which axis to freeze rotation and movement along. |
-| **YZPlane** || Allows 2D movement along the Y-Z plane. |
-| **XZPlane** || Allows 2D movement along the X-Z plane. |
-| **XYPlane** || Allows 2D movement along the X-Y plane. |
-| **Custom Plane** || Allows 2D movement along the plane of a given normal. |
-| **None** || No constraints. |
+[REGION:simpletable]
+| Property | Description |
+| --- | :--- |
+| **Default** | Inherits the degrees of freedom from the project settings. |
+| **Six DOF** | Specifies which axis to freeze rotation and movement along. |
+| **YZPlane** | Allows 2D movement along the Y-Z plane. |
+| **XZPlane** | Allows 2D movement along the X-Z plane. |
+| **XYPlane** | Allows 2D movement along the X-Y plane. |
+| **Custom Plane** | Allows 2D movement along the plane of a given normal. |
+| **None** | No constraints. |
 [/REGION]
 [/EXCERPT]
 -->

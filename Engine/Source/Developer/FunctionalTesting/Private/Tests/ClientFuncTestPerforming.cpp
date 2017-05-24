@@ -95,6 +95,16 @@ bool FStartFTestOnMap::Update()
 // Project.Maps.Client Functional Testing
 // Project.Maps.Functional Tests
 
+void ParseTestMapInfo(const FString& Parameters, FString& MapObjectPath, FString& MapPackageName, FString& MapTestName)
+{
+	TArray<FString> ParamArray;
+	Parameters.ParseIntoArray(ParamArray, TEXT(";"), true);
+
+	MapObjectPath = ParamArray[0];
+	MapPackageName = ParamArray[1];
+	MapTestName = ( ParamArray.Num() > 2 ) ? ParamArray[2] : TEXT("");
+}
+
 
 class FClientFunctionalTestingMapsBase : public FAutomationTestBase
 {
@@ -104,22 +114,20 @@ public:
 	{
 	}
 
-	virtual FString GetTestOpenCommand(const FString& Parameter) const override
+	virtual FString GetTestOpenCommand(const FString& Parameters) const override
 	{
-		FString MapPath;
-		FString MapTestName;
-		Parameter.Split(TEXT(";"), &MapPath, &MapTestName);
+		FString MapObjectPath, MapPackageName, MapTestName;
+		ParseTestMapInfo(Parameters, MapObjectPath, MapPackageName, MapTestName);
 
-		return FString::Printf(TEXT("Automate.OpenMapAndFocusActor %s %s"), *MapPath, *MapTestName);
+		return FString::Printf(TEXT("Automate.OpenMapAndFocusActor %s %s"), *MapObjectPath, *MapTestName);
 	}
 
-	virtual FString GetTestAssetPath(const FString& Parameter) const override
+	virtual FString GetTestAssetPath(const FString& Parameters) const override
 	{
-		FString MapPath;
-		FString MapTestName;
-		Parameter.Split(TEXT(";"), &MapPath, &MapTestName);
+		FString MapObjectPath, MapPackageName, MapTestName;
+		ParseTestMapInfo(Parameters, MapObjectPath, MapPackageName, MapTestName);
 
-		return MapPath;
+		return MapObjectPath;
 	}
 };
 
@@ -165,7 +173,7 @@ void FClientFunctionalTestingMaps::GetTests(TArray<FString>& OutBeautifiedNames,
 							if ( MapTest.Split(TEXT("|"), &BeautifulTestName, &RealTestName) )
 							{
 								OutBeautifiedNames.Add(MapAsset.PackageName.ToString() + TEXT(".") + *BeautifulTestName);
-								OutTestCommands.Add(MapAsset.PackageName.ToString() + TEXT(";") + *RealTestName);
+								OutTestCommands.Add(MapAsset.ObjectPath.ToString() + TEXT(";") + MapAsset.PackageName.ToString() + TEXT(";") + *RealTestName);
 							}
 						}
 					}
@@ -173,7 +181,7 @@ void FClientFunctionalTestingMaps::GetTests(TArray<FString>& OutBeautifiedNames,
 				else if ( MapAsset.AssetName.ToString().Find(TEXT("FTEST_")) == 0 )
 				{
 					OutBeautifiedNames.Add(MapAsset.AssetName.ToString());
-					OutTestCommands.Add(MapAsset.PackageName.ToString());
+					OutTestCommands.Add(MapAsset.ObjectPath.ToString() + TEXT(";") + MapAsset.PackageName.ToString());
 				}
 			}
 		}
@@ -208,23 +216,22 @@ static UWorld* GetAnyGameWorld()
  */
 bool FClientFunctionalTestingMaps::RunTest(const FString& Parameters)
 {
-	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(ParamArray, TEXT(";"), true);
-
-	FString MapName = ParamArray[0];
-	FString MapTestName = ( ParamArray.Num() > 1 ) ? ParamArray[1] : TEXT("");
+	FString MapObjectPath, MapPackageName, MapTestName;
+	ParseTestMapInfo(Parameters, MapObjectPath, MapPackageName, MapTestName);
 
 	bool bCanProceed = false;
 
+	FFunctionalTestingModule::Get()->MarkPendingActivation();
+
 	UWorld* TestWorld = GetAnyGameWorld();
-	if ( TestWorld && TestWorld->GetMapName() == MapName )
+	if ( TestWorld && TestWorld->GetMapName() == MapPackageName )
 	{
 		// Map is already loaded.
 		bCanProceed = true;
 	}
 	else
 	{
-		bCanProceed = AutomationOpenMap(MapName);
+		bCanProceed = AutomationOpenMap(MapPackageName);
 	}
 
 	if (bCanProceed)
@@ -246,7 +253,7 @@ bool FClientFunctionalTestingMaps::RunTest(const FString& Parameters)
 	//	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.f));
 	//  ADD_LATENT_AUTOMATION_COMMAND(FExitGameCommand);
 
-	UE_LOG(LogFunctionalTesting, Error, TEXT("Failed to start the %s map (possibly due to BP compilation issues)"), *MapName);
+	UE_LOG(LogFunctionalTesting, Error, TEXT("Failed to start the %s map (possibly due to BP compilation issues)"), *MapPackageName);
 	return false;
 }
 

@@ -10,7 +10,7 @@ using System.Xml.Linq;
 namespace UnrealBuildTool
 {
 	// Represents a folder within the master project. TODO Not using at the moment.
-	public class CodeLiteFolder : MasterProjectFolder
+	class CodeLiteFolder : MasterProjectFolder
 	{
 		public CodeLiteFolder(ProjectFileGenerator InitOwnerProjectFileGenerator, string InitFolderName)
 			: base(InitOwnerProjectFileGenerator, InitFolderName)
@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public class CodeLiteGenerator : ProjectFileGenerator
+	class CodeLiteGenerator : ProjectFileGenerator
 	{
 		public string SolutionExtension = ".workspace";
 		public string CodeCompletionFileName = "CodeCompletionFolders.txt";
@@ -231,21 +231,21 @@ namespace UnrealBuildTool
 			FileReference FullCodeLiteCodeCompletionFile = FileReference.Combine(InMasterProjectDirectory, CodeCompletionFile);
 			FileReference FullCodeLiteCodeCompletionPreProcessorFile = FileReference.Combine(InMasterProjectDirectory, CodeCompletionPreProcessorFile);
 
-			if (FullCodeLiteMasterFile.Exists())
+			if (FileReference.Exists(FullCodeLiteMasterFile))
 			{
-				FullCodeLiteMasterFile.Delete();
+				FileReference.Delete(FullCodeLiteMasterFile);
 			}
-			if (FullCodeLiteCodeCompletionFile.Exists())
+			if (FileReference.Exists(FullCodeLiteCodeCompletionFile))
 			{
-				FullCodeLiteCodeCompletionFile.Delete();
+				FileReference.Delete(FullCodeLiteCodeCompletionFile);
 			}
-			if (FullCodeLiteCodeCompletionPreProcessorFile.Exists())
+			if (FileReference.Exists(FullCodeLiteCodeCompletionPreProcessorFile))
 			{
-				FullCodeLiteCodeCompletionPreProcessorFile.Delete();
+				FileReference.Delete(FullCodeLiteCodeCompletionPreProcessorFile);
 			}
 
 			// Delete the project files folder
-			if (InIntermediateProjectFilesDirectory.Exists())
+			if (DirectoryReference.Exists(InIntermediateProjectFilesDirectory))
 			{
 				try
 				{

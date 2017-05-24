@@ -165,6 +165,11 @@ void FLandscapeToolKit::NotifyBrushChanged()
 	LandscapeEditorWidgets->NotifyBrushChanged();
 }
 
+void FLandscapeToolKit::RefreshDetailPanel()
+{
+	LandscapeEditorWidgets->RefreshDetailPanel();
+}
+
 void FLandscapeToolKit::OnChangeMode(FName ModeName)
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
@@ -507,15 +512,15 @@ bool SLandscapeEditor::GetIsPropertyVisible(const FPropertyAndParent& PropertyAn
 
 void SLandscapeEditor::NotifyToolChanged()
 {
-	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode)
-	{
-		// Refresh details panel
-		DetailsPanel->SetObject(LandscapeEdMode->UISettings, true);
-	}
+	RefreshDetailPanel();
 }
 
 void SLandscapeEditor::NotifyBrushChanged()
+{
+	RefreshDetailPanel();
+}
+
+void SLandscapeEditor::RefreshDetailPanel()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode)

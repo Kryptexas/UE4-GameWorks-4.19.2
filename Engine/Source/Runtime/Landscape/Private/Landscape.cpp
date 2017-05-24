@@ -130,7 +130,7 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 	Mobility = EComponentMobility::Static;
 
 #if WITH_EDITORONLY_DATA
-	EditToolRenderData = nullptr;
+	EditToolRenderData = FLandscapeEditToolRenderData();
 #endif
 
 	LpvBiasMultiplier = 0.0f; // Bias is 0 for landscape, since it's single sided
@@ -270,7 +270,7 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 		LegacyMapBuildData->IrrelevantLights = IrrelevantLights_DEPRECATED;
 
 		FMeshMapBuildLegacyData LegacyComponentData;
-		LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(MapBuildDataId, LegacyMapBuildData));
+		LegacyComponentData.Data.Emplace(MapBuildDataId, LegacyMapBuildData);
 		GComponentsWithLegacyLightmaps.AddAnnotation(this, LegacyComponentData);
 	}
 
@@ -301,15 +301,7 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 	if (Ar.IsTransacting())
 	{
-		if (EditToolRenderData)
-		{
-			Ar << EditToolRenderData->SelectedType;
-		}
-		else
-		{
-			int32 TempV = 0;
-			Ar << TempV;
-		}
+		Ar << EditToolRenderData.SelectedType;
 	}
 #endif
 
@@ -506,13 +498,26 @@ void ULandscapeInfo::UpdateDebugColorMaterial()
 	for (auto It = XYtoComponentMap.CreateIterator(); It; ++It)
 	{
 		ULandscapeComponent* Comp = It.Value();
-		if (Comp && Comp->EditToolRenderData)
+		if (Comp)
 		{
-			Comp->EditToolRenderData->UpdateDebugColorMaterial();
+			Comp->EditToolRenderData.UpdateDebugColorMaterial(Comp);
+			Comp->UpdateEditToolRenderData();
 		}
 	}
 	FlushRenderingCommands();
 	//GWarn->EndSlowTask();
+}
+
+void ULandscapeComponent::UpdatedSharedPropertiesFromActor()
+{
+	ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
+
+	bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
+	bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
+	bCastFarShadow = LandscapeProxy->bCastFarShadow;
+	bRenderCustomDepth = LandscapeProxy->bRenderCustomDepth;
+	CustomDepthStencilValue = LandscapeProxy->CustomDepthStencilValue;
+	LightingChannels = LandscapeProxy->LightingChannels;
 }
 
 void ULandscapeComponent::PostLoad()
@@ -523,8 +528,7 @@ void ULandscapeComponent::PostLoad()
 	if (ensure(LandscapeProxy))
 	{
 		// Ensure that the component's lighting settings matches the actor's.
-		bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
-		bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
+		UpdatedSharedPropertiesFromActor();	
 
 		// check SectionBaseX/Y are correct
 		int32 CheckSectionBaseX = FMath::RoundToInt(RelativeLocation.X) + LandscapeProxy->LandscapeSectionOffset.X;
@@ -647,6 +651,9 @@ void ULandscapeComponent::PostLoad()
 
 ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+#if WITH_EDITORONLY_DATA
+	, TargetDisplayOrder(ELandscapeLayerDisplayMode::Default)
+#endif // WITH_EDITORONLY_DATA
 	, bHasLandscapeGrass(true)
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -913,12 +920,9 @@ void ULandscapeComponent::BeginDestroy()
 	Super::BeginDestroy();
 
 #if WITH_EDITOR
-	if (EditToolRenderData != nullptr)
-	{
-		// Ask render thread to destroy EditToolRenderData
-		EditToolRenderData->Cleanup();
-		EditToolRenderData = nullptr;
-	}
+	// Ask render thread to destroy EditToolRenderData
+	EditToolRenderData = FLandscapeEditToolRenderData();
+	UpdateEditToolRenderData();
 
 	if (GIsEditor && !HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -954,13 +958,9 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 #if WITH_EDITOR
-		if (EditToolRenderData == nullptr)
-		{
-			EditToolRenderData = new FLandscapeEditToolRenderData(this);
-		}
-		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()), EditToolRenderData);
+		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()));
 #else
-		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()), nullptr);
+		Proxy = new FLandscapeComponentSceneProxy(this, MakeArrayView((UMaterialInterface**)MaterialInstances.GetData(), MaterialInstances.Num()));
 #endif
 	}
 	else // i.e. (FeatureLevel <= ERHIFeatureLevel::ES3_1)
@@ -968,17 +968,12 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 #if WITH_EDITOR 
 		if (PlatformData.HasValidPlatformData())
 		{
-			if (EditToolRenderData == nullptr)
-			{
-				EditToolRenderData = new FLandscapeEditToolRenderData(this);
-			}
-
-			Proxy = new FLandscapeComponentSceneProxyMobile(this, EditToolRenderData);
+			Proxy = new FLandscapeComponentSceneProxyMobile(this);
 		}
 #else
 		if (PlatformData.HasValidPlatformData())
 		{
-			Proxy = new FLandscapeComponentSceneProxyMobile(this, nullptr);
+			Proxy = new FLandscapeComponentSceneProxyMobile(this);
 		}
 #endif
 	}
@@ -1382,6 +1377,13 @@ bool ULandscapeInfo::UpdateLayerInfoMap(ALandscapeProxy* Proxy /*= nullptr*/, bo
 							int32 LayerInfoIndex = GetLayerInfoIndex(LayerInfo);
 							bool bValid = LayerNames.Contains(LayerInfo->LayerName);
 
+							#if WITH_EDITORONLY_DATA
+							if (bValid)
+							{
+								//LayerInfo->IsReferencedFromLoadedData = true;
+							}
+							#endif
+
 							if (LayerInfoIndex != INDEX_NONE)
 							{
 								FLandscapeInfoLayerSettings& LayerSettings = Layers[LayerInfoIndex];
@@ -1576,6 +1578,9 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		StaticLightingResolution = Landscape->StaticLightingResolution;
 		bCastStaticShadow = Landscape->bCastStaticShadow;
 		bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
+		LightingChannels = Landscape->LightingChannels;
+		bRenderCustomDepth = Landscape->bRenderCustomDepth;
+		CustomDepthStencilValue = Landscape->CustomDepthStencilValue;
 		ComponentSizeQuads = Landscape->ComponentSizeQuads;
 		NumSubsections = Landscape->NumSubsections;
 		SubsectionSizeQuads = Landscape->SubsectionSizeQuads;
@@ -1630,6 +1635,18 @@ void ALandscapeProxy::ConditionalAssignCommonProperties(ALandscape* Landscape)
 	if (LODFalloff != Landscape->LODFalloff)
 	{
 		LODFalloff = Landscape->LODFalloff;
+		bUpdated = true;
+	}
+
+	if (TargetDisplayOrder != Landscape->TargetDisplayOrder)
+	{
+		TargetDisplayOrder = Landscape->TargetDisplayOrder;
+		bUpdated = true;
+	}
+
+	if (TargetDisplayOrderList != Landscape->TargetDisplayOrderList)
+	{
+		TargetDisplayOrderList = Landscape->TargetDisplayOrderList;
 		bUpdated = true;
 	}
 
@@ -1997,13 +2014,13 @@ void ULandscapeInfo::RegisterActorComponent(ULandscapeComponent* Component, bool
 	}
 
 	// Update Selected Components/Regions
-	if (Component->EditToolRenderData != nullptr && Component->EditToolRenderData->SelectedType)
+	if (Component->EditToolRenderData.SelectedType)
 	{
-		if (Component->EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_COMPONENT)
+		if (Component->EditToolRenderData.SelectedType & FLandscapeEditToolRenderData::ST_COMPONENT)
 		{
 			SelectedComponents.Add(Component);
 		}
-		else if (Component->EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_REGION)
+		else if (Component->EditToolRenderData.SelectedType & FLandscapeEditToolRenderData::ST_REGION)
 		{
 			SelectedRegionComponents.Add(Component);
 		}
@@ -2446,16 +2463,12 @@ void ALandscapeProxy::UpdateBakedTextures()
 	struct FBakedTextureSourceInfo
 	{
 		// pointer as FMemoryWriter caches the address of the FBufferArchive, and this struct could be relocated on a realloc.
-		FBufferArchive* ComponentStateAr;
+		TUniquePtr<FBufferArchive> ComponentStateAr;
 		TArray<ULandscapeComponent*> Components;
 
 		FBakedTextureSourceInfo()
 		{
-			ComponentStateAr = new FBufferArchive();
-		}
-		~FBakedTextureSourceInfo()
-		{
-			delete ComponentStateAr;
+			ComponentStateAr = MakeUnique<FBufferArchive>();
 		}
 	};
 

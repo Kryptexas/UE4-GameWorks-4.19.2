@@ -5,7 +5,7 @@ using System.IO;
 
 public class ReliabilityHandlerComponent : ModuleRules
 {
-    public ReliabilityHandlerComponent(TargetInfo Target)
+    public ReliabilityHandlerComponent(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {

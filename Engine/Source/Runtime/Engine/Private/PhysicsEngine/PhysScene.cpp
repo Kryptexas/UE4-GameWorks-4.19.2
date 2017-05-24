@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
 #include "CoreMinimal.h"
 #include "Misc/CommandLine.h"
 #include "Stats/Stats.h"
@@ -31,9 +30,16 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/ConstraintInstance.h"
 
+#ifndef PHYSX_ENABLE_ENHANCED_DETERMINISM
+	#define PHYSX_ENABLE_ENHANCED_DETERMINISM (0)
+#endif
+
 /** Physics stats **/
 
 DEFINE_STAT(STAT_TotalPhysicsTime);
+DEFINE_STAT(STAT_NumCloths);
+DEFINE_STAT(STAT_NumClothVerts);
+
 DECLARE_CYCLE_STAT(TEXT("Start Physics Time (sync)"), STAT_PhysicsKickOffDynamicsTime, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Fetch Results Time (sync)"), STAT_PhysicsFetchDynamicsTime, STATGROUP_Physics);
 
@@ -58,8 +64,6 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Active Kinematic Bodies"), STAT_NumActiveKinema
 DECLARE_DWORD_COUNTER_STAT(TEXT("Mobile Bodies"), STAT_NumMobileBodies, STATGROUP_Physics);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Static Bodies"), STAT_NumStaticBodies, STATGROUP_Physics);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Shapes"), STAT_NumShapes, STATGROUP_Physics);
-DECLARE_DWORD_COUNTER_STAT(TEXT("Cloths"), STAT_NumCloths, STATGROUP_Physics);
-DECLARE_DWORD_COUNTER_STAT(TEXT("ClothVerts"), STAT_NumClothVerts, STATGROUP_Physics);
 
 DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Broadphase Adds"), STAT_NumBroadphaseAddsAsync, STATGROUP_Physics);
 DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Broadphase Removes"), STAT_NumBroadphaseRemovesAsync, STATGROUP_Physics);
@@ -69,9 +73,6 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Active Kinematic Bodies"), STAT_NumActi
 DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Mobile Bodies"), STAT_NumMobileBodiesAsync, STATGROUP_Physics);
 DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Static Bodies"), STAT_NumStaticBodiesAsync, STATGROUP_Physics);
 DECLARE_DWORD_COUNTER_STAT(TEXT("(ASync) Shapes"), STAT_NumShapesAsync, STATGROUP_Physics);
-
-#define USE_ADAPTIVE_FORCES_FOR_ASYNC_SCENE			1
-#define USE_SPECIAL_FRICTION_MODEL_FOR_ASYNC_SCENE	0
 
 static int16 PhysXSceneCount = 1;
 static const int PhysXSlowRebuildRate = 10;
@@ -151,6 +152,8 @@ FAutoConsoleTaskPriority CPrio_FPhysXTask_Cloth(
 	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
 	);
 
+DECLARE_STATS_GROUP(TEXT("PhysXTasks"), STATGROUP_PhysXTasks, STATCAT_Advanced);
+
 
 template <bool IsCloth>
 class FPhysXTask
@@ -196,13 +199,81 @@ public:
 		return ESubsequentsMode::TrackSubsequents;
 	}
 
+	FORCEINLINE TStatId FindOrCreateStatId(const char* StatName)
+	{
+#if STATS
+		for (int StatIdx = 0; StatIdx < NumStats; ++StatIdx)
+		{
+			FStatLookup& Lookup = Stats[StatIdx];
+			if (Lookup.StatName == StatName)
+			{
+				return Lookup.Stat;
+			}
+		}
+
+#if STATS
+		if (ensureMsgf(NumStats < sizeof(Stats) / sizeof(Stats[0]), TEXT("Too many different physx task stats. This will make the stat search slow")))
+		{
+			FScopeLock ScopeLock(&CS);
+
+			//Do the search again in case another thread added
+			for (int StatIdx = 0; StatIdx < NumStats; ++StatIdx)
+			{
+				FStatLookup& Lookup = Stats[StatIdx];
+				if (Lookup.StatName == StatName)
+				{
+					return Lookup.Stat;
+				}
+			}
+
+			FStatLookup& NewStat = Stats[NumStats];
+			NewStat.StatName = StatName;
+			NewStat.Stat = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_PhysXTasks>(FName(StatName));
+			FPlatformMisc::MemoryBarrier();
+			++NumStats;	//make sure to do this at the end in case another thread is currently iterating
+			return NewStat.Stat;
+		}
+#endif
+#endif // STATS
+		return TStatId();
+	}
+
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		FPlatformMisc::BeginNamedEvent(FColor::Black, Task.getName());
+#if STATS
+		const char* StatName = Task.getName();
+		FScopeCycleCounter CycleCounter(FindOrCreateStatId(StatName));
+		
+
+		FPlatformMisc::BeginNamedEvent(FColor::Black, StatName);
+#endif
+
 		Task.run();
+
+#if STATS
 		FPlatformMisc::EndNamedEvent();
+#endif
 	}
+
+private:
+
+	struct FStatLookup
+	{
+		const char* StatName;
+		TStatId Stat;
+	};
+	static FStatLookup Stats[100];
+
+	static int NumStats;
+	static FCriticalSection CS;
 };
+
+template<> int FPhysXTask<true>::NumStats = 0;
+template<> int FPhysXTask<false>::NumStats = 0;
+template<> FCriticalSection FPhysXTask<true>::CS = {};
+template<> FCriticalSection FPhysXTask<false>::CS = {};
+template<> FPhysXTask<true>::FStatLookup FPhysXTask<true>::Stats[100] = {};
+template<> FPhysXTask<false>::FStatLookup FPhysXTask<false>::Stats[100] = {};
 
 
 /** Used to dispatch physx tasks to task graph */
@@ -288,9 +359,7 @@ FPhysScene::FPhysScene()
 	bSubsteppingAsync = PhysSetting->bSubsteppingAsync;
 	bAsyncSceneEnabled = PhysSetting->bEnableAsyncScene;
 	NumPhysScenes = bAsyncSceneEnabled ? PST_Async + 1 : PST_Cloth + 1;
-
-	FMemory::Memzero(PendingSimulationTransforms);
-
+	
 	// Create scenes of all scene types
 	for (uint32 SceneType = 0; SceneType < NumPhysScenes; ++SceneType)
 	{
@@ -433,25 +502,27 @@ void FPhysScene::SetKinematicTarget_AssumesLocked(FBodyInstance* BodyInstance, c
 #if WITH_PHYSX
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic_AssumesLocked())
 	{
-		const bool bIsKinematicTarget = IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(PRigidDynamic);
-		if(bIsKinematicTarget)
+		FTransform CurrentPose = P2UTransform(PRigidDynamic->getGlobalPose());
+		if (!TargetTransform.EqualsNoScale(CurrentPose))
 		{
-			uint32 BodySceneType = SceneType_AssumesLocked(BodyInstance);
-			if (bAllowSubstepping && IsSubstepping(BodySceneType))
+			const bool bIsKinematicTarget = IsRigidBodyKinematicAndInSimulationScene_AssumesLocked(PRigidDynamic);
+			if(bIsKinematicTarget)
 			{
-				FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
-				PhysSubStepper->SetKinematicTarget_AssumesLocked(BodyInstance, TargetTransform);
+				uint32 BodySceneType = SceneType_AssumesLocked(BodyInstance);
+				if (bAllowSubstepping && IsSubstepping(BodySceneType))
+				{
+					FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
+					PhysSubStepper->SetKinematicTarget_AssumesLocked(BodyInstance, TargetTransform);
+				}
+
+				const PxTransform PNewPose = U2PTransform(TargetTransform);
+				PRigidDynamic->setKinematicTarget(PNewPose);	//If we interpolate, we will end up setting the kinematic target once per sub-step. However, for the sake of scene queries we should do this right away
 			}
-			else
+			else 
 			{
 				const PxTransform PNewPose = U2PTransform(TargetTransform);
-				PRigidDynamic->setKinematicTarget(PNewPose);
+				PRigidDynamic->setGlobalPose(PNewPose);
 			}
-		}
-		else
-		{
-			const PxTransform PNewPose = U2PTransform(TargetTransform);
-			PRigidDynamic->setGlobalPose(PNewPose);
 		}
 
 	}
@@ -495,7 +566,7 @@ void FPhysScene::AddForce_AssumesLocked(FBodyInstance* BodyInstance, const FVect
 #endif
 }
 
-void FPhysScene::AddForceAtPosition_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping)
+void FPhysScene::AddForceAtPosition_AssumesLocked(FBodyInstance* BodyInstance, const FVector& Force, const FVector& Position, bool bAllowSubstepping, bool bIsLocalForce)
 {
 #if WITH_PHYSX
 
@@ -505,11 +576,15 @@ void FPhysScene::AddForceAtPosition_AssumesLocked(FBodyInstance* BodyInstance, c
 		if (bAllowSubstepping && IsSubstepping(BodySceneType))
 		{
 			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[BodySceneType];
-			PhysSubStepper->AddForceAtPosition_AssumesLocked(BodyInstance, Force, Position);
+			PhysSubStepper->AddForceAtPosition_AssumesLocked(BodyInstance, Force, Position, bIsLocalForce);
+		}
+		else if (!bIsLocalForce)
+		{
+			PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(Force), U2PVector(Position), PxForceMode::eFORCE, true);
 		}
 		else
 		{
-			PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(Force), U2PVector(Position), PxForceMode::eFORCE, true);
+			PxRigidBodyExt::addLocalForceAtLocalPos(*PRigidBody, U2PVector(Force), U2PVector(Position), PxForceMode::eFORCE, true);
 		}
 	}
 #endif
@@ -757,36 +832,28 @@ void FinishSceneStat(uint32 Scene)
 	}
 }
 
-#if WITH_APEX
-void GatherApexStats(const UWorld* World, apex::Scene* ApexScene)
+void GatherClothingStats(const UWorld* World)
 {
 #if STATS
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_GatherApexStats);
 
+	SET_DWORD_STAT(STAT_NumCloths, 0);
+	SET_DWORD_STAT(STAT_NumClothVerts, 0);
+
 	if ( FThreadStats::IsCollectingData(GET_STATID(STAT_NumCloths)) ||  FThreadStats::IsCollectingData(GET_STATID(STAT_NumClothVerts)) )
 	{
-		SCOPED_APEX_SCENE_READ_LOCK(ApexScene);
-		int32 NumVerts = 0;
-		int32 NumCloths = 0;
 		for (TObjectIterator<USkeletalMeshComponent> Itr; Itr; ++Itr)
 		{
 			if (Itr->GetWorld() != World) { continue; }
-			const TArray<FClothingActor>& ClothingActors = Itr->GetClothingActors();
-			for (const FClothingActor& ClothingActor : ClothingActors)
+			
+			if(const IClothingSimulation* Simulation = Itr->GetClothingSimulation())
 			{
-				if (ClothingActor.ApexClothingActor && ClothingActor.ApexClothingActor->getActiveLod() == 1)
-				{
-					NumCloths++;
-					NumVerts += ClothingActor.ApexClothingActor->getNumSimulationVertices();
-				}
+				Simulation->GatherStats();
 			}
 		}
-		SET_DWORD_STAT(STAT_NumCloths, NumCloths);        // number of recently simulated apex cloths.
-		SET_DWORD_STAT(STAT_NumClothVerts, NumVerts);	  // number of recently simulated apex vertices.
 	}
 #endif
 }
-#endif
 
 void FPhysScene::MarkForPreSimKinematicUpdate(USkeletalMeshComponent* InSkelComp, ETeleportType InTeleport, bool bNeedsSkinning)
 {
@@ -951,7 +1018,6 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	if (ApexScene && UseDelta > 0.f)
 #endif
 	{
-		PendingSimulationTransforms[SceneType] = true;
 		if(IsSubstepping(SceneType)) //we don't bother sub-stepping cloth
 		{
 			bTaskOutstanding = SubstepSimulation(SceneType, InOutCompletionEvent);
@@ -970,11 +1036,6 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 			ApexScene->simulate(AveragedFrameTime[SceneType], true, Task, SimScratchBuffers[SceneType].Buffer, SimScratchBuffers[SceneType].BufferSize);
 			Task->removeReference();
 			bTaskOutstanding = true;
-
-			if (SceneType == PST_Cloth)
-			{
-				GatherApexStats(this->OwningWorld, ApexScene);
-			}
 #endif
 		}
 	}
@@ -1185,8 +1246,6 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructibleActors[SceneType]);
 	}
 #endif
-
-	PendingSimulationTransforms[SceneType] = false;
 }
 
 void FPhysScene::DispatchPhysNotifications_AssumesLocked()
@@ -1391,6 +1450,12 @@ void FPhysScene::StartFrame()
 		}
 	}
 
+
+	// Query clothing stats from skel mesh components in this world
+	// This is done outside TickPhysScene because clothing is
+	// not related to a scene.
+	GatherClothingStats(this->OwningWorld);
+
 	// Record the sync tick time for use with the async tick
 	SyncDeltaSeconds = DeltaSeconds;
 }
@@ -1577,14 +1642,14 @@ void FPhysScene::SetIsStaticLoading(bool bStaticLoading)
 
 #if WITH_PHYSX
 /** Utility for looking up the PxScene associated with this FPhysScene. */
-PxScene* FPhysScene::GetPhysXScene(uint32 SceneType)
+PxScene* FPhysScene::GetPhysXScene(uint32 SceneType) const
 {
 	check(SceneType < NumPhysScenes);
 	return GetPhysXSceneFromIndex(PhysXSceneIndex[SceneType]);
 }
 
 #if WITH_APEX
-apex::Scene* FPhysScene::GetApexScene(uint32 SceneType)
+apex::Scene* FPhysScene::GetApexScene(uint32 SceneType) const
 {
 	check(SceneType < NumPhysScenes);
 	return GetApexSceneFromIndex(PhysXSceneIndex[SceneType]);
@@ -1669,6 +1734,29 @@ void FPhysScene::AddDebugLines(uint32 SceneType, class ULineBatchComponent* Line
 	}
 }
 
+bool FPhysScene::IsSubstepping(uint32 SceneType) const
+{
+	// Substepping relies on interpolating transforms over frames, but only game worlds will be ticked,
+	// so we disallow this feature in non-game worlds.
+	if (!OwningWorld || !OwningWorld->IsGameWorld())
+	{
+		return false;
+	}
+
+	if (SceneType == PST_Sync)
+	{
+		return bSubstepping;
+	}
+
+	if (SceneType == PST_Async)
+	{
+		return bSubsteppingAsync;
+	}
+
+	return false;
+}
+
+
 void FPhysScene::ApplyWorldOffset(FVector InOffset)
 {
 #if WITH_PHYSX
@@ -1751,7 +1839,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PSceneDesc.filterShaderData = &PhysSceneShaderInfo;
 	PSceneDesc.filterShaderDataSize = sizeof(PhysSceneShaderInfo);
 
-	PSceneDesc.filterShader = PhysXSimFilterShader;
+	PSceneDesc.filterShader = GSimulationFilterShader ? GSimulationFilterShader : PhysXSimFilterShader;
 	PSceneDesc.simulationEventCallback = SimEventCallback[SceneType];
 
 	if(UPhysicsSettings::Get()->bEnablePCM)
@@ -1763,27 +1851,21 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 		PSceneDesc.flags &= ~PxSceneFlag::eENABLE_PCM;
 	}
 
+	if (UPhysicsSettings::Get()->bEnableStabilization)
+	{
+		PSceneDesc.flags |= PxSceneFlag::eENABLE_STABILIZATION;
+	}
+	else
+	{
+		PSceneDesc.flags &= ~PxSceneFlag::eENABLE_STABILIZATION;
+	}
+
 	//LOC_MOD enable kinematic vs kinematic for APEX destructibles. This is for the kinematic cube moving horizontally in QA-Destructible map to collide with the destructible.
 	// Was this flag turned off in UE4? Do we want to turn it on for both sync and async scenes?
 	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_PAIRS;
 
 	// Set bounce threshold
 	PSceneDesc.bounceThresholdVelocity = UPhysicsSettings::Get()->BounceThresholdVelocity;
-
-	// Possibly set flags in async scene for better behavior with piles
-#if USE_ADAPTIVE_FORCES_FOR_ASYNC_SCENE
-	if (SceneType == PST_Async)
-	{
-		PSceneDesc.flags |= PxSceneFlag::eADAPTIVE_FORCE;
-	}
-#endif
-
-#if USE_SPECIAL_FRICTION_MODEL_FOR_ASYNC_SCENE
-	if (SceneType == PST_Async)
-	{
-		PSceneDesc.flags |= PxSceneFlag::eENABLE_ONE_DIRECTIONAL_FRICTION;
-	}
-#endif
 
 	// If we're frame lagging the async scene (truly running it async) then use the scene lock
 #if USE_SCENE_LOCK
@@ -1816,6 +1898,10 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PSceneDesc.staticStructure = PxPruningStructureType::eDYNAMIC_AABB_TREE;
 	// Default to rebuilding tree slowly
 	PSceneDesc.dynamicTreeRebuildRateHint = PhysXSlowRebuildRate;
+
+#if PHYSX_ENABLE_ENHANCED_DETERMINISM
+	PSceneDesc.flags |= PxSceneFlag::eENABLE_ENHANCED_DETERMINISM;
+#endif //PHYSX_ENABLE_ENHANCED_DETERMINISM
 
 	bool bIsValid = PSceneDesc.isValid();
 	if (!bIsValid)
@@ -1869,8 +1955,6 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene, this, SceneType);
 #endif
 #endif
-
-	PendingSimulationTransforms[SceneType] = false;
 
 	FPhysicsDelegates::OnPhysSceneInit.Broadcast(this, (EPhysicsSceneType)SceneType);
 

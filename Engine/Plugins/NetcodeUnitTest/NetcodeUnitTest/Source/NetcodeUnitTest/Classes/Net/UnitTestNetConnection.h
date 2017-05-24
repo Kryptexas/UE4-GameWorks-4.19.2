@@ -4,8 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "NetcodeUnitTest.h"
+#include "Engine/NetDriver.h"
+#include "Engine/NetConnection.h"
 #include "IpConnection.h"
+
+#include "NetcodeUnitTest.h"
 
 #include "Net/NUTUtilNet.h"
 

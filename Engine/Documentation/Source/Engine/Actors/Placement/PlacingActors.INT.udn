@@ -5,24 +5,7 @@ Description:Shows how you can place Actors such as props, lights, cameras, etc. 
 Related: Engine/UI/ClassViewer
 Related: GettingStarted\HowTo
 version: 4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Selection "%Engine/Actors/Selection:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+track:LevelDesign_Beginner|8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -63,8 +46,6 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 At the most fundamental level, an **Actor** is any Object that you can place in a level and this page will show you the various methods in which you can place those Actors inside your levels. 
 
@@ -164,11 +145,3 @@ A more advanced method of placing Actors is by using the **Class Viewer**, which
 	![](Place8.png)
 
 For more information on working with the **Class Viewer**, refer to the [](Engine/UI/ClassViewer) documentation. 
-
-
-%playlistnav%
-
-
-
-
-

@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title: Blend Spaces Overview
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Describes how Blend Space assets are used and the different types of Blend Space assets.
+Related: Engine\Animation\AnimHowTo\BlendSpace
+Related: Engine/Animation/Blendspaces/Editor
+Related: Engine/Animation/Blendspaces/UserGuide
+Related: Engine/Animation/StateMachines
+Related: Engine/Animation/AnimBlueprints
+version: 4.15
+type:overview
+topic-image:blendspacetopic.png
+tags:Animation
+tags:Animation Blueprint
+tags:Blend Space
+
+[TOC (start:2 end:2)]
+
+The goal of a **Blend Space** is to reduce the need for creating individual, hard-coded nodes for blending
+animations with an asset that performs blending based on specific properties or conditions instead. By allowing the animator or programmer to specify 
+the inputs, the animations, and how the inputs are used to blend between animations, virtually any 
+type of blending can be performed using the generic Blend Space. 
+
+This is completely contrary to how AnimTrees in Unreal Engine 3 handled the same tasks. 
+Any complex blending required the creation of a new node to handle that blending. 
+Blend Spaces are completely generic allowing the factors that determine the blending to be specified on each individual Blend Space. 
+Each Blend Space has inputs that simply take in values. 
+These values can be calculated during the update cycle of an [Animation Blueprint](Engine\Animation\AnimBlueprints) (via the **EventGraph**), 
+driven by gameplay code, or any other means (as seen in the example chart below). This makes them extremely flexible and puts the power into 
+the hands of the person creating the AnimGraph to blend animations in any way they see fit.
+
+![Input Flow](bs_flow.png)
+
+[REGION:caption]
+Above, the Event Graph, Gameplay Code or other factor drives each of the variables that in turn determines which pose in the Blend Space to use as the final pose. 
+[/REGION]
+
+
+## Blend Space
+
+You can think of a Blend Space like a 2D graph with each input value along one axis and animations plotted 
+on the graph at various points. The blended animation is calculated by blending between the animations 
+on the graph based on the location designated by the current input values.
+As an example, take the typical blending between directional run animations and an idle animation based on 
+the direction and speed of the movement of the player.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+HzgiW2mZomU
+[/PARAMLITERAL]
+[/OBJECT]
+
+In Unreal Engine 3, this was performed using the directional blending node in combination with a speed 
+blending node. Each of these nodes was hard-coded to only do that specific blend. The values used to 
+perform the blending were hidden away in the code, so no modifications could be made to tweak the blend 
+except by a programmer; and if you modified the value in the code, it affected every instance of the node 
+in every AnimTree making use of it. This is far from ideal.
+
+With Blend Spaces, this same blend can be performed using a single Blend Space. 
+The direction (which is indicated in the horizontal yellow box below) and speed (indicated in the vertical yellow box below) of the player would be values passed to the Blend Space as inputs.
+The animations (white diamonds below) would be set up to blend appropriately based on the values of these inputs resulting in the final pose you see (green diamond below) in-game.
+
+![](BlendSpaceDirection.png)(w:720)
+
+Below, our **AnimGraph** implements the Blend Space to which we can adjust our inputs (in this case **Speed**) to drive the blending. 
+
+![](AnimGraphBlendSpace.png)
+
+Just as in the previewer, as we adjust our input values we alter and drive the blending in our Blend Space. 
+
+## Blend Space 1D
+
+Blend Spaces can also be created in a one-dimensional format, known as a **Blend Space 1D**. These can blend between any number of poses or animations but do so based on a single input value. An example that we use is to make a character lean when sprinting. We have two poses, one leaning left and one leaning right, and use an input driven by how much the player is turning the character while sprinting. By blending into the additive leaning poses, we can give the running animation a bit more life as the character seems to lean into hard turns.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+2g_IxGNE0T4
+[/PARAMLITERAL]
+[/OBJECT]
+
+[REGION:note]
+Aside from having only one axis instead of two, a Blend Space 1D is exactly the same as a standard two-axis Blend Space. 
+[/REGION]
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3158648
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title: 머티리얼 파라미터 콜렉션
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -13,6 +13,7 @@ parent:Engine/Rendering/Materials
 order:11
 topic-image:Engine/Rendering/Materials/ParamCollectTopic.png
 type:overview
+tags:Materials
 
 [TOC(start:2)]
 

@@ -449,43 +449,43 @@ float4 RayCastCheap( Texture2D Texture, SamplerState Sampler, float3 R, float Sc
 	return float4( HitUVz, MinHitTime );
 }
 
-float4 SampleScreenColor( Texture2D Texture, SamplerState Sampler, float3 HitUVz )
+float2 ReprojectHit( float3 HitUVz )
 {
-	float4 OutColor;
-
-#if PREV_FRAME_COLOR
-
-#if 0
-	// Find previous screen position for hit since color buffer is from last frame
-	// TODO combine to single matrix
-	float4 HitClip = float4( (HitUVz.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, HitUVz.z, 1 );
-	float4 HitTranslatedWorld = mul( HitClip, View.ClipToTranslatedWorld );
-		
-	float4 PrevTranslatedWorld = float4( HitTranslatedWorld.xyz + HitTranslatedWorld.w * (View.PrevPreViewTranslation - View.PreViewTranslation), HitTranslatedWorld.w );
-	float4 PrevClip = mul( PrevTranslatedWorld, View.PrevTranslatedWorldToClip );
-	float2 PrevScreen = PrevClip.xy / PrevClip.w;
-	float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-#else
 	// Camera motion for pixel (in ScreenPos space).
 	float4 ThisClip = float4( (HitUVz.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, HitUVz.z, 1 );
 	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
 	float2 PrevScreen = PrevClip.xy / PrevClip.w;
 	float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-#endif
+	return PrevUV;
+}
 
-	OutColor.rgb = Texture.SampleLevel( Sampler, PrevUV, 0 ).rgb;
+float2 ReprojectHit( Texture2D Texture, SamplerState Sampler, float3 HitUVz )
+{
+	// Camera motion for pixel (in ScreenPos space).
+	float4 ThisClip = float4( (HitUVz.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy, HitUVz.z, 1 );
+	float4 PrevClip = mul( ThisClip, View.ClipToPrevClip );
+	float2 PrevScreen = PrevClip.xy / PrevClip.w;
+
+	float2 Velocity = Texture.SampleLevel( Sampler, HitUVz.xy, 0 ).xy;
+	if( Velocity.x > 0.0 )
+	{
+		PrevScreen = ThisClip.xy - DecodeVelocityFromTexture( Velocity );
+	}
+
+	float2 PrevUV = PrevScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	return PrevUV;
+}
+
+float4 SampleScreenColor( Texture2D Texture, SamplerState Sampler, float2 UV )
+{
+	float4 OutColor;
+
+	OutColor.rgb = Texture.SampleLevel( Sampler, UV, 0 ).rgb;
 	OutColor.a = 1;
 
 	// Off screen masking
-	float2 Vignette = saturate( abs( PrevScreen ) * 5 - 4 );
-#else
-	OutColor.rgb = Texture.SampleLevel( Sampler, HitUVz.xy, 0 ).rgb;
-	OutColor.a = 1;
-
-	// Off screen masking
-	float2 HitScreenPos = ( HitUVz.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
-	float2 Vignette = saturate( abs( HitScreenPos ) * 5 - 4 );
-#endif
+	float2 ScreenPos = ( UV - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
+	float2 Vignette = saturate( abs( ScreenPos ) * 5 - 4 );
 		
 	//PrevScreen sometimes has NaNs or Infs.  DX11 is protected because saturate turns NaNs -> 0.
 	//Do a SafeSaturate so other platforms get the same protection.

@@ -19,6 +19,9 @@ class FD3D12FastConstantAllocator;
 class FD3D12ConstantBuffer : public FD3D12DeviceChild
 {
 public:
+#if USE_STATIC_ROOT_SIGNATURE
+	FD3D12ConstantBufferView* View;
+#endif
 	FD3D12ConstantBuffer(FD3D12Device* InParent, FD3D12FastConstantAllocator& InAllocator);
 	virtual ~FD3D12ConstantBuffer();
 

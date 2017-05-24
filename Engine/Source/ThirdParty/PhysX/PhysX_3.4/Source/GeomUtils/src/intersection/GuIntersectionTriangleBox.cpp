@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -32,7 +32,6 @@
 #include "PsVecMath.h"
 #include "GuBox.h"
 #include "GuSIMDHelpers.h"
-
 
 using namespace physx;
 
@@ -65,8 +64,6 @@ using namespace physx;
 
 static PX_FORCE_INLINE Ps::IntBool planeBoxOverlap(const PxVec3& normal, PxReal d, const PxVec3& maxbox)
 {
-	
-
 	PxVec3 vmin,vmax;
 
 	if (normal.x>0.0f)

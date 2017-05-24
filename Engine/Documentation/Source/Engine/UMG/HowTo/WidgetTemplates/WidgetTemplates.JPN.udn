@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3169600
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:ウィジェット テンプレートを作成する
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -7,6 +7,7 @@ Related:Engine/UMG
 Related:Engine/UMG/UserGuide
 Version:4.13
 SkillLevel:Intermediate
+tags:UMG UI Designer
 
 UMG で作成するすべての **Widget ブループリント** は **User Widget** とみなされ、他の Widget ブループリント内で再利用したり、配置したりすることができます。 
 これにより、他の Widget ブループリントで使用可能な UI の各部のテンプレートを作成することができます。 
@@ -100,9 +101,8 @@ UMG で作成するすべての **Widget ブループリント** は **User Widg
 	![](UserWidget19.png)
 
 1.	**コンパイル** して、**Level ブループリント** を閉じて、**Play** をクリックしてエディタで再生します。 
-	## 最終結果
 
-
+## 最終結果
 
 エディタで再生すると、定義した **ButtonStyle** 変数に基づき各ボタンのスタイルが自動的に決まります。各ボタンをクリックすると、スクリプトの異なる部分が実行されます。**イベントディスパッチャー** が呼び出され、対応する **ButtonClicked** Event が呼び出されるからです。オプションで、**ButtonStyle** 変数が公開されて、スポーン時に編集可能であるため、それを入れた他の Widget ブループリントでボタンのスタイルをオーバーライドすることができます。これは、毎回、再作成したくない何らかのアニメーションや他の複雑なスクリプト化されたロジックがある場合に、それを UserWidget として作成することで、追加の作業を必要とせずに他の Widget ブループリントで再利用できるため便利です。 
 

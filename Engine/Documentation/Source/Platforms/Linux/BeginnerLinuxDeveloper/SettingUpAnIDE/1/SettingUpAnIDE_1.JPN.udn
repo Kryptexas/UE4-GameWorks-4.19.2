@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3175204
-Availability:Docs
-Title:1 - UE4 をビルドできるように IDE を設定する
+﻿INTSourceChangelist:3298291
+Availability:Public
+Title:1 -  UE4 をビルドする IDE の設定方法
 Crumbs:
-Description:IDE を Debug モードと Release モードで UE4 をビルドする設定にする方法
+Description:Debug モードと Release モードで UE4 をビルドする IDE の設定方法を習得します。
 Version:4.14
 type:how to
 parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE
@@ -10,30 +10,15 @@ order:1
 tags:Linux
 SkillLevel:Beginner
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[ホーム](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE/2:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
-
-ゲームのソース コードの修正にスタンドアローンのテキスト エディタとコマンドライン デバッガーを使う方が好きなデベロッパーもいますが、 
-ほとんどのデベロッパーは、コードの編集、デバッグ、コンパイルには Integrated Development Environment (IDE) の使用を好みます。Linux でアンリアル エンジン 4 を使用するための設定を考えている 
+ゲームのソース コードの修正には、スタンドアローンのテキスト エディタとコマンドライン デバッガーの使用を好むデベロッパーもいる一方で、 
+ほとんどのデベロッパーは、コードの編集、デバッグ、コンパイルには Integrated Development Environment (IDE) の使用を好みます。このページは、Linux でアンリアル エンジン 4 を使用する設定を検討中の 
 デベロッパー向けの操作ガイドです。 
 
-IDE を選ぶかどうかは個人の好みだと思いますが、我々は UE4 を Linux の 3 台の IDE、 
-Qt Creator、KDevelop、Codelite とインターフェースするように設定しました。ラーニング プロセスのサンプルとしてどれが一番良いかという評価はしませんが、 
-UE4 のビルドと実行のために Qtの設定方法をお見せするために選びました。この操作ガイドを終える頃には、IDE で UE4 をビルドおよび実行するための設定方法を理解しているでしょう。最後に、 
+IDE の選択は個人の好みだと思いますが、我々は UE4 を Linux の 3 台の IDE、 
+Qt Creator、KDevelop、Codelite とインターフェースするように設定しました。UE4 をビルドおよび実行するための Qt Creator の設定方法を紹介するためにのもので、 
+どの IDE がラーニング プロセスの最善のサンプルかという評価のためではありません。この操作ガイドでは、IDE で UE4 をビルドおよび実行するための一通りの設定方法を理解することができます。そして最後に、 
 アンリアル エディタで作成した新しい C++ (CPP) プロジェクトをビルドおよび実行するための IDE の設定方法を学びます。
 
 [REGION:note]
@@ -41,25 +26,55 @@ UE4 のビルドと実行のために Qtの設定方法をお見せするため�
  マシンにインストールされていることも確認してください。
 [/REGION]
 
-1.	Qt Creator を起動すると **Qt Welcome** メニューが開きます。
+1.	Qt Creator を起動すると **Qt Welcome** メニューが開きます。  
 
-	![](SetupIDE_Step1.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step1.png)(w:720)](SetupIDE_Step1.png)
+	[/REGION]
 
-1.	**[Open Project (プロジェクトを開く)]** ボタンをクリックして、Qt Project ファイル ブラウザを開きます。
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
-	![](SetupIDE_Step2.png)
+1.	**[Open Project (プロジェクトを開く)]** ボタンをクリックして、Qt Project ファイル ブラウザを開きます。  
+
+	[REGION:lightbox]
+		[![](SetupIDE_Step2.png)(w:720)](SetupIDE_Step2.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
 1.	UE4 をビルドするディレクトリへ移動し、UE4 Qt Project (**UE4.pro**) ファイルを選択して **[Open]** ボタンをクリックします。
 
-	![](SetupIDE_Step3.png)	
+	[REGION:lightbox]
+		[![](SetupIDE_Step3.png)(w:720)](SetupIDE_Step3.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
 1.	この時点では、Qt Creator は、Debug モードおよび Release モードでは UE4 をビルドする設定にはなっていません。**[Configure Project]** メニューの**[Configure Project]** ボタンをクリックします。
 
-	![](SetupIDE_Step4.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step4.png)(w:720)](SetupIDE_Step4.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
 1.	次に、**[Projects]** ボタンをクリックして Projects モードにすると、**[Build Settings (ビルド設定)]** メニューが開きます。
 
-	![](SetupIDE_Step5.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step5.png)(w:720)](SetupIDE_Step5.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
 	[REGION:note]
 	**[Build Settings (ビルド設定)]** メニューを開くと、Qt Creator はデフォルトで **[Edit build configuration: ]** が **Debug** モードになっていることが分かります。
@@ -73,11 +88,23 @@ UE4 のビルドと実行のために Qtの設定方法をお見せするため�
 
 1.	**[Build Steps]** セクションの **[qmake]** ビルド ステップの**[Details (詳細)]** ドロップダウンの横にある **[X]** ボタンをクリックして、このセクションをクリアします。
 
-	![](SetupIDE_Step6Alt.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step6Alt.png)(w:720)](SetupIDE_Step6Alt.png)
+	[/REGION]
 
-1.	**[Shadow build]** のチェックボックスも外して選択をキャンセルします。 
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
-	![](SetupIDE_Step7.png)
+1.	**[Shadow build]** のチェックも外して、選択をキャンセルします。 
+
+	[REGION:lightbox]
+		[![](SetupIDE_Step7.png)(w:720)](SetupIDE_Step7.png)
+	[/REGION]
+
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
 
 	[REGION:note]
 	Shadow build を使うと、Qt Creator の qmake ユーティリティとは別のビルドでプロジェクトをビルドすることができます。UE4 は [](Programming/UnrealBuildSystem) を利用するカスタム仕様の Make ファイルが付いているので、 
@@ -86,30 +113,51 @@ UE4 のビルドと実行のために Qtの設定方法をお見せするため�
 
 1.	次に **[Details (詳細)]** ドロップダウン メニューをクリックして、**Make** ビルド ステップ用の入力形式を開きます。
 
-1.	**[Make arguments:]** テキスト フィールドに `UE4Editor` と入力します。
+	![](SetupIDE_Step8.png)
+
+1.	**[Make arguments:]** テキスト フィールドに `UE4Editor-Linux-Debug` と入力します。
 
 	![](SetupIDE_Step9.png)
 
 1.	**[Clean Steps (ステップをクリア)]** セクションの **[Details (詳細)]** ドロップダウン メニューをクリックして、**[Make]** クリーン ステップ用の入力形式を開きます。
 
-1.	テキストフィールドに `UE4Editor ARGS="-clean"` と入力して、 `clean` を置き換えます。
+	![](SetupIDE_Step10.png)
+
+1.	**[Make arguments:]** テキストフィールドに `UE4Editor-Linux-Debug ARGS="-clean"` と入力して、 `clean` を置き換えます。
 
 	![](SetupIDE_Step11.png)
 
-1.	次に、ビルドモード ドロップダウン メニューをクリックして、**Release** を選択し、Release モード用の **[Build Settings (ビルド設定)]** を開きます。
+1.	次に、**[Edit build configuration:]** ドロップダウン メニューをクリック、そして **[Release]** を選択し、Release モード用の **[Build Settings (ビルド設定)]** を開きます。
 
-	![](SetupIDE_Step12.png)
+	[REGION:lightbox]
+		[![](SetupIDE_Step12.png)(w:720)](SetupIDE_Step12.png)
+	[/REGION]
 
-1.	ステップ 6 から 11 までを繰り返して、Release モード用のビルドコンフィグ設定を編集します。
+	[REGION:caption]
+		クリックしてフルサイズで表示
+	[/REGION]
+
+1.	ステップ 6 から 11 までを繰り返して、Release モード用のビルドコンフィグ設定を編集します。以下の画像と同じ設定になっているか確認してください。
 
 	![](SetupIDE_Step13.png)
 
 	[REGION:note]
-	設定可能なその他のビルド環境については、[](Programming/Development/BuildConfigurations) をご一読ください。
+	プロジェクトにビルド設定を追加したい場合は、Qt Creator [ビルド設定ドキュメント](http://doc.qt.io/qtcreator/creator-build-settings.html) を参照してください。
+	様々な設定の追加に必要な手順が記載されています。
 	[/REGION]
 
-## 最終結果
+## 結果
 
-この時点では、UE4 は Debug モードと Release モードの両方で設定できます。これで、UE4 を実行するための Qt Creator を設定する準備ができました。
+[REGION:lightbox]
+	[![](QtBuildSettings_UE4.png)(w:720)](QtBuildSettings_UE4.png)
+[/REGION]
 
-%Steps%
+[REGION:caption]
+	クリックしてフルサイズで表示
+[/REGION]
+
+この時点では、UE4 は Debug モードと Release モードの両方で設定できます。システムの仕様によっては、Debug モードの間は UE4 が遅くなることがあります。使用可能なビルド設定の詳細は、 
+[](Programming/Development/BuildConfigurations) ページをご一読ください。これで、 
+UE4 を実行する Qt Creator を設定する用意ができました。
+
+[NAV]

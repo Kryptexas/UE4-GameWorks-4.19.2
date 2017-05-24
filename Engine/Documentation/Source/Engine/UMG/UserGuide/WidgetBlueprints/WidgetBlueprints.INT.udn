@@ -3,6 +3,7 @@ Title: Widget Blueprints
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:How to create a Widget Blueprint and Overview of the Widget Blueprint Interface.
 Version: 4.9
+tags:UMG UI Designer
 
 In order to start working with Unreal Motion Graphics, you will first need to create a **Widget Blueprint** as seen below. 
 

@@ -176,18 +176,25 @@ public:
 	FDrawingPolicyMatchResult Matches(const FConvertToUniformMeshDrawingPolicy& Other) const;
 
 	/**
+	* Sets the late state which can be shared between any meshes using this drawer.
+	* @param DRS - The pipelinestate to override
+	* @param View - The view of the scene being drawn.
+	*/
+	void SetupPipelineState(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View) const;
+
+	/**
 	* Executes the draw commands which can be shared between any meshes using this drawer.
 	* @param CI - The command interface to execute the draw commands on.
 	* @param View - The view of the scene being drawn.
 	*/
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* View, const ContextDataType PolicyContext) const;
 	
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	/**
 	* Sets the render states for drawing a mesh.
@@ -235,21 +242,28 @@ FDrawingPolicyMatchResult FConvertToUniformMeshDrawingPolicy::Matches(
 	DRAWING_POLICY_MATCH_END
 }
 
+void FConvertToUniformMeshDrawingPolicy::SetupPipelineState(FDrawingPolicyRenderState& DrawRenderState, const FSceneView& View) const
+{
+	//I made up some state here
+	DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
+	DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+}
+
 void FConvertToUniformMeshDrawingPolicy::SetSharedState(
 	FRHICommandList& RHICmdList, 
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FSceneView* View,
-	const ContextDataType PolicyContext,
-	FDrawingPolicyRenderState& DrawRenderState
+	const ContextDataType PolicyContext
 	) const
 {
 	// Set shared mesh resources
-	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext, DrawRenderState);
+	FMeshDrawingPolicy::SetSharedState(RHICmdList, DrawRenderState, View, PolicyContext);
 
 	VertexShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View);
 	GeometryShader->SetParameters(RHICmdList, VertexFactory, MaterialRenderProxy, View);
 }
 
-FBoundShaderStateInput FConvertToUniformMeshDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
+FBoundShaderStateInput FConvertToUniformMeshDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	return FBoundShaderStateInput(
 		FMeshDrawingPolicy::GetVertexDeclaration(), 
@@ -277,12 +291,6 @@ void FConvertToUniformMeshDrawingPolicy::SetMeshRenderState(
 	// Set transforms
 	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	GeometryShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
-	
-	// Set rasterizer state.
-	const bool bReverseCulling = !!(DrawRenderState.GetViewOverrideFlags() & EDrawingPolicyOverrideFlags::ReverseCullMode);
-	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
-		(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid,
-		IsTwoSided() ? CM_None : (XOR(bReverseCulling, Mesh.ReverseCulling) ? CM_CCW : CM_CW)));
 }
 
 bool ShouldGenerateSurfelsOnMesh(const FMeshBatch& Mesh, ERHIFeatureLevel::Type FeatureLevel)
@@ -360,9 +368,11 @@ int32 FUniformMeshConverter::Convert(
 				//@todo - fix
 				OutMaterialRenderProxy = Mesh.MaterialRenderProxy;
 
-				FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
-				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
-				DrawingPolicy.SetSharedState(RHICmdList, &View, FConvertToUniformMeshDrawingPolicy::ContextDataType(), DrawRenderState);
+				FDrawingPolicyRenderState DrawRenderState(View);
+
+				DrawingPolicy.SetupPipelineState(DrawRenderState, View);
+				CommitGraphicsPipelineState(RHICmdList, DrawingPolicy, DrawRenderState, DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+				DrawingPolicy.SetSharedState(RHICmdList, DrawRenderState, &View, FConvertToUniformMeshDrawingPolicy::ContextDataType());
 
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{

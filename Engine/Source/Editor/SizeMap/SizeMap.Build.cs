@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SizeMap : ModuleRules
 	{
-        public SizeMap(TargetInfo Target)
+        public SizeMap(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
                 new string[] {

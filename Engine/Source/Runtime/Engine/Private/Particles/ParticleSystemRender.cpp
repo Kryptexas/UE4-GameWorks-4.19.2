@@ -36,6 +36,7 @@
 #include "ParticleBeamTrailVertexFactory.h"
 #include "Private/SceneRendering.h"
 #include "Particles/ParticleLODLevel.h"
+#include "Engine/StaticMesh.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleSystemSceneProxy GetMeshElements"), STAT_FParticleSystemSceneProxy_GetMeshElements, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData GetDynamicMeshElementsEmitter GetParticleOrderData"), STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData, STATGROUP_Particles);
@@ -901,6 +902,7 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 				ParticleLight.Radius =  LightPayload->RadiusScale * (Size.X + Size.Y) / 2.0f;
 				ParticleLight.Color = FVector(Particle.Color) * Particle.Color.A * LightPayload->ColorScale;
 				ParticleLight.Exponent = LightPayload->LightExponent;
+				ParticleLight.VolumetricScatteringIntensity = Source.LightVolumetricScatteringIntensity;
 				ParticleLight.bAffectTranslucency = LightPayload->bAffectsTranslucency;
 
 				// Early out if the light will have no visible contribution
@@ -1006,6 +1008,7 @@ FParticleVertexFactoryBase *FDynamicSpriteEmitterData::CreateVertexFactory()
 	FParticleSpriteVertexFactory *VertexFactory = new FParticleSpriteVertexFactory();
 	VertexFactory->SetParticleFactoryType(PVFT_Sprite);
 	const UParticleModuleRequired* RequiredModule = GetSourceData()->RequiredModule;
+	// this check needs to match the code inside FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter()
 	VertexFactory->SetNumVertsInInstanceBuffer(RequiredModule->IsBoundingGeometryValid() && RequiredModule->AlphaThreshold ? RequiredModule->GetNumBoundingVertices() : 4);
 	VertexFactory->InitResource();
 	return VertexFactory;
@@ -1033,7 +1036,8 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 			int32 NumVerticesPerParticle = 4;
 			int32 NumTrianglesPerParticle = 2;
 
-			if (SourceData->RequiredModule->IsBoundingGeometryValid())
+			// this check needs to match the code inside FDynamicSpriteEmitterData::CreateVertexFactory()
+			if (SourceData->RequiredModule->IsBoundingGeometryValid() && SourceData->RequiredModule->AlphaThreshold)
 			{
 				NumVerticesPerParticle = SourceData->RequiredModule->GetNumBoundingVertices();
 				NumTrianglesPerParticle = SourceData->RequiredModule->GetNumBoundingTriangles();
@@ -1050,7 +1054,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 				FDynamicSpriteCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicSpriteCollectorResources>();
 				VertexFactory->SetFeatureLevel(FeatureLevel);
-				CollectorResources.VertexFactory = SpriteVertexFactory;
+					CollectorResources.VertexFactory = SpriteVertexFactory;
 
 				if (SourceData->bUseLocalSpace == false)
 				{
@@ -1061,11 +1065,11 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				FGlobalDynamicVertexBuffer::FAllocation DynamicParameterAllocation;
 
 				// Allocate memory for render data.
-				Allocation = FGlobalDynamicVertexBuffer::Get().Allocate(ParticleCount * VertexSize * NumVerticesPerParticleInBuffer);
+				Allocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * VertexSize * NumVerticesPerParticleInBuffer );
 
 				if (bUsesDynamicParameter)
 				{
-					DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate(ParticleCount * DynamicParameterVertexSize * NumVerticesPerParticleInBuffer);
+					DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * DynamicParameterVertexSize * NumVerticesPerParticleInBuffer );
 				}
 
 				if (Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
@@ -1078,9 +1082,9 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 						// If material is using unlit translucency and the blend mode is translucent then we need to sort (back to front)
 						const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(FeatureLevel);
 
-						if (Material &&
+						if (Material && 
 							(Material->GetBlendMode() == BLEND_Translucent || Material->GetBlendMode() == BLEND_AlphaComposite ||
-								((SourceData->SortMode == PSORTMODE_Age_OldestFirst) || (SourceData->SortMode == PSORTMODE_Age_NewestFirst)))
+							((SourceData->SortMode == PSORTMODE_Age_OldestFirst) || (SourceData->SortMode == PSORTMODE_Age_NewestFirst)))
 							)
 						{
 							bSort = true;
@@ -1092,27 +1096,27 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 						{
 							Collector.AddTask(
 								[this, SourceData, View, Proxy, Allocation, DynamicParameterAllocation, bInstanced, bSort, ParticleCount, NumVerticesPerParticleInBuffer]()
-							{
-								SCOPE_CYCLE_COUNTER(STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_Task);
-								FMemMark Mark(FMemStack::Get());
-								FParticleOrder* ParticleOrder = NULL;
-								if (bSort)
 								{
-									ParticleOrder = (FParticleOrder*)FMemStack::Get().Alloc(sizeof(FParticleOrder)* ParticleCount, ALIGNOF(FParticleOrder));
-									SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount,
-										SourceData->DataContainer.ParticleData, SourceData->ParticleStride, SourceData->DataContainer.ParticleIndices,
-										View, Proxy->GetLocalToWorld(), ParticleOrder);
+									SCOPE_CYCLE_COUNTER(STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_Task);
+									FMemMark Mark(FMemStack::Get());
+									FParticleOrder* ParticleOrder = NULL;
+									if (bSort)
+									{
+										ParticleOrder = (FParticleOrder*)FMemStack::Get().Alloc(sizeof(FParticleOrder)* ParticleCount, ALIGNOF(FParticleOrder));
+										SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
+											SourceData->DataContainer.ParticleData, SourceData->ParticleStride, SourceData->DataContainer.ParticleIndices,
+											View, Proxy->GetLocalToWorld(), ParticleOrder);
+									}
+									// Fill vertex buffers.
+									if (bInstanced)
+									{
+										GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.GetViewOrigin(), Proxy->GetLocalToWorld());
+									}
+									else
+									{
+										GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.GetViewOrigin(), Proxy->GetLocalToWorld(), NumVerticesPerParticleInBuffer);
+									}
 								}
-								// Fill vertex buffers.
-								if (bInstanced)
-								{
-									GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.GetViewOrigin(), Proxy->GetLocalToWorld());
-								}
-								else
-								{
-									GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.GetViewOrigin(), Proxy->GetLocalToWorld(), NumVerticesPerParticleInBuffer);
-								}
-							}
 							);
 						}
 						else
@@ -1122,7 +1126,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 							if (bSort)
 							{
 								ParticleOrder = GParticleOrderPool.GetParticleOrderData(ParticleCount);
-								SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount,
+								SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
 									SourceData->DataContainer.ParticleData, SourceData->ParticleStride, SourceData->DataContainer.ParticleIndices,
 									View, Proxy->GetLocalToWorld(), ParticleOrder);
 							}
@@ -1144,13 +1148,19 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 					FParticleSpriteUniformParameters PerViewUniformParameters = UniformParameters;
 					FVector2D ObjectNDCPosition;
 					FVector2D ObjectMacroUVScales;
-					Proxy->GetObjectPositionAndScale(*View, ObjectNDCPosition, ObjectMacroUVScales);
+						Proxy->GetObjectPositionAndScale(*View, ObjectNDCPosition, ObjectMacroUVScales);
 					PerViewUniformParameters.MacroUVParameters = FVector4(ObjectNDCPosition.X, ObjectNDCPosition.Y, ObjectMacroUVScales.X, ObjectMacroUVScales.Y);
 					CollectorResources.UniformBuffer = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 
 					// Set the sprite uniform buffer for this view.
 					SpriteVertexFactory->SetSpriteUniformBuffer(CollectorResources.UniformBuffer);
-					SpriteVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, VertexSize, bInstanced);
+#if PLATFORM_SWITCH
+					// use the full vertex for non-instancing case, and the "4 float" instance data for the instanced case
+					uint32 InstanceBufferStride = bInstanced ? ((sizeof(float) * 4) * NumVerticesPerParticle) : VertexSize;
+#else
+					uint32 InstanceBufferStride = VertexSize;
+#endif
+					SpriteVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, InstanceBufferStride, bInstanced);
 					SpriteVertexFactory->SetDynamicParameterBuffer(DynamicParameterAllocation.VertexBuffer, DynamicParameterAllocation.VertexOffset, GetDynamicParameterVertexStride(), bInstanced);
 
 					if (SourceData->RequiredModule->IsBoundingGeometryValid() && SourceData->RequiredModule->AlphaThreshold)
@@ -1165,67 +1175,67 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 				}
 
-				// Don't render if the material will be ignored
-				const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
+					// Don't render if the material will be ignored
+					const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 
-				// Calculate the number of particles that must be drawn.
-				ParticleCount = Source.ActiveParticleCount;
-				if ((Source.MaxDrawCount >= 0) && (ParticleCount > Source.MaxDrawCount))
-				{
-					ParticleCount = Source.MaxDrawCount;
-				}
+					// Calculate the number of particles that must be drawn.
+					ParticleCount = Source.ActiveParticleCount;
+					if ((Source.MaxDrawCount >= 0) && (ParticleCount > Source.MaxDrawCount))
+					{
+						ParticleCount = Source.MaxDrawCount;
+					}
 
-				// Construct the mesh element to render.
-				FMeshBatch& Mesh = Collector.AllocateMesh();
-				FMeshBatchElement& BatchElement = Mesh.Elements[0];
-				check(NumTrianglesPerParticle == 2 || NumTrianglesPerParticle == 6);
-				BatchElement.IndexBuffer = NumTrianglesPerParticle == 2 ? (const FIndexBuffer*)&GParticleIndexBuffer : (const FIndexBuffer*)&GSixTriangleParticleIndexBuffer;
-				BatchElement.bIsInstancedMesh = bInstanced;
-				if (bInstanced)
-				{
-					BatchElement.NumPrimitives = NumTrianglesPerParticle;
-					BatchElement.NumInstances = ParticleCount;
-				}
-				else
-				{
-					BatchElement.NumPrimitives = NumTrianglesPerParticle * ParticleCount;
-					BatchElement.NumInstances = 1;
-				}
-				BatchElement.FirstIndex = 0;
-				Mesh.VertexFactory = SpriteVertexFactory;
-				// if the particle rendering data is presupplied, use it directly
-				Mesh.LCI = NULL;
-				if (SourceData->bUseLocalSpace == true)
-				{
-					BatchElement.PrimitiveUniformBufferResource = &Proxy->GetUniformBuffer();
-				}
-				else
-				{
-					BatchElement.PrimitiveUniformBufferResource = &Proxy->GetWorldSpacePrimitiveUniformBuffer();
-				}
-				BatchElement.MinVertexIndex = 0;
-				BatchElement.MaxVertexIndex = (ParticleCount * NumVerticesPerParticle) - 1;
-				Mesh.CastShadow = Proxy->GetCastShadow();
-				Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
+					// Construct the mesh element to render.
+					FMeshBatch& Mesh = Collector.AllocateMesh();
+					FMeshBatchElement& BatchElement = Mesh.Elements[0];
+					check(NumTrianglesPerParticle == 2 || NumTrianglesPerParticle == 6);
+					BatchElement.IndexBuffer = NumTrianglesPerParticle == 2 ? (const FIndexBuffer*)&GParticleIndexBuffer : (const FIndexBuffer*)&GSixTriangleParticleIndexBuffer;
+					BatchElement.bIsInstancedMesh = bInstanced;
+					if(bInstanced)
+					{
+						BatchElement.NumPrimitives = NumTrianglesPerParticle;
+						BatchElement.NumInstances = ParticleCount;
+					}
+					else
+					{
+						BatchElement.NumPrimitives = NumTrianglesPerParticle * ParticleCount;
+						BatchElement.NumInstances = 1;
+					}
+					BatchElement.FirstIndex = 0;
+					Mesh.VertexFactory = SpriteVertexFactory;
+					// if the particle rendering data is presupplied, use it directly
+					Mesh.LCI = NULL;
+					if (SourceData->bUseLocalSpace == true)
+					{
+						BatchElement.PrimitiveUniformBufferResource = &Proxy->GetUniformBuffer();
+					}
+					else
+					{
+						BatchElement.PrimitiveUniformBufferResource = &Proxy->GetWorldSpacePrimitiveUniformBuffer();
+					}
+					BatchElement.MinVertexIndex = 0;
+					BatchElement.MaxVertexIndex = (ParticleCount * NumVerticesPerParticle) - 1;
+					Mesh.CastShadow = Proxy->GetCastShadow();
+					Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
 
-				if (bIsWireframe)
-				{
-					Mesh.MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(ViewFamily.EngineShowFlags.Selection ? bSelected : false);
-				}
-				else
-				{
-					Mesh.MaterialRenderProxy = MaterialResource[GIsEditor && (ViewFamily.EngineShowFlags.Selection) ? bSelected : 0];
-				}
-				Mesh.Type = PT_TriangleList;
+					if ( bIsWireframe )
+					{
+						Mesh.MaterialRenderProxy = UMaterial::GetDefaultMaterial( MD_Surface )->GetRenderProxy( ViewFamily.EngineShowFlags.Selection ? bSelected : false );
+					}
+					else
+					{
+						Mesh.MaterialRenderProxy = MaterialResource[GIsEditor && (ViewFamily.EngineShowFlags.Selection) ? bSelected : 0];
+					}
+					Mesh.Type = PT_TriangleList;
 
-				Mesh.bCanApplyViewModeOverrides = true;
-				Mesh.bUseWireframeSelectionColoring = Proxy->IsSelected();
+					Mesh.bCanApplyViewModeOverrides = true;
+					Mesh.bUseWireframeSelectionColoring = Proxy->IsSelected();
+			
+				#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+					Mesh.VisualizeLODIndex = (int8)Proxy->GetVisualizeLODIndex();
+				#endif
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				Mesh.VisualizeLODIndex = (int8)Proxy->GetVisualizeLODIndex();
-#endif
-
-				Collector.AddMesh(ViewIndex, Mesh);
+					Collector.AddMesh(ViewIndex, Mesh);
 			}
 		}
 		else if (SourceData->EmitterRenderMode == ERM_Point)
@@ -1238,8 +1248,6 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 		}
 	}
 }
-
-
 
 FParticleVertexFactoryBase* FDynamicSpriteEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
@@ -1532,6 +1540,7 @@ FParticleVertexFactoryBase *FDynamicMeshEmitterData::CreateVertexFactory()
 }
 
 
+
 void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_MeshRenderingTime);
@@ -1552,7 +1561,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 			}
 
 			const int32 InstanceVertexStride = GetDynamicVertexStride(FeatureLevel);
-			const int32 DynamicParameterVertexStride = GetDynamicParameterVertexStride();
+			const int32 DynamicParameterVertexStride  = GetDynamicParameterVertexStride();
 
 			// Setup the vertex factory.
 			FMeshParticleVertexFactory* MeshVertexFactory = static_cast<FMeshParticleVertexFactory*>(VertexFactory);
@@ -1564,6 +1573,21 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				FDynamicMeshEmitterCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicMeshEmitterCollectorResources>();
 				CollectorResources.VertexFactory = MeshVertexFactory;
 
+				const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
+				FMeshParticleUniformParameters UniformParameters;
+				UniformParameters.SubImageSize = FVector4(
+					1.0f / (SourceData ? SourceData->SubImages_Horizontal : 1),
+					1.0f / (SourceData ? SourceData->SubImages_Vertical : 1),
+					0, 0);
+
+				// A weight is used to determine whether the mesh texture coordinates or SubUVs are passed from the vertex shader to the pixel shader.
+				const uint32 TexCoordWeight = (SourceData && SourceData->SubUVDataOffset > 0) ? 1 : 0;
+				UniformParameters.TexCoordWeightA = TexCoordWeight;
+				UniformParameters.TexCoordWeightB = 1 - TexCoordWeight;
+				UniformParameters.PrevTransformAvailable = Source.MeshMotionBlurOffset ? 1 : 0;
+
+				CollectorResources.UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate(UniformParameters, UniformBuffer_SingleFrame);
+				MeshVertexFactory->SetUniformBuffer(CollectorResources.UniformBuffer);
 
 				// For OpenGL & Metal we can't assume that it is OK to leave the PrevTransformBuffer buffer unbound.
 				// Doing so can lead to undefined behaviour if the buffer is referenced in the shader even if protected by a branch that is not meant to be taken.
@@ -1585,7 +1609,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					{
 						PrevTransformBuffer = MeshVertexFactory->LockPreviousTransformBuffer(ParticleCount);
 					}
-
+				
 					// todo: mobile Note hat if the allocation fails, PrevTransformBuffer SRV buffer wont be filled. Assuming this is ok since there is nothing to draw at that point.
 					if (PrevTransformBuffer && !Source.MeshMotionBlurOffset)
 					{
@@ -1595,63 +1619,46 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 						{
 							ActiveParticleCount = Source.MaxDrawCount;
 						}
-
+					
 						int32 PrevTransformVertexStride = sizeof(FVector4) * 3;
-
+					
 						uint8* TempPrevTranformVert = (uint8*)PrevTransformBuffer;
-
+					
 						for (int32 i = ActiveParticleCount - 1; i >= 0; i--)
 						{
 							FVector4* PrevTransformVertex = (FVector4*)TempPrevTranformVert;
-
+						
 							const int32	CurrentIndex = Source.DataContainer.ParticleIndices[i];
 							const uint8* ParticleBase = Source.DataContainer.ParticleData + CurrentIndex * Source.ParticleStride;
 							const FBaseParticle& Particle = *((const FBaseParticle*)ParticleBase);
-
+						
 							// Instance to world transformation. Translation (Instance world position) is packed into W
 							FMatrix TransMat(FMatrix::Identity);
 							GetParticleTransform(Particle, Proxy, View, TransMat);
-
+						
 							// Transpose on CPU to allow for simpler shader code to perform the transform.
 							const FMatrix Transpose = TransMat.GetTransposed();
-
+						
 							PrevTransformVertex[0] = FVector4(Transpose.M[0][0], Transpose.M[0][1], Transpose.M[0][2], Transpose.M[0][3]);
 							PrevTransformVertex[1] = FVector4(Transpose.M[1][0], Transpose.M[1][1], Transpose.M[1][2], Transpose.M[1][3]);
 							PrevTransformVertex[2] = FVector4(Transpose.M[2][0], Transpose.M[2][1], Transpose.M[2][2], Transpose.M[2][3]);
-
+						
 							TempPrevTranformVert += PrevTransformVertexStride;
 						}
-
+					
 						PrevTransformBuffer = nullptr;
 					}
 
 					if (Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
 					{
-						const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
-						FMeshParticleUniformParameters UniformParameters;
-						UniformParameters.SubImageSize = FVector4(
-							1.0f / (SourceData ? SourceData->SubImages_Horizontal : 1),
-							1.0f / (SourceData ? SourceData->SubImages_Vertical : 1),
-							0, 0);
-
-						// A weight is used to determine whether the mesh texture coordinates or SubUVs are passed from the vertex shader to the pixel shader.
-						const uint32 TexCoordWeight = (SourceData && SourceData->SubUVDataOffset > 0) ? 1 : 0;
-						UniformParameters.TexCoordWeightA = TexCoordWeight;
-						UniformParameters.TexCoordWeightB = 1 - TexCoordWeight;
-						UniformParameters.PrevTransformAvailable = Source.MeshMotionBlurOffset ? 1 : 0;
-
-						CollectorResources.UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate(UniformParameters, UniformBuffer_SingleFrame);
-						MeshVertexFactory->SetUniformBuffer(CollectorResources.UniformBuffer);
-
-
 						// Fill instance buffer.
 						if (Collector.ShouldUseTasks())
 						{
 							Collector.AddTask(
 								[this, View, Proxy, Allocation, DynamicParameterAllocation, PrevTransformBuffer]()
-							{
-								GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, PrevTransformBuffer, Proxy, View);
-							}
+								{
+									GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, PrevTransformBuffer, Proxy, View);
+								}
 							);
 						}
 						else
@@ -1693,31 +1700,31 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					{
 						Collector.AddTask(
 							[this, View, Proxy, InstanceVerticesCPU, PrevTransformBuffer]()
-						{
-							GetInstanceData(
-								(void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(),
-								(void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(),
-								PrevTransformBuffer,
-								Proxy,
-								View
-								);
-						}
+							{
+								GetInstanceData(
+									(void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), 
+									(void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), 
+									PrevTransformBuffer, 
+									Proxy, 
+									View
+									);
+							}
 						);
 					}
 					else
 					{
 						GetInstanceData(
-							(void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(),
-							(void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(),
-							PrevTransformBuffer,
-							Proxy,
+							(void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), 
+							(void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), 
+							PrevTransformBuffer, 
+							Proxy, 
 							View
 							);
 					}
 				}
 
 				Proxy->UpdateWorldSpacePrimitiveUniformBuffer();
-				MeshVertexFactory->GetInstanceVerticesCPU() = InstanceVerticesCPU;
+					MeshVertexFactory->GetInstanceVerticesCPU() = InstanceVerticesCPU;
 			}
 			else
 			{
@@ -1774,7 +1781,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 						{
 							Mesh.Type = PT_TriangleList;
 							Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
-							Mesh.bWireframe = true;
+							Mesh.bWireframe = true;	
 							BatchElement.FirstIndex = 0;
 							BatchElement.IndexBuffer = &LODModel.IndexBuffer;
 							BatchElement.NumPrimitives = LODModel.IndexBuffer.GetNumIndices() / 3;
@@ -1800,7 +1807,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 						BatchElement.UserIndex = 0;
 
 						Mesh.Elements.Reserve(ParticleCount);
-						for (int32 ParticleIndex = 1; ParticleIndex < ParticleCount; ++ParticleIndex)
+						for(int32 ParticleIndex = 1; ParticleIndex < ParticleCount; ++ParticleIndex)
 						{
 							FMeshBatchElement* NextElement = new(Mesh.Elements) FMeshBatchElement();
 							*NextElement = Mesh.Elements[0];
@@ -1810,10 +1817,10 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 
 					Mesh.bCanApplyViewModeOverrides = true;
 					Mesh.bUseWireframeSelectionColoring = Proxy->IsSelected();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			
+				#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 					Mesh.VisualizeLODIndex = (int8)Proxy->GetVisualizeLODIndex();
-#endif
+				#endif
 
 					Collector.AddMesh(ViewIndex, Mesh);
 				}

@@ -23,6 +23,9 @@
 #include "Framework/Application/SlateApplication.h"
 #include "ShaderCompiler.h"
 #include "AutomationBlueprintFunctionLibrary.h"
+#include "BufferVisualizationData.h"
+#include "Engine/LocalPlayer.h"
+#include "ContentStreaming.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
 
@@ -41,100 +44,140 @@ static TAutoConsoleVariable<int32> CVarAutomationScreenshotResolutionHeight(
 	TEXT("The height of automation screenshots."),
 	ECVF_Default);
 
-FAutomationScreenshotOptions::FAutomationScreenshotOptions()
-	: Resolution(ForceInit)
-	, Delay(0.2f)
-	, bDisableNoisyRenderingFeatures(false)
-	, VisualizeBuffer(NAME_None)
-	, Tolerance(EComparisonTolerance::Low)
-	, ToleranceAmount()
-	, MaximumLocalError(0.10f)
-	, MaximumGlobalError(0.02f)
-	, bIgnoreAntiAliasing(true)
-	, bIgnoreColors(false)
+
+void FinishLoadingBeforeScreenshot()
 {
+	// Force all shader compiling to finish.
+	GShaderCompilingManager->FinishAllCompilation();
+
+	// Force all mip maps to load before taking the screenshot.
+	UTexture::ForceUpdateTextureStreaming();
+
+	IStreamingManager::Get().StreamAllResources(0.0f);
 }
 
-void FAutomationScreenshotOptions::SetToleranceAmounts(EComparisonTolerance InTolerance)
-{
-	switch ( InTolerance )
-	{
-	case EComparisonTolerance::Zero:
-		ToleranceAmount = FComparisonToleranceAmount(0, 0, 0, 0, 0, 255);
-		break;
-	case EComparisonTolerance::Low:
-		ToleranceAmount = FComparisonToleranceAmount(16, 16, 16, 16, 16, 240);
-		break;
-	case EComparisonTolerance::Medium:
-		ToleranceAmount = FComparisonToleranceAmount(24, 24, 24, 24, 24, 220);
-		break;
-	case EComparisonTolerance::High:
-		ToleranceAmount = FComparisonToleranceAmount(32, 32, 32, 32, 64, 96);
-		break;
-	}
-}
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 
+class FConsoleVariableSwapper
+{
+public:
+	FConsoleVariableSwapper(FString InConsoleVariableName)
+		: bModified(false)
+		, ConsoleVariableName(InConsoleVariableName)
+	{
+	}
+
+	void Set(int32 Value)
+	{
+		IConsoleVariable* ConsoleVariable = IConsoleManager::Get().FindConsoleVariable(*ConsoleVariableName);
+		if ( ensure(ConsoleVariable) )
+		{
+			if ( bModified == false )
+			{
+				bModified = true;
+				OriginalValue = ConsoleVariable->GetInt();
+			}
+
+			ConsoleVariable->Set(Value);
+		}
+	}
+
+	void Restore()
+	{
+		if ( bModified )
+		{
+			IConsoleVariable* ConsoleVariable = IConsoleManager::Get().FindConsoleVariable(*ConsoleVariableName);
+			if ( ensure(ConsoleVariable) )
+			{
+				ConsoleVariable->Set(OriginalValue);
+			}
+
+			bModified = false;
+		}
+	}
+
+private:
+	bool bModified;
+	FString ConsoleVariableName;
+
+	int32 OriginalValue;
+};
+
 class FAutomationScreenshotTaker
 {
-	FString	Name;
-	FAutomationScreenshotOptions Options;
-
-	int32 OriginalPostProcessing;
-	int32 OriginalMotionBlur;
-	int32 OriginalSSRQuality;
-	int32 OriginalEyeAdaptation;
-	int32 OriginalContactShadows;
-
 public:
-	FAutomationScreenshotTaker(const FString& InName, FAutomationScreenshotOptions InOptions)
-		: Name(InName)
+	FAutomationScreenshotTaker(UWorld* InWorld, const FString& InName, FAutomationScreenshotOptions InOptions)
+		: World(InWorld)
+		, Name(InName)
 		, Options(InOptions)
+		, DefaultFeature_AntiAliasing(TEXT("r.DefaultFeature.AntiAliasing"))
+		, DefaultFeature_AutoExposure(TEXT("r.DefaultFeature.AutoExposure"))
+		, DefaultFeature_MotionBlur(TEXT("r.DefaultFeature.MotionBlur"))
+		, PostProcessAAQuality(TEXT("r.PostProcessAAQuality"))
+		, MotionBlurQuality(TEXT("r.MotionBlurQuality"))
+		, ScreenSpaceReflectionQuality(TEXT("r.SSR.Quality"))
+		, EyeAdaptationQuality(TEXT("r.EyeAdaptationQuality"))
+		, ContactShadows(TEXT("r.ContactShadows"))
 	{
 		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationScreenshotTaker::GrabScreenShot);
 
 		check(IsInGameThread());
 
-		IConsoleVariable* PostProcessingQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessAAQuality"));
-		IConsoleVariable* MotionBlur = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MotionBlurQuality"));
-		IConsoleVariable* ScreenSpaceReflections = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SSR.Quality"));
-		IConsoleVariable* EyeAdapation = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EyeAdaptationQuality"));
-		IConsoleVariable* ContactShadows = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ContactShadows"));
-
-		OriginalPostProcessing = PostProcessingQuality->GetInt();
-		OriginalMotionBlur = MotionBlur->GetInt();
-		OriginalSSRQuality = ScreenSpaceReflections->GetInt();
-		OriginalEyeAdaptation = EyeAdapation->GetInt();
-		OriginalContactShadows = ContactShadows->GetInt();
-
 		if ( Options.bDisableNoisyRenderingFeatures )
 		{
-			PostProcessingQuality->Set(1);
-			MotionBlur->Set(0);
-			ScreenSpaceReflections->Set(0);
-			EyeAdapation->Set(0);
-			ContactShadows->Set(0);
+			DefaultFeature_AntiAliasing.Set(0);
+			DefaultFeature_AutoExposure.Set(0);
+			DefaultFeature_MotionBlur.Set(0);
+			PostProcessAAQuality.Set(0);
+			MotionBlurQuality.Set(0);
+			ScreenSpaceReflectionQuality.Set(0);
+			EyeAdaptationQuality.Set(0);
+			ContactShadows.Set(0);
+		}
+
+		Options.SetToleranceAmounts(Options.Tolerance);
+
+		if ( UGameViewportClient* ViewportClient = GEngine->GameViewport )
+		{
+			static IConsoleVariable* ICVar = IConsoleManager::Get().FindConsoleVariable(FBufferVisualizationData::GetVisualizationTargetConsoleCommandName());
+			if ( ICVar )
+			{
+				if ( ViewportClient->GetEngineShowFlags() )
+				{
+					ViewportClient->GetEngineShowFlags()->SetVisualizeBuffer(InOptions.VisualizeBuffer == NAME_None ? false : true);
+					ViewportClient->GetEngineShowFlags()->SetTonemapper(InOptions.VisualizeBuffer == NAME_None ? true : false);
+					ICVar->Set(*InOptions.VisualizeBuffer.ToString());
+				}
+			}
 		}
 	}
 
-	~FAutomationScreenshotTaker()
+	virtual ~FAutomationScreenshotTaker()
 	{
 		check(IsInGameThread());
 
-		if ( Options.bDisableNoisyRenderingFeatures )
-		{
-			IConsoleVariable* PostProcessingQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessAAQuality"));
-			IConsoleVariable* MotionBlur = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MotionBlurQuality"));
-			IConsoleVariable* ScreenSpaceReflections = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SSR.Quality"));
-			IConsoleVariable* EyeAdapation = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EyeAdaptationQuality"));
-			IConsoleVariable* ContactShadows = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ContactShadows"));
+		DefaultFeature_AntiAliasing.Restore();
+		DefaultFeature_AutoExposure.Restore();
+		DefaultFeature_MotionBlur.Restore();
+		PostProcessAAQuality.Restore();
+		MotionBlurQuality.Restore();
+		ScreenSpaceReflectionQuality.Restore();
+		EyeAdaptationQuality.Restore();
+		ContactShadows.Restore();
 
-			PostProcessingQuality->Set(OriginalPostProcessing);
-			MotionBlur->Set(OriginalMotionBlur);
-			ScreenSpaceReflections->Set(OriginalSSRQuality);
-			EyeAdapation->Set(OriginalEyeAdaptation);
-			ContactShadows->Set(OriginalContactShadows);
+		if ( UGameViewportClient* ViewportClient = GEngine->GameViewport )
+		{
+			static IConsoleVariable* ICVar = IConsoleManager::Get().FindConsoleVariable(FBufferVisualizationData::GetVisualizationTargetConsoleCommandName());
+			if ( ICVar )
+			{
+				if ( ViewportClient->GetEngineShowFlags() )
+				{
+					ViewportClient->GetEngineShowFlags()->SetVisualizeBuffer(false);
+					ViewportClient->GetEngineShowFlags()->SetTonemapper(true);
+					ICVar->Set(TEXT(""));
+				}
+			}
 		}
 
 		GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
@@ -175,28 +218,51 @@ public:
 		}
 	}
 
-	void OnComparisonComplete(bool bWasNew, bool bWasSimilar)
+	void OnComparisonComplete(bool bWasNew, bool bWasSimilar, double MaxLocalDifference, double GlobalDifference, FString ErrorMessage)
 	{
 		FAutomationTestFramework::Get().OnScreenshotCompared.RemoveAll(this);
 
 		if ( bWasNew )
 		{
-			UE_LOG(AutomationFunctionLibrary, Warning, TEXT("New Screenshot was discovered!  Please add a ground truth version of it."));
+			UE_LOG(AutomationFunctionLibrary, Warning, TEXT("New Screenshot '%s' was discovered!  Please add a ground truth version of it."), *Name);
 		}
 		else
 		{
 			if ( bWasSimilar )
 			{
-				UE_LOG(AutomationFunctionLibrary, Log, TEXT("Screenshot was similar!"));
+				UE_LOG(AutomationFunctionLibrary, Display, TEXT("Screenshot '%s' was similar!  Global Difference = %f, Max Local Difference = %f"), *Name, GlobalDifference, MaxLocalDifference);
 			}
 			else
 			{
-				UE_LOG(AutomationFunctionLibrary, Error, TEXT("Screenshot test failed, screenshots were different!"));
+				if ( ErrorMessage.IsEmpty() )
+				{
+					UE_LOG(AutomationFunctionLibrary, Error, TEXT("Screenshot '%s' test failed, Screnshots were different!  Global Difference = %f, Max Local Difference = %f"), *Name, GlobalDifference, MaxLocalDifference);
+				}
+				else
+				{
+					UE_LOG(AutomationFunctionLibrary, Error, TEXT("Screenshot '%s' test failed;  Error = %s"), *Name, *ErrorMessage);
+				}
 			}
 		}
 
 		delete this;
 	}
+
+private:
+
+	TWeakObjectPtr<UWorld> World;
+	
+	FString	Name;
+	FAutomationScreenshotOptions Options;
+
+	FConsoleVariableSwapper DefaultFeature_AntiAliasing;
+	FConsoleVariableSwapper DefaultFeature_AutoExposure;
+	FConsoleVariableSwapper DefaultFeature_MotionBlur;
+	FConsoleVariableSwapper PostProcessAAQuality;
+	FConsoleVariableSwapper MotionBlurQuality;
+	FConsoleVariableSwapper ScreenSpaceReflectionQuality;
+	FConsoleVariableSwapper EyeAdaptationQuality;
+	FConsoleVariableSwapper ContactShadows;
 };
 
 #endif
@@ -206,13 +272,9 @@ UAutomationBlueprintFunctionLibrary::UAutomationBlueprintFunctionLibrary(const c
 {
 }
 
-bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const FString& Name, FAutomationScreenshotOptions Options)
+bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(UObject* WorldContextObject, const FString& Name, FAutomationScreenshotOptions Options)
 {
-	if ( !FAutomationTestFramework::Get().IsScreenshotAllowed() )
-	{
-		UE_LOG(AutomationFunctionLibrary, Log, TEXT("Attempted to capture screenshot (%s) but screenshots are not enabled."), *Name);
-		return false;
-	}
+	FinishLoadingBeforeScreenshot();
 
 	// Fallback resolution if all else fails for screenshots.
 	uint32 ResolutionX = 1280;
@@ -250,15 +312,13 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 		}
 	}
 
-	// Force all mip maps to load before taking the screenshot.
-	UTexture::ForceUpdateTextureStreaming();
-
-	// Force all shader compiling to finish.
-	GShaderCompilingManager->FinishAllCompilation();
-
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
-	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
+	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(WorldContextObject ? WorldContextObject->GetWorld() : nullptr, Name, Options);
 #endif
+
+	//static IConsoleVariable* HighResScreenshotDelay = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HighResScreenshotDelay"));
+	//check(HighResScreenshotDelay);
+	//HighResScreenshotDelay->Set(10);
 
     if ( FPlatformProperties::HasFixedResolution() )
     {
@@ -346,24 +406,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotAtCamera(UObje
 
 void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* WorldContextObject, FLatentActionInfo LatentInfo, const FString& Name, const FAutomationScreenshotOptions& Options)
 {
-	if ( !FAutomationTestFramework::Get().IsScreenshotAllowed() )
-	{
-		UE_LOG(AutomationFunctionLibrary, Log, TEXT("Attempted to capture screenshot (%s) but screenshots are not enabled."), *Name);
-
-		if ( UWorld* World = WorldContextObject->GetWorld() )
-		{
-			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
-			if ( LatentActionManager.FindExistingAction<FDelayAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr )
-			{
-				LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FDelayAction(0, LatentInfo));
-			}
-		}
-
-		return;
-	}
-
-	// Force all mip maps to load before taking the screenshot.
-	UTexture::ForceUpdateTextureStreaming();
+	FinishLoadingBeforeScreenshot();
 
 	if ( UWorld* World = WorldContextObject->GetWorld() )
 	{
@@ -377,7 +420,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 				if ( FSlateApplication::Get().TakeScreenshot(Viewport.ToSharedRef(), OutColorData, OutSize) )
 				{
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
-					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
+					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(GEngine->GetWorldFromContextObject(WorldContextObject), Name, Options);
 
 					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GWorld->GetName(), Name, OutSize.X, OutSize.Y);
 
@@ -438,7 +481,7 @@ FAutomationScreenshotOptions UAutomationBlueprintFunctionLibrary::GetDefaultScre
 {
 	FAutomationScreenshotOptions Options;
 	Options.Tolerance = Tolerance;
-	Options.bDisableNoisyRenderingFeatures = false;
+	Options.bDisableNoisyRenderingFeatures = true;
 	Options.bIgnoreAntiAliasing = true;
 	Options.SetToleranceAmounts(Tolerance);
 

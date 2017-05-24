@@ -216,6 +216,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 				                        {
 					                        RegularStatusReport ThisLoop = (RegularStatusReport)InLoop;
 					                        StringBuilder StatusReportMessage = new StringBuilder();
+											// #WRH Hack to disable sending status reports when the queue size is low. A more efficient solution would avoid writing the string values as well. This is just a surgical strike.
+											bool bSendStatusReport = false;
 					                        lock (DataLock)
 					                        {
 						                        Dictionary<string, int> CountsInPeriod = ThisLoop.GetCountsInPeriod(Counters);
@@ -252,6 +254,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 								                        else
 								                        {
 									                        WaitTimeString = string.Format("{0} minutes", WaitMinutes);
+															bSendStatusReport = true;
 								                        }
 								                        StatusReportMessage.AppendLine("Queue waiting time " + WaitTimeString);
 							                        }
@@ -278,7 +281,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 							                        }
 						                        }
 					                        }
-					                        return StatusReportMessage.ToString();
+					                        return bSendStatusReport ? StatusReportMessage.ToString() : "";
 				                        }));
 
 			StatusReportLoops.Add(

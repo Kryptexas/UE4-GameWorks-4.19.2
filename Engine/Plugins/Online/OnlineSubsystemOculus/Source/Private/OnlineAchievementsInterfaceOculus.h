@@ -91,7 +91,7 @@ private:
 	/** Cached achievements (not player-specific) */
 	TMap<FString, FOnlineAchievementDescOculus> AchievementDescriptions;
 
-	void GetWriteAchievementCountValue(FVariantData VariantData, uint64& OutData);
+	void GetWriteAchievementCountValue(FVariantData VariantData, uint64& OutData) const;
 	void GetWriteAchievementBitfieldValue(FVariantData VariantData, FString& OutData, uint32 BitfieldLength);
 	double CalculatePlayerAchievementProgress(const FOnlineAchievementOculus Achievement);
 

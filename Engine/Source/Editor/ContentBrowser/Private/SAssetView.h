@@ -19,6 +19,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Editor/ContentBrowser/Private/AssetViewSortManager.h"
+#include "AssetViewTypes.h"
 
 class FMenuBuilder;
 class FWeakWidgetPath;
@@ -28,8 +29,6 @@ class SAssetListView;
 class SAssetTileView;
 class SComboButton;
 class UFactory;
-struct FAssetViewAsset;
-struct FAssetViewItem;
 struct FHistoryData;
 struct FPropertyChangedEvent;
 
@@ -186,6 +185,9 @@ public:
 		/** Columns to hide by default */
 		SLATE_ARGUMENT( TArray<FString>, HiddenColumnNames )
 
+		/** Custom columns that can be use specific */
+		SLATE_ARGUMENT(TArray<FAssetViewCustomColumn>, CustomColumns)
+
 	SLATE_END_ARGS()
 
 	~SAssetView();
@@ -292,6 +294,13 @@ public:
 
 	/** Called when a folder is removed from the asset registry */
 	void OnAssetRegistryPathRemoved(const FString& Path);
+
+	/**
+	 * Forces the plugin content folder to be shown.
+	 *
+	 * @param bEnginePlugin		If true, also forces the engine folder to be shown.
+	 */
+	void ForceShowPluginFolder( bool bEnginePlugin );
 
 private:
 
@@ -692,6 +701,9 @@ private:
 
 	/** Creates the row header context menu allowing for hiding individually clicked columns*/
 	TSharedRef<SWidget> CreateRowHeaderMenuContent(const FString ColumnName);
+	/** Will compute the max row size from all its children for the specified column id*/
+	FVector2D GetMaxRowSizeForColumn(const FName& ColumnId);
+
 private:
 
 	/** The asset items being displayed in the view and the filtered list */
@@ -987,6 +999,8 @@ private:
 	TArray<FString> DefaultHiddenColumnNames;
 	TArray<FString> HiddenColumnNames;
 	int32 NumVisibleColumns;
+
+	TArray<FAssetViewCustomColumn> CustomColumns;
 public:
 	bool ShouldColumnGenerateWidget(const FString ColumnName) const;
 };

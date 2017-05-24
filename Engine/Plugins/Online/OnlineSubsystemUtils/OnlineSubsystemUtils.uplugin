@@ -4,7 +4,6 @@
 	"FriendlyName" : "Online Subsystem Utils",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"EngineVersion" : "4.2.0",
 	"Description" : "Shared code for interacting online subsystem implementations.",
 	"Category" : "Online Platform",
 	"CreatedBy" : "Epic Games, Inc.",
@@ -21,6 +20,12 @@
             "Name": "OnlineBlueprintSupport",
             "Type": "Developer",
             "LoadingPhase": "PostConfigInit"
+        }
+    ],
+    "LocalizationTargets": [
+        {
+            "Name": "OnlineSubsystemUtils",
+            "LoadingPolicy": "Always"
         }
     ]
 }

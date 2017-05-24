@@ -78,7 +78,7 @@ bool UDiffAssetsCommandlet::CopyFileToTempLocation(FString& InOutFilename)
 
 bool UDiffAssetsCommandlet::LoadFile(const FString& Filename, TArray<UObject *>& LoadedObjects)
 {
-	UPackage* Package = Cast<UPackage>(LoadPackage( NULL, *Filename, LOAD_ForDiff));
+	UPackage* Package = LoadPackage( NULL, *Filename, LOAD_ForDiff);
 	if (!Package)
 	{
 		UE_LOG(LogDiffAssetsCommandlet, Warning, TEXT("Could not load %s"), *Filename);

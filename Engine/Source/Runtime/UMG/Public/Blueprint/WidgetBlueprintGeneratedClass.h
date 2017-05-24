@@ -62,7 +62,10 @@ public:
 
 	/** A tree of the widget templates to be created */
 	UPROPERTY()
-	class UWidgetTree* WidgetTree;
+	UWidgetTree* WidgetTree;
+
+	UPROPERTY()
+	bool bAllowTemplate;
 
 	UPROPERTY()
 	TArray< FDelegateRuntimeBinding > Bindings;
@@ -73,16 +76,23 @@ public:
 	UPROPERTY()
 	TArray< FName > NamedSlots;
 
-	UPROPERTY()
-	uint32 bCanEverTick : 1;
-
-	UPROPERTY()
-	uint32 bCanEverPaint : 1;
-
 public:
 
+	bool CanTemplate() const;
+
+	void SetTemplate(UUserWidget* InTemplate);
+	UUserWidget* GetTemplate();
+
+	// UObject interface
+	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
+	virtual void Serialize(FArchive& Ar) override;
+
+	virtual UObject* CreateDefaultObject() override;
 	virtual void PostLoad() override;
 	virtual bool NeedsLoadForServer() const override;
+	// End UObject interface
+
+	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 
 	/**
 	 * This is the function that makes UMG work.  Once a user widget is constructed, it will post load
@@ -91,11 +101,37 @@ public:
 	 */
 	void InitializeWidget(UUserWidget* UserWidget) const;
 
+	static void InitializeBindingsStatic(UUserWidget* UserWidget, const TArray< FDelegateRuntimeBinding >& InBindings);
+
 	static void InitializeWidgetStatic(UUserWidget* UserWidget
 		, const UClass* InClass
-		, bool InCanEverTick
-		, bool InCanEverPaint
+		, bool InCanTemplate
 		, UWidgetTree* InWidgetTree
 		, const TArray< UWidgetAnimation* >& InAnimations
 		, const TArray< FDelegateRuntimeBinding >& InBindings);
+
+private:
+	void InitializeTemplate(const ITargetPlatform* TargetPlatform);
+
+private:
+
+	UPROPERTY()
+	bool bValidTemplate;
+
+	UPROPERTY(Transient)
+	bool bTemplateInitialized;
+
+	UPROPERTY(Transient)
+	bool bCookedTemplate;
+
+	UPROPERTY()
+	TAssetPtr<UUserWidget> TemplateAsset;
+
+	UPROPERTY(Transient)
+	mutable UUserWidget* Template;
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(Transient)
+	mutable UUserWidget* EditorTemplate;
+#endif
 };

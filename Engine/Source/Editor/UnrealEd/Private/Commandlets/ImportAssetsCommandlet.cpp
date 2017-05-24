@@ -253,7 +253,7 @@ bool UImportAssetsCommandlet::ImportAndSave(const TArray<UAutomatedAssetImportDa
 					bool bIsReadOnly = IFileManager::Get().IsReadOnly(*PackageFilename);
 					if(bIsReadOnly && ImportData->bSkipReadOnly)
 					{
-						bShouldAttemptToSave = ImportData->bSkipReadOnly;
+						bShouldAttemptToSave = false;
 						if(bIsReadOnly)
 						{
 							UE_LOG(LogAutomatedImport, Error, TEXT("%s is read only and -skipreadonly was specified.  Will not save"), *PackageFilename);
@@ -268,6 +268,10 @@ bool UImportAssetsCommandlet::ImportAndSave(const TArray<UAutomatedAssetImportDa
 							UE_LOG(LogAutomatedImport, Error, TEXT("%s is read only and could not be made writable.  Will not save"), *PackageFilename);
 							bImportAndSaveSucceeded = false;
 						}
+					}
+					else
+					{
+						bShouldAttemptToSave = true;
 					}
 				}
 

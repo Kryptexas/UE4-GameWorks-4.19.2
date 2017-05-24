@@ -8,6 +8,8 @@
 #include "Misc/Paths.h"
 #include <sys/file.h>
 
+#include "PlatformFileCommon.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogLinuxPlatformFile, Log, All);
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
@@ -36,20 +38,37 @@ namespace
 	}
 }
 
-/** 
+/**
  * Linux file handle implementation which limits number of open files per thread. This
  * is to prevent running out of system file handles. Should not be neccessary when
  * using pak file (e.g., SHIPPING?) so not particularly optimized. Only manages
  * files which are opened READ_ONLY.
  */
-#define MANAGE_FILE_HANDLES 	PLATFORM_LINUX // !UE_BUILD_SHIPPING
+
+/**
+ * Linux version of the file handle registry
+ */
+class FLinuxFileRegistry : public FFileHandleRegistry
+{
+public:
+	FLinuxFileRegistry()
+		: FFileHandleRegistry(200)
+	{
+	}
+
+protected:
+	virtual FRegisteredFileHandle* PlatformInitialOpenFile(const TCHAR* Filename) override;
+	virtual bool PlatformReopenFile(FRegisteredFileHandle* Handle) override;
+	virtual void PlatformCloseFile(FRegisteredFileHandle* Handle) override;
+};
+static FLinuxFileRegistry GFileRegistry;
 
 /** 
  * Linux file handle implementation
  */
-class CORE_API FFileHandleLinux : public IFileHandle
+class CORE_API FFileHandleLinux : public FRegisteredFileHandle
 {
-	enum {READWRITE_SIZE = 1024 * 1024};
+	enum {READWRITE_SIZE = SSIZE_MAX};
 
 	FORCEINLINE bool IsValid()
 	{
@@ -57,59 +76,46 @@ class CORE_API FFileHandleLinux : public IFileHandle
 	}
 
 public:
-	FFileHandleLinux(int32 InFileHandle, const TCHAR* InFilename, bool bIsReadOnly)
+	FFileHandleLinux(int32 InFileHandle, const TCHAR* InFilename, bool InFileOpenAsWrite)
 		: FileHandle(InFileHandle)
-#if MANAGE_FILE_HANDLES
 		, Filename(InFilename)
-		, HandleSlot(-1)
 		, FileOffset(0)
 		, FileSize(0)
-#endif // MANAGE_FILE_HANDLES
+		, FileOpenAsWrite(InFileOpenAsWrite)
 	{
 		check(FileHandle > -1);
 		check(Filename.Len() > 0);
-		
-#if MANAGE_FILE_HANDLES
+
 		// Only files opened for read will be managed
-		if (bIsReadOnly)
+		if (!FileOpenAsWrite)
 		{
-			ReserveSlot();
-			ActiveHandles[HandleSlot] = this;
 			struct stat FileInfo;
 			fstat(FileHandle, &FileInfo);
 			FileSize = FileInfo.st_size;
 		}
-#endif // MANAGE_FILE_HANDLES
 	}
 
 	virtual ~FFileHandleLinux()
 	{
-#if MANAGE_FILE_HANDLES
-		if( IsManaged() )
-		{
-			if( ActiveHandles[ HandleSlot ] == this )
-			{
-				close(FileHandle);
-				ActiveHandles[ HandleSlot ] = NULL;
-			}
-		}
-		else
-#endif // MANAGE_FILE_HANDLES
+		if (FileOpenAsWrite)
 		{
 			close(FileHandle);
+		}
+		else
+		{
+			// only track registry for read files
+			GFileRegistry.UnTrackAndCloseFile(this);
 		}
 		FileHandle = -1;
 	}
 
 	virtual int64 Tell() override
 	{
-#if MANAGE_FILE_HANDLES
-		if( IsManaged() )
+		if (!FileOpenAsWrite)
 		{
 			return FileOffset;
 		}
 		else
-#endif // MANAGE_FILE_HANDLES
 		{
 			check(IsValid());
 			return lseek(FileHandle, 0, SEEK_CUR);
@@ -119,15 +125,13 @@ public:
 	virtual bool Seek(int64 NewPosition) override
 	{
 		check(NewPosition >= 0);
-		
-#if MANAGE_FILE_HANDLES
-		if( IsManaged() )
+
+		if (!FileOpenAsWrite)
 		{
 			FileOffset = NewPosition >= FileSize ? FileSize - 1 : NewPosition;
-			return IsValid() && ActiveHandles[ HandleSlot ] == this ? lseek(FileHandle, FileOffset, SEEK_SET) != -1 : true;
+			return true;
 		}
 		else
-#endif // MANAGE_FILE_HANDLES
 		{
 			check(IsValid());
 			return lseek(FileHandle, NewPosition, SEEK_SET) != -1;
@@ -138,14 +142,12 @@ public:
 	{
 		check(NewPositionRelativeToEnd <= 0);
 
-#if MANAGE_FILE_HANDLES
-		if( IsManaged() )
+		if (!FileOpenAsWrite)
 		{
-			FileOffset = (NewPositionRelativeToEnd >= FileSize) ? 0 : ( FileSize + NewPositionRelativeToEnd - 1 );
-			return IsValid() && ActiveHandles[ HandleSlot ] == this ? lseek(FileHandle, FileOffset, SEEK_SET) != -1 : true;
+			FileOffset = (NewPositionRelativeToEnd >= FileSize) ? 0 : (FileSize + NewPositionRelativeToEnd - 1);
+			return true;
 		}
 		else
-#endif // MANAGE_FILE_HANDLES
 		{
 			check(IsValid());
 			return lseek(FileHandle, NewPositionRelativeToEnd, SEEK_END) != -1;
@@ -154,24 +156,31 @@ public:
 
 	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
-#if MANAGE_FILE_HANDLES
-		if( IsManaged() )
+		int64 BytesRead = 0;
+		// handle virtual file handles
+		GFileRegistry.TrackStartRead(this);
+
 		{
-			ActivateSlot();
-			int64 BytesRead = ReadInternal(Destination, BytesToRead);
-			FileOffset += BytesRead;
-			return BytesRead == BytesToRead;
+			FScopedDiskUtilizationTracker Tracker(BytesToRead, FileOffset);
+			// seek to the offset on seek? this matches console behavior more closely
+			check(IsValid());
+			if (lseek(FileHandle, FileOffset, SEEK_SET) == -1)
+			{
+				return false;
+			}
+			BytesRead += ReadInternal(Destination, BytesToRead);
 		}
-		else
-#endif // MANAGE_FILE_HANDLES
-		{
-			return ReadInternal(Destination, BytesToRead) == BytesToRead;
-		}
+
+		// handle virtual file handles
+		GFileRegistry.TrackEndRead(this);
+		FileOffset += BytesRead;
+		return BytesRead == BytesToRead;
 	}
 
 	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		check(IsValid());
+		check(FileOpenAsWrite);
 		while (BytesToWrite)
 		{
 			check(BytesToWrite >= 0);
@@ -189,13 +198,11 @@ public:
 
 	virtual int64 Size() override
 	{
-		#if MANAGE_FILE_HANDLES
-		if( IsManaged() )
+		if (!FileOpenAsWrite)
 		{
 			return FileSize;
 		}
 		else
-		#endif
 		{
 			struct stat FileInfo;
 			fstat(FileHandle, &FileInfo);
@@ -206,74 +213,7 @@ public:
 	
 private:
 
-#if MANAGE_FILE_HANDLES
-	FORCEINLINE bool IsManaged()
-	{
-		return HandleSlot != -1;
-	}
-
-	void ActivateSlot()
-	{
-		if( IsManaged() )
-		{
-			if( ActiveHandles[ HandleSlot ] != this || (ActiveHandles[ HandleSlot ] && ActiveHandles[ HandleSlot ]->FileHandle == -1) )
-			{
-				ReserveSlot();
-				
-				FileHandle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY | O_CLOEXEC);
-				if( FileHandle != -1 )
-				{
-					lseek(FileHandle, FileOffset, SEEK_SET);
-					ActiveHandles[ HandleSlot ] = this;
-				}
-				else
-				{
-					UE_LOG(LogLinuxPlatformFile, Warning, TEXT("Could not (re)activate slot for file '%s'"), *Filename);
-				}
-			}
-			else
-			{
-				AccessTimes[ HandleSlot ] = FPlatformTime::Seconds();
-			}
-		}
-	}
-
-	void ReserveSlot()
-	{
-		HandleSlot = -1;
-		
-		// Look for non-reserved slot
-		for( int32 i = 0; i < ACTIVE_HANDLE_COUNT; ++i )
-		{
-			if( ActiveHandles[ i ] == NULL )
-			{
-				HandleSlot = i;
-				break;
-			}
-		}
-		
-		// Take the oldest handle
-		if( HandleSlot == -1 )
-		{
-			int32 Oldest = 0;
-			for( int32 i = 1; i < ACTIVE_HANDLE_COUNT; ++i )
-			{
-				if( AccessTimes[ Oldest ] > AccessTimes[ i ] )
-				{
-					Oldest = i;
-				}
-			}
-			
-			close( ActiveHandles[ Oldest ]->FileHandle );
-			ActiveHandles[ Oldest ]->FileHandle = -1;
-			HandleSlot = Oldest;
-		}
-		
-		ActiveHandles[ HandleSlot ] = NULL;
-		AccessTimes[ HandleSlot ] = FPlatformTime::Seconds();
-	}
-#endif // MANAGE_FILE_HANDLES
-
+	/** This function exists because we cannot read more than SSIZE_MAX at once */
 	int64 ReadInternal(uint8* Destination, int64 BytesToRead)
 	{
 		check(IsValid());
@@ -298,30 +238,24 @@ private:
 	// Holds the internal file handle.
 	int32 FileHandle;
 
-#if MANAGE_FILE_HANDLES
 	// Holds the name of the file that this handle represents. Kept around for possible reopen of file.
 	FString Filename;
-	
+
 	// Most recent valid slot index for this handle; >=0 for handles which are managed.
 	int32 HandleSlot;
-	
+
 	// Current file offset; valid if a managed handle.
 	int64 FileOffset;
-	
+
 	// Cached file size; valid if a managed handle.
 	int64 FileSize;
-	
-	// Each thread keeps a collection of active handles with access times.
-	static const int32 ACTIVE_HANDLE_COUNT = 256;
-	static __thread FFileHandleLinux* ActiveHandles[ ACTIVE_HANDLE_COUNT ];
-	static __thread double AccessTimes[ ACTIVE_HANDLE_COUNT ];
-#endif // MANAGE_FILE_HANDLES
-};
 
-#if MANAGE_FILE_HANDLES
-__thread FFileHandleLinux* FFileHandleLinux::ActiveHandles[ FFileHandleLinux::ACTIVE_HANDLE_COUNT ];
-__thread double FFileHandleLinux::AccessTimes[ FFileHandleLinux::ACTIVE_HANDLE_COUNT ];
-#endif // MANAGE_FILE_HANDLES
+	// track if file is open for write
+	bool FileOpenAsWrite;
+
+	friend class FReadaheadCache;
+	friend class FLinuxFileRegistry;
+};
 
 /**
  * A class to handle case insensitive file opening. This is a band-aid, non-performant approach,
@@ -679,7 +613,17 @@ bool FLinuxPlatformFile::MoveFile(const TCHAR* To, const TCHAR* From)
 		return false;
 	}
 
-	return rename(TCHAR_TO_UTF8(*CaseSensitiveFilename), TCHAR_TO_UTF8(*NormalizeFilename(To))) != -1;
+	int32 Result = rename(TCHAR_TO_UTF8(*CaseSensitiveFilename), TCHAR_TO_UTF8(*NormalizeFilename(To)));
+	if (Result == -1 && errno == EXDEV)
+	{
+		// Copy the file if rename failed because To and From are on different file systems
+		if (CopyFile(To, *CaseSensitiveFilename))
+		{
+			DeleteFile(*CaseSensitiveFilename);
+			Result = 0;
+		}
+	}
+	return Result != -1;
 }
 
 bool FLinuxPlatformFile::SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue)
@@ -702,7 +646,7 @@ bool FLinuxPlatformFile::SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyVal
 		{
 			FileInfo.st_mode |= S_IWUSR;
 		}
-		return chmod(TCHAR_TO_UTF8(*CaseSensitiveFilename), FileInfo.st_mode);
+		return chmod(TCHAR_TO_UTF8(*CaseSensitiveFilename), FileInfo.st_mode) == 0;
 	}
 	return false;
 }
@@ -796,13 +740,8 @@ FString FLinuxPlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
 
 IFileHandle* FLinuxPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 {
-	FString MappedToName;
-	int32 Handle = GCaseInsensMapper.OpenCaseInsensitiveRead(NormalizeFilename(Filename), MappedToName);
-	if (Handle != -1)
-	{
-		return new FFileHandleLinux(Handle, *MappedToName, true);
-	}
-	return nullptr;
+	// let the file registry manage read files
+	return GFileRegistry.InitialOpenFile(*NormalizeFilename(Filename));
 }
 
 IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead)
@@ -854,11 +793,7 @@ IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 			}
 		}
 
-#if MANAGE_FILE_HANDLES
-		FFileHandleLinux* FileHandleLinux = new FFileHandleLinux(Handle, *NormalizeDirectory(Filename), false);
-#else
-		FFileHandleLinux* FileHandleLinux = new FFileHandleLinux(Handle, Filename, false);
-#endif // MANAGE_FILE_HANDLES
+		FFileHandleLinux* FileHandleLinux = new FFileHandleLinux(Handle, *NormalizeDirectory(Filename), true);
 
 		if (bAppend)
 		{
@@ -1057,3 +992,44 @@ IPlatformFile& IPlatformFile::GetPlatformPhysical()
 	static FLinuxPlatformFile Singleton;
 	return Singleton;
 }
+
+FRegisteredFileHandle* FLinuxFileRegistry::PlatformInitialOpenFile(const TCHAR* Filename)
+{
+	FString MappedToName;
+	int32 Handle = GCaseInsensMapper.OpenCaseInsensitiveRead(Filename, MappedToName);
+	if (Handle != -1)
+	{
+		return new FFileHandleLinux(Handle, *MappedToName, false);
+	}
+	return nullptr;
+}
+
+bool FLinuxFileRegistry::PlatformReopenFile(FRegisteredFileHandle* Handle)
+{
+	FFileHandleLinux* LinuxHandle = static_cast<FFileHandleLinux*>(Handle);
+
+	bool bSuccess = true;
+	LinuxHandle->FileHandle = open(TCHAR_TO_UTF8(*(LinuxHandle->Filename)), O_RDONLY | O_CLOEXEC);
+	if(LinuxHandle->FileHandle != -1)
+	{
+		if (lseek(LinuxHandle->FileHandle, LinuxHandle->FileOffset, SEEK_SET) == -1)
+		{
+			UE_LOG(LogLinuxPlatformFile, Warning, TEXT("Could not seek to the previous position on handle for file '%s'"), *(LinuxHandle->Filename));
+			bSuccess = false;
+		}
+	}
+	else
+	{
+		UE_LOG(LogLinuxPlatformFile, Warning, TEXT("Could not reopen handle for file '%s'"), *(LinuxHandle->Filename));
+		bSuccess = false;
+	}
+
+	return bSuccess;
+}
+
+void FLinuxFileRegistry::PlatformCloseFile(FRegisteredFileHandle* Handle)
+{
+	FFileHandleLinux* LinuxHandle = static_cast<FFileHandleLinux*>(Handle);
+	close(LinuxHandle->FileHandle);
+}
+

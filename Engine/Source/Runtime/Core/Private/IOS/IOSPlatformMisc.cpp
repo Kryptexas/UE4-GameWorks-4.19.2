@@ -14,6 +14,7 @@
 #include "IOSInputInterface.h"
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Apple/ApplePlatformDebugEvents.h"
 
 #include "Apple/ApplePlatformCrashContext.h"
 
@@ -69,7 +70,7 @@ void FIOSPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("Free Memory at startup: %d MB"), GStartupFreeMemoryMB);
 }
 
-void FIOSPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
+void FIOSPlatformMisc::PlatformHandleSplashScreen(bool ShowSplashScreen)
 {
     GShowSplashScreen = ShowSplashScreen;
 }
@@ -182,21 +183,26 @@ void FIOSPlatformMisc::ClipboardPaste(class FString& Result)
 #endif
 }
 
+FString FIOSPlatformMisc::GetDefaultLanguage()
+{
+	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
+	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
+	FString LangCode((__bridge NSString*)LangCodeStr);
+	CFRelease(Languages);
+
+	return LangCode;
+}
 
 FString FIOSPlatformMisc::GetDefaultLocale()
 {
-	CFLocaleRef loc = CFLocaleCopyCurrent();
-    
-	TCHAR langCode[20];
-	CFArrayRef langs = CFLocaleCopyPreferredLanguages();
-	CFStringRef langCodeStr = (CFStringRef)CFArrayGetValueAtIndex(langs, 0);
-	FPlatformString::CFStringToTCHAR(langCodeStr, langCode);
-    
-	TCHAR countryCode[20];
-	CFStringRef countryCodeStr = (CFStringRef)CFLocaleGetValue(loc, kCFLocaleCountryCode);
-	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
-    
-	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
+	CFLocaleRef Locale = CFLocaleCopyCurrent();
+	CFStringRef LangCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleLanguageCode);
+	FString LangCode((__bridge NSString*)LangCodeStr);
+	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
+	FString CountryCode((__bridge NSString*)CountryCodeStr);
+	CFRelease(Locale);
+
+	return CountryCode.IsEmpty() ? LangCode : FString::Printf(TEXT("%s-%s"), *LangCode, *CountryCode);
 }
 
 EAppReturnType::Type FIOSPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
@@ -387,6 +393,7 @@ void FIOSPlatformMisc::LoadPreInitModules()
 {
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 	FModuleManager::Get().LoadModule(TEXT("IOSAudio"));
+	FModuleManager::Get().LoadModule(TEXT("AudioMixerAudioUnit"));
 }
 
 void* FIOSPlatformMisc::CreateAutoreleasePool()
@@ -689,9 +696,7 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 		NSUUID* Id = [[UIDevice currentDevice] identifierForVendor];
 		if (Id != nil)
 		{
-			NSString* IdfvString = [Id UUIDString];
-			FString IDFV(IdfvString);
-			return IDFV;
+			return FString([[Id UUIDString] autorelease]);
 		}
 	}
 
@@ -703,6 +708,7 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 FString FIOSPlatformMisc::GetDeviceId()
 {
 	// Check to see if this OS has this function
+
 	if ([[UIDevice currentDevice] respondsToSelector:@selector(identifierForVendor)])
 	{
 	    NSUUID* Id = [[UIDevice currentDevice] identifierForVendor];
@@ -714,6 +720,11 @@ FString FIOSPlatformMisc::GetDeviceId()
 	    }
 	}
 	return FString();
+}
+
+FString FIOSPlatformMisc::GetOSVersion()
+{
+	return FString([[UIDevice currentDevice] systemVersion]);
 }
 
 class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
@@ -1001,3 +1012,20 @@ bool FIOSPlatformMisc::IsControllerAssignedToGamepad(int32 ControllerId)
 	FIOSInputInterface* InputInterface = (FIOSInputInterface*)CachedApplication->GetInputInterface();
 	return InputInterface->IsControllerAssignedToGamepad(ControllerId);
 }
+
+#if IOS_PROFILING_ENABLED
+void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
+{
+	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
+}
+
+void FIOSPlatformMisc::BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
+{
+	FApplePlatformDebugEvents::BeginNamedEvent(Color, Text);
+}
+
+void FIOSPlatformMisc::EndNamedEvent()
+{
+	FApplePlatformDebugEvents::EndNamedEvent();
+}
+#endif

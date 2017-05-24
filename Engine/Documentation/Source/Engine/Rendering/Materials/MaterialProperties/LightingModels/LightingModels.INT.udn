@@ -3,7 +3,7 @@ Title:Shading Models
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials,  Engine/Rendering/Materials/MaterialProperties
 Description:This document breaks down the Material Shading Models property options.
 Version: 4.9
-
+tags:Materials
 
 [TOC(start:2 end:3)]
 

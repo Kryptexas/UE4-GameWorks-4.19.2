@@ -4,9 +4,6 @@
 	MeshPaintRendering.h: Mesh texture paint brush rendering
 ================================================================================*/
 
-#ifndef __MeshPaintRendering_h__
-#define __MeshPaintRendering_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -14,6 +11,7 @@
 
 class FRHICommandList;
 class UTextureRenderTarget2D;
+class FGraphicsPipelineStateInitializer;
 
 namespace MeshPaintRendering
 {
@@ -61,7 +59,8 @@ namespace MeshPaintRendering
 
 
 	/** Binds the mesh paint vertex and pixel shaders to the graphics device */
-	void UNREALED_API SetMeshPaintShaders(FRHICommandList& RHICmdList, 
+	void UNREALED_API SetMeshPaintShaders(FRHICommandList& RHICmdList,
+											FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 											ERHIFeatureLevel::Type InFeatureLevel, 
 											const FMatrix& InTransform,
 											const float InGamma,
@@ -69,13 +68,10 @@ namespace MeshPaintRendering
 
 	/** Binds the mesh paint dilation vertex and pixel shaders to the graphics device */
 	void UNREALED_API SetMeshPaintDilateShaders(FRHICommandList& RHICmdList, 
+													FGraphicsPipelineStateInitializer& GraphicsPSOInit,
 													ERHIFeatureLevel::Type InFeatureLevel, 
 													const FMatrix& InTransform,
 													const float InGamma,
 													const FMeshPaintDilateShaderParameters& InShaderParams );
 
 }
-
-
-
-#endif	// __MeshPaintRendering_h__

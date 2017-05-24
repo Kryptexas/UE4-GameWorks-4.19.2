@@ -464,7 +464,16 @@ EKeyboardType SEditableText::GetVirtualKeyboardType() const
 
 TSharedRef<SWidget> SEditableText::GetSlateWidget()
 {
-	return SharedThis(this);
+	return AsShared();
+}
+
+TSharedPtr<SWidget> SEditableText::GetSlateWidgetPtr()
+{
+	if (DoesSharedInstanceExist())
+	{
+		return AsShared();
+	}
+	return nullptr;
 }
 
 TSharedPtr<SWidget> SEditableText::BuildContextMenuContent() const

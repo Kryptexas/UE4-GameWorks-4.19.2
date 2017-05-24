@@ -200,19 +200,26 @@ void FMarginStructCustomization::OnMarginTextCommitted( const FText& InText, ETe
 					}
 				}
 
-				TArray<void*> RawData;
-				StructPropertyHandle->AccessRawData( RawData );
-
+				if ( StructPropertyHandle.IsValid() && StructPropertyHandle->IsValidHandle() )
 				{
-					FScopedTransaction Transaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), StructPropertyHandle->GetPropertyDisplayName() ) );
-					StructPropertyHandle->NotifyPreChange();
+					TArray<void*> RawData;
+					StructPropertyHandle->AccessRawData(RawData);
 
-					for (void* Data : RawData)
+					if ( RawData.ContainsByPredicate([] (void* Data) { return Data != nullptr; }) )
 					{
-						*(FMargin*)Data = NewMargin;
-					}
+						FScopedTransaction Transaction(FText::Format(NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), StructPropertyHandle->GetPropertyDisplayName()));
+						StructPropertyHandle->NotifyPreChange();
 
-					StructPropertyHandle->NotifyPostChange();
+						for ( void* Data : RawData )
+						{
+							if ( Data )
+							{
+								*(FMargin*)Data = NewMargin;
+							}
+						}
+
+						StructPropertyHandle->NotifyPostChange();
+					}
 				}
 
 				MarginEditableTextBox->SetError( FString() );

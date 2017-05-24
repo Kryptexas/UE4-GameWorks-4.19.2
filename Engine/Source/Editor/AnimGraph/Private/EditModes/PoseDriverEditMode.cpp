@@ -32,103 +32,149 @@ static FLinearColor GetColorFromWeight(float InWeight)
 	return FMath::Lerp(FLinearColor::White, FLinearColor::Red, InWeight);
 }
 
-void FPoseDriverEditMode::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
+/** Hit proxy for selecting targets */
+struct HPDTargetHitProxy : public HHitProxy
 {
-	if (RuntimeNode == nullptr)
+	DECLARE_HIT_PROXY()
+
+	int32 TargetIndex;
+
+	HPDTargetHitProxy(int32 InTargetIndex)
+		: HHitProxy(HPP_World)
+		, TargetIndex(InTargetIndex)
 	{
-		return;
 	}
 
-	// Get the node we are debugging
-	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
+	// HHitProxy interface
+	virtual EMouseCursor::Type GetMouseCursor() override { return EMouseCursor::Crosshairs; }
+	// End of HHitProxy interface
+};
 
-	const int MarginX = 60;
-	const int XDelta = 10;
+IMPLEMENT_HIT_PROXY(HPDTargetHitProxy, HHitProxy)
 
-	int PosY = 60;
-	const int YDelta = 20;
-
-	// Display bone we are watching
-	FText InterpItemText = FText::Format(LOCTEXT("BoneFormat", "Bone: {0}"), FText::FromName(RuntimeNode->SourceBone.BoneName));
-	FCanvasTextItem InterpItem(FVector2D(MarginX, PosY), InterpItemText, GEngine->GetSmallFont(), FLinearColor::White);
-	Canvas->DrawItem(InterpItem);
-	PosY += YDelta;
-
-	int32 PoseIndex = 0;
-	for (const FPoseDriverPoseInfo& PoseInfo : RuntimeNode->PoseInfos)
-	{
-		FString PoseItemString = FString::Printf(TEXT("%s : %f"), *PoseInfo.PoseName.ToString(), PoseInfo.PoseWeight);
-		FCanvasTextItem PoseItem(FVector2D(MarginX + XDelta, PosY), FText::FromString(PoseItemString), GEngine->GetSmallFont(), GetColorFromWeight(PoseInfo.PoseWeight));
-		Canvas->DrawItem(PoseItem);
-		PosY += YDelta;
-
-		PoseIndex++;
-	}
-}
 
 void FPoseDriverEditMode::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
 	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
 
-	static const float LineWidth = 0.1f;
+	// Tell graph node last comp we were used on. A bit ugly, but no easy way to get from details customization to editor instance
+	GraphNode->LastPreviewComponent = SkelComp;
+
+	static const float DrawLineWidth = 0.1f;
 	static const float DrawAxisLength = 20.f;
-	static const float DrawPosSize = 1.f;
+	static const float DrawPosSize = 2.f;
 
-	int32 BoneIndex = SkelComp->GetBoneIndex(RuntimeNode->SourceBone.BoneName);
-	if (BoneIndex != INDEX_NONE)
+
+	// Iterate over each bone in the 'source bones' array
+	for (int32 SourceIdx=0; SourceIdx< RuntimeNode->SourceBones.Num(); SourceIdx++)
 	{
-		// Get transform of driven bone, used as basis for drawing
-		FTransform BoneWorldTM = SkelComp->GetBoneTransform(BoneIndex);
-		FVector BonePos = BoneWorldTM.GetLocation();
+		const FBoneReference& SourceBoneRef = RuntimeNode->SourceBones[SourceIdx];
 
-		// Get ref frame for drawing - rotation from parent, translation from driver bone
-		FName ParentBoneName = SkelComp->GetParentBone(RuntimeNode->SourceBone.BoneName);
-		int32 ParentBoneIndex = SkelComp->GetBoneIndex(ParentBoneName);
-		FTransform ParentWorldTM = (ParentBoneIndex == INDEX_NONE) ? SkelComp->GetComponentToWorld() : SkelComp->GetBoneTransform(ParentBoneIndex);
+		// Get mesh bone index
+		int32 BoneIndex = SkelComp->GetBoneIndex(SourceBoneRef.BoneName);
+		if (BoneIndex != INDEX_NONE)
+		{
+			// Get transform of driven bone, used as basis for drawing
+			FTransform BoneWorldTM = SkelComp->GetBoneTransform(BoneIndex);
+			FVector BonePos = BoneWorldTM.GetLocation();
 
-		// Swing drawing
-		if (RuntimeNode->Type == EPoseDriverType::SwingOnly)
-		{
-			FVector LocalVec = RuntimeNode->SourceBoneTM.TransformVectorNoScale(RuntimeNode->GetTwistAxisVector());
-			FVector WorldVec = ParentWorldTM.TransformVectorNoScale(LocalVec);
-			PDI->DrawLine(BonePos, BonePos + (WorldVec*DrawAxisLength), FLinearColor::Green, SDPG_Foreground, LineWidth);
-		}
-		// Swing & twist drawing
-		else if (RuntimeNode->Type == EPoseDriverType::SwingAndTwist)
-		{
+			// Transform that we are evaluating pose in
+			FTransform EvalSpaceTM = SkelComp->GetComponentToWorld();
 
-		}
-		// Translation drawing
-		else if (RuntimeNode->Type == EPoseDriverType::Translation)
-		{
-			FVector LocalPos = RuntimeNode->SourceBoneTM.GetTranslation();
-			FVector WorldPos = ParentWorldTM.TransformPosition(LocalPos);
-			DrawWireDiamond(PDI, FTranslationMatrix(WorldPos), DrawPosSize, FLinearColor::Green, SDPG_Foreground);
-		}
-
-		for (FPoseDriverPoseInfo& PoseInfo : RuntimeNode->PoseInfos)
-		{
-			// Swing drawing
-			if (RuntimeNode->Type == EPoseDriverType::SwingOnly)
+			// If specifying space to eval in, get that space
+			int32 EvalSpaceBoneIndex = SkelComp->GetBoneIndex(RuntimeNode->EvalSpaceBone.BoneName);
+			FName ParentBoneName = SkelComp->GetParentBone(SourceBoneRef.BoneName);
+			int32 ParentBoneIndex = SkelComp->GetBoneIndex(ParentBoneName);
+			if (EvalSpaceBoneIndex != INDEX_NONE)
 			{
-				FVector LocalVec = PoseInfo.PoseTM.TransformVectorNoScale(RuntimeNode->GetTwistAxisVector());
-				FVector WorldVec = ParentWorldTM.TransformVectorNoScale(LocalVec);
-				PDI->DrawLine(BonePos, BonePos + (WorldVec*DrawAxisLength), GetColorFromWeight(PoseInfo.PoseWeight), SDPG_Foreground, LineWidth);
+				EvalSpaceTM = SkelComp->GetBoneTransform(EvalSpaceBoneIndex);
 			}
-			// Swing & twist drawing
-			else if (RuntimeNode->Type == EPoseDriverType::SwingAndTwist)
+			// Otherwise, just use parent bone
+			else if (ParentBoneIndex != INDEX_NONE)
 			{
-
+				EvalSpaceTM = SkelComp->GetBoneTransform(ParentBoneIndex);
 			}
-			// Translation drawing
-			else if (RuntimeNode->Type == EPoseDriverType::Translation)
+
+			// Get source bone TM from last frame
+			if (RuntimeNode->SourceBoneTMs.IsValidIndex(SourceIdx))
 			{
-				FVector LocalPos = PoseInfo.PoseTM.GetTranslation();
-				FVector WorldPos = ParentWorldTM.TransformPosition(LocalPos);
-				DrawWireDiamond(PDI, FTranslationMatrix(WorldPos), DrawPosSize, GetColorFromWeight(PoseInfo.PoseWeight), SDPG_Foreground);
+				FTransform SourceBoneTM = RuntimeNode->SourceBoneTMs[SourceIdx];
+
+				// Rotation drawing
+				if (RuntimeNode->DriveSource == EPoseDriverSource::Rotation)
+				{
+					FVector LocalVec = SourceBoneTM.TransformVectorNoScale(RuntimeNode->RBFParams.GetTwistAxisVector());
+					FVector WorldVec = EvalSpaceTM.TransformVectorNoScale(LocalVec);
+					PDI->DrawLine(BonePos, BonePos + (WorldVec*DrawAxisLength), FLinearColor::Green, SDPG_Foreground, DrawLineWidth);
+				}
+				// Translation drawing
+				else if (RuntimeNode->DriveSource == EPoseDriverSource::Translation)
+				{
+					FVector LocalPos = SourceBoneTM.GetTranslation();
+					FVector WorldPos = EvalSpaceTM.TransformPosition(LocalPos);
+					DrawWireDiamond(PDI, FTranslationMatrix(WorldPos), DrawPosSize, FLinearColor::Green, SDPG_Foreground);
+				}
+
+				// Build array of weight for every target
+				TArray<float> PerTargetWeights;
+				PerTargetWeights.AddZeroed(RuntimeNode->PoseTargets.Num());
+				for (const FRBFOutputWeight& Weight : RuntimeNode->OutputWeights)
+				{
+					PerTargetWeights[Weight.TargetIndex] = Weight.TargetWeight;
+				}
+
+				// Draw every target for this bone
+				for (int32 TargetIdx = 0; TargetIdx < RuntimeNode->PoseTargets.Num(); TargetIdx++)
+				{
+					// Check we have a target transform for this bone
+					const FPoseDriverTarget& PoseTarget = RuntimeNode->PoseTargets[TargetIdx];
+					if (PoseTarget.BoneTransforms.IsValidIndex(SourceIdx))
+					{
+						const FPoseDriverTransform& TargetTM = PoseTarget.BoneTransforms[SourceIdx];
+
+						bool bSelected = (GraphNode->SelectedTargetIndex == TargetIdx);
+						float AxisLength = bSelected ? (DrawAxisLength * 1.5f) : DrawAxisLength;
+						float LineWidth = bSelected ? (DrawLineWidth * 3.f) : DrawLineWidth;
+						float PosSize = bSelected ? (DrawPosSize * 1.5f) : DrawPosSize;
+
+						PDI->SetHitProxy(new HPDTargetHitProxy(TargetIdx));
+
+						// Rotation drawing
+						if (RuntimeNode->DriveSource == EPoseDriverSource::Rotation)
+						{
+							FVector LocalVec = TargetTM.TargetRotation.RotateVector(RuntimeNode->RBFParams.GetTwistAxisVector());
+							FVector WorldVec = EvalSpaceTM.TransformVectorNoScale(LocalVec);
+							PDI->DrawLine(BonePos, BonePos + (WorldVec*AxisLength), GetColorFromWeight(PerTargetWeights[TargetIdx]), SDPG_Foreground, LineWidth);
+						}
+						// Translation drawing
+						else if (RuntimeNode->DriveSource == EPoseDriverSource::Translation)
+						{
+							FVector LocalPos = TargetTM.TargetTranslation;
+							FVector WorldPos = EvalSpaceTM.TransformPosition(LocalPos);
+							DrawWireDiamond(PDI, FTranslationMatrix(WorldPos), PosSize, GetColorFromWeight(PerTargetWeights[TargetIdx]), SDPG_Foreground, LineWidth);
+						}
+
+						PDI->SetHitProxy(nullptr);
+					}
+				}
 			}
 		}
 	}
+}
+
+bool FPoseDriverEditMode::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
+{
+	bool bResult = FAnimNodeEditMode::HandleClick(InViewportClient, HitProxy, Click);
+
+	if (HitProxy != nullptr && HitProxy->IsA(HPDTargetHitProxy::StaticGetType()))
+	{
+		HPDTargetHitProxy* TargetHitProxy = static_cast<HPDTargetHitProxy*>(HitProxy);
+		GraphNode->SelectedTargetIndex = TargetHitProxy->TargetIndex;
+		GraphNode->SelectedTargetChangeDelegate.Broadcast();
+		bResult = true;
+	}
+
+	return bResult;
 }
 
 #undef LOCTEXT_NAMESPACE

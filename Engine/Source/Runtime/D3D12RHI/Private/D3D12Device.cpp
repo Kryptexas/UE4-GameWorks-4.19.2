@@ -22,6 +22,9 @@ FD3D12Device::FD3D12Device(GPUNodeMask Node, FD3D12Adapter* InAdapter) :
 	DSVAllocator(Node, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 256),
 	SRVAllocator(Node, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
 	UAVAllocator(Node, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1024),
+#if USE_STATIC_ROOT_SIGNATURE
+	CBVAllocator(Node, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 2048),
+#endif
 	SamplerAllocator(Node, FD3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 128),
 	SamplerID(0),
 	OcclusionQueryHeap(this, D3D12_QUERY_HEAP_TYPE_OCCLUSION, 32768),
@@ -121,6 +124,9 @@ void FD3D12Device::SetupAfterDeviceCreation()
 	DSVAllocator.Init(Direct3DDevice);
 	SRVAllocator.Init(Direct3DDevice);
 	UAVAllocator.Init(Direct3DDevice);
+#if USE_STATIC_ROOT_SIGNATURE
+	CBVAllocator.Init(Direct3DDevice);
+#endif
 	SamplerAllocator.Init(Direct3DDevice);
 
 	GlobalSamplerHeap.Init(NUM_SAMPLER_DESCRIPTORS, FD3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
@@ -230,7 +236,7 @@ void FD3D12Device::Cleanup()
 	TextureAllocator.Destroy();
 	/*
 	// Cleanup thread resources
-	for (uint32 index; (index = InterlockedDecrement(&NumThreadDynamicHeapAllocators)) != (uint32)-1;)
+	for (int32 index; (index = FPlatformAtomics::InterlockedDecrement(&NumThreadDynamicHeapAllocators)) != -1;)
 	{
 		FD3D12DynamicHeapAllocator* pHeapAllocator = ThreadDynamicHeapAllocatorArray[index];
 		pHeapAllocator->ReleaseAllResources();

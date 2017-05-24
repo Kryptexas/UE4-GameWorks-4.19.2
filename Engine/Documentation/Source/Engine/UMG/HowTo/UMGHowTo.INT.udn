@@ -4,8 +4,7 @@ Crumbs: %ROOT%, Engine, Engine\UMG
 Description:A How To Guide for creating UI elements with Unreal Motion Graphics UI Designer (UMG). 
 Related: Engine\UMG
 Related: Engine\UMG\UserGuide
-version: 4.9
-
+tags:UMG UI Designer
 
 The **Unreal Motion Graphics UI Designer (UMG) - How To...** pages will show you how to create various UI elements using UMG. Each example comes with step-by-step instructions and several images to help guide you through the process of creating the described content. Reference links are also included to provide more detailed documentation of the systems and content being outlined in each guide. 
 
@@ -20,18 +19,14 @@ Refer to the table below for more information and click each link to view its co
 [REGION:wrapper transparent]
 [](FANCY:Engine\UMG\HowTo\WidgetTemplates "%Engine\UMG\HowTo\WidgetTemplates:description%")
 [](FANCY:Engine\UMG\HowTo\Create3DWidgets "%Engine\UMG\HowTo\Create3DWidgets:description%")
-[PUBLISH:docs]
 [](FANCY:Engine\UMG\HowTo\DragAndDrop "%Engine\UMG\HowTo\DragAndDrop:description%")
-[/PUBLISH:docs]
 [](FANCY:Engine\UMG\HowTo\ScalingUI "%Engine\UMG\HowTo\ScalingUI:description%")
 [/REGION]
 
 ## Advanced
 [REGION:wrapper transparent]
 [](FANCY:Engine\UMG\HowTo\EventBasedUI "%Engine\UMG\HowTo\EventBasedUI:description%")
-[PUBLISH:docs]
 [](FANCY:Engine\UMG\HowTo\VirtualKeyboards "%Engine\UMG\HowTo\VirtualKeyboards:description%")
-[/PUBLISH:docs]
 [/REGION]
 
 

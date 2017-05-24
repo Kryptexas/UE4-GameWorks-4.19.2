@@ -101,5 +101,9 @@ public:
 	/** Array of sub sequence names, each will result in a level sequence asset in the shot. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MasterSequence)
 	TArray<FName> SubSequenceNames;
+
+	/** Whether to instance sub sequences based on the first created sub sequences. */
+	UPROPERTY(config, DisplayName="Instance Sub Sequences", EditAnywhere, Category=MasterSequence)
+	bool bInstanceSubSequences;
 };
 

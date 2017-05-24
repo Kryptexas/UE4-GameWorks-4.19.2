@@ -426,7 +426,7 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 	if ((PortFlags & PPF_Copy) == 0)
 	{
 		// If we are not copying to clipboard, then export objects contained in the map package itself...
-		MapPackage = Cast<UPackage>(Object->GetOutermost());
+		MapPackage = Object->GetOutermost();
 	}
 
 	// this is the top level in the .t3d file
@@ -497,8 +497,8 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 				FString SocketNameString = ( (ParentActor && SocketName != NAME_None) ? FString::Printf(TEXT(" SocketName=%s"), *SocketName.ToString() ) : TEXT(""));
 				FString GroupActor = (Actor->GroupActor? FString::Printf(TEXT(" GroupActor=%s"), *Actor->GroupActor->GetName() ) : TEXT(""));
 				Ar.Logf( TEXT("%sBegin Actor Class=%s Name=%s Archetype=%s'%s'%s%s%s") LINE_TERMINATOR, 
-					FCString::Spc(TextIndent), *Actor->GetClass()->GetName(), *Actor->GetName(),
-					*Actor->GetArchetype()->GetClass()->GetName(), *Actor->GetArchetype()->GetPathName(), *ParentActorString, *SocketNameString, *GroupActor );
+					FCString::Spc(TextIndent), *Actor->GetClass()->GetPathName(), *Actor->GetName(),
+					*Actor->GetArchetype()->GetClass()->GetPathName(), *Actor->GetArchetype()->GetPathName(), *ParentActorString, *SocketNameString, *GroupActor );
 
 				ExportRootScope = Actor;
 				ExportObjectInner( Context, Actor, Ar, PortFlags | PPF_ExportsNotFullyQualified );

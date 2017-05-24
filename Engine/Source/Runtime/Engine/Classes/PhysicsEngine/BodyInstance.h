@@ -23,6 +23,8 @@ struct FCollisionShape;
 struct FConstraintInstance;
 struct FPropertyChangedEvent;
 struct FShapeData;
+class UPrimitiveComponent;
+class FPhysScene;
 
 /** Delegate for applying custom physics forces upon the body. Can be passed to "AddCustomPhysics" so 
   * custom forces and torques can be calculated individually for every physics substep.
@@ -68,8 +70,15 @@ enum { NumInlinedPxShapeElements = 32 };
 /** Array that is intended for use when fetching shapes from a rigid body. */
 typedef TArray<physx::PxShape*, TInlineAllocator<NumInlinedPxShapeElements>> FInlinePxShapeArray;
 
+ENGINE_API int32 FillInlinePxShapeArray_AssumesLocked(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor);
+
 /** Helper to fill FInlinePxShapeArray from a PxRigidActor. Returns number of shapes added. */
-ENGINE_API int32 FillInlinePxShapeArray(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor);
+DEPRECATED(4.16, "Please call FillInlinePxShapeArray_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
+inline int32 FillInlinePxShapeArray(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor)
+{
+	return FillInlinePxShapeArray_AssumesLocked(Array, RigidActor);
+}
+
 
 
 #endif // WITH_PHYSX
@@ -145,10 +154,9 @@ private:
 #endif
 
 	/** Types of objects that this physics objects will collide with. */
-	// @todo : make this to be transient, so that it doesn't have to save anymore
 	// we have to still load them until resave
 	UPROPERTY(transient)
-	struct FCollisionResponseContainer ResponseToChannels;
+	FCollisionResponseContainer ResponseToChannels;
 
 	/** Custom Channels for Responses */
 	UPROPERTY(EditAnywhere, Category = Custom)
@@ -164,6 +172,19 @@ enum class BodyInstanceSceneState
 	Added,
 	AwaitingRemove,
 	Removed
+};
+
+
+/** Whether to override the sync/async scene used by a dynamic actor*/
+UENUM(BlueprintType)
+enum class EDynamicActorScene : uint8
+{
+	//Use whatever the body instance wants
+	Default,	
+	//use sync scene
+	UseSyncScene,	
+	//use async scene
+	UseAsyncScene	
 };
 
 /** Container for a physics representation of an object */
@@ -242,11 +263,8 @@ public:
 	uint32 bEnableGravity : 1;
 
 	/** If true and is attached to a parent, the two bodies will be joined into a single rigid body. Physical settings like collision profile and body settings are determined by the root */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics, meta = (editcondition = "!bSimulatePhysics"))
 	uint32 bAutoWeld : 1;
-
-	/** determines if the body is currently welded */
-	uint32 bWelded : 1;
 
 	/** If object should start awake, or if it should initially be sleeping */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bSimulatePhysics"))
@@ -403,8 +421,12 @@ public:
 
 
 	/** If the SleepFamily is set to custom, multiply the natural sleep threshold by this amount. A higher number will cause the body to sleep sooner. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics)
 	float CustomSleepThresholdMultiplier;
+
+	/** Stabilization factor for this body if Physics stabilization is enabled. A higher number will cause more aggressive stabilization at the risk of loss of momentum at low speeds. A value of 0 will disable stabilization for this body.*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	float StabilizationThresholdMultiplier;
 
 	/**	Influence of rigid body physics (blending) on the mesh's pose (0.0 == use only animation, 1.0 == use only physics) */
 	/** Provide appropriate interface for doing this instead of allowing BlueprintReadWrite **/
@@ -471,14 +493,37 @@ public:
 #endif
 
 #if UE_WITH_PHYSICS
+
+	/** Helper struct to specify spawn behavior */
+	struct FInitBodySpawnParams
+	{
+		ENGINE_API FInitBodySpawnParams(const UPrimitiveComponent* PrimComp);
+
+		/** Whether the created physx actor will be static */
+		bool bStaticPhysics;
+
+		/** Whether to use the BodySetup's PhysicsType to override if the instance simulates*/
+		bool bPhysicsTypeDeterminesSimulation;
+
+		/** Whether to override the physics scene used for simulation */
+		EDynamicActorScene DynamicActorScene;
+	};
+
+	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL)
+	{
+		InitBody(Setup, Transform, PrimComp, InRBScene, FInitBodySpawnParams(PrimComp), InAggregate);
+	}
+
+
 	/** Initialise a single rigid body (this FBodyInstance) for the given body setup
-	 *	@param Setup The setup to use to create the body
-	 *	@param Transform Transform of the body
-	 *	@param PrimComp The owning component
-	 *	@param InRBScene The physics scene to place the body into
-	 *	@param InAggregate An aggregate to place the body into
-	 */
-	void InitBody(UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
+	*	@param Setup The setup to use to create the body
+	*	@param Transform Transform of the body
+	*	@param PrimComp The owning component
+	*	@param InRBScene The physics scene to place the body into
+	*	@param SpawnParams The parameters for determining certain spawn behavior
+	*	@param InAggregate An aggregate to place the body into
+	*/
+	void InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, const FInitBodySpawnParams& SpawnParams, PhysXAggregateType InAggregate = NULL);
 
 	/** Validate a body transform, outputting debug info
 	 *	@param Transform Transform to debug
@@ -759,8 +804,8 @@ public:
 	void AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhysics);
 	/** Add a force to this body */
 	void AddForce(const FVector& Force, bool bAllowSubstepping = true, bool bAccelChange = false);
-	/** Add a force at a particular world position to this body */
-	void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true);
+	/** Add a force at a particular position (world space when bIsLocalForce = false, body space otherwise) */
+	void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true, bool bIsLocalForce = false);
 	/** Add a torque to this body */
 	void AddTorque(const FVector& Torque, bool bAllowSubstepping = true, bool bAccelChange = false);
 	/** Add a rotational impulse to this body */
@@ -1089,6 +1134,8 @@ public:
 	/** Returns the relative transform between root body and welded instance owned by the shape.*/
 	const FTransform& GetRelativeBodyTransform(const physx::PxShape* PShape) const;
 
+	/** Check if the shape is owned by this body instance */
+	bool IsShapeBoundToBody(const physx::PxShape* PShape) const;
 private:
 	/**
 	 *  Trace a shape against just this bodyinstance
@@ -1106,8 +1153,6 @@ private:
 	 */
 	void UpdatePhysicsShapeFilterData(uint32 ComponentID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, const TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride);
 
-	/** Check if the shape is owned by this body instance */
-	bool IsShapeBoundToBody(const physx::PxShape* PShape) const;
 #endif 
 	/**
 	 * Invalidate Collision Profile Name
@@ -1199,7 +1244,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FBodyInstance> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FBodyInstance> : public TStructOpsTypeTraitsBase2<FBodyInstance>
 {
 	enum
 	{
@@ -1223,11 +1268,13 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // BodyInstance inlines
 
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+//~ APIDOCTOOL: Document=Off
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const FComponentQueryParams& Params, const FCollisionResponseParams& ResponseParams, const FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// Pass on to FQuat version
 	return OverlapMulti(InOutOverlaps, World, pWorldToComponent, Pos, Rot.Quaternion(), TestChannel, Params, ResponseParams, ObjectQueryParams);
 }
+//~ APIDOCTOOL: Document=On
 
 FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBodies(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const
 {
@@ -1245,3 +1292,6 @@ FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics() const
 {
 	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
 }
+
+extern template ENGINE_API bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const;
+extern template ENGINE_API bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*, TInlineAllocator<1>>& Bodies) const;

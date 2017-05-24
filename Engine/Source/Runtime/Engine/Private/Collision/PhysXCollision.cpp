@@ -1764,7 +1764,7 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 		PxQueryFilterData PQueryFilterData(PFilter, StaticDynamicQueryFlags(Params) | PxQueryFlag::ePREFILTER);
 		PxQueryFilterData PQueryFilterDataAny(PFilter, StaticDynamicQueryFlags(Params) | PxQueryFlag::ePREFILTER | PxQueryFlag::eANY_HIT);
 		FPxQueryFilterCallback PQueryCallback(Params);
-		PQueryCallback.bIgnoreTouches = (InfoType == EQueryInfo::IsBlocking); // pre-filter to ignore touches and only get blocking hits, if that's what we're after.
+		PQueryCallback.bIgnoreTouches |= (InfoType == EQueryInfo::IsBlocking); // pre-filter to ignore touches and only get blocking hits, if that's what we're after.
 		PQueryCallback.bIsOverlapQuery = true;
 
 		// Enable scene locks, in case they are required
@@ -2035,35 +2035,4 @@ PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceCompl
 		return CreateTraceQueryFilterData(MyChannel, bTraceComplex, InCollisionResponseContainer, QueryParam);
 	}
 }
-
-PxGeometry * GetGeometryFromShape(GeometryFromShapeStorage & LocalStorage, const PxShape * PShape, bool bTriangleMeshAllowed /*= false*/)
-{
-	switch (PShape->getGeometryType())
-	{
-	case PxGeometryType::eSPHERE:
-		PShape->getSphereGeometry(LocalStorage.SphereGeom);
-		return &LocalStorage.SphereGeom;
-	case PxGeometryType::eBOX:
-		PShape->getBoxGeometry(LocalStorage.BoxGeom);
-		return &LocalStorage.BoxGeom;
-	case PxGeometryType::eCAPSULE:
-		PShape->getCapsuleGeometry(LocalStorage.CapsuleGeom);
-		return &LocalStorage.CapsuleGeom;
-	case PxGeometryType::eCONVEXMESH:
-		PShape->getConvexMeshGeometry(LocalStorage.ConvexGeom);
-		return &LocalStorage.ConvexGeom;
-	case PxGeometryType::eTRIANGLEMESH:
-		if (bTriangleMeshAllowed)
-		{
-			PShape->getTriangleMeshGeometry(LocalStorage.TriangleGeom);
-			return &LocalStorage.TriangleGeom;
-		}
-	case PxGeometryType::eHEIGHTFIELD:
-		PShape->getHeightFieldGeometry(LocalStorage.HeightFieldGeom);
-		return &LocalStorage.HeightFieldGeom;
-	default:
-		return NULL;
-	}
-}
-
 #endif // WITH_PHYSX

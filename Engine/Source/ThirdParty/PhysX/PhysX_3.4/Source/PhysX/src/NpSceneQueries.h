@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -194,6 +194,18 @@ PX_FORCE_INLINE				Vd::PvdSceneQueryCollector&	getSingleSqCollector() const {ret
 PX_FORCE_INLINE				Vd::PvdSceneQueryCollector&	getBatchedSqCollector() const {return mBatchedSqCollector;}
 #endif // PX_SUPPORT_PVD
 };
+
+#if PX_SUPPORT_EXTERN_TEMPLATE
+//explicit template instantiation declaration
+extern template
+bool NpSceneQueries::multiQuery<PxRaycastHit>(const MultiQueryInput&, PxHitCallback<PxRaycastHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const;
+
+extern template
+bool NpSceneQueries::multiQuery<PxOverlapHit>(const MultiQueryInput&, PxHitCallback<PxOverlapHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const;
+
+extern template
+bool NpSceneQueries::multiQuery<PxSweepHit>(const MultiQueryInput&, PxHitCallback<PxSweepHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const;
+#endif
 
 namespace Sq { class AABBPruner; class AABBTreeRuntimeNode; class AABBTree; }
 

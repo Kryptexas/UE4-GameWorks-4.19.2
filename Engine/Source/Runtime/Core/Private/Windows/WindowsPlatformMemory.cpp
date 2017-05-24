@@ -139,7 +139,7 @@ FMalloc* FWindowsPlatformMemory::BaseAllocator()
 		
 	default:	// intentional fall-through
 	case EMemoryAllocatorToUse::Binned:
-		return new FMallocBinned((uint32)(GetConstants().PageSize&MAX_uint32), (uint64)MAX_uint32 + 1);
+		return new FMallocBinned((uint32)(GetConstants().BinnedPageSize&MAX_uint32), (uint64)MAX_uint32 + 1);
 	}
 }
 
@@ -220,7 +220,9 @@ const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
 
 		MemoryConstants.TotalPhysical = MemoryStatusEx.ullTotalPhys;
 		MemoryConstants.TotalVirtual = MemoryStatusEx.ullTotalVirtual;
-		MemoryConstants.PageSize = SystemInfo.dwAllocationGranularity;	// Use this so we get larger 64KiB pages, instead of 4KiB
+		MemoryConstants.BinnedPageSize = SystemInfo.dwAllocationGranularity;	// Use this so we get larger 64KiB pages, instead of 4KiB
+		MemoryConstants.OsAllocationGranularity = SystemInfo.dwAllocationGranularity;	// VirtualAlloc cannot allocate memory less than that
+		MemoryConstants.PageSize = SystemInfo.dwPageSize;
 
 		MemoryConstants.TotalPhysicalGB = (MemoryConstants.TotalPhysical + 1024 * 1024 * 1024 - 1) / 1024 / 1024 / 1024;
 	}

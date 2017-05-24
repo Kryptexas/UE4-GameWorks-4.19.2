@@ -78,7 +78,10 @@ UObject* UPoseAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 		}
 		
 		PoseAsset->SetSkeleton( TargetSkeleton );
-
+		if (PreviewSkeletalMesh)
+		{
+			PoseAsset->SetPreviewMesh(PreviewSkeletalMesh);
+		}
 		return PoseAsset;
 	}
 

@@ -105,8 +105,19 @@ TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneCinematicShotTrack::Get
 				{
 					const FMovieSceneSectionData& DataA = SourceData[A.ImplIndex];
 					const FMovieSceneSectionData& DataB = SourceData[B.ImplIndex];
-
-					if (DataA.Priority == DataB.Priority)
+					
+					// Always sort pre/postroll to the front of the array
+					const bool PrePostRollA = DataA.EvalData.IsPreRoll() || DataA.EvalData.IsPostRoll();
+					const bool PrePostRollB = DataB.EvalData.IsPreRoll() || DataB.EvalData.IsPostRoll();
+					if (PrePostRollA != PrePostRollB)
+					{
+						return PrePostRollA;
+					}
+					else if (PrePostRollA)
+					{
+						return false;
+					}
+					else if (DataA.Priority == DataB.Priority)
 					{
 						return TRangeBound<float>::MaxLower(DataA.Bounds.GetLowerBound(), DataB.Bounds.GetLowerBound()) == DataA.Bounds.GetLowerBound();
 					}
@@ -114,7 +125,21 @@ TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneCinematicShotTrack::Get
 				}
 			);
 
-			Segment.Impls.RemoveAt(1, Segment.Impls.Num() - 1, true);
+			int32 RemoveAtIndex = 0;
+			// Skip over any pre/postroll sections
+			while (Segment.Impls.IsValidIndex(RemoveAtIndex) && (Segment.Impls[RemoveAtIndex].Flags & (ESectionEvaluationFlags::PreRoll | ESectionEvaluationFlags::PostRoll)) != ESectionEvaluationFlags::None)
+			{
+				++RemoveAtIndex;
+			}
+
+			// Skip over the first genuine evaluation if it exists
+			++RemoveAtIndex;
+
+			int32 NumToRemove = Segment.Impls.Num() - RemoveAtIndex;
+			if (NumToRemove > 0)
+			{
+				Segment.Impls.RemoveAt(RemoveAtIndex, NumToRemove, true);
+			}
 		}
 	};
 

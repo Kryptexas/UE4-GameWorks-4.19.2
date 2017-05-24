@@ -68,6 +68,8 @@ struct UNREALED_API FDataTableEditorUtils
 	static uint8* AddRow(UDataTable* DataTable, FName RowName);
 	static bool RenameRow(UDataTable* DataTable, FName OldName, FName NewName);
 	static bool MoveRow(UDataTable* DataTable, FName RowName, ERowMoveDirection Direction, int32 NumRowsToMoveBy = 1);
+	static bool DiffersFromDefault(UDataTable* DataTable, FName RowName);
+	static bool ResetToDefault(UDataTable* DataTable, FName RowName);
 
 	static void BroadcastPreChange(UDataTable* DataTable, EDataTableChangeInfo Info);
 	static void BroadcastPostChange(UDataTable* DataTable, EDataTableChangeInfo Info);
@@ -75,4 +77,6 @@ struct UNREALED_API FDataTableEditorUtils
 	static void CacheDataTableForEditing(const UDataTable* DataTable, TArray<FDataTableEditorColumnHeaderDataPtr>& OutAvailableColumns, TArray<FDataTableEditorRowListViewDataPtr>& OutAvailableRows);
 
 	static TArray<UScriptStruct*> GetPossibleStructs();
+	/** Utility function which verifies that the specified struct type is viable for data tables */
+	static bool IsValidTableStruct(UScriptStruct* Struct);
 };

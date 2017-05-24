@@ -27,6 +27,9 @@ class ULandscapeLayerInfoObject : public UObject
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category=LandscapeLayerInfoObject)
 	uint32 bNoWeightBlend:1;
+
+	UPROPERTY(NonTransactional, Transient)
+	bool IsReferencedFromLoadedData;
 #endif // WITH_EDITORONLY_DATA
 
 	/* The color to use for layer usage debug */

@@ -5,7 +5,7 @@
 #include "ContentStreaming.h"
 #include "Interfaces/IAudioFormat.h"
 
-#define WITH_OPUS (PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX)
+#define WITH_OPUS (PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX || PLATFORM_XBOXONE)
 
 #if WITH_OPUS
 THIRD_PARTY_INCLUDES_START
@@ -180,6 +180,10 @@ uint32 FOpusAudioInfo::GetMaxFrameSizeSamples() const
 
 int32 FOpusAudioInfo::Decode(const uint8* FrameData, uint16 FrameSize, int16* OutPCMData, int32 SampleSize)
 {
-	return OpusDecoderWrapper->Decode(FrameData, FrameSize, OutPCMData, SampleSize);
+	if (OpusDecoderWrapper)
+	{
+		return OpusDecoderWrapper->Decode(FrameData, FrameSize, OutPCMData, SampleSize);
+	}
+	return INDEX_NONE;
 }
 

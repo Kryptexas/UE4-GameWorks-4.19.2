@@ -595,11 +595,11 @@ namespace Manzana
 			}
 		}
 
-		/// <summary>
-		/// Tries to copy all of the files in the manifest on the PC to the documents directory
-		/// (requires the bundle identifier to be able to mount that directory)
-		/// </summary>
-		public bool TryCopy(string BundleIdentifier, string Manifest)
+        /// <summary>
+        /// Tries to copy all of the files in the manifest on the PC to the library directory
+        /// (requires the bundle identifier to be able to mount that directory)
+        /// </summary>
+        public bool TryCopy(string BundleIdentifier, string Manifest)
 		{
 			if (ConnectToBundle(BundleIdentifier))
 			{
@@ -617,8 +617,8 @@ namespace Manzana
 							string Trimmed = Filename.Trim();
 							string SourceFilename = BaseFolder + "\\" + Trimmed;
 							SourceFilename = SourceFilename.Replace('/', '\\');
-							string DestFilename = "/Documents/" + Trimmed.Replace("cookeddata/", "");
-							DestFilename = DestFilename.Replace('\\', '/');
+                            string DestFilename = "/Library/Caches/" + Trimmed.Replace("cookeddata/", "");
+                            DestFilename = DestFilename.Replace('\\', '/');
                             SourceFilename = SourceFilename.Replace('\\', Path.DirectorySeparatorChar);
 							WriteProgressLine("Copying '{0}' -> '{1}' ...", 0, SourceFilename, DestFilename);
 							CopyFileToPhone(SourceFilename, DestFilename, 1024 * 1024);
@@ -656,9 +656,9 @@ namespace Manzana
 					{
 						//						string BaseFolder = Path.GetDirectoryName(Filename);
 						string Manifest = Path.GetDirectoryName(Filename) + "\\" + SafeDeviceName + "_" + Path.GetFileName(Filename);
-						CopyFileFromPhone(Manifest, "/Documents/" + Path.GetFileName(Filename), 1024 * 1024);
-					}
-					return true;
+                        CopyFileFromPhone(Manifest, "/Library/Caches/" + Path.GetFileName(Filename), 1024 * 1024);
+                    }
+                    return true;
 				}
 				catch (Exception ex)
 				{

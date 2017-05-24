@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class ArchVisCharacter : ModuleRules
 	{
-		public ArchVisCharacter(TargetInfo Target)
+		public ArchVisCharacter(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.Add("ArchVisCharacter/Private");
 

@@ -49,4 +49,7 @@ protected:
 
 	/** SharedPtr to comment bubble */
 	TSharedPtr<SCommentBubble> CommentBubble;
+
+	const FSlateBrush* ShadowBrush;
+	const FSlateBrush* ShadowBrushSelected;
 };

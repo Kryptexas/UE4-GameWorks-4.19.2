@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MeshPaint : ModuleRules
 {
-    public MeshPaint(TargetInfo Target)
+    public MeshPaint(ReadOnlyTargetRules Target) : base(Target)
     {
 		PrivateIncludePathModuleNames.AddRange(
             new string[] {
@@ -31,9 +31,19 @@ public class MeshPaint : ModuleRules
                 "RawMesh",
                 "SourceControl",
                 "ViewportInteraction",
-                "VREditor"
+                "VREditor",
+                "PropertyEditor",
+                "MainFrame",
             }
         );
+
+		CircularlyReferencedDependentModules.AddRange(
+			new string[]
+			{
+				"ViewportInteraction",
+				"VREditor"
+			}
+		);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[]

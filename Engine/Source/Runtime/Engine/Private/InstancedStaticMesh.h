@@ -21,6 +21,7 @@
 #include "Materials/Material.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "StaticMeshResources.h"
+#include "Engine/StaticMesh.h"
 
 
 #include "StaticMeshLight.h"
@@ -241,9 +242,8 @@ public:
 	 */
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
-		// ES2 HTML5 does not support hardware instancing at all
 		// Android may not support on old devices
-		return	(Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_ANDROID)
+		return	(Platform == SP_OPENGL_ES2_ANDROID)
 				&& (Material->IsUsedWithInstancedStaticMeshes() || Material->IsSpecialEngineMaterial())
 				&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType);
 	}
@@ -574,7 +574,7 @@ public:
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
 	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const override;
 
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FVector2D& OutDistanceMinMax, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const override;
 
 	virtual void GetDistanceFieldInstanceInfo(int32& NumInstances, float& BoundsSurfaceArea) const override;
 

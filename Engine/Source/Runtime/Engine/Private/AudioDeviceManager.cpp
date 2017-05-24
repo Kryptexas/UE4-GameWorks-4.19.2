@@ -348,7 +348,7 @@ void FAudioDeviceManager::RegisterSoundSubmix(USoundSubmix* SoundSubmix)
 	{
 		if (AudioDevice)
 		{
-			AudioDevice->RegisterSoundSubmix(SoundSubmix);
+			AudioDevice->RegisterSoundSubmix(SoundSubmix, true);
 		}
 	}
 }
@@ -382,6 +382,17 @@ void FAudioDeviceManager::InitSoundEffectPresets()
 		if (AudioDevice)
 		{
 			AudioDevice->InitSoundEffectPresets();
+		}
+	}
+}
+
+void FAudioDeviceManager::UpdateSourceEffectChain(const uint32 SourceEffectChainId, const TArray<FSourceEffectChainEntry>& SourceEffectChain, const bool bPlayEffectChainTails)
+{
+	for (FAudioDevice* AudioDevice : Devices)
+	{
+		if (AudioDevice)
+		{
+			AudioDevice->UpdateSourceEffectChain(SourceEffectChainId, SourceEffectChain, bPlayEffectChainTails);
 		}
 	}
 }

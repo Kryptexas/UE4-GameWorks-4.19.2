@@ -125,7 +125,10 @@ DECLARE_DELEGATE_OneParam( FConsoleCommandWithArgsDelegate, const TArray< FStrin
 DECLARE_DELEGATE_OneParam( FConsoleCommandWithWorldDelegate, UWorld* );
 
 /** Console command delegate type (with a world and arguments.)  This is a void callback function that always takes a list of arguments and a world. */
-DECLARE_DELEGATE_TwoParams( FConsoleCommandWithWorldAndArgsDelegate, const TArray< FString >&, UWorld* );
+DECLARE_DELEGATE_TwoParams(FConsoleCommandWithWorldAndArgsDelegate, const TArray< FString >&, UWorld*);
+
+/** Console command delegate type (with a world arguments and output device.)  This is a void callback function that always takes a list of arguments, a world and output device. */
+DECLARE_DELEGATE_ThreeParams(FConsoleCommandWithWorldArgsAndOutputDeviceDelegate, const TArray< FString >&, UWorld*, FOutputDevice&);
 
 /** Console command delegate type with the output device passed through. */
 DECLARE_DELEGATE_OneParam( FConsoleCommandWithOutputDeviceDelegate, FOutputDevice& );
@@ -475,14 +478,24 @@ struct CORE_API IConsoleManager
 	virtual IConsoleCommand* RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldDelegate& Command, uint32 Flags = ECVF_Default) = 0;
 
 	/**
-	 * Register a console command that takes arguments
-	 *
-	 * @param	Name		The name of this command (must not be nullptr)
-	 * @param	Help		Help text for this command
-	 * @param	Command		The user function to call when this command is executed
-	 * @param	Flags		Optional flags bitmask
-	 */
+	* Register a console command that takes arguments
+	*
+	* @param	Name		The name of this command (must not be nullptr)
+	* @param	Help		Help text for this command
+	* @param	Command		The user function to call when this command is executed
+	* @param	Flags		Optional flags bitmask
+	*/
 	virtual IConsoleCommand* RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldAndArgsDelegate& Command, uint32 Flags = ECVF_Default) = 0;
+
+	/**
+	* Register a console command that takes arguments
+	*
+	* @param	Name		The name of this command (must not be nullptr)
+	* @param	Help		Help text for this command
+	* @param	Command		The user function to call when this command is executed
+	* @param	Flags		Optional flags bitmask
+	*/
+	virtual IConsoleCommand* RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldArgsAndOutputDeviceDelegate& Command, uint32 Flags = ECVF_Default) = 0;
 
 	/**
 	 * Register a console command that takes arguments
@@ -953,7 +966,20 @@ public:
 	FAutoConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithArgsDelegate& Command, uint32 Flags = ECVF_Default)
 		: FAutoConsoleObject(IConsoleManager::Get().RegisterConsoleCommand(Name, Help, Command, Flags))
 	{
-	}	
+	}
+
+	/**
+	* Register a console command that takes arguments, a world argument and an output device
+	*
+	* @param	Name		The name of this command (must not be nullptr)
+	* @param	Help		Help text for this command
+	* @param	Command		The user function to call when this command is executed
+	* @param	Flags		Optional flags bitmask
+	*/
+	FAutoConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldArgsAndOutputDeviceDelegate& Command, uint32 Flags = ECVF_Default)
+		: FAutoConsoleObject(IConsoleManager::Get().RegisterConsoleCommand(Name, Help, Command, Flags))
+	{
+	}
 };
 
 

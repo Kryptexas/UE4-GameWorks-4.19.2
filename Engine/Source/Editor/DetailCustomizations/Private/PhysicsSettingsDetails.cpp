@@ -184,8 +184,7 @@ public:
 		{
 			FDetailWidgetRow& Row = ChildrenBuilder.AddChildContent(SearchString);
 
-
-			FString TypeString = PhysicalSurfaceEnum->GetEnumName((int32)Item->PhysicalSurface->Type);
+			FString TypeString = PhysicalSurfaceEnum->GetNameStringByValue((int64)Item->PhysicalSurface->Type);
 
 			Row.NameContent()
 			[

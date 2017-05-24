@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Toolbox : ModuleRules
 {
-	public Toolbox(TargetInfo Target)
+	public Toolbox(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

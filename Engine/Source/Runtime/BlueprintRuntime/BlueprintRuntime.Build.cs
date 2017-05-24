@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class BlueprintRuntime : ModuleRules
 	{
-        public BlueprintRuntime(TargetInfo Target)
+        public BlueprintRuntime(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

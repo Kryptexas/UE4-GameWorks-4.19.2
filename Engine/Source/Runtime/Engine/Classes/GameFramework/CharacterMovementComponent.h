@@ -123,7 +123,7 @@ struct FCharacterMovementComponentPostPhysicsTickFunction : public FTickFunction
 };
 
 template<>
-struct TStructOpsTypeTraits<FCharacterMovementComponentPostPhysicsTickFunction> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FCharacterMovementComponentPostPhysicsTickFunction> : public TStructOpsTypeTraitsBase2<FCharacterMovementComponentPostPhysicsTickFunction>
 {
 	enum
 	{
@@ -167,6 +167,13 @@ protected:
 	ACharacter* CharacterOwner;
 
 public:
+
+	/**
+	 *	Apply gravity while the character is actively jumping (e.g. holding the jump key).
+	 *	Helps remove frame-rate dependent jump height, but may alter base jump height.
+	 */
+	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	uint32 bApplyGravityWhileJumping:1;
 
 	/** Custom gravity scale. Gravity is multiplied by this amount for the character. */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
@@ -387,6 +394,18 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement (Rotation Settings)", EditAnywhere, BlueprintReadWrite)
 	uint32 bOrientRotationToMovement:1;
+
+	/**
+	 * Whether or not the character should sweep for collision geometry while walking.
+	 * @see USceneComponent::MoveComponent.
+	 */
+	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite)
+	uint32 bSweepWhileNavWalking:1;
+
+private:
+
+	// Tracks whether or not we need to update the bSweepWhileNavWalking flag do to an upgrade.
+	uint32 bNeedsSweepWhileWalkingUpdate:1;
 
 protected:
 
@@ -685,6 +704,20 @@ public:
 	*/
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
 	float ListenServerNetworkSimulatedSmoothRotationTime;
+
+	/**
+	 * Shrink simulated proxy capsule radius by this amount, to account for network rounding that may cause encroachment. Changing during gameplay is not supported.
+	 * @see AdjustProxyCapsuleSize()
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetProxyShrinkRadius;
+
+	/**
+	 * Shrink simulated proxy capsule half height by this amount, to account for network rounding that may cause encroachment. Changing during gameplay is not supported.
+	 * @see AdjustProxyCapsuleSize()
+	 */
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", UIMin="0.0"))
+	float NetProxyShrinkHalfHeight;
 
 	/** Maximum distance character is allowed to lag behind server location when interpolating between updates. */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
@@ -1032,11 +1065,16 @@ public:
 	void UnpackNetworkMovementMode(const uint8 ReceivedMode, TEnumAsByte<EMovementMode>& OutMode, uint8& OutCustomMode, TEnumAsByte<EMovementMode>& OutGroundMode) const;
 	virtual void ApplyNetworkMovementMode(const uint8 ReceivedMode);
 
+	// Begin UObject Interface
+	virtual void Serialize(FArchive& Archive) override;
+	// End UObject Interface
+
 	//Begin UActorComponent Interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void OnRegister() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
+	virtual void Deactivate() override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	//End UActorComponent Interface
@@ -1226,9 +1264,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration);
 	
-	/** Compute the max jump height based on the JumpZVelocity velocity and gravity. */
+	/**
+	 *	Compute the max jump height based on the JumpZVelocity velocity and gravity.
+	 *	This does not take into account the CharacterOwner's MaxJumpHoldTime.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual float GetMaxJumpHeight() const;
+
+	/**
+	 *	Compute the max jump height based on the JumpZVelocity velocity and gravity.
+	 *	This does take into account the CharacterOwner's MaxJumpHoldTime.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovemet")
+	virtual float GetMaxJumpHeightWithJumpTime() const;
 	
 	/** @return Maximum acceleration for the current state, based on MaxAcceleration and any additional modifiers. */
 	DEPRECATED(4.3, "GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired.")
@@ -1297,8 +1345,12 @@ public:
 	/** Applies repulsion force to all touched components. */
 	virtual void ApplyRepulsionForce(float DeltaSeconds);
 	
-	/** Applies momentum accumulated through AddImpulse() and AddForce(). */
+	/** Applies momentum accumulated through AddImpulse() and AddForce(), then clears those forces. Does *not* use ClearAccumulatedForces() since that would clear pending launch velocity as well. */
 	virtual void ApplyAccumulatedForces(float DeltaSeconds);
+
+	/** Clears forces accumulated through AddImpulse() and AddForce(), and also pending launch velocity. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual void ClearAccumulatedForces();
 
 	/** Update the character state in PerformMovement right before doing the actual position change */
 	virtual void UpdateCharacterStateBeforeMovement();
@@ -1593,6 +1645,9 @@ protected:
 
 	/** @note Movement update functions should only be called through StartNewPhysics()*/
 	virtual void PhysCustom(float deltaTime, int32 Iterations);
+
+	/* Allow custom handling when character hits a wall while swimming. */
+	virtual void HandleSwimmingWallHit(const FHitResult& Hit, float DeltaTime);
 
 	/**
 	 * Compute a vector of movement, given a delta and a hit result of the surface we are on.
@@ -2005,6 +2060,9 @@ protected:
 	/** Return true if it is OK to delay sending this player movement to the server, in order to conserve bandwidth. */
 	virtual bool CanDelaySendingMove(const FSavedMovePtr& NewMove);
 
+	/** Determine minimum delay between sending client updates to the server. If updates occur more frequently this than this time, moves may be combined delayed. */
+	virtual float GetClientNetSendDeltaTime(const APlayerController* PC, const FNetworkPredictionData_Client_Character* ClientData, const FSavedMovePtr& NewMove) const;
+
 	/** Ticks the characters pose and accumulates root motion */
 	void TickCharacterPose(float DeltaTime);
 
@@ -2179,6 +2237,9 @@ public:
 	/** True when SimulatedProxies are simulating RootMotion */
 	UPROPERTY(Transient)
 	bool bWasSimulatingRootMotion;
+
+	UPROPERTY(Category = "RootMotion", EditAnywhere, BlueprintReadWrite)
+	uint32 bAllowPhysicsRotationDuringAnimRootMotion : 1;
 
 	/** @return true if we have Root Motion from animation to use in PerformMovement() physics. 
 		Not valid outside of the scope of that function. Since RootMotion is extracted and used in it. */

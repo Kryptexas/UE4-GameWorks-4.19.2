@@ -11,6 +11,7 @@
 
 #include "ShaderParameterUtils.h"
 #include "RHIStaticStates.h"
+#include "PipelineStateCache.h"
 
 
 //This buffer should contain variables that never, or rarely change
@@ -94,6 +95,18 @@ namespace Oculus
 using namespace Oculus;
 
 static TGlobalResource<FTextureVertexDeclaration> GOculusTextureVertexDeclaration;
+TSharedPtr<FOculusStressTester, ESPMode::ThreadSafe> FOculusStressTester::SharedInstance;
+
+TSharedRef<class FOculusStressTester, ESPMode::ThreadSafe> FOculusStressTester::Get()
+{
+	check(IsInGameThread());
+	if (!SharedInstance.IsValid())
+	{
+		SharedInstance = TSharedPtr<class FOculusStressTester, ESPMode::ThreadSafe>(new FOculusStressTester());
+		check(SharedInstance.IsValid());
+	}
+	return SharedInstance.ToSharedRef();
+}
 
 FOculusStressTester::FOculusStressTester()
 	: Mode(STM_None)
@@ -129,7 +142,7 @@ void FOculusStressTester::SetStressMode(uint32 InStressMask)
 	}
 }
 
-void FOculusStressTester::TickCPU_GameThread(FHeadMountedDisplay* pPlugin)
+void FOculusStressTester::DoTickCPU_GameThread(FHeadMountedDisplay* pPlugin)
 {
 	check(IsInGameThread());
 	if (Mode & STM_EyeBufferRealloc)
@@ -225,7 +238,7 @@ void FOculusStressTester::TickCPU_GameThread(FHeadMountedDisplay* pPlugin)
 	}
 }
 
-void FOculusStressTester::TickGPU_RenderThread(FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture)
+void FOculusStressTester::DoTickGPU_RenderThread(FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture)
 {
 	check(IsInRenderingThread());
 
@@ -248,16 +261,23 @@ void FOculusStressTester::TickGPU_RenderThread(FRHICommandListImmediate& RHICmdL
 
 		//This is where the magic happens
 		SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-		static FGlobalBoundShaderState BoundShaderState;
+		FGraphicsPipelineStateInitializer GraphicsPSOInit;
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+		GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+		GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+		GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
 		TShaderMapRef<FOculusVertexShader> VertexShader(GetGlobalShaderMap(FeatureLevel));
 		TShaderMapRef<FPixelShaderDeclaration> PixelShader(GetGlobalShaderMap(FeatureLevel));
 
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GOculusTextureVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GOculusTextureVertexDeclaration.VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		FShaderResourceViewRHIRef TextureParameterSRV = RHICreateShaderResourceView(SrcTexture, 0);
 		PixelShader->SetSurfaces(RHICmdList, TextureParameterSRV);
@@ -324,5 +344,127 @@ void FPixelShaderDeclaration::UnbindBuffers(FRHICommandList& RHICmdList)
 }
 
 IMPLEMENT_SHADER_TYPE(, FPixelShaderDeclaration, TEXT("OculusStressShaders"), TEXT("MainPixelShader"), SF_Pixel);
+
+// Console commands for managing the stress tester:
+
+static void StressGPUCmdHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	auto StressTester = FOculusStressTester::Get();
+	StressTester->SetStressMode(FOculusStressTester::STM_GPU | StressTester->GetStressMode());
+	if (Args.Num() > 0)
+	{
+		const int GpuMult = FCString::Atoi(*Args[0]);
+		StressTester->SetGPULoadMultiplier(GpuMult);
+	}
+	if (Args.Num() > 1)
+	{
+		const float GpuTimeLimit = FCString::Atof(*Args[1]);
+		StressTester->SetGPUsTimeLimitInSeconds(GpuTimeLimit);
+	}
+}
+
+static FAutoConsoleCommand CStressGPUCmd(
+	TEXT("vr.oculus.Stress.GPU"),
+	*NSLOCTEXT("OculusRift", "CCommandText_StressGPU",
+		"Initiates a GPU stress test.\n Usage: vr.oculus.Stress.GPU [LoadMultiplier [TimeLimit]]").ToString(),
+	FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateStatic(StressGPUCmdHandler));
+
+static void StressCPUCmdHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	auto StressTester = FOculusStressTester::Get();
+	StressTester->SetStressMode(FOculusStressTester::STM_CPUSpin | StressTester->GetStressMode());
+	if (Args.Num() > 0)
+	{
+		const float CpuLimit = FCString::Atof(*Args[0]);
+		StressTester->SetCPUSpinOffPerFrameInSeconds(CpuLimit);
+	}
+	if (Args.Num() > 1)
+	{
+		const float CpuTimeLimit = FCString::Atof(*Args[1]);
+		StressTester->SetCPUsTimeLimitInSeconds(CpuTimeLimit);
+	}
+}
+
+static FAutoConsoleCommand CStressCPUCmd(
+	TEXT("vr.oculus.Stress.CPU"),
+	*NSLOCTEXT("OculusRift", "CCommandText_StressCPU",
+		"Initiates a CPU stress test.\n Usage: vr.oculus.Stress.CPU [PerFrameTime [TotalTimeLimit]]").ToString(),
+	FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateStatic(StressCPUCmdHandler));
+
+static void StressPDCmdHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	auto StressTester = FOculusStressTester::Get();
+	StressTester->SetStressMode(FOculusStressTester::STM_EyeBufferRealloc | StressTester->GetStressMode());
+	if (Args.Num() > 0)
+	{
+		const float TimeLimit = FCString::Atof(*Args[0]);
+		StressTester->SetPDsTimeLimitInSeconds(TimeLimit);
+	}
+}
+
+static FAutoConsoleCommand CStressPDCmd(
+	TEXT("vr.oculus.Stress.PD"),
+	*NSLOCTEXT("OculusRift", "CCommandText_StressPD",
+		"Initiates a pixel density stress test wher pixel density is changed every frame for TotalTimeLimit seconds.\n Usage: vr.oculus.Stress.PD [TotalTimeLimit]").ToString(),
+	FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateStatic(StressPDCmdHandler));
+
+static void StressResetCmdHandler(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)
+{
+	auto StressTester = FOculusStressTester::Get();
+	StressTester->SetStressMode(0);
+}
+
+static FAutoConsoleCommand CStressResetCmd(
+	TEXT("vr.oculus.Stress.Reset"),
+	*NSLOCTEXT("OculusRift", "CCommandText_StressReset",
+		"Resets the stress tester and stops all currently running stress tests.\n Usage: vr.oculus.Stress.Reset").ToString(),
+	FConsoleCommandWithWorldArgsAndOutputDeviceDelegate::CreateStatic(StressResetCmdHandler));
+
+/**
+* Exec handler that aliases old deprecated stress test console commands to the new ones.
+*
+* @param InWorld World context
+* @param Cmd 	the exec command being executed
+* @param Ar 	the archive to log results to
+*
+* @return true if the handler consumed the input, false to continue searching handlers
+*/
+static bool CompatExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	const TCHAR* OrigCmd = Cmd;
+	FString AliasedCommand;
+	if (FParse::Command(&Cmd, TEXT("STRESS")))
+	{
+		if (FParse::Command(&Cmd, TEXT("GPU")))
+		{
+			AliasedCommand = FString::Printf(TEXT("vr.oculus.Stress.GPU %s"), Cmd);
+		}
+		else if (FParse::Command(&Cmd, TEXT("CPU")))
+		{
+			AliasedCommand = FString::Printf(TEXT("vr.oculus.Stress.CPU %s"), Cmd);
+		}
+		else if (FParse::Command(&Cmd, TEXT("PD")))
+		{
+			AliasedCommand = FString::Printf(TEXT("vr.oculus.Stress.PD %s"), Cmd);
+		}
+		else if (FParse::Command(&Cmd, TEXT("RESET")))
+		{
+			AliasedCommand = TEXT("vr.oculus.Stress.Reset");
+		}
+	}
+
+	if (!AliasedCommand.IsEmpty())
+	{
+		Ar.Logf(ELogVerbosity::Warning, TEXT("%s is deprecated. Use %s instead"), OrigCmd, *AliasedCommand);
+
+		return IConsoleManager::Get().ProcessUserConsoleInput(*AliasedCommand, Ar, InWorld);
+	}
+	else
+	{
+		return false;
+	}
+}
+
+static FStaticSelfRegisteringExec CompatExecRegistration(CompatExec);
 
 #endif // #if OCULUS_STRESS_TESTS_ENABLED

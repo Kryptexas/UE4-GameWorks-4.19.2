@@ -6,7 +6,6 @@
 #include "Misc/CommandLine.h"
 #include "Async/AsyncWork.h"
 #include "Serialization/MemoryReader.h"
-#include "HAL/IOBase.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
@@ -84,15 +83,14 @@ inline void DecryptData(uint8* InData, uint32 InDataSize)
 {
 	SCOPE_SECONDS_ACCUMULATOR(STAT_PakCache_DecryptTime);
 	const ANSICHAR* Key = FPakPlatformFile::GetPakEncryptionKey();
-	check(Key);
+	checkf(Key, TEXT("AES decryption has been requested, but no valid encryption key was available"));
 	FAES::DecryptData(InData, InDataSize, Key);
 }
 
 #if USE_PAK_PRECACHE
 #include "TaskGraphInterfaces.h"
-
-
-#define PAK_CACHE_GRANULARITY FPakInfo::MaxChunkDataSize
+#define PAK_CACHE_GRANULARITY (64*1024)
+static_assert((PAK_CACHE_GRANULARITY % FPakInfo::MaxChunkDataSize) == 0, "PAK_CACHE_GRANULARITY must be set to a multiple of FPakInfo::MaxChunkDataSize");
 #define PAK_CACHE_MAX_REQUESTS (8)
 #define PAK_CACHE_MAX_PRIORITY_DIFFERENCE_MERGE (AIOP_Normal - AIOP_Precache)
 #define PAK_EXTRA_CHECKS DO_CHECK
@@ -111,19 +109,26 @@ static FAutoConsoleVariableRef CVar_Enable(
 	TEXT("If > 0, then enable the pak cache.")
 	);
 
-static int32 GPakCache_MaxRequestsToLowerLevel = 2;
+int32 GPakCache_MaxRequestsToLowerLevel = 2;
 static FAutoConsoleVariableRef CVar_MaxRequestsToLowerLevel(
 	TEXT("pakcache.MaxRequestsToLowerLevel"),
 	GPakCache_MaxRequestsToLowerLevel,
 	TEXT("Controls the maximum number of IO requests submitted to the OS filesystem at one time. Limited by PAK_CACHE_MAX_REQUESTS.")
 	);
 
-static int32 GPakCache_MaxRequestSizeToLowerLevelKB = 1024;
+int32 GPakCache_MaxRequestSizeToLowerLevelKB = 1024;
 static FAutoConsoleVariableRef CVar_MaxRequestSizeToLowerLevelKB(
 	TEXT("pakcache.MaxRequestSizeToLowerLevellKB"),
 	GPakCache_MaxRequestSizeToLowerLevelKB,
 	TEXT("Controls the maximum size (in KB) of IO requests submitted to the OS filesystem.")
 	);
+
+int32 GPakCache_NumUnreferencedBlocksToCache = 10;
+static FAutoConsoleVariableRef CVar_NumUnreferencedBlocksToCache(
+	TEXT("pakcache.NumUnreferencedBlocksToCache"),
+	GPakCache_NumUnreferencedBlocksToCache,
+	TEXT("Controls the maximum number of unreferenced blocks to keep. This is a classic disk cache and the maxmimum wasted memory is pakcache.MaxRequestSizeToLowerLevellKB * pakcache.NumUnreferencedBlocksToCache.")
+);
 
 class FPakPrecacher;
 
@@ -939,7 +944,7 @@ class FPakPrecacher
 	TIntervalTreeAllocator<FCacheBlock> CacheBlockAllocator;
 	TMap<uint64, TIntervalTreeIndex> OutstandingRequests;
 
-
+	TArray<FJoinedOffsetAndPakIndex> OffsetAndPakIndexOfSavedBlocked;
 
 	struct FRequestToLower
 	{
@@ -959,7 +964,6 @@ class FPakPrecacher
 	FRequestToLower RequestsToLower[PAK_CACHE_MAX_REQUESTS];
 	TArray<IAsyncReadRequest*> RequestsToDelete;
 	int32 NotifyRecursion;
-	FAsyncFileCallBack CallbackFromLower;
 
 	uint32 Loads;
 	uint32 Frees;
@@ -985,6 +989,7 @@ public:
 			FPakPrecacher* LocalPakPrecacherSingleton = PakPrecacherSingleton;
 			if (LocalPakPrecacherSingleton && LocalPakPrecacherSingleton == FPlatformAtomics::InterlockedCompareExchangePointer((void**)&PakPrecacherSingleton, nullptr, LocalPakPrecacherSingleton))
 			{
+				LocalPakPrecacherSingleton->TrimCache(true);
 				double StartTime = FPlatformTime::Seconds();
 				while (!LocalPakPrecacherSingleton->IsProbablyIdle())
 				{
@@ -1023,34 +1028,10 @@ public:
 		check(LowerLevel && FPlatformProcess::SupportsMultithreading());
 		GPakCache_MaxRequestsToLowerLevel = FMath::Max(FMath::Min(FPlatformMisc::NumberOfIOWorkerThreadsToSpawn(), GPakCache_MaxRequestsToLowerLevel), 1);
 		check(GPakCache_MaxRequestsToLowerLevel <= PAK_CACHE_MAX_REQUESTS);
-		CallbackFromLower = 
-			[this](bool bWasCanceled, IAsyncReadRequest* Request)
-			{
-				{
-					FScopeLock Lock(&CachedFilesScopeLock);
-					for (int32 Index = 0; Index < PAK_CACHE_MAX_REQUESTS; Index++) // we loop over them all in case GPakCache_MaxRequestsToLowerLevel is changing
-					{
-						if (RequestsToLower[Index].RequestHandle == Request)
-						{
-							RequestsToLower[Index].Memory = Request->GetReadResults();
-							break;
-						}
-					}
-				}
-
-				if (bSigned)
-				{
-					StartSignatureCheck(bWasCanceled, Request);
-				}
-				else
-				{
-					NewRequestsToLowerComplete(bWasCanceled, Request);
-				}
-			};
 	}
 
-	void StartSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Request);
-	void DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Request);
+	void StartSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Request, int32 IndexToFill);
+	void DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Request, int32 IndexToFill);
 
 	IPlatformFile* GetLowerLevelHandle()
 	{
@@ -1094,7 +1075,7 @@ public:
 				delete Reader;
 
 				// Check that we have the correct match between signature and pre-cache granularity
-				int64 NumPakChunks = Align(PakFileSize, PAK_CACHE_GRANULARITY) / PAK_CACHE_GRANULARITY;
+				int64 NumPakChunks = Align(PakFileSize, FPakInfo::MaxChunkDataSize) / FPakInfo::MaxChunkDataSize;
 				ensure(NumPakChunks == Pak.ChunkHashes.Num());
 
 				// Decrypt signature hash
@@ -1360,6 +1341,45 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 		verify(OutstandingRequests.Remove(Id) == 1);
 		InRequestAllocator.Free(Index);
 	}
+	void TrimCache(bool bDiscardAll = false)
+	{
+		// CachedFilesScopeLock is locked
+		int32 NumToKeep = bDiscardAll ? 0 : GPakCache_NumUnreferencedBlocksToCache;
+		int32 NumToRemove = FMath::Max<int32>(0, OffsetAndPakIndexOfSavedBlocked.Num() - NumToKeep);
+		if (NumToRemove)
+		{
+			for (int32 Index = 0; Index < NumToRemove; Index++)
+			{
+				FJoinedOffsetAndPakIndex OffsetAndPakIndex = OffsetAndPakIndexOfSavedBlocked[Index];
+				uint16 PakIndex = GetRequestPakIndex(OffsetAndPakIndex);
+				int64 Offset = GetRequestOffset(OffsetAndPakIndex);
+				FPakData& Pak = CachedPakData[PakIndex];
+				MaybeRemoveOverlappingNodesInIntervalTree<FCacheBlock>(
+					&Pak.CacheBlocks[(int32)EBlockStatus::Complete],
+					CacheBlockAllocator,
+					Offset,
+					Offset,
+					0,
+					Pak.MaxNode,
+					Pak.StartShift,
+					Pak.MaxShift,
+					[this](TIntervalTreeIndex BlockIndex) -> bool
+				{
+					FCacheBlock &Block = CacheBlockAllocator.Get(BlockIndex);
+					if (!Block.InRequestRefCount)
+					{
+						ClearBlock(Block);
+						return true;
+					}
+					return false;
+				}
+				);
+
+
+			}
+			OffsetAndPakIndexOfSavedBlocked.RemoveAt(0, NumToRemove, false);
+		}
+	}
 
 	void RemoveRequest(TIntervalTreeIndex Index)
 	{
@@ -1373,28 +1393,35 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 
 		if (RemoveFromIntervalTree<FPakInRequest>(&Pak.InRequests[Request.Priority][(int32)Request.Status], InRequestAllocator, Index, Pak.StartShift, Pak.MaxShift))
 		{
+
+			int64 OffsetOfLastByte = Offset + Size - 1;
 			MaybeRemoveOverlappingNodesInIntervalTree<FCacheBlock>(
 				&Pak.CacheBlocks[(int32)EBlockStatus::Complete],
 				CacheBlockAllocator,
 				Offset,
-				Offset + Size - 1,
+				OffsetOfLastByte,
 				0,
 				Pak.MaxNode,
 				Pak.StartShift,
 				Pak.MaxShift,
-				[this](TIntervalTreeIndex BlockIndex) -> bool
+				[this, OffsetOfLastByte](TIntervalTreeIndex BlockIndex) -> bool
 				{
 					FCacheBlock &Block = CacheBlockAllocator.Get(BlockIndex);
 					check(Block.InRequestRefCount);
 					if (!--Block.InRequestRefCount)
 					{
+						if (GPakCache_NumUnreferencedBlocksToCache && GetRequestOffset(Block.OffsetAndPakIndex) + Block.Size > OffsetOfLastByte) // last block
+						{
+							OffsetAndPakIndexOfSavedBlocked.Add(Block.OffsetAndPakIndex);
+							return false;
+						}
 						ClearBlock(Block);
 						return true;
 					}
 					return false;
 				}
 			);
-
+			TrimCache();
 			OverlappingNodesInIntervalTree<FCacheBlock>(
 				Pak.CacheBlocks[(int32)EBlockStatus::InFlight],
 				CacheBlockAllocator,
@@ -1785,6 +1812,45 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 	void StartBlockTask(FCacheBlock& Block)
 	{
 		// CachedFilesScopeLock is locked
+
+#define CHECK_REDUNDANT_READS (0)
+#if CHECK_REDUNDANT_READS
+		static struct FRedundantReadTracker
+		{
+			TMap<int64, double> LastReadTime;
+			int32 NumRedundant;
+			FRedundantReadTracker()
+				: NumRedundant(0)
+			{
+			}
+
+			void CheckBlock(int64 Offset, int64 Size)
+			{
+				double NowTime = FPlatformTime::Seconds();
+				int64 StartBlock = Offset / PAK_CACHE_GRANULARITY;
+				int64 LastBlock = (Offset + Size - 1) / PAK_CACHE_GRANULARITY;
+				for (int64 CurBlock = StartBlock; CurBlock <= LastBlock; CurBlock++)
+				{
+					double LastTime = LastReadTime.FindRef(CurBlock);
+					if (LastTime > 0.0 && NowTime - LastTime < 3.0)
+					{
+						NumRedundant++;
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Redundant read at block %d, %6.1fms ago       (%d total redundant blocks)\r\n"), int32(CurBlock), 1000.0f * float(NowTime - LastTime), NumRedundant);
+					}
+					LastReadTime.Add(CurBlock, NowTime);
+				}
+			}
+		} RedundantReadTracker;
+#else
+		static struct FRedundantReadTracker
+		{
+			FORCEINLINE void CheckBlock(int64 Offset, int64 Size)
+			{
+			}
+		} RedundantReadTracker;
+
+#endif
+
 		int32 IndexToFill = OpenTaskSlot();
 		if (IndexToFill < 0)
 		{
@@ -1801,7 +1867,21 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 		RequestsToLower[IndexToFill].Memory = nullptr;
 		check(&CacheBlockAllocator.Get(RequestsToLower[IndexToFill].BlockIndex) == &Block);
 
+		FAsyncFileCallBack CallbackFromLower =
+			[this, IndexToFill](bool bWasCanceled, IAsyncReadRequest* Request)
+		{
+			if (bSigned)
+			{
+				StartSignatureCheck(bWasCanceled, Request, IndexToFill);
+			}
+			else
+			{
+				NewRequestsToLowerComplete(bWasCanceled, Request, IndexToFill);
+			}
+		};
+
 		RequestsToLower[IndexToFill].RequestHandle = Pak.Handle->ReadRequest(GetRequestOffset(Block.OffsetAndPakIndex), Block.Size, Priority, &CallbackFromLower);
+		RedundantReadTracker.CheckBlock(GetRequestOffset(Block.OffsetAndPakIndex), Block.Size);
 		LastReadRequest = Block.OffsetAndPakIndex + Block.Size;
 		Loads++;
 		LoadSize += Block.Size;
@@ -1823,6 +1903,7 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 
 		if (Block.InRequestRefCount == 0 || bWasCanceled)
 		{
+			FMemory::Free(Memory);
 			ClearBlock(Block);
 		}
 		else
@@ -1841,10 +1922,11 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 
 #if 0
 				static int64 LastPrint = 0;
-				if (BlockMemoryHighWater / 1024 / 1024 != LastPrint)
+				if (BlockMemoryHighWater / 1024 / 1024 /16 != LastPrint)
 				{
-					LastPrint = BlockMemoryHighWater / 1024 / 1024;
-					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Precache HighWater %dMB\r\n"), int32(LastPrint));
+					LastPrint = BlockMemoryHighWater / 1024 / 1024 / 16;
+					//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Precache HighWater %dMB\r\n"), int32(LastPrint));
+					UE_LOG(LogPakFile, Log, TEXT("Precache HighWater %dMB\r\n"), int32(LastPrint * 16));
 				}
 #endif
 			}
@@ -1990,27 +2072,22 @@ private: // below here we assume CachedFilesScopeLock until we get to the next s
 
 public:
 
-	void NewRequestsToLowerComplete(bool bWasCanceled, IAsyncReadRequest* Request)
+	void NewRequestsToLowerComplete(bool bWasCanceled, IAsyncReadRequest* Request, int32 Index)
 	{
 		FScopeLock Lock(&CachedFilesScopeLock);
+		RequestsToLower[Index].RequestHandle = Request;
 		ClearOldBlockTasks();
 		NotifyRecursion++;
-		for (int32 Index = 0; Index < PAK_CACHE_MAX_REQUESTS; Index++) // we loop over them all in case GPakCache_MaxRequestsToLowerLevel is changing
+		if (!RequestsToLower[Index].Memory) // might have already been filled in by the signature check
 		{
-			if (RequestsToLower[Index].RequestHandle == Request)
-			{
-				CompleteRequest(bWasCanceled, RequestsToLower[Index].Memory, RequestsToLower[Index].BlockIndex);
-				RequestsToLower[Index].RequestHandle = nullptr;
-				RequestsToDelete.Add(Request);
-				RequestsToLower[Index].BlockIndex = IntervalTreeInvalidIndex;
-				StartNextRequest();
-				NotifyRecursion--;
-				return;
-			}
+			RequestsToLower[Index].Memory = Request->GetReadResults();
 		}
+		CompleteRequest(bWasCanceled, RequestsToLower[Index].Memory, RequestsToLower[Index].BlockIndex);
+		RequestsToLower[Index].RequestHandle = nullptr;
+		RequestsToDelete.Add(Request);
+		RequestsToLower[Index].BlockIndex = IntervalTreeInvalidIndex;
 		StartNextRequest();
 		NotifyRecursion--;
-		check(0); // not found?
 	}
 
 	bool QueueRequest(IPakRequestor* Owner, FName File, int64 PakFileSize, int64 Offset, int64 Size, EAsyncIOPriority Priority)
@@ -2101,6 +2178,7 @@ public:
 			UE_LOG(LogPakFile, Log, TEXT("Pak file %s was never used, so nothing to unmount"), *PakFile.ToString());
 			return; // never used for anything, nothing to check or clean up
 		}
+		TrimCache(true);
 		uint16 PakIndex = *PakIndexPtr;
 		FPakData& Pak = CachedPakData[PakIndex];
 		int64 Offset = MakeJoinedRequest(PakIndex, 0);
@@ -2548,6 +2626,7 @@ struct FCachedAsyncBlock
 	int32 ProcessedSize;
 	int32 RefCount;
 	bool bInFlight;
+	bool bCPUWorkIsComplete;
 	FCachedAsyncBlock()
 		: RawRequest(0)
 		, Raw(nullptr)
@@ -2556,6 +2635,7 @@ struct FCachedAsyncBlock
 		, ProcessedSize(0)
 		, RefCount(0)
 		, bInFlight(false)
+		, bCPUWorkIsComplete(false)
 	{
 	}
 };
@@ -2702,11 +2782,13 @@ class FAsyncIOSignatureCheckTask
 {
 	bool bWasCanceled;
 	IAsyncReadRequest* Request;
+	int32 IndexToFill;
 
 public:
-	FORCEINLINE FAsyncIOSignatureCheckTask(bool bInWasCanceled, IAsyncReadRequest* InRequest)
+	FORCEINLINE FAsyncIOSignatureCheckTask(bool bInWasCanceled, IAsyncReadRequest* InRequest, int32 InIndexToFill)
 		: bWasCanceled(bInWasCanceled)
 		, Request(InRequest)
+		, IndexToFill(InIndexToFill)
 	{
 	}
 
@@ -2724,71 +2806,63 @@ public:
 	}
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		FPakPrecacher::Get().DoSignatureCheck(bWasCanceled, Request);
+		FPakPrecacher::Get().DoSignatureCheck(bWasCanceled, Request, IndexToFill);
 	}
 };
 
-void FPakPrecacher::StartSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Request)
+void FPakPrecacher::StartSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Request, int32 Index)
 {
-	FScopeLock Lock(&CachedFilesScopeLock);
-	for (int32 Index = 0; Index < PAK_CACHE_MAX_REQUESTS; Index++) // we loop over them all in case GPakCache_MaxRequestsToLowerLevel is changing
-	{
-		if (RequestsToLower[Index].RequestHandle == Request)
-		{
-			TGraphTask<FAsyncIOSignatureCheckTask>::CreateTask().ConstructAndDispatchWhenReady(bWasCanceled, Request);
-			return;
-		}
-	}
-	check(0); // not found?
+	TGraphTask<FAsyncIOSignatureCheckTask>::CreateTask().ConstructAndDispatchWhenReady(bWasCanceled, Request, Index);
 }
 
-void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Request)
+void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Request, int32 Index)
 {
 	int64 SignatureIndex = -1;
 	int64 NumSignaturesToCheck = 0;
 	const uint8* Data = nullptr;
 	int64 RequestSize = 0;
 	int64 RequestOffset = 0;
-	FPakData* PakData = nullptr;
+	uint16 PakIndex;
 
 	{
 		// Try and keep lock for as short a time as possible. Find our request and copy out the data we need
 		FScopeLock Lock(&CachedFilesScopeLock);
-		for (int32 Index = 0; Index < PAK_CACHE_MAX_REQUESTS; Index++) // we loop over them all in case GPakCache_MaxRequestsToLowerLevel is changing
-		{
-			FRequestToLower& RequestToLower = RequestsToLower[Index];
-			if (RequestToLower.RequestHandle == Request)
-			{
-				NumSignaturesToCheck = Align(RequestToLower.RequestSize, PAK_CACHE_GRANULARITY) / PAK_CACHE_GRANULARITY;
-				check(NumSignaturesToCheck >= 1);
+		FRequestToLower& RequestToLower = RequestsToLower[Index];
+		RequestToLower.RequestHandle = Request;
+		RequestToLower.Memory = Request->GetReadResults();
 
-				FCacheBlock& Block = CacheBlockAllocator.Get(RequestToLower.BlockIndex);
-				RequestOffset = GetRequestOffset(Block.OffsetAndPakIndex);
-				check((RequestOffset % PAK_CACHE_GRANULARITY) == 0);
-				RequestSize = RequestToLower.RequestSize;
-				int64 PakIndex = GetRequestPakIndex(Block.OffsetAndPakIndex);
-				PakData = &CachedPakData[PakIndex];
-				Data = RequestToLower.Memory;
-				SignatureIndex = RequestOffset / PAK_CACHE_GRANULARITY;
-				break;
-			}
-		}
+		NumSignaturesToCheck = Align(RequestToLower.RequestSize, FPakInfo::MaxChunkDataSize) / FPakInfo::MaxChunkDataSize;
+		check(NumSignaturesToCheck >= 1);
+
+		FCacheBlock& Block = CacheBlockAllocator.Get(RequestToLower.BlockIndex);
+		RequestOffset = GetRequestOffset(Block.OffsetAndPakIndex);
+		check((RequestOffset % FPakInfo::MaxChunkDataSize) == 0);
+		RequestSize = RequestToLower.RequestSize;
+		PakIndex = GetRequestPakIndex(Block.OffsetAndPakIndex);
+		Data = RequestToLower.Memory;
+		SignatureIndex = RequestOffset / FPakInfo::MaxChunkDataSize;
 	}
 
 	check(Data);
 	check(NumSignaturesToCheck > 0);
 	check(RequestSize > 0);
 	check(RequestOffset >= 0);
-	check(PakData != nullptr);
 
 	// Hash the contents of the incoming buffer and check that it matches what we expected
 	for (int64 SignedChunkIndex = 0; SignedChunkIndex < NumSignaturesToCheck; ++SignedChunkIndex, ++SignatureIndex)
 	{
-		int64 Size = FMath::Min(RequestSize, (int64)PAK_CACHE_GRANULARITY);
+		int64 Size = FMath::Min(RequestSize, (int64)FPakInfo::MaxChunkDataSize);
 
 		{
 			SCOPE_SECONDS_ACCUMULATOR(STAT_PakCache_SigningChunkHashTime);
-			bool bChunkHashesMatch = ComputePakChunkHash(Data, Size) == PakData->ChunkHashes[SignatureIndex];
+
+			TPakChunkHash ThisHash = ComputePakChunkHash(Data, Size);
+			bool bChunkHashesMatch;
+			{
+				FScopeLock Lock(&CachedFilesScopeLock);
+				FPakData* PakData = &CachedPakData[PakIndex];
+				bChunkHashesMatch = ThisHash == PakData->ChunkHashes[SignatureIndex];
+			}
 			ensure(bChunkHashesMatch);
 			if (!ensure(bChunkHashesMatch))
 			{
@@ -2799,12 +2873,12 @@ void FPakPrecacher::DoSignatureCheck(bool bWasCanceled, IAsyncReadRequest* Reque
 
 		INC_MEMORY_STAT_BY(STAT_PakCache_SigningChunkHashSize, Size);
 
-		RequestOffset += PAK_CACHE_GRANULARITY;
-		Data += PAK_CACHE_GRANULARITY;
-		RequestSize -= PAK_CACHE_GRANULARITY;
+		RequestOffset += Size;
+		Data += Size;
+		RequestSize -= Size;
 	}
 
-	NewRequestsToLowerComplete(bWasCanceled, Request);
+	NewRequestsToLowerComplete(bWasCanceled, Request, Index);
 }
 
 class FPakAsyncReadFileHandle final : public IAsyncReadFileHandle
@@ -2853,6 +2927,11 @@ public:
 	{
 		check(!LiveRequests.Num()); // must delete all requests before you delete the handle
 		check(!NumLiveRawRequests); // must delete all requests before you delete the handle
+		for (FCachedAsyncBlock& Block : Blocks)
+		{
+			check(Block.RefCount == 0);
+			ClearBlock(Block, true);
+		}
 	}
 
 	virtual IAsyncReadRequest* SizeRequest(FAsyncFileCallBack* CompleteCallback = nullptr) override
@@ -2923,7 +3002,7 @@ public:
 	{
 		FCachedAsyncBlock& Block = Blocks[BlockIndex];
 		Block.bInFlight = true;
-		check(!Block.RawRequest && !Block.Processed && !Block.Raw && !Block.CPUWorkGraphEvent.GetReference() && !Block.ProcessedSize && !Block.RawSize);
+		check(!Block.RawRequest && !Block.Processed && !Block.Raw && !Block.CPUWorkGraphEvent.GetReference() && !Block.ProcessedSize && !Block.RawSize && !Block.bCPUWorkIsComplete);
 		Block.RawSize = FileEntry->CompressionBlocks[BlockIndex].CompressedEnd - FileEntry->CompressionBlocks[BlockIndex].CompressedStart;
 		if (FileEntry->bEncrypted)
 		{
@@ -2960,7 +3039,7 @@ public:
 					Block.ProcessedSize = FileEntry->CompressionBlockSize; // last block was a full block
 				}
 			}
-			check(Block.ProcessedSize);
+			check(Block.ProcessedSize && !Block.bCPUWorkIsComplete);
 			Block.CPUWorkGraphEvent = TGraphTask<FAsyncIOCPUWorkTask>::CreateTask().ConstructAndDispatchWhenReady(*this, BlockIndex);
 		}
 	}
@@ -3016,16 +3095,17 @@ public:
 				Block.CPUWorkGraphEvent = nullptr;
 				Block.bInFlight = false;
 			}
+			Block.bCPUWorkIsComplete = true;
 		}
 	}
-	void ClearBlock(FCachedAsyncBlock& Block)
+	void ClearBlock(FCachedAsyncBlock& Block, bool bForDestructorShouldAlreadyBeClear = false)
 	{
 		check(!Block.RawRequest);
 		Block.RawRequest = nullptr;
-		check(!Block.CPUWorkGraphEvent.GetReference() || Block.CPUWorkGraphEvent->IsComplete());
 		Block.CPUWorkGraphEvent = nullptr;
 		if (Block.Raw)
 		{
+			check(!bForDestructorShouldAlreadyBeClear);
 			// this was a cancel, clean it up now
 			FMemory::Free(Block.Raw);
 			Block.Raw = nullptr;
@@ -3035,6 +3115,7 @@ public:
 		Block.RawSize = 0;
 		if (Block.Processed)
 		{
+			check(bForDestructorShouldAlreadyBeClear == false);
 			FMemory::Free(Block.Processed);
 			Block.Processed = nullptr;
 			check(Block.ProcessedSize);
@@ -3042,6 +3123,7 @@ public:
 		}
 		Block.ProcessedSize = 0;
 		Block.bInFlight = false;
+		Block.bCPUWorkIsComplete = false;
 	}
 
 	void RemoveRequest(FPakProcessedReadRequest* Req, int64 Offset, int64 BytesToRead)
@@ -3067,7 +3149,7 @@ public:
 					Block.RawRequest = nullptr;
 					NumLiveRawRequests--;
 				}
-				if (!Block.CPUWorkGraphEvent.GetReference() || Block.CPUWorkGraphEvent->IsComplete())
+				if (Block.bCPUWorkIsComplete)
 				{
 					ClearBlock(Block);
 				}
@@ -3185,7 +3267,7 @@ void FAsyncIOCPUWorkTask::DoTask(ENamedThreads::Type CurrentThread, const FGraph
 
 IAsyncReadFileHandle* FPakPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 {
-	check(GConfig && GNewAsyncIO);
+	check(GConfig);
 #if USE_PAK_PRECACHE
 	if (FPlatformProcess::SupportsMultithreading() && GPakCache_Enable > 0)
 	{
@@ -3530,6 +3612,7 @@ void FPakFile::Initialize(FArchive* Reader)
 		Info.Serialize(*Reader);
 		UE_CLOG(Info.Magic != FPakInfo::PakFile_Magic, LogPakFile, Fatal, TEXT("Trailing magic number (%ud) in '%s' is different than the expected one. Verify your installation."), Info.Magic, *PakFilename);
 		UE_CLOG(!(Info.Version >= FPakInfo::PakFile_Version_Initial && Info.Version <= FPakInfo::PakFile_Version_Latest), LogPakFile, Fatal, TEXT("Invalid pak file version (%d) in '%s'. Verify your installation."), Info.Version, *PakFilename);
+		UE_CLOG((Info.bEncryptedIndex == 1) && (FPakPlatformFile::GetPakEncryptionKey() == nullptr), LogPakFile, Fatal, TEXT("Index of pak file '%s' is encrypted, but this executable doesn't have any valid decryption keys"), *PakFilename);
 
 		LoadIndex(Reader);
 		// LoadIndex should crash in case of an error, so just assume everything is ok if we got here.
@@ -3556,6 +3639,12 @@ void FPakFile::LoadIndex(FArchive* Reader)
 		IndexData.AddUninitialized(Info.IndexSize);
 		Reader->Serialize(IndexData.GetData(), Info.IndexSize);
 		FMemoryReader IndexReader(IndexData);
+
+		// Decrypt if necessary
+		if (Info.bEncryptedIndex)
+		{
+			DecryptData(IndexData.GetData(), Info.IndexSize);
+		}
 
 		// Check SHA1 value.
 		uint8 IndexHash[20];
@@ -3837,21 +3926,8 @@ FPakPlatformFile::~FPakPlatformFile()
 	FCoreDelegates::OnUnmountPak.Unbind();
 
 #if USE_PAK_PRECACHE
-	if (GNewAsyncIO)
-	{
-		FPakPrecacher::Shutdown();
-	}
+	FPakPrecacher::Shutdown();
 #endif
-	if (!GNewAsyncIO)
-	{
-		// We need to flush async IO... if it hasn't been shut down already.
-		if (FIOSystem::HasShutdown() == false)
-		{
-			FIOSystem& IOSystem = FIOSystem::Get();
-			IOSystem.BlockTillAllRequestsFinishedAndFlushHandles();
-		}
-	}
-
 	{
 		FScopeLock ScopedLock(&PakListCritical);
 		for (int32 PakFileIndex = 0; PakFileIndex < PakFiles.Num(); PakFileIndex++)
@@ -4057,7 +4133,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 void FPakPlatformFile::InitializeNewAsyncIO()
 {
 #if USE_PAK_PRECACHE 
-	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading() && GNewAsyncIO)
+	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading() &&  !FParse::Param(FCommandLine::Get(), TEXT("FileOpenLog")))
 	{
 		FEncryptionKey DecryptionKey;
 		FString PakSigningKeyExponent, PakSigningKeyModulus;
@@ -4069,6 +4145,7 @@ void FPakPlatformFile::InitializeNewAsyncIO()
 	}
 	else
 	{
+		UE_CLOG(FParse::Param(FCommandLine::Get(), TEXT("FileOpenLog")), LogPakFile, Display, TEXT("Disabled pak precacher to get an accurate load order. This should only be used to collect gameopenorder.log, as it is quite slow."));
 		GPakCache_Enable = 0;
 	}
 #endif

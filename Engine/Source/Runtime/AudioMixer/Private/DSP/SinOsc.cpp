@@ -63,7 +63,7 @@ namespace Audio
 		// Set up initial conditions based on current state of the oscillator to avoid pops when dynamically changing frequencies
 
 		// Get previous outputs phase
-		const double OmegaTPrev = FMath::Asin(Yn_1);
+		const float OmegaTPrev = FMath::Asin(Yn_1);
 
 		// Get N by dividing prev phase over new current phase
 		float N = OmegaTPrev / OmegaT;
@@ -89,7 +89,7 @@ namespace Audio
 		return FrequencyHz; 
 	}
 
-	float FSineOsc::operator()()
+	float FSineOsc::ProcessAudio()
 	{
 		// using direct-form difference equation
 		// y(n) = -b1 * y(n - 1) - b2 * y(n - 2)

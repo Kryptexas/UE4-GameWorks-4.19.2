@@ -2,34 +2,92 @@
 # Build LowLevelDynamics common
 #
 
-ADD_LIBRARY(LowLevelDynamics STATIC 
-	${LL_SOURCE_DIR}/DyArticulation.cpp
-	${LL_SOURCE_DIR}/DyArticulationContactPrep.cpp
-	${LL_SOURCE_DIR}/DyArticulationContactPrepPF.cpp
-	${LL_SOURCE_DIR}/DyArticulationHelper.cpp
-	${LL_SOURCE_DIR}/DyArticulationScalar.cpp
-	${LL_SOURCE_DIR}/DyArticulationSIMD.cpp
-	${LL_SOURCE_DIR}/DyConstraintPartition.cpp
-	${LL_SOURCE_DIR}/DyConstraintSetup.cpp
-	${LL_SOURCE_DIR}/DyConstraintSetupBlock.cpp
-	${LL_SOURCE_DIR}/DyContactPrep.cpp
-	${LL_SOURCE_DIR}/DyContactPrep4.cpp
-	${LL_SOURCE_DIR}/DyContactPrep4PF.cpp
-	${LL_SOURCE_DIR}/DyContactPrepPF.cpp
-	${LL_SOURCE_DIR}/DyDynamics.cpp
-	${LL_SOURCE_DIR}/DyFrictionCorrelation.cpp
-	${LL_SOURCE_DIR}/DyRigidBodyToSolverBody.cpp
-	${LL_SOURCE_DIR}/DySolverConstraints.cpp
-	${LL_SOURCE_DIR}/DySolverConstraintsBlock.cpp
-	${LL_SOURCE_DIR}/DySolverControl.cpp
-	${LL_SOURCE_DIR}/DySolverControlPF.cpp
-	${LL_SOURCE_DIR}/DySolverPFConstraints.cpp
-	${LL_SOURCE_DIR}/DySolverPFConstraintsBlock.cpp
-	${LL_SOURCE_DIR}/DyThreadContext.cpp
-	${LL_SOURCE_DIR}/DyThresholdTable.cpp
+SET(LLDYNAMICS_BASE_DIR ${PHYSX_ROOT_DIR}/Source/LowLevelDynamics)
+SET(LLDYNAMICS_INCLUDES		
+	${LLDYNAMICS_BASE_DIR}/include/DyArticulation.h
+	${LLDYNAMICS_BASE_DIR}/include/DyConstraint.h
+	${LLDYNAMICS_BASE_DIR}/include/DyConstraintWriteBack.h
+	${LLDYNAMICS_BASE_DIR}/include/DyContext.h
+	${LLDYNAMICS_BASE_DIR}/include/DyGpuAPI.h
+	${LLDYNAMICS_BASE_DIR}/include/DySleepingConfigulation.h
+	${LLDYNAMICS_BASE_DIR}/include/DyThresholdTable.h
 )
+SOURCE_GROUP("Dynamics Includes" FILES ${LLDYNAMICS_INCLUDES})
 
-# Target specific compile options
+SET(LLDYNAMICS_SOURCE		
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulation.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationContactPrep.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationContactPrepPF.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationHelper.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationScalar.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationSIMD.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyConstraintPartition.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyConstraintSetup.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyConstraintSetupBlock.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyContactPrep.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyContactPrep4.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyContactPrep4PF.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyContactPrepPF.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyDynamics.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyFrictionCorrelation.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyRigidBodyToSolverBody.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DySolverConstraints.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DySolverConstraintsBlock.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DySolverControl.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DySolverControlPF.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DySolverPFConstraints.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DySolverPFConstraintsBlock.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyThreadContext.cpp
+	${LLDYNAMICS_BASE_DIR}/src/DyThresholdTable.cpp
+)
+SOURCE_GROUP("Dynamics Source" FILES ${LLDYNAMICS_SOURCE})
+
+SET(LLDYNAMICS_INTERNAL_INCLUDES			
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationContactPrep.h
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationFnsDebug.h
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationFnsScalar.h
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationFnsSimd.h
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationHelper.h
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationPImpl.h
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationReference.h
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationScalar.h
+	${LLDYNAMICS_BASE_DIR}/src/DyArticulationUtils.h
+	${LLDYNAMICS_BASE_DIR}/src/DyBodyCoreIntegrator.h
+	${LLDYNAMICS_BASE_DIR}/src/DyConstraintPartition.h
+	${LLDYNAMICS_BASE_DIR}/src/DyConstraintPrep.h
+	${LLDYNAMICS_BASE_DIR}/src/DyContactPrep.h
+	${LLDYNAMICS_BASE_DIR}/src/DyContactPrepShared.h
+	${LLDYNAMICS_BASE_DIR}/src/DyContactReduction.h
+	${LLDYNAMICS_BASE_DIR}/src/DyCorrelationBuffer.h
+	${LLDYNAMICS_BASE_DIR}/src/DyDynamics.h
+	${LLDYNAMICS_BASE_DIR}/src/DyFrictionPatch.h
+	${LLDYNAMICS_BASE_DIR}/src/DyFrictionPatchStreamPair.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverBody.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverConstraint1D.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverConstraint1D4.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverConstraintDesc.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverConstraintExtShared.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverConstraintsShared.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverConstraintTypes.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverContact.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverContact4.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverContactPF.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverContactPF4.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverContext.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverControl.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverControlPF.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverCore.h
+	${LLDYNAMICS_BASE_DIR}/src/DySolverExt.h
+	${LLDYNAMICS_BASE_DIR}/src/DySpatial.h
+	${LLDYNAMICS_BASE_DIR}/src/DyThreadContext.h
+)
+SOURCE_GROUP("Dynamics Internal Includes" FILES ${LLDYNAMICS_INTERNAL_INCLUDES})
+
+ADD_LIBRARY(LowLevelDynamics ${LOWLEVELDYNAMICS_LIBTYPE}
+	${LLDYNAMICS_INCLUDES}
+	${LLDYNAMICS_SOURCE}
+	${LLDYNAMICS_INTERNAL_INCLUDES}
+)
 
 TARGET_INCLUDE_DIRECTORIES(LowLevelDynamics 
 	PRIVATE ${LOWLEVELDYNAMICS_PLATFORM_INCLUDES}
@@ -69,9 +127,11 @@ TARGET_COMPILE_DEFINITIONS(LowLevelDynamics
 	PRIVATE ${LOWLEVELDYNAMICS_COMPILE_DEFS}
 )
 
-SET_TARGET_PROPERTIES(LowLevelDynamics PROPERTIES 
-	COMPILE_PDB_NAME_DEBUG "LowLevelDynamics${CMAKE_DEBUG_POSTFIX}"
-	COMPILE_PDB_NAME_CHECKED "LowLevelDynamics${CMAKE_CHECKED_POSTFIX}"
-	COMPILE_PDB_NAME_PROFILE "LowLevelDynamics${CMAKE_PROFILE_POSTFIX}"
-	COMPILE_PDB_NAME_RELEASE "LowLevelDynamics${CMAKE_RELEASE_POSTFIX}"
-)
+IF(NOT ${LOWLEVELDYNAMICS_LIBTYPE} STREQUAL "OBJECT")
+	SET_TARGET_PROPERTIES(LowLevelDynamics PROPERTIES 
+		COMPILE_PDB_NAME_DEBUG "LowLevelDynamics${CMAKE_DEBUG_POSTFIX}"
+		COMPILE_PDB_NAME_CHECKED "LowLevelDynamics${CMAKE_CHECKED_POSTFIX}"
+		COMPILE_PDB_NAME_PROFILE "LowLevelDynamics${CMAKE_PROFILE_POSTFIX}"
+		COMPILE_PDB_NAME_RELEASE "LowLevelDynamics${CMAKE_RELEASE_POSTFIX}"
+	)
+ENDIF()

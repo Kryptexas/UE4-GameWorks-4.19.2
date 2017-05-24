@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LogVisualizer : ModuleRules
 {
-	public LogVisualizer(TargetInfo Target)
+	public LogVisualizer(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePathModuleNames.AddRange(
 			new string[] {

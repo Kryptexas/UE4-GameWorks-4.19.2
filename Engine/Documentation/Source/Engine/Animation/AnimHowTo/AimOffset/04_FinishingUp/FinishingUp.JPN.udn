@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3235253
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:4 - 仕上げ
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Character ブループリントを更新し、コントローラーの回転を処理する方法を変更したり、テスト前に簡単な問題に対処します。 
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 tags:Aim Offset
 
 [VAR:Steps]

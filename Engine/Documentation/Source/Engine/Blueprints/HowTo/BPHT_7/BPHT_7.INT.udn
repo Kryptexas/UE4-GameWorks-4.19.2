@@ -3,6 +3,7 @@ Title:7. On Your Own!
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:In this final step, examples are given how you can take this project to the next level as well as links to additional documentation are provided. 
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

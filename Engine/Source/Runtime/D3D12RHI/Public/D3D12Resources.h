@@ -549,6 +549,10 @@ extern void UpdateBufferStats(FD3D12ResourceLocation* ResourceLocation, bool bAl
 class FD3D12UniformBuffer : public FRHIUniformBuffer, public FD3D12DeviceChild, public FD3D12LinkedAdapterObject<FD3D12UniformBuffer>
 {
 public:
+#if USE_STATIC_ROOT_SIGNATURE
+	class FD3D12ConstantBufferView* View;
+#endif
+
 	/** The D3D12 constant buffer resource */
 	FD3D12ResourceLocation ResourceLocation;
 
@@ -560,6 +564,9 @@ public:
 		: ResourceLocation(InParent)
 		, FRHIUniformBuffer(InLayout)
 		, FD3D12DeviceChild(InParent)
+#if USE_STATIC_ROOT_SIGNATURE
+		, View(nullptr)
+#endif
 	{
 	}
 

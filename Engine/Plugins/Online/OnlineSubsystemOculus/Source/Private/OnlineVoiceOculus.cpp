@@ -118,6 +118,39 @@ bool FOnlineVoiceOculus::IsRemotePlayerTalking(const FUniqueNetId& UniqueId)
 	return (RemoteTalker) ? RemoteTalker->bIsTalking : false;
 }
 
+bool FOnlineVoiceOculus::IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const
+{
+	auto RemoteTalkerId = static_cast<const FUniqueNetIdOculus&>(UniqueId);
+	return MutedRemoteTalkers.Contains(RemoteTalkerId);
+}
+bool FOnlineVoiceOculus::MuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide)
+{
+	if (!bIsSystemWide)
+	{
+		UE_LOG(LogVoice, Error, TEXT("Only System Wide muting of another player is currently supported"));
+		return false;
+	}
+
+	auto RemoteTalkerId = static_cast<const FUniqueNetIdOculus&>(PlayerId);
+	MutedRemoteTalkers.Add(RemoteTalkerId);
+
+	// The actual muting will happen on ProcessRemoteVoicePackets
+
+	return true;
+}
+bool FOnlineVoiceOculus::UnmuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide)
+{
+	if (!bIsSystemWide)
+	{
+		UE_LOG(LogVoice, Error, TEXT("Only System Wide muting of another player is currently supported"));
+		return false;
+	}
+
+	auto RemoteTalkerId = static_cast<const FUniqueNetIdOculus&>(PlayerId);
+	MutedRemoteTalkers.Remove(RemoteTalkerId);
+	return true;
+}
+
 void FOnlineVoiceOculus::Tick(float DeltaTime)
 {
 	ProcessRemoteVoicePackets();
@@ -137,6 +170,26 @@ void FOnlineVoiceOculus::ProcessRemoteVoicePackets()
 		DecompressedVoiceBuffer.Empty(BufferSize);
 		DecompressedVoiceBuffer.AddUninitialized(BufferSize);
 		auto ElementsWritten = ovr_Voip_GetPCM(RemoteTalkerId.GetID(), DecompressedVoiceBuffer.GetData(), BufferSize);
+
+		if (MutedRemoteTalkers.Contains(RemoteTalkerId))
+		{
+			auto RemoteData = RemoteTalkerBuffers.Find(RemoteTalkerId);
+			// Throw away the whole packet and dump the whole talker
+			if (RemoteData && RemoteData->AudioComponent)
+			{
+				RemoteData->AudioComponent->Stop();
+			}
+
+			if (RemoteTalker.bIsTalking)
+			{
+				// Mark this remote talker as no longer talking
+				RemoteTalker.bIsTalking = false;
+				TriggerOnPlayerTalkingStateChangedDelegates(RemoteTalker.TalkerId.ToSharedRef(), false);
+			}
+
+			return;
+		}
+
 		if (ElementsWritten > 0)
 		{
 			// Mark this remote talker as talking
@@ -213,15 +266,19 @@ FString FOnlineVoiceOculus::GetVoiceDebugState() const
 
 	Output += FString::Printf(TEXT("Ring Buffer Max Size: %d\n"), ovr_Voip_GetOutputBufferMaxSize());
 
+	Output += (bIsLocalPlayerMuted) ? TEXT("Local Player Muted:\n") : TEXT("Local Player Unmuted:\n");
+
 	Output += TEXT("\nRemote Talkers:\n");
 	
 	for (auto const &RemoteTalker : RemoteTalkers)
 	{
 		auto RemoteTalkerId = (RemoteTalker.TalkerId.IsValid()) ? static_cast<const FUniqueNetIdOculus>(*RemoteTalker.TalkerId) : FUniqueNetIdOculus();
+		auto bIsRemoteTalkerMuted = (RemoteTalker.TalkerId.IsValid()) ? IsMuted(0, *RemoteTalker.TalkerId) : false;
 		Output += FString::Printf(
-			TEXT("UserId: %s:\nIsTalking: %d\nPCM Size: %d\n\n"), 
+			TEXT("UserId: %s:\nIsTalking: %d\nIsMuted: %d\nPCM Size: %d\n\n"), 
 			*RemoteTalker.TalkerId->ToString(), 
 			RemoteTalker.bIsTalking, 
+			bIsRemoteTalkerMuted,
 			ovr_Voip_GetPCMSize(RemoteTalkerId.GetID())
 		);
 	}

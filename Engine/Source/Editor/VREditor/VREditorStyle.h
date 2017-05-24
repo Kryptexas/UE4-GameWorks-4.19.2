@@ -22,7 +22,14 @@ public:
 
 	static FName GetStyleSetName();
 
-	
+	static FName GetSecondaryStyleSetName();
+
+	static FName GetNumpadStyleSetName();
+
+	static const FSlateBrush* GetBrush(FName PropertyName, const ANSICHAR* Specifier = NULL)
+	{
+		return VREditorStyleInstance->GetBrush(PropertyName, Specifier);
+	}
 
 private:
 

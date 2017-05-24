@@ -1,10 +1,12 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3244370
+Availability:Public
 Title:ブループリントの検索
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:ブループリント全体のインデックス化から詳細検索シンタックスまで、ブループリント検索を最大限活用する
 version:4.11
 parent:Engine/Blueprints/Workflow
 order:2
+tags:Blueprints
 
 
 ## ブループリントの検索
@@ -39,16 +41,16 @@ order:2
  これらをネスティングおよび結合することで、非常に特殊なニーズに対して詳細なクエリを実行できます。フィルタの中には、他のフィルタ内でしか使えないものもありますが、フィルタはすべて開始ポイントとして使うことができます。 
  以下は、完全には網羅していませんが、検索可能なタグと使用するデータの種類の一覧です。すべてのタグはフィルタを使わずに検索することができます。
  
-タグを使わずに検索をする際に混乱しないように、タグを使用しないと検索できないアイテムもあります。下表では、これらのアイテムには (Explicit) が付いています。現在、フィルタはユーザーによって追加されたメンバ変数に制限されています。
+タグを使わない検索の際に混乱しないように、タグを使用しないと検索できないアイテムもあります。下表では、これらのアイテムには (Explicit) が付いています。現在、フィルタはユーザーによって追加されたメンバ変数に制限されています。
 
 例えば、`Nodes(Name=Coin)` という検索文を使うと、名前に「coin」が含まれるブループリント内のすべてのノードが検索されます。
 
 [REGION:plainlist]
 | フィルタ対象 | 検索可能タグ | サブフィルタ |
 | -------- | --------------| ------------|
-| ブループリント | [INCLUDE:#blueprinttags] | [INCLUDE:#blueprintsubfilters] |
+| Blueprint | [INCLUDE:#blueprinttags] | [INCLUDE:#blueprintsubfilters] |
 | [INCLUDE:#functionfilter] | [INCLUDE:#functiontags] | [INCLUDE:#functionsubfilters]|
-| ノード | [INCLUDE:#nodetags] | ピン |
+| Nodes | [INCLUDE:#nodetags] | Pins |
 | [INCLUDE:#pinfilter] | [INCLUDE:#pintags] | |
 [/REGION]
 
@@ -61,21 +63,21 @@ order:2
 [/EXCERPT]
 
 [EXCERPT:BlueprintSubFilters]
-* グラフ
-* 関数 
-* マクロ 
-* イベントグラフ  
-* ノード 
-* ピン
-* 変数 / プロパティ
-* コンポーネント
+* Graphs
+* Functions 
+* Macros 
+* EventGraphs  
+* Nodes 
+* Pins
+* Variables/Properties
+* Components
 [/EXCERPT]
 
 [EXCERPT:FunctionFilter]
-* グラフ
-* 関数 
-* マクロ 
-* イベントグラフ  
+* Graphs
+* Functions 
+* Macros 
+* EventGraphs  
 [/EXCERPT]
 
 [EXCERPT:FunctionTags]
@@ -84,9 +86,9 @@ order:2
 [/EXCERPT]
 
 [EXCERPT:FunctionSubFilters]
-* ノード 
-* ピン
-* 変数 / プロパティv (ローカル変数)
+* Nodes 
+* Pins
+* Variables/Properties (ローカル変数の場合)
 [/EXCERPT]
 
 [EXCERPT:NodeTags]
@@ -96,9 +98,9 @@ order:2
 [/EXCERPT]
 
 [EXCERPT:PinFilter]
-* ピン
-* 変数 / プロパティ 
-* コンポーネント
+* Pins
+* Variables/Properties 
+* Components
 [/EXCERPT]
 
 [EXCERPT:PinTags]
@@ -118,7 +120,7 @@ order:2
 
 ### All サブフィルタ
 
-`All` は特別なサブフィルタです。別のフィルタにネスティングしている時に、中に含まれるすべてのデータをフィルタをパスするオブジェクトのすべての子に対してテストするようにします。
+`All` は特別なサブフィルタです。別のフィルタにネスティングしている場合は、中に含まれるすべてのデータが、そうでない場合にフィルタをパスするオブジェクトの子に対してテスト可能になります。
 
 例: `Graphs(Name=MyFunction && All(Return))`
 

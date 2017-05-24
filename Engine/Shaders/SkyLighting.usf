@@ -17,7 +17,9 @@ Texture2D IrradianceTexture;
 SamplerState IrradianceSampler;
 
 float3 ContrastAndNormalizeMulAdd;
+float OcclusionExponent;
 float4 OcclusionTintAndMinOcclusion;
+float OcclusionCombineMode;
 
 /** Note: used by movable skylights only.  Stationary sky light diffuse is evaluated in the base pass, and Static sky lighting is baked into lightmaps. */
 void SkyLightDiffusePS(
@@ -70,9 +72,23 @@ void SkyLightDiffusePS(
 		#endif
 #endif
 
-		SkyVisibility = min(SkyVisibility, min(GBuffer.GBufferAO, ScreenSpaceData.AmbientOcclusion));
-		
-		float ScalarFactors = lerp(SkyVisibility, 1, OcclusionTintAndMinOcclusion.w);
+		// Apply DFAO controls
+		SkyVisibility = pow(SkyVisibility, OcclusionExponent);
+		SkyVisibility = lerp(SkyVisibility, 1, OcclusionTintAndMinOcclusion.w);
+
+		// Combine with other AO sources
+		if (OcclusionCombineMode == 0)
+		{
+			// Combine with min which nicely avoids over-occlusion in cases where strong DFAO is present along with strong SSAO (distant trees)
+			SkyVisibility = min(SkyVisibility, min(GBuffer.GBufferAO, ScreenSpaceData.AmbientOcclusion));
+		}
+		else
+		{
+			// Combine with mul, which continues to add SSAO depth even indoors.  SSAO will need to be tweaked to be less strong.
+			SkyVisibility = SkyVisibility * min(GBuffer.GBufferAO, ScreenSpaceData.AmbientOcclusion);
+		}
+
+		float ScalarFactors = SkyVisibility;
 
 		float3 DiffuseColor = GBuffer.DiffuseColor;
 

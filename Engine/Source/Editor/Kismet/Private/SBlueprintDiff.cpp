@@ -12,7 +12,7 @@
 #include "EditorStyleSet.h"
 #include "Animation/AnimBlueprint.h"
 #include "K2Node_MathExpression.h"
-
+#include "BlueprintEditorUtils.h"
 #include "BlueprintEditorModes.h"
 #include "DetailsDiff.h"
 #include "EdGraphUtilities.h"
@@ -421,7 +421,7 @@ FListItemGraphToDiff::~FListItemGraphToDiff()
 
 TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget() 
 {
-	auto Graph = GraphOld ? GraphOld : GraphNew;
+	const UEdGraph* Graph = GraphOld ? GraphOld : GraphNew;
 	check(Graph);
 	
 	FLinearColor Color = (GraphOld && GraphNew) ? FLinearColor::White : FLinearColor(0.3f,0.3f,1.f);
@@ -433,12 +433,25 @@ TSharedRef<SWidget> FListItemGraphToDiff::GenerateWidget()
 		Color = DiffViewUtils::Differs();
 	}
 
+	FText GraphName;
+	if (const UEdGraphSchema* Schema = Graph->GetSchema())
+	{
+		FGraphDisplayInfo DisplayInfo;
+		Schema->GetGraphDisplayInformation(*Graph, DisplayInfo);
+
+		GraphName = DisplayInfo.DisplayName;
+	}
+	else
+	{
+		GraphName = FText::FromName(Graph->GetFName());
+	}
+
 	return SNew(SHorizontalBox)
 	+ SHorizontalBox::Slot()
 	[
 		SNew(STextBlock)
 		.ColorAndOpacity(Color)
-		.Text(FText::FromString(Graph->GetName()))
+		.Text(GraphName)
 	]
 	+ DiffViewUtils::Box( GraphOld != nullptr, Color )
 	+ DiffViewUtils::Box( GraphNew != nullptr, Color );
@@ -916,8 +929,18 @@ FListItemGraphToDiff* SBlueprintDiff::FindGraphToDiffEntry(FName ByName)
 
 void SBlueprintDiff::FocusOnGraphRevisions( FListItemGraphToDiff* Diff )
 {
-	FName GraphName = Diff->GetGraphOld() ? Diff->GetGraphOld()->GetFName() : Diff->GetGraphNew()->GetFName();
-	HandleGraphChanged( GraphName );
+	UEdGraph* Graph = Diff->GetGraphOld() ? Diff->GetGraphOld() : Diff->GetGraphNew();
+
+	FString GraphPath;
+	if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph))
+	{
+		GraphPath = Graph->GetPathName(Blueprint);
+	}
+	else
+	{
+		GraphPath = Graph->GetName();
+	}
+	HandleGraphChanged(GraphPath);
 
 	ResetGraphEditors();
 }
@@ -1105,7 +1128,10 @@ void FDiffPanel::FocusDiff(UEdGraphNode& Node)
 	}
 	LastFocusedPin = NULL;
 
-	GraphEditor.Pin()->JumpToNode(&Node, false);
+	if (GraphEditor.IsValid())
+	{
+		GraphEditor.Pin()->JumpToNode(&Node, false);
+	}
 }
 
 FDiffPanel& SBlueprintDiff::GetDiffPanelForNode(UEdGraphNode& Node)
@@ -1120,12 +1146,12 @@ FDiffPanel& SBlueprintDiff::GetDiffPanelForNode(UEdGraphNode& Node)
 	{
 		return PanelNew;
 	}
-	checkf(false, TEXT("Looking for node %s but it cannot be found in provided panels"), *Node.GetName());
+	ensureMsgf(false, TEXT("Looking for node %s but it cannot be found in provided panels"), *Node.GetName());
 	static FDiffPanel Default;
 	return Default;
 }
 
-void SBlueprintDiff::HandleGraphChanged( const FName GraphName )
+void SBlueprintDiff::HandleGraphChanged( const FString& GraphPath )
 {
 	SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
 	
@@ -1133,15 +1159,24 @@ void SBlueprintDiff::HandleGraphChanged( const FName GraphName )
 	PanelOld.Blueprint->GetAllGraphs(GraphsOld);
 	PanelNew.Blueprint->GetAllGraphs(GraphsNew);
 
-	UEdGraph* GraphOld = NULL;
-	if( UEdGraph** Iter = GraphsOld.FindByPredicate(FMatchFName(GraphName)) )
+	UEdGraph* GraphOld = nullptr;
+	for (UEdGraph* OldGraph : GraphsOld)
 	{
-		GraphOld = *Iter;
+		if (GraphPath.Equals(OldGraph->GetPathName(PanelOld.Blueprint)))
+		{
+			GraphOld = OldGraph;
+			break;
+		}
 	}
-	UEdGraph* GraphNew = NULL;
-	if (UEdGraph** Iter = GraphsNew.FindByPredicate(FMatchFName(GraphName)))
+
+	UEdGraph* GraphNew = nullptr;
+	for (UEdGraph* NewGraph : GraphsNew)
 	{
-		GraphNew = *Iter;
+		if (GraphPath.Equals(NewGraph->GetPathName(PanelNew.Blueprint)))
+		{
+			GraphNew = NewGraph;
+			break;
+		}
 	}
 
 	PanelOld.GeneratePanel(GraphOld, GraphNew);

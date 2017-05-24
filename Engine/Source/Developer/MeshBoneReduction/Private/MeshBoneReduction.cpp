@@ -239,11 +239,10 @@ public:
 		// find all the bones to remove from Skeleton settings
 		TMap<FBoneIndexType, FBoneIndexType> BonesToRemove;
 
-		if (GetBoneReductionData(SkeletalMesh, DesiredLOD, BonesToRemove, BoneNamesToRemove) == false)
-		{
-			return false;
-		}
-
+		bool bNeedsRemoval = GetBoneReductionData(SkeletalMesh, DesiredLOD, BonesToRemove, BoneNamesToRemove);
+		// Always restore all previously removed bones if not contained by BonesToRemove
+		SkeletalMesh->CalculateRequiredBones(SkeletalMesh->GetImportedResource()->LODModels[DesiredLOD], SkeletalMesh->RefSkeleton, &BonesToRemove);
+		
 		TComponentReregisterContext<USkinnedMeshComponent> ReregisterContext;
 		SkeletalMesh->ReleaseResources();
 		SkeletalMesh->ReleaseResourcesFence.Wait();
@@ -253,39 +252,50 @@ public:
 
 		FStaticLODModel** LODModels = SkeletalMeshResource->LODModels.GetData();
 		FStaticLODModel* SrcModel = LODModels[DesiredLOD];
-		FStaticLODModel* NewModel = new FStaticLODModel();
-		LODModels[DesiredLOD] = NewModel;
-
-		// Bulk data arrays need to be locked before a copy can be made.
-		SrcModel->RawPointIndices.Lock( LOCK_READ_ONLY );
-		SrcModel->LegacyRawPointIndices.Lock( LOCK_READ_ONLY );
-		*NewModel = *SrcModel;
-		SrcModel->RawPointIndices.Unlock();
-		SrcModel->LegacyRawPointIndices.Unlock();
-
-		// The index buffer needs to be rebuilt on copy.
-		FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
-		SrcModel->MultiSizeIndexContainer.GetIndexBufferData( IndexBufferData );
-		SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData( AdjacencyIndexBufferData );
-		NewModel->RebuildIndexBuffer( &IndexBufferData, &AdjacencyIndexBufferData );
-
-		// fix up chunks
-		for ( int32 SectionIndex=0; SectionIndex< NewModel->Sections.Num(); ++SectionIndex)
+		FStaticLODModel* NewModel = nullptr;
+				
+		if (bNeedsRemoval)
 		{
-			FixUpSectionBoneMaps(NewModel->Sections[SectionIndex], BonesToRemove);
-		}
+			NewModel = new FStaticLODModel();
+			LODModels[DesiredLOD] = NewModel;
 
-		// fix up RequiredBones/ActiveBoneIndices
-		for(auto Iter = BonesToRemove.CreateIterator(); Iter; ++Iter)
+			// Bulk data arrays need to be locked before a copy can be made.
+			SrcModel->RawPointIndices.Lock(LOCK_READ_ONLY);
+			SrcModel->LegacyRawPointIndices.Lock(LOCK_READ_ONLY);
+			*NewModel = *SrcModel;
+			SrcModel->RawPointIndices.Unlock();
+			SrcModel->LegacyRawPointIndices.Unlock();
+
+			// The index buffer needs to be rebuilt on copy.
+			FMultiSizeIndexContainerData IndexBufferData, AdjacencyIndexBufferData;
+			SrcModel->MultiSizeIndexContainer.GetIndexBufferData(IndexBufferData);
+			SrcModel->AdjacencyMultiSizeIndexContainer.GetIndexBufferData(AdjacencyIndexBufferData);
+			NewModel->RebuildIndexBuffer(&IndexBufferData, &AdjacencyIndexBufferData);
+
+			// fix up chunks
+			for (int32 SectionIndex = 0; SectionIndex < NewModel->Sections.Num(); ++SectionIndex)
+			{
+				FixUpSectionBoneMaps(NewModel->Sections[SectionIndex], BonesToRemove);
+			}
+
+			// fix up RequiredBones/ActiveBoneIndices
+			for (auto Iter = BonesToRemove.CreateIterator(); Iter; ++Iter)
+			{
+				FBoneIndexType BoneIndex = Iter.Key();
+				FBoneIndexType MappingIndex = Iter.Value();
+				NewModel->ActiveBoneIndices.Remove(BoneIndex);
+				NewModel->RequiredBones.Remove(BoneIndex);
+
+				NewModel->ActiveBoneIndices.AddUnique(MappingIndex);
+				NewModel->RequiredBones.AddUnique(MappingIndex);
+			}
+
+			delete SrcModel;
+		}
+		else
 		{
-			FBoneIndexType BoneIndex = Iter.Key();
-			FBoneIndexType MappingIndex = Iter.Value();
-			NewModel->ActiveBoneIndices.Remove(BoneIndex);
-			NewModel->RequiredBones.Remove(BoneIndex);
-
-			NewModel->ActiveBoneIndices.AddUnique(MappingIndex);
-			NewModel->RequiredBones.AddUnique(MappingIndex);
-		}
+			NewModel = SrcModel;
+		}		
 
 		NewModel->ActiveBoneIndices.Sort();
 		NewModel->RequiredBones.Sort();
@@ -293,9 +303,7 @@ public:
 		SkeletalMesh->PostEditChange();
 		SkeletalMesh->InitResources();
 		SkeletalMesh->MarkPackageDirty();
-
-		delete SrcModel;
-
+		
 		return true;
 	}
 };

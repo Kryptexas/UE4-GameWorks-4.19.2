@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MediaPlayerEditor : ModuleRules
 {
-	public MediaPlayerEditor(TargetInfo Target)
+	public MediaPlayerEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {

@@ -322,21 +322,25 @@ void UBorder::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChang
 
 		if ( PropertyChangedEvent.Property )
 		{
+			static const FName PaddingName("Padding");
+			static const FName HorizontalAlignmentName("HorizontalAlignment");
+			static const FName VerticalAlignmentName("VerticalAlignment");
+
 			FName PropertyName = PropertyChangedEvent.Property->GetFName();
 
 			if ( UBorderSlot* BorderSlot = Cast<UBorderSlot>(GetContentSlot()) )
 			{
-				if ( PropertyName == "Padding" )
+				if (PropertyName == PaddingName)
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "Padding", BorderSlot, "Padding");
+					FObjectEditorUtils::MigratePropertyValue(this, PaddingName, BorderSlot, PaddingName);
 				}
-				else if ( PropertyName == "HorizontalAlignment" )
+				else if (PropertyName == HorizontalAlignmentName)
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "HorizontalAlignment", BorderSlot, "HorizontalAlignment");
+					FObjectEditorUtils::MigratePropertyValue(this, HorizontalAlignmentName, BorderSlot, HorizontalAlignmentName);
 				}
-				else if ( PropertyName == "VerticalAlignment" )
+				else if (PropertyName == VerticalAlignmentName)
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "VerticalAlignment", BorderSlot, "VerticalAlignment");
+					FObjectEditorUtils::MigratePropertyValue(this, VerticalAlignmentName, BorderSlot, VerticalAlignmentName);
 				}
 			}
 		}

@@ -49,9 +49,16 @@ static const UObject* LoadHeadRev(const FString& PackageName, const FString& Ass
 static const UObject* LoadBaseRev(const FString& PackageName, const FString& AssetName, const ISourceControlState& SourceControlState, FRevisionInfo& OutRevInfo)
 {
 	TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState.GetBaseRevForMerge();
-	check(Revision.IsValid());
-	OutRevInfo = GetRevisionInfo(*Revision);
-	return FMergeToolUtils::LoadRevision(AssetName, *Revision);
+	if (Revision.IsValid())
+	{
+		OutRevInfo = GetRevisionInfo(*Revision);
+		return FMergeToolUtils::LoadRevision(AssetName, *Revision);
+	}
+	else
+	{
+		OutRevInfo = FRevisionInfo::InvalidRevision();
+		return nullptr;
+	}
 }
 
 static TSharedPtr<SWidget> GenerateMergeTabContents(TSharedRef<FBlueprintEditor> Editor,

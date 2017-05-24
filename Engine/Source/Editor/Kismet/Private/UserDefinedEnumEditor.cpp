@@ -70,7 +70,7 @@ public:
 	virtual FText GetText(const int32 InIndex) const override
 	{
 		check(InIndex == 0);
-		return FEnumEditorUtils::GetEnumeratorDisplayName(TargetEnum, EnumeratorIndex);
+		return TargetEnum->GetDisplayNameTextByIndex(EnumeratorIndex);
 	}
 
 	virtual void SetText(const int32 InIndex, const FText& InText) override
@@ -85,7 +85,7 @@ public:
 	{
 		bool bValidName = true;
 
-		bool bUnchangedName = (InText.ToString() == FEnumEditorUtils::GetEnumeratorDisplayName(TargetEnum, EnumeratorIndex).ToString());
+		bool bUnchangedName = (InText.ToString() == TargetEnum->GetDisplayNameTextByIndex(EnumeratorIndex).ToString());
 		if (InText.IsEmpty())
 		{
 			OutErrorMsg = LOCTEXT("NameMissingError", "You must provide a name.");

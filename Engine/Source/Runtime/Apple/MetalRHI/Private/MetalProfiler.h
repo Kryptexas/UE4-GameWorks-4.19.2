@@ -65,11 +65,13 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Index Memory Allocated Per-Frame"), STAT
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Index Memory Freed Per-Frame"), STAT_MetalIndexMemFreed, STATGROUP_MetalRHI, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Private Texture Count"), STAT_MetalPrivateTextureCount, STATGROUP_MetalRHI, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Managed Texture Count"), STAT_MetalManagedTextureCount, STATGROUP_MetalRHI, );
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Private Texture Memory"), STAT_MetalPrivateTextureMem, STATGROUP_MetalRHI, );
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Managed Texture Memory"), STAT_MetalManagedTextureMem, STATGROUP_MetalRHI, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Texture Memory Updated Per-Frame"), STAT_MetalTextureMemUpdate, STATGROUP_MetalRHI, );
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Texture Page-On time"), STAT_MetalTexturePageOnTime, STATGROUP_MetalRHI, );
 #if STATS
-extern uint64 GMetalTexturePageOnTime;
+extern int64 volatile GMetalTexturePageOnTime;
 #endif
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Number Command Buffers Created Per-Frame"), STAT_MetalCommandBufferCreatedPerFrame, STATGROUP_MetalRHI, );
@@ -120,8 +122,8 @@ public:
 	
 	virtual void StopTiming() override;
 	
-	void Start(id<MTLCommandBuffer> Buffer);
-	void Stop(id<MTLCommandBuffer> Buffer);
+	MTLCommandBufferHandler Start(void);
+	MTLCommandBufferHandler Stop(void);
 
 	bool Wait() const { return bRoot && bFullProfiling; }
 	bool IsRoot() const { return bRoot; }

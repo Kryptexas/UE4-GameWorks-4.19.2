@@ -1,35 +1,35 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:4. End Result
-description:Going over how to use the Blueprint Height Map Painter.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:4.最終結果
+description:Height Map Painter ブループリントの使用方法
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Intermediate
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/HeightFieldPainter
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:4
 checkpoint:HFP
 
 [NAV]
 
-Now that all of the required parts for the Height Field Painter Blueprint have been setup, it is now time to see the Height Field Painter in action. In the following section, we will go over how to use the Height Field Painter in your UE4 project.
+Height Field Painter ブループリントで必要な部分がすべて準備できたら、Height Field Painter が動くかどうかを確認します。それでは、このツールを UE4 プロジェクトで使用する方法を説明します。
 
-## Using the Height Field Painter Blueprint
+## Height Field Painter ブループリントの使用方法
 
-1. Locate the Height Field Painter Blueprint in the Content Browser and then drag it into your level, positioning it to fit your level's needs.
+1. コンテンツ ブラウザの Height Field Painter ブループリントをレベルにドラッグし、レベルのニーズを満たす位置に配置します。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Use_00.png)
 
-1. Press the **Play** button on the Main Toolbar and then navigate your player so that they are in front (or very close) to the Height Field Painter Blueprint that was placed in the level.
+1. メインツール バーの **[Play (プレイ)]** ボタンを押して、レベル内に置かれた Height Field Painter ブループリントの正面 (すぐそば) にプレイヤーをナビゲートします。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_BP_Use_01.png)
 
-## End Result
+## 最終結果
 
-To raise the height of the surface position so that the crosshair is at a desired position, hold down the left mouse button to raise the height of the Static Mesh. If you continuously hold down the left mouse button while moving the mouse around, 
-you will continue to raise the height of the Static Mesh. If everything has been setup correctly, you should have something similar to the following video.
+サーフェスの高さを上げるには、目標位置にクロスヘアがくるようにビューを調節して、マウスの左ボタンを押して、スタティックメッシュを高くします。マウスを移動しながらマウスの左ボタンを押し続ければ、 
+スタティックメッシュの高さは上がり続けます。設定がすべて正常に行われると、以下の動画のようになるはずです。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -43,7 +43,7 @@ you will continue to raise the height of the Static Mesh. If everything has been
 	[/PARAMLITERAL]
 [/OBJECT]
 
-While this is just one way you can manipulate Static Meshes vertices using Blueprints & Render Targets, the creative possibilities are almost endless. From creating impact effects that can deform both players and the environment, to allowing players to have a real effect on the worlds they play in, the Height Field Painter Blueprint can be adopted to fit many different gameplay roles and requirements.
+ブループリントとレンダー ターゲットを使ってスタティックメッシュ頂点を操作する方法のひとつを紹介しましたが、これ以外にも用途は限りなく広がります。プレイヤーと背景の両方の変形を可能にする影響エフェクトの作成から、プレイヤーがプレイするワールドでリアルなエフェクトを与える機能まで、Height Field Painter ブループリントは様々なゲームプレイの役割や要件に合わせた使い方ができます。
 
 
 

@@ -56,8 +56,11 @@ public:
 		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
 		, _HandleGamepadEvents(true)
+		, _HandleDirectionalNavigation(true)
 		, _OnItemToString_Debug()
 		, _OnEnteredBadState()
+		, _NavigateOnScrollIntoView(false)
+		, _HandleLeftRightBoundsAsWrap(true)
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
@@ -100,10 +103,16 @@ public:
 
 		SLATE_ARGUMENT( bool, HandleGamepadEvents );
 
+		SLATE_ARGUMENT( bool, HandleDirectionalNavigation );
+
 		/** Assign this to get more diagnostics from the list view. */
 		SLATE_EVENT(FOnItemToString_Debug, OnItemToString_Debug)
 
 		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
+
+		SLATE_ARGUMENT(bool, NavigateOnScrollIntoView);
+		
+		SLATE_ARGUMENT(bool, HandleLeftRightBoundsAsWrap);
 
 	SLATE_END_ARGS()
 
@@ -133,11 +142,16 @@ public:
 		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
 
 		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
+		this->bHandleDirectionalNavigation = InArgs._HandleDirectionalNavigation;
 
 		this->OnItemToString_Debug = InArgs._OnItemToString_Debug.IsBound()
 			? InArgs._OnItemToString_Debug
 			: SListView< ItemType >::GetDefaultDebugDelegate();
 		this->OnEnteredBadState = InArgs._OnEnteredBadState;
+
+		this->bNavigateOnScrollIntoView = InArgs._NavigateOnScrollIntoView;
+
+		this->bHandleLeftRightBoundsAsWrap = InArgs._HandleLeftRightBoundsAsWrap;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -184,41 +198,53 @@ public:
 
 	// SWidget overrides
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
+	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override
 	{
-		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
-
-		// Don't respond to key-presses containing "Alt" as a modifier
-		if ( ItemsSourceRef.Num() > 0 && !InKeyEvent.IsAltDown() )
+		if (this->ItemsSource && this->bHandleDirectionalNavigation && (this->bHandleGamepadEvents || InNavigationEvent.GetNavigationGenesis() != ENavigationGenesis::Controller))
 		{
-			// Check for selection manipulation keys that differ from SListView (Left, Right)
-			if ( InKeyEvent.GetKey() == EKeys::Left )
+			const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
+
+			const int32 NumItemsWide = GetNumItemsWide();
+			const int32 CurSelectionIndex = (!TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem)) ? 0 : ItemsSourceRef.Find(TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType(this->SelectorItem));
+			int32 AttemptSelectIndex = -1;
+			bool bAttempt = false;
+
+			const EUINavigation NavType = InNavigationEvent.GetNavigationType();
+			switch (NavType)
 			{
-				int32 SelectionIndex = ( !TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) ) ? 0 : ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( this->SelectorItem ) );
-
-				if ( SelectionIndex > 0 )
+			case EUINavigation::Left:
+				if (bHandleLeftRightBoundsAsWrap || (CurSelectionIndex % NumItemsWide) > 0)
 				{
-					// Select the previous item
-					this->KeyboardSelect(ItemsSourceRef[SelectionIndex - 1], InKeyEvent);
+					bAttempt = true;
+					AttemptSelectIndex = CurSelectionIndex - 1;
 				}
+				break;
 
-				return FReply::Handled();
+			case EUINavigation::Right:
+				if (bHandleLeftRightBoundsAsWrap || (CurSelectionIndex % NumItemsWide) < (NumItemsWide - 1))
+				{
+					bAttempt = true;
+					AttemptSelectIndex = CurSelectionIndex + 1;
+				}
+				break;
+
+			default:
+				break;
 			}
-			else if ( InKeyEvent.GetKey() == EKeys::Right )
+
+			// We are attempting to move to a specific index
+			// If it's valid we'll scroll it into view and return an explicit widget in the FNavigationReply
+			if (bAttempt)
 			{
-				int32 SelectionIndex = ( !TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) ) ? 0 : ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( this->SelectorItem ) );
-
-				if ( SelectionIndex < ItemsSourceRef.Num() - 1 )
+				if (ItemsSourceRef.IsValidIndex(AttemptSelectIndex))
 				{
-					// Select the next item
-					this->KeyboardSelect(ItemsSourceRef[SelectionIndex + 1], InKeyEvent);
+					this->NavigationSelect(ItemsSourceRef[AttemptSelectIndex], InNavigationEvent);
 				}
-
-				return FReply::Handled();
+				return FNavigationReply::Explicit(nullptr);
 			}
 		}
-
-		return SListView<ItemType>::OnKeyDown(MyGeometry, InKeyEvent);
+		
+		return SListView<ItemType>::OnNavigation(MyGeometry, InNavigationEvent);
 	}
 
 public:	
@@ -433,4 +459,7 @@ protected:
 
 		return SListView<ItemType>::EScrollIntoViewResult::Success;
 	}
+
+	/** Should the left and right navigations be handled as a wrap when hitting the bounds. (you'll move to the previous / next row when appropriate) */
+	bool bHandleLeftRightBoundsAsWrap;
 };

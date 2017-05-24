@@ -1,13 +1,16 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3356804
 Availability:Public
 Title: 언리얼 빌드 시스템 타겟 파일
-Crumbs: %ROOT%, Programming, Programming\UnrealBuildSystem
+Crumbs:
 Description:모듈을 빌드할 때 언리얼 빌드 시스템에 사용되는 타겟 파일에 대한 참고서입니다.
 Version: 4.9
+parent:Programming/UnrealBuildSystem
+topic-image:topic_targets.png
+tags:Programming
+tags:Unreal Build System
+type:reference
 
 [TOC (start:2 end:3)]
-
-
 
 언리얼 빌드 시스템은, UnrealBuildTool 이 빌드하여 동적인 Rules 모듈에 컴파일되는 각 어플리케이션에 대해 **타겟** (Target) 파일을 사용합니다. 이 파일은 원래 UnrealBuildTool 에 직접 컴파일되었던 `UEBuild*.cs` 파일을 대신합니다. 각 타겟 파일이 정의하는 클래스를 UnrealBuildTool 이 사용하여, 게임이나 프로그램 빌드 방식을 결정합니다.
 

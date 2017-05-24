@@ -15,8 +15,8 @@ struct FMovieSceneSegmentCompilerRules;
 /**
  * A track that holds sub-sequences within a larger sequence.
  */
-UCLASS(MinimalAPI)
-class UMovieSceneSubTrack
+UCLASS()
+class MOVIESCENETRACKS_API UMovieSceneSubTrack
 	: public UMovieSceneNameableTrack
 {
 	GENERATED_BODY()
@@ -26,7 +26,7 @@ public:
 	UMovieSceneSubTrack( const FObjectInitializer& ObjectInitializer );
 
 	/**
-	 * Adds a movie scene section to the end of all the existing sections. If there are no sections, the new movie scene section is added at the requested time.
+	 * Adds a movie scene section at the requested time.
 	 *
 	 * @param Sequence The sequence to add
 	 * @param StartTime The time to add the section at
@@ -34,7 +34,7 @@ public:
 	 * @param bInsertSequence Whether or not to insert the sequence and push existing sequences out
 	 * @return The newly created sub section
 	 */
-	MOVIESCENETRACKS_API virtual UMovieSceneSubSection* AddSequence(UMovieSceneSequence* Sequence, float StartTime, float Duration, const bool& bInsertSequence = false);
+	virtual UMovieSceneSubSection* AddSequence(UMovieSceneSequence* Sequence, float StartTime, float Duration, const bool& bInsertSequence = false);
 
 	/**
 	 * Check whether this track contains the given sequence.
@@ -43,12 +43,12 @@ public:
 	 * @param Recursively Whether to search for the sequence in sub-sequences.
 	 * @return true if the sequence is in this track, false otherwise.
 	 */
-	MOVIESCENETRACKS_API bool ContainsSequence(const UMovieSceneSequence& Sequence, bool Recursively = false) const;
+	bool ContainsSequence(const UMovieSceneSequence& Sequence, bool Recursively = false) const;
 
 	/**
 	 * Add a new sequence to record
 	 */
-	MOVIESCENETRACKS_API virtual UMovieSceneSubSection* AddSequenceToRecord();
+	virtual UMovieSceneSubSection* AddSequenceToRecord();
 
 public:
 

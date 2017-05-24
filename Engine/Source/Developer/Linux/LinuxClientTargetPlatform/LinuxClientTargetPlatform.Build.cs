@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LinuxClientTargetPlatform : ModuleRules
 {
-    public LinuxClientTargetPlatform(TargetInfo Target)
+    public LinuxClientTargetPlatform(ReadOnlyTargetRules Target) : base(Target)
     {
         BinariesSubFolder = "Linux";
 

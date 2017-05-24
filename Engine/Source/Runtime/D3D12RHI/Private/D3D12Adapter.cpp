@@ -25,8 +25,6 @@ struct FRHICommandSignalFrameFence : public FRHICommand<FRHICommandSignalFrameFe
 	}
 };
 
-void* FD3D12ThreadLocalObject<FD3D12FastConstantAllocator>::ThisThreadObject = nullptr;
-
 FD3D12Adapter::FD3D12Adapter(FD3D12AdapterDesc& DescIn)
 	: Desc(DescIn)
 	, bDeviceRemoved(false)
@@ -197,6 +195,11 @@ void FD3D12Adapter::CreateRootDevice(bool bWithDebug)
 				//		We intentionally keep the readback resources persistently mapped.
 				D3D12_MESSAGE_ID_EXECUTECOMMANDLISTS_GPU_WRITTEN_READBACK_RESOURCE_MAPPED,
 
+				// Note message ID doesn't exist in the current header (yet, should be available in the RS2 header) for now just mute by the ID number.
+				// RESOURCE_BARRIER_DUPLICATE_SUBRESOURCE_TRANSITIONS - This shows up a lot and is very noisy. It would require changes to the resource tracking system
+				// but will hopefully be resolved when the RHI switches to use the engine's resource tracking system.
+				(D3D12_MESSAGE_ID)1008,
+
 #if ENABLE_RESIDENCY_MANAGEMENT
 				// TODO: Remove this when the debug layers work for executions which are guarded by a fence
 				D3D12_MESSAGE_ID_INVALID_USE_OF_NON_RESIDENT_RESOURCE
@@ -281,7 +284,7 @@ void FD3D12Adapter::InitializeDevices()
 		}
 		RootSignatureVersion = D3D12RootSignatureCaps.HighestVersion;
 
-		FrameFence.CreateFence(0);
+		FrameFence.CreateFence();
 
 		CreateSignatures();
 

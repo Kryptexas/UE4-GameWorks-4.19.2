@@ -124,7 +124,7 @@ FText UK2Node_MacroInstance::GetTooltipText() const
 	{
 		if (!Metadata->ToolTip.IsEmpty())
 		{
-			return FText::FromString(Metadata->ToolTip);
+			return Metadata->ToolTip;
 		}
 	}
 
@@ -321,6 +321,20 @@ void UK2Node_MacroInstance::PostReconstructNode()
 	bReconstructNode = false;
 
 	Super::PostReconstructNode();
+}
+
+FName UK2Node_MacroInstance::GetCornerIcon() const
+{
+	if (UEdGraph* MacroGraph = MacroGraphReference.GetGraph())
+	{
+		FBlueprintMacroCosmeticInfo CosmeticInfo = FBlueprintEditorUtils::GetCosmeticInfoForMacro(MacroGraph);
+		if (CosmeticInfo.bContainsLatentNodes)
+		{
+			return TEXT("Graph.Latent.LatentIcon");
+		}
+	}
+
+	return Super::GetCornerIcon();
 }
 
 FSlateIcon UK2Node_MacroInstance::GetIconAndTint(FLinearColor& OutColor) const

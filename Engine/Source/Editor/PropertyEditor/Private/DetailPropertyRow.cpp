@@ -5,7 +5,10 @@
 #include "PropertyCustomizationHelpers.h"
 #include "UserInterface/PropertyEditor/SResetToDefaultPropertyEditor.h"
 #include "DetailItemNode.h"
+#include "DetailCategoryGroupNode.h"
 #include "CustomChildBuilder.h"
+
+#define LOCTEXT_NAMESPACE	"DetailPropertyRow"
 
 FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FPropertyNode> InExternalRootNode )
 	: CustomIsEnabledAttrib( true )
@@ -20,9 +23,8 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 	{
 		TSharedRef<FPropertyNode> PropertyNodeRef = PropertyNode.ToSharedRef();
 
-		UProperty* Property = PropertyNodeRef->GetProperty();
-
 		PropertyHandle = InParentCategory->GetParentLayoutImpl().GetPropertyHandle(PropertyNodeRef);
+
 		const TSharedRef<IPropertyUtilities> Utilities = InParentCategory->GetParentLayoutImpl().GetPropertyUtilities();
 
 		if (PropertyNode->AsCategoryNode() == NULL)
@@ -32,28 +34,18 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 
 		if (PropertyNode->GetPropertyKeyNode().IsValid())
 		{
-			MakePropertyEditor(PropertyNode->GetPropertyKeyNode().ToSharedRef(), Utilities, PropertyKeyEditor);
-		}
+			UStructProperty* KeyStructProp = Cast<UStructProperty>(PropertyNode->GetPropertyKeyNode()->GetProperty());
 
-		// Check if the property is valid for type customization.  Note: Static arrays of types will be a UProperty with array elements as children
-		if (!PropertyEditorHelpers::IsStaticArray(*PropertyNodeRef))
-		{
-			static FName NAME_PropertyEditor("PropertyEditor");
-			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(NAME_PropertyEditor);
-			
-			IDetailsViewPrivate& DetailsView = InParentCategory->GetDetailsView();
-			
-			TSharedRef<IDetailsView> DetailsViewPtr = StaticCastSharedRef<IDetailsView>( DetailsView.AsShared() );
-			
-			FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property,*PropertyHandle, DetailsViewPtr );
-			if (LayoutCallback.IsValid())
+			// Only struct and customized properties require their own nodes. Everything else just needs a property editor.
+			bool bNeedsKeyPropEditor = KeyStructProp == nullptr && !GetPropertyCustomization(PropertyNode->GetPropertyKeyNode().ToSharedRef(), InParentCategory).IsValid();
+
+			if ( bNeedsKeyPropEditor )
 			{
-				if (PropertyHandle->IsValidHandle())
-				{
-					CustomTypeInterface = LayoutCallback.GetCustomizationInstance();
-				}
+				MakePropertyEditor(PropertyNode->GetPropertyKeyNode().ToSharedRef(), Utilities, PropertyKeyEditor);
 			}
 		}
+
+		CustomTypeInterface = GetPropertyCustomization(PropertyNodeRef, InParentCategory);
 	}
 }
 
@@ -138,7 +130,6 @@ void FDetailPropertyRow::GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, 
 	OutValueWidget = Row.ValueWidget.Widget;
 }
 
-
 bool FDetailPropertyRow::HasColumns() const
 {
 	// Regular properties always have columns
@@ -196,7 +187,7 @@ FDetailWidgetRow FDetailPropertyRow::GetWidgetRow()
 	}
 }
 
-void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> InParentCategory, const TAttribute<bool>& InIsParentEnabled )
+void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> InParentCategory, const TAttribute<bool>& InIsParentEnabled, TSharedPtr<IDetailGroup> InParentGroup)
 {
 	IsParentEnabled = InIsParentEnabled;
 
@@ -216,7 +207,7 @@ void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> 
 
 	if( bShowCustomPropertyChildren && CustomTypeInterface.IsValid() )
 	{
-		PropertyTypeLayoutBuilder = MakeShareable(new FCustomChildrenBuilder(InParentCategory));
+		PropertyTypeLayoutBuilder = MakeShareable(new FCustomChildrenBuilder(InParentCategory, InParentGroup));
 
 		/** Does this row pass its custom reset behavior to its children? */
 		if (CustomResetToDefault.IsSet() && CustomResetToDefault->PropagatesToChildren())
@@ -264,6 +255,8 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 		UProperty* ParentProperty = RootPropertyNode->GetProperty();
 
 		const bool bStructProperty = ParentProperty && ParentProperty->IsA<UStructProperty>();
+		const bool bMapProperty = ParentProperty && ParentProperty->IsA<UMapProperty>();
+		const bool bSetProperty = ParentProperty && ParentProperty->IsA<USetProperty>();
 
 		for( int32 ChildIndex = 0; ChildIndex < RootPropertyNode->GetNumChildNodes(); ++ChildIndex )
 		{
@@ -278,12 +271,57 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 				}
 				// Only struct children can have custom visibility that is different from their parent.
 				else if ( !bStructProperty || LayoutBuilder.IsPropertyVisible( FPropertyAndParent(*ChildNode->GetProperty(), ParentProperty ) ) )
-				{			
+				{	
+					TArray<TSharedRef<IDetailTreeNode>> PropNodes;
+					bool bHasKeyNode = false;
+
+					// Create and initialize the child first
 					FDetailLayoutCustomization Customization;
-					Customization.PropertyRow = MakeShareable( new FDetailPropertyRow( ChildNode, ParentCategoryRef ) );
-					TSharedRef<FDetailItemNode> ChildNodeItem = MakeShareable( new FDetailItemNode( Customization, ParentCategoryRef, ParentEnabledState ) );
+					Customization.PropertyRow = MakeShareable(new FDetailPropertyRow(ChildNode, ParentCategoryRef));
+					TSharedRef<FDetailItemNode> ChildNodeItem = MakeShareable(new FDetailItemNode(Customization, ParentCategoryRef, ParentEnabledState));
 					ChildNodeItem->Initialize();
-					OutChildren.Add( ChildNodeItem );
+
+					if ( ChildNode->GetPropertyKeyNode().IsValid() )
+					{
+						// If the child has a key property, only create a second node for the key if the child did not already create a property
+						// editor for it
+						if ( !Customization.PropertyRow->PropertyKeyEditor.IsValid() )
+						{
+							FDetailLayoutCustomization KeyCustom;
+							KeyCustom.PropertyRow = MakeShareable(new FDetailPropertyRow(ChildNode->GetPropertyKeyNode(), ParentCategoryRef));
+							TSharedRef<FDetailItemNode> KeyNodeItem = MakeShareable(new FDetailItemNode(KeyCustom, ParentCategoryRef, ParentEnabledState));
+							KeyNodeItem->Initialize();
+							
+							PropNodes.Add(KeyNodeItem);
+							bHasKeyNode = true;
+						}
+					}
+
+					// Add the child node 
+					PropNodes.Add(ChildNodeItem);
+					
+					// For set properties, set the name override to match the index
+					if (bSetProperty)
+					{
+						ChildNode->SetDisplayNameOverride(FText::AsNumber(ChildIndex));
+					}
+
+					if (bMapProperty && bHasKeyNode)
+					{
+						// Group the key/value nodes for map properties
+						static FText KeyValueGroupNameFormat = LOCTEXT("KeyValueGroupName", "Element {0}");
+						FText KeyValueGroupName = FText::Format(KeyValueGroupNameFormat, ChildIndex);
+
+						TSharedRef<FDetailCategoryGroupNode> KeyValueGroupNode = MakeShareable(new FDetailCategoryGroupNode(PropNodes, FName(*KeyValueGroupName.ToString()), ParentCategoryRef.Get()));
+						KeyValueGroupNode->SetShowBorder(false);
+						KeyValueGroupNode->SetHasSplitter(true);
+
+						OutChildren.Add(KeyValueGroupNode);
+					}
+					else
+					{
+						OutChildren.Append(PropNodes);
+					}
 				}
 			}
 		}
@@ -299,6 +337,35 @@ TSharedRef<FPropertyEditor> FDetailPropertyRow::MakePropertyEditor(const TShared
 	}
 
 	return InEditor.ToSharedRef();
+}
+
+TSharedPtr<IPropertyTypeCustomization> FDetailPropertyRow::GetPropertyCustomization(const TSharedRef<FPropertyNode>& InPropertyNode, const TSharedRef<FDetailCategoryImpl>& InParentCategory)
+{
+	TSharedPtr<IPropertyTypeCustomization> CustomInterface;
+
+	if (!PropertyEditorHelpers::IsStaticArray(*InPropertyNode))
+	{
+		UProperty* Property = InPropertyNode->GetProperty();
+		TSharedPtr<IPropertyHandle> PropHandle = InParentCategory->GetParentLayoutImpl().GetPropertyHandle(InPropertyNode);
+
+		static FName NAME_PropertyEditor("PropertyEditor");
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(NAME_PropertyEditor);
+
+		IDetailsViewPrivate& DetailsView = InParentCategory->GetDetailsView();
+
+		TSharedRef<IDetailsView> DetailsViewPtr = StaticCastSharedRef<IDetailsView>(DetailsView.AsShared());
+
+		FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(Property, *PropHandle, DetailsViewPtr);
+		if (LayoutCallback.IsValid())
+		{
+			if (PropHandle->IsValidHandle())
+			{
+				CustomInterface = LayoutCallback.GetCustomizationInstance();
+			}
+		}
+	}
+
+	return CustomInterface;
 }
 
 bool FDetailPropertyRow::HasEditCondition() const
@@ -337,7 +404,8 @@ void FDetailPropertyRow::MakeNameOrKeyWidget( FDetailWidgetRow& Row, const TShar
 	EVerticalAlignment VerticalAlignment = VAlign_Center;
 	EHorizontalAlignment HorizontalAlignment = HAlign_Fill;
 
-	bool bHasKeyNode = PropertyNode->GetPropertyKeyNode().IsValid();
+	// We will only use key widgets for non-struct keys
+	const bool bHasKeyNode = PropertyKeyEditor.IsValid();
 
 	if( !bHasKeyNode && InCustomRow.IsValid() )
 	{
@@ -365,8 +433,8 @@ void FDetailPropertyRow::MakeNameOrKeyWidget( FDetailWidgetRow& Row, const TShar
 
 	TSharedPtr<SWidget> NameWidget;
 
-	// Key nodes will take precedence over custom rows.
-	if (bHasKeyNode)
+	// Key nodes take precedence over custom rows
+	if ( bHasKeyNode )
 	{
 		const TSharedRef<IPropertyUtilities> PropertyUtilities = ParentCategory.Pin()->GetParentLayoutImpl().GetPropertyUtilities();
 
@@ -375,7 +443,7 @@ void FDetailPropertyRow::MakeNameOrKeyWidget( FDetailWidgetRow& Row, const TShar
 			.IsEnabled(IsEnabledAttrib)
 			.ShowPropertyButtons(false);
 	}
-	else if(InCustomRow.IsValid())
+	else if( InCustomRow.IsValid() )
 	{
 		NameWidget = 
 			SNew( SBox )
@@ -399,7 +467,12 @@ void FDetailPropertyRow::MakeNameOrKeyWidget( FDetailWidgetRow& Row, const TShar
 
 	if (bHasKeyNode)
 	{
-		Slot.Padding(0.0f, 0.0f, 20.0f, 0.0f);
+		Slot.Padding(0.0f, 0.0f, 2.0f, 0.0f);
+	}
+	else if (InCustomRow.IsValid())
+	{
+		//Allow custom name slot to fill all the area. If the user add a SHorizontalBox with left and right align slot
+		Slot.FillWidth(1.0f);
 	}
 	else
 	{
@@ -519,3 +592,5 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 		ValueWidget
 	];
 }
+
+#undef LOCTEXT_NAMESPACE

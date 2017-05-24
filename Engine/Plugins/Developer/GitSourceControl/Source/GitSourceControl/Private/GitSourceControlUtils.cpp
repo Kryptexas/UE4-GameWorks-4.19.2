@@ -10,10 +10,12 @@
 #include "Modules/ModuleManager.h"
 #include "ISourceControlModule.h"
 #include "GitSourceControlModule.h"
+#include "GitSourceControlProvider.h"
 
 #if PLATFORM_LINUX
 #include <sys/ioctl.h>
 #endif
+
 
 
 namespace GitSourceControlConstants
@@ -100,17 +102,16 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 	FullCommand += LogableCommand;
 
 #if UE_BUILD_DEBUG
-	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *FullCommand);
+	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *LogableCommand);
 #endif
 	
 	FPlatformProcess::ExecProcess(*InPathToGitBinary, *FullCommand, &ReturnCode, &OutResults, &OutErrors);
 	
 #if UE_BUILD_DEBUG
-	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'OutResults=\n%s'"), *OutResults);
-
-	if (ReturnCode != 0)
+	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw(%s): OutResults=\n%s"), *InCommand, *OutResults)
+	if(ReturnCode != 0)
 	{
-		UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw: 'OutErrors=\n%s'"), *OutErrors);
+		UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw(%s): OutErrors=\n%s"), *InCommand, *OutErrors);
 	}
 #endif
 
@@ -159,8 +160,14 @@ FString FindGitBinaryPath()
 	// 2) Else, look for the version of Git bundled with SmartGit "Installer with JRE"
 	if(!bFound)
 	{
-		GitBinaryPath = TEXT("C:/Program Files (x86)/SmartGit/bin/git.exe");
+		GitBinaryPath = TEXT("C:/Program Files (x86)/SmartGit/git/bin/git.exe");
 		bFound = CheckGitAvailability(GitBinaryPath);
+		if (!bFound)
+		{
+			// If git is not found in "git/bin/" subdirectory, try the "bin/" path that was in use before
+			GitBinaryPath = TEXT("C:/Program Files (x86)/SmartGit/bin/git.exe");
+			bFound = CheckGitAvailability(GitBinaryPath);
+		}
 	}
 
 	// 3) Else, look for the local_git provided by SourceTree
@@ -173,11 +180,11 @@ FString FindGitBinaryPath()
 		bFound = CheckGitAvailability(GitBinaryPath);
 	}
 
-	// 4) Else, look for the PortableGit provided by GitHub for Windows
+	// 4) Else, look for the PortableGit provided by GitHub Desktop
 	if(!bFound)
 	{
-		// The latest GitHub for windows adds its binaries into the local appdata directory:
-		// C:\Users\UserName\AppData\Local\GitHub\PortableGit_c2ba306e536fdf878271f7fe636a147ff37326ad\bin
+		// The latest GitHub Desktop adds its binaries into the local appdata directory:
+		// C:\Users\UserName\AppData\Local\GitHub\PortableGit_c2ba306e536fdf878271f7fe636a147ff37326ad\cmd
 		TCHAR AppDataLocalPath[4096];
 		FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA"), AppDataLocalPath, ARRAY_COUNT(AppDataLocalPath));
 		FString SearchPath = FString::Printf(TEXT("%s/GitHub/PortableGit_*"), AppDataLocalPath);
@@ -186,10 +193,24 @@ FString FindGitBinaryPath()
 		if(PortableGitFolders.Num() > 0)
 		{
 			// FindFiles just returns directory names, so we need to prepend the root path to get the full path.
-			GitBinaryPath = FString::Printf(TEXT("%s/GitHub/%s/bin/git.exe"), AppDataLocalPath, *(PortableGitFolders.Last())); // keep only the last PortableGit found
+			GitBinaryPath = FString::Printf(TEXT("%s/GitHub/%s/cmd/git.exe"), AppDataLocalPath, *(PortableGitFolders.Last())); // keep only the last PortableGit found
 			bFound = CheckGitAvailability(GitBinaryPath);
+			if (!bFound)
+			{
+				// If Portable git is not found in "cmd/" subdirectory, try the "bin/" path that was in use before
+				GitBinaryPath = FString::Printf(TEXT("%s/GitHub/%s/bin/git.exe"), AppDataLocalPath, *(PortableGitFolders.Last())); // keep only the last PortableGit found
+				bFound = CheckGitAvailability(GitBinaryPath);
+			}
 		}
 	}
+
+	// 5) Else, look for the version of Git bundled with Tower
+	if (!bFound)
+	{
+		GitBinaryPath = TEXT("C:/Program Files (x86)/fournova/Tower/vendor/Git/bin/git.exe");
+		bFound = CheckGitAvailability(GitBinaryPath);
+	}
+
 #else
 	FString GitBinaryPath = TEXT("/usr/bin/git");
 	bool bFound = CheckGitAvailability(GitBinaryPath);
@@ -208,7 +229,7 @@ FString FindGitBinaryPath()
 	return GitBinaryPath;
 }
 
-bool CheckGitAvailability(const FString& InPathToGitBinary)
+bool CheckGitAvailability(const FString& InPathToGitBinary, FGitVersion *OutVersion)
 {
 	bool bGitAvailable = false;
 
@@ -221,9 +242,49 @@ bool CheckGitAvailability(const FString& InPathToGitBinary)
 		{
 			bGitAvailable = false;
 		}
+		else if(OutVersion)
+		{
+			ParseGitVersion(InfoMessages, OutVersion);
+			FindGitCapabilities(InPathToGitBinary, OutVersion);
+		}
 	}
 
 	return bGitAvailable;
+}
+
+void ParseGitVersion(const FString& InVersionString, FGitVersion *OutVersion) 
+{
+	// Parse "git version 2.11.0" into the string tokens "git", "version", "2.11.0"
+	TArray<FString> TokenizedString;
+	InVersionString.ParseIntoArrayWS(TokenizedString);
+
+	// Select the string token containing the version "2.11.0"
+	const FString* TokenVersionStringPtr = TokenizedString.FindByPredicate([](FString& s) { return TChar<TCHAR>::IsDigit(s[0]); });
+	if(TokenVersionStringPtr)
+	{
+		// Parse the version into its two Major.Minor numerical components
+		TArray<FString> ParsedVersionString;
+		TokenVersionStringPtr->ParseIntoArray(ParsedVersionString, TEXT("."));
+		if(ParsedVersionString.Num() >= 2)
+		{
+			if(ParsedVersionString[0].IsNumeric() && ParsedVersionString[1].IsNumeric())
+			{
+				OutVersion->Major = FCString::Atoi(*ParsedVersionString[0]);
+				OutVersion->Minor = FCString::Atoi(*ParsedVersionString[1]);
+			}
+		}
+	}
+}
+
+void FindGitCapabilities(const FString& InPathToGitBinary, FGitVersion *OutVersion) 
+{
+	FString InfoMessages;
+	FString ErrorMessages;
+	RunCommandInternalRaw(TEXT("cat-file -h"), InPathToGitBinary, FString(), TArray<FString>(), TArray<FString>(), InfoMessages, ErrorMessages);
+	if (InfoMessages.Contains("--filters"))
+	{
+		OutVersion->bHasCatFileWithFilters = true;
+	}
 }
 
 // Find the root of the Git repository, looking from the provided path and upward in its parent directories.
@@ -264,7 +325,7 @@ bool FindRootDirectory(const FString& InPath, FString& OutRepositoryRoot)
 			}
 		}
 	}
-	if (!bFound)
+	if(!bFound)
 	{
 		OutRepositoryRoot = InPath; // If not found, return the provided dir as best possible root.
 	}
@@ -379,7 +440,7 @@ bool RunCommit(const FString& InPathToGitBinary, const FString& InRepositoryRoot
 		}
 		Parameters.Add(TEXT("--amend"));
 
-		while (FileCount < InFiles.Num())
+		while(FileCount < InFiles.Num())
 		{
 			TArray<FString> FilesInBatch;
 			for(int32 FileIndex = 0; FileCount < InFiles.Num() && FileIndex < GitSourceControlConstants::MaxFilesPerBatch; FileIndex++, FileCount++)
@@ -402,6 +463,35 @@ bool RunCommit(const FString& InPathToGitBinary, const FString& InRepositoryRoot
 	return bResult;
 }
 
+/**
+ * @brief Extract the relative filename from a Git status result.
+ *
+ * Examples of status results:
+M  Content/Textures/T_Perlin_Noise_M.uasset
+R  Content/Textures/T_Perlin_Noise_M.uasset -> Content/Textures/T_Perlin_Noise_M2.uasset
+?? Content/Materials/M_Basic_Wall.uasset
+!! BasicCode.sln
+ *
+ * @param[in] InResult One line of status
+ * @return Relative filename extracted from the line of status
+ *
+ * @see FGitStatusFileMatcher and StateFromGitStatus()
+ */
+static FString FilenameFromGitStatus(const FString& InResult)
+{
+	int32 RenameIndex;
+	if(InResult.FindLastChar('>', RenameIndex))
+	{
+		// Extract only the second part of a rename "from -> to"
+		return InResult.RightChop(RenameIndex + 2);
+	}
+	else
+	{
+		// Extract the relative filename from the Git status result (after the 2 letters status and 1 space)
+		return InResult.RightChop(3);
+	}
+}
+
 /** Match the relative filename of a Git status result with a provided absolute filename */
 class FGitStatusFileMatcher
 {
@@ -413,16 +503,7 @@ public:
 
 	bool operator()(const FString& InResult) const
 	{
-		// Extract the relative filename from the Git status result
-		FString RelativeFilename = InResult.RightChop(3);
-		// Note: this is not enough in case of a rename from -> to
-		int32 RenameIndex;
-		if(RelativeFilename.FindLastChar('>', RenameIndex))
-		{
-			// Extract only the second part of a rename "from -> to"
-			RelativeFilename = RelativeFilename.RightChop(RenameIndex + 2);
-		}
-		return AbsoluteFilename.Contains(RelativeFilename);
+		return AbsoluteFilename.Contains(FilenameFromGitStatus(InResult));
 	}
 
 private:
@@ -542,7 +623,21 @@ static void RunGetConflictStatus(const FString& InPathToGitBinary, const FString
 	}
 }
 
-/** Parse the array of strings results of a 'git status' command
+/** Run a 'git ls-files' command to get all files tracked by Git recursively in a directory.
+ *
+ * Called in case of a "directory status" (no file listed in the command) when using the "Submit to Source Control" menu.
+*/
+static bool ListFilesInDirectoryRecurse(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const FString& InDirectory, TArray<FString>& OutFiles)
+{
+	TArray<FString> ErrorMessages;
+	TArray<FString> Directory;
+	Directory.Add(InDirectory);
+	return RunCommandInternal(TEXT("ls-files"), InPathToGitBinary, InRepositoryRoot, TArray<FString>(), Directory, OutFiles, ErrorMessages);
+}
+
+/** Parse the array of strings results of a 'git status' command for a provided list of files all in a common directory
+ *
+ * Called in case of a normal refresh of status on a list of assets in a the Content Browser (or user selected "Refresh" context menu).
  *
  * Example git status results:
 M  Content/Textures/T_Perlin_Noise_M.uasset
@@ -550,9 +645,11 @@ R  Content/Textures/T_Perlin_Noise_M.uasset -> Content/Textures/T_Perlin_Noise_M
 ?? Content/Materials/M_Basic_Wall.uasset
 !! BasicCode.sln
 */
-static void ParseStatusResults(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InFiles, const TArray<FString>& InResults, TArray<FGitSourceControlState>& OutStates)
+static void ParseFileStatusResult(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InFiles, const TArray<FString>& InResults, TArray<FGitSourceControlState>& OutStates)
 {
-	// Iterate on all files explicitely listed in the command
+	const FDateTime Now = FDateTime::Now();
+
+	// Iterate on all files explicitly listed in the command
 	for(const auto& File : InFiles)
 	{
 		FGitSourceControlState FileState(File);
@@ -583,12 +680,45 @@ static void ParseStatusResults(const FString& InPathToGitBinary, const FString& 
 				FileState.WorkingCopyState = EWorkingCopyState::NotControlled;
 			}
 		}
-		FileState.TimeStamp.Now();
+		FileState.TimeStamp = Now;
 		OutStates.Add(FileState);
 	}
 }
 
-// Run a Git "status" command to update status of given files.
+/**
+ * @brief Detects how to parse the result of a "status" command to get workspace file states
+ *
+ *  It is either a command for a whole directory (ie. "Content/", in case of "Submit to Source Control" menu),
+ * or for one or more files all on a same directory (by design, since we group files by directory in RunUpdateStatus())
+ *
+ * @param[in]	InPathToGitBinary	The path to the Git binary
+ * @param[in]	InRepositoryRoot	The Git repository from where to run the command - usually the Game directory (can be empty)
+ * @param[in]	InFiles				List of files in a directory, or the path to the directory itself (never empty).
+ * @param[out]	InResults			Results from the "status" command
+ * @param[out]	OutStates			States of files for witch the status has been gathered (distinct than InFiles in case of a "directory status")
+ */
+static void ParseStatusResults(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InFiles, const TArray<FString>& InResults, TArray<FGitSourceControlState>& OutStates)
+{
+	if (1 == InFiles.Num() && FPaths::DirectoryExists(InFiles[0]))
+	{
+		// 1) Special case for "status" of a directory: requires to get the list of files by ourselves.
+		//   (this is triggered by the "Submit to Source Control" menu)
+		TArray<FString> Files;
+		const FString& Directory = InFiles[0];
+		const bool bResult = ListFilesInDirectoryRecurse(InPathToGitBinary, InRepositoryRoot, Directory, Files);
+		if (bResult)
+		{
+			ParseFileStatusResult(InPathToGitBinary, InRepositoryRoot, Files, InResults, OutStates);
+		}
+	}
+	else
+	{
+		// 2) General case for one or more files in the same directory.
+		ParseFileStatusResult(InPathToGitBinary, InRepositoryRoot, InFiles, InResults, OutStates);
+	}
+}
+
+// Run a batch of Git "status" command to update status of given files and/or directories.
 bool RunUpdateStatus(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InFiles, TArray<FString>& OutErrorMessages, TArray<FGitSourceControlState>& OutStates)
 {
 	bool bResults = true;
@@ -635,11 +765,14 @@ bool RunUpdateStatus(const FString& InPathToGitBinary, const FString& InReposito
 	return bResults;
 }
 
-// Run a Git show command to dump the binary content of a revision into a file.
+// Run a Git `cat-file --filters` command to dump the binary content of a revision into a file.
 bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const FString& InParameter, const FString& InDumpFileName)
 {
-	bool bResult = false;
+	int32 ReturnCode = -1;
 	FString FullCommand;
+
+	FGitSourceControlModule& GitSourceControl = FModuleManager::LoadModuleChecked<FGitSourceControlModule>("GitSourceControl");
+	const FGitVersion& GitVersion = GitSourceControl.GetProvider().GetGitVersion();
 
 	if(!InRepositoryRoot.IsEmpty())
 	{
@@ -650,8 +783,18 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 		FullCommand += TEXT("\" --git-dir=\"");
 		FullCommand += FPaths::Combine(*InRepositoryRoot, TEXT(".git\" "));
 	}
+
 	// then the git command itself
-	FullCommand += TEXT("show ");
+	if(GitVersion.bHasCatFileWithFilters)
+	{
+		// Newer versions (2.9.3.windows.2) support smudge/clean filters used by Git LFS, git-fat, git-annex, etc
+		FullCommand += TEXT("cat-file --filters ");
+	}
+	else
+	{
+		// Previous versions fall-back on "git show" like before
+		FullCommand += TEXT("show ");
+	}
 
 	// Append to the command the parameter
 	FullCommand += InParameter;
@@ -665,7 +808,7 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 
 	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
 
-	FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*InPathToGitBinary, *FullCommand, bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, nullptr, 0, nullptr, PipeWrite);
+	FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*InPathToGitBinary, *FullCommand, bLaunchDetached, bLaunchHidden, bLaunchReallyHidden, nullptr, 0, *InRepositoryRoot, PipeWrite);
 	if(ProcessHandle.IsValid())
 	{
 		FPlatformProcess::Sleep(0.01);
@@ -686,25 +829,34 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 		{
 			BinaryFileContent.Append(MoveTemp(BinaryData));
 		}
-		// Save buffer into temp file
-		if(FFileHelper::SaveArrayToFile(BinaryFileContent, *InDumpFileName))
+
+		FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode);
+		if(ReturnCode == 0)
 		{
-			UE_LOG(LogSourceControl, Log, TEXT("Writed '%s' (%do)"), *InDumpFileName, BinaryFileContent.Num());
-			bResult = true;
+			// Save buffer into temp file
+			if(FFileHelper::SaveArrayToFile(BinaryFileContent, *InDumpFileName))
+			{
+				UE_LOG(LogSourceControl, Log, TEXT("Writed '%s' (%do)"), *InDumpFileName, BinaryFileContent.Num());
+			}
+			else
+			{
+				UE_LOG(LogSourceControl, Error, TEXT("Could not write %s"), *InDumpFileName);
+				ReturnCode = -1;
+			}
 		}
 		else
 		{
-			UE_LOG(LogSourceControl, Error, TEXT("Could not write %s"), *InDumpFileName);
+			UE_LOG(LogSourceControl, Error, TEXT("DumpToFile: ReturnCode=%d"), ReturnCode);
 		}
 	}
 	else
 	{
-		UE_LOG(LogSourceControl, Error, TEXT("Failed to launch 'git show'"));
+		UE_LOG(LogSourceControl, Error, TEXT("Failed to launch 'git cat-file'"));
 	}
 
 	FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
 
-	return bResult;
+	return (ReturnCode == 0);
 }
 
 
@@ -787,13 +939,14 @@ static void ParseLogResults(const TArray<FString>& InResults, TGitSourceControlH
 			// End of the previous commit
 			if(SourceControlRevision->RevisionNumber != 0)
 			{
-				OutHistory.Add(SourceControlRevision);
+				OutHistory.Add(MoveTemp(SourceControlRevision));
 
 				SourceControlRevision = MakeShareable(new FGitSourceControlRevision);
 			}
 			SourceControlRevision->CommitId = Result.RightChop(7); // Full commit SHA1 hexadecimal string
 			SourceControlRevision->ShortCommitId = SourceControlRevision->CommitId.Left(8); // Short revision ; first 8 hex characters (max that can hold a 32 bit integer)
-			SourceControlRevision->RevisionNumber = FParse::HexNumber(*SourceControlRevision->ShortCommitId);
+			SourceControlRevision->CommitIdNumber = FParse::HexNumber(*SourceControlRevision->ShortCommitId);
+			SourceControlRevision->RevisionNumber = -1; // RevisionNumber will be set at the end, based off the index in the History
 		}
 		else if(Result.StartsWith(TEXT("Author: "))) // Author name & email
 		{
@@ -831,10 +984,16 @@ static void ParseLogResults(const TArray<FString>& InResults, TGitSourceControlH
 	// End of the last commit
 	if(SourceControlRevision->RevisionNumber != 0)
 	{
-		OutHistory.Add(SourceControlRevision);
+		OutHistory.Add(MoveTemp(SourceControlRevision));
+	}
+
+	// Then set the Index number of each Revision
+	int32 RevisionIndex = OutHistory.Num();
+	for(const auto& SourceControlRevisionItem : OutHistory)
+	{
+		SourceControlRevisionItem->RevisionNumber = RevisionIndex--;
 	}
 }
-
 
 /**
  * Extract the SHA1 identifier and size of a blob (file) from a Git "ls-tree" command.
@@ -869,19 +1028,19 @@ bool RunGetHistory(const FString& InPathToGitBinary, const FString& InRepository
 	{
 		TArray<FString> Results;
 		TArray<FString> Parameters;
-		Parameters.Add(bMergeConflict?TEXT("--max-count 1"):TEXT("--max-count 100"));
 		Parameters.Add(TEXT("--follow")); // follow file renames
 		Parameters.Add(TEXT("--date=raw"));
 		Parameters.Add(TEXT("--name-status")); // relative filename at this revision, preceded by a status character
 		Parameters.Add(TEXT("--pretty=medium")); // make sure format matches expected in ParseLogResults
-		TArray<FString> Files;
-		Files.Add(*InFile);
 		if(bMergeConflict)
 		{
 			// In case of a merge conflict, we also need to get the tip of the "remote branch" (MERGE_HEAD) before the log of the "current branch" (HEAD)
 			// @todo does not work for a cherry-pick! Test for a rebase.
 			Parameters.Add(TEXT("MERGE_HEAD"));
+			Parameters.Add(TEXT("--max-count 1"));
 		}
+		TArray<FString> Files;
+		Files.Add(*InFile);
 		bResults = RunCommand(TEXT("log"), InPathToGitBinary, InRepositoryRoot, Parameters, Files, Results, OutErrorMessages);
 		if(bResults)
 		{

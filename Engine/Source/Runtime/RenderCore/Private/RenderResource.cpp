@@ -141,8 +141,81 @@ void BeginUpdateResourceRHI(FRenderResource* Resource)
 		});
 }
 
+struct FBatchedReleaseResources
+{
+	enum 
+	{
+		NumPerBatch = 16
+	};
+	int32 NumBatch;
+	FRenderResource* Resources[NumPerBatch];
+	FBatchedReleaseResources()
+	{
+		Reset();
+	}
+	void Reset()
+	{
+		NumBatch = 0;
+	}
+	void Execute()
+	{
+		for (int32 Index = 0; Index < NumBatch; Index++)
+		{
+			Resources[Index]->ReleaseResource();
+		}
+		Reset();
+	}
+	void Flush()
+	{
+		if (NumBatch)
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+				BatchReleaseCommand,
+				FBatchedReleaseResources, BatchedReleaseResources, *this,
+				{
+					BatchedReleaseResources.Execute();
+				});
+			Reset();
+		}
+	}
+	void Add(FRenderResource* Resource)
+	{
+		if (NumBatch >= NumPerBatch)
+		{
+			Flush();
+		}
+		check(NumBatch < NumPerBatch);
+		Resources[NumBatch] = Resource;
+		NumBatch++;
+	}
+	bool IsEmpty()
+	{
+		return !NumBatch;
+	}
+};
+
+static bool GBatchedReleaseIsActive = false;
+static FBatchedReleaseResources GBatchedRelease;
+
+void StartBatchedRelease()
+{
+	check(IsInGameThread() && !GBatchedReleaseIsActive && GBatchedRelease.IsEmpty());
+	GBatchedReleaseIsActive = true;
+}
+void EndBatchedRelease()
+{
+	check(IsInGameThread() && GBatchedReleaseIsActive);
+	GBatchedRelease.Flush();
+	GBatchedReleaseIsActive = false;
+}
+
 void BeginReleaseResource(FRenderResource* Resource)
 {
+	if (GBatchedReleaseIsActive && IsInGameThread())
+	{
+		GBatchedRelease.Add(Resource);
+		return;
+	}
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		ReleaseCommand,
 		FRenderResource*,Resource,Resource,

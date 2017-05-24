@@ -29,7 +29,7 @@ int32 SScrubWidget::GetDivider(float InputMinX, float InputMaxX, FVector2D Widge
 
 	float TotalWidgetWidth = TimeScaleInfo.WidgetSize.X;
 	int32 NumKeys = TimeScaleInfo.ViewInputRange / TimePerKey;
-	float KeyWidgetWidth = TotalWidgetWidth / (float)Helper.GetNumKeys();
+	float KeyWidgetWidth = TotalWidgetWidth / (float)NumKeys;
 	int32 Divider = 1; 
 	if (KeyWidgetWidth > 0)
 	{
@@ -84,7 +84,7 @@ int32 SScrubWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGe
 	const FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
 
 	const bool bEnabled = ShouldBeEnabled( bParentEnabled );
-	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	const int32 TextLayer = BackgroundLayer + 1;
 

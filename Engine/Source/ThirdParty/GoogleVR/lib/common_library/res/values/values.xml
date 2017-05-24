@@ -29,9 +29,6 @@
 <string name="dialog_message_no_cardboard" description=" Text shown inside the dialog box that shows up to help users configure their Cardboard experience. This string is displayed when the user doesn't have the cardboard app installed. [CHAR LIMIT=200]">
       Get the Cardboard app in order to configure your viewer.
     </string>
-<string name="dialog_message_setup" description="  Text shown inside the dialog box that shows up to help users configure their Cardboard experience. [CHAR LIMIT=200]">
-      Set up your viewer for the best experience.
-    </string>
 <string name="dialog_title" description=" Short text for the title of the dialog box that shows up to help users configure their Cardboard experience. [CHAR LIMIT=30]">
       Configure
     </string>
@@ -80,7 +77,7 @@
 <string name="switch_viewer_action" description=" Text which when pressed, takes the user to the view that allows them to switch their Cardboard compatible viewer. [CHAR LIMIT=10]">
       Switch
     </string>
-<string name="switch_viewer_prompt" description=" Prompt asking if the user wants to switch their Cardboard compatible viewer. [CHAR LIMIT=30]">
+<string name="switch_viewer_prompt" description=" Prompt asking if the user wants to switch their Cardboard compatible viewer. [CHAR LIMIT=45]">
       Using a different viewer?
     </string>
 <!-- vr/gvr/platform/common/android/res/values/style.xml -->

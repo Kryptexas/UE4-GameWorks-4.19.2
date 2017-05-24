@@ -108,6 +108,7 @@ void FIntervalStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IProp
 				.OnValueChanged(this, &FIntervalStructCustomization<NumericType>::OnValueChanged, EIntervalField::Min)
 				.OnBeginSliderMovement(this, &FIntervalStructCustomization<NumericType>::OnBeginSliderMovement)
 				.OnEndSliderMovement(this, &FIntervalStructCustomization<NumericType>::OnEndSliderMovement)
+				.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.AllowSpin(true)
 				.LabelVAlign(VAlign_Center)
@@ -133,6 +134,7 @@ void FIntervalStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IProp
 				.OnValueChanged(this, &FIntervalStructCustomization<NumericType>::OnValueChanged, EIntervalField::Max)
 				.OnBeginSliderMovement(this, &FIntervalStructCustomization<NumericType>::OnBeginSliderMovement)
 				.OnEndSliderMovement(this, &FIntervalStructCustomization<NumericType>::OnEndSliderMovement)
+				.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.AllowSpin(true)
 				.LabelVAlign(VAlign_Center)
@@ -207,14 +209,42 @@ void FIntervalStructCustomization<NumericType>::SetValue(NumericType NewValue, E
 	const TOptional<NumericType> OtherValue = GetValue<NumericType>(OtherHandle);
 	const bool bOutOfRange = OtherValue.IsSet() && ((Field == EIntervalField::Min && NewValue > OtherValue.GetValue()) || (Field == EIntervalField::Max && NewValue < OtherValue.GetValue()));
 
+	// The order of execution of the Intertactive change vs commit is super important for the Undo history
+	// So Interactive we must do, Handle, Other Handle
+	// For Commit: we must do the reverse to properly close the scope of traction
 	if (!bOutOfRange || bAllowInvertedInterval)
 	{
-		ensure(Handle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+		if (Flags == EPropertyValueSetFlags::InteractiveChange)
+		{
+			ensure(Handle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+
+			if (OtherValue.IsSet())
+			{
+				ensure(OtherHandle->SetValue(OtherValue.GetValue(), Flags) == FPropertyAccess::Success);
+			}
+		}
+		else
+		{
+			if (OtherValue.IsSet())
+			{
+				ensure(OtherHandle->SetValue(OtherValue.GetValue(), Flags) == FPropertyAccess::Success);
+			}
+
+			ensure(Handle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+		}
 	}
 	else if (!bClampToMinMaxLimits)
 	{
-		ensure(Handle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
-		ensure(OtherHandle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+		if (Flags == EPropertyValueSetFlags::InteractiveChange)
+		{
+			ensure(Handle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+			ensure(OtherHandle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+		}
+		else
+		{
+			ensure(OtherHandle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+			ensure(Handle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+		}
 	}
 }
 

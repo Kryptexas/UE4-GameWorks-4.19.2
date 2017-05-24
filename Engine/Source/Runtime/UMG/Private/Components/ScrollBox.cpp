@@ -181,7 +181,7 @@ const FText UScrollBox::GetPaletteCategory()
 	return LOCTEXT("Panel", "Panel");
 }
 
-void UScrollBox::OnDescendantSelected( UWidget* DescendantWidget )
+void UScrollBox::OnDescendantSelectedByDesigner( UWidget* DescendantWidget )
 {
 	UWidget* SelectedChild = UWidget::FindChildContainingDescendant( this, DescendantWidget );
 	if ( SelectedChild )
@@ -196,7 +196,7 @@ void UScrollBox::OnDescendantSelected( UWidget* DescendantWidget )
 	}
 }
 
-void UScrollBox::OnDescendantDeselected( UWidget* DescendantWidget )
+void UScrollBox::OnDescendantDeselectedByDesigner( UWidget* DescendantWidget )
 {
 	if ( TickHandle.IsValid() )
 	{

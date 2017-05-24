@@ -45,7 +45,7 @@ public:
 	 *
 	 * @return true if successfully sent
 	 */
-	virtual bool SendMessage(FString RecipientId, const FXmppMessage& Message) = 0;
+	virtual bool SendMessage(const FString& RecipientId, const FXmppMessage& Message) = 0;
 
 	/**
 	 * Delegate callback for when a new message is received

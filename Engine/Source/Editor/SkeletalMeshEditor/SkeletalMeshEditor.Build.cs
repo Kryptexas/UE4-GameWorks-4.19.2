@@ -4,9 +4,15 @@ using UnrealBuildTool;
 
 public class SkeletalMeshEditor : ModuleRules
 {
-	public SkeletalMeshEditor(TargetInfo Target)
+	public SkeletalMeshEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateDependencyModuleNames.AddRange(
+        PublicDependencyModuleNames.AddRange(
+            new string[] {
+                "Persona",
+            }
+        );
+
+        PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
@@ -16,7 +22,7 @@ public class SkeletalMeshEditor : ModuleRules
 				"SlateCore",
                 "EditorStyle",
                 "UnrealEd",
-                "Persona",
+                
                 "SkeletonEditor",
                 "Kismet",
                 "KismetWidgets",
@@ -26,6 +32,8 @@ public class SkeletalMeshEditor : ModuleRules
                 "DesktopPlatform",
                 "PropertyEditor",
                 "RHI",
+                "ClothingSystemRuntime",
+                "ClothingSystemEditorInterface"
             }
 		);
 

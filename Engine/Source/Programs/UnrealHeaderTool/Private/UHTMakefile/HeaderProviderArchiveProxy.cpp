@@ -8,7 +8,7 @@
 
 FHeaderProvider FHeaderProviderArchiveProxy::CreateHeaderProvider() const
 {
-	FHeaderProvider Result = FHeaderProvider(static_cast<EHeaderProviderSourceType>(Type), Id, bAutoInclude);
+	FHeaderProvider Result = FHeaderProvider(static_cast<EHeaderProviderSourceType>(Type), CopyTemp(Id), bAutoInclude);
 	return Result;
 }
 

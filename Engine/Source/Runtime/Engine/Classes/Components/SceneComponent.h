@@ -78,10 +78,11 @@ enum ERelativeTransformSpace
 enum EMoveComponentFlags
 {
 	// Bitflags.
-	MOVECOMP_NoFlags					= 0x0000,	// no flags
-	MOVECOMP_IgnoreBases				= 0x0001,	// ignore collisions with things the Actor is based on
-	MOVECOMP_SkipPhysicsMove			= 0x0002,	// when moving this component, do not move the physics representation. Used internally to avoid looping updates when syncing with physics.
-	MOVECOMP_NeverIgnoreBlockingOverlaps= 0x0004,	// never ignore initial blocking overlaps during movement, which are usually ignored when moving out of an object. MOVECOMP_IgnoreBases is still respected.
+	MOVECOMP_NoFlags						= 0x0000,	// no flags
+	MOVECOMP_IgnoreBases					= 0x0001,	// ignore collisions with things the Actor is based on
+	MOVECOMP_SkipPhysicsMove				= 0x0002,	// when moving this component, do not move the physics representation. Used internally to avoid looping updates when syncing with physics.
+	MOVECOMP_NeverIgnoreBlockingOverlaps	= 0x0004,	// never ignore initial blocking overlaps during movement, which are usually ignored when moving out of an object. MOVECOMP_IgnoreBases is still respected.
+	MOVECOMP_DisableBlockingOverlapDispatch	= 0x0008,	// avoid dispatching blocking hit events when the hit started in penetration (and is not ignored, see MOVECOMP_NeverIgnoreBlockingOverlaps).
 };
 
 #define SCENECOMPONENT_QUAT_TOLERANCE		(1.e-8f) // Comparison tolerance for checking if two FQuats are the same when moving SceneComponents.
@@ -747,24 +748,74 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	virtual bool IsVisible() const;
 
+protected:
+
+	/**
+	 * Overridable internal function to respond to changes in the visibility of the component.
+	 */
+	virtual void OnVisibilityChanged();
+
+	/**
+	* Overridable internal function to respond to changes in the hidden in game value of the component.
+	*/
+	virtual void OnHiddenInGameChanged();
+
+private:
+
+	/** 
+	 * Enum that dictates what propagation policy to follow when calling SetVisibility or SetHiddenInGame recursively 
+	 */
+	enum class EVisibilityPropagation : uint8
+	{
+		// Only change the visibility if needed
+		NoPropagation, 
+
+		// If the visibility changed, mark all attached component's render states as dirty
+		DirtyOnly,
+
+		// Call function recursively on attached components and also mark their render state as dirty
+		Propagate
+	};
+
+	/**
+	 * Internal function to set visibility of the component. Enum controls propagation rules.
+	 */
+	void SetVisibility(bool bNewVisibility, EVisibilityPropagation PropagateToChildren);
+
+	/**
+	* Internal function to set hidden in game for the component. Enum controls propagation rules.
+	*/
+	void SetHiddenInGame(bool bNewHiddenInGame, EVisibilityPropagation PropagateToChildren);
+
+public:
+
 	/** 
 	 * Set visibility of the component, if during game use this to turn on/off
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
-	virtual void SetVisibility(bool bNewVisibility, bool bPropagateToChildren=false);
+	void SetVisibility(bool bNewVisibility, bool bPropagateToChildren=false)
+	{
+		SetVisibility(bNewVisibility, bPropagateToChildren ? EVisibilityPropagation::Propagate : EVisibilityPropagation::DirtyOnly);
+	}
 
 	/** 
 	 * Toggle visibility of the component
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
-	void ToggleVisibility(bool bPropagateToChildren=false);
+	void ToggleVisibility(bool bPropagateToChildren = false)
+	{
+		SetVisibility(!bVisible, bPropagateToChildren);
+	}
 
 	/**
 	 * Changes the value of HiddenGame.
 	 * @param NewHidden	- The value to assign to HiddenGame.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Development")
-	virtual void SetHiddenInGame(bool NewHidden, bool bPropagateToChildren=false);
+	void SetHiddenInGame(bool NewHidden, bool bPropagateToChildren=false)
+	{
+		SetHiddenInGame(NewHidden, bPropagateToChildren ? EVisibilityPropagation::Propagate : EVisibilityPropagation::DirtyOnly);
+	}
 
 public:
 	/** Delegate that will be called when PhysicsVolume has been changed **/
@@ -1096,15 +1147,13 @@ public:
 	/** Utility to see if there is any query collision enabled on this component. */
 	FORCEINLINE_DEBUGGABLE bool IsQueryCollisionEnabled() const
 	{
-		const ECollisionEnabled::Type CollisionSetting = GetCollisionEnabled();
-		return (CollisionSetting == ECollisionEnabled::QueryAndPhysics) || (CollisionSetting == ECollisionEnabled::QueryOnly);
+		return CollisionEnabledHasQuery(GetCollisionEnabled());
 	}
 
 	/** Utility to see if there is any physics collision enabled on this component. */
 	FORCEINLINE_DEBUGGABLE bool IsPhysicsCollisionEnabled() const
 	{
-		const ECollisionEnabled::Type CollisionSetting = GetCollisionEnabled();
-		return (CollisionSetting == ECollisionEnabled::QueryAndPhysics) || (CollisionSetting == ECollisionEnabled::PhysicsOnly);
+		return CollisionEnabledHasPhysics(GetCollisionEnabled());
 	}
 
 	/** Returns the response that this component has to a specific collision channel. */
@@ -1381,7 +1430,7 @@ public:
 	
 	typedef TArray<struct FHitResult, TInlineAllocator<2>> TBlockingHitArray;
 
-	FScopedMovementUpdate( USceneComponent* Component, EScopedUpdate::Type ScopeBehavior = EScopedUpdate::DeferredUpdates );
+	FScopedMovementUpdate( USceneComponent* Component, EScopedUpdate::Type ScopeBehavior = EScopedUpdate::DeferredUpdates, bool bRequireOverlapsEventFlagToQueueOverlaps = true );
 	~FScopedMovementUpdate();
 
 	enum class EHasMovedTransformOption
@@ -1416,6 +1465,12 @@ public:
 	/** Returns true if there are pending overlaps queued in this scope. */
 	bool HasPendingOverlaps() const;
 
+	/**
+	* Returns true if we require bGenerateOverlapEvents on both the moving object and the overlapped object to add them to the pending overlaps list.
+	* These flags will still be required when dispatching calls to UpdateOverlaps(), but this allows some custom processing of queued overlaps that would be otherwise missed along the way.
+	*/
+	bool RequiresOverlapsEventFlag() const;
+
 	/** Returns the pending overlaps within this scope. */
 	const TArray<FOverlapInfo>& GetPendingOverlaps() const;
 
@@ -1445,10 +1500,14 @@ public:
 
 	//--------------------------------------------------------------------------------------------------------//
 
-private:
+protected:
 
 	/** Fills in the list of overlaps at the end location (in EndOverlaps). Returns pointer to the list, or null if it can't be computed. */
 	const TArray<FOverlapInfo>* GetOverlapsAtEnd(class UPrimitiveComponent& PrimComponent, TArray<FOverlapInfo>& EndOverlaps, bool bTransformChanged) const;
+
+	bool SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewQuat, bool bNoPhysics = false, ETeleportType Teleport = ETeleportType::None);
+
+private:
 
 	/** Notify this scope that the given inner scope completed its update (ie is going out of scope). Only occurs for deferred updates. */
 	void OnInnerScopeComplete(const FScopedMovementUpdate& InnerScope);
@@ -1460,13 +1519,14 @@ private:
 	void	operator delete		(void *);
 	void	operator delete[]	(void*);
 
-private:
+protected:
 
 	USceneComponent* Owner;
 	FScopedMovementUpdate* OuterDeferredScope;
 	uint32 bDeferUpdates:1;
 	uint32 bHasMoved:1;
 	uint32 bHasTeleported:1;
+	uint32 bRequireOverlapsEventFlag:1;
 	EOverlapState CurrentOverlapState;
 
 	FTransform InitialTransform;
@@ -1502,6 +1562,11 @@ FORCEINLINE bool FScopedMovementUpdate::HasMoved(EHasMovedTransformOption CheckT
 FORCEINLINE bool FScopedMovementUpdate::HasPendingOverlaps() const
 {
 	return PendingOverlaps.Num() > 0;
+}
+
+FORCEINLINE bool FScopedMovementUpdate::RequiresOverlapsEventFlag() const
+{
+	return bRequireOverlapsEventFlag;
 }
 
 FORCEINLINE const TArray<struct FOverlapInfo>& FScopedMovementUpdate::GetPendingOverlaps() const

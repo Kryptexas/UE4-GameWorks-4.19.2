@@ -34,7 +34,7 @@ FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, cons
 
 		DelayedDrag = FDelayedDrag_Hotspot(VirtualTrackArea.CachedTrackAreaGeometry().AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()), MouseEvent.GetEffectingButton(), Hotspot);
 
- 		if (Sequencer.GetSettings()->GetSnapPlayTimeToDraggedKey() || (MouseEvent.IsShiftDown() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) )
+ 		if (Sequencer.GetSettings()->GetSnapPlayTimeToPressedKey() || (MouseEvent.IsShiftDown() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) )
 		{
 			if (DelayedDrag->Hotspot.IsValid())
 			{
@@ -45,7 +45,8 @@ FReply FSequencerEditTool_Movement::OnMouseButtonDown(SWidget& OwnerWidget, cons
 				}
 			}
 		}
-		return FReply::Handled();
+
+		return FReply::Handled().PreventThrottling();
 	}
 	return FReply::Unhandled();
 }
@@ -403,9 +404,9 @@ FString FSequencerEditTool_Movement::TimeToString(float Time, bool IsDelta) cons
 
 	if ((Settings != nullptr) && Settings->GetShowFrameNumbers())
 	{
-		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(Settings->GetTimeSnapInterval()))
+		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(Sequencer.GetFixedFrameInterval()))
 		{
-			const float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
+			const float FrameRate = 1.0f / Sequencer.GetFixedFrameInterval();
 			const int32 Frame = SequencerHelpers::TimeToFrame(Time, FrameRate);
 
 			return FString::Printf(IsDelta ? TEXT("[%+d]") : TEXT("%d"), Frame);

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2694959
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:ブループリントの種類
 Crumbs: %ROOT%, Engine/Blueprints
 Description:様々な種類のブループリントの情報に関するランディングページ
 version:4.9
+tags:Blueprints
 
 
 一見しただけで、使用する **ブループリント** のタイプを見分けるのは難しいものです。 
@@ -13,7 +14,7 @@ version:4.9
 
 インスタンスが 1 つか 2 つある場合 (例、撮影やオンオフできるTV セット) 、 
 関連コードと一緒に ブループリントのクラス を作成するのが妥当です。 
-そうでない場合、またいくつかのヘルパー関数を使用したい場合は ( X ユニット内の全てのアクタを探すなど)、  
+そうでない場合、またいくつかのヘルパー関数を使用したい場合は ( X ユニット内の全てのアクタを探すなど)、 
 Blueprint Macro Library に入れるのが理想的です。
 
 
@@ -41,7 +42,7 @@ Blueprint Macro Library に入れるのが理想的です。
 
 [EXCERPT:Types]
 
-## データのみのブループリント
+##データ専用ブループリント
 
 ![](data_blueprint.png)(w:250)
 
@@ -77,7 +78,7 @@ Blueprint Macro Library に入れるのが理想的です。
 	[PARAM:description]
 		**ブループリント ユーティリティ** は **Blutility** とも呼ばれる _ブループリント_ で、 
 		エディタの実行や機能の拡張に使用します。これらは UI のボタンとしてパラメータなしで [](Engine/Blueprints/UserGuide/Events) をエクスポーズすることができます。 
-		_ブループリント_ にエクスポーズされた全ての機能を実行する能力があり、現在ビューポートで選択されているアクタ一式に作用します。
+		_ブループリント_ にエクスポーズされた全ての機能を実行する能力があり、現ビューポートで選択されたアクタ一式を実行します。
 	[/PARAM]
 [/OBJECT]
 -->

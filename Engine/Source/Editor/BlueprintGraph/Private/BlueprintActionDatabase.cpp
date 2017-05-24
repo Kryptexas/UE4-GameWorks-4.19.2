@@ -687,9 +687,9 @@ static void BlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* c
  		}
 		else
 		{
-			UBlueprintVariableNodeSpawner* GetterSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), Property);
+			UBlueprintVariableNodeSpawner* GetterSpawner = UBlueprintVariableNodeSpawner::CreateFromMemberOrParam(UK2Node_VariableGet::StaticClass(), Property);
 			ActionListOut.Add(GetterSpawner);
-			UBlueprintVariableNodeSpawner* SetterSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableSet::StaticClass(), Property);
+			UBlueprintVariableNodeSpawner* SetterSpawner = UBlueprintVariableNodeSpawner::CreateFromMemberOrParam(UK2Node_VariableSet::StaticClass(), Property);
 			ActionListOut.Add(SetterSpawner);
 		}
 	}
@@ -745,7 +745,7 @@ static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UBlueprint con
 		ActionListOut.Add(MakeMacroNodeSpawner(*GraphIt));
 	}
 
-	// local variables
+	// local variables and parameters
 	for (auto GraphIt = Blueprint->FunctionGraphs.CreateConstIterator(); GraphIt; ++GraphIt)
 	{
 		UEdGraph* FunctionGraph = (*GraphIt);
@@ -755,15 +755,38 @@ static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UBlueprint con
 
 		for (UK2Node_FunctionEntry* FunctionEntry : GraphEntryNodes)
 		{
+			// Find the initial place where the function was defined, so we use the most generous scope
+			UFunction* SkeletonFunction = FindField<UFunction>(Blueprint->SkeletonGeneratedClass, FunctionGraph->GetFName());
+			for (UFunction* ParentFunction = SkeletonFunction; ParentFunction != nullptr; ParentFunction = ParentFunction->GetSuperFunction())
+			{
+				SkeletonFunction = ParentFunction;
+			}
+
+			// Create entries for function parameters
+			if (SkeletonFunction != nullptr)
+			{
+				for (TFieldIterator<UProperty> ParamIt(SkeletonFunction); ParamIt && (ParamIt->PropertyFlags & CPF_Parm); ++ParamIt)
+				{
+					UProperty* Param = *ParamIt;
+					const bool bIsFunctionInput = !Param->HasAnyPropertyFlags(CPF_ReturnParm) && (!Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm));
+					if (bIsFunctionInput)
+					{
+						UBlueprintNodeSpawner* GetVarSpawner = UBlueprintVariableNodeSpawner::CreateFromMemberOrParam(UK2Node_VariableGet::StaticClass(), Param, FunctionGraph);
+						ActionListOut.Add(GetVarSpawner);
+					}
+				}
+			}
+
+			// Create entries for local variables
 			for (FBPVariableDescription const& LocalVar : FunctionEntry->LocalVariables)
 			{
 				// Create a member reference so we can safely resolve the UProperty
 				FMemberReference Reference;
 				Reference.SetLocalMember(LocalVar.VarName, FunctionGraph->GetName(), LocalVar.VarGuid);
 
-				UBlueprintNodeSpawner* GetVarSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), FunctionGraph, LocalVar, Reference.ResolveMember<UProperty>(Blueprint->SkeletonGeneratedClass));
+				UBlueprintNodeSpawner* GetVarSpawner = UBlueprintVariableNodeSpawner::CreateFromLocal(UK2Node_VariableGet::StaticClass(), FunctionGraph, LocalVar, Reference.ResolveMember<UProperty>(Blueprint->SkeletonGeneratedClass));
 				ActionListOut.Add(GetVarSpawner);
-				UBlueprintNodeSpawner* SetVarSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableSet::StaticClass(), FunctionGraph, LocalVar, Reference.ResolveMember<UProperty>(Blueprint->SkeletonGeneratedClass));
+				UBlueprintNodeSpawner* SetVarSpawner = UBlueprintVariableNodeSpawner::CreateFromLocal(UK2Node_VariableSet::StaticClass(), FunctionGraph, LocalVar, Reference.ResolveMember<UProperty>(Blueprint->SkeletonGeneratedClass));
 				ActionListOut.Add(SetVarSpawner);
 			}
 		}

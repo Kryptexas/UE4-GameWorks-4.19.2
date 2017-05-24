@@ -10,6 +10,41 @@
 // file and is noted as such. More complete documentation will generally be found in those files.
 
 #pragma once
+
+#if CPP
+
+// Include the real definitions of the noexport classes below to allow the generated cpp file to compile.
+
+#include "Misc/Guid.h"
+#include "Misc/DateTime.h"
+#include "Misc/Timespan.h"
+#include "Misc/StringAssetReference.h"
+#include "Misc/StringClassReference.h"
+
+#include "Math/InterpCurvePoint.h"
+#include "Math/UnitConversion.h"
+#include "Math/Vector.h"
+#include "Math/Vector4.h"
+#include "Math/Vector2D.h"
+#include "Math/TwoVectors.h"
+#include "Math/Plane.h"
+#include "Math/Rotator.h"
+#include "Math/Quat.h"
+#include "Math/IntPoint.h"
+#include "Math/IntVector.h"
+#include "Math/Color.h"
+#include "Math/Box.h"
+#include "Math/Box2D.h"
+#include "Math/BoxSphereBounds.h"
+#include "Math/OrientedBox.h"
+#include "Math/Matrix.h"
+#include "Math/ScalarRegister.h"
+#include "Math/RandomStream.h"
+#include "Math/RangeBound.h"
+#include "Math/Interval.h"
+
+#endif
+
 #if !CPP      //noexport class
 
 /** String search case used in UnrealString.h */
@@ -163,6 +198,7 @@ enum EPixelFormat
 	PF_BC6H,
 	PF_BC7,
 	PF_R8_UINT,
+	PF_L8,
 	PF_MAX,
 };
 
@@ -220,64 +256,39 @@ UENUM(BlueprintType)
 enum class EUnit : uint8
 {
 	/** Scalar distance/length unit. */
-
-	Micrometers, Millimeters, Centimeters, Meters, Kilometers,
-	Inches, Feet, Yards, Miles,
-	Lightyears,
-
-
+	Micrometers, Millimeters, Centimeters, Meters, Kilometers, Inches, Feet, Yards, Miles, Lightyears,
+	
 	/** Angular units */
-
 	Degrees, Radians,
-
-
+	
 	/** Speed units */
-
 	MetersPerSecond, KilometersPerHour, MilesPerHour,
-
-
+	
 	/** Temperature units */
-
 	Celsius, Farenheit, Kelvin,
-
-
+	
 	/** Mass units */
-
-	Micrograms, Milligrams, Grams, Kilograms, MetricTons,
-	Ounces, Pounds, Stones,
-
-
+	Micrograms, Milligrams, Grams, Kilograms, MetricTons, Ounces, Pounds, Stones,
+	
 	/** Force units */
-
 	Newtons, PoundsForce, KilogramsForce,
-
-
+	
 	/** Frequency units */
-
 	Hertz, Kilohertz, Megahertz, Gigahertz, RevolutionsPerMinute,
-
-
-	/** Data Size units */
 	
+	/** Data Size units */	
 	Bytes, Kilobytes, Megabytes, Gigabytes, Terabytes,
-
-
-	/** Luminous flux units */
 	
+	/** Luminous flux units */	
 	Lumens,
-
-
-	/** Time units */
 	
+	/** Time units */	
 	Milliseconds, Seconds, Minutes, Hours, Days, Months, Years,
 
-	/** Arbitrary multiplier */
-	
+	/** Arbitrary multiplier */	
 	Multiplier,
 
-
-	/** Symbolic entry, not specifiable on meta data. */
-	
+	/** Symbolic entry, not specifiable on meta data. */	
 	Unspecified
 };
 
@@ -577,7 +588,7 @@ struct FBox2D
 	FVector2D Max;
 
 	UPROPERTY()
-	uint8 IsValid;
+	uint8 bIsValid;
 
 };
 
@@ -942,6 +953,29 @@ struct FStringClassReference : public FStringAssetReference
 {
 };
 
+/** A type of primary asset, this is a wrapper around FName and can be cast back and forth */
+USTRUCT(noexport, BlueprintType)
+struct FPrimaryAssetType
+{
+private:
+	/** The Type of this object, by default it's base class's name */
+	UPROPERTY()
+	FName Name;
+};
+
+/** This identifies an object as a "primary" asset that can be searched for by the AssetManager and used in various tools */
+USTRUCT(noexport, BlueprintType)
+struct FPrimaryAssetId
+{
+	/** The Type of this object, by default it's base class's name */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PrimaryAssetId)
+	FPrimaryAssetType PrimaryAssetType;
+
+	/** The Name of this object, by default it's short name */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PrimaryAssetId)
+	FName PrimaryAssetName;
+};
+
 // A struct used as stub for deleted ones.
 
 USTRUCT(noexport)
@@ -1046,6 +1080,38 @@ struct FInt32Interval
 	int32 Max;
 };
 
+// Automation
+
+UENUM()
+enum class EAutomationEventType : uint8
+{
+	Info,
+	Warning,
+	Error
+};
+
+USTRUCT(noexport)
+struct FAutomationEvent
+{
+	UPROPERTY()
+	EAutomationEventType Type;
+
+	UPROPERTY()
+	FString Message;
+
+	UPROPERTY()
+	FString Context;
+
+	UPROPERTY()
+	FString Filename;
+
+	UPROPERTY()
+	int32 LineNumber;
+
+	UPROPERTY()
+	FDateTime Timestamp;
+};
+
 //=============================================================================
 /**
  * Object: The base class all objects.
@@ -1064,10 +1130,8 @@ public:
 	 * Default UObject constructor.
 	 */
 	UObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UObject(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD_CTORS
 
 	//=============================================================================
 	// K2 support functions.
@@ -1083,36 +1147,3 @@ public:
 
 #endif
 
-#if CPP
-
-// Include the real definitions of the noexport classes above, to allow the generated cpp file to compile.
-
-#include "Misc/Guid.h"
-#include "Misc/DateTime.h"
-#include "Misc/Timespan.h"
-#include "Misc/StringAssetReference.h"
-#include "Misc/StringClassReference.h"
-
-#include "Math/InterpCurvePoint.h"
-#include "Math/UnitConversion.h"
-#include "Math/Vector.h"
-#include "Math/Vector4.h"
-#include "Math/Vector2D.h"
-#include "Math/TwoVectors.h"
-#include "Math/Plane.h"
-#include "Math/Rotator.h"
-#include "Math/Quat.h"
-#include "Math/IntPoint.h"
-#include "Math/IntVector.h"
-#include "Math/Color.h"
-#include "Math/Box.h"
-#include "Math/Box2D.h"
-#include "Math/BoxSphereBounds.h"
-#include "Math/OrientedBox.h"
-#include "Math/Matrix.h"
-#include "Math/ScalarRegister.h"
-#include "Math/RandomStream.h"
-#include "Math/RangeBound.h"
-#include "Math/Interval.h"
-
-#endif

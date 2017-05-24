@@ -50,6 +50,7 @@
 #include "ActorDetailsDelegates.h"
 #include "EditorCategoryUtils.h"
 #include "Widgets/Input/SHyperlink.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 
@@ -121,8 +122,6 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 			DetailLayout.HideProperty( GET_MEMBER_NAME_CHECKED(AActor, SpriteScale) );
 		}
 
-		AddExperimentalWarningCategory(DetailLayout);
-
 		if (!HideCategories.Contains(TEXT("Transform")))
 		{
 			AddTransformCategory(DetailLayout);
@@ -131,12 +130,6 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		if (!HideCategories.Contains(TEXT("Actor")))
 		{
 			AddActorCategory(DetailLayout, ActorsPerLevelCount);
-		}
-
-		// Add Blueprint category, if not being hidden
-		if (!HideCategories.Contains(TEXT("Blueprint")))
-		{
-			AddBlutilityCategory(DetailLayout, UniqueBlueprints);
 		}
 
 		OnExtendActorDetails.Broadcast(DetailLayout, FGetSelectedActors::CreateSP(this, &FActorDetails::GetSelectedActors));
@@ -455,60 +448,6 @@ void FActorDetails::AddTransformCategory( IDetailLayoutBuilder& DetailBuilder )
 	TransformCategory.AddCustomBuilder( TransformDetails );
 }
 
-void FActorDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder )
-{
-	const FSelectedActorInfo& SelectedActorInfo = DetailBuilder.GetDetailsView().GetSelectedActorInfo();
-
-	if (SelectedActorInfo.bHaveExperimentalClass || SelectedActorInfo.bHaveEarlyAccessClass)
-	{
-		const bool bExperimental = SelectedActorInfo.bHaveExperimentalClass;
-
-		const FName CategoryName(TEXT("Warning"));
-		const FText CategoryDisplayName = LOCTEXT("WarningCategoryDisplayName", "Warning");
-		FString ClassUsed = DetailBuilder.GetTopLevelProperty().ToString();
-		const FText WarningText = bExperimental ? FText::Format( LOCTEXT("ExperimentalClassWarning", "Uses experimental class: {0}") , FText::FromString(ClassUsed) )
-			: FText::Format( LOCTEXT("EarlyAccessClassWarning", "Uses early access class {0}"), FText::FromString(*ClassUsed) );
-		const FText SearchString = WarningText;
-		const FText Tooltip = bExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
-		const FString ExcerptName = bExperimental ? TEXT("ActorUsesExperimentalClass") : TEXT("ActorUsesEarlyAccessClass");
-		const FSlateBrush* WarningIcon = FEditorStyle::GetBrush(bExperimental ? "PropertyEditor.ExperimentalClass" : "PropertyEditor.EarlyAccessClass");
-
-		IDetailCategoryBuilder& WarningCategory = DetailBuilder.EditCategory(CategoryName, CategoryDisplayName, ECategoryPriority::Transform);
-
-		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString)
-			.WholeRowContent()
-			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
-				.BorderBackgroundColor(FColor (166,137,0))
-				[
-					SNew(SHorizontalBox)
-					.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
-					.Visibility(EVisibility::Visible)
-
-					+ SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-					[
-						SNew(SImage)
-						.Image(WarningIcon)
-					]
-
-					+SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-					[
-						SNew(STextBlock)
-						.Text(WarningText)
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-					]
-				]
-			];
-	}
-}
-
 void FActorDetails::AddActorCategory( IDetailLayoutBuilder& DetailBuilder, const TMap<ULevel*, int32>& ActorsPerLevelCount )
 {		
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
@@ -582,170 +521,9 @@ void FActorDetails::AddActorCategory( IDetailLayoutBuilder& DetailBuilder, const
 	}
 }
 
-
-void FActorDetails::AddBlutilityCategory( IDetailLayoutBuilder& DetailBuilder, const TMap<UBlueprint*, UObject*>& UniqueBlueprints )
-{
-	// Create the Blutilities Category
-	IDetailCategoryBuilder& BlutilitiesCategory = DetailBuilder.EditCategory("Blutilities", NSLOCTEXT("Blutilities", "BlutilityTitle", "Blutilities"), ECategoryPriority::Uncommon );
-
-	// Only show the bluetilities section if a single actor is selected
-	if ( SelectedActors.Num() > 0 && DoesActorHaveBlutiltyFunctions() )
-	{
-		// Reset function Selection
-		ActiveBlutilityFunction.Reset();
-
-		// Grab actor label for later use
-		TWeakObjectPtr<AActor> ActorPtr = SelectedActors[0];
-		FText ActorLabel = NSLOCTEXT( "UnrealEd", "None", "None" );
-
-		if ( ActorPtr.IsValid() )
-		{
-			ActorLabel = FText::FromString( ActorPtr.Get()->GetActorLabel() );
-		}
-
-		FFormatNamedArguments Args;
-		Args.Add( TEXT( "ActorLabel" ), ActorLabel );
-		const FText ButtonLabel = FText::Format( NSLOCTEXT( "Blutilities", "CallInEditor_ButtonLabel", "Run" ), Args );
-		const FText ButtonToolTip = FText::Format( NSLOCTEXT( "Blutilities", "CallInEditor_ButtonTooltip", "Run Selected Blutility Function on {ActorLabel}" ), Args );
-		// Build Content
-		BlutilitiesCategory.AddCustomRow( NSLOCTEXT( "Blutilities", "CallInEditorHeader", "Blutility Functions"))
-		.WholeRowContent()
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding( 0, 0, 2, 0 )
-			[
-				SNew( SBox )
-				.WidthOverride( 200 )
-				[
-					SNew( SComboButton )
-					.ContentPadding( 2 )
-					.HAlign(HAlign_Fill)
-					.OnGetMenuContent( this, &FActorDetails::BuildBlutiltyFunctionContent)
-					.ButtonContent()
-					[
-						SNew( STextBlock )
-						.Text( this, &FActorDetails::GetBlutilityComboButtonLabel ) 
-						.ToolTipText( this, &FActorDetails::GetBlutilityComboButtonLabel )
-						.Font( IDetailLayoutBuilder::GetDetailFont() )
-					]
-				]
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew( SBox )
-				.WidthOverride( 50 )
-				[
-					SNew( SButton )
-					.ToolTipText( ButtonToolTip )
-					.OnClicked( this, &FActorDetails::CallBlutilityFunction )
-					.IsEnabled( this, &FActorDetails::CanCallBlutilityFunction )
-					.HAlign( HAlign_Center )
-					.ContentPadding( 2 )
-					[
-						SNew( STextBlock )
-						.Text( ButtonLabel )
-						.Font( IDetailLayoutBuilder::GetDetailFont() )
-					]
-				]
-			]
-		];
-		// Iterate over actor properties, adding property rows that are editable and may feed into the blutility function.
-		TArray<UObject*> ActorArray;
-		ActorArray.Add( ActorPtr.Get() );
-		for( TFieldIterator<UProperty> PropertyIt(ActorPtr->GetClass()); PropertyIt; ++PropertyIt )
-		{
-			const bool bBlueprintProperty = PropertyIt->GetOuter()->GetClass() == UBlueprintGeneratedClass::StaticClass();
-			if( bBlueprintProperty && !PropertyIt->HasAllPropertyFlags( CPF_DisableEditOnInstance ))
-			{
-				BlutilitiesCategory.AddExternalProperty( ActorArray, PropertyIt->GetFName(), EPropertyLocation::Advanced );
-			}
-		}
-	}
-}
-
 const TArray< TWeakObjectPtr<AActor> >& FActorDetails::GetSelectedActors() const
 {
 	return SelectedActors;
-}
-
-bool FActorDetails::DoesActorHaveBlutiltyFunctions() const
-{
-	bool bFunctionsFound = false;
-
-	if( SelectedActors.Num() > 0 )
-	{
-		TWeakObjectPtr<AActor> WeakActorPtr = SelectedActors[ 0 ];
-		UClass* ActorClass = WeakActorPtr.IsValid() ? WeakActorPtr->GetClass() : nullptr;
-
-		if( ActorClass )
-		{
-			for( TFieldIterator<UFunction> FunctionIter(ActorClass, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter )
-			{
-				if( FunctionIter->GetBoolMetaData( FBlueprintMetadata::MD_CallInEditor ))
-				{
-					bFunctionsFound = true;
-					break;
-				}
-			}
-		}
-	}
-
-	return bFunctionsFound;
-}
-
-FText FActorDetails::GetBlutilityComboButtonLabel() const
-{
-	return ActiveBlutilityFunction.IsValid() ?  FText::FromString( ActiveBlutilityFunction->GetName() ) : 
-												NSLOCTEXT( "Blutilities", "CallInEditor_ComboLabel", "Select Blutility" );
-}
-
-TSharedRef<SWidget> FActorDetails::BuildBlutiltyFunctionContent() const
-{
-	if( SelectedActors.Num() > 0 )
-	{
-		TWeakObjectPtr<AActor> WeakActorPtr = SelectedActors[ 0 ];
-		UClass* ActorClass = WeakActorPtr.IsValid() ? WeakActorPtr->GetClass() : nullptr;
-
-		if( ActorClass )
-		{
-			FMenuBuilder MenuBuilder( true, NULL );
-			MenuBuilder.BeginSection("BlutilityFunctions", NSLOCTEXT( "Blutilities", "CallInEditorHeader", "Blutility Functions") );
-			const FSlateIcon BlutilityIcon(FEditorStyle::GetStyleSetName(), "GraphEditor.CallInEditorEvent_16x");
-
-			for (TFieldIterator<UFunction> FunctionIter(ActorClass, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter)
-			{
-				if( FunctionIter->GetBoolMetaData( FBlueprintMetadata::MD_CallInEditor ))
-				{
-					MenuBuilder.AddMenuEntry(	FText::FromString( *FunctionIter->GetName() ), 
-												FunctionIter->GetToolTipText(), 
-												BlutilityIcon,
-												FUIAction( FExecuteAction::CreateSP( this, &FActorDetails::SetActiveBlutilityFunction, TWeakObjectPtr<UFunction>(*FunctionIter))));
-				}
-			}
-			MenuBuilder.EndSection();
-
-			return MenuBuilder.MakeWidget();
-		}
-	}
-
-	return SNullWidget::NullWidget;
-}
-
-FReply FActorDetails::CallBlutilityFunction()
-{
-	TWeakObjectPtr<AActor> ActorWeakPtr = SelectedActors.Num() ? SelectedActors[ 0 ] : nullptr;
-	
-	if( ActorWeakPtr.IsValid() && ActiveBlutilityFunction.IsValid() )
-	{
-		AActor* Actor = ActorWeakPtr.Get();
-		UFunction* ActiveFunction = ActiveBlutilityFunction.Get();
-		Actor->ProcessEvent( ActiveFunction, ActiveFunction->Children );
-	}
-
-	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

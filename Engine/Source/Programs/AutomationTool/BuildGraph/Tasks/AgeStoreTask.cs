@@ -114,10 +114,8 @@ namespace Win.Automation
         public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
         {
             // Get the list of symbol file name patterns from the platform.
-            UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(Parameters.Platform);
-            UEToolChain ToolChain = Platform.CreateContext(null, null).CreateToolChainForDefaultCppPlatform();
-            var DirectoryStructure = ToolChain.SymbolServerDirectoryStructure;
-
+            Platform TargetPlatform = Platform.GetPlatform(Parameters.Platform);
+            string[] DirectoryStructure = TargetPlatform.SymbolServerDirectoryStructure;
             if (DirectoryStructure == null)
             {
                 CommandUtils.LogError("Platform does not specify the symbol server structure. Cannot age the symbol server.");

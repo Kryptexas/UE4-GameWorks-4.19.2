@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -35,7 +35,7 @@
 #if PX_WINDOWS_FAMILY
 #include <crtdbg.h>
 #elif PX_NX
-#include "nx/PsNXAbort.h"
+#include "Switch/PsNXAbort.h"
 #endif
 
 namespace

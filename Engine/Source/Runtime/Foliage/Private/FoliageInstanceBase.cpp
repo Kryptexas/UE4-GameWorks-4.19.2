@@ -140,7 +140,7 @@ FFoliageInstanceBaseId FFoliageInstanceBaseCache::AddInstanceBaseId(UActorCompon
 
 FFoliageInstanceBaseId FFoliageInstanceBaseCache::GetInstanceBaseId(UActorComponent* InComponent) const
 {
-	FFoliageInstanceBasePtr BasePtr = InComponent;
+	FFoliageInstanceBasePtr BasePtr(InComponent);
 	if (!BasePtr.IsValid())
 	{
 		return InvalidBaseId;

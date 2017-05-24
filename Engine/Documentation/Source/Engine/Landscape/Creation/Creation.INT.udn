@@ -52,8 +52,8 @@ The **Landscape** tool will allow you to create massive terrain based worlds tha
 Because of the flexibility of the Landscape system, you can create your Landscape using either of the following methods. 
 
 * You can create a new Landscape heightmap from scratch using the Landscape tools in-engine.
-* You can import a Landscape heightmap created previously in Unreal Editor or created through external tools. To read more about how to do this, please check out
-	the [Creating Custom Heightmaps and Layers](Engine/Landscape/Custom) document.
+* You can import a Landscape heightmap created previously in Unreal Editor or created through external tools. To read more about how to do this, please check out the [](Engine/Landscape/Custom) document.
+* To create your own format for importing Landscapes, please see our [](Engine/Landscape/Creation/Plugin) document.
 
 [REGION:note]
 For examples of the Landscape tool in action, see the [](Resources\ContentExamples\Landscapes) Content Example.
@@ -171,11 +171,3 @@ Once you have pressed the **Create** Button, you should have something that look
 ![Landscape_NewTerrain.png](Landscape_NewTerrain.png)(w:600)
 
 Now with your new Landscape now created, you can now start to [Sculpt](Engine/Landscape/Editing/SculptMode) or [Paint](Engine/Landscape/Editing/PaintMode) the Landscape to your liking. 
-
-
-
-
-
-
-
-

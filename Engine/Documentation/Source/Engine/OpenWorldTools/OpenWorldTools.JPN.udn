@@ -1,21 +1,21 @@
-﻿INTSourceChangelist:3006361
+﻿INTSourceChangelist:3178047
 Availability:Public
-Title:Open World ツール
+Title:Open World ツールの概要
 Crumbs:
 Description:広い屋外環境の容易な作成を可能にするツール
 Navigation:topic
 SkillLevel:Intermediate
 Version:4.8
 parent:Engine
-order:7
+order:9
 
 ![](T_OWT_Header_00.png)
 
 2015 年の Games Developer Conference(GDC) で、エピックは動植物でいっぱいの壮大なオープンワールドのレンダリング能力を発表しました。
-このデモ作成に使用したツールはOpen World ツールと呼ばれ、アンリアルエンジン 4.8 のリリースで UE4 プロジェクトで利用可能になりました。 
+このデモ作成に使用したツールは **Open World ツール** と呼ばれ、アンリアルエンジン 4.8 のリリースで UE4 プロジェクトで利用可能になりました。 
 
 [region:note]
-Open World ツールは現時点では実験的であるため、ツールの使用中にエラーが発生したり不安定な状態になる可能性があることに留意してください。
+Open World ツールは実験的な段階なので、使用中にバグや安定性の問題が発生する場合があります。
 [/region]
 
 [VAR:Topic]

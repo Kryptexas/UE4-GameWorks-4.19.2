@@ -54,11 +54,19 @@ public:
 	 * Creates an input command from the specified user interface action
 	 * 
 	 * @param InBindingContext		The context where the command is valid
-	 * @param InUserInterfaceAction	The user interface action to create the input command from
+	 * @param InUICommandInfo		The user interface action to create the input command from
 	 *								Will automatically bind the user interface action to the command specified 
 	 *								by the action so when the command's chord is pressed, the action is executed
 	 */
 	void CreateInputCommand( const TSharedRef<FBindingContext>& InBindingContext, TSharedRef<FUICommandInfo> InUICommandInfo );
+
+	/**
+	 * Removes an input command, allowing a new one to take its place
+	 *
+	 * @param InBindingContext		The context where the command is valid
+	 * @param InUICommandInfo		The user interface action to remove
+	 */
+	void RemoveInputCommand( const TSharedRef<FBindingContext>& InBindingContext, TSharedRef<FUICommandInfo> InUICommandInfo );
 
 	/**
 	 * Returns a command info that is has the same active chord as the provided chord and is in the same binding context or parent context

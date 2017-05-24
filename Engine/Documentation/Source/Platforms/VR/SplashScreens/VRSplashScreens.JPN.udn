@@ -1,57 +1,57 @@
-﻿INTSourceChangelist:0
+﻿INTChangeList:3244832
 Availability:Docs
-Title:VR Splash Screens
+Title:VR スプラッシュ スクリーン
 Crumbs:%ROOT%, Platforms, Platforms/VR
-Description:Setting up and working with VR splash screens and movies.
+Description:VR スプラッシュ スクリーンとムービーの設定と操作方法
 Navigation:platform
-Version: 4.14
+Version:4.14
 parent:Platforms/VR
 Type:overview
-Skilllevel: Intermediate
+Skilllevel:Intermediate
 
 [TOC(start:2)]
 
-Unreal Engine 4 (UE4) offers support for displaying movies or images while a level loads when using Oculus, Gear VR, SteamVR, and PSVR Head Mounted Displays (HMD). The loading move or image will run on the rendering thread and can also help to mask frame rate issues while your content is loading. In the following document, we will take a look at how you can set these VR splash screens in your UE4 projects.
+Unreal Engine 4 (UE4) は、Oculus、Gear VR、SteamVR、PSVR Head Mounted Displays (HMD) の使用時にはレベルがロードされ、動画や画像の表示をサポートしてます。**ローディング** ムービーあるいは画像は、コンテンツのロード中にレンダリング スレッドで実行され、フレームレート問題をごまかしやすくします。次のドキュメントでは、この機能を UE4 プロジェクトで使用する方法を説明します。
 
-## VR Splash Screen Supported Platforms 
+## VR Splash Screen 対応のプラットフォーム 
 
-VR Splash Screens will only work when used with the following VR platforms. 
+VR Splash Screen は以下の VR プラットフォームでのみ使用できます。 
 
 * **Oculus VR**
 * **Gear VR**
 * **Steam VR**
 * **PSVR**
 
-## VR Splash Screen Project Setup
+## VR Splash Screen プロジェクトの設定
 
-Before you can setup and use the VR splash screens you will first need to create a new **Game Mode** and **Pawn** Blueprint to make it easier to work with the VR splash screens. In the following section, we will go over what Blueprints need to be created and how they need to be setup.
+VR splash screen を設定および使用する前に、まず **Game Mode** と **Pawn** ブループリントを新規作成してVR splash screen での作業をしやすくします。次のセクションでは、作成すべきブループリントとその設定方法について説明します。
 
-1. Right - click in the **Content Browser**, and from the **Create Basic Asset** list select the **Blueprint Class** option.
+1. コンテンツ ブラウザを右クリックして、**[Create Basic Asset (基本アセットの作成)]** リストで **[Blueprint Class]** オプションをクリックします。
 
     ![](VRLS_Intro_01.png)
 
-1. In the **All Classes** section of the **Pick Parent Class** dialogue box, search for **Game Mode**. When Game Mode is located, select it and then press the **Select** button and give it a name of **VR_GameMode**.
+1. **[Pick Parent Class]** ダイアログ ボックスの **[All Classes]** セクションで **[Game Mode]** を探します。Game Mode を見つけたら選択し、**[Select]** ボタンを押して **「VR_GameMode」** という名前をつけます。
 
     ![](VRLS_Intro_02.png)
 
-1. Repeat the above process but this time select the **Pawn** option from the Pick Parent Class dialogue box and call this new Pawn, **VR_Pawn**.
+1. このプロセスを繰り返すのですが、今は **[Pawn]** オプションを [Pick Parent Class] ダイアログ ボックスから選択して **「VR_Pawn」** という名前をつけます。
 
     ![](VRLS_Intro_03.png)
 
-1. Open up the VR_GameMode Blueprint and in the **Classes** section, set the **Default Pawn Class** to the VR_Pawn that was created. When completed, Compile and Save the VR_Gamemode Blueprint.
+1. VR_GameMode ブループリントを開いて、**[Classes]** セクションの **[Default Pawn Class]** を作成した [VR_Pawn] に変更します。変更したら、VR_Gamemode ブループリントをコンパイルして保存します。
 
     ![](VRLS_Intro_04.png)
 
-Now that the Pawn and Game Mode have been set up, in the next section we will take a look at how to setup the VR splash screens in the Pawn's Event Graph.
+Pawn と Game Mode を設定したので、ポーンのイベントグラフで VR Splash screen を設定する方法について説明します。
 
-## VR Splash Screen Setup
+## VR Splash Screen の設定
 
-In the following section, we will go over how you set up a VR splash screen in your Pawns Event Graph.
+次のセクションでこ、ポーンのイベントグラフで VR Splash Screen を設定する方法を説明します。
 
 [region:note]
-Please note that the following is showing the simplest way to set VR splash screens up. While each project has unique needs, the overall setup for VR splash screens will be very similar to what is described.
+VR スプラッシュスクリーンの最も簡単な設定方法は以下になります。プロジェクトごとにニーズは異なりますが、VR スプラッシュスクリーンの設定方法の大きな流れはほぼ一緒です。
 [/region]
-1. Open up the VR_Pawn and go to the **Event Graph**. Right - click inside the Event Graph and from the displayed menu, search for and add the following Blueprint nodes.
+1. VR_Pawn をから **Event Graph** を開きます。Event Graph 内を右クリックして、以下の Blueprint ノードを検索および追加します。
 
     * Enable Auto Loading Splash Screen
     * Set Splash Screen
@@ -59,101 +59,101 @@ Please note that the following is showing the simplest way to set VR splash scre
 
     ![](VRLS_Setup_01.png)
 
-1. With the nodes now added to the Event graph, arrange and connect the nodes so that they match the setup in the following image.
+1. イベントグラフにノードを追加したら、以下の画像の設定になるようにノードを調節および接続します。
 
     ![](VRLS_Setup_02.png)
 
-1. Since we want the VR splash screen to load any time a level is loaded, on the Enable Auto Loading Splash Screen node, check the **In Auto Show Enabled**.
+1. レベルがロードされる時は常に VR splash screen を Enable Auto Loading Splash Screen ノード上にロードしたいので、**[In Auto Show Enabled]** にチェックします。
 
     ![](VRLS_Setup_03.png)
 
-1. The Set Splash Screen node is where you specify which Texture to use for the VR splash screen. To set a set a VR splash screen Texture, select a Texture in the Content Browser and then press the small white arrow in the Texture section of the Ste Splash Screen node to use that Texture as the VR splash screen.
+1. Set Splash Screen ノードで、VR splash screen にどのテクスチャを使うか指定します。VR splash screen テクスチャを設定するには、コンテンツ ブラウザでテクスチャを選択し、Set Splash Screen ノードの [Texture] セクションにある小さな白い矢印を押して、そのテクスチャを VR スプラッシュスクリーンとして使用します。
 
     ![](VRLS_Setup_04.png)
     [region:note]
-    For this example, a noise Texture was created in Photoshop and then imported into UE4 and used. Feel free to use any Texture you want for this section.
+    この例では、フォトショップで作成したノイズ テクスチャを UE4 へインポートし使用しています。ここに自分の好きなテクスチャを使ってみてください。
     [/region]
     [region:warning]
-    If you are targeting **SteamVR** you will need to make sure that you set the **Compression Settings** of the Texture you are using for the splash screen to **UserInterface2D(RGBA)** or it will not be displayed when the splash screen is called.
+    **SteamVR** がターゲットであれば、スプラッシュスクリーンに使用するテクスチャの **Compression Settings** を **UserInterface2D(RGBA)** に設定する、あるいはスプラッシュスクリーンの呼び出し時に表示されないようにしてください。
 
     ![](VIL_SteamVR_Comp_Settings.png)
     [/region]
 
-1. Finally, on the Set Splash Screen node check the **Show on Set** option to make sure that the Texture you specified is displayed when a level is loaded.
+1. 最後に Set Splash Screen ノードで **[Show on Set]** オプションにチェックを入れて、レベルのロード時に指定したテクスチャが表示されるようにします。
 
     ![](VRLS_Setup_05.png)
 
-With the VR splash screen now set up in the next section, we will take a look at how to go about calling the VR splash screen when a new level is loaded.
+VR スプラッシュスクリーンを設定したので、次のセクションでは新規レベルのロード時の VR スプラッシュスクリーンの呼び出し方法について説明します。
 
-## VR Splash Screen Use
+## VR Splash Screen の使用方法
 
-Now that we have the Pawn setup to use the VR splash screens, in this section we will go over how to display the VR Splash Screens when a level is loaded.
+VR スプラッシュスクリーンを使うためのポーンのセットアップが完了したので、レベルのロード時に VR スプラッシュスクリーンを表示する方法を説明します。
 
-1. For this to work you will need to create **two** levels that we can load. To create the levels go to the **Main Toolbar** and select the **File** > **New Level** option. When the **New Level** popup box is displayed, select the **Default** level option.  
+1. そのために、ロードできるレベルを **2** つ作成する必要があります。レベルを作成するには、**メイン ツールバー** から **[File]** > **[New Level]** オプションを選びます。**[New Level]** ポップアップ ボックスが表示されたら、**[Default]** レベル オプションを選択します。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_00.png)(w:746)](VLI_NewLevel_00.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    クリックしてフルサイズで表示
     [/REGION]
 
-1. Inside of the **Content Browser** press the **Save All** button and name the new level **Level_00**. Once it has saved, **Right - Click** on Level_00 and from the context menu select the **Duplicate** option and name it **Level_01**. When all of that is completed, you should now have two new level in the Content Browser like in the image below. 
+1. **コンテンツ ブラウザ** の中にある **[Save All (すべて保存)]** ボタンを押して新規レベルに **「Level_00」** という名前を付けます。保存したら Level_00 を右クリックし、**[Duplicate (複製)]** オプションを選択します。複製したレベルに **「Level_01」** という名前を付けます。これがすべて完了すると、以下の画像のようにコンテンツ ブラウザには 2 つのレベルが新規作成されます。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_01.png)(w:746)](VLI_NewLevel_01.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    クリックしてフルサイズで表示
     [/REGION]
 
-1. Open up each level and go to **World Settings** > **Game Mode** and the **Game Mode Override** to the VR_GameMode Blueprint that was created. This way we can be sure that the correct Pawn will be used when the level is loaded.
+1. 各レベルを開いて **[World Settings]** > **[Game Mode]** で **[Game Mode Override]** を [VR_GameMode Blueprint] に指定します。こうすると、レベルのロード時に確実に正しいポーンが使われます。
 
     ![](VLI_NewLevel_06.png)
 
-1. Open up the VR_Pawn Blueprint, if not already open, and in the Event, graph add key inputs for the **R** and **T** keys.
+1. VR_Pawn Blueprint を開いてない場合は開き、イベントグラフで **R** キーと **T** キー用の Key 入力を追加します。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_02.png)(w:746)](VLI_NewLevel_02.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    クリックしてフルサイズで表示
     [/REGION]
 
-1.  Right - Click on the Event Graph and search for the **Open Level** Blueprint node and add it to the Event Graph. Connect the **Pressed** output for the T key to the Open Level input and in the **Level Name** option input **Level_00**.
+1. イベントグラフを右クリックし、**Open Level** Blueprint ノードを探して、イベントグラフに追加します。T キーの **[Pressed]** 出力を Open Level 入力に接続し **[Level Name]** フィールドに **Level_00** を入力します。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_03.png)(w:746)](VLI_NewLevel_03.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    クリックしてフルサイズで表示
     [/REGION]
 
-1. Select the Open Level node and then press **CTRL + W** on the keyboard to duplicate it. Connect the Pressed output for the **R** key to the new Open Level node and change the name of the Level to **Level_01**.
+1. Open Level ノードを選択し、キーボードで **CTRL + W** を選択して複製します。R キーの **[Pressed]** 出力を Open Level 入力に接続し、レベル名を **「Level_01」** に変更します。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_04.png)(w:746)](VLI_NewLevel_04.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    クリックしてフルサイズで表示
     [/REGION]
 
-1. Press the **Compile** and **Save** buttons to compile and save your Pawn Blueprint and then launch your project using the VR Preview.
+1. **[Compile]** ボタンと **[Save]** ボタンを押して Pawn ブループリントをコンパイルおよび保存し、VR プレビューでプロジェクトを起動します。
 
     [REGION:lightbox]
     [![](VLI_NewLevel_05.png)(w:746)](VLI_NewLevel_05.png)
     [/REGION]
 
     [REGION:caption]
-    Click for full image.
+    クリックしてフルサイズで表示
     [/REGION]
 
-1. Put your HMD on and then press the **R** key to load Level_01. While the level is being loaded you should see the image that you specified in the Texture input of the Set Splash Screen node being displayed. Once Level_01 loads press the **T** key to load Level_00, and you should now see the same image being displayed. 
+1. HMD を装着し、**R** キーを押して Level_01 をロードします。レベルがロードされると、Set Splash Screen ノードのテクスチャ入力で指定した画像が表示されます。Level_01 をロードしたら **T** キーを押して Level_00 をロードします。すると、以下のような画像が表示されます。
 
     [OBJECT:EmbeddedVideo]
         [PARAMLITERAL:width]
@@ -167,122 +167,122 @@ Now that we have the Pawn setup to use the VR splash screens, in this section we
         [/PARAMLITERAL]
     [/OBJECT]
 
-With the ability to change levels on button presses now working, the next step would be to try and get this working when a player enters a level streaming volume or trigger as you would in any game or interactive project.
+ボタン押下によるレベル変更が可能になったので、次のステップではプレイヤーがレベル ストリーミング ボリュームを入力した時にこれが動作する、あるいはゲームもしくはインタラクティブ プロジェクトにいる時にトリガーするようにしてみましょう。
 
-## VR Splash Screen Node Reference
+## VR Splash Screen のノードのリファレンス
 
-The following breakdown covers what each one of the properties on the VR splash screen nodes does. When looking at the VR splash screen nodes, you will notice that there is a generic type and a type specific to Oculus. You should only use the Oculus-specific types when you are targeting Oculus HMD's. All other HMD's should use the generic type.
+以下は、VR splash screen ノードのプロパティの機能の詳細です。VR splash screen ノードには、汎用タイプと Oculus 専用タイプがあります。ターゲットが Oculus HMD の場合は、Oculus 専用タイプのみを使用してください。その他すべての HMD には汎用タイプを使用してください。
 
-### Generic Splash Screens
+### 汎用 Splash Screens
 
 * Enable Auto Loading Splash Screen
 
     ![](VRLS_EnableAutoLoading.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |In Auto Show Enabled|If true, load the splash screen when a level is loaded.|
+    |In Auto Show Enabled|true の場合、レベルのロード時にスプラッシュスクリーンをロードします。|
 
 * Hide Splash Screen
 
     ![](VRLS_Hide_Splash.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Hide Splash Screen|Hides the splash screen.|
+    |Hide Splash Screen|スプラッシュスクリーンを非表示にします。|
 
 * Set Splash Screen
 
     ![](VRLS_Set_Splash.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Texture|Texture to use fo the splash. Must be in B8R8G8A8 format.|
-    |Scale|Scale of the Texture.|
-    |Offest|Position from which to start rendering the Texture.|
-    |Show Loading Moive|Show a loading movie.|
-    |Show on Set|Show the Texture specified when the compositor is called.|
+    |Texture|スプラッシュに使用するテクスチャです。B8R8G8A8 形式でなくてはなりません。|
+    |Scale|テクスチャのスケールです。|
+    |Offest|テクスチャのレンダリング開始位置です。|
+    |Show Loading Movie|"ローディング" ムービーを表示します。|
+    |Show on Set|コンポジタの呼び出し時に指定されるテクスチャを表示します。|
 
 * Show Splash Screen
 
     ![](VRLS_Show_Splash.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Show Splash Screen|Shows the splash screen.|
+    |Show Splash Screen|スプラッシュスクリーンを表示します。|
 
 ### Oculus Specific Splash Screens
 
-The following breakdown covers what each of the Oculus-specific splash screen nodes will do. Keep in mind that the following nodes should only be used when you are targeting Oculus HMD's. 
+以下は、Oculus 専用の splash screen ノードの機能の詳細です。以下のノードは、ターゲットが Oculus HMD の場合のみ使用することを念頭に置いてください。
 
 * Add Loading Splash Screen
 
     ![](VRLS_OC_Add_Loading.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Texture|A Texture asset to be used for the splash screen. GearVR uses it as a path for loading icon; all other params are currently ignored by GearVR.|
-    |Translation in Meters|Initial translation of the center of the splash screen in meters.|
-    |Rotation|Initial rotation of the splash screen, with the origin at the center of the splash screen.|
-    |Size in Meters|Size, in meters, of the quad with the splash screen.|
-    |Delta Rotation|Incremental rotation, that is added each 2nd frame to the quad transform. The quad is rotated around the center of the quad.|
-    |Ckear Before Add |If true clears splash before adding a new one.|
+    |Texture|スプラッシュスクリーンに使用する Texture アセットです。GearVR はローディング アイコン用のパスとして使用します。現在、他のパラメータはすべて GearVR からは無視されます。|
+    |Translation in Meters|スプラッシュスクリーンの中心のメーター単位の最初のトランスレーションです。|
+    |Rotation|ピボット (回転軸) をスプラッシュスクリーンの中心にして、スプラッシュスクリーンの最初の回転です。|
+    |Size in Meters|スプラッシュスクリーンのクワッドのメーター単位のサイズです。|
+    |Delta Rotation|第 2 フレームごとにクワッドのトランスフォームに追加される増分回転です。クワッドは中心を軸にして回転します。|
+    |Clear Before Add|true の場合、スプラッシュをクリアしてから新規を追加します。|
 
 * Clear Loading Splash Screen
 
     ![](VRLS_OC_Clear_Loading_Splash.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Clear Loading Splash Screen|Removes all splash screens.|
+    |Clear Loading Splash Screen|すべてのスプラッシュスクリーンを削除します。|
 
 * Enable Auto Loading Splash Screen
 
     ![](VRLS_OC_Enable_Auto_Load.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Auto Show Enabled|If true, automatic showing of splash screens is enabled when a map is being loaded.|
+    |Auto Show Enabled|true の場合、マップロード時のスプラッシュスクリーンの自動表示が有効にされます。|
 
 * Hide Loading Icon
 
     ![](VRLS_OC_Hide_Loading.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Hide Loading Icon|Clears the loading icon. This call will clear all the splashes.|
+    |Hide Loading Icon|ローディング アイコンをクリアします。このコールですべてのスプラッシュがクリアされます。|
 
 * Hide Loading Splash Screen
 
     ![](VRLS_OC_Hide_Loading_SS.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Clear|Clear all splash screen after hiding.|
+    |Clear|非表示にした後、すべてのスプラッシュスクリーンをクリアします。|
 
 * Is Auto Loading Splash Screen Enabled
 
     ![](VRLS_OC_IsAutoLoasding.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Is Auto Loading Splash Screen Enabled| Returns true if the splash screen is automatically shown when LoadMap is called.|
+    |Is Auto Loading Splash Screen Enabled| LoadMap の呼び出し時にスプラッシュスクリーンが自動表示される場合は true を返します。|
 
 * Is Loading Icon Enabled
 
     ![](VRLS_OC_IsLoadingIconEnabled.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Is Loading Icon Enabled| Returns true if the splash screen is in loading icon mode.|
+    |Is Loading Icon Enabled| スプラッシュスクリーンがローディング アイコン モードの場合は true を返します。|
 
 * Show Loading Splash Screen
 
     ![](VRLS_OC_ShowLoadingSplashScreen.png)
 
-    |Setting  Name| Description|
+    |設定名| 説明|
     |---------------|----------------------------------------------------|
-    |Show Loading Splash Screen| Shows loading splash screen.|
+    |Show Loading Splash Screen| ローディング スプラッシュスクリーンを表示します。|
 
 
 

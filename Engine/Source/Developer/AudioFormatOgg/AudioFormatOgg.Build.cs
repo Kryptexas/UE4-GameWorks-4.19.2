@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AudioFormatOgg : ModuleRules
 {
-	public AudioFormatOgg(TargetInfo Target)
+	public AudioFormatOgg(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 

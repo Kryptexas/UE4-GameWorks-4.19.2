@@ -5,19 +5,13 @@ using System.Collections.Generic;
 
 public class UE4EditorTarget : TargetRules
 {
-	public UE4EditorTarget( TargetInfo Target )
+	public UE4EditorTarget( TargetInfo Target ) : base(Target)
 	{
 		Type = TargetType.Editor;
+		BuildEnvironment = TargetBuildEnvironment.Shared;
 		bBuildAllPlugins = true;
-	}
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("UE4Game");
+		bPrecompile = true;
+		ExtraModuleNames.Add("UE4Game");
 	}
 
 	public override void SetupGlobalEnvironment(
@@ -26,10 +20,5 @@ public class UE4EditorTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-	}
-
-	public override bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
-	{
-		return true;
 	}
 }

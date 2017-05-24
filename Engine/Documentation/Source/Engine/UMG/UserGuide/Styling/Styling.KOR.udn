@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title: 스타일링
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 에서 위젯 블루프린트의 스타일링 안내서입니다.
 Related: Engine\UMG\UserGuide\Slots
 Related: Engine\UMG\UserGuide\WidgetTypeReference
+tags:UMG UI Designer
 
 
 [REGION:fullwidth raw]

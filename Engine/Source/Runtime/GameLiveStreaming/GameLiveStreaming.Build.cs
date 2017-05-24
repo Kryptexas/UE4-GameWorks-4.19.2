@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GameLiveStreaming : ModuleRules
 	{
-		public GameLiveStreaming( TargetInfo Target )
+		public GameLiveStreaming( ReadOnlyTargetRules Target ) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] 

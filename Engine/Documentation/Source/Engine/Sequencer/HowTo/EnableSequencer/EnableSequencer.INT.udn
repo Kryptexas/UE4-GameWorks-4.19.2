@@ -9,6 +9,7 @@ order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 <!--
 ****** This is an outdated and no longer needed doc. *******

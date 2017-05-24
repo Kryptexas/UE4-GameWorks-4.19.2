@@ -112,6 +112,12 @@ bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 		AnimToOperateOn->UpdateCompressedTrackMapFromRaw();
 		AnimToOperateOn->CompressedCurveData = AnimToOperateOn->RawCurveData; //Curves don't actually get compressed, but could have additives baked in
 
+		const float MaxCurveError = AnimToOperateOn->CompressionScheme->MaxCurveError;
+		for (FFloatCurve& Curve : AnimToOperateOn->CompressedCurveData.FloatCurves)
+		{
+			Curve.FloatCurve.RemoveRedundantKeys(MaxCurveError);
+		}
+
 #ifdef DO_CHECK
 		FString CompressionName = AnimToOperateOn->CompressionScheme->GetFullName();
 		const TCHAR* AAC = CompressContext.Get()->bAllowAlternateCompressor ? TEXT("true") : TEXT("false");

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 FT2_HTML5=$(pwd)
 
@@ -45,12 +45,6 @@ type=Release;     OLEVEL=3;  build_via_cmake
 type=MinSizeRel;  OLEVEL=z;  build_via_cmake
 ls -l ../../Lib/HTML5
 
-
-# NOT USED: LEFT HERE FOR REFERENCE
-build_via_makefile()
-{
-
-	EMFLAGS="-msse -msse2 -s FULL_ES2=1 -s USE_PTHREADS=1"
 
 # NOT USED: LEFT HERE FOR REFERENCE
 build_via_makefile()

@@ -10,6 +10,7 @@ checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
 type:multi-step
 order:6
+tags:Sequencer
  
 [NAV]
 

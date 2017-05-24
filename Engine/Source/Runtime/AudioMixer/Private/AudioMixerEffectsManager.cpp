@@ -109,10 +109,10 @@ namespace Audio
 		
 		if (MasterReverbSubmix.IsValid())
 		{
-			FSoundEffectSubmix* SoundEffectSubmix = MasterReverbSubmix->GetSubmixEffect(0);
-			if (SoundEffectSubmix)
+			FSoundEffectSubmixPtr SoundEffectSubmix = MasterReverbSubmix->GetSubmixEffect(0);
+			if (SoundEffectSubmix.IsValid())
 			{
-				FSubmixEffectReverb* SoundEffectReverb = static_cast<FSubmixEffectReverb*>(SoundEffectSubmix);
+				FSubmixEffectReverb* SoundEffectReverb = static_cast<FSubmixEffectReverb*>(SoundEffectSubmix.Get());
 				SoundEffectReverb->SetEffectParameters(ReverbEffectParameters);
 				PrintReverbSettings(ReverbEffectParameters);
 			}
@@ -127,10 +127,10 @@ namespace Audio
 
 		if (MasterEQSubmix.IsValid())
 		{
-			FSoundEffectSubmix* SoundEffectSubmix = MasterEQSubmix->GetSubmixEffect(0);
-			if (SoundEffectSubmix)
+			FSoundEffectSubmixPtr SoundEffectSubmix = MasterEQSubmix->GetSubmixEffect(0);
+			if (SoundEffectSubmix.IsValid())
 			{
-				FSubmixEffectSubmixEQ* SoundEffectEQ = static_cast<FSubmixEffectSubmixEQ*>(SoundEffectSubmix);
+				FSubmixEffectSubmixEQ* SoundEffectEQ = static_cast<FSubmixEffectSubmixEQ*>(SoundEffectSubmix.Get());
 				SoundEffectEQ->SetEffectParameters(InEQEffectParameters);
 				PrintEQSettings(InEQEffectParameters);
 			}

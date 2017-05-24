@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3150518
 Title:SteamVR クイック スタート
 Crumbs:%ROOT%, Platforms
 Description:SteamVR を UE4 で使うために設定する操作手順
-Availability:Public
+Availability:public
 Navigation:platform
 Platform:SteamVR
-type:quickstart
+type:quick start
 parent:Platforms/SteamVR
 tags:VR
 tags:SteamVR

@@ -4,8 +4,7 @@
 	Factories.h: Unreal Engine factory types.
 =============================================================================*/
 
-#ifndef __FACTORIES_H__
-#define __FACTORIES_H__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Class.h"
@@ -148,5 +147,3 @@ UNREALED_API bool DecompressTGA_helper(
 	uint32*& TextureData,
 	const int32 TextureDataSize,
 	FFeedbackContext* Warn );
-
-#endif // __FACTORIES_H__

@@ -39,6 +39,7 @@ namespace EDrawDebugItemType
 		Sphere,
 		Line,
 		OnScreenMessage,
+		CoordinateSystem,
 	};
 }
 
@@ -58,6 +59,9 @@ struct FQueuedDrawDebugItem
 
 	UPROPERTY(Transient)
 	FVector Center;
+
+	UPROPERTY(Transient)
+	FRotator Rotation;
 
 	UPROPERTY(Transient)
 	float Radius;
@@ -220,6 +224,7 @@ public:
 
 	/** Access UObject base of UAnimInstance */
 	UObject* GetAnimInstanceObject() { return AnimInstanceObject; }
+	const UObject* GetAnimInstanceObject() const { return AnimInstanceObject; }
 
 	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
 	FAnimNode_Base* GetNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType);
@@ -257,6 +262,18 @@ public:
 	int32 GetLODLevel() const
 	{
 		return LODLevel;
+	}
+
+	// Cached SkeletalMeshComponent LocalToWorld Transform.
+	const FTransform& GetSkelMeshCompLocalToWorld() const
+	{
+		return SkelMeshCompLocalToWorld;
+	}
+
+	// Cached SkeletalMeshComponent Owner Transform.
+	const FTransform& GetSkelMeshCompOwnerTransform() const
+	{
+		return SkelMeshCompOwnerTransform;
 	}
 
 	/** Get the current skeleton we are using. Note that this will return nullptr outside of pre/post update */
@@ -330,11 +347,13 @@ public:
 	void AnimDrawDebugLine(const FVector& StartLoc, const FVector& EndLoc, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f);
 	void AnimDrawDebugDirectionalArrow(const FVector& LineStart, const FVector& LineEnd, float ArrowSize, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f);
 	void AnimDrawDebugSphere(const FVector& Center, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f);
+	void AnimDrawDebugCoordinateSystem(FVector const& AxisLoc, FRotator const& AxisRot, float Scale = 1.f, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f);
 #else
 	void AnimDrawDebugOnScreenMessage(const FString& DebugMessage, const FColor& Color, const FVector2D& TextScale = FVector2D::UnitVector) {}
 	void AnimDrawDebugLine(const FVector& StartLoc, const FVector& EndLoc, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f) {}
 	void AnimDrawDebugDirectionalArrow(const FVector& LineStart, const FVector& LineEnd, float ArrowSize, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f) {}
 	void AnimDrawDebugSphere(const FVector& Center, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f) {}
+	void AnimDrawDebugCoordinateSystem(FVector const& AxisLoc, FRotator const& AxisRot, float Scale = 1.f, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f) {}
 #endif // ENABLE_ANIM_DRAW_DEBUG
 
 #if !NO_LOGGING
@@ -363,15 +382,24 @@ public:
 	 */
 	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
 
-	float GetRecordedMachineWeight(const int32& InMachineClassIndex) const;
-	void RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight);
+	float GetRecordedMachineWeight(const int32 InMachineClassIndex) const;
+	void RecordMachineWeight(const int32 InMachineClassIndex, const float InMachineWeight);
 
-	float GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex) const;
-	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
+	float GetRecordedStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex) const;
+	void RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight);
 
 	bool IsSlotNodeRelevantForNotifies(const FName& SlotNodeName) const;
 	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
 	void ResetDynamics();
+
+	/** Get the relative transform of the component we are running on */
+	const FTransform& GetComponentRelativeTransform() { return ComponentRelativeTransform; }
+
+	/** Get the component to world transform of the component we are running on */
+	const FTransform& GetComponentTransform() { return ComponentTransform; }
+
+	/** Get the transform of the actor we are running on */
+	const FTransform& GetActorTransform() { return ActorTransform; }
 
 	/** Only restricted classes can access the protected interface */
 	friend class UAnimInstance;
@@ -397,6 +425,24 @@ protected:
 
 	/** Called on the game thread pre-evaluate. */
 	virtual void PreEvaluateAnimation(UAnimInstance* InAnimInstance);
+
+	/** Called when the anim instance is being initialized. If we are not using a blueprint instance, this root node can be provided*/
+	virtual FAnimNode_Base* GetCustomRootNode()
+	{
+		return nullptr;
+	}
+
+	/** Called when the anim instance is being initialized. If we are not using a blueprint instance, these nodes can be provided */
+	virtual void GetCustomNodes(TArray<FAnimNode_Base*>& OutNodes)
+	{
+	}
+	
+	/** 
+	 * Cache bones override point. You should call CacheBones on any nodes that need it here.
+	 * bBoneCachesInvalidated is used to only perform this when needed (e.g. when a LOD changes), 
+	 * as it is usually an expensive operation.
+	 */
+	virtual void CacheBones();
 
 	/** 
 	 * Evaluate override point 
@@ -603,6 +649,15 @@ protected:
 	void InitializeRootNode();
 
 private:
+	/** The component to world transform of the component we are running on */
+	FTransform ComponentTransform;
+
+	/** The relative transform of the component we are running on */
+	FTransform ComponentRelativeTransform;
+
+	/** The transform of the actor we are running on */
+	FTransform ActorTransform;
+
 	/** Object ptr to our UAnimInstance */
 	mutable UObject* AnimInstanceObject;
 
@@ -679,6 +734,7 @@ private:
 	TMap<FName, int32> SlotNameToTrackerIndex;
 	TArray<FMontageActiveSlotTracker> SlotWeightTracker[2];
 
+protected:
 	// Counters for synchronization
 	FGraphTraversalCounter InitializationCounter;
 	FGraphTraversalCounter CachedBonesCounter;
@@ -686,6 +742,7 @@ private:
 	FGraphTraversalCounter EvaluationCounter;
 	FGraphTraversalCounter SlotNodeInitializationCounter;
 
+private:
 	// Root motion extracted from animation since the last time ConsumeExtractedRootMotion was called
 	FRootMotionMovementParams ExtractedRootMotion;
 
@@ -695,9 +752,18 @@ private:
 	/** LODLevel used by RequiredBones */
 	int32 LODLevel;
 
+	/** Cached SkeletalMeshComponent LocalToWorld transform. */
+	FTransform SkelMeshCompLocalToWorld;
+
+	/** Cached SkeletalMeshComponent Owner Transform */
+	FTransform SkelMeshCompOwnerTransform;
+
+protected:
+
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	bool bBoneCachesInvalidated;
 
+private:
 	/** Copy of UAnimInstance::MontageInstances data used for update & evaluation */
 	TArray<FMontageEvaluationState> MontageEvaluationData;
 

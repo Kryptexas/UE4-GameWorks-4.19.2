@@ -113,6 +113,7 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 
 static const float CraneArmMesh_DefaultMeshSize = 29.f * 0.7f;		// size of the mesh in the dimension that will stretch (accounting for the 0.7 scale)
 
+#if WITH_EDITORONLY_DATA
 void ACameraRig_Crane::UpdatePreviewMeshes()
 {
 	if (PreviewMesh_CraneArm)
@@ -134,6 +135,7 @@ void ACameraRig_Crane::UpdatePreviewMeshes()
 		PreviewMesh_CraneMount->SetRelativeLocation(NewLoc);
 	}
 }
+#endif
 
 void ACameraRig_Crane::UpdateCraneComponents()
 {
@@ -163,7 +165,9 @@ void ACameraRig_Crane::UpdateCraneComponents()
 	NewCameraMountWorldRot.Roll = 0.f;
 	CraneCameraMount->SetWorldRotation(NewCameraMountWorldRot);
 
+#if WITH_EDITORONLY_DATA
 	UpdatePreviewMeshes();
+#endif
 }
 
 

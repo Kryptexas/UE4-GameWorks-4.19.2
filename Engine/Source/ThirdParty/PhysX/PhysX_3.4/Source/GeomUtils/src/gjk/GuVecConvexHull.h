@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -40,6 +40,7 @@
 #include "GuGeometryUnion.h"
 #include "PsVecQuat.h"
 #include "PxMeshScale.h"
+#include "PsFoundation.h"
 
 namespace physx
 {
@@ -91,7 +92,7 @@ namespace Gu
 		return M33MulM33(trans, rot);
 	}
 
-	PX_SUPPORT_FORCE_INLINE void ConstructSkewMatrix(const Ps::aos::Vec3VArg scale, const Ps::aos::QuatVArg rotation, Ps::aos::Mat33V& vertex2Shape, Ps::aos::Mat33V& shape2Vertex, const bool idtScale) 
+	PX_SUPPORT_FORCE_INLINE void ConstructSkewMatrix(const Ps::aos::Vec3VArg scale, const Ps::aos::QuatVArg rotation, Ps::aos::Mat33V& vertex2Shape, Ps::aos::Mat33V& shape2Vertex, Ps::aos::Vec3V& center, const bool idtScale) 
 	{
 		using namespace Ps::aos;
 
@@ -141,6 +142,9 @@ namespace Gu
 
 				//shape2Vertex = M33Inverse(vertex2Shape);
 			}
+
+			//transform center to shape space
+			center = M33MulV3(vertex2Shape, center);
 		}
 	}
 
@@ -193,7 +197,7 @@ namespace Gu
 			verts = tempVerts;
 			numVerts = _hullData->mNbHullVertices;
 			CalculateConvexMargin( _hullData, margin, minMargin, sweepMargin, scale);
-			ConstructSkewMatrix(scale, scaleRot, vertex2Shape, shape2Vertex, idtScale);
+			ConstructSkewMatrix(scale, scaleRot, vertex2Shape, shape2Vertex, center, idtScale);
 			/*skewScale = Mat33V temp(V3Scale(trans.col0, V3GetX(scale)), V3Scale(trans.col1, V3GetY(scale)), V3Scale(trans.col2, V3GetZ(scale)));
 			skewRot = QuatGetMat33V(scaleRot);*/
 
@@ -215,7 +219,7 @@ namespace Gu
 			verts = tempVerts;
 			numVerts = hData->mNbHullVertices;
 			CalculateConvexMargin( hData, margin, minMargin, sweepMargin, vScale);
-			ConstructSkewMatrix(vScale, vRot, vertex2Shape, shape2Vertex, idtScale);
+			ConstructSkewMatrix(vScale, vRot, vertex2Shape, shape2Vertex, center, idtScale);
 
 			data = hData->mBigConvexRawData;
 		}
@@ -226,7 +230,7 @@ namespace Gu
 			
 			const PxVec3* tempVerts = _hullData->getHullVertices();
 			CalculateConvexMargin(_hullData, margin, minMargin, sweepMargin, scale);
-			ConstructSkewMatrix(scale, scaleRot, vertex2Shape, shape2Vertex, idtScale);
+			ConstructSkewMatrix(scale, scaleRot, vertex2Shape, shape2Vertex, center, idtScale);
 
 			verts = tempVerts;
 			numVerts = _hullData->mNbHullVertices;
@@ -278,6 +282,8 @@ namespace Gu
 			FloatV max = V3Dot(maxPoint, _dir);
 	
 			PxU32 initialIndex = index;
+
+			PxU32 IterationCount = 0;
 			
 			do
 			{
@@ -287,6 +293,12 @@ namespace Gu
 
 				for(PxU32 a = 0; a < numNeighbours; ++a)
 				{
+					if(IterationCount++ > 10000)
+					{
+						PxGetFoundation().getErrorCallback().reportError(PxErrorCode::eINTERNAL_ERROR, "HillClimbing in DoSupport is taking too long", __FILE__, __LINE__);
+						break;
+					}
+
 					const PxU32 neighbourIndex = adjacentVerts[offset + a];
 
 					const Vec3V vertex = V3LoadU_SafeReadW(verts[neighbourIndex]);	// PT: safe because of the way vertex memory is allocated in ConvexHullData (and 'verts' is initialized with ConvexHullData::getHullVertices())

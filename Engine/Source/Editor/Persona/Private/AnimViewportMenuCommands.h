@@ -1,8 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __AnimViewportMenuCommands_h_
-#define __AnimViewportMenuCommands_h_
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Framework/Commands/Commands.h"
@@ -45,10 +43,17 @@ public:
 
 	/** Draw UV mapping to viewport */
 	TSharedPtr< FUICommandInfo > AnimSetDrawUVs;
+
+	/** Save current camera as default */
+	TSharedPtr< FUICommandInfo > SaveCameraAsDefault;
+
+	/** Clear default camera */
+	TSharedPtr< FUICommandInfo > ClearDefaultCamera;
+
+	/** Jump to default camera */
+	TSharedPtr< FUICommandInfo > JumpToDefaultCamera;
+
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;
 };
-
-
-#endif //__AnimViewportMenuCommands_h_

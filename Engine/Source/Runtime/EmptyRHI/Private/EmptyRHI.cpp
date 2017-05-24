@@ -183,7 +183,7 @@ IRHICommandContext* FEmptyDynamicRHI::RHIGetDefaultContext()
 	return this;
 }
 
-IRHICommandContextContainer* FEmptyDynamicRHI::RHIGetCommandContextContainer()
+IRHICommandContextContainer* FEmptyDynamicRHI::RHIGetCommandContextContainer(int32 Index, int32 Num)
 {
 	return nullptr;
 }

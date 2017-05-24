@@ -1,15 +1,16 @@
-﻿INTSourceChangelist:2999683
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:サブシーンと合成
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:サブトラックを使用して、シーン合成で協力して作業する方法を説明します。 
-Version: 4.12
-SkillLevel: Advanced
+Version:4.12
+SkillLevel:Advanced
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 多くの場合、映画制作では何人かが同時にシーンの異なる部分を作業することがあります。 
 シーケンサーでは、**Subscenes Track (サブシーン トラック)** でこの種のワークフローをサポートします。これにより、**Level Sequences (レベル シーケンス)** をレイヤー化して最終シーケンスを作ることができます。 

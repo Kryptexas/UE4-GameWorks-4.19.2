@@ -29,8 +29,8 @@ class SWebBrowserView;
 #if !PLATFORM_TVOS
 @property(strong) UIWebView* WebView;
 #endif
-@property(strong) NSURL* NextURL;
-@property(strong) NSString* NextContent;
+@property(copy) NSURL* NextURL;
+@property(copy) NSString* NextContent;
 @property CGRect DesiredFrame;
 
 -(void)create:(TSharedPtr<SIOSWebBrowserWidget>)InWebBrowserWidget;
@@ -206,6 +206,12 @@ public:
 		return DismissAllDialogsDelegate;
 	}
 
+	virtual FOnSuppressContextMenu& OnSuppressContextMenu() override
+	{
+		return SuppressContextMenuDelgate;
+	}
+
+
 public:
 
 private:
@@ -261,6 +267,9 @@ private:
 
 	/** Delegate for dismissing all dialogs. */
 	FOnDismissAllDialogs DismissAllDialogsDelegate;
+
+	/** Delegate for suppressing context menu */
+	FOnSuppressContextMenu SuppressContextMenuDelgate;
 
 	TSharedPtr<SWindow> ParentWindow;
 

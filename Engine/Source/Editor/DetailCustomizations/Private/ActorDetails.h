@@ -85,30 +85,7 @@ private:
 
 	void AddTransformCategory( IDetailLayoutBuilder& DetailBuilder );
 
-	void AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder );
-
 	const TArray< TWeakObjectPtr<AActor> >& GetSelectedActors() const;
-
-	/** Creates a category to display blutility functionality in a separate space from the standard blueprint details */
-	void AddBlutilityCategory( IDetailLayoutBuilder& DetailBuilder, const TMap<UBlueprint*, UObject*>& UniqueBlueprints );
-
-	/** Called to determine if an actor has any valid call-in-editor utility functions */
-	bool DoesActorHaveBlutiltyFunctions() const;
-
-	/** Called to retrive the active combo button label */
-	FText GetBlutilityComboButtonLabel() const;
-
-	/** Called to generate the blutility function content */
-	TSharedRef<SWidget> BuildBlutiltyFunctionContent() const;
-
-	/** Called to determine the blutility execute button's status */
-	bool CanCallBlutilityFunction() const { return ActiveBlutilityFunction.IsValid(); }
-
-	/** Called on blutility function selection to cache the active function */
-	void SetActiveBlutilityFunction( TWeakObjectPtr<UFunction> BlutilityFunction ) { ActiveBlutilityFunction = BlutilityFunction; }
-
-	/** Call the currently active Blutility Function on the active actor selection */
-	FReply CallBlutilityFunction();
 
 private:
 
@@ -122,10 +99,4 @@ private:
 	FString PathForActorBlueprint;
 
 	TArray< TWeakObjectPtr<AActor> > SelectedActors;
-
-	TSharedPtr< IDetailCustomization > LayersLayoutDetails;
-
-	/** The active blutility function, picked from the combo list and cached here */
-	TWeakObjectPtr<UFunction> ActiveBlutilityFunction;
-
 };

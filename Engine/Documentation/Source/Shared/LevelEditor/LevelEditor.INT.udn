@@ -96,12 +96,12 @@ Any property changes made to the selected Actor in the level will be pushed back
 Any property changes made to the selected Actor in the level will be discarded, resetting the Actor to the defaults defined in the Blueprint.
 [/EXCERPT:ResetToBlueprintDefaults]
 
-[EXCERPT:ActorUsesExperimentalClass]
+[EXCERPT:ObjectUsesExperimentalClass]
 ###Here be dragons!
 
 ![](HereBeDragons.png)
 
-This Actor uses one or more 'experimental' classes.
+This object uses one or more 'experimental' classes.
 
 These are totally unsupported and undocumented prototypes:
 * They may be dramatically changed or abandoned in a future build.
@@ -110,12 +110,12 @@ These are totally unsupported and undocumented prototypes:
 * They may be promoted to 'Early Access' or 'Fully Supported' in the future.
 
 Use these at your own risk!
-[/EXCERPT:ActorUsesExperimentalClass]
+[/EXCERPT:ObjectUsesExperimentalClass]
 
-[EXCERPT:ActorUsesEarlyAccessClass]
+[EXCERPT:ObjectUsesEarlyAccessClass]
 ###Early Access
 
-This Actor uses one or more 'early access' classes.
+This object uses one or more 'early access' classes.
 
 While not considered production-ready, they are a step beyond 'experimental' and are being provided as a preview of things to come:
 * We will try to provide forward-compatibility for content you create.
@@ -123,33 +123,5 @@ While not considered production-ready, they are a step beyond 'experimental' and
 * The code is in an early state and may not meet the desired polish / quality bar.
 * There is probably no documentation or example content yet.
 * They will be promoted out of 'Early Access' when they are production ready.
-[/EXCERPT:ActorUsesEarlyAccessClass]
+[/EXCERPT:ObjectUsesEarlyAccessClass]
 
-[EXCERPT:ComponentUsesExperimentalClass]
-###Here be dragons!
-
-![](HereBeDragons.png)
-
-This Component uses one or more 'experimental' classes.
-
-These are totally unsupported and undocumented prototypes:
-* They may be dramatically changed or abandoned in a future build.
-* Data or code compatibility is not guaranteed.
-* The code is in an early state and may cause editor instability or crashes.
-* They may be promoted to 'Early Access' or 'Fully Supported' in the future.
-
-Use these at your own risk!
-[/EXCERPT:ComponentUsesExperimentalClass]
-
-[EXCERPT:ComponentUsesEarlyAccessClass]
-###Early Access
-
-This Component uses one or more 'early access' classes.
-
-While not considered production-ready, they are a step beyond 'experimental' and are being provided as a preview of things to come:
-* We will try to provide forward-compatibility for content you create.
-* The classes may change significantly in the future.
-* The code is in an early state and may not meet the desired polish / quality bar.
-* There is probably no documentation or example content yet.
-* They will be promoted out of 'Early Access' when they are production ready.
-[/EXCERPT:ComponentUsesEarlyAccessClass]

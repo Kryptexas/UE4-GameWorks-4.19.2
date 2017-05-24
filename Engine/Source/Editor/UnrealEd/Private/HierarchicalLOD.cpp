@@ -34,13 +34,11 @@ FHierarchicalLODBuilder::FHierarchicalLODBuilder(UWorld* InWorld)
 :	World(InWorld)
 {}
 
-#if WITH_HOT_RELOAD_CTORS
 FHierarchicalLODBuilder::FHierarchicalLODBuilder()
 	: World(nullptr)
 {
 	EnsureRetrievingVTablePtrDuringCtor(TEXT("FHierarchicalLODBuilder()"));
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 void FHierarchicalLODBuilder::Build()
 {

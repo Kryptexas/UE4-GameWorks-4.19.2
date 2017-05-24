@@ -4,27 +4,6 @@ Title:体积用户指南
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description: 关于放置及应用体积来增加关卡的行为及设置的指南。
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[前一个主题](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
-	[/PARAM]
-	[PARAM:next]
-		[下一个主题](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-%playlistnav%
-
 
 [TOC(start:2 end:2)]
 

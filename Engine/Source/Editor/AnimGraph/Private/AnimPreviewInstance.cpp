@@ -181,18 +181,18 @@ bool FAnimPreviewInstanceProxy::Evaluate(FPoseContext& Output)
 					PreController = Output;
 				}
 
-				FCSPose<FCompactPose> OutMeshPose;
-				OutMeshPose.InitPose(Output.Pose);
+				FComponentSpacePoseContext ComponentSpacePoseContext(Output.AnimInstanceProxy);
+				ComponentSpacePoseContext.Pose.InitPose(Output.Pose);
 
 				// apply curve data first
-				ApplyBoneControllers(Component, CurveBoneControllers, OutMeshPose);
+				ApplyBoneControllers(CurveBoneControllers, ComponentSpacePoseContext);
 
 				// and now apply bone controllers data
 				// it is possible they can be overlapping, but then bone controllers will overwrite
-				ApplyBoneControllers(Component, BoneControllers, OutMeshPose);
+				ApplyBoneControllers(BoneControllers, ComponentSpacePoseContext);
 
 				// convert back to local @todo check this
-				OutMeshPose.ConvertToLocalPoses(Output.Pose);
+				ComponentSpacePoseContext.Pose.ConvertToLocalPoses(Output.Pose);
 
 				if(bSetKey)
 				{
@@ -247,7 +247,7 @@ void FAnimPreviewInstanceProxy::RefreshCurveBoneControllers(UAnimationAsset* Ass
 		for (auto& Curve : Curves)
 		{
 			// skip if disabled
-			if (Curve.GetCurveTypeFlag(ACF_Disabled))
+			if (Curve.GetCurveTypeFlag(AACF_Disabled))
 			{
 				continue;
 			}
@@ -303,23 +303,21 @@ void FAnimPreviewInstanceProxy::UpdateCurveController()
 	}
 }
 
-void FAnimPreviewInstanceProxy::ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &InBoneControllers, FCSPose<FCompactPose>& OutMeshPose)
+void FAnimPreviewInstanceProxy::ApplyBoneControllers(TArray<FAnimNode_ModifyBone> &InBoneControllers, FComponentSpacePoseContext& ComponentSpacePoseContext)
 {
-	if(USkeletalMesh* SkelMesh = Component->SkeletalMesh)
+	if(USkeleton* LocalSkeleton = ComponentSpacePoseContext.AnimInstanceProxy->GetSkeleton())
 	{
-		if(USkeleton* LocalSkeleton = SkelMesh->Skeleton)
+		for (auto& SingleBoneController : InBoneControllers)
 		{
-			for (auto& SingleBoneController : InBoneControllers)
+			TArray<FBoneTransform> BoneTransforms;
+			FAnimationCacheBonesContext Proxy(this);
+			SingleBoneController.CacheBones(Proxy);
+			if (SingleBoneController.IsValidToEvaluate(LocalSkeleton, ComponentSpacePoseContext.Pose.GetPose().GetBoneContainer()))
 			{
-				SingleBoneController.BoneToModify.BoneIndex = GetRequiredBones().GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
-				TArray<FBoneTransform> BoneTransforms;
-				if (SingleBoneController.IsValidToEvaluate(LocalSkeleton, OutMeshPose.GetPose().GetBoneContainer()))
+				SingleBoneController.EvaluateSkeletalControl_AnyThread(ComponentSpacePoseContext, BoneTransforms);
+				if (BoneTransforms.Num() > 0)
 				{
-					SingleBoneController.EvaluateBoneTransforms(Component, OutMeshPose, BoneTransforms);
-					if (BoneTransforms.Num() > 0)
-					{
-						OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
-					}
+					ComponentSpacePoseContext.Pose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
 				}
 			}
 		}

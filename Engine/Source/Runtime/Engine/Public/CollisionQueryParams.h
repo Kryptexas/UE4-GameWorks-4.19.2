@@ -37,9 +37,6 @@ struct ENGINE_API FCollisionQueryParams
 	/** Whether we should trace against complex collision */
 	bool bTraceComplex;
 
-	/** Filters query by mobility types (static vs stationary/movable)*/
-	EQueryMobilityType MobilityType;
-
 	/** Whether we want to find out initial overlap or not. If true, it will return if this was initial overlap. */
 	bool bFindInitialOverlaps;
 
@@ -51,6 +48,12 @@ struct ENGINE_API FCollisionQueryParams
 
 	/** Whether to ignore blocking results. */
 	bool bIgnoreBlocks;
+
+	/** Whether to ignore touch/overlap results. */
+	bool bIgnoreTouches;
+
+	/** Filters query by mobility types (static vs stationary/movable)*/
+	EQueryMobilityType MobilityType;
 
 	/** TArray typedef of components to ignore. */
 	typedef TArray<uint32, TInlineAllocator<8>> IgnoreComponentsArrayType;
@@ -120,6 +123,7 @@ public:
 		bComponentListUnique = true;
 		IgnoreMask = 0;
 		bIgnoreBlocks = false;
+		bIgnoreTouches = false;
 	}
 
 	FCollisionQueryParams()
@@ -134,6 +138,7 @@ public:
 		bComponentListUnique = true;
 		IgnoreMask = 0;
 		bIgnoreBlocks = false;
+		bIgnoreTouches = false;
 	}
 
 

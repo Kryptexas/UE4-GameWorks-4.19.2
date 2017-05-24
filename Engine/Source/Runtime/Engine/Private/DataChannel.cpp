@@ -17,6 +17,7 @@
 #include "Engine/ControlChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "Engine/DemoNetDriver.h"
+#include "Engine/NetworkObjectList.h"
 
 DEFINE_LOG_CATEGORY(LogNet);
 DEFINE_LOG_CATEGORY(LogRep);
@@ -48,6 +49,17 @@ static TAutoConsoleVariable<int> CVarNetProcessQueuedBunchesMillisecondLimit(
 	30,
 	TEXT("Time threshold for processing queued bunches. If it takes longer than this in a single frame, wait until the next frame to continue processing queued bunches. For unlimited time, set to 0."));
 
+static TAutoConsoleVariable<int32> CVarNetInstantReplayProcessQueuedBunchesMillisecondLimit(
+	TEXT("net.InstantReplayProcessQueuedBunchesMillisecondLimit"),
+	8,
+	TEXT("Time threshold for processing queued bunches during instant replays. If it takes longer than this in a single frame, wait until the next frame to continue processing queued bunches. For unlimited time, set to 0."));
+
+
+TAutoConsoleVariable<int32> CVarNetPartialBunchReliableThreshold(
+	TEXT("net.PartialBunchReliableThreshold"),
+	0,
+	TEXT("If a bunch is broken up into this many partial bunches are more, we will send it reliable even if the original bunch was not reliable. Partial bunches are atonmic and must all make it over to be used"));
+
 /*-----------------------------------------------------------------------------
 	UChannel implementation.
 -----------------------------------------------------------------------------*/
@@ -71,6 +83,7 @@ void UChannel::Init( UNetConnection* InConnection, int32 InChIndex, bool InOpene
 	ChIndex			= InChIndex;
 	OpenedLocally	= InOpenedLocally;
 	OpenPacketId	= FPacketIdRange();
+	bPausedUntilReliableACK = 0;
 }
 
 
@@ -300,7 +313,9 @@ bool UChannel::ReceivedSequencedBunch( FInBunch& Bunch )
 void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 {
 	// Immediately consume the NetGUID portion of this bunch, regardless if it is partial or reliable.
-	if ( Bunch.bHasPackageMapExports )
+	// NOTE - For replays, we do this even earlier, to try and load this as soon as possible, in case there is an issue creating the channel
+	// If a replay fails to create a channel, we want to salvage as much as possible
+	if ( Bunch.bHasPackageMapExports && !Connection->InternalAck )
 	{
 		Cast<UPackageMapClient>( Connection->PackageMap )->ReceiveNetGUIDBunch( Bunch );
 
@@ -309,6 +324,11 @@ void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			UE_LOG( LogNetTraffic, Error, TEXT( "UChannel::ReceivedRawBunch: Bunch.IsError() after ReceiveNetGUIDBunch. ChIndex: %i" ), ChIndex );
 			return;
 		}
+	}
+
+	if ( Connection->InternalAck && Broken )
+	{
+		return;
 	}
 
 	check(Connection->Channels[ChIndex]==this);
@@ -611,12 +631,17 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 					return false;
 				}
 
-				check( !Connection->InternalAck );	// Shouldn't be possible for 100% reliable connections
+				if ( !ensure( !Connection->InternalAck ) )
+				{
+					// Shouldn't be possible for 100% reliable connections
+					Broken = 1;
+					return false;
+				}
 
 				// Don't ack this packet (since we won't process all of it)
 				bOutSkipAck = true;
 
-				UE_LOG( LogNetTraffic, Warning, TEXT( "ReceivedNextBunch: Skipping bunch since channel isn't fully open. ChIndex: %i" ), ChIndex );
+				UE_LOG( LogNetTraffic, Verbose, TEXT( "ReceivedNextBunch: Skipping bunch since channel isn't fully open. ChIndex: %i" ), ChIndex );
 				return false;
 			}
 
@@ -835,7 +860,24 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	//-----------------------------------------------------
 	FPacketIdRange PacketIdRange;
 
-	if (Bunch->bReliable && (NumOutRec + OutgoingBunches.Num() >= RELIABLE_BUFFER + Bunch->bClose))
+	bool bOverflowsReliable = (NumOutRec + OutgoingBunches.Num() >= RELIABLE_BUFFER + Bunch->bClose);
+
+	if (OutgoingBunches.Num() >= CVarNetPartialBunchReliableThreshold->GetInt() && CVarNetPartialBunchReliableThreshold->GetInt() > 0)
+	{
+		if (!bOverflowsReliable)
+		{
+			UE_LOG(LogNetPartialBunch, Log, TEXT("	OutgoingBunches.Num (%d) exceeds reliable threashold (%d). Making bunches reliable. Property replication will be paused on this channel until these are ACK'd."), OutgoingBunches.Num(), CVarNetPartialBunchReliableThreshold->GetInt());
+			Bunch->bReliable = true;
+			bPausedUntilReliableACK = true;
+		}
+		else
+		{
+			// The threshold was hit, but making these reliable would overflow the reliable buffer. This is a problem: there is just too much data.
+			UE_LOG(LogNetPartialBunch, Warning, TEXT("	OutgoingBunches.Num (%d) exceeds reliable threashold (%d) but this would overflow the reliable buffer! Consider sending less stuff. Channel: %s"), OutgoingBunches.Num(), CVarNetPartialBunchReliableThreshold->GetInt(), *Describe());
+		}
+	}
+
+	if (Bunch->bReliable && bOverflowsReliable)
 	{
 		UE_LOG(LogNetPartialBunch, Warning, TEXT("SendBunch: Reliable partial bunch overflows reliable buffer! %s"), *Describe() );
 		UE_LOG(LogNetPartialBunch, Warning, TEXT("   Num OutgoingBunches: %d. NumOutRec: %d"), OutgoingBunches.Num(), NumOutRec );
@@ -850,7 +892,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		return PacketIdRange;
 	}
 
-	UE_CLOG((OutgoingBunches.Num() > 1), LogNetPartialBunch, Log, TEXT("Sending %d Bunches. Channel: %d "), OutgoingBunches.Num(), Bunch->ChIndex);
+	UE_CLOG((OutgoingBunches.Num() > 1), LogNetPartialBunch, Log, TEXT("Sending %d Bunches. Channel: %d %s"), OutgoingBunches.Num(), Bunch->ChIndex, *Describe());
 	for( int32 PartialNum = 0; PartialNum < OutgoingBunches.Num(); ++PartialNum)
 	{
 		FOutBunch * NextBunch = OutgoingBunches[PartialNum];
@@ -1492,7 +1534,7 @@ void UActorChannel::Close()
 		if ( Dormant )
 		{
 			check( Actor->NetDormancy > DORM_Awake ); // Dormancy should have been canceled if game code changed NetDormancy
-			Connection->DormantActors.Add(Actor);
+			Connection->Driver->GetNetworkObjectList().MarkDormant(Actor, Connection, Connection->Driver->ClientConnections.Num(), Connection->Driver->NetDriverName);
 
 			// Validation checking
 			static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyValidate"));
@@ -1515,12 +1557,18 @@ void UActorChannel::CleanupReplicators( const bool bKeepReplicators )
 	// Cleanup or save replicators
 	for ( auto CompIt = ReplicationMap.CreateIterator(); CompIt; ++CompIt )
 	{
-		if ( bKeepReplicators )
+		if ( bKeepReplicators && CompIt.Value()->GetObject() != nullptr )
 		{
 			// If we want to keep the replication state of the actor/sub-objects around, transfer ownership to the connection
 			// This way, if this actor opens another channel on this connection, we can reclaim or use this replicator to compare state, etc.
 			// For example, we may want to see if any state changed since the actor went dormant, and is now active again. 
-			check( Connection->DormantReplicatorMap.Find( CompIt.Value()->GetObject() ) == NULL );
+			//	NOTE - Commenting out this assert, since the case that it's happening for should be benign.
+			//	Here is what is likely happening:
+			//		We move a channel to the KeepProcessingActorChannelBunchesMap
+			//		While the channel is on this list, we also re-open a new channel using the same actor
+			//		KeepProcessingActorChannelBunchesMap will get in here, then when the channel closes a second time, we'll hit this assert
+			//		It should be okay to just set the most recent replicator
+			//check( Connection->DormantReplicatorMap.Find( CompIt.Value()->GetObject() ) == NULL );
 			Connection->DormantReplicatorMap.Add( CompIt.Value()->GetObject(), CompIt.Value() );
 			CompIt.Value()->StopReplicating( this );		// Stop replicating on this channel
 		}
@@ -1661,6 +1709,8 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 		}
 	}
 
+	bool bWasDormant = false;
+
 	// If we're the client, destroy this actor.
 	if (!bIsServer)
 	{
@@ -1684,7 +1734,8 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 			}
 			else if (Dormant && !Actor->bTearOff)
 			{
-				Connection->DormantActors.Add(Actor);
+				Connection->Driver->GetNetworkObjectList().MarkDormant(Actor, Connection, 1, Connection->Driver->NetDriverName);
+				bWasDormant = true;
 			}
 			else if (!Actor->bNetTemporary && Actor->GetWorld() != NULL && !GIsRequestingExit)
 			{
@@ -1694,17 +1745,12 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 			}
 		}
 	}
-	else if (Actor && !OpenAcked)
-	{
-		// Resend temporary actors if nak'd.
-		Connection->SentTemporaries.Remove(Actor);
-	}
 
 	// Remove from hash and stuff.
 	SetClosingFlag();
 
 	// If this actor is going dormant (and we are a client), keep the replicators around, we need them to run the business logic for updating unmapped properties
-	const bool bKeepReplicators = !bForDestroy && !bIsServer && Dormant != 0;
+	const bool bKeepReplicators = !bForDestroy && !bIsServer && bWasDormant;
 
 	CleanupReplicators( bKeepReplicators );
 
@@ -1722,13 +1768,23 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 	// Free the must be mapped list
 	QueuedMustBeMappedGuidsInLastBunch.Empty();
 
-	// Free any queued bunches
-	for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
+	if (QueuedBunches.Num() > 0)
 	{
-		delete QueuedBunches[i];
-	}
+		// Free any queued bunches
+		for (int32 i = 0; i < QueuedBunches.Num(); i++)
+		{
+			delete QueuedBunches[i];
+		}
 
-	QueuedBunches.Empty();
+		QueuedBunches.Empty();
+
+		UPackageMapClient * PackageMapClient = Cast< UPackageMapClient >(Connection->PackageMap);
+
+		if (PackageMapClient)
+		{
+			PackageMapClient->SetHasQueuedBunches(ActorNetGUID, false);
+		}
+	}
 
 	// We check for -1 here, which will be true if this channel has already been closed but still needed to process bunches before fully closing
 	if ( ChIndex >= 0 )	
@@ -1827,8 +1883,8 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 	ActorReplicator = &FindOrCreateReplicator( Actor ).Get();
 
 	// Remove from connection's dormancy lists
-	Connection->DormantActors.Remove( InActor );
-	Connection->RecentlyDormantActors.Remove( InActor );
+	Connection->Driver->GetNetworkObjectList().MarkActive(Actor, Connection, Connection->Driver->NetDriverName);
+	Connection->Driver->GetNetworkObjectList().ClearRecentlyDormantConnection(Actor, Connection, Connection->Driver->NetDriverName);
 }
 
 void UActorChannel::SetChannelActorForDestroy( FActorDestructionInfo *DestructInfo )
@@ -1891,7 +1947,12 @@ bool UActorChannel::ProcessQueuedBunches()
 		}
 	}
 
-	const int BunchTimeLimit = CVarNetProcessQueuedBunchesMillisecondLimit.GetValueOnGameThread();
+	// Instant replays are played back in a duplicated level collection, so if this is instant replay
+	// playback, the driver's DuplicateLevelID will be something other than INDEX_NONE.
+	const int BunchTimeLimit = Connection->Driver->GetDuplicateLevelID() == INDEX_NONE ?
+		CVarNetProcessQueuedBunchesMillisecondLimit.GetValueOnGameThread() :
+		CVarNetInstantReplayProcessQueuedBunchesMillisecondLimit.GetValueOnGameThread();
+
 	const bool bHasTimeToProcess = BunchTimeLimit == 0 || Connection->Driver->ProcessQueuedBunchesCurrentFrameMilliseconds < BunchTimeLimit;
 
 	// We can process all of the queued up bunches if ALL of these are true:
@@ -1928,8 +1989,18 @@ bool UActorChannel::ProcessQueuedBunches()
 
 		if ( FPlatformTime::Seconds() - QueuedBunchStartTime > QUEUED_BUNCH_TIMEOUT_IN_SECONDS )
 		{
-			UE_LOG( LogNet, Warning, TEXT( "UActorChannel::ProcessQueuedBunches: Queued bunches for longer than normal. ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
+			UE_CLOG(FPlatformProperties::RequiresCookedData(), LogNet, Warning, TEXT( "UActorChannel::ProcessQueuedBunches: Queued bunches for longer than normal. ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
 			QueuedBunchStartTime = FPlatformTime::Seconds();
+		}
+	}
+	else
+	{
+		// Processed all bunches
+		UPackageMapClient * PackageMapClient = Cast< UPackageMapClient >(Connection->PackageMap);
+
+		if (PackageMapClient)
+		{
+			PackageMapClient->SetHasQueuedBunches(ActorNetGUID, false);
 		}
 	}
 
@@ -2037,6 +2108,14 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 			
 			// Start ticking this channel so we can process the queued bunches when possible
 			Connection->StartTickingChannel(this);
+
+			// Register this as being queued
+			UPackageMapClient * PackageMapClient = Cast< UPackageMapClient >(Connection->PackageMap);
+
+			if (PackageMapClient)
+			{
+				PackageMapClient->SetHasQueuedBunches(ActorNetGUID, true);
+			}
 
 			return;
 		}
@@ -2169,6 +2248,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 			if ( Connection->InternalAck )
 			{
 				UE_LOG( LogNet, Warning, TEXT( "UActorChannel::ProcessBunch: Replicator.ReceivedBunch failed (Ignoring because of InternalAck). RepObj: %s, Channel: %i" ), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex );
+				Broken = 1;
 				continue;		// Don't consider this catastrophic in replays
 			}
 
@@ -2257,6 +2337,17 @@ bool UActorChannel::ReplicateActor()
 
 	const UWorld* const ActorWorld = Actor->GetWorld();
 
+	if (bPausedUntilReliableACK )
+	{
+		if (NumOutRec > 0)
+		{			
+			return false;
+		}
+		bPausedUntilReliableACK = 0;
+		UE_LOG(LogNet, Log, TEXT( "ReplicateActor: bPausedUntilReliableACK is ending now that reliables have been ACK'd. %s"), *Describe());
+	}
+
+
 	bool bIsNewlyReplicationPaused = false;
 	bool bIsNewlyReplicationUnpaused = false;
 	if (OpenPacketId.First != INDEX_NONE)
@@ -2340,7 +2431,7 @@ bool UActorChannel::ReplicateActor()
 	{
 		RepFlags.bNetInitial = true;
 		Bunch.bClose = Actor->bNetTemporary;
-		Bunch.bReliable = !Actor->bNetTemporary;
+		Bunch.bReliable = true; // Net temporary sends need to be reliable as well to force them to retry
 	}
 
 	// Owned by connection's player?
@@ -3327,9 +3418,16 @@ static void	DeleteDormantActor( UWorld* InWorld )
 		return;
 	}
 
-	for (auto It = Connection->DormantActors.CreateIterator(); It; ++It)
+	for (auto It = Connection->Driver->GetNetworkObjectList().GetAllObjects().CreateConstIterator(); It; ++It)
 	{
-		AActor* ThisActor = const_cast<AActor*>(*It);
+		FNetworkObjectInfo* ActorInfo = ( *It ).Get();
+
+		if ( !ActorInfo->DormantConnections.Num() )
+		{
+			continue;
+		}
+
+		AActor* ThisActor = ActorInfo->Actor;
 
 		UE_LOG(LogNet, Warning, TEXT("Deleting actor %s"), *ThisActor->GetName());
 

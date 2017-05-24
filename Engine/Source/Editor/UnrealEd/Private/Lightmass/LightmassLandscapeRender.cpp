@@ -15,6 +15,7 @@
 #include "LocalVertexFactory.h"
 #include "CanvasTypes.h"
 #include "MeshBatch.h"
+#include "DrawingPolicy.h"
 
 #include "LandscapeProxy.h"
 #include "LandscapeInfo.h"
@@ -187,33 +188,30 @@ void RenderLandscapeMaterialForLightmass(const FLandscapeStaticLightingMesh* Lan
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.OverlayColor = FLinearColor::White;
 
-	FSceneView View(ViewInitOptions);
-
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		CanvasFlushSetupCommand,
-		const FRenderTarget*, RenderTarget, RenderTarget,
+	const FMeshBatch& Mesh = MeshElement;
+	ENQUEUE_RENDER_COMMAND(CanvasFlushSetupCommand)(
+		[RenderTarget, &Mesh, ViewInitOptions](FRHICommandListImmediate& RHICmdList)
 		{
 			//SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
-
+			
 			// Set the RHI render target.
 			RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, RenderTarget->GetRenderTargetTexture());
 			::SetRenderTarget(RHICmdList, RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
-			// disable depth test & writes
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 			const FIntRect RTViewRect = FIntRect(0, 0, RenderTarget->GetRenderTargetTexture()->GetSizeX(), RenderTarget->GetRenderTargetTexture()->GetSizeY());
 
 			// set viewport to RT size
 			RHICmdList.SetViewport(RTViewRect.Min.X, RTViewRect.Min.Y, 0.0f, RTViewRect.Max.X, RTViewRect.Max.Y, 1.0f);
-		});
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		RenderLandscapeMaterialForLightmass,
-		const FSceneView&, View, View,
-		const FMeshBatch&, Mesh, MeshElement,
-		{
+			FSceneView View(ViewInitOptions);
+
+			FDrawingPolicyRenderState DrawRenderState(View);
+
+			// disable depth test & writes
+			DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
 			//SCOPED_DRAW_EVENT(RHICmdList, RenderLandscapeMaterialToTexture);
-			GetRendererModule().DrawTileMesh(RHICmdList, View, Mesh, false, FHitProxyId());
+			GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, Mesh, false, FHitProxyId());
 		});
 	FlushRenderingCommands();
 }

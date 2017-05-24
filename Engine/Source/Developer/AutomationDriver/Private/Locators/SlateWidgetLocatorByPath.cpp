@@ -148,6 +148,7 @@ public:
 		for (const TSharedRef<SWindow>& Window : Windows)
 		{
 			FStackState NewState;
+			NewState.Path.TopLevelWindow = Window;
 			NewState.Path.Widgets.AddWidget(FArrangedWidget(Window, Window->GetWindowGeometryInScreen()));
 			NewState.MatcherIndex = 0;
 

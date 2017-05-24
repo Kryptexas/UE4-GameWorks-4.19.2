@@ -32,6 +32,8 @@
 #include "AssetNotifications.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "ISkeletalMeshEditorModule.h"
+#include "ApexClothingUtils.h"
+#include "Algo/Transform.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -454,7 +456,7 @@ void FAssetTypeActions_SkeletalMesh::GetActions( const TArray<UObject*>& InObjec
 	GetNonDestructibleActions(Meshes, MenuBuilder);
 }
 
-void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
+void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
 {
 	MenuBuilder.BeginSection("CreatePhysicsAsset", LOCTEXT("CreatePhysicsAssetMenuHeading", "Physics Asset"));
 	{
@@ -465,20 +467,19 @@ void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, c
 	}
 	MenuBuilder.EndSection();
 
-	// Get the skeleton for each selected skeletal mesh
-	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
-	Skeletons.Reserve(Meshes.Num());
-	for (int32 i = 0; i < Meshes.Num(); i++)
-	{
-		Skeletons.Add(Meshes[i]->Skeleton);
-	}
-	
-	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_SkeletalMesh::OnAssetCreated));
-
+	TArray<TWeakObjectPtr<UObject>> Objects;
+	Algo::Transform(Meshes, Objects, [](const TWeakObjectPtr<USkeletalMesh>& SkelMesh) { return SkelMesh; });
+	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Objects, FAnimAssetCreated::CreateSP(this, &FAssetTypeActions_SkeletalMesh::OnAssetCreated));
 }
 
 void FAssetTypeActions_SkeletalMesh::GetNonDestructibleActions( const TArray<TWeakObjectPtr<USkeletalMesh>>& Meshes, FMenuBuilder& MenuBuilder)
 {
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ImportClothing_Entry", "Import Clothing Asset..."),
+		LOCTEXT("ImportClothing_ToolTip", "Import a clothing asset from a supported file on disk into this skeletal mesh."),
+		FSlateIcon(),
+		FUIAction(FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteImportClothing, Meshes)));
+
 	// skeleton menu
 	MenuBuilder.AddSubMenu(
 			LOCTEXT("SkeletonSubmenu", "Skeleton"),
@@ -548,7 +549,7 @@ UThumbnailInfo* FAssetTypeActions_SkeletalMesh::GetThumbnailInfo(UObject* Asset)
 	UThumbnailInfo* ThumbnailInfo = SkeletalMesh->ThumbnailInfo;
 	if ( ThumbnailInfo == NULL )
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfo>(SkeletalMesh);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(SkeletalMesh, NAME_None, RF_Transactional);
 		SkeletalMesh->ThumbnailInfo = ThumbnailInfo;
 	}
 
@@ -704,7 +705,20 @@ void FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD(UObject* Mesh, int32 L
 	FbxMeshUtils::ImportMeshLODDialog(Mesh, LOD);
 }
 
-void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
+void FAssetTypeActions_SkeletalMesh::ExecuteImportClothing(TArray<TWeakObjectPtr<USkeletalMesh>> Objects)
+{
+	if(Objects.Num() > 0)
+	{
+		USkeletalMesh* TargetMesh = Objects[0].Get();
+
+		if(TargetMesh)
+		{
+			ApexClothingUtils::PromptAndImportClothing(TargetMesh);
+		}
+	}
+}
+
+void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
 {
 	MenuBuilder.BeginSection("SkeletonMenu", LOCTEXT("SkeletonMenuHeading", "Skeleton"));
 	MenuBuilder.AddMenuEntry(
@@ -844,7 +858,7 @@ void FAssetTypeActions_SkeletalMesh::AssignSkeletonToMesh(USkeletalMesh* SkelMes
 				{
 					// if failed, ask if user would like to regenerate skeleton hierarchy
 					if ( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, 
-						LOCTEXT("SkeletonMergeBones_Override", "FAILED TO MERGE BONES:  \n\nThis could happen if significant hierarchical change has been made\n - i.e. inserting bone between nodes \nWould you like to regenerate Skeleton from this mesh? \n\n***WARNING: THIS WILL INVALIDATE ALL ANIMATION DATA THAT IS LINKED TO THIS SKELETON***\n") ) ) 
+						LOCTEXT("SkeletonMergeBones_Override", "FAILED TO MERGE BONES:  \n\nThis could happen if significant hierarchical changes have been made,\ne.g. inserting a bone between nodes.\nWould you like to regenerate the skeleton from this mesh? \n\n***WARNING: THIS WILL INVALIDATE ALL ANIMATION DATA THAT IS LINKED TO THIS SKELETON***\n")))
 					{
 						if ( SelectedSkeleton->RecreateBoneTree( SkelMesh ) )
 						{

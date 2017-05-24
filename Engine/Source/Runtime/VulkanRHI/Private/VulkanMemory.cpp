@@ -264,11 +264,11 @@ namespace VulkanRHI
 		uint32 InRequestedSize, uint32 InAlignedOffset,
 		uint32 InAllocationSize, uint32 InAllocationOffset, const char* InFile, uint32 InLine)
 		: Owner(InOwner)
-		, DeviceMemoryAllocation(InDeviceMemoryAllocation)
 		, AllocationSize(InAllocationSize)
 		, AllocationOffset(InAllocationOffset)
 		, RequestedSize(InRequestedSize)
 		, AlignedOffset(InAlignedOffset)
+		, DeviceMemoryAllocation(InDeviceMemoryAllocation)
 #if VULKAN_TRACK_MEMORY_USAGE
 		, File(InFile)
 		, Line(InLine)
@@ -859,6 +859,7 @@ namespace VulkanRHI
 		VkMemoryRequirements MemReqs;
 		VulkanRHI::vkGetBufferMemoryRequirements(Device->GetInstanceHandle(), Buffer, &MemReqs);
 		Alignment = FMath::Max((uint32)MemReqs.alignment, Alignment);
+		ensure(MemReqs.size >= BufferSize);
 
 		uint32 MemoryTypeIndex;
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
@@ -932,6 +933,7 @@ namespace VulkanRHI
 
 		VkMemoryRequirements MemReqs;
 		VulkanRHI::vkGetImageMemoryRequirements(Device->GetInstanceHandle(), Image, &MemReqs);
+		ensure(MemReqs.size >= Size);
 
 		uint32 MemoryTypeIndex;
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
@@ -1154,6 +1156,7 @@ namespace VulkanRHI
 
 		VkMemoryRequirements MemReqs;
 		VulkanRHI::vkGetBufferMemoryRequirements(VulkanDevice, StagingBuffer->Buffer, &MemReqs);
+		ensure(MemReqs.size >= Size);
 
 		// Set minimum alignment to 16 bytes, as some buffers are used with CPU SIMD instructions
 		MemReqs.alignment = FMath::Max((VkDeviceSize)16, MemReqs.alignment);
@@ -1378,6 +1381,21 @@ namespace VulkanRHI
 	}
 
 
+	FGPUEvent::FGPUEvent(FVulkanDevice* InDevice)
+		: FDeviceChild(InDevice)
+	{
+		VkEventCreateInfo Info;
+		FMemory::Memzero(Info);
+		Info.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateEvent(InDevice->GetInstanceHandle(), &Info, nullptr, &Handle));
+	}
+
+	FGPUEvent::~FGPUEvent()
+	{
+		VulkanRHI::vkDestroyEvent(Device->GetInstanceHandle(), Handle, nullptr);
+	}
+
+
 	FDeferredDeletionQueue::FDeferredDeletionQueue(FVulkanDevice* InDevice)
 		: FDeviceChild(InDevice)
 	{
@@ -1390,7 +1408,7 @@ namespace VulkanRHI
 
 	void FDeferredDeletionQueue::EnqueueGenericResource(EType Type, uint64 Handle)
 	{
-		FVulkanQueue* Queue = Device->GetQueue();
+		FVulkanQueue* Queue = Device->GetGraphicsQueue();
 
 		FEntry Entry;
 		Queue->GetLastSubmittedInfo(Entry.CmdBuffer, Entry.FenceCounter);
@@ -1414,7 +1432,8 @@ namespace VulkanRHI
 		for (int32 Index = Entries.Num() - 1; Index >= 0; --Index)
 		{
 			FEntry* Entry = &Entries[Index];
-			if (bDeleteImmediately || Entry->FenceCounter < Entry->CmdBuffer->GetFenceSignaledCounter())
+			// #todo-rco: Had to add this check, we were getting null CmdBuffers on the first frame, or before first frame maybe
+			if (bDeleteImmediately || Entry->CmdBuffer == nullptr || Entry->FenceCounter < Entry->CmdBuffer->GetFenceSignaledCounter())
 			{
 				switch (Entry->StructureType)
 				{
@@ -1443,8 +1462,8 @@ namespace VulkanRHI
 
 	FTempFrameAllocationBuffer::FTempFrameAllocationBuffer(FVulkanDevice* InDevice, uint32 InSize)
 		: FDeviceChild(InDevice)
-		, Size(InSize)
 		, BufferIndex(0)
+		, Size(InSize)
 		, PeakUsed(0)
 	{
 		for (int32 Index = 0; Index < NUM_RENDER_BUFFERS; ++Index)

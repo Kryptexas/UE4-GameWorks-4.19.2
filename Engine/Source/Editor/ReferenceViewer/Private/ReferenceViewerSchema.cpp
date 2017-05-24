@@ -53,19 +53,34 @@ UReferenceViewerSchema::UReferenceViewerSchema(const FObjectInitializer& ObjectI
 
 void UReferenceViewerSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const
 {
-	MenuBuilder->AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser);
-	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().OpenSelectedInAssetEditor);
-	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ReCenterGraph);
-	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ListReferencedObjects);
-	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ListObjectsThatReference);
+	MenuBuilder->BeginSection(TEXT("Asset"), NSLOCTEXT("ReferenceViewerSchema", "AssetSectionLabel", "Asset"));
+	{
+		MenuBuilder->AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser);
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().OpenSelectedInAssetEditor);
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowSizeMap);
+	}
+	MenuBuilder->EndSection();
 
-	MenuBuilder->AddSubMenu(NSLOCTEXT("ReferenceViewerSchema","MakeCollectionWithTitle", "Make Collection with"),
-							NSLOCTEXT("ReferenceViewerSchema","MakeCollectionWithTooltip", "Makes a collection with either the referencers or dependencies of the selected nodes."),
-							FNewMenuDelegate::CreateUObject(this, &UReferenceViewerSchema::GetMakeCollectionWithSubMenu )
-							);
+	MenuBuilder->BeginSection(TEXT("Misc"), NSLOCTEXT("ReferenceViewerSchema", "MiscSectionLabel", "Misc"));
+	{
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ReCenterGraph);
+		MenuBuilder->AddSubMenu(
+			NSLOCTEXT("ReferenceViewerSchema", "MakeCollectionWithTitle", "Make Collection with"),
+			NSLOCTEXT("ReferenceViewerSchema", "MakeCollectionWithTooltip", "Makes a collection with either the referencers or dependencies of the selected nodes."),
+			FNewMenuDelegate::CreateUObject(this, &UReferenceViewerSchema::GetMakeCollectionWithSubMenu)
+		);
+	}
+	MenuBuilder->EndSection();
 
-	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowSizeMap);
-	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferenceTree);
+	MenuBuilder->BeginSection(TEXT("References"), NSLOCTEXT("ReferenceViewerSchema", "ReferencesSectionLabel", "References"));
+	{
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().CopyReferencedObjects);
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().CopyReferencingObjects);
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferencedObjects);
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferencingObjects);
+		MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ShowReferenceTree, TEXT("ContextMenu"));
+	}
+	MenuBuilder->EndSection();
 }
 
 FLinearColor UReferenceViewerSchema::GetPinTypeColor(const FEdGraphPinType& PinType) const

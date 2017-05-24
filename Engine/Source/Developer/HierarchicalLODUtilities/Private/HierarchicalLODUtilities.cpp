@@ -25,10 +25,14 @@
 #include "BSPOps.h"
 #include "Builders/CubeBuilder.h"
 
+#include "AssetRegistryModule.h" 
+#include "Engine/LevelStreaming.h"
+
 #if WITH_EDITOR
 #include "Editor.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "ScopedTransaction.h"
+#include "PackageTools.h"
 #endif // WITH_EDITOR
 
 #include "HierarchicalLODProxyProcessor.h"
@@ -216,6 +220,9 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				{
 					return false;
 				}
+
+				// make sure the mesh won't affect navmesh generation
+				MainMesh->MarkAsNotHavingNavigationData();
 
 				LODActor->SetStaticMesh(MainMesh);
 				LODActor->SetActorLocation(OutProxyLocation);
@@ -769,6 +776,53 @@ void FHierarchicalLODUtilities::HandleActorModified(AActor* InActor)
 		ParentActor->Modify();
 		ParentActor->SetIsDirty(true);
 	}
+}
+
+bool FHierarchicalLODUtilities::IsWorldUsedForStreaming(const UWorld* InWorld)
+{
+	// Find references to the given world's outer package
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	TArray<FAssetIdentifier> ReferenceNames;
+	const UPackage* OuterPackage = InWorld->GetOutermost();
+	AssetRegistryModule.Get().GetReferencers(FAssetIdentifier(OuterPackage->GetFName()), ReferenceNames);
+
+	for (const FAssetIdentifier& Identifier : ReferenceNames)
+	{
+		
+		const FString PackageName = Identifier.PackageName.ToString();
+		UPackage* ReferencingPackage = FindPackage(nullptr, *PackageName);
+		if (!ReferencingPackage)
+		{
+			ReferencingPackage = LoadPackage(nullptr, *PackageName, LOAD_None);
+		}
+
+		// Retrieve the referencing UPackage and check if it contains a map asset
+		if (ReferencingPackage && ReferencingPackage->ContainsMap())
+		{
+			TArray<UPackage*> Packages;
+			Packages.Add(ReferencingPackage);
+			TArray<UObject*> Objects;
+			PackageTools::GetObjectsInPackages(&Packages, Objects);
+
+			// Loop over all objects in package and try to find a world
+			for (UObject* Object : Objects)
+			{
+				if (UWorld* World = Cast<UWorld>(Object))
+				{
+					// Check the world contains InWorld as a streaming level
+					if (World->StreamingLevels.FindByPredicate([InWorld](const ULevelStreaming* StreamingLevel)
+					{
+						return StreamingLevel->GetWorldAsset() == InWorld;
+					}))
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

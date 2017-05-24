@@ -14,7 +14,6 @@
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
 #include "Modules/ModuleManager.h"
-#include "QoSReporter.h"
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 	#include "SCrashReportClient.h"
@@ -343,8 +342,6 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		ErrorReport.SetCrashReportClientVersion(FCrashReportClientConfig::Get().GetVersion());
 
 		FCrashReportAnalytics::Initialize();
-		FQoSReporter::Initialize();
-		FQoSReporter::SetBackendDeploymentName(FPrimaryCrashProperties::Get()->DeploymentName);
 
 		if (bUnattended)
 		{
@@ -368,7 +365,6 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 
 		// Shutdown analytics.
 		FCrashReportAnalytics::Shutdown();
-		FQoSReporter::Shutdown();
 	}
 	else
 	{

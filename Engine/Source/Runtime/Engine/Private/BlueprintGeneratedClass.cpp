@@ -23,9 +23,18 @@
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "BlueprintCompilationManager.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
+
+int32 GBlueprintClusteringEnabled = 0;
+static FAutoConsoleVariableRef CVarUseBackgroundLevelStreaming(
+	TEXT("gc.BlueprintClusteringEnabled"),
+	GBlueprintClusteringEnabled,
+	TEXT("Whether to allow Blueprint classes to create GC clusters."),
+	ECVF_Default
+);
 
 UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -49,8 +58,7 @@ void UBlueprintGeneratedClass::PostLoad()
 {
 	Super::PostLoad();
 
-	// Make sure the class CDO has been generated
-	UObject* ClassCDO = GetDefaultObject();
+	UObject* ClassCDO = ClassDefaultObject;
 
 	// Go through the CDO of the class, and make sure we don't have any legacy components that aren't instanced hanging on.
 	struct FCheckIfComponentChildHelper
@@ -63,15 +71,18 @@ void UBlueprintGeneratedClass::PostLoad()
 		};
 	};
 
-	ForEachObjectWithOuter(ClassCDO, [ClassCDO](UObject* CurrObj)
+	if(ClassCDO)
 	{
-		const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
-		if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
+		ForEachObjectWithOuter(ClassCDO, [ClassCDO](UObject* CurrObj)
 		{
-			CurrObj->MarkPendingKill();
-		}
-	});
-
+			const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
+			if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
+			{
+				CurrObj->MarkPendingKill();
+			}
+		});
+	}
+	
 #if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
@@ -148,6 +159,28 @@ void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& 
 // 	}
 }
 
+FPrimaryAssetId UBlueprintGeneratedClass::GetPrimaryAssetId() const
+{
+	FPrimaryAssetId AssetId;
+	if (!ensure(ClassDefaultObject))
+	{
+		return AssetId;
+	}
+
+	AssetId = ClassDefaultObject->GetPrimaryAssetId();
+
+	/*
+	if (!AssetId.IsValid())
+	{ 
+		FName AssetType = NAME_None; // TODO: Support blueprint-only primary assets with a class flag. No way to guess at type currently
+		FName AssetName = FPackageName::GetShortFName(GetOutermost()->GetFName());
+		return FPrimaryAssetId(AssetType, AssetName);
+	}
+	*/
+
+	return AssetId;
+}
+
 #if WITH_EDITOR
 
 UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
@@ -215,9 +248,16 @@ struct FConditionalRecompileClassHepler
 };
 
 extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+extern COREUOBJECT_API bool GBlueprintUseCompilationManager;
 
 void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLoaded)
 {
+	if(GBlueprintUseCompilationManager)
+	{
+		FBlueprintCompilationManager::FlushCompilationQueue(ObjLoaded);
+		return;
+	}
+	
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy);
@@ -230,7 +270,7 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 			GeneratingBP->bIsRegeneratingOnLoad = true;
 
 			{
-				UPackage* const Package = Cast<UPackage>(GeneratingBP->GetOutermost());
+				UPackage* const Package = GeneratingBP->GetOutermost();
 				const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
 
 				// Make sure that nodes are up to date, so that we get any updated blueprint signatures
@@ -301,6 +341,11 @@ void UBlueprintGeneratedClass::PostLoadDefaultObject(UObject* Object)
 	{
 		// Rebuild the custom property list used in post-construct initialization logic. Note that PostLoad() may have altered some serialized properties.
 		UpdateCustomPropertyListForPostConstruction();
+		// Restore any property values from config file
+		if (HasAnyClassFlags(CLASS_Config))
+		{
+			ClassDefaultObject->LoadConfig();
+		}
 	}
 }
 
@@ -595,6 +640,13 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 			}
 			else if(UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
 			{
+				if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+				{
+					if (ICH->HasAnyFlags(RF_NeedLoad))
+					{
+						UE_LOG(LogClass, Fatal, TEXT("%s had RF_NeedLoad when searching for an archetype of %s named %s"), *GetFullNameSafe(ICH), *GetFullNameSafe(ArchetypeClass), *ArchetypeName.ToString());
+					}
+				}
 				// This would find either an SCS component template override (for which the archetype
 				// name will match the SCS variable name), or an old AddComponent node template override
 				// (for which the archetype name will match the override record's component template name).
@@ -916,8 +968,10 @@ void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTim
 void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass, AActor* Actor)
 {
 	check(ThisClass && Actor);
-	check(!Actor->IsTemplate());
-	check(!Actor->IsPendingKill());
+	if (Actor->IsTemplate() || Actor->IsPendingKill())
+	{
+		return;
+	}
 
 	if (const UBlueprintGeneratedClass* BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
 	{
@@ -1007,9 +1061,6 @@ void UBlueprintGeneratedClass::CheckAndApplyComponentTemplateOverrides(AActor* A
 
 											// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
 											ArPortFlags |= PPF_Duplicate;
-
-											// Set this flag to ensure that we also serialize any deprecated properties.
-											ArPortFlags |= PPF_UseDeprecatedProperties;
 										}
 									};
 
@@ -1051,6 +1102,11 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 
 void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass, UClass* OldClass) const
 {
+	if (Obj && Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	{
+		return;
+	}
+
 	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
@@ -1155,6 +1211,49 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 			}
 		});
 	}
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForServer() const
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForServer())
+		{
+			return false;
+		}
+		if (ensure(ClassDefaultObject) && !ClassDefaultObject->NeedsLoadForServer())
+		{
+			return false;
+		}
+	}
+	return Super::NeedsLoadForServer();
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForClient() const
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ensure(GetSuperClass()) && !GetSuperClass()->NeedsLoadForClient())
+		{
+			return false;
+		}
+		if (ensure(ClassDefaultObject) && !ClassDefaultObject->NeedsLoadForClient())
+		{
+			return false;
+		}
+	}
+	return Super::NeedsLoadForClient();
+}
+
+bool UBlueprintGeneratedClass::NeedsLoadForEditorGame() const
+{
+	return true;
+}
+
+bool UBlueprintGeneratedClass::CanBeClusterRoot() const
+{
+	// Clustering level BPs doesn't work yet
+	return GBlueprintClusteringEnabled && !GetOutermost()->ContainsMap();
 }
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
@@ -1446,9 +1545,6 @@ void FBlueprintCookedComponentInstancingData::LoadCachedPropertyDataForSerializa
 
 			// Set this flag to emulate things that would normally happen in the SDO case when this flag is set. This is needed to ensure consistency with serialization during instancing.
 			ArPortFlags |= PPF_Duplicate;
-
-			// Set this flag to ensure that we also serialize any deprecated properties.
-			ArPortFlags |= PPF_UseDeprecatedProperties;
 		}
 	};
 

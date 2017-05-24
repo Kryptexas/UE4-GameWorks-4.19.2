@@ -21,7 +21,7 @@ struct SelectIntPointerType<T32BITS, T64BITS, 8>
 template<typename T32BITS, typename T64BITS>
 struct SelectIntPointerType<T32BITS, T64BITS, 4>
 {
-	typedef T32BITS TIntPointer; // select the 64 bit type
+	typedef T32BITS TIntPointer; // select the 32 bit type
 };
 
 /**
@@ -52,7 +52,7 @@ struct FGenericPlatformTypes
 	typedef SelectIntPointerType<uint32, uint64, sizeof(void*)>::TIntPointer UPTRINT;	// unsigned int the same size as a pointer
 	typedef SelectIntPointerType<int32, int64, sizeof(void*)>::TIntPointer PTRINT;		// signed int the same size as a pointer
 	typedef UPTRINT SIZE_T;																// unsigned int the same size as a pointer
-	typedef PTRINT SSIZE_T;																// unsigned int the same size as a pointer
+	typedef PTRINT SSIZE_T;																// signed int the same size as a pointer
 
 	typedef int32					TYPE_OF_NULL;
 	typedef decltype(nullptr)		TYPE_OF_NULLPTR;

@@ -317,11 +317,6 @@ static inline ovrMatrix4f ovrMatrix4f_TanAngleMatrixFromProjection( const ovrMat
 // Note that this is NOT an MVP matrix -- the "projection" is handled
 // by the distortion process.
 //
-// The exact composition of the overlay image and the base image is
-// determined by the warp program, you may still need to draw the geometry
-// into the eye buffer to punch a hole in the alpha channel to let the
-// overlay/underlay show through.
-//
 // This utility functions converts a model-view matrix that would normally
 // draw a -1 to 1 unit square to the view into a TexCoordsFromTanAngles matrix 
 // for an overlay surface.
@@ -509,12 +504,13 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 	parms.PerformanceParms = vrapi_DefaultPerformanceParms();
 	parms.Java = *java;
 
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].DstBlend = VRAPI_FRAME_LAYER_BLEND_ZERO;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Flags = 0;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].SrcBlend = VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].Flags = 0;
+	parms.Layers[0].SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
+	parms.Layers[0].DstBlend = VRAPI_FRAME_LAYER_BLEND_ZERO;
+	parms.Layers[0].Flags = 0;
+
+	parms.Layers[1].SrcBlend = VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA;
+	parms.Layers[1].DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
+	parms.Layers[1].Flags = 0;
 
 	switch ( init )
 	{
@@ -529,7 +525,7 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 			parms.Flags = VRAPI_FRAME_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
 			for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 			{
-				parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
+				parms.Layers[0].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
 			}
 			break;
 		}
@@ -538,13 +534,13 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 		{
 			parms.LayerCount = 2;
 			parms.Flags = VRAPI_FRAME_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
-			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].Flags = VRAPI_FRAME_LAYER_FLAG_SPIN;
-			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].SpinSpeed = 1.0f;		// rotation in radians per second
-			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].SpinScale = 16.0f;		// icon size factor smaller than fullscreen
+			parms.Layers[1].Flags = VRAPI_FRAME_LAYER_FLAG_SPIN;
+			parms.Layers[1].SpinSpeed = 1.0f;		// rotation in radians per second
+			parms.Layers[1].SpinScale = 16.0f;		// icon size factor smaller than fullscreen
 			for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 			{
-				parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
-				parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].Textures[eye].ColorTextureSwapChain = ( textureSwapChain != NULL ) ? textureSwapChain : (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_LOADING_ICON;
+				parms.Layers[0].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
+				parms.Layers[1].Textures[eye].ColorTextureSwapChain = ( textureSwapChain != NULL ) ? textureSwapChain : (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_LOADING_ICON;
 			}
 			break;
 		}
@@ -553,12 +549,12 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 		{
 			parms.LayerCount = 2;
 			parms.Flags = VRAPI_FRAME_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
-			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].SpinSpeed = 0.0f;		// rotation in radians per second
-			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].SpinScale = 2.0f;		// message size factor smaller than fullscreen
+			parms.Layers[1].SpinSpeed = 0.0f;		// rotation in radians per second
+			parms.Layers[1].SpinScale = 2.0f;		// message size factor smaller than fullscreen
 			for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 			{
-				parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
-				parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].Textures[eye].ColorTextureSwapChain = ( textureSwapChain != NULL ) ? textureSwapChain : (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_LOADING_ICON;
+				parms.Layers[0].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
+				parms.Layers[1].Textures[eye].ColorTextureSwapChain = ( textureSwapChain != NULL ) ? textureSwapChain : (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_LOADING_ICON;
 			}
 			break;
 		}

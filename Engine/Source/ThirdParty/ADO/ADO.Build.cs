@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class ADO : ModuleRules
 {
-	public ADO(TargetInfo Target)
+	public ADO(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

@@ -83,9 +83,9 @@ FXAudio2SoundSource::~FXAudio2SoundSource( void )
 void FXAudio2SoundSource::InitializeSourceEffects(uint32 InVoiceId)
 {
 	VoiceId = InVoiceId;
-	if (AudioDevice->SpatializeProcessor != nullptr)
+	if (AudioDevice->SpatializationPluginInterface.IsValid())
 	{
-		AudioDevice->SpatializeProcessor->CreateSpatializationEffect(VoiceId);
+		AudioDevice->SpatializationPluginInterface->CreateSpatializationEffect(VoiceId);
 	}
 }
 
@@ -236,13 +236,12 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 	const uint32 BufferSize = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
 
 	// Set up buffer areas to decompress to
-	XAudio2Buffers[0].pAudioData = GetRealtimeBufferData(0, BufferSize);
-	XAudio2Buffers[0].AudioBytes = BufferSize;
-	XAudio2Buffers[0].pContext = this;
-
-	XAudio2Buffers[1].pAudioData = GetRealtimeBufferData(1, BufferSize);
-	XAudio2Buffers[1].AudioBytes = BufferSize;
-	XAudio2Buffers[1].pContext = this;
+	for (int32 i = 0; i < 3; ++i)
+	{
+		XAudio2Buffers[i].pAudioData = GetRealtimeBufferData(i, BufferSize);
+		XAudio2Buffers[i].AudioBytes = BufferSize;
+		XAudio2Buffers[i].pContext = this;
+	}
 
 	// Only use the cached data if we're starting from the beginning, otherwise we'll have to take a synchronous hit
 	bPlayedCachedBuffer = false;
@@ -252,28 +251,32 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 		bPlayedCachedBuffer = true;
 		FMemory::Memcpy((uint8*)XAudio2Buffers[0].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
 		FMemory::Memcpy((uint8*)XAudio2Buffers[1].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
+
+		// Immediately submit the first two buffers that were either cached or synchronously read
+		// The first buffer will start the voice processing buffers and trigger an OnBufferEnd callback, which will then 
+		// trigger async tasks to generate more PCMRT buffers.
+		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
+			Source->SubmitSourceBuffer(&XAudio2Buffers[0]));
+
+		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
+			Source->SubmitSourceBuffer(&XAudio2Buffers[1]));
+
+		// Prepare the third buffer for the OnBufferEnd callback to write to in the OnBufferEnd callback
+		CurrentBuffer = 2;
 	}
 	else
 	{
+		// Read the first buffer now
 		ReadMorePCMData(0, EDataReadMode::Synchronous);
-		ReadMorePCMData(1, EDataReadMode::Synchronous);
+
+		// Submit it
+		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
+			Source->SubmitSourceBuffer(&XAudio2Buffers[0]));
+
+		// Kick off an async decode of the next buffer so when first buffer finishes, it'll be ready
+		CurrentBuffer = 1;
+		ReadMorePCMData(CurrentBuffer, EDataReadMode::Asynchronous);
 	}
-
-	// Immediately submit the first two buffers that were either cached or synchronously read
-	// The first buffer will start the voice processing buffers and trigger an OnBufferEnd callback, which will then 
-	// trigger async tasks to generate more PCMRT buffers.
-	AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
-								 Source->SubmitSourceBuffer(&XAudio2Buffers[0]));
-
-	AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
-								 Source->SubmitSourceBuffer(&XAudio2Buffers[1]));
-
-	// Prepare the third buffer for the OnBufferEnd callback to write to in the OnBufferEnd callback
-	CurrentBuffer = 2;
-
-	XAudio2Buffers[2].pAudioData = GetRealtimeBufferData(2, BufferSize);
-	XAudio2Buffers[2].AudioBytes = BufferSize;
-	XAudio2Buffers[2].pContext = this;
 
 	bResourcesNeedFreeing = true;
 }
@@ -413,8 +416,8 @@ bool FXAudio2SoundSource::CreateSource( void )
 
 	if (CreateWithSpatializationEffect())
 	{
-		check(AudioDevice->SpatializeProcessor != nullptr);
-		IUnknown* Effect = (IUnknown*)AudioDevice->SpatializeProcessor->GetSpatializationEffect(VoiceId);
+		check(AudioDevice->SpatializationPluginInterface.IsValid());
+		IUnknown* Effect = (IUnknown*)AudioDevice->SpatializationPluginInterface->GetSpatializationEffect(VoiceId);
 		if (Effect)
 		{
 			// Indicate that this source is currently using the 3d spatialization effect. We can't stop using it
@@ -466,10 +469,12 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 		bIsVirtual = true;
 	}
 
+	// We need to set the wave instance regardless of what happens below so that the wave instance can be stopped if this sound source fails to init
+	WaveInstance = InWaveInstance;
+
 	// If virtual only need wave instance data and no need to load source data
 	if (bIsVirtual)
 	{
-		WaveInstance = InWaveInstance;
 		bIsFinished = false;
 		return true;
 	}
@@ -508,8 +513,6 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 		// Reset the LPFFrequency values
 		LPFFrequency = MAX_FILTER_FREQUENCY;
 		LastLPFFrequency = FLT_MAX;
-
-		WaveInstance = InWaveInstance;
 
 		// Reset the LPFFrequency values
 		LPFFrequency = MAX_FILTER_FREQUENCY;
@@ -556,9 +559,16 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 		if (CreateSource())
 		{
 			check(WaveInstance);
-			if (WaveInstance->StartTime)
+			if (WaveInstance->StartTime > 0.0f)
 			{
-				XAudio2Buffer->Seek(WaveInstance->StartTime);
+				if (WaveInstance->WaveData->bStreaming)
+				{
+					UE_LOG(LogXAudio2, Verbose, TEXT("Seeking (aka start time) is not supported for streaming sound waves ('%s')."), *InWaveInstance->GetName());
+				}
+				else
+				{
+					XAudio2Buffer->Seek(WaveInstance->StartTime);
+				}
 			}
 
 			// Submit audio buffers
@@ -722,9 +732,9 @@ void FXAudio2SoundSource::GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MAT
 			bEditorWarnedChangedSpatialization = true;
 			UE_LOG(LogXAudio2, Warning, TEXT("Changing the spatialization algorithm on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
 		}
-		check(AudioDevice->SpatializeProcessor != nullptr);
+		check(AudioDevice->SpatializationPluginInterface.IsValid());
 
-		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, SpatializationParams);
+		AudioDevice->SpatializationPluginInterface->SetSpatializationParameters(VoiceId, SpatializationParams);
 		GetStereoChannelVolumes(ChannelVolumes, AttenuatedVolume);
 	}
 	else // Spatialize the mono stream using the normal 3d audio algorithm
@@ -1578,7 +1588,7 @@ void FXAudio2SoundSource::HandleRealTimeSource(bool bBlockForData)
 		}
 		else
 		{
-			DataReadMode = (XAudio2Buffer->SoundFormat == ESoundFormat::SoundFormat_Streaming ? EDataReadMode::Synchronous : EDataReadMode::Asynchronous);
+			DataReadMode = EDataReadMode::Asynchronous;
 		}
 		const bool bLooped = ReadMorePCMData(CurrentBuffer, DataReadMode);
 
@@ -1627,7 +1637,6 @@ bool FXAudio2SoundSource::IsUsingHrtfSpatializer()
 bool FXAudio2SoundSource::CreateWithSpatializationEffect()
 {
 	return (Buffer->NumChannels == 1 &&
-			AudioDevice->SpatializationPlugin != nullptr &&
 			AudioDevice->IsSpatializationPluginEnabled() &&
 			WaveInstance->SpatializationAlgorithm != SPATIALIZATION_Default);
 }

@@ -273,7 +273,7 @@ public:
 		FName PackageName;
 	};
 
-	UWorld* GetWorld() const override;
+	virtual UWorld* GetWorld() const override;
 
 	/** Returns whether streaming level is visible */
 	UFUNCTION(BlueprintCallable, Category="Game")

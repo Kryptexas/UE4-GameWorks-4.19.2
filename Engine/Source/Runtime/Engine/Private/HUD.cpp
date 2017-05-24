@@ -573,10 +573,17 @@ void AHUD::DrawDebugTextList()
 			if (DebugTextList[Idx].TimeRemaining != -1.f)
 			{
 				DebugTextList[Idx].TimeRemaining -= RenderDelta;
+			}
+		}
+
+		// Clear out the list of expired ones (going from the back to reduce copying the remaining portion of the list as it is shrunk, since order matters)
+		for (int32 Idx = DebugTextList.Num() - 1; Idx >= 0; --Idx)
+		{
+			if (DebugTextList[Idx].TimeRemaining != -1.f)
+			{
 				if (DebugTextList[Idx].TimeRemaining <= 0.f)
 				{
-					DebugTextList.RemoveAt(Idx--,1);
-					continue;
+					DebugTextList.RemoveAt(Idx, 1);
 				}
 			}
 		}
@@ -820,7 +827,7 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 	OutActors.Reset();
 
 	//Create Selection Rectangle from Points
-	FBox2D SelectionRectangle(0);
+	FBox2D SelectionRectangle(ForceInit);
 
 	//This method ensures that an appropriate rectangle is generated, 
 	//		no matter what the coordinates of first and second point actually are.
@@ -857,7 +864,7 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 		const FVector BoxExtents = EachActorBounds.GetExtent();
 
 		// Build 2D bounding box of actor in screen space
-		FBox2D ActorBox2D(0);
+		FBox2D ActorBox2D(ForceInit);
 		for (uint8 BoundsPointItr = 0; BoundsPointItr < 8; BoundsPointItr++)
 		{
 			// Project vert into screen space.

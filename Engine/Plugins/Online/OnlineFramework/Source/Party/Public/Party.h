@@ -93,6 +93,14 @@ namespace UPartyDelegates
 	 */
 	DECLARE_DELEGATE_ThreeParams(FOnJoinUPartyComplete, const FUniqueNetId& /*LocalUserId*/, const EJoinPartyCompletionResult /*Result*/, const int32 /*NotApprovedReason*/);
 	/**
+	 * Query party joinability async task completed callback
+	 *
+	 * @param LocalUserId - id of user that initiated the request
+	 * @param Result - result of the operation
+	 * @param NotApprovedReason - client defined value describing why you were not approved
+	 */
+	DECLARE_DELEGATE_ThreeParams(FOnQueryUPartyJoinabilityComplete, const FUniqueNetId& /*LocalUserId*/, const EJoinPartyCompletionResult /*Result*/, const int32 /*NotApprovedReason*/);
+	/**
 	 * Party leave async task completed callback
 	 *
 	 * @param LocalUserId - id of user that initiated the request
@@ -188,6 +196,15 @@ public:
 	 */
 	void JoinParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InCompletionDelegate);
 
+	/** 
+	 * Query the joinability of a party before attempting to join it
+	 *
+	 * @param InUserId user joining the party (should be primary player)
+	 * @param InPartyDetails credentials for the party to join
+	 * @param InCompletionDelegate delegate called upon completion
+	 */
+	void QueryPartyJoinability(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnQueryUPartyJoinabilityComplete& InCompletionDelegate);
+
 	/**
 	 * Leave a generic party
 	 *
@@ -260,10 +277,17 @@ public:
 	/** Clears the join data associated with a pending party join. */
 	void ClearPendingPartyJoin();
 
+	/** 
+	 * Get the pending party join
+	 *
+	 * @return The pending party join info
+	 */
+	TSharedPtr<const FPartyDetails> GetPendingPartyJoinDetails() const;
+
 	/**
 	 * Is any local player in the given party
 	 *
-	 * @param SessionId session to check
+	 * @param PartyId party to check
 	 *
 	 * @return true if any local player exists in the given party, false otherwise
 	 */
@@ -305,10 +329,14 @@ public:
 	void NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel);
 
 	/** @return true if the player has accepted an invite, but it hasn't been processed yet */
-	bool HasPendingPartyJoin();
+	bool HasPendingPartyJoin() const;
+
 	/**
-	 * Party invites
+	 * Get the session name (if available) for the primary player, typically GameSessionName
+	 *
+	 * @return Session name
 	 */
+	FName GetPlayerSessionName() const;
 
 protected:
 
@@ -342,6 +370,24 @@ protected:
 	* @param JoinCompleteDelegate delegate to call once the pending invite has been joined or in all failure cases
 	*/
 	virtual void HandlePendingJoin() PURE_VIRTUAL(UParty::HandlePendingJoin, )
+
+	/** 
+	 * Struct containing enough information to rejoin a party
+	 */
+	struct FRejoinableParty : public TSharedFromThis<FRejoinableParty>
+	{
+		FRejoinableParty(const TSharedRef<const FOnlinePartyId>& InPartyId, const TArray<TSharedRef<const FUniqueNetId>>& InMembers) :
+			PartyId(InPartyId),
+			Members(InMembers)
+		{}
+
+		/** The ID of the party we want to rejoin */
+		TSharedRef<const FOnlinePartyId> PartyId;
+		/** List of members in the former party */
+		TArray<TSharedRef<const FUniqueNetId>> Members;
+	};
+	/** Party we want to rejoin when we come back online */
+	TSharedPtr<FRejoinableParty> RejoinableParty;
 
 	/**
 	 * Party configuration
@@ -381,6 +427,25 @@ protected:
 	 */
 	virtual void PartyMemberExitedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const EMemberExitedReason InReason);
 
+	/** 
+	 * Check if we want to cache the rejoin information for a disconnected persistent party, to attempt to rejoin on reconnect
+	 *
+	 * @param PartyState the party we are checking
+	 * @return true if we want to cache the information, false if not
+	 */
+	virtual bool ShouldCacheDisconnectedPersistentPartyForRejoin(UPartyGameState* PartyState);
+
+	/** 
+	 * Check if we are in a good state to try to rejoin the cached disconnected party
+	 * The default implementation returns false, this must be overridden by a game implementation that can determine if the game
+	 * is in a good state to leave their current party and try to rejoin the former party
+	 *
+	 * @param InRejoinableParty cached party information
+	 * @return true if we are in a good state to start the rejoin process, false if not
+	 */
+	virtual bool ShouldTryRejoiningPersistentParty(const FRejoinableParty& InRejoinableParty);
+
+
 private:
 
 	/** Is leaving the persistent party already in flight */
@@ -412,7 +477,7 @@ private:
 	/**
 	 * Notification that a world has been loaded (need to get a UWorld to register delegates on OSS)
 	 */
-	void OnPostLoadMap();
+	void OnPostLoadMap(UWorld* = nullptr);
 
 	/**
 	 * Register with the identity interface to monitor logout for party cleanup
@@ -461,6 +526,7 @@ private:
 	 */
 	void OnCreatePartyInternalComplete(const FUniqueNetId& LocalUserId, const TSharedPtr<const FOnlinePartyId>& InPartyId, const ECreatePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnCreateUPartyComplete CompletionDelegate);
 	void OnJoinPartyInternalComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnJoinUPartyComplete CompletionDelegate);
+	void OnQueryPartyJoinabilityComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnQueryUPartyJoinabilityComplete CompletionDelegate);
 	void OnLeavePartyInternalComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const ELeavePartyCompletionResult Result, const FOnlinePartyTypeId InPartyTypeId, UPartyDelegates::FOnLeaveUPartyComplete CompletionDelegate);
 
 	/**
@@ -478,11 +544,18 @@ private:
 	void PartyDataReceivedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const TSharedRef<FOnlinePartyData>& InPartyData);
 	void PartyMemberDataReceivedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const TSharedRef<FOnlinePartyData>& InPartyMemberData);
 	void PartyJoinRequestReceivedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& SenderId);
-	void PartyMemberChangedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const EMemberChangedReason InReason);
+	void PartyQueryJoinabilityReceivedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& SenderId);
+	void PartyMemberPromotedInternal(const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InNewLeaderId);
 	void PartyPromotionLockoutStateChangedInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const bool bLockoutState);
 
 	void PartyExitedInternal(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId);
 	void OnPersistentPartyExitedInternalCompleted(const FUniqueNetId& LocalUserId, const ECreatePartyCompletionResult Result);
+
+	void PartyStateChanged(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, EPartyState State);
+
+	void LeavePersistentPartyForRejoin();
+	void OnLeavePersistentPartyForRejoinComplete(const FUniqueNetId& LocalUserId, const ELeavePartyCompletionResult LeaveResult);
+	void OnRejoinPartyComplete(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const EJoinPartyCompletionResult Result, int32 DeniedResultCode);
 
 	/**
 	 *
@@ -510,9 +583,11 @@ private:
 	FDelegateHandle PartyDataReceivedDelegateHandle;
 	FDelegateHandle PartyMemberDataReceivedDelegateHandle;
 	FDelegateHandle PartyJoinRequestReceivedDelegateHandle;
-	FDelegateHandle PartyMemberChangedDelegateHandle;
+	FDelegateHandle PartyQueryJoinabilityReceivedDelegateHandle;
+	FDelegateHandle PartyMemberPromotedDelegateHandle;
 	FDelegateHandle PartyMemberExitedDelegateHandle;
 	FDelegateHandle PartyExitedDelegateHandle;
+	FDelegateHandle PartyStateChangedDelegateHandle;
 
 	FDelegateHandle LogoutStatusChangedDelegateHandle[MAX_LOCAL_PLAYERS];
 	FDelegateHandle LogoutCompleteDelegateHandle[MAX_LOCAL_PLAYERS];

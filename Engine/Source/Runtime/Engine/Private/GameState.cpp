@@ -17,6 +17,16 @@ AGameState::AGameState(const FObjectInitializer& ObjectInitializer)
 	PreviousMatchState = MatchState::EnteringMap;
 }
 
+void AGameState::ReceivedGameModeClass()
+{
+	Super::ReceivedGameModeClass();
+
+	if (!GameModeClass->IsChildOf<AGameMode>())
+	{
+		UE_LOG(LogGameState, Error, TEXT("Mixing AGameState with AGameModeBase is not compatible. Change AGameModeBase subclass (%s) to derive from AGameMode, or make both derive from Base"), *GameModeClass->GetName());
+	}
+}
+
 void AGameState::DefaultTimer()
 {
 	if (IsMatchInProgress())

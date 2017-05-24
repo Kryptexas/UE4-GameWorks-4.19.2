@@ -1,36 +1,17 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3275202
+Availability:Public
 Title:Trigger アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
-Description:アクティベートされ、レベル内でイベントを発生させることができるアクタ
+Description:レベル内でアクティベートされイベントを発生させることができるアクタ
 version:4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Volumes "%Engine/Actors/Volumes:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Rendering/Materials/IntroductionToMaterials "%Engine/Rendering/Materials/IntroductionToMaterials:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [TOC(start:2)]
 
 [EXCERPT:Intro]
 **トリガー** はレベル内の他のオブジェクトと相互作用するときに 
 イベントを発生させるために使用するアクタです。つまり、レベル内で他のアクションに反応してイベントをトリガーするために使用されます。すべてのデフォルトのトリガーは一般的に同様です。ただし、 
-他のオブジェクトがトリガーをアクティベートしたかどうかを検知するためにトリガーが使用する影響を受ける領域の形状、すなわち 
-ボックス、カプセル、球状だけが異なります。 
+他のオブジェクトがトリガーをアクティベートしたかを検知するためにトリガーが使用する 
+ボックス、カプセル、球体という影響を与える領域の形状が異なります。 
 [/EXCERPT:Intro]
 
 [REGION:imagetable]
@@ -69,4 +50,3 @@ version:4.9
 
 <!-- Add GIF/slider showing overlap during play and pin firing in graph -->
 
-%playlistnav%

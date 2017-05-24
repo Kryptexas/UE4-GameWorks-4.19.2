@@ -64,6 +64,7 @@ ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
 		MeshComponent->bOwnerNoSee = true;
 		MeshComponent->bCastDynamicShadow = true;
 		MeshComponent->bAffectDynamicIndirectLighting = false;
+		MeshComponent->bAffectDistanceFieldLighting = false;
 		MeshComponent->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 		MeshComponent->SetupAttachment(RootComponent);
 		MeshComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
@@ -195,26 +196,6 @@ void ADefaultPawn::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds() * CustomTimeDilation);
-}
-
-// @TODO: DEPRECATED, remove.
-void ADefaultPawn::LookUp(float Val)
-{
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC)
-	{
-		PC->AddPitchInput(Val);
-	}
-}
-
-// @TODO: DEPRECATED, remove.
-void ADefaultPawn::Turn(float Val)
-{
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC)
-	{
-		PC->AddYawInput(Val);
-	}
 }
 
 UPawnMovementComponent* ADefaultPawn::GetMovementComponent() const

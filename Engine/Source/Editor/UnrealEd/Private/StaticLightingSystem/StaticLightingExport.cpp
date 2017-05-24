@@ -11,6 +11,7 @@
 #include "Components/LightComponent.h"
 #include "ModelLight.h"
 #include "StaticMeshResources.h"
+#include "Engine/StaticMesh.h"
 
 #include "LandscapeLight.h"
 #include "LandscapeComponent.h"

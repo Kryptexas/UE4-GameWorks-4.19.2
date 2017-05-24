@@ -1,15 +1,16 @@
-﻿INTSourceChangelist:2999481
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:Level Visibility （レベルの可視性）トラックを使用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Example of how to control the visibility of a Level. 
-Version: 4.12
-SkillLevel: Advanced
+Description:レベルの可視性を制御する方法例を示します。 
+Version:4.12
+SkillLevel:Advanced
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
 シーケンス中に [**レベル**](Engine/Levels/) 全体の可視性を切り替えることがあるかもしれません。これを行うには、**Level Visibility Track (レベルの可視性トラック)** を使ってシーケンサー内でレベルを **Visible (可視)** または **Hidden (非表示)** に設定します。 
 この操作でレベルはストリームイン、ストリームアウトしませんが、レベル内のすべてのコンテンツを可視または非表示のいずれかに設定します。 
@@ -57,8 +58,8 @@ Related: Engine\Sequencer\ReferenceEditor\
 1.	メニューバーから **[Window]** を選択し、次に **[Levels]** を選択します。 
 
 	![](Visibility09.png)
-	1.	**[Levels]** ドロップダウン メニューをクリックし、 **[Add Exisiting...]** を選択します。 
 
+1.	**[Levels]** ドロップダウン メニューをクリックし、 **[Add Exisiting...]** を選択します。 
 
 	![](Visibility10.png)
 

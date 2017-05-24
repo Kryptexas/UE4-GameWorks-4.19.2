@@ -8,7 +8,7 @@
 #include "SSkeletonAnimNotifies.h"
 #include "SAnimBlueprintParentPlayerList.h"
 #include "SSkeletonSlotNames.h"
-#include "SAdvancedPreviewDetailsTab.h"
+#include "AdvancedPreviewSceneModule.h"
 #include "ISkeletonTree.h"
 #include "ISkeletonEditorModule.h"
 #include "SPersonaDetails.h"
@@ -20,6 +20,10 @@
 #include "SRetargetManager.h"
 #include "SKismetInspector.h"
 #include "Widgets/Input/SButton.h"
+#include "PersonaPreviewSceneDescription.h"
+#include "IPersonaPreviewScene.h"
+#include "PreviewSceneCustomizations.h"
+#include "Engine/PreviewMeshCollection.h"
 
 #define LOCTEXT_NAMESPACE "PersonaModes"
 
@@ -526,9 +530,29 @@ FAdvancedPreviewSceneTabSummoner::FAdvancedPreviewSceneTabSummoner(TSharedPtr<cl
 	ViewMenuTooltip = LOCTEXT("AdvancedPreviewScene_ToolTip", "Shows the advanced preview scene settings");
 }
 
+TSharedRef<class IDetailCustomization> FAdvancedPreviewSceneTabSummoner::CustomizePreviewSceneDescription()
+{
+	TSharedRef<IPersonaPreviewScene> PreviewSceneRef = PreviewScene.Pin().ToSharedRef();
+	return MakeShareable(new FPreviewSceneDescriptionCustomization(FAssetData(&PreviewSceneRef->GetPersonaToolkit()->GetEditableSkeleton()->GetSkeleton()).GetExportTextName(), PreviewSceneRef->GetPersonaToolkit()));
+}
+
+TSharedRef<class IPropertyTypeCustomization> FAdvancedPreviewSceneTabSummoner::CustomizePreviewMeshCollectionEntry()
+{
+	return MakeShareable(new FPreviewMeshCollectionEntryCustomization(PreviewScene.Pin().ToSharedRef()));
+}
+
 TSharedRef<SWidget> FAdvancedPreviewSceneTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SAdvancedPreviewDetailsTab, PreviewScene.Pin().ToSharedRef());
+	TSharedRef<FAnimationEditorPreviewScene> PreviewSceneRef = StaticCastSharedRef<FAnimationEditorPreviewScene>(PreviewScene.Pin().ToSharedRef());
+
+	TArray<FAdvancedPreviewSceneModule::FDetailCustomizationInfo> DetailsCustomizations;
+	TArray<FAdvancedPreviewSceneModule::FPropertyTypeCustomizationInfo> PropertyTypeCustomizations;
+
+	DetailsCustomizations.Add({ UPersonaPreviewSceneDescription::StaticClass(), FOnGetDetailCustomizationInstance::CreateSP(this, &FAdvancedPreviewSceneTabSummoner::CustomizePreviewSceneDescription) });
+	PropertyTypeCustomizations.Add({ FPreviewMeshCollectionEntry::StaticStruct()->GetFName(), FOnGetPropertyTypeCustomizationInstance::CreateSP(this, &FAdvancedPreviewSceneTabSummoner::CustomizePreviewMeshCollectionEntry) });
+
+	FAdvancedPreviewSceneModule& AdvancedPreviewSceneModule = FModuleManager::LoadModuleChecked<FAdvancedPreviewSceneModule>("AdvancedPreviewScene");
+	return AdvancedPreviewSceneModule.CreateAdvancedPreviewSceneSettingsWidget(PreviewSceneRef, PreviewSceneRef->GetPreviewSceneDescription(), DetailsCustomizations, PropertyTypeCustomizations);
 }
 
 FText FAdvancedPreviewSceneTabSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const

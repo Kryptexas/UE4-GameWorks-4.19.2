@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -119,8 +119,8 @@ namespace Sc
 
 	struct BodyPairKey
 	{
-		RigidSim* mSim0;
-		RigidSim* mSim1;
+		PxU32 mSim0;
+		PxU32 mSim1;
 
 		bool operator == (const BodyPairKey& pair) const { return mSim0 == pair.mSim0 && mSim1 == pair.mSim1; }
 	};
@@ -129,12 +129,8 @@ namespace Sc
 
 	PX_INLINE PxU32 hash(const BodyPairKey& key)
 	{
-		PxU32 add0 = (size_t(key.mSim0))&0xFFFFFFFF;
-		PxU32 add1 = (size_t(key.mSim1))&0xFFFFFFFF;
-
-		//Clear the lower 2 bits, they will be 0s anyway
-		add0 = add0 >> 2; 
-		add1 = add1 >> 2; 
+		PxU32 add0 = key.mSim0;
+		PxU32 add1 = key.mSim1;
 
 		PxU32 base = PxU32((add0 & 0xFFFF) | (add1 << 16));
 

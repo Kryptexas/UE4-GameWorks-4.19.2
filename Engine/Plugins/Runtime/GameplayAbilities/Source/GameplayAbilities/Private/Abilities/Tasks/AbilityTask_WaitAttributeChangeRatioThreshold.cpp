@@ -36,7 +36,10 @@ void UAbilityTask_WaitAttributeChangeRatioThreshold::Activate()
 		bMatchedComparisonLastAttributeChange = DoesValuePassComparison(LastAttributeNumeratorValue, LastAttributeDenominatorValue);
 
 		// Broadcast OnChange immediately with current value
-		OnChange.Broadcast(bMatchedComparisonLastAttributeChange, LastAttributeDenominatorValue != 0.f ? LastAttributeNumeratorValue/LastAttributeDenominatorValue : 0.f);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnChange.Broadcast(bMatchedComparisonLastAttributeChange, LastAttributeDenominatorValue != 0.f ? LastAttributeNumeratorValue/LastAttributeDenominatorValue : 0.f);
+		}
 
 		OnNumeratorAttributeChangeDelegateHandle = AbilitySystemComponent->RegisterGameplayAttributeEvent(AttributeNumerator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnNumeratorAttributeChange);
 		OnDenominatorAttributeChangeDelegateHandle = AbilitySystemComponent->RegisterGameplayAttributeEvent(AttributeDenominator).AddUObject(this, &UAbilityTask_WaitAttributeChangeRatioThreshold::OnDenominatorAttributeChange);
@@ -62,7 +65,10 @@ void UAbilityTask_WaitAttributeChangeRatioThreshold::OnRatioChange()
 	if (bPassedComparison != bMatchedComparisonLastAttributeChange)
 	{
 		bMatchedComparisonLastAttributeChange = bPassedComparison;
-		OnChange.Broadcast(bMatchedComparisonLastAttributeChange, LastAttributeDenominatorValue != 0.f ? LastAttributeNumeratorValue/LastAttributeDenominatorValue : 0.f);
+		if (ShouldBroadcastAbilityTaskDelegates())
+		{
+			OnChange.Broadcast(bMatchedComparisonLastAttributeChange, LastAttributeDenominatorValue != 0.f ? LastAttributeNumeratorValue/LastAttributeDenominatorValue : 0.f);
+		}
 		if (bTriggerOnce)
 		{
 			EndTask();

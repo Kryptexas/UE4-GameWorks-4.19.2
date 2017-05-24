@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:A guide to the creation process for material functions.
 Version: 4.9
 SkillLevel: Advanced
+tags:Materials
 
 [TOC(start:2)]
 

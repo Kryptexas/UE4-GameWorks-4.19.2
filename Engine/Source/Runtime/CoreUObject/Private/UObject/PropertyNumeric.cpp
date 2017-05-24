@@ -16,7 +16,7 @@ uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, c
 	UEnum* Enum = FindField<UEnum>(dynamic_cast<UClass*>(DefaultsStruct) ? static_cast<UClass*>(DefaultsStruct) : DefaultsStruct->GetTypedOuter<UClass>(), Tag.EnumName);
 	if (!Enum)
 	{
-		Enum = FindObject<UEnum>(ANY_PACKAGE, *Tag.EnumName.ToString(), true);
+		Enum = FindObject<UEnum>(ANY_PACKAGE, *Tag.EnumName.ToString());
 	}
 
 	if (!Enum)
@@ -27,15 +27,8 @@ uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, c
 
 	Ar.Preload(Enum);
 
+	// This handles redirects internally
 	int64 Result = Enum->GetValueByName(EnumName);
-	if (!Enum->IsValidEnumValue(Result))
-	{
-		const int32 EnumIndex = UEnum::FindEnumRedirects(Enum, EnumName);
-		if (EnumIndex != INDEX_NONE)
-		{
-			Result = Enum->GetValueByIndex(EnumIndex);
-		}
-	}
 	if (!Enum->IsValidEnumValue(Result))
 	{
 		UE_LOG(

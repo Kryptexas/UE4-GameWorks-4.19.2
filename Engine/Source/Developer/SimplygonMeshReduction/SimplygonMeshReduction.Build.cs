@@ -5,7 +5,7 @@ using UnrealBuildTool;
 
 public class SimplygonMeshReduction : ModuleRules
 {
-	public SimplygonMeshReduction(TargetInfo Target)
+	public SimplygonMeshReduction(ReadOnlyTargetRules Target) : base(Target)
 	{
         PublicIncludePaths.Add("Developer/SimplygonMeshReduction/Public");
 
@@ -18,7 +18,8 @@ public class SimplygonMeshReduction : ModuleRules
                 "RawMesh",
                 "MaterialUtilities",
                 "MeshBoneReduction",
-                "RHI"
+                "RHI",
+                "AnimationModifiers"
 			}
         );
 

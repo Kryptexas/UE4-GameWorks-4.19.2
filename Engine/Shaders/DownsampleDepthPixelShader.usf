@@ -34,8 +34,6 @@ void Main(
 	OutDepth = (Depth * ProjectionScaleBias.x + ProjectionScaleBias.y) / Depth;
 }
 
-Texture2D<uint2> SceneStencilTexture;
-
 #ifndef STENCIL_LIGHTING_CHANNELS_SHIFT 
 #define STENCIL_LIGHTING_CHANNELS_SHIFT 0
 #endif

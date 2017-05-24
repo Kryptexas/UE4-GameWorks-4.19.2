@@ -1,18 +1,19 @@
-﻿INTSourceChangelist:3195190
-Availability:docs
+﻿INTSourceChangelist:3277768
+Availability:Public
 Title:メッシュのプレビュー シーン
 Crumbs: %ROOT%, Engine
-Description:メッシュのプレビュー シーン
+Description:UE4 でメッシュのプレビュー シーンのプロファイルを設定し、使用する方法。
 Version:4.13
+parent:Engine/UI
+type:overview
+tags:User Interface
 
 
-
-**スタティックメッシュ エディタ** と **ペルソナ** で、アセットを確認する場合にプレビュー シーンをセットアップすることができます。ゲーム ビューポート内でシーンをセットアップする必要なしに、複数の異なる環境やライティング シナリオで 
-アセットがどのように見えるかを素早く評価することができます。 
+スタティックメッシュやスケルタルメッシュの様々なエディタ ウィンドウでは、アセットを評価する場合に使用するプレビュー シーンをセットアップすることができます。レベル内でシーンをセットアップする必要なく、複数の背景やライティング シナリオでアセットがどのように見えるかを素早く評価することができます。
 
 ![](6.png)(w:950)
 
-**Preview Scene Settings** パネルを使って、プレビュー シーンで以下を調整することができます。
+**[Preview Scene Settings (プレビュー シーン設定)]** パネルを使って、プレビュー シーンで以下を調整することができます。
 
 * 指向性ライト: 色、強度、回転
 * スカイライト: HDRI 環境マップ、強度、回転
@@ -20,18 +21,18 @@ Version:4.13
 
 ## シーン プロファイルを使用する
 
-**Preview Scene Settings** では、ゲーム レベルをエミュレートするために、背景の数とライティングのシナリオを設定することができます。こうしたシーンは、**スタティックメッシュ エディタ** と **ペルソナ** で 
-共有できる個別のプロファイルとしていくつでも保存することができます。 
+**[Preview Scene Settings]** では、ゲーム レベルをエミュレートするために、背景の数とライティングのシナリオを設定することができます。こうしたシーンは、様々なエディタ ウィンドウ間で共有できる 
+個別のプロファイルとしていくつでも保存することができます。 
 
 
 ### プロファイルを追加する
 
-1. **スタティックメッシュ エディタ** または **ペルソナ** を開いたら、右側にあるパネル **Preview Scene Settings** を探します。 
+1. コンテンツ ブラウザからスタティックメッシュまたはスケルタルメッシュを開いたら、エディタ ウィンドウで右側にあるパネル **[Preview Scene Settings]** を探します。 
 	[REGION:imagetable]
 
 	| [INCLUDE:#staticmesheditor] | [INCLUDE:#skeletalmesheditor] |
 	| --- | --- |
-	|スタティックメッシュ エディタ| ペルソナ |
+	|スタティックメッシュ エディタ | スケルタルメッシュ エディタ |
 	| _クリックしてフルサイズで画像表示_ | _クリックしてフルサイズで画像表示_ |
 	[/REGION]
 
@@ -70,7 +71,7 @@ Version:4.13
 
 #### プロファイルを取り除く
 
-1. **Scene Profile Settings** のドロップダウン メニューからプロファイルを選択します。
+1. **[Scene Profile Settings]** のドロップダウン メニューからプロファイルを選択します。
 
 	[REGION:lightbox]
 	[![](RemoveProfileSelection.png)(w:350)](ProfileSelection.png) 
@@ -82,7 +83,7 @@ Version:4.13
 	[![](RemoveProfileButton.png)(w:350)](ProfileSelection.png) 
 	[/REGION]
 
-1. プロファイルが削除されて、デフォルト プロファイルと以前設定されたプロファイルがあればそれが残っているのがわかります。 
+1. プロファイルが取り除かれて、デフォルト プロファイルと以前設定されたプロファイルがあればそれが残っているのがわかります。 
 
 	[REGION:lightbox]
 	[![](RemoveProfileSelection1.png)(w:350)](ProfileSelection.png) 
@@ -101,7 +102,7 @@ Version:4.13
 	[![](RotatingEnvironment.png)(w:350)](RotatingEnvironment.png) 
 	[/REGION]
 
-1. 回転を開始させるために、背景の **Rotation Speed** の値を設定します。
+1. 回転を開始させるために、背景の **[Rotation Speed]** の値を設定します。
 
 	![](RotationSpeed.png)(w:350)
 	[OBJECT:EmbeddedVideo]
@@ -125,7 +126,7 @@ Version:4.13
 
 このセクションではプレビュー シーンの背景とフロア メッシュの表示、非表示の方法について説明します。 
 
-1. **Show Environment** と **Show Floor** の隣にあるチェックボックスをクリックして、こうした機能を表示 / 非表示します。 
+1. **[Show Environment]** と **[Show Floor]** の隣にあるチェックボックスをクリックして、こうした機能を表示 / 非表示します。 
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -144,7 +145,7 @@ Version:4.13
 
 このセクションではプレビュー シーンの背景のスカイボックスを割り当てる方法について説明します。
 
-1. **Environment Cube Map** の隣にある選択用のドロップダウンをクリックして、利用可能な HDRI キューブマップから選択します。 
+1. **[Environment Cube Map]** の隣にある選択用のドロップダウンをクリックして、利用可能な HDRI キューブマップから選択します。 
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -171,7 +172,7 @@ Version:4.13
 ### ポストプロセス設定
 
 ゲームのビューポートで利用可能な Post Process Volume 設定と同様に、展開した詳細メニューからプレビューシーンで利用可能な Post Process 設定を自由に制御することができます。 
-**Post Processing Enabled** のチェックボックスを使って Preview Scene のポストプロセスのオンオフを切り替えることができます。 
+**[Post Processing Enabled]** のチェックボックスを使って Preview Scene のポストプロセスのオンオフを切り替えることができます。 
 
 [REGION:lightbox]
 [![](ScenePostProcess.png)(w:350)](ScenePostProcess.png)

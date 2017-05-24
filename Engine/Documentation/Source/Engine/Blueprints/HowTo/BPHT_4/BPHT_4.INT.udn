@@ -3,6 +3,7 @@ Title:4. Passing Information from Level to Character
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:In this step we are using the Level Blueprint to get the location of our spawn points and kicking one over to our Character Blueprint. 
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

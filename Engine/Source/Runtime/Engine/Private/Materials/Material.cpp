@@ -32,6 +32,7 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionVertexInterpolator.h"
 #include "Materials/MaterialExpressionSceneColor.h"
 #include "SceneManagement.h"
 #include "Materials/MaterialUniformExpressions.h"
@@ -98,7 +99,7 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 
 	int32 SelectionColorIndex = INDEX_NONE;
 
-	if (ShaderFrequency == SF_Pixel)
+	if (ShaderFrequency == SF_Pixel && GetMaterialDomain() != MD_Volume)
 	{
 		SelectionColorIndex = Compiler->ComponentMask(Compiler->VectorParameter(NAME_SelectionColor,FLinearColor::Black),1,1,1,0);
 	}
@@ -122,10 +123,10 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 			break;
 
 		case MP_DiffuseColor: 
-			Ret = Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor, MFCF_ForceCast), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
+			Ret = MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor, MFCF_ForceCast);
 			break;
 		case MP_BaseColor: 
-			Ret = Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_BaseColor, MFCF_ForceCast), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
+			Ret = MaterialInterface->CompileProperty(Compiler, MP_BaseColor, MFCF_ForceCast);
 			break;
 		case MP_MaterialAttributes:
 			Ret = INDEX_NONE;
@@ -133,9 +134,29 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 		default:
 			Ret = MaterialInterface->CompileProperty(Compiler, Property);
 	};
+	
+	EMaterialValueType AttributeType = FMaterialAttributeDefinitionMap::GetValueType(Property);
+	FMaterialUniformExpression* Expression = Compiler->GetParameterUniformExpression(Ret);
 
-	// output should always be the right type for this property
-	return Compiler->ForceCast(Ret, FMaterialAttributeDefinitionMap::GetValueType(Property));
+	if (Expression && Expression->IsConstant())
+	{
+		// Where possible we want to preserve constant expressions allowing default value checks
+		EMaterialValueType ResultType = Compiler->GetParameterType(Ret);
+		EMaterialValueType ExactAttributeType = (AttributeType == MCT_Float) ? MCT_Float1 : AttributeType;
+		EMaterialValueType ExactResultType = (ResultType == MCT_Float) ? MCT_Float1 : ResultType;
+
+		if (ExactAttributeType == ExactResultType)
+		{
+			return Ret;
+		}
+		else if (ResultType == MCT_Float || (ExactAttributeType == MCT_Float1 && ResultType & MCT_Float))
+		{
+			return Compiler->ComponentMask(Ret, true, ExactAttributeType >= MCT_Float2, ExactAttributeType >= MCT_Float3, ExactAttributeType >= MCT_Float4);
+		}
+	}
+
+	// Output should always be the right type for this property
+	return Compiler->ForceCast(Ret, AttributeType);
 #else // WITH_EDITOR
 	check(0); // This is editor-only function
 	return INDEX_NONE;
@@ -152,6 +173,11 @@ int32 FMaterialResource::CompileCustomAttribute(const FGuid& AttributeID, FMater
 void FMaterialResource::GatherCustomOutputExpressions(TArray<UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
 {
 	Material->GetAllCustomOutputExpressions(OutCustomOutputs);
+}
+
+void FMaterialResource::GatherExpressionsForCustomInterpolators(TArray<UMaterialExpression*>& OutExpressions) const
+{
+	Material->GetAllExpressionsForCustomInterpolators(OutExpressions);
 }
 
 void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -347,6 +373,9 @@ static const TCHAR* GDefaultMaterialNames[MD_MAX] =
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultDeferredDecalMaterialName"),
 	// Light Function
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultLightFunctionMaterialName"),
+	// Volume
+	//@todo - get a real MD_Volume default material
+	TEXT("engine-ini:/Script/Engine.Engine.DefaultMaterialName"),
 	// Post Process
 	TEXT("engine-ini:/Script/Engine.Engine.DefaultPostProcessMaterialName"),
 	// User Interface 
@@ -367,6 +396,13 @@ void UMaterialInterface::InitDefaultMaterials()
 	if (!bInitialized)
 	{		
 		check(IsInGameThread());
+		if (!IsInGameThread())
+		{
+			return;
+		}
+		static int32 RecursionLevel = 0;
+		RecursionLevel++;
+
 		
 #if WITH_EDITOR
 		GPowerToRoughnessMaterialFunction = LoadObject< UMaterialFunction >( NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/Shading/PowerToRoughness.PowerToRoughness"), NULL, LOAD_None, NULL );
@@ -383,17 +419,39 @@ void UMaterialInterface::InitDefaultMaterials()
 			if (GDefaultMaterials[Domain] == NULL)
 			{
 				GDefaultMaterials[Domain] = FindObject<UMaterial>(NULL,GDefaultMaterialNames[Domain]);
-				if (GDefaultMaterials[Domain] == NULL)
+				if (GDefaultMaterials[Domain] == NULL
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+					&& (RecursionLevel == 1 || !GEventDrivenLoaderEnabled)
+#endif
+					)
 				{
 					GDefaultMaterials[Domain] = LoadObject<UMaterial>(NULL, GDefaultMaterialNames[Domain], NULL, LOAD_DisableDependencyPreloading, NULL);
 					checkf(GDefaultMaterials[Domain] != NULL, TEXT("Cannot load default material '%s'"), GDefaultMaterialNames[Domain]);
 				}
-				GDefaultMaterials[Domain]->AddToRoot();
+				if (GDefaultMaterials[Domain])
+				{
+					GDefaultMaterials[Domain]->AddToRoot();
+				}
 			}
 		}
+		RecursionLevel--;
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+		bInitialized = !GEventDrivenLoaderEnabled || RecursionLevel == 0;
+#else
 		bInitialized = true;
+#endif
 	}
 }
+
+void UMaterialInterface::PostCDOContruct()
+{
+	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
+	{
+		UMaterial::StaticClass()->GetDefaultObject();
+		UMaterialInterface::InitDefaultMaterials();
+	}
+}
+
 
 void UMaterialInterface::PostLoadDefaultMaterials()
 {
@@ -414,11 +472,24 @@ void UMaterialInterface::PostLoadDefaultMaterials()
 		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
 		{
 			UMaterial* Material = GDefaultMaterials[Domain];
+#if USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME
+			check(Material || (GIsInitialLoad && GEventDrivenLoaderEnabled));
+			check((GIsInitialLoad && GEventDrivenLoaderEnabled) || !Material->HasAnyFlags(RF_NeedLoad));
+			if (Material && !Material->HasAnyFlags(RF_NeedLoad))
+#else
 			check(Material);
-			Material->ConditionalPostLoad();
-			// Sometimes the above will get called before the material has been fully serialized
-			// in this case its NeedPostLoad flag will not be cleared.
-			if (Material->HasAnyFlags(RF_NeedPostLoad))
+			if (Material)
+#endif
+			{
+				Material->ConditionalPostLoad();
+				// Sometimes the above will get called before the material has been fully serialized
+				// in this case its NeedPostLoad flag will not be cleared.
+				if (Material->HasAnyFlags(RF_NeedPostLoad))
+				{
+					bPostLoaded = false;
+				}
+			}
+			else
 			{
 				bPostLoaded = false;
 			}
@@ -428,18 +499,28 @@ void UMaterialInterface::PostLoadDefaultMaterials()
 
 void UMaterialInterface::AssertDefaultMaterialsExist()
 {
-	for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+#if (USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME)
+	if (!GIsInitialLoad || !GEventDrivenLoaderEnabled)
+#endif
 	{
-		check(GDefaultMaterials[Domain] != NULL);
+		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+		{
+			check(GDefaultMaterials[Domain] != NULL);
+		}
 	}
 }
 
 void UMaterialInterface::AssertDefaultMaterialsPostLoaded()
 {
-	for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+#if (USE_EVENT_DRIVEN_ASYNC_LOAD_AT_BOOT_TIME)
+	if (!GIsInitialLoad || !GEventDrivenLoaderEnabled)
+#endif
 	{
-		check(GDefaultMaterials[Domain] != NULL);
-		check(!GDefaultMaterials[Domain]->HasAnyFlags(RF_NeedPostLoad));
+		for (int32 Domain = 0; Domain < MD_MAX; ++Domain)
+		{
+			check(GDefaultMaterials[Domain] != NULL);
+			check(!GDefaultMaterials[Domain]->HasAnyFlags(RF_NeedPostLoad));
+		}
 	}
 }
 
@@ -761,6 +842,8 @@ void UMaterial::GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray
 	OutTextures.Empty();
 	OutIndices.Empty();
 
+	check(QualityLevel != EMaterialQualityLevel::Num && FeatureLevel != ERHIFeatureLevel::Num);
+
 	if (!FPlatformProperties::IsServerOnly())
 	{
 		const FMaterialResource* CurrentResource = MaterialResources[QualityLevel][FeatureLevel];
@@ -972,35 +1055,43 @@ float UMaterial::GetScalarParameterDefault(FName ParameterName, ERHIFeatureLevel
 	if (FApp::CanEverRender())
 	{
 		FMaterialResource* Resource = GetMaterialResource(InFeatureLevel);
-		check(Resource);
-
-		// Iterate over both the 2D textures and cube texture expressions.
-		const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = Resource->GetUniformScalarParameterExpressions();
-
-		// Iterate over each of the material's texture expressions.
-		for (FMaterialUniformExpression* UniformExpression : UniformExpressions)
+		
+		if (ensureAlways(Resource))
 		{
-			if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
-			{
-				FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+			// Iterate over both the 2D textures and cube texture expressions.
+			const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = Resource->GetUniformScalarParameterExpressions();
 
-				if (ScalarExpression->GetParameterName() == ParameterName)
+			// Iterate over each of the material's texture expressions.
+			for (FMaterialUniformExpression* UniformExpression : UniformExpressions)
+			{
+				if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
 				{
-					float Value = 0.f;
-					ScalarExpression->GetDefaultValue(Value);
-					return Value;
+					FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+					if (ScalarExpression->GetParameterName() == ParameterName)
+					{
+						float Value = 0.f;
+						ScalarExpression->GetDefaultValue(Value);
+						return Value;
+					}
 				}
 			}
 		}
 	}
+
 
 	return 0.f;
 }
 
 void UMaterial::RecacheUniformExpressions() const
 {
+	bool bUsingNewLoader = EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME && GEventDrivenLoaderEnabled;
+
 	// Ensure that default material is available before caching expressions.
-	UMaterial::GetDefaultMaterial(MD_Surface);
+	if (!bUsingNewLoader)
+	{
+		UMaterial::GetDefaultMaterial(MD_Surface);
+	}
 
 	// Only cache the unselected + unhovered material instance. Selection color
 	// can change at runtime and would invalidate the parameter cache.
@@ -1019,6 +1110,9 @@ bool UMaterial::GetUsageByFlag(EMaterialUsage Usage) const
 		case MATUSAGE_ParticleSprites: UsageValue = bUsedWithParticleSprites; break;
 		case MATUSAGE_BeamTrails: UsageValue = bUsedWithBeamTrails; break;
 		case MATUSAGE_MeshParticles: UsageValue = bUsedWithMeshParticles; break;
+		case MATUSAGE_NiagaraSprites: UsageValue = bUsedWithNiagaraSprites; break;
+		case MATUSAGE_NiagaraRibbons: UsageValue = bUsedWithNiagaraRibbons; break;
+		case MATUSAGE_NiagaraMeshParticles: UsageValue = bUsedWithNiagaraMeshParticles; break;
 		case MATUSAGE_StaticLighting: UsageValue = bUsedWithStaticLighting; break;
 		case MATUSAGE_MorphTargets: UsageValue = bUsedWithMorphTargets; break;
 		case MATUSAGE_SplineMesh: UsageValue = bUsedWithSplineMeshes; break;
@@ -1082,6 +1176,18 @@ void UMaterial::SetUsageByFlag(EMaterialUsage Usage, bool NewValue)
 		{
 			bUsedWithMeshParticles = NewValue; break;
 		}
+		case MATUSAGE_NiagaraSprites:
+		{
+			bUsedWithNiagaraSprites = NewValue; break;
+		}
+		case MATUSAGE_NiagaraRibbons:
+		{
+			bUsedWithNiagaraRibbons = NewValue; break;
+		}
+		case MATUSAGE_NiagaraMeshParticles:
+		{
+			bUsedWithNiagaraMeshParticles = NewValue; break;
+		}
 		case MATUSAGE_StaticLighting:
 		{
 			bUsedWithStaticLighting = NewValue; break;
@@ -1119,6 +1225,9 @@ FString UMaterial::GetUsageName(EMaterialUsage Usage) const
 		case MATUSAGE_ParticleSprites: UsageName = TEXT("bUsedWithParticleSprites"); break;
 		case MATUSAGE_BeamTrails: UsageName = TEXT("bUsedWithBeamTrails"); break;
 		case MATUSAGE_MeshParticles: UsageName = TEXT("bUsedWithMeshParticles"); break;
+		case MATUSAGE_NiagaraSprites: UsageName = TEXT("bUsedWithNiagaraSprites"); break;
+		case MATUSAGE_NiagaraRibbons: UsageName = TEXT("bUsedWithNiagaraRibbons"); break;
+		case MATUSAGE_NiagaraMeshParticles: UsageName = TEXT("bUsedWithNiagaraMeshParticles"); break;
 		case MATUSAGE_StaticLighting: UsageName = TEXT("bUsedWithStaticLighting"); break;
 		case MATUSAGE_MorphTargets: UsageName = TEXT("bUsedWithMorphTargets"); break;
 		case MATUSAGE_SplineMesh: UsageName = TEXT("bUsedWithSplineMeshes"); break;
@@ -1153,24 +1262,23 @@ bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage, const bool b
 				UMaterial* Material;
 				EMaterialUsage Usage;
 				bool bSkipPrim;
-				bool& bUsageSetSuccessfully;
 
-				FCallSMU(UMaterial* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim, bool& bInUsageSetSuccessfully)
+				FCallSMU(UMaterial* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim)
 					: Material(InMaterial)
 					, Usage(InUsage)
 					, bSkipPrim(bInSkipPrim)
-					, bUsageSetSuccessfully(bInUsageSetSuccessfully)
 				{
 				}
 
 				void Task()
 				{
-					bUsageSetSuccessfully = Material->CheckMaterialUsage(Usage, bSkipPrim);
+					Material->CheckMaterialUsage(Usage, bSkipPrim);
 				}
 			};
-			UE_LOG(LogMaterial, Warning, TEXT("Has to pass SMU back to game thread. This stalls the tasks graph, but since it is editor only or only happens once, is not such a big deal."));
+			UE_LOG(LogMaterial, Log, TEXT("Had to pass SMU back to game thread. Please ensure correct material usage flags."));
 
-			TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterial*>(this), Usage, bSkipPrim, bUsageSetSuccessfully));
+			TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterial*>(this), Usage, bSkipPrim));
+			bUsageSetSuccessfully = false;
 
 			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
 				STAT_FSimpleDelegateGraphTask_CheckMaterialUsage,
@@ -1192,6 +1300,9 @@ static bool IsPrimitiveTypeUsageFlag(EMaterialUsage Usage)
 		|| Usage == MATUSAGE_ParticleSprites
 		|| Usage == MATUSAGE_BeamTrails
 		|| Usage == MATUSAGE_MeshParticles
+		|| Usage == MATUSAGE_NiagaraSprites
+		|| Usage == MATUSAGE_NiagaraRibbons
+		|| Usage == MATUSAGE_NiagaraMeshParticles
 		|| Usage == MATUSAGE_MorphTargets
 		|| Usage == MATUSAGE_SplineMesh
 		|| Usage == MATUSAGE_InstancedStaticMeshes
@@ -1202,7 +1313,7 @@ bool UMaterial::NeedsSetMaterialUsage_Concurrent(bool &bOutHasUsage, EMaterialUs
 {
 	bOutHasUsage = true;
 	// Material usage is only relevant for materials that can be applied onto a mesh / use with different vertex factories.
-	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal)
+	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal && MaterialDomain != MD_Volume)
 	{
 		bOutHasUsage = false;
 		return false;
@@ -1232,7 +1343,7 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 	bNeedsRecompile = false;
 
 	// Material usage is only relevant for materials that can be applied onto a mesh / use with different vertex factories.
-	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal)
+	if (MaterialDomain != MD_Surface && MaterialDomain != MD_DeferredDecal && MaterialDomain != MD_Volume)
 	{
 		return false;
 	}
@@ -2329,6 +2440,8 @@ void UMaterial::RebuildExpressionTextureReferences()
 
 FMaterialResource* UMaterial::GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel)
 {
+	check(InFeatureLevel != ERHIFeatureLevel::Num);
+
 	if (QualityLevel == EMaterialQualityLevel::Num)
 	{
 		QualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;
@@ -2355,9 +2468,17 @@ void UMaterial::Serialize(FArchive& Ar)
 
 	Super::Serialize(Ar);
 
-	if (FPlatformProperties::RequiresCookedData() && Ar.IsLoading())
+	if(Ar.IsLoading())
 	{
-		Expressions.Remove(nullptr);
+#if WITH_EDITOR
+		bool bCooked = FPlatformProperties::RequiresCookedData() || GetOutermost()->bIsCookedForEditor;
+#else
+		bool bCooked = FPlatformProperties::RequiresCookedData();
+#endif
+		if (bCooked)
+		{
+			Expressions.Remove(nullptr);
+		}
 	}
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
@@ -2955,7 +3076,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendMode))
 		{
-			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface || MaterialDomain == MD_UI;
+			return MaterialDomain == MD_DeferredDecal || MaterialDomain == MD_Surface || MaterialDomain == MD_Volume || MaterialDomain == MD_UI;
 		}
 	
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, ShadingModel))
@@ -2983,7 +3104,8 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bEnableResponsiveAA)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bScreenSpaceReflections)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bDisableDepthTest)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseTranslucencyVertexFog))
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseTranslucencyVertexFog)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bComputeFogPerPixel))
 		{
 			return MaterialDomain != MD_DeferredDecal && IsTranslucentBlendMode(BlendMode);
 		}
@@ -3847,6 +3969,19 @@ void UMaterial::GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCu
 	}
 }
 
+void UMaterial::GetAllExpressionsForCustomInterpolators(TArray<class UMaterialExpression*>& OutExpressions) const
+{
+	for (UMaterialExpression* Expression : Expressions)
+	{
+		if (Expression &&
+			(Expression->IsA(UMaterialExpressionVertexInterpolator::StaticClass()) ||
+			Expression->IsA(UMaterialExpressionMaterialFunctionCall::StaticClass())) )
+		{
+				OutExpressions.Add(Expression);
+		}
+	}
+}
+
 #if WITH_EDITOR
 bool UMaterial::GetAllReferencedExpressions(TArray<UMaterialExpression*>& OutExpressions, class FStaticParameterSet* InStaticParameterSet)
 {
@@ -4264,6 +4399,7 @@ EMaterialShadingModel UMaterial::GetShadingModel() const
 	switch (MaterialDomain)
 	{
 		case MD_Surface:
+		case MD_Volume:
 			return ShadingModel;
 		case MD_DeferredDecal:
 			return MSM_DefaultLit;
@@ -4409,6 +4545,12 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 				// if you create a new mode it needs to expose the right pins
 				return false;
 		}
+	}
+	else if (MaterialDomain == MD_Volume)
+	{
+		return InProperty == MP_EmissiveColor
+			|| InProperty == MP_Opacity
+			|| InProperty == MP_BaseColor;
 	}
 	else if ( MaterialDomain == MD_UI )
 	{

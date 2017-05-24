@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3355771
 Availability: Docs
-Title:1. Project Setup
+Title:1. 프로젝트 셋업
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Here we create the assets that we'll need and our DragAndDropOperation Class. 
-Version: 4.12
+Description:필수 애셋과 DragAndDropOperation 클래스를 만듭니다.
 SkillLevel: Intermediate
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -13,50 +13,50 @@ SkillLevel: Intermediate
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Drag and Drop Widgets](Engine\UMG\HowTo\DragAndDrop)
+		[드래그 앤 드롭 위젯](Engine\UMG\HowTo\DragAndDrop)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine\UMG\HowTo\DragAndDrop\WidgetSetup "%Engine\UMG\HowTo\DragAndDrop\WidgetSetup:title%")
+		[다음 단계](Engine\UMG\HowTo\DragAndDrop\WidgetSetup "%Engine\UMG\HowTo\DragAndDrop\WidgetSetup:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-Before we get started, there are a couple assets that we'll need to create as part of our project setup.
+시작하기에 앞서, 프로젝트 셋업의 일부로 만들어야 하는 애셋이 몇 개 있습니다.
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template**. However, you can use any project you wish. 
+여기서는 **블루프린트 삼인칭 템플릿** 을 사용하고 있습니다. 하지만 아무 프로젝트나 사용해도 무방합니다.
 [/REGION]
 
-## Steps
+## 단계
 
-1.	In the **Content Browser**, create three **Widget Blueprints** called: **DragWidget**, **HealthBar** and **HUD**. 
+1.	**콘텐츠 브라우저** 에서 **위젯 블루프린트** 를 3 개 만듭니다: **DragWidget**, **HealthBar**, **HUD**. 
 
 	![](DragDrop1.png)
 
-	In this example, the element that we want to be drag and droppable is our **HealthBar** widget that will be placed in our **HUD**. 
-	We are going to create and drag a widget called **DragWidget** in the same shape as our Health Bar rather than dragging the actual Health Bar around. 
+	이 예제에서 드래그 앤 드롭으로 조작했으면 하는 엘리먼트는 **HUD** 에 배치할 **HealthBar** 위젯입니다.
+	이 Health Bar 를 실제로 끌기 보다는, 그와 같은 모양을 한 **DragWidget** 이라는 위젯을 만들어 끌도록 하겠습니다.
 
-1.	**Right-click** in the **Content Browser** and create a new **Blueprint Class** of the **DragDropOpertion** class and call it **WidgetDrag**. 
+1.	**콘텐츠 브라우저** 에 **우클릭** 하고 **블루프린트 클래스** 를 만들어 **DragDropOpertion** 클래스를 기반으로 한 뒤 이름을 **WidgetDrag** 라 합니다. 
 
 	![](DragDrop2.png)
 
-	This specialized Blueprint Class will allow us to pass through information as part of our drag and drop action. 
+	이 전문 블루프린트 클래스 덕에 정보를 드래그 앤 드롭 동작의 일부로 전달할 수 있습니다.
 
-1.	Open **WidgetDrag** then create a **User Widget** variable called **WidgetReference** and make it **Editable** and **Expose on Spawn**. 
+1.	**WidgetDrag** 을 열고 **User Widget** 변수를 생성한 뒤 **WidgetReference** 라 하고, **Editable** (편집가능) 및 **Expose on Spawn** (스폰시 노출) 설정을 합니다. 
 
 	![](DragDrop3a.png)
 
-	This will be used to hold the UMG Widget that we want to drag around on screen. 
+	화면에서 끌고다니고자 하는 UMG 위젯을 저장하는 데 사용될 것입니다.
 
-1.	Create another variable called **DragOffset** of the **Vector 2D** type that is **Editable** and **Exposed on Spawn**. 
+1.	**Vector 2D** 유형 변수를 또하나 만들어 **DragOffset** 이라 하고, 마찬가지로 **편집가능** 및 **스폰시 노출** 설정합니다. 
 
 	![](DragDrop3b.png)
 
-	This will be used to offset the location in which we start dragging and when we drop our widget.
+	위젯 드래그를 시작할 때와 드롭할 때 위치 오프셋에 사용될 것입니다.
 
 
-With our project setup done, next we will start working on the HealthBar Widget Blueprint which is the piece of UI that we want to be draggable. 
+프로젝트 셋업이 완료되었으니, 다음에는 드래그 가능하도록 하려는 UI 조각인 HealthBar 위젯 블루프린트 작업을 시작하겠습니다.
 
 %Steps%

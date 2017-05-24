@@ -45,6 +45,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, NumBufferedFrames(1)
 	, CurrentBufferedTargetIndex(0)
 	, NextBufferedTargetIndex(0)
+	, NumTouches(0)
 {
 	bIsSlateViewport = true;
 	RenderThreadSlateTexture = new FSlateRenderTargetRHI(nullptr, 0, 0);
@@ -729,10 +730,11 @@ FReply FSceneViewport::OnTouchStarted( const FGeometry& MyGeometry, const FPoint
 {
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled().PreventThrottling(); 
+	++NumTouches;
 
 	UpdateCachedMousePos(MyGeometry, TouchEvent);
 	UpdateCachedGeometry(MyGeometry);
-
+	
 	if( ViewportClient )
 	{
 		// Switch to the viewport clients world before processing input
@@ -778,7 +780,14 @@ FReply FSceneViewport::OnTouchEnded( const FGeometry& MyGeometry, const FPointer
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
 
-	UpdateCachedMousePos(MyGeometry, TouchEvent);
+	if (--NumTouches > 0)
+	{
+		UpdateCachedMousePos(MyGeometry, TouchEvent);
+	}
+	else
+	{
+		CachedMousePos = FIntPoint(-1, -1);
+	}
 	UpdateCachedGeometry(MyGeometry);
 
 	if( ViewportClient )
@@ -850,6 +859,15 @@ FPopupMethodReply FSceneViewport::OnQueryPopupMethod() const
 	{
 		return FPopupMethodReply::Unhandled();
 	}
+}
+
+bool FSceneViewport::HandleNavigation(const uint32 InUserIndex, TSharedPtr<SWidget> InDestination)
+{
+	if (ViewportClient != nullptr)
+	{
+		return ViewportClient->HandleNavigation(InUserIndex, InDestination);
+	}
+	return false;
 }
 
 TOptional<bool> FSceneViewport::OnQueryShowFocus(const EFocusCause InFocusCause) const
@@ -1552,6 +1570,20 @@ void FSceneViewport::Tick( const FGeometry& AllottedGeometry, double InCurrentTi
 
 void FSceneViewport::OnPlayWorldViewportSwapped( const FSceneViewport& OtherViewport )
 {
+	// We need to call WindowRenderTargetUpdate() to make sure the Slate renderer is updated to render
+	// to the viewport client we'll be using for PIE/SIE.  Otherwise if stereo rendering is enabled, Slate
+	// could render the HMD mirror to a game viewport client which is not visible on screen!
+	TSharedPtr<SWidget> PinnedViewport = ViewportWidget.Pin();
+	if( PinnedViewport.IsValid() )
+	{
+		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+
+		FWidgetPath WidgetPath;
+		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( PinnedViewport.ToSharedRef(), WidgetPath );
+
+		WindowRenderTargetUpdate( Renderer.Get(), Window.Get() );
+	}
+
 	// Play world viewports should always be the same size.  Resize to other viewports size
 	if( GetSizeXY() != OtherViewport.GetSizeXY() )
 	{
@@ -1638,7 +1670,7 @@ void FSceneViewport::OnPostResizeWindowBackbuffer(void* Backbuffer)
 {
 	check(IsInGameThread());
 
-	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI))
+	if(!UseSeparateRenderTarget() && !IsValidRef(ViewportRHI) && ViewportWidget.IsValid())
 	{
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;

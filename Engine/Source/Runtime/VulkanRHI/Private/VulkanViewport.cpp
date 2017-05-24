@@ -108,7 +108,7 @@ void FVulkanViewport::AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBac
 
 	// Submit here so we can add a dependency with the acquired semaphore
 	CmdBuffer->End();
-	Device->GetQueue()->Submit(CmdBuffer, AcquiredSemaphore, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, nullptr);
+	Device->GetGraphicsQueue()->Submit(CmdBuffer, AcquiredSemaphore, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, nullptr);
 	CmdBufferManager->PrepareForNewActiveCommandBuffer();
 }
 
@@ -310,10 +310,45 @@ void FVulkanViewport::RecreateSwapchain(void* NewNativeWindow)
 
 	for (VkImage& BackBufferImage : BackBufferImages)
 	{
-		BackBufferImage = 0;
+		BackBufferImage = VK_NULL_HANDLE;
 	}
 
 	WindowHandle = NewNativeWindow;
+	CreateSwapchain();
+}
+
+void FVulkanViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen)
+{
+	RenderingBackBuffer = nullptr;
+	RHIBackBuffer = nullptr;
+
+	// Submit all command buffers here
+	Device->SubmitCommandsAndFlushGPU();
+
+	Device->WaitUntilIdle();
+
+	for (VkImage& BackBufferImage : BackBufferImages)
+	{
+		Device->NotifyDeletedRenderTarget(BackBufferImage);
+		BackBufferImage = VK_NULL_HANDLE;
+	}
+
+	for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
+	{
+		TextureViews[Index].Destroy(*Device);
+	}
+
+	Device->GetDeferredDeletionQueue().ReleaseResources(true);
+
+	SwapChain->Destroy();
+	delete SwapChain;
+	SwapChain = nullptr;
+
+	Device->GetDeferredDeletionQueue().ReleaseResources(true);
+
+	SizeX = InSizeX;
+	SizeY = InSizeY;
+	bIsFullscreen = bInIsFullscreen;
 	CreateSwapchain();
 }
 
@@ -504,6 +539,18 @@ void FVulkanDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI, uint
 {
 	check(IsInGameThread());
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
+
+	if (Viewport->GetSizeXY() != FIntPoint(SizeX, SizeY))
+	{
+		FlushRenderingCommands();
+
+		ENQUEUE_RENDER_COMMAND(ResizeSwapchain)(
+			[Viewport, SizeX, SizeY, bIsFullscreen](FRHICommandListImmediate& RHICmdList)
+			{
+				Viewport->Resize(SizeX, SizeY, bIsFullscreen);
+			});
+		FlushRenderingCommands();
+	}
 }
 
 void FVulkanDynamicRHI::RHITick(float DeltaTime)

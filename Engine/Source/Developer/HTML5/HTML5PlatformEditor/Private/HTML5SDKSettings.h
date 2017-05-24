@@ -17,10 +17,10 @@ struct FHTML5DeviceMapping
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category = HTML5_Devices, Meta = (DisplayName = "Browser name"))
-	FString DeviceName;
+	FString BrowserName;
 
 	UPROPERTY(EditAnywhere, Category = HTML5_Devices, Meta = (DisplayName = "Browser filepath"))
-	FFilePath DevicePath;
+	FFilePath BrowserPath;
 };
 
 /**
@@ -33,8 +33,7 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	// Available browsers that can be used when launching HTML5 builds.
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = HTML5_Devices, Meta = (DisplayName = "Available browsers"))
-	TArray<FHTML5DeviceMapping> DeviceMap;
+	TArray<FHTML5DeviceMapping> BrowserLauncher;
 
 #if WITH_EDITOR
 

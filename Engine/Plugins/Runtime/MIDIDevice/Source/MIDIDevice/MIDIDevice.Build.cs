@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class MIDIDevice : ModuleRules
 	{
-        public MIDIDevice(TargetInfo Target)
+        public MIDIDevice(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

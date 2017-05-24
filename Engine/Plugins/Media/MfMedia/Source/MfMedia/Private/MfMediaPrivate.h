@@ -44,7 +44,7 @@
 	#include "Runtime/Core/Public/Windows/COMPointer.h"
 	#include "Runtime/Core/Public/Windows/HideWindowsPlatformTypes.h"
 
-#elif PLATFORM_WINDOWS
+#elif PLATFORM_WINDOWS && !UE_SERVER
 	#include "CoreDefines.h"
 	#pragma message("Skipping MfMedia (requires WINVER >= 0x0601, but WINVER is " PREPROCESSOR_TO_STRING(WINVER) ")")
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3041709
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title:Cine Camera アクタを使用する
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
@@ -8,10 +8,11 @@ SkillLevel:Intermediate
 parent:Engine/Sequencer/HowTo
 order:1
 checkpoint: editorqs
-Related: Engine/Sequencer/Overview
-Related: Engine\Sequencer\ReferenceEditor\
+Related:Engine/Sequencer/Overview
+Related:Engine\Sequencer\ReferenceEditor\
+tags:Sequencer
 
-**Cine Camera Actor** は特殊な [**Camera Actor**](Engine/Actors/CameraActors/) で、最近のほとんどの現実のカメラにあるカメラ設定があります。 
+**Cine Camera アクタ** は特殊な [**Camera アクタ**](Engine/Actors/CameraActors/) で、最近のほとんどの現実のカメラにあるカメラ設定があります。 
 **Filmback (フィルムバック)**、 **Lens (レンズ)**、または **Focus (フォーカス)** の設定では、シネマティックスのような外観のショットを作るために標準の Camera アクタよりも多くのツールがあります。 
 シーンで指定したアクタを自動的に追跡する機能もあります。また、アクタにオート フォーカスし、これまでよりもショットの撮影をやりやすくします。 
 
@@ -119,7 +120,7 @@ VlhV5pH_62k
 [/PARAMLITERAL]
 [/OBJECT]
 
-**Cine Camera Actor** の **Current Camera Settings** で各設定を試してショットを様々な外観にしてみてください。 
+**[Cine Camera Actor]** の **[Current Camera Settings]** で各設定を試してショットの見た目を変えてみてください。 
 
 
 

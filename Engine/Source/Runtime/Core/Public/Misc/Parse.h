@@ -23,7 +23,7 @@ struct CORE_API FParse
 	/** Parses a globally unique identifier. */
 	static bool Value( const TCHAR* Stream, const TCHAR* Match, struct FGuid& Guid );
 	/** Parses a string from a text string. */
-	static bool Value( const TCHAR* Stream, const TCHAR* Match, TCHAR* Value, int32 MaxLen, bool bShouldStopOnComma=true );
+	static bool Value( const TCHAR* Stream, const TCHAR* Match, TCHAR* Value, int32 MaxLen, bool bShouldStopOnSeparator=true );
 	/** Parses a byte. */
 	static bool Value( const TCHAR* Stream, const TCHAR* Match, uint8& Value );
 	/** Parses a signed byte. */
@@ -37,7 +37,7 @@ struct CORE_API FParse
 	/** Parses a signed double word. */
 	static bool Value( const TCHAR* Stream, const TCHAR* Match, int32& Value );
 	/** Parses a string. */
-	static bool Value( const TCHAR* Stream, const TCHAR* Match, FString& Value, bool bShouldStopOnComma=true );
+	static bool Value( const TCHAR* Stream, const TCHAR* Match, FString& Value, bool bShouldStopOnSeparator =true );
 	/** Parses an FText. */
 	static bool Value( const TCHAR* Stream, const TCHAR* Match, FText& Value, const TCHAR* Namespace = NULL );
 	/** Parses a quadword. */

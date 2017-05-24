@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __DebuggerCommands_h__
-#define __DebuggerCommands_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -144,11 +143,16 @@ public:
 	 */
 	static void StartPlayFromHere();
 
+	static void ResumePlaySession_Clicked();
+	static void PausePlaySession_Clicked();
+
 	static bool IsInSIE();
 	static bool IsInPIE();
 
 	static bool IsInSIE_AndRunning();
 	static bool IsInPIE_AndRunning();
-};
 
-#endif // __DebuggerCommands_h__
+	static bool HasPlayWorld();
+	static bool HasPlayWorldAndPaused();
+	static bool HasPlayWorldAndRunning();
+};

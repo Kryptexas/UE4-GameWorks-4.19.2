@@ -1,11 +1,11 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
 
 public class libOpus : ModuleRules
 {
-	public libOpus(TargetInfo Target)
+	public libOpus(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the library */
 		string OpusVersion = "1.1";
@@ -47,7 +47,7 @@ public class libOpus : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            if (Target.IsMonolithic)
+            if (Target.LinkType == TargetLinkType.Monolithic)
             {
                 PublicAdditionalLibraries.Add(LibraryPath + "Linux/" + Target.Architecture + "/libopus.a");
             }
@@ -56,5 +56,26 @@ public class libOpus : ModuleRules
                 PublicAdditionalLibraries.Add(LibraryPath + "Linux/" + Target.Architecture + "/libopus_fPIC.a");
             }
 		}
-	}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			PublicLibraryPaths.Add(LibraryPath + "Android/ARMv7/");
+			PublicLibraryPaths.Add(LibraryPath + "Android/ARM64/");
+			PublicLibraryPaths.Add(LibraryPath + "Android/x64/");
+			
+			PublicAdditionalLibraries.Add("opus");
+			PublicAdditionalLibraries.Add("speex_resampler");
+		}
+        else if (Target.Platform == UnrealTargetPlatform.XboxOne)
+        {
+            LibraryPath += "XboxOne/VS2015/Release/";
+
+            PublicLibraryPaths.Add(LibraryPath);
+
+            PublicAdditionalLibraries.Add("silk_common.lib");
+            PublicAdditionalLibraries.Add("silk_float.lib");
+            PublicAdditionalLibraries.Add("celt.lib");
+            PublicAdditionalLibraries.Add("opus.lib");
+            PublicAdditionalLibraries.Add("speex_resampler.lib");
+        }
+    }
 }

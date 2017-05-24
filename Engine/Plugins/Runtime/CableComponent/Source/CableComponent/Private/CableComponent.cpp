@@ -676,6 +676,13 @@ void UCableComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	UpdateComponentToWorld();
 };
 
+void UCableComponent::CreateRenderState_Concurrent()
+{
+	Super::CreateRenderState_Concurrent();
+
+	SendRenderDynamicData_Concurrent();
+}
+
 void UCableComponent::SendRenderDynamicData_Concurrent()
 {
 	if(SceneProxy)
@@ -705,7 +712,7 @@ void UCableComponent::SendRenderDynamicData_Concurrent()
 FBoxSphereBounds UCableComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	// Calculate bounding box of cable points
-	FBox CableBox(0);
+	FBox CableBox(ForceInit);
 	for(int32 ParticleIdx=0; ParticleIdx<Particles.Num(); ParticleIdx++)
 	{
 		const FCableParticle& Particle = Particles[ParticleIdx];

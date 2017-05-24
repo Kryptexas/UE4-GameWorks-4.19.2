@@ -17,6 +17,7 @@ UEditorPerProjectUserSettings::UEditorPerProjectUserSettings(const FObjectInitia
 	BlueprintFavorites = CreateDefaultSubobject<UBlueprintPaletteFavorites>(TEXT("BlueprintFavorites"));
 	SCSViewportCameraSpeed = 4;
 	AssetViewerProfileIndex = 0;
+	bAnimationReimportWarnings = false;
 
 	SimplygonServerIP = "127.0.0.1";
 	SimplygonSwarmDelay = 5000;

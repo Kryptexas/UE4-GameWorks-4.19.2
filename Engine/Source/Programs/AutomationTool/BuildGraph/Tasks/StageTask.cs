@@ -99,7 +99,7 @@ namespace BuildGraph.Tasks
 			if(Parameters.Project != null)
 			{
 				ProjectFile = ResolveFile(Parameters.Project);
-				if(!ProjectFile.Exists())
+				if(!FileReference.Exists(ProjectFile))
 				{
 					CommandUtils.LogError("Couldn't find project '{0}'", ProjectFile.FullName);
 					return false;
@@ -107,7 +107,7 @@ namespace BuildGraph.Tasks
 			}
 
 			// Get the directories used for staging this project
-			DirectoryReference SourceEngineDir = UnrealBuildTool.UnrealBuildTool.EngineDirectory;
+			DirectoryReference SourceEngineDir = CommandUtils.EngineDirectory;
 			DirectoryReference SourceProjectDir = (ProjectFile == null)? SourceEngineDir : ProjectFile.Directory;
 
 			// Get the output directories. We flatten the directory structure on output.
@@ -162,9 +162,9 @@ namespace BuildGraph.Tasks
 				}
 
 				// Only copy the output file if it doesn't already exist. We can stage multiple targets to the same output directory.
-				if(Parameters.Overwrite || !TargetFile.Exists())
+				if(Parameters.Overwrite || !FileReference.Exists(TargetFile))
 				{
-					TargetFile.Directory.CreateDirectory();
+					DirectoryReference.CreateDirectory(TargetFile.Directory);
 					CommandUtils.CopyFile(SourceFile.FullName, TargetFile.FullName);
 				}
 

@@ -8,7 +8,6 @@
 <string name="dialog_button_open_help_center" msgid="4505853433204459373">"सहायता केंद्र खोलें"</string>
 <string name="dialog_message_incompatible_phone" msgid="4028688231551615655">"तिलिस्म के लिए तैयार फ़ोन चाहिए. अधिक जानकारी के लिए तिलिस्म सहायता केंद्र पर जाएं."</string>
 <string name="dialog_message_no_cardboard" msgid="3560856374975640601">"अपना व्यूअर कॉन्फ़िगर करने के लिए कार्डबोर्ड ऐप्लिकेशन पाएं."</string>
-<string name="dialog_message_setup" msgid="418839137454435402">"श्रेष्ठ अनुभव के लिए अपना व्यूअर सेट करें."</string>
 <string name="dialog_title" msgid="7887077605817014784">"कॉन्फ़िगर करें"</string>
 <string name="dialog_title_incompatible_phone" msgid="4515090705573059650">"असंगत फ़ोन"</string>
 <string name="dialog_title_vr_core_not_enabled" msgid="2594928940370730859">"सेटअप आवश्यक है"</string>

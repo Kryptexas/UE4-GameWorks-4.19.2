@@ -57,4 +57,26 @@ public:
 	 * @return The decoded string
 	 */
 	static FString UrlDecode(const FString& EncodedString);
+
+	/**
+	 * Returns the &lt; &gt...etc encoding for strings between HTML elements.
+	 *
+	 * @param UnencodedString The unencoded string to convert to html encoding.
+	 * @return The html encoded string
+	 */
+	static FString HtmlEncode(const FString& UnencodedString);
+
+	/**
+	 * Returns the mime type for the file.
+	 */
+	static FString GetMimeType(const FString& FilePath);
+
+	
+	/**
+	 * Returns the default User-Agent string to use in HTTP requests.
+	 * Requests that explicitly set the User-Agent header will not use this value.
+	 *
+	 * @return the default User-Agent string that requests should use.
+	 */
+	static FString GetDefaultUserAgent();
 };

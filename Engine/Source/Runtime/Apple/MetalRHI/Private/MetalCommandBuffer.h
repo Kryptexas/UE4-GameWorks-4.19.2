@@ -31,10 +31,12 @@ enum EMetalDebugCommandType
 enum EMetalDebugLevel
 {
 	EMetalDebugLevelOff,
-	EMetalDebugLevelValidation,
 	EMetalDebugLevelLogDebugGroups,
-	EMetalDebugLevelLogOperations,
+	EMetalDebugLevelFastValidation,
+	EMetalDebugLevelTrackResources,
 	EMetalDebugLevelResetOnBind,
+	EMetalDebugLevelValidation,
+	EMetalDebugLevelLogOperations,
 	EMetalDebugLevelConditionalSubmit,
 	EMetalDebugLevelWaitForComplete
 };
@@ -55,13 +57,14 @@ struct FMetalDebugCommand
  * This allows reporting of substantially more information in debug modes which can be especially helpful 
  * when debugging GPU command-buffer failures.
  */
-@interface FMetalDebugCommandBuffer : NSObject<MTLCommandBuffer>
+@interface FMetalDebugCommandBuffer : FApplePlatformObject<MTLCommandBuffer>
 {
 	TArray<FMetalDebugCommand*> DebugCommands;
 	NSMutableArray<NSString*>* DebugGroup;
 	NSString* ActiveEncoder;
 	TSet<id<MTLResource>> Resources;
 	TSet<id> States;
+	@public
     EMetalDebugLevel DebugLevel;
 };
 

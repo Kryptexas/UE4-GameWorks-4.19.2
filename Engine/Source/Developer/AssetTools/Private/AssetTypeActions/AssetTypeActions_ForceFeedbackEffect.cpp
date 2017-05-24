@@ -147,7 +147,7 @@ TSharedPtr<SWidget> FAssetTypeActions_ForceFeedbackEffect::GetThumbnailOverlay(c
 			return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
 		}
 
-	return FEditorStyle::GetBrush("MediaAsset.AssetActions.Play.Large");
+		return FEditorStyle::GetBrush("MediaAsset.AssetActions.Play.Large");
 	};
 
 	auto IsEnabledLambda = [this, EffectList]() -> bool
@@ -193,7 +193,7 @@ TSharedPtr<SWidget> FAssetTypeActions_ForceFeedbackEffect::GetThumbnailOverlay(c
 
 		return EVisibility::Hidden;
 	};
-		
+
 	TSharedRef<SButton> BoxContent = SNew(SButton)
 		.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 		.ToolTipText_Lambda(OnToolTipTextLambda)

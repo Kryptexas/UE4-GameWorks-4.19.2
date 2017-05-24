@@ -5,6 +5,8 @@
 #include "AI/NavigationModifier.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/NavigationOctree.h"
+#include "Components/BrushComponent.h"
+#include "Engine/CollisionProfile.h"
 
 //----------------------------------------------------------------------//
 // ANavModifierVolume
@@ -13,6 +15,11 @@ ANavModifierVolume::ANavModifierVolume(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer)
 	, AreaClass(UNavArea_Null::StaticClass())
 {
+	if (GetBrushComponent())
+	{
+		GetBrushComponent()->bGenerateOverlapEvents = false;
+		GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	}
 }
 
 void ANavModifierVolume::GetNavigationData(FNavigationRelevantData& Data) const
@@ -26,7 +33,7 @@ void ANavModifierVolume::GetNavigationData(FNavigationRelevantData& Data) const
 
 FBox ANavModifierVolume::GetNavigationBounds() const
 {
-	return GetComponentsBoundingBox();
+	return GetComponentsBoundingBox(/*bNonColliding=*/ true);
 }
 
 void ANavModifierVolume::SetAreaClass(TSubclassOf<UNavArea> NewAreaClass)

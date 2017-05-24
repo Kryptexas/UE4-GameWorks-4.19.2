@@ -141,15 +141,23 @@ public:
 	 */
 	virtual bool CanRebindPossessable(const FMovieScenePossessable& InPossessable) const { return false; }
 
+	/**
+	 * Specifies whether this sequence can animate the object in question (either as a spawnable or possessable)
+	 *
+	 * @param	InObject	The object to check
+	 * @return true if this object can be animated.
+	 */
+	virtual bool CanAnimateObject(UObject& InObject) const { return true; }
+
 public:
+
+	MOVIESCENE_API virtual void PostLoad() override;
 
 	MOVIESCENE_API virtual void Serialize(FArchive& Ar) override;
 
 #if WITH_EDITORONLY_DATA
 	MOVIESCENE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #endif
-
-	MOVIESCENE_API virtual void PreSave(const ITargetPlatform* TargetPlatform) override;
 
 	MOVIESCENE_API virtual void GenerateEvaluationTemplate(FMovieSceneEvaluationTemplate& Template, const FMovieSceneTrackCompilationParams& Params, FMovieSceneSequenceTemplateStore& Store);
 
@@ -158,6 +166,9 @@ public:
 
 	UPROPERTY()
 	FMovieSceneTrackCompilationParams TemplateParameters;
+
+	UPROPERTY()
+	TMap<UObject*, FCachedMovieSceneEvaluationTemplate> InstancedSubSequenceEvaluationTemplates;
 
 public:
 

@@ -16,20 +16,22 @@ class FDetailWidgetRow;
 class IDetailChildrenBuilder;
 class IDetailLayoutBuilder;
 class IPropertyUtilities;
+class UPreviewMeshCollectionFactory;
 
 class FPreviewSceneDescriptionCustomization : public IDetailCustomization
 {
 public:
-	FPreviewSceneDescriptionCustomization(const FString& InSkeletonName, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit)
-		: SkeletonName(InSkeletonName)
-		, PersonaToolkit(InPersonaToolkit)
-		, PreviewScene(StaticCastSharedRef<FAnimationEditorPreviewScene>(InPersonaToolkit->GetPreviewScene()))
-		, EditableSkeleton(InPersonaToolkit->GetEditableSkeleton())
-	{}
+	FPreviewSceneDescriptionCustomization(const FString& InSkeletonName, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit);
+
+	~FPreviewSceneDescriptionCustomization();
 
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
 private:
+	EVisibility GetSaveButtonVisibility(TSharedRef<IPropertyHandle> AdditionalMeshesProperty) const;
+
+	FReply OnSaveCollectionClicked(TSharedRef<IPropertyHandle> AdditionalMeshesProperty, IDetailLayoutBuilder* DetailLayoutBuilder);
+
 	bool HandleShouldFilterAsset(const FAssetData& InAssetData, bool bCanUseDifferentSkeleton);
 
 	void HandleAnimationModeChanged();
@@ -52,6 +54,9 @@ private:
 
 	/** Editable Skeleton scene we will be editing */
 	TWeakPtr<class IEditableSkeleton> EditableSkeleton;
+
+	/** Factory to use when creating mesh collections */
+	UPreviewMeshCollectionFactory* FactoryToUse;
 };
 
 class FPreviewMeshCollectionEntryCustomization : public IPropertyTypeCustomization

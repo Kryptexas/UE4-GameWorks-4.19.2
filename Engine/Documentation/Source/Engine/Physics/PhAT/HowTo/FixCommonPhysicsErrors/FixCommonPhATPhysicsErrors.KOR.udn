@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3149430
+﻿INTSourceChangelist:3211040
 Availability: Public
 Title:일반적인 피직스 애셋 오류 해결
 Crumbs: %ROOT%, Engine
@@ -7,45 +7,7 @@ parent:Engine/Physics/PhAT/HowTo
 order:1
 Version: 4.13
 skilllevel:Intermediate
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/FixCommonPhysicsErrors:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/FixCommonPhysicsErrors:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/FixCommonPhysicsErrors:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/FixCommonPhysicsErrors:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/FixCommonPhysicsErrors:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/FixCommonPhysicsErrors:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Physics/physics_topic.png
 
 피지컬 시뮬레이션에서 발생하는 문제 중 직접 제어할 수 없는 부분이 많이 있지만, 확실히 교정할 수 있는 문제가 두 가지 있습니다. 바로 Exploding (충돌 설정된 피직스 바디들이 서로 관통되어 발생하는 
 폭발 현상)과 Jitter (피직스 바디가 미세하게 움직이면서 슬립 상태에 빠지지 않는 떨림 현상)입니다. 이러한 문제를 해결하는 방법은 

@@ -19,6 +19,9 @@ UAudioSettings::UAudioSettings(const FObjectInitializer& ObjectInitializer)
 {
 	SectionName = TEXT("Audio");
 	AddDefaultSettings();
+
+	bAllowVirtualizedSounds = true;
+	bIsAudioMixerEnabled = false;
 }
 
 void UAudioSettings::AddDefaultSettings()
@@ -98,6 +101,16 @@ void UAudioSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 const FAudioQualitySettings& UAudioSettings::GetQualityLevelSettings(int32 QualityLevel) const
 {
 	return QualityLevels[FMath::Clamp(QualityLevel, 0, QualityLevels.Num() - 1)];
+}
+
+void UAudioSettings::SetAudioMixerEnabled(const bool bInAudioMixerEnabled)
+{
+	bIsAudioMixerEnabled = bInAudioMixerEnabled;
+}
+
+const bool UAudioSettings::IsAudioMixerEnabled() const
+{
+	return bIsAudioMixerEnabled;
 }
 
 #undef LOCTEXT_NAMESPACE

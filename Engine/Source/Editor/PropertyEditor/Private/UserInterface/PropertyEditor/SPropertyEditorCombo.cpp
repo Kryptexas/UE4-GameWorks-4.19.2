@@ -14,8 +14,8 @@ static int32 FindEnumValueIndex(UEnum* Enum, FString const& ValueString)
 	int32 Index = INDEX_NONE;
 	for(int32 ValIndex = 0; ValIndex < Enum->NumEnums(); ++ValIndex)
 	{
-		FString const EnumName    = Enum->GetEnumName(ValIndex);
-		FString const DisplayName = Enum->GetDisplayNameText(ValIndex).ToString();
+		FString const EnumName    = Enum->GetNameStringByIndex(ValIndex);
+		FString const DisplayName = Enum->GetDisplayNameTextByIndex(ValIndex).ToString();
 
 		if (DisplayName.Len() > 0)
 		{
@@ -49,7 +49,6 @@ bool SPropertyEditorCombo::Supports( const TSharedRef< class FPropertyEditor >& 
 
 	if(	((Property->IsA(UByteProperty::StaticClass()) && Cast<const UByteProperty>(Property)->Enum)
 		||	Property->IsA(UEnumProperty::StaticClass())
-		||	(Property->IsA(UNameProperty::StaticClass()) && Property->GetFName() == NAME_InitialState)
 		||	(Property->IsA(UStrProperty::StaticClass()) && Property->HasMetaData(TEXT("Enum")))
 		)
 		&&	( ( ArrayIndex == -1 && Property->ArrayDim == 1 ) || ( ArrayIndex > -1 && Property->ArrayDim > 0 ) ) )
@@ -60,13 +59,26 @@ bool SPropertyEditorCombo::Supports( const TSharedRef< class FPropertyEditor >& 
 	return false;
 }
 
-void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef< class FPropertyEditor >& InPropertyEditor )
+void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedPtr< class FPropertyEditor >& InPropertyEditor )
 {
 	PropertyEditor = InPropertyEditor;
-	
+	PropertyHandle = InArgs._PropertyHandle;
+
+	TAttribute<FText> TooltipAttribute;
+
+	if (PropertyEditor.IsValid())
+	{
+		PropertyHandle = PropertyEditor->GetPropertyHandle();
+		TooltipAttribute = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(PropertyEditor.ToSharedRef(), &FPropertyEditor::GetValueAsText));
+	}
+
 	TArray<TSharedPtr<FString>> ComboItems;
 	TArray<bool> Restrictions;
 	TArray<TSharedPtr<SToolTip>> RichToolTips;
+
+	OnGetComboBoxStrings = InArgs._OnGetComboBoxStrings;
+	OnGetComboBoxValue = InArgs._OnGetComboBoxValue;
+	OnComboBoxValueSelected = InArgs._OnComboBoxValueSelected;
 
 	GenerateComboBoxStrings(ComboItems, RichToolTips, Restrictions);
 
@@ -78,7 +90,7 @@ void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef
 		.OnSelectionChanged( this, &SPropertyEditorCombo::OnComboSelectionChanged )
 		.OnComboBoxOpening( this, &SPropertyEditorCombo::OnComboOpening )
 		.VisibleText( this, &SPropertyEditorCombo::GetDisplayValueAsString )
-		.ToolTipText( InPropertyEditor, &FPropertyEditor::GetValueAsText );
+		.ToolTipText( TooltipAttribute );
 
 	ChildSlot
 	[
@@ -90,35 +102,45 @@ void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef
 
 FString SPropertyEditorCombo::GetDisplayValueAsString() const
 {
-	const UProperty* Property = PropertyEditor->GetProperty();
-	const bool bStringEnumProperty = Cast<UStrProperty>(Property) && Property->HasMetaData(TEXT("Enum"));
-
-	if ( !Cast<UByteProperty>(Property) && !Cast<UEnumProperty>(Property) && !bStringEnumProperty )
+	if (OnGetComboBoxValue.IsBound())
 	{
-		UObject* ObjectValue = NULL;
-		FPropertyAccess::Result Result = PropertyEditor->GetPropertyHandle()->GetValue( ObjectValue );
-
-		if( Result == FPropertyAccess::Success && ObjectValue != NULL )
-		{
-			return ObjectValue->GetName();
-		}
+		return OnGetComboBoxValue.Execute();
 	}
+	else if (PropertyEditor.IsValid())
+	{
+		return (bUsesAlternateDisplayValues) ? PropertyEditor->GetValueAsDisplayString() : PropertyEditor->GetValueAsString();
+	}
+	else
+	{
+		FString ValueString;
 
-	return (bUsesAlternateDisplayValues) ? PropertyEditor->GetValueAsDisplayString() : PropertyEditor->GetValueAsString();
+		if (bUsesAlternateDisplayValues)
+		{
+			PropertyHandle->GetValueAsDisplayString(ValueString);
+		}
+		else
+		{
+			PropertyHandle->GetValueAsFormattedString(ValueString);
+		}
+		return ValueString;
+	}
 }
-
 
 void SPropertyEditorCombo::GenerateComboBoxStrings( TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray<TSharedPtr<SToolTip>>& RichToolTips, TArray<bool>& OutRestrictedItems )
 {
+	if (OnGetComboBoxStrings.IsBound())
+	{
+		OnGetComboBoxStrings.Execute(OutComboBoxStrings, RichToolTips, OutRestrictedItems);
+		return;
+	}
+
 	TArray<FText> BasicTooltips;
-	const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
 	bUsesAlternateDisplayValues = PropertyHandle->GeneratePossibleValues(OutComboBoxStrings, BasicTooltips, OutRestrictedItems);
 
-
 	// For enums, look for rich tooltip information
-	if(PropertyEditor.IsValid())
+	if(PropertyHandle.IsValid())
 	{
-		if(const UProperty* Property = PropertyEditor->GetProperty())
+		if(const UProperty* Property = PropertyHandle->GetProperty())
 		{
 			UEnum* Enum = nullptr;
 
@@ -140,19 +162,17 @@ void SPropertyEditorCombo::GenerateComboBoxStrings( TArray< TSharedPtr<FString> 
 
 				for(int32 EnumIdx = 0; EnumIdx < Enum->NumEnums() - 1; ++EnumIdx)
 				{
-					FString Excerpt = Enum->GetEnumName(EnumIdx);
+					FString Excerpt = Enum->GetNameStringByIndex(EnumIdx);
 
 					bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIdx) || Enum->HasMetaData(TEXT("Spacer"), EnumIdx);
 					if(!bShouldBeHidden && AllowedPropertyEnums.Num() != 0)
 					{
-						bShouldBeHidden = AllowedPropertyEnums.Find(Enum->GetEnum(EnumIdx)) == INDEX_NONE;
+						bShouldBeHidden = AllowedPropertyEnums.Find(Enum->GetNameByIndex(EnumIdx)) == INDEX_NONE;
 					}
 
 					if (!bShouldBeHidden)
 					{
-						// See if we specified an alternate name for this value using metadata
-						const FString EnumValueName = Enum->GetEnumName(EnumIdx);
-						bShouldBeHidden = PropertyEditor->GetPropertyHandle()->IsHidden(EnumValueName);
+						bShouldBeHidden = PropertyHandle->IsHidden(Excerpt);
 					}
 				
 					if(!bShouldBeHidden)
@@ -190,46 +210,47 @@ void SPropertyEditorCombo::OnComboOpening()
 
 void SPropertyEditorCombo::SendToObjects( const FString& NewValue )
 {
-	const TSharedRef< FPropertyNode > PropertyNode = PropertyEditor->GetPropertyNode();
-	UProperty* Property = PropertyNode->GetProperty();
-
-	FString Value;
-	if ( bUsesAlternateDisplayValues && !Property->IsA(UStrProperty::StaticClass()))
+	FString Value = NewValue;
+	if (OnComboBoxValueSelected.IsBound())
 	{
-		// currently only enum properties can use alternate display values; this 
-		// might change, so assert here so that if support is expanded to other 
-		// property types without updating this block of code, we'll catch it quickly
-		UEnum* Enum = nullptr;
-		if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
-		{
-			Enum = ByteProperty->Enum;
-		}
-		else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
-		{
-			Enum = EnumProperty->GetEnum();
-		}
-		check(Enum != nullptr);
-
-		const int32 Index = FindEnumValueIndex(Enum, NewValue);
-		check( Index != INDEX_NONE );
-
-		Value = Enum->GetEnumName(Index);
-
-		FText ToolTipValue = Enum->GetToolTipText(Index);
-		FText ToolTipText = Property->GetToolTipText();
-		if (!ToolTipValue.IsEmpty())
-		{
-			ToolTipText = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), ToolTipText, ToolTipValue);
-		}
-		SetToolTipText(ToolTipText);
+		OnComboBoxValueSelected.Execute(NewValue);
 	}
-	else
+	else if (PropertyHandle.IsValid())
 	{
-		Value = NewValue;
-	}
+		UProperty* Property = PropertyHandle->GetProperty();
 
-	const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
-	PropertyHandle->SetValueFromFormattedString( Value );
+		if (bUsesAlternateDisplayValues && !Property->IsA(UStrProperty::StaticClass()))
+		{
+			// currently only enum properties can use alternate display values; this 
+			// might change, so assert here so that if support is expanded to other 
+			// property types without updating this block of code, we'll catch it quickly
+			UEnum* Enum = nullptr;
+			if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+			{
+				Enum = ByteProperty->Enum;
+			}
+			else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+			{
+				Enum = EnumProperty->GetEnum();
+			}
+			check(Enum != nullptr);
+
+			const int32 Index = FindEnumValueIndex(Enum, NewValue);
+			check(Index != INDEX_NONE);
+
+			Value = Enum->GetNameStringByIndex(Index);
+
+			FText ToolTipValue = Enum->GetToolTipTextByIndex(Index);
+			FText ToolTipText = Property->GetToolTipText();
+			if (!ToolTipValue.IsEmpty())
+			{
+				ToolTipText = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), ToolTipText, ToolTipValue);
+			}
+			SetToolTipText(ToolTipText);
+		}
+
+		PropertyHandle->SetValueFromFormattedString(Value);
+	}
 }
 
 bool SPropertyEditorCombo::CanEdit() const

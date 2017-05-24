@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -133,6 +133,20 @@ class ENGINE_API UKismetTextLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Utilities|Text")
 	static bool TextIsCultureInvariant(const FText& InText);
 
+	/**
+	 * Transforms the text to lowercase in a culture correct way.
+	 * @note The returned instance is linked to the original and will be rebuilt if the active culture is changed.
+	 */
+	UFUNCTION(BlueprintPure, Category="Utilities|Text")
+	static FText TextToLower(const FText& InText);
+
+	/**
+	 * Transforms the text to uppercase in a culture correct way.
+	 * @note The returned instance is linked to the original and will be rebuilt if the active culture is changed.
+	 */
+	UFUNCTION(BlueprintPure, Category="Utilities|Text")
+	static FText TextToUpper(const FText& InText);
+
 	/* Removes whitespace characters from the front of the text. */
 	UFUNCTION(BlueprintPure, Category="Utilities|Text")
 	static FText TextTrimPreceding(const FText& InText);
@@ -242,4 +256,23 @@ class ENGINE_API UKismetTextLibrary : public UBlueprintFunctionLibrary
 	/* Used for formatting text using the FText::Format function and utilized by the UK2Node_FormatText */
 	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "true"))
 	static FText Format(FText InPattern, TArray<FFormatArgumentData> InArgs);
+
+	/** Returns true if the given text is referencing a string table. */
+	UFUNCTION(BlueprintPure, Category="Utilities|Text", meta=(DisplayName="Is Text from String Table"))
+	static bool TextIsFromStringTable(const FText& Text);
+
+	/**
+	 * Attempts to create a text instance from a string table ID and key.
+	 * @note This exists to allow programmatic ‎look-up of a string table entry from dynamic content - you should favor setting your string table reference on a text property or pin wherever possible as it is significantly more robust (see "Make Literal Text").
+	 * @return The found text, or a dummy text if the entry could not be found.
+	 */
+	UFUNCTION(BlueprintPure, Category="Utilities|Text", meta=(DisplayName="Make Text from String Table (Advanced)"))
+	static FText TextFromStringTable(const FName TableId, const FString& Key);
+
+	/**
+	 * Attempts to find the String Table ID and key used by the given text.
+	 * @return True if the String Table ID and key were found, false otherwise.
+	 */
+	UFUNCTION(BlueprintPure, Category="Utilities|Text", meta=(DisplayName="Find String Table ID and Key from Text"))
+	static bool StringTableIdAndKeyFromText(FText Text, FName& OutTableId, FString& OutKey);
 };

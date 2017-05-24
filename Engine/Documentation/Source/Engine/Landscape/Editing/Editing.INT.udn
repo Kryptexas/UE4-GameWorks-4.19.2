@@ -63,6 +63,10 @@ For a quick reference guide to the various Landscape tool modes and options, see
 
 For examples of the Landscape tool in action, see the [](Resources\ContentExamples\Landscapes).
 
+[REGION:tip]
+The Landscape Tools also work in the VR Editor. For the controls for using Landscape in VR, see the [](Engine/Editor/VR/Controls).
+[/REGION]
+
 
 [REGION:topics third]
 [OBJECT:TopicCompact]

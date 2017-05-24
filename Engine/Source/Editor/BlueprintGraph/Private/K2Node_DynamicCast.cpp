@@ -124,7 +124,7 @@ void UK2Node_DynamicCast::GetContextMenuActions(const FGraphNodeContextMenuBuild
 	Context.MenuBuilder->BeginSection("K2NodeDynamicCast", LOCTEXT("DynamicCastHeader", "Cast"));
 	{
 		FText MenuEntryTitle   = LOCTEXT("MakePureTitle",   "Convert to pure cast");
-		FText MenuEntryTooltip = LOCTEXT("MakePureTooltip", "Removes the execution pins to make the node more versitile (NOTE: the cast could still fail, resulting in an invalid output).");
+		FText MenuEntryTooltip = LOCTEXT("MakePureTooltip", "Removes the execution pins to make the node more versatile (NOTE: the cast could still fail, resulting in an invalid output).");
 
 		bool bCanTogglePurity = true;
 		auto CanExecutePurityToggle = [](bool const bInCanTogglePurity)->bool

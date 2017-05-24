@@ -70,7 +70,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <summary>BuggId.</summary>
 		public int BuggId;
 
-		/// <summary>Returns crash type as a string.</summary>
+		/// <summary>Returns Crash type as a string.</summary>
 		public string GetCrashTypeAsString()
 		{
 			if (CrashType == 1)
@@ -90,7 +90,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	}
 
 	/// <summary>
-	/// The controller to handle graphing of crashes per user group over time.
+	/// The controller to handle graphing of Crashes per user group over time.
 	/// </summary>
 	public class CSVController : Controller
 	{
@@ -99,7 +99,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 		static readonly int MinNumberOfCrashes = 2;
 
-        //Ugly instantiation of crash repository will replace with dependency injection BEFORE this gets anywhere near live.
+        //Ugly instantiation of Crash repository will replace with dependency injection BEFORE this gets anywhere near live.
 	    private IUnitOfWork _unitOfWork;
 
 	    public CSVController(IUnitOfWork unitOfWork)
@@ -129,10 +129,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 var filteringQueryJoin = _unitOfWork.CrashRepository
                     .ListAll()
                     .Where(c => c.EpicAccountId != "")
-                    // Only crashes and asserts
+                    // Only Crashes and asserts
                     .Where(c => c.CrashType == 1 || c.CrashType == 2)
                     // Only anonymous user
-                    .Where(c => c.UserNameId == anonymousId)
+                    .Where(c => c.UserId == anonymousId)
                     // Filter be date
                     .Where(c => c.TimeOfCrash > FormData.DateFrom && c.TimeOfCrash < FormData.DateTo)
                     .Select
@@ -140,8 +140,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                         c => new
                         {
                             GameName = c.GameName,
-                            TimeOfCrash = c.TimeOfCrash.Value,
-                            BuiltFromCL = c.ChangeListVersion,
+                            TimeOfCrash = c.TimeOfCrash,
+                            BuiltFromCL = c.ChangelistVersion,
                             PlatformName = c.PlatformName,
                             EngineMode = c.EngineMode,
                             MachineId = c.ComputerName,
@@ -158,10 +158,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 var filteringQueryCrashes = _unitOfWork.CrashRepository
                     .ListAll()
                     .Where(c => c.EpicAccountId != null)
-                    // Only crashes and asserts
+                    // Only Crashes and asserts
                     .Where(c => c.CrashType == 1 || c.CrashType == 2)
                     // Only anonymous user
-                    .Where(c => c.UserNameId == anonymousId);//44
+                    .Where(c => c.UserId == anonymousId);//44
 
                 //Server timeout
                 var totalCrashes = _unitOfWork.CrashRepository.ListAll().Count();

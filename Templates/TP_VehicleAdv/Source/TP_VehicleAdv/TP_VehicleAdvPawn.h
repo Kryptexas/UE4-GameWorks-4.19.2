@@ -1,5 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
+#include "CoreMinimal.h"
 #include "WheeledVehicle.h"
 #include "TP_VehicleAdvPawn.generated.h"
 
@@ -8,6 +11,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class UTextRenderComponent;
 class UInputComponent;
+class UAudioComponent;
 
 UCLASS(config=Game)
 class ATP_VehicleAdvPawn : public AWheeledVehicle

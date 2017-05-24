@@ -33,19 +33,19 @@ DEFINE_LOG_CATEGORY_STATIC(LogFbxMaterialImport, Log, All);
 
 using namespace UnFbx;
 
-UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool bSetupAsNormalMap )
+UTexture* UnFbx::FFbxImporter::ImportTexture(FbxFileTexture* FbxTexture, bool bSetupAsNormalMap)
 {
-	if( !FbxTexture )
+	if (!FbxTexture)
 	{
 		return nullptr;
 	}
-	
+
 	// create an unreal texture asset
 	UTexture* UnrealTexture = NULL;
-	FString Filename1 = UTF8_TO_TCHAR(FbxTexture->GetFileName());
-	FString Extension = FPaths::GetExtension(Filename1).ToLower();
+	FString AbsoluteFilename = UTF8_TO_TCHAR(FbxTexture->GetFileName());
+	FString Extension = FPaths::GetExtension(AbsoluteFilename).ToLower();
 	// name the texture with file name
-	FString TextureName = FPaths::GetBaseFilename(Filename1);
+	FString TextureName = FPaths::GetBaseFilename(AbsoluteFilename);
 
 	TextureName = ObjectTools::SanitizeObjectName(TextureName);
 
@@ -62,7 +62,7 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 	}
 
 
-	if( !ExistingTexture )
+	if (!ExistingTexture)
 	{
 		const FString Suffix(TEXT(""));
 
@@ -77,31 +77,36 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 		TexturePackage = ExistingTexture->GetOutermost();
 	}
 
-
-	// try opening from absolute path
-	FString Filename = Filename1;
-	TArray<uint8> DataBinary;
-	if ( ! FFileHelper::LoadFileToArray( DataBinary, *Filename ))
+	FString FinalFilePath;
+	if (IFileManager::Get().FileExists(*AbsoluteFilename))
+	{
+		// try opening from absolute path
+		FinalFilePath = AbsoluteFilename;
+	}
+	else if (IFileManager::Get().FileExists(*(FileBasePath / UTF8_TO_TCHAR(FbxTexture->GetRelativeFileName()))))
 	{
 		// try fbx file base path + relative path
-		FString Filename2 = FileBasePath / UTF8_TO_TCHAR(FbxTexture->GetRelativeFileName());
-		Filename = Filename2;
-		if ( ! FFileHelper::LoadFileToArray( DataBinary, *Filename ))
-		{
-			// try fbx file base path + texture file name (no path)
-			FString Filename3 = UTF8_TO_TCHAR(FbxTexture->GetRelativeFileName());
-			FString FileOnly = FPaths::GetCleanFilename(Filename3);
-			Filename3 = FileBasePath / FileOnly;
-			Filename = Filename3;
-			if ( ! FFileHelper::LoadFileToArray( DataBinary, *Filename ))
-			{
-				UE_LOG(LogFbxMaterialImport, Warning,TEXT("Unable to find TEXTure file %s. Tried:\n - %s\n - %s\n - %s"),*FileOnly,*Filename1,*Filename2,*Filename3);
-			}
-		}
+		FinalFilePath = FileBasePath / UTF8_TO_TCHAR(FbxTexture->GetRelativeFileName());
 	}
+	else if (IFileManager::Get().FileExists(*(FileBasePath / AbsoluteFilename)))
+	{
+		// Some fbx files dont store the actual absolute filename as absolute and it is actually relative.  Try to get it relative to the FBX file we are importing
+		FinalFilePath = FileBasePath / AbsoluteFilename;
+	}
+	else
+	{
+		UE_LOG(LogFbxMaterialImport, Warning, TEXT("Unable to find Texture file %s"), *AbsoluteFilename);
+	}
+
+	TArray<uint8> DataBinary;
+	if (!FinalFilePath.IsEmpty())
+	{
+		FFileHelper::LoadFileToArray(DataBinary, *FinalFilePath);
+	}
+
 	if (DataBinary.Num()>0)
 	{
-		UE_LOG(LogFbxMaterialImport, Verbose, TEXT("Loading texture file %s"),*Filename);
+		UE_LOG(LogFbxMaterialImport, Verbose, TEXT("Loading texture file %s"),*FinalFilePath);
 		const uint8* PtrTexture = DataBinary.GetData();
 		auto TextureFact = NewObject<UTextureFactory>();
 		TextureFact->AddToRoot();
@@ -134,7 +139,7 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 		if ( UnrealTexture != NULL )
 		{
 			//Make sure the AssetImportData point on the texture file and not on the fbx files since the factory point on the fbx file
-			UnrealTexture->AssetImportData->Update(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Filename));
+			UnrealTexture->AssetImportData->Update(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FinalFilePath));
 
 			// Notify the asset registry
 			FAssetRegistryModule::AssetCreated(UnrealTexture);
@@ -742,6 +747,8 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 			CreateAndLinkExpressionForMaterialProperty(FbxMaterial, UnrealMaterial, FbxSurfaceMaterial::sDiffuse, UnrealMaterial->BaseColor, false, UVSets, FVector2D(240, -320));
 			CreateAndLinkExpressionForMaterialProperty(FbxMaterial, UnrealMaterial, FbxSurfaceMaterial::sEmissive, UnrealMaterial->EmissiveColor, false, UVSets, FVector2D(240, -64));
 			CreateAndLinkExpressionForMaterialProperty(FbxMaterial, UnrealMaterial, FbxSurfaceMaterial::sSpecular, UnrealMaterial->Specular, false, UVSets, FVector2D(240, -128));
+			CreateAndLinkExpressionForMaterialProperty(FbxMaterial, UnrealMaterial, FbxSurfaceMaterial::sSpecularFactor, UnrealMaterial->Roughness, false, UVSets, FVector2D(240, -180));
+			CreateAndLinkExpressionForMaterialProperty(FbxMaterial, UnrealMaterial, FbxSurfaceMaterial::sShininess, UnrealMaterial->Metallic, false, UVSets, FVector2D(240, -210));
 			if (!CreateAndLinkExpressionForMaterialProperty(FbxMaterial, UnrealMaterial, FbxSurfaceMaterial::sNormalMap, UnrealMaterial->Normal, true, UVSets, FVector2D(240, 256)))
 			{
 				CreateAndLinkExpressionForMaterialProperty(FbxMaterial, UnrealMaterial, FbxSurfaceMaterial::sBump, UnrealMaterial->Normal, true, UVSets, FVector2D(240, 256)); // no bump in unreal, use as normal map

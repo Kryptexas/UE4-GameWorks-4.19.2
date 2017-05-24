@@ -5,7 +5,7 @@ using UnrealBuildTool;
 
 public class NvAnselSDK : ModuleRules
 {
-	public NvAnselSDK(TargetInfo Target)
+	public NvAnselSDK(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

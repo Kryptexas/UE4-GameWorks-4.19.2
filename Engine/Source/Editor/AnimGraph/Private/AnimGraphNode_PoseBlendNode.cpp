@@ -21,7 +21,7 @@ protected:
 	FAssetData AssetInfo;
 public:
 	FNewPoseBlendNodeAction(const FAssetData& InAssetInfo, FText Title)
-		: FEdGraphSchemaAction_K2NewNode(LOCTEXT("PoseAsset", "PosetAssets"), Title, TEXT("Evaluates curves to produce a pose from pose asset"), 0, FText::FromName(InAssetInfo.ObjectPath))
+		: FEdGraphSchemaAction_K2NewNode(LOCTEXT("PoseAsset", "PoseAssets"), Title, LOCTEXT("EvalCurvesToMakePose", "Evaluates curves to produce a pose from pose asset"), 0, FText::FromName(InAssetInfo.ObjectPath))
 	{
 		AssetInfo = InAssetInfo;
 

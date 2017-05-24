@@ -184,11 +184,6 @@ public:
 	/** Incremented when instance selection is changed */
 	int32 SelectionStamp;
 	
-#if WITH_PHYSX
-	/** Aggregate physx representation of the instances' bodies. */
-	TArray<physx::PxAggregate*> Aggregates;
-#endif	//WITH_PHYSX
-
 	/** Physics representation of the instance bodies. */
 	TArray<FBodyInstance*> InstanceBodies;
 

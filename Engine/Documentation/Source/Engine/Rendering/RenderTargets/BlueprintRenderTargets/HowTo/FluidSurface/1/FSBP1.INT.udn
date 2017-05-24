@@ -1,4 +1,4 @@
-availability:docs
+availability:Public
 title:1. Project Setup
 description:Going over the Project Setup for creating a Fluid Surface Blueprint.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets

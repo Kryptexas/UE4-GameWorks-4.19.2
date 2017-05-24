@@ -29,7 +29,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogGoogleVRMotionController, Log, All);
 
 /**
  * GoogleVRMotionControllerComponent is a customizable Daydream Motion Controller.
- * 
+ *
  * It uses the standard unreal MotionControllerComponent to control position and orientation,
  * and adds the following features:
  *
@@ -193,7 +193,7 @@ public:
 	virtual void TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction ) override;
 
 	/** If the controller is connected, this will enable the controller visual and pointer input.
-	 *  Otherwise, it will start polling for when the controller connects. When it does, the controller visual 
+	 *  Otherwise, it will start polling for when the controller connects. When it does, the controller visual
 	 *  and pointer input will be enabled.
 	 */
 	virtual void Activate(bool bReset=false) override;
@@ -213,12 +213,14 @@ private:
 	float GetWorldToMetersScale() const;
 
 	APlayerController* PlayerController;
+
 	UMotionControllerComponent* MotionControllerComponent;
 	UStaticMeshComponent* ControllerMeshComponent;
 	UStaticMeshComponent* ControllerTouchPointMeshComponent;
 	USceneComponent* PointerContainerComponent;
 	UParticleSystemComponent* LaserParticleSystemComponent;
 	UMaterialBillboardComponent* ReticleBillboardComponent;
+
 	FVector TouchMeshScale;
 	bool bAreSubComponentsEnabled;
 

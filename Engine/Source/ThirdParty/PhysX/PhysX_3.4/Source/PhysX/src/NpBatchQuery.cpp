@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -36,6 +36,7 @@
 #include "PsFoundation.h"
 #include "PsUtilities.h"
 #include "NpScene.h"
+#include "PxGeometryQuery.h"
 
 using namespace physx;
 using namespace Sq;
@@ -327,7 +328,7 @@ void NpBatchQuery::execute()
 	PxU32 pvdSweepQstartIdx = 0;
 
 	Vd::ScbScenePvdClient& pvdClient = mNpScene->mScene.getScenePvdClient();
-	const bool needUpdatePvd = pvdClient.checkPvdDebugFlag() && (pvdClient.getScenePvdFlags() & PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES);
+	const bool needUpdatePvd = pvdClient.checkPvdDebugFlag() && (pvdClient.getScenePvdFlagsFast() & PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES);
 
 	if(needUpdatePvd)
 	{
@@ -522,6 +523,14 @@ void NpBatchQuery::sweep(
 	PX_CHECK_AND_RETURN(distance >= 0.0f, "Batch sweep input check: distance cannot be negative");
 	PX_CHECK_AND_RETURN(distance != 0.0f || !(hitFlags & PxHitFlag::eASSUME_NO_INITIAL_OVERLAP),
 		"Batch sweep input check: zero-length sweep only valid without the PxHitFlag::eASSUME_NO_INITIAL_OVERLAP flag");
+
+#if PX_CHECKED
+	if(!PxGeometryQuery::isValid(geometry))
+	{
+		Ps::getFoundation().error(PxErrorCode::eINVALID_PARAMETER, __FILE__, __LINE__, "Provided geometry is not valid");
+		return;
+	}
+#endif // PX_CHECKED
 
 	if (mNbSweeps >= mDesc.queryMemory.getMaxSweepsPerExecute())
 	{

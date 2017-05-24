@@ -60,8 +60,3 @@ void FHTML5Cursor::Lock( const RECT* const Bounds )
 		LockStatus = true; 
 	}
 }
-
-void FHTML5Cursor::SetCustomShape(void* CursorHandle)
-{
-	
-}

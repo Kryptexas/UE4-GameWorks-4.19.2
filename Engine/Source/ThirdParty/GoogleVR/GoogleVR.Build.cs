@@ -5,7 +5,7 @@ using UnrealBuildTool;
 
 public class GoogleVR : ModuleRules
 {
-	public GoogleVR(TargetInfo Target)
+	public GoogleVR(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -39,10 +39,10 @@ public class GoogleVR : ModuleRules
 
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			string GoogleVRArmLibPath = GoogleVRBaseLibPath + "android_arm/";
-			string GoogleVRArm64LibPath = GoogleVRBaseLibPath + "android_arm64/";
-			string GoogleVRx86LibPath = GoogleVRBaseLibPath + "android_x86/";
-			string GoogleVRx86_64LibPath = GoogleVRBaseLibPath + "android_x86_64/";
+			string GoogleVRArmLibPath = GoogleVRBaseLibPath + "android/armv7";
+			string GoogleVRArm64LibPath = GoogleVRBaseLibPath + "android/arm64";
+			string GoogleVRx86LibPath = GoogleVRBaseLibPath + "android/x86";
+			string GoogleVRx86_64LibPath = GoogleVRBaseLibPath + "android/x86_64";
 
 			// toolchain will filter properly
 			PublicLibraryPaths.Add(GoogleVRArmLibPath);
@@ -56,6 +56,9 @@ public class GoogleVR : ModuleRules
 		{
 			string GoogleVRIOSLibPath = GoogleVRBaseLibPath + "ios/";
 			PublicLibraryPaths.Add(GoogleVRIOSLibPath);
+
+			// Libraries that the GVR SDK depend on.
+			PublicAdditionalLibraries.Add(GoogleVRIOSLibPath+"libGTMSessionFetcher.a");
 
 			// Frameworks that GoogleVR frame depends on
 			PublicAdditionalFrameworks.Add(new UEBuildFramework("CoreText"));

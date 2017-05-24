@@ -174,6 +174,8 @@ struct FRenderingCompositePass
 	FRenderingCompositePass() 
 		: bComputeOutputDescWasCalled(false)
 		, bProcessWasCalled(false)
+		, bIsComputePass(false)
+		, bPreferAsyncCompute(false)
 	{
 	}
 
@@ -270,12 +272,26 @@ struct FRenderingCompositePass
 	/** can be called after RecursivelyGatherDependencies to detect if the node is reference by any other node - if not we don't need to run it */
 	bool WasComputeOutputDescCalled() const { return bComputeOutputDescWasCalled; }
 
-protected:
+	bool IsComputePass() const { return bIsComputePass; }
+	bool IsAsyncComputePass()
+	{
+#if !(UE_BUILD_SHIPPING)
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessing.ForceAsyncDispatch")); 
+		return bIsComputePass && (bPreferAsyncCompute || (CVar && CVar->GetValueOnRenderThread())) && GSupportsEfficientAsyncCompute;
+#else
+		return bIsComputePass && bPreferAsyncCompute && GSupportsEfficientAsyncCompute;
+#endif
+	};
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const { return nullptr; }
 
+protected:
 	/** to avoid wasteful recomputation and to support graph/DAG traversal, if ComputeOutputDesc() was called */
 	bool bComputeOutputDescWasCalled;
 	/** to allows reuse and to support graph/DAG traversal, if Process() was called */
 	bool bProcessWasCalled;
+
+	bool bIsComputePass;
+	bool bPreferAsyncCompute;
 
 	friend class FRenderingCompositionGraph;
 };
@@ -297,6 +313,21 @@ struct FRenderingCompositeOutputRef
 	bool IsValid() const
 	{
 		return Source != 0;
+	}
+
+	bool IsComputePass() const
+	{
+		return IsValid() && Source->IsComputePass();
+	}
+
+	bool IsAsyncComputePass() const
+	{
+		return IsValid() && Source->IsAsyncComputePass();
+	}
+
+	FComputeFenceRHIParamRef GetComputePassEndFence() const
+	{
+		return IsValid() ? Source->GetComputePassEndFence() : nullptr;
 	}
 
 private:
@@ -508,6 +539,23 @@ protected:
 	TArray<FColor>* PassOutputColorArrays[OutputCount];
 	/** All dependencies: PassInputs and all objects in this container */
 	TArray<FRenderingCompositeOutputRef> AdditionalDependencies;
+
+	// Internal call that will wait on all outstanding input pass compute fences
+	template <typename TRHICmdList>
+	void WaitForInputPassComputeFences(TRHICmdList& RHICmdList)
+	{
+		for (const FRenderingCompositeOutputRef& Input : PassInputs)
+		{
+			if (IsAsyncComputePass() != Input.IsAsyncComputePass())
+			{
+				FComputeFenceRHIParamRef InputComputePassEndFence = Input.GetComputePassEndFence();
+				if (InputComputePassEndFence)
+				{
+					RHICmdList.WaitComputeFence(InputComputePassEndFence);
+				}
+			}
+		}
+	}
 };
 
 void CompositionGraph_OnStartFrame();

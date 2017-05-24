@@ -114,10 +114,16 @@ struct FGraphAStar
 			return NewNode;
 		}
 
-		FORCEINLINE FSearchNode& Get(const FGraphNodeRef NodeRef)
+		FORCEINLINE FSearchNode& FindOrAdd(const FGraphNodeRef NodeRef)
 		{
 			const int32* IndexPtr = NodeMap.Find(NodeRef);
 			return IndexPtr ? (*this)[*IndexPtr] : Add(NodeRef);
+		}
+
+		DEPRECATED(4.15, "This function is now deprecated, please use FindOrAdd instead")
+		FSearchNode& Get(const FGraphNodeRef NodeRef)
+		{
+			return FindOrAdd(NodeRef);
 		}
 
 		FORCEINLINE void Reset()
@@ -153,12 +159,19 @@ struct FGraphAStar
 			SearchNode.MarkOpened();
 		}
 
-		FSearchNode& Pop(bool bAllowShrinking = true)
+		int32 PopIndex(bool bAllowShrinking = true)
 		{
-			int32 SearchNodeIndex = INDEX_NONE; 
+			int32 SearchNodeIndex = INDEX_NONE;
 			HeapPop(SearchNodeIndex, NodeSorter, /*bAllowShrinking = */false);
 			NodePool[SearchNodeIndex].MarkNotOpened();
-			return NodePool[SearchNodeIndex];
+			return SearchNodeIndex;
+		}
+
+		DEPRECATED(4.15, "This function is now deprecated, please use PopIndex instead")
+		FSearchNode& Pop(bool bAllowShrinking = true)
+		{
+			const int32 Index = PopIndex(bAllowShrinking);
+			return NodePool[Index];
 		}
 	};
 
@@ -181,13 +194,14 @@ struct FGraphAStar
 	bool ProcessSingleNode(const FGraphNodeRef EndNodeRef, const bool bIsBound, const TQueryFilter& Filter, int32& OutBestNodeIndex, float& OutBestNodeCost)
 	{
 		// Pop next best node and put it on closed list
-		FSearchNode& ConsideredNode = OpenList.Pop();
-		ConsideredNode.MarkClosed();
+		const int32 ConsideredNodeIndex = OpenList.PopIndex();
+		FSearchNode& ConsideredNodeUnsafe = NodePool[ConsideredNodeIndex];
+		ConsideredNodeUnsafe.MarkClosed();
 
 		// We're there, store and move to result composition
-		if (bIsBound && (ConsideredNode.NodeRef == EndNodeRef))
+		if (bIsBound && (ConsideredNodeUnsafe.NodeRef == EndNodeRef))
 		{
-			OutBestNodeIndex = ConsideredNode.SearchNodeIndex;
+			OutBestNodeIndex = ConsideredNodeUnsafe.SearchNodeIndex;
 			OutBestNodeCost = 0.f;
 			return false;
 		}
@@ -195,24 +209,24 @@ struct FGraphAStar
 		const float HeuristicScale = Filter.GetHeuristicScale();
 
 		// consider every neighbor of BestNode
-		const int32 NeighbourCount = Graph.GetNeighbourCount(ConsideredNode.NodeRef);
+		const int32 NeighbourCount = Graph.GetNeighbourCount(ConsideredNodeUnsafe.NodeRef);
 		for (int32 NeighbourNodeIndex = 0; NeighbourNodeIndex < NeighbourCount; ++NeighbourNodeIndex)
 		{
-			const FGraphNodeRef NeighbourRef = Graph.GetNeighbour(ConsideredNode.NodeRef, NeighbourNodeIndex);
+			const FGraphNodeRef NeighbourRef = Graph.GetNeighbour(NodePool[ConsideredNodeIndex].NodeRef, NeighbourNodeIndex);
 
 			// validate and sanitize
 			if (Graph.IsValidRef(NeighbourRef) == false
-				|| NeighbourRef == ConsideredNode.ParentRef
-				|| NeighbourRef == ConsideredNode.NodeRef
-				|| Filter.IsTraversalAllowed(ConsideredNode.NodeRef, NeighbourRef) == false)
+				|| NeighbourRef == NodePool[ConsideredNodeIndex].ParentRef
+				|| NeighbourRef == NodePool[ConsideredNodeIndex].NodeRef
+				|| Filter.IsTraversalAllowed(NodePool[ConsideredNodeIndex].NodeRef, NeighbourRef) == false)
 			{
 				continue;
 			}
 
-			FSearchNode& NeighbourNode = NodePool.Get(NeighbourRef);
+			FSearchNode& NeighbourNode = NodePool.FindOrAdd(NeighbourRef);
 
 			// Calculate cost and heuristic.
-			const float NewTraversalCost = Filter.GetTraversalCost(ConsideredNode.NodeRef, NeighbourNode.NodeRef) + ConsideredNode.TraversalCost;
+			const float NewTraversalCost = Filter.GetTraversalCost(NodePool[ConsideredNodeIndex].NodeRef, NeighbourNode.NodeRef) + NodePool[ConsideredNodeIndex].TraversalCost;
 			const float NewHeuristicCost = bIsBound && (NeighbourNode.NodeRef != EndNodeRef)
 				? (Filter.GetHeuristicCost(NeighbourNode.NodeRef, EndNodeRef) * HeuristicScale)
 				: 0.f;
@@ -229,8 +243,8 @@ struct FGraphAStar
 			NeighbourNode.TraversalCost = NewTraversalCost;
 			ensure(NewTraversalCost > 0);
 			NeighbourNode.TotalCost = NewTotalCost;
-			NeighbourNode.ParentRef = ConsideredNode.NodeRef;
-			NeighbourNode.ParentNodeIndex = ConsideredNode.SearchNodeIndex;
+			NeighbourNode.ParentRef = NodePool[ConsideredNodeIndex].NodeRef;
+			NeighbourNode.ParentNodeIndex = NodePool[ConsideredNodeIndex].SearchNodeIndex;
 			NeighbourNode.MarkNotClosed();
 
 			if (NeighbourNode.IsOpened() == false)
@@ -311,12 +325,12 @@ struct FGraphAStar
 		{
 			// store the path. Note that it will be reversed!
 			int32 SearchNodeIndex = BestNodeIndex;
-			int32 PathLength = 1;
+			int32 PathLength = 0;
 			do 
 			{
+				PathLength++;
 				SearchNodeIndex = NodePool[SearchNodeIndex].ParentNodeIndex;
-				++PathLength;
-			} while (NodePool[SearchNodeIndex].NodeRef != StartNodeRef && ensure(PathLength < Policy::FatalPathLength));
+			} while (NodePool.IsValidIndex(SearchNodeIndex) && NodePool[SearchNodeIndex].NodeRef != StartNodeRef && ensure(PathLength < Policy::FatalPathLength));
 			
 			if (PathLength >= Policy::FatalPathLength)
 			{

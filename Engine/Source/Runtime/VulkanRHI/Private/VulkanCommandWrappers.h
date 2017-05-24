@@ -509,13 +509,16 @@ namespace VulkanRHI
 		VULKANAPINAMESPACE::vkDestroySemaphore(Device, Semaphore, Allocator);
 	}
 
-#if 0
-	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateEvent(
-		VkDevice                                    Device,
-		const VkEventCreateInfo*                    CreateInfo,
-		const VkAllocationCallbacks*                Allocator,
-		VkEvent*                                    pEvent);
-#endif
+	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateEvent(VkDevice Device, const VkEventCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkEvent* Event)
+	{
+		DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateEvent(CreateInfo=0x%016llx%s, OutEvent=0x%016llx)"), CreateInfo, Event));
+
+		VkResult Result = VULKANAPINAMESPACE::vkCreateEvent(Device, CreateInfo, Allocator, Event);
+
+		PrintResultAndNamedHandle(Result, TEXT("Event"), *Event);
+		return Result;
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkDestroyEvent(VkDevice Device, VkEvent Event, const VkAllocationCallbacks* Allocator)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkDestroyEvent(Event=%p)"), Event));
@@ -1157,30 +1160,33 @@ namespace VulkanRHI
 
 		VULKANAPINAMESPACE::vkCmdResolveImage(CommandBuffer, SrcImage, SrcImageLayout, DstImage, DstImageLayout, RegionCount, Regions);
 	}
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdSetEvent(
-		VkCommandBuffer                             commandBuffer,
-		VkEvent                                     event,
-		VkPipelineStageFlags                        stageMask);
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdResetEvent(
-		VkCommandBuffer                             commandBuffer,
-		VkEvent                                     event,
-		VkPipelineStageFlags                        stageMask);
+	static FORCEINLINE_DEBUGGABLE void  vkCmdSetEvent(VkCommandBuffer CommandBuffer, VkEvent Event, VkPipelineStageFlags StageMask)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetEvent(Event=%p, StageMask=0x%x)"), Event, StageMask));
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdWaitEvents(
-		VkCommandBuffer                             commandBuffer,
-		uint32                                    eventCount,
-		const VkEvent*                              pEvents,
-		VkPipelineStageFlags                        srcStageMask,
-		VkPipelineStageFlags                        dstStageMask,
-		uint32                                    memoryBarrierCount,
-		const VkMemoryBarrier*                      pMemoryBarriers,
-		uint32                                    bufferMemoryBarrierCount,
-		const VkBufferMemoryBarrier*                pBufferMemoryBarriers,
-		uint32                                    imageMemoryBarrierCount,
-		const VkImageMemoryBarrier*                 pImageMemoryBarriers);
-#endif
+		VULKANAPINAMESPACE::vkCmdSetEvent(CommandBuffer, Event, StageMask);
+	}
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdResetEvent(VkCommandBuffer CommandBuffer, VkEvent Event, VkPipelineStageFlags StageMask)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdResetEvent(Event=%p, StageMask=0x%x)"), Event, StageMask));
+
+		VULKANAPINAMESPACE::vkCmdResetEvent(CommandBuffer, Event, StageMask);
+	}
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdWaitEvents(VkCommandBuffer CommandBuffer, uint32 EventCount, const VkEvent* Events,
+		VkPipelineStageFlags SrcStageMask, VkPipelineStageFlags DstStageMask,
+		uint32 MemoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers,
+		uint32 BufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers,
+		uint32 ImageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdWaitEvents()[...]")/*, Events, StageMask*/));
+
+		VULKANAPINAMESPACE::vkCmdWaitEvents(CommandBuffer, EventCount, Events, SrcStageMask, DstStageMask, MemoryBarrierCount, pMemoryBarriers,
+			BufferMemoryBarrierCount, pBufferMemoryBarriers, ImageMemoryBarrierCount, pImageMemoryBarriers);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdPipelineBarrier(
 		VkCommandBuffer CommandBuffer, VkPipelineStageFlags SrcStageMask, VkPipelineStageFlags DstStageMask, VkDependencyFlags DependencyFlags,
 		uint32 MemoryBarrierCount, const VkMemoryBarrier* MemoryBarriers,

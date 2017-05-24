@@ -8,6 +8,13 @@
 TArray<FString> UGameplayTaskResource::ResourceDescriptions;
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
+#if WITH_HOT_RELOAD
+namespace
+{
+	TMap<FName, int8> ClassNameToIDMap;
+}
+#endif // WITH_HOT_RELOAD
+
 UGameplayTaskResource::UGameplayTaskResource(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -20,22 +27,39 @@ void UGameplayTaskResource::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if (HasAnyFlags(RF_ClassDefaultObject) && (GetClass()->HasAnyClassFlags(CLASS_Abstract) == false)
-#if WITH_HOT_RELOAD
-		&& !GIsHotReload
-#endif // WITH_HOT_RELOAD
-		)
+	if (HasAnyFlags(RF_ClassDefaultObject) && (GetClass()->HasAnyClassFlags(CLASS_Abstract) == false))
 	{
-		if (bManuallySetID == false || ManualResourceID == INDEX_NONE)
+#if WITH_HOT_RELOAD
+		if (GIsHotReload)
 		{
-			UpdateAutoResourceID();
+			if ((bManuallySetID == false || ManualResourceID == INDEX_NONE))
+			{
+				int8* PreviousID = ClassNameToIDMap.Find(GetFName());
+				// PreviousID == null can happen if its the HOTRELOAD_CDO_DUPLICATE
+				if (PreviousID)
+				{
+					AutoResourceID = *PreviousID;
+				}
+			}
 		}
+		else
+#endif // WITH_HOT_RELOAD
+		{
+			if (bManuallySetID == false || ManualResourceID == INDEX_NONE)
+			{
+				UpdateAutoResourceID();
+			}
 
+			const uint8 DebugId = GetResourceID();
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		const uint8 DebugId = GetResourceID();
-		ResourceDescriptions.SetNum(FMath::Max(DebugId + 1, ResourceDescriptions.Num()));
-		ResourceDescriptions[DebugId] = GenerateDebugDescription();
+			ResourceDescriptions.SetNum(FMath::Max(DebugId + 1, ResourceDescriptions.Num()));
+			ResourceDescriptions[DebugId] = GenerateDebugDescription();
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+#if WITH_HOT_RELOAD
+			ClassNameToIDMap.Add(GetFName(), DebugId);
+#endif // WITH_HOT_RELOAD
+		}
 	}
 }
 

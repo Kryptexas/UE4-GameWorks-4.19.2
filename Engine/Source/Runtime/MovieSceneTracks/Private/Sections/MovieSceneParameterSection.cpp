@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Sections/MovieSceneParameterSection.h"
+#include "SequencerObjectVersion.h"
 
 FScalarParameterNameAndCurve::FScalarParameterNameAndCurve( FName InParameterName )
 {
@@ -20,6 +21,7 @@ FColorParameterNameAndCurves::FColorParameterNameAndCurves( FName InParameterNam
 UMovieSceneParameterSection::UMovieSceneParameterSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
+	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
 }
 
 void UMovieSceneParameterSection::AddScalarParameterKey( FName InParameterName, float InTime, float InValue )
@@ -40,6 +42,15 @@ void UMovieSceneParameterSection::AddScalarParameterKey( FName InParameterName, 
 		ExistingCurve = &ScalarParameterNamesAndCurves[NewIndex].ParameterCurve;
 	}
 	ExistingCurve->AddKey(InTime, InValue);
+
+	if (GetStartTime() > InTime)
+	{
+		SetStartTime(InTime);
+	}
+	if (GetEndTime() < InTime)
+	{
+		SetEndTime(InTime);
+	}
 }
 
 void UMovieSceneParameterSection::AddVectorParameterKey( FName InParameterName, float InTime, FVector InValue )
@@ -62,6 +73,15 @@ void UMovieSceneParameterSection::AddVectorParameterKey( FName InParameterName, 
 	ExistingCurves->XCurve.AddKey( InTime, InValue.X );
 	ExistingCurves->YCurve.AddKey( InTime, InValue.Y );
 	ExistingCurves->ZCurve.AddKey( InTime, InValue.Z );
+
+	if (GetStartTime() > InTime)
+	{
+		SetStartTime(InTime);
+	}
+	if (GetEndTime() < InTime)
+	{
+		SetEndTime(InTime);
+	}
 }
 
 void UMovieSceneParameterSection::AddColorParameterKey( FName InParameterName, float InTime, FLinearColor InValue )
@@ -85,6 +105,15 @@ void UMovieSceneParameterSection::AddColorParameterKey( FName InParameterName, f
 	ExistingCurves->GreenCurve.AddKey( InTime, InValue.G );
 	ExistingCurves->BlueCurve.AddKey( InTime, InValue.B );
 	ExistingCurves->AlphaCurve.AddKey( InTime, InValue.A );
+
+	if (GetStartTime() > InTime)
+	{
+		SetStartTime(InTime);
+	}
+	if (GetEndTime() < InTime)
+	{
+		SetEndTime(InTime);
+	}
 }
 
 bool UMovieSceneParameterSection::RemoveScalarParameter( FName InParameterName )

@@ -19,7 +19,7 @@ protected:
 	int32 BoneIndex;
 };
 
-FORCEINLINE int32 GetIntFromComp(const int32& InComp)
+FORCEINLINE int32 GetIntFromComp(const int32 InComp)
 {
 	return InComp;
 }
@@ -64,32 +64,32 @@ struct FBoneIndexWithOperators : public FBoneIndexBase
 	}
 
 	// FBoneIndexType
-	FORCEINLINE bool operator==(const int32& Rhs) const
+	FORCEINLINE bool operator==(const int32 Rhs) const
 	{
 		return BoneIndex == GetIntFromComp(Rhs);
 	}
 
-	FORCEINLINE bool operator!=(const int32& Rhs) const
+	FORCEINLINE bool operator!=(const int32 Rhs) const
 	{
 		return BoneIndex != GetIntFromComp(Rhs);
 	}
 
-	FORCEINLINE bool operator>(const int32& Rhs) const
+	FORCEINLINE bool operator>(const int32 Rhs) const
 	{
 		return BoneIndex > GetIntFromComp(Rhs);
 	}
 
-	FORCEINLINE bool operator>=(const int32& Rhs) const
+	FORCEINLINE bool operator>=(const int32 Rhs) const
 	{
 		return BoneIndex >= GetIntFromComp(Rhs);
 	}
 
-	FORCEINLINE bool operator<(const int32& Rhs) const
+	FORCEINLINE bool operator<(const int32 Rhs) const
 	{
 		return BoneIndex < GetIntFromComp(Rhs);
 	}
 
-	FORCEINLINE bool operator<=(const int32& Rhs) const
+	FORCEINLINE bool operator<=(const int32 Rhs) const
 	{
 		return BoneIndex <= GetIntFromComp(Rhs);
 	}

@@ -139,14 +139,16 @@ public:
 		: FParticleVertexFactoryBase(InType, InFeatureLevel),
 		NumVertsInInstanceBuffer(0),
 		NumCutoutVerticesPerFrame(0),
-		CutoutGeometrySRV(nullptr)
+		CutoutGeometrySRV(nullptr),
+		bCustomAlignment(false)
 	{}
 
 	FParticleSpriteVertexFactory() 
 		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num),
 		NumVertsInInstanceBuffer(0),
 		NumCutoutVerticesPerFrame(0),
-		CutoutGeometrySRV(nullptr)
+		CutoutGeometrySRV(nullptr),
+		bCustomAlignment(false)
 	{}
 
 	// FRenderResource interface.
@@ -204,6 +206,16 @@ public:
 	inline int32 GetNumCutoutVerticesPerFrame() const { return NumCutoutVerticesPerFrame; }
 	inline FShaderResourceViewRHIParamRef GetCutoutGeometrySRV() const { return CutoutGeometrySRV; }
 
+	void SetCustomAlignment(bool bAlign)
+	{
+		bCustomAlignment = bAlign;
+	}
+
+	bool GetCustomAlignment()
+	{
+		return bCustomAlignment;
+	}
+
 	/**
 	 * Construct shader parameters for this type of vertex factory.
 	 */
@@ -222,4 +234,5 @@ private:
 
 	int32 NumCutoutVerticesPerFrame;
 	FShaderResourceViewRHIParamRef CutoutGeometrySRV;
+	bool bCustomAlignment;
 };

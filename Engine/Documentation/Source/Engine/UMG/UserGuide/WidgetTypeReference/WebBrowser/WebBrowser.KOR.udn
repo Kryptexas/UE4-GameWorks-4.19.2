@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title: 웹 브라우저
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
 Description:웹 브라우저 위젯을 사용하여 게임내 웹 브라우징 기능을 만드는 법입니다.
 version: 4.10
+tags:UMG UI Designer
 
 
 [REGION:warning]

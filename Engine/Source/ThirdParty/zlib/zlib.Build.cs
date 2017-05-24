@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class zlib : ModuleRules
 {
-	public zlib(TargetInfo Target)
+	public zlib(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -76,7 +76,7 @@ public class zlib : ModuleRules
 		{
 			string platform = "/Linux/" + Target.Architecture;
 			PublicIncludePaths.Add(zlibPath + "include" + platform);
-			PublicAdditionalLibraries.Add(zlibPath + "/lib/" + platform + (Target.IsMonolithic ? "/libz" : "/libz_fPIC") + ".a");
+			PublicAdditionalLibraries.Add(zlibPath + "/lib/" + platform + ((Target.LinkType == TargetLinkType.Monolithic) ? "/libz" : "/libz_fPIC") + ".a");
 		}
 
         else if (Target.Platform == UnrealTargetPlatform.PS4)

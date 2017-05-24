@@ -117,6 +117,10 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Simulation)
 	bool bEnablePCM;
 
+	/** Enables stabilization of contacts for slow moving bodies. This will help improve the stability of stacking.*/
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Simulation)
+	bool bEnableStabilization;
+
 	/** Whether to warn when physics locks are used incorrectly. Turning this off is not recommended and should only be used by very advanced users. */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Simulation)
 	bool bWarnMissingLocks;
@@ -229,7 +233,7 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	float AsyncSceneSmoothingFactor;
 
 	/** Physics delta time initial average. */
-	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0013", UIMin = "1.0", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0013", UIMin = "0.0013", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
 	float InitialAverageFrameRate;
 
 	// PhysicalMaterial Surface Types

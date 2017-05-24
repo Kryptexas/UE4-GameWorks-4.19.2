@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3126630
+﻿INTSourceChangelist:3356804
 Availability:Public
 Title:BuildGraph スクリプトの条件文
 Crumbs: 
@@ -6,6 +6,7 @@ Description:BuildGraph スクリプトの条件文を記述するために必要
 version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
+tags:Programming
 tags:BuildGraph
 
 [VAR:TopicCompact]

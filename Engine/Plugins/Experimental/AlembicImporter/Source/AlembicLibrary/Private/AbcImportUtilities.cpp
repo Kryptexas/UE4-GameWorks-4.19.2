@@ -59,7 +59,10 @@ uint32 AbcImporterUtilities::GenerateMaterialIndicesFromFaceSets(Alembic::AbcGeo
 			for (int32 i = 0; i < NumFaces && NumFaces < MaterialIndicesOut.Num(); ++i)
 			{
 				const int32 FaceIndex = Faces->get()[i];
-				MaterialIndicesOut[FaceIndex] = FaceSetIndex;
+				if (MaterialIndicesOut.IsValidIndex(FaceIndex))
+				{
+					MaterialIndicesOut[FaceIndex] = FaceSetIndex;
+				}
 			}
 
 			// Found a new unique faceset
@@ -206,7 +209,7 @@ FAbcMeshSample* AbcImporterUtilities::GenerateAbcMeshSampleForFrame(Alembic::Abc
 			// Expand UV array
 			ExpandVertexAttributeArray<FVector2D>(UVIndices, Sample->UVs);
 		}
-		else if (Sample->Normals.Num())
+		else if (Sample->UVs.Num())
 		{
 			// For vertex only normals (and no normal indices available), expand using the regular indices
 			if (Sample->UVs.Num() != Sample->Indices.Num())
@@ -263,6 +266,114 @@ FAbcMeshSample* AbcImporterUtilities::GenerateAbcMeshSampleForFrame(Alembic::Abc
 				TriangulateVertexAttributeBuffer(FaceCounts, Sample->Normals);
 			}
 		}
+	}
+	Alembic::AbcGeom::IC3fGeomParam Color3Property;
+	Alembic::AbcGeom::IC4fGeomParam Color4Property;
+
+	Alembic::AbcGeom::ICompoundProperty GeomParams = Schema.getArbGeomParams();
+	if (GeomParams.valid())
+	{
+		const int32 NumGeomParams = GeomParams.getNumProperties();
+		for (int32 GeomParamIndex = 0; GeomParamIndex < NumGeomParams; ++GeomParamIndex)
+		{
+			auto PropertyHeader = GeomParams.getPropertyHeader(GeomParamIndex);
+			if (Alembic::AbcGeom::IC3fGeomParam::matches(PropertyHeader))
+			{
+				Color3Property = Alembic::AbcGeom::IC3fGeomParam(GeomParams, PropertyHeader.getName());
+			}
+			else if (Alembic::AbcGeom::IC4fGeomParam::matches(PropertyHeader))
+			{
+				Color4Property = Alembic::AbcGeom::IC4fGeomParam(GeomParams, PropertyHeader.getName());
+			}
+		}
+	}	
+
+	if (Color3Property.valid())
+	{
+		Alembic::Abc::C3fArraySamplePtr ColorSample = Color3Property.getValueProperty().getValue(FrameSelector);
+
+		// Allocate required memory for the OutData
+		const int32 NumEntries = ColorSample->size();
+		
+		bool bSuccess = false;
+
+		if (NumEntries)
+		{
+			Sample->Colors.AddZeroed(NumEntries);
+			
+			for (int32 Entry = 0; Entry < NumEntries; ++Entry)
+			{
+				auto DataPtr = &ColorSample->get()[Entry];
+				auto OutDataPtr = &Sample->Colors[Entry];
+				FMemory::Memcpy(OutDataPtr, DataPtr, sizeof(FLinearColor));
+				Sample->Colors[Entry].A = 1.0f;
+			}
+		}
+
+		const bool bIndexedColors = Color3Property.getIndexProperty().valid();
+		if (bIndexedColors)
+		{
+			Alembic::Abc::UInt32ArraySamplePtr ColorIndiceSample = Color3Property.getIndexProperty().getValue(FrameSelector);
+			TArray<uint32> ColorIndices;
+			RetrieveTypedAbcData<Alembic::Abc::UInt32ArraySamplePtr, uint32>(ColorIndiceSample, ColorIndices);
+
+			if (bNeedsTriangulation)
+			{
+				TriangulateIndexBuffer(FaceCounts, ColorIndices);
+			}
+
+			// Expand color array
+			ExpandVertexAttributeArray<FLinearColor>(ColorIndices, Sample->Colors);
+		}
+		else
+		{
+			if (Sample->Colors.Num() != Sample->Indices.Num())
+			{
+				ExpandVertexAttributeArray<FLinearColor>(Sample->Indices, Sample->Colors);
+			}
+			else if (bNeedsTriangulation)
+			{
+				TriangulateVertexAttributeBuffer(FaceCounts, Sample->Colors);
+			}
+		}
+	}
+	else if (Color4Property.valid())
+	{
+		Alembic::AbcGeom::IC4fGeomParam::Sample sample;
+		Color4Property.getExpanded(sample, FrameSelector);
+		Alembic::Abc::C4fArraySamplePtr ColorSample = Color4Property.getValueProperty().getValue(FrameSelector);
+		RetrieveTypedAbcData<Alembic::Abc::C4fArraySamplePtr, FLinearColor>(ColorSample, Sample->Colors);
+
+		bool bIndexedColors = Color4Property.getIndexProperty().valid();
+		if (bIndexedColors)
+		{
+			Alembic::Abc::UInt32ArraySamplePtr ColorIndiceSample = Color4Property.getIndexProperty().getValue(FrameSelector);
+			TArray<uint32> Indices;
+			RetrieveTypedAbcData<Alembic::Abc::UInt32ArraySamplePtr, uint32>(ColorIndiceSample, Indices);
+
+			if (bNeedsTriangulation)
+			{
+				TriangulateIndexBuffer(FaceCounts, Indices);
+			}
+
+			// Expand color array
+			ExpandVertexAttributeArray<FLinearColor>(Indices, Sample->Colors);
+		}
+		else
+		{
+			if (Sample->Colors.Num() != Sample->Indices.Num())
+			{
+				ExpandVertexAttributeArray<FLinearColor>(Sample->Indices, Sample->Colors);
+			}
+			else if (bNeedsTriangulation)
+			{
+				TriangulateVertexAttributeBuffer(FaceCounts, Sample->Colors);
+			}
+		}
+	}
+	else
+	{
+		Sample->Colors.AddZeroed(Sample->Indices.Num());
 	}
 
 	// Pre initialize face-material indices
@@ -718,9 +829,8 @@ FAbcMeshSample* AbcImporterUtilities::MergeMeshSamples(const TArray<FAbcMeshSamp
 		MergedSample->UVs.Append(Sample->UVs);
 
 		// Currently not used but will still merge
-		/*MergedSample->Colours.Append(Sample->Colours);
-		MergedSample->ColourIndices.Append(Sample->ColourIndices);
-		MergedSample->Visibility.Append(Sample->Visibility);
+		MergedSample->Colors.Append(Sample->Colors);
+		/*MergedSample->Visibility.Append(Sample->Visibility);
 		MergedSample->VisibilityIndices.Append(Sample->VisibilityIndices);*/
 
 		const uint32 MaterialIndicesOffset = MergedSample->MaterialIndices.Num();
@@ -775,11 +885,9 @@ void AbcImporterUtilities::AppendMeshSample(FAbcMeshSample* MeshSampleOne, FAbcM
 	MeshSampleOne->TangentX.Append(MeshSampleTwo->TangentX);
 	MeshSampleOne->TangentY.Append(MeshSampleTwo->TangentY);
 	MeshSampleOne->UVs.Append(MeshSampleTwo->UVs);
-
-	// Currently not used but will still merge
-	/*MeshSampleOne->Colours.Append(MeshSampleTwo->Colours);
-	MeshSampleOne->ColourIndices.Append(MeshSampleTwo->ColourIndices);
-	MeshSampleOne->Visibility.Append(MeshSampleTwo->Visibility);
+	MeshSampleOne->Colors.Append(MeshSampleTwo->Colors);
+	// Currently not used but will still merge	
+	/*MeshSampleOne->Visibility.Append(MeshSampleTwo->Visibility);
 	MeshSampleOne->VisibilityIndices.Append(MeshSampleTwo->VisibilityIndices);*/
 
 	const uint32 MaterialIndicesOffset = MeshSampleOne->MaterialIndices.Num();
@@ -1099,6 +1207,7 @@ void AbcImporterUtilities::ApplyConversion(FAbcMeshSample* InOutSample, const FA
 			Algo::Reverse(InOutSample->UVs);
 			Algo::Reverse(InOutSample->MaterialIndices);
 			Algo::Reverse(InOutSample->SmoothingGroupIndices);
+			Algo::Reverse(InOutSample->Colors);
 		}
 	}
 }

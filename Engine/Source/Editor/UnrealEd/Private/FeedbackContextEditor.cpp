@@ -108,6 +108,7 @@ public:
 			
 			// Secondary progress bars
 			+ SVerticalBox::Slot()
+			.AutoHeight()
 			.Padding(FMargin(0.f, 8.f, 0.f, 0.f))
 			[
 				SAssignNew(SecondaryBars, SVerticalBox)
@@ -133,7 +134,11 @@ public:
 			.VAlign(VAlign_Center)
 			.Padding(FMargin(FixedPaddingH))
 			[
-				SNew(SBox).WidthOverride(FixedWidth) [ VerticalBox ]
+				SNew(SBox).
+				WidthOverride(FixedWidth) 
+				[
+					VerticalBox 
+				]
 			]
 		);
 
@@ -162,7 +167,7 @@ private:
 
 		static const double VisibleScopeThreshold = 0.5;
 
-		DynamicProgressIndices.Empty();
+		DynamicProgressIndices.Reset();
 		
 		// Always show the first one
 		DynamicProgressIndices.Add(0);
@@ -203,7 +208,7 @@ private:
 		.Padding( 0.f, 16.f, 0.f, 0.f )
 		[
 			SNew(SVerticalBox)
-
+			.Visibility( this, &SSlowTaskWidget::GetSecondaryBarVisibility, Index )
 			+ SVerticalBox::Slot()
 			.Padding( 0.f, 0.f, 0.f, 4.f )
 			.AutoHeight()
@@ -311,6 +316,11 @@ private:
 		return FText();
 	}
 
+	EVisibility GetSecondaryBarVisibility(int32 Index) const
+	{
+		return DynamicProgressIndices.IsValidIndex(Index) ? EVisibility::HitTestInvisible : EVisibility::Collapsed;
+	}
+
 	/** Called when the cancel button is clicked */
 	FReply OnCancel()
 	{
@@ -413,7 +423,7 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 				.AutoCenter(EAutoCenter::PreferredWorkArea)
 				.IsPopupWindow(true)
 				.CreateTitleBar(true)
-				.ActivateWhenFirstShown(bFocusAndActivate)
+				.ActivationPolicy(bFocusAndActivate ? EWindowActivationPolicy::Always : EWindowActivationPolicy::Never)
 				.FocusWhenFirstShown(bFocusAndActivate);
 
 			SlowTaskWindowRef->SetContent(

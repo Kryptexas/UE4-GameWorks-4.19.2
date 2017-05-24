@@ -22,7 +22,6 @@ public:
 		return true;
 	}
 	virtual FViewportWorldInteractionManager& GetWorldInteractionManager() override;
-	virtual void Tick( float DeltaTime ) override;
 
 private:
 

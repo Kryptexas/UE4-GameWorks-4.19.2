@@ -27,6 +27,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Navigation")
 	FName WidgetToFocus;
 
+	UPROPERTY()
 	TWeakObjectPtr<UWidget> Widget;
 };
 

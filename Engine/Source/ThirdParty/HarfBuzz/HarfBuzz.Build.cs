@@ -5,7 +5,7 @@ using System.IO;
 
 public class HarfBuzz : ModuleRules
 {
-	public HarfBuzz(TargetInfo Target)
+	public HarfBuzz(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 		
@@ -50,6 +50,8 @@ public class HarfBuzz : ModuleRules
 
         else if (Target.Platform == UnrealTargetPlatform.HTML5 )
         {
+			Definitions.Add("WITH_HARFBUZZ=1");
+
 			string OpimizationSuffix = "_Oz"; // i.e. bCompileForSize
 			if ( ! UEBuildConfiguration.bCompileForSize )
 			{
@@ -66,7 +68,6 @@ public class HarfBuzz : ModuleRules
 						break;
 			}	}
 			PublicAdditionalLibraries.Add(HarfBuzzRootPath + "HTML5/libharfbuzz" + OpimizationSuffix + ".bc");
-//			PublicAdditionalLibraries.Add(HarfBuzzRootPath + "HTML5/libharfbuzz" + OpimizationSuffix + ".a");
         }
 
 		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)

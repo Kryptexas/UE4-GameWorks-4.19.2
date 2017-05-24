@@ -12,8 +12,33 @@
 #include "Factories/PreviewMeshCollectionFactory.h"
 #include "IPropertyUtilities.h"
 #include "Preferences/PersonaOptions.h"
+#include "SButton.h"
+#include "SImage.h"
+#include "AssetToolsModule.h"
+#include "IAssetTools.h"
+#include "Animation/AnimBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "PreviewSceneCustomizations"
+
+FPreviewSceneDescriptionCustomization::FPreviewSceneDescriptionCustomization(const FString& InSkeletonName, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit)
+	: SkeletonName(InSkeletonName)
+	, PersonaToolkit(InPersonaToolkit)
+	, PreviewScene(StaticCastSharedRef<FAnimationEditorPreviewScene>(InPersonaToolkit->GetPreviewScene()))
+	, EditableSkeleton(InPersonaToolkit->GetEditableSkeleton())
+{
+	// setup custom factory up-front so we can control its lifetime
+	FactoryToUse = NewObject<UPreviewMeshCollectionFactory>();
+	FactoryToUse->AddToRoot();
+}
+
+FPreviewSceneDescriptionCustomization::~FPreviewSceneDescriptionCustomization()
+{
+	if (FactoryToUse)
+	{
+		FactoryToUse->RemoveFromRoot();
+		FactoryToUse = nullptr;
+	}
+}
 
 void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
@@ -52,11 +77,15 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 		FText PreviewMeshName;
 		if (PersonaToolkit.Pin()->GetContext() == UAnimationAsset::StaticClass()->GetFName())
 		{
-			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshAnimation", "{0} (Animation)"), SkeletalMeshProperty->GetPropertyDisplayName());
+			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshAnimation", "{0}\n(Animation)"), SkeletalMeshProperty->GetPropertyDisplayName());
+		}
+		else if(PersonaToolkit.Pin()->GetContext() == UAnimBlueprint::StaticClass()->GetFName())
+		{
+			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshAnimBlueprint", "{0}\n(Animation Blueprint)"), SkeletalMeshProperty->GetPropertyDisplayName());
 		}
 		else
 		{
-			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshSkeleton", "{0} (Skeleton)"), SkeletalMeshProperty->GetPropertyDisplayName());
+			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshSkeleton", "{0}\n(Skeleton)"), SkeletalMeshProperty->GetPropertyDisplayName());
 		}
 
 		DetailBuilder.EditCategory("Mesh")
@@ -83,11 +112,12 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 		DetailBuilder.HideProperty(SkeletalMeshProperty);
 	}
 
-	// use a factory with a custom fixed skeleton as we shouldn't be picking one here
-	UPreviewMeshCollectionFactory* FactoryToUse = NewObject<UPreviewMeshCollectionFactory>();
+	// set the skeleton to use in our factory as we shouldn't be picking one here
 	FactoryToUse->CurrentSkeleton = &EditableSkeleton.Pin()->GetSkeleton();
-
 	TArray<UFactory*> FactoriesToUse({ FactoryToUse });
+
+	FAssetData AdditionalMeshesAsset;
+	AdditionalMeshesProperty->GetValue(AdditionalMeshesAsset);
 
 	DetailBuilder.EditCategory("Additional Meshes")
 	.AddProperty(AdditionalMeshesProperty)
@@ -100,17 +130,34 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 	.MaxDesiredWidth(250.0f)
 	.MinDesiredWidth(250.0f)
 	[
-		SNew(SObjectPropertyEntryBox)
-		.AllowedClass(UPreviewMeshCollection::StaticClass())
-		.PropertyHandle(AdditionalMeshesProperty)
-		.OnShouldFilterAsset(this, &FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset, true)
-		.OnObjectChanged(this, &FPreviewSceneDescriptionCustomization::HandleAdditionalMeshesChanged, &DetailBuilder)
-		.ThumbnailPool(DetailBuilder.GetThumbnailPool())
-		.NewAssetFactories(FactoriesToUse)
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		[
+			SNew(SObjectPropertyEntryBox)
+			.AllowedClass(UPreviewMeshCollection::StaticClass())
+			.PropertyHandle(AdditionalMeshesProperty)
+			.OnShouldFilterAsset(this, &FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset, true)
+			.OnObjectChanged(this, &FPreviewSceneDescriptionCustomization::HandleAdditionalMeshesChanged, &DetailBuilder)
+			.ThumbnailPool(DetailBuilder.GetThumbnailPool())
+			.NewAssetFactories(FactoriesToUse)
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.Visibility(this, &FPreviewSceneDescriptionCustomization::GetSaveButtonVisibility, AdditionalMeshesProperty)
+			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+			.OnClicked(this, &FPreviewSceneDescriptionCustomization::OnSaveCollectionClicked, AdditionalMeshesProperty, &DetailBuilder)
+			.ContentPadding(4.0f)
+			.ForegroundColor(FSlateColor::UseForeground())
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("Persona.SavePreviewMeshCollection"))
+				.ColorAndOpacity(FSlateColor::UseForeground())
+			]
+		]
 	];
-
-	FAssetData AdditionalMeshesAsset;
-	AdditionalMeshesProperty->GetValue(AdditionalMeshesAsset);
 
 	if (AdditionalMeshesAsset.IsValid())
 	{
@@ -125,6 +172,38 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 			PropertyRow->ShouldAutoExpand(true);
 		}
 	}
+}
+
+EVisibility FPreviewSceneDescriptionCustomization::GetSaveButtonVisibility(TSharedRef<IPropertyHandle> AdditionalMeshesProperty) const
+{
+	FAssetData AdditionalMeshesAsset;
+	AdditionalMeshesProperty->GetValue(AdditionalMeshesAsset);
+	UObject* Object = AdditionalMeshesAsset.GetAsset();
+
+	return Object == nullptr || !Object->HasAnyFlags(RF_Transient) ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+FReply FPreviewSceneDescriptionCustomization::OnSaveCollectionClicked(TSharedRef<IPropertyHandle> AdditionalMeshesProperty, IDetailLayoutBuilder* DetailLayoutBuilder)
+{
+	FAssetData AdditionalMeshesAsset;
+	AdditionalMeshesProperty->GetValue(AdditionalMeshesAsset);
+	UPreviewMeshCollection* DefaultPreviewMeshCollection = CastChecked<UPreviewMeshCollection>(AdditionalMeshesAsset.GetAsset());
+	if (DefaultPreviewMeshCollection)
+	{
+		IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		UPreviewMeshCollection* NewPreviewMeshCollection = Cast<UPreviewMeshCollection>(AssetTools.CreateAsset(UPreviewMeshCollection::StaticClass(), FactoryToUse));
+		if (NewPreviewMeshCollection)
+		{
+			NewPreviewMeshCollection->Skeleton = DefaultPreviewMeshCollection->Skeleton;
+			NewPreviewMeshCollection->SkeletalMeshes = DefaultPreviewMeshCollection->SkeletalMeshes;
+			AdditionalMeshesProperty->SetValue(FAssetData(NewPreviewMeshCollection));
+			PreviewScene.Pin()->SetAdditionalMeshes(NewPreviewMeshCollection);
+
+			DetailLayoutBuilder->ForceRefreshDetails();
+		}
+	}
+
+	return FReply::Handled();
 }
 
 bool FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset(const FAssetData& InAssetData, bool bCanUseDifferentSkeleton)

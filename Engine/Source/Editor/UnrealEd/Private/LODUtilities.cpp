@@ -95,9 +95,6 @@ void FLODUtilities::SimplifySkeletalMeshLOD( USkeletalMesh* SkeletalMesh, const 
 	{
 		check(SkeletalMesh->LODInfo.Num() >= 2);
 		SkeletalMesh->MarkPackageDirty();
-#if WITH_APEX_CLOTHING
-		ApexClothingUtils::ReImportClothingSectionsFromClothingAsset(SkeletalMesh);
-#endif// #if WITH_APEX_CLOTHING
 	}
 	else
 	{

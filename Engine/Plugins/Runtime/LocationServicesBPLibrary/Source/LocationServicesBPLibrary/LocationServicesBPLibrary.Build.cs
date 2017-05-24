@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class LocationServicesBPLibrary : ModuleRules
 	{
-        public LocationServicesBPLibrary(TargetInfo Target)
+        public LocationServicesBPLibrary(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

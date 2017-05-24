@@ -59,7 +59,7 @@ Version:4.9
 | UActorComponent::DestroyRenderState() | 取消组件渲染状态初始化。|
 | UActorComponent::DestroyPhysicsState() | 取消组件物理状态初始化。|
 
-
+(#Updating)
 ### 更新
 
 ActorComponent 可通过其 `TickComponent()` 函数进行每帧更新。这允许组件执行类型特定的每帧计算。例如，**SkeletalMeshComponents** 使用 `TickComponent()` 更新动画和骨骼控制器，而 **ParticleSystemComponents** 使用它更新系统的发射器并检查需要处理的粒子事件。

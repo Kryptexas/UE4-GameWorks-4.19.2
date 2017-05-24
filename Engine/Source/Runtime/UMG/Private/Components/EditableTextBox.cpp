@@ -107,11 +107,29 @@ void UEditableTextBox::SetText(FText InText)
 	}
 }
 
+void UEditableTextBox::SetHintText(FText InText)
+{
+	HintText = InText;
+	if (MyEditableTextBlock.IsValid())
+	{
+		MyEditableTextBlock->SetHintText(HintText);
+	}
+}
+
 void UEditableTextBox::SetError(FText InError)
 {
 	if ( MyEditableTextBlock.IsValid() )
 	{
 		MyEditableTextBlock->SetError(InError);
+	}
+}
+
+void UEditableTextBox::SetIsReadOnly(bool bReadOnly)
+{
+	IsReadOnly = bReadOnly;
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
 	}
 }
 

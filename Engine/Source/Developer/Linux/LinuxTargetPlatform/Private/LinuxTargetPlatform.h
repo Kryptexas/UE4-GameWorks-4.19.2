@@ -56,22 +56,6 @@ public:
 		TextureLODSettings = nullptr;
 		StaticMeshLODSettings.Initialize(EngineSettings);
 
-		// Get the Target RHIs for this platform, we do not always want all those that are supported.
-		GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
-
-		// Gather the list of Target RHIs and filter out any that may be invalid.
-		TArray<FName> PossibleShaderFormats;
-		GetAllPossibleShaderFormats(PossibleShaderFormats);
-
-		for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
-		{
-			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
-			if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
-			{
-				TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
-			}
-		}
-
 		InitDevicesFromConfig();
 #endif // WITH_ENGINE
 	}
@@ -191,7 +175,7 @@ public:
 			
 			// else check for legacy LINUX_ROOT
 			ToolchainRoot[ 0 ] = 0;
-			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));            
+			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));
 			FString ToolchainCompiler = ToolchainRoot;
 			if (PLATFORM_WINDOWS)
 			{
@@ -243,22 +227,42 @@ public:
 		{
 			static FName NAME_GLSL_150(TEXT("GLSL_150"));
 			static FName NAME_GLSL_430(TEXT("GLSL_430"));
+			static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
+			static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
+			static FName NAME_VULKAN_ES31(TEXT("SF_VULKAN_ES31"));
 
 			OutFormats.AddUnique(NAME_GLSL_150);
 			OutFormats.AddUnique(NAME_GLSL_430);
+			OutFormats.AddUnique(NAME_VULKAN_SM4);
+			OutFormats.AddUnique(NAME_VULKAN_SM5);
+			OutFormats.AddUnique(NAME_VULKAN_ES31);
 		}
 	}
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override
 	{
+		// Get the Target RHIs for this platform, we do not always want all those that are supported. (reload in case user changed in the editor)
+		TArray<FString>TargetedShaderFormats;
+		GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+
+		// Gather the list of Target RHIs and filter out any that may be invalid.
+		TArray<FName> PossibleShaderFormats;
+		GetAllPossibleShaderFormats(PossibleShaderFormats);
+
+		for (int32 ShaderFormatIdx = TargetedShaderFormats.Num() - 1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+		{
+			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+			if (PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+			{
+				TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
+			}
+		}
+
 		for(const FString& ShaderFormat : TargetedShaderFormats)
 		{
 			OutFormats.AddUnique(FName(*ShaderFormat));
 		}
 	}
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;
@@ -272,6 +276,16 @@ public:
 			// just use the standard texture format name for this texture
 			FName TextureFormatName = GetDefaultTextureFormatName(this, InTexture, EngineSettings, false);
 			OutFormats.Add(TextureFormatName);
+		}
+	}
+
+
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override
+	{
+		if (!IS_DEDICATED_SERVER)
+		{
+			// just use the standard texture format name for this texture
+			GetAllDefaultTextureFormats(this, OutFormats, false);
 		}
 	}
 
@@ -296,6 +310,14 @@ public:
 		}
 
 		return NAME_OGG;
+	}
+
+	virtual void GetAllWaveFormats(TArray<FName>& OutFormats) const override
+	{
+		static FName NAME_OGG(TEXT("OGG"));
+		static FName NAME_OPUS(TEXT("OPUS"));
+		OutFormats.Add(NAME_OGG);
+		OutFormats.Add(NAME_OPUS);
 	}
 #endif //WITH_ENGINE
 
@@ -463,8 +485,6 @@ private:
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
 
-	// List of shader formats specified as targets
-	TArray<FString> TargetedShaderFormats;
 #endif // WITH_ENGINE
 
 private:

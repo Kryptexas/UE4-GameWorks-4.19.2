@@ -76,6 +76,24 @@ FFriendsChatStyle& FFriendsChatStyle::SetGameAdminChatColor(const FLinearColor& 
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetAddedItemChatColor(const FLinearColor& InFontColor)
+{
+	AddedItemChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetCompletedItemChatColor(const FLinearColor& InFontColor)
+{
+	CompletedItemChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetDiscardedItemChatColor(const FLinearColor& InFontColor)
+{
+	DiscardedItemChatColor = InFontColor;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetWhisplerHyperlinkChatColor(const FLinearColor& InFontColor)
 {
 	WhisperHyperlinkChatColor = InFontColor;

@@ -469,7 +469,7 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 	{
 		// Get all the shapes from the actor
 		FInlinePxShapeArray PShapes;
-		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidActor);
+		const int32 NumShapes = FillInlinePxShapeArray_AssumesLocked(PShapes, *PRigidActor);
 
 		// calculate the test global pose of the actor
 		const PxQuat PGeomRot = U2PQuat(Quat);
@@ -482,21 +482,23 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 			PxShape* PShape = PShapes[ShapeIdx];
 			check(PShape);
 
-			GET_GEOMETRY_FROM_SHAPE(PGeom, PShape);
-
-			if (PGeom != NULL)
+			PxGeometryType::Enum ShapeType = PShape->getGeometryType();
+			if(ShapeType == PxGeometryType::eHEIGHTFIELD || ShapeType == PxGeometryType::eTRIANGLEMESH)
 			{
-				// Calc shape global pose
-				const PxTransform PLocalShape = PShape->getLocalPose();
-				const PxTransform PShapeGlobalStartPose = PGlobalStartPose.transform(PLocalShape);
-				const PxTransform PShapeGlobalEndPose = PGlobalEndPose.transform(PLocalShape);
-				// consider localshape rotation for shape rotation
-				const PxQuat PShapeRot = PGeomRot * PLocalShape.q;
+				//We skip complex shapes. Should this respect complex as simple?
+				continue;
+			}
 
-				if (GeomSweepMulti_PhysX(this, *PGeom, PShapeRot, OutHits, P2UVector(PShapeGlobalStartPose.p), P2UVector(PShapeGlobalEndPose.p), TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels())))
-				{
-					bHaveBlockingHit = true;
-				}
+			// Calc shape global pose
+			const PxTransform PLocalShape = PShape->getLocalPose();
+			const PxTransform PShapeGlobalStartPose = PGlobalStartPose.transform(PLocalShape);
+			const PxTransform PShapeGlobalEndPose = PGlobalEndPose.transform(PLocalShape);
+			// consider localshape rotation for shape rotation
+			const PxQuat PShapeRot = PGeomRot * PLocalShape.q;
+
+			if (GeomSweepMulti_PhysX(this, PShape->getGeometry().any(), PShapeRot, OutHits, P2UVector(PShapeGlobalStartPose.p), P2UVector(PShapeGlobalEndPose.p), TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels())))
+			{
+				bHaveBlockingHit = true;
 			}
 		}
 	});

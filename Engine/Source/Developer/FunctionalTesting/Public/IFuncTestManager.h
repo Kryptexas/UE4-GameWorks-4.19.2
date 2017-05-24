@@ -12,6 +12,10 @@ public:
 
 	virtual void RunTestOnMap(const FString& TestName, bool bClearLog, bool bRunLooped) = 0;
 
+	virtual void MarkPendingActivation() = 0;
+
+	virtual bool IsActivationPending() const = 0;
+
 	virtual bool IsRunning() const = 0;
 
 	virtual bool IsFinished() const = 0;

@@ -18,6 +18,13 @@
 class FRCPassPostProcessEyeAdaptation : public TRenderingCompositePassBase<1, 1>
 {
 public:
+	FRCPassPostProcessEyeAdaptation(bool bInIsComputePass)
+	{
+		bIsComputePass = bInIsComputePass;
+		bPreferAsyncCompute = false;
+		bPreferAsyncCompute &= (GNumActiveGPUsForRendering == 1); // Can't handle multi-frame updates on async pipe
+	}
+
 	// compute the parameters used for eye-adaptation.  These will default to values
 	// that disable eye-adaptation if the hardware doesn't support SM5 feature-level
 	static void ComputeEyeAdaptationParamsValue(const FViewInfo& View, FVector4 Out[3]);
@@ -29,6 +36,14 @@ public:
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
+
+private:
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, FUnorderedAccessViewRHIParamRef DestUAV);
+
+	FComputeFenceRHIRef AsyncEndFence;
 };
 
 // Write Log2(Luminance) in the alpha channel.
@@ -49,11 +64,18 @@ public:
 class FRCPassPostProcessBasicEyeAdaptation : public TRenderingCompositePassBase<1, 1>
 {
 public:
+	FRCPassPostProcessBasicEyeAdaptation(FIntPoint InDownsampledViewRect)
+	: DownsampledViewRect(InDownsampledViewRect) 
+	{
+	}
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+
+private:
+	FIntPoint DownsampledViewRect;
 };
 
 // Console Variable that is used to over-ride the post process settings.

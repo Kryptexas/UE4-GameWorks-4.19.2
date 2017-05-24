@@ -9,6 +9,7 @@
 #include "UObject/ScriptMacros.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/DataTable.h"
+#include "Class.h" // for FStructUtils
 #include "DataTableFunctionLibrary.generated.h"
 
 class UCurveTable;
@@ -51,10 +52,49 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
         
         Stack.StepCompiledIn<UStructProperty>(NULL);
         void* OutRowPtr = Stack.MostRecentPropertyAddress;
-        
-        P_FINISH;
-		P_NATIVE_BEGIN;
-		*(bool*)RESULT_PARAM = Generic_GetDataTableRowFromName(Table, RowName, OutRowPtr);
-		P_NATIVE_END;
+
+		P_FINISH;
+		bool bSuccess = false;
+		
+		UStructProperty* StructProp = Cast<UStructProperty>(Stack.MostRecentProperty);
+		if (!Table)
+		{
+			FBlueprintExceptionInfo ExceptionInfo(
+				EBlueprintExceptionType::AccessViolation,
+				NSLOCTEXT("GetDataTableRow", "MissingTableInput", "Failed to resolve the table input. Be sure the DataTable is valid.")
+			);
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		}
+		else if(StructProp && OutRowPtr)
+		{
+			UScriptStruct* OutputType = StructProp->Struct;
+			UScriptStruct* TableType  = Table->RowStruct;
+		
+			const bool bCompatible = (OutputType == TableType) || 
+				(OutputType->IsChildOf(TableType) && FStructUtils::TheSameLayout(OutputType, TableType));
+			if (bCompatible)
+			{
+				P_NATIVE_BEGIN;
+				bSuccess = Generic_GetDataTableRowFromName(Table, RowName, OutRowPtr);
+				P_NATIVE_END;
+			}
+			else
+			{
+				FBlueprintExceptionInfo ExceptionInfo(
+					EBlueprintExceptionType::AccessViolation,
+					NSLOCTEXT("GetDataTableRow", "IncompatibleProperty", "Incompatible output parameter; the data table's type is not the same as the return type.")
+					);
+				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+			}
+		}
+		else
+		{
+			FBlueprintExceptionInfo ExceptionInfo(
+				EBlueprintExceptionType::AccessViolation,
+				NSLOCTEXT("GetDataTableRow", "MissingOutputProperty", "Failed to resolve the output parameter for GetDataTableRow.")
+			);
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		}
+		*(bool*)RESULT_PARAM = bSuccess;
     }
 };

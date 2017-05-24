@@ -7,8 +7,7 @@
 #include "Templates/SharedPointer.h"
 #include "Delegates/Delegate.h"
 #include "Internationalization/Text.h"
-
-#define ENABLE_LOC_TESTING ( UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
+#include "LocTesting.h"
 
 #include "Templates/UniqueObj.h"
 
@@ -20,7 +19,7 @@ class FLegacyInternationalization;
 
 class FInternationalization
 {
-	friend class FText;
+	friend class FTextChronoFormatter;
 
 public:
 	static CORE_API FInternationalization& Get();
@@ -32,29 +31,130 @@ public:
 
 	static CORE_API FText ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(const TCHAR* InTextLiteral, const TCHAR* InNamespace, const TCHAR* InKey);
 
-	//Set the current culture by name
-	CORE_API bool SetCurrentCulture(const FString& Name);
+	/**
+	 * Struct that can be used to capture a snapshot of the active culture state in a way that can be re-applied losslessly.
+	 * Mostly used during automation testing.
+	 */
+	struct FCultureStateSnapshot
+	{
+		FString Language;
+		FString Locale;
+		TArray<TTuple<FName, FString>> AssetGroups;
+	};
 
-	//@return the current culture
+	/**
+	 * Set the current culture by name.
+	 * @note This function is a sledgehammer, and will set both the language and locale, as well as clear out any asset group cultures that may be set.
+	 * @note SetCurrentCulture should be avoided in Core/Engine code as it may stomp over Editor/Game user-settings.
+	 */
+	CORE_API bool SetCurrentCulture(const FString& InCultureName);
+
+	/**
+	 * Get the current culture.
+	 * @note This function exists for legacy API parity with SetCurrentCulture and is equivalent to GetCurrentLanguage. It should *never* be used in internal localization/internationalization code!
+	 */
 	CORE_API FCultureRef GetCurrentCulture() const
 	{
-		return CurrentCulture.ToSharedRef();
+		return CurrentLanguage.ToSharedRef();
 	}
 
-	//@return culture object by given name, or NULL if not found
-	CORE_API FCulturePtr GetCulture(const FString& Name);
+	/**
+	 * Set *only* the current language (for localization) by name.
+	 * @note Unless you're doing something advanced, you likely want SetCurrentLanguageAndLocale or SetCurrentCulture instead.
+	 */
+	CORE_API bool SetCurrentLanguage(const FString& InCultureName);
 
-	//@return the default culture
-	CORE_API TSharedRef< FCulture, ESPMode::ThreadSafe > GetDefaultCulture() const
+	/**
+	 * Get the current language (for localization).
+	 */
+	CORE_API FCultureRef GetCurrentLanguage() const
 	{
-		return DefaultCulture.ToSharedRef();
+		return CurrentLanguage.ToSharedRef();
 	}
 
-	//@return the invariant culture
-	CORE_API TSharedRef< FCulture, ESPMode::ThreadSafe > GetInvariantCulture() const
+	/**
+	 * Set *only* the current locale (for internationalization) by name.
+	 * @note Unless you're doing something advanced, you likely want SetCurrentLanguageAndLocale or SetCurrentCulture instead.
+	 */
+	CORE_API bool SetCurrentLocale(const FString& InCultureName);
+
+	/**
+	 * Get the current locale (for internationalization).
+	 */
+	CORE_API FCultureRef GetCurrentLocale() const
+	{
+		return CurrentLocale.ToSharedRef();
+	}
+
+	/**
+	 * Set the current language (for localization) and locale (for internationalization) by name.
+	 */
+	CORE_API bool SetCurrentLanguageAndLocale(const FString& InCultureName);
+
+	/**
+	 * Set the given asset group category culture by name.
+	 */
+	CORE_API bool SetCurrentAssetGroupCulture(const FName& InAssetGroupName, const FString& InCultureName);
+
+	/**
+	 * Get the given asset group category culture.
+	 * @note Returns the current language if the group category doesn't have a culture override.
+	 */
+	CORE_API FCultureRef GetCurrentAssetGroupCulture(const FName& InAssetGroupName) const;
+
+	/**
+	 * Clear the given asset group category culture.
+	 */
+	CORE_API void ClearCurrentAssetGroupCulture(const FName& InAssetGroupName);
+
+	/**
+	 * Get the culture corresponding to the given name.
+	 * @return The culture for the given name, or null if it couldn't be found.
+	 */
+	CORE_API FCulturePtr GetCulture(const FString& InCultureName);
+
+	/**
+	 * Get the default culture specified by the OS.
+	 * @note This function exists for legacy API parity with GetCurrentCulture and is equivalent to GetDefaultLanguage. It should *never* be used in internal localization/internationalization code!
+	 */
+	CORE_API FCultureRef GetDefaultCulture() const
+	{
+		return DefaultLanguage.ToSharedRef();
+	}
+
+	/**
+	 * Get the default language specified by the OS.
+	 */
+	CORE_API FCultureRef GetDefaultLanguage() const
+	{
+		return DefaultLanguage.ToSharedRef();
+	}
+
+	/**
+	 * Get the default locale specified by the OS.
+	 */
+	CORE_API FCultureRef GetDefaultLocale() const
+	{
+		return DefaultLocale.ToSharedRef();
+	}
+
+	/**
+	 * Get the invariant culture that can be used when you don't care about localization/internationalization.
+	 */
+	CORE_API FCultureRef GetInvariantCulture() const
 	{
 		return InvariantCulture.ToSharedRef();
 	}
+
+	/**
+	 * Backup the current culture state to the given snapshot struct.
+	 */
+	CORE_API void BackupCultureState(FCultureStateSnapshot& OutSnapshot) const;
+
+	/**
+	 * Restore a previous culture state from the given snapshot struct.
+	 */
+	CORE_API void RestoreCultureState(const FCultureStateSnapshot& InSnapshot);
 
 	CORE_API bool IsInitialized() const {return bIsInitialized;}
 
@@ -99,8 +199,35 @@ private:
 #endif
 	TUniqueObj<FImplementation> Implementation;
 
-	FCulturePtr CurrentCulture;
-	FCulturePtr DefaultCulture;
+	/**
+	 * The currently active language (for localization).
+	 */
+	FCulturePtr CurrentLanguage;
+
+	/**
+	 * The currently active locale (for internationalization).
+	 */
+	FCulturePtr CurrentLocale;
+
+	/**
+	 * The currently active asset group cultures (for package localization).
+	 * @note This is deliberately an array for performance reasons (we expect to have a very small number of groups).
+	 */
+	TArray<TTuple<FName, FCulturePtr>> CurrentAssetGroupCultures;
+
+	/**
+	 * The default language specified by the OS.
+	 */
+	FCulturePtr DefaultLanguage;
+
+	/**
+	 * The default locale specified by the OS.
+	 */
+	FCulturePtr DefaultLocale;
+
+	/**
+	 * An invariant culture that can be used when you don't care about localization/internationalization.
+	 */
 	FCulturePtr InvariantCulture;
 };
 

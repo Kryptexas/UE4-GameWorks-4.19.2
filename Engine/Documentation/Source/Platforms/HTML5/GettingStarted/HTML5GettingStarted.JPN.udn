@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:入門編:HTML5 プロジェクトの開発
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:HTML5 プラットフォーム開発の設定
 Version:4.11
 SkillLevel:Intermediate
-type:quickstart
+type:quick start
 parent:Platforms/HTML5
 tags:HTML5
 
@@ -15,7 +15,7 @@ HTML5 パイプラインは現在実験版です。HTML5 プラットフォー�
 [/REGION:todo]
 
 HTML5 は [Mozilla](http://kripken.github.io/emscripten-site/) から [emscripten](https://github.com/kripken/emscripten) ツールチェーンを使用して C++ を javascript にクロスコンパイルします。バージョン 4.9 以降では、Emscripten と Python が含まれています。
-これらは`Engine/Source/ThirdParty/HTML5/emsdk/` で検索でき、コンフィギュレーションや追加のインストールなしで HTML5 へデプロイできます。 
+これらは `Engine/Source/ThirdParty/HTML5/emsdk/` で検索でき、設定や追加のインストールなしで HTML5 へデプロイできます。 
 
 HTML5 ビルドを実行するには、現在 64 ビット ブラウザが必要です。
 

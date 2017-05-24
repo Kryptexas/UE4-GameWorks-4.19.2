@@ -326,54 +326,6 @@ public:
 };
 
 //
-// FLandscapeEditToolRenderData
-//
-struct FLandscapeEditToolRenderData
-{
-	enum
-	{
-		ST_NONE = 0,
-		ST_COMPONENT = 1,
-		ST_REGION = 2,
-		// = 4...
-	};
-
-	FLandscapeEditToolRenderData(ULandscapeComponent* InComponent)
-		: ToolMaterial(NULL),
-		GizmoMaterial(NULL),
-		LandscapeComponent(InComponent),
-		SelectedType(ST_NONE),
-		DebugChannelR(INDEX_NONE),
-		DebugChannelG(INDEX_NONE),
-		DebugChannelB(INDEX_NONE),
-		DataTexture(NULL)
-	{}
-
-	// Material used to render the tool.
-	UMaterialInterface* ToolMaterial;
-	// Material used to render the gizmo selection region...
-	UMaterialInterface* GizmoMaterial;
-
-	ULandscapeComponent* LandscapeComponent;
-
-	// Component is selected
-	int32 SelectedType;
-	int32 DebugChannelR, DebugChannelG, DebugChannelB;
-	UTexture2D* DataTexture; // Data texture other than height/weight
-
-#if WITH_EDITOR
-	void UpdateDebugColorMaterial();
-	void UpdateSelectionMaterial(int32 InSelectedType);
-#endif
-
-	// Game thread update
-	LANDSCAPE_API void Update(UMaterialInterface* InNewToolMaterial);
-	LANDSCAPE_API void UpdateGizmo(UMaterialInterface* InNewGizmoMaterial);
-	// Allows game thread to queue the deletion by the render thread
-	void Cleanup();
-};
-
-//
 // FLandscapeNeighborInfo
 //
 class FLandscapeNeighborInfo
@@ -561,7 +513,9 @@ protected:
 	static TMap<uint32, FLandscapeSharedBuffers*> SharedBuffersMap;
 	static TMap<uint32, FLandscapeSharedAdjacencyIndexBuffer*> SharedAdjacencyIndexBufferMap;
 
-	FLandscapeEditToolRenderData* EditToolRenderData;
+#if WITH_EDITORONLY_DATA
+	FLandscapeEditToolRenderData EditToolRenderData;
+#endif
 
 	// FLightCacheInterface
 	TUniquePtr<FLandscapeLCI> ComponentLightInfo;
@@ -592,7 +546,7 @@ protected:
 
 public:
 	// constructor
-	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, TArrayView<UMaterialInterface* const> InMaterialInterfacesByLOD, FLandscapeEditToolRenderData* InEditToolRenderData);
+	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, TArrayView<UMaterialInterface* const> InMaterialInterfacesByLOD);
 
 	// FPrimitiveSceneProxy interface.
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;

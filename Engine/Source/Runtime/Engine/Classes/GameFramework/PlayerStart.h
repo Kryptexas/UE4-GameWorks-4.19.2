@@ -15,9 +15,12 @@
 UCLASS(Blueprintable, ClassGroup=Common, hidecategories=Collision)
 class ENGINE_API APlayerStart : public ANavigationObjectBase
 {
-	/** To take more control over PlayerStart selection, you can override the virtual AGameModeBase::FindPlayerStart and AGameModeBase::ChoosePlayerStart function */
+	GENERATED_BODY()
+public:
 
-	GENERATED_UCLASS_BODY()
+	APlayerStart(const FObjectInitializer& ObjectInitializer);
+
+	/*~ To take more control over PlayerStart selection, you can override the virtual AGameModeBase::FindPlayerStart and AGameModeBase::ChoosePlayerStart functions. */
 
 	/** Used when searching for which playerstart to use. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Object)
@@ -37,6 +40,3 @@ public:
 	class UArrowComponent* GetArrowComponent() const;
 #endif
 };
-
-
-

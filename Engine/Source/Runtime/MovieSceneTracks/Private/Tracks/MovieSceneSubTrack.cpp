@@ -75,19 +75,6 @@ UMovieSceneSubSection* UMovieSceneSubTrack::AddSequence(UMovieSceneSequence* Seq
 			}
 		}
 	}
-	// Otherwise, append this to the end of the existing sequences
-	else
-	{
-		if (Sections.Num())
-		{
-			StartTime = Sections[0]->GetEndTime();
-
-			for (const auto& Section : Sections)
-			{
-				StartTime = FMath::Max(StartTime, Section->GetEndTime());
-			}
-		}
-	}
 
 	UMovieSceneSubSection* NewSection = CastChecked<UMovieSceneSubSection>(CreateNewSection());
 	{
@@ -133,6 +120,11 @@ bool UMovieSceneSubTrack::ContainsSequence(const UMovieSceneSequence& Sequence, 
 
 		// is the section referencing the sequence?
 		const UMovieSceneSequence* SubSequence = SubSection->GetSequence();
+
+		if (SubSequence == nullptr)
+		{
+			continue;
+		}
 
 		if (SubSequence == &Sequence)
 		{
@@ -273,68 +265,19 @@ struct FSubTrackRemapper
 			const UMovieSceneSubSection* SubSection = CastChecked<const UMovieSceneSubSection>(Sections[SectionIndex]);
 
 			// Remap the tracks contained within this sequence only within the range of the section
-			FMovieSceneSequenceTransform InnerSequenceTransform = Args.Generator.GetSequenceTransform(Cache->RemappedID);
+			FMovieSceneSequenceTransform InnerSequenceTransform = Args.Generator.GetSequenceTransform(Cache->SequenceID);
 
-			// Add preroll section
-			if (SubSection->Parameters.PrerollTime > 0.f && Segment.Range.GetLowerBound().IsClosed())
+			TRange<int32> OverlappingSegments = Cache->Template->EvaluationField.OverlapRange(Segment.Range * InnerSequenceTransform);
+			for (int32 Index = OverlappingSegments.GetLowerBoundValue(); Index < OverlappingSegments.GetUpperBoundValue(); ++Index)
 			{
-				TRange<float> PrerollRange = TRange<float>(Segment.Range.GetLowerBoundValue() - SubSection->Parameters.PrerollTime, TRangeBound<float>::FlipInclusion(Segment.Range.GetLowerBound()));
-				if (!PrerollRange.IsEmpty())
+				AllSegmentPtrs.Reset();
+
+				TRange<float> InnerSegmentRange = Cache->Template->EvaluationField.Ranges[Index] * InnerSequenceTransform.Inverse();
+				TRange<float> OverlappingRange = TRange<float>::Intersection(InnerSegmentRange, Segment.Range);
+				if (!OverlappingRange.IsEmpty())
 				{
-					// Iterate all ptrs that exist in the preroll range
-					TRange<int32> OverlappingSegments = Cache->Template->EvaluationField.OverlapRange(PrerollRange * InnerSequenceTransform);
-					for (int32 Index = OverlappingSegments.GetLowerBoundValue(); Index < OverlappingSegments.GetUpperBoundValue(); ++Index)
-					{
-						AllSegmentPtrs.Reset();
-
-						TRange<float> InnerSegmentRange = Cache->Template->EvaluationField.Ranges[Index] * InnerSequenceTransform.Inverse();
-						TRange<float> OverlappingRange = TRange<float>::Intersection(InnerSegmentRange, PrerollRange);
-						if (!OverlappingRange.IsEmpty())
-						{
-							RemapPrerollGroup(*Cache, *Cache->Template, Index, AllSegmentPtrs);
-							Args.Generator.AddExternalSegments(OverlappingRange, AllSegmentPtrs.Array());
-						}
-					}
-				}
-			}
-
-			// Add main evaluation section
-			{
-				TRange<int32> OverlappingSegments = Cache->Template->EvaluationField.OverlapRange(Segment.Range * InnerSequenceTransform);
-				for (int32 Index = OverlappingSegments.GetLowerBoundValue(); Index < OverlappingSegments.GetUpperBoundValue(); ++Index)
-				{
-					AllSegmentPtrs.Reset();
-
-					TRange<float> InnerSegmentRange = Cache->Template->EvaluationField.Ranges[Index] * InnerSequenceTransform.Inverse();
-					TRange<float> OverlappingRange = TRange<float>::Intersection(InnerSegmentRange, Segment.Range);
-					if (!OverlappingRange.IsEmpty())
-					{
-						RemapEvaluationGroup(*Cache, Cache->Template->EvaluationField.Groups[Index], AllSegmentPtrs);
-						Args.Generator.AddExternalSegments(OverlappingRange, AllSegmentPtrs.Array());
-					}
-				}
-			}
-
-			// Add postroll section
-			if (SubSection->Parameters.PostrollTime > 0.f && Segment.Range.GetUpperBound().IsClosed())
-			{
-				TRange<float> PostrollRange = TRange<float>(TRangeBound<float>::FlipInclusion(Segment.Range.GetUpperBound()), Segment.Range.GetUpperBoundValue() + SubSection->Parameters.PostrollTime);
-				if (!PostrollRange.IsEmpty())
-				{
-					// Iterate all ptrs that exist in the preroll range
-					TRange<int32> OverlappingSegments = Cache->Template->EvaluationField.OverlapRange(PostrollRange * InnerSequenceTransform);
-					for (int32 Index = OverlappingSegments.GetLowerBoundValue(); Index < OverlappingSegments.GetUpperBoundValue(); ++Index)
-					{
-						AllSegmentPtrs.Reset();
-
-						TRange<float> InnerSegmentRange = Cache->Template->EvaluationField.Ranges[Index] * InnerSequenceTransform.Inverse();
-						TRange<float> OverlappingRange = TRange<float>::Intersection(InnerSegmentRange, PostrollRange);
-						if (!OverlappingRange.IsEmpty())
-						{
-							RemapPostrollGroup(*Cache, *Cache->Template, Index, AllSegmentPtrs);
-							Args.Generator.AddExternalSegments(OverlappingRange, AllSegmentPtrs.Array());
-						}
-					}
+					RemapEvaluationGroup(*Cache, Cache->Template->EvaluationField.Groups[Index], EvalData, AllSegmentPtrs);
+					Args.Generator.AddExternalSegments(OverlappingRange, AllSegmentPtrs.Array(), EvalData.Flags);
 				}
 			}
 		}
@@ -349,30 +292,16 @@ struct FSubTrackRemapper
 			return false;
 		}
 
-		FMovieSceneEvaluationTemplate& Template = Args.SubSequenceStore.GetCompiledTemplate(*SubSequence);
-		
-		FMovieSceneSequenceTransform RootToSequenceTransform =
-			FMovieSceneSequenceTransform(SubSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() + SubSection->Parameters.StartOffset) *		// Inner play offset
-			FMovieSceneSequenceTransform(0.f, SubSection->Parameters.TimeScale) *		// Inner play rate
-			FMovieSceneSequenceTransform(-SubSection->GetStartTime());					// Outer section start time
+		FMovieSceneEvaluationTemplate& Template = SubSection->GenerateTemplateForSubSequence(Args);
 
-#if WITH_EDITORONLY_DATA
-		TRange<float> InnerSectionRange(
-			SubSection->GetStartTime() * RootToSequenceTransform,
-			SubSection->GetEndTime() * RootToSequenceTransform
-			);
-		FMovieSceneSubSequenceData SubData(*SubSequence, SubSection->GetSequenceID(), *SubSection->GetPathNameInMovieScene(), InnerSectionRange);
-#else
-		FMovieSceneSubSequenceData SubData(*SubSequence, SubSection->GetSequenceID());
-#endif
+		FMovieSceneSubSequenceData SubSequenceData = SubSection->GenerateSubSequenceData();
 
-		// Construct the sub sequence data for this sub section
-		SubData.RootToSequenceTransform = RootToSequenceTransform;
+		FMovieSceneSequenceID SubSequenceID = SubSequenceData.DeterministicSequenceID;
 
-		// Remap it into the template generator
-		FMovieSceneSequenceID RemappedID = Args.Generator.GenerateSequenceID(SubData, MovieSceneSequenceID::Root);
+		// Add this sub sequence as a direct descendent of the current template.
+		Args.Generator.AddSubSequence(SubSequenceData, MovieSceneSequenceID::Root, SubSequenceID);
 
-		FSectionData Cache(RemappedID, &Template);
+		FSectionData Cache(SubSequenceID, &Template, Args.SubSequenceStore);
 
 		// For editor previews, we remap all sub sequences regardless of whether they are actually used in the sub sequence or not
 		if (Args.Params.bForEditorPreview)
@@ -392,7 +321,19 @@ private:
 
 	struct FSectionData
 	{
-		FSectionData(FMovieSceneSequenceIDRef InRemappedID, const FMovieSceneEvaluationTemplate* InTemplate) : RemappedID(InRemappedID), Template(InTemplate) {}
+		FSectionData(FMovieSceneSequenceIDRef InSequenceID, const FMovieSceneEvaluationTemplate* InTemplate, FMovieSceneSequenceTemplateStore& SequenceStore)
+			: SequenceID(InSequenceID), Template(InTemplate)
+		{
+			for (auto& Pair : InTemplate->Hierarchy.AllSubSequenceData())
+			{
+				const FMovieSceneSubSequenceData& Data = Pair.Value;
+				if (Data.Sequence)
+				{
+					const FMovieSceneEvaluationTemplate& ChildTemplate = SequenceStore.GetCompiledTemplate(*Data.Sequence);
+					SubTemplates.Add(Pair.Key, &ChildTemplate);
+				}
+			}
+		}
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 		FSectionData(FSectionData&&) = default;
@@ -404,24 +345,25 @@ private:
 		}
 		FSectionData& operator=(FSectionData&& RHS)
 		{
-			RemappedID = MoveTemp(RHS.RemappedID);
+			SequenceID = MoveTemp(RHS.SequenceID);
 			Template = MoveTemp(RHS.Template);
+			SubTemplates = MoveTemp(RHS.SubTemplates);
 			ChildrenRemappedIDs = MoveTemp(RHS.ChildrenRemappedIDs);
 			return *this;
 		}
 #endif
 		/** The ID of this section's sequence in the master sequecne */
-		FMovieSceneSequenceID RemappedID;
+		FMovieSceneSequenceID SequenceID;
 		/** The compiled template (stored in the sequence itself) */
 		const FMovieSceneEvaluationTemplate* Template;
-		/** A map of remapped sequence IDs originating from this sequence's external tracks*/
+		/** Map of all sub sequence templates, mapped by source ID (before remapping) */
+		TMap<FMovieSceneSequenceID, const FMovieSceneEvaluationTemplate*> SubTemplates;
+		/** A map from original sub-sequence IDs held within this track, to such IDs accumulated with this sub sequence's ID (ie, local sequenceID -> sequenceID from the master */
 		TMap<FMovieSceneSequenceID, FMovieSceneSequenceID> ChildrenRemappedIDs;
 	};
 
-	void RemapPrerollGroup(FSectionData& Cache, const FMovieSceneEvaluationTemplate& Template, int32 EvaluationFieldIndex, TSet<FMovieSceneEvaluationFieldSegmentPtr>& AllSegmentPtrs)
+	void RemapEvaluationGroup(FSectionData& Cache, const FMovieSceneEvaluationGroup& Group, const FSectionEvaluationData& EvalData, TSet<FMovieSceneEvaluationFieldSegmentPtr>& AllSegmentPtrs)
 	{
-		const FMovieSceneEvaluationGroup& Group = Template.EvaluationField.Groups[EvaluationFieldIndex];
-
 		for (const FMovieSceneEvaluationGroupLUTIndex& LUTIndex : Group.LUTIndices)
 		{
 			const int32 First = LUTIndex.LUTOffset;
@@ -432,48 +374,10 @@ private:
 				FMovieSceneEvaluationFieldSegmentPtr SegmentPtr = Group.SegmentPtrLUT[Index];
 
 				const FMovieSceneEvaluationTrack* Track = FindTrack(SegmentPtr, Cache);
-				if (!ensure(Track) || !Track->ShouldEvaluateInPreroll())
-				{
-					continue;
-				}
-
-				SegmentPtr.SequenceID = RemapSubSequence(Cache, SegmentPtr.SequenceID);
-				AllSegmentPtrs.Add(SegmentPtr);
-			}
-		}
-	}
-
-	void RemapEvaluationGroup(FSectionData& Cache, const FMovieSceneEvaluationGroup& Group, TSet<FMovieSceneEvaluationFieldSegmentPtr>& AllSegmentPtrs)
-	{
-		for (const FMovieSceneEvaluationGroupLUTIndex& LUTIndex : Group.LUTIndices)
-		{
-			const int32 First = LUTIndex.LUTOffset;
-			const int32 Last = First + LUTIndex.NumInitPtrs + LUTIndex.NumEvalPtrs;
-
-			for (int32 Index = First; Index < Last; ++Index)
-			{
-				FMovieSceneEvaluationFieldSegmentPtr SegmentPtr = Group.SegmentPtrLUT[Index];
-				SegmentPtr.SequenceID = RemapSubSequence(Cache, SegmentPtr.SequenceID);
-				AllSegmentPtrs.Add(SegmentPtr);
-			}
-		}
-	}
-
-	void RemapPostrollGroup(FSectionData& Cache, const FMovieSceneEvaluationTemplate& Template, int32 EvaluationFieldIndex, TSet<FMovieSceneEvaluationFieldSegmentPtr>& AllSegmentPtrs)
-	{
-		const FMovieSceneEvaluationGroup& Group = Template.EvaluationField.Groups[EvaluationFieldIndex];
-
-		for (const FMovieSceneEvaluationGroupLUTIndex& LUTIndex : Group.LUTIndices)
-		{
-			const int32 First = LUTIndex.LUTOffset;
-			const int32 Last = First + LUTIndex.NumInitPtrs + LUTIndex.NumEvalPtrs;
-
-			for (int32 Index = First; Index < Last; ++Index)
-			{
-				FMovieSceneEvaluationFieldSegmentPtr SegmentPtr = Group.SegmentPtrLUT[Index];
-
-				const FMovieSceneEvaluationTrack* Track = FindTrack(SegmentPtr, Cache);
-				if (!ensure(Track) || !Track->ShouldEvaluateInPostroll())
+				if (!ensure(Track) ||
+					(EvalData.IsPreRoll() && !Track->ShouldEvaluateInPreroll()) ||
+					(EvalData.IsPostRoll() && !Track->ShouldEvaluateInPostroll())
+					)
 				{
 					continue;
 				}
@@ -489,7 +393,7 @@ private:
 		// Root tracks use the cache's remapped ID
 		if (SourceID == MovieSceneSequenceID::Root)
 		{
-			return Cache.RemappedID;
+			return Cache.SequenceID;
 		}
 
 		// Nested tracks tracks - may need to remap the outer sequence
@@ -506,15 +410,26 @@ private:
 		FMovieSceneSubSequenceData SubDataCopy = *SubData;
 
 		// Accumulate the parent's sequence transform
-		SubDataCopy.RootToSequenceTransform = SubDataCopy.RootToSequenceTransform * Args.Generator.GetSequenceTransform(Cache.RemappedID);
+		SubDataCopy.RootToSequenceTransform = SubDataCopy.RootToSequenceTransform * Args.Generator.GetSequenceTransform(Cache.SequenceID);
 
-		FMovieSceneSequenceID RemappedParentID = HierarchyNode->ParentID == MovieSceneSequenceID::Root ? Cache.RemappedID : RemapSubSequence(Cache, HierarchyNode->ParentID);
+		FMovieSceneSequenceID RemappedParentID = HierarchyNode->ParentID == MovieSceneSequenceID::Root ? Cache.SequenceID : RemapSubSequence(Cache, HierarchyNode->ParentID);
+
+		// Accumulate the hierarchical bias
+		const FMovieSceneSubSequenceData* ParentData = Cache.Template->Hierarchy.FindSubData(RemappedParentID);
+		SubDataCopy.HierarchicalBias = SubDataCopy.HierarchicalBias;
+		if (ParentData != nullptr)
+		{
+			SubDataCopy.HierarchicalBias += ParentData->HierarchicalBias;
+		}
+
+		// Hash this source ID with the owning sequence ID to make it unique
+		FMovieSceneSequenceID InnerSequenceID = SourceID.AccumulateParentID(Cache.SequenceID);
 
 		// Remap this sequence within the main generator, under this section as a parent
-		FMovieSceneSequenceID RemappedID = Args.Generator.GenerateSequenceID(SubDataCopy, RemappedParentID);
-		Cache.ChildrenRemappedIDs.Add(SourceID, RemappedID);
+		Args.Generator.AddSubSequence(SubDataCopy, RemappedParentID, InnerSequenceID);
+		Cache.ChildrenRemappedIDs.Add(SourceID, InnerSequenceID);
 
-		return RemappedID;
+		return InnerSequenceID;
 	}
 
 	const FMovieSceneEvaluationTrack* FindTrack(FMovieSceneEvaluationFieldTrackPtr TrackPtr, const FSectionData& SectionData) const
@@ -523,7 +438,11 @@ private:
 		{
 			return SectionData.Template->FindTrack(TrackPtr.TrackIdentifier);
 		}
-		return nullptr;
+		else
+		{
+			const FMovieSceneEvaluationTemplate* SubTemplate = SectionData.SubTemplates.FindRef(TrackPtr.SequenceID);
+			return SubTemplate ? SubTemplate->FindTrack(TrackPtr.TrackIdentifier) : nullptr;
+		}
 	}
 
 private:

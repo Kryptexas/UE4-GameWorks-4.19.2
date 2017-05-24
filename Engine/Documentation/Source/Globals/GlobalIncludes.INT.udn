@@ -239,6 +239,41 @@ Description:
 [/REGION]
 [/VAR]
 
+[VAR:MethodSelect]
+[REGION:section]
+	[REGION:titlesection]
+	Choose Implementation Method
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		Method
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		method01
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Method 1
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		Method
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		method02
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Method 2
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
+
 [EXCERPT:bpModesRemoved]
 [REGION:note]
 The Blueprint Editor Modes were removed in 4.7. Please see [%Engine/Blueprints/Editor:title%](Engine/Blueprints/Editor "%Engine/Blueprints/Editor:description%") for information about the **Blueprint Editor Interface**.

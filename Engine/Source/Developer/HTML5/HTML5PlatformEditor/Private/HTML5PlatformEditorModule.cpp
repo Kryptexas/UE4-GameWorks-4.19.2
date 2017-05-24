@@ -7,6 +7,7 @@
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "HTML5TargetSettings.h"
+#include "HTML5TargetSettingsCustomization.h"
 #include "ISettingsModule.h"
 #include "HTML5SDKSettings.h"
 
@@ -40,9 +41,16 @@ class FHTML5PlatformEditorModule
 			return; 
 		}
 
-		// register settings6
+		// register settings
 		static FName PropertyEditor("PropertyEditor");
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
+		PropertyModule.RegisterCustomClassLayout(
+			"HTML5TargetSettings",
+			FOnGetDetailCustomizationInstance::CreateStatic(&FHTML5TargetSettingsCustomization::MakeInstance)
+			);
+
+		PropertyModule.NotifyCustomizationModuleChanged();
+
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
@@ -53,11 +61,16 @@ class FHTML5PlatformEditorModule
 				GetMutableDefault<UHTML5TargetSettings>()
 			);
 
- 			SettingsModule->RegisterSettings("Project", "Platforms", "HTML5SDK",
- 				LOCTEXT("SDKSettingsName", "HTML5 SDK"),
- 				LOCTEXT("SDKSettingsDescription", "Settings for HTML5 SDK (system wide)"),
- 				GetMutableDefault<UHTML5SDKSettings>()
-			);
+// NOTE: HTML5SDKSettings has become the "list of browsers" (that Editor->Launch button will be populated with)
+//       now, the list of browsers are configurable in Engine.ini
+// NOTE: the "SDK" (i.e. emscripten) is "known" to be at: Engine/Extras/ThirdPartyNotUE/emsdk/...
+//       see HTML5ToolChain.cs for details
+
+// 			SettingsModule->RegisterSettings("Project", "Platforms", "HTML5SDK",
+// 				LOCTEXT("SDKSettingsName", "HTML5 SDK"),
+// 				LOCTEXT("SDKSettingsDescription", "Settings for HTML5 SDK (system wide)"),
+// 				GetMutableDefault<UHTML5SDKSettings>()
+//			);
 		}
 	}
 
@@ -68,7 +81,7 @@ class FHTML5PlatformEditorModule
 		if (SettingsModule != nullptr)
 		{
 			SettingsModule->UnregisterSettings("Project", "Platforms", "HTML5");
-			SettingsModule->UnregisterSettings("Project", "Platforms", "HTML5SDK");
+//			SettingsModule->UnregisterSettings("Project", "Platforms", "HTML5SDK");
 		}
 	}
 };

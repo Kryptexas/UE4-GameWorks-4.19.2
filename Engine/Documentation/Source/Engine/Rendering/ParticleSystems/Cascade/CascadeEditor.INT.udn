@@ -3,6 +3,7 @@ Title:Cascade Particle Editor Reference
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:An overview of the Cascade Editor's UI, breaking down each key area.
 Version: 4.9
+tags:Particles
 
 [VAR:Topic]
 [OBJECT:Topic]

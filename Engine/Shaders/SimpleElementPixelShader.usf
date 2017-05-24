@@ -30,7 +30,7 @@ float4 ScreenToPixel;
 MaterialFloat4 ColourTexture2DSample(Texture2D Tex, SamplerState Sampler, float2 UV)
 {
 	MaterialFloat4 Sample = Tex.Sample(Sampler, UV);
-#if SRGB_INPUT_TEXTURE && (ES2_PROFILE || ES3_1_PROFILE)
+#if SRGB_INPUT_TEXTURE && (ES2_PROFILE || ES3_1_PROFILE) && !METAL_PROFILE
 	Sample.rgb = Sample.rgb * Sample.rgb;
 #endif
 	return Sample;
@@ -161,12 +161,7 @@ void AlphaOnlyMain(
 	OutColor = SimpleElementEncodeFor32BPPHDR(OutColor);
 }
 
-
-#if METAL_PROFILE
-static const half Gamma = 1.0f;
-#else
 half Gamma;
-#endif
 
 void GammaMain(
 	in float2 TextureCoordinate : TEXCOORD0,

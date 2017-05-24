@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/L
 Description:An introductory document on the Layered Materials technique in UE4.
 Version: 4.9
 SkillLevel: Intermediate
+tags:Materials
 
 [VAR:Topic]
 [OBJECT:Topic]

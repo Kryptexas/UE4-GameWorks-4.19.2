@@ -1260,6 +1260,12 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 						}
 					}
 					break;
+				case SC_CLOSE:
+					{
+						DeferMessage(CurrentNativeEventWindowPtr, hwnd, WM_CLOSE, 0, 0);
+						return 1;
+					}
+					break;
 				default:
 					if( !( MessageHandler->ShouldProcessUserInputMessages( CurrentNativeEventWindow ) && IsInputMessage( msg ) ) )
 					{
@@ -1759,6 +1765,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			// Mouse Cursor
 		case WM_SETCURSOR:
 			{
+				// WM_SETCURSOR - Sent to a window if the mouse causes the cursor to move within a window and mouse input is not captured.
 				return MessageHandler->OnCursorSet() ? 0 : 1;
 			}
 			break;
@@ -2442,7 +2449,7 @@ uint32 FWindowsApplication::GetFirstFreeTouchIndex()
 
 void FTaskbarList::Initialize()
 {
-	if (FWindowsPlatformMisc::CoInitialize())
+	if (LIKELY(FApp::CanEverRender()) && FWindowsPlatformMisc::CoInitialize())
 	{
 		if (CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (void **)&TaskBarList3) != S_OK)
 		{
@@ -2459,7 +2466,7 @@ FTaskbarList::FTaskbarList()
 
 FTaskbarList::~FTaskbarList()
 {
-	if (FWindowsPlatformMisc::CoInitialize() && TaskBarList3)
+	if (TaskBarList3 && FWindowsPlatformMisc::CoInitialize())
 	{
 		TaskBarList3->Release();
 	}

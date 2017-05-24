@@ -49,7 +49,7 @@ public:
 	 *	@param	InStaticMesh				The static mesh handled by the editor.
 	 *	@param	InStaticMeshComponent		The static mesh component component from the viewport's scene.
 	 */
-	void SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent);
+	void SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent, bool bResetCamera=true);
 
 	/** Retrieves the selected edge set. */
 	TSet< int32 >& GetSelectedEdges();
@@ -97,11 +97,17 @@ public:
 	/** Callback for checking the binormals show flag. */
 	bool IsSetShowBinormalsChecked() const;
 
-	/** Callback for toggling the collision show flag. */
-	void SetShowWireframeCollision();
+	/** Callback for toggling simple collision drawing. */
+	void SetShowSimpleCollision();
 
-	/** Callback for checking the collision show flag. */
-	bool IsSetShowWireframeCollisionChecked() const;
+	/** Callback for checking simple collision drawing. */
+	bool IsSetShowSimpleCollisionChecked() const;
+
+	/** Callback for toggling complex collision drawing. */
+	void SetShowComplexCollision();
+
+	/** Callback for checking complex collision drawing. */
+	bool IsSetShowComplexCollisionChecked() const;
 
 	/** Callback for toggling the socket show flag. */
 	void SetShowSockets();
@@ -136,7 +142,7 @@ protected:
 	/** Call back for when the user changes preview scene settings in the UI */
 	void OnAssetViewerSettingsChanged(const FName& InPropertyName);
 	/** Used to (re)-set the viewport show flags related to post processing*/
-	void SetAdvancedShowFlagsForScene();
+	void SetAdvancedShowFlagsForScene(const bool bAdvancedShowFlags);
 private:
 	/** The Simplygon logo to be drawn when Simplygon has been used on the static mesh. */
 	UTexture2D* SimplygonLogo;
@@ -152,7 +158,8 @@ private:
 
 	/** Flags for various options in the editor. */
 	bool bDrawUVs;
-	bool bShowCollision;
+	bool bShowSimpleCollision;
+	bool bShowComplexCollision;
 	bool bShowSockets;
 	bool bDrawNormals;
 	bool bDrawTangents;

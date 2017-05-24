@@ -9,6 +9,7 @@
 #include "UObject/ObjectKey.h"
 #include "ISequencer.h"
 #include "ISequencerObjectChangeListener.h"
+#include "AnimatedPropertyKey.h"
 
 class AActor;
 class IPropertyChangeListener;
@@ -20,11 +21,11 @@ class IPropertyHandle;
 class FSequencerObjectChangeListener : public ISequencerObjectChangeListener
 {
 public:
-	FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer, bool bInListenForActorsOnly );
+	FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer );
 	virtual ~FSequencerObjectChangeListener();
 
 	/** ISequencerObjectChangeListener interface */
-	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( FName PropertyTypeName ) override;
+	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( FAnimatedPropertyKey PropertyKey ) override;
 	virtual FOnPropagateObjectChanges& GetOnPropagateObjectChanges() override;
 	virtual FOnObjectPropertyChanged& GetOnAnyPropertyChanged(UObject& Object) override;
 	virtual void ReportObjectDestroyed(UObject& Object) override;
@@ -70,14 +71,26 @@ private:
 	 */
 	bool IsObjectValidForListening( UObject* Object ) const;
 
-	/** @return Whether or not a property setter could be found for a property on a class */
-	bool FindPropertySetter( const UClass& ObjectClass, const FName PropertyTypeName, const FString& PropertyVarName, const UStructProperty* StructProperty = 0 ) const;
+	/** @return A valid delegate if property a setter could be found for a property on a class */
+	const FOnAnimatablePropertyChanged* FindPropertySetter(const UStruct& PropertyStructure, FAnimatedPropertyKey PropertyKey, const UProperty& Property) const;
+
+	/** 
+	 * Internal implementation of CanKeyProperty that allows us to also retrieve a delegate that can be used to broadcast keyable properties.
+	 * This traverses the property path until it finds the first property that we can key.
+	 * @param	KeyPropertyParams	Parameters describing what to key
+	 * @param	InOutDelegate		Delegate to call to key a property (if any)
+	 * @param	InOutProperty		The property that we will actually key
+	 * @param	InOutPropertyPath	The property path of the proepty we will actually key
+	 * @return true if we can key the property
+	 */
+	bool CanKeyProperty_Internal(FCanKeyPropertyParams KeyPropertyParams, FOnAnimatablePropertyChanged& InOutDelegate, UProperty*& InOutProperty, FPropertyPath& InOutPropertyPath) const;
+
 private:
 	/** Mapping of object to a listener used to check for property changes */
 	TMap< TWeakObjectPtr<UObject>, TSharedPtr<class IPropertyChangeListener> > ActivePropertyChangeListeners;
 
 	/** A mapping of property classes to multi-cast delegate that is broadcast when properties of that type change */
-	TMap< FName, FOnAnimatablePropertyChanged > ClassToPropertyChangedMap;
+	TMap< FAnimatedPropertyKey, FOnAnimatablePropertyChanged > PropertyChangedEventMap;
 
 	/** A mapping of object instance to property change event */
 	TMap< FObjectKey, FOnObjectPropertyChanged > ObjectToPropertyChangedEvent;
@@ -87,7 +100,4 @@ private:
 
 	/** The owning sequencer */
 	TWeakPtr< ISequencer > Sequencer;
-
-	/** True to listen for actors only */
-	bool bListenForActorsOnly;
 };

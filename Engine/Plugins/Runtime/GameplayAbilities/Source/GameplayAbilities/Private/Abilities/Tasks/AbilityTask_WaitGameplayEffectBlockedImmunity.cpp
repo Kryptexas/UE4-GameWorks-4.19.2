@@ -45,7 +45,10 @@ void UAbilityTask_WaitGameplayEffectBlockedImmunity::ImmunityCallback(const FGam
 	// We have to copy the spec, since the blocked spec is not ours
 	FGameplayEffectSpecHandle SpecHandle(new FGameplayEffectSpec(BlockedSpec));
 
-	Blocked.Broadcast(SpecHandle, ImmunityGE->Handle);
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		Blocked.Broadcast(SpecHandle, ImmunityGE->Handle);
+	}
 	
 	if (TriggerOnce)
 	{

@@ -10,6 +10,31 @@ using UnrealBuildTool;
 
 namespace AutomationTool
 {
+    /// <summary>
+    /// Holds information for targeting specific platform (platform type + cook flavor)
+    /// </summary>
+    public struct TargetPlatformDescriptor
+    {
+        public UnrealTargetPlatform Type;
+        public string CookFlavor;
+
+        public TargetPlatformDescriptor(UnrealTargetPlatform InType)
+        {
+            Type = InType;
+            CookFlavor = "";
+        }
+        public TargetPlatformDescriptor(UnrealTargetPlatform InType, string InCookFlavor)
+        {
+            Type = InType;
+            CookFlavor = InCookFlavor;
+        }
+
+        public override string ToString()
+        {
+            return Type.ToString();
+        }
+    }
+
 	/// <summary>
 	/// Platform abstraction layer.
 	/// </summary>
@@ -209,18 +234,25 @@ namespace AutomationTool
 			string Ext = AutomationTool.Platform.GetExeExtension(SC.StageTargetPlatform.TargetPlatformType);
 			if (!String.IsNullOrEmpty(SC.CookPlatform))
 			{
-				if (SC.StageExecutables.Count() > 0)
+				if (SC.StageTargets.Count() > 0)
 				{
-					foreach (var StageExecutable in SC.StageExecutables)
+					DirectoryReference ProjectRoot = new DirectoryReference(SC.ProjectRoot);
+					foreach (StageTarget Target in SC.StageTargets)
 					{
-						string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName(StageExecutable);
-						if (!SC.IsCodeBasedProject)
+						foreach (BuildProduct Product in Target.Receipt.BuildProducts)
 						{
-							ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir, ExeName + Ext));
-						}
-						else
-						{
-							ExecutableNames.Add(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir, ExeName + Ext));
+							if (Product.Type == BuildProductType.Executable)
+							{
+								FileReference BuildProductFile = new FileReference(Product.Path);
+								if (BuildProductFile.IsUnderDirectory(ProjectRoot))
+								{
+									ExecutableNames.Add(CombinePaths(SC.RuntimeProjectRootDir, BuildProductFile.MakeRelativeTo(ProjectRoot)));
+								}
+								else
+								{
+									ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, BuildProductFile.MakeRelativeTo(RootDirectory)));
+								}
+							}
 						}
 					}
 				}
@@ -510,6 +542,35 @@ namespace AutomationTool
 			}
 			return new List<string>() { CmdLine };
 		}
+
+		public virtual void StripSymbols(FileReference SourceFile, FileReference TargetFile)
+		{
+			if (SourceFile == TargetFile)
+			{
+				CommandUtils.LogWarning("StripSymbols() has not been implemented for {0}", PlatformType.ToString());
+			}
+			else
+			{
+				CommandUtils.LogWarning("StripSymbols() has not been implemented for {0}; copying files", PlatformType.ToString());
+				File.Copy(SourceFile.FullName, TargetFile.FullName, true);
+			}
+		}
+
+        public virtual bool PublishSymbols(DirectoryReference SymbolStoreDirectory, List<FileReference> Files, string Product)
+        {
+            CommandUtils.LogWarning("PublishSymbols() has not been implemented for {0}", PlatformType.ToString());
+            return false;
+        }
+
+        /// <summary>
+        /// When overridden, returns the directory structure of the platform's symbol server.
+        /// Each element is a semi-colon separated string of possible directory names.
+        /// The * wildcard is allowed in any entry. {0} will be substituted for a custom filter string.
+        /// </summary>
+        public virtual string[] SymbolServerDirectoryStructure
+        {
+             get { return null; }
+        }
 
 		#region Hooks
 

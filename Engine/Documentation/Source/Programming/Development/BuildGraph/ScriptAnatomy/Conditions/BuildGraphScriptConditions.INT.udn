@@ -5,6 +5,7 @@ Description:Learn the syntax needed to write BuildGraph script conditions.
 version: 4.13
 parent:Programming/Development/BuildGraph
 type:Reference
+tags:Programming
 tags:BuildGraph
 
 [VAR:TopicCompact]

@@ -100,7 +100,7 @@ public:
 
 
 template<>
-struct TStructOpsTypeTraits<FPointerToUberGraphFrame> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPointerToUberGraphFrame> : public TStructOpsTypeTraitsBase2<FPointerToUberGraphFrame>
 {
 	enum
 	{
@@ -695,6 +695,11 @@ public:
 	virtual void PostLoad() override;
 	virtual void PostInitProperties() override;
 	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
+	virtual bool CanBeClusterRoot() const override;
 	// End UObject interface
 	
 	// UClass interface

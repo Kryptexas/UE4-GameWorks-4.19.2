@@ -12,7 +12,7 @@ FOnlineExternalUIGameCircle::FOnlineExternalUIGameCircle(FOnlineSubsystemGameCir
 	check(Subsystem != nullptr);
 }
 
-bool FOnlineExternalUIGameCircle::ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate)
+bool FOnlineExternalUIGameCircle::ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, bool bShowSkipButton, const FOnLoginUIClosedDelegate& Delegate)
 {
 	if(Delegate.IsBound())
 	{

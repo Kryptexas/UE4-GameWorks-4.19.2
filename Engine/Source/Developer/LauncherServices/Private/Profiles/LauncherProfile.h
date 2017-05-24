@@ -1067,7 +1067,7 @@ public:
 		Writer.WriteValue("nocompile", !IsBuildingUAT());
 		Writer.WriteValue("nocompileeditor", FApp::IsEngineInstalled());
 		Writer.WriteValue("ue4exe", GetEditorExe());
-		Writer.WriteValue("usedebugparamforeditorexe", FParse::Param(FCommandLine::Get(), TEXT("debug")));
+		Writer.WriteValue("usedebugparamforeditorexe", FApp::IsRunningDebug());
 		Writer.WriteValue("utf8output", true);
 
 		// client configurations
@@ -1347,8 +1347,6 @@ public:
 		"run", "true/false"
 		"cook, "true/false"
 		"cookflavor, ""
-		"newcook", "true/false"
-		"oldcook", "true/false"
 		"createreleaseversionroot", ""
 		"basedonreleaseversionroot", ""
 		"createreleaseversion", ""

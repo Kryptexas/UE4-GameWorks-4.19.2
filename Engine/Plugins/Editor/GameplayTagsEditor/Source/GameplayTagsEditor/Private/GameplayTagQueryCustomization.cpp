@@ -20,7 +20,7 @@ void FGameplayTagQueryCustomization::CustomizeHeader(TSharedRef<class IPropertyH
 {
 	StructPropertyHandle = InStructPropertyHandle;
 
-	BuildEditableQueryList();
+	RefreshQueryDescription();
 
 	bool const bReadOnly = StructPropertyHandle->GetProperty() ? StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst) : false;
 
@@ -221,10 +221,9 @@ void FGameplayTagQueryCustomization::BuildEditableQueryList()
 		TArray<UObject*> OuterObjects;
 		StructPropertyHandle->GetOuterObjects(OuterObjects);
 
-		ensure(RawStructData.Num() == OuterObjects.Num());
-		for (int32 Idx = 0; Idx < RawStructData.Num() && Idx < OuterObjects.Num(); ++Idx)
+		for (int32 Idx = 0; Idx < RawStructData.Num(); ++Idx)
 		{
-			EditableQueries.Add(SGameplayTagQueryWidget::FEditableGameplayTagQueryDatum(OuterObjects[Idx], (FGameplayTagQuery*)RawStructData[Idx]));
+			EditableQueries.Add(SGameplayTagQueryWidget::FEditableGameplayTagQueryDatum(OuterObjects.IsValidIndex(Idx) ? OuterObjects[Idx] : nullptr, (FGameplayTagQuery*)RawStructData[Idx]));
 		}
 	}	
 }

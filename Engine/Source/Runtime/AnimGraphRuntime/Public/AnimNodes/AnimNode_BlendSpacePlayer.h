@@ -46,6 +46,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinHiddenByDefault))
 	UBlendSpaceBase* BlendSpace;
 
+	// Whether we should reset the current play time when the blend space changes
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinHiddenByDefault))
+	bool bResetPlayTimeWhenBlendSpaceChanges;
+
 protected:
 
 	UPROPERTY()
@@ -82,7 +86,7 @@ protected:
 	void UpdateInternal(const FAnimationUpdateContext& Context);
 
 private:
-	void Reinitialize();
+	void Reinitialize(bool bResetTime = true);
 
 	const FBlendSampleData* GetHighestWeightedSample() const;
 };

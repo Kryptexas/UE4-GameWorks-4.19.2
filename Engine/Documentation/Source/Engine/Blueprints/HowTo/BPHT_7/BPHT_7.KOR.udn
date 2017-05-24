@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability: Public
 Title:7. 직접 해보기!
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:이번 최종 단계에서는, 예제를 통해 이 프로젝트의 수준을 한 차원 끌어올리는 방법과 아울러 부가 문서에 대한 링크가 제공됩니다.
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

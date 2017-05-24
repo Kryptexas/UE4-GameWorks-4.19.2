@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:3094685
+﻿INTSourceChangelist:3343774
 Availability:Docs
 Title:5.仕上げ
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:ドラッグ ウィジェットを設定し、ヘルスバーをメインの HUD に追加して表示させ、すべてのものをテストします。
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
-Version:4.12
 SkillLevel:Intermediate
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -44,7 +44,7 @@ SkillLevel:Intermediate
 
 	この例では、実際のヘルスバーを同じ場所に維持しながらドラッグの外観としてヘルスバーのシルエットがあります。 
 
-1.	**グラフ** 上で、**Widget Reference** をドラッグし、**HealthBar** にキャストし、**Desired Size** を取得し、**Break Vector** につなげます。 
+1.	**グラフ** 上で、**Widget Reference** をドラッグし、**Event Construct** から **HealthBar** にキャストし、**Desired Size** を取得し、**Break Vector** につなげます。 
 
 	![](UpdateDragDrop5.png)
 
@@ -60,7 +60,6 @@ SkillLevel:Intermediate
 	_フルサイズ表示するにはここをクリック_
 
 1.	**コンテンツ ブラウザ** の **Content/ThirdPersonBP/Blueprints** で **ThirdPersonCharacter** ブループリントを開きます。
-
 
 1.	**Event Begin Play** から、**Create Widget (ウィジェットを作成)** し、**Add to Viewport** と、**Get Player Controller** を **Show Mouse Cursor** につなげます。 
 	![](DragDrop19.png)
@@ -85,7 +84,9 @@ kYkhxuJsVs4
 [/OBJECT]
 
 これは、ドラッグ＆ドロップのプロセスを開始するために必要な要素の一例にすぎません。 
+
 プレイヤーがセーフゾーンの外側にウィジェットをドラッグしないように、または他のウィジェットの上に重ならないようにさらにチェックが必要になることがあります。 
 
 %Steps%
+
 

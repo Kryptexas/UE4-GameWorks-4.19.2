@@ -110,7 +110,7 @@ public:
 		for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
 		{
 			checkSlow(ControlPoint->IsSplineSelected());
-			ControlPoint->Modify();
+			ControlPoint->Modify(false);
 			ControlPoint->SetSplineSelected(false);
 		}
 		SelectedSplineControlPoints.Empty();
@@ -121,7 +121,7 @@ public:
 		for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
 		{
 			checkSlow(Segment->IsSplineSelected());
-			Segment->Modify();
+			Segment->Modify(false);
 			Segment->SetSplineSelected(false);
 		}
 		SelectedSplineSegments.Empty();
@@ -137,7 +137,7 @@ public:
 	{
 		checkSlow(ControlPoint->IsSplineSelected());
 		SelectedSplineControlPoints.Remove(ControlPoint);
-		ControlPoint->Modify();
+		ControlPoint->Modify(false);
 		ControlPoint->SetSplineSelected(false);
 	}
 
@@ -145,7 +145,7 @@ public:
 	{
 		checkSlow(Segment->IsSplineSelected());
 		SelectedSplineSegments.Remove(Segment);
-		Segment->Modify();
+		Segment->Modify(false);
 		Segment->SetSplineSelected(false);
 	}
 
@@ -153,7 +153,7 @@ public:
 	{
 		checkSlow(!ControlPoint->IsSplineSelected());
 		SelectedSplineControlPoints.Add(ControlPoint);
-		ControlPoint->Modify();
+		ControlPoint->Modify(false);
 		ControlPoint->SetSplineSelected(true);
 	}
 
@@ -161,7 +161,7 @@ public:
 	{
 		checkSlow(!Segment->IsSplineSelected());
 		SelectedSplineSegments.Add(Segment);
-		Segment->Modify();
+		Segment->Modify(false);
 		Segment->SetSplineSelected(true);
 
 		GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Scale);
@@ -834,7 +834,7 @@ public:
 		}
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
 		if (ViewportClient->IsCtrlPressed())
 		{
@@ -1170,8 +1170,9 @@ public:
 					{
 						HLandscapeSplineProxy_Segment* SplineProxy = (HLandscapeSplineProxy_Segment*)HitProxy;
 						ClickedSplineSegment = SplineProxy->SplineSegment;
-
-						LandscapeToSpline = ClickedSplineSegment->GetTypedOuter<AActor>()->ActorToWorld().GetRelativeTransform(ClickedSplineSegment->GetOuterULandscapeSplinesComponent()->ComponentToWorld);
+						ALandscapeProxy* LandscapeProxy = ClickedSplineSegment->GetTypedOuter<ALandscapeProxy>();
+						check(LandscapeProxy);
+						LandscapeToSpline = LandscapeProxy->LandscapeActorToWorld().GetRelativeTransform(ClickedSplineSegment->GetOuterULandscapeSplinesComponent()->ComponentToWorld);
 					}
 					else if (HitProxy->IsA(HActor::StaticGetType()))
 					{
@@ -1189,7 +1190,8 @@ public:
 									if (ULandscapeSplineSegment* SplineSegment = Cast<ULandscapeSplineSegment>(ComponentOwner))
 									{
 										ClickedSplineSegment = SplineSegment;
-										LandscapeToSpline = ActorProxy->Actor->ActorToWorld().GetRelativeTransform(SplineComponent->ComponentToWorld);
+										ALandscapeProxy* LandscapeProxy = CastChecked<ALandscapeProxy>(SplineComponent->GetOwner());
+										LandscapeToSpline = LandscapeProxy->LandscapeActorToWorld().GetRelativeTransform(SplineComponent->ComponentToWorld);
 									}
 								}
 							}

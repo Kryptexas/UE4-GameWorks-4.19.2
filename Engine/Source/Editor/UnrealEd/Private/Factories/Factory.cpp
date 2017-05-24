@@ -133,8 +133,20 @@ UObject* UFactory::ImportObject(UClass* InClass, UObject* InOuter, FName InName,
 {
 	UObject* Result = nullptr;
 	CurrentFilename = Filename;
+	
+
+	// sanity check the file size of the impending import and prompt
+	// the user if they wish to continue if the file size is very large
+	const int64 FileSize = IFileManager::Get().FileSize(*CurrentFilename);
+
 	//@third party BEGIN SIMPLYGON
-	FileHash = FMD5Hash::HashFile(*CurrentFilename);
+	// Hack do not hash files that are huge.  They take forever anway
+	const int32 Gigabyte = 1024 * 1024 * 1024;
+	if(FileSize < Gigabyte)
+	{
+		FileHash = FMD5Hash::HashFile(*CurrentFilename);
+	}
+
 	//@third party END SIMPLYGON
 
 
@@ -147,10 +159,6 @@ UObject* UFactory::ImportObject(UClass* InClass, UObject* InOuter, FName InName,
 	}
 	else if (!Filename.IsEmpty())
 	{
-		// sanity check the file size of the impending import and prompt
-		// the user if they wish to continue if the file size is very large
-		const int32 FileSize = IFileManager::Get().FileSize(*Filename);
-
 		if (FileSize == INDEX_NONE)
 		{
 			UE_LOG(LogFactory, Error, TEXT("Can't find file '%s' for import"), *Filename);

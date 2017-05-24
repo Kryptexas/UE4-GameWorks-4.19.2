@@ -1,77 +1,61 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:3. Set the Context
+﻿INTSourceChangelist:3218993
+Availability:Public
+Title:3.设置语境
 Crumbs: %ROOT%, Engine, Engine/Audio
-Description:Building a set of contexts, each with its own speaker and listener
-version: 4.13
+Description:设置一套语境，每个语境皆有其各自的说话者和听者
+version:4.13
 parent:Engine/Audio/Dialogue
 order:3
+type:quick start
 checkpoint:dialogueqs
-prereq: Engine/Blueprints/QuickStart
+prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
 related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[Previous Step](Engine/Audio/Dialogue/2 "%Engine/Audio/Dialogue/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Engine/Audio/Dialogue)
-	[/PARAM]
-	[PARAM:next]
-		[Next Step](Engine/Audio/Dialogue/4 "%Engine/Audio/Dialogue/4:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[NAV]
 
-%Steps%
+**Dialogue Voices** 和 **Dialogue Wave** 设置完成后，即可对任务 NPC 设定逻辑，创建正确的打招呼语境。
+此外，**对话语境（Dialogue Context）** 包含至少两个 **Dialogue Voices**、一个 **Speaker** 和至少一个对话为 **Directed At** 的 **Dialogue Voice**。
 
-Now that we have our **Dialogue Voices** and **Dialogue Wave** set up, we can give our quest NPC some logic to create the right context for her greeting.
-Again, a **Dialogue Context** involves at least two **Dialogue Voices**, a **Speaker** and at least one **Dialogue Voice** that the dialogue is **Directed At**.
-
-1. Add a **Box** component to the **Mixamo_SWAT** Blueprint.
+1. 将一个 **Box** 组件添加到 **Mixamo_SWAT** 蓝图。
 	
 	![](AddBoxComponent.png)
-1. In the **Viewport**, adjust the **Box** component so it is around the height of the character, and extends some distance in front of her. Make sure it doesn't overlap her, or set her Capsule component to not generate overlap events, or she will trigger the 
-conversation logic herself.
+1. 在 **视口** 中调整 **Box** 组件，使其高度与角色身高相仿，并与角色保持一定距离。不要让它和角色产生重叠，或对设置角色的胶囊体组件不生成重叠事件，否则角色将自行触发对话逻辑。
 
 	![](TriggerVolume.png)
 
-1. Add a new **Dialogue Wave** variable named **Greeting**.
+1. 新增名为 **Greeting** 的 **Dialogue Wave** 变量。
 
-1. Compile your Blueprint and set the default value to the **QuestGreeting** **Dialogue Wave** you made previously.
+1. 编译蓝图，并将之前创建的 **Dialogue Wave** 的默认值设为 **QuestGreeting**。
 
 	![](QuestGreetingDetails.png)
 
-1. Set up the following Blueprint graph. 
+1. 设置以下蓝图图表。 
 
 	[INCLUDE:#graph]
 
-	This graph:
-	* Fires after something overlaps the Box component
-	* Casts the **Overlapping Actor** to our **MixamoCharacter_Master**, where we added the **Dialogue Voice** variable
-	* Gets the voice from the **Overlapping Actor** and uses it as the **Target** for our **Dialogue Context**.
-	* Uses the Quest NPC's voice for the **Speaker** for our **Dialogue Context**.
-	* Plays the **Dialogue Wave** named **Greeting** at our Quest NPC's location, using the correct **Dialogue Context**
+	此图表：
+	* 在物体与 Box 组件发生重叠后发射
+	* 将 **重叠 Actor（Overlapping Actor）** 投射到已添加 **Dialogue Voice** 变量的 **MixamoCharacter_Master**。
+	* 从 **Overlapping Actor** 获取声音，将其用作 **Dialogue Context** 的 **Target**。
+	* 将任务 NPC 的声音用作 **Dialogue Context** 的 **Speaker**。
+	* 在任务 NPC 的位置播放名为 **Greeting** 的 **Dialogue Wave**，使用正确的 **Dialogue Context**
 
-	The Mixamo Animation pack comes with a Game Mode we can use to test our dialogue setup.
+	Mixamo 动画包拥有一个游戏模式，可用于测试对话设置。
 
-1. Open **World Settings**.
+1. 打开 **World Settings**。
 
-1. Set the **GameMode Override** to **MixamoGame**.
+1. 将 **GameMode Override** 设为 **MixamoGame**。
 
-1. Set the **Default Pawn Class** to **Mixamo_Adam** or **Mixamo_Zoe**.
+1. 将 **Default Pawn Class** 设为 **Mixamo_Adam** 或 **Mixamo_Zoe**。
 
 	![](SetDefaultPawn.png)
 
-	Now, if the QuestNPC is placed in the level, you can run up to them with either Adam or Zoe and trigger the dialogue. 
+	现在，如果任务 NPC 已放置在关卡中，使用 Adam 或 Zoe 靠近她便会触发对话。 
 
-%Steps%
+[NAV]
 
 
 <!--
@@ -164,7 +148,7 @@ conversation logic herself.
 				NodePosY=-384
 				bHasCompilerMessage=True
 				ErrorType=3
-				ErrorMsg="Warning  Speaker  - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.\nWarning  Targets  - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.\nWarning  K2Node_MakeStruct_0  has no property tagged as BlueprintReadWrite. The node will be removed in a future release."
+				ErrorMsg="Warning  Speaker  - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.\nWarning  Targets  - the native property is not tagged as BlueprintReadWrite, the pin will be removed in a future release.\nWarning  K2Node_MakeStruct_0  has no property tagged as BlueprintReadWrite.The node will be removed in a future release."
 				NodeGuid=008F6A574C6FA4B2561B57A77BCA1E48
 				CustomProperties Pin (PinId=F991E59A41605C37B2DFCEA0BC272194,PinName="DialogueContext",Direction="EGPD_Output",PinType.PinCategory="struct",PinType.PinSubCategoryObject=ScriptStruct'/Script/Engine.DialogueContext',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_CallFunction_1 67183F194B2F52BBAFF414BE16C3DDF5,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)
 				CustomProperties Pin (PinId=CDFE76BB4A0C7A3A699B4D8BEB7B684C,PinName="Speaker",PinFriendlyName=NSLOCTEXT("", "A6BD052743422BBCD8BA208C6569C2A5", "Speaker"),PinToolTip="Speaker\nDialogue Voice Reference\n\nThe person speaking the dialogue.",PinType.PinCategory="object",PinType.PinSubCategoryObject=Class'/Script/Engine.DialogueVoice',PinType.PinSubCategoryMemberReference=(),PinType.bIsArray=False,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,LinkedTo=(K2Node_VariableGet_5 D6C1A07046B65B3E8CF5AFB691087C9D,),PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,)

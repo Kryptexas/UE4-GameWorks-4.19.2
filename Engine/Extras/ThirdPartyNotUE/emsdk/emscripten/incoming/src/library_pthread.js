@@ -308,7 +308,7 @@ var LibraryPThread = {
         };
 
         worker.onerror = function(e) {
-          Module['printErr']('pthread sent an error! ' + e.message);
+          Module['printErr']('pthread sent an error! ' + e.filename + ':' + e.lineno + ': ' + e.message);
         };
 
         // Allocate tempDoublePtr for the worker. This is done here on the worker's behalf, since we may need to do this statically
@@ -326,7 +326,7 @@ var LibraryPThread = {
             DYNAMIC_BASE: DYNAMIC_BASE,
             DYNAMICTOP_PTR: DYNAMICTOP_PTR,
             PthreadWorkerInit: PthreadWorkerInit
-          }, [HEAPU8.buffer]);
+          });
         PThread.unusedWorkerPool.push(worker);
       }
     },
@@ -868,7 +868,7 @@ var LibraryPThread = {
         __ATEXIT__.push(function() { PThread.runExitHandlers(); });
       }
     }
-    PThread.exitHandlers.push(function() { Runtime.dynCall('vi', routine, [arg]) });
+    PThread.exitHandlers.push(function() { Module['dynCall_vi'](routine, arg) });
   },
 
   pthread_cleanup_pop: function(execute) {
@@ -904,9 +904,9 @@ var LibraryPThread = {
 #if PTHREADS_PROFILING
       PThread.setThreadStatusConditional(_pthread_self(), {{{ cDefine('EM_THREAD_STATUS_WAITFUTEX') }}}, {{{ cDefine('EM_THREAD_STATUS_RUNNING') }}});
 #endif
-      if (ret === Atomics.TIMEDOUT) return -{{{ cDefine('ETIMEDOUT') }}};
-      if (ret === Atomics.NOTEQUAL) return -{{{ cDefine('EWOULDBLOCK') }}};
-      if (ret === Atomics.OK) return 0;
+      if (ret === 'timed-out') return -{{{ cDefine('ETIMEDOUT') }}};
+      if (ret === 'not-equal') return -{{{ cDefine('EWOULDBLOCK') }}};
+      if (ret === 'ok') return 0;
       throw 'Atomics.wait returned an unexpected value ' + ret;
     } else {
       // Atomics.wait is not available in the main browser thread, so simulate it via busy spinning.

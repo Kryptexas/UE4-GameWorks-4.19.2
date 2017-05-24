@@ -30,7 +30,7 @@ UObject* UWorldFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName
 	const bool bAddToRoot = false;
 	UWorld* NewWorld = UWorld::CreateWorld(WorldType, bInformEngineOfWorld, Name, Cast<UPackage>(InParent), bAddToRoot, FeatureLevel);
 	NewWorld->SetFlags(Flags);
-	NewWorld->ThumbnailInfo = NewObject<UWorldThumbnailInfo>(NewWorld);
+	NewWorld->ThumbnailInfo = NewObject<UWorldThumbnailInfo>(NewWorld, NAME_None, RF_Transactional);
 
 	return NewWorld;
 }

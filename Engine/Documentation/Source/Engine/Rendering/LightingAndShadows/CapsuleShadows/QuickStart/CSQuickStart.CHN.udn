@@ -1,0 +1,83 @@
+﻿INTSourceChangelist:0
+Availability:docs
+Title: Capsule Shadows Quick Start
+Crumbs: %ROOT%, Engine
+Description:A guide to quickly get up and running with the Sequencer Editor in Unreal Engine 4. 
+Navigation:topic
+parent:Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\
+order:1
+Version: 4.14
+type:quick start
+checkpoint:capsuleshadowsqs
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](sequencerQS_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%EEngine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\]
+	[/PARAM]
+	[PARAM:description]
+	%Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](sequencerQS_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\]
+	[/PARAM]
+	[PARAM:description]
+	%Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+![](QS_CapsuleShadow.png)(w:700)
+
+_At the end of this guide, you'll have a scene similar to the one above._
+
+
+## Goals
+
+The Capsule Shadows Quick Start Guide aims to quickly get you up and running with the basics of creating a capsule representation of your characters with a Physics Asset in Unreal Engine 4.
+
+## Objectives
+
+After going through this tutorial, developers will know the following: 
+
+* How to create a Physics Asset for shadows.
+* How to assign the Shadow Physics Asset to your Skeletal Mesh.
+* How to enable Capsule Shadows in your level for your characters.
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Steps
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	[DIR(output:"checkpoint" parent:"Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\1" org:"hierarchy")]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:call_to_action]
+	[Click to Start](Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\1 "%Engine\Rendering\LightingAndShadows\CapsuleShadows\QuickStart\1:title%")
+[/REGION]

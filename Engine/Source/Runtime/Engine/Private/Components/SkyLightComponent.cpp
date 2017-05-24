@@ -19,6 +19,7 @@
 #include "Misc/MapErrors.h"
 #include "ShaderCompiler.h"
 #include "Components/BillboardComponent.h"
+#include "ReleaseObjectVersion.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 
@@ -113,12 +114,16 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, bCastShadows(InLightComponent->CastShadows)
 	, bWantsStaticShadowing(InLightComponent->Mobility == EComponentMobility::Stationary)
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
+	, bCastVolumetricShadow(InLightComponent->bCastVolumetricShadow)
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
 	, IndirectLightingIntensity(InLightComponent->IndirectLightingIntensity)
+	, VolumetricScatteringIntensity(FMath::Max(InLightComponent->VolumetricScatteringIntensity, 0.0f))
 	, OcclusionMaxDistance(InLightComponent->OcclusionMaxDistance)
 	, Contrast(InLightComponent->Contrast)
-	, MinOcclusion(InLightComponent->MinOcclusion)
+	, OcclusionExponent(FMath::Clamp(InLightComponent->OcclusionExponent, .1f, 10.0f))
+	, MinOcclusion(FMath::Clamp(InLightComponent->MinOcclusion, 0.0f, 1.0f))
 	, OcclusionTint(InLightComponent->OcclusionTint)
+	, OcclusionCombineMode(InLightComponent->OcclusionCombineMode)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
 		FInitSkyProxy,
@@ -159,11 +164,13 @@ USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializ
 	bHasEverCaptured = false;
 	OcclusionMaxDistance = 1000;
 	MinOcclusion = 0;
+	OcclusionExponent = 1;
 	OcclusionTint = FColor::Black;
 	CubemapResolution = 128;
 	LowerHemisphereColor = FLinearColor::Black;
 	AverageBrightness = 1.0f;
 	BlendDestinationAverageBrightness = 1.0f;
+	bCastVolumetricShadow = true;
 }
 
 FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
@@ -172,7 +179,7 @@ FSkyLightSceneProxy* USkyLightComponent::CreateSceneProxy() const
 	{
 		return new FSkyLightSceneProxy(this);
 	}
-	
+
 	return NULL;
 }
 
@@ -276,14 +283,16 @@ void USkyLightComponent::UpdateLimitedRenderingStateFast()
 {
 	if (SceneProxy)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			FFastUpdateSkyLightCommand,
 			FSkyLightSceneProxy*,LightSceneProxy,SceneProxy,
 			FLinearColor,LightColor,FLinearColor(LightColor) * Intensity,
 			float,IndirectLightingIntensity,IndirectLightingIntensity,
+			float,VolumetricScatteringIntensity,VolumetricScatteringIntensity,
 		{
 			LightSceneProxy->LightColor = LightColor;
 			LightSceneProxy->IndirectLightingIntensity = IndirectLightingIntensity;
+			LightSceneProxy->VolumetricScatteringIntensity = VolumetricScatteringIntensity;
 		});
 	}
 }
@@ -298,11 +307,13 @@ void USkyLightComponent::PostInterpChange(UProperty* PropertyThatChanged)
 	static FName LightColorName(TEXT("LightColor"));
 	static FName IntensityName(TEXT("Intensity"));
 	static FName IndirectLightingIntensityName(TEXT("IndirectLightingIntensity"));
+	static FName VolumetricScatteringIntensityName(TEXT("VolumetricScatteringIntensity"));
 
 	FName PropertyName = PropertyThatChanged->GetFName();
 	if (PropertyName == LightColorName
 		|| PropertyName == IntensityName
-		|| PropertyName == IndirectLightingIntensityName)
+		|| PropertyName == IndirectLightingIntensityName
+		|| PropertyName == VolumetricScatteringIntensityName)
 	{
 		UpdateLimitedRenderingStateFast();
 	}
@@ -520,7 +531,7 @@ void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, TA
 						CaptureComponent->MarkRenderStateDirty();
 					}
 
-					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, false, CaptureComponent->Cubemap, CaptureComponent->ProcessedSkyTexture, CaptureComponent->AverageBrightness, CaptureComponent->IrradianceEnvironmentMap);
+					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, CaptureComponent->bCaptureEmissiveOnly, CaptureComponent->Cubemap, CaptureComponent->ProcessedSkyTexture, CaptureComponent->AverageBrightness, CaptureComponent->IrradianceEnvironmentMap);
 				}
 				else
 				{
@@ -535,7 +546,7 @@ void USkyLightComponent::UpdateSkyCaptureContentsArray(UWorld* WorldToUpdate, TA
 						CaptureComponent->MarkRenderStateDirty(); 
 					}
 
-					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, false, CaptureComponent->BlendDestinationCubemap, CaptureComponent->BlendDestinationProcessedSkyTexture, CaptureComponent->BlendDestinationAverageBrightness, CaptureComponent->BlendDestinationIrradianceEnvironmentMap);
+					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, CaptureComponent->bCaptureEmissiveOnly, CaptureComponent->BlendDestinationCubemap, CaptureComponent->BlendDestinationProcessedSkyTexture, CaptureComponent->BlendDestinationAverageBrightness, CaptureComponent->BlendDestinationIrradianceEnvironmentMap);
 				}
 
 				CaptureComponent->IrradianceMapFence.BeginFence();
@@ -605,6 +616,17 @@ void USkyLightComponent::SetIndirectLightingIntensity(float NewIntensity)
 	}
 }
 
+void USkyLightComponent::SetVolumetricScatteringIntensity(float NewIntensity)
+{
+	// Can't set brightness on a static light
+	if (AreDynamicDataChangesAllowed()
+		&& VolumetricScatteringIntensity != NewIntensity)
+	{
+		VolumetricScatteringIntensity = NewIntensity;
+		UpdateLimitedRenderingStateFast();
+	}
+}
+
 /** Set color of the light */
 void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 {
@@ -626,7 +648,6 @@ void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
 		&& Cubemap != NewCubemap)
 	{
 		Cubemap = NewCubemap;
-		// Note: this will cause all static draw lists to be recreated, which is often 10ms in a large level
 		MarkRenderStateDirty();
 		// Note: this will cause the cubemap to be reprocessed including readback from the GPU
 		SetCaptureIsDirty();
@@ -682,7 +703,26 @@ void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
 		&& OcclusionTint != InTint)
 	{
 		OcclusionTint = InTint;
-		// Note: this will cause all static draw lists to be recreated, which is often 10ms in a large level
+		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetOcclusionContrast(float InOcclusionContrast)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& Contrast != InOcclusionContrast)
+	{
+		Contrast = InOcclusionContrast;
+		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetOcclusionExponent(float InOcclusionExponent)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& OcclusionExponent != InOcclusionExponent)
+	{
+		OcclusionExponent = InOcclusionExponent;
 		MarkRenderStateDirty();
 	}
 }
@@ -694,18 +734,15 @@ void USkyLightComponent::SetMinOcclusion(float InMinOcclusion)
 		&& MinOcclusion != InMinOcclusion)
 	{
 		MinOcclusion = InMinOcclusion;
-		// Note: this will cause all static draw lists to be recreated, which is often 10ms in a large level
 		MarkRenderStateDirty();
 	}
 }
 
-void USkyLightComponent::SetVisibility(bool bNewVisibility, bool bPropagateToChildren)
+void USkyLightComponent::OnVisibilityChanged()
 {
-	const bool bOldWasVisible = bVisible;
+	Super::OnVisibilityChanged();
 
-	Super::SetVisibility(bNewVisibility, bPropagateToChildren);
-
-	if (bVisible && !bOldWasVisible && !bHasEverCaptured)
+	if (bVisible && !bHasEverCaptured)
 	{
 		// Capture if we are being enabled for the first time
 		SetCaptureIsDirty();
@@ -717,6 +754,22 @@ void USkyLightComponent::RecaptureSky()
 {
 	SetCaptureIsDirty();
 }
+
+void USkyLightComponent::Serialize(FArchive& Ar)
+{
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+
+	Super::Serialize(Ar);
+
+	// if version is between VER_UE4_SKYLIGHT_MOBILE_IRRADIANCE_MAP and FReleaseObjectVersion::SkyLightRemoveMobileIrradianceMap then handle aborted attempt to serialize irradiance data on mobile.
+	if (Ar.UE4Ver() >= VER_UE4_SKYLIGHT_MOBILE_IRRADIANCE_MAP && !(Ar.CustomVer(FReleaseObjectVersion::GUID) >= FReleaseObjectVersion::SkyLightRemoveMobileIrradianceMap))
+	{
+		FSHVectorRGB3 DummyIrradianceEnvironmentMap;
+		Ar << DummyIrradianceEnvironmentMap;
+	}
+}
+
+
 
 ASkyLight::ASkyLight(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

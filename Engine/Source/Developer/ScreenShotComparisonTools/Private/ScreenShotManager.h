@@ -31,63 +31,33 @@ public:
 
 public:
 
-	/**
-	* Create some dummy data to test the UI
-	*/
-	void CreateData();
-
-public:
-
 	//~ Begin IScreenShotManager Interface
-
-	virtual void GenerateLists() override;
-
-	virtual TArray< TSharedPtr<FString> >& GetCachedPlatfomList() override;
-
-	virtual TArray< TSharedPtr<FScreenShotDataItem> >& GetScreenshotResults() override;
-
-	virtual void RegisterScreenShotUpdate(const FOnScreenFilterChanged& InDelegate ) override;
-
-	virtual void SetFilter( TSharedPtr< ScreenShotFilterCollection > InFilter ) override;
-
-	virtual TFuture<void> CompareScreensotsAsync() override;
 
 	virtual TFuture<FImageComparisonResult> CompareScreensotAsync(FString RelativeImagePath) override;
 
-	virtual TFuture<void> ExportScreensotsAsync(FString ExportPath = TEXT("")) override;
+	virtual TFuture<FScreenshotExportResults> ExportComparisonResultsAsync(FString ExportPath = TEXT("")) override;
 
-	virtual TSharedPtr<FComparisonResults> ImportScreensots(FString ImportPath) override;
+	virtual bool OpenComparisonReports(FString ImportPath, TArray<FComparisonReport>& OutReports) override;
 
 	virtual FString GetLocalUnapprovedFolder() const override;
 
 	virtual FString GetLocalApprovedFolder() const override;
 
+	virtual FString GetLocalComparisonFolder() const override;
+
 	//~ End IScreenShotManager Interface
 
 private:
 	FString GetDefaultExportDirectory() const;
-	FString GetComparisonResultsJsonFilename() const;
 
-	void CompareScreensots();
 	FImageComparisonResult CompareScreensot(FString Existing);
-	void SaveComparisonResults(const FComparisonResults& Results) const;
-	bool ExportComparisonResults(FString RootExportFolder);
+	FScreenshotExportResults ExportComparisonResults(FString RootExportFolder);
 	void CopyDirectory(const FString& DestDir, const FString& SrcDir);
-
-	TSharedRef<FScreenshotComparisons> GenerateFileList() const;
 
 private:
 	FString ScreenshotApprovedFolder;
 	FString ScreenshotUnapprovedFolder;
 	FString ScreenshotDeltaFolder;
 	FString ScreenshotResultsFolder;
-
-	// Holds the list of active platforms
-	TArray<TSharedPtr<FString> > CachedPlatformList;
-
-	// Holds the array of created screen shot data items
-	TArray< TSharedPtr<FScreenShotDataItem> > ScreenShotDataArray;
-
-	// Holds a delegate to be invoked when the screen shot filter has changed.
-	FOnScreenFilterChanged ScreenFilterChangedDelegate;
+	FString ComparisonResultsFolder;
 };

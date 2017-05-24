@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class WmfMediaFactory : ModuleRules
 	{
-		public WmfMediaFactory(TargetInfo Target)
+		public WmfMediaFactory(ReadOnlyTargetRules Target) : base(Target)
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
@@ -40,7 +40,7 @@ namespace UnrealBuildTool.Rules
                 }
             );
 
-            if (Target.Type == TargetRules.TargetType.Editor)
+            if (Target.Type == TargetType.Editor)
 			{
 				DynamicallyLoadedModuleNames.Add("Settings");
 				PrivateIncludePathModuleNames.Add("Settings");

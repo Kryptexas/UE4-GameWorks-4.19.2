@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class NetworkFile : ModuleRules
 {
-	public NetworkFile(TargetInfo Target)
+	public NetworkFile(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("DerivedDataCache");
 

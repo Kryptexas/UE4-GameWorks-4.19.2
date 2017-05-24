@@ -52,7 +52,7 @@ void UAutomatedLevelSequenceCapture::AddFormatMappings(TMap<FString, FStringForm
 	OutFormatMappings.Add(TEXT("shot"), CachedState.CurrentShotName.ToString());
 
 	const int32 FrameNumber = FMath::RoundToInt(CachedState.CurrentShotLocalTime * CachedState.Settings.FrameRate);
-	OutFormatMappings.Add(TEXT("shot_frame"), FString::Printf(*FrameNumberFormat, FrameNumber));
+	OutFormatMappings.Add(TEXT("shot_frame"), FString::Printf(TEXT("%0*d"), Settings.ZeroPadFrameNumbers, FrameNumber));
 }
 
 void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InViewport, int32 PIEInstance)
@@ -167,6 +167,8 @@ void UAutomatedLevelSequenceCapture::Initialize(TSharedPtr<FSceneViewport> InVie
 			SetupShot(StartTime, EndTime);
 		}
 	}
+
+	ExportEDL();
 
 	CaptureState = ELevelSequenceCaptureState::Setup;
 	RemainingDelaySeconds = FMath::Max( 0.0f, DelayBeforeWarmUp );
@@ -387,6 +389,7 @@ void UAutomatedLevelSequenceCapture::SetupFrameRange()
 				Actor->SequencePlayer->SetPlaybackRange(
 					(float)PlaybackStartFrame / (float)Settings.FrameRate,
 					(float)PlaybackEndFrame / (float)Settings.FrameRate );
+				Actor->SequencePlayer->SetPlaybackPosition(0.f);
 			}
 		}
 	}
@@ -419,6 +422,8 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	// textures to stream in or post processing effects to settle.
 	if( CaptureState == ELevelSequenceCaptureState::DelayBeforeWarmUp )
 	{
+		Actor->SequencePlayer->SetPlaybackPosition(0.f);
+		
 		RemainingDelaySeconds -= DeltaSeconds;
 		if( RemainingDelaySeconds <= 0.0f )
 		{
@@ -520,8 +525,6 @@ void UAutomatedLevelSequenceCapture::Close()
 	Super::Close();
 			
 	RestoreShots();
-	
-	ExportEDL();
 }
 
 void UAutomatedLevelSequenceCapture::SerializeAdditionalJson(FJsonObject& Object)
@@ -573,11 +576,7 @@ void UAutomatedLevelSequenceCapture::ExportEDL()
 		return;
 	}
 	
-	ALevelSequenceActor* Actor = LevelSequenceActor.Get();
-	ULevelSequencePlayer* Player = Actor ? Actor->SequencePlayer : nullptr;
-	UMovieSceneSequence* Sequence = Player ? Player->GetSequence() : nullptr;
-	UMovieScene* MovieScene = Sequence ? Sequence->GetMovieScene() : nullptr;
-
+	UMovieScene* MovieScene = GetMovieScene(LevelSequenceActor);
 	if (!MovieScene)
 	{
 		return;

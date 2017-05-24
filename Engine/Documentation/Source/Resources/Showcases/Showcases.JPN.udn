@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2994703
+﻿INTSourceChangelist:3275209
 Availability:Public
 Title:エンジン機能のサンプル
 Crumbs:%ROOT%, Resources
@@ -68,10 +68,10 @@ Version:4.9
 [VAR:watertopic]
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
-	水面線
+	水面
 	[/PARAMLITERAL]
 	[PARAMLITERAL:playlistid]
-	PLZlv_N0_O1gYq4tiS45UAgghUxoF916rH
+	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	aJ1M0Ejd_ts
@@ -86,6 +86,9 @@ Version:4.9
 [OBJECT:TopicCompactVideo]
 	[PARAMLITERAL:title]
 	機能ツアー 2014
+	[/PARAMLITERAL]
+	[PARAMLITERAL:playlistid]
+	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
 	[/PARAMLITERAL]
 	[PARAMLITERAL:videoid]
 	FcxA_xYnHZ8

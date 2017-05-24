@@ -15,20 +15,29 @@ using Ionic.Zlib;
 
 namespace UnrealBuildTool
 {
+	class TVOSToolChainSettings : IOSToolChainSettings
+	{
+		public TVOSToolChainSettings() : base("AppleTVOS", "AppleTVSimulator")
+		{
+		}
+	}
+
 	class TVOSToolChain : IOSToolChain
 	{
-		public TVOSToolChain(FileReference InProjectFile, IOSPlatformContext InPlatformContext)
-			: base(CPPTargetPlatform.TVOS, InProjectFile, InPlatformContext)
+		public TVOSToolChain(FileReference InProjectFile, TVOSProjectSettings InProjectSettings)
+			: base(CppPlatform.TVOS, InProjectFile, InProjectSettings, () => new TVOSToolChainSettings())
 		{
 		}
 
-        public override bool ShouldExcludeNonPortableIncludePathWarnings()
-        {
-            if (IOSSDKVersionFloat >= 10.2f)
-            {
-                return true;
-            }
-            return false;
-        }
-	};
+		public override string GetXcodeMinVersionParam()
+		{
+			return "tvos-version-min";
+		}
+
+		public override string GetArchitectureArgument(CppConfiguration Configuration, string UBTArchitecture)
+		{
+			// TV is only arm64
+			return " -arch " + (UBTArchitecture == "-simulator" ? "i386" : "arm64");
+		}
+	}
 }

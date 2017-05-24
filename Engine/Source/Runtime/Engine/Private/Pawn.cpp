@@ -65,6 +65,8 @@ APawn::APawn(const FObjectInitializer& ObjectInitializer)
 	bUseControllerRotationRoll = false;
 
 	bInputEnabled = true;
+
+	ReplicatedMovement.LocationQuantizationLevel = EVectorQuantization::RoundTwoDecimals;
 }
 
 void APawn::PreInitializeComponents()

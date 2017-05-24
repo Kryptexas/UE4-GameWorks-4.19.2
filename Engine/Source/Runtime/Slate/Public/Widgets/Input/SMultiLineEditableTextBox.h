@@ -295,6 +295,9 @@ public:
 	/** See the AllowContextMenu attribute */
 	void SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu);
 
+	/** Set the ReadOnly attribute */
+	void SetIsReadOnly(const TAttribute< bool >& InIsReadOnly);
+
 	/**
 	 * If InError is a non-empty string the TextBox will the ErrorReporting provided during construction
 	 * If no error reporting was provided, the TextBox will create a default error reporter.

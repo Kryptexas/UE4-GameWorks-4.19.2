@@ -3,6 +3,7 @@ Title: Events
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:A guide to using Events in UMG. 
 version: 4.9
+tags:UMG UI Designer
 
 There are a couple methods in which you can call **Events** in **UMG** which are outlined below. 
 

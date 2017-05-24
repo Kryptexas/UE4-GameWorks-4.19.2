@@ -23,5 +23,7 @@
 #endif
 
 #include <HeadMountedDisplayCommon.cpp>
+#include <HeadMountedDisplayCommonCmd.cpp>
 #include <AsyncLoadingSplash.cpp>
 #include <OculusStressTests.cpp>
+

@@ -38,6 +38,9 @@
 #include "LandscapeRender.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "LandscapeEdit.h"
+#include "IDetailGroup.h"
+#include "SBoxPanel.h"
+#include "Private/SlateEditorStyle.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.TargetLayers"
 
@@ -50,6 +53,11 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FLandscapeEditorDetailCustomization_TargetLayers::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	TSharedRef<IPropertyHandle> PropertyHandle_PaintingRestriction = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, PaintingRestriction));
+	TSharedRef<IPropertyHandle> PropertyHandle_TargetDisplayOrder = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, TargetDisplayOrder));
+	PropertyHandle_TargetDisplayOrder->MarkHiddenByCustomization();
+
+	TSharedRef<IPropertyHandle> PropertyHandle_TargetShowUnusedLayers = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ShowUnusedLayers));
+	PropertyHandle_TargetShowUnusedLayers->MarkHiddenByCustomization();	
 
 	if (!ShouldShowTargetLayers())
 	{
@@ -72,7 +80,7 @@ void FLandscapeEditorDetailCustomization_TargetLayers::CustomizeDetails(IDetailL
 		.ErrorText(LOCTEXT("Visibility_Tip","Note: You must add a \"Landscape Visibility Mask\" node to your material before you can paint visibility."))
 	];
 
-	TargetsCategory.AddCustomBuilder(MakeShareable(new FLandscapeEditorCustomNodeBuilder_TargetLayers(DetailBuilder.GetThumbnailPool().ToSharedRef())));
+	TargetsCategory.AddCustomBuilder(MakeShareable(new FLandscapeEditorCustomNodeBuilder_TargetLayers(DetailBuilder.GetThumbnailPool().ToSharedRef(), PropertyHandle_TargetDisplayOrder, PropertyHandle_TargetShowUnusedLayers)));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -151,8 +159,10 @@ FEdModeLandscape* FLandscapeEditorCustomNodeBuilder_TargetLayers::GetEditorMode(
 	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }
 
-FLandscapeEditorCustomNodeBuilder_TargetLayers::FLandscapeEditorCustomNodeBuilder_TargetLayers(TSharedRef<FAssetThumbnailPool> InThumbnailPool)
+FLandscapeEditorCustomNodeBuilder_TargetLayers::FLandscapeEditorCustomNodeBuilder_TargetLayers(TSharedRef<FAssetThumbnailPool> InThumbnailPool, TSharedRef<IPropertyHandle> InTargetDisplayOrderPropertyHandle, TSharedRef<IPropertyHandle> InTargetShowUnusedLayersPropertyHandle)
 	: ThumbnailPool(InThumbnailPool)
+	, TargetDisplayOrderPropertyHandle(InTargetDisplayOrderPropertyHandle)
+	, TargetShowUnusedLayersPropertyHandle(InTargetShowUnusedLayersPropertyHandle)
 {
 }
 
@@ -172,7 +182,245 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::SetOnRebuildChildren(FSimpl
 
 void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	
+	if (LandscapeEdMode == NULL)
+	{
+		return;	
+	}
 
+	NodeRow.NameWidget
+		[
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(FText::FromString(TEXT("Layers")))
+		];
+
+	if (LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::Weightmap)
+	{
+		NodeRow.ValueWidget
+		[
+			SNew(SHorizontalBox)
+			
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(0.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(SComboButton)
+				.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HasDownArrow(true)
+				.ContentPadding(FMargin(1, 0))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("TargetLayerSortButtonTooltip", "Define how we want to sort the displayed layers"))
+				.OnGetMenuContent(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerDisplayOrderButtonMenuContent)
+				.ButtonContent()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew( SOverlay )
+						+SOverlay::Slot()
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("LandscapeEditor.Target_DisplayOrder.Default"))
+						]	
+						+SOverlay::Slot()
+						[
+							SNew(SImage)
+							.Image(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerDisplayOrderBrush)
+						]
+					]
+				]
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(5.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(SComboButton)
+				.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HasDownArrow(true)
+				.ContentPadding(FMargin(1, 0))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("TargetLayerUnusedLayerButtonTooltip", "Define if we want to display unused layers"))
+				.OnGetMenuContent(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerShowUnusedButtonMenuContent)
+				.ButtonContent()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SBox)
+						.WidthOverride(16.0f)
+						.HeightOverride(16.0f)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("GenericViewButton"))
+						]
+					]
+				]
+			]
+		];
+	}
+}
+
+TSharedRef<SWidget> FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerDisplayOrderButtonMenuContent()
+{
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, nullptr, nullptr, /*bCloseSelfOnly=*/ true);
+
+	MenuBuilder.BeginSection("TargetLayerSortType", LOCTEXT("SortTypeHeading", "Sort Type"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("TargetLayerDisplayOrderDefault", "Default"),
+			LOCTEXT("TargetLayerDisplayOrderDefaultToolTip", "Sort using order defined in the material."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::SetSelectedDisplayOrder, ELandscapeLayerDisplayMode::Default),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::IsSelectedDisplayOrder, ELandscapeLayerDisplayMode::Default)
+			),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("TargetLayerDisplayOrderAlphabetical", "Alphabetical"),
+			LOCTEXT("TargetLayerDisplayOrderAlphabeticalToolTip", "Sort using alphabetical order."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::SetSelectedDisplayOrder, ELandscapeLayerDisplayMode::Alphabetical),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::IsSelectedDisplayOrder, ELandscapeLayerDisplayMode::Alphabetical)
+			),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("TargetLayerDisplayOrderCustom", "Custom"),
+			LOCTEXT("TargetLayerDisplayOrderCustomToolTip", "This sort options will be set when changing manually display order by dragging layers"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::SetSelectedDisplayOrder, ELandscapeLayerDisplayMode::UserSpecific),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::IsSelectedDisplayOrder, ELandscapeLayerDisplayMode::UserSpecific)
+			),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+		);
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef<SWidget> FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerShowUnusedButtonMenuContent()
+{
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, nullptr, nullptr, /*bCloseSelfOnly=*/ true);
+
+	MenuBuilder.BeginSection("TargetLayerUnusedType", LOCTEXT("UnusedTypeHeading", "Layer Visilibity"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("TargetLayerShowUnusedLayer", "Show all layers"),
+			LOCTEXT("TargetLayerShowUnusedLayerToolTip", "Show all layers"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::ShowUnusedLayers, true),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldShowUnusedLayers, true)
+			),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+		);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("TargetLayerHideUnusedLayer", "Hide unused layers"),
+			LOCTEXT("TargetLayerHideUnusedLayerToolTip", "Only show used layer"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::ShowUnusedLayers, false),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldShowUnusedLayers, false)
+			),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+		);
+	}
+
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FLandscapeEditorCustomNodeBuilder_TargetLayers::ShowUnusedLayers(bool Result)
+{
+	TargetShowUnusedLayersPropertyHandle->SetValue(Result);
+}
+
+bool FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldShowUnusedLayers(bool Result) const
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode != nullptr)
+	{
+		return LandscapeEdMode->UISettings->ShowUnusedLayers == Result;
+	}
+
+	return false;
+}
+
+void FLandscapeEditorCustomNodeBuilder_TargetLayers::SetSelectedDisplayOrder(ELandscapeLayerDisplayMode InDisplayOrder)
+{
+	TargetDisplayOrderPropertyHandle->SetValue((uint8)InDisplayOrder);	
+}
+
+bool FLandscapeEditorCustomNodeBuilder_TargetLayers::IsSelectedDisplayOrder(ELandscapeLayerDisplayMode InDisplayOrder) const
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode != nullptr)
+	{
+		return LandscapeEdMode->UISettings->TargetDisplayOrder == InDisplayOrder;
+	}
+
+	return false;
+}
+
+const FSlateBrush* FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerDisplayOrderBrush() const
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode != nullptr)
+	{
+		switch (LandscapeEdMode->UISettings->TargetDisplayOrder)
+		{
+			case ELandscapeLayerDisplayMode::Alphabetical: return FEditorStyle::Get().GetBrush("LandscapeEditor.Target_DisplayOrder.Alphabetical");
+			case ELandscapeLayerDisplayMode::UserSpecific: return FEditorStyle::Get().GetBrush("LandscapeEditor.Target_DisplayOrder.Custom");
+		}
+	}
+
+	return nullptr;
+}
+
+EVisibility FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldShowLayer(TSharedRef<FLandscapeTargetListInfo> Target) const
+{
+	if (Target->TargetType == ELandscapeToolTargetType::Weightmap)
+	{
+		FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+
+		if (LandscapeEdMode != nullptr)
+		{
+			return LandscapeEdMode->ShouldShowLayer(Target) ? EVisibility::Visible : EVisibility::Collapsed;
+		}
+	}
+
+	return EVisibility::Visible;
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -181,39 +429,77 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateChildContent(IDetai
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
-		const TArray<TSharedRef<FLandscapeTargetListInfo>>& TargetsList = LandscapeEdMode->GetTargetList();
+		const TArray<TSharedRef<FLandscapeTargetListInfo>>& TargetList = LandscapeEdMode->GetTargetList();
+		const TArray<FName>* TargetDisplayOrderList = LandscapeEdMode->GetTargetDisplayOrderList();
+		const TArray<FName>& TargetShownLayerList = LandscapeEdMode->GetTargetShownList();
 
-		for (int32 i = 0; i < TargetsList.Num(); i++)
+		if (TargetDisplayOrderList == nullptr)
 		{
-			const TSharedRef<FLandscapeTargetListInfo>& Target = TargetsList[i];
-			GenerateRow(ChildrenBuilder, Target);
+			return;
+		}
+
+		TSharedPtr<SDragAndDropVerticalBox> TargetLayerList = SNew(SDragAndDropVerticalBox)
+			.OnCanAcceptDrop(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleCanAcceptDrop)
+			.OnAcceptDrop(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleAcceptDrop)
+			.OnDragDetected(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleDragDetected);
+
+		TargetLayerList->SetDropIndicator_Above(*FEditorStyle::GetBrush("LandscapeEditor.TargetList.DropZone.Above"));
+		TargetLayerList->SetDropIndicator_Below(*FEditorStyle::GetBrush("LandscapeEditor.TargetList.DropZone.Below"));
+
+		ChildrenBuilder.AddChildContent(FText::FromString(FString(TEXT("Layers"))))
+			.Visibility(EVisibility::Visible)
+			[
+				TargetLayerList.ToSharedRef()
+			];
+
+		for (int32 i = 0; i < TargetDisplayOrderList->Num(); ++i)
+		{
+			for (const TSharedRef<FLandscapeTargetListInfo>& TargetInfo : TargetList)
+			{
+				if (TargetInfo->LayerName == (*TargetDisplayOrderList)[i] && (TargetInfo->TargetType != ELandscapeToolTargetType::Weightmap || TargetShownLayerList.Find(TargetInfo->LayerName) != INDEX_NONE))
+				{
+					TSharedPtr<SWidget> GeneratedRowWidget = GenerateRow(TargetInfo);
+
+					if (GeneratedRowWidget.IsValid())
+					{
+						TargetLayerList->AddSlot()
+						.AutoHeight()						
+						[
+							GeneratedRowWidget.ToSharedRef()
+						];
+					}
+
+					break;
+				}
+			}
 		}
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildrenBuilder& ChildrenBuilder, const TSharedRef<FLandscapeTargetListInfo> Target)
+TSharedPtr<SWidget> FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(const TSharedRef<FLandscapeTargetListInfo> Target)
 {
+	TSharedPtr<SWidget> RowWidget;
+
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode)
 	{
 		if ((LandscapeEdMode->CurrentTool->GetSupportedTargetTypes() & LandscapeEdMode->CurrentToolMode->SupportedTargetTypes & ELandscapeToolTargetTypeMask::FromType(Target->TargetType)) == 0)
 		{
-			return;
+			return RowWidget;
 		}
 	}
 	
 	if (Target->TargetType != ELandscapeToolTargetType::Weightmap)
 	{
-		ChildrenBuilder.AddChildContent(Target->TargetName)
-		[
-			SNew(SLandscapeEditorSelectableBorder)
+		RowWidget = SNew(SLandscapeEditorSelectableBorder)
 			.Padding(0)
 			.VAlign(VAlign_Center)
 			.OnContextMenuOpening_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerContextMenuOpening, Target)
 			.OnSelected_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetSelectionChanged, Target)
-			.IsSelected_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerIsSelected, Target)
+			.IsSelected_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerIsSelected, Target)			
+			.Visibility(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldShowLayer, Target)
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
@@ -240,23 +526,34 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 						.ShadowOffset(FVector2D::UnitVector)
 					]
 				]
-			]
-		];
+			];
 	}
 	else
 	{
 		static const FSlateColorBrush SolidWhiteBrush = FSlateColorBrush(FColorList::White);
 
-		ChildrenBuilder.AddChildContent(Target->TargetName)
-		[
-			SNew(SLandscapeEditorSelectableBorder)
+		RowWidget = SNew(SLandscapeEditorSelectableBorder)
 			.Padding(0)
 			.VAlign(VAlign_Center)
 			.OnContextMenuOpening_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerContextMenuOpening, Target)
 			.OnSelected_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetSelectionChanged, Target)
 			.IsSelected_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerIsSelected, Target)
-			[
+			.Visibility(this, &FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldShowLayer, Target)
+			[				
 				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SBox)
+					.Padding(FMargin(2.0f, 0.0f, 2.0f, 0.0f))
+					[
+						SNew(SImage)
+						.Image(FCoreStyle::Get().GetBrush("VerticalBoxDragIndicator"))
+					]
+				]
+
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
@@ -335,7 +632,6 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 							.OnObjectChanged_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerSetObject, Target)
 							.OnShouldFilterAsset_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldFilterLayerInfo, Target->LayerName)
 							.AllowClear(false)
-							//.DisplayThumbnail(false)
 						]
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
@@ -348,7 +644,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 							.ForegroundColor(FSlateColor::UseForeground())
 							.IsFocusable(false)
 							.ToolTipText(LOCTEXT("Tooltip_Create", "Create Layer Info"))
-							.Visibility_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerCreateVisibility, Target)
+							.IsEnabled_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerCreateEnabled, Target)
 							.OnGetMenuContent_Static(&FLandscapeEditorCustomNodeBuilder_TargetLayers::OnGetTargetLayerCreateMenu, Target)
 							.ButtonContent()
 							[
@@ -446,11 +742,94 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 						]
 					]
 				]
-			]
-		];
+			];
 	}
+
+	return RowWidget;
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, int32 SlotIndex, SVerticalBox::FSlot* Slot)
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+
+	if (LandscapeEdMode != nullptr)
+	{
+		const TArray<FName>& TargetShownList = LandscapeEdMode->GetTargetShownList();
+
+		if (TargetShownList.IsValidIndex(SlotIndex))
+		{
+			const TArray<FName>* TargetDisplayOrderList = LandscapeEdMode->GetTargetDisplayOrderList();
+
+			if (TargetDisplayOrderList != nullptr)
+			{
+				int32 DisplayOrderLayerIndex = TargetDisplayOrderList->Find(LandscapeEdMode->UISettings->ShowUnusedLayers ? TargetShownList[SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[SlotIndex]);
+
+				if (TargetDisplayOrderList->IsValidIndex(DisplayOrderLayerIndex))
+				{
+					const TArray<TSharedRef<FLandscapeTargetListInfo>>& TargetList = LandscapeEdMode->GetTargetList();
+
+					for (const TSharedRef<FLandscapeTargetListInfo>& TargetInfo : TargetList)
+					{
+						if (TargetInfo->LayerName == (*TargetDisplayOrderList)[DisplayOrderLayerIndex])
+						{
+							return FReply::Handled().BeginDragDrop(FTargetLayerDragDropOp::New(SlotIndex, Slot, GenerateRow(TargetInfo)));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
+TOptional<SDragAndDropVerticalBox::EItemDropZone> FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, SDragAndDropVerticalBox::EItemDropZone DropZone, SVerticalBox::FSlot* Slot)
+{
+	TSharedPtr<FTargetLayerDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FTargetLayerDragDropOp>();
+
+	if (DragDropOperation.IsValid())
+	{
+		return DropZone;
+	}
+
+	return TOptional<SDragAndDropVerticalBox::EItemDropZone>();
+}
+
+FReply FLandscapeEditorCustomNodeBuilder_TargetLayers::HandleAcceptDrop(FDragDropEvent const& DragDropEvent, SDragAndDropVerticalBox::EItemDropZone DropZone, int32 SlotIndex, SVerticalBox::FSlot* Slot)
+{
+	TSharedPtr<FTargetLayerDragDropOp> DragDropOperation = DragDropEvent.GetOperationAs<FTargetLayerDragDropOp>();
+
+	if (DragDropOperation.IsValid())
+	{
+		FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+
+		if (LandscapeEdMode != nullptr)
+		{
+			const TArray<FName>& TargetShownList = LandscapeEdMode->GetTargetShownList();
+
+			if (TargetShownList.IsValidIndex(DragDropOperation->SlotIndexBeingDragged) && TargetShownList.IsValidIndex(SlotIndex))
+			{
+				const TArray<FName>* TargetDisplayOrderList = LandscapeEdMode->GetTargetDisplayOrderList();
+
+				if (TargetDisplayOrderList != nullptr)
+				{
+					int32 StartingLayerIndex = TargetDisplayOrderList->Find(LandscapeEdMode->UISettings->ShowUnusedLayers ? TargetShownList[DragDropOperation->SlotIndexBeingDragged + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[DragDropOperation->SlotIndexBeingDragged]);
+					int32 DestinationLayerIndex = TargetDisplayOrderList->Find(LandscapeEdMode->UISettings->ShowUnusedLayers ? TargetShownList[SlotIndex + LandscapeEdMode->GetTargetLayerStartingIndex()] : TargetShownList[SlotIndex]);
+
+					if (StartingLayerIndex != INDEX_NONE && DestinationLayerIndex != INDEX_NONE)
+					{
+						LandscapeEdMode->MoveTargetLayerDisplayOrder(StartingLayerIndex, DestinationLayerIndex);
+
+						return FReply::Handled();
+					}
+				}
+			}
+		}
+	}
+
+	return FReply::Unhandled();
+}
 
 bool FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerIsSelected(const TSharedRef<FLandscapeTargetListInfo> Target)
 {
@@ -676,6 +1055,12 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnFillLayer(const TSharedRe
 	}
 }
 
+void FLandscapeEditorCustomNodeBuilder_TargetLayers::FillEmptyLayers(ULandscapeInfo* LandscapeInfo, ULandscapeLayerInfoObject* LandscapeInfoObject)
+{
+	FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
+	LandscapeEdit.FillEmptyLayers(LandscapeInfoObject);
+}
+
 
 void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnClearLayer(const TSharedRef<FLandscapeTargetListInfo> Target)
 {
@@ -752,6 +1137,8 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerSetObject(cons
 				}
 				LandscapeEdMode->UpdateTargetList();
 			}
+
+			FillEmptyLayers(LandscapeInfo, SelectedLayerInfo);
 		}
 		else
 		{
@@ -770,14 +1157,14 @@ EVisibility FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerInfoSe
 	return EVisibility::Collapsed;
 }
 
-EVisibility FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerCreateVisibility(const TSharedRef<FLandscapeTargetListInfo> Target)
+bool FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerCreateEnabled(const TSharedRef<FLandscapeTargetListInfo> Target)
 {
 	if (!Target->LayerInfoObj.IsValid())
 	{
-		return EVisibility::Visible;
+		return true;
 	}
 
-	return EVisibility::Collapsed;
+	return false;
 }
 
 EVisibility FLandscapeEditorCustomNodeBuilder_TargetLayers::GetTargetLayerMakePublicVisibility(const TSharedRef<FLandscapeTargetListInfo> Target)
@@ -882,6 +1269,8 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerCreateClicked(
 			GEditor->SyncBrowserToObjects(Objects);
 			
 			LandscapeEdMode->TargetsListUpdated.Broadcast();
+
+			FillEmptyLayers(LandscapeInfo, LayerInfo);
 		}
 	}
 }
@@ -1082,6 +1471,35 @@ const FSlateBrush* SLandscapeEditorSelectableBorder::GetBorder() const
 			? FEditorStyle::GetBrush("LandscapeEditor.TargetList", ".RowBackgroundHovered")
 			: FEditorStyle::GetBrush("LandscapeEditor.TargetList", ".RowBackground");
 	}
+}
+
+TSharedRef<FTargetLayerDragDropOp> FTargetLayerDragDropOp::New(int32 InSlotIndexBeingDragged, SVerticalBox::FSlot* InSlotBeingDragged, TSharedPtr<SWidget> WidgetToShow)
+{
+	TSharedRef<FTargetLayerDragDropOp> Operation = MakeShareable(new FTargetLayerDragDropOp);
+
+	Operation->MouseCursor = EMouseCursor::GrabHandClosed;
+	Operation->SlotIndexBeingDragged = InSlotIndexBeingDragged;
+	Operation->SlotBeingDragged = InSlotBeingDragged;
+	Operation->WidgetToShow = WidgetToShow;
+
+	Operation->Construct();
+
+	return Operation;
+}
+
+FTargetLayerDragDropOp::~FTargetLayerDragDropOp()
+{
+}
+
+TSharedPtr<SWidget> FTargetLayerDragDropOp::GetDefaultDecorator() const
+{
+	return SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ContentBrowser.AssetDragDropTooltipBackground"))
+			.Content()
+			[
+				WidgetToShow.ToSharedRef()
+			];
+		
 }
 
 #undef LOCTEXT_NAMESPACE

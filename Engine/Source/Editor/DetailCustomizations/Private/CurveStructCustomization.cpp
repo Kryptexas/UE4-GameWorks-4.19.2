@@ -192,6 +192,7 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 							.ToolTipText(LOCTEXT( "CreateAssetTooltip", "Create a new CurveFloat asset from this curve") )
 							.OnClicked(this, &FCurveStructCustomization::OnCreateButtonClicked)
 							.IsEnabled(this, &FCurveStructCustomization::IsCreateButtonEnabled)
+							.Visibility(Owner != nullptr ? EVisibility::Visible : EVisibility::Collapsed)
 						]
 					]
 				];

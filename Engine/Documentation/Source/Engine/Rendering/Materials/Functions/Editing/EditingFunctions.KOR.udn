@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:머티리얼 함수 편집하기
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:머티리얼 함수를 편집하고 변경하는 프로세스 일람입니다.
 Version: 4.9
+tags:Materials
 
 
 이 글은 머티리얼 함수 개념에 익숙한 분들을 대상으로 합니다. 상세 정보는 [](Engine/Rendering/Materials/Functions/Overview) 페이지를 참고하시기 바랍니다.

@@ -205,28 +205,26 @@ void FCompilerResultsLog::InternalLogSummary()
 		TimeFormat.MinimumIntegralDigits = 4;
 		TimeFormat.UseGrouping = false;
 
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Time"), FText::AsNumber(CompileFinishTime - GStartTime, &TimeFormat));
-		Args.Add(TEXT("SourceName"), FText::FromString(FPackageName::ObjectPathToObjectName(SourcePath)));
-		Args.Add(TEXT("SourcePath"), FText::FromString(SourcePath));
-		Args.Add(TEXT("NumWarnings"), NumWarnings);
-		Args.Add(TEXT("NumErrors"), NumErrors);
-		Args.Add(TEXT("TotalMilliseconds"), (int)((CompileFinishTime - CompileStartTime) * 1000));
+		FFormatOrderedArguments Args;
+		Args.Add(FText::AsNumber(CompileFinishTime - GStartTime, &TimeFormat)); // current time {0}
+		Args.Add(FText::FromString(FPackageName::ObjectPathToObjectName(SourcePath))); // source name {1}
+		Args.Add(FText::FromString(SourcePath)); // source path {2}
+		Args.Add((int)((CompileFinishTime - CompileStartTime) * 1000)); // compile time {3}
 
 		if (NumErrors > 0)
 		{
-			FString FailMsg = FText::Format(LOCTEXT("CompileFailed", "[{Time}] Compile of {SourceName} failed. {NumErrors} Fatal Issue(s) {NumWarnings} Warning(s) [in {TotalMilliseconds} ms] ({SourcePath})"), Args).ToString();
-			Warning(*FailMsg);
+			Args.Add(NumErrors); // num errors {4}
+			Args.Add(NumWarnings); // num warnings {5}
+			Warning(*FText::Format(LOCTEXT("CompileFailed", "[{0}] Compile of {1} failed. {4} Fatal Issue(s) {5} Warning(s) [in {3} ms] ({2})"), MoveTemp(Args)).ToString());
 		}
 		else if(NumWarnings > 0)
 		{
-			FString WarningMsg = FText::Format(LOCTEXT("CompileWarning", "[{Time}] Compile of {SourceName} successful, but with {NumWarnings} Warning(s) [in {TotalMilliseconds} ms] ({SourcePath})"), Args).ToString();
-			Warning(*WarningMsg);
+			Args.Add(NumWarnings); // num warnings {4}
+			Warning(*FText::Format(LOCTEXT("CompileWarning", "[{0}] Compile of {1} successful, but with {4} Warning(s) [in {3} ms] ({2})"), MoveTemp(Args)).ToString());
 		}
 		else
 		{
-			FString SuccessMsg = FText::Format(LOCTEXT("CompileSuccess", "[{Time}] Compile of {SourceName} successful! [in {TotalMilliseconds} ms] ({SourcePath})"), Args).ToString();
-			Note(*SuccessMsg);
+			Note(*FText::Format(LOCTEXT("CompileSuccess", "[{0}] Compile of {1} successful! [in {3} ms] ({2})"), MoveTemp(Args)).ToString());
 		}
 
 		if(bLogDetailedResults)

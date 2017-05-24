@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3158648
+﻿INTSourceChangelist:3242329
 Availability:Public
 Title:머티리얼 셰이딩 모델
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ parent:Engine/Rendering/Materials
 order:7
 type:landing
 topic-image:shadingmodels_topic.png
+tags:Materials
 
 
 [DIR(output:"topiccompact" parent:"Engine/Rendering/Materials/LightingModels")]

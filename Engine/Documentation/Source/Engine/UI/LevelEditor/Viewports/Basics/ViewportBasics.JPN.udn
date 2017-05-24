@@ -1,30 +1,12 @@
-﻿INTSourceChangelist:2695245
+﻿INTSourceChangelist:3275878
 Availability:Public
-Title:ビューポートの基礎
+Title:ビューポートの基本
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:エディタのビューポートの基本概念と機能
 Version:4.9
 SkillLevel:Beginner
+track:LevelDesign_Beginner|6
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor/Details "%Engine/UI/LevelEditor/Details:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -72,29 +54,29 @@ SkillLevel:Beginner
 
 ![](Engine/UI/LevelEditor/Viewports/Viewports_Topic.png)(w:640)
 
-##ビューポート タイプ
+## ビューポートの種類
 
-エディタのビューポートには、主に以下の 2 つのタイプがあります。パースペクティブ (Perspective) と正投影 (Orthographic) です。パースペクティブ ビューは、 
+エディタのビューポートは、主にパースペクティブと正投影の 2 種類があります。パースペクティブ ビューは 
 ゲームワールドの 3D ウィンドウです。正投影ビューは、主要軸 (X, Y, Z) のいずれか 1 つを見下ろした 
 上部 (Top)、 前面 (Front)、側面 (Side) の 2D ビューポートです。
 
 [REGION:imagetable]
 | ![](Engine/UI/LevelEditor/Viewports/view_perspective.png)(w:225) | ![](Engine/UI/LevelEditor/Viewports/view_front.png)(w:225) | ![](Engine/UI/LevelEditor/Viewports/view_side.png)(w:225) | ![](Engine/UI/LevelEditor/Viewports/view_top.png)(w:225) |
 | --- | --- | --- | --- |
-| Perspective (3D) | Front (X-Axis) | Side (Y-Axis) | Top (Z-Axis) |
+| パースペクティブ (3D) | 前面 (X-Axis) | 側面 (Y-Axis) | 上部 (Z-Axis) |
 [/REGION]
 
-**[Alt]** キーを押しながら、**[G]**、 **[H]**、**[J] **、**[K]** のいずれかのキーを押してビューポートのタイプを切り替えることができます。 
-この操作により、ビューポートはそれぞれ Perspective、Front、Side、Top に設定されます。
+**[Alt]** キーを押しながら、**[G]**、 **[H]**、**[J] **、**[K]** のいずれかのキーを押してビューポートの種類を切り替えることができます。 
+この操作により、ビューポートはそれぞれパースペクティブ、前面、側面、上部に設定されます。
 
 ## ビューポートのレイアウト
 
-エディタを開くと、デフォルトで、パースペクティブ ビューポートが単独で表示されます。 
+エディタを開くと、デフォルトでパースペクティブ ビューポートが単独で表示されます。 
 
 ![](viewport_1.png)(w:640)
 
-**ビューポート パネル** には、実際に複数のビューポートがあります。グリッド状にレイアウトされ、 
-どれでも最大化できます。デフォルトのレイアウトは、4x4 です。Perspective、Top、Front、Side の各タイプで構成されます。
+**ビューポート** パネルには、実際に複数のビューポートがあります。グリッド状にレイアウトされ、 
+どれでも最大化できます。デフォルトのレイアウトは、4x4 です。パースペクティブ、上部、前面、側面の各タイプで構成されます。
 
 ![](viewport_4.png)(w:640)
 
@@ -126,11 +108,11 @@ SkillLevel:Beginner
 [/REGION]
 -->
 
-##ビュー モード
+## ビュー モード
 
 [INCLUDE:Engine/UI/LevelEditor/Viewports/ViewModes#intro]
 
-以下は、非常に一般的に使用されるビューモードです。
+以下は一般的に使用されるビュー モードです。
 
 [REGION:imagetable]
 | ![](Engine/UI/LevelEditor/Viewports/ViewModes/VM_Lit.png)(w:305) | ![](Engine/UI/LevelEditor/Viewports/ViewModes/VM_Unlit.png)(w:305) | ![](Engine/UI/LevelEditor/Viewports/ViewModes/VM_Wireframe.png)(w:305) |
@@ -142,9 +124,9 @@ SkillLevel:Beginner
 
 ## ゲーム ビュー
 
-**ゲームビュー** は、ゲーム内で表示されるのと同様にシーンをビューポートに表示させます。つまり、アクタ アイコンなどのエディタ固有の要素は、 
-全く表示されません。ゲームビューは、ゲーム内で実行した場合に、レベルがどのように見えるかを 
-確認する簡単な方法を提供します。
+**ゲームビュー** は、ゲーム内で表示されるのと同様にシーンをビューポートに表示させます。つまり、アクタのアイコンなどのエディタ固有の要素は 
+表示されません。ゲームビューでは、ゲーム内で実行した場合に、レベルがどのように見えるかを 
+簡単に見ることができます。
 
 [REGION:fullwidth]
 [OBJECT:SliderSequence]
@@ -158,7 +140,7 @@ SkillLevel:Beginner
 	game_view
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**ゲームビューを切り替えるにはスライダーをドラッグします。**
+	**ゲーム ビューを切り替えるにはスライダーをドラッグします。**
 	[/PARAM]
 	[PARAM:image_list]
 	![](game_view_1.png)
@@ -167,12 +149,12 @@ SkillLevel:Beginner
 [/OBJECT]
 [/REGION]
 
-ゲームビューを有効にするには、ビューポートをフォーカスした状態で **[G] ** キー (デフォルト) を押すか、以下の [ビューポート オプション メニュー](Engine/UI/LevelEditor/Viewports/ViewportOptions) から 
+ゲーム ビューを有効にするには、ビューポートをフォーカスした状態で **[G]** キー (デフォルト) を押すか、以下の [ビューポート オプション メニュー](Engine/UI/LevelEditor/Viewports/ViewportOptions) から 
 **[ゲームビュー]** オプションを選択します。
 
 ![](GamemodeViewport.png)
 
-## [Immersive] モード
+## 没入モード
 
 ビューポートには、最大化、最小化以外にもうひとつの状態である [Immersive (没入)] モードがあります。[Immersive] モードでは、 
 ビューポートは、**ビューポート パネル** を含んだ状態でウィンドウ全体に最大化されます。レベル エディタを最大化させている場合、 
@@ -197,7 +179,7 @@ SkillLevel:Beginner
 	immersive
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	** [Immersive] モードで動作させるにはスライダをドラッグします**
+	**没入モードが機能している状態を見るにはスライダーをドラッグします。**
 	[/PARAM]
 	[PARAM:image_list]
 	![](immersive_1.png)
@@ -207,5 +189,3 @@ SkillLevel:Beginner
 	![](immersive_5.png)
 	[/PARAM]
 [/OBJECT]
-
-%playlistnav%

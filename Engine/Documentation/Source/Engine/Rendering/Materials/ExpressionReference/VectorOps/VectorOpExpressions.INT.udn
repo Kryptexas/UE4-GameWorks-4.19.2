@@ -3,6 +3,7 @@ Title:Vector Operation Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions that perform operations on vector input values.
 Version: 4.9
+tags:Materials
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -20,7 +21,7 @@ The **AppendVector** expression allows you to combine channels together to creat
 | **B** | Takes in the value(s) to be appended. |
 
 
-**Examples:** Append of 0.2 and 0.4 is (0.2,0.4); Append of (0.2,0.4) and (1.6) is (0.2,0.4,1.6).
+**Examples:** Append of 0.2 and 0.4 is (0.2,0.4); Append of (0.2,0.4) and (1.0) is (0.2,0.4,1.0).
 
 ![AppendVectorExample.png](AppendVectorExample.png)
 
@@ -41,7 +42,7 @@ The **ComponentMask** expression allows you to select a specific subset of chann
 | **A** | If checked, the alpha (fourth) channel of the input value will be passed through to the output. |
 
 
-**Examples:** ComponentMask with an input of (0.2,0.8,1.4) and the R and B channels checked will output (0.2,1.4).
+**Examples:** ComponentMask with an input of (0.2,0.4,1.0) and the G channel will produce an output of (0.4), which appears as a 40% bright grayscale value when used as a color vector.
 
 [REGION:fullwidth]
 ![ComponentMaskExample.png](ComponentMaskExample.png)
@@ -55,7 +56,7 @@ The **ComponentMask** expression allows you to select a specific subset of chann
 
 ## DeriveNormalZ
 
-The **DeriveNormalZ** expression derives the Z component of a tangent space normal given the X and Y components and outputs the resulting three-channel tangent space normal. Z is calculated as Z = sqrt(1 - (x * x + y * y));
+The **DeriveNormalZ** expression derives the Z component of a tangent space normal given the X and Y components and outputs the resulting three-channel tangent space normal. Z is calculated as Z = sqrt(1 - (x \* x + y \* y));
 
 | Item | Description |
 | -------- | ----------- |

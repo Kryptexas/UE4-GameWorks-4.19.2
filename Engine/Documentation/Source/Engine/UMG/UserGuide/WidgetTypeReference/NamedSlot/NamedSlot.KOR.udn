@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title: 네임드 슬롯
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -7,6 +7,7 @@ Related: Engine/UMG/UserGuide
 Related: Engine/UMG/UserGuide/Styling
 Related: Engine/UMG/UserGuide/Slots
 version: 4.9
+tags:UMG UI Designer
 
 [TOC(start:2 end:2)]
 

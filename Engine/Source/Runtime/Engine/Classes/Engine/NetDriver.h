@@ -68,7 +68,7 @@ struct ENGINE_API FPacketSimulationSettings
 	/** reads in settings from the .ini file 
 	 * @note: overwrites all previous settings
 	 */
-	void LoadConfig();
+	void LoadConfig(const TCHAR* OptionalQualifier = nullptr);
 
 	/**
 	 * Registers commands for auto-completion, etc.
@@ -84,8 +84,14 @@ struct ENGINE_API FPacketSimulationSettings
 	 * Reads the settings from a string: command line or an exec
 	 *
 	 * @param Stream the string to read the settings from
+	 * @Param OptionalQualifier: optional string to prepend to Pkt* settings. E.g, "GameNetDriverPktLoss=50"
 	 */
-	bool ParseSettings(const TCHAR* Stream);
+	bool ParseSettings(const TCHAR* Stream, const TCHAR* OptionalQualifier=nullptr);
+
+	bool ParseHelper(const TCHAR* Cmd, const TCHAR* Name, int32& Value, const TCHAR* OptionalQualifier);
+
+	bool ConfigHelperInt(const TCHAR* Name, int32& Value, const TCHAR* OptionalQualifier);
+	bool ConfigHelperBool(const TCHAR* Name, bool& Value, const TCHAR* OptionalQualifier);
 };
 
 //
@@ -236,6 +242,11 @@ public:
 	/** Used to specify the net driver to filter actors with (NAME_None || NAME_GameNetDriver is the default net driver) */
 	UPROPERTY(Config)
 	FName NetDriverName;
+
+	/** Change the NetDriver's NetDriverName. This will also reinit packet simulation settings so that settings can be qualified to a specific driver. */
+	void SetNetDriverName(FName NewNetDriverNamed);
+
+	void InitPacketSimulationSettings();
 
 	/** Interface for communication network state to others (ie World usually, but anything that implements FNetworkNotify) */
 	class FNetworkNotify*		Notify;
@@ -661,10 +672,16 @@ public:
 	ENGINE_API const FNetworkObjectList& GetNetworkObjectList() const { return *NetworkObjects; }
 
 	/** Get the network object matching the given Actor, or null if not found. */
-	ENGINE_API const FNetworkObjectInfo* GetNetworkActor(const AActor* InActor) const;
+	ENGINE_API const FNetworkObjectInfo* GetNetworkObjectInfo(const AActor* InActor) const;
 
 	/** Get the network object matching the given Actor, or null if not found. */
-	ENGINE_API FNetworkObjectInfo* GetNetworkActor(const AActor* InActor);
+	ENGINE_API FNetworkObjectInfo* GetNetworkObjectInfo(const AActor* InActor);
+
+	DEPRECATED(4.16, "GetNetworkActor is deprecated.  Use GetNetworkObjectInfo instead.")
+	ENGINE_API const FNetworkObjectInfo* GetNetworkActor( const AActor* InActor ) const;
+
+	DEPRECATED(4.16, "GetNetworkActor is deprecated.  Use GetNetworkObjectInfo instead.")
+	ENGINE_API FNetworkObjectInfo* GetNetworkActor( const AActor* InActor );
 
 	/**
 	 * Returns whether adaptive net frequency is enabled. If enabled, update frequency is allowed to ramp down to MinNetUpdateFrequency for an actor when no replicated properties have changed.

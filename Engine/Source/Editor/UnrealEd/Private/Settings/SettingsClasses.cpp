@@ -110,7 +110,7 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectI
 
 UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-	, bBlueprintableComponents(true)
+	, bEnableLocalizationDashboard(true)
 	, bBlueprintPerformanceAnalysisTools(false)
 	, bUseOpenCLForConvexHullDecomp(false)
 	, bAllowPotentiallyUnsafePropertyEditing(false)
@@ -230,19 +230,44 @@ FAutoReimportDirectoryConfig::FParseContext::FParseContext(bool bInEnableLogging
 	for (FString& RootPath : RootContentPaths)
 	{
 		FString ContentFolder = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(RootPath));
-		MountedPaths.Add( TPairInitializer<FString, FString>(MoveTemp(ContentFolder), MoveTemp(RootPath)) );
+		MountedPaths.Emplace( MoveTemp(ContentFolder), MoveTemp(RootPath) );
 	}
 }
 
 bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& SourceDirectory, FString& MountPoint, const FParseContext& InContext)
 {
 	SourceDirectory.ReplaceInline(TEXT("\\"), TEXT("/"));
+	MountPoint.ReplaceInline(TEXT("\\"), TEXT("/"));
+
+	// Check if starts with relative path.
+	if (SourceDirectory.StartsWith("../"))
+	{
+		// Normalize. Interpret setting as a relative path from the Game User directory (Named after the Game)
+		SourceDirectory = FPaths::ConvertRelativePathToFull(FPaths::GameUserDir() / SourceDirectory);
+	}
 
 	// Check if the source directory is actually a mount point
-	if (!FPackageName::GetPackageMountPoint(SourceDirectory).IsNone())
+	const FName SourceDirectoryMountPointName = FPackageName::GetPackageMountPoint(SourceDirectory);
+	if (!SourceDirectoryMountPointName.IsNone())
 	{
-		MountPoint = SourceDirectory;
-		SourceDirectory = FString();
+		FString SourceDirectoryMountPoint = SourceDirectoryMountPointName.ToString();
+		if (SourceDirectoryMountPoint.Len() + 2 == SourceDirectory.Len())
+		{
+			// Mount point name + 2 for the directory slashes is the equal, this is exactly a mount point
+			MountPoint = SourceDirectory;
+			SourceDirectory = FPackageName::LongPackageNameToFilename(MountPoint);
+		}
+		else
+		{
+			// Starts off with a mount point (not case sensitive)
+			MountPoint = TEXT("/") + SourceDirectoryMountPoint + TEXT("/");
+			FString SourceDirectoryLeftChop = SourceDirectory.Left(MountPoint.Len());
+			FString SourceDirectoryRightChop = SourceDirectory.RightChop(MountPoint.Len());
+
+			// Resolve mount point on file system (possibly case sensitive, so re-use original source path)
+			SourceDirectory = FPaths::ConvertRelativePathToFull(
+				FPackageName::LongPackageNameToFilename(SourceDirectoryLeftChop) / SourceDirectoryRightChop);
+		}
 	}
 
 	if (!SourceDirectory.IsEmpty() && !MountPoint.IsEmpty())
@@ -257,6 +282,8 @@ bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& So
 		if (FPackageName::GetPackageMountPoint(MountPoint).IsNone())
 		{
 			UE_CLOG(InContext.bEnableLogging, LogAutoReimportManager, Warning, TEXT("Unable to setup directory %s to map to %s, as it's not a valid mounted path. Continuing without mounted path (auto reimports will still work, but auto add won't)."), *SourceDirectory, *MountPoint);
+			MountPoint = FString();
+			return false; // Return false when unable to determine mount point.
 		}
 	}
 	else if(!MountPoint.IsEmpty())
@@ -283,11 +310,16 @@ bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& So
 		auto* Pair = InContext.MountedPaths.FindByPredicate([&](const TPair<FString, FString>& InPair){
 			return SourceDirectory.StartsWith(InPair.Key);
 		});
-
 		if (Pair)
 		{
+			// Resolve source directory by replacing mount point with actual path
 			MountPoint = Pair->Value / SourceDirectory.RightChop(Pair->Key.Len());
 			MountPoint.ReplaceInline(TEXT("\\"), TEXT("/"));
+		}
+		else
+		{
+			UE_CLOG(InContext.bEnableLogging, LogAutoReimportManager, Warning, TEXT("Unable to watch directory %s as not associated with mounted path."), *SourceDirectory);
+			return false;
 		}
 	}
 	else
@@ -359,6 +391,10 @@ ULevelEditorPlaySettings::ULevelEditorPlaySettings( const FObjectInitializer& Ob
 	bAutoCompileBlueprintsOnLaunch = true;
 	CenterNewWindow = true;
 	CenterStandaloneWindow = true;
+
+	bBindSequencerToPIE = false;
+	bBindSequencerToSimulate = true;
+	EnablePIEEnterAndExitSounds = false;
 }
 
 void ULevelEditorPlaySettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)

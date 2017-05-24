@@ -29,6 +29,7 @@ class IOnlineSubsystem;
 	FDelegateHandle OnDeleteFriendCompleteDelegateHandle;
 	FDelegateHandle OnQueryRecentPlayersCompleteDelegateHandle;
 	FDelegateHandle OnQueryBlockedPlayersCompleteDelegateHandle;
+	FDelegateHandle OnRequestNewReadPermissionsDelegateHandle;
 
 	/** Default name of friends list for running tests */
 	FString FriendsListName;
@@ -71,6 +72,11 @@ class IOnlineSubsystem;
 	 * Finish/cleanup the tests
 	 */
 	void FinishTest();
+
+	/**
+	 * 
+	 */
+	void OnRequestNewPermissionsComplete(int32 LocalUserNum, bool bWasSuccessful);
 
 	/**
 	 * Delegate used when the friends read request has completed

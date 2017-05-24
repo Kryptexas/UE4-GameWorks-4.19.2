@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __KismetReinstanceUtilities_h__
-#define __KismetReinstanceUtilities_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -16,6 +12,17 @@ class FReinstanceFinalizer;
 class UBlueprint;
 
 DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STATCAT_Advanced);
+
+enum class EBlueprintCompileReinstancerFlags
+{
+	None = 0x0,
+
+	BytecodeOnly			= 0x1,
+	AutoInferSaveOnCompile	= 0x2,
+	AvoidCDODuplication		= 0x4
+};
+
+ENUM_CLASS_FLAGS(EBlueprintCompileReinstancerFlags)
 
 class FReinstanceFinalizer;
 
@@ -43,6 +50,7 @@ public:
 	static FCDODuplicatesProvider& GetCDODuplicatesProviderDelegate();
 
 protected:
+	friend struct FBlueprintCompilationManagerImpl;
 
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRefresh;
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRecompile;
@@ -73,9 +81,6 @@ protected:
 
 	/** Whether or not this resinstancer has already reinstanced  */
 	bool bHasReinstanced;
-
-	/** Don't call GC */
-	bool bSkipGarbageCollection;
 
 	/** Cached value, mostly used to determine if we're explicitly targeting the skeleton class or not */
 	enum EReinstClassType
@@ -109,9 +114,9 @@ public:
 	virtual void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
 	virtual void BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly);
 
-	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false, bool bAutoInferSaveOnCompile = true)
+	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, EBlueprintCompileReinstancerFlags Flags = EBlueprintCompileReinstancerFlags::AutoInferSaveOnCompile)
 	{
-		return MakeShareable(new FBlueprintCompileReinstancer(InClassToReinstance, bIsBytecodeOnly, bSkipGC, bAutoInferSaveOnCompile));
+		return MakeShareable(new FBlueprintCompileReinstancer(InClassToReinstance, Flags));
 	}
 
 	virtual ~FBlueprintCompileReinstancer();
@@ -165,7 +170,6 @@ protected:
 		, DuplicatedClass(NULL)
 		, OriginalCDO(NULL)
 		, bHasReinstanced(false)
-		, bSkipGarbageCollection(false)
 		, ReinstClassType(RCT_Unknown)
 		, ClassToReinstanceDefaultValuesCRC(0)
 		, bIsRootReinstancer(false)
@@ -179,7 +183,7 @@ protected:
 	 * @param bSkipGC					TRUE if garbage collection should be skipped
 	 * @param bAutoInferSaveOnCompile	TRUE if the reinstancer should infer whether or not save on compile should occur, FALSE if it should never save on compile
 	 */
-	FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false, bool bAutoInferSaveOnCompile = true);
+	FBlueprintCompileReinstancer(UClass* InClassToReinstance, EBlueprintCompileReinstancerFlags Flags = EBlueprintCompileReinstancerFlags::AutoInferSaveOnCompile);
 
 	/** Reparents the specified blueprint or class to be the duplicated class in order to allow properties to be copied from the previous CDO to the new one */
 	void ReparentChild(UBlueprint* ChildBP);
@@ -187,6 +191,8 @@ protected:
 
 	/** Determine whether reinstancing actors should preserve the root component of the new actor */
 	virtual bool ShouldPreserveRootComponentOfReinstancedActor() const { return true; }
+
+	static void CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* NewObject );
 
 private:
 	/**
@@ -201,6 +207,3 @@ private:
 	/** Handles the work of ReplaceInstancesOfClass, handling both normal replacement of instances and batch */
 	static void ReplaceInstancesOfClass_Inner(TMap<UClass*, UClass*>& InOldToNewClassMap, UObject* InOriginalCDO, TSet<UObject*>* ObjectsThatShouldUseOldStuff = NULL, bool bClassObjectReplaced = false, bool bPreserveRootComponent = true);
 };
-
-
-#endif//__KismetEditorUtilities_h__

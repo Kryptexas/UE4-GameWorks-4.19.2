@@ -826,7 +826,7 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 	ActionEntry += " : {";
 
 	const FString TooltipFieldLabel("\"Tooltip\"      : \"");
-	const FString TooltipStr = PrimeAction->GetTooltipDescription().Replace(TEXT("\n"), *(IndentedNewline + BuildIndentString(TooltipFieldLabel.Len(), /*bUseSpaces =*/true)));
+	const FString TooltipStr = PrimeAction->GetTooltipDescription().ToString().Replace(TEXT("\n"), *(IndentedNewline + BuildIndentString(TooltipFieldLabel.Len(), /*bUseSpaces =*/true)));
 
 	ActionEntry += IndentedNewline + TooltipFieldLabel + MakeJsonString(TooltipStr) + "\"";
 		

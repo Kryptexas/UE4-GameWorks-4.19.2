@@ -15,7 +15,7 @@ FTypeDefinitionInfoMapArchiveProxy::FTypeDefinitionInfoMapArchiveProxy(FUHTMakef
 		FSerializeIndex FieldIndex = UHTMakefile.GetFieldIndex(Field);
 		int32 UnrealTypeDefinitionInfoIndex = UHTMakefile.GetUnrealTypeDefinitionInfoIndex(Kvp.Value);
 
-		TypeDefinitionInfoIndexes.Add(TPairInitializer<FSerializeIndex, int32>(FieldIndex, UnrealTypeDefinitionInfoIndex));
+		TypeDefinitionInfoIndexes.Emplace(FieldIndex, UnrealTypeDefinitionInfoIndex);
 	}
 }
 

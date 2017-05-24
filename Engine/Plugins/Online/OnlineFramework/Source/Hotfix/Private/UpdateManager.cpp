@@ -27,7 +27,15 @@ struct FLoadingScreenConfig
 {
 public:
 	// Do we check for hotfixes in this build?
-	static bool CheckForHotfixes() { return true; }
+	static bool CheckForHotfixes() 
+	{ 
+#if UE_BUILD_SHIPPING
+		return true;
+#else
+		static bool bCheckHotfixes = !FParse::Param(FCommandLine::Get(), TEXT("SkipHotfixCheck"));
+		return bCheckHotfixes;
+#endif
+	}
 
 	// Do we block waiting for pending async loads to complete during the initial loading screen state?
 	static bool ShouldBlockOnInitialLoad() { return (FPlatformProperties::IsServerOnly() || true); }
@@ -155,7 +163,7 @@ UUpdateManager::EUpdateStartResult UUpdateManager::StartCheckInternal(bool bInCh
 
 void UUpdateManager::CheckComplete(EUpdateCompletionStatus Result, bool bUpdateTimestamp)
 {
-	UE_LOG(LogHotfixManager, Display, TEXT("CheckComplete %s"), UpdateCompletionEnum ? *UpdateCompletionEnum->GetEnumName((int32)Result) : TEXT("Invalid"));
+	UE_LOG(LogHotfixManager, Display, TEXT("CheckComplete %s"), UpdateCompletionEnum ? *UpdateCompletionEnum->GetNameStringByValue((int64)Result) : TEXT("Invalid"));
 
 	UGameInstance* GameInstance = GetGameInstance();
 	bool bIsServer = GameInstance->IsDedicatedServerInstance();
@@ -165,7 +173,7 @@ void UUpdateManager::CheckComplete(EUpdateCompletionStatus Result, bool bUpdateT
 	if (DbgVal >= 0 && DbgVal <= (int32)EUpdateCompletionStatus::UpdateFailure_NotLoggedIn)
 	{
 		Result = (EUpdateCompletionStatus)DbgVal;
-		UE_LOG(LogHotfixManager, Display, TEXT("CheckComplete OVERRIDE! %s"), UpdateCompletionEnum ? *UpdateCompletionEnum->GetEnumName((int32)Result) : TEXT("Invalid"));
+		UE_LOG(LogHotfixManager, Display, TEXT("CheckComplete OVERRIDE! %s"), UpdateCompletionEnum ? *UpdateCompletionEnum->GetNameStringByValue((int64)Result) : TEXT("Invalid"));
 	}
 #endif
 
@@ -183,7 +191,7 @@ void UUpdateManager::CheckComplete(EUpdateCompletionStatus Result, bool bUpdateT
 
 	auto CompletionDelegate = [this, Result]()
 	{
-		UE_LOG(LogHotfixManager, Display, TEXT("External CheckComplete %s"), UpdateCompletionEnum ? *UpdateCompletionEnum->GetEnumName((int32)Result) : TEXT("Invalid"));
+		UE_LOG(LogHotfixManager, Display, TEXT("External CheckComplete %s"), UpdateCompletionEnum ? *UpdateCompletionEnum->GetNameStringByValue((int64)Result) : TEXT("Invalid"));
 		if (!bInitialUpdateFinished)
 		{
 			// Prime the state so that the first "after login" check will occur
@@ -584,7 +592,7 @@ void UUpdateManager::SetUpdateState(EUpdateState NewState)
 {
 	if (CurrentUpdateState != NewState)
 	{
-		UE_LOG(LogHotfixManager, Display, TEXT("Update State %s -> %s"), UpdateStateEnum ? *UpdateStateEnum->GetEnumName((int32)CurrentUpdateState) : TEXT("Invalid"), UpdateStateEnum ? *UpdateStateEnum->GetEnumName((int32)NewState) : TEXT("Invalid"));
+		UE_LOG(LogHotfixManager, Display, TEXT("Update State %s -> %s"), UpdateStateEnum ? *UpdateStateEnum->GetNameStringByValue((int64)CurrentUpdateState) : TEXT("Invalid"), UpdateStateEnum ? *UpdateStateEnum->GetNameStringByValue((int64)NewState) : TEXT("Invalid"));
 		CurrentUpdateState = NewState;
 		OnUpdateStatusChanged().Broadcast(NewState);
 	}

@@ -80,13 +80,10 @@ void UTexAligner::Align( UWorld* InWorld, ETexAlign InTexAlignType, UModel* InMo
 	
 	FPoly EdPoly;
 	TArray<FBspSurfIdx> InitialSurfList;
-	FBox PolyBBox(1);
 
 	for( int32 i = 0 ; i < InModel->Surfs.Num() ; i++ )
 	{
 		FBspSurf* Surf = &InModel->Surfs[i];
-//		GEditor->polyFindMaster( InModel, i, EdPoly );
-//		FVector Normal = InModel->Vectors[ Surf->vNormal ];
 
 		if( Surf->PolyFlags & PF_Selected )
 		{

@@ -678,24 +678,30 @@ namespace AutomationTool
 
 		public static void AddRunTime(string Exe, int TimeInMs)
 		{
-			string Base = Path.GetFileName(Exe);
-			if (!ExeToTimeInMs.ContainsKey(Base))
+			lock(ExeToTimeInMs)
 			{
-				ExeToTimeInMs.Add(Base, TimeInMs);
-			}
-			else
-			{
-				ExeToTimeInMs[Base] += TimeInMs;
+				string Base = Path.GetFileName(Exe);
+				if (!ExeToTimeInMs.ContainsKey(Base))
+				{
+					ExeToTimeInMs.Add(Base, TimeInMs);
+				}
+				else
+				{
+					ExeToTimeInMs[Base] += TimeInMs;
+				}
 			}
 		}
 
 		public static void PrintRunTime()
 		{
-			foreach (var Item in ExeToTimeInMs)
+			lock(ExeToTimeInMs)
 			{
-				LogVerbose("Run: Total {0}s to run " + Item.Key, Item.Value / 1000);
+				foreach (var Item in ExeToTimeInMs)
+				{
+					LogVerbose("Run: Total {0}s to run " + Item.Key, Item.Value / 1000);
+				}
+				ExeToTimeInMs.Clear();
 			}
-			ExeToTimeInMs.Clear();
 		}
 
 		#endregion
@@ -731,12 +737,12 @@ namespace AutomationTool
 		/// <param name="Env">Environment to pass to program.</param>
 		/// <param name="FilterCallback">Callback to filter log spew before output.</param>
 		/// <returns>Object containing the exit code of the program as well as it's stdout output.</returns>
-		public static IProcessResult Run(string App, string CommandLine = null, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> Env = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
+		public static IProcessResult Run(string App, string CommandLine = null, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> Env = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null, string Identifier = null)
 		{
 			App = ConvertSeparators(PathSeparator.Default, App);
 
 			// Get the log name before allowing the platform to modify the app/command-line. We want mono apps to be written to a log named after the application and appear with the application prefix rather than "mono:".
-			string LogName = Path.GetFileNameWithoutExtension(App);
+			string LogName = Identifier ?? Path.GetFileNameWithoutExtension(App);
 
 			HostPlatform.Current.SetupOptionsForRun(ref App, ref Options, ref CommandLine);
 			if (App == "ectool" || App == "zip" || App == "xcodebuild")
@@ -886,7 +892,7 @@ namespace AutomationTool
 		public static string RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> EnvVars = null, ProcessResult.SpewFilterCallbackType SpewFilterCallback = null)
         {
 			IProcessResult Result = Run(App, CommandLine, Input, Options, EnvVars, SpewFilterCallback);
-            if (Result.Output.Length > 0 && Logfile != null)
+            if (!String.IsNullOrEmpty(Result.Output) && Logfile != null)
             {
                 WriteToFile(Logfile, Result.Output);
             }
@@ -904,7 +910,7 @@ namespace AutomationTool
                 throw new CommandFailedException((ExitCode)Result.ExitCode, String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
                                                 App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
             }
-            if (Result.Output.Length > 0)
+            if (!String.IsNullOrEmpty(Result.Output))
             {
                 return Result.Output;
             }

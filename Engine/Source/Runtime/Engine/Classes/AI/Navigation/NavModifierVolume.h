@@ -15,8 +15,8 @@ struct FNavigationRelevantData;
 /** 
  *	Allows applying selected AreaClass to navmesh, using Volume's shape
  */
-UCLASS(MinimalAPI, hidecategories=(Navigation))
-class ANavModifierVolume : public AVolume, public INavRelevantInterface
+UCLASS(hidecategories=(Navigation))
+class ENGINE_API ANavModifierVolume : public AVolume, public INavRelevantInterface
 {
 	GENERATED_BODY()
 

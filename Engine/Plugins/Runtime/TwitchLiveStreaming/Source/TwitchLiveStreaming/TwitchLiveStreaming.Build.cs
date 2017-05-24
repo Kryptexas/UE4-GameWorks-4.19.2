@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
     public class TwitchLiveStreaming : ModuleRules
     {
-        public TwitchLiveStreaming(TargetInfo Target)
+        public TwitchLiveStreaming(ReadOnlyTargetRules Target) : base(Target)
         {
 			BinariesSubFolder = "NotForLicensees";
 
@@ -18,7 +18,7 @@ namespace UnrealBuildTool.Rules
 					"RHI"
 				});
 
-			if (Target.Type == TargetRules.TargetType.Editor)
+			if (Target.Type == TargetType.Editor)
 			{
 				DynamicallyLoadedModuleNames.AddRange(
 					new string[]

@@ -118,11 +118,38 @@ namespace EWidgetDesignFlags
 {
 	enum Type
 	{
-		None		= 0,
-		Designing	= 1,
-		ShowOutline	= 2,
+		None				= 0,
+		Designing			= 1,
+		ShowOutline			= 2,
+		ExecutePreConstruct	= 4
 	};
 }
+
+
+#if WITH_EDITOR
+
+/**
+ * Event args that are sent whenever the designer is changed in some big way, allows for more accurate previews for
+ * widgets that need to anticipate things about the size of the screen, or other similar device factors.
+ */
+struct FDesignerChangedEventArgs
+{
+public:
+	FDesignerChangedEventArgs()
+		: bScreenPreview(false)
+		, Size(0, 0)
+		, DpiScale(1.0f)
+	{
+	}
+
+public:
+	bool bScreenPreview;
+	FVector2D Size;
+	float DpiScale;
+};
+
+#endif
+
 
 
 /**
@@ -409,6 +436,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	FVector2D GetDesiredSize() const;
 
+	/**
+	 *	Sets the widget navigation rules for all directions. This can only be called on widgets that are in a widget tree.
+	 *	@param Rule The rule to use when navigation is taking place
+	 *	@param WidgetToFocus When using the Explicit rule, focus on this widget
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetAllNavigationRules(EUINavigationRule Rule, FName WidgetToFocus);
+
+	/**
+	 *	Sets the widget navigation rules for a specific direction. This can only be called on widgets that are in a widget tree.
+	 *	@param Direction
+	 *	@param Rule The rule to use when navigation is taking place
+	 *	@param WidgetToFocus When using the Explicit rule, focus on this widget
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void SetNavigationRule(EUINavigation Direction, EUINavigationRule Rule, FName WidgetToFocus);
+
+	
 	/** Gets the parent widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	class UPanelWidget* GetParent() const;
@@ -542,7 +587,7 @@ public:
 	/**  */
 	bool AddBinding(UDelegateProperty* DelegateProperty, UObject* SourceObject, const FDynamicPropertyPath& BindingPath);
 
-	static TSubclassOf<class UPropertyBinding> FindBinderClassForDestination(UProperty* Property);
+	static TSubclassOf<UPropertyBinding> FindBinderClassForDestination(UProperty* Property);
 
 	// Begin UObject
 	virtual UWorld* GetWorld() const override;
@@ -565,10 +610,6 @@ public:
 
 	/** Get Label Metadata, which may be as simple as a bit of string data to help identify an anonymous text block. */
 	virtual FString GetLabelMetadata() const;
-
-	/** Gets the label to display to the user for this widget. */
-	DEPRECATED(4.8, "Use GetLabelText(), which will return the label as FText.")
-	FString GetLabel() const;
 
 	/** Gets the label to display to the user for this widget. */
 	FText GetLabelText() const;
@@ -597,17 +638,19 @@ public:
 	EVisibility GetVisibilityInDesigner() const;
 
 	// Begin Designer contextual events
-	void Select();
-	void Deselect();
+	void SelectByDesigner();
+	void DeselectByDesigner();
 
-	virtual void OnSelected() { }
-	virtual void OnDeselected() { }
+	virtual void OnDesignerChanged(const FDesignerChangedEventArgs& EventArgs) { }
 
-	virtual void OnDescendantSelected(UWidget* DescendantWidget) { }
-	virtual void OnDescendantDeselected(UWidget* DescendantWidget) { }
+	virtual void OnSelectedByDesigner() { }
+	virtual void OnDeselectedByDesigner() { }
 
-	virtual void OnBeginEdit() { }
-	virtual void OnEndEdit() { }
+	virtual void OnDescendantSelectedByDesigner(UWidget* DescendantWidget) { }
+	virtual void OnDescendantDeselectedByDesigner(UWidget* DescendantWidget) { }
+
+	virtual void OnBeginEditByDesigner() { }
+	virtual void OnEndEditByDesigner() { }
 	// End Designer contextual events
 #endif
 
@@ -662,6 +705,8 @@ protected:
 		return FSlateColor(InLinearColor.Get());
 	}
 
+	void SetNavigationRuleInternal(EUINavigation Direction, EUINavigationRule Rule, FName WidgetToFocus);
+
 protected:
 	/** The underlying SWidget. */
 	TWeakPtr<SWidget> MyWidget;
@@ -671,7 +716,7 @@ protected:
 
 	/** Native property bindings. */
 	UPROPERTY(Transient)
-	TArray<class UPropertyBinding*> NativeBindings;
+	TArray<UPropertyBinding*> NativeBindings;
 
 	static TArray<TSubclassOf<UPropertyBinding>> BinderClasses;
 

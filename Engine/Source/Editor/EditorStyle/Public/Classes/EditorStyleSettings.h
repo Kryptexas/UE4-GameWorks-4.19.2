@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Public/Styling/SlateBrush.h"
 #include "EditorStyleSettings.generated.h"
 
 /**
@@ -75,6 +76,22 @@ public:
 	/** Applies a color vision deficiency filter to the entire editor */
 	UPROPERTY(EditAnywhere, config, Category=Colors)
 	TEnumAsByte<EColorVisionDeficiency> ColorVisionDeficiencyPreviewType;
+
+	/** The color used to tint the editor window backgrounds */
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	FLinearColor EditorWindowBackgroundColor;
+
+	/** The override for the background of the main window (if not modified, the defaults will be used) */
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	FSlateBrush EditorMainWindowBackgroundOverride;
+
+	/** The override for the background of the child window (if not modified, the defaults will be used) */
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	FSlateBrush EditorChildWindowBackgroundOverride;
+
+	/** Check to reset the window background settings to editor defaults */
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	bool bResetEditorWindowBackgroundSettings;
 
 public:
 
@@ -149,6 +166,10 @@ public:
 	/** When enabled, the Advanced Details will always auto expand. */
 	UPROPERTY(config)
 	uint32 bShowAllAdvancedDetails : 1;
+
+	/** When Playing or Simulating, shows all properties (even non-visible and non-editable properties), if the object belongs to a simulating world.  This is useful for debugging. */
+	UPROPERTY(config)
+	uint32 bShowHiddenPropertiesWhilePlaying : 1;
 
 	/** The font size used in the output log */
 	UPROPERTY(EditAnywhere, config, Category="Output Log", meta=(DisplayName="Log Font Size", ConfigRestartRequired=true))

@@ -2,274 +2,82 @@
 
 #include "OnlineIdentityFacebook.h"
 #include "OnlineSubsystemFacebookPrivate.h"
-#include "HttpModule.h"
-#include "Interfaces/IHttpResponse.h"
+#include "OnlineExternalUIInterfaceFacebook.h"
 #include "Misc/ConfigCacheIni.h"
 
-// FUserOnlineAccountFacebook
-
-TSharedRef<const FUniqueNetId> FUserOnlineAccountFacebook::GetUserId() const
-{
-	return UserIdPtr;
-}
-
-FString FUserOnlineAccountFacebook::GetRealName() const
-{
-	//@todo samz - implement
-	return FString();
-}
-
-FString FUserOnlineAccountFacebook::GetDisplayName(const FString& Platform) const
-{
-	//@todo samz - implement
-	return FString();
-}
-
-bool FUserOnlineAccountFacebook::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
-{
-	return false;
-}
-
-bool FUserOnlineAccountFacebook::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
-{
-	return false;
-}
-
-FString FUserOnlineAccountFacebook::GetAccessToken() const
-{
-	return AuthTicket;
-}
-
-bool FUserOnlineAccountFacebook::GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const
-{
-	return false;
-}
-
-// FOnlineIdentityFacebook
-
-/**
- * Sets the needed configuration properties
- */
-FOnlineIdentityFacebook::FOnlineIdentityFacebook()
-	: LastCheckElapsedTime(0.f)
-	, TotalCheckElapsedTime(0.f)
-	, MaxCheckElapsedTime(0.f)
+FOnlineIdentityFacebook::FOnlineIdentityFacebook(FOnlineSubsystemFacebook* InSubsystem)
+	: FOnlineIdentityFacebookCommon(InSubsystem)
 	, bHasLoginOutstanding(false)
-	, LocalUserNumPendingLogin(0)
 {
-	if (!GConfig->GetString(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("LoginUrl"), LoginUrl, GEngineIni))
+	if (!GConfig->GetString(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("LoginUrl"), LoginURLDetails.LoginUrl, GEngineIni))
 	{
 		UE_LOG(LogOnline, Warning, TEXT("Missing LoginUrl= in [OnlineSubsystemFacebook.OnlineIdentityFacebook] of DefaultEngine.ini"));
 	}
-	if (!GConfig->GetString(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("LoginRedirectUrl"), LoginRedirectUrl, GEngineIni))
+	if (!GConfig->GetString(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("LoginRedirectUrl"), LoginURLDetails.LoginRedirectUrl, GEngineIni))
 	{
 		UE_LOG(LogOnline, Warning, TEXT("Missing LoginRedirectUrl= in [OnlineSubsystemFacebook.OnlineIdentityFacebook] of DefaultEngine.ini"));
 	}
-	if (!GConfig->GetString(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("ClientId"), ClientId, GEngineIni))
+	if (!GConfig->GetBool(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("bUsePopup"), LoginURLDetails.bUsePopup, GEngineIni))
 	{
-		UE_LOG(LogOnline, Warning, TEXT("Missing ClientId= in [OnlineSubsystemFacebook.OnlineIdentityFacebook] of DefaultEngine.ini"));
-	}
-	if (!GConfig->GetFloat(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("LoginTimeout"), MaxCheckElapsedTime, GEngineIni))
-	{
-		UE_LOG(LogOnline, Warning, TEXT("Missing LoginTimeout= in [OnlineSubsystemFacebook.OnlineIdentityFacebook] of DefaultEngine.ini"));
-		// Default to 30 seconds
-		MaxCheckElapsedTime = 30.f;
+		UE_LOG(LogOnline, Warning, TEXT("Missing bUsePopup= in [OnlineSubsystemFacebook.OnlineIdentityFacebook] of DefaultEngine.ini"));
 	}
 
-	// @HSL_BEGIN - Josh.May - 10/04/2016 - Added permission scope fields
-	GConfig->GetArray(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("ScopeFields"), ScopeFields, GEngineIni);
-	// always required fields
-	ScopeFields.AddUnique(TEXT("public_profile"));
-	// @HSL_END - Josh.May - 10/04/2016
-}
-
-/**
- * Used to do any time based processing of tasks
- *
- * @param DeltaTime the amount of time that has elapsed since the last tick
- */
-void FOnlineIdentityFacebook::Tick(float DeltaTime)
-{
-	// Only tick once per frame
-	TickLogin(DeltaTime);
-}
-
-/**
- * Ticks the registration process handling timeouts, etc.
- *
- * @param DeltaTime the amount of time that has elapsed since last tick
- */
-void FOnlineIdentityFacebook::TickLogin(float DeltaTime)
-{
-	if (bHasLoginOutstanding)
+	LoginURLDetails.ClientId = InSubsystem->GetAppId();
+	if (LoginURLDetails.ClientId.IsEmpty())
 	{
-		LastCheckElapsedTime += DeltaTime;
-		TotalCheckElapsedTime += DeltaTime;
-		// See if enough time has elapsed in order to check for completion
-		if (LastCheckElapsedTime > 1.f ||
-			// Do one last check if we're getting ready to time out
-			TotalCheckElapsedTime > MaxCheckElapsedTime)
-		{
-			LastCheckElapsedTime = 0.f;
-			FString Title;
-			// Find the browser window we spawned which should now be titled with the redirect url
-			if (FPlatformMisc::GetWindowTitleMatchingText(*LoginRedirectUrl, Title))
-			{
-				bHasLoginOutstanding = false;
-
-				// Parse access token from the login redirect url
-				FString AccessToken;
-				if (FParse::Value(*Title, TEXT("access_token="), AccessToken) &&
-					!AccessToken.IsEmpty())
-				{
-					// strip off any url parameters and just keep the token itself
-					FString AccessTokenOnly;
-					if (AccessToken.Split(TEXT("&"), &AccessTokenOnly, NULL))
-					{
-						AccessToken = AccessTokenOnly;
-					}
-					// kick off http request to get user info with the new token
-					TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-					LoginUserRequests.Add(&HttpRequest.Get(), FPendingLoginUser(LocalUserNumPendingLogin, AccessToken));
-
-					FString MeUrl = TEXT("https://graph.facebook.com/me?access_token=`token");					
-
-					HttpRequest->OnProcessRequestComplete().BindRaw(this, &FOnlineIdentityFacebook::MeUser_HttpRequestComplete);
-					HttpRequest->SetURL(MeUrl.Replace(TEXT("`token"), *AccessToken, ESearchCase::IgnoreCase));
-					HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-					HttpRequest->SetVerb(TEXT("GET"));
-					HttpRequest->ProcessRequest();
-				}
-				else
-				{
-					TriggerOnLoginCompleteDelegates(LocalUserNumPendingLogin, false, FUniqueNetIdString(TEXT("")), 
-						FString(TEXT("RegisterUser() failed to parse the user registration results")));
-				}
-			}
-			// Trigger the delegate if we hit the timeout limit
-			else if (TotalCheckElapsedTime > MaxCheckElapsedTime)
-			{
-				bHasLoginOutstanding = false;
-				TriggerOnLoginCompleteDelegates(LocalUserNumPendingLogin, false, FUniqueNetIdString(TEXT("")), 
-					FString(TEXT("RegisterUser() timed out without getting the data")));
-			}
-		}
-		// Reset our time trackers if we are done ticking for now
-		if (!bHasLoginOutstanding)
-		{
-			LastCheckElapsedTime = 0.f;
-			TotalCheckElapsedTime = 0.f;
-		}
-	}
-}
-
-/**
- * Parses the results into a user account entry
- *
- * @param Results the string returned by the login process
- */
-bool FOnlineIdentityFacebook::ParseLoginResults(const FString& Results,FUserOnlineAccountFacebook& Account)
-{
-	// reset it
-	Account = FUserOnlineAccountFacebook();
-	// get the access token
-	if (FParse::Value(*Results, TEXT("access_token="), Account.AuthTicket))
-	{
-		return !Account.AuthTicket.IsEmpty();
-	}
-	return false;
-}
-
-/**
- * Obtain online account info for a user that has been registered
- *
- * @param UserId user to search for
- *
- * @return info about the user if found, NULL otherwise
- */
-TSharedPtr<FUserOnlineAccount> FOnlineIdentityFacebook::GetUserAccount(const FUniqueNetId& UserId) const
-{
-	TSharedPtr<FUserOnlineAccount> Result;
-
-	const TSharedRef<FUserOnlineAccountFacebook>* FoundUserAccount = UserAccounts.Find(UserId.ToString());
-	if (FoundUserAccount != NULL)
-	{
-		Result = *FoundUserAccount;
+		UE_LOG(LogOnline, Warning, TEXT("Missing ClientId= in [OnlineSubsystemFacebook] of DefaultEngine.ini"));
 	}
 
-	return Result;
+	// Setup permission scope fields
+	GConfig->GetArray(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("ScopeFields"), LoginURLDetails.ScopeFields, GEngineIni);
+	// always required login access fields
+	LoginURLDetails.ScopeFields.AddUnique(TEXT(PERM_PUBLIC_PROFILE));
 }
 
-/**
- * Obtain list of all known/registered user accounts
- *
- * @param UserId user to search for
- *
- * @return info about the user if found, NULL otherwise
- */
-TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityFacebook::GetAllUserAccounts() const
-{
-	TArray<TSharedPtr<FUserOnlineAccount> > Result;
-	
-	for (FUserOnlineAccountFacebookMap::TConstIterator It(UserAccounts); It; ++It)
-	{
-		Result.Add(It.Value());
-	}
-
-	return Result;
-}
-
-TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::GetUniquePlayerId(int32 LocalUserNum) const
-{
-	const TSharedPtr<const FUniqueNetId>* FoundId = UserIds.Find(LocalUserNum);
-	if (FoundId != NULL)
-	{
-		return *FoundId;
-	}
-	return NULL;
-}
-
-/**
- * Kicks off the browser process to register the user with Facebook
- */
 bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
 {
 	FString ErrorStr;
 
 	if (bHasLoginOutstanding)
 	{
-		ErrorStr = FString::Printf(TEXT("Registration already pending for user %d"), 
-			LocalUserNumPendingLogin);
+		ErrorStr = FString::Printf(TEXT("Registration already pending for user"));
 	}
-	else if (!(LoginUrl.Len() && LoginRedirectUrl.Len() && ClientId.Len()))
+	else if (!LoginURLDetails.IsValid())
 	{
-		ErrorStr = FString::Printf(TEXT("OnlineSubsystemFacebook is improperly configured in DefaultEngine.ini FacebookEndpoint=%s RedirectUrl=%s ClientId=%s"),
-			*LoginUrl, *LoginRedirectUrl, *ClientId);
+		ErrorStr = FString::Printf(TEXT("OnlineSubsystemFacebook is improperly configured in DefaultEngine.ini LoginURL=%s LoginRedirectUrl=%s ClientId=%s"),
+			*LoginURLDetails.LoginUrl, *LoginURLDetails.LoginRedirectUrl, *LoginURLDetails.ClientId);
 	}
 	else
 	{
-		// random number to represent client generated state for verification on login
-		State = FString::FromInt(FMath::Rand() % 100000);
-		// auth url to spawn in browser
-
-		// @HSL_BEGIN - Josh.May - 10/04/2016 - Added permission scope fields
-		FString Scopes = FString::Join(ScopeFields, TEXT(","));
-
-		const FString& Command = FString::Printf(TEXT("%s?redirect_uri=%s&client_id=%s&state=%s&response_type=token&scope=%s"), 
-			*LoginUrl, *LoginRedirectUrl, *ClientId, *State, *Scopes);
-		// @HSL_END - Josh.May - 10/04/2016
-
-		// This should open the browser with the command as the URL
-		if (FPlatformMisc::OsExecute(TEXT("open"), *Command))
+		if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
 		{
-			// keep track of local user requesting registration
-			LocalUserNumPendingLogin = LocalUserNum;
-			bHasLoginOutstanding = true;
+			ErrorStr = FString::Printf(TEXT("Invalid LocalUserNum=%d"), LocalUserNum);
 		}
 		else
 		{
-			ErrorStr = FString::Printf(TEXT("Failed to execute command %s"),
-				*Command);
+			if (!AccountCredentials.Id.IsEmpty() && !AccountCredentials.Token.IsEmpty() && AccountCredentials.Type == GetAuthType())
+			{
+				bHasLoginOutstanding = true;
+
+				Login(LocalUserNum, AccountCredentials.Token, FOnLoginCompleteDelegate::CreateRaw(this, &FOnlineIdentityFacebook::OnAccessTokenLoginComplete));
+			}
+			else
+			{
+				IOnlineExternalUIPtr OnlineExternalUI = FacebookSubsystem->GetExternalUIInterface();
+				if (OnlineExternalUI.IsValid())
+				{
+					LoginURLDetails.GenerateNonce();
+
+					bHasLoginOutstanding = true;
+
+					FOnLoginUIClosedDelegate CompletionDelegate = FOnLoginUIClosedDelegate::CreateRaw(this, &FOnlineIdentityFacebook::OnExternalUILoginComplete);
+					OnlineExternalUI->ShowLoginUI(LocalUserNum, true, true, CompletionDelegate);
+				}
+				else
+				{
+					ErrorStr = FString::Printf(TEXT("External interface missing"));
+				}
+			}
 		}
 	}
 
@@ -277,31 +85,170 @@ bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCred
 	{
 		UE_LOG(LogOnline, Error, TEXT("RegisterUser() failed: %s"),
 			*ErrorStr);
-		TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdString(TEXT("")), ErrorStr);
+
+		bHasLoginOutstanding = false;
+		TriggerOnLoginCompleteDelegates(LocalUserNum, false, GetEmptyUniqueId(), ErrorStr);
 		return false;
 	}
 	return true;
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(uint8* Bytes, int32 Size)
+void FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FString& AccessToken, const FOnLoginCompleteDelegate& InCompletionDelegate)
 {
-	if (Bytes != NULL && Size > 0)
+	FOnProfileRequestComplete CompletionDelegate = FOnProfileRequestComplete::CreateLambda([this, InCompletionDelegate](int32 LocalUserNumFromRequest, bool bWasSuccessful, const FString& ErrorStr)
 	{
-		FString StrId(Size, (TCHAR*)Bytes);
-		return MakeShareable(new FUniqueNetIdString(StrId));
-	}
-	return NULL;
+		FOnRequestCurrentPermissionsComplete NextCompletionDelegate = FOnRequestCurrentPermissionsComplete::CreateLambda([this, InCompletionDelegate](int32 LocalUserNumFromPerms, bool bWasSuccessful, const TArray<FSharingPermission>& Permissions)
+		{
+			OnRequestCurrentPermissionsComplete(LocalUserNumFromPerms, bWasSuccessful, Permissions, InCompletionDelegate);
+		});
+
+		if (bWasSuccessful)
+		{
+			RequestCurrentPermissions(LocalUserNumFromRequest, NextCompletionDelegate);
+		}
+		else
+		{
+			InCompletionDelegate.ExecuteIfBound(LocalUserNumFromRequest, bWasSuccessful, GetEmptyUniqueId(), ErrorStr);
+		}
+	});
+
+	ProfileRequest(LocalUserNum, AccessToken, ProfileFields, CompletionDelegate);
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(const FString& Str)
+void FOnlineIdentityFacebook::OnRequestCurrentPermissionsComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<FSharingPermission>& NewPermissions, FOnLoginCompleteDelegate CompletionDelegate)
 {
-	return MakeShareable(new FUniqueNetIdString(Str));
+	FString ErrorStr;
+	if (!bWasSuccessful)
+	{
+		ErrorStr = TEXT("Failure to request current sharing permissions");
+	}
+
+	LoginURLDetails.ScopeFields.Empty(NewPermissions.Num());
+	for (const FSharingPermission& Perm : NewPermissions)
+	{
+		if (Perm.Status == EOnlineSharingPermissionState::Granted)
+		{
+			LoginURLDetails.ScopeFields.Add(Perm.Name);
+		}
+	}
+
+	LoginURLDetails.NewScopeFields.Empty();
+	LoginURLDetails.RerequestScopeFields.Empty();
+
+	CompletionDelegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, *GetUniquePlayerId(LocalUserNum), ErrorStr);
 }
 
-// All of the methods below here fail because they aren't supported
+void FOnlineIdentityFacebook::OnAccessTokenLoginComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UniqueId, const FString& Error)
+{
+	bHasLoginOutstanding = false;
+
+	TriggerOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, UniqueId, Error);
+	if (bWasSuccessful)
+	{
+		// login status changed
+		TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::LoggedIn, UniqueId);
+	}
+}
+
+void FOnlineIdentityFacebook::OnExternalUILoginComplete(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex)
+{
+	FString ErrorStr;
+	bool bWasSuccessful = UniqueId.IsValid() && UniqueId->IsValid();
+	OnAccessTokenLoginComplete(ControllerIndex, bWasSuccessful, bWasSuccessful ? *UniqueId : GetEmptyUniqueId(), ErrorStr);
+}
+
+void FOnlineIdentityFacebook::RequestElevatedPermissions(int32 LocalUserNum, const TArray<FSharingPermission>& AddlPermissions, const FOnLoginCompleteDelegate& InCompletionDelegate)
+{
+	FString ErrorStr;
+
+	if (bHasLoginOutstanding)
+	{
+		ErrorStr = FString::Printf(TEXT("Registration already pending for user"));
+	}
+	else if (!LoginURLDetails.IsValid())
+	{
+		ErrorStr = FString::Printf(TEXT("OnlineSubsystemFacebook is improperly configured in DefaultEngine.ini LoginURL=%s LoginRedirectUrl=%s ClientId=%s"),
+			*LoginURLDetails.LoginUrl, *LoginURLDetails.LoginRedirectUrl, *LoginURLDetails.ClientId);
+	}
+	else
+	{
+		if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+		{
+			ErrorStr = FString::Printf(TEXT("Invalid LocalUserNum=%d"), LocalUserNum);
+		}
+		else
+		{
+			IOnlineExternalUIPtr OnlineExternalUI = FacebookSubsystem->GetExternalUIInterface();
+			if (OnlineExternalUI.IsValid())
+			{
+				LoginURLDetails.GenerateNonce();
+
+				TArray<FString> NewPerms;
+				TArray<FString> RerequestPerms;
+				for (const FSharingPermission& NewPermission : AddlPermissions)
+				{
+					if (!LoginURLDetails.ScopeFields.Contains(NewPermission.Name))
+					{
+						if (NewPermission.Status == EOnlineSharingPermissionState::Declined)
+						{
+							RerequestPerms.AddUnique(NewPermission.Name);
+						}
+						else
+						{
+							NewPerms.AddUnique(NewPermission.Name);
+						}
+					}
+				}
+
+				if (NewPerms.Num() > 0 || RerequestPerms.Num() > 0)
+				{
+					bHasLoginOutstanding = true;
+					LoginURLDetails.NewScopeFields = NewPerms;
+					LoginURLDetails.RerequestScopeFields = RerequestPerms;
+					FOnLoginUIClosedDelegate CompletionDelegate = FOnLoginUIClosedDelegate::CreateRaw(this, &FOnlineIdentityFacebook::OnExternalUIElevatedPermissionsComplete, InCompletionDelegate);
+					OnlineExternalUI->ShowLoginUI(LocalUserNum, true, true, CompletionDelegate);
+				}
+				else
+				{
+					// Fire off delegate now because permissions already exist
+					TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
+					InCompletionDelegate.ExecuteIfBound(LocalUserNum, true, *UserId, ErrorStr);
+				}
+			}
+			else
+			{
+				ErrorStr = FString::Printf(TEXT("External interface missing"));
+			}
+		}
+	}
+
+	if (!ErrorStr.IsEmpty())
+	{
+		UE_LOG(LogOnline, Error, TEXT("RequestElevatedPermissions() failed: %s"), *ErrorStr);
+		bHasLoginOutstanding = false;
+		InCompletionDelegate.ExecuteIfBound(LocalUserNum, false, GetEmptyUniqueId(), ErrorStr);
+	}
+}
+
+void FOnlineIdentityFacebook::OnExternalUIElevatedPermissionsComplete(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, FOnLoginCompleteDelegate InCompletionDelegate)
+{
+	FString ErrorStr;
+	bool bWasSuccessful = UniqueId.IsValid() && UniqueId->IsValid();
+	bHasLoginOutstanding = false;
+
+	if (!bWasSuccessful)
+	{
+		ErrorStr = TEXT("com.epicgames.elevated_perms_failed");
+	}
+
+	UE_LOG(LogOnline, Verbose, TEXT("RequestElevatedPermissions() %s"), bWasSuccessful ? TEXT("success") : TEXT("failed"));
+	TSharedPtr<const FUniqueNetId> ExistingUserId = GetUniquePlayerId(ControllerIndex);
+	InCompletionDelegate.ExecuteIfBound(ControllerIndex, bWasSuccessful, ExistingUserId.IsValid() ? *ExistingUserId : GetEmptyUniqueId(), ErrorStr);
+}
 
 bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 {
+	bool bResult = false;
 	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
@@ -309,168 +256,27 @@ bool FOnlineIdentityFacebook::Logout(int32 LocalUserNum)
 		UserAccounts.Remove(UserId->ToString());
 		// remove cached user id
 		UserIds.Remove(LocalUserNum);
+		// reset scope permissions
+		GConfig->GetArray(TEXT("OnlineSubsystemFacebook.OnlineIdentityFacebook"), TEXT("ScopeFields"), LoginURLDetails.ScopeFields, GEngineIni);
 		// not async but should call completion delegate anyway
-		TriggerOnLogoutCompleteDelegates(LocalUserNum, true);
+		FacebookSubsystem->ExecuteNextTick([this, LocalUserNum, UserId]() {
+			TriggerOnLogoutCompleteDelegates(LocalUserNum, true);
+			TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::LoggedIn, ELoginStatus::NotLoggedIn, *UserId);
+		});
 
-		return true;
+		bResult = true;
 	}
 	else
 	{
 		UE_LOG(LogOnline, Warning, TEXT("No logged in user found for LocalUserNum=%d."),
 			LocalUserNum);
-		TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
+		FacebookSubsystem->ExecuteNextTick([this, LocalUserNum]() {
+			TriggerOnLogoutCompleteDelegates(LocalUserNum, false);
+		});
 	}
-	return false;
+	
+	return bResult;
 }
 
-bool FOnlineIdentityFacebook::AutoLogin(int32 LocalUserNum)
-{
-	return false;
-}
 
-ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(int32 LocalUserNum) const
-{
-	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
-	if (UserId.IsValid())
-	{
-		return GetLoginStatus(*UserId);
-	}
-	return ELoginStatus::NotLoggedIn;
-}
-
-ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(const FUniqueNetId& UserId) const
-{
-	TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(UserId);
-	if (UserAccount.IsValid() &&
-		UserAccount->GetUserId()->IsValid() &&
-		!UserAccount->GetAccessToken().IsEmpty())
-	{
-		return ELoginStatus::LoggedIn;
-	}
-	return ELoginStatus::NotLoggedIn;
-}
-
-FString FOnlineIdentityFacebook::GetPlayerNickname(int32 LocalUserNum) const
-{
-	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
-	if (UserId.IsValid())
-	{
-		return  GetPlayerNickname(*UserId);
-	}
-	return TEXT("");
-}
-
-FString FOnlineIdentityFacebook::GetPlayerNickname(const FUniqueNetId& UserId) const
-{
-	const TSharedRef<FUserOnlineAccountFacebook>* FoundUserAccount = UserAccounts.Find(UserId.ToString());
-	if (FoundUserAccount != NULL)
-	{
-		const TSharedRef<FUserOnlineAccountFacebook>& UserAccount = *FoundUserAccount;
-		return UserAccount->RealName;
-	}
-	return TEXT("");
-}
-
-FString FOnlineIdentityFacebook::GetAuthToken(int32 LocalUserNum) const
-{
-	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
-	if (UserId.IsValid())
-	{
-		TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(*UserId);
-		if (UserAccount.IsValid())
-		{
-			return UserAccount->GetAccessToken();
-		}
-	}
-	return FString();
-}
-
-void FOnlineIdentityFacebook::MeUser_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
-{
-	bool bResult = false;
-	FString ResponseStr, ErrorStr;
-	FUserOnlineAccountFacebook User;
-
-	FPendingLoginUser PendingRegisterUser = LoginUserRequests.FindRef(HttpRequest.Get());
-	// Remove the request from list of pending entries
-	LoginUserRequests.Remove(HttpRequest.Get());
-
-	if (bSucceeded &&
-		HttpResponse.IsValid())
-	{
-		ResponseStr = HttpResponse->GetContentAsString();
-		if (EHttpResponseCodes::IsOk(HttpResponse->GetResponseCode()))
-		{
-			UE_LOG(LogOnline, Verbose, TEXT("RegisterUser request complete. url=%s code=%d response=%s"), 
-				*HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *ResponseStr);
-
-			if (User.FromJson(ResponseStr))
-			{
-				if (!User.UserId.IsEmpty())
-				{
-					// copy and construct the unique id
-					TSharedRef<FUserOnlineAccountFacebook> UserRef(new FUserOnlineAccountFacebook(User));
-					UserRef->UserIdPtr = MakeShareable(new FUniqueNetIdString(User.UserId));
-					// update/add cached entry for user
-					UserAccounts.Add(User.UserId, UserRef);
-					// update the access token
-					UserRef->AuthTicket = PendingRegisterUser.AccessToken;
-					// keep track of user ids for local users
-					UserIds.Add(PendingRegisterUser.LocalUserNum, UserRef->GetUserId());
-
-					bResult = true;
-				}
-				else
-				{
-					ErrorStr = FString::Printf(TEXT("Missing user id. payload=%s"),
-						*ResponseStr);
-				}
-			}
-			else
-			{
-				ErrorStr = FString::Printf(TEXT("Invalid response payload=%s"),
-					*ResponseStr);
-			}
-		}
-		else
-		{
-			ErrorStr = FString::Printf(TEXT("Invalid response. code=%d error=%s"),
-				HttpResponse->GetResponseCode(), *ResponseStr);
-		}
-	}
-	else
-	{
-		ErrorStr = TEXT("No response");
-	}
-	if (!ErrorStr.IsEmpty())
-	{
-		UE_LOG(LogOnline, Warning, TEXT("RegisterUser request failed. %s"), *ErrorStr);
-	}
-
-	TriggerOnLoginCompleteDelegates(PendingRegisterUser.LocalUserNum, bResult, FUniqueNetIdString(User.UserId), ErrorStr);
-}
-
-void FOnlineIdentityFacebook::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
-{
-	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
-}	
-
-FPlatformUserId FOnlineIdentityFacebook::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
-{
-	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
-	{
-		auto CurrentUniqueId = GetUniquePlayerId(i);
-		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == UniqueNetId))
-		{
-			return i;
-		}
-	}
-
-	return PLATFORMUSERID_NONE;
-}
-
-FString FOnlineIdentityFacebook::GetAuthType() const
-{
-	return TEXT("");
-}
 

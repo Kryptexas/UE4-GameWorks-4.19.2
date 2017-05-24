@@ -29,7 +29,7 @@ FClassArchiveProxy::FClassArchiveProxy(FUHTMakefile& UHTMakefile, const UClass* 
 	FuncMap.Empty(Class->FuncMap.Num());
 	for (auto& Kvp : Class->FuncMap)
 	{
-		FuncMap.Add(TPairInitializer<FNameArchiveProxy, int32>(FNameArchiveProxy(UHTMakefile, Kvp.Key), UHTMakefile.GetFunctionIndex(Kvp.Value)));
+		FuncMap.Emplace(FNameArchiveProxy(UHTMakefile, Kvp.Key), UHTMakefile.GetFunctionIndex(Kvp.Value));
 	}
 
 	Interfaces.Empty(Class->Interfaces.Num());

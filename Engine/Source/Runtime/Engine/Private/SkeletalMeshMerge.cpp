@@ -641,7 +641,7 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 	// sort required bone array in strictly increasing order
 	MergeLODModel.RequiredBones.Sort();
-	MergeLODModel.ActiveBoneIndices.Sort();
+	MergeMesh->RefSkeleton.EnsureParentExists(MergeLODModel.ActiveBoneIndices);
 
 	// copy the new vertices and indices to the vertex buffer for the new model
 	MergeLODModel.VertexBufferGPUSkin.SetUseFullPrecisionUVs(MergeMesh->bUseFullPrecisionUVs);
@@ -864,65 +864,70 @@ void FSkeletalMeshMerge::ReleaseResources(int32 Slack)
 	MergeMesh->Materials.Empty();
 }
 
-bool FSkeletalMeshMerge::AddSocket(const USkeletalMeshSocket* Socket)
+bool FSkeletalMeshMerge::AddSocket(const USkeletalMeshSocket* NewSocket, bool bIsSkeletonSocket)
 {
-	TArray<USkeletalMeshSocket*>& SocketList = MergeMesh->GetMeshOnlySocketList();
+	TArray<USkeletalMeshSocket*>& MergeMeshSockets = MergeMesh->GetMeshOnlySocketList();
 
-	for (int32 i = 0, SocketCount = SocketList.Num(); i < SocketCount; ++i)
+	// Verify the socket doesn't already exist in the current Mesh list.
+	for (USkeletalMeshSocket const * const ExistingSocket : MergeMeshSockets)
 	{
-		if (SocketList[i]->SocketName == Socket->SocketName)
+		if (ExistingSocket->SocketName == NewSocket->SocketName)
 		{
 			return false;
 		}
 	}
 
-	USkeletalMeshSocket* NewSocket = CastChecked<USkeletalMeshSocket>(StaticDuplicateObject(Socket, MergeMesh));
-	SocketList.Add(NewSocket);
+	// The Skeleton will only be valid in cases where the passed in mesh already had a skeleton
+	// (i.e. an existing mesh was used, or a created mesh was explicitly assigned a skeleton).
+	// In either case, we want to avoid adding sockets to the Skeleton (as it is shared), but we
+	// still need to check against it to prevent duplication.
+	if (bIsSkeletonSocket && MergeMesh->Skeleton)
+	{
+		for (USkeletalMeshSocket const * const ExistingSocket : MergeMesh->Skeleton->Sockets)
+		{
+			return false;
+		}
+	}
+
+	USkeletalMeshSocket* NewSocketDuplicate = CastChecked<USkeletalMeshSocket>(StaticDuplicateObject(NewSocket, MergeMesh));
+	MergeMeshSockets.Add(NewSocketDuplicate);
 
 	return true;
 }
 
-void FSkeletalMeshMerge::AddSockets(const TArray<USkeletalMeshSocket*>& SocketList)
+void FSkeletalMeshMerge::AddSockets(const TArray<USkeletalMeshSocket*>& NewSockets, bool bAreSkeletonSockets)
 {
-	for (int32 i = 0, SocketCount = SocketList.Num(); i < SocketCount; ++i)
+	for (USkeletalMeshSocket* NewSocket : NewSockets)
 	{
-		USkeletalMeshSocket* Socket = SocketList[i];
-		AddSocket(Socket);
+		AddSocket(NewSocket, bAreSkeletonSockets);
 	}
 }
 
 void FSkeletalMeshMerge::BuildSockets(const TArray<USkeletalMesh*>& SourceMeshList)
 {
-	MergeMesh->GetMeshOnlySocketList().Empty();
+	TArray<USkeletalMeshSocket*>& MeshSocketList = MergeMesh->GetMeshOnlySocketList();
+	MeshSocketList.Empty();
 
 	// Iterate through the all the source MESH sockets, only adding the new sockets.
 
-	for (int32 MeshIndex = 0, MeshCount = SourceMeshList.Num(); MeshIndex < MeshCount; ++MeshIndex)
+	for (USkeletalMesh const * const SourceMesh : SourceMeshList)
 	{
-		USkeletalMesh* SourceMesh = SourceMeshList[MeshIndex];
-
-		if (!SourceMesh)
+		if (SourceMesh)
 		{
-			continue;
+			const TArray<USkeletalMeshSocket*>& NewMeshSocketList = SourceMesh->GetMeshOnlySocketList();
+			AddSockets(NewMeshSocketList, false);
 		}
-
-		const TArray<USkeletalMeshSocket*>& MeshSocketList = SourceMesh->GetMeshOnlySocketList();
-		AddSockets(MeshSocketList);
 	}
 
 	// Iterate through the all the source SKELETON sockets, only adding the new sockets.
 
-	for (int32 MeshIndex = 0, MeshCount = SourceMeshList.Num(); MeshIndex < MeshCount; ++MeshIndex)
+	for (USkeletalMesh const * const SourceMesh : SourceMeshList)
 	{
-		USkeletalMesh* SourceMesh = SourceMeshList[MeshIndex];
-
-		if (!SourceMesh)
+		if (SourceMesh)
 		{
-			continue;
+			const TArray<USkeletalMeshSocket*>& NewSkeletonSocketList = SourceMesh->Skeleton->Sockets;
+			AddSockets(NewSkeletonSocketList, true);
 		}
-
-		const TArray<USkeletalMeshSocket*>& SkeletonSocketList = SourceMesh->Skeleton->Sockets;
-		AddSockets(SkeletonSocketList);
 	}
 }
 

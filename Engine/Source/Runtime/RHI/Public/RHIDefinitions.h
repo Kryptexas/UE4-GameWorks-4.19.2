@@ -9,6 +9,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/Engine/Public/PixelFormat.h"
+#include "HAL/IConsoleManager.h"
 
 enum EShaderFrequency
 {
@@ -33,7 +34,7 @@ enum EShaderPlatform
 	SP_PS4				= 2,
 	/** Used when running in Feature Level ES2 in OpenGL. */
 	SP_OPENGL_PCES2		= 3,
-	SP_XBOXONE			= 4,
+	SP_XBOXONE_D3D12    = 4,
 	SP_PCD3D_SM4		= 5,
 	SP_OPENGL_SM5		= 6,
 	/** Used when running in Feature Level ES2 in D3D11. */
@@ -60,8 +61,10 @@ enum EShaderPlatform
 	SP_OPENGL_ES3_1_ANDROID = 25,
 	SP_SWITCH				= 26,
 	SP_SWITCH_FORWARD		= 27,
+	SP_METAL_MRT_MAC	= 28,
+	SP_XBOXONE_D3D11    = 29,
 
-	SP_NumPlatforms		= 28,
+	SP_NumPlatforms		= 30,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -80,13 +83,23 @@ enum ERenderQueryType
 enum { MAX_TEXTURE_MIP_COUNT = 14 };
 
 /** The maximum number of vertex elements which can be used by a vertex declaration. */
-enum { MaxVertexElementCount = 16 };
+enum
+{
+	MaxVertexElementCount = 16,
+	MaxVertexElementCount_NumBits = 4,
+};
+static_assert(MaxVertexElementCount <= (1 << MaxVertexElementCount_NumBits), "MaxVertexElementCount will not fit on MaxVertexElementCount_NumBits");
 
 /** The alignment in bytes between elements of array shader parameters. */
 enum { ShaderArrayElementAlignBytes = 16 };
 
 /** The number of render-targets that may be simultaneously written to. */
-enum { MaxSimultaneousRenderTargets = 8 };
+enum
+{
+	MaxSimultaneousRenderTargets = 8,
+	MaxSimultaneousRenderTargets_NumBits = 3,
+};
+static_assert(MaxSimultaneousRenderTargets <= (1 << MaxSimultaneousRenderTargets_NumBits), "MaxSimultaneousRenderTargets will not fit on MaxSimultaneousRenderTargets_NumBits");
 
 /** The number of UAVs that may be simultaneously bound to a shader. */
 enum { MaxSimultaneousUAVs = 8 };
@@ -131,7 +144,11 @@ enum ESamplerFilter
 	SF_Trilinear,
 	SF_AnisotropicPoint,
 	SF_AnisotropicLinear,
+
+	ESamplerFilter_Num,
+	ESamplerFilter_NumBits = 3,
 };
+static_assert(ESamplerFilter_Num <= (1 << ESamplerFilter_NumBits), "ESamplerFilter_Num will not fit on ESamplerFilter_NumBits");
 
 enum ESamplerAddressMode
 {
@@ -139,8 +156,12 @@ enum ESamplerAddressMode
 	AM_Clamp,
 	AM_Mirror,
 	/** Not supported on all platforms */
-	AM_Border
+	AM_Border,
+
+	ESamplerAddressMode_Num,
+	ESamplerAddressMode_NumBits = 2,
 };
+static_assert(ESamplerAddressMode_Num <= (1 << ESamplerAddressMode_NumBits), "ESamplerAddressMode_Num will not fit on ESamplerAddressMode_NumBits");
 
 enum ESamplerCompareFunction
 {
@@ -152,15 +173,23 @@ enum ERasterizerFillMode
 {
 	FM_Point,
 	FM_Wireframe,
-	FM_Solid
+	FM_Solid,
+
+	ERasterizerFillMode_Num,
+	ERasterizerFillMode_NumBits = 2,
 };
+static_assert(ERasterizerFillMode_Num <= (1 << ERasterizerFillMode_NumBits), "ERasterizerFillMode_Num will not fit on ERasterizerFillMode_NumBits");
 
 enum ERasterizerCullMode
 {
 	CM_None,
 	CM_CW,
-	CM_CCW
+	CM_CCW,
+
+	ERasterizerCullMode_Num,
+	ERasterizerCullMode_NumBits = 2,
 };
+static_assert(ERasterizerCullMode_Num <= (1 << ERasterizerCullMode_NumBits), "ERasterizerCullMode_Num will not fit on ERasterizerCullMode_NumBits");
 
 enum EColorWriteMask
 {
@@ -174,6 +203,8 @@ enum EColorWriteMask
 	CW_RGBA  = CW_RED | CW_GREEN | CW_BLUE | CW_ALPHA,
 	CW_RG    = CW_RED | CW_GREEN,
 	CW_BA    = CW_BLUE | CW_ALPHA,
+
+	EColorWriteMask_NumBits = 4,
 };
 
 enum ECompareFunction
@@ -187,11 +218,30 @@ enum ECompareFunction
 	CF_Never,
 	CF_Always,
 
+	ECompareFunction_Num,
+	ECompareFunction_NumBits = 3,
+
 	// Utility enumerations
 	CF_DepthNearOrEqual		= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_GreaterEqual : CF_LessEqual),
 	CF_DepthNear			= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Greater : CF_Less),
 	CF_DepthFartherOrEqual	= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_LessEqual : CF_GreaterEqual),
 	CF_DepthFarther			= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Less : CF_Greater),
+};
+static_assert(ECompareFunction_Num <= (1 << ECompareFunction_NumBits), "ECompareFunction_Num will not fit on ECompareFunction_NumBits");
+
+enum EStencilMask
+{
+	SM_Default,
+	SM_255,
+	SM_1,
+	SM_2,
+	SM_4,
+	SM_8,
+	SM_16,
+	SM_32,
+	SM_64,
+	SM_128,
+	SM_Count
 };
 
 enum EStencilOp
@@ -203,8 +253,12 @@ enum EStencilOp
 	SO_SaturatedDecrement,
 	SO_Invert,
 	SO_Increment,
-	SO_Decrement
+	SO_Decrement,
+
+	EStencilOp_Num,
+	EStencilOp_NumBits = 3,
 };
+static_assert(EStencilOp_Num <= (1 << EStencilOp_NumBits), "EStencilOp_Num will not fit on EStencilOp_NumBits");
 
 enum EBlendOperation
 {
@@ -213,7 +267,11 @@ enum EBlendOperation
 	BO_Min,
 	BO_Max,
 	BO_ReverseSubtract,
+
+	EBlendOperation_Num,
+	EBlendOperation_NumBits = 3,
 };
+static_assert(EBlendOperation_Num <= (1 << EBlendOperation_NumBits), "EBlendOperation_Num will not fit on EBlendOperation_NumBits");
 
 enum EBlendFactor
 {
@@ -228,8 +286,12 @@ enum EBlendFactor
 	BF_DestColor,
 	BF_InverseDestColor,
 	BF_ConstantBlendFactor,
-	BF_InverseConstantBlendFactor
+	BF_InverseConstantBlendFactor,
+
+	EBlendFactor_Num,
+	EBlendFactor_NumBits = 4,
 };
+static_assert(EBlendFactor_Num <= (1 << EBlendFactor_NumBits), "EBlendFactor_Num will not fit on EBlendFactor_NumBits");
 
 enum EVertexElementType
 {
@@ -253,8 +315,11 @@ enum EVertexElementType
 	VET_UShort2N,		// 16 bit word normalized to (value/65535.0,value/65535.0,0,0,1)
 	VET_UShort4N,		// 4 X 16 bit word unsigned, normalized 
 	VET_URGB10A2N,		// 10 bit r, g, b and 2 bit a normalized to (value/1023.0f, value/1023.0f, value/1023.0f, value/3.0f)
-	VET_MAX
+	VET_MAX,
+
+	VET_NumBits = 5,
 };
+static_assert(VET_MAX <= (1 << VET_NumBits), "VET_MAX will not fit on VET_NumBits");
 
 enum ECubeFace
 {
@@ -289,8 +354,12 @@ enum EUniformBufferBaseType
 	UBMT_SRV,
 	UBMT_UAV,
 	UBMT_SAMPLER,
-	UBMT_TEXTURE
+	UBMT_TEXTURE,
+
+	EUniformBufferBaseType_Num,
+	EUniformBufferBaseType_NumBits = 4,
 };
+static_assert(EUniformBufferBaseType_Num <= (1 << EUniformBufferBaseType_NumBits), "EUniformBufferBaseType_Num will not fit on EUniformBufferBaseType_NumBits");
 
 struct FRHIResourceTableEntry
 {
@@ -366,10 +435,12 @@ enum class EPrimitiveTopologyType : uint8
 	Patch,
 	Line,
 	Point,
-	Quad,
+	//Quad,
+
 	Num,
-	NumBits = 3
+	NumBits = 2,
 };
+static_assert((uint32)EPrimitiveTopologyType::Num <= (1 << (uint32)EPrimitiveTopologyType::NumBits), "EPrimitiveTopologyType::Num will not fit on EPrimitiveTopologyType::NumBits");
 
 enum EPrimitiveType
 {
@@ -413,7 +484,6 @@ enum EPrimitiveType
 	PT_Num,
 	PT_NumBits = 6
 };
-
 static_assert(PT_Num <= (1 << 8), "EPrimitiveType doesn't fit in a byte");
 static_assert(PT_Num <= (1 << PT_NumBits), "PT_NumBits is too small");
 
@@ -559,6 +629,8 @@ enum ETextureCreateFlags
 	TexCreate_NoFastClearFinalize = 1 << 28,
 	// Hint to the driver that this resource is managed properly by the engine for Alternate-Frame-Rendering in mGPU usage.
 	TexCreate_AFRManual = 1 << 29,
+	// Workaround for 128^3 volume textures getting bloated 4x due to tiling mode on PS4
+	TexCreate_ReduceMemoryWithTilingMode = 1 << 30
 };
 
 enum EAsyncComputePriority
@@ -579,22 +651,31 @@ enum ETextureReallocationStatus
 /**
  * Action to take when a rendertarget is set.
  */
-enum class ERenderTargetLoadAction
+enum class ERenderTargetLoadAction : uint8
 {
 	ENoAction,
 	ELoad,
 	EClear,
+
+	Num,
+	NumBits = 2,
 };
+static_assert((uint32)ERenderTargetLoadAction::Num <= (1 << (uint32)ERenderTargetLoadAction::NumBits), "ERenderTargetLoadAction::Num will not fit on ERenderTargetLoadAction::NumBits");
+
 
 /**
  * Action to take when a rendertarget is unset or at the end of a pass. 
  */
-enum class ERenderTargetStoreAction
+enum class ERenderTargetStoreAction : uint8
 {
 	ENoAction,
 	EStore,
 	EMultisampleResolve,
+
+	Num,
+	NumBits = 2,
 };
+static_assert((uint32)ERenderTargetStoreAction::Num <= (1 << (uint32)ERenderTargetStoreAction::NumBits), "ERenderTargetStoreAction::Num will not fit on ERenderTargetStoreAction::NumBits");
 
 /**
  * Common render target use cases
@@ -665,12 +746,12 @@ inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2;
+	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2 || Platform == SP_METAL_MRT_MAC;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PS4 || Platform == SP_XBOXONE;
+	return Platform == SP_PS4 || Platform == SP_XBOXONE_D3D12 || Platform == SP_XBOXONE_D3D11;
 }
 
 inline bool IsVulkanPlatform(const EShaderPlatform Platform)
@@ -697,7 +778,8 @@ inline bool IsD3DPlatform(const EShaderPlatform Platform, bool bIncludeXboxOne)
 	case SP_PCD3D_ES3_1:
 	case SP_PCD3D_ES2:
 		return true;
-	case SP_XBOXONE:
+	case SP_XBOXONE_D3D12:
+	case SP_XBOXONE_D3D11:
 		return bIncludeXboxOne;
 	default:
 		break;
@@ -713,7 +795,8 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_PCD3D_SM5:
 	case SP_OPENGL_SM5:
 	case SP_PS4:
-	case SP_XBOXONE:
+	case SP_XBOXONE_D3D12:
+	case SP_XBOXONE_D3D11:
 	case SP_OPENGL_ES31_EXT:
 	case SP_METAL_SM5:
 	case SP_VULKAN_SM5:
@@ -724,6 +807,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_SM4:
 	case SP_OPENGL_SM4_MAC:
 	case SP_METAL_MRT:
+    case SP_METAL_MRT_MAC:
 	case SP_METAL_SM4:
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
@@ -756,6 +840,14 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 
 inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 {
+#if WITH_EDITOR
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.ForceRHISwitchVerticalAxis"));
+	if (CVar->GetValueOnAnyThread())
+	{
+		return true;
+	}
+#endif
+
 	// ES2 & ES3.1 need to flip when rendering to an RT that will be post processed
 	return IsOpenGLPlatform(Platform) && IsMobilePlatform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL && !IsVulkanPlatform(Platform)
 	       && Platform != SP_SWITCH && Platform != SP_SWITCH_FORWARD;
@@ -787,7 +879,7 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 
 inline bool RHISupportsShaderCompression(const EShaderPlatform Platform)
 {
-	return Platform != SP_XBOXONE; // Handled automatically with hardware decompress
+	return ( Platform != SP_XBOXONE_D3D12) && ( Platform != SP_XBOXONE_D3D11 ); // Handled automatically with hardware decompress
 }
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)

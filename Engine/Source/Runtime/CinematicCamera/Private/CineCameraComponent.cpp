@@ -29,7 +29,15 @@ UCineCameraComponent::UCineCameraComponent()
 	LensSettings.MaxFStop = 2.f;
 	LensSettings.MinimumFocusDistance = 15.f;
 
+#if WITH_EDITORONLY_DATA
+	bTickInEditor = true;
+	PrimaryComponentTick.bCanEverTick = true;
+#endif
+
 	bConstrainAspectRatio = true;
+
+	// Default to CircleDOF, but allow the user to customize it
+	PostProcessSettings.DepthOfFieldMethod = DOFM_CircleDOF;
 
 	RecalcDerivedData();
 
@@ -92,6 +100,14 @@ void UCineCameraComponent::PostLoad()
 	Super::PostLoad();
 }
 
+void UCineCameraComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+#if WITH_EDITORONLY_DATA
+	UpdateDebugFocusPlane();
+#endif
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+}
+
 #if WITH_EDITORONLY_DATA
 void UCineCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -115,6 +131,8 @@ void UCineCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 
 	// reset interpolation if the user changes anything
 	bResetInterpolation = true;
+
+	UpdateDebugFocusPlane();
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -226,8 +244,6 @@ void UCineCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& Desi
 	Super::GetCameraView(DeltaTime, DesiredView);
 
 	UpdateCameraLens(DeltaTime, DesiredView);
-
-	UpdateDebugFocusPlane();
 }
 
 void UCineCameraComponent::UpdateDebugFocusPlane()
@@ -258,7 +274,7 @@ void UCineCameraComponent::UpdateCameraLens(float DeltaTime, FMinimalViewInfo& D
 		// Update focus/DoF
 		DesiredView.PostProcessBlendWeight = 1.f;
 		DesiredView.PostProcessSettings.bOverride_DepthOfFieldMethod = true;
-		DesiredView.PostProcessSettings.DepthOfFieldMethod = DOFM_CircleDOF;
+		DesiredView.PostProcessSettings.DepthOfFieldMethod = PostProcessSettings.DepthOfFieldMethod;
 
 		DesiredView.PostProcessSettings.bOverride_DepthOfFieldFstop = true;
 		DesiredView.PostProcessSettings.DepthOfFieldFstop = CurrentAperture;

@@ -13,14 +13,6 @@
 #include "ShaderDerivedDataVersion.h"
 #include "ProfilingDebugging/CookStats.h"
 
-int32 GCreateShadersOnLoad = 0;
-static FAutoConsoleVariableRef CVarCreateShadersOnLoad(
-	TEXT("r.CreateShadersOnLoad"),
-	GCreateShadersOnLoad,
-	TEXT("Whether to create shaders on load, which can reduce hitching, but use more memory.  Otherwise they will be created as needed.")
-	);
-
-
 #if ENABLE_COOK_STATS
 namespace MaterialShaderCookStats
 {
@@ -860,11 +852,11 @@ void FMaterialShaderMap::FixupShaderTypes(EShaderPlatform Platform, const TMap<F
 	}
 }
 
-void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, const FMaterialShaderMapId& ShaderMapId, EShaderPlatform Platform, TRefCountPtr<FMaterialShaderMap>& InOutShaderMap)
+void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, const FMaterialShaderMapId& ShaderMapId, EShaderPlatform InPlatform, TRefCountPtr<FMaterialShaderMap>& InOutShaderMap)
 {
 	if (InOutShaderMap != NULL)
 	{
-		check(InOutShaderMap->Platform == Platform);
+		check(InOutShaderMap->GetShaderPlatform() == InPlatform);
 		// If the shader map was non-NULL then it was found in memory but is incomplete, attempt to load the missing entries from memory
 		InOutShaderMap->LoadMissingShadersFromMemory(Material);
 	}
@@ -877,12 +869,12 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 			COOK_STAT(auto Timer = MaterialShaderCookStats::UsageStats.TimeSyncWork());
 
 			TArray<uint8> CachedData;
-			const FString DataKey = GetMaterialShaderMapKeyString(ShaderMapId, Platform);
+			const FString DataKey = GetMaterialShaderMapKeyString(ShaderMapId, InPlatform);
 
 			if (GetDerivedDataCacheRef().GetSynchronous(*DataKey, CachedData))
 			{
 				COOK_STAT(Timer.AddHit(CachedData.Num()));
-				InOutShaderMap = new FMaterialShaderMap();
+				InOutShaderMap = new FMaterialShaderMap(InPlatform);
 				FMemoryReader Ar(CachedData, true);
 
 				// Deserialize from the cached data
@@ -892,7 +884,7 @@ void FMaterialShaderMap::LoadFromDerivedDataCache(const FMaterial* Material, con
 				checkSlow(InOutShaderMap->GetShaderMapId() == ShaderMapId);
 
 				// Register in the global map
-				InOutShaderMap->Register(Platform);
+				InOutShaderMap->Register(InPlatform);
 			}
 			else
 			{
@@ -912,7 +904,7 @@ void FMaterialShaderMap::SaveToDerivedDataCache()
 	FMemoryWriter Ar(SaveData, true);
 	Serialize(Ar);
 
-	GetDerivedDataCacheRef().Put(*GetMaterialShaderMapKeyString(ShaderMapId, Platform), SaveData);
+	GetDerivedDataCacheRef().Put(*GetMaterialShaderMapKeyString(ShaderMapId, GetShaderPlatform()), SaveData);
 	COOK_STAT(Timer.AddMiss(SaveData.Num()));
 }
 
@@ -1108,7 +1100,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 
 			if (bIsValid)
 			{
-				FMaterialShaderMap* ShaderMap = new FMaterialShaderMap;
+				FMaterialShaderMap* ShaderMap = new FMaterialShaderMap(ShaderPlatform);
 
 				// serialize the id and the material shader map
 				ShaderMap->Serialize(Ar, false);
@@ -1293,7 +1285,7 @@ void FMaterialShaderMap::Compile(
 					{
 						// Create a new mesh material shader map.
 						MeshShaderMapIndex = MeshShaderMaps.Num();
-						MeshShaderMap = new(MeshShaderMaps) FMeshMaterialShaderMap(VertexFactoryType);
+						MeshShaderMap = new(MeshShaderMaps) FMeshMaterialShaderMap(InPlatform, VertexFactoryType);
 					}
   
 					// Enqueue compilation all mesh material shaders for this material and vertex factory type combo.
@@ -1479,6 +1471,7 @@ FShader* FMaterialShaderMap::ProcessCompilationResultsForSingleJob(FShaderCompil
 bool FMaterialShaderMap::ProcessCompilationResults(const TArray<FShaderCommonCompileJob*>& InCompilationResults, int32& InOutJobIndex, float& TimeBudget, TMap<const FVertexFactoryType*, TArray<const FShaderPipelineType*> >& SharedPipelines)
 {
 	check(InOutJobIndex < InCompilationResults.Num());
+	check(!bCompilationFinalized);
 
 	double StartTime = FPlatformTime::Seconds();
 
@@ -1664,7 +1657,7 @@ bool FMaterialShaderMap::TryToAddToExistingCompilationTask(FMaterial* Material)
 bool FMaterialShaderMap::IsMaterialShaderComplete(const FMaterial* Material, const FMaterialShaderType* ShaderType, const FShaderPipelineType* Pipeline, bool bSilent)
 {
 	// If we should cache this material, it's incomplete if the pipeline is missing or the shader itself is missing
-	if (ShouldCacheMaterialShader(ShaderType, Platform, Material) &&
+	if (ShouldCacheMaterialShader(ShaderType, GetShaderPlatform(), Material) &&
 		((Pipeline && !HasShaderPipeline(Pipeline)) || (!Pipeline && !HasShader((FShaderType*)ShaderType))))
 	{
 		if (!bSilent)
@@ -1706,7 +1699,7 @@ bool FMaterialShaderMap::IsComplete(const FMaterial* Material, bool bSilent)
 		{
 			// Find the shaders for this vertex factory type.
 			const FMeshMaterialShaderMap* MeshShaderMap = GetMeshShaderMap(VertexFactoryType);
-			if (!FMeshMaterialShaderMap::IsComplete(MeshShaderMap,Platform,Material,VertexFactoryType,bSilent))
+			if (!FMeshMaterialShaderMap::IsComplete(MeshShaderMap,GetShaderPlatform(),Material,VertexFactoryType,bSilent))
 			{
 				if (!MeshShaderMap && !bSilent)
 				{
@@ -1741,7 +1734,7 @@ bool FMaterialShaderMap::IsComplete(const FMaterial* Material, bool bSilent)
 			for (int32 Index = 0; Index < StageTypes.Num(); ++Index)
 			{
 				auto* ShaderType = StageTypes[Index]->GetMaterialShaderType();
-				if (ShouldCacheMaterialShader(ShaderType, Platform, Material))
+				if (ShouldCacheMaterialShader(ShaderType, GetShaderPlatform(), Material))
 				{
 					++NumShouldCache;
 				}
@@ -1789,9 +1782,9 @@ void FMaterialShaderMap::LoadMissingShadersFromMemory(const FMaterial* Material)
 	for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
 	{
 		FMaterialShaderType* ShaderType = ShaderTypeIt->GetMaterialShaderType();
-		if (ShaderType && ShouldCacheMaterialShader(ShaderType, Platform, Material) && !HasShader(ShaderType))
+		if (ShaderType && ShouldCacheMaterialShader(ShaderType, GetShaderPlatform(), Material) && !HasShader(ShaderType))
 		{
-			FShaderId ShaderId(MaterialShaderMapHash, nullptr, nullptr, ShaderType, FShaderTarget(ShaderType->GetFrequency(), Platform));
+			FShaderId ShaderId(MaterialShaderMapHash, nullptr, nullptr, ShaderType, FShaderTarget(ShaderType->GetFrequency(), GetShaderPlatform()));
 			FShader* FoundShader = ShaderType->FindShaderById(ShaderId);
 			if (FoundShader)
 			{
@@ -1812,7 +1805,7 @@ void FMaterialShaderMap::LoadMissingShadersFromMemory(const FMaterial* Material)
 			for (const FShaderType* Shader : Stages)
 			{
 				FMaterialShaderType* ShaderType = (FMaterialShaderType*)Shader->GetMaterialShaderType();
-				if (ShaderType && ShouldCacheMaterialShader(ShaderType, Platform, Material))
+				if (ShaderType && ShouldCacheMaterialShader(ShaderType, GetShaderPlatform(), Material))
 				{
 					++NumShaders;
 				}
@@ -1826,7 +1819,7 @@ void FMaterialShaderMap::LoadMissingShadersFromMemory(const FMaterial* Material)
 					FMaterialShaderType* ShaderType = (FMaterialShaderType*)Shader->GetMaterialShaderType();
 					if (!HasShader(ShaderType))
 					{
-						FShaderId ShaderId(MaterialShaderMapHash, PipelineType->ShouldOptimizeUnusedOutputs() ? PipelineType : nullptr, nullptr, ShaderType, FShaderTarget(ShaderType->GetFrequency(), Platform));
+						FShaderId ShaderId(MaterialShaderMapHash, PipelineType->ShouldOptimizeUnusedOutputs() ? PipelineType : nullptr, nullptr, ShaderType, FShaderTarget(ShaderType->GetFrequency(), GetShaderPlatform()));
 						FShader* FoundShader = ShaderType->FindShaderById(ShaderId);
 						if (FoundShader)
 						{
@@ -1857,7 +1850,7 @@ void FMaterialShaderMap::LoadMissingShadersFromMemory(const FMaterial* Material)
 
 			if (MeshShaderMap)
 			{
-				MeshShaderMap->LoadMissingShadersFromMemory(MaterialShaderMapHash, Material, Platform);
+				MeshShaderMap->LoadMissingShadersFromMemory(MaterialShaderMapHash, Material, GetShaderPlatform());
 			}
 		}
 	}
@@ -1886,7 +1879,8 @@ void FMaterialShaderMap::GetShaderPipelineList(TArray<FShaderPipeline*>& OutShad
  */
 void FMaterialShaderMap::Register(EShaderPlatform InShaderPlatform)
 {
-	if (GCreateShadersOnLoad && Platform == InShaderPlatform)
+	extern int32 GCreateShadersOnLoad;
+	if (GCreateShadersOnLoad && GetShaderPlatform() == InShaderPlatform)
 	{
 		for (auto KeyValue : GetShaders())
 		{
@@ -1916,7 +1910,7 @@ void FMaterialShaderMap::Register(EShaderPlatform InShaderPlatform)
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderMapMemory, GetSizeBytes());
 	}
 
-	GIdToMaterialShaderMap[Platform].Add(ShaderMapId,this); 
+	GIdToMaterialShaderMap[GetShaderPlatform()].Add(ShaderMapId,this);
 	bRegistered = true;
 }
 
@@ -1936,7 +1930,7 @@ void FMaterialShaderMap::Release()
 			DEC_DWORD_STAT(STAT_Shaders_NumShaderMaps);
 			DEC_DWORD_STAT_BY(STAT_Shaders_ShaderMapMemory, GetSizeBytes());
 
-			GIdToMaterialShaderMap[Platform].Remove(ShaderMapId);
+			GIdToMaterialShaderMap[GetShaderPlatform()].Remove(ShaderMapId);
 			bRegistered = false;
 		}
 
@@ -1944,8 +1938,8 @@ void FMaterialShaderMap::Release()
 	}
 }
 
-FMaterialShaderMap::FMaterialShaderMap() :
-	Platform(SP_NumPlatforms),
+FMaterialShaderMap::FMaterialShaderMap(EShaderPlatform InPlatform) :
+	TShaderMap<FMaterialShaderType>(InPlatform),
 	CompilingId(1),
 	NumRefs(0),
 	bDeletedThroughDeferredCleanup(false),
@@ -2042,7 +2036,7 @@ void FMaterialShaderMap::Serialize(FArchive& Ar, bool bInlineShaderResources)
 	ShaderMapId.Serialize(Ar);
 
 	// serialize the platform enum as a uint8
-	int32 TempPlatform = (int32)Platform;
+	int32 TempPlatform = (int32)GetShaderPlatform();
 	Ar << TempPlatform;
 	Platform = (EShaderPlatform)TempPlatform;
 
@@ -2113,7 +2107,7 @@ void FMaterialShaderMap::Serialize(FArchive& Ar, bool bInlineShaderResources)
 
 			if (VertexFactoryType->IsUsedWithMaterials())
 			{
-				new(MeshShaderMaps) FMeshMaterialShaderMap(VertexFactoryType);
+				new(MeshShaderMaps) FMeshMaterialShaderMap(GetShaderPlatform(), VertexFactoryType);
 			}
 		}
 
@@ -2162,7 +2156,7 @@ void FMaterialShaderMap::RegisterSerializedShaders()
 	{
 		if (OrderedMeshShaderMaps[VFIndex] && OrderedMeshShaderMaps[VFIndex]->IsEmpty())
 		{
-			OrderedMeshShaderMaps[VFIndex] = NULL;
+			OrderedMeshShaderMaps[VFIndex] = nullptr;
 		}
 	}
 
@@ -2173,6 +2167,22 @@ void FMaterialShaderMap::RegisterSerializedShaders()
 			MeshShaderMaps.RemoveAt(Index);
 		}
 	}
+}
+
+void FMaterialShaderMap::DiscardSerializedShaders()
+{
+	TShaderMap<FMaterialShaderType>::DiscardSerializedShaders();
+
+	for (int32 VFIndex = 0; VFIndex < OrderedMeshShaderMaps.Num(); VFIndex++)
+	{
+		OrderedMeshShaderMaps[VFIndex] = nullptr;
+	}
+
+	for (int32 Index = MeshShaderMaps.Num() - 1; Index >= 0; Index--)
+	{
+		MeshShaderMaps[Index].DiscardSerializedShaders();
+	}
+	MeshShaderMaps.Empty();
 }
 
 void FMaterialShaderMap::RemovePendingMaterial(FMaterial* Material)

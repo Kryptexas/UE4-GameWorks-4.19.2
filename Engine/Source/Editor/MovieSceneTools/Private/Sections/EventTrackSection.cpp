@@ -9,7 +9,6 @@
 
 #define LOCTEXT_NAMESPACE "FEventTrackSection"
 
-
 /* FEventTrackEditor static functions
  *****************************************************************************/
 

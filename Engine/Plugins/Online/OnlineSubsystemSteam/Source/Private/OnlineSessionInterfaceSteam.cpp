@@ -686,7 +686,7 @@ bool FOnlineSessionSteam::FindSessions(int32 SearchingPlayerNum, const TSharedRe
 		}
 		else
 		{
-			Return = FindLANSession();
+			Return = FindLANSession(SearchSettings);
 		}
 
 		if (Return == ERROR_IO_PENDING)
@@ -733,34 +733,44 @@ uint32 FOnlineSessionSteam::FindInternetSession(const TSharedRef<FOnlineSessionS
 	return ERROR_IO_PENDING;
 }
 
-uint32 FOnlineSessionSteam::FindLANSession()
+uint32 FOnlineSessionSteam::FindLANSession(const TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
 	uint32 Return = ERROR_IO_PENDING;
 
-	if (!LANSession)
+	bool PresenceSearch = false;
+	if (SearchSettings->QuerySettings.Get(SEARCH_PRESENCE, PresenceSearch) && PresenceSearch)
 	{
-		LANSession = new FLANSession();
+		if (!LANSession)
+		{
+			LANSession = new FLANSession();
+		}
+
+		// Recreate the unique identifier for this client
+		GenerateNonce((uint8*)&LANSession->LanNonce, 8);
+
+		FOnValidResponsePacketDelegate ResponseDelegate = FOnValidResponsePacketDelegate::CreateRaw(this, &FOnlineSessionSteam::OnValidResponsePacketReceived);
+		FOnSearchingTimeoutDelegate TimeoutDelegate = FOnSearchingTimeoutDelegate::CreateRaw(this, &FOnlineSessionSteam::OnLANSearchTimeout);
+
+		FNboSerializeToBufferSteam Packet(LAN_BEACON_MAX_PACKET_SIZE);
+		LANSession->CreateClientQueryPacket(Packet, LANSession->LanNonce);
+		if (Packet.HasOverflow() || LANSession->Search(Packet, ResponseDelegate, TimeoutDelegate) == false)
+		{
+			Return = E_FAIL;
+			delete LANSession;
+			LANSession = NULL;
+
+			CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::Failed;
+
+			// Just trigger the delegate as having failed
+			TriggerOnFindSessionsCompleteDelegates(false);
+		}
+	}
+	else
+	{
+		FOnlineAsyncTaskSteamFindServers* NewTask = new FOnlineAsyncTaskSteamFindServers(SteamSubsystem, SearchSettings, OnFindSessionsCompleteDelegates);
+		SteamSubsystem->QueueAsyncTask(NewTask);
 	}
 
-	// Recreate the unique identifier for this client
-	GenerateNonce((uint8*)&LANSession->LanNonce, 8);
-
-	FOnValidResponsePacketDelegate ResponseDelegate = FOnValidResponsePacketDelegate::CreateRaw(this, &FOnlineSessionSteam::OnValidResponsePacketReceived);
-	FOnSearchingTimeoutDelegate TimeoutDelegate = FOnSearchingTimeoutDelegate::CreateRaw(this, &FOnlineSessionSteam::OnLANSearchTimeout);
-
-	FNboSerializeToBufferSteam Packet(LAN_BEACON_MAX_PACKET_SIZE);
-	LANSession->CreateClientQueryPacket(Packet, LANSession->LanNonce);
-	if (Packet.HasOverflow() || LANSession->Search(Packet, ResponseDelegate, TimeoutDelegate) == false)
-	{
-		Return = E_FAIL;
-		delete LANSession;
-		LANSession = NULL;
-
-		CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::Failed;
-		
-		// Just trigger the delegate as having failed
-		TriggerOnFindSessionsCompleteDelegates(false);
-	}
 	return Return;
 }
 
@@ -916,6 +926,11 @@ uint32 FOnlineSessionSteam::JoinInternetSession(int32 PlayerNum, FNamedOnlineSes
 			SteamSessionInfo->HostAddr = SearchSessionInfo->HostAddr;
 			SteamSessionInfo->SteamP2PAddr = SearchSessionInfo->SteamP2PAddr;
 
+			FString ConnectionString = GetSteamConnectionString(Session->SessionName);
+			if (!SteamFriends()->SetRichPresence("connect", TCHAR_TO_UTF8(*ConnectionString)))
+			{
+				UE_LOG_ONLINE(Verbose, TEXT("Failed to set rich presence for session %s"), *Session->SessionName.ToString());
+			}
 			Result = ERROR_SUCCESS;
 		}
 	}
@@ -966,7 +981,7 @@ bool FOnlineSessionSteam::FindFriendSession(int32 LocalUserNum, const FUniqueNet
 				{
 					FUniqueNetIdSteam LobbyId(FriendGameInfo.m_steamIDLobby);
 
-					FOnlineAsyncTaskSteamFindLobby* NewTask = new FOnlineAsyncTaskSteamFindLobby(SteamSubsystem, LobbyId, CurrentSessionSearch, LocalUserNum, OnFindFriendSessionCompleteDelegates[LocalUserNum]);
+					FOnlineAsyncTaskSteamFindLobbiesForFriendSession* NewTask = new FOnlineAsyncTaskSteamFindLobbiesForFriendSession(SteamSubsystem, LobbyId, CurrentSessionSearch, LocalUserNum, OnFindFriendSessionCompleteDelegates[LocalUserNum]);
 					SteamSubsystem->QueueAsyncTask(NewTask);
 					bSuccess = true;
 				}
@@ -976,7 +991,7 @@ bool FOnlineSessionSteam::FindFriendSession(int32 LocalUserNum, const FUniqueNet
 					TSharedRef<FInternetAddr> IpAddr = ISocketSubsystem::Get()->CreateInternetAddr(FriendGameInfo.m_unGameIP, FriendGameInfo.m_usGamePort);
 					CurrentSessionSearch->QuerySettings.Set(FName(SEARCH_STEAM_HOSTIP), IpAddr->ToString(true), EOnlineComparisonOp::Equals);
 
-					FOnlineAsyncTaskSteamFindServer* NewTask = new FOnlineAsyncTaskSteamFindServer(SteamSubsystem, SearchSettings, LocalUserNum, OnFindFriendSessionCompleteDelegates[LocalUserNum]);
+					FOnlineAsyncTaskSteamFindServerForFriendSession* NewTask = new FOnlineAsyncTaskSteamFindServerForFriendSession(SteamSubsystem, CurrentSessionSearch, LocalUserNum, OnFindFriendSessionCompleteDelegates[LocalUserNum]);
 					SteamSubsystem->QueueAsyncTask(NewTask);
 				}
 			}
@@ -989,7 +1004,7 @@ bool FOnlineSessionSteam::FindFriendSession(int32 LocalUserNum, const FUniqueNet
 
 	if (!bSuccess)
 	{
-		FOnlineSessionSearchResult EmptyResult;
+		TArray<FOnlineSessionSearchResult> EmptyResult;
 		TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, bSuccess, EmptyResult);
 	}
 
@@ -1000,6 +1015,15 @@ bool FOnlineSessionSteam::FindFriendSession(const FUniqueNetId& LocalUserId, con
 {
 	// @todo: use proper LocalUserId
 	return FindFriendSession(0, Friend);
+}
+
+bool FOnlineSessionSteam::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList)
+{
+	UE_LOG(LogOnline, Display, TEXT("FOnlineSessionSteam::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList) - not implemented"));
+	// @todo: use proper LocalUserId
+	TArray<FOnlineSessionSearchResult> EmptyResult;
+	TriggerOnFindFriendSessionCompleteDelegates(0, false, EmptyResult);
+	return false;
 }
 
 bool FOnlineSessionSteam::PingSearchResults(const FOnlineSessionSearchResult& SearchResult)
@@ -1183,7 +1207,7 @@ static bool GetConnectStringFromSessionInfo(TSharedPtr<FOnlineSessionInfoSteam>&
 	return bSuccess;
 }
 
-bool FOnlineSessionSteam::GetResolvedConnectString(FName SessionName, FString& ConnectInfo)
+bool FOnlineSessionSteam::GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType)
 {
 	bool bSuccess = false;
 	// Find the session
@@ -1191,7 +1215,16 @@ bool FOnlineSessionSteam::GetResolvedConnectString(FName SessionName, FString& C
 	if (Session != NULL)
 	{
 		TSharedPtr<FOnlineSessionInfoSteam> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoSteam>(Session->SessionInfo);
-		bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo);
+		if (PortType == BeaconPort)
+		{
+			int32 BeaconListenPort = GetBeaconPortFromSessionSettings(Session->SessionSettings);
+			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
+		}
+		else if (PortType == GamePort)
+		{
+			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo);
+		}
+
 		if (!bSuccess)
 		{
 			UE_LOG_ONLINE(Warning, TEXT("Invalid session info for session %s in GetResolvedConnectString()"), *SessionName.ToString());
@@ -1216,12 +1249,7 @@ bool FOnlineSessionSteam::GetResolvedConnectString(const FOnlineSessionSearchRes
 
 		if (PortType == BeaconPort)
 		{
-			int32 BeaconListenPort = DEFAULT_BEACON_PORT;
-			if (!SearchResult.Session.SessionSettings.Get(SETTING_BEACONPORT, BeaconListenPort) || BeaconListenPort <= 0)
-			{
-				// Reset the default BeaconListenPort back to DEFAULT_BEACON_PORT because the SessionSettings value does not exist or was not valid
-				BeaconListenPort = DEFAULT_BEACON_PORT;
-			}
+			int32 BeaconListenPort = GetBeaconPortFromSessionSettings(SearchResult.Session.SessionSettings);
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
 		}
 		else if (PortType == GamePort)

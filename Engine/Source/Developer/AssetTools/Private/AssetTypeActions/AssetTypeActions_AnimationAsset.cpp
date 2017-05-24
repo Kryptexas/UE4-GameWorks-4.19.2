@@ -13,12 +13,24 @@
 #include "IAnimationEditorModule.h"
 #include "Preferences/PersonaOptions.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Containers/Algo/Transform.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 void FAssetTypeActions_AnimationAsset::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
 	auto AnimAssets = GetTypedWeakObjectPtrs<UAnimationAsset>(InObjects);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AnimSequenceBase_OpenInNewWindow", "Open In New Window"),
+		LOCTEXT("AnimSequenceBase_OpenInNewWindowTooltip", "Will always open asset in a new window, and not re-use existing window. (Shift+Double-Click)"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_AnimationAsset::ExecuteOpenInNewWindow, AnimAssets),
+			FCanExecuteAction()
+		)
+	);
 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AnimSequenceBase_FindSkeleton", "Find Skeleton"),
@@ -85,46 +97,99 @@ UThumbnailInfo* FAssetTypeActions_AnimationAsset::GetThumbnailInfo(UObject* Asse
 	UThumbnailInfo* ThumbnailInfo = Anim->ThumbnailInfo;
 	if (ThumbnailInfo == NULL)
 	{
-		ThumbnailInfo = NewObject<USceneThumbnailInfo>(Anim);
+		ThumbnailInfo = NewObject<USceneThumbnailInfo>(Anim, NAME_None, RF_Transactional);
 		Anim->ThumbnailInfo = ThumbnailInfo;
 	}
 
 	return ThumbnailInfo;
 }
 
-void FAssetTypeActions_AnimationAsset::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
+void FAssetTypeActions_AnimationAsset::OpenAnimAssetEditor(const TArray<UObject*>& InObjects, bool bForceNewEditor, TSharedPtr<IToolkitHost> EditWithinLevelEditor)
 {
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
 
+	// Force new window if control held down
+	bForceNewEditor |= FSlateApplication::Get().GetModifierKeys().IsShiftDown();
+
+	// Find all the anim assets
+	TArray<UAnimationAsset*> AnimAssets;
 	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
-		auto AnimAsset = Cast<UAnimationAsset>(*ObjIt);
-		if (AnimAsset != NULL)
+		if (UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(*ObjIt))
 		{
-			USkeleton* AnimSkeleton = AnimAsset->GetSkeleton();
-			if (!AnimSkeleton)
+			AnimAssets.Add(AnimAsset);
+		}
+	}
+
+	// For each one..
+	for (UAnimationAsset* AnimAsset : AnimAssets)
+	{
+		USkeleton* AnimSkeleton = AnimAsset->GetSkeleton();
+		if (!AnimSkeleton)
+		{
+			FText ShouldRetargetMessage = LOCTEXT("ShouldRetargetAnimAsset_Message", "Could not find the skeleton for Anim '{AnimName}' Would you like to choose a new one?");
+
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("AnimName"), FText::FromString(AnimAsset->GetName()));
+
+			if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(ShouldRetargetMessage, Arguments)) == EAppReturnType::Yes)
 			{
-				FText ShouldRetargetMessage = LOCTEXT("ShouldRetargetAnimAsset_Message", "Could not find the skeleton for Anim '{AnimName}' Would you like to choose a new one?");
-
-				FFormatNamedArguments Arguments;
-				Arguments.Add( TEXT("AnimName"), FText::FromString(AnimAsset->GetName()));
-
-				if ( FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(ShouldRetargetMessage, Arguments)) == EAppReturnType::Yes )
-				{
-					bool bDuplicateAssets = false;
-					TArray<UObject*> AnimAssets;
-					AnimAssets.Add(AnimAsset);
-					RetargetAssets(AnimAssets, bDuplicateAssets, true, EditWithinLevelEditor);
-				}
+				bool bDuplicateAssets = false;
+				TArray<UObject*> AssetsToRetarget;
+				AssetsToRetarget.Add(AnimAsset);
+				RetargetAssets(AssetsToRetarget, bDuplicateAssets, true, EditWithinLevelEditor);
+			}
+		}
+		else
+		{
+			// First see if we already have it open
+			const bool bBringToFrontIfOpen = true;
+			if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimAsset, bBringToFrontIfOpen))
+			{
+				EditorInstance->FocusWindow();
 			}
 			else
 			{
-				const bool bBringToFrontIfOpen = true;
-				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimAsset, bBringToFrontIfOpen))
+				// See if we are trying to open a single asset. If we are, we re-use a compatible anim editor.
+				bool bSingleAsset = AnimAssets.Num() == 1;
+				bool bFoundEditor = false;
+				if (bSingleAsset && !bForceNewEditor)
 				{
-					EditorInstance->FocusWindow(AnimAsset);
+					// See if there is an animation asset with the same skeleton already being edited
+					TArray<UObject*> AllEditedAssets = FAssetEditorManager::Get().GetAllEditedAssets();
+					UAnimationAsset* CompatibleEditedAsset = nullptr;
+					for (UObject* EditedAsset : AllEditedAssets)
+					{
+						UAnimationAsset* EditedAnimAsset = Cast<UAnimationAsset>(EditedAsset);
+						if (EditedAnimAsset && EditedAnimAsset->GetSkeleton() == AnimAsset->GetSkeleton())
+						{
+							CompatibleEditedAsset = EditedAnimAsset;
+							break;
+						}
+					}
+
+					// If there is..
+					if(CompatibleEditedAsset)
+					{
+						// Find the anim editors that are doing it
+						TArray<IAssetEditorInstance*> AssetEditors = FAssetEditorManager::Get().FindEditorsForAsset(CompatibleEditedAsset);
+						for (IAssetEditorInstance* ExistingEditor : AssetEditors)
+						{
+							if (ExistingEditor->GetEditorName() == FName("AnimationEditor"))
+							{
+								// Change the current anim to this one
+								IAnimationEditor* AnimEditor = static_cast<IAnimationEditor*>(ExistingEditor);
+								AnimEditor->SetAnimationAsset(AnimAsset);
+								AnimEditor->FocusWindow();
+								bFoundEditor = true;
+								break;
+							}
+						}
+					}
 				}
-				else
+
+				// We didn't find an editor, make a new one
+				if (!bFoundEditor)
 				{
 					IAnimationEditorModule& AnimationEditorModule = FModuleManager::LoadModuleChecked<IAnimationEditorModule>("AnimationEditor");
 					AnimationEditorModule.CreateAnimationEditor(Mode, EditWithinLevelEditor, AnimAsset);
@@ -132,6 +197,21 @@ void FAssetTypeActions_AnimationAsset::OpenAssetEditor( const TArray<UObject*>& 
 			}
 		}
 	}
+}
+
+
+void FAssetTypeActions_AnimationAsset::ExecuteOpenInNewWindow(TArray<TWeakObjectPtr<UAnimationAsset>> Objects)
+{
+	TArray<UObject*> ObjectsToSync;
+	Algo::Transform(Objects, ObjectsToSync, [](TWeakObjectPtr<UAnimationAsset> Obj) { return Obj.Get(); });
+
+	OpenAnimAssetEditor(ObjectsToSync, true, nullptr);
+}
+
+
+void FAssetTypeActions_AnimationAsset::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
+{
+	OpenAnimAssetEditor(InObjects, false, EditWithinLevelEditor);
 }
 
 void FAssetTypeActions_AnimationAsset::ExecuteFindSkeleton(TArray<TWeakObjectPtr<UAnimationAsset>> Objects)

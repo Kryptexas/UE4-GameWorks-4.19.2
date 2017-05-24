@@ -83,11 +83,21 @@ struct FExpressionInput
 
 	/** If this input goes through reroute nodes or other paths that should not affect code, trace back on the input chain.*/
 	ENGINE_API FExpressionInput GetTracedInput() const;
+
+	/** Helper for setting component mask. */
+	ENGINE_API void SetMask(int32 UseMask, int32 R, int32 G, int32 B, int32 A)
+	{
+		Mask = UseMask;
+		MaskR = R;
+		MaskG = G;
+		MaskB = B;
+		MaskA = A;
+	}
 };
 
 template<>
 struct TStructOpsTypeTraits<FExpressionInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FExpressionInput>
 {
 	enum
 	{
@@ -124,6 +134,16 @@ struct FExpressionOutput
 		MaskB(InMaskB),
 		MaskA(InMaskA)
 	{}
+
+	/** Helper for setting component mask. */
+	ENGINE_API void SetMask(int32 UseMask, int32 R, int32 G, int32 B, int32 A)
+	{
+		Mask = UseMask;
+		MaskR = R;
+		MaskG = G;
+		MaskB = B;
+		MaskA = A;
+	}
 };
 
 //
@@ -147,7 +167,7 @@ struct FColorMaterialInput : FMaterialInput<FColor>
 
 template<>
 struct TStructOpsTypeTraits<FColorMaterialInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FColorMaterialInput>
 {
 	enum
 	{
@@ -166,7 +186,7 @@ struct FScalarMaterialInput : FMaterialInput<float>
 
 template<>
 struct TStructOpsTypeTraits<FScalarMaterialInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FScalarMaterialInput>
 {
 	enum
 	{
@@ -185,7 +205,7 @@ struct FVectorMaterialInput : FMaterialInput<FVector>
 
 template<>
 struct TStructOpsTypeTraits<FVectorMaterialInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FVectorMaterialInput>
 {
 	enum
 	{
@@ -204,7 +224,7 @@ struct FVector2MaterialInput : FMaterialInput<FVector2D>
 
 template<>
 struct TStructOpsTypeTraits<FVector2MaterialInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FVector2MaterialInput>
 {
 	enum
 	{
@@ -240,7 +260,7 @@ struct FMaterialAttributesInput : FExpressionInput
 
 template<>
 struct TStructOpsTypeTraits<FMaterialAttributesInput>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FMaterialAttributesInput>
 {
 	enum
 	{

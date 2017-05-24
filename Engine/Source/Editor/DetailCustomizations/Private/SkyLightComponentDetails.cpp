@@ -83,7 +83,7 @@ void FSkyLightComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLa
 
 FReply FSkyLightComponentDetails::OnUpdateSkyCapture()
 {
-	if( SkyLight.IsValid() )
+	if (SkyLight.IsValid())
 	{
 		if (UWorld* SkyLightWorld = SkyLight->GetWorld())
 		{

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SynthBenchmark : ModuleRules
 	{
-		public SynthBenchmark(TargetInfo Target)
+		public SynthBenchmark(ReadOnlyTargetRules Target) : base(Target)
 		{
             PublicIncludePathModuleNames.Add("Renderer");
 

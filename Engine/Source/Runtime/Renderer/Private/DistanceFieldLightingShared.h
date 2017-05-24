@@ -27,10 +27,9 @@ template<typename ReferencedType> class TScopedPointer;
 DECLARE_LOG_CATEGORY_EXTERN(LogDistanceField, Warning, All);
 
 /** Tile sized used for most AO compute shaders. */
-const int32 GDistanceFieldAOTileSizeX = 16;
-const int32 GDistanceFieldAOTileSizeY = 16;
-/** Must match usf */
-static const int32 GMaxNumObjectsPerTile = 512;
+extern int32 GDistanceFieldAOTileSizeX;
+extern int32 GDistanceFieldAOTileSizeY;
+extern int32 GMaxDistanceFieldObjectsPerCullTile;
 
 extern int32 GDistanceFieldGI;
 
@@ -278,9 +277,9 @@ public:
 
 	FRWBuffer ObjectIndirectArguments;
 	FRWBuffer ObjectIndirectDispatch;
-	FRWBuffer Bounds;
-	FRWBuffer Data;
-	FRWBuffer BoxBounds;
+	FRWBufferStructured Bounds;
+	FRWBufferStructured Data;
+	FRWBufferStructured BoxBounds;
 
 	FDistanceFieldCulledObjectBuffers()
 	{
@@ -294,12 +293,12 @@ public:
 		{
 			ObjectIndirectArguments.Initialize(sizeof(uint32), 5, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			ObjectIndirectDispatch.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
-			Bounds.Initialize(sizeof(FVector4), MaxObjects, PF_A32B32G32R32F);
-			Data.Initialize(sizeof(FVector4), MaxObjects * ObjectDataStride, PF_A32B32G32R32F);
+			Bounds.Initialize(sizeof(FVector4), MaxObjects, BUF_Static);
+			Data.Initialize(sizeof(FVector4), MaxObjects * ObjectDataStride, BUF_Static);
 
 			if (bWantBoxBounds)
 			{
-				BoxBounds.Initialize(sizeof(FVector4), MaxObjects * ObjectBoxBoundsStride, PF_A32B32G32R32F);
+				BoxBounds.Initialize(sizeof(FVector4), MaxObjects * ObjectBoxBoundsStride, BUF_Static);
 			}
 		}
 	}
@@ -349,21 +348,9 @@ public:
 		DistanceFieldAtlasTexelSize.Bind(ParameterMap, TEXT("DistanceFieldAtlasTexelSize"));
 	}
 
-	template<typename TParamRef>
-	void Set(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FDistanceFieldCulledObjectBuffers& ObjectBuffers)
+	template<typename TParamRef, typename TRHICommandList>
+	void Set(TRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FDistanceFieldCulledObjectBuffers& ObjectBuffers)
 	{
-		int32 NumOutUAVs = 0;
-		FUnorderedAccessViewRHIParamRef OutUAVs[4];
-		OutUAVs[NumOutUAVs++] = ObjectBuffers.ObjectIndirectArguments.UAV;
-		OutUAVs[NumOutUAVs++] = ObjectBuffers.Bounds.UAV;
-		OutUAVs[NumOutUAVs++] = ObjectBuffers.Data.UAV;
-
-		if (CulledObjectBoxBounds.IsBound()) 
-		{
-			OutUAVs[NumOutUAVs++] = ObjectBuffers.BoxBounds.UAV;
-		}
-		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, NumOutUAVs);
-
 		ObjectIndirectArguments.SetBuffer(RHICmdList, ShaderRHI, ObjectBuffers.ObjectIndirectArguments);
 		CulledObjectBounds.SetBuffer(RHICmdList, ShaderRHI, ObjectBuffers.Bounds);
 		CulledObjectData.SetBuffer(RHICmdList, ShaderRHI, ObjectBuffers.Data);
@@ -390,25 +377,46 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, DistanceFieldAtlasTexelSize, InvTextureDim);
 	}
 
-	template<typename TParamRef>
-	void UnsetParameters(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FDistanceFieldCulledObjectBuffers& ObjectBuffers)
+	template<typename TParamRef, typename TRHICommandList>
+	void UnsetParameters(TRHICommandList& RHICmdList, const TParamRef& ShaderRHI)
 	{
 		ObjectIndirectArguments.UnsetUAV(RHICmdList, ShaderRHI);
 		CulledObjectBounds.UnsetUAV(RHICmdList, ShaderRHI);
 		CulledObjectData.UnsetUAV(RHICmdList, ShaderRHI);
 		CulledObjectBoxBounds.UnsetUAV(RHICmdList, ShaderRHI);
+	}
 
-		int32 NumOutUAVs = 0;
-		FUnorderedAccessViewRHIParamRef OutUAVs[4];
-		OutUAVs[NumOutUAVs++] = ObjectBuffers.ObjectIndirectArguments.UAV;
-		OutUAVs[NumOutUAVs++] = ObjectBuffers.Bounds.UAV;
-		OutUAVs[NumOutUAVs++] = ObjectBuffers.Data.UAV;
+	void GetUAVs(const FDistanceFieldCulledObjectBuffers& ObjectBuffers, TArray<FUnorderedAccessViewRHIParamRef>& UAVs)
+	{
+		uint32 MaxIndex = 0;
+		MaxIndex = FMath::Max(MaxIndex, ObjectIndirectArguments.GetUAVIndex());
+		MaxIndex = FMath::Max(MaxIndex, CulledObjectBounds.GetUAVIndex());
+		MaxIndex = FMath::Max(MaxIndex, CulledObjectData.GetUAVIndex());
+		MaxIndex = FMath::Max(MaxIndex, CulledObjectBoxBounds.GetUAVIndex());
 
-		if (CulledObjectBoxBounds.IsBound())
+		UAVs.AddZeroed(MaxIndex + 1);
+
+		if (ObjectIndirectArguments.IsUAVBound())
 		{
-			OutUAVs[NumOutUAVs++] = ObjectBuffers.BoxBounds.UAV;
+			UAVs[ObjectIndirectArguments.GetUAVIndex()] = ObjectBuffers.ObjectIndirectArguments.UAV;
 		}
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, OutUAVs, NumOutUAVs);
+
+		if (CulledObjectBounds.IsUAVBound())
+		{
+			UAVs[CulledObjectBounds.GetUAVIndex()] = ObjectBuffers.Bounds.UAV;
+		}
+
+		if (CulledObjectData.IsUAVBound())
+		{
+			UAVs[CulledObjectData.GetUAVIndex()] = ObjectBuffers.Data.UAV;
+		}
+
+		if (CulledObjectBoxBounds.IsUAVBound())
+		{
+			UAVs[CulledObjectBoxBounds.GetUAVIndex()] = ObjectBuffers.BoxBounds.UAV;
+		}
+
+		check(UAVs.Num() > 0);
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FDistanceFieldCulledObjectBufferParameters& P)
@@ -467,16 +475,23 @@ public:
 	}
 };
 
+static int32 LightTileDataStride = 1;
+
 /**  */
 class FLightTileIntersectionResources
 {
 public:
+
+	FLightTileIntersectionResources() :
+		b16BitIndices(false)
+	{}
+
 	void Initialize()
 	{
 		TileHeadDataUnpacked.Initialize(sizeof(uint32), TileDimensions.X * TileDimensions.Y * 2, PF_R32_UINT, BUF_Static);
 
 		//@todo - handle max exceeded
-		TileArrayData.Initialize(sizeof(uint32), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y, PF_R32_UINT, BUF_Static);
+		TileArrayData.Initialize(b16BitIndices ? sizeof(uint16) : sizeof(uint32), GMaxDistanceFieldObjectsPerCullTile * TileDimensions.X * TileDimensions.Y * LightTileDataStride, b16BitIndices ? PF_R16_UINT : PF_R32_UINT, BUF_Static);
 	}
 
 	void Release()
@@ -494,6 +509,83 @@ public:
 
 	FRWBuffer TileHeadDataUnpacked;
 	FRWBuffer TileArrayData;
+	bool b16BitIndices;
+};
+
+class FLightTileIntersectionParameters
+{
+public:
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("SHADOW_TILE_ARRAY_DATA_STRIDE"), LightTileDataStride);
+		OutEnvironment.SetDefine(TEXT("MAX_OBJECTS_PER_TILE"), GMaxDistanceFieldObjectsPerCullTile);
+	}
+
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		ShadowTileHeadDataUnpacked.Bind(ParameterMap, TEXT("ShadowTileHeadDataUnpacked"));
+		ShadowTileArrayData.Bind(ParameterMap, TEXT("ShadowTileArrayData"));
+		ShadowTileListGroupSize.Bind(ParameterMap, TEXT("ShadowTileListGroupSize"));
+		ShadowMaxObjectsPerTile.Bind(ParameterMap, TEXT("ShadowMaxObjectsPerTile"));
+	}
+
+	bool IsBound() const
+	{
+		return ShadowTileHeadDataUnpacked.IsBound() || ShadowTileArrayData.IsBound() || ShadowTileListGroupSize.IsBound() || ShadowMaxObjectsPerTile.IsBound();
+	}
+
+	template<typename TParamRef, typename TRHICommandList>
+	void Set(TRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FLightTileIntersectionResources& LightTileIntersectionResources)
+	{
+		ShadowTileHeadDataUnpacked.SetBuffer(RHICmdList, ShaderRHI, LightTileIntersectionResources.TileHeadDataUnpacked);
+
+		// Bind sorted array data if we are after the sort pass
+		ShadowTileArrayData.SetBuffer(RHICmdList, ShaderRHI, LightTileIntersectionResources.TileArrayData);
+
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowTileListGroupSize, LightTileIntersectionResources.TileDimensions);
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowMaxObjectsPerTile, GMaxDistanceFieldObjectsPerCullTile);
+	}
+
+	void GetUAVs(FLightTileIntersectionResources& TileIntersectionResources, TArray<FUnorderedAccessViewRHIParamRef>& UAVs)
+	{
+		int32 MaxIndex = FMath::Max(ShadowTileHeadDataUnpacked.GetUAVIndex(), ShadowTileArrayData.GetUAVIndex());
+		UAVs.AddZeroed(MaxIndex + 1);
+
+		if (ShadowTileHeadDataUnpacked.IsUAVBound())
+		{
+			UAVs[ShadowTileHeadDataUnpacked.GetUAVIndex()] = TileIntersectionResources.TileHeadDataUnpacked.UAV;
+		}
+
+		if (ShadowTileArrayData.IsUAVBound())
+		{
+			UAVs[ShadowTileArrayData.GetUAVIndex()] = TileIntersectionResources.TileArrayData.UAV;
+		}
+
+		check(UAVs.Num() > 0);
+	}
+
+	template<typename TParamRef>
+	void UnsetParameters(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI)
+	{
+		ShadowTileHeadDataUnpacked.UnsetUAV(RHICmdList, ShaderRHI);
+		ShadowTileArrayData.UnsetUAV(RHICmdList, ShaderRHI);
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FLightTileIntersectionParameters& P)
+	{
+		Ar << P.ShadowTileHeadDataUnpacked;
+		Ar << P.ShadowTileArrayData;
+		Ar << P.ShadowTileListGroupSize;
+		Ar << P.ShadowMaxObjectsPerTile;
+		return Ar;
+	}
+
+private:
+	FRWShaderParameter ShadowTileHeadDataUnpacked;
+	FRWShaderParameter ShadowTileArrayData;
+	FShaderParameter ShadowTileListGroupSize;
+	FShaderParameter ShadowMaxObjectsPerTile;
 };
 
 extern void CullDistanceFieldObjectsForLight(

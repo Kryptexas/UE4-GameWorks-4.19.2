@@ -5,7 +5,7 @@ using System.IO;
 
 public class LibOVRPlatform : ModuleRules
 {
-	public LibOVRPlatform(TargetInfo Target)
+	public LibOVRPlatform(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;		
 		

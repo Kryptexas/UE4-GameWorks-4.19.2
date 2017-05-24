@@ -18,6 +18,7 @@
 #include "IGoogleVRHMDPlugin.h"
 #include "GoogleVRHMD.h"
 #include "ScreenRendering.h"
+#include "PipelineStateCache.h"
 
 static const float kVignetteHardness = 25;
 
@@ -184,23 +185,23 @@ void FGoogleVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePas
 		static const uint16 Indices[6] = {0, 1, 2, 0, 2, 3};
 
 		const uint32 XBound = TextureSize.X / 2;
- 		if(View.StereoPass == eSSP_LEFT_EYE)
- 		{
+		if(View.StereoPass == eSSP_LEFT_EYE)
+		{
 			RHICmdList.SetViewport(0, 0, 0.0f, XBound, TextureSize.Y, 1.0f);
 			DrawIndexedPrimitiveUP(Context.RHICmdList, PT_TriangleList, 0, LocalNumVertsPerEye, LocalNumTrisPerEye, &Indices, sizeof(Indices[0]), &VertsLeft, sizeof(VertsLeft[0]));
- 		}
- 		else
- 		{
-  			RHICmdList.SetViewport(XBound, 0, 0.0f, TextureSize.X, TextureSize.Y, 1.0f);
-  			DrawIndexedPrimitiveUP(Context.RHICmdList, PT_TriangleList, 0, LocalNumVertsPerEye, LocalNumTrisPerEye, &Indices, sizeof(Indices[0]), &VertsRight, sizeof(VertsRight[0]));
- 		}
+		}
+		else
+		{
+			RHICmdList.SetViewport(XBound, 0, 0.0f, TextureSize.X, TextureSize.Y, 1.0f);
+			DrawIndexedPrimitiveUP(Context.RHICmdList, PT_TriangleList, 0, LocalNumVertsPerEye, LocalNumTrisPerEye, &Indices, sizeof(Indices[0]), &VertsRight, sizeof(VertsRight[0]));
+		}
 	}
 #endif
 }
 
 // If bfullResourceResolve is true: A no-op draw call is submitted which resolves all pending states
 // If bFullResourceResolve is false, A no-op clear is submitted which resolves RT's only
-static void ResolvePendingRenderTarget(FRHICommandListImmediate& RHICmdList, IRendererModule* RendererModule, bool bFullResourceResolve = true)
+static void ResolvePendingRenderTarget(FRHICommandListImmediate& RHICmdList, FGraphicsPipelineStateInitializer& GraphicsPSOInit, IRendererModule* RendererModule, bool bFullResourceResolve = true)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	// HACK! Need to workaround UE4's caching mechanism. This causes the pending commands to actually apply to the device.
@@ -232,9 +233,12 @@ static void ResolvePendingRenderTarget(FRHICommandListImmediate& RHICmdList, IRe
 
 		TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
 		TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
 
 		RHICmdList.DrawIndexedPrimitive(
 			FakeIndexBuffer.IndexBufferRHI,
@@ -249,7 +253,8 @@ static void ResolvePendingRenderTarget(FRHICommandListImmediate& RHICmdList, IRe
 	}
 	else
 	{
-		RHICmdList.ClearColorTextures(0, nullptr, nullptr, FIntRect());
+		// What other operation can be done here?
+		//RHICmdList.ClearColorTextures(0, nullptr, nullptr);
 	}
 
 	RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);
@@ -270,9 +275,10 @@ void FGoogleVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 
 	//UE_LOG(LogHMD, Log, TEXT("RenderTexture_RenderThread() Viewport:(%d, %d) Texture:(%d, %d) BackBuffer=%p SrcTexture=%p"), ViewportWidth, ViewportHeight, TextureWidth, TextureHeight, BackBuffer, SrcTexture);
 
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
+	GraphicsPSOInit.RasterizerState = TStaticRasterizerState<>::GetRHI();
+	GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	// When using distortion method in GVR SDK
@@ -285,7 +291,7 @@ void FGoogleVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 			// Set target to back buffer
 			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
 			RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 1.0f);
-			ResolvePendingRenderTarget(RHICmdList, RendererModule);
+			ResolvePendingRenderTarget(RHICmdList, GraphicsPSOInit, RendererModule);
 
 			gvr_distort_to_screen(GVRAPI, *reinterpret_cast<GLuint*>(SrcTexture->GetNativeResource()),
 								  DistortedBufferViewportList,
@@ -300,6 +306,8 @@ void FGoogleVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	// Just render directly to output
 	{
 		SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
+		RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 1.0f);
 
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
@@ -308,8 +316,12 @@ void FGoogleVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 		TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
 		TShaderMapRef<FScreenPS> PixelShader(ShaderMap);
 
-		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
+		GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI;
+		GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+		GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+		GraphicsPSOInit.PrimitiveType = PT_TriangleList;
+
+		SetGraphicsPipelineState(RHICmdList, GraphicsPSOInit);
 
 		PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), SrcTexture);
 
@@ -464,7 +476,7 @@ FGoogleVRHMDCustomPresent::FGoogleVRHMDCustomPresent(FGoogleVRHMD* InHMD)
 
 FGoogleVRHMDCustomPresent::~FGoogleVRHMDCustomPresent()
 {
-    Shutdown();
+	Shutdown();
 }
 
 void FGoogleVRHMDCustomPresent::Shutdown()

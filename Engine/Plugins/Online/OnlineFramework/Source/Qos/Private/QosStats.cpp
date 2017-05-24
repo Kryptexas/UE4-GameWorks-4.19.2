@@ -168,6 +168,8 @@ void FQosDatacenterStats::Upload(TSharedPtr<IAnalyticsProvider>& AnalyticsProvid
  * @EventParam QosStats_SearchDetails string CSV details about the individual servers queried
 
  * @Comments Analytics data for a complete qos datacenter determination attempt
+ * 
+ * @Owner Josh.Markiewicz
  */
 void FQosDatacenterStats::ParseQosResults(TSharedPtr<IAnalyticsProvider>& AnalyticsProvider, FGuid& SessionId)
 {

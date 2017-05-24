@@ -86,7 +86,6 @@ namespace AutomationTool
 				CommandUtils.ConditionallySetEnvVar(EnvVarNames.CodeChangelist, CodeCLString);
 			}
 
-			CommandUtils.ConditionallySetEnvVar(EnvVarNames.LabelToSync, "");
 			CommandUtils.ConditionallySetEnvVar("P4USER", UserName);
 			CommandUtils.ConditionallySetEnvVar("P4CLIENT", ThisClient.Name);
 

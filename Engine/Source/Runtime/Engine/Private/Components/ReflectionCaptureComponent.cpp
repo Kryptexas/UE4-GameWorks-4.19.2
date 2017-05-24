@@ -136,6 +136,8 @@ AReflectionCapture::AReflectionCapture(const FObjectInitializer& ObjectInitializ
 {
 	CaptureComponent = CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(TEXT("NewReflectionComponent"));
 
+	bCanBeInCluster = true;
+
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
@@ -886,7 +888,7 @@ void UReflectionCaptureComponent::OnRegister()
 	Super::OnRegister();
 
 	UWorld* World = GetWorld();
-	if (World->IsGameWorld() && GMaxRHIFeatureLevel < ERHIFeatureLevel::SM4)
+	if (World->FeatureLevel < ERHIFeatureLevel::SM4)
 	{
 		if (EncodedHDRDerivedData == nullptr)
 		{
@@ -898,7 +900,7 @@ void UReflectionCaptureComponent::OnRegister()
 void UReflectionCaptureComponent::OnUnregister()
 {
 	UWorld* World = GetWorld();
-	if (World->IsGameWorld() && GMaxRHIFeatureLevel < ERHIFeatureLevel::SM4)
+	if (World->FeatureLevel < ERHIFeatureLevel::SM4)
 	{
 		if (EncodedHDRDerivedData == nullptr && World->NumInvalidReflectionCaptureComponents > 0)
 		{
@@ -1579,14 +1581,14 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 		WorldToUpdate->Scene->AllocateReflectionCaptures(WorldCombinedCaptures);
 
 		if (FeatureLevel >= ERHIFeatureLevel::SM4 && !FPlatformProperties::RequiresCookedData())
-		{
-			for (int32 CaptureIndex = 0; CaptureIndex < WorldCapturesToUpdateForLoad.Num(); CaptureIndex++)
 			{
-				// Save the derived data for any captures that were dirty on load
-				// This allows the derived data to get cached without having to resave a map
-				WorldCapturesToUpdateForLoad[CaptureIndex]->ReadbackFromGPU(WorldToUpdate);
+				for (int32 CaptureIndex = 0; CaptureIndex < WorldCapturesToUpdateForLoad.Num(); CaptureIndex++)
+				{
+					// Save the derived data for any captures that were dirty on load
+					// This allows the derived data to get cached without having to resave a map
+					WorldCapturesToUpdateForLoad[CaptureIndex]->ReadbackFromGPU(WorldToUpdate);
+				}
 			}
-		}
 	}
 }
 

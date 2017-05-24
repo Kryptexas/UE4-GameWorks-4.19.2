@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "RHI.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "KismetRenderingLibrary.generated.h"
 
 class UCanvas;
@@ -57,6 +58,13 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	static ENGINE_API void DrawMaterialToRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* TextureRenderTarget, UMaterialInterface* Material);
 
 	/**
+	 * Copies the contents of a render target to a UTexture2D
+	 * Only works in the editor
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Rendering", meta = (Keywords = "ConvertRenderTarget", WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true"))
+	static ENGINE_API void ConvertRenderTargetToTexture2DEditorOnly(UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, UTexture2D* Texture);
+
+	/**
 	* Exports a render target as a HDR image onto the disk.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Rendering", meta = (Keywords = "ExportRenderTarget", WorldContext = "WorldContextObject"))
@@ -81,4 +89,12 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering", meta=(Keywords="EndDrawCanvasToRenderTarget", WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))
 	static ENGINE_API void EndDrawCanvasToRenderTarget(UObject* WorldContextObject, const FDrawToRenderTargetContext& Context);
+
+	/** Create FSkelMeshSkinWeightInfo */
+	UFUNCTION(BlueprintPure, Category = "Rendering", meta=(NativeMakeFunc))
+	static ENGINE_API FSkelMeshSkinWeightInfo MakeSkinWeightInfo(int32 Bone0, uint8 Weight0, int32 Bone1, uint8 Weight1, int32 Bone2, uint8 Weight2, int32 Bone3, uint8 Weight3);
+
+	/** Break FSkelMeshSkinWeightInfo */
+	UFUNCTION(BlueprintPure, Category = "Rendering", meta=(NativeBreakFunc))
+	static ENGINE_API void BreakSkinWeightInfo(FSkelMeshSkinWeightInfo InWeight, int32& Bone0, uint8& Weight0, int32& Bone1, uint8& Weight1, int32& Bone2, uint8& Weight2, int32& Bone3, uint8& Weight3);
 };

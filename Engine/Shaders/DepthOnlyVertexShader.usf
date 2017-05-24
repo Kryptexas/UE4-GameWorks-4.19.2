@@ -12,7 +12,7 @@
 bool bIsInstancedStereoEmulated;
 #endif
 
-#define IOSZBIASWORKAROUND IOS && (ES2_PROFILE || ES3_1_PROFILE)
+#define IOSZBIASWORKAROUND (METAL_MRT_PROFILE || (IOS && (ES2_PROFILE || ES3_1_PROFILE)))
 
 struct FDepthOnlyVSToPS
 {
@@ -138,7 +138,7 @@ void Main(
 	ISOLATE
 	{
 		float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPos);
-		Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
+		Output.Position = INVARIANT(mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip));
 	}
 
 	#if INSTANCED_STEREO && !MULTI_VIEW
@@ -157,10 +157,17 @@ void Main(
 	#elif IOSZBIASWORKAROUND
 		// Z bias is needed here for ios metal (UE-26765) and gles (UE-27530)
 		// with metal compiler we cannot guarantee the order of operations across different shaders.
-		// Access to a fused multiply add intrinsic would solve this. In the meantime we add a small bias.
-		// This can be done here as the forward renderer's only use of the depth only shader is for modulated shadows.
-		// Addendum: This issue can occur with gles on metal capable hardware too. We apply this for all iOS shaders.
-		Output.Position.z += 0.0001 * Output.Position.w;
+		// Use of a fused multiply add intrinsic in all shader code or as the first IR pass in hlslcc *might* solve this.
+		// In the meantime we add a small bias.
+		// This can be done here as the mobile renderer's only use of the depth only shader is for modulated shadows.
+		// Addendum: This issue can occur with gles & Metal MRT on metal capable hardware too. We apply this for all iOS shaders.
+		// For Metal MRT this is likely to cause errors in rendering elsewhere, but porting to FMA is a non-starter and an FMA pass
+		// in hlslcc can't be done early enough to avoid all potential re-association optimisations.
+		#if METAL_MRT_PROFILE
+			Output.Position.z += -0.0000015 * Output.Position.w;
+		#else
+			Output.Position.z += 0.0001 * Output.Position.w;
+		#endif
 	#endif
 
 #if USE_GLOBAL_CLIP_PLANE

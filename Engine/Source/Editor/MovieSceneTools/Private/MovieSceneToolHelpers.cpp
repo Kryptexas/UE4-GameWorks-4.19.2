@@ -436,7 +436,7 @@ public:
 			.OnGenerateWidget_Lambda([this](TSharedPtr<int32> InItem)
 			{
 				return SNew(STextBlock)
-					.Text(Enum->GetDisplayNameText(*InItem));
+					.Text(Enum->GetDisplayNameTextByIndex(*InItem));
 			})
 			.OnSelectionChanged(this, &SEnumCombobox::OnComboSelectionChanged)
 			.OnComboBoxOpening(this, &SEnumCombobox::OnComboMenuOpening)
@@ -452,13 +452,13 @@ private:
 	FText GetCurrentValue() const
 	{
 		int32 CurrentNameIndex = Enum->GetIndexByValue(CurrentValue.Get());
-		return Enum->GetDisplayNameText(CurrentNameIndex);
+		return Enum->GetDisplayNameTextByIndex(CurrentNameIndex);
 	}
 
 	TSharedRef<SWidget> OnGenerateWidget(TSharedPtr<int32> InItem)
 	{
 		return SNew(STextBlock)
-			.Text(Enum->GetDisplayNameText(*InItem));
+			.Text(Enum->GetDisplayNameTextByIndex(*InItem));
 	}
 
 	void OnComboSelectionChanged(TSharedPtr<int32> InSelectedItem, ESelectInfo::Type SelectInfo)
@@ -888,11 +888,20 @@ bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, ISequencer& InS
 	
 	UnFbx::FFbxImporter* FbxImporter = UnFbx::FFbxImporter::GetInstance();
 
+	UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
+	bool bConvertSceneBackup = ImportOptions->bConvertScene;
+	bool bConvertSceneUnitBackup = ImportOptions->bConvertSceneUnit;
+
+	ImportOptions->bConvertScene = true;
+	ImportOptions->bConvertSceneUnit = true;
+
 	const FString FileExtension = FPaths::GetExtension(ImportFilename);
 	if (!FbxImporter->ImportFromFile(*ImportFilename, FileExtension, true))
 	{
 		// Log the error message and fail the import.
 		FbxImporter->ReleaseScene();
+		ImportOptions->bConvertScene = bConvertSceneBackup;
+		ImportOptions->bConvertSceneUnit = bConvertSceneUnitBackup;
 		return false;
 	}
 
@@ -909,5 +918,8 @@ bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, ISequencer& InS
 	}
 
 	FbxImporter->ReleaseScene();
+	ImportOptions->bConvertScene = bConvertSceneBackup;
+	ImportOptions->bConvertSceneUnit = bConvertSceneUnitBackup;
+
 	return true;
 }

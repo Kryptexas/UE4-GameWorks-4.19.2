@@ -23,7 +23,7 @@ public:
 
 public:	
 	FAnimNode_PoseHandler()
-		: PoseAsset(nullptr)
+		:PoseAsset(nullptr)
 	{
 	}
 

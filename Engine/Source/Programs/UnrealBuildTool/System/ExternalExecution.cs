@@ -17,7 +17,7 @@ namespace UnrealBuildTool
 	// UE4\Engine\Source\Runtime\Core\Public\Misc\ComplilationResult.h 
 	// to keep communication between UHT, UBT and Editor compiling
 	// processes valid.
-	public enum ECompilationResult
+	enum ECompilationResult
 	{
 		/// <summary>
 		/// Compilation succeeded
@@ -59,7 +59,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		Unknown
 	}
-	public static class CompilationResultExtensions
+	static class CompilationResultExtensions
 	{
 		public static bool Succeeded(this ECompilationResult Result)
 		{
@@ -71,7 +71,7 @@ namespace UnrealBuildTool
 	/// Type of module. Mirrored in UHT as EBuildModuleType.
 	/// This should be sorted by the order in which we expect modules to be built.
 	/// </summary>
-	public enum UHTModuleType
+	enum UHTModuleType
 	{
 		Program,
 		EngineRuntime,
@@ -83,7 +83,7 @@ namespace UnrealBuildTool
 		GameEditor,
 		GameThirdParty,
 	}
-	public static class UHTModuleTypeExtensions
+	static class UHTModuleTypeExtensions
 	{
 		public static bool IsProgramModule(this UHTModuleType ModuleType)
 		{
@@ -103,8 +103,9 @@ namespace UnrealBuildTool
 			{
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeAndProgram:
-				case ModuleHostType.ServerOnly:
+                case ModuleHostType.RuntimeAndProgram:
+                case ModuleHostType.CookedOnly:
+                case ModuleHostType.ServerOnly:
                 case ModuleHostType.ClientOnly:
                     return UHTModuleType.EngineRuntime;
 				case ModuleHostType.Developer:
@@ -122,8 +123,9 @@ namespace UnrealBuildTool
 			{
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeAndProgram:
-				case ModuleHostType.ServerOnly:
+                case ModuleHostType.RuntimeAndProgram:
+                case ModuleHostType.CookedOnly:
+                case ModuleHostType.ServerOnly:
                 case ModuleHostType.ClientOnly:
                     return UHTModuleType.GameRuntime;
 				case ModuleHostType.Developer:
@@ -141,7 +143,7 @@ namespace UnrealBuildTool
 	/// Information about a module that needs to be passed to UnrealHeaderTool for code generation
 	/// </summary>
 	[Serializable]
-	public class UHTModuleInfo : ISerializable
+	class UHTModuleInfo : ISerializable
 	{
 		/// <summary>
 		/// Module name
@@ -151,7 +153,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Module base directory
 		/// </summary>
-		public string ModuleDirectory;
+		public DirectoryReference ModuleDirectory;
 
 		/// <summary>
 		/// Module type
@@ -195,7 +197,7 @@ namespace UnrealBuildTool
 		public UHTModuleInfo(SerializationInfo Info, StreamingContext Context)
 		{
 			ModuleName = Info.GetString("mn");
-			ModuleDirectory = Info.GetString("md");
+			ModuleDirectory = (DirectoryReference)Info.GetValue("md", typeof(DirectoryReference));
 			ModuleType = Info.GetString("mt");
 			PublicUObjectClassesHeaders = (List<FileItem>)Info.GetValue("cl", typeof(List<FileItem>));
 			PublicUObjectHeaders = (List<FileItem>)Info.GetValue("pu", typeof(List<FileItem>));
@@ -224,19 +226,34 @@ namespace UnrealBuildTool
 		}
 	}
 
-	//
-	// This MUST be kept in sync with EGeneratedBodyVersion enum and 
-	// ToGeneratedBodyVersion function in UHT defined in GeneratedCodeVersion.h.
-	//
+	/// <summary>
+	/// This MUST be kept in sync with EGeneratedBodyVersion enum and 
+	/// ToGeneratedBodyVersion function in UHT defined in GeneratedCodeVersion.h.
+	/// </summary>
 	public enum EGeneratedCodeVersion
 	{
+		/// <summary>
+		/// 
+		/// </summary>
 		None,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		V1,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		V2,
+
+		/// <summary>
+		/// 
+		/// </summary>
 		VLatest = V2
 	};
 
-	public struct UHTManifest
+	struct UHTManifest
 	{
 		public struct Module
 		{
@@ -259,26 +276,27 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public UHTManifest(UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, IEnumerable<UHTModuleInfo> ModuleInfo)
+		public UHTManifest(UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, string InExternalDependenciesFile, IEnumerable<UHTModuleInfo> ModuleInfo, bool bUsePrecompiled)
 		{
-			IsGameTarget = (Target.TargetType != TargetRules.TargetType.Program);
+			IsGameTarget = (Target.TargetType != TargetType.Program);
 			RootLocalPath = InRootLocalPath;
 			RootBuildPath = InRootBuildPath;
 			TargetName = Target.GetTargetName();
+			ExternalDependenciesFile = InExternalDependenciesFile;
 
 			Modules = ModuleInfo.Select(Info => new Module
 			{
 				Name = Info.ModuleName,
 				ModuleType = Info.ModuleType,
-				BaseDirectory = Info.ModuleDirectory,
-				IncludeBase = Info.ModuleDirectory,
+				BaseDirectory = Info.ModuleDirectory.FullName,
+				IncludeBase = Info.ModuleDirectory.FullName,
 				OutputDirectory = Path.GetDirectoryName(Info.GeneratedCPPFilenameBase),
 				ClassesHeaders = Info.PublicUObjectClassesHeaders.Select((Header) => Header.AbsolutePath).ToList(),
 				PublicHeaders = Info.PublicUObjectHeaders.Select((Header) => Header.AbsolutePath).ToList(),
 				PrivateHeaders = Info.PrivateUObjectHeaders.Select((Header) => Header.AbsolutePath).ToList(),
 				PCH = Info.PCH,
 				GeneratedCPPFilenameBase = Info.GeneratedCPPFilenameBase,
-				SaveExportedHeaders = !UnrealBuildTool.IsEngineInstalled() || !new DirectoryReference(Info.ModuleDirectory).IsUnderDirectory(UnrealBuildTool.EngineDirectory),
+				SaveExportedHeaders = !bUsePrecompiled || !Info.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory),
 				UHTGeneratedCodeVersion = Info.GeneratedCodeVersion,
 			}).ToList();
 		}
@@ -287,6 +305,7 @@ namespace UnrealBuildTool
 		public string RootLocalPath;    // The engine path on the local machine
 		public string RootBuildPath;    // The engine path on the build machine, if different (e.g. Mac/iOS builds)
 		public string TargetName;       // Name of the target currently being compiled
+		public string ExternalDependenciesFile; // File to contain additional dependencies that the generated code depends on
 		public List<Module> Modules;
 	}
 
@@ -294,12 +313,12 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// This handles all running of the UnrealHeaderTool
 	/// </summary>
-	public class ExternalExecution
+	class ExternalExecution
 	{
 		/// <summary>
 		/// Generates a UHTModuleInfo for a particular named module under a directory.
 		/// </summary>
-		/// <returns>
+		/// <returns></returns>
 		public static UHTModuleInfo CreateUHTModuleInfo(IEnumerable<string> HeaderFilenames, string ModuleName, DirectoryReference ModuleDirectory, UHTModuleType ModuleType, EGeneratedCodeVersion GeneratedCodeVersion)
 		{
 			DirectoryReference ClassesFolder = DirectoryReference.Combine(ModuleDirectory, "Classes");
@@ -335,7 +354,7 @@ namespace UnrealBuildTool
 			UHTModuleInfo Result = new UHTModuleInfo
 			{
 				ModuleName = ModuleName,
-				ModuleDirectory = ModuleDirectory.FullName,
+				ModuleDirectory = ModuleDirectory,
 				ModuleType = ModuleType.ToString(),
 				PublicUObjectClassesHeaders = AllClassesHeaders,
 				PublicUObjectHeaders = PublicUObjectHeaders,
@@ -404,10 +423,7 @@ namespace UnrealBuildTool
 		/// Returns a copy of Nodes sorted by dependency.  Independent or circularly-dependent nodes should
 		/// remain in their same relative order within the original Nodes sequence.
 		/// </summary>
-		/// <typeparam name="NodeType">The type of node to sort.</typeparam>
-		/// <param name="Nodes">The sequence of nodes to sort.</param>
-		/// <param name="NodeDependencies">A function which returns a node's immediate dependencies.</param>
-		/// <returns>A copy of Nodes sorted by NodeDependencies, with circular references remaining in the same relative order.</returns>
+		/// <param name="NodeList">The list of nodes to sort.</param>
 		public static void StableTopologicalSort(List<UEBuildModuleCPP> NodeList)
 		{
 			int            NodeCount = NodeList.Count;
@@ -459,7 +475,7 @@ namespace UnrealBuildTool
 			return Dependencies.Contains(ToModule);
 		}
 
-		public static void SetupUObjectModules(IEnumerable<UEBuildModuleCPP> ModulesToGenerateHeadersFor, UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, Dictionary<string, FlatModuleCsDataType> FlatModuleCsData, EGeneratedCodeVersion GeneratedCodeVersion)
+		public static void SetupUObjectModules(IEnumerable<UEBuildModuleCPP> ModulesToGenerateHeadersFor, ReadOnlyTargetRules Target, CppCompileEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, Dictionary<string, FlatModuleCsDataType> FlatModuleCsData, EGeneratedCodeVersion GeneratedCodeVersion)
 		{
 			DateTime UObjectDiscoveryStartTime = DateTime.UtcNow;
 
@@ -490,8 +506,8 @@ namespace UnrealBuildTool
 					if (UnrealBuildTool.IsGatheringBuild && !UnrealBuildTool.IsAssemblingBuild)
 					{
 						// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
-						CPPEnvironment ModuleCompileEnvironment = Module.CreateModuleCompileEnvironment(Target, GlobalCompileEnvironment);
-						Module.CachePCHUsageForModuleSourceFiles(Target.Headers, ModuleCompileEnvironment);
+						CppCompileEnvironment ModuleCompileEnvironment = Module.CreateModuleCompileEnvironment(Target, GlobalCompileEnvironment);
+						Module.CachePCHUsageForModuleSourceFiles(Target, ModuleCompileEnvironment);
 						if (Module.ProcessedDependencies.UniquePCHHeaderFile != null)
 						{
 							UHTModuleInfo.Info.PCH = Module.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
@@ -506,9 +522,9 @@ namespace UnrealBuildTool
 				else
 				{
 					// Remove any stale generated code directory
-					if(!UnrealBuildTool.IsEngineInstalled() || !Module.GeneratedCodeDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+					if(Module.GeneratedCodeDirectory != null && (!UnrealBuildTool.IsEngineInstalled() || !Module.GeneratedCodeDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory)))
 					{
-						if (Module.GeneratedCodeDirectory != null && Module.GeneratedCodeDirectory.Exists())
+						if (DirectoryReference.Exists(Module.GeneratedCodeDirectory))
 						{
 							Log.TraceVerbose("Deleting stale generated code directory: " + Module.GeneratedCodeDirectory.ToString());
 							Directory.Delete(Module.GeneratedCodeDirectory.FullName, true);
@@ -517,7 +533,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (BuildConfiguration.bPrintPerformanceInfo)
+			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
 				double UObjectDiscoveryTime = (DateTime.UtcNow - UObjectDiscoveryStartTime).TotalSeconds;
 				Console.WriteLine("UObject discovery time: " + UObjectDiscoveryTime + "s");
@@ -529,10 +545,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		static string GetHeaderToolPath()
 		{
-			UnrealTargetPlatform Platform = BuildHostPlatform.Current.Platform;
-			string ExeExtension = UEBuildPlatform.GetBuildPlatform(Platform).GetBinaryExtension(UEBuildBinaryType.Executable);
-			string HeaderToolExeName = "UnrealHeaderTool";
-			string HeaderToolPath = Path.Combine("..", "Binaries", Platform.ToString(), HeaderToolExeName + ExeExtension);
+			UnrealTargetConfiguration Config = BuildConfiguration.bForceDebugUnrealHeaderTool ? UnrealTargetConfiguration.Debug : UnrealTargetConfiguration.Development;
+
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory.FullName, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, Config, "");
+			TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
+			Receipt.ExpandPathVariables(UnrealBuildTool.EngineDirectory, UnrealBuildTool.EngineDirectory);
+
+			string HeaderToolPath = Receipt.BuildProducts[0].Path;
 			return HeaderToolPath;
 		}
 
@@ -547,7 +566,7 @@ namespace UnrealBuildTool
 			using (ScopedTimer TimestampTimer = new ScopedTimer("GetHeaderToolTimestamp"))
 			{
 				// Try to read the receipt for UHT.
-				string ReceiptPath = TargetReceipt.GetDefaultPath(BuildConfiguration.RelativeEnginePath, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, null);
+				string ReceiptPath = TargetReceipt.GetDefaultPath(UnrealBuildTool.EngineDirectory.FullName, "UnrealHeaderTool", BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, null);
 				if (!File.Exists(ReceiptPath))
 				{
 					Timestamp = DateTime.MaxValue;
@@ -684,8 +703,10 @@ namespace UnrealBuildTool
 		/// Checks the class header files and determines if generated UObject code files are out of date in comparison.
 		/// </summary>
 		/// <param name="UObjectModules">Modules that we generate headers for</param>
+		/// <param name="HeaderToolTimestamp">Timestamp for UHT</param>
+		/// <param name="bUsePrecompiled">Whether to use precompiled engine modules</param>
 		/// <returns>    True if the code files are out of date</returns>
-		private static bool AreGeneratedCodeFilesOutOfDate(List<UHTModuleInfo> UObjectModules, DateTime HeaderToolTimestamp)
+		private static bool AreGeneratedCodeFilesOutOfDate(List<UHTModuleInfo> UObjectModules, DateTime HeaderToolTimestamp, bool bUsePrecompiled)
 		{
 			// Get CoreUObject.generated.cpp timestamp.  If the source files are older than the CoreUObject generated code, we'll
 			// need to regenerate code for the module
@@ -709,8 +730,8 @@ namespace UnrealBuildTool
 
 			foreach (UHTModuleInfo Module in UObjectModules)
 			{
-				// If the engine is installed, skip skip checking timestamps for modules that are under the engine directory
-				if (UnrealBuildTool.IsEngineInstalled() && new DirectoryReference(Module.ModuleDirectory).IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				// If we're using a precompiled engine, skip skip checking timestamps for modules that are under the engine directory
+				if (bUsePrecompiled && Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 				{
 					continue;
 				}
@@ -808,9 +829,39 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Determines if any external dependencies for generated code is out of date
+		/// </summary>
+		/// <param name="ExternalDependenciesFile">Path to the external dependencies file</param>
+		/// <returns>True if any external dependencies are out of date</returns>
+		private static bool AreExternalDependenciesOutOfDate(FileReference ExternalDependenciesFile)
+		{
+			if (!FileReference.Exists(ExternalDependenciesFile))
+			{
+				return true;
+			}
+
+			DateTime LastWriteTime = File.GetLastWriteTimeUtc(ExternalDependenciesFile.FullName);
+
+			string[] Lines = File.ReadAllLines(ExternalDependenciesFile.FullName);
+			foreach (string Line in Lines)
+			{
+				string ExternalDependencyFile = Line.Trim();
+				if (ExternalDependencyFile.Length > 0)
+				{
+					if (!File.Exists(ExternalDependencyFile) || File.GetLastWriteTimeUtc(ExternalDependencyFile) > LastWriteTime)
+					{
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>
 		/// Updates the intermediate include directory timestamps of all the passed in UObject modules
 		/// </summary>
-		private static void UpdateDirectoryTimestamps(List<UHTModuleInfo> UObjectModules)
+		private static void UpdateDirectoryTimestamps(List<UHTModuleInfo> UObjectModules, bool bUsePrecompiled)
 		{
 			foreach (UHTModuleInfo Module in UObjectModules)
 			{
@@ -822,7 +873,7 @@ namespace UnrealBuildTool
 					if (GeneratedCodeDirectoryInfo.Exists)
 					{
 						// Don't write anything to the engine directory if we're running an installed build
-						if (UnrealBuildTool.IsEngineInstalled() && new DirectoryReference(Module.ModuleDirectory).IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+						if (bUsePrecompiled && Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 						{
 							continue;
 						}
@@ -832,11 +883,6 @@ namespace UnrealBuildTool
 						// We can't alter the directory timestamp directly, because this may throw exceptions when the directory is
 						// open in visual studio or windows explorer, so instead we create a blank file that will change the timestamp for us
 						FileReference TimestampFile = FileReference.Combine(new DirectoryReference(GeneratedCodeDirectoryInfo.FullName), "Timestamp");
-
-						if (!GeneratedCodeDirectoryInfo.Exists)
-						{
-							GeneratedCodeDirectoryInfo.Create();
-						}
 
 						// Save all of the UObject files to a timestamp file.  We'll load these on the next run to see if any new
 						// files with UObject classes were deleted, so that we'll know to run UHT even if the timestamps of all
@@ -896,7 +942,7 @@ namespace UnrealBuildTool
 		/// Builds and runs the header tool and touches the header directories.
 		/// Performs any early outs if headers need no changes, given the UObject modules, tool path, game name, and configuration
 		/// </summary>
-		public static bool ExecuteHeaderToolIfNecessary(UEToolChain ToolChain, UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, FileReference ModuleInfoFileName, ref ECompilationResult UHTResult)
+		public static bool ExecuteHeaderToolIfNecessary(BuildConfiguration BuildConfiguration, UEBuildTarget Target, CppCompileEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, FileReference ModuleInfoFileName, ref ECompilationResult UHTResult)
 		{
 			if (ProgressWriter.bWriteMarkup)
 			{
@@ -907,14 +953,14 @@ namespace UnrealBuildTool
 				// We never want to try to execute the header tool when we're already trying to build it!
 				bool bIsBuildingUHT = Target.GetTargetName().Equals("UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase);
 
-				string RootLocalPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+				string RootLocalPath = UnrealBuildTool.RootDirectory.FullName;
 
 				// check if UHT is out of date
 				DateTime HeaderToolTimestamp = DateTime.MaxValue;
 				bool bHaveHeaderTool = !bIsBuildingUHT && GetHeaderToolTimestamp(out HeaderToolTimestamp);
 
 				// ensure the headers are up to date
-				bool bUHTNeedsToRun = (UEBuildConfiguration.bForceHeaderGeneration == true || !bHaveHeaderTool || AreGeneratedCodeFilesOutOfDate(UObjectModules, HeaderToolTimestamp));
+				bool bUHTNeedsToRun = (BuildConfiguration.bForceHeaderGeneration == true || !bHaveHeaderTool || AreGeneratedCodeFilesOutOfDate(UObjectModules, HeaderToolTimestamp, Target.bUsePrecompiled));
 				if (bUHTNeedsToRun || UnrealBuildTool.IsGatheringBuild)
 				{
 					// Since code files are definitely out of date, we'll now finish computing information about the UObject modules for UHT.  We
@@ -930,8 +976,8 @@ namespace UnrealBuildTool
 
 								// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
 								UEBuildModuleCPP DependencyModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName(UHTModuleInfo.ModuleName);
-								CPPEnvironment ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(Target, GlobalCompileEnvironment);
-								DependencyModuleCPP.CachePCHUsageForModuleSourceFiles(Target.Headers, ModuleCompileEnvironment);
+								CppCompileEnvironment ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(Target.Rules, GlobalCompileEnvironment);
+								DependencyModuleCPP.CachePCHUsageForModuleSourceFiles(Target.Rules, ModuleCompileEnvironment);
 								if (DependencyModuleCPP.ProcessedDependencies != null && DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
 								{
 									UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
@@ -941,15 +987,23 @@ namespace UnrealBuildTool
 					}
 				}
 
+				// Get the file containing dependencies for the generated code
+				FileReference ExternalDependenciesFile = ModuleInfoFileName.ChangeExtension(".deps");
+				if (AreExternalDependenciesOutOfDate(ExternalDependenciesFile))
+				{
+					bUHTNeedsToRun = true;
+					bHaveHeaderTool = false; // Force UHT to build until dependency checking is fast enough to run all the time
+				}
+
 				// @todo ubtmake: Optimization: Ideally we could avoid having to generate this data in the case where UHT doesn't even need to run!  Can't we use the existing copy?  (see below use of Manifest)
-				UHTManifest Manifest = new UHTManifest(Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
+				UHTManifest Manifest = new UHTManifest(Target, RootLocalPath, UEBuildPlatform.GetBuildPlatform(Target.Platform).ConvertPath(RootLocalPath + '\\'), ExternalDependenciesFile.FullName, UObjectModules, Target.bUsePrecompiled);
 
 				if (!bIsBuildingUHT && bUHTNeedsToRun)
 				{
 					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within an installed ecosystem or hot-reloading
 					if (UnrealBuildTool.IsEngineInstalled() == false &&
-						UEBuildConfiguration.bDoNotBuildUHT == false &&
-						UEBuildConfiguration.bHotReloadFromIDE == false &&
+						BuildConfiguration.bDoNotBuildUHT == false &&
+						BuildConfiguration.bHotReloadFromIDE == false &&
 						!(bHaveHeaderTool && !UnrealBuildTool.IsGatheringBuild && UnrealBuildTool.IsAssemblingBuild))	// If running in "assembler only" mode, we assume UHT is already up to date for much faster iteration!
 					{
 						// If it is out of date or not there it will be built.
@@ -962,8 +1016,16 @@ namespace UnrealBuildTool
 
 						// Which desktop platform do we need to compile UHT for?
 						UBTArguments.Append(" " + BuildHostPlatform.Current.Platform.ToString());
-						// NOTE: We force Development configuration for UHT so that it runs quickly, even when compiling debug
-						UBTArguments.Append(" " + UnrealTargetConfiguration.Development.ToString());
+
+						// NOTE: We force Development configuration for UHT so that it runs quickly, even when compiling debug, unless we say so explicitly
+						if (BuildConfiguration.bForceDebugUnrealHeaderTool)
+						{
+							UBTArguments.Append(" " + UnrealTargetConfiguration.Debug.ToString());
+						}
+						else
+						{
+							UBTArguments.Append(" " + UnrealTargetConfiguration.Development.ToString());
+						}
 
 						// NOTE: We disable mutex when launching UBT from within UBT to compile UHT
 						UBTArguments.Append(" -NoMutex");
@@ -973,11 +1035,8 @@ namespace UnrealBuildTool
 							UBTArguments.Append(" -noxge");
 						}
 
-						// Propagate command-line options
-						if ( BuildConfiguration.bIgnoreJunk )
-						{
-							UBTArguments.Append(" -ignorejunk");
-						}
+						// Always ignore the junk manifest on recursive invocations; it will have been run by this process if necessary
+						UBTArguments.Append(" -ignorejunk");
 
 						// Add UHT plugins to UBT command line as external plugins
 						if (Target.UnrealHeaderToolPlugins != null && Target.UnrealHeaderToolPlugins.Count > 0)
@@ -1016,7 +1075,7 @@ namespace UnrealBuildTool
 						CmdLine += " -installed";
 					}
 
-					if (UEBuildConfiguration.bFailIfGeneratedCodeChanges)
+					if (BuildConfiguration.bFailIfGeneratedCodeChanges)
 					{
 						CmdLine += " -FailIfGeneratedCodeChanges";
 					}
@@ -1026,7 +1085,7 @@ namespace UnrealBuildTool
                         CmdLine += " -UseMakefiles";
                     }
 
-					if (!UEBuildConfiguration.bCompileAgainstEngine)
+					if (Target.Rules != null && !Target.Rules.bCompileAgainstEngine)
 					{
 						CmdLine += " -NoEnginePlugins";
 					}
@@ -1060,7 +1119,7 @@ namespace UnrealBuildTool
 					}
 
 					Log.TraceInformation("Reflection code generated for {0} in {1} seconds", ActualTargetName, s.Elapsed.TotalSeconds);
-					if (BuildConfiguration.bPrintPerformanceInfo)
+					if (UnrealBuildTool.bPrintPerformanceInfo)
 					{
 						Log.TraceInformation("UnrealHeaderTool took {1}", ActualTargetName, (double)s.ElapsedMilliseconds / 1000.0);
 					}
@@ -1086,11 +1145,11 @@ namespace UnrealBuildTool
 					// generated headers include other generated headers using absolute paths which in case of building remotely are already
 					// the remote machine absolute paths. Because of that parsing headers will not result in finding all includes properly.
 					// @todo ubtmake: Need to figure out what this does in the assembler case, and whether we need to run it
-					ToolChain.PostCodeGeneration(Manifest);
+					UEBuildPlatform.GetBuildPlatform(Target.Platform).PostCodeGeneration(Manifest);
 				}
 
 				// touch the directories
-				UpdateDirectoryTimestamps(UObjectModules);
+				UpdateDirectoryTimestamps(UObjectModules, Target.bUsePrecompiled);
 
 				Progress.Write(3, 3);
 			}

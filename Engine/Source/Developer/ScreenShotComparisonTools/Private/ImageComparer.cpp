@@ -82,7 +82,7 @@ public:
 		FString TempDir = OutputDirectory.IsEmpty() ? FString(FPlatformProcess::UserTempDir()) : OutputDirectory;
 		FString TempDeltaFile = FPaths::CreateTempFilename(*TempDir, TEXT("ImageCompare-"), TEXT(".png"));
 
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+		IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 		IImageWrapperPtr ImageWriter = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 		if ( ImageWriter.IsValid() )
@@ -195,6 +195,13 @@ bool FPixelOperations::IsAntialiased(const FColor& SourcePixel, FComparableImage
 	return false;
 }
 
+FComparisonReport::FComparisonReport(const FString& InReportRootDirectory, const FString& InReportFile)
+{
+	ReportRootDirectory = InReportRootDirectory;
+	ReportFile = InReportFile;
+	ReportFolder = FPaths::GetPath(InReportFile);
+}
+
 void FComparableImage::Process()
 {
 	ParallelFor(Width,
@@ -224,7 +231,7 @@ void FComparableImage::Process()
 
 TSharedPtr<FComparableImage> FImageComparer::Open(const FString& ImagePath, FText& OutError)
 {
-	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::GetModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 	IImageWrapperPtr ImageReader = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 	if ( !ImageReader.IsValid() )
@@ -280,24 +287,9 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 	Results.IncomingFile = ImagePathB;
 	FPaths::MakePathRelativeTo(Results.IncomingFile, *ImageRootB);
 
-	TSharedPtr<FComparableImage> ImageA;
-	TSharedPtr<FComparableImage> ImageB;
-
-	FText ErrorA;
-	FText ErrorB;
-
-	ParallelFor(2,
-		[&] (int32 Index)
-	{
-		if ( Index == 0 )
-		{
-			ImageA = Open(ImagePathA, ErrorA);
-		}
-		else
-		{
-			ImageB = Open(ImagePathB, ErrorB);
-		}
-	});
+	FText ErrorA, ErrorB;
+	TSharedPtr<FComparableImage> ImageA = Open(ImagePathA, ErrorA);
+	TSharedPtr<FComparableImage> ImageB = Open(ImagePathB, ErrorB);
 
 	if ( !ImageA.IsValid() )
 	{
@@ -313,7 +305,10 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 
 	if ( ImageA->Width != ImageB->Width || ImageA->Height != ImageB->Height )
 	{
-		Results.ErrorMessage = LOCTEXT("DifferentSizesUnsupported", "We can not compare images of different sizes at this time.");
+		//Results.ErrorMessage = LOCTEXT("DifferentSizesUnsupported", "We can not compare images of different sizes at this time.");
+		Results.Tolerance = Tolerance;
+		Results.MaxLocalDifference = 1.0f;
+		Results.GlobalDifference = 1.0f;
 		return Results;
 	}
 
@@ -414,24 +409,9 @@ double FImageComparer::CompareStructuralSimilarity(const FString& ImagePathA, co
 	Results.IncomingFile = ImagePathB;
 	FPaths::MakePathRelativeTo(Results.IncomingFile, *ImageRootB);
 
-	TSharedPtr<FComparableImage> ImageA;
-	TSharedPtr<FComparableImage> ImageB;
-
-	FText ErrorA;
-	FText ErrorB;
-
-	ParallelFor(2,
-		[&] (int32 Index)
-	{
-		if ( Index == 0 )
-		{
-			ImageA = Open(ImagePathA, ErrorA);
-		}
-		else
-		{
-			ImageB = Open(ImagePathB, ErrorB);
-		}
-	});
+	FText ErrorA, ErrorB;
+	TSharedPtr<FComparableImage> ImageA = Open(ImagePathA, ErrorA);
+	TSharedPtr<FComparableImage> ImageB = Open(ImagePathB, ErrorB);
 
 	if ( !ImageA.IsValid() )
 	{

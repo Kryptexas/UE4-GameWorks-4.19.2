@@ -17,6 +17,8 @@ class FSkeletalMeshResource;
 class FSkeletalMeshVertexBuffer;
 struct FSkelMeshSection;
 class FColorVertexBuffer;
+class FSkinWeightVertexBuffer;
+
 //
 // Forward declarations
 //
@@ -49,8 +51,6 @@ enum EPhysBodyOp
 	PBO_None,
 	/** Terminate - if you terminate, you won't be able to re-init when unhidden. */
 	PBO_Term,
-	/** Disable collision - it will enable collision when unhidden. */
-	PBO_Disable,
 	PBO_MAX,
 };
 
@@ -114,9 +114,23 @@ struct FActiveMorphTarget
 	}
 };
 
+/** Vertex skin weight info supplied for a component override. */
+USTRUCT(BlueprintType, meta = (HasNativeMake = "Engine.KismetRenderingLibrary.MakeSkinWeightInfo", HasNativeBreak = "Engine.KismetRenderingLibrary.BreakSkinWeightInfo"))
+struct FSkelMeshSkinWeightInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Index of bones that influence this vertex */
+	UPROPERTY()
+	int32	Bones[8];
+	/** Influence of each bone on this vertex */
+	UPROPERTY()
+	uint8	Weights[8];
+};
+
 /** LOD specific setup for the skeletal mesh component. */
 USTRUCT()
-struct FSkelMeshComponentLODInfo
+struct ENGINE_API FSkelMeshComponentLODInfo
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -124,18 +138,32 @@ struct FSkelMeshComponentLODInfo
 	UPROPERTY()
 	TArray<bool> HiddenMaterials;
 
+	/** Vertex buffer used to override vertex colors */
 	FColorVertexBuffer* OverrideVertexColors;
+
+	/** Vertex buffer used to override skin weights */
+	FSkinWeightVertexBuffer* OverrideSkinWeights;
 
 	FSkelMeshComponentLODInfo();
 	~FSkelMeshComponentLODInfo();
 
 	void ReleaseOverrideVertexColorsAndBlock();
-
 	void BeginReleaseOverrideVertexColors();
+
+	void ReleaseOverrideSkinWeightsAndBlock();
+	void BeginReleaseOverrideSkinWeights();
 
 	void CleanUp();
 };
 
+/** Struct used to store per-component ref pose override */
+struct FSkelMeshRefPoseOverride
+{
+	/** Inverse of (component space) ref pose matrices  */
+	TArray<FMatrix> RefBasesInvMatrix;
+	/** Per bone transforms (local space) for new ref pose */
+	TArray<FTransform> RefBonePoses;
+};
 
 /**
  *
@@ -194,6 +222,10 @@ protected:
 
 	/** Incremented every time the master bone map changes. Used to keep in sync with any duplicate data needed by other threads */
 	int32 MasterBoneMapCacheCount;
+
+	/** Information for current ref pose override, if present */
+	FSkelMeshRefPoseOverride* RefPoseOverride;
+
 public:
 
 	const TArray<int32>& GetMasterBoneMap() const { return MasterBoneMap; }
@@ -231,6 +263,10 @@ public:
 	/** Index of the section to preview... If set to -1, all section will be rendered */
 	UPROPERTY(transient)
 	int32 SectionIndexPreview;
+
+	/** Index of the material to preview... If set to -1, all section will be rendered */
+	UPROPERTY(transient)
+	int32 MaterialIndexPreview;
 
 #endif // WITH_EDITORONLY_DATA
 	//
@@ -417,6 +453,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetForcedLOD(int32 InNewForcedLOD);
 
+#if WITH_EDITOR
+	/**
+	 * Get the LOD Bias of this component
+	 *
+	 * @return	The LOD bias of this component. Derived classes can override this to ignore or override LOD bias settings.
+	 */
+	virtual int32 GetLODBias() const;
+#endif
+
+	UFUNCTION(BlueprintCallable, Category="Lighting")
+	void SetCastCapsuleDirectShadow(bool bNewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Lighting")
+	void SetCastCapsuleIndirectShadow(bool bNewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Lighting")
+	void SetCapsuleIndirectShadowMinVisibility(float NewValue);
+
 	/**
 	*  Returns the number of bones in the skeleton.
 	*/
@@ -542,6 +596,7 @@ public:
 	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
 	*/
 	void SetSectionPreview(int32 InSectionIndexPreview);
+	void SetMaterialPreview(int32 InMaterialIndexPreview);
 
 	/**
 	 * Function returns whether or not CPU skinning should be applied
@@ -597,6 +652,27 @@ public:
 	* @param TexCoordChannel	Texture coordinate channel Index.
 	*/
 	FVector2D GetVertexUV(int32 VertexIndex, uint32 UVChannel) const;
+
+
+	/** Allow override of skin weights on a per-component basis. */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+	void SetSkinWeightOverride(int32 LODIndex, const TArray<FSkelMeshSkinWeightInfo>& SkinWeights);
+
+	/** Clear any applied skin weight override */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+	void ClearSkinWeightOverride(int32 LODIndex);
+
+	/** Returns skin weight vertex buffer to use for specific LOD (will look at override) */
+	FSkinWeightVertexBuffer* GetSkinWeightBuffer(int32 LODIndex) const;
+
+	/** Apply an override for the current mesh ref pose */
+	virtual void SetRefPoseOverride(const TArray<FTransform>& NewRefPoseTransforms);
+
+	/** Accessor for RefPoseOverride */
+	virtual const FSkelMeshRefPoseOverride* GetRefPoseOverride() const { return RefPoseOverride; }
+
+	/** Clear any applied ref pose override */
+	virtual void ClearRefPoseOverride();
 
 	/**
 	 * Update functions
@@ -1034,9 +1110,9 @@ public:
 	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
 	void AnimUpdateRateSetParams(uint8 UpdateRateShift, float DeltaTime, const bool & bInRecentlyRendered, const float& InMaxDistanceFactor, const bool & bPlayingRootMotion);
 
-	virtual bool IsPlayingRootMotion(){ return false; }
-
-	virtual bool IsPlayingRootMotionFromEverything(){ return false; }
+	virtual bool IsPlayingRootMotion() const { return false; }
+	virtual bool IsPlayingNetworkedRootMotionMontage() const { return false; }
+	virtual bool IsPlayingRootMotionFromEverything() const { return false; }
 
 	bool ShouldUseUpdateRateOptimizations() const;
 

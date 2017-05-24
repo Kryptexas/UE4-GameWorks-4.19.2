@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PerforceSourceControl : ModuleRules
 {
-	public PerforceSourceControl(TargetInfo Target)
+	public PerforceSourceControl(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateDependencyModuleNames.AddRange(
             new string[] {

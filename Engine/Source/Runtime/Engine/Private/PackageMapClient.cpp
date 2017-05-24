@@ -19,6 +19,7 @@
 #include "Engine/ActorChannel.h"
 #include "Net/RepLayout.h"
 #include "ProfilingDebugging/ScopedTimers.h"
+#include "GameFramework/GameStateBase.h"
 
 // ( OutPacketId == GUID_PACKET_NOT_ACKED ) == NAK'd		(this GUID is not acked, and is not pending either, so sort of waiting)
 // ( OutPacketId == GUID_PACKET_ACKED )		== FULLY ACK'd	(this GUID is fully acked, and we no longer need to send full path)
@@ -436,7 +437,6 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 					UWorld* World = Connection->Driver->GetWorld();
 					FVector SpawnLocation = FRepMovement::RebaseOntoLocalOrigin( Location, World->OriginLocation );
 					Actor = World->SpawnActorAbsolute(Archetype->GetClass(), FTransform( Rotation, SpawnLocation ), SpawnInfo );
-
 					// Velocity was serialized by the server
 					if (bSerializeVelocity)
 					{
@@ -1100,6 +1100,7 @@ void UPackageMapClient::AddNetFieldExportGroup( const FString& PathName, TShared
 
 void UPackageMapClient::TrackNetFieldExport( FNetFieldExportGroup* NetFieldExportGroup, const int32 NetFieldExportHandle )
 {
+	check(Connection->InternalAck);
 	check( NetFieldExportHandle >= 0 );
 	check( NetFieldExportGroup->NetFieldExports[NetFieldExportHandle].Handle == NetFieldExportHandle );
 	NetFieldExportGroup->NetFieldExports[NetFieldExportHandle].bExported = true;
@@ -1170,6 +1171,9 @@ void UPackageMapClient::AppendNetFieldExports( TArray<FOutBunch *>& OutgoingBunc
 	{
 		return;	// Nothing to do
 	}
+
+
+	check(Connection->InternalAck);
 
 	FOutBunch* ExportBunch = nullptr;
 	TSet< uint32 > ExportedPathInThisBunchAlready;
@@ -1279,57 +1283,95 @@ void UPackageMapClient::AppendNetFieldExports( TArray<FOutBunch *>& OutgoingBunc
 
 void UPackageMapClient::ReceiveNetFieldExports( FInBunch &InBunch )
 {
-	// Read number of net field exports
-	uint32 NumLayoutCmdExports = 0;
-	InBunch << NumLayoutCmdExports;
-
-	for ( int32 i = 0; i < ( int32 )NumLayoutCmdExports; i++ )
+	// WARNING: If this code path is enabled for use beyond replay, it will need a security audit/rewrite
+	if (Connection->InternalAck)
 	{
-		// Read the index that represents the name in the NetFieldExportGroupIndexToPath map
-		uint32 PathNameIndex;
-		InBunch.SerializeIntPacked( PathNameIndex );
+		// Read number of net field exports
+		uint32 NumLayoutCmdExports = 0;
+		InBunch << NumLayoutCmdExports;
 
-		int32 MaxExports = 0;
-
-		// See if the path name was exported (we'll expect it if we haven't seen this index before)
-		if ( InBunch.ReadBit() == 1 )
+		for ( int32 i = 0; i < ( int32 )NumLayoutCmdExports; i++ )
 		{
-			FString PathName;
-			InBunch << PathName;
+			// Read the index that represents the name in the NetFieldExportGroupIndexToPath map
+			uint32 PathNameIndex;
+			InBunch.SerializeIntPacked( PathNameIndex );
 
-			GEngine->NetworkRemapPath(Connection->Driver, PathName, true);
+			if (InBunch.IsError())
+			{
+				break;
+			}
 
-			InBunch << MaxExports;
 
-			GuidCache->NetFieldExportGroupPathToIndex.Add( PathName, PathNameIndex );
-			GuidCache->NetFieldExportGroupIndexToPath.Add( PathNameIndex, PathName );
+			int32 MaxExports = 0;
+
+			// See if the path name was exported (we'll expect it if we haven't seen this index before)
+			if (InBunch.ReadBit() == 1)
+			{
+				FString PathName;
+
+				InBunch << PathName;
+				InBunch << MaxExports;
+
+				if (InBunch.IsError())
+				{
+					break;
+				}
+
+
+				GEngine->NetworkRemapPath(Connection->Driver, PathName, true);
+
+				GuidCache->NetFieldExportGroupPathToIndex.Add( PathName, PathNameIndex );
+				GuidCache->NetFieldExportGroupIndexToPath.Add( PathNameIndex, PathName );
+			}
+
+			// At this point, we expect to be able to find the entry in NetFieldExportGroupIndexToPath
+			const FString PathName = GuidCache->NetFieldExportGroupIndexToPath.FindChecked( PathNameIndex );
+
+			TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = GuidCache->NetFieldExportGroupMap.FindRef( PathName );
+
+			if ( !NetFieldExportGroup.IsValid() )
+			{
+				NetFieldExportGroup = TSharedPtr< FNetFieldExportGroup >( new FNetFieldExportGroup() );
+				NetFieldExportGroup->PathName = PathName;
+				NetFieldExportGroup->PathNameIndex = PathNameIndex;
+
+				NetFieldExportGroup->NetFieldExports.SetNum( MaxExports );
+
+				GuidCache->NetFieldExportGroupMap.Add( NetFieldExportGroup->PathName, NetFieldExportGroup );
+			}
+
+			FNetFieldExport NetFieldExport;
+
+			// Read the cmd
+			InBunch << NetFieldExport;
+
+			if (InBunch.IsError())
+			{
+				break;
+			}
+
+
+			TArray<FNetFieldExport>& NetFieldExportsRef = NetFieldExportGroup->NetFieldExports;
+
+			if ((int32)NetFieldExport.Handle < NetFieldExportsRef.Num())
+			{
+				// Assign it to the correct slot (NetFieldExport.Handle is just the index into the array)
+				NetFieldExportGroup->NetFieldExports[NetFieldExport.Handle] = NetFieldExport;
+			}
+			else
+			{
+				UE_LOG(LogNetPackageMap, Error, TEXT("ReceiveNetFieldExports: Invalid NetFieldExport Handle '%i', Max '%i'."),
+						NetFieldExport.Handle, NetFieldExportsRef.Num());
+
+				InBunch.SetError();
+			}
 		}
+	}
+	else
+	{
+		UE_LOG(LogNetPackageMap, Error, TEXT("ReceiveNetFieldExports: Entered Replay-only codepath, when Replay is not enabled."));
 
-		// At this point, we expect to be able to find the entry in NetFieldExportGroupIndexToPath
-		const FString PathName = GuidCache->NetFieldExportGroupIndexToPath.FindChecked( PathNameIndex );
-
-		TSharedPtr< FNetFieldExportGroup > NetFieldExportGroup = GuidCache->NetFieldExportGroupMap.FindRef( PathName );
-
-		if ( !NetFieldExportGroup.IsValid() )
-		{
-			NetFieldExportGroup = TSharedPtr< FNetFieldExportGroup >( new FNetFieldExportGroup() );
-			NetFieldExportGroup->PathName = PathName;
-			NetFieldExportGroup->PathNameIndex = PathNameIndex;
-
-			NetFieldExportGroup->NetFieldExports.SetNum( MaxExports );
-
-			GuidCache->NetFieldExportGroupMap.Add( NetFieldExportGroup->PathName, NetFieldExportGroup );
-		}
-
-		FNetFieldExport NetFieldExport;
-
-		// Read the cmd
-		InBunch << NetFieldExport;
-
-		check( ( int32 )NetFieldExport.Handle < NetFieldExportGroup->NetFieldExports.Num() );
-
-		// Assign it to the correct slot (NetFieldExport.Handle is just the index into the array)
-		NetFieldExportGroup->NetFieldExports[NetFieldExport.Handle] = NetFieldExport;
+		InBunch.SetError();
 	}
 }
 
@@ -1625,7 +1667,7 @@ void UPackageMapClient::LogDebugInfo( FOutputDevice & Ar )
 
 		UObject *Obj = It.Key().Get();
 		FString Str = FString::Printf(TEXT("%s [%s] [%s] - %s"), *NetGUID.ToString(), *Status, NetGUID.IsDynamic() ? TEXT("Dynamic") : TEXT("Static") , Obj ? *Obj->GetPathName() : TEXT("NULL"));
-		Ar.Logf(*Str);
+		Ar.Logf(TEXT("%s"), *Str);
 		UE_LOG(LogNetPackageMap, Log, TEXT("%s"), *Str);
 	}
 }
@@ -1748,6 +1790,48 @@ UObject* UPackageMapClient::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, c
 FNetworkGUID UPackageMapClient::GetNetGUIDFromObject(const UObject* InObject) const
 {
 	return GuidCache->GetNetGUID(InObject);
+}
+
+bool UPackageMapClient::IsGUIDPending(const FNetworkGUID& NetGUID) const
+{
+	FNetworkGUID NetGUIDToSearch = NetGUID;
+
+	// Check Outer chain
+	while (NetGUIDToSearch.IsValid())
+	{
+		if (CurrentQueuedBunchNetGUIDs.Contains(NetGUIDToSearch))
+		{
+			return true;
+		}
+
+		const FNetGuidCacheObject* CacheObjectPtr = GuidCache->ObjectLookup.Find(NetGUIDToSearch);
+
+		if (!CacheObjectPtr)
+		{
+			return false;
+		}
+
+		if (CacheObjectPtr->bIsPending)
+		{
+			return true;
+		}
+
+		NetGUIDToSearch = CacheObjectPtr->OuterGUID;
+	}
+
+	return false;
+}
+
+void UPackageMapClient::SetHasQueuedBunches(const FNetworkGUID& NetGUID, bool bHasQueuedBunches)
+{
+	if (bHasQueuedBunches)
+	{
+		CurrentQueuedBunchNetGUIDs.Add(NetGUID);
+	}
+	else
+	{
+		CurrentQueuedBunchNetGUIDs.Remove(NetGUID);
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -2145,7 +2229,7 @@ void FNetGUIDCache::AsyncPackageCallback(const FName& PackageName, UPackage * Pa
 	check( Package == NULL || Package->IsFullyLoaded() );
 
 	FNetworkGUID NetGUID = PendingAsyncPackages.FindRef(PackageName);
-
+	
 	PendingAsyncPackages.Remove(PackageName);
 
 	if ( !NetGUID.IsValid() )
@@ -2173,6 +2257,15 @@ void FNetGUIDCache::AsyncPackageCallback(const FName& PackageName, UPackage * Pa
 	{
 		CacheObject->bIsBroken = true;
 		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package FAILED to load. Path: %s, NetGUID: %s" ), *PackageName.ToString(), *NetGUID.ToString() );
+	}
+
+	if (CacheObject->Object.IsValid() && CacheObject->Object->GetWorld())
+	{
+		AGameStateBase* GS = CacheObject->Object->GetWorld()->GetGameState();
+		if (GS)
+		{
+			GS->AsyncPackageLoaded(CacheObject->Object.Get());
+		}
 	}
 }
 
@@ -2390,34 +2483,20 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		if (!Package->IsFullyLoaded() 
 			&& !Package->HasAnyPackageFlags(EPackageFlags::PKG_CompiledIn)) //TODO: dependencies of CompiledIn could still be loaded asynchronously. Are they necessary at this point??
 		{
-			if ( ShouldAsyncLoad() )
+			if (ShouldAsyncLoad() && Package->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
 			{
-				if (Package->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
-				{
-					// Something else is already async loading this package, calling load again will add our callback to the existing load request
-					PendingAsyncPackages.Add(CacheObjectPtr->PathName, NetGUID);
-					CacheObjectPtr->bIsPending = true;
-					LoadPackageAsync(CacheObjectPtr->PathName.ToString(), FLoadPackageAsyncDelegate::CreateRaw(this, &FNetGUIDCache::AsyncPackageCallback));
+				// Something else is already async loading this package, calling load again will add our callback to the existing load request
+				PendingAsyncPackages.Add(CacheObjectPtr->PathName, NetGUID);
+				CacheObjectPtr->bIsPending = true;
+				LoadPackageAsync(CacheObjectPtr->PathName.ToString(), FLoadPackageAsyncDelegate::CreateRaw(this, &FNetGUIDCache::AsyncPackageCallback));
 
-					UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Listening to existing async load. Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
-				}
-				else
-				{
-					UE_LOG(LogNetPackageMap, Error, TEXT("GetObjectFromNetGUID: Package is not fully loaded, but isn't async loading! Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
-				}
-
-				return NULL;
+				UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Listening to existing async load. Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
 			}
 			else
 			{
-				// If package isn't fully loaded, flush async loading now
-				if (IsAsyncLoading())
-				{
-					UE_LOG(LogNetPackageMap, Log, TEXT("FNetGUIDCache::GetObjectFromNetGUID for package %s is flushing async loading"), *Package->GetPathName());
-				}
-
-				FlushAsyncLoading(); 
-				checkf(Package->IsFullyLoaded(), TEXT("Package %s did not become loaded after FlushAsyncLoading"), *Package->GetPathName());
+				// If package isn't fully loaded, load it now
+				UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Blocking load of %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
+				Object = LoadPackage(NULL, *CacheObjectPtr->PathName.ToString(), LOAD_None);				
 			}
 		}
 	}

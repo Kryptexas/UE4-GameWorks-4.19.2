@@ -1,27 +1,27 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:2. Required Asset Creation & Setup
-description:Going over creating and setting up the required assets for the Fluid Surface Blueprint.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:2.所需资源的创建和设置
+description:了解所需资源的创建和设置。
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Advanced
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/FluidSurface
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:2
 checkpoint:FSB
 
 [NAV]
 
-For the fluid surface to function correctly, we are going to need to create some new assets. We'll also use some assets created for the Height Field Painter. In the following section, we will go over how each of these assets needs to be setup and any special properties that you will need to use. 
+需要先新建一些资源才能使流体表面拥有正常功能。我们还将使用部分为高度场绘制器创建的资源。在以下部分中，我们将了解到需要进行设置的每个资源，以及会使用的特殊属性。 
 
-## Render Target Creation & Setup
-For the fluid surface to function correctly, we will need to create four new Render Targets by right-clicking in the **Content Browser** and from the menu that is displayed, go to **Create Advanced Asset** > **Materials & Textures** to select the **Render Target** option.
+## 渲染目标创建和设置
+为使流体表面拥有正常的功能，我们需要创建 4 个新渲染目标：在 **Content Browser** 中点击右键，在出现的菜单中选择 **Create Advanced Asset** > **Materials & Textures**，选中 **Render Target** 选项。
 
 ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_00.png)
 
-Once you have created four new Render Targets, give them the following names:
+4 个渲染目标创建完成后，将它们命名为：
 
 * `Height0`
 * `Height1`
@@ -30,56 +30,56 @@ Once you have created four new Render Targets, give them the following names:
 
 ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\FS_Render_Targets.png)
 
-## Material Creation & Setup
-For the fluid simulation to work, we are going to need to create two new Materials; one Material for the water, and one Material for the heightmap simulation. To create these Materials, right-click in the **Content Browser** and from the **Create Basic Assets** list, select the Material option.
+## 材质创建和设置
+为使流体模拟正常工作，我们需要新建两个材质，一个为水面材质，另一个为高度图模拟材质。创建这两个材质：在 **Content Browser** 中点击右键，然后从 **Create Basic Assets** 列表中选择 Material 选项。
 
 [region:note]
-Do not forget to Compile and Save your Blueprint so that it can be used.
+编译并保存蓝图以便使用。
 [/region]
 
-* **WaterMaterial** is what makes the surface look and act like water. Before you start to build WaterMaterial, make sure the following options have been set in the **Details** panel for the WaterMaterial.
-	* **Blend Mode:** Translucent
-	* **Lighting Mode:** Surface Translucency Volume
-	* **Used with Static Lighting:** True
-	* **Uses Distortion:** True
-	* **Refraction Mode:** Pixel Normal Offset
+* **WaterMaterial** 使表面拥有水面的外观和效果。开始构建 WaterMaterial 前，需要在 **Details** 面板中进行以下选项的设置。
+	* **Blend Mode:**Translucent
+	* **Lighting Mode:**Surface Translucency Volume
+	* **Used with Static Lighting:**True
+	* **Uses Distortion:**True
+	* **Refraction Mode:**Pixel Normal Offset
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#WaterMaterial]
 	[/REGION]
 
-* The **HeightSim** Material is used to propagate the various waves that happen when you shoot at the surface of the fluid simulation. Before you start to build the HeightSim Material, make sure the following options have been set in the **Details** panel for the HeightSim Material.
-	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** True
+* 对流体模拟表面进行射击时，**HeightSim** 材质用于传播出现的波纹。开始构建 HeightSim 材质前，需要在 **Details** 面板中进行以下选项的设置。
+	* **Shading Model:**Unlit
+	* **Allow Negative Emissive Color:**True
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#HeightSim]
 	[/REGION]
 
-* The **ComputeNormal** Material is used to create the normals that are needed for the water surface. Before you start to build the ComputeNormal Material, make sure the following options have been set in the **Details** panel for the ComputeNormal Material.
-	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** True
+* **ComputeNormal** 材质用于创建水面所需的法线。开始构建 ComputeNormal 材质前，需要在 **Details** 面板中进行以下选项的设置。
+	* **Shading Model:**Unlit
+	* **Allow Negative Emissive Color:**True
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#CompNormal]
 	[/REGION]
 
-* The **MAT_ForceSplat** is used to determine where the impact happened and how big the impact was. Before you start to build the MAT_ForceSplat Material, make sure the following options have been set in the **Details** panel for the MAT_ForceSplat Material. 
+* **MAT_ForceSplat** 用于确定冲击发生的位置，以及冲击的强度。开始构建 MAT_ForceSplat 材质前，需要在 **Details** 面板中进行以下选项的设置。 
 	
-	* **Blend Mode:** Additive
-	* **Shading Model:** Unlit
-	* **Allow Negative Emissive Color:** Checked
+	* **Blend Mode:**Additive
+	* **Shading Model:**Unlit
+	* **Allow Negative Emissive Color:**Checked
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#ForceSplat]
 	[/REGION]
 
 	[region:note]
-	The MAT_ForceSplat Material is the same Material that was used in the [Height Field Painter](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter). If you have already created this Material, feel free to use that one. 
+	MAT_ForceSplat 材质与 [高度场绘制器](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter) 中使用的材质相同。如已创建此材质，可随意进行使用。 
 	[/region]
 
 
-With the necessary assets now setup, in the next section, we will take a look at how each piece fits togther to create the Fluid Surface Blueprint.
+必要资源设置完成后，下一部分中我们了解如何将每个部分连接在一起，创建流体表面蓝图。
 [NAV]
 
 <!--

@@ -10,6 +10,8 @@
 #include "IPluginManager.h"
 
 class FViewport;
+class SAssetView;
+class SPathView;
 
 namespace ContentBrowserUtils
 {
@@ -252,6 +254,12 @@ namespace ContentBrowserUtils
 
 	/** Syncs the content from the specified paths from source control, other than any level assets which are currently being edited */
 	void SyncPathsFromSourceControl(const TArray<FString>& ContentPaths);
+
+	/** Shared logic to know if we can perform certain operation depending on which view it occured, either PathView or AssetView */
+	bool CanDeleteFromAssetView(TWeakPtr<SAssetView> AssetView);
+	bool CanRenameFromAssetView(TWeakPtr<SAssetView> AssetView);
+	bool CanDeleteFromPathView(const TArray<FString>& SelectedPaths);
+	bool CanRenameFromPathView(const TArray<FString>& SelectedPaths);
 
 	// We assume the game name is 20 characters (the maximum allowed) to make sure that content can be ported between projects
 	// 260 characters is the limit on Windows, which is the shortest max path of any platforms that support cooking

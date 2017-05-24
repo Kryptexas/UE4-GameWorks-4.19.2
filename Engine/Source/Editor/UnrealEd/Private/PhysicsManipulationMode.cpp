@@ -72,7 +72,7 @@ bool FPhysicsManipulationEdMode::InputDelta( FEditorViewportClient* InViewportCl
 	const float GrabMoveSpeed = 1.0f;
 	const float GrabRotateSpeed = 1.0f;
 
-	if (InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
+	if (InViewportClient->GetCurrentWidgetAxis() != EAxisList::None && HandleComp->GrabbedComponent)
 	{
 		HandleTargetLocation += InDrag * GrabMoveSpeed;
 		HandleTargetRotation += InRot;

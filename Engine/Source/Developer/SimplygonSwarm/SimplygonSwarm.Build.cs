@@ -5,7 +5,7 @@ using System.IO;
 
 public class SimplygonSwarm : ModuleRules
 {
-	public SimplygonSwarm(TargetInfo Target)
+	public SimplygonSwarm(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Developer/SimplygonSwarm/Public");
         PrivateIncludePaths.Add("Developer/SimplygonSwarm/Private");

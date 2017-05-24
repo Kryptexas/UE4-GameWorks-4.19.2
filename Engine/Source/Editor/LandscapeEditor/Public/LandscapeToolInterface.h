@@ -228,13 +228,15 @@ public:
 	virtual void EnterTool() {}
 	virtual bool IsToolActive() const { return false;  }
 	virtual void ExitTool() {}
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) = 0;
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) = 0;
 	virtual void EndTool(FEditorViewportClient* ViewportClient) = 0;
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) {};
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) = 0;
 	virtual bool HandleClick(HHitProxy* HitProxy, const FViewportClick& Click) { return false; }
 	virtual bool InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) { return false; }
 	virtual bool InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) { return false; }
+	virtual bool GetCursor(EMouseCursor::Type& OutCursor) const { return false;  }
+
 	FLandscapeTool() : PreviousBrushIndex(-1) {}
 	virtual ~FLandscapeTool() {}
 	virtual const TCHAR* GetToolName() = 0;
@@ -250,6 +252,10 @@ public:
 	virtual FVector GetWidgetLocation() const { return FVector::ZeroVector; }
 	virtual FMatrix GetWidgetRotation() const { return FMatrix::Identity; }
 	virtual bool DisallowMouseDeltaTracking() const { return false; }
+
+	virtual void SetCanToolBeActivated(bool Value) { }
+	virtual bool CanToolBeActivated() const { return true;  }
+	virtual void SetExternalModifierPressed(const bool bPressed) {};
 
 	virtual EEditAction::Type GetActionEditDuplicate() { return EEditAction::Skip; }
 	virtual EEditAction::Type GetActionEditDelete() { return EEditAction::Skip; }

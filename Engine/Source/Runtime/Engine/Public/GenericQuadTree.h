@@ -12,10 +12,8 @@ class TQuadTree
 	typedef TQuadTree<ElementType, NodeCapacity> TreeType;
 public:
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TQuadTree();
-#endif // WITH_HOT_RELOAD_CTORS
 
 	TQuadTree(const FBox2D& InBox, float InMinimumQuadSize = 100.f);
 
@@ -154,13 +152,11 @@ TQuadTree<ElementType, NodeCapacity>::TQuadTree(const FBox2D& Box, float InMinim
 	SubTrees[0] = SubTrees[1] = SubTrees[2] = SubTrees[3] = nullptr;
 }
 
-#if WITH_HOT_RELOAD_CTORS
 template <typename ElementType, int32 NodeCapacity>
 TQuadTree<ElementType, NodeCapacity>::TQuadTree()
 {
 	EnsureRetrievingVTablePtrDuringCtor(TEXT("TQuadTree()"));
 }
-#endif // WITH_HOT_RELOAD_CTORS
 
 template <typename ElementType, int32 NodeCapacity>
 TQuadTree<ElementType, NodeCapacity>::~TQuadTree()
@@ -302,7 +298,7 @@ bool TQuadTree<ElementType, NodeCapacity>::RemoveNodeForElement(const ElementTyp
 
 	if (ElementIdx != INDEX_NONE)
 	{
-		Nodes.RemoveAtSwap(ElementIdx);
+		Nodes.RemoveAtSwap(ElementIdx, 1, false);
 		return true;
 	}
 

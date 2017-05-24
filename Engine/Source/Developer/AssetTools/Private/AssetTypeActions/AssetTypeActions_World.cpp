@@ -38,7 +38,7 @@ UThumbnailInfo* FAssetTypeActions_World::GetThumbnailInfo(UObject* Asset) const
 	UThumbnailInfo* ThumbnailInfo = World->ThumbnailInfo;
 	if (ThumbnailInfo == NULL)
 	{
-		ThumbnailInfo = NewObject<UWorldThumbnailInfo>(World);
+		ThumbnailInfo = NewObject<UWorldThumbnailInfo>(World, NAME_None, RF_Transactional);
 		World->ThumbnailInfo = ThumbnailInfo;
 	}
 

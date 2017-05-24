@@ -122,7 +122,7 @@ namespace BuildGraph.Tasks
 			{
 				// Get a unique filename for the response file
 				ResponseFile = FileReference.Combine(new DirectoryReference(CommandUtils.CmdEnv.LogFolder), String.Format("PakList_{0}.txt", OutputFile.GetFileNameWithoutExtension()));
-				for (int Idx = 2; ResponseFile.Exists(); Idx++)
+				for (int Idx = 2; FileReference.Exists(ResponseFile); Idx++)
 				{
 					ResponseFile = FileReference.Combine(ResponseFile.Directory, String.Format("PakList_{0}_{1}.txt", OutputFile.GetFileNameWithoutExtension(), Idx));
 				}

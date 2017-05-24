@@ -51,12 +51,28 @@ int32 USoundWaveProcedural::GeneratePCMData(uint8* PCMData, const int32 SamplesN
 
 	check(SamplesToGenerate >= NumBufferUnderrunSamples);
 
-	if (SamplesAvailable < SamplesToGenerate && OnSoundWaveProceduralUnderflow.IsBound())
+	bool bPumpQueuedAudio = true;
+
+	if (SamplesAvailable < SamplesToGenerate)
 	{
-		OnSoundWaveProceduralUnderflow.Execute(this, SamplesToGenerate);
+		// First try to use the virtual function which assumes we're writing directly into our audio buffer
+		// since we're calling from the audio render thread.
+		if (OnGeneratePCMAudio(AudioBuffer, SamplesToGenerate))
+		{
+			bPumpQueuedAudio = false;
+		}
+		else if (OnSoundWaveProceduralUnderflow.IsBound())
+		{
+			// Note that this delegate may or may not fire inline here. If you need
+			// To gaurantee that the audio will be filled, don't use this delegate function
+			OnSoundWaveProceduralUnderflow.Execute(this, SamplesToGenerate);
+		}
 	}
 
-	PumpQueuedAudio();
+	if (bPumpQueuedAudio)
+	{
+		PumpQueuedAudio();
+	}
 
 	SamplesAvailable = AudioBuffer.Num() / sizeof(int16);
 
@@ -95,11 +111,6 @@ int32 USoundWaveProcedural::GetAvailableAudioByteCount()
 	return AvailableByteCount.GetValue();
 }
 
-void USoundWaveProcedural::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-}
-
 int32 USoundWaveProcedural::GetResourceSizeForFormat(FName Format)
 {
 	return 0;
@@ -107,8 +118,7 @@ int32 USoundWaveProcedural::GetResourceSizeForFormat(FName Format)
 
 void USoundWaveProcedural::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	// SoundWaveProcedural should never be in the asset registry
-	check(false);
+	Super::GetAssetRegistryTags(OutTags);
 }
 
 bool USoundWaveProcedural::HasCompressedData(FName Format) const

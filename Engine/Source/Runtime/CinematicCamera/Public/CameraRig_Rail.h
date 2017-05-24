@@ -43,7 +43,9 @@ public:
 private:
 	/** Makes sure all components are arranged properly. Call when something changes that might affect components. */
 	void UpdateRailComponents();
+#if WITH_EDITORONLY_DATA
 	void UpdatePreviewMeshes();
+#endif
 	USplineMeshComponent* CreateSplinePreviewSegment();
 
  	/** Root component to give the whole actor a transform. */
@@ -58,7 +60,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Rail Components")
 	USceneComponent* RailCameraMount;
 
-	
+#if WITH_EDITORONLY_DATA
 	/** Preview meshes for visualization */
 	UPROPERTY()
 	USplineMeshComponent* PreviewMesh_Rail;
@@ -71,4 +73,5 @@ private:
 
 	UPROPERTY()
 	UStaticMeshComponent* PreviewMesh_Mount;
+#endif
 };

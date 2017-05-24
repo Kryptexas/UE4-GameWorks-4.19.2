@@ -47,6 +47,10 @@ bool FSandboxPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 	{
 		CommandLineDirectory = GetCookedSandboxDir();
 		UE_LOG(LogInit, Display, TEXT("No sandbox specified, assuming %s"), *CommandLineDirectory);
+
+		// Don't allow the default cooked sandbox to fallback to non-cooked assets
+		FileExclusionWildcards.AddUnique(TEXT("*.uasset"));
+		FileExclusionWildcards.AddUnique(TEXT("*.umap"));
 	}
 #endif
 

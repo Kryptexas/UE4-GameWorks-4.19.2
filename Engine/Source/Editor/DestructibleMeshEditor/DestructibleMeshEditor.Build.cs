@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class DestructibleMeshEditor : ModuleRules
 {
-	public DestructibleMeshEditor(TargetInfo Target)
+	public DestructibleMeshEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.Add("Engine");
 

@@ -13,6 +13,7 @@
 #define USE_USER_OPACITY_CHANNEL 1
 #if USE_USER_OPACITY_CHANNEL
 static const char* USER_MATERIAL_CHANNEL_OPACITY = "UserOpacity";
+static const char* USER_MATERIAL_CHANNEL_OPACITY_MASK = "UserOpacityMask";
 #endif
 //@third party code END SIMPLYGON
 
@@ -28,6 +29,7 @@ namespace ESimplygonMaterialChannel
 		SG_MATERIAL_CHANNEL_DIFFUSE UMETA(DisplayName = "Diffuse", DisplayValue = "Diffuse"),
 		SG_MATERIAL_CHANNEL_SPECULAR UMETA(DisplayName = "Specular", DisplayValue = "Specular"),
 		SG_MATERIAL_CHANNEL_OPACITY UMETA(DisplayName = "Opacity", DisplayValue = "Opacity"),
+		SG_MATERIAL_CHANNEL_OPACITYMASK UMETA(DisplayName = "OpacityMask", DisplayValue = "OpacityMask"),
 		SG_MATERIAL_CHANNEL_EMISSIVE UMETA(DisplayName = "Emissive", DisplayValue = "Emissive"),
 		SG_MATERIAL_CHANNEL_NORMALS UMETA(DisplayName = "Normals", DisplayValue = "Normals"),
 		SG_MATERIAL_CHANNEL_DISPLACEMENT UMETA(DisplayName = "Displacement", DisplayValue = "Displacement"),
@@ -54,6 +56,12 @@ static const char* GetSimplygonMaterialChannel(ESimplygonMaterialChannel::Type c
 	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_OPACITY)
 #if USE_USER_OPACITY_CHANNEL
 		return USER_MATERIAL_CHANNEL_OPACITY;
+#else
+		return SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY;
+#endif
+	else if (channel == ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_OPACITYMASK)
+#if USE_USER_OPACITY_CHANNEL
+		return USER_MATERIAL_CHANNEL_OPACITY_MASK;
 #else
 		return SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY;
 #endif
@@ -442,6 +450,10 @@ struct FSimplygonMaterialLODSettings
 		ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_OPACITY, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));
 		ChannelsToCast.Last().bUseSRGB = false;
 		ChannelsToCast.Last().bActive = Settings.bOpacityMap;
+
+		ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_OPACITYMASK, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));
+		ChannelsToCast.Last().bUseSRGB = false;
+		ChannelsToCast.Last().bActive = Settings.bOpacityMaskMap;
 
 		// TODO, properly render out sub surface data/values
 		//ChannelsToCast.Add(FSimplygonChannelCastingSettings(ESimplygonMaterialChannel::SG_MATERIAL_CHANNEL_SUBSURFACE, ESimplygonCasterType::Color, ESimplygonColorChannels::RGB));

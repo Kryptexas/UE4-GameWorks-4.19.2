@@ -220,7 +220,7 @@ bool FLoadAllMapsInGameTest::RunTest(const FString& Parameters)
 	//Open the map
 	GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
 
-	if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
+	//if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
 	{
 		//Generate the screen shot name and path
 		FString ScreenshotFileName;
@@ -401,14 +401,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutomationLogAddMessage, "System.Automation.Lo
 bool FAutomationLogAddMessage::RunTest(const FString& Parameters)
 {
 	//** TEST **//
-	AddLogItem(TEXT("Test log message."));
+	AddInfo(TEXT("Test log message."));
 
 	//** VERIFY **//
-	TestEqual<FString>(TEXT("Test log message was not added to the ExecutionInfo.Log array."), ExecutionInfo.LogItems.Last(), TEXT("Test log message."));
+	TestEqual<FString>(TEXT("Test log message was not added to the ExecutionInfo.Log array."), ExecutionInfo.GetEvents().Last().Message, TEXT("Test log message."));
 	
 	//** TEARDOWN **//
 	// We have to empty this log array so that it doesn't show in the automation results window as it may cause confusion.
-	ExecutionInfo.LogItems.Empty();
+	ExecutionInfo.RemoveAllEvents(EAutomationEventType::Info);
 
 	return true;
 }
@@ -421,9 +421,9 @@ bool FAutomationLogAddWarning::RunTest(const FString& Parameters)
 	AddWarning(TEXT("Test warning message."));
 
 	//** VERIFY **//
-	FString CurrentWarningMessage = ExecutionInfo.Warnings.Last();
+	FString CurrentWarningMessage = ExecutionInfo.GetEvents().Last().Message;
 	// The warnings array is emptied so that it doesn't cause a false positive warning for this test.
-	ExecutionInfo.Warnings.Empty();
+	ExecutionInfo.RemoveAllEvents(EAutomationEventType::Warning);
 
 	TestEqual<FString>(TEXT("Test warning message was not added to the ExecutionInfo.Warning array."), CurrentWarningMessage, TEXT("Test warning message."));
 
@@ -438,11 +438,11 @@ bool FAutomationLogAddError::RunTest(const FString& Parameters)
 	AddError(TEXT("Test error message"));
 	
 	//** VERIFY **//
-	FAutomationEvent CurrentErrorMessage = ExecutionInfo.Errors.Last();
+	FString CurrentErrorMessage = ExecutionInfo.GetEvents().Last().Message;
 	// The errors array is emptied so that this doesn't cause a false positive failure for this test.
-	ExecutionInfo.Errors.Empty();
+	ExecutionInfo.RemoveAllEvents(EAutomationEventType::Error);
 
-	TestEqual<FString>(TEXT("Test error message was not added to the ExecutionInfo.Error array."), CurrentErrorMessage.Message, TEXT("Test error message"));
+	TestEqual<FString>(TEXT("Test error message was not added to the ExecutionInfo.Error array."), CurrentErrorMessage, TEXT("Test error message"));
 	
 	return true;
 }
@@ -1090,103 +1090,103 @@ bool FWaitForMatineeToCompleteAndDoScreenshotsLatentCommand::Update()
 	return bTestComplete;
 }
 
-/**
- * FRenderOutputValidation - render deterministic and compare results of multiple runs
- */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRenderOutputValidation, "Rendering.RenderOutputValidation", EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
-
-/** 
- * render deterministic and compare results of multiple runs
- *
- * @param Parameters - Unused for this test
- * @return	TRUE if the test was successful, FALSE otherwise
- */
-bool FRenderOutputValidation::RunTest(const FString& Parameters)
-{
-	const bool bChangeResolution = false;
-	const bool bLoadMap = false;			// true doesn't work at the moment (iterate matinees needs to happen after loading the map)
-
-	//Gets the default map that the game uses.
-	const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
-//	const FString& MapName = GameMapsSettings->GetGameDefaultMap();
-	const FString MapName = TEXT("ScreenshotsTest");
-
-	// request full res screenshots
-	FAutomationTestFramework::Get().SetScreenshotOptions(true);
-
-	if(bLoadMap)
-	{
-		// Opens the actual default map in game.
-		GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
-		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(2.0f));
-	}
-
-	{
-		UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
-		FConsoleOutputDevice StrOut(ViewportConsole);
-
-		StrOut.Logf(TEXT("FRenderOutputValidation:Runtest()"));
-	}
-
-	// Gets the current resolution.
-	FString RestoreResolutionString = FString::Printf(TEXT("setres %dx%d"), GSystemResolution.ResX, GSystemResolution.ResY);
-
-	if(bChangeResolution)
-	{
-		// Change the resolution
-		ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(TEXT("setres 640x480")));
-		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(2.0f));
-	}
-	// 5 sec should be enough, if more is needed - we should investigate
-	ADD_LATENT_AUTOMATION_COMMAND(FStreamAllResourcesLatentCommand(5.0f));
-
-//later	ADD_LATENT_AUTOMATION_COMMAND(FBuildLightingCommand);
-
-	// streaming should not be distributing it's work over multiple frames - to be more deterministic
-	ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("r.Streaming.FramesForFullUpdate 0")));
-
-	// reset all data in the ViewState e.g. TemporalAA, SSR cyclic counter, TemporalAA images
-	ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("r.ResetViewState")));
-
-	// this needs to be improved: better thank hanging would be to render frames (showing the user that it waits on something)
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompilingInGame);
-
-	if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
-	{
-		for (TObjectIterator<AMatineeActor> It; It; ++It)
-		{
-			AMatineeActor* MatineeActor = *It;
-
-			FString Name;
-			MatineeActor->GetName(Name);
-
-			if(Name.Contains(TEXT("Automation")))
-			{
-				UE_LOG(LogEngineAutomationTests, Log, TEXT("Iterated matinee: %p '%s'"), MatineeActor, *MatineeActor->GetName())
-
-				//add latent action to execute this matinee
-				ADD_LATENT_AUTOMATION_COMMAND(FPlayMatineeLatentCommand(MatineeActor));
-
-				//Run the Stat FPS Chart command
-		//			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StartFPSChart")));
-
-				//add action to wait until matinee is complete
-				ADD_LATENT_AUTOMATION_COMMAND(FWaitForMatineeToCompleteAndDoScreenshotsLatentCommand(MatineeActor));
-
-				//Stop the Stat FPS Chart command
-		//			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
-			}
-		}
-	}
-
-	if(bChangeResolution)
-	{
-		// restore the resolution
-		ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(RestoreResolutionString));
-	}
-
-	return true;
-}
+///**
+// * FRenderOutputValidation - render deterministic and compare results of multiple runs
+// */
+//IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRenderOutputValidation, "Rendering.RenderOutputValidation", EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
+//
+///** 
+// * render deterministic and compare results of multiple runs
+// *
+// * @param Parameters - Unused for this test
+// * @return	TRUE if the test was successful, FALSE otherwise
+// */
+//bool FRenderOutputValidation::RunTest(const FString& Parameters)
+//{
+//	const bool bChangeResolution = false;
+//	const bool bLoadMap = false;			// true doesn't work at the moment (iterate matinees needs to happen after loading the map)
+//
+//	//Gets the default map that the game uses.
+//	const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
+////	const FString& MapName = GameMapsSettings->GetGameDefaultMap();
+//	const FString MapName = TEXT("ScreenshotsTest");
+//
+//	// request full res screenshots
+//	//FAutomationTestFramework::Get().SetScreenshotOptions(true);
+//
+//	if(bLoadMap)
+//	{
+//		// Opens the actual default map in game.
+//		GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
+//		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(2.0f));
+//	}
+//
+//	{
+//		UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
+//		FConsoleOutputDevice StrOut(ViewportConsole);
+//
+//		StrOut.Logf(TEXT("FRenderOutputValidation:Runtest()"));
+//	}
+//
+//	// Gets the current resolution.
+//	FString RestoreResolutionString = FString::Printf(TEXT("setres %dx%d"), GSystemResolution.ResX, GSystemResolution.ResY);
+//
+//	if(bChangeResolution)
+//	{
+//		// Change the resolution
+//		ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(TEXT("setres 640x480")));
+//		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(2.0f));
+//	}
+//	// 5 sec should be enough, if more is needed - we should investigate
+//	ADD_LATENT_AUTOMATION_COMMAND(FStreamAllResourcesLatentCommand(5.0f));
+//
+////later	ADD_LATENT_AUTOMATION_COMMAND(FBuildLightingCommand);
+//
+//	// streaming should not be distributing it's work over multiple frames - to be more deterministic
+//	ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("r.Streaming.FramesForFullUpdate 0")));
+//
+//	// reset all data in the ViewState e.g. TemporalAA, SSR cyclic counter, TemporalAA images
+//	ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("r.ResetViewState")));
+//
+//	// this needs to be improved: better thank hanging would be to render frames (showing the user that it waits on something)
+//	ADD_LATENT_AUTOMATION_COMMAND(FWaitForShadersToFinishCompilingInGame);
+//
+//	//if( FAutomationTestFramework::Get().IsScreenshotAllowed() )
+//	{
+//		for (TObjectIterator<AMatineeActor> It; It; ++It)
+//		{
+//			AMatineeActor* MatineeActor = *It;
+//
+//			FString Name;
+//			MatineeActor->GetName(Name);
+//
+//			if(Name.Contains(TEXT("Automation")))
+//			{
+//				UE_LOG(LogEngineAutomationTests, Log, TEXT("Iterated matinee: %p '%s'"), MatineeActor, *MatineeActor->GetName())
+//
+//				//add latent action to execute this matinee
+//				ADD_LATENT_AUTOMATION_COMMAND(FPlayMatineeLatentCommand(MatineeActor));
+//
+//				//Run the Stat FPS Chart command
+//		//			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StartFPSChart")));
+//
+//				//add action to wait until matinee is complete
+//				ADD_LATENT_AUTOMATION_COMMAND(FWaitForMatineeToCompleteAndDoScreenshotsLatentCommand(MatineeActor));
+//
+//				//Stop the Stat FPS Chart command
+//		//			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
+//			}
+//		}
+//	}
+//
+//	if(bChangeResolution)
+//	{
+//		// restore the resolution
+//		ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(RestoreResolutionString));
+//	}
+//
+//	return true;
+//}
 
 #endif //WITH_DEV_AUTOMATION_TESTS
 

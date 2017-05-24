@@ -47,9 +47,10 @@ public:
 	virtual TArray<TSharedPtr<IAutomationReport> >& GetChildReports() override;
 	virtual void ClustersUpdated(const int32 NumClusters) override;
 	virtual void ResetForExecution(const int32 NumTestPasses) override;
-	virtual void SetResults( const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults ) override;
+	virtual void SetResults(const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults) override;
+	virtual void AddArtifact(const int32 ClusterIndex, const int32 PassIndex, const FAutomationArtifact& Artifact) override;
 	virtual void GetCompletionStatus(const int32 ClusterIndex, const int32 PassIndex, FAutomationCompleteState& OutCompletionState) override;
-	virtual EAutomationState::Type GetState(const int32 ClusterIndex, const int32 PassIndex) const override;
+	virtual EAutomationState GetState(const int32 ClusterIndex, const int32 PassIndex) const override;
 	virtual const FAutomationTestResults& GetResults( const int32 ClusterIndex, const int32 PassIndex ) override;
 	virtual const int32 GetNumResults( const int32 ClusterIndex ) override;
 	virtual const int32 GetCurrentPassIndex( const int32 ClusterIndex ) override;
@@ -66,19 +67,6 @@ public:
 	virtual void ResetNetworkCommandResponses() override;
 	virtual const bool ExpandInUI() const override;
 	virtual void StopRunningTest() override;
-	virtual void TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack) override;
-	virtual const TArray<TSharedPtr<FAutomationHistoryItem>>& GetHistory() const override;
-	
-private:
-
-	/** Export the current report as part of it's tracked history. */
-	void AddToHistory();
-
-	/** Load this reports tracked history. */
-	void LoadHistory();
-
-	/** Update what is tracked for this reports history. */
-	void MaintainHistory(TArray<FString> &InLogFiles);
 
 private:
 
@@ -117,13 +105,4 @@ private:
 
 	/** Structure holding the test info */
 	FAutomationTestInfo TestInfo;
-
-	/** Flag to determine whether this report should track it's history */
-	bool bTrackingHistory;
-
-	/** Flag to determine how many history items to keep */
-	int32 NumRecordsToKeep;
-
-	/** The collection of history items which holds the results of previous runs. */
-	TArray<TSharedPtr<FAutomationHistoryItem> > HistoryItems;
 };

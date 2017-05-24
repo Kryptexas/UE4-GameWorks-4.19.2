@@ -5,21 +5,9 @@ using System.Collections.Generic;
 
 public class TP_2DSideScrollerTarget : TargetRules
 {
-	public TP_2DSideScrollerTarget(TargetInfo Target)
+	public TP_2DSideScrollerTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
-	}
-
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("TP_2DSideScroller");
+		ExtraModuleNames.Add("TP_2DSideScroller");
 	}
 }

@@ -13,6 +13,7 @@
 #include "GameplayAbilitySpec.h"
 #include "UObject/Package.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GameplayAbilityTargetTypes.h"
 #include "GameplayAbilityTypes.generated.h"
 
 class APlayerController;
@@ -343,6 +344,10 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	// The magnitude of the triggering event
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
 	float EventMagnitude;
+
+	// The magnitude of the triggering event
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
+	FGameplayAbilityTargetDataHandle	TargetData;
 };
 
 /** Used for cleaning up predicted data on network clients */

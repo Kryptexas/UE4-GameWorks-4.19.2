@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:3235253
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:Aim Offset を作成する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Aim Offset を使用して、キャラクターはマウスまたはコントローラの方向で武器の照準を合わせるようにします。 
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 tags:Animation
-tags:How-To
 tags:Aim Offset
 
 このガイドでは [Aim Offset](Engine/Animation/AimOffset) を作成します。これは、キャラクターが武器の照準を合わせるようにするブレンド可能な一連のポーズを格納するアセットです。 

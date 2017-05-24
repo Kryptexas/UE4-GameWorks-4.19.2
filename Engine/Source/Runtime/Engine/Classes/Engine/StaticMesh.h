@@ -17,10 +17,8 @@
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Engine/MeshMerging.h"
 #include "UniquePtr.h"
+#include "StaticMeshResources.h"
 #include "StaticMesh.generated.h"
-
-/** The maximum number of static mesh LODs allowed. */
-#define MAX_STATIC_MESH_LODS 8
 
 class FSpeedTreeWind;
 class UAssetUserData;
@@ -250,6 +248,9 @@ struct FMeshSectionInfoMap
 	/** Get the number of section for a LOD. */
 	ENGINE_API int32 GetSectionNumber(int32 LODIndex) const;
 
+	/** Return true if the section exist, false otherwise. */
+	ENGINE_API bool IsValidSection(int32 LODIndex, int32 SectionIndex) const;
+
 	/** Gets per-section settings for the specified LOD + section. */
 	ENGINE_API FMeshSectionInfo Get(int32 LODIndex, int32 SectionIndex) const;
 
@@ -355,7 +356,7 @@ struct FStaticMaterial
 
 #if WITH_EDITORONLY_DATA
 	/*This name should be use when we re-import a skeletal mesh so we can order the Materials array like it should be*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = StaticMesh)
+	UPROPERTY(VisibleAnywhere, Category = StaticMesh)
 	FName ImportedMaterialSlotName;
 #endif //WITH_EDITORONLY_DATA
 
@@ -399,16 +400,6 @@ struct FMaterialRemapIndex
 };
 
 
-#if WITH_EDITOR
-/**
- * Returns true if LODs of this static mesh may share texture lightmaps.
- * Removed from UStaticMesh for 4.15.1 to avoid changing API
- *
- * WARNING this function will be removed in 4.16.
- */
-bool StaticMesh_CanLODsShareStaticLighting(UStaticMesh* Mesh);
-#endif
-
 /**
  * A StaticMesh is a piece of geometry that consists of a static set of polygons.
  * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
@@ -421,6 +412,11 @@ UCLASS(collapsecategories, hidecategories=Object, customconstructor, MinimalAPI,
 class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
+
+#if WITH_EDITOR
+	/** Notification when bounds changed */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnExtendedBoundsChanged, const FBoxSphereBounds&);
+#endif
 
 	/** Pointer to the data used to render this static mesh. */
 	TUniquePtr<class FStaticMeshRenderData> RenderData;
@@ -437,7 +433,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FMeshSectionInfoMap SectionInfoMap;
 
 	/** The LOD group to which this mesh belongs. */
-	UPROPERTY(AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=StaticMesh)
 	FName LODGroup;
 
 	/** If true, the screen sizees at which LODs swap are computed automatically. */
@@ -451,6 +447,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	TArray<FMaterialRemapIndex> MaterialRemapIndexPerImportVersion;
 	
+	/* The lightmap UV generation version used during the last derived data build */
+	UPROPERTY()
+	int32 LightmapUVVersion;
+
 	/**
 	* If true on post load we need to calculate Display Factors from the
 	* loaded LOD distances.
@@ -486,6 +486,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ToolTip="The light map coordinate index"))
 	int32 LightMapCoordinateIndex;
 
+	/** Useful for reducing self shadowing from distance field methods when using world position offset to animate the mesh's vertices. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = StaticMesh)
+	float DistanceFieldSelfShadowBias;
+
 	/** 
 	 * Whether to generate a distance field for this mesh, which can be used by DistanceField Indirect Shadows.
 	 * This is ignored if the project's 'Generate Mesh Distance Fields' setting is enabled.
@@ -515,9 +519,9 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Navigation)
 	uint32 bHasNavigationData:1;
 
-	/** TEMPORARY for 4.15.1. True if LODs share static lighting data */
-	UPROPERTY()
-	uint32 bLODsShareStaticLighting:1;
+	/** If true, mesh will calculate data for fast uniform random sampling. This is approx 8 bytes per triangle so should not be enabled unless needed. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = StaticMesh)
+	uint32 bRequiresAreaWeightedSampling : 1;
 
 	/** Bias multiplier for Light Propagation Volume lighting */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, meta=(UIMin = "0.0", UIMax = "3.0"))
@@ -592,6 +596,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	FBoxSphereBounds ExtendedBounds;
 
+#if WITH_EDITOR
+	FOnExtendedBoundsChanged OnExtendedBoundsChanged;
+#endif
+
 protected:
 	/**
 	 * Index of an element to ignore while gathering streaming texture factors.
@@ -619,9 +627,12 @@ public:
 	ENGINE_API virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	ENGINE_API virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
-	ENGINE_API void SetLODGroup(FName NewGroup);
+	ENGINE_API void SetLODGroup(FName NewGroup, bool bRebuildImmediately = true);
 	ENGINE_API void BroadcastNavCollisionChange();
+
+	FOnExtendedBoundsChanged& GetOnExtendedBoundsChanged() { return OnExtendedBoundsChanged; }
 #endif // WITH_EDITOR
+
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void PostLoad() override;
@@ -630,6 +641,7 @@ public:
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	ENGINE_API virtual FString GetDesc() override;
 	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
+	ENGINE_API virtual bool CanBeClusterRoot() const override;
 	//~ End UObject Interface.
 
 	/**
@@ -770,6 +782,9 @@ public:
 
 	FORCEINLINE const UNavCollision* GetNavCollision() const { return NavCollision; }
 
+	/** Configures this SM as bHasNavigationData = false and clears stored UNavCollision */
+	ENGINE_API void MarkAsNotHavingNavigationData();
+
 	const FGuid& GetLightingGuid() const
 	{
 #if WITH_EDITORONLY_DATA
@@ -815,6 +830,12 @@ public:
 	ENGINE_API void CalculateExtendedBounds();
 
 #if WITH_EDITOR
+
+	/**
+	 * Returns true if LODs of this static mesh may share texture lightmaps.
+	 */
+	bool CanLODsShareStaticLighting() const;
+
 	/**
 	 * Retrieves the names of all LOD groups.
 	 */
@@ -857,6 +878,11 @@ private:
 
 	FOnPreMeshBuild PreMeshBuild;
 	FOnPostMeshBuild PostMeshBuild;
+
+	/**
+	 * Fixes up the material when it was converted to the new staticmesh build process
+	 */
+	bool CleanUpRedondantMaterialPostLoad;
 
 #endif // #if WITH_EDITOR
 };

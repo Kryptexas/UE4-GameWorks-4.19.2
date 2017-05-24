@@ -170,6 +170,48 @@ bool FDataTableEditorUtils::MoveRow(UDataTable* DataTable, FName RowName, ERowMo
 	return true;
 }
 
+bool FDataTableEditorUtils::DiffersFromDefault(UDataTable* DataTable, FName RowName)
+{
+	bool bDiffers = false;
+
+	if (DataTable && DataTable->RowMap.Contains(RowName))
+	{
+		uint8* RowData = DataTable->RowMap[RowName];
+
+		if (const UUserDefinedStruct* UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
+		{
+			bDiffers = UDStruct->DiffersFromDefaultValue(RowData);
+		}
+	}
+
+	return bDiffers;
+}
+
+bool FDataTableEditorUtils::ResetToDefault(UDataTable* DataTable, FName RowName)
+{
+	bool bResult = false;
+
+	if (DataTable && DataTable->RowMap.Contains(RowName))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ResetDataTableRowToDefault", "Reset Data Table Row to Default Values"));
+
+		BroadcastPreChange(DataTable, EDataTableChangeInfo::RowData);
+		DataTable->Modify();
+
+		uint8* RowData = DataTable->RowMap[RowName];
+
+		if (const UUserDefinedStruct* UDStruct = Cast<const UUserDefinedStruct>(DataTable->RowStruct))
+		{
+			UDStruct->InitializeDefaultValue(RowData);
+			bResult = true;
+		}
+
+		BroadcastPostChange(DataTable, EDataTableChangeInfo::RowData);
+	}
+
+	return bResult;
+}
+
 void FDataTableEditorUtils::BroadcastPreChange(UDataTable* DataTable, EDataTableChangeInfo Info)
 {
 	FDataTableEditorManager::Get().PreChange(DataTable, Info);
@@ -289,24 +331,29 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 TArray<UScriptStruct*> FDataTableEditorUtils::GetPossibleStructs()
 {
 	TArray< UScriptStruct* > RowStructs;
-	UScriptStruct* TableRowStruct = FindObjectChecked<UScriptStruct>(ANY_PACKAGE, TEXT("TableRowBase"));
-	if (TableRowStruct != NULL)
+
+	// Make combo of table rowstruct options
+	for (TObjectIterator<UScriptStruct> It; It; ++It)
 	{
-		// Make combo of table rowstruct options
-		for (TObjectIterator<UScriptStruct> It; It; ++It)
+		UScriptStruct* Struct = *It;
+		if (IsValidTableStruct(Struct))
 		{
-			UScriptStruct* Struct = *It;
-			// If a child of the table row struct base, but not itself
-			const bool bBasedOnTableRowBase = Struct->IsChildOf(TableRowStruct) && (Struct != TableRowStruct);
-			const bool bUDStruct = Struct->IsA<UUserDefinedStruct>();
-			const bool bValidStruct = (Struct->GetOutermost() != GetTransientPackage());
-			if ((bBasedOnTableRowBase || bUDStruct) && bValidStruct)
-			{
-				RowStructs.Add(Struct);
-			}
+			RowStructs.Add(Struct);
 		}
 	}
 	return RowStructs;
+}
+
+bool FDataTableEditorUtils::IsValidTableStruct(UScriptStruct* Struct)
+{
+	UScriptStruct* TableRowStruct = FindObjectChecked<UScriptStruct>(ANY_PACKAGE, TEXT("TableRowBase"));
+
+	// If a child of the table row struct base, but not itself
+	const bool bBasedOnTableRowBase = TableRowStruct && Struct->IsChildOf(TableRowStruct) && (Struct != TableRowStruct);
+	const bool bUDStruct = Struct->IsA<UUserDefinedStruct>();
+	const bool bValidStruct = (Struct->GetOutermost() != GetTransientPackage());
+
+	return (bBasedOnTableRowBase || bUDStruct) && bValidStruct;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class MacNoEditorTargetPlatform : ModuleRules
 {
-	public MacNoEditorTargetPlatform(TargetInfo Target)
+	public MacNoEditorTargetPlatform(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

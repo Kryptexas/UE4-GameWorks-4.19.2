@@ -82,7 +82,7 @@ void FAssetTypeActions_CameraAnim::CreatePreviewPawnForCameraAnim(UCameraAnim* I
 			}
 			else
 			{
-				UE_LOG(LogCameraAnim, Warning, TEXT("Matinee preview default pawn class is missing."));
+				UE_LOG(LogCameraAnim, Display, TEXT("Matinee preview default pawn class is missing."));
 				return;
 			}
 		}

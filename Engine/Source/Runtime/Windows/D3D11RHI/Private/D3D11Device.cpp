@@ -42,6 +42,8 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 	DXGIFactory1(InDXGIFactory1),
 	FeatureLevel(InFeatureLevel),
 	AmdAgsContext(NULL),
+	bCurrentDepthStencilStateIsReadOnly(false),
+	PSOPrimitiveType(PT_Num),
 	CurrentDepthTexture(NULL),
 	NumSimultaneousRenderTargets(0),
 	NumUAVs(0),
@@ -190,8 +192,8 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 
 	GMaxTextureMipCount = FMath::CeilLogTwo( GMaxTextureDimensions ) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>( MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount );
-	GMaxShadowDepthBufferSizeX = 4096;
-	GMaxShadowDepthBufferSizeY = 4096;
+	GMaxShadowDepthBufferSizeX = GMaxTextureDimensions;
+	GMaxShadowDepthBufferSizeY = GMaxTextureDimensions;
 	GSupportsTimestampRenderQueries = true;
 	GRHISupportsResolveCubemapFaces = true;
 
@@ -214,8 +216,9 @@ FD3D11DynamicRHI::~FD3D11DynamicRHI()
 {
 	UE_LOG(LogD3D11RHI, Log, TEXT("~FD3D11DynamicRHI"));
 
-	check(Direct3DDeviceIMContext == nullptr);
-	check(Direct3DDevice == nullptr);
+	// Removed until shutdown crashes in exception handler are fixed.
+	//check(Direct3DDeviceIMContext == nullptr);
+	//check(Direct3DDevice == nullptr);
 }
 
 void FD3D11DynamicRHI::Shutdown()
@@ -241,8 +244,6 @@ void FD3D11DynamicRHI::Shutdown()
 	FMemory::Free(ZeroBuffer);
 	ZeroBuffer = NULL;
 	ZeroBufferSize = 0;
-
-	GRHIPacemaker = NULL;
 }
 
 void FD3D11DynamicRHI::RHIPushEvent(const TCHAR* Name, FColor Color)
@@ -516,15 +517,25 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 			}
 		}
 
-		// Perform a detailed live object report (with resource types)
-		Direct3DDeviceIMContext = nullptr;
-
+		// ORION - avoid shutdown crash that is currently present in UE
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
-		if (IsRHIDeviceNVIDIA())
+		if (1) // (IsRHIDeviceNVIDIA())
 		{
 			//UE-18906: Workaround to trap crash in NV driver
 			__try
 			{
+				// Perform a detailed live object report (with resource types)
+				Direct3DDeviceIMContext = nullptr;
+			}
+			__except (ReportDiedDuringDeviceShutdown(GetExceptionInformation()))
+			{
+				FPlatformMisc::MemoryBarrier();
+			}
+
+			//UE-18906: Workaround to trap crash in NV driver
+			__try
+			{
+				// Perform a detailed live object report (with resource types)
 				Direct3DDevice = nullptr;
 			}
 			__except (ReportDiedDuringDeviceShutdown(GetExceptionInformation()))
@@ -535,6 +546,7 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 		else
 #endif
 		{
+			Direct3DDeviceIMContext = nullptr;
 			Direct3DDevice = nullptr;
 		}
 	}

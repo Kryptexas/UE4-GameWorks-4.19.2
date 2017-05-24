@@ -369,20 +369,47 @@ float3x4 JacobianSimplex_ALU(float3 v, bool bTiling, float RepeatSize)
 {
 	// corners of tetrahedron
 	float4x3 T = SimplexCorners(v);
-
-	// compute gradient at each corner
+	uint3 rand;
 	float4x3 gvec[3], fv;
 	float3x4 grad;
-	UNROLL for (int i = 0; i != 4; ++i) {
-		fv[i] = v - T[i];
-		uint3 rand = Rand3DPCG16(int3(floor(NoiseTileWrap(6 * T[i] + 0.5, bTiling, RepeatSize))));
-		gvec[0][i] = float3(rand.xxx & MGradientMask) * MGradientScale - 1;
-		gvec[1][i] = float3(rand.yyy & MGradientMask) * MGradientScale - 1;
-		gvec[2][i] = float3(rand.zzz & MGradientMask) * MGradientScale - 1;
-		grad[0][i] = dot(gvec[0][i], fv[i]);
-		grad[1][i] = dot(gvec[1][i], fv[i]);
-		grad[2][i] = dot(gvec[2][i], fv[i]);
-	}
+
+	// processing of tetrahedral vertices, unrolled
+	// to compute gradient at each corner
+	fv[0] = v - T[0];
+	rand = Rand3DPCG16(int3(floor(NoiseTileWrap(6 * T[0] + 0.5, bTiling, RepeatSize))));
+	gvec[0][0] = float3(rand.xxx & MGradientMask) * MGradientScale - 1;
+	gvec[1][0] = float3(rand.yyy & MGradientMask) * MGradientScale - 1;
+	gvec[2][0] = float3(rand.zzz & MGradientMask) * MGradientScale - 1;
+	grad[0][0] = dot(gvec[0][0], fv[0]);
+	grad[1][0] = dot(gvec[1][0], fv[0]);
+	grad[2][0] = dot(gvec[2][0], fv[0]);
+
+	fv[1] = v - T[1];
+	rand = Rand3DPCG16(int3(floor(NoiseTileWrap(6 * T[1] + 0.5, bTiling, RepeatSize))));
+	gvec[0][1] = float3(rand.xxx & MGradientMask) * MGradientScale - 1;
+	gvec[1][1] = float3(rand.yyy & MGradientMask) * MGradientScale - 1;
+	gvec[2][1] = float3(rand.zzz & MGradientMask) * MGradientScale - 1;
+	grad[0][1] = dot(gvec[0][1], fv[1]);
+	grad[1][1] = dot(gvec[1][1], fv[1]);
+	grad[2][1] = dot(gvec[2][1], fv[1]);
+
+	fv[2] = v - T[2];
+	rand = Rand3DPCG16(int3(floor(NoiseTileWrap(6 * T[2] + 0.5, bTiling, RepeatSize))));
+	gvec[0][2] = float3(rand.xxx & MGradientMask) * MGradientScale - 1;
+	gvec[1][2] = float3(rand.yyy & MGradientMask) * MGradientScale - 1;
+	gvec[2][2] = float3(rand.zzz & MGradientMask) * MGradientScale - 1;
+	grad[0][2] = dot(gvec[0][2], fv[2]);
+	grad[1][2] = dot(gvec[1][2], fv[2]);
+	grad[2][2] = dot(gvec[2][2], fv[2]);
+
+	fv[3] = v - T[3];
+	rand = Rand3DPCG16(int3(floor(NoiseTileWrap(6 * T[3] + 0.5, bTiling, RepeatSize))));
+	gvec[0][3] = float3(rand.xxx & MGradientMask) * MGradientScale - 1;
+	gvec[1][3] = float3(rand.yyy & MGradientMask) * MGradientScale - 1;
+	gvec[2][3] = float3(rand.zzz & MGradientMask) * MGradientScale - 1;
+	grad[0][3] = dot(gvec[0][3], fv[3]);
+	grad[1][3] = dot(gvec[1][3], fv[3]);
+	grad[2][3] = dot(gvec[2][3], fv[3]);
 
 	// blend gradients
 	float4 sv = SimplexSmooth(fv);

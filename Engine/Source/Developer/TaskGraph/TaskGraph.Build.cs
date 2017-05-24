@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TaskGraph : ModuleRules
 {
-	public TaskGraph(TargetInfo Target)
+	public TaskGraph(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

@@ -26,6 +26,7 @@
 #include "CanvasTypes.h"
 #include "LocalVertexFactory.h"
 #include "SkeletalMeshTypes.h"
+#include "DrawingPolicy.h"
 
 #include "RendererInterface.h"
 #include "EngineModule.h"
@@ -437,11 +438,7 @@ public:
 		int32 NumTris = 0;
 		int32 NumVerts = 0;
 
-	#if WITH_APEX_CLOTHING
 		const int32 SectionCount = LODModel.NumNonClothingSections();
-	#else
-		const int32 SectionCount = LODModel.Sections.Num();
-	#endif // #if WITH_APEX_CLOTHING
 
 		// count triangles and vertices for selected material
 		for (int32 SectionIndex = 0; SectionIndex < SectionCount; SectionIndex++)
@@ -636,7 +633,7 @@ public:
 		return 2;
 	}
 
-	static void RenderMaterial(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, FRenderData& Data)
+	static void RenderMaterial(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const class FSceneView& View, FRenderData& Data)
 	{
 		FMeshBatch MeshElement;
 		MeshElement.VertexFactory = &GMeshVertexFactory;
@@ -693,10 +690,10 @@ public:
 		BatchElement.MinVertexIndex = 0;
 		BatchElement.MaxVertexIndex = Verts.Num() - 1;
 
-		GetRendererModule().DrawTileMesh(RHICmdList, View, MeshElement, false /*bIsHitTesting*/, FHitProxyId());
+		GetRendererModule().DrawTileMesh(RHICmdList, DrawRenderState, View, MeshElement, false /*bIsHitTesting*/, FHitProxyId());
 	}
 
-	virtual bool Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
+	virtual bool Render_RenderThread(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FCanvas* Canvas)
 	{
 		checkSlow(Data);
 		// current render target set for the canvas
@@ -718,7 +715,7 @@ public:
 
 		FSceneView* View = new FSceneView(ViewInitOptions);
 
-		RenderMaterial(RHICmdList, *View, *Data);
+		RenderMaterial(RHICmdList, DrawRenderState, *View, *Data);
 
 		delete View;
 		if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
@@ -765,11 +762,17 @@ public:
 			Data,
 			Canvas->GetAllowedModes()
 		};
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			DrawMaterialCommand,
-			FDrawMaterialParameters, Parameters, DrawMaterialParameters,
+
+		FDrawMaterialParameters Parameters = DrawMaterialParameters;
+		ENQUEUE_RENDER_COMMAND(DrawMaterialCommand)(
+			[Parameters](FRHICommandListImmediate& RHICmdList)
 			{
-				RenderMaterial(RHICmdList, *Parameters.View, *Parameters.RenderData);
+				FDrawingPolicyRenderState DrawRenderState(*Parameters.View);
+
+				// disable depth test & writes
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+				RenderMaterial(RHICmdList, DrawRenderState, *Parameters.View, *Parameters.RenderData);
 
 				delete Parameters.View;
 				if (Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender)

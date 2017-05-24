@@ -1147,6 +1147,19 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API bool SegmentPlaneIntersection(const FVector& StartPoint, const FVector& EndPoint, const FPlane& Plane, FVector& out_IntersectionPoint);
 
+
+	/**
+	* Returns true if there is an intersection between the segment specified by StartPoint and Endpoint, and
+	* the Triangle defined by A, B and C. If there is an intersection, the point is placed in out_IntersectionPoint
+	* @param StartPoint - start point of segment
+	* @param EndPoint   - end point of segment
+	* @param A, B, C	- points defining the triangle 
+	* @param OutIntersectPoint - out var for the point on the segment that intersects the triangle (if any)
+	* @param OutNormal - out var for the triangle normal
+	* @return true if intersection occurred
+	*/
+	static CORE_API bool SegmentTriangleIntersection(const FVector& StartPoint, const FVector& EndPoint, const FVector& A, const FVector& B, const FVector& C, FVector& OutIntersectPoint, FVector& OutTriangleNormal);
+
 	/**
 	 * Returns true if there is an intersection between the segment specified by SegmentStartA and SegmentEndA, and
 	 * the segment specified by SegmentStartB and SegmentEndB, in 2D space. If there is an intersection, the point is placed in out_IntersectionPoint

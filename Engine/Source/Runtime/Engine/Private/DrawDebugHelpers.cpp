@@ -436,8 +436,8 @@ void DrawDebug2DDonut(const UWorld* InWorld, const FMatrix& TransformMatrix, flo
 
 			// Need at least 4 segments
 			Segments = FMath::Max((Segments - 4) / 2, 4);
-			InternalDrawDebugCircle(InWorld, TransformMatrix, InnerRadius, Segments, Color, bPersistentLines, LifeTime, DepthPriority);
-			InternalDrawDebugCircle(InWorld, TransformMatrix, OuterRadius, Segments, Color, bPersistentLines, LifeTime, DepthPriority);
+			InternalDrawDebugCircle(InWorld, TransformMatrix, InnerRadius, Segments, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
+			InternalDrawDebugCircle(InWorld, TransformMatrix, OuterRadius, Segments, Color, bPersistentLines, LifeTime, DepthPriority, Thickness );
 		
 			const FVector Center = TransformMatrix.GetOrigin();
 			const FVector AxisY = TransformMatrix.GetScaledAxis( EAxis::Y );
@@ -720,7 +720,7 @@ void DrawDebugString(const UWorld* InWorld, FVector const& TextLocation, const F
 		for( FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
 			APlayerController* PlayerController = Iterator->Get();
-			if (PlayerController->MyHUD)
+			if (PlayerController->MyHUD && PlayerController->Player)
 			{
 				PlayerController->MyHUD->AddDebugText(Text, BaseAct, Duration, TextLocation, TextLocation, TextColor, true, (TestBaseActor==NULL), false, nullptr, 1.0f, bDrawShadow);
 			}

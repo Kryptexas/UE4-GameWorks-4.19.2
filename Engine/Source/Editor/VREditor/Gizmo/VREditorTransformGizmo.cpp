@@ -15,11 +15,11 @@
 #include "VREditorPlaneTranslationGizmoHandle.h"
 #include "VIStretchGizmoHandle.h"
 #include "VIUniformScaleGizmoHandle.h"
+#include "VRModeSettings.h"
 
 namespace VREd
 {
 	// @todo vreditor tweak: Tweak out console variables
-	static FAutoConsoleVariable GizmoScale( TEXT( "VREd.GizmoScale" ), 0.80f, TEXT( "How big the gizmo handles should be" ) );
 	static FAutoConsoleVariable GizmoDistanceScaleFactor( TEXT( "VREd.GizmoDistanceScaleFactor" ), 0.002f, TEXT( "How much the gizmo handles should increase in size with distance from the camera, to make it easier to select" ) );
 	static FAutoConsoleVariable MinActorSizeForTransformGizmo( TEXT( "VREd.MinActorSizeForTransformGizmo" ), 50.0f, TEXT( "How big an object must be in scaled world units before we'll start to shrink the gizmo" ) );
 }
@@ -139,19 +139,20 @@ ATransformGizmo::ATransformGizmo()
 }
 
 
-void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, 
-	UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverScale, const float GizmoHoverAnimationDuration )
+void ATransformGizmo::UpdateGizmo(const EGizmoHandleTypes InGizmoType, const ECoordSystem InGizmoCoordinateSpace, const FTransform& InLocalToWorld, const FBox& InLocalBounds, 
+	const FVector& InViewLocation, const float InScaleMultiplier, bool bInAllHandlesVisible, const bool bInAllowRotationAndScaleHandles, class UActorComponent* DraggingHandle, 
+	const TArray<UActorComponent*>& InHoveringOverHandles, const float InGizmoHoverScale, const float InGizmoHoverAnimationDuration)
 {
-	Super::UpdateGizmo( GizmoType, GizmoCoordinateSpace, LocalToWorld, LocalBounds, ViewLocation, bAllHandlesVisible,
-		DraggingHandle, HoveringOverHandles, GizmoHoverScale, GizmoHoverAnimationDuration );
+	Super::UpdateGizmo(InGizmoType, InGizmoCoordinateSpace, InLocalToWorld, InLocalBounds, InViewLocation, InScaleMultiplier, bInAllHandlesVisible,
+		bInAllowRotationAndScaleHandles, DraggingHandle, InHoveringOverHandles, InGizmoHoverScale, InGizmoHoverAnimationDuration);
 
 	const float WorldScaleFactor = GetWorld()->GetWorldSettings()->WorldToMeters / 100.0f;
 
 	// Position the gizmo at the location of the first selected actor
 	const bool bSweep = false;
-	this->SetActorTransform( LocalToWorld, bSweep );
+	this->SetActorTransform(InLocalToWorld, bSweep);
 
-	const FBox WorldSpaceBounds = LocalBounds.TransformBy( LocalToWorld );
+	const FBox WorldSpaceBounds = InLocalBounds.TransformBy(InLocalToWorld);
 	float ScaleCompensationForTinyGizmo = 1.0f;
 	{
 		const float AvgBounds = FMath::Lerp( WorldSpaceBounds.GetSize().GetAbsMin(), WorldSpaceBounds.GetSize().GetAbsMax(), 0.5f );
@@ -165,9 +166,9 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 	// Increase scale with distance, to make gizmo handles easier to click on
 	// @todo vreditor: Should probably be a curve, not linear
 	// @todo vreditor: Should take FOV into account (especially in non-stereo/HMD mode)
-	const float WorldSpaceDistanceToGizmoBounds = FMath::Sqrt( WorldSpaceBounds.ComputeSquaredDistanceToPoint( ViewLocation ) );
-	const float GizmoScaleUpClose = VREd::GizmoScale->GetFloat();
-	const float GizmoScale( ( GizmoScaleUpClose + ( WorldSpaceDistanceToGizmoBounds / WorldScaleFactor ) * VREd::GizmoDistanceScaleFactor->GetFloat() ) * ScaleCompensationForTinyGizmo * WorldScaleFactor );
+	const float WorldSpaceDistanceToGizmoBounds = FMath::Sqrt(WorldSpaceBounds.ComputeSquaredDistanceToPoint(InViewLocation));
+	const float GizmoScaleUpClose = GetDefault<UVRModeSettings>()->GizmoScale;
+	const float GizmoScale(InScaleMultiplier * (GizmoScaleUpClose + (WorldSpaceDistanceToGizmoBounds / WorldScaleFactor) * VREd::GizmoDistanceScaleFactor->GetFloat()) * ScaleCompensationForTinyGizmo * WorldScaleFactor);
 
 	// Update animation
 	float AnimationAlpha = GetAnimationAlpha();
@@ -179,8 +180,8 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 		if ( HandleGroup != nullptr )
 		{
 			bool bIsHoveringOrDraggingThisHandleGroup = false;
-			HandleGroup->UpdateGizmoHandleGroup( LocalToWorld, LocalBounds, ViewLocation, bAllHandlesVisible, DraggingHandle, 
-				HoveringOverHandles, AnimationAlpha, GizmoScale, GizmoHoverScale, GizmoHoverAnimationDuration, /* Out */ bIsHoveringOrDraggingThisHandleGroup );
+			HandleGroup->UpdateGizmoHandleGroup(InLocalToWorld, InLocalBounds, InViewLocation, bInAllHandlesVisible, DraggingHandle, 
+				InHoveringOverHandles, AnimationAlpha, GizmoScale, InGizmoHoverScale, InGizmoHoverAnimationDuration, /* Out */ bIsHoveringOrDraggingThisHandleGroup);
 			
 			if( HandleGroup->GetHandleType() == EGizmoHandleTypes::Scale && bIsHoveringOrDraggingThisHandleGroup )
 			{
@@ -197,13 +198,13 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 
 			// Update measurement text
 			{
-				const float LocalSpaceLengthOfBoundsAlongAxis = LocalBounds.GetSize()[ AxisIndex ];
+				const float LocalSpaceLengthOfBoundsAlongAxis = InLocalBounds.GetSize()[ AxisIndex ];
 
 				FVector LocalSpaceAxisLengthVector = FVector::ZeroVector;
 				LocalSpaceAxisLengthVector[ AxisIndex ] = LocalSpaceLengthOfBoundsAlongAxis;
 
 				// Transform to world space
-				const FVector WorldSpaceAxisLengthVector = LocalToWorld.TransformVector( LocalSpaceAxisLengthVector );
+				const FVector WorldSpaceAxisLengthVector = InLocalToWorld.TransformVector( LocalSpaceAxisLengthVector );
 				const float WorldSpaceLengthOfBoundsAlongAxis = WorldSpaceAxisLengthVector.Size();
 
 				FText BestSizeString;
@@ -234,12 +235,12 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 					for( int32 EdgeIndex = 0; EdgeIndex < 4; ++EdgeIndex )
 					{
 						FVector GizmoSpaceEdge0, GizmoSpaceEdge1;
-						GetBoundingBoxEdge( LocalBounds, AxisIndex, EdgeIndex, /* Out */ GizmoSpaceEdge0, /* Out */ GizmoSpaceEdge1 );
+						GetBoundingBoxEdge( InLocalBounds, AxisIndex, EdgeIndex, /* Out */ GizmoSpaceEdge0, /* Out */ GizmoSpaceEdge1 );
 
-						const FVector WorldSpaceEdge0 = LocalToWorld.TransformPosition( GizmoSpaceEdge0 );
-						const FVector WorldSpaceEdge1 = LocalToWorld.TransformPosition( GizmoSpaceEdge1 );
+						const FVector WorldSpaceEdge0 = InLocalToWorld.TransformPosition( GizmoSpaceEdge0 );
+						const FVector WorldSpaceEdge1 = InLocalToWorld.TransformPosition( GizmoSpaceEdge1 );
 
-						const float SquaredDistance = FMath::PointDistToSegmentSquared( ViewLocation, WorldSpaceEdge0, WorldSpaceEdge1 );
+						const float SquaredDistance = FMath::PointDistToSegmentSquared( InViewLocation, WorldSpaceEdge0, WorldSpaceEdge1 );
 						if( SquaredDistance < ClosestSquaredDistance )
 						{
 							ClosestSquaredDistance = SquaredDistance;
@@ -255,7 +256,7 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 				const FVector GizmoSpaceEdgeCenter = GizmoSpaceClosestEdge0 + EdgeVector * 0.5f;
 
 				const float UpOffsetAmount = GizmoScale * 5.0f;	// Push the text up a bit so that it doesn't overlap so much with our handles
-				const FVector GizmoSpaceUpVector = LocalToWorld.InverseTransformVectorNoScale( FVector::UpVector );
+				const FVector GizmoSpaceUpVector = InLocalToWorld.InverseTransformVectorNoScale( FVector::UpVector );
 
 				Measurement.MeasurementText->SetRelativeLocation( GizmoSpaceEdgeCenter + GizmoSpaceUpVector * UpOffsetAmount );
 
@@ -263,8 +264,8 @@ void ATransformGizmo::UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoo
 				FVector TextFacingDirection = UGizmoHandleGroup::GetAxisVector( TextFacingAxisIndex, ETransformGizmoHandleDirection::Positive );
 
 				// Make sure to face the camera
-				const FVector WorldSpaceEdgeCenterToViewDirection = ( LocalToWorld.TransformPosition( GizmoSpaceEdgeCenter ) - ViewLocation ).GetSafeNormal();
-				if( FVector::DotProduct( LocalToWorld.TransformVectorNoScale( TextFacingDirection ), WorldSpaceEdgeCenterToViewDirection ) > 0.0f )
+				const FVector WorldSpaceEdgeCenterToViewDirection = ( InLocalToWorld.TransformPosition( GizmoSpaceEdgeCenter ) - InViewLocation ).GetSafeNormal();
+				if( FVector::DotProduct( InLocalToWorld.TransformVectorNoScale( TextFacingDirection ), WorldSpaceEdgeCenterToViewDirection ) > 0.0f )
 				{
 					TextFacingDirection *= -1.0f;
 				}

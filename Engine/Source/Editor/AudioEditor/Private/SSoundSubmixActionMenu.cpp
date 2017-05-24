@@ -28,7 +28,7 @@ void SSoundSubmixActionMenuItem::Construct(const FArguments& InArgs, TSharedPtr<
 		this->ChildSlot
 			[
 				SNew(SHorizontalBox)
-				.ToolTipText( FText::FromString(InAction->GetTooltipDescription()) )
+				.ToolTipText(InAction->GetTooltipDescription())
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
@@ -42,7 +42,7 @@ void SSoundSubmixActionMenuItem::Construct(const FArguments& InArgs, TSharedPtr<
 	}
 	else
 	{
-		TSharedRef<SWidget> NewSoundSubmixWidget = CreateNewSoundSubmixWidget(InAction->GetMenuDescription(), FText::FromString(InAction->GetTooltipDescription()), FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9), InAction);
+		TSharedRef<SWidget> NewSoundSubmixWidget = CreateNewSoundSubmixWidget(InAction->GetMenuDescription(), InAction->GetTooltipDescription(), FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9), InAction);
 		// Promote requires 2 'slots'
 		this->ChildSlot
 			[

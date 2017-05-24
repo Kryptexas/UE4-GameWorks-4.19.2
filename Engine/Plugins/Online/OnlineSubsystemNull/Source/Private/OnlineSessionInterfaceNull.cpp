@@ -639,7 +639,7 @@ bool FOnlineSessionNull::JoinSession(const FUniqueNetId& PlayerId, FName Session
 bool FOnlineSessionNull::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
-	FOnlineSessionSearchResult EmptySearchResult;
+	TArray<FOnlineSessionSearchResult> EmptySearchResult;
 	TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptySearchResult);
 	return false;
 };
@@ -647,7 +647,15 @@ bool FOnlineSessionNull::FindFriendSession(int32 LocalUserNum, const FUniqueNetI
 bool FOnlineSessionNull::FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
-	FOnlineSessionSearchResult EmptySearchResult;
+	TArray<FOnlineSessionSearchResult> EmptySearchResult;
+	TriggerOnFindFriendSessionCompleteDelegates(0, false, EmptySearchResult);
+	return false;
+}
+
+bool FOnlineSessionNull::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList)
+{
+	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
+	TArray<FOnlineSessionSearchResult> EmptySearchResult;
 	TriggerOnFindFriendSessionCompleteDelegates(0, false, EmptySearchResult);
 	return false;
 }
@@ -728,7 +736,7 @@ static bool GetConnectStringFromSessionInfo(TSharedPtr<FOnlineSessionInfoNull>& 
 	return bSuccess;
 }
 
-bool FOnlineSessionNull::GetResolvedConnectString(FName SessionName, FString& ConnectInfo)
+bool FOnlineSessionNull::GetResolvedConnectString(FName SessionName, FString& ConnectInfo, FName PortType)
 {
 	bool bSuccess = false;
 	// Find the session
@@ -736,7 +744,16 @@ bool FOnlineSessionNull::GetResolvedConnectString(FName SessionName, FString& Co
 	if (Session != NULL)
 	{
 		TSharedPtr<FOnlineSessionInfoNull> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoNull>(Session->SessionInfo);
-		bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo);
+		if (PortType == BeaconPort)
+		{
+			int32 BeaconListenPort = GetBeaconPortFromSessionSettings(Session->SessionSettings);
+			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
+		}
+		else if (PortType == GamePort)
+		{
+			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo);
+		}
+
 		if (!bSuccess)
 		{
 			UE_LOG_ONLINE(Warning, TEXT("Invalid session info for session %s in GetResolvedConnectString()"), *SessionName.ToString());
@@ -761,12 +778,7 @@ bool FOnlineSessionNull::GetResolvedConnectString(const FOnlineSessionSearchResu
 
 		if (PortType == BeaconPort)
 		{
-			int32 BeaconListenPort = DEFAULT_BEACON_PORT;
-			if (!SearchResult.Session.SessionSettings.Get(SETTING_BEACONPORT, BeaconListenPort) || BeaconListenPort <= 0)
-			{
-				// Reset the default BeaconListenPort back to DEFAULT_BEACON_PORT because the SessionSettings value does not exist or was not valid
-				BeaconListenPort = DEFAULT_BEACON_PORT;
-			}
+			int32 BeaconListenPort = GetBeaconPortFromSessionSettings(SearchResult.Session.SessionSettings);
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
 
 		}
@@ -1028,7 +1040,7 @@ void FOnlineSessionNull::OnValidQueryPacketReceived(uint8* PacketData, int32 Pac
 	for (int32 SessionIndex = 0; SessionIndex < Sessions.Num(); SessionIndex++)
 	{
 		FNamedOnlineSession* Session = &Sessions[SessionIndex];
-
+							
 		// Don't respond to query if the session is not a joinable LAN match.
 		if (Session && IsSessionJoinable(*Session))
 		{

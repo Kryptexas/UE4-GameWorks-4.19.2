@@ -540,6 +540,17 @@ namespace BuildPatchAppManifest
 		}
 		return TotalSize;
 	}
+
+	template<typename ContainerType>
+	int64 GetDataSizeHelper(const FBuildPatchAppManifest& Manifest, const ContainerType& DataList)
+	{
+		int64 TotalSize = 0;
+		for (const FGuid& DataId : DataList)
+		{
+			TotalSize += Manifest.GetDataSize(DataId);
+		}
+		return TotalSize;
+	}
 }
 
 /* FBuildPatchAppManifest implementation
@@ -1332,6 +1343,21 @@ void FBuildPatchAppManifest::GetChunksRequiredForFiles(const TSet<FString>& File
 	BuildPatchAppManifest::GetChunksRequiredForFilesHelper(*this, FileList, RequiredChunks, bAddUnique);
 }
 
+void FBuildPatchAppManifest::GetChunksRequiredForFiles(const TSet<FString>& Filenames, TSet<FGuid>& RequiredChunks) const
+{
+	for (const FString& Filename : Filenames)
+	{
+		const FFileManifestData* FileManifest = GetFileManifest(Filename);
+		if (FileManifest != nullptr)
+		{
+			for (const FChunkPartData& ChunkPart : FileManifest->FileChunkParts)
+			{
+				RequiredChunks.Add(ChunkPart.Guid);
+			}
+		}
+	}
+}
+
 int64 FBuildPatchAppManifest::GetDownloadSize() const
 {
 	return TotalDownloadSize;
@@ -1368,35 +1394,46 @@ int64 FBuildPatchAppManifest::GetDownloadSize(const TSet<FString>& Tags) const
 	return TotalSize;
 }
 
-int64 FBuildPatchAppManifest::GetDeltaDownloadSize(const TSet<FString>& Tags, const IBuildManifestRef& InPreviousVersion) const
+int64 FBuildPatchAppManifest::GetDeltaDownloadSize(const TSet<FString>& Tags, const IBuildManifestRef& PreviousVersion) const
 {
+	return GetDeltaDownloadSize(Tags, PreviousVersion, Tags);
+}
+
+int64 FBuildPatchAppManifest::GetDeltaDownloadSize(const TSet<FString>& InTags, const IBuildManifestRef& InPreviousVersion, const TSet<FString>& InPreviousTags) const
+{
+	TSet<FString> Tags = InTags;
 	FBuildPatchAppManifestRef PreviousVersion = StaticCastSharedRef< FBuildPatchAppManifest >(InPreviousVersion);
+	TSet<FString> PreviousTags = InPreviousTags;
+	if (Tags.Num() == 0)
+	{
+		GetFileTagList(Tags);
+	}
+	if (PreviousTags.Num() == 0)
+	{
+		PreviousVersion->GetFileTagList(PreviousTags);
+	}
 
-	TArray<FGuid> PreviousChunksArray;
-	PreviousVersion->GetDataList(PreviousChunksArray);
+	// Enumerate what is available.
+	TSet<FString> FilesInstalled;
+	TSet<FGuid> ChunksInstalled;
+	PreviousVersion->GetTaggedFileList(PreviousTags, FilesInstalled);
+	PreviousVersion->GetChunksRequiredForFiles(FilesInstalled, ChunksInstalled);
 
+	// Enumerate what has changed.
 	FString DummyString;
 	TSet<FString> OutdatedFiles;
 	GetOutdatedFiles(PreviousVersion, DummyString, OutdatedFiles);
 
-	TArray<FGuid> RequiredChunksArray;
-	GetChunksRequiredForFiles(OutdatedFiles, RequiredChunksArray, true);
+	// Enumerate what is needed for the update.
+	TSet<FString> FilesNeeded;
+	TSet<FGuid> ChunksNeeded;
+	GetTaggedFileList(Tags, FilesNeeded);
+	FilesNeeded = OutdatedFiles.Intersect(FilesNeeded);
+	GetChunksRequiredForFiles(FilesNeeded, ChunksNeeded);
+	ChunksNeeded = ChunksNeeded.Difference(ChunksInstalled);
 
-	TSet<FGuid> PreviousChunksSet;
-	TSet<FGuid> RequiredChunksSet;
-	PreviousChunksSet.Append(PreviousChunksArray);
-	RequiredChunksSet.Append(RequiredChunksArray);
-
-	TSet<FGuid> DeltaChunksSet = RequiredChunksSet.Difference(PreviousChunksSet);
-
-	// sanity check
-	for (const FGuid& DeltaChunk : DeltaChunksSet)
-	{
-		check(RequiredChunksSet.Contains(DeltaChunk) == true);
-		check(PreviousChunksSet.Contains(DeltaChunk) == false);
-	}
-
-	return GetDataSize(DeltaChunksSet.Array());
+	// Return download size of required chunks.
+	return GetDataSize(ChunksNeeded);
 }
 
 int64 FBuildPatchAppManifest::GetBuildSize() const
@@ -1477,12 +1514,12 @@ int64 FBuildPatchAppManifest::GetDataSize(const FGuid& DataGuid) const
 
 int64 FBuildPatchAppManifest::GetDataSize(const TArray<FGuid>& DataGuids) const
 {
-	int64 TotalSize = 0;
-	for (const FGuid& DataGuid : DataGuids)
-	{
-		TotalSize += GetDataSize(DataGuid);
-	}
-	return TotalSize;
+	return BuildPatchAppManifest::GetDataSizeHelper(*this, DataGuids);
+}
+
+int64 FBuildPatchAppManifest::GetDataSize(const TSet<FGuid>& DataGuids) const
+{
+	return BuildPatchAppManifest::GetDataSizeHelper(*this, DataGuids);
 }
 
 uint32 FBuildPatchAppManifest::GetNumFiles() const

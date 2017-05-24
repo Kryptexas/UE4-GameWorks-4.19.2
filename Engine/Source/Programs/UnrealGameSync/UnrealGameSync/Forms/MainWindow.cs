@@ -92,6 +92,7 @@ namespace UnrealGameSync
 		Font BuildFont;
 		Font SelectedBuildFont;
 		Font BadgeFont;
+		bool bUnstable;
 		bool bAllowClose = false;
 
 		bool bRestoreStateOnLoad;
@@ -102,7 +103,7 @@ namespace UnrealGameSync
 
 		NotificationWindow NotificationWindow;
 
-		public MainWindow(UpdateMonitor InUpdateMonitor, string InSqlConnectionString, string InDataFolder, EventWaitHandle ActivateEvent, bool bInRestoreStateOnLoad, string InOriginalExecutableFileName, string InProjectFileName)
+		public MainWindow(UpdateMonitor InUpdateMonitor, string InSqlConnectionString, string InDataFolder, EventWaitHandle ActivateEvent, bool bInRestoreStateOnLoad, string InOriginalExecutableFileName, string InProjectFileName, bool bInUnstable)
 		{
 			InitializeComponent();
 
@@ -120,6 +121,7 @@ namespace UnrealGameSync
 			DataFolder = InDataFolder;
 			bRestoreStateOnLoad = bInRestoreStateOnLoad;
 			OriginalExecutableFileName = InOriginalExecutableFileName;
+			bUnstable = bInUnstable;
 			
 			Log = new BoundedLogWriter(Path.Combine(DataFolder, "UnrealGameSync.log"));
 			Log.WriteLine("Application version: {0}", Assembly.GetExecutingAssembly().GetName().Version);
@@ -297,7 +299,15 @@ namespace UnrealGameSync
 
 		private void OnActivationListenerCallback()
 		{
-			ShowAndActivate();
+			// Check if we're trying to reopen with the unstable version; if so, trigger an update to trigger a restart with the new executable
+			if(!bUnstable && (Control.ModifierKeys & Keys.Shift) != 0)
+			{
+				UpdateMonitor.TriggerUpdate();
+			}
+			else
+			{
+				ShowAndActivate();
+			}
 		}
 
 		private void OnActivationListenerAsyncCallback()
@@ -642,7 +652,7 @@ namespace UnrealGameSync
 				return;
 			}
 
-			WorkspaceUpdateContext Context = new WorkspaceUpdateContext(ChangeNumber, Options, Settings.SyncFilter, GetDefaultBuildStepObjects(), Settings.CurrentProject.BuildSteps, null, GetWorkspaceVariables());
+			WorkspaceUpdateContext Context = new WorkspaceUpdateContext(ChangeNumber, Options, Settings.GetCombinedSyncFilter(), GetDefaultBuildStepObjects(), Settings.CurrentProject.BuildSteps, null, GetWorkspaceVariables());
 			if(Options.HasFlag(WorkspaceUpdateOptions.SyncArchives))
 			{
 				string EditorArchivePath = null;
@@ -985,94 +995,113 @@ namespace UnrealGameSync
 
 		void UpdateBuildFailureNotification()
 		{
+			int LastChangeByCurrentUser = PerforceMonitor.LastChangeByCurrentUser;
 			int LastCodeChangeByCurrentUser = PerforceMonitor.LastCodeChangeByCurrentUser;
-			if(LastCodeChangeByCurrentUser > 0)
+
+			// Find all the badges which should notify users due to content changes
+			HashSet<string> ContentBadges = new HashSet<string>();
+			if(Workspace != null && Workspace.ProjectConfigFile != null)
 			{
-				// Find the most recent build of each type, and the last time it succeeded
-				Dictionary<string, BuildData> TypeToLastBuild = new Dictionary<string,BuildData>();
-				Dictionary<string, BuildData> TypeToLastSucceededBuild = new Dictionary<string,BuildData>();
-				for(int Idx = SortedChangeNumbers.Count - 1; Idx >= 0; Idx--)
+				ContentBadges.UnionWith(Workspace.ProjectConfigFile.GetValues("Notifications.ContentBadges", new string[0]));
+			}
+
+			// Find the most recent build of each type, and the last time it succeeded
+			Dictionary<string, BuildData> TypeToLastBuild = new Dictionary<string,BuildData>();
+			Dictionary<string, BuildData> TypeToLastSucceededBuild = new Dictionary<string,BuildData>();
+			for(int Idx = SortedChangeNumbers.Count - 1; Idx >= 0; Idx--)
+			{
+				EventSummary Summary = EventMonitor.GetSummaryForChange(SortedChangeNumbers[Idx]);
+				if(Summary != null)
 				{
-					EventSummary Summary = EventMonitor.GetSummaryForChange(SortedChangeNumbers[Idx]);
-					if(Summary != null)
+					foreach(BuildData Build in Summary.Builds)
 					{
-						foreach(BuildData Build in Summary.Builds)
+						if(!TypeToLastBuild.ContainsKey(Build.BuildType) && (Build.Result == BuildDataResult.Success || Build.Result == BuildDataResult.Warning || Build.Result == BuildDataResult.Failure))
 						{
-							if(!TypeToLastBuild.ContainsKey(Build.BuildType) && (Build.Result == BuildDataResult.Success || Build.Result == BuildDataResult.Warning || Build.Result == BuildDataResult.Failure))
-							{
-								TypeToLastBuild.Add(Build.BuildType, Build);
-							}
-							if(!TypeToLastSucceededBuild.ContainsKey(Build.BuildType) && Build.Result == BuildDataResult.Success)
-							{
-								TypeToLastSucceededBuild.Add(Build.BuildType, Build);
-							}
+							TypeToLastBuild.Add(Build.BuildType, Build);
+						}
+						if(!TypeToLastSucceededBuild.ContainsKey(Build.BuildType) && Build.Result == BuildDataResult.Success)
+						{
+							TypeToLastSucceededBuild.Add(Build.BuildType, Build);
 						}
 					}
 				}
+			}
 
-				// Find all the build types that the user needs to be notified about.
-				List<BuildData> NotifyBuilds = new List<BuildData>();
-				foreach(BuildData LastBuild in TypeToLastBuild.Values.OrderBy(x => x.BuildType))
+			// Find all the build types that the user needs to be notified about.
+			int RequireNotificationForChange = -1;
+			List<BuildData> NotifyBuilds = new List<BuildData>();
+			foreach(BuildData LastBuild in TypeToLastBuild.Values.OrderBy(x => x.BuildType))
+			{
+				if(LastBuild.Result == BuildDataResult.Failure || LastBuild.Result == BuildDataResult.Warning)
 				{
-					if((LastBuild.Result == BuildDataResult.Failure || LastBuild.Result == BuildDataResult.Warning) && LastBuild.ChangeNumber >= LastCodeChangeByCurrentUser)
+					// Get the last submitted changelist by this user of the correct type
+					int LastChangeByCurrentUserOfType;
+					if(ContentBadges.Contains(LastBuild.BuildType))
 					{
-						BuildData LastSuccessfulBuild;
-						if(!TypeToLastSucceededBuild.TryGetValue(LastBuild.BuildType, out LastSuccessfulBuild) || LastSuccessfulBuild.ChangeNumber < LastCodeChangeByCurrentUser)
-						{
-							NotifyBuilds.Add(LastBuild);
-						}
-					}
-				}
-
-				// Check if there are any failing build types that we haven't notified about
-				bool bRequireNotification = false;
-				foreach(BuildData NotifyBuild in NotifyBuilds)
-				{
-					int NotifiedChangeNumber;
-					if(!NotifiedBuildTypeToChangeNumber.TryGetValue(NotifyBuild.BuildType, out NotifiedChangeNumber) || NotifiedChangeNumber < LastCodeChangeByCurrentUser)
-					{
-						bRequireNotification = true;
-						break;
-					}
-				}
-
-				// If there's anything we haven't already notified the user about, do so now
-				if(bRequireNotification)
-				{
-					// Format the platform list
-					StringBuilder PlatformList = new StringBuilder(NotifyBuilds[0].BuildType);
-					for(int Idx = 1; Idx < NotifyBuilds.Count - 1; Idx++)
-					{
-						PlatformList.AppendFormat(", {0}", NotifyBuilds[Idx].BuildType);
-					}
-					if(NotifyBuilds.Count > 1)
-					{
-						PlatformList.AppendFormat(" and {0}", NotifyBuilds[NotifyBuilds.Count - 1].BuildType);
-					}
-
-					// Show the balloon tooltip
-					if(NotifyBuilds.Any(x => x.Result == BuildDataResult.Failure))
-					{
-						string Title = String.Format("{0} CIS Failure", PlatformList.ToString());
-						string Message = String.Format("{0} failed to compile after your last submitted changelist ({1}).", PlatformList.ToString(), LastCodeChangeByCurrentUser);
-						NotificationWindow.Show(NotificationType.Error, Title, Message);
+						LastChangeByCurrentUserOfType = LastChangeByCurrentUser;
 					}
 					else
 					{
-						string Title = String.Format("{0} CIS Warnings", PlatformList.ToString());
-						string Message = String.Format("{0} compiled with warnings after your last submitted changelist ({1}).", PlatformList.ToString(), LastCodeChangeByCurrentUser);
-						NotificationWindow.Show(NotificationType.Warning, Title, Message);
+						LastChangeByCurrentUserOfType = LastCodeChangeByCurrentUser;
 					}
 
-					// Set the link to open the right build pages
-					int HighlightChange = NotifyBuilds.Max(x => x.ChangeNumber);
-					NotificationWindow.OnMoreInformation = () => { ShowAndActivate(); SelectChange(HighlightChange); };
-				
-					// Don't show messages for this change again
-					foreach(BuildData NotifyBuild in NotifyBuilds)
+					// Check if the failed build was after we submitted
+					if(LastChangeByCurrentUserOfType > 0 && LastBuild.ChangeNumber >= LastChangeByCurrentUserOfType)
 					{
-						NotifiedBuildTypeToChangeNumber[NotifyBuild.BuildType] = LastCodeChangeByCurrentUser;
+						// And check that there wasn't a successful build after we submitted (if there was, we're in the clear)
+						BuildData LastSuccessfulBuild;
+						if(!TypeToLastSucceededBuild.TryGetValue(LastBuild.BuildType, out LastSuccessfulBuild) || LastSuccessfulBuild.ChangeNumber < LastChangeByCurrentUserOfType)
+						{
+							// Add it to the list of notifications
+							NotifyBuilds.Add(LastBuild);
+
+							// Check if this is a new notification, rather than one we've already dismissed
+							int NotifiedChangeNumber;
+							if(!NotifiedBuildTypeToChangeNumber.TryGetValue(LastBuild.BuildType, out NotifiedChangeNumber) || NotifiedChangeNumber < LastChangeByCurrentUserOfType)
+							{
+								RequireNotificationForChange = Math.Max(RequireNotificationForChange, LastChangeByCurrentUserOfType);
+							}
+						}
 					}
+				}
+			}
+
+			// If there's anything we haven't already notified the user about, do so now
+			if(RequireNotificationForChange != -1)
+			{
+				// Format the platform list
+				StringBuilder PlatformList = new StringBuilder(NotifyBuilds[0].BuildType);
+				for(int Idx = 1; Idx < NotifyBuilds.Count - 1; Idx++)
+				{
+					PlatformList.AppendFormat(", {0}", NotifyBuilds[Idx].BuildType);
+				}
+				if(NotifyBuilds.Count > 1)
+				{
+					PlatformList.AppendFormat(" and {0}", NotifyBuilds[NotifyBuilds.Count - 1].BuildType);
+				}
+
+				// Show the balloon tooltip
+				if(NotifyBuilds.Any(x => x.Result == BuildDataResult.Failure))
+				{
+					string Title = String.Format("{0} Errors", PlatformList.ToString());
+					string Message = String.Format("CIS failed after your last submitted changelist ({0}).", RequireNotificationForChange);
+					NotificationWindow.Show(NotificationType.Error, Title, Message);
+				}
+				else
+				{
+					string Title = String.Format("{0} Warnings", PlatformList.ToString());
+					string Message = String.Format("CIS completed with warnings after your last submitted changelist ({0}).", RequireNotificationForChange);
+					NotificationWindow.Show(NotificationType.Warning, Title, Message);
+				}
+
+				// Set the link to open the right build pages
+				int HighlightChange = NotifyBuilds.Max(x => x.ChangeNumber);
+				NotificationWindow.OnMoreInformation = () => { ShowAndActivate(); SelectChange(HighlightChange); };
+				
+				// Don't show messages for this change again
+				foreach(BuildData NotifyBuild in NotifyBuilds)
+				{
+					NotifiedBuildTypeToChangeNumber[NotifyBuild.BuildType] = RequireNotificationForChange;
 				}
 			}
 		}
@@ -1120,14 +1149,10 @@ namespace UnrealGameSync
 				PerforceChangeType Type;
 				if(PerforceMonitor.TryGetChangeType(ChangeNumber, out Type))
 				{
-					if(Type == PerforceChangeType.Code)
+					// Try to get the archive for this CL
+					if(!PerforceMonitor.TryGetArchivePathForChangeNumber(ChangeNumber, out ArchivePath) && Type == PerforceChangeType.Content)
 					{
-						// Check whether we have an archive for this build
-						PerforceMonitor.TryGetArchivePathForChangeNumber(ChangeNumber, out ArchivePath);
-					}
-					else if(Type == PerforceChangeType.Content)
-					{
-						// Find the previous build, any use the archive path from that
+						// Otherwise if it's a content change, find the previous build any use the archive path from that
 						int Index = SortedChangeNumbers.BinarySearch(ChangeNumber);
 						if(Index > 0)
 						{
@@ -1799,8 +1824,15 @@ namespace UnrealGameSync
 			if(StreamName != null)
 			{
 				IReadOnlyList<string> OtherStreamNames = PerforceMonitor.OtherStreamNames;
+				IReadOnlyList<string> OtherStreamFilter = Workspace.ProjectStreamFilter;
 
 				StreamContextMenu.Items.Clear();
+
+				if(OtherStreamFilter != null && !Settings.bShowAllStreams)
+				{
+					OtherStreamNames = OtherStreamNames.Where(x => OtherStreamFilter.Any(y => y.Equals(x, StringComparison.InvariantCultureIgnoreCase)) || x.Equals(StreamName, StringComparison.InvariantCultureIgnoreCase)).ToList().AsReadOnly();
+				}
+
 				foreach(string OtherStreamName in OtherStreamNames.OrderBy(x => x).Where(x => !x.EndsWith("/Dev-Binaries")))
 				{
 					string ThisStreamName = OtherStreamName; // Local for lambda capture
@@ -1812,8 +1844,32 @@ namespace UnrealGameSync
 					}
 					StreamContextMenu.Items.Add(Item);
 				}
+
+				if(OtherStreamFilter != null)
+				{
+					StreamContextMenu.Items.Add(new ToolStripSeparator());
+					if(Settings.bShowAllStreams)
+					{
+						StreamContextMenu.Items.Add(new ToolStripMenuItem("Show Filtered Stream List...", null, new EventHandler((S, E) => SetShowAllStreamsOption(false, Bounds))));
+					}
+					else
+					{
+						StreamContextMenu.Items.Add(new ToolStripMenuItem("Show All Streams...", null, new EventHandler((S, E) => SetShowAllStreamsOption(true, Bounds))));
+					}
+				}
+
 				StreamContextMenu.Show(StatusPanel, new Point(Bounds.Left, Bounds.Bottom), ToolStripDropDownDirection.BelowRight);
 			}
+		}
+
+		private void SetShowAllStreamsOption(bool bValue, Rectangle Bounds)
+		{
+			Settings.bShowAllStreams = bValue;
+			Settings.Save();
+
+			// Showing the new context menu before the current one has closed seems to fail to display it if the new context menu is shorter (ie. the current cursor position is out of bounds).
+			// BeginInvoke() it so it won't happen until the menu has closed.
+			BeginInvoke(new MethodInvoker(() => SelectOtherStream(Bounds)));
 		}
 
 		private void SelectStream(string StreamName)
@@ -2961,11 +3017,12 @@ namespace UnrealGameSync
 
 		private void OptionsContextMenu_SyncFilter_Click(object sender, EventArgs e)
 		{
-			SyncFilter Filter = new SyncFilter(Settings.SyncFilter);
+			SyncFilter Filter = new SyncFilter(Settings.SyncFilter, Settings.CurrentWorkspace.SyncFilter);
 			if(Filter.ShowDialog() == DialogResult.OK)
 			{
-				Settings.SyncFilter = Filter.Lines;
-				Settings.Save();
+				Settings.SyncFilter = Filter.GlobalFilter;
+				Settings.CurrentWorkspace.SyncFilter = Filter.WorkspaceFilter;
+                Settings.Save();
 			}
 		}
 

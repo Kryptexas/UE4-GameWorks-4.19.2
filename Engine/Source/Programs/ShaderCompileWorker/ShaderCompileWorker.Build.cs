@@ -5,7 +5,7 @@ using System.IO;
 
 public class ShaderCompileWorker : ModuleRules
 {
-	public ShaderCompileWorker(TargetInfo Target)
+	public ShaderCompileWorker(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

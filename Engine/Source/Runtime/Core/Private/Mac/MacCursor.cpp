@@ -41,6 +41,7 @@ FMacCursor::FMacCursor()
 	for (int32 CursorIndex = 0; CursorIndex < EMouseCursor::TotalCursorCount; ++CursorIndex)
 	{
 		CursorHandles[CursorIndex] = NULL;
+		CursorOverrideHandles[CursorIndex] = NULL;
 
 		NSCursor *CursorHandle = NULL;
 		switch (CursorIndex)
@@ -288,17 +289,21 @@ void FMacCursor::SetType(const EMouseCursor::Type InNewCursor)
 	{
 		MacApplication->SetHighPrecisionMouseMode(false, nullptr);
 	}
+	
 	CurrentType = InNewCursor;
-	CurrentCursor = CursorHandles[InNewCursor];
+	CurrentCursor = CursorOverrideHandles[InNewCursor] ? CursorOverrideHandles[InNewCursor] : CursorHandles[InNewCursor];
+
 	if (CurrentCursor)
 	{
 		[CurrentCursor set];
 	}
+
 	UpdateVisibility();
 }
 
 void FMacCursor::GetSize(int32& Width, int32& Height) const
 {
+	// TODO: This isn't accurate
 	Width = 16;
 	Height = 16;
 }
@@ -534,15 +539,22 @@ const FVector2D& FMacCursor::GetMouseScaling() const
 	}
 }
 
-void FMacCursor::SetCustomShape(void* InCursorHandle)
+void FMacCursor::SetTypeShape(EMouseCursor::Type InCursorType, void* InCursorHandle)
 {
 	NSCursor* CursorHandle = (NSCursor*)InCursorHandle;
-
-	SCOPED_AUTORELEASE_POOL;
-	[CursorHandle retain];
-	if (CursorHandles[EMouseCursor::Custom] != NULL)
+	
 	{
-		[CursorHandles[EMouseCursor::Custom] release];
+		SCOPED_AUTORELEASE_POOL;
+		[CursorHandle retain];
+		if (CursorOverrideHandles[InCursorType] != NULL)
+		{
+			[CursorOverrideHandles[InCursorType] release];
+		}
+		CursorOverrideHandles[InCursorType] = CursorHandle;
 	}
-	CursorHandles[EMouseCursor::Custom] = CursorHandle;
+
+	if (CurrentType == InCursorType)
+	{
+		SetType(CurrentType);
+	}
 }

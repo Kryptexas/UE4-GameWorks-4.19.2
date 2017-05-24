@@ -21,7 +21,6 @@ DECLARE_MEMORY_STAT_POOL(TEXT("Visible Mips"), STAT_Streaming06_VisibleMips, STA
 DECLARE_MEMORY_STAT_POOL(TEXT("Hidden Mips"), STAT_Streaming07_HiddenMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
 DECLARE_MEMORY_STAT_POOL(TEXT("Forced Mips"), STAT_Streaming08_ForcedMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
 DECLARE_MEMORY_STAT_POOL(TEXT("UnkownRef Mips"), STAT_Streaming09_UnkownRefMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
-DECLARE_MEMORY_STAT_POOL(TEXT("LastRenderTime Mips"), STAT_Streaming10_LastRenderTimeMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
 DECLARE_MEMORY_STAT_POOL(TEXT("Cached Mips"), STAT_Streaming11_CachedMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
 
 DECLARE_MEMORY_STAT_POOL(TEXT("Wanted Mips"), STAT_Streaming12_WantedMips, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
@@ -31,6 +30,7 @@ DECLARE_MEMORY_STAT_POOL(TEXT("IO Bandwidth"), STAT_Streaming14_MipIOBandwidth, 
 DECLARE_CYCLE_STAT(TEXT("Setup Async Task"), STAT_Streaming01_SetupAsyncTask, STATGROUP_Streaming);
 DECLARE_CYCLE_STAT(TEXT("Update Streaming Data"), STAT_Streaming02_UpdateStreamingData, STATGROUP_Streaming);
 DECLARE_CYCLE_STAT(TEXT("Streaming Texture"), STAT_Streaming03_StreamTextures, STATGROUP_Streaming);
+DECLARE_CYCLE_STAT(TEXT("Notifications"), STAT_Streaming04_Notifications, STATGROUP_Streaming);
 
 DEFINE_STAT(STAT_GameThreadUpdateTime);
 
@@ -135,7 +135,7 @@ TAutoConsoleVariable<float> CVarStreamingMipBias(
 
 TAutoConsoleVariable<int32> CVarStreamingUsePerTextureBias(
 	TEXT("r.Streaming.UsePerTextureBias"),
-	0,
+	1,
 	TEXT("If non-zero, each texture will be assigned a mip bias between 0 and MipBias as required to fit in budget."),
 	ECVF_Default);
 
@@ -165,8 +165,8 @@ TAutoConsoleVariable<int32> CVarStreamingCheckBuildStatus(
 	ECVF_Scalability);
 
 
-TAutoConsoleVariable<int32> CVarScaleTexturesByGlobalMyBias(
-	TEXT("r.Streaming.ScaleTexturesByGlobalMyBias"),
+TAutoConsoleVariable<int32> CVarScaleTexturesByGlobalMipBias(
+	TEXT("r.Streaming.ScaleTexturesByGlobalMipBias"),
 	0,
 	TEXT("If non-zero, streaming textures wanted resolution will be scaled down by the global mip bias"),
 	ECVF_Default);
@@ -210,7 +210,7 @@ void FTextureStreamingSettings::Update()
 	bLimitPoolSizeToVRAM = !GIsEditor && CVarStreamingLimitPoolSizeToVRAM.GetValueOnAnyThread() != 0;
 	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;
 	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
-	bScaleTexturesByGlobalMyBias = CVarScaleTexturesByGlobalMyBias.GetValueOnAnyThread() != 0;
+	bScaleTexturesByGlobalMipBias = CVarScaleTexturesByGlobalMipBias.GetValueOnAnyThread() != 0;
 	MinMipForSplitRequest = CVarStreamingMinMipForSplitRequest.GetValueOnAnyThread();
 
 	bUseMaterialData = bUseNewMetrics && CVarStreamingUseMaterialData.GetValueOnAnyThread() != 0;
@@ -246,16 +246,6 @@ float GShadowmapStreamingFactor = 0.09f;
 */
 bool GNeverStreamOutTextures = false;
 
-/**
- * Checks whether a UTexture2D is supposed to be streaming.
- * @param Texture	Texture to check
- * @return			true if the UTexture2D is supposed to be streaming
- */
-bool IsStreamingTexture( const UTexture2D* Texture2D )
-{
-	return Texture2D && Texture2D->bIsStreamable && !Texture2D->NeverStream && Texture2D->GetNumMips() > Texture2D->GetNumNonStreamingMips();
-}
-
 
 void FTextureStreamingStats::Apply()
 {
@@ -273,7 +263,6 @@ void FTextureStreamingStats::Apply()
 	SET_MEMORY_STAT(STAT_Streaming07_HiddenMips, HiddenMips);
 	SET_MEMORY_STAT(STAT_Streaming08_ForcedMips, ForcedMips);
 	SET_MEMORY_STAT(STAT_Streaming09_UnkownRefMips, UnkownRefMips);
-	SET_MEMORY_STAT(STAT_Streaming10_LastRenderTimeMips, LastRenderTimeMips);
 	SET_MEMORY_STAT(STAT_Streaming11_CachedMips, CachedMips);
 
 	SET_MEMORY_STAT(STAT_Streaming12_WantedMips, WantedMips);
@@ -283,4 +272,5 @@ void FTextureStreamingStats::Apply()
 	SET_CYCLE_COUNTER(STAT_Streaming01_SetupAsyncTask, SetupAsyncTaskCycles);
 	SET_CYCLE_COUNTER(STAT_Streaming02_UpdateStreamingData, UpdateStreamingDataCycles);
 	SET_CYCLE_COUNTER(STAT_Streaming03_StreamTextures, StreamTexturesCycles);
+	SET_CYCLE_COUNTER(STAT_Streaming04_Notifications, CallbacksCycles);
 }

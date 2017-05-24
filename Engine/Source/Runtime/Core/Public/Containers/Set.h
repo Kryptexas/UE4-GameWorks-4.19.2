@@ -1035,7 +1035,7 @@ private:
 		if (LocalHashSize)
 		{
 			// Allocate the new hash.
-			checkSlow(!(LocalHashSize & (HashSize - 1)));
+			checkSlow(FMath::IsPowerOfTwo(HashSize));
 			Hash.ResizeAllocation(0, LocalHashSize, sizeof(FSetElementId));
 			for (int32 HashIndex = 0; HashIndex < LocalHashSize; ++HashIndex)
 			{
@@ -1491,6 +1491,7 @@ public:
 				const uint32	ElementHash = GetKeyHash(Element);
 				const int32		HashIndex = ElementHash & (HashSize - 1);
 				FSetElementId& TypedHash = GetTypedHash(HashIndex);
+				GetHashIndexRef(CurrentElement, Layout) = HashIndex;
 				GetHashNextIdRef(CurrentElement, Layout) = TypedHash;
 				TypedHash = ElementId;
 			}

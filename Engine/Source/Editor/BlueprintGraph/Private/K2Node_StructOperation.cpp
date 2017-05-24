@@ -5,6 +5,7 @@
 #include "EdGraphSchema_K2.h"
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "Kismet2/StructureEditorUtils.h"
+#include "BlueprintActionFilter.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UK2Node_StructOperation
@@ -90,4 +91,22 @@ FString UK2Node_StructOperation::GetPinMetaData(FString InPinName, FName InKey)
 FString UK2Node_StructOperation::GetFindReferenceSearchString() const
 {
 	return UEdGraphNode::GetFindReferenceSearchString();
+}
+
+bool UK2Node_StructOperation::IsActionFilteredOut(const FBlueprintActionFilter& Filter)
+{
+	bool bIsFiltered = false;
+	if (StructType && !StructType->GetBoolMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType))
+	{
+		bIsFiltered = true;
+		for (UEdGraphPin* ContextPin : Filter.Context.Pins)
+		{
+			if (ContextPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && ContextPin->PinType.PinSubCategoryObject == StructType)
+			{
+				bIsFiltered = false;
+				break;
+			}
+		}
+	}
+	return bIsFiltered;
 }

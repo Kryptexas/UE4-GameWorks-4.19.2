@@ -321,6 +321,14 @@ public:
 	void SetIsInfinite(bool bInIsInfinite) { bIsInfinite = bInIsInfinite; }
 	bool IsInfinite() const { return bIsInfinite; }
 
+	/** Gets the amount of time to prepare this section for evaluation before it actually starts. */
+	void SetPreRollTime(float InPreRollTime) { PreRollTime = InPreRollTime; }
+	float GetPreRollTime() const { return PreRollTime; }
+
+	/** Gets/sets the amount of time to continue 'postrolling' this section for after evaluation has ended. */
+	void SetPostRollTime(float InPostRollTime) { PostRollTime = InPostRollTime; }
+	float GetPostRollTime() const { return PostRollTime; }
+
 	/** Gets the time for the key referenced by the supplied key handle. */
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const PURE_VIRTUAL( UAISenseEvent::GetKeyTime, return TOptional<float>(); );
 
@@ -332,6 +340,12 @@ public:
 	 * @param InEvaluationRange The new evaluation range for this section
 	 */
 	virtual void PostLoadUpgradeTrackRow(const TRange<float>& InEvaluationRange) { }
+
+	/**
+	 * When guid bindings are updated to allow this section to fix-up any internal bindings
+	 *
+	 */
+	virtual void OnBindingsUpdated(const TMap<FGuid, FGuid>& OldGuidToNewGuidMap) { }
 
 protected:
 
@@ -367,4 +381,12 @@ private:
 	/** Toggle to set this section to be infinite */
 	UPROPERTY(EditAnywhere, Category="Section")
 	uint32 bIsInfinite : 1;
+
+	/** The amount of time to prepare this section for evaluation before it actually starts. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Section", meta=(Units=s, UIMin=0))
+	float PreRollTime;
+
+	/** The amount of time to continue 'postrolling' this section for after evaluation has ended. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category="Section", meta=(Units=s, UIMin=0))
+	float PostRollTime;
 };

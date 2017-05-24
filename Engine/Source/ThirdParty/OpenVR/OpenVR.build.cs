@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -6,10 +6,10 @@ using UnrealBuildTool;
 
 public class OpenVR : ModuleRules
 {
-	public OpenVR(TargetInfo Target)
+	public OpenVR(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the OpenVR SDK */
-		string OpenVRVersion = "v1_0_2";
+		string OpenVRVersion = "v1_0_6";
 		Type = ModuleType.External;
 
 		string SdkBase = UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenVR/OpenVR" + OpenVRVersion;
@@ -50,6 +50,15 @@ public class OpenVR : ModuleRules
 
 			string OpenVRBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/OpenVR/OpenVR{0}/osx32/", OpenVRVersion);
 			RuntimeDependencies.Add(new RuntimeDependency(OpenVRBinariesDir + "libopenvr_api.dylib"));
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64"))
+		{
+			PublicLibraryPaths.Add(LibraryPath + "linux64");
+			PublicAdditionalLibraries.Add("openvr_api");
+
+			string DylibPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "OpenVR/OpenVR" + OpenVRVersion + "/linux64/libopenvr_api.so";
+			PublicDelayLoadDLLs.Add(DylibPath);
+			RuntimeDependencies.Add(new RuntimeDependency(DylibPath));
 		}
 	}
 }

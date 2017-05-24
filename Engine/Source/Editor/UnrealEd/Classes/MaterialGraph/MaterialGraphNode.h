@@ -34,6 +34,9 @@ class UMaterialGraphNode : public UMaterialGraphNode_Base
 	/** Marks the Material Editor as dirty so that user prompted to apply change */
 	FSetMaterialDirty MaterialDirtyDelegate;
 
+	/** Called when the preview material attached to this graph node needs to be updated */
+	FSimpleDelegate InvalidatePreviewMaterialDelegate;
+
 public:
 	/** Fix up the node's owner after being copied */
 	UNREALED_API void PostCopyNode();

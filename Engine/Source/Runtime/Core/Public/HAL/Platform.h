@@ -61,6 +61,9 @@
 #if !defined(PLATFORM_SWITCH)
 	#define PLATFORM_SWITCH 0
 #endif
+#if !defined(PLATFORM_FREEBSD)
+	#define PLATFORM_FREEBSD 0
+#endif
 
 // Platform specific compiler pre-setup.
 #if PLATFORM_WINDOWS
@@ -72,7 +75,7 @@
 #elif PLATFORM_MAC
 	#include "Mac/MacPlatformCompilerPreSetup.h"
 #elif PLATFORM_IOS
-	#include "IOS/IOSPlatformCompilerPreSetup.h"
+	#include "iOS/IOSPlatformCompilerPreSetup.h"
 #elif PLATFORM_ANDROID
 	#include "Android/AndroidPlatformCompilerPreSetup.h"
 #elif PLATFORM_HTML5
@@ -133,6 +136,24 @@
 	#error "PLATFORM_64BITS must be defined"
 #endif
 
+// Whether the CPU is x86/x64 (i.e. both 32 and 64-bit variants)
+#ifndef PLATFORM_CPU_X86_FAMILY
+	#if (defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__amd64__) || defined(__x86_64__))
+		#define PLATFORM_CPU_X86_FAMILY	1
+	#else
+		#define PLATFORM_CPU_X86_FAMILY	0
+	#endif
+#endif
+
+// Whether the CPU is AArch32/AArch64 (i.e. both 32 and 64-bit variants)
+#ifndef PLATFORM_CPU_ARM_FAMILY
+	#if (defined(__arm__) || defined(_M_ARM) || defined(__aarch64__) || defined(_M_ARM64))
+		#define PLATFORM_CPU_ARM_FAMILY	1
+	#else
+		#define PLATFORM_CPU_ARM_FAMILY	0
+	#endif
+#endif
+
 // Base defines, these have defaults
 #ifndef PLATFORM_LITTLE_ENDIAN
 	#define PLATFORM_LITTLE_ENDIAN				0
@@ -177,6 +198,9 @@
 #endif
 #ifndef PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG
 	#define PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG			0
+#endif
+#ifndef PLATFORM_COMPILER_HAS_AUTO_RETURN_TYPES
+	#define PLATFORM_COMPILER_HAS_AUTO_RETURN_TYPES	1
 #endif
 #ifndef PLATFORM_COMPILER_HAS_GENERIC_KEYWORD
 	#define PLATFORM_COMPILER_HAS_GENERIC_KEYWORD	0
@@ -264,6 +288,14 @@
 	#define PLATFORM_SUPPORTS_TBB 0
 #endif
 
+#ifndef PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE
+	#define PLATFORM_MAX_CACHED_SYNC_FILE_HANDLES_PER_GENERIC_ASYNC_FILE_HANDLE 4
+#endif
+
+#ifndef PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE
+	#define PLATFORM_FORCE_SINGLE_SYNC_FILE_HANDLE_PER_GENERIC_ASYNC_FILE_HANDLE 0
+#endif
+
 #ifndef PLATFORM_SUPPORTS_JEMALLOC
 	#define PLATFORM_SUPPORTS_JEMALLOC 0
 #endif
@@ -326,6 +358,14 @@
 
 #ifndef PLATFORM_USES_FACE_BUTTON_RIGHT_FOR_ACCEPT
 	#define PLATFORM_USES_FACE_BUTTON_RIGHT_FOR_ACCEPT		0
+#endif
+
+#ifndef PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
+	#define PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK			0
+#endif
+
+#ifndef PLATFORM_VECTOR_CUBIC_INTERP_SSE
+#define PLATFORM_VECTOR_CUBIC_INTERP_SSE					0
 #endif
 
 // deprecated, do not use

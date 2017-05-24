@@ -94,14 +94,19 @@ struct FEmitterLocalContext
 	// See TInlineValue. If the structure is initialized in constructor, then its header must be included.
 	TSet<UField*> StructsUsedAsInlineValues;
 
-private:
-	int32 LocalNameIndexMax;
+	// List of wrappers that were actually used in the generated code.
+	TSet<UField*> UsedUnconvertedWrapper;
+
+	// Objects like UChildActorComponent::ChildActorTemplate. They will be stored at the beginning of MiscConvertedSubobjects.
+	TArray<UObject*> TemplateFromSubobjectsOfClass;
 
 	// Class subobjects
 	TArray<UObject*> MiscConvertedSubobjects;
 	TArray<UObject*> DynamicBindingObjects;
 	TArray<UObject*> ComponentTemplates;
 	TArray<UObject*> Timelines;
+private:
+	int32 LocalNameIndexMax;
 
 public:
 
@@ -110,16 +115,22 @@ public:
 	FCodeText* DefaultTarget;
 
 	const FGatherConvertedClassDependencies& Dependencies;
+	const FCompilerNativizationOptions& NativizationOptions;
 
+public:
 	TMap<UFunction*, FString> MCDelegateSignatureToSCDelegateType;
 
-	FEmitterLocalContext(const FGatherConvertedClassDependencies& InDependencies)
+	FEmitterLocalContext(const FGatherConvertedClassDependencies& InDependencies, const FCompilerNativizationOptions& InNativizationOptions)
 		: CurrentCodeType(EGeneratedCodeType::Regular)
 		, ActiveScopeBlock(nullptr)
 		, LocalNameIndexMax(0)
 		, DefaultTarget(&Body)
 		, Dependencies(InDependencies)
+		, NativizationOptions(InNativizationOptions)
 	{}
+
+	// Call this functions to make sure the wrapper (necessary for the given field) will be included and generated.
+	void MarkUnconvertedClassAsNecessary(UField* InField);
 
 	// PROPERTIES FOR INACCESSIBLE MEMBER VARIABLES
 	TMap<const UProperty*, FString> PropertiesForInaccessibleStructs;
@@ -285,7 +296,7 @@ struct FEmitHelper
 
 	static bool ShouldHandleAsImplementableEvent(UFunction* Function);
 
-	static bool GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd, bool bForceReference = false);
+	static bool GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, const UProperty* LProp, const UProperty* RProp, FString& OutCastBegin, FString& OutCastEnd, bool bForceReference = false);
 
 	static FString GenerateReplaceConvertedMD(UObject* Obj);
 
@@ -302,10 +313,6 @@ struct FEmitHelper
 	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
 		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx
 		, ENativizedTermUsage TermUsage, FString* CustomSetExpressionEnding);
-
-	// This code works properly as long, as all fields in structures are UProperties!
-	static FString AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext& EmitterContext, const UProperty* Property
-		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx = 0);
 
 	static const TCHAR* EmptyDefaultConstructor(UScriptStruct* Struct);
 };
@@ -336,7 +343,7 @@ struct FEmitDefaultValueHelper
 
 	// Creates the subobject (of class) returns it's native local name, 
 	// returns empty string if cannot handle
-	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitialize);
+	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitialize, bool bForceSubobjectOfClass = false);
 
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
 	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
@@ -351,7 +358,8 @@ private:
 	static FString HandleSpecialTypes(FEmitterLocalContext& Context, const UProperty* Property, const uint8* ValuePtr);
 
 	static FString HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties
-		, TArray<FString>& NativeCreatedComponentProperties, const USCS_Node* ParentNode, TArray<FNonativeComponentData>& ComponentsToInit);
+		, TArray<FString>& NativeCreatedComponentProperties, const USCS_Node* ParentNode, TArray<FNonativeComponentData>& ComponentsToInit
+		, bool bBlockRecursion);
 
 	static FString HandleInstancedSubobject(FEmitterLocalContext& Context, UObject* Object, bool bCreateInstance = true, bool bSkipEditorOnlyCheck = false);
 };
@@ -399,11 +407,13 @@ struct FNativizationSummaryHelper
 	static void RegisterClass(const UClass* OriginalClass);
 
 	static void ReducibleFunciton(const UClass* OriginalClass);
+
+	static void RegisterRequiredModules(const FName PlatformName, const TSet<TAssetPtr<UPackage>>& Modules);
 };
 struct FDependenciesGlobalMapHelper
 {
 	static FString EmitHeaderCode();
-	static FString EmitBodyCode();
+	static FString EmitBodyCode(const FString& PCHFilename);
 
 	static FNativizationSummary::FDependencyRecord& FindDependencyRecord(const FStringAssetReference& Key);
 
@@ -419,4 +429,10 @@ private:
 public:
 	FDisableUnwantedWarningOnScope(FCodeText& InCodeText);
 	~FDisableUnwantedWarningOnScope();
+};
+
+struct FStructAccessHelper
+{
+	static FString EmitStructAccessCode(const UStruct* InStruct);
+	static bool CanEmitDirectFieldAccess(const UScriptStruct* InStruct);
 };

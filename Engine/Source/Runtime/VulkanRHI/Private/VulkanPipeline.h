@@ -6,10 +6,14 @@
 
 #pragma once
 
+#include "VulkanResources.h"
+#include "VulkanDescriptorSets.h"
+
 class FVulkanDevice;
 class FVulkanFramebuffer;
 
 // High level description of the state
+/*
 struct FVulkanComputePipelineState
 {
 	FVulkanComputePipelineState()
@@ -28,8 +32,7 @@ struct FVulkanComputePipelineState
 	}
 
 	TRefCountPtr<FVulkanComputeShaderState> CSS;
-	TArray<FVulkanUnorderedAccessView*> UAVListForAutoFlush;
-};
+};*/
 
 
 // High level description of the state
@@ -68,7 +71,6 @@ private:
 	VkDynamicState DynamicStatesEnabled[VK_DYNAMIC_STATE_RANGE_SIZE];
 };
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 struct FVulkanGfxPipelineStateKey
 {
 	FVulkanGfxPipelineStateKey(const FVulkanPipelineGraphicsKey& InPipelineKey, uint32 InVertexInputKey, const FSHAHash* InShaderHashes) :
@@ -78,12 +80,7 @@ struct FVulkanGfxPipelineStateKey
 		FMemory::Memcpy(ShaderHashes, InShaderHashes, sizeof(ShaderHashes));
 	}
 	
-	FVulkanGfxPipelineStateKey(const FVulkanPipelineGraphicsKey& InPipelineKey, uint32 InVertexInputKey, const FVulkanBoundShaderState* State) :
-		PipelineKey(InPipelineKey),
-		VertexInputKey(InVertexInputKey)
-	{
-		FMemory::Memcpy(ShaderHashes, State->GetShaderHashes(), sizeof(ShaderHashes));
-	}
+	FVulkanGfxPipelineStateKey(const FVulkanPipelineGraphicsKey& InPipelineKey, uint32 InVertexInputKey, const FVulkanBoundShaderState* State);
 
 	FVulkanPipelineGraphicsKey PipelineKey;
 	uint32 VertexInputKey;
@@ -100,7 +97,6 @@ inline uint32 GetTypeHash(const FVulkanGfxPipelineStateKey& Key)
 	return (uint32)GetTypeHash(Key.PipelineKey) ^ *(uint32*)&Key.ShaderHashes[SF_Vertex];
 }
 
-#endif
 
 class FVulkanPipeline : public VulkanRHI::FRefCount
 {
@@ -113,20 +109,41 @@ public:
 		return Pipeline;
 	}
 
+	inline const FVulkanLayout& GetLayout() const
+	{
+		return Layout;
+	}
+
 protected:
 	FVulkanDevice* Device;
 	VkPipeline Pipeline;
-#if VULKAN_ENABLE_PIPELINE_CACHE
+	FVulkanLayout Layout;
+
 	friend class FVulkanPipelineStateCache;
-#else
-	VkPipelineCache PipelineCache;
-#endif
 };
 
-class FVulkanComputePipeline : public FVulkanPipeline
+class FVulkanComputePipeline : public FVulkanPipeline, public FRHIComputePipelineState
 {
 public:
-	FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShaderState* CSS);
+	FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShader* InComputeShader);
+
+	inline const FVulkanCodeHeader& GetShaderCodeHeader() const
+	{
+		return ComputeShader->GetCodeHeader();
+	}
+
+	inline const FVulkanComputeShader* GetShader() const
+	{
+		return ComputeShader;
+	}
+
+	inline void Bind(VkCommandBuffer CmdBuffer)
+	{
+		VulkanRHI::vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, Pipeline);
+	}
+
+protected:
+	FVulkanComputeShader* ComputeShader;
 };
 
 class FVulkanGfxPipeline : public FVulkanPipeline
@@ -136,11 +153,6 @@ public:
 		: FVulkanPipeline(InDevice)
 	{
 	}
-
-#if !VULKAN_ENABLE_PIPELINE_CACHE
-	void Create(const FVulkanGfxPipelineState& State);
-	void Destroy();
-#endif
 
 	inline void UpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanGfxPipelineState& State)
 	{
@@ -154,7 +166,6 @@ private:
 	void InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanGfxPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate, bool bNeedsStencilRefUpdate, bool bCmdNeedsDynamicState);
 };
 
-#if VULKAN_ENABLE_PIPELINE_CACHE
 
 class FVulkanPipelineStateCache
 {
@@ -199,7 +210,7 @@ public:
 	enum
 	{
 		// Bump every time serialization changes
-		VERSION = 4
+		VERSION = 5
 	};
 
 	struct FDescriptorSetLayoutBinding
@@ -417,8 +428,9 @@ public:
 
 			uint8 NumAttachments;
 			uint8 NumColorAttachments;
-			bool bHasDepthStencil;
-			bool bHasResolveAttachments;
+			uint8 bHasDepthStencil;
+			uint8 bHasResolveAttachments;
+			uint8 NumUsedClearValues;
 			uint32 Hash;
 			FVector Extent3D;
 
@@ -435,6 +447,7 @@ public:
 					NumColorAttachments == In.NumColorAttachments &&
 					bHasDepthStencil == In.bHasDepthStencil &&
 					bHasResolveAttachments == In.bHasResolveAttachments &&
+					NumUsedClearValues == In.NumUsedClearValues &&
 					Hash == In.Hash &&
 					Extent3D == In.Extent3D;
 			}
@@ -563,5 +576,3 @@ private:
 	bool Load(const TArray<FString>& CacheFilenames, TArray<uint8>& OutDeviceCache);
 	void DestroyCache();
 };
-
-#endif	// VULKAN_ENABLE_PIPELINE_CACHE

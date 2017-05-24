@@ -10,6 +10,7 @@
 #include "Serialization/ObjectReader.h"
 #include "Serialization/ObjectWriter.h"
 #include "MovieScene.h"
+#include "IMovieSceneTracksModule.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneSpawnTrack"
 
@@ -112,12 +113,8 @@ void UMovieSceneSpawnTrack::GenerateTemplate(const FMovieSceneTrackCompilerArgs&
 
 void UMovieSceneSpawnTrack::PostCompile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const
 {
-	// Spawn tracks evaluate in their own group, of the highest priority, that flush the evaluation stack
-	static FName SpawnGroupName("SpawnObjects");
-	static FMovieSceneTemplateParameterRegistration StaticGroupParameters(SpawnGroupName, FMovieSceneEvaluationGroupParameters(0xFFF, true));
-
 	// All objects must be spawned/destroyed before the sequence continues
-	OutTrack.SetEvaluationGroup(SpawnGroupName);
+	OutTrack.SetEvaluationGroup(IMovieSceneTracksModule::GetEvaluationGroupName(EBuiltInEvaluationGroup::SpawnObjects));
 	// Set priority to highest possible
 	OutTrack.SetEvaluationPriority(GetEvaluationPriority());
 }

@@ -28,6 +28,10 @@ public:
 	virtual void InvokeJSFunction(FGuid FunctionId, int32 ArgCount, FWebJSParam Arguments[], bool bIsError=false) =0;
 	virtual void InvokeJSErrorResult(FGuid FunctionId, const FString& Error) =0;
 
+	FString GetBindingName(const FString& Name, UObject* Object) const
+	{
+		return bJSBindingToLoweringEnabled ? Name.ToLower() : Name;
+	}
 
 	FString GetBindingName(const UField* Property) const
 	{

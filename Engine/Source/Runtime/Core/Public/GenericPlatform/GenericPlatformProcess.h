@@ -210,6 +210,9 @@ struct CORE_API FGenericPlatformProcess
 	/** Allow the platform to do anything it needs for audio thread */
 	static void SetupAudioThread() { }
 
+	/** Content saved to the game or engine directories should be rerouted to user directories instead **/
+	static bool ShouldSaveToUserDir();
+
 	/** Get startup directory.  NOTE: Only one return value is valid at a time! **/
 	static const TCHAR* BaseDir();
 

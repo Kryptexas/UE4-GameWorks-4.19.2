@@ -104,7 +104,7 @@ static FAutoConsoleCommand GToggleForceDefaultMaterialCmd(
 	);
 
 /** Initialization constructor. */
-FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, bool bCanLODsShareStaticLighting):
+FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, bool bForceLODsShareStaticLighting):
 	FPrimitiveSceneProxy(InComponent, InComponent->GetStaticMesh()->GetFName())
 	, Owner(InComponent->GetOwner())
 	, StaticMesh(InComponent->GetStaticMesh())
@@ -120,13 +120,15 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, 
 	, StreamingTransformScale(InComponent->GetTextureStreamingTransformScale())
 	, MaterialStreamingRelativeBoxes(InComponent->MaterialStreamingRelativeBoxes)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
+	, MaterialIndexPreview(InComponent->MaterialIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	, LightMapResolution(InComponent->GetStaticLightMapResolution())
 #endif
 #if !(UE_BUILD_SHIPPING)
 	, LODForCollision(InComponent->GetStaticMesh()->LODForCollision)
-	, bDrawMeshCollisionWireframe(InComponent->bDrawMeshCollisionWireframe)
+	, bDrawMeshCollisionIfComplex(InComponent->bDrawMeshCollisionIfComplex)
+	, bDrawMeshCollisionIfSimple(InComponent->bDrawMeshCollisionIfSimple)
 #endif
 {
 	check(RenderData);
@@ -154,12 +156,10 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent, 
 	// Build the proxy's LOD data.
 	bool bAnySectionCastsShadows = false;
 	LODs.Empty(RenderData->LODResources.Num());
-
-	// SpeedTrees are set up for lighting to share between LODs
-	bCanLODsShareStaticLighting |= InComponent->GetStaticMesh()->SpeedTreeWind.IsValid();
+	const bool bLODsShareStaticLighting = RenderData->bLODsShareStaticLighting || bForceLODsShareStaticLighting;
 	for(int32 LODIndex = 0;LODIndex < RenderData->LODResources.Num();LODIndex++)
 	{
-		FLODInfo* NewLODInfo = new(LODs) FLODInfo(InComponent,LODIndex,bCanLODsShareStaticLighting);
+		FLODInfo* NewLODInfo = new(LODs) FLODInfo(InComponent,LODIndex,bLODsShareStaticLighting);
 
 		// Under certain error conditions an LOD's material will be set to 
 		// DefaultMaterial. Ensure our material view relevance is set properly.
@@ -331,6 +331,11 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 	OutMeshBatch.VertexFactory = &LOD.VertexFactory;
 
 #if WITH_EDITORONLY_DATA
+	// If material is hidden, then skip the draw.
+	if ((MaterialIndexPreview >= 0) && (MaterialIndexPreview != Section.MaterialIndex))
+	{
+		return false;
+	}
 	// If section is hidden, then skip the draw.
 	if ((SectionIndexPreview >= 0) && (SectionIndexPreview != SectionIndex))
 	{
@@ -744,7 +749,8 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 							&& Material->WritesEveryPixel()
 							&& !Material->IsTwoSided()
 							&& !IsTranslucentBlendMode(Material->GetBlendMode())
-							&& !Material->MaterialModifiesMeshPosition_RenderThread();
+							&& !Material->MaterialModifiesMeshPosition_RenderThread()
+							&& Material->GetMaterialDomain() == MD_Surface;
 
 						bAllSectionsCastShadow &= Section.bCastShadow;
 					}
@@ -877,7 +883,8 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 	(	IsRichView(ViewFamily) || HasViewDependentDPG()
 		|| EngineShowFlags.Collision
 #if !(UE_BUILD_SHIPPING)
-		|| bDrawMeshCollisionWireframe
+		|| bDrawMeshCollisionIfComplex
+		|| bDrawMeshCollisionIfSimple
 #endif // !(UE_BUILD_SHIPPING)
 		|| EngineShowFlags.Bounds
 		|| bProxyIsSelected 
@@ -1063,10 +1070,14 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 			if(AllowDebugViewmodes())
 			{
 				// Should we draw the mesh wireframe to indicate we are using the mesh as collision
-				const bool bDrawComplexWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag == ECollisionTraceFlag::CTF_UseComplexAsSimple);
+				bool bDrawComplexWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag == ECollisionTraceFlag::CTF_UseComplexAsSimple);
+				// Requested drawing complex in wireframe, but check that we are not using simple as complex
+				bDrawComplexWireframeCollision |= (bDrawMeshCollisionIfComplex && CollisionTraceFlag != ECollisionTraceFlag::CTF_UseSimpleAsComplex);
+				// Requested drawing simple in wireframe, and we are using complex as simple
+				bDrawComplexWireframeCollision |= (bDrawMeshCollisionIfSimple && CollisionTraceFlag == ECollisionTraceFlag::CTF_UseComplexAsSimple);
 
 				// If drawing complex collision as solid or wireframe
-				if(bDrawMeshCollisionWireframe || bDrawComplexWireframeCollision || (bInCollisionView && bDrawComplexCollision))
+				if(bDrawComplexWireframeCollision || (bInCollisionView && bDrawComplexCollision))
 				{
 					// If we have at least one valid LOD to draw
 					if(RenderData->LODResources.Num() > 0)
@@ -1232,7 +1243,8 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 		(IsSelected() && View->Family->EngineShowFlags.VertexColors) ||
 #endif
 #if !(UE_BUILD_SHIPPING)
-		bDrawMeshCollisionWireframe ||
+		bDrawMeshCollisionIfComplex ||
+		bDrawMeshCollisionIfSimple ||
 #endif // !(UE_BUILD_SHIPPING)
 		// Force down dynamic rendering path if invalid lightmap settings, so we can apply an error material in DrawRichMesh
 		(HasStaticLighting() && !HasValidSettingsForStaticLighting()) ||
@@ -1323,24 +1335,28 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 	}
 }
 
-void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
+void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FVector2D& OutDistanceMinMax, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
 {
 	if (DistanceFieldData)
 	{
 		LocalVolumeBounds = DistanceFieldData->LocalBoundingBox;
+		OutDistanceMinMax = DistanceFieldData->DistanceMinMax;
 		OutBlockMin = DistanceFieldData->VolumeTexture.GetAllocationMin();
 		OutBlockSize = DistanceFieldData->VolumeTexture.GetAllocationSize();
 		bOutBuiltAsIfTwoSided = DistanceFieldData->bBuiltAsIfTwoSided;
 		bMeshWasPlane = DistanceFieldData->bMeshWasPlane;
 		ObjectLocalToWorldTransforms.Add(GetLocalToWorld());
+		SelfShadowBias = StaticMesh->DistanceFieldSelfShadowBias;
 	}
 	else
 	{
-		LocalVolumeBounds = FBox(0);
+		LocalVolumeBounds = FBox(ForceInit);
+		OutDistanceMinMax = FVector2D(0, 0);
 		OutBlockMin = FIntVector(-1, -1, -1);
 		OutBlockSize = FIntVector(0, 0, 0);
 		bOutBuiltAsIfTwoSided = false;
 		bMeshWasPlane = false;
+		SelfShadowBias = 0;
 	}
 }
 
@@ -1366,7 +1382,7 @@ bool FStaticMeshSceneProxy::HasDynamicIndirectShadowCasterRepresentation() const
 }
 
 /** Initialization constructor. */
-FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent, int32 LODIndex, bool bCanLODsShareStaticLighting)
+FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent, int32 LODIndex, bool bLODsShareStaticLighting)
 	: FLightCacheInterface(nullptr, nullptr)
 	, OverrideColorVertexBuffer(0)
 	, PreCulledIndexBuffer(NULL)
@@ -1411,8 +1427,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		}
 	}
 
-	// Hack for 4.15.1 / UE-42196. If there is lighting no data for the current LOD, try to share LOD 0's
-	if ((bCanLODsShareStaticLighting || !InComponent->LODData.IsValidIndex(LODIndex)) && InComponent->LODData.IsValidIndex(0))
+	if (LODIndex > 0 && bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
 		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
@@ -1464,7 +1479,14 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 #if WITH_EDITORONLY_DATA
 		if (GIsEditor)
 		{
-			SectionInfo.bSelected = (InComponent->SelectedEditorSection == SectionIndex);
+			if (InComponent->SelectedEditorMaterial >= 0)
+			{
+				SectionInfo.bSelected = (InComponent->SelectedEditorMaterial == Section.MaterialIndex);
+			}
+			else
+			{
+				SectionInfo.bSelected = (InComponent->SelectedEditorSection == SectionIndex);
+			}
 		}
 #endif
 
@@ -1641,7 +1663,11 @@ FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()
 		return NULL;
 	}
 
-	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this, GetStaticMesh()->bLODsShareStaticLighting);
+	FPrimitiveSceneProxy* Proxy = ::new FStaticMeshSceneProxy(this, false);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	SendRenderDebugPhysics(Proxy);
+#endif
+
 	return Proxy;
 }
 

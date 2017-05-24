@@ -20,6 +20,7 @@
 #include "AnimPreviewInstance.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Images/SImage.h"
+#include "Factories/AnimMontageFactory.h"
 
 #define LOCTEXT_NAMESPACE "AnimSequenceEditor"
 
@@ -38,6 +39,12 @@ void SMontageEditor::Construct(const FArguments& InArgs, const FMontageEditorReq
 	OnSectionsChanged = InArgs._OnSectionsChanged;
 	MontageObj->RegisterOnMontageChanged(UAnimMontage::FOnMontageChanged::CreateSP(this, &SMontageEditor::RebuildMontagePanel, false));
 		
+	if (MontageObj)
+	{
+		EnsureStartingSection();
+		EnsureSlotNode();
+	}
+
 	// set child montage if montage has parent
 	bChildAnimMontage = MontageObj->HasParentAsset();
 
@@ -152,6 +159,7 @@ void SMontageEditor::Construct(const FArguments& InArgs, const FMontageEditorReq
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 		.SectionTimingNodeVisibility(SectionVisibility)
 		.OnInvokeTab(InArgs._OnInvokeTab)
+		.OnSetMontagePreviewSlot(this, &SMontageEditor::OnSetMontagePreviewSlot)
 	];
 
 	EditorPanels->AddSlot()
@@ -208,12 +216,6 @@ void SMontageEditor::Construct(const FArguments& InArgs, const FMontageEditorReq
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 		.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
 	];
-
-	if (MontageObj)
-	{
-		EnsureStartingSection();
-		EnsureSlotNode();
-	}
 
 	CollapseMontage();
 }
@@ -281,6 +283,16 @@ void SMontageEditor::SetMontageObj(UAnimMontage * NewMontage)
 	AnimCurvePanel->SetSequence(NewMontage);
 	// sequence editor locks the sequence, so it doesn't get replaced by clicking 
 	AnimMontageScrubPanel->ReplaceLockedSequence(NewMontage);
+}
+
+void SMontageEditor::OnSetMontagePreviewSlot(int32 SlotIndex)
+{
+	UAnimSingleNodeInstance * PreviewInstance = GetPreviewInstance();
+	if (PreviewInstance)
+	{
+		const FName SlotName = MontageObj->SlotAnimTracks[SlotIndex].SlotName;
+		PreviewInstance->SetMontagePreviewSlot(SlotName);
+	}
 }
 
 bool SMontageEditor::ValidIndexes(int32 AnimSlotIndex, int32 AnimSegmentIndex) const
@@ -619,19 +631,8 @@ void SMontageEditor::SortSections()
 /** Ensure there is at least one section in the montage and that the first section starts at T=0.f */
 void SMontageEditor::EnsureStartingSection()
 {
-	if(MontageObj->CompositeSections.Num() <= 0)
+	if (UAnimMontageFactory::EnsureStartingSection(MontageObj))
 	{
-		FCompositeSection NewSection;
-		NewSection.SetTime(0.0f);
-		NewSection.SectionName = FName(TEXT("Default"));
-		MontageObj->CompositeSections.Add(NewSection);
-		OnMontageModified();
-	}
-
-	check(MontageObj->CompositeSections.Num() > 0);
-	if(MontageObj->CompositeSections[0].GetTime() > 0.0f)
-	{
-		MontageObj->CompositeSections[0].SetTime(0.0f);
 		OnMontageModified();
 	}
 }
@@ -747,7 +748,10 @@ void SMontageEditor::AddNewMontageSlot( FString NewSlotName )
 		MontageObj->SlotAnimTracks.Add( NewTrack );
 		OnMontageModified();
 
-		AnimMontagePanel->Update();
+		if (AnimMontagePanel.IsValid())
+		{
+			AnimMontagePanel->Update();
+		}
 	}
 }
 

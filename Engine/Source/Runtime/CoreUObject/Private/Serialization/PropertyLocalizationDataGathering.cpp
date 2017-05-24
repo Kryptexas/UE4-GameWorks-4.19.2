@@ -9,6 +9,7 @@
 #include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
 #include "UObject/PropertyPortFlags.h"
+#include "HAL/UnrealMemory.h"
 #include "Internationalization/TextNamespaceUtil.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
 
@@ -379,159 +380,166 @@ void FPropertyLocalizationDataGatherer::GatherTextInstance(const FText& Text, co
 	}
 }
 
+struct FGatherTextFromScriptBytecode
+{
+public:
+	FGatherTextFromScriptBytecode(const TCHAR* InSourceDescription, const TArray<uint8>& InScript, FPropertyLocalizationDataGatherer& InPropertyLocalizationDataGatherer, const bool InTreatAsEditorOnlyData)
+		: SourceDescription(InSourceDescription)
+		, Script(const_cast<TArray<uint8>&>(InScript)) // We won't change the script, but we have to lie so that the code in ScriptSerialization.h will compile :(
+		, PropertyLocalizationDataGatherer(InPropertyLocalizationDataGatherer)
+		, bTreatAsEditorOnlyData(InTreatAsEditorOnlyData)
+		, bIsParsingText(false)
+	{
+		const int32 ScriptSizeBytes = Script.Num();
+
+		int32 iCode = 0;
+		while (iCode < ScriptSizeBytes)
+		{
+			SerializeExpr(iCode, DummyArchive);
+		}
+	}
+
+private:
+	FLinker* GetLinker()
+	{
+		return nullptr;
+	}
+
+	EExprToken SerializeExpr(int32& iCode, FArchive& Ar)
+	{
+	#define XFERSTRING()		SerializeString(iCode, Ar)
+	#define XFERUNICODESTRING() SerializeUnicodeString(iCode, Ar)
+	#define XFERTEXT()			SerializeText(iCode, Ar)
+
+	#define SERIALIZEEXPR_INC
+	#define SERIALIZEEXPR_AUTO_UNDEF_XFER_MACROS
+	#include "ScriptSerialization.h"
+		return Expr;
+	#undef SERIALIZEEXPR_INC
+	#undef SERIALIZEEXPR_AUTO_UNDEF_XFER_MACROS
+	}
+
+	void SerializeString(int32& iCode, FArchive& Ar)
+	{
+		if (bIsParsingText)
+		{
+			LastParsedString.Reset();
+
+			do
+			{
+				LastParsedString += (char)(Script[iCode]);
+
+				iCode += sizeof(uint8);
+			}
+			while (Script[iCode-1]);
+		}
+		else
+		{
+			do
+			{
+				iCode += sizeof(uint8);
+			}
+			while (Script[iCode-1]);
+		}
+	}
+
+	void SerializeUnicodeString(int32& iCode, FArchive& Ar)
+	{
+		if (bIsParsingText)
+		{
+			LastParsedString.Reset();
+
+			do
+			{
+				uint16 UnicodeChar = 0;
+#ifdef REQUIRES_ALIGNED_INT_ACCESS
+				FMemory::Memcpy(&UnicodeChar, &Script[iCode], sizeof(uint16));
+#else
+				UnicodeChar = *((uint16*)(&Script[iCode]));
+#endif
+				LastParsedString += (TCHAR)UnicodeChar;
+
+				iCode += sizeof(uint16);
+			}
+			while (Script[iCode-1] || Script[iCode-2]);
+		}
+		else
+		{
+			do
+			{
+				iCode += sizeof(uint16);
+			}
+			while (Script[iCode-1] || Script[iCode-2]);
+		}
+	}
+
+	void SerializeText(int32& iCode, FArchive& Ar)
+	{
+		// What kind of text are we dealing with?
+		const EBlueprintTextLiteralType TextLiteralType = (EBlueprintTextLiteralType)Script[iCode++];
+
+		switch (TextLiteralType)
+		{
+		case EBlueprintTextLiteralType::Empty:
+			// Don't need to gather empty text
+			break;
+
+		case EBlueprintTextLiteralType::LocalizedText:
+			{
+				bIsParsingText = true;
+
+				SerializeExpr(iCode, Ar);
+				const FString SourceString = MoveTemp(LastParsedString);
+
+				SerializeExpr(iCode, Ar);
+				const FString TextKey = MoveTemp(LastParsedString);
+
+				SerializeExpr(iCode, Ar);
+				const FString TextNamespace = MoveTemp(LastParsedString);
+
+				bIsParsingText = false;
+
+				const FText TextInstance = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *TextNamespace, *TextKey);
+
+				PropertyLocalizationDataGatherer.GatherTextInstance(TextInstance, FString::Printf(TEXT("%s [Script Bytecode]"), SourceDescription), bTreatAsEditorOnlyData);
+			}
+			break;
+
+		case EBlueprintTextLiteralType::InvariantText:
+			// Don't need to gather invariant text, but we do need to walk over the string in the buffer
+			SerializeExpr(iCode, Ar);
+			break;
+
+		case EBlueprintTextLiteralType::LiteralString:
+			// Don't need to gather literal strings, but we do need to walk over the string in the buffer
+			SerializeExpr(iCode, Ar);
+			break;
+
+		case EBlueprintTextLiteralType::StringTableEntry:
+			// Don't need to gather string table entries, but we do need to walk over the strings in the buffer
+			iCode += sizeof(ScriptPointerType); // String Table asset (if any)
+			SerializeExpr(iCode, Ar);
+			SerializeExpr(iCode, Ar);
+			break;
+
+		default:
+			checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update FGatherTextFromScriptBytecode::SerializeText to handle this type of text."));
+			break;
+		}
+	}
+
+	const TCHAR* SourceDescription;
+	TArray<uint8>& Script;
+	FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer;
+	bool bTreatAsEditorOnlyData;
+
+	FArchive DummyArchive;
+	bool bIsParsingText;
+	FString LastParsedString;
+};
+
 void FPropertyLocalizationDataGatherer::GatherScriptBytecode(const FString& PathToScript, const TArray<uint8>& ScriptData, const bool bIsEditorOnly)
 {
-	struct FGatherTextFromScriptBytecode
-	{
-	public:
-		FGatherTextFromScriptBytecode(const TCHAR* InSourceDescription, const TArray<uint8>& InScript, FPropertyLocalizationDataGatherer& InPropertyLocalizationDataGatherer, const bool InTreatAsEditorOnlyData)
-			: SourceDescription(InSourceDescription)
-			, Script(const_cast<TArray<uint8>&>(InScript)) // We won't change the script, but we have to lie so that the code in ScriptSerialization.h will compile :(
-			, PropertyLocalizationDataGatherer(InPropertyLocalizationDataGatherer)
-			, bTreatAsEditorOnlyData(InTreatAsEditorOnlyData)
-			, bIsParsingText(false)
-		{
-			const int32 ScriptSizeBytes = Script.Num();
-
-			int32 iCode = 0;
-			while (iCode < ScriptSizeBytes)
-			{
-				SerializeExpr(iCode, DummyArchive);
-			}
-		}
-
-	private:
-		FLinker* GetLinker()
-		{
-			return nullptr;
-		}
-
-		EExprToken SerializeExpr(int32& iCode, FArchive& Ar)
-		{
-		#define XFERSTRING()		SerializeString(iCode, Ar)
-		#define XFERUNICODESTRING() SerializeUnicodeString(iCode, Ar)
-		#define XFERTEXT()			SerializeText(iCode, Ar)
-
-		#define SERIALIZEEXPR_INC
-		#define SERIALIZEEXPR_AUTO_UNDEF_XFER_MACROS
-		#include "ScriptSerialization.h"
-			return Expr;
-		#undef SERIALIZEEXPR_INC
-		#undef SERIALIZEEXPR_AUTO_UNDEF_XFER_MACROS
-		}
-
-		void SerializeString(int32& iCode, FArchive& Ar)
-		{
-			if (bIsParsingText)
-			{
-				LastParsedString.Reset();
-
-				do
-				{
-					LastParsedString += (char)(Script[iCode]);
-
-					iCode += sizeof(uint8);
-				}
-				while (Script[iCode-1]);
-			}
-			else
-			{
-				do
-				{
-					iCode += sizeof(uint8);
-				}
-				while (Script[iCode-1]);
-			}
-		}
-
-		void SerializeUnicodeString(int32& iCode, FArchive& Ar)
-		{
-			if (bIsParsingText)
-			{
-				LastParsedString.Reset();
-
-				do
-				{
-					uint16 UnicodeChar = 0;
-#ifdef REQUIRES_ALIGNED_INT_ACCESS
-					FMemory::Memcpy(&UnicodeChar, &Script[iCode], sizeof(uint16));
-#else
-					UnicodeChar = *((uint16*)(&Script[iCode]));
-#endif
-					LastParsedString += (TCHAR)UnicodeChar;
-
-					iCode += sizeof(uint16);
-				}
-				while (Script[iCode-1] || Script[iCode-2]);
-			}
-			else
-			{
-				do
-				{
-					iCode += sizeof(uint16);
-				}
-				while (Script[iCode-1] || Script[iCode-2]);
-			}
-		}
-
-		void SerializeText(int32& iCode, FArchive& Ar)
-		{
-			// What kind of text are we dealing with?
-			const EBlueprintTextLiteralType TextLiteralType = (EBlueprintTextLiteralType)Script[iCode++];
-
-			switch (TextLiteralType)
-			{
-			case EBlueprintTextLiteralType::Empty:
-				// Don't need to gather empty text
-				break;
-
-			case EBlueprintTextLiteralType::LocalizedText:
-				{
-					bIsParsingText = true;
-
-					SerializeExpr(iCode, Ar);
-					const FString SourceString = MoveTemp(LastParsedString);
-
-					SerializeExpr(iCode, Ar);
-					const FString TextKey = MoveTemp(LastParsedString);
-
-					SerializeExpr(iCode, Ar);
-					const FString TextNamespace = MoveTemp(LastParsedString);
-
-					bIsParsingText = false;
-
-					const FText TextInstance = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *TextNamespace, *TextKey);
-
-					PropertyLocalizationDataGatherer.GatherTextInstance(TextInstance, FString::Printf(TEXT("%s [Script Bytecode]"), SourceDescription), bTreatAsEditorOnlyData);
-				}
-				break;
-
-			case EBlueprintTextLiteralType::InvariantText:
-				// Don't need to gather invariant text, but we do need to walk over the string in the buffer
-				SerializeExpr(iCode, Ar);
-				break;
-
-			case EBlueprintTextLiteralType::LiteralString:
-				// Don't need to gather literal strings, but we do need to walk over the string in the buffer
-				SerializeExpr(iCode, Ar);
-				break;
-
-			default:
-				checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update FGatherTextFromScriptBytecode::SerializeText to handle this type of text."));
-				break;
-			}
-		}
-
-		const TCHAR* SourceDescription;
-		TArray<uint8>& Script;
-		FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer;
-		bool bTreatAsEditorOnlyData;
-
-		FArchive DummyArchive;
-		bool bIsParsingText;
-		FString LastParsedString;
-	};
-
 	if (ScriptData.Num() > 0)
 	{
 		ResultFlags |= EPropertyLocalizationGathererResultFlags::HasScript;

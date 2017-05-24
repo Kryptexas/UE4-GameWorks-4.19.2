@@ -65,9 +65,9 @@ inline uint8 EnumToByte(TEnumAsByte<TEnum> Val)
 }
 
 template<class T>
-inline const T* GetDefaultValueSafe(UClass* Class)
+inline T* GetDefaultValueSafe(UClass* Class)
 {
-	return IsValid(Class) ? GetDefault<T>(Class) : nullptr;
+	return IsValid(Class) ? GetMutableDefault<T>(Class) : nullptr;
 }
 
 template<typename ValueType>
@@ -623,3 +623,16 @@ struct TArrayCaster
 		return *reinterpret_cast<TArray<U>*>(&ValRef);
 	}
 };
+
+template<typename T>
+T ConstructTInlineValue(UScriptStruct* Struct)
+{
+	check(Struct);
+	UScriptStruct::ICppStructOps* StructOps = Struct->GetCppStructOps();
+	check(StructOps);
+
+	T Value{};
+	void* Allocation = Value.Reserve(StructOps->GetSize(), StructOps->GetAlignment());
+	Struct->InitializeStruct(Allocation);
+	return Value;
+}

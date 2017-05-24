@@ -34,9 +34,6 @@ struct FRHICommandBindClearMRTValues;
 struct FRHICommandBuildLocalBoundShaderState;
 struct FRHICommandBuildLocalGraphicsPipelineState;
 struct FRHICommandBuildLocalUniformBuffer;
-struct FRHICommandClearColorTexture;
-struct FRHICommandClearColorTextures;
-struct FRHICommandClearDepthStencilTexture;
 struct FRHICommandClearUAV;
 struct FRHICommandCopyToResolveTarget;
 struct FRHICommandDrawIndexedIndirect;
@@ -343,6 +340,25 @@ template struct FRHICommandSetComputeShader<ECmdList::EGfx>;
 template struct FRHICommandSetComputeShader<ECmdList::ECompute>;
 
 template<ECmdList CmdListType>
+void FRHICommandSetComputePipelineState<CmdListType>::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetComputePipelineState);
+	extern FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState);
+	FRHIComputePipelineState* RHIComputePipelineState = ExecuteSetComputePipelineState(ComputePipelineState);
+	INTERNAL_DECORATOR_CONTEXT(RHISetComputePipelineState)(RHIComputePipelineState);
+}
+template struct FRHICommandSetComputePipelineState<ECmdList::EGfx>;
+template struct FRHICommandSetComputePipelineState<ECmdList::ECompute>;
+
+void FRHICommandSetGraphicsPipelineState::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SetGraphicsPipelineState);
+	extern FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState);
+	FRHIGraphicsPipelineState* RHIGraphicsPipelineState = ExecuteSetGraphicsPipelineState(GraphicsPipelineState);
+	INTERNAL_DECORATOR(RHISetGraphicsPipelineState)(RHIGraphicsPipelineState);
+}
+
+template<ECmdList CmdListType>
 void FRHICommandDispatchComputeShader<CmdListType>::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(DispatchComputeShader);
@@ -396,10 +412,10 @@ void FRHICommandEnableDepthBoundsTest::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(RHIEnableDepthBoundsTest)(bEnable, MinDepth, MaxDepth);
 }
 
-void FRHICommandClearUAV::Execute(FRHICommandListBase& CmdList)
+void FRHICommandClearTinyUAV::Execute(FRHICommandListBase& CmdList)
 {
-	RHISTAT(ClearUAV);
-	INTERNAL_DECORATOR(RHIClearUAV)(UnorderedAccessViewRHI, Values);
+	RHISTAT(ClearTinyUAV);
+	INTERNAL_DECORATOR(RHIClearTinyUAV)(UnorderedAccessViewRHI, Values);
 }
 
 void FRHICommandCopyToResolveTarget::Execute(FRHICommandListBase& CmdList)
@@ -446,24 +462,6 @@ void FRHICommandWaitComputeFence<CmdListType>::Execute(FRHICommandListBase& CmdL
 }
 template struct FRHICommandWaitComputeFence<ECmdList::EGfx>;
 template struct FRHICommandWaitComputeFence<ECmdList::ECompute>;
-
-void FRHICommandClearColorTexture::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(ClearColor);
-	INTERNAL_DECORATOR(RHIClearColorTexture)(Texture, Color, ExcludeRect);
-}
-
-void FRHICommandClearDepthStencilTexture::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(ClearDepthStencil);
-	INTERNAL_DECORATOR(RHIClearDepthStencilTexture)(Texture, ClearDepthStencil, Depth, Stencil, ExcludeRect);
-}
-
-void FRHICommandClearColorTextures::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(ClearColorMRT);
-	INTERNAL_DECORATOR(RHIClearColorTextures)(NumClearColors, Textures, ColorArray, ExcludeRect);
-}
 
 void FRHICommandBuildLocalBoundShaderState::Execute(FRHICommandListBase& CmdList)
 {

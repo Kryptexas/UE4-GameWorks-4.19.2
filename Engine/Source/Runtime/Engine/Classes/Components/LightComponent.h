@@ -204,6 +204,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetIndirectLightingIntensity(float NewIntensity);
 
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
+	void SetVolumetricScatteringIntensity(float NewIntensity);
+
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetLightColor(FLinearColor NewLightColor, bool bSRGB = true);
@@ -295,10 +298,6 @@ public:
 
 	virtual float GetUniformPenumbraSize() const PURE_VIRTUAL(ULightComponent::GetUniformPenumbraSize,return 0;);
 
-	/**
-	 * Update/reset light GUIDs.
-	 */
-	virtual void UpdateLightGUIDs() override;
 
 	/**
 	 * Check whether a given primitive will cast shadows from this light.

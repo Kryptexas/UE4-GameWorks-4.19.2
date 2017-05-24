@@ -144,13 +144,19 @@ namespace Audio
 
 	bool FMixerBuffer::ReadCompressedData(uint8* Destination, bool bLooping)
 	{
+		return ReadCompressedData(Destination, MONO_PCM_BUFFER_SAMPLES, bLooping);
+	}
+
+	bool FMixerBuffer::ReadCompressedData(uint8* Destination, int32 NumFrames, bool bLooping)
+	{
 		if (!DecompressionState)
 		{
 			UE_LOG(LogAudioMixer, Warning, TEXT("Attempting to read compressed data without a compression state instance for resource '%s'"), *ResourceName);
 			return false;
 		}
 
-		const uint32 kPCMBufferSize = MONO_PCM_BUFFER_SIZE  * NumChannels;
+		const int32 kPCMBufferSize = NumChannels * NumFrames * sizeof(int16);
+
 		if (BufferType == EBufferType::Streaming)
 		{
 			return DecompressionState->StreamCompressedData(Destination, bLooping, kPCMBufferSize);
@@ -365,9 +371,12 @@ namespace Audio
 
 		if (Buffer->DecompressionState)
 		{
+			FHeaderParseAudioTaskData NewTaskData;
+			NewTaskData.MixerBuffer = Buffer;
+			NewTaskData.SoundWave = InWave;
+
 			check(Buffer->RealtimeAsyncHeaderParseTask == nullptr);
-			Buffer->RealtimeAsyncHeaderParseTask = new FAsyncRealtimeAudioTask(Buffer, InWave);
-			Buffer->RealtimeAsyncHeaderParseTask->StartBackgroundTask();
+			Buffer->RealtimeAsyncHeaderParseTask = CreateAudioTask(NewTaskData);
 
 			Buffer->NumChannels = InWave->NumChannels;
 		}

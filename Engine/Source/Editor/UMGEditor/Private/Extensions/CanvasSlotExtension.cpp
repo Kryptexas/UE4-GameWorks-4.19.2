@@ -557,67 +557,69 @@ void FCanvasSlotExtension::PaintDragPercentages(const TSet< FWidgetReference >& 
 			{
 				UCanvasPanelSlot* PreviewCanvasSlot = CastChecked<UCanvasPanelSlot>(PreviewWidget->Slot);
 
-				FGeometry GeometryForSlot;
-				if ( Canvas->GetGeometryForSlot(PreviewCanvasSlot, GeometryForSlot) )
+				FGeometry CanvasGeometry;
+				Designer->GetWidgetGeometry(Canvas, CanvasGeometry);
+				// Ignore all widget scales and only use the designer scale (text doesn't need the designer scale, however the rendered lines do)
+				const FGeometry IgnoreScale = CanvasGeometry.MakeChild(
+					FVector2D::ZeroVector,
+					CanvasGeometry.GetLocalSize(),
+					Inverse(CanvasGeometry.GetAccumulatedLayoutTransform().GetScale()) * Designer->GetPreviewScale()
+				);
+				CanvasGeometry = Designer->MakeGeometryWindowLocal(IgnoreScale);
+
+				FVector2D CanvasSize = CanvasGeometry.GetLocalSize();
+
+				const FAnchorData LayoutData = PreviewCanvasSlot->LayoutData;
+				const FVector2D AnchorMin = LayoutData.Anchors.Minimum;
+				const FVector2D AnchorMax = LayoutData.Anchors.Maximum;
+
+				auto DrawSegment =[&] (FVector2D Offset, FVector2D Start, FVector2D End, float Value, FVector2D TextTransform, bool InHorizontalLine) {
+					PaintLineWithText(
+						Start + Offset,
+						End + Offset,
+						FText::FromString(FString::Printf(TEXT("%.1f%%"), Value)),
+						TextTransform,
+						InHorizontalLine,
+						CanvasGeometry, MyClippingRect, OutDrawElements, LayerId);
+				};
+
+				// Horizontal
 				{
-					FGeometry CanvasGeometry;
-					Designer->GetWidgetGeometry(Canvas, CanvasGeometry);
-					CanvasGeometry = Designer->MakeGeometryWindowLocal(CanvasGeometry);
-
-					FVector2D CanvasSize = CanvasGeometry.Size;
-
-					const FAnchorData LayoutData = PreviewCanvasSlot->LayoutData;
-					const FVector2D AnchorMin = LayoutData.Anchors.Minimum;
-					const FVector2D AnchorMax = LayoutData.Anchors.Maximum;
-
-					auto DrawSegment =[&] (FVector2D Offset, FVector2D Start, FVector2D End, float Value, FVector2D TextTransform) {
-						PaintLineWithText(
-							Start + Offset,
-							End + Offset,
-							FText::FromString(FString::Printf(TEXT("%.1f%%"), Value)),
-							TextTransform,
-							CanvasGeometry, MyClippingRect, OutDrawElements, LayerId);
-					};
-
-					// Horizontal
-					{
-						auto DrawHorizontalSegment =[&] (FVector2D Offset, FVector2D TextTransform) {
-							
-							DrawSegment(Offset, FVector2D(0, 0), FVector2D(AnchorMin.X * CanvasSize.X, 0), AnchorMin.X * 100, TextTransform);
-							DrawSegment(Offset, FVector2D(AnchorMax.X * CanvasSize.X, 0), FVector2D(CanvasSize.X, 0), AnchorMax.X * 100, TextTransform);
-
-							if ( LayoutData.Anchors.IsStretchedHorizontal() )
-							{
-								DrawSegment(Offset, FVector2D(AnchorMin.X * CanvasSize.X, 0), FVector2D(AnchorMax.X * CanvasSize.X, 0), ( AnchorMax.X - AnchorMin.X ) * 100, TextTransform);
-							}
-						};
-
-						DrawHorizontalSegment(FVector2D(0, AnchorMin.Y * CanvasSize.Y), FVector2D(-1, -1));
-
-						if ( LayoutData.Anchors.IsStretchedVertical() )
-						{
-							DrawHorizontalSegment(FVector2D(0, AnchorMax.Y * CanvasSize.Y), FVector2D(-1, 0.25));
-						}
-					}
-
-					// Vertical
-					{
-						auto DrawVerticalSegment =[&] (FVector2D Offset, FVector2D TextTransform) {
-							DrawSegment(Offset, FVector2D(0, 0), FVector2D(0, AnchorMin.Y * CanvasSize.Y), AnchorMin.Y * 100, TextTransform);
-							DrawSegment(Offset, FVector2D(0, AnchorMax.Y * CanvasSize.Y), FVector2D(0, CanvasSize.Y), AnchorMax.Y * 100, TextTransform);
-
-							if ( LayoutData.Anchors.IsStretchedVertical() )
-							{
-								DrawSegment(Offset, FVector2D(0, AnchorMin.Y * CanvasSize.Y), FVector2D(0, AnchorMax.Y * CanvasSize.Y), ( AnchorMax.Y - AnchorMin.Y ) * 100, TextTransform);
-							}
-						};
-
-						DrawVerticalSegment(FVector2D(AnchorMin.X * CanvasSize.X, 0), FVector2D(-1, -1));
+					auto DrawHorizontalSegment =[&] (FVector2D Offset, FVector2D TextTransform) {
+						DrawSegment(Offset, FVector2D::ZeroVector, FVector2D(AnchorMin.X * CanvasSize.X, 0.f), AnchorMin.X * 100.f, FVector2D(1.f, TextTransform.Y), true); // Left
+						DrawSegment(Offset, FVector2D(AnchorMax.X * CanvasSize.X, 0.f), FVector2D(CanvasSize.X, 0.f), AnchorMax.X * 100.f, FVector2D(0.f, TextTransform.Y), true); // Right
 
 						if ( LayoutData.Anchors.IsStretchedHorizontal() )
 						{
-							DrawVerticalSegment(FVector2D(AnchorMax.X * CanvasSize.X, 0), FVector2D(0.25, -1));
+							DrawSegment(Offset, FVector2D(AnchorMin.X * CanvasSize.X, 0.f), FVector2D(AnchorMax.X * CanvasSize.X, 0.f), ( AnchorMax.X - AnchorMin.X ) * 100.f, FVector2D(0.5f, TextTransform.Y), true); // Center
 						}
+					};
+
+					DrawHorizontalSegment(FVector2D(0.f, AnchorMin.Y * CanvasSize.Y), FVector2D(0.f, -1.f)); // Top
+
+					if ( LayoutData.Anchors.IsStretchedVertical() )
+					{
+						DrawHorizontalSegment(FVector2D(0.f, AnchorMax.Y * CanvasSize.Y), FVector2D::ZeroVector); // Bottom
+					}
+				}
+
+				// Vertical
+				{
+					auto DrawVerticalSegment =[&] (FVector2D Offset, FVector2D TextTransform) {
+						DrawSegment(Offset, FVector2D::ZeroVector, FVector2D(0, AnchorMin.Y * CanvasSize.Y), AnchorMin.Y * 100.f, FVector2D(TextTransform.X, 1.f), false); // Top
+						DrawSegment(Offset, FVector2D(0.f, AnchorMax.Y * CanvasSize.Y), FVector2D(0, CanvasSize.Y), AnchorMax.Y * 100.f, FVector2D(TextTransform.X, 0.f), false); // Bottom
+
+						if ( LayoutData.Anchors.IsStretchedVertical() )
+						{
+							DrawSegment(Offset, FVector2D(0.f, AnchorMin.Y * CanvasSize.Y), FVector2D(0.f, AnchorMax.Y * CanvasSize.Y), (AnchorMax.Y - AnchorMin.Y) * 100.f, FVector2D(TextTransform.X, 0.5f), false); // Center
+						}
+					};
+
+					DrawVerticalSegment(FVector2D(AnchorMin.X * CanvasSize.X, 0.f), FVector2D(-1.f, 0.f)); // Left
+
+					if ( LayoutData.Anchors.IsStretchedHorizontal() )
+					{
+						DrawVerticalSegment(FVector2D(AnchorMax.X * CanvasSize.X, 0.f), FVector2D::ZeroVector); // Right
 					}
 				}
 			}
@@ -625,15 +627,14 @@ void FCanvasSlotExtension::PaintDragPercentages(const TSet< FWidgetReference >& 
 	}
 }
 
-void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FText Text, FVector2D TextTransform, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FText Text, FVector2D TextTransform, bool InHorizontalLine, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
 	TArray<FVector2D> LinePoints;
 	LinePoints.AddUninitialized(2);
-
 	LinePoints[0] = Start;
 	LinePoints[1] = End;
 
-	FLinearColor Color(0.5f, 0.75, 1);
+	FLinearColor Color(0.5f, 0.75f, 1);
 	const bool bAntialias = true;
 
 	FSlateDrawElement::MakeLines(
@@ -646,40 +647,36 @@ void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FTe
 		Color,
 		bAntialias);
 
-	FSlateFontInfo AnchorFont(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 * (1 / Designer->GetPreviewScale()));
+	const float InverseDesignerScale = (1.f / Designer->GetPreviewScale());
+
+	const FSlateFontInfo AnchorFont(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10.f);
 	const FVector2D TextSize = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(Text, AnchorFont);
+	FVector2D Offset = FVector2D::ZeroVector;
 
-	FVector2D Offset(0, 0);
-
-	if ( Start.Y == End.Y )
+	if (InHorizontalLine)
 	{
 		// If the lines run horizontally due to the Y's being the same:
 
-		// Position the text centered on the line.
-		Offset.X = TextSize.X / 2.0f;
-
-		// Offset the text vertically by the full size of the text, plus a little padding (2).
-		Offset.Y = TextSize.Y + ( 10 * ( 1 / Designer->GetPreviewScale() ) );
+		Offset.X += ((End - Start).X - TextSize.X) * TextTransform.X;
+		// Plus a little padding (2).
+		Offset.Y += (TextSize.Y * TextTransform.Y) + (20.f * (TextTransform.Y >= 0.f ? 1.f : -1.f));
 	}
 	else
 	{
 		// If the lines are running vertically: 
 
-		Offset.X = TextSize.X + ( 10 * ( 1 / Designer->GetPreviewScale() ) );
-		
-		// The Y offset should be half the height of the text.
-		Offset.Y = TextSize.Y / 2.0f;
+		// Plus a little padding (2).
+		Offset.X += (TextSize.X * TextTransform.X) + (20.f * (TextTransform.X >= 0.f ? 1.f : -1.f));
+		Offset.Y += ((End - Start).Y - TextSize.Y) * TextTransform.Y;
 	}
 
-	Offset = Offset * TextTransform;
-
-	FVector2D TextPos = ( LinePoints[0] + LinePoints[1] ) / 2.0f + Offset;
+	const FGeometry ChildGeometry = AllottedGeometry.MakeChild(Start + Offset, AllottedGeometry.Size);
 
 	// Draw drop shadow
 	FSlateDrawElement::MakeText(
 		OutDrawElements,
 		LayerId,
-		AllottedGeometry.MakeChild(TextPos, TextPos).ToPaintGeometry(FVector2D(1, 1), AllottedGeometry.Size),
+		ChildGeometry.ToPaintGeometry(FVector2D(1, 1), TextSize, InverseDesignerScale),
 		Text,
 		AnchorFont,
 		MyClippingRect,
@@ -687,10 +684,11 @@ void FCanvasSlotExtension::PaintLineWithText(FVector2D Start, FVector2D End, FTe
 		FLinearColor::Black
 	);
 
+	// Draw normal text on top of drop shadow
 	FSlateDrawElement::MakeText(
 		OutDrawElements,
 		++LayerId,
-		AllottedGeometry.MakeChild(TextPos, TextPos).ToPaintGeometry(),
+		ChildGeometry.ToPaintGeometry(FVector2D::ZeroVector, TextSize, InverseDesignerScale),
 		Text,
 		AnchorFont,
 		MyClippingRect,

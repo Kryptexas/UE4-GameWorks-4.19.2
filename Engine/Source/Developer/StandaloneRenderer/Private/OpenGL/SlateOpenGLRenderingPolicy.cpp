@@ -118,7 +118,7 @@ void FSlateOpenGLRenderingPolicy::UpdateVertexAndIndexBuffers(FSlateBatchData& I
 		uint8* VerticesPtr = (uint8*)VertexBuffer.Lock(0);
 		uint8* IndicesPtr = (uint8*)IndexBuffer.Lock(0);
 
-		InBatchData.FillVertexAndIndexBuffer(VerticesPtr, IndicesPtr);
+		InBatchData.FillVertexAndIndexBuffer(VerticesPtr, IndicesPtr, /*bAbsoluteIndices*/ false);
 
 		VertexBuffer.Unlock();
 		IndexBuffer.Unlock();
@@ -165,9 +165,9 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 
 		const FSlateShaderResource* Texture = RenderBatch.Texture;
 
-		const ESlateBatchDrawFlag::Type DrawFlags = RenderBatch.DrawFlags;
+		const ESlateBatchDrawFlag DrawFlags = RenderBatch.DrawFlags;
 
-		if( DrawFlags & ESlateBatchDrawFlag::NoBlending )
+		if( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::NoBlending) )
 		{
 			glDisable( GL_BLEND );
 		}
@@ -177,7 +177,7 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		}
 
 #if !PLATFORM_USES_ES2
-		if( DrawFlags & ESlateBatchDrawFlag::Wireframe )
+		if( EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::Wireframe) )
 		{
 			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 			glDisable(GL_BLEND);
@@ -202,8 +202,8 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		}
 		else if( Texture )
 		{
-			uint32 RepeatU = DrawFlags & ESlateBatchDrawFlag::TileU ? GL_REPEAT : GL_CLAMP_TO_EDGE;
-			uint32 RepeatV = DrawFlags & ESlateBatchDrawFlag::TileV ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+			uint32 RepeatU = EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::TileU) ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+			uint32 RepeatV = EnumHasAllFlags(DrawFlags, ESlateBatchDrawFlag::TileV) ? GL_REPEAT : GL_CLAMP_TO_EDGE;
 
 #if PLATFORM_USES_ES2
 			if(!FMath::IsPowerOfTwo(Texture->GetWidth()) || !FMath::IsPowerOfTwo(Texture->GetHeight()))
@@ -248,7 +248,7 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
 
 		glEnableVertexAttribArray(3);
-		Offset = STRUCT_OFFSET( FSlateVertex, ClipRect ) + STRUCT_OFFSET( FSlateRotatedClipRectType, ExtentX );
+		Offset = STRUCT_OFFSET( FSlateVertex, ClipRect ) + STRUCT_OFFSET( FSlateRotatedRect, ExtentX );
 		glVertexAttribPointer( 3, 4, GL_FLOAT, GL_FALSE, Stride, BUFFER_OFFSET(Stride*BaseVertexIndex+Offset) );
 
 		glEnableVertexAttribArray(4);

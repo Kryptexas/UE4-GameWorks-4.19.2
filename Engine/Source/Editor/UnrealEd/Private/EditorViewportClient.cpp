@@ -26,7 +26,7 @@
 #include "Editor/Matinee/Public/MatineeConstants.h"
 #include "HighResScreenshot.h"
 #include "EditorDragTools.h"
-#include "Editor/MeshPaint/Public/MeshPaintEdMode.h"
+#include "Editor/MeshPaintMode/Public/MeshPaintEdMode.h"
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"
@@ -43,6 +43,8 @@
 #include "ComponentRecreateRenderStateContext.h"
 #include "EditorBuildUtils.h"
 #include "AudioDevice.h"
+#include "EditorWorldExtension.h"
+#include "ViewportWorldInteraction.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -316,6 +318,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, CurrentGestureRotDelta(FRotator::ZeroRotator)
 	, GestureMoveForwardBackwardImpulse(0.0f)
 	, bForceAudioRealtime(false)
+	, RealTimeFrameCount(0)
 	, bIsRealtime(false)
 	, bStoredRealtime(false)
 	, bStoredShowStats(false)
@@ -331,6 +334,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, PreviewScene(InPreviewScene)
 	, MovingPreviewLightSavedScreenPos(ForceInitToZero)
 	, MovingPreviewLightTimer(0.0f)
+	, bLockFlightCamera(false)
 	, PerspViewModeIndex(DefaultPerspectiveViewMode)
 	, OrthoViewModeIndex(DefaultOrthoViewMode)
 	, ViewModeParam(-1)
@@ -742,19 +746,8 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 		{
 		    // If stereo rendering is enabled, update the size and offset appropriately for this pass
 		    // @todo vreditor: Also need to update certain other use cases of ViewFOV like culling, streaming, etc.  (needs accessor)
-		    float ActualFOV = ViewFOV;
 		    if( bStereoRendering )
 		    {
-				if( GEngine->HMDDevice.IsValid() )
-				{
-					float HMDVerticalFOV, HMDHorizontalFOV;
-					GEngine->HMDDevice->GetFieldOfView( HMDHorizontalFOV, HMDVerticalFOV );
-					if( HMDHorizontalFOV > 0 )
-					{
-						ActualFOV = HMDHorizontalFOV;
-					}
-				}
-
 		        int32 X = 0;
 		        int32 Y = 0;
 		        uint32 SizeX = ViewportSizeXY.X;
@@ -788,14 +781,14 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 		    {
 			    // @todo vreditor: bConstrainAspectRatio is ignored in this path, as it is in the game client as well currently
 			    // Let the stereoscopic rendering device handle creating its own projection matrix, as needed
-			    ViewInitOptions.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix( StereoPass, ActualFOV );
+			    ViewInitOptions.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix( StereoPass, ViewFOV );
 		    }
 		    else
 		    {
 			    const float MinZ = GetNearClipPlane();
 			    const float MaxZ = MinZ;
 			    // Avoid zero ViewFOV's which cause divide by zero's in projection matrix
-			    const float MatrixFOV = FMath::Max(0.001f, ActualFOV) * (float)PI / 360.0f;
+			    const float MatrixFOV = FMath::Max(0.001f, ViewFOV) * (float)PI / 360.0f;
     
 			    if (bConstrainAspectRatio)
 			    {
@@ -1345,6 +1338,12 @@ EMouseCursor::Type FEditorViewportClient::GetCursor(FViewport* InViewport,int32 
 {
 	EMouseCursor::Type MouseCursor = EMouseCursor::Default;
 
+	// StaticFindObject is used lower down in this code, and that's not allowed while saving packages.
+	if ( GIsSavingPackage )
+	{
+		return MouseCursor;
+	}
+
 	bool bMoveCanvasMovement = ShouldUseMoveCanvasMovement();
 	
 	if (RequiredCursorVisibiltyAndAppearance.bOverrideAppearance &&
@@ -1417,8 +1416,16 @@ EMouseCursor::Type FEditorViewportClient::GetCursor(FViewport* InViewport,int32 
 			}
 		}
 	}
-
-
+	
+	// Allow the viewport interaction to override any previously set mouse cursor
+	UViewportWorldInteraction* WorldInteraction = Cast<UViewportWorldInteraction>(GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions(GetWorld())->FindExtension(UViewportWorldInteraction::StaticClass()));
+	if (WorldInteraction != nullptr && WorldInteraction->ShouldSuppressExistingCursor())
+	{
+			MouseCursor = EMouseCursor::None;
+			RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = false;
+			RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = false;
+			UpdateRequiredCursorVisibility();
+	}
 
 	CachedMouseX = X;
 	CachedMouseY = Y;
@@ -2138,6 +2145,9 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 	{
 		bool bInvert = GetDefault<ULevelEditorViewportSettings>()->bInvertMiddleMousePan;
 
+		const float CameraSpeed = GetCameraSpeed();
+		Drag *= CameraSpeed;
+
 		FVector DeltaLocation = bInvert ? FVector(Drag.X, 0, -Drag.Z ) : FVector(-Drag.X, 0, Drag.Z);
 
 		FVector LookAt = ViewTransform.GetLookAt();
@@ -2157,6 +2167,9 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 	else if ( IsOrbitZoomMode( InViewport ) )
 	{
 		FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix().InverseFast();
+
+		const float CameraSpeed = GetCameraSpeed();
+		Drag *= CameraSpeed;
 
 		FVector DeltaLocation = FVector(0, Drag.X+ -Drag.Y, 0);
 
@@ -2266,6 +2279,12 @@ bool FEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, 
 
 	// Let the current mode have a look at the input before reacting to it.
 	if (ModeTools->InputKey(this, Viewport, Key, Event))
+	{
+		return true;
+	}
+
+	UEditorWorldExtensionCollection& EditorWorldExtensionCollection = *GEditor->GetEditorWorldExtensionsManager()->GetEditorWorldExtensions( GetWorld() );
+	if( EditorWorldExtensionCollection.InputKey(this, Viewport, Key, Event))
 	{
 		return true;
 	}
@@ -3089,7 +3108,7 @@ void FEditorViewportClient::SetWidgetMode(FWidget::EWidgetMode NewMode)
 
 bool FEditorViewportClient::CanSetWidgetMode(FWidget::EWidgetMode NewMode) const
 {
-	return ModeTools->GetShowWidget() == true;
+	return ModeTools->UsesTransformWidget(NewMode) == true;
 }
 
 FWidget::EWidgetMode FEditorViewportClient::GetWidgetMode() const
@@ -3250,6 +3269,11 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 
 void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 {
+	if (RealTimeFrameCount > 0)
+	{
+		--RealTimeFrameCount;
+	}
+
 	FViewport* ViewportBackup = Viewport;
 	Viewport = InViewport ? InViewport : Viewport;
 
@@ -3318,11 +3342,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	// Allow HMD to modify the view later, just before rendering
 	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
 	{
-		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
-		if (HmdViewExt.IsValid())
-		{
-			ViewFamily.ViewExtensions.Add(HmdViewExt);
-		}
+		GEngine->HMDDevice->GatherViewExtensions(ViewFamily.ViewExtensions);
 
 		// Allow HMD to modify screen settings
 		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
@@ -4131,10 +4151,7 @@ bool FEditorViewportClient::IsFlightCameraInputModeActive() const
 	{
 		if( CameraController != NULL )
 		{
-			// Also check that we're not currently using a ModeWidget (for Vertex Paint etc)
-			const FEdMode* Mode = ModeTools->GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
-			const bool bIsPaintingMesh = ( Mode ) ? ((FEdModeMeshPaint*)Mode)->IsPainting() : false;
-			const bool bLeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton) && !bIsPaintingMesh;
+			const bool bLeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton) && !bLockFlightCamera;
 			const bool bMiddleMouseButtonDown = Viewport->KeyState( EKeys::MiddleMouseButton );
 			const bool bRightMouseButtonDown = Viewport->KeyState( EKeys::RightMouseButton );
 			const bool bIsUsingTrackpad = FSlateApplication::Get().IsUsingTrackpad();
@@ -4985,12 +5002,20 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 		// properties, such as it being aspect ratio constrained
 		if (GIsHighResScreenshot && !bCaptureAreaValid)
 		{
+			// Screen Percentage is an optimization and should not affect the editor by default, unless we're rendering in stereo
+			static TConsoleVariableData<int32>* ScreenPercentageEditorCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ScreenPercentage.Editor"));
+			bool bUseScreenPercentage = (GEngine && GEngine->IsStereoscopic3D(InViewport)) 
+										|| (ScreenPercentageEditorCVar && ScreenPercentageEditorCVar->GetValueOnAnyThread() != 0);
+
 			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 				InViewport,
 				GetScene(),
 				EngineShowFlags)
 				.SetRealtimeUpdate(IsRealtime())
 				.SetViewModeParam(ViewModeParam, ViewModeParamName));
+
+			ViewFamily.EngineShowFlags.SetScreenPercentage(bUseScreenPercentage);
+
 			auto* ViewportBak = Viewport;
 			Viewport = InViewport;
 			FSceneView* View = CalcSceneView(&ViewFamily);

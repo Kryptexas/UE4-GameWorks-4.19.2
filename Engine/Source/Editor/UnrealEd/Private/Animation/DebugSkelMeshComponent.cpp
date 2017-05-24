@@ -16,66 +16,8 @@
 #include "Animation/BlendSpaceBase.h"
 #include "SkeletalMeshTypes.h"
 
-//////////////////////////////////////////////////////////////////////////
-// FDebugSkelMeshSceneProxy
-
-/**
-* A skeletal mesh component scene proxy with additional debugging options.
-*/
-class FDebugSkelMeshSceneProxy : public FSkeletalMeshSceneProxy
-{
-private:
-	/** Holds onto the skeletal mesh component that created it so it can handle the rendering of bones properly. */
-	const UDebugSkelMeshComponent* SkeletalMeshComponent;
-public:
-	/** 
-	* Constructor. 
-	* @param	Component - skeletal mesh primitive being added
-	*/
-	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor = FColor::White) :
-		FSkeletalMeshSceneProxy( InComponent, InSkelMeshResource )
-	{
-		SkeletalMeshComponent = InComponent;
-		WireframeColor = FLinearColor(InWireframeOverlayColor);
-	}
-
-	virtual ~FDebugSkelMeshSceneProxy()
-	{
-	}
-
-	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
-	{
-		if (SkeletalMeshComponent->bDrawMesh)
-		{
-			// We don't want to draw the mesh geometry to the hit testing render target
-			// so that we can get to triangle strips that are partially obscured by other
-			// triangle strips easier.
-			GetMeshElementsConditionallySelectable(Views, ViewFamily, /*bSelectable=*/false, VisibilityMap, Collector);
-		}
-
-		//@todo - the rendering thread should never read from UObjects directly!  These are race conditions, the properties should be mirrored on the proxy
-		if( SkeletalMeshComponent->MeshObject && (SkeletalMeshComponent->bDrawNormals || SkeletalMeshComponent->bDrawTangents || SkeletalMeshComponent->bDrawBinormals) )
-		{
-			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-			{
-				if (VisibilityMap & (1 << ViewIndex))
-				{
-					SkeletalMeshComponent->MeshObject->DrawVertexElements(Collector.GetPDI(ViewIndex), SkeletalMeshComponent->ComponentToWorld, SkeletalMeshComponent->bDrawNormals, SkeletalMeshComponent->bDrawTangents, SkeletalMeshComponent->bDrawBinormals);
-				}
-			}
-		}
-	}
-
-	uint32 GetAllocatedSize() const
-	{
-		return FSkeletalMeshSceneProxy::GetAllocatedSize();
-	}
-
-	virtual uint32 GetMemoryFootprint() const override
-	{
-		return sizeof(*this) + GetAllocatedSize();
-	}
-};
+#include "ClothingSimulationNv.h"
+#include "DynamicMeshBuilder.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UDebugSkelMeshComponent
@@ -113,7 +55,7 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 		// extend bounds by required bones (respecting current LOD) but without root bone
 		if (GetNumComponentSpaceTransforms())
 		{
-			FBox BoundingBox(0);
+			FBox BoundingBox(ForceInit);
 			const int32 NumRequiredBones = RequiredBones.Num();
 			for (int32 BoneIndex = 1; BoneIndex < NumRequiredBones; ++BoneIndex)
 			{
@@ -214,6 +156,11 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 			SetRelativeLocation(FVector::ZeroVector);
 		}
 	}
+}
+
+void UDebugSkelMeshComponent::SetVisibleClothProperty(int32 ClothProperty)
+{
+	VisibleClothProperty = ClothProperty;
 }
 
 FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
@@ -341,14 +288,8 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 			}
 
 			AnimScriptInstance = PreviewInstance;
-
-#if WITH_APEX_CLOTHING
-		    // turn off these options when playing animations because max distances / back stops don't have meaning while moving
-		    bDisplayClothMaxDistances = false;
-			bDisplayClothBackstops = false;
 		    // restore previous state
 		    bDisableClothSimulation = bPrevDisableClothSimulation;
-#endif // #if WITH_APEX_CLOTHING
     
 			PreviewInstance->SetAnimationAsset(PreviewAsset);
 		}
@@ -445,6 +386,30 @@ bool UDebugSkelMeshComponent::ShouldRunClothTick() const
 	}
 
 	return bBaseShouldTick;
+}
+
+void UDebugSkelMeshComponent::SendRenderDynamicData_Concurrent()
+{
+	Super::SendRenderDynamicData_Concurrent();
+
+	if (SceneProxy)
+	{
+		FDebugSkelMeshDynamicData* NewDynamicData = new FDebugSkelMeshDynamicData(this);
+
+		FDebugSkelMeshSceneProxy* TargetProxy = (FDebugSkelMeshSceneProxy*)SceneProxy;
+
+		ENQUEUE_RENDER_COMMAND(DebugSkelMeshObjectUpdateDataCommand)(
+			[TargetProxy, NewDynamicData](FRHICommandListImmediate& RHICommandList)
+		{
+			if (TargetProxy->DynamicData)
+			{
+				delete TargetProxy->DynamicData;
+			}
+
+			TargetProxy->DynamicData = NewDynamicData;
+		}
+		);
+	}
 }
 
 void UDebugSkelMeshComponent::SetShowMorphTargetVerts(bool bNewShowMorphTargetVerts)
@@ -612,8 +577,6 @@ void UDebugSkelMeshComponent::ClearAnimNotifyErrors(UObject* InSourceNotify)
 }
 #endif
 
-#if WITH_APEX_CLOTHING
-
 void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothSections)
 {
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
@@ -633,7 +596,7 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 				if (bShowOnlyClothSections)
 				{
 					// enables only cloth sections
-					if (Section.HasApexClothData())
+					if (Section.HasClothingData())
 					{
 						Section.bDisabled = false;
 					}
@@ -644,7 +607,7 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 				}
 				else
 				{   // disables cloth sections and also corresponding original sections
-					if (Section.HasApexClothData())
+					if (Section.HasClothingData())
 					{
 						Section.bDisabled = true;
 						LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
@@ -663,7 +626,7 @@ void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothS
 void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 {
 	// if this skeletal mesh doesn't have any clothing assets, just return
-	if (!SkeletalMesh || SkeletalMesh->ClothingAssets.Num() == 0)
+	if (!SkeletalMesh || SkeletalMesh->MeshClothingAssets.Num() == 0)
 	{
 		return;
 	}
@@ -688,7 +651,7 @@ void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 			{
 				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
-				if(Section.HasApexClothData())
+				if(Section.HasClothingData())
 				{
 					LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
 				}
@@ -699,13 +662,118 @@ void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 	}
 }
 
+void UDebugSkelMeshComponent::ToggleMeshSectionForCloth(FGuid InClothGuid)
+{
+	if(!InClothGuid.IsValid())
+	{
+		// Nothing to toggle.
+		return;
+	}
+
+	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
+	if (SkelMeshResource)
+	{
+		PreEditChange(NULL);
+
+		for (int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); LODIndex++)
+		{
+			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+			for (int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+			{
+				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
+
+				// disables cloth section and also corresponding original section for matching cloth asset
+				if (Section.HasClothingData() && Section.ClothingData.AssetGuid == InClothGuid)
+				{
+					Section.bDisabled = !Section.bDisabled;
+				}
+			}
+		}
+		PostEditChange();
+	}
+}
+
+void UDebugSkelMeshComponent::ResetMeshSectionVisibility()
+{
+	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
+	if(SkelMeshResource)
+	{
+		PreEditChange(NULL);
+
+		for(int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); LODIndex++)
+		{
+			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+			for(int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+			{
+				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
+
+				if(Section.HasClothingData())
+				{
+					Section.bDisabled = false;
+					LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
+				}
+			}
+		}
+
+		PostEditChange();
+	}
+}
+
+void UDebugSkelMeshComponent::RebuildClothingSectionsFixedVerts()
+{
+	FSkeletalMeshResource* Resource = SkeletalMesh->GetImportedResource();
+
+	const int32 NumLods = Resource->LODModels.Num();
+	for(FStaticLODModel& LodModel : Resource->LODModels)
+	{
+		SkeletalMesh->PreEditChange(NULL);
+
+		for(FSkelMeshSection& Section : LodModel.Sections)
+		{
+			if(Section.ClothMappingData.Num() > 0)
+			{
+				UClothingAssetBase* BaseAsset = SkeletalMesh->GetClothingAsset(Section.ClothingData.AssetGuid);
+
+				if(BaseAsset)
+				{
+					UClothingAsset* ConcreteAsset = Cast<UClothingAsset>(BaseAsset);
+					FClothLODData& LodData = ConcreteAsset->LodData[Section.ClothingData.AssetLodIndex];
+
+					for(FMeshToMeshVertData& VertData : Section.ClothMappingData)
+					{
+						float TriangleDistanceMax = 0.0f;
+						TriangleDistanceMax += LodData.PhysicalMeshData.MaxDistances[VertData.SourceMeshVertIndices[0]];
+						TriangleDistanceMax += LodData.PhysicalMeshData.MaxDistances[VertData.SourceMeshVertIndices[1]];
+						TriangleDistanceMax += LodData.PhysicalMeshData.MaxDistances[VertData.SourceMeshVertIndices[2]];
+
+						if(TriangleDistanceMax == 0.0f)
+						{
+							VertData.SourceMeshVertIndices[3] = 0xFFFF;
+						}
+						else
+						{
+							VertData.SourceMeshVertIndices[3] = 0;
+						}
+					}
+				}
+			}
+		}
+
+		SkeletalMesh->PostEditChange();
+	}
+
+	ReregisterComponent();
+}
+
 int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 {
 	ESectionDisplayMode DisplayMode = ESectionDisplayMode::None;
 
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
 	// if this skeletal mesh doesn't have any clothing asset, returns "None"
-	if (!SkelMeshResource || !SkeletalMesh || SkeletalMesh->ClothingAssets.Num() == 0)
+	if (!SkelMeshResource || !SkeletalMesh || SkeletalMesh->MeshClothingAssets.Num() == 0)
 	{
 		return ESectionDisplayMode::None;
 	}
@@ -716,7 +784,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 		for (LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 		{
 			// if find any LOD model which has cloth data, then break
-			if (SkelMeshResource->LODModels[LODIndex].HasApexClothData())
+			if (SkelMeshResource->LODModels[LODIndex].HasClothData())
 			{
 				break;
 			}
@@ -735,7 +803,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 		{
 			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
-			if (Section.HasApexClothData())
+			if (Section.HasClothingData())
 			{
 				// Normal state if the cloth section is visible and the corresponding section is disabled
 				if (Section.bDisabled == false &&
@@ -755,7 +823,7 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
 
 			// not related to cloth sections
-			if (!Section.HasApexClothData() &&
+			if (!Section.HasClothingData() &&
 				Section.CorrespondClothSectionIndex < 0)
 			{
 				bFoundNonClothSection = true;
@@ -785,8 +853,6 @@ void UDebugSkelMeshComponent::CheckClothTeleport()
 	// doesn't need cloth teleport while previewing
 }
 
-#endif // #if WITH_APEX_CLOTHING
-
 void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	if (TurnTableMode == EPersonaTurnTableMode::Playing)
@@ -810,4 +876,217 @@ void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	// The tick from our super will call ShouldRunClothTick on us which will 'consume' this flag.
 	// flip this flag here to only allow a single tick.
 	bPerformSingleClothingTick = false;
+
+	// If we have clothing selected we need to skin the asset for the editor tools
+	RefreshSelectedClothingSkinnedPositions();
+	return;
+}
+
+void UDebugSkelMeshComponent::RefreshSelectedClothingSkinnedPositions()
+{
+	if(SkeletalMesh && SelectedClothingGuidForPainting.IsValid())
+	{
+		UClothingAssetBase** Asset = nullptr;
+		Asset = SkeletalMesh->MeshClothingAssets.FindByPredicate([&](UClothingAssetBase* Item)
+		{
+			return SelectedClothingGuidForPainting == Item->GetAssetGuid();
+		});
+
+		if(Asset)
+		{
+			UClothingAsset* ConcreteAsset = Cast<UClothingAsset>(*Asset);
+
+			if(ConcreteAsset->LodData.IsValidIndex(SelectedClothingLodForPainting))
+			{
+				SkinnedSelectedClothingPositions.Reset();
+				SkinnedSelectedClothingNormals.Reset();
+
+				TArray<FMatrix> RefToLocals;
+				// Pass LOD0 to collect all bones
+				GetCurrentRefToLocalMatrices(RefToLocals, 0);
+
+				FClothLODData& LodData = ConcreteAsset->LodData[SelectedClothingLodForPainting];
+
+				FTransform RootBoneTransform = GetBoneTransform(ConcreteAsset->ReferenceBoneIndex);
+				FClothingSimulationBase::SkinPhysicsMesh(ConcreteAsset, LodData.PhysicalMeshData, RootBoneTransform, RefToLocals.GetData(), RefToLocals.Num(), SkinnedSelectedClothingPositions, SkinnedSelectedClothingNormals);
+			}
+		}
+	}
+	else
+	{
+		SkinnedSelectedClothingNormals.Reset();
+		SkinnedSelectedClothingPositions.Reset();
+	}
+}
+
+void UDebugSkelMeshComponent::GetUsedMaterials(TArray<UMaterialInterface *>& OutMaterials, bool bGetDebugMaterials /*= false*/) const
+{
+	USkeletalMeshComponent::GetUsedMaterials(OutMaterials, bGetDebugMaterials);
+
+	if (bGetDebugMaterials)
+	{
+		OutMaterials.Add(GEngine->ClothPaintMaterial);
+	}
+}
+
+IClothingSimulation* UDebugSkelMeshComponent::GetMutableClothingSimulation()
+{
+	return ClothingSimulation;
+}
+
+FDebugSkelMeshSceneProxy::FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor /*= FColor::White*/) :
+	FSkeletalMeshSceneProxy(InComponent, InSkelMeshResource)
+{
+	DynamicData = nullptr;
+	WireframeColor = FLinearColor(InWireframeOverlayColor);
+
+	if(GEngine->ClothPaintMaterial)
+	{
+		MaterialRelevance |= GEngine->ClothPaintMaterial->GetRelevance_Concurrent(GetScene().GetFeatureLevel());
+	}
+}
+
+void FDebugSkelMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
+{
+	if(!DynamicData || DynamicData->bDrawMesh)
+	{
+		GetMeshElementsConditionallySelectable(Views, ViewFamily, /*bSelectable=*/true, VisibilityMap, Collector);
+	}
+
+	//@todo - the rendering thread should never read from UObjects directly!  These are race conditions, the properties should be mirrored on the proxy
+	if(MeshObject && DynamicData && (DynamicData->bDrawNormals || DynamicData->bDrawTangents || DynamicData->bDrawBinormals))
+	{
+		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			if(VisibilityMap & (1 << ViewIndex))
+			{
+				MeshObject->DrawVertexElements(Collector.GetPDI(ViewIndex), GetLocalToWorld(), DynamicData->bDrawNormals, DynamicData->bDrawTangents, DynamicData->bDrawBinormals);
+			}
+		}
+	}
+
+	if(DynamicData && DynamicData->ClothingSimDataIndexWhenPainting != INDEX_NONE && DynamicData->bDrawClothPaintPreview)
+	{
+		if(DynamicData->SkinnedPositions.Num() > 0)
+		{
+			FDynamicMeshBuilder MeshBuilder;
+
+			const TArray<uint32>& Indices = DynamicData->ClothingSimIndices;
+			const TArray<FVector>& Vertices = DynamicData->SkinnedPositions;
+			const TArray<FVector>& Normals = DynamicData->SkinnedNormals;
+
+			float MaxValue = MIN_flt;
+			float MinValue = MAX_flt;
+			float* ValueArray = DynamicData->ClothingVisiblePropertyValues.GetData();
+			const int32 NumVerts = Vertices.Num();
+			for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+			{
+				const float& Value = ValueArray[VertIndex];
+				MaxValue = FMath::Max(MaxValue, Value);
+				
+				if(Value > 0.0f)
+				{
+					MinValue = FMath::Min(MinValue, ValueArray[VertIndex]);
+				}
+			}
+
+			float Range = MaxValue - MinValue;
+
+			// If we've only got really close values.
+			if(Range < 0.1f)
+			{
+				Range = MaxValue;
+				MinValue = 0;
+			}
+
+			const FLinearColor Magenta = FLinearColor(1.0f, 0.0f, 1.0f);
+			for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+			{
+				FDynamicMeshVertex Vert;
+
+				Vert.Position = Vertices[VertIndex];
+				Vert.TextureCoordinate = {1.0f, 1.0f};
+				Vert.TangentZ = Normals[VertIndex];
+
+				const FLinearColor Color = FMath::IsNearlyZero(ValueArray[VertIndex]) ? Magenta : (FLinearColor::White * ((ValueArray[VertIndex] - MinValue) / Range));
+				Vert.Color = Color.ToFColor(true);
+
+				MeshBuilder.AddVertex(Vert);
+			}
+
+			const int32 NumIndices = Indices.Num();
+			for(int32 TriBaseIndex = 0; TriBaseIndex < NumIndices; TriBaseIndex += 3)
+			{
+				MeshBuilder.AddTriangle(Indices[TriBaseIndex], Indices[TriBaseIndex + 1], Indices[TriBaseIndex + 2]);
+			}
+
+			FMaterialRenderProxy* MatProxy = GEngine->ClothPaintMaterial ? GEngine->ClothPaintMaterial->GetRenderProxy(false) : UMaterial::GetDefaultMaterial(EMaterialDomain::MD_Surface)->GetRenderProxy(false);
+
+			if(MatProxy)
+			{
+				const int32 NumViews = Views.Num();
+				for(int32 ViewIndex = 0; ViewIndex < NumViews; ++ViewIndex)
+				{
+					const FSceneView* View = Views[ViewIndex];
+					MeshBuilder.GetMesh(GetLocalToWorld(), MatProxy, SDPG_Foreground, false, false, ViewIndex, Collector);
+				}
+			}
+		}
+	}
+}
+
+FDebugSkelMeshDynamicData::FDebugSkelMeshDynamicData(UDebugSkelMeshComponent* InComponent)
+	: bDrawMesh(InComponent->bDrawMesh)
+	, bDrawNormals(InComponent->bDrawNormals)
+	, bDrawTangents(InComponent->bDrawTangents)
+	, bDrawBinormals(InComponent->bDrawBinormals)
+	, bDrawClothPaintPreview(InComponent->bShowClothData)
+	, ClothingSimDataIndexWhenPainting(INDEX_NONE)
+	, ClothingVisiblePropertyIndex(InComponent->VisibleClothProperty)
+{
+	if(InComponent->SelectedClothingGuidForPainting.IsValid())
+	{
+		SkinnedPositions = InComponent->SkinnedSelectedClothingPositions;
+		SkinnedNormals = InComponent->SkinnedSelectedClothingNormals;
+
+		if(USkeletalMesh* Mesh = InComponent->SkeletalMesh)
+		{
+			const int32 NumClothingAssets = Mesh->MeshClothingAssets.Num();
+			for(int32 ClothingAssetIndex = 0; ClothingAssetIndex < NumClothingAssets; ++ClothingAssetIndex)
+			{
+				UClothingAssetBase* BaseAsset = Mesh->MeshClothingAssets[ClothingAssetIndex];
+				if(BaseAsset->GetAssetGuid() == InComponent->SelectedClothingGuidForPainting)
+				{
+					ClothingSimDataIndexWhenPainting = ClothingAssetIndex;
+
+					if(UClothingAsset* ConcreteAsset = Cast<UClothingAsset>(BaseAsset))
+					{
+						if(ConcreteAsset->LodData.IsValidIndex(InComponent->SelectedClothingLodForPainting))
+						{
+							FClothLODData& LodData = ConcreteAsset->LodData[InComponent->SelectedClothingLodForPainting];
+
+							ClothingSimIndices = LodData.PhysicalMeshData.Indices;
+
+							switch(ClothingVisiblePropertyIndex)
+							{
+								case 0:
+									ClothingVisiblePropertyValues = LodData.PhysicalMeshData.MaxDistances;
+									break;
+								case 1:
+									ClothingVisiblePropertyValues = LodData.PhysicalMeshData.BackstopDistances;
+									break;
+								case 2:
+									ClothingVisiblePropertyValues = LodData.PhysicalMeshData.BackstopRadiuses;
+									break;
+								default:
+									break;
+							}
+						}
+					}
+
+					break;
+				}
+			}
+		}
+	}
 }

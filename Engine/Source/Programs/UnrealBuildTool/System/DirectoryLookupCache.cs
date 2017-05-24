@@ -8,15 +8,15 @@ namespace UnrealBuildTool
 {
 	class DirectoryCache
 	{
-		public readonly DirectoryReference Directory;
+		public readonly DirectoryReference Location;
 		public readonly bool Exists;
 		HashSet<FileReference> Files;
 		HashSet<DirectoryReference> Directories;
 
 		public DirectoryCache(DirectoryReference InDirectory)
 		{
-			Directory = InDirectory;
-			Exists = Directory.Exists();
+			Location = InDirectory;
+			Exists = DirectoryReference.Exists(Location);
 
 			if (!Exists)
 			{
@@ -29,7 +29,7 @@ namespace UnrealBuildTool
 		{
 			if (Files == null)
 			{
-				Files = new HashSet<FileReference>(Directory.EnumerateFileReferences());
+				Files = new HashSet<FileReference>(DirectoryReference.EnumerateFiles(Location));
 			}
 		}
 
@@ -49,7 +49,7 @@ namespace UnrealBuildTool
 		{
 			if (Directories == null)
 			{
-				Directories = new HashSet<DirectoryReference>(Directory.EnumerateDirectoryReferences());
+				Directories = new HashSet<DirectoryReference>(DirectoryReference.EnumerateDirectories(Location));
 			}
 		}
 
@@ -60,7 +60,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public static class DirectoryLookupCache
+	static class DirectoryLookupCache
 	{
 		static DirectoryCache FindOrCreateDirectoryCache(DirectoryReference Directory)
 		{

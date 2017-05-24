@@ -124,26 +124,6 @@ void UHeadMountedDisplayFunctionLibrary::GetTrackingSensorParameters(FVector& Or
 	}
 }
 
-bool UHeadMountedDisplayFunctionLibrary::IsInLowPersistenceMode()
-{
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
-	{
-		return GEngine->HMDDevice->IsInLowPersistenceMode();
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void UHeadMountedDisplayFunctionLibrary::EnableLowPersistenceMode(bool bEnable)
-{
-	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
-	{
-		GEngine->HMDDevice->EnableLowPersistenceMode(bEnable);
-	}
-}
-
 void UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition(float Yaw, EOrientPositionSelector::Type Options)
 {
 	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
@@ -177,9 +157,20 @@ void UHeadMountedDisplayFunctionLibrary::SetClippingPlanes(float Near, float Far
  */
 void UHeadMountedDisplayFunctionLibrary::SetScreenPercentage(float ScreenPercentage)
 {
-	if (GEngine->StereoRenderingDevice.IsValid())
+	static const auto ScreenPercentageCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+	static float SavedValue = 0.f; // TODO: Add a way to ask HMD devices for the "ideal" screen percentage value and use that when resetting
+	if (ScreenPercentage > 0.f)
 	{
-		GEngine->StereoRenderingDevice->SetScreenPercentage(ScreenPercentage);
+		if (SavedValue <= 0.f)
+		{
+			SavedValue = ScreenPercentageCVar->GetFloat();
+		}
+		ScreenPercentageCVar->Set(ScreenPercentage);
+	}
+	else if (SavedValue > 0.f)
+	{
+		ScreenPercentageCVar->Set(SavedValue);
+		SavedValue = 0.f;
 	}
 }
 
@@ -190,11 +181,8 @@ void UHeadMountedDisplayFunctionLibrary::SetScreenPercentage(float ScreenPercent
  */
 float UHeadMountedDisplayFunctionLibrary::GetScreenPercentage()
 {
-	if (GEngine->StereoRenderingDevice.IsValid())
-	{
-		return GEngine->StereoRenderingDevice->GetScreenPercentage();
-	}
-	return 0.0f;
+	static const auto ScreenPercentageTCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+	return ScreenPercentageTCVar->GetValueOnGameThread();
 }
 
 void UHeadMountedDisplayFunctionLibrary::SetWorldToMetersScale(UObject* WorldContext, float NewScale)

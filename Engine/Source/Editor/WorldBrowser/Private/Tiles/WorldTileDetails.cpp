@@ -128,5 +128,11 @@ void UWorldTileDetails::PostEditChangeProperty( struct FPropertyChangedEvent& Pr
 	}
 }
 
+void UWorldTileDetails::PostEditUndo()
+{
+	Super::PostEditUndo();
+	
+	PostUndoEvent.Broadcast();
+}
 
 #undef LOCTEXT_NAMESPACE

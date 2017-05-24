@@ -33,7 +33,7 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 	GENERATED_UCLASS_BODY()
 
 	/** The LODGroup to associate with this mesh when it is imported */
-	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=ImportSettings, meta=(ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category= ImportSettings, meta=(ImportType="StaticMesh"))
 	FName StaticMeshLODGroup;
 
 	/** Specify how vertex colors should be imported */

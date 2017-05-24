@@ -144,12 +144,35 @@ public:
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> TrackClass) const = 0;
 
 	/**
+	 * Returns whether a sequence is supported by this tool.
+	 *
+	 * @param InSequence The sequence that could be supported.
+	 * @return true if the type is supported.
+	 */
+	virtual bool SupportsSequence(UMovieSceneSequence* InSequence) const = 0;
+
+	/**
 	 * Ticks this tool.
 	 *
 	 * @param DeltaTime The time since the last tick.
 	 */
 	virtual void Tick(float DeltaTime) = 0;
 
+	/**
+	 * @return Whether this track handles resize events
+	 */
+	virtual bool IsResizable(UMovieSceneTrack* InTrack) const
+	{
+		return false;
+	}
+
+	/**
+	 * Resize this track
+	 */
+	virtual void Resize(float NewSize, UMovieSceneTrack* InTrack)
+	{
+		
+	}
 	/** Gets the mode used when supporting sections on multiple rows. */
 	virtual EMultipleRowMode GetMultipleRowMode() const = 0;
 

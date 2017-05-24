@@ -4,8 +4,7 @@
 	ConvexDecompTool.h: Utility for turning graphics mesh into convex hulls.
 =============================================================================*/
 
-#ifndef __CONVEXDECOMPTOOL_H__
-#define __CONVEXDECOMPTOOL_H__
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -20,5 +19,3 @@ class UBodySetup;
  *	@param		InMaxHullVerts		Number of verts allowed in a hull
  */
 UNREALED_API void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, float InAccuracy, int32 InMaxHullVerts);
-
-#endif // __CONVEXDECOMPTOOL_H__

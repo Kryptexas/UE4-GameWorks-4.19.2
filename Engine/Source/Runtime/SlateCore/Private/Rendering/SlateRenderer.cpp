@@ -21,8 +21,6 @@ FSlateFontServices::FSlateFontServices(TSharedRef<class FSlateFontCache> InGameT
 
 TSharedRef<FSlateFontCache> FSlateFontServices::GetFontCache() const
 {
-	check(IsInGameThread() || IsInRenderingThread());
-
 	const ESlateTextureAtlasThreadId AtlasThreadId = GetCurrentSlateTextureAtlasThreadId();
 	check(AtlasThreadId != ESlateTextureAtlasThreadId::Unknown);
 
@@ -39,8 +37,6 @@ TSharedRef<FSlateFontCache> FSlateFontServices::GetFontCache() const
 
 TSharedRef<class FSlateFontMeasure> FSlateFontServices::GetFontMeasureService() const
 {
-	check(IsInGameThread() || IsInRenderingThread());
-
 	const ESlateTextureAtlasThreadId AtlasThreadId = GetCurrentSlateTextureAtlasThreadId();
 	check(AtlasThreadId != ESlateTextureAtlasThreadId::Unknown);
 
@@ -57,8 +53,6 @@ TSharedRef<class FSlateFontMeasure> FSlateFontServices::GetFontMeasureService() 
 
 void FSlateFontServices::FlushFontCache()
 {
-	check(IsInGameThread() || IsInRenderingThread());
-
 	const ESlateTextureAtlasThreadId AtlasThreadId = GetCurrentSlateTextureAtlasThreadId();
 	check(AtlasThreadId != ESlateTextureAtlasThreadId::Unknown);
 

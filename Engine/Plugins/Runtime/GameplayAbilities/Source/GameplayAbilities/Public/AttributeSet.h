@@ -122,6 +122,9 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 
 	void PostSerialize(const FArchive& Ar);
 
+	UPROPERTY(Category = GameplayAttribute, VisibleAnywhere, BlueprintReadOnly)
+	FString AttributeName;
+
 private:
 	friend class FAttributePropertyDetails;
 
@@ -129,14 +132,11 @@ private:
 	UProperty*	Attribute;
 
 	UPROPERTY(Category = GameplayAttribute, VisibleAnywhere)
-	FString AttributeName;
-
-	UPROPERTY(Category = GameplayAttribute, VisibleAnywhere)
 	UStruct* AttributeOwner;
 };
 
 template<>
-struct TStructOpsTypeTraits< FGameplayAttribute > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FGameplayAttribute > : public TStructOpsTypeTraitsBase2< FGameplayAttribute >
 {
 	enum
 	{
@@ -321,7 +321,7 @@ private:
 
 template<>
 struct TStructOpsTypeTraits<FScalableFloat>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FScalableFloat>
 {
 	enum
 	{
@@ -342,19 +342,19 @@ public:
 
 	FAttributeMetaData();
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Attribute")
 	float		BaseValue;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Attribute")
 	float		MinValue;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Attribute")
 	float		MaxValue;
 
 	UPROPERTY()
 	FString		DerivedAttributeInfo;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Attribute")
 	bool		bCanStack;
 };
 
@@ -410,6 +410,7 @@ struct GAMEPLAYABILITIES_API FAttributeSetInitter
 	virtual void PreloadAttributeSetData(const TArray<UCurveTable*>& CurveData) = 0;
 	virtual void InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const = 0;
 	virtual void ApplyAttributeDefault(UAbilitySystemComponent* AbilitySystemComponent, FGameplayAttribute& InAttribute, FName GroupName, int32 Level) const = 0;
+	virtual TArray<float> GetAttributeSetValues(UClass* AttributeSetClass, UProperty* AttributeProperty, FName GroupName) const { return TArray<float>(); }
 };
 
 /** Explicit implementation of attribute set initter, relying on the existence and usage of discrete levels for data look-up (that is, CurveTable->Eval is not possible) */
@@ -419,6 +420,8 @@ struct GAMEPLAYABILITIES_API FAttributeSetInitterDiscreteLevels : public FAttrib
 
 	virtual void InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const override;
 	virtual void ApplyAttributeDefault(UAbilitySystemComponent* AbilitySystemComponent, FGameplayAttribute& InAttribute, FName GroupName, int32 Level) const override;
+
+	virtual TArray<float> GetAttributeSetValues(UClass* AttributeSetClass, UProperty* AttributeProperty, FName GroupName) const override;
 private:
 
 	bool IsSupportedProperty(UProperty* Property) const;

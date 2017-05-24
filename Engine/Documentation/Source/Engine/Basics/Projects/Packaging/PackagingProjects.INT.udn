@@ -1,8 +1,9 @@
 Availability:Public
 Title:Packaging Projects
-Crumbs: %ROOT%, Engine, Engine/Basics/Projects
+Crumbs:
 Description:Packaging Unreal game projects for distribution.
 version: 4.9
+parent:Engine/Basics/Projects
 
 [TOC(start:2)]
 
@@ -78,7 +79,7 @@ The number and type of files created will vary depending on the target platform.
 	| Configuration | EXE Name                             | EXE Location                                                    |
 	| ------------- | ------------------------------------ | --------------------------------------------------------------- |
 	| Development   | [ProjectName].exe                    | [PackageDirectory]\WindowsNoEditor |
-	| Shipping      | [ProjectName]-Win32-Shipping.exe.exe | [PackageDirectory]\WindowsNoEditor |
+	| Shipping      | [ProjectName]-Win32-Shipping.exe     | [PackageDirectory]\WindowsNoEditor |
 
 1. **Double-click** the executable to run the game.
 [/EXCERPT:RunCooked]

@@ -3,6 +3,7 @@ Title:Rotation Rate Modules
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:These modules apply a constant rate of rotation - or "spin" - to the particles.
 Version: 4.9
+tags:Particles
 
 [TOC(start:2 end:3)]
 

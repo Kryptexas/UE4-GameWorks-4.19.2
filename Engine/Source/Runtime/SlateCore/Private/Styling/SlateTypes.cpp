@@ -631,7 +631,8 @@ const FScrollBorderStyle& FScrollBorderStyle::GetDefault()
 
 
 FWindowStyle::FWindowStyle()
-	: OutlineColor( FLinearColor(0.1f, 0.1f, 0.1f, 1.0f) )
+	: BackgroundColor( FLinearColor::White )
+	, OutlineColor( FLinearColor(0.1f, 0.1f, 0.1f, 1.0f) )
 {
 }
 

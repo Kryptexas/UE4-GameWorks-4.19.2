@@ -77,6 +77,12 @@ extern TAutoConsoleVariable<int32> CVarUseParallelAnimUpdate;
 extern TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation;
 extern TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate;
 
+ENGINE_API float RK4_SPRING_INTERPOLATOR_UPDATE_RATE = 60.f;
+static FAutoConsoleVariableRef CVarRK4SpringInterpolatorUpdateRate(TEXT("p.RK4SpringInterpolator.UpdateRate"), RK4_SPRING_INTERPOLATOR_UPDATE_RATE, TEXT("RK4 Spring Interpolator's rate of update"), ECVF_Default);
+
+ENGINE_API int32 RK4_SPRING_INTERPOLATOR_MAX_ITER = 4;
+static FAutoConsoleVariableRef CVarRK4SpringInterpolatorMaxIter(TEXT("p.RK4SpringInterpolator.MaxIter"), RK4_SPRING_INTERPOLATOR_MAX_ITER, TEXT("RK4 Spring Interpolator's max number of iterations"), ECVF_Default);
+
 /////////////////////////////////////////////////////
 // UAnimInstance
 /////////////////////////////////////////////////////
@@ -1126,7 +1132,8 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		const TArray<SmartName::UID_Type>& UIDList = *InCurve.UIDList;
 		for (int32 CurveId = 0; CurveId < InCurve.UIDList->Num(); ++CurveId)
 		{
-			if (InCurve.Elements[CurveId].IsValid())
+			if (ensureAlwaysMsgf(InCurve.Elements.IsValidIndex(CurveId), TEXT("%s Animation Instance contains out of bound UIDList."), *GetClass()->GetName())
+				&& InCurve.Elements[CurveId].IsValid())
 			{
 				// had to add to another data type
 				AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value);
@@ -1147,22 +1154,6 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 		AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], DefaultValue);
 	}
 
-	// @todo: delete me later when james g's change goes in
-	// this won't work well because pose needs to be handled in evaluate
-	// the question is that if we'd like to support preview in anim graph
-	// that will need better handling of the curves - currently UI curves are inserted to 
-	// SignleNodeInstance->PreviewOverride
-// #if WITH_EDITOR
-// 	// if we're supporting this in-game, this code has to change to work with UID
-// 	for (auto& AddAnimCurveDelegate : OnAddAnimationCurves)
-// 	{
-// 		if (AddAnimCurveDelegate.IsBound())
-// 		{
-// 			AddAnimCurveDelegate.Execute(this);
-// 		}
-// 	}
-// 
-// #endif
 	// update curves to component
 	UpdateCurvesToComponents(GetOwningComponent());
 }
@@ -1469,16 +1460,16 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 		ensure(MontageInstance);
 		if (MontageInstance)
 		{
-			bool const bUsingBlendedRootMotion = RootMotionMode == ERootMotionMode::RootMotionFromEverything;
-			bool const bNoRootMotionExtraction = RootMotionMode == ERootMotionMode::NoRootMotionExtraction;
+			bool const bUsingBlendedRootMotion = (RootMotionMode == ERootMotionMode::RootMotionFromEverything);
+			bool const bNoRootMotionExtraction = (RootMotionMode == ERootMotionMode::NoRootMotionExtraction);
 
 			// Extract root motion if we are using blend root motion (RootMotionFromEverything) or if we are set to extract root 
 			// motion AND we are the active root motion instance. This is so we can make root motion deterministic for networking when
 			// we are not using RootMotionFromEverything
-			bool const bExtractRootMotion = bUsingBlendedRootMotion || (!bNoRootMotionExtraction && MontageInstance == GetRootMotionMontageInstance());
+			bool const bExtractRootMotion = !MontageInstance->IsRootMotionDisabled() && (bUsingBlendedRootMotion || (!bNoRootMotionExtraction && (MontageInstance == GetRootMotionMontageInstance())));
 
 			FRootMotionMovementParams LocalExtractedRootMotion;
-			FRootMotionMovementParams* RootMotionParams = NULL;
+			FRootMotionMovementParams* RootMotionParams = nullptr;
 			if (bExtractRootMotion)
 			{
 				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &GetProxyOnGameThread<FAnimInstanceProxy>().GetExtractedRootMotion() : &LocalExtractedRootMotion;
@@ -2717,12 +2708,12 @@ void UAnimInstance::DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy)
 	delete InProxy;
 }
 
-void UAnimInstance::RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight)
+void UAnimInstance::RecordMachineWeight(const int32 InMachineClassIndex, const float InMachineWeight)
 {
 	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordMachineWeight(InMachineClassIndex, InMachineWeight);
 }
 
-void UAnimInstance::RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight)
+void UAnimInstance::RecordStateWeight(const int32 InMachineClassIndex, const int32 InStateIndex, const float InStateWeight)
 {
 	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordStateWeight(InMachineClassIndex, InStateIndex, InStateWeight);
 }
@@ -2732,33 +2723,14 @@ FBoneContainer& UAnimInstance::GetRequiredBones()
 	return GetProxyOnGameThread<FAnimInstanceProxy>().GetRequiredBones();
 }
 
+const FBoneContainer& UAnimInstance::GetRequiredBones() const
+{
+	return GetProxyOnGameThread<FAnimInstanceProxy>().GetRequiredBones();
+}
+
 void UAnimInstance::QueueRootMotionBlend(const FTransform& RootTransform, const FName& SlotName, float Weight)
 {
 	RootMotionBlendQueue.Add(FQueuedRootMotionBlend(RootTransform, SlotName, Weight));
 }
-
-#if WITH_EDITOR
-void UAnimInstance::AddDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves)
-{
-	if (InOnAddCustomAnimationCurves.IsBound())
-	{
-		OnAddAnimationCurves.Add(InOnAddCustomAnimationCurves);
-	}
-}
-
-void UAnimInstance::RemoveDelegate_AddCustomAnimationCurve(FOnAddCustomAnimationCurves& InOnAddCustomAnimationCurves)
-{
-	for (int32 DelegateId = 0; DelegateId < OnAddAnimationCurves.Num(); ++DelegateId)
-	{
-		if (InOnAddCustomAnimationCurves.GetHandle() == OnAddAnimationCurves[DelegateId].GetHandle())
-		{
-			InOnAddCustomAnimationCurves.Unbind();
-			OnAddAnimationCurves.RemoveAt(DelegateId);
-			break;
-		}
-	}
-}
-
-#endif // WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE 

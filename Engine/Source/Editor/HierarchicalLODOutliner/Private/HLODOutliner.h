@@ -369,7 +369,7 @@ namespace HLODOutliner
 		/** End of Broadcast event delegates */
 
 		/** Callback function used to check if Hierarchical LOD functionality is enabled in the current world settings */
-		bool IsHLODEnabledInWorldSettings() const;
+		bool OutlinerEnabled() const;
 	private:
 		/** Tells the scene outliner that it should do a full refresh, which will clear the entire tree and rebuild it from scratch. */
 		void FullRefresh();

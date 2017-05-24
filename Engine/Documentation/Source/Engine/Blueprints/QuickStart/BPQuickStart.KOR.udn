@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3150518
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 블루프린트 퀵스타트 가이드
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -7,6 +7,7 @@ Description: Get up and running by creating your first Blueprint
 parent:Engine/Blueprints
 order:1
 type:quick start
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

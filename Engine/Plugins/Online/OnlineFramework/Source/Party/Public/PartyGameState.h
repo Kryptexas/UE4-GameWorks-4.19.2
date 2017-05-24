@@ -113,7 +113,7 @@ struct FPartyState
 	}
 
 	/** Reset party back to defaults */
-	virtual void Reset()
+	virtual void Reset(bool bIsLeader)
 	{}
 };
 
@@ -367,7 +367,7 @@ protected:
 	 * @param LocalUserID party owner/leader (may change later if user promotes another leader)
 	 * @param InParty reference to the basic party info from the interface
 	 */
-	void InitFromCreate(const FUniqueNetId& LocalUserId, TSharedPtr<const FOnlineParty>& InParty);
+	virtual void InitFromCreate(const FUniqueNetId& LocalUserId, TSharedPtr<const FOnlineParty>& InParty);
 
 	/**
 	 * Initialize a party that has been joined and a local player is simply a member
@@ -600,6 +600,14 @@ protected:
 	void HandlePartyJoinRequestReceived(const FUniqueNetId& RecipientId, const FUniqueNetId& SenderId);
 
 	/**
+	 * Called on the party leader to do a quick determination of whether the party is joinable
+	 *
+	 * @param RecipientId whom this request is for (party leader)
+	 * @param SendingId whom this request is from
+	 */
+	void HandlePartyQueryJoinabilityRequestReceived(const FUniqueNetId& RecipientId, const FUniqueNetId& SenderId);
+
+	/**
 	 * Game specific decision making about party approvals
 	 *
 	 * @param RecipientId whom this request is for (party leader)
@@ -608,7 +616,7 @@ protected:
 	 *
 	 * @return approval action for this join party request
 	 */
-	virtual EApprovalAction ProcessJoinRequest(const FUniqueNetId& RecipientId, const FUniqueNetId& SenderId, EJoinPartyDenialReason& DenialReason);
+	virtual EApprovalAction ProcessJoinRequest(const FUniqueNetId& RecipientId, const FUniqueNetId& SenderId, EJoinPartyDenialReason& DenialReason) const;
 
 	/**
 	 * Unilaterally reject all pending join requests 
@@ -656,6 +664,15 @@ protected:
 
 	/** @return the party singleton that manages all parties */
 	UParty* GetPartyOuter() const;
+
+	/** 
+	 * Get the current session info
+	 * 
+	 * @param SessionName session name to get information for
+	 * @param URL the connect URL for the current session
+	 * @param SessionId the current session Id
+	 */
+	void GetSessionInfo(FName SessionName, FString& URL, FString& SessionId) const;
 
 private:
 	

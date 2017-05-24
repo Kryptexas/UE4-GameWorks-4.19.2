@@ -361,9 +361,7 @@ void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPositio
 	float a = Square( GBuffer.Roughness );
 	float3 R = lerp( N, R0, (1 - a) * ( sqrt(1 - a) + a ) );
 	
-	uint2 Random = ScrambleTEA( PixelPos );
-	Random.x ^= View.Random;
-	Random.y ^= View.Random;
+	uint2 Random = Rand3DPCG16( uint3( PixelPos, View.StateFrameIndexMod8) ).xy;
 
 	float3 NonSpecularContribution = 0;
 	float3 SpecularContribution = 0;

@@ -218,16 +218,6 @@ public:
 	virtual void SetSendAnalytics(const bool bNewValue) = 0;
 
 	/**
-	 * Returns if screenshots are allowed.
-	 */
-	virtual bool IsScreenshotAllowed() const = 0;
-
-	/**
-	 * Sets if screenshots are enabled.
-	 */
-	virtual void SetScreenshotsEnabled( const bool bNewValue ) = 0;
-
-	/**
 	 * Filters the visible list of tests.
 	 */
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) = 0;
@@ -377,23 +367,17 @@ public:
 	/** Updates the clusters when the device grouping changes. */
 	virtual void UpdateDeviceGroups( ) = 0;
 
-	/**
-	 * Dictate whether to save the reports history and the number of history items to track.
-	 *
-	 * @param bShouldTrack Flag that determines whether to track history.
-	 * @param NumReportsToTrack The number of history reports to keep.
-	 */
-	virtual void TrackReportHistory(const bool bShouldTrack, const int32 NumReportsToTrack) = 0;
+	virtual FString GetReportOutputPath() const = 0;
 
-	/**
-	 * Returns whether the controller is tracking history of reports.
-	 */
-	virtual const bool IsTrackingHistory() const = 0;
+	virtual TArray<FString> GetCheckpointFileContents() = 0;
 
-	/**
-	 * Returns the number of history items the controller is maintaining.
-	 */
-	virtual const int32 GetNumberHistoryItemsTracking() const = 0;
+	virtual FArchive* GetCheckpointFileForWrite() = 0;
+
+	virtual void CleanUpCheckpointFile() = 0;
+
+	virtual void WriteLoadedCheckpointDataToFile() = 0;
+
+	virtual void WriteLineToCheckpointFile(FString LineToWrite) = 0;
 
 public:
 

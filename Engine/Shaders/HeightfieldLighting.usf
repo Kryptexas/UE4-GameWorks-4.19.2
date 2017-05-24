@@ -331,84 +331,8 @@ void LightHeightfieldsPS(
 
 #endif
 
-RWBuffer<float> RWOccluderRadius;
-RWBuffer<float> RWRecordConeVisibility;
-
 float TanConeHalfAngle;
 float RecordRadiusScale;
-
-/**  */
-[numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
-void CalculateHeightfieldOcclusionCS(
-	uint3 GroupId : SV_GroupID,
-	uint3 DispatchThreadId : SV_DispatchThreadID,
-    uint3 GroupThreadId : SV_GroupThreadID) 
-{
-	uint StartIndex = SavedStartIndex[0];
-	uint NumRecords = ScatterDrawParameters[1];
-	uint RecordIndex = StartIndex + DispatchThreadId.x;
-
-	float3 WorldPosition = IrradianceCachePositionRadius[RecordIndex].xyz;
-	float4 WorldNormalAndHasHeightfieldRepresentation = IrradianceCacheNormal[RecordIndex];
-
-	// Only compute heightfield occlusion contribution for samples created on a distance field, 
-	// Otherwise we are potentially self-shadowing, the heightfield is not accurate enough for that
-	BRANCH
-	if (RecordIndex < NumRecords && WorldNormalAndHasHeightfieldRepresentation.w < 0)
-	{
-		float3 WorldNormal = WorldNormalAndHasHeightfieldRepresentation.xyz;
-
-		float3 TangentX;
-		float3 TangentY;
-		FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
-
-		LOOP
-		for (uint HeightfieldIndex = 0; HeightfieldIndex < NumHeightfields; HeightfieldIndex++)
-		{
-			float3 LocalPosition = mul(float4(WorldPosition, 1), GetWorldToLocal(HeightfieldIndex)).xyz;
-			float4 MinMaxHeightfieldUV;
-			float2 HeightfieldUV = GetHeightfieldUV(HeightfieldIndex, LocalPosition.xy, MinMaxHeightfieldUV);
-
-			BRANCH
-			if (all(HeightfieldUV > MinMaxHeightfieldUV.xy) 
-				&& all(HeightfieldUV < MinMaxHeightfieldUV.zw))
-			{
-				float3 WorldHeightfieldShadingPosition = GetHeightfieldWorldPosition(HeightfieldIndex, LocalPosition.xy, HeightfieldUV);
-
-				float MaxOcclusionDistance = GetAOMaxDistance();
-				float MinDistanceToOccluder = MaxOcclusionDistance;
-
-				for (uint ConeIndex = 0; ConeIndex < NUM_CONE_DIRECTIONS; ConeIndex++)
-				{
-					float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
-					float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
-
-					float ExistingConeVisibility = RWRecordConeVisibility[DispatchThreadId.x * NUM_CONE_DIRECTIONS + ConeIndex];
-				
-					float ZBias = 20;
-					float DistanceAlongConeToOccluder = clamp((WorldPosition.z + ZBias - WorldHeightfieldShadingPosition.z) / max(-RotatedConeDirection.z, .0001f), .00001f, MaxOcclusionDistance);
-					float DistanceFromConeEndToOccluder = max(WorldPosition.z + ZBias + RotatedConeDirection.z * DistanceAlongConeToOccluder - WorldHeightfieldShadingPosition.z, 0);
-
-					float SphereRadius = DistanceAlongConeToOccluder * TanConeHalfAngle;
-
-					// Derive visibility from 1d intersection
-					float Visibility = saturate(DistanceFromConeEndToOccluder / SphereRadius);
-
-					float OccluderDistanceFraction = DistanceAlongConeToOccluder / MaxOcclusionDistance;
-					// Fade out occlusion based on distance to occluder to avoid a discontinuity at the max AO distance
-					Visibility = max(Visibility, saturate(OccluderDistanceFraction * OccluderDistanceFraction * .8f));
-
-					MinDistanceToOccluder = min(MinDistanceToOccluder, DistanceAlongConeToOccluder);
-
-					// Shouldn't have to use atomics here as only one heightfield can affect a given world space position
-					RWRecordConeVisibility[DispatchThreadId.x * NUM_CONE_DIRECTIONS + ConeIndex] = min(Visibility, ExistingConeVisibility);
-				}
-
-				RWOccluderRadius[RecordIndex] = min(RWOccluderRadius[RecordIndex], RecordRadiusScale * MinDistanceToOccluder);
-			}
-		}
-	}
-}
 
 float3 SampleHeightfieldLighting(float2 GlobalUV)
 {
@@ -694,8 +618,8 @@ void CalculateHeightfieldOcclusionScreenGridCS(
 		float3 WorldNormal;
 		float SceneDepth;
 		bool bHasDistanceFieldRepresentation;
-		bool bHasHeightfieldRepresentation;
-		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+		bool bLit;
+		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 		float3 TangentX;
 		float3 TangentY;
@@ -709,7 +633,7 @@ void CalculateHeightfieldOcclusionScreenGridCS(
 
 		uint OutputBaseIndex = (OutputCoordinate.y * ScreenGridConeVisibilitySize.x + OutputCoordinate.x) * NUM_CONE_DIRECTIONS;
 
-		if (!bHasHeightfieldRepresentation)
+		/*if (!bHasHeightfieldRepresentation)*/
 		{
 			LOOP
 			for (uint HeightfieldIndex = 0; HeightfieldIndex < NumHeightfields; HeightfieldIndex++)
@@ -777,8 +701,8 @@ void CalculateHeightfieldIrradianceScreenGridCS(
 		float3 WorldNormal;
 		float SceneDepth;
 		bool bHasDistanceFieldRepresentation;
-		bool bHasHeightfieldRepresentation;
-		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bHasHeightfieldRepresentation);
+		bool bLit;
+		GetDownsampledGBuffer(BaseLevelScreenUV, WorldNormal, SceneDepth, bHasDistanceFieldRepresentation, bLit);
 
 		float2 ScreenUV = GetScreenUVFromScreenGrid(OutputCoordinate);
 		float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;

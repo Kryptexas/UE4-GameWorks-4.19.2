@@ -3,6 +3,7 @@
 #include "SequencerSelection.h"
 #include "MovieSceneSection.h"
 #include "DisplayNodes/SequencerObjectBindingNode.h"
+#include "DisplayNodes/SequencerTrackNode.h"
 #include "SequencerCommonHelpers.h"
 #include "IKeyArea.h"
 
@@ -94,6 +95,24 @@ TArray<FGuid> FSequencerSelection::GetBoundObjectsGuids()
 	return OutGuids;
 }
 
+TArray<UMovieSceneTrack*> FSequencerSelection::GetSelectedTracks() const
+{
+	TArray<UMovieSceneTrack*> OutTracks;
+	
+	for (const TSharedRef<FSequencerDisplayNode>& SelectedNode : SelectedOutlinerNodes)
+	{
+		if (SelectedNode->GetType() == ESequencerNode::Track)
+		{
+			if (UMovieSceneTrack* Track = StaticCastSharedRef<FSequencerTrackNode>(SelectedNode)->GetTrack())
+			{
+				OutTracks.Add(Track);
+			}
+		}
+	}
+
+	return OutTracks;
+}
+
 void FSequencerSelection::AddToSelection(FSequencerSelectedKey Key)
 {
 	SelectedKeys.Add(Key);
@@ -130,6 +149,19 @@ void FSequencerSelection::AddToSelection(TSharedRef<FSequencerDisplayNode> Outli
 {
 	SelectedOutlinerNodes.Add(OutlinerNode);
 	if ( IsBroadcasting() )
+	{
+		OnOutlinerNodeSelectionChanged.Broadcast();
+		OnOutlinerNodeSelectionChangedObjectGuids.Broadcast();
+	}
+	EmptySelectedKeys();
+	EmptySelectedSections();
+	EmptyNodesWithSelectedKeysOrSections();
+}
+
+void FSequencerSelection::AddToSelection(const TArray<TSharedRef<FSequencerDisplayNode>>& OutlinerNodes)
+{
+	SelectedOutlinerNodes.Append(OutlinerNodes);
+	if (IsBroadcasting())
 	{
 		OnOutlinerNodeSelectionChanged.Broadcast();
 		OnOutlinerNodeSelectionChangedObjectGuids.Broadcast();
@@ -289,7 +321,11 @@ bool FSequencerSelection::IsBroadcasting()
 
 void FSequencerSelection::EmptySelectedOutlinerNodesWithoutSection(UMovieSceneSection* Section)
 {
-	for (auto SelectedOutlinerNode : SelectedOutlinerNodes)
+	TSet<TSharedRef<FSequencerDisplayNode>> LocalSelectedOutlinerNodes = SelectedOutlinerNodes;
+
+	SuspendBroadcast();
+	bool bRemoved = false;
+	for (auto SelectedOutlinerNode : LocalSelectedOutlinerNodes)
 	{
 		TSet<TSharedRef<FSequencerDisplayNode> > TrunkNodes;
 		TrunkNodes.Add(SelectedOutlinerNode);
@@ -314,7 +350,14 @@ void FSequencerSelection::EmptySelectedOutlinerNodesWithoutSection(UMovieSceneSe
 		if (!bFoundMatch)
 		{
 			RemoveFromSelection(SelectedOutlinerNode);
+			bRemoved = true;
 		}
+	}
+	ResumeBroadcast();
+
+	if (bRemoved)
+	{
+		OnOutlinerNodeSelectionChanged.Broadcast();
 	}
 }
 

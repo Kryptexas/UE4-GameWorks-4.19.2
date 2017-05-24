@@ -7,6 +7,8 @@
 #include "ObjectPropertyNode.h"
 #include "PropertyEditorHelpers.h"
 
+#define LOCTEXT_NAMESPACE "ItemPropertyNode"
+
 FItemPropertyNode::FItemPropertyNode(void)
 	: FPropertyNode()
 {
@@ -529,7 +531,8 @@ FText FItemPropertyNode::GetDisplayName() const
 			}
 			
 			// Sets and maps do not have a display index.
-			if (!Cast<USetProperty>(ParentNode->GetProperty()) && !Cast<UMapProperty>(ParentNode->GetProperty()))
+			UProperty* ParentProperty = ParentNode->GetProperty();
+			if (Cast<USetProperty>(ParentProperty) == nullptr &&  Cast<UMapProperty>(ParentProperty) == nullptr)
 			{
 				// This item is a member of an array, its display name is its index 
 				if (PropertyPtr == NULL || ArraySizeEnum == NULL)
@@ -538,11 +541,59 @@ FText FItemPropertyNode::GetDisplayName() const
 				}
 				else
 				{
-					FString TempDisplayName = ArraySizeEnum->GetEnumName(GetArrayIndex());
-					//fixup the display name if we have displayname metadata
-					AdjustEnumPropDisplayName(ArraySizeEnum, TempDisplayName);
-					FinalDisplayName = FText::FromString(TempDisplayName); // todo: should this be using ArraySizeEnum->GetEnumText?
+					FinalDisplayName = ArraySizeEnum->GetDisplayNameTextByIndex(GetArrayIndex());
 				}
+			}
+			// Maps should have display names that reflect the key and value types
+			else if (PropertyPtr != nullptr && Cast<UMapProperty>(ParentNode->GetProperty()) != nullptr)
+			{
+				FText FormatText = GetPropertyKeyNode().IsValid()
+					? LOCTEXT("MapValueDisplayFormat", "Value ({0})")
+					: LOCTEXT("MapKeyDisplayFormat", "Key ({0})");
+
+				FString TypeName;
+
+				if (const UStructProperty* StructProp = Cast<UStructProperty>(PropertyPtr))
+				{
+					// For struct props, use the name of the struct itself
+					TypeName = StructProp->Struct->GetName();
+				}
+				else if (const UEnumProperty* EnumProp = Cast<UEnumProperty>(PropertyPtr))
+				{
+					// For enum props, use the name of the enum
+					if (EnumProp->GetEnum() != nullptr)
+					{
+						TypeName = EnumProp->GetEnum()->GetName();
+					}
+					else
+					{
+						TypeName = TEXT("Enum");
+					}
+				}
+				else if(PropertyPtr->IsA<UStrProperty>())
+				{
+					// For strings, actually return "String" and not "Str"
+					TypeName = TEXT("String");
+				}
+				else
+				{
+					// For any other property, get the type from the property class
+					TypeName = PropertyPtr->GetClass()->GetName();
+
+					int32 EndIndex = TypeName.Find(TEXT("Property"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+					if (EndIndex != -1)
+					{
+						TypeName = TypeName.Mid(0, EndIndex);
+					}
+				}
+
+				if (FPropertySettings::Get().ShowFriendlyPropertyNames())
+				{
+					TypeName = FName::NameToDisplayString(TypeName, false);
+				}
+
+				FinalDisplayName = FText::Format(FormatText, FText::FromString(TypeName));
 			}
 		}
 	}
@@ -564,3 +615,5 @@ FText FItemPropertyNode::GetToolTipText() const
 
 	return PropertyEditorHelpers::GetToolTipText(GetProperty());
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -15,7 +15,7 @@
 
 #ifndef AUDIO_MIXER_ENABLE_DEBUG_MODE
 // This define enables a bunch of more expensive debug checks and logging capabilities that are intended to be off most of the time even in debug builds of game/editor.
-#if UE_BUILD_SHIPPING
+#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define AUDIO_MIXER_ENABLE_DEBUG_MODE 0
 #else
 #define AUDIO_MIXER_ENABLE_DEBUG_MODE 1
@@ -57,6 +57,9 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Master Reverb"), STAT_AudioMixerMasterReverb, ST
 
 // The time it takes to process the master EQ effect.
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Master EQ"), STAT_AudioMixerMasterEQ, STATGROUP_AudioMixer, AUDIOMIXER_API);
+
+// The time it takes to process the HRTF effect.
+DECLARE_CYCLE_STAT_EXTERN(TEXT("HRTF"), STAT_AudioMixerHRTF, STATGROUP_AudioMixer, AUDIOMIXER_API);
 
 
 // Enable debug checking for audio mixer
@@ -186,9 +189,6 @@ namespace Audio
 
 		FAudioPlatformDeviceInfo DeviceInfo;
 
-		/** The requested sample rate. */
-		uint32 RequestedSampleRate;
-
 		/** The state of the output audio stream. */
 		EAudioOutputStreamState::Type StreamState;
 
@@ -252,6 +252,7 @@ namespace Audio
 		virtual void OnDeviceAdded(const FString& DeviceId) {}
 		virtual void OnDeviceRemoved(const FString& DeviceId) {}
 		virtual void OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState) {}
+		virtual FString GetDeviceId() const { return FString(); }
 	};
 
 
@@ -263,7 +264,7 @@ namespace Audio
 	public: // Virtual functions
 
 		/** Virtual destructor. */
-		virtual ~IAudioMixerPlatformInterface() {}
+		virtual ~IAudioMixerPlatformInterface();
 
 		/** Returns the platform API enumeration. */
 		virtual EAudioMixerPlatformApi::Type GetPlatformApi() const = 0;
@@ -336,6 +337,9 @@ namespace Audio
 		/** Retrieves the next generated buffer and feeds it to the platform mixer output stream. */
 		void ReadNextBuffer();
 
+		/** Start a fadeout. Prevents pops during shutdown. */
+		void FadeOut();
+
 		/** Returns the last error generated. */
 		FString GetLastError() const { return LastError; }
 
@@ -357,23 +361,28 @@ namespace Audio
 		/** Stops the render thread from generating audio. */
 		void StopGeneratingAudio();
 
+		void PerformFades();
+
 	protected:
 
 		/** The audio device stream info. */
 		FAudioOutputStreamInfo AudioStreamInfo;
 
 		/** The number of mixer buffers. */
-		static const int32 NumMixerBuffers = 3;
+		static const int32 NumMixerBuffers = 2;
 
 		/** List of generated output buffers. */
-		TArray<float> OutputBuffers[NumMixerBuffers];
+		TArray<float>	OutputBuffers[NumMixerBuffers];
+		bool			OutputBufferReady[NumMixerBuffers];
+		bool			WarnedBufferUnderrun;
 
 		/** The audio render thread. */
 		FRunnableThread* AudioRenderThread;
 		/** The render thread sync event. */
 		FEvent* AudioRenderEvent;
-		/** The render thread critical section. */
-		FCriticalSection AudioRenderCritSect;
+
+		/** Event allows you to block until fadeout is complete. */
+		FEvent* AudioFadeEvent;
 
 		/** The current buffer index. */
 		int32 CurrentBufferIndex;
@@ -383,6 +392,11 @@ namespace Audio
 
 		/** Flag if the audio device is in the process of changing. Prevents more buffers from being submitted to platform. */
 		FThreadSafeBool bAudioDeviceChanging;
+
+		FThreadSafeBool bFadingIn;
+		FThreadSafeBool bFadingOut;
+		FThreadSafeBool bFadedOut;
+		float FadeEnvelopeValue;
 	};
 
 

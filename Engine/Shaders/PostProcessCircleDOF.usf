@@ -30,7 +30,7 @@ float DepthToCoc2(float SceneDepth)
 void CircleSetupPS(
 	noperspective float4 UVAndScreenPos : TEXCOORD0
 	, out float4 OutColor0 : SV_Target0
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	, out float4 OutColor1 : SV_Target1
 #endif
 	)
@@ -76,7 +76,7 @@ void CircleSetupPS(
 	#if COC_METHOD == 0
 		// Stuff max radius in alpha.
 		// bad erosion on TemporalDitherAA
-		OutColor0.a = ma;
+		float PixelCoc = ma;
 	#elif COC_METHOD == 1
 		// acceptable TemporalDitherAA
 		// requires DefaultWeight > 1
@@ -151,7 +151,7 @@ void CircleSetupPS(
 		DefaultWeight - saturate(abs(PixelCoc - CocQuad.w) * ScaleFactor));
 
 	SceneColorLayout ColorDownSample = (1.0 / (W.x + W.y + W.z + W.w)) * (CX * W.x + CY * W.y + CZ * W.z + CW * W.w);
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	OutColor0 = ColorDownSample;
 	OutColor1 = float4(PixelCoc, 0, 0, 0);
 #else
@@ -198,25 +198,25 @@ float Min16(float4 A, float4 B, float4 C, float4 D)
 #if COMPILER_GLSL || COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || FEATURE_LEVEL < FEATURE_LEVEL_SM5
 float ReadCoc(float2 UV, int2 PixelOffset)
 {
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	return PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0, PixelOffset).r;
 #else
 	return PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0, PixelOffset).a;
 #endif 
 }
 #elif DILATION_RESOLUTION_INDEPENDENT
-float4 GartherCoc(float2 UV)
+float4 GatherCoc(float2 UV)
 {
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	return PostprocessInput0.GatherRed(PostprocessInput0Sampler, UV);
 #else
 	return PostprocessInput0.GatherAlpha(PostprocessInput0Sampler, UV);
 #endif 
 }
 #else
-float4 GartherCoc(float2 UV, int2 PixelOffset)
+float4 GatherCoc(float2 UV, int2 PixelOffset)
 {
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	return PostprocessInput0.GatherRed(PostprocessInput0Sampler, UV, PixelOffset);
 #else
 	return PostprocessInput0.GatherAlpha(PostprocessInput0Sampler, UV, PixelOffset);
@@ -262,16 +262,16 @@ void CircleDilatePS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float O
 			float2 C = 1 + float2(-2,0);
 			float2 D = 1 + float2(0,0);
 
-			float4 Sd = GartherCoc(UVAndScreenPos.xy + A * factor * PostprocessInput0Size.zw);
-			float4 Sg = GartherCoc(UVAndScreenPos.xy + B * factor * PostprocessInput0Size.zw);
-			float4 Sj = GartherCoc(UVAndScreenPos.xy + C * factor * PostprocessInput0Size.zw);
-			float4 Sm = GartherCoc(UVAndScreenPos.xy + D * factor * PostprocessInput0Size.zw);
+			float4 Sd = GatherCoc(UVAndScreenPos.xy + A * factor * PostprocessInput0Size.zw);
+			float4 Sg = GatherCoc(UVAndScreenPos.xy + B * factor * PostprocessInput0Size.zw);
+			float4 Sj = GatherCoc(UVAndScreenPos.xy + C * factor * PostprocessInput0Size.zw);
+			float4 Sm = GatherCoc(UVAndScreenPos.xy + D * factor * PostprocessInput0Size.zw);
 		#else 
 			float2 UV = UVAndScreenPos.xy + PostprocessInput0Size.zw;
-			float4 Sd = GartherCoc(UV, int2(-2,-2));
-			float4 Sg = GartherCoc(UV, int2(0,-2));
-			float4 Sj = GartherCoc(UV, int2(-2,0));
-			float4 Sm = GartherCoc(UV, int2(0,0));
+			float4 Sd = GatherCoc(UV, int2(-2,-2));
+			float4 Sg = GatherCoc(UV, int2(0,-2));
+			float4 Sj = GatherCoc(UV, int2(-2,0));
+			float4 Sm = GatherCoc(UV, int2(0,0));
 		#endif
 	#endif
 	
@@ -368,7 +368,7 @@ void Circle4Samples(
 
 	// Grab circle of confusion for the pixel and pixel color.
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	OutSceneColor = Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, UV, 0);
 	float FarCoc = Texture2DSampleLevel(PostprocessInput2, PostprocessInput2Sampler, UV, 0).r;
 #else
@@ -416,7 +416,7 @@ void Circle4Samples(
 	SceneColorLayout C3 = CastFloat4ToSceneColorLayout(C3R);
 	SceneColorLayout C4 = CastFloat4ToSceneColorLayout(C4R);
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	float C1Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV1, 0).x;
 	float C2Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV2, 0).x;
 	float C3Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV3, 0).x;
@@ -525,7 +525,7 @@ void Circle4Samples(
 	C3 = CastFloat4ToSceneColorLayout(C3R);
 	C4 = CastFloat4ToSceneColorLayout(C4R);
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	C1Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV1, 0).x;
 	C2Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV2, 0).x;
 	C3Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV3, 0).x;
@@ -615,7 +615,7 @@ void Circle4Samples(
 	C3 = CastFloat4ToSceneColorLayout(C3R);
 	C4 = CastFloat4ToSceneColorLayout(C4R);
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	C1Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV1, 0).x;
 	C2Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV2, 0).x;
 	C3Coc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV3, 0).x;
@@ -657,7 +657,7 @@ void Circle4Samples(
 void CirclePS(
 	noperspective float4 UVAndScreenPos : TEXCOORD0
 	, out float4 OutColor0 : SV_Target0
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	, out float OutColor1 : SV_Target1
 #endif
 )
@@ -672,25 +672,25 @@ void CirclePS(
 #endif
 
 	OutColor0 = 0;
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	OutColor1 = 0;
 #endif
 	LOOP for(uint i = 0; i < Count; ++i)
 	{
 		SceneColorLayout Color;
-		float ColorCac;
-		Circle4Samples(UVAndScreenPos, i, Color, ColorCac);
+		float ColorCoc;
+		Circle4Samples(UVAndScreenPos, i, Color, ColorCoc);
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 		OutColor0 += Color;
-		OutColor1 += ColorCac;
+		OutColor1 += ColorCoc;
 #else
-		OutColor0 += float4(Color, ColorCac);
+		OutColor0 += float4(Color, ColorCoc);
 #endif
 	}
 
 	OutColor0 /= Count;
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	OutColor1 /= Count;
 #endif
 }
@@ -826,7 +826,7 @@ void MainCircleRecombinePS(in noperspective float4 UVAndScreenPos : TEXCOORD0, o
 	float PixDepth = CalcSceneDepth(UVAndScreenPos.xy);
 	float PixCoc = DepthToCoc2(PixDepth);
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	float HalfResCoc = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVAndScreenPos.xy, 0).r;
 #else
 	float HalfResCoc = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVAndScreenPos.xy, 0).a;
@@ -889,7 +889,7 @@ void MainCircleRecombinePS(in noperspective float4 UVAndScreenPos : TEXCOORD0, o
 	SceneColorLayout OutLimited = min(max(RecombinedSceneColor,HMin),HMax);
 	SceneColorLayout FinalOutColor = lerp(RecombinedSceneColor, OutLimited, saturate(PixCoc*PixCoc*4.0));
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 	OutColor = FinalOutColor;
 #else
 	OutColor = float4(FinalOutColor, 1);

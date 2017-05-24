@@ -495,6 +495,7 @@ bool UMovieScene::AddGivenTrack(UMovieSceneTrack* InTrack, const FGuid& ObjectGu
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -564,6 +565,41 @@ UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrack> Tra
 }
 
 
+bool UMovieScene::AddGivenMasterTrack(UMovieSceneTrack* InTrack)
+{
+	if (!MasterTracks.Contains(InTrack))
+	{
+		Modify();
+		InTrack->Rename(nullptr, this);
+		MasterTracks.Add(InTrack);
+		return true;
+	}
+	return false;
+}
+
+
+bool UMovieScene::RemoveMasterTrack(UMovieSceneTrack& Track) 
+{
+	Modify();
+
+	return (MasterTracks.RemoveSingle(&Track) != 0);
+}
+
+
+bool UMovieScene::IsAMasterTrack(const UMovieSceneTrack& Track) const
+{
+	for ( const UMovieSceneTrack* MasterTrack : MasterTracks)
+	{
+		if (&Track == MasterTrack)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 UMovieSceneTrack* UMovieScene::AddCameraCutTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
 {
 	if( !CameraCutTrack )
@@ -591,25 +627,10 @@ void UMovieScene::RemoveCameraCutTrack()
 	}
 }
 
-bool UMovieScene::RemoveMasterTrack(UMovieSceneTrack& Track) 
+void UMovieScene::SetCameraCutTrack(UMovieSceneTrack* InTrack)
 {
 	Modify();
-
-	return (MasterTracks.RemoveSingle(&Track) != 0);
-}
-
-
-bool UMovieScene::IsAMasterTrack(const UMovieSceneTrack& Track) const
-{
-	for ( const UMovieSceneTrack* MasterTrack : MasterTracks)
-	{
-		if (&Track == MasterTrack)
-		{
-			return true;
-		}
-	}
-
-	return false;
+	CameraCutTrack = InTrack;
 }
 
 
@@ -778,6 +799,19 @@ void UMovieScene::UpgradeTrackRow(UMovieSceneTrack* InTrack)
 
 void UMovieScene::PostLoad()
 {
+	// Remove any null tracks
+	for( int32 TrackIndex = 0; TrackIndex < MasterTracks.Num(); )
+	{
+		if (MasterTracks[TrackIndex] == nullptr)
+		{
+			MasterTracks.RemoveAt(TrackIndex);
+		}
+		else
+		{
+			++TrackIndex;
+		}
+	}
+
 	UpgradeTimeRanges();
 	UpgradeTrackRows();
 

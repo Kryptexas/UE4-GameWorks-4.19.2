@@ -1320,7 +1320,7 @@ namespace ObjectTools
 	 */
 	void SelectActorsInLevelDirectlyReferencingObject( UObject* RefObj )
 	{
-		UPackage* Package = Cast<UPackage>(RefObj->GetOutermost());
+		UPackage* Package = RefObj->GetOutermost();
 		if (Package && Package->ContainsMap())
 		{
 			// Walk the chain of outers to find the object that is 'in' the level...
@@ -1502,6 +1502,7 @@ namespace ObjectTools
 	void CleanupAfterSuccessfulDelete (const TArray<UPackage*>& PotentialPackagesToDelete, bool bPerformReferenceCheck)
 	{
 		TArray<UPackage*> PackagesToDelete = PotentialPackagesToDelete;
+		TArray<UPackage*> EmptyPackagesToUnload;
 		TArray<FString> PackageFilesToDelete;
 		TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe> > PackageSCCStates;
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
@@ -1517,7 +1518,7 @@ namespace ObjectTools
 
 			bool bIsReferenced = false;
 			
-			if ( bPerformReferenceCheck )
+			if ( Package != nullptr && bPerformReferenceCheck )
 			{
 				FReferencerInformationList FoundReferences;
 				bIsReferenced = IsReferenced(Package, GARBAGE_COLLECTION_KEEPFLAGS, EInternalObjectFlags::GarbageCollectionKeepFlags,  true, &FoundReferences);
@@ -1543,16 +1544,26 @@ namespace ObjectTools
 			}
 			else
 			{
+				UPackage* CurrentPackage = Cast<UPackage>(Package);
+
 				FString PackageFilename;
-				if( !FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
+				if( Package != nullptr && FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
+				{
+					PackageFilesToDelete.Add(PackageFilename);
+					CurrentPackage->SetDirtyFlag(false);
+				}
+				else
 				{
 					// Could not determine filename for package so we can not delete
 					PackagesToDelete.RemoveAt(PackageIdx);
-					continue;
-				}
 
-				PackageFilesToDelete.Add(PackageFilename);
-				Cast<UPackage>(Package)->SetDirtyFlag(false);
+					if (UPackage::IsEmptyPackage(CurrentPackage))
+					{
+						// If the package is empty, unload it anyway
+						EmptyPackagesToUnload.Add(CurrentPackage);
+						CurrentPackage->SetDirtyFlag(false);
+					}
+				}
 			}
 		}
 
@@ -1570,11 +1581,21 @@ namespace ObjectTools
 			GUnrealEd->GetPackageAutoSaver().OnPackagesDeleted(PackagesToDelete);
 		}
 
-		// Unload the packages and collect garbage.
-		if ( PackagesToDelete.Num() > 0 )
+		// Let the asset registry know that these packages are being removed
+		for (UPackage* PackageToDelete : PackagesToDelete)
 		{
-			PackageTools::UnloadPackages(PackagesToDelete);
-			PackagesToDelete.Reset();
+			FAssetRegistryModule::PackageDeleted(PackageToDelete);
+		}
+
+		// Unload the packages and collect garbage.
+		if ( PackagesToDelete.Num() > 0 || EmptyPackagesToUnload.Num() > 0 )
+		{
+			TArray<UPackage*> AllPackagesToUnload;
+			AllPackagesToUnload.Reserve(PackagesToDelete.Num() + EmptyPackagesToUnload.Num());
+			AllPackagesToUnload.Append(PackagesToDelete);
+			AllPackagesToUnload.Append(EmptyPackagesToUnload);
+
+			PackageTools::UnloadPackages(AllPackagesToUnload);
 		}
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
@@ -1775,7 +1796,7 @@ namespace ObjectTools
 			FNotificationInfo Info( NSLOCTEXT("UnrealEd", "Warning_CantDeleteRebuildingAssetRegistry", "Unable To Delete While Discovering Assets") );
 			Info.ExpireDuration = 3.0f;
 			FSlateNotificationManager::Get().AddNotification(Info);
-			return false;
+			return 0;
 		}
 
 		// let systems clean up any unnecessary references that they may have 
@@ -2226,7 +2247,7 @@ namespace ObjectTools
 												ChildBlueprint->ParentClass = BlueprintObject->ParentClass;
 
 												// Recompile the child blueprint to fix up the generated class
-												FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, false, true);
+												FKismetEditorUtilities::CompileBlueprint(ChildBlueprint, EBlueprintCompileOptions::SkipGarbageCollection);
 
 												// Defer garbage collection until after we're done processing the list of objects
 												bNeedsGarbageCollection = true;
@@ -2297,8 +2318,12 @@ namespace ObjectTools
 
 				if( DeleteSingleObject( CurObject ) )
 				{
-					// Update return val
-					++NumDeletedObjects;
+					// Only count the objects we were given to delete, as this function may have added more (eg, BP instances)
+					if (InObjectsToDelete.Contains(CurObject))
+					{
+						// Update return val
+						++NumDeletedObjects;
+					}
 				}
 
 				GWarn->StatusUpdate(Count, ReplaceableObjectsNum, NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_DeletingObjects", "Deleting Assets..."));

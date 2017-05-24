@@ -148,7 +148,8 @@ bool FMapPakDownloader::Init()
 		];
 
 	// Hook up PostLoad
-	FSimpleDelegate PostLoadHandler = FSimpleDelegate::CreateLambda([=](){
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddLambda([=](UWorld*)
+	{
 		{
 			if (IsTransitionLevel)
 			{
@@ -156,8 +157,6 @@ bool FMapPakDownloader::Init()
 			}
 		}
 	});
-
-	FCoreUObjectDelegates::PostLoadMap.Add(PostLoadHandler);
 
 	return true;
 }

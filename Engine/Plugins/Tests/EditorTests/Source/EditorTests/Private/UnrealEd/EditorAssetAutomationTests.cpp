@@ -561,6 +561,13 @@ bool FAssetEditorTest::RunTest(const FString& Parameters)
 		}
 	}
 
+	// No skeleton was loaded, just load one the first one found
+	// This is only used to verify we can create assets that rely on skeletons.
+	if (!FirstSkeleton && AllSkeletons.Num())
+	{
+		FirstSkeleton = CastChecked<USkeleton>(AllSkeletons[0].GetAsset());
+	}
+
 	//Check to see if we need to enable Behavior trees.
 	bool bEnabledBehaviorTrees = false;
 	bool bBehaviorTreeNewAssetsEnabled = false;
@@ -624,7 +631,6 @@ bool FAssetEditorTest::RunTest(const FString& Parameters)
 	ASSET_TEST_CREATE(UBlueprint, UBlueprintMacroFactory, MPL, FactoryInst->ParentClass = AActor::StaticClass();)
 	ASSET_TEST_CREATE(UCameraAnim, UCameraAnimFactory, CA, )
 	ASSET_TEST_CREATE(UCurveBase, UCurveFactory, C, FactoryInst->CurveClass = UCurveFloat::StaticClass();)
-	FModuleManager::Get().LoadModule(TEXT("GameplayAbilities"));
 	UClass* GameplayAbilityClass = StaticLoadClass(UObject::StaticClass(), NULL, TEXT("GameplayAbilities.GameplayAbilitySet"), NULL, LOAD_None, NULL);
 	if (GameplayAbilityClass)
 	{
@@ -779,11 +785,6 @@ namespace ImportExportAssetHelper
 		//Pointer to the execution info of this test
 		FAutomationTestExecutionInfo* TestExecutionInfo;
 
-		//The number of existing errors, warnings, and logs when the command started
-		int32 ErrorStartCount;
-		int32 WarningStartCount;
-		int32 LogStartCount;
-
 		//Shared list of test results
 		TSharedPtr<FAssetImportStats> TestStats;
 
@@ -802,9 +803,6 @@ namespace ImportExportAssetHelper
 			WaitingForEditorCount(0),
 			bSkipExport(InTestDef.bSkipExport),
 			TestExecutionInfo(InExecutionInfo),
-			ErrorStartCount(0),
-			WarningStartCount(0),
-			LogStartCount(0),
 			TestStats(InStats),
 			TestReport()
 		{
@@ -847,8 +845,6 @@ namespace ImportExportAssetHelper
 				//Report the result
 				TestStats->Reports.Add(TestReport);
 
-				UpdateExecutionLogs();
-
 				return true;
 			}
 
@@ -862,14 +858,6 @@ namespace ImportExportAssetHelper
 		{
 			//Default to failed
 			State = EState::Done;
-
-			//Set the starting log counts
-			if (TestExecutionInfo)
-			{
-				ErrorStartCount = TestExecutionInfo->Errors.Num();
-				WarningStartCount = TestExecutionInfo->Warnings.Num();
-				LogStartCount = TestExecutionInfo->LogItems.Num();
-			}
 
 			TestReport.AssetName = FPaths::GetCleanFilename(ImportPath);
 
@@ -1065,26 +1053,6 @@ namespace ImportExportAssetHelper
 			ObjectTools::ForceDeleteObjects(ObjList, false);
 
 			ImportedAsset = NULL;
-		}
-
-		void UpdateExecutionLogs()
-		{
-			if (TestExecutionInfo)
-			{
-				const FString CleanFilename = FPaths::GetCleanFilename(ImportPath);
-				for (int32 ErrorIndex = ErrorStartCount; ErrorIndex < TestExecutionInfo->Errors.Num(); ++ErrorIndex)
-				{
-					TestExecutionInfo->Errors[ErrorIndex].Context = CleanFilename;
-				}
-				for (int32 WarningIndex = WarningStartCount; WarningIndex < TestExecutionInfo->Warnings.Num(); ++WarningIndex)
-				{
-					TestExecutionInfo->Warnings[WarningIndex] = FString::Printf(TEXT("%s: %s"), *CleanFilename, *TestExecutionInfo->Warnings[WarningIndex]);
-				}
-				for (int32 LogIndex = LogStartCount; LogIndex < TestExecutionInfo->LogItems.Num(); ++LogIndex)
-				{
-					TestExecutionInfo->LogItems[LogIndex] = FString::Printf(TEXT("%s: %s"), *CleanFilename, *TestExecutionInfo->LogItems[LogIndex]);
-				}
-			}
 		}
 	};
 }

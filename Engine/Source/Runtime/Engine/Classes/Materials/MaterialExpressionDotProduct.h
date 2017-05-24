@@ -9,7 +9,7 @@
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDotProduct.generated.h"
 
-UCLASS()
+UCLASS(MinimalAPI, collapsecategories, hidecategories=Object)
 class UMaterialExpressionDotProduct : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

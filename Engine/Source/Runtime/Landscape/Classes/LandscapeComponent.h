@@ -8,7 +8,6 @@
 #include "Engine/TextureStreamingTypes.h"
 #include "Components/PrimitiveComponent.h"
 
-
 #include "LandscapeComponent.generated.h"
 
 class ALandscape;
@@ -30,9 +29,67 @@ class UTexture2D;
 struct FConvexVolume;
 struct FEngineShowFlags;
 struct FLandscapeEditDataInterface;
-struct FLandscapeEditToolRenderData;
 struct FLandscapeTextureDataInfo;
 struct FStaticLightingPrimitiveInfo;
+
+struct FLandscapeEditDataInterface;
+
+//
+// FLandscapeEditToolRenderData
+//
+USTRUCT()
+struct FLandscapeEditToolRenderData
+{
+public:
+	GENERATED_USTRUCT_BODY()
+
+	enum SelectionType
+	{
+		ST_NONE = 0,
+		ST_COMPONENT = 1,
+		ST_REGION = 2,
+		// = 4...
+	};
+
+	FLandscapeEditToolRenderData()
+		: ToolMaterial(NULL),
+		GizmoMaterial(NULL),
+		SelectedType(ST_NONE),
+		DebugChannelR(INDEX_NONE),
+		DebugChannelG(INDEX_NONE),
+		DebugChannelB(INDEX_NONE),
+		DataTexture(NULL)
+	{}
+
+	// Material used to render the tool.
+	UPROPERTY(NonTransactional)
+	UMaterialInterface* ToolMaterial;
+
+	// Material used to render the gizmo selection region...
+	UPROPERTY(NonTransactional)
+	UMaterialInterface* GizmoMaterial;
+
+	// Component is selected
+	UPROPERTY(NonTransactional)
+	int32 SelectedType;
+
+	UPROPERTY(NonTransactional)
+	int32 DebugChannelR;
+
+	UPROPERTY(NonTransactional)
+	int32 DebugChannelG;
+
+	UPROPERTY(NonTransactional)
+	int32 DebugChannelB;
+
+	UPROPERTY(NonTransactional)
+	UTexture2D* DataTexture; // Data texture other than height/weight
+
+#if WITH_EDITOR
+	void UpdateDebugColorMaterial(const ULandscapeComponent* const Component);
+	void UpdateSelectionMaterial(int32 InSelectedType, const ULandscapeComponent* const Component);
+#endif
+};
 
 class FLandscapeComponentDerivedData
 {
@@ -306,12 +363,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
 	TArray<ULandscapeLayerInfoObject*> LayerWhitelist;
 
-	// Data texture used for selection mask
-	UPROPERTY(Transient, DuplicateTransient)
-	UTexture2D* SelectDataTexture;
-
 	/** Pointer to data shared with the render thread, used by the editor tools */
-	FLandscapeEditToolRenderData* EditToolRenderData;
+	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
+	FLandscapeEditToolRenderData EditToolRenderData;
 
 	/** Hash of source for ES2 generated data. Used for mobile preview and cook-in-editor
 	 * to determine if we need to re-generate ES2 pixel data. */
@@ -352,6 +406,8 @@ public:
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	//~ End UObject Interface
+
+	LANDSCAPE_API void UpdateEditToolRenderData();
 
 	/** Fix up component layers, weightmaps
 	 */
@@ -622,6 +678,9 @@ public:
 
 	/** Updates navigation properties to match landscape's master switch */
 	void UpdateNavigationRelevance();
+	
+	/** Updates the values of component-level properties exposed by the Landscape Actor */
+	LANDSCAPE_API void UpdatedSharedPropertiesFromActor();
 #endif
 
 	friend class FLandscapeComponentSceneProxy;

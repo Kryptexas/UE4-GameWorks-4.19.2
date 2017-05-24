@@ -15,7 +15,7 @@ UWidgetSwitcher::UWidgetSwitcher(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = true;
 
 	SWidgetSwitcher::FArguments Defaults;
-	Visiblity_DEPRECATED = Visibility = Visiblity_DEPRECATED = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
+	Visibility = Visiblity_DEPRECATED = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UWidgetSwitcher::ReleaseSlateResources(bool bReleaseChildren)
@@ -134,7 +134,7 @@ const FText UWidgetSwitcher::GetPaletteCategory()
 	return LOCTEXT("Panel", "Panel");
 }
 
-void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)
+void UWidgetSwitcher::OnDescendantSelectedByDesigner(UWidget* DescendantWidget)
 {
 	// Temporarily sets the active child to the selected child to make
 	// dragging and dropping easier in the editor.
@@ -149,7 +149,7 @@ void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)
 	}
 }
 
-void UWidgetSwitcher::OnDescendantDeselected(UWidget* DescendantWidget)
+void UWidgetSwitcher::OnDescendantDeselectedByDesigner(UWidget* DescendantWidget)
 {
 	SetActiveWidgetIndex(ActiveWidgetIndex);
 }

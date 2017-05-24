@@ -887,8 +887,11 @@ void AGameModeBase::GenericPlayerInitialization(AController* C)
 		// Notify the game that we can now be muted and mute others
 		UpdateGameplayMuteList(PC);
 
-		// Tell the player to enable voice by default or use the push to talk method
-		PC->ClientEnableNetworkVoice(!GameSession->RequiresPushToTalk());
+		if (GameSession != nullptr)
+		{
+			// Tell the player to enable voice by default or use the push to talk method
+			PC->ClientEnableNetworkVoice(!GameSession->RequiresPushToTalk());
+		}
 
 		ReplicateStreamingStatus(PC);
 

@@ -1015,12 +1015,7 @@ void FMacApplication::OnWindowDidMove(TSharedRef<FMacWindow> Window)
 	NSRect OpenGLFrame = [Window->GetWindowHandle() openGLFrame];
 
 	const float X = WindowFrame.origin.x;
-	float Y = 0.0f;
-
-	if ([Window->GetWindowHandle() windowMode] != EWindowMode::Fullscreen)
-	{
-		Y = WindowFrame.origin.y + OpenGLFrame.size.height;
-	}
+	const float Y = WindowFrame.origin.y + ([Window->GetWindowHandle() windowMode] == EWindowMode::Fullscreen ? WindowFrame.size.height : OpenGLFrame.size.height);
 
 	FVector2D SlatePosition = ConvertCocoaPositionToSlate(X, Y);
 

@@ -101,6 +101,32 @@ class FAndroid_ASTCTargetPlatform
 			OutFormats.Add(TextureFormatName);
 		}
 	}
+
+
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override
+	{
+		// we remap some of the defaults (with PVRTC and ASTC formats)
+		static FName FormatRemap[][2] =
+		{
+			// Default format:				ASTC format:
+			{ { FName(TEXT("DXT1")) },{ FName(TEXT("ASTC_RGB")) } },
+			{ { FName(TEXT("DXT5")) },{ FName(TEXT("ASTC_RGBA")) } },
+			{ { FName(TEXT("DXT5n")) },{ FName(TEXT("ASTC_NormalAG")) } },
+			{ { FName(TEXT("BC5")) },{ FName(TEXT("ASTC_NormalRG")) } },
+			{ { FName(TEXT("BC6H")) },{ FName(TEXT("ASTC_RGB")) } },
+			{ { FName(TEXT("BC7")) },{ FName(TEXT("ASTC_RGBAuto")) } },
+			{ { FName(TEXT("AutoDXT")) },{ FName(TEXT("ASTC_RGBAuto")) } },
+		};
+
+		GetAllDefaultTextureFormats(this, OutFormats, false);
+
+		for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); ++RemapIndex)
+		{
+			OutFormats.Remove(FormatRemap[RemapIndex][0]);
+			OutFormats.AddUnique(FormatRemap[RemapIndex][1]);
+		}
+	}
+
 #endif
 
 	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const override

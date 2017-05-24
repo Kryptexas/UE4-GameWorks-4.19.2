@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class PlacementMode : ModuleRules
 {
-    public PlacementMode(TargetInfo Target)
+    public PlacementMode(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePathModuleNames.Add("AssetTools");
 

@@ -6,6 +6,7 @@ Version: 4.9
 SkillLevel: Beginner
 Parent:Engine/Blueprints/Anatomy
 Tags:Class Blueprints
+tags:Blueprints
 order:1
 
 [VAR:Topic]

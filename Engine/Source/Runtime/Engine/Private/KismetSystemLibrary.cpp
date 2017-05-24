@@ -18,7 +18,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "LatentActions.h"
 #include "Engine/LocalPlayer.h"
-#include "DrawDebugHelpers.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Engine/GameEngine.h"
 #include "Engine/Console.h"
@@ -31,7 +30,7 @@
 #include "Engine/StreamableManager.h"
 #include "Net/OnlineEngineInterface.h"
 #include "UserActivityTracking.h"
-#include "PhysicsEngine/PhysicsSettings.h"
+#include "KismetTraceUtils.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -1160,66 +1159,20 @@ bool UKismetSystemLibrary::ComponentOverlapComponents(UPrimitiveComponent* Compo
 
 	return (OutComponents.Num() > 0);
 }
-static const float KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE = 16.f;
+
 
 bool UKismetSystemLibrary::LineTraceSingle(UObject* WorldContextObject, const FVector Start, const FVector End, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 	ECollisionChannel CollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceChannel);
 
 	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
-
-	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
+	FCollisionQueryParams Params = ConfigureCollisionParams(LineTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World->LineTraceSingleByChannel(OutHit, Start, End, CollisionChannel, Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		// @fixme, draw line with thickness = 2.f?
-		if (bHit && OutHit.bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			::DrawDebugLine(World, Start, OutHit.ImpactPoint, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, OutHit.ImpactPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugLineTraceSingle(World, Start, End, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -1230,171 +1183,28 @@ bool UKismetSystemLibrary::LineTraceMulti(UObject* WorldContextObject, const FVe
 	ECollisionChannel CollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceChannel);
 
 	static const FName LineTraceMultiName(TEXT("LineTraceMulti"));
-
-	FCollisionQueryParams Params(LineTraceMultiName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
+	FCollisionQueryParams Params = ConfigureCollisionParams(LineTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World->LineTraceMultiByChannel(OutHits, Start, End, CollisionChannel, Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		// @fixme, draw line with thickness = 2.f?
-		if (bHit && OutHits.Last().bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHits.Last().ImpactPoint;
-			::DrawDebugLine(World, Start, BlockingHitPoint, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, BlockingHitPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-
-		// draw hits
-		for (int32 HitIdx = 0; HitIdx < OutHits.Num(); ++HitIdx)
-		{
-			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugLineTraceMulti(World, Start, End, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
 }
 
-void DrawDebugSweptSphere(const UWorld* InWorld, FVector const& Start, FVector const& End, float Radius, FColor const& Color, bool bPersistentLines=false, float LifeTime=-1.f, uint8 DepthPriority=0)
-{
-#if ENABLE_DRAW_DEBUG
-	FVector const TraceVec = End - Start;
-	float const Dist = TraceVec.Size();
-
-	FVector const Center = Start + TraceVec * 0.5f;
-	float const HalfHeight = (Dist * 0.5f) + Radius;
-
-	FQuat const CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
-	::DrawDebugCapsule(InWorld, Center, HalfHeight, Radius, CapsuleRot, Color, bPersistentLines, LifeTime, DepthPriority );
-#endif
-}
-
-void DrawDebugSweptBox(const UWorld* InWorld, FVector const& Start, FVector const& End, FRotator const & Orientation, FVector const & HalfSize, FColor const& Color, bool bPersistentLines = false, float LifeTime = -1.f, uint8 DepthPriority = 0)
-{
-#if ENABLE_DRAW_DEBUG
-	FVector const TraceVec = End - Start;
-	float const Dist = TraceVec.Size();
-
-	FVector const Center = Start + TraceVec * 0.5f;
-
-	FQuat const CapsuleRot = Orientation.Quaternion();
-	::DrawDebugBox(InWorld, Start, HalfSize, CapsuleRot, Color, bPersistentLines, LifeTime, DepthPriority);
-	
-	//now draw lines from vertices
-	FVector Vertices[8];
-	Vertices[0] = Start + CapsuleRot.RotateVector(FVector(-HalfSize.X, -HalfSize.Y, -HalfSize.Z));	//flt
-	Vertices[1] = Start + CapsuleRot.RotateVector(FVector(-HalfSize.X, HalfSize.Y, -HalfSize.Z));	//frt
-	Vertices[2] = Start + CapsuleRot.RotateVector(FVector(-HalfSize.X, -HalfSize.Y, HalfSize.Z));	//flb
-	Vertices[3] = Start + CapsuleRot.RotateVector(FVector(-HalfSize.X, HalfSize.Y, HalfSize.Z));	//frb
-	Vertices[4] = Start + CapsuleRot.RotateVector(FVector(HalfSize.X, -HalfSize.Y, -HalfSize.Z));	//blt
-	Vertices[5] = Start + CapsuleRot.RotateVector(FVector(HalfSize.X, HalfSize.Y, -HalfSize.Z));	//brt
-	Vertices[6] = Start + CapsuleRot.RotateVector(FVector(HalfSize.X, -HalfSize.Y, HalfSize.Z));	//blb
-	Vertices[7] = Start + CapsuleRot.RotateVector(FVector(HalfSize.X, HalfSize.Y, HalfSize.Z));		//brb
-	for (int32 VertexIdx = 0; VertexIdx < 8; ++VertexIdx)
-	{
-		::DrawDebugLine(InWorld, Vertices[VertexIdx], Vertices[VertexIdx] + TraceVec, Color, bPersistentLines, LifeTime, DepthPriority);
-	}
-
-	::DrawDebugBox(InWorld, End, HalfSize, CapsuleRot, Color, bPersistentLines, LifeTime, DepthPriority);
-#endif
-}
-
-
 bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 	static const FName BoxTraceSingleName(TEXT("BoxTraceSingle"));
-
-	FCollisionQueryParams Params(BoxTraceSingleName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
+	FCollisionQueryParams Params = ConfigureCollisionParams(BoxTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World ? World->SweepSingleByChannel(OutHit, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHit.bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			::DrawDebugSweptBox(World, Start, OutHit.Location, Orientation, HalfSize, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugSweptBox(World, OutHit.Location, End, Orientation, HalfSize, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugSweptBox(World, Start, End, Orientation, HalfSize, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugBoxTraceSingle(World, Start, End, HalfSize, Orientation, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -1403,65 +1213,13 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 	static const FName BoxTraceMultiName(TEXT("BoxTraceMulti"));
-
-	FCollisionQueryParams Params(BoxTraceMultiName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
+	FCollisionQueryParams Params = ConfigureCollisionParams(BoxTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World ? World->SweepMultiByChannel(OutHits, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHits.Last().bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHits.Last().Location;
-			::DrawDebugSweptBox(World, Start, BlockingHitPoint, Orientation, HalfSize, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugSweptBox(World, BlockingHitPoint, End, Orientation, HalfSize, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugSweptBox(World, Start, End, Orientation, HalfSize, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-
-		// draw hits
-		for (int32 HitIdx = 0; HitIdx < OutHits.Num(); ++HitIdx)
-		{
-			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugBoxTraceMulti(World, Start, End, HalfSize, Orientation, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -1472,58 +1230,13 @@ bool UKismetSystemLibrary::SphereTraceSingle(UObject* WorldContextObject, const 
 	ECollisionChannel CollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceChannel);
 
 	static const FName SphereTraceSingleName(TEXT("SphereTraceSingle"));
-
-	FCollisionQueryParams Params(SphereTraceSingleName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
+	FCollisionQueryParams Params = ConfigureCollisionParams(SphereTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, CollisionChannel, FCollisionShape::MakeSphere(Radius), Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHit.bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			::DrawDebugSweptSphere(World, Start, OutHit.Location, Radius, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugSweptSphere(World, OutHit.Location, End, Radius, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugSweptSphere(World, Start, End, Radius, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugSphereTraceSingle(World, Start, End, Radius, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -1534,65 +1247,13 @@ bool UKismetSystemLibrary::SphereTraceMulti(UObject* WorldContextObject, const F
 	ECollisionChannel CollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceChannel);
 
 	static const FName SphereTraceMultiName(TEXT("SphereTraceMulti"));
-
-	FCollisionQueryParams Params(SphereTraceMultiName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
+	FCollisionQueryParams Params = ConfigureCollisionParams(SphereTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World->SweepMultiByChannel(OutHits, Start, End, FQuat::Identity, CollisionChannel, FCollisionShape::MakeSphere(Radius), Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHits.Last().bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHits.Last().Location;
-			::DrawDebugSweptSphere(World, Start, BlockingHitPoint, Radius, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugSweptSphere(World, BlockingHitPoint, End, Radius, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugSweptSphere(World, Start, End, Radius, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-
-		// draw hits
-		for (int32 HitIdx = 0; HitIdx < OutHits.Num(); ++HitIdx)
-		{
-			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugSphereTraceMulti(World, Start, End, Radius, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -1603,64 +1264,13 @@ bool UKismetSystemLibrary::CapsuleTraceSingle(UObject* WorldContextObject, const
 	ECollisionChannel CollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceChannel);
 
 	static const FName CapsuleTraceSingleName(TEXT("CapsuleTraceSingle"));
-
-	FCollisionQueryParams Params(CapsuleTraceSingleName, bTraceComplex);
-	Params.AddIgnoredActors(ActorsToIgnore);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
+	FCollisionQueryParams Params = ConfigureCollisionParams(CapsuleTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, CollisionChannel, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHit.bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			::DrawDebugCapsule(World, Start, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugCapsule(World, OutHit.Location, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, Start, OutHit.Location, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
-
-			::DrawDebugCapsule(World, End, HalfHeight, Radius, FQuat::Identity, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, OutHit.Location, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugCapsule(World, Start, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugCapsule(World, End, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugCapsuleTraceSingle(World, Start, End, Radius, HalfHeight, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -1672,71 +1282,13 @@ bool UKismetSystemLibrary::CapsuleTraceMulti(UObject* WorldContextObject, const 
 	ECollisionChannel CollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceChannel);
 
 	static const FName CapsuleTraceMultiName(TEXT("CapsuleTraceMulti"));
-
-	FCollisionQueryParams Params(CapsuleTraceMultiName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
+	FCollisionQueryParams Params = ConfigureCollisionParams(CapsuleTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World->SweepMultiByChannel(OutHits, Start, End, FQuat::Identity, CollisionChannel, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHits.Last().bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHits.Last().Location;
-			::DrawDebugCapsule(World, Start, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugCapsule(World, BlockingHitPoint, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, Start, BlockingHitPoint, TraceColor.ToFColor(true), bPersistent, LifeTime);
-
-			::DrawDebugCapsule(World, End, HalfHeight, Radius, FQuat::Identity, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, BlockingHitPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugCapsule(World, Start, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugCapsule(World, End, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-
-		// draw hits
-		for (int32 HitIdx = 0; HitIdx < OutHits.Num(); ++HitIdx)
-		{
-			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugCapsuleTraceMulti(World, Start, End, Radius, HalfHeight, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;	
@@ -1745,59 +1297,10 @@ bool UKismetSystemLibrary::CapsuleTraceMulti(UObject* WorldContextObject, const 
 /** Object Query functions **/
 bool UKismetSystemLibrary::LineTraceSingleForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
-	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
+	static const FName LineTraceSingleName(TEXT("LineTraceSingleForObjects"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(LineTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
-	for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
-	{
-		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
-	}
-
-	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
-
-	FCollisionQueryParams Params(LineTraceSingleName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
-
-	FCollisionObjectQueryParams ObjectParams;
-	for (auto Iter = CollisionObjectTraces.CreateConstIterator(); Iter; ++Iter)
-	{
-		const ECollisionChannel & Channel = (*Iter);
-		if (FCollisionObjectQueryParams::IsValidObjectQuery(Channel))
-		{
-			ObjectParams.AddObjectTypesToQuery(Channel);
-		}
-		else
-		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("%d isn't valid object type"), (int32)Channel);
-		}
-	}
-
+	FCollisionObjectQueryParams ObjectParams = ConfigureCollisionObjectParams(ObjectTypes);
 	if (ObjectParams.IsValid() == false)
 	{
 		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Invalid object types"));
@@ -1808,25 +1311,7 @@ bool UKismetSystemLibrary::LineTraceSingleForObjects(UObject* WorldContextObject
 	bool const bHit = World->LineTraceSingleByObjectType(OutHit, Start, End, ObjectParams, Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		// @fixme, draw line with thickness = 2.f?
-		if (bHit && OutHit.bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			::DrawDebugLine(World, Start, OutHit.ImpactPoint, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, OutHit.ImpactPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugLineTraceSingle(World, Start, End, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -1834,59 +1319,10 @@ bool UKismetSystemLibrary::LineTraceSingleForObjects(UObject* WorldContextObject
 
 bool UKismetSystemLibrary::LineTraceMultiForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
-	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
+	static const FName LineTraceMultiName(TEXT("LineTraceMultiForObjects"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(LineTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
-	for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
-	{
-		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
-	}
-
-	static const FName LineTraceMultiName(TEXT("LineTraceMulti"));
-
-	FCollisionQueryParams Params(LineTraceMultiName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
-
-	FCollisionObjectQueryParams ObjectParams;
-	for (auto Iter = CollisionObjectTraces.CreateConstIterator(); Iter; ++Iter)
-	{
-		const ECollisionChannel & Channel = (*Iter);
-		if (FCollisionObjectQueryParams::IsValidObjectQuery(Channel))
-		{
-			ObjectParams.AddObjectTypesToQuery(Channel);
-		}
-		else
-		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("%d isn't valid object type"), (int32)Channel);
-		}
-	}
-
+	FCollisionObjectQueryParams ObjectParams = ConfigureCollisionObjectParams(ObjectTypes);
 	if (ObjectParams.IsValid() == false)
 	{
 		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Invalid object types"));
@@ -1897,32 +1333,7 @@ bool UKismetSystemLibrary::LineTraceMultiForObjects(UObject* WorldContextObject,
 	bool const bHit = World->LineTraceMultiByObjectType(OutHits, Start, End, ObjectParams, Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		// @fixme, draw line with thickness = 2.f?
-		if (bHit && OutHits.Last().bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHits.Last().ImpactPoint;
-			::DrawDebugLine(World, Start, BlockingHitPoint, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, BlockingHitPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-
-		// draw hits
-		for (int32 HitIdx = 0; HitIdx < OutHits.Num(); ++HitIdx)
-		{
-			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugLineTraceMulti(World, Start, End, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -1930,60 +1341,10 @@ bool UKismetSystemLibrary::LineTraceMultiForObjects(UObject* WorldContextObject,
 
 bool UKismetSystemLibrary::SphereTraceSingleForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
-	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
+	static const FName SphereTraceSingleName(TEXT("SphereTraceSingleForObjects"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(SphereTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
-	for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
-	{
-		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
-	}
-
-	static const FName SphereTraceSingleName(TEXT("SphereTraceSingle"));
-
-	FCollisionQueryParams Params(SphereTraceSingleName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
-
-	FCollisionObjectQueryParams ObjectParams;
-	for (auto Iter = CollisionObjectTraces.CreateConstIterator(); Iter; ++Iter)
-	{
-		const ECollisionChannel & Channel = (*Iter);
-		if (FCollisionObjectQueryParams::IsValidObjectQuery(Channel))
-		{
-			ObjectParams.AddObjectTypesToQuery(Channel);
-		}
-		else
-		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("%d isn't valid object type"), (int32)Channel);
-		}
-	}
-
+	FCollisionObjectQueryParams ObjectParams = ConfigureCollisionObjectParams(ObjectTypes);
 	if (ObjectParams.IsValid() == false)
 	{
 		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Invalid object types"));
@@ -1994,24 +1355,7 @@ bool UKismetSystemLibrary::SphereTraceSingleForObjects(UObject* WorldContextObje
 	bool const bHit = World->SweepSingleByObjectType(OutHit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Radius), Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHit.bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			::DrawDebugSweptSphere(World, Start, OutHit.Location, Radius, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugSweptSphere(World, OutHit.Location, End, Radius, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugSweptSphere(World, Start, End, Radius, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugSphereTraceSingle(World, Start, End, Radius, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -2019,59 +1363,10 @@ bool UKismetSystemLibrary::SphereTraceSingleForObjects(UObject* WorldContextObje
 
 bool UKismetSystemLibrary::SphereTraceMultiForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
-	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
+	static const FName SphereTraceMultiName(TEXT("SphereTraceMultiForObjects"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(SphereTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
-	for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
-	{
-		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
-	}
-
-	static const FName SphereTraceMultiName(TEXT("SphereTraceMulti"));
-
-	FCollisionQueryParams Params(SphereTraceMultiName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
-
-	FCollisionObjectQueryParams ObjectParams;
-	for (auto Iter = CollisionObjectTraces.CreateConstIterator(); Iter; ++Iter)
-	{
-		const ECollisionChannel & Channel = (*Iter);
-		if (FCollisionObjectQueryParams::IsValidObjectQuery(Channel))
-		{
-			ObjectParams.AddObjectTypesToQuery(Channel);
-		}
-		else
-		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("%d isn't valid object type"), (int32)Channel);
-		}
-	}
-
+	FCollisionObjectQueryParams ObjectParams = ConfigureCollisionObjectParams(ObjectTypes);
 	if (ObjectParams.IsValid() == false)
 	{
 		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Invalid object types"));
@@ -2082,31 +1377,7 @@ bool UKismetSystemLibrary::SphereTraceMultiForObjects(UObject* WorldContextObjec
 	bool const bHit = World->SweepMultiByObjectType(OutHits, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Radius), Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHits.Last().bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHits.Last().Location;
-			::DrawDebugSweptSphere(World, Start, BlockingHitPoint, Radius, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugSweptSphere(World, BlockingHitPoint, End, Radius, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugSweptSphere(World, Start, End, Radius, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-
-		// draw hits
-		for (int32 HitIdx = 0; HitIdx < OutHits.Num(); ++HitIdx)
-		{
-			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugSphereTraceMulti(World, Start, End, Radius, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -2114,59 +1385,13 @@ bool UKismetSystemLibrary::SphereTraceMultiForObjects(UObject* WorldContextObjec
 
 bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	static const FName BoxTraceSingleName(TEXT("BoxTraceSingle"));
+	static const FName BoxTraceSingleName(TEXT("BoxTraceSingleForObjects"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(BoxTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
 	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
 	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
 
-	for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
-	{
-		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
-	}
-
-	FCollisionQueryParams Params(BoxTraceSingleName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
-
-	FCollisionObjectQueryParams ObjectParams;
-	for (auto Iter = CollisionObjectTraces.CreateConstIterator(); Iter; ++Iter)
-	{
-		const ECollisionChannel & Channel = (*Iter);
-		if (FCollisionObjectQueryParams::IsValidObjectQuery(Channel))
-		{
-			ObjectParams.AddObjectTypesToQuery(Channel);
-		}
-		else
-		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("%d isn't valid object type"), (int32)Channel);
-		}
-	}
-
+	FCollisionObjectQueryParams ObjectParams = ConfigureCollisionObjectParams(ObjectTypes);
 	if (ObjectParams.IsValid() == false)
 	{
 		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Invalid object types"));
@@ -2177,24 +1402,7 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 	bool const bHit = World ? World->SweepSingleByObjectType(OutHit, Start, End, Orientation.Quaternion(), ObjectParams, FCollisionShape::MakeBox(HalfSize), Params) : false;
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHit.bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHit.Location;
-			::DrawDebugSweptBox(World, Start, BlockingHitPoint, Orientation, HalfSize, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugSweptBox(World, BlockingHitPoint, End, Orientation, HalfSize, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugSweptBox(World, Start, End, Orientation, HalfSize, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugBoxTraceSingle(World, Start, End, HalfSize, Orientation, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -2202,59 +1410,10 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 
 bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, const TArray<TEnumAsByte<	EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	static const FName BoxTraceMultiName(TEXT("BoxTraceMulti"));
+	static const FName BoxTraceMultiName(TEXT("BoxTraceMultiForObjects"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(BoxTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
-	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
-	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
-
-	for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
-	{
-		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
-	}
-
-	FCollisionQueryParams Params(BoxTraceMultiName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
-
-	FCollisionObjectQueryParams ObjectParams;
-	for (auto Iter = CollisionObjectTraces.CreateConstIterator(); Iter; ++Iter)
-	{
-		const ECollisionChannel & Channel = (*Iter);
-		if (FCollisionObjectQueryParams::IsValidObjectQuery(Channel))
-		{
-			ObjectParams.AddObjectTypesToQuery(Channel);
-		}
-		else
-		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("%d isn't valid object type"), (int32)Channel);
-		}
-	}
-
+	FCollisionObjectQueryParams ObjectParams = ConfigureCollisionObjectParams(ObjectTypes);
 	if (ObjectParams.IsValid() == false)
 	{
 		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Invalid object types"));
@@ -2265,31 +1424,7 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 	bool const bHit = World ? World->SweepMultiByObjectType(OutHits, Start, End, Orientation.Quaternion(), ObjectParams, FCollisionShape::MakeBox(HalfSize), Params) : false;
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHits.Last().bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHits.Last().Location;
-			::DrawDebugSweptBox(World, Start, BlockingHitPoint, Orientation, HalfSize, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugSweptBox(World, BlockingHitPoint, End, Orientation, HalfSize, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugSweptBox(World, Start, End, Orientation, HalfSize, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-
-		// draw hits
-		for (int32 HitIdx = 0; HitIdx < OutHits.Num(); ++HitIdx)
-		{
-			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugBoxTraceMulti(World, Start, End, HalfSize, Orientation, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -2297,59 +1432,10 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 
 bool UKismetSystemLibrary::CapsuleTraceSingleForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, float HalfHeight, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
-	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
+	static const FName CapsuleTraceSingleName(TEXT("CapsuleTraceSingleForObjects"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(CapsuleTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
-	for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
-	{
-		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
-	}
-
-	static const FName CapsuleTraceSingleName(TEXT("CapsuleTraceSingle"));
-
-	FCollisionQueryParams Params(CapsuleTraceSingleName, bTraceComplex);
-	Params.AddIgnoredActors(ActorsToIgnore);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
-
-	FCollisionObjectQueryParams ObjectParams;
-	for (auto Iter = CollisionObjectTraces.CreateConstIterator(); Iter; ++Iter)
-	{
-		const ECollisionChannel & Channel = (*Iter);
-		if (FCollisionObjectQueryParams::IsValidObjectQuery(Channel))
-		{
-			ObjectParams.AddObjectTypesToQuery(Channel);
-		}
-		else
-		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("%d isn't valid object type"), (int32)Channel);
-		}
-	}
-
+	FCollisionObjectQueryParams ObjectParams = ConfigureCollisionObjectParams(ObjectTypes);
 	if (ObjectParams.IsValid() == false)
 	{
 		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Invalid object types"));
@@ -2360,30 +1446,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingleForObjects(UObject* WorldContextObj
 	bool const bHit = World->SweepSingleByObjectType(OutHit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHit.bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			::DrawDebugCapsule(World, Start, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugCapsule(World, OutHit.Location, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, Start, OutHit.Location, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
-
-			::DrawDebugCapsule(World, End, HalfHeight, Radius, FQuat::Identity, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, OutHit.Location, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugCapsule(World, Start, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugCapsule(World, End, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugCapsuleTraceSingle(World, Start, End, Radius, HalfHeight, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
@@ -2391,59 +1454,10 @@ bool UKismetSystemLibrary::CapsuleTraceSingleForObjects(UObject* WorldContextObj
 
 bool UKismetSystemLibrary::CapsuleTraceMultiForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, float HalfHeight, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
-	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
+	static const FName CapsuleTraceMultiName(TEXT("CapsuleTraceMultiForObjects"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(CapsuleTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
 
-	for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
-	{
-		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
-	}
-	
-	static const FName CapsuleTraceMultiName(TEXT("CapsuleTraceMulti"));
-
-	FCollisionQueryParams Params(CapsuleTraceMultiName, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bReturnFaceIndex = !UPhysicsSettings::Get()->bSuppressFaceRemapTable; // Ask for face index, as long as we didn't disable globally
-	Params.bTraceAsyncScene = true;
-	Params.AddIgnoredActors(ActorsToIgnore);
-	if (bIgnoreSelf)
-	{
-		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
-		if (IgnoreActor)
-		{
-			Params.AddIgnoredActor(IgnoreActor);
-		}
-		else
-		{
-			// find owner
-			UObject* CurrentObject = WorldContextObject;
-			while (CurrentObject)
-			{
-				CurrentObject = CurrentObject->GetOuter();
-				IgnoreActor = Cast<AActor>(CurrentObject);
-				if (IgnoreActor)
-				{
-					Params.AddIgnoredActor(IgnoreActor);
-					break;
-				}
-			}
-		}
-	}
-
-	FCollisionObjectQueryParams ObjectParams;
-	for (auto Iter = CollisionObjectTraces.CreateConstIterator(); Iter; ++Iter)
-	{
-		const ECollisionChannel & Channel = (*Iter);
-		if (FCollisionObjectQueryParams::IsValidObjectQuery(Channel))
-		{
-			ObjectParams.AddObjectTypesToQuery(Channel);
-		}
-		else
-		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("%d isn't valid object type"), (int32)Channel);
-		}
-	}
-
+	FCollisionObjectQueryParams ObjectParams = ConfigureCollisionObjectParams(ObjectTypes);
 	if (ObjectParams.IsValid() == false)
 	{
 		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Invalid object types"));
@@ -2454,41 +1468,134 @@ bool UKismetSystemLibrary::CapsuleTraceMultiForObjects(UObject* WorldContextObje
 	bool const bHit = World->SweepMultiByObjectType(OutHits, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawTime : 0.f;
-
-		if (bHit && OutHits.Last().bBlockingHit)
-		{
-			// Red up to the blocking hit, green thereafter
-			FVector const BlockingHitPoint = OutHits.Last().Location;
-			::DrawDebugCapsule(World, Start, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugCapsule(World, BlockingHitPoint, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, Start, BlockingHitPoint, TraceColor.ToFColor(true), bPersistent, LifeTime);
-
-			::DrawDebugCapsule(World, End, HalfHeight, Radius, FQuat::Identity, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, BlockingHitPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
-		}
-		else
-		{
-			// no hit means all red
-			::DrawDebugCapsule(World, Start, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugCapsule(World, End, HalfHeight, Radius, FQuat::Identity, TraceColor.ToFColor(true), bPersistent, LifeTime);
-			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
-		}
-
-		// draw hits
-		for (int32 HitIdx = 0; HitIdx < OutHits.Num(); ++HitIdx)
-		{
-			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
-		}
-	}
+	DrawDebugCapsuleTraceMulti(World, Start, End, Radius, HalfHeight, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
 #endif
 
 	return bHit;
 }
+
+
+bool UKismetSystemLibrary::LineTraceSingleByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	static const FName LineTraceSingleName(TEXT("LineTraceSingleByProfile"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(LineTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	bool const bHit = World->LineTraceSingleByProfile(OutHit, Start, End, ProfileName, Params);
+
+#if ENABLE_DRAW_DEBUG
+	DrawDebugLineTraceSingle(World, Start, End, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
+#endif
+
+	return bHit;
+}
+
+bool UKismetSystemLibrary::LineTraceMultiByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	static const FName LineTraceMultiName(TEXT("LineTraceMultiByProfile"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(LineTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	bool const bHit = World->LineTraceMultiByProfile(OutHits, Start, End, ProfileName, Params);
+
+#if ENABLE_DRAW_DEBUG
+	DrawDebugLineTraceMulti(World, Start, End, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
+#endif
+
+	return bHit;
+}
+
+bool UKismetSystemLibrary::BoxTraceSingleByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	static const FName BoxTraceSingleName(TEXT("BoxTraceSingleByProfile"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(BoxTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	bool const bHit = World ? World->SweepSingleByProfile(OutHit, Start, End, Orientation.Quaternion(), ProfileName, FCollisionShape::MakeBox(HalfSize), Params) : false;
+
+#if ENABLE_DRAW_DEBUG
+	DrawDebugBoxTraceSingle(World, Start, End, HalfSize, Orientation, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
+#endif
+
+	return bHit;
+}
+
+bool UKismetSystemLibrary::BoxTraceMultiByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	static const FName BoxTraceMultiName(TEXT("BoxTraceMultiByProfile"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(BoxTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	bool const bHit = World ? World->SweepMultiByProfile(OutHits, Start, End, Orientation.Quaternion(), ProfileName, FCollisionShape::MakeBox(HalfSize), Params) : false;
+
+#if ENABLE_DRAW_DEBUG
+	DrawDebugBoxTraceMulti(World, Start, End, HalfSize, Orientation, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
+#endif
+
+	return bHit;
+}
+
+bool UKismetSystemLibrary::SphereTraceSingleByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	static const FName SphereTraceSingleName(TEXT("SphereTraceSingleByProfile"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(SphereTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	bool const bHit = World->SweepSingleByProfile(OutHit, Start, End, FQuat::Identity, ProfileName, FCollisionShape::MakeSphere(Radius), Params);
+
+#if ENABLE_DRAW_DEBUG
+	DrawDebugSphereTraceSingle(World, Start, End, Radius, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
+#endif
+
+	return bHit;
+}
+
+bool UKismetSystemLibrary::SphereTraceMultiByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	static const FName SphereTraceMultiName(TEXT("SphereTraceMultiByProfile"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(SphereTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	bool const bHit = World->SweepMultiByProfile(OutHits, Start, End, FQuat::Identity, ProfileName, FCollisionShape::MakeSphere(Radius), Params);
+
+#if ENABLE_DRAW_DEBUG
+	DrawDebugSphereTraceMulti(World, Start, End, Radius, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
+#endif
+
+	return bHit;
+}
+
+bool UKismetSystemLibrary::CapsuleTraceSingleByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, float HalfHeight, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	static const FName CapsuleTraceSingleName(TEXT("CapsuleTraceSingleByProfile"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(CapsuleTraceSingleName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	bool const bHit = World->SweepSingleByProfile(OutHit, Start, End, FQuat::Identity, ProfileName, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
+
+#if ENABLE_DRAW_DEBUG
+	DrawDebugCapsuleTraceSingle(World, Start, End, Radius, HalfHeight, DrawDebugType, bHit, OutHit, TraceColor, TraceHitColor, DrawTime);
+#endif
+
+	return bHit;
+}
+
+
+bool UKismetSystemLibrary::CapsuleTraceMultiByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, float HalfHeight, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
+{
+	static const FName CapsuleTraceMultiName(TEXT("CapsuleTraceMultiByProfile"));
+	FCollisionQueryParams Params = ConfigureCollisionParams(CapsuleTraceMultiName, bTraceComplex, ActorsToIgnore, bIgnoreSelf, WorldContextObject);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	bool const bHit = World->SweepMultiByProfile(OutHits, Start, End, FQuat::Identity, ProfileName, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
+
+#if ENABLE_DRAW_DEBUG
+	DrawDebugCapsuleTraceMulti(World, Start, End, Radius, HalfHeight, DrawDebugType, bHit, OutHits, TraceColor, TraceHitColor, DrawTime);
+#endif
+
+	return bHit;
+}
+
 
 /** Draw a debug line */
 void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, FLinearColor Color, float LifeTime, float Thickness)
@@ -3154,6 +2261,11 @@ TArray<FString> UKismetSystemLibrary::GetPreferredLanguages()
 	return FPlatformMisc::GetPreferredLanguages();
 }
 
+FString UKismetSystemLibrary::GetDefaultLocale()
+{
+	return FPlatformMisc::GetDefaultLocale();
+}
+
 FString UKismetSystemLibrary::GetLocalCurrencyCode()
 {
 	return FPlatformMisc::GetLocalCurrencyCode();
@@ -3164,13 +2276,14 @@ FString UKismetSystemLibrary::GetLocalCurrencySymbol()
 	return FPlatformMisc::GetLocalCurrencySymbol();
 }
 
-struct FLoadAssetActionBase : public FPendingLatentAction, public FGCObject
+struct FLoadAssetActionBase : public FPendingLatentAction
 {
 	// @TODO: it would be good to have static/global manager? 
 
 public:
 	FStringAssetReference AssetReference;
 	FStreamableManager StreamableManager;
+	TSharedPtr<FStreamableHandle> Handle;
 	FName ExecutionFunction;
 	int32 OutputLink;
 	FWeakObjectPtr CallbackTarget;
@@ -3183,17 +2296,20 @@ public:
 		, OutputLink(InLatentInfo.Linkage)
 		, CallbackTarget(InLatentInfo.CallbackTarget)
 	{
-		StreamableManager.SimpleAsyncLoad(AssetReference);
+		Handle = StreamableManager.RequestAsyncLoad(AssetReference);
 	}
 
 	virtual ~FLoadAssetActionBase()
 	{
-		StreamableManager.Unload(AssetReference);
+		if (Handle.IsValid())
+		{
+			Handle->ReleaseHandle();
+		}
 	}
 
 	virtual void UpdateOperation(FLatentResponse& Response) override
 	{
-		const bool bLoaded = StreamableManager.IsAsyncLoadComplete(AssetReference);
+		const bool bLoaded = !Handle.IsValid() || Handle->HasLoadCompleted() || Handle->WasCanceled();
 		if (bLoaded)
 		{
 			OnLoaded();
@@ -3207,11 +2323,6 @@ public:
 		return FString::Printf(TEXT("Load Asset Action Base: %s"), *AssetReference.ToString());
 	}
 #endif
-
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
-	{
-		StreamableManager.AddStructReferencedObjects(Collector);
-	}
 };
 
 void UKismetSystemLibrary::LoadAsset(UObject* WorldContextObject, const TAssetPtr<UObject>& Asset, UKismetSystemLibrary::FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo)

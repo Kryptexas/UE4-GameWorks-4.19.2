@@ -9,7 +9,7 @@ FReferenceSkeletonModifier::~FReferenceSkeletonModifier()
 	RefSkeleton.RebuildRefSkeleton(Skeleton, true);
 }
 
-void FReferenceSkeletonModifier::UpdateRefPoseTransform(const int32& BoneIndex, const FTransform& BonePose)
+void FReferenceSkeletonModifier::UpdateRefPoseTransform(const int32 BoneIndex, const FTransform& BonePose)
 {
 	RefSkeleton.UpdateRefPoseTransform(BoneIndex, BonePose);
 }
@@ -72,6 +72,21 @@ FTransform GetComponentSpaceTransform(TArray<uint8>& ComponentSpaceFlags, TArray
 	return This;
 }
 
+int32 FReferenceSkeleton::GetRawSourceBoneIndex(const USkeleton* Skeleton, const FName& SourceBoneName) const
+{
+	for (const FVirtualBone& VB : Skeleton->GetVirtualBones())
+	{
+		//Is our source another virtual bone
+		if (VB.VirtualBoneName == SourceBoneName)
+		{
+			//return our source virtual bones target, it is the same transform
+			//but it exists in the raw bone array
+			return FindBoneIndex(VB.TargetBoneName);
+		}
+	}
+	return FindBoneIndex(SourceBoneName);
+}
+
 void FReferenceSkeleton::RebuildRefSkeleton(const USkeleton* Skeleton, bool bRebuildNameMap)
 {
 	if (bRebuildNameMap)
@@ -101,6 +116,7 @@ void FReferenceSkeleton::RebuildRefSkeleton(const USkeleton* Skeleton, bool bReb
 			const int32 ActualIndex = VirtualBoneIdx + RawRefBoneInfo.Num();
 			const FVirtualBone& VB = Skeleton->GetVirtualBones()[VirtualBoneIdx];
 
+			const int32 SourceIndex = GetRawSourceBoneIndex(Skeleton, VB.SourceBoneName);
 			const int32 ParentIndex = FindBoneIndex(VB.SourceBoneName);
 			const int32 TargetIndex = FindBoneIndex(VB.TargetBoneName);
 			if(ParentIndex != INDEX_NONE && TargetIndex != INDEX_NONE)
@@ -108,14 +124,14 @@ void FReferenceSkeleton::RebuildRefSkeleton(const USkeleton* Skeleton, bool bReb
 				FinalRefBoneInfo.Add(FMeshBoneInfo(VB.VirtualBoneName, VB.VirtualBoneName.ToString(), ParentIndex));
 
 				const FTransform TargetCS = GetComponentSpaceTransform(ComponentSpaceFlags, ComponentSpaceTransforms, *this, TargetIndex);
-				const FTransform SourceCS = GetComponentSpaceTransform(ComponentSpaceFlags, ComponentSpaceTransforms, *this, ParentIndex);
+				const FTransform SourceCS = GetComponentSpaceTransform(ComponentSpaceFlags, ComponentSpaceTransforms, *this, SourceIndex);
 
 				FTransform VBTransform = TargetCS.GetRelativeTransform(SourceCS);
 
 				const int32 NewBoneIndex = FinalRefBonePose.Add(VBTransform);
 				FinalNameToIndexMap.Add(VB.VirtualBoneName) = NewBoneIndex;
 				RequiredVirtualBones.Add(NewBoneIndex);
-				UsedVirtualBoneData.Add(FVirtualBoneRefData(NewBoneIndex, ParentIndex, TargetIndex));
+				UsedVirtualBoneData.Add(FVirtualBoneRefData(NewBoneIndex, SourceIndex, TargetIndex));
 			}
 		}
 	}
@@ -237,6 +253,28 @@ SIZE_T FReferenceSkeleton::GetDataSize() const
 	ResourceSize += FinalNameToIndexMap.GetAllocatedSize();
 
 	return ResourceSize;
+}
+
+void FReferenceSkeleton::EnsureParentExists(TArray<FBoneIndexType>& InOutBoneArray) const
+{
+	for (int32 BoneIndex = 0; BoneIndex < InOutBoneArray.Num(); ++BoneIndex)
+	{
+		const int32 ChildIndex = InOutBoneArray[BoneIndex];
+		// root doesn't have parent
+		if (ChildIndex > 0)
+		{
+			// if you don't have parent of the input array, make sure to insert in the current index
+			const int32 ParentIndex = GetParentIndex(ChildIndex);
+			if (InOutBoneArray.Find(ParentIndex) == INDEX_NONE)
+			{
+				// Will check this bones parent later in the loop
+				InOutBoneArray.Add(ParentIndex);
+			}
+		}
+	}
+	
+	// sort it now
+	InOutBoneArray.Sort();
 }
 
 FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Title: Android OpenGL ES 3.1 Mobile Renderer
-Description:Setting up your UE4 Android project to work with the OpenGL ES 3.1 mobile render
+﻿INTSourceChangelist:3188564
+Title: 안드로이드 OpenGL ES 3.1 모바일 렌더러
+Description:UE4 안드로이드 프로젝트에서 OpenGL ES 3.1 모바일 렌더러를 사용하도록 구성하는 방법입니다.
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/OpenGLES31MobileRenderer/
-Availability:Docs
+Availability:Public
 version:4.12
 Parent:Platforms/Android
 tags:Mobile
@@ -17,84 +17,84 @@ Related:Programming/Development/BuildingUnrealEngine
 
 [TOC(start:2 end:3)]
 
-While Unreal Engine 4 (UE4) has long supported many OpenGL ES 3.0 and 3.1 features on Android, you can now specifically target ES 3.1 when building a UE4 Android project. This brings feature parity with Metal and Vulkan to higher-end Android devices and gives you access to 16 Texture samplers as well as improved performance through the use of uniform buffers. In the following document we will take a look how you can setup your UE4 project to use OpenGL ES 3.1 when run on an Android device that supports it.
+언리얼 엔진 4 (UE4) 가 안드로이드에서 여러 OpenGL ES 3.0 와 3.1 기능을 지원한 것은 오래된 일이지만, 이제 UE4 안드로이드 프로젝트를 빌드할 때 ES 3.1 을 대상으로 지정할 수 있습니다. 그러면 고사양 안드로이드 디바이스에 Metal 및 Vulkan 급 기능을 지원하도록 해 주며, 텍스처 샘플러도 16 개까지 접근할 수 있고, 유니폼 버퍼 사용을 통한 퍼포먼스 향상도 가능합니다. 다음 문서에서는 OpenGL ES 3.1 을 지원하는 안드로이드 디바이스에서 실행되는 UE4 프로젝트를 구성하는 법을 살펴보겠습니다.
 
 
-## Enabling the OpenGL ES 3.1 UE4 Editor Preview 
+## OpenGL ES 3.1 UE4 에디터 미리보기 켜기
 
-In order to preview what OpenGL ES 3.1 will look like in the UE4 Editor, you will need to first enable it by doing the following:
+UE4 에디터에서 OpenGL ES 3.1 이 어때 보이는지 미리보기 위해서는, 먼저 다음과 같은 방법으로 미리보기를 켜야 합니다:
 
-1. From the **Main Toolbar**, go to **Edit** and then select the **Editor Preferences** option.
+1. **메인 툴바** 에서 **편집** 으로 간 뒤 **에디터 개인설정** 옵션을 선택합니다.
 
 	![](OGL3_01.png)
 
-1. Under the **General** section, locate the **Experimental** category and then look for the **Rendering** section. Click on the checkbox next to **Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor** to enable the option to preview OpenGL ES 3.1. 
+1. **General** (일반) 섹션 아래 **Experimental** (실험단계) 카테고리를 선택한 뒤 **Rendering** (렌더링) 섹션을 찾습니다. **Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor** (에디터에서 Metal/Vulkan/고사양 모바일 프리뷰 렌더링 레벨 켜기) 옵션을 체크하여 OpenGL ES 3.1 미리보기를 켭니다.
 
 	[REGION:lightbox]
 	[![](Platforms\Android\VulkanMobileRenderer\VMP_03.png)(w:447 h:308)](Platforms\Android\VulkanMobileRenderer\VMP_03.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
 	[region:note]
-	For a more detailed description on how to enable Metal/Vulkan/High-End previewing in the UE4 Editor, check out the [Enabling Vulkan Preview Rendering in Editor](Platforms/Android/VulkanMobileRenderer/#enablingvulkanpreviewrenderingineditor) document.
+	UE4 에디터에서 Metal/Vulkan/고사양 미리보기를 켜는 방법에 대한 상세 설명은, [](Platforms/Android/VulkanMobileRenderer) 문서를 참고하세요.
 	[/region]
 
-1. Then on the **Main Tool Bar** click on the **Settings** option and go to **Preview Rendering Level** option and select the **High-End Mobile / Metal** option.
+1. 그 후 **메인 툴바** 에서 **세팅** 옵션을 선택한 뒤 **Preview Rendering Level** (프리뷰 렌더링 레벨) 옵션으로 가 **High-End Mobile / Metal** (고사양 모바일 / Metal) 옵션을 선택합니다.
 
 	[REGION:lightbox]
 	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)(w:391)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_05.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-1. Now if you look at the lower right-hand corner of the UE4 Editor viewport, you should see the text **Feature Level: ES3_1** which means you are now previewing the level using OpenGL ES 3.1.
+1. 이제 UE4 에디터 뷰포트 우하단 구석을 보면, **피처 레벨: ES3_1** 라는 문구가 보일 것입니다. 이제 OpenGL ES 3.1 피처 세트를 사용하여 레벨을 미리보고 있다는 뜻입니다.
 
 	[REGION:lightbox]
 	[![](OGL3_02.png)(w:404)](OGL3_02.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-## Setting up a UE4 Project with OpenGL ES 3.1 Support
+## OpenGL ES 3.1 지원 UE4 프로젝트 구성
 
-To use OpenGL ES 3.1 in your UE4 Android project, you will need to make sure your UE4 project has the following options set:
+UE4 안드로이드 프로젝트에서 OpenGL ES 3.1 을 사용하려면, UE4 프로젝트에 다음과 같은 옵션이 설정되었는지 확인해 줘야 합니다:
 
 [region:warning]
-Please note that OpenGL ES 3.1 Support will only work on code based projects that are downloaded and compiled from Github. If you are not familiar with how to do this, check out the [Download Unreal Engine Source Code](GettingStarted/DownloadingUnrealEngine) for detailed instructions.
+참고로 OpenGL ES 3.1 지원은 GitHub 에서 다운로드 및 컴파일한 코드 기반 프로젝트에서만 작동합니다. 그 방법이 익숙치 않으신 경우, [](GettingStarted/DownloadingUnrealEngine) 문서를 참고하세요.
 [/region]
 
-1. Go to the **Main Toolbar**, click on the **Edit** option, and select the **Project Settings** option. 
+1. **메인 툴바** 에서 **편집** 옵션을 선택한 뒤 **프로젝트 세팅** 옵션을 선택합니다.
 
 	![](OGL3_03.png)
 
-1. From the **Project Settings** menu, go to the **Platforms** section and click on the **Android** section.
+1. **프로젝트 세팅** 메뉴에서 **플랫폼** 섹션으로 가 **Android** (안드로이드) 섹션을 클릭합니다.
 
 	[REGION:lightbox]
 	[![](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_00.png)(w:639 h:385)](Platforms\Android\VulkanMobileRenderer\VMP_Android_Settings_00.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-1. Now in the **APKPackaging** section, set the **Minimum SDK** and **Target SDK** version to **21**.
+1. 이제 **APKPackaging** (APK 패키징) 섹션에서 **Minimum SDK** (최소 SDK)와 **Target SDK** (대상 SDK) 버전을 **21** 로 설정합니다.
 
 	[REGION:lightbox]
 	[![](OGL3_04.png)(w:639 h:385)](OGL3_04.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-1. Under the **APKPackaging** section, locate the  **Build** section and make sure that the following options are checked: 
+1. **APKPackaging** (APK 패키징) 섹션 아래 **Build** (빌드) 섹션에서 다음 옵션이 체크되어 있는지 확인합니다:
 	
 	* Support armv7
 	* Support OpenGL ES3.1
@@ -104,10 +104,10 @@ Please note that OpenGL ES 3.1 Support will only work on code based projects tha
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-1. Click on the **Android SDK** section and set the **SDK API Level**  and **NDK API Level** to the following.
+1. **Android SDK** (안드로이드 SDK) 섹션을 클릭하고 **SDK API Level** 및 **NDK API Level** 을 다음과 같이 설정합니다.
 
 	* SDK API Level = matchndk
 	* NDK API Level = android-21
@@ -117,33 +117,33 @@ Please note that OpenGL ES 3.1 Support will only work on code based projects tha
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-## Building and Deploying a UE4 Project with OpenGL ES 3.1 Support
+## OpenGL ES 3.1 지원 UE4 프로젝트 빌드 및 디플로이
 
-Now that the project has been setup to work with OpenGL ES 3.1, it is now time to build the project and deploy it to a Android based Smartphone. To build a project that has OpenGL ES 3.1 support you will need to do the following:
+OpenGL ES 3.1 작업이 가능하도록 프로젝트 구성이 되었으니, 프로젝트를 빌드하여 안드로이드 기반 스마트폰에 디플로이할 차례입니다. OpenGL ES 3.1 지원 프로젝트를 빌드하는 방법은 다음과 같습니다:
 
 [region:note]
-Before beginning the next part, make sure that you have your Android Smartphone plugged into your development PC via a USB cable. Failing to do this will result in your project not being able to be deployed.
+다음 부분을 시작하기 전, 개발 PC 에 USB 케이블을 통해 안드로이드 스마트폰이 연결되었는지 확인하세요. 연결되어 있지 않으면 프로젝트가 디플로이되지 않습니다.
 [/region]
 
 
-1. Locate the **Launch** option that is on the far right-hand side of the **Toolbar** menu.  
+1. **툴바** 메뉴 오른편의 **실행** 옵션을 찾습니다.
 
 	[REGION:lightbox]
 	[![](OGL3_07.png)(w:640)](OGL3_07.png)
 	[/REGION]
 
 	[REGION:caption]
-	Click for full image.
+	클릭하면 이미지 원본을 확인합니다.
 	[/REGION]
 
-1. Click on the small white triangle that is on the left-hand side of the **Launch** button to expose the devices that your project can be launched on, and then click on your Android device to start the build process.
+1. **실행** 버튼 왼편의 작은 흰색 트라이앵글을 클릭하고 프로젝트를 실행시킬 수 있는 디바이스 창을 띄운 뒤, 안드로이드 디바이스를 클릭하면 빌드 프로세스가 시작됩니다.
 
 	![](OGL3_08.png)
 
-1. After this is completed, a build status progress bar will be displayed in the lower right-hand corner of the UE4 Editor. To see a more detailed breakdown of what is going on with the build, click on **Show Output Log**.
+1. 이 작업이 끝나면, UE4 에디터 우하단 구석에 빌드 상태 진행상황 막대가 표시됩니다. 빌드 관련 세부 작업을 확인하기 위해서는, **출력 로그 표시** 를 클릭하세요.
 
 	![](OGL3_09.png)
 

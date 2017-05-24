@@ -49,6 +49,9 @@ class ENGINE_API AGameStateBase : public AInfo
 	UPROPERTY(Transient, BlueprintReadOnly, Category=GameState)
 	TArray<APlayerState*> PlayerArray;
 
+	/** Allow game states to react to asset packages being loaded asynchronously */
+	virtual void AsyncPackageLoaded(UObject* Package) {}
+
 	/** Helper to return the default object of the GameModeBase class corresponding to this GameState. This object is not safe to modify. */
 	const AGameModeBase* GetDefaultGameMode() const;
 

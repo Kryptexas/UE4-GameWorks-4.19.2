@@ -244,14 +244,6 @@ class CookTarget : BuildCommand
                 {
                     CommandletParams += " -mapsonly";
                 }
-                if (Params.NewCook)
-                {
-                    CommandletParams += " -newcook";
-                }
-                if (Params.OldCook)
-                {
-                    CommandletParams += " -oldcook";
-                }
                 if (Params.CookAll)
                 {
                     CommandletParams += " -cookall";

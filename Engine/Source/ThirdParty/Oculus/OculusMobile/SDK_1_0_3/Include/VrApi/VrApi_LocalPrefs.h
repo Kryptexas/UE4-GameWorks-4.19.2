@@ -24,6 +24,9 @@ extern "C" {
 // Initially this is just a set of strings stored to /sdcard/.oculusprefs, but it
 // may move to some other database.
 //
+// NOTE: This requires the following permission to be set in the manifest:
+// android.permission.READ_EXTERNAL_STORAGE
+//
 // While it is here, you can easily set one or more values with adb like this:
 // adb shell "echo dev_enableCapture 1 > /sdcard/.oculusprefs"
 //
@@ -58,14 +61,7 @@ extern "C" {
 // Optional distortion file to override built-in distortion.
 #define LOCAL_PREF_VRAPI_DISTORTION_FILE_NAME			"dev_distortionFileName"		// default = ""
 
-// Debug option to draw the axis lines after warp.
-#define LOCAL_PREF_VRAPI_DRAW_CALIBRATION_LINES			"dev_drawCalibrationLines"		// "0" or "1"
-
 #define LOCAL_PREF_VRAPI_GPU_TIMINGS					"dev_gpuTimings"				// "0" = off, "1" = glBeginQuery/glEndQuery, "2" = glQueryCounter
-
-#define LOCAL_PREF_APP_DEBUG_OPTIONS					"dev_debugOptions"				// "0" or "1"
-
-#define LOCAL_PREF_VRAPI_SIMULATE_UNDOCK				"dev_simulateUndock"			// time to wait before simulating an undock event, < 0 means don't simulate
 
 // Query the in-memory preferences for a (case insensitive) key / value pair.
 // If the returned string is not defaultKeyValue, it will remain valid until the next ovr_UpdateLocalPreferences().

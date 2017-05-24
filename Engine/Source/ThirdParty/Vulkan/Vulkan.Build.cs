@@ -1,10 +1,11 @@
 ﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class Vulkan : ModuleRules
 {
-	public Vulkan(TargetInfo Target)
+	public Vulkan(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 		
@@ -27,6 +28,14 @@ public class Vulkan : ModuleRules
 
 			// For now let's always delay load the vulkan dll as not everyone has it installed
 			PublicDelayLoadDLLs.Add("vulkan-1.dll");
+		}
+		else if(Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			// no need to add the library, should be loaded via SDL
+			string RootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Linux";
+
+			PublicSystemIncludePaths.Add(RootPath + "/include");
+			PublicSystemIncludePaths.Add(RootPath + "/include/vulkan");
 		}
 	}
 }

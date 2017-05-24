@@ -3,7 +3,7 @@ using System.IO;
 
 public class OSVRInput : ModuleRules
 {
-    public OSVRInput(TargetInfo Target)
+    public OSVRInput(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePaths.AddRange(
             new string[] {

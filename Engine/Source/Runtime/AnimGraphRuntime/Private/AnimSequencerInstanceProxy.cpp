@@ -41,7 +41,7 @@ void FAnimSequencerInstanceProxy::ConstructNodes()
 
 void FAnimSequencerInstanceProxy::ClearSequencePlayerMap()
 {
-	for (TPair<int32, FSequencerPlayerState*>& Iter : SequencerToPlayerMap)
+	for (TPair<uint32, FSequencerPlayerBase*>& Iter : SequencerToPlayerMap)
 	{
 		delete Iter.Value;
 	}
@@ -60,11 +60,11 @@ FAnimSequencerInstanceProxy::~FAnimSequencerInstanceProxy()
 	ClearSequencePlayerMap();
 }
 
-void FAnimSequencerInstanceProxy::InitAnimTrack(UAnimSequenceBase* InAnimSequence, int32 SequenceId)
+void FAnimSequencerInstanceProxy::InitAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId)
 {
 	if (InAnimSequence != nullptr)
 	{
-		FSequencerPlayerState* PlayerState = FindPlayer(SequenceId);
+		FSequencerPlayerAnimSequence* PlayerState = FindPlayer<FSequencerPlayerAnimSequence>(SequenceId);
 		if (PlayerState == nullptr)
 		{
 			const bool bIsAdditive = InAnimSequence->IsValidAdditive();
@@ -82,7 +82,7 @@ void FAnimSequencerInstanceProxy::InitAnimTrack(UAnimSequenceBase* InAnimSequenc
 			BlendNode.UpdateCachedAlphas();
 
 			// add the new entry to map
-			FSequencerPlayerState* NewPlayerState = new FSequencerPlayerState();
+			FSequencerPlayerAnimSequence* NewPlayerState = new FSequencerPlayerAnimSequence();
 			NewPlayerState->PoseIndex = PoseIndex;
 			NewPlayerState->bAdditive = bIsAdditive;
 			
@@ -90,6 +90,7 @@ void FAnimSequencerInstanceProxy::InitAnimTrack(UAnimSequenceBase* InAnimSequenc
 
 			// link player to blendnode, this will let you trigger notifies and so on
 			NewPlayerState->PlayerNode.bTeleportToExplicitTime = false;
+			NewPlayerState->PlayerNode.bShouldLoop = true;
 			BlendNode.Poses[PoseIndex].SetLinkNode(&NewPlayerState->PlayerNode);
 
 			// set player state
@@ -128,19 +129,20 @@ void FAnimSequencerInstanceProxy::TermAnimTrack(int32 SequenceId)
 	}
 }*/
 
-void FAnimSequencerInstanceProxy::UpdateAnimTrack(UAnimSequenceBase* InAnimSequence, int32 SequenceId, float InPosition, float Weight, bool bFireNotifies)
+void FAnimSequencerInstanceProxy::UpdateAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId, float InPosition, float Weight, bool bFireNotifies)
 {
 	EnsureAnimTrack(InAnimSequence, SequenceId);
 
-	FSequencerPlayerState* PlayerState = FindPlayer(SequenceId);
+	FSequencerPlayerAnimSequence* PlayerState = FindPlayer<FSequencerPlayerAnimSequence>(SequenceId);
 	PlayerState->PlayerNode.ExplicitTime = InPosition;
+	// if moving to 0.f, we mark this to teleport. Otherwise, do not use explicit time
 	FAnimNode_MultiWayBlend& BlendNode = (PlayerState->bAdditive) ? AdditiveBlendNode : FullBodyBlendNode;
 	BlendNode.DesiredAlphas[PlayerState->PoseIndex] = Weight;
 }
 
-void FAnimSequencerInstanceProxy::EnsureAnimTrack(UAnimSequenceBase* InAnimSequence, int32 SequenceId)
+void FAnimSequencerInstanceProxy::EnsureAnimTrack(UAnimSequenceBase* InAnimSequence, uint32 SequenceId)
 {
-	FSequencerPlayerState* PlayerState = FindPlayer(SequenceId);
+	FSequencerPlayerAnimSequence* PlayerState = FindPlayer<FSequencerPlayerAnimSequence>(SequenceId);
 	if (!PlayerState)
 	{
 		InitAnimTrack(InAnimSequence, SequenceId);

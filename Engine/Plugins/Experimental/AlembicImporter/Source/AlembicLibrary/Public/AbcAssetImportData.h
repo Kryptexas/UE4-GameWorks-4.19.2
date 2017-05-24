@@ -10,8 +10,11 @@
 /**
 * Base class for import data and options used when importing any asset from Alembic
 */
-UCLASS(config = EditorPerProjectUserSettings, HideCategories = Object, abstract)
+UCLASS()
 class ALEMBICLIBRARY_API UAbcAssetImportData : public UAssetImportData
 {
 	GENERATED_UCLASS_BODY()
+public:
+	UPROPERTY()
+	TArray<FString> TrackNames;
 };

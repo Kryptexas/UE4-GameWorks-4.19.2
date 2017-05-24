@@ -251,6 +251,9 @@ private:
 	 */
 	TOptional<float> ForcedNextPosition;
 
+	UPROPERTY(Transient)
+	int32 DisableRootMotionCount;
+
 public:
 	/** Montage to Montage Synchronization.
 	 *
@@ -340,6 +343,11 @@ public:
 	void SetPosition(float const & InPosition) { Position = InPosition; MarkerTickRecord.Reset(); }
 	void SetPlayRate(float const & InPlayRate) { PlayRate = InPlayRate; }
 
+	// Disable RootMotion
+	void PushDisableRootMotion() { DisableRootMotionCount++; }
+	void PopDisableRootMotion() { DisableRootMotionCount--; }
+	bool IsRootMotionDisabled() const {	return DisableRootMotionCount > 0; }
+
 	/** Set the position of this animation as part of the next animation update tick. Will trigger events and notifies for the delta time. */
 	void SetNextPositionWithEvents(float InPosition) { ForcedNextPosition = InPosition; }
 
@@ -370,6 +378,7 @@ public:
 	/** Delegate function handlers
 	 */
 	ENGINE_API void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPointMarker* BranchingPointMarker);
+
 private:
 	/** Called by blueprint functions that modify the montages current position. */
 	void OnMontagePositionChanged(FName const & ToSectionName);

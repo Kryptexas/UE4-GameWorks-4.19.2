@@ -40,7 +40,7 @@ void FTakeScreenshotAfterTimeLatentAction::UpdateOperation(FLatentResponse& Resp
 			{
 				FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddRaw(this, &FTakeScreenshotAfterTimeLatentAction::OnScreenshotTakenAndCompared);
 
-				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(ScreenshotName, Options) )
+				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(nullptr, ScreenshotName, Options) )
 				{
 					IssuedScreenshotCapture = true;
 				}

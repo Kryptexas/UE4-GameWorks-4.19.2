@@ -82,11 +82,12 @@ FManifest FManifest::LoadFromFile(const FString& Filename)
 
 	TArray<TSharedPtr<FJsonValue>> ModulesArray;
 
-	GetJsonFieldValue(Result.IsGameTarget,  RootObject, TEXT("IsGameTarget"),  TEXT("{manifest root}"));
-	GetJsonFieldValue(Result.RootLocalPath, RootObject, TEXT("RootLocalPath"), TEXT("{manifest root}"));
-	GetJsonFieldValue(Result.RootBuildPath, RootObject, TEXT("RootBuildPath"), TEXT("{manifest root}"));
-	GetJsonFieldValue(Result.TargetName,    RootObject, TEXT("TargetName"),    TEXT("{manifest root}"));
-	GetJsonFieldValue(ModulesArray,         RootObject, TEXT("Modules"),       TEXT("{manifest root}"));
+	GetJsonFieldValue(Result.IsGameTarget,             RootObject, TEXT("IsGameTarget"),             TEXT("{manifest root}"));
+	GetJsonFieldValue(Result.RootLocalPath,            RootObject, TEXT("RootLocalPath"),            TEXT("{manifest root}"));
+	GetJsonFieldValue(Result.RootBuildPath,            RootObject, TEXT("RootBuildPath"),            TEXT("{manifest root}"));
+	GetJsonFieldValue(Result.TargetName,               RootObject, TEXT("TargetName"),               TEXT("{manifest root}"));
+	GetJsonFieldValue(Result.ExternalDependenciesFile, RootObject, TEXT("ExternalDependenciesFile"), TEXT("{manifest root}"));
+	GetJsonFieldValue(ModulesArray,                    RootObject, TEXT("Modules"),                  TEXT("{manifest root}"));
 
 	UE_LOG(LogCompile, Log, TEXT("Loaded manifest: %s"),       *Filename);
 	UE_LOG(LogCompile, Log, TEXT("Manifest.IsGameTarget=%s"),  Result.IsGameTarget ? TEXT("True") : TEXT("False"));

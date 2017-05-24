@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class PLCrashReporter : ModuleRules
 {
-	public PLCrashReporter(TargetInfo Target)
+	public PLCrashReporter(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

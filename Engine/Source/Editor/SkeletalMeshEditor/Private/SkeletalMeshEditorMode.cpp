@@ -6,6 +6,10 @@
 #include "ISkeletonTree.h"
 #include "ISkeletonEditorModule.h"
 #include "IPersonaToolkit.h"
+#include "SControlRigMappingWindow.h"
+#include "EditorStyleSet.h"
+
+#define LOCTEXT_NAMESPACE "SkeletalMeshEditorMode"
 
 FSkeletalMeshEditorMode::FSkeletalMeshEditorMode(TSharedRef<FWorkflowCentricApplication> InHostingApp, TSharedRef<ISkeletonTree> InSkeletonTree)
 	: FApplicationMode(SkeletalMeshEditorModes::SkeletalMeshEditorMode)
@@ -24,7 +28,9 @@ FSkeletalMeshEditorMode::FSkeletalMeshEditorMode(TSharedRef<FWorkflowCentricAppl
 	TabFactories.RegisterFactory(PersonaModule.CreateAssetDetailsTabFactory(InHostingApp, FOnGetAsset::CreateSP(&SkeletalMeshEditor.Get(), &FSkeletalMeshEditor::HandleGetAsset), FOnDetailsCreated::CreateSP(&SkeletalMeshEditor.Get(), &FSkeletalMeshEditor::HandleMeshDetailsCreated)));
 	TabFactories.RegisterFactory(PersonaModule.CreateMorphTargetTabFactory(InHostingApp, SkeletalMeshEditor->GetPersonaToolkit()->GetPreviewScene(), SkeletalMeshEditor->OnPostUndo));
 
-	TabLayout = FTabManager::NewLayout("Standalone_SkeletalMeshEditor_Layout_v3")
+	TabFactories.RegisterFactory(CreateMeshControllerMappingTabFactory(InHostingApp, Cast<USkeletalMesh> (SkeletalMeshEditor->HandleGetAsset()), SkeletalMeshEditor->OnPostUndo));
+
+	TabLayout = FTabManager::NewLayout("Standalone_SkeletalMeshEditor_Layout_v3.1")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -63,7 +69,8 @@ FSkeletalMeshEditorMode::FSkeletalMeshEditorMode(TSharedRef<FWorkflowCentricAppl
 					->SetHideTabWell(false)
 					->AddTab(SkeletalMeshEditorTabs::MorphTargetsTab, ETabState::OpenedTab)
 					->AddTab(SkeletalMeshEditorTabs::DetailsTab, ETabState::ClosedTab)
-					->AddTab(SkeletalMeshEditorTabs::AdvancedPreviewTab, ETabState::ClosedTab)
+					->AddTab(SkeletalMeshEditorTabs::AdvancedPreviewTab, ETabState::OpenedTab)
+					->SetForegroundTab(SkeletalMeshEditorTabs::MorphTargetsTab)
 				)
 			)
 		);
@@ -77,3 +84,53 @@ void FSkeletalMeshEditorMode::RegisterTabFactories(TSharedPtr<FTabManager> InTab
 
 	FApplicationMode::RegisterTabFactories(InTabManager);
 }
+
+
+void FSkeletalMeshEditorMode::AddTabFactory(FCreateWorkflowTabFactory FactoryCreator)
+{
+	if (FactoryCreator.IsBound())
+	{
+		TabFactories.RegisterFactory(FactoryCreator.Execute(HostingAppPtr.Pin()));
+	}
+}
+
+void FSkeletalMeshEditorMode::RemoveTabFactory(FName TabFactoryID)
+{
+	TabFactories.UnregisterFactory(TabFactoryID);
+}
+
+TSharedRef<class FWorkflowTabFactory> FSkeletalMeshEditorMode::CreateMeshControllerMappingTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TWeakObjectPtr<class USkeletalMesh>& InEditingMesh, FSimpleMulticastDelegate& OnPostUndo) const
+{
+	return MakeShareable(new FMeshControllerMappingTabSummoner(InHostingApp, InEditingMesh, OnPostUndo));
+}
+
+/////////////////////////////////////////////////////
+// FAnimationMappingWindowTabSummoner
+static const FName ControlRigMappingWindowID("ControlRigMappingWindow");
+
+FMeshControllerMappingTabSummoner::FMeshControllerMappingTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TWeakObjectPtr<class USkeletalMesh>& InEditingMesh, FSimpleMulticastDelegate& InOnPostUndo)
+	: FWorkflowTabFactory(ControlRigMappingWindowID, InHostingApp)
+	, SkeletalMesh(InEditingMesh)
+	, OnPostUndo(InOnPostUndo)
+{
+	TabLabel = LOCTEXT("ControlRigMappingWindowTabTitle", "Control Rig");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.Tabs.ControlRigMappingWindow");
+
+	EnableTabPadding();
+	bIsSingleton = true;
+
+	ViewMenuDescription = LOCTEXT("ControlRigMappingWindowTabView", "Control Rig");
+	ViewMenuTooltip = LOCTEXT("ControlRigMappingWindowTabView_ToolTip", "Configure Animation Controller Settings");
+}
+
+TSharedRef<SWidget> FMeshControllerMappingTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+{
+	return SNew(SControlRigMappingWindow, SkeletalMesh, OnPostUndo);
+}
+
+TSharedPtr<SToolTip> FMeshControllerMappingTabSummoner::CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const
+{
+	return  IDocumentation::Get()->CreateToolTip(LOCTEXT("ControlRigMappingWindowTooltip", "In this panel, you can add new animation controllers and configure settings"), NULL, TEXT("Shared/Editors/Persona"), TEXT("ControlRigMappingWindow"));
+}
+
+#undef LOCTEXT_NAMESPACE

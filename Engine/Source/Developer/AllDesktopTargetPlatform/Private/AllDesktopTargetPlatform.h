@@ -127,14 +127,15 @@ public:
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override;
 
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;
 	}
 
 	virtual void GetTextureFormats(const UTexture* Texture, TArray<FName>& OutFormats) const override;
+
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override;
+
 	
 	virtual const UTextureLODSettings& GetTextureLODSettings() const override
 	{
@@ -147,6 +148,7 @@ public:
 	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
+	virtual void GetAllWaveFormats(TArray<FName>& OutFormats) const override;
 #endif // WITH_ENGINE
 
 

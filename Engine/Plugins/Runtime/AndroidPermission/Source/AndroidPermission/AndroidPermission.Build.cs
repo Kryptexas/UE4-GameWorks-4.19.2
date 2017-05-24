@@ -18,7 +18,7 @@ using System.IO;
 
 public class AndroidPermission : ModuleRules
 {
-	public AndroidPermission(TargetInfo Target)
+	public AndroidPermission(ReadOnlyTargetRules Target) : base(Target)
 	{
 		
 		PublicIncludePaths.AddRange(

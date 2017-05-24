@@ -318,20 +318,20 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 {
 	const auto FeatureLevel = Scene->GetFeatureLevel();
 
-	if (CastShadow)
-	{
-		FShadowDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
-	}
-
-	if (!PrimitiveSceneInfo->Proxy->ShouldRenderInMainPass())
-	{
-		return;
-	}
-
 	if (bUseForMaterial && Scene->RequiresHitProxies() && PrimitiveSceneInfo->Proxy->IsSelectable())
 	{
 		// Add the static mesh to the DPG's hit proxy draw list.
 		FHitProxyDrawingPolicyFactory::AddStaticMesh(Scene, this);
+	}
+
+	if (!PrimitiveSceneInfo->Proxy->ShouldRenderInMainPass() || !ShouldIncludeDomainInMeshPass(MaterialRenderProxy->GetMaterial(FeatureLevel)->GetMaterialDomain()))
+	{
+		return;
+	}
+
+	if (CastShadow)
+	{
+		FShadowDepthDrawingPolicyFactory::AddStaticMesh(Scene, this);
 	}
 
 	if (IsTranslucent(FeatureLevel))
@@ -341,29 +341,18 @@ void FStaticMesh::AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* S
 
 	if (Scene->GetShadingPath() == EShadingPath::Deferred)
 	{
-		if (bUseAsOccluder)
+		extern void GetEarlyZPassMode(ERHIFeatureLevel::Type FeatureLevel, EDepthDrawingMode& EarlyZPassMode, bool& bEarlyZPassMovable);
+
+		EDepthDrawingMode EarlyZPassMode;
+		bool bEarlyZPassMovable;
+		GetEarlyZPassMode(Scene->GetFeatureLevel(), EarlyZPassMode, bEarlyZPassMovable);
+
+		if (bUseAsOccluder || EarlyZPassMode == DDM_AllOpaque)
 		{
-			// Render non-masked materials in the depth only pass
-			extern TAutoConsoleVariable<int32> CVarEarlyZPass;
-			int32 EarlyZPass = CVarEarlyZPass.GetValueOnRenderThread();
-
-			extern int32 GEarlyZPassMovable;
-
-			EDepthDrawingMode EarlyZPassMode = (EDepthDrawingMode)EarlyZPass;
-			bool bEarlyZPassMovable = GEarlyZPassMovable != 0;
-
-			extern bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel);
-			if (ShouldForceFullDepthPass(Scene->GetFeatureLevel()))
-			{
-				// DBuffer decals force a full prepass
-				EarlyZPassMode = DDM_AllOccluders;
-				bEarlyZPassMovable = true;
-			}
-
 			// WARNING : If you change this condition, also change the logic in FStaticMeshSceneProxy::DrawStaticElements.
 			// Warning: also mirrored in FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer
-			if (PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder() 
-				&& (!IsMasked(FeatureLevel) || EarlyZPassMode == DDM_AllOccluders)
+			if ((PrimitiveSceneInfo->Proxy->ShouldUseAsOccluder() || EarlyZPassMode == DDM_AllOpaque)
+				&& (!IsMasked(FeatureLevel) || EarlyZPassMode >= DDM_AllOccluders)
 				&& (!PrimitiveSceneInfo->Proxy->IsMovable() || bEarlyZPassMovable))
 			{
 				FDepthDrawingPolicyFactory::AddStaticMesh(Scene,this);
@@ -448,6 +437,21 @@ FExponentialHeightFogSceneInfo::FExponentialHeightFogSceneInfo(const UExponentia
 {
 	FogColor = InComponent->InscatteringColorCubemap ? InComponent->InscatteringTextureTint : InComponent->FogInscatteringColor;
 	InscatteringColorCubemap = InComponent->InscatteringColorCubemap;
+	InscatteringColorCubemapAngle = InComponent->InscatteringColorCubemapAngle * (PI / 180.f);
 	FullyDirectionalInscatteringColorDistance = InComponent->FullyDirectionalInscatteringColorDistance;
 	NonDirectionalInscatteringColorDistance = InComponent->NonDirectionalInscatteringColorDistance;
+
+	bEnableVolumetricFog = InComponent->bEnableVolumetricFog;
+	VolumetricFogScatteringDistribution = FMath::Clamp(InComponent->VolumetricFogScatteringDistribution, -.99f, .99f);
+	VolumetricFogAlbedo = FLinearColor(InComponent->VolumetricFogAlbedo);
+	VolumetricFogEmissive = InComponent->VolumetricFogEmissive;
+
+	// Apply a scale so artists don't have to work with tiny numbers.  
+	const float UnitScale = 1.0f / 10000.0f;
+	VolumetricFogEmissive.R = FMath::Max(VolumetricFogEmissive.R * UnitScale, 0.0f);
+	VolumetricFogEmissive.G = FMath::Max(VolumetricFogEmissive.G * UnitScale, 0.0f);
+	VolumetricFogEmissive.B = FMath::Max(VolumetricFogEmissive.B * UnitScale, 0.0f);
+	VolumetricFogExtinctionScale = FMath::Max(InComponent->VolumetricFogExtinctionScale, 0.0f);
+	VolumetricFogDistance = FMath::Max(InComponent->VolumetricFogDistance, 0.0f);
+	bOverrideLightColorsWithFogInscatteringColors = InComponent->bOverrideLightColorsWithFogInscatteringColors;
 }

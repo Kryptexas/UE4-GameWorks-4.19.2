@@ -1,12 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "PLUGIN_NAME.h"
-
-#include "SlateBasics.h"
-#include "SlateExtras.h"
-
 #include "PLUGIN_NAMEStyle.h"
 #include "PLUGIN_NAMECommands.h"
+#include "Misc/MessageDialog.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #include "LevelEditor.h"
 

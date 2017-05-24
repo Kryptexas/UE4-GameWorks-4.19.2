@@ -9,6 +9,8 @@
 #include "VulkanPipeline.h"
 #include "VulkanContext.h"
 
+static FCriticalSection GCS;
+
 #if UE_BUILD_DEBUG
 struct FDebugPipelineKey
 {
@@ -149,38 +151,15 @@ static FDebugPipelineKey GDebugPipelineKey;
 static_assert(sizeof(GDebugPipelineKey) == 2 * sizeof(uint64), "Debug struct not matching Hash/Sizes!");
 #endif
 
-FVulkanPendingState::FVulkanPendingState(FVulkanDevice* InDevice)
-	: Device(InDevice)
-	, GlobalUniformPool(nullptr)
-{
-	// Create the global uniform pool
-	GlobalUniformPool = new FVulkanGlobalUniformPool();
-}
-
-FVulkanPendingState::~FVulkanPendingState()
-{
-	delete GlobalUniformPool;
-	GlobalUniformPool = nullptr;
-}
-
-FVulkanPendingGfxState::FVulkanPendingGfxState(FVulkanDevice* InDevice)
-	: FVulkanPendingState(InDevice)
-	, bScissorEnable(false)
+FOLDVulkanPendingGfxState::FOLDVulkanPendingGfxState(FVulkanDevice* InDevice)
+	: bScissorEnable(false)
 {
 	Reset();
-
-    // Create the global uniform pool
-    GlobalUniformPool = new FVulkanGlobalUniformPool();
 }
-
-FVulkanPendingGfxState::~FVulkanPendingGfxState()
-{
-}
-
 
 // Expected to be called after render pass has been ended
 // and only from "FVulkanDynamicRHI::RHIEndDrawingViewport()"
-void FVulkanPendingGfxState::Reset()
+void FOLDVulkanPendingGfxState::Reset()
 {
 	CurrentState.Reset();
 
@@ -189,10 +168,10 @@ void FVulkanPendingGfxState::Reset()
 
 FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	: Device(InDevice)
-	, DescriptorPool(VK_NULL_HANDLE)
 	, MaxDescriptorSets(0)
 	, NumAllocatedDescriptorSets(0)
 	, PeakAllocatedDescriptorSets(0)
+	, DescriptorPool(VK_NULL_HANDLE)
 {
 	// Increased from 8192 to prevent Protostar crashing on Mali
 	MaxDescriptorSets = 16384;
@@ -295,40 +274,14 @@ void FVulkanDescriptorPool::TrackRemoveUsage(const FVulkanDescriptorSetsLayout& 
 	NumAllocatedDescriptorSets -= Layout.GetLayouts().Num();
 }
 
-inline void FVulkanComputeShaderState::BindDescriptorSets(FVulkanCmdBuffer* Cmd)
-{
-	check(CurrDescriptorSets);
-	CurrDescriptorSets->Bind(Cmd, GetPipelineLayout(), VK_PIPELINE_BIND_POINT_COMPUTE);
-}
-
-
 inline void FVulkanBoundShaderState::BindDescriptorSets(FVulkanCmdBuffer* Cmd)
 {
 	check(CurrDescriptorSets);
-	CurrDescriptorSets->Bind(Cmd, GetPipelineLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
+	CurrDescriptorSets->Bind(Cmd->GetHandle(), Layout.GetPipelineLayout(), VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
-void FVulkanPendingComputeState::PrepareDispatch(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* Cmd)
-{
-	SCOPE_CYCLE_COUNTER(STAT_VulkanDispatchCallPrepareTime);
 
-	check(CurrentState.CSS);
-	bool bHasDescriptorSets = CurrentState.CSS->UpdateDescriptorSets(CmdListContext, Cmd, GlobalUniformPool);
-
-	FVulkanComputePipeline* Pipeline = CurrentState.CSS->PrepareForDispatch(CurrentState);
-
-	{
-		SCOPE_CYCLE_COUNTER(STAT_VulkanPipelineBind);
-		VkPipeline NewPipeline = Pipeline->GetHandle();
-		CurrentState.CSS->BindPipeline(Cmd->GetHandle(), NewPipeline);
-		if (bHasDescriptorSets)
-		{
-			CurrentState.CSS->BindDescriptorSets(Cmd);
-		}
-	}
-}
-
-void FVulkanPendingGfxState::PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
+void FOLDVulkanPendingGfxState::PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallPrepareTime);
 
@@ -336,7 +289,7 @@ void FVulkanPendingGfxState::PrepareDraw(FVulkanCommandListContext* CmdListConte
 	SetKeyBits(CurrentKey, OFFSET_POLYTYPE, NUMBITS_POLYTYPE, Topology);
 
 	check(CurrentState.BSS);
-    bool bHasDescriptorSets = CurrentState.BSS->UpdateDescriptorSets(CmdListContext, Cmd, GlobalUniformPool);
+	bool bHasDescriptorSets = CurrentState.BSS->UpdateDescriptorSets(CmdListContext, Cmd, &GlobalUniformPool);
 
 	// let the BoundShaderState return a pipeline object for the full current state of things
 	CurrentState.InputAssembly.topology = Topology;
@@ -357,11 +310,11 @@ void FVulkanPendingGfxState::PrepareDraw(FVulkanCommandListContext* CmdListConte
 	}
 }
 
-void FVulkanPendingGfxState::InitFrame()
+void FOLDVulkanPendingGfxState::InitFrame()
 {
 }
 
-void FVulkanPendingGfxState::SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
+void FOLDVulkanPendingGfxState::SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 {
 	VkViewport& vp = CurrentState.Viewport;
 	FMemory::Memzero(vp);
@@ -392,7 +345,7 @@ void FVulkanPendingGfxState::SetViewport(uint32 MinX, uint32 MinY, float MinZ, u
 	}
 }
 
-void FVulkanPendingGfxState::SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
+void FOLDVulkanPendingGfxState::SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
 {
 	bScissorEnable = bEnable;
 
@@ -407,7 +360,7 @@ void FVulkanPendingGfxState::SetScissor(bool bEnable, uint32 MinX, uint32 MinY, 
 	}
 }
 
-void FVulkanPendingGfxState::SetScissorRect(uint32 MinX, uint32 MinY, uint32 Width, uint32 Height)
+void FOLDVulkanPendingGfxState::SetScissorRect(uint32 MinX, uint32 MinY, uint32 Width, uint32 Height)
 {
 	VkRect2D& Scissor = CurrentState.Scissor;
 	FMemory::Memzero(Scissor);
@@ -421,21 +374,21 @@ void FVulkanPendingGfxState::SetScissorRect(uint32 MinX, uint32 MinY, uint32 Wid
 	CurrentState.bNeedsScissorUpdate = true;
 }
 
-void FVulkanPendingGfxState::SetBoundShaderState(TRefCountPtr<FVulkanBoundShaderState> InBoundShaderState)
+void FOLDVulkanPendingGfxState::SetBoundShaderState(TRefCountPtr<FVulkanBoundShaderState> InBoundShaderState)
 {
 	check(InBoundShaderState);
 	InBoundShaderState->ResetState();
 	CurrentState.BSS = InBoundShaderState;
 }
 
-FVulkanBoundShaderState& FVulkanPendingGfxState::GetBoundShaderState()
+FVulkanBoundShaderState& FOLDVulkanPendingGfxState::GetBoundShaderState()
 {
 	check(CurrentState.BSS);
 	return *CurrentState.BSS;
 }
 
 
-void FVulkanPendingGfxState::SetBlendState(FVulkanBlendState* NewState)
+void FOLDVulkanPendingGfxState::SetBlendState(FVulkanBlendState* NewState)
 {
 	check(NewState);
 	CurrentState.BlendState = NewState;
@@ -444,7 +397,7 @@ void FVulkanPendingGfxState::SetBlendState(FVulkanBlendState* NewState)
 	SetKeyBits(CurrentKey, OFFSET_BLEND_STATE, NUMBITS_BLEND_STATE, NewState->BlendStateKey);
 }
 
-void FVulkanPendingGfxState::SetDepthStencilState(FVulkanDepthStencilState* NewState, uint32 StencilRef)
+void FOLDVulkanPendingGfxState::SetDepthStencilState(FVulkanDepthStencilState* NewState, uint32 StencilRef)
 {
 	check(NewState);
 	CurrentState.DepthStencilState = NewState;
@@ -459,7 +412,7 @@ void FVulkanPendingGfxState::SetDepthStencilState(FVulkanDepthStencilState* NewS
 	SetKeyBits(CurrentKey, OFFSET_BACK_STENCIL_STATE, NUMBITS_STENCIL_STATE, NewState->BackStencilKey);
 }
 
-void FVulkanPendingGfxState::SetRasterizerState(FVulkanRasterizerState* NewState)
+void FOLDVulkanPendingGfxState::SetRasterizerState(FVulkanRasterizerState* NewState)
 {
 	check(NewState);
 
@@ -469,4 +422,37 @@ void FVulkanPendingGfxState::SetRasterizerState(FVulkanRasterizerState* NewState
 	SetKeyBits(CurrentKey, OFFSET_CULL_MODE, NUMBITS_CULL_MODE, NewState->RasterizerState.cullMode);
 	SetKeyBits(CurrentKey, OFFSET_DEPTH_BIAS_ENABLED, 1, NewState->RasterizerState.depthBiasEnable);
 	SetKeyBits(CurrentKey, OFFSET_POLYFILL, NUMBITS_POLYFILL, NewState->RasterizerState.polygonMode == VK_POLYGON_MODE_FILL);
+}
+
+void FVulkanPendingComputeState::PrepareForDispatch(FVulkanCommandListContext* Context, FVulkanCmdBuffer* InCmdBuffer)
+{
+	SCOPE_CYCLE_COUNTER(STAT_VulkanDispatchCallPrepareTime);
+
+	check(CurrentState);
+	const bool bHasDescriptorSets = CurrentState->UpdateDescriptorSets(Context, InCmdBuffer, &GlobalUniformPool);
+
+	VkCommandBuffer CmdBuffer = InCmdBuffer->GetHandle();
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanPipelineBind);
+		CurrentPipeline->Bind(CmdBuffer);
+		if (bHasDescriptorSets)
+		{
+			CurrentState->BindDescriptorSets(CmdBuffer);
+		}
+	}
+}
+
+FVulkanComputePipeline* FVulkanPendingComputeState::GetOrCreateComputePipeline(FVulkanComputeShader* ComputeShader)
+{
+	FScopeLock ScopeLock(&GCS);
+	FVulkanComputePipeline** Found = ComputePipelineCache.Find(ComputeShader);
+	if (Found)
+	{
+		return *Found;
+	}
+
+	FVulkanComputePipeline* NewPipeline = new FVulkanComputePipeline(Device, ComputeShader);
+	ComputePipelineCache.Add(ComputeShader, NewPipeline);
+	return NewPipeline;
 }

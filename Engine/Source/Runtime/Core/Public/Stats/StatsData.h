@@ -734,6 +734,9 @@ struct CORE_API FStatsUtils
 	/** Spews a stat message, not all messages are supported, this is used for reports, so it focuses on numeric output, not say the operation. **/
 	static FString DebugPrint(FStatMessage const& Item);
 
+	/** Gets friendly names from a stat message, not all messages are supported, this is used for reports, **/
+	static void GetNameAndGroup(FStatMessage const& Item, FString& OutName, FString& OutGroup);
+
 	/** Subtract a CycleScopeStart from a CycleScopeEnd to create a IsPackedCCAndDuration with the call count and inclusive cycles. **/
 	static FStatMessage ComputeCall(FStatMessage const& ScopeStart, FStatMessage const& ScopeEnd)
 	{

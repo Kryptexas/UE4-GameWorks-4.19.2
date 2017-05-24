@@ -6,6 +6,7 @@
 #include "PropertyHandle.h"
 #include "IDetailKeyframeHandler.h"
 #include "GameDelegates.h"
+#include "Settings/LevelEditorPlaySettings.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/LevelEditor/Public/ILevelEditor.h"
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
@@ -181,6 +182,7 @@ void FLevelEditorSequencerIntegration::Initialize()
 	ActivateDetailKeyframeHandler();
 	AttachTransportControlsToViewports();
 	ActivateSequencerEditorMode();
+	BindLevelEditorCommands();
 
 	{
 		FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -301,6 +303,25 @@ void FLevelEditorSequencerIntegration::OnNewActorsDropped(const TArray<UObject*>
 	);
 }
 
+void FLevelEditorSequencerIntegration::OnSequencerEvaluated()
+{
+	// Redraw if not in PIE/simulate
+	const bool bIsInPIEOrSimulate = GEditor->PlayWorld != NULL || GEditor->bIsSimulatingInEditor;
+	if (bIsInPIEOrSimulate)
+	{
+		return;
+	}
+
+	// Request a single real-time frame to be rendered to ensure that we tick the world and update the viewport
+	for (FEditorViewportClient* LevelVC : GEditor->AllViewportClients)
+	{
+		if (LevelVC && !LevelVC->IsRealtime())
+		{
+			LevelVC->RequestRealTimeFrames(1);
+		}
+	}
+}
+
 void FLevelEditorSequencerIntegration::ActivateSequencerEditorMode()
 {
 	// Release the sequencer mode if we already enabled it
@@ -334,13 +355,21 @@ void FLevelEditorSequencerIntegration::ActivateSequencerEditorMode()
 
 void FLevelEditorSequencerIntegration::OnPreBeginPIE(bool bIsSimulating)
 {
+	bool bReevaluate = (!bIsSimulating && GetDefault<ULevelEditorPlaySettings>()->bBindSequencerToPIE) || (bIsSimulating && GetDefault<ULevelEditorPlaySettings>()->bBindSequencerToSimulate);
+
 	IterateAllSequencers(
-		[](FSequencer& In, const FLevelEditorSequencerIntegrationOptions& Options)
+		[=](FSequencer& In, const FLevelEditorSequencerIntegrationOptions& Options)
 		{
 			if (Options.bRequiresLevelEvents)
 			{
 				In.RestorePreAnimatedState();
 				In.State.ClearObjectCaches();
+
+				if (bReevaluate)
+				{
+					// Notify data changed to enqueue an evaluate
+					In.NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::Unknown);
+				}
 			}
 		}
 	);
@@ -355,6 +384,7 @@ void FLevelEditorSequencerIntegration::OnEndPlayMap()
 			{
 				// Update and clear any stale bindings 
 				In.State.ClearObjectCaches();
+				In.ForceEvaluate();
 			}
 		}
 	);
@@ -886,9 +916,25 @@ void FLevelEditorSequencerIntegration::AddSequencer(TSharedRef<ISequencer> InSeq
 	}
 
 	KeyFrameHandler->Add(InSequencer);
-	
+
 	auto DerivedSequencerPtr = StaticCastSharedRef<FSequencer>(InSequencer);
 	BoundSequencers.Add(FSequencerAndOptions{ DerivedSequencerPtr, Options });
+
+	{
+		// Set up a callback for when this sequencer changes its time to redraw any non-realtime viewports
+		TWeakPtr<ISequencer> WeakSequencer = InSequencer;
+		FDelegateHandle Handle = InSequencer->OnGlobalTimeChanged().AddRaw(this, &FLevelEditorSequencerIntegration::OnSequencerEvaluated);
+		BoundSequencers.Last().AcquiredResources.Add(
+			[=]
+			{
+				TSharedPtr<ISequencer> Pinned = WeakSequencer.Pin();
+				if (Pinned.IsValid())
+				{
+					Pinned->OnGlobalTimeChanged().Remove(Handle);
+				}
+			}
+		);
+	}
 
 	FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
 	if (SequencerEdMode)
@@ -918,6 +964,7 @@ void FLevelEditorSequencerIntegration::OnSequencerReceivedFocus(TSharedRef<ISequ
 
 void FLevelEditorSequencerIntegration::RemoveSequencer(TSharedRef<ISequencer> InSequencer)
 {
+	// Remove any instances of this sequencer in the array of bound sequencers, along with its resources
 	BoundSequencers.RemoveAll(
 		[=](const FSequencerAndOptions& In)
 		{
@@ -947,6 +994,7 @@ void FLevelEditorSequencerIntegration::RemoveSequencer(TSharedRef<ISequencer> In
 				Control.Widget->AssignSequencer(SequencerPtr.ToSharedRef());
 			}
 		}
+
 	}
 	else
 	{

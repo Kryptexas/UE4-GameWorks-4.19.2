@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __AnimationEditorUtils_h__
-#define __AnimationEditorUtils_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
@@ -75,17 +74,25 @@ DECLARE_DELEGATE_OneParam(FAnimAssetCreated, TArray<class UObject*>);
 //Animation editor utility functions
 namespace AnimationEditorUtils
 {
-	UNREALED_API void CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeleton>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix, FAnimAssetCreated AssetCreated );
+	UNREALED_API void CreateAnimationAssets(const TArray<TWeakObjectPtr<UObject>>& SkeletonsOrSkeletalMeshes, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix, FAnimAssetCreated AssetCreated, UObject* NameBaseObject = nullptr, bool bDoNotShowNameDialog = false);
 	
-	UNREALED_API void CreateNewAnimBlueprint(TArray<TWeakObjectPtr<USkeleton>> Skeletons, FAnimAssetCreated AssetCreated);
-	UNREALED_API void FillCreateAssetMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons, FAnimAssetCreated AssetCreated, bool bInContentBrowser=true);
+	UNREALED_API void CreateNewAnimBlueprint(TArray<TWeakObjectPtr<UObject>> SkeletonsOrSkeletalMeshes, FAnimAssetCreated AssetCreated);
+	UNREALED_API void FillCreateAssetMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UObject>>& SkeletonsOrSkeletalMeshes, FAnimAssetCreated AssetCreated, bool bInContentBrowser=true);
 	UNREALED_API void CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName);
 	UNREALED_API bool ApplyCompressionAlgorithm(TArray<UAnimSequence*>& AnimSequencePtrs, UAnimCompress* Algorithm);
 
 	// template version of simple creating animation asset
 	template< class T >
-	T* CreateAnimationAsset(USkeleton* Skeleton, const FString& AssetPath, const FString& InPrefix)
+	T* CreateAnimationAsset(UObject* SkeletonOrSkeletalMesh, const FString& AssetPath, const FString& InPrefix)
 	{
+		USkeletalMesh* SkeletalMesh = nullptr;
+		USkeleton* Skeleton = Cast<USkeleton>(SkeletonOrSkeletalMesh);
+		if (Skeleton == nullptr)
+		{
+			SkeletalMesh = CastChecked<USkeletalMesh>(SkeletonOrSkeletalMesh);
+			Skeleton = SkeletalMesh->Skeleton;
+		}
+
 		if (Skeleton)
 		{
 			FString Name;
@@ -100,6 +107,10 @@ namespace AnimationEditorUtils
 			if (NewAsset)
 			{
 				NewAsset->SetSkeleton(Skeleton);
+				if (SkeletalMesh)
+				{
+					NewAsset->SetPreviewMesh(SkeletalMesh);
+				}
 				NewAsset->MarkPackageDirty();
 			}
 
@@ -123,21 +134,28 @@ namespace AnimationEditorUtils
 	//////////////////////////////////////////////////////////////////////////////////////////
 
 	template <typename TFactory, typename T>
-	void ExecuteNewAnimAsset(TArray<TWeakObjectPtr<USkeleton>> Objects, const FString InSuffix, FAnimAssetCreated AssetCreated, bool bInContentBrowser)
+	void ExecuteNewAnimAsset(TArray<TWeakObjectPtr<UObject>> SkeletonsOrSkeletalMeshes, const FString InSuffix, FAnimAssetCreated AssetCreated, bool bInContentBrowser)
 	{
-		if(bInContentBrowser && Objects.Num() == 1)
+		if(bInContentBrowser && SkeletonsOrSkeletalMeshes.Num() == 1)
 		{
-			auto Object = Objects[0].Get();
+			USkeletalMesh* SkeletalMesh = nullptr;
+			USkeleton* Skeleton = Cast<USkeleton>(SkeletonsOrSkeletalMeshes[0].Get());
+			if (Skeleton == nullptr)
+			{
+				SkeletalMesh = CastChecked<USkeletalMesh>(SkeletonsOrSkeletalMeshes[0].Get());
+				Skeleton = SkeletalMesh->Skeleton;
+			}
 
-			if(Object)
+			if(Skeleton)
 			{
 				// Determine an appropriate name for inline-rename
 				FString Name;
 				FString PackageName;
-				CreateUniqueAssetName(Object->GetOutermost()->GetName(), InSuffix, PackageName, Name);
+				CreateUniqueAssetName(Skeleton->GetOutermost()->GetName(), InSuffix, PackageName, Name);
 
 				TFactory* Factory = NewObject<TFactory>();
-				Factory->TargetSkeleton = Object;
+				Factory->TargetSkeleton = Skeleton;
+				Factory->PreviewSkeletalMesh = SkeletalMesh;
 
 				FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 				ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), T::StaticClass(), Factory);
@@ -159,9 +177,7 @@ namespace AnimationEditorUtils
 		}
 		else
 		{
-			CreateAnimationAssets(Objects, T::StaticClass(), InSuffix, AssetCreated);
+			CreateAnimationAssets(SkeletonsOrSkeletalMeshes, T::StaticClass(), InSuffix, AssetCreated);
 		}
 	}
 } // namespace AnimationEditorUtils
-
-#endif //__AnimationEditorUtils_h__

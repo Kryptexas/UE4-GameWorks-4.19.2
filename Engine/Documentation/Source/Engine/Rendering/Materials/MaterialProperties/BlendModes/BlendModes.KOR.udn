@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:머티리얼 블렌드 모드
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials,  Engine/Rendering/Materials/MaterialProperties
 Description:머티리얼 블렌드 모드와 그것이 머티리얼의 렌더링에 어떻게 영향을 끼치는가에 대한 개요입니다.
 Version: 4.9
+tags:Materials
 
 
 [TOC(start:2 end:2)]

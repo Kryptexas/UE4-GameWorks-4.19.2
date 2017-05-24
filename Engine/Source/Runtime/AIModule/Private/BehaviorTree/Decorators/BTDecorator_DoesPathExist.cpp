@@ -96,7 +96,7 @@ FString UBTDecorator_DoesPathExist::GetStaticDescription() const
 		*Super::GetStaticDescription(),
 		*BlackboardKeyA.SelectedKeyName.ToString(),
 		*BlackboardKeyB.SelectedKeyName.ToString(),
-		*PathTypeEnum->GetEnumName(PathQueryType));
+		*PathTypeEnum->GetNameStringByValue(PathQueryType));
 }
 
 #if WITH_EDITOR

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Sockets : ModuleRules
 {
-	public Sockets(TargetInfo Target)
+	public Sockets(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.AddRange(new string[] { "DerivedDataCache" });
 
@@ -13,11 +13,6 @@ public class Sockets : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "SandboxFile" });
 
 		Definitions.Add("SOCKETS_PACKAGE=1");
-
-		if (!UEBuildConfiguration.bBuildRequiresCookedData)
-		{
-			DynamicallyLoadedModuleNames.Add("DerivedDataCache");
-		}
 
         if ( Target.Platform ==  UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
         {

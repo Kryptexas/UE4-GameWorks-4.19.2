@@ -38,13 +38,18 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{
 			// Cancel the task and wait for it to quit
 			CancelSource.Cancel();
+
+			CrashReporterProcessServicer.WriteEvent("Shutdown: Stopping ReportWatcher thread...");
 			WatcherTask.Wait();
 			WatcherTask.Dispose();
+			CrashReporterProcessServicer.WriteEvent("Shutdown: ReportWatcher thread stopped.");
 
+			CrashReporterProcessServicer.WriteEvent("Shutdown: Disposing ReportQueues...");
 			foreach (var Queue in ReportQueues)
 			{
 				Queue.Dispose();
 			}
+			CrashReporterProcessServicer.WriteEvent("Shutdown: ReportQueues disposed.");
 
 			CancelSource.Dispose();
 		}
@@ -135,7 +140,16 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 					TimeSpan TimeTaken = DateTime.Now - StartTime;
 					CrashReporterProcessServicer.WriteEvent(string.Format("Checking Landing Zones took {0:F2} seconds", TimeTaken.TotalSeconds));
-					await Task.Delay(30000, Cancel);
+
+					try
+					{
+						await Task.Delay(30000, Cancel);
+					}
+					catch (TaskCanceledException)
+					{
+						CrashReporterProcessServicer.WriteEvent("WatcherTask exiting delay because it was cancelled.");
+						break;
+					}
 				}
 			});
 		}

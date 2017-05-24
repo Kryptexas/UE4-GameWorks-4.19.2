@@ -25,6 +25,11 @@
 #include "Engine/UserDefinedStruct.h"
 #include "UObject/EditorObjectVersion.h"
 #include "Classes/WidgetGraphSchema.h"
+#include "WidgetBlueprintCompiler.h"
+
+#if WITH_EDITOR
+#include "Interfaces/ITargetPlatform.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -530,6 +535,13 @@ void UWidgetBlueprint::ReplaceDeprecatedNodes()
 	Super::ReplaceDeprecatedNodes();
 }
 
+void UWidgetBlueprint::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+}
+
 void UWidgetBlueprint::PostLoad()
 {
 	Super::PostLoad();
@@ -687,6 +699,11 @@ bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 	return Result;
 }
 
+TUniquePtr<FKismetCompilerContext> UWidgetBlueprint::GetCompilerForWidgetBP(UWidgetBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
+{
+	return TUniquePtr<FKismetCompilerContext>(new FWidgetBlueprintCompiler(BP, InMessageLog, InCompileOptions, nullptr));
+}
+
 void UWidgetBlueprint::GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const
 {
 	AllowedChildrenOfClasses.Add( UUserWidget::StaticClass() );
@@ -721,6 +738,11 @@ bool UWidgetBlueprint::IsWidgetFreeFromCircularReferences(UUserWidget* UserWidge
 	}
 
 	return true;
+}
+
+UPackage* UWidgetBlueprint::GetWidgetTemplatePackage() const
+{
+	return GetOutermost();
 }
 
 #undef LOCTEXT_NAMESPACE 

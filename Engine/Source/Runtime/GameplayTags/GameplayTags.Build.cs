@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GameplayTags : ModuleRules
 	{
-		public GameplayTags(TargetInfo Target)
+		public GameplayTags(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

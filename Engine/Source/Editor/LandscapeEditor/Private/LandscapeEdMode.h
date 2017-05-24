@@ -406,6 +406,8 @@ public:
 	virtual bool GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void* InData) override;
 	virtual bool GetCustomInputCoordinateSystem(FMatrix& InMatrix, void* InData) override;
 
+	virtual bool GetCursor(EMouseCursor::Type& OutCursor) const override;
+
 	/** Forces real-time perspective viewports */
 	void ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState);
 
@@ -422,7 +424,7 @@ public:
 	bool LandscapePlaneTrace(FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY, const FPlane& Plane, FVector& OutHitLocation);
 
 	/** Trace under the specified laser start and direction and return the landscape hit and the hit location (in landscape quad space) */
-	bool LandscapeTrace(const FEditorViewportClient* ViewportClient, const FVector& InRayOrigin, const FVector& InRayEnd, FVector& OutHitLocation);
+	bool LandscapeTrace(const FVector& InRayOrigin, const FVector& InRayEnd, FVector& OutHitLocation);
 
 	void SetCurrentToolMode(FName ToolModeName, bool bRestoreCurrentTool = true);
 
@@ -436,13 +438,27 @@ public:
 	void SetCurrentBrush(FName BrushName);
 	void SetCurrentBrush(int32 BrushIndex);
 
-	const TArray<TSharedRef<FLandscapeTargetListInfo>>& GetTargetList();
+	const TArray<TSharedRef<FLandscapeTargetListInfo>>& GetTargetList() const;
+	const TArray<FName>* GetTargetDisplayOrderList() const;
+	const TArray<FName>& GetTargetShownList() const;
+	int32 GetTargetLayerStartingIndex() const;
 	const TArray<FLandscapeListInfo>& GetLandscapeList();
 
 	void AddLayerInfo(ULandscapeLayerInfoObject* LayerInfo);
 
 	int32 UpdateLandscapeList();
 	void UpdateTargetList();
+	
+	/** Update Display order list */
+	void UpdateTargetLayerDisplayOrder(ELandscapeLayerDisplayMode InTargetDisplayOrder);
+	void MoveTargetLayerDisplayOrder(int32 IndexToMove, int32 IndexToDestination);
+
+	/** Update shown layer list */	
+	void UpdateShownLayerList();
+	bool ShouldShowLayer(TSharedRef<FLandscapeTargetListInfo> Target) const;
+	void UpdateLayerUsageInformation();
+
+	void RefreshDetailPanel();
 
 	DECLARE_EVENT(FEdModeLandscape, FTargetsListUpdated);
 	static FTargetsListUpdated TargetsListUpdated;
@@ -450,10 +466,10 @@ public:
 	/** Called when the user presses a button on their motion controller device */
 	void OnVRAction(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled);
 
-	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
+	void OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
 	/** Handle notification that visible levels may have changed and we should update the editable landscapes list */
-	void HandleLevelsChanged();
+	void HandleLevelsChanged(bool ShouldExitMode);
 
 	void OnMaterialCompilationFinished(UMaterialInterface* MaterialInterface);
 
@@ -483,6 +499,10 @@ public:
 private:
 	TArray<TSharedRef<FLandscapeTargetListInfo>> LandscapeTargetList;
 	TArray<FLandscapeListInfo> LandscapeList;
+	TArray<FName> ShownTargetLayerList;
+	
+	/** Represent the index offset of the target layer in LandscapeTargetList */
+	int32 TargetLayerStartingIndex;
 
 	UMaterialInterface* CachedLandscapeMaterial;
 

@@ -410,6 +410,11 @@ UObject* UAnimBlueprintFactory::FactoryCreateNew(UClass* Class, UObject* InParen
 			TypedNewClass_SKEL->TargetSkeleton = TargetSkeleton;
 		}
 
+		if (PreviewSkeletalMesh)
+		{
+			NewBP->SetPreviewMesh(PreviewSkeletalMesh);
+		}
+
 		return NewBP;
 	}
 }

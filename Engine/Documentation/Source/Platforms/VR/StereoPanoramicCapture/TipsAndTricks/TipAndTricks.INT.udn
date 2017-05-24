@@ -1,11 +1,22 @@
-Availability:Docs
+Availability:Public
 Title:Stereo Panoramic Capture Tips & Tricks
 Crumbs:%ROOT%, Platforms, Platforms/VR
 Description:Taking a look at how to fix some common issues with the Stereo Panoramic capture tool
 Navigation:platform
 Version: 4.13
 parent:Platforms/VR/StereoPanoramicCapture
+order:2
 type:overview
+Topic-Image:SPE_Topic_Image_00.png
+tags:VR
+Tags:Cinematics
+Tags:GearVR
+Tags:Google VR	
+Tags:SteamVR
+Tags:Oculus Rift
+Tags:Virtual Reality
+Tags:Plugins
+Tags:Sequencer
 
 [TOC(start:2)]
 
@@ -73,8 +84,9 @@ When viewing, images using the Stereo Image Material you might notice a seam whe
 To remove these seams, you will need to open up your Left and Right eye images in the UE4 Texture Viewer. Then in the **Level of Detail** section, change the value for **Mip Gen Settings** to **NoMipmaps**. 
 
 [REGION:lightbox]
-[![](Platforms\VR\StereoPanoramicCapture\HowTo\CreatingViewerMaterial\SPHT_Mip_Gen_Settings.png)(w:439)](Platforms\VR\StereoPanoramicCapture\HowTo\CreatingViewerMaterial\SPHT_Mip_Gen_Settings.png)
+[![](SPHT_Mip_Gen_Settings.png)(w:439)](SPHT_Mip_Gen_Settings.png)
 [/REGION]
+
 
 [REGION:caption]
 Click for full image.

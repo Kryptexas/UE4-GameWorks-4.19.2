@@ -16,7 +16,7 @@ using FILETIME = System.Runtime.InteropServices.ComTypes.FILETIME;
 
 namespace UnrealBuildTool
 {
-	public class VCBinarySetting
+	class VCBinarySetting
 	{
 		public enum ValueType
 		{

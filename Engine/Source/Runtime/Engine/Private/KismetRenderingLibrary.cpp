@@ -15,6 +15,10 @@
 #include "Logging/MessageLog.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ImageUtils.h"
+#include "OneColorShader.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
+#include "Engine/Texture2D.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetRenderingLibrary
@@ -40,7 +44,7 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 			[RenderTargetResource, ClearColor](FRHICommandList& RHICmdList)
 			{
 				SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
-				RHICmdList.ClearColorTexture(RenderTargetResource->GetRenderTargetTexture(), ClearColor, FIntRect());
+				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, ClearColor);
 			});
 	}
 }
@@ -168,6 +172,56 @@ void UKismetRenderingLibrary::ExportRenderTarget(UObject* WorldContextObject, UT
 	{
 		FMessageLog("Blueprint").Warning(LOCTEXT("ExportRenderTarget_InvalidFileName", "ExportRenderTarget: FileName must be non-empty."));
 	}
+}
+/*
+
+void UKismetRenderingLibrary::CreateTexture2DFromRenderTarget(UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, const FString &TextureAssetName)
+{
+	if (RenderTarget && Texture)
+	{
+
+		//FImageUtils::CreateTexture2D
+
+		UTexture2D* NewTexture = RenderTarget->ConstructTexture2D(Texture->GetOuter(), Texture->GetName(), RenderTarget->GetMaskedFlags(), CTF_Default, NULL);
+
+		check(NewTexture == Texture);
+		NewTexture->UpdateResource();
+	}
+	else if (!RenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidRenderTarget", "ExportRenderTarget: RenderTarget must be non-null."));
+	}
+	else if (!Texture)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidTexture", "ExportRenderTarget: Texture must be non-null."));
+	}
+
+}*/
+
+
+void UKismetRenderingLibrary::ConvertRenderTargetToTexture2DEditorOnly( UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget, UTexture2D* Texture )
+{
+#if WITH_EDITOR
+	if (RenderTarget && Texture)
+	{
+		UTexture2D* NewTexture = RenderTarget->ConstructTexture2D(Texture->GetOuter(), Texture->GetName(), RenderTarget->GetMaskedFlags(), CTF_Default, NULL);
+
+		check(NewTexture == Texture);
+		NewTexture->UpdateResource();
+		NewTexture->Modify();
+	}
+	else if (!RenderTarget)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidRenderTarget", "ExportRenderTarget: RenderTarget must be non-null."));
+	}
+	else if (!Texture)
+	{
+		FMessageLog("Blueprint").Warning(LOCTEXT("ConvertRenderTargetToTexture2D_InvalidTexture", "ExportRenderTarget: Texture must be non-null."));
+	}
+#else
+	FMessageLog("Blueprint").Error(LOCTEXT("Convert to render target can't be used at run time.", "ConvertRenderTarget: Can't convert render target to texture2d at run time. "));
+#endif
+
 }
 
 void UKismetRenderingLibrary::ExportTexture2D(UObject* WorldContextObject, UTexture2D* Texture, const FString& FilePath, const FString& FileName)
@@ -308,6 +362,35 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 			FMessageLog("Blueprint").Warning(LOCTEXT("EndDrawCanvasToRenderTarget_InvalidContext", "EndDrawCanvasToRenderTarget: Context must be valid."));
 		}
 	}
+}
+
+FSkelMeshSkinWeightInfo UKismetRenderingLibrary::MakeSkinWeightInfo(int32 Bone0, uint8 Weight0, int32 Bone1, uint8 Weight1, int32 Bone2, uint8 Weight2, int32 Bone3, uint8 Weight3)
+{
+	FSkelMeshSkinWeightInfo Info;
+	FMemory::Memzero(&Info, sizeof(FSkelMeshSkinWeightInfo));
+	Info.Bones[0] = Bone0;
+	Info.Weights[0] = Weight0;
+	Info.Bones[1] = Bone1;
+	Info.Weights[1] = Weight1;
+	Info.Bones[2] = Bone2;
+	Info.Weights[2] = Weight2;
+	Info.Bones[3] = Bone3;
+	Info.Weights[3] = Weight3;
+	return Info;
+}
+
+
+void UKismetRenderingLibrary::BreakSkinWeightInfo(FSkelMeshSkinWeightInfo InWeight, int32& Bone0, uint8& Weight0, int32& Bone1, uint8& Weight1, int32& Bone2, uint8& Weight2, int32& Bone3, uint8& Weight3)
+{
+	FMemory::Memzero(&InWeight, sizeof(FSkelMeshSkinWeightInfo));
+	Bone0 = InWeight.Bones[0];
+	Weight0 = InWeight.Weights[0];
+	Bone1 = InWeight.Bones[1];
+	Weight1 = InWeight.Weights[1];
+	Bone2 = InWeight.Bones[2];
+	Weight2 = InWeight.Weights[2];
+	Bone3 = InWeight.Bones[3];
+	Weight3 = InWeight.Weights[3];
 }
 
 #undef LOCTEXT_NAMESPACE

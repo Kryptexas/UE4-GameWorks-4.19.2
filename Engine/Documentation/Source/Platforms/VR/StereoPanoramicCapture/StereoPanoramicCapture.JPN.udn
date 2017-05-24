@@ -1,27 +1,51 @@
-﻿INTSourceChangeList:3183810
-Availability:Docs
+﻿INTSourceChangelist:3340158
+Availability:Public
 Title:Stereo Panoramic Capture ツール
 Crumbs:%ROOT%, Platforms, Platforms/VR
-Description:Stereo Panoramic プラグインを使って VR の画像やムービーのキャプチャ方法の概要
+Description:Stereo Panoramic プラグインを使って VR の画像やムービーをキャプチャする方法
 Navigation:platform
 Version:4.13
 parent:Platforms/VR
 type:landing
+SEO-Title:StereoPanoramicCaptureTool
+Topic-Image:SPE_Topic_Image_00.png
+tags:VR
+Tags:Cinematics
+Tags:GearVR
+Tags:Google VR	
+Tags:SteamVR
+Tags:Oculus Rift
+Tags:Virtual Reality
+Tags:Plugins
+Tags:Sequencer
+
 
 ![](SPE_Header_00.png)
 
-UE4 の Stereo Panoramic Movie Capture プラグインを使うと、ステレオで表示あるいは再生可能な静止画やムービーをキャプチャして、stereoscopic 3D でワールドがレンダリングされているように見せることができます。次のセクションでは、Stereo Panoramic Movie Capture プラグインの設定および使用方法と、ステレオで作成できるイメージを確認できる UE4 内のイメージ ビューアの作成方法を説明します。 
+UE4 の Stereo Panoramic Movie Capture プラグインを使って、ステレオで表示あるいは再生可能な静止画やムービーをキャプチャすると、stereoscopic 3D でワールドがリアルタイムでレンダリングされているように見せることができます。次のセクションでは、Stereo Panoramic Movie Capture プラグインの設定および使用方法、およびステレオで作成する画像を確認するためのイメージ ビューアを UE4 に作成する方法を説明します。 
 
+[region:warning]
+Stereo Panoramic Movie Capture プラグインは実験的な段階なので、使用中に予期せずクラッシュする場合があります。ご注意ください。 
+[/region]
 
 ## はじめよう
 
-「Stereo Panoramic Capture 操作ガイド」で、UE4 プロジェクト設定をステレオ画像をキャプチャしたり表示する設定にする方法を説明します。
+[DIR(end:"1" output:"topic" parent:"Platforms/VR/StereoPanoramicCapture" type:"quick start")]
 
-[DIR(end:"1" output:"listbutton" type:"how-to" parent:"Platforms/VR/StereoPanoramicCapture")]
+## リファレンス
+
+[DIR(end:"1" output:"listbutton" parent:"Platforms/VR/StereoPanoramicCapture" type:"!quick start")]
+
+<!--
+## はじめよう
+
+このクイックスタートでは、UE4 プロジェクトをステレオ画像をキャプチャしたり表示する設定にする方法を説明します。
+
+[DIR(end:"1" output:"listbutton" type:"quick start" parent:"Platforms/VR/StereoPanoramicCapture")]
 
 ## Stereo Panoramic Capture リファレンス 
 
-「Stereo Panoramic Capture リファレンス」では、利用できるオプション、Stereo Panoramic Capture プラグインの設定、これらのオプションでレンダリング画像でこれらのオプションで作成できるエフェクトを説明します。
+「Stereo Panoramic Capture リファレンス」では、利用できるオプション、Stereo Panoramic Capture プラグインの設定、これらのオプションを使ってレンダリング画像に作成可能なエフェクトを説明します。
 
 [DIR(end:"1" output:"listbutton" type:"reference" parent:"Platforms/VR/StereoPanoramicCapture")]
 
@@ -31,20 +55,4 @@ UE4 の Stereo Panoramic Movie Capture プラグインを使うと、ステレ�
 
 [DIR(end:"1" output:"listbutton" type:"overview" parent:"Platforms/VR/StereoPanoramicCapture")]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-->

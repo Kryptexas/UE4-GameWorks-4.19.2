@@ -17,10 +17,11 @@
 #include "Evaluation/MovieSceneEvaluationTemplate.h"
 #include "Compilation/MovieSceneSegmentCompiler.h"
 
+class IMovieSceneModule;
 class UMovieSceneSequence;
 
 /**
- * An immutable class used for efficient runtime evaluation of UMovieScene data.
+ * Class responsible for generating up-to-date evaluation template data
  */
 class FMovieSceneEvaluationTemplateGenerator : IMovieSceneTemplateGenerator
 {
@@ -68,16 +69,16 @@ private:
 	virtual void AddLegacyTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, const UMovieSceneTrack& SourceTrack) override;
 	virtual void AddOwnedTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, const UMovieSceneTrack& SourceTrack) override;
 	virtual void AddSharedTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, FMovieSceneSharedDataId SharedId, const UMovieSceneTrack& SourceTrack) override;
-	virtual void AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs) override;
+	virtual void AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs, ESectionEvaluationFlags Flags) override;
 	virtual FMovieSceneSequenceTransform GetSequenceTransform(FMovieSceneSequenceIDRef InSequenceID) const override;
-	virtual FMovieSceneSequenceID GenerateSequenceID(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID) override;
+	virtual void AddSubSequence(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID, FMovieSceneSequenceID SequenceID) override;
 
 private:
 
 	/**
 	 * Sort predicate used to sort evaluation tracks in a given group
 	 */
-	bool SortPredicate(const FMovieSceneEvaluationTrack* A, const FMovieSceneEvaluationTrack* B) const;
+	bool SortPredicate(const FMovieSceneEvaluationFieldTrackPtr& InPtrA, const FMovieSceneEvaluationFieldTrackPtr& InPtrB, const TMap<FMovieSceneSequenceID, FMovieSceneEvaluationTemplate*>& Templates, IMovieSceneModule& MovieSceneModule);
 
 	/**
 	 * Attempt to find a track from its evaluation field pointer
@@ -106,7 +107,12 @@ private:
 	TArray<FMovieSceneEvaluationFieldSegmentPtr> TrackLUT;
 
 	/** Map of external segments added from sub sequences */
-	TMap<FMovieSceneEvaluationFieldSegmentPtr, int32> ExternalSegmentLookup;
+	struct FExternalSegment
+	{
+		int32 Index;
+		ESectionEvaluationFlags Flags;
+	};
+	TMultiMap<FMovieSceneEvaluationFieldSegmentPtr, FExternalSegment> ExternalSegmentLookup;
 
 	/** Set of shared track keys that have been added (used to ensure we only add a shared track ID once) */
 	TSet<FSharedPersistentDataKey> AddedSharedTracks;

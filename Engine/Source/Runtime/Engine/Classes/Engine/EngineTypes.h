@@ -210,6 +210,19 @@ enum EIndirectLightingCacheQuality
 	ILCQ_Volume
 };
 
+UENUM()
+enum EOcclusionCombineMode
+{
+	/** Take the minimum occlusion value.  This is effective for avoiding over-occlusion from multiple methods, but can result in indoors looking too flat. */
+	OCM_Minimum,
+	/** 
+	 * Multiply together occlusion values from Distance Field Ambient Occlusion and Screen Space Ambient Occlusion.  
+	 * This gives a good sense of depth everywhere, but can cause over-occlusion. 
+	 * SSAO should be tweaked to be less strong compard to Minimum.
+	 */
+	OCM_Multiply,
+	OCM_MAX,
+};
 
 /** Note: This is mirrored in Lightmass, be sure to update the blend mode structure and logic there if this changes. */
 // Note: Check UMaterialInstance::Serialize if changed!!
@@ -329,6 +342,7 @@ enum ESceneCaptureSource
 	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
 	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
 	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
+	SCS_DeviceDepth UMETA(DisplayName = "DeviceDepth in RGB"),
 	SCS_Normal UMETA(DisplayName="Normal in RGB (Deferred Renderer only)"),
 	SCS_BaseColor UMETA(DisplayName="BaseColor in RGB (Deferred Renderer only)")
 };
@@ -1120,6 +1134,17 @@ namespace ECollisionEnabled
 	}; 
 } 
 
+FORCEINLINE bool CollisionEnabledHasPhysics(ECollisionEnabled::Type CollisionEnabled)
+{
+	return (CollisionEnabled == ECollisionEnabled::PhysicsOnly) ||
+			(CollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+}
+
+FORCEINLINE bool CollisionEnabledHasQuery(ECollisionEnabled::Type CollisionEnabled)
+{
+	return (CollisionEnabled == ECollisionEnabled::QueryOnly) ||
+			(CollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+}
 
 /** Describes the physical state of a rigid body. */
 USTRUCT()
@@ -1989,10 +2014,16 @@ struct ENGINE_API FHitResult
 	}
 
 	/** Utility to return the Actor that owns the Component that was hit. */
-	AActor* GetActor() const;
+	FORCEINLINE AActor* GetActor() const
+	{
+		return Actor.Get();
+	}
 
 	/** Utility to return the Component that was hit. */
-	UPrimitiveComponent* GetComponent() const;
+	FORCEINLINE UPrimitiveComponent* GetComponent() const
+	{
+		return Component.Get();
+	}
 
 	/** Optimized serialize function */
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
@@ -2055,7 +2086,7 @@ struct ENGINE_API FHitResult
 template<> struct TIsPODType<FHitResult> { enum { Value = true }; };
 
 template<>
-struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase2<FHitResult>
 {
 	enum
 	{
@@ -2262,6 +2293,8 @@ public:
 	/** Map of LOD levels to frame skip amounts. if bShouldUseLodMap is set these values will be used for
 	 * the frameskip amounts and the distance factor thresholds will be ignored. The flag and these values
 	 * should be configured using the customization callback when parameters are created for a component.
+	 *
+	 * Note that this is # of frames to skip, so if you have 20, that means every 21th frame, it will update, and evaluate. 
 	 */
 	UPROPERTY()
 	TMap<int32, int32> LODToFrameSkipMap;
@@ -2473,13 +2506,8 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Two-Sided Distance Field Generation"))
 	bool bGenerateDistanceFieldAsIfTwoSided;
 
-	/** 
-	 * Adding a constant distance effectively shrinks the distance field representation.  
-	 * This is useful for preventing self shadowing aritfacts when doing some minor ambient animation.
-	 * Thin walls will be affected more severely than large hollow objects, because thin walls don't have a large negative region.
-	 */
-	UPROPERTY(EditAnywhere, Category = BuildSettings)
-	float DistanceFieldBias;
+	UPROPERTY()
+	float DistanceFieldBias_DEPRECATED;
 
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	class UStaticMesh* DistanceFieldReplacementMesh;
@@ -2502,7 +2530,7 @@ struct FMeshBuildSettings
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 		, DistanceFieldResolutionScale(1.0f)
 		, bGenerateDistanceFieldAsIfTwoSided(false)
-		, DistanceFieldBias(0.0f)
+		, DistanceFieldBias_DEPRECATED(0.0f)
 		, DistanceFieldReplacementMesh(NULL)
 	{ }
 
@@ -2524,7 +2552,6 @@ struct FMeshBuildSettings
 			&& BuildScale3D == Other.BuildScale3D
 			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale
 			&& bGenerateDistanceFieldAsIfTwoSided == Other.bGenerateDistanceFieldAsIfTwoSided
-			&& DistanceFieldBias == Other.DistanceFieldBias
 			&& DistanceFieldReplacementMesh == Other.DistanceFieldReplacementMesh;
 	}
 
@@ -3203,7 +3230,7 @@ private:
 template<> struct TIsPODType<FWalkableSlopeOverride> { enum { Value = true }; };
 
 template<>
-struct TStructOpsTypeTraits<FRepMovement> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FRepMovement> : public TStructOpsTypeTraitsBase2<FRepMovement>
 {
 	enum 
 	{

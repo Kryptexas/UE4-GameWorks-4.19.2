@@ -21,6 +21,10 @@
 #define PREV_FRAME_COLOR	1
 #include "ScreenSpaceRayCast.usf"
 
+#if NEEDS_BASEPASS_PIXEL_FOGGING
+	#include "HeightFogCommon.usf"
+#endif
+
 float NormalCurvatureToRoughness(float3 WorldNormal)
 {
     float3 dNdx = ddx(WorldNormal);
@@ -309,7 +313,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	// Method for movable components which want to use a volume texture of interpolated SH samples
 	#if CACHED_VOLUME_INDIRECT_LIGHTING
 	
-		// Compute volume teture UVs from world position
+		// Compute volume texture UVs from world position
 		float3 VolumeUVs = MaterialParameters.AbsoluteWorldPosition * PrecomputedLightingBuffer.IndirectLightingCachePrimitiveScale + PrecomputedLightingBuffer.IndirectLightingCachePrimitiveAdd;
 		// Clamp UV to be within the valid region
 		// Pixels outside of the object's bounding box would read garbage otherwise
@@ -727,7 +731,13 @@ void FPixelShaderInOut_MainPS(
 		float3 AbsorptionColor = BaseColor * (1 / MetalSpec);
 		float3 Absorption = AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + 1 );
 
-		GBuffer.BaseColor = lerp( BaseColor, lerp( BaseColor, MetalSpec * Absorption, Metallic ) * RefractionScale, ClearCoat );
+		float F0 = 0.04;
+		float Fc = Pow5( 1 - NoV );
+		float F = Fc + (1 - Fc) * F0;
+		float LayerAttenuation = lerp( 1, (1 - F), ClearCoat );
+		BaseColor *= LayerAttenuation;
+
+		GBuffer.BaseColor = lerp( BaseColor, MetalSpec * Absorption * RefractionScale, Metallic * ClearCoat );
 		GBuffer.Specular *= lerp( 1, RefractionScale, ClearCoat );
 
 		GBuffer.CustomData.x = ClearCoat;
@@ -803,7 +813,7 @@ void FPixelShaderInOut_MainPS(
 	// So that the following code can still use DiffuseColor and SpecularColor.
 	GBuffer.SpecularColor = lerp(0.08 * LocalSpecular.xxx, LocalBaseColor, Metallic.xxx);
 
-#if MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS && FORWARD_SHADING
+#if MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS
     float GeometricAARoughness = NormalCurvatureToRoughness(MaterialParameters.WorldNormal);
     GBuffer.Roughness = max(GBuffer.Roughness, GeometricAARoughness);
 
@@ -932,10 +942,12 @@ void FPixelShaderInOut_MainPS(
 		#endif
 	#endif
 
-	#if NEEDS_BASEPASS_FOGGING
-		float4 VertexFog = BasePassInterpolants.VertexFog;
+	#if NEEDS_BASEPASS_VERTEX_FOGGING
+		float4 Fogging = BasePassInterpolants.VertexFog;
+	#elif NEEDS_BASEPASS_PIXEL_FOGGING
+		float4 Fogging = CalculateHeightFog(MaterialParameters.WorldPosition_CamRelative);
 	#else
-		float4 VertexFog = float4(0,0,0,1);
+		float4 Fogging = float4(0,0,0,1);
 	#endif
 		
 	// Volume lighting for lit translucency
@@ -951,7 +963,7 @@ void FPixelShaderInOut_MainPS(
 
 #if USE_DEVELOPMENT_SHADERS
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM4_PROFILE
+	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM4_PROFILE || VULKAN_PROFILE_SM4 || VULKAN_PROFILE_SM5
 		BRANCH
 		if (View.OutOfBoundsMask > 0)
 		{
@@ -972,28 +984,28 @@ void FPixelShaderInOut_MainPS(
 	Color += Emissive;
 
 	#if MATERIALBLENDING_ALPHACOMPOSITE
-		Out.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb * Opacity, Opacity);
+		Out.MRT[0] = half4(Color * Fogging.a + Fogging.rgb * Opacity, Opacity);
 		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_TRANSLUCENT
-		Out.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
+		Out.MRT[0] = half4(Color * Fogging.a + Fogging.rgb, Opacity);
 		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_ADDITIVE
-		Out.MRT[0] = half4(Color * VertexFog.a * Opacity, 0.0f);
+		Out.MRT[0] = half4(Color * Fogging.a * Opacity, 0.0f);
 		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_MODULATE
 		// RETURN_COLOR not needed with modulative blending
-		half3 FoggedColor = lerp(float3(1, 1, 1), Color, VertexFog.aaa * VertexFog.aaa);
+		half3 FoggedColor = lerp(float3(1, 1, 1), Color, Fogging.aaa * Fogging.aaa);
 		Out.MRT[0] = half4(FoggedColor, Opacity);
 	#else
 		{
 			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
 
 			// Apply vertex fog
-			Color = Color * VertexFog.a + VertexFog.rgb;
+			Color = Color * Fogging.a + Fogging.rgb;
 
 #if MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE && USES_GBUFFER
 			// Apply vertex fog to diffuse color
-			DiffuseColor = DiffuseColor * VertexFog.a + VertexFog.rgb;
+			DiffuseColor = DiffuseColor * Fogging.a + Fogging.rgb;
 
 			if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE && 
                 View.bSubsurfacePostprocessEnabled > 0 && View.bCheckerboardSubsurfaceProfileRendering > 0 )
@@ -1068,7 +1080,7 @@ void FPixelShaderInOut_MainPS(
 
 // the following needs to match to the code in FSceneRenderTargets::GetGBufferRenderTargets()
 #define PIXELSHADEROUTPUT_BASEPASS 1
-#define PIXELSHADEROUTPUT_MRT0 (!USES_GBUFFER || !SELECTIVE_BASEPASS_OUTPUTS || NEEDS_BASEPASS_FOGGING || USES_EMISSIVE_COLOR || ALLOW_STATIC_LIGHTING)
+#define PIXELSHADEROUTPUT_MRT0 (!USES_GBUFFER || !SELECTIVE_BASEPASS_OUTPUTS || NEEDS_BASEPASS_VERTEX_FOGGING || USES_EMISSIVE_COLOR || ALLOW_STATIC_LIGHTING)
 #define PIXELSHADEROUTPUT_MRT1 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
 #define PIXELSHADEROUTPUT_MRT2 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
 #define PIXELSHADEROUTPUT_MRT3 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))

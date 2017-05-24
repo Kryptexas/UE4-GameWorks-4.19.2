@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __CascadeModule_h__
-#define __CascadeModule_h__
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
@@ -12,9 +11,6 @@ class ICascade;
 class UParticleSystem;
 
 extern const FName CascadeAppIdentifier;
-
-class FCascade;
-
 
 /*-----------------------------------------------------------------------------
    ICascadeModule
@@ -36,5 +32,3 @@ public:
 	/** Converts all the modules in the specified particle system to seeded modules */
 	virtual void ConvertModulesToSeeded(UParticleSystem* ParticleSystem) = 0;
 };
-
-#endif // __CascadeModule_h__

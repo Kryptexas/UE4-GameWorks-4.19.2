@@ -22,6 +22,8 @@ namespace FLandscapeCustomVersion
 		LightmassMaterialWPO,
 		// Fix for landscape grass not updating when using a material instance as the landscape material and changing parameters
 		GrassMaterialInstanceFix,
+		// Fix for spline Foreign data that used TMap<TLazyObjectPtr, ...> to now use TArray<...> to prevent key creation every time we do a search thus putting the package dirty
+		SplineForeignDataLazyObjectPtrFix,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

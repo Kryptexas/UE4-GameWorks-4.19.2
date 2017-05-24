@@ -1,7 +1,8 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3336765
 Availability:Public
 Title:플러그인
-Crumbs:%ROOT%, Programming
+Crumbs:
+Parent:Programming
 Description:언리얼 엔진 플러그인 제작법입니다.
 Version: 4.9
 
@@ -73,8 +74,8 @@ Version: 4.9
 
 | 플러그인 유형 | 검색 경로 |
 | ---------------- | -------------------------------------------------- |
-| 엔진 플러그인 | /UE4 root/Engine/Plugins/My Engine Plugin/ |
-| 게임 플러그인 | /My project/Plugins/My Game Plugin/        |
+| **Engine** | /UE4 Root/Engine/Plugins/My Engine Plugin/ |
+| **Game**  | /My Project/Plugins/My Game Plugin/        |
 
 **Plugins** 바탕 폴더 아래 서브 디렉토리를 둬서 플러그인에 체계를 잡을 수도 있습니다. 엔진은 **Plugins** 폴더 아래 모든 서브 폴더에서 
 로드할 플러그인을 검색하지만, 플러그인을 이미 찾은 폴더 아래의 서브 폴더까지 검색하지는 않습니다.

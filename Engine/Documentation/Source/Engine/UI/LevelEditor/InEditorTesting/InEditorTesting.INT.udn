@@ -4,23 +4,6 @@ Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description: Guide to testing levels and gameplay directly in the editor.
 Version: 4.9
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Rendering/LightingAndShadows/Basics "%Engine/Rendering/LightingAndShadows/Basics:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 [TOC(start:2 end:2)]
 
 [VAR:Topic]
@@ -232,6 +215,3 @@ However, you can change _Blueprint_ defaults while a preview session is active, 
 For projects that contain C++ code, there is a **Compile** button on the **Level Editor Toolbar**.  This button recompiles and reloads game code on the fly.  If you change a property or a function in
 a C++ file in your project, clicking the **Compile** button will recompile and reload your game module, so that your code changes are reflected in the editor.  In some cases, you can even compile
 while using _Play In Editor_ or _Simulate In Editor_, and your code changes will update without you needing to stop gameplay or simulation.
-
-
-%playlistnav%

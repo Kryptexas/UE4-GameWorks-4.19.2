@@ -5,194 +5,405 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Xml;
 
 namespace UnrealBuildTool
 {
-	public class IOSPlatformContext : UEBuildPlatformContext
+	/// <summary>
+	/// Stores project-specific IOS settings. Instances of this object are cached by IOSPlatform.
+	/// </summary>
+	class IOSProjectSettings
 	{
-		private bool bInitializedProject = false;
-
-		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-		public static string IOSArchitecture = "";
+		/// <summary>
+		/// The cached project file location
+		/// </summary>
+		public readonly FileReference ProjectFile;
 
 		/// <summary>
-		/// Which version of the iOS to allow at run time
+		/// Whether to generate a dSYM file or not.
 		/// </summary>
-		private string RunTimeIOSVersion = "8.0";
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile")]
+		public readonly bool bGeneratedSYMFile = true;
 
 		/// <summary>
-		/// which devices the game is allowed to run on
+		/// Whether to generate a dSYM bundle or not.
 		/// </summary>
-		private string RunTimeIOSDevices = "1,2";
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMBundle")]
+		public readonly bool bGeneratedSYMBundle = false;
 
 		/// <summary>
-		/// The architecture(s) to compile
+		/// The minimum supported version
 		/// </summary>
-		private string NonShippingArchitectures = "armv7";
-		private string ShippingArchitectures = "armv7,arm64";
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion")]
+		private readonly string MinimumIOSVersion = null;
+
+		/// <summary>
+		/// Whether to support iPhone
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPhone")]
+		private readonly bool bSupportsIPhone = true;
+
+		/// <summary>
+		/// Whether to support iPad
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPad")]
+		private readonly bool bSupportsIPad = true;
+
+		/// <summary>
+		/// Whether to target ArmV7
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7")]
+		private readonly bool bDevForArmV7 = false;
+
+		/// <summary>
+		/// Whether to target Arm64
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64")]
+		private readonly bool bDevForArm64 = false;
+
+		/// <summary>
+		/// Whether to target ArmV7S
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S")]
+		private readonly bool bDevForArmV7S = false;
+
+		/// <summary>
+		/// Whether to target ArmV7 for shipping configurations
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7")]
+		private readonly bool bShipForArmV7 = false;
+
+		/// <summary>
+		/// Whether to target Arm64 for shipping configurations
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64")]
+		private readonly bool bShipForArm64 = false;
+
+		/// <summary>
+		/// Whether to target ArmV7S for shipping configurations
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S")]
+		private readonly bool bShipForArmV7S = false;
 
 		/// <summary>
 		/// additional linker flags for shipping
 		/// </summary>
-		public string AdditionalShippingLinkerFlags = "";
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalShippingLinkerFlags")]
+		public readonly string AdditionalShippingLinkerFlags = "";
 
 		/// <summary>
 		/// additional linker flags for non-shipping
 		/// </summary>
-		public string AdditionalLinkerFlags = "";
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalLinkerFlags")]
+		public readonly string AdditionalLinkerFlags = "";
 
 		/// <summary>
 		/// mobile provision to use for code signing
 		/// </summary>
-		public string MobileProvision = "";
-
-        /// <summary>
-        /// mobile provision UUID to use for code signing
-        /// </summary>
-        public string MobileProvisionUUID = "";
-
-        /// <summary>
-        /// mobile provision UUID to use for code signing
-        /// </summary>
-        public string TeamUUID = "";
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MobileProvision")]
+		public readonly string MobileProvision = "";
 
         /// <summary>
         /// signing certificate to use for code signing
         /// </summary>
-        public string SigningCertificate = "";
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SigningCertificate")]
+        public readonly string SigningCertificate = "";
 
 		/// <summary>
 		/// true if bit code should be embedded
 		/// </summary>
-		private bool bShipForBitcode = false;
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForBitcode")]
+		public readonly bool bShipForBitcode = false;
 
         /// <summary>
         /// true if notifications are enabled
         /// </summary>
-        private bool bNotificationsEnabled = false;
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport")]
+        public readonly bool bNotificationsEnabled = false;
 
-        private bool bForDistribtion = false;
+		/// <summary>
+		/// The bundle identifier
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "BundleIdentifier")]
+		public readonly string BundleIdentifier = "";
 
-        private string BundleIdentifier = "";
+		/// <summary>
+		/// true if using Xcode managed provisioning, else false
+		/// </summary>
+		[ConfigFile(ConfigHierarchyType.Engine, "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bAutomaticSigning")]
+		public readonly bool bAutomaticSigning = false;
 
-        public IOSPlatformContext(FileReference InProjectFile, bool ForDistribution = false)
-            : this(UnrealTargetPlatform.IOS, InProjectFile, ForDistribution)
-        {
-        }
-
-        protected IOSPlatformContext(UnrealTargetPlatform TargetPlatform, FileReference InProjectFile, bool ForDistribution)
-            : base(TargetPlatform, InProjectFile)
+		/// <summary>
+		/// Returns a list of all the non-shipping architectures which are supported
+		/// </summary>
+		public IEnumerable<string> NonShippingArchitectures
 		{
-            bForDistribtion = ForDistribution;
-        }
-
-        // The current architecture - affects everything about how UBT operates on IOS
-        public override string GetActiveArchitecture()
-		{
-			return IOSArchitecture;
-		}
-
-		public virtual string GetRunTimeVersion()
-		{
-			return RunTimeIOSVersion;
-		}
-
-		public virtual string GetRunTimeDevices()
-		{
-			return RunTimeIOSDevices;
-		}
-
-		public bool IsBitcodeCompilingEnabled(CPPTargetConfiguration Configuration)
-		{
-			return Configuration == CPPTargetConfiguration.Shipping && bShipForBitcode;
-		}
-
-		// The name that Xcode uses for the platform
-		private const string XcodeDevicePlatformName = "iPhoneOS";
-		private const string XcodeSimulatorPlatformName = "iPhoneSimulator";
-
-		public virtual string GetXcodePlatformName(bool bForDevice)
-		{
-			return bForDevice ? XcodeDevicePlatformName : XcodeSimulatorPlatformName;
-		}
-
-		public virtual string GetXcodeMinVersionParam()
-		{
-			return "iphoneos-version-min";
-		}
-
-		public virtual string GetCodesignPlatformName()
-		{
-			return "iphoneos";
-		}
-
-		public virtual string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
-		{
-			SetUpProjectEnvironment(Configuration);
-
-            // get the list of architectures to compile
-            string Archs =
-				UBTArchitecture == "-simulator" ? "i386" :
-				(Configuration == CPPTargetConfiguration.Shipping) ? ShippingArchitectures : NonShippingArchitectures;
-
-			Log.TraceLogOnce("Compiling with these architectures: " + Archs);
-
-			// parse the string
-			string[] Tokens = Archs.Split(",".ToCharArray());
-
-			string Result = "";
-			foreach (string Token in Tokens)
+			get
 			{
-				Result += " -arch " + Token;
+				if(bDevForArmV7 || (!bDevForArm64 && !bDevForArmV7S))
+				{
+					yield return "armv7";
+				}
+				if(bDevForArm64)
+				{
+					yield return "arm64";
+				}
+				if(bDevForArmV7S)
+				{
+					yield return "armv7s";
+				}
 			}
-
-			return Result;
 		}
-		
-		public string GetAdditionalLinkerFlags(CPPTargetConfiguration InConfiguration)
+
+		/// <summary>
+		/// Returns a list of all the shipping architectures which are supported
+		/// </summary>
+		public IEnumerable<string> ShippingArchitectures
 		{
-			if (InConfiguration != CPPTargetConfiguration.Shipping)
+			get
 			{
-				return AdditionalLinkerFlags;
+				if(bShipForArmV7 || (!bShipForArm64 && !bShipForArmV7S))
+				{
+					yield return "armv7";
+				}
+				if(bShipForArm64 || (!bShipForArmV7 && !bShipForArmV7S))
+				{
+					yield return "arm64";
+				}
+				if(bShipForArmV7S)
+				{
+					yield return "armv7s";
+				}
 			}
-			else
-			{
-				return AdditionalShippingLinkerFlags;
-			}
-
 		}
 
-        public void SetUpProjectEnvironment(CPPTargetConfiguration Configuration)
-        {
-            UnrealTargetConfiguration unrealConfiguration;
+		/// <summary>
+		/// Which version of the iOS to allow at run time
+		/// </summary>
+		public virtual string RuntimeVersion
+		{
+			get
+			{
+				switch (MinimumIOSVersion)
+				{
+					case "IOS_9":
+						return "9.0";
+					case "IOS_10":
+						return "10.0";
+					default:
+						return "8.0";
+				}
+			}
+		}
 
-            switch (Configuration)
+		/// <summary>
+		/// which devices the game is allowed to run on
+		/// </summary>
+		public virtual string RuntimeDevices
+		{
+			get
+			{
+				if (bSupportsIPad && !bSupportsIPhone)
+				{
+					return "2";
+				}
+				else if (!bSupportsIPad && bSupportsIPhone)
+				{
+					return "1";
+				}
+				else
+				{
+					return "1,2";
+				}
+			}
+		}
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="ProjectFile">The project file to read settings for</param>
+		public IOSProjectSettings(FileReference ProjectFile) 
+			: this(ProjectFile, UnrealTargetPlatform.IOS)
+		{
+		}
+
+		/// <summary>
+		/// Protected constructor. Used by TVOSProjectSettings.
+		/// </summary>
+		/// <param name="ProjectFile">The project file to read settings for</param>
+		/// <param name="Platform">The platform to read settings for</param>
+		protected IOSProjectSettings(FileReference ProjectFile, UnrealTargetPlatform Platform)
+		{
+			this.ProjectFile = ProjectFile;
+			ConfigCache.ReadSettings(DirectoryReference.FromFile(ProjectFile), Platform, this);
+            BundleIdentifier = BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
+		}
+	}
+
+	/// <summary>
+	/// IOS provisioning data
+	/// </summary>
+    class IOSProvisioningData
+    {
+		public string SigningCertificate;
+		public string MobileProvision;
+        public string MobileProvisionUUID;
+        public string TeamUUID;
+		public bool bHaveCertificate = false;
+
+		public IOSProvisioningData(IOSProjectSettings ProjectSettings, bool bForDistribution)
+			: this(ProjectSettings, false, bForDistribution)
+		{
+		}
+
+		protected IOSProvisioningData(IOSProjectSettings ProjectSettings, bool bIsTVOS, bool bForDistribtion)
+		{
+            SigningCertificate = ProjectSettings.SigningCertificate;
+            MobileProvision = ProjectSettings.MobileProvision;
+
+			FileReference ProjectFile = ProjectSettings.ProjectFile;
+            if (!string.IsNullOrEmpty(SigningCertificate))
             {
-                case CPPTargetConfiguration.Shipping:
-                    unrealConfiguration = UnrealTargetConfiguration.Shipping;
-                    break;
-                case CPPTargetConfiguration.Development:
-                    unrealConfiguration = UnrealTargetConfiguration.Development;
-                    break;
-                default:
-                    unrealConfiguration = UnrealTargetConfiguration.DebugGame;
-                    break;
+                // verify the certificate
+                Process IPPProcess = new Process();
+                if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+                {
+                    string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + ProjectSettings.BundleIdentifier + (bForDistribtion ? " -distribution" : "");
+                    IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                    IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
+                    IPPProcess.StartInfo.Arguments = IPPCmd;
+                    IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                    IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                }
+                else
+                {
+					string IPPCmd = "certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + ProjectSettings.BundleIdentifier + (bForDistribtion ? " -distribution" : "");
+                    IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                    IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
+                    IPPProcess.StartInfo.Arguments = IPPCmd;
+                    IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                    IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                }
+                Utils.RunLocalProcess(IPPProcess);
+            }
+            else
+            {
+                SigningCertificate = bForDistribtion ? "iPhone Distribution" : "iPhone Developer";
+                bHaveCertificate = true;
             }
 
-            SetUpProjectEnvironment(unrealConfiguration);
-        }
+            if (string.IsNullOrEmpty(MobileProvision) // no provision specified
+                || !File.Exists((BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + MobileProvision) // file doesn't exist
+                || !bHaveCertificate) // certificate doesn't exist
+            {
 
-        static string Provision = "";
-        static string Certificate = "";
-        static bool bHaveCertificate = false;
-        public static void IPPDataReceivedHandler(Object Sender, DataReceivedEventArgs Line)
+                SigningCertificate = "";
+                MobileProvision = "";
+                Log.TraceLog("Provision not specified or not found for " + ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game") + ", searching for compatible match...");
+                Process IPPProcess = new Process();
+                if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+                {
+                    string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" signing_match " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + ProjectSettings.BundleIdentifier + (bIsTVOS ? " -tvos" : "") + (bForDistribtion ? " -distribution" : "");
+                    IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                    IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
+                    IPPProcess.StartInfo.Arguments = IPPCmd;
+                    IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                    IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                }
+                else
+                {
+                    string IPPCmd = "signing_match " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + ProjectSettings.BundleIdentifier + (bIsTVOS ? " -tvos" : "") + (bForDistribtion ? " -distribution" : "");
+                    IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                    IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
+                    IPPProcess.StartInfo.Arguments = IPPCmd;
+                    IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                    IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                }
+                Utils.RunLocalProcess(IPPProcess);
+                Log.TraceLog("Provision found for " + ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game") + ", Provision: " + MobileProvision + " Certificate: " + SigningCertificate);
+            }
+            // add to the dictionary
+            SigningCertificate = SigningCertificate.Replace("\"", "");
+
+            // read the provision to get the UUID
+            string filename = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + MobileProvision;
+            if (File.Exists(filename))
+            {
+				byte[] AllBytes = File.ReadAllBytes(filename);
+
+				uint StartIndex = (uint)AllBytes.Length;
+				uint EndIndex = (uint)AllBytes.Length;
+
+				for (uint i = 0; i + 4 < AllBytes.Length; i++)
+				{
+					if (AllBytes[i] == '<' && AllBytes[i+1] == '?' && AllBytes[i+ 2] == 'x' && AllBytes[i+ 3] == 'm' && AllBytes[i+ 4] == 'l')
+					{
+						StartIndex = i;
+						break;
+					}
+				}
+
+				if (StartIndex < AllBytes.Length)
+				{
+					for (uint i = StartIndex; i + 7 < AllBytes.Length; i++)
+					{
+						if(AllBytes[i] == '<' && AllBytes[i + 1] == '/' && AllBytes[i + 2] == 'p' && AllBytes[i + 3] == 'l' && AllBytes[i + 4] == 'i' && AllBytes[i + 5] == 's' && AllBytes[i + 6] == 't' && AllBytes[i + 7] == '>')
+						{
+							EndIndex = i+7;
+							break;
+						}
+					}
+				}
+
+				if (StartIndex < AllBytes.Length && EndIndex < AllBytes.Length)
+				{
+					byte[] TextBytes = new byte[EndIndex - StartIndex];
+					Buffer.BlockCopy(AllBytes, (int)StartIndex, TextBytes, 0, (int)(EndIndex - StartIndex));
+
+					string AllText = Encoding.UTF8.GetString(TextBytes);
+					int idx = AllText.IndexOf("<key>UUID</key>");
+					if (idx > 0)
+					{
+						idx = AllText.IndexOf("<string>", idx);
+						if (idx > 0)
+						{
+							idx += "<string>".Length;
+							MobileProvisionUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+						}
+					}
+					idx = AllText.IndexOf("<key>com.apple.developer.team-identifier</key>");
+					if (idx > 0)
+					{
+						idx = AllText.IndexOf("<string>", idx);
+						if (idx > 0)
+						{
+							idx += "<string>".Length;
+							TeamUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
+						}
+					}
+				}
+
+				if (string.IsNullOrEmpty(MobileProvisionUUID) || string.IsNullOrEmpty(TeamUUID))
+				{
+					MobileProvision = null;
+					SigningCertificate = null;
+					Log.TraceLog("Failed to parse the mobile provisioning profile.");
+				}
+            }
+            else
+            {
+                Log.TraceLog("No matching provision file was discovered. Please ensure you have a compatible provision installed.");
+            }
+		}
+
+        void IPPDataReceivedHandler(Object Sender, DataReceivedEventArgs Line)
         {
             if ((Line != null) && (Line.Data != null))
             {
-                if (!string.IsNullOrEmpty(Certificate))
+                if (!string.IsNullOrEmpty(SigningCertificate))
                 {
-                    if (Line.Data.Contains("CERTIFICATE-") && Line.Data.Contains(Certificate))
+                    if (Line.Data.Contains("CERTIFICATE-") && Line.Data.Contains(SigningCertificate))
                     {
                         bHaveCertificate = true;
                     }
@@ -204,387 +415,75 @@ namespace UnrealBuildTool
                     if (cindex > -1 && pindex > -1)
                     {
                         cindex += "CERTIFICATE-".Length;
-                        Certificate = Line.Data.Substring(cindex, pindex - cindex - 1);
+                        SigningCertificate = Line.Data.Substring(cindex, pindex - cindex - 1);
                         pindex += "PROVISION-".Length;
-                        Provision = Line.Data.Substring(pindex);
+                        MobileProvision = Line.Data.Substring(pindex);
                     }
                 }
             }
         }
+    }
 
-        struct ProvisionData
-        {
-            public string MobileProvision;
-            public string Certificate;
-            public string UUID;
-            public string TeamUUID;
-        }
-        static Dictionary<string, ProvisionData> ProvisionCache = new Dictionary<string, ProvisionData>();
-
-        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
-        {
-            if (!bInitializedProject)
-            {
-                base.SetUpProjectEnvironment(Configuration, Target);
-
-                // update the configuration based on the project file
-                // look in ini settings for what platforms to compile for
-                ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), Platform);
-                string MinVersion = "IOS_8";
-                if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
-                {
-                    switch (MinVersion)
-                    {
-                        case "IOS_61":
-                            Log.TraceWarningOnce("IOS 6 is no longer supported in UE4 as 4.11");
-                            RunTimeIOSVersion = "8.0";
-                            break;
-                        case "IOS_7":
-                            Log.TraceWarningOnce("IOS 7 is no longer supported in UE4 as 4.14");
-                            RunTimeIOSVersion = "8.0";
-                            break;
-                        case "IOS_8":
-                            RunTimeIOSVersion = "8.0";
-                            break;
-                        case "IOS_9":
-                            RunTimeIOSVersion = "9.0";
-                            break;
-                        case "IOS_10":
-                            RunTimeIOSVersion = "10.0";
-                            break;
-                    }
-                }
-
-                bool biPhoneAllowed = true;
-                bool biPadAllowed = true;
-                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPhone", out biPhoneAllowed);
-                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPad", out biPadAllowed);
-                if (biPhoneAllowed && biPadAllowed)
-                {
-                    RunTimeIOSDevices = "1,2";
-                }
-                else if (biPadAllowed)
-                {
-                    RunTimeIOSDevices = "2";
-                }
-                else if (biPhoneAllowed)
-                {
-                    RunTimeIOSDevices = "1";
-                }
-
-				NonShippingArchitectures = String.Join(",", GetNonShippingArchitectures(Ini));
-
-				ShippingArchitectures = String.Join(",", GetShippingArchitectures(Ini));
-
-				// determine if we need to generate the dsym
-				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMFile", out BuildConfiguration.bGeneratedSYMFile);
-                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGeneratedSYMBundle", out BuildConfiguration.bGeneratedSYMBundle);
-
-                // determie if bitcode should be generated for the shipping code
-                Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForBitcode", out bShipForBitcode);
-
-                // @todo tvos: We probably want to handle TVOS versions here
-                Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalLinkerFlags", out AdditionalLinkerFlags);
-                Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalShippingLinkerFlags", out AdditionalShippingLinkerFlags);
-
-                Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MobileProvision", out MobileProvision);
-                Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SigningCertificate", out SigningCertificate);
-
-                // bundle identifier
-                Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "BundleIdentifier", out BundleIdentifier);
-
-                bInitializedProject = true;
-            }
-
-            ProvisionData Data = new ProvisionData();
-            string BundleId = BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
-            bool bIsTVOS = GetCodesignPlatformName() == "appletvos";
-            if (!ProvisionCache.ContainsKey(BundleId + " " + bIsTVOS.ToString() + " " + bForDistribtion.ToString()))
-            {
-                Certificate = SigningCertificate;
-                Provision = MobileProvision;
-                if (!string.IsNullOrEmpty(SigningCertificate))
-                {
-                    // verify the certificate
-                    Process IPPProcess = new Process();
-                    if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
-                    {
-                        string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
-                        IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
-                        IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
-                        IPPProcess.StartInfo.Arguments = IPPCmd;
-                        IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                        IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                    }
-                    else
-                    {
-                        string IPPCmd = "certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
-                        IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
-                        IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
-                        IPPProcess.StartInfo.Arguments = IPPCmd;
-                        IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                        IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                    }
-                    Utils.RunLocalProcess(IPPProcess);
-                }
-                else
-                {
-                    Certificate = bForDistribtion ? "iPhone Distribution" : "iPhone Developer";
-                    bHaveCertificate = true;
-                }
-
-                if (string.IsNullOrEmpty(MobileProvision) // no provision specified
-                    || !File.Exists((BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + MobileProvision) // file doesn't exist
-                    || !bHaveCertificate) // certificate doesn't exist
-                {
-
-                    Certificate = "";
-                    Provision = "";
-                    Log.TraceLog("Provision not specified or not found for " + ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game") + ", searching for compatible match...");
-                    Process IPPProcess = new Process();
-                    if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
-                    {
-                        string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" signing_match " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bIsTVOS ? " -tvos" : "") + (bForDistribtion ? " -distribution" : "");
-                        IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
-                        IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
-                        IPPProcess.StartInfo.Arguments = IPPCmd;
-                        IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                        IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                    }
-                    else
-                    {
-                        string IPPCmd = "signing_match " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bIsTVOS ? " -tvos" : "") + (bForDistribtion ? " -distribution" : "");
-                        IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
-                        IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
-                        IPPProcess.StartInfo.Arguments = IPPCmd;
-                        IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                        IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
-                    }
-                    Utils.RunLocalProcess(IPPProcess);
-                    Log.TraceLog("Provision found for " + ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game") + ", Provision: " + Provision + " Certificate: " + Certificate);
-                }
-                // add to the dictionary
-                Data.MobileProvision = Provision;
-                Data.Certificate = Certificate.Replace("\"", "");
-
-                // read the provision to get the UUID
-                string filename = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + Data.MobileProvision;
-                if (File.Exists(filename))
-                {
-                    string AllText = File.ReadAllText(filename);
-                    int idx = AllText.IndexOf("<key>UUID</key>");
-                    if (idx > 0)
-                    {
-                        idx = AllText.IndexOf("<string>", idx);
-                        if (idx > 0)
-                        {
-                            idx += "<string>".Length;
-                            Data.UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
-                        }
-                    }
-                    idx = AllText.IndexOf("<key>com.apple.developer.team-identifier</key>");
-                    if (idx > 0)
-                    {
-                        idx = AllText.IndexOf("<string>", idx);
-                        if (idx > 0)
-                        {
-                            idx += "<string>".Length;
-                            Data.TeamUUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
-                        }
-                    }
-                }
-                else
-                {
-                    Log.TraceLog("No matching provision file was discovered. Please ensure you have a compatible provision installed.");
-                }
-                ProvisionCache.Add(BundleId + " " + bIsTVOS.ToString() + " " + bForDistribtion.ToString(), Data);
-            }
-            else
-            {
-                Data = ProvisionCache[BundleId + " " + bIsTVOS.ToString() + " " + bForDistribtion.ToString()];
-            }
-            MobileProvision = Data.MobileProvision;
-            SigningCertificate = Data.Certificate;
-            MobileProvisionUUID = Data.UUID;
-            TeamUUID = Data.TeamUUID;
-        }
-
-		public static List<string> GetNonShippingArchitectures(ConfigHierarchy Ini)
-		{
-			List<string> ProjectArches = new List<string>();
-			bool bBuild = true;
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("armv7");
-			}
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("arm64");
-			}
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("armv7s");
-			}
-
-			// force armv7 if something went wrong
-			if (ProjectArches.Count == 0)
-			{
-				ProjectArches.Add("armv7");
-			}
-			return ProjectArches;
-		}
-
-		public static List<string> GetShippingArchitectures(ConfigHierarchy Ini)
-		{
-			List<string> ProjectArches = new List<string>();
-			bool bBuild = true;
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("armv7");
-			}
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("arm64");
-			}
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("armv7s");
-			}
-
-			// force armv7 if something went wrong
-			if (ProjectArches.Count == 0)
-			{
-				ProjectArches.Add("armv7");
-				ProjectArches.Add("arm64");
-			}
-			return ProjectArches;
-		}
-
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
-		{
-			return true;
-		}
-
-		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
-		{
-			UEBuildConfiguration.bBuildEditor = false;
-			UEBuildConfiguration.bBuildDeveloperTools = false;
-			UEBuildConfiguration.bCompileAPEX = false;
-			UEBuildConfiguration.bRuntimePhysicsCooking = false;
-			UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileSimplygonSSF = false;
-			UEBuildConfiguration.bBuildDeveloperTools = false;
-
-			// we currently don't have any simulator libs for PhysX
-			if (GetActiveArchitecture() == "-simulator")
-			{
-				UEBuildConfiguration.bCompilePhysX = false;
-			}
-		}
-
-		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
-		{
-			// check the base first
-			base.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
-
-			BuildConfiguration.bUsePCHFiles = false;
-			BuildConfiguration.bCheckExternalHeadersForModification = false;
-			BuildConfiguration.bCheckSystemHeadersForModification = false;
-			BuildConfiguration.ProcessorCountMultiplier = IOSToolChain.GetAdjustedProcessorCountMultiplier();
-			BuildConfiguration.bDeployAfterCompile = true;
-		}
-
-		/// <summary>
-		/// Setup the target environment for building
-		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
-		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
-		{
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_IOS=1");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_APPLE=1");
-
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_TTS=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_EDITOR=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_NULL_RHI=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
-
-            ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.IOS);
-            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bNotificationsEnabled);
-			if (bNotificationsEnabled)
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NOTIFICATIONS_ENABLED=1");
-			}
-			else
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NOTIFICATIONS_ENABLED=0");
-			}
-
-			if (GetActiveArchitecture() == "-simulator")
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
-			}
-			else
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=0");
-			}
-
-			// we assume now we are building with IOS8 or later
-			if (UEBuildConfiguration.bCompileAgainstEngine)
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
-				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
-			}
-			else
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=0");
-			}
-
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add(new UEBuildFramework("GameKit"));
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add(new UEBuildFramework("StoreKit"));
-		}
-
-		/// <summary>
-		/// Modify the rules for a newly created module, in a target that's being built for this platform.
-		/// This is not required - but allows for hiding details of a particular platform.
-		/// </summary>
-		/// <param name="ModuleName">The name of the module</param>
-		/// <param name="Rules">The module rules</param>
-		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
-		{
-		}
-
-		/// <summary>
-		/// Creates a toolchain instance for the given platform.
-		/// </summary>
-		/// <param name="Platform">The platform to create a toolchain for</param>
-		/// <returns>New toolchain instance.</returns>
-		public override UEToolChain CreateToolChain(CPPTargetPlatform Platform)
-		{
-			return new IOSToolChain(ProjectFile, this);
-		}
-	}
-
-	public class IOSPlatform : UEBuildPlatform
+	class IOSPlatform : UEBuildPlatform
 	{
 		IOSPlatformSDK SDK;
+		List<IOSProjectSettings> CachedProjectSettings = new List<IOSProjectSettings>();
+        Dictionary<string, IOSProvisioningData> ProvisionCache = new Dictionary<string, IOSProvisioningData>();
+
+		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+		public static string IOSArchitecture = "";
 
 		public IOSPlatform(IOSPlatformSDK InSDK)
-			: this(InSDK, UnrealTargetPlatform.IOS, CPPTargetPlatform.IOS)
+			: this(InSDK, UnrealTargetPlatform.IOS, CppPlatform.IOS)
 		{
 		}
 
-		protected IOSPlatform(IOSPlatformSDK InSDK, UnrealTargetPlatform TargetPlatform, CPPTargetPlatform CPPPlatform)
+		protected IOSPlatform(IOSPlatformSDK InSDK, UnrealTargetPlatform TargetPlatform, CppPlatform CPPPlatform)
 			: base(TargetPlatform, CPPPlatform)
 		{
 			SDK = InSDK;
+		}
+
+        // The current architecture - affects everything about how UBT operates on IOS
+        public override string GetDefaultArchitecture(FileReference ProjectFile)
+		{
+			return IOSArchitecture;
+		}
+
+		public override void ResetTarget(TargetRules Target)
+		{
+			// we currently don't have any simulator libs for PhysX
+			if (Target.Architecture == "-simulator")
+			{
+				Target.bCompilePhysX = false;
+			}
+
+			Target.bBuildEditor = false;
+			Target.bBuildDeveloperTools = false;
+			Target.bCompileAPEX = false;
+			Target.bRuntimePhysicsCooking = false;
+			Target.bCompileSimplygon = false;
+            Target.bCompileSimplygonSSF = false;
+			Target.bBuildDeveloperTools = false;
+		}
+
+		public override void ValidateTarget(TargetRules Target)
+		{
+			Target.bUsePCHFiles = false;
+			Target.bDeployAfterCompile = true;
+
+			// we assume now we are building with IOS8 or later
+			if (Target.bCompileAgainstEngine)
+			{
+				Target.GlobalDefinitions.Add("HAS_METAL=1");
+				Target.ExtraModuleNames.Add("MetalRHI");
+			}
+			else
+			{
+				Target.GlobalDefinitions.Add("HAS_METAL=0");
+			}
+
+			Target.bCheckSystemHeadersForModification = false;
 		}
 
 		public override SDKStatus HasRequiredSDKsInstalled()
@@ -615,14 +514,50 @@ namespace UnrealBuildTool
 			return base.GetBinaryExtension(InBinaryType);
 		}
 
-		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
+		public IOSProjectSettings ReadProjectSettings(FileReference ProjectFile)
 		{
-			if(BuildConfiguration.bGeneratedSYMFile)
+			IOSProjectSettings ProjectSettings = CachedProjectSettings.FirstOrDefault(x => x.ProjectFile == ProjectFile);
+			if(ProjectSettings == null)
+			{
+				ProjectSettings = CreateProjectSettings(ProjectFile);
+				CachedProjectSettings.Add(ProjectSettings);
+			}
+			return ProjectSettings;
+		}
+
+		protected virtual IOSProjectSettings CreateProjectSettings(FileReference ProjectFile)
+		{
+			return new IOSProjectSettings(ProjectFile);
+		}
+
+		public IOSProvisioningData ReadProvisioningData(IOSProjectSettings ProjectSettings, bool bForDistribution = false)
+        {
+			string ProvisionKey = ProjectSettings.BundleIdentifier + " " + bForDistribution.ToString();
+
+            IOSProvisioningData ProvisioningData;
+			if(!ProvisionCache.TryGetValue(ProvisionKey, out ProvisioningData))
+            {
+				ProvisioningData = CreateProvisioningData(ProjectSettings, bForDistribution);
+                ProvisionCache.Add(ProvisionKey, ProvisioningData);
+            }
+			return ProvisioningData;
+        }
+
+		protected virtual IOSProvisioningData CreateProvisioningData(IOSProjectSettings ProjectSettings, bool bForDistribution)
+		{
+			return new IOSProvisioningData(ProjectSettings, bForDistribution);
+		}
+
+		public override string GetDebugInfoExtension(ReadOnlyTargetRules InTarget, UEBuildBinaryType InBinaryType)
+		{
+			IOSProjectSettings ProjectSettings = ReadProjectSettings(InTarget.ProjectFile);
+
+			if(ProjectSettings.bGeneratedSYMFile)
 			{
 				return ".dSYM";
 			}
 
-			if(BuildConfiguration.bGeneratedSYMBundle)
+			if(ProjectSettings.bGeneratedSYMBundle)
 			{
 				return ".dSYM.zip";
 			}
@@ -640,7 +575,21 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		public override void PreBuildSync()
+		{
+			IOSToolChain.PreBuildSync();
+		}
 
+		public override void PostBuildSync(UEBuildTarget Target)
+		{
+			IOSToolChain.PostBuildSync(Target);
+		}
+
+		public override void PostCodeGeneration(UHTManifest Manifest)
+		{
+			IOSToolChain.PostCodeGeneration(Manifest);
+		}
+		
 		/// <summary>
 		/// Check for the default configuration
 		/// return true if the project uses the default build config
@@ -691,14 +640,9 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		/// <summary>
-		/// Whether the platform requires the extra UnityCPPWriter
-		/// This is used to add an extra file for UBT to get the #include dependencies from
-		/// </summary>
-		/// <returns>bool true if it is required, false if not</returns>
-		public override bool RequiresExtraUnityCPPWriter()
+		public override bool UseAbsolutePathsInUnityFiles()
 		{
-			return true;
+			return false;
 		}
 
 		/// <summary>
@@ -708,16 +652,16 @@ namespace UnrealBuildTool
 		/// <param name="ModuleName">The name of the module</param>
 		/// <param name="Rules">The module rules</param>
 		/// <param name="Target">The target being build</param>
-		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, TargetInfo Target)
+		public override void ModifyModuleRulesForOtherPlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
 		{
 			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
 			{
-				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
-				if (!UEBuildConfiguration.bBuildRequiresCookedData)
+				bool bBuildShaderFormats = Target.bForceBuildShaderFormats;
+				if (!Target.bBuildRequiresCookedData)
 				{
 					if (ModuleName == "Engine")
 					{
-						if (UEBuildConfiguration.bBuildDeveloperTools)
+						if (Target.bBuildDeveloperTools)
 						{
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("TVOSTargetPlatform");
@@ -728,7 +672,7 @@ namespace UnrealBuildTool
 						bBuildShaderFormats = true;
 						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
 						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
-						if (UEBuildConfiguration.bBuildDeveloperTools && UEBuildConfiguration.bCompileAgainstEngine)
+						if (Target.bBuildDeveloperTools && Target.bCompileAgainstEngine)
 						{
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AudioFormatADPCM");
 						}
@@ -738,7 +682,7 @@ namespace UnrealBuildTool
 				// allow standalone tools to use targetplatform modules, without needing Engine
 				if (ModuleName == "TargetPlatform")
 				{
-					if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+					if (Target.bForceBuildTargetPlatforms)
 					{
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
 						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("TVOSTargetPlatform");
@@ -753,14 +697,87 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a context for the given target on the current platform.
+		/// Converts the passed in path from UBT host to compiler native format.
 		/// </summary>
-		/// <param name="ProjectFile">The project file for the current target</param>
-		/// <param name="Target">Rules for the target being built</param>
-		/// <returns>New platform context object</returns>
-		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target)
+		/// <param name="OriginalPath">The path to convert</param>
+		/// <returns>The path in native format for the toolchain</returns>
+		public override string ConvertPath(string OriginalPath)
 		{
-			return new IOSPlatformContext(ProjectFile);
+			return IOSToolChain.ConvertPath(OriginalPath);
+		}
+
+		/// <summary>
+		/// Whether this platform should create debug information or not
+		/// </summary>
+		/// <param name="Target">The target being built</param>
+		/// <returns>bool    true if debug info should be generated, false if not</returns>
+		public override bool ShouldCreateDebugInfo(ReadOnlyTargetRules Target)
+		{
+			return true;
+		}
+
+		/// <summary>
+		/// Setup the target environment for building
+		/// </summary>
+		/// <param name="Target">Settings for the target being compiled</param>
+		/// <param name="CompileEnvironment">The compile environment for this target</param>
+		/// <param name="LinkEnvironment">The link environment for this target</param>
+		public override void SetUpEnvironment(ReadOnlyTargetRules Target, CppCompileEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		{
+			CompileEnvironment.Definitions.Add("PLATFORM_IOS=1");
+			CompileEnvironment.Definitions.Add("PLATFORM_APPLE=1");
+
+			CompileEnvironment.Definitions.Add("WITH_TTS=0");
+			CompileEnvironment.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
+			CompileEnvironment.Definitions.Add("WITH_DATABASE_SUPPORT=0");
+			CompileEnvironment.Definitions.Add("WITH_EDITOR=0");
+			CompileEnvironment.Definitions.Add("USE_NULL_RHI=0");
+			CompileEnvironment.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
+
+			IOSProjectSettings ProjectSettings = ((IOSPlatform)UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS)).ReadProjectSettings(Target.ProjectFile);
+			if (ProjectSettings.bNotificationsEnabled)
+			{
+				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=1");
+			}
+			else
+			{
+				CompileEnvironment.Definitions.Add("NOTIFICATIONS_ENABLED=0");
+			}
+
+			if (Target.Architecture == "-simulator")
+			{
+				CompileEnvironment.Definitions.Add("WITH_SIMULATOR=1");
+			}
+			else
+			{
+				CompileEnvironment.Definitions.Add("WITH_SIMULATOR=0");
+			}
+
+			LinkEnvironment.AdditionalFrameworks.Add(new UEBuildFramework("GameKit"));
+			LinkEnvironment.AdditionalFrameworks.Add(new UEBuildFramework("StoreKit"));
+		}
+
+		/// <summary>
+		/// Modify the rules for a newly created module, in a target that's being built for this platform.
+		/// This is not required - but allows for hiding details of a particular platform.
+		/// </summary>
+		/// <param name="ModuleName">The name of the module</param>
+		/// <param name="Rules">The module rules</param>
+		/// <param name="Target">The target being build</param>
+		public override void ModifyModuleRulesForActivePlatform(string ModuleName, ModuleRules Rules, ReadOnlyTargetRules Target)
+		{
+		}
+
+		/// <summary>
+		/// Creates a toolchain instance for the given platform.
+		/// </summary>
+		/// <param name="CppPlatform">The platform to create a toolchain for</param>
+		/// <param name="Target">The target being built</param>
+		/// <returns>New toolchain instance.</returns>
+		public override UEToolChain CreateToolChain(CppPlatform CppPlatform, ReadOnlyTargetRules Target)
+		{
+			IOSProjectSettings ProjectSettings = ReadProjectSettings(Target.ProjectFile);
+			return new IOSToolChain(Target.ProjectFile, ProjectSettings);
 		}
 
 		/// <summary>
@@ -773,7 +790,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public class IOSPlatformSDK : UEBuildPlatformSDK
+	class IOSPlatformSDK : UEBuildPlatformSDK
 	{
 		protected override SDKStatus HasRequiredManualSDKInternal()
 		{
@@ -794,7 +811,7 @@ namespace UnrealBuildTool
 		}
 	}
 
-	public class IOSPlatformFactory : UEBuildPlatformFactory
+	class IOSPlatformFactory : UEBuildPlatformFactory
 	{
 		protected override UnrealTargetPlatform TargetPlatform
 		{
@@ -804,10 +821,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Register the platform with the UEBuildPlatform class
 		/// </summary>
-		protected override void RegisterBuildPlatforms()
+		protected override void RegisterBuildPlatforms(SDKOutputLevel OutputLevel)
 		{
 			IOSPlatformSDK SDK = new IOSPlatformSDK();
-			SDK.ManageAndValidateSDK();
+			SDK.ManageAndValidateSDK(OutputLevel);
 
 			// Register this build platform for IOS
 			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.IOS.ToString());
@@ -816,7 +833,7 @@ namespace UnrealBuildTool
 			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.IOS, UnrealPlatformGroup.Apple);
 			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.IOS, UnrealPlatformGroup.IOS);
 
-			if (IOSPlatformContext.IOSArchitecture == "-simulator")
+			if (IOSPlatform.IOSArchitecture == "-simulator")
 			{
 				UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.IOS, UnrealPlatformGroup.Simulator);
 			}

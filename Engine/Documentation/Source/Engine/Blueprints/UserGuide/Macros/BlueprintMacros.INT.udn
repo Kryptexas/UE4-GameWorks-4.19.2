@@ -3,6 +3,7 @@ Title:Macros
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Collapsed networks of nodes that can be executed, or called, from another graph.
 version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3160114
+﻿INTSourceChangelist:3244089
 Availability: Public
 Title:3. 메인 메뉴 제작
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:이번 단계에서는 메인 메뉴의 비주얼 레이아웃을 만듭니다.
 version: 4.13
+tags:UMG UI Designer
 
 
 [VAR:Steps]

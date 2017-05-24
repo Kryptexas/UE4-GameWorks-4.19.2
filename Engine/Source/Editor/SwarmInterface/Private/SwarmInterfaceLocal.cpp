@@ -148,9 +148,15 @@ int32 FSwarmInterfaceLocalImpl::OpenConnection( FConnectionCallback InCallbackFu
 			MessageEndpoint->Publish(new FSwarmPingMessage(), EMessageScope::Network);
 			bIsConnected = true;
 		}
+		else
+		{
+			UE_LOG(LogInit, Error, TEXT("Could not open local SwarmInterface connection"));
+		}
 	}
 
 	PrepareTasksList();
+
+	return bIsConnected ? 1 : -1;
 #endif
 
 	return 1;
@@ -165,6 +171,7 @@ int32 FSwarmInterfaceLocalImpl::CloseConnection( void )
 		FPlatformProcess::CloseProc(LightmassProcHandle);
 	}
 	Recepient = FMessageAddress();
+	FMessageEndpoint::SafeRelease(MessageEndpoint);
 	bIsConnected = false;
 	CallbackFunc = NULL;
 	CallbackData = NULL;
@@ -175,10 +182,20 @@ int32 FSwarmInterfaceLocalImpl::CloseConnection( void )
 int32 FSwarmInterfaceLocalImpl::SendMessage( const FMessage& Message )
 {
 #if USE_LOCAL_SWARM_INTERFACE
+	const double kMaxTimeToWaitSec = 60;
+	double TimeStartedWaiting = FPlatformTime::Seconds();
+
 	while (bIsConnected && !Recepient.IsValid())
 	{
 		FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
 		FPlatformProcess::Sleep(0.5f);
+
+		double TimeWaitingSec = FPlatformTime::Seconds() - TimeStartedWaiting;
+		if (TimeWaitingSec >= kMaxTimeToWaitSec)
+		{
+			UE_LOG(LogInit, Error, TEXT("Timed out waiting for the recipient (TimeWaitingSec = %f)"), TimeWaitingSec);
+			return -1;
+		}
 	}
 
 	if (Message.Type == MESSAGE_INFO)

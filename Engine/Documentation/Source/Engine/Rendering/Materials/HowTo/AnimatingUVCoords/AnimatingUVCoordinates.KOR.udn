@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3156615
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:UV 좌표 애니메이션
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -8,6 +8,7 @@ Related: Engine/Rendering/Materials/CustomizedUVs
 Related: Engine/Rendering/LightingAndShadows/LightFunctions
 Version: 4.9
 SkillLevel: Intermediate
+tags:Materials
 
 
 [TOC(start:2 end:3)]
@@ -124,7 +125,7 @@ Panner 노드는 좌표와 시간, 두 개의 입력을 받은 뒤 결과를 출
 1. 이제 머티리얼을 컴파일, 저장, 사용할 준비가 되었습니다.
 
 
-## 팁과 꼼수
+## 팁과 정보
 
 패닝과 다른 머티리얼을 조합해 사용하면 패닝 작동방식을 추가로 제어할 수 있습니다.
 아래 예제에서, 위에서 만든 머티리얼을 가져다가 속력뿐 아니라 타일링도 조절할 수 있는 콘트롤을 추가시켜 한 단계 업그레이드했습니다.

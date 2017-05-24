@@ -5,35 +5,8 @@ Description:A definition of Actors and how they are used in level design, includ
 Navigation:topic
 parent:Engine/Editor
 order:5
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Next Topic](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Placement "%Engine/Actors/Placement:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		Programming_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/Programming/Beginner)
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+type:landing
+track:LevelDesign_Beginner|7
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -73,8 +46,6 @@ order:5
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 [REGION:banner]
 ![](actorBanner.png)
@@ -122,11 +93,3 @@ properties will be modified to cause them to look or behave appropriately.
 	* [](Engine/Actors/CameraActors "%Engine/Actors/CameraActors:description%")
 	[/PARAM]
 [/OBJECT]
-
-
-%playlistnav%
-
-
-
-
-

@@ -15,16 +15,48 @@
 #include "EnvironmentQueryGraphNode_Test.h"
 #include "PropertyEditorModule.h"
 #include "EnvironmentQueryEditorModule.h"
+#include "SEnvQueryProfiler.h"
+#include "Framework/Commands/Commands.h"
+#include "Framework/Application/SlateApplication.h"
+#include "DesktopPlatformModule.h"
+#include "MultiBox/MultiBoxBuilder.h"
 
 #include "EnvironmentQuery/EnvQuery.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 
 #include "IDetailsView.h"
 #include "Widgets/Docking/SDockTab.h"
  
 #define LOCTEXT_NAMESPACE "EnvironmentQueryEditor"
 
-const FName FEnvironmentQueryEditor::EQSUpdateGraphTabId( TEXT( "EnvironmentQueryEditor_UpdateGraph" ) );
-const FName FEnvironmentQueryEditor::EQSPropertiesTabId( TEXT( "EnvironmentQueryEditor_Properties" ) );
+namespace FEnvironmentQueryHelper
+{
+	static const FString StatFileDescription = LOCTEXT("FileTypeDescription", "EQS Stat File").ToString();
+	static const FString LoadFileTypes = FString::Printf(TEXT("%s (*.ue4eqs)|*.ue4eqs"), *StatFileDescription);
+	static const FString SaveFileTypes = FString::Printf(TEXT("%s (*.ue4eqs)|*.ue4eqs"), *StatFileDescription);
+}
+
+const FName FEnvironmentQueryEditor::EQSUpdateGraphTabId(TEXT("EnvironmentQueryEditor_UpdateGraph"));
+const FName FEnvironmentQueryEditor::EQSPropertiesTabId(TEXT("EnvironmentQueryEditor_Properties"));
+const FName FEnvironmentQueryEditor::EQSProfilerTabId(TEXT("EnvironmentQueryEditor_Profiler"));
+
+class FEnvQueryCommands : public TCommands<FEnvQueryCommands>
+{
+public:
+	FEnvQueryCommands()	: TCommands<FEnvQueryCommands>("EnvQueryEditor.Profiler", LOCTEXT("Profiler", "Profiler"), NAME_None, FEditorStyle::GetStyleSetName())
+	{
+	}
+
+	TSharedPtr<FUICommandInfo> LoadStats;
+	TSharedPtr<FUICommandInfo> SaveStats;
+
+	/** Initialize commands */
+	virtual void RegisterCommands() override
+	{
+		UI_COMMAND(LoadStats, "Load Stats", "Load EQS Profiler stats", EUserInterfaceActionType::Button, FInputChord());
+		UI_COMMAND(SaveStats, "Save Stats", "Save EQS Profiler stats", EUserInterfaceActionType::Button, FInputChord());
+	}
+};
 
 void FEnvironmentQueryEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
@@ -42,14 +74,20 @@ void FEnvironmentQueryEditor::RegisterTabSpawners(const TSharedRef<class FTabMan
 		.SetDisplayName( NSLOCTEXT("EnvironmentQueryEditor", "PropertiesTab", "Details" ) )
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
+
+	InTabManager->RegisterTabSpawner(EQSProfilerTabId, FOnSpawnTab::CreateSP(this, &FEnvironmentQueryEditor::SpawnTab_Profiler))
+		.SetDisplayName(NSLOCTEXT("EnvironmentQueryEditor", "ProfilerTab", "Profiler"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Profiler.EventGraph.ExpandHotPath"));
 }
 
 void FEnvironmentQueryEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	FAssetEditorToolkit::UnregisterTabSpawners(InTabManager);
 
-	InTabManager->UnregisterTabSpawner( EQSPropertiesTabId );
-	InTabManager->UnregisterTabSpawner( EQSUpdateGraphTabId );
+	InTabManager->UnregisterTabSpawner(EQSPropertiesTabId);
+	InTabManager->UnregisterTabSpawner(EQSUpdateGraphTabId);
+	InTabManager->UnregisterTabSpawner(EQSProfilerTabId);
 }
 
 void FEnvironmentQueryEditor::InitEnvironmentQueryEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UEnvQuery* InScript )
@@ -83,6 +121,8 @@ void FEnvironmentQueryEditor::InitEnvironmentQueryEditor( const EToolkitMode::Ty
 				FTabManager::NewStack()
 				->SetSizeCoefficient(0.3f)
 				->AddTab( EQSPropertiesTabId, ETabState::OpenedTab )
+				->AddTab( EQSProfilerTabId, ETabState::OpenedTab)
+				->SetForegroundTab(EQSPropertiesTabId)
 			)
 		)
 	);
@@ -94,6 +134,8 @@ void FEnvironmentQueryEditor::InitEnvironmentQueryEditor( const EToolkitMode::Ty
 	FEnvironmentQueryEditorModule& EnvironmentQueryEditorModule = FModuleManager::LoadModuleChecked<FEnvironmentQueryEditorModule>( "EnvironmentQueryEditor" );
 	AddMenuExtender(EnvironmentQueryEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 
+	BindCommands();
+	ExtendToolbar();
 	RegenerateMenusAndToolbars();
 
 	// Update BT asset data based on saved graph to have correct data in editor
@@ -210,9 +252,27 @@ TSharedRef<SDockTab> FEnvironmentQueryEditor::SpawnTab_Properties(const FSpawnTa
 
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 		.Icon( FEditorStyle::GetBrush("SoundClassEditor.Tabs.Properties") )
-		.Label( NSLOCTEXT("EnvironmentQueryEditor", "SoundClassPropertiesTitle", "Details" ) )
+		.Label(NSLOCTEXT("EnvironmentQueryEditor", "PropertiesTab", "Details"))
 		[
 			DetailsView.ToSharedRef()
+		];
+
+	return SpawnedTab;
+}
+
+TSharedRef<SDockTab> FEnvironmentQueryEditor::SpawnTab_Profiler(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId() == EQSProfilerTabId);
+
+	ProfilerView = SNew(SEnvQueryProfiler)
+		.OwnerQueryName(Query ? Query->GetFName() : NAME_None)
+		.OnDataChanged(FSimpleDelegate::CreateSP(this, &FEnvironmentQueryEditor::OnStatsDataChange));
+
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("SoundClassEditor.Tabs.Properties"))
+		.Label(NSLOCTEXT("EnvironmentQueryEditor", "ProfilerTab", "Profiler"))
+		[
+			ProfilerView.ToSharedRef()
 		];
 
 	return SpawnedTab;
@@ -283,6 +343,100 @@ void FEnvironmentQueryEditor::SaveAsset_Execute()
 	IEnvironmentQueryEditor::SaveAsset_Execute();
 }
 
+void FEnvironmentQueryEditor::BindCommands()
+{
+	FEnvQueryCommands::Register();
+
+	ToolkitCommands->MapAction(FEnvQueryCommands::Get().LoadStats,
+		FExecuteAction::CreateSP(this, &FEnvironmentQueryEditor::OnLoadStats)
+		);
+
+	ToolkitCommands->MapAction(FEnvQueryCommands::Get().SaveStats,
+		FExecuteAction::CreateSP(this, &FEnvironmentQueryEditor::OnSaveStats)
+		);
+}
+
+void FEnvironmentQueryEditor::ExtendToolbar()
+{
+	struct Local
+	{
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
+		{
+			ToolbarBuilder.BeginSection("Profiler");
+			{
+				ToolbarBuilder.AddToolBarButton(FEnvQueryCommands::Get().LoadStats);
+				ToolbarBuilder.AddToolBarButton(FEnvQueryCommands::Get().SaveStats);
+			}
+			ToolbarBuilder.EndSection();
+		}
+	};
+
+	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+	ToolbarExtender->AddToolBarExtension(
+		"Asset",
+		EExtensionHook::After,
+		ToolkitCommands,
+		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar)
+		);
+
+	AddToolbarExtender(ToolbarExtender);
+}
+
+void FEnvironmentQueryEditor::OnSaveStats()
+{
+	TArray<FString> SaveFilenames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bSaved = false;
+	if (DesktopPlatform)
+	{
+		const FString DefaultBrowsePath = FPaths::GameLogDir();
+		bSaved = DesktopPlatform->SaveFileDialog(
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
+			LOCTEXT("StatsSaveTitle", "Save EQS stats").ToString(),
+			DefaultBrowsePath,
+			TEXT(""),
+			FEnvironmentQueryHelper::SaveFileTypes,
+			EFileDialogFlags::None,
+			SaveFilenames
+			);
+	}
+
+	if (bSaved && SaveFilenames.Num() > 0 && SaveFilenames[0].IsEmpty() == false)
+	{
+		FEQSDebugger::SaveStats(SaveFilenames[0]);
+	}
+}
+
+void FEnvironmentQueryEditor::OnLoadStats()
+{
+	TArray<FString> OpenFilenames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bOpened = false;
+	if (DesktopPlatform)
+	{
+		const FString DefaultBrowsePath = FPaths::GameLogDir();
+		bOpened = DesktopPlatform->OpenFileDialog(
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
+			LOCTEXT("StatsLoadTitle", "Load EQS stats").ToString(),
+			DefaultBrowsePath,
+			TEXT(""),
+			FEnvironmentQueryHelper::LoadFileTypes,
+			EFileDialogFlags::None,
+			OpenFilenames
+			);
+	}
+
+	if (bOpened && OpenFilenames.Num() > 0 && OpenFilenames[0].IsEmpty() == false)
+	{
+		FEQSDebugger::LoadStats(OpenFilenames[0]);
+
+		if (ProfilerView.IsValid())
+		{
+			ProfilerView->ForceUpdate();
+		}
+	}
+}
+
 void FEnvironmentQueryEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (PropertyChangedEvent.Property)
@@ -302,6 +456,27 @@ void FEnvironmentQueryEditor::OnFinishedChangingProperties(const FPropertyChange
 				}
 			}
 		}
+	}
+}
+
+void FEnvironmentQueryEditor::OnStatsDataChange()
+{
+	TSharedPtr<SGraphEditor> UpdateGraphEditor = UpdateGraphEdPtr.Pin();
+	UEnvironmentQueryGraph* EdGraph = UpdateGraphEditor.IsValid() ? Cast<UEnvironmentQueryGraph>(UpdateGraphEditor->GetCurrentGraph()) : nullptr;
+	if (EdGraph)
+	{
+		// reset stats overlay
+		EdGraph->ResetProfilerStats();
+
+#if USE_EQS_DEBUGGER
+		const bool bShowOverlay = ProfilerView.IsValid() && (ProfilerView->GetShowDetailsState() == ECheckBoxState::Checked);
+		const FEQSDebugger::FStatsInfo* StatsInfo = bShowOverlay ? UEnvQueryManager::DebuggerStats.Find(ProfilerView->GetCurrentQueryKey()) : nullptr;
+		
+		if (StatsInfo && StatsInfo->TotalAvgCount)
+		{
+			EdGraph->StoreProfilerStats(*StatsInfo);
+		}
+#endif // USE_EQS_DEBUGGER
 	}
 }
 

@@ -9,6 +9,10 @@
 #include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
 
+#if PLATFORM_HTML5_BROWSER
+#include "HTML5JavaScriptFx.h"
+#endif
+
 #if OPENGL_ESDEFERRED
 
 static TAutoConsoleVariable<int32> CVarDisjointTimerQueries(
@@ -79,6 +83,9 @@ bool FOpenGLESDeferred::bSupportsNvImageFormats = false;
 /** GL_EXT_shader_framebuffer_fetch */
 bool FOpenGLESDeferred::bSupportsShaderFramebufferFetch = false;
 
+/* This is to avoid a bug where device supports GL_EXT_shader_framebuffer_fetch but does not define it in GLSL */
+bool FOpenGLESDeferred::bRequiresUEShaderFramebufferFetchDef = false;
+
 /** GL_ARM_shader_framebuffer_fetch_depth_stencil */
 bool FOpenGLESDeferred::bSupportsShaderDepthStencilFetch = false;
 
@@ -144,9 +151,6 @@ bool FOpenGLESDeferred::bRequiresGLFragCoordVaryingLimitHack = false;
 
 /* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
 bool FOpenGLESDeferred::bRequiresTexture2DPrecisionHack = false;
-
-/* This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension  */
-bool FOpenGLESDeferred::bRequiresShaderFramebufferFetchUndef = false;
 
 /* This is to avoid a bug in Adreno drivers that define GL_ARM_shader_framebuffer_fetch_depth_stencil even when device does not support this extension  */
 bool FOpenGLESDeferred::bRequiresARMShaderFramebufferFetchDepthStencilUndef = false;
@@ -303,6 +307,7 @@ void FOpenGLESDeferred::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsColorBufferHalfFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
 	bSupportsNvImageFormats = ExtensionsString.Contains(TEXT("GL_NV_image_formats"));
 	bSupportsShaderFramebufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch"));
+	bRequiresUEShaderFramebufferFetchDef = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch"));
 	bSupportsShaderDepthStencilFetch = ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch_depth_stencil"));
 	bSupportsMultisampledRenderToTexture = ExtensionsString.Contains(TEXT("GL_EXT_multisampled_render_to_texture"));
 	// @todo es3: SRGB support does not work with our texture format setup (ES2 docs indicate that internalFormat and format must match, but they don't at all with sRGB enabled)
@@ -317,6 +322,13 @@ void FOpenGLESDeferred::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsNVFrameBufferBlit = ExtensionsString.Contains(TEXT("GL_NV_framebuffer_blit"));
 	bSupportsPackedDepthStencil = ExtensionsString.Contains(TEXT("GL_OES_packed_depth_stencil"));
 	bSupportsShaderTextureLod = ExtensionsString.Contains(TEXT("GL_EXT_shader_texture_lod"));
+#if PLATFORM_HTML5_BROWSER
+	// WebGL 1 extensions that were adopted to core WebGL 2 spec:
+	if (UE_BrowserWebGLVersion() == 2)
+	{
+		bSupportsColorBufferHalfFloat = bSupportsShaderTextureLod = true;
+	}
+#endif
 	bSupportsTextureStorageEXT = ExtensionsString.Contains(TEXT("GL_EXT_texture_storage"));
 	bSupportsCopyTextureLevels = bSupportsTextureStorageEXT && ExtensionsString.Contains(TEXT("GL_APPLE_copy_texture_levels"));
 	bSupportsDisjointTimeQueries = ExtensionsString.Contains(TEXT("GL_EXT_disjoint_timer_query"));// || ExtensionsString.Contains(TEXT("GL_NV_timer_query"));

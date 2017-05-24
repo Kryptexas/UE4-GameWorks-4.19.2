@@ -75,7 +75,7 @@ void AAIController::PostInitializeComponents()
 	}
 
 #if ENABLE_VISUAL_LOG
-	TArray<UActorComponent*> ComponentSet;
+	TInlineComponentArray<UActorComponent*> ComponentSet;
 	GetComponents(ComponentSet);
 	for (auto Component : ComponentSet)
 	{
@@ -860,7 +860,7 @@ bool AAIController::HasPartialPath() const
 
 bool AAIController::IsFollowingAPath() const
 {
-	return (PathFollowingComponent != nullptr) && PathFollowingComponent->HasValidPath();
+	return (PathFollowingComponent != nullptr) && (PathFollowingComponent->GetStatus() != EPathFollowingStatus::Idle);
 }
 
 FVector AAIController::GetImmediateMoveDestination() const

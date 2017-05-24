@@ -364,12 +364,14 @@ struct NUTNet
 	/**
 	 * Outputs a bunch for the specified channel, with the ability to create the channel as well
 	 * NOTE: BunchSequence should start at 0 for new channels, and should be tracked per-channel
+	 * WARNING: Can return null! (e.g. if the control channel is saturated)
 	 *
 	 * @param BunchSequence		Specify a variable for keeping track of the bunch sequence on this channel (may need to initialize as 0)
 	 * @param InConnection		Specify the connection the bunch will be sent on
 	 * @param InChType			Specify the type of the channel the bunch will be sent on
 	 * @param InChIndex			Optionally, specify the index of the channel to send the bunch on
 	 * @param bGetNextFreeChan	Whether or not to pick the next free/unused channel, for this bunch
+	 * @return					Returns the created bunch
 	 */
 	static NETCODEUNITTEST_API FOutBunch* CreateChannelBunch(int32& BunchSequence, UNetConnection* InConnection, EChannelType InChType,
 												int32 InChIndex=INDEX_NONE, bool bGetNextFreeChan=false);

@@ -78,6 +78,7 @@ struct AndroidESPImpl
 	EOpenGLCurrentContext CurrentContextType;
 	GLuint OnScreenColorRenderBuffer;
 	GLuint ResolveFrameBuffer;
+	int32 SyncInterval;
 	AndroidESPImpl();
 };
 
@@ -476,6 +477,7 @@ eglDisplay(EGL_NO_DISPLAY)
 	,ResolveFrameBuffer(0)
 	,NativeVisualID(0)
 	,CurrentContextType(CONTEXT_Invalid)
+	,SyncInterval(-1)
 {
 }
 
@@ -647,8 +649,21 @@ int32 AndroidEGL::GetError()
 	return eglGetError();
 }
 
-bool AndroidEGL::SwapBuffers()
+bool AndroidEGL::SwapBuffers(int32 SyncInterval)
 {
+	if (PImplData->SyncInterval != SyncInterval)
+	{
+		// make sure requested interval is in supported range
+		EGLint MinSwapInterval, MaxSwapInterval;
+		eglGetConfigAttrib(PImplData->eglDisplay, PImplData->eglConfigParam, EGL_MIN_SWAP_INTERVAL, &MinSwapInterval);
+		eglGetConfigAttrib(PImplData->eglDisplay, PImplData->eglConfigParam, EGL_MAX_SWAP_INTERVAL, &MaxSwapInterval);
+		PImplData->SyncInterval = FMath::Clamp<int32>(SyncInterval, MinSwapInterval, MaxSwapInterval);
+		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("AndroidEGL:SwapBuffers Min=%d, Max=%d, Request=%d, Set=%d"), MinSwapInterval, MaxSwapInterval, SyncInterval, PImplData->SyncInterval);
+
+		// disabled for now since setting it to 0 doesn't do anything with compositor limiting us to 60 fps and have seen issues with some drivers
+		//eglSwapInterval(PImplData->eglDisplay, PImplData->SyncInterval);
+	}
+
 	if ( PImplData->eglSurface == NULL || !eglSwapBuffers(PImplData->eglDisplay, PImplData->eglSurface))
 	{
 		// shutdown if swapbuffering goes down

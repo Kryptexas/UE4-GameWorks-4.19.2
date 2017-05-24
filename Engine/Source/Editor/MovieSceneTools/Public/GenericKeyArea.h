@@ -19,6 +19,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "SequencerClipboardReconciler.h"
+#include "IDetailsView.h"
 #include "GenericKeyArea.generated.h"
 
 class ISequencer;
@@ -205,7 +206,6 @@ public:
 	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override			{}
 	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override		{}
 	virtual FRichCurve* GetRichCurve() override																{ return nullptr; }
-
 	
 	virtual void CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const override
 	{
@@ -273,7 +273,12 @@ private:
 		{
 			IDetailCategoryBuilder& GeneralCategory = DetailBuilder.EditCategory("General");
 
-			auto OnValueChanged = [=](TimeType InTime){ this->SetKeyTime(KeyHandle, InTime); };
+			IDetailsView* DetailsView = const_cast<IDetailsView*>(&DetailBuilder.GetDetailsView());
+			auto OnValueChanged = [=](TimeType InTime)
+			{
+				this->SetKeyTime(KeyHandle, InTime);
+				DetailsView->OnFinishedChangingProperties().Broadcast(FPropertyChangedEvent(nullptr));
+			};
 
 			FText TimeText = NSLOCTEXT("GenericKeyArea", "TimeParameter", "Time");
 			FText TimeTooltipText = NSLOCTEXT("GenericKeyArea", "TimeParameter_ToolTip", "The time of this key");

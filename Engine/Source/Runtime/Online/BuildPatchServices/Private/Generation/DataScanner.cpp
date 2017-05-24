@@ -183,11 +183,11 @@ namespace BuildPatchServices
 					RollingHash.Clear();
 					const bool bHasEnoughData = (NextByte + WindowSize - 1) < static_cast<uint32>(Data.Num());
 					if (bHasEnoughData)
-				{
+					{
 						const uint32 Consumed = ConsumeData(&Data[NextByte], Data.Num() - NextByte);
 						FStatsCollector::Accumulate(StatSkippedData, Consumed);
 						NextByte += Consumed;
-				}
+					}
 					else
 					{
 						bScanningData = false;
@@ -196,17 +196,17 @@ namespace BuildPatchServices
 				// Otherwise we only move forwards by one byte.
 				else
 				{
-				const bool bHasMoreData = NextByte < static_cast<uint32>(Data.Num());
-				if (bHasMoreData)
-				{
-					// Roll over next byte.
-					RollingHash.RollForward(Data[NextByte++]);
+					const bool bHasMoreData = NextByte < static_cast<uint32>(Data.Num());
+					if (bHasMoreData)
+					{
+						// Roll over next byte.
+						RollingHash.RollForward(Data[NextByte++]);
+					}
+					else
+					{
+						bScanningData = false;
+					}
 				}
-				else
-				{
-					bScanningData = false;
-				}
-			}
 			}
 			FStatsCollector::AccumulateTimeEnd(StatCpuTime, CpuTimer);
 			FStatsCollector::Accumulate(StatTotalData, Data.Num());

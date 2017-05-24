@@ -14,13 +14,15 @@
 #include "Templates/Casts.h"
 #include "UObject/UnrealType.h"
 #include "UObject/PropertyHelper.h"
+#include "UObject/CoreRedirects.h"
 #include "Misc/StringClassReference.h"
+#include "Math/Box2D.h"
 
 DEFINE_LOG_CATEGORY(LogProperty);
 
 // List the core ones here as they have already been included (and can be used without CoreUObject!)
 template<>
-struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase2<FVector>
 {
 	enum 
 	{
@@ -33,7 +35,7 @@ struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Vector);
 
 template<>
-struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase2<FIntPoint>
 {
 	enum 
 	{
@@ -45,7 +47,19 @@ struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(IntPoint);
 
 template<>
-struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FIntVector> : public TStructOpsTypeTraitsBase2<FIntVector>
+{
+	enum
+	{
+		WithNoInitConstructor = true,
+		WithZeroConstructor = true,
+		WithSerializer = true,
+	};
+};
+IMPLEMENT_STRUCT(IntVector);
+
+template<>
+struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase2<FVector2D>
 {
 	enum 
 	{
@@ -58,7 +72,7 @@ struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Vector2D);
 
 template<>
-struct TStructOpsTypeTraits<FVector4> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FVector4> : public TStructOpsTypeTraitsBase2<FVector4>
 {
 	enum 
 	{
@@ -70,7 +84,7 @@ struct TStructOpsTypeTraits<FVector4> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Vector4);
 
 template<>
-struct TStructOpsTypeTraits<FPlane> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FPlane> : public TStructOpsTypeTraitsBase2<FPlane>
 {
 	enum 
 	{
@@ -83,7 +97,7 @@ struct TStructOpsTypeTraits<FPlane> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Plane);
 
 template<>
-struct TStructOpsTypeTraits<FRotator> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FRotator> : public TStructOpsTypeTraitsBase2<FRotator>
 {
 	enum 
 	{
@@ -96,7 +110,7 @@ struct TStructOpsTypeTraits<FRotator> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Rotator);
 
 template<>
-struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase2<FBox>
 {
 	enum 
 	{
@@ -108,7 +122,18 @@ struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Box);
 
 template<>
-struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FBox2D> : public TStructOpsTypeTraitsBase2<FBox2D>
+{
+	enum
+	{
+		WithNoInitConstructor = true,
+		WithZeroConstructor = true,
+	};
+};
+IMPLEMENT_STRUCT(Box2D);
+
+template<>
+struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase2<FMatrix>
 {
 	enum 
 	{
@@ -120,7 +145,7 @@ struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Matrix);
 
 template<>
-struct TStructOpsTypeTraits<FBoxSphereBounds> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FBoxSphereBounds> : public TStructOpsTypeTraitsBase2<FBoxSphereBounds>
 {
 	enum 
 	{
@@ -131,13 +156,13 @@ struct TStructOpsTypeTraits<FBoxSphereBounds> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(BoxSphereBounds);
 
 template<>
-struct TStructOpsTypeTraits<FOrientedBox> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FOrientedBox> : public TStructOpsTypeTraitsBase2<FOrientedBox>
 {
 };
 IMPLEMENT_STRUCT(OrientedBox);
 
 template<>
-struct TStructOpsTypeTraits<FLinearColor> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FLinearColor> : public TStructOpsTypeTraitsBase2<FLinearColor>
 {
 	enum 
 	{
@@ -149,7 +174,7 @@ struct TStructOpsTypeTraits<FLinearColor> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(LinearColor);
 
 template<>
-struct TStructOpsTypeTraits<FColor> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FColor> : public TStructOpsTypeTraitsBase2<FColor>
 {
 	enum 
 	{
@@ -162,7 +187,7 @@ IMPLEMENT_STRUCT(Color);
 
 
 template<>
-struct TStructOpsTypeTraits<FQuat> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FQuat> : public TStructOpsTypeTraitsBase2<FQuat>
 {
 	enum 
 	{
@@ -174,7 +199,7 @@ struct TStructOpsTypeTraits<FQuat> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Quat);
 
 template<>
-struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase2<FTwoVectors>
 {
 	enum 
 	{
@@ -186,7 +211,7 @@ struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(TwoVectors);
 
 template<>
-struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase2<FGuid>
 {
 	enum 
 	{
@@ -199,13 +224,13 @@ struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(Guid);
 
 template<>
-struct TStructOpsTypeTraits<FTransform> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTransform> : public TStructOpsTypeTraitsBase2<FTransform>
 {
 };
 IMPLEMENT_STRUCT(Transform);
 
 template<>
-struct TStructOpsTypeTraits<FRandomStream> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FRandomStream> : public TStructOpsTypeTraitsBase2<FRandomStream>
 {
 	enum 
 	{
@@ -217,7 +242,7 @@ struct TStructOpsTypeTraits<FRandomStream> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(RandomStream);
 
 template<>
-struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase2<FDateTime>
 {
 	enum 
 	{
@@ -232,7 +257,7 @@ struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase
 IMPLEMENT_STRUCT(DateTime);
 
 template<>
-struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase2<FTimespan>
 {
 	enum 
 	{
@@ -246,10 +271,68 @@ struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase
 };
 IMPLEMENT_STRUCT(Timespan);
 
+
+template<>
+struct TStructOpsTypeTraits<FStringAssetReference> : public TStructOpsTypeTraitsBase2<FStringAssetReference>
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithSerializer = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+		WithSerializeFromMismatchedTag = true,
+	};
+};
 IMPLEMENT_STRUCT(StringAssetReference);
 
+template<>
+struct TStructOpsTypeTraits<FStringClassReference> : public TStructOpsTypeTraitsBase2<FStringClassReference>
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithSerializer = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+		WithSerializeFromMismatchedTag = true,
+	};
+};
 IMPLEMENT_STRUCT(StringClassReference);
 
+template<>
+struct TStructOpsTypeTraits<FPrimaryAssetType> : public TStructOpsTypeTraitsBase2<FPrimaryAssetType>
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+		WithSerializeFromMismatchedTag = true,
+	};
+};
+IMPLEMENT_STRUCT(PrimaryAssetType);
+
+template<>
+struct TStructOpsTypeTraits<FPrimaryAssetId> : public TStructOpsTypeTraitsBase2<FPrimaryAssetId>
+{
+	enum
+	{
+		WithZeroConstructor = true,
+		WithCopy = true,
+		WithIdenticalViaEquality = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
+		WithSerializeFromMismatchedTag = true,
+	};
+};
+IMPLEMENT_STRUCT(PrimaryAssetId);
 /*-----------------------------------------------------------------------------
 	Helpers.
 -----------------------------------------------------------------------------*/
@@ -416,7 +499,7 @@ bool UProperty::ValidateImportFlags( uint32 PortFlags, FOutputDevice* ErrorHandl
 
 		if (ErrorHandler)
 		{
-			ErrorHandler->Logf(*ErrorMsg);
+			ErrorHandler->Logf(TEXT("%s"), *ErrorMsg);
 		}
 		else
 		{
@@ -867,17 +950,14 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 		const FName PropertyName(Token);
 		UProperty* Property = FindField<UProperty>(ObjectStruct, PropertyName);
 
-		if (Property == NULL)
+		if (Property == nullptr)
 		{
 			// Check for redirects
-			const TMap<FName, FName>* const ClassTaggedPropertyRedirects = UStruct::TaggedPropertyRedirects.Find(ObjectStruct->GetFName());
-			if (ClassTaggedPropertyRedirects)
+			FName NewPropertyName = FindRedirectedPropertyName(ObjectStruct, PropertyName);
+
+			if (NewPropertyName != NAME_None)
 			{
-				const FName* const NewPropertyName = ClassTaggedPropertyRedirects->Find(PropertyName);
-				if (NewPropertyName)
-				{
-					Property = FindField<UProperty>(ObjectStruct, *NewPropertyName);
-				}
+				Property = FindField<UProperty>(ObjectStruct, NewPropertyName);
 			}
 #if WITH_EDITOR
 			if (!Property)
@@ -978,7 +1058,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{
-							Warn->Logf(ELogVerbosity::Warning, *ImportErrors[ErrorIndex]);
+							Warn->Logf(ELogVerbosity::Warning, TEXT("%s"), *ImportErrors[ErrorIndex]);
 						}
 					}
 					else if (Result == NULL || Result == Str)
@@ -1181,7 +1261,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{
-							Warn->Logf(ELogVerbosity::Warning,*ImportErrors[ErrorIndex]);
+							Warn->Logf(ELogVerbosity::Warning, TEXT("%s"), *ImportErrors[ErrorIndex]);
 						}
 					}
 					else if ((Result == NULL && ArrayProperty == nullptr) || Result == Str)
@@ -1213,7 +1293,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{
-							Warn->Logf(ELogVerbosity::Warning, *ImportErrors[ErrorIndex]);
+							Warn->Logf(ELogVerbosity::Warning, TEXT("%s"), *ImportErrors[ErrorIndex]);
 						}
 					}
 					else if ((Result == NULL && ArrayProperty == nullptr) || Result == Str)
@@ -1230,6 +1310,25 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 		}
 	}
 	return Str;
+}
+
+FName UProperty::FindRedirectedPropertyName(UStruct* ObjectStruct, FName OldName)
+{
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UProperty::FindRedirectedPropertyName"), STAT_LinkerLoad_FindRedirectedPropertyName, STATGROUP_LoadTimeVerbose);
+
+	// ObjectStruct may be a nested struct, so extract path
+	UPackage* StructPackage = ObjectStruct->GetOutermost();
+	FString OuterPath = ObjectStruct->GetPathName(StructPackage);
+
+	FCoreRedirectObjectName OldRedirectName(OldName, FName(*OuterPath), StructPackage->GetFName());
+	FCoreRedirectObjectName NewRedirectName = FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Property, OldRedirectName);
+
+	if (NewRedirectName != OldRedirectName)
+	{
+		return NewRedirectName.ObjectName;
+	}
+
+	return NAME_None;
 }
 
 /**

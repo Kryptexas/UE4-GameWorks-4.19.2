@@ -9,7 +9,9 @@
 
 class UWidget;
 
-/**  */
+/**
+ * 
+ */
 UINTERFACE(meta=( CannotImplementInterfaceInBlueprint ))
 class UMG_API UNamedSlotInterface : public UInterface
 {
@@ -19,6 +21,8 @@ class UMG_API UNamedSlotInterface : public UInterface
 class UMG_API INamedSlotInterface
 {
 	GENERATED_IINTERFACE_BODY()
+
+public:
 
 	/**  */
 	virtual void GetSlotNames(TArray<FName>& SlotNames) const = 0;

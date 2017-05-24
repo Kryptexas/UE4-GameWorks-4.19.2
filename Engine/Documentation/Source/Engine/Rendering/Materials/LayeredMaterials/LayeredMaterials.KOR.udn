@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3158648
+﻿INTSourceChangelist:3242329
 Availability: Public
 Title:레이어드 머티리얼
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -8,6 +8,7 @@ parent:Engine/Rendering/Materials
 order:8
 topic-image:Engine/Rendering/Materials/LayeredMaterialsTopic.png
 type:overview
+tags:Materials
 
 [REGION:fullwidth]
 ![](LayeredMaterials.png)
@@ -117,7 +118,7 @@ type:overview
 1. 최종 머티리얼
 
 
-**도움이 될만한 꼼수:**
+**도움이 될만한 팁:**
 
 * 머티리얼 표현식을 함수 속에 붙여넣어 레이어를 만들 때는, 모든 파라미터를 적합한 이름의 Function Input 노드로 바꿔 주세요.
 * 새 머티리얼 레이어를 머티리얼 속에 들여올 때, 새 파라미터 노드를 입력에 연결하세요.

@@ -7,6 +7,7 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformMemory.h"
+#include "Apple/ApplePlatformMemory.h"
 
 /**
  *	Max implementation of the FGenericPlatformMemoryStats.

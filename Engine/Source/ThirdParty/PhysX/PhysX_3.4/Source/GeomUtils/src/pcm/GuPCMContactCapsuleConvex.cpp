@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -149,7 +149,7 @@ bool pcmContactCapsuleConvex(GU_CONTACT_METHOD_ARGS)
 
 		manifold.setRelativeTransform(curRTrans);
 		const QuatV vQuat = QuatVLoadU(&shapeConvex.scale.rotation.x);  
-		ConvexHullV convexHull(hullData, zeroV, vScale, vQuat, idtScale);
+		ConvexHullV convexHull(hullData, V3LoadU(hullData->mCenterOfMass), vScale, vQuat, idtScale);
 		convexHull.setMargin(zero);
 	
 		//transform capsule(a) into the local space of convexHull(b)

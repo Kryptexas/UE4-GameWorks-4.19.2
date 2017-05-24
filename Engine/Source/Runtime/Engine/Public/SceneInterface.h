@@ -138,9 +138,6 @@ public:
 	 */
 	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, float& OutAverageBrightness, FSHVectorRGB3& OutIrradianceEnvironmentMap) {}
 
-	/** Runs a slow preculling operation on static meshes, removing triangles that are invisible or inside a precull volume. */
-	virtual void PreCullStaticMeshes(const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes) {}
-
 	virtual void AddPlanarReflection(class UPlanarReflectionComponent* Component) {}
 	virtual void RemovePlanarReflection(class UPlanarReflectionComponent* Component) {}
 	virtual void UpdatePlanarReflectionTransform(UPlanarReflectionComponent* Component) {}
@@ -302,6 +299,14 @@ public:
 	virtual void UpdateSceneSettings(AWorldSettings* WorldSettings) {}
 
 	/**
+	* Gets the GPU Skin Cache system associated with the scene.
+	*/
+	virtual class FGPUSkinCache* GetGPUSkinCache()
+	{
+		return nullptr;
+	}
+
+	/**
 	 * Sets the FX system associated with the scene.
 	 */
 	virtual void SetFXSystem( class FFXSystemInterface* InFXSystem ) = 0;
@@ -402,6 +407,9 @@ public:
 	 * Returns the FPrimitiveComponentId for all primitives in the scene
 	 */
 	virtual ENGINE_API TArray<FPrimitiveComponentId> GetScenePrimitiveComponentIds() const;
+
+	virtual uint32 GetFrameNumber() const { return 0; }
+	virtual void IncrementFrameNumber() {}
 
 protected:
 	virtual ~FSceneInterface() {}

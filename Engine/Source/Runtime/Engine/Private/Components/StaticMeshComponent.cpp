@@ -36,6 +36,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "EngineGlobals.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
@@ -195,6 +196,8 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
 	SectionIndexPreview = INDEX_NONE;
+	SelectedEditorMaterial = INDEX_NONE;
+	MaterialIndexPreview = INDEX_NONE;
 	StaticMeshImportVersion = BeforeImportStaticMeshVersionWasAdded;
 	bCustomOverrideVertexColorPerLOD = false;
 #endif
@@ -312,7 +315,7 @@ void UStaticMeshComponent::Serialize(FArchive& Ar)
 			if (LODData[LODIndex].LegacyMapBuildData)
 			{
 				LODData[LODIndex].LegacyMapBuildData->IrrelevantLights = IrrelevantLights_DEPRECATED;
-				LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(LODData[LODIndex].MapBuildDataId, LODData[LODIndex].LegacyMapBuildData));
+				LegacyComponentData.Data.Emplace(LODData[LODIndex].MapBuildDataId, LODData[LODIndex].LegacyMapBuildData);
 				LODData[LODIndex].LegacyMapBuildData = NULL;
 			}
 		}
@@ -520,15 +523,13 @@ const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStatic
 	else
 	{
 		// Check that the static-mesh hasn't been changed to be incompatible with the cached light-map.
+		int32 NumLODs = GetStaticMesh()->RenderData->LODResources.Num();
+		bool bLODsShareStaticLighting = GetStaticMesh()->RenderData->bLODsShareStaticLighting;
 
-// Disabled for 4.15.1 / UE-42196 because we cannot modify the public API to add bLODsShareStaticLighting to FStaticMeshRenderData. 
-//
-//		int32 NumLODs = GetStaticMesh()->RenderData->LODResources.Num();
-//		bool bLODsShareStaticLighting = GetStaticMesh()->RenderData->bLODsShareStaticLighting;
-//		if (!bLODsShareStaticLighting && NumLODs != LODData.Num())
-//		{
-//			return NULL;
-//		}
+		if (!bLODsShareStaticLighting && NumLODs != LODData.Num())
+		{
+			return NULL;
+		}
 	}
 
 	if (LODInfo.OverrideMapBuildData)
@@ -560,8 +561,8 @@ const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStatic
 			{
 				return MapBuildData->GetMeshBuildData(LODInfo.MapBuildDataId);
 			}
-			}
 		}
+	}
 	
 	return NULL;
 }
@@ -1006,6 +1007,16 @@ void UStaticMeshComponent::SetSectionPreview(int32 InSectionIndexPreview)
 #endif
 }
 
+void UStaticMeshComponent::SetMaterialPreview(int32 InMaterialIndexPreview)
+{
+#if WITH_EDITORONLY_DATA
+	if (MaterialIndexPreview != InMaterialIndexPreview)
+	{
+		MaterialIndexPreview = InMaterialIndexPreview;
+		MarkRenderStateDirty();
+	}
+#endif
+}
 
 void UStaticMeshComponent::RemoveInstanceVertexColorsFromLOD( int32 LODToRemoveColorsFrom )
 {
@@ -1217,6 +1228,7 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 		return;
 	}
 
+	FStaticMeshLODResources& SourceRenderData = GetStaticMesh()->RenderData->LODResources[0];
 	for (uint32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
 	{
 		FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
@@ -1243,6 +1255,8 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 			RemapPaintedVertexColors(
 				LODInfo.PaintedVertices,
 				*LODInfo.OverrideVertexColors,
+				SourceRenderData.PositionVertexBuffer,
+				SourceRenderData.VertexBuffer,
 				CurRenderData.PositionVertexBuffer,
 				&CurRenderData.VertexBuffer,
 				NewOverrideColors
@@ -1253,6 +1267,8 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 			RemapPaintedVertexColors(
 				LOD0Info.PaintedVertices,
 				*LOD0Info.OverrideVertexColors,
+				SourceRenderData.PositionVertexBuffer,
+				SourceRenderData.VertexBuffer,
 				CurRenderData.PositionVertexBuffer,
 				&CurRenderData.VertexBuffer,
 				NewOverrideColors
@@ -1527,8 +1543,8 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 			
 			if (OverrideMaterials.Num())
 			{
-				// Static mesh was switched so we should empty out the override materials
-				OverrideMaterials.Empty(GetStaticMesh() ? GetStaticMesh()->StaticMaterials.Num() : 0);
+				// Static mesh was switched so we should clean up the override materials
+				CleanUpOverrideMaterials();
 			}
 		}
 
@@ -2054,7 +2070,7 @@ bool UStaticMeshComponent::IsMaterialSlotNameValid(FName MaterialSlotName) const
 UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
 	// If we have a base materials array, use that
-	if(MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex])
+	if(OverrideMaterials.IsValidIndex(MaterialIndex) && OverrideMaterials[MaterialIndex])
 	{
 		return OverrideMaterials[MaterialIndex];
 	}
@@ -2104,6 +2120,7 @@ FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() co
 	StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
 
 	// Fill in info
+	const_cast<UStaticMeshComponent*>(this)->ConditionalUpdateComponentToWorld(); // sadness
 	StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
 
 	for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
@@ -2216,6 +2233,44 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 
 	return true;
 }
+
+UMaterialInterface* UStaticMeshComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+{
+	UMaterialInterface* Result = nullptr;
+	UStaticMesh* Mesh = GetStaticMesh();
+	if (Mesh && Mesh->RenderData.IsValid())
+	{
+		// Get the info for the LOD that is used for collision
+		int32 LODIndex = Mesh->LODForCollision;
+		FStaticMeshRenderData* RenderData = Mesh->RenderData.Get();
+		if (RenderData->LODResources.IsValidIndex(LODIndex))
+		{
+			const FStaticMeshLODResources& LODResource = RenderData->LODResources[LODIndex];
+
+			// Look for section that corresponds to the supplied face
+			int32 TotalFaceCount = 0;
+			for (int32 SectionIndex = 0; SectionIndex < LODResource.Sections.Num(); SectionIndex++)
+			{
+				const FStaticMeshSection& Section = LODResource.Sections[SectionIndex];
+				// Only count faces if collision is enabled
+				if (Section.bEnableCollision)
+				{
+					TotalFaceCount += Section.NumTriangles;
+
+					if (FaceIndex < TotalFaceCount)
+					{
+						// Get the current material for it, from this component
+						Result = GetMaterial(Section.MaterialIndex);
+						break;
+					}
+				}
+			}
+		}		
+	}
+
+	return Result;
+}
+
 
 bool UStaticMeshComponent::IsNavigationRelevant() const
 {

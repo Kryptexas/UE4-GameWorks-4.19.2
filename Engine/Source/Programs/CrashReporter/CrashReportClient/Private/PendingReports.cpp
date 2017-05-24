@@ -103,6 +103,6 @@ void FPendingReports::Load()
 
 FString FPendingReports::GetPendingReportsJsonFilepath()
 {
-	return FString(FPaths::GameAgnosticSavedDir()) / TEXT("crash-reports/pending-reports.json");
+	return FPaths::GameAgnosticSavedDir() / TEXT("crash-reports/pending-reports.json");
 }
 

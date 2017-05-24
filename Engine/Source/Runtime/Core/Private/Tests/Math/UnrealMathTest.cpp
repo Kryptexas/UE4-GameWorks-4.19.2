@@ -1515,7 +1515,7 @@ bool FInterpolationFunctionTests::RunTest(const FString&)
 
 					for (int32 L = 0; L < Values.Num(); ++L)
 					{
-						TestContext->AddLogItem(FString::Printf(TEXT("%s: %f"), *(Functions[L].Value), Values[L]));
+						TestContext->AddInfo(FString::Printf(TEXT("%s: %f"), *(Functions[L].Value), Values[L]));
 					}
 					// don't record further failures, it would likely create a tremendous amount of spam
 					return;
@@ -1539,9 +1539,9 @@ bool FInterpolationFunctionTests::RunTest(const FString&)
 		INTERP_WITH_RANGE(0.f, 1.f, InterpExpoInOut, B)
 		INTERP_WITH_RANGE(-8.6f;, 2.3f, InterpExpoInOut, C)
 		TArray< TPair< EasingFunc, FString > > FunctionsToTest;
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpExpoInOutA, TEXT("InterpExpoInOutA")));
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpExpoInOutB, TEXT("InterpExpoInOutB")));
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpExpoInOutC, TEXT("InterpExpoInOutC")));
+		FunctionsToTest.Emplace(InterpExpoInOutA, TEXT("InterpExpoInOutA"));
+		FunctionsToTest.Emplace(InterpExpoInOutB, TEXT("InterpExpoInOutB"));
+		FunctionsToTest.Emplace(InterpExpoInOutC, TEXT("InterpExpoInOutC"));
 		RunInOutTest(FunctionsToTest, this);
 	}
 
@@ -1551,9 +1551,9 @@ bool FInterpolationFunctionTests::RunTest(const FString&)
 		INTERP_WITH_RANGE(0.f, 1.f, InterpCircularInOut, B)
 		INTERP_WITH_RANGE(-8.1f;, -.75f, InterpCircularInOut, C)
 		TArray< TPair< EasingFunc, FString > > FunctionsToTest;
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpCircularInOutA, TEXT("InterpCircularInOutA")));
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpCircularInOutB, TEXT("InterpCircularInOutB")));
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpCircularInOutC, TEXT("InterpCircularInOutC")));
+		FunctionsToTest.Emplace(InterpCircularInOutA, TEXT("InterpCircularInOutA"));
+		FunctionsToTest.Emplace(InterpCircularInOutB, TEXT("InterpCircularInOutB"));
+		FunctionsToTest.Emplace(InterpCircularInOutC, TEXT("InterpCircularInOutC"));
 		RunInOutTest(FunctionsToTest, this);
 	}
 
@@ -1563,9 +1563,9 @@ bool FInterpolationFunctionTests::RunTest(const FString&)
 		INTERP_WITH_RANGE(0.f, 1.f, InterpSinInOut, B)
 		INTERP_WITH_RANGE(-5.6f;, -4.3f, InterpSinInOut, C)
 		TArray< TPair< EasingFunc, FString > > FunctionsToTest;
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpSinInOutA, TEXT("InterpSinInOutA")));
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpSinInOutB, TEXT("InterpSinInOutB")));
-		FunctionsToTest.Push(TPairInitializer<EasingFunc, FString>(InterpSinInOutC, TEXT("InterpSinInOutC")));
+		FunctionsToTest.Emplace(InterpSinInOutA, TEXT("InterpSinInOutA"));
+		FunctionsToTest.Emplace(InterpSinInOutB, TEXT("InterpSinInOutB"));
+		FunctionsToTest.Emplace(InterpSinInOutC, TEXT("InterpSinInOutC"));
 		RunInOutTest(FunctionsToTest, this);
 	}
 

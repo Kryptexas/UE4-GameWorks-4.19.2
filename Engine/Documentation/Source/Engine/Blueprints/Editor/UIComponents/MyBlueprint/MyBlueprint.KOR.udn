@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 내 블루프린트
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:블루프린트 안의 노드에 대한 계층구조형 분석입니다.
 version: 4.9
+tags:Blueprints
 
 [EXCERPT:Intro]
 **내 블루프린트** 탭 에는 블루프린트에 포함된 그래프, 스크립트, 함수, 매크로 등에 대한 트리 리스트가 표시됩니다. 이는 본질적으로 블루프린트에 대한 개요이며, 이를 통해 블루프린트의 기존 요소 확인은 물론 새로운 요소 생성도 쉽게 할 수 있습니다.

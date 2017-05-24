@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTree/TestBTDecorator_DelayedAbort.h"
-#include "Tests/AITestsCommon.h"
+#include "AITestsCommon.h"
 
 UTestBTDecorator_DelayedAbort::UTestBTDecorator_DelayedAbort(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

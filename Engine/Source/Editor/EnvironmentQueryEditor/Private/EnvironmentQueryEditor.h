@@ -8,6 +8,7 @@
 #include "AIGraphEditor.h"
 
 class IDetailsView;
+class SEnvQueryProfiler;
 class UEdGraph;
 class UEnvQuery;
 
@@ -33,10 +34,16 @@ public:
 	//~ End IEnvironmentQueryEditor Interface
 
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
+	void OnStatsDataChange();
 
 protected:
 	/** Called when "Save" is clicked for this asset */
 	virtual void SaveAsset_Execute() override;
+	void ExtendToolbar();
+	void BindCommands();
+
+	void OnLoadStats();
+	void OnSaveStats();
 
 private:
 	/** Create widget for graph editing */
@@ -51,6 +58,8 @@ private:
 	/** Spawns the tab with the update graph inside */
 	TSharedRef<SDockTab> SpawnTab_UpdateGraph(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_Profiler(const FSpawnTabArgs& Args);
+
 private:
 
 	/* Query being edited */
@@ -58,10 +67,12 @@ private:
 
 	/** Property View */
 	TSharedPtr<class IDetailsView> DetailsView;
+	TSharedPtr<SEnvQueryProfiler> ProfilerView;
 
 	uint32 SelectedNodesCount;
 
 	/**	Graph editor tab */
 	static const FName EQSUpdateGraphTabId;
 	static const FName EQSPropertiesTabId;
+	static const FName EQSProfilerTabId;
 };

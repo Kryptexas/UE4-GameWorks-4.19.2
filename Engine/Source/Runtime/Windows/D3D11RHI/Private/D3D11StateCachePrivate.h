@@ -545,6 +545,22 @@ template <EShaderFrequency ShaderFrequency>
 #endif
 	}
 
+	D3D11_STATE_CACHE_INLINE void SetBlendFactor(const float BlendFactor[4], uint32 SampleMask)
+	{
+#if D3D11_ALLOW_STATE_CACHE
+		D3D11_STATE_CACHE_VERIFY_PRE();
+		if ((CurrentBlendSampleMask != SampleMask || FMemory::Memcmp(CurrentBlendFactor, BlendFactor, sizeof(CurrentBlendFactor))) || GD3D11SkipStateCaching)
+		{
+			CurrentBlendSampleMask = SampleMask;
+			FMemory::Memcpy(CurrentBlendFactor, BlendFactor, sizeof(CurrentBlendFactor));
+			Direct3DDeviceIMContext->OMSetBlendState(CurrentBlendState, BlendFactor, SampleMask);
+		}
+		D3D11_STATE_CACHE_VERIFY_POST();
+#else
+		Direct3DDeviceIMContext->OMSetBlendState(CurrentBlendState, BlendFactor, SampleMask);
+#endif
+	}
+
 	D3D11_STATE_CACHE_INLINE void GetBlendState(ID3D11BlendState** BlendState, float BlendFactor[4], uint32* SampleMask)
 	{
 #if D3D11_ALLOW_STATE_CACHE
@@ -573,6 +589,21 @@ template <EShaderFrequency ShaderFrequency>
 		D3D11_STATE_CACHE_VERIFY_POST();
 #else
 		Direct3DDeviceIMContext->OMSetDepthStencilState(State, RefStencil);
+#endif
+	}
+
+	D3D11_STATE_CACHE_INLINE void SetStencilRef(uint32 RefStencil)
+	{
+#if D3D11_ALLOW_STATE_CACHE
+		D3D11_STATE_CACHE_VERIFY_PRE();
+		if (CurrentReferenceStencil != RefStencil || GD3D11SkipStateCaching)
+		{
+			CurrentReferenceStencil = RefStencil;
+			Direct3DDeviceIMContext->OMSetDepthStencilState(CurrentDepthStencilState, RefStencil);
+		}
+		D3D11_STATE_CACHE_VERIFY_POST();
+#else
+		Direct3DDeviceIMContext->OMSetDepthStencilState(CurrentDepthStencilState, RefStencil);
 #endif
 	}
 

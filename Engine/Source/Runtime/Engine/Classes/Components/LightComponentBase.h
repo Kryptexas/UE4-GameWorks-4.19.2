@@ -71,12 +71,20 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
 	uint32 bAffectTranslucentLighting:1;
 
+	/** Whether the light shadows volumetric fog.  Disabling this can save GPU time. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Light, AdvancedDisplay)
+	uint32 bCastVolumetricShadow : 1;
+
 	/** 
 	 * Scales the indirect lighting contribution from this light. 
 	 * A value of 0 disables any GI from this light. Default is 1.
 	 */
 	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(UIMin = "0.0", UIMax = "6.0"))
 	float IndirectLightingIntensity;
+
+	/** Intensity of the volumetric scattering from this light.  This scales Intensity and LightColor. */
+	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(UIMin = "0.25", UIMax = "4.0"))
+	float VolumetricScatteringIntensity;
 
 #if WITH_EDITORONLY_DATA
 	/** Sprite for static light in the editor. */
@@ -103,6 +111,9 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	/** Gets the light color as a linear color */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	FLinearColor GetLightColor() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Light")
+	void SetCastVolumetricShadow(bool bNewValue);
 
 	virtual void Serialize(FArchive& Ar) override;
 

@@ -33,7 +33,7 @@ public:
 		: _AssetFont( FEditorStyle::GetFontStyle("PropertyEditor.AssetName.Font") ) 
 		, _ClassFont( FEditorStyle::GetFontStyle("PropertyEditor.AssetClass.Font") ) 
 		, _AllowClear(true)
-		, _DisplayThumbnail(false)
+		, _DisplayThumbnail(true)
 		, _DisplayUseSelected(true)
 		, _DisplayBrowse(true)
 		, _EnableContentPicker(true)
@@ -109,7 +109,7 @@ private:
 	 * @param	InArgs	The args passed into Construct()
 	 * @returns true if we should display the thumbnail 
 	 */
-	bool ShouldDisplayThumbnail( const FArguments& InArgs );
+	bool ShouldDisplayThumbnail( const FArguments& InArgs, const UClass* ObjectClass ) const;
 
 	/** Gets the border brush to show around the thumbnail, changes when the user hovers on it. */
 	const FSlateBrush* GetThumbnailBorder() const;

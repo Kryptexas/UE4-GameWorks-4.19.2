@@ -663,7 +663,7 @@ void FUntypedBulkData::StartSerializingBulkData(FArchive& Ar, UObject* Owner, in
 	{
 		BulkDataAsync.Reallocate(GetBulkDataSize(), BulkDataAlignment);
 
-		UE_CLOG(GNewAsyncIO, LogSerialization, Error, TEXT("Attempt to stream bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
+		UE_CLOG(GEventDrivenLoaderEnabled, LogSerialization, Error, TEXT("Attempt to stream bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
 
 		FArchive* FileReaderAr = IFileManager::Get().CreateFileReader(*Filename, FILEREAD_Silent);
 		checkf(FileReaderAr != NULL, TEXT("Attempted to load bulk data from an invalid filename '%s'."), *Filename);
@@ -693,7 +693,7 @@ static FAutoConsoleVariableRef CVarMinimumBulkDataSizeForAsyncLoading(
 
 bool FUntypedBulkData::ShouldStreamBulkData()
 {
-	if (GNewAsyncIO && !(BulkDataFlags&BULKDATA_PayloadAtEndOfFile))
+	if (GEventDrivenLoaderEnabled && !(BulkDataFlags&BULKDATA_PayloadAtEndOfFile))
 	{
 		return false; // if it is inline, it is already precached, so use it
 	}
@@ -805,6 +805,12 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 				BulkDataFlags |= BULKDATA_SingleUse;
 			}
 
+			// Hacky fix for using cooked data in editor. Cooking sets BULKDATA_SingleUse for textures, but PIEing needs to keep bulk data around.
+			if (GIsEditor)
+			{
+				BulkDataFlags &= ~BULKDATA_SingleUse;
+			}
+
 			// Size on disk, which in the case of compression is != GetBulkDataSize()
 			Ar << BulkDataSizeOnDisk;
 			
@@ -881,7 +887,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 						if (BulkDataFlags & BULKDATA_PayloadInSeperateFile)
 						{
 							// open seperate bulk data file
-							UE_CLOG(GNewAsyncIO, LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (separate file). This is not desireable. File %s"), *Filename);
+							UE_CLOG(GEventDrivenLoaderEnabled, LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (separate file). This is not desireable. File %s"), *Filename);
 
 							if (GEventDrivenLoaderEnabled && (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap"))))
 							{
@@ -900,7 +906,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 						}
 						else
 						{
-							UE_CLOG(GNewAsyncIO, LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
+							UE_CLOG(GEventDrivenLoaderEnabled, LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled. This is not desireable. File %s"), *Filename);
 
 							// store the current file offset
 							int64 CurOffset = Ar.Tell();
@@ -918,19 +924,6 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		// We're saving to the persistent archive.
 		else if( Ar.IsSaving() )
 		{
-			// check if we save the package compressed
-			UPackage* Pkg = Owner ? dynamic_cast<UPackage*>(Owner->GetOutermost()) : nullptr;
-			if (Pkg && Pkg->HasAnyPackageFlags(PKG_StoreCompressed) )
-			{
-				ECompressionFlags BaseCompressionMethod = COMPRESS_Default;
-				if (Ar.IsCooking())
-				{
-					BaseCompressionMethod = Ar.CookingTarget()->GetBaseCompressionMethod();
-				}
-
-				StoreCompressedOnDisk(BaseCompressionMethod);
-			}
-
 			// Remove single element serialization requirement before saving out bulk data flags.
 			BulkDataFlags &= ~BULKDATA_ForceSingleElementSerialization;
 
@@ -1347,7 +1340,7 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 	if ((IsInGameThread() || IsInAsyncLoadingThread()) && Package.IsValid() && Package->LinkerLoad && Package->LinkerLoad->GetOwnerThreadId() == FPlatformTLS::GetCurrentThreadId() && ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) == 0))
 	{
 		FLinkerLoad* LinkerLoad = Package->LinkerLoad;
-		if (LinkerLoad && LinkerLoad->Loader && !LinkerLoad->IsCompressed())
+		if (LinkerLoad && LinkerLoad->Loader)
 		{
 			FArchive* Ar = LinkerLoad;
 			// keep track of current position in this archive
@@ -1372,7 +1365,7 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 		// load from the specied filename when the linker has been cleared
 		checkf( Filename != TEXT(""), TEXT( "Attempted to load bulk data without a proper filename." ) );
 	
-		UE_CLOG(GNewAsyncIO && !(IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
+		UE_CLOG(GEventDrivenLoaderEnabled && !(IsInGameThread() || IsInAsyncLoadingThread()), LogSerialization, Error, TEXT("Attempt to sync load bulk data with EDL enabled (LoadDataIntoMemory). This is not desireable. File %s"), *Filename);
 
 		if (GEventDrivenLoaderEnabled && (Filename.EndsWith(TEXT(".uasset")) || Filename.EndsWith(TEXT(".umap"))))
 		{

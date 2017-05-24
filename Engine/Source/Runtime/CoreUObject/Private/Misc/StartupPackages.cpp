@@ -33,17 +33,6 @@ void FStartupPackages::GetStartupPackageNames(TArray<FString>& PackageNames, con
 	}
 }
 
-static void AsyncPreloadPackageList(const TArray<FString>& PackageNames)
-{
-	check(!GNewAsyncIO);
-	// Iterate over all native script packages and preload them.
-	for (int32 PackageIndex=0; PackageIndex<PackageNames.Num(); PackageIndex++)
-	{
-		// let FLinkerLoad class manage preloading
-		FLinkerLoad::AsyncPreloadPackage(*PackageNames[PackageIndex]);
-	}
-}
-
 void FStartupPackages::LoadPackageList(const TArray<FString>& PackageNames)
 {
 	// Iterate over all native script packages and fully load them.

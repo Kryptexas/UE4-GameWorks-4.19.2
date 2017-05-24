@@ -17,6 +17,7 @@
 #include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
 #include "Settings/EditorProjectSettings.h"
+#include "SlateSettings.h"
 
 #define LOCTEXT_NAMESPACE "HardwareTargeting"
 
@@ -209,6 +210,7 @@ void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 		Builder.CategoryNames.Add(GetMutableDefault<UInputSettings>(), LOCTEXT("InputCategoryHeader", "Engine - Input"));
 		Builder.CategoryNames.Add(GetMutableDefault<UGameMapsSettings>(), LOCTEXT("MapsAndModesCategoryHeader", "Project - Maps & Modes"));
 		Builder.CategoryNames.Add(GetMutableDefault<ULevelEditor2DSettings>(), LOCTEXT("EditorSettings2D", "Editor - 2D"));
+		Builder.CategoryNames.Add(GetMutableDefault<USlateSettings>(), LOCTEXT("SlateCategoryHeader", "Slate"));
 	}
 
 
@@ -252,6 +254,11 @@ void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 	{
 		// Tablets or phones are usually shared-screen multiplayer instead of split-screen
 		UE_META_SETTING_ENTRY(Builder, UGameMapsSettings, bUseSplitscreen, bAnyPC);
+	}
+
+	{
+		// Enable explicit ZOrder for UMG canvas on mobile platform to improve batching
+		UE_META_SETTING_ENTRY(Builder, USlateSettings, bExplicitCanvasChildZOrder, bAnyMobile);
 	}
 }
 

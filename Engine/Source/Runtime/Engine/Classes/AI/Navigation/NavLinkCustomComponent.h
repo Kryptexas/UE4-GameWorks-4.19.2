@@ -36,6 +36,7 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 	virtual void GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const override;
 	virtual TSubclassOf<UNavArea> GetLinkAreaClass() const override;
 	virtual uint32 GetLinkId() const override;
+	virtual void UpdateLinkId(uint32 NewUniqueId) override;
 	virtual bool IsLinkPathfindingAllowed(const UObject* Querier) const override;
 	virtual bool OnLinkMoveStarted(UPathFollowingComponent* PathComp, const FVector& DestPoint) override;
 	virtual void OnLinkMoveFinished(UPathFollowingComponent* PathComp) override;

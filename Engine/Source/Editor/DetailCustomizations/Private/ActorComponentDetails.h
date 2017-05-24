@@ -15,6 +15,4 @@ public:
 
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
-
-	void AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder );
 };

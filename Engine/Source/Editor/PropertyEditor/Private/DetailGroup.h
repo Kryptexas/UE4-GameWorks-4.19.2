@@ -30,8 +30,11 @@ public:
 	virtual void ToggleExpansion( bool bExpand ) override;
 	virtual bool GetExpansionState() const override;
 
+	TSharedPtr<FDetailPropertyRow> GetHeaderPropertyRow() const;
+	TSharedPtr<FPropertyNode> GetHeaderPropertyNode() const;
+
 	/** @return The name of the group */
-	FName GetGroupName() const { return GroupName; }
+	virtual FName GetGroupName() const override { return GroupName; }
 
 	/** Whether or not the group has columns */
 	bool HasColumns() const;
@@ -65,6 +68,23 @@ public:
 	 * @param OutChildren	The list of children to add to
 	 */
 	void OnGenerateChildren( FDetailNodeList& OutChildren );
+
+
+	/**
+	* Permit resetting all the properties in the group
+	*/
+	virtual void EnableReset(bool InValue);
+
+	/**
+	* Return the property row associated with the specified property handle
+	*/
+	virtual TSharedPtr<IDetailPropertyRow> FindPropertyRow(TSharedRef<IPropertyHandle> PropertyHandle) const override;
+
+	/**
+	* Return the delegate called when user press the Group Reset ui
+	*/
+	virtual FDetailGroupReset& GetOnDetailGroupReset() override { return OnDetailGroupReset; }
+
 private:
 	/**
 	 * Called when the name of the group is clicked to expand the group
@@ -75,6 +95,13 @@ private:
 	 * Makes a name widget for this group 
 	 */
 	TSharedRef<SWidget> MakeNameWidget();
+
+	/** Called when the "Reset to Default" button for the location has been clicked */
+	FReply OnResetClicked();
+	EVisibility GetResetVisibility() const;
+	bool GetAllChildrenPropertyHandles(TArray<TSharedPtr<IPropertyHandle>>& PropertyHandles) const;
+	bool GetAllChildrenPropertyHandlesRecursive(const FDetailGroup* CurrentDetailGroup, TArray<TSharedPtr<IPropertyHandle>>& PropertyHandles) const;
+
 private:
 	/** Customized group children */
 	TArray<FDetailLayoutCustomization> GroupChildren;
@@ -92,4 +119,8 @@ private:
 	FName GroupName;
 	/** Whether the detail group should start expanded or not */
 	bool bStartExpanded;
+	/** Permit resetting all the properties in the group */
+	bool ResetEnabled;
+	/**	Delegate called when user press the Group Reset ui */
+	FDetailGroupReset OnDetailGroupReset;
 };

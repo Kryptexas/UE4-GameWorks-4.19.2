@@ -104,7 +104,10 @@ void SMessageLog::HandleSelectionUpdated()
 
 	if ( LogListingViewModel.IsValid() )
 	{
-		CategoriesListView->SetSelection(LogListingViewModel, ESelectInfo::Direct);
+		if ( !CategoriesListView->IsItemSelected(LogListingViewModel) )
+		{
+			CategoriesListView->SetSelection(LogListingViewModel, ESelectInfo::Direct);
+		}
 	}
 }
 

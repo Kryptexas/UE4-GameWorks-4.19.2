@@ -9,7 +9,7 @@ using System.Xml.Linq;
 
 namespace UnrealBuildTool
 {
-	public class CodeLiteProject : ProjectFile
+	class CodeLiteProject : ProjectFile
 	{
 		FileReference OnlyGameProject;
 
@@ -42,7 +42,7 @@ namespace UnrealBuildTool
 			string ProjectPlatformName = BuildHostPlatform.Current.Platform.ToString();
 
 			// Get the output directory
-			string EngineRootDirectory = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath);
+			string EngineRootDirectory = UnrealBuildTool.EngineDirectory.FullName;
 
 			//
 			// Build the working directory of the Game executable.
@@ -113,13 +113,14 @@ namespace UnrealBuildTool
 					//
 					String CurrentFilePath = "";
 					// TODO It seems that the full pathname doesn't work for some files like .ini, .usf 
-					if ((ProjectTargetType == TargetRules.TargetType.Client) ||
-						(ProjectTargetType == TargetRules.TargetType.Editor) ||
-						(ProjectTargetType == TargetRules.TargetType.Server) )
+					if ((ProjectTargetType == TargetType.Client) ||
+						(ProjectTargetType == TargetType.Editor) ||
+						(ProjectTargetType == TargetType.Game) ||
+						(ProjectTargetType == TargetType.Server) )
 					{
 						if(ProjectName.Contains("UE4"))
 						{
-							int Idx = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath).Length;
+							int Idx = UnrealBuildTool.EngineDirectory.FullName.Length;
 							CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.Reference.FullName)).Substring(Idx);
 						}
 						else
@@ -134,7 +135,7 @@ namespace UnrealBuildTool
 							CurrentFilePath = Path.GetDirectoryName(CurrentFile.Reference.FullName).Substring(Idx);
 						}
 					}
-					else if (ProjectTargetType == TargetRules.TargetType.Program)
+					else if (ProjectTargetType == TargetType.Program)
 					{
 						//
 						// We do not need all the editors subfolders to show the content. Find the correct programs subfolder.
@@ -142,16 +143,9 @@ namespace UnrealBuildTool
 						int Idx = Path.GetDirectoryName(CurrentFile.Reference.FullName).IndexOf(ProjectName) + ProjectName.Length;
 						CurrentFilePath = Path.GetDirectoryName(CurrentFile.Reference.FullName).Substring(Idx);
 					}
-					else if (ProjectTargetType == TargetRules.TargetType.Game)
-					{
-//						int lengthOfProjectRootPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath).Length;
-//						CurrentFilePath = Path.GetDirectoryName(Path.GetFullPath(CurrentFile.FilePath)).Substring(lengthOfProjectRootPath);
-					//	int lengthOfProjectRootPath = EngineRootDirectory.Length;
-						int Idx = Path.GetDirectoryName(CurrentFile.Reference.FullName).IndexOf(ProjectName) + ProjectName.Length;
-						CurrentFilePath = Path.GetDirectoryName(CurrentFile.Reference.FullName).Substring(Idx);
-					}
 
-					string [] SplitFolders = CurrentFilePath.Split('/');
+					char[] Delimiters = new char[] { '/', '\\' };
+					string [] SplitFolders = CurrentFilePath.Split(Delimiters, StringSplitOptions.RemoveEmptyEntries);
 					//
 					// Set the CodeLite root folder again.
 					//
@@ -233,7 +227,7 @@ namespace UnrealBuildTool
 				CodeLiteProject.Add(CodeLiteSettings);
 
 				XElement CodeLiteGlobalSettings = new XElement("GlobalSettings");
-				CodeLiteSettings.Add(CodeLiteSettings);
+				CodeLiteProject.Add(CodeLiteGlobalSettings);
 
 				foreach (var CurConf in InConfigurations)
 				{
@@ -256,16 +250,23 @@ namespace UnrealBuildTool
 							case UnrealTargetPlatform.Linux:
 							{
 								ExecutableToRun = "./" + ProjectName;
-								if ( (ProjectTargetType == TargetRules.TargetType.Game) || (ProjectTargetType == TargetRules.TargetType.Program))
+								if ((ProjectTargetType == TargetType.Game) || 
+									(ProjectTargetType == TargetType.Program))
 								{
 									if (CurConf != UnrealTargetConfiguration.Development)
 									{
 										ExecutableToRun += PlatformConfiguration;
 									}
 								}
-								else if (ProjectTargetType == TargetRules.TargetType.Editor)
+								else if (ProjectTargetType == TargetType.Editor)
 								{
 									ExecutableToRun = "./UE4Editor";
+									if ((CurConf == UnrealTargetConfiguration.Debug) || 
+										(CurConf == UnrealTargetConfiguration.Shipping) || 
+										(CurConf == UnrealTargetConfiguration.Test))
+									{
+										ExecutableToRun += PlatformConfiguration;
+									}
 								}
 
 							}
@@ -274,7 +275,7 @@ namespace UnrealBuildTool
 							case UnrealTargetPlatform.Mac:
 							{
 								ExecutableToRun = "./" + ProjectName;
-								if ((ProjectTargetType == TargetRules.TargetType.Game) || (ProjectTargetType == TargetRules.TargetType.Program))
+								if ((ProjectTargetType == TargetType.Game) || (ProjectTargetType == TargetType.Program))
 								{			
 									if (CurConf != UnrealTargetConfiguration.Development)
 									{
@@ -287,15 +288,17 @@ namespace UnrealBuildTool
 									}
 
 								}
-								else if (ProjectTargetType == TargetRules.TargetType.Editor)
+								else if (ProjectTargetType == TargetType.Editor)
 								{
 									ExecutableToRun = "./UE4Editor";
-									if (CurConf != UnrealTargetConfiguration.Development)
+									if ((CurConf == UnrealTargetConfiguration.Debug) || 
+										(CurConf == UnrealTargetConfiguration.Shipping) || 
+										(CurConf == UnrealTargetConfiguration.Test))
 									{
 										ExecutableToRun += PlatformConfiguration;
 									}
 									ExecutableToRun += ".app/Contents/MacOS/UE4Editor";
-									if (CurConf != UnrealTargetConfiguration.Development)
+									if ((CurConf != UnrealTargetConfiguration.Development) && (CurConf != UnrealTargetConfiguration.DebugGame))
 									{
 										ExecutableToRun += PlatformConfiguration;
 									}
@@ -308,16 +311,22 @@ namespace UnrealBuildTool
 							case UnrealTargetPlatform.Win32:
 							{
 								ExecutableToRun = ProjectName;
-								if ((ProjectTargetType == TargetRules.TargetType.Game) || (ProjectTargetType == TargetRules.TargetType.Program))
+								if ((ProjectTargetType == TargetType.Game) || (ProjectTargetType == TargetType.Program))
 								{
 									if (CurConf != UnrealTargetConfiguration.Development)
 									{
 										ExecutableToRun += PlatformConfiguration;
 									}
 								}
-								else if (ProjectTargetType == TargetRules.TargetType.Editor)
+								else if (ProjectTargetType == TargetType.Editor)
 								{
 									ExecutableToRun = "UE4Editor";
+									if ((CurConf == UnrealTargetConfiguration.Debug) || 
+										(CurConf == UnrealTargetConfiguration.Shipping) || 
+										(CurConf == UnrealTargetConfiguration.Test))
+									{
+										ExecutableToRun += PlatformConfiguration;
+									}
 								}
 
 								ExecutableToRun += ".exe";
@@ -332,7 +341,7 @@ namespace UnrealBuildTool
 						
 						// Is this project a Game type?
 						XAttribute GeneralExecutableToRun = new XAttribute("Command", ExecutableToRun);
-						if (ProjectTargetType == TargetRules.TargetType.Game) 
+						if (ProjectTargetType == TargetType.Game) 
 						{
 							if (CurConf.ToString ().Contains ("Debug")) 
 							{
@@ -348,28 +357,32 @@ namespace UnrealBuildTool
 								CodeLiteConfigurationGeneral.Add(GeneralExecutableWorkingDirectory);
 							}
 						} 
-						else if (ProjectTargetType == TargetRules.TargetType.Editor) 
+						else if (ProjectTargetType == TargetType.Editor) 
 						{
 							if (ProjectName != "UE4Editor" && GameProjectFile != "")
 							{
 								string commandArguments = "\"" + GameProjectFile + "\"" + " -game";
+								if (CurConf.ToString ().Contains ("Debug")) 
+								{
+									commandArguments += " -debug";
+								}
 								XAttribute CommandArguments = new XAttribute("CommandArguments", commandArguments);
 								CodeLiteConfigurationGeneral.Add(CommandArguments);
 							}
 							XAttribute WorkingDirectory = new XAttribute("WorkingDirectory", UE4EditorWorkingDirectory);
 							CodeLiteConfigurationGeneral.Add(WorkingDirectory);
 						} 
-						else if (ProjectTargetType == TargetRules.TargetType.Program) 
+						else if (ProjectTargetType == TargetType.Program) 
 						{
 							XAttribute WorkingDirectory = new XAttribute("WorkingDirectory", UE4EditorWorkingDirectory);
 							CodeLiteConfigurationGeneral.Add(WorkingDirectory);
 						} 
-						else if (ProjectTargetType == TargetRules.TargetType.Client) 
+						else if (ProjectTargetType == TargetType.Client) 
 						{
 							XAttribute WorkingDirectory = new XAttribute("WorkingDirectory", UE4EditorWorkingDirectory);
 							CodeLiteConfigurationGeneral.Add(WorkingDirectory);
 						}
-						else if (ProjectTargetType == TargetRules.TargetType.Server) 
+						else if (ProjectTargetType == TargetType.Server) 
 						{
 							XAttribute WorkingDirectory = new XAttribute("WorkingDirectory", UE4EditorWorkingDirectory);
 							CodeLiteConfigurationGeneral.Add(WorkingDirectory);
@@ -464,7 +477,7 @@ namespace UnrealBuildTool
 						//
 						// Some other fun Custom Targets.
 						//
-						if (ProjectTargetType == TargetRules.TargetType.Game) 
+						if (ProjectTargetType == TargetType.Game) 
 						{
 							string CookGameCommandLine = "mono AutomationTool.exe BuildCookRun ";
 

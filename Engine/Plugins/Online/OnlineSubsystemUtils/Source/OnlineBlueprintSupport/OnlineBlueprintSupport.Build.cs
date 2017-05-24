@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class OnlineBlueprintSupport : ModuleRules
 {
-	public OnlineBlueprintSupport(TargetInfo Target)
+	public OnlineBlueprintSupport(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		

@@ -15,6 +15,7 @@
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "Components/ModelComponent.h"
+#include "Engine/StaticMesh.h"
 
 /** Information about the texel that is selected */
 FSelectedLightmapSample GCurrentSelectedLightmapSample;

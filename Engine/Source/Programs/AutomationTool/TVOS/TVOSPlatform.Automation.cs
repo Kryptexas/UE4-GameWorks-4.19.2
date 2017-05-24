@@ -16,16 +16,20 @@ public class TVOSPlatform : IOSPlatform
 		TargetIniPlatformType = UnrealTargetPlatform.IOS;
 	}
 
-    public override UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, IOSPlatformContext inPlatformContext)
+	public override bool PrepForUATPackageOrDeploy(UnrealTargetConfiguration Config, FileReference ProjectFile, string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor, bool bIsDataDeploy, bool bCreateStubIPA)
+	{
+		return TVOSExports.PrepForUATPackageOrDeploy(Config, ProjectFile, InProjectName, InProjectDirectory, InExecutablePath, InEngineDir, bForDistribution, CookFlavor, bIsDataDeploy, bCreateStubIPA);
+	}
+
+    public override void GetProvisioningData(FileReference InProject, bool bDistribution, out string MobileProvision, out string SigningCertificate, out string Team, out bool bAutomaticSigning)
     {
-        Console.WriteLine("Getting TVOS Deploy()");
-        return new UnrealBuildTool.UEDeployTVOS();
+		TVOSExports.GetProvisioningData(InProject, bDistribution, out MobileProvision, out SigningCertificate, out Team, out bAutomaticSigning);
     }
 
-    public override UnrealBuildTool.IOSPlatformContext CreatePlatformContext(FileReference InProject, bool Distribution)
-    {
-        return new UnrealBuildTool.TVOSPlatformContext(InProject, Distribution);
-    }
+	public override bool DeployGeneratePList(FileReference ProjectFile, UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+	{
+		return TVOSExports.GeneratePList(ProjectFile, Config, ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory);
+	}
 
     public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
@@ -68,7 +72,7 @@ public class TVOSPlatform : IOSPlatform
                     Console.WriteLine("CookPlat {0}, this {1}", GetCookPlatform(false, false), ToString());
                     if (!SC.IsCodeBasedProject)
                     {
-                        UnrealBuildTool.UnrealBuildTool.SetRemoteIniPath(SC.ProjectRoot);
+                        UnrealBuildTool.PlatformExports.SetRemoteIniPath(SC.ProjectRoot);
                     }
 
                     if (SC.StageTargetConfigurations.Count != 1)
@@ -78,10 +82,7 @@ public class TVOSPlatform : IOSPlatform
 
                     var TargetConfiguration = SC.StageTargetConfigurations[0];
 
-                    UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
-                    BuildPlatContext.SetUpProjectEnvironment(TargetConfiguration);
-
-                    GetDeployHandler(new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList(TargetConfiguration, (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "/Engine", (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/TVOS/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
+                    DeployGeneratePList(SC.RawProjectPath, TargetConfiguration, (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "/Engine", (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/TVOS/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
                 }
 
                 SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");

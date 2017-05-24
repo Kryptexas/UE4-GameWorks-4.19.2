@@ -49,7 +49,7 @@ void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContex
 			InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
 
 			float TimeJump = ExplicitTime - InternalTimeAccumulator;
-			if (bShouldLoopWhenInSyncGroup)
+			if (bShouldLoop)
 			{
 				if (FMath::Abs(TimeJump) > (Sequence->SequenceLength * 0.5f))
 				{
@@ -66,7 +66,7 @@ void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContex
 
 			const float DeltaTime = Context.GetDeltaTime();
 			const float PlayRate = FMath::IsNearlyZero(DeltaTime) ? 0.f : (TimeJump / DeltaTime);
-			CreateTickRecordForNode(Context, Sequence, bShouldLoopWhenInSyncGroup, PlayRate);
+			CreateTickRecordForNode(Context, Sequence, bShouldLoop, PlayRate);
 		}
 		else
 		{

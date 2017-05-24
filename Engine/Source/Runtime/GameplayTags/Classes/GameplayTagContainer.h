@@ -249,7 +249,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase2< FGameplayTag >
 {
 	enum
 	{
@@ -555,8 +555,8 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	/** Sets from a ImportText string, used in asset registry */
 	void FromExportString(FString ExportString);
 
-	/** Returns abbreviated human readable Tag list without parens or property names */
-	FString ToStringSimple() const;
+	/** Returns abbreviated human readable Tag list without parens or property names. If bQuoted is true it will quote each tag */
+	FString ToStringSimple(bool bQuoted = false) const;
 
 	/** Returns human readable description of what match is being looked for on the readable tag list. */
 	FText ToMatchingText(EGameplayContainerMatchType MatchType, bool bInvertCondition) const;
@@ -843,7 +843,7 @@ FORCEINLINE bool FGameplayTag::MatchesAnyExact(const FGameplayTagContainer& Cont
 }
 
 template<>
-struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraitsBase2<FGameplayTagContainer>
 {
 	enum
 	{
@@ -855,6 +855,31 @@ struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraits
 	};
 };
 
+/**
+ *	Helper struct for viewing tag references (assets that reference a tag). Drop this into a struct and set the OnGetgameplayStatName. A details customization
+ *	will display a tree view of assets referencing the tag
+ */
+USTRUCT()
+struct FGameplayTagReferenceHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayTagReferenceHelper()
+	{
+	}
+
+	/** 
+	 *	Delegate to be called to get the tag we want to inspect. The void* is a raw pointer to the outer struct's data. You can do a static cast to access it. Eg:
+	 *	
+	 *	ReferenceHelper.OnGetGameplayTagName.BindLambda([this](void* RawData) {
+	 *		FMyStructType* ThisData = static_cast<FMyStructType*>(RawData);
+	 *		return ThisData->MyTag.GetTagName();
+	 *	});
+	 *
+	*/
+	DECLARE_DELEGATE_RetVal_OneParam(FName, FOnGetGameplayTagName, void* /**RawOuterStructData*/);
+	FOnGetGameplayTagName OnGetGameplayTagName;
+};
 
 /** Enumerates the list of supported query expression types. */
 UENUM()
@@ -1101,7 +1126,7 @@ struct GAMEPLAYTAGS_API FGameplayTagQueryExpression
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayTagQuery> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayTagQuery> : public TStructOpsTypeTraitsBase2<FGameplayTagQuery>
 {
 	enum
 	{

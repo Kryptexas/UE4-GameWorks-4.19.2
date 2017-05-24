@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -317,21 +317,12 @@ PX_FORCE_INLINE void Sc::ContactStreamManager::fillInContactReportExtraData(PxCo
 
 PX_FORCE_INLINE void Sc::ContactStreamManager::fillInContactReportExtraData(PxContactPairPose* cpPose, PxU32 index, const RigidSim& rs, bool isCCDPass, const bool useCurrentTransform)
 {
-	if (rs.getActorType() != PxActorType::eRIGID_STATIC)
+	if(rs.getActorType() != PxActorType::eRIGID_STATIC)
 	{
 		const BodySim& bs = static_cast<const BodySim&>(rs);
 		const BodyCore& bc = bs.getBodyCore();
-
-		if (!isCCDPass)
-		{
-			if (useCurrentTransform)
-				cpPose->globalPose[index] = bc.getBody2World() * bc.getBody2Actor().getInverse();
-			else
-				cpPose->globalPose[index] = bs.getLowLevelBody().getLastCCDTransform() * bc.getBody2Actor().getInverse();
-		}
-		else
-			cpPose->globalPose[index] = bs.getLowLevelBody().getLastCCDTransform() * bc.getBody2Actor().getInverse();
-
+		const PxTransform& src = (!isCCDPass && useCurrentTransform) ? bc.getBody2World() : bs.getLowLevelBody().getLastCCDTransform();
+		cpPose->globalPose[index] = src * bc.getBody2Actor().getInverse();
 	}
 	else
 	{

@@ -12,7 +12,7 @@
 #include "LocalVertexFactory.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "SkeletalRenderPublic.h"
-#include "ClothSimData.h"
+#include "ClothingSystemRuntimeTypes.h"
 
 class FPrimitiveDrawInterface;
 class UMorphTarget;
@@ -76,7 +76,7 @@ private:
 * Stores the updated matrices needed to skin the verts.
 * Created by the game thread and sent to the rendering thread as an update 
 */
-class FDynamicSkelMeshObjectDataCPUSkin
+class ENGINE_API FDynamicSkelMeshObjectDataCPUSkin
 {
 public:
 
@@ -150,14 +150,14 @@ public:
 		return ResSize.GetTotalMemoryBytes();
 	}
 
-	/** Update Simulated Positions & Normals from APEX Clothing actor */
+	/** Update Simulated Positions & Normals from Clothing actor */
 	bool UpdateClothSimulationData(USkinnedMeshComponent* InMeshComponent);
 };
 
 /**
  * Render data for a CPU skinned mesh
  */
-class FSkeletalMeshObjectCPUSkin : public FSkeletalMeshObject
+class ENGINE_API FSkeletalMeshObjectCPUSkin : public FSkeletalMeshObject
 {
 public:
 
@@ -216,7 +216,7 @@ public:
 		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(BonesOfInterest.GetAllocatedSize());
 	}
 
-	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const override;
+	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FMatrix& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const override;
 	//~ End FSkeletalMeshObject Interface
 
 	/** Access cached final vertices */
@@ -226,21 +226,31 @@ private:
 	/** vertex data for rendering a single LOD */
 	struct FSkeletalMeshObjectLOD
 	{
+		FSkeletalMeshResource* SkelMeshResource;
+		// index into FSkeletalMeshResource::LODModels[]
+		int32 LODIndex;
+
 		FLocalVertexFactory				VertexFactory;
 		mutable FFinalSkinVertexBuffer	VertexBuffer;
+
+		/** Skin weight buffer to use, could be from asset or component override */
+		FSkinWeightVertexBuffer* MeshObjectWeightBuffer;
 
 		/** true if resources for this LOD have already been initialized. */
 		bool						bResourcesInitialized;
 
-		FSkeletalMeshObjectLOD(FSkeletalMeshResource* InSkelMeshResource,int32 InLOD)
-		:	VertexBuffer(InSkelMeshResource,InLOD)
+		FSkeletalMeshObjectLOD(FSkeletalMeshResource* InSkelMeshResource, int32 InLOD)
+		:	SkelMeshResource(InSkelMeshResource)
+		,	LODIndex(InLOD)
+		,	VertexBuffer(InSkelMeshResource,InLOD)
+		,	MeshObjectWeightBuffer(nullptr)
 		,	bResourcesInitialized( false )
 		{
 		}
 		/** 
 		 * Init rendering resources for this LOD 
 		 */
-		void InitResources();
+		void InitResources(FSkelMeshComponentLODInfo* CompLODInfo);
 		/** 
 		 * Release rendering resources for this LOD 
 		 */
@@ -277,9 +287,11 @@ private:
 	/** Render data for each LOD */
 	TArray<struct FSkeletalMeshObjectLOD> LODs;
 
+protected:
 	/** Data that is updated dynamically and is needed for rendering */
 	class FDynamicSkelMeshObjectDataCPUSkin* DynamicData;
 
+private:
  	/** Index of LOD level's vertices that are currently stored in CachedFinalVertices */
  	mutable int32	CachedVertexLOD;
 

@@ -1,30 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275202
 Availability: Public
 Title:스태틱 메시 액터
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Static Mesh Actor, 스태틱 메시 액터를 배치하고 작업하여 환경에 월드 지오메트리를 만드는 방법 안내서입니다.
 version: 4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/Actors/Types "%Engine/Actors/Types:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%playlistnav%
-
 
 [TOC(start:2)]
 
@@ -132,6 +111,3 @@ _StaticMeshComponent_ 내 **Rendering** 카테고리에 있는 **Materials** 프
  **Block All** (모두 막음)으로 설정됩니다. 콜리전 채널 및 콜리전 세팅 조절 관련 상세 정보는 
 [](Engine/Physics/Collision) 문서를 참고해 주시기 바랍니다.
 
-
-
-%playlistnav%

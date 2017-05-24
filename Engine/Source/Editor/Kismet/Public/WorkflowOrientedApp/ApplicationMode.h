@@ -7,6 +7,7 @@
 #include "Framework/Docking/TabManager.h"
 #include "LayoutExtender.h"
 
+DECLARE_DELEGATE_RetVal_OneParam(TSharedPtr<class FWorkflowTabFactory>, FCreateWorkflowTabFactory, TSharedPtr<class FAssetEditorToolkit>)
 
 class FExtender;
 
@@ -46,6 +47,9 @@ public:
 	void DeactivateMode(TSharedPtr<FTabManager> InTabManager);
 	TSharedRef<FTabManager::FLayout> ActivateMode(TSharedPtr<FTabManager> InTabManager);
 	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) {}
+
+	virtual void AddTabFactory(FCreateWorkflowTabFactory FactoryCreator) {}
+	virtual void RemoveTabFactory(FName TabFactoryID) {}
 	
 	virtual void PreDeactivateMode() {}
 	virtual void PostActivateMode() {}

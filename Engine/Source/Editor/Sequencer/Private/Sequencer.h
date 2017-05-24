@@ -36,6 +36,7 @@
 #include "LevelEditor.h"
 #include "SequencerTimingManager.h"
 #include "AcquiredResources.h"
+#include "SequencerSettings.h"
 
 class AActor;
 class ACineCameraActor;
@@ -52,6 +53,7 @@ class IMenu;
 class ISequencerEditTool;
 class ISequencerKeyCollection;
 class ISequencerTrackEditor;
+class ISequencerEditorObjectBinding;
 class SSequencer;
 class ULevel;
 class UMovieSceneSequence;
@@ -88,8 +90,9 @@ public:
 	 * @param InitParams Initialization parameters.
 	 * @param InObjectChangeListener The object change listener to use.
 	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
+	 * @param EditorObjectBindingDelegates Delegates to call to create object bindings for this sequencer.
 	 */
-	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates);
+	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, const TArray<FOnCreateEditorObjectBinding>& EditorObjectBindingDelegates);
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const override;
@@ -182,6 +185,18 @@ public:
 		SetPlaybackRange(TRange<float>(GetLocalTime(), GetPlaybackRange().GetUpperBoundValue()));
 	}
 
+	/**
+	 * Set the selection range to the next or previous shot's range.
+	 *
+	 */	
+	void SetSelectionRangeToShot(const bool bNextShot);
+
+	/**
+	 * Set the playback range to all the shot's playback ranges.
+	 *
+	 */	
+	void SetPlaybackRangeToAllShots();
+
 public:
 
 	bool IsPlaybackRangeLocked() const;
@@ -232,6 +247,9 @@ public:
 	/** Is interpolation mode selected. */
 	bool IsInterpTangentModeSelected(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode) const;
 
+	/** Get the fixed frame interval of the current movie scene. */
+	float GetFixedFrameInterval() const;
+
 	/** Snap the currently selected keys to frame. */
 	void SnapToFrame();
 
@@ -240,6 +258,9 @@ public:
 
 	/** Transform the selected keys and sections */
 	void TransformSelectedKeysAndSections(float InDeltaTime, float InScale);
+
+	/** Translate the selected keys and section by the time snap interval */
+	void TranslateSelectedKeysAndSections(bool bTranslateLeft);
 
 	/**
 	 * @return Movie scene tools used by the sequencer
@@ -285,14 +306,6 @@ protected:
 	 * @return	The spawnable ID, or invalid ID on failure
 	 */
 	FGuid AddSpawnable( UObject& Object );
-
-	/**
-	 * Setup a new spawnable object with some default tracks and keys
-	 *
-	 * @param	Guid		The ID of the spawnable to setup defaults for
-	 * @param	Transform	The default transform for the spawnable
-	 */
-	void SetupDefaultsForSpawnable( const FGuid& Guid, const FTransformData& Transform );
 
 	/**
 	 * Save default spawnable state for the currently selected objects
@@ -348,6 +361,13 @@ public:
 	void BuildAddTrackMenu(FMenuBuilder& MenuBuilder);
 
 	/**
+	 * Builds up the object bindings in sequencer's "Add Track" menu.
+	 *
+	 * @param MenuBuilder The menu builder to add things to.
+	 */
+	void BuildAddObjectBindingsMenu(FMenuBuilder& MenuBuilder);
+
+	/**
 	 * Builds up the track menu for object binding nodes in the outliner
 	 * 
 	 * @param MenuBuilder	The track menu builder to add things to
@@ -371,13 +391,12 @@ public:
 	void RecordSelectedActors();
 
 	/** Functions to push on to the transport controls we use */
-	FReply OnPlay(bool bTogglePlay=true, float InPlayRate=1.f);
 	FReply OnRecord();
 	FReply OnStepForward();
 	FReply OnStepBackward();
-	FReply OnStepToEnd();
-	FReply OnStepToBeginning();
-	FReply OnToggleLooping();
+	FReply OnJumpToStart();
+	FReply OnJumpToEnd();
+	FReply OnCycleLoopMode();
 	FReply SetPlaybackEnd();
 	FReply SetPlaybackStart();
 	FReply JumpToPreviousKey();
@@ -392,12 +411,12 @@ public:
 	/** Delegate handler for recording finishing */
 	void HandleRecordingFinished(UMovieSceneSequence* Sequence);
 
-	bool IsLooping() const;
-
 	/** Set the new global time, accounting for looping options */
 	void SetLocalTimeLooped(float InTime);
 
 	float AutoScroll(float InTime, ESnapTimeMode SnapTimeMode);
+
+	ESequencerLoopMode GetLoopMode() const;
 
 	EPlaybackMode::Type GetPlaybackMode() const;
 
@@ -424,7 +443,7 @@ public:
 
 	/** Called when a user executes the assign actor to track menu item */
 	void AssignActor(FMenuBuilder& MenuBuilder, FGuid ObjectBinding);
-	void DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid ObjectBinding);
+	FGuid DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid ObjectBinding);
 
 	/** Called when a user executes the delete node menu item */
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
@@ -436,7 +455,7 @@ public:
 
 	/** Called when a user executes the paste track menu item */
 	bool CanPaste(const FString& TextToImport) const;
-	void PasteCopiedTracks(TArray<TSharedPtr<FSequencerObjectBindingNode>>& ObjectNodes);
+	void PasteCopiedTracks();
 	void ImportTracksFromText(const FString& TextToImport, /*out*/ TArray<UMovieSceneTrack*>& ImportedTrack);
 
 	/** Called when a user executes the active node menu item */
@@ -497,6 +516,9 @@ public:
 
 	/** Attempts to automatically fix up broken actor references in the current scene. */
 	void FixActorReferences();
+
+	/** Rebinds all possessable references in the current sequence to update them to the latest referencing mechanism. */
+	void RebindPossessableReferences();
 
 	/** Moves all time data for the current scene onto a valid frame. */
 	void FixFrameTiming();
@@ -560,7 +582,7 @@ public:
 	virtual UMovieSceneSequence* GetFocusedMovieSceneSequence() const override;
 	virtual FMovieSceneRootEvaluationTemplateInstance& GetEvaluationTemplate() override { return RootTemplateInstance; }
 	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;
-	virtual void FocusSequenceInstance( UMovieSceneSubSection& InSubSection ) override;
+	virtual void FocusSequenceInstance(UMovieSceneSubSection& InSubSection) override;
 	virtual EAutoKeyMode GetAutoKeyMode() const override;
 	virtual void SetAutoKeyMode(EAutoKeyMode AutoKeyMode) override;
 	virtual bool GetKeyAllEnabled() const override;
@@ -599,24 +621,31 @@ public:
 	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) override;
 	virtual FSequencerSelection& GetSelection() override;
 	virtual FSequencerSelectionPreview& GetSelectionPreview() override;
+	virtual void SelectObject(FGuid ObjectBinding) override;
+	virtual void SelectByPropertyPaths(const TArray<FString>& InPropertyPaths) override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() override { return OnMovieSceneDataChangedDelegate; }
 	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() override { return OnSelectionChangedObjectGuidsDelegate; }
+	virtual FOnSelectionChangedTracks& GetSelectionChangedTracks() override { return OnSelectionChangedTracksDelegate; }
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
 	virtual UObject* GetPlaybackContext() const override;
 	virtual TArray<UObject*> GetEventContexts() const override;
 	virtual FOnActorAddedToSequencer& OnActorAddedToSequencer() override;
 	virtual FOnPreSave& OnPreSave() override;
+	virtual FOnPostSave& OnPostSave() override;
 	virtual FOnActivateSequence& OnActivateSequence() override;
 	virtual FOnCameraCut& OnCameraCut() override;
 	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() override;
 	virtual TSharedRef<INumericTypeInterface<float>> GetZeroPadNumericTypeInterface() override;
 	virtual TSharedRef<SWidget> MakeTransportControls(bool bExtended) override;
+	virtual FReply OnPlay(bool bTogglePlay = true, float InPlayRate = 1.f) override;
+	virtual void Pause() override;
 	virtual TSharedRef<SWidget> MakeTimeRange(const TSharedRef<SWidget>& InnerContent, bool bShowWorkingRange, bool bShowViewRange, bool bShowPlaybackRange) override;
 	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) override;
 	virtual FGuid MakeNewSpawnable(UObject& SourceObject) override;
 	virtual bool IsReadOnly() const override;
 	virtual void ExternalSelectionHasChanged() override { SynchronizeSequencerSelectionWithExternalSelection(); }
+	virtual USequencerSettings* GetSequencerSettings() override { return Settings; }
 
 public:
 
@@ -641,9 +670,6 @@ protected:
 
 	/** Reset data about a movie scene when pushing or popping a movie scene. */
 	void ResetPerMovieSceneData();
-
-	/** Sets the actor CDO such that it is placed in front of the active perspective viewport camera, if we have one */
-	static void PlaceActorInFrontOfCamera( AActor* ActorCDO );
 
 	/** Update the time bounds to the focused movie scene */
 	void UpdateTimeBoundsToFocusedMovieScene();
@@ -743,10 +769,10 @@ protected:
 	/** Transport controls */
 	void TogglePlay();
 	void PlayForward();
-	void Rewind();
+	void JumpToStart();
+	void JumpToEnd();
 	void ShuttleForward();
 	void ShuttleBackward();
-	void Pause();
 	void StepForward();
 	void StepBackward();
 	void StepToNextKey();
@@ -818,6 +844,9 @@ protected:
 	/** Select keys and/or sections in a display node that fall into the current selection range. */
 	void SelectInSelectionRange(const TSharedRef<FSequencerDisplayNode>& DisplayNode, const TRange<float>& SelectionRange, bool bSelectKeys, bool bSelectSections);
 	
+	/** Create loop mode transport control */
+	TSharedRef<SWidget> OnCreateTransportLoopMode();
+
 	/** Create record transport control */
 	TSharedRef<SWidget> OnCreateTransportRecord();
 
@@ -846,6 +875,9 @@ private:
 
 	/** List of tools we own */
 	TArray<TSharedPtr<ISequencerTrackEditor>> TrackEditors;
+
+	/** List of object bindings we can use */
+	TArray<TSharedPtr<ISequencerEditorObjectBinding>> ObjectBindings;
 
 	/** Listener for object changes being made while this sequencer is open*/
 	TSharedPtr<ISequencerObjectChangeListener> ObjectChangeListener;
@@ -946,9 +978,13 @@ private:
 	/** A delegate which is called any time the sequencer selection changes. */
 	FOnSelectionChangedObjectGuids OnSelectionChangedObjectGuidsDelegate;
 
+	/** A delegate which is called any time the sequencer selection changes. */
+	FOnSelectionChangedTracks OnSelectionChangedTracksDelegate;
+
 	FOnActorAddedToSequencer OnActorAddedToSequencerEvent;
 	FOnCameraCut OnCameraCutEvent;
 	FOnPreSave OnPreSaveEvent;
+	FOnPostSave OnPostSaveEvent;
 	FOnActivateSequence OnActivateSequenceEvent;
 
 	int32 SilentModeCount;

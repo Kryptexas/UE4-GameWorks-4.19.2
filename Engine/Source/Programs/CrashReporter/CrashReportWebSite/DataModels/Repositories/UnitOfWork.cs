@@ -20,7 +20,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         void Dispose();
     }
 
-
     /// <summary>
     /// Container for entity framework management. 
     /// </summary>
@@ -29,8 +28,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         #region Attributes
 
         private bool _disposed = false;
-        private readonly CrashReportEntities _entityContext;
-        private ICrashRepository _crashRepository;
+        private CrashReportEntities _entityContext;
+        private ICrashRepository _CrashRepository;
         private IBuggRepository _buggRepository;
         private IFunctionRepository _functionRepository;
         private IUserRepository _userRepository;
@@ -49,11 +48,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         {
             get 
             {
-                if (this._crashRepository == null)
+                if (this._CrashRepository == null)
                 {
-                    _crashRepository = new CrashRepository(_entityContext);
+                    _CrashRepository = new CrashRepository(_entityContext);
                 } 
-                return _crashRepository;
+                return _CrashRepository;
             }
         }
 
@@ -158,7 +157,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public UnitOfWork(CrashReportEntities entityContext)
         {
             this._entityContext = entityContext;
-            _entityContext.Database.CommandTimeout = 600;
+            _entityContext.Database.CommandTimeout = 120;
         }
 
         #region Public Methods
@@ -189,21 +188,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!this._disposed)
-            {
-                if (disposing)
-                {
-                    _crashRepository = null;
-                    _buggRepository = null;
-                    _functionRepository = null;
-                    _userRepository = null;
-                    _callstackRepository = null;
-                    _userGroupRepository = null;
-                    _errorMessageRepository = null;
-                    _entityContext.Dispose();
-                }
-            }
-            this._disposed = true;
+            _entityContext.Database.Connection.Close();
+            _CrashRepository = null;
+            _buggRepository = null;
+            _functionRepository = null;
+            _userRepository = null;
+            _callstackRepository = null;
+            _userGroupRepository = null;
+            _errorMessageRepository = null;
+            _entityContext.Dispose();
+            _entityContext = null;
         }
 
         #endregion

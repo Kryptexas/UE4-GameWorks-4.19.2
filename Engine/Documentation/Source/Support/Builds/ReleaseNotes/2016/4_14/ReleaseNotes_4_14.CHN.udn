@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3200320
+﻿INTSourceChangelist:3223841
 Availability:Public
 Title:虚幻引擎 4.14 版本信息
 Description:虚幻引擎 4.14 版本信息说明
@@ -644,11 +644,7 @@ Pose Driver 节点使骨骼基于一套“范例动作”驱动动画的其他�
 
 ## 新鲜出炉：MIDI Device 插件
 
-新版本包含与音乐硬件交互的全新“MIDI Device”插件。
-
-![image alt text](image_66.png)(w:400 h:300 convert:false)
-
-这是一个简单 MIDI 界面，从连接到电脑的设备上接收 MIDI 事件。当前只支持输入。
+新版本包含与音乐硬件交互的全新“MIDI Device”插件。这是一个简单 MIDI 界面，从连接到电脑的设备上接收 MIDI 事件。当前只支持输入。
 
 这是它在蓝图中的使用方法：
 

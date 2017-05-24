@@ -1,46 +1,27 @@
 Availability: Public
-Title: Linux Quick Start Guide
-Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper
+Title: Linux Quick Start
+Crumbs:
 Description:Learn how to download, build, and run UE4 on Linux.
 Platform:Linux
 Version: 4.13
 type:quick start
-parent:Platforms/Linux/BeginnerLinuxDeveloper
+parent:Platforms/Linux
 order: 2
 tags:Linux
 SkillLevel:Beginner
 prereq:GettingStarted/RecommendedSpecifications
 prereq:Platforms/Linux/BeginnerLinuxDeveloper/SupportedGfxDrivers
+topic-image:linuxQS_topic.png
 
-[VAR:Params]
-[PARAM:image]
-	![%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:title%](linuxQS_topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:title%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
 
 [REGION:imagetable]
-![](CompiledEditor_Linux.png)(w:920)
+![](CompiledEditor_Linux.png)(w:920)  
 At the end of this tutorial, you'll have Unreal Engine 4 (UE4) running on your Linux machine.
 [/REGION]
 
 ## Goal
 
-The focus of this guide is to show you how to setup the primary workflow needed to get UE4 running on your Linux machine.
+The focus of this guide is to show you how to set up the primary workflow needed to get UE4 running on your Linux machine.
 
 ## Objectives
 

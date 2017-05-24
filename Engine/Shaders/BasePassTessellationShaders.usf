@@ -24,7 +24,7 @@ FBasePassVSToDS PassInterpolate(FBasePassVSToDS a, float aInterp, FBasePassVSToD
 	
 	O.FactoryInterpolants = VertexFactoryInterpolate(a.FactoryInterpolants, aInterp, b.FactoryInterpolants, bInterp);
 
-	#if NEEDS_BASEPASS_FOGGING
+	#if NEEDS_BASEPASS_VERTEX_FOGGING
 		TESSELLATION_INTERPOLATE_MEMBER(BasePassInterpolants.VertexFog);
 	#endif
 
@@ -78,9 +78,9 @@ FBasePassVSToPS PassFinalizeTessellationOutput(FBasePassVSToDS Interpolants, flo
 		O.BasePassInterpolants.PixelPositionExcludingWPO = Interpolants.BasePassInterpolants.WorldPositionExcludingWPO;
 	#endif
 
-#if COMPILER_HLSLCC && NEEDS_BASEPASS_FOGGING  // workaround for hlslcc miscompilation, see UE-39489
+#if COMPILER_HLSLCC && NEEDS_BASEPASS_VERTEX_FOGGING  // workaround for hlslcc miscompilation, see UE-39489
 	O.BasePassInterpolants.VertexFog = Interpolants.BasePassInterpolants.VertexFog;
-#endif // COMPILER_HLSLCC && NEEDS_BASEPASS_FOGGING
+#endif // COMPILER_HLSLCC && NEEDS_BASEPASS_VERTEX_FOGGING
 
 	return O;
 }

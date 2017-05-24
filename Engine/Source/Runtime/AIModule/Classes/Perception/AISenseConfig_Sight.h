@@ -24,16 +24,16 @@ public:
 	TSubclassOf<UAISense_Sight> Implementation;
 
 	/** Maximum sight distance to notice a target. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config, meta = (UIMin = 0.0, ClampMin = 0.0))
 	float SightRadius;
 
 	/** Maximum sight distance to see target that has been already seen. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config, meta = (UIMin = 0.0, ClampMin = 0.0))
 	float LoseSightRadius;
 
 	/** How far to the side AI can see, in degrees. Use SetPeripheralVisionAngle to change the value at runtime. 
 	 *	The value represents the angle measured in relation to the forward vector, not the whole range. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config, meta=(UIMin = 0.0, ClampMin = 0.0, UIMax = 180.0, ClampMax = 180.0, DisplayName="PeripheralVisionHalfAngleDegrees"))
 	float PeripheralVisionAngleDegrees;
 
 	/** */
@@ -41,7 +41,7 @@ public:
 	FAISenseAffiliationFilter DetectionByAffiliation;
 
 	/** If not an InvalidRange (which is the default), we will always be able to see the target that has already been seen if they are within this range of their last seen location. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config, meta = (UIMin = 0.0, ClampMin = 0.0))
 	float AutoSuccessRangeFromLastSeenLocation;
 		
 	virtual TSubclassOf<UAISense> GetSenseImplementation() const override;

@@ -23,6 +23,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary>A optional message to explain any return values.</summary>
 		[XmlAttribute]
 		public string Message = "";
+
+		/// <summary>A bool representing if a failure was caused by a database timeout.</summary>
+		[XmlAttribute]
+		public bool bTimeout = false;
 	}
 
 	/// <summary>

@@ -117,7 +117,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 						OutString = Enum->GetDisplayNameTextByValue(EnumValue).ToString();
 						if(!bAllowAlternateDisplayValue || OutString.Len() == 0) 
 						{
-							OutString = Enum->GetEnumNameStringByValue(EnumValue);
+							OutString = Enum->GetNameStringByValue(EnumValue);
 						}
 					}
 					else
@@ -167,28 +167,24 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 				Property->ExportText_Direct(ExportedTextString, ValueAddress, ValueAddress, nullptr, PPF_PropertyWindow );
 
 				UEnum* Enum = nullptr;
-				int32 EnumeratorValue = 0;
+				int64 EnumValue = 0;
 				if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
 				{
 					Enum = ByteProperty->Enum;
-					EnumeratorValue = ByteProperty->GetPropertyValue(ValueAddress);
+					EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
 				}
 				else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
 				{
 					Enum = EnumProperty->GetEnum();
-					EnumeratorValue = EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(ValueAddress);
+					EnumValue = EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(ValueAddress);
 				}
 
 				if (Enum)
 				{
-					if (EnumeratorValue >= 0 && EnumeratorValue < Enum->NumEnums())
+					if (Enum->IsValidEnumValue(EnumValue))
 					{
-						// See if we specified an alternate name for this value using metadata
-						OutText = Enum->GetDisplayNameText(EnumeratorValue);
-						if(!bAllowAlternateDisplayValue || OutText.IsEmpty()) 
-						{
-							OutText = Enum->GetEnumText(EnumeratorValue);
-						}
+						// Text form is always display name
+						OutText = Enum->GetDisplayNameTextByValue(EnumValue);
 					}
 					else
 					{
@@ -1651,6 +1647,110 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 	}
 }
 
+void FPropertyValueImpl::SwapChildren(int32 FirstIndex, int32 SecondIndex)
+{
+	TSharedPtr<FPropertyNode> ArrayParentPin = PropertyNode.Pin();
+	if (ArrayParentPin.IsValid())
+	{
+		SwapChildren(ArrayParentPin->GetChildNode(FirstIndex), ArrayParentPin->GetChildNode(SecondIndex));
+	}
+}
+
+void FPropertyValueImpl::SwapChildren( TSharedPtr<FPropertyNode> FirstChildNode, TSharedPtr<FPropertyNode> SecondChildNode)
+{
+	FPropertyNode* FirstChildNodePtr = FirstChildNode.Get();
+	FPropertyNode* SecondChildNodePtr = SecondChildNode.Get();
+
+	FPropertyNode* ParentNode = FirstChildNodePtr->GetParentNode();
+	FObjectPropertyNode* ObjectNode = FirstChildNodePtr->FindObjectItemParent();
+
+	UProperty* FirstNodeProperty = FirstChildNodePtr->GetProperty();
+	UProperty* SecondNodeProperty = SecondChildNodePtr->GetProperty();
+	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(FirstNodeProperty->GetOuter());
+
+	check(ArrayProperty);
+
+	FReadAddressList ReadAddresses;
+	ParentNode->GetReadAddress( !!ParentNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), ReadAddresses ); 
+	if ( ReadAddresses.Num() )
+	{
+		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SwapChildren", "Swap Children") );
+
+		FirstChildNodePtr->NotifyPreChange( FirstNodeProperty, NotifyHook );
+		SecondChildNodePtr->NotifyPreChange( SecondNodeProperty, NotifyHook );
+		
+		// List of top level objects sent to the PropertyChangedEvent
+		TArray<const UObject*> TopLevelObjects;
+		TopLevelObjects.Reserve(ReadAddresses.Num());
+
+		// perform the operation on the array for all selected objects
+		for ( int32 i = 0 ; i < ReadAddresses.Num() ; ++i )
+		{
+			uint8* Address = ReadAddresses.GetAddress(i);
+
+			if( Address ) 
+			{
+				int32 FirstIndex = FirstChildNodePtr->GetArrayIndex();
+				int32 SecondIndex = SecondChildNodePtr->GetArrayIndex();
+
+				UObject* Obj = ObjectNode ? ObjectNode->GetUObject(i) : nullptr;
+				if (Obj)
+				{
+					if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
+						(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
+						!FApp::IsGame())
+					{
+						FString OrgContent;
+						Cast<UProperty>(FirstNodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
+						FirstChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, FirstIndex);
+
+						Cast<UProperty>(SecondNodeProperty->GetOuter())->ExportText_Direct(OrgContent, Address, Address, nullptr, 0);
+						SecondChildNodePtr->PropagateContainerPropertyChange(Obj, OrgContent, EPropertyArrayChangeType::Swap, SecondIndex);
+					}
+
+					TopLevelObjects.Add(Obj);
+				}
+
+				if (ArrayProperty)
+				{
+					FScriptArrayHelper ArrayHelper(ArrayProperty, Address);
+
+					// If the inner property is an instanced component property we must move the old component to the 
+					// transient package so resetting owned components on the parent doesn't find it
+					UObjectProperty* InnerObjectProperty = Cast<UObjectProperty>(ArrayProperty->Inner);
+					if (InnerObjectProperty && InnerObjectProperty->HasAnyPropertyFlags(CPF_InstancedReference) && InnerObjectProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass()))
+					{
+						if (UActorComponent* Component = *reinterpret_cast<UActorComponent**>(ArrayHelper.GetRawPtr(FirstIndex)))
+						{
+							Component->Modify();
+							Component->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+						}
+
+						if (UActorComponent* Component = *reinterpret_cast<UActorComponent**>(ArrayHelper.GetRawPtr(SecondIndex)))
+						{
+							Component->Modify();
+							Component->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+						}
+					}
+
+					ArrayHelper.SwapValues(FirstIndex, SecondIndex);
+				}
+			}
+		}
+
+		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), EPropertyChangeType::Unspecified, &TopLevelObjects);
+		FirstChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+		SecondChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+
+		if (PropertyUtilities.IsValid())
+		{
+			FirstChildNodePtr->FixPropertiesInEvent(ChangeEvent);
+			SecondChildNodePtr->FixPropertiesInEvent(ChangeEvent);
+			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
+		}
+	}
+}
+
 void FPropertyValueImpl::DuplicateChild( int32 Index )
 {
 	TSharedPtr<FPropertyNode> ArrayParentPin = PropertyNode.Pin();
@@ -1879,15 +1979,46 @@ TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FText& 
 {
 	if( Implementation.IsValid() && Implementation->GetPropertyNode().IsValid() )
 	{
-		if( !NameOverride.IsEmpty() )
+		struct FPropertyNodeDisplayNameOverrideHelper
 		{
-			Implementation->GetPropertyNode()->SetDisplayNameOverride( NameOverride );
-		}
+			FPropertyNodeDisplayNameOverrideHelper(TSharedPtr<FPropertyValueImpl> InImplementation, const FText& InNameOverride, const FText& InToolTipOverride)
+				:Implementation(InImplementation)
+				,bResetDisplayName(false)
+				,bResetToolTipText(false)
+			{
+				if (!InNameOverride.IsEmpty())
+				{
+					bResetDisplayName = true;
+					Implementation->GetPropertyNode()->SetDisplayNameOverride(InNameOverride);
+				}
+				
+				if (!InToolTipOverride.IsEmpty())
+				{
+					bResetToolTipText = true;
+					Implementation->GetPropertyNode()->SetToolTipOverride(InToolTipOverride);
+				}
+			}
 
-		if( !ToolTipOverride.IsEmpty() )
-		{
-			Implementation->GetPropertyNode()->SetToolTipOverride( ToolTipOverride );
-		}
+			~FPropertyNodeDisplayNameOverrideHelper()
+			{
+				if (bResetDisplayName)
+				{
+					Implementation->GetPropertyNode()->SetDisplayNameOverride(FText::GetEmpty());
+				}
+				
+				if (bResetToolTipText)
+				{
+					Implementation->GetPropertyNode()->SetToolTipOverride(FText::GetEmpty());
+				}
+			}
+
+		private:
+			TSharedPtr<FPropertyValueImpl> Implementation;
+			bool bResetDisplayName;
+			bool bResetToolTipText;
+		};
+
+		FPropertyNodeDisplayNameOverrideHelper TempPropertyNameOverride(Implementation, NameOverride, ToolTipOverride);
 
 		TSharedPtr<FPropertyEditor> PropertyEditor = FPropertyEditor::Create( Implementation->GetPropertyNode().ToSharedRef(), Implementation->GetPropertyUtilities().ToSharedRef() );
 
@@ -1973,7 +2104,18 @@ TSharedPtr<IPropertyHandle> FPropertyHandleBase::GetParentHandle() const
 	TSharedPtr<FPropertyNode> ParentNode = Implementation->GetPropertyNode()->GetParentNodeSharedPtr();
 	if( ParentNode.IsValid() )
 	{
-		return PropertyEditorHelpers::GetPropertyHandle( ParentNode.ToSharedRef(), Implementation->GetNotifyHook(), Implementation->GetPropertyUtilities() ).ToSharedRef();
+		return PropertyEditorHelpers::GetPropertyHandle( ParentNode.ToSharedRef(), Implementation->GetNotifyHook(), Implementation->GetPropertyUtilities() );
+	}
+
+	return nullptr;
+}
+
+TSharedPtr<IPropertyHandle> FPropertyHandleBase::GetKeyHandle() const
+{
+	TSharedPtr<FPropertyNode> KeyNode = Implementation->GetPropertyNode()->GetPropertyKeyNode();
+	if (KeyNode.IsValid())
+	{
+		return PropertyEditorHelpers::GetPropertyHandle(KeyNode.ToSharedRef(), Implementation->GetNotifyHook(), Implementation->GetPropertyUtilities());
 	}
 
 	return nullptr;
@@ -2199,6 +2341,17 @@ void FPropertyHandleBase::SetToolTipText( const FText& ToolTip )
 	}
 }
 
+uint8* FPropertyHandleBase::GetValueBaseAddress( uint8* Base )
+{
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if (PropertyNode.IsValid())
+	{
+		return PropertyNode->GetValueBaseAddress(Base);
+	}
+
+	return nullptr;
+}
+
 int32 FPropertyHandleBase::GetNumPerObjectValues() const
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
@@ -2368,19 +2521,19 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 			bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );
 			if (!bShouldBeHidden && ValidEnumValues.Num() != 0)
 			{
-				bShouldBeHidden = ValidEnumValues.Find(Enum->GetEnum(EnumIndex)) == INDEX_NONE;
+				bShouldBeHidden = ValidEnumValues.Find(Enum->GetNameByIndex(EnumIndex)) == INDEX_NONE;
 			}
 
 			if (!bShouldBeHidden)
 			{
-				bShouldBeHidden = IsHidden(Enum->GetEnumName(EnumIndex));
+				bShouldBeHidden = IsHidden(Enum->GetNameStringByIndex(EnumIndex));
 			}
 
 			if( !bShouldBeHidden )
 			{
 				// See if we specified an alternate name for this value using metadata
-				FString EnumName = Enum->GetEnumName(EnumIndex);
-				FString EnumDisplayName = Enum->GetDisplayNameText(EnumIndex).ToString();
+				FString EnumName = Enum->GetNameStringByIndex(EnumIndex);
+				FString EnumDisplayName = Enum->GetDisplayNameTextByIndex(EnumIndex).ToString();
 
 				FText RestrictionTooltip;
 				const bool bIsRestricted = GenerateRestrictionToolTip(EnumName, RestrictionTooltip);
@@ -2398,7 +2551,7 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 				TSharedPtr< FString > EnumStr(new FString(EnumDisplayName));
 				OutOptionStrings.Add(EnumStr);
 
-				FText EnumValueToolTip = bIsRestricted ? RestrictionTooltip : Enum->GetToolTipText(EnumIndex);
+				FText EnumValueToolTip = bIsRestricted ? RestrictionTooltip : Enum->GetToolTipTextByIndex(EnumIndex);
 				OutToolTips.Add(MoveTemp(EnumValueToolTip));
 			}
 			else
@@ -2449,7 +2602,7 @@ void FPropertyHandleBase::NotifyPreChange()
 	}
 }
 
-void FPropertyHandleBase::NotifyPostChange()
+void FPropertyHandleBase::NotifyPostChange( EPropertyChangeType::Type ChangeType )
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
 	if( PropertyNode.IsValid() )
@@ -2465,7 +2618,7 @@ void FPropertyHandleBase::NotifyPostChange()
 			}
 		}
 
-		FPropertyChangedEvent PropertyChangedEvent( PropertyNode->GetProperty(), EPropertyChangeType::Unspecified, &ObjectsBeingChanged );
+		FPropertyChangedEvent PropertyChangedEvent( PropertyNode->GetProperty(), ChangeType, &ObjectsBeingChanged );
 		PropertyNode->NotifyPostChange( PropertyChangedEvent, Implementation->GetNotifyHook());
 	}
 }
@@ -3042,7 +3195,7 @@ FPropertyAccess::Result FPropertyHandleByte::SetValue( const uint8& NewValue, EP
 	if (Enum)
 	{
 		// Handle Enums using enum names to make sure they're compatible with UByteProperty::ExportText.
-		ValueStr = Enum->GetEnumName(NewValue);
+		ValueStr = Enum->GetNameStringByValue(NewValue);
 	}
 	else
 	{
@@ -3646,6 +3799,18 @@ FPropertyAccess::Result FPropertyHandleArray::DeleteItem( int32 Index )
 	if( IsEditable() && Index < Implementation->GetNumChildren() )
 	{
 		Implementation->DeleteChild( Index );
+		Result = FPropertyAccess::Success;
+	}
+
+	return Result;
+}
+
+FPropertyAccess::Result FPropertyHandleArray::SwapItems(int32 FirstIndex, int32 SecondIndex)
+{
+	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+	if (IsEditable() && FirstIndex >= 0 && SecondIndex >= 0 && FirstIndex < Implementation->GetNumChildren() && SecondIndex < Implementation->GetNumChildren())
+	{
+		Implementation->SwapChildren(FirstIndex, SecondIndex);
 		Result = FPropertyAccess::Success;
 	}
 

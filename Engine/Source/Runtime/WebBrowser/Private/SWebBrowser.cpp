@@ -31,7 +31,7 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 	OnCreateWindow = InArgs._OnCreateWindow;
 	OnCloseWindow = InArgs._OnCloseWindow;
 	bShowInitialThrobber = InArgs._ShowInitialThrobber;
-
+	
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -124,6 +124,7 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 				.OnShowDialog(OnShowDialog)
 				.OnDismissAllDialogs(OnDismissAllDialogs)
 				.Visibility(this, &SWebBrowser::GetViewportVisibility)
+				.OnSuppressContextMenu(InArgs._OnSuppressContextMenu)
 			]
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Center)

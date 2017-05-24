@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3149178
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title: 커스텀 렌더 패스 익스포트
 Crumbs: %ROOT%, Engine
@@ -9,6 +9,7 @@ order:1
 Version: 4.13
 Related: Engine\Sequencer\Overview
 Related: Engine/Sequencer/HowTo
+tags:Sequencer
 
 이 글은 **시퀀서** 내 **Render Movie Settings** (렌더 무비 세팅) 창에서 커스텀 패스를 렌더링 출력하는 법에 대한 설명서입니다.
 커스텀 렌더 패스를 사용하면 지정한 렌더 패스에 따라 시퀀스를 일련의 이미지 파일로 출력합니다.

@@ -45,6 +45,9 @@
     <ErrorReport>prompt</ErrorReport>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
+    <DocumentationFile>..\..\..\Binaries\DotNET\UnrealBuildTool.xml</DocumentationFile>
+    <NoWarn>
+    </NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>..\..\..\Binaries\DotNET\</OutputPath>
@@ -54,6 +57,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>false</Prefer32Bit>
+    <DocumentationFile>..\..\..\Binaries\DotNET\UnrealBuildTool.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Ionic.Zip.Reduced">
@@ -70,6 +74,7 @@
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Management" />
+    <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
@@ -81,8 +86,8 @@
         <Compile Include="XboxOne\UEBuildXboxOne.cs" />
         <Compile Include="XboxOne\XboxOneToolChain.cs" />
         <Compile Include="XboxOne\XboxOneDeploy.cs" />
+        <Compile Include="XboxOne\XboxOneExports.cs" />
         <Compile Include="XboxOne\XboxOneProjectGenerator.cs" />
-        <Compile Include="XboxOne\XboxOneResourceGenerator.cs" />
         <Compile Include="XboxOne\XboxOneManifestGenerator.cs" />
       </ItemGroup>
     </When>
@@ -90,10 +95,11 @@
   <Choose>
     <When Condition="Exists('Switch\UEBuildSwitch.cs')">
       <ItemGroup>
-        <Compile Include="Switch\UEBuildSwitch.cs" />
-        <Compile Include="Switch\SwitchToolChain.cs" />
-        <Compile Include="Switch\UEDeploySwitch.cs" />
+        <Compile Include="Switch\SwitchExports.cs" />
         <Compile Include="Switch\SwitchProjectGenerator.cs" />
+        <Compile Include="Switch\SwitchToolChain.cs" />
+        <Compile Include="Switch\UEBuildSwitch.cs" />
+        <Compile Include="Switch\UEDeploySwitch.cs" />
       </ItemGroup>
     </When>
   </Choose>
@@ -107,14 +113,47 @@
       </ItemGroup>
     </When>
   </Choose>
+  <Choose>
+    <When Condition="Exists('Mac\UEBuildMac.cs')">
+      <ItemGroup>
+        <Compile Include="Mac\MacExports.cs" />
+        <Compile Include="Mac\MacToolChain.cs" />
+        <Compile Include="Mac\UEBuildMac.cs" />
+        <Compile Include="Mac\MacProjectGenerator.cs" />
+        <Compile Include="Mac\UEDeployMac.cs" />
+        <Compile Include="ToolChain\AppleToolChain.cs" />
+        <Compile Include="System\XcodeProject.cs" />
+        <Compile Include="System\XcodeProjectFileGenerator.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
   <ItemGroup>
     <Compile Include="Configuration\ModuleRules.cs" />
+    <Compile Include="Configuration\PlatformTargetRules.cs" />
+    <Compile Include="Configuration\UEBuildBinaryCPP.cs" />
+    <Compile Include="Configuration\UEBuildBinaryCSDLL.cs" />
+    <Compile Include="Configuration\UEBuildDeployTarget.cs" />
+    <Compile Include="Configuration\UEBuildModuleExternal.cs" />
+    <Compile Include="Configuration\UEBuildPlatformFactory.cs" />
+    <Compile Include="Configuration\UEBuildPlatformSDK.cs" />
+    <Compile Include="System\BuildVersion.cs" />
+    <Compile Include="System\DirectoryReference.cs" />
+    <Compile Include="System\RulesDocumentation.cs" />
+    <Compile Include="System\FileFilter.cs" />
+    <Compile Include="System\FileFilterNode.cs" />
+    <Compile Include="System\FileReference.cs" />
+    <Compile Include="System\FileSystemName.cs" />
+    <Compile Include="System\Log.cs" />
+    <Compile Include="System\PrecompiledHeaderInstance.cs" />
+    <Compile Include="System\PrecompiledHeaderTemplate.cs" />
     <Compile Include="Configuration\TargetInfo.cs" />
     <Compile Include="Configuration\TargetRules.cs" />
-    <Compile Include="Mac\MacToolChain.cs" />
-    <Compile Include="Mac\UEBuildMac.cs" />
-    <Compile Include="Mac\MacProjectGenerator.cs" />
-    <Compile Include="Mac\UEDeployMac.cs" />
+    <Compile Include="Configuration\UEBuildBundleResource.cs" />
+    <Compile Include="Configuration\UEBuildFramework.cs" />
+    <Compile Include="Configuration\UEBuildModuleCPP.cs" />
+    <Compile Include="System\PlatformExports.cs" />
+    <Compile Include="System\CommandLine.cs" />
+    <Compile Include="System\CommandLineAttribute.cs" />
     <Compile Include="System\ConfigCache.cs" />
     <Compile Include="System\ConfigFile.cs" />
     <Compile Include="System\ConfigFileAttribute.cs" />
@@ -124,47 +163,86 @@
     <Compile Include="System\InstalledPlatformInfo.cs" />
     <Compile Include="System\LocalizationDescriptor.cs" />
     <Compile Include="System\ObsoleteOverrideAttribute.cs" />
+    <Compile Include="System\ProgressWriter.cs" />
+    <Compile Include="System\RemoteExecutor.cs" />
+    <Compile Include="System\RestrictedFolders.cs" />
     <Compile Include="System\RulesAssembly.cs" />
+    <Compile Include="System\ScopedTimer.cs" />
+    <Compile Include="System\StreamUtils.cs" />
     <Compile Include="System\SupportedConfigurationsAttribute.cs" />
     <Compile Include="System\SupportedPlatformsAttribute.cs" />
     <Compile Include="System\TargetReceipt.cs" />
+    <Compile Include="System\UBTMakefile.cs" />
     <Compile Include="System\VersionManifest.cs" />
-    <Compile Include="ToolChain\AppleToolChain.cs" />
-    <Compile Include="TVOS\TVOSProjectGenerator.cs" />
-    <Compile Include="TVOS\TVOSToolChain.cs" />
-    <Compile Include="TVOS\UEBuildTVOS.cs" />
-    <Compile Include="TVOS\UEDeployTVOS.cs" />
-    <Compile Include="Android\UEBuildAndroid.cs" />
-    <Compile Include="Android\UEDeployAndroid.cs" />
-    <Compile Include="Android\AndroidAARHandler.cs" />
-    <Compile Include="Android\AndroidToolChain.cs" />
-    <Compile Include="Android\AndroidProjectGenerator.cs" />
+    <Compile Include="System\XmlConfig.cs" />
+    <Compile Include="System\XmlConfigData.cs" />
+    <Compile Include="System\XmlConfigFile.cs" />
+    <Compile Include="System\XmlConfigFileAttribute.cs" />
     <Compile Include="System\UnrealPluginLanguage.cs" />
   </ItemGroup>
+  <Choose>
+    <When Condition="Exists('TVOS\UEBuildTVOS.cs')">
+      <ItemGroup>
+        <Compile Include="TVOS\TVOSExports.cs" />
+        <Compile Include="TVOS\TVOSProjectGenerator.cs" />
+        <Compile Include="TVOS\TVOSToolChain.cs" />
+        <Compile Include="TVOS\UEBuildTVOS.cs" />
+        <Compile Include="TVOS\UEDeployTVOS.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('Android\UEBuildAndroid.cs')">
+      <ItemGroup>
+        <Compile Include="Android\UEBuildAndroid.cs" />
+        <Compile Include="Android\UEDeployAndroid.cs" />
+        <Compile Include="Android\AndroidAARHandler.cs" />
+        <Compile Include="Android\AndroidExports.cs" />
+        <Compile Include="Android\AndroidToolChain.cs" />
+        <Compile Include="Android\AndroidProjectGenerator.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
   <ItemGroup>
+    <Compile Include="ToolChain\RemoteExports.cs" />
     <Compile Include="Utilities\BinaryReaderExtensions.cs" />
     <Compile Include="Utilities\BinaryWriterExtensions.cs" />
+    <Compile Include="Utilities\EncryptionAndSigning.cs" />
     <Compile Include="Utilities\HashSetExtensions.cs" />
     <Compile Include="Windows\WindowsDeploy.cs" />
     <Compile Include="Windows\WinResources.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="IOS\IOSProjectGenerator.cs" />
-    <Compile Include="IOS\IOSToolChain.cs" />
-    <Compile Include="IOS\UEBuildIOS.cs" />
-    <Compile Include="IOS\UEDeployIOS.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="HTML5\HTML5ProjectGenerator.cs" />
-    <Compile Include="HTML5\HTML5ToolChain.cs" />
-    <Compile Include="HTML5\UEBuildHTML5.cs" />
-    <Compile Include="HTML5\HTML5SDKInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Linux\LinuxProjectGenerator.cs" />
-    <Compile Include="Linux\LinuxToolChain.cs" />
-    <Compile Include="Linux\UEBuildLinux.cs" />
-  </ItemGroup>
+  <Choose>
+    <When Condition="Exists('IOS\UEBuildIOS.cs')">
+      <ItemGroup>
+        <Compile Include="IOS\IOSExports.cs" />
+        <Compile Include="IOS\IOSProjectGenerator.cs" />
+        <Compile Include="IOS\IOSToolChain.cs" />
+        <Compile Include="IOS\UEBuildIOS.cs" />
+        <Compile Include="IOS\UEDeployIOS.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('HTML5\UEBuildHTML5.cs')">
+      <ItemGroup>
+        <Compile Include="HTML5\HTML5ProjectGenerator.cs" />
+        <Compile Include="HTML5\HTML5ToolChain.cs" />
+        <Compile Include="HTML5\UEBuildHTML5.cs" />
+        <Compile Include="HTML5\HTML5SDKInfo.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('Linux\UEBuildLinux.cs')">
+      <ItemGroup>
+        <Compile Include="Linux\LinuxExports.cs" />
+        <Compile Include="Linux\LinuxProjectGenerator.cs" />
+        <Compile Include="Linux\LinuxToolChain.cs" />
+        <Compile Include="Linux\UEBuildLinux.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
   <Choose>
     <When Condition="Exists('System\NotForLicensees\TelemetryProviderET.cs')">
       <ItemGroup>
@@ -176,14 +254,10 @@
     <Compile Include="..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
-    <Compile Include="Configuration\UEBuildClient.cs" />
     <Compile Include="Configuration\UEBuildDeploy.cs" />
     <Compile Include="Configuration\UEBuildBinary.cs" />
-    <Compile Include="Configuration\UEBuildEditor.cs" />
-    <Compile Include="Configuration\UEBuildGame.cs" />
     <Compile Include="Configuration\UEBuildModule.cs" />
     <Compile Include="Configuration\UEBuildPlatform.cs" />
-    <Compile Include="Configuration\UEBuildServer.cs" />
     <Compile Include="fastJSON\Formatter.cs" />
     <Compile Include="fastJSON\Getters.cs" />
     <Compile Include="fastJSON\JSON.cs" />
@@ -192,7 +266,6 @@
     <Compile Include="fastJSON\Reflection.cs" />
     <Compile Include="fastJSON\SafeDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Configuration\UEBuildConfiguration.cs" />
     <Compile Include="Configuration\UEBuildTarget.cs" />
     <Compile Include="System\ActionGraph.cs" />
     <Compile Include="System\ActionHistory.cs" />
@@ -230,7 +303,6 @@
     <Compile Include="System\RulesCompiler.cs" />
     <Compile Include="System\SourceFileSearch.cs" />
     <Compile Include="System\Telemetry.cs" />
-    <Compile Include="System\ThirdPartyHeaderFinder.cs" />
     <Compile Include="System\UEPlatformProjectGenerator.cs" />
     <Compile Include="System\Unity.cs" />
     <Compile Include="System\UnrealBuildTool.cs" />
@@ -238,20 +310,19 @@
     <Compile Include="System\Utils.cs" />
     <Compile Include="System\VCProject.cs" />
     <Compile Include="System\VCProjectFileGenerator.cs" />
-    <Compile Include="System\XcodeProject.cs" />
-    <Compile Include="System\XcodeProjectFileGenerator.cs" />
+    <Compile Include="System\EddieProject.cs" />
+    <Compile Include="System\EddieGenerator.cs" />
     <Compile Include="ToolChain\RemoteToolChain.cs" />
     <Compile Include="ToolChain\UEToolChain.cs" />
     <Compile Include="System\XGE.cs" />
-    <Compile Include="Utilities\DictionaryExtensions.cs" />
     <Compile Include="Utilities\GraphVisualization.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Utilities\JsonObject.cs" />
-    <Compile Include="Utilities\XmlConfigLoader.cs" />
     <Compile Include="Windows\UEBuildWindows.cs" />
     <Compile Include="Windows\VCEnvironment.cs" />
     <Compile Include="Windows\VCToolChain.cs" />
+    <Compile Include="Windows\WindowsExports.cs" />
     <Compile Include="Windows\WindowsProjectGenerator.cs" />
   </ItemGroup>
   <ItemGroup>

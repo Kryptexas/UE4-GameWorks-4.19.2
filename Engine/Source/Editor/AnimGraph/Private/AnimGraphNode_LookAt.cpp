@@ -2,6 +2,7 @@
 
 #include "AnimGraphNode_LookAt.h"
 #include "Animation/AnimInstance.h"
+#include "AnimPhysObjectVersion.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_LookAt
@@ -58,6 +59,72 @@ void UAnimGraphNode_LookAt::Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComp
 		{
 			ActiveNode->ConditionalDebugDraw(PDI, SkelMeshComp);
 		}
+	}
+}
+
+
+void UAnimGraphNode_LookAt::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
+
+	auto GetAlignVector = [](EAxisOption::Type AxisOption, const FVector& CustomAxis) -> FVector
+	{
+		switch (AxisOption)
+		{
+		case EAxisOption::X:
+			return FTransform::Identity.GetUnitAxis(EAxis::X);
+		case EAxisOption::X_Neg:
+			return -FTransform::Identity.GetUnitAxis(EAxis::X);
+		case EAxisOption::Y:
+			return FTransform::Identity.GetUnitAxis(EAxis::Y);
+		case EAxisOption::Y_Neg:
+			return -FTransform::Identity.GetUnitAxis(EAxis::Y);
+		case EAxisOption::Z:
+			return FTransform::Identity.GetUnitAxis(EAxis::Z);
+		case EAxisOption::Z_Neg:
+			return -FTransform::Identity.GetUnitAxis(EAxis::Z);
+		case EAxisOption::Custom:
+			return CustomAxis;
+		}
+
+		return FVector(1.f, 0.f, 0.f);
+	};
+
+	if (Ar.CustomVer(FAnimPhysObjectVersion::GUID)< FAnimPhysObjectVersion::ConvertAnimNodeLookAtAxis)
+	{
+		Node.LookAt_Axis = FAxis(GetAlignVector(Node.LookAtAxis_DEPRECATED, Node.CustomLookAtAxis_DEPRECATED));
+		Node.LookUp_Axis = FAxis(GetAlignVector(Node.LookUpAxis_DEPRECATED, Node.CustomLookUpAxis_DEPRECATED));
+		if (Node.LookAtBone.BoneName != NAME_None || Node.LookAtSocket != NAME_None)
+		{
+			Node.LookAtLocation = FVector::ZeroVector;
+		}
+	}
+}
+
+void UAnimGraphNode_LookAt::GetOnScreenDebugInfo(TArray<FText>& DebugInfo, FAnimNode_Base* RuntimeAnimNode, USkeletalMeshComponent* PreviewSkelMeshComp) const
+{
+	if (RuntimeAnimNode)
+	{
+		const FAnimNode_LookAt* LookatRuntimeNode = static_cast<FAnimNode_LookAt*>(RuntimeAnimNode);
+		DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenBoneName", "Anim Look At (Source:{0})"), FText::FromName(LookatRuntimeNode->BoneToModify.BoneName)));
+
+		if (LookatRuntimeNode->LookAtBone.BoneIndex != INDEX_NONE)
+		{
+			DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenLookAtBone", "	Look At Bone (Target:{0})"), FText::FromName(LookatRuntimeNode->LookAtBone.BoneName)));
+		}
+
+		if (LookatRuntimeNode->LookAtSocket != NAME_None)
+		{
+			DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenLookAtSocket", "	LookAtSocket: {0}"), FText::FromName(LookatRuntimeNode->LookAtSocket)));
+		}
+		else
+		{
+			DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenLookAtLocation", "	LookAtLocation: {0}"), FText::FromString(LookatRuntimeNode->LookAtLocation.ToString())));
+		}
+
+		DebugInfo.Add(FText::Format(LOCTEXT("DebugOnScreenTargetLocation", "	TargetLocation: {0}"), FText::FromString(LookatRuntimeNode->GetCachedTargetLocation().ToString())));
 	}
 }
 

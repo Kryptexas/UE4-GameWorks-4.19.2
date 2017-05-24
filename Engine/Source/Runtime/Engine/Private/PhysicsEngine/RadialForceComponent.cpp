@@ -154,14 +154,17 @@ void URadialForceComponent::FireImpulse()
 		PrimitiveComponent->AddRadialImpulse(Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange);
 
 		// See if this is a target for a movement component, if so apply the impulse to it
-		TInlineComponentArray<UMovementComponent*> MovementComponents;
-		PrimitiveComponent->GetOwner()->GetComponents<UMovementComponent>(MovementComponents);
-		for(const auto& MovementComponent : MovementComponents)
+		if (PrimitiveComponent->bIgnoreRadialImpulse == false)
 		{
-			if(MovementComponent->UpdatedComponent == PrimitiveComponent)
+			TInlineComponentArray<UMovementComponent*> MovementComponents;
+			PrimitiveComponent->GetOwner()->GetComponents<UMovementComponent>(MovementComponents);
+			for (const auto& MovementComponent : MovementComponents)
 			{
-				MovementComponent->AddRadialImpulse(Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange);
-				break;
+				if (MovementComponent->UpdatedComponent == PrimitiveComponent)
+				{
+					MovementComponent->AddRadialImpulse(Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange);
+					break;
+				}
 			}
 		}
 	}

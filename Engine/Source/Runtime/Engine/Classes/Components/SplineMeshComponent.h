@@ -190,6 +190,9 @@ public:
 	virtual void GetMeshId(FString& OutMeshId) override;
 	//~ End Interface_CollisionDataProvider Interface
 
+	/** Determines the mesh proxy values for SplineMeshScaleZ and SplineMeshMinZ*/
+	void CalculateScaleZAndMinZ(float& OutScaleZ, float& OutMinZ) const;
+
 	/** Called to notify render thread and possibly collision of a change in spline params or mesh */
 	void UpdateRenderStateAndCollision();
 
@@ -199,6 +202,9 @@ public:
 	/** Update the collision and render state on the spline mesh following changes to its geometry */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void UpdateMesh();
+
+	/** Same as UpdateMesh, but does not wait until the end of frame and can be used in non-game threads */
+	void UpdateMesh_Concurrent();
 
 	/** Get the start position of spline in local space */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
@@ -342,6 +348,8 @@ public:
 
 	virtual float GetTextureStreamingTransformScale() const override;
 
+private:
+	void UpdateRenderStateAndCollision_Internal(bool bConcurrent);
 };
 
 const float& USplineMeshComponent::GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis)

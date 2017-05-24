@@ -12,7 +12,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectArray, Log, All);
 
-TMap<int32, FUObjectCluster*> GUObjectClusters;
+FUObjectClusterContainer GUObjectClusters;
 
 FUObjectArray::FUObjectArray()
 : ObjFirstGCIndex(0)
@@ -145,7 +145,7 @@ void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object, bool bMergingThrea
 	}
 	// Regular pool/ range.
 	else
-	{		
+	{
 		int32* AvailableIndex = ObjAvailableList.Pop();
 		if (AvailableIndex)
 		{

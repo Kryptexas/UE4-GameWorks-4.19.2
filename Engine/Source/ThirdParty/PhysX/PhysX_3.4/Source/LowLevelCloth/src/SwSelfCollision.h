@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
@@ -77,6 +77,16 @@ class SwSelfCollision
 	mutable uint32_t mNumTests;
 	mutable uint32_t mNumCollisions;
 };
+
+#if PX_SUPPORT_EXTERN_TEMPLATE
+//explicit template instantiation declaration
+#if NV_SIMD_SIMD
+extern template class SwSelfCollision<Simd4f>;
+#endif
+#if NV_SIMD_SCALAR
+extern template class SwSelfCollision<Scalar4f>;
+#endif
+#endif
 
 } // namespace cloth
 

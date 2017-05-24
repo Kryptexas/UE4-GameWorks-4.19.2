@@ -90,8 +90,40 @@ void UMovieSceneTrack::GenerateTemplate(const FMovieSceneTrackCompilerArgs& Args
 	Args.Generator.AddOwnedTrack(MoveTemp(NewTrackTemplate), *this);
 }
 
+FMovieSceneEvaluationTrack UMovieSceneTrack::GenerateTrackTemplate() const
+{
+	FMovieSceneEvaluationTrack TrackTemplate = FMovieSceneEvaluationTrack(FGuid());
+
+	// Legacy path
+	if (CreateLegacyInstance().IsValid())
+	{
+		TrackTemplate.DefineAsSingleTemplate(FMovieSceneLegacyTrackInstanceTemplate(this));
+	}
+	else
+	{
+		// For this path, we don't have a generator, so we just pass through a stub
+		struct FTemplateGeneratorStub : IMovieSceneTemplateGenerator
+		{
+			virtual void AddOwnedTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, const UMovieSceneTrack& SourceTrack) override {}
+			virtual void AddSharedTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, FMovieSceneSharedDataId SharedId, const UMovieSceneTrack& SourceTrack) override {}
+			virtual void AddLegacyTrack(FMovieSceneEvaluationTrack&& InTrackTemplate, const UMovieSceneTrack& SourceTrack) override {}
+			virtual void AddExternalSegments(TRange<float> RootRange, TArrayView<const FMovieSceneEvaluationFieldSegmentPtr> SegmentPtrs, ESectionEvaluationFlags Flags) override {}
+			virtual FMovieSceneSequenceTransform GetSequenceTransform(FMovieSceneSequenceIDRef InSequenceID) const override { return FMovieSceneSequenceTransform(); }
+			virtual void AddSubSequence(FMovieSceneSubSequenceData SequenceData, FMovieSceneSequenceIDRef ParentID, FMovieSceneSequenceID SpecificID) override { }
+		} Generator;
+
+		FMovieSceneSequenceTemplateStore Store;
+		Compile(TrackTemplate, FMovieSceneTrackCompilerArgs(Generator, Store));
+	}
+	return TrackTemplate;
+}
+
 struct FSegmentRemapper
 {
+	explicit FSegmentRemapper(bool bInAllowEmptySegments)
+		: bAllowEmptySegments(bInAllowEmptySegments)
+	{}
+
 	void ProcessSegments(const TArray<FMovieSceneSegment>& SourceSegments, FMovieSceneEvaluationTrack& OutTrack, const TFunctionRef<FMovieSceneEvalTemplatePtr(int32)>& TemplateFactory)
 	{
 		NewSegments.Reset(SourceSegments.Num());
@@ -138,13 +170,14 @@ struct FSegmentRemapper
 			NewSegment.Impls.Add(NewData);
 		}
 
-		if (NewSegment.Impls.Num())
+		if (bAllowEmptySegments || NewSegment.Impls.Num())
 		{
 			NewSegments.Add(NewSegment);
 		}
 	}
 
-private:
+private:	
+	bool bAllowEmptySegments;
 
 	static const int32 NotCreatedYet;
 	static const int32 NullTemplate;
@@ -180,9 +213,12 @@ EMovieSceneCompileResult UMovieSceneTrack::Compile(FMovieSceneEvaluationTrack& O
 		FMovieSceneTrackCompiler::FRows TrackRows(AllSections, RowCompilerRules.GetPtr(nullptr));
 
 		FMovieSceneTrackCompiler Compiler;
-		FMovieSceneTrackEvaluationField EvaluationField = Compiler.Compile(TrackRows.Rows, GetTrackCompilerRules().GetPtr(nullptr));
+		TInlineValue<FMovieSceneSegmentCompilerRules> Rules = GetTrackCompilerRules();
+		FMovieSceneTrackEvaluationField EvaluationField = Compiler.Compile(TrackRows.Rows, Rules.GetPtr(nullptr));
 
-		FSegmentRemapper Remapper;
+		const bool bAllowEmptySegments = Rules.IsValid() && Rules->AllowEmptySegments(); 
+
+		FSegmentRemapper Remapper(bAllowEmptySegments);
 		Remapper.ProcessSegments(EvaluationField.Segments, OutTrack,
 			[&](int32 SectionIndex){
 				FMovieSceneEvalTemplatePtr NewTemplate = CreateTemplateForSection(*AllSections[SectionIndex]);

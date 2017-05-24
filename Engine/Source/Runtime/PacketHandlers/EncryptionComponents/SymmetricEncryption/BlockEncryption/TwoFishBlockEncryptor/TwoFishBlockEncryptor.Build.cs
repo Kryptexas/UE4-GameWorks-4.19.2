@@ -5,7 +5,7 @@ using System.IO;
 
 public class TwoFishBlockEncryptor : ModuleRules
 {
-    public TwoFishBlockEncryptor(TargetInfo Target)
+    public TwoFishBlockEncryptor(ReadOnlyTargetRules Target) : base(Target)
     {
         PublicDependencyModuleNames.AddRange(
             new string[] {

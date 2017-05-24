@@ -15,6 +15,7 @@
 
 
 #include "PhysXIncludes.h"
+#include "EngineLogs.h"
 
 // Whether or not to use the PhysX scene lock
 #ifndef USE_SCENE_LOCK
@@ -340,6 +341,7 @@ ENGINE_API PxTransform UMatrix2PTransform(const FMatrix& UTM);
 ENGINE_API PxTransform U2PTransform(const FTransform& UTransform);
 /** Convert Unreal FVector to PhysX PxVec3 */
 ENGINE_API PxVec3 U2PVector(const FVector& UVec);
+ENGINE_API PxVec4 U2PVector(const FVector4& UVec);
 /** Convert Unreal FQuat to PhysX PxTransform */
 ENGINE_API PxQuat U2PQuat(const FQuat& UQuat);
 /** Convert Unreal FMatrix to PhysX PxMat44 */
@@ -350,6 +352,7 @@ ENGINE_API PxPlane U2PPlane(const FPlane& Plane);
 ENGINE_API FTransform P2UTransform(const PxTransform& PTM);
 /** Convert PhysX PxVec3 to Unreal FVector */
 ENGINE_API FVector P2UVector(const PxVec3& PVec);
+ENGINE_API FVector4 P2UVector(const PxVec4& PVec);
 /** Convert PhysX PxQuat to Unreal FQuat */
 ENGINE_API FQuat P2UQuat(const PxQuat& PQuat);
 /** Convert PhysX plane def to Unreal FPlane */
@@ -359,12 +362,19 @@ ENGINE_API FPlane P2UPlane(const PxPlane& Plane);
 ENGINE_API FMatrix P2UMatrix(const PxMat44& PMat);
 /** Convert PhysX PxTransform to Unreal FMatrix */
 ENGINE_API FMatrix PTransform2UMatrix(const PxTransform& PTM);
+/** Convert PhysX Barycentric Vec3 to FVector4 */
+ENGINE_API FVector4 P2U4BaryCoord(const PxVec3& PVec);
 
 // inlines
 
 ENGINE_API FORCEINLINE_DEBUGGABLE PxVec3 U2PVector(const FVector& UVec)
 {
 	return PxVec3(UVec.X, UVec.Y, UVec.Z);
+}
+
+ENGINE_API FORCEINLINE_DEBUGGABLE PxVec4 U2PVector(const FVector4& UVec)
+{
+	return PxVec4(UVec.X, UVec.Y, UVec.Z, UVec.W);
 }
 
 ENGINE_API FORCEINLINE_DEBUGGABLE PxQuat U2PQuat(const FQuat& UQuat)
@@ -382,6 +392,11 @@ ENGINE_API FORCEINLINE_DEBUGGABLE FVector P2UVector(const PxVec3& PVec)
 	return FVector(PVec.x, PVec.y, PVec.z);
 }
 
+ENGINE_API FORCEINLINE_DEBUGGABLE FVector4 P2UVector(const PxVec4& PVec)
+{
+	return FVector4(PVec.x, PVec.y, PVec.z, PVec.w);
+}
+
 ENGINE_API FORCEINLINE_DEBUGGABLE FQuat P2UQuat(const PxQuat& PQuat)
 {
 	return FQuat(PQuat.x, PQuat.y, PQuat.z, PQuat.w);
@@ -395,6 +410,11 @@ ENGINE_API FORCEINLINE_DEBUGGABLE FPlane P2UPlane(const PxReal P[4])
 ENGINE_API FORCEINLINE_DEBUGGABLE FPlane P2UPlane(const PxPlane& Plane)
 {
 	return FPlane(Plane.n.x, Plane.n.y, Plane.n.z, -Plane.d);
+}
+
+ENGINE_API FORCEINLINE_DEBUGGABLE FVector4 P2U4BaryCoord(const PxVec3& PVec)
+{
+	return FVector4(PVec.x, PVec.y, 1.f - PVec.x - PVec.y, PVec.z);
 }
 
 #endif

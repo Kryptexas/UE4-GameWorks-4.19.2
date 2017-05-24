@@ -14,13 +14,8 @@ using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
-	public partial class UnrealBuildTool
+	static class UnrealBuildTool
 	{
-		/// <summary>
-		/// Unique identifier used for telemetry
-		/// </summary>
-		static public string BuildGuid = Guid.NewGuid().ToString();
-
 		/// <summary>
 		/// How much time was spent scanning for include dependencies for outdated C++ files
 		/// </summary>
@@ -32,16 +27,14 @@ namespace UnrealBuildTool
 		static public System.Collections.IDictionary InitialEnvironment;
 
 		/// <summary>
-		/// Should we skip all extra modules for platforms?
-		/// </summary>
-		static bool bSkipNonHostPlatforms = false;
-
-		static UnrealTargetPlatform OnlyPlatformSpecificFor = UnrealTargetPlatform.Unknown;
-
-		/// <summary>
 		/// Whether we're running with engine installed
 		/// </summary>
 		static private bool? bIsEngineInstalled;
+
+		/// <summary>
+		/// Whether we're running with an installed project
+		/// </summary>
+		static private bool? bIsProjectInstalled;
 
 		/// <summary>
 		/// The full name of the Root UE4 directory
@@ -104,6 +97,24 @@ namespace UnrealBuildTool
 		static public UnrealTargetPlatform[] AllPlatforms = (UnrealTargetPlatform[])Enum.GetValues(typeof(UnrealTargetPlatform));
 
 		/// <summary>
+		/// Whether to print debug information out to the log
+		/// </summary>
+		static public bool bPrintDebugInfo
+		{
+			get;
+			private set;
+		}
+
+		/// <summary>
+		/// Whether to print performance information to the log
+		/// </summary>
+		static public bool bPrintPerformanceInfo
+		{
+			get;
+			private set;
+		}
+
+		/// <summary>
 		/// True if we should gather module dependencies for building in this run.  If this is false, then we'll expect to be loading information from disk about
 		/// the target's modules before we'll be able to build anything.  One or both of IsGatheringBuild or IsAssemblingBuild must be true.
 		/// </summary>
@@ -150,25 +161,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		static public bool bNeedsFullCPPIncludeRescan = false;
 
-
-		/// <summary>
-		/// Returns true if UnrealBuildTool should skip everything other than the host platform as far as finding other modules that need to be compiled.
-		/// </summary>
-		/// <returns>True if running with "-skipnonhostplatforms"</returns>
-		static public bool SkipNonHostPlatforms()
-		{
-			return bSkipNonHostPlatforms;
-		}
-
-		/// <summary>
-		/// Returns the platform we should compile extra modules for, in addition to the host
-		/// </summary>
-		/// <returns>The extra platfrom to compile for with "-onlyhostplatformand="</returns>
-		static public UnrealTargetPlatform GetOnlyPlatformSpecificFor()
-		{
-			return OnlyPlatformSpecificFor;
-		}
-
 		/// <summary>
 		/// Sets the global flag indicating whether the engine is installed
 		/// </summary>
@@ -191,6 +183,23 @@ namespace UnrealBuildTool
 			return bIsEngineInstalled.Value;
 		}
 
+		/// <summary>
+		/// Returns true if UnrealBuildTool is running using an installed project (ie. a mod kit)
+		/// </summary>
+		/// <returns>True if running using an installed project</returns>
+		static public bool IsProjectInstalled()
+		{
+			if(!bIsProjectInstalled.HasValue)
+			{
+				bIsProjectInstalled = FileReference.Exists(FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledProjectBuild.txt"));
+			}
+			return bIsProjectInstalled.Value;
+		}
+
+		/// <summary>
+		/// Gets the absolute path to the UBT assembly.
+		/// </summary>
+		/// <returns>A string containing the path to the UBT assembly.</returns>
 		static public string GetUBTPath()
 		{
 			string UnrealBuildToolPath = Assembly.GetExecutingAssembly().GetOriginalLocation();
@@ -231,7 +240,7 @@ namespace UnrealBuildTool
 			return InstalledPlatformInfo.Current.IsValidPlatform(InPlatform, EProjectType.Code);
 		}
 
-		public static void RegisterAllUBTClasses(bool bSkipBuildPlatforms = false, bool bValidatingPlatforms = false)
+		public static void RegisterAllUBTClasses(SDKOutputLevel OutputLevel, bool bValidatingPlatforms)
 		{
 			// Find and register all tool chains and build platforms that are present
 			Assembly UBTAssembly = Assembly.GetExecutingAssembly();
@@ -241,8 +250,7 @@ namespace UnrealBuildTool
 
 				List<System.Type> ProjectGeneratorList = new List<System.Type>();
 				Type[] AllTypes = UBTAssembly.GetTypes();
-				if (!bSkipBuildPlatforms)
-				{
+
 					// register all build platforms first, since they implement SDK-switching logic that can set environment variables
 					foreach (Type CheckType in AllTypes)
 					{
@@ -252,8 +260,7 @@ namespace UnrealBuildTool
 							{
 								Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
 								UEBuildPlatformFactory TempInst = (UEBuildPlatformFactory)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-								TempInst.TryRegisterBuildPlatforms(bValidatingPlatforms);
-							}
+							TempInst.TryRegisterBuildPlatforms(OutputLevel, bValidatingPlatforms);
 						}
 					}
 				}
@@ -348,42 +355,15 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// This is a safeguard to our initialization order, which tends to be fragile.
-		/// It is not really safe to reference a configuration value until the XmlConfig system loads it (and command lines override it), but non-trivial
-		/// code needs to run before the XmlConfig can load, so it can be hard to tell if a function you are calling in these early 
-		/// stages might unsafely reference a config value.
-		/// 
-		/// This bool is set RIGHT BEFORE the XmlConfig system loads configs, so any references to the config class before that will be trapped.
-		/// If you think you need to change where this value is set, you need to reconsider how soon you are trying to reference config values.
-		/// </summary>
-		public static bool bIsSafeToReferenceConfigurationValues = false;
-
-		/// <summary>
-		/// Paranoid init of the logging system in case someone tries to log super early in startup.
-		/// However, no configuration files have been loaded, and the command line has not been parsed, so 
-		/// certain features like verbose and log file cannot be initialized yet.
-		/// </summary>
-		private static void PreInitLogging()
-		{
-			Log.InitLogging(
-				bLogTimestamps: false,
-				InLogLevel: LogEventType.Log,
-				bLogSeverity: false,
-				bLogSources: false,
-				bColorConsoleOutput: true,
-				TraceListeners: new[] { new ConsoleTraceListener() });
-		}
-
-		/// <summary>
 		/// UBT startup order is fairly fragile, and relies on globals that may or may not be safe to use yet.
 		/// This function is for super early startup stuff that should not access Configuration classes (anything loaded by XmlConfg).
 		/// This should be very minimal startup code.
 		/// </summary>
 		/// <param name="Arguments">Cmdline arguments</param>
-		private static void DoStartupStuffThatCannotAccessConfigurationClasses(string[] Arguments)
+		private static int GuardedMain(string[] Arguments)
 		{
 			// Do super early log init as a safeguard. We'll re-init with proper config options later.
-			PreInitLogging();
+			Log.InitLogging(bLogTimestamps: false, InLogLevel: LogEventType.Log, bLogSeverity: false, bLogSources: false, bLogSourcesToConsole: false, bColorConsoleOutput: true, TraceListeners: new[] { new ConsoleTraceListener() });
 
 			// ensure we can resolve any external assemblies that are not in the same folder as our assembly.
 			AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
@@ -408,7 +388,7 @@ namespace UnrealBuildTool
 				EngineSourceDirectory = Assembly.GetExecutingAssembly().GetOriginalLocation();
 				EngineSourceDirectory = EngineSourceDirectory.Replace("\\", "/");
 				Int32 EngineIdx = EngineSourceDirectory.IndexOf("/Engine/Binaries/DotNET/", StringComparison.InvariantCultureIgnoreCase);
-				if (EngineIdx != 0)
+				if (EngineIdx > 0)
 				{
 					EngineSourceDirectory = Path.Combine(EngineSourceDirectory.Substring(0, EngineIdx), "Engine", "Source");
 				}
@@ -417,260 +397,44 @@ namespace UnrealBuildTool
 			{
 				Directory.SetCurrentDirectory(EngineSourceDirectory);
 			}
-		}
 
-		/// <summary>
-		/// Enough startup work has been done to load configuration classes (like setting the proper current directory).
-		/// It is still not safe to log. Mostly this relates to XmlConfigLoader, but any other code added here cannot log yet either.
-		/// </summary>
-		/// <param name="Arguments"></param>
-		private static void InitConfigurationClasses(string[] Arguments)
-		{
-			// Load the Config XML files first.
-			XmlConfigLoader.Init();
+			// Read the XML configuration files
+			if(!XmlConfig.ReadConfigFiles())
+			{
+				return 1;
+			}
+
+			// Create the build configuration object, and read the settings
+			BuildConfiguration BuildConfiguration = new BuildConfiguration();
+			XmlConfig.ApplyTo(BuildConfiguration);
+			CommandLine.ParseArguments(Arguments, BuildConfiguration);
+
+			// Copy some of the static settings that are being deprecated from BuildConfiguration
+			bPrintDebugInfo = BuildConfiguration.bPrintDebugInfo;
+			bPrintPerformanceInfo = BuildConfiguration.bPrintPerformanceInfo;
 
 			// Then let the command lines override any configs necessary.
-			const string UCAUsageThresholdString = "-ucausagethreshold=";
-			const string UCAModuleToAnalyzeString = "-ucamoduletoanalyze=";
 			foreach (string Argument in Arguments)
 			{
 				string LowercaseArg = Argument.ToLowerInvariant();
 				if (LowercaseArg == "-verbose")
 				{
-					BuildConfiguration.bPrintDebugInfo = true;
+					bPrintDebugInfo = true;
 					BuildConfiguration.LogLevel = "Verbose";
 				}
 				else if (LowercaseArg.StartsWith("-log="))
 				{
 					BuildConfiguration.LogFilename = LowercaseArg.Replace("-log=", "");
 				}
-				else if (LowercaseArg.StartsWith("-logdetailedcompilertiminginfo="))
-				{
-					WindowsPlatform.bLogDetailedCompilerTimingInfo = bool.Parse(LowercaseArg.Replace("-logdetailedcompilertiminginfo=", ""));
-				}
-				else if (LowercaseArg == "-forceheadergeneration")
-				{
-					UEBuildConfiguration.bForceHeaderGeneration = true;
-				}
-				else if (LowercaseArg == "-nobuilduht")
-				{
-					UEBuildConfiguration.bDoNotBuildUHT = true;
-				}
-				else if (LowercaseArg == "-failifgeneratedcodechanges")
-				{
-					UEBuildConfiguration.bFailIfGeneratedCodeChanges = true;
-				}
-				else if (LowercaseArg == "-clean")
-				{
-					UEBuildConfiguration.bCleanProject = true;
-				}
-				else if (LowercaseArg.StartsWith("-deploy="))
-				{
-					UEBuildConfiguration.DeployTargetFile = new FileReference(Argument.Substring("-deploy=".Length));
-				}
-				else if (LowercaseArg == "-generateexternalfilelist")
-				{
-					UEBuildConfiguration.bGenerateExternalFileList = true;
-				}
-				else if (LowercaseArg == "-mergeexternalfilelist")
-				{
-					UEBuildConfiguration.bMergeExternalFileList = true;
-				}
-				else if (LowercaseArg == "-listbuildfolders")
-				{
-					UEBuildConfiguration.bListBuildFolders = true;
-				}
-				else if (LowercaseArg == "-generatemanifest")
-				{
-					// Generate a manifest file containing all the files required to be in Perforce
-					UEBuildConfiguration.bGenerateManifest = true;
-				}
-				else if (LowercaseArg == "-mergemanifests")
-				{
-					// Whether to add to the existing manifest (if it exists), or start afresh
-					UEBuildConfiguration.bMergeManifests = true;
-				}
-				else if (LowercaseArg == "-noxge")
-				{
-					BuildConfiguration.bAllowXGE = false;
-				}
-				else if (LowercaseArg == "-noxgemonitor")
-				{
-					BuildConfiguration.bShowXGEMonitor = false;
-				}
 				else if (LowercaseArg == "-xgeexport")
 				{
 					BuildConfiguration.bXGEExport = true;
 					BuildConfiguration.bAllowXGE = true;
 				}
-				else if (LowercaseArg == "-jsonexport")
-				{
-					BuildConfiguration.JsonExportFile = FileReference.Combine(EngineDirectory, "Intermediate", "Target.json").FullName;
-				}
-				else if (LowercaseArg.StartsWith("-jsonexport="))
-				{
-					BuildConfiguration.JsonExportFile = new FileReference(Argument.Substring("-jsonexport=".Length)).FullName;
-				}
-				else if (LowercaseArg == "-stresstestunity")
-				{
-					BuildConfiguration.bStressTestUnity = true;
-				}
-				else if (LowercaseArg == "-disableunity")
-				{
-					BuildConfiguration.bUseUnityBuild = false;
-				}
-				else if (LowercaseArg == "-forceunity")
-				{
-					BuildConfiguration.bForceUnityBuild = true;
-				}
-				else if (LowercaseArg == "-shadowvariableerrors")
-				{
-					BuildConfiguration.bShadowVariableErrors = true;
-				}
-				// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
-				else if (LowercaseArg == "-fastmonocalls")
-				{
-					BuildConfiguration.bUseFastMonoCalls = true;
-				}
-				else if (LowercaseArg == "-nofastmonocalls")
-				{
-					BuildConfiguration.bUseFastMonoCalls = false;
-				}
-				else if (LowercaseArg == "-uniqueintermediate")
-				{
-					BuildConfiguration.BaseIntermediateFolder = "Intermediate/Build/" + BuildGuid + "/";
-				}
-				else if (LowercaseArg == "-nopch")
-				{
-					BuildConfiguration.bUsePCHFiles = false;
-				}
-				else if (LowercaseArg == "-nosharedpch")
-				{
-					BuildConfiguration.bUseSharedPCHs = false;
-				}
-				else if (LowercaseArg == "-skipActionHistory")
-				{
-					BuildConfiguration.bUseActionHistory = false;
-				}
-				else if (LowercaseArg == "-noltcg")
-				{
-					BuildConfiguration.bAllowLTCG = false;
-				}
-				else if (LowercaseArg == "-nopdb")
-				{
-					BuildConfiguration.bUsePDBFiles = false;
-				}
-				else if (LowercaseArg == "-nolink")
-				{
-					BuildConfiguration.bDisableLinking = true;
-				}
-				else if (LowercaseArg == "-deploy")
-				{
-					BuildConfiguration.bDeployAfterCompile = true;
-				}
-				else if (LowercaseArg == "-copyappbundlebacktodevice")
-				{
-					BuildConfiguration.bCopyAppBundleBackToDevice = true;
-				}
-				else if (LowercaseArg == "-flushmac")
-				{
-					BuildConfiguration.bFlushBuildDirOnRemoteMac = true;
-				}
-				else if (LowercaseArg == "-nodebuginfo")
-				{
-					BuildConfiguration.bDisableDebugInfo = true;
-				}
-				else if (LowercaseArg == "-forcedebuginfo")
-				{
-					BuildConfiguration.bDisableDebugInfo = false;
-					BuildConfiguration.bOmitPCDebugInfoInDevelopment = false;
-				}
-				else if (LowercaseArg == "-noubtmakefiles")
-				{
-					BuildConfiguration.bUseUBTMakefiles = false;
-				}
-				else if (LowercaseArg == "-uhtmakefiles")
-				{
-					BuildConfiguration.bUseUHTMakefiles = true;
-				}
-				else if (LowercaseArg == "-formal")
-				{
-					UEBuildConfiguration.bFormalBuild = true;
-				}
-				else if (LowercaseArg == "-nosimplygon")
-				{
-					UEBuildConfiguration.bCompileSimplygon = false;
-					UEBuildConfiguration.bCompileSimplygonSSF = false;
-				}
-				else if (LowercaseArg == "-nospeedtree")
-				{
-					UEBuildConfiguration.bCompileSpeedTree = false;
-				}
-				else if (LowercaseArg == "-canskiplink")
-				{
-					UEBuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
-				}
-				else if (LowercaseArg == "-nocef3")
-				{
-					UEBuildConfiguration.bCompileCEF3 = false;
-				}
-				else if (LowercaseArg == "-winxp")
-				{
-					UEBuildConfiguration.PreferredSubPlatform = "WindowsXP";
-				}
-				else if (LowercaseArg == "-rununrealcodeanalyzer")
-				{
-					BuildConfiguration.bRunUnrealCodeAnalyzer = true;
-				}
-				else if (LowercaseArg.StartsWith(UCAUsageThresholdString))
-				{
-					string UCAUsageThresholdValue = LowercaseArg.Substring(UCAUsageThresholdString.Length);
-					BuildConfiguration.UCAUsageThreshold = float.Parse(UCAUsageThresholdValue.Replace(',', '.'), System.Globalization.CultureInfo.InvariantCulture);
-				}
-				else if (LowercaseArg.StartsWith(UCAModuleToAnalyzeString))
-				{
-					BuildConfiguration.UCAModuleToAnalyze = LowercaseArg.Substring(UCAModuleToAnalyzeString.Length).Trim();
-				}
-				else if (LowercaseArg == "-ucacheckuobjectthreadsafety")
-				{
-					BuildConfiguration.bUCACheckUObjectThreadSafety = true;
-				}
-				else if (LowercaseArg == "-ucacheckpchfiles")
-				{
-					BuildConfiguration.bUCACheckPCHFiles = true;
-				}
 				else if (LowercaseArg.StartsWith("-singlefile="))
 				{
 					BuildConfiguration.bUseUBTMakefiles = false;
 					BuildConfiguration.SingleFileToCompile = LowercaseArg.Replace("-singlefile=", "");
-				}
-				else if (LowercaseArg.StartsWith("-fastpdb"))
-				{
-					BuildConfiguration.bUseFastPDBLinking = true;
-				}
-				else if (LowercaseArg == "-mapfile")
-				{
-					BuildConfiguration.bCreateMapFile = true;
-				}
-				else if (LowercaseArg.StartsWith("-architectures="))
-				{
-					UEBuildConfiguration.Architectures = LowercaseArg.Replace("-architectures=", "").Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
-				}
-				else if (LowercaseArg.StartsWith("-gpuarchitectures="))
-				{
-					UEBuildConfiguration.GPUArchitectures = LowercaseArg.Replace("-gpuarchitectures=", "").Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
-				}
-				else if(LowercaseArg.StartsWith("-bundleversion="))
-				{
-					BuildConfiguration.BundleVersion = Argument.Substring("-bundleversion=".Length);
-				}
-				else if (LowercaseArg == "-enablecodeanalysis")
-				{
-					BuildConfiguration.bEnableCodeAnalysis = true;
-				}
-				else if (LowercaseArg == "-skipbuild")
-				{
-					BuildConfiguration.bSkipBuild = true;
 				}
 				else if (LowercaseArg == "-installed" || LowercaseArg == "-installedengine")
 				{
@@ -680,67 +444,44 @@ namespace UnrealBuildTool
 				{
 					bIsEngineInstalled = false;
 				}
+				else if(LowercaseArg.StartsWith("-buildconfigurationdoc="))
+				{
+					XmlConfig.WriteDocumentation(new FileReference(Argument.Substring("-buildconfigurationdoc=".Length)));
+					return 0;
+				}
+				else if(LowercaseArg.StartsWith("-modulerulesdoc="))
+				{
+					RulesDocumentation.WriteDocumentation(typeof(ModuleRules), new FileReference(Argument.Substring("-modulerulesdoc=".Length)));
+					return 0;
+				}
+				else if(LowercaseArg.StartsWith("-targetrulesdoc="))
+				{
+					RulesDocumentation.WriteDocumentation(typeof(TargetRules), new FileReference(Argument.Substring("-targetrulesdoc=".Length)));
+					return 0;
+				}
 			}
 
 			// If it wasn't set explicitly by a command line option, check for the installed build marker file
 			if (!bIsEngineInstalled.HasValue)
 			{
-				bIsEngineInstalled = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt").Exists();
-			}
+				bIsEngineInstalled = FileReference.Exists(FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt"));
 		}
 
-		/// <summary>
-		/// Sets up UBT Trace listeners and filters.
-		/// </summary>
-		private static void InitLogging()
-		{
-			// Initialize the shared log system using UBT specific listeners.
+			DateTime StartTime = DateTime.UtcNow;
+
+			// We can now do a full initialization of the logging system with proper configuration values.
 			Log.InitLogging(
 				bLogTimestamps: false,
 				InLogLevel: (LogEventType)Enum.Parse(typeof(LogEventType), BuildConfiguration.LogLevel),
 				bLogSeverity: false,
 				bLogSources: false,
+				bLogSourcesToConsole: false,
 				bColorConsoleOutput: true,
 				TraceListeners: new[] 
                 {
                     new ConsoleTraceListener(),
                     !string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
                 });
-		}
-
-		/// <summary>
-		/// Reads configuration settings for a class from a hierarchy of ini files
-		/// </summary>
-		/// <param name="Ini">Config file cache</param>
-		/// <param name="Type">The type to read settings for. Settings will be read from the section with a name corresponding to this type.</param>
-		static void ReadGlobalIniSettings(ConfigHierarchy Ini, Type Type)
-		{
-			ConfigHierarchySection Section = Ini.FindSection(Type.Name);
-			if(Section != null)
-			{
-				foreach(string KeyName in Section.KeyNames)
-				{
-					FieldInfo Field = Type.GetField(KeyName);
-
-					string Value;
-					if (Field == null || !XmlConfigLoader.IsConfigurableField(Field) || !Section.TryGetValue(KeyName, out Value))
-					{
-						Log.TraceWarning("Invalid setting: {0}.{1}", Type.Name, KeyName);
-					}
-					else
-					{
-						Field.SetValue(null, XmlConfigLoader.ParseFieldData(Field.FieldType, String.Join("\n", Value)));
-					}
-				}
-			}
-		}
-
-		private static int DoPostStartupStuffThatCanAccessConfigs(string[] Arguments)
-		{
-			DateTime StartTime = DateTime.UtcNow;
-
-			// We can now do a full initialization of the logging system with proper configuration values.
-			InitLogging();
 
 			// Parse rocket-specific arguments.
 			FileReference ProjectFile = null;
@@ -755,6 +496,16 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// Read the project file from the installed project text file
+			if(ProjectFile == null)
+			{
+				FileReference InstalledProjectFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledProjectBuild.txt"); 
+				if(FileReference.Exists(InstalledProjectFile))
+				{
+					ProjectFile = FileReference.Combine(UnrealBuildTool.RootDirectory, File.ReadAllText(InstalledProjectFile.FullName).Trim());
+				}
+			}
+
 			// Build the list of game projects that we know about. When building from the editor (for hot-reload) or for projects from installed builds, we require the 
 			// project file to be passed in. Otherwise we scan for projects in directories named in UE4Games.uprojectdirs.
 			if (ProjectFile != null)
@@ -766,6 +517,9 @@ namespace UnrealBuildTool
 				UProjectInfo.FillProjectInfo();
 			}
 
+			// Read the project-specific build configuration settings
+			ConfigCache.ReadSettings(DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Unknown, BuildConfiguration);
+
 			DateTime BasicInitStartTime = DateTime.UtcNow;
 
 			ECompilationResult Result = ECompilationResult.Succeeded;
@@ -774,8 +528,6 @@ namespace UnrealBuildTool
 			Log.TraceVerbose("Command-line: {0}", String.Join(" ", Arguments));
 
 			Telemetry.Initialize();
-
-			bool bCheckThirdPartyHeaders = false;
 
 			// @todo: Ideally we never need to Mutex unless we are invoked with the same target project,
 			// in the same branch/path!  This would allow two clientspecs to build at the same time (even though we need
@@ -890,30 +642,10 @@ namespace UnrealBuildTool
 					foreach (string Arg in Arguments)
 					{
 						string LowercaseArg = Arg.ToLowerInvariant();
-						const string OnlyPlatformSpecificForArg = "-onlyplatformspecificfor=";
 						if (ProjectFile == null && ParseRocketCommandlineArg(Arg, ref GameName, ref ProjectFile))
 						{
 							// Already handled at startup. Calling now just to properly set the game name
 							continue;
-						}
-						else if (LowercaseArg == "-skipnonhostplatforms")
-						{
-							bSkipNonHostPlatforms = true;
-						}
-						else if (LowercaseArg.StartsWith(OnlyPlatformSpecificForArg))
-						{
-							string OtherPlatform = LowercaseArg.Substring(OnlyPlatformSpecificForArg.Length);
-							foreach (UnrealTargetPlatform platform in Enum.GetValues(typeof(UnrealTargetPlatform)))
-							{
-								if (OtherPlatform == platform.ToString().ToLowerInvariant())
-								{
-									OnlyPlatformSpecificFor = platform;
-								}
-							}
-							if (OnlyPlatformSpecificFor == UnrealTargetPlatform.Unknown)
-							{
-								throw new BuildException("Could not parse {0}", LowercaseArg);
-							}
 						}
 						else if (LowercaseArg.StartsWith("-makefile"))
 						{
@@ -937,30 +669,15 @@ namespace UnrealBuildTool
 						}
 						else if (LowercaseArg.StartsWith("-projectfile"))
 						{
-							if(Arguments.Contains("-2012unsupported", StringComparer.InvariantCultureIgnoreCase))
-							{
-								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2012;
-							}
-							else if (Arguments.Contains("-2013"))
-							{
-								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2013;
-								VCProjectFile.BuildToolOverride = " -2013";
-							}
-							else if(Arguments.Contains("-2015"))
-							{
-								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2015;
-								VCProjectFile.BuildToolOverride = " -2015";
-							}
-							else if(Arguments.Contains("-2017"))
-							{
-								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2017;
-								VCProjectFile.BuildToolOverride = " -2017";
-							}
 							ProjectFileTypes.Add(ProjectFileType.VisualStudio);
 						}
 						else if (LowercaseArg.StartsWith("-xcodeprojectfile"))
 						{
 							ProjectFileTypes.Add(ProjectFileType.XCode);
+						}
+						else if (LowercaseArg.StartsWith("-eddieprojectfile"))
+						{
+							ProjectFileTypes.Add(ProjectFileType.Eddie);
 						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
@@ -970,10 +687,6 @@ namespace UnrealBuildTool
 						{
 							bSpecificModulesOnly = true;
 							continue;
-						}
-						else if (LowercaseArg == "-check3rdpartyheaders")
-						{
-							bCheckThirdPartyHeaders = true;
 						}
 						else if (LowercaseArg == "-invalidatemakefilesonly")
 						{
@@ -1022,12 +735,16 @@ namespace UnrealBuildTool
 							// It's the platform set...
 							//PlatformName = Arg;
 						}
+						else if (LowercaseArg == "-vsdebugandroid")
+						{
+							AndroidProjectGenerator.VSDebugCommandLineOptionPresent = true;
+						}
 						else
 						{
 							// This arg may be a game name. Check for the existence of a game folder with this name.
 							// "Engine" is not a valid game name.
 							if (LowercaseArg != "engine" && Arg.IndexOfAny(Path.GetInvalidPathChars()) == -1 && Arg.IndexOfAny(new char[]{ ':', Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar}) == -1 &&
-								Directory.Exists(Path.Combine(ProjectFileGenerator.RootRelativePath, Arg, "Config")))
+								DirectoryReference.Exists(DirectoryReference.Combine(RootDirectory, Arg, "Config")))
 							{
 								GameName = Arg;
 								Log.TraceVerbose("CommandLine: Found game name '{0}'", GameName);
@@ -1035,36 +752,10 @@ namespace UnrealBuildTool
 						}
 					}
 
-					// Configure the windows compiler. We shouldn't normally have any platform-specific stuff here, but until this setting is moved onto the PlatformContext 
-					// it needs to be configured globally so we can read any overriden settings from the the config files.
-					if(WindowsPlatform.Compiler == WindowsCompiler.Default)
-					{
-						WindowsPlatform.Compiler = WindowsPlatform.GetDefaultCompiler(Arguments, ProjectFile);
-					}
-
 					if (!bIsGatheringBuild_Unsafe && !bIsAssemblingBuild_Unsafe)
 					{
 						throw new BuildException("UnrealBuildTool: At least one of either IsGatheringBuild or IsAssemblingBuild must be true.  Did you pass '-NoGather' with '-NoAssemble'?");
 					}
-
-					if (BuildConfiguration.bRunUnrealCodeAnalyzer)
-					{
-						if (BuildConfiguration.UCAModuleToAnalyze == null || BuildConfiguration.UCAModuleToAnalyze.Length == 0)
-						{
-							throw new BuildException("When running UnrealCodeAnalyzer, please specify module to analyze in UCAModuleToAnalyze field in BuildConfiguration.xml");
-						}
-
-						if ((BuildConfiguration.bUCACheckPCHFiles && BuildConfiguration.bUCACheckUObjectThreadSafety)
-							|| (!BuildConfiguration.bUCACheckPCHFiles && !BuildConfiguration.bUCACheckUObjectThreadSafety))
-						{
-							throw new BuildException("When running UnrealCodeAnalyzer, please specify exactly one action to execute");
-						}
-					}
-
-					// Read any global configuration settings for the project, now that we have a path to the project file.
-					ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Unknown);
-					ReadGlobalIniSettings(Ini, typeof(BuildConfiguration));
-					ReadGlobalIniSettings(Ini, typeof(UEBuildConfiguration));
 
 					// Get the build version
 					BuildVersion Version;
@@ -1090,9 +781,22 @@ namespace UnrealBuildTool
 						);
 
 					// Find and register all tool chains, build platforms, etc. that are present
-					RegisterAllUBTClasses(bValidatingPlatforms:bValidatePlatforms);
+					SDKOutputLevel OutputLevel;
+					if(UnrealBuildTool.bPrintDebugInfo)
+					{
+						OutputLevel = SDKOutputLevel.Verbose;
+					}
+					else if(Environment.GetEnvironmentVariable("IsBuildMachine") == "1")
+					{
+						OutputLevel = SDKOutputLevel.Minimal;
+					}
+					else
+					{
+						OutputLevel = SDKOutputLevel.Quiet;
+					}
+					RegisterAllUBTClasses(OutputLevel, bValidatePlatforms);
 
-					if (BuildConfiguration.bPrintPerformanceInfo)
+					if (UnrealBuildTool.bPrintPerformanceInfo)
 					{
 						double BasicInitTime = (DateTime.UtcNow - BasicInitStartTime).TotalSeconds;
 						Log.TraceInformation("Basic UBT initialization took " + BasicInitTime + "s");
@@ -1128,10 +832,13 @@ namespace UnrealBuildTool
 									Generator = new CodeLiteGenerator(ProjectFile);
 									break;
 								case ProjectFileType.VisualStudio:
-									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileGenerator.Version);
+									Generator = new VCProjectFileGenerator(ProjectFile, Arguments);
 									break;
 								case ProjectFileType.XCode:
 									Generator = new XcodeProjectFileGenerator(ProjectFile);
+									break;
+								case ProjectFileType.Eddie:
+									Generator = new EddieProjectFileGenerator(ProjectFile);
 									break;
 								default:
 									throw new BuildException("Unhandled project file type '{0}", ProjectFileType);
@@ -1151,30 +858,24 @@ namespace UnrealBuildTool
 					{
 						ValidatePlatforms(Arguments);
 					}
-					else if (UEBuildConfiguration.DeployTargetFile != null)
+					else if (BuildConfiguration.DeployTargetFile != null)
 					{
-						UEBuildDeployTarget DeployTarget = new UEBuildDeployTarget(UEBuildConfiguration.DeployTargetFile);
+						UEBuildDeployTarget DeployTarget = new UEBuildDeployTarget(BuildConfiguration.DeployTargetFile);
 						Log.WriteLine(LogEventType.Console, "Deploying {0} {1} {2}...", DeployTarget.TargetName, DeployTarget.Platform, DeployTarget.Configuration);
 						UEBuildPlatform.GetBuildPlatform(DeployTarget.Platform).Deploy(DeployTarget);
 						Result = ECompilationResult.Succeeded;
 					}
 					else
 					{
-						// Check if any third party headers are included from public engine headers.
-						if (bCheckThirdPartyHeaders)
-						{
-							ThirdPartyHeaderFinder.FindThirdPartyIncludes(CheckPlatform, CheckConfiguration, "");
-						}
-
 						// Build our project
 						if (Result == ECompilationResult.Succeeded)
 						{
-							Result = RunUBT(Arguments, ProjectFile);
+							Result = RunUBT(BuildConfiguration, Arguments, ProjectFile);
 						}
 					}
 					// Print some performance info
 					double BuildDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
-					if (BuildConfiguration.bPrintPerformanceInfo)
+					if (UnrealBuildTool.bPrintPerformanceInfo)
 					{
 						Log.TraceInformation("GetIncludes time: " + CPPHeaders.TotalTimeSpentGettingIncludes + "s (" + CPPHeaders.TotalIncludesRequested + " includes)");
 						Log.TraceInformation("DirectIncludes cache miss time: " + CPPHeaders.DirectIncludeCacheMissesTotalTime + "s (" + CPPHeaders.TotalDirectIncludeCacheMisses + " misses)");
@@ -1221,20 +922,9 @@ namespace UnrealBuildTool
             // make sure we catch any exceptions and return an appropriate error code.
             // Some inner code already does this (to ensure the Mutex is released),
             // but we need something to cover all outer code as well.
-
-            // Console.WriteLine("UBT Cmd Line: " + string.Join(" ", Arguments));
-
 			try
 			{
-				// Make it more explicit what startup code should not be accessing config data.
-				// The Configuration classes will also assert, but this clarifies where the line is.
-				DoStartupStuffThatCannotAccessConfigurationClasses(Arguments);
-
-				// Now we can load the configuration files.
-				InitConfigurationClasses(Arguments);
-
-				// Finally, we do execute code that relies on config classes.
-				return DoPostStartupStuffThatCanAccessConfigs(Arguments);
+				return GuardedMain(Arguments);
 			}
 			catch (Exception Exception)
 			{
@@ -1257,7 +947,7 @@ namespace UnrealBuildTool
 		/// <param name="Generator">Project generator to use</param>
 		/// <param name="Arguments">Command-line arguments</param>
 		/// <returns>True if successful</returns>
-		public static bool GenerateProjectFiles(ProjectFileGenerator Generator, string[] Arguments)
+		internal static bool GenerateProjectFiles(ProjectFileGenerator Generator, string[] Arguments)
 		{
 			ProjectFileGenerator.bGenerateProjectFiles = true;
 			bool bSuccess = Generator.GenerateProjectFiles(Arguments);
@@ -1352,7 +1042,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public static ECompilationResult RunUBT(string[] Arguments, FileReference ProjectFile)
+		internal static ECompilationResult RunUBT(BuildConfiguration BuildConfiguration, string[] Arguments, FileReference ProjectFile)
 		{
 			bool bSuccess = true;
 
@@ -1362,25 +1052,13 @@ namespace UnrealBuildTool
 			// Reset global configurations
 			ActionGraph ActionGraph = new ActionGraph();
 
-			// We need to allow the target platform to perform the 'reset' as well...
-			UnrealTargetPlatform ResetPlatform = UnrealTargetPlatform.Unknown;
-			UnrealTargetConfiguration ResetConfiguration;
-			UEBuildTarget.ParsePlatformAndConfiguration(Arguments, out ResetPlatform, out ResetConfiguration);
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
-			UEBuildPlatformContext BuildPlatformContext = BuildPlatform.CreateContext(ProjectFile, null);
-			BuildPlatformContext.ResetBuildConfiguration(ResetConfiguration);
-
-			// now that we have the platform, we can set the intermediate path to include the platform/architecture name
-			BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, ResetPlatform.ToString(), BuildPlatformContext.GetActiveArchitectureFolderName());
-
 			string ExecutorName = "Unknown";
 			ECompilationResult BuildResult = ECompilationResult.Succeeded;
-
-			UEToolChain ToolChain = BuildPlatformContext.CreateToolChainForDefaultCppPlatform();
 
 			Thread CPPIncludesThread = null;
 
 			List<UEBuildTarget> Targets = null;
+			Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders = new Dictionary<UEBuildTarget, CPPHeaders>();
 
 			double TotalExecutorTime = 0.0;
 
@@ -1396,14 +1074,7 @@ namespace UnrealBuildTool
 					BuildConfiguration.bUseIncludeDependencyResolveCache = true;
 				}
 
-				bool CreateStub = Utils.ParseCommandLineFlag(Arguments, "-nocreatestub", out ArgumentIndex);
-				if (CreateStub || (String.IsNullOrEmpty(Environment.GetEnvironmentVariable("uebp_LOCAL_ROOT")) && BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac))
-				{
-					BuildConfiguration.bCreateStubIPA = false;
-				}
-
-
-				if (BuildConfiguration.bPrintPerformanceInfo)
+				if (UnrealBuildTool.bPrintPerformanceInfo)
 				{
 					double RunUBTInitTime = (DateTime.UtcNow - RunUBTInitStartTime).TotalSeconds;
 					Log.TraceInformation("RunUBT initialization took " + RunUBTInitTime + "s");
@@ -1418,7 +1089,7 @@ namespace UnrealBuildTool
 						TargetDescs.AddRange(UEBuildTarget.ParseTargetCommandLine(TargetSetting, ref ProjectFile));
 					}
 
-					if (BuildConfiguration.bPrintPerformanceInfo)
+					if (UnrealBuildTool.bPrintPerformanceInfo)
 					{
 						double TargetDescsTime = (DateTime.UtcNow - TargetDescstStartTime).TotalSeconds;
 						Log.TraceInformation("Target descriptors took " + TargetDescsTime + "s");
@@ -1439,15 +1110,9 @@ namespace UnrealBuildTool
 				}
 
 				bool bNoHotReload = Arguments.Any(x => x.Equals("-NoHotReload", StringComparison.InvariantCultureIgnoreCase));
-				UEBuildConfiguration.bHotReloadFromIDE = !bNoHotReload && UEBuildConfiguration.bAllowHotReloadFromIDE && TargetDescs.Count == 1 && !TargetDescs[0].bIsEditorRecompile && ShouldDoHotReloadFromIDE(Arguments, TargetDescs[0]);
-				bool bIsHotReload = !bNoHotReload && (UEBuildConfiguration.bHotReloadFromIDE || (TargetDescs.Count == 1 && TargetDescs[0].OnlyModules.Count > 0 && TargetDescs[0].ForeignPlugins.Count == 0));
+				BuildConfiguration.bHotReloadFromIDE = !bNoHotReload && BuildConfiguration.bAllowHotReloadFromIDE && TargetDescs.Count == 1 && !TargetDescs[0].bIsEditorRecompile && ShouldDoHotReloadFromIDE(BuildConfiguration, Arguments, TargetDescs[0]);
+				bool bIsHotReload = !bNoHotReload && (BuildConfiguration.bHotReloadFromIDE || (TargetDescs.Count == 1 && TargetDescs[0].OnlyModules.Count > 0 && TargetDescs[0].ForeignPlugins.Count == 0));
 				TargetDescriptor HotReloadTargetDesc = bIsHotReload ? TargetDescs[0] : null;
-
-				// Do a gather on hotreload - we don't want old module names from the makefile to be used
-				if (bIsHotReload)
-				{
-					UnrealBuildTool.bIsGatheringBuild_Unsafe = true;
-				}
 
 				if (ProjectFileGenerator.bGenerateProjectFiles)
 				{
@@ -1473,7 +1138,7 @@ namespace UnrealBuildTool
 							string TargetCollectionName = MakeTargetCollectionName(TargetDescs);
 
 							string LastBuiltTargetsFileName = bIsHotReload ? "HotReloadLastBuiltTargets.txt" : "LastBuiltTargets.txt";
-							string LastBuiltTargetsFilePath = Path.Combine(BuildConfiguration.BaseIntermediatePath, LastBuiltTargetsFileName);
+							string LastBuiltTargetsFilePath = FileReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", LastBuiltTargetsFileName).FullName;
 							if (File.Exists(LastBuiltTargetsFilePath) && Utils.ReadAllText(LastBuiltTargetsFilePath) == TargetCollectionName)
 							{
 								// @todo ubtmake: Because we're using separate files for hot reload vs. full compiles, it's actually possible that includes will
@@ -1488,10 +1153,7 @@ namespace UnrealBuildTool
 							{
 								Directory.CreateDirectory(Path.GetDirectoryName(LastBuiltTargetsFilePath));
 								File.WriteAllText(LastBuiltTargetsFilePath, TargetCollectionName, Encoding.UTF8);
-							}
 
-							if (!bIsBuildingSameTargetsAsLastTime)
-							{
 								// Can't use super fast include checking unless we're building the same set of targets as last time, because
 								// we might not know about all of the C++ include dependencies for already-up-to-date shared build products
 								// between the targets
@@ -1509,18 +1171,18 @@ namespace UnrealBuildTool
 					// If we're generating project files, then go ahead and wipe out the existing UBTMakefile for every target, to make sure that
 					// it gets a full dependency scan next time.
 					// NOTE: This is just a safeguard and doesn't have to be perfect.  We also check for newer project file timestamps in LoadUBTMakefile()
-					FileReference UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath(TargetDescs);
+					FileReference UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath(TargetDescs, BuildConfiguration.bHotReloadFromIDE);
 					if (ProjectFileGenerator.bGenerateProjectFiles)	// @todo ubtmake: This is only hit when generating IntelliSense for project files.  Probably should be done right inside ProjectFileGenerator.bat
 					{													// @todo ubtmake: Won't catch multi-target cases as GPF always builds one target at a time for Intellisense
 						// Delete the UBTMakefile
-						if (UBTMakefilePath.Exists())
+						if (FileReference.Exists(UBTMakefilePath))
 						{
-							UEBuildTarget.CleanFile(UBTMakefilePath.FullName);
+							UEBuildTarget.CleanFile(UBTMakefilePath);
 						}
 					}
 
 					// Make sure the gather phase is executed if we're not actually building anything
-					if (ProjectFileGenerator.bGenerateProjectFiles || UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject || BuildConfiguration.bXGEExport || UEBuildConfiguration.bGenerateExternalFileList || GeneratingActionGraph)
+					if (ProjectFileGenerator.bGenerateProjectFiles || BuildConfiguration.bGenerateManifest || BuildConfiguration.bCleanProject || BuildConfiguration.bXGEExport || GeneratingActionGraph)
 					{
 						UnrealBuildTool.bIsGatheringBuild_Unsafe = true;
 					}
@@ -1632,15 +1294,15 @@ namespace UnrealBuildTool
 					Targets = new List<UEBuildTarget>();
 					foreach (TargetDescriptor TargetDesc in TargetDescs)
 					{
-						UEBuildTarget Target = UEBuildTarget.CreateTarget(TargetDesc);
-						if ((Target == null) && (UEBuildConfiguration.bCleanProject))
+						UEBuildTarget Target = UEBuildTarget.CreateTarget(TargetDesc, Arguments, BuildConfiguration.SingleFileToCompile != null);
+						if ((Target == null) && (BuildConfiguration.bCleanProject))
 						{
 							continue;
 						}
 						Targets.Add(Target);
 					}
 
-					if (BuildConfiguration.bPrintPerformanceInfo)
+					if (UnrealBuildTool.bPrintPerformanceInfo)
 					{
 						double TargetInitTime = (DateTime.UtcNow - TargetInitStartTime).TotalSeconds;
 						Log.TraceInformation("Target init took " + TargetInitTime + "s");
@@ -1655,15 +1317,27 @@ namespace UnrealBuildTool
 					if (bIsHotReload)
 					{
 						// Don't produce new DLLs if there's been no code changes
-						UEBuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
+						BuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
 						Log.TraceInformation("Compiling game modules for hot reload");
 					}
+
+					// Create the header cache for this target
+					FileReference DependencyCacheFile = DependencyCache.GetDependencyCachePathForTarget(ProjectFile, Target.Platform, Target.TargetName);
+					bool bUseFlatCPPIncludeDependencyCache = BuildConfiguration.bUseUBTMakefiles && UnrealBuildTool.IsAssemblingBuild;
+					CPPHeaders Headers = new CPPHeaders(ProjectFile, DependencyCacheFile, bUseFlatCPPIncludeDependencyCache, BuildConfiguration.bUseUBTMakefiles, BuildConfiguration.bUseIncludeDependencyResolveCache, BuildConfiguration.bTestIncludeDependencyResolveCache);
+					TargetToHeaders[Target] = Headers;
+
+					// Make sure the appropriate executor is selected
+					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
+					BuildConfiguration.bAllowXGE &= BuildPlatform.CanUseXGE();
+					BuildConfiguration.bAllowDistcc &= BuildPlatform.CanUseDistcc();
+					BuildConfiguration.bAllowSNDBS &= BuildPlatform.CanUseSNDBS();
 
 					// When in 'assembler only' mode, we'll load this cache later on a worker thread.  It takes a long time to load!
 					if (!(!UnrealBuildTool.IsGatheringBuild && UnrealBuildTool.IsAssemblingBuild))
 					{
 						// Load the direct include dependency cache.
-						Target.Headers.IncludeDependencyCache = DependencyCache.Create(DependencyCache.GetDependencyCachePathForTarget(Target.ProjectFile, Target.GetTargetName()));
+						Headers.IncludeDependencyCache = DependencyCache.Create(DependencyCache.GetDependencyCachePathForTarget(Target.ProjectFile, Target.Platform, Target.GetTargetName()));
 					}
 
 					// We don't need this dependency cache in 'gather only' mode
@@ -1672,17 +1346,36 @@ namespace UnrealBuildTool
 					{
 						// Load the cache that contains the list of flattened resolved includes for resolved source files
 						// @todo ubtmake: Ideally load this asynchronously at startup and only block when it is first needed and not finished loading
-						Target.Headers.FlatCPPIncludeDependencyCache = FlatCPPIncludeDependencyCache.Create(Target);
+						FileReference CacheFile = FlatCPPIncludeDependencyCache.GetDependencyCachePathForTarget(Target);
+						if(!FlatCPPIncludeDependencyCache.TryRead(CacheFile, out Headers.FlatCPPIncludeDependencyCache))
+						{
+							if(!UnrealBuildTool.bNeedsFullCPPIncludeRescan)
+							{
+								if(!ProjectFileGenerator.bGenerateProjectFiles && !BuildConfiguration.bXGEExport && !BuildConfiguration.bGenerateManifest && !BuildConfiguration.bCleanProject)
+								{
+									UnrealBuildTool.bNeedsFullCPPIncludeRescan = true;
+									Log.TraceInformation("Performing full C++ include scan (no include cache file)");
+								}
+							}
+							Headers.FlatCPPIncludeDependencyCache = new FlatCPPIncludeDependencyCache(CacheFile);
+						}
 					}
 
 					if (UnrealBuildTool.IsGatheringBuild)
 					{
-						List<FileItem> TargetOutputItems;
-						List<UHTModuleInfo> TargetUObjectModules;
-						BuildResult = Target.Build(ToolChain, out TargetOutputItems, out TargetUObjectModules, ActionGraph);
+						List<FileItem> TargetOutputItems = new List<FileItem>();
+						List<UHTModuleInfo> TargetUObjectModules = new List<UHTModuleInfo>();
+						BuildResult = Target.Build(BuildConfiguration, TargetToHeaders[Target], TargetOutputItems, TargetUObjectModules, ActionGraph);
 						if (BuildResult != ECompilationResult.Succeeded)
 						{
 							break;
+						}
+
+						// Export a JSON dump of this target
+						if (BuildConfiguration.JsonExportFile != null)
+						{
+							Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(BuildConfiguration.JsonExportFile)));
+							Target.ExportJson(BuildConfiguration.JsonExportFile);
 						}
 
 						OutputItemsForAllTargets.AddRange(TargetOutputItems);
@@ -1690,7 +1383,7 @@ namespace UnrealBuildTool
 						// Update mapping of the target name to the list of UObject modules in this target
 						TargetNameToUObjectModules[Target.GetTargetName()] = TargetUObjectModules;
 
-						if ((BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject))
+						if ((BuildConfiguration.bXGEExport && BuildConfiguration.bGenerateManifest) || (!ProjectFileGenerator.bGenerateProjectFiles && !BuildConfiguration.bGenerateManifest && !BuildConfiguration.bCleanProject))
 						{
 							// Generate an action graph if we were asked to do that.  The graph generation needs access to the include dependency cache, so
 							// we generate it before saving and cleaning that up.
@@ -1706,7 +1399,7 @@ namespace UnrealBuildTool
 								List<Action> ActionsToExecute = ActionGraph.AllActions;
 
 								ActionGraph.ActionGraphVisualizationType VisualizationType = ActionGraph.ActionGraphVisualizationType.OnlyCPlusPlusFilesAndHeaders;
-								ActionGraph.SaveActionGraphVisualization(Target, Path.Combine(BuildConfiguration.BaseIntermediatePath, Target.GetTargetName() + ".gexf"), Target.GetTargetName(), VisualizationType, ActionsToExecute);
+								ActionGraph.SaveActionGraphVisualization(TargetToHeaders[Target], FileReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", Target.GetTargetName() + ".gexf").FullName, Target.GetTargetName(), VisualizationType, ActionsToExecute);
 							}
 						}
 					}
@@ -1714,8 +1407,8 @@ namespace UnrealBuildTool
 
 				if (BuildResult == ECompilationResult.Succeeded && !BuildConfiguration.bSkipBuild &&
 					(
-						(BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) ||
-						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !UEBuildConfiguration.bGenerateExternalFileList && !UEBuildConfiguration.bListBuildFolders)
+						(BuildConfiguration.bXGEExport && BuildConfiguration.bGenerateManifest) ||
+						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !BuildConfiguration.bGenerateManifest && !BuildConfiguration.bCleanProject)
 					))
 				{
 					if (UnrealBuildTool.IsGatheringBuild)
@@ -1741,6 +1434,7 @@ namespace UnrealBuildTool
 						}
 						UBTMakefile.TargetNameToUObjectModules = TargetNameToUObjectModules;
 						UBTMakefile.Targets = Targets;
+						UBTMakefile.bUseAdaptiveUnityBuild = Targets.Any(x => x.Rules.bUseAdaptiveUnityBuild);
 						UBTMakefile.SourceFileWorkingSet = Unity.SourceFileWorkingSet;
 						UBTMakefile.CandidateSourceFilesForWorkingSet = Unity.CandidateSourceFilesForWorkingSet;
 
@@ -1750,7 +1444,7 @@ namespace UnrealBuildTool
 							// to assemble the build.  Even if we are configured to assemble the build in this same invocation, we want to save out the
 							// Makefile so that it can be used on subsequent 'assemble only' runs, for the fastest possible iteration times
 							// @todo ubtmake: Optimization: We could make 'gather + assemble' mode slightly faster by saving this while busy compiling (on our worker thread)
-							SaveUBTMakefile(TargetDescs, UBTMakefile);
+							SaveUBTMakefile(TargetDescs, BuildConfiguration.bHotReloadFromIDE, UBTMakefile);
 						}
 					}
 
@@ -1801,7 +1495,7 @@ namespace UnrealBuildTool
 											// Execute the header tool
 											FileReference ModuleInfoFileName = FileReference.Combine(Target.ProjectIntermediateDirectory, Target.GetTargetName() + ".uhtmanifest");
 											ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
-											if (!ExternalExecution.ExecuteHeaderToolIfNecessary(ToolChain, Target, GlobalCompileEnvironment: null, UObjectModules: TargetUObjectModules, ModuleInfoFileName: ModuleInfoFileName, UHTResult: ref UHTResult))
+											if (!ExternalExecution.ExecuteHeaderToolIfNecessary(BuildConfiguration, Target, GlobalCompileEnvironment: null, UObjectModules: TargetUObjectModules, ModuleInfoFileName: ModuleInfoFileName, UHTResult: ref UHTResult))
 											{
 												Log.TraceInformation("UnrealHeaderTool failed for target '" + Target.GetTargetName() + "' (platform: " + Target.Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
 												BuildResult = UHTResult;
@@ -1830,11 +1524,14 @@ namespace UnrealBuildTool
 								}
 							}
 
-							ToolChain.PreBuildSync();
+							foreach(UEBuildTarget Target in Targets)
+							{
+								UEBuildPlatform.GetBuildPlatform(Target.Platform).PreBuildSync();
+							}
 
                             // Plan the actions to execute for the build.
                             Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap;
-                            List<Action> ActionsToExecute = ActionGraph.GetActionsToExecute(UBTMakefile.PrerequisiteActions, Targets, out TargetToOutdatedPrerequisitesMap);
+                            List<Action> ActionsToExecute = ActionGraph.GetActionsToExecute(BuildConfiguration, UBTMakefile.PrerequisiteActions, Targets, TargetToHeaders, out TargetToOutdatedPrerequisitesMap);
 
                             // Display some stats to the user.
                             Log.TraceVerbose(
@@ -1848,7 +1545,7 @@ namespace UnrealBuildTool
 							// our best case UBT iteration times for this task which can easily be performed asynchronously
 							if (BuildConfiguration.bUseUBTMakefiles && TargetToOutdatedPrerequisitesMap.Count > 0)
 							{
-								CPPIncludesThread = CreateThreadForCachingCPPIncludes(TargetToOutdatedPrerequisitesMap);
+								CPPIncludesThread = CreateThreadForCachingCPPIncludes(TargetToOutdatedPrerequisitesMap, TargetToHeaders);
 								CPPIncludesThread.Start();
 							}
 
@@ -1863,23 +1560,29 @@ namespace UnrealBuildTool
 							}
 
 							// Execute the actions.
-							string TargetInfoForTelemetry = String.Join("|", Targets.Select(x => String.Format("{0} {1} {2}{3}", x.TargetName, x.Platform, x.Configuration, BuildConfiguration.bUseUnityBuild? "" : " NonUnity")));
+							string TargetInfoForTelemetry = String.Join("|", Targets.Select(x => String.Format("{0} {1} {2}{3}", x.TargetName, x.Platform, x.Configuration, "")));
 							DateTime ExecutorStartTime = DateTime.UtcNow;
-							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry, bIsHotReload);
+							if(BuildConfiguration.bXGEExport)
+							{
+								XGE.ExportActions(ActionsToExecute);
+								bSuccess = true;
+							}
+							else
+							{
+								bool bIsRemoteCompile = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac && TargetDescs.Any(x => x.Platform == UnrealTargetPlatform.Mac || x.Platform == UnrealTargetPlatform.IOS);
+								bSuccess = ActionGraph.ExecuteActions(BuildConfiguration, ActionsToExecute, bIsRemoteCompile, out ExecutorName, TargetInfoForTelemetry, bIsHotReload);
+							}
 							TotalExecutorTime += (DateTime.UtcNow - ExecutorStartTime).TotalSeconds;
 
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)
 							{
-								if(!BuildConfiguration.bDisableLinking)
-								{
 									foreach (UEBuildTarget Target in Targets)
 									{
 										Target.WriteReceipts();
-										ToolChain.PostBuildSync(Target);
+									UEBuildPlatform.GetBuildPlatform(Target.Platform).PostBuildSync(Target);
 									}
-								}
-								if (ActionsToExecute.Count == 0 && UEBuildConfiguration.bSkipLinkingWhenNothingToCompile)
+								if (ActionsToExecute.Count == 0 && BuildConfiguration.bSkipLinkingWhenNothingToCompile)
 								{
 									BuildResult = ECompilationResult.UpToDate;
 								}
@@ -1907,12 +1610,9 @@ namespace UnrealBuildTool
 						if (BuildResult.Succeeded() 
 							&& String.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile) 
 							&& !ProjectFileGenerator.bGenerateProjectFiles 
-							&& !UEBuildConfiguration.bGenerateManifest 
-							&& !UEBuildConfiguration.bGenerateExternalFileList
-							&& !UEBuildConfiguration.bCleanProject 
-							&& !UEBuildConfiguration.bListBuildFolders 
-							&& !BuildConfiguration.bXGEExport 
-							&& !BuildConfiguration.bDisableLinking)
+							&& !BuildConfiguration.bGenerateManifest 
+							&& !BuildConfiguration.bCleanProject 
+							&& !BuildConfiguration.bXGEExport)
 						{
 							foreach (UEBuildTarget Target in Targets)
 							{
@@ -1920,7 +1620,7 @@ namespace UnrealBuildTool
 								{
 									Log.WriteLine(LogEventType.Console, "Deploying {0} {1} {2}...", Target.TargetName, Target.Platform, Target.Configuration);
 									UEBuildDeployTarget DeployTarget = new UEBuildDeployTarget(Target.DeployTargetFile);
-									BuildPlatform.Deploy(DeployTarget);
+									UEBuildPlatform.GetBuildPlatform(Target.Platform).Deploy(DeployTarget);
 								}
 							}
 						}
@@ -1946,24 +1646,21 @@ namespace UnrealBuildTool
 			}
 
 			// Save the include dependency cache.
-			if(Targets != null)
-			{
-				foreach(UEBuildTarget Target in Targets)
+			foreach(CPPHeaders Headers in TargetToHeaders.Values)
 				{
 					// NOTE: It's very important that we save the include cache, even if a build exception was thrown (compile error, etc), because we need to make sure that
 					//    any C++ include dependencies that we computed for out of date source files are saved.  Remember, the build may fail *after* some build products
 					//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successsfully
 					//    built before the failure would not be considered out of date on the next run, so this is our only chance to cache C++ includes for those files!
 
-					if(Target.Headers.IncludeDependencyCache != null)
+				if(Headers.IncludeDependencyCache != null)
 					{
-						Target.Headers.IncludeDependencyCache.Save();
+					Headers.IncludeDependencyCache.Save();
 					}
 
-					if(Target.Headers.FlatCPPIncludeDependencyCache != null)
+				if(Headers.FlatCPPIncludeDependencyCache != null)
 					{
-						Target.Headers.FlatCPPIncludeDependencyCache.Save();
-					}
+					Headers.FlatCPPIncludeDependencyCache.Save();
 				}
 			}
 
@@ -1989,20 +1686,16 @@ namespace UnrealBuildTool
 			foreach (string MakefileName in MakefileNames)
 			{
 				FileReference MakefileRef = FileReference.Combine(BaseDir, MakefileName);
-				if (MakefileRef.Exists())
+				if (FileReference.Exists(MakefileRef))
 				{
-					MakefileRef.Delete();
+					FileReference.Delete(MakefileRef);
 				}
 			}
 		}
 		/// <summary>
 		/// Checks if the editor is currently running and this is a hot-reload
 		/// </summary>
-		/// <param name="ResetPlatform"></param>
-		/// <param name="ResetConfiguration"></param>
-		/// <param name="TargetDesc"></param>
-		/// <returns></returns>
-		private static bool ShouldDoHotReloadFromIDE(string[] Arguments, TargetDescriptor TargetDesc)
+		private static bool ShouldDoHotReloadFromIDE(BuildConfiguration BuildConfiguration, string[] Arguments, TargetDescriptor TargetDesc)
 		{
 			if (Arguments.Any(x => x.Equals("-NoHotReloadFromIDE", StringComparison.InvariantCultureIgnoreCase)))
 			{
@@ -2016,9 +1709,9 @@ namespace UnrealBuildTool
 			// this code must be able to execute before we create or load module rules DLLs so that hot reload can work with bUseUBTMakefiles
 			bool bIsEditorTarget = TargetDesc.TargetName.EndsWith("Editor", StringComparison.InvariantCultureIgnoreCase) || TargetDesc.bIsEditorRecompile;
 
-			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && bIsEditorTarget)
+			if (!ProjectFileGenerator.bGenerateProjectFiles && !BuildConfiguration.bGenerateManifest && bIsEditorTarget)
 			{
-				List<FileReference> EditorProcessFilenames = UEBuildTarget.MakeExecutablePaths(UnrealBuildTool.EngineDirectory, "UE4Editor", TargetDesc.Platform, TargetDesc.Configuration, "", UnrealTargetConfiguration.Development, false, null, null);
+				List<FileReference> EditorProcessFilenames = UEBuildTarget.MakeBinaryPaths(UnrealBuildTool.EngineDirectory, "UE4Editor", TargetDesc.Platform, TargetDesc.Configuration, UEBuildBinaryType.Executable, "", UnrealTargetConfiguration.Development, false, null, null, null, null);
 				if (EditorProcessFilenames.Count != 1)
 				{
 					throw new BuildException("ShouldDoHotReload cannot handle multiple binaries returning from UEBuildTarget.MakeExecutablePaths");
@@ -2102,134 +1795,37 @@ namespace UnrealBuildTool
 		/// Returns a Thread object that can be kicked off to update C++ include dependency cache
 		/// </summary>
 		/// <param name="TargetToOutdatedPrerequisitesMap">Maps each target to a list of outdated C++ files that need indirect dependencies cached</param>
+		/// <param name="TargetToHeaders">Map of target to cached header information</param>
 		/// <returns>The thread object</returns>
-		private static Thread CreateThreadForCachingCPPIncludes(Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap)
+		private static Thread CreateThreadForCachingCPPIncludes(Dictionary<UEBuildTarget, List<FileItem>> TargetToOutdatedPrerequisitesMap, Dictionary<UEBuildTarget, CPPHeaders> TargetToHeaders)
 		{
 			return new Thread(new ThreadStart(() =>
 				{
 					// @todo ubtmake: This thread will access data structures that are also used on the main UBT thread, but during this time UBT
 					// is only invoking the build executor, so should not be touching this stuff.  However, we need to at some guards to make sure.
-
 					foreach (KeyValuePair<UEBuildTarget, List<FileItem>> TargetAndOutdatedPrerequisites in TargetToOutdatedPrerequisitesMap)
 					{
 						UEBuildTarget Target = TargetAndOutdatedPrerequisites.Key;
 						List<FileItem> OutdatedPrerequisites = TargetAndOutdatedPrerequisites.Value;
+						CPPHeaders Headers = TargetToHeaders[Target];
 
 						foreach (FileItem PrerequisiteItem in OutdatedPrerequisites)
 						{
 							// Invoke our deep include scanner to figure out whether any of the files included by this source file have
 							// changed since the build product was built
-							UEBuildPlatform FileBuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
-							Target.Headers.FindAndCacheAllIncludedFiles(PrerequisiteItem, FileBuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies: false);
+							Headers.FindAndCacheAllIncludedFiles(PrerequisiteItem, PrerequisiteItem.CachedIncludePaths, bOnlyCachedDependencies: false);
 						}
 					}
 				}));
 		}
 
-
-
-		/// <summary>
-		/// A special Makefile that UBT is able to create in "-gather" mode, then load in "-assemble" mode to accelerate iterative compiling and linking
-		/// </summary>
-		[Serializable]
-		class UBTMakefile : ISerializable
-		{
-			public const int CurrentVersion = 4;
-
-			public int Version;
-
-			/// <summary>
-			/// Every action in the action graph
-			/// </summary>
-			public List<Action> AllActions;
-
-			/// <summary>
-			/// List of the actions that need to be run in order to build the targets' final output items
-			/// </summary>
-			public Action[] PrerequisiteActions;
-
-			/// <summary>
-			/// Environment variables that we'll need in order to invoke the platform's compiler and linker
-			/// </summary>
-			// @todo ubtmake: Really we want to allow a different set of environment variables for every Action.  This would allow for targets on multiple platforms to be built in a single assembling phase.  We'd only have unique variables for each platform that has actions, so we'd want to make sure we only store the minimum set.
-			public readonly List<Tuple<string, string>> EnvironmentVariables = new List<Tuple<string, string>>();
-
-			/// <summary>
-			/// Maps each target to a list of UObject module info structures
-			/// </summary>
-			public Dictionary<string, List<UHTModuleInfo>> TargetNameToUObjectModules;
-
-			/// <summary>
-			/// List of targets being built
-			/// </summary>
-			public List<UEBuildTarget> Targets;
-
-			/// <summary>
-			/// Current working set of source files, for when bUseAdaptiveUnityBuild is enabled
-			/// </summary>
-			public HashSet<FileItem> SourceFileWorkingSet = new HashSet<FileItem>();
-
-			/// <summary>
-			/// Set of source files which are included in unity files, but which should invalidate the makefile if modified (for when bUseAdaptiveUnityBuild is enabled)
-			/// </summary>
-			public HashSet<FileItem> CandidateSourceFilesForWorkingSet = new HashSet<FileItem>();
-
-			public UBTMakefile()
-			{
-				Version = CurrentVersion;
-			}
-
-			public UBTMakefile(SerializationInfo Info, StreamingContext Context)
-			{
-				Version = Info.GetInt32("ve");
-				if (Version != CurrentVersion)
-				{
-					throw new Exception(string.Format("Makefile version does not match - found {0}, expected: {1}", Version, CurrentVersion));
-				}
-
-				AllActions = (List<Action>)Info.GetValue("ac", typeof(List<Action>));
-				PrerequisiteActions = (Action[])Info.GetValue("pa", typeof(Action[]));
-				EnvironmentVariables = ((string[])Info.GetValue("e1", typeof(string[]))).Zip((string[])Info.GetValue("e2", typeof(string[])), (i1, i2) => new Tuple<string, string>(i1, i2)).ToList();
-				TargetNameToUObjectModules = (Dictionary<string, List<UHTModuleInfo>>)Info.GetValue("nu", typeof(Dictionary<string, List<UHTModuleInfo>>));
-				Targets = (List<UEBuildTarget>)Info.GetValue("ta", typeof(List<UEBuildTarget>));
-				SourceFileWorkingSet = (HashSet<FileItem>)Info.GetValue("ws", typeof(HashSet<FileItem>));
-				CandidateSourceFilesForWorkingSet = (HashSet<FileItem>)Info.GetValue("wc", typeof(HashSet<FileItem>));
-			}
-
-			public void GetObjectData(SerializationInfo Info, StreamingContext Context)
-			{
-				Info.AddValue("ve", Version);
-				Info.AddValue("ac", AllActions);
-				Info.AddValue("pa", PrerequisiteActions);
-				Info.AddValue("e1", EnvironmentVariables.Select(x => x.Item1).ToArray());
-				Info.AddValue("e2", EnvironmentVariables.Select(x => x.Item2).ToArray());
-				Info.AddValue("nu", TargetNameToUObjectModules);
-				Info.AddValue("ta", Targets);
-				Info.AddValue("ws", SourceFileWorkingSet);
-				Info.AddValue("wc", CandidateSourceFilesForWorkingSet);
-			}
-
-
-			/// <returns> True if this makefile's contents look valid.  Called after loading the file to make sure it is legit.</returns>
-			public bool IsValidMakefile()
-			{
-				return
-					AllActions != null && AllActions.Count > 0 &&
-					PrerequisiteActions != null && PrerequisiteActions.Length > 0 &&
-					EnvironmentVariables != null &&
-					TargetNameToUObjectModules != null && TargetNameToUObjectModules.Count > 0 &&
-					Targets != null && Targets.Count > 0 &&
-					SourceFileWorkingSet != null &&
-					CandidateSourceFilesForWorkingSet != null;
-			}
-		}
-
-
 		/// <summary>
 		/// Saves a UBTMakefile to disk
 		/// </summary>
 		/// <param name="TargetDescs">List of targets.  Order is not important</param>
-		static void SaveUBTMakefile(List<TargetDescriptor> TargetDescs, UBTMakefile UBTMakefile)
+		/// <param name="bHotReloadFromIDE">Whether we're performing a hot reload from the IDE</param>
+		/// <param name="UBTMakefile">The UBT makefile</param>
+		static void SaveUBTMakefile(List<TargetDescriptor> TargetDescs, bool bHotReloadFromIDE, UBTMakefile UBTMakefile)
 		{
 			if (!UBTMakefile.IsValidMakefile())
 			{
@@ -2238,7 +1834,7 @@ namespace UnrealBuildTool
 
 			DateTime TimerStartTime = DateTime.UtcNow;
 
-			FileItem UBTMakefileItem = FileItem.GetItemByFileReference(GetUBTMakefilePath(TargetDescs));
+			FileItem UBTMakefileItem = FileItem.GetItemByFileReference(GetUBTMakefilePath(TargetDescs, bHotReloadFromIDE));
 
 			// @todo ubtmake: Optimization: The UBTMakefile saved for game projects is upwards of 9 MB.  We should try to shrink its content if possible
 			// @todo ubtmake: Optimization: C# Serialization may be too slow for these big Makefiles.  Loading these files often shows up as the slower part of the assembling phase.
@@ -2258,7 +1854,7 @@ namespace UnrealBuildTool
 				Console.Error.WriteLine("Failed to write makefile: {0}", Ex.Message);
 			}
 
-			if (BuildConfiguration.bPrintPerformanceInfo)
+			if (UnrealBuildTool.bPrintPerformanceInfo)
 			{
 				TimeSpan TimerDuration = DateTime.UtcNow - TimerStartTime;
 				Log.TraceInformation("Saving makefile took " + TimerDuration.TotalSeconds + "s");
@@ -2270,6 +1866,7 @@ namespace UnrealBuildTool
 		/// Loads a UBTMakefile from disk
 		/// </summary>
 		/// <param name="MakefilePath">Path to the makefile to load</param>
+		/// <param name="ProjectFile">Path to the project file</param>
 		/// <param name="ReasonNotLoaded">If the function returns null, this string will contain the reason why</param>
 		/// <returns>The loaded makefile, or null if it failed for some reason.  On failure, the 'ReasonNotLoaded' variable will contain information about why</returns>
 		static UBTMakefile LoadUBTMakefile(FileReference MakefilePath, FileReference ProjectFile, out string ReasonNotLoaded)
@@ -2300,7 +1897,7 @@ namespace UnrealBuildTool
 			// Installed Build doesn't need to check engine projects for outdatedness
 			if (!UnrealBuildTool.IsEngineInstalled())
 			{
-				if (ProjectFileGenerator.IntermediateProjectFilesPath.Exists())
+				if (DirectoryReference.Exists(ProjectFileGenerator.IntermediateProjectFilesPath))
 				{
 					DateTime EngineProjectFilesLastUpdateTime = new FileInfo(ProjectFileGenerator.ProjectTimestampFile).LastWriteTime;
 					if (UBTMakefileInfo.LastWriteTime.CompareTo(EngineProjectFilesLastUpdateTime) < 0)
@@ -2352,11 +1949,16 @@ namespace UnrealBuildTool
 			}
 
 			// Check to see if any BuildConfiguration files have changed since the last build
-			if (XmlConfigLoader.NewestXmlTimestamp > UBTMakefileInfo.LastWriteTime)
+			List<XmlConfig.InputFile> InputFiles = XmlConfig.FindInputFiles();
+			foreach(XmlConfig.InputFile InputFile in InputFiles)
+			{
+				FileInfo InputFileInfo = new FileInfo(InputFile.Location.FullName);
+				if(InputFileInfo.LastWriteTime > UBTMakefileInfo.LastWriteTime)
 			{
 				Log.TraceVerbose("Makefile is older than BuildConfiguration.xml, ignoring it" );
 				ReasonNotLoaded = "BuildConfiguration.xml is newer";
 				return null;
+			}
 			}
 
 			UBTMakefile LoadedUBTMakefile = null;
@@ -2371,7 +1973,7 @@ namespace UnrealBuildTool
 					LoadedUBTMakefile = Formatter.Deserialize(Stream) as UBTMakefile;
 				}
 
-				if (BuildConfiguration.bPrintPerformanceInfo)
+				if (UnrealBuildTool.bPrintPerformanceInfo)
 				{
 					double LoadUBTMakefileTime = (DateTime.UtcNow - LoadUBTMakefileStartTime).TotalSeconds;
 					Log.TraceInformation("LoadUBTMakefile took " + LoadUBTMakefileTime + "s");
@@ -2419,6 +2021,25 @@ namespace UnrealBuildTool
 							Log.TraceVerbose("{0} has been {1} since makefile was built, ignoring it ({2})", BuildCsFilename, bBuildCsFileExists ? "changed" : "deleted", UBTMakefileInfo.FullName);
 							ReasonNotLoaded = string.Format("changes to module files");
 							return null;
+						}
+					}
+				}
+
+				foreach (FlatModuleCsDataType FlatCsModuleData in Target.FlatModuleCsData.Values)
+				{
+					if (FlatCsModuleData.BuildCsFilename != null && FlatCsModuleData.ExternalDependencies.Count > 0)
+					{
+						string BaseDir = Path.GetDirectoryName(FlatCsModuleData.BuildCsFilename);
+						foreach (string ExternalDependency in FlatCsModuleData.ExternalDependencies)
+						{
+							FileInfo DependencyFile = new FileInfo(Path.Combine(BaseDir, ExternalDependency));
+							bool bDependencyFileExists = DependencyFile.Exists;
+							if (!bDependencyFileExists || DependencyFile.LastWriteTime > UBTMakefileInfo.LastWriteTime)
+							{
+								Log.TraceVerbose("{0} has been {1} since makefile was built, ignoring it ({2})", DependencyFile.FullName, bDependencyFileExists ? "changed" : "deleted", UBTMakefileInfo.FullName);
+								ReasonNotLoaded = string.Format("changes to external dependency");
+								return null;
+							}
 						}
 					}
 				}
@@ -2474,7 +2095,7 @@ namespace UnrealBuildTool
 			// changed, then we'll force a new Makefile to be created so that we have fresh unity build blobs.  We always
 			// want to make sure that source files in the working set are excluded from those unity blobs (for fastest possible
 			// iteration times.)
-			if (BuildConfiguration.bUseAdaptiveUnityBuild)
+			if (LoadedUBTMakefile.bUseAdaptiveUnityBuild)
 			{
 				// Check if any source files in the working set no longer belong in it
 				foreach(FileItem SourceFile in LoadedUBTMakefile.SourceFileWorkingSet)
@@ -2507,9 +2128,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the file path for a UBTMakefile
 		/// </summary>
-		/// <param name="Targets">List of targets.  Order is not important</param>
+		/// <param name="TargetDescs">List of targets.  Order is not important</param>
+		/// <param name="bHotReloadFromIDE">Whether hot-reloading from the IDE</param>
 		/// <returns>UBTMakefile path</returns>
-		public static FileReference GetUBTMakefilePath(List<TargetDescriptor> TargetDescs)
+		public static FileReference GetUBTMakefilePath(List<TargetDescriptor> TargetDescs, bool bHotReloadFromIDE)
 		{
 			FileReference UBTMakefilePath;
 
@@ -2517,7 +2139,7 @@ namespace UnrealBuildTool
 			{
 				TargetDescriptor TargetDesc = TargetDescs[0];
 
-				bool bIsHotReload = (UEBuildConfiguration.bHotReloadFromIDE || (TargetDesc.OnlyModules != null && TargetDesc.OnlyModules.Count > 0));
+				bool bIsHotReload = (bHotReloadFromIDE || (TargetDesc.OnlyModules != null && TargetDesc.OnlyModules.Count > 0));
 				string UBTMakefileName = bIsHotReload ? "HotReloadMakefile.ubt" : "Makefile.ubt";
 
 				UBTMakefilePath = FileReference.Combine(GetUBTMakefileDirectoryPathForSingleTarget(TargetDesc), UBTMakefileName);
@@ -2533,11 +2155,11 @@ namespace UnrealBuildTool
 				DirectoryReference ProjectIntermediatePath;
 				if (DescriptorWithProject != null)
 				{
-					ProjectIntermediatePath = DirectoryReference.Combine(DescriptorWithProject.ProjectFile.Directory, BuildConfiguration.BaseIntermediateFolder);
+					ProjectIntermediatePath = DirectoryReference.Combine(DescriptorWithProject.ProjectFile.Directory, "Intermediate", "Build");
 				}
 				else
 				{
-					ProjectIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.BaseIntermediateFolder);
+					ProjectIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build");
 				}
 
 				// @todo ubtmake: The TargetCollectionName string could be really long if there is more than one target!  Hash it?
@@ -2554,18 +2176,6 @@ namespace UnrealBuildTool
 		/// <returns>UBTMakefile path</returns>
 		private static DirectoryReference GetUBTMakefileDirectoryPathForSingleTarget(TargetDescriptor Target)
 		{
-			// If there's only one target, just save the UBTMakefile in the target's build intermediate directory
-			// under a folder for that target (and platform/config combo.)
-			DirectoryReference PlatformIntermediatePath;
-			if (Target.ProjectFile != null)
-			{
-				PlatformIntermediatePath = DirectoryReference.Combine(Target.ProjectFile.Directory, BuildConfiguration.PlatformIntermediateFolder);
-			}
-			else
-			{
-				PlatformIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediateFolder);
-			}
-
 			// @todo ubtmake: If this is a compile triggered from the editor it will have passed along the game's target name, not the editor target name.
 			// At this point in Unreal Build Tool, we can't possibly know what the actual editor target name is, but we can take a guess.
 			// Even if we get it wrong, this won't have any side effects aside from not being able to share the exact same cached UBT Makefile
@@ -2575,8 +2185,27 @@ namespace UnrealBuildTool
 			{
 				TargetName += "Editor";
 			}
+			return GetUBTMakefileDirectory(Target.ProjectFile, Target.Platform, Target.Configuration, TargetName);
+		}
 
-			return DirectoryReference.Combine(PlatformIntermediatePath, TargetName, Target.Configuration.ToString());
+		public static DirectoryReference GetUBTMakefileDirectory(FileReference ProjectFile, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string TargetName)
+		{
+			// If there's only one target, just save the UBTMakefile in the target's build intermediate directory
+			// under a folder for that target (and platform/config combo.)
+			if (ProjectFile != null)
+			{
+				return DirectoryReference.Combine(ProjectFile.Directory, "Intermediate", "Build", Platform.ToString(), TargetName, Configuration.ToString());
+			}
+			else
+			{
+				return DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", Platform.ToString(), TargetName, Configuration.ToString());
+			}
+		}
+
+		public static FileReference GetUBTMakefilePath(FileReference ProjectFile, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string TargetName, bool bForHotReload)
+		{
+			DirectoryReference BaseDir = GetUBTMakefileDirectory(ProjectFile, Platform, Configuration, TargetName);
+			return FileReference.Combine(BaseDir, bForHotReload? "HotReloadMakefile.ubt" : "Makefile.ubt");
 		}
 
 		/// <summary>
@@ -2622,17 +2251,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Sets up UBT when running from UAT
-		/// </summary>
-		/// <param name="UProjectDir"></param>
-		public static void SetupUBTFromUAT()
-		{
-			// when running UAT, the working directory is the root UE4 dir
-			BuildConfiguration.RelativeEnginePath = "Engine";
-		}
-
-
-		/// <summary>
 		/// Patch action history for hot reload when running in assembler mode.  In assembler mode, the suffix on the output file will be
 		/// the same for every invocation on that makefile, but we need a new suffix each time.
 		/// </summary>
@@ -2674,10 +2292,10 @@ namespace UnrealBuildTool
 
 						// Remove "-####-Platform-Configuration" suffix in Debug configuration
 						int IndexOfSecondLastHyphen = OriginalFileNameWithoutExtension.LastIndexOf('-', IndexOfLastHyphen - 1, IndexOfLastHyphen);
-						if (IndexOfSecondLastHyphen >= 0)
+						if (IndexOfSecondLastHyphen > 0)
 						{
 							int IndexOfThirdLastHyphen = OriginalFileNameWithoutExtension.LastIndexOf('-', IndexOfSecondLastHyphen - 1, IndexOfSecondLastHyphen);
-							if (IndexOfThirdLastHyphen >= 0)
+							if (IndexOfThirdLastHyphen > 0)
 							{
 								if (int.TryParse(OriginalFileNameWithoutExtension.Substring(IndexOfThirdLastHyphen + 1, IndexOfSecondLastHyphen - IndexOfThirdLastHyphen - 1), out NumberSuffix))
 								{
@@ -2843,10 +2461,16 @@ namespace UnrealBuildTool
 		/// <returns>True if file is part of the working set</returns>
 		public static bool ShouldSourceFileBePartOfWorkingSet(string SourceFileAbsolutePath)
 		{
-			// @todo: This logic needs work.  Currently its designed for users working with Perforce, or a similar
-			// source control system that keeps source files read-only when not actively checked out for editing.
-			bool bShouldBePartOfWorkingSourceFileSet =
-				!System.IO.File.GetAttributes(SourceFileAbsolutePath).HasFlag(FileAttributes.ReadOnly);
+			bool bShouldBePartOfWorkingSourceFileSet = false;
+			try
+			{
+				// @todo: This logic needs work.  Currently its designed for users working with Perforce, or a similar
+				// source control system that keeps source files read-only when not actively checked out for editing.
+				bShouldBePartOfWorkingSourceFileSet = !System.IO.File.GetAttributes(SourceFileAbsolutePath).HasFlag(FileAttributes.ReadOnly);
+			}
+			catch (FileNotFoundException)
+			{
+			}
 			return bShouldBePartOfWorkingSourceFileSet;
 		}
 	}

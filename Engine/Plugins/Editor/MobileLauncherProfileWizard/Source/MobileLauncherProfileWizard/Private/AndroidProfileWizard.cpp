@@ -106,7 +106,7 @@ static void SetupAndroidDLCProfile(ILauncherProfileRef& DLCProfile, const FProfi
 	DLCProfile->SetBasedOnReleaseVersionName(AndroidProfileConstants::AppReleaseName);
 	DLCProfile->SetCreateDLC(true);
 	DLCProfile->SetDLCName(AndroidProfileConstants::DLCName);
-	DLCProfile->SetDLCIncludeEngineContent(false);
+	DLCProfile->SetDLCIncludeEngineContent(true);
 		
 	DLCProfile->SetIncrementalCooking(false);
 	DLCProfile->SetCompressed(false);

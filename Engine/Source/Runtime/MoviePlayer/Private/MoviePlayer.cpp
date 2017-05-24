@@ -66,7 +66,42 @@ TSharedRef<SWidget> FLoadingScreenAttributes::NewTestLoadingScreenWidget()
 }
 
 
-TSharedPtr<IGameMoviePlayer> GetMoviePlayer()
+void CreateMoviePlayer()
+{
+	// Do not create the movie player if it already exists
+	if(!GetMoviePlayer())
+	{
+		if (!IsMoviePlayerEnabled() || GUsingNullRHI)
+		{
+			return FNullGameMoviePlayer::Create();
+		}
+		else
+		{
+			return FDefaultGameMoviePlayer::Create();
+		}
+	}
+}
+
+void DestroyMoviePlayer()
+{
+	IGameMoviePlayer* MoviePlayer = GetMoviePlayer();
+
+	if(MoviePlayer)
+	{
+
+		if (!IsMoviePlayerEnabled() || GUsingNullRHI)
+		{
+			return FNullGameMoviePlayer::Destroy();
+		}
+		else
+		{
+			return FDefaultGameMoviePlayer::Destroy();
+		}
+	}
+}
+
+
+IGameMoviePlayer* GetMoviePlayer()
 {
 	if (!IsMoviePlayerEnabled() || GUsingNullRHI)
 	{
@@ -76,6 +111,11 @@ TSharedPtr<IGameMoviePlayer> GetMoviePlayer()
 	{
 		return FDefaultGameMoviePlayer::Get();
 	}
+}
+
+IGameMoviePlayer& GetMoviePlayerRef()
+{
+	return *GetMoviePlayer();
 }
 
 bool IsMoviePlayerEnabled()

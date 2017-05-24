@@ -116,7 +116,7 @@ struct FFoliageUISettings
 		, bShowPaletteItemTooltips(true)
 		, ActivePaletteViewMode(EFoliagePaletteViewMode::Thumbnail)
 		, PaletteThumbnailScale(0.3f)
-		, Radius(512.f)
+		, Radius(250.f)
 		, PaintDensity(0.5f)
 		, UnpaintDensity(0.f)
 		, IsInSingleInstantiationMode(false)
@@ -352,6 +352,9 @@ public:
 	/** Notifies all active modes of mouse click messages. */
 	bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click) override;
 
+	/** Moves selected foliage instances to the target level. */
+	void MoveSelectedFoliageToLevel(ULevel* InTargetLevel);
+
 	/** FEdMode: widget handling */
 	virtual FVector GetWidgetLocation() const override;
 	virtual bool AllowWidgetMove() override;
@@ -456,7 +459,7 @@ public:
 	void OnVRAction(class FEditorViewportClient& ViewportClient, class UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled);
 
 	/** Called on VR hovering */
-	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
+	void OnVRHoverUpdate(UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
 	typedef TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCacheData;
 
@@ -559,11 +562,23 @@ private:
 	/** Does a filter based on the vertex color of a static mesh */
 	static bool VertexMaskCheck(const FHitResult& Hit, const UFoliageType* Settings);
 
+	/** Set the brush mesh opacity */
+	void SetBrushOpacity(const float InOpacity);
+
+	/** Called if the foliage tree is outdated */
+	void RebuildFoliageTree(const UFoliageType* Settings);
+
 	bool bBrushTraceValid;
 	FVector BrushLocation;
 	FVector BrushNormal;
 	FVector BrushTraceDirection;
 	UStaticMeshComponent* SphereBrushComponent;
+
+	/** The dynamic material of the sphere brush. */
+	class UMaterialInstanceDynamic* BrushMID;
+
+	/** Default opacity received from the brush material to reset it when closing. */
+	float DefaultBrushOpacity;
 
 	// Landscape layer cache data
 	LandscapeLayerCacheData LandscapeLayerCaches;

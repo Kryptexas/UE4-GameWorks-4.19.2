@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "VulkanResources.h"
+
 struct FVulkanPooledUniformBuffer : public FRefCountedObject
 {
     FVulkanPooledUniformBuffer(FVulkanDevice& InDevice, uint32 InSize);

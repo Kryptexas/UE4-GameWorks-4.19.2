@@ -26,8 +26,10 @@
 #include "AssetToolsModule.h"
 #include "EditorSupportDelegates.h"
 #include "Matinee/MatineeActor.h"
+#include "GameFramework/WorldSettings.h"
 
 #include "ShaderCompiler.h"
+#include "FoliageEditModule.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -317,6 +319,12 @@ UWorld* FLevelCollectionModel::GetSimulationWorld() const
 	return GEditor->PlayWorld; 
 }
 
+bool FLevelCollectionModel::IsOriginRebasingEnabled() const
+{
+	UWorld* ThisWorld = GetWorld();
+	return ThisWorld && ThisWorld->GetWorldSettings()->bEnableWorldOriginRebasing;
+}
+
 FLevelModelList& FLevelCollectionModel::GetRootLevelList()
 { 
 	return RootLevelsList;
@@ -578,6 +586,11 @@ void FLevelCollectionModel::LoadLevels(const FLevelModelList& InLevelList)
 			);
 
 		LevelModel->LoadLevel();
+	}
+
+	if (InLevelList.Num() > 0)
+	{
+		GEditor->ResetTransaction(LOCTEXT("LoadingWorldTilesTransReset", "Loading Levels"));
 	}
 
 	GWarn->EndSlowTask();	
@@ -1321,7 +1334,7 @@ FLevelModelList FLevelCollectionModel::GetLevelsHierarchy(const FLevelModelList&
 
 FBox FLevelCollectionModel::GetLevelsBoundingBox(const FLevelModelList& InList, bool bIncludeChildren)
 {
-	FBox TotalBounds(0);
+	FBox TotalBounds(ForceInit);
 	for (auto It = InList.CreateConstIterator(); It; ++It)
 	{
 		if (bIncludeChildren)
@@ -1337,7 +1350,7 @@ FBox FLevelCollectionModel::GetLevelsBoundingBox(const FLevelModelList& InList, 
 
 FBox FLevelCollectionModel::GetVisibleLevelsBoundingBox(const FLevelModelList& InList, bool bIncludeChildren)
 {
-	FBox TotalBounds(0);
+	FBox TotalBounds(ForceInit);
 	for (auto It = InList.CreateConstIterator(); It; ++It)
 	{
 		if (bIncludeChildren)
@@ -1630,7 +1643,13 @@ void FLevelCollectionModel::MoveFoliageToSelected_Executed()
 	if (GetSelectedLevels().Num() == 1)
 	{
 		ULevel* TargetLevel = GetSelectedLevels()[0]->GetLevelObject();
-		GEditor->MoveSelectedFoliageToLevel(TargetLevel);
+
+		// Need to only permit this action when the foliage mode is open as the selection is being done there
+		if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Foliage))
+		{
+			IFoliageEditModule& FoliageModule = FModuleManager::GetModuleChecked<IFoliageEditModule>("FoliageEdit");
+			FoliageModule.MoveSelectedFoliageToLevel(TargetLevel);
+		}
 	}
 }
 

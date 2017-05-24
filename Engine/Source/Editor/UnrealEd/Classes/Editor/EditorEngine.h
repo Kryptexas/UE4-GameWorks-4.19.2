@@ -55,6 +55,7 @@ class USoundBase;
 class USoundNode;
 class UTextureRenderTarget2D;
 struct FAnalyticsEventAttribute;
+class UEditorWorldExtensionManager;
 
 //
 // Things to set in mapSetBrush.
@@ -215,10 +216,10 @@ struct FCopySelectedInfo
 struct FCachedActorLabels
 {
 	/** Default constructor - does not populate the array */
-	FCachedActorLabels();
+	UNREALED_API FCachedActorLabels();
 
 	/** Constructor that populates the set of actor names */
-	explicit FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
+	UNREALED_API explicit FCachedActorLabels(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
 
 	/** Populate the set of actor names */
 	void Populate(UWorld* World, const TSet<AActor*>& IgnoredActors = TSet<AActor*>());
@@ -613,6 +614,12 @@ public:
 
 	/** The feature level we should use when loading or creating a new world */
 	ERHIFeatureLevel::Type DefaultWorldFeatureLevel;
+
+private:
+
+	/** Manager that holds all extensions paired with a world */
+	UPROPERTY()
+	UEditorWorldExtensionManager* EditorWorldExtensionsManager;
 
 protected:
 
@@ -1152,6 +1159,12 @@ public:
 
 	/** Plays an editor sound (if the user has sounds enabled.) */
 	void PlayEditorSound( USoundBase* InSound );
+
+	/**
+	 * Returns true if currently able to play a sound and if the user has sounds enabled.
+	 */
+	bool CanPlayEditorSound() const;
+
 
 	/**
 	 * Returns the preview audio component
@@ -1819,7 +1832,7 @@ public:
 	/**
 	*  Returns the Editors world manager instance.
 	*/
-	TSharedRef<class FEditorWorldManager> GetEditorWorldManager() { return EditorWorldManager.ToSharedRef(); }
+	UEditorWorldExtensionManager* GetEditorWorldExtensionsManager() { return EditorWorldExtensionsManager; }
 
 	// Editor specific
 
@@ -1917,13 +1930,6 @@ public:
 	 * @param	InLevel		The destination level.
 	 */
 	void MoveSelectedActorsToLevel( ULevel* InLevel );
-
-	/**
-	 * Moves selected foliage instances to the target level.
-	 *
-	 * @param	InLevel		The target level.
-	 */
-	void MoveSelectedFoliageToLevel( ULevel* InTargetLevel );
 
 	/**
 	 *	Returns list of all foliage types used in the world
@@ -2185,7 +2191,7 @@ public:
 		uint32 SaveFlags=SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true );
 
 	/** The editor wrapper for UPackage::Save. Auto-adds files to source control when necessary */
-	ESavePackageResult Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
+	FSavePackageResultStruct Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 		FOutputDevice* Error = GError, FLinkerLoad* Conform = NULL, bool bForceByteSwapping = false, bool bWarnOfLongFilename = true,
 		uint32 SaveFlags = SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true);
 
@@ -2319,7 +2325,10 @@ public:
 	 */
 	void OpenMatinee(class AMatineeActor* MatineeActor, bool bWarnUser=true);
 
-	void UpdateReflectionCaptures();
+	/**
+	* Update any outstanding reflection captures
+	*/
+	void UpdateReflectionCaptures(UWorld* World = GWorld);
 
 	/**
 	 * Convenience method for adding a Slate modal window that is parented to the main frame (if it exists)
@@ -2823,9 +2832,6 @@ private:
 	/** The Timer manager for all timer delegates */
 	TSharedPtr<class FTimerManager> TimerManager;
 
-	/** Manager that holds all the worlds contexts with viewport interaction */
-	TSharedPtr<class FEditorWorldManager> EditorWorldManager;
-
 	/** The output log -> message log redirector for use during PIE */
 	TSharedPtr<class FOutputLogErrorsToMessageLogProxy> OutputLogErrorsToMessageLogProxyPtr;
 
@@ -2976,6 +2982,9 @@ public:
 
 private:
 	FTimerHandle CleanupPIEOnlineSessionsTimerHandle;
+
+	/** Delegate handle for game viewport close requests in PIE sessions. */
+	FDelegateHandle ViewportCloseRequestedDelegateHandle;
 };
 
 //////////////////////////////////////////////////////////////////////////

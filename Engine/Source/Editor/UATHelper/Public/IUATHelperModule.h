@@ -37,6 +37,9 @@ public:
 		return FModuleManager::Get().IsModuleLoaded( "UATHelper" );
 	}
 
-	virtual void CreateUatTask(const FString& CommandLine, const FText& PlatformDisplayName, const FText& TaskName, const FText &TaskShortName, const FSlateBrush* TaskIcon) = 0;
+	/** Used to callback into calling code when a UAT task completes. First param is the result type, second param is the runtime in sec. */
+	typedef TFunction<void(FString, double)> UatTaskResultCallack;
+
+	virtual void CreateUatTask(const FString& CommandLine, const FText& PlatformDisplayName, const FText& TaskName, const FText &TaskShortName, const FSlateBrush* TaskIcon, UatTaskResultCallack ResultCallback = UatTaskResultCallack()) = 0;
 };
 

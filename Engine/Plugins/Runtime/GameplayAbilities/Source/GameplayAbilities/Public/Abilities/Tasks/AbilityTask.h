@@ -88,6 +88,8 @@ UCLASS(Abstract)
 class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 {
 	GENERATED_UCLASS_BODY()
+
+	virtual void OnDestroy(bool bInOwnerFinished) override;
 	
 	/** Returns spec handle for owning ability */
 	FGameplayAbilitySpecHandle GetAbilitySpecHandle() const;
@@ -112,6 +114,9 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 
 	/** Returns ActivationPredictionKey of owning ability */
 	FPredictionKey GetActivationPredictionKey() const;
+
+	/** This should be called prior to broadcasting delegates back into the ability graph. This makes sure the ability is still active.  */
+	bool ShouldBroadcastAbilityTaskDelegates() const;
 
 	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
 
@@ -156,6 +161,10 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UGameplayTask
 protected:
 	/** Helper method for registering client replicated callbacks */
 	bool CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate);
+
+private:
+
+	static int32 GlobalAbilityTaskCount;
 };
 
 //For searching through lists of ability instances

@@ -16,11 +16,6 @@ UMovieSceneSequence::UMovieSceneSequence(const FObjectInitializer& Init)
 #endif
 }
 
-void UMovieSceneSequence::PreSave(const ITargetPlatform* TargetPlatform)
-{
-	Super::PreSave(TargetPlatform);
-}
-
 #if WITH_EDITORONLY_DATA
 void UMovieSceneSequence::PostDuplicate(bool bDuplicateForPIE)
 {
@@ -33,6 +28,16 @@ void UMovieSceneSequence::PostDuplicate(bool bDuplicateForPIE)
 }
 #endif // WITH_EDITORONLY_DATA
 
+void UMovieSceneSequence::PostLoad()
+{
+#if WITH_EDITORONLY_DATA
+	// Wipe compiled data on editor load to ensure we don't try and iteratively compile previously saved content. In a cooked game, this will contain our up-to-date compiled template.
+	EvaluationTemplate = FCachedMovieSceneEvaluationTemplate(*this);
+#endif
+
+	Super::PostLoad();
+}
+
 void UMovieSceneSequence::Serialize(FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FMovieSceneEvaluationCustomVersion::GUID);
@@ -41,6 +46,11 @@ void UMovieSceneSequence::Serialize(FArchive& Ar)
 	if (Ar.IsCooking() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		EvaluationTemplate.Regenerate(TemplateParameters);
+	}
+	else if (Ar.IsSaving())
+	{
+		// Don't save template data unless we're cooking
+		EvaluationTemplate = FCachedMovieSceneEvaluationTemplate(*this);
 	}
 #endif
 	

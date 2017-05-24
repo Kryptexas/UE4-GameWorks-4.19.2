@@ -262,7 +262,7 @@ void UModelComponent::Serialize(FArchive& Ar)
 
 			if (Element.LegacyMapBuildData)
 			{
-				LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(Element.MapBuildDataId, Element.LegacyMapBuildData));
+				LegacyComponentData.Data.Emplace(Element.MapBuildDataId, Element.LegacyMapBuildData);
 				Element.LegacyMapBuildData = NULL;
 			}
 		}
@@ -358,14 +358,36 @@ int32 UModelComponent::GetNumMaterials() const
 
 UMaterialInterface* UModelComponent::GetMaterial(int32 MaterialIndex) const
 {
-	UMaterialInterface* Material = NULL;
+	UMaterialInterface* Material = nullptr;
 
-	if(MaterialIndex < Elements.Num())
+	if(Elements.IsValidIndex(MaterialIndex))
 	{
 		return  Elements[MaterialIndex].Material;
 	}
 
 	return Material;
+}
+
+UMaterialInterface* UModelComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex) const
+{
+	UMaterialInterface* Result = nullptr;
+
+	// Look for element that corresponds to the supplied face
+	int32 TotalFaceCount = 0;
+	for (int32 ElementIdx = 0; ElementIdx < Elements.Num(); ElementIdx++)
+	{
+		const FModelElement& Element = Elements[ElementIdx];
+		TotalFaceCount += Element.NumTriangles;
+
+		if (FaceIndex < TotalFaceCount)
+		{
+			// Grab the material
+			Result = Element.Material;
+			break;
+		}
+	}
+
+	return Result;
 }
 
 bool UModelComponent::IsPrecomputedLightingValid() const

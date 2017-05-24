@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class WorldBrowser : ModuleRules
 {
-    public WorldBrowser(TargetInfo Target)
+    public WorldBrowser(ReadOnlyTargetRules Target) : base(Target)
     {
         PrivateIncludePaths.Add("Editor/WorldBrowser/Private");	// For PCH includes (because they don't work with relative paths, yet)
 
@@ -25,6 +25,7 @@ public class WorldBrowser : ModuleRules
                 "Core", 
                 "CoreUObject",
                 "RenderCore",
+                "ShaderCore",
                 "InputCore",
                 "Engine",
 				"Landscape",
@@ -41,6 +42,7 @@ public class WorldBrowser : ModuleRules
 				"SourceControlWindows",
                 "RawMesh",
                 "LandscapeEditor",
+                "FoliageEdit",
                 "ImageWrapper",
                 "Foliage",
                 "MaterialUtilities",

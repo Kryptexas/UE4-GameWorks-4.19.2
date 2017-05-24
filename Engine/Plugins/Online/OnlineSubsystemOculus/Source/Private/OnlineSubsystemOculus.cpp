@@ -187,7 +187,13 @@ void FOnlineSubsystemOculus::RemoveNotifDelegate(ovrMessageType MessageType, con
 
 bool FOnlineSubsystemOculus::Init()
 {
-	bool bOculusInit = false;
+	// Early out if this is already initialized
+	if (bOculusInit)
+	{
+		return bOculusInit;
+	}
+
+	bOculusInit = false;
 #if PLATFORM_WINDOWS
 	bOculusInit = InitWithWindowsPlatform();
 #elif PLATFORM_ANDROID
@@ -195,8 +201,6 @@ bool FOnlineSubsystemOculus::Init()
 #endif
 	if (bOculusInit)
 	{
-		// Need to manually start ticker if we are reloading the subsystem
-		StartTicker();
 		MessageTaskManager = MakeUnique<FOnlineMessageTaskManagerOculus>();
 		check(MessageTaskManager);
 
@@ -211,6 +215,17 @@ bool FOnlineSubsystemOculus::Init()
 		{
 			VoiceInterface.Reset();
 		}
+
+#if WITH_EDITOR
+		// Within the editor, there is only the singleton Oculus OSS that hangs around
+		// Shutdown stops the ticker, but construction of the object starts the ticker.
+		// Since this hangs around, ensure that the ticker gets started in the editor when 
+		// we init.
+		if (!TickHandle.IsValid())
+		{
+			StartTicker();
+		}
+#endif
 	}
 	else
 	{
@@ -296,6 +311,8 @@ bool FOnlineSubsystemOculus::Shutdown()
 	ovr_ResetInitAndContext();
 #endif
 
+	bOculusInit = false;
+
 	return true;
 }
 
@@ -314,4 +331,9 @@ bool FOnlineSubsystemOculus::IsEnabled()
 	bool bEnableOculus = true;
 	GConfig->GetBool(TEXT("OnlineSubsystemOculus"), TEXT("bEnabled"), bEnableOculus, GEngineIni);
 	return bEnableOculus;
+}
+
+bool FOnlineSubsystemOculus::IsInitialized()
+{
+	return bOculusInit;
 }

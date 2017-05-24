@@ -17,13 +17,15 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bShowFrameNumbers = true;
 	bShowRangeSlider = false;
 	bIsSnapEnabled = true;
-	TimeSnapInterval = .05f;
+	TimeSnapIntervalMode = ESequencerTimeSnapInterval::STSI_Custom;
+	CustomTimeSnapInterval = .05f;
 	bSnapKeyTimesToInterval = true;
 	bSnapKeyTimesToKeys = true;
 	bSnapSectionTimesToInterval = true;
 	bSnapSectionTimesToSections = true;
 	bSnapPlayTimeToKeys = false;
 	bSnapPlayTimeToInterval = true;
+	bSnapPlayTimeToPressedKey = true;
 	bSnapPlayTimeToDraggedKey = true;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
@@ -33,7 +35,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bAutoScrollEnabled = false;
 	bShowCurveEditorCurveToolTips = true;
 	bLinkCurveEditorTimeRange = false;
-	bLooping = false;
+	LoopMode = ESequencerLoopMode::SLM_NoLoop;
 	bKeepCursorInPlayRange = true;
 	bKeepPlayRangeInSectionBounds = true;
 	ZeroPadFrames = 0;
@@ -44,6 +46,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bLockPlaybackToAudioClock = false;
 	bAllowPossessionOfPIEViewports = false;
 	bEvaluateSubSequencesInIsolation = false;
+	bVisualizePreAndPostRoll = true;
 }
 
 void USequencerSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -185,15 +188,56 @@ void USequencerSettings::SetIsSnapEnabled(bool InbIsSnapEnabled)
 
 float USequencerSettings::GetTimeSnapInterval() const
 {
-	return TimeSnapInterval;
+	switch (TimeSnapIntervalMode)
+	{
+	case STSI_0_001:
+		return 0.001f;
+	case STSI_0_01:
+		return 0.01f;
+	case STSI_0_1:
+		return 0.1f;
+	case STSI_1:
+		return 1.0f;
+	case STSI_10:
+		return 10.0f;
+	case STSI_100:
+		return 100.0f;
+	case STSI_15Fps:
+		return 1 / 15.0f;
+	case STSI_24Fps:
+		return 1 / 24.0f;
+	case STSI_25Fps:
+		return 1 / 25.0f;
+	case STSI_29_97Fps:
+		return 1 / 29.97f;
+	case STSI_30Fps:
+		return 1 / 30.0f;
+	case STSI_48Fps:
+		return 1 / 48.0f;
+	case STSI_50Fps:
+		return 1 / 50.0f;
+	case STSI_59_94Fps:
+		return 1 / 59.94f;
+	case STSI_60Fps:
+		return 1 / 60.0f;
+	case STSI_120Fps:
+		return 1 / 120.0f;
+	default:
+		return CustomTimeSnapInterval;
+	}
+	return CustomTimeSnapInterval;
 }
 
-void USequencerSettings::SetTimeSnapInterval(float InTimeSnapInterval)
+float USequencerSettings::GetCustomTimeSnapInterval() const
 {
-	if ( TimeSnapInterval != InTimeSnapInterval )
+	return CustomTimeSnapInterval;
+}
+
+void USequencerSettings::SetCustomTimeSnapInterval(float InCustomTimeSnapInterval)
+{
+	if ( CustomTimeSnapInterval != InCustomTimeSnapInterval )
 	{
-		TimeSnapInterval = InTimeSnapInterval;
-		OnTimeSnapIntervalChanged.Broadcast();
+		CustomTimeSnapInterval = InCustomTimeSnapInterval;
 		SaveConfig();
 	}
 }
@@ -278,6 +322,20 @@ void USequencerSettings::SetSnapPlayTimeToInterval(bool InbSnapPlayTimeToInterva
 	if ( bSnapPlayTimeToInterval != InbSnapPlayTimeToInterval )
 	{
 		bSnapPlayTimeToInterval = InbSnapPlayTimeToInterval;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetSnapPlayTimeToPressedKey() const
+{
+	return bSnapPlayTimeToPressedKey;
+}
+
+void USequencerSettings::SetSnapPlayTimeToPressedKey(bool InbSnapPlayTimeToPressedKey)
+{
+	if ( bSnapPlayTimeToPressedKey != InbSnapPlayTimeToPressedKey )
+	{
+		bSnapPlayTimeToPressedKey = InbSnapPlayTimeToPressedKey;
 		SaveConfig();
 	}
 }
@@ -380,16 +438,16 @@ void USequencerSettings::SetAutoScrollEnabled(bool bInAutoScrollEnabled)
 	}
 }
 
-bool USequencerSettings::IsLooping() const
+ESequencerLoopMode USequencerSettings::GetLoopMode() const
 {
-	return bLooping;
+	return LoopMode;
 }
 
-void USequencerSettings::SetLooping(bool bInLooping)
+void USequencerSettings::SetLoopMode(ESequencerLoopMode InLoopMode)
 {
-	if (bLooping != bInLooping)
+	if (LoopMode != InLoopMode)
 	{
-		bLooping = bInLooping;
+		LoopMode = InLoopMode;
 		SaveConfig();
 	}
 }
@@ -524,12 +582,6 @@ void USequencerSettings::SetShowViewportTransportControls(bool bVisible)
 	}
 }
 
-float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
-{
-	return TimeSnapInterval > 0
-		? FMath::RoundToInt( InTimeValue / TimeSnapInterval ) * TimeSnapInterval
-		: InTimeValue;
-}
 
 bool USequencerSettings::ShouldAllowPossessionOfPIEViewports() const
 {
@@ -604,7 +656,16 @@ void USequencerSettings::SetEvaluateSubSequencesInIsolation(bool bInEvaluateSubS
 	}
 }
 
-USequencerSettings::FOnTimeSnapIntervalChanged& USequencerSettings::GetOnTimeSnapIntervalChanged()
+bool USequencerSettings::ShouldShowPrePostRoll() const
 {
-	return OnTimeSnapIntervalChanged;
+	return bVisualizePreAndPostRoll;
+}
+
+void USequencerSettings::SetShouldShowPrePostRoll(bool bInVisualizePreAndPostRoll)
+{
+	if (bInVisualizePreAndPostRoll != bVisualizePreAndPostRoll)
+	{
+		bVisualizePreAndPostRoll = bInVisualizePreAndPostRoll;
+		SaveConfig();
+	}
 }

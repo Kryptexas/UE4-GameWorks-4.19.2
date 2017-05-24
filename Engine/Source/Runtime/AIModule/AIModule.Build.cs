@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AIModule : ModuleRules
 	{
-        public AIModule(TargetInfo Target)
+        public AIModule(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

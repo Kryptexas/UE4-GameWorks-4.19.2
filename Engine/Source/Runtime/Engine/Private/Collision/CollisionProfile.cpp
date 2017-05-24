@@ -318,7 +318,7 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 
 	for ( int32 EnumIndex=0; EnumIndex<NumEnum; ++EnumIndex )
 	{
-		FString EnumName = Enum->GetEnumName(EnumIndex);
+		FString EnumName = Enum->GetNameStringByIndex(EnumIndex);
 		EnumName = EnumName.RightChop(PrefixLen);
 		FName DisplayName = FName(*EnumName);
 

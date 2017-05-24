@@ -190,11 +190,13 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 
 #if WITH_PHYSX
 	{
-		const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene);
+		const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene, UseAsyncScene);
 		SCOPED_SCENE_READ_LOCK(PhysScene->GetPhysXScene(SceneType));
 #endif
 
 		bool bSetParentScale = false;
+		const bool bSimulatedRootBody = Bodies.IsValidIndex(RootBodyData.BodyIndex) && Bodies[RootBodyData.BodyIndex]->IsInstanceSimulatingPhysics();
+		const FTransform NewComponentToWorld = bSimulatedRootBody ? GetComponentTransformFromBodyInstance(Bodies[RootBodyData.BodyIndex]) : FTransform::Identity;
 
 		// For each bone - see if we need to provide some data for it.
 		for(int32 i=0; i<InRequiredBones.Num(); i++)
@@ -293,17 +295,24 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 			}
 			else
 			{
-				const int32 ParentIndex	= SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-				EditableComponentSpaceTransforms[BoneIndex] = InBoneSpaceTransforms[BoneIndex] * EditableComponentSpaceTransforms[ParentIndex];
+				if(bLocalSpaceKinematics || BodyIndex == INDEX_NONE || Bodies[BodyIndex]->IsInstanceSimulatingPhysics())
+				{
+					const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+					EditableComponentSpaceTransforms[BoneIndex] = InBoneSpaceTransforms[BoneIndex] * EditableComponentSpaceTransforms[ParentIndex];
 
-				/**
-				* Normalize rotations.
-				* We want to remove any loss of precision due to accumulation of error.
-				* i.e. A componentSpace transform is the accumulation of all of its local space parents. The further down the chain, the greater the error.
-				* SpaceBases are used by external systems, we feed this to PhysX, send this to gameplay through bone and socket queries, etc.
-				* So this is a good place to make sure all transforms are normalized.
-				*/
-				EditableComponentSpaceTransforms[BoneIndex].NormalizeRotation();
+					/**
+					* Normalize rotations.
+					* We want to remove any loss of precision due to accumulation of error.
+					* i.e. A componentSpace transform is the accumulation of all of its local space parents. The further down the chain, the greater the error.
+					* SpaceBases are used by external systems, we feed this to PhysX, send this to gameplay through bone and socket queries, etc.
+					* So this is a good place to make sure all transforms are normalized.
+					*/
+					EditableComponentSpaceTransforms[BoneIndex].NormalizeRotation();
+				}
+				else if(bSimulatedRootBody)
+				{
+					EditableComponentSpaceTransforms[BoneIndex] = Bodies[BodyIndex]->GetUnrealWorldTransform_AssumesLocked().GetRelativeTransform(NewComponentToWorld);
+				}
 			}
 #if DEPERCATED_PHYSBLEND_UPDATES_PHYSX
 			if (bUpdatePhysics && PhysicsAssetBodyInstance)
@@ -340,7 +349,7 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
 
 bool USkeletalMeshComponent::ShouldBlendPhysicsBones() const
 {
-	return Bodies.Num() > 0 && (DoAnyPhysicsBodiesHaveWeight() || bBlendPhysics);
+	return Bodies.Num() > 0 && CollisionEnabledHasPhysics(GetCollisionEnabled()) && (DoAnyPhysicsBodiesHaveWeight() || bBlendPhysics);
 }
 
 bool USkeletalMeshComponent::DoAnyPhysicsBodiesHaveWeight() const
@@ -370,7 +379,7 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 
 	// We now have all the animations blended together and final relative transforms for each bone.
 	// If we don't have or want any physics, we do nothing.
-	if( Bodies.Num() > 0 )
+	if( Bodies.Num() > 0 && CollisionEnabledHasPhysics(GetCollisionEnabled()) )
 	{
 		HandleExistingParallelEvaluationTask(/*bBlockOnTask = */ true, /*bPerformPostAnimEvaluation =*/ true);
 		// start parallel work
@@ -447,6 +456,13 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
+	// Double check that the physics state has been created.
+	// If there's no physics state, we can't do anything.
+	if (!IsPhysicsStateCreated())
+	{
+		return;
+	}
+
 	// This below code produces some interesting result here
 	// - below codes update physics data, so if you don't update pose, the physics won't have the right result
 	// - but if we just update physics bone without update current pose, it will have stale data
@@ -463,7 +479,8 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 
 	// Get the scene, and do nothing if we can't get one.
 	FPhysScene* PhysScene = nullptr;
-	if (GetWorld() != nullptr)
+	UWorld* World = GetWorld();
+	if (World != nullptr)
 	{
 		PhysScene = GetWorld()->GetPhysicsScene();
 	}
@@ -502,7 +519,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(i);
 			FVector ParentPos = CurrentLocalToWorld.TransformPosition(InSpaceBases[ParentIndex].GetLocation());
 
-			GetWorld()->LineBatcher->DrawLine(ThisPos, ParentPos, AnimSkelDrawColor, SDPG_Foreground);
+			World->LineBatcher->DrawLine(ThisPos, ParentPos, AnimSkelDrawColor, SDPG_Foreground);
 		}
 	}
 #endif
@@ -523,18 +540,16 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 		if (PhysicsAsset && SkeletalMesh && Bodies.Num() > 0)
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (!ensure(PhysicsAsset->SkeletalBodySetups.Num() == Bodies.Num()))
+			if (!ensureMsgf(PhysicsAsset->SkeletalBodySetups.Num() == Bodies.Num(), TEXT("Mesh (%s) has PhysicsAsset(%s), and BodySetup(%d) and Bodies(%d) don't match"),
+						*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num()))
 			{
-				// related to TTP 280315
-				UE_LOG(LogPhysics, Warning, TEXT("Mesh (%s) has PhysicsAsset(%s), and BodySetup(%d) and Bodies(%d) don't match"),
-					*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->SkeletalBodySetups.Num(), Bodies.Num());
 				return;
 			}
 #endif
 
 #if WITH_PHYSX
 
-			const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene);
+			const uint32 SceneType = GetPhysicsSceneType(*PhysicsAsset, *PhysScene, UseAsyncScene);
 			// Lock the scenes we need (flags set in InitArticulated)
 			SCOPED_SCENE_WRITE_LOCK(PhysScene->GetPhysXScene(SceneType));
 #endif

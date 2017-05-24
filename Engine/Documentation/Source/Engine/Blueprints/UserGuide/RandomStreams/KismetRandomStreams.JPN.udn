@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3244370
 Availability:Public
-Title:ランダム ストリーム
+Title:Random Stream
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
-Description:ランダム ストリームの説明とブループリントにおける使用方法
+Description:Random Stream の説明とブループリントにおける使用方法
 version:4.9
 Parent:Engine/Blueprints
-Type:guide
+type:overview
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,10 +51,10 @@ Type:guide
 [TOC (start:2)]
 
 [EXCERPT:Intro]
-**_RandomStreams_** は、再現性のあるランダム値を生成し、ブループリントや Level ブループリント、さらにアニメーション用に AnimBlueprints の中でも利用できるようにします。これは次のような場合に非常に役立ちます。 
-すなわち、ランダム エフェクトが必要だが、同時にグラフが評価されるたびに一定の分布も必要となるようなオブジェクトを散乱させる、プロシージャルな背景を構築するなどのエフェクトをセットアップする場合です。これまでは、 
-ランダム値を使用するとグラフが評価されるたびに毎回違う分布になっていました。つまり、ブループリントを移動したり、グラフの再評価を生じるような操作を行うと、 
-全く違うエフェクトが得られることを意味します。RandomStreams を使用すると、望ましい結果を得るためのシード値に基づきエフェクトを微調整し、その後、 
+**RandomStream** は、再現性のあるランダム値を生成し、ブループリントや Level ブループリント、さらにアニメーション用に AnimBlueprints の中でも利用できるようにします。ランダム エフェクトが必要な時にオブジェクトを散乱、またはプロシージャルな背景を構築すると同時に、 
+グラフが評価されると一定の分布をするようなエフェクトを設定する場合に非常に便利です。これまでは、 
+ランダム値を使用すると、グラフが評価されるたびに毎回違う分布になっていました。 
+つまり、ブループリントを移動したり、グラフの再評価が生じるような操作を行うと、全く違うエフェクトになっていました。RandomStreams を使用すると、望ましい結果を得るためのシード値に基づきエフェクトを微調整し、その後、 
 全体的なエフェクトを維持しながら修正を加えることができます。
 [/EXCERPT:Intro]
 
@@ -91,7 +92,7 @@ RandomStream を入力として受けとり、関数に合わせた様々なタ�
 ![Random Stream Functions Example](functions_example.png)
 [/REGION]
 
-上図を見ると、ランダムな Booleans、 Floats、 Integers、Vectors、Rotators は、すべて同じストリームから引き出せることが分かります。
+上図を見ると、ランダムな Booleans、Floats、Integers、Vectors、Rotators は、すべて同じストリームから引き出せることが分かります。
 
 ## Initial Seed
 
@@ -121,7 +122,7 @@ LogBlueprintUserMessages:THTHTTTHHH
 
 LogBlueprintUserMessages:THTHTTTHHH
 
-Different Instances of the Same Blueprint, seed set to 0 in Defaults: 
+Different Instances of the Same Blueprint, seed set randomly 
 
 LogBlueprintUserMessages:TTTTHTTHTT
 

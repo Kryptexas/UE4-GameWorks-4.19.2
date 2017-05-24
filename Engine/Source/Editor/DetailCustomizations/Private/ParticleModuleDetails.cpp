@@ -83,8 +83,8 @@ void FParticleModuleRequiredDetails::CustomizeDetails( IDetailLayoutBuilder& Det
 	{
 		RandomRandomBlendRestriction = MakeShareable( new FPropertyRestriction(GetNotAllowedOnGPUEmitterText()) );
 		const UEnum* const ParticleSubUVInterpMethodEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EParticleSubUVInterpMethod"));		
-		RandomRandomBlendRestriction->AddDisabledValue(ParticleSubUVInterpMethodEnum->GetEnumNameStringByValue((uint8)EParticleSubUVInterpMethod::PSUVIM_Random));
-		RandomRandomBlendRestriction->AddDisabledValue(ParticleSubUVInterpMethodEnum->GetEnumNameStringByValue((uint8)EParticleSubUVInterpMethod::PSUVIM_Random_Blend));
+		RandomRandomBlendRestriction->AddDisabledValue(ParticleSubUVInterpMethodEnum->GetNameStringByValue((uint8)EParticleSubUVInterpMethod::PSUVIM_Random));
+		RandomRandomBlendRestriction->AddDisabledValue(ParticleSubUVInterpMethodEnum->GetNameStringByValue((uint8)EParticleSubUVInterpMethod::PSUVIM_Random_Blend));
 	}
 
 	TRestrictionList RestrictionList;

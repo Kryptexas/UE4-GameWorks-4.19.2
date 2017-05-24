@@ -6,7 +6,14 @@ D3D12CommandContext.cpp: RHI  Command Context implementation.
 
 #include "D3D12RHIPrivate.h"
 
+#if PLATFORM_XBOXONE
+// Workaround for flickering UI issues. 
+// @TODO: Fix and re-enable
+int32 GCommandListBatchingMode = CLB_NormalBatching;
+#else
 int32 GCommandListBatchingMode = CLB_AggressiveBatching;
+#endif 
+
 static FAutoConsoleVariableRef CVarCommandListBatchingMode(
 	TEXT("D3D12.CommandListBatchingMode"),
 	GCommandListBatchingMode,
@@ -31,6 +38,9 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	bDiscardSharedConstants(false),
 	bIsDefaultContext(InIsDefaultContext),
 	bIsAsyncComputeContext(InIsAsyncComputeContext),
+#if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
+	bNeedFlushTextureCache(false),
+#endif
 	CommandListHandle(),
 	CommandAllocator(nullptr),
 	CommandAllocatorManager(InParent, InIsAsyncComputeContext ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT),
@@ -51,6 +61,13 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 {
 	FMemory::Memzero(DirtyUniformBuffers);
 	FMemory::Memzero(BoundUniformBuffers);
+	for (int i = 0; i < ARRAY_COUNT(BoundUniformBufferRefs); i++)
+	{
+		for (int j = 0; j < ARRAY_COUNT(BoundUniformBufferRefs[i]); j++)
+		{
+			BoundUniformBufferRefs[i][j] = NULL;
+		}
+	}
 	FMemory::Memzero(CurrentRenderTargets);
 	FMemory::Memzero(CurrentUAVs);
 	StateCache.Init(GetParentDevice(), this, nullptr, SubHeapDesc);
@@ -218,7 +235,6 @@ void FD3D12CommandContext::RHIBeginFrame()
 	RHIPrivateBeginFrame();
 
 	FD3D12GlobalOnlineHeap& SamplerHeap = Device->GetGlobalSamplerHeap();
-	const uint32 NumContexts = Device->GetNumContexts();
 
 	if (SamplerHeap.DescriptorTablesDirty())
 	{
@@ -226,9 +242,16 @@ void FD3D12CommandContext::RHIBeginFrame()
 		SamplerHeap.GetUniqueDescriptorTables().Compact();
 	}
 
+	const uint32 NumContexts = Device->GetNumContexts();
 	for (uint32 i = 0; i < NumContexts; ++i)
 	{
 		Device->GetCommandContext(i).StateCache.GetDescriptorCache()->BeginFrame();
+	}
+
+	const uint32 NumAsyncContexts = Device->GetNumAsyncComputeContexts();
+	for (uint32 i = 0; i < NumAsyncContexts; ++i)
+	{
+		Device->GetAsyncComputeContext(i).StateCache.GetDescriptorCache()->BeginFrame();
 	}
 
 	Device->GetGlobalSamplerHeap().ToggleDescriptorTablesDirtyFlag(false);
@@ -244,6 +267,15 @@ void FD3D12CommandContext::ClearState()
 
 	FMemory::Memzero(BoundUniformBuffers, sizeof(BoundUniformBuffers));
 	FMemory::Memzero(DirtyUniformBuffers, sizeof(DirtyUniformBuffers));
+
+	for (int i = 0; i < ARRAY_COUNT(BoundUniformBufferRefs); i++)
+	{
+		for (int j = 0; j < ARRAY_COUNT(BoundUniformBufferRefs[i]); j++)
+		{
+			BoundUniformBufferRefs[i][j] = NULL;
+		}
+	}
+
 	FMemory::Memzero(CurrentUAVs, sizeof(CurrentUAVs));
 	NumUAVs = 0;
 
@@ -281,8 +313,6 @@ void FD3D12CommandContext::ClearAllShaderResources()
 
 void FD3D12CommandContext::RHIEndFrame()
 {
-	// Note: RHIEndFrame is not called consistently when a movie is playing but asset loading is done.
-	// This can result in not cleaning up resources as quickly as desired.
 	FD3D12Device* Device = GetParentDevice();
 	FD3D12Adapter* Adapter = Device->GetParentAdapter();
 	{
@@ -297,7 +327,11 @@ void FD3D12CommandContext::RHIEndFrame()
 			Device->GetCommandContext(i).EndFrame();
 		}
 
-		// TODO: What about the compute contexts?
+		const uint32 NumAsyncContexts = Device->GetNumAsyncComputeContexts();
+		for (uint32 i = 0; i < NumAsyncContexts; ++i)
+		{
+			Device->GetAsyncComputeContext(i).EndFrame();
+		}
 
 		Device->GetTextureAllocator().CleanUpAllocations();
 		Device->GetDefaultBufferAllocator().CleanupFreeBlocks();
@@ -486,7 +520,7 @@ void FD3D12CommandContextContainer::operator delete(void* RawMemory)
 	FMemory::Free(RawMemory);
 }
 
-IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer()
+IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer(int32 Index, int32 Num)
 {
 	return new FD3D12CommandContextContainer(&GetAdapter(), GFrameNumberRenderThread % GetAdapter().GetNumGPUNodes());
 }
@@ -530,7 +564,7 @@ FD3D12TemporalEffect::FD3D12TemporalEffect(const FD3D12TemporalEffect& Other)
 
 void FD3D12TemporalEffect::Init()
 {
-	EffectFence.CreateFence(1);
+	EffectFence.CreateFence();
 }
 
 void FD3D12TemporalEffect::Destroy()

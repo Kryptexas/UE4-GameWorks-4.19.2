@@ -323,8 +323,21 @@ const TCHAR* FLinuxPlatformProcess::ApplicationSettingsDir()
 bool FLinuxPlatformProcess::SetProcessLimits(EProcessResource::Type Resource, uint64 Limit)
 {
 	rlimit NativeLimit;
-	NativeLimit.rlim_cur = Limit;
-	NativeLimit.rlim_max = Limit;
+
+	static_assert(sizeof(long) == sizeof(NativeLimit.rlim_cur), TEXT("Platform has atypical rlimit type."));
+
+	// 32-bit platforms set limits as long
+	if (sizeof(NativeLimit.rlim_cur) < sizeof(Limit))
+	{
+		long Limit32 = static_cast<long>(FMath::Min(Limit, static_cast<uint64>(INT_MAX)));
+		NativeLimit.rlim_cur = Limit32;
+		NativeLimit.rlim_max = Limit32;
+	}
+	else
+	{
+		NativeLimit.rlim_cur = Limit;
+		NativeLimit.rlim_max = Limit;
+	}
 
 	int NativeResource = RLIMIT_AS;
 
@@ -341,7 +354,8 @@ bool FLinuxPlatformProcess::SetProcessLimits(EProcessResource::Type Resource, ui
 
 	if (setrlimit(NativeResource, &NativeLimit) != 0)
 	{
-		UE_LOG(LogHAL, Warning, TEXT("setrlimit() failed with error %d (%s)\n"), errno, UTF8_TO_TCHAR(strerror(errno)));
+		int ErrNo = errno;
+		UE_LOG(LogHAL, Warning, TEXT("setrlimit(%d, limit_cur=%d, limit_max=%d) failed with error %d (%s)\n"), NativeResource, NativeLimit.rlim_cur, NativeLimit.rlim_max, ErrNo, UTF8_TO_TCHAR(strerror(ErrNo)));
 		return false;
 	}
 
@@ -707,7 +721,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		return FProcHandle();
 	}
 
-	FString Commandline = ProcessPath;
+	FString Commandline = FString::Printf(TEXT("\"%s\""), *ProcessPath);
 	Commandline += TEXT(" ");
 	Commandline += Parms;
 

@@ -158,8 +158,14 @@ struct FD3D12ConstantBufferCache : public FD3D12ResourceCache<CBVSlotMask>
 
 		FMemory::Memzero(CurrentGPUVirtualAddress, sizeof(CurrentGPUVirtualAddress));
 		FMemory::Memzero(ResidencyHandles, sizeof(ResidencyHandles));
+#if USE_STATIC_ROOT_SIGNATURE
+		FMemory::Memzero(CBHandles, sizeof(CBHandles));
+#endif
 	}
 
+#if USE_STATIC_ROOT_SIGNATURE
+	D3D12_CPU_DESCRIPTOR_HANDLE CBHandles[SF_NumFrequencies][MAX_CBS];
+#endif
 	D3D12_GPU_VIRTUAL_ADDRESS CurrentGPUVirtualAddress[SF_NumFrequencies][MAX_CBS];
 	FD3D12ResidencyHandle* ResidencyHandles[SF_NumFrequencies][MAX_CBS];
 };
@@ -176,7 +182,6 @@ struct FD3D12ShaderResourceViewCache : public FD3D12ResourceCache<SRVSlotMask>
 		DirtyAll();
 
 		NumViewsIntersectWithDepthCount = 0;
-		FMemory::Memzero(Views);
 		FMemory::Memzero(ResidencyHandles);
 		FMemory::Memzero(ViewsIntersectWithDepthRT);
 		FMemory::Memzero(BoundMask);
@@ -185,9 +190,17 @@ struct FD3D12ShaderResourceViewCache : public FD3D12ResourceCache<SRVSlotMask>
 		{
 			Index = INDEX_NONE;
 		}
+
+		for (int32 FrequencyIdx = 0; FrequencyIdx < SF_NumFrequencies; ++FrequencyIdx)
+		{
+			for (int32 SRVIdx = 0; SRVIdx < MAX_SRVS; ++SRVIdx)
+			{
+				Views[FrequencyIdx][SRVIdx].SafeRelease();
+			}
+		}
 	}
 
-	FD3D12ShaderResourceView* Views[SF_NumFrequencies][MAX_SRVS];
+	TRefCountPtr<FD3D12ShaderResourceView> Views[SF_NumFrequencies][MAX_SRVS];
 	FD3D12ResidencyHandle* ResidencyHandles[SF_NumFrequencies][MAX_SRVS];
 
 	bool ViewsIntersectWithDepthRT[SF_NumFrequencies][MAX_SRVS];
@@ -242,7 +255,7 @@ struct FD3D12SamplerStateCache : public FD3D12ResourceCache<SamplerSlotMask>
 //-----------------------------------------------------------------------------
 //	FD3D12StateCache Class Definition
 //-----------------------------------------------------------------------------
-class FD3D12StateCacheBase : public FD3D12DeviceChild , public FD3D12SingleNodeGPUObject
+class FD3D12StateCacheBase : public FD3D12DeviceChild, public FD3D12SingleNodeGPUObject
 {
 	friend class FD3D12DynamicRHI;
 
@@ -259,6 +272,7 @@ protected:
 	bool bNeedSetPrimitiveTopology;
 	bool bNeedSetBlendFactor;
 	bool bNeedSetStencilRef;
+	bool bNeedSetDepthBounds;
 	bool bAutoFlushComputeShaderCache;
 	D3D12_RESOURCE_BINDING_TIER ResourceBindingTier;
 
@@ -308,6 +322,9 @@ protected:
 			FD3D12RenderTargetView* RenderTargetArray[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
 
 			FD3D12DepthStencilView* CurrentDepthStencilTarget;
+
+			float MinDepth;
+			float MaxDepth;
 		} Graphics;
 
 		struct
@@ -549,12 +566,25 @@ public:
 				CBVCache.ResidencyHandles[ShaderFrequency][SlotIndex] = ResourceLocation.GetResource()->GetResidencyHandle();
 				FD3D12ConstantBufferCache::DirtySlot(CBVCache.DirtySlotMask[ShaderFrequency], SlotIndex);
 			}
+
+#if USE_STATIC_ROOT_SIGNATURE
+			CBVCache.CBHandles[ShaderFrequency][SlotIndex] = UniformBuffer->View->OfflineDescriptorHandle;
+#endif
 		}
 		else if (CurrentGPUVirtualAddress != 0)
 		{
 			CurrentGPUVirtualAddress = 0;
 			CBVCache.ResidencyHandles[ShaderFrequency][SlotIndex] = nullptr;
 			FD3D12ConstantBufferCache::DirtySlot(CBVCache.DirtySlotMask[ShaderFrequency], SlotIndex);
+#if USE_STATIC_ROOT_SIGNATURE
+			CBVCache.CBHandles[ShaderFrequency][SlotIndex].ptr = 0;
+#endif
+		}
+		else
+		{
+#if USE_STATIC_ROOT_SIGNATURE
+			CBVCache.CBHandles[ShaderFrequency][SlotIndex].ptr = 0;
+#endif
 		}
 	}
 
@@ -574,6 +604,10 @@ public:
 			CurrentGPUVirtualAddress = Location.GetGPUVirtualAddress();
 			CBVCache.ResidencyHandles[ShaderFrequency][SlotIndex] = Location.GetResource()->GetResidencyHandle();
 			FD3D12ConstantBufferCache::DirtySlot(CBVCache.DirtySlotMask[ShaderFrequency], SlotIndex);
+
+#if USE_STATIC_ROOT_SIGNATURE
+			CBVCache.CBHandles[ShaderFrequency][SlotIndex] = Buffer.View->OfflineDescriptorHandle;
+#endif
 		}
 	}
 
@@ -678,7 +712,43 @@ public:
 		*BoundShaderState = PipelineState.Graphics.HighLevelDesc.BoundShaderState;
 	}
 
-	void SetPipelineState(FD3D12PipelineState* PipelineState, bool IsCompute);
+	template <bool IsCompute = false>
+	D3D12_STATE_CACHE_INLINE void FD3D12StateCacheBase::SetPipelineState(FD3D12PipelineState* PSO)
+	{
+		// Save the PSO
+		if (PSO)
+		{
+			if (IsCompute)
+			{
+				PipelineState.Compute.CurrentPipelineStateObject = PSO->GetPipelineState();
+				check(!PipelineState.Compute.bNeedRebuildPSO);
+			}
+			else
+			{
+				PipelineState.Graphics.CurrentPipelineStateObject = PSO->GetPipelineState();
+				check(!PipelineState.Graphics.bNeedRebuildPSO);
+			}
+		}
+
+		// See if we need to set our PSO:
+		// In D3D11, you could Set dispatch arguments, then set Draw arguments, then call Draw/Dispatch/Draw/Dispatch without setting arguments again.
+		// In D3D12, we need to understand when the app switches between Draw/Dispatch and make sure the correct PSO is set.
+		bool bNeedSetPSO = PipelineState.Common.bNeedSetPSO;
+		auto& CurrentPSO = PipelineState.Common.CurrentPipelineStateObject;
+		auto& RequiredPSO = IsCompute ? PipelineState.Compute.CurrentPipelineStateObject : PipelineState.Graphics.CurrentPipelineStateObject;
+		if (CurrentPSO != RequiredPSO)
+		{
+			CurrentPSO = RequiredPSO;
+			bNeedSetPSO = true;
+		}
+
+		// Set the PSO on the command list if necessary.
+		if (bNeedSetPSO)
+		{
+			CmdContext->CommandListHandle->SetPipelineState(CurrentPSO);
+			PipelineState.Common.bNeedSetPSO = false;
+		}
+	}
 
 	void SetComputeShader(FD3D12ComputeShader* Shader);
 
@@ -799,6 +869,17 @@ public:
 
 	template <EShaderFrequency ShaderStage>
 	void SetUAVs(uint32 UAVStartSlot, uint32 NumSimultaneousUAVs, FD3D12UnorderedAccessView** UAVArray, uint32* UAVInitialCountArray);
+
+	void SetDepthBounds(float MinDepth, float MaxDepth)
+	{
+		if (PipelineState.Graphics.MinDepth != MinDepth || PipelineState.Graphics.MaxDepth != MaxDepth)
+		{
+			PipelineState.Graphics.MinDepth = MinDepth;
+			PipelineState.Graphics.MaxDepth = MaxDepth;
+
+			bNeedSetDepthBounds = true;
+		}
+	}
 
 	D3D12_STATE_CACHE_INLINE void AutoFlushComputeShaderCache(bool bEnable)
 	{

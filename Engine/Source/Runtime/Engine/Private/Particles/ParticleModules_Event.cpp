@@ -281,6 +281,7 @@ bool UParticleModuleEventReceiverKillParticles::ProcessParticleEvent(FParticleEm
 		if (bStopSpawning == true)
 		{
 			Owner->SetHaltSpawning(true);
+			Owner->SetHaltSpawningExternal(true);
 		}
 		return true;
 	}

@@ -1,6 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -13,7 +11,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
     /// </summary>
     public class FunctionRepository : IFunctionRepository
     {
-        private readonly CrashReportEntities _entityContext;
+        private CrashReportEntities _entityContext;
 
         /// <summary>
         /// Constructor
@@ -34,6 +32,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public IQueryable<FunctionCall> ListAll()
         {
             return _entityContext.FunctionCalls;
+        }
+
+        /// <summary>
+        /// Count the number of objects that satisfy the filter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public int Count(Expression<Func<FunctionCall, bool>> filter)
+        {
+            return _entityContext.FunctionCalls.Count(filter);
         }
 
         /// <summary>
@@ -107,6 +115,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         public FunctionCall First(Expression<Func<FunctionCall, bool>> filter)
         {
             return _entityContext.FunctionCalls.FirstOrDefault(filter);
+        }
+
+        /// <summary>
+        /// Get the first function calls matching a specific filter.
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public int FirstId(Expression<Func<FunctionCall, bool>> filter)
+        {
+            return _entityContext.FunctionCalls.Where(filter).Select(data => data.Id).First();
         }
 
         /// <summary>

@@ -9,6 +9,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using Amazon.S3.IO;
 
 namespace Tools.CrashReporter.CrashReportCommon
 {
@@ -163,6 +164,35 @@ namespace Tools.CrashReporter.CrashReportCommon
 
 			return S3Client.GetObject(ObjectRequest);
 		}
+
+        /// <summary>
+        /// Retrieves an URL with the appropriate signature to access the file for a predetermined amount of time
+        /// </summary>
+        /// <param name="BucketName">S3 bucket name</param>
+        /// <param name="Key">S3 object key</param>
+        /// <param name="expirationInMinutes">Expiration of link in minutes</param>
+        /// <returns>The URL that can be used to access the file</returns>
+        public string GetS3SignedUrl(string BucketName, string Key, int expirationInMinutes)
+        {
+            if (!IsS3Valid) return null;
+
+            string url = null;
+
+            S3FileInfo s3FileInfo = new Amazon.S3.IO.S3FileInfo(S3Client, BucketName, Key);
+            if (s3FileInfo.Exists)
+            {
+                url = S3Client.GetPreSignedURL(new GetPreSignedUrlRequest
+                {
+                    BucketName = BucketName,
+                    Key = Key,
+                    Expires = DateTime.UtcNow.AddMinutes(expirationInMinutes)
+                    //ResponseHeaderOverrides = new ResponseHeaderOverrides() { ContentDisposition = "attachment; filename=\"test.txt\"", }
+                });
+
+            }            
+
+            return url;
+        }
 
 		/// <summary>
 		/// Uploads a file to S3 synchronously (blocks until complete).

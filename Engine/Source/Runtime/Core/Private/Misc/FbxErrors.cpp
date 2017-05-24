@@ -49,6 +49,8 @@ FName FFbxErrors::Generic_Mesh_LOD_MultipleFilesSelected(TEXT("Generic_Mesh_LOD_
 
 FName FFbxErrors::Generic_Mesh_SkinxxNameError(TEXT("Generic_Mesh_SkinxxNameError"));
 
+FName FFbxErrors::Generic_Mesh_TooManyLODs(TEXT("Generic_Mesh_TooManyLODs"));
+
 /** Static Mesh **/
 FName FFbxErrors::StaticMesh_TooManyMaterials(TEXT("StaticMesh_TooManyMaterials"));
 
@@ -76,8 +78,6 @@ FName FFbxErrors::SkeletalMesh_RestoreSortingNoSectionMatch(TEXT("SkeletalMesh_R
 FName FFbxErrors::SkeletalMesh_RestoreSortingForSectionNumber(TEXT("SkeletalMesh_RestoreSortingForSectionNumber"));
 
 FName FFbxErrors::SkeletalMesh_NoMeshFoundOnRoot(TEXT("SkeletalMesh_NoMeshFoundOnRoot"));
-
-FName FFbxErrors::SkeletalMesh_ImportSubDSurface(TEXT("SkeletalMesh_ImportSubDSurface"));
 
 FName FFbxErrors::SkeletalMesh_InvalidRoot(TEXT("SkeletalMesh_InvalidRoot"));
 
@@ -151,6 +151,10 @@ FName FFbxErrors::Animation_MissingBones(TEXT("Animation_MissingBones"));
 FName FFbxErrors::Animation_InvalidData(TEXT("Animation_InvalidData"));
 
 FName FFbxErrors::Animation_TransformError(TEXT("Animation_TransformError"));
+
+FName FFbxErrors::Animation_DifferentLength(TEXT("Animation_DifferentLength"));
+
+FName FFbxErrors::Animation_CurveNotFound(TEXT("Animation_CurveNotFound"));
 
 static const FString FbxErrorsPath = TEXT("Shared/Editor/FbxErrors");
 

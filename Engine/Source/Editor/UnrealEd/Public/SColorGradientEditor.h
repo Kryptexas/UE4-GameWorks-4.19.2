@@ -148,7 +148,7 @@ private:
 	 * @param DrawEffects		Any draw effects to apply
 	 * @param bColor			If true RGB of the Color param will be used, otherwise the A value will be used
 	 */
-	void DrawGradientStopMark( const FGradientStopMark& Mark, const FGeometry& Geometry, float XPos, const FLinearColor& Color, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FSlateRect& InClippingRect, ESlateDrawEffect::Type DrawEffects, bool bColor, const FWidgetStyle& InWidgetStyle ) const;
+	void DrawGradientStopMark( const FGradientStopMark& Mark, const FGeometry& Geometry, float XPos, const FLinearColor& Color, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FSlateRect& InClippingRect, ESlateDrawEffect DrawEffects, bool bColor, const FWidgetStyle& InWidgetStyle ) const;
 
 	/**
 	 * Calculates the geometry of the gradient stop color mark area

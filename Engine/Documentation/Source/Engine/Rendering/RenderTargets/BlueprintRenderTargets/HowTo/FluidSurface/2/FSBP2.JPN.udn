@@ -1,27 +1,27 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:2. Required Asset Creation & Setup
-description:Going over creating and setting up the required assets for the Fluid Surface Blueprint.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:2.必要なアセットの作成と設定
+description:Fluid Surface ブループリントで必要なアセットの作成と設定の説明
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Advanced
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/FluidSurface
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:2
 checkpoint:FSB
 
 [NAV]
 
-For the fluid surface to function correctly, we are going to need to create some new assets. We'll also use some assets created for the Height Field Painter. In the following section, we will go over how each of these assets needs to be setup and any special properties that you will need to use. 
+流体サーフェスを正しく機能させるには、新しいアセットを作成する必要があります。ハイト フィールド ペインター用に作成したアセットもいくつか使用します。次のセクションでは、これらのアセットの設定方法と、使用する必要のある特別なプロパティについて説明します。 
 
-## Render Target Creation & Setup
-For the fluid surface to function correctly, we will need to create four new Render Targets by right-clicking in the **Content Browser** and from the menu that is displayed, go to **Create Advanced Asset** > **Materials & Textures** to select the **Render Target** option.
+## レンダー ターゲットの作成と設定
+流体サーフェスを正しく機能させるには、レンダー ターゲットを新規作成する必要があります。手順は、**コンテンツ ブラウザ** の右クリックで表示されるメニューから **[Create Advanced Asset (詳細アセットの作成)]** > **[Materials & Textures (マテリアルとテクスチャ)]** を選んで **[Render Target]** オプションを選択します。
 
 ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter\HFP_RT_Creation_00.png)
 
-Once you have created four new Render Targets, give them the following names:
+作成されたレンダー ターゲットに以下の名前を付けます。
 
 * `Height0`
 * `Height1`
@@ -30,14 +30,14 @@ Once you have created four new Render Targets, give them the following names:
 
 ![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\FS_Render_Targets.png)
 
-## Material Creation & Setup
-For the fluid simulation to work, we are going to need to create two new Materials; one Material for the water, and one Material for the heightmap simulation. To create these Materials, right-click in the **Content Browser** and from the **Create Basic Assets** list, select the Material option.
+## マテリアルの作成と設定
+流体シミュレーションを使用するには、水用とハイトマップ シミュレーション用にそれぞれ 1 つずつ、合わせて 2 つのマテリアルを新規作成する必要があります。マテリアルを作成するには、**コンテンツ ブラウザ** をクリックして **[Create Basic Assets (基本アセットを作成)]** リストから [Material] オプションを選択します。
 
 [region:note]
-Do not forget to Compile and Save your Blueprint so that it can be used.
+必ずブループリントをコンパイルおよび保存して使えるようにしてください。
 [/region]
 
-* **WaterMaterial** is what makes the surface look and act like water. Before you start to build WaterMaterial, make sure the following options have been set in the **Details** panel for the WaterMaterial.
+* **WaterMaterial** は、サーフェスを水のような外見と動きにします。WaterMaterial マテリアルを作成する前に、WaterMaterial マテリアルの **[Details (詳細)]** パネルで、以下のオプションが設定されているか確認してください。
 	* **Blend Mode:** Translucent
 	* **Lighting Mode:** Surface Translucency Volume
 	* **Used with Static Lighting:** True
@@ -48,26 +48,26 @@ Do not forget to Compile and Save your Blueprint so that it can be used.
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#WaterMaterial]
 	[/REGION]
 
-* The **HeightSim** Material is used to propagate the various waves that happen when you shoot at the surface of the fluid simulation. Before you start to build the HeightSim Material, make sure the following options have been set in the **Details** panel for the HeightSim Material.
-	* **Shading Model:** Unlit
+* **HeightSim** は、流体シミュレーションのサーフェスに向かって発砲した時に、様々な波を起こすマテリアルです。HeightSim マテリアルを作成する前に、HeightSim マテリアルの **[Details (詳細)]** パネルで、以下のオプションが設定されているか確認してください。
+	* **[Shading Model]:** Unlit (ライティング無し)
 	* **Allow Negative Emissive Color:** True
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#HeightSim]
 	[/REGION]
 
-* The **ComputeNormal** Material is used to create the normals that are needed for the water surface. Before you start to build the ComputeNormal Material, make sure the following options have been set in the **Details** panel for the ComputeNormal Material.
-	* **Shading Model:** Unlit
+* **ComputeNormal** マテリアルは、水のサーフェスに必要となる法線を作成します。ComputeNormal マテリアルを作成する前に、ComputeNormal マテリアルの **[Details (詳細)]** パネルで、以下のオプションが設定されているか確認してください。
+	* **[Shading Model]:** Unlit (ライティング無し)
 	* **Allow Negative Emissive Color:** True
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\2\#CompNormal]
 	[/REGION]
 
-* The **MAT_ForceSplat** is used to determine where the impact happened and how big the impact was. Before you start to build the MAT_ForceSplat Material, make sure the following options have been set in the **Details** panel for the MAT_ForceSplat Material. 
-	
+* **MAT_ForceSplat** は、衝撃を受ける場所と大きさを決定するマテリアルです。MAT_ForceSplat マテリアルを作成する前に、MAT_ForceSplat マテリアルの **[Details (詳細)]** パネルで、以下のオプションが設定されているか確認してください。 
 	* **Blend Mode:** Additive
-	* **Shading Model:** Unlit
+
+	* **[Shading Model]:** Unlit (ライティング無し)
 	* **Allow Negative Emissive Color:** Checked
 
 	[REGION:fullwidth]
@@ -75,11 +75,11 @@ Do not forget to Compile and Save your Blueprint so that it can be used.
 	[/REGION]
 
 	[region:note]
-	The MAT_ForceSplat Material is the same Material that was used in the [Height Field Painter](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter). If you have already created this Material, feel free to use that one. 
+	MAT_ForceSplat マテリアルは [ハイトフィールド ペインター](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\HeightFieldPainter) で使われているマテリアルと同じものです。このマテリアルを既に作成していれば、それを使用することができます。 
 	[/region]
 
 
-With the necessary assets now setup, in the next section, we will take a look at how each piece fits togther to create the Fluid Surface Blueprint.
+必要なアセットの設定はこれで完了です。次のセクションで、Fluid Surface ブループリントを作成するために各要素を連動させる方法を説明します。
 [NAV]
 
 <!--

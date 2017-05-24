@@ -11,14 +11,125 @@ using System.Reflection;
 
 namespace UnrealBuildTool
 {
-	public class Distcc : ActionExecutor
+	class Distcc : ActionExecutor
 	{
+		/// <summary>
+		/// When enabled allows DMUCS/Distcc to fallback to local compilation when remote compiling fails. Defaults to true as separation of pre-process and compile stages can introduce non-fatal errors.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public bool bAllowDistccLocalFallback = true;
+
+		/// <summary>
+		/// When true enable verbose distcc output to aid debugging.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public bool bVerboseDistccOutput = false;
+
+		/// <summary>
+		/// Path to the Distcc and DMUCS executables.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public string DistccExecutablesPath = "/usr/local/bin";
+
+		/// <summary>
+		/// DMUCS coordinator hostname or IP address.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public string DMUCSCoordinator = "localhost";
+
+		/// <summary>
+		/// The DMUCS distinguishing property value to request for compile hosts.
+		/// </summary>
+		[XmlConfigFile(Category = "BuildConfiguration")]
+		public string DMUCSDistProp = "";
+
+		public Distcc()
+		{
+			XmlConfig.ApplyTo(this);
+
+			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+			{
+				string UserDir = Environment.GetEnvironmentVariable("HOME");
+				string MacDistccExecutablesPath = UserDir + "/Library/Application Support/Developer/Shared/Xcode/Plug-ins/Distcc 3.2.xcplugin/Contents/usr/bin";
+
+				// But we should use the standard Posix directory when not installed - a build farm would use a static .dmucs hosts file not DistCode.
+				if (System.IO.Directory.Exists(MacDistccExecutablesPath))
+				{
+					DistccExecutablesPath = MacDistccExecutablesPath;
+				}
+
+				if (System.IO.File.Exists(UserDir + "/Library/Preferences/com.marksatt.DistCode.plist"))
+				{
+					using (System.Diagnostics.Process DefaultsProcess = new System.Diagnostics.Process())
+					{
+						try
+						{
+							DefaultsProcess.StartInfo.FileName = "/usr/bin/defaults";
+							DefaultsProcess.StartInfo.CreateNoWindow = true;
+							DefaultsProcess.StartInfo.UseShellExecute = false;
+							DefaultsProcess.StartInfo.RedirectStandardOutput = true;
+							DefaultsProcess.StartInfo.RedirectStandardError = true;
+							DefaultsProcess.StartInfo.Arguments = "read com.marksatt.DistCode DistProp";
+							DefaultsProcess.Start();
+							string Output = DefaultsProcess.StandardOutput.ReadToEnd();
+							DefaultsProcess.WaitForExit();
+							if (DefaultsProcess.ExitCode == 0)
+							{
+								DMUCSDistProp = Output;
+							}
+						}
+						catch (Exception)
+						{
+						}
+					}
+                    using (System.Diagnostics.Process CoordModeProcess = new System.Diagnostics.Process())
+                    {
+                        using (System.Diagnostics.Process DefaultsProcess = new System.Diagnostics.Process())
+                        {
+                            try
+                            {
+                                CoordModeProcess.StartInfo.FileName = "/usr/bin/defaults";
+                                CoordModeProcess.StartInfo.CreateNoWindow = true;
+                                CoordModeProcess.StartInfo.UseShellExecute = false;
+                                CoordModeProcess.StartInfo.RedirectStandardOutput = true;
+								CoordModeProcess.StartInfo.RedirectStandardError = true;
+                                CoordModeProcess.StartInfo.Arguments = "read com.marksatt.DistCode CoordinatorMode";
+                                CoordModeProcess.Start();
+                                string CoordModeProcessOutput = CoordModeProcess.StandardOutput.ReadToEnd();
+                                CoordModeProcess.WaitForExit();
+                                if (CoordModeProcess.ExitCode == 0 && CoordModeProcessOutput.StartsWith("1"))
+                                {
+                                    DefaultsProcess.StartInfo.FileName = "/usr/bin/defaults";
+                                    DefaultsProcess.StartInfo.CreateNoWindow = true;
+                                    DefaultsProcess.StartInfo.UseShellExecute = false;
+                                    DefaultsProcess.StartInfo.RedirectStandardOutput = true;
+									DefaultsProcess.StartInfo.RedirectStandardError = true;
+                                    DefaultsProcess.StartInfo.Arguments = "read com.marksatt.DistCode CoordinatorIP";
+                                    DefaultsProcess.Start();
+                                    string Output = DefaultsProcess.StandardOutput.ReadToEnd();
+                                    DefaultsProcess.WaitForExit();
+                                    if (DefaultsProcess.ExitCode == 0)
+                                    {
+                                        DMUCSCoordinator = Output;
+                                    }
+                                }
+                            }
+                            catch (Exception)
+                            {
+                            }
+                        }
+                    }
+				}
+			}
+		}
+
 		public override string Name
 		{
 			get { return "Distcc"; }
 		}
 
-		public override bool ExecuteActions(List<Action> Actions)
+		public override bool ExecuteActions(List<Action> Actions, bool bLogDetailedActionStats)
 		{
 			bool bDistccResult = true;
 			if (Actions.Count > 0)
@@ -83,18 +194,18 @@ namespace UnrealBuildTool
 					MaxActionsToExecuteInParallel = System.Environment.ProcessorCount;
 				}
 
-				if (BuildConfiguration.bAllowDistccLocalFallback == false)
+				if (bAllowDistccLocalFallback == false)
 				{
 					Environment.SetEnvironmentVariable("DISTCC_FALLBACK", "0");
 				}
 
-				if (BuildConfiguration.bVerboseDistccOutput == true)
+				if (bVerboseDistccOutput == true)
 				{
 					Environment.SetEnvironmentVariable("DISTCC_VERBOSE", "1");
 				}
 
-				string DistccExecutable = BuildConfiguration.DistccExecutablesPath + "/distcc";
-				string GetHostExecutable = BuildConfiguration.DistccExecutablesPath + "/gethost";
+				string DistccExecutable = DistccExecutablesPath + "/distcc";
+				string GetHostExecutable = DistccExecutablesPath + "/gethost";
 
 				Log.TraceInformation("Performing {0} actions ({1} in parallel)", Actions.Count, MaxActionsToExecuteInParallel, DistccExecutable, GetHostExecutable);
 
@@ -190,10 +301,18 @@ namespace UnrealBuildTool
 									// If there aren't any outdated prerequisites of this action, execute it.
 									else if (!bHasOutdatedPrerequisites)
 									{
-										if ((Action.ActionType == ActionType.Compile || Action.ActionType == ActionType.Link) && DistccExecutable != null && GetHostExecutable != null)
+										if (Action.ActionType == ActionType.Compile || Action.ActionType == ActionType.Link)
 										{
-											string TypeCommand = String.IsNullOrEmpty(BuildConfiguration.DMUCSDistProp) ? "" : (" --type " + BuildConfiguration.DMUCSDistProp);
-											string NewCommandArguments = "--server " + BuildConfiguration.DMUCSCoordinator + TypeCommand + " --wait -1 \"" + DistccExecutable + "\" " + Action.CommandPath + " " + Action.CommandArguments;
+											string TypeCommand = String.IsNullOrEmpty(DMUCSDistProp) ? "" : (" --type " + DMUCSDistProp);
+											string NewCommandArguments = "--server " + DMUCSCoordinator + TypeCommand + " --wait -1 \"" + DistccExecutable + "\" " + Action.CommandPath + " " + Action.CommandArguments;
+											
+											if (Action.ActionType == ActionType.Compile)
+											{
+												// Distcc separates preprocessing and compilation which means we must silence these warnings
+												NewCommandArguments += " -Wno-constant-logical-operand";
+												NewCommandArguments += " -Wno-parentheses-equality";
+											}
+											
 											Action.CommandPath = GetHostExecutable;
 											Action.CommandArguments = NewCommandArguments;
 										}
@@ -214,8 +333,8 @@ namespace UnrealBuildTool
 					}
 				}
 
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
+				Log.WriteLineIf(bLogDetailedActionStats, LogEventType.Console, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
+				Log.WriteLineIf(bLogDetailedActionStats, LogEventType.Console, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
 
 				double TotalThreadSeconds = 0;
 
@@ -239,7 +358,7 @@ namespace UnrealBuildTool
 					// Log CPU time, tool and task.
 					double ThreadSeconds = Action.Duration.TotalSeconds;
 
-					Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats,
+					Log.WriteLineIf(bLogDetailedActionStats,
 						LogEventType.Console,
 						"^{0}^{1:0.00}^{2}^{3}^{4}",
 						Action.ActionType.ToString(),
@@ -252,12 +371,12 @@ namespace UnrealBuildTool
 					TotalThreadSeconds += ThreadSeconds;
 				}
 
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+				Log.WriteLineIf(bLogDetailedActionStats || UnrealBuildTool.bPrintDebugInfo,
 					LogEventType.Console,
 					"-------- End Detailed Actions Stats -----------------------------------------------------------");
 
 				// Log total CPU seconds and numbers of processors involved in tasks.
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+				Log.WriteLineIf(bLogDetailedActionStats || UnrealBuildTool.bPrintDebugInfo,
 					LogEventType.Console, "Cumulative thread seconds ({0} processors): {1:0.00}", System.Environment.ProcessorCount, TotalThreadSeconds);
 			}
 			return bDistccResult;

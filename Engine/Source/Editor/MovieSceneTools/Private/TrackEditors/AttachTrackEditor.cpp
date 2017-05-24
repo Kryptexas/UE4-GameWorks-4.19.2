@@ -36,7 +36,34 @@ public:
 		return LOCTEXT("SectionDisplayName", "Attach");
 	}
 	
-	virtual FText GetSectionTitle() const override { return FText::GetEmpty(); }
+	virtual FText GetSectionTitle() const override 
+	{ 
+		UMovieScene3DAttachSection* AttachSection = Cast<UMovieScene3DAttachSection>(&Section);
+		if (AttachSection)
+		{
+			TSharedPtr<ISequencer> Sequencer = AttachTrackEditor->GetSequencer();
+			if (Sequencer.IsValid())
+			{
+				TArrayView<TWeakObjectPtr<UObject>> RuntimeObjects = Sequencer->FindBoundObjects(AttachSection->GetConstraintId(), Sequencer->GetFocusedTemplateID());
+				if (RuntimeObjects.Num() == 1 && RuntimeObjects[0].IsValid())
+				{
+					if (AActor* Actor = Cast<AActor>(RuntimeObjects[0].Get()))
+					{
+						if (AttachSection->AttachSocketName.IsNone())
+						{
+							return FText::FromString(Actor->GetActorLabel());
+						}
+						else
+						{
+							return FText::Format(LOCTEXT("SectionTitleFormat", "{0} ({1})"), FText::FromString(Actor->GetActorLabel()), FText::FromName(AttachSection->AttachSocketName));
+						}
+					}
+				}
+			}
+		}
+
+		return FText::GetEmpty(); 
+	}
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 

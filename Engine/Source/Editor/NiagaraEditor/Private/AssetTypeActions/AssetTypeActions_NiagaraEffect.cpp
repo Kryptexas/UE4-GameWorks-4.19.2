@@ -2,8 +2,7 @@
 
 #include "AssetTypeActions/AssetTypeActions_NiagaraEffect.h"
 #include "NiagaraEffect.h"
-#include "NiagaraEffectEditor.h"
-
+#include "NiagaraEffectToolkit.h"
 
 void FAssetTypeActions_NiagaraEffect::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor)
 {
@@ -14,8 +13,8 @@ void FAssetTypeActions_NiagaraEffect::OpenAssetEditor(const TArray<UObject*>& In
 		auto Effect = Cast<UNiagaraEffect>(*ObjIt);
 		if (Effect != NULL)
 		{
-			TSharedRef< FNiagaraEffectEditor > NewNiagaraEditor(new FNiagaraEffectEditor());
-			NewNiagaraEditor->InitNiagaraEffectEditor(Mode, EditWithinLevelEditor, Effect);
+			TSharedRef< FNiagaraEffectToolkit > NewNiagaraEffectToolkit(new FNiagaraEffectToolkit());
+			NewNiagaraEffectToolkit->Initialize(Mode, EditWithinLevelEditor, Effect);
 		}
 	}
 }

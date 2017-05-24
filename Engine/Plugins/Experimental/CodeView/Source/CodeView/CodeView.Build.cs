@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class CodeView : ModuleRules
 	{
-		public CodeView(TargetInfo Target)
+		public CodeView(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[]

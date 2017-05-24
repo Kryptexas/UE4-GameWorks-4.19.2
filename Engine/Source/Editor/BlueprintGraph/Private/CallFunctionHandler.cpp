@@ -6,6 +6,7 @@
 #include "K2Node_Event.h"
 #include "K2Node_CallParentFunction.h"
 #include "K2Node_ExecutionSequence.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "EdGraphUtilities.h"
 #include "Engine/BlueprintGeneratedClass.h"
@@ -155,8 +156,8 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					}
 					else
 					{
-						CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("FindPinFromLinkage_Error", "Function %s (called from @@) was specified with LatentInfo metadata but does not have a pin named %s").ToString(),
-							*(Function->GetName()), *(It.Value())), Node);
+						CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("FindPinFromLinkage_ErrorFmt", "Function {0} (called from @@) was specified with LatentInfo metadata but does not have a pin named {1}"),
+							FText::FromString(Function->GetName()), FText::FromString(It.Value())).ToString(), Node);
 					}
 				}
 			}
@@ -314,7 +315,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 
 			if (!bFoundParam)
 			{
-				CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("FindPinParameter_Error", "Could not find a pin for the parameter %s of %s on @@").ToString(), *Property->GetName(), *Function->GetName()), Node);
+				CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("FindPinParameter_ErrorFmt", "Could not find a pin for the parameter {0} of {1} on @@"), FText::FromString(Property->GetName()), FText::FromString(Function->GetName())).ToString(), Node);
 				bMatchedAllParams = false;
 			}
 		}
@@ -322,7 +323,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		// At this point, we should have consumed all pins.  If not, there are extras that need to be removed.
 		for (int32 i = 0; i < RemainingPins.Num(); ++i)
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("PinMismatchParameter_Error", "Pin @@ named %s doesn't match any parameters of function %s").ToString(), *RemainingPins[i]->PinName, *Function->GetName()), RemainingPins[i]);
+			CompilerContext.MessageLog.Error(*FText::Format(LOCTEXT("PinMismatchParameter_ErrorFmt", "Pin @@ named {0} doesn't match any parameters of function {1}"), FText::FromString(RemainingPins[i]->PinName), FText::FromString(Function->GetName())).ToString(), RemainingPins[i]);
 		}
 
 		if (NumErrorsAtStart == CompilerContext.MessageLog.NumErrors)
@@ -522,7 +523,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 	}
 	else
 	{
-		FString WarningMessage = FString::Printf(*LOCTEXT("FindFunction_Error", "Could not find the function '%s' called from @@").ToString(), *GetFunctionNameFromNode(Node));
+		FString WarningMessage = FText::Format(LOCTEXT("FindFunction_ErrorFmt", "Could not find the function '{0}' called from @@"), FText::FromString(GetFunctionNameFromNode(Node))).ToString();
 		CompilerContext.MessageLog.Warning(*WarningMessage, Node);
 	}
 }
@@ -604,7 +605,7 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 		}
 		if (Function->HasMetaData(FBlueprintMetadata::MD_WorldContext))
 		{
-			const bool bHasIntrinsicWorldContext = !K2Schema->IsStaticFunctionGraph(Context.SourceGraph) && Context.Blueprint->ParentClass->GetDefaultObject()->ImplementsGetWorld();
+			const bool bHasIntrinsicWorldContext = !K2Schema->IsStaticFunctionGraph(Context.SourceGraph) && FBlueprintEditorUtils::ImplentsGetWorld(Context.Blueprint);
 
 			FString const WorldContextPinName = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
 
@@ -763,12 +764,12 @@ void FKCHandler_CallFunction::Compile(FKismetFunctionContext& Context, UEdGraphN
 		UEdGraphPin* ExecTriggeringPin = CompilerContext.GetSchema()->FindExecutionPin(*Node, EGPD_Input);
 		if (ExecTriggeringPin == NULL)
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "NoValidExecutionPinForCallFunc_Error", "@@ must have a valid execution pin").ToString()), Node);
+			CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "NoValidExecutionPinForCallFunc_Error", "@@ must have a valid execution pin").ToString(), Node);
 			return;
 		}
 		else if (ExecTriggeringPin->LinkedTo.Num() == 0)
 		{
-			CompilerContext.MessageLog.Warning(*FString::Printf(*NSLOCTEXT("KismetCompiler", "NodeNeverExecuted_Warning", "@@ will never be executed").ToString()), Node);
+			CompilerContext.MessageLog.Warning(*NSLOCTEXT("KismetCompiler", "NodeNeverExecuted_Warning", "@@ will never be executed").ToString(), Node);
 			return;
 		}
 	}
@@ -798,7 +799,7 @@ void FKCHandler_CallFunction::CheckIfFunctionIsCallable(UFunction* Function, FKi
 	{
 		if (!IsCalledFunctionFinal(Node) && Function->GetName().Find(CompilerContext.GetSchema()->FN_ExecuteUbergraphBase.ToString()))
 		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "ShouldNotCallFromBlueprint_Error", "Function '%s' called from @@ should not be called from a Blueprint").ToString(), *Function->GetName()), Node);
+			CompilerContext.MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "ShouldNotCallFromBlueprint_ErrorFmt", "Function '{0}' called from @@ should not be called from a Blueprint"), FText::FromString(Function->GetName())).ToString(), Node);
 		}
 	}
 }

@@ -622,7 +622,7 @@ void FOculusInput::UpdateForceFeedback( const FOculusTouchControllerPair& Contro
 	}
 }
 
-bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition ) const
+bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition, float WorldToMetersScale) const
 {
 	bool bHaveControllerData = false;
 
@@ -630,7 +630,7 @@ bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIn
 	{
 		if( ControllerPair.UnrealControllerIndex == ControllerIndex )
 		{
-			if( (int32)DeviceHand >= 0 && (int32)DeviceHand < 2 )
+			if( (DeviceHand == EControllerHand::Left) || (DeviceHand == EControllerHand::Right) )
 			{
 				if (IsInGameThread())
 				{
@@ -664,6 +664,8 @@ bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIn
 
 								NewOrientation = ToFQuat(InPose.Orientation);
 								float WTMS = Frame->WorldToMetersScaleWhileInFrame;
+								// Oculus is tracking its own WorldToMetersScale, so we won't use the passed in one.  
+								// Debugging found that the oculus value is one frame old, but it seems unlikely a human would ever notice that.
 								const FVector Pos = (ToFVector_M2U(OVR::Vector3f(InPose.Position), WTMS) - (Frame->Settings->BaseOffset * WTMS)) * Frame->CameraScale3D;
 								OutPosition = Frame->Settings->BaseOrientation.Inverse().RotateVector(Pos);
 
@@ -690,7 +692,7 @@ ETrackingStatus FOculusInput::GetControllerTrackingStatus(const int32 Controller
 {
 	ETrackingStatus TrackingStatus = ETrackingStatus::NotTracked;
 
-	if ((int32) DeviceHand < 0 || (int32)DeviceHand >= 2)
+	if (DeviceHand != EControllerHand::Left && DeviceHand != EControllerHand::Right)
 	{
 		return TrackingStatus;
 	}

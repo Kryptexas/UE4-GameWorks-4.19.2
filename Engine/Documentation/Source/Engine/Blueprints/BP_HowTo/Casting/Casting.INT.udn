@@ -10,6 +10,7 @@ version: 4.9
 Parent:Engine/Blueprints/HowTo
 type:how-to
 tags:Data Types
+tags:Blueprints
 order:3
 
 This page covers how to use Blueprint Casting to communicate with different Blueprints and share information. In this example we allow the player to shoot an object, making it smaller each time it is hit. Each time the object is hit, it also notifies the Character Blueprint and increases the player's movement speed. 

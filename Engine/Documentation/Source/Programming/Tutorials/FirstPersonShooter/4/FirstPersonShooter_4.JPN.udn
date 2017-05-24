@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:3069483
-Availability: Public
+﻿INTSourceChangelist:3108692
+Availability:Public
 Title:4 - キャラクター アニメーションを追加する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
 Description:First Person Shooter キャラクターにアニメーションを追加する方法を学びます。
-Prereq:Programming/Tutorials/FirstPersonShooter/3
+prereq:Programming/Tutorials/FirstPersonShooter/3
 Related:Programming/Tutorials/FirstPersonShooter
-SkillLevel:初心者向け
+SkillLevel:Beginner
 Version:4.9
 
 ![](FinalShot.png)
-_このセクションの最後まで終了すると、この画面のようになります。_
+_このセクションの最後まで終了すると、上の画面のようになります。_
 
 ## 目標
 

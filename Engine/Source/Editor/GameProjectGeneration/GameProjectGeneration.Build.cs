@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class GameProjectGeneration : ModuleRules
 {
-    public GameProjectGeneration(TargetInfo Target)
+    public GameProjectGeneration(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.AddRange(new string[] { "GameProjectGeneration/Private", "GameProjectGeneration/Public", "GameProjectGeneration/Classes" });
 
@@ -46,6 +46,7 @@ public class GameProjectGeneration : ModuleRules
 				"DesktopPlatform",
                 "HardwareTargeting",
 				"AddContentDialog",
+                "AudioMixer"
 			}
 		);
 

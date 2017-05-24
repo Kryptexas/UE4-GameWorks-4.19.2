@@ -142,4 +142,9 @@ public:
 	* @param InActor - Actor to check and find cluster for
 	*/
 	virtual void HandleActorModified(AActor* InActor) = 0;
+
+	/** Checks whether or not the given InWorld is used as a streaming level by any other World in the level 
+	* @param InWorld - World to check whether or not it is used as a streaming level
+	*/
+	virtual bool IsWorldUsedForStreaming(const UWorld* InWorld) = 0;
 };

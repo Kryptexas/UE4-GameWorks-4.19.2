@@ -55,10 +55,17 @@ enum EMetalAccess
     EMetalAccessReadWrite = 3,
 };
 
+enum EMetalGPUSemantics
+{
+	EMetalGPUSemanticsMobile, // Mobile shaders for TBDR GPUs
+	EMetalGPUSemanticsTBDRDesktop, // Desktop shaders for TBDR GPUs
+	EMetalGPUSemanticsImmediateDesktop // Desktop shaders for Immediate GPUs
+};
+
 // Generates Metal compliant code from IR tokens
 struct FMetalCodeBackend : public FCodeBackend
 {
-	FMetalCodeBackend(FMetalTessellationOutputs& Attribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 Version, bool bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks);
+	FMetalCodeBackend(FMetalTessellationOutputs& Attribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 Version, EMetalGPUSemantics bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks);
 
 	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override;
 
@@ -81,7 +88,7 @@ struct FMetalCodeBackend : public FCodeBackend
     FMetalTessellationOutputs& TessAttribs;
     
     uint8 Version;
-	bool bIsDesktop;
+	EMetalGPUSemantics bIsDesktop;
 	bool bZeroInitialise;
 	bool bBoundsChecks;
 

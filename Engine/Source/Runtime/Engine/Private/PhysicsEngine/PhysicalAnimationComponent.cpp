@@ -54,6 +54,7 @@ void UPhysicalAnimationComponent::InitComponent()
 {
 	if (SkeletalMeshComponent)
 	{
+		OnTeleportDelegateHandle = SkeletalMeshComponent->RegisterOnTeleportDelegate(FOnSkelMeshTeleported::CreateUObject(this, &UPhysicalAnimationComponent::OnTeleport));
 		PrimaryComponentTick.AddPrerequisite(SkeletalMeshComponent, SkeletalMeshComponent->PrimaryComponentTick);
 		UpdatePhysicsEngine();
 	}
@@ -61,12 +62,22 @@ void UPhysicalAnimationComponent::InitComponent()
 
 void UPhysicalAnimationComponent::BeginDestroy()
 {
+	if(SkeletalMeshComponent && OnTeleportDelegateHandle.IsValid())
+	{
+		SkeletalMeshComponent->UnregisterOnTeleportDelegate(OnTeleportDelegateHandle);
+	}
+
 	ReleasePhysicsEngine();
 	Super::BeginDestroy();
 }
 
 void UPhysicalAnimationComponent::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
 {
+	if(SkeletalMeshComponent && OnTeleportDelegateHandle.IsValid())
+	{
+		SkeletalMeshComponent->UnregisterOnTeleportDelegate(OnTeleportDelegateHandle);
+	}
+
 	SkeletalMeshComponent = InSkeletalMeshComponent;
 	DriveData.Empty();
 	ReleasePhysicsEngine();
@@ -158,6 +169,47 @@ void UPhysicalAnimationComponent::ApplyPhysicalAnimationProfileBelow(FName BodyN
 	}
 }
 
+FTransform UPhysicalAnimationComponent::GetBodyTargetTransform(FName BodyName) const
+{
+	if (SkeletalMeshComponent)
+	{
+#if WITH_PHYSX
+		for (int32 DataIdx = 0; DataIdx < DriveData.Num(); ++DataIdx)
+		{
+			const FPhysicalAnimationData& PhysAnimData = DriveData[DataIdx];
+			const FPhysicalAnimationInstanceData& InstanceData = RuntimeInstanceData[DataIdx];
+			if (BodyName == PhysAnimData.BodyName)
+			{
+				if (PxRigidDynamic* TargetActor = InstanceData.TargetActor)
+				{
+					PxTransform PKinematicTarget;
+					if (TargetActor->getKinematicTarget(PKinematicTarget))
+					{
+						return P2UTransform(PKinematicTarget);
+					}
+					else
+					{
+						return P2UTransform(TargetActor->getGlobalPose());
+					}
+				}
+
+				break;
+			}
+		}
+#endif
+
+		// if body isn't controlled by physical animation, just return the body position
+		const TArray<FTransform>& ComponentSpaceTransforms = SkeletalMeshComponent->GetComponentSpaceTransforms();
+		const int32 BoneIndex = SkeletalMeshComponent->GetBoneIndex(BodyName);
+		if (ComponentSpaceTransforms.IsValidIndex(BoneIndex))
+		{
+			return ComponentSpaceTransforms[BoneIndex] * SkeletalMeshComponent->GetComponentToWorld();
+		}
+	}
+
+	return FTransform::Identity;
+}
+
 FTransform ComputeWorldSpaceTargetTM(const USkeletalMeshComponent& SkeletalMeshComponent, const TArray<FTransform>& SpaceBases, int32 BoneIndex)
 {
 	return SpaceBases[BoneIndex] * SkeletalMeshComponent.GetComponentToWorld();
@@ -178,7 +230,7 @@ FTransform ComputeLocalSpaceTargetTM(const USkeletalMeshComponent& SkeletalMeshC
 			break;
 		}
 
-		if (BodyIndex != INDEX_NONE)
+		if (SkeletalMeshComponent.Bodies.IsValidIndex(BodyIndex))
 		{
 
 			FBodyInstance* ParentBody = SkeletalMeshComponent.Bodies[BodyIndex];
@@ -197,7 +249,7 @@ FTransform ComputeTargetTM(const FPhysicalAnimationData& PhysAnimData, const USk
 	return PhysAnimData.bIsLocalSimulation ? ComputeLocalSpaceTargetTM(SkeletalMeshComponent, PhysAsset, BoneIndex) : ComputeWorldSpaceTargetTM(SkeletalMeshComponent, SpaceBases, BoneIndex);
 }
 
-void UPhysicalAnimationComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void UPhysicalAnimationComponent::UpdateTargetActors(ETeleportType TeleportType)
 {
 	UPhysicsAsset* PhysAsset = SkeletalMeshComponent ? SkeletalMeshComponent->GetPhysicsAsset() : nullptr;
 	if (PhysAsset && SkeletalMeshComponent->SkeletalMesh)
@@ -213,19 +265,35 @@ void UPhysicalAnimationComponent::TickComponent(float DeltaTime, enum ELevelTick
 			{
 				const FPhysicalAnimationData& PhysAnimData = DriveData[DataIdx];
 				FPhysicalAnimationInstanceData& InstanceData = RuntimeInstanceData[DataIdx];
-				if(PxRigidDynamic* TargetActor = InstanceData.TargetActor)
+				if (PxRigidDynamic* TargetActor = InstanceData.TargetActor)
 				{
 					const int32 BoneIdx = RefSkeleton.FindBoneIndex(PhysAnimData.BodyName);
-					if(BoneIdx != INDEX_NONE)	//It's possible the skeletal mesh has changed out from under us. In that case we should probably reset, but at the very least don't do work on non-existent bones
+					if (BoneIdx != INDEX_NONE)	//It's possible the skeletal mesh has changed out from under us. In that case we should probably reset, but at the very least don't do work on non-existent bones
 					{
 						const FTransform TargetTM = ComputeTargetTM(PhysAnimData, *SkeletalMeshComponent, *PhysAsset, SpaceBases, BoneIdx);
 						TargetActor->setKinematicTarget(U2PTransform(TargetTM));	//TODO: this doesn't work with sub-stepping!
+						
+						if(TeleportType == ETeleportType::TeleportPhysics)
+						{
+							TargetActor->setGlobalPose(U2PTransform(TargetTM));	//Note that we still set the kinematic target because physx doesn't clear this
+						}
+						
 					}
 				}
 			}
 		}
 #endif
 	}
+}
+
+void UPhysicalAnimationComponent::OnTeleport()
+{
+	UpdateTargetActors(ETeleportType::TeleportPhysics);
+}
+
+void UPhysicalAnimationComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+{
+	UpdateTargetActors(ETeleportType::None);
 }
 
 //NOTE: Technically skeletal mesh component could have bodies in multiple scenes. This doesn't seem like a legit setup though and we should probably enforce that it's not supported.

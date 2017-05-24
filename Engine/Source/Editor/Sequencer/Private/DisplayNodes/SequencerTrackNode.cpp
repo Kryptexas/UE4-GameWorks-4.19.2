@@ -77,68 +77,10 @@ void FSequencerTrackNode::SetRowIndex(int32 InRowIndex)
 /* FSequencerDisplayNode interface
  *****************************************************************************/
 
-namespace
-{
-	void AddBoolPropertyMenuItem(FMenuBuilder& MenuBuilder, FCanExecuteAction InCanExecute, UMovieSceneTrack* Track, const UBoolProperty* Property, void* PropertyContainer)
-	{
-		MenuBuilder.AddMenuEntry(
-			Property->GetDisplayNameText(),
-			Property->GetToolTipText(),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateLambda([Track, Property, PropertyContainer]{
-					FScopedTransaction Transaction(FText::Format(NSLOCTEXT("Sequencer", "TrackNodeSetRoundEvaluation", "Set '{0}'"), Property->GetDisplayNameText()));
-					Track->Modify();
-
-					bool bIsSet = Property->GetPropertyValue(PropertyContainer);
-					Property->SetPropertyValue(PropertyContainer, !bIsSet);
-				}),
-				InCanExecute,
-				FIsActionChecked::CreateLambda([PropertyContainer, Property]{ return Property->GetPropertyValue(PropertyContainer); })
-			),
-			NAME_None,
-			EUserInterfaceActionType::Check
-		);
-	}
-}
-
 void FSequencerTrackNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 {
 	AssociatedEditor.BuildTrackContextMenu(MenuBuilder, AssociatedTrack.Get());
 	FSequencerDisplayNode::BuildContextMenu(MenuBuilder );
-
-	MenuBuilder.BeginSection("GeneralTrackOptions", NSLOCTEXT("Sequencer", "TrackNodeGeneralOptions", "Track Options"));
-	{
-		UMovieSceneTrack* Track = AssociatedTrack.Get();
-		if (!Track)
-		{
-			return;
-		}
-
-		bool bIsReadOnly = !GetSequencer().IsReadOnly();
-		FCanExecuteAction CanExecute = FCanExecuteAction::CreateLambda([bIsReadOnly]{ return bIsReadOnly; });
-
-		UStruct* EvalOptionsStruct = FMovieSceneTrackEvalOptions::StaticStruct();
-
-		const UBoolProperty* NearestSectionProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateNearestSection)));
-		if (NearestSectionProperty && Track->EvalOptions.bCanEvaluateNearestSection)
-		{
-			AddBoolPropertyMenuItem(MenuBuilder, CanExecute, Track, NearestSectionProperty, NearestSectionProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
-		}
-
-		const UBoolProperty* PrerollProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateInPreroll)));
-		if (PrerollProperty)
-		{
-			AddBoolPropertyMenuItem(MenuBuilder, CanExecute, Track, PrerollProperty, PrerollProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
-		}
-
-		const UBoolProperty* PostrollProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateInPostroll)));
-		if (PostrollProperty)
-		{
-			AddBoolPropertyMenuItem(MenuBuilder, CanExecute, Track, PostrollProperty, PostrollProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
-		}
-	}
-	MenuBuilder.EndSection();
 }
 
 
@@ -281,6 +223,29 @@ bool FSequencerTrackNode::CanDrag() const
 	return bCanBeDragged;
 }
 
+bool FSequencerTrackNode::IsResizable() const
+{
+	UMovieSceneTrack* Track = GetTrack();
+	return Track && AssociatedEditor.IsResizable(Track);
+}
+
+void FSequencerTrackNode::Resize(float NewSize)
+{
+	UMovieSceneTrack* Track = GetTrack();
+
+	float PaddingAmount = 2 * SequencerNodeConstants::CommonPadding;
+	if (Track && Sections.Num())
+	{
+		PaddingAmount *= (Track->GetMaxRowIndex() + 1);
+	}
+	
+	NewSize -= PaddingAmount;
+
+	if (Track && AssociatedEditor.IsResizable(Track))
+	{
+		AssociatedEditor.Resize(NewSize, Track);
+	}
+}
 
 void FSequencerTrackNode::GetChildKeyAreaNodesRecursively(TArray<TSharedRef<FSequencerSectionKeyAreaNode>>& OutNodes) const
 {
@@ -336,5 +301,6 @@ void FSequencerTrackNode::SetDisplayName(const FText& NewDisplayName)
 	if (NameableTrack != nullptr)
 	{
 		NameableTrack->SetDisplayName(NewDisplayName);
+		GetSequencer().NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::TrackValueChanged);
 	}
 }

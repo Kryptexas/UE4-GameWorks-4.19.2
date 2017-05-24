@@ -10,6 +10,7 @@
 #include "Materials/Material.h"
 #include "Particles/ParticleSystem.h"
 #include "TessellationRendering.h"
+#include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
 #include "FXSystem.h"
 
@@ -197,8 +198,11 @@ FParticleEmitterBuildInfo::FParticleEmitterBuildInfo()
 	, MaxSizeScaleBySpeed(1.0f, 1.0f)
 	, bEnableCollision(false)
 	, CollisionResponse(EParticleCollisionResponse::Bounce)
+	, CollisionMode(EParticleCollisionMode::SceneDepth)
 	, CollisionRadiusScale(1.0f)
 	, CollisionRadiusBias(0.0f)
+	, CollisionRandomSpread(0.0f)
+	, CollisionRandomDistribution(1.0f)
 	, Friction(0.0f)
 	, PointAttractorPosition(FVector::ZeroVector)
 	, PointAttractorRadius(0.0f)
@@ -252,12 +256,14 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
     , SubUVDataOffset(0)
 	, DynamicParameterDataOffset(0)
 	, LightDataOffset(0)
+	, LightVolumetricScatteringIntensity(0)
 	, OrbitModuleOffset(0)
 	, CameraPayloadOffset(0)
 	, bEnabled(1)
     , bKillOnDeactivate(0)
     , bKillOnCompleted(0)
 	, bHaltSpawning(0)
+	, bHaltSpawningExternal(0)
 	, bRequiresLoopNotification(0)
 	, bIgnoreComponentScale(0)
 	, bIsBeam(0)
@@ -359,6 +365,7 @@ void FParticleEmitterInstance::Init()
 		LockAxisFlags = SpriteTemplate->LockAxisFlags;
 		DynamicParameterDataOffset = SpriteTemplate->DynamicParameterDataOffset;
 		LightDataOffset = SpriteTemplate->LightDataOffset;
+		LightVolumetricScatteringIntensity = SpriteTemplate->LightVolumetricScatteringIntensity;
 		CameraPayloadOffset = SpriteTemplate->CameraPayloadOffset;
 		ParticleSize = SpriteTemplate->ParticleSize;
 		PivotOffset = SpriteTemplate->PivotOffset;
@@ -377,7 +384,7 @@ void FParticleEmitterInstance::Init()
 	    {
 		    check(ParticleModule);
 		    uint8* PrepInstData = GetModuleInstanceData(ParticleModule);
-			    check(PrepInstData > 0); // Shouldn't be in the list if it doesn't have data
+			    check(PrepInstData != nullptr); // Shouldn't be in the list if it doesn't have data
 			    ParticleModule->PrepPerInstanceBlock(this, (void*)PrepInstData);
 	    }
     
@@ -883,7 +890,7 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
  */
 float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* InCurrentLODLevel, bool bSuppressSpawning, bool bFirstTime)
 {
-	if (!bHaltSpawning && !bSuppressSpawning && (EmitterTime >= 0.0f))
+	if (!bHaltSpawning && !bHaltSpawningExternal && !bSuppressSpawning && (EmitterTime >= 0.0f))
 	{
 		SCOPE_CYCLE_COUNTER(STAT_SpriteSpawnTime);
 		// If emitter is not done - spawn at current rate.
@@ -2564,6 +2571,7 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 		NewReplayData->EmitterRenderMode = SpriteTemplate->EmitterRenderMode;
 		NewReplayData->DynamicParameterDataOffset = DynamicParameterDataOffset;
 		NewReplayData->LightDataOffset = LightDataOffset;
+		NewReplayData->LightVolumetricScatteringIntensity = LightVolumetricScatteringIntensity;
 		NewReplayData->CameraPayloadOffset = CameraPayloadOffset;
 
 		NewReplayData->SubUVDataOffset = SubUVDataOffset;
@@ -3695,6 +3703,7 @@ FDynamicSpriteEmitterReplayDataBase::FDynamicSpriteEmitterReplayDataBase()
 	, OrbitModuleOffset(0)
 	, DynamicParameterDataOffset(0)
 	, LightDataOffset(0)
+	, LightVolumetricScatteringIntensity(0)
 	, CameraPayloadOffset(0)
 	, SubUVDataOffset(0)
 	, SubImages_Horizontal(1)
@@ -3731,6 +3740,7 @@ void FDynamicSpriteEmitterReplayDataBase::Serialize( FArchive& Ar )
 	Ar << OrbitModuleOffset;
 	Ar << DynamicParameterDataOffset;
 	Ar << LightDataOffset;
+	Ar << LightVolumetricScatteringIntensity;
 	Ar << CameraPayloadOffset;
 
 	Ar << EmitterNormalsMode;

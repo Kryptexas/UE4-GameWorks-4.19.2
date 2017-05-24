@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:코멘트
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Workflow
 Description: 관련이 있는 노드를 그룹으로 묶고 그 기능에 대한 설명을 달 수 있는 그릇입니다.
 version: 4.9
 Parent:Engine/Blueprints/Workflow
+tags:Blueprints
 
 
 [VAR:Topic]

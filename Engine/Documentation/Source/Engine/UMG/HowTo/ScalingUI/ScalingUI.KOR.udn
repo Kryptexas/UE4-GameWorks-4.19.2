@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244089
 Availability: Public
 Title:다양한 디바이스용 스케일 UI
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
@@ -9,6 +9,7 @@ Related: Engine/UMG/UserGuide/DPIScaling
 Related: Resources\SampleGames\UnrealMatch3
 Version: 4.10
 SkillLevel: Intermediate
+tags:UMG UI Designer
 
 [VAR:Topic]
 [OBJECT:Topic]

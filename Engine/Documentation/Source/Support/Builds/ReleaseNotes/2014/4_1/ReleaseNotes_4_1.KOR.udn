@@ -1,5 +1,5 @@
 ﻿INTSourceChangelist:3108692
-Title: Unreal Engine 4.1 Release Notes
+Title: 언리얼 엔진 4.1 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
@@ -8,19 +8,17 @@ order:1
 
 [TOC(start:2 end:2)]
 
-_과거 버전에 대한 릴리즈 노트는 번역 제공하지 않습니다._
-
 [PUBLISH:Licensee]
-## Build Info
+## 빌드 정보
 
 [REGION:simpletable]
-| Item | Info |
+| 항목 | 정보 |
 | ---- | ---- |
-| **Labels** | [INCLUDE:#labels] |
-| **Built from Changelist #** | 2055431 (//depot/UE4-QA/Promotable-CL-2055431) |
-| **Branched from Changelist #** | 2055192 (//depot/UE4-Releases) |
-| **Branched from Changelist #** | 2039046 (//depot/UE4) |
-| **Visual Studio Version** | Microsoft Visual Studio 2012 Version 11.0.60610.01 Update 3 |
+| **라벨** | [INCLUDE:#labels] |
+| **빌드한 Changelist #** | 2055431 (//depot/UE4-QA/Promotable-CL-2055431) |
+| **브랜치한 Changelist #** | 2055192 (//depot/UE4-Releases) |
+| **브랜치한 Changelist #** | 2039046 (//depot/UE4) |
+| **Visual Studio 버전** | Microsoft Visual Studio 2012 Version 11.0.60610.01 Update 3 |
 | **DirectX** | June 2010 |
 [/REGION]
 
@@ -259,7 +257,7 @@ We'd like to thank all of the amazing developers who contributed code in this re
 * **DiCoJamesTan (James Tan)**
     * [Fix attachment bug with ChildActorComponent ](https://github.com/EpicGames/UnrealEngine/pull/20)
 
-* **fxtentacle (Hajo Nils Krabbenh�ft)**
+* **fxtentacle (Hajo Nils Krabbenh.ft)**
     * [Fix Azimuth & Elevation calculation on Mac](https://github.com/EpicGames/UnrealEngine/pull/9)
 
 * **Kamayuq**
@@ -315,7 +313,7 @@ We'd like to thank all of the amazing developers who contributed code in this re
 	* **Unreal Editor Manual**
 		* New: [Blueprint Cheat Sheet](Engine/Blueprints/UserGuide/CheatSheet)
 		* New: [Light Propagation Volumes](Engine/Rendering/LightingAndShadows/LightPropagationVolumes)
-		* New: [Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows)
+		* New: [Preview Shadows](Engine/Rendering/LightingAndShadows/Shadows#previewshadows)
 		* New: [Pivot Painter](Engine/Content/Tools/PivotPainter)
 		* New: [Mac Viewport Controls Quick Reference](Engine/UI/LevelEditor/Viewports/ViewportControls)
 	* **Programming Guide** 

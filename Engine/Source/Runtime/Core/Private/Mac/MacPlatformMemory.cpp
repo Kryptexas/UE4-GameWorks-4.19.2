@@ -31,7 +31,7 @@ void FMacPlatformMemory::Init()
 }
 
 // Set rather to use BinnedMalloc2 for binned malloc, can be overridden below
-#define USE_MALLOC_BINNED2 (0)
+#define USE_MALLOC_BINNED2 (1)
 
 FMalloc* FMacPlatformMemory::BaseAllocator()
 {
@@ -90,6 +90,7 @@ FMalloc* FMacPlatformMemory::BaseAllocator()
 
 	default:	// intentional fall-through
 	case EMemoryAllocatorToUse::Binned:
+		// [RCL] 2017-03-06 FIXME: perhaps BinnedPageSize should be used here, but leaving this change to the Mac platform owner.
 		return new FMallocBinned((uint32)(GetConstants().PageSize&MAX_uint32), 0x100000000);
 	}
 
@@ -159,6 +160,8 @@ const FPlatformMemoryConstants& FMacPlatformMemory::GetConstants()
 		MemoryConstants.TotalPhysical = AvailablePhysical;
 		MemoryConstants.TotalVirtual = AvailablePhysical + SwapUsage.xsu_total;
 		MemoryConstants.PageSize = (uint32)PageSize;
+		MemoryConstants.OsAllocationGranularity = (uint32)PageSize;
+		MemoryConstants.BinnedPageSize = FMath::Max((SIZE_T)65536, (SIZE_T)PageSize);
 
 		MemoryConstants.TotalPhysicalGB = (MemoryConstants.TotalPhysical + 1024 * 1024 * 1024 - 1) / 1024 / 1024 / 1024;
 	}
@@ -190,15 +193,25 @@ bool FMacPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const b
 
 void* FMacPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 {
+// Binned2 requires allocations to be BinnedPageSize-aligned. Simple mmap() does not guarantee this for recommended BinnedPageSize (64KB).
+#if USE_MALLOC_BINNED2
+	return FGenericPlatformMemory::BinnedAllocFromOS(Size);
+#else
 	return mmap(nullptr, Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+#endif // USE_MALLOC_BINNED2
 }
 
 void FMacPlatformMemory::BinnedFreeToOS( void* Ptr, SIZE_T Size )
 {
+// Binned2 requires allocations to be BinnedPageSize-aligned. Simple mmap() does not guarantee this for recommended BinnedPageSize (64KB).
+#if USE_MALLOC_BINNED2
+	return FGenericPlatformMemory::BinnedFreeToOS(Ptr, Size);
+#else
 	if (munmap(Ptr, Size) != 0)
 	{
 		const int ErrNo = errno;
 		UE_LOG(LogHAL, Fatal, TEXT("munmap(addr=%p, len=%llu) failed with errno = %d (%s)"), Ptr, Size,
 			   ErrNo, StringCast< TCHAR >(strerror(ErrNo)).Get());
 	}
+#endif // USE_MALLOC_BINNED2
 }

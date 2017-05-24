@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 메뉴
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description: 저장, 로드, 창 열기와 같이 여러가지 동작을 하는 데 사용되는 메뉴입니다.
 version: 4.9
+tags:Blueprints
 
 
 

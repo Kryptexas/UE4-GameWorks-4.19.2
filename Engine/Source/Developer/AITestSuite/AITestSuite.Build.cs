@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class AITestSuite : ModuleRules
 	{
-        public AITestSuite(TargetInfo Target)
+        public AITestSuite(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {
@@ -27,8 +27,8 @@ namespace UnrealBuildTool.Rules
 					"Engine",
                     "GameplayTasks",
                     "AIModule",
-				}
-				);
+                }
+                );
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]

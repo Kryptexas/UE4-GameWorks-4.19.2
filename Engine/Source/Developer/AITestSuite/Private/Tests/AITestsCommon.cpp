@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Tests/AITestsCommon.h"
+#include "AITestsCommon.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
 #include "BTBuilder.h"

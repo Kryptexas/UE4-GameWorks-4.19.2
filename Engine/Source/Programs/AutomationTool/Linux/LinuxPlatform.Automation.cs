@@ -25,11 +25,11 @@ public abstract class BaseLinuxPlatform : Platform
 	{
 		if (SC.bStageCrashReporter)
 		{
-			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.UnrealBuildTool.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(CommandUtils.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
 			if (File.Exists(ReceiptFileName))
 			{
 				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
-				Receipt.ExpandPathVariables(UnrealBuildTool.UnrealBuildTool.EngineDirectory, (Params.RawProjectPath == null) ? UnrealBuildTool.UnrealBuildTool.EngineDirectory : Params.RawProjectPath.Directory);
+				Receipt.ExpandPathVariables(CommandUtils.EngineDirectory, (Params.RawProjectPath == null) ? CommandUtils.EngineDirectory : Params.RawProjectPath.Directory);
 				SC.StageBuildProductsFromReceipt(Receipt, true, false);
 			}
 		}
@@ -59,9 +59,16 @@ public abstract class BaseLinuxPlatform : Platform
 					if (Executable.Path.Replace("\\", "/").Contains("/" + TargetPlatformType.ToString() + "/"))
 					{
 						string BootstrapArguments = "";
-						if (!SC.IsCodeBasedProject && !ShouldStageCommandLine(Params, SC))
+						if (!ShouldStageCommandLine(Params, SC))
 						{
-							BootstrapArguments = String.Format("\\\"../../../{0}/{0}.uproject\\\"", SC.ShortProjectName);
+							if (!SC.IsCodeBasedProject)
+							{
+								BootstrapArguments = String.Format("\\\"../../../{0}/{0}.uproject\\\"", SC.ShortProjectName);
+							}
+							else
+							{
+								BootstrapArguments = SC.ShortProjectName;
+							}
 						}
 
 						string BootstrapExeName;
@@ -320,6 +327,10 @@ chmod +x {0}
 
 	public override bool IsSupported { get { return true; } }
 
+	public override void StripSymbols(FileReference SourceFile, FileReference TargetFile)
+	{
+		LinuxExports.StripSymbols(SourceFile, TargetFile);
+	}
 }
 
 

@@ -63,6 +63,7 @@ public:
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
 #if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual const FText GetPaletteCategory() override;
 #endif
 
@@ -88,7 +89,9 @@ public:
 	void SetLowQualityFallbackBrush(const FSlateBrush& InBrush);
 
 	/** UObject interface */
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
+
 protected:
 	/** UWidget interface */
 	virtual UClass* GetSlotClass() const override;

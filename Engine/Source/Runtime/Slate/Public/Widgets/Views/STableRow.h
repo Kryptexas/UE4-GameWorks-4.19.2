@@ -61,6 +61,9 @@ class SLATE_API ITableRow
 		/** Called when the expander arrow for this row is shift+clicked */
 		virtual void Private_OnExpanderArrowShiftClicked() = 0;
 
+		/** @return the size for the specified column name */
+		virtual FVector2D GetRowSizeForColumn(const FName& InColumnName) const = 0;
+
 	protected:
 		/** Called to query the selection mode for the row */
 		virtual ESelectionMode::Type GetSelectionMode() const = 0;
@@ -877,6 +880,12 @@ public:
 		return OwnerWidget->Private_IsItemSelected(*MyItem);
 	}
 
+	/** By default, this function does nothing, it should be implemented by derived class */
+	virtual FVector2D GetRowSizeForColumn(const FName& InColumnName) const override
+	{
+		return FVector2D::ZeroVector;
+	}
+
 	/** Protected constructor; SWidgets should only be instantiated via declarative syntax. */
 	STableRow()
 		: IndexInList(0)
@@ -1167,6 +1176,11 @@ protected:
 	void ClearCellCache()
 	{
 		ColumnIdToSlotContents.Empty();
+	}
+
+	const TSharedRef<SWidget>* GetWidgetFromColumnId(const FName& ColumnId) const
+	{
+		return ColumnIdToSlotContents.Find(ColumnId);
 	}
 
 private:

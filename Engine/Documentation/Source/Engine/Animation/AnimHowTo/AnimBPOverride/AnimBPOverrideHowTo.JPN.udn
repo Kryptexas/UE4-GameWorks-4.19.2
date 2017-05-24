@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3226913
+﻿INTSourceChangelist:3255885
 Availability:Public
 Title:Animation ブループリントのオーバーライド
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -9,7 +9,7 @@ Related:Engine\Animation\Skeleton
 Related:Engine\Animation\Overview
 version:4.14
 skilllevel:Advanced
-type:howto
+type:how-to
 topic-image:animbpoverride_topic.png
 tags:Animation
 tags:Animation Blueprint

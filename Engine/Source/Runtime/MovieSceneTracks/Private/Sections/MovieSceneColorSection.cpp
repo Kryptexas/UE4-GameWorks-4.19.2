@@ -2,6 +2,7 @@
 
 #include "Sections/MovieSceneColorSection.h"
 #include "UObject/StructOnScope.h"
+#include "SequencerObjectVersion.h"
 
 /* FMovieSceneColorKeyStruct interface
  *****************************************************************************/
@@ -30,7 +31,9 @@ void FMovieSceneColorKeyStruct::PropagateChanges(const FPropertyChangedEvent& Ch
 
 UMovieSceneColorSection::UMovieSceneColorSection(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-{ }
+{ 
+	EvalOptions.EnableAndSetCompletionMode(GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::WhenFinishedDefaultsToRestoreState ? EMovieSceneCompletionMode::KeepState : EMovieSceneCompletionMode::RestoreState);
+}
 
 /* UMovieSceneSection interface
  *****************************************************************************/

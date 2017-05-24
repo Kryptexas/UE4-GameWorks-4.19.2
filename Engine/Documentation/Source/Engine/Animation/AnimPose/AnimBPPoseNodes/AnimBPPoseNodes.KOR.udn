@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3200922
+﻿INTSourceChangelist:3273300
 Availability:Public
 Title: 애님그래프 포즈 노드
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -72,8 +72,8 @@ Pose Blender 노드는 **포즈 애셋** 을 그래프에 끌어놓을 때 자�
 
 ## Pose Driver 노드
 
-애니메이션 블루프린트의 애님 그래프 안에서 사용할 수 있는 **Pose Driver** (포즈 드라이버) 노드는 본의 이동에 따라 커브 값을 구동시킬 수 있도록 해 주는 것입니다.
-이 노드를 사용할 수 있는 방법 한 가지는, 포즈 스페이스 디포머를 만들어 본의 방향에 따라 올바른 블렌드 셰이프를 구동시키는 포즈 스페이스 디포머를 만드는 것입니다.
+애니메이션 블루프린트의 애님 그래프 안에서 사용할 수 있는 **Pose Driver** (포즈 드라이버) 노드는 '예제 포즈' 세트에 따라 본을 통해 애니메이션의 다른 부분을 구동시키거나, 본의 이동에 따라 커브 값을 구동시킬 수 있도록 해 주는 것입니다.
+이 노드를 사용할 수 있는 방법 한 가지는, 포즈 스페이스 디포머를 만들어 본의 방향 또는 이동에 따라 올바른 블렌드 셰이프를 구동시키는 포즈 스페이스 디포머를 만드는 것입니다.
 예를 들어 아래 영상에서, 쇄골 본 포즈를 사용하여 팔 본의 운동에 따라 어깨를 움직이도록 하고 있습니다.
 
 [OBJECT:EmbeddedVideo]
@@ -88,7 +88,7 @@ tJSYgPmzoKc
 [/PARAMLITERAL]
 [/OBJECT]
 
-이 효과를 내기 위해서는 RBF (Radial Basis Function) 가 타겟 본의 방향에 따라 구동된 값을 보간합니다.
+이 효과를 내기 위해서는 **RBF (Radial Basis Function)** 가 타겟 본의 방향에 따라 구동된 값을 보간합니다.
 **포즈 애셋** 을 생성하고 본에 대한 타겟 포즈를 정의하여 각 포즈별 원하는 커브 값을 정의해줘야 할 것입니다.
 
 **Pose Driver** 노드 자체에서는, 다음과 같은 옵션이 있습니다:
@@ -101,8 +101,18 @@ tJSYgPmzoKc
 | **Radial Scaling** | 방사형 스케일 - 방사형으로 적용되는 스케일로, 포즈 간 최대 거리에 적용됩니다. |
 | **Pose Source** | 포즈 소스 - 포즈 데이터의 소스로 사용할 **포즈 애셋** 입니다. |
 | **Include Ref Pose as Neutral Pose** | 레퍼런스 포즈를 중립 포즈로 포함 - 소스 본의 메시 레퍼런스 포즈를 "중립 포즈" (제로 커브)로 간주할 것인지 입니다. |
-| **Type** | 유형 - **Swing and Twist** (보간에 최대 회전 고려) 또는 **Swing Only** (보간에 스윙만 고려) 입니다. |
+| **Type** | 유형 - [INCLUDE:Engine\Animation\AnimPose\AnimBPPoseNodes\#typetable] |
 | **Twist Axis** | 트위스트 축 - **Type** 이 **SwingOnly** 로 설정되었을 때 사용할 축입니다 (X, Y, 또는 Z) |
+
+<!--
+[EXCERPT:typetable]
+| 옵션 | 설명 |
+| ----------- |------|
+| **Swing and Twist** | 보간에 최대 회전을 고려합니다. |
+| **Swing Only** | 보간에 스윙만 고려합니다. |
+| **Translation** | 부모 기준 이동을 고려합니다. |
+[/EXCERPT:typetable]
+-->
 
 자세한 정보는 언리얼 엔진 라이브 스트림 방송 중 애니메이션 관련 부분에서 **Pose Driver** 예제 부분을 참고하시기 바랍니다:
  

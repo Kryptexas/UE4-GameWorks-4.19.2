@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Factories/Factory.h"
+#include "NiagaraSettings.h"
 #include "NiagaraScriptFactoryNew.generated.h"
 
 UCLASS(hidecategories=Object)
@@ -14,7 +15,10 @@ class UNiagaraScriptFactoryNew : public UFactory
 
 	//~ Begin UFactory Interface
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
-	//~ Begin UFactory Interface	
+	//~ Begin UFactory Interface
+
+public:
+	static void InitializeScript(UNiagaraScript* Script);
 };
 
 

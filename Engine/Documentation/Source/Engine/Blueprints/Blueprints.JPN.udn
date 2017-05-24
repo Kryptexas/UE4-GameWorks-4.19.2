@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3151855
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:ブループリント ビジュアル スクリプティング
 Crumbs: %ROOT%, Engine
@@ -8,6 +8,7 @@ parent:%ROOT%
 order:5
 social-image:bp_social_image.png
 type:landing
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

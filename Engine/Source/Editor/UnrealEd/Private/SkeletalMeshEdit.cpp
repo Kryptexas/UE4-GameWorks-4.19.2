@@ -26,6 +26,7 @@
 #include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
 #include "Misc/FbxErrors.h"
+#include "Editor/EditorPerProjectUserSettings.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshEdit"
 
@@ -573,13 +574,72 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 	return LastCreatedAnim;
 }
 
+// Use the Euclidean method to find the GCD
+int32 GreatestCommonDivisor(int32 a, int32 b)
+{
+	while (b != 0)
+	{
+		int32 t = b;
+		b = a % b;
+		a = t;
+	}
+    return a;
+}
+
+// LCM = a/gcd * b
+// a and b are the number we want to find the lcm
+int32 LeastCommonMultiplier(int32 a, int32 b)
+{
+	int32 CurrentGcd = GreatestCommonDivisor(a, b);
+	return CurrentGcd == 0 ? FPlatformMath::RoundToInt(DEFAULT_SAMPLERATE) : (a / CurrentGcd) * b;
+}
+
+void AddTimeSampleRate(float KeyTime, TArray<int32> &KeyFrameSampleRates)
+{
+	int32 DefaultSampleRateInteger = FPlatformMath::RoundToInt(DEFAULT_SAMPLERATE);
+	//Find the position of the key time relative to the DEFAULT_SAMPLERATE, range from 0 to DEFAULT_SAMPLERATE-1
+	int32 KeyFramePos = FPlatformMath::RoundToInt(KeyTime / (1.0f / DEFAULT_SAMPLERATE)) % DefaultSampleRateInteger;
+	
+	static TArray<int32> SampleRatePerFrameArray;
+	//Build the static possible sample rate array for frame 0 to DefaultSampleRateInteger
+	if (SampleRatePerFrameArray.Num() == 0)
+	{
+		//Add the frame 0 manually, the answer is 1 for frame 0
+		SampleRatePerFrameArray.Add(1);
+		for (int32 FramePos = 1; FramePos < DefaultSampleRateInteger; ++FramePos)
+		{
+			//Find the sample rate impose by the key position
+			// We just divide DEFAULT_SAMPLERATE by the key position, then
+			// until there is no remainder, we multiply the division result by (2 + iteration)
+			//This give us the best sample rate for this key
+			float SampleRateDividerOriginal = DEFAULT_SAMPLERATE / (float)FramePos;
+			float SampleRateDivider = SampleRateDividerOriginal;
+			float SampleRemainder = FPlatformMath::Fractional(SampleRateDivider);
+			float Multiplier = 2.0f;
+			while (!FMath::IsNearlyZero(SampleRemainder))
+			{
+				SampleRateDivider = SampleRateDividerOriginal * Multiplier;
+				SampleRemainder = FPlatformMath::Fractional(SampleRateDivider);
+				if (SampleRateDivider >= DEFAULT_SAMPLERATE)
+				{
+					SampleRateDivider = DEFAULT_SAMPLERATE;
+					break;
+				}
+				Multiplier += 1.0f;
+			}
+			SampleRatePerFrameArray.Add(FPlatformMath::RoundToInt(SampleRateDivider));
+		}
+	}
+	KeyFrameSampleRates.AddUnique(SampleRatePerFrameArray.IsValidIndex(KeyFramePos) ? SampleRatePerFrameArray[KeyFramePos] : DefaultSampleRateInteger);
+}
+
 int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve)
 {
 	if (CurrentCurve == nullptr)
 		return 0;
 
 	int32 KeyCount = CurrentCurve->KeyGetCount();
-
+	
 	FbxTimeSpan TimeInterval(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
 	bool bValidTimeInterval = CurrentCurve->GetTimeInterval(TimeInterval);
 
@@ -588,8 +648,38 @@ int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve)
 		double KeyAnimLength = TimeInterval.GetDuration().GetSecondDouble();
 		if (KeyAnimLength != 0.0)
 		{
-			// 30 fps animation has 31 keys because it includes index 0 key for 0.0 second
-			return FPlatformMath::RoundToInt((KeyCount - 1) / KeyAnimLength);
+			// DEFAULT_SAMPLERATE(30) fps animation has (DEFAULT_SAMPLERATE + 1) keys because it includes index 0 key for 0.0 second
+			int32 SampleRate = 1;// FPlatformMath::RoundToInt((KeyCount - 1) / KeyAnimLength);
+
+			//Find the least sample rate we can use to have at least on key to every fbx key position
+			TArray<int32> KeyFrameSampleRates;
+			//Find all the unique sample rate base on "frame position relative to DEFAULT_SAMPLERATE" used by the current fbx curve keys
+			for (int32 KeyIndex = 0; KeyIndex < KeyCount; ++KeyIndex)
+			{
+				float KeyTime = (float)(CurrentCurve->KeyGet(KeyIndex).GetTime().GetSecondDouble());
+				AddTimeSampleRate(KeyTime, KeyFrameSampleRates);
+			}
+			//The sample rate have to handle the end of the animation like a key to ensure the sample rate match the animation length
+			AddTimeSampleRate(KeyAnimLength, KeyFrameSampleRates);
+
+			int32 LastSampleRate = SampleRate;
+			//Find the sample rate that will pass by all the unique keys sample rate we found
+			// we want to find the Least common multiplier for all sample rate we found
+			for (int32 KeyFrameSampleRate : KeyFrameSampleRates)
+			{
+				LastSampleRate = LeastCommonMultiplier(LastSampleRate, KeyFrameSampleRate);
+				if (LastSampleRate >= DEFAULT_SAMPLERATE)
+				{
+					LastSampleRate = DEFAULT_SAMPLERATE;
+					break;
+				}
+			}
+
+			if (LastSampleRate > SampleRate)
+			{
+				SampleRate = LastSampleRate;
+			}
+			return SampleRate;
 		}
 	}
 
@@ -599,6 +689,7 @@ int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve)
 int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray)
 {
 	int32 MaxStackResampleRate = 0;
+	TArray<int32> CurveAnimSampleRates;
 	const FBXImportOptions* ImportOption = GetImportOptions();
 	int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
 	for( int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++)
@@ -631,15 +722,16 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 			Curves[7] = CurrentLink->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, false);
 			Curves[8] = CurrentLink->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, false);
 
+			
 			for(int32 CurveIndex = 0; CurveIndex < MaxElement; ++CurveIndex)
 			{
 				FbxAnimCurve* CurrentCurve = Curves[CurveIndex];
 				if(CurrentCurve)
 				{
-					int32 NewRate = GetAnimationCurveRate(CurrentCurve);
-					if (NewRate > 0)
+					int32 CurveAnimRate = GetAnimationCurveRate(CurrentCurve);
+					if (CurveAnimRate != 0)
 					{
-						MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+						CurveAnimSampleRates.AddUnique(CurveAnimRate);
 					}
 				}
 			}
@@ -669,10 +761,10 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 								FbxAnimCurve* CurrentCurve = Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, AnimLayer);
 								if (CurrentCurve)
 								{
-									int32 NewRate = GetAnimationCurveRate(CurrentCurve);
-									if (NewRate > 0)
+									int32 CurveAnimRate = GetAnimationCurveRate(CurrentCurve);
+									if (CurveAnimRate != 0)
 									{
-										MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+										CurveAnimSampleRates.AddUnique(CurveAnimRate);
 									}
 								}
 							}
@@ -680,6 +772,18 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 					}
 				}
 			}
+		}
+	}
+
+	MaxStackResampleRate = CurveAnimSampleRates.Num() > 0 ? 1 : MaxStackResampleRate;
+	//Find the lowest sample rate that will pass by all the keys from all curves
+	for (int32 CurveSampleRate : CurveAnimSampleRates)
+	{
+		MaxStackResampleRate = LeastCommonMultiplier(MaxStackResampleRate, CurveSampleRate);
+		if (MaxStackResampleRate >= DEFAULT_SAMPLERATE)
+		{
+			MaxStackResampleRate = DEFAULT_SAMPLERATE;
+			break;
 		}
 	}
 
@@ -1018,12 +1122,12 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		FSmartName NewName;
 		Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Name, NewName);
 
-		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(NewName.UID, FRawCurveTracks::FloatType));
+		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(NewName.UID, ERawCurveTrackTypes::RCT_Float));
 		if(CurveToImport==NULL)
 		{
-			if (TargetSequence->RawCurveData.AddCurveData(NewName, ACF_DefaultCurve | CurveFlags))
+			if (TargetSequence->RawCurveData.AddCurveData(NewName, AACF_DefaultCurve | CurveFlags))
 			{
-				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(NewName.UID, FRawCurveTracks::FloatType));
+				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(NewName.UID, ERawCurveTrackTypes::RCT_Float));
 				CurveToImport->Name = NewName;
 			}
 			else
@@ -1117,6 +1221,26 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		}
 
 		DestSeq->RawCurveData.FloatCurves.Shrink();
+	}
+
+	// Store float curve tracks which use to exist on the animation
+	TArray<FString> ExistingCurveNames;
+	for (int32 CurveIdx = 0; CurveIdx < DestSeq->RawCurveData.FloatCurves.Num(); ++CurveIdx)
+	{
+		auto& Curve = DestSeq->RawCurveData.FloatCurves[CurveIdx];
+		const FCurveMetaData* MetaData = MySkeleton->GetCurveMetaData(Curve.Name);
+		
+		if (MetaData && !MetaData->Type.bMorphtarget)
+		{
+			ExistingCurveNames.Add(Curve.Name.DisplayName.ToString());
+		}
+	}
+
+	const bool bReimportWarnings = GetDefault<UEditorPerProjectUserSettings>()->bAnimationReimportWarnings;
+	
+	if (bReimportWarnings && !FMath::IsNearlyZero(PreviousSequenceLength) && !FMath::IsNearlyEqual(DestSeq->SequenceLength, PreviousSequenceLength))
+	{
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Warning_SequenceLengthChanged", "Animation Sequence ({0}) length {1} is different from previous {2}."), FText::FromName(DestSeq->GetFName()), DestSeq->SequenceLength, PreviousSequenceLength)), FFbxErrors::Animation_DifferentLength);
 	}
 
 	FbxNode *SkeletalMeshRootNode = NodeArray.Num() > 0 ? NodeArray[0] : nullptr;
@@ -1226,7 +1350,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							const FText StatusUpate = FText::Format(LOCTEXT("ImportingCustomAttributeCurvesDetail", "Importing Custom Attribute [{CurveName}]"), Args);
 							GWarn->StatusUpdate(CurLinkIndex + 1, TotalLinks, StatusUpate);
 
-							int32 CurveFlags = ACF_DefaultCurve;
+							int32 CurveFlags = AACF_DefaultCurve;
 							if (ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan))
 							{
 								// first let them override material curve if required
@@ -1248,6 +1372,8 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 										}
 									}
 								}
+
+								ExistingCurveNames.Remove(FinalCurveName);
 							}
 						}
 						else
@@ -1266,8 +1392,16 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		GWarn->EndSlowTask();
 	}
 
-	// importing custom attribute END
+	if (bReimportWarnings && ExistingCurveNames.Num())
+	{
+		for (const FString CurveName : ExistingCurveNames)
+		{
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Warning_NonExistingCurve", "Curve ({0}) was not found in the new Animation."), FText::FromString(CurveName))), FFbxErrors::Animation_CurveNotFound);
+		}
+	}
 
+	// importing custom attribute END
+	
 	const bool bSourceDataExists = DestSeq->HasSourceRawData();
 	TArray<AnimationTransformDebug::FAnimationTransformDebugData> TransformDebugData;
 	int32 TotalNumKeys = 0;

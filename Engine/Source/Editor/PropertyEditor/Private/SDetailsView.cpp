@@ -4,6 +4,7 @@
 #include "SDetailsView.h"
 #include "GameFramework/Actor.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Misc/ConfigCacheIni.h"
 #include "ObjectPropertyNode.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/Images/SImage.h"
@@ -14,6 +15,7 @@
 #include "UserInterface/PropertyDetails/PropertyDetailsUtilities.h"
 #include "Widgets/Colors/SColorPicker.h"
 #include "Widgets/Input/SSearchBox.h"
+#include "EditorStyleSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "SDetailsView"
@@ -93,6 +95,19 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllAdvancedClicked ),
 			FCanExecuteAction(),
 			FIsActionChecked::CreateSP( this, &SDetailsView::IsShowAllAdvancedChecked )
+				),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton 
+		);
+
+		DetailViewOptions.AddMenuEntry(
+			LOCTEXT("ShowHiddenPropertiesWhilePlaying", "Show Hidden Properties while Playing"),
+			LOCTEXT("ShowHiddenPropertiesWhilePlaying_ToolTip", "When Playing or Simulating, shows all properties (even non-visible and non-editable properties), if the object belongs to a simulating world.  This is useful for debugging."),
+			FSlateIcon(),
+			FUIAction( 
+			FExecuteAction::CreateSP( this, &SDetailsView::OnShowHiddenPropertiesWhilePlayingClicked ),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP( this, &SDetailsView::IsShowHiddenPropertiesWhilePlayingChecked )
 				),
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton 
@@ -254,16 +269,17 @@ TSharedRef<SDetailTree> SDetailsView::ConstructTreeView( TSharedRef<SScrollBar>&
 {
 	check( !DetailTree.IsValid() || DetailTree.IsUnique() );
 
-	return 
-	SAssignNew( DetailTree, SDetailTree )
-	.Visibility( this, &SDetailsView::GetTreeVisibility )
-	.TreeItemsSource( &RootTreeNodes )
-	.OnGetChildren( this, &SDetailsView::OnGetChildrenForDetailTree )
-	.OnSetExpansionRecursive( this, &SDetailsView::SetNodeExpansionStateRecursive )
-	.OnGenerateRow( this, &SDetailsView::OnGenerateRowForDetailTree )	
-	.OnExpansionChanged( this, &SDetailsView::OnItemExpansionChanged )
-	.SelectionMode( ESelectionMode::None )
-	.ExternalScrollbar( ScrollBar );
+	return
+		SAssignNew(DetailTree, SDetailTree)
+		.Visibility(this, &SDetailsView::GetTreeVisibility)
+		.TreeItemsSource(&RootTreeNodes)
+		.OnGetChildren(this, &SDetailsView::OnGetChildrenForDetailTree)
+		.OnSetExpansionRecursive(this, &SDetailsView::SetNodeExpansionStateRecursive)
+		.OnGenerateRow(this, &SDetailsView::OnGenerateRowForDetailTree)
+		.OnExpansionChanged(this, &SDetailsView::OnItemExpansionChanged)
+		.SelectionMode(ESelectionMode::None)
+		.HandleDirectionalNavigation(false)
+		.ExternalScrollbar(ScrollBar);
 }
 
 FReply SDetailsView::OnOpenRawPropertyEditorClicked()
@@ -757,13 +773,39 @@ void SDetailsView::PostSetObject()
 	DestroyColorPicker();
 	ColorPropertyNode = nullptr;
 
+	// Are we editing PIE objects?  If the bShowHiddenPropertiesWhilePlaying setting is enabled, we may want to
+	// show all of the properties that would normally be hidden for objects that are part of the PIE world.
+	bool bAnyPIEObjects = false;
+	{
+		for( int32 RootNodeIndex = 0; RootNodeIndex < RootPropertyNodes.Num(); ++RootNodeIndex )
+		{
+			FObjectPropertyNode* RootPropertyNode = RootPropertyNodes[ RootNodeIndex ]->AsObjectNode();
+			if( RootPropertyNode != nullptr )
+			{
+				const int32 ObjectCount = RootPropertyNode->GetNumObjects();
+				for( int32 ObjectIndex = 0; ObjectIndex < ObjectCount; ++ObjectIndex )
+				{
+					UObject* Object = RootPropertyNode->GetUObject( ObjectIndex );
+					if( Object->GetOutermost()->HasAnyPackageFlags( PKG_PlayInEditor ) )
+					{
+						bAnyPIEObjects = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+
 	FPropertyNodeInitParams InitParams;
 	InitParams.ParentNode = nullptr;
 	InitParams.Property = nullptr;
 	InitParams.ArrayOffset = 0;
 	InitParams.ArrayIndex = INDEX_NONE;
 	InitParams.bAllowChildren = true;
-	InitParams.bForceHiddenPropertyVisibility =  FPropertySettings::Get().ShowHiddenProperties();
+	InitParams.bForceHiddenPropertyVisibility = 
+		FPropertySettings::Get().ShowHiddenProperties() || 
+		( GetDefault<UEditorStyleSettings>()->bShowHiddenPropertiesWhilePlaying && bAnyPIEObjects );
 
 	switch ( DetailsViewArgs.DefaultsOnlyVisibility )
 	{
@@ -873,6 +915,20 @@ const FSlateBrush* SDetailsView::OnGetLockButtonImageResource() const
 	{
 		return FEditorStyle::GetBrush(TEXT("PropertyWindow.Unlocked"));
 	}
+}
+
+bool SDetailsView::IsShowHiddenPropertiesWhilePlayingChecked() const
+{
+	return GetDefault<UEditorStyleSettings>()->bShowHiddenPropertiesWhilePlaying;
+}
+
+void SDetailsView::OnShowHiddenPropertiesWhilePlayingClicked()
+{
+	GetMutableDefault<UEditorStyleSettings>()->bShowHiddenPropertiesWhilePlaying = !GetDefault<UEditorStyleSettings>()->bShowHiddenPropertiesWhilePlaying;
+	GConfig->SetBool(TEXT("/Script/EditorStyle.EditorStyleSettings"), TEXT("bShowHiddenPropertiesWhilePlaying"), GetMutableDefault<UEditorStyleSettings>()->bShowHiddenPropertiesWhilePlaying, GEditorPerProjectIni);
+
+	// Force a refresh of the whole details panel, as the entire set of visible properties may be different
+	ForceRefresh();
 }
 
 #undef LOCTEXT_NAMESPACE

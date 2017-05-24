@@ -2,7 +2,8 @@ Title: May 2013 Release Notes
 Availability:Licensee
 Crumbs:%ROOT%, Support/Builds
 Description:
-Template:ReleaseNotes.html
+Parent:Support/Builds
+Order:-9
 
 [TOC(start:2 end:2)]
 

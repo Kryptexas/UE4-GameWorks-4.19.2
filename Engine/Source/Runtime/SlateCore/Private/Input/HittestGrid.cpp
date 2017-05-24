@@ -3,8 +3,12 @@
 #include "Input/HittestGrid.h"
 #include "Rendering/RenderingCommon.h"
 #include "SlateGlobals.h"
+#include "HAL/IConsoleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHittestDebug, Display, All);
+
+int32 SlateVerifyHitTestVisibility = 0;
+static FAutoConsoleVariableRef CVarSlateVerifyHitTestVisibility(TEXT("Slate.VerifyHitTestVisibility"), SlateVerifyHitTestVisibility, TEXT("Should we double check the visibility of widgets during hit testing, in case previously resolved hit tests that same frame may have changed state?"), ECVF_Default);
 
 //
 // Helper Functions
@@ -381,6 +385,13 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 	float CurrentSourceSide = SourceSideFunc(WidgetRect);
 
 	int32 StrideAxis, StrideAxisMin, StrideAxisMax;
+
+	// Ensure that the hit test grid is valid before proceeding
+	if (NumCells.X < 1 || NumCells.Y < 1)
+	{
+		return TSharedPtr<SWidget>();
+	}
+
 	if (AxisIndex == 0)
 	{
 		StrideAxis = 1;
@@ -746,6 +757,53 @@ TArray<FWidgetAndPointer> FHittestGrid::GetBubblePathFromHitIndex(const int32 Hi
 		while (CurWidgetIndex != INDEX_NONE);
 
 
+
+		if ( SlateVerifyHitTestVisibility )
+		{
+			// Hit Test Invisible widgets effects all of the logical children.
+			// Normally this isn't a problem, but in the case of low framerate
+			// if multiple mouse events buffer up, and are consumed in one frame
+			// it's possible that in one frame, the first mouse event might change
+			// the hit-test ability of widgets.
+			{
+				const int32 HitTestInvisibleWidgetIndex = BubblePath.IndexOfByPredicate([] (const FArrangedWidget& SomeWidget) { return !SomeWidget.Widget->GetVisibility().AreChildrenHitTestVisible(); });
+				if ( HitTestInvisibleWidgetIndex != INDEX_NONE )
+				{
+					BubblePath.RemoveAt(HitTestInvisibleWidgetIndex, BubblePath.Num() - HitTestInvisibleWidgetIndex);
+				}
+			}
+
+			// Similar to the above check, this determines if a widget became hit test invisible
+			// directly, because rather than an entire set of children becoming invisible
+			// this addresses the problem of a specific widget changing visibility.
+			{
+				int32 FirstHitTestWidgetIndex = INDEX_NONE;
+				for ( int32 Index = BubblePath.Num() - 1; Index >= 0; --Index )
+				{
+					const EVisibility Visibilty = BubblePath[Index].Widget->GetVisibility();
+
+					if ( Visibilty.IsHitTestVisible() )
+					{
+						FirstHitTestWidgetIndex = Index;
+						break;
+					}
+				}
+
+				if ( FirstHitTestWidgetIndex != INDEX_NONE )
+				{
+					const int32 RemovalCount = ( BubblePath.Num() - ( FirstHitTestWidgetIndex + 1 ) );
+					if ( RemovalCount > 0 )
+					{
+						BubblePath.RemoveAt(FirstHitTestWidgetIndex + 1, RemovalCount);
+					}
+				}
+				else
+				{
+					BubblePath.Reset();
+				}
+			}
+		}
+		
 		// Disabling a widget disables all of its logical children
 		// This effect is achieved by truncating the path to the
 		// root-most enabled widget.

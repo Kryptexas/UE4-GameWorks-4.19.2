@@ -66,12 +66,11 @@ public:
 	// FGCObject
 
 	// SWidget
-	using SWidget::Tick;
 	virtual FChildren* GetChildren() override;
 	virtual bool ComputeVolatility() const override;
 	// SWidget
 
-	virtual void OnTickRetainers(float DeltaTime);
+	virtual void PaintRetainedContent(float DeltaTime);
 
 	// ICustomHitTestPath
 	virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const override;
@@ -110,7 +109,8 @@ private:
 
 	mutable FSlateBrush SurfaceBrush;
 
-	mutable FWidgetRenderer WidgetRenderer;
+	void InitWidgetRenderer();
+	mutable TSharedPtr<class FWidgetRenderer> WidgetRenderer;
 	mutable class UTextureRenderTarget2D* RenderTarget;
 	mutable TSharedPtr<SWidget> MyWidget;
 

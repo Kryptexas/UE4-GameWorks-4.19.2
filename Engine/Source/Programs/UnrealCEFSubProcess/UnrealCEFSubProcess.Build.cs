@@ -5,7 +5,7 @@ using System.IO;
 
 public class UnrealCEFSubProcess : ModuleRules
 {
-	public UnrealCEFSubProcess(TargetInfo Target)
+	public UnrealCEFSubProcess(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 

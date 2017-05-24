@@ -40,7 +40,7 @@ public:
 	 *
 	 * @return the created profile.
 	 */
-	UDeviceProfile* CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& ParentName = TEXT("") );
+	UDeviceProfile* CreateProfile(const FString& ProfileName, const FString& ProfileType, const FString& ParentName=TEXT(""), const TCHAR* ConfigPlatform=nullptr);
 
 	/**
 	 * Delete a profile.
@@ -125,7 +125,13 @@ private:
 public:
 
 	static class UDeviceProfileManager* DeviceProfileManagerSingleton;
-	static UDeviceProfileManager& Get();
+	static UDeviceProfileManager& Get(bool bFromPostCDOContruct = false);
+
+	virtual void PostCDOContruct() override
+	{
+		Get(true); // get this taken care of now
+	}
+
 
 public:
 

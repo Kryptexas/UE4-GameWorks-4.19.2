@@ -12,7 +12,7 @@
 
 struct FGlobalFocusSettings;
 
-UENUM()
+UENUM(BlueprintType)
 enum class EAttenuationDistanceModel : uint8
 {
 	Linear,
@@ -23,7 +23,7 @@ enum class EAttenuationDistanceModel : uint8
 	Custom,
 };
 
-UENUM()
+UENUM(BlueprintType)
 namespace EAttenuationShape
 {
 	enum Type

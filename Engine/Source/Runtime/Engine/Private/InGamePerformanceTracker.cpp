@@ -79,8 +79,9 @@ void FInGamePerformanceTracker::ExitTimedSection()
 //////////////////////////////////////////////////////////////////////////
 
 FInGameScopedCycleCounter::FInGameScopedCycleCounter(class UWorld* InWorld, EInGamePerfTrackers Tracker, EInGamePerfTrackerThreads TrackerThread, bool bEnabled)
-: FInGameCycleCounter(InWorld && bEnabled ? &InWorld->PerfTrackers->GetInGamePerformanceTracker(Tracker, TrackerThread) : nullptr)
+: FInGameCycleCounter(InWorld && bEnabled && InWorld->PerfTrackers ? &InWorld->PerfTrackers->GetInGamePerformanceTracker(Tracker, TrackerThread) : nullptr)
 {
+	check(!InWorld || InWorld->PerfTrackers);//UE-38057 - Crash potentially caused by dereferencing null here. Though this shouldn't be possible.
 	Begin();
 }
 

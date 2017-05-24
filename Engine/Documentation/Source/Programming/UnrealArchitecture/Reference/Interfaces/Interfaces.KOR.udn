@@ -1,57 +1,66 @@
-﻿INTSourceChangelist:3177942
+﻿INTSourceChangelist:3317961
 Availability:Public
 Title: 인터페이스
-Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Crumbs:
 Description:인터페이스 생성 및 구현 관련 참고서입니다.
-Version: 4.9
+Tags: Programming
+Version: 4.14
+Parent:Programming/UnrealArchitecture/Reference
+Order:
+SkillLevel:Intermediate
+Type:overview
 
 [TOC(start:2)]
 
 
-인터페이스 클래스 선언은 보통의 클래스 선언과 매우 유사합니다. 딱 한가지 문법에 큰 차이점이라면, 지시어가 `UCLASS` 매크로 대신 `UINTERFACE` 매크로로 전달된다는 점입니다.
-
-	UINTERFACE([specifier, specifier, ...], [meta(key=value, key=value, ...)])
-	class ClassName : ParentName
+인터페이스 클래스는 (잠재적으로) 무관한 클래스 세트가 공통의 함수 세트를 구현할 수 있도록 하는 데 쓰입니다. 그대로라면 유사성이 없었을 크고 복잡한 클래스들에 어떤 게임 함수 기능을 공유시키고자 하는 경우 매우 좋습니다. 예를 들어 트리거 볼륨에 들어서면 함정이 발동되거나, 적에게 경보가 울리거나, 플레이어에게 점수를 주는 시스템을 가진 게임이 있다 칩시다. 함정, 적, 점수에서 ReactToTrigger (트리거에 반응) 함수를 구현하면 될 것입니다. 하지만 함정은 `AActor` 에서 파생될 수도, 적은 특수 `APawn` 또는 `ACharacter` 서브클래스일 수도, 점수는 `UDataAsset` 일 수도 있습니다. 이 모든 클래스에 공유 함수 기능이 필요하지만, `UObject` 말고는 공통 조상이 없습니다. 이럴 때 인터페이스를 추천합니다.
 
 ## 인터페이스 선언
 
-.h (예: `ItemInterface.h`) 파일에서:
+인터페이스 클래스 선언은 일반 언리얼 클래스 선언과 비슷하나, 크게 두 가지 차이점이 있습니다. 첫째, 인터페이스 클래스는 UCLASS 매크로 대신 UINTERFACE 매크로를 사용하며, `UObject` 를 직접 상속하는 대신 `UInterface` 를 상속합니다.
+
+	UINTERFACE([specifier, specifier, ...], [meta(key=value, key=value, ...)])
+	class UClassName : public UInterface
+	{
+		GENERATED_BODY()
+	};
+
+둘째, UINTERFACE 클래스는 실제 인터페이스가 아닙니다. 언리얼 엔진의 리플렉션 시스템에 보이도록 하기 위해서만 존재하는 공백 클래스입니다. 다른 클래스에서 상속하게 되는 실제 인터페이스는 같은 클래스 이름에 첫 글자만 "U" 에서 "I" 로 바뀝니다.
+
+.h 파일에서 (예: `ReactToTriggerInterface.h`):
 
     #pragma once
 
-    #include "ItemInterface.generated.h"
+    #include "ReactToTriggerInterface.generated.h"
 
     UINTERFACE(Blueprintable)
-    class UItemInterface : public UInterface
+    class UReactToTriggerInterface : public UInterface
     {
         GENERATED_BODY()
     };
 
-    class IItemInterface
+    class IReactToTriggerInterface
     {    
 		GENERATED_BODY()
 
     public:
-
-        UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Item")
-        FItemStruct GetItem() const;
+		/** 이 오브젝트를 활성화시키는 트리거 볼륨에 반응합니다. 반응에 성공하면 true 를 반환합니다. */
+        UFUNCTION(BlueprintCallable, BlueprintCallable, Category="Trigger Reaction")
+        bool ReactToTrigger() const;
     };
 
-.cpp (예: `ItemInterface.cpp`) 파일에서:
+함수를 .h 파일에 직접 작성할 수 있는데, 기본적으로 아무 것도 하지 않는 함수이거나 false, 0, 공백 스트링 반환처럼 사소한 동작을 하는 함수의 경우 종종 그렇게 합니다. 보다 복잡한 함수는 .cpp 파일에 작성하여 컴파일 시간을 줄일 수 있습니다. 순수 가상 (pure virtual) 함수가 지원됩니다. 여기 샘플 함수는 .h 파일에 작성해도 될만큼 간단하긴 하지만, .cpp 파일에 작성하도록 하겠습니다. (`ReactToTriggerInterface.cpp` 와 같은) cpp 파일에 이제 다음과 같은 부분이 있을 것입니다:
 
-    #include "ItemInterface.h"
+    #include "ReactToTriggerInterface.h"
+	
+	bool IReactToTriggerInterface::ReactToTrigger() const
+	{
+		return false;
+	}
 
-    UItemInterface::UItemInterface(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
-    {
-    }
+접두사가 "U" 인 클래스는 생성자나 기타 다른 함수가 필요치 않은 반면, "I" 인 클래스는 모든 인터페이스 함수를 포함하며, 다른 클래스에 실제로 상속되는 클래스이기도 합니다.
 
-선언은 클래스의 표준 C++ 클래스 선언으로 구성됩니다. 위에서 표준 선언부, 메타데이터 및 클래스 지정자와 같은 설명부가 UINTERFACE 매크로에 전달됩니다. 이를 사용하여 선언하려는 인터페이스에 대한 UInterface 를 생성하며, 이는 클래스에 대한 엔진 전용 표현으로 생각해 볼 수 있습니다. 또한 GENERATED_UINTERFACE_BODY() 매크로는 클래스 본문 제일 처음에 위치해야 합니다.
-
-엔진에 인식시킬 인터페이스의 경우, UInterface 를 상속하는 UINTERFACE 와 순수 인터페이스, 두 개의 클래스를 생성해야 합니다.
-
-UINTERFACE 클래스는 UObject 에서 확장하므로 앞에 U 를 붙여야 합니다. Interface 는 앞에 I 를 붙여야 합니다.
-
-블루프린트가 이 인터페이스를 구현할 수 있도록 하려면 `Blueprintable` 지정자가 필요합니다.
+[REGION:NOTE]블루프린트가 이 인터페이스를 구현할 수 있도록 하려면 `Blueprintable` 지정자가 필요합니다.[/REGION:NOTE]
 
 ### 인터페이스 지정자
 
@@ -59,27 +68,35 @@ UINTERFACE 클래스는 UObject 에서 확장하므로 앞에 U 를 붙여야 �
 
 ## C++ 로 인터페이스 구현
 
-C++ 에서 클래스 선언시, (UInterface 클래스가 아닌) 그냥 인터페이스를 상속합니다.
+새 클래스에서 인터페이스를 사용하려면, 단순히 (사용중인 `UObject` 기반 클래스에 추가로) 접두사가 "I" 인 인터페이스 클래스를 상속하기만 하면 됩니다.
 
-    class AItem : public AActor, public IItemInterface
+    class ATrap : public AActor, public IReactToTriggerInterface
     {
         GENERATED_BODY()
 
     public:
-
-        FItemStruct GetItem_Implementation() const;
+        virtual bool ReactToTrigger() const override;
     };
 
-## 주어진 액터의 인터페이스 구현 여부 확인
+## 주어진 클래스의 인터페이스 구현 여부 확인
 
-인터페이스를 구현하는 두 C++ 와 블루프린트 클래스 사이의 호환을 위해서는, 다음 코드를 사용합니다:
+인터페이스를 구현하는 두 C++ 와 블루프린트 클래스 사이의 호환을 위해서는, 다음 함수 중 하나를 사용하면 됩니다:
 
-    obj->GetClass()->ImplementsInterface(UItemInterface::StaticClass());
+    bool bIsImplemented = OriginalObject->GetClass()->ImplementsInterface(UReactToTriggerInterface::StaticClass()); // OriginalObject 가 UReactToTriggerInterface 를 구현한다면 bIsImplemented 는 true 가 됩니다.
+	IReactToTriggerInterface* ReactingObject = Cast<IReactToTriggerInterface>(OriginalObject); // OriginalObject 가 UReactToTriggerInterface 를 구현한다면 ReactingObject 는 null 이외의 값이 됩니다.
 
 [REGION:note]
-인터페이스 구현 여부 검사는 클래스의 UInterface 버전을 사용해야 합니다.
+U 접두사 클래스에 `Cast` 를 사용하려고 하면 실패하는 반면, `StaticClass` 함수는 I 접두사 클래스에 구현되어 있지 않아 컴파일되지 않습니다.
 [/REGION]
+
+## 다른 언리얼 유형으로의 형 변환
+
+언리얼 엔진의 형변환 시스템은 한 인터페이스에서 다른 인터페이스로, 또는 인터페이스에서 적합한 경우 언리얼 유형으로 형 변환을 지원합니다.
+
+	IReactToTriggerInterface* ReactingObject = Cast<IReactToTriggerInterface>(OriginalObject); // 인터페이스가 구현된 경우 ReactingObject 는 null 이외의 값이 됩니다.
+	ISomeOtherInterface* DifferentInterface = Cast<ISomeOtherInterface>(ReactingObject); // ReactingObject 가 null 이외의 값이고 ISomeOtherInterface 를 구현하는 경우 DifferentInterface 는 null 이외의 값이 됩니다.
+	AActor* Actor = Cast<AActor>(ReactingObject); // ReactingObject 가 null 이외의 값이고 OriginalObject 는 AActor 또는 AActor 파생 클래스인 경우, Actor 는 null 이외의 값이 됩니다.
 
 ## 블루프린트 구현가능 클래스
 
-블루프린트가 이 인터페이스를 구현하도록 하려면, `Blueprintable` 메타데이터 지정자를 사용하고, 인터페이스 내 모든 함수는 `BlueprintNativeEvent` 또는 `BlueprintImplementableEvent` 여야 합니다. 그렇지 않으면 인터페이스를 구현하는 클래스는 인터페이스의 모든 기능을 사용할 수 없을 것입니다.
+블루프린트가 이 인터페이스를 구현할 수 있도록 하려면, `Blueprintable` 메타데이터 지정자를 사용해야 합니다. 블루프린트 클래스가 덮어쓰려는 모든 인터페이스 함수는 `BlueprintNativeEvent` 또는 `BlueprintImplementableEvent` 여야 합니다. `BlueprintCallable` 마킹된 함수는 여전히 호출은 가능할 것이나, 덮어쓰기는 불가능합니다. 다른 모든 함수는 블루프린트에서 접근할 수 없을 것입니다.

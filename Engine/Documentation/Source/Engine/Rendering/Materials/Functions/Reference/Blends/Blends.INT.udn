@@ -3,6 +3,7 @@ title:Blends
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions designed to blend one color with another, similar to blend modes in popular image editing applications.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

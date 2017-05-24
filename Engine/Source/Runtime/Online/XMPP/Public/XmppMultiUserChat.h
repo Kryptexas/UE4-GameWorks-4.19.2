@@ -143,6 +143,15 @@ public:
 		, Role(EXmppChatMemberRole::None)
 	{}
 
+	explicit FXmppChatMember(const FXmppMucPresence& MemberPresence)
+		: Nickname(MemberPresence.GetNickName())
+		, MemberJid(MemberPresence.UserJid)
+		, UserPresence(MemberPresence)
+		, Affiliation(EXmppChatMemberAffiliation::ToType(MemberPresence.Affiliation))
+		, Role(EXmppChatMemberRole::ToType(MemberPresence.Role))
+	{
+	}
+
 	FString Nickname;
 	FXmppUserJid MemberJid;
 	FXmppUserPresence UserPresence;
@@ -186,17 +195,17 @@ class FXmppRoomConfig
 {
 public:
 	FXmppRoomConfig()
-		: RoomName(TEXT("")),
-		RoomDesc(TEXT("")),
-		bIsPrivate(true),
-		Password(TEXT("")),
-		bIsPersistent(false),
-		bAllowPublicSearch(false),
-		bIsModerated(false),
-		bIsMembersOnly(false),
-		bAllowChangeSubject(false),
-		MaxMsgHistory(0),
-		RoomAnonymity(ERoomAnonymity::Semianonymous)
+		: RoomName(TEXT(""))
+		, RoomDesc(TEXT(""))
+		, bIsPrivate(true)
+		, Password(TEXT(""))
+		, bIsPersistent(false)
+		, bAllowPublicSearch(false)
+		, bIsModerated(false)
+		, bIsMembersOnly(false)
+		, bAllowChangeSubject(false)
+		, MaxMsgHistory(0)
+		, RoomAnonymity(ERoomAnonymity::Semianonymous)
 	{}
 
 	enum class ERoomAnonymity
@@ -257,6 +266,7 @@ private:
 
 	// Allow RoomConfigOp to use the defaults we don't expose yet for consumers to change
 	friend class FXmppChatRoomConfigOp;
+	friend class FXmppMultiUserChatStrophe;
 };
 
 /**
@@ -275,7 +285,7 @@ public:
 	virtual bool RegisterMember(const FXmppRoomId& RoomId, const FString& Nickname) = 0;
 	virtual bool UnregisterMember(const FXmppRoomId& RoomId, const FString& Nickname) = 0;
 	virtual bool ExitRoom(const FXmppRoomId& RoomId) = 0;
-	virtual bool SendChat(const FXmppRoomId& RoomId, const class FString& MsgBody) = 0;
+	virtual bool SendChat(const FXmppRoomId& RoomId, const FString& MsgBody, const FString& ChatInfo) = 0;
 	virtual void GetJoinedRooms(TArray<FXmppRoomId>& OutRooms) = 0;
 	virtual bool RefreshRoomInfo(const FXmppRoomId& RoomId) = 0;
 	virtual bool GetRoomInfo(const FXmppRoomId& RoomId, FXmppRoomInfo& OutRoomInfo) = 0;

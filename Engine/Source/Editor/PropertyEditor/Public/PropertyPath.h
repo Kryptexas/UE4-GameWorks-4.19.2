@@ -8,6 +8,16 @@ struct FPropertyInfo
 {
 public:
 
+	FPropertyInfo()
+		: Property()
+		, ArrayIndex(INDEX_NONE)
+	{}
+
+	FPropertyInfo(TWeakObjectPtr< UProperty > InProperty, int32 InArrayIndex = INDEX_NONE)
+		: Property(InProperty)
+		, ArrayIndex(InArrayIndex)
+	{}
+
 	bool operator==( const FPropertyInfo& Other ) const 
 	{
 		return Property == Other.Property && ArrayIndex == Other.ArrayIndex;
@@ -115,7 +125,7 @@ public:
 		return NewPath;
 	}
 
-	FString ToString() const
+	FString ToString(const TCHAR* Separator = TEXT("->")) const
 	{
 		FString NewDisplayName;
 		bool FirstAddition = true;
@@ -126,7 +136,7 @@ public:
 			{
 				if ( !FirstAddition )
 				{
-					NewDisplayName += TEXT( "->" );
+					NewDisplayName += Separator;
 				}
 
 				NewDisplayName += PropInfo.Property->GetFName().ToString();
@@ -146,7 +156,7 @@ public:
 	/**
 	 * Add another property to be associated with this path
 	 */
-	void AddProperty( FPropertyInfo& InProperty )
+	void AddProperty( const FPropertyInfo& InProperty )
 	{
 		Properties.Add( InProperty );
 	}

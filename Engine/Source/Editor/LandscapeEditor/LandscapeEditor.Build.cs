@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LandscapeEditor : ModuleRules
 {
-	public LandscapeEditor(TargetInfo Target)
+	public LandscapeEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -27,6 +27,14 @@ public class LandscapeEditor : ModuleRules
 				"VREditor",
 			}
 			);
+
+		CircularlyReferencedDependentModules.AddRange(
+			new string[]
+			{
+				"ViewportInteraction",
+				"VREditor"
+			}
+		);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {

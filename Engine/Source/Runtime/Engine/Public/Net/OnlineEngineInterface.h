@@ -19,6 +19,8 @@ DECLARE_DELEGATE_TwoParams(FOnlineSessionStartComplete, FName /*InSessionName*/,
 DECLARE_DELEGATE_TwoParams(FOnlineSessionEndComplete, FName /*InSessionName*/, bool /*bWasSuccessful*/);
 /** Delegate fired when an external UI is opened or closed */
 DECLARE_DELEGATE_OneParam(FOnlineExternalUIChanged, bool /*bInIsOpening*/);
+/** Delegate executed when the web url UI has been closed */
+DECLARE_DELEGATE_OneParam(FOnlineShowWebUrlClosed, const FString& /*FinalUrl*/);
 /** Delegate fired when a PIE login has completed */
 DECLARE_DELEGATE_ThreeParams(FOnPIELoginComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
 
@@ -126,12 +128,75 @@ public:
 	 * External UI
 	 */
 
+	struct FShowWebUrlParams
+	{
+		/** presented without a frame if embedded enabled */
+		bool bEmbedded;
+		/** Show the built in close button */
+		bool bShowCloseButton;
+		/** Show the built in background */
+		bool bShowBackground;
+		/** Hide the mouse cursor */
+		bool bHideCursor;
+		/** Rest cookies before invoking web browser */
+		bool bResetCookies;
+		/** x offset in pixels from top left */
+		int32 OffsetX;
+		/** y offset in pixels from top left */
+		int32 OffsetY;
+		/** x size in pixels */
+		int32 SizeX;
+		/** y size in pixels */
+		int32 SizeY;
+		/** if specified then restricted to only navigate within these domains */
+		TArray<FString> AllowedDomains;
+		/** portion of url for detecting callback.  Eg. "&code=", "redirect=", etc */
+		FString CallbackPath;
+
+		/**
+		 * Constructor
+		 */
+		FShowWebUrlParams(bool InbEmbedded, int32 InOffsetX, int32 InOffsetY, int32 InSizeX, int32 InSizeY)
+			: bEmbedded(InbEmbedded)
+			, bShowCloseButton(false)
+			, bShowBackground(false)
+			, bHideCursor(false)
+			, bResetCookies(false)
+			, OffsetX(InOffsetX)
+			, OffsetY(InOffsetY)
+			, SizeX(InSizeX)
+			, SizeY(InSizeY)
+		{
+		}
+
+		/**
+		 * Default Constructor
+		 */
+		FShowWebUrlParams()
+			: bEmbedded(false)
+			, bShowCloseButton(false)
+			, bShowBackground(false)
+			, bHideCursor(false)
+			, bResetCookies(false)
+			, OffsetX(0)
+			, OffsetY(0)
+			, SizeX(0)
+			, SizeY(0)
+		{
+		}
+	};
+
 	/** Show an online external leaderboard UI if applicable to the platform */
 	virtual void ShowLeaderboardUI(UWorld* World, const FString& CategoryName) {}
 	/** Show an online external achievements UI if applicable to the platform */
 	virtual void ShowAchievementsUI(UWorld* World, int32 LocalUserNum) {}
 	/** Bind a delegate to the opening/closing of an online platform's external UI */
 	virtual void BindToExternalUIOpening(const FOnlineExternalUIChanged& Delegate) {}
+#define OSS_ADDED_SHOW_WEB 1 
+	/** Displays a web page in the external UI */
+	virtual void ShowWebURL(const FString& CurrentURL, const FShowWebUrlParams& ShowParams, const FOnlineShowWebUrlClosed& CompletionDelegate) {}
+	/** Closes the currently active web external UI */
+	virtual bool CloseWebURL() { return false; }
 
 	/**
 	 * Debug

@@ -21,6 +21,11 @@ D3D12_RESOURCE_DESC CreateIndexBufferResourceDesc(uint32 Size, uint32 InUsage)
 		Desc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 	}
 
+	if (InUsage & BUF_DrawIndirect)
+	{
+		Desc.Flags |= D3D12RHI_RESOURCE_FLAG_ALLOW_INDIRECT_BUFFER;
+	}
+
 	return Desc;
 }
 

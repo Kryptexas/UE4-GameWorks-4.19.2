@@ -36,8 +36,6 @@ namespace AutomationTool
 
 				Log.TraceVerbose("{2}: Running on {0} as a {1}-bit process.", HostPlatform.Current.GetType().Name, Environment.Is64BitProcess ? 64 : 32, DateTime.UtcNow.ToString("o"));
 
-				XmlConfigLoader.Init();
-
 				// Log if we're running from the launcher
 				var ExecutingAssemblyLocation = Assembly.GetExecutingAssembly().Location;
 				if (string.Compare(ExecutingAssemblyLocation, Assembly.GetEntryAssembly().GetOriginalLocation(), StringComparison.OrdinalIgnoreCase) != 0)

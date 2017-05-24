@@ -1,107 +1,110 @@
-﻿INTSourceChangelist:3217562
-Availability:Docs
-Title:Mobile Patch Utility Nodes
-Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
-Description:Describes the different kinds of Mobile Patch Utility Blueprint nodes.
+﻿INTSourceChangelist:3339919
+Availability:Public
+Title:모바일 패치 유틸리티 노드
+Crumbs:
+Description:다양한 Mobile Patch Utility 블루프린트 노드에 대한 설명입니다.
 Related: Engine/Blueprints
 Related: Platforms/Mobile
 Related: Platforms/Mobile/MobilePackagingWizard
 version: 4.14
 Parent:Engine/Blueprints
 type:overview
+tags:Blueprints
+skilllevel:Intermediate
+topic-image:Patching_Topic.png
 
 [TOC (start:2 end:2)]
 
-After using the [](Platforms/Mobile/MobilePackagingWizard) to create a small initial download for your mobile project, you also need to be able to provide the rest of your project in downloadable chunks to the user.
-The new Mobile Patch Utilities Blueprint library contains all the functionality required to allow a mobile game to download and install game content and patches from a cloud website instead of being 
-distributed as part of the initial download from the App Store. There is functionality to determine if updated game content is available, initiate the download, track progress, handle any errors, and 
-finally install the content paks that are downloaded successfully. Functionality to check for sufficient storage space and WiFi connectivity is also available, so you can warn the user in such cases. 
-Both Android and iOS are supported.
+[](Platforms/Mobile/MobilePackagingWizard) 사용을 통해 모바일 프로젝트용 작은 초기 다운로드를 만든 후에는, 나머지 프로젝트를 다운로드 가능한 청크로 사용자에게 제공할 수 있어야 합니다.
+새로운 Mobile Patch Utilities (모바일 패치 유틸리티) 블루프린트 라이브러리에는 모바일 게임을 App Store 초기 다운로드와 별도로 클라우드 웹사이트를 통해 게임 콘텐츠와 패치를 다운로드하여 설치할 수 
+있도록 하는 데 필요한 모든 기능이 포함되어 있습니다. 게임 콘텐츠 업데이트가 있는지 확인, 다운로드 시작, 진행상황 추적, 오류 처리, 마지막으로 다운로드에 성공한 콘텐츠 팩 설치를 위한 
+기능이 있습니다. 저장 공간이 충분한지, 와이파이 연결은 되어있는지 확인하고 사용자에게 경고를 띄우는 기능도 사용 가능합니다.
+안드로이드와 iOS 모두 지원합니다.
 
 [REGION:tip]
-To show these functions in context with each other, example setups are presented here.
-If a function or event in the Blueprint graph examples isn't listed in a table below, then it is a custom node you would need to create in your own project as well. 
+이 기능이 서로 어떻게 작동되는지 보여드리기 위해 예제 셋업을 제공해 드립니다.
+블루프린트 그래프 예제의 함수나 이벤트가 아래 표에 나열되어 있지 않은 경우, 별도 프로젝트에서도 직접 만들어 줘야 하는 커스텀 노드입니다.
 [/REGION]
 
-## Working with Pending Content
+## 대기중 콘텐츠 작업
 
 [REGION:lightbox]
 [![](Patching_1.png)(convert:false)](Patching_1.png)
 [/REGION]
 
-This is the first stage of the patching process. When patching is initiated, either from a level load or a user action, content needs to be requested from the remote server using the **Request Content** node.
-In this example, the install directory is saved off in a variable, but it could also be passed through as function inputs. The **Content To Install** is also saved into a variable for reuse later. 
-When the content request is complete, different events will be executed depending on whether the request succeeded or failed. Custom events are used as inputs for the **Request Content** function. 
-The **Check Download Space** function shown here is calling a custom event that starts off the next set of patching logic.
+패치 프로세스의 첫 단계입니다. 레벨 로드 혹은 사용자 동작으로 인해 패치가 시작되면, **Request Content** (콘텐츠 요청) 노드로 원격 서버에서 콘텐츠를 요청해야 합니다.
+이 예제에서, 설치 디렉토리는 변수에 저장되지만, 함수 입력으로 전달할 수도 있습니다. **Content To Install** 역시 나중에 재사용할 수 있도록 변수에 저장됩니다.
+콘텐츠 요청이 완료되면, 요청 성공 또는 실패에 따라 다양한 이벤트를 실행합니다. 커스텀 이벤트는 **Request Content** 함수에 대한 입력으로 사용됩니다.
+여기 보이는 **Check Download Space** (다운로드 공간 확인) 함수는 다음 패치 로직 세트를 착수시키는 커스텀 이벤트를 호출합니다.
 
-| Node | Description | 
+| 노드 | 설명 | 
 | --- | --- |
-| Request Content |  Attempts to download a manifest file using the specified manifest URL. On success, it will return an object that represents the remote content. This object can be queried for additional information, like total content size, download size, etc. The user can choose to download and install remote content. |
+| Request Content |  지정된 manifest URL 을 사용하여 manifest 파일을 다운로드합니다. 성공 시, 원격 콘텐츠를 나타내는 오브젝트를 반환합니다. 이 오브젝트는 콘텐츠 총 크기, 다운로드 크기 등의 부가 정보 쿼리가 가능합니다. 사용자가 원격 콘텐츠 다운로드 및 설치를 선택할 수 있습니다. |
 
 [REGION:lightbox]
 [![](Patching_2.png)(convert:false)](Patching_2.png)
 [/REGION]
 
-After requesting the remote content succeeds, the next step is to verify that there is enough space for the download using the **Get Required Disk Space** node and comparing the result to the result from **Get Disk Free Space**.
-If the required disk space is less than the disk free space, then a custom event is called to start the download.
+원격 콘텐츠 요청 성공 이후, 다음 단계는 **Get Required Disk Space** (필수 디스크 공간 구하기) 노드를 사용한 뒤 **Get Disk Free Space** (디스크 여유 공간 구하기) 결과와 비교하여 다운로드 공간이 충분한지 확인하는 것입니다.
+필수 디스크 공간이 디스크 여유 공간보다 적은 경우, 다운로드 시작을 위한 커스텀 이벤트를 호출합니다.
 
-| Node | Description | 
+| 노드 | 설명 | 
 | --- | --- |
-| Get Disk Free Space | Gets the disk free space in megabytes where content is installed (or will be installed). |
-| Get Required Disk Space | Gets the required disk space in megabytes for this content installation. |
+| Get Disk Free Space | 콘텐츠가 설치된( 또는 될) 디스크 여유 공간을 MB 단위로 구합니다. |
+| Get Required Disk Space | 이 콘텐츠 설치에 필요한 디스크 공간을 MB 단위로 구합니다. |
 
 [REGION:lightbox]
 [![](Patching_3.png)(convert:false)](Patching_3.png)
 [/REGION]
 
-Although there is a lot going on in this graph, the only Mobile Patch Utility function is **Start Install**, which actually attempts to download and install the remote content. Just like **Request Content**, **Start Install** has
-event parameters for success and failure. If the install succeeds, the **Mount Content** custom event is used to trigger the final stage of the patching process. Another custom event, **Display Download State** is fired off here
-with a timer. Using the timer and the **Update Download State** function, the download state can be shown to the user at regular intervals. More on that logic is in the next Blueprint graph.
+이 그래프에서 벌어지는 일들은 많지만, 유일한 모바일 패치 유틸리티 함수는 **Start Install** (설치 시작)으로, 원격 콘텐츠 다운로드 및 설치를 시도합니다. **Request Content** 와 마찬가지로 **Start Install** 역시 
+성공과 실패에 따른 이벤트 파라미터가 있습니다. 설치가 성공하면, **Mount Content** (콘텐츠 마운트) 커스텀 이벤트를 사용하여 패치 프로세스 최종 단계를 발동시킵니다. 여기서 타이머를 두고 또다른 **Display Download State** (다운로드 상태 표시) 커스텀 이벤트가 발동됩니다.
+타이머와 **Update Download State** (다운로드 상태 업데이트) 함수를 통해, 일정 간격으로 사용자에게 다운로드 상태를 표시할 수 있습니다. 그 로직 관련 자세한 내용은 다음 블루프린트 그래프에 있습니다.
 
-| Node | Description | 
+| 노드 | 설명 | 
 | --- | --- |
-| Start Install |  Attempts to download and install remote content. The user can choose to mount the installed content into the game. |
+| Start Install |  원격 콘텐츠 다운로드 및 설치를 시도합니다. 사용자가 설치된 콘텐츠를 게임에 마운트시킬지 선택할 수 있습니다. |
 
 [REGION:lightbox]
 ![](Patching_4.png)
 [/REGION]
 
-While the **Display Download State** custom event is connected to a **Format Text** node here, this could also be the stage of the patching process where you fill a progress bar on the UI, or other methods of
-displaying progress to the user. Here, the outputs of **Get Download Size**, **Get Download Speed**, **Get Download Status Text**, **Get Install Progress**, and **Get Total Downloaded Size** nodes are 
-put together in a simple text block to present to the user. This script is called at regular intervals with the timer, but does not call back to any of the other example graphs.
+**Display Download State** 커스텀 이벤트는 여기서 **Format Text** 노드에 연결되는데, UI 의 진행상황 막대를 채우거나 혹은 다른 방식으로 사용자에게 진행상황을 표시하는 패치 프로세스 단계가 
+될 수도 있습니다. 여기서 **Get Download Size** (다운로드 크기 구하기), **Get Download Speed** (다운로드 속도 구하기), **Get Download Status Text** (다운로드 상태 텍스트 구하기), **Get Install Progress** (설치 진행상황 구하기), **Get Total Downloaded Size** (총 다운로드한 크기 구하기) 
+노드를 간단한 텍스트 블록으로 합쳐 사용자에게 제공합니다. 이 스크립트는 타이머를 두고 일정 간격마다 호출되지만, 다른 예제 그래프로 콜백하지는 않습니다.
 
-| Node | Description | 
+| 노드 | 설명 | 
 | --- | --- |
-| Get Download Size | Gets the total download size for this content installation. |
-| Get Download Speed | Gets the current download speed in megabytes per second. Valid during installation. |
-| Get Download Status Text | Gets the current installation status text. Valid during installation. |
-| Get Install Progress | Gets the current installation progress. The result is between 0 and 1 for known progress, or less than 0 for unknown progress.  |
-| Get Total Downloaded Size | Gets the total downloaded size in megabytes. Valid during installation. |
+| Get Download Size | 이 콘텐츠 설치를 위한 총 다운로드 크기를 구합니다. |
+| Get Download Speed | 현재 다운로드 속도를 MB / 초 단위로 구합니다. 설치 도중 유효합니다. |
+| Get Download Status Text | 현재 설치 상태 텍스트를 구합니다. 설치 도중 유효합니다. |
+| Get Install Progress | 현재 설치 진행상황을 구합니다. 결과값은 진행상황이 확인된 경우 0 에서 1 사이, 확인되지 않은 경우 0 미만입니다. |
+| Get Total Downloaded Size | 총 다운로드한 크기 구하기 - 총 다운로드한 크기를 MB 단위로 구합니다. 설치 도중 유효합니다.|
 
-## Working with Installed Content
+## 설치된 콘텐츠 작업
 
 [REGION:lightbox]
 ![](Patching_5.png)
 [/REGION]
 
-The last stage of the patching process is to mount the content. We are using the stored **Install Directory** variable from the first Blueprint graph, but this could again be passed through as a function input.
-The **Get Installed Content** node is used to look up the content from that directory, and then the **Mount** function mounts it into the game.  Unlike **Request Content** and **Start Install**, **Mount**
-does not have success and failure event callbacks.
+패치 프로세스의 마지막 단계는 콘텐츠 마운트 단계입니다. 첫 블루프린트 그래프에서 저장된 **Install Directory** (설치 디렉토리) 변수를 사용하고 있지만, 함수 입력으로도 전달 가능합니다.
+**Get Installed Content** (설치된 콘텐츠 구하기) 노드를 사용하여 그 디렉토리에서 콘텐츠를 찾아본 뒤, **Mount** (마운트) 함수로 그것을 게임에 마운트합니다. **Request Content** 나 **Start Install** 과는 달리, **Mount** 는
+성공 및 실패 이벤트 콜백이 없습니다.
 
-| Node | Description | 
+| 노드 | 설명 | 
 | --- | --- |
-| Get Installed Content | Gets the installed content. This will return a non-null object if there is installed content in the specified directory. The user can choose to mount installed content into the game. |
-| Mount | Mounts installed content. |
+| Get Installed Content | 설치된 콘텐츠를 구합니다. 지정된 디렉토리에 설치된 콘텐츠가 있는 경우 null 이 아닌 오브젝트를 반환합니다. 사용자가 설치된 콘텐츠를 게임에 마운트하도록 선택할 수 있습니다. |
+| Mount | 설치된 콘텐츠를 마운트합니다. |
 
-## Other Mobile Patching Functions
+## 기타 모바일 패치 함수
 
-The above graphs are a simple example of how to set up patching on a mobile device, but there are other, more complex, behaviors you could set up as well. For example, you could have your game warn users when they don't have
-an active wi fi connection, or provide different content for iOS and Android devices. For these use cases and others, the below functions would be useful additions to your Blueprints.
+위 그래프는 모바일 디바이스에서의 패치 셋업 방법에 대한 간단한 예제이지만, 추가로 좀 더 복잡한 작동방식 셋업도 가능합니다. 예를 들어 와이파이 접속이 되어있지 않은 경우 사용자에게 경고를 하거나, iOS 및 안드로이드 디바이스 
+종류에 따라 다른 콘텐츠를 제공하고 싶을 수가 있습니다. 이러한 또는 그 외의 경우에도, 아래와 같이 유용한 함수를 블루프린트에 추가할 수 있을 것입니다.
 
-| Node | Description | 
+| 노드 | 설명 | 
 | --- | --- |
-| Get Active Device Profile Name | Gets the name of currently selected device profile name. |
-| Get Installed Content Size | Gets the installed content size in megabytes  |
-| Get Supported Platform Names | Gets the list of supported platform names on this device. Example: Android_ETC2, Android_ASTC |
-| Has Active Wi Fi Connection | Returns whether or not a WiFi connection is currently available. |
+| Get Active Device Profile Name | 현재 선택된 디바이스 프로파일 이름을 구합니다. |
+| Get Installed Content Size | 설치된 콘텐츠의 크기를 MB 단위로 구합니다. |
+| Get Supported Platform Names | 이 디바이스에 지원되는 플랫폼 이름 목록을 구합니다. 예: Android_ETC2, Android_ASTC |
+| Has Active WiFi Connection | 현재 와이파이 접속이 되어있는지 여부를 반환합니다. |
 	 

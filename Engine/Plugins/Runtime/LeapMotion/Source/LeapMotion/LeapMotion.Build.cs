@@ -26,7 +26,7 @@ namespace UnrealBuildTool.Rules
             get { return Path.GetFullPath(Path.Combine(ThirdPartyPath, "LeapSDK","Lib")); }
         }
 
-		public LeapMotion(TargetInfo Target)
+		public LeapMotion(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {
@@ -76,7 +76,7 @@ namespace UnrealBuildTool.Rules
             LoadLeapLib(Target);
 		}
 
-        public bool LoadLeapLib(TargetInfo Target)
+        public bool LoadLeapLib(ReadOnlyTargetRules Target)
         {
             bool isLibrarySupported = false;
 

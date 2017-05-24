@@ -129,14 +129,14 @@ TSharedPtr<FBlueprintDragDropMenuItem> FBlueprintActionMenuItemFactory::MakeDrag
 	}
 
 	FText MenuDescription;
-	FString TooltipDescription;
+	FText TooltipDescription;
 	FText Category;
 	if (SampleProperty != nullptr)
 	{
 		bool const bShowFriendlyNames = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
 		MenuDescription = bShowFriendlyNames ? FText::FromString(UEditorEngine::GetFriendlyName(SampleProperty)) : FText::FromName(SampleProperty->GetFName());
 
-		TooltipDescription = SampleProperty->GetToolTipText().ToString();
+		TooltipDescription = SampleProperty->GetToolTipText();
 		Category = FObjectEditorUtils::GetCategoryText(SampleProperty);
 
 		bool const bIsDelegateProperty = SampleProperty->IsA<UMulticastDelegateProperty>();

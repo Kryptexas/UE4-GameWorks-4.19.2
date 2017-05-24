@@ -3,6 +3,8 @@
 #pragma  once
 
 #include "CoreMinimal.h"
+#include "UObject/AssetPtr.h"
+#include "Engine/Blueprint.h"
 
 class UBlueprintGeneratedClass;
 class UUserDefinedEnum;
@@ -26,8 +28,13 @@ public:
 	TSet<UField*> IncludeInHeader;
 	TSet<UField*> DeclareInHeader;
 	TSet<UField*> IncludeInBody;
+
+	TSet<TAssetPtr<UPackage>> RequiredModuleNames;
+
+	FCompilerNativizationOptions NativizationOptions;
+
 public:
-	FGatherConvertedClassDependencies(UStruct* InStruct);
+	FGatherConvertedClassDependencies(UStruct* InStruct, const FCompilerNativizationOptions& InNativizationOptions);
 
 	UStruct* GetActualStruct() const
 	{
@@ -44,6 +51,8 @@ public:
 	bool WillClassBeConverted(const UBlueprintGeneratedClass* InClass) const;
 
 	static void GatherAssetReferencedByUDSDefaultValue(TSet<UObject*>& Dependencies, UUserDefinedStruct* Struct);
+
+	static bool IsFieldFromExcludedPackage(const UField* Field, const TSet<FName>& InExcludedModules);
 
 protected:
 	void DependenciesForHeader();

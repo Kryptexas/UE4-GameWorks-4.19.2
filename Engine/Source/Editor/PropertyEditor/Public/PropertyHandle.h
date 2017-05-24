@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UnrealType.h"
 #include "Widgets/SWidget.h"
 #include "PropertyEditorModule.h"
 #include "UObject/PropertyPortFlags.h"
@@ -145,6 +146,15 @@ public:
 	virtual FString GetDocumentationExcerptName() = 0;
 
 	/**
+	* Calculates the memory address for the data associated with this item's value.
+	*
+	* @param Base The location to use as the starting point for the calculation; typically the address of an object.
+	*
+	* @return A pointer to a UProperty value or UObject.
+	*/
+	virtual uint8* GetValueBaseAddress( uint8* Base ) = 0;
+
+	/**
 	 * Gets the value formatted as a string.
 	 *
 	 * @param OutValue		String where the value is stored.  Remains unchanged if the value could not be set
@@ -270,7 +280,7 @@ public:
 	 * Called to manually notify root objects that this property has changed
 	 * This does not need to be called when SetValue functions are used since it will be called automatically
 	 */
-	virtual void NotifyPostChange() = 0;
+	virtual void NotifyPostChange( EPropertyChangeType::Type ChangeType = EPropertyChangeType::Unspecified ) = 0;
 
 	/**
 	 * Called to manually notify root objects that this property has finished changing
@@ -344,6 +354,11 @@ public:
 	 * @return a handle to the parent array if this handle is an array element
 	 */
 	virtual TSharedPtr<IPropertyHandle> GetParentHandle() const = 0;
+
+	/**
+	 * @return The property handle to the key element for this value if this is a map element
+	 */
+	virtual TSharedPtr<IPropertyHandle> GetKeyHandle() const = 0;
 
 	/**
 	 * @return The number of children the property handle has
@@ -575,6 +590,12 @@ public:
 	 * @return Whether or not this was successful
 	 */
 	virtual FPropertyAccess::Result DeleteItem( int32 Index ) = 0;
+
+	/**
+	 * Swaps two items
+	 * @return Whether or not this was successful
+	 */
+	virtual FPropertyAccess::Result SwapItems( int32 FirstIndex, int32 SecondIndex ) = 0;
 
 	/**
 	 * @return The number of elements in the array

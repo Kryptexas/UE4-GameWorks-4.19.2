@@ -37,7 +37,7 @@ float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness, out float
 	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, SkyLightParameters.x);
 	float3 Reflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
 
-	OutSkyAverageBrightness = SkyLightCubemapBrightness;
+	OutSkyAverageBrightness = SkyLightCubemapBrightness * Luminance( View.SkyLightColor.rgb );
 	return Reflection * View.SkyLightColor.rgb;
 }
 
@@ -149,7 +149,7 @@ float3 GetLookupVectorForBoxCapture(float3 ReflectionVector, float3 WorldPositio
 	return ProjectedCaptureVector;
 }
 
-float3 GetLookupVectorForSphereCapture(float3 ReflectionVector, float3 WorldPosition, float4 SphereCapturePositionAndRadius, float NormalizedDistanceToCapture, float3 LocalCaptureOffset, out float DistanceAlpha)
+float3 GetLookupVectorForSphereCapture(float3 ReflectionVector, float3 WorldPosition, float4 SphereCapturePositionAndRadius, float NormalizedDistanceToCapture, float3 LocalCaptureOffset, inout float DistanceAlpha)
 {
 	float3 ProjectedCaptureVector = ReflectionVector;
 	float ProjectionSphereRadius = SphereCapturePositionAndRadius.w;

@@ -7,6 +7,7 @@
 
 #include "CoreMinimal.h"
 #include "StandaloneRendererPlatformHeaders.h"
+#include "Rendering/RenderingCommon.h"
 
 /**
  * Base class for all OpenGL shaders                   
@@ -66,7 +67,7 @@ public:
 	void SetViewProjectionMatrix( const FMatrix& InVP ); 
 	void SetVertexShaderParams( const FVector4& ShaderParams );
 	void SetTexture( GLuint Texture, uint32 AddressU, uint32 AddressV  );
-	void SetDrawEffects( uint32 InDrawEffects );
+	void SetDrawEffects(ESlateDrawEffect InDrawEffects );
 	void SetShaderType( uint32 InShaderType );
 	void SetMarginUVs( const FVector4& InMarginUVs );
 private:

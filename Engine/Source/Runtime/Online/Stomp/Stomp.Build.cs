@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Stomp : ModuleRules
 {
-    public Stomp(TargetInfo Target)
+    public Stomp(ReadOnlyTargetRules Target) : base(Target)
     {
         Definitions.Add("STOMP_PACKAGE=1");
 
@@ -12,7 +12,9 @@ public class Stomp : ModuleRules
 			Target.Platform == UnrealTargetPlatform.Win32 ||
 			Target.Platform == UnrealTargetPlatform.Win64 ||
 			Target.Platform == UnrealTargetPlatform.Mac ||
-			Target.Platform == UnrealTargetPlatform.Linux;
+			Target.Platform == UnrealTargetPlatform.Linux ||
+			Target.Platform == UnrealTargetPlatform.XboxOne ||
+			Target.Platform == UnrealTargetPlatform.PS4;
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

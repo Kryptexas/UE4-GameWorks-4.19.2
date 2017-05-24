@@ -60,7 +60,7 @@ public:
 			TSet<FName> VisitedRedirectors;
 
 			// Use the asset registry to avoid loading the object
-			FAssetData ObjectAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(InObjectPath);
+			FAssetData ObjectAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(InObjectPath, true);
 			while (ObjectAssetData.IsValid() && ObjectAssetData.IsRedirector())
 			{
 				// Check to see if we've already seen this path before, it's possible we might have found a redirector loop.

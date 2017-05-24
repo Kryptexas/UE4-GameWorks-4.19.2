@@ -10,32 +10,31 @@
 #include "Modules/ModuleManager.h"
 #include "Misc/FilterCollection.h"
 #include "Interfaces/IAutomationControllerModule.h"
+#include "FileManager.h"
+#include "Paths.h"
+#include "FileHelper.h"
+#include "AssetRegistryModule.h"
 
 
 /** States for running the automation process */
-namespace EAutomationTestState
+enum class EAutomationTestState : uint8
 {
-	enum Type
-	{
-		Idle,				// Automation process is not running
-		FindWorkers,		// Find workers to run the tests
-		RequestTests,		// Find the tests that can be run on the workers
-		DoingRequestedWork,	// Do whatever was requested from the commandline
-		Complete			// The process is finished
-	};
+	Initializing,		// 
+	Idle,				// Automation process is not running
+	FindWorkers,		// Find workers to run the tests
+	RequestTests,		// Find the tests that can be run on the workers
+	DoingRequestedWork,	// Do whatever was requested from the commandline
+	Complete			// The process is finished
 };
 
-namespace EAutomationCommand
+enum class EAutomationCommand : uint8
 {
-	enum Type
-	{
-		ListAllTests,				//List all tests for the session
-		//RunSingleTest,			//Run one test specified by the commandline
-		RunCommandLineTests,		//Run only tests that are listed on the commandline
-		RunAll,						//Run all the tests that are supported
-		RunFilter,                  //
-		Quit						//quit the app when tests are done
-	};
+	ListAllTests,			//List all tests for the session
+	RunCommandLineTests,	//Run only tests that are listed on the commandline
+	RunCheckpointTests,		// Run only tests listed on the commandline with checkpoints in case of a crash.
+	RunAll,					//Run all the tests that are supported
+	RunFilter,              //
+	Quit					//quit the app when tests are done
 };
 
 
@@ -52,7 +51,7 @@ public:
 		SessionID = FApp::GetSessionId();
 
 		// Set state to FindWorkers to kick off the testing process
-		AutomationTestState = EAutomationTestState::Idle;
+		AutomationTestState = EAutomationTestState::Initializing;
 		DelayTimer = 5.0f;
 
 		// Load the automation controller
@@ -61,11 +60,9 @@ public:
 
 		AutomationController->Init();
 
-		const bool bSkipScreenshots = FParse::Param(FCommandLine::Get(), TEXT("NoScreenshots"));
 		//TODO AUTOMATION Always use fullsize screenshots.
 		const bool bFullSizeScreenshots = FParse::Param(FCommandLine::Get(), TEXT("FullSizeScreenshots"));
 		const bool bSendAnalytics = FParse::Param(FCommandLine::Get(), TEXT("SendAutomationAnalytics"));
-		AutomationController->SetScreenshotsEnabled(!bSkipScreenshots);
 
 		// Register for the callback that tells us there are tests available
 		AutomationController->OnTestsRefreshed().AddRaw(this, &FAutomationExecCmd::HandleRefreshTestCallback);
@@ -118,6 +115,7 @@ public:
 		}
 		return false;
 	}
+
 	
 	void GenerateTestNamesFromCommandLine(const TArray<FString>& AllTestNames, TArray<FString>& OutTestNames)
 	{
@@ -147,6 +145,24 @@ public:
 					TestCount++;
 					break;
 				}
+			}
+		}
+		// If we have the TestsRun array set up and are using the same command as before, clear out already run tests. 
+		if (TestsRun.Num() > 0)
+		{
+			if (TestsRun[0] == StringCommand)
+			{
+				for (int i = 1; i < TestsRun.Num(); i++)	
+				{
+					if (OutTestNames.Remove(TestsRun[i]))
+					{
+						OutputDevice->Logf(TEXT("Skipping %s due to Checkpoint."), *TestsRun[i]);
+					}
+				}
+			}
+			else
+			{
+				AutomationController->CleanUpCheckpointFile();
 			}
 		}
 	}
@@ -196,6 +212,29 @@ public:
 			{
 				AutomationController->StopTests();
 				AutomationController->SetEnabledTests(FilteredTestNames);
+				bRunTests = true;
+			}
+			else
+			{
+				AutomationTestState = EAutomationTestState::Complete;
+			}
+		}
+		else if (AutomationCommand == EAutomationCommand::RunCheckpointTests)
+		{
+			TArray <FString> FilteredTestNames;
+			GenerateTestNamesFromCommandLine(AllTestNames, FilteredTestNames);
+			if (FilteredTestNames.Num())
+			{
+				AutomationController->StopTests();
+				AutomationController->SetEnabledTests(FilteredTestNames);
+				if (TestsRun.Num())
+				{
+					AutomationController->WriteLoadedCheckpointDataToFile();
+				}
+				else
+				{
+					AutomationController->WriteLineToCheckpointFile(StringCommand);
+				}
 				bRunTests = true;
 			}
 			else
@@ -255,6 +294,16 @@ public:
 		// Update the automation process
 		switch (AutomationTestState)
 		{
+			case EAutomationTestState::Initializing:
+			{
+				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+				if ( AssetRegistryModule.Get().IsLoadingAssets() == false )
+				{
+					AutomationTestState = EAutomationTestState::Idle;
+				}
+
+				break;
+			}
 			case EAutomationTestState::FindWorkers:
 			{
 				FindWorkers(DeltaTime);
@@ -293,7 +342,13 @@ public:
 				// Only quit if Quit is the actual last element in the array.
 				if (AutomationCommand == EAutomationCommand::Quit)
 				{
+					if (!GIsCriticalError)
+					{
+						GIsCriticalError = AutomationController->ReportsHaveErrors();
+					}
+
 					FPlatformMisc::RequestExit(true);
+
 					// We have finished the testing, and results are available
 					AutomationTestState = EAutomationTestState::Complete;
 				}
@@ -356,6 +411,73 @@ public:
 					Ar.Logf(TEXT("Running all tests matching substring: %s"), *StringCommand);
 					AutomationCommandQueue.Add(EAutomationCommand::RunCommandLineTests);
 				}
+				else if (FParse::Command(&TempCmd, TEXT("RunCheckpointedTests")))
+				{
+					StringCommand = TempCmd;
+					Ar.Logf(TEXT("Running all tests with checkpoints matching substring: %s"), *StringCommand);
+					AutomationCommandQueue.Add(EAutomationCommand::RunCheckpointTests);
+					TestsRun = AutomationController->GetCheckpointFileContents();
+					AutomationController->CleanUpCheckpointFile();
+				}
+				else if (FParse::Command(&TempCmd, TEXT("SetMinimumPriority")))
+				{
+					StringCommand = TempCmd;
+					Ar.Logf(TEXT("Setting minimum priority of cases to run to: %s"), *StringCommand);
+					if (StringCommand.Contains(TEXT("Low")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::PriorityMask);
+					}
+					else if (StringCommand.Contains(TEXT("Medium")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::MediumPriority);
+					}
+					else if (StringCommand.Contains(TEXT("High")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::HighPriorityAndAbove);
+					}
+					else if (StringCommand.Contains(TEXT("Critical")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::ClientContext);
+					}
+					else if (StringCommand.Contains(TEXT("None")))
+					{
+						AutomationController->SetRequestedTestFlags(0);
+					}
+					else
+					{
+						Ar.Logf(TEXT("%s is not a valid priority!\nValid priorities are Critical, High, Medium, Low, None"), *StringCommand);
+					}
+				}
+				else if (FParse::Command(&TempCmd, TEXT("SetPriority")))
+				{
+					StringCommand = TempCmd;
+					Ar.Logf(TEXT("Setting explicit priority of cases to run to: %s"), *StringCommand);
+					if (StringCommand.Contains(TEXT("Low")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::LowPriority);
+					}
+					else if (StringCommand.Contains(TEXT("Medium")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::MediumPriority);
+					}
+					else if (StringCommand.Contains(TEXT("High")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::HighPriority);
+					}
+					else if (StringCommand.Contains(TEXT("Critical")))
+					{
+						AutomationController->SetRequestedTestFlags(EAutomationTestFlags::CriticalPriority);
+					}
+					else if (StringCommand.Contains(TEXT("None")))
+					{
+						AutomationController->SetRequestedTestFlags(0);
+					}
+
+					else
+					{
+						Ar.Logf(TEXT("%s is not a valid priority!\nValid priorities are Critical, High, Medium, Low, None"), *StringCommand);
+					}
+				}
 				else if (FParse::Command(&TempCmd, TEXT("RunFilter")))
 				{
 					FlagToUse = TempCmd;
@@ -401,13 +523,16 @@ private:
 	IAutomationControllerManagerPtr AutomationController;
 
 	/** The current state of the automation process */
-	EAutomationTestState::Type AutomationTestState;
+	EAutomationTestState AutomationTestState;
+
+	/** The priority flags we would like to run */
+	EAutomationTestFlags::Type AutomationPriority;
 
 	/** What work was requested */
-	TArray<EAutomationCommand::Type> AutomationCommandQueue;
+	TArray<EAutomationCommand> AutomationCommandQueue;
 
 	/** What work was requested */
-	EAutomationCommand::Type AutomationCommand;
+	EAutomationCommand AutomationCommand;
 
 	/** Delay used before finding workers on game instances. Just to ensure they have started up */
 	float DelayTimer;
@@ -429,7 +554,20 @@ private:
 
 	//Dictionary that maps flag names to flag values.
 	TMap<FString, int32> FilterMaps;
+
+	//Test pass checkpoint backup file.
+	FArchive* CheckpointFile;
+
+	FString CheckpointCommand;
+
+	TArray<FString> TestsRun;
 };
 
 static FAutomationExecCmd AutomationExecCmd;
+
+void EmptyLinkFunctionForStaticInitializationAutomationExecCmd()
+{
+	// This function exists to prevent the object file containing this test from
+	// being excluded by the linker, because it has no publicly referenced symbols.
+}
 

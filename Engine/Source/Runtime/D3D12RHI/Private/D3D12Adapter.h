@@ -45,6 +45,8 @@ enum EMultiGPUMode
 
 static const bool GRedirectDefaultContextForAFR = true;
 
+void* FD3D12ThreadLocalObject<FD3D12FastConstantAllocator>::ThisThreadObject = nullptr;
+
 struct FD3D12AdapterDesc
 {
 	FD3D12AdapterDesc()
@@ -131,12 +133,11 @@ public:
 	{
 		return RootSignatureManager.GetRootSignature(QBSS);
 	}
-
+#endif
 	inline FD3D12RootSignatureManager* GetRootSignatureManager()
 	{
 		return &RootSignatureManager;
 	}
-#endif
 
 	inline FD3D12DeferredDeletionQueue& GetDeferredDeletionQueue() { return DeferredDeletionQueue; }
 

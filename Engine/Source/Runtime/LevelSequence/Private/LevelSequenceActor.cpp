@@ -161,6 +161,14 @@ void ALevelSequenceActor::SetSequence(ULevelSequence* InSequence)
 	}
 }
 
+void ALevelSequenceActor::SetEventReceivers(TArray<AActor*> InAdditionalReceivers)
+{
+	AdditionalEventReceivers = InAdditionalReceivers;
+	if (SequencePlayer)
+	{
+		SequencePlayer->SetEventReceivers(TArray<UObject*>(AdditionalEventReceivers));
+	}
+}
 
 void ALevelSequenceActor::InitializePlayer()
 {
@@ -172,6 +180,7 @@ void ALevelSequenceActor::InitializePlayer()
 
 		SequencePlayer = NewObject<ULevelSequencePlayer>(this, "AnimationPlayer");
 		SequencePlayer->Initialize(LevelSequenceAsset, GetWorld(), PlaybackSettings);
+		SequencePlayer->SetEventReceivers(TArray<UObject*>(AdditionalEventReceivers));
 
 		RefreshBurnIn();
 

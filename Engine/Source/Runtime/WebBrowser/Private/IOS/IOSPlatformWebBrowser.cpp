@@ -95,13 +95,19 @@
 
 -(void)loadurl:(NSURL*)InURL;
 {
-	NextURL = InURL;
+	dispatch_async(dispatch_get_main_queue(), ^
+	{
+		NextURL = InURL;
+	});
 }
 
 -(void)loadstring:(NSString*)InString dummyurl:(NSURL*)InURL;
 {
-	NextContent = InString;
-	NextURL = InURL;
+	dispatch_async(dispatch_get_main_queue(), ^
+	{
+		NextContent = InString;
+		NextURL = InURL;
+	});
 }
 
 @end

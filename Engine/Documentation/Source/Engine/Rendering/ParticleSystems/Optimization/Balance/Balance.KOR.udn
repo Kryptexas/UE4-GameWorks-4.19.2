@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability: Public
 Title:비주얼양과 퍼포먼스군의 밀땅
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:대안적 방법을 사용하여 비주얼 정확도와 퍼포먼스 비용 사이의 균형을 맞추는 방법입니다.
 Version: 4.9
+tags:Particles
 
 
 
@@ -28,7 +29,7 @@ Version: 4.9
 
 
 
-## 이펙트 제작 꼼수
+## 이펙트 제작 팁
 
 가끔 자신이 만들어야 할 이펙트가 전혀 파티클 이펙트가 아닐 수도 있습니다. 사실 파티클 시스템이 아닌, 메시로 이펙트를 만드는 것이 나은 경우가 종종 있습니다. 저 멀리 원거리에 커다란 불연기 기둥이 그런 예가 될 수 있지요. 이런 불연기 기둥을 파티클로 렌더링하려했다간, 불연기의 발연기를 보게 되는 수가 생깁니다. 다음과 같은 문제가 생기지요.
 

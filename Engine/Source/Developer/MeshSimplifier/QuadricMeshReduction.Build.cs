@@ -5,7 +5,7 @@ using System.IO;
 
 public class QuadricMeshReduction : ModuleRules
 {
-	public QuadricMeshReduction(TargetInfo Target)
+	public QuadricMeshReduction(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Developer/MeshSimplifier/Public");
 		PrivateDependencyModuleNames.Add("Core");

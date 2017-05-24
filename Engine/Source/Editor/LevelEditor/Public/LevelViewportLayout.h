@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __LevelViewportLayout_h__
-#define __LevelViewportLayout_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -350,5 +346,3 @@ protected:
 	};
 	TArray<FMaximizeViewportCommand> DeferredMaximizeCommands;
 };
-
-#endif

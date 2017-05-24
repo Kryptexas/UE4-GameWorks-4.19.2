@@ -3,6 +3,7 @@
 #include "MeshVertexPainter/MeshVertexPainter.h"
 #include "Components.h"
 #include "StaticMeshResources.h"
+#include "Engine/StaticMesh.h"
 
 
 void FMeshVertexPainter::PaintVerticesSingleColor(UStaticMeshComponent* StaticMeshComponent, const FLinearColor& FillColor, bool bConvertToSRGB)

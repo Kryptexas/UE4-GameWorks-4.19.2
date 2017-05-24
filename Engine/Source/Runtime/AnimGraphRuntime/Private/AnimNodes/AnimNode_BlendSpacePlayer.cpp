@@ -15,6 +15,7 @@ FAnimNode_BlendSpacePlayer::FAnimNode_BlendSpacePlayer()
 	, bLoop(true)
 	, StartPosition(0.f)
 	, BlendSpace(nullptr)
+	, bResetPlayTimeWhenBlendSpaceChanges(true)
 	, PreviousBlendSpace(nullptr)
 {
 }
@@ -79,7 +80,7 @@ void FAnimNode_BlendSpacePlayer::UpdateInternal(const FAnimationUpdateContext& C
 	
 		if (PreviousBlendSpace != BlendSpace)
 		{
-			Reinitialize();
+			Reinitialize(bResetPlayTimeWhenBlendSpaceChanges);
 		}
 
 		Context.AnimInstanceProxy->MakeBlendSpaceTickRecord(TickRecord, BlendSpace, BlendInput, BlendSampleDataCache, BlendFilter, bLoop, PlayRate, Context.GetFinalBlendWeight(), /*inout*/ InternalTimeAccumulator, MarkerTickRecord);
@@ -157,14 +158,17 @@ const FBlendSampleData* FAnimNode_BlendSpacePlayer::GetHighestWeightedSample() c
 	return HighestSample;
 }
 
-void FAnimNode_BlendSpacePlayer::Reinitialize()
+void FAnimNode_BlendSpacePlayer::Reinitialize(bool bResetTime)
 {
 	BlendSampleDataCache.Empty();
-	InternalTimeAccumulator = FMath::Clamp(StartPosition, 0.f, 1.0f);
-	if (StartPosition == 0.f && PlayRate < 0.0f)
+	if(bResetTime)
 	{
-		// Blend spaces run between 0 and 1
-		InternalTimeAccumulator = 1.0f;
+		InternalTimeAccumulator = FMath::Clamp(StartPosition, 0.f, 1.0f);
+		if (StartPosition == 0.f && PlayRate < 0.0f)
+		{
+			// Blend spaces run between 0 and 1
+			InternalTimeAccumulator = 1.0f;
+		}
 	}
 
 	if (BlendSpace != NULL)

@@ -45,6 +45,9 @@ class ENGINE_API INavLinkCustomInterface
 	 */
 	virtual uint32 GetLinkId() const { return 0; }
 
+	/** Update unique ID number for custom link by navigation system */
+	virtual void UpdateLinkId(uint32 NewUniqueId) { }
+
 	/** Get object owner of navigation link, used for creating containers with multiple links */
 	virtual UObject* GetLinkOwner() const;
 

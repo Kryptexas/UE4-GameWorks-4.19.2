@@ -42,6 +42,9 @@ public:
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	// End of SWidget implementation
 
+	/** Return the associated AssetView */
+	const TSharedPtr<SAssetView>& GetAssetView() const { return AssetViewPtr; }
+
 private:
 	/** Focuses the search box post-construct */
 	EActiveTimerReturnType SetFocusPostConstruct( double InCurrentTime, float InDeltaTime );
@@ -80,6 +83,9 @@ private:
 
 	/** @return The currently selected asset */
 	TArray< FAssetData > GetCurrentSelection();
+
+	/** Forces a refresh */
+	void RefreshAssetView(bool bRefreshSources);
 
 	/** @return The text to highlight on the assets  */
 	FText GetHighlightedText() const;

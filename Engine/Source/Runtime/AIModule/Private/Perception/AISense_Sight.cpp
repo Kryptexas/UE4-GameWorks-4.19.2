@@ -71,7 +71,7 @@ UAISense_Sight::FDigestedSightProperties::FDigestedSightProperties(const UAISens
 {
 	SightRadiusSq = FMath::Square(SenseConfig.SightRadius);
 	LoseSightRadiusSq = FMath::Square(SenseConfig.LoseSightRadius);
-	PeripheralVisionAngleCos = FMath::Cos(FMath::DegreesToRadians(SenseConfig.PeripheralVisionAngleDegrees));
+	PeripheralVisionAngleCos = FMath::Cos(FMath::Clamp(FMath::DegreesToRadians(SenseConfig.PeripheralVisionAngleDegrees), 0.f, PI));
 	AffiliationFlags = SenseConfig.DetectionByAffiliation.GetAsFlags();
 	// keep the special value of FAISystem::InvalidRange (-1.f) if it's set.
 	AutoSuccessRangeSqFromLastSeenLocation = (SenseConfig.AutoSuccessRangeFromLastSeenLocation == FAISystem::InvalidRange) ? FAISystem::InvalidRange : FMath::Square(SenseConfig.AutoSuccessRangeFromLastSeenLocation);
@@ -202,7 +202,8 @@ float UAISense_Sight::Update()
 				float StimulusStrength = 1.f;
 				
 				// @Note that automagical "seeing" does not care about sight range nor vision cone
-				if (ShouldAutomaticallySeeTarget(PropDigest, SightQuery, Listener, TargetActor, StimulusStrength))
+				const bool bShouldAutomatically = ShouldAutomaticallySeeTarget(PropDigest, SightQuery, Listener, TargetActor, StimulusStrength);
+				if (bShouldAutomatically)
 				{
 					// Pretend like we've seen this target where we last saw them
 					Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, StimulusStrength, SightQuery->LastSeenLocation, Listener.CachedLocation));

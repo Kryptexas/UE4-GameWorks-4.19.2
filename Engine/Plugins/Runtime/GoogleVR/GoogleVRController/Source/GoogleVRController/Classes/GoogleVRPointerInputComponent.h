@@ -51,7 +51,7 @@ enum class EGoogleVRPointerInputMode : uint8
 };
 
 /**
- * GoogleVRPointerInputComponent is used to interact with Actors and Widgets by 
+ * GoogleVRPointerInputComponent is used to interact with Actors and Widgets by
  * using a 3D pointer. The pointer can be a cardboard reticle, or a daydream controller.
  *
  * @see UGoogleVRMotionControllerComponent
@@ -72,23 +72,23 @@ public:
 
 	/** Get the Pointer being used for this input component. */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRPointerInput", meta = (Keywords = "Cardboard AVR GVR"))
-	TScriptInterface<IGoogleVRPointer> GetPointer();
+	TScriptInterface<IGoogleVRPointer> GetPointer() const;
 
 	/** Returns true if there was a blocking hit. */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRPointerInput", meta = (Keywords = "Cardboard AVR GVR"))
-	bool IsBlockingHit();
+	bool IsBlockingHit() const;
 
 	/** The actor that is being pointed at. */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRPointerInput", meta = (Keywords = "Cardboard AVR GVR"))
-	AActor* GetHitActor();
+	AActor* GetHitActor() const;
 
 	/** The component that the actor being pointed at. */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRPointerInput", meta = (Keywords = "Cardboard AVR GVR"))
-	UPrimitiveComponent* GetHitComponent();
+	UPrimitiveComponent* GetHitComponent() const;
 
 	/** The world location where the pointer intersected with the hit actor. */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRPointerInput", meta = (Keywords = "Cardboard AVR GVR"))
-	FVector GetIntersectionLocation();
+	FVector GetIntersectionLocation() const;
 
 	/** Get the result of the latest hit detection. */
 	UFUNCTION(BlueprintCallable, Category = "GoogleVRPointerInput", meta = (Keywords = "Cardboard AVR GVR"))
@@ -150,7 +150,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Event")
 	FGoogleVRInputDelegate OnPointerClickActorEvent;
 
-	/** Event that occurs once when the pointer is clicked. 
+	/** Event that occurs once when the pointer is clicked.
 	 *  A click is when the pointer is pressed and then released while pointing at the same component.
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Event")

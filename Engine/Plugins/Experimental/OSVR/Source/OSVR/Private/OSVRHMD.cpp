@@ -235,24 +235,13 @@ bool FOSVRHMD::DoesSupportPositionalTracking() const
 
 bool FOSVRHMD::HasValidTrackingPosition()
 {
-    return bHmdPosTracking && bHaveVisionTracking;
+    return bHaveVisionTracking;
 }
 
 void FOSVRHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation,
     float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
 {
     // OSVR does not currently provide this information.
-}
-
-bool FOSVRHMD::IsInLowPersistenceMode() const
-{
-    // Intentionally left blank
-    return true;
-}
-
-void FOSVRHMD::EnableLowPersistenceMode(bool bEnable)
-{
-    // Intentionally left blank
 }
 
 bool FOSVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
@@ -363,67 +352,6 @@ TSharedPtr< class ISceneViewExtension, ESPMode::ThreadSafe > FOSVRHMD::GetViewEx
     return StaticCastSharedPtr< ISceneViewExtension >(ptr);
 }
 
-bool FOSVRHMD::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
-{
-    if (FParse::Command(&Cmd, TEXT("STEREO")))
-    {
-        if (FParse::Command(&Cmd, TEXT("ON")))
-        {
-            if (!IsHMDEnabled())
-            {
-                Ar.Logf(TEXT("HMD is disabled. Use 'hmd enable' to re-enable it."));
-            }
-            EnableStereo(true);
-            return true;
-        }
-        else if (FParse::Command(&Cmd, TEXT("OFF")))
-        {
-            EnableStereo(false);
-            return true;
-        }
-    }
-    else if (FParse::Command(&Cmd, TEXT("HMD")))
-    {
-        if (FParse::Command(&Cmd, TEXT("ENABLE")))
-        {
-            EnableHMD(true);
-            return true;
-        }
-        else if (FParse::Command(&Cmd, TEXT("DISABLE")))
-        {
-            EnableHMD(false);
-            return true;
-        }
-    }
-    else if (FParse::Command(&Cmd, TEXT("UNCAPFPS")))
-    {
-        GEngine->bSmoothFrameRate = false;
-        return true;
-    }
-    else if (FParse::Command(&Cmd, TEXT("HEADTRACKING")))
-    {
-        FString val;
-        if (FParse::Value(Cmd, TEXT("SOURCE="), val))
-        {
-            EnablePositionalTracking(false);
-            //OSVRInterfaceName = val;
-            EnablePositionalTracking(true);
-        }
-        if (FParse::Command(&Cmd, TEXT("ENABLE")))
-        {
-            EnablePositionalTracking(true);
-            return true;
-        }
-        else if (FParse::Command(&Cmd, TEXT("DISABLE")))
-        {
-            EnablePositionalTracking(false);
-            return true;
-        }
-    }
-
-    return false;
-}
-
 #if !OSVR_UNREAL_4_12
 void FOSVRHMD::OnScreenModeChange(EWindowMode::Type WindowMode)
 {
@@ -433,13 +361,8 @@ void FOSVRHMD::OnScreenModeChange(EWindowMode::Type WindowMode)
 
 bool FOSVRHMD::IsPositionalTrackingEnabled() const
 {
-    return bHmdPosTracking;
-}
-
-bool FOSVRHMD::EnablePositionalTracking(bool bEnable)
-{
-    bHmdPosTracking = bEnable;
-    return IsPositionalTrackingEnabled();
+	// @TODO return whether positional tracking is enabled by device
+	return false;
 }
 
 //---------------------------------------------------
@@ -774,8 +697,6 @@ FOSVRHMD::FOSVRHMD(TSharedPtr<class OSVREntryPoint, ESPMode::ThreadSafe> entryPo
     FSystemResolution::RequestResolutionChange(1280, 720, EWindowMode::Windowed); // bStereo ? WindowedMirror : Windowed
 #endif
 
-    EnablePositionalTracking(true);
-
     StartCustomPresent();
 
     // enable vsync
@@ -784,10 +705,6 @@ FOSVRHMD::FOSVRHMD(TSharedPtr<class OSVREntryPoint, ESPMode::ThreadSafe> entryPo
     {
         CVSyncVar->Set(false);
     }
-
-
-    // Uncap fps to enable FPS higher than 62
-    GEngine->bSmoothFrameRate = false;
 
     // check if the client context is ok.
     bool bClientContextOK = entryPoint->IsOSVRConnected();
@@ -855,7 +772,6 @@ FOSVRHMD::FOSVRHMD(TSharedPtr<class OSVREntryPoint, ESPMode::ThreadSafe> entryPo
 FOSVRHMD::~FOSVRHMD()
 {
     FScopeLock lock(mOSVREntryPoint->GetClientContextMutex());
-    EnablePositionalTracking(false);
 }
 
 bool FOSVRHMD::IsInitialized() const

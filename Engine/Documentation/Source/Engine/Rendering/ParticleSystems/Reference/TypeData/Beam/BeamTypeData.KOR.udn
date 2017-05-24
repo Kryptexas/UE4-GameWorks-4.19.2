@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability:Public
 Title:Beam 타입 데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
 Description:전기 에너지 빔과 같은 이펙트를 내기 좋은 Beam Type Data 모듈입니다.
 Version: 4.9
+tags:Particles
 
 
 [EXCERPT:Intro]
@@ -27,7 +28,7 @@ coXs-CmI_v8
 | 프로퍼티 | 설명 |
 | -------- | ---- |
 | [REGION:tablesection]Beam (빔)[/REGION] ||
-| **Beam Method** | 빔 메소드 - 빔 생성법을 설정할 수 있게 해 주는 열거형입니다. 다음 중 하나입니다: [INCLUDE:#BeamMethod] |
+| **Beam Method** | 빔 메소드 - 빔 생성법을 설정할 수 있게 해 주는 Enum 입니다. 다음 중 하나입니다: [INCLUDE:#BeamMethod] |
 | **Texture Tile** | 텍스처 타일 - 빔을 따라 텍스처를 타일링할 횟수입니다. 현재 미구현 상태입니다. |
 | **Texture Tile Distance** | 텍스처 타일 거리 - 소스 텍스처의 타일 하나를 나타내는 빔상의 거리입니다. |
 | **Sheets** | 시트 - 빔에 걸쳐 렌더링할 시트 수입니다. 시트는 빔 경로에 고르게 분포됩니다. 예를 들어 축을 내려다 보고 있고, 빔은 내려가는 중인 경우 크로스에는 2 시트면 됩니다. |

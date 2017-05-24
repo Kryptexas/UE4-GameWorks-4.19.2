@@ -134,11 +134,11 @@ public:
 				);
 
 			// If it was set by an ini that has to be hand edited, it is not an issue if a lower priority system tried and failed to set it afterwards
-			const bool bIntentionallyIgnored = (OldPri == EConsoleVariableFlags::ECVF_SetBySystemSettingsIni);
+			const bool bIntentionallyIgnored = (OldPri & (ECVF_SetByConsoleVariablesIni | ECVF_SetByCommandline | ECVF_SetBySystemSettingsIni)) != 0;
 
 			if (bIntentionallyIgnored)
 			{
-				UE_LOG(LogConsoleManager, Display, TEXT("%s"), *Message);
+				UE_LOG(LogConsoleManager, Verbose, TEXT("%s"), *Message);
 			}
 			else
 			{
@@ -732,6 +732,36 @@ private:
 	FConsoleCommandWithWorldAndArgsDelegate Delegate;
 };
 
+/* Console command that can be given a world parameter, args and an output device. */
+class FConsoleCommandWithWorldArgsAndOutputDevice : public FConsoleCommandBase
+{
+
+public:
+	FConsoleCommandWithWorldArgsAndOutputDevice(const FConsoleCommandWithWorldArgsAndOutputDeviceDelegate& InitDelegate, const TCHAR* InitHelp, const EConsoleVariableFlags InitFlags)
+		: FConsoleCommandBase(InitHelp, InitFlags),
+		Delegate(InitDelegate)
+	{
+	}
+
+	// interface IConsoleCommand -----------------------------------
+
+	virtual void Release() override
+	{
+		delete this;
+	}
+
+	virtual bool Execute(const TArray< FString >& Args, UWorld* InWorld, FOutputDevice& OutputDevice) override
+	{
+		return Delegate.ExecuteIfBound(Args, InWorld, OutputDevice);
+	}
+
+private:
+
+	/** User function to call when the console command is executed */
+	FConsoleCommandWithWorldArgsAndOutputDeviceDelegate Delegate;
+};
+
+
 /* Console command that can be given an output device. */
 class FConsoleCommandWithOutputDevice : public FConsoleCommandBase
 {
@@ -839,6 +869,11 @@ IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, cons
 IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldAndArgsDelegate& Command, uint32 Flags)
 {
 	return AddConsoleObject(Name, new FConsoleCommandWithWorldAndArgs(Command, Help, (EConsoleVariableFlags)Flags))->AsCommand();
+}
+
+IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldArgsAndOutputDeviceDelegate& Command, uint32 Flags)
+{
+	return AddConsoleObject(Name, new FConsoleCommandWithWorldArgsAndOutputDevice(Command, Help, (EConsoleVariableFlags)Flags))->AsCommand();
 }
 
 IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithOutputDeviceDelegate& Command, uint32 Flags)
@@ -1078,6 +1113,13 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		return false;
 	}
 
+	// Remove a trailing ? if present, to kick it into help mode
+	const bool bCommandEndedInQuestion = Param1.EndsWith(TEXT("?"), ESearchCase::CaseSensitive);
+	if (bCommandEndedInQuestion)
+	{
+		Param1 = Param1.Mid(0, Param1.Len() - 1);
+	}
+
 	IConsoleObject* CObj = FindConsoleObject(*Param1);
 	if(!CObj)
 	{
@@ -1109,7 +1151,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		TArray< FString > Args;
 		FString( It ).ParseIntoArrayWS( Args );
 
-		const bool bShowHelp = Args.Num() == 1 && Args[0] == TEXT("?");
+		const bool bShowHelp = bCommandEndedInQuestion || ((Args.Num() == 1) && (Args[0] == TEXT("?")));
 		if( bShowHelp )
 		{
 			// get help
@@ -1125,7 +1167,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 	else if( CVar )
 	{
 		// Process variable
-
+		bool bShowHelp = bCommandEndedInQuestion;
 		bool bShowCurrentState = false;
 
 		if(*It == 0)
@@ -1135,6 +1177,8 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		else
 		{
 			FString Param2 = FString(It).Trim().TrimTrailing();
+
+			const bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
 
 			if(Param2.Len() >= 2)
 			{
@@ -1150,13 +1194,9 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 				}
 			}
 
-			bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
-
-			if(Param2 == TEXT("?"))
+			if (Param2 == TEXT("?"))
 			{
-				// get help
-				Ar.Logf(TEXT("HELP for '%s'%s:\n%s"), *Param1, bReadOnly ? TEXT("(ReadOnly)") : TEXT(""), CVar->GetHelp());
-				bShowCurrentState = true;
+				bShowHelp = true;
 			}
 			else
 			{
@@ -1174,6 +1214,14 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 					CallAllConsoleVariableSinks();
 				}
 			}
+		}
+
+		if(bShowHelp)
+		{
+			// get help
+			const bool bReadOnly = CVar->TestFlags(ECVF_ReadOnly);
+			Ar.Logf(TEXT("HELP for '%s'%s:\n%s"), *Param1, bReadOnly ? TEXT("(ReadOnly)") : TEXT(""), CVar->GetHelp());
+			bShowCurrentState = true;
 		}
 
 		if(bShowCurrentState)
@@ -1752,16 +1800,6 @@ static TAutoConsoleVariable<int32> CVarUniformBufferPooling(
 	TEXT(" 1: on (optimization)"),
 	ECVF_RenderThreadSafe);
 
-// The following console variable should never be compiled out ------------------
-static TAutoConsoleVariable<int32> CVarClearWithExcludeRects(
-	TEXT("r.ClearWithExcludeRects"),
-	2,
-	TEXT("Control the use of exclude rects when using RHIClear\n")
-	TEXT(" 0: Force off (can be faster on hardware that has fast clears)\n")
-	TEXT(" 1: Use exclude rect if supplied\n")
-	TEXT(" 2: Auto (default is 2, pick what is considered best on this hardware)"),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarTranslucentSortPolicy(
 	TEXT("r.TranslucentSortPolicy"),
 	0,
@@ -2110,6 +2148,14 @@ static TAutoConsoleVariable<int32> CVarSetVSyncEditorEnabled(
 	TEXT("0: VSync is disabled in editor.(default)\n")
 	TEXT("1: VSync is enabled in editor."),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMobileForceRHISwitchVerticalAxis(
+	TEXT("r.Mobile.ForceRHISwitchVerticalAxis"),
+	0,
+	TEXT("Enable RHISwitchVerticalAxis when previewing mobile renderer. (Useful to test GLES y-axis flip codepaths)\n")
+	TEXT("0: RHISwitchVerticalAxis disabled (default).\n")
+	TEXT("1: RHISwitchVerticalAxis enabled.\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 #endif
 
 static TAutoConsoleVariable<int32> CVarFinishCurrentFrame(
@@ -2130,6 +2176,12 @@ static TAutoConsoleVariable<int32> CVarShadowMaxResolution(
 	TEXT("Max square dimensions (in texels) allowed for rendering shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarShadowMaxCSMShadowResolution(
+	TEXT("r.Shadow.MaxCSMResolution"),
+	2048,
+	TEXT("Max square dimensions (in texels) allowed for rendering Cascaded Shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<float> CVarShadowCSMTransitionScale(
 	TEXT("r.Shadow.CSM.TransitionScale"),
 	1.0f,
@@ -2143,6 +2195,14 @@ static TAutoConsoleVariable<float> CVarMobileContentScaleFactor(
 	TEXT("r.MobileContentScaleFactor"),
 	1.0f,
 	TEXT("Content scale multiplier (equates to iOS's contentScaleFactor to support Retina displays"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarMobileTonemapperUpscale(
+	TEXT("r.MobileTonemapperUpscale"),
+	0,
+	TEXT("On mobile, whether to allow upscaling as part of the tonemapper or as a separate pass when possible")
+	TEXT("0: separate pass (default)\n")
+	TEXT("1: as part of the tonemapper pass\n"),
 	ECVF_Default);
 
 // this cvar can be removed in shipping to not compile shaders for development (faster)

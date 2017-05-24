@@ -93,6 +93,7 @@ struct CORE_API FMsg
 	#define UE_LOG_ACTIVE(...)				(0)
 	#define UE_LOG_ANY_ACTIVE(...)			(0)
 	#define UE_SUPPRESS(...) {}
+	#define UE_GET_LOG_VERBOSITY(...)		(ELogVerbosity::NoLogging)
 	#define UE_SET_LOG_VERBOSITY(...)
 	#define DECLARE_LOG_CATEGORY_EXTERN(CategoryName, DefaultVerbosity, CompileTimeVerbosity) extern FNoLoggingCategory CategoryName
 	#define DEFINE_LOG_CATEGORY(...)
@@ -134,6 +135,9 @@ struct CORE_API FMsg
 	 * @param Verbosity, verbosity level to test against
 	**/
 	#define UE_LOG_ACTIVE(CategoryName, Verbosity) (::UE4Asserts_Private::IsLogActive<(int32)ELogVerbosity::Verbosity>(CategoryName))
+
+	#define UE_GET_LOG_VERBOSITY(CategoryName) \
+		CategoryName.GetVerbosity();
 
 	#define UE_SET_LOG_VERBOSITY(CategoryName, Verbosity) \
 		CategoryName.SetVerbosity(ELogVerbosity::Verbosity);

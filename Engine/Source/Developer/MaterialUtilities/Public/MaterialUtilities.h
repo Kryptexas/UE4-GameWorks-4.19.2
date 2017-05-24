@@ -35,6 +35,7 @@ enum class EFlattenMaterialProperties : uint8
 	Opacity,
 	Emissive,
 	SubSurface,
+	OpacityMask,
 	NumFlattenMaterialProperties
 };
 
@@ -488,11 +489,6 @@ private:
 	
 	/** Clears the pool with available render targets */
 	static void ClearRenderTargetPool();	
-
-	/** Helper function to make sure all the Material and accompanying textures are fully loaded. This function will do nothing useful if material is already loaded.
-	It's intended to work when we're baking a new material during engine startup, inside a PostLoad call - in this case we could have ExportMaterial() call for 
-	material which has not all components loaded yet.*/
-	static void FullyLoadMaterialStatic(UMaterialInterface* Material);
 
 	/** Call back for garbage collector, cleans up the RenderTargetPool if CurrentlyRendering is set to false */
 	void OnPreGarbageCollect();

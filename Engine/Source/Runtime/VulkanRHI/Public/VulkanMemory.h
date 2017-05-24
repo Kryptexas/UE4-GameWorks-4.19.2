@@ -70,7 +70,7 @@ namespace VulkanRHI
 		{
 		}
 
-		inline FVulkanDevice* GetParent()
+		inline FVulkanDevice* GetParent() const
 		{
 			// Has to have one if we are asking for it...
 			check(Device);
@@ -92,12 +92,12 @@ namespace VulkanRHI
 	{
 	public:
 		FDeviceMemoryAllocation()
-			: DeviceHandle(VK_NULL_HANDLE)
+			: Size(0)
+			, DeviceHandle(VK_NULL_HANDLE)
 			, Handle(VK_NULL_HANDLE)
-			, Size(0)
+			, MappedPointer(nullptr)
 			, MemoryTypeIndex(0)
 			, bCanBeMapped(0)
-			, MappedPointer(nullptr)
 			, bIsCoherent(0)
 			, bIsCached(0)
 			, bFreedBySystem(false)
@@ -843,9 +843,9 @@ namespace VulkanRHI
 			return ResourceAllocation->GetOffset();
 		}
 
-		inline uint32 GetDeviceMemoryAllocationSize() const
+		inline uint32 GetSize() const
 		{
-			return ResourceAllocation->GetAllocationSize();
+			return ResourceAllocation->GetSize();
 		}
 
 		inline VkDeviceMemory GetDeviceMemoryHandle() const
@@ -991,6 +991,21 @@ namespace VulkanRHI
 		bool CheckFenceState(FFence* Fence);
 
 		void DestroyFence(FFence* Fence);
+	};
+
+	class FGPUEvent : public FDeviceChild, public FRefCount
+	{
+	public:
+		FGPUEvent(FVulkanDevice* InDevice);
+		virtual ~FGPUEvent();
+
+		inline VkEvent GetHandle() const
+		{
+			return Handle;
+		}
+
+	protected:
+		VkEvent Handle;
 	};
 
 	class FDeferredDeletionQueue : public FDeviceChild

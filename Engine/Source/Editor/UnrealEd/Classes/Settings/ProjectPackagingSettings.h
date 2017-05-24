@@ -153,6 +153,22 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool IncludePrerequisites;
 
+	/** 
+	 * By default shader code gets saved inline inside material assets, 
+	 * enabling this option will store only shader code once as individual files
+	 * This will reduce overall package size but might increase loading time
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool bShareMaterialShaderCode;
+
+	/** 
+	 * By default shader shader code gets saved into individual platform agnostic files,
+	 * enabling this option will use the platform-specific library format if and only if one is available
+	 * This will reduce overall package size but might increase loading time
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool bSharedMaterialNativeLibraries;
+
 	/** A directory containing prerequisite packages that should be staged in the executable directory. Can be relative to $(EngineDir) or $(ProjectDir) */
 	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay)
 	FDirectoryPath ApplocalPrerequisitesDirectory;
@@ -201,6 +217,11 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Encrypt ini files inside pak files"))
 	bool bEncryptIniFiles;
 
+	/**
+	* Encrypt the pak index 
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Encrypt the pak index, making it unusable without the required key"))
+	bool bEncryptPakIndex;
 	
 	/**
 	* Don't include content in any editor folders when cooking.  This can cause issues with missing content in cooked games if the content is being used. 

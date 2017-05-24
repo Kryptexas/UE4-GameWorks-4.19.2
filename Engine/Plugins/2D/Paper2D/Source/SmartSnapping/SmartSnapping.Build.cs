@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SmartSnapping : ModuleRules
 {
-	public SmartSnapping(TargetInfo Target)
+	public SmartSnapping(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

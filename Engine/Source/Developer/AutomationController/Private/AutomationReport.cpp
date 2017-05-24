@@ -13,18 +13,11 @@ FAutomationReport::FAutomationReport(FAutomationTestInfo& InTestInfo, bool InIsP
 	, bSelfPassesFilter(false)
 	, SupportFlags(0)
 	, TestInfo( InTestInfo )
-	, bTrackingHistory(false)
-	, NumRecordsToKeep(0)
 {
 	// Enable smoke tests
 	if ( TestInfo.GetTestFlags() == EAutomationTestFlags::SmokeFilter )
 	{
 		bEnabled = true;
-	}
-
-	if (!bIsParent)
-	{
-		LoadHistory();
 	}
 }
 
@@ -373,243 +366,17 @@ void FAutomationReport::ResetForExecution(const int32 NumTestPasses)
 			for( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
 			{
 				//reset all stats
-				Results[ClusterIndex][PassIndex].State = EAutomationState::NotRun;
-				Results[ClusterIndex][PassIndex].Warnings.Empty();
-				Results[ClusterIndex][PassIndex].Errors.Empty();
+				Results[ClusterIndex][PassIndex].Reset();
 			}
 		}
 	}
+
 	//recurse to children
 	for (int32 ChildIndex = 0; ChildIndex < ChildReports.Num(); ++ChildIndex)
 	{
 		ChildReports[ChildIndex]->ResetForExecution(NumTestPasses);
 	}
 }
-
-void FAutomationReport::TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack)
-{
-	bTrackingHistory = bShouldTrack;
-	NumRecordsToKeep = NumReportsToTrack;
-
-	if (bTrackingHistory && ChildReports.Num() == 0)
-	{
-		LoadHistory();
-	}
-
-	//recurse to children
-	for (auto& NextChildReport : ChildReports)
-	{
-		NextChildReport->TrackHistory(bTrackingHistory, NumRecordsToKeep);
-	}
-}
-
-void FAutomationReport::AddToHistory()
-{
-	// Dictate the file path we are writing this run as history to.
-	const FDateTime FileDate = FDateTime::Now();
-	const FString FileName = GetDisplayName() + FileDate.ToString() + TEXT(".log");
-	const FString FileLocation = FPaths::ConvertRelativePathToFull(FPaths::AutomationLogDir()) + GetDisplayName();
-	const FString FullPath = FPaths::Combine(*FileLocation, *FileName);
-
-	// Write any Errors and Warnings to the log, if none, then simply report that it was successful.
-	if (FArchive* LogFile = IFileManager::Get().CreateFileWriter(*FullPath))
-	{
-		bool bExportedAnyErrors = false;
-		for (int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex)
-		{
-			for (int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
-			{
-				for (int32 ErrorIndex = 0; ErrorIndex < Results[ClusterIndex][PassIndex].Errors.Num(); ++ErrorIndex)
-				{
-					if (!bExportedAnyErrors)
-					{
-						bExportedAnyErrors = true;
-
-						FString ErrorIdentifier(TEXT("<<ERRORS>>"));
-						ErrorIdentifier += LINE_TERMINATOR;
-						
-						LogFile->Serialize(TCHAR_TO_ANSI(*ErrorIdentifier), ErrorIdentifier.Len());
-					}
-					FString NextError = Results[ClusterIndex][PassIndex].Errors[ErrorIndex].ToString() + LINE_TERMINATOR;
-					LogFile->Serialize(TCHAR_TO_ANSI(*NextError), NextError.Len());
-				}
-			}
-		}
-
-		bool bExportedAnyWarnings = false;
-		for (int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex)
-		{
-			for (int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
-			{
-				for (int32 WarningIndex = 0; WarningIndex < Results[ClusterIndex][PassIndex].Warnings.Num(); ++WarningIndex)
-				{
-					if (!bExportedAnyWarnings)
-					{
-						bExportedAnyWarnings = true;
-
-						FString WarningIdentifier(TEXT("<<WARNINGS>>"));
-						WarningIdentifier += LINE_TERMINATOR;
-
-						LogFile->Serialize(TCHAR_TO_ANSI(*WarningIdentifier), WarningIdentifier.Len());
-					}
-					const FString NextWarning = Results[ClusterIndex][PassIndex].Warnings[WarningIndex] + LINE_TERMINATOR;
-					LogFile->Serialize(TCHAR_TO_ANSI(*NextWarning), NextWarning.Len());
-				}
-			}
-		}
-
-		if (bExportedAnyErrors == false && bExportedAnyWarnings == false)
-		{
-			FString SuccessIdentifier(TEXT("<<SUCCESS>>"));
-			SuccessIdentifier += LINE_TERMINATOR;
-
-			LogFile->Serialize(TCHAR_TO_ANSI(*SuccessIdentifier), SuccessIdentifier.Len());
-		}
-
-		LogFile->Close();
-		delete LogFile;
-
-
-		// Cache an automation history item for tracking in this session
-		TSharedRef<FAutomationHistoryItem> HistoryItem = MakeShareable(new FAutomationHistoryItem);
-		HistoryItem->LogLocation = FileName;
-		HistoryItem->RunDate = FileDate;
-		HistoryItem->RunResult = 
-			(bExportedAnyErrors ? FAutomationHistoryItem::EAutomationHistoryResult::Errors : 
-			(bExportedAnyWarnings ? FAutomationHistoryItem::EAutomationHistoryResult::Warnings : 
-			FAutomationHistoryItem::EAutomationHistoryResult::Successful));
-
-		HistoryItems.Add(HistoryItem);
-	}
-}
-
-void FAutomationReport::MaintainHistory(TArray<FString>& InLogFiles)
-{
-	// Find all the logs in this reports log location
-	const FString LogsLocation = FPaths::ConvertRelativePathToFull(FPaths::AutomationLogDir()) + GetDisplayName();
-
-	// Sort the logs in reverse chronological order
-	struct FLogSortPredicate
-	{
-		FString DisplayName;
-		FLogSortPredicate(const FString& InDisplayName) : DisplayName(InDisplayName) {}
-
-		/** Sort predicate operator */
-		bool operator ()(FString LHS, FString RHS) const
-		{
-			FString LogExt = TEXT(".log");
-
-			FString LHSDateStr = LHS.RightChop(DisplayName.Len());
-			LHSDateStr = LHSDateStr.LeftChop(LogExt.Len());
-
-			FDateTime LHSDate;
-			FDateTime::Parse(LHSDateStr, LHSDate);
-
-			FString RHSDateStr = RHS.RightChop(DisplayName.Len());
-			RHSDateStr = RHSDateStr.LeftChop(LogExt.Len());
-
-			FDateTime RHSDate;
-			FDateTime::Parse(RHSDateStr, RHSDate);
-
-			return LHSDate > RHSDate;
-		}
-	};
-	InLogFiles.Sort(FLogSortPredicate(GetDisplayName()));
-
-	// For logs, we keep the number equal to AutomationReportConstants::MaximumLogsToKeep around.
-	// This will mean that we can extend or history to see when changed within the report
-	for (int32 LogIndex = InLogFiles.Num() - 1; LogIndex >= AutomationReportConstants::MaximumLogsToKeep; LogIndex--)
-	{
-		check(IFileManager::Get().Delete(*FPaths::Combine(*LogsLocation, *InLogFiles[LogIndex])));
-	}
-
-
-	// Sort the history items in reverse chronological order
-	struct FHistorySortPredicate
-	{
-		FHistorySortPredicate() {}
-
-		/** Sort predicate operator */
-		bool operator ()(const TSharedPtr<FAutomationHistoryItem>& LHS, const TSharedPtr<FAutomationHistoryItem>& RHS) const
-		{
-			check(LHS.IsValid() && RHS.IsValid());
-			return LHS->RunDate > RHS->RunDate;
-		}
-	};
-	HistoryItems.Sort(FHistorySortPredicate());
-
-	for (int32 ItemIndex = HistoryItems.Num() - 1; ItemIndex >= NumRecordsToKeep; ItemIndex--)
-	{
-		HistoryItems.RemoveAt(ItemIndex);
-	}
-}
-
-
-void FAutomationReport::LoadHistory()
-{
-	// Clear out the previous results before we rebuild our list
-	HistoryItems.Empty();
-
-	// Load the logs from this reports automation log location
-	const FString LogsLocation = FPaths::ConvertRelativePathToFull(FPaths::AutomationLogDir()) + GetDisplayName();
-
-	TArray<FString> LogFiles;
-	IFileManager::Get().FindFiles(LogFiles, *(LogsLocation / "*.log"), true, false);
-
-	for (FString& NextLogFile : LogFiles)
-	{
-		FString FileContents;
-		if (FFileHelper::LoadFileToString(FileContents, *FPaths::Combine(*LogsLocation, *NextLogFile)))
-		{
-			TSharedRef<FAutomationHistoryItem> HistoryItem = MakeShareable(new FAutomationHistoryItem);
-
-			// Cache the log location
-			HistoryItem->LogLocation = NextLogFile;
-
-			// Parse the date and time from the log name
-			{
-				FString LogExt = TEXT(".log");
-
-				FString DateStr = NextLogFile.RightChop(GetDisplayName().Len());
-				DateStr = DateStr.LeftChop(LogExt.Len());
-
-				FDateTime::Parse(DateStr, HistoryItem->RunDate);
-			}
-
-			// Parse whether the previous runs had errors, warnings or were successful
-			{
-				if (FileContents.StartsWith(TEXT("<<ERRORS>>")))
-				{
-					HistoryItem->RunResult = FAutomationHistoryItem::EAutomationHistoryResult::Errors;
-				}
-				else if (FileContents.StartsWith(TEXT("<<WARNINGS>>")))
-				{
-					HistoryItem->RunResult = FAutomationHistoryItem::EAutomationHistoryResult::Warnings;
-				}
-				else if (FileContents.StartsWith(TEXT("<<SUCCESS>>")))
-				{
-					HistoryItem->RunResult = FAutomationHistoryItem::EAutomationHistoryResult::Successful;
-				}
-			}
-
-			// Add our log to the tracking
-			HistoryItems.Add(HistoryItem);
-		}
-	}
-
-	// Do a pass on the existing logs for any we no longer wish to maintain.
-	if (LogFiles.Num())
-	{
-		MaintainHistory(LogFiles);
-	}
-}
-
-
-const TArray<TSharedPtr<FAutomationHistoryItem>>& FAutomationReport::GetHistory() const
-{
-	return HistoryItems;
-}
-
 
 void FAutomationReport::SetResults( const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults )
 {
@@ -622,32 +389,35 @@ void FAutomationReport::SetResults( const int32 ClusterIndex, const int32 PassIn
 		TestInfo.InformOfNewDeviceRunningTest();
 	}
 
-	Results[ ClusterIndex ][ PassIndex ] = InResults;
-	// Add an error report if none was received
-	if ( InResults.State == EAutomationState::Fail && InResults.Errors.Num() == 0 && InResults.Warnings.Num() == 0 )
-	{
-		Results[ClusterIndex][PassIndex].Errors.Add( FAutomationEvent("No Report Generated") );
-	}
+	TArray<FAutomationArtifact> ExistingArtifacts = Results[ClusterIndex][PassIndex].Artifacts;
+	Results[ClusterIndex][PassIndex] = InResults;
+	Results[ClusterIndex][PassIndex].Artifacts.Append(ExistingArtifacts);
 
-	// If we are tracking history, then export it.
-	if (bTrackingHistory && (InResults.State == EAutomationState::Success || InResults.State == EAutomationState::Fail))
+	// Add an error report if none was received
+	if ( InResults.State == EAutomationState::Fail && InResults.GetErrorTotal() == 0 )
 	{
-		AddToHistory();
-		//Remove find files as it was too expensive.  And definitely too expensive for just updating one test
-		//MaintainHistory();
+		Results[ClusterIndex][PassIndex].AddEvent(FAutomationEvent(EAutomationEventType::Error, "Test failed, but no errors were logged."));
 	}
 
 	// While setting the results of the test cause the log of any selected test to refresh
 	OnSetResults.ExecuteIfBound(AsShared());
 }
 
+void FAutomationReport::AddArtifact(const int32 ClusterIndex, const int32 PassIndex, const FAutomationArtifact& Artifact)
+{
+	//verify this is a platform this test is aware of
+	check(( ClusterIndex >= 0 ) && ( ClusterIndex < Results.Num() ));
+	check(( PassIndex >= 0 ) && ( PassIndex < Results[ClusterIndex].Num() ));
+
+	Results[ClusterIndex][PassIndex].Artifacts.Add(Artifact);
+}
 
 void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, const int32 PassIndex, FAutomationCompleteState& OutCompletionState)
 {
 	//if this test is enabled and a leaf test
 	if (IsSupported(ClusterIndex) && (ChildReports.Num()==0))
 	{
-		EAutomationState::Type CurrentState = Results[ClusterIndex][PassIndex].State;
+		EAutomationState CurrentState = Results[ClusterIndex][PassIndex].State;
 		//Enabled and In-Process
 		if (IsEnabled())
 		{
@@ -659,7 +429,7 @@ void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, const int3
 		}
 
 		//Warnings
-		if (Results[ClusterIndex][PassIndex].Warnings.Num() > 0)
+		if (Results[ClusterIndex][PassIndex].GetWarningTotal() > 0)
 		{
 			IsEnabled() ? OutCompletionState.NumEnabledTestsWarnings++ : OutCompletionState.NumDisabledTestsWarnings++;
 		}
@@ -686,7 +456,7 @@ void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, const int3
 }
 
 
-EAutomationState::Type FAutomationReport::GetState(const int32 ClusterIndex, const int32 PassIndex) const
+EAutomationState FAutomationReport::GetState(const int32 ClusterIndex, const int32 PassIndex) const
 {
 	if ((ClusterIndex >= 0) && (ClusterIndex < Results.Num()) &&
 		(PassIndex >= 0) && (PassIndex < Results[ClusterIndex].Num()))
@@ -846,7 +616,7 @@ TSharedPtr<IAutomationReport> FAutomationReport::GetNextReportToExecute(bool& bO
 		//consider self
 		if (IsEnabled() && IsSupported(ClusterIndex))
 		{
-			EAutomationState::Type TestState = GetState(ClusterIndex,PassIndex);
+			EAutomationState TestState = GetState(ClusterIndex,PassIndex);
 			//if any enabled test hasn't been run yet or is in process
 			if ((TestState != EAutomationState::Success) && (TestState != EAutomationState::Fail) && (TestState != EAutomationState::NotEnoughParticipants))
 			{
@@ -862,15 +632,16 @@ TSharedPtr<IAutomationReport> FAutomationReport::GetNextReportToExecute(bool& bO
 	}
 	return NextReport;
 }
+
 const bool FAutomationReport::HasErrors()
 {
 	bool bHasErrors = false;
-	for (int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex )
+	for ( int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex )
 	{
-		for( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
+		for ( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex )
 		{
 			//if we want tests with errors and this test had them OR we want tests warnings and this test had them
-			if( Results[ ClusterIndex ][ PassIndex ].Errors.Num() ) 
+			if ( Results[ClusterIndex][PassIndex].GetErrorTotal() > 0 )
 			{
 				//mark this test as having passed the results filter
 				bHasErrors = true;
@@ -884,12 +655,12 @@ const bool FAutomationReport::HasErrors()
 const bool FAutomationReport::HasWarnings()
 {
 	bool bHasWarnings = false;
-	for (int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex )
+	for ( int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex )
 	{
-		for( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
+		for ( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex )
 		{
 			//if we want tests with errors and this test had them OR we want tests warnings and this test had them
-			if( Results[ ClusterIndex ][ PassIndex ].Warnings.Num() ) 
+			if ( Results[ClusterIndex][PassIndex].GetWarningTotal() > 0 )
 			{
 				//mark this test as having passed the results filter
 				bHasWarnings = true;
@@ -899,7 +670,6 @@ const bool FAutomationReport::HasWarnings()
 	}
 	return bHasWarnings;
 }
-
 
 const bool FAutomationReport::GetDurationRange(float& OutMinTime, float& OutMaxTime)
 {

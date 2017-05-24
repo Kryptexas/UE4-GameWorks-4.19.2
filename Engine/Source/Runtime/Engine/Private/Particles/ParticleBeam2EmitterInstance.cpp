@@ -481,7 +481,7 @@ void FParticleBeam2EmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning
 			KillParticles();
 
 			// If not suppressing spawning...
-			if (!bHaltSpawning && !bSuppressSpawning && (EmitterTime >= 0.0f))
+			if (!bHaltSpawning && !bHaltSpawningExternal && !bSuppressSpawning && (EmitterTime >= 0.0f))
 			{
 				if ((LODLevel->RequiredModule->EmitterLoops == 0) ||
 					(LoopCount < LODLevel->RequiredModule->EmitterLoops) ||

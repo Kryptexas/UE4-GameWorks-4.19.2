@@ -18,6 +18,10 @@ class UActorFactoryEmptyActor : public UActorFactory
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** If true a sprite will be added to visualize the actor in the world */
+	UPROPERTY()
+	bool bVisualizeActor;
+public:
 	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
 
 protected:

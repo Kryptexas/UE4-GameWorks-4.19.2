@@ -99,6 +99,7 @@ public:
 	// UActorComponent interface
 	virtual void OnRegister() override;
 	virtual void PostLoad() override;
+	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 #if WITH_EDITOR
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 	virtual void CheckForErrors() override;
@@ -129,6 +130,7 @@ public:
 #endif
 
 protected:
+
 #if WITH_EDITORONLY_DATA
 	// The frustum component used to show visually where the camera field of view is
 	class UDrawFrustumComponent* DrawFrustum;
@@ -140,6 +142,9 @@ protected:
 	class UStaticMeshComponent* ProxyMeshComponent;
 	
 	virtual void ResetProxyMeshTransform();
+
+	/** Ensure the proxy mesh is in the correct place */
+	void UpdateProxyMeshTransform();
 #endif
 
 	/** An optional extra transform to adjust the final view without moving the component, in the camera's local space */

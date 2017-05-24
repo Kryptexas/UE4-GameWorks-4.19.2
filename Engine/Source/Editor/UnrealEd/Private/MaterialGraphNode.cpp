@@ -508,25 +508,28 @@ void UMaterialGraphNode::CreateOutputPins()
 
 		const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
 		
-		if( ExpressionOutput.Mask )
+		if (MaterialExpression->bShowMaskColorsOnPin)
 		{
-			PinCategory = Schema->PC_Mask;
+			if (ExpressionOutput.Mask)
+			{
+				PinCategory = Schema->PC_Mask;
 
-			if ( ExpressionOutput.MaskR && !ExpressionOutput.MaskG && !ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
-			{
-				PinSubCategory = Schema->PSC_Red;
-			}
-			else if	(!ExpressionOutput.MaskR &&  ExpressionOutput.MaskG && !ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
-			{
-				PinSubCategory = Schema->PSC_Green;
-			}
-			else if	(!ExpressionOutput.MaskR && !ExpressionOutput.MaskG &&  ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
-			{
-				PinSubCategory = Schema->PSC_Blue;
-			}
-			else if	(!ExpressionOutput.MaskR && !ExpressionOutput.MaskG && !ExpressionOutput.MaskB &&  ExpressionOutput.MaskA)
-			{
-				PinSubCategory = Schema->PSC_Alpha;
+				if (ExpressionOutput.MaskR && !ExpressionOutput.MaskG && !ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
+				{
+					PinSubCategory = Schema->PSC_Red;
+				}
+				else if (!ExpressionOutput.MaskR &&  ExpressionOutput.MaskG && !ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
+				{
+					PinSubCategory = Schema->PSC_Green;
+				}
+				else if (!ExpressionOutput.MaskR && !ExpressionOutput.MaskG &&  ExpressionOutput.MaskB && !ExpressionOutput.MaskA)
+				{
+					PinSubCategory = Schema->PSC_Blue;
+				}
+				else if (!ExpressionOutput.MaskR && !ExpressionOutput.MaskG && !ExpressionOutput.MaskB &&  ExpressionOutput.MaskA)
+				{
+					PinSubCategory = Schema->PSC_Alpha;
+				}
 			}
 		}
 

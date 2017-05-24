@@ -12,17 +12,22 @@
 #define DO_CLIPPING SHADER_TYPE != ST_Custom
 
 /** Display gamma x:gamma curve adjustment, y:inverse gamma (1/GEngine->DisplayGamma) */
-float2 GammaValues;
+half2 GammaValues;
 /** Per element params */
 float4 ShaderParams;
+
+#if !USE_MATERIALS
+/** Per element option to invert the alpha, mostly only useful when dealing with data coming from the scene renderer, which writes out inverse opacity. */
+half InvertAlpha;
+#endif
 
 /** Texture for the element */
 Texture2D ElementTexture;
 SamplerState ElementTextureSampler;
 
-float3 GammaCorrect(float3 InColor)
+half3 GammaCorrect(half3 InColor)
 {
-	float3 CorrectedColor = InColor;
+	half3 CorrectedColor = InColor;
 
 #if (!(ES2_PROFILE || ES3_1_PROFILE)) || USE_MATERIALS || METAL_PROFILE //  Metal supports sRGB textures
 	FLATTEN if( GammaValues.y != 1.0f )
@@ -77,7 +82,7 @@ void FillTexCoords( inout FMaterialPixelParameters Parameters, VertexToPixelInte
 #endif	// SHADER_TYPE
 }
 
-float4 GetMaterialColor( VertexToPixelInterpolants InVertex, float2 MeshUV )
+half4 GetMaterialColor( VertexToPixelInterpolants InVertex, float2 MeshUV )
 {
 	ResolvedView = ResolveView();
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
@@ -94,15 +99,15 @@ float4 GetMaterialColor( VertexToPixelInterpolants InVertex, float2 MeshUV )
 	// Clip if masked
 	GetMaterialCoverageAndClipping( Parameters, PixelMaterialInputs );
 	
-	float Opacity = GetMaterialOpacity(PixelMaterialInputs);
-	float3 Color = GetMaterialEmissive(PixelMaterialInputs);
+	half Opacity = GetMaterialOpacity(PixelMaterialInputs);
+	half3 Color = GetMaterialEmissive(PixelMaterialInputs);
 
-	float4 OutColor;
+	half4 OutColor;
 
 	#if MATERIALBLENDING_ADDITIVE
-		OutColor = float4( Color * Opacity, 0.0f );
+		OutColor = half4( Color * Opacity, 0.0f );
 	#else
-		OutColor = float4( Color, Opacity );
+		OutColor = half4( Color, Opacity );
 	#endif
 
 	return OutColor;
@@ -110,9 +115,9 @@ float4 GetMaterialColor( VertexToPixelInterpolants InVertex, float2 MeshUV )
 #endif
 
 #if !USE_MATERIALS
-float4 GetTextureColor( VertexToPixelInterpolants InVertex, float2 UV )
+half4 GetTextureColor( VertexToPixelInterpolants InVertex, float2 UV )
 {
-	float4 BaseColor = Texture2DSample(ElementTexture, ElementTextureSampler, UV );
+	half4 BaseColor = Texture2DSample(ElementTexture, ElementTextureSampler, UV );
 #if !USE_TEXTURE_ALPHA
 	BaseColor.a = 1.0f;
 #endif
@@ -122,14 +127,14 @@ float4 GetTextureColor( VertexToPixelInterpolants InVertex, float2 UV )
 #endif
 
 /** Gets a color from a texture and supplied vertex color.  Adjusting for tint masking if necessary */
-float4 GetColor( VertexToPixelInterpolants InVertex, float2 UV )
+half4 GetColor( VertexToPixelInterpolants InVertex, float2 UV )
 {
-	float4 FinalColor;
+	half4 FinalColor;
 	
 #if USE_MATERIALS
-	float4 BaseColor = GetMaterialColor( InVertex, UV );
+	half4 BaseColor = GetMaterialColor( InVertex, UV );
 #else
-	float4 BaseColor = GetTextureColor( InVertex, UV );
+	half4 BaseColor = GetTextureColor( InVertex, UV );
 #endif
 
 #if SHADER_TYPE == ST_Custom
@@ -143,15 +148,15 @@ float4 GetColor( VertexToPixelInterpolants InVertex, float2 UV )
 }
 
 #if SHADER_TYPE == ST_Font
-float4 GetFontElementColor( VertexToPixelInterpolants InVertex )
+half4 GetFontElementColor( VertexToPixelInterpolants InVertex )
 {
 	float2 AtlasTextureCoordinates = GetUV( InVertex, 0 );
 #if USE_MATERIALS
-	float4 BaseColor = GetMaterialColor( InVertex, float2(0,0) )*InVertex.Color;
+	half4 BaseColor = GetMaterialColor( InVertex, float2(0,0) ) * InVertex.Color;
 #else
-	float4 BaseColor = InVertex.Color;
+	half4 BaseColor = InVertex.Color;
 #endif
-	float4 OutColor = BaseColor;
+	half4 OutColor = BaseColor;
 
 	OutColor.a *= Texture2DSample_A8( ElementTexture, ElementTextureSampler, AtlasTextureCoordinates );
 
@@ -160,14 +165,14 @@ float4 GetFontElementColor( VertexToPixelInterpolants InVertex )
 #endif
 
 #if SHADER_TYPE == ST_Default || SHADER_TYPE == ST_Custom
-float4 GetDefaultElementColor( VertexToPixelInterpolants InVertex )
+half4 GetDefaultElementColor( VertexToPixelInterpolants InVertex )
 {
 	return GetColor( InVertex, GetUV( InVertex, 0) * GetUV( InVertex, 1 ) );
 }
 #endif
 
 #if SHADER_TYPE == ST_Border 
-float4 GetBorderElementColor( VertexToPixelInterpolants InVertex )
+half4 GetBorderElementColor( VertexToPixelInterpolants InVertex )
 {
 	float4 TextureCoordinates = InVertex.TextureCoordinates[0];
 	float2 NewUV;
@@ -207,7 +212,7 @@ float4 GetBorderElementColor( VertexToPixelInterpolants InVertex )
  * Generates an anti-aliased line segment pixel
  * The idea for the anti-alising technique is based on the fast prefiltered lines technique published in GPU Gems 2 
  */
-float4 GetLineSegmentElementColor( VertexToPixelInterpolants InVertex )
+half4 GetLineSegmentElementColor( VertexToPixelInterpolants InVertex )
 {
 	float Width = ShaderParams.x;
 	float Radius = ShaderParams.y;
@@ -243,7 +248,7 @@ float4 GetLineSegmentElementColor( VertexToPixelInterpolants InVertex )
 		discard;
 	}
 
-	float4 Color = InVertex.Color;
+	half4 Color = InVertex.Color;
 	
 	// Use the shortest distance to the edge
 	float Index = min(Distance.x,Distance.y);
@@ -264,7 +269,7 @@ float4 GetLineSegmentElementColor( VertexToPixelInterpolants InVertex )
 } 
 #endif
 
-float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
+half4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 {
 #if DO_CLIPPING
 		// Clip pixels which are outside of the clipping rect
@@ -278,7 +283,7 @@ float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 	#endif
 #endif
 
-	float4 OutColor;
+	half4 OutColor;
 #if SHADER_TYPE == ST_Default || SHADER_TYPE == ST_Custom
 	OutColor = GetDefaultElementColor( VIn );
 #elif SHADER_TYPE == ST_Border
@@ -291,11 +296,11 @@ float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 
 #if DRAW_DISABLED_EFFECT
 	//desaturate
-	float3 LumCoeffs = float3( 0.3, 0.59, .11 );
-	float Lum = dot( LumCoeffs, OutColor.rgb );
-	OutColor.rgb = lerp( OutColor.rgb, float3(Lum,Lum,Lum), .8 );
+	half3 LumCoeffs = half3( 0.3, 0.59, .11 );
+	half Lum = dot( LumCoeffs, OutColor.rgb );
+	OutColor.rgb = lerp( OutColor.rgb, half3(Lum,Lum,Lum), .8 );
 	
-	float3 Grayish = {.1, .1, .1};
+	half3 Grayish = {.1, .1, .1};
 
 	OutColor.rgb = lerp( OutColor.rgb, Grayish, clamp( distance( OutColor.rgb, Grayish ), 0, .8)  );
 #endif
@@ -306,6 +311,12 @@ float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 
 	// gamma correct
 	OutColor.rgb = GammaCorrect(OutColor.rgb);
+
+#if !USE_MATERIALS
+    // Deal with cases where the incoming alpha is inverted like if you're dealing with render targets coming
+    // from the scene renderer.
+    OutColor.a = lerp(OutColor.a, 1 - OutColor.a, InvertAlpha);
+#endif
 
 #if DEBUG_CLIPPING
 	if (any(ClipTest < 0))

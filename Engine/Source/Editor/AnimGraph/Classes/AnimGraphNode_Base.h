@@ -223,7 +223,9 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, USkeletalMeshComponent * PreviewSkelMeshComp) const {}
 	// Function to collect strings from nodes to display in the viewport.
 	// Use this rather than DrawCanvas when adding general text to the viewport.
+	DEPRECATED(4.16, "Please use GetOnScreenDebugInfo(TArray<FText>& DebugInfo, FAnimNode_Base* RuntimeAnimNode, USkeletalMeshComponent* PreviewSkelMeshComp)")
 	virtual void GetOnScreenDebugInfo(TArray<FText>& DebugInfo, USkeletalMeshComponent* PreviewSkelMeshComp) const {}
+	virtual void GetOnScreenDebugInfo(TArray<FText>& DebugInfo, FAnimNode_Base* RuntimeAnimNode, USkeletalMeshComponent* PreviewSkelMeshComp) const {}
 
 	/** Called after editing a default value to update internal node from pin defaults. This is needed for forwarding code to propagate values to preview. */
 	virtual void CopyPinDefaultsToNodeData(UEdGraphPin* InPin) {}

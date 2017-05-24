@@ -3,6 +3,7 @@
 #include "SAnimMontagePanel.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Layout/WidgetPath.h"
 #include "Framework/Application/MenuStack.h"
@@ -36,6 +37,9 @@ void SAnimMontagePanel::Construct(const FArguments& InArgs, FSimpleMulticastDele
 	OnInvokeTab = InArgs._OnInvokeTab;
 	MontageEditor = InArgs._MontageEditor;
 	SectionTimingNodeVisibility = InArgs._SectionTimingNodeVisibility;
+	OnSetMontagePreviewSlot = InArgs._OnSetMontagePreviewSlot;
+	CurrentPreviewSlot = 0;
+
 	bChildAnimMontage = InArgs._bChildAnimMontage;
 
 	//TrackStyle = TRACK_Double;
@@ -70,6 +74,9 @@ void SAnimMontagePanel::Update()
 {
 	if ( Montage != NULL )
 	{
+		CurrentPreviewSlot = FMath::Clamp(CurrentPreviewSlot, 0, Montage->SlotAnimTracks.Num() - 1);
+		OnSetMontagePreviewSlot.ExecuteIfBound(CurrentPreviewSlot);
+
 		SMontageEditor * Editor = MontageEditor.Pin().Get();
 		int32 ColorIdx=0;
 		//FLinearColor Colors[] = { FLinearColor(0.9f, 0.9f, 0.9f, 0.9f), FLinearColor(0.5f, 0.5f, 0.5f) };
@@ -217,17 +224,37 @@ void SAnimMontagePanel::Update()
 									.Image(FEditorStyle::GetBrush("MeshPaint.FindInCB"))
 								]
 							]
-
 							+ SHorizontalBox::Slot()
-								.AutoWidth()
-								.FillWidth(2.f)
-								.HAlign(HAlign_Left)
-								.VAlign(VAlign_Center)
+							.AutoWidth()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SCheckBox)
+								.Style(FCoreStyle::Get(), "ToggleButtonCheckbox")
+								.ToolTipText(LOCTEXT("DetailPanelPreviewToolTipText", "Preview this slot in the editor"))
+								.IsChecked(this, &SAnimMontagePanel::IsSlotPreviewed, SlotAnimIdx)
+								.OnCheckStateChanged(this, &SAnimMontagePanel::OnSlotPreviewedChanged, SlotAnimIdx)
 								[
-									SAssignNew(SlotWarningImages[SlotAnimIdx], SImage)
-									.Image(FEditorStyle::GetBrush("AnimSlotManager.Warning"))
-									.Visibility(EVisibility::Hidden)
+									SNew(SBox)
+									.VAlign(VAlign_Center)
+									.HAlign(HAlign_Center)
+									.Padding(FMargin(4.0, 2.0))
+									[
+										SNew(STextBlock)
+										.Text(LOCTEXT("DetailPanelPreview", "Preview"))
+									]
 								]
+							]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.FillWidth(2.f)
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							[
+								SAssignNew(SlotWarningImages[SlotAnimIdx], SImage)
+								.Image(FEditorStyle::GetBrush("AnimSlotManager.Warning"))
+								.Visibility(EVisibility::Hidden)
+							]
 						]
 				];
 
@@ -477,6 +504,20 @@ void SAnimMontagePanel::OnSlotNameChanged(TSharedPtr<FString> NewSelection, ESel
 			// Clear selection, so Details panel for AnimNotifies doesn't show outdated information.
 			ClearSelected();
 		}
+	}
+}
+
+ECheckBoxState SAnimMontagePanel::IsSlotPreviewed(int32 SlotIndex) const
+{
+	return (SlotIndex == CurrentPreviewSlot) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SAnimMontagePanel::OnSlotPreviewedChanged(ECheckBoxState NewState, int32 SlotIndex)
+{
+	if (NewState == ECheckBoxState::Checked)
+	{
+		CurrentPreviewSlot = SlotIndex;
+		OnSetMontagePreviewSlot.ExecuteIfBound(CurrentPreviewSlot);
 	}
 }
 

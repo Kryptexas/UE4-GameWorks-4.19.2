@@ -45,27 +45,27 @@ void UGoogleVRPointerInputComponent::SetPointer(TScriptInterface<IGoogleVRPointe
 	Pointer = NewPointer;
 }
 
-TScriptInterface<IGoogleVRPointer> UGoogleVRPointerInputComponent::GetPointer()
+TScriptInterface<IGoogleVRPointer> UGoogleVRPointerInputComponent::GetPointer() const
 {
 	return Pointer;
 }
 
-bool UGoogleVRPointerInputComponent::IsBlockingHit()
+bool UGoogleVRPointerInputComponent::IsBlockingHit() const
 {
 	return LatestHitResult.IsValidBlockingHit();
 }
 
-AActor* UGoogleVRPointerInputComponent::GetHitActor()
+AActor* UGoogleVRPointerInputComponent::GetHitActor() const
 {
 	return LatestHitResult.GetActor();
 }
 
-UPrimitiveComponent* UGoogleVRPointerInputComponent::GetHitComponent()
+UPrimitiveComponent* UGoogleVRPointerInputComponent::GetHitComponent() const
 {
 	return LatestHitResult.GetComponent();
 }
 
-FVector UGoogleVRPointerInputComponent::GetIntersectionLocation()
+FVector UGoogleVRPointerInputComponent::GetIntersectionLocation() const
 {
 	if (IsBlockingHit())
 	{

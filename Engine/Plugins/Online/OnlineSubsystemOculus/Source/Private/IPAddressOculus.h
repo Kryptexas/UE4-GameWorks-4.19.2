@@ -137,7 +137,7 @@ public:
 	*/
 	FString ToString(bool bAppendPort) const override
 	{
-		return FString::Printf(*OculusId.ToString());
+		return OculusId.ToString();
 	}
 
 	/**

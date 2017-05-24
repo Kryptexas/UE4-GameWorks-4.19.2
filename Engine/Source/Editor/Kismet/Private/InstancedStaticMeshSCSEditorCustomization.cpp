@@ -108,8 +108,25 @@ bool FInstancedStaticMeshSCSEditorCustomization::HandleViewportDrag(class UScene
 				NewTranslation += LocalPivot;
 			}
 
-			InstancedStaticMeshComponentScene->UpdateInstanceTransform(InstanceIndex, FTransform(NewRotation, NewTranslation, NewScale));
-			InstancedStaticMeshComponentTemplate->UpdateInstanceTransform(InstanceIndex, FTransform(NewRotation, NewTranslation, NewScale));
+			FMatrix& DefaultValue = InstancedStaticMeshComponentTemplate->PerInstanceSMData[InstanceIndex].Transform;
+			const FTransform NewTransform(NewRotation, NewTranslation, NewScale);
+			InstancedStaticMeshComponentScene->UpdateInstanceTransform(InstanceIndex, NewTransform);
+
+			// Propagate the change to all other instances of the template.
+			TArray<UObject*> ArchetypeInstances;
+			InstancedStaticMeshComponentTemplate->GetArchetypeInstances(ArchetypeInstances);
+			for (UObject* ArchetypeInstance : ArchetypeInstances)
+			{
+				UInstancedStaticMeshComponent* InstancedStaticMeshComponent = CastChecked<UInstancedStaticMeshComponent>(ArchetypeInstance);
+				if (InstancedStaticMeshComponent->PerInstanceSMData[InstanceIndex].Transform.Equals(DefaultValue))
+				{
+					InstancedStaticMeshComponent->UpdateInstanceTransform(InstanceIndex, NewTransform, false, true, true);
+				}
+			}
+
+			// Update the template.
+			InstancedStaticMeshComponentTemplate->Modify();
+			DefaultValue = InstancedStaticMeshComponentScene->PerInstanceSMData[InstanceIndex].Transform;
 
 			bMovedInstance = true;
 		}

@@ -22,7 +22,7 @@ public:
 	virtual FIsFunctionUsedInADelegate& GetIsFunctionUsedInADelegateCallback() override;
 	virtual TSharedPtr<FNativizationSummary>& NativizationSummary() override;
 	virtual FString DependenciesGlobalMapHeaderCode() override;
-	virtual FString DependenciesGlobalMapBodyCode() override;
+	virtual FString DependenciesGlobalMapBodyCode(const FString& PCHFilename) override;
 	//~ End IBlueprintCompilerCppBackendModule interface
 
 private: 
@@ -80,9 +80,9 @@ FString FBlueprintCompilerCppBackendModule::DependenciesGlobalMapHeaderCode()
 	return FDependenciesGlobalMapHelper::EmitHeaderCode();
 }
 
-FString FBlueprintCompilerCppBackendModule::DependenciesGlobalMapBodyCode()
+FString FBlueprintCompilerCppBackendModule::DependenciesGlobalMapBodyCode(const FString& PCHFilename)
 {
-	return FDependenciesGlobalMapHelper::EmitBodyCode();
+	return FDependenciesGlobalMapHelper::EmitBodyCode(PCHFilename);
 }
 
 IMPLEMENT_MODULE(FBlueprintCompilerCppBackendModule, BlueprintCompilerCppBackend)

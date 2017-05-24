@@ -992,7 +992,6 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 		const int64 ThisFrame = *It;
 		if (ThisFrame <= LastFullFrameMetaAndNonFrame && ThisFrame < MinFrameToKeep)
 		{
-			check(ThisFrame <= LastFullFrameMetaAndNonFrame);
 			It.RemoveCurrent();
 		}
 	}
@@ -1001,7 +1000,6 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 		const int64 ThisFrame = It.Key();
 		if (ThisFrame <= LastFullFrameMetaAndNonFrame && ThisFrame < MinFrameToKeep)
 		{
-			check(ThisFrame <= LastFullFrameMetaAndNonFrame);
 			It.RemoveCurrent();
 		}
 	}
@@ -1815,6 +1813,35 @@ void FStatsThreadState::FindAndDumpMemoryExtensiveStats( FStatPacketArray &Frame
 	}
 }
 
+void FStatsUtils::GetNameAndGroup(FStatMessage const& Item, FString& OutName, FString& OutGroup)
+{
+	const FString ShortName = Item.NameAndInfo.GetShortName().ToString();
+	const FName Group = Item.NameAndInfo.GetGroupName();
+	const FName Category = Item.NameAndInfo.GetGroupCategory();
+	OutName = Item.NameAndInfo.GetDescription();
+	OutName.Trim();
+
+	if (OutName != ShortName)
+	{
+		if (OutName.Len())
+		{
+			OutName += TEXT(" - ");
+		}
+		OutName += ShortName;
+	}
+
+	if (Group != NAME_None)
+	{
+		OutGroup = TEXT(" - ");
+		OutGroup += *Group.ToString();
+	}
+	if (Category != NAME_None)
+	{
+		OutGroup += TEXT(" - ");
+		OutGroup += *Category.ToString();
+	}
+}
+
 FString FStatsUtils::DebugPrint(FStatMessage const& Item)
 {
 	FString Result(TEXT("Invalid"));
@@ -1831,11 +1858,11 @@ FString FStatsUtils::DebugPrint(FStatMessage const& Item)
 		}
 		else
 		{
-			Result = FString::Printf(GetStatFormatString<int64>(), Item.GetValue_int64());
+			Result = FString::Printf(TEXT("%llu"), Item.GetValue_int64());
 		}
 		break;
 	case EStatDataType::ST_double:
-		Result = FString::Printf(GetStatFormatString<double>(), Item.GetValue_double());
+		Result = FString::Printf(TEXT("%.1f"), Item.GetValue_double());
 		break;
 	case EStatDataType::ST_FName:
 		Result = Item.GetValue_FName().ToString();
@@ -1844,34 +1871,11 @@ FString FStatsUtils::DebugPrint(FStatMessage const& Item)
 
 	Result = FString(FCString::Spc(FMath::Max<int32>(0, 14 - Result.Len()))) + Result;
 
-	const FString ShortName = Item.NameAndInfo.GetShortName().ToString();
-	const FName Group = Item.NameAndInfo.GetGroupName();
-	const FName Category = Item.NameAndInfo.GetGroupCategory();
-	FString Desc = Item.NameAndInfo.GetDescription();
-	Desc.Trim();
+	FString Desc, GroupAndCategory;
 
-	if( Desc != ShortName )
-	{
-		if( Desc.Len() )
-		{
-			Desc += TEXT( " - " );
-		}
-		Desc += ShortName;
-	}
+	GetNameAndGroup(Item, Desc, GroupAndCategory);
 
-	FString GroupAndCategoryStr;
-	if (Group != NAME_None)
-	{
-		GroupAndCategoryStr = TEXT(" - ");
-		GroupAndCategoryStr += *Group.ToString();
-	}
-	if (Category != NAME_None)
-	{
-		GroupAndCategoryStr += TEXT(" - ");
-		GroupAndCategoryStr += *Category.ToString();
-	}
-
-	return FString::Printf(TEXT("  %s  -  %s%s"), *Result, *Desc, *GroupAndCategoryStr);
+	return FString::Printf(TEXT("  %s  -  %s%s"), *Result, *Desc, *GroupAndCategory);
 }
 
 void FStatsUtils::AddMergeStatArray(TArray<FStatMessage>& Dest, TArray<FStatMessage> const& Src)

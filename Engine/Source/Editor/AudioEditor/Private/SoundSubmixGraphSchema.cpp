@@ -81,7 +81,7 @@ void USoundSubmixGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& C
 	const FText Name = LOCTEXT("NewSoundSubmix", "New Sound Submix");
 	const FText ToolTip = LOCTEXT("NewSoundSubmixTooltip", "Create a new sound submix");
 	
-	TSharedPtr<FSoundSubmixGraphSchemaAction_NewNode> NewAction(new FSoundSubmixGraphSchemaAction_NewNode(FText::GetEmpty(), Name, ToolTip.ToString(), 0));
+	TSharedPtr<FSoundSubmixGraphSchemaAction_NewNode> NewAction(new FSoundSubmixGraphSchemaAction_NewNode(FText::GetEmpty(), Name, ToolTip, 0));
 
 	ContextMenuBuilder.AddAction(NewAction);
 }

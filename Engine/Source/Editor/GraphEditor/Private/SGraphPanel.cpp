@@ -1049,6 +1049,15 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 			Menu->GetOwnedWindow()->SetWidgetToFocusOnActivate(FocusedContent.WidgetToFocus);
 		}
 
+		if (Menu.IsValid())
+		{
+			Menu->GetOnMenuDismissed().AddLambda([DelegateList=FocusedContent.OnMenuDismissed](TSharedRef<IMenu>) { DelegateList.Broadcast(); });
+		}
+		else
+		{
+			FocusedContent.OnMenuDismissed.Broadcast();
+		}
+
 		return FocusedContent.WidgetToFocus;
 	}
 

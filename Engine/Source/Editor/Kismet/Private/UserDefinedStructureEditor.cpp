@@ -382,7 +382,7 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 	TSharedRef<SSplitter> Splitter = SNew(SSplitter)
 		.Orientation(Orient_Vertical)
 		.PhysicalSplitterHandleSize(10.0f)
-		.ResizeMode(ESplitterResizeMode::Fixed);
+		.ResizeMode(ESplitterResizeMode::FixedPosition);
 
 	{
 		// Create a property view

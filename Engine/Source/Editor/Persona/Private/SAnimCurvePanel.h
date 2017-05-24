@@ -83,6 +83,9 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
+
+	~SAnimCurvePanel();
+
 	/**
 	 * Set New Sequence
 	 */

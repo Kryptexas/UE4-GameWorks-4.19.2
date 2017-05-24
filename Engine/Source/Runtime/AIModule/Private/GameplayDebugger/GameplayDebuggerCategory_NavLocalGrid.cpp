@@ -393,15 +393,19 @@ void FGameplayDebuggerCategory_NavLocalGrid::CollectData(APlayerController* Owne
 	const UGridPathFollowingComponent* GridPathComp = DebugAI ? Cast<UGridPathFollowingComponent>(DebugAI->GetPathFollowingComponent()) : nullptr;
 	if (GridPathComp && GridPathComp->HasActiveGrid() && GridManager)
 	{
-		AgentDataPack.GridIdx = GridPathComp->GetActiveGridIdx();
-
-		TArray<FVector> PathPoints = GridPathComp->GetGridPathPoints();
-		const FNavLocalGridData& GridData = GridManager->GetGridData(AgentDataPack.GridIdx);
-	
-		AgentDataPack.PathCells.SetNum(PathPoints.Num());
-		for (int32 Idx = 0; Idx < PathPoints.Num(); Idx++)
+		const int32 CurrentGridIdx = GridPathComp->GetActiveGridIdx();
+		if (CurrentGridIdx >= 0 && CurrentGridIdx < GridManager->GetNumGrids())
 		{
-			AgentDataPack.PathCells[Idx] = GridData.GetCellIndex(PathPoints[Idx]);
+			AgentDataPack.GridIdx = CurrentGridIdx;
+
+			TArray<FVector> PathPoints = GridPathComp->GetGridPathPoints();
+			const FNavLocalGridData& GridData = GridManager->GetGridData(AgentDataPack.GridIdx);
+
+			AgentDataPack.PathCells.SetNum(PathPoints.Num());
+			for (int32 Idx = 0; Idx < PathPoints.Num(); Idx++)
+			{
+				AgentDataPack.PathCells[Idx] = GridData.GetCellIndex(PathPoints[Idx]);
+			}
 		}
 	}
 }

@@ -30,6 +30,7 @@ DEFINE_STAT(STAT_IndexBufferMemory);
 DEFINE_STAT(STAT_VertexBufferMemory);
 DEFINE_STAT(STAT_StructuredBufferMemory);
 DEFINE_STAT(STAT_PixelBufferMemory);
+DEFINE_STAT(STAT_GetOrCreatePSO);
 
 static FAutoConsoleVariable CVarUseVulkanRealUBs(
 	TEXT("r.Vulkan.UseRealUBs"),
@@ -44,6 +45,8 @@ const FString FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32
 	FString(TEXT("EWritable")),	
 	FString(TEXT("ERWBarrier")),
 	FString(TEXT("ERWNoBarrier")),
+	FString(TEXT("ERWSubResBarrier")),
+	FString(TEXT("EMetaData")),
 	FString(TEXT("EMaxAccess")),
 };
 
@@ -88,7 +91,8 @@ const FClearValueBinding FClearValueBinding::DepthZero(0.0f, 0);
 const FClearValueBinding FClearValueBinding::DepthNear((float)ERHIZBuffer::NearPlane, 0);
 const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPlane, 0);
 const FClearValueBinding FClearValueBinding::Green(FLinearColor(0.0f, 1.0f, 0.0f, 1.0f));
-const FClearValueBinding FClearValueBinding::MidGray(FLinearColor(0.5f, 0.5f, 0.5f, 1.0f));
+// Note: this is used as the default normal for DBuffer decals.  It must decode to a value of 0 in DecodeDBufferData.
+const FClearValueBinding FClearValueBinding::DefaultNormal8Bit(FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1.0f));
 
 TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
@@ -107,8 +111,8 @@ void FRHIResource::FlushPendingDeletes()
 	SCOPE_CYCLE_COUNTER(STAT_DeleteResources);
 
 	check(IsInRenderingThread());
-	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
 	FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
 
 	auto Delete = [](TArray<FRHIResource*>& ToDelete)
 	{
@@ -211,6 +215,13 @@ static TAutoConsoleVariable<float> GGPUHitchThresholdCVar(
 	TEXT("RHI.GPUHitchThreshold"),
 	100.0f,
 	TEXT("Threshold for detecting hitches on the GPU (in milliseconds).")
+	);
+
+static TAutoConsoleVariable<int32> CVarGPUCrashDebugging(
+	TEXT("r.GPUCrashDebugging"),
+	0,
+	TEXT("Enable vendor specific GPU crash analysis tools"),
+	ECVF_ReadOnly
 	);
 
 namespace RHIConfig
@@ -377,7 +388,8 @@ static FName NAME_PCD3D_ES2(TEXT("PCD3D_ES2"));
 static FName NAME_GLSL_150(TEXT("GLSL_150"));
 static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 static FName NAME_SF_PS4(TEXT("SF_PS4"));
-static FName NAME_SF_XBOXONE(TEXT("SF_XBOXONE"));
+static FName NAME_SF_XBOXONE_D3D11(TEXT("SF_XBOXONE_D3D11"));
+static FName NAME_SF_XBOXONE_D3D12(TEXT("SF_XBOXONE_D3D12"));
 static FName NAME_GLSL_430(TEXT("GLSL_430"));
 static FName NAME_GLSL_150_ES2(TEXT("GLSL_150_ES2"));
 static FName NAME_GLSL_150_ES2_NOUB(TEXT("GLSL_150_ES2_NOUB"));
@@ -387,6 +399,7 @@ static FName NAME_GLSL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 static FName NAME_GLSL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
+static FName NAME_SF_METAL_MRT_MAC(TEXT("SF_METAL_MRT_MAC"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
 static FName NAME_GLSL_ES3_1_ANDROID(TEXT("GLSL_ES3_1_ANDROID"));
 static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
@@ -419,8 +432,10 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_GLSL_150_MAC;
 	case SP_PS4:
 		return NAME_SF_PS4;
-	case SP_XBOXONE:
-		return NAME_SF_XBOXONE;
+	case SP_XBOXONE_D3D11:
+		return NAME_SF_XBOXONE_D3D11;
+	case SP_XBOXONE_D3D12:
+		return NAME_SF_XBOXONE_D3D12;
 	case SP_OPENGL_SM5:
 		return NAME_GLSL_430;
 	case SP_OPENGL_PCES2:
@@ -440,6 +455,8 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_SF_METAL;
 	case SP_METAL_MRT:
 		return NAME_SF_METAL_MRT;
+	case SP_METAL_MRT_MAC:
+		return NAME_SF_METAL_MRT_MAC;
 	case SP_METAL_SM4:
 		return NAME_SF_METAL_SM4;
 	case SP_METAL_SM5:
@@ -483,7 +500,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_GLSL_150)				return SP_OPENGL_SM4;
 	if (ShaderFormat == NAME_GLSL_150_MAC)			return SP_OPENGL_SM4_MAC;
 	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
-	if (ShaderFormat == NAME_SF_XBOXONE)			return SP_XBOXONE;
+	if (ShaderFormat == NAME_SF_XBOXONE_D3D11)		return SP_XBOXONE_D3D11;
+	if (ShaderFormat == NAME_SF_XBOXONE_D3D12)		return SP_XBOXONE_D3D12;
 	if (ShaderFormat == NAME_GLSL_430)				return SP_OPENGL_SM5;
 	if (ShaderFormat == NAME_GLSL_150_ES2)			return SP_OPENGL_PCES2;
 	if (ShaderFormat == NAME_GLSL_150_ES2_NOUB)		return SP_OPENGL_PCES2;
@@ -493,6 +511,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_GLSL_ES2_IOS)			return SP_OPENGL_ES2_IOS;
 	if (ShaderFormat == NAME_SF_METAL)				return SP_METAL;
 	if (ShaderFormat == NAME_SF_METAL_MRT)			return SP_METAL_MRT;
+	if (ShaderFormat == NAME_SF_METAL_MRT_MAC)		return SP_METAL_MRT_MAC;
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)		return SP_OPENGL_ES31_EXT;
 	if (ShaderFormat == NAME_SF_METAL_SM5)			return SP_METAL_SM5;
 	if (ShaderFormat == NAME_VULKAN_SM4)			return SP_VULKAN_SM4;
@@ -522,7 +541,6 @@ RHI_API bool IsRHIDeviceIntel()
 {
 	check(GRHIVendorId != 0);
 	// Intel GPUs are integrated and use both DedicatedVideoMemory and SharedSystemMemory.
-	// The hardware has fast clears so we disable exclude rects (see r.ClearWithExcludeRects)
 	return GRHIVendorId == 0x8086;
 }
 
@@ -575,7 +593,7 @@ RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform))
 	{
-		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
+		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE_D3D12) || (Platform == SP_XBOXONE_D3D11) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
 	}
     // For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
     // As such it becomes an opt-in project setting.

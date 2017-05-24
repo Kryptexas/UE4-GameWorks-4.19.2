@@ -82,7 +82,6 @@ UNiagaraComponent* UNiagaraFunctionLibrary::SpawnEffectAttached(UNiagaraEffect* 
 
 /**
 * Set a constant in an emitter of a Niagara effect
-*/
 void UNiagaraFunctionLibrary::SetUpdateScriptConstant(UNiagaraComponent* Component, FName EmitterName, FName ConstantName, FVector Value)
 {
 	TArray<TSharedPtr<FNiagaraSimulation>> &Emitters = Component->GetEffectInstance()->GetEmitters();
@@ -94,9 +93,10 @@ void UNiagaraFunctionLibrary::SetUpdateScriptConstant(UNiagaraComponent* Compone
 			FName CurName = *PinnedProps->EmitterName;
 			if (CurName == EmitterName)
 			{
-				Emitter->GetProperties()->UpdateScriptProps.ExternalConstants.SetOrAdd(ConstantName, Value);
+				Emitter->GetProperties()->UpdateScriptProps.ExternalConstants.SetOrAdd(FNiagaraTypeDefinition::GetVec4Def(), ConstantName, Value);
 				break;
 			}
 		}
 	}
 }
+*/

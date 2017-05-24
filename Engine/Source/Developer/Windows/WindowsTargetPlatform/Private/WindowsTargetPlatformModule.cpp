@@ -69,7 +69,20 @@ public:
 #endif
 
 		TargetSettings = NewObject<UWindowsTargetSettings>(GetTransientPackage(), "WindowsTargetSettings", RF_Standalone);
-		
+
+		FString Compiler;
+		if (GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("Compiler"), Compiler, GEngineIni))
+		{
+			if (Compiler == TEXT("VisualStudio2015"))
+			{
+				TargetSettings->Compiler = ECompilerVersion::VisualStudio2015;
+			}
+			else if (Compiler == TEXT("VisualStudio2017"))
+			{
+				TargetSettings->Compiler = ECompilerVersion::VisualStudio2017;
+			}
+		}
+
 		// We need to manually load the config properties here, as this module is loaded before the UObject system is setup to do this
 		GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetSettings->TargetedRHIs, GEngineIni);
 

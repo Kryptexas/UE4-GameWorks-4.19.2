@@ -7,6 +7,7 @@
 #include "D3D11RHIPrivate.h"
 #include "RHIStaticStates.h"
 #include "StaticBoundShaderState.h"
+#include "Engine/GameViewportClient.h"
 
 #if WITH_DX_PERF
 	// For perf events
@@ -34,6 +35,7 @@ void FD3D11DynamicRHI::RHIBeginFrame()
 	RHIPrivateBeginFrame();
 	UniformBufferBeginFrame();
 	GPUProfilingData.BeginFrame(this);
+	PSOPrimitiveType = PT_Num;
 }
 
 template <int32 Frequency>
@@ -278,8 +280,6 @@ void FD3D11DynamicRHI::ClearAllShaderResources()
 	ClearAllShaderResourcesForFrequency<SF_Compute>();
 }
 
-FGlobalBoundShaderState LongGPUTaskBoundShaderState;
-
 void FD3D11DynamicRHI::IssueLongGPUTask()
 {
 	if (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
@@ -304,16 +304,26 @@ void FD3D11DynamicRHI::IssueLongGPUTask()
 
 			FRHICommandList_RecursiveHazardous RHICmdList(this);
 
+			FGraphicsPipelineStateInitializer GraphicsPSOInit;
 			SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+			RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+			GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI();
+			GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<false, CF_Always>::GetRHI();
+			GraphicsPSOInit.RasterizerState = TStaticRasterizerState<FM_Solid, CM_None>::GetRHI();
 
 			auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
 			TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
 			TShaderMapRef<FLongGPUTaskPS> PixelShader(ShaderMap);
 
-			RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
+			GraphicsPSOInit.BoundShaderState.VertexDeclarationRHI = GD3D11Vector4VertexDeclaration.VertexDeclarationRHI;
+			GraphicsPSOInit.BoundShaderState.VertexShaderRHI = GETSAFERHISHADER_VERTEX(*VertexShader);
+			GraphicsPSOInit.BoundShaderState.PixelShaderRHI = GETSAFERHISHADER_PIXEL(*PixelShader);
+			GraphicsPSOInit.PrimitiveType = PT_TriangleStrip;
+
+			FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
+			RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+			RHICmdList.SetBlendFactor(FLinearColor::Black);
 
 			// Draw a fullscreen quad
 			FVector4 Vertices[4];

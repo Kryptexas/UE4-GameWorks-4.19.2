@@ -8,6 +8,9 @@
 #include "GenericPlatform/GenericWindowDefinition.h"
 #include "Misc/App.h"
 #include "Linux/LinuxApplication.h"
+#include "Internationalization.h" // LOCTEXT
+
+#define LOCTEXT_NAMESPACE "LinuxWindow"
 
 DEFINE_LOG_CATEGORY( LogLinuxWindow );
 DEFINE_LOG_CATEGORY( LogLinuxWindowType );
@@ -96,7 +99,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	int32 WindowWidth = ClientWidth;
 	int32 WindowHeight = ClientHeight;
 
-	WindowStyle |= SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+	WindowStyle |= FLinuxPlatformMisc::WindowStyle() | SDL_WINDOW_SHOWN;
 
 	if ( !Definition->HasOSWindowBorder )
 	{
@@ -118,6 +121,8 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		}
 	}
 
+	const bool bShouldActivate = Definition->ActivationPolicy != EWindowActivationPolicy::Never;
+
 	// This is a tool tip window.
 	if (!InParent.IsValid() && !Definition->HasOSWindowBorder &&
 		!Definition->AcceptsInput && Definition->IsTopmostWindow && 
@@ -134,7 +139,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		!Definition->ActivateWhenFirstShown && Definition->SizeWillChangeOften)
+		!bShouldActivate && Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_NOTIFICATION;
 		bIsNotificationWindow = true;
@@ -145,7 +150,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_NOTIFICATION;
 		bIsNotificationWindow = true;
@@ -156,7 +161,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_POPUP_MENU;
 		bIsPopupWindow = true;
@@ -167,7 +172,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		!Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		!bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_POPUP_MENU;
 		bIsConsoleWindow = true;
@@ -179,7 +184,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		!Definition->AcceptsInput && Definition->IsTopmostWindow && 
 		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
-		!Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		!bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		// TODO Experimental (The SDL_WINDOW_DND sets focus)
 		WindowStyle |= SDL_WINDOW_DND;
@@ -191,7 +196,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
 		Definition->IsModalWindow && Definition->IsRegularWindow &&
-		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_DIALOG;
 		bIsDialogWindow = true;
@@ -202,7 +207,7 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
 		Definition->AppearsInTaskbar && Definition->HasSizingFrame &&
 		!Definition->IsModalWindow && Definition->IsRegularWindow &&
-		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+		bShouldActivate && !Definition->SizeWillChangeOften)
 	{
 		WindowStyle |= SDL_WINDOW_DIALOG;
 		bIsUtilityWindow = true;
@@ -217,6 +222,34 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	//	The SDL window doesn't need to be reshaped.
 	//	the size of the window you input is the sizeof the client.
 	HWnd = SDL_CreateWindow( TCHAR_TO_ANSI( *Definition->Title ), X, Y, ClientWidth, ClientHeight, WindowStyle  );
+	// produce a helpful message for common driver errors
+	if (HWnd == nullptr)
+	{
+		FString ErrorMessage;
+
+		if ((WindowStyle & SDL_WINDOW_VULKAN) != 0)
+		{
+			ErrorMessage = LOCTEXT("VulkanWindowCreationFailedLinux", "Unable to create a Vulkan window - make sure an up-to-date libvulkan.so.1 is installed.").ToString();
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage,
+										 *LOCTEXT("VulkanWindowCreationFailedLinuxTitle", "Unable to create a Vulkan window.").ToString());
+		}
+		else if ((WindowStyle & SDL_WINDOW_OPENGL) != 0)
+		{
+			ErrorMessage = LOCTEXT("OpenGLWindowCreationFailedLinux", "Unable to create an OpenGL window - make sure your drivers support at least OpenGL 4.3.").ToString();
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage,
+										 *LOCTEXT("OpenGLWindowCreationFailedLinuxTitle", "Unable to create an OpenGL window.").ToString());
+		}
+		else
+		{
+			ErrorMessage = FString::Printf(*LOCTEXT("SDLWindowCreationFailedLinux", "Window creation failed (SDL error: '%s'')").ToString(), UTF8_TO_TCHAR(SDL_GetError()));
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage,
+										 *LOCTEXT("SDLWindowCreationFailedLinuxTitle", "Unable to create an SDL window.").ToString());
+		}
+
+		checkf(false, TEXT("%s"), *ErrorMessage);
+		// unreachable
+		return;
+	}
 
 	if (Definition->AppearsInTaskbar)
 	{
@@ -296,13 +329,6 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	// Reshape window may resize the window if the non-client area is encroaching on our
 	// desired client area space.
 	ReshapeWindow( X, Y, ClientWidth, ClientHeight );
-
-	if (HWnd == nullptr)
-	{
-		// @todo Error message should be localized!
-		checkf(false, TEXT("Window creation failed (%s)"), UTF8_TO_TCHAR(SDL_GetError()));
-		return;
-	}
 
 	if ( Definition->TransparencySupport == EWindowTransparency::PerWindow )
 	{
@@ -730,7 +756,12 @@ bool FLinuxWindow::IsUtilityWindow() const
 
 bool FLinuxWindow::IsActivateWhenFirstShown() const
 {
-	return Definition->ActivateWhenFirstShown;
+	return GetActivationPolicy() != EWindowActivationPolicy::Never;
+}
+
+EWindowActivationPolicy FLinuxWindow::GetActivationPolicy() const
+{
+	return Definition->ActivationPolicy;
 }
 
 bool FLinuxWindow::IsFocusWhenFirstShown() const
@@ -754,7 +785,7 @@ void FLinuxWindow::LogInfo()
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("AcceptsInput: %d"), Definition->AcceptsInput);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("IsModalWindow: %d"), Definition->IsModalWindow);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("IsRegularWindow: %d"), Definition->IsRegularWindow);
-	UE_LOG(LogLinuxWindowType, Verbose, TEXT("ActivateWhenFirstShown: %d"), Definition->ActivateWhenFirstShown);
+	UE_LOG(LogLinuxWindowType, Verbose, TEXT("ActivationPolicy: %d"), Definition->ActivationPolicy);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("FocusWhenFirstShown: %d"), Definition->FocusWhenFirstShown);
 	UE_LOG(LogLinuxWindowType, Verbose, TEXT("SizeWillChangeOften: %d"), Definition->SizeWillChangeOften);
 }
@@ -783,3 +814,5 @@ void FLinuxWindow::CacheNativeProperties()
 
 	bValidNativePropertiesCache = true;
 }
+
+#undef LOCTEXT_NAMESPACE

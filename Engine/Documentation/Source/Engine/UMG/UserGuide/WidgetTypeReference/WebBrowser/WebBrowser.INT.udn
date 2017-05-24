@@ -3,6 +3,7 @@ Title: Web Browser
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
 Description:Overview of using the Web Browser widget to create in-game web browsing functionality.
 version: 4.10
+tags:UMG UI Designer
 
 
 [REGION:warning]

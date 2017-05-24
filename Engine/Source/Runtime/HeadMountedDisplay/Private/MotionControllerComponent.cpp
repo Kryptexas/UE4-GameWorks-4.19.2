@@ -9,6 +9,8 @@
 #include "Features/IModularFeatures.h"
 #include "IMotionController.h"
 #include "PrimitiveSceneInfo.h"
+#include "Engine/World.h"
+#include "GameFramework/WorldSettings.h"
 
 namespace {
 	/** This is to prevent destruction of motion controller components while they are
@@ -27,7 +29,8 @@ namespace {
 
 //=============================================================================
 UMotionControllerComponent::UMotionControllerComponent(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+: Super(ObjectInitializer),
+RenderThreadComponentScale(1.0f,1.0f,1.0f)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
@@ -61,6 +64,13 @@ UMotionControllerComponent::~UMotionControllerComponent()
 	ViewExtension.Reset();
 }
 
+void UMotionControllerComponent::SendRenderTransform_Concurrent()
+{
+	RenderThreadRelativeTransform = GetRelativeTransform();
+	RenderThreadComponentScale = GetComponentScale();
+	Super::SendRenderTransform_Concurrent();
+}
+
 //=============================================================================
 void UMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
@@ -70,7 +80,8 @@ void UMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	{
 		FVector Position;
 		FRotator Orientation;
-		bTracked = PollControllerState(Position, Orientation);
+		float WorldToMeters = GetWorld() ? GetWorld()->GetWorldSettings()->WorldToMeters : 100.0f;
+		bTracked = PollControllerState(Position, Orientation, WorldToMeters);
 		if (bTracked)
 		{
 			SetRelativeLocationAndRotation(Position, Orientation);
@@ -86,7 +97,7 @@ void UMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick 
 }
 
 //=============================================================================
-bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator& Orientation)
+bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator& Orientation, float WorldToMetersScale)
 {
 	if (IsInGameThread())
 	{
@@ -101,7 +112,7 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 		TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>( IMotionController::GetModularFeatureName() );
 		for( auto MotionController : MotionControllers )
 		{
-			if ((MotionController != nullptr) && MotionController->GetControllerOrientationAndPosition(PlayerIndex, Hand, Orientation, Position))
+			if ((MotionController != nullptr) && MotionController->GetControllerOrientationAndPosition(PlayerIndex, Hand, Orientation, Position, WorldToMetersScale))
 			{
 				CurrentTrackingStatus = MotionController->GetControllerTrackingStatus(PlayerIndex, Hand);
 				return true;
@@ -141,10 +152,27 @@ void UMotionControllerComponent::FViewExtension::PreRenderViewFamily_RenderThrea
 		return;
 	}
 
+	// Find a view that is associated with this player.
+	float WorldToMetersScale = -1.0f;
+	for (const FSceneView* SceneView : InViewFamily.Views)
+	{
+		if (SceneView && SceneView->PlayerIndex == MotionControllerComponent->PlayerIndex)
+		{
+			WorldToMetersScale = SceneView->WorldToMetersScale;
+			break;
+		}
+	}
+	// If there are no views associated with this player use view 0.
+	if (WorldToMetersScale < 0.0f)
+	{
+		check(InViewFamily.Views.Num() > 0);
+		WorldToMetersScale = InViewFamily.Views[0]->WorldToMetersScale;
+	}
+
 	// Poll state for the most recent controller transform
 	FVector Position;
 	FRotator Orientation;
-	if (!MotionControllerComponent->PollControllerState(Position, Orientation))
+	if (!MotionControllerComponent->PollControllerState(Position, Orientation, WorldToMetersScale))
 	{
 		return;
 	}
@@ -152,8 +180,8 @@ void UMotionControllerComponent::FViewExtension::PreRenderViewFamily_RenderThrea
 	if (LateUpdatePrimitives.Num())
 	{
 		// Calculate the late update transform that will rebase all children proxies within the frame of reference
-		const FTransform OldLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(MotionControllerComponent->GetRelativeTransform());
-		const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position, MotionControllerComponent->GetComponentScale()));
+		const FTransform OldLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(MotionControllerComponent->RenderThreadRelativeTransform);
+		const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position, MotionControllerComponent->RenderThreadComponentScale));
 		const FMatrix LateUpdateTransform = (OldLocalToWorldTransform.Inverse() * NewLocalToWorldTransform).ToMatrixWithScale();
 
 		// Apply delta to the affected scene proxies

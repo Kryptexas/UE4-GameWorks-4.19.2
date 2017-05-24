@@ -16,6 +16,7 @@ DerivedDataCacheCommandlet.cpp: Commandlet for DDC maintenence
 #include "ShaderCompiler.h"
 #include "DistanceFieldAtlas.h"
 #include "Misc/RedirectCollector.h"
+#include "Engine/Texture.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 
@@ -75,6 +76,15 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 		GShaderCompilingManager->FinishAllCompilation(); // Final blocking check as IsCompiling() may be non-deterministic
 		GDistanceFieldAsyncQueue->BlockUntilAllBuildsComplete();
 		UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Done waiting for shaders to finish."));
+	};
+
+
+	auto WaitForCurrentTextureBuildingToFinish = []()
+	{
+		for ( TObjectIterator<UTexture> Texture; Texture; ++Texture )
+		{
+			Texture->FinishCachePlatformData();
+		}
 	};
 
 	if (!bStartupOnly && bFillCache)
@@ -157,7 +167,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			{
 				const EShaderPlatform TargetPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
 				// Kick off global shader compiles for each target platform
-				GetGlobalShaderMap(TargetPlatform);
+				CompileGlobalShaderMap(TargetPlatform);
 			}
 		}
 
@@ -191,8 +201,8 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				}
 				if (bDoSubset)
 				{
-					const FString& PackageString = FPackageName::PackageFromPath(*Filename);
-					if (FCrc::StrCrc_DEPRECATED(*PackageString.ToUpper()) % SubsetMod != SubsetTarget)
+					const FString& SubPackageName = FPackageName::PackageFromPath(*Filename);
+					if (FCrc::StrCrc_DEPRECATED(*SubPackageName.ToUpper()) % SubsetMod != SubsetTarget)
 					{
 						continue;
 					}
@@ -222,7 +232,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				{
 					if (!ProcessedPackages.Contains(It->GetOutermost()->GetFName()))
 					{
-						check( (It->GetOutermost()->GetPackageFlags() & PKG_ReloadingForCooker) == 0 );
+						check((It->GetOutermost()->GetPackageFlags() & PKG_ReloadingForCooker) == 0);
 						for (auto Platform : Platforms)
 						{
 							It->BeginCacheForCookedPlatformData(Platform);
@@ -245,20 +255,20 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 						continue;
 					}
 					if (!ProcessedPackages.Contains(Pkg->GetFName()))
-					{
-						ProcessedPackages.Add(Pkg->GetFName());
-						Pkg->SetPackageFlags(PKG_ReloadingForCooker);
 						{
-							TArray<UObject *> ObjectsInPackage;
-							GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
-							for (int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++)
+						ProcessedPackages.Add(Pkg->GetFName());
+							Pkg->SetPackageFlags(PKG_ReloadingForCooker);
 							{
-								ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
-								ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
+								TArray<UObject *> ObjectsInPackage;
+								GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
+								for (int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++)
+								{
+									ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
+									ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
+								}
 							}
 						}
 					}
-				}
 				FindProcessedPackagesTime += FPlatformTime::Seconds() - FindProcessedPackagesStartTime;
 			}
 
@@ -267,6 +277,9 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 
 			if (NumProcessedSinceLastGC >= GCInterval || FileIndex < 0 || bLastPackageWasMap)
 			{
+				WaitForCurrentShaderCompilationToFinish();
+				WaitForCurrentTextureBuildingToFinish();
+
 				const double StartGCTime = FPlatformTime::Seconds();
 				if (NumProcessedSinceLastGC >= GCInterval || FileIndex < 0)
 				{
@@ -282,12 +295,12 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				GCTime += FPlatformTime::Seconds() - StartGCTime;
 
 				bLastPackageWasMap = false;
-				WaitForCurrentShaderCompilationToFinish();
 			}
 		}
 	}
 
 	WaitForCurrentShaderCompilationToFinish();
+	WaitForCurrentTextureBuildingToFinish();
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 
 	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("%.2lfs spent looking for processed packages, %.2lfs spent on GC."), FindProcessedPackagesTime, GCTime);

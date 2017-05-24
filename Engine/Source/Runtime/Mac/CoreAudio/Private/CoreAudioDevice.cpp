@@ -10,6 +10,7 @@
 
 #include "CoreAudioDevice.h"
 #include "VorbisAudioInfo.h"
+#include "OpusAudioInfo.h"
 #include "AudioEffect.h"
 #include "CoreAudioEffects.h"
 
@@ -506,9 +507,30 @@ bool FCoreAudioDevice::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 
 class ICompressedAudioInfo* FCoreAudioDevice::CreateCompressedAudioInfo(USoundWave* SoundWave)
 {
+	check(SoundWave);
+
+	if (SoundWave->IsStreaming())
+	{
+		return new FOpusAudioInfo();
+	}
+
 #if WITH_OGGVORBIS
-	return new FVorbisAudioInfo();
+	static const FName NAME_OGG(TEXT("OGG"));
+	if (FPlatformProperties::RequiresCookedData() ? SoundWave->HasCompressedData(NAME_OGG) : (SoundWave->GetCompressedData(NAME_OGG) != nullptr))
+	{
+		ICompressedAudioInfo* CompressedInfo = new FVorbisAudioInfo();
+		if (!CompressedInfo)
+		{
+			UE_LOG(LogAudio, Error, TEXT("Failed to create new FVorbisAudioInfo for SoundWave %s: out of memory."), *SoundWave->GetName());
+			return nullptr;
+		}
+		return CompressedInfo;
+	}
+	else
+	{
+		return nullptr;
+	}
 #else
-	return NULL;
+	return nullptr;
 #endif
 }

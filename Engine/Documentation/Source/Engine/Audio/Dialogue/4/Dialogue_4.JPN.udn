@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:3194067
-Availability:Docs
+﻿INTSourceChangelist:3218993
+Availability:Public
 Title:4.字幕を表示する
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:プロジェクトの字幕表示を有効にする
 version:4.13
 parent:Engine/Audio/Dialogue
 order:4
+type:quick start
 checkpoint:dialogueqs
 prereq:Engine/Blueprints/QuickStart
 related:Engine/Audio
@@ -13,29 +14,13 @@ related:Engine/Audio/Overview
 related:Engine/Audio/SoundCues/Editor
 related:Engine/Audio/SoundCues/NodeReference
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[前のステップ](Engine/Audio/Dialogue/3 "%Engine/Audio/Dialogue/3:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタート ホーム](Engine/Audio/Dialogue)
-	[/PARAM]
-	[PARAM:next]
-		[次のステップ](Engine/Audio/Dialogue/5 "%Engine/Audio/Dialogue/5:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
+[NAV]
 
 字幕はデフォルトで有効になりますが、オンになっているかをチェックする必要があれば、**[Project Settings (プロジェクト設定)]** にチェックボックスがあります。
 
 1. **[Project Settings]** を開きます。
 
-1. **[General Settings]** で **[Subtitles]** セクションを探して、**[Subtitles Enabled]** ボックスにチェックを入れるようにします。 
+1. **[General Settings (一般設定)]** で **[Subtitles (字幕)]** セクションを探して、**[Subtitles Enabled (字幕を有効にする)]** ボックスにチェックを入れるようにします。 
 
 	![](SubtitlesOn.png)
 
@@ -47,4 +32,4 @@ Quest NPC のダイアログをトリガーする場合、付随する字幕テ�
 現在起こっているコンテキストの **[Dialogue Wave]** に **Sound Wave** セットが、入っていない限り、字幕は表示されません。
 [/REGION]
 
-%Steps%
+[NAV]

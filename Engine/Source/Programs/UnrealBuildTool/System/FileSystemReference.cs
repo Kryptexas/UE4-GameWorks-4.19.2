@@ -141,13 +141,100 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Determines if the given object is at or under the given directory
 		/// </summary>
-		/// <param name="Directory"></param>
-		/// <returns></returns>
+		/// <param name="Other">Directory to check against</param>
+		/// <returns>True if this path is under the given directory</returns>
 		public bool IsUnderDirectory(DirectoryReference Other)
 		{
-			return CanonicalName.StartsWith(Other.CanonicalName) && (CanonicalName.Length == Other.CanonicalName.Length || CanonicalName[Other.CanonicalName.Length] == Path.DirectorySeparatorChar);
+			return CanonicalName.StartsWith(Other.CanonicalName) && (CanonicalName.Length == Other.CanonicalName.Length || CanonicalName[Other.CanonicalName.Length] == Path.DirectorySeparatorChar || Other.IsRootDirectory());
 		}
 
+		/// <summary>
+		/// Searches the path fragments for the given name. Only complete fragments are considered a match.
+		/// </summary>
+		/// <param name="Name">Name to check for</param>
+		/// <param name="Offset">Offset within the string to start the search</param>
+		/// <returns>True if the given name is found within the path</returns>
+		public bool ContainsName(FileSystemName Name, int Offset)
+		{
+			return ContainsName(Name, Offset, FullName.Length - Offset);
+		}
+
+		/// <summary>
+		/// Searches the path fragments for the given name. Only complete fragments are considered a match.
+		/// </summary>
+		/// <param name="Name">Name to check for</param>
+		/// <param name="Offset">Offset within the string to start the search</param>
+		/// <param name="Length">Length of the substring to search</param>
+		/// <returns>True if the given name is found within the path</returns>
+		public bool ContainsName(FileSystemName Name, int Offset, int Length)
+		{
+			// Check the substring to search is at least long enough to contain a match
+			if(Length < Name.CanonicalName.Length)
+			{
+				return false;
+			}
+
+			// Find each occurence of the name within the remaining string, then test whether it's surrounded by directory separators
+			int MatchIdx = Offset;
+			for(;;)
+			{
+				// Find the next occurrence
+				MatchIdx = CanonicalName.IndexOf(Name.CanonicalName, MatchIdx, Offset + Length - MatchIdx);
+				if(MatchIdx == -1)
+				{
+					return false;
+				}
+
+				// Check if the substring is a directory
+				int MatchEndIdx = MatchIdx + Name.CanonicalName.Length;
+				if(CanonicalName[MatchIdx - 1] == Path.DirectorySeparatorChar && (MatchEndIdx == CanonicalName.Length || CanonicalName[MatchEndIdx] == Path.DirectorySeparatorChar))
+				{
+					return true;
+				}
+
+				// Move past the string that didn't match
+				MatchIdx += Name.CanonicalName.Length;
+			}
+		}
+
+		/// <summary>
+		/// Determines if the given object is under the given directory, within a subfolder of the given name. Useful for masking out directories by name.
+		/// </summary>
+		/// <param name="Name">Name of a subfolder to also check for</param>
+		/// <param name="BaseDir">Base directory to check against</param>
+		/// <returns>True if the path is under the given directory</returns>
+		public bool ContainsName(FileSystemName Name, DirectoryReference BaseDir)
+		{
+			// Check that this is under the base directory
+			if(!IsUnderDirectory(BaseDir))
+			{
+				return false;
+			}
+			else
+			{
+				return ContainsName(Name, BaseDir.FullName.Length);
+			}
+		}
+
+		/// <summary>
+		/// Determines if the given object is under the given directory, within a subfolder of the given name. Useful for masking out directories by name.
+		/// </summary>
+		/// <param name="Names">Names of subfolders to also check for</param>
+		/// <param name="BaseDir">Base directory to check against</param>
+		/// <returns>True if the path is under the given directory</returns>
+		public bool ContainsAnyNames(FileSystemName[] Names, DirectoryReference BaseDir)
+		{
+			// Check that this is under the base directory
+			if(!IsUnderDirectory(BaseDir))
+			{
+				return false;
+			}
+			else
+			{
+				return Names.Any(x => ContainsName(x, BaseDir.FullName.Length));
+			}
+		}
+		
 		/// <summary>
 		/// Creates a relative path from the given base directory
 		/// </summary>
@@ -231,633 +318,6 @@ namespace UnrealBuildTool
 		public override string ToString()
 		{
 			return FullName;
-		}
-	}
-
-	/// <summary>
-	/// Representation of an absolute directory path. Allows fast hashing and comparisons.
-	/// </summary>
-	[Serializable]
-	public class DirectoryReference : FileSystemReference, IEquatable<DirectoryReference>
-	{
-		/// <summary>
-		/// Default constructor.
-		/// </summary>
-		/// <param name="InPath">Path to this directory.</param>
-		public DirectoryReference(string InPath)
-			: base(FixTrailingPathSeparator(Path.GetFullPath(InPath)))
-		{
-		}
-
-		/// <summary>
-		/// Construct a DirectoryReference from a DirectoryInfo object.
-		/// </summary>
-		/// <param name="InInfo">Path to this file</param>
-		public DirectoryReference(DirectoryInfo InInfo)
-			: base(FixTrailingPathSeparator(InInfo.FullName))
-		{
-		}
-
-		/// <summary>
-		/// Constructor for creating a directory object directly from two strings.
-		/// </summary>
-		/// <param name="InFullName"></param>
-		/// <param name="InCanonicalName"></param>
-		protected DirectoryReference(string InFullName, string InCanonicalName)
-			: base(InFullName, InCanonicalName)
-		{
-		}
-
-		/// <summary>
-		/// Ensures that the correct trailing path separator is appended. On Windows, the root directory (eg. C:\) always has a trailing path separator, but no other
-		/// path does.
-		/// </summary>
-		/// <param name="DirName">Absolute path to the directory</param>
-		/// <returns>Path to the directory, with the correct trailing path separator</returns>
-		private static string FixTrailingPathSeparator(string DirName)
-		{
-			if(DirName.Length == 2 && DirName[2] == ':')
-			{
-				return DirName + Path.DirectorySeparatorChar;
-			}
-			else if(DirName.Length == 3 && DirName[1] == ':' && DirName[2] == Path.DirectorySeparatorChar)
-			{
-				return DirName;
-			}
-			else if(DirName.Length > 1 && DirName[DirName.Length - 1] == Path.DirectorySeparatorChar)
-			{
-				return DirName.TrimEnd(Path.DirectorySeparatorChar);
-			}
-			else
-			{
-				return DirName;
-			}
-		}
-
-		/// <summary>
-		/// Gets the top level directory name
-		/// </summary>
-		/// <returns>The name of the directory</returns>
-		public string GetDirectoryName()
-		{
-			return Path.GetFileName(FullName);
-		}
-
-		/// <summary>
-		/// Gets the directory containing this object
-		/// </summary>
-		/// <returns>A new directory object representing the directory containing this object</returns>
-		public DirectoryReference ParentDirectory
-		{
-			get
-			{
-				if (IsRootDirectory())
-				{
-					return null;
-				}
-
-				int ParentLength = CanonicalName.LastIndexOf(Path.DirectorySeparatorChar);
-				if (ParentLength == 2 && CanonicalName[1] == ':')
-				{
-					ParentLength++;
-				}
-
-				return new DirectoryReference(FullName.Substring(0, ParentLength), CanonicalName.Substring(0, ParentLength));
-			}
-		}
-
-		/// <summary>
-		/// Gets the parent directory for a file
-		/// </summary>
-		/// <param name="File">The file to get directory for</param>
-		/// <returns>The full directory name containing the given file</returns>
-		public static DirectoryReference GetParentDirectory(FileReference File)
-		{
-			int ParentLength = File.CanonicalName.LastIndexOf(Path.DirectorySeparatorChar);
-			return new DirectoryReference(File.FullName.Substring(0, ParentLength), File.CanonicalName.Substring(0, ParentLength));
-		}
-
-		/// <summary>
-		/// Creates the directory
-		/// </summary>
-		public void CreateDirectory()
-		{
-			Directory.CreateDirectory(FullName);
-		}
-
-        /// <summary>
-        /// Removes the directory
-        /// </summary>
-        public void RemoveDirectory()
-        {
-            Directory.Delete(FullName, true);
-        }
-
-        /// <summary>
-        /// Checks whether the directory exists
-        /// </summary>
-        /// <returns>True if this directory exists</returns>
-        public bool Exists()
-		{
-			return Directory.Exists(FullName);
-		}
-
-		/// <summary>
-		/// Enumerate files from a given directory
-		/// </summary>
-		/// <returns>Sequence of file references</returns>
-		public IEnumerable<FileReference> EnumerateFileReferences()
-		{
-			foreach (string FileName in Directory.EnumerateFiles(FullName))
-			{
-				yield return FileReference.MakeFromNormalizedFullPath(FileName);
-			}
-		}
-
-		/// <summary>
-		/// Enumerate files from a given directory
-		/// </summary>
-		/// <returns>Sequence of file references</returns>
-		public IEnumerable<FileReference> EnumerateFileReferences(string Pattern)
-		{
-			foreach (string FileName in Directory.EnumerateFiles(FullName, Pattern))
-			{
-				yield return FileReference.MakeFromNormalizedFullPath(FileName);
-			}
-		}
-
-		/// <summary>
-		/// Enumerate files from a given directory
-		/// </summary>
-		/// <returns>Sequence of file references</returns>
-		public IEnumerable<FileReference> EnumerateFileReferences(string Pattern, SearchOption Option)
-		{
-			foreach (string FileName in Directory.EnumerateFiles(FullName, Pattern, Option))
-			{
-				yield return FileReference.MakeFromNormalizedFullPath(FileName);
-			}
-		}
-
-		/// <summary>
-		/// Enumerate subdirectories in a given directory
-		/// </summary>
-		/// <returns>Sequence of directory references</returns>
-		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences()
-		{
-			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName))
-			{
-				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
-			}
-		}
-
-		/// <summary>
-		/// Enumerate subdirectories in a given directory
-		/// </summary>
-		/// <returns>Sequence of directory references</returns>
-		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences(string Pattern)
-		{
-			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern))
-			{
-				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
-			}
-		}
-
-		/// <summary>
-		/// Enumerate subdirectories in a given directory
-		/// </summary>
-		/// <returns>Sequence of directory references</returns>
-		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences(string Pattern, SearchOption Option)
-		{
-			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern, Option))
-			{
-				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
-			}
-		}
-
-		/// <summary>
-		/// Determines whether this path represents a root directory in the filesystem
-		/// </summary>
-		/// <returns>True if this path is a root directory, false otherwise</returns>
-		public bool IsRootDirectory()
-		{
-			return CanonicalName[CanonicalName.Length - 1] == Path.DirectorySeparatorChar;
-		}
-
-		/// <summary>
-		/// Combine several fragments with a base directory, to form a new directory name
-		/// </summary>
-		/// <param name="BaseDirectory">The base directory</param>
-		/// <param name="Fragments">Fragments to combine with the base directory</param>
-		/// <returns>The new directory name</returns>
-		public static DirectoryReference Combine(DirectoryReference BaseDirectory, params string[] Fragments)
-		{
-			string FullName = FileSystemReference.CombineStrings(BaseDirectory, Fragments);
-			return new DirectoryReference(FullName, FullName.ToLowerInvariant());
-		}
-
-		/// <summary>
-		/// Compares two filesystem object names for equality. Uses the canonical name representation, not the display name representation.
-		/// </summary>
-		/// <param name="A">First object to compare.</param>
-		/// <param name="B">Second object to compare.</param>
-		/// <returns>True if the names represent the same object, false otherwise</returns>
-		public static bool operator ==(DirectoryReference A, DirectoryReference B)
-		{
-			if ((object)A == null)
-			{
-				return (object)B == null;
-			}
-			else
-			{
-				return (object)B != null && A.CanonicalName == B.CanonicalName;
-			}
-		}
-
-		/// <summary>
-		/// Compares two filesystem object names for inequality. Uses the canonical name representation, not the display name representation.
-		/// </summary>
-		/// <param name="A">First object to compare.</param>
-		/// <param name="B">Second object to compare.</param>
-		/// <returns>False if the names represent the same object, true otherwise</returns>
-		public static bool operator !=(DirectoryReference A, DirectoryReference B)
-		{
-			return !(A == B);
-		}
-
-		/// <summary>
-		/// Compares against another object for equality.
-		/// </summary>
-		/// <param name="Obj">other instance to compare.</param>
-		/// <returns>True if the names represent the same object, false otherwise</returns>
-		public override bool Equals(object Obj)
-		{
-			return (Obj is DirectoryReference) && ((DirectoryReference)Obj) == this;
-		}
-
-		/// <summary>
-		/// Compares against another object for equality.
-		/// </summary>
-		/// <param name="Obj">other instance to compare.</param>
-		/// <returns>True if the names represent the same object, false otherwise</returns>
-		public bool Equals(DirectoryReference Obj)
-		{
-			return Obj == this;
-		}
-
-		/// <summary>
-		/// Returns a hash code for this object
-		/// </summary>
-		/// <returns></returns>
-		public override int GetHashCode()
-		{
-			return CanonicalName.GetHashCode();
-		}
-
-		/// <summary>
-		/// Helper function to create a remote directory reference. Unlike normal DirectoryReference objects, these aren't converted to a full path in the local filesystem.
-		/// </summary>
-		/// <param name="AbsolutePath">The absolute path in the remote file system</param>
-		/// <returns>New directory reference</returns>
-		public static DirectoryReference MakeRemote(string AbsolutePath)
-		{
-			return new DirectoryReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
-		}
-
-		/// <summary>
-		/// Helper function to create a directory reference from a raw platform path. The path provided *MUST* be exactly the same as that returned by Path.GetFullPath(). 
-		/// </summary>
-		/// <param name="AbsolutePath">The absolute path in the file system</param>
-		/// <returns>New file reference</returns>
-		public static DirectoryReference MakeFromNormalizedFullPath(string AbsolutePath)
-		{
-			return new DirectoryReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
-		}
-
-		/// <summary>
-		/// Gets the parent directory for a file, or returns null if it's null.
-		/// </summary>
-		/// <param name="File">The file to create a directory reference for</param>
-		/// <returns>The directory containing the file  </returns>
-		public static DirectoryReference FromFile(FileReference File)
-		{
-			return (File == null)? null : File.Directory;
-		}
-	}
-
-	/// <summary>
-	/// Representation of an absolute file path. Allows fast hashing and comparisons.
-	/// </summary>
-	[Serializable]
-	public class FileReference : FileSystemReference, IEquatable<FileReference>
-	{
-		/// <summary>
-		/// Default constructor.
-		/// </summary>
-		/// <param name="InPath">Path to this file</param>
-		public FileReference(string InPath)
-			: base(Path.GetFullPath(InPath))
-		{
-			if(FullName.EndsWith("\\") || FullName.EndsWith("/"))
-			{
-				throw new ArgumentException("File names may not be terminated by a path separator character");
-			}
-		}
-
-		/// <summary>
-		/// Construct a FileReference from a FileInfo object.
-		/// </summary>
-		/// <param name="InInfo">Path to this file</param>
-		public FileReference(FileInfo InInfo)
-			: base(InInfo.FullName)
-		{
-		}
-
-		/// <summary>
-		/// Default constructor.
-		/// </summary>
-		/// <param name="InPath">Path to this file</param>
-		protected FileReference(string InFullName, string InCanonicalName)
-			: base(InFullName, InCanonicalName)
-		{
-		}
-
-		/// <summary>
-		/// Gets the file name without path information
-		/// </summary>
-		/// <returns>A string containing the file name</returns>
-		public string GetFileName()
-		{
-			return Path.GetFileName(FullName);
-		}
-
-		/// <summary>
-		/// Gets the file name without path information or an extension
-		/// </summary>
-		/// <returns>A string containing the file name without an extension</returns>
-		public string GetFileNameWithoutExtension()
-		{
-			return Path.GetFileNameWithoutExtension(FullName);
-		}
-
-		/// <summary>
-		/// Gets the file name without path or any extensions
-		/// </summary>
-		/// <returns>A string containing the file name without an extension</returns>
-		public string GetFileNameWithoutAnyExtensions()
-		{
-			int StartIdx = FullName.LastIndexOf(Path.DirectorySeparatorChar) + 1;
-
-			int EndIdx = FullName.IndexOf('.', StartIdx);
-			if (EndIdx < StartIdx)
-			{
-				return FullName.Substring(StartIdx);
-			}
-			else
-			{
-				return FullName.Substring(StartIdx, EndIdx - StartIdx);
-			}
-		}
-
-		/// <summary>
-		/// Gets the extension for this filename
-		/// </summary>
-		/// <returns>A string containing the extension of this filename</returns>
-		public string GetExtension()
-		{
-			return Path.GetExtension(FullName);
-		}
-
-		/// <summary>
-		/// Change the file's extension to something else
-		/// </summary>
-		/// <param name="Extension">The new extension</param>
-		/// <returns>A FileReference with the same path and name, but with the new extension</returns>
-		public FileReference ChangeExtension(string Extension)
-		{
-			string NewFullName = Path.ChangeExtension(FullName, Extension);
-			return new FileReference(NewFullName, NewFullName.ToLowerInvariant());
-		}
-
-		/// <summary>
-		/// Gets the directory containing this file
-		/// </summary>
-		/// <returns>A new directory object representing the directory containing this object</returns>
-		public DirectoryReference Directory
-		{
-			get { return DirectoryReference.GetParentDirectory(this); }
-		}
-
-		/// <summary>
-		/// Determines whether the given filename exists
-		/// </summary>
-		/// <returns>True if it exists, false otherwise</returns>
-		public bool Exists()
-		{
-			return File.Exists(FullName);
-		}
-
-		/// <summary>
-		/// Deletes this file
-		/// </summary>
-		public void Delete()
-		{
-			File.Delete(FullName);
-		}
-
-		/// <summary>
-		/// Combine several fragments with a base directory, to form a new filename
-		/// </summary>
-		/// <param name="BaseDirectory">The base directory</param>
-		/// <param name="Fragments">Fragments to combine with the base directory</param>
-		/// <returns>The new file name</returns>
-		public static FileReference Combine(DirectoryReference BaseDirectory, params string[] Fragments)
-		{
-			string FullName = FileSystemReference.CombineStrings(BaseDirectory, Fragments);
-			return new FileReference(FullName, FullName.ToLowerInvariant());
-		}
-
-		/// <summary>
-		/// Append a string to the end of a filename
-		/// </summary>
-		/// <param name="A">The base file reference</param>
-		/// <param name="B">Suffix to be appended</param>
-		/// <returns>The new file reference</returns>
-		public static FileReference operator +(FileReference A, string B)
-		{
-			return new FileReference(A.FullName + B, A.CanonicalName + B.ToLowerInvariant());
-		}
-
-		/// <summary>
-		/// Compares two filesystem object names for equality. Uses the canonical name representation, not the display name representation.
-		/// </summary>
-		/// <param name="A">First object to compare.</param>
-		/// <param name="B">Second object to compare.</param>
-		/// <returns>True if the names represent the same object, false otherwise</returns>
-		public static bool operator ==(FileReference A, FileReference B)
-		{
-			if ((object)A == null)
-			{
-				return (object)B == null;
-			}
-			else
-			{
-				return (object)B != null && A.CanonicalName == B.CanonicalName;
-			}
-		}
-
-		/// <summary>
-		/// Compares two filesystem object names for inequality. Uses the canonical name representation, not the display name representation.
-		/// </summary>
-		/// <param name="A">First object to compare.</param>
-		/// <param name="B">Second object to compare.</param>
-		/// <returns>False if the names represent the same object, true otherwise</returns>
-		public static bool operator !=(FileReference A, FileReference B)
-		{
-			return !(A == B);
-		}
-
-		/// <summary>
-		/// Compares against another object for equality.
-		/// </summary>
-		/// <param name="Obj">other instance to compare.</param>
-		/// <returns>True if the names represent the same object, false otherwise</returns>
-		public override bool Equals(object Obj)
-		{
-			return (Obj is FileReference) && ((FileReference)Obj) == this;
-		}
-
-		/// <summary>
-		/// Compares against another object for equality.
-		/// </summary>
-		/// <param name="Obj">other instance to compare.</param>
-		/// <returns>True if the names represent the same object, false otherwise</returns>
-		public bool Equals(FileReference Obj)
-		{
-			return Obj == this;
-		}
-
-		/// <summary>
-		/// Returns a hash code for this object
-		/// </summary>
-		/// <returns></returns>
-		public override int GetHashCode()
-		{
-			return CanonicalName.GetHashCode();
-		}
-
-		/// <summary>
-		/// Helper function to create a remote file reference. Unlike normal FileReference objects, these aren't converted to a full path in the local filesystem, but are
-		/// left as they are passed in.
-		/// </summary>
-		/// <param name="AbsolutePath">The absolute path in the remote file system</param>
-		/// <returns>New file reference</returns>
-		public static FileReference MakeRemote(string AbsolutePath)
-		{
-			return new FileReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
-		}
-
-		/// <summary>
-		/// Helper function to create a file reference from a raw platform path. The path provided *MUST* be exactly the same as that returned by Path.GetFullPath(). 
-		/// </summary>
-		/// <param name="AbsolutePath">The absolute path in the file system</param>
-		/// <returns>New file reference</returns>
-		public static FileReference MakeFromNormalizedFullPath(string AbsolutePath)
-		{
-			return new FileReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
-		}
-	}
-
-	static class FileReferenceExtensionMethods
-	{
-		/// <summary>
-		/// Manually serialize a file reference to a binary stream.
-		/// </summary>
-		/// <param name="Writer">Binary writer to write to</param>
-		public static void Write(this BinaryWriter Writer, FileReference File)
-		{
-			Writer.Write((File == null) ? String.Empty : File.FullName);
-		}
-
-		/// <summary>
-		/// Manually serialize a file reference to a binary stream.
-		/// </summary>
-		/// <param name="Writer">Binary writer to write to</param>
-		public static void Write(this BinaryWriter Writer, DirectoryReference Directory)
-		{
-			Writer.Write((Directory == null) ? String.Empty : Directory.FullName);
-		}
-
-		/// <summary>
-		/// Serializes a file reference, using a lookup table to avoid serializing the same name more than once.
-		/// </summary>
-		/// <param name="Writer">The writer to save this reference to</param>
-		/// <param name="File">A file reference to output; may be null</param>
-		/// <param name="FileToUniqueId">A lookup table that caches previous files that have been output, and maps them to unique id's.</param>
-		public static void Write(this BinaryWriter Writer, FileReference File, Dictionary<FileReference, int> FileToUniqueId)
-		{
-			int UniqueId;
-			if (File == null)
-			{
-				Writer.Write(-1);
-			}
-			else if (FileToUniqueId.TryGetValue(File, out UniqueId))
-			{
-				Writer.Write(UniqueId);
-			}
-			else
-			{
-				Writer.Write(FileToUniqueId.Count);
-				Writer.Write(File);
-				FileToUniqueId.Add(File, FileToUniqueId.Count);
-			}
-		}
-
-		/// <summary>
-		/// Manually deserialize a file reference from a binary stream.
-		/// </summary>
-		/// <param name="Reader">Binary reader to read from</param>
-		/// <returns>New FileReference object</returns>
-		public static FileReference ReadFileReference(this BinaryReader Reader)
-		{
-			string FullName = Reader.ReadString();
-			return (FullName.Length == 0) ? null : FileReference.MakeFromNormalizedFullPath(FullName);
-		}
-
-		/// <summary>
-		/// Manually deserialize a directory reference from a binary stream.
-		/// </summary>
-		/// <param name="Reader">Binary reader to read from</param>
-		/// <returns>New DirectoryReference object</returns>
-		public static DirectoryReference ReadDirectoryReference(this BinaryReader Reader)
-		{
-			string FullName = Reader.ReadString();
-			return (FullName.Length == 0) ? null : DirectoryReference.MakeFromNormalizedFullPath(FullName);
-		}
-
-
-		/// <summary>
-		/// Deserializes a file reference, using a lookup table to avoid writing the same name more than once.
-		/// </summary>
-		/// <param name="Reader">The source to read from</param>
-		/// <param name="UniqueFiles">List of previously read file references. The index into this array is used in place of subsequent ocurrences of the file.</param>
-		/// <returns>The file reference that was read</returns>
-		public static FileReference ReadFileReference(this BinaryReader Reader, List<FileReference> UniqueFiles)
-		{
-			int UniqueId = Reader.ReadInt32();
-			if (UniqueId == -1)
-			{
-				return null;
-			}
-			else if (UniqueId < UniqueFiles.Count)
-			{
-				return UniqueFiles[UniqueId];
-			}
-			else
-			{
-				FileReference Result = Reader.ReadFileReference();
-				UniqueFiles.Add(Result);
-				return Result;
-			}
 		}
 	}
 }

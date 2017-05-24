@@ -34,6 +34,7 @@ FVMReflection::FVMReflection()
 	, FieldInstance(nullptr)
 	, FieldAddress(nullptr)
 	, bVerifiedFieldType(false)
+	, bSkipFieldVerification(false)
 	, bSetArrayElement(false)
 	, bNextActionMustBeCast(false)
 	, bIsError(false)
@@ -90,6 +91,7 @@ FVMReflection::FVMReflection(const FVMReflection& ToCopy)
 	, FieldInstance(ToCopy.FieldInstance)
 	, FieldAddress(ToCopy.FieldAddress)
 	, bVerifiedFieldType(ToCopy.bVerifiedFieldType)
+	, bSkipFieldVerification(ToCopy.bSkipFieldVerification)
 	, bSetArrayElement(ToCopy.bSetArrayElement)
 	, bNextActionMustBeCast(ToCopy.bNextActionMustBeCast)
 	, bIsError(ToCopy.bIsError)
@@ -107,12 +109,12 @@ FVMReflection& FVMReflection::operator = (const FVMReflection& ToCopy)
 	return *this;
 }
 
-FVMReflection& FVMReflection::operator ->*(const ANSICHAR* InPropertyName)
+FVMReflection& FVMReflection::operator ->*(FString PropertyName)
 {
-	FString PropertyName(ANSI_TO_TCHAR(InPropertyName));
+	FString CurOperation = FString::Printf(TEXT("->*\"%s\""), *PropertyName);
 
-	NotifyOperator();
-	AddHistory(FString::Printf(TEXT("->*\"%s\""), *PropertyName));
+	NotifyOperator(CurOperation);
+	AddHistory(CurOperation);
 
 	if (!bIsError && FieldInstance != NULL)
 	{
@@ -245,8 +247,10 @@ FVMReflection& FVMReflection::operator ->*(const ANSICHAR* InPropertyName)
 
 FVMReflection& FVMReflection::operator [](int32 ArrayElement)
 {
-	NotifyOperator();
-	AddHistory(FString::Printf(TEXT("[%i]"), ArrayElement));
+	FString CurOperation = FString::Printf(TEXT("[%i]"), ArrayElement);
+
+	NotifyOperator(CurOperation);
+	AddHistory(CurOperation);
 
 	UProperty* FieldProp = Cast<UProperty>(FieldInstance);
 	UArrayProperty* ArrayProp = Cast<UArrayProperty>(FieldInstance);
@@ -326,9 +330,10 @@ FVMReflection& FVMReflection::operator [](int32 ArrayElement)
 FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 {
 	FString ExpectedFieldType = ANSI_TO_TCHAR(InFieldType);
+	FString CurOperation = FString::Printf(TEXT("[\"%s\"]"), *ExpectedFieldType);
 
-	NotifyOperator();
-	AddHistory(FString::Printf(TEXT("[\"%s\"]"), *ExpectedFieldType));
+	NotifyOperator(CurOperation);
+	AddHistory(CurOperation);
 
 	UProperty* FieldProp = Cast<UProperty>(FieldInstance);
 	UArrayProperty* ArrayProp = Cast<UArrayProperty>(FieldProp);
@@ -1076,6 +1081,75 @@ FVMReflection::operator void*()
 	CAST_RETURN(ReturnVal);
 }
 
+TValueOrError<FString, FString> FVMReflection::GetValueAsString()
+{
+	TValueOrError<FString, FString> ReturnVal = MakeError(FString(TEXT("")));
+
+	if (CanCastObject())
+	{
+		ReturnVal = MakeValue(FString(BaseAddress != nullptr ? ((UObject*)BaseAddress)->GetFullName() : TEXT("nullptr")));
+	}
+	// @todo #JohnB: I think this path is hit when there is a UFunction, not sure if it's possible for UClass to be encountered here
+	// @todo #JohnB: This code path doesn't seem to be getting hit at all, that's strange.
+	// @todo #JohnB: Revisit this, and see if this code path is getting hit
+	else if (CanCastStruct())
+	{
+		UScriptStruct* Struct = Cast<UScriptStruct>(FieldInstance);
+		UObject* Obj = (UObject*)BaseAddress;
+
+		if (Struct != nullptr && Obj != nullptr)
+		{
+			FString Result;
+
+			Struct->ExportText(Result, FieldAddress, FieldAddress, Obj, PPF_None, nullptr);
+
+			ReturnVal = MakeValue(Result);
+		}
+		else if (Cast<UStruct>(FieldInstance) != nullptr && Obj != nullptr)
+		{
+			ReturnVal = MakeError(FString::Printf(TEXT("(Got UStruct type '%s' when expecting UScriptStruct, need to add support)"),
+													*FieldInstance->GetClass()->GetName()));
+		}
+		else
+		{
+			ReturnVal = MakeValue(FString(TEXT("(nullptr)")));
+		}
+	}
+	else if (CanCastProperty() || CanCastArray())
+	{
+		// @todo #JohnB: Static arrays
+
+		UProperty* Prop = Cast<UProperty>(FieldInstance);
+		UObject* Obj = (UObject*)BaseAddress;
+
+		if (Prop != nullptr && Obj != nullptr)
+		{
+			FString Result;
+
+			Prop->ExportTextItem(Result, FieldAddress, FieldAddress, Obj, PPF_None);
+
+			ReturnVal = MakeValue(Result);
+		}
+		else
+		{
+			if (Cast<UArrayProperty>(Prop) != nullptr)
+			{
+				ReturnVal = MakeValue(FString(TEXT("(nullptr)")));
+			}
+			else
+			{
+				ReturnVal = MakeValue(FString(TEXT("nullptr")));
+			}
+		}
+	}
+	else
+	{
+		ReturnVal = MakeError(FString(TEXT("Error: Can't convert value to string")));
+	}
+
+	return ReturnVal;
+}
+
 
 FVMReflection& FVMReflection::operator ,(bool* bErrorPointer)
 {
@@ -1117,6 +1191,7 @@ void FVMReflection::DebugDump()
 			(FieldInstance != NULL ? *FieldInstance->GetFullName() : TEXT("NULL")));
 	UE_LOG(LogUnitTest, Log, TEXT("     - FieldAddress: %s"), (FieldAddress != NULL ? TEXT("Valid") : TEXT("NULL")));
 	UE_LOG(LogUnitTest, Log, TEXT("     - bVerifiedFieldType: %i"), (int32)bVerifiedFieldType);
+	UE_LOG(LogUnitTest, Log, TEXT("     - bSkipFieldVerification: %i"), (int32)bSkipFieldVerification);
 	UE_LOG(LogUnitTest, Log, TEXT("     - bSetArrayElement: %i"), (int32)bSetArrayElement);
 
 	UE_LOG(LogUnitTest, Log, TEXT("     - bNextActionMustBeCast: %i"), (int32)!!bNextActionMustBeCast);
@@ -1159,7 +1234,7 @@ void FVMReflection::SetFieldAddress(void* InFieldAddress, bool bSettingArrayElem
 	// Whenever we set the FieldAddress for a non-array, reset array type verification status
 	if (!bSettingArrayElement)
 	{
-		bVerifiedFieldType = false;
+		bVerifiedFieldType = bSkipFieldVerification;
 	}
 }
 

@@ -21,8 +21,12 @@
 	
 	# Temporary PS4 deprecation warnings
 	".*OnlineSubsystemPS4.*warning:.*\\[-Wdeprecated-declarations\\]",
-	".*PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]"
+	".*PS4Application\\.cpp.*warning:.*\\[-Wdeprecated-declarations\\]",
 	
+	# Missing Steam DLLs/Dylibs when building samples
+	"STEAM: Steam API disabled!",
+	"LogMac:Warning: dlopen failed:.*libsteam_api.dylib.*: image not found",
+	"LogOnline:Warning: STEAM:.*libraries not present.*failed to load!",
 	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
@@ -64,6 +68,23 @@ $::gDontCheck .= ",javacNote";
 # This matcher hits anything with "...." in it, which is often used for progress bars
 $::gDontCheck .= ",cppunitExtraOutput,cppunitFail";
 
+# Moves back by a line if it matches the given pattern
+sub backIf($;$)
+{
+	my ($pattern, $offset) = @_;
+	$offset = 0 unless defined($offset);
+
+	my $line = logLine($::gCurrentLine + $offset - 1);
+	if($line =~ m/$pattern/)
+	{
+		return $offset - 1;
+	}
+	else
+	{
+		return $offset;
+	}
+}
+
 # These are patterns we want to process
 # NOTE: order is important because the file is processed line by line 
 # After an error is processed on a line that line is considered processed
@@ -80,12 +101,12 @@ unshift @::gMatchers, (
     {
         id =>               "clErrorMultiline",
         pattern =>          q{([^(]+)(\([\d,]+\))? ?: (fatal )?error [a-zA-Z]+[\d]+},
-        action =>           q{incValue("errors"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "error", 0, forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)"))},
+        action =>           q{incValue("errors"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "error", backIf("[^ ]+\.cpp\$"), forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)"))},
     },
     {
         id =>               "clWarningMultiline",
-        pattern =>          q{([^(]+)\([\d,]+\) ?: warning },
-        action =>           q{incValue("warnings"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "warning", 0, forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)")) },
+        pattern =>          q{([^(]+)\([\d,]+\) ?: warning[ :]},
+        action =>           q{incValue("warnings"); my ($file_only) = ($1 =~ /([^\\\\]+)$/); diagnostic($file_only || $1, "warning", backIf("[^ ]+\.cpp\$"), forwardWhile("^(    |^([^(]+)\\\\([\\\\d,]+\\\\) ?: note)")) },
     },
     {
         id =>               "clangError",
@@ -125,7 +146,12 @@ unshift @::gMatchers, (
 	{
 		id =>               "automationException",
 		pattern =>          q{AutomationTool\\.AutomationException: },
-		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^  at "));}
+		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^   at "));}
+	},
+	{
+		id =>               "generalException",
+		pattern =>          q{^ERROR: [a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+Exception: },
+		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^   at "));}
 	},
 	{
 		id =>				"ubtFatal",
@@ -144,7 +170,7 @@ unshift @::gMatchers, (
 	},
     {
         id =>               "genericError",
-        pattern =>          q{^(.* )?(ERROR|[Ee]rror)}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
+        pattern =>          q{^(.*[ :])?(ERROR|[Ee]rror)}.q{( (\([^)]+\)|\[[^\]]+\]))?: },
         action =>           q{incValue("errors"); diagnostic("", "error", 0, forwardWhile("^   "))}
     },
     {

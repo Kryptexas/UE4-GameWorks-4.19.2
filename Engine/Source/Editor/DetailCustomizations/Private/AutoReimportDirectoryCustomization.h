@@ -70,16 +70,17 @@ private:
 	void OnDirectoryChanged(const FText& InValue);
 
 	FText GetMountPointText() const;
-	void OnMountPointCommitted(const FText& InValue, ETextCommit::Type CommitType);
-	void OnMountPointChanged(const FText& InValue);
 
-	void SetSourcePath(FString InSourceDir);
-	void UpdateMountPath();
+	void SetSourcePath(const FString& InSourceDir);
 	FReply BrowseForFolder();
+
+	TSharedRef<class SWidget> GetPathPickerContent();
+	void PathPickerPathSelected(const FString& FolderPath);
 
 	EVisibility MountPathVisibility;
 	TSharedPtr<IPropertyHandle> PropertyHandle;
 	TSharedPtr<IPropertyHandle> SourceDirProperty;
 	TSharedPtr<IPropertyHandle> MountPointProperty;
 	TSharedPtr<IPropertyHandle> WildcardsProperty;
+	TSharedPtr<class SComboButton> PathPickerButton;
 };

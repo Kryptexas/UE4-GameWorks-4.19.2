@@ -610,7 +610,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 	// Found dFdx or dFdy
 	bool bUsesDXDY;
 
-	std::vector<std::string> SamplerStateNames;
+	std::vector<FCustomStdString> SamplerStateNames;
 
 	/**
 	* Return true if the type is a multi-dimensional array. Also, track the
@@ -2439,7 +2439,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 		for (_mesa_glsl_parse_state::TUniformList::iterator Iter = Samplers.begin(); Iter != Samplers.end(); ++Iter)
 		{
 			glsl_packed_uniform& Sampler = *Iter;
-			std::string SamplerStates("");
+			FCustomStdString SamplerStates("");
 			TStringToSetMap::iterator IterFound = TextureToSamplerMap.find(Sampler.Name);
 			if (IterFound != TextureToSamplerMap.end())
 			{
@@ -3061,7 +3061,7 @@ public:
 		hash_table_dtor(used_uniform_blocks);
 	}
 
-	int32 AddUniqueSamplerState(const std::string& Name)
+	int32 AddUniqueSamplerState(const FCustomStdString& Name)
 	{
 		for (uint32 Index = 0; Index < SamplerStateNames.size(); ++Index)
 		{

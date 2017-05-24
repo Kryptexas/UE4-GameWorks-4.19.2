@@ -168,7 +168,7 @@ class UNetConnection : public UPlayer
 	UPROPERTY()
 	TArray<class UChannel*> OpenChannels;
 	 
-	/** @todo document */
+	/** This actor is bNetTemporary, which means it should never be replicated after it's initial packet is complete */
 	UPROPERTY()
 	TArray<class AActor*> SentTemporaries;
 
@@ -337,18 +337,6 @@ public:
 	/** This holds a list of actor channels that want to fully shutdown, but need to continue processing bunches before doing so */
 	TMap<FNetworkGUID, TArray<class UActorChannel*>> KeepProcessingActorChannelBunchesMap;
 
-	/** Actors that have gone dormant on this connection	
-	 *  The only way to get on this list is when the actor channel closes. UActorChannel::Close.
-     *  Once in this set, and only then, is an actor considered network dormant.
-     */
-	TSet<const AActor* > DormantActors;
-
-	/** A list of Actors that the client knows about, were recently dormant, but have not had a chance to create a new actor channel.
-	 *  These need to be differentiated from actors that the client doesn't know about, but there's no explicit list for just those actors.
-	 *  (this list will be very transient, with actors being moved off the DormantActors list, onto this list, and then off once they have a channel again)
-	 */
-	TSet<const AActor* > RecentlyDormantActors;
-
 	/** A list of replicators that belong to recently dormant actors/objects */
 	TMap< TWeakObjectPtr< UObject >, TSharedRef< FObjectReplicator > > DormantReplicatorMap;
 
@@ -447,8 +435,6 @@ public:
 	{
 		return NULL;
 	}
-
-	bool	ActorIsAvailableOnClient(const class AActor*);
 
 	/** @return the remote machine address */
 	virtual FString LowLevelGetRemoteAddress(bool bAppendPort=false) PURE_VIRTUAL(UNetConnection::LowLevelGetRemoteAddress,return TEXT(""););

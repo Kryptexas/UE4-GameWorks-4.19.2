@@ -66,7 +66,7 @@ public:
 	int32 GetNumFramesOfRecording();
 
 	FCollisionAnalyzer()
-		: DrawBox(0)		
+		: DrawBox(ForceInit)		
 		, CurrentFrameNum(0)
 		, bIsRecording(false)
 	{

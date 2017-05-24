@@ -200,7 +200,7 @@ FSplinePointDetails::FSplinePointDetails()
 	check(SplinePointTypeEnum);
 	for (int32 EnumIndex = 0; EnumIndex < SplinePointTypeEnum->NumEnums() - 1; ++EnumIndex)
 	{
-		SplinePointTypes.Add(MakeShareable(new FString(SplinePointTypeEnum->GetEnumName(EnumIndex))));
+		SplinePointTypes.Add(MakeShareable(new FString(SplinePointTypeEnum->GetNameStringByIndex(EnumIndex))));
 	}
 }
 

@@ -14,6 +14,11 @@ class IDetailPropertyRow;
 class IDetailGroup
 {
 public:
+	/**
+	* Delegate called when user press the Group Reset ui
+	*/
+	DECLARE_MULTICAST_DELEGATE(FDetailGroupReset);
+
 	virtual ~IDetailGroup(){}
 
 	/**
@@ -62,4 +67,25 @@ public:
 	 * Gets the current state of expansion for the group
 	 */
 	virtual bool GetExpansionState() const = 0;
+
+
+	/**
+	* Permit resetting the properties in this group
+	*/
+	virtual void EnableReset(bool InValue) = 0;
+
+	/**
+	* Return the delegate called when user press the Group Reset ui
+	*/
+	virtual FDetailGroupReset& GetOnDetailGroupReset() = 0;
+
+	/**
+	* Return the name associated with this group
+	*/
+	virtual FName GetGroupName() const = 0;
+
+	/**
+	* Return the property row associated with the specified property handle
+	*/
+	virtual TSharedPtr<IDetailPropertyRow> FindPropertyRow(TSharedRef<IPropertyHandle> PropertyHandle) const = 0;
 };

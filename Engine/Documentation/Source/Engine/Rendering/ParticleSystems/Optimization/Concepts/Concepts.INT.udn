@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/Parti
 Description:Identifying trouble areas and problem content in order to optimize effects.
 Version:4.9
 Parent:Engine/Performance
+tags:Particles
 
 
 

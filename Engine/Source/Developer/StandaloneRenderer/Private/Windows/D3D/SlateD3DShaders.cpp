@@ -85,15 +85,19 @@ static void CompileShader( const FString& Filename, const FString& EntryPoint, c
 
 	TRefCountPtr<ID3DBlob> ErrorBlob;
 	HRESULT Hr = D3DCompilerFunc(ShaderFile.GetData(), ShaderFile.Num(), NULL, NULL, &Includer, TCHAR_TO_ANSI(*EntryPoint), TCHAR_TO_ANSI(*ShaderModel), ShaderFlags, 0, OutBlob.GetInitReference(), ErrorBlob.GetInitReference());
-	if( FAILED(Hr) )
+
+	if (FAILED(Hr))
 	{
-		if( ErrorBlob.GetReference() )
+		LogSlateD3DRendererFailure(TEXT("SlateD3DShaders::CompileShader() - D3DCompilerFunc"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+
+		if (ErrorBlob.GetReference())
 		{
-			checkf(0, ANSI_TO_TCHAR(ErrorBlob->GetBufferPointer()));
+			LogSlateD3DRendererFailure(ANSI_TO_TCHAR(ErrorBlob->GetBufferPointer()), Hr);
 		}
 		else
 		{
-			checkf(0, TEXT("D3DX11CompileFromFile failed, no error text provided"));
+			LogSlateD3DRendererFailure(TEXT("D3DCompilerFunc failed, no error text provided"), Hr);
 		}
 	}
 }
@@ -144,14 +148,29 @@ void FSlateD3DVS::Create( const FString& Filename, const FString& EntryPoint, co
 	CompileShader( Filename, EntryPoint, ShaderModel, Blob);
 
 	HRESULT Hr = GD3DDevice->CreateVertexShader( Blob->GetBufferPointer(), Blob->GetBufferSize(), NULL, VertexShader.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DVS::Create() - ID3D11Device::CreateVertexShader"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	Hr = GD3DDevice->CreateInputLayout( VertexLayout, VertexLayoutCount, Blob->GetBufferPointer(), Blob->GetBufferSize(), InputLayout.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DVS::Create() - ID3D11Device::CreateInputLayout"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	TRefCountPtr<ID3D11ShaderReflection> Reflector;
 	Hr = D3DReflect( Blob->GetBufferPointer(), Blob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)Reflector.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DVS::Create() - D3DReflect"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	GetShaderBindings( Reflector, ShaderBindings );
 }
@@ -201,12 +220,22 @@ void FSlateD3DGeometryShader::Create( const FString& Filename, const FString& En
 	CompileShader( Filename, EntryPoint, ShaderModel, Blob);
 
 	HRESULT Hr = GD3DDevice->CreateGeometryShader( Blob->GetBufferPointer(), Blob->GetBufferSize(), NULL, GeometryShader.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DGeometryShader::Create() - ID3D11Device::CreateGeometryShader"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 
 	TRefCountPtr<ID3D11ShaderReflection> Reflector;
 	Hr = D3DReflect( Blob->GetBufferPointer(), Blob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)Reflector.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DGeometryShader::Create() - D3DReflect"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	GetShaderBindings( Reflector, ShaderBindings );
 }
@@ -242,12 +271,21 @@ void FSlateD3DPS::Create( const FString& Filename, const FString& EntryPoint, co
 	CompileShader( Filename, EntryPoint, ShaderModel, Blob);
 
 	HRESULT Hr = GD3DDevice->CreatePixelShader( Blob->GetBufferPointer(), Blob->GetBufferSize(), NULL, PixelShader.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
-
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DPS::Create() - ID3D11Device::CreatePixelShader"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	TRefCountPtr<ID3D11ShaderReflection> Reflector;
 	Hr = D3DReflect( Blob->GetBufferPointer(), Blob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)Reflector.GetInitReference() );
-	checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+	if (FAILED(Hr))
+	{
+		LogSlateD3DRendererFailure(TEXT("FSlateD3DPS::Create() - D3DReflect"), Hr);
+		GEncounteredCriticalD3DDeviceError = true;
+		return;
+	}
 
 	GetShaderBindings( Reflector, ShaderBindings );
 }
@@ -374,9 +412,9 @@ void FSlateDefaultPS::SetShaderType( uint32 InShaderType )
 	PerElementConstants.GetBufferData().ShaderType = InShaderType;
 }
 
-void FSlateDefaultPS::SetDrawEffects( uint32 InDrawEffects )
+void FSlateDefaultPS::SetDrawEffects( ESlateDrawEffect InDrawEffects )
 {
-	PerElementConstants.GetBufferData().DrawEffects = InDrawEffects;
+	PerElementConstants.GetBufferData().DrawEffects = (uint32)InDrawEffects;
 }
 
 void FSlateDefaultPS::SetShaderParams( const FVector4& InShaderParams )

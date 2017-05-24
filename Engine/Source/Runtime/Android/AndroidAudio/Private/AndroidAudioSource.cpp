@@ -22,7 +22,7 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 {
 	if (!bStreamedSound)
 	{
-		SLresult result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, Buffer->AudioData, Buffer->GetSize() );
+		SLresult result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, SLESBuffer->AudioData, SLESBuffer->GetSize() );
 		if(result != SL_RESULT_SUCCESS) 
 		{ 
 			UE_LOG( LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue (Requeing)"));  
@@ -86,9 +86,9 @@ bool FSLESSoundSource::CreatePlayer()
 	SLDataLocator_AndroidSimpleBufferQueue LocationBuffer	= {		SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 1 };
 		
 	// PCM Info
-	SLDataFormat_PCM PCM_Format				= {		SL_DATAFORMAT_PCM, SLuint32(Buffer->NumChannels), SLuint32( Buffer->SampleRate * 1000 ),	
+	SLDataFormat_PCM PCM_Format				= {		SL_DATAFORMAT_PCM, SLuint32(SLESBuffer->NumChannels), SLuint32( SLESBuffer->SampleRate * 1000 ),	
 		SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16, 
-		Buffer->NumChannels == 2 ? ( SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT ) : SL_SPEAKER_FRONT_CENTER, 
+		SLESBuffer->NumChannels == 2 ? ( SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT ) : SL_SPEAKER_FRONT_CENTER, 
 		SL_BYTEORDER_LITTLEENDIAN };
 		
 	SLDataSource SoundDataSource			= {		&LocationBuffer, &PCM_Format};
@@ -107,9 +107,9 @@ bool FSLESSoundSource::CreatePlayer()
 		UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER CreateAudioPlayer 0x%x"), result);
 		return false;
 	}
-		
+	
 	bool bFailedSetup = false;
-		
+	
 	// realize the player
 	result = (*SL_PlayerObject)->Realize(SL_PlayerObject, SL_BOOLEAN_FALSE);
 	if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Realize 0x%x"), result); return false; }
@@ -150,9 +150,9 @@ bool FSLESSoundSource::EnqueuePCMBuffer( bool bLoop)
 		if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER QUEUE RegisterCallback 0x%x "), result); return false; }
 	}
 	
-	result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, Buffer->AudioData, Buffer->GetSize() );
+	result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, SLESBuffer->AudioData, SLESBuffer->GetSize() );
 	if (result != SL_RESULT_SUCCESS) {
-		UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue 0x%x params( %p, %d)"), result, Buffer->AudioData, int32(Buffer->GetSize()));
+		UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue 0x%x params( %p, %d)"), result, SLESBuffer->AudioData, int32(SLESBuffer->GetSize()));
 		if (bLoop)
 		{
 			result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, NULL, NULL);
@@ -192,11 +192,11 @@ bool FSLESSoundSource::ReadMorePCMData(const int32 BufferIndex, EDataReadMode Da
 	{
 		if (DataReadMode == EDataReadMode::Synchronous)
 		{
-			return Buffer->ReadCompressedData(AudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never);
+			return SLESBuffer->ReadCompressedData(AudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never);
 		}
 		else
 		{
-			RealtimeAsyncTask = new FAsyncRealtimeAudioTask(Buffer, AudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never, DataReadMode == EDataReadMode::AsynchronousSkipFirstFrame);
+			RealtimeAsyncTask = new FAsyncRealtimeAudioTask(SLESBuffer, AudioBuffers[BufferIndex].AudioData, WaveInstance->LoopingMode != LOOP_Never, DataReadMode == EDataReadMode::AsynchronousSkipFirstFrame);
 			RealtimeAsyncTask->StartBackgroundTask();
 			return false;
 		}
@@ -213,7 +213,7 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	FMemory::Memzero( AudioBuffers, sizeof( SLESAudioBuffer ) * 2 );
 
 	// Set up double buffer area to decompress to
-	BufferSize = Buffer->GetRTBufferSize() * Buffer->NumChannels;
+	BufferSize = SLESBuffer->GetRTBufferSize() * SLESBuffer->NumChannels;
 
 	AudioBuffers[0].AudioData = (uint8*)FMemory::Malloc(BufferSize);
 	AudioBuffers[0].AudioDataSize = BufferSize;
@@ -242,7 +242,7 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	if(result == SL_RESULT_SUCCESS) 
 	{
 		result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, AudioBuffers[0].AudioData, AudioBuffers[0].AudioDataSize );
-		if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue 0x%x params( %p, %d)"), result, Buffer->AudioData, int32(Buffer->GetSize())); return false; }
+		if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue 0x%x params( %p, %d)"), result, SLESBuffer->AudioData, int32(SLESBuffer->GetSize())); return false; }
 	}
 	else
 	{
@@ -273,11 +273,12 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 		return false;
 	}
 
-	if (Buffer && Buffer->ResourceID == 0)
+	if (SLESBuffer && SLESBuffer->ResourceID == 0)
 	{
 		UE_LOG( LogAndroidAudio, Warning, TEXT(" InitSoundSouce with Buffer already allocated"));
-		delete Buffer;
-		Buffer = 0;
+		delete SLESBuffer;
+		SLESBuffer = nullptr;
+		Buffer = nullptr;
 	}
 
 	if (SL_PlayerObject)
@@ -286,9 +287,10 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 	}
 	
 	// Find matching buffer.
-	Buffer = FSLESSoundBuffer::Init( (FSLESAudioDevice *)AudioDevice, InWaveInstance->WaveData );
+	SLESBuffer = FSLESSoundBuffer::Init( (FSLESAudioDevice *)AudioDevice, InWaveInstance->WaveData );
+	Buffer = SLESBuffer;
 
-	if( Buffer && InWaveInstance->WaveData->NumChannels <= 2 && InWaveInstance->WaveData->SampleRate <= 48000 )
+	if( SLESBuffer && InWaveInstance->WaveData->NumChannels <= 2 && InWaveInstance->WaveData->SampleRate <= 48000 )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_AudioSourceInitTime );
 		
@@ -300,15 +302,16 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 
 			if (WaveInstance->StartTime > 0.f)
 			{
-				Buffer->Seek(WaveInstance->StartTime);
+				SLESBuffer->Seek(WaveInstance->StartTime);
 			}
 
-			switch( Buffer->Format)
+			switch( SLESBuffer->Format)
 			{
 				case SoundFormat_PCM:
 					bFailedSetup |= !EnqueuePCMBuffer( InWaveInstance->LoopingMode != LOOP_Never );
 					break;
 				case SoundFormat_PCMRT:
+				case SoundFormat_Streaming:
 					bFailedSetup |= !EnqueuePCMRTBuffer( InWaveInstance->LoopingMode != LOOP_Never );
 					break;
 				default:
@@ -341,10 +344,11 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 		UE_LOG( LogAndroidAudio, Warning, TEXT("  SampleRate %d"), InWaveInstance->WaveData->SampleRate);
 		UE_LOG( LogAndroidAudio, Warning, TEXT("  Channels %d"), InWaveInstance->WaveData->NumChannels);
 
-		if (Buffer && Buffer->ResourceID == 0)
+		if (SLESBuffer && SLESBuffer->ResourceID == 0)
 		{
-			delete Buffer;
-			Buffer = 0;
+			delete SLESBuffer;
+			SLESBuffer = nullptr;
+			Buffer = nullptr;
 		} 
 	}
 	return false;
@@ -354,7 +358,7 @@ bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 FSLESSoundSource::FSLESSoundSource( class FAudioDevice* InAudioDevice )
 	:	FSoundSource( InAudioDevice ),
 		Device((FSLESAudioDevice *)InAudioDevice),
-		Buffer( NULL ),
+		SLESBuffer( NULL ),
 		bStreamedSound(false),
 		bBuffersToFlush(false),
 		BufferSize(0),
@@ -368,6 +372,7 @@ FSLESSoundSource::FSLESSoundSource( class FAudioDevice* InAudioDevice )
 		SL_VolumeInterface(NULL),
 		RealtimeAsyncTask(NULL)
 {
+	Buffer = NULL;
 	FMemory::Memzero( AudioBuffers, sizeof( AudioBuffers ) );
 }
 
@@ -395,11 +400,12 @@ void FSLESSoundSource::ReleaseResources()
 
 	FMemory::Memzero( AudioBuffers, sizeof( AudioBuffers ) );
 
-	if (Buffer && Buffer->ResourceID == 0)
+	if (SLESBuffer && SLESBuffer->ResourceID == 0)
 	{
-		delete Buffer;
+		delete SLESBuffer;
 	}
-	Buffer = NULL;
+	SLESBuffer = nullptr;
+	Buffer = nullptr;
 }
 
 /**
@@ -521,7 +527,8 @@ void FSLESSoundSource::Stop( void )
 		
 		Paused = false;
 		Playing = false;
-		Buffer = NULL;
+		SLESBuffer = nullptr;
+		Buffer = nullptr;
 	}
 	
 	FSoundSource::Stop();

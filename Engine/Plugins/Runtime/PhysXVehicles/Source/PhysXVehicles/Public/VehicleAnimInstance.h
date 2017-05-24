@@ -81,6 +81,7 @@ public:
 
 private:
 	/** UAnimInstance interface begin*/
+	virtual void NativeInitializeAnimation() override;
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
 	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override;
 	/** UAnimInstance interface end*/

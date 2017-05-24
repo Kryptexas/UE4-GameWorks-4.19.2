@@ -47,10 +47,19 @@ public:
 class FRCPassPostProcessBokehDOFSetup : public TRenderingCompositePassBase<2, 1>
 {
 public:
+	FRCPassPostProcessBokehDOFSetup(bool bInIsComputePass)
+	{
+		bIsComputePass = bInIsComputePass;
+	}
+
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+
+private:
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV);
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 

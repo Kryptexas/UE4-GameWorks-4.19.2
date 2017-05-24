@@ -401,7 +401,7 @@ bool FOnlineSubsystemSteam::Shutdown()
 		OnlineAsyncTaskThreadRunnable = nullptr;
 	}
 	
-	#define DESTRUCT_INTERFACE(Interface) \
+#define DESTRUCT_INTERFACE(Interface) \
 	if (Interface.IsValid()) \
 	{ \
 		ensure(Interface.IsUnique()); \
@@ -419,7 +419,7 @@ bool FOnlineSubsystemSteam::Shutdown()
 	DESTRUCT_INTERFACE(IdentityInterface);
 	DESTRUCT_INTERFACE(SessionInterface);
 
-	#undef DESTRUCT_INTERFACE
+#undef DESTRUCT_INTERFACE
 
 	ClearUserCloudFiles();
 

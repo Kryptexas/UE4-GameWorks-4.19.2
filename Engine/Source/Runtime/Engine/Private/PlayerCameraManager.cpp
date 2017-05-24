@@ -35,6 +35,7 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 
 	DefaultFOV = 90.0f;
 	DefaultAspectRatio = 1.33333f;
+	bDefaultConstrainAspectRatio = false;
 	DefaultOrthoWidth = 512.0f;
 	bHidden = true;
 	bReplicates = false;
@@ -170,6 +171,7 @@ void APlayerCameraManager::AssignViewTarget(AActor* NewTarget, FTViewTarget& VT,
 
 	// Use default FOV and aspect ratio.
 	VT.POV.AspectRatio = DefaultAspectRatio;
+	VT.POV.bConstrainAspectRatio = bDefaultConstrainAspectRatio;
 	VT.POV.FOV = DefaultFOV;
 
 	if (OldViewTarget)
@@ -462,7 +464,8 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 	//@TODO: CAMERA: Should probably reset the view target POV fully here
 	OutVT.POV.FOV = DefaultFOV;
 	OutVT.POV.OrthoWidth = DefaultOrthoWidth;
-	OutVT.POV.bConstrainAspectRatio = false;
+	OutVT.POV.AspectRatio = DefaultAspectRatio;
+	OutVT.POV.bConstrainAspectRatio = bDefaultConstrainAspectRatio;
 	OutVT.POV.bUseFieldOfViewForLOD = true;
 	OutVT.POV.ProjectionMode = bIsOrthographic ? ECameraProjectionMode::Orthographic : ECameraProjectionMode::Perspective;
 	OutVT.POV.PostProcessSettings.SetBaseValues();
@@ -868,6 +871,11 @@ void APlayerCameraManager::UpdateCamera(float DeltaTime)
 	}
 }
 
+bool APlayerCameraManager::AllowPhotographyMode() const
+{
+	return true;
+}
+
 void APlayerCameraManager::DoUpdateCamera(float DeltaTime)
 {
 	FMinimalViewInfo NewPOV = ViewTarget.POV;
@@ -974,9 +982,11 @@ void APlayerCameraManager::DoUpdateCamera(float DeltaTime)
 		}
 	}
 
-	// update photography camera, if any
-	const bool bPhotographyCausedCameraCut = FCameraPhotographyManager::Get().UpdateCamera(NewPOV, this);
-	bGameCameraCutThisFrame = bGameCameraCutThisFrame || bPhotographyCausedCameraCut;
+	if (AllowPhotographyMode())
+	{
+		const bool bPhotographyCausedCameraCut = UpdatePhotographyCamera(NewPOV);
+		bGameCameraCutThisFrame = bGameCameraCutThisFrame || bPhotographyCausedCameraCut;
+	}
 
 	// Cache results
 	FillCameraCache(NewPOV);
@@ -987,10 +997,17 @@ void APlayerCameraManager::UpdateCameraPhotographyOnly()
 	FMinimalViewInfo NewPOV = ViewTarget.POV;
 
 	// update photography camera, if any
-	bGameCameraCutThisFrame = FCameraPhotographyManager::Get().UpdateCamera(NewPOV, this);
+	bGameCameraCutThisFrame = UpdatePhotographyCamera(NewPOV);
 
 	// Cache results
 	FillCameraCache(NewPOV);
+}
+
+//! Overridable
+bool APlayerCameraManager::UpdatePhotographyCamera(FMinimalViewInfo& NewPOV)
+{
+	// update photography camera, if any
+	return FCameraPhotographyManager::Get().UpdateCamera(NewPOV, this);
 }
 
 FPOV APlayerCameraManager::BlendViewTargets(const FTViewTarget& A,const FTViewTarget& B, float Alpha)

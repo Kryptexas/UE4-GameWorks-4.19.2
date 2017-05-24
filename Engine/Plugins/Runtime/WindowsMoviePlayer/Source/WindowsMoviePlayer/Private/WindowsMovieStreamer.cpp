@@ -49,7 +49,7 @@ bool FMediaFoundationMovieStreamer::Init(const TArray<FString>& MoviePaths, TEnu
 		return false;
 	}
 
-	MovieIndex = -1;
+	MovieIndex = 0;
 	PlaybackType = inPlaybackType;
 	StoredMoviePaths = MoviePaths;
 
@@ -86,13 +86,13 @@ bool FMediaFoundationMovieStreamer::Tick(float DeltaTime)
 	if (!VideoPlayer->MovieIsRunning())
 	{
 		CloseMovie();
-		if (MovieIndex < StoredMoviePaths.Num() - 1)
+		if (MovieIndex < StoredMoviePaths.Num())
 		{
 			OpenNextMovie();
 		}
 		else if (PlaybackType != MT_Normal)
 		{
-			MovieIndex = PlaybackType == MT_LoadingLoop ? StoredMoviePaths.Num() - 2 : -1;
+			MovieIndex = PlaybackType == MT_LoadingLoop ? StoredMoviePaths.Num() - 1 : 0;
 			OpenNextMovie();
 		}
 		else
@@ -122,7 +122,6 @@ void FMediaFoundationMovieStreamer::Cleanup()
 
 void FMediaFoundationMovieStreamer::OpenNextMovie()
 {
-	MovieIndex++;
 	check(StoredMoviePaths.Num() > 0 && MovieIndex < StoredMoviePaths.Num());
 	FString MoviePath = FPaths::GameContentDir() + TEXT("Movies/") + StoredMoviePaths[MovieIndex];
 
@@ -165,6 +164,8 @@ void FMediaFoundationMovieStreamer::OpenNextMovie()
 		MovieViewport->SetTexture(Texture);
 		VideoPlayer->StartPlayback();
 	}
+	++MovieIndex;
+
 }
 
 void FMediaFoundationMovieStreamer::CloseMovie()

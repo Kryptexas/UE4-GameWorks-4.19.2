@@ -818,6 +818,8 @@ struct FLightData
 	float			IndirectLightingSaturation;
 	/** Controls the falloff of shadow penumbras */
 	float			ShadowExponent;
+	/** Scales resolution of the static shadowmap for this light. */
+	float			ShadowResolutionScale;
 	//	only used if an LightProfile, 1d texture data 0:occluded, 255:not occluded
 	uint8			LightProfileTextureData[256];
 

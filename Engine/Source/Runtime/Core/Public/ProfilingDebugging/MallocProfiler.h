@@ -15,9 +15,10 @@
 #include "UObject/NameTypes.h"
 #include "Misc/CompressedGrowableBuffer.h"
 
-class FScopeLock;
-
 #if USE_MALLOC_PROFILER
+
+#include "HAL/PlatformTLS.h"
+#include "Misc/ScopeLock.h"
 
 /*=============================================================================
 	Malloc profiler enumerations

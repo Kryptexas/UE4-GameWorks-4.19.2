@@ -2085,10 +2085,10 @@ void FSpriteGeometryCollisionBuilderBase::ProcessGeometry(const FSpriteGeometryC
 void FSpriteGeometryCollisionBuilderBase::Finalize()
 {
 	// Rebuild the body setup
-#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 	MyBodySetup->InvalidatePhysicsData();
-#endif
 	MyBodySetup->CreatePhysicsMeshes();
+#endif
 }
 
 void FSpriteGeometryCollisionBuilderBase::AddBoxCollisionShapesToBodySetup(const FSpriteGeometryCollection& InGeometry)
@@ -2119,7 +2119,7 @@ void FSpriteGeometryCollisionBuilderBase::AddBoxCollisionShapesToBodySetup(const
 						// Create a new box primitive
 						FKBoxElem& Box = *new (MyBodySetup->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
 						Box.Center = BoxPos3D;
-						Box.Orientation = FQuat(FRotator(Shape.Rotation, 0.0f, 0.0f));
+						Box.Rotation = FRotator(Shape.Rotation, 0.0f, 0.0f);
 					}
 					break;
 				case ESpriteCollisionMode::Use2DPhysics:

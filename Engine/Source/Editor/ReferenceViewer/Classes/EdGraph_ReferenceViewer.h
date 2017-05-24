@@ -11,6 +11,7 @@
 
 class FAssetThumbnailPool;
 class UEdGraphNode_Reference;
+class SReferenceViewer;
 
 UCLASS()
 class UEdGraph_ReferenceViewer : public UEdGraph
@@ -25,11 +26,14 @@ public:
 	void SetGraphRoot(const TArray<FAssetIdentifier>& GraphRootIdentifiers, const FIntPoint& GraphRootOrigin = FIntPoint(ForceInitToZero));
 	const TArray<FAssetIdentifier>& GetCurrentGraphRootIdentifiers() const;
 	class UEdGraphNode_Reference* RebuildGraph();
+	void SetReferenceViewer(TSharedPtr<SReferenceViewer> InViewer);
+	bool GetSelectedAssetsForMenuExtender(const class UEdGraphNode* Node, TArray<FAssetIdentifier>& SelectedAssets) const;
 
 	bool IsSearchDepthLimited() const;
 	bool IsSearchBreadthLimited() const;
 	bool IsShowSoftReferences() const;
 	bool IsShowHardReferences() const;
+	bool IsShowManagementReferences() const;
 	bool IsShowSearchableNames() const;
 	bool IsShowNativePackages() const;
 
@@ -37,6 +41,7 @@ public:
 	void SetSearchBreadthLimitEnabled(bool newEnabled);
 	void SetShowSoftReferencesEnabled(bool newEnabled);
 	void SetShowHardReferencesEnabled(bool newEnabled);
+	void SetShowManagementReferencesEnabled(bool newEnabled);
 	void SetShowSearchableNames(bool newEnabled);
 	void SetShowNativePackages(bool newEnabled);
 
@@ -66,7 +71,10 @@ private:
 
 private:
 	/** Pool for maintaining and rendering thumbnails */
-	TSharedPtr<class FAssetThumbnailPool> AssetThumbnailPool;
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool;
+
+	/** Editor for this pool */
+	TWeakPtr<SReferenceViewer> ReferenceViewer;
 
 	TArray<FAssetIdentifier> CurrentGraphRootIdentifiers;
 	FIntPoint CurrentGraphRootOrigin;
@@ -78,6 +86,7 @@ private:
 	bool bLimitSearchBreadth;
 	bool bIsShowSoftReferences;
 	bool bIsShowHardReferences;
+	bool bIsShowManagementReferences;
 	bool bIsShowSearchableNames;
 	bool bIsShowNativePackages;
 };

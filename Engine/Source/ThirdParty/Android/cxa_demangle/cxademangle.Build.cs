@@ -3,7 +3,7 @@ using UnrealBuildTool;
 
 public class cxademangle : ModuleRules
 {
-	public cxademangle(TargetInfo Target)
+	public cxademangle(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 		string cxademanglepath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/";

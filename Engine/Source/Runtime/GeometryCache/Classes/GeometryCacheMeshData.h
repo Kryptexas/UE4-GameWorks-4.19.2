@@ -5,7 +5,7 @@
 #include "UObject/ObjectMacros.h"
 #include "ProfilingDebugging/ResourceSize.h"
 #include "DynamicMeshBuilder.h"
-
+#include "UObject/GeometryObjectVersion.h"
 #include "GeometryCacheMeshData.generated.h"
 
 /** Stores per-batch data used for rendering */
@@ -56,6 +56,8 @@ struct FGeometryCacheMeshData
 	/** Serialization for FVertexAnimationSample. */
 	friend FArchive& operator<<(FArchive& Ar, FGeometryCacheMeshData& Mesh)
 	{
+		Ar.UsingCustomVersion(FGeometryObjectVersion::GUID);
+
 		int32 NumVertices = 0;
 		
 		if (Ar.IsSaving())
@@ -69,19 +71,26 @@ struct FGeometryCacheMeshData
 			Mesh.Vertices.AddUninitialized(NumVertices);
 		}
 
-		for (int32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+		if (Ar.CustomVer(FGeometryObjectVersion::GUID) < FGeometryObjectVersion::CompressGeometryCache)
 		{
-			FDynamicMeshVertex& Vertex = Mesh.Vertices[VertexIndex];
-			Ar << Vertex.Position;
-			Ar << Vertex.TextureCoordinate;
-			Ar << Vertex.TangentX;
-			Ar << Vertex.TangentZ;
-			Ar << Vertex.Color;
+			for (int32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+			{
+				FDynamicMeshVertex& Vertex = Mesh.Vertices[VertexIndex];
+				Ar << Vertex.Position;
+				Ar << Vertex.TextureCoordinate;
+				Ar << Vertex.TangentX;
+				Ar << Vertex.TangentZ;
+				Ar << Vertex.Color;
+			}
+		}
+		else if(NumVertices)
+		{
+			Ar.SerializeCompressed(&Mesh.Vertices[0], Mesh.Vertices.Num()*Mesh.Vertices.GetTypeSize(), COMPRESS_ZLIB);
 		}
 
+	
 		Ar << Mesh.BoundingBox;
 		Ar << Mesh.BatchesInfo;
-
 		Ar << Mesh.Indices;	
 
 		return Ar;

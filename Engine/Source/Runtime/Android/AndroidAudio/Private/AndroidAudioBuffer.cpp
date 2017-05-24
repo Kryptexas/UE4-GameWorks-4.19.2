@@ -100,6 +100,53 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
 	return Buffer;
 }
 
+FSLESSoundBuffer* FSLESSoundBuffer::CreateStreamBuffer( FSLESAudioDevice* AudioDevice, USoundWave* InWave )
+{
+	// Always create a new buffer for streaming
+	FSLESSoundBuffer* Buffer = new FSLESSoundBuffer( AudioDevice);
+	
+	FSoundQualityInfo QualityInfo = { 0 };
+	
+	Buffer->DecompressionState = AudioDevice->CreateCompressedAudioInfo(InWave);
+
+	if (Buffer->DecompressionState && Buffer->DecompressionState->StreamCompressedInfo(InWave, &QualityInfo))
+	{	
+		// Clear out any dangling pointers
+		Buffer->AudioData = NULL;
+		Buffer->BufferSize = 0;
+		
+		// Keep track of associated resource name.
+		Buffer->ResourceName	= InWave->GetPathName();		
+		Buffer->NumChannels		= InWave->NumChannels;
+		Buffer->SampleRate		= InWave->SampleRate;
+
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("DEBUG: FSLESSoundBuffer::CreateStreamBuffer Buffer->SampleRate = %d"), Buffer->SampleRate);
+
+		//Android can't handle more than 48kHz, so turn on halfrate decoding and adjust parameters
+		if (Buffer->SampleRate > 48000)
+		{
+			UE_LOG(LogAndroidAudio, Log, TEXT( "Converting %s to halfrate from %d" ), *InWave->GetName(), Buffer->SampleRate );
+			Buffer->DecompressionState->EnableHalfRate( true);
+			Buffer->SampleRate = Buffer->SampleRate / 2;
+			InWave->SampleRate = InWave->SampleRate / 2;
+			uint32 SampleCount = QualityInfo.SampleDataSize / (QualityInfo.NumChannels * sizeof(uint16));
+			SampleCount /= 2;
+			InWave->RawPCMDataSize = SampleCount * QualityInfo.NumChannels * sizeof(uint16);;
+		}
+
+		Buffer->Format = SoundFormat_Streaming;	
+	}
+	else
+	{
+		InWave->DecompressionType = DTYPE_Invalid;
+		InWave->NumChannels = 0;
+		
+		InWave->RemoveAudioResource();
+	}
+	
+	return Buffer;
+}
+
 /**
  * Static function used to create an OpenSL buffer and upload decompressed ogg vorbis data to.
  *
@@ -232,6 +279,11 @@ FSLESSoundBuffer* FSLESSoundBuffer::Init(  FSLESAudioDevice* AudioDevice ,USound
 		// Always create a new buffer for streaming ogg vorbis data
 		Buffer = CreateQueuedBuffer( AudioDevice, InWave );
 		break;
+
+	case DTYPE_Streaming:
+		// Always create a new buffer for streaming ogg vorbis data
+		Buffer = CreateStreamBuffer( AudioDevice, InWave );
+		break;
 	
 	case DTYPE_Procedural:
 		// New buffer for procedural data
@@ -259,6 +311,12 @@ FSLESSoundBuffer* FSLESSoundBuffer::Init(  FSLESAudioDevice* AudioDevice ,USound
 bool FSLESSoundBuffer::ReadCompressedData( uint8* Destination, bool bLooping )
 {
 	ensure( DecompressionState);
+
+	if(Format == SoundFormat_Streaming)
+	{
+		return(DecompressionState->StreamCompressedData(Destination, bLooping, DecompressionState->GetStreamBufferSize() * NumChannels));
+	}
+
 	return(DecompressionState->ReadCompressedData(Destination, bLooping, DecompressionState->GetStreamBufferSize() * NumChannels));
 }
 
@@ -268,6 +326,30 @@ void FSLESSoundBuffer::Seek(const float SeekTime)
 	{
 		DecompressionState->SeekToTime(SeekTime);
 	}
+}
+
+int32 FSLESSoundBuffer::GetCurrentChunkIndex() const
+{
+	int32 result = -1;
+
+	if (ensure(DecompressionState))
+	{
+		result = DecompressionState->GetCurrentChunkIndex();
+	}
+
+	return result;
+}
+
+int32 FSLESSoundBuffer::GetCurrentChunkOffset() const
+{
+	int32 result = -1;
+
+	if (ensure(DecompressionState))
+	{
+		result = DecompressionState->GetCurrentChunkOffset();
+	}
+
+	return result;
 }
 
 /**

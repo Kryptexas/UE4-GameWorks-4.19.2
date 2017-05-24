@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LocalizationService : ModuleRules
 {
-	public LocalizationService(TargetInfo Target)
+	public LocalizationService(ReadOnlyTargetRules Target) : base(Target)
 	{
         PrivateIncludePaths.Add("Developer/LocalizationService/Private");
 

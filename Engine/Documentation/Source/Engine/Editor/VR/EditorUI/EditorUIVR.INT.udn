@@ -6,46 +6,19 @@ parent: Engine/Editor/VR
 type: reference
 order: 5
 tags: VR
-version: 4.13
+version: 4.15
 skilllevel: intermediate
+topic-image:editorui_topic.png
+prereq:Engine/Editor/VR/ActivateVRMode
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Editor/VR/EditorUI:title%](Engine/Editor/VR/EditorUI/editorui_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/EditorUI:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/EditorUI]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/EditorUI:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Editor/VR/EditorUI:title%](Engine/Editor/VR/EditorUI/editorui_topic.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Editor/VR/EditorUI:title%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Editor/VR/EditorUI]
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Editor/VR/EditorUI:description%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[TOC(start:1 end:4)]
 
 [EXCERPT:main]
 
-The VR Editor enables you to summon and dock a number of different panels and windows including:
+The VR Editor enables you to summon and dock a number of different panels and windows.
+
+##Panels and Windows
 
 [REGION:imagetable]
 | ![](window_content.png)(w:225) | ![](window_details.png)(w:225) | ![](window_modes.png)(w:225) | ![](window_outliner.png)(w:225) |
@@ -53,6 +26,8 @@ The VR Editor enables you to summon and dock a number of different panels and wi
 | Content Browser | Details Panel | Modes Panel | Outliner Panel | 
 |![](window_tutorials.png)(w:225) | ![](window_asset.png)(w:225) | ![](colorPicker.png)(w:225)| ![](worldSettings.png)(w:225)|
 |Tutorials | Asset Panel | Color Picker | World Settings |
+|![](window_Landscape.png)(w:225) | ![](window_Foliage.png)(w:225) | | |
+|Landscape | Foliage|   ||||
 [/REGION]
 
 ## Opening a Window in VR Mode

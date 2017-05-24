@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244012
 Availability:Public
 Title: 작업방식 고려사항
 Crumbs: %ROOT%, Engine
@@ -10,6 +10,7 @@ Version: 4.12
 Related: Engine\Sequencer\Overview
 Related: Engine\Sequencer\ReferenceEditor
 Related: Engine\Sequencer\HowTo
+tags:Sequencer
 
 팀의 필요에 따라, 다음과 같은 시퀀서 작업방식 몇 가지를 고려하면 좋을 것입니다.
 

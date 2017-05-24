@@ -251,10 +251,15 @@ public:
 
 	static void UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight>& SrcBoneBlendWeights, TArray<FPerBoneBlendWeight>& TargetBoneBlendWeights, const TArray<float>& BlendWeights);
 
+	/**
+	 *	Create Mast Weight for skeleton joints, not per mesh or per required bones
+	 *  You'll have to filter properly with correct mesh joint or required boens
+	 *  The depth should not change based on LOD or mesh or skeleton
+	 *	They still should contain same depth
+	 */
 	static void CreateMaskWeights(
-			TArray<FPerBoneBlendWeight>& BoneBlendWeights, 
+			TArray<FPerBoneBlendWeight>& BoneBlendWeights,
 			const TArray<FInputBlendPose>& BlendFilters, 
-			const FBoneContainer& RequiredBones, 
 			const USkeleton* Skeleton);
 
 	static void CombineWithAdditiveAnimations(
@@ -308,6 +313,12 @@ public:
 	 */
 	static void LerpBoneTransforms(TArray<FTransform>& A, const TArray<FTransform>& B, float Alpha, const TArray<FBoneIndexType>& RequiredBonesArray);
 
+	/** 
+	 * Blend Array of Transforms by weight
+	 *
+	 * @param OutTransform : result
+	 */
+	static void BlendTransformsByWeight(FTransform& OutTransform, const TArray<FTransform>& Transforms, const TArray<float>& Weights);
 
 	/** 
 	 * Advance CurrentTime to CurrentTime + MoveDelta. 
@@ -336,29 +347,35 @@ public:
 	 *	(ie. all bones between those in the array and the root are present). 
 	 *	Note that this must ensure the invariant that parent occur before children in BoneIndices.
 	 */
-	static void EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, USkeletalMesh* SkelMesh);
+	static void EnsureParentsPresent(TArray<FBoneIndexType>& BoneIndices, const USkeletalMesh* SkelMesh);
 
 	static void ExcludeBonesWithNoParents(const TArray<int32>& BoneIndices, const FReferenceSkeleton& RefSkeleton, TArray<int32>& FilteredRequiredBones);
 
-	/** Convert a ComponentSpace FTransform to given BoneSpace. */
-	static void ConvertCSTransformToBoneSpace
-	(
-		USkeletalMeshComponent* SkelComp,  
-		FCSPose<FCompactPose>& MeshBases,
-		/*inout*/ FTransform& CSBoneTM, 
-		FCompactPoseBoneIndex BoneIndex,
-		uint8 Space
-	);
+	/** 
+	 * Convert a ComponentSpace FTransform to specified bone space. 
+	 * @param	ComponentTransform	The transform of the component. Only used if Space == BCS_WorldSpace
+	 * @param	MeshBases			The pose to use when transforming
+	 * @param	InOutCSBoneTM		The component space transform to convert
+	 * @param	BoneIndex			The bone index of the transform
+	 * @param	Space				The space to convert the input transform into.
+	 */
+	static void ConvertCSTransformToBoneSpace(const FTransform& ComponentTransform, FCSPose<FCompactPose>& MeshBases, FTransform& InOutCSBoneTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space);
 
-	/** Convert a BoneSpace FTransform to ComponentSpace. */
-	static void ConvertBoneSpaceTransformToCS
-	(
-		USkeletalMeshComponent * SkelComp,  
-		FCSPose<FCompactPose>& MeshBases,
-		/*inout*/ FTransform& BoneSpaceTM, 
-		FCompactPoseBoneIndex BoneIndex,
-		uint8 Space
-	);
+	DEPRECATED(4.16, "Please use the ConvertCSTransformToBoneSpace with a transform as the first argument")
+	static void ConvertCSTransformToBoneSpace(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, FTransform& InOutCSBoneTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space);
+
+	/** 
+	 * Convert a FTransform in a specified bone space to ComponentSpace.
+	 * @param	ComponentTransform	The transform of the component. Only used if Space == BCS_WorldSpace
+	 * @param	MeshBases			The pose to use when transforming
+	 * @param	InOutBoneSpaceTM	The bone transform to convert
+	 * @param	BoneIndex			The bone index of the transform
+	 * @param	Space				The space that the transform is in.
+	 */
+	static void ConvertBoneSpaceTransformToCS(const FTransform& ComponentTransform, FCSPose<FCompactPose>& MeshBases, FTransform& InOutBoneSpaceTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space);
+
+	DEPRECATED(4.16, "Please use the ConvertBoneSpaceTransformToCS with a transform as the first argument")
+	static void ConvertBoneSpaceTransformToCS(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, FTransform& InOutBoneSpaceTM, FCompactPoseBoneIndex BoneIndex, EBoneControlSpace Space);
 
 	// FA2Pose/FA2CSPose Interfaces for template functions
 	static FTransform GetSpaceTransform(FA2Pose& Pose, int32 Index);
@@ -366,8 +383,10 @@ public:
 	static void SetSpaceTransform(FA2Pose& Pose, int32 Index, FTransform& NewTransform);
 	static void SetSpaceTransform(FA2CSPose& Pose, int32 Index, FTransform& NewTransform);
 	// space bases
-#if WITH_EDITOR
+	static FTransform GetComponentSpaceTransformRefPose(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex);
+	static FTransform GetComponentSpaceTransform(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, int32 BoneIndex);
 	static void FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms);
+#if WITH_EDITOR
 	static void FillUpComponentSpaceTransformsRefPose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms);
 	static void FillUpComponentSpaceTransformsRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &ComponentSpaceTransforms);
 #endif
@@ -391,7 +410,7 @@ public:
 	* @param	BoneIndex			Bone Index in Bone Transform array.
 	* @param	RequiredBones		BoneContainer
 	*/
-	static void RetargetBoneTransform(const USkeleton* MySkeleton, const FName& RetargetSource, FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive);
+	static void RetargetBoneTransform(const USkeleton* MySkeleton, const FName& RetargetSource, FTransform& BoneTransform, const int32 SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones, const bool bIsBakedAdditive);
 private:
 	/** 
 	* Blend Poses per bone weights : The BasePose + BlendPoses(SourceIndex) * Blend Weights(BoneIndex)

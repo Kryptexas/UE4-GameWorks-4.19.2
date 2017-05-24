@@ -135,6 +135,9 @@ void FD3D12StateCacheBase::ClearState()
 	// Rasterizer State Cache
 	PipelineState.Graphics.HighLevelDesc.RasterizerState = nullptr;
 
+	// Zero the RTV array - this is necessary to prevent uninitialized memory affecting the PSO cache hash generation
+	FMemory::Memzero(&PipelineState.Graphics.HighLevelDesc.RTVFormats[0], sizeof(PipelineState.Graphics.HighLevelDesc.RTVFormats[0]) * PipelineState.Graphics.HighLevelDesc.RTVFormats.Num());
+
 	// Depth Stencil State Cache
 	PipelineState.Graphics.CurrentReferenceStencil = 0;
 	PipelineState.Graphics.HighLevelDesc.DepthStencilState = nullptr;
@@ -174,6 +177,9 @@ void FD3D12StateCacheBase::ClearState()
 
 	PipelineState.Graphics.CurrentPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
+	PipelineState.Graphics.MinDepth = 0.0f;
+	PipelineState.Graphics.MaxDepth = 1.0f;
+
 	bAutoFlushComputeShaderCache = false;
 
 	DirtyState();
@@ -194,6 +200,7 @@ void FD3D12StateCacheBase::DirtyState()
 	bNeedSetPrimitiveTopology = true;
 	bNeedSetBlendFactor = true;
 	bNeedSetStencilRef = true;
+	bNeedSetDepthBounds = true;
 	PipelineState.Common.SRVCache.DirtyAll();
 	PipelineState.Common.UAVCache.DirtyAll();
 	PipelineState.Common.CBVCache.DirtyAll();
@@ -294,6 +301,10 @@ void FD3D12StateCacheBase::ApplyState()
 		DirtyState();
 	}
 
+#if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
+	CmdContext->FlushTextureCacheIfNeeded();
+#endif
+
 	FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
 	const FD3D12RootSignature* const pRootSignature = IsCompute ?
 		PipelineState.Compute.CurrentComputeShader->pRootSignature : PipelineState.Graphics.HighLevelDesc.BoundShaderState->pRootSignature;
@@ -387,7 +398,7 @@ void FD3D12StateCacheBase::ApplyState()
 		}
 	}
 
-	SetPipelineState(Pso, IsCompute);
+	SetPipelineState<IsCompute>(Pso);
 
 	if (!IsCompute)
 	{
@@ -441,6 +452,11 @@ void FD3D12StateCacheBase::ApplyState()
 			DescriptorCache.SetRenderTargets(PipelineState.Graphics.RenderTargetArray, PipelineState.Graphics.HighLevelDesc.NumRenderTargets, PipelineState.Graphics.CurrentDepthStencilTarget);
 			bNeedSetRTs = false;
 		}
+		if (bNeedSetDepthBounds)
+		{
+			CmdContext->SetDepthBounds(PipelineState.Graphics.MinDepth, PipelineState.Graphics.MaxDepth);
+			bNeedSetDepthBounds = false;
+		}
 	}
 
 	const uint32 StartStage = IsCompute ? SF_Compute : 0;
@@ -462,6 +478,9 @@ void FD3D12StateCacheBase::ApplyState()
 	UAVSlotMask CurrentShaderDirtyUAVSlots = 0;
 	uint32 NumUAVs = 0;
 	uint32 NumSRVs[SF_NumFrequencies] = {};
+#if USE_STATIC_ROOT_SIGNATURE
+	uint32 NumCBVs[SF_NumFrequencies] ={};
+#endif
 	uint32 NumViews = 0;
 	for (uint32 iTries = 0; iTries < 2; ++iTries)
 	{
@@ -506,6 +525,23 @@ void FD3D12StateCacheBase::ApplyState()
 
 			const CBVSlotMask CurrentShaderCBVRegisterMask = (1 << PipelineState.Common.CurrentShaderCBCounts[Stage]) - 1;
 			CurrentShaderDirtyCBVSlots[Stage] = CurrentShaderCBVRegisterMask & PipelineState.Common.CBVCache.DirtySlotMask[Stage];
+#if USE_STATIC_ROOT_SIGNATURE
+			if (CurrentShaderDirtyCBVSlots[Stage])
+			{
+				if (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
+				{
+					// Tier 1 HW requires the full number of SRV descriptors defined in the root signature's descriptor table.
+					NumCBVs[Stage] = pRootSignature->MaxCBVCount(Stage);
+				}
+				else
+				{
+					NumCBVs[Stage] = PipelineState.Common.CurrentShaderCBCounts[Stage];
+				}
+
+				check(NumCBVs[Stage] > 0 && NumCBVs[Stage] <= MAX_SRVS);
+				NumViews += NumCBVs[Stage];
+			}
+#endif
 			// Note: CBVs don't currently use descriptor tables but we still need to know what resource point slots are dirty.
 		}
 
@@ -565,11 +601,19 @@ void FD3D12StateCacheBase::ApplyState()
 		SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetConstantBufferTime);
 		FD3D12ConstantBufferCache& CBVCache = PipelineState.Common.CBVCache;
 
-#define CONDITIONAL_SET_CBVS(Shader) \
+#if USE_STATIC_ROOT_SIGNATURE
+	#define CONDITIONAL_SET_CBVS(Shader) \
+		if (CurrentShaderDirtyCBVSlots[##Shader]) \
+		{ \
+			DescriptorCache.SetConstantBuffers<##Shader>(CBVCache, CurrentShaderDirtyCBVSlots[##Shader], NumCBVs[##Shader], ViewHeapSlot); \
+		}
+#else
+	#define CONDITIONAL_SET_CBVS(Shader) \
 		if (CurrentShaderDirtyCBVSlots[##Shader]) \
 		{ \
 			DescriptorCache.SetConstantBuffers<##Shader>(CBVCache, CurrentShaderDirtyCBVSlots[##Shader]); \
 		}
+#endif
 
 		if (IsCompute)
 		{
@@ -923,7 +967,11 @@ void FD3D12StateCacheBase::SetUAVs(uint32 UAVStartSlot, uint32 NumSimultaneousUA
 			if (UAV->CounterResource && (!UAV->CounterResourceInitialized || UAVInitialCountArray[i] != -1))
 			{
 				FD3D12ResourceLocation UploadBufferLocation(GetParentDevice());
+#if USE_STATIC_ROOT_SIGNATURE
+				uint32* CounterUploadHeapData = static_cast<uint32*>(CmdContext->ConstantsAllocator.Allocate(sizeof(uint32), UploadBufferLocation, nullptr));
+#else
 				uint32* CounterUploadHeapData = static_cast<uint32*>(CmdContext->ConstantsAllocator.Allocate(sizeof(uint32), UploadBufferLocation));
+#endif
 
 				// Initialize the counter to 0 if it's not been previously initialized and the UAVInitialCount is -1, if not use the value that was passed.
 				*CounterUploadHeapData = (!UAV->CounterResourceInitialized && UAVInitialCountArray[i] == -1) ? 0 : UAVInitialCountArray[i];
@@ -1173,6 +1221,8 @@ void FD3D12StateCacheBase::SetShaderResourceView(FD3D12ShaderResourceView* SRV, 
 					// Unbind the DSV because it's being used for depth write
 					check(bWritableDepth || bWritableStencil);
 					PipelineState.Graphics.CurrentDepthStencilTarget = nullptr;
+					PipelineState.Graphics.bNeedRebuildPSO = true;
+					bNeedSetRTs = true;
 					if (Cache.ViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
 					{
 						Cache.ViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = false;
@@ -1217,36 +1267,6 @@ void FD3D12StateCacheBase::SetRenderTargets(uint32 NumSimultaneousRenderTargets,
 		}
 	}
 	PipelineState.Graphics.HighLevelDesc.NumRenderTargets = ActiveNumSimultaneousRenderTargets;
-}
-
-void FD3D12StateCacheBase::SetPipelineState(FD3D12PipelineState* PSO, bool IsCompute)
-{
-	// See if we need to set our PSO:
-	// In D3D11, you could Set dispatch arguments, then set Draw arguments, then call Draw/Dispatch/Draw/Dispatch without setting arguments again.
-	// In D3D12, we need to understand when the app switches between Draw/Dispatch and make sure the correct PSO is set.
-	if (PipelineState.Common.bNeedSetPSO)
-	{
-		if (PSO)
-		{
-			// Save the current PSO
-			if (IsCompute)
-			{
-				PipelineState.Compute.CurrentPipelineStateObject = PSO->GetPipelineState();
-				check(!PipelineState.Compute.bNeedRebuildPSO);
-			}
-			else
-			{
-				PipelineState.Graphics.CurrentPipelineStateObject = PSO->GetPipelineState();
-				check(!PipelineState.Graphics.bNeedRebuildPSO);
-			}
-
-			PipelineState.Common.CurrentPipelineStateObject = PSO->GetPipelineState();
-		}
-
-		CmdContext->CommandListHandle->SetPipelineState(PipelineState.Common.CurrentPipelineStateObject);
-
-		PipelineState.Common.bNeedSetPSO = false;
-	}
 }
 
 void FD3D12StateCacheBase::SetRenderDepthStencilTargetFormats(

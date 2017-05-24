@@ -5,21 +5,9 @@ using System.Collections.Generic;
 
 public class TP_TopDownEditorTarget : TargetRules
 {
-	public TP_TopDownEditorTarget(TargetInfo Target)
+	public TP_TopDownEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
-	}
-
-	//
-	// TargetRules interface.
-	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.Add("TP_TopDown");
+		ExtraModuleNames.Add("TP_TopDown");
 	}
 }

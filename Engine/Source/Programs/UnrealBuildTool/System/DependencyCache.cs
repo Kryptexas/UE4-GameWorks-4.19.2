@@ -10,7 +10,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 namespace UnrealBuildTool
 {
 	[DebuggerDisplay("{IncludeName}")]
-	public class DependencyInclude
+	class DependencyInclude
 	{
 		/// <summary>
 		/// These are direct include paths and cannot be resolved to an actual file on disk without using the proper list of include directories for this file's module 
@@ -33,6 +33,14 @@ namespace UnrealBuildTool
 		/// <param name="InIncludeName"></param>
 		public DependencyInclude(string InIncludeName)
 		{
+            if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+            {
+                if (InIncludeName.StartsWith("/Users") || InIncludeName.StartsWith("\\Users"))
+                {
+                    // convert the path back to Windows
+                    InIncludeName = RemoteExports.UnconvertPath(InIncludeName);
+                }
+            }
 			IncludeName = InIncludeName;
 		}
 	}
@@ -40,7 +48,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Caches include dependency information to speed up preprocessing on subsequent runs.
 	/// </summary>
-	public class DependencyCache
+	class DependencyCache
 	{
 		/// <summary>
 		/// The version number for binary serialization
@@ -85,13 +93,13 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Creates and deserializes the dependency cache at the passed in location
 		/// </summary>
-		/// <param name="CachePath">Name of the cache file to deserialize</param>
+		/// <param name="CacheFile">Name of the cache file to deserialize</param>
 		public static DependencyCache Create(FileReference CacheFile)
 		{
 			// See whether the cache file exists.
-			if (CacheFile.Exists())
+			if (FileReference.Exists(CacheFile))
 			{
-				if (BuildConfiguration.bPrintPerformanceInfo)
+				if (UnrealBuildTool.bPrintPerformanceInfo)
 				{
 					Log.TraceInformation("Loading existing IncludeFileCache: " + CacheFile.FullName);
 				}
@@ -106,7 +114,7 @@ namespace UnrealBuildTool
 					Result.UpdateTimeUtc = DateTime.UtcNow;
 
 					TimeSpan TimerDuration = DateTime.UtcNow - TimerStartTime;
-					if (BuildConfiguration.bPrintPerformanceInfo)
+					if (UnrealBuildTool.bPrintPerformanceInfo)
 					{
 						Log.TraceInformation("Loading IncludeFileCache took " + TimerDuration.TotalSeconds + "s");
 					}
@@ -120,7 +128,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Loads the cache from the passed in file.
 		/// </summary>
-		/// <param name="Cache">File to deserialize from</param>
+		/// <param name="CacheFile">File to deserialize from</param>
 		public static DependencyCache Load(FileReference CacheFile)
 		{
 			DependencyCache Result = null;
@@ -149,7 +157,7 @@ namespace UnrealBuildTool
 			catch (Exception Ex)
 			{
 				Console.Error.WriteLine("Failed to read dependency cache: {0}", Ex.Message);
-				CacheFile.Delete();
+				FileReference.Delete(CacheFile);
 			}
 			return Result;
 		}
@@ -219,7 +227,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="Cache">File associated with this cache</param>
+		/// <param name="InBackingFile">File associated with this cache</param>
 		protected DependencyCache(FileReference InBackingFile)
 		{
 			BackingFile = InBackingFile;
@@ -246,7 +254,7 @@ namespace UnrealBuildTool
 				// Serialize the cache to disk.
 				try
 				{
-					BackingFile.Directory.CreateDirectory();
+					DirectoryReference.CreateDirectory(BackingFile.Directory);
 					using (BinaryWriter Writer = new BinaryWriter(new FileStream(BackingFile.FullName, FileMode.Create, FileAccess.Write)))
 					{
 						Writer.Write(FileSignature);
@@ -258,7 +266,7 @@ namespace UnrealBuildTool
 					Console.Error.WriteLine("Failed to write dependency cache: {0}", Ex.Message);
 				}
 
-				if (BuildConfiguration.bPrintPerformanceInfo)
+				if (UnrealBuildTool.bPrintPerformanceInfo)
 				{
 					TimeSpan TimerDuration = DateTime.UtcNow - TimerStartTime;
 					Log.TraceInformation("Saving IncludeFileCache took " + TimerDuration.TotalSeconds + "s");
@@ -266,18 +274,18 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				if (BuildConfiguration.bPrintPerformanceInfo)
+				if (UnrealBuildTool.bPrintPerformanceInfo)
 				{
 					Log.TraceInformation("IncludeFileCache did not need to be saved (bIsDirty=false)");
 				}
 			}
 
 			FileReference MutexPath = BackingFile + ".buildmutex";
-			if (MutexPath.Exists())
+			if (FileReference.Exists(MutexPath))
 			{
 				try
 				{
-					MutexPath.Delete();
+					FileReference.Delete(MutexPath);
 				}
 				catch
 				{
@@ -289,7 +297,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns the direct dependencies of the specified FileItem if it exists in the cache and they are not stale.
 		/// </summary>
-		/// <param name="">File  File to try to find dependencies in cache</param>
+		/// <param name="File">File  File to try to find dependencies in cache</param>
 		public List<DependencyInclude> GetCachedDependencyInfo(FileItem File)
 		{
 			// Check whether File is in cache.
@@ -316,7 +324,7 @@ namespace UnrealBuildTool
 					bool bIncludeExists = false;
 					if (!FileExistsInfo.TryGetValue(Include.IncludeResolvedNameIfSuccessful, out bIncludeExists))
 					{
-						bIncludeExists = Include.IncludeResolvedNameIfSuccessful.Exists();
+						bIncludeExists = FileReference.Exists(Include.IncludeResolvedNameIfSuccessful);
 						FileExistsInfo.Add(Include.IncludeResolvedNameIfSuccessful, bIncludeExists);
 					}
 
@@ -339,8 +347,7 @@ namespace UnrealBuildTool
 		/// Update cache with dependencies for the passed in file.
 		/// </summary>
 		/// <param name="File">  File to update dependencies for</param>
-		/// <param name="Dependencies">List of dependencies to cache for passed in file</param>
-		/// <param name="HasUObjects"> True if this file was found to contain UObject classes or types</param>
+		/// <param name="Info">List of dependencies to cache for passed in file</param>
 		public void SetDependencyInfo(FileItem File, List<DependencyInclude> Info)
 		{
 			DependencyMap[File.Reference] = Info;
@@ -382,13 +389,15 @@ namespace UnrealBuildTool
 		/// <param name="File">The file whose include is being resolved</param>
 		/// <param name="DirectlyIncludedFileNameIndex">Index in the resolve list to quickly find the include in question in the existing cache.</param>
 		/// <param name="DirectlyIncludedFileNameFullPath">Full path name of the resolve include.</param>
-		public void CacheResolvedIncludeFullPath(FileItem File, int DirectlyIncludedFileNameIndex, FileReference DirectlyIncludedFileNameFullPath)
+		/// <param name="bUseIncludeDependencyResolveCache"></param>
+		/// <param name="bTestIncludeDependencyResolveCache"></param>
+		public void CacheResolvedIncludeFullPath(FileItem File, int DirectlyIncludedFileNameIndex, FileReference DirectlyIncludedFileNameFullPath, bool bUseIncludeDependencyResolveCache, bool bTestIncludeDependencyResolveCache)
 		{
-			if (BuildConfiguration.bUseIncludeDependencyResolveCache)
+			if (bUseIncludeDependencyResolveCache)
 			{
 				List<DependencyInclude> Includes = DependencyMap[File.Reference];
 				DependencyInclude IncludeToResolve = Includes[DirectlyIncludedFileNameIndex];
-				if (BuildConfiguration.bTestIncludeDependencyResolveCache)
+				if (bTestIncludeDependencyResolveCache)
 				{
 					// test whether there are resolve conflicts between modules with different include paths.
 					if (IncludeToResolve.HasAttemptedResolve && IncludeToResolve.IncludeResolvedNameIfSuccessful != DirectlyIncludedFileNameFullPath)
@@ -410,18 +419,19 @@ namespace UnrealBuildTool
 		/// Gets the dependency cache path and filename for the specified target.
 		/// </summary>
 		/// <param name="ProjectFile">The project directory</param>
+		/// <param name="Platform">The platform for the target being compiled</param>
 		/// <param name="TargetName">Name of the target being compiled</param>
 		/// <returns>Cache Path</returns>
-		public static FileReference GetDependencyCachePathForTarget(FileReference ProjectFile, string TargetName)
+		public static FileReference GetDependencyCachePathForTarget(FileReference ProjectFile, UnrealTargetPlatform Platform, string TargetName)
 		{
 			DirectoryReference PlatformIntermediatePath;
 			if (ProjectFile != null)
 			{
-				PlatformIntermediatePath = DirectoryReference.Combine(ProjectFile.Directory, BuildConfiguration.PlatformIntermediateFolder);
+				PlatformIntermediatePath = DirectoryReference.Combine(ProjectFile.Directory, "Intermediate", "Build", Platform.ToString());
 			}
 			else
 			{
-				PlatformIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediateFolder);
+				PlatformIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", Platform.ToString());
 			}
 			return FileReference.Combine(PlatformIntermediatePath, TargetName, "DependencyCache.bin");
 		}

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class TranslationEditor : ModuleRules
 {
-	public TranslationEditor(TargetInfo Target)
+	public TranslationEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePathModuleNames.Add("LevelEditor");
 		PublicIncludePathModuleNames.Add("WorkspaceMenuStructure");
@@ -24,7 +24,6 @@ public class TranslationEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
                 "InputCore",
-				"Internationalization",
 				"Json",
                 "PropertyEditor",
 				"Slate",
@@ -36,7 +35,8 @@ public class TranslationEditor : ModuleRules
                 "MessageLog",
                 "Documentation",
                 "Localization",
-                "LocalizationService",
+				"LocalizationCommandletExecution",
+				"LocalizationService",
 			}
 		);
 

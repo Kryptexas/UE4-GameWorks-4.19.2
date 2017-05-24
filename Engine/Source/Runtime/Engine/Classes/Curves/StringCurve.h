@@ -55,7 +55,7 @@ public:
 
 template<>
 struct TStructOpsTypeTraits<FStringCurveKey>
-	: public TStructOpsTypeTraitsBase
+	: public TStructOpsTypeTraitsBase2<FStringCurveKey>
 {
 	enum
 	{

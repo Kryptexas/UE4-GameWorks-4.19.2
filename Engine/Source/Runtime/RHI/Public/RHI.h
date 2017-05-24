@@ -932,7 +932,7 @@ struct FClearValueBinding
 	static RHI_API const FClearValueBinding DepthNear;
 	static RHI_API const FClearValueBinding DepthFar;	
 	static RHI_API const FClearValueBinding Green;
-	static RHI_API const FClearValueBinding MidGray;
+	static RHI_API const FClearValueBinding DefaultNormal8Bit;
 };
 
 struct FRHIResourceCreateInfo
@@ -1060,6 +1060,12 @@ enum class EResourceTransitionAccess
 	EMaxAccess,
 };
 
+enum class EResourceAliasability
+{
+	EAliasable, // Make the resource aliasable with other resources
+	EUnaliasable, // Make the resource unaliasable with any other resources
+};
+
 class RHI_API FResourceTransitionUtility
 {
 public:
@@ -1144,6 +1150,18 @@ struct FUpdateTextureRegion3D
 	,	Width(InWidth)
 	,	Height(InHeight)
 	,	Depth(InDepth)
+	{}
+
+	FUpdateTextureRegion3D(FIntVector InDest, FIntVector InSource, FIntVector InSourceSize)
+		: DestX(InDest.X)
+		, DestY(InDest.Y)
+		, DestZ(InDest.Z)
+		, SrcX(InSource.X)
+		, SrcY(InSource.Y)
+		, SrcZ(InSource.Z)
+		, Width(InSourceSize.X)
+		, Height(InSourceSize.Y)
+		, Depth(InSourceSize.Z)
 	{}
 
 	friend FArchive& operator<<(FArchive& Ar,FUpdateTextureRegion3D& Region)
@@ -1249,13 +1267,13 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Lines drawn"),STAT_RHILines,STATGROUP_RH
 #if STATS
 	#define RHI_DRAW_CALL_INC() \
 		INC_DWORD_STAT(STAT_RHIDrawPrimitiveCalls); \
-		GNumDrawCallsRHI++;
+		FPlatformAtomics::InterlockedIncrement(&GNumDrawCallsRHI);
 
 	#define RHI_DRAW_CALL_STATS(PrimitiveType,NumPrimitives) \
 		RHI_DRAW_CALL_INC(); \
 		INC_DWORD_STAT_BY(STAT_RHITriangles,(uint32)(PrimitiveType != PT_LineList ? (NumPrimitives) : 0)); \
 		INC_DWORD_STAT_BY(STAT_RHILines,(uint32)(PrimitiveType == PT_LineList ? (NumPrimitives) : 0)); \
-		GNumPrimitivesDrawnRHI += NumPrimitives;
+		FPlatformAtomics::InterlockedAdd(&GNumPrimitivesDrawnRHI, NumPrimitives);
 #else
 	#define RHI_DRAW_CALL_INC()
 	#define RHI_DRAW_CALL_STATS(PrimitiveType,NumPrimitives)
@@ -1273,6 +1291,8 @@ DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Index buffer memory"),STAT_IndexBufferMemo
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Vertex buffer memory"),STAT_VertexBufferMemory,STATGROUP_RHI,FPlatformMemory::MCR_GPU,RHI_API);
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Structured buffer memory"),STAT_StructuredBufferMemory,STATGROUP_RHI,FPlatformMemory::MCR_GPU,RHI_API);
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Pixel buffer memory"),STAT_PixelBufferMemory,STATGROUP_RHI,FPlatformMemory::MCR_GPU,RHI_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Get/Create PSO"), STAT_GetOrCreatePSO, STATGROUP_RHI, RHI_API);
+
 
 // RHI base resource types.
 #include "RHIResources.h"
@@ -1290,12 +1310,12 @@ extern RHI_API void RHIExit();
 
 
 // the following helper macros allow to safely convert shader types without much code clutter
-#define GETSAFERHISHADER_PIXEL(Shader) (Shader ? Shader->GetPixelShader() : (FPixelShaderRHIParamRef)FPixelShaderRHIRef())
-#define GETSAFERHISHADER_VERTEX(Shader) (Shader ? Shader->GetVertexShader() : (FVertexShaderRHIParamRef)FVertexShaderRHIRef())
-#define GETSAFERHISHADER_HULL(Shader) (Shader ? Shader->GetHullShader() : (FHullShaderRHIParamRef)FHullShaderRHIRef())
-#define GETSAFERHISHADER_DOMAIN(Shader) (Shader ? Shader->GetDomainShader() : (FDomainShaderRHIParamRef)FDomainShaderRHIRef())
-#define GETSAFERHISHADER_GEOMETRY(Shader) (Shader ? Shader->GetGeometryShader() : (FGeometryShaderRHIParamRef)FGeometryShaderRHIRef())
-#define GETSAFERHISHADER_COMPUTE(Shader) (Shader ? Shader->GetComputeShader() : (FComputeShaderRHIParamRef)FComputeShaderRHIRef())
+#define GETSAFERHISHADER_PIXEL(Shader) ((Shader) ? (Shader)->GetPixelShader() : (FPixelShaderRHIParamRef)FPixelShaderRHIRef())
+#define GETSAFERHISHADER_VERTEX(Shader) ((Shader) ? (Shader)->GetVertexShader() : (FVertexShaderRHIParamRef)FVertexShaderRHIRef())
+#define GETSAFERHISHADER_HULL(Shader) ((Shader) ? (Shader)->GetHullShader() : (FHullShaderRHIParamRef)FHullShaderRHIRef())
+#define GETSAFERHISHADER_DOMAIN(Shader) ((Shader) ? (Shader)->GetDomainShader() : (FDomainShaderRHIParamRef)FDomainShaderRHIRef())
+#define GETSAFERHISHADER_GEOMETRY(Shader) ((Shader) ? (Shader)->GetGeometryShader() : (FGeometryShaderRHIParamRef)FGeometryShaderRHIRef())
+#define GETSAFERHISHADER_COMPUTE(Shader) ((Shader) ? (Shader)->GetComputeShader() : (FComputeShaderRHIParamRef)FComputeShaderRHIRef())
 
 // RHI utility functions that depend on the RHI definitions.
 #include "RHIUtilities.h"

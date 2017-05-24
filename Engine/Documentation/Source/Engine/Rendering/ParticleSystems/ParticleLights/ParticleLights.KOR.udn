@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3243860
 Availability:Public
 Title:파티클 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:VFX 아티스트에게 있어서 또하나의 무기, 파티클 라이트입니다.
 Version: 4.9
+tags:Particles
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

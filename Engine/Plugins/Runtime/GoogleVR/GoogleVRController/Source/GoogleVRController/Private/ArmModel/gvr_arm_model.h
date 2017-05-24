@@ -45,37 +45,65 @@ namespace gvr_arm_model {
 
     Controller();
 
+    // Returns the position of the controller relative to the head in gvr head space coordinates.
+    // Negative Z is Forward, UE.
+    // Positive X is Right, UE.
+    // Positive Y is Up, UE.
     const Vector3& GetControllerPosition() const;
+
+    // Returns the orientation of the controller relative to the head in gvr head space coordinates.
+    // Negative Z is Forward, UE.
+    // Positive X is Right, UE.
+    // Positive Y is Up, UE.
     const Quaternion& GetControllerRotation() const;
 
+    // Returns the offset of the pointer relative to the controller.
     const Vector3& GetPointerPositionOffset() const;
 
+    // Height of the elbow.
     float GetAddedElbowHeight() const;
     void SetAddedElbowHeight(float elbow_height);
 
+    // Depth of the elbow.
     float GetAddedElbowDepth() const;
     void SetAddedElbowDepth(float elbow_depth);
 
+    // The Downward tilt or pitch of the laser pointer relative to the controller (degrees).
     float GetPointerTiltAngle();
     void SetPointerTiltAngle(float tilt_angle);
 
+    // Determines how the shoulder should follow the gaze.
     GazeBehavior GetGazeBehavior() const;
     void SetGazeBehavior(GazeBehavior gaze_behavior);
 
+    // Determines if the controller is in the left hand or right hand.
     Handedness GetHandedness() const;
     void SetHandedness(Handedness new_handedness);
 
+    // Determines if the accelerometer should be used.
     bool GetUseAccelerometer() const;
     void SetUseAccelerometer(bool new_use_accelerometer);
 
+    // Controller distance from the face after which the controller disappears.
     float GetFadeDistanceFromFace() const;
     void SetFadeDistanceFromFace(float distance_from_face);
 
+    // Controller distance from face after which the tooltip appears.
     float GetTooltipMinDistanceFromFace() const;
     void SetTooltipMinDistanceFromFace(float distance_from_face);
 
+    // When the angle (degrees) between the controller and the head is larger than
+    // this value, the tooltip disappears.
+    // If the value is 180, then the tooltips are always shown.
+    // If the value is 90, the tooltips are only shown when they are facing the camera.
+    int GetTooltipMaxAngleFromCamera() const;
+    void SetTooltipMaxAngleFromCamera(int max_angle_from_camera);
+
+    // Returns the alpha value that the controller should be rendered at.
+    // This Prevents the controller from clipping with the camera.
     float GetControllerAlphaValue() const;
 
+    // Returns the alpha value that the tooltips should be rendered at.
     float GetTooltipAlphaValue() const;
 
     void Update(const UpdateData& update_data);
@@ -100,6 +128,7 @@ namespace gvr_arm_model {
     bool use_accelerometer;
     float fade_distance_from_face;
     float tooltip_min_distance_from_face;
+    int tooltip_max_angle_from_camera;
 
     Vector3 wrist_position;
     Quaternion wrist_rotation;

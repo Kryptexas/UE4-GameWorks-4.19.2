@@ -1,27 +1,9 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275202
 Availability:Public
 Title:액터 선택
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:레벨 에디터 뷰포트에서 액터를 선택하는 데 사용할 수 있는 방법에 대한 개요입니다.
 version: 4.9
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/Actors "%Engine/Actors:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/Actors/Transform "%Engine/Actors/Transform:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -62,8 +44,6 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 
 [TOC(start:2)]
@@ -129,8 +109,4 @@ version: 4.9
 
 * **선택 반전** 을 클릭하면 선택이 반전(, 다른 말로 선택된 것을 제외한 나머지 모든 것이 선택)됩니다.
 * **관련된 라이트 선택** 을 클릭하면 액터에 영향을 끼치는 라이트를 선택합니다.
-
-
-%playlistnav%
-
 

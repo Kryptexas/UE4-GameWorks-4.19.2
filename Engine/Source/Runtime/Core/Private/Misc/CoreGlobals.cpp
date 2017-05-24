@@ -225,8 +225,6 @@ double					GStartTime						= FPlatformTime::InitTiming();
 FString					GSystemStartTime;
 /** Whether we are still in the initial loading proces.														*/
 bool					GIsInitialLoad					= true;
-/* Whether we are using the new async IO */
-bool					GNewAsyncIO = false;
 /* Whether we are using the event driven loader */
 bool					GEventDrivenLoaderEnabled = false;
 //@todoio put this in some kind of API
@@ -270,8 +268,6 @@ FName					GCurrentTraceName				= NAME_None;
 ELogTimes::Type			GPrintLogTimes					= ELogTimes::None;
 /** How to print the category in log output. */
 bool					GPrintLogCategory = true;
-/** Global screen shot index, which is a way to make it so we don't have overwriting ScreenShots			*/
-int32                     GScreenshotBitmapIndex           = -1;
 /** Whether stats should emit named events for e.g. PIX.													*/
 int32					GCycleStatsShouldEmitNamedEvents = 0;
 /** Disables some warnings and minor features that would interrupt a demo presentation						*/

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2974295
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title:ブループリントのアナトミー
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,6 +6,7 @@ Description:このガイドでは、ブループリントの様々な箇所と�
 version:4.9
 parent:Engine/Blueprints
 order:3
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -58,21 +59,21 @@ order:3
 
 _ブループリント_ は、常にスクリプト化されたビヘイビアを含む必要があるわけではありません。例えば、レベル内のライトポストがインタラクティブではない場合、ポストとライトを表すためにメッシュだけが必要になります。
 **コンポーネント** を使って再利用できる _ブループリント_ を作成しておくと、レベル デザイン プロセスが迅速になります。もちろん、これらの **コンポーネント** をグラフで使って、
-プレイヤーがライトとインタラクトしたり、時刻システムを正しく調整したりできます。 
+プレイヤーがライトとインタラクトしたり、時刻システムを正しく調整することができます。 
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Anatomy" tags:"Components")]
 
 ## グラフ
 
 **グラフ** には、_ブループリント_ の設計時間およびゲーム時間のビヘイビアが含まれます。**コンストラクション スクリプト** は、 _Blueprint クラス_ のインスタンスの作成時に、
-新規 _オブジェクト_ または _アクタ_ のルック アンド フィールのどうできな調整が可能ｎなります。[INCLUDE:Shared/Glossary/E/#Glossary_EventGraph] 
+新規 _オブジェクト_ または _アクタ_ のルック アンド フィールを動的に調節することができます。[INCLUDE:Shared/Glossary/E/#Glossary_EventGraph] 
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Anatomy" tags:"Graphs")]
 
 
 ## スクリプトの整理と再利用
 
-_ブループリント_ でスクリプトを作成するようになると、あるセクションのスクリプトを再利用することが多いことに気づくと思います。**関数** と **マクロ** はスクリプトを部分的に再利用することができます。
+_ブループリント_ でスクリプトを作成するようになると、あるセクションのスクリプトを何度も再利用していることに気がつきます。**関数** と **マクロ** はスクリプトを部分的に再利用することができます。
 ただし、メソッドによって強度もユースケースは異なります。 
 _関数_ と _マクロ_ の主要な違いについては、[ブループリント ベストプラクティス ガイド](Engine/Blueprints/BestPractices) をご覧ください。
 

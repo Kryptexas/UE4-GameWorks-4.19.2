@@ -10,6 +10,7 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "AI/Navigation/NavLinkCustomComponent.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
+#include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
 #include "AI/NavigationOctree.h"
@@ -63,9 +64,12 @@ ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Supe
 	SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
 	bSmartLinkIsRelevant = false;
 
-	PointLinks.Add(FNavigationLink());
-	SetActorEnableCollision(false);
+	FNavigationLink DefLink;
+	DefLink.SetAreaClass(UNavArea_Default::StaticClass());
 
+	PointLinks.Add(DefLink);
+
+	SetActorEnableCollision(false);
 	bCanBeDamaged = false;
 }
 
@@ -110,6 +114,27 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
+void ANavLinkProxy::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	for (FNavigationLink& Link : PointLinks)
+	{
+		Link.InitializeAreaClass(/*bForceRefresh=*/true);
+	}
+}
+
+void ANavLinkProxy::PostEditImport()
+{
+	Super::PostEditImport();
+
+	for (FNavigationLink& Link : PointLinks)
+	{
+		Link.InitializeAreaClass(/*bForceRefresh=*/true);
+	}
+}
+
 #endif // WITH_EDITOR
 
 void ANavLinkProxy::PostRegisterAllComponents()
@@ -176,9 +201,7 @@ bool ANavLinkProxy::GetNavigationLinksArray(TArray<FNavigationLink>& OutLink, TA
 
 FBox ANavLinkProxy::GetComponentsBoundingBox(bool bNonColliding) const
 {
-	FBox LinksBB(0);
-	LinksBB += FVector(0,0,-10);
-	LinksBB += FVector(0,0,10);
+	FBox LinksBB(FVector(0.f, 0.f, -10.f), FVector(0.f,0.f,10.f));
 
 	for (int32 i = 0; i < PointLinks.Num(); ++i)
 	{

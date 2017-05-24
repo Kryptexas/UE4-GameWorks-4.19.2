@@ -353,17 +353,6 @@ void FActorFolders::SetSelectedFolderPath(FName Path) const
 			continue;
 		}
 
-		// If any child actor isn't being moved with the parent, then orphan them (otherwise they'll end up being forced to move)
-		TArray<AActor*> ChildActors;
-		Actor->GetAttachedActors(ChildActors);
-		for (const auto& ChildActor : ChildActors)
-		{
-			if (ChildActor && !SelectedActors->IsSelected(ChildActor))
-			{
-				ChildActor->DetachRootComponentFromParent(true);
-			}
-		}
-
 		Actor->SetFolderPath_Recursively(Path);
 	}
 }

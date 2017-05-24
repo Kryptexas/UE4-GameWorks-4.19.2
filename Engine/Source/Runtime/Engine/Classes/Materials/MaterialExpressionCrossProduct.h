@@ -9,7 +9,7 @@
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionCrossProduct.generated.h"
 
-UCLASS()
+UCLASS(MinimalAPI, collapsecategories, hidecategories=Object)
 class UMaterialExpressionCrossProduct : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

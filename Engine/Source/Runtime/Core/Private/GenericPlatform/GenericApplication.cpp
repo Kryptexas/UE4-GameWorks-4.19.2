@@ -2,6 +2,7 @@
 
 #include "GenericPlatform/GenericApplication.h"
 #include "HAL/IConsoleManager.h"
+#include "Misc/CoreDelegates.h"
 
 const FGamepadKeyNames::Type FGamepadKeyNames::Invalid(NAME_None);
 
@@ -103,17 +104,34 @@ const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_Grip2Axis(
 float GDebugSafeZoneRatio = 1.0f;
 float GDebugActionZoneRatio = 1.0f;
 
-FAutoConsoleVariableRef GDebugSafeZoneRatioCVar(
-	TEXT("r.DebugSafeZone.TitleRatio"),
-	GDebugSafeZoneRatio,
-	TEXT("The safe zone ratio that will be returned by FDisplayMetrics::GetDisplayMetrics on platforms that don't have a defined safe zone (0..1)\n")
-	TEXT(" default: 1.0"));
+struct FSafeZoneConsoleVariables
+{
+	FAutoConsoleVariableRef DebugSafeZoneRatioCVar;
+	FAutoConsoleVariableRef DebugActionZoneRatioCVar;
 
-FAutoConsoleVariableRef GDebugActionZoneRatioCVar(
-	TEXT("r.DebugActionZone.ActionRatio"),
-	GDebugActionZoneRatio,
-	TEXT("The action zone ratio that will be returned by FDisplayMetrics::GetDisplayMetrics on platforms that don't have a defined safe zone (0..1)\n")
-	TEXT(" default: 1.0"));
+	FSafeZoneConsoleVariables()
+		: DebugSafeZoneRatioCVar(
+			TEXT("r.DebugSafeZone.TitleRatio"),
+			GDebugSafeZoneRatio,
+			TEXT("The safe zone ratio that will be returned by FDisplayMetrics::GetDisplayMetrics on platforms that don't have a defined safe zone (0..1)\n")
+			TEXT(" default: 1.0"))
+		, DebugActionZoneRatioCVar(
+			TEXT("r.DebugActionZone.ActionRatio"),
+			GDebugActionZoneRatio,
+			TEXT("The action zone ratio that will be returned by FDisplayMetrics::GetDisplayMetrics on platforms that don't have a defined safe zone (0..1)\n")
+			TEXT(" default: 1.0"))
+	{
+		DebugSafeZoneRatioCVar->SetOnChangedCallback(FConsoleVariableDelegate::CreateRaw(this, &FSafeZoneConsoleVariables::OnDebugSafeZoneChanged));
+		DebugActionZoneRatioCVar->SetOnChangedCallback(FConsoleVariableDelegate::CreateRaw(this, &FSafeZoneConsoleVariables::OnDebugSafeZoneChanged));
+	}
+
+	void OnDebugSafeZoneChanged(IConsoleVariable* Var)
+	{
+		FCoreDelegates::OnSafeFrameChangedEvent.Broadcast();
+	}
+};
+
+FSafeZoneConsoleVariables GSafeZoneConsoleVariables;
 
 float FDisplayMetrics::GetDebugTitleSafeZoneRatio()
 {

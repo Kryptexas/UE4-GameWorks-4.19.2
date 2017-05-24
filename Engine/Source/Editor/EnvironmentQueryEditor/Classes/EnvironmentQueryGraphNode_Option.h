@@ -14,6 +14,10 @@ class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 {
 	GENERATED_UCLASS_BODY()
 
+	uint32 bStatShowOverlay : 1;
+	TArray<FEnvionmentQueryNodeStats> StatsPerGenerator;
+	float StatAvgPickRate;
+
 	virtual void AllocateDefaultPins() override;
 	virtual void PostPlacedNewNode() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

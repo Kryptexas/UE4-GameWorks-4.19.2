@@ -1,5 +1,5 @@
-﻿INTSourceChangeList:3216146
-availability:docs
+﻿INTSourceChangelist:3259022
+availability:Public
 title:2.必要なアセットの作成と設定
 description:必要なアセットの作成と設定の説明
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
@@ -23,7 +23,7 @@ UE4 コンテンツ ブラウザで **レンダー ターゲット** を作成�
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\CreatingTextures\Create_RTT_01.png)
 
-1. [Create Advanced Asset (詳細アセットの作成)] メニューから [Materials & Textures (マテリアルとテクスチャ)]** セクションを選び、表示されたアセット リストから **[Render Target]** オプションを選択します。
+1. [Create Advanced Asset (詳細アセットの作成)] メニューから **[Materials & Textures (マテリアルとテクスチャ)]** セクションを選び、表示されたアセット リストから **[Render Target]** オプションを選択します。
 
 	![](Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\CreatingTextures\Create_RTT_02.png)
 

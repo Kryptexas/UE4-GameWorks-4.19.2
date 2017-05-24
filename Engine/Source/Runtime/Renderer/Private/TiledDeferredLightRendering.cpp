@@ -130,8 +130,8 @@ public:
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
+		FGlobalShader::SetParameters<FViewUniformShaderParameters>(RHICmdList, ShaderRHI, View.ViewUniformBuffer);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View, MD_PostProcess);
 		SetTextureParameter(RHICmdList, ShaderRHI, InTexture, InTextureValue.GetRenderTargetItem().ShaderResourceTexture);
 
 		FUnorderedAccessViewRHIParamRef OutUAV = OutTextureValue.GetRenderTargetItem().UAV;
@@ -300,8 +300,7 @@ bool FDeferredShadingSceneRenderer::CanUseTiledDeferred() const
 bool FDeferredShadingSceneRenderer::ShouldUseTiledDeferred(int32 NumUnshadowedLights, int32 NumSimpleLights) const
 {
 	// Only use tiled deferred if there are enough unshadowed lights to justify the fixed cost, 
-	// Or if there are any simple lights, because those can only be rendered through tiled deferred
-	return (NumUnshadowedLights >= GNumLightsBeforeUsingTiledDeferred || NumSimpleLights > 0);
+	return (NumUnshadowedLights + NumSimpleLights >= GNumLightsBeforeUsingTiledDeferred);
 }
 
 template <bool bVisualizeLightCulling>
@@ -359,7 +358,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(FRHICommandListI
 			// One some hardware we can read and write from the same UAV with a 32 bit format. We don't do that yet.
 			TRefCountPtr<IPooledRenderTarget> OutTexture;
 			{
-				SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+				ResolveSceneColor(RHICmdList);
 
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 				Desc.TargetableFlags |= TexCreate_UAV;

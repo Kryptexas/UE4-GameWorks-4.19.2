@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
 public class OpenSubdiv : ModuleRules
 {
-	public OpenSubdiv(TargetInfo Target)
+	public OpenSubdiv(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 
@@ -20,9 +20,6 @@ public class OpenSubdiv : ModuleRules
             {
                 switch (WindowsPlatform.Compiler)
                 {
-                    case WindowsCompiler.VisualStudio2013:
-						LibFolder = "/libVS2013";
-						break;
                     case WindowsCompiler.VisualStudio2017:
                     case WindowsCompiler.VisualStudio2015:
 						LibFolder = "/libVS2015";

@@ -470,6 +470,29 @@ void FInputBindingManager::CreateInputCommand( const TSharedRef<FBindingContext>
 	}
 }
 
+void FInputBindingManager::RemoveInputCommand(const TSharedRef<FBindingContext>& InBindingContext, TSharedRef<FUICommandInfo> InUICommandInfo)
+{
+	check(InUICommandInfo->BindingContext == InBindingContext->GetContextName());
+
+	// The command name should be valid
+	check(InUICommandInfo->CommandName != NAME_None);
+
+	const FName ContextName = InBindingContext->GetContextName();
+
+	FContextEntry& ContextEntry = ContextMap.FindOrAdd(ContextName);
+
+	// Our parent context must exist.
+	check(InBindingContext->GetContextParent() == NAME_None || ContextMap.Find(InBindingContext->GetContextParent()) != NULL);
+
+	// Remove the command and its associated chord if it's valid
+	ContextEntry.CommandInfoMap.Remove(InUICommandInfo->CommandName);
+
+	if (InUICommandInfo->ActiveChord->IsValidChord())
+	{
+		ContextEntry.ChordToCommandInfoMap.Remove(*InUICommandInfo->GetActiveChord());
+	}
+}
+
 const TSharedPtr<FUICommandInfo> FInputBindingManager::FindCommandInContext( const FName InBindingContext, const FInputChord& InChord, bool bCheckDefault ) const
 {
 	const FContextEntry& ContextEntry = ContextMap.FindRef( InBindingContext );

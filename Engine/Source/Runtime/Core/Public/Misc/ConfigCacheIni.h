@@ -171,7 +171,7 @@ public:
 	bool operator!=( const FConfigSection& Other ) const;
 
 	// process the '+' and '.' commands, takingf into account ArrayOfStruct unique keys
-	void HandleAddCommand(FName Key, const FString& Value, bool bAppendValueIfNotArrayOfStructsKeyUsed);
+	void CORE_API HandleAddCommand(FName Key, const FString& Value, bool bAppendValueIfNotArrayOfStructsKeyUsed);
 
 	template<typename Allocator> 
 	void MultiFind(const FName Key, TArray<FConfigValue, Allocator>& OutValues, const bool bMaintainOrder = false) const
@@ -309,7 +309,7 @@ public:
 	CORE_API ~FConfigFile();
 	
 	// looks for a section by name, and creates an empty one if it can't be found
-	FConfigSection* FindOrAddSection(const FString& Name);
+	CORE_API FConfigSection* FindOrAddSection(const FString& Name);
 
 	bool operator==( const FConfigFile& Other ) const;
 	bool operator!=( const FConfigFile& Other ) const;
@@ -322,8 +322,11 @@ public:
 
 	CORE_API bool GetString( const TCHAR* Section, const TCHAR* Key, FString& Value ) const;
 	CORE_API bool GetText( const TCHAR* Section, const TCHAR* Key, FText& Value ) const;
+	CORE_API bool GetInt(const TCHAR* Section, const TCHAR* Key, int& Value) const;
+	CORE_API bool GetFloat(const TCHAR* Section, const TCHAR* Key, float& Value) const;
 	CORE_API bool GetInt64( const TCHAR* Section, const TCHAR* Key, int64& Value ) const;
 	CORE_API bool GetBool( const TCHAR* Section, const TCHAR* Key, bool& Value ) const;
+	CORE_API int32 GetArray(const TCHAR* Section, const TCHAR* Key, TArray<FString>& Value) const;
 
 	CORE_API void SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value );
 	CORE_API void SetText( const TCHAR* Section, const TCHAR* Key, const FText& Value );
@@ -353,7 +356,7 @@ public:
 	 *
 	 * @param IniRootName the name (like "Engine") to use to load a .ini hierarchy to diff against
 	 */
-	CORE_API void UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName=NULL);
+	CORE_API void UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName=nullptr, const TCHAR* OverridePlatform=nullptr);
 
 	/**
 	 * Update a single property in the config file, for the section that is specified.
@@ -418,10 +421,8 @@ public:
 	// Basic functions.
 	FConfigCacheIni(EConfigCacheType Type);
 
-#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	FConfigCacheIni();
-#endif // WITH_HOT_RELOAD_CTORS
 
 	virtual ~FConfigCacheIni();
 
@@ -488,8 +489,13 @@ public:
 	*/
 	virtual void Parse1ToNSectionOfNames(const TCHAR* Section, const TCHAR* KeyOne, const TCHAR* KeyN, TMap<FName, TArray<FName> >& OutMap, const FString& Filename);
 
+	/** Finds Config file based on the final, generated ini name */
 	FConfigFile* FindConfigFile( const FString& Filename );
 	FConfigFile* Find( const FString& InFilename, bool CreateIfNotFound );
+
+	/** Finds Config file that matches the base name such as "Engine" */
+	FConfigFile* FindConfigFileWithBaseName(FName BaseName);
+
 	void Flush( bool Read, const FString& Filename=TEXT("") );
 
 	void LoadFile( const FString& InFilename, const FConfigFile* Fallback = NULL, const TCHAR* PlatformString = NULL );
@@ -763,7 +769,7 @@ public:
 	 * @param Platform The platform to load the .ini for (if NULL, uses current)
 	 * @param bForceReload If true, the destination .in will be regenerated from the source, otherwise this will only process if the dest isn't in GConfig
 	 * @param bRequireDefaultIni If true, the Default*.ini file is required to exist when generating the final ini file.
-	 * @param bAllowGeneratedIniWhenCooked If true, the engine will attempt to load the generated/user INI file when loading.
+	 * @param bAllowGeneratedIniWhenCooked If true, the engine will attempt to load the generated/user INI file when loading cooked games
 	 * @param GeneratedConfigDir The location where generated config files are made.
 	 * @return true if the final ini was created successfully.
 	 */
@@ -779,11 +785,12 @@ public:
 	 * @param bIsBaseIniName true if IniName is a Base name, which can be overridden on commandline, etc.
 	 * @param Platform The platform to use for Base ini names, NULL means to use the current platform
 	 * @param bForceReload force reload the ini file from disk this is required if you make changes to the ini file not using the config system as the hierarchy cache will not be updated in this case
+	 * @return true if the ini file was loaded successfully
 	 */
-	static void LoadLocalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, bool bIsBaseIniName, const TCHAR* Platform=NULL, const bool bForceReload=false);
+	static bool LoadLocalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, bool bIsBaseIniName, const TCHAR* Platform=NULL, bool bForceReload=false);
 
 	/**
-	 * Load an ini file directly into an FConfigFile from the specified config folders, and nothing is written to GConfig or disk. 
+	 * Load an ini file directly into an FConfigFile from the specified config folders, optionally writing to disk. 
 	 * The passed in .ini name can be a "base" (Engine, Game) which will be modified by platform and/or commandline override,
 	 * or it can be a full ini filenname (ie WrangleContent) loaded from the Source config directory
 	 *
@@ -791,11 +798,15 @@ public:
 	 * @param IniName Either a Base ini name (Engine) or a full ini name (WrangleContent). NO PATH OR EXTENSION SHOULD BE USED!
 	 * @param EngineConfigDir Engine config directory.
 	 * @param SourceConfigDir Game config directory.
-	 * @param bGenerateDestIni true if IniName is a Base name, which can be overridden on commandline, etc.
+	 * @param bIsBaseIniName true if IniName is a Base name, which can be overridden on commandline, etc.
 	 * @param Platform The platform to use for Base ini names
 	 * @param bForceReload force reload the ini file from disk this is required if you make changes to the ini file not using the config system as the hierarchy cache will not be updated in this case
+	 * @param bWriteDestIni write out a destination ini file to the Saved folder, only valid if bIsBaseIniName is true
+	 * @param bAllowGeneratedIniWhenCooked If true, the engine will attempt to load the generated/user INI file when loading cooked games
+	 * @param GeneratedConfigDir The location where generated config files are made.
+	 * @return true if the ini file was loaded successfully
 	 */
-	static void LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, bool bGenerateDestIni, const TCHAR* Platform=NULL, const bool bForceReload=false);
+	static bool LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* IniName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, bool bIsBaseIniName, const TCHAR* Platform=NULL, bool bForceReload=false, bool bWriteDestIni=false, bool bAllowGeneratedIniWhenCooked = true, const TCHAR* GeneratedConfigDir = *FPaths::GeneratedConfigDir());
 
 	/**
 	 * Needs to be called after GConfig is set and LoadCoalescedFile was called.

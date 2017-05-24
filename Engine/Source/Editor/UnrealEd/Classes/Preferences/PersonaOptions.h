@@ -80,6 +80,9 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = Options)
 	bool bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons;
 
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	bool bAllowMeshSectionSelection;
+
 public:
 	void SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor);
 	void SetShowGrid( bool bInShowGrid );

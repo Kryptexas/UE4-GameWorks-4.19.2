@@ -5,7 +5,7 @@ using System.IO;
 
 public class CEF3 : ModuleRules
 {
-	public CEF3(TargetInfo Target)
+	public CEF3(ReadOnlyTargetRules Target) : base(Target)
 	{
 		/** Mark the current version of the library */
 		string CEFVersion = "3.2623.1395.g3034273";

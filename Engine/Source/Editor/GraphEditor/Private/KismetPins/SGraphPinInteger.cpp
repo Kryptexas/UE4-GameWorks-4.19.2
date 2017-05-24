@@ -38,25 +38,36 @@ TSharedRef<SWidget>	SGraphPinInteger::GetDefaultValueWidget()
 
 			if(BitmaskEnum)
 			{
+				const bool bUseEnumValuesAsMaskValues = BitmaskEnum->GetBoolMetaData(FBlueprintMetadata::MD_UseEnumValuesAsMaskValuesInEditor);
+				auto AddNewBitmaskFlagLambda = [BitmaskEnum, &BitmaskFlags](int32 InEnumIndex, int32 InFlagValue)
+				{
+					BitmaskFlagInfo* BitmaskFlag = new(BitmaskFlags) BitmaskFlagInfo();
+
+					BitmaskFlag->Value = InFlagValue;
+					BitmaskFlag->DisplayName = BitmaskEnum->GetDisplayNameTextByIndex(InEnumIndex);
+					BitmaskFlag->ToolTipText = BitmaskEnum->GetToolTipTextByIndex(InEnumIndex);
+					if (BitmaskFlag->ToolTipText.IsEmpty())
+					{
+						BitmaskFlag->ToolTipText = FText::Format(NSLOCTEXT("GraphEditor", "BitmaskDefaultFlagToolTipText", "Toggle {0} on/off"), BitmaskFlag->DisplayName);
+					}
+				};
+
+				// Note: This loop doesn't include (BitflagsEnum->NumEnums() - 1) in order to skip the implicit "MAX" value that gets added to the enum type at compile time.
 				for(int32 BitmaskEnumIndex = 0; BitmaskEnumIndex < BitmaskEnum->NumEnums() - 1; ++BitmaskEnumIndex)
 				{
-					int8 BitmaskFlagIndex = BitmaskEnum->GetValueByIndex(BitmaskEnumIndex);
-					if(BitmaskFlagIndex >= 0 && BitmaskFlagIndex < BitmaskBitCount)
+					const int64 EnumValue = BitmaskEnum->GetValueByIndex(BitmaskEnumIndex);
+					if (EnumValue >= 0)
 					{
-						BitmaskFlagInfo* BitmaskFlag = new(BitmaskFlags) BitmaskFlagInfo();
-
-						BitmaskFlag->Value = static_cast<int32>(1 << BitmaskFlagIndex);
-
-						BitmaskFlag->DisplayName = BitmaskEnum->GetDisplayNameText(BitmaskEnumIndex);
-						if(BitmaskFlag->DisplayName.IsEmpty())
+						if (bUseEnumValuesAsMaskValues)
 						{
-							BitmaskFlag->DisplayName = FText::FromString(BitmaskEnum->GetEnumName(BitmaskEnumIndex));
+							if (EnumValue < MAX_int32 && FMath::IsPowerOfTwo(EnumValue))
+							{
+								AddNewBitmaskFlagLambda(BitmaskEnumIndex, static_cast<int32>(EnumValue));
+							}
 						}
-
-						BitmaskFlag->ToolTipText = BitmaskEnum->GetToolTipText(BitmaskEnumIndex);
-						if(BitmaskFlag->ToolTipText.IsEmpty())
+						else if (EnumValue < BitmaskBitCount)
 						{
-							BitmaskFlag->ToolTipText = FText::Format(NSLOCTEXT("GraphEditor", "BitmaskDefaultFlagToolTipText", "Toggle {0} on/off"), BitmaskFlag->DisplayName);
+							AddNewBitmaskFlagLambda(BitmaskEnumIndex, 1 << static_cast<int32>(EnumValue));
 						}
 					}
 				}

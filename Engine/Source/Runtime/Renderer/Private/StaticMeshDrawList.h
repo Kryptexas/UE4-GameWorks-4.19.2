@@ -221,14 +221,14 @@ private:
 	struct FDrawingPolicyLink
 	{
 		/** The elements array and the compact elements array are always synchronized */
-		TArray<FElementCompact>		CompactElements;
-		TArray<FElement>			Elements;
-		DrawingPolicyType			DrawingPolicy;
-		FBoundShaderStateRHIRef		BoundShaderState;
-		ERHIFeatureLevel::Type		FeatureLevel;
+		TArray<FElementCompact>		 CompactElements;
+		TArray<FElement>			 Elements;
+		DrawingPolicyType		 	 DrawingPolicy;
+		FBoundShaderStateInput		 BoundShaderStateInput;
+		ERHIFeatureLevel::Type		 FeatureLevel;
 
 		/** Used when sorting policy links */
-		FSphere						CachedBoundingSphere;
+		FSphere						 CachedBoundingSphere;
 
 		/** The id of this link in the draw list's set of drawing policy links. */
 		FSetElementId SetId;
@@ -244,30 +244,13 @@ private:
 			DrawList(InDrawList),
 			VisibleCount(0)
 		{
-			CreateBoundShaderState();
+			check(IsInRenderingThread());
+			BoundShaderStateInput = DrawingPolicy.GetBoundShaderStateInput(FeatureLevel);
 		}
 
 		SIZE_T GetSizeBytes() const
 		{
 			return sizeof(*this) + CompactElements.GetAllocatedSize() + Elements.GetAllocatedSize();
-		}
-
-		void ReleaseBoundShaderState()
-		{
-			BoundShaderState.SafeRelease();
-		}
-
-		void CreateBoundShaderState()
-		{
-			check(IsInRenderingThread());
-			FBoundShaderStateInput BoundShaderStateInput = DrawingPolicy.GetBoundShaderStateInput(FeatureLevel);
-			BoundShaderState = RHICreateBoundShaderState(
-				BoundShaderStateInput.VertexDeclarationRHI,
-				BoundShaderStateInput.VertexShaderRHI,
-				BoundShaderStateInput.HullShaderRHI,
-				BoundShaderStateInput.DomainShaderRHI,
-				BoundShaderStateInput.PixelShaderRHI,
-				BoundShaderStateInput.GeometryShaderRHI);
 		}
 	};
 
@@ -351,7 +334,7 @@ public:
 		const FDrawingPolicyRenderState& DrawRenderState)
 	{
 		//moved out of the inner loop and only modified if bDrawnShared
-		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+		FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 
 		return DrawVisibleInner<InstancedStereoPolicy::Enabled>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(true), DrawRenderStateLocal, nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
 	}
@@ -368,7 +351,7 @@ public:
 		const FDrawingPolicyRenderState& DrawRenderState)
 	{
 		//moved out of the inner loop and only modified if bDrawnShared
-		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+		FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 
 		return DrawVisibleInner<InstancedStereoPolicy::MobileMultiView>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(false), DrawRenderStateLocal, nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
 	}
@@ -457,7 +440,7 @@ public:
 		int32 MaxToDraw)
 	{
 		//moved out of the inner loop and only modified if bDrawnShared
-		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+		FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 
 		return DrawVisibleFrontToBackInner<InstancedStereoPolicy::Disabled>(RHICmdList, View, DrawRenderStateLocal, PolicyContext, &StaticMeshVisibilityMap, &BatchVisibilityArray, nullptr, MaxToDraw);
 	}
@@ -472,7 +455,7 @@ public:
 	inline int32 DrawVisibleFrontToBackMobileMultiView(FRHICommandList& RHICmdList, const StereoPair &StereoView, const FDrawingPolicyRenderState& DrawRenderState, const int32 MaxToDraw)
 	{
 		//moved out of the inner loop and only modified if bDrawnShared
-		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+		FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 
 		return DrawVisibleFrontToBackInner<InstancedStereoPolicy::MobileMultiView>(RHICmdList, *StereoView.LeftView, DrawRenderStateLocal, typename DrawingPolicyType::ContextDataType(false), nullptr, nullptr, &StereoView, MaxToDraw);
 	}

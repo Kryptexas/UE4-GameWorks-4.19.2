@@ -25,16 +25,9 @@ namespace Audio
 
 	class FWaveTableOsc;
 
-	// A factory interface for creating custom wave tables
-	class ICustomWaveTableOscFactory
-	{
-	public:
-		// Creates  custom wave table with the given requested size. Custom table doesn't necessarily have to honor the requested size.
-		virtual FWaveTableOsc* CreateCustomWaveTable(const int32 RequestedWaveTableSize) = 0;
-	};
 
 	// A wave table oscillator class
-	class FWaveTableOsc
+	class AUDIOMIXER_API FWaveTableOsc
 	{
 	public:
 		// Constructor
@@ -44,10 +37,10 @@ namespace Audio
 		virtual ~FWaveTableOsc();
 
 		// Initialize the wave table oscillator
-		void Init(const int32 InSampleRate, const float InFrequencyHz);
+		void Init(const float InSampleRate, const float InFrequencyHz);
 
 		// Sets the sample rate of the oscillator.
-		void SetSampleRate(const int32 InSampleRate);
+		void SetSampleRate(const float InSampleRate);
 
 		// Resets the wave table read indices.
 		void Reset();
@@ -64,32 +57,27 @@ namespace Audio
 		// Returns the frequency of the wave table oscillator.
 		float GetFrequencyHz() const { return FrequencyHz; }
 
-		// Processes the wave table, outputs the normal and quad phase (optional) values 
-		void ProcessAudio(float* OutputNormalPhase, float* OutputQuadPhase = nullptr);
+		// Returns the internal table used int he wave table.
+		TArray<float>& GetTable();
+		const TArray<float>& GetTable() const;
 
-		// Sets the factory interface to use to create a custom wave table
-		static void SetCustomWaveTableOscFactory(ICustomWaveTableOscFactory* InCustomWaveTableOscFactory);
+		// Processes the wave table, outputs the normal and quad phase (optional) values 
+		void Generate(float* OutputNormalPhase, float* OutputQuadPhase = nullptr);
 
 		// Creates a wave table using internal factories for standard wave tables or uses custom wave table factor if it exists.
-		static FWaveTableOsc* CreateWaveTable(const EWaveTable::Type WaveTableType, const int32 WaveTableSize = 1024);
+		static TSharedPtr<FWaveTableOsc> CreateWaveTable(const EWaveTable::Type WaveTableType, const int32 WaveTableSize = 1024);
 
 	protected:
 		void UpdateFrequency();
 
-		// Custom wave table factory
-		static ICustomWaveTableOscFactory* CustomWaveTableOscFactory;
-
 		// The wave table buffer
-		float* WaveTableBuffer;
-
-		// The wave table buffer size
-		int32 WaveTableBufferSize;
+		TArray<float> WaveTableBuffer;
 
 		// The frequency of the output (given the sample rate)
 		float FrequencyHz;
 
 		// The sample rate of the oscillator
-		int32 SampleRate;
+		float SampleRate;
 
 		// Normal phase read index
 		float NormalPhaseReadIndex;

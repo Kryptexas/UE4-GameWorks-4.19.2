@@ -51,14 +51,15 @@
 #include "Misc/FbxErrors.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Assets/ClothingAsset.h"
 
 #define LOCTEXT_NAMESPACE "FBXImpoter"
 
 using namespace UnFbx;
 
 struct ExistingSkelMeshData;
-extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials);
-extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh);
+extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials, int32 ReimportLODIndex);
+extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh, int32 ReimportLODIndex);
 
 // Get the geometry deformation local to a node. It is never inherited by the
 // children.
@@ -870,7 +871,10 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		}
 		else
 		{
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_MissingBindPose", "Could not find the bind pose.  It will use time 0 as bind pose.")), FFbxErrors::SkeletalMesh_InvalidBindPose);
+			if (!GIsAutomationTesting)
+			{
+				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_MissingBindPose", "Could not find the bind pose.  It will use time 0 as bind pose.")), FFbxErrors::SkeletalMesh_InvalidBindPose);
+			}
 			bUseTime0AsRefPose = true;
 		}
 	}
@@ -1277,16 +1281,16 @@ void UnFbx::FFbxImporter::FillLastImportMaterialNames(TArray<FName> &LastImporte
 	}
 }
 
-USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, int32 LodIndex, bool* bCancelOperation, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, bool bCreateRenderData, TArray<FName> *OrderedMaterialNames)
+USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(FImportSkeletalMeshArgs &ImportSkeletalMeshArgs)
 {
-	if (NodeArray.Num() == 0)
+	if (ImportSkeletalMeshArgs.NodeArray.Num() == 0)
 	{
 		return nullptr;
 	}
 
 	int32 SkelType = 0; // 0 for skeletal mesh, 1 for rigid mesh
 	
-	FbxNode* Node = NodeArray[0];
+	FbxNode* Node = ImportSkeletalMeshArgs.NodeArray[0];
 	// find the mesh by its name
 	FbxMesh* FbxMesh = Node->GetMesh();
 
@@ -1303,15 +1307,15 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	// warning for missing smoothing group info
 	CheckSmoothingInfo(FbxMesh);
 
-	Parent = InParent;
+	Parent = ImportSkeletalMeshArgs.InParent;
 	
 
 	struct ExistingSkelMeshData* ExistSkelMeshDataPtr = nullptr;
 
 	USkeletalMesh* ExistingSkelMesh = nullptr;
-	if ( !FbxShapeArray  )
+	if ( !ImportSkeletalMeshArgs.FbxShapeArray  )
 	{
-		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
+		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), ImportSkeletalMeshArgs.InParent, ImportSkeletalMeshArgs.Name, false, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
 		ExistingSkelMesh = Cast<USkeletalMesh>(ExistingObject);
 
 		if (!ExistingSkelMesh && ExistingObject)
@@ -1326,25 +1330,25 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	{
 		// When we are not re-importing we want to create the mesh here to be sure there is no material
 		// or texture that will be create with the same name
-		SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
+		SkeletalMesh = NewObject<USkeletalMesh>(ImportSkeletalMeshArgs.InParent, ImportSkeletalMeshArgs.Name, ImportSkeletalMeshArgs.Flags);
 	}
 
 	FSkeletalMeshImportData TempData;
 	// Fill with data from buffer - contains the full .FBX file. 	
 	FSkeletalMeshImportData* SkelMeshImportDataPtr = &TempData;
-	if( OutData )
+	if( ImportSkeletalMeshArgs.OutData )
 	{
-		SkelMeshImportDataPtr = OutData;
+		SkelMeshImportDataPtr = ImportSkeletalMeshArgs.OutData;
 	}
 	
 	TArray<FName> LastImportedMaterialNames;
-	FillLastImportMaterialNames(LastImportedMaterialNames, ExistingSkelMesh, OrderedMaterialNames);
+	FillLastImportMaterialNames(LastImportedMaterialNames, ExistingSkelMesh, ImportSkeletalMeshArgs.OrderedMaterialNames);
 
 	//////////////////////////////////////////////////////////////////////////
 	// We must do a maximum of fail test before backing up the data since the backup is destructive on the existing skeletal mesh.
 	// See the comment later when we call the following function (SaveExistingSkelMeshData)
 
-	if (FillSkeletalMeshImportData(NodeArray, TemplateImportData, FbxShapeArray, SkelMeshImportDataPtr, LastImportedMaterialNames) == false)
+	if (FillSkeletalMeshImportData(ImportSkeletalMeshArgs.NodeArray, ImportSkeletalMeshArgs.TemplateImportData, ImportSkeletalMeshArgs.FbxShapeArray, SkelMeshImportDataPtr, LastImportedMaterialNames) == false)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_FillupImportData", "Get Import Data has failed.")), FFbxErrors::SkeletalMesh_FillImportDataFailed);
 		if (SkeletalMesh)
@@ -1379,25 +1383,29 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		return nullptr;
 	}
 
+	TArray<ClothingAssetUtils::FClothingAssetMeshBinding> ClothingBindings;
+
 	//Backup the data before importing the new one
 	if (ExistingSkelMesh)
 	{
-#if WITH_APEX_CLOTHING
-		//for supporting re-import 
-		ApexClothingUtils::BackupClothingDataFromSkeletalMesh(ExistingSkelMesh);
-#endif// #if WITH_APEX_CLOTHING
+		ClothingAssetUtils::GetMeshClothingAssetBindings(ExistingSkelMesh, ClothingBindings);
+
+		for(ClothingAssetUtils::FClothingAssetMeshBinding& Binding : ClothingBindings)
+		{
+			Binding.Asset->UnbindFromSkeletalMesh(ExistingSkelMesh, Binding.LODIndex);
+		}
 
 		ExistingSkelMesh->PreEditChange(NULL);
 		//The backup of the skeletal mesh data empty the LOD array in the ImportedResource of the skeletal mesh
 		//If the import fail after this step the editor can crash when updating the bone later since the LODModel will not exist anymore
-		ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh, !ImportOptions->bImportMaterials);
+		ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh, !ImportOptions->bImportMaterials, ImportSkeletalMeshArgs.LodIndex);
 	}
-	
+
 	if (SkeletalMesh == nullptr)
 	{
 		// Create the new mesh after saving the old data, since it will replace the old skeletalmesh
 		// This should happen only when doing a re-import. Otherwise the skeletal mesh is create before.
-		SkeletalMesh = NewObject<USkeletalMesh>(InParent, Name, Flags);
+		SkeletalMesh = NewObject<USkeletalMesh>(ImportSkeletalMeshArgs.InParent, ImportSkeletalMeshArgs.Name, ImportSkeletalMeshArgs.Flags);
 	}
 
 	SkeletalMesh->PreEditChange(NULL);
@@ -1446,7 +1454,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	// Will unregister before import, then re-register afterwards
 	TIndirectArray<FComponentReregisterContext> ComponentContexts;
 
-	if (bCreateRenderData)
+	if(ImportSkeletalMeshArgs.bCreateRenderData )
 	{
 		TArray<FVector> LODPoints;
 		TArray<FMeshWedge> LODWedges;
@@ -1493,14 +1501,42 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 			SkeletalMesh->LODInfo[0].TriangleSortSettings.AddZeroed();
 		}
 
-		if (ExistSkelMeshDataPtr)
+		//Get the last fbx file data need for reimport
+		if (ImportSkeletalMeshArgs.ImportMaterialOriginalNameData)
 		{
-			RestoreExistingSkelMeshData(ExistSkelMeshDataPtr, SkeletalMesh);
+			for (FSkeletalMaterial SkeletalMaterial : SkeletalMesh->Materials)
+			{
+				ImportSkeletalMeshArgs.ImportMaterialOriginalNameData->Add(SkeletalMaterial.ImportedMaterialSlotName);
+			}
+		}
+		if (ImportSkeletalMeshArgs.ImportMeshSectionsData)
+		{
+			if (SkeletalMesh->LODInfo[0].LODMaterialMap.Num() >= NumSections)
+			{
+				for (int32 SectionMaterialIndex : SkeletalMesh->LODInfo[0].LODMaterialMap)
+				{
+					ImportSkeletalMeshArgs.ImportMeshSectionsData->SectionOriginalMaterialName.Add(SkeletalMesh->Materials[SectionMaterialIndex].ImportedMaterialSlotName);
+				}
+			}
+			else
+			{
+				for (const FSkelMeshSection &SkelMeshSection : ImportedResource->LODModels[0].Sections)
+				{
+					ImportSkeletalMeshArgs.ImportMeshSectionsData->SectionOriginalMaterialName.Add(SkeletalMesh->Materials[SkelMeshSection.MaterialIndex].ImportedMaterialSlotName);
+				}
+			}
 		}
 
 		// Store the current file path and timestamp for re-import purposes
-		UFbxSkeletalMeshImportData* ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(SkeletalMesh, TemplateImportData);
+		UFbxSkeletalMeshImportData* ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(SkeletalMesh, ImportSkeletalMeshArgs.TemplateImportData);
 		SkeletalMesh->AssetImportData->Update(UFactory::GetCurrentFilename(), &Md5Hash);
+
+		
+
+		if (ExistSkelMeshDataPtr)
+		{
+			RestoreExistingSkelMeshData(ExistSkelMeshDataPtr, SkeletalMesh, ImportSkeletalMeshArgs.LodIndex);
+		}
 
 		SkeletalMesh->CalculateInvRefMatrices();
 		SkeletalMesh->PostEditChange();
@@ -1517,53 +1553,19 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		}
 	}
 
-	if(LodIndex == 0)
+	if(ImportSkeletalMeshArgs.LodIndex == 0)
 	{
-		// Create PhysicsAsset if requested and if physics asset is null
-		if (ImportOptions->bCreatePhysicsAsset )
-		{
-			if (SkeletalMesh->PhysicsAsset == NULL)
-			{
-				FString ObjectName = FString::Printf(TEXT("%s_PhysicsAsset"), *SkeletalMesh->GetName());
-				UPhysicsAsset * NewPhysicsAsset = CreateAsset<UPhysicsAsset>(InParent->GetName(), ObjectName, true); 
-				if (!NewPhysicsAsset)
-				{
-					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_CouldNotCreatePhysicsAsset", "Could not create Physics Asset ('{0}') for '{1}'"), FText::FromString(ObjectName), FText::FromString(SkeletalMesh->GetName()))), FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset);
-				}
-				else
-				{
-					FPhysAssetCreateParams NewBodyData;
-					NewBodyData.Initialize();
-					FText CreationErrorMessage;
-					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, CreationErrorMessage);
-					if (!bSuccess)
-					{
-						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, CreationErrorMessage), FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset);
-						// delete the asset since we could not have create physics asset
-						TArray<UObject*> ObjectsToDelete;
-						ObjectsToDelete.Add(NewPhysicsAsset);
-						ObjectTools::DeleteObjects(ObjectsToDelete, false);
-					}
-				}
-			}
-		}
-		// if physics asset is selected
-		else if (ImportOptions->PhysicsAsset)
-		{
-			SkeletalMesh->PhysicsAsset = ImportOptions->PhysicsAsset;
-		}
-
 		// see if we have skeleton set up
 		// if creating skeleton, create skeleeton
 		USkeleton* Skeleton = ImportOptions->SkeletonForAnimation;
 		if (Skeleton == NULL)
 		{
 			FString ObjectName = FString::Printf(TEXT("%s_Skeleton"), *SkeletalMesh->GetName());
-			Skeleton = CreateAsset<USkeleton>(InParent->GetName(), ObjectName, true); 
+			Skeleton = CreateAsset<USkeleton>(ImportSkeletalMeshArgs.InParent->GetName(), ObjectName, true);
 			if (!Skeleton)
 			{
 				// same object exists, try to see if it's skeleton, if so, load
-				Skeleton = LoadObject<USkeleton>(InParent, *ObjectName);
+				Skeleton = LoadObject<USkeleton>(ImportSkeletalMeshArgs.InParent, *ObjectName);
 
 				// if not skeleton, we're done, we can't create skeleton with same name
 				// @todo in the future, we'll allow them to rename
@@ -1583,19 +1585,19 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 			if(bFirstMesh || (LastMergeBonesChoice != EAppReturnType::NoAll && LastMergeBonesChoice != EAppReturnType::YesAll))
 			{
 				LastMergeBonesChoice = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel,
-															LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical change has been made\n"
-																"- i.e. inserting bone between nodes\n Would you like to regenerate Skeleton from this mesh? \n\n"
-																"***WARNING: THIS WILL REQUIRE RECOMPRESS ALL ANIMATION DATA AND POTENTIALLY INVALIDATE***\n"));
+					LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical changes have been made\n"
+						"e.g. inserting a bone between nodes.\nWould you like to regenerate the Skeleton from this mesh?\n\n"
+						"***WARNING: THIS MAY INVALIDATE OR REQUIRE RECOMPRESSION OF ANIMATION DATA.***\n"));
 				bToastSaveMessage = true;
 			}
 			
 			if(LastMergeBonesChoice == EAppReturnType::Cancel)
 			{
 				// User wants to cancel further importing
-				if(bCancelOperation != nullptr)
+				if(ImportSkeletalMeshArgs.bCancelOperation != nullptr)
 				{
 					// Report back to calling code if we have a flag to set
-					*bCancelOperation = true;
+					*ImportSkeletalMeshArgs.bCancelOperation = true;
 				}
 				return nullptr;
 			}
@@ -1658,16 +1660,172 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 			SkeletalMesh->Skeleton = Skeleton;
 			SkeletalMesh->MarkPackageDirty();
 		}
+		// Create PhysicsAsset if requested and if physics asset is null
+		// We create the physic asset after we create the skeleton since we need the skeleton to correctly build it
+		if (ImportOptions->bCreatePhysicsAsset)
+		{
+			if (SkeletalMesh->PhysicsAsset == NULL)
+			{
+				FString ObjectName = FString::Printf(TEXT("%s_PhysicsAsset"), *SkeletalMesh->GetName());
+				UPhysicsAsset * NewPhysicsAsset = CreateAsset<UPhysicsAsset>(ImportSkeletalMeshArgs.InParent->GetName(), ObjectName, true);
+				if (!NewPhysicsAsset)
+				{
+					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_CouldNotCreatePhysicsAsset", "Could not create Physics Asset ('{0}') for '{1}'"), FText::FromString(ObjectName), FText::FromString(SkeletalMesh->GetName()))), FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset);
+				}
+				else
+				{
+					FPhysAssetCreateParams NewBodyData;
+					NewBodyData.Initialize();
+					FText CreationErrorMessage;
+					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, CreationErrorMessage);
+					if (!bSuccess)
+					{
+						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, CreationErrorMessage), FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset);
+						// delete the asset since we could not have create physics asset
+						TArray<UObject*> ObjectsToDelete;
+						ObjectsToDelete.Add(NewPhysicsAsset);
+						ObjectTools::DeleteObjects(ObjectsToDelete, false);
+					}
+				}
+			}
+		}
+		// if physics asset is selected
+		else if (ImportOptions->PhysicsAsset)
+		{
+			SkeletalMesh->PhysicsAsset = ImportOptions->PhysicsAsset;
+		}
 	}
-#if WITH_APEX_CLOTHING
-	//for supporting re-import 
-	ApexClothingUtils::ReapplyClothingDataToSkeletalMesh(SkeletalMesh);
-#endif// #if WITH_APEX_CLOTHING
+
+	// Reapply any clothing assets we had before the import
+	FSkeletalMeshResource* NewMeshResource = SkeletalMesh->GetImportedResource();
+	if(NewMeshResource)
+	{
+		for(ClothingAssetUtils::FClothingAssetMeshBinding& Binding : ClothingBindings)
+		{
+			if(NewMeshResource->LODModels.IsValidIndex(Binding.LODIndex) &&
+			   NewMeshResource->LODModels[Binding.LODIndex].Sections.IsValidIndex(Binding.SectionIndex))
+			{
+				Binding.Asset->BindToSkeletalMesh(SkeletalMesh, Binding.LODIndex, Binding.SectionIndex, Binding.AssetInternalLodIndex);
+			}
+		}
+	}
+
+	// ComponentContexts will now go out of scope, causing components to be re-registered
 
 	// ComponentContexts will now go out of scope, causing components to be re-registered
 
 	return SkeletalMesh;
 }
+
+void UnFbx::FFbxImporter::UpdateSkeletalMeshImportData(USkeletalMesh *SkeletalMesh, UFbxSkeletalMeshImportData* SkeletalMeshImportData, int32 SpecificLod, TArray<FName> *ImportMaterialOriginalNameData, TArray<FImportMeshLodSectionsData> *ImportMeshLodData)
+{
+	if (SkeletalMesh == nullptr)
+	{
+		return;
+	}
+
+	UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(SkeletalMesh->AssetImportData);
+	if (!ImportData && SkeletalMeshImportData)
+	{
+		ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(SkeletalMesh, SkeletalMeshImportData);
+	}
+	if (ImportData)
+	{
+		ImportData->ImportMaterialOriginalNameData.Empty();
+		if (ImportMaterialOriginalNameData && ImportMeshLodData)
+		{
+			if (SpecificLod == INDEX_NONE && ImportMeshLodData->Num() == SkeletalMesh->LODInfo.Num())
+			{
+				//Copy the material array
+				ImportData->ImportMaterialOriginalNameData = (*ImportMaterialOriginalNameData);
+
+				ImportData->ImportMeshLodData.Empty();
+				for (const FImportMeshLodSectionsData &ImportMeshLodSectionsData : (*ImportMeshLodData))
+				{
+					ImportData->ImportMeshLodData.Add(ImportMeshLodSectionsData);
+				}
+			}
+			else
+			{
+				for (FName MaterialImportNameLOD : (*ImportMaterialOriginalNameData))
+				{
+					bool bFoundMaterial = false;
+					for (FName MaterialImportName : ImportData->ImportMaterialOriginalNameData)
+					{
+						if (MaterialImportNameLOD == MaterialImportName)
+						{
+							bFoundMaterial = true;
+							break;
+						}
+					}
+					if (!bFoundMaterial)
+					{
+						//Add the LOD material at the end of the original array
+						ImportData->ImportMaterialOriginalNameData.Add(MaterialImportNameLOD);
+					}
+				}
+
+				if (SpecificLod == INDEX_NONE)
+				{
+					for (int32 UpdateLodIndex = 0; UpdateLodIndex < (*ImportMeshLodData).Num(); ++UpdateLodIndex)
+					{
+						if (ImportData->ImportMeshLodData.Num() <= UpdateLodIndex)
+						{
+							ImportData->ImportMeshLodData.AddZeroed();
+						}
+						ImportData->ImportMeshLodData[UpdateLodIndex] = (*ImportMeshLodData)[UpdateLodIndex];
+					}
+				}
+				else
+				{
+					if (ImportData->ImportMeshLodData.Num() <= SpecificLod)
+					{
+						ImportData->ImportMeshLodData.AddZeroed(1 + SpecificLod - ImportData->ImportMeshLodData.Num());
+					}
+					ImportData->ImportMeshLodData[SpecificLod] = (*ImportMeshLodData)[0];
+				}
+			}
+		}
+		else
+		{
+			//This is not a re-import or we reimport an old asset containing no data
+			//In this case we update from the skeletal mesh import
+			ImportData->ImportMaterialOriginalNameData.Empty();
+			ImportData->ImportMeshLodData.Empty();
+			for (const FSkeletalMaterial &Material : SkeletalMesh->Materials)
+			{
+				ImportData->ImportMaterialOriginalNameData.Add(Material.ImportedMaterialSlotName);
+			}
+			FSkeletalMeshResource* ImportedResource = SkeletalMesh->GetImportedResource();
+			for (int32 LODResoureceIndex = 0; LODResoureceIndex < ImportedResource->LODModels.Num(); ++LODResoureceIndex)
+			{
+				ImportData->ImportMeshLodData.AddZeroed();
+				const FSkeletalMeshLODInfo& LODInfo = SkeletalMesh->LODInfo[LODResoureceIndex];
+				const FStaticLODModel& LODModel = ImportedResource->LODModels[LODResoureceIndex];
+				int32 NumSections = LODModel.Sections.Num();
+				for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+				{
+					int32 MaterialLodSectionIndex = LODModel.Sections[SectionIndex].MaterialIndex;
+					//Is this LOD use the LODMaterialMap override
+					if (LODInfo.LODMaterialMap.Num() > SectionIndex)
+					{
+						MaterialLodSectionIndex = LODInfo.LODMaterialMap[SectionIndex];
+					}
+
+					if (ImportData->ImportMaterialOriginalNameData.IsValidIndex(MaterialLodSectionIndex))
+					{
+						ImportData->ImportMeshLodData[LODResoureceIndex].SectionOriginalMaterialName.Add(ImportData->ImportMaterialOriginalNameData[MaterialLodSectionIndex]);
+					}
+					else
+					{
+						ImportData->ImportMeshLodData[LODResoureceIndex].SectionOriginalMaterialName.Add(TEXT("InvalidMaterialIndex"));
+					}
+				}
+			}
+		}
+	}
+}
+
 
 UObject* UnFbx::FFbxImporter::CreateAssetOfClass(UClass* AssetClass, FString ParentPackageName, FString ObjectName, bool bAllowReplace)
 {
@@ -1859,6 +2017,10 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 			}
 		}
 
+		//Original fbx data storage
+		TArray<FName> ImportMaterialOriginalNameData;
+		TArray<FImportMeshLodSectionsData> ImportMeshLodData;
+
 		int32 LODIndex;
 		for (LODIndex = 0; LODIndex < MaxLODLevel; LODIndex++)
 		{
@@ -1890,13 +2052,55 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 
 			if (LODIndex == 0)
 			{
-				NewMesh = ImportSkeletalMesh( Mesh->GetOuter(), SkelMeshNodeArray, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, LODIndex);
+				ImportMeshLodData.AddZeroed();
+				UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
+				ImportSkeletalMeshArgs.InParent = Mesh->GetOuter();
+				ImportSkeletalMeshArgs.NodeArray = SkelMeshNodeArray;
+				ImportSkeletalMeshArgs.Name = *Mesh->GetName();
+				ImportSkeletalMeshArgs.Flags = RF_Public | RF_Standalone;
+				ImportSkeletalMeshArgs.TemplateImportData = TemplateImportData;
+				ImportSkeletalMeshArgs.LodIndex = LODIndex;
+				ImportSkeletalMeshArgs.ImportMaterialOriginalNameData = &ImportMaterialOriginalNameData;
+				ImportSkeletalMeshArgs.ImportMeshSectionsData = &ImportMeshLodData[0];
+
+				NewMesh = ImportSkeletalMesh( ImportSkeletalMeshArgs );
 			}
 			else if (NewMesh && ImportOptions->bImportSkeletalMeshLODs) // the base skeletal mesh is imported successfully
 			{
+				TArray<FName> ImportMaterialOriginalNameDataLOD;
+				ImportMeshLodData.AddZeroed();
 				USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewMesh);
-				UObject *LODObject = ImportSkeletalMesh( NewMesh->GetOutermost(), SkelMeshNodeArray, NAME_None, RF_Transient, TemplateImportData, LODIndex);
-				ImportSkeletalMeshLOD( Cast<USkeletalMesh>(LODObject), BaseSkeletalMesh, LODIndex);
+				
+				UnFbx::FFbxImporter::FImportSkeletalMeshArgs ImportSkeletalMeshArgs;
+				ImportSkeletalMeshArgs.InParent = NewMesh->GetOutermost();
+				ImportSkeletalMeshArgs.NodeArray = SkelMeshNodeArray;
+				ImportSkeletalMeshArgs.Name = NAME_None;
+				ImportSkeletalMeshArgs.Flags = RF_Transient;
+				ImportSkeletalMeshArgs.TemplateImportData = TemplateImportData;
+				ImportSkeletalMeshArgs.LodIndex = LODIndex;
+				ImportSkeletalMeshArgs.ImportMaterialOriginalNameData = &ImportMaterialOriginalNameDataLOD;
+				ImportSkeletalMeshArgs.ImportMeshSectionsData = &ImportMeshLodData[LODIndex];
+
+				UObject *LODObject = ImportSkeletalMesh( ImportSkeletalMeshArgs );
+				ImportSkeletalMeshLOD( Cast<USkeletalMesh>(LODObject), BaseSkeletalMesh, LODIndex, true, nullptr, TemplateImportData);
+
+				for (FName MaterialImportNameLOD : ImportMaterialOriginalNameDataLOD)
+				{
+					bool bFoundMaterial = false;
+					for (FName MaterialImportName : ImportMaterialOriginalNameData)
+					{
+						if (MaterialImportNameLOD == MaterialImportName)
+						{
+							bFoundMaterial = true;
+							break;
+						}
+					}
+					if (!bFoundMaterial)
+					{
+						//Add the LOD material at the end of the original array
+						ImportMaterialOriginalNameData.Add(MaterialImportNameLOD);
+					}
+				}
 
 				// Set LOD Model's DisplayFactor
 				// if this LOD is newly added, then set DisplayFactor
@@ -1916,6 +2120,11 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 				// @fixme: @question : where do they import this morph? where to? What morph target sets?
 				ImportFbxMorphTarget(SkelMeshNodeArray, NewMesh, NewMesh->GetOutermost(), LODIndex);
 			}
+		}
+		if (NewMesh)
+		{
+			//Update the import data so we can re-import correctly
+			UpdateSkeletalMeshImportData(NewMesh, TemplateImportData, INDEX_NONE, &ImportMaterialOriginalNameData, &ImportMeshLodData);
 		}
 	}
 	else
@@ -2077,7 +2286,7 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 	TMap<int32, int32> NameIndexGreaterThenMaterialArraySize;
 	{
 		int32 MaterialCount = ImportData.Materials.Num();
-
+		int32 MaxMaterialOrderedCount = 0;
 		bool bNeedsReorder = false;
 		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
 		{
@@ -2094,6 +2303,7 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 				{
 					if (OrderedIndex < MaterialCount)
 					{
+						MaxMaterialOrderedCount = FMath::Max(MaxMaterialOrderedCount, OrderedIndex+1);
 						NameIndexToMaterialIndex.Add(OrderedIndex, MaterialIndex);
 					}
 					else
@@ -2108,6 +2318,7 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 			if (!bFoundValidName)
 			{
 				MissingNameSuffixMaterial.Add(MaterialIndex);
+				MaxMaterialOrderedCount = FMath::Max(MaxMaterialOrderedCount, MaterialIndex+1);
 			}
 		}
 
@@ -2115,18 +2326,22 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 		{
 			//Add the missing name material at the end to not disturb the existing order
 			TArray<int32> OrderedListMissing;
-			OrderedListMissing.AddZeroed(NameIndexToMaterialIndex.Num() + MissingNameSuffixMaterial.Num());
+			OrderedListMissing.AddZeroed(MaxMaterialOrderedCount);
 			for (auto Kvp : NameIndexToMaterialIndex)
 			{
 				OrderedListMissing[Kvp.Key] = -1;
 			}
 			for (int32 OrderedListMissingIndex = 0; OrderedListMissingIndex < OrderedListMissing.Num(); ++OrderedListMissingIndex)
 			{
+				if (MissingNameSuffixMaterial.Num() <= 0)
+				{
+					break;
+				}
+
 				if (OrderedListMissing[OrderedListMissingIndex] != 0)
 					continue;
 
 				NameIndexToMaterialIndex.Add(OrderedListMissingIndex, MissingNameSuffixMaterial.Pop());
-				
 			}
 		}
 
@@ -2484,8 +2699,8 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 						if (LocalUVSetName == UVSets[UVIndex])
 						{
 							LayerElementUV[UVIndex] = const_cast<FbxLayerElementUV*>(ElementUV);
-							UVReferenceMode[UVIndex] = LayerElementUV[FbxUVIndex]->GetReferenceMode();
-							UVMappingMode[UVIndex] = LayerElementUV[FbxUVIndex]->GetMappingMode();
+							UVReferenceMode[UVIndex] = LayerElementUV[UVIndex]->GetReferenceMode();
+							UVMappingMode[UVIndex] = LayerElementUV[UVIndex]->GetMappingMode();
 							break;
 						}
 					}
@@ -2953,12 +3168,43 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	return true;
 }
 
-void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD)
+void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, UFbxSkeletalMeshImportData* TemplateImportData)
 {
 	FSkeletalMeshResource* ImportedResource = InSkeletalMesh->GetImportedResource();
 	FSkeletalMeshResource* DestImportedResource = BaseSkeletalMesh->GetImportedResource();
 
 	FStaticLODModel& NewLODModel = ImportedResource->LODModels[0];
+
+
+	//Fill the data we need to recover the user section material slot assignation
+	TArray<FName> ExistingMeshSectionSlotNames;
+	TArray<FName> OriginalImportMeshSectionSlotNames;
+	UFbxSkeletalMeshImportData* ImportData = nullptr;
+	bool HasReimportData = (TemplateImportData != nullptr && DesiredLOD != 0 && BaseSkeletalMesh->LODInfo.Num() > DesiredLOD);
+	if (HasReimportData)
+	{
+		ImportData = UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(BaseSkeletalMesh, TemplateImportData);
+		HasReimportData = (ImportData != nullptr && ImportData->ImportMeshLodData.Num() > DesiredLOD);
+		if (HasReimportData)
+		{
+			const FImportMeshLodSectionsData& OriginalImportMeshLodSectionsData = ImportData->ImportMeshLodData[DesiredLOD];
+			const FSkeletalMeshLODInfo &ExistingSkelMeshLodInfo = BaseSkeletalMesh->LODInfo[DesiredLOD];
+			//Restore the section changes from the old import data
+			for (int32 SectionIndex = 0; SectionIndex < ExistingSkelMeshLodInfo.LODMaterialMap.Num(); SectionIndex++)
+			{
+				if (ExistingSkelMeshLodInfo.LODMaterialMap.Num() <= SectionIndex || OriginalImportMeshLodSectionsData.SectionOriginalMaterialName.Num() <= SectionIndex)
+				{
+					break;
+				}
+				//Get the current skelmesh section slot import name
+				int32 ExistRemapMaterialIndex = ExistingSkelMeshLodInfo.LODMaterialMap[SectionIndex];
+				ExistingMeshSectionSlotNames.Add(BaseSkeletalMesh->Materials[ExistRemapMaterialIndex].ImportedMaterialSlotName);
+
+				//Get the Last imported skelmesh section slot import name
+				OriginalImportMeshSectionSlotNames.Add(OriginalImportMeshLodSectionsData.SectionOriginalMaterialName[SectionIndex]);
+			}
+		}
+	}
 
 	// If we want to add this as a new LOD to this mesh - add to LODModels/LODInfo array.
 	if (DesiredLOD == DestImportedResource->LODModels.Num())
@@ -3064,11 +3310,48 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 	// If this LOD had been generated previously by automatic mesh reduction, clear that flag.
 	LODInfo.bHasBeenSimplified = false;
 
+	//Set back the user data
+	if (HasReimportData && BaseSkeletalMesh->LODInfo.Num() > DesiredLOD)
+	{
+		FSkeletalMeshLODInfo &NewSkelMeshLodInfo = BaseSkeletalMesh->LODInfo[DesiredLOD];
+		//Restore the section changes from the old import data
+		for (int32 SectionIndex = 0; SectionIndex < NewLODModel.Sections.Num(); SectionIndex++)
+		{
+			if (ExistingMeshSectionSlotNames.Num() <= SectionIndex || OriginalImportMeshSectionSlotNames.Num() <= SectionIndex)
+			{
+				break;
+			}
+			//Get the current skelmesh section slot import name
+			FName ExistMeshSectionSlotName = ExistingMeshSectionSlotNames[SectionIndex];
+			//Get the new skelmesh section slot import name
+			int32 NewRemapMaterialIndex = NewSkelMeshLodInfo.LODMaterialMap[SectionIndex];
+			FName NewMeshSectionSlotName = BaseSkeletalMesh->Materials[NewRemapMaterialIndex].ImportedMaterialSlotName;
+			//Get the Last imported skelmesh section slot import name
+			FName OriginalImportMeshSectionSlotName = OriginalImportMeshSectionSlotNames[SectionIndex];
+
+			if (OriginalImportMeshSectionSlotName == NewMeshSectionSlotName && ExistMeshSectionSlotName != OriginalImportMeshSectionSlotName)
+			{
+				//The last import slot name match the New import slot name, but the Exist slot name is different then the last import slot name.
+				//This mean the user has change the section assign slot and the fbx file did not change it
+				//Override the new section material index to use the one that the user set
+				for (int32 RemapMaterialIndex = 0; RemapMaterialIndex < BaseSkeletalMesh->Materials.Num(); ++RemapMaterialIndex)
+				{
+					const FSkeletalMaterial &NewSectionMaterial = BaseSkeletalMesh->Materials[RemapMaterialIndex];
+					if (NewSectionMaterial.ImportedMaterialSlotName == ExistMeshSectionSlotName)
+					{
+						NewSkelMeshLodInfo.LODMaterialMap[SectionIndex] = RemapMaterialIndex;
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	// rebuild vertex buffers and reinit RHI resources
 	BaseSkeletalMesh->PostEditChange();
 }
 
-bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister, TArray<UActorComponent*>* ReregisterAssociatedComponents)
+bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister, TArray<UActorComponent*>* ReregisterAssociatedComponents, UFbxSkeletalMeshImportData* TemplateImportData)
 {
 	check(InSkeletalMesh);
 	check(BaseSkeletalMesh);
@@ -3202,7 +3485,7 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 
 	// Also sort the RequiredBones array to be strictly increasing.
 	NewLODModel.RequiredBones.Sort();
-	NewLODModel.ActiveBoneIndices.Sort();
+	InSkeletalMesh->RefSkeleton.EnsureParentExists(NewLODModel.ActiveBoneIndices);
 
 	// To be extra-nice, we apply the difference between the root transform of the meshes to the verts.
 	FMatrix LODToBaseTransform = InSkeletalMesh->GetRefPoseMatrix(0).InverseFast() * BaseSkeletalMesh->GetRefPoseMatrix(0);
@@ -3230,7 +3513,7 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 			// wait until resources are released
 			FlushRenderingCommands();
 
-			InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD);
+			InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD, TemplateImportData);
 
 			// ReregisterContexts go out of scope here, reregistering associated components with the scene.
 		}
@@ -3238,14 +3521,14 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 		{
 			TComponentReregisterContext<USkinnedMeshComponent> ComponentReregisterContext;
 
-			InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD);
+			InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD, TemplateImportData);
 
 			// ReregisterContexts go out of scope here, reregistering skel components with the scene.
 		}
 	}
 	else
 	{
-		InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD);
+		InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD, TemplateImportData);
 	}
 
 	return true;

@@ -4,11 +4,9 @@ namespace UnrealBuildTool.Rules
 {
 	public class AudioMixer : ModuleRules
 	{
-		public AudioMixer(TargetInfo Target)
+		public AudioMixer(ReadOnlyTargetRules Target) : base(Target)
 		{
-            OptimizeCode = CodeOptimization.Always;
-
-            //OptimizeCode = CodeOptimization.Never;
+			OptimizeCode = CodeOptimization.Always;
 
             PrivateIncludePathModuleNames.Add("TargetPlatform");
 
@@ -84,6 +82,12 @@ namespace UnrealBuildTool.Rules
 					);
 			}
 
-		}
+            if (Target.Platform == UnrealTargetPlatform.XboxOne)
+            {
+                AddEngineThirdPartyPrivateStaticDependencies(Target,
+                    "libOpus"
+                    );
+            }
+        }
 	}
 }

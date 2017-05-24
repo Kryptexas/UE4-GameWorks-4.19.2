@@ -6,64 +6,69 @@
 #include "CoreGlobals.h"
 
 
-void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, FFreePageBlock* First, FFreePageBlock* Last, uint32& FreedPageBlocksNum, uint32& CachedTotal)
+void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, uint32 CachedByteLimit, FFreePageBlock* First, FFreePageBlock* Last, uint32& FreedPageBlocksNum, uint32& CachedTotal)
 {
-	if (First != Last)
+	if (!FPlatformMemory::BinnedPlatformHasMemoryPoolForThisSize(Size) && (Size <= CachedByteLimit / 4))
 	{
-		FFreePageBlock* Found = nullptr;
-
-		for (FFreePageBlock* Block = First; Block != Last; ++Block)
+		if (First != Last)
 		{
-			// look for exact matches first, these are aligned to the page size, so it should be quite common to hit these on small pages sizes
-			if (Block->ByteSize == Size)
-			{
-				Found = Block;
-				break;
-			}
-		}
-
-		if (!Found)
-		{
-			SIZE_T SizeTimes4 = Size * 4;
+			FFreePageBlock* Found = nullptr;
 
 			for (FFreePageBlock* Block = First; Block != Last; ++Block)
 			{
-				// is it possible (and worth i.e. <25% overhead) to use this block
-				if (Block->ByteSize >= Size && Block->ByteSize * 3 <= SizeTimes4)
+				// look for exact matches first, these are aligned to the page size, so it should be quite common to hit these on small pages sizes
+				if (Block->ByteSize == Size)
 				{
 					Found = Block;
 					break;
 				}
 			}
-		}
 
-		if (Found)
-		{
-			void* Result = Found->Ptr;
-			UE_CLOG(!Result, LogMemory, Fatal, TEXT("OS memory allocation cache has been corrupted!"));
-			CachedTotal -= Found->ByteSize;
-			if (Found + 1 != Last)
+			/* This is dubious - it results in larger block than Size bytes being returned, with no way for the client code to know the proper size
+			if (!Found)
 			{
-				FMemory::Memmove(Found, Found + 1, sizeof(FFreePageBlock) * ((Last - Found) - 1));
+				SIZE_T SizeTimes4 = Size * 4;
+
+				for (FFreePageBlock* Block = First; Block != Last; ++Block)
+				{
+					// is it possible (and worth i.e. <25% overhead) to use this block
+					if (Block->ByteSize >= Size && Block->ByteSize * 3 <= SizeTimes4)
+					{
+						Found = Block;
+						break;
+					}
+				}
 			}
-			--FreedPageBlocksNum;
-			return Result;
-		}
+			*/
 
-		if (void* Ptr = FPlatformMemory::BinnedAllocFromOS(Size))
-		{
-			return Ptr;
-		}
+			if (Found)
+			{
+				void* Result = Found->Ptr;
+				UE_CLOG(!Result, LogMemory, Fatal, TEXT("OS memory allocation cache has been corrupted!"));
+				CachedTotal -= Found->ByteSize;
+				if (Found + 1 != Last)
+				{
+					FMemory::Memmove(Found, Found + 1, sizeof(FFreePageBlock) * ((Last - Found) - 1));
+				}
+				--FreedPageBlocksNum;
+				return Result;
+			}
 
-		// Are we holding on to much mem? Release it all.
-		for (FFreePageBlock* Block = First; Block != Last; ++Block)
-		{
-			FPlatformMemory::BinnedFreeToOS(Block->Ptr, Block->ByteSize);
-			Block->Ptr      = nullptr;
-			Block->ByteSize = 0;
+			if (void* Ptr = FPlatformMemory::BinnedAllocFromOS(Size))
+			{
+				return Ptr;
+			}
+
+			// Are we holding on to much mem? Release it all.
+			for (FFreePageBlock* Block = First; Block != Last; ++Block)
+			{
+				FPlatformMemory::BinnedFreeToOS(Block->Ptr, Block->ByteSize);
+				Block->Ptr      = nullptr;
+				Block->ByteSize = 0;
+			}
+			FreedPageBlocksNum = 0;
+			CachedTotal        = 0;
 		}
-		FreedPageBlocksNum = 0;
-		CachedTotal        = 0;
 	}
 
 	return FPlatformMemory::BinnedAllocFromOS(Size);
@@ -71,7 +76,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, FFreePageBlock* First, F
 
 void FCachedOSPageAllocator::FreeImpl(void* Ptr, SIZE_T Size, uint32 NumCacheBlocks, uint32 CachedByteLimit, FFreePageBlock* First, uint32& FreedPageBlocksNum, uint32& CachedTotal)
 {
-	if (Size > CachedByteLimit / 4)
+	if (FPlatformMemory::BinnedPlatformHasMemoryPoolForThisSize(Size) || Size > CachedByteLimit / 4)
 	{
 		FPlatformMemory::BinnedFreeToOS(Ptr, Size);
 		return;

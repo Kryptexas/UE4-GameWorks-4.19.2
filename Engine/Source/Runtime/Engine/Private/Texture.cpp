@@ -279,6 +279,10 @@ void UTexture::Serialize(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	if (!StripFlags.IsEditorDataStripped())
 	{
+		if ( Ar.IsSaving() )
+		{
+			check( Source.HasHadBulkDataCleared() == false);
+		}
 		Source.BulkData.Serialize(Ar, this);
 	}
 
@@ -499,6 +503,12 @@ UEnum* UTexture::GetPixelFormatEnum()
 	}
 	return PixelFormatEnum;
 }
+
+void UTexture::PostCDOContruct()
+{
+	GetPixelFormatEnum();
+}
+
 
 bool UTexture::ForceUpdateTextureStreaming()
 {
@@ -972,6 +982,11 @@ FName GetDefaultTextureFormatName( const ITargetPlatform* TargetPlatform, const 
 {
 	FName TextureFormatName = NAME_None;
 
+	/**
+	 * IF you add a format to this function don't forget to update GetAllDefaultTextureFormatNames 
+	 */
+
+
 #if WITH_EDITOR
 	// Supported texture format names.
 	static FName NameDXT1(TEXT("DXT1"));
@@ -1104,3 +1119,43 @@ FName GetDefaultTextureFormatName( const ITargetPlatform* TargetPlatform, const 
 
 	return TextureFormatName;
 }
+
+
+void GetAllDefaultTextureFormats(const class ITargetPlatform* TargetPlatform, TArray<FName>& OutFormats, bool bSupportDX11TextureFormats)
+{
+#if WITH_EDITOR
+	static FName NameDXT1(TEXT("DXT1"));
+	static FName NameDXT3(TEXT("DXT3"));
+	static FName NameDXT5(TEXT("DXT5"));
+	static FName NameDXT5n(TEXT("DXT5n"));
+	static FName NameAutoDXT(TEXT("AutoDXT"));
+	static FName NameBC4(TEXT("BC4"));
+	static FName NameBC5(TEXT("BC5"));
+	static FName NameBGRA8(TEXT("BGRA8"));
+	static FName NameXGXR8(TEXT("XGXR8"));
+	static FName NameG8(TEXT("G8"));
+	static FName NameVU8(TEXT("VU8"));
+	static FName NameRGBA16F(TEXT("RGBA16F"));
+	static FName NameBC6H(TEXT("BC6H"));
+	static FName NameBC7(TEXT("BC7"));
+
+	OutFormats.Add(NameDXT1);
+	OutFormats.Add(NameDXT3);
+	OutFormats.Add(NameDXT5);
+	OutFormats.Add(NameDXT5n);
+	OutFormats.Add(NameAutoDXT);
+	OutFormats.Add(NameBC4);
+	OutFormats.Add(NameBC5);
+	OutFormats.Add(NameBGRA8);
+	OutFormats.Add(NameXGXR8);
+	OutFormats.Add(NameG8);
+	OutFormats.Add(NameVU8);
+	OutFormats.Add(NameRGBA16F);
+	if (bSupportDX11TextureFormats)
+	{
+		OutFormats.Add(NameBC6H);
+		OutFormats.Add(NameBC7);
+	}
+#endif
+}
+

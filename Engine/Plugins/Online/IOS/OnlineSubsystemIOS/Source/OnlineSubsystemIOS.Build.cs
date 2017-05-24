@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class OnlineSubsystemIOS : ModuleRules
 {
-    public OnlineSubsystemIOS(TargetInfo Target)
+    public OnlineSubsystemIOS(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		PrivateIncludePaths.AddRange( 

@@ -7,7 +7,7 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "Editor.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "LevelSequenceObjectReference.h"
+#include "LevelSequenceBindingReference.h"
 #include "SequenceRecorderSettings.h"
 #include "Sections/MovieScene3DTransformSectionRecorderSettings.h"
 #include "MovieSceneFolder.h"
@@ -396,10 +396,7 @@ TSharedPtr<FMovieSceneAnimationSectionRecorder> UActorRecording::StartRecordingC
 		ParentSpawnable->AddChildPossessable(PossessableGuid);
 	}
 
-	// BindingName must be the component's path relative to its owner Actor
-	FLevelSequenceObjectReference ObjectReference(FUniqueObjectGuid(), BindingName.ToString());
-
-	CurrentSequence->BindPossessableObject(PossessableGuid, ObjectReference);
+	CurrentSequence->BindPossessableObject(PossessableGuid, *SceneComponent, BindingContext);
 
 	// First try built-in animation recorder...
 	TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimationRecorder = nullptr;
@@ -675,20 +672,12 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 
 			for (USceneComponent* SceneComponent : NewComponents)
 			{
-				// new component, so we need to add this to our BP if its not native
+				// new component, so we need to add this to our BP if it didn't come from SCS
 				FName NewName;
-				if (SceneComponent->CreationMethod != EComponentCreationMethod::Native)
+				if (SceneComponent->CreationMethod != EComponentCreationMethod::SimpleConstructionScript)
 				{
 					// Give this component a unique name within its parent
-					if (SceneComponent->CreationMethod != EComponentCreationMethod::SimpleConstructionScript)
-					{
-						NewName = *FString::Printf(TEXT("Dynamic%s"), *SceneComponent->GetFName().GetPlainNameString());
-					}
-					else
-					{
-						NewName = SceneComponent->GetFName();
-					}					
-					
+					NewName = *FString::Printf(TEXT("Dynamic%s"), *SceneComponent->GetFName().GetPlainNameString());
 					NewName.SetNumber(1);
 					while (FindObjectFast<UObject>(ObjectTemplate, NewName))
 					{

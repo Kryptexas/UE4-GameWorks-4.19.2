@@ -282,7 +282,7 @@ public:
 	* @param Name - Name of the morph target we want to override
 	* @param Weight - How much of this morph target to apply (0.0 - 1.0)
 	*/
-	void AddCurveOverride(FName& Name, float Weight);
+	void AddCurveOverride(const FName& Name, float Weight);
 
 	/** Remove a named curve override */ 
 	void RemoveCurveOverride(FName& Name);
@@ -304,6 +304,7 @@ public:
 private:
 
 	void BindCommands();
+	void RestartPreviewComponent();
 
 	/** Handler for context menus */
 	TSharedPtr<SWidget> OnGetContextMenuContent() const;
@@ -323,8 +324,9 @@ private:
 	void CreateCurveList(const FString& SearchText = FString());
 
 	void ApplyCustomCurveOverride(UAnimInstance* AnimInstance) const;
-	void RefreshCachePreviewInstance();
-	void OnAssetChanged(UAnimationAsset* NewAsset);
+
+	/** Get the anim instance we are viewing */
+	UAnimInstance* GetAnimInstance() const;
 
 	/** Pointer to the preview scene we are viewing */
 	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
@@ -352,9 +354,6 @@ private:
 
 	/** A list of animation curve. Used by the PoseListView. */
 	TArray< TSharedPtr<FDisplayedCurveInfo> > CurveList;
-
-	/** The skeletal mesh that we grab the animation curve from */
-	TWeakObjectPtr<UAnimSingleNodeInstance> CachedPreviewInstance;
 
 	/** Current text typed into NameFilterBox */
 	FText FilterText;

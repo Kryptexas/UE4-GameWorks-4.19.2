@@ -11,11 +11,11 @@
 
 class UBlueprint;
 enum class ESavePackageResult;
+class ITargetPlatform;
 
 struct FPlatformNativizationDetails
 {
-	FString PlatformName;
-	FString PlatformTargetDirectory;
+	FName PlatformName;
 	FCompilerNativizationOptions CompilerNativizationOptions;
 };
 
@@ -27,6 +27,10 @@ struct FNativeCodeGenInitData
 	// Optional Manifest ManifestIdentifier, used for child cook processes that need a unique manifest name.
 	// The identifier is used to make a unique name for each platform that is converted.
 	int32 ManifestIdentifier;
+
+	// Optional, desired .uplugin file path for the nativized plugin (used so people can manually coordinate 
+	// cook/build processes).
+	FString DestPluginPath;
 };
 
 /** 
@@ -74,14 +78,16 @@ public:
 		return TEXT("BlueprintNativeCodeGen");
 	}
 
-	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const TCHAR* PlatformName) = 0;
-	virtual void SaveManifest(int32 Id = -1) = 0;
+	virtual void Convert(UPackage* Package, ESavePackageResult ReplacementType, const FName PlatformName) = 0;
+	virtual void SaveManifest() = 0;
 	virtual void MergeManifest(int32 ManifestIdentifier) = 0;
 	virtual void FinalizeManifest() = 0;
 	virtual void GenerateStubs() = 0;
 	virtual void GenerateFullyConvertedClasses() = 0;
-	virtual void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr) = 0;
+	virtual void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr, const FCompilerNativizationOptions& NativizationOptions) = 0;
 	virtual const TMultiMap<FName, TAssetSubclassOf<UObject>>& GetFunctionsBoundToADelegate() = 0;
+
+	virtual void FillPlatformNativizationDetails(const ITargetPlatform* Platform, FPlatformNativizationDetails& OutDetails) = 0;
 protected:
 	virtual void Initialize(const FNativeCodeGenInitData& InitData) = 0;
 	virtual void InitializeForRerunDebugOnly(const TArray<FPlatformNativizationDetails>& CodegenTargets) = 0;

@@ -1,6 +1,4 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -10,7 +8,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
 {
     public class DataRepository<T> : IDataRepository<T> where T : class
     {
-        private readonly CrashReportEntities _entityContext;
+        private CrashReportEntities _entityContext;
 
         /// <summary>
         /// Constructor
@@ -32,7 +30,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels.Repositories
         {
             return _entityContext.Set<T>();
         }
-
+        
+        /// <summary>
+        /// Count the number of objects that satisfy the filter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public int Count(Expression<Func<T, bool>> filter)
+        {
+            return _entityContext.Set<T>().Count(filter);
+        }
         /// <summary>
         /// Get a filtered list of type T from data storage
         /// Calling this method returns the data directly. It will execute the data retrieval - in this case an sql transaction.

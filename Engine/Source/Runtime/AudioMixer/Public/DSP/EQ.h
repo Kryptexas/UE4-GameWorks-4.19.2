@@ -10,7 +10,7 @@ namespace Audio
 	// Equalizer filter
 	// An equalizer is a cascaded (serial) band of parametric EQs
 	// This filter allows for setting each band with variable Bandwidth/Q, Frequency, and Gain
-	class FEqualizer
+	class AUDIOMIXER_API FEqualizer
 	{
 	public:
 		// Constructor
@@ -48,8 +48,8 @@ namespace Audio
 		// The number of channels in the equalizer
 		int32 NumChannels;
 
-		// The array of filters
-		FFilter* FilterBands;
+		// The array of biquad filters
+		FBiquadFilter* FilterBands;
 	};
 
 }

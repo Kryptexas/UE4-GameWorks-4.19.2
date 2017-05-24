@@ -159,6 +159,9 @@ void UTextureRenderTarget2D::PostEditChangeProperty(FPropertyChangedEvent& Prope
 
 void UTextureRenderTarget2D::PostLoad()
 {
+	float OriginalSizeX = SizeX;
+	float OriginalSizeY = SizeY;
+	
 	if (!FPlatformProperties::SupportsWindowedMode())
 	{
 		// Clamp the render target size in order to avoid reallocating the scene render targets,
@@ -169,6 +172,22 @@ void UTextureRenderTarget2D::PostLoad()
 
 	SizeX = FMath::Min<int32>(SizeX, GTextureRenderTarget2DMaxSizeX);
 	SizeY = FMath::Min<int32>(SizeY, GTextureRenderTarget2DMaxSizeY);
+	
+	// Maintain aspect ratio if clamped
+	if( SizeX != OriginalSizeX || SizeY != OriginalSizeY )
+	{
+		float ScaleX = SizeX / OriginalSizeX;
+		float ScaleY = SizeY / OriginalSizeY;
+		
+		if( ScaleX < ScaleY )
+		{
+			SizeY = OriginalSizeY * ScaleX;
+		}
+		else
+		{
+			SizeX = OriginalSizeX * ScaleY;
+		}
+	}
 	
 	Super::PostLoad();
 }
@@ -450,9 +469,24 @@ void FTextureRenderTarget2DResource::UpdateDeferredResource( FRHICommandListImme
 }
 
 /** 
- * @return width of target surface
+ * @return width of target
  */
+uint32 FTextureRenderTarget2DResource::GetSizeX() const
+{
+	return TargetSizeX;
+}
 
+/** 
+ * @return height of target
+ */
+uint32 FTextureRenderTarget2DResource::GetSizeY() const
+{
+	return TargetSizeY;
+}
+
+/** 
+ * @return dimensions of target surface
+ */
 FIntPoint FTextureRenderTarget2DResource::GetSizeXY() const
 { 
 	return FIntPoint(TargetSizeX, TargetSizeY); 

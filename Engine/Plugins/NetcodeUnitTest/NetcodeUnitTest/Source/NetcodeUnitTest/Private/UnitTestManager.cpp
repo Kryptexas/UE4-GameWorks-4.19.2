@@ -24,6 +24,7 @@
 #include "NUTUtilDebug.h"
 #include "Net/NUTUtilNet.h"
 #include "NUTUtilProfiler.h"
+#include "NUTUtilReflectionParser.h"
 
 // @todo #JohnBFeature: Add an overall-timer, and then start debugging the memory management in more detail
 
@@ -764,7 +765,7 @@ void UUnitTestManager::PrintUnitTestResult(UUnitTest* InUnitTest, bool bFinalSum
 	}
 
 	STATUS_LOG_OBJ(InUnitTest, ELogType::StatusImportant,	TEXT("  - Result: %s"),
-					(bUnfinished ? TEXT("Aborted/Unfinished") : *VerificationStateEnum->GetEnumName((uint32)UnitTestResult)));
+					(bUnfinished ? TEXT("Aborted/Unfinished") : *VerificationStateEnum->GetNameStringByValue((int64)UnitTestResult)));
 	STATUS_LOG_OBJ(InUnitTest, ELogType::StatusVerbose,	TEXT("  - Execution Time: %f"), InUnitTest->LastExecutionTime);
 
 
@@ -1150,7 +1151,11 @@ void UUnitTestManager::Tick(float DeltaTime)
 
 					CurUnitTest->UnitTick(DeltaTime);
 
-					if ((CurTime - CurUnitTest->LastNetTick) > NetTickInterval)
+					UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
+
+					// @todo #JohnB: Move NetTick to UClientUnitTest?
+					if ((CurTime - CurUnitTest->LastNetTick) > NetTickInterval && CurClientUnitTest != nullptr &&
+						CurClientUnitTest->UnitConn != nullptr)
 					{
 						CurUnitTest->NetTick();
 						CurUnitTest->LastNetTick = CurTime;
@@ -1755,7 +1760,7 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		NUTNet::CleanupUnitTestWorlds();
 
-		return true;
+		bReturnVal = true;
 	}
 	/**
 	 * Special 'StackTrace' command, for adding complex arbitrary stack tracing, as a debugging method.
@@ -1835,6 +1840,8 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			Ar.Logf(TEXT("Need to specify TraceName, i.e. 'StackTrace TraceName'"));
 		}
+
+		bReturnVal = true;
 	}
 	/**
 	 * Special 'LogTrace' command, which ties into the stack tracking code as used by the 'StackTrace' command.
@@ -1891,6 +1898,8 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			Ar.Logf(TEXT("Need to specify a log line for tracing."));
 		}
+
+		bReturnVal = true;
 	}
 	/**
 	 * Special 'LogHex' command, for taking an arbitrary memory location, plus its length, and spitting out a hex byte-dump.
@@ -1923,8 +1932,10 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		}
 		else
 		{
-			Ar.Logf(TEXT("Need to specify '-Data=DatAddress' and '-DataLen=Len'."));
+			Ar.Logf(TEXT("Need to specify '-Data=DataAddress' and '-DataLen=Len'."));
 		}
+
+		bReturnVal = true;
 	}
 	/**
 	 * Watches for the specified assert log, and then blocks it to prevent the game from crashing.
@@ -1944,6 +1955,73 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			Ar.Logf(TEXT("Need to specify the log string that should be matched, for detecting the assert."));
 		}
+
+		bReturnVal = true;
+	}
+	/**
+	 * Implements a command for utilizing the UE4 reflection system, through the NetcodeUnitTest FVMReflection helper class.
+	 * This is like a supercharged version of the 'get/set' commands, able to access anything in the UE4 VM, using C++-like syntax.
+	 *
+	 * This can save lots of time spent debugging using other means (e.g. log messages and associated recompiling/launching),
+	 * by allowing much better reach through the UE4 VM - almost like writing/executing code from the console.
+	 *
+	 *
+	 * Basic Usage:
+	 *	To get a reference to an object, use the 'Find(Name, Class)' function, where 'Name' is the full or partial name of an object,
+	 *	and (optionally) 'Class' is the full class name the object derives from.
+	 *
+	 *	For example, this will print the first PlayerController found:
+	 *		- Command:
+	 *			Reflect Find(,PlayerController)
+	 *
+	 *		- Output:
+	 *			OrionPlayerController_Main /Game/Maps/FrontEndScene.FrontEndScene:PersistentLevel.OrionPlayerController_Main_0
+	 *
+	 *	Once you find an object, then you can step-through and/or print members from the object, using C++-like syntax:
+	 *		- Command:
+	 *			Reflect Find(,PlayerController).Player.ViewportClient.GameInstance.LocalPlayers
+	 *
+	 *		- Output:
+	 *			(OrionLocalPlayer'/Engine/Transient.OrionEngine_0:OrionLocalPlayer_0')
+	 *
+	 *
+	 * Future features: (@todo #JohnB: NOTE: These will be implemented slowly, over a very long time, as they become useful to me)
+	 *	- Assignment operator '=':
+	 *		- This will allow variables to be assigned new values, rather than just printed
+	 *
+	 *	- Function calls:
+	 *		- Function's can not yet be called, only the inbuilt 'Find' function works at the moment
+	 *
+	 *	- Array operator '[0]':
+	 *		- Dynamic/static array elements can not be specified at the moment
+	 *
+	 *	- Misc. type support:
+	 *		- There are a few UProperty's I haven't used with reflection yet (e.g. TMap), which will be supported when it becomes useful
+	 *
+	 *	- Console autocomplete:
+	 *		- Eventually, I may utilize the console autocomplete, to automatically evaluate the reflect command as it is typed,
+	 *			and list accessible members for the current typed statement etc., like in Visual Studio.
+	 *
+	 *	- C++ reflection:
+	 *		- In theory, it's possible to extend reflection to C++ variables/functions using RTTI (Run-Time Type Information).
+	 *			If implemented, this will be experimental and very limited.
+	 */
+	else if (FParse::Command(&Cmd, TEXT("Reflect")))
+	{
+		FVMReflectionParser Parser;
+
+		TValueOrError<FString, FExpressionError> Result = Parser.EvaluateString(Cmd);
+
+		if (Result.IsValid())
+		{
+			Ar.Logf(TEXT("%s"), *Result.GetValue());
+		}
+		else
+		{
+			Ar.Logf(TEXT("Reflect: Error parsing: %s"), *Result.GetError().Text.ToString());
+		}
+
+		bReturnVal = true;
 	}
 
 	return bReturnVal;

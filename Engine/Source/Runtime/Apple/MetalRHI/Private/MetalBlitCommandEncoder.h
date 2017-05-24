@@ -3,12 +3,13 @@
 #pragma once
 
 #include <Metal/Metal.h>
+#include "MetalDebugCommandEncoder.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @class FMetalDebugCommandBuffer;
 
-@interface FMetalDebugBlitCommandEncoder : NSObject<MTLBlitCommandEncoder>
+@interface FMetalDebugBlitCommandEncoder : FMetalDebugCommandEncoder<MTLBlitCommandEncoder>
 
 /** The wrapped native command-encoder for which we collect debug information. */
 @property (readonly, retain) id<MTLBlitCommandEncoder> Inner;

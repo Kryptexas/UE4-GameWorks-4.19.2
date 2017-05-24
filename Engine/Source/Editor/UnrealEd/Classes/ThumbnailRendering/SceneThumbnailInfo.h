@@ -17,6 +17,9 @@ class USceneThumbnailInfo : public UThumbnailInfo
 {
 	GENERATED_UCLASS_BODY()
 
+	/** UObject interface */
+	virtual void Serialize(FArchive& Ar) override;
+
 	/** The pitch of the orbit camera around the asset */
 	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	float OrbitPitch;
@@ -28,4 +31,9 @@ class USceneThumbnailInfo : public UThumbnailInfo
 	/** The offset from the bounds sphere distance from the asset */
 	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	float OrbitZoom;
+
+public:
+	UNREALED_API virtual void ResetToDefault();
+	UNREALED_API virtual bool DiffersFromDefault() const;
+
 };

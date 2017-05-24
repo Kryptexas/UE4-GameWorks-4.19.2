@@ -12,6 +12,15 @@
 
 class SEditableTextBox;
 class STextBlock;
+class SPathPicker;
+class SAssetPicker;
+
+enum class EOpenedContextMenuWidget : uint8
+{
+	AssetView,
+	PathView,
+	None
+};
 
 class SAssetDialog : public SCompoundWidget
 {
@@ -79,6 +88,41 @@ private:
 
 	/* Handler for when an asset was double clicked in the asset picker */
 	void OnAssetsActivated(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType);
+
+
+	/** Will generate the context menu if an asset or a folder is selected, either from the PathView or AssetView */
+	TSharedPtr<SWidget> OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets);
+	TSharedPtr<SWidget> OnGetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder InOnCreateNewFolder);
+
+	/** Handler to check to see if a rename command is allowed */
+	bool CanExecuteRename() const;
+
+	/** Handler for Rename */
+	void ExecuteRename();
+
+	/** Handler to check to see if a delete command is allowed */
+	bool CanExecuteDelete() const;
+
+	/** Handler for Delete */
+	void ExecuteDelete();
+	FReply ExecuteDeleteFolderConfirmed();
+
+	/** Handler to check to see if a create new folder command is allowed */
+	bool CanExecuteCreateNewFolder() const;
+
+	/** Handler for creating new folder */
+	void ExecuteCreateNewFolder();
+
+	/** Handler for show in explorer */
+	void ExecuteExplore();
+
+	/** Handler for size map tool */
+	void ExecuteSizeMap();
+
+	/** Setup function for the context menu creation of folder and assets */
+	void SetupContextMenuContent(FMenuBuilder& MenuBuilder, const TArray<FString>& SelectedPaths);
+	
+	void BindCommands();
 
 	/** Closes this dialog */
 	void CloseDialog();
@@ -152,4 +196,19 @@ private:
 
 	/** Used to specify that valid assets were chosen */
 	bool bValidAssetsChosen;
+
+	/** Commands handled by this widget */
+	TSharedPtr< FUICommandList > Commands;
+
+	/** Path Picker used by the dialog */
+	TSharedPtr<SPathPicker> PathPicker;
+
+	/** Asset Picker used by the dialog */
+	TSharedPtr<SAssetPicker> AssetPicker;
+
+	/** CreateNewFolder delegate used when user select create new folder from the context menu */
+	FOnCreateNewFolder CurrentContextMenuCreateNewFolderDelegate;
+
+	/** Utility member to know if the context menu was opened on the asset view or the path view */
+	EOpenedContextMenuWidget OpenedContextMenuWidget;
 };

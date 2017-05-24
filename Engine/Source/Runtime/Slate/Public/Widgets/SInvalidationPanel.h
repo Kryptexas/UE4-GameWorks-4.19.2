@@ -84,8 +84,10 @@ private:
 	FORCEINLINE bool IsCachingNeeded() const { return bNeedsCaching; }
 #endif
 
+	bool IsCachingNeeded(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect) const;
+
 private:
-	FGeometry LastAllottedGeometry;
+	mutable FGeometry LastAllottedGeometry;
 
 	FSimpleSlot EmptyChildSlot;
 	FVector2D CachedDesiredSize;
@@ -101,7 +103,6 @@ private:
 	mutable TSet<UObject*> CachedResources;
 	
 	mutable FVector2D CachedAbsolutePosition;
-	mutable FVector2D AbsoluteDeltaPosition;
 
 	mutable TArray< FCachedWidgetNode* > NodePool;
 	mutable int32 LastUsedCachedNodeIndex;
@@ -114,4 +115,5 @@ private:
 	bool bCanCache;
 
 	bool bCacheRelativeTransforms;
+	bool bCacheRenderData;
 };

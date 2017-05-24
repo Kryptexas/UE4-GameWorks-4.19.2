@@ -1,134 +1,271 @@
 Availability:Public
-Title: Getting Started with Linux Projects
-Crumbs:%ROOT%, Platforms, Platforms/Linux
-Description:Setting up for development for the Linux platform.
-Version: 4.9
+Title: Cross-Compiling for Linux
+Crumbs:
+Description:Learn how to set up a cross-compilation toolchain in Windows, targeting the Linux platform.
+Version: 4.15
 SkillLevel: Advanced
-type:quick start
+type:overview
 parent:Platforms/Linux
 tags:Linux
-
-[VAR:Params]
-[PARAM:image]
-	![%Platforms/Linux/GettingStarted:title%](GettingStarted_Topic.png)
-[/PARAM]
-[PARAM:icon]
-	![](%ROOT%/tutorial_icon.png)(convert:false)
-[/PARAM]
-[PARAM:title]
-	%Platforms/Linux/GettingStarted:title%
-[/PARAM]
-[PARAM:path]
-	[RELATIVE:Platforms/Linux/GettingStarted]
-[/PARAM]
-[/VAR]
-
-[VAR:Topic]
-[OBJECT:Topic]
-%params%
-[/OBJECT]
-[/VAR]
+related:Programming/Development/CompilingProjects
+related:Programming/Development/BuildConfigurations
+related:Engine/Basics/Projects/Packaging
+related:Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy
+related:Programming/Basics/ConfigurationFiles
+topic-image:GettingStarted_Topic.png
+prereq:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
 
 <!--- %Globals:BinarySourceSelectVar% --->
 
-[TOC(start:2 end:3)]
+[TOC(start:2 end:4)]
 
-## Why cross-compilation
+![](LinuxXC_Banner.png)(w:1200)
 
-Cross-compilation was chosen in order to make it easier for game developers (who tend to have Windows-centric workflow) to target Linux. At the moment, this is only supported for Windows, Mac users currently have to resort to [native compilation](https://wiki.unrealengine.com/Building_On_Linux). We support and test Linux-x86_64, but we provide the libraries and the toolchain (clang-3.5.0-arm) which allow you to compile for Linux ARM as well (original Raspberry Pi and up), although this will require you to make a (minor) code change in UBT.
+Recent improvements to the cross-compile toolchain make it possible for Unreal Engine 4 (UE4) developers to target a variety of platforms from their Windows 
+development environment. This guide tells you which platforms you can target with the cross-compilation toolchain, providing a link 
+to download the toolchain, and ultimately showing you how to set it up to cross-compile a UE4 project for Linux. If you're developing a project in Unreal Engine, version 4.15, you'll also 
+learn how to switch between target platforms.
 
-From this point on we assume that you are targeting x86_64 Linux; although the most of below will apply to compiling for ARM as well (except for the different toolchain). Note that you can [build your own](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) toolchain if you want different versions of the tools or want to target a different architecture.
-
-## Setting up the toolchain 
-
-Add an environment variable (Control Panel->System->Advanced system settings->Advanced->Environment variables) named LINUX_ROOT, value of which is the absolute path to your toolchain, without trailing backslash:
-
-[REGION:raw]
-![](image00.png)
+[REGION:note]
+If you're developing your project with Unreal Engine, version 4.13 (or older), you'll want to refer to our [](Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy) documentation.
 [/REGION]
 
-After you made sure that variable is set, regenerate UE4 project files (using GenerateProjectFiles.bat) and restart Visual Studio. After this, you should have "Linux" available among Win32/Win64 configurations, and you should be able to cross-compile for it.
+[INCLUDE:Platforms/Linux/AdvancedLinuxDeveloper/LinuxCrossCompileLegacy#Why_XC]
 
-## Setting up packaging for Linux
+## Setting up the Toolchain
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	BinarySourceSelect
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	binaryinstall
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%binary%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	BinarySourceSelect
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	sourceinstall
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%source%
-	[/PARAM]
-[/OBJECT]
+If you want to set up a toolchain from your Windows (host) computer to target any of the aforementioned platforms, you'll have to download the toolchain and 
+set your system's environment variable to package your application for Linux and ARM based environments. If this is your first time packaging UE4 projects for the 
+Linux platform, you'll also have to build the engine in Visual Studio for Linux. After working through the following steps, your host environment will be set up 
+to target any of the currently supported platforms. 
 
-[VAR:source]
-For packaging for Linux platform you will need to build the following targets:
+[REGION:note]
+Please make sure that you have a reliable Internet connection prior to following these steps. Depending on the speed of your 
+Internet connection, downloading the toolchain can take anywhere from a few minutes to a few hours.
+[/REGION]
 
-For Linux:
+### Downloading the Toolchain
 
-* CrashReportClient
-* UE4Game (if you project is content-only, otherwise just build your project)
+1.	Click the [link](http://cdn.unrealengine.com/qfe/v8_clang-3.9.0-centos7.zip) to download our Clang 3.9.0 based toolchain.
+	
+1.	Now, create a new folder, naming it `Linux_CrossCompileToolChain`.
 
-For Windows:
+	[REGION:lightbox]
+		[![](LinuxXC_Step2.png)(w:600)](LinuxXC_Step2.png)
+	[/REGION]
 
-* The editor itself (this is needed to get Linux target modules built, so that Unreal Editor and Unreal Frontend know how to cook/package games for Linux).
-* UnrealPak and ShaderCompileWorker (you probably have those built anyway, but mentioning it for completeness).
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+	
+	[REGION:note]
+	If you're using a different naming convention, substitute your preferred folder name with the one we've chosen for illustrative purposes.
+	[/REGION]
 
-[/VAR]
+1.	**Extract** the toolchain, being sure to set the extracted file's destination to the folder that you created in the previous step. 
 
-[VAR:binary]
-Note that binary release can only package content-only projects. If you want to package a code-based project for Linux (or a project that has non-default third party plugins), you will have to set up a source build. Otherwise, if you are fine with content-only, there are no need to build anything as Linux binaries of UE4Game and CrashReportClient are bundled.
-[/VAR]
+	![](LinuxXC_Step3.png)(w:600)
 
-## Packaging for Linux
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
 
-The easiest way to package a project is to open it in the editor and then using File->Package To->Linux (assuming that you have a cross-toolchain installed in the previous step and Linux target modules are built for the editor in question - if you don't see Linux in the list, then it's likely that one of the former is not true - see above). After some time (which depends on the project in question and is rather short for sample project) you will have game assets and binaries in the directory you chose to package to.
+1.	Open the `[ROOT]/Linux_CrossCompileToolChain/v8_clang-3.9.0-centos7` folder to view the extracted files.
 
-The details of the packaging process can be seen by clicking the "Show Output Log" link. If this process fails with error message "unable to find UnrealPak or ShaderCompileWorker" see above about building them for the host (windows) platform.
+	[REGION:lightbox]
+		[![](LinuxXC_Step4.png)(w:600)](LinuxXC_Step4.png)
+	[/REGION]
 
-Scp or otherwise copy it to a target machine (mounting a Samba share - if you know how to do that - may be better if target machine is low on disk space, this also reduces iteration times), chmod +x the target executable (which will be located in LinuxNoEditor/<ProjectName>/Binaries/Linux/ directory) and run it.
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
 
-### Changes for Linux-ARM platforms
+	#### Supported Platforms
 
-If you are using the Linux-ARM cross compile toolchain before running GenerateProjectFiles.bat below edit the following file in the UE4 source code: 
+	Refer to the following table to see which platforms can be targeted with your version of UE4: 
 
-.../UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Linux/UEBuildLinux.cs 
+	| **Architecture**                                                    | **Sub-Architecture** | **Vendor** | **System** | **Application Binary Interface (abi)** | UE 4.14 Support | UE 4.15 Support  |
+	| ------------------------------------------------------------------- | -------------------- | ---------- | ---------- | -------------------------------------- | --------------- | ---------------- |
+	| **[AArch64](https://fedoraproject.org/wiki/Architectures/AArch64)** | N/A                  | Unknown    | Linux      | gnueabi                                | &#x2717;        | &#x2713;         |
+	| **[ARM](https://developer.arm.com/)**                               | N/A                  | Unknown    | Linux      | gnueabihf                              | &#x2717;        | &#x2713;         |
+	| **[i686](https://software.intel.com/en-us/)**                       | N/A                  | Unknown    | Linux      | gnu                                    | &#x2717;        | &#x2717;         |
+	| **[x86_64](http://developer.amd.com/)**                             | N/A                  | Unknown    | Linux      | gnu                                    | &#x2713;        | &#x2713;         |
+	
+	[REGION:note]
+	Please note that we haven't yet added Engine libraries for the i686 platform.
+	[/REGION]
 
-by commenting out the following line: 
+### Setting the Environment Variable
 
-static private string DefaultArchitecture = "x86_64-unknown-linux-gnu"; 
+1.	Prior to setting the `LINUX_MULTIARCH_ROOT` environment variable, double-click the **Setup** batch file (`Setup.bat`) to output the appropriate environment variable settings for your computer. 
 
-and un-commenting the linux-arm architecture line just below it: 
+	[REGION:lightbox]
+		[![](LinuxXC_Step5.png)(w:600)](LinuxXC_Step5.png)
+	[/REGION]
 
-//static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
 
-An additional step is required for the packaged project to be runnable on Linux-ARM platforms. Assuming the packaged project is located at \foo\bar\SunTemple_Linux open the following location:
+1.	At this point, a new **OutputEnvVars** text file should be located inside of the `v8_clang-3.9.0-centos7` folder. 
 
-\foo\bar\SunTemple_Linux\LinuxNoEditor\Engine\Binaries\Linux 
+	[REGION:lightbox]
+		[![](LinuxXC_Step6.png)(w:600)](LinuxXC_Step6.png)
+	[/REGION]
 
-and replace libopenal.so.1 with the version from: 
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
 
-...\UnrealEngine\Engine\Source\ThirdParty\OpenAL\1.15.1\lib\Linux\arm-unknown-linux-gnueabihf\libopenal.so 
+	[REGION:tip]
+	The `OutputEnvVars.txt` file contains useful information for setting your system's environment variable.
+	[/REGION]
 
-where ...\UnrealEngine is the location of the UE4 source code. Please be sure to rename libopenal.so to libopenal.so.1.
+1.	Press the **Windows Key** together with the **Pause Break Key** to open the **System Information** menu. 
+	Now, click the **Advanced System Settings** link to open the **Advanced** sub-menu, which is located in the **System Properties** menu.
 
-Now the project can be copied over to the target machine, chmod+x the target executable and run it as instructed above.
+	[REGION:lightbox]
+		[![](LinuxXC_Step8.png)(w:600)](LinuxXC_Step8.png)
+	[/REGION]
 
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+
+1.	Now, click the **Environment Variables...** button.
+
+	![](LinuxXC_Step9.png)
+
+1.	To add a new **System Variable**, click the **New...** button under the **System variables** list.
+
+	![](LinuxXC_Step10.png)
+
+	[REGION:note]
+	If you haven't opened `OutputEnvVars.txt` yet, please do so before moving onto the next step.
+	
+	[REGION:lightbox]
+		[![](LinuxXC_Step10Note.png)(w:600)](LinuxXC_Step10Note.png)
+	[/REGION]
+
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+
+	[/REGION]
+
+1.	After the **New System Variable** dialog menu opens, copy the `LINUX_MULTIARCH_ROOT` environment variable setting into the text boxes for the **New System Variable** dialog.
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step11.png)(w:600)](LinuxXC_Step11.png)
+	[/REGION]
+
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+
+1.	After returning to the **Evironment Variables** menu, click the **Ok** button to save the `LINUX_MULTIARCH_ROOT` environment variable.
+
+	![](LinuxXC_Step14.png)
+
+	[REGION:note]
+	Please note that if you already have the `LINUX_ROOT` environment variable set, you don't need to delete it because the engine will prioritize `LINUX_MULTIARCH_ROOT` over `LINUX_ROOT` during the packaging process.
+	[/REGION]
+
+1.	Now, click the **OK** button to close the **System Properties** menu.
+
+	![](LinuxXC_Step15.png)
+	
+	[REGION:note]
+	Now that you've added a new Environment Variable to your system, you'll need to close and restart all currently running instances of **Visual Studio** and **Command Prompt**.
+	[/REGION]
+
+### Setting up the Linux Build Configuration
+
+If you've never packaged a project for Linux before, you'll want to follow these steps.
+
+1.	Opening the **Command Prompt**, run `[UE4 ROOT]/Setup.bat` to check for, update, and install prerequisite dependencies for building UE4 from **Visual Studio**.
+
+	![](LinuxXC_Step17.png)
+
+1.	Run `[UE4 ROOT]/GenerateProjectFiles.bat` to set up the project files for UE4.
+
+	![](LinuxXC_Step18.png)
+
+	[REGION:warning]
+	`GenerateProjectFiles.bat` must be run inside of the root folder that UE4 resides in (`[UE4 ROOT]`). If you run the batch file with [Unreal Game Sync](https://github.com/EpicGames/UnrealEngine/blob/release/Engine/Source/Programs/UnrealGameSync/Deployment.txt), Linux won't show up as a valid **Build Configuration** inside of **Visual Studio**.
+	[/REGION]
+
+1.	Navigating to `[UE4 ROOT]`, double-click **UE4.sln** to open the UE4 solution in **Visual Studio**.
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step19.png)(w:600)](LinuxXC_Step19.png)
+	[/REGION]
+
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+
+1.	If you haven't built UE4, go ahead and press the **F5** key to build and run UE4 from Visual Studio.
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step20.png)(w:600)](LinuxXC_Step20.png)
+	[/REGION]
+
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+
+1.	Now, stop running the engine, and go back to **Visual Studio** to select the **Linux** solution platform in Visual Studio. You can build for Linux by pressing the following keyboard combination: **Ctrl+Shift+B**.
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step21.png)(w:600)](LinuxXC_Step21.png)
+	[/REGION]
+
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+
+	[REGION:note]
+	At this point, you should see the toolchain being displayed inside of Visual Studio's **Output Window**.
+
+	[REGION:lightbox]
+		[![](LinuxXC_Step21Note.png)(w:600)](LinuxXC_Step21Note.png)
+	[/REGION]
+	
+	[REGION:caption]
+		Click for full image.
+	[/REGION]
+	[/REGION]
+
+## Targeting Specific Platforms
+
+[REGION:note]
+Because version 4.14 can only target the x86_64 platform, the following section is intended for developers working with version 4.15.
+[/REGION]
+
+If you'd like your project to target a specific platform, you'll need to edit your project's [Default Engine Configuration File](Programming/Basics/ConfigurationFiles) file. To do so, navigate to the 
+file's location (`[Project Directory]\Config`) and open `DefaultEngine.ini` to add the following lines:
+
+	[/Script/LinuxTargetPlatform.LinuxTargetSettings]
+	TargetArchitecture=X86_64UnknownLinuxGnu
+
+Feel free to set `TargetArchitecture` to any of the following values:
+
+* X86_64UnknownLinuxGnu
+* ArmUnknownLinuxGnueabihf
+* AArch64UnknownLinuxGnueabi
+
+## End Result
+
+Congratulations! Moving forward, you should be able to see the cross-compile toolchain being used while packaging your project for Linux.
+
+[REGION:lightbox]
+	[![](LinuxXC_EndResult.png)(w:600)](LinuxXC_EndResult.png)
+[/REGION]
+
+[REGION:caption]
+	Click for full image.
+[/REGION]
+
+ Now, you're ready to [compile](Programming/Development/CompilingProjects), [build](Programming/Development/BuildConfigurations), and [package](Engine/Basics/Projects/Packaging) projects for a variety of Linux platforms from your Windows (host) computer. 
+ 

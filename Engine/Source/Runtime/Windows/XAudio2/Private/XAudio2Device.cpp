@@ -283,7 +283,17 @@ void FXAudio2Device::UpdateHardware()
 void FXAudio2Device::UpdateAudioClock()
 {
 	// Update the audio clock time
-	AudioClock = DeviceProperties->GetAudioClockTime();
+	const double NewAudioClock = DeviceProperties->GetAudioClockTime();
+
+	// If the device properties failed at getting an audio clock, then fallback to using device delta time
+	if (NewAudioClock == 0.0)
+	{
+		AudioClock += GetDeviceDeltaTime();
+	}
+	else
+	{
+		AudioClock = NewAudioClock;
+	}
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()

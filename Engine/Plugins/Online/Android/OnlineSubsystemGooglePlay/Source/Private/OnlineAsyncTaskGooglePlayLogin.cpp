@@ -22,9 +22,12 @@ FOnlineAsyncTaskGooglePlayLogin::FOnlineAsyncTaskGooglePlayLogin(
 
 void FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread()
 {
+	UE_LOG(LogOnline, Log, TEXT("FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread"));
+
 	// If we haven't created a GameServices object yet, do so.
 	if (Subsystem->GameServicesPtr.get() == nullptr)
 	{
+		UE_LOG(LogOnline, Log, TEXT("FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread initializing game services"));
 		// Store the Subsystem pointer locally so that the OnAuthActionFinished lambda can capture it
 		FOnlineSubsystemGooglePlay* LocalSubsystem = Subsystem;
 
@@ -44,6 +47,7 @@ void FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread()
 	}
 	else if(Subsystem->GameServicesPtr->IsAuthorized())
 	{
+		UE_LOG(LogOnline, Log, TEXT("FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread already authorized"));
 		// We have a GameServices object and the user is authorized, nothing else to do.
 		Status = gpg::AuthStatus::VALID;
 		bWasSuccessful = true;
@@ -51,6 +55,7 @@ void FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread()
 	}
 	else
 	{
+		UE_LOG(LogOnline, Log, TEXT("FOnlineAsyncTaskGooglePlayLogin::Start_OnTaskThread not authorized"));
 		// We have created the GameServices object but the user isn't authorized.
 		bWasSuccessful = false;
 		bIsComplete = true;
@@ -70,6 +75,7 @@ void FOnlineAsyncTaskGooglePlayLogin::TriggerDelegates()
 
 void FOnlineAsyncTaskGooglePlayLogin::OnAuthActionFinished(gpg::AuthOperation InOp, gpg::AuthStatus InStatus)
 {
+	UE_LOG(LogOnline, Log, TEXT("FOnlineAsyncTaskGooglePlayLogin::OnAuthActionFinished %d %d"), (int32)InOp, (int32)Status);
 	if (InOp == gpg::AuthOperation::SIGN_IN)
 	{
 		Status = InStatus;

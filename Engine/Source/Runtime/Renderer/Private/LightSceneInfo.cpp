@@ -57,20 +57,6 @@ FLightSceneInfo::FLightSceneInfo(FLightSceneProxy* InProxy, bool InbVisible)
 	check(bVisible || GIsEditor);
 
 	BeginInitResource(this);
-
-	for(uint32 LightTypeIndex = 0;LightTypeIndex < LightType_MAX;++LightTypeIndex)
-	{
-		for(uint32 A = 0;A < 2;++A)
-		{
-			for(uint32 B = 0;B < 2;++B)
-			{
-				for(uint32 C = 0;C < 2;++C)
-				{
-					TranslucentInjectCachedShaderMaps[LightTypeIndex][A][B][C] = NULL;
-				}
-			}
-		}
-	}
 }
 
 FLightSceneInfo::~FLightSceneInfo()
@@ -201,21 +187,6 @@ bool FLightSceneInfo::IsPrecomputedLightingValid() const
 
 void FLightSceneInfo::ReleaseRHI()
 {
-	for(uint32 LightTypeIndex = 0;LightTypeIndex < LightType_MAX;++LightTypeIndex)
-	{
-		for(uint32 A = 0;A < 2;++A)
-		{
-			for(uint32 B = 0;B < 2;++B)
-			{
-				for(uint32 C = 0;C < 2;++C)
-				{
-					TranslucentInjectBoundShaderState[LightTypeIndex][A][B][C].SafeRelease();
-					TranslucentInjectCachedShaderMaps[LightTypeIndex][A][B][C] = NULL;
-				}
-			}
-		}
-	}
-
 	if (TileIntersectionResources)
 	{
 		TileIntersectionResources->Release();

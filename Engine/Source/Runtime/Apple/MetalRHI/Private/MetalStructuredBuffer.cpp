@@ -14,9 +14,8 @@ FMetalStructuredBuffer::FMetalStructuredBuffer(uint32 Stride, uint32 Size, FReso
 	check((Size % Stride) == 0);
 
 	MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-	FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), Size, Mode));
-	Buffer = [Buf.Buffer retain];
-
+	Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), Size, Mode));
+	
 	if (ResourceArray)
 	{
 		// copy any resources to the CPU address
@@ -24,8 +23,7 @@ FMetalStructuredBuffer::FMetalStructuredBuffer(uint32 Stride, uint32 Size, FReso
  		FMemory::Memcpy(LockedMemory, ResourceArray->GetResourceData(), Size);
 		ResourceArray->Discard();
 	}
-	INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
-
+	
 	TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 }
 
@@ -33,7 +31,6 @@ FMetalStructuredBuffer::~FMetalStructuredBuffer()
 {
 	DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
 	SafeReleasePooledBuffer(Buffer);
-	[Buffer release];
 }
 
 void* FMetalStructuredBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32 Size)
@@ -43,12 +40,9 @@ void* FMetalStructuredBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, ui
 	// In order to properly synchronise the buffer access, when a dynamic buffer is locked for writing, discard the old buffer & create a new one. This prevents writing to a buffer while it is being read by the GPU & thus causing corruption. This matches the logic of other RHIs.
 	if (GetUsage() & BUF_AnyDynamic && LockMode == RLM_WriteOnly)
 	{
-		id<MTLBuffer> OldBuffer = Buffer;
+		GetMetalDeviceContext().ReleasePooledBuffer(Buffer);
 		MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), GetSize(), Mode));
-		Buffer = [Buf.Buffer retain];
-		GetMetalDeviceContext().ReleasePooledBuffer(OldBuffer);
-		[OldBuffer release];
+		Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), GetSize(), Mode));
 	}
 	
 	if(LockMode != RLM_ReadOnly)
@@ -87,19 +81,25 @@ void FMetalStructuredBuffer::Unlock()
 
 FStructuredBufferRHIRef FMetalDynamicRHI::RHICreateStructuredBuffer(uint32 Stride,uint32 Size,uint32 InUsage,FRHIResourceCreateInfo& CreateInfo)
 {
+	@autoreleasepool {
 	return new FMetalStructuredBuffer(Stride, Size, CreateInfo.ResourceArray, InUsage);
+	}
 }
 
 void* FMetalDynamicRHI::RHILockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBufferRHI,uint32 Offset,uint32 Size,EResourceLockMode LockMode)
 {
+	@autoreleasepool {
 	FMetalStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
 	
 	// just return the memory plus the offset
 	return (uint8*)StructuredBuffer->Lock(LockMode, Offset, Size);
+	}
 }
 
 void FMetalDynamicRHI::RHIUnlockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBufferRHI)
 {
+	@autoreleasepool {
 	FMetalStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
 	StructuredBuffer->Unlock();
+	}
 }

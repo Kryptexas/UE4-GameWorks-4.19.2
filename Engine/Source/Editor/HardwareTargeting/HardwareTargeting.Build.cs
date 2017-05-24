@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class HardwareTargeting : ModuleRules
 {
-	public HardwareTargeting(TargetInfo Target)
+	public HardwareTargeting(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {

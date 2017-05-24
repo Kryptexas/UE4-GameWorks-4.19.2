@@ -61,6 +61,8 @@ struct CORE_API FFbxErrors
 
 	static FName Generic_Mesh_SkinxxNameError;
 
+	static FName Generic_Mesh_TooManyLODs;
+
 	/** Static Mesh **/
 	static FName StaticMesh_TooManyMaterials;
 
@@ -89,8 +91,6 @@ struct CORE_API FFbxErrors
 
 	static FName SkeletalMesh_NoMeshFoundOnRoot;
 	
-	static FName SkeletalMesh_ImportSubDSurface;
-
 	static FName SkeletalMesh_InvalidRoot;
 
 	static FName SkeletalMesh_InvalidBone;
@@ -163,6 +163,10 @@ struct CORE_API FFbxErrors
 	static FName Animation_InvalidData;
 
 	static FName Animation_TransformError;
+
+	static FName Animation_DifferentLength;
+
+	static FName Animation_CurveNotFound;
 };
 
 /**

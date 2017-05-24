@@ -20,7 +20,6 @@ void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, U
 	DuplicatedClass = InOldClass;
 	OriginalCDO = InOldClass->GetDefaultObject();
 	bHasReinstanced = false;
-	bSkipGarbageCollection = false;
 	bNeedsReinstancing = true;
 	NewClass = InNewClass;
 
@@ -105,7 +104,6 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 					PropertyInfo.SubobjectName = SubobjectName;
 					PropertyInfo.SerializedValueOffset = Tell();
 					PropertyInfo.SerializedValueSize = Num;
-					PropertyData.Properties.Add(SerializedProperty->GetFName(), PropertyInfo);
 				}
 				else
 				{
@@ -223,7 +221,6 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	DuplicatedClass = InOldClass;
 	OriginalCDO = InOldClass->GetDefaultObject();
 	bHasReinstanced = false;
-	bSkipGarbageCollection = false;
 	bNeedsReinstancing = false;
 	NewClass = InOldClass; // The class doesn't change in this case
 

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class DeviceManager : ModuleRules
 {
-	public DeviceManager(TargetInfo Target)
+	public DeviceManager(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {

@@ -233,6 +233,10 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->bImportMaterials = true;
 	//TODO support T0AsRefPose
 	GlobalImportSettings->bUseT0AsRefPose = false;
+	//Make sure we do not mess with AutoComputeLodDistances when re-importing
+	GlobalImportSettings->bAutoComputeLodDistances = true;
+	GlobalImportSettings->LodNumber = 0;
+	GlobalImportSettings->MinimumLodNumber = 0;
 
 	GlobalImportSettings->ImportTranslation = FVector(0);
 	GlobalImportSettings->ImportRotation = FRotator(0);
@@ -976,7 +980,7 @@ UBlueprint *UReimportFbxSceneFactory::UpdateOriginalBluePrint(FString &BluePrint
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 
 		//Create the new nodes from the hierarchy actor
-		FKismetEditorUtilities::AddComponentsToBlueprint(BluePrint, HierarchyActor->GetInstanceComponents());
+		FKismetEditorUtilities::AddComponentsToBlueprint(BluePrint, HierarchyActor->GetInstanceComponents(), false, nullptr, true);
 		
 		UWorld* World = HierarchyActor->GetWorld();
 		World->DestroyActor(HierarchyActor);
@@ -1150,11 +1154,23 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 				FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
 				FbxImporter->ImportStaticMeshAsSingle(Pkg, AllNodeInLod, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData, NewObject, LODIndex);
 			}
+			UStaticMesh *NewMesh = Cast<UStaticMesh>(NewObject);
+			if (NewMesh != nullptr)
+			{
+				FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+				FbxImporter->PostImportStaticMesh(NewMesh, AllNodeInLod);
+			}
 		}
 	}
 	else
 	{
 		NewObject = FbxImporter->ImportStaticMesh(Pkg, GeometryParentNode, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData);
+		if (NewObject != nullptr)
+		{
+			TArray<FbxNode*> AllNodeInLod;
+			AllNodeInLod.Add(GeometryParentNode);
+			FbxImporter->PostImportStaticMesh(NewObject, AllNodeInLod);
+		}
 	}
 	if (NewObject == nullptr)
 	{
@@ -1167,6 +1183,7 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 	}
 	else
 	{
+
 		//Mark any re-imported package dirty
 		NewObject->MarkPackageDirty();
 	}

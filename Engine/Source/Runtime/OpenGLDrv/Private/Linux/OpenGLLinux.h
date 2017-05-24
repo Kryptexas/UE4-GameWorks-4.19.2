@@ -17,7 +17,6 @@
 THIRD_PARTY_INCLUDES_START
 	#include <GL/glcorearb.h>
 	#include <GL/glext.h>
-	#include "SDL.h"
 THIRD_PARTY_INCLUDES_END
 
 /** List all OpenGL entry points used by Unreal. */

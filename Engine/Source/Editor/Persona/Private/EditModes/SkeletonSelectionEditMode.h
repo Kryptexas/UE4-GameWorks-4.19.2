@@ -40,6 +40,10 @@ public:
 	virtual bool CanCycleWidgetMode() const override;
 
 private:
+	/** Check whether the currently selected bone is in the required bones list */
+	bool IsSelectedBoneRequired() const;
+
+private:
 	/** Whether we are currently in a manipulation  */
 	bool bManipulating;	
 

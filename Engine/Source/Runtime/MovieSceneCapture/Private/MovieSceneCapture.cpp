@@ -177,8 +177,6 @@ void UMovieSceneCapture::Initialize(TSharedPtr<FSceneViewport> InSceneViewport, 
 	FormatMappings.Add(TEXT("height"), FString::Printf(TEXT("%d"), CachedMetrics.Height));
 	FormatMappings.Add(TEXT("world"), InSceneViewport->GetClient()->GetWorld()->GetName());
 
-	FrameNumberFormat = FString::Printf(TEXT("%%0%dd"), Settings.ZeroPadFrameNumbers);
-
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		FActiveMovieSceneCaptures::Get().Add(this);
@@ -292,7 +290,7 @@ FString UMovieSceneCapture::ResolveFileFormat(const FString& Format, const FFram
 {
 	TMap<FString, FStringFormatArg> AllArgs = FormatMappings;
 
-	AllArgs.Add(TEXT("frame"), FString::Printf(*FrameNumberFormat, Settings.bUseRelativeFrameNumbers ? FrameMetrics.FrameNumber : FrameMetrics.FrameNumber + FrameNumberOffset));
+	AllArgs.Add(TEXT("frame"), FString::Printf(TEXT("%0*d"), Settings.ZeroPadFrameNumbers, Settings.bUseRelativeFrameNumbers ? FrameMetrics.FrameNumber : FrameMetrics.FrameNumber + FrameNumberOffset));
 
 	AddFormatMappings(AllArgs, FrameMetrics);
 

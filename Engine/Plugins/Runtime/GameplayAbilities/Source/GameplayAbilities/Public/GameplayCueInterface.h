@@ -94,6 +94,8 @@ struct FActiveGameplayCue : public FFastArraySerializerItem
 	void PreReplicatedRemove(const struct FActiveGameplayCueContainer &InArray);
 	void PostReplicatedAdd(const struct FActiveGameplayCueContainer &InArray);
 	void PostReplicatedChange(const struct FActiveGameplayCueContainer &InArray) { }
+
+	FString GetDebugString();
 };
 
 USTRUCT(BlueprintType)
@@ -129,7 +131,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits< FActiveGameplayCueContainer > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FActiveGameplayCueContainer > : public TStructOpsTypeTraitsBase2< FActiveGameplayCueContainer >
 {
 	enum
 	{

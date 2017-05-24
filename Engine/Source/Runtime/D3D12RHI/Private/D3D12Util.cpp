@@ -32,19 +32,29 @@ extern bool D3D12RHI_ShouldCreateWithD3DDebug();
 
 void SetName(ID3D12Object* const Object, const TCHAR* const Name)
 {
+#if NAME_OBJECTS
 	if (Object)
 	{
 		VERIFYD3D12RESULT(Object->SetName(Name));
 	}
+#else
+	UNREFERENCED_PARAMETER(Object);
+	UNREFERENCED_PARAMETER(Name);
+#endif
 }
 
 void SetName(FD3D12Resource* const Resource, const TCHAR* const Name)
 {
+#if NAME_OBJECTS
 	// Special case for FD3D12Resources because we also store the name as a member in FD3D12Resource
 	if (Resource)
 	{
 		Resource->SetName(Name);
 	}
+#else
+	UNREFERENCED_PARAMETER(Resource);
+	UNREFERENCED_PARAMETER(Name);
+#endif
 }
 
 static FString GetD3D12DeviceHungErrorString(HRESULT ErrorCode)

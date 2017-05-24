@@ -5,7 +5,7 @@ using System.IO;
 
 public class RuntimeAssetCache : ModuleRules
 {
-	public RuntimeAssetCache(TargetInfo Target)
+	public RuntimeAssetCache(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

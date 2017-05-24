@@ -38,7 +38,9 @@ namespace PackageNameConstants
 
 bool FPackageName::IsShortPackageName(const FString& PossiblyLongName)
 {
-	return !PossiblyLongName.Contains(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+	// Long names usually have / as first character so check from the front
+	int32 SlashIndex = INDEX_NONE;
+	return !PossiblyLongName.FindChar('/', SlashIndex);
 }
 
 bool FPackageName::IsShortPackageName(const FName PossiblyLongName)
@@ -48,7 +50,9 @@ bool FPackageName::IsShortPackageName(const FName PossiblyLongName)
 
 FString FPackageName::GetShortName(const FString& LongName)
 {
-	const int32 IndexOfLastSlash = LongName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+	// Get everything after the last slash
+	int32 IndexOfLastSlash = INDEX_NONE;
+	LongName.FindLastChar('/', IndexOfLastSlash);
 	return LongName.Mid(IndexOfLastSlash + 1);
 }
 
@@ -71,7 +75,8 @@ FString FPackageName::GetShortName(const TCHAR* LongName)
 
 FName FPackageName::GetShortFName(const FString& LongName)
 {
-	const int32 IndexOfLastSlash = LongName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+	int32 IndexOfLastSlash = INDEX_NONE;
+	LongName.FindLastChar('/', IndexOfLastSlash);
 	return FName(*LongName.Mid(IndexOfLastSlash + 1));
 }
 
@@ -112,6 +117,7 @@ struct FLongPackagePathsSingleton
 	FString EngineRootPath;
 	FString GameRootPath;
 	FString ScriptRootPath;
+	FString MemoryRootPath;
 	FString TempRootPath;
 	TArray<FString> MountPointRootPaths;
 
@@ -149,6 +155,7 @@ struct FLongPackagePathsSingleton
 		{
 			OutRoots.Add(ConfigRootPath);
 			OutRoots.Add(ScriptRootPath);
+			OutRoots.Add(MemoryRootPath);
 			OutRoots.Add(TempRootPath);
 		}
 	}
@@ -205,6 +212,7 @@ private:
 		EngineRootPath = TEXT("/Engine/");
 		GameRootPath   = TEXT("/Game/");
 		ScriptRootPath = TEXT("/Script/");
+		MemoryRootPath = TEXT("/Memory/");
 		TempRootPath   = TEXT("/Temp/");
 
 		EngineContentPath      = FPaths::EngineContentDir();
@@ -233,6 +241,7 @@ private:
 		ContentPathToRoot.Emplace(EngineRootPath, EngineShadersPath);
 		ContentPathToRoot.Emplace(EngineRootPath, EngineShadersPathShort);
 		ContentPathToRoot.Emplace(GameRootPath,   GameContentPath);
+		ContentPathToRoot.Emplace(ScriptRootPath, GameScriptPath);
 		ContentPathToRoot.Emplace(ScriptRootPath, GameScriptPath);
 		ContentPathToRoot.Emplace(TempRootPath,   GameSavedPath);
 		ContentPathToRoot.Emplace(GameRootPath,   GameContentPathRebased);
@@ -385,8 +394,15 @@ FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName
 
 FString FPackageName::GetLongPackagePath(const FString& InLongPackageName)
 {
-	const int32 LastSlashIdx = InLongPackageName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-	return LastSlashIdx >= 0 ? InLongPackageName.Left(LastSlashIdx) : InLongPackageName;
+	int32 IndexOfLastSlash = INDEX_NONE;
+	if (InLongPackageName.FindLastChar('/', IndexOfLastSlash))
+	{
+		return InLongPackageName.Left(IndexOfLastSlash);
+	}
+	else
+	{
+		return InLongPackageName;
+	}
 }
 
 bool FPackageName::SplitLongPackageName(const FString& InLongPackageName, FString& OutPackageRoot, FString& OutPackagePath, FString& OutPackageName, const bool bStripRootLeadingSlash)
@@ -430,8 +446,16 @@ bool FPackageName::SplitLongPackageName(const FString& InLongPackageName, FStrin
 
 FString FPackageName::GetLongPackageAssetName(const FString& InLongPackageName)
 {
-	const int32 LastSlashIdx = InLongPackageName.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-	return LastSlashIdx >= 0 ? InLongPackageName.Mid(LastSlashIdx + 1) : InLongPackageName;
+	int32 IndexOfLastSlash = INDEX_NONE;
+	if (InLongPackageName.FindLastChar('/', IndexOfLastSlash))
+	{
+		return InLongPackageName.Mid(IndexOfLastSlash + 1);
+	}
+	else
+	{
+		return InLongPackageName;
+	}
+
 }
 
 bool FPackageName::DoesPackageNameContainInvalidCharacters(const FString& InLongPackageName, FText* OutReason /*= NULL*/)
@@ -656,6 +680,11 @@ bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid*
 		return false;
 	}
 
+	if (IsMemoryPackage(PackageName))
+	{
+		return false;
+	}
+
 	if ( !FPackageName::IsValidLongPackageName( PackageName, true, &Reason ) )
 	{
 		UE_LOG(LogPackageName, Error, TEXT( "DoesPackageExist: DoesPackageExist FAILED: '%s' is not a standard unreal filename or a long path name. Reason: %s"), *LongPackageName, *Reason.ToString() );
@@ -848,36 +877,49 @@ FString FPackageName::GetNormalizedObjectPath(const FString& ObjectPath)
 
 FString FPackageName::GetDelegateResolvedPackagePath(const FString& InSourcePackagePath)
 {
-	bool WasResolved = false;
-
-	// If the path is /Game/Path/Foo.Foo only worry about resolving the /Game/Path/Foo
-	FString PathName = InSourcePackagePath;
-	FString ObjectName;
-	PathName.Split(TEXT("."), &PathName, &ObjectName);
-
-	for (auto Delegate : FCoreDelegates::PackageNameResolvers)
+	if (FCoreDelegates::PackageNameResolvers.Num() > 0)
 	{
-		FString ResolvedPath;
-		if (Delegate.Execute(PathName, ResolvedPath))
-		{
-			UE_LOG(LogPackageName, Display, TEXT("Package '%s' was resolved to '%s'"), *PathName, *ResolvedPath);
-			PathName = ResolvedPath;
-			WasResolved = true;
-		}
-	}
+		bool WasResolved = false;
 
-	if (WasResolved)
-	{
-		// If package was passed in with an object, add that back on by deriving it from the package name
-		if (ObjectName.Len())
-		{
-			PathName.Split(TEXT("/"), nullptr, &ObjectName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		// If the path is /Game/Path/Foo.Foo only worry about resolving the /Game/Path/Foo
+		FString PathName = InSourcePackagePath;
+		FString ObjectName;
+		int32 DotIndex = INDEX_NONE;
 
-			PathName += TEXT(".");
-			PathName += ObjectName;
+		if (PathName.FindChar('.', DotIndex))
+		{
+			ObjectName = PathName.Mid(DotIndex + 1);
+			PathName = PathName.Left(DotIndex);
 		}
 
-		return PathName;
+		for (auto Delegate : FCoreDelegates::PackageNameResolvers)
+		{
+			FString ResolvedPath;
+			if (Delegate.Execute(PathName, ResolvedPath))
+			{
+				UE_LOG(LogPackageName, Display, TEXT("Package '%s' was resolved to '%s'"), *PathName, *ResolvedPath);
+				PathName = ResolvedPath;
+				WasResolved = true;
+			}
+		}
+
+		if (WasResolved)
+		{
+			// If package was passed in with an object, add that back on by deriving it from the package name
+			if (ObjectName.Len())
+			{
+				int32 LastSlashIndex = INDEX_NONE;
+				if (PathName.FindLastChar('/', LastSlashIndex))
+				{
+					ObjectName = PathName.Mid(LastSlashIndex + 1);
+				}
+
+				PathName += TEXT(".");
+				PathName += ObjectName;
+			}
+
+			return PathName;
+		}
 	}
 
 	return InSourcePackagePath;
@@ -1069,6 +1111,12 @@ FString FPackageName::ObjectPathToObjectName(const FString& InObjectPath)
 bool FPackageName::IsScriptPackage(const FString& InPackageName)
 {
 	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().ScriptRootPath);
+}
+
+// Are we a package that resides in memory and not on disk
+bool FPackageName::IsMemoryPackage(const FString& InPackageName)
+{
+	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().MemoryRootPath);
 }
 
 bool FPackageName::IsLocalizedPackage(const FString& InPackageName)

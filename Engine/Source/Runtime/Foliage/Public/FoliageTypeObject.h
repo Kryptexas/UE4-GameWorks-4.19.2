@@ -56,7 +56,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FFoliageTypeObject> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FFoliageTypeObject> : public TStructOpsTypeTraitsBase2<FFoliageTypeObject>
 {
 	enum
 	{

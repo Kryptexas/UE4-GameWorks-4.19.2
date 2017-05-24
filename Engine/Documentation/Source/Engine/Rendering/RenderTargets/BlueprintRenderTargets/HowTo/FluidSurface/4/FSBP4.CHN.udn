@@ -1,22 +1,22 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:4. End Result
-description:Going over using the Fluid Surface Blueprint.
+﻿INTSourceChangelist:3259022
+availability:Public
+title:4.最终结果
+description:说明如何使用流体表面蓝图。
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 type:multi-step
 SkillLevel:Advanced
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo/FluidSurface
 Navigation:multi-step
-tags: Render Targets
+tags:Render Targets
 order:4
 checkpoint:FSB
 
 [NAV]
 
-When all of the various pieces of the fluid surface Blueprint have been connected, and the fluid surface Blueprint has been compiled and saved, add it to a level. Once placed in a level, you can play the level and then interact with the fluid surface Blueprint by holding down the left mouse button to shoot at it or by walking over it with your character. Below are some videos that show both these types of interaction.
+流体表面蓝图的所有部分连接好后，对蓝图进行编译和保存，然后添加到关卡。将其放置在关卡中后，即可开始游戏，用鼠标左键瞄准流体进行射击，或操作角色从流体上经过，和蓝图形成交互。下方的视频展示了这两种交互方式。
 
-* This video shows what happens when you shoot at the fluid surface Blueprint.
+* 此视频展示射击流体表面蓝图时出现的效果。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -30,7 +30,7 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-* This video shows what happens when you walk over the fluid surface Blueprint with a Pawn-based character.
+* 此视频显示基于 Pawn 的角色走过流体表面蓝图时出现的效果。
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
@@ -44,7 +44,7 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-* Here is a copy of the entire completed fluid surface Blueprint.
+* 此处为整个流体表面蓝图的拷贝。
 
 	[REGION:fullwidth]
 	[INCLUDE:Engine\Rendering\RenderTargets\BlueprintRenderTargets\HowTo\FluidSurface\4\#CompBP]
@@ -1141,7 +1141,7 @@ When all of the various pieces of the fluid surface Blueprint have been connecte
 			   NodePosY=-2016
 			   NodeWidth=1664
 			   NodeHeight=512
-			   NodeComment="Begin & End overlap to check to see if the character is touching the fluid surface actor. "
+			   NodeComment="Begin & End overlap to check to see if the character is touching the fluid surface actor."
 			   NodeGuid=A4E802DA4A1A76C1EC1E608F07C2C02F
 			End Object
 			Begin Object Class=K2Node_Knot Name="K2Node_Knot_0"

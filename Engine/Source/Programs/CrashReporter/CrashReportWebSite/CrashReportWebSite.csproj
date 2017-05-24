@@ -46,6 +46,10 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AWSSDK, Version=2.3.50.1, Culture=neutral, PublicKeyToken=9f476d3089b52be3, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Binaries\ThirdParty\AWSSDK\AWSSDK.dll</HintPath>
+    </Reference>
     <Reference Include="Common.Logging, Version=3.3.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
       <HintPath>packages\Common.Logging.3.3.1\lib\net40\Common.Logging.dll</HintPath>
       <Private>True</Private>
@@ -124,6 +128,7 @@
     <Reference Include="System.ComponentModel.DataAnnotations">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
     <Reference Include="System.Web.ApplicationServices" />
@@ -180,6 +185,7 @@
     </Compile>
     <Compile Include="App_Start\UnityConfig.cs" />
     <Compile Include="App_Start\UnityMvcActivator.cs" />
+    <Compile Include="Classes\PerformanceTracker.cs" />
     <Compile Include="Controllers\CSVController.cs" />
     <Compile Include="Controllers\DashboardController.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
@@ -337,6 +343,15 @@
       <LastGenOutput>CrashReports.cs</LastGenOutput>
     </Content>
     <Content Include="Global.asax" />
+    <EntityDeploy Include="DataModels\CrashReports.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>CrashReports.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+    <Content Include="DataModels\CrashReports.edmx.diagram">
+      <DependentUpon>CrashReports.edmx</DependentUpon>
+    </Content>
+    <None Include="Properties\PublishProfiles\CRB.pubxml" />
+    <None Include="Properties\PublishProfiles\AWS.pubxml" />
     <None Include="Scripts\jquery-3.1.1.intellisense.js" />
     <Content Include="Scripts\jquery-3.1.1.js" />
     <Content Include="Scripts\jquery-3.1.1.min.js" />
@@ -357,13 +372,6 @@
     <None Include="Views\Dashboard\Index.cshtml" />
     <None Include="Views\Crashes\Show.cshtml" />
     <None Include="Views\Reports\Index.cshtml" />
-    <EntityDeploy Include="DataModels\CrashReports.edmx">
-      <Generator>EntityModelCodeGenerator</Generator>
-      <LastGenOutput>CrashReports.Designer.cs</LastGenOutput>
-    </EntityDeploy>
-    <Content Include="DataModels\CrashReports.edmx.diagram">
-      <DependentUpon>CrashReports.edmx</DependentUpon>
-    </Content>
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Crashes\Index.cshtml" />
     <Content Include="Views\Crashes\ViewCrash.cshtml" />
@@ -380,6 +388,7 @@
     </Content>
     <Content Include="Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>
+      <SubType>Designer</SubType>
     </Content>
     <Content Include="Content\Site.css" />
     <None Include="Views\Shared\Error.cshtml" />
@@ -402,6 +411,7 @@
     <Content Include="Views\Shared\_CRWLayout.cshtml" />
     <None Include="Web.Development.config">
       <DependentUpon>Web.config</DependentUpon>
+      <SubType>Designer</SubType>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -414,9 +424,7 @@
       <Name>CrashReportCommon</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Classes\" />
-  </ItemGroup>
+  <ItemGroup />
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>

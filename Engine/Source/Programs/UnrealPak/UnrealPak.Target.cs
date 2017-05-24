@@ -5,26 +5,16 @@ using System.Collections.Generic;
 
 public class UnrealPakTarget : TargetRules
 {
-	public UnrealPakTarget(TargetInfo Target)
+	public UnrealPakTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
+		LaunchModuleName = "UnrealPak";
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable, InModuleNames: new List<string>() { "UnrealPak" })
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

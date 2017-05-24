@@ -3,6 +3,7 @@ title:Gradient
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Procedurally generated gradients to add to your materials, eliminating the need for textures and saving memory.
 Version: 4.9
+tags:Materials
 
 [TOC (start:2 end:3)]
 

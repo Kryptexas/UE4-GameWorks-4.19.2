@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability: Public
 Title:5. 바위 파괴하기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:이번 섹션에서는 Bind Event 를 사용하여 OnHit 에 바인딩, 바위가 총에 맞으면 파괴되도록 하겠습니다.
 version: 4.9
+tags:Blueprints
 
 
 [VAR:Steps]

@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class AndroidAudio : ModuleRules
 {
-	public AndroidAudio(TargetInfo Target)
+	public AndroidAudio(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 

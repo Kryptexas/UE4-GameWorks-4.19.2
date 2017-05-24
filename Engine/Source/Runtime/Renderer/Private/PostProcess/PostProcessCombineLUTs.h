@@ -12,6 +12,7 @@
 #include "PostProcess/RenderingCompositionGraph.h"
 
 class UTexture;
+class FFinalPostProcessSettings;
 
 bool UseVolumeTextureLUT(EShaderPlatform Platform);
 
@@ -19,14 +20,15 @@ bool UseVolumeTextureLUT(EShaderPlatform Platform);
 class FRCPassPostProcessCombineLUTs : public TRenderingCompositePassBase<0, 1>
 {
 public:
-	// interface FRenderingCompositePass ---------
-	FRCPassPostProcessCombineLUTs(EShaderPlatform InShaderPlatform, bool bInAllocateOutput)
+	FRCPassPostProcessCombineLUTs(EShaderPlatform InShaderPlatform, bool bInAllocateOutput, bool InIsComputePass)
 	: ShaderPlatform(InShaderPlatform)
 	, bAllocateOutput(bInAllocateOutput)
 	{
-		
+		bIsComputePass = InIsComputePass;
+		bPreferAsyncCompute = false;
 	}
 
+	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
@@ -36,7 +38,13 @@ public:
 	/** @return 0xffffffff if not found */
 	uint32 FindIndex(const FFinalPostProcessSettings& Settings, UTexture* Tex) const;
 
+	virtual FComputeFenceRHIParamRef GetComputePassEndFence() const override { return AsyncEndFence; }
+
 private:
+	template <typename TRHICmdList>
+	void DispatchCS(TRHICmdList& RHICmdList, FRenderingCompositePassContext& Context, const FIntRect& DestRect, FUnorderedAccessViewRHIParamRef DestUAV, int32 BlendCount, FTexture* Textures[], float Weights[]);
+
+	FComputeFenceRHIRef AsyncEndFence;
 
 	EShaderPlatform ShaderPlatform;
 	bool bAllocateOutput;
@@ -56,7 +64,12 @@ public:
 
 	FColorRemapShaderParameters(const FShaderParameterMap& ParameterMap);
 
+	// Explicit declarations here because templates unresolved when used in other files
 	void Set(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI);
+	void Set(FRHICommandListImmediate& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI) {};
+
+	template <typename TRHICmdList>
+	void Set(TRHICmdList& RHICmdList, const FComputeShaderRHIParamRef ShaderRHI);
 
 	friend FArchive& operator<<(FArchive& Ar,FColorRemapShaderParameters& P);
 

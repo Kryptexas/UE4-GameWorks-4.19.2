@@ -420,9 +420,13 @@ void AGameplayDebuggerCategoryReplicator::BeginPlay()
 	}
 }
 
-void AGameplayDebuggerCategoryReplicator::Destroyed()
+void AGameplayDebuggerCategoryReplicator::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
+
+	// Disable extensions to clear UI state
+	NotifyCategoriesToolState(false);
+	NotifyExtensionsToolState(false);
 
 	FGameplayDebuggerAddonManager& AddonManager = FGameplayDebuggerAddonManager::GetCurrent();
 	AddonManager.OnCategoriesChanged.RemoveAll(this);

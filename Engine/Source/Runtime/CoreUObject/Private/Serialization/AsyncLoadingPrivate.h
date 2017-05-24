@@ -23,7 +23,7 @@ public:
 	enum
 	{
 		// this is used for the initial precache and should be large enough to find the actual Sum.TotalHeaderSize
-		MAX_SUMMARY_SIZE = 4096
+		MAX_SUMMARY_SIZE = 8192
 	};
 
 	FArchiveAsync2(const TCHAR* InFileName
@@ -39,8 +39,7 @@ public:
 #if DEVIRTUALIZE_FLinkerLoad_Serialize
 		return CurrentPos + (ActiveFPLB->StartFastPathLoadBuffer - ActiveFPLB->OriginalFastPathLoadBuffer);
 #else
-		check(false);
-		return 0;
+		return CurrentPos;
 #endif
 	}
 	virtual int64 TotalSize() override;
@@ -86,6 +85,7 @@ private:
 
 	IAsyncReadFileHandle* Handle;
 	IAsyncReadRequest* SizeRequestPtr;
+	IAsyncReadRequest* EditorPrecacheRequestPtr;
 
 	IAsyncReadRequest* SummaryRequestPtr;
 	IAsyncReadRequest* SummaryPrecacheRequestPtr;

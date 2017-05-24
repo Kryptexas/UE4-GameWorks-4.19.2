@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class HTTP : ModuleRules
 {
-    public HTTP(TargetInfo Target)
+    public HTTP(ReadOnlyTargetRules Target) : base(Target)
     {
         Definitions.Add("HTTP_PACKAGE=1");
 

@@ -234,8 +234,9 @@ void ALobbyBeaconHost::ProcessDisconnect(ALobbyBeaconClient* ClientActor)
 	}
 }
 
-void ALobbyBeaconHost::ProcessKickPlayer(ALobbyBeaconClient* InInstigator, const FUniqueNetIdRepl& PlayerToKick, const FText& Reason)
+bool ALobbyBeaconHost::ProcessKickPlayer(ALobbyBeaconClient* InInstigator, const FUniqueNetIdRepl& PlayerToKick, const FText& Reason)
 {
+	bool bWasKicked = false;
 	if (InInstigator && PlayerToKick.IsValid())
 	{
 		for (AOnlineBeaconClient* ExistingClient : ClientActors)
@@ -251,12 +252,14 @@ void ALobbyBeaconHost::ProcessKickPlayer(ALobbyBeaconClient* InInstigator, const
 					{
 						FText KickReason = NSLOCTEXT("NetworkErrors", "KickedPlayerFromParty", "Kicked from party.");
 						KickPlayer(LBC, KickReason);
+						bWasKicked = true;
 					}
 					break;
 				}
 			}
 		}
 	}
+	return bWasKicked;
 }
 
 void ALobbyBeaconHost::HandlePlayerLogout(const FUniqueNetIdRepl& InUniqueId)

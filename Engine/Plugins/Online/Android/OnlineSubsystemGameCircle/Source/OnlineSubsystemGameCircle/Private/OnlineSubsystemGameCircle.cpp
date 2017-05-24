@@ -11,7 +11,16 @@ FOnlineSubsystemGameCircle::FOnlineSubsystemGameCircle()
 	, StoreInterface(nullptr)
 	, AGSCallbackManager(nullptr)
 {
+}
 
+FOnlineSubsystemGameCircle::FOnlineSubsystemGameCircle(FName InInstanceName)
+	: FOnlineSubsystemImpl(GAMECIRCLE_SUBSYSTEM, InInstanceName)
+	, IdentityInterface(nullptr)
+	, LeaderboardsInterface(nullptr)
+	, AchievementsInterface(nullptr)
+	, StoreInterface(nullptr)
+	, AGSCallbackManager(nullptr)
+{
 }
 
 IOnlineIdentityPtr FOnlineSubsystemGameCircle::GetIdentityInterface() const
@@ -189,7 +198,7 @@ std::string FOnlineSubsystemGameCircle::ConvertFStringToStdString(const FString&
 }
 
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeOnAmazonGamesInitCallback(JNIEnv* jenv, jobject thiz, jboolean bServiceIsReady)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeOnAmazonGamesInitCallback(JNIEnv* jenv, jobject thiz, jboolean bServiceIsReady)
 {
 	FOnlineSubsystemGameCircle * Subsystem = (FOnlineSubsystemGameCircle *)(FOnlineSubsystemGameCircle::Get());
 
@@ -205,7 +214,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeOnAmazonGamesInitCallb
 	}
 }
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeGameCircleOnResume(JNIEnv* jenv, jobject thiz)
+JNI_METHOD void Java_com_epicgames_ue4_GameActivity_nativeGameCircleOnResume(JNIEnv* jenv, jobject thiz)
 {
 	FOnlineSubsystemGameCircle * Subsystem = (FOnlineSubsystemGameCircle *)(FOnlineSubsystemGameCircle::Get());
 

@@ -72,6 +72,7 @@ public:
 	// Font data
 	FSlateFontInfo FontInfo;
 	TCHAR* ImmutableText;
+	FLinearColor OutlineTint;
 
 	// Shaped text data
 	FShapedGlyphSequencePtr ShapedGlyphSequence;
@@ -92,7 +93,7 @@ public:
 	bool bAntialias:1;
 
 	// Misc data
-	ESlateBatchDrawFlag::Type BatchFlags;
+	ESlateBatchDrawFlag BatchFlags;
 
 	// Custom drawer data
 	TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
@@ -118,7 +119,7 @@ public:
 	int32 DownsampleAmount;
 
 	// Line data
-	ESlateLineJoinType::Type SegmentJoinType;
+	ESlateLineJoinType SegmentJoinType;
 
 
 	SLATECORE_API static FSlateShaderResourceManager* ResourceManager;
@@ -167,9 +168,10 @@ public:
 
 	void SetTextPayloadProperties( FSlateWindowElementList& DrawBuffer, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint, const int32 StartIndex = 0, const int32 EndIndex = MAX_int32 );
 
-	void SetShapedTextPayloadProperties( const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FLinearColor& InTint )
+	void SetShapedTextPayloadProperties( const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FLinearColor& InBaseTint, const FLinearColor& InOutlineTint )
 	{
-		Tint = InTint;
+		Tint = InBaseTint;
+		OutlineTint = InOutlineTint;
 		ShapedGlyphSequence = InShapedGlyphSequence;
 	}
 
@@ -201,7 +203,7 @@ public:
 		GradientStops = InGradientStops;
 	}
 
-	void SetLinesPayloadProperties( const TArray<FVector2D>& InPoints, const FLinearColor& InTint, bool bInAntialias, ESlateLineJoinType::Type InJoinType, float InThickness )
+	void SetLinesPayloadProperties( const TArray<FVector2D>& InPoints, const FLinearColor& InTint, bool bInAntialias, ESlateLineJoinType InJoinType, float InThickness )
 	{
 		Tint = InTint;
 		Thickness = InThickness;
@@ -268,7 +270,17 @@ public:
 		ET_Border,
 		ET_Custom,
 		ET_CustomVerts,
+		/**
+		 * Used for Invalidation, these buffers represent a complete cached buffer of what we normally send to the GPU to be
+		 * drawn for a series of widgets.  They're used to reduce draw overhead in situations where the UI is largely static.
+		 */
 		ET_CachedBuffer,
+		/**
+		 * These layers are different from "layerId", they're symbolic layers, used when building up cached geometry.  They allow
+		 * Slate to semantically differentiate between Layer A and Layer B, which may have completely different layerIds, which perhaps
+		 * overlap, but because they are in logically separate layers they won't intersect, the contents of Layer B would always
+		 * come after the contents of Layer A.
+		 */
 		ET_Layer,
 		ET_PostProcessPass,
 		ET_Count,
@@ -320,7 +332,7 @@ public:
 		const FPaintGeometry& PaintGeometry, 
 		const FSlateBrush* InBrush, 
 		const FSlateRect& InClippingRect, 
-		ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, 
+		ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, 
 		const FLinearColor& InTint = FLinearColor::White );
 
 	SLATECORE_API static void MakeBox(
@@ -330,7 +342,7 @@ public:
 		const FSlateBrush* InBrush, 
 		const FSlateResourceHandle& InRenderingHandle, 
 		const FSlateRect& InClippingRect, 
-		ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, 
+		ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, 
 		const FLinearColor& InTint = FLinearColor::White );
 	
 	// !!! DEPRECATED !!! Use a render transform om your widget instead.
@@ -340,7 +352,7 @@ public:
 		const FPaintGeometry& PaintGeometry, 
 		const FSlateBrush* InBrush, 
 		const FSlateRect& InClippingRect, 
-		ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, 
+		ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, 
 		float Angle = 0.0f,
 		TOptional<FVector2D> InRotationPoint = TOptional<FVector2D>(),
 		ERotationSpace RotationSpace = RelativeToElement,
@@ -359,11 +371,11 @@ public:
 	 * @param InDrawEffects         Optional draw effects to apply
 	 * @param InTint                Color to tint the element
 	 */
-	SLATECORE_API static void MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FString& InText, const int32 StartIndex, const int32 EndIndex, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint =FLinearColor::White );
+	SLATECORE_API static void MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FString& InText, const int32 StartIndex, const int32 EndIndex, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint =FLinearColor::White );
 	
-	SLATECORE_API static void MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FString& InText, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint =FLinearColor::White );
+	SLATECORE_API static void MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FString& InText, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint =FLinearColor::White );
 
-	SLATECORE_API static void MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FText& InText, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint =FLinearColor::White );
+	SLATECORE_API static void MakeText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FText& InText, const FSlateFontInfo& InFontInfo, const FSlateRect& InClippingRect,ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint =FLinearColor::White );
 
 	/**
 	 * Creates a text element which displays a series of shaped glyphs on the screen
@@ -376,7 +388,7 @@ public:
 	 * @param InDrawEffects         Optional draw effects to apply
 	 * @param InTint                Color to tint the element
 	 */
-	SLATECORE_API static void MakeShapedText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint = FLinearColor::White );
+	SLATECORE_API static void MakeShapedText( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FShapedGlyphSequenceRef& InShapedGlyphSequence, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects, const FLinearColor& BaseTint, const FLinearColor& OutlineTint);
 
 	/**
 	 * Creates a gradient element
@@ -389,7 +401,7 @@ public:
 	 * @param InClippingRect           Parts of the element are clipped if it falls outside of this rectangle
 	 * @param InDrawEffects            Optional draw effects to apply
 	 */
-	SLATECORE_API static void MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None );
+	SLATECORE_API static void MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None );
 
 	/**
 	 * Creates a spline element
@@ -405,13 +417,13 @@ public:
 	 * @param InDrawEffects         Optional draw effects to apply
 	 * @param InTint                Color to tint the element
 	 */
-	SLATECORE_API static void MakeSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness = 0.0f, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White );
+	SLATECORE_API static void MakeSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness = 0.0f, ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White );
 
 	/** Just like MakeSpline but in draw-space coordinates. This is useful for connecting already-transformed widgets together. */
-	SLATECORE_API static void MakeDrawSpaceSpline(FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness = 0.0f, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White);
+	SLATECORE_API static void MakeDrawSpaceSpline(FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness = 0.0f, ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White);
 
 	/** Just like MakeSpline but in draw-space coordinates. This is useful for connecting already-transformed widgets together. */
-	SLATECORE_API static void MakeDrawSpaceGradientSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, const TArray<FSlateGradientStop>& InGradientStops, float InThickness = 0.0f, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None );
+	SLATECORE_API static void MakeDrawSpaceGradientSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, const TArray<FSlateGradientStop>& InGradientStops, float InThickness = 0.0f, ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None );
 
 	/**
 	 * Creates a line defined by the provided points
@@ -426,7 +438,7 @@ public:
 	 * @param bAntialias               Should antialiasing be applied to the line?
 	 * @param Thickness                The thickness of the line
 	 */
-	SLATECORE_API static void MakeLines( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White, bool bAntialias = true, float Thickness = 1.0f );
+	SLATECORE_API static void MakeLines( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White, bool bAntialias = true, float Thickness = 1.0f );
 
 	/**
 	 * Creates a viewport element which is useful for rendering custom data in a texture into Slate
@@ -440,7 +452,7 @@ public:
 	 * @param InDrawEffects            Optional draw effects to apply
 	 * @param InTint                   Color to tint the element
 	 */
-	SLATECORE_API static void MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White );
+	SLATECORE_API static void MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White );
 
 	/**
 	 * Creates a custom element which can be used to manually draw into the Slate render target with graphics API calls rather than Slate elements
@@ -463,6 +475,7 @@ public:
 	FORCEINLINE EElementType GetElementType() const { return ElementType; }
 	FORCEINLINE uint32 GetLayer() const { return Layer; }
 	FORCEINLINE const FSlateRenderTransform& GetRenderTransform() const { return RenderTransform; }
+	FORCEINLINE const FTransform2D& GetLayoutToRenderTransform() const { return LayoutToRenderTransform; }
 	FORCEINLINE const FVector2D& GetPosition() const { return Position; }
 	FORCEINLINE void SetPosition(const FVector2D& InPosition) { Position = InPosition; }
 	FORCEINLINE const FVector2D& GetLocalSize() const { return LocalSize; }
@@ -470,25 +483,47 @@ public:
 	FORCEINLINE const FSlateRect& GetClippingRect() const { return ClippingRect; }
 	FORCEINLINE void SetClippingRect(const FSlateRect& InClippingRect) { ClippingRect = InClippingRect; }
 	FORCEINLINE const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
-	FORCEINLINE uint32 GetDrawEffects() const { return DrawEffects; }
+	FORCEINLINE ESlateDrawEffect GetDrawEffects() const { return DrawEffects; }
 	FORCEINLINE const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
 	FORCEINLINE const int32 GetSceneIndex() const { return SceneIndex; }
 
-private:
-	void Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects);
+	FORCEINLINE FSlateRotatedRect CalculateRenderClippingRect() const
+	{
+		// The clip rect is NOT subject to the rotations specified by MakeRotatedBox.
+		return
+			EnumHasAllFlags(DrawEffects, ESlateDrawEffect::NoPixelSnapping)
+			? FSlateRotatedRect::MakeRotatedRect(ClippingRect, LayoutToRenderTransform)
+			: FSlateRotatedRect::MakeSnappedRotatedRect(ClippingRect, LayoutToRenderTransform);
+	}
 
+	FORCEINLINE FSlateLayoutTransform GetInverseLayoutTransform() const
+	{
+		return Inverse(FSlateLayoutTransform(Scale, Position));
+	}
+
+	/**
+	 * Update element cached position with an arbitrary offset
+	 *
+	 * @param Element		   Element to update
+	 * @param InOffset         Absolute translation delta
+	 */
+	SLATECORE_API static void ApplyPositionOffset(FSlateDrawElement& Element, const FVector2D& InOffset);
+
+private:
+	void Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect InDrawEffects);
 
 	static FVector2D GetRotationPoint( const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace );
 
 private:
 	FSlateDataPayload DataPayload;
 	FSlateRenderTransform RenderTransform;
+	FTransform2D LayoutToRenderTransform;
 	FSlateRect ClippingRect;
 	FVector2D Position;
 	FVector2D LocalSize;
 	float Scale;
 	uint32 Layer;
-	uint32 DrawEffects;
+	ESlateDrawEffect DrawEffects;
 	EElementType ElementType;
 	TOptional<FShortRect> ScissorRect;
 	int32 SceneIndex;
@@ -568,7 +603,7 @@ private:
 class FSlateElementBatch
 {
 public:
-	FSlateElementBatch(const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect, int32 InstanceCount = 0, uint32 InstanceOffset = 0, ISlateUpdatableInstanceBuffer* InstanceData = nullptr, int32 SceneIndex = -1)
+	FSlateElementBatch(const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect DrawEffects, ESlateBatchDrawFlag DrawFlags, const TOptional<FShortRect>& ScissorRect, int32 InstanceCount = 0, uint32 InstanceOffset = 0, ISlateUpdatableInstanceBuffer* InstanceData = nullptr, int32 SceneIndex = -1)
 		: BatchKey(InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect, InstanceCount, InstanceOffset, InstanceData, SceneIndex)
 		, ShaderResource(InShaderResource)
 		, NumElementsInBatch(0)
@@ -612,10 +647,10 @@ public:
 
 	const FSlateShaderResource* GetShaderResource() const { return ShaderResource; }
 	const FShaderParams& GetShaderParams() const { return BatchKey.ShaderParams; }
-	ESlateBatchDrawFlag::Type GetDrawFlags() const { return BatchKey.DrawFlags; }
+	ESlateBatchDrawFlag GetDrawFlags() const { return BatchKey.DrawFlags; }
 	ESlateDrawPrimitive::Type GetPrimitiveType() const { return BatchKey.DrawPrimitiveType; }
 	ESlateShader::Type GetShaderType() const { return BatchKey.ShaderType; } 
-	ESlateDrawEffect::Type GetDrawEffects() const { return BatchKey.DrawEffects; }
+	ESlateDrawEffect GetDrawEffects() const { return BatchKey.DrawEffects; }
 	const TOptional<FShortRect>& GetScissorRect() const { return BatchKey.ScissorRect; }
 	const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> GetCustomDrawer() const { return BatchKey.CustomDrawer; }
 	const TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> GetCachedRenderHandle() const { return BatchKey.CachedRenderHandle; }
@@ -633,17 +668,17 @@ private:
 		const FVector2D CachedRenderDataOffset;
 		const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> LayerHandle;
 		const FShaderParams ShaderParams;
-		const ESlateBatchDrawFlag::Type DrawFlags;	
+		const ESlateBatchDrawFlag DrawFlags;	
 		const ESlateShader::Type ShaderType;
 		const ESlateDrawPrimitive::Type DrawPrimitiveType;
-		const ESlateDrawEffect::Type DrawEffects;
+		const ESlateDrawEffect DrawEffects;
 		const TOptional<FShortRect> ScissorRect;
 		const int32 InstanceCount;
 		const uint32 InstanceOffset;
 		const ISlateUpdatableInstanceBuffer* InstanceData;
 		const int32 SceneIndex;
 
-		FBatchKey(const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, uint32 InInstanceOffset, ISlateUpdatableInstanceBuffer* InInstanceBuffer, int32 InSceneIndex)
+		FBatchKey(const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect InDrawEffects, ESlateBatchDrawFlag InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, uint32 InInstanceOffset, ISlateUpdatableInstanceBuffer* InInstanceBuffer, int32 InSceneIndex)
 			: ShaderParams(InShaderParams)
 			, DrawFlags(InDrawFlags)
 			, ShaderType(InShaderType)
@@ -657,7 +692,7 @@ private:
 		{
 		}
 
-		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, uint32 InInstanceOffset, ISlateUpdatableInstanceBuffer* InInstanceBuffer)
+		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect InDrawEffects, ESlateBatchDrawFlag InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, uint32 InInstanceOffset, ISlateUpdatableInstanceBuffer* InInstanceBuffer)
 			: ShaderParams( InShaderParams )
 			, DrawFlags( InDrawFlags )
 			, ShaderType( InShaderType )
@@ -814,13 +849,13 @@ public:
 
 	const TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderHandle;
 
-	const ESlateBatchDrawFlag::Type DrawFlags;	
+	const ESlateBatchDrawFlag DrawFlags;	
 
 	const ESlateShader::Type ShaderType;
 
 	const ESlateDrawPrimitive::Type DrawPrimitiveType;
 
-	const ESlateDrawEffect::Type DrawEffects;
+	const ESlateDrawEffect DrawEffects;
 
 	const TOptional<FShortRect> ScissorRect;
 	
@@ -1050,8 +1085,9 @@ public:
 	 *
 	 * @param VertexBuffer	Pointer to the actual memory for the vertex buffer 
 	 * @param IndexBuffer	Pointer to the actual memory for an index buffer
+	 * @param bAbsoluteIndices	Whether to write absolute indices (simplifies draw call setup on RHIs that do not support BaseVertex)
 	 */
-	SLATECORE_API void FillVertexAndIndexBuffer( uint8* VertexBuffer, uint8* IndexBuffer );
+	SLATECORE_API void FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* IndexBuffer, bool bAbsoluteIndices);
 
 	/** 
 	 * Creates rendering data from batched elements
@@ -1146,23 +1182,32 @@ public:
 	/** 
 	 * Construct a new list of elements with which to paint a window.
 	 *
-	 * @param InWindow   The window that we will be painting
+	 * @param InPaintWindow		The window that owns the widgets being painted.  This is almost most always the same window that is being rendered to
+	 * @param InRenderWindow	The window that we will be rendering to.
 	 */
-	explicit FSlateWindowElementList( TSharedPtr<SWindow> InWindow = TSharedPtr<SWindow>() )
-		: TopLevelWindow( InWindow )
+	explicit FSlateWindowElementList( TSharedPtr<SWindow> InPaintWindow = nullptr )
+		: PaintWindow(InPaintWindow)
+		, RenderTargetWindow(nullptr)
 		, bNeedsDeferredResolve( false )
 		, ResolveToDeferredIndex()
 		, MemManager(0)
 	{
 		DrawStack.Push(&RootDrawLayer);
 	}
-	
+
+
 	/** @return Get the window that we will be painting */
 	FORCEINLINE TSharedPtr<SWindow> GetWindow() const
 	{
-		return TopLevelWindow.Pin();
+		return PaintWindow.Pin();
 	}
 
+	/** @return Get the window that we will be rendering to */
+	FORCEINLINE SWindow* GetRenderWindow() const
+	{
+		// Note: This assumes that the PaintWindow is safe to pin and is not accessed by another thread
+		return RenderTargetWindow != nullptr ? RenderTargetWindow : PaintWindow.Pin().Get();
+	}
 
 	/** @return Get the draw elements that we want to render into this window */
 	FORCEINLINE const TArray<FSlateDrawElement>& GetDrawElements() const
@@ -1241,7 +1286,7 @@ public:
 	public:
 		SLATECORE_API FVolatilePaint(const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool InParentEnabled);
 
-		int32 ExecutePaint(FSlateWindowElementList& OutDrawElements) const;
+		int32 ExecutePaint(FSlateWindowElementList& OutDrawElements, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset) const;
 
 		FORCEINLINE const SWidget* GetWidget() const { return WidgetToPaintPtr.Pin().Get(); }
 		FORCEINLINE FGeometry GetGeometry() const { return AllottedGeometry; }
@@ -1262,7 +1307,7 @@ public:
 
 	SLATECORE_API void QueueVolatilePainting( const FVolatilePaint& InVolatilePaint );
 
-	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList);
+	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList, double InCurrentTime, float InDeltaTime, const FVector2D& InDynamicOffset);
 
 	SLATECORE_API void BeginLogicalLayer(const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& LayerHandle);
 	SLATECORE_API void EndLogicalLayer();
@@ -1323,10 +1368,20 @@ public:
 
 	SLATECORE_API void PostDraw_ParallelThread();
 
+	SLATECORE_API void SetRenderTargetWindow(SWindow* InRenderTargetWindow);
 private:
+	/** 
+	 * Window which owns the widgets that are being painted but not necessarily rendered to
+	 * Widgets are always rendered to the RenderTargetWindow
+	 */
+	TWeakPtr<SWindow> PaintWindow;
 
-	/** The top level window which these elements are being drawn on */
-	TWeakPtr<SWindow> TopLevelWindow;
+	/**
+	 * The window to render to.  This may be different from the paint window if we are displaying the contents of a window (or virtual window) onto another window
+	 * The primary use case of this is thread safe rendering of widgets during times when the main thread is blocked (e.g loading movies)
+	 * If this is null, the paint window is used
+ 	 */
+	SWindow* RenderTargetWindow;
 
 	/** Batched data used for rendering */
 	FSlateBatchData BatchData;

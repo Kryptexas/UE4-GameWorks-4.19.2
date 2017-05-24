@@ -132,6 +132,9 @@ struct FTimeSliderArgs
 	/** Attribute defining whether the playback range is locked */
 	TAttribute<bool> IsPlaybackRangeLocked;
 
+	/** Attribute defining the time snap interval */
+	TAttribute<float> TimeSnapInterval;
+
 	/** Called when toggling the playback range lock */
 	FSimpleDelegate OnTogglePlaybackRangeLocked;
 

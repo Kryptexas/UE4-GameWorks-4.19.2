@@ -1,13 +1,12 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:2 - Updating the Character Blueprint
+﻿INTSourceChangelist:3255885
+Availability:Public
+Title:2 - 更新角色蓝图
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:In this step, we create some script inside our Character Blueprint to allow us to simulate firing a weapon. 
-version: 4.14
-skilllevel: Advanced
-type:howto
+Description:在这步中，我们将在角色蓝图中创建一些脚本，模拟武器开火。 
+version:4.14
+skilllevel:Advanced
+type:how-to
 tags:Animation
-tags:How-To
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -27,45 +26,45 @@ tags:How-To
 
 %Steps%
 
-In this step, we create some script inside our Character Blueprint to allow us to signal our Animation Blueprint that we are firing a weapon. 
+在这步中，我们将在角色蓝图中创建一些脚本，以便对动画蓝图发出武器开火的信号。 
 
-1.	Inside the **Content Browser** under **Content/AnimStarterPack**, open the **Ue4ASP_Character** Blueprint. 
+1.	在 **Content Browser** 中的 **Content/AnimStarterPack** 文件夹下打开 **Ue4ASP_Character** 蓝图。 
 
-1.	Locate the **Crouching** section, and delete the **InputAction Crouch** Event (with the Warning!) sign. 
+1.	找到 **Crouching** 部分并删除 **InputAction Crouch** 事件（带警告标志）。
 
 	![](Animations6.png)
 
-	There is a warning on this node because our project is not set up to use the InputAction event "Crouch". 
+	此节点上有一个警告，因为我们项目未设置使用 InputAction 事件“Crouch”。 
 
-1.	**Right-click** in the graph and add a **C** Key Event and connect as shown below. 
+1.	在图表中 **点击右键** 添加一个 **C** 按键事件，并以下图方式进行连接。 
 
 	![](Animations7.png)
 
-	We have just associated crouch now with the **C** key press, you can change this input to whatever you would like. 
+	将蹲下与 **C** 按键事件关联后，即可根据需求对此输入随意进行修改。 
 
-1.	In the **MyBlueprint** window, click the **Add Variable** button to create a **Boolean** variable and call it **Fire Button Down**. 
+1.	在 **MyBlueprint** 窗口中，点击 **Add Variable** 按钮创建一个 **布尔** 变量并将其命名为 **Fire Button Down**。 
 
 	![](Animations8.png)
 
-1.	**Right-click** in the graph and add the **Left Mouse Button** Key Event. 
+1.	在图表中 **单击右键**，添加一个 **鼠标左键（Left Mouse Button）** 按键事件。 
 
-1.	Holding **Alt**, drag the **Fire Button Down** variable in the graph to create a **Set** node. 
+1.	按住 **Alt**，拖动图表中的 **Fire Button Down** 变量创建一个 **Set** 节点。 
 
-1.	Repeat the previous step (or copy the **Set** node) and connect as shown below. 
+1.	重复以上步骤（或复制 **Set** 节点）并按下方所示进行连接。 
 
 	![](Animations9.png)
 
-	Make sure that **Fire Button Down** is **True** when **Left Mouse Button** is **Pressed** and **False** when **Released**. 
+	保证 **Fire Button Down** 在 **鼠标左键** 为 **Pressed（按下）** 状态时为 **True**；鼠标左键为 **Released（松开）** 时为 **False**。 
 
-1.	Select **CapsuleComponent** in the **Components** window, then in the **Details** panel check the **Hidden in Game** option. 
+1.	在 **Components** 窗口中选择 **CapsuleComponent**，然后在 **Details** 面板中勾选 **Hidden in Game** 选项。 
 
 	![](HideCapsule.png)
 
-	This will turn off the debug display of capsule's collision. 
+	此设置将关闭胶囊体碰撞的调试显示。 
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1.	**编译** 并 **保存**，然后关闭蓝图。 
 
-Our character is now set up to send signals to our Animation Blueprint when we are crouching or firing a weapon. 
-In the next step, we will set up our Animation Graph inside our Animation Blueprint to handle the blending of our Anim Montage with our normal movement animations so that we can blend between the two. 
+角色现已设置完毕，蹲下或武器开火时将对动画蓝图发出信号。 
+在下一步中，我们将在动画蓝图中设置动画图表，处理动画蒙太奇和普通运动动画的混合，以实现两者之间的混合。 
 
 %Steps%

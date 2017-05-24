@@ -13,6 +13,7 @@
 #include "PostProcess/SceneRenderTargets.h"
 #include "SceneRendering.h"
 #include "RenderTargetTemp.h"
+#include "ClearQuad.h"
 
 /** The global render targets pool. */
 TGlobalResource<FRenderTargetPool> GRenderTargetPool;
@@ -220,6 +221,9 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 		return true;
 	}
 
+	// Make sure if requesting a depth format that the clear value is correct
+	ensure(!IsDepthOrStencilFormat(Desc.Format) || (Desc.ClearValue.ColorBinding == EClearBinding::ENoneBound || Desc.ClearValue.ColorBinding == EClearBinding::EDepthStencilBound));
+
 	// if we can keep the current one, do that
 	if(Out)
 	{
@@ -282,11 +286,18 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 					Found = Element;
 					FoundIndex = i;
 					bReusingExistingTarget = true;
-					break;
+					if (Element->RenderTargetItem.TargetableTexture)
+					{
+						FRHICommandListImmediate& RHICmdListImmediate = FRHICommandListExecutor::GetImmediateCommandList();
+						FTextureRHIParamRef Texture = Element->RenderTargetItem.TargetableTexture;
+						RHICmdListImmediate.SetResourceAliasability(EResourceAliasability::EUnaliasable, &Texture, 1);
+					}
+					goto Done;
 				}
 			}
 		}		
 	}
+Done:
 
 	if(!Found)
 	{		
@@ -362,7 +373,7 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 					Desc.Depth,
 					Desc.Format,
 					Desc.NumMips,
-					Desc.TargetableFlags,
+					Desc.Flags | Desc.TargetableFlags,
 					CreateInfo);
 
 				// similar to RHICreateTargetableShaderResource2D
@@ -399,6 +410,15 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.TargetableTexture,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture
 						);
+
+					if( Desc.NumMips > 1 )
+					{
+						Found->RenderTargetItem.MipSRVs.SetNum( Desc.NumMips );
+						for( uint16 i = 0; i < Desc.NumMips; i++ )
+						{
+							Found->RenderTargetItem.MipSRVs[i] = RHICreateShaderResourceView( (FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture, i );
+						}
+					}
 				}
 
 			}
@@ -474,18 +494,17 @@ bool FRenderTargetPool::FindFreeElement(FRHICommandList& RHICmdList, const FPool
 			if(Found->GetDesc().TargetableFlags & TexCreate_RenderTargetable)
 			{
 				SetRenderTarget(RHICmdList, Found->RenderTargetItem.TargetableTexture, FTextureRHIRef());
-				RHICmdList.ClearColorTexture(Found->RenderTargetItem.TargetableTexture, FLinearColor(1000, 1000, 1000, 1000), FIntRect());
+				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(1000, 1000, 1000, 1000));
 			}
 			else if(Found->GetDesc().TargetableFlags & TexCreate_UAV)
 			{
-				const uint32 ZeroClearValue[4] = { 1000, 1000, 1000, 1000 };
-				RHICmdList.ClearUAV(Found->RenderTargetItem.UAV, ZeroClearValue);
+				ClearUAV(RHICmdList, GMaxRHIFeatureLevel, Found->RenderTargetItem, FLinearColor(1000, 1000, 1000, 1000));
 			}
 
 			if(Desc.TargetableFlags & TexCreate_DepthStencilTargetable)
 			{
 				SetRenderTarget(RHICmdList, FTextureRHIRef(), Found->RenderTargetItem.TargetableTexture);
-				RHICmdList.ClearDepthStencilTexture(Found->RenderTargetItem.TargetableTexture, EClearDepthStencil::Depth, 0.0, 0, FIntRect());
+				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, false, FLinearColor::Black, true, 0, false, 0);
 			}
 		}
 	}
@@ -875,9 +894,6 @@ void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, con
 			SetRenderTarget(RHICmdList, View.Family->RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 			RHICmdList.SetViewport(0, 0, 0.0f, FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY().X, FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY().Y, 1.0f);
 
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 			FRenderTargetTemp TempRenderTarget(View, View.UnscaledViewRect.Size());
 			FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, View.GetFeatureLevel());
@@ -1326,6 +1342,15 @@ uint32 FPooledRenderTarget::Release() const
 
 			NonConstItem.SafeRelease();
 			delete this;
+		}
+		else if (IsFree() && GIsRHIInitialized)
+		{
+			FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+			if (RenderTargetItem.TargetableTexture)
+			{
+				FTextureRHIParamRef Texture = RenderTargetItem.TargetableTexture;
+				RHICmdList.SetResourceAliasability(EResourceAliasability::EAliasable, &Texture, 1);
+			}
 		}
 		return Refs;
 	}

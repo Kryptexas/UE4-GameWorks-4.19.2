@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class OculusAudio : ModuleRules
 	{
-		public OculusAudio(TargetInfo Target)
+		public OculusAudio(ReadOnlyTargetRules Target) : base(Target)
 		{
             PrivateIncludePathModuleNames.AddRange(
                 new string[]

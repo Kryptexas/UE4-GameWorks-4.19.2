@@ -1,23 +1,23 @@
-﻿INTSourceChangelist:3216146
-availability:Docs
-title: Blueprint and Render Targets How To's
-description: How to guides for using Blueprints to manipulate render targets. 
+﻿INTSourceChangelist:3264165
+availability:Public
+title: 블루프린트와 렌더 타겟
+description: 블루프린트를 사용해서 렌더 타겟을 조작하는 방법 안내입니다.
 crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
 version:4.13
 Type:how-to
 parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
 Navigation:landing
 tags: Render Targets
-tags: Blueprint
+tags: Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png
 
-The following **Blueprint and Render Targets - How To** pages provide step-by-step examples on how to use Blueprints and render targets together in your Unreal Engine 4 (UE4) projects. 
+다음 **블루프린트와 렌더 타겟** 페이지에는 언리얼 엔진 4 (UE4) 프로젝트에서 블루프린트와 렌더 타겟을 함께 사용하는 법에 대한 단계별 예제를 제공해 드립니다.
 <!--Reference links are also included to provide you with additional information.-->
 
-## Intermediate
+## 중급
 
 [DIR(output:"fancy" parent:"Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo" skill_level:"Intermediate")]
 
-## Advanced
+## 고급
 
 [DIR(output:"fancy" parent:"Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo" skill_level:"Advanced")]

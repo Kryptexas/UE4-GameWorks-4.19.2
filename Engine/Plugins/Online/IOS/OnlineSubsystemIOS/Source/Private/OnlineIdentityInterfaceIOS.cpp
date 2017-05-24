@@ -1,9 +1,16 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
+#import "OnlineAppStoreUtils.h"
 
-FOnlineIdentityIOS::FOnlineIdentityIOS() :
-	UniqueNetId( NULL )
+FOnlineIdentityIOS::FOnlineIdentityIOS()
+	: UniqueNetId(nullptr)
+{
+}
+
+FOnlineIdentityIOS::FOnlineIdentityIOS(FOnlineSubsystemIOS* InSubsystem)
+	: UniqueNetId(nullptr)
+	, Subsystem(InSubsystem)
 {
 }
 
@@ -213,7 +220,89 @@ FString FOnlineIdentityIOS::GetAuthToken(int32 LocalUserNum) const
 
 void FOnlineIdentityIOS::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
 {
-	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
+	if (Privilege == EUserPrivileges::CanPlayOnline)
+	{
+		TSharedRef<const FUniqueNetId> SharedUserId = UserId.AsShared();
+		FOnQueryAppBundleIdResponse completionDelegate = FOnQueryAppBundleIdResponse::CreateLambda([this, SharedUserId, Privilege, Delegate](NSDictionary* ResponseDict)
+		{
+			UE_LOG(LogOnline, Log, TEXT("GetUserPrivilege Complete"));
+																									   
+			uint32 Result = (uint32)EPrivilegeResults::GenericFailure;
+			if (ResponseDict != nil && [ResponseDict[@"resultCount"] integerValue] == 1)
+			{
+				// Get local bundle information
+				NSDictionary* infoDictionary = [[NSBundle mainBundle] infoDictionary];
+				FString localAppId = FString(infoDictionary[@"CFBundleIdentifier"]);
+				FString localVersionString = FString(infoDictionary[@"CFBundleShortVersionString"]);
+			    UE_LOG(LogOnline, Log, TEXT("Local: %s %s"), *localAppId, *localVersionString);
+
+				// Get remote bundle information
+				FString remoteAppId = FString([[[ResponseDict objectForKey:@"results"] objectAtIndex:0] objectForKey:@"bundleId"]);
+				FString remoteVersionString = FString([[[ResponseDict objectForKey:@"results"] objectAtIndex:0] objectForKey:@"version"]);
+				UE_LOG(LogOnline, Log, TEXT("Remote: %s %s"), *remoteAppId, *remoteVersionString);
+
+				if (localAppId == remoteAppId)
+				{
+					TArray<FString> LocalVersionParts;
+					localVersionString.ParseIntoArray(LocalVersionParts, TEXT("."));
+
+					TArray<FString> RemoteVersionParts;
+					remoteVersionString.ParseIntoArray(RemoteVersionParts, TEXT("."));
+
+					if (LocalVersionParts.Num() >= 2 &&
+						RemoteVersionParts.Num() >= 2)
+					{
+						Result = (uint32)EPrivilegeResults::NoFailures;
+
+						if (LocalVersionParts[0] != RemoteVersionParts[0] ||
+							LocalVersionParts[1] != RemoteVersionParts[1])
+						{
+							UE_LOG(LogOnline, Log, TEXT("Needs Update"));
+							Result = (uint32)EPrivilegeResults::RequiredPatchAvailable;
+						}
+						else
+						{
+							const FString LocalHotfixVersion = LocalVersionParts.IsValidIndex(2) ? LocalVersionParts[2] : TEXT("0");
+							const FString RemoteHotfixVersion = RemoteVersionParts.IsValidIndex(2) ? RemoteVersionParts[2] : TEXT("0");
+
+							if (LocalHotfixVersion != RemoteHotfixVersion)
+							{
+								UE_LOG(LogOnline, Log, TEXT("Needs Update"));
+								Result = (uint32)EPrivilegeResults::RequiredPatchAvailable;
+							}
+							else
+							{
+								UE_LOG(LogOnline, Log, TEXT("Does NOT Need Update"));
+							}
+						}
+					}
+				}
+				else
+				{
+					UE_LOG(LogOnline, Log, TEXT("BundleId does not match local bundleId"));
+				}
+			}
+			else
+			{
+				UE_LOG(LogOnline, Log, TEXT("GetUserPrivilege invalid response"));
+			}
+
+			Subsystem->ExecuteNextTick([Delegate, SharedUserId, Privilege, Result]()
+			{
+				Delegate.ExecuteIfBound(*SharedUserId, Privilege, Result);
+			});
+		});
+		
+		FAppStoreUtils* AppStoreUtils = Subsystem->GetAppStoreUtils();
+		if (AppStoreUtils)
+		{
+			[AppStoreUtils queryAppBundleId: completionDelegate];
+		}
+	 }
+	 else
+	 {
+		  Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
+	 }
 }
 
 FPlatformUserId FOnlineIdentityIOS::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& InUniqueNetId)

@@ -24,7 +24,8 @@ FSlateShaderResourceProxy* FSlateAtlasedTextureResource::FindOrCreateAtlasedProx
 	FSlateShaderResourceProxy* Proxy = ProxyMap.FindRef(InAtlasedObject);
 	if ( Proxy == nullptr )
 	{
-		FVector2D ActualSize(TextureObject->GetSurfaceWidth(), TextureObject->GetSurfaceHeight());
+		// when we use image-DrawAsBox with PaperSprite, we need to change its actual size as its actual dimension.
+		FVector2D ActualSize(TextureObject->GetSurfaceWidth() * AtlasData.SizeUV.X, TextureObject->GetSurfaceHeight() * AtlasData.SizeUV.Y);
 
 		Proxy = new FSlateShaderResourceProxy();
 		Proxy->Resource = this;

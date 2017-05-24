@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:3108692
 Availability: NoPublish
-Title: Intermediate Linux Developers
+Title: 중급 리눅스 개발자
 Crumbs:%ROOT%, Platforms, Platforms/Linux
-Description:Learn how to cook, package, and share your games.
+Description:게임 쿠킹, 패키징, 공유 방법을 배워봅니다.
 Platform:Linux
 Navigation:platform
 Version: 4.13
@@ -36,6 +36,7 @@ SkillLevel: Intermediate
 [/OBJECT]
 [/VAR]
 
-If you have some experience developing games on Linux, but you've never learned how to share projects with others, this learning path is for you. The following
-learning path is designed to help you gain skills with cross-compilation, multi-platform game development, cooking and packaging your Linux projects, and 
-integrating your project with Steam.
+리눅스에서의 게임 개발이 약간 있지만, 다른 이들과 프로젝트를 공유해 본 적은 없으신 분들을 위한 안내서입니다.
+여기서는 크로스 컴파일, 멀티 플랫폼 게임 개발, 리눅스 프로젝트 쿠킹 및 패키징 및 
+프로젝트 스팀 통합 방법을 알려드리고자 합니다.
+

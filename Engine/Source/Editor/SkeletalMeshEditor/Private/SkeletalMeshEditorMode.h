@@ -22,12 +22,19 @@ public:
 	/** FApplicationMode interface */
 	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
 
+
+	virtual void AddTabFactory(FCreateWorkflowTabFactory FactoryCreator) override;
+	virtual void RemoveTabFactory(FName TabFactoryID) override;
+
 protected:
 	/** The hosting app */
 	TWeakPtr<class FWorkflowCentricApplication> HostingAppPtr;
 
 	/** The tab factories we support */
 	FWorkflowAllowedTabSet TabFactories;
+
+	/** Mesh interface class */
+	TSharedRef<class FWorkflowTabFactory> CreateMeshControllerMappingTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TWeakObjectPtr<class USkeletalMesh>& InEditingMesh, FSimpleMulticastDelegate& OnPostUndo) const;
 };
 
 struct FMeshPropertiesSummoner : public FWorkflowTabFactory
@@ -47,3 +54,22 @@ struct FMeshPropertiesSummoner : public FWorkflowTabFactory
 private:
 	FOnGetAsset OnGetAsset;
 };
+
+/////////////////////////////////////////////////////
+// FAnimationMappingWindowTabSummoner
+
+struct FMeshControllerMappingTabSummoner : public FWorkflowTabFactory
+{
+public:
+	FMeshControllerMappingTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TWeakObjectPtr<class USkeletalMesh>& InEditingMesh, FSimpleMulticastDelegate& InOnPostUndo);
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+
+	// Create a tooltip widget for the tab
+	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const override;
+
+private:
+	TWeakObjectPtr<class USkeletalMesh> SkeletalMesh;
+	FSimpleMulticastDelegate& OnPostUndo;
+};
+

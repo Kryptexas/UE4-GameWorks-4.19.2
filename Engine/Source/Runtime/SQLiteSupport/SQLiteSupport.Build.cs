@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SQLiteSupport : ModuleRules
 	{
-		public SQLiteSupport(TargetInfo Target)
+		public SQLiteSupport(ReadOnlyTargetRules Target) : base(Target)
 		{
 			string PlatformName = "";
 			string ConfigurationName = "";
@@ -46,7 +46,17 @@ namespace UnrealBuildTool.Rules
 			}
 
 			string LibraryPath = "" + UEBuildConfiguration.UEThirdPartySourceDirectory + "sqlite/lib/" + PlatformName + ConfigurationName;
-			string LibraryFilename = Path.Combine(LibraryPath, "sqlite" + UEBuildPlatform.GetBuildPlatform(Target.Platform).GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
+
+			string LibraryFilename;
+			if(Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.XboxOne)
+			{
+				LibraryFilename = Path.Combine(LibraryPath, "sqlite.lib");
+			}
+			else
+			{
+				LibraryFilename = Path.Combine(LibraryPath, "sqlite.a");
+			}
+
 			if (!File.Exists(LibraryFilename))
 			{
 				throw new BuildException("Please refer to the Engine/Source/ThirdParty/sqlite/README.txt file prior to enabling this module.");

@@ -1,4 +1,4 @@
-availability:docs
+availability:Public
 title: Blueprint and Render Targets Reference
 description: A listing of properties and descriptions for using Blueprint & Render Targets.
 crumbs:%ROOT%, Engine, Engine/Rendering, Engine/Rendering/RenderTargets, Engine/Rendering/RenderTargets/BlueprintRenderTargets
@@ -8,7 +8,7 @@ parent:Engine/Rendering/RenderTargets/BlueprintRenderTargets
 order:2
 Navigation:Reference
 tags: Render Targets
-tags: Blueprint
+tags: Blueprints
 topic-image:Engine/Rendering/RenderTargets/Render_Targets_Reference.png
 
 [TOC (start:2 end:3)]

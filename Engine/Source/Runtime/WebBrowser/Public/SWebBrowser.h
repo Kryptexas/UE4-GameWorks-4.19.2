@@ -16,6 +16,8 @@ class SEditableTextBox;
 struct FWebNavigationRequest;
 enum class EWebBrowserDialogEventResponse;
 
+DECLARE_DELEGATE_RetVal(bool, FOnSuppressContextMenu);
+
 class WEBBROWSER_API SWebBrowser
 	: public SCompoundWidget
 {
@@ -108,6 +110,9 @@ public:
 
 		/** Called to dismiss any dialogs shown via OnShowDialog. */
 		SLATE_EVENT(FSimpleDelegate, OnDismissAllDialogs)
+
+		SLATE_EVENT(FOnSuppressContextMenu, OnSuppressContextMenu);
+
 
 	SLATE_END_ARGS()
 
@@ -206,8 +211,6 @@ public:
 
 	void UnbindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter);
 
-private:
-
 	/** Returns true if the browser can navigate backwards. */
 	bool CanGoBack() const;
 
@@ -289,4 +292,5 @@ private:
 
 	/** The initial throbber setting */
 	bool bShowInitialThrobber;
+
 };

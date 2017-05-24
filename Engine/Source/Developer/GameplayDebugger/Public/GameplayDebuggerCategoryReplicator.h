@@ -38,7 +38,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FGameplayDebuggerNetPack> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FGameplayDebuggerNetPack> : public TStructOpsTypeTraitsBase2<FGameplayDebuggerNetPack>
 {
 	enum
 	{
@@ -73,7 +73,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 
 	/** [AUTH] set new owner */

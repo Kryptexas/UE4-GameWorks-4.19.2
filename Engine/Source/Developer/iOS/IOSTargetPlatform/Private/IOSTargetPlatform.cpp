@@ -170,6 +170,9 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 
 	// shell to IPP and get the status of the provision and cert
 
+	bool bForDistribtion = false;
+	GConfig->GetBool(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("ForDistribution"), bForDistribtion, GGameIni);
+
 	FString BundleIdentifier;
 	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("BundleIdentifier"), BundleIdentifier, GEngineIni);
 	BundleIdentifier = BundleIdentifier.Replace(TEXT("[PROJECT_NAME]"), FApp::GetGameName());
@@ -178,10 +181,10 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
     FString CmdExe = TEXT("/bin/sh");
     FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
     FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Validate Engine -project \"%s\" -bundlename \"%s\""), *ScriptPath, *IPPPath, *ProjectPath, *(BundleIdentifier));
+	FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Validate Engine -project \"%s\" -bundlename \"%s\" %s"), *ScriptPath, *IPPPath, *ProjectPath, *(BundleIdentifier), (bForDistribtion ? TEXT("-distribution") : TEXT("")) );
 #else
 	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("Validate Engine -project \"%s\" -bundlename \"%s\""), *ProjectPath, *(BundleIdentifier));
+	FString CommandLine = FString::Printf(TEXT("Validate Engine -project \"%s\" -bundlename \"%s\" %s"), *ProjectPath, *(BundleIdentifier), (bForDistribtion ? TEXT("-distribution") : TEXT("")) );
 	FString RemoteServerName;
 	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("RemoteServerName"), RemoteServerName, GEngineIni);
 	if (RemoteServerName.Len() == 0)
@@ -194,7 +197,7 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 	OutputMessage = TEXT("");
 	IPPProcess->OnOutput().BindStatic(&OnOutput);
 	IPPProcess->Launch();
-	while(IPPProcess->IsRunning())
+	while(IPPProcess->Update())
 	{
 		FPlatformProcess::Sleep(0.01f);
 	}
@@ -457,22 +460,24 @@ void FIOSTargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats 
 	GetAllPossibleShaderFormats(OutFormats);
 }
 
+// we remap some of the defaults (with PVRTC and ASTC formats)
+static FName FormatRemap[] =
+{
+	// original				PVRTC						ASTC
+	FName(TEXT("DXT1")),	FName(TEXT("PVRTC2")),		FName(TEXT("ASTC_RGB")),
+	FName(TEXT("DXT5")),	FName(TEXT("PVRTC4")),		FName(TEXT("ASTC_RGBA")),
+	FName(TEXT("DXT5n")),	FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalAG")),
+	FName(TEXT("BC5")),		FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalRG")),
+	FName(TEXT("AutoDXT")),	FName(TEXT("AutoPVRTC")),	FName(TEXT("ASTC_RGBAuto")),
+	FName(TEXT("BC4")),		FName(TEXT("G8")),			FName(TEXT("G8")),
+};
+static FName NameBGRA8(TEXT("BGRA8"));
+static FName NameG8 = FName(TEXT("G8"));
+
 void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FName>& OutFormats ) const
 {
 	check(Texture);
 
-	// we remap some of the defaults (with PVRTC and ASTC formats)
-	static FName FormatRemap[] =
-	{
-		// original				PVRTC						ASTC
-		FName(TEXT("DXT1")),	FName(TEXT("PVRTC2")),		FName(TEXT("ASTC_RGB")),
-		FName(TEXT("DXT5")),	FName(TEXT("PVRTC4")),		FName(TEXT("ASTC_RGBA")),
-		FName(TEXT("DXT5n")),	FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalAG")),
-		FName(TEXT("BC5")),		FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalRG")),
-		FName(TEXT("AutoDXT")),	FName(TEXT("AutoPVRTC")),	FName(TEXT("ASTC_RGBAuto")),
-		FName(TEXT("BC4")),		FName(TEXT("G8")),			FName(TEXT("G8")),
-	};
-	static FName NameBGRA8(TEXT("BGRA8"));
 	static FName NamePOTERROR(TEXT("POTERROR"));
 
 	FName TextureFormatName = NAME_None;
@@ -480,7 +485,7 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 	// forward rendering only needs one channel for shadow maps
 	if (Texture->LODGroup == TEXTUREGROUP_Shadowmap && !SupportsMetalMRT())
 	{
-		TextureFormatName = FName(TEXT("G8"));
+		TextureFormatName = NameG8;
 	}
 
 	// if we didn't assign anything specially, then use the defaults
@@ -507,7 +512,7 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 			if (bIncludePVRTC)
 			{
 				// handle non-power of 2 textures
-				if (!Texture->Source.IsPowerOfTwo())
+				if (!Texture->Source.IsPowerOfTwo() && Texture->PowerOfTwoMode == ETexturePowerOfTwoSetting::None)
 				{
 					// option 1: Uncompress, but users will get very large textures unknowningly
 					// OutFormats.AddUnique(NameBGRA8);
@@ -529,6 +534,36 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 	}
 }
 
+void FIOSTargetPlatform::GetAllTextureFormats(TArray<FName>& OutFormats) const 
+{
+	bool bFoundRemap = false;
+	bool bIncludePVRTC = !bIsTVOS && CookPVRTC();
+	bool bIncludeASTC = bIsTVOS || CookASTC();
+
+	GetAllDefaultTextureFormats(this, OutFormats, false);
+
+	for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 3)
+	{
+		OutFormats.Remove(FormatRemap[RemapIndex+0]);
+	}
+
+	// include the formats we want (use ASTC first so that it is preferred at runtime if they both exist and it's supported)
+	if (bIncludeASTC)
+	{
+		for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 3)
+		{
+			OutFormats.AddUnique(FormatRemap[RemapIndex + 2]);
+		}
+	}
+	if (bIncludePVRTC)
+	{
+		for (int32 RemapIndex = 0; RemapIndex < ARRAY_COUNT(FormatRemap); RemapIndex += 3)
+		{
+			OutFormats.AddUnique(FormatRemap[RemapIndex + 1]);
+		}
+	}
+}
+
 
 const UTextureLODSettings& FIOSTargetPlatform::GetTextureLODSettings() const
 {
@@ -540,6 +575,13 @@ FName FIOSTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
 {
 	static FName NAME_ADPCM(TEXT("ADPCM"));
 	return NAME_ADPCM;
+}
+
+
+void FIOSTargetPlatform::GetAllWaveFormats(TArray<FName>& OutFormat) const
+{
+	static FName NAME_ADPCM(TEXT("ADPCM"));
+	OutFormat.Add(NAME_ADPCM);
 }
 
 #endif // WITH_ENGINE

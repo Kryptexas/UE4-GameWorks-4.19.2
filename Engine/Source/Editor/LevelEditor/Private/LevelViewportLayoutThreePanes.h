@@ -1,9 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __LevelViewportLayoutThreePanes_h__
-#define __LevelViewportLayoutThreePanes_h__
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -94,5 +90,3 @@ public:
 		const TSharedRef<SWidget>& ViewportKey0, const TSharedRef<SWidget>& ViewportKey1, const TSharedRef<SWidget>& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };
-
-#endif

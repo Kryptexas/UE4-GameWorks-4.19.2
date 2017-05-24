@@ -21,16 +21,19 @@ build_modes = [('', 'Debug'),
                ('-O3', 'Release'),
                ('-Oz', 'MinSizeRel')]
 
-src_directory = os.path.realpath(os.path.dirname(__file__))
+src_directory = os.path.normpath(os.path.join(os.path.realpath(os.path.dirname(__file__)), '..', '..'))
 print 'Build source directory: ' + src_directory
 
 zlib_include_directory = os.path.normpath(os.path.join(src_directory, '..', '..', 'zlib', 'zlib-1.2.5', 'Src')).replace('\\', '/')
 
 output_lib_directory = os.path.normpath(os.path.join(src_directory, 'lib', 'HTML5'))
 if 'rebuild' in sys.argv:
-	for f in [os.path.join(output_lib_directory, f) for f in os.listdir(output_lib_directory) if f.endswith(".bc")]:
-		print 'Clearing ' + f
-		os.remove(f)
+	try:
+		for f in [os.path.join(output_lib_directory, f) for f in os.listdir(output_lib_directory) if f.endswith(".bc")]:
+			print 'Clearing ' + f
+			os.remove(f)
+	except Exception, e:
+		pass
 
 print 'Output libraries to directory: ' + output_lib_directory
 
@@ -49,7 +52,12 @@ for (mode, cmake_build_type) in build_modes:
 	# C & C++ compiler flags to use for the build.
 	compile_flags = mode + ' -I"' + zlib_include_directory + '"' + ' -I"' + zlib_build_directory + '"'
 	compile_flags += ' -D_DEBUG ' if cmake_build_type == 'Debug' else ' -DNDEBUG '
-	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags, '-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags]
+	compile_flags = ['-DCMAKE_C_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags,
+		'-DCMAKE_CXX_FLAGS_' + cmake_build_type.upper() + '=' + compile_flags,
+		'-DCMAKE_STATIC_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_SHARED_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_MODULE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode,
+		'-DCMAKE_EXE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + mode]
 
 	linker_flags = '-L"' + zlib_build_directory + '" -lzlib.bc'
 	linker_flags = ['-DCMAKE_LINKER_FLAGS_' + cmake_build_type.upper() + '=' + linker_flags]

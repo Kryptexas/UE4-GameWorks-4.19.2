@@ -5,7 +5,7 @@ using System;
 
 public class RHI : ModuleRules
 {
-	public RHI(TargetInfo Target)
+	public RHI(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
 
@@ -23,14 +23,14 @@ public class RHI : ModuleRules
             }
 
 			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
-				(Target.Platform == UnrealTargetPlatform.Win32))
+				(Target.Platform == UnrealTargetPlatform.Win32) ||
+				(Target.Platform == UnrealTargetPlatform.Linux && Target.Architecture.StartsWith("x86_64")))	// temporary, not all archs can support Vulkan atm
 			{
 				DynamicallyLoadedModuleNames.Add("VulkanRHI");
 			}
 
 			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 				(Target.Platform == UnrealTargetPlatform.Win64) ||
-				(Target.Platform == UnrealTargetPlatform.Mac)   ||
                 (Target.Platform == UnrealTargetPlatform.Linux && Target.Type != TargetRules.TargetType.Server) ||  // @todo should servers on all platforms skip this?
                 (Target.Platform == UnrealTargetPlatform.HTML5))
 			{

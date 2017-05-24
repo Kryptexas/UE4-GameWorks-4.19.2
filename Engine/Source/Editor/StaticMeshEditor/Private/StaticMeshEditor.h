@@ -122,8 +122,6 @@ public:
 	/** From FNotifyHook */
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 	
-	virtual void SaveAsset_Execute() override;
-
 	/** Get the names of the LOD for menus */
 	TArray< TSharedPtr< FString > >& GetLODLevels() { return LODLevels; }
 	const TArray< TSharedPtr< FString > >& GetLODLevels() const { return LODLevels; }
@@ -164,7 +162,7 @@ private:
 	 *
 	 *	@param	InStaticMesh		The static mesh to use for the editor.
 	 */
-	void SetEditorMesh(UStaticMesh* InStaticMesh);
+	void SetEditorMesh(UStaticMesh* InStaticMesh, bool bResetCamera=true);
 
 	/** Helper function for generating K-DOP collision geometry. */
 	void GenerateKDop(const FVector* Directions, uint32 NumDirections);
@@ -327,7 +325,7 @@ private:
 	TArray<FPrimData> SelectedPrims;
 
 	/** Scene preview settings widget */
-	TSharedPtr< class SAdvancedPreviewDetailsTab> AdvancedPreviewSettingsWidget;
+	TSharedPtr<SWidget> AdvancedPreviewSettingsWidget;
 
 	/** Misc consts */
 	const float MinPrimSize;

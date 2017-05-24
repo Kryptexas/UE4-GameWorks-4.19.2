@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Runtime/Engine/Classes/Components/AudioComponent.h"
 #include "MovieSceneAudioTemplate.generated.h"
 
 class UAudioComponent;
@@ -45,6 +46,17 @@ struct FMovieSceneAudioSectionTemplateData
 	/** The row index of the section */
 	UPROPERTY()
 	int32 RowIndex;
+
+	/** Called when subtitles are sent to the SubtitleManager.  Set this delegate if you want to hijack the subtitles for other purposes */
+	UPROPERTY()
+	FOnQueueSubtitles OnQueueSubtitles;
+
+	/** called when we finish playing audio, either because it played to completion or because a Stop() call turned it off early */
+	UPROPERTY()
+	FOnAudioFinished OnAudioFinished;
+
+	UPROPERTY()
+	FOnAudioPlaybackPercent OnAudioPlaybackPercent;
 };
 
 USTRUCT()

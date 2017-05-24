@@ -11,7 +11,10 @@ UAbilityTask_WaitConfirm::UAbilityTask_WaitConfirm(const FObjectInitializer& Obj
 void UAbilityTask_WaitConfirm::OnConfirmCallback(UGameplayAbility* InAbility)
 {
 	ABILITYTASK_MSG("OnConfirmCallback");
-	OnConfirm.Broadcast();
+	if (ShouldBroadcastAbilityTaskDelegates())
+	{
+		OnConfirm.Broadcast();
+	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
 	EndTask();

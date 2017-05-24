@@ -74,6 +74,9 @@ public:
 	virtual TArray<TSharedRef<IPlugin>> GetDiscoveredPlugins() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 	virtual void AddPluginSearchPath(const FString& ExtraDiscoveryPath, bool bRefresh = true) override;
+	virtual TArray<TSharedRef<IPlugin>> GetPluginsWithPakFile() const override;
+	virtual FNewPluginMountedEvent& OnNewPluginMounted() override;
+	virtual void MountNewlyCreatedPlugin(const FString& PluginName) override;
 
 private:
 
@@ -103,6 +106,8 @@ private:
 	/** All of the plugins that we know about */
 	TMap< FString, TSharedRef< FPlugin > > AllPlugins;
 
+	TArray<TSharedRef<IPlugin>> PluginsWithPakFile;
+
 	/** Delegate for mounting content paths.  Bound by FPackageName code in CoreUObject, so that we can access
 	    content path mounting functionality from Core. */
 	FRegisterMountPointDelegate RegisterMountPointDelegate;
@@ -115,6 +120,9 @@ private:
 
 	/** List of additional directory paths to search for plugins within */
 	TSet<FString> PluginDiscoveryPaths;
+
+	/** Callback for notifications that a new plugin was mounted */
+	FNewPluginMountedEvent NewPluginMountedEvent;
 };
 
 

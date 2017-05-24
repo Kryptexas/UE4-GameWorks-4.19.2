@@ -49,10 +49,10 @@ half3 sRGBToLinear( half3 Color )
 /**
  * @param GammaCurveRatio The curve ratio compared to a 2.2 standard gamma, e.g. 2.2 / DisplayGamma.  So normally the value is 1.
  */
-half3 ApplyGammaCorrection(float3 LinearColor, float GammaCurveRatio)
+half3 ApplyGammaCorrection(half3 LinearColor, half GammaCurveRatio)
 {
 	// Apply "gamma" curve adjustment.
-	float3 CorrectedColor = pow(LinearColor, GammaCurveRatio);
+	half3 CorrectedColor = pow(LinearColor, GammaCurveRatio);
 
 	#if MAC
 		// Note, MacOSX native output is raw gamma 2.2 not sRGB!
@@ -111,7 +111,8 @@ float
 aces100nitFitInverseFloat(float x) 
 {
 	x = max(0.f, min(0.99f, x));
-	float c = ((-6.32456e-8*pow((-21510484096000.0*x*x + 26714646293200.0*x + 27735750507.0), 0.5) -0.146704*x + 0.0083284)) * rcp( x - 1.01654);
+	//float c = ((-6.32456e-8*pow((-21510484096000.0*x*x + 26714646293200.0*x + 27735750507.0), 0.5) -0.146704*x + 0.0083284)) * rcp( x - 1.01654);
+	float c = ( -0.632456 * sqrt( -0.21510484096 *x*x + 0.267146462932 * x + 0.00027735750507 ) - 0.146704 * x + 0.0083284 ) / ( x - 1.01654 );
 
 	// Clamp to half float range
 	return max(0.f, min(65504.f, c)); 	

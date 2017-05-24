@@ -34,24 +34,18 @@ FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)
 			FMetalPooledBufferArgs Args(GetMetalDeviceContext().GetDevice(), InSize, BUFFER_STORAGE_MODE);
 			if (InUsage & BUF_UnorderedAccess)
 			{
-				FMetalBufferPoolPolicyData Policy;
-				uint32 BufferSize = Policy.GetPoolBucketSize(Policy.GetPoolBucketIndex(Args));
-				if (InUsage + 512 > BufferSize)
-				{
-					Args.Size = InUsage + 512;
-				}
+				// Padding for write flushing
+				Args.Size = InSize + 512;
 			}
 			
-			FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(Args);
-			Buffer = [Buf.Buffer retain];
+			Buffer = GetMetalDeviceContext().CreatePooledBuffer(Args);
 		}
 		else
 		{
 			check(!(InUsage & BUF_UnorderedAccess));
-			Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:InSize options:BUFFER_CACHE_MODE|BUFFER_MANAGED_MEM];
+			Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:InSize options:GetMetalDeviceContext().GetCommandQueue().GetCompatibleResourceOptions(BUFFER_CACHE_MODE|MTLResourceHazardTrackingModeUntracked|BUFFER_MANAGED_MEM)];
 			TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 		}
-		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buffer.length - GetSize());
 	}
 }
 
@@ -64,7 +58,6 @@ FMetalVertexBuffer::~FMetalVertexBuffer()
 		if(!(GetUsage() & BUF_ZeroStride))
 		{
 			SafeReleasePooledBuffer(Buffer);
-			[Buffer release];
 		}
 		else
 		{
@@ -73,7 +66,7 @@ FMetalVertexBuffer::~FMetalVertexBuffer()
 	}
 	if (Data)
 	{
-		SafeReleaseMetalResource(Data);
+		SafeReleaseMetalObject(Data);
 	}
 }
 
@@ -97,16 +90,14 @@ void* FMetalVertexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32
 		if(!(GetUsage() & BUF_ZeroStride))
 		{
 			MTLStorageMode Mode = BUFFER_STORAGE_MODE;
-			FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), OldBuffer.length, Mode));
-			Buffer = [Buf.Buffer retain];
+			Buffer = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), OldBuffer.length, Mode));
 			GetMetalDeviceContext().ReleasePooledBuffer(OldBuffer);
-			[OldBuffer release];
 		}
 		else
 		{
-			Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:Buffer.length options:BUFFER_CACHE_MODE|BUFFER_MANAGED_MEM];
+			Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:OldBuffer.length options:GetMetalDeviceContext().GetCommandQueue().GetCompatibleResourceOptions(BUFFER_CACHE_MODE|MTLResourceHazardTrackingModeUntracked|BUFFER_MANAGED_MEM)];
 			TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
-			GetMetalDeviceContext().ReleaseObject(OldBuffer);
+			GetMetalDeviceContext().ReleaseResource(OldBuffer);
 		}
 	}
 	
@@ -148,6 +139,7 @@ void FMetalVertexBuffer::Unlock()
 
 FVertexBufferRHIRef FMetalDynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
+	@autoreleasepool {
 	// make the RHI object, which will allocate memory
 	FMetalVertexBuffer* VertexBuffer = new FMetalVertexBuffer(Size, InUsage);
 
@@ -168,21 +160,26 @@ FVertexBufferRHIRef FMetalDynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32 
 	}
 
 	return VertexBuffer;
+	}
 }
 
 void* FMetalDynamicRHI::RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBufferRHI, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
 {
+	@autoreleasepool {
 	FMetalVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 
 	// default to vertex buffer memory
 	return (uint8*)VertexBuffer->Lock(LockMode, Offset, Size);
+	}
 }
 
 void FMetalDynamicRHI::RHIUnlockVertexBuffer(FVertexBufferRHIParamRef VertexBufferRHI)
 {
+	@autoreleasepool {
 	FMetalVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 
 	VertexBuffer->Unlock();
+	}
 }
 
 void FMetalDynamicRHI::RHICopyVertexBuffer(FVertexBufferRHIParamRef SourceBufferRHI,FVertexBufferRHIParamRef DestBufferRHI)
@@ -192,5 +189,7 @@ void FMetalDynamicRHI::RHICopyVertexBuffer(FVertexBufferRHIParamRef SourceBuffer
 
 FVertexBufferRHIRef FMetalDynamicRHI::CreateVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
+	@autoreleasepool {
 	return GDynamicRHI->RHICreateVertexBuffer(Size, InUsage, CreateInfo);
+	}
 }

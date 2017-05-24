@@ -25,7 +25,7 @@ public class Ansel : ModuleRules
         get { return Path.GetFullPath(Path.Combine(ModulePath, "../../Binaries/ThirdParty/")); }
     }
 
-    public Ansel(TargetInfo Target)
+    public Ansel(ReadOnlyTargetRules Target) : base(Target)
     {
         string NvCameraSDKSourcePath = ThirdPartyPath + "NVAnselSDK/";
 

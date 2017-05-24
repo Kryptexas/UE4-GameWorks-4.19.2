@@ -35,7 +35,7 @@ struct FShotData
 		ET_None
 	};
 
-	FShotData(const FString& InElementName, const FString& InElementPath, ETrackType InTrackType, EEditType InEditType, float InSourceInTime, float InSourceOutTime, float InEditInTime, float InEditOutTime) : 
+	FShotData(const FString& InElementName, const FString& InElementPath, ETrackType InTrackType, EEditType InEditType, float InSourceInTime, float InSourceOutTime, float InEditInTime, float InEditOutTime, bool bInWithinPlaybackRange) : 
 		  ElementName(InElementName)
 		, ElementPath(InElementPath)
 		, TrackType(InTrackType)
@@ -43,7 +43,8 @@ struct FShotData
 		, SourceInTime(InSourceInTime)
 		, SourceOutTime(InSourceOutTime)
 		, EditInTime(InEditInTime)
-		, EditOutTime(InEditOutTime) {}
+		, EditOutTime(InEditOutTime)
+		, bWithinPlaybackRange(bInWithinPlaybackRange) {}
 
 	bool operator<(const FShotData& Other) const { return EditInTime < Other.EditInTime; }
 
@@ -55,6 +56,7 @@ struct FShotData
 	float SourceOutTime;
 	float EditInTime;
 	float EditOutTime;
+	bool bWithinPlaybackRange;
 };
 
 void SMPTEToTime(FString SMPTE, float FrameRate, float& OutTime)
@@ -193,7 +195,7 @@ void ParseFromEDL(const FString& InputString, float FrameRate, TArray<FShotData>
 				FString ElementPath = ElementName;
 
 				// If everything checks out add to OutShotData
-				OutShotData.Add(FShotData(ElementName, ElementPath, TrackType, EditType, SourceInTime, SourceOutTime, EditInTime, EditOutTime));
+				OutShotData.Add(FShotData(ElementName, ElementPath, TrackType, EditType, SourceInTime, SourceOutTime, EditInTime, EditOutTime, true));
 				bFoundEventLine = false; // Reset and go to next line to look for element line
 				continue;
 			}
@@ -206,52 +208,70 @@ void FormatForEDL(FString& OutputString, const FString& SequenceName, float Fram
 	OutputString += TEXT("TITLE: ") + SequenceName + TEXT("\n");
 	OutputString += TEXT("FCM: NON-DROP FRAME\n\n");
 
-	for (int32 EventIndex = 0; EventIndex < InShotData.Num(); ++EventIndex)
+	int32 EventIndex = 0;
+	FString EventName, ReelName, EditName, TypeName;
+	FString SourceSMPTEIn, SourceSMPTEOut, EditSMPTEIn, EditSMPTEOut;
+
+	// Insert blank if doesn't start at 0.
+	if (InShotData[0].EditInTime != 0)
 	{
-		FString EventName = FString::Printf(TEXT("%03d"), EventIndex+1);
+		EventName = FString::Printf(TEXT("%03d"), ++EventIndex);
+		TypeName = TEXT("V");
+		EditName = TEXT("C");
 
-		FString ReelName = InShotData[EventIndex].ElementName; 
+		SourceSMPTEIn = TimeToSMPTE(0.f, FrameRate);
+		SourceSMPTEOut = TimeToSMPTE(InShotData[0].EditInTime, FrameRate);
+		EditSMPTEIn = TimeToSMPTE(0.f, FrameRate);
+		EditSMPTEOut = TimeToSMPTE(InShotData[0].EditInTime, FrameRate);
 
-		FString TypeName;
-		if (InShotData[EventIndex].TrackType == FShotData::ETrackType::TT_Video)
+		OutputString += EventName + TEXT(" ") + TEXT("BL ") + TypeName + TEXT(" ") + EditName + TEXT(" ");
+		OutputString += SourceSMPTEIn + TEXT(" ") + SourceSMPTEOut + TEXT(" ") + EditSMPTEIn + TEXT(" ") + EditSMPTEOut + TEXT("\n\n");
+	}
+
+	for (int32 ShotIndex = 0; ShotIndex < InShotData.Num(); ++ShotIndex)
+	{
+		EventName = FString::Printf(TEXT("%03d"), ++EventIndex);
+
+		ReelName = InShotData[ShotIndex].ElementName; 
+
+		if (InShotData[ShotIndex].TrackType == FShotData::ETrackType::TT_Video)
 		{
 			TypeName = TEXT("V");
 		}
-		else if (InShotData[EventIndex].TrackType == FShotData::ETrackType::TT_A)
+		else if (InShotData[ShotIndex].TrackType == FShotData::ETrackType::TT_A)
 		{
 			TypeName = TEXT("A");
 		}
-		else if (InShotData[EventIndex].TrackType == FShotData::ETrackType::TT_A2)
+		else if (InShotData[ShotIndex].TrackType == FShotData::ETrackType::TT_A2)
 		{
 			TypeName = TEXT("A2");
 		}
-		else if (InShotData[EventIndex].TrackType == FShotData::ETrackType::TT_AA)
+		else if (InShotData[ShotIndex].TrackType == FShotData::ETrackType::TT_AA)
 		{
 			TypeName = TEXT("AA");
 		}
 
-		FString EditName;
-		if (InShotData[EventIndex].EditType == FShotData::EEditType::ET_Cut)
+		if (InShotData[ShotIndex].EditType == FShotData::EEditType::ET_Cut)
 		{
 			EditName = TEXT("C");
 		}
-		else if (InShotData[EventIndex].EditType == FShotData::EEditType::ET_Dissolve)
+		else if (InShotData[ShotIndex].EditType == FShotData::EEditType::ET_Dissolve)
 		{
 			EditName = TEXT("D");
 		}
-		else if (InShotData[EventIndex].EditType == FShotData::EEditType::ET_Wipe)
+		else if (InShotData[ShotIndex].EditType == FShotData::EEditType::ET_Wipe)
 		{
 			EditName = TEXT("W");
 		}
-		else if (InShotData[EventIndex].EditType == FShotData::EEditType::ET_KeyEdit)
+		else if (InShotData[ShotIndex].EditType == FShotData::EEditType::ET_KeyEdit)
 		{
 			EditName = TEXT("K");
 		}
 
-		FString SourceSMPTEIn = TimeToSMPTE(InShotData[EventIndex].SourceInTime, FrameRate);
-		FString SourceSMPTEOut = TimeToSMPTE(InShotData[EventIndex].SourceOutTime, FrameRate);
-		FString EditSMPTEIn = TimeToSMPTE(InShotData[EventIndex].EditInTime, FrameRate);
-		FString EditSMPTEOut = TimeToSMPTE(InShotData[EventIndex].EditOutTime, FrameRate);
+		SourceSMPTEIn = TimeToSMPTE(InShotData[ShotIndex].SourceInTime, FrameRate);
+		SourceSMPTEOut = TimeToSMPTE(InShotData[ShotIndex].SourceOutTime, FrameRate);
+		EditSMPTEIn = TimeToSMPTE(InShotData[ShotIndex].EditInTime, FrameRate);
+		EditSMPTEOut = TimeToSMPTE(InShotData[ShotIndex].EditOutTime, FrameRate);
 
 		OutputString += EventName + TEXT(" ") + TEXT("AX ") + TypeName + TEXT(" ") + EditName + TEXT(" ");
 		OutputString += SourceSMPTEIn + TEXT(" ") + SourceSMPTEOut + TEXT(" ") + EditSMPTEIn + TEXT(" ") + EditSMPTEOut + TEXT("\n");
@@ -280,6 +300,11 @@ void FormatForRV(FString& OutputString, const FString& SequenceName, float Frame
 	// Body
 	for (int32 EventIndex = 0; EventIndex < InShotData.Num(); ++EventIndex)
 	{
+		if (!InShotData[EventIndex].bWithinPlaybackRange)
+		{
+			continue;
+		}
+
 		FString SourceName = FString::Printf(TEXT("sourceGroup%06d"), EventIndex);
 
 		int32 SourceInFrame = FMath::RoundToInt(InShotData[EventIndex].SourceInTime * FrameRate);
@@ -314,6 +339,19 @@ void FormatForRV(FString& OutputString, const FString& SequenceName, float Frame
 		OutputString += TEXT("}\n\n");
 	}
 }
+
+void FormatForRVBat(FString& OutputString, const FString& SequenceName, float FrameRate, const TArray<FShotData>& InShotData)
+{
+	OutputString += TEXT("rv -nomb -fullscreen -noBorders -fps " + FString::Printf(TEXT("%f"), FrameRate));
+	for (int32 EventIndex = 0; EventIndex < InShotData.Num(); ++EventIndex)
+	{
+		if (InShotData[EventIndex].bWithinPlaybackRange)
+		{
+			OutputString += " " + InShotData[EventIndex].ElementName;
+		}
+	}
+}
+
 
 bool MovieSceneCaptureHelpers::ImportEDL(UMovieScene* InMovieScene, float InFrameRate, FString InFilename)
 {
@@ -402,6 +440,7 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 	{
 		SaveFilenames.Add(SaveBasename + TEXT(".rv"));
 		SaveFilenames.Add(SaveBasename + TEXT(".edl"));
+		SaveFilenames.Add(SaveBasename + TEXT(".bat"));
 	}
 
 	TArray<FShotData> ShotDataArray;
@@ -432,11 +471,9 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 				float HandleFrameTime = (float)InHandleFrames / (float)InFrameRate;
 				float SourceInTime = HandleFrameTime;
 				float SourceOutTime = SourceInTime + CinematicShotSection->GetTimeSize();
-				float EditInTime = EditTime;
-				float EditOutTime = EditTime + CinematicShotSection->GetTimeSize();
-
-				EditInTime = FMath::Clamp(EditInTime, PlaybackRange.GetLowerBoundValue(), PlaybackRange.GetUpperBoundValue());
-				EditOutTime = FMath::Clamp(EditOutTime, PlaybackRange.GetLowerBoundValue(), PlaybackRange.GetUpperBoundValue());
+				
+				float EditInTime = CinematicShotSection->GetStartTime();
+				float EditOutTime = CinematicShotSection->GetEndTime();
 
 				//@todo can't assume avi's written out
 				ShotName += ".avi";
@@ -444,7 +481,12 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 				//@todo shotpath should really be moviefile path
 				ShotPath = ShotName;
 
-				ShotDataArray.Add(FShotData(ShotName, ShotPath, FShotData::ETrackType::TT_Video, FShotData::EEditType::ET_Cut, SourceInTime, SourceOutTime, EditInTime, EditOutTime));
+				TRange<float> EditRange(EditInTime, EditOutTime);
+				TRange<float> Intersection = TRange<float>::Intersection(PlaybackRange, EditRange);
+				
+				bool bWithinPlaybackRange = Intersection.Size<float>() > (1.0f / (float)InFrameRate);
+
+				ShotDataArray.Add(FShotData(ShotName, ShotPath, FShotData::ETrackType::TT_Video, FShotData::EEditType::ET_Cut, SourceInTime, SourceOutTime, EditInTime, EditOutTime, bWithinPlaybackRange));
 				EditTime = EditOutTime;
 			}
 		}
@@ -469,6 +511,10 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 		else if (FPaths::GetExtension(SaveFilename).ToUpper() == TEXT("RV"))
 		{
 			FormatForRV(OutputString, SequenceName, InFrameRate, ShotDataArray);
+		}
+		else if (FPaths::GetExtension(SaveFilename).ToUpper() == TEXT("BAT"))
+		{
+			FormatForRVBat(OutputString, SequenceName, InFrameRate, ShotDataArray);
 		}
 
 		FFileHelper::SaveStringToFile(OutputString, *SaveFilename);

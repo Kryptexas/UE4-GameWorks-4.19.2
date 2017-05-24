@@ -41,24 +41,13 @@ public:
 			TextureLODSettings = nullptr; // These are registered by the device profile system.
 			StaticMeshLODSettings.Initialize(EngineSettings);
 
-			// Get the Target RHIs for this platform, we do not always want all those that are supported.
-			GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
-			
-			// Gather the list of Target RHIs and filter out any that may be invalid.
-			TArray<FName> PossibleShaderFormats;
-			GetAllPossibleShaderFormats(PossibleShaderFormats);
 
-			for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
-			{
-				FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
-				if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
-				{
-					TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
-				}
-			}
+			// Get the Target RHIs for this platform, we do not always want all those that are supported.
+			TArray<FName> TargetedShaderFormats;
+			GetAllTargetedShaderFormats(TargetedShaderFormats);
 
 			// If we're targeting only DX11 we can use DX11 texture formats. Otherwise we'd have to compress fallbacks and increase the size of cooked content significantly.
-			static FString NAME_PCD3D_SM5(TEXT("PCD3D_SM5"));
+			static FName NAME_PCD3D_SM5(TEXT("PCD3D_SM5"));
 			bSupportDX11TextureFormats = TargetedShaderFormats.Num() == 1
 				&& TargetedShaderFormats[0] == NAME_PCD3D_SM5;
 		#endif
@@ -123,6 +112,11 @@ public:
 			return (HAS_EDITOR_DATA || !IS_DEDICATED_SERVER);
 		}
 
+		if ( Feature == ETargetPlatformFeatures::ShouldSplitPaksIntoSmallerSizes )
+		{
+			return IS_CLIENT_ONLY;
+		}
+
 		return TSuper::SupportsFeature(Feature);
 	}
 
@@ -164,14 +158,28 @@ public:
 
 	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override
 	{
+		// Get the Target RHIs for this platform, we do not always want all those that are supported. (reload in case user changed in the editor)
+		TArray<FString>TargetedShaderFormats;
+		GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+
+		// Gather the list of Target RHIs and filter out any that may be invalid.
+		TArray<FName> PossibleShaderFormats;
+		GetAllPossibleShaderFormats(PossibleShaderFormats);
+		
+		for (int32 ShaderFormatIdx = TargetedShaderFormats.Num() - 1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+		{
+			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+			if (PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+			{
+				TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
+			}
+		}
+
 		for(const FString& ShaderFormat : TargetedShaderFormats)
 		{
 			OutFormats.AddUnique(FName(*ShaderFormat));
 		}
 	}
-	
-	virtual void GetAllCachedShaderFormats( TArray<FName>& OutFormats ) const override {}
-
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;
@@ -183,6 +191,14 @@ public:
 		{
 			FName TextureFormatName = GetDefaultTextureFormatName(this, InTexture, EngineSettings, bSupportDX11TextureFormats);
 			OutFormats.Add(TextureFormatName);
+		}
+	}
+
+	virtual void GetAllTextureFormats(TArray<FName>& OutFormats) const override
+	{
+		if (!IS_DEDICATED_SERVER)
+		{
+			GetAllDefaultTextureFormats(this, OutFormats, bSupportDX11TextureFormats);
 		}
 	}
 
@@ -207,6 +223,14 @@ public:
 		}
 
 		return NAME_OGG;
+	}
+
+	virtual void GetAllWaveFormats(TArray<FName>& OutFormats) const override
+	{
+		static FName NAME_OGG(TEXT("OGG"));
+		static FName NAME_OPUS(TEXT("OPUS"));
+		OutFormats.Add(NAME_OGG);
+		OutFormats.Add(NAME_OPUS);
 	}
 
 #endif //WITH_ENGINE
@@ -274,9 +298,6 @@ private:
 
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
-
-	// List of shader formats specified as targets
-	TArray<FString> TargetedShaderFormats;
 
 	// True if the project supports non-DX11 texture formats.
 	bool bSupportDX11TextureFormats;

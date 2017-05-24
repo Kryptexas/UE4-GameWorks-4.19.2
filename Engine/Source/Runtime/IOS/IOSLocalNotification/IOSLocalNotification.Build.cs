@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class IOSLocalNotification : ModuleRules
 {
-	public IOSLocalNotification(TargetInfo Target)
+	public IOSLocalNotification(ReadOnlyTargetRules Target) : base(Target)
 	{
 		BinariesSubFolder = "IOS";
 

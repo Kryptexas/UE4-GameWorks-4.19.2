@@ -383,6 +383,8 @@ public:
 	void AttemptRelink(const FAnimationBaseContext& Context);
 	/** This only used by custom handlers, and it is advanced feature. */
 	void SetLinkNode(struct FAnimNode_Base* NewLinkNode);
+	/** This only used by custom handlers, and it is advanced feature. */
+	FAnimNode_Base* GetLinkNode();
 };
 
 #define ENABLE_ANIMNODE_POSE_DEBUG 0
@@ -395,7 +397,7 @@ struct ENGINE_API FPoseLink : public FPoseLinkBase
 
 public:
 	// Interface
-	void Evaluate(FPoseContext& Output);
+	void Evaluate(FPoseContext& Output, bool bExpectsAdditivePose = false);
 
 #if ENABLE_ANIMNODE_POSE_DEBUG
 private:
@@ -503,7 +505,7 @@ struct FExposedValueCopyRecord
 };
 
 template<>
-struct TStructOpsTypeTraits< FExposedValueCopyRecord > : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits< FExposedValueCopyRecord > : public TStructOpsTypeTraitsBase2< FExposedValueCopyRecord >
 {
 	enum
 	{
@@ -561,27 +563,73 @@ struct ENGINE_API FAnimNode_Base
 	UPROPERTY(meta=(BlueprintCompilerGeneratedDefaults))
 	FExposedValueHandler EvaluateGraphExposedInputs;
 
-	// A derived class should implement Initialize, Update, and either Evaluate or EvaluateComponentSpace, but not both of them
-
-	// Interface to implement
+	/** 
+	 * Called when the node first runs. If the node is inside a state machine or cached pose branch then this can be called multiple times. 
+	 * This can be called on any thread.
+	 * @param	Context		Context structure providing access to relevant data
+	 */
 	virtual void Initialize(const FAnimationInitializeContext& Context);
+
+	/** 
+	 * Called to cache any bones that this node needs to track (e.g. in a FBoneReference). 
+	 * This is usually called at startup when LOD switches occur.
+	 * This can be called on any thread.
+	 * @param	Context		Context structure providing access to relevant data
+	 */
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context) {}
+
+	/** 
+	 * Called to update the state of the graph relative to this node.
+	 * Generally this should configure any weights (etc.) that could affect the poses that
+	 * will need to be evaluated. This function is what usually executes EvaluateGraphExposedInputs.
+	 * This can be called on any thread.
+	 * @param	Context		Context structure providing access to relevant data
+	 */
 	virtual void Update(const FAnimationUpdateContext& Context) {}
+
+	/** 
+	 * Called to evaluate local-space bones transforms according to the weights set up in Update().
+	 * You should implement either Evaluate or EvaluateComponentSpace, but not both of these.
+	 * This can be called on any thread.
+	 * @param	Output		Output structure to write pose or curve data to. Also provides access to relevant data as a context.
+	 */
 	virtual void Evaluate(FPoseContext& Output) { check(false); }
+
+	/** 
+	 * Called to evaluate component-space bone transforms according to the weights set up in Update().
+	 * You should implement either Evaluate or EvaluateComponentSpace, but not both of these.
+	 * This can be called on any thread.
+	 * @param	Output		Output structure to write pose or curve data to. Also provides access to relevant data as a context.
+	 */	
 	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) { check(false); }
 
-	// If a derived anim node should respond to asset overrides, OverrideAsset should be defined to handle changing the asset
+	/** 
+	 * If a derived anim node should respond to asset overrides, OverrideAsset should be defined to handle changing the asset 
+	 * This is called during anim blueprint compilation to handle child anim blueprints.
+	 * @param	NewAsset	The new asset that is being set
+	 */
 	virtual void OverrideAsset(UAnimationAsset* NewAsset) {}
 
+	/**
+	 * Called to gather on-screen debug data. 
+	 * This is called on the game thread.
+	 * @param	DebugData	Debug data structure used to output any relevant data
+	 */
 	virtual void GatherDebugData(FNodeDebugData& DebugData)
 	{ 
 		DebugData.AddDebugItem(FString::Printf(TEXT("Non Overriden GatherDebugData! (%s)"), *DebugData.GetNodeName(this)));
 	}
 
+	/**
+	 * Whether this node can run its Update() call on a worker thread.
+	 * This is called on the game thread.
+	 * If any node in a graph returns false from this function, then ALL nodes will update on the game thread.
+	 */
 	virtual bool CanUpdateInWorkerThread() const { return true; }
 
 	/**
 	 * Override this to indicate that PreUpdate() should be called on the game thread (usually to 
+	 * This is called on the game thread.
 	 * gather non-thread safe data) before Update() is called.
 	 */
 	virtual bool HasPreUpdate() const { return false; }
@@ -592,12 +640,15 @@ struct ENGINE_API FAnimNode_Base
 	/**
 	 * For nodes that implement some kind of simulation, return true here so ResetDynamics() gets called
 	 * when things like teleports, time skips etc. occur that might require special handling
+	 * This is called on the game thread.
 	 */
 	virtual bool NeedsDynamicReset() const { return false; }
 
 	/** Override this to perform game-thread work prior to non-game thread Update() being called */
 	virtual void ResetDynamics() {}
-	// End of interface to implement
+
+	/** Called after compilation */
+	virtual void PostCompile(const class USkeleton* InSkeleton) {}
 
 	virtual ~FAnimNode_Base() {}
 

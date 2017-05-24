@@ -10,6 +10,7 @@
 #include "ShaderParameters.h"
 #include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
+#include "ScreenRendering.h"
 
 /** Represents a subregion of a volume texture. */
 struct FVolumeBounds
@@ -67,14 +68,15 @@ public:
 
 	FWriteToSliceVS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FVolumeBounds& VolumeBounds, uint32 VolumeResolution)
+	void SetParameters(FRHICommandList& RHICmdList, const FVolumeBounds& VolumeBounds, FIntVector VolumeResolution)
 	{
-		const float InvVolumeResolution = 1.0f / VolumeResolution;
+		const float InvVolumeResolutionX = 1.0f / VolumeResolution.X;
+		const float InvVolumeResolutionY = 1.0f / VolumeResolution.Y;
 		SetShaderValue(RHICmdList, GetVertexShader(), UVScaleBias, FVector4(
-			(VolumeBounds.MaxX - VolumeBounds.MinX) * InvVolumeResolution, 
-			(VolumeBounds.MaxY - VolumeBounds.MinY) * InvVolumeResolution,
-			VolumeBounds.MinX * InvVolumeResolution,
-			VolumeBounds.MinY * InvVolumeResolution));
+			(VolumeBounds.MaxX - VolumeBounds.MinX) * InvVolumeResolutionX, 
+			(VolumeBounds.MaxY - VolumeBounds.MinY) * InvVolumeResolutionY,
+			VolumeBounds.MinX * InvVolumeResolutionX,
+			VolumeBounds.MinY * InvVolumeResolutionY));
         SetShaderValue(RHICmdList, GetVertexShader(), MinZ, VolumeBounds.MinZ);
 	}
 
@@ -109,9 +111,9 @@ public:
 	}
 	FWriteToSliceGS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FVolumeBounds& VolumeBounds)
+	void SetParameters(FRHICommandList& RHICmdList, int32 MinZValue)
 	{
-		SetShaderValue(RHICmdList, GetGeometryShader(), MinZ, VolumeBounds.MinZ);
+		SetShaderValue(RHICmdList, GetGeometryShader(), MinZ, MinZValue);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -126,3 +128,34 @@ private:
 };
 
 extern ENGINE_API void RasterizeToVolumeTexture(FRHICommandList& RHICmdList, FVolumeBounds VolumeBounds);
+
+/** Vertex buffer used for rendering into a volume texture. */
+class FVolumeRasterizeVertexBuffer : public FVertexBuffer
+{
+public:
+
+	virtual void InitRHI() override
+	{
+		// Used as a non-indexed triangle strip, so 4 vertices per quad
+		const uint32 Size = 4 * sizeof(FScreenVertex);
+		FRHIResourceCreateInfo CreateInfo;
+		void* Buffer = nullptr;
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Static, CreateInfo, Buffer);		
+		FScreenVertex* DestVertex = (FScreenVertex*)Buffer;
+
+		// Setup a full - render target quad
+		// A viewport and UVScaleBias will be used to implement rendering to a sub region
+		DestVertex[0].Position = FVector2D(1, -GProjectionSignY);
+		DestVertex[0].UV = FVector2D(1, 1);
+		DestVertex[1].Position = FVector2D(1, GProjectionSignY);
+		DestVertex[1].UV = FVector2D(1, 0);
+		DestVertex[2].Position = FVector2D(-1, -GProjectionSignY);
+		DestVertex[2].UV = FVector2D(0, 1);
+		DestVertex[3].Position = FVector2D(-1, GProjectionSignY);
+		DestVertex[3].UV = FVector2D(0, 0);
+
+		RHIUnlockVertexBuffer(VertexBufferRHI);      
+	}
+};
+
+extern ENGINE_API TGlobalResource<FVolumeRasterizeVertexBuffer> GVolumeRasterizeVertexBuffer;

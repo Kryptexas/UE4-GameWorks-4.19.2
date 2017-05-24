@@ -3,27 +3,6 @@ Title:Volumes User Guide
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:Guide to placing and working with Volumes to augment the behavior and setup of your levels.
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-
-%playlistnav%
-
 
 [TOC(start:2 end:2)]
 
@@ -183,7 +162,7 @@ For more on Level Streaming Volumes, see [](Engine/LevelStreaming/StreamingVolum
 
 ### Cull Distance Volume
 
-**Cull Distance Volumes** are optimization tools that allow for objects at or below a certain size to be culled (or not drawn to the screen) based on that object's distance from the camera. This can help optimize your scene by not drawing objects of a given size. Size is calculated by the bounding box along its longest dimension. 
+**Cull Distance Volumes** are optimization tools that allow for objects to be culled (not drawn to the screen) based on that object's distance from the camera and its size. This can help optimize your scene by not drawing objects when they are small enough to be considered unimportant. Size is calculated by the bounding box along its longest dimension, and the cull distance chosen is the one closest to that size.
 
 Cull Distance Volume setup is dependent on the **Cull Distances** property, shown in the **Details** panel below.
 
@@ -191,9 +170,9 @@ Cull Distance Volume setup is dependent on the **Cull Distances** property, show
 
 In the image above, the properties define the following behavior:
 
-* Objects within the volume that have a size less than 50 units will be culled (disappear) when they are 500 units away from the camera or farther.
-* Objects within the volume that have a size less than 120 units will be culled (disappear) when they are 1000 units away from the camera or farther.
-* Objects within the volume that have a size less than 300 units will never be culled, since 0 in this case is considered to be infinity, meaning that the camera can never get far enough away.
+* Objects within the volume that have a size closest to 50 units (85 units or less) will be culled (disappear) when they are 500 units away from the camera or farther.
+* Objects within the volume that have a size closest to 120 units (85 to 210 units) will be culled (disappear) when they are 1000 units away from the camera or farther.
+* Objects within the volume that have a size closest to 300 units (210 units or more) will never be culled, since 0 in this case is considered to be infinity, meaning that the camera can never get far enough away.
 
 Setup starts with adding a new entry into the Cull Distances array, which is done by clicking the ![](button_Plus.png) button. Next, simply fill in the size of a given object and the desired distance at which you want objects of that size or smaller to be culled. These properties do not have to be created in a specific order. 
 

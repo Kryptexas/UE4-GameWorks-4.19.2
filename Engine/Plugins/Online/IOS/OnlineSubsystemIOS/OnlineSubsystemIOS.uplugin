@@ -4,7 +4,6 @@
 	"FriendlyName" : "Online Subsystem iOS",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"EngineVersion" : "4.2.0",
 	"Description" : "Access to iOS platform",
 	"Category" : "Online Platform",
 	"CreatedBy" : "Epic Games, Inc.",
@@ -22,5 +21,11 @@
                 "TVOS"
 			]
         }
-    ]
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemIOS",
+			"LoadingPolicy": "Always"
+		}
+	]
 }

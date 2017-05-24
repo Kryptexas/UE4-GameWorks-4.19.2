@@ -972,25 +972,38 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 	// note that for recast partial path is successful, while we treat it as failed, just marking it as partial
 	if (dtStatusSucceed(FindPathStatus))
 	{
-		Path.PathCorridorCost.AddUninitialized(PathResult.size());
-		if (PathResult.size() == 1)
+		// check if navlink poly at end of path is allowed
+		int32 PathSize = PathResult.size();
+		if ((PathSize > 1) && NavMeshOwner && !NavMeshOwner->bAllowNavLinkAsPathEnd)
+		{
+			uint16 PolyFlags = 0;
+			DetourNavMesh->getPolyFlags(PathResult.getRef(PathSize - 1), &PolyFlags);
+
+			if (PolyFlags & ARecastNavMesh::GetNavLinkFlag())
+			{
+				PathSize--;
+			}
+		}
+
+		Path.PathCorridorCost.AddUninitialized(PathSize);
+
+		if (PathSize == 1)
 		{
 			// failsafe cost for single poly corridor
 			Path.PathCorridorCost[0] = CalcSegmentCostOnPoly(StartPolyID, Filter, EndLoc, StartLoc);
 		}
 		else
 		{
-			for (int32 i = 0; i < PathResult.size(); i++)
+			for (int32 i = 0; i < PathSize; i++)
 			{
 				Path.PathCorridorCost[i] = PathResult.getCost(i);
 			}
 		}
-
 		
 		// copy over corridor poly data
-		Path.PathCorridor.AddUninitialized(PathResult.size());
+		Path.PathCorridor.AddUninitialized(PathSize);
 		NavNodeRef* DestCorridorPoly = Path.PathCorridor.GetData();
-		for (int i = 0; i < PathResult.size(); ++i, ++DestCorridorPoly)
+		for (int i = 0; i < PathSize; ++i, ++DestCorridorPoly)
 		{
 			*DestCorridorPoly = PathResult.getRef(i);
 		}
@@ -2419,7 +2432,7 @@ int32 FPImplRecastNavMesh::GetTilesDebugGeometry(const FRecastNavMeshGenerator* 
 
 FBox FPImplRecastNavMesh::GetNavMeshBounds() const
 {
-	FBox Bbox(0);
+	FBox Bbox(ForceInit);
 
 	// @todo, calc once and cache it
 	if (DetourNavMesh)
@@ -2448,7 +2461,7 @@ FBox FPImplRecastNavMesh::GetNavMeshBounds() const
 
 FBox FPImplRecastNavMesh::GetNavMeshTileBounds(int32 TileIndex) const
 {
-	FBox Bbox(0);
+	FBox Bbox(ForceInit);
 
 	if (DetourNavMesh && TileIndex >= 0 && TileIndex < DetourNavMesh->getMaxTiles())
 	{

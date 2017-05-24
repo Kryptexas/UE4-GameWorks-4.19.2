@@ -1,11 +1,11 @@
-﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
 
 public class OpenSSL : ModuleRules
 {
-	public OpenSSL(TargetInfo Target)
+	public OpenSSL(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

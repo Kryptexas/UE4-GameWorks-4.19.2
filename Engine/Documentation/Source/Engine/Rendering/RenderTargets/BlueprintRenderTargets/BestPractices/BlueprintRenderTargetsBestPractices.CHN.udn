@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-availability:docs
-title:Blueprint & Render Target Best Practices
-description: A collection of Best Practices to follow when using Blueprints and Render Targets.
+﻿INTSourceChangeList:3213360
+availability:Docs
+title:蓝图和渲染目标最佳方法
+description:使用蓝图和渲染目标时的最佳方法合集。
 crumbs:
 version:4.13
-Type:topic
+Type:overview
 SkillLevel:Intermediate
 parent:Engine
 order:2

@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3244370
 Availability:Public
 Title: 팔레트
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:블루프린트에서 사용할 수 있는 모든 함수와 변수가 목록에 상관없이 나열되는 목록인 Palette, 팔레트 입니다.
 version: 4.9
+tags:Blueprints
 
 
 [TOC (start:2)]

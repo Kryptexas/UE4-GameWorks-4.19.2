@@ -622,6 +622,12 @@ bool FOutputLogTextLayoutMarshaller::AppendMessage(const TCHAR* InText, const EL
 		const bool bWasEmpty = Messages.Num() == 0;
 		Messages.Append(NewMessages);
 
+		// Add new message categories to the filter's available log categories
+		for (const auto& NewMessage : NewMessages)
+		{
+			Filter->AddAvailableLogCategory(NewMessage->Category);
+		}
+
 		if(TextLayout)
 		{
 			// If we were previously empty, then we'd have inserted a dummy empty line into the document
@@ -770,6 +776,12 @@ FOutputLogTextLayoutMarshaller::FOutputLogTextLayoutMarshaller(TArray< TSharedPt
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SOutputLog::Construct( const FArguments& InArgs )
 {
+	// Build list of available log categories from historical logs
+	for (const auto& Message : InArgs._Messages)
+	{
+		Filter.AddAvailableLogCategory(Message->Category);
+	}
+
 	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(MoveTemp(InArgs._Messages), &Filter);
 
 	MessagesTextBox = SNew(SMultiLineEditableTextBox)
@@ -833,6 +845,41 @@ void SOutputLog::Construct( const FArguments& InArgs )
 								SNew(STextBlock)
 								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
 								.Text(LOCTEXT("Filters", "Filters"))
+							]
+						]
+					]
+
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SComboButton)
+						.ComboButtonStyle(FEditorStyle::Get(), "OutputLog.Filters.Style")
+						.ForegroundColor(FLinearColor::White)
+						.ContentPadding(0)
+						.ToolTipText(LOCTEXT("SelectCategoriesToolTip", "Select Categories to display."))
+						.OnGetMenuContent(this, &SOutputLog::MakeSelectCategoriesMenu)
+						.HasDownArrow(true)
+						.ContentPadding(FMargin(1, 0))
+						.ButtonContent()
+						[
+							SNew(SHorizontalBox)
+
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
+								.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.9"))
+								.Text(FText::FromString(FString(TEXT("\xf0b0"))) /*fa-filter*/)
+							]
+
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(2, 0, 0, 0)
+							[
+								SNew(STextBlock)
+								.TextStyle(FEditorStyle::Get(), "OutputLog.Filters.Text")
+								.Text(LOCTEXT("Categories", "Categories"))
 							]
 						]
 					]
@@ -947,14 +994,14 @@ bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosit
 						HardWrapLineLen = FMath::Min(HardWrapLen - MessagePrefix.Len(), Line.Len() - CurrentStartIndex);
 						FString HardWrapLine = Line.Mid(CurrentStartIndex, HardWrapLineLen);
 
-						OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString(MessagePrefix + HardWrapLine)), Verbosity, Style)));
+						OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString(MessagePrefix + HardWrapLine)), Verbosity, Category, Style)));
 					}
 					else
 					{
 						HardWrapLineLen = FMath::Min(HardWrapLen, Line.Len() - CurrentStartIndex);
 						FString HardWrapLine = Line.Mid(CurrentStartIndex, HardWrapLineLen);
 
-						OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString(MoveTemp(HardWrapLine))), Verbosity, Style)));
+						OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString(MoveTemp(HardWrapLine))), Verbosity, Category, Style)));
 					}
 
 					bIsFirstLineInMessage = false;
@@ -1072,6 +1119,57 @@ TSharedRef<SWidget> SOutputLog::MakeAddFilterMenu()
 	return MenuBuilder.MakeWidget();
 }
 
+TSharedRef<SWidget> SOutputLog::MakeSelectCategoriesMenu()
+{
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/false, nullptr);
+
+	MenuBuilder.BeginSection("OutputLogCategoriesEntries");
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowAllCategories", "Show All"),
+			LOCTEXT("ShowAllCategories_Tooltip", "Filter the Output Log to show all categories"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &SOutputLog::MenuShowAllCategories_Execute),
+			FCanExecuteAction::CreateSP(this, &SOutputLog::Menu_CanExecute),
+			FIsActionChecked::CreateSP(this, &SOutputLog::MenuShowAllCategories_IsChecked)),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+		);
+		
+		for (const auto& Category : Filter.GetAvailableLogCategories())
+		{
+			// UI callbacks don't support parameters, so using lambdas allows for capturing the Category FName
+			auto ExecuteCategoryCallback = [this, &Category]() -> void
+			{
+				this->Filter.ToggleLogCategory(Category);
+
+				// Flag the messages count as dirty
+				MessagesTextMarshaller->MarkMessagesCacheAsDirty();
+
+				Refresh();
+			};
+			auto IsCheckedCategoryCallback = [this, &Category]() -> bool
+			{
+				return this->Filter.IsLogCategoryEnabled(Category);
+			};
+
+			MenuBuilder.AddMenuEntry(
+				FText::AsCultureInvariant(FText::FromName(Category)),
+				FText::AsCultureInvariant(FString::Printf(TEXT("Filter the Output Log to show Category: %s"), *Category.ToString())),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateLambda(ExecuteCategoryCallback),
+				FCanExecuteAction::CreateSP(this, &SOutputLog::Menu_CanExecute),
+				FIsActionChecked::CreateLambda(IsCheckedCategoryCallback)),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+		}
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
 void SOutputLog::FillVerbosityEntries(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.BeginSection("OutputLogVerbosityEntries");
@@ -1132,6 +1230,11 @@ bool SOutputLog::MenuErrors_IsChecked() const
 	return Filter.bShowErrors;
 }
 
+bool SOutputLog::MenuShowAllCategories_IsChecked() const
+{
+	return Filter.bShowAllCategories;
+}
+
 void SOutputLog::MenuLogs_Execute()
 { 
 	Filter.bShowLogs = !Filter.bShowLogs;
@@ -1162,6 +1265,25 @@ void SOutputLog::MenuErrors_Execute()
 	Refresh();
 }
 
+void SOutputLog::MenuShowAllCategories_Execute()
+{
+	Filter.bShowAllCategories = !Filter.bShowAllCategories;
+
+	Filter.ClearSelectedLogCategories();
+	if (Filter.bShowAllCategories)
+	{
+		for (const auto& AvailableCategory : Filter.GetAvailableLogCategories())
+		{
+			Filter.ToggleLogCategory(AvailableCategory);
+		}
+	}
+
+	// Flag the messages count as dirty
+	MessagesTextMarshaller->MarkMessagesCacheAsDirty();
+
+	Refresh();
+}
+
 bool FLogFilter::IsMessageAllowed(const TSharedPtr<FLogMessage>& Message)
 {
 	// Filter Verbosity
@@ -1182,6 +1304,14 @@ bool FLogFilter::IsMessageAllowed(const TSharedPtr<FLogMessage>& Message)
 		}
 	}
 
+	// Filter by Category
+	{
+		if (!IsLogCategoryEnabled(Message->Category))
+		{
+			return false;
+		}
+	}
+
 	// Filter search phrase
 	{
 		if (!TextFilterExpressionEvaluator.TestTextFilter(FLogFilter_TextFilterExpressionContext(*Message)))
@@ -1193,4 +1323,51 @@ bool FLogFilter::IsMessageAllowed(const TSharedPtr<FLogMessage>& Message)
 	return true;
 }
 
+void FLogFilter::AddAvailableLogCategory(FName& LogCategory)
+{
+	// Use an insert-sort to keep AvailableLogCategories alphabetically sorted
+	int32 InsertIndex = 0;
+	for (InsertIndex = AvailableLogCategories.Num()-1; InsertIndex >= 0; --InsertIndex)
+	{
+		FName CheckCategory = AvailableLogCategories[InsertIndex];
+		// No duplicates
+		if (CheckCategory == LogCategory)
+		{
+			return;
+		}
+		else if (CheckCategory.Compare(LogCategory) < 0)
+		{
+			break;
+		}
+	}
+	AvailableLogCategories.Insert(LogCategory, InsertIndex+1);
+	if (bShowAllCategories)
+	{
+		ToggleLogCategory(LogCategory);
+	}
+}
+
+void FLogFilter::ToggleLogCategory(const FName& LogCategory)
+{
+	int32 FoundIndex = SelectedLogCategories.Find(LogCategory);
+	if (FoundIndex == INDEX_NONE)
+	{
+		SelectedLogCategories.Add(LogCategory);
+	}
+	else
+	{
+		SelectedLogCategories.RemoveAt(FoundIndex, /*Count=*/1, /*bAllowShrinking=*/false);
+	}
+}
+
+bool FLogFilter::IsLogCategoryEnabled(const FName& LogCategory)
+{
+	return SelectedLogCategories.Contains(LogCategory);
+}
+
+void FLogFilter::ClearSelectedLogCategories()
+{
+	// No need to churn memory each time the selected categories are cleared
+	SelectedLogCategories.Reset(SelectedLogCategories.GetAllocatedSize());
+}
 #undef LOCTEXT_NAMESPACE

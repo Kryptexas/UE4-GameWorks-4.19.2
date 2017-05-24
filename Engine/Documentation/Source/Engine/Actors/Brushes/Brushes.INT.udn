@@ -8,24 +8,6 @@ Related: Engine/Actors/Volumes
 version: 4.9
 
 
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[Previous Topic](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:title%")
-	[/PARAM]
-	[PARAM:next]
-		[Next Topic](Engine/Actors/Volumes "%Engine/Actors/Volumes:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -64,8 +46,6 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 
 [TOC (end:2)]
@@ -453,11 +433,4 @@ The three types of solidity are explained below.
 * Can only be additive, never subtractive.
 * Do not create cuts in the surrounding Brushes.
 [/EXCERPT:Solidity]
-
-
-%playlistnav%
-
-
-
-
 

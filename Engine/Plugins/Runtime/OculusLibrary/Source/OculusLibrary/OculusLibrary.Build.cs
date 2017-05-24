@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class OculusLibrary : ModuleRules
 	{
-		public OculusLibrary(TargetInfo Target)
+		public OculusLibrary(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {

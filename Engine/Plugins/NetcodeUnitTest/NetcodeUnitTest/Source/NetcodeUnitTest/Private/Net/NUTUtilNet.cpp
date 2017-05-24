@@ -390,48 +390,50 @@ UUnitTestChannel* NUTNet::CreateUnitTestChannel(UNetConnection* InConnection, EC
 FOutBunch* NUTNet::CreateChannelBunch(int32& BunchSequence, UNetConnection* InConnection, EChannelType InChType,
 											int32 InChIndex/*=INDEX_NONE*/, bool bGetNextFreeChan/*=false*/)
 {
-	FOutBunch* ReturnVal = NULL;
+	FOutBunch* ReturnVal = nullptr;
+	UChannel* ControlChan = InConnection != nullptr ? InConnection->Channels[0] : nullptr;
 
-	BunchSequence++;
-
-	// If the channel already exists, the input sequence needs to be overridden, and the channel sequence incremented
-	if (InChIndex != INDEX_NONE && InConnection != NULL && InConnection->Channels[InChIndex] != NULL)
+	if (InChIndex == INDEX_NONE || bGetNextFreeChan)
 	{
-		BunchSequence = ++InConnection->OutReliable[InChIndex];
+		InChIndex = GetFreeChannelIndex(InConnection, InChIndex);
 	}
 
-	if (InConnection != NULL && InConnection->Channels[0] != NULL)
+	if (ControlChan != nullptr && ControlChan->IsNetReady(false))
 	{
-		ReturnVal = new FOutBunch(InConnection->Channels[0], false);
+		ReturnVal = new FOutBunch(ControlChan, false);
 
 		// Fix for uninitialized members (just one is causing a problem, but may as well do them all)
-		ReturnVal->Next = NULL;
+		ReturnVal->Next = nullptr;
 		ReturnVal->Time = 0.0;
 		ReturnVal->ReceivedAck = false; // This one was the problem - was triggering an assert
 		ReturnVal->ChSequence = 0;
 		ReturnVal->PacketId = 0;
 		ReturnVal->bDormant = false;
-	}
 
-
-	if (ReturnVal != NULL)
-	{
-		if (InChIndex == INDEX_NONE || bGetNextFreeChan)
+		// If the channel already exists, the BunchSequence needs to be overridden, and the channel sequence incremented
+		if (InConnection->Channels[InChIndex] != nullptr)
 		{
-			InChIndex = GetFreeChannelIndex(InConnection, InChIndex);
+			BunchSequence = ++InConnection->OutReliable[InChIndex];
+		}
+		else
+		{
+			BunchSequence++;
 		}
 
-		ReturnVal->Channel = NULL;
+		ReturnVal->Channel = nullptr;
 		ReturnVal->ChIndex = InChIndex;
 		ReturnVal->ChType = InChType;
 
 
 		// NOTE: Might not cover all bOpen or 'channel already open' cases
-		ReturnVal->bOpen = (uint8)(InConnection == NULL || InConnection->Channels[InChIndex] == NULL ||
-							InConnection->Channels[InChIndex]->OpenPacketId.First == INDEX_NONE);
-
-		if (ReturnVal->bOpen && InConnection != NULL && InConnection->Channels[InChIndex] != NULL)
+		if (InConnection->Channels[InChIndex] == nullptr)
 		{
+			ReturnVal->bOpen = 1;
+		}
+		else if (InConnection->Channels[InChIndex]->OpenPacketId.First == INDEX_NONE)
+		{
+			ReturnVal->bOpen = 1;
+
 			InConnection->Channels[InChIndex]->OpenPacketId.First = BunchSequence;
 			InConnection->Channels[InChIndex]->OpenPacketId.Last = BunchSequence;
 		}
@@ -451,11 +453,15 @@ void NUTNet::SendControlBunch(UNetConnection* InConnection, FOutBunch& ControlCh
 		// Since it's the unit test control channel, sending the packet abnormally, append to OutRec manually
 		if (ControlChanBunch.bReliable)
 		{
-			for (FOutBunch* CurOut=InConnection->Channels[0]->OutRec; CurOut!=NULL; CurOut=CurOut->Next)
+			UChannel* ControlChan = InConnection->Channels[0];
+
+			for (FOutBunch* CurOut=ControlChan->OutRec; CurOut!=NULL; CurOut=CurOut->Next)
 			{
 				if (CurOut->Next == NULL)
 				{
 					CurOut->Next = &ControlChanBunch;
+					ControlChan->NumOutRec++;
+
 					break;
 				}
 			}
@@ -593,74 +599,81 @@ bool NUTNet::CreateFakePlayer(UWorld* InWorld, UNetDriver*& InNetDriver, FString
 
 			FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, TargetConn, CHTYPE_Control, 0);
 
-			// Need to send 'NMT_Hello' to start off the connection (the challenge is not replied to)
-			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
-
-			// We need to construct the NMT_Hello packet manually, for the initial connection
-			uint8 MessageType = NMT_Hello;
-
-			*ControlChanBunch << MessageType;
-			*ControlChanBunch << IsLittleEndian;
-
-			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
-			*ControlChanBunch << LocalNetworkVersion;
-
-			if (bBeaconConnect)
+			if (ControlChanBunch != nullptr)
 			{
-				if (!bSkipJoin)
-				{
-					MessageType = NMT_BeaconJoin;
-					*ControlChanBunch << MessageType;
-					*ControlChanBunch << InBeaconType;
+				// Need to send 'NMT_Hello' to start off the connection (the challenge is not replied to)
+				uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
 
-					// Also immediately ack the beacon GUID setup; we're just going to let the server setup the client beacon,
-					// through the actor channel
-					MessageType = NMT_BeaconNetGUIDAck;
-					*ControlChanBunch << MessageType;
-					*ControlChanBunch << InBeaconType;
+				// We need to construct the NMT_Hello packet manually, for the initial connection
+				uint8 MessageType = NMT_Hello;
+
+				*ControlChanBunch << MessageType;
+				*ControlChanBunch << IsLittleEndian;
+
+				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+				*ControlChanBunch << LocalNetworkVersion;
+
+				if (bBeaconConnect)
+				{
+					if (!bSkipJoin)
+					{
+						MessageType = NMT_BeaconJoin;
+						*ControlChanBunch << MessageType;
+						*ControlChanBunch << InBeaconType;
+
+						// Also immediately ack the beacon GUID setup; we're just going to let the server setup the client beacon,
+						// through the actor channel
+						MessageType = NMT_BeaconNetGUIDAck;
+						*ControlChanBunch << MessageType;
+						*ControlChanBunch << InBeaconType;
+					}
 				}
+				else
+				{
+					// Then send NMT_Login
+#if TARGET_UE4_CL < CL_CONSTUNIQUEID
+#else
+					TSharedPtr<const FUniqueNetId> DudPtr = MakeShareable(new FUniqueNetIdString(TEXT("Dud")));
+#endif
+
+					FUniqueNetIdRepl PlayerUID(DudPtr);
+					FString BlankStr = TEXT("");
+					FString ConnectURL = UUnitTest::UnitEnv->GetDefaultClientConnectURL();
+
+					if (InNetID != NULL)
+					{
+						PlayerUID = *InNetID;
+					}
+
+					MessageType = NMT_Login;
+					*ControlChanBunch << MessageType;
+					*ControlChanBunch << BlankStr;
+					*ControlChanBunch << ConnectURL;
+					*ControlChanBunch << PlayerUID;
+
+
+					// Now send NMT_Join, to trigger a fake player, which should then trigger replication of basic actor channels
+					if (!bSkipJoin)
+					{
+						MessageType = NMT_Join;
+						*ControlChanBunch << MessageType;
+					}
+				}
+
+
+				// Big hack: Store OutRec value on the unit test control channel, to enable 'retry-send' code
+				TargetConn->Channels[0]->OutRec = ControlChanBunch;
+
+				TargetConn->SendRawBunch(*ControlChanBunch, true);
+
+
+				bSuccess = true;
 			}
 			else
 			{
-				// Then send NMT_Login
-#if TARGET_UE4_CL < CL_CONSTUNIQUEID
-#else
-				TSharedPtr<const FUniqueNetId> DudPtr = MakeShareable(new FUniqueNetIdString(TEXT("Dud")));
-#endif
-
-				FUniqueNetIdRepl PlayerUID(DudPtr);
-				FString BlankStr = TEXT("");
-				FString ConnectURL = UUnitTest::UnitEnv->GetDefaultClientConnectURL();
-
-				if (InNetID != NULL)
-				{
-					PlayerUID = *InNetID;
-				}
-
-				MessageType = NMT_Login;
-				*ControlChanBunch << MessageType;
-				*ControlChanBunch << BlankStr;
-				*ControlChanBunch << ConnectURL;
-				*ControlChanBunch << PlayerUID;
-
-
-				// Now send NMT_Join, to trigger a fake player, which should then trigger replication of basic actor channels
-				if (!bSkipJoin)
-				{
-					MessageType = NMT_Join;
-					*ControlChanBunch << MessageType;
-				}
+				UE_LOG(LogUnitTest, Log, TEXT("Failed to kickoff connect to IP '%s', could not create control channel bunch."),
+						*ServerIP);
 			}
-
-
-			// Big hack: Store OutRec value on the unit test control channel, to enable 'retry-send' code
-			TargetConn->Channels[0]->OutRec = ControlChanBunch;
-
-			TargetConn->SendRawBunch(*ControlChanBunch, true);
-
-
-			bSuccess = true;
-
 		}
 		else
 		{

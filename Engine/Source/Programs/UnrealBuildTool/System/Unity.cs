@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace UnrealBuildTool
 {
-	public class Unity
+	class Unity
 	{
 		/// <summary>
 		/// The set of source files that UnrealBuildTool determined to be part of the programmer's "working set".
@@ -21,6 +21,11 @@ namespace UnrealBuildTool
 		/// Set of files which are candidates for being part of the working set.
 		/// </summary>
 		public static HashSet<FileItem> CandidateSourceFilesForWorkingSet = new HashSet<FileItem>();
+
+		/// <summary>
+		/// Set of target names we've printed out adaptive non-unity messages for.
+		/// </summary>
+		public static HashSet<string> PrintedSettingsForTargets  = new HashSet<string>();
 
 		/// <summary>
 		/// Prefix used for all dynamically created Unity modules
@@ -159,16 +164,15 @@ namespace UnrealBuildTool
 		/// <param name="BaseName">Base name to use for the Unity files</param>
 		/// <returns>The "unity" C++ files.</returns>
 		public static List<FileItem> GenerateUnityCPPs(
-			UEToolChain ToolChain,
-			UEBuildTarget Target,
+			ReadOnlyTargetRules Target,
 			List<FileItem> CPPFiles,
-			CPPEnvironment CompileEnvironment,
+			CppCompileEnvironment CompileEnvironment,
 			string BaseName
 			)
 		{
 			List<FileItem> NewCPPFiles = new List<FileItem>();
 
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Platform);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Platform);
 
 			// Figure out size of all input files combined. We use this to determine whether to use larger unity threshold or not.
 			long TotalBytesInCPPFiles = CPPFiles.Sum(F => F.Info.Length);
@@ -181,10 +185,10 @@ namespace UnrealBuildTool
 			// When enabled, UnrealBuildTool will try to determine source files that you are actively iteratively changing, and break those files
 			// out of their unity blobs so that you can compile them as individual translation units, much faster than recompiling the entire
 			// unity blob each time.
-			bool bUseAdaptiveUnityBuild = BuildConfiguration.bUseAdaptiveUnityBuild && !BuildConfiguration.bStressTestUnity;
+			bool bUseAdaptiveUnityBuild = Target.bUseAdaptiveUnityBuild && !Target.bStressTestUnity;
 
 			// Optimization only makes sense if PCH files are enabled.
-			bool bForceIntoSingleUnityFile = BuildConfiguration.bStressTestUnity || (TotalBytesInCPPFiles < BuildConfiguration.NumIncludedBytesPerUnityCPP * 2 && CompileEnvironment.ShouldUsePCHs());
+			bool bForceIntoSingleUnityFile = Target.bStressTestUnity || (TotalBytesInCPPFiles < Target.NumIncludedBytesPerUnityCPP * 2 && Target.bUsePCHFiles);
 
 			// Build the list of unity files.
 			List<FileCollection> AllUnityFiles;
@@ -209,8 +213,7 @@ namespace UnrealBuildTool
 					foreach (FileItem CPPFile in SortedCPPFiles)
 					{
 						// Don't include writable source files into unity blobs
-						if (!CPPFile.Reference.IsUnderDirectory(Target.EngineIntermediateDirectory) &&
-							!CPPFile.Reference.IsUnderDirectory(Target.ProjectIntermediateDirectory))
+						if (!CPPFile.Reference.HasExtension(".generated.cpp"))
 						{
 							++CandidateWorkingSetSourceFileCount;
 
@@ -234,7 +237,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				UnityFileBuilder CPPUnityFileBuilder = new UnityFileBuilder(bForceIntoSingleUnityFile ? -1 : BuildConfiguration.NumIncludedBytesPerUnityCPP);
+				UnityFileBuilder CPPUnityFileBuilder = new UnityFileBuilder(bForceIntoSingleUnityFile ? -1 : Target.NumIncludedBytesPerUnityCPP);
 				StringBuilder AdaptiveUnityBuildInfoString = new StringBuilder();
 				foreach (FileItem CPPFile in SortedCPPFiles)
 				{
@@ -281,12 +284,23 @@ namespace UnrealBuildTool
 						// dependency cache, as it is now an "indirect include" from the unity file.  We'll clear out the compile environment
 						// attached to this file.  This prevents us from having to cache all of the indirect includes from these files inside our
 						// dependency cache, which speeds up iterative builds a lot!
-						CPPFile.CachedCPPIncludeInfo = null;
+						CPPFile.CachedIncludePaths = null;
 					}
 				}
 
 				if (AdaptiveUnityBuildInfoString.Length > 0)
 				{
+					if (PrintedSettingsForTargets.Add(Target.Name))
+					{
+						if (Target.bAdaptiveUnityDisablesPCH)
+						{
+							Log.TraceInformation("[Adaptive unity build] Disabling PCH for excluded files due to bAdaptiveUnityDisablesPCH setting.");
+						}
+						if (Target.bAdaptiveUnityDisablesOptimizations)
+						{
+							Log.TraceInformation("[Adaptive unity build] Disabling optimizations for excluded files due to bAdaptiveUnityDisablesOptimizations setting.");
+						}
+					}
 					Log.TraceInformation(AdaptiveUnityBuildInfoString.ToString());
 				}
 
@@ -301,24 +315,24 @@ namespace UnrealBuildTool
 				++CurrentUnityFileCount;
 
 				StringWriter OutputUnityCPPWriter = new StringWriter();
-				StringWriter OutputUnityCPPWriterExtra = null;
-
-				// add an extra file for UBT to get the #include dependencies from
-				if (BuildPlatform.RequiresExtraUnityCPPWriter() == true)
-				{
-					OutputUnityCPPWriterExtra = new StringWriter();
-				}
 
 				OutputUnityCPPWriter.WriteLine("// This file is automatically generated at compile-time to include some subset of the user-created cpp files.");
 
 				// Add source files to the unity file
 				foreach (FileItem CPPFile in UnityFile.Files)
 				{
-					OutputUnityCPPWriter.WriteLine("#include \"{0}\"", ToolChain.ConvertPath(CPPFile.AbsolutePath));
-					if (OutputUnityCPPWriterExtra != null)
+					string IncludePath;
+					if(BuildPlatform.UseAbsolutePathsInUnityFiles())
 					{
-						OutputUnityCPPWriterExtra.WriteLine("#include \"{0}\"", CPPFile.AbsolutePath);
+						IncludePath = CPPFile.AbsolutePath;
 					}
+					else
+					{
+						// @todo: MakeRelativeTo does not work with code projects on a different drive than the engine. reverting to old version until we can come
+						// up with a better solution
+						IncludePath = RemoteExports.ConvertPath(CPPFile.AbsolutePath).Replace('\\', '/');
+					}
+					OutputUnityCPPWriter.WriteLine("#include \"{0}\"", IncludePath);
 				}
 
 				// Determine unity file path name
@@ -331,14 +345,10 @@ namespace UnrealBuildTool
 				{
 					UnityCPPFileName = string.Format("{0}{1}.cpp", ModulePrefix, BaseName);
 				}
-				FileReference UnityCPPFilePath = FileReference.Combine(CompileEnvironment.Config.OutputDirectory, UnityCPPFileName);
+				FileReference UnityCPPFilePath = FileReference.Combine(CompileEnvironment.OutputDirectory, UnityCPPFileName);
 
 				// Write the unity file to the intermediate folder.
 				FileItem UnityCPPFile = FileItem.CreateIntermediateTextFile(UnityCPPFilePath, OutputUnityCPPWriter.ToString());
-				if (OutputUnityCPPWriterExtra != null)
-				{
-					FileItem.CreateIntermediateTextFile(UnityCPPFilePath + ".ex", OutputUnityCPPWriterExtra.ToString());
-				}
 
 				UnityCPPFile.RelativeCost = UnityFile.TotalLength;
 				NewCPPFiles.Add(UnityCPPFile);

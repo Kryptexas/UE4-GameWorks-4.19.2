@@ -24,10 +24,10 @@ class UWindDirectionalSourceComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Interp, BlueprintReadOnly, Category=WindDirectionalSourceComponent)
+	UPROPERTY(Interp, Category=WindDirectionalSourceComponent)
 	float Strength;
 
-	UPROPERTY(Interp, BlueprintReadOnly, Category=WindDirectionalSourceComponent)
+	UPROPERTY(Interp, Category=WindDirectionalSourceComponent)
 	float Speed;
 
 	UPROPERTY(Interp, BlueprintReadOnly, Category = WindDirectionalSourceComponent)
@@ -36,7 +36,7 @@ class UWindDirectionalSourceComponent : public USceneComponent
 	UPROPERTY(Interp, BlueprintReadOnly, Category = WindDirectionalSourceComponent)
 	float MaxGustAmount;
 
-	UPROPERTY(Interp, BlueprintReadOnly, Category = WindDirectionalSourceComponent, meta = (editcondition = "bSimulatePhysics", ClampMin = "0.1", UIMin = "0.1"))
+	UPROPERTY(Interp, Category = WindDirectionalSourceComponent, meta = (editcondition = "bSimulatePhysics", ClampMin = "0.1", UIMin = "0.1"))
 	float Radius;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = WindDirectionalSourceComponent)

@@ -46,11 +46,11 @@ FReply SColorGradingWheel::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		OnMouseCaptureBegin.ExecuteIfBound();
+		OnMouseCaptureBegin.ExecuteIfBound(SelectedColor.Get());
 
 		if (!ProcessMouseAction(MyGeometry, MouseEvent, false))
 		{
-			OnMouseCaptureEnd.ExecuteIfBound();
+			OnMouseCaptureEnd.ExecuteIfBound(SelectedColor.Get());
 			return FReply::Unhandled();
 		}
 
@@ -65,7 +65,7 @@ FReply SColorGradingWheel::OnMouseButtonUp(const FGeometry& MyGeometry, const FP
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && HasMouseCapture())
 	{
-		OnMouseCaptureEnd.ExecuteIfBound();
+		OnMouseCaptureEnd.ExecuteIfBound(SelectedColor.Get());
 
 		return FReply::Handled().ReleaseMouseCapture();
 	}
@@ -90,7 +90,7 @@ FReply SColorGradingWheel::OnMouseMove(const FGeometry& MyGeometry, const FPoint
 int32 SColorGradingWheel::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
-	const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	const FVector2D& SelectorSize = SelectorImage->ImageSize;
 	FVector2D CircleSize = AllottedGeometry.Size - SelectorSize;
 	FVector2D AllottedGeometrySize = AllottedGeometry.Size;

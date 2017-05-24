@@ -19,6 +19,8 @@ DECLARE_LOG_CATEGORY_EXTERN( LogLinuxWindowEvent, Log, All );
 
 typedef SDL_Window*		SDL_HWindow;
 
+enum class EWindowActivationPolicy;
+
 /**
  * A platform specific implementation of FNativeWindow.
  * Native Windows provide platform-specific backing for and are always owned by an SWindow.
@@ -66,8 +68,11 @@ public:
 	/** TODO: describe */
 	bool IsUtilityWindow() const;
 
-	/** TODO: describe */
+	DEPRECATED(4.16, "IsActivateWhenFirstShown() is deprecated. Please use GetActivationPolicy() instead")
 	bool IsActivateWhenFirstShown() const;
+
+	/** @return the window activation policy used when showing the window */
+	EWindowActivationPolicy GetActivationPolicy() const;
 	
 	/** TODO: describe */
 	bool IsFocusWhenFirstShown() const;

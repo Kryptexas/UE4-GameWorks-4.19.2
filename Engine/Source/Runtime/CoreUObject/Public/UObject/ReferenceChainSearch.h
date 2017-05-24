@@ -162,7 +162,7 @@ private:
 	/** Performs the referencer search */
 	void PerformSearch();
 	/** Processes an object and returns whether it is part of the reference chain or not */
-	bool ProcessObject(UObject* CurrentObject);
+	void ProcessObject(UObject* CurrentObject);
 	/** Inserts the reference chain into the result set and tries to merge it into an already
 		present one, if possible */
 	void InsertReferenceChain(FReferenceChain& Referencer);

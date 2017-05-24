@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class GearVR : ModuleRules
 	{
-		public GearVR(TargetInfo Target)
+		public GearVR(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(new string[]
 				{
@@ -28,7 +28,6 @@ namespace UnrealBuildTool.Rules
 					"Renderer",
 					"ShaderCore",
 					"HeadMountedDisplay",
-					"OpenGLDrv",
 					"OculusMobile",
 					"UtilityShaders",
 				});
@@ -42,6 +41,11 @@ namespace UnrealBuildTool.Rules
 			{
 				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
 				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GearVR_APL.xml")));
+			}
+
+			if (Target.Platform != UnrealTargetPlatform.Mac)
+			{
+				PrivateDependencyModuleNames.Add("OpenGLDrv");
 			}
 
 			PublicIncludePathModuleNames.Add("Launch");

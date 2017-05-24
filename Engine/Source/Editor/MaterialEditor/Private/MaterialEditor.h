@@ -139,12 +139,13 @@ public:
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
 	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const override;
 
-	virtual int32 GetMaterialDomain() const override { return MD_Surface; }
+	virtual EMaterialDomain GetMaterialDomain() const override { return MD_Surface; }
 	virtual FString GetMaterialUsageDescription() const override { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
 	virtual bool IsTwoSided() const override { return false; }
 	virtual bool IsDitheredLODTransition() const override { return false; }
 	virtual bool IsLightFunction() const override { return false; }
 	virtual bool IsDeferredDecal() const override { return false; }
+	virtual bool IsVolumetricPrimitive() const override { return false; }
 	virtual bool IsSpecialEngineMaterial() const override { return false; }
 	virtual bool IsWireframe() const override { return false; }
 	virtual bool IsMasked() const override { return false; }
@@ -180,8 +181,8 @@ struct FMaterialExpression
 {
 	FString Name;
 	UClass* MaterialClass;
-	FString CreationDescription;
-	FString CreationName;
+	FText CreationDescription;
+	FText CreationName;
 
 	friend bool operator==(const FMaterialExpression& A,const FMaterialExpression& B)
 	{

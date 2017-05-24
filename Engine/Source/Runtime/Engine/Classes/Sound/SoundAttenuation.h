@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/Attenuation.h"
+#include "IAudioExtensionPlugin.h"
 #include "SoundAttenuation.generated.h"
 
 UENUM()
@@ -68,6 +69,10 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	/** Which spatialization algorithm to use if spatializing mono sources. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation, meta = (ClampMin = "0", EditCondition = "bSpatialize", DisplayName = "Spatialization Algorithm"))
 	TEnumAsByte<enum ESoundSpatializationAlgorithm> SpatializationAlgorithm;
+
+	/** Settings to use with occlusion plugin. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation, meta = (EditCondition = "bSpatialize"))
+	USpatializationPluginSourceSettingsBase* SpatializationPluginSettings;
 
 	UPROPERTY()
 	float RadiusMin_DEPRECATED;
@@ -139,6 +144,14 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Occlusion, meta = (ClampMin = "0", UIMin = "0.0", EditCondition = "bEnableOcclusion"))
 	float OcclusionInterpolationTime;
 
+	/** Settings to use with occlusion plugin. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Occlusion, meta=(EditCondition = "bEnableOcclusion"))
+	UOcclusionPluginSourceSettingsBase* OcclusionPluginSettings;
+
+	/** Settings to use with reverb plugin. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
+	UReverbPluginSourceSettingsBase* ReverbPluginSettings;
+
 	/** The amount to send to master reverb when sound is ReverbDistanceMin from listener. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
 	float ReverbWetLevelMin;
@@ -166,6 +179,7 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 		, OmniRadius(0.0f)
 		, StereoSpread(0.0f)
 		, SpatializationAlgorithm(ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
+		, SpatializationPluginSettings(nullptr)
 		, RadiusMin_DEPRECATED(400.f)
 		, RadiusMax_DEPRECATED(4000.f)
 		, LPFRadiusMin(3000.f)
@@ -184,6 +198,8 @@ struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 		, OcclusionLowPassFilterFrequency(20000.f)
 		, OcclusionVolumeAttenuation(1.0f)
 		, OcclusionInterpolationTime(0.1f)
+		, OcclusionPluginSettings(nullptr)
+		, ReverbPluginSettings(nullptr)
 		, ReverbWetLevelMin(0.3f)
 		, ReverbWetLevelMax(0.95f)
 		, ReverbDistanceMin(AttenuationShapeExtents.X)
@@ -204,7 +220,7 @@ DEPRECATED(4.15, "FAttenuationSettings has been renamed FSoundAttenuationSetting
 typedef FSoundAttenuationSettings FAttenuationSettings;
 
 template<>
-struct TStructOpsTypeTraits<FSoundAttenuationSettings> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FSoundAttenuationSettings> : public TStructOpsTypeTraitsBase2<FSoundAttenuationSettings>
 {
 	enum 
 	{

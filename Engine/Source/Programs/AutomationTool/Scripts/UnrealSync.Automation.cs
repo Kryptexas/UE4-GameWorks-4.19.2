@@ -83,11 +83,11 @@ namespace AutomationScripts.Automation
 		{
 			var Combined = P4.GetLabels(BranchPath + "/Promot*" + (GameName != null ? ("-" + GameName) : "") + "-CL-*");
 
-			Combined.OrderByDescending((Label) => Label.Date);
+			IEnumerable<P4Label> CombinedOrdered = Combined.OrderByDescending((Label) => Label.Date);
 
 			var Output = new List<P4Label>();
 
-			foreach(var PossiblePromotable in Combined)
+			foreach(var PossiblePromotable in CombinedOrdered)
 			{
 				if(PossiblePromotable.Name.StartsWith(BranchPath + "/Promoted"))
 				{

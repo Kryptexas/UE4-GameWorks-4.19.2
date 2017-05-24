@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealHeaderTool : ModuleRules
 {
-	public UnrealHeaderTool(TargetInfo Target)
+	public UnrealHeaderTool(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 

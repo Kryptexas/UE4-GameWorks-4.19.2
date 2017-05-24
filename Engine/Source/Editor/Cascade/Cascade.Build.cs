@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class Cascade : ModuleRules
 {
-	public Cascade(TargetInfo Target)
+	public Cascade(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] {

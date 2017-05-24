@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class StatsViewer : ModuleRules
 {
-	public StatsViewer(TargetInfo Target)
+	public StatsViewer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

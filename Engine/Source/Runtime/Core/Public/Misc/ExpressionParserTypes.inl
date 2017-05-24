@@ -4,13 +4,13 @@
 
 #include "CoreFwd.h"
 #include "Templates/RemoveReference.h"
+#include "Templates/PointerIsConvertibleFromTo.h"
 
 #define LOCTEXT_NAMESPACE "ExpressionParser"
 
 class FExpressionNode;
 class FExpressionToken;
 struct FOperatorFunctionID;
-template <typename From, typename To> struct TPointerIsConvertibleFromTo;
 template< class T > struct TRemoveConst;
 
 namespace Impl

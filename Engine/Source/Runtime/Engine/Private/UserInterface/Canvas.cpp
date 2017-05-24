@@ -19,6 +19,10 @@
 #include "EngineFontServices.h"
 #include "Internationalization/BreakIterator.h"
 #include "Misc/CoreDelegates.h"
+#include "DrawingPolicy.h"
+#include "OneColorShader.h"
+#include "PipelineStateCache.h"
+#include "ClearQuad.h"
 
 #include "StereoRendering.h"
 #include "Debug/ReporterGraph.h"
@@ -131,7 +135,7 @@ bool FCanvasWordWrapper::ProcessLine(FWrappingState& WrappingState)
 
 		if(WrappingState.WrappedLineData)
 		{
-			WrappingState.WrappedLineData->Add(TPairInitializer<int32, int32>(WrappingState.StartIndex, BreakIndex));
+			WrappingState.WrappedLineData->Emplace(WrappingState.StartIndex, BreakIndex);
 		}
 
 		WrappingState.StartIndex = NextStartIndex;
@@ -370,7 +374,7 @@ FMatrix FCanvas::CalcProjectionMatrix(uint32 ViewSizeX, uint32 ViewSizeY, float 
 	}
 }
 
-bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
+bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FCanvas* Canvas)
 {
 	checkSlow(Data);
 	bool bDirty = false;
@@ -391,6 +395,7 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 		// draw batched items
 		Data->BatchedElements.Draw(
 			RHICmdList,
+			DrawRenderState,
 			Canvas->GetFeatureLevel(),
 			bNeedsToSwitchVerticalAxis,
 			FBatchedElements::CreateProxySceneView(Data->Transform.GetMatrix(), FIntRect(0, 0, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y)),
@@ -458,15 +463,24 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 		ENQUEUE_RENDER_COMMAND(BatchedDrawCommand)(
 			[DrawParameters](FRHICommandList& RHICmdList)
 			{
+				FSceneView SceneView = FBatchedElements::CreateProxySceneView(DrawParameters.RenderData->Transform.GetMatrix(), FIntRect(0, 0, DrawParameters.ViewportSizeX, DrawParameters.ViewportSizeY));
+
+				FDrawingPolicyRenderState DrawRenderState(SceneView);
+
+				// disable depth test & writes
+				DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+				DrawRenderState.SetBlendState(TStaticBlendState<>::GetRHI());
+
 				// draw batched items
 				DrawParameters.RenderData->BatchedElements.Draw(
 					RHICmdList,
-						DrawParameters.FeatureLevel,
-						DrawParameters.bNeedsToSwitchVerticalAxis,
-					FBatchedElements::CreateProxySceneView(DrawParameters.RenderData->Transform.GetMatrix(),FIntRect(0, 0, DrawParameters.ViewportSizeX, DrawParameters.ViewportSizeY)),
-						DrawParameters.bHitTesting,
-						DrawParameters.DisplayGamma
-					);
+					DrawRenderState,
+					DrawParameters.FeatureLevel,
+					DrawParameters.bNeedsToSwitchVerticalAxis,
+					SceneView,
+					DrawParameters.bHitTesting,
+					DrawParameters.DisplayGamma);
+
 				if(DrawParameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender )
 				{
 					delete DrawParameters.RenderData;
@@ -662,8 +676,10 @@ void FCanvas::Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bFor
 	
 	// Set the RHI render target.
 	::SetRenderTarget(RHICmdList, RenderTargetTexture, FTexture2DRHIRef());
+
+	FDrawingPolicyRenderState DrawRenderState;
 	// disable depth test & writes
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	DrawRenderState.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	if (ViewRect.Area() <= 0)
 	{
@@ -683,7 +699,7 @@ void FCanvas::Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bFor
 			if (RenderItem)
 			{
 				// mark current render target as dirty since we are drawing to it
-				bRenderTargetDirty |= RenderItem->Render_RenderThread(RHICmdList, this);
+				bRenderTargetDirty |= RenderItem->Render_RenderThread(RHICmdList, DrawRenderState, this);
 				if (AllowedModes & Allow_DeleteOnRender)
 				{
 					delete RenderItem;
@@ -723,6 +739,7 @@ void FCanvas::Flush_GameThread(bool bForce)
 	}
 
 	// Update the font cache with new text before elements are drawn
+	if (FEngineFontServices::IsInitialized())
 	{
 		FEngineFontServices::Get().UpdateCache();
 	}
@@ -763,8 +780,6 @@ void FCanvas::Flush_GameThread(bool bForce)
 		{
 			// Set the RHI render target.
 			::SetRenderTarget(RHICmdList, FlushParameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
-			// disable depth test & writes
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 			FIntRect ViewportRect = FlushParameters.ViewRect;
 			if (FlushParameters.bIsScaledToRenderTarget)
@@ -908,7 +923,7 @@ void FCanvas::Clear(const FLinearColor& ClearColor)
 			{
 				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 				RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
-				RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
+				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, ClearColor);
 			}
 			else
 			{

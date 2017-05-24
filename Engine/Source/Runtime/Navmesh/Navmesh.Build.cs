@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class Navmesh : ModuleRules
 	{
-		public Navmesh(TargetInfo Target)
+		public Navmesh(ReadOnlyTargetRules Target) : base(Target)
 		{
             PublicIncludePaths.Add("Runtime/Navmesh/Public");
 			PrivateIncludePaths.Add("Runtime/Navmesh/Private");

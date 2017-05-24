@@ -30,12 +30,6 @@ UInterpToMovementComponent::UInterpToMovementComponent(const FObjectInitializer&
 	bPointsFinalized = false;
 }
 
-void UInterpToMovementComponent::InitializeComponent()
-{
-	Super::InitializeComponent();
-}
-
-
 void UInterpToMovementComponent::StopMovementImmediately()
 {
 	bStopped = true;

@@ -24,9 +24,6 @@ public class BuildCookRun : BuildCommand
 
 	public override void ExecuteBuild()
 	{
-		// allow BCR functions to call UBT functions (especially .ini parsing)
-		UnrealBuildTool.UnrealBuildTool.SetupUBTFromUAT();
-
 		// these need to be done first
 		var bForeign = ParseParam("foreign");
 		var bForeignCode = ParseParam("foreigncode");
@@ -211,7 +208,11 @@ public class BuildCookRun : BuildCommand
 		Project.Cook(Params);
         if (bGenerateNativeScripts)
         {
-            Project.Build(this, Params, WorkingCL, ClientTargets);
+            // crash reporter is built along with client targets, so we need to 
+            // include that target flag here as well - note: that its not folded
+            // into ClientTargets because the editor needs its own CrashReporter 
+            // as well (which would be built above)
+            Project.Build(this, Params, WorkingCL, ClientTargets | ProjectBuildTargets.CrashReporter);
         }
         else
         {

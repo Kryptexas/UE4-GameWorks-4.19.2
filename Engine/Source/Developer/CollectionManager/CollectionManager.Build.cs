@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class CollectionManager : ModuleRules
 {
-	public CollectionManager(TargetInfo Target)
+	public CollectionManager(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

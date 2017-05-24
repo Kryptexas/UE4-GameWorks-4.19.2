@@ -52,7 +52,7 @@ PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #define _strdup strdup
 #endif
 
-static inline FCustomStdString FixHlslName(const glsl_type* Type)
+static inline FCustomStdString FixHlslName(const glsl_type* Type, bool bIsES2)
 {
 	check(Type->is_image() || Type->is_vector() || Type->is_numeric() || Type->is_void() || Type->is_sampler() || Type->is_scalar());
 	FCustomStdString Name = Type->name;
@@ -107,6 +107,27 @@ static inline FCustomStdString FixHlslName(const glsl_type* Type)
 	else if (Type == glsl_type::half4x4_type)
 	{
 		return "mat4";
+	}
+	else if (bIsES2 && Type->base_type == GLSL_TYPE_UINT)
+	{
+		// uint does not exist with GLSL 1.00 (ES2)
+		// So we silently swap uint types to int.
+		if (Type == glsl_type::uint_type)
+		{
+			return "int";
+		}
+		else if (Type == glsl_type::uvec2_type)
+		{
+			return "ivec2";
+		}
+		else if (Type == glsl_type::uvec3_type)
+		{
+			return "ivec3";
+		}
+		else if (Type == glsl_type::uvec4_type)
+		{
+			return "ivec4";
+		}
 	}
 	return Name;
 }
@@ -698,7 +719,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 		}
 		else 
 		{
-			FCustomStdString Name = FixHlslName(t);
+			FCustomStdString Name = FixHlslName(t, bIsES && !bIsES31);
 			ralloc_asprintf_append(buffer, "%s", Name.c_str());
 		}
 	}
@@ -1251,7 +1272,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			}
 			else
 			{
-				ralloc_asprintf_append(buffer, "%s(", FixHlslName(expr->type).c_str());
+				ralloc_asprintf_append(buffer, "%s(", FixHlslName(expr->type, bIsES && !bIsES31).c_str());
 				expr->operands[0]->accept(this);
 				ralloc_asprintf_append(buffer, ")");
 			}
@@ -1754,7 +1775,10 @@ class ir_gen_glsl_visitor : public ir_visitor
 				}
 			}
 		}
-		else if (constant->type->base_type == GLSL_TYPE_INT)
+		else if (constant->type->base_type == GLSL_TYPE_INT
+			// print literal uints as ints for ES2.
+			|| (bIsES && !bIsES31 && constant->type->base_type == GLSL_TYPE_UINT)
+			)
 		{
 			ralloc_asprintf_append(buffer, "%d", constant->value.i[index]);
 		}
@@ -2934,7 +2958,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 		
 		if (bUsesFramebufferFetchES2)
 		{
-			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
+			ralloc_asprintf_append(buffer, "\n#ifdef UE_EXT_shader_framebuffer_fetch\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_framebuffer_fetch : enable\n");
 			ralloc_asprintf_append(buffer, "#define EXT_shader_framebuffer_fetch_enabled 1\n");
 			ralloc_asprintf_append(buffer, "#endif\n");
@@ -3094,7 +3118,7 @@ bool compiler_internal_AdjustIsFrontFacing(bool isFrontFacing)
 		bool bUsesFramebufferFetchES2 = UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
 		if (bUsesFramebufferFetchES2)
 		{
-			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
+			ralloc_asprintf_append(buffer, "\n#ifdef UE_EXT_shader_framebuffer_fetch\n");
 			ralloc_asprintf_append(buffer, "	#if (__VERSION__ >= 300)\n");
 			ralloc_asprintf_append(buffer, "		vec4 FramebufferFetchES2() { return gl_FragColor; }\n");
 			ralloc_asprintf_append(buffer, "	#else\n");

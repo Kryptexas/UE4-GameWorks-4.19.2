@@ -84,7 +84,7 @@
 
 #endif   
 
-#if SCENE_ALPHA
+#if POST_PROCESS_ALPHA
 #define SceneColorLayout float4
 #define CastFloat4ToSceneColorLayout(x) (x)
 #define SetSceneColorLayoutToFloat4(dest,value) dest = (value)
@@ -580,6 +580,23 @@ MaterialFloat4 ClampedPow(MaterialFloat4 X,MaterialFloat4 Y)
 	return pow(max(abs(X),MaterialFloat4(0.000001f,0.000001f,0.000001f,0.000001f)),Y);
 } 
 
+MaterialFloat PositiveClampedPow(MaterialFloat X,MaterialFloat Y)
+{
+	return pow(max(X,0.0f),Y);
+}
+MaterialFloat2 PositiveClampedPow(MaterialFloat2 X,MaterialFloat2 Y)
+{
+	return pow(max(X,MaterialFloat2(0.0f,0.0f)),Y);
+}
+MaterialFloat3 PositiveClampedPow(MaterialFloat3 X,MaterialFloat3 Y)
+{
+	return pow(max(X,MaterialFloat3(0.0f,0.0f,0.0f)),Y);
+}  
+MaterialFloat4 PositiveClampedPow(MaterialFloat4 X,MaterialFloat4 Y)
+{
+	return pow(max(X,MaterialFloat4(0.0f,0.0f,0.0f,0.0f)),Y);
+} 
+
 float DDX(float Input)
 {
 #if COMPUTESHADER
@@ -727,6 +744,11 @@ SamplerState	SceneAlphaCopyTextureSampler;
 // shadow and light function
 Texture2D		LightAttenuationTexture;
 SamplerState	LightAttenuationTextureSampler;
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+// Scene depth-stencil buffer used for stencil reads
+Texture2D<uint2>	SceneStencilTexture;
+#endif
 
 // We don't use an inline function so we can avoid type promotion/ coercion.
 #define RETURN_COLOR( Color ) ( Color )

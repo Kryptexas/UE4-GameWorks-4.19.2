@@ -161,6 +161,16 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 			}
 		}
 	}
+	else
+	{
+		// Leader has no markers, we can't use SyncMarkers.
+		bCanUseMarkerSync = false;
+		ValidMarkers.Reset();
+		for (FAnimTickRecord& AnimTickRecord : ActivePlayers)
+		{
+			AnimTickRecord.MarkerTickRecord->Reset();
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -214,6 +224,25 @@ void UAnimationAsset::Serialize(FArchive& Ar)
 	}
 }
 
+void UAnimationAsset::AddMetaData(class UAnimMetaData* MetaDataInstance)
+{
+	MetaData.Add(MetaDataInstance);
+}
+
+void UAnimationAsset::RemoveMetaData(class UAnimMetaData* MetaDataInstance)
+{
+	MetaData.Remove(MetaDataInstance);
+}
+
+void UAnimationAsset::RemoveMetaData(const TArray<UAnimMetaData*> MetaDataInstances)
+{
+	MetaData.RemoveAll(
+		[&](UAnimMetaData* MetaDataInstance)
+	{
+		return MetaDataInstances.Find(MetaDataInstance);
+	});
+}
+
 void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)
 {
 	if (NewSkeleton && NewSkeleton != Skeleton)
@@ -246,6 +275,13 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 			//Firstly need to remap
 			for (UAnimationAsset* AnimAsset : AnimAssetsToReplace)
 			{
+				//Make sure animation has finished loading before we start messing with it
+				if (FLinkerLoad* AnimLinker = AnimAsset->GetLinker())
+				{
+					AnimLinker->Preload(AnimAsset);
+				}
+				AnimAsset->ConditionalPostLoad();
+
 				// these two are different functions for now
 				// technically if you have implementation for Remap, it will also set skeleton 
 				AnimAsset->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);

@@ -3,6 +3,7 @@
 #include "SReferenceViewer.h"
 #include "Widgets/SOverlay.h"
 #include "Engine/GameViewportClient.h"
+#include "Dialogs/Dialogs.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Modules/ModuleManager.h"
@@ -29,6 +30,7 @@
 #include "EditorWidgetsModule.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "ISizeMapModule.h"
+#include "Engine/AssetManager.h"
 
 #include "ObjectTools.h"
 
@@ -58,6 +60,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 	GraphObj = NewObject<UEdGraph_ReferenceViewer>();
 	GraphObj->Schema = UReferenceViewerSchema::StaticClass();
 	GraphObj->AddToRoot();
+	GraphObj->SetReferenceViewer(StaticCastSharedRef<SReferenceViewer>(AsShared()));
 
 	SGraphEditor::FGraphEditorEvents GraphEvents;
 	GraphEvents.OnNodeDoubleClicked = FSingleNodeEvent::CreateSP(this, &SReferenceViewer::OnNodeDoubleClicked);
@@ -289,6 +292,31 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 							SNew(SCheckBox)
 							.OnCheckStateChanged(this, &SReferenceViewer::OnShowHardReferencesChanged)
 							.IsChecked(this, &SReferenceViewer::IsShowHardReferencesChecked)
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						.Visibility(this, &SReferenceViewer::GetManagementReferencesVisibility)
+
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowHideManagementReferences", "Show Management References"))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SReferenceViewer::OnShowManagementReferencesChanged)
+							.IsChecked(this, &SReferenceViewer::IsShowManagementReferencesChecked)
 						]
 					]
 
@@ -619,6 +647,39 @@ ECheckBoxState SReferenceViewer::IsShowHardReferencesChecked() const
 	}
 }
 
+EVisibility SReferenceViewer::GetManagementReferencesVisibility() const
+{
+	if (UAssetManager::IsValid())
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	return EVisibility::Collapsed;
+}
+
+void SReferenceViewer::OnShowManagementReferencesChanged(ECheckBoxState NewState)
+{
+	if (GraphObj)
+	{
+		// This can take a few seconds if it isn't ready
+		UAssetManager::Get().UpdateManagementDatabase();
+
+		GraphObj->SetShowManagementReferencesEnabled(NewState == ECheckBoxState::Checked);
+		GraphObj->RebuildGraph();
+	}
+}
+
+ECheckBoxState SReferenceViewer::IsShowManagementReferencesChecked() const
+{
+	if (GraphObj)
+	{
+		return GraphObj->IsShowManagementReferences() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
 void SReferenceViewer::OnShowSearchableNamesChanged(ECheckBoxState NewState)
 {
 	if (GraphObj)
@@ -695,7 +756,7 @@ void SReferenceViewer::RegisterActions()
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().OpenSelectedInAssetEditor,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::OpenSelectedInAssetEditor),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ReCenterGraph,
@@ -703,13 +764,23 @@ void SReferenceViewer::RegisterActions()
 		FCanExecuteAction());
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().ListReferencedObjects,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::ListReferencedObjects),
+		FReferenceViewerActions::Get().CopyReferencedObjects,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::CopyReferencedObjects),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
-		FReferenceViewerActions::Get().ListObjectsThatReference,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::ListObjectsThatReference),
+		FReferenceViewerActions::Get().CopyReferencingObjects,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::CopyReferencingObjects),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
+
+	ReferenceViewerActions->MapAction(
+		FReferenceViewerActions::Get().ShowReferencedObjects,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferencedObjects),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
+
+	ReferenceViewerActions->MapAction(
+		FReferenceViewerActions::Get().ShowReferencingObjects,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferencingObjects),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
@@ -745,7 +816,7 @@ void SReferenceViewer::RegisterActions()
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ShowSizeMap,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowSizeMap),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ShowReferenceTree,
@@ -808,29 +879,118 @@ void SReferenceViewer::ReCenterGraph()
 	ReCenterGraphOnNodes( GraphEditorPtr->GetSelectedNodes() );
 }
 
-void SReferenceViewer::ListReferencedObjects()
+FString SReferenceViewer::GetReferencedObjectsList() const
 {
+	FString ReferencedObjectsList;
+
 	UObject* SelectedObject = GetObjectFromSingleSelectedNode();
 
-	if( SelectedObject )
+	if (SelectedObject)
 	{
-		// Show a list of objects that the selected object references
-		ObjectTools::ShowReferencedObjs(SelectedObject);
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		const FName SelectedPackageName = SelectedObject->GetOutermost()->GetFName();
+
+		{
+			TArray<FName> HardDependencies;
+			AssetRegistryModule.Get().GetDependencies(SelectedPackageName, HardDependencies, EAssetRegistryDependencyType::Hard);
+			
+			if (HardDependencies.Num() > 0)
+			{
+				ReferencedObjectsList += TEXT("[HARD]\n");
+				for (const FName HardDependency : HardDependencies)
+				{
+					const FString PackageString = HardDependency.ToString();
+					ReferencedObjectsList += FString::Printf(TEXT("  %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+				}
+			}
+		}
+
+		{
+			TArray<FName> SoftDependencies;
+			AssetRegistryModule.Get().GetDependencies(SelectedPackageName, SoftDependencies, EAssetRegistryDependencyType::Soft);
+
+			if (SoftDependencies.Num() > 0)
+			{
+				ReferencedObjectsList += TEXT("\n[SOFT]\n");
+				for (const FName SoftDependency : SoftDependencies)
+				{
+					const FString PackageString = SoftDependency.ToString();
+					ReferencedObjectsList += FString::Printf(TEXT("  %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+				}
+			}
+		}
 	}
+
+	return ReferencedObjectsList;
 }
 
-void SReferenceViewer::ListObjectsThatReference()
-{	
+FString SReferenceViewer::GetReferencingObjectsList() const
+{
+	FString ReferencingObjectsList;
+
 	UObject* SelectedObject = GetObjectFromSingleSelectedNode();
 
-	if ( SelectedObject )
+	if (SelectedObject)
 	{
-		TArray<UObject*> ObjectsToShow;
-		ObjectsToShow.Add(SelectedObject);
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		const FName SelectedPackageName = SelectedObject->GetOutermost()->GetFName();
 
-		// Show a list of objects that reference the selected object
-		ObjectTools::ShowReferencers( ObjectsToShow );
+		{
+			TArray<FName> HardDependencies;
+			AssetRegistryModule.Get().GetReferencers(SelectedPackageName, HardDependencies, EAssetRegistryDependencyType::Hard);
+
+			if (HardDependencies.Num() > 0)
+			{
+				ReferencingObjectsList += TEXT("[HARD]\n");
+				for (const FName HardDependency : HardDependencies)
+				{
+					const FString PackageString = HardDependency.ToString();
+					ReferencingObjectsList += FString::Printf(TEXT("  %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+				}
+			}
+		}
+
+		{
+			TArray<FName> SoftDependencies;
+			AssetRegistryModule.Get().GetReferencers(SelectedPackageName, SoftDependencies, EAssetRegistryDependencyType::Soft);
+
+			if (SoftDependencies.Num() > 0)
+			{
+				ReferencingObjectsList += TEXT("\n[SOFT]\n");
+				for (const FName SoftDependency : SoftDependencies)
+				{
+					const FString PackageString = SoftDependency.ToString();
+					ReferencingObjectsList += FString::Printf(TEXT("  %s.%s\n"), *PackageString, *FPackageName::GetLongPackageAssetName(PackageString));
+				}
+			}
+		}
 	}
+
+	return ReferencingObjectsList;
+}
+
+void SReferenceViewer::CopyReferencedObjects()
+{
+	const FString ReferencedObjectsList = GetReferencedObjectsList();
+	FPlatformMisc::ClipboardCopy(*ReferencedObjectsList);
+}
+
+void SReferenceViewer::CopyReferencingObjects()
+{
+	const FString ReferencingObjectsList = GetReferencingObjectsList();
+	FPlatformMisc::ClipboardCopy(*ReferencingObjectsList);
+}
+
+void SReferenceViewer::ShowReferencedObjects()
+{
+	const FString ReferencedObjectsList = GetReferencedObjectsList();
+	SGenericDialogWidget::OpenDialog(LOCTEXT("ReferencedObjectsDlgTitle", "Referenced Objects"), SNew(STextBlock).Text(FText::FromString(ReferencedObjectsList)));
+}
+
+void SReferenceViewer::ShowReferencingObjects()
+{	
+	const FString ReferencingObjectsList = GetReferencingObjectsList();
+	SGenericDialogWidget::OpenDialog(LOCTEXT("ReferencingObjectsDlgTitle", "Referencing Objects"), SNew(STextBlock).Text(FText::FromString(ReferencingObjectsList)));
 }
 
 void SReferenceViewer::MakeCollectionWithReferencersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers)
@@ -935,7 +1095,7 @@ void SReferenceViewer::ShowSizeMap()
 	TArray<FName> SelectedAssetPackageNames;
 
 	TSet<UObject*> SelectedNodes = GraphEditorPtr->GetSelectedNodes();
-	if ( ensure(SelectedNodes.Num()) == 1 )
+	if ( ensure(SelectedNodes.Num() == 1) )
 	{
 		UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(SelectedNodes.Array()[0]);
 		if ( ReferenceNode )

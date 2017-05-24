@@ -27,7 +27,7 @@ public:
 
 	UGoogleVRWidgetInteractionComponent(const FObjectInitializer& ObjectInitializer);
 
-	void UpdateState(const FHitResult& TraceResult);
+	void UpdateState(const FHitResult& HitResult);
 
 protected:
 	virtual FWidgetPath FindHoveredWidgetPath(const FWidgetTraceResult& HitResult) const override;

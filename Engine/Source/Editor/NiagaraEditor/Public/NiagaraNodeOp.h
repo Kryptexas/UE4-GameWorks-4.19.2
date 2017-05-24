@@ -34,7 +34,9 @@ public:
 	//~ End EdGraphNode Interface
 
 	//~ Begin UNiagaraNode Interface
-	virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs) override;
+	virtual void Compile(class INiagaraCompiler* Compiler, TArray<int32>& Outputs) override;
+	virtual bool RefreshFromExternalChanges() override;
+	virtual ENiagaraNumericOutputTypeSelectionMode GetNumericOutputTypeSelectionMode() const override;
 	//~ End UNiagaraNode Interface
 };
 

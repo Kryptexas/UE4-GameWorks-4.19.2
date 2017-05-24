@@ -2,6 +2,7 @@
 
 #include "BoneControllers/AnimNode_CopyBone.h"
 #include "AnimationRuntime.h"
+#include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_CopyBone
@@ -26,7 +27,7 @@ void FAnimNode_CopyBone::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_CopyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_CopyBone::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -37,18 +38,18 @@ void FAnimNode_CopyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp
 	}
 
 	// Get component space transform for source and current bone.
-	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FBoneContainer& BoneContainer = Output.Pose.GetPose().GetBoneContainer();
 	FCompactPoseBoneIndex SourceBoneIndex = SourceBone.GetCompactPoseIndex(BoneContainer);
 	FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
 
-	FTransform SourceBoneTM = MeshBases.GetComponentSpaceTransform(SourceBoneIndex);
-	FTransform CurrentBoneTM = MeshBases.GetComponentSpaceTransform(TargetBoneIndex);
+	FTransform SourceBoneTM = Output.Pose.GetComponentSpaceTransform(SourceBoneIndex);
+	FTransform CurrentBoneTM = Output.Pose.GetComponentSpaceTransform(TargetBoneIndex);
 
 	if(ControlSpace != BCS_ComponentSpace)
 	{
 		// Convert out to selected space
-		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, SourceBoneTM, SourceBoneIndex, ControlSpace);
-		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, CurrentBoneTM, TargetBoneIndex, ControlSpace);
+		FAnimationRuntime::ConvertCSTransformToBoneSpace(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, SourceBoneTM, SourceBoneIndex, ControlSpace);
+		FAnimationRuntime::ConvertCSTransformToBoneSpace(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, CurrentBoneTM, TargetBoneIndex, ControlSpace);
 	}
 	
 	// Copy individual components
@@ -70,7 +71,7 @@ void FAnimNode_CopyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp
 	if(ControlSpace != BCS_ComponentSpace)
 	{
 		// Convert back out if we aren't operating in component space
-		FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, CurrentBoneTM, TargetBoneIndex, ControlSpace);
+		FAnimationRuntime::ConvertBoneSpaceTransformToCS(Output.AnimInstanceProxy->GetComponentTransform(), Output.Pose, CurrentBoneTM, TargetBoneIndex, ControlSpace);
 	}
 
 	// Output new transform for current bone.

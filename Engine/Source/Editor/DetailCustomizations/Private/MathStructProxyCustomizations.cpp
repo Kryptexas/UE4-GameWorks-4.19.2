@@ -34,7 +34,7 @@ TSharedRef<SWidget> FMathStructProxyCustomization::MakeNumericProxyWidget(TShare
 		.OnValueCommitted( this, &FMathStructProxyCustomization::OnValueCommitted<ProxyType, NumericType>, WeakHandlePtr, ProxyValue )
 		.OnValueChanged( this, &FMathStructProxyCustomization::OnValueChanged<ProxyType, NumericType>, WeakHandlePtr, ProxyValue )
 		.OnBeginSliderMovement( this, &FMathStructProxyCustomization::OnBeginSliderMovement )
-		.OnEndSliderMovement( this, &FMathStructProxyCustomization::OnEndSliderMovement<NumericType> )
+		.OnEndSliderMovement( this, &FMathStructProxyCustomization::OnEndSliderMovement<ProxyType, NumericType>, WeakHandlePtr, ProxyValue )
 		.LabelVAlign(VAlign_Fill)
 		.LabelPadding(0)
 		// Only allow spin on handles with one object.  Otherwise it is not clear what value to spin
@@ -63,8 +63,11 @@ TOptional<NumericType> FMathStructProxyCustomization::OnGetValue( TWeakPtr<IProp
 template<typename ProxyType, typename NumericType>
 void FMathStructProxyCustomization::OnValueCommitted( NumericType NewValue, ETextCommit::Type CommitType, TWeakPtr<IPropertyHandle> WeakHandlePtr, TSharedRef< TProxyProperty<ProxyType, NumericType> > ProxyValue )
 {
-	ProxyValue->Set(NewValue);
-	FlushValues(WeakHandlePtr);
+	if (!bIsUsingSlider && !GIsTransacting)
+	{
+		ProxyValue->Set(NewValue);
+		FlushValues(WeakHandlePtr);
+	}
 }	
 
 template<typename ProxyType, typename NumericType>
@@ -80,16 +83,15 @@ void FMathStructProxyCustomization::OnValueChanged( NumericType NewValue, TWeakP
 void FMathStructProxyCustomization::OnBeginSliderMovement()
 {
 	bIsUsingSlider = true;
-
-	GEditor->BeginTransaction( NSLOCTEXT("FMathStructCustomization", "SetVectorProperty", "Set Vector Property") );
 }
 
-template<typename NumericType>
-void FMathStructProxyCustomization::OnEndSliderMovement( NumericType NewValue )
+template<typename ProxyType, typename NumericType>
+void FMathStructProxyCustomization::OnEndSliderMovement( NumericType NewValue, TWeakPtr<IPropertyHandle> WeakHandlePtr, TSharedRef< TProxyProperty<ProxyType, NumericType> > ProxyValue )
 {
 	bIsUsingSlider = false;
 
-	GEditor->EndTransaction();
+	ProxyValue->Set(NewValue);
+	FlushValues(WeakHandlePtr);
 }
 
 
@@ -371,12 +373,22 @@ bool FMatrixStructCustomization::FlushValues( TWeakPtr<IPropertyHandle> Property
 	TArray<void*> RawData;
 	PropertyHandle->AccessRawData(RawData);
 
-	PropertyHandle->NotifyPreChange();
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	// The object array should either be empty or the same size as the raw data array.
+	check(!OuterObjects.Num() || OuterObjects.Num() == RawData.Num());
+
+	// Persistent flag that's set when we're in the middle of an interactive change (note: assumes multiple interactive changes do not occur in parallel).
+	static bool bIsInteractiveChangeInProgress = false;
+
+	bool bNotifiedPreChange = false;
 	for (int32 ValueIndex = 0; ValueIndex < RawData.Num(); ValueIndex++)
 	{
 		FMatrix* MatrixValue = reinterpret_cast<FMatrix*>(RawData[ValueIndex]);
 		if (MatrixValue != NULL)
 		{
+			const FMatrix PreviousValue = *MatrixValue;
 			const FRotator CurrentRotation = MatrixValue->Rotator();
 			const FVector CurrentTranslation = MatrixValue->GetOrigin();
 			const FVector CurrentScale = MatrixValue->GetScaleVector();
@@ -396,10 +408,60 @@ bool FMatrixStructCustomization::FlushValues( TWeakPtr<IPropertyHandle> Property
 				CachedScaleY->IsSet() ? CachedScaleY->Get() : CurrentScale.Y,
 				CachedScaleZ->IsSet() ? CachedScaleZ->Get() : CurrentScale.Z
 				);
-			*MatrixValue = FScaleRotationTranslationMatrix(Scale, Rotation, Translation);
+
+			const FMatrix NewValue = FScaleRotationTranslationMatrix(Scale, Rotation, Translation);
+
+			if (!bNotifiedPreChange && (!MatrixValue->Equals(NewValue, 0.0f) || (!bIsUsingSlider && bIsInteractiveChangeInProgress)))
+			{
+				if (!bIsInteractiveChangeInProgress)
+				{
+					GEditor->BeginTransaction(FText::Format(LOCTEXT("SetPropertyValue", "Set {0}"), PropertyHandle->GetPropertyDisplayName()));
+				}
+
+				PropertyHandle->NotifyPreChange();
+				bNotifiedPreChange = true;
+
+				bIsInteractiveChangeInProgress = bIsUsingSlider;
+			}
+
+			// Set the new value.
+			*MatrixValue = NewValue;
+
+			// Propagate default value changes after updating, for archetypes. As per usual, we only propagate the change if the instance matches the archetype's value.
+			// Note: We cannot use the "normal" PropertyNode propagation logic here, because that is string-based and the decision to propagate relies on an exact value match.
+			// Here, we're dealing with conversions between FMatrix and FVector/FRotator values, so there is some precision loss that requires a tolerance when comparing values.
+			if (ValueIndex < OuterObjects.Num() && OuterObjects[ValueIndex]->IsTemplate())
+			{
+				TArray<UObject*> ArchetypeInstances;
+				OuterObjects[ValueIndex]->GetArchetypeInstances(ArchetypeInstances);
+				for (UObject* ArchetypeInstance : ArchetypeInstances)
+				{
+					FMatrix* CurrentValue = reinterpret_cast<FMatrix*>(PropertyHandle->GetValueBaseAddress(reinterpret_cast<uint8*>(ArchetypeInstance)));
+					if (CurrentValue && CurrentValue->Equals(PreviousValue))
+					{
+						*CurrentValue = NewValue;
+					}
+				}
+			}
 		}
 	}
-	PropertyHandle->NotifyPostChange();
+
+	if (bNotifiedPreChange)
+	{
+		PropertyHandle->NotifyPostChange(bIsUsingSlider ? EPropertyChangeType::Interactive : EPropertyChangeType::ValueSet);
+
+		if (!bIsUsingSlider)
+		{
+			GEditor->EndTransaction();
+			bIsInteractiveChangeInProgress = false;
+		}
+	}
+
+	if (PropertyUtilities.IsValid() && !bIsInteractiveChangeInProgress)
+	{
+		FPropertyChangedEvent ChangeEvent(PropertyHandle->GetProperty(), EPropertyChangeType::ValueSet);
+		PropertyUtilities->NotifyFinishedChangingProperties(ChangeEvent);
+	}
 
 	return true;
 }
@@ -450,12 +512,22 @@ bool FTransformStructCustomization::FlushValues( TWeakPtr<IPropertyHandle> Prope
 	TArray<void*> RawData;
 	PropertyHandle->AccessRawData(RawData);
 
-	PropertyHandle->NotifyPreChange();
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	// The object array should either be empty or the same size as the raw data array.
+	check(!OuterObjects.Num() || OuterObjects.Num() == RawData.Num());
+
+	// Persistent flag that's set when we're in the middle of an interactive change (note: assumes multiple interactive changes do not occur in parallel).
+	static bool bIsInteractiveChangeInProgress = false;
+
+	bool bNotifiedPreChange = false;
 	for (int32 ValueIndex = 0; ValueIndex < RawData.Num(); ValueIndex++)
 	{
 		FTransform* TransformValue = reinterpret_cast<FTransform*>(RawData[0]);
 		if (TransformValue != NULL)
 		{
+			const FTransform PreviousValue = *TransformValue;
 			const FRotator CurrentRotation = TransformValue->GetRotation().Rotator();
 			const FVector CurrentTranslation = TransformValue->GetTranslation();
 			const FVector CurrentScale = TransformValue->GetScale3D();
@@ -475,12 +547,56 @@ bool FTransformStructCustomization::FlushValues( TWeakPtr<IPropertyHandle> Prope
 				CachedScaleY->IsSet() ? CachedScaleY->Get() : CurrentScale.Y,
 				CachedScaleZ->IsSet() ? CachedScaleZ->Get() : CurrentScale.Z
 				);
-			TransformValue->SetComponents(Rotation.Quaternion(), Translation, Scale);
+
+			const FTransform NewValue = FTransform(Rotation, Translation, Scale);
+
+			if (!bNotifiedPreChange && (!TransformValue->Equals(NewValue, 0.0f) || (!bIsUsingSlider && bIsInteractiveChangeInProgress)))
+			{
+				if (!bIsInteractiveChangeInProgress)
+				{
+					GEditor->BeginTransaction(FText::Format(NSLOCTEXT("FTransformStructCustomization", "SetPropertyValue", "Set {0}"), PropertyHandle->GetPropertyDisplayName()));
+				}
+
+				PropertyHandle->NotifyPreChange();
+				bNotifiedPreChange = true;
+
+				bIsInteractiveChangeInProgress = bIsUsingSlider;
+			}
+
+			// Set the new value.
+			*TransformValue = NewValue;
+
+			// Propagate default value changes after updating, for archetypes. As per usual, we only propagate the change if the instance matches the archetype's value.
+			// Note: We cannot use the "normal" PropertyNode propagation logic here, because that is string-based and the decision to propagate relies on an exact value match.
+			// Here, we're dealing with conversions between FTransform and FVector/FRotator values, so there is some precision loss that requires a tolerance when comparing values.
+			if (ValueIndex < OuterObjects.Num() && OuterObjects[ValueIndex]->IsTemplate())
+			{
+				TArray<UObject*> ArchetypeInstances;
+				OuterObjects[ValueIndex]->GetArchetypeInstances(ArchetypeInstances);
+				for (UObject* ArchetypeInstance : ArchetypeInstances)
+				{
+					FTransform* CurrentValue = reinterpret_cast<FTransform*>(PropertyHandle->GetValueBaseAddress(reinterpret_cast<uint8*>(ArchetypeInstance)));
+					if (CurrentValue && CurrentValue->Equals(PreviousValue))
+					{
+						*CurrentValue = NewValue;
+					}
+				}
+			}
 		}
 	}
-	PropertyHandle->NotifyPostChange();
+	
+	if (bNotifiedPreChange)
+	{
+		PropertyHandle->NotifyPostChange(bIsUsingSlider ? EPropertyChangeType::Interactive : EPropertyChangeType::ValueSet);
 
-	if(PropertyUtilities.IsValid() && !bIsUsingSlider)
+		if (!bIsUsingSlider)
+		{
+			GEditor->EndTransaction();
+			bIsInteractiveChangeInProgress = false;
+		}
+	}
+
+	if (PropertyUtilities.IsValid() && !bIsInteractiveChangeInProgress)
 	{
 		FPropertyChangedEvent ChangeEvent(PropertyHandle->GetProperty(), EPropertyChangeType::ValueSet);
 		PropertyUtilities->NotifyFinishedChangingProperties(ChangeEvent);
@@ -545,12 +661,22 @@ bool FQuatStructCustomization::FlushValues(TWeakPtr<IPropertyHandle> PropertyHan
 	TArray<void*> RawData;
 	PropertyHandle->AccessRawData(RawData);
 
-	PropertyHandle->NotifyPreChange();
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	// The object array should either be empty or the same size as the raw data array.
+	check(!OuterObjects.Num() || OuterObjects.Num() == RawData.Num());
+
+	// Persistent flag that's set when we're in the middle of an interactive change (note: assumes multiple interactive changes do not occur in parallel).
+	static bool bIsInteractiveChangeInProgress = false;
+
+	bool bNotifiedPreChange = false;
 	for (int32 ValueIndex = 0; ValueIndex < RawData.Num(); ValueIndex++)
 	{
 		FQuat* QuatValue = reinterpret_cast<FQuat*>(RawData[0]);
 		if (QuatValue != NULL)
 		{
+			const FQuat PreviousValue = *QuatValue;
 			const FRotator CurrentRotation = QuatValue->Rotator();
 
 			FRotator Rotation(
@@ -558,12 +684,56 @@ bool FQuatStructCustomization::FlushValues(TWeakPtr<IPropertyHandle> PropertyHan
 				CachedRotationYaw->IsSet() ? CachedRotationYaw->Get() : CurrentRotation.Yaw,
 				CachedRotationRoll->IsSet() ? CachedRotationRoll->Get() : CurrentRotation.Roll
 				);
-			*QuatValue = Rotation.Quaternion();
+			
+			const FQuat NewValue = Rotation.Quaternion();
+
+			if (!bNotifiedPreChange && (!QuatValue->Equals(NewValue, 0.0f) || (!bIsUsingSlider && bIsInteractiveChangeInProgress)))
+			{
+				if (!bIsInteractiveChangeInProgress)
+				{
+					GEditor->BeginTransaction(FText::Format(NSLOCTEXT("FQuatStructCustomization", "SetPropertyValue", "Set {0}"), PropertyHandle->GetPropertyDisplayName()));
+				}
+
+				PropertyHandle->NotifyPreChange();
+				bNotifiedPreChange = true;
+
+				bIsInteractiveChangeInProgress = bIsUsingSlider;
+			}
+
+			// Set the new value.
+			*QuatValue = NewValue;
+
+			// Propagate default value changes after updating, for archetypes. As per usual, we only propagate the change if the instance matches the archetype's value.
+			// Note: We cannot use the "normal" PropertyNode propagation logic here, because that is string-based and the decision to propagate relies on an exact value match.
+			// Here, we're dealing with conversions between FQuat and FRotator values, so there is some precision loss that requires a tolerance when comparing values.
+			if (ValueIndex < OuterObjects.Num() && OuterObjects[ValueIndex]->IsTemplate())
+			{
+				TArray<UObject*> ArchetypeInstances;
+				OuterObjects[ValueIndex]->GetArchetypeInstances(ArchetypeInstances);
+				for (UObject* ArchetypeInstance : ArchetypeInstances)
+				{
+					FQuat* CurrentValue = reinterpret_cast<FQuat*>(PropertyHandle->GetValueBaseAddress(reinterpret_cast<uint8*>(ArchetypeInstance)));
+					if (CurrentValue && CurrentValue->Equals(PreviousValue))
+					{
+						*CurrentValue = NewValue;
+					}
+				}
+			}
 		}
 	}
-	PropertyHandle->NotifyPostChange();
 
-	if (PropertyUtilities.IsValid() && !bIsUsingSlider)
+	if (bNotifiedPreChange)
+	{
+		PropertyHandle->NotifyPostChange(bIsUsingSlider ? EPropertyChangeType::Interactive : EPropertyChangeType::ValueSet);
+
+		if (!bIsUsingSlider)
+		{
+			GEditor->EndTransaction();
+			bIsInteractiveChangeInProgress = false;
+		}
+	}
+
+	if (PropertyUtilities.IsValid() && !bIsInteractiveChangeInProgress)
 	{
 		FPropertyChangedEvent ChangeEvent(PropertyHandle->GetProperty(), EPropertyChangeType::ValueSet);
 		PropertyUtilities->NotifyFinishedChangingProperties(ChangeEvent);

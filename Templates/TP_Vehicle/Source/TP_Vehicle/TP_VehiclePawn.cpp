@@ -1,6 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TP_Vehicle.h"
 #include "TP_VehiclePawn.h"
 #include "TP_VehicleWheelFront.h"
 #include "TP_VehicleWheelRear.h"
@@ -11,7 +10,11 @@
 #include "Components/InputComponent.h"
 #include "WheeledVehicleMovementComponent4W.h"
 #include "Engine/SkeletalMesh.h"
-#include "Engine.h"
+#include "Engine/Engine.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/TextRenderComponent.h"
+#include "Materials/Material.h"
+#include "GameFramework/Controller.h"
 
 // Needed for VR Headset
 #if HMD_MODULE_INCLUDED

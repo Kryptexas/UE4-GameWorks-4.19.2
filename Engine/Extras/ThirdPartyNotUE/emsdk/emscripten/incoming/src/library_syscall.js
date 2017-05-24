@@ -838,11 +838,8 @@ var SyscallsLibrary = {
     return FS.read(stream, {{{ heapAndOffset('HEAP8', 'buf') }}}, count, offset);
   },
   __syscall181: function(which, varargs) { // pwrite64
-#if SYSCALL_DEBUG
-    Module.printErr('warning: untested syscall');
-#endif
     var stream = SYSCALLS.getStreamFromFD(), buf = SYSCALLS.get(), count = SYSCALLS.get(), zero = SYSCALLS.getZero(), offset = SYSCALLS.get64();
-    return FS.write(stream, {{{ heapAndOffset('HEAP8', 'buf') }}}, nbyte, offset);
+    return FS.write(stream, {{{ heapAndOffset('HEAP8', 'buf') }}}, count, offset);
   },
   __syscall183: function(which, varargs) { // getcwd
     var buf = SYSCALLS.get(), size = SYSCALLS.get();
@@ -869,7 +866,7 @@ var SyscallsLibrary = {
     var ptr;
     var allocated = false;
     if (fd === -1) {
-      ptr = _malloc(len);
+      ptr = _memalign(PAGE_SIZE, len);
       if (!ptr) return -ERRNO_CODES.ENOMEM;
       _memset(ptr, 0, len);
       allocated = true;
@@ -969,7 +966,7 @@ var SyscallsLibrary = {
       stream.getdents = FS.readdir(stream.path);
     }
     var pos = 0;
-    while (stream.getdents.length > 0 && pos + {{{ C_STRUCTS.dirent.__size__ }}} < count) {
+    while (stream.getdents.length > 0 && pos + {{{ C_STRUCTS.dirent.__size__ }}} <= count) {
       var id;
       var type;
       var name = stream.getdents.pop();

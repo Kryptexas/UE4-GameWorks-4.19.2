@@ -27,6 +27,9 @@ void FMobileSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmdList)
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilRead);
 	
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
@@ -48,7 +51,7 @@ void FMobileSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmdList)
 			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
 			if (bEncodedHDR)
 			{
-				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+				GraphicsPSOInit.BlendState = TStaticBlendState<>::GetRHI();
 			}
 			for (int32 DecalIndex = 0, DecalCount = SortedDecals.Num(); DecalIndex < DecalCount; DecalIndex++)
 			{
@@ -65,21 +68,21 @@ void FMobileSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmdList)
 					LastDecalDepthState = bInsideDecal;
 					if (bInsideDecal)
 					{
-						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-							false,CF_Always,
-							true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
-							false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-							GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1),0x00>::GetRHI(), 0);
+						GraphicsPSOInit.RasterizerState = View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI();
+						GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+							false, CF_Always,
+							true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+							false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+							GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI();
 					}
 					else
 					{
-						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-							false,CF_DepthNearOrEqual,
-							true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
-							false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-							GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1),0x00>::GetRHI(), 0);
+						GraphicsPSOInit.RasterizerState = View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI();
+						GraphicsPSOInit.DepthStencilState = TStaticDepthStencilState<
+							false, CF_DepthNearOrEqual,
+							true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+							false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+							GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1), 0x00>::GetRHI();
 					}
 				}
 
@@ -89,15 +92,15 @@ void FMobileSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmdList)
 					switch(DecalData.DecalBlendMode)
 					{
 					case DBM_Translucent:
-						RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
+						GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
 						break;
 					case DBM_Stain:
 						// Modulate
-						RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_InverseSourceAlpha>::GetRHI());
+						GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_InverseSourceAlpha>::GetRHI();
 						break;
 					case DBM_Emissive:
 						// Additive
-						RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_One>::GetRHI());
+						GraphicsPSOInit.BlendState = TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_One>::GetRHI();
 						break;
 					default:
 						check(0);
@@ -105,7 +108,7 @@ void FMobileSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmdList)
 				}
 
 				// Set shader params
-				FDecalRendering::SetShader(RHICmdList, View, DecalData, FrustumComponentToClip);
+				FDecalRendering::SetShader(RHICmdList, GraphicsPSOInit, View, DecalData, FrustumComponentToClip);
 			
 				RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
 			}

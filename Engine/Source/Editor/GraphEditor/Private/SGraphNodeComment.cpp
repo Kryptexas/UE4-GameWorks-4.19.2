@@ -87,7 +87,7 @@ void SGraphNodeComment::OnDragEnter( const FGeometry& MyGeometry, const FDragDro
 
 float SGraphNodeComment::GetWrapAt() const
 {
-	return (float)(CachedWidth - 16);
+	return (float)(CachedWidth - 32.0f);
 }
 
 bool SGraphNodeComment::IsNameReadOnly() const
@@ -149,24 +149,19 @@ void SGraphNodeComment::UpdateGraphNode()
 					.BorderImage( FEditorStyle::GetBrush("Graph.Node.TitleBackground") )
 					.BorderBackgroundColor( this, &SGraphNodeComment::GetCommentTitleBarColor )
 					.Padding( FMargin(10,5,5,3) )
-					.HAlign(HAlign_Left)
+					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Center)
 					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SAssignNew(InlineEditableText, SInlineEditableTextBlock)
-							.Style( FEditorStyle::Get(), "Graph.CommentBlock.TitleInlineEditableText" )
-							.Text( this, &SGraphNodeComment::GetEditableNodeTitleAsText )
-							.OnVerifyTextChanged(this, &SGraphNodeComment::OnVerifyNameTextChanged)
-							.OnTextCommitted(this, &SGraphNodeComment::OnNameTextCommited)
-							.IsReadOnly( this, &SGraphNodeComment::IsNameReadOnly )
-							.IsSelected( this, &SGraphNodeComment::IsSelectedExclusively )
-							.WrapTextAt( this, &SGraphNodeComment::GetWrapAt )
-							.MultiLine(true)
-							.ModiferKeyForNewLine(EModifierKey::Shift)
-						]
+						SAssignNew(InlineEditableText, SInlineEditableTextBlock)
+						.Style( FEditorStyle::Get(), "Graph.CommentBlock.TitleInlineEditableText" )
+						.Text( this, &SGraphNodeComment::GetEditableNodeTitleAsText )
+						.OnVerifyTextChanged(this, &SGraphNodeComment::OnVerifyNameTextChanged)
+						.OnTextCommitted(this, &SGraphNodeComment::OnNameTextCommited)
+						.IsReadOnly( this, &SGraphNodeComment::IsNameReadOnly )
+						.IsSelected( this, &SGraphNodeComment::IsSelectedExclusively )
+						.WrapTextAt( this, &SGraphNodeComment::GetWrapAt )
+						.MultiLine(true)
+						.ModiferKeyForNewLine(EModifierKey::Shift)
 					]
 				]
 				+SVerticalBox::Slot()

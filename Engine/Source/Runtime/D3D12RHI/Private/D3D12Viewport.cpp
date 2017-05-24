@@ -739,7 +739,7 @@ void FD3D12CommandContext::RHIBeginDrawingViewport(FViewportRHIParamRef Viewport
 #endif
 
 	// Set the render target.
-	const FRHIRenderTargetView RTView(RenderTargetRHI);
+	const FRHIRenderTargetView RTView(RenderTargetRHI, ERenderTargetLoadAction::ELoad);
 	RHISetRenderTargets(1, &RTView, nullptr, 0, nullptr);
 }
 

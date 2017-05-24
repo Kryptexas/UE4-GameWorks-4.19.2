@@ -18,7 +18,7 @@ using Ionic.Zip;
 
 namespace UnrealBuildTool
 {
-	public class RPCUtilHelper
+	class RPCUtilHelper
 	{
 		/// <summary>
 		/// The Mac we are compiling on
@@ -61,7 +61,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static public RemoteToolChain.RemoteToolChainErrorCode Initialize(string InMacName)
+		static public RemoteToolChain.RemoteToolChainErrorCode Initialize(string InMacName, bool bFlushBuildDir)
 		{
 			MacName = InMacName;
 
@@ -116,7 +116,7 @@ namespace UnrealBuildTool
 						Console.WriteLine("Remote time is {0}, difference is {1}", RemoteTimebase.ToString(), TimeDifferenceFromRemote.ToString());
 					}
 
-					if (BuildConfiguration.bFlushBuildDirOnRemoteMac)
+					if (bFlushBuildDir)
 					{
 						Command("/", "rm", "-rf /UE4/Builds/" + Environment.MachineName, null);
 					}
@@ -302,11 +302,13 @@ namespace UnrealBuildTool
 				// Zip source directory
 				string SourceZipPath = Path.Combine(Path.GetFullPath(Path.GetDirectoryName(Source)), SourceDirName + ".zip");
 				File.Delete(SourceZipPath);
-				ZipFile Zip = new ZipFile(SourceZipPath);
-				Zip.CompressionLevel = Ionic.Zlib.CompressionLevel.Level9;
-				Zip.BufferSize = 0x10000;
-				Zip.AddDirectory(Source, DestDirName);
-				Zip.Save();
+				using (ZipFile Zip = new ZipFile(SourceZipPath))
+				{
+					Zip.CompressionLevel = Ionic.Zlib.CompressionLevel.Level9;
+					Zip.BufferSize = 0x10000;
+					Zip.AddDirectory(Source, DestDirName);
+					Zip.Save();
+				}
 
 				// Upload the zip file
 				string DestWorkingDir = Path.GetDirectoryName(Dest).Replace("\\", "/");

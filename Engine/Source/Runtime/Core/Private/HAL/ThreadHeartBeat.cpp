@@ -10,6 +10,7 @@
 #include "Misc/ScopeLock.h"
 #include "Misc/OutputDeviceRedirector.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/CommandLine.h"
 #include "HAL/ExceptionHandling.h"
 
 #ifndef UE_ASSERT_ON_HANG
@@ -190,6 +191,12 @@ void FThreadHeartBeat::Start()
 
 void FThreadHeartBeat::HeartBeat()
 {
+	// disable on platforms that don't start the thread
+	if (FPlatformMisc::AllowThreadHeartBeat() == false)
+	{
+		return;
+	}
+
 	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
 	FScopeLock HeartBeatLock(&HeartBeatCritical);
 	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);
@@ -200,7 +207,15 @@ uint32 FThreadHeartBeat::CheckHeartBeat()
 {
 	// Editor and debug builds run too slow to measure them correctly
 #if !WITH_EDITORONLY_DATA && !IS_PROGRAM && !UE_BUILD_DEBUG
-	if (HangDuration > 0.0 && bReadyToCheckHeartbeat && !GIsRequestingExit && !FPlatformMisc::IsDebuggerPresent())
+	static bool bDisabled = FParse::Param(FCommandLine::Get(), TEXT("nothreadtimeout"));
+
+	bool CheckBeats = HangDuration > 0.0
+		&& bReadyToCheckHeartbeat
+		&& !GIsRequestingExit
+		&& !FPlatformMisc::IsDebuggerPresent()
+		&& !bDisabled;
+
+	if (CheckBeats)
 	{
 		// Check heartbeat for all threads and return thread ID of the thread that hung.
 		const double CurrentTime = FPlatformTime::Seconds();

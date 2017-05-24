@@ -39,7 +39,7 @@ static const TCHAR* GetOculusErrorString(ovrResult Result)
 		return;																							\
 	}
 
-class FHrtfSpatializationAlgorithmXAudio2 : public IAudioSpatializationAlgorithm
+class FHrtfSpatializationAlgorithmXAudio2 : public IAudioSpatialization
 {
 public:
 	FHrtfSpatializationAlgorithmXAudio2(class FAudioDevice * AudioDevice)
@@ -47,10 +47,6 @@ public:
 		, AudioDevice(AudioDevice)
 		, OvrAudioContext(nullptr)
 	{
-		// XAudio2's buffer lengths are always 1 percent of sample rate
-		uint32 BufferLength = AudioDevice->SampleRate / 100;
-		InitializeSpatializationEffect(BufferLength);
-
 		check(HRTFEffects.Num() == 0);
 		check(Params.Num() == 0);
 
@@ -126,7 +122,7 @@ public:
 	{
 		if (OvrAudioContext)
 		{
-			ProcessAudio(OvrAudioContext, VoiceIndex, InSamples, OutSamples, Position);
+			ProcessAudioInternal(OvrAudioContext, VoiceIndex, InSamples, OutSamples, Position);
 		}
 	}
 
@@ -167,7 +163,7 @@ public:
 
 private:
 
-	void ProcessAudio(ovrAudioContext AudioContext, uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position)
+	void ProcessAudioInternal(ovrAudioContext AudioContext, uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position)
 	{
 		ovrResult Result = ovrAudio_SetAudioSourceAttenuationMode(AudioContext, VoiceIndex, ovrAudioSourceAttenuationMode_None, 1.0f);
 		OVR_AUDIO_CHECK(Result, "Failed to set source attenuation mode");
@@ -212,7 +208,7 @@ private:
 * Simple implementation of the IAudioSpatializationAlgorithm interface for use with audio mixer.
 */
 
-class FHrtfSpatializationAlgorithmAudioMixer : public IAudioSpatializationAlgorithm
+class FHrtfSpatializationAlgorithmAudioMixer : public IAudioSpatialization
 {
 public:
 	FHrtfSpatializationAlgorithmAudioMixer(class FAudioDevice * AudioDevice)
@@ -292,20 +288,22 @@ public:
 		Params[VoiceId] = InParams;
 	}
 
-	void ProcessSpatializationForVoice(uint32 SourceId, float* InSamples, float* OutSamples) override
+	void ProcessAudio(const FAudioPluginSourceInputData& InputData, FAudioPluginSourceOutputData& OutputData) override
 	{
-		if (OvrAudioContext)
+		if (InputData.SpatializationParams && OvrAudioContext)
 		{
+			Params[InputData.SourceId] = *InputData.SpatializationParams;
+
 			// Translate the input position to OVR coordinates
-			FVector OvrPosition = ToOVRVector(Params[SourceId].EmitterPosition);
+			FVector OvrPosition = ToOVRVector(Params[InputData.SourceId].EmitterPosition);
 
 			// Set the source position to current audio position
-			ovrResult Result = ovrAudio_SetAudioSourcePos(OvrAudioContext, SourceId, OvrPosition.X, OvrPosition.Y, OvrPosition.Z);
+			ovrResult Result = ovrAudio_SetAudioSourcePos(OvrAudioContext, InputData.SourceId, OvrPosition.X, OvrPosition.Y, OvrPosition.Z);
 			OVR_AUDIO_CHECK(Result, "Failed to set audio source position");
 
 			// Perform the processing
 			uint32 Status;
-			Result = ovrAudio_SpatializeMonoSourceInterleaved(OvrAudioContext, SourceId, ovrAudioSpatializationFlag_None, &Status, OutSamples, InSamples);
+			Result = ovrAudio_SpatializeMonoSourceInterleaved(OvrAudioContext, InputData.SourceId, ovrAudioSpatializationFlag_None, &Status, OutputData.AudioBuffer.GetData(), InputData.AudioBuffer->GetData());
 			OVR_AUDIO_CHECK(Result, "Failed to spatialize mono source interleaved");
 		}
 	}
@@ -396,16 +394,16 @@ public:
 		}
 	}
 
-	IAudioSpatializationAlgorithm* GetNewSpatializationAlgorithm(class FAudioDevice* AudioDevice) override
+	TSharedPtr<IAudioSpatialization> CreateSpatializationInterface(class FAudioDevice* AudioDevice) override
 	{
 		// If we are using the audio mixer, use a new implementation
 		if (AudioDevice->IsAudioMixerEnabled())
 		{
-			return new FHrtfSpatializationAlgorithmAudioMixer(AudioDevice);
+			return TSharedPtr<IAudioSpatialization>(new FHrtfSpatializationAlgorithmAudioMixer(AudioDevice));
 		}
 
 		// Otherwise, use the xaudio2 implementation
-		return new FHrtfSpatializationAlgorithmXAudio2(AudioDevice);
+		return TSharedPtr<IAudioSpatialization>(new FHrtfSpatializationAlgorithmXAudio2(AudioDevice));
 	}
 
 private:

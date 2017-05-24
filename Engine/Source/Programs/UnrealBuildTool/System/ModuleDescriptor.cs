@@ -8,50 +8,142 @@ using System.Linq;
 
 namespace UnrealBuildTool
 {
+	/// <summary>
+	/// The type of host that can load a module
+	/// </summary>
 	public enum ModuleHostType
 	{
+		/// <summary>
+		/// 
+		/// </summary>
 		Default,
+
+		/// <summary>
+		/// Any target using the UE4 runtime
+		/// </summary>
 		Runtime,
+
+		/// <summary>
+		/// Any target except for commandlet
+		/// </summary>
 		RuntimeNoCommandlet,
-		RuntimeAndProgram,
-		Developer,
+
+        /// <summary>
+        /// Any target or program
+        /// </summary>
+        RuntimeAndProgram,
+
+        /// <summary>
+		/// Loaded only in cooked builds
+		/// </summary>
+		CookedOnly,
+
+        /// <summary>
+        /// Loaded only when the engine has support for developer tools enabled
+        /// </summary>
+        Developer,
+
+		/// <summary>
+		/// Loaded only by the editor
+		/// </summary>
 		Editor,
+
+		/// <summary>
+		/// Loaded only by the editor, except when running commandlets
+		/// </summary>
 		EditorNoCommandlet,
+
+		/// <summary>
+		/// Loaded only by programs
+		/// </summary>
 		Program,
+
+		/// <summary>
+		/// Loaded only by servers
+		/// </summary>
         ServerOnly,
+
+		/// <summary>
+		/// Loaded only by clients
+		/// </summary>
         ClientOnly,
 	}
 
+	/// <summary>
+	/// Indicates when the engine should attempt to load this module
+	/// </summary>
 	public enum ModuleLoadingPhase
 	{
+		/// <summary>
+		/// Loaded at the default loading point during startup (during engine init, after game modules are loaded.)
+		/// </summary>
 		Default,
+
+		/// <summary>
+		/// Right after the default phase
+		/// </summary>
 		PostDefault,
+
+		/// <summary>
+		/// Right before the default phase
+		/// </summary>
 		PreDefault,
+
+		/// <summary>
+		/// Loaded before the engine is fully initialized, immediately after the config system has been initialized.  Necessary only for very low-level hooks
+		/// </summary>
 		PostConfigInit,
+
+		/// <summary>
+		/// Loaded before the engine is fully initialized for modules that need to hook into the loading screen before it triggers
+		/// </summary>
 		PreLoadingScreen,
+
+		/// <summary>
+		/// After the engine has been initialized
+		/// </summary>
 		PostEngineInit,
+
+		/// <summary>
+		/// Do not automatically load this module
+		/// </summary>
 		None,
 	}
 
+	/// <summary>
+	/// Class containing information about a code module
+	/// </summary>
 	[DebuggerDisplay("Name={Name}")]
 	public class ModuleDescriptor
 	{
-		// Name of this module
+		/// <summary>
+		/// Name of this module
+		/// </summary>
 		public readonly string Name;
 
-		// Usage type of module
+		/// <summary>
+		/// Usage type of module
+		/// </summary>
 		public ModuleHostType Type;
 
-		// When should the module be loaded during the startup sequence?  This is sort of an advanced setting.
+		/// <summary>
+		/// When should the module be loaded during the startup sequence?  This is sort of an advanced setting.
+		/// </summary>
 		public ModuleLoadingPhase LoadingPhase = ModuleLoadingPhase.Default;
 
-		// List of allowed platforms
+		/// <summary>
+		/// List of allowed platforms
+		/// </summary>
 		public UnrealTargetPlatform[] WhitelistPlatforms;
 
-		// List of disallowed platforms
+		/// <summary>
+		/// List of disallowed platforms
+		/// </summary>
 		public UnrealTargetPlatform[] BlacklistPlatforms;
 
-		// List of additional dependencies for building this module.
+		/// <summary>
+		/// List of additional dependencies for building this module.
+		/// </summary>
 		public string[] AdditionalDependencies;
 
 		/// <summary>
@@ -160,14 +252,15 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// <summary>
-		/// Determines whether the given plugin module is part of the current build.
-		/// </summary>
-		/// <param name="Platform">The platform being compiled for</param>
-		/// <param name="TargetType">The type of the target being compiled</param>
-		/// <param name="bBuildDeveloperTools">Whether the configuration includes developer tools (typically UEBuildConfiguration.bBuildDeveloperTools for UBT callers)</param>
-		/// <param name="bBuildEditor">Whether the configuration includes the editor (typically UEBuildConfiguration.bBuildEditor for UBT callers)</param>
-		public bool IsCompiledInConfiguration(UnrealTargetPlatform Platform, TargetRules.TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor)
+        /// <summary>
+        /// Determines whether the given plugin module is part of the current build.
+        /// </summary>
+        /// <param name="Platform">The platform being compiled for</param>
+        /// <param name="TargetType">The type of the target being compiled</param>
+        /// <param name="bBuildDeveloperTools">Whether the configuration includes developer tools (typically UEBuildConfiguration.bBuildDeveloperTools for UBT callers)</param>
+        /// <param name="bBuildEditor">Whether the configuration includes the editor (typically UEBuildConfiguration.bBuildEditor for UBT callers)</param>
+        /// <param name="bBuildRequiresCookedData">Whether the configuration requires cooked content (typically UEBuildConfiguration.bBuildRequiresCookedData for UBT callers)</param>
+        public bool IsCompiledInConfiguration(UnrealTargetPlatform Platform, TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor, bool bBuildRequiresCookedData)
 		{
 			// Check the platform is whitelisted
 			if (WhitelistPlatforms != null && WhitelistPlatforms.Length > 0 && !WhitelistPlatforms.Contains(Platform))
@@ -186,20 +279,22 @@ namespace UnrealBuildTool
 			{
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
-					return TargetType != TargetRules.TargetType.Program;
-				case ModuleHostType.RuntimeAndProgram:
+                    return TargetType != TargetType.Program;
+                case ModuleHostType.CookedOnly:
+                    return bBuildRequiresCookedData;
+                case ModuleHostType.RuntimeAndProgram:
 					return true;
-				case ModuleHostType.Developer:
+                case ModuleHostType.Developer:
 					return bBuildDeveloperTools;
 				case ModuleHostType.Editor:
 				case ModuleHostType.EditorNoCommandlet:
-					return TargetType == TargetRules.TargetType.Editor || bBuildEditor;
+					return TargetType == TargetType.Editor || bBuildEditor;
 				case ModuleHostType.Program:
-					return TargetType == TargetRules.TargetType.Program;
+					return TargetType == TargetType.Program;
                 case ModuleHostType.ServerOnly:
-                    return TargetType != TargetRules.TargetType.Client;
+                    return TargetType != TargetType.Client;
                 case ModuleHostType.ClientOnly:
-                    return TargetType != TargetRules.TargetType.Server;
+                    return TargetType != TargetType.Server;
             }
 
 			return false;

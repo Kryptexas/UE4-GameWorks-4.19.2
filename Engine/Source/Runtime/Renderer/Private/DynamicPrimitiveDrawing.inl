@@ -53,7 +53,7 @@ void DrawViewElementsInner(
 		int32 bBackFace = bIsTwoSided ? 1 : 0;
 		do
 		{
-			FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+			FDrawingPolicyRenderState DrawRenderStateLocal(DrawRenderState);
 			DrawRenderStateLocal.ModifyViewOverrideFlags() ^= (bBackFace != 0) ? EDrawingPolicyOverrideFlags::ReverseCullMode : EDrawingPolicyOverrideFlags::None;
 
 			DrawingPolicyFactoryType::DrawDynamicMesh(
@@ -99,7 +99,7 @@ public:
 		)
 		: RHICmdList(InRHICmdList)
 		, View(InView)
-		, DrawRenderState(nullptr, InDrawRenderState)
+		, DrawRenderState(InDrawRenderState)
 		, DrawingContext(InDrawingContext)
 		, DPGIndex(InDPGIndex)
 		, bPreFog(InbPreFog)

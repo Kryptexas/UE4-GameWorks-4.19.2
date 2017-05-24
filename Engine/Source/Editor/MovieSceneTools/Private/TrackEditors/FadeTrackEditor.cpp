@@ -31,7 +31,7 @@ public:
 	{
 		int32 LayerId = Painter.PaintSectionBackground();
 
-		const ESlateDrawEffect::Type DrawEffects = Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+		const ESlateDrawEffect DrawEffects = Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 		const UMovieSceneFadeSection* FadeSection = Cast<const UMovieSceneFadeSection>( &SectionObject );
 
@@ -69,7 +69,7 @@ public:
 			{
 				float Value = FadeSection->Eval(Time, 0.f);
 			
-				FLinearColor Color = FLinearColor::Black;
+				FLinearColor Color = FadeSection->FadeColor;
 				Color.A = Value*255.f;
 
 				float TimeFraction = (Time - StartTime) / SectionDuration;
@@ -123,13 +123,6 @@ TSharedRef<ISequencerSection> FFadeTrackEditor::MakeSectionInterface(UMovieScene
 
 void FFadeTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
-	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
-
-	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("LevelSequence")))
-	{
-		return;
-	}
-
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddFadeTrack", "Fade Track"),
 		LOCTEXT("AddFadeTrackTooltip", "Adds a new track that controls the fade of the sequence."),
@@ -140,6 +133,10 @@ void FFadeTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 	);
 }
 
+bool FFadeTrackEditor::SupportsSequence(UMovieSceneSequence* InSequence) const
+{
+	return (InSequence != nullptr) && (InSequence->GetClass()->GetName() == TEXT("LevelSequence"));
+}
 
 bool FFadeTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 {

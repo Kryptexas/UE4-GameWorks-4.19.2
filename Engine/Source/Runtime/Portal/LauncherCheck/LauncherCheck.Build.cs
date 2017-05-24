@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class LauncherCheck : ModuleRules
 {
-	public LauncherCheck(TargetInfo Target)
+	public LauncherCheck(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[]

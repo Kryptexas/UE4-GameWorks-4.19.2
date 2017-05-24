@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/GCObject.h"
+#include "TickableEditorObject.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 
 class UVREditorMode;
@@ -13,16 +14,24 @@ enum class EMapChangeType : uint8;
 /**
  * Manages starting and closing the VREditor mode
  */
-class FVREditorModeManager : public FGCObject
+class FVREditorModeManager : public FGCObject, public FTickableEditorObject
 {
 
 public:
 
+	/** Default constructor */
 	FVREditorModeManager();
+
+	/** Default destructor */
 	~FVREditorModeManager();
 
-	/** Ticks to detect entering and closing the VR Editor */
-	void Tick( const float DeltaTime );
+	// FTickableEditorObject overrides
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override;
+	virtual TStatId GetStatId() const override
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FVREditorModeManager, STATGROUP_Tickables);
+	}
 
 	/** Start or stop the VR Editor */
 	void EnableVREditor( const bool bEnable, const bool bForceWithoutHMD );
@@ -33,10 +42,12 @@ public:
 	/** If the VR Editor is currently available */
 	bool IsVREditorAvailable() const;
 
-	/** Gets the current VR Editor mode */
-	UVREditorMode* GetVREditorMode();
+	/** Gets the current VR Editor mode that was enabled */
+	UVREditorMode* GetCurrentVREditorMode();
 
+	// FGCObject
 	virtual void AddReferencedObjects( FReferenceCollector& Collector );
+	// End FGCObject
 
 private:
 
@@ -44,7 +55,7 @@ private:
 	void StartVREditorMode( const bool bForceWithoutHMD );
 
 	/** Closes the current VR Editor if any and sets the WorldToMeters to back to the one from before entering the VR mode */
-	void CloseVREditor(const bool bHMDShouldExitStereo);
+	void CloseVREditor(const bool bShouldDisableStereo );
 
 	/** Directly set the GWorld WorldToMeters */
 	void SetDirectWorldToMeters( const float NewWorldToMeters );
@@ -62,12 +73,6 @@ private:
 
 	/** If the VR Editor mode needs to be enabled next tick */
 	bool bEnableVRRequest;
-
-	/** If PIE session started from within the VR Editor, so we can go back to the VR Editor when closing PIE with the motion controllers */
-	bool bPlayStartedFromVREditor;
-
-	/** Saved last world to meters scale from last VR Editor session so we can restore it when entering the VR Editor when PIE starter from VR Editor */
-	float LastWorldToMeters;
 
 	/** True when we detect that the user is wearing the HMD */
 	EHMDWornState::Type HMDWornState;

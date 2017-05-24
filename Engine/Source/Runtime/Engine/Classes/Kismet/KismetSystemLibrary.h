@@ -13,6 +13,7 @@
 #include "UObject/TextProperty.h"
 #include "Engine/LatentActionManager.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Engine/CollisionProfile.h"
 #include "KismetSystemLibrary.generated.h"
 
 class AActor;
@@ -20,7 +21,6 @@ class ACameraActor;
 class APlayerController;
 class UPrimitiveComponent;
 class USceneComponent;
-struct FCollisionProfileName;
 
 template<class TClass> class TAssetSubclassOf;
 
@@ -1063,6 +1063,138 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(bIgnoreSelf="true", WorldContext="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore", DisplayName = "MultiCapsuleTraceForObjects", AdvancedDisplay="TraceColor,TraceHitColor,DrawTime", Keywords="sweep"))
 	static bool CapsuleTraceMultiForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, float HalfHeight, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
 
+	// BY PROFILE
+
+	/**
+	* Trace a ray against the world using a specific profile and return the first blocking hit
+	*
+	* @param WorldContext	World context
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param ProfileName	The 'profile' used to determine which components to hit
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHit			Properties of the trace hit.
+	* @return				True if there was a hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", DisplayName = "LineTraceByProfile", AdvancedDisplay = "TraceColor,TraceHitColor,DrawTime", Keywords = "raycast"))
+	static bool LineTraceSingleByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
+
+	/**
+	*  Trace a ray against the world using a specific profile and return overlapping hits and then first blocking hit
+	*  Results are sorted, so a blocking hit (if found) will be the last element of the array
+	*  Only the single closest blocking result will be generated, no tests will be done after that
+	*
+	* @param WorldContext	World context
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param ProfileName	The 'profile' used to determine which components to hit
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHit		Properties of the trace hit.
+	* @return				True if there was a blocking hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", DisplayName = "MultiLineTraceByProfile", AdvancedDisplay = "TraceColor,TraceHitColor,DrawTime", Keywords = "raycast"))
+	static bool LineTraceMultiByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
+
+	/**
+	*  Sweep a sphere against the world and return the first blocking hit using a specific profile
+	*
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param Radius			Radius of the sphere to sweep
+	* @param ProfileName	The 'profile' used to determine which components to hit
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHit			Properties of the trace hit.
+	* @return				True if there was a hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", DisplayName = "SphereTraceByProfile", AdvancedDisplay = "TraceColor,TraceHitColor,DrawTime", Keywords = "sweep"))
+	static bool SphereTraceSingleByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
+
+	/**
+	*  Sweep a sphere against the world and return all initial overlaps using a specific profile, then overlapping hits and then first blocking hit
+	*  Results are sorted, so a blocking hit (if found) will be the last element of the array
+	*  Only the single closest blocking result will be generated, no tests will be done after that
+	*
+	* @param WorldContext	World context
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param Radius		Radius of the sphere to sweep
+	* @param ProfileName	The 'profile' used to determine which components to hit
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHits		A list of hits, sorted along the trace from start to finish.  The blocking hit will be the last hit, if there was one.
+	* @return				True if there was a blocking hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", DisplayName = "MultiSphereTraceByProfile", AdvancedDisplay = "TraceColor,TraceHitColor,DrawTime", Keywords = "sweep"))
+	static bool SphereTraceMultiByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
+
+	/**
+	*  Sweep a box against the world and return the first blocking hit using a specific profile
+	*
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param HalfSize	    Distance from the center of box along each axis
+	* @param Orientation	Orientation of the box
+	* @param ProfileName	The 'profile' used to determine which components to hit
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHit			Properties of the trace hit.
+	* @return				True if there was a hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", DisplayName = "BoxTraceByProfile", AdvancedDisplay = "TraceColor,TraceHitColor,DrawTime", Keywords = "sweep"))
+	static bool BoxTraceSingleByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, const FVector HalfSize, const FRotator Orientation, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
+
+	/**
+	*  Sweep a box against the world and return all initial overlaps using a specific profile, then overlapping hits and then first blocking hit
+	*  Results are sorted, so a blocking hit (if found) will be the last element of the array
+	*  Only the single closest blocking result will be generated, no tests will be done after that
+	*
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param HalfSize	    Distance from the center of box along each axis
+	* @param Orientation	Orientation of the box
+	* @param ProfileName	The 'profile' used to determine which components to hit
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHits		A list of hits, sorted along the trace from start to finish. The blocking hit will be the last hit, if there was one.
+	* @return				True if there was a blocking hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", DisplayName = "MultiBoxTraceByProfile", AdvancedDisplay = "TraceColor,TraceHitColor,DrawTime", Keywords = "sweep"))
+	static bool BoxTraceMultiByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, FVector HalfSize, const FRotator Orientation, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
+
+
+	/**
+	*  Sweep a capsule against the world and return the first blocking hit using a specific profile
+	*
+	* @param WorldContext	World context
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param Radius			Radius of the capsule to sweep
+	* @param HalfHeight		Distance from center of capsule to tip of hemisphere endcap.
+	* @param ProfileName	The 'profile' used to determine which components to hit
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHit			Properties of the trace hit.
+	* @return				True if there was a hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", DisplayName = "CapsuleTraceByProfile", AdvancedDisplay = "TraceColor,TraceHitColor,DrawTime", Keywords = "sweep"))
+	static bool CapsuleTraceSingleByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, float HalfHeight, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
+
+	/**
+	*  Sweep a capsule against the world and return all initial overlaps using a specific profile, then overlapping hits and then first blocking hit
+	*  Results are sorted, so a blocking hit (if found) will be the last element of the array
+	*  Only the single closest blocking result will be generated, no tests will be done after that
+	*
+	* @param WorldContext	World context
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param Radius			Radius of the capsule to sweep
+	* @param HalfHeight		Distance from center of capsule to tip of hemisphere endcap.
+	* @param ProfileName	The 'profile' used to determine which components to hit
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHits		A list of hits, sorted along the trace from start to finish.  The blocking hit will be the last hit, if there was one.
+	* @return				True if there was a blocking hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", WorldContext = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", DisplayName = "MultiCapsuleTraceByProfile", AdvancedDisplay = "TraceColor,TraceHitColor,DrawTime", Keywords = "sweep"))
+	static bool CapsuleTraceMultiByProfile(UObject* WorldContextObject, const FVector Start, const FVector End, float Radius, float HalfHeight, FName ProfileName, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor = FLinearColor::Red, FLinearColor TraceHitColor = FLinearColor::Green, float DrawTime = 5.0f);
+
+
+
 	/**
 	 * Returns an array of unique actors represented by the given list of components.
 	 * @param ComponentList		List of components.
@@ -1368,6 +1500,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static TArray<FString> GetPreferredLanguages();
+	
+	/**
+	 * Returns the user's preferred language and region
+	 * @return A language ID indicating the user's language and region
+	 */
+	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
+	static FString GetDefaultLocale();
 
 	/**
 	* Returns the currency code associated with the device's locale

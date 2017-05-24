@@ -68,6 +68,7 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef
 							.OnSampleMoved(this, &SBlendSpaceEditorBase::OnSampleMoved)
 							.OnSampleRemoved(this, &SBlendSpaceEditorBase::OnSampleRemoved)
 							.OnSampleAdded(this, &SBlendSpaceEditorBase::OnSampleAdded)
+							.OnSampleAnimationChanged(this, &SBlendSpaceEditorBase::OnUpdateAnimation)
 						]
 					]
 				]
@@ -116,6 +117,19 @@ void SBlendSpaceEditorBase::OnSampleAdded(UAnimSequence* Animation, const FVecto
 
 	const bool bAddSuccesful = BlendSpace->AddSample(Animation, Value);	
 	if (bAddSuccesful)
+	{
+		ResampleData();
+		BlendSpace->ValidateSampleData();
+	}
+}
+
+void SBlendSpaceEditorBase::OnUpdateAnimation(UAnimSequence* Animation, const FVector& Value)
+{
+	FScopedTransaction ScopedTransaction(LOCTEXT("UpdateAnimation", "Changing Animation Sequence"));
+	BlendSpace->Modify();
+
+	const bool bUpdateSuccesful = BlendSpace->UpdateSampleAnimation(Animation, Value);
+	if (bUpdateSuccesful)
 	{
 		ResampleData();
 		BlendSpace->ValidateSampleData();

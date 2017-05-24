@@ -46,6 +46,20 @@ enum class EWindowTransparency
 };
 
 
+/** Enumeration to specify whether the window gets activated upon showing it */
+enum class EWindowActivationPolicy
+{
+	/** Value indicating that a window never activates when it is shown */
+	Never,
+
+	/** Value indicating that a window always activates when it is shown */
+	Always,
+
+	/** Value indicating that a window only activates when it is first shown */
+	FirstShown
+};
+
+
 struct CORE_API FGenericWindowDefinition
 {
 	/** Window type */
@@ -72,8 +86,8 @@ struct CORE_API FGenericWindowDefinition
 	bool IsTopmostWindow;
 	/** true if the window accepts input; false if the window is non-interactive */
 	bool AcceptsInput;
-	/** true if this window will be activated when it is first shown */
-	bool ActivateWhenFirstShown;
+	/** the policy for activating the window upon each show */
+	EWindowActivationPolicy ActivationPolicy;
 	/** true if this window will be focused when it is first shown */
 	bool FocusWhenFirstShown;
 	/** true if this window displays an enabled close button on the toolbar area */

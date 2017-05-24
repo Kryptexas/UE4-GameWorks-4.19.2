@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3108692
+﻿INTSourceChangelist:3275367
 Availability: Public
 Title:지오메트리 브러시 액터
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -8,24 +8,6 @@ Related: Engine/UI/LevelEditor/Modes
 Related: Engine/Actors/Volumes
 version: 4.9
 
-
-[VAR:playlistnav]
-[OBJECT:PlaylistNavigation]
-	[PARAMLITERAL:id]
-		LevelDesign_Beginner
-	[/PARAMLITERAL]
-	[PARAM:previous]
-		[예전 토픽](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:title%")
-	[/PARAM]
-	[PARAM:next]
-		[다음 토픽](Engine/Actors/Volumes "%Engine/Actors/Volumes:title%")
-	[/PARAM]
-	[PARAM:home]
-		[](Tracks/LevelDesign/Beginner)
-		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -65,8 +47,6 @@ version: 4.9
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-%playlistnav%
 
 
 [TOC (end:2)]
@@ -454,10 +434,4 @@ Lighting (라이팅) 섹션에서는 브러시 표면에 대한 여러가지 중
 * 더하기만 가능하며, 빼기는 안됩니다.
 * 주변 브러시가 쪼개지지 않습니다.
 [/EXCERPT:Solidity]
-
-
-%playlistnav%
-
-
-
 

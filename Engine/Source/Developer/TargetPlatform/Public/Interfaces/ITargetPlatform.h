@@ -56,8 +56,8 @@ enum class ETargetPlatformFeatures
 	/** The platform uses the deferred pipeline, typically PC/Console platforms */
 	DeferredRendering,
 
-	/** Should use compressed cooked packages */
-	ShouldUseCompressedCookedPackages, 
+	/* Should split paks into smaller sized paks */
+	ShouldSplitPaksIntoSmallerSizes,
 };
 
 
@@ -310,13 +310,6 @@ public:
 	* @param OutFormats Will contain the shader formats.
 	*/
 	virtual void GetAllTargetedShaderFormats(TArray<FName>& OutFormats) const = 0;
-	
-	/**
-	 * Gets the shader formats that have been selected for caching for this target platform
-	 *
-	 * @param OutFormats Will contain the shader formats.
-	 */
-	virtual void GetAllCachedShaderFormats(TArray<FName>& OutFormats) const = 0;
 
 	/**
 	 * Gets the format to use for a particular texture.
@@ -327,12 +320,27 @@ public:
 	virtual void GetTextureFormats( const class UTexture* Texture, TArray<FName>& OutFormats ) const = 0;
 
 	/**
+	 * Gets the texture formats this platform can use
+	 * 
+	 * @param OutFormats will contain all the texture formats which are possible for this platform
+	 */
+	virtual void GetAllTextureFormats( TArray<FName>& OutFormats ) const = 0;
+
+	/**
 	 * Gets the format to use for a particular piece of audio.
 	 *
 	 * @param Wave The sound node wave to get the format for.
 	 * @return Name of the wave format.
 	 */
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const = 0;
+
+
+	/**
+	* Gets all the formats which can be returned from GetWaveFormat
+	*
+	* @param output array of all the formats
+	*/
+	virtual void GetAllWaveFormats( TArray<FName>& OutFormats ) const = 0;
 
 	/**
 	 * Gets the texture LOD settings used by this platform.

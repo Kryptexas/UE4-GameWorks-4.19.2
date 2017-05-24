@@ -59,56 +59,20 @@ public:
 	 * investigating named slots, this code does not dive into foreign WidgetTrees, as would exist
 	 * inside another user widget.
 	 */
-	template <typename Predicate>
-	FORCEINLINE void ForEachWidget(Predicate Pred) const
-	{
-		if ( RootWidget )
-		{
-			Pred(RootWidget);
-			
-			ForWidgetAndChildren(RootWidget, Pred);
-		}
-	}
+	void ForEachWidget(TFunctionRef<void(UWidget*)> Predicate) const;
+
+	/**
+	 * Iterates through all widgets including widgets contained in named slots, other than
+	 * investigating named slots.  This includes foreign widget trees inside of other UserWidgets.
+	 */
+	void ForEachWidgetAndDescendants(TFunctionRef<void(UWidget*)> Predicate) const;
 
 	/**
 	 * Iterates through all child widgets including widgets contained in named slots, other than
 	 * investigating named slots, this code does not dive into foreign WidgetTrees, as would exist
 	 * inside another user widget.
 	 */
-	template <typename Predicate>
-	static FORCEINLINE void ForWidgetAndChildren(UWidget* Widget, Predicate Pred)
-	{
-		// Search for any named slot with content that we need to dive into.
-		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
-		{
-			TArray<FName> SlotNames;
-			NamedSlotHost->GetSlotNames(SlotNames);
-
-			for ( FName SlotName : SlotNames )
-			{
-				if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
-				{
-					Pred(SlotContent);
-
-					ForWidgetAndChildren(SlotContent, Pred);
-				}
-			}
-		}
-
-		// Search standard children.
-		if ( UPanelWidget* PanelParent = Cast<UPanelWidget>(Widget) )
-		{
-			for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )
-			{
-				if ( UWidget* ChildWidget = PanelParent->GetChildAt(ChildIndex) )
-				{
-					Pred(ChildWidget);
-
-					ForWidgetAndChildren(ChildWidget, Pred);
-				}
-			}
-		}
-	}
+	static void ForWidgetAndChildren(UWidget* Widget, TFunctionRef<void(UWidget*)> Predicate);
 
 	/** Constructs the widget, and adds it to the tree. */
 	template< class T >
@@ -122,7 +86,7 @@ public:
 
 		if ( WidgetType->IsChildOf(UUserWidget::StaticClass()) )
 		{
-			UUserWidget* Widget = NewObject<UUserWidget>(this, WidgetType, WidgetName, NewObjectFlags);
+			UUserWidget* Widget = UUserWidget::NewWidgetObject(this, WidgetType, WidgetName);
 			Widget->Initialize();
 			return (T*)Widget;
 		}
@@ -140,11 +104,11 @@ public:
 
 public:
 	/** The root widget of the tree */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	UWidget* RootWidget;
 
 protected:
 
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	TArray< UWidget* > AllWidgets;
 };

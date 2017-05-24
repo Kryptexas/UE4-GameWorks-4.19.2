@@ -10,14 +10,38 @@ using System.Linq;
 using System.Management;
 using System.Reflection;
 using System.Threading;
-
+using System.ServiceProcess;
 
 namespace UnrealBuildTool
 {
-	public class SNDBS : ActionExecutor
+	class SNDBS : ActionExecutor
 	{
-		static private int MaxActionsToExecuteInParallel;
-		static private int JobNumber;
+		/// <summary>
+		/// Processor count multiplier for local execution. Can be below 1 to reserve CPU for other tasks.
+		/// </summary>
+		[XmlConfigFile]
+		public double ProcessorCountMultiplier = 1.0;
+
+		/// <summary>
+		/// Maximum processor count for local execution. 
+		/// </summary>
+		[XmlConfigFile]
+		public int MaxProcessorCount = int.MaxValue;
+
+		/// <summary>
+		/// The number of actions to execute in parallel is trying to keep the CPU busy enough in presence of I/O stalls.
+		/// </summary>
+		int MaxActionsToExecuteInParallel;
+
+		/// <summary>
+		/// Unique id for new jobs
+		/// </summary>
+		int JobNumber;
+
+		public SNDBS()
+		{
+			XmlConfig.ApplyTo(this);
+		}
 
 		public override string Name
 		{
@@ -40,7 +64,7 @@ namespace UnrealBuildTool
 			Log.TraceInformation(Output);
 		}
 
-		internal static bool ExecuteLocalActions(List<Action> InLocalActions, Dictionary<Action, ActionThread> InActionThreadDictionary, int TotalNumJobs)
+		internal bool ExecuteLocalActions(List<Action> InLocalActions, Dictionary<Action, ActionThread> InActionThreadDictionary, int TotalNumJobs)
 		{
 			// Time to sleep after each iteration of the loop in order to not busy wait.
 			const float LoopSleepTime = 0.1f;
@@ -144,11 +168,11 @@ namespace UnrealBuildTool
 			return LocalActionsResult;
 		}
 
-		internal static bool ExecuteActions(List<Action> InActions, Dictionary<Action, ActionThread> InActionThreadDictionary)
+		internal bool ExecuteActions(List<Action> InActions, Dictionary<Action, ActionThread> InActionThreadDictionary)
 		{
 			// Build the script file that will be executed by SN-DBS
 			StreamWriter ScriptFile;
-			string ScriptFilename = Path.Combine(BuildConfiguration.BaseIntermediatePath, "SNDBS.bat");
+			string ScriptFilename = Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Intermediate", "Build", "SNDBS.bat");
 
 			FileStream ScriptFileStream = new FileStream(ScriptFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
 			ScriptFile = new StreamWriter(ScriptFileStream);
@@ -203,7 +227,7 @@ namespace UnrealBuildTool
 					// If there aren't any outdated prerequisites of this action, execute it.
 					else if (!bHasOutdatedPrerequisites)
 					{
-						if (Action.bCanExecuteRemotely == false)
+						if (Action.bCanExecuteRemotely == false || Action.bCanExecuteRemotelyWithSNDBS == false)
 						{
 							// Execute locally
 							LocalActions.Add(Action);
@@ -233,7 +257,7 @@ namespace UnrealBuildTool
                 // Create the process
                 string SCERoot = Environment.GetEnvironmentVariable("SCE_ROOT_DIR");
                 string SNDBSExecutable = Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe");
-                ProcessStartInfo PSI = new ProcessStartInfo(SNDBSExecutable, "-q -p UE4 -s " + BuildConfiguration.BaseIntermediatePath + "/sndbs.bat");
+                ProcessStartInfo PSI = new ProcessStartInfo(SNDBSExecutable, String.Format("-q -p UE4 -s \"{0}\"", FileReference.Combine(UnrealBuildTool.EngineDirectory, "Intermediate", "Build", "sndbs.bat").FullName));
 				PSI.RedirectStandardOutput = true;
 				PSI.RedirectStandardError = true;
 				PSI.UseShellExecute = false;
@@ -285,10 +309,23 @@ namespace UnrealBuildTool
 			{
 				return false;
 			}
-			return File.Exists(Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe"));
+			if (!File.Exists(Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe")))
+			{
+				return false;
+			}
+
+			ServiceController[] services = ServiceController.GetServices();
+			foreach (ServiceController service in services)
+			{
+				if (service.ServiceName.StartsWith("SNDBS") && service.Status == ServiceControllerStatus.Running)
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 
-		public override bool ExecuteActions(List<Action> Actions)
+		public override bool ExecuteActions(List<Action> Actions, bool bLogDetailedActionStats)
 		{
 			bool SNDBSResult = true;
 			if (Actions.Count > 0)
@@ -324,14 +361,14 @@ namespace UnrealBuildTool
 				// The CPU has more logical cores than physical ones, aka uses hyper-threading. 
 				if (NumCores < System.Environment.ProcessorCount)
 				{
-					MaxActionsToExecuteInParallel = (int)(NumCores * BuildConfiguration.ProcessorCountMultiplier);
+					MaxActionsToExecuteInParallel = (int)(NumCores * ProcessorCountMultiplier);
 				}
 				// No hyper-threading. Only kicking off a task per CPU to keep machine responsive.
 				else
 				{
 					MaxActionsToExecuteInParallel = NumCores;
 				}
-				MaxActionsToExecuteInParallel = Math.Min(MaxActionsToExecuteInParallel, BuildConfiguration.MaxProcessorCount);
+				MaxActionsToExecuteInParallel = Math.Min(MaxActionsToExecuteInParallel, MaxProcessorCount);
 
 				JobNumber = 1;
 				Dictionary<Action, ActionThread> ActionThreadDictionary = new Dictionary<Action, ActionThread>();
@@ -360,8 +397,8 @@ namespace UnrealBuildTool
 					}
 				}
 
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, LogEventType.Console, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
+				Log.WriteLineIf(bLogDetailedActionStats, LogEventType.Console, "-------- Begin Detailed Action Stats ----------------------------------------------------------");
+				Log.WriteLineIf(bLogDetailedActionStats, LogEventType.Console, "^Action Type^Duration (seconds)^Tool^Task^Using PCH");
 
 				double TotalThreadSeconds = 0;
 
@@ -385,7 +422,7 @@ namespace UnrealBuildTool
 					// Log CPU time, tool and task.
 					double ThreadSeconds = Action.Duration.TotalSeconds;
 
-					Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats,
+					Log.WriteLineIf(bLogDetailedActionStats,
 						LogEventType.Console,
 						"^{0}^{1:0.00}^{2}^{3}^{4}",
 						Action.ActionType.ToString(),
@@ -401,7 +438,7 @@ namespace UnrealBuildTool
 				Log.TraceInformation("-------- End Detailed Actions Stats -----------------------------------------------------------");
 
 				// Log total CPU seconds and numbers of processors involved in tasks.
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+				Log.WriteLineIf(bLogDetailedActionStats || UnrealBuildTool.bPrintDebugInfo,
 					LogEventType.Console, "Cumulative thread seconds ({0} processors): {1:0.00}", System.Environment.ProcessorCount, TotalThreadSeconds);
 			}
 			return SNDBSResult;

@@ -7,28 +7,17 @@ using System.Collections.Generic;
 [SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class UnrealWatchdogTarget : TargetRules
 {
-	public UnrealWatchdogTarget(TargetInfo Target)
+	public UnrealWatchdogTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Program;
 		LinkType = TargetLinkType.Monolithic;
 		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
+		LaunchModuleName = "UnrealWatchdog";
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutBuildBinaryConfigurations.Add(
-			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
-											InModuleNames: new List<string>() { "UnrealWatchdog" } )
-			);
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

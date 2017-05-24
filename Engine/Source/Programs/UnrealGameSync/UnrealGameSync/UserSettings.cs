@@ -36,6 +36,9 @@ namespace UnrealGameSync
 
 		// Expanded archives in the workspace
 		public string[] ExpandedArchiveTypes;
+
+		// Workspace specific SyncFilters
+		public string[] SyncFilter;
 	}
 
 	class UserProjectSettings
@@ -57,6 +60,7 @@ namespace UnrealGameSync
 		public bool bAutoResolveConflicts;
 		public bool bUseIncrementalBuilds;
 		public bool bShowLocalTimes;
+		public bool bShowAllStreams;
 		public bool bKeepInTray;
 		public string LastProjectFileName;
 		public string[] OtherProjectFileNames;
@@ -104,6 +108,7 @@ namespace UnrealGameSync
 			bAutoResolveConflicts = (ConfigFile.GetValue("General.AutoResolveConflicts", "1") != "0");
 			bUseIncrementalBuilds = ConfigFile.GetValue("General.IncrementalBuilds", true);
 			bShowLocalTimes = ConfigFile.GetValue("General.ShowLocalTimes", false);
+			bShowAllStreams = ConfigFile.GetValue("General.ShowAllStreams", false);
 			bKeepInTray = ConfigFile.GetValue("General.KeepInTray", true);
 			LastProjectFileName = ConfigFile.GetValue("General.LastProjectFileName", null);
 			OtherProjectFileNames = ConfigFile.GetValues("General.OtherProjectFileNames", new string[0]);
@@ -242,6 +247,8 @@ namespace UnrealGameSync
 						}
 					}
 				}
+
+				CurrentWorkspace.SyncFilter = new string[0];
 			}
 			else
 			{
@@ -267,7 +274,9 @@ namespace UnrealGameSync
 
 				CurrentWorkspace.LastSyncDurationSeconds = WorkspaceSection.GetValue("LastSyncDuration", 0);
 				CurrentWorkspace.LastBuiltChangeNumber = WorkspaceSection.GetValue("LastBuiltChangeNumber", 0);
-				CurrentWorkspace.ExpandedArchiveTypes = WorkspaceSection.GetValues("ExpandedArchiveName", new string[0]);			
+				CurrentWorkspace.ExpandedArchiveTypes = WorkspaceSection.GetValues("ExpandedArchiveName", new string[0]);
+
+				CurrentWorkspace.SyncFilter = WorkspaceSection.GetValues("SyncFilter", new string[0]);
 			}
 
 			// Read the project settings
@@ -304,6 +313,7 @@ namespace UnrealGameSync
 			GeneralSection.SetValue("AutoResolveConflicts", bAutoResolveConflicts);
 			GeneralSection.SetValue("IncrementalBuilds", bUseIncrementalBuilds);
 			GeneralSection.SetValue("ShowLocalTimes", bShowLocalTimes);
+			GeneralSection.SetValue("ShowAllStreams", bShowAllStreams);
 			GeneralSection.SetValue("LastProjectFileName", LastProjectFileName);
 			GeneralSection.SetValue("KeepInTray", bKeepInTray);
 			GeneralSection.SetValues("OtherProjectFileNames", OtherProjectFileNames);
@@ -369,6 +379,7 @@ namespace UnrealGameSync
 				}
 				WorkspaceSection.SetValue("LastBuiltChangeNumber", CurrentWorkspace.LastBuiltChangeNumber);
 				WorkspaceSection.SetValues("ExpandedArchiveName", CurrentWorkspace.ExpandedArchiveTypes);
+				WorkspaceSection.SetValues("SyncFilter", CurrentWorkspace.SyncFilter);
 			}
 
 			// Current project settings
@@ -397,6 +408,14 @@ namespace UnrealGameSync
 
 			// Save the file
 			ConfigFile.Save(FileName);
+		}
+
+		public string[] GetCombinedSyncFilter()
+		{			
+			string[] CombinedSyncFilter = new string[SyncFilter.Length + CurrentWorkspace.SyncFilter.Length];
+			SyncFilter.CopyTo(CombinedSyncFilter, 0);
+			CurrentWorkspace.SyncFilter.CopyTo(CombinedSyncFilter, SyncFilter.Length);
+			return CombinedSyncFilter;
 		}
 
 		static string EscapeText(string Text)

@@ -6,7 +6,6 @@
 #include "NiagaraCommon.h"
 #include "INiagaraCompiler.h"
 #include "Kismet2/CompilerResultsLog.h"
-#include "Runtime/Niagara/NiagaraScriptConstantData.h"
 #include "NiagaraScript.h"
 
 class Error;
@@ -15,110 +14,284 @@ class UNiagaraNode;
 class UNiagaraNodeFunctionCall;
 class UNiagaraScriptSource;
 
-/** Base class for Niagara compilers. Children of this will include a compiler for the VectorVM and for Compute shaders. Possibly others. */
-class NIAGARAEDITOR_API FNiagaraCompiler : public INiagaraCompiler
+enum class ENiagaraCodeChunkMode : uint8
 {
+	Uniform,
+	Source,
+	Body,
+	Num,
+};
+
+FORCEINLINE uint32 GetTypeHash(const FNiagaraFunctionSignature& Sig)
+{
+	uint32 Hash = GetTypeHash(Sig.Name);
+	for (const FNiagaraVariable& Var : Sig.Inputs)
+	{
+		Hash = HashCombine(Hash, GetTypeHash(Var));
+	}
+	for (const FNiagaraVariable& Var : Sig.Outputs)
+	{
+		Hash = HashCombine(Hash, GetTypeHash(Var));
+	}
+	Hash = HashCombine(Hash, GetTypeHash(Sig.OwnerId));
+	return Hash;
+}
+
+struct FNiagaraCodeChunk
+{
+	/** Symbol name for the chunk. Cam be empty for some types of chunk. */
+	FString SymbolName;
+	/** Format definition for incorporating SourceChunks into the final code for this chunk. */
+	FString Definition;
+	/** The returned data type of this chunk. */
+	FNiagaraTypeDefinition Type;
+	/** If this chunk should declare it's symbol name. */
+	bool bDecl;
+	/** Chunks used as input for this chunk. */
+	TArray<int32> SourceChunks;
+
+	ENiagaraCodeChunkMode Mode;
+
+	FNiagaraCodeChunk()
+		: bDecl(true)
+		, Mode(ENiagaraCodeChunkMode::Num)
+	{
+		Type = FNiagaraTypeDefinition::GetFloatDef();
+	}
+
+	void AddSourceChunk(int32 ChunkIdx)
+	{
+		SourceChunks.Add(ChunkIdx);
+	}
+
+	int32 GetSourceChunk(int32 i)
+	{
+		return SourceChunks[i];
+	}
+
+	void ReplaceSourceIndex(int32 SourceIdx, int32 NewIdx)
+	{
+		SourceChunks[SourceIdx] = NewIdx;
+	}
+
+	bool operator==(const FNiagaraCodeChunk& Other)
+	{
+		return SymbolName == Other.SymbolName &&
+			Definition == Other.Definition &&
+			Mode == Other.Mode &&
+			Type == Other.Type &&
+			bDecl == Other.bDecl &&
+			SourceChunks == Other.SourceChunks;
+	}
+};
+
+class NIAGARAEDITOR_API FHlslNiagaraCompiler : public INiagaraCompiler
+{
+public:
+
+	struct FDataSetAccessInfo
+	{
+		//Variables accessed.
+		TArray<FNiagaraVariable> Variables;
+		/** Code chunks relating to this access. */
+		TArray<int32> CodeChunks;
+	};
+
 protected:
 	/** The script we are compiling. */
 	UNiagaraScript* Script;
 
-	/** The source of the script we are compiling. */
-	UNiagaraScriptSource* Source;
+	const class UEdGraphSchema_Niagara* Schema;
 
-	/** The source graph of the script we are compiling. */
-	UNiagaraGraph* SourceGraph;
+	/** The set of all generated code chunks for this script. */
+	TArray<FNiagaraCodeChunk> CodeChunks;
 
-	/** The set of expressions generated from the script source. */
-	TArray<TNiagaraExprPtr> Expressions;
+	/** Array of code chunks of each different type. */
+	TArray<int32> ChunksByMode[(int32)ENiagaraCodeChunkMode::Num];
 
-	/** All internal and external constants used in the graph. */
-	FNiagaraScriptConstantData ConstantData;
+	/** 
+	Map of Pins to compiled code chunks. Allows easy reuse of previously compiled pins. 
+	A stack so that we can track pin reuse within function calls but not have cached pins cross talk with subsequent calls to the same funciton.
+	*/
+	TArray<TMap<UEdGraphPin*, int32>> PinToCodeChunks;
 
-	/** Map of Pins to expressions. Allows us to reuse expressions for pins that have already been compiled. */
-	TMap<UEdGraphPin*, TNiagaraExprPtr> PinToExpression;
+	/** The combined output of the compilation of this script. This is temporary and will be reworked soon. */
+	FNiagaraCompilationOutput CompilationOutput;
 
 	/** Message log. Automatically handles marking the NodeGraph with errors. */
 	FCompilerResultsLog MessageLog;
 
-	/** List of event names this script receives and the attributes they read. */
-	TArray<FNiagaraDataSetProperties> EventReceivers;
+	/** Captures information about a script compile. */
+	FNiagaraCompileResults CompileResults;
 
-	/** List of event names this script generates and the attributes they write. */
-	TArray<FNiagaraDataSetProperties> EventGenerators;
+	TMap<FName, uint32> GeneratedSymbolCounts;
 
-	FNiagaraScriptUsageInfo Usage;
+	FDataSetAccessInfo InstanceRead;
+	FDataSetAccessInfo InstanceWrite;
 
-// 	/** List of other shared data read */
-// 	TArray<FNiagaraDataSetCompilationInfo> SharedDataRead;
-// 	/** List of other shared data written */
-// 	TArray<FNiagaraDataSetCompilationInfo> SharedDataWritten;
+	TMap<FNiagaraDataSetID, TMap<int32, FDataSetAccessInfo>> DataSetReadInfo[(int32)ENiagaraDataSetAccessMode::Num];
+	TMap<FNiagaraDataSetID, TMap<int32, FDataSetAccessInfo>> DataSetWriteInfo[(int32)ENiagaraDataSetAccessMode::Num];
+	TMap<FNiagaraDataSetID, int32> DataSetWriteConditionalInfo[(int32)ENiagaraDataSetAccessMode::Num];
+
+	FString GetDataSetAccessSymbol(FNiagaraDataSetID DataSet, int32 IndexChunk, bool bRead);
+	FORCEINLINE FNiagaraDataSetID GetInstanceDatSetID()const { return FNiagaraDataSetID(TEXT("Instance"), ENiagaraDataSetType::ParticleData); }
+
+	/** All functions called in the script. */
+	TMap<FNiagaraFunctionSignature, FString> Functions;
+	/** Map of function graphs we've seen before and already pre-processed. */
+	TMap<const UNiagaraGraph*, UNiagaraGraph*> PreprocessedFunctions;
+
+	void RegisterFunctionCall(UNiagaraNodeFunctionCall* FunctionNode, TArray<int32>& Inputs, FNiagaraFunctionSignature& OutSignature);
+	void GenerateFunctionCall(FNiagaraFunctionSignature& FunctionSignature, TArray<int32>& Inputs, TArray<int32>& Outputs);
+	FString GetFunctionSignatureSymbol(FNiagaraFunctionSignature& Sig);
+	FString GetFunctionSignature(FNiagaraFunctionSignature& Sig);
 
 	/** Compiles an output Pin on a graph node. Caches the result for any future inputs connected to it. */
-	TNiagaraExprPtr CompileOutputPin(UEdGraphPin* Pin);
+	int32 CompileOutputPin(UEdGraphPin* Pin);
 
-	/** Creates an expression retrieving a particle attribute. */
-	TNiagaraExprPtr Expression_GetAttribute(const FNiagaraVariableInfo& Attribute);
+	void WriteDataSetContextVars(TMap<FNiagaraDataSetID, TMap<int32, FDataSetAccessInfo>>& DataSetAccessInfo, bool bRead, FString &HlslOutput);
+	void WriteDataSetStructDeclarations(TMap<FNiagaraDataSetID, TMap<int32, FDataSetAccessInfo>>& DataSetAccessInfo, bool bRead, FString &HlslOutput);
+	void DecomposeVariableAccess(const UStruct* Struct, bool bRead, FString IndexSymbol, FString HLSLString);
 
-	/** Creates an expression retrieving an external constant. */
-	TNiagaraExprPtr Expression_GetExternalConstant(const FNiagaraVariableInfo& Constant);
+	FString GetUniqueSymbolName(FName BaseName);
 
-	/** Creates an expression retrieving an internal constant. */
-	TNiagaraExprPtr Expression_GetInternalConstant(const FNiagaraVariableInfo& Constant);
+	/** Stack of all function params. */
+	struct FFunctionContext
+	{
+		UNiagaraScript* CallerScript;
+		UNiagaraScript* FunctionScript;	
+		FNiagaraFunctionSignature& Signature;
+		TArray<int32>& Inputs;
+		FFunctionContext(UNiagaraScript* InCallerScript, UNiagaraScript* InFunctionScript, FNiagaraFunctionSignature& InSig, TArray<int32>& InInputs) 
+			: CallerScript(InCallerScript)
+			, FunctionScript(InFunctionScript)
+			, Signature(InSig)
+			, Inputs(InInputs)
+		{}
+	};
+	TArray<FFunctionContext> FunctionContextStack;
+	const FFunctionContext* FunctionCtx()const { return FunctionContextStack.Num() > 0 ? &FunctionContextStack.Last() : nullptr; }
+	void EnterFunction(UNiagaraScript* InFunctionScript, FNiagaraFunctionSignature& Signature, TArray<int32>& Inputs);
+	void ExitFunction();
+	FString GetCallstack();
 
-	/** Creates an expression collecting some source expressions together for use by future expressions. */
-	TNiagaraExprPtr Expression_Collection(TArray<TNiagaraExprPtr>& SourceExpressions);
+	void EnterStatsScope(FNiagaraStatScope StatScope);
+	void ExitStatsScope();
 
-	/** Sets the value of a constant. Overwrites the value if it already exists. */
-	template< typename T >
-	void SetOrAddConstant(bool bInternal, const FNiagaraVariableInfo& Constant, const T& Default);
+	FString GeneratedConstantString(float Constant);
+	FString GeneratedConstantString(FVector4 Constant);
 
-	/** Searches for Function Call nodes and merges their graphs into the main graph. */
-	bool MergeInFunctionNodes();
+	/* Add a chunk that is not written to the source, only used as a source chunk for others. */
+	int32 AddSourceChunk(FString SymbolName, const FNiagaraTypeDefinition& Type);
 
-	bool MergeFunctionIntoMainGraph(UNiagaraNodeFunctionCall* FunctionNode, TArray<UNiagaraScript*>& FunctionStack);
+	/** Add a chunk defining a uniform value. */
+	int32 AddUniformChunk(FString SymbolName, const FNiagaraTypeDefinition& Type);
 
+	/* Add a chunk that is written to the body of the shader code. */
+	int32 AddBodyChunk(FString SymbolName, FString Definition, const FNiagaraTypeDefinition& Type, TArray<int32>& SourceChunks, bool bDecl = true);
+	int32 AddBodyChunk(FString SymbolName, FString Definition, const FNiagaraTypeDefinition& Type, int32 SourceChunk, bool bDecl = true);
+	int32 AddBodyChunk(FString SymbolName, FString Definition, const FNiagaraTypeDefinition& Type, bool bDecl = true);
+
+	FString GetFunctionDefinitions();
 public:
 
+	FHlslNiagaraCompiler();
+
 	//Begin INiagaraCompiler Interface
-	virtual TNiagaraExprPtr CompilePin(UEdGraphPin* Pin)override;
+	virtual const FNiagaraCompileResults& CompileScript(UNiagaraScript* InScript)override;
+	virtual int32 CompilePin(UEdGraphPin* Pin)override;
 
-	virtual TNiagaraExprPtr GetAttribute(const FNiagaraVariableInfo& Attribute)override;
-	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, float Default)override;
-	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default)override;
-	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default)override;
-	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, float Default)override;
-	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default)override;
-	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default)override;
+	virtual int32 RegisterDataInterface(FNiagaraVariable& Var, UNiagaraDataInterface* DataInterface)override;
 
-	virtual bool CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs)override;
-	virtual bool CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outputs)override;
+	virtual void Operation(class UNiagaraNodeOp* Operation, TArray<int32>& Inputs, TArray<int32>& Outputs)override;
+	virtual void Output(const TArray<FNiagaraVariable>& Attribute, const TArray<int32>& Inputs)override;
+
+	virtual int32 GetParameter(const FNiagaraVariable& Parameter)override;
+
+	virtual int32 GetAttribute(const FNiagaraVariable& Attribute)override;
+
+	virtual int32 GetConstant(const FNiagaraVariable& Constant)override;
+
+	virtual void ReadDataSet(const FNiagaraDataSetID DataSet, const TArray<FNiagaraVariable>& Variable, ENiagaraDataSetAccessMode AccessMode, int32 InputChunk, TArray<int32>& Outputs)override;
+	virtual void WriteDataSet(const FNiagaraDataSetID DataSet, const TArray<FNiagaraVariable>& Variable, ENiagaraDataSetAccessMode AccessMode, const TArray<int32>& Inputs)override;
+
+	void DefineInterpolatedParametersFunction(FString &HlslOutput);
+	void DefineDataSetReadFunction(FString &HlslOutput, TArray<FNiagaraDataSetID> &ReadDataSets);
+	void DefineDataSetWriteFunction(FString &HlslOutput, TArray<FNiagaraDataSetProperties> &WriteDataSets, TArray<int32>& WriteConditionVarIndices);
+	void DefineMain(FString &HLSLOutput, TArray<FNiagaraVariable> &InstanceReadVars, TArray<FNiagaraVariable> &InstanceWriteVars);
+
+	void GenerateCodeForProperties(const UScriptStruct* Struct, FString Format, FString VariableSymbol, int32& Counter, int32 DataSetIndex, FString InstanceIdxSymbol, bool bMatrixRoot, FString &HlslOutput);
+
+	FString CompileDataInterfaceFunction(UNiagaraDataInterface* DataInterface, FNiagaraFunctionSignature& Signature);
+
+	//TODO: Write ability to read and write direcly to a specific index.
+	//virtual int32 ReadDataSet(const FNiagaraDataSetID DataSet, const FNiagaraVariable& Variable, int32 ReadIndexChunk = INDEX_NONE)override;
+	//virtual int32 WriteDataSet(const FNiagaraDataSetID DataSet, const FNiagaraVariable& Variable, int32 WriteIndexChunk = INDEX_NONE)override;
+
+	virtual void FunctionCall(UNiagaraNodeFunctionCall* FunctionNode, TArray<int32>& Inputs, TArray<int32>& Outputs) override;
+
+	virtual void Convert(class UNiagaraNodeConvert* Convert, TArray <int32>& Inputs, TArray<int32>& Outputs) override;
+	virtual void If(TArray<FNiagaraVariable>& Vars, int32 Condition, TArray<int32>& PathA, TArray<int32>& PathB, TArray<int32>& Outputs) override;
 
 	virtual void Error(FText ErrorText, UNiagaraNode* Node, UEdGraphPin* Pin)override;
 	virtual void Warning(FText WarningText, UNiagaraNode* Node, UEdGraphPin* Pin)override;
+
+	virtual UNiagaraScript* GetFunctionScript() override;
+	virtual bool GetFunctionParameter(const FNiagaraVariable& Parameter, int32& OutParam)const override;
+
+	virtual bool CanReadAttributes()const override;
 	//End INiagaraCompiler Interface
-	
-	/** Gets the index into a constants table of the constant specified by Name and bInternal. */
-	virtual ENiagaraDataType GetConstantResultIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutResultIndex) = 0;
-	/**	Gets the index of an attribute in particle data. */
-	int32 GetAttributeIndex(const FNiagaraVariableInfo& Attr)const;
-	/**	Gets the index of a shared data view. */
-	FNiagaraDataSetProperties* GetSharedDataIndex(FNiagaraDataSetID SharedDataSet, bool bForRead, int32& OutIndex);
-	/**	Gets the index of a variable in shared data. */
-	int32 GetSharedDataVariableIndex(FNiagaraDataSetProperties* SharedDataSet, const FNiagaraVariableInfo& Attr);
 
-	virtual void GetParticleAttributes(TArray<FNiagaraVariableInfo>& OutAttributes)const;
+	static bool IsBuiltInHlslType(FNiagaraTypeDefinition Type);
+	static FString GetStructHlslTypeName(FNiagaraTypeDefinition Type);
+	static FString GetPropertyHlslTypeName(const UProperty* Property);
+	static FString BuildHLSLStructDecl(FNiagaraTypeDefinition Type);
+	static FString GetHlslDefaultForType(FNiagaraTypeDefinition Type);
+	static bool IsHlslBuiltinVector(FNiagaraTypeDefinition Type);
+	static TArray<FName> ConditionPropertyPath(const FNiagaraTypeDefinition& Type, const TArray<FName>& InPath);
 
-	/**	Gets the index of a free temporary location. */
-	virtual int32 AquireTemporary() = 0;
-	/** Frees the passed temporary index for use by other expressions. */
-	virtual void FreeTemporary(int32 TempIndex) = 0;
+
+	static FString GetSanitizedSymbolName(FString SymbolName);
+
+	bool AddStructToDefinitionSet(const FNiagaraTypeDefinition& TypeDef);
+private:
+
+	FString ComputeMatrixColumnAccess(const FString& Name);
+	FString ComputeMatrixRowAccess(const FString& Name);
+
+	FNiagaraTypeDefinition GetChildType(const FNiagaraTypeDefinition& BaseType, const FName& PropertyName);
+	FString NamePathToString(const FString& Prefix, const FNiagaraTypeDefinition& RootType, const TArray<FName>& NamePath);
+	FString GenerateAssignment(const FNiagaraTypeDefinition& SrcType, const TArray<FName>& SrcPath, const FNiagaraTypeDefinition& DestType, const TArray<FName>& DestPath);
+
+	//Generates the code for the passed chunk.
+	FString GetCode(FNiagaraCodeChunk& Chunk);
+	FString GetCode(int32 ChunkIdx);
+	//Retreives the code for this chunk being used as a source for another chunk
+	FString GetCodeAsSource(int32 ChunkIdx);
+
+	bool ValidateTypePins(UNiagaraNode* NodeToValidate);
+	void GenerateFunctionSignature(UNiagaraScript* FunctionScript, UNiagaraGraph* FuncGraph, TArray<int32>& Inputs, FNiagaraFunctionSignature& OutSig)const;
+
+	UNiagaraGraph* CloneGraphAndPrepareForCompilation(UNiagaraScript* InScript, bool bClearErrors);
+
+	bool ShouldInterpolateParameter(const FNiagaraVariable& Parameter);
+
+	/** Map of symbol names to count of times it's been used. Used for gernerating unique symbol names. */
+	TMap<FName, uint32> SymbolCounts;
+
+	//Set of non-builtin structs we have to define in hlsl.
+	TSet<FNiagaraTypeDefinition> StructsToDefine;
+
+	// read and write data set indices
+	int32 ReadIdx;
+	int32 WriteIdx;
+
+	/** 
+	True if we're compiling the spawn section of an interpolated spawn script. 
+	This will cause us to read from interpolated parameters and write to temp outputs that are fed back into the update script as inputs.
+	*/
+	bool bInsideInterpolatedSpawnScript;
+
+	/** Stack of currently tracked stats scopes. */
+	TArray<int32> StatScopeStack;
 };
-
-template<typename T>
-void FNiagaraCompiler::SetOrAddConstant(bool bInternal, const FNiagaraVariableInfo& Constant, const T& Default)
-{
-	if (bInternal)
-		ConstantData.SetOrAddInternal(Constant, Default);
-	else
-		ConstantData.SetOrAddExternal(Constant, Default);
-}

@@ -41,9 +41,6 @@ public:
 	/** Get the thumbnail pool used by this level editor */
 	virtual TSharedPtr< class FAssetThumbnailPool > GetThumbnailPool() const = 0;
 
-	/** Access the level editor's tab manager */
-	virtual TSharedRef<FTabManager> GetTabManager() const = 0;
-
 	/** Access the level editor's action command list */
 	virtual const TSharedPtr< FUICommandList >& GetLevelEditorActions() const = 0;
 

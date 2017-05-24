@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class IOSTapJoy : ModuleRules
 	{
-		public IOSTapJoy( TargetInfo Target )
+		public IOSTapJoy( ReadOnlyTargetRules Target ) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {

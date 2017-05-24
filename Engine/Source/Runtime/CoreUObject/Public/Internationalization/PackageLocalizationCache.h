@@ -117,6 +117,14 @@ protected:
 	virtual void FindLocalizedPackages(const FString& InSourceRoot, const FString& InLocalizedRoot, TMap<FName, TArray<FName>>& InOutSourcePackagesToLocalizedPackages) = 0;
 
 	/**
+	 * Find all of the packages using the given asset group class, and update the PackageNameToAssetGroup map with the result.
+	 *
+	 * @param InAssetGroupName	The name of the asset group packages of this type belong to.
+	 * @param InAssetClassName	The name of a class used by this asset group.
+	 */
+	virtual void FindAssetGroupPackages(const FName InAssetGroupName, const FName InAssetClassName) = 0;
+
+	/**
 	 * Try and find an existing cache for the given culture name, and create an entry for one if no such cache currently exists.
 	 *
 	 * @param InCultureName		The name of the culture to find the cache for.
@@ -124,6 +132,11 @@ protected:
 	 * @return A pointer to the cache for the given culture.
 	 */
 	TSharedPtr<FPackageLocalizationCultureCache> FindOrAddCacheForCulture_NoLock(const FString& InCultureName);
+
+	/**
+	 * Update the mapping of package names to asset groups (if required).
+	 */
+	void ConditionalUpdatePackageNameToAssetGroupCache_NoLock();
 
 	/**
 	 * Callback handler for when a new content path is mounted.
@@ -142,7 +155,7 @@ protected:
 	void HandleContentPathDismounted(const FString& InAssetPath, const FString& InFilesystemPath);
 
 	/**
-	 * Callback handler for when a new content path is mounted.
+	 * Callback handler for when the active culture is changed.
 	 */
 	void HandleCultureChanged();
 
@@ -154,5 +167,12 @@ protected:
 	TSharedPtr<FPackageLocalizationCultureCache> CurrentCultureCache;
 
 	/** Mapping between a culture name, and the culture specific cache for that culture. */
-	TMap<FString, TSharedPtr<FPackageLocalizationCultureCache>> AllCultureCaches;
+	TArray<TTuple<FString, TSharedPtr<FPackageLocalizationCultureCache>>> AllCultureCaches;
+
+	/** Mapping between a class name, and the asset group the class belongs to (for class specific package localization). */
+	TArray<TTuple<FName, FName>> AssetClassesToAssetGroups;
+
+	/** Mapping between a package name, and the asset group it belongs to. */
+	TMap<FName, FName> PackageNameToAssetGroup;
+	bool bPackageNameToAssetGroupDirty;
 };

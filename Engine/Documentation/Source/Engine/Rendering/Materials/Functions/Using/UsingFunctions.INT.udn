@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:How to use material functions within your materials.
 Version: 4.9
 SkillLevel: Beginner
+tags:Materials
 
 This document assumes a working knowledge of the concept of material functions. For more information, see the [Material Function Overview page](Engine/Rendering/Materials/Functions/Overview).
 

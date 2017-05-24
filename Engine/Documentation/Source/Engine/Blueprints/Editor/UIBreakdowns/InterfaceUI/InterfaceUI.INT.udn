@@ -3,6 +3,7 @@ Title:Blueprint Interface UI
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor
 Description:A breakdown of the UI elements of the Blueprint Editor when working on Blueprint Interfaces.
 version: 4.9
+tags:Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

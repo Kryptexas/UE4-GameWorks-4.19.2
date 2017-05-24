@@ -90,7 +90,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation)
 	void SetStrengthMultiplyer(float InStrengthMultiplyer);
 	
-	/** Muliplies the strength of any active motors. (can blend from 0-1 for example)*/
+	/** Multiplies the strength of any active motors. (can blend from 0-1 for example)*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicalAnimation, meta = (ClampMin = "0"))
 	float StrengthMultiplyer;
 
@@ -104,6 +104,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation, meta = (UnsafeDuringActorConstruction))
 	void ApplyPhysicalAnimationProfileBelow(FName BodyName, FName ProfileName, bool bIncludeSelf = true, bool bClearNotFound = false);
 
+	/** 
+	 *	Returns the target transform for the given body. If physical animation component is not controlling this body, returns its current transform.
+	 */
+	UFUNCTION(BlueprintCallable, Category = PhysicalAnimation, meta = (UnsafeDuringActorConstruction))
+	FTransform GetBodyTargetTransform(FName BodyName) const;
+
 	virtual void InitializeComponent() override;
 	virtual void BeginDestroy() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
@@ -111,6 +117,8 @@ public:
 #if WITH_EDITOR
 	void DebugDraw(FPrimitiveDrawInterface* PDI) const;
 #endif
+
+	FORCEINLINE USkeletalMeshComponent* GetSkeletalMesh() const { return SkeletalMeshComponent; }
 
 private:
 	UPROPERTY()
@@ -128,11 +136,16 @@ private:
 	TArray<FPhysicalAnimationInstanceData> RuntimeInstanceData;
 	TArray<FPhysicalAnimationData> DriveData;
 
+	FDelegateHandle OnTeleportDelegateHandle;
+
 	int32 SceneIndex;
 
 	void UpdatePhysicsEngine();
 	void ReleasePhysicsEngine();
 	void InitComponent();
+
+	void OnTeleport();
+	void UpdateTargetActors(ETeleportType TeleportType);
 
 	static const FConstraintProfileProperties PhysicalAnimationProfile;
 };

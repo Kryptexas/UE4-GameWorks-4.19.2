@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3126630
-Availability:Public
+﻿Availability:Public
 Title:BuildGraph スクリプトの型
 Crumbs:
 Description:BuildGraph 属性の有効なデータ型について学習しましょう。
 version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
+tags:Programming
 tags:BuildGraph
 
 [VAR:TopicCompact]

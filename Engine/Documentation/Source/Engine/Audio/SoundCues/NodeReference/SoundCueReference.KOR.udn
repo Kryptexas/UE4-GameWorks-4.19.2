@@ -32,10 +32,10 @@ version: 4.9
 | 프로퍼티 | 설명 |
 | --- | --- |
 | [REGION:tablesection]감쇠[/REGION] ||
-| **Attenuation Settings** | 감쇠 세팅 - 사운드 감쇠 애셋에서 복사해온 감쇠 세팅입니다. 기존의 감쇠 세팅을 사용하려는 경우 이 프로퍼티를 사용하세요. |
+| **Attenuation Settings** | 감쇠 세팅 - 사운드 어테뉴에이션 애셋에서 복사해온 감쇠 세팅입니다. 기존의 감쇠 세팅을 사용하려는 경우 이 프로퍼티를 사용하세요. |
 | **Attenuate** | 감쇠 - True 면 입력 사운드를 거리에 따라 희미하게 만듭니다. |
 | **Spatialize** | 공간화 - True 면 입력 사운드를 3D 공간에 위치시킵니다. |
-| **Distance Algorithm** | 거리 알고리즘 - 입력 사운드 감쇠시 사용할 보간법입니다. 다양한 거리 알고리즘 유형 관련 상세 내용은 [디스턴스 모델 감쇠 커브](Engine/Audio/DistanceModelAttenuation) 문서를 참고해 주시기 바랍니다. |
+| **Distance Algorithm** | 거리 알고리즘 - 입력 사운드 감쇠에 사용할 보간법입니다. 다양한 거리 알고리즘 유형 관련 상세 내용은 [디스턴스 모델 감쇠 커브](Engine/Audio/DistanceModelAttenuation) 문서를 참고해 주시기 바랍니다. |
 | **Attenuation Shape** | 감쇠 모양 - 드롭다운 리스트의 감쇠 영역 모양입니다. |
 | **Radius** | 반경 - 감쇠 반경입니다. |
 | **Falloff Distance** | 저하 거리 - 감쇠가 저하되는 거리입니다. |

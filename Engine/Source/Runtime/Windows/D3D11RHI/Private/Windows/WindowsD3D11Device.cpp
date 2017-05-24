@@ -9,6 +9,7 @@
 #include "AllowWindowsPlatformTypes.h"
 	#include <delayimp.h>
 	#include "nvapi.h"
+	#include "nvShaderExtnEnums.h"
 	#include "amd_ags.h"
 #include "HideWindowsPlatformTypes.h"
 
@@ -18,16 +19,18 @@
 
 #if NV_AFTERMATH
 int32 GDX11NVAfterMathEnabled = 0;
-static FAutoConsoleVariableRef CVarDX11NVAfterMathBufferSize(
-	TEXT("r.DX11NVAfterMathEnabled"),
-	GDX11NVAfterMathEnabled,
-	TEXT("Use NV Aftermath for GPU crash analysis"),
-	ECVF_ReadOnly
-);
 #endif
 
 extern bool D3D11RHI_ShouldCreateWithD3DDebug();
 extern bool D3D11RHI_ShouldAllowAsyncResourceCreation();
+
+// Filled in during InitD3DDevice if IsRHIDeviceAMD
+struct AmdAgsInfo
+{
+	AGSContext* AmdAgsContext;
+	AGSGPUInfo AmdGpuInfo;
+};
+static AmdAgsInfo AmdInfo;
 
 static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("r.GraphicsAdapter"),
@@ -256,11 +259,11 @@ const DisplayChromacities DisplayChromacityList[] =
 	{ 0.71300f, 0.29300f, 0.16500f, 0.83000f, 0.12800f, 0.04400f, 0.32168f, 0.33767f }, // DG_ACEScg
 };
 
-static void SetHDRMonitorModeNVIDIA(NvU32 IHVDisplayIndex, bool bEnableHDR, EDisplayGamut DisplayGamut, float MaxOutputNits, float MinOutputNits, float MaxCLL, float MaxFALL)
+static void SetHDRMonitorModeNVIDIA(uint32 IHVDisplayIndex, bool bEnableHDR, EDisplayGamut DisplayGamut, float MaxOutputNits, float MinOutputNits, float MaxCLL, float MaxFALL)
 {
 	NvAPI_Status NvStatus = NVAPI_OK;
 	NvDisplayHandle hNvDisplay = NULL;
-	NvU32 DisplayId = IHVDisplayIndex;
+	NvU32 DisplayId = (NvU32)IHVDisplayIndex;
 
 	NV_HDR_CAPABILITIES HDRCapabilities = {};
 	HDRCapabilities.version = NV_HDR_CAPABILITIES_VER;
@@ -296,7 +299,8 @@ static void SetHDRMonitorModeNVIDIA(NvU32 IHVDisplayIndex, bool bEnableHDR, EDis
 
 			NvStatus = NvAPI_Disp_HdrColorControl(DisplayId, &HDRColorData);
 
-			if (NVAPI_OK != NvStatus)
+			// Ignore expected failures caused by insufficient driver version, remote desktop connections and similar
+			if (NvStatus != NVAPI_OK && NvStatus != NVAPI_ERROR && NvStatus != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
 			{
 				NvAPI_ShortString SzDesc;
 				NvAPI_GetErrorMessage(NvStatus, SzDesc);
@@ -304,12 +308,50 @@ static void SetHDRMonitorModeNVIDIA(NvU32 IHVDisplayIndex, bool bEnableHDR, EDis
 			}
 		}
 	}
-	// Ignore expected failures caused by insufficient driver version and remote desktop connections
-	else if (NvStatus != NVAPI_ERROR && NvStatus != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
+}
+
+static void SetHDRMonitorModeAMD(uint32 IHVDisplayIndex, bool bEnableHDR, EDisplayGamut DisplayGamut, float MaxOutputNits, float MinOutputNits, float MaxCLL, float MaxFALL)
+{
+	const int32 AmdHDRDeviceIndex = (IHVDisplayIndex & 0xffff0000) >> 16;
+	const int32 AmdHDRDisplayIndex = IHVDisplayIndex & 0x0000ffff;
+
+	check(AmdInfo.AmdAgsContext != NULL && AmdHDRDeviceIndex != -1 && AmdHDRDisplayIndex != -1);
+	check(AmdInfo.AmdGpuInfo.numDevices > AmdHDRDeviceIndex && AmdInfo.AmdGpuInfo.devices[AmdHDRDeviceIndex].numDisplays > AmdHDRDisplayIndex);
+
+	const AGSDeviceInfo& DeviceInfo = AmdInfo.AmdGpuInfo.devices[AmdHDRDeviceIndex];
+	const AGSDisplayInfo& DisplayInfo = DeviceInfo.displays[AmdHDRDisplayIndex];
+
+	if (DisplayInfo.displayFlags & (AGS_DISPLAYFLAG_HDR10 | AGS_DISPLAYFLAG_DOLBYVISION))
 	{
-		NvAPI_ShortString SzDesc;
-		NvAPI_GetErrorMessage(NvStatus, SzDesc);
-		UE_LOG(LogD3D11RHI, Warning, TEXT("NvAPI_Disp_GetHdrCapabilities returned %s (%x)"), ANSI_TO_TCHAR(SzDesc), int(NvStatus));
+		AGSDisplaySettings HDRDisplaySettings;
+		FMemory::Memzero(&HDRDisplaySettings, sizeof(HDRDisplaySettings));
+
+		HDRDisplaySettings.mode = bEnableHDR ? AGSDisplaySettings::Mode_scRGB : AGSDisplaySettings::Mode_SDR;
+
+		if (bEnableHDR)
+		{
+			const DisplayChromacities& Chroma = DisplayChromacityList[DisplayGamut];
+			HDRDisplaySettings.chromaticityRedX   = Chroma.RedX;
+			HDRDisplaySettings.chromaticityRedY   = Chroma.RedY;
+			HDRDisplaySettings.chromaticityGreenX = Chroma.GreenX;
+			HDRDisplaySettings.chromaticityGreenY = Chroma.GreenY;
+			HDRDisplaySettings.chromaticityBlueX  = Chroma.BlueX;
+			HDRDisplaySettings.chromaticityBlueY  = Chroma.BlueY;
+			HDRDisplaySettings.chromaticityWhitePointX = Chroma.WpX;
+			HDRDisplaySettings.chromaticityWhitePointY = Chroma.WpY;
+			HDRDisplaySettings.maxLuminance = MaxOutputNits;
+			HDRDisplaySettings.minLuminance = MinOutputNits;
+			HDRDisplaySettings.maxContentLightLevel = MaxCLL;
+			HDRDisplaySettings.maxFrameAverageLightLevel = MaxFALL;
+		}
+
+		AGSReturnCode AmdStatus = agsSetDisplayMode(AmdInfo.AmdAgsContext, AmdHDRDeviceIndex, AmdHDRDisplayIndex, &HDRDisplaySettings);
+
+		// Ignore expected failures caused by insufficient driver version
+		if (AmdStatus != AGS_SUCCESS && AmdStatus != AGS_ERROR_LEGACY_DRIVER)
+		{
+			UE_LOG(LogD3D11RHI, Warning, TEXT("agsSetDisplayMode returned (%x)"), int(AmdStatus));
+		}
 	}
 }
 
@@ -320,7 +362,7 @@ void FD3D11DynamicRHI::EnableHDR()
 	static const auto CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
 	static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
 
-	if (GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
+	if (GRHISupportsHDROutput && CVarHDROutputEnabled && CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
 	{
 		const int32 OutputDevice = CVarHDROutputDevice->GetValueOnAnyThread();
 
@@ -332,7 +374,7 @@ void FD3D11DynamicRHI::EnableHDR()
 		if (IsRHIDeviceNVIDIA())
 		{
 			SetHDRMonitorModeNVIDIA(
-				(NvU32)HDRDetectedDisplayIHVIndex,
+				HDRDetectedDisplayIHVIndex,
 				true,
 				EDisplayGamut(CVarHDRColorGamut->GetValueOnAnyThread()),
 				DisplayMaxOutputNits,
@@ -342,7 +384,14 @@ void FD3D11DynamicRHI::EnableHDR()
 		}
 		else if (IsRHIDeviceAMD())
 		{
-			UE_LOG(LogD3D11RHI, Warning, TEXT("There is no HDR output implementation currently available for this hardware."));
+			SetHDRMonitorModeAMD(
+				(NvU32)HDRDetectedDisplayIHVIndex,
+				true,
+				EDisplayGamut(CVarHDRColorGamut->GetValueOnAnyThread()),
+				DisplayMaxOutputNits,
+				DisplayMinOutputNits,
+				DisplayMaxCLL,
+				DisplayFALL);
 		}
 		else if (IsRHIDeviceIntel())
 		{
@@ -365,7 +414,7 @@ void FD3D11DynamicRHI::ShutdownHDR()
 		if (IsRHIDeviceNVIDIA())
 		{
 			SetHDRMonitorModeNVIDIA(
-				(NvU32)HDRDetectedDisplayIHVIndex,
+				HDRDetectedDisplayIHVIndex,
 				false,
 				DG_Rec709,
 				DisplayMaxOutputNits,
@@ -375,7 +424,14 @@ void FD3D11DynamicRHI::ShutdownHDR()
 		}
 		else if (IsRHIDeviceAMD())
 		{
-			// Not yet implemented
+			SetHDRMonitorModeAMD(
+				HDRDetectedDisplayIHVIndex,
+				false,
+				DG_Rec709,
+				DisplayMaxOutputNits,
+				DisplayMinOutputNits,
+				DisplayMaxCLL,
+				DisplayFALL);
 		}
 		else if (IsRHIDeviceIntel())
 		{
@@ -452,7 +508,26 @@ static bool SupportsHDROutput(FD3D11DynamicRHI* D3DRHI)
 		}
 		else if (IsRHIDeviceAMD())
 		{
-			// Not yet implemented
+			// Search the device list for a matching display device name
+			for (uint16 AMDDeviceIndex = 0; AMDDeviceIndex < AmdInfo.AmdGpuInfo.numDevices; ++AMDDeviceIndex)
+			{
+				const AGSDeviceInfo& DeviceInfo = AmdInfo.AmdGpuInfo.devices[AMDDeviceIndex];
+				for (uint16 AMDDisplayIndex = 0; AMDDisplayIndex < DeviceInfo.numDisplays; ++AMDDisplayIndex)
+				{
+					const AGSDisplayInfo& DisplayInfo = DeviceInfo.displays[AMDDisplayIndex];
+					if (FCStringAnsi::Strcmp(TCHAR_TO_ANSI(OutputDesc.DeviceName), DisplayInfo.displayDeviceName) == 0)
+					{
+						// AGS has flags for HDR10 and Dolby Vision instead of a flag for the ST2084 transfer function.
+						// Both HDR10 and Dolby Vision use the ST2084 EOTF.
+						if (DisplayInfo.displayFlags & (AGS_DISPLAYFLAG_HDR10 | AGS_DISPLAYFLAG_DOLBYVISION))
+						{
+							UE_LOG(LogD3D11RHI, Log, TEXT("HDR output is supported on display %i (AMD Device: 0x%x, Display: 0x%x)."), DisplayIndex, AMDDeviceIndex, AMDDisplayIndex);
+							D3DRHI->SetHDRDetectedDisplayIndices(DisplayIndex, (uint32)(AMDDeviceIndex << 16) | (uint32)AMDDisplayIndex);
+							return true;
+						}
+					}
+				}
+			}
 		}
 		else if (IsRHIDeviceIntel())
 		{
@@ -695,11 +770,9 @@ FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type RequestedF
 	return new FD3D11DynamicRHI(DXGIFactory1,ChosenAdapter.MaxSupportedFeatureLevel,ChosenAdapter.AdapterIndex,ChosenDescription);
 }
 
-FDx11RHIPacemaker GDx11RHIPacemaker;
 void FD3D11DynamicRHI::Init()
 {
 	InitD3DDevice();
-	GRHIPacemaker = &GDx11RHIPacemaker;
 }
 
 void FD3D11DynamicRHI::FlushPendingLogs()
@@ -890,16 +963,16 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		if (IsRHIDeviceAMD())
 		{
 			check(AmdAgsContext == NULL);
-			AGSGPUInfo AmdGpuInfo;
 
 			// agsInit should be called before D3D device creation
-			if (agsInit(&AmdAgsContext, NULL, &AmdGpuInfo) == AGS_SUCCESS)
+			if (agsInit(&AmdAgsContext, NULL, &AmdInfo.AmdGpuInfo) == AGS_SUCCESS)
 			{
+				AmdInfo.AmdAgsContext = AmdAgsContext;
 				bool bFoundMatchingDevice = false;
 				// Search the device list for a matching vendor ID and device ID marked as GCN
-				for (int32 DeviceIndex = 0; DeviceIndex < AmdGpuInfo.numDevices; DeviceIndex++)
+				for (int32 DeviceIndex = 0; DeviceIndex < AmdInfo.AmdGpuInfo.numDevices; DeviceIndex++)
 				{
-					const AGSDeviceInfo& DeviceInfo = AmdGpuInfo.devices[DeviceIndex];
+					const AGSDeviceInfo& DeviceInfo = AmdInfo.AmdGpuInfo.devices[DeviceIndex];
 					GRHIDeviceIsAMDPreGCNArchitecture |= (ChosenDescription.VendorId == DeviceInfo.vendorId) && (ChosenDescription.DeviceId == DeviceInfo.deviceId) && (DeviceInfo.architectureVersion == AGSDeviceInfo::ArchitectureVersion_PreGCN);
 					bFoundMatchingDevice |= (ChosenDescription.VendorId == DeviceInfo.vendorId) && (ChosenDescription.DeviceId == DeviceInfo.deviceId);
 				}
@@ -910,6 +983,14 @@ void FD3D11DynamicRHI::InitD3DDevice()
 					UE_LOG(LogD3D11RHI, Log, TEXT("AMD Pre GCN architecture detected, some driver workarounds will be in place"));
 				}
 			}
+			else
+			{
+				FMemory::Memzero(&AmdInfo, sizeof(AmdInfo));
+			}
+		}
+		else
+		{
+			FMemory::Memzero(&AmdInfo, sizeof(AmdInfo));
 		}
 
 		D3D_FEATURE_LEVEL ActualFeatureLevel = (D3D_FEATURE_LEVEL)0;
@@ -959,14 +1040,14 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			GRHISupportsAsyncTextureCreation = false;
 		}
 
-		if (IsRHIDeviceNVIDIA() && CVarNVidiaTimestampWorkaround.GetValueOnAnyThread())
+		if( IsRHIDeviceNVIDIA() && CVarNVidiaTimestampWorkaround.GetValueOnAnyThread() )
 		{
 			// Workaround for pre-maxwell TDRs with realtime GPU stats (timestamp queries)
-			// @TODO remove this when these issues are fixed
-			// Note: 0x1300 corresponds to Maxwell hardware or above
-			if (GRHIDeviceId < 0x1300)
+			// Note: Since there is no direct check for Kepler hardware and beyond, check for SHFL instruction
+			bool bNVSHFLSupported = false;
+			if (NvAPI_D3D11_IsNvShaderExtnOpCodeSupported(Direct3DDevice, NV_EXTN_OP_SHFL, &bNVSHFLSupported) == NVAPI_OK && !bNVSHFLSupported)
 			{
-				UE_LOG(LogD3D11RHI, Warning, TEXT("Timestamp queries are currently disabled on this hardware due to instability. Realtime GPU stats will not be available. You can override this behaviour by setting r.NVIDIATimestampWorkaround to 0"));
+				UE_LOG(LogD3D11RHI, Display, TEXT("Timestamp queries are currently disabled on this hardware due to instability. Realtime GPU stats will not be available. You can override this behaviour by setting r.NVIDIATimestampWorkaround to 0"));
 				GSupportsTimestampRenderQueries = false;
 			}
 		}
@@ -1000,6 +1081,12 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			}
 
 #if NV_AFTERMATH
+			static IConsoleVariable* GPUCrashDebugging = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GPUCrashDebugging"));
+			if (GPUCrashDebugging)
+			{
+				GDX11NVAfterMathEnabled = GPUCrashDebugging->GetInt();
+			}
+
 			if (GDX11NVAfterMathEnabled)
 			{
 				auto Result = GFSDK_Aftermath_DX11_Initialize(GFSDK_Aftermath_Version_API, Direct3DDevice);
@@ -1010,11 +1097,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 				}
 				else
 				{
-					unsigned Index = (unsigned)Result & (~((unsigned)GFSDK_Aftermath_Result_Fail));
-					const TCHAR* Reason[13] = { TEXT("Fail"), TEXT("VersionMismatch"), TEXT("NotInitialized"), TEXT("InvalidAdapter"), TEXT("InvalidParameter"), TEXT("Unknown"), TEXT("ApiError"), TEXT("NvApiIncompatible"), TEXT("GettingContextDataWithNewCommandList"), TEXT("AlreadyInitialized"), TEXT("D3DDebugLayerNotCompatible"),TEXT("NotEnabledInDriver"), TEXT("DriverVersionNotSupported") };
-					Index = Index > 12 ? 0 : Index;
-
-					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled but failed to initialize due to reason: %s"), Reason[Index]);
+					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled but failed to initialize"));
 					GDX11NVAfterMathEnabled = 0;
 				}
 			}
@@ -1120,7 +1203,6 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		
 		{
 			GRHISupportsHDROutput = SupportsHDROutput(this);
-			GRHIHDRDisplayOutputFormat = PF_FloatRGBA;	
 		}
 
 		FHardwareInfo::RegisterHardwareInfo( NAME_RHI, TEXT( "D3D11" ) );

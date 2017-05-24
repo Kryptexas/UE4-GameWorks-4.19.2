@@ -50,6 +50,8 @@ UWorld* UGameplayCueManager::PreviewWorld = nullptr;
 FGameplayCueProxyTick UGameplayCueManager::PreviewProxyTick;
 #endif
 
+UWorld* UGameplayCueManager::CurrentWorld = nullptr;
+
 UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 : Super(PCIP)
 {
@@ -57,8 +59,6 @@ UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 	bAccelerationMapOutdated = true;
 	EditorObjectLibraryFullyInitialized = false;
 #endif
-
-	CurrentWorld = nullptr;	
 }
 
 void UGameplayCueManager::OnCreated()
@@ -166,6 +166,13 @@ void UGameplayCueManager::RouteGameplayCue(AActor* TargetActor, FGameplayTag Gam
 		bAcceptsCue = GameplayCueInterface->ShouldAcceptGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
 	}
 
+#if !UE_BUILD_SHIPPING
+	if (OnRouteGameplayCue.IsBound())
+	{
+		OnRouteGameplayCue.Broadcast(TargetActor, GameplayCueTag, EventType, Parameters);
+	}
+#endif // !UE_BUILD_SHIPPING
+
 #if ENABLE_DRAW_DEBUG
 	if (DisplayGameplayCues)
 	{
@@ -232,6 +239,69 @@ bool UGameplayCueManager::IsGameplayCueRecylingEnabled()
 	return GameplayCueActorRecycle > 0;
 }
 
+bool UGameplayCueManager::ShouldSyncLoadMissingGameplayCues() const
+{
+	return false;
+}
+
+bool UGameplayCueManager::ShouldAsyncLoadMissingGameplayCues() const
+{
+	return true;
+}
+
+bool UGameplayCueManager::HandleMissingGameplayCue(UGameplayCueSet* OwningSet, struct FGameplayCueNotifyData& CueData, AActor* TargetActor, EGameplayCueEvent::Type EventType, FGameplayCueParameters& Parameters)
+{
+	if (ShouldSyncLoadMissingGameplayCues())
+	{
+		CueData.LoadedGameplayCueClass = Cast<UClass>(StreamableManager.LoadSynchronous(CueData.GameplayCueNotifyObj, false));
+
+		if (CueData.LoadedGameplayCueClass)
+		{
+			ABILITY_LOG(Display, TEXT("GameplayCueNotify %s was not loaded when GameplayCue was invoked, did synchronous load."), *CueData.GameplayCueNotifyObj.ToString());
+			return true;
+		}
+		else
+		{
+			ABILITY_LOG(Warning, TEXT("Late load of GameplayCueNotify %s failed!"), *CueData.GameplayCueNotifyObj.ToString());
+		}
+	}
+	else if (ShouldAsyncLoadMissingGameplayCues())
+	{
+		// Not loaded: start async loading and call when loaded
+		StreamableManager.RequestAsyncLoad(CueData.GameplayCueNotifyObj, FStreamableDelegate::CreateUObject(this, &UGameplayCueManager::OnMissingCueAsyncLoadComplete, 
+			CueData.GameplayCueNotifyObj, TWeakObjectPtr<UGameplayCueSet>(OwningSet), CueData.GameplayCueTag, TWeakObjectPtr<AActor>(TargetActor), EventType, Parameters));
+
+		ABILITY_LOG(Display, TEXT("GameplayCueNotify %s was not loaded when GameplayCue was invoked. Starting async loading."), *CueData.GameplayCueNotifyObj.ToString());
+	}
+	return false;
+}
+
+void UGameplayCueManager::OnMissingCueAsyncLoadComplete(FStringAssetReference LoadedObject, TWeakObjectPtr<UGameplayCueSet> OwningSet, FGameplayTag GameplayCueTag, TWeakObjectPtr<AActor> TargetActor, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+{
+	if (!LoadedObject.ResolveObject())
+	{
+		// Load failed
+		ABILITY_LOG(Warning, TEXT("Late load of GameplayCueNotify %s failed!"), *LoadedObject.ToString());
+		return;
+	}
+
+	if (OwningSet.IsValid() && TargetActor.IsValid())
+	{
+		CurrentWorld = TargetActor->GetWorld();
+
+		// Don't handle gameplay cues when world is tearing down
+		if (!GetWorld() || GetWorld()->bIsTearingDown)
+		{
+			return;
+		}
+
+		// Objects are still valid, re-execute cue
+		OwningSet->HandleGameplayCue(TargetActor.Get(), GameplayCueTag, EventType, Parameters);
+
+		CurrentWorld = nullptr;
+	}
+}
+
 AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* TargetActor, UClass* CueClass, const FGameplayCueParameters& Parameters)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_GameplayCueManager_GetInstancedCueActor);
@@ -277,7 +347,7 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 	UWorld* World = GetWorld();
 
 	// We don't have an instance for this, and we need one, so make one
-	if (ensure(TargetActor) && ensure(CueClass))
+	if (ensure(TargetActor) && ensure(CueClass) && ensure(World))
 	{
 		AActor* NewOwnerActor = TargetActor;
 		bool UseActorRecycling = (GameplayCueActorRecycle > 0);
@@ -354,7 +424,7 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 					ABILITY_LOG(Warning, TEXT("Spawning GameplaycueActor: %s"), *CueClass->GetName());
 				}
 
-				SpawnedCue = GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(CueClass, TargetActor->GetActorLocation(), TargetActor->GetActorRotation(), SpawnParams);
+				SpawnedCue = World->SpawnActor<AGameplayCueNotify_Actor>(CueClass, TargetActor->GetActorLocation(), TargetActor->GetActorRotation(), SpawnParams);
 			}
 		}
 
@@ -476,8 +546,8 @@ void UGameplayCueManager::InitializeRuntimeObjectLibrary()
 	RuntimeGameplayCueObjectLibrary.bHasBeenInitialized = true;
 	
 	RuntimeGameplayCueObjectLibrary.bShouldSyncScan = ShouldSyncScanRuntimeObjectLibraries();
-	RuntimeGameplayCueObjectLibrary.bShouldAsyncLoad = ShouldSyncLoadRuntimeObjectLibraries();
-	RuntimeGameplayCueObjectLibrary.bShouldSyncLoad = ShouldAsyncLoadRuntimeObjectLibraries();
+	RuntimeGameplayCueObjectLibrary.bShouldSyncLoad = ShouldSyncLoadRuntimeObjectLibraries();
+	RuntimeGameplayCueObjectLibrary.bShouldAsyncLoad = ShouldAsyncLoadRuntimeObjectLibraries();
 
 	InitObjectLibrary(RuntimeGameplayCueObjectLibrary);
 }
@@ -726,7 +796,7 @@ void UGameplayCueManager::InitObjectLibrary(FGameplayCueObjectLibrary& Lib)
 
 		if (AssetsToLoad.Num() > 0)
 		{
-			StreamableManager.RequestAsyncLoad(AssetsToLoad, FStreamableDelegate::CreateStatic( ForwardLambda, AssetsToLoad, Lib.OnLoaded), Lib.AsyncPriority);
+			GameplayCueAssetHandle = StreamableManager.RequestAsyncLoad(AssetsToLoad, FStreamableDelegate::CreateStatic( ForwardLambda, AssetsToLoad, Lib.OnLoaded), Lib.AsyncPriority);
 		}
 		else
 		{
@@ -1028,6 +1098,11 @@ bool UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
 
 
 UWorld* UGameplayCueManager::GetWorld() const
+{
+	return GetCachedWorldForGameplayCueNotifies();
+}
+
+/* static */ UWorld* UGameplayCueManager::GetCachedWorldForGameplayCueNotifies()
 {
 #if WITH_EDITOR
 	if (PreviewWorld)

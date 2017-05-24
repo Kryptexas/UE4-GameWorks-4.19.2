@@ -13,7 +13,7 @@ class Error;
 **/
 namespace ELogVerbosity
 {
-	enum Type
+	enum Type : uint8
 	{
 		/** Not used */
 		NoLogging		= 0,
@@ -63,4 +63,3 @@ namespace ELogVerbosity
 
 static_assert(ELogVerbosity::NumVerbosity - 1 < ELogVerbosity::VerbosityMask, "Bad verbosity mask.");
 static_assert(!(ELogVerbosity::VerbosityMask & ELogVerbosity::BreakOnLog), "Bad verbosity mask.");
-static_assert((ELogVerbosity::VerbosityMask | ELogVerbosity::BreakOnLog) < 256, "Bad verbosity mask."); // we use a byte for storage

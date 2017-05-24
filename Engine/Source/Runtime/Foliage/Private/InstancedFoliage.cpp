@@ -39,6 +39,8 @@ InstancedFoliage.cpp: Instanced foliage implementation.
 #include "ProceduralFoliageVolume.h"
 #include "EngineUtils.h"
 #include "EngineGlobals.h"
+#include "Engine/StaticMesh.h"
+#include "DrawDebugHelpers.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 
@@ -604,6 +606,19 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 	}
 }
 
+void UFoliageType::PreEditChange(UProperty* PropertyAboutToChange)
+{
+	Super::PreEditChange(PropertyAboutToChange);
+
+	if (PropertyAboutToChange && PropertyAboutToChange->GetFName() == GET_MEMBER_NAME_CHECKED(UFoliageType_InstancedStaticMesh, Mesh))
+	{
+		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFalgs */ EInternalObjectFlags::PendingKill); It; ++It)
+		{
+			It->NotifyFoliageTypeWillChange(this, true);
+		}
+	}
+}
+
 void UFoliageType::OnHiddenEditorViewMaskChanged(UWorld* InWorld)
 {
 	for (TActorIterator<AInstancedFoliageActor> It(InWorld); It; ++It)
@@ -652,6 +667,9 @@ FFoliageMeshInfo::FFoliageMeshInfo()
 #if WITH_EDITOR
 	, InstanceHash(GIsEditor ? new FFoliageInstanceHash() : nullptr)
 #endif
+{ }
+
+FFoliageMeshInfo::~FFoliageMeshInfo()
 { }
 
 
@@ -746,6 +764,7 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	Component->bSelectable = true;
 	Component->bHasPerInstanceHitProxies = true;
 	Component->InstancingRandomSeed = FMath::Rand();
+	Component->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(this, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
 
 #if WITH_EDITOR
 	FoliageComponent->FoliageHiddenEditorViews = InSettings->HiddenEditorViews;
@@ -767,6 +786,14 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	Component->Modify();
 	// We don't want to track changes to instances later so we mark it as non-transactional
 	Component->ClearFlags(RF_Transactional);
+}
+
+void FFoliageMeshInfo::HandleComponentMeshBoundsChanged(const FBoxSphereBounds& NewBounds)
+{
+	if (Component != nullptr)
+	{
+		Component->BuildTreeIfOutdated(true, false);
+	}
 }
 
 void FFoliageMeshInfo::CheckComponentClass(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings)
@@ -921,6 +948,18 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			bNeedsMarkRenderStateDirty = true;
 		}
 
+		if (Component->bRenderCustomDepth != FoliageType->bRenderCustomDepth)
+		{
+			Component->bRenderCustomDepth = FoliageType->bRenderCustomDepth;
+			bNeedsMarkRenderStateDirty = true;
+		}
+
+		if (Component->CustomDepthStencilValue != FoliageType->CustomDepthStencilValue)
+		{
+			Component->CustomDepthStencilValue = FoliageType->CustomDepthStencilValue;
+			bNeedsMarkRenderStateDirty = true;
+		}
+
 		const UFoliageType_InstancedStaticMesh* FoliageType_ISM = Cast<UFoliageType_InstancedStaticMesh>(FoliageType);
 		if (FoliageType_ISM)
 		{
@@ -962,14 +1001,14 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 	}
 }
 
-void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance, UActorComponent* InBaseComponent)
+void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance, UActorComponent* InBaseComponent, bool RebuildFoliageTree)
 {
 	FFoliageInstance Instance = InNewInstance;
 	Instance.BaseId = InIFA->InstanceBaseCache.AddInstanceBaseId(InBaseComponent);
-	AddInstance(InIFA, InSettings, Instance);
+	AddInstance(InIFA, InSettings, Instance, RebuildFoliageTree);
 }
 
-void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance)
+void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliageType* InSettings, const FFoliageInstance& InNewInstance, bool RebuildFoliageTree)
 {
 	InIFA->Modify();
 
@@ -982,6 +1021,9 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 	{
 		Component->InvalidateLightingCache();
 	}
+
+	bool PreviousbAutoRebuildTreeOnInstanceChanges = Component->bAutoRebuildTreeOnInstanceChanges;
+	Component->bAutoRebuildTreeOnInstanceChanges = RebuildFoliageTree;
 
 	// Add the instance taking either a free slot or adding a new item.
 	int32 InstanceIndex = Instances.Add(InNewInstance);
@@ -997,14 +1039,20 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 	Component->AddInstanceWorldSpace(InstanceToWorld);
 
 	CheckValid();
+
+	Component->bAutoRebuildTreeOnInstanceChanges = PreviousbAutoRebuildTreeOnInstanceChanges;
 }
 
-void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove)
+void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove, bool RebuildFoliageTree)
 {
 	if (InInstancesToRemove.Num())
 	{
 		check(Component);
 		InIFA->Modify();
+
+		bool PreviousbAutoRebuildTreeOnInstanceChanges = Component->bAutoRebuildTreeOnInstanceChanges;
+		Component->bAutoRebuildTreeOnInstanceChanges = RebuildFoliageTree;
+
 
 		TSet<int32> InstancesToRemove;
 		for (int32 Instance : InInstancesToRemove)
@@ -1069,6 +1117,13 @@ void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArr
 			// Remove the removed item from the removal list
 			InstancesToRemove.Remove(InstanceIndexToRemove);
 		}
+		
+		Component->bAutoRebuildTreeOnInstanceChanges = PreviousbAutoRebuildTreeOnInstanceChanges;
+
+		if (RebuildFoliageTree)
+		{
+			Component->BuildTreeIfOutdated(true, true);
+		}		
 
 		CheckValid();
 	}
@@ -1120,10 +1175,21 @@ void FFoliageMeshInfo::PostMoveInstances(AInstancedFoliageActor* InIFA, const TA
 
 void FFoliageMeshInfo::DuplicateInstances(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const TArray<int32>& InInstancesToDuplicate)
 {
+	if (Component != nullptr)
+	{
+		Component->bAutoRebuildTreeOnInstanceChanges = false;
+	}
+
 	for (int32 InstanceIndex : InInstancesToDuplicate)
 	{
 		const FFoliageInstance TempInstance = Instances[InstanceIndex];
-		AddInstance(InIFA, InSettings, TempInstance);
+		AddInstance(InIFA, InSettings, TempInstance, false);
+	}
+
+	if (Component != nullptr)
+	{
+		Component->bAutoRebuildTreeOnInstanceChanges = true;
+		Component->BuildTreeIfOutdated(true, true);
 	}
 }
 
@@ -1183,8 +1249,13 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 	{
 		if ((Instance.Flags & FOLIAGE_InstanceDeleted) == 0)
 		{
-			AddInstance(InIFA, InSettings, Instance);
+			AddInstance(InIFA, InSettings, Instance, false);
 		}
+	}
+
+	if (Component != nullptr)
+	{
+		Component->BuildTreeIfOutdated(true, true);
 	}
 }
 
@@ -1199,10 +1270,15 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 		Component->UnregisterComponent();
 		Component->ClearInstances();
 
+		Component->bAutoRebuildTreeOnInstanceChanges = false;
+
 		for (auto& Instance : Instances)
 		{
 			Component->AddInstanceWorldSpace(Instance.GetInstanceWorldTransform());
 		}
+
+		Component->bAutoRebuildTreeOnInstanceChanges = true;
+		Component->BuildTreeIfOutdated(true, true);
 
 		Component->ClearInstanceSelection();
 
@@ -1317,6 +1393,8 @@ void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSele
 		if (bSelect)
 		{
 			InIFA->Modify();
+
+			SelectedIndices.Reserve(InInstances.Num());
 
 			for (int32 i : InInstances)
 			{
@@ -1598,7 +1676,7 @@ void AInstancedFoliageActor::DeleteInstancesForComponent(UActorComponent* InComp
 		const auto* InstanceSet = MeshInfo.ComponentHash.Find(BaseId);
 		if (InstanceSet)
 		{
-			MeshInfo.RemoveInstances(this, InstanceSet->Array());
+			MeshInfo.RemoveInstances(this, InstanceSet->Array(), true);
 		}
 	}
 }
@@ -1618,7 +1696,7 @@ void AInstancedFoliageActor::DeleteInstancesForComponent(UActorComponent* InComp
 		const auto* InstanceSet = MeshInfo->ComponentHash.Find(BaseId);
 		if (InstanceSet)
 		{
-			MeshInfo->RemoveInstances(this, InstanceSet->Array());
+			MeshInfo->RemoveInstances(this, InstanceSet->Array(), true);
 		}
 	}
 }
@@ -1650,7 +1728,7 @@ void AInstancedFoliageActor::DeleteInstancesForProceduralFoliageComponent(const 
 
 		if (InstancesToRemove.Num())
 		{
-			MeshInfo.RemoveInstances(this, InstancesToRemove);
+			MeshInfo.RemoveInstances(this, InstancesToRemove, true);
 		}
 	}
 }
@@ -1711,11 +1789,13 @@ void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorCompo
 					// Add the foliage to the new level
 					for (int32 InstanceIndex : *InstanceSet)
 					{
-						TargetMeshInfo->AddInstance(NewIFA, TargetFoliageType, MeshInfo.Instances[InstanceIndex], InComponent);
+						TargetMeshInfo->AddInstance(NewIFA, TargetFoliageType, MeshInfo.Instances[InstanceIndex], InComponent, false);
 					}
 
+					TargetMeshInfo->Component->BuildTreeIfOutdated(true, true);
+
 					// Remove from old level
-					MeshInfo.RemoveInstances(IFA, InstanceSet->Array());
+					MeshInfo.RemoveInstances(IFA, InstanceSet->Array(), true);
 				}
 			}
 		}
@@ -1764,11 +1844,16 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* In
 				{
 					FFoliageInstance NewInstance = MeshInfo.Instances[InstanceIndex];
 					NewInstance.BaseId = NewBaseId;
-					TargetMeshInfo->AddInstance(TargetIFA, TargetFoliageType, NewInstance);
+					TargetMeshInfo->AddInstance(TargetIFA, TargetFoliageType, NewInstance, false);
+				}
+
+				if (TargetMeshInfo->Component != nullptr)
+				{
+					TargetMeshInfo->Component->BuildTreeIfOutdated(true, true);
 				}
 
 				// Remove from old level
-				MeshInfo.RemoveInstances(this, InstanceSet.Array());
+				MeshInfo.RemoveInstances(this, InstanceSet.Array(), true);
 			}
 		}
 	}
@@ -1810,11 +1895,16 @@ void AInstancedFoliageActor::MoveSelectedInstancesToLevel(ULevel* InTargetLevel)
 			for (int32 InstanceIndex : MeshInfo.SelectedIndices)
 			{
 				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
-				TargetMeshInfo->AddInstance(TargetIFA, TargetFoliageType, Instance, InstanceBaseCache.GetInstanceBasePtr(Instance.BaseId).Get());
+				TargetMeshInfo->AddInstance(TargetIFA, TargetFoliageType, Instance, InstanceBaseCache.GetInstanceBasePtr(Instance.BaseId).Get(), false);
+			}
+
+			if (TargetMeshInfo->Component != nullptr)
+			{
+				TargetMeshInfo->Component->BuildTreeIfOutdated(true, true);
 			}
 
 			// Remove selected instances from this actor
-			MeshInfo.RemoveInstances(this, MeshInfo.SelectedIndices.Array());
+			MeshInfo.RemoveInstances(this, MeshInfo.SelectedIndices.Array(), true);
 		}
 	}
 }
@@ -2000,6 +2090,7 @@ void AInstancedFoliageActor::RemoveFoliageType(UFoliageType** InFoliageTypes, in
 		{
 			if (MeshInfo->Component)
 			{
+				MeshInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(MeshInfo);
 				MeshInfo->Component->ClearInstances();
 				MeshInfo->Component->SetFlags(RF_Transactional);
 				MeshInfo->Component->Modify();
@@ -2091,6 +2182,21 @@ bool AInstancedFoliageActor::HasSelectedInstances() const
 	return false;
 }
 
+TMap<UFoliageType*, FFoliageMeshInfo*> AInstancedFoliageActor::GetSelectedInstancesFoliageType()
+{
+	TMap<UFoliageType*, FFoliageMeshInfo*> SelectedInstanceFoliageTypes;
+
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		if (MeshPair.Value->SelectedIndices.Num() > 0)
+		{
+			SelectedInstanceFoliageTypes.Add(MeshPair.Key, &MeshPair.Value.Get());
+		}
+	}
+
+	return SelectedInstanceFoliageTypes;
+}
+
 void AInstancedFoliageActor::Destroyed()
 {
 	if (GIsEditor && !GetWorld()->IsGameWorld())
@@ -2117,12 +2223,14 @@ void AInstancedFoliageActor::PostEditUndo()
 	Super::PostEditUndo();
 
 	FlushRenderingCommands();
+
+	InstanceBaseCache.UpdateInstanceBaseCachedTransforms();
+
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
 		MeshInfo.CheckComponentClass(this, MeshPair.Key);
-
 		MeshInfo.ReapplyInstancesToComponent();
 
 		// Regenerate instance hash
@@ -2273,8 +2381,10 @@ void AInstancedFoliageActor::MapRebuild()
 		FFoliageMeshInfo& MeshInfo = *FindOrAddMesh(Settings);
 		for (FFoliageInstance& Instance : NewInstancePair.Value)
 		{
-			MeshInfo.AddInstance(this, Settings, Instance);
+			MeshInfo.AddInstance(this, Settings, Instance, false);
 		}
+
+		MeshInfo.Component->BuildTreeIfOutdated(true, true);
 	}
 }
 
@@ -2564,9 +2674,11 @@ void AInstancedFoliageActor::RepairDuplicateIFA(AInstancedFoliageActor* Duplicat
 		{
 			if ((Instance.Flags & FOLIAGE_InstanceDeleted) == 0)
 			{
-				TargetMeshInfo->AddInstance(this, TargetFoliageType, Instance);
+				TargetMeshInfo->AddInstance(this, TargetFoliageType, Instance, false);
 			}
 		}
+
+		TargetMeshInfo->Component->BuildTreeIfOutdated(true, true);
 	}
 
 	GetWorld()->DestroyActor(DuplicateIFA);
@@ -2589,6 +2701,32 @@ void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType,
 			if (FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr) //If the mesh has been deleted and we're a per foliage actor instance we must remove all instances of the mesh
 			{
 				RemoveFoliageType(&FoliageType, 1);
+			}
+
+			// Change bounds delegate bindings
+			if (TypeInfo->Component != nullptr)
+			{
+				TypeInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().AddRaw(TypeInfo, &FFoliageMeshInfo::HandleComponentMeshBoundsChanged);
+
+				// Mesh changed, so we must update the occlusion tree
+				TypeInfo->Component->BuildTreeIfOutdated(true, false);
+			}
+		}
+	}
+}
+
+void AInstancedFoliageActor::NotifyFoliageTypeWillChange(UFoliageType* FoliageType, bool bMeshChanged)
+{
+	if (bMeshChanged)
+	{
+		FFoliageMeshInfo* TypeInfo = FindMesh(FoliageType);
+
+		// Change bounds delegate bindings
+		if (TypeInfo)
+		{
+			if (TypeInfo->Component != nullptr)
+			{
+				TypeInfo->Component->GetStaticMesh()->GetOnExtendedBoundsChanged().RemoveAll(TypeInfo);
 			}
 		}
 	}
@@ -2670,7 +2808,7 @@ void AInstancedFoliageActor::CleanupDeletedFoliageType()
 
 			if (InstancesToRemove.Num())
 			{
-				MeshInfo.RemoveInstances(this, InstancesToRemove);
+				MeshInfo.RemoveInstances(this, InstancesToRemove, true);
 			}
 		}
 
@@ -2804,54 +2942,67 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 	return false;
 }
 
-bool AInstancedFoliageActor::CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation)
+bool AInstancedFoliageActor::CheckCollisionWithWorld(const UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation, UPrimitiveComponent* HitComponent)
 {
-	FMatrix InstTransform = Inst.GetInstanceWorldTransform().ToMatrixWithScale();
-	FVector LocalHit = InstTransform.InverseTransformPosition(HitLocation);
-
-	if (Settings->CollisionWithWorld)
+	if (!Settings->CollisionWithWorld)
 	{
-		// Check for overhanging ledge
+		return true;
+	}
+
+	FTransform OriginalTransform = Inst.GetInstanceWorldTransform();
+	OriginalTransform.SetRotation(FQuat::Identity);
+
+	FMatrix InstTransformNoRotation = OriginalTransform.ToMatrixWithScale();
+	OriginalTransform = Inst.GetInstanceWorldTransform();
+
+	// Check for overhanging ledge
+	const int32 SamplePositionCount = 4;
+	{
+		FVector LocalSamplePos[SamplePositionCount] = {
+			FVector(Settings->LowBoundOriginRadius.Z, 0, 0),
+			FVector(-Settings->LowBoundOriginRadius.Z, 0, 0),
+			FVector(0, Settings->LowBoundOriginRadius.Z, 0),
+			FVector(0, -Settings->LowBoundOriginRadius.Z, 0)
+		};
+
+		for (uint32 i = 0; i < SamplePositionCount; ++i)
 		{
-			FVector LocalSamplePos[4] = {
-				FVector(Settings->LowBoundOriginRadius.Z, 0, 0),
-				FVector(-Settings->LowBoundOriginRadius.Z, 0, 0),
-				FVector(0, Settings->LowBoundOriginRadius.Z, 0),
-				FVector(0, -Settings->LowBoundOriginRadius.Z, 0)
-			};
+			FVector SamplePos = InstTransformNoRotation.TransformPosition(Settings->LowBoundOriginRadius + LocalSamplePos[i]);
+			float WorldRadius = (Settings->LowBoundOriginRadius.Z + Settings->LowBoundOriginRadius.Z)*FMath::Max(Inst.DrawScale3D.X, Inst.DrawScale3D.Y);
+			FVector NormalVector = Settings->AlignToNormal ? HitNormal : OriginalTransform.GetRotation().GetUpVector();
 
+			//::DrawDebugSphere(InWorld, SamplePos, 10, 6, FColor::Red, true, 30.0f);
+			//::DrawDebugSphere(InWorld, SamplePos - NormalVector*WorldRadius, 10, 6, FColor::Orange, true, 30.0f);
+			//::DrawDebugDirectionalArrow(InWorld, SamplePos, SamplePos - NormalVector*WorldRadius, 10.0f, FColor::Red, true, 30.0f);
 
-			for (uint32 i = 0; i < 4; ++i)
+			FHitResult Hit;
+			if (AInstancedFoliageActor::FoliageTrace(InWorld, Hit, FDesiredFoliageInstance(SamplePos, SamplePos - NormalVector*WorldRadius)))
 			{
-				FHitResult Hit;
-				FVector SamplePos = InstTransform.TransformPosition(FVector(Settings->LowBoundOriginRadius.X, Settings->LowBoundOriginRadius.Y, 2.f) + LocalSamplePos[i]);
-				float WorldRadius = (Settings->LowBoundOriginRadius.Z + 2.f)*FMath::Max(Inst.DrawScale3D.X, Inst.DrawScale3D.Y);
-				FVector NormalVector = Settings->AlignToNormal ? HitNormal : FVector(0, 0, 1);
-				if (AInstancedFoliageActor::FoliageTrace(InWorld, Hit, FDesiredFoliageInstance(SamplePos, SamplePos - NormalVector*WorldRadius)))
+				FVector LocalHit = OriginalTransform.InverseTransformPosition(Hit.Location);
+				
+				if (LocalHit.Z - Inst.ZOffset < Settings->LowBoundOriginRadius.Z && Hit.Component.Get() == HitComponent)
 				{
-					if (LocalHit.Z - Inst.ZOffset < Settings->LowBoundOriginRadius.Z)
-					{
-						continue;
-					}
+					//::DrawDebugSphere(InWorld, Hit.Location, 6, 6, FColor::Green, true, 30.0f);
+					continue;
 				}
-				return false;
 			}
-		}
 
-		// Check collision with Bounding Box
-		{
-			FBox MeshBox = Settings->MeshBounds.GetBox();
-			MeshBox.Min.Z = FMath::Min(MeshBox.Max.Z, LocalHit.Z + Settings->MeshBounds.BoxExtent.Z * 0.05f);
-			FBoxSphereBounds ShrinkBound(MeshBox);
-			FBoxSphereBounds WorldBound = ShrinkBound.TransformBy(InstTransform);
-			//::DrawDebugBox(World, WorldBound.Origin, WorldBound.BoxExtent, FColor::Red, true, 10.f);
-			static FName NAME_FoliageCollisionWithWorld = FName(TEXT("FoliageCollisionWithWorld"));
-			if (InWorld->OverlapBlockingTestByChannel(WorldBound.Origin, FQuat(Inst.Rotation), ECC_WorldStatic, FCollisionShape::MakeBox(ShrinkBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale), FCollisionQueryParams(NAME_FoliageCollisionWithWorld, false)))
-			{
-				return false;
-			}
+			//::DrawDebugSphere(InWorld, SamplePos, 6, 6, FColor::Cyan, true, 30.0f);
+
+			return false;
 		}
 	}
+
+	FBoxSphereBounds LocalBound(Settings->MeshBounds.GetBox());
+	FBoxSphereBounds WorldBound = LocalBound.TransformBy(OriginalTransform);
+
+	static FName NAME_FoliageCollisionWithWorld = FName(TEXT("FoliageCollisionWithWorld"));
+	if (InWorld->OverlapBlockingTestByChannel(WorldBound.Origin, FQuat(Inst.Rotation), ECC_WorldStatic, FCollisionShape::MakeBox(LocalBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale), FCollisionQueryParams(NAME_FoliageCollisionWithWorld, false, HitComponent != nullptr ? HitComponent->GetOwner() : nullptr)))
+	{
+		return false;
+	}
+
+	//::DrawDebugBox(InWorld, WorldBound.Origin, LocalBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale, FQuat(Inst.Rotation), FColor::Red, true, 30.f);
 
 	return true;
 }
@@ -2923,7 +3074,7 @@ bool FPotentialInstance::PlaceInstance(const UWorld* InWorld, const UFoliageType
 		}
 	}
 
-	return bSkipCollision || AInstancedFoliageActor::CheckCollisionWithWorld(InWorld, Settings, Inst, HitNormal, HitLocation);
+	return bSkipCollision || AInstancedFoliageActor::CheckCollisionWithWorld(InWorld, Settings, Inst, HitNormal, HitLocation, HitComponent);
 }
 #endif
 

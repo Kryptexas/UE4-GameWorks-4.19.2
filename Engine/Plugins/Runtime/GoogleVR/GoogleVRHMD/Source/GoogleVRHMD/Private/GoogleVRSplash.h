@@ -60,7 +60,7 @@ private:
 	};
 
 	void OnPreLoadMap(const FString&);
-	void OnPostLoadMap();
+	void OnPostLoadMap(UWorld*);
 
 	void AllocateSplashScreenRenderTarget();
 	void SubmitBlackFrame();

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3149430
+﻿INTSourceChangelist:3211040
 Availability: Public
 Title:새 피직스 애셋 생성
 Crumbs: %ROOT%, Engine
@@ -8,45 +8,7 @@ order:1
 Version: 4.13
 related:Engine/Physics/PhAT/HowTo/EditPhysicsAsset
 skilllevel:Beginner
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/CreatePhysicsAsset:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicsAsset:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicsAsset:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/CreatePhysicsAsset:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicsAsset:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/CreatePhysicsAsset:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Physics/physics_topic.png
 
 **피직스 애셋** 을 새로 만드는 방법은 두 가지입니다. 하나는 임포트를 통한 방법, 다른 하나는 **콘텐츠 브라우저** 의 맥락 메뉴를 통한 방법입니다. 각 방법의 인터페이스 및 단계별 설명은 다음과 같습니다.
 

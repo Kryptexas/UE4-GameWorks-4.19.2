@@ -31,7 +31,7 @@ void SSoundClassActionMenuItem::Construct(const FArguments& InArgs, TSharedPtr<F
 		this->ChildSlot
 			[
 				SNew(SHorizontalBox)
-				.ToolTipText( FText::FromString(InAction->GetTooltipDescription()) )
+				.ToolTipText(InAction->GetTooltipDescription())
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign(VAlign_Center)
@@ -45,7 +45,7 @@ void SSoundClassActionMenuItem::Construct(const FArguments& InArgs, TSharedPtr<F
 	}
 	else
 	{
-		TSharedRef<SWidget> NewSoundClassWidget = CreateNewSoundClassWidget(InAction->GetMenuDescription(), FText::FromString(InAction->GetTooltipDescription()), FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9), InAction);
+		TSharedRef<SWidget> NewSoundClassWidget = CreateNewSoundClassWidget(InAction->GetMenuDescription(), InAction->GetTooltipDescription(), FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9), InAction);
 		// Promote requires 2 'slots'
 		this->ChildSlot
 			[

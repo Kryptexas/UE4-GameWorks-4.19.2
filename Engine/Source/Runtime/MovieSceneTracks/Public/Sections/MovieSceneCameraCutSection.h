@@ -40,6 +40,11 @@ public:
 
 	virtual FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
 
+	// UMovieSceneSection interface
+	virtual TOptional<float> GetKeyTime(FKeyHandle KeyHandle) const override { return TOptional<float>(); }
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float Time) override { }
+	virtual void OnBindingsUpdated(const TMap<FGuid, FGuid>& OldGuidToNewGuidMap) override;
+
 private:
 
 	/** The camera possessable or spawnable that this movie CameraCut uses */
@@ -61,10 +66,6 @@ public:
 		ThumbnailReferenceOffset = InNewOffset;
 	}
 
-	// UMovieSceneSection interface
-	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
-	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
-	
 private:
 
 	/** The reference frame offset for single thumbnail rendering */

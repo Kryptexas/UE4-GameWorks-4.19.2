@@ -10,9 +10,12 @@
 #include "MovieSceneSequenceID.h"
 #include "MovieSceneSection.h"
 #include "Evaluation/MovieSceneSectionParameters.h"
+#include "Evaluation/MovieSceneSequenceHierarchy.h"
 #include "MovieSceneSubSection.generated.h"
 
 class UMovieSceneSequence;
+struct FMovieSceneEvaluationTemplate;
+struct FMovieSceneTrackCompilerArgs;
 
 DECLARE_DELEGATE_OneParam(FOnSequenceChanged, UMovieSceneSequence* /*Sequence*/);
 
@@ -48,6 +51,12 @@ public:
 	 * Get this sub section's sequence ID
 	 */
 	FMovieSceneSequenceID GetSequenceID() const;
+
+	/** Generate a template for our subsequence. */
+	virtual FMovieSceneEvaluationTemplate& GenerateTemplateForSubSequence(const FMovieSceneTrackCompilerArgs& InArgs) const;
+
+	/** Generate subsequence data */
+	virtual FMovieSceneSubSequenceData GenerateSubSequenceData() const;
 
 public:
 

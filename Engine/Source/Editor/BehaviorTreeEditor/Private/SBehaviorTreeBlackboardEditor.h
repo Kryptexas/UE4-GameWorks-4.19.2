@@ -7,6 +7,8 @@
 #include "Widgets/SWidget.h"
 #include "SBehaviorTreeBlackboardView.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogBlackboardEditor, Warning, All);
+
 class FExtender;
 class FMenuBuilder;
 class FToolBarBuilder;

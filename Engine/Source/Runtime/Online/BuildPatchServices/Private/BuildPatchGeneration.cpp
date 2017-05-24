@@ -227,19 +227,24 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 				// Grab some data from the build stream.
 				PreviousSize = DataBuffer.Num();
 				DataBuffer.SetNumUninitialized(ScannerDataSize);
-				ReadLen = BuildStream->DequeueData(DataBuffer.GetData() + PreviousSize, ScannerDataSize - PreviousSize);
+				const bool bWaitForData = true;
+				ReadLen = BuildStream->DequeueData(DataBuffer.GetData() + PreviousSize, ScannerDataSize - PreviousSize, bWaitForData);
 				DataBuffer.SetNum(PreviousSize + ReadLen, false);
 
-				// Pad scanner data if end of build
-				uint64 PadSize = BuildStream->IsEndOfData() ? ScannerOverlapSize : 0;
-				DataBuffer.AddZeroed(PadSize);
+				// Only make a scanner if we are getting new data.
+				if (ReadLen > 0)
+				{
+					// Pad scanner data if end of build
+					uint64 PadSize = BuildStream->IsEndOfData() ? ScannerOverlapSize : 0;
+					DataBuffer.AddZeroed(PadSize);
 
-				// Create data processor.
-				FBlockStructure Structure;
-				Structure.Add(DataOffset, DataBuffer.Num() - PadSize);
-				UE_LOG(LogPatchGeneration, Verbose, TEXT("Creating scanner on layer 0 at %llu. IsFinal:%d."), DataOffset, BuildStream->IsEndOfData());
-				Scanners.Emplace(new FScannerDetails(0, DataOffset, BuildStream->IsEndOfData(), PadSize, DataBuffer, MoveTemp(Structure), CloudEnumeration, StatsCollector));
-				LayerToScannerCount.FindOrAdd(0)++;
+					// Create data processor.
+					FBlockStructure Structure;
+					Structure.Add(DataOffset, DataBuffer.Num() - PadSize);
+					UE_LOG(LogPatchGeneration, Verbose, TEXT("Creating scanner on layer 0 at %llu. IsFinal:%d."), DataOffset, BuildStream->IsEndOfData());
+					Scanners.Emplace(new FScannerDetails(0, DataOffset, BuildStream->IsEndOfData(), PadSize, DataBuffer, MoveTemp(Structure), CloudEnumeration, StatsCollector));
+					LayerToScannerCount.FindOrAdd(0)++;
+				}
 			}
 		}
 

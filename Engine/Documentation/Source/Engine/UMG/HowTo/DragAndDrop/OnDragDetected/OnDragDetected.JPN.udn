@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:3094685
+﻿INTSourceChangelist:3343774
 Availability:Docs
 Title:3.On Drag Detected
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
 Description:ドラッグが検知された場合に、何を起こるかを設定します。
 Related:Engine/UMG
 Related:Engine/UMG/UserGuide
-Version:4.12
 SkillLevel:Intermediate
+tags:UMG UI Designer
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -71,5 +71,6 @@ SkillLevel:Intermediate
 HealthBar ウィジェットを Main HUD Widget ブループリントに追加して、すべてをテストする前に表示するように指示する必要もあります。  
 
 %Steps%
+
 
 

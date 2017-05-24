@@ -311,10 +311,10 @@ void FDefaultRichTextMarkupWriter::EscapeText(FString& TextToEscape)
 {
 	// List of characters that we have to escape to avoid accidental rich-text formatting
 	static const TPair<TCHAR, FString> EscapeCharacters[] = {
-		TPairInitializer<TCHAR, FString>('&', "&amp;"),
-		TPairInitializer<TCHAR, FString>('"', "&quot;"),
-		TPairInitializer<TCHAR, FString>('<', "&lt;"),
-		TPairInitializer<TCHAR, FString>('>', "&gt;"),
+		TPair<TCHAR, FString>('&', "&amp;"),
+		TPair<TCHAR, FString>('"', "&quot;"),
+		TPair<TCHAR, FString>('<', "&lt;"),
+		TPair<TCHAR, FString>('>', "&gt;"),
 	};
 
 	// First count the extra space needed

@@ -100,6 +100,9 @@ struct IStreamingManager
 
 	ENGINE_API static struct FStreamingManagerCollection& Get();
 
+	/** Same as get but could fail if state not allocated or shutdown. */
+	ENGINE_API static struct FStreamingManagerCollection* Get_Concurrent();
+
 	ENGINE_API static void Shutdown();
 
 	/** Checks if the streaming manager has already been shut down. **/
@@ -229,33 +232,11 @@ struct IStreamingManager
 	}
 
 	/**
-	 * Called when a LastRenderTime primitive is attached to an actor or another component.
-	 * Modifies the LastRenderTimeRefCount for the textures used, so that those textures can
-	 * use both distance-based and LastRenderTime heuristics.
-	 *
-	 * @param InPrimitive	Newly attached dynamic/spawned primitive
-	 */
-	virtual void NotifyTimedPrimitiveAttached( const UPrimitiveComponent* InPrimitive, EDynamicPrimitiveType DynamicType )
-	{
-	}
-
-	/**
-	 * Called when a LastRenderTime primitive is detached from an actor or another component.
-	 * Modifies the LastRenderTimeRefCount for the textures used, so that those textures can
-	 * use both distance-based and LastRenderTime heuristics.
-	 *
-	 * @param InPrimitive	Newly detached dynamic/spawned primitive
-	 */
-	virtual void NotifyTimedPrimitiveDetached( const UPrimitiveComponent* InPrimitive )
-	{
-	}
-
-	/**
 	 * Called when a primitive has had its textured changed.
 	 * Only affects primitives that were already attached.
 	 * Replaces previous info.
 	 */
-	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive )
+	virtual void NotifyPrimitiveUpdated_Concurrent( const UPrimitiveComponent* Primitive )
 	{
 	}
 
@@ -410,6 +391,9 @@ struct ITextureStreamingManager : public IStreamingManager
 
 	/** Set current pause state for texture streaming */
 	virtual void PauseTextureStreaming(bool bInShouldPause) = 0;
+
+	/** Return all bounds related to the ref object */
+	ENGINE_API virtual void GetObjectReferenceBounds(const UObject* RefObject, TArray<FBox>& AssetBoxes) = 0;
 };
 
 /**
@@ -607,7 +591,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * Only affects primitives that were already attached.
 	 * Replaces previous info.
 	 */
-	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive ) override;
+	virtual void NotifyPrimitiveUpdated_Concurrent( const UPrimitiveComponent* Primitive ) override;
 
 protected:
 

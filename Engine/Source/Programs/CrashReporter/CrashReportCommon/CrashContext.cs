@@ -157,14 +157,36 @@ namespace Tools.CrashReporter.CrashReportCommon
 		{
 		}
 
+		/// <summary>
+		/// Generates a crash context rom a Url
+		/// </summary>
+		/// <param name="Url"></param>
+		/// <returns></returns>
+        public static FGenericCrashContext FromUrl(string Url)
+        {
+            using (var wc = new System.Net.WebClient()) {
+                var CopyText = wc.DownloadString(Url);
+
+                return FromString(CopyText);
+            }
+        }
+
 		/// <summary> Creates a new instance of the crash report context from the specified file. </summary>
-		public static FGenericCrashContext FromFile( string Filepath )
+        public static FGenericCrashContext FromFile(string Filepath)
+        {
+            string[] XMLText = File.ReadAllLines(Filepath);
+            string CopyText = string.Join(Environment.NewLine, XMLText);
+
+            return FromString(CopyText);
+        }
+
+		/// <summary> Creates a new instance of the crash report context from the specified file. </summary>
+		public static FGenericCrashContext FromString(string Text)
 		{
 			// The crash report context contains invalid characters, we need to fix them all in order to parse the XML.
 			HashSet<string> TagsToIgnore = new HashSet<string>() { "<FGenericCrashContext>", "<RuntimeProperties>", "<PlatformProperties>", "</FGenericCrashContext>", "</RuntimeProperties>", "</PlatformProperties>" };
 
-			string[] XMLText = File.ReadAllLines( Filepath );
-			string CopyText = string.Join( Environment.NewLine, XMLText );
+            string[] XMLText = Text.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
 
 			string NodeOpen = "";
 			string NodeEnd = "";

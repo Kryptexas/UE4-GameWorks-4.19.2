@@ -64,10 +64,8 @@ public:
 	{
 		FKCHandler_MakeStruct::RegisterNets(Context, Node);
 
-		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
 		UEdGraphPin* ReturnPin = Node->FindPin(SetFieldsInStructHelper::StructOutPinName());
 		UEdGraphPin* ReturnStructNet = FEdGraphUtilities::GetNetFromPin(ReturnPin);
-		FBPTerminal** ReturnTerm = Context.NetMap.Find(ReturnStructNet);
 
 		UEdGraphPin* InputPin = Node->FindPinChecked(SetFieldsInStructHelper::StructRefPinName());
 		UEdGraphPin* InputPinNet = FEdGraphUtilities::GetNetFromPin(InputPin);

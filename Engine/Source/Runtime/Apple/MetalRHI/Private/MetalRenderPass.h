@@ -5,6 +5,7 @@
 #include "MetalRHIPrivate.h"
 #include "MetalCommandEncoder.h"
 #include "MetalState.h"
+#include "MetalFence.h"
 
 class FMetalCommandList;
 class FMetalCommandQueue;
@@ -21,8 +22,12 @@ public:
 	~FMetalRenderPass(void);
 	
 #pragma mark -
-    void Begin(id Fence);
-    
+    void Begin(id<MTLFence> Fence);
+	
+	void Wait(id<MTLFence> Fence);
+
+	void Update(id<MTLFence> Fence);
+	
     void BeginRenderPass(MTLRenderPassDescriptor* const RenderPass);
 
     void RestartRenderPass(MTLRenderPassDescriptor* const RenderPass);
@@ -45,13 +50,15 @@ public:
     
     void DispatchIndirect(FMetalVertexBuffer* ArgumentBufferRHI, uint32 ArgumentOffset);
     
-    id EndRenderPass(void);
+    id<MTLFence> EndRenderPass(void);
     
     void CopyFromTextureToBuffer(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLBuffer> toBuffer, uint32 destinationOffset, uint32 destinationBytesPerRow, uint32 destinationBytesPerImage, MTLBlitOption options);
     
     void CopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
     
     void CopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+	
+	void CopyFromBufferToBuffer(id<MTLBuffer> SourceBuffer, NSUInteger SourceOffset, id<MTLBuffer> DestinationBuffer, NSUInteger DestinationOffset, NSUInteger Size);
 	
 	void PresentTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
     
@@ -60,10 +67,22 @@ public:
     void SynchroniseResource(id<MTLResource> Resource);
     
     void FillBuffer(id<MTLBuffer> Buffer, NSRange Range, uint8 Value);
+	
+	void AsyncCopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+	
+	void AsyncCopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+	
+	void AsyncGenerateMipmapsForTexture(id<MTLTexture> Texture);
+	
+    id<MTLFence> Submit(EMetalSubmitFlags SubmissionFlags);
     
-    void Submit(EMetalSubmitFlags SubmissionFlags);
-    
-    id End(EMetalSubmitFlags Flags);
+    id<MTLFence> End(void);
+	
+	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence, MTLCommandBufferHandler Handler);
+	
+	void AddCompletionHandler(MTLCommandBufferHandler Handler);
+	
+	void AddAsyncCommandBufferHandlers(MTLCommandBufferHandler Scheduled, MTLCommandBufferHandler Completion);
 
 #pragma mark - Public Debug Support -
 	
@@ -101,8 +120,9 @@ private:
     void ConditionalSwitchToRender(void);
     void ConditionalSwitchToTessellation(void);
     void ConditionalSwitchToCompute(void);
-    void ConditionalSwitchToBlit(void);
-    
+	void ConditionalSwitchToBlit(void);
+	void ConditionalSwitchToAsyncBlit(void);
+	
     void PrepareToRender(uint32 PrimType);
     void PrepareToTessellate(uint32 PrimType);
     void PrepareToDispatch(void);
@@ -126,9 +146,9 @@ private:
     FMetalCommandEncoder CurrentEncoder;
     FMetalCommandEncoder PrologueEncoder;
     
-    id PassStartFence;
-    id CurrentEncoderFence;
-    id PrologueEncoderFence;
+    FMetalFence PassStartFence;
+    FMetalFence CurrentEncoderFence;
+    FMetalFence PrologueEncoderFence;
     
     typedef TMetalPtr<MTLRenderPassDescriptor*> MTLRenderPassDescriptorRef;
     MTLRenderPassDescriptorRef RenderPassDesc;

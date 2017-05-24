@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2708022
+﻿INTSourceChangelist:3244089
 Availability:Public
 Title:4.メイン メニューをスクリプティングする
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:このステップではメイン メニューの機能をスクリプティングし、ゲームに読み込みます。 
 version:4.9
+tags:UMG UI Designer
 
 
 [VAR:Steps]
@@ -26,7 +27,7 @@ version:4.9
 
 ---
 
-作業に取り掛かり、メイン メニューの機能をスクリプティングします。このステップの最後では、メイン メニューでゲームを起動し、ゲームを開始し、オプション メニュー内の解像度も変更できるようにします。 
+作業に取り掛かり、メインメニューの機能をスクリプティングします。このステップの最後では、メインメニューでゲームを起動し、ゲームを開始し、オプション メニュー内の解像度も変更できるようにします。 
 
 1.	**MainMenu** Widget ブループリントを開いて **Graph** タブをクリックします。 
 
@@ -42,13 +43,13 @@ version:4.9
 
 	![](Buttons.png)
 
-	グラフにボタンを配置し、わかりやすくするために実際のメニューのようにレイアウトします。 
+	グラフにボタンを配置し、わかりやすくするためにメニューのレイアウトを模倣します。 
 
 1.	**OnClicked(PlayButton)** から、**OpenLevel** (**FirstPersonExampleMap** に set) ノードと **Remove from Parent** ノードを追加します。 
 
 	![](PlayButton.png)
 
-	**Level Name** は、読み込みたいレベルの名前を示します (この場合は First Person Example マップ)。**Remove from Parent** ノードは、 _ターゲット_ Widget ブループリントをビューポートから取り除きます。ターゲットそのもの (これは、レベルを読み込んだ後、ビューから取り除きたい Main Menu Widget ブループリントです) に set されます。 
+	**Level Name** は、読み込みたいレベルの名前を示します (この場合は First Person Example マップ)。**Remove from Parent** ノードは、を使用し、 _target_ Widget ブループリントをビューポートから取り除きます。ターゲットそのもの (これは、レベルを読み込んだ後、ビューから取り除きたい Main Menu Widget ブループリントです) に set されます。 
 
 1.	**Ctrl** を押しながら、**MainMenu** と **OptionsMenu** の変数内でドラッグします。 
 
@@ -60,7 +61,7 @@ version:4.9
 
 	![](OptionsButton.png)(w:820)
 
-	ここでは、オプション ボタンがクリックされるとメイン メニューをオフにし、オプション メニューをオンにします。 
+	ここでは、オプション ボタンがクリックされるとメインメニューをオフにし、オプション メニューをオンにします。 
 
 1.	各 **Settings** ボタンから **Execute Console Command** ノードを追加します。 
 
@@ -74,7 +75,7 @@ version:4.9
 
 	![](ReturnButton.png)(w:820)
 
-1.	**OnClicked (QuitButton)** から、コマンド **Quit** に set された **Execute Console Command** を追加します。 
+1.	**OnClicked (QuitButton)** から、コマンド **Quit** に設定された **Execute Console Command** を追加します。 
 
 	![](QuitButton.png)
 
@@ -84,13 +85,13 @@ version:4.9
 
 	![](OpenLevelBlueprint.png)
 
-1.	グラフ内で **右クリック** して、**Event Begin Play** ノードを追加し、**Create Widget** (**Class** を **Main Menu** に set) を接続します。 
+1.	グラフ内で **右クリック** して、**Event Begin Play** ノードを追加し、**Create Widget** (**Class** を **Main Menu** に設定します) を接続します。 
 
 	![](EventBeginPlay.png)
 
 1.	**Add to Viewport** ノードを接続し、**Get Player Controller** ノードを追加します。 
 
-1.	**Get Player Controller** から、**True** に set された **Set Show Mouse Cursor** ノードを追加し、**コンパイル** し、ブループリントを閉じます。 
+1.	**Get Player Controller** から、**True** に設定された **Set Show Mouse Cursor** ノードを追加し、**Compile** し、ブループリントを閉じます。 
 
 	![](FinishedLevel.png)(w:820)
 
@@ -112,7 +113,7 @@ version:4.9
 
 	このマップに対するゲームモードを割り当て、プレイヤー キャラクターがプレイ可能な **FirstPersonCharacter** ブループリント内で Engine Default Character を使用するように変更します。メイン メニューの周囲をプレイヤーが走り回ったり、背後で射撃できないようにするためです。 
 
-1.	メイン ツールバーで **Play** ボタンをクリックしてエディタで再生します。解像度のオプションをテストするには、**Play-in-Editor** ドロップダウン メニューから **New Editor Window ** を選択します。
+1.	メイン ツールバーで **Play** ボタンをクリックしてエディタでプレイします。解像度のオプションをテストするには、**Play-in-Editor** ドロップダウン メニューから **New Editor Window ** を選択します。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -128,7 +129,7 @@ version:4.9
 
 	_上の画像をクリックするとビデオが再生します。_
 
-	これで、動作し、プレイヤーがゲームを終了、解像度オプションを変更、またはゲームをプレイする (指定したレベルでロードし、プレイヤーをゲームプレイに移行する) メイン メニューの作成が終わりました。 
+	これで、機能し、プレイヤーがゲームを終了、解像度を変更、ゲーム (指定したレベルでロードし、プレイヤーをゲームプレイに移行する) をプレイするメインメニューの作成が終わりました。 
 
 次のステップでは、ゲーム内の一時停止メニューを追加し、プレイヤーがゲームプレイを一時停止、またはゲームを終了し、メイン メニューに戻ることができるようにします。 
 

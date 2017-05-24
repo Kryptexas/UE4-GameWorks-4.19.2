@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class UnrealWatchdog : ModuleRules
 {
-	public UnrealWatchdog(TargetInfo Target)
+	public UnrealWatchdog(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PublicIncludePaths.AddRange
 		(
@@ -26,5 +26,7 @@ public class UnrealWatchdog : ModuleRules
 				"Projects",
 		   }
 		);
+
+		WhitelistRestrictedFolders.Add("Private/NotForLicensees");
 	}
 }

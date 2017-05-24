@@ -1,67 +1,30 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:How-To Test Physics Assets
+﻿INTSourceChangeList:3211040
+Availability:Public
+Title:物理アセットをテストする
 Crumbs: %ROOT%, Engine
-Description:This how-to covers the procedure for testing your Physics Assets in the Physics Asset Tool.
+Description:Physics Asset ツール内で物理アセットをテストする手順の説明
 parent:Engine/Physics/PhAT/HowTo
 order:1
-Version: 4.13
+Version:4.13
+skilllevel:Intermediate
+topic-image:Engine/Physics/physics_topic.png
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/TestPhysicsAssets:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/TestPhysicsAssets:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/TestPhysicsAssets:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/HowTo/TestPhysicsAssets:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/HowTo/TestPhysicsAssets:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/HowTo/TestPhysicsAssets:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/Phat/HowTo]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+This page covers the basics of testing a **Physics Asset** in the **Physics Asset ツール** で行う **Physics Asset** テストの基本手順を説明します。
 
-This page covers the basics of testing a **Physics Asset** in the **Physics Asset Tool**.
+## テスティング
 
-## Testing
-
-Clicking the Simulation ![](Shared/Icons/icon_PhAT_PlaySim_40x.png) button will allow you to test your Physics Asset.
+[Simulation] ![](Shared/Icons/icon_PhAT_PlaySim_40x.png) ボタンをクリックすると、物理アセットをテストできます。
 
 ![](Engine/Physics/PhAT/HowTo/SimPhAT.png)(w:600)
 
-The downward triangle next to the Simulation button will give you access to **Real Simulation** and **No Gravity**:
+[Simulation (シミュレーション)] ボタンの隣のダウンロード用三角印で、**[Real Simulation (リアル シミュレーション)]** と **[No Gravity (重力なし)]** へアクセスすることができます。
 
-* **Real Simulation** - Simulates the entire Physics Asset with gravity enabled.
-* **No Gravity** - Simulates the entire Physics Asset but does not turn on gravity, leaving you to **ctrl+click** to poke the Physics Bodies in a zero gravity environment.
+* **Real Simulation (リアル シミュレーション)** - 重力を有効にして物理アセット全体をシミュレートします。
+* **No Gravity (重力なし)** - 物理アセット全体をシミュレートしますが重力は有効にせず、無重力環境で物理ボディをいじる時に **ctrl + クリック** します。
 
-	This is useful for finding any interpenetrating Physics Bodies or Limited Physics Constraints already outside of their limits.
+	貫通している物理ボディや、制限対象なのに既に制限外にある物理コンストレイントを見つけるのに便利です。
 
-You can also simulate a chain of joints by toggling **Selected Simulation** ![](Engine/Physics/PhAT/HowTo/selectedToggle_button.png) on, then clicking the **Simulation** ![](Shared/Icons/icon_PhAT_PlaySim_40x.png) button.
+**[Selected Simulation (選択中のシミュレーション)]** ![](Engine/Physics/PhAT/HowTo/selectedToggle_button.png) を切り替えてから **[Simulation (シミュレーション)]** ![](Shared/Icons/icon_PhAT_PlaySim_40x.png) ボタンをクリックすれば、ジョイントのチェーンをシミュレートすることもできます。
 
-* **Selected Simulation** - Does mostly what it sounds like, it only simulates the Physics Bodies you have selected (using **ctrl+left click** you can select more than one 
-Physics Body) and those down the hierarchy from the selected Physics Bodies. So if you select the shoulder, the entire arm will simulate.
+* **Selected Simulation (選択中のシミュレーション)** - その名の通り、選択中の物理ボディ (**ctrl + クリック** で複数の物理ボディを選択可能) 
+と、選択中の物理ボディの階層より下の物理ボディのみをシミュレートします。従って、肩を選択した場合、腕全体がシミュレートされます。

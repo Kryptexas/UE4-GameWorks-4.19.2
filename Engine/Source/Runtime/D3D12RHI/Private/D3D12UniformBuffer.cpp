@@ -29,6 +29,10 @@ FUniformBufferRHIRef FD3D12DynamicRHI::RHICreateUniformBuffer(const void* Conten
 			check(Align(Contents, 16) == Contents);
 			check(NumBytes <= D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16);
 
+#if USE_STATIC_ROOT_SIGNATURE
+			// Create an offline CBV descriptor
+			NewUniformBuffer->View = new FD3D12ConstantBufferView(Device, nullptr);
+#endif
 			void* MappedData = nullptr;
 			if (Usage == EUniformBufferUsage::UniformBuffer_MultiFrame)
 			{
@@ -38,9 +42,13 @@ FUniformBufferRHIRef FD3D12DynamicRHI::RHICreateUniformBuffer(const void* Conten
 			}
 			else
 			{
-				// Uniform buffers which will live for 1 frame at the max can be allocated very efficently from a ring buffer
+				// Uniform buffers which will live for 1 frame at the max can be allocated very efficiently from a ring buffer
 				FD3D12FastConstantAllocator& Allocator = GetAdapter().GetTransientUniformBufferAllocator();
+#if USE_STATIC_ROOT_SIGNATURE
+				MappedData = Allocator.Allocate(NumBytes, NewUniformBuffer->ResourceLocation, nullptr);
+#else
 				MappedData = Allocator.Allocate(NumBytes, NewUniformBuffer->ResourceLocation);
+#endif
 			}
 			check(NewUniformBuffer->ResourceLocation.GetOffsetFromBaseOfResource() % 16 == 0);
 			check(NewUniformBuffer->ResourceLocation.GetSize() == NumBytes);
@@ -48,6 +56,10 @@ FUniformBufferRHIRef FD3D12DynamicRHI::RHICreateUniformBuffer(const void* Conten
 			// Copy the data to the upload heap
 			check(MappedData != nullptr);
 			FMemory::Memcpy(MappedData, Contents, NumBytesActualData);
+
+#if USE_STATIC_ROOT_SIGNATURE
+			NewUniformBuffer->View->Create(NewUniformBuffer->ResourceLocation.GetGPUVirtualAddress(), NumBytes);
+#endif
 		}
 
 		// The GPUVA is used to see if this uniform buffer contains constants or is just a resource table.
@@ -82,6 +94,9 @@ FUniformBufferRHIRef FD3D12DynamicRHI::RHICreateUniformBuffer(const void* Conten
 FD3D12UniformBuffer::~FD3D12UniformBuffer()
 {
 	check(!GRHISupportsRHIThread || IsInRenderingThread());
+#if USE_STATIC_ROOT_SIGNATURE
+	delete View;
+#endif
 }
 
 void FD3D12Device::ReleasePooledUniformBuffers()

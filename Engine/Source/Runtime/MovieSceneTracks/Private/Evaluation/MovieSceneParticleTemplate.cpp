@@ -10,11 +10,64 @@
 
 DECLARE_CYCLE_STAT(TEXT("Particle Track Token Execute"), MovieSceneEval_ParticleTrack_TokenExecute, STATGROUP_MovieSceneEval);
 
+static UParticleSystemComponent* GetParticleSystemComponentFromObject(UObject* Object)
+{
+	if (AEmitter* Emitter = Cast<AEmitter>(Object))
+	{
+		return Emitter->GetParticleSystemComponent();
+	}
+	else
+	{
+		return Cast<UParticleSystemComponent>(Object);
+	}
+}
+
 struct FParticleKeyState : IPersistentEvaluationData
 {
 	FKeyHandle LastKeyHandle;
 	FKeyHandle InvalidKeyHandle;
 };
+
+/** A movie scene pre-animated token that stores a pre-animated active state */
+struct FActivePreAnimatedToken : IMovieScenePreAnimatedToken
+{
+	FActivePreAnimatedToken(UObject& InObject)
+	{
+		bCurrentlyActive = false;
+
+		if (AEmitter* Emitter = Cast<AEmitter>(&InObject))
+		{
+			bCurrentlyActive = Emitter->bCurrentlyActive;
+		}
+	}
+
+	virtual void RestoreState(UObject& InObject, IMovieScenePlayer& Player) override
+	{
+		UParticleSystemComponent* ParticleSystemComponent = GetParticleSystemComponentFromObject(&InObject);
+		if (ParticleSystemComponent)
+		{
+			ParticleSystemComponent->SetActive(bCurrentlyActive, true);
+		}
+	}
+
+private:
+	bool bCurrentlyActive;
+};
+
+struct FActiveTokenProducer : IMovieScenePreAnimatedTokenProducer
+{
+	static FMovieSceneAnimTypeID GetAnimTypeID() 
+	{
+		return TMovieSceneAnimTypeID<FActiveTokenProducer>();
+	}
+
+private:
+	virtual IMovieScenePreAnimatedTokenPtr CacheExistingState(UObject& Object) const override
+	{
+		return FActivePreAnimatedToken(Object);
+	}
+};
+
 
 /** A movie scene execution token that stores a specific transform, and an operand */
 struct FParticleTrackExecutionToken
@@ -23,18 +76,6 @@ struct FParticleTrackExecutionToken
 	FParticleTrackExecutionToken(EParticleKey::Type InParticleKey, TOptional<FKeyHandle> InKeyHandle = TOptional<FKeyHandle>())
 		: ParticleKey(InParticleKey), KeyHandle(InKeyHandle)
 	{
-	}
-
-	static UParticleSystemComponent* GetComponentFromObject(UObject* Object)
-	{
-		if(AEmitter* Emitter = Cast<AEmitter>(Object))
-		{
-			return Emitter->GetParticleSystemComponent();
-		}
-		else
-		{
-			return Cast<UParticleSystemComponent>(Object);
-		}
 	}
 
 	/** Execute this token, operating on all objects referenced by 'Operand' */
@@ -50,10 +91,12 @@ struct FParticleTrackExecutionToken
 		for (TWeakObjectPtr<> Object : Player.FindBoundObjects(Operand))
 		{
 			UObject* ObjectPtr = Object.Get();
-			UParticleSystemComponent* ParticleSystemComponent = GetComponentFromObject(ObjectPtr);
+			UParticleSystemComponent* ParticleSystemComponent = GetParticleSystemComponentFromObject(ObjectPtr);
 
 			if (ParticleSystemComponent)
 			{
+				Player.SavePreAnimatedState(*ObjectPtr, FActiveTokenProducer::GetAnimTypeID(), FActiveTokenProducer());
+
 				if ( ParticleKey == EParticleKey::Activate)
 				{
 					if ( ParticleSystemComponent->IsActive() )

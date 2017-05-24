@@ -71,6 +71,11 @@ void AGameMode::InitGame(const FString& MapName, const FString& Options, FString
 	Super::InitGame(MapName, Options, ErrorMessage);
 	SetMatchState(MatchState::EnteringMap);
 
+	if (!GameStateClass->IsChildOf<AGameState>())
+	{
+		UE_LOG(LogGameMode, Error, TEXT("Mixing AGameStateBase with AGameMode is not compatible. Change AGameStateBase subclass (%s) to derive from AGameState, or make both derive from Base"), *GameStateClass->GetName());
+	}
+
 	// Bind to delegates
 	FGameDelegates::Get().GetMatineeCancelledDelegate().AddUObject(this, &AGameMode::MatineeCancelled);
 	FGameDelegates::Get().GetPendingConnectionLostDelegate().AddUObject(this, &AGameMode::NotifyPendingConnectionLost);

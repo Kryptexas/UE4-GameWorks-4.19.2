@@ -8,6 +8,7 @@ order:1
 Version: 4.12
 type:quick start
 checkpoint:sequencerqs
+tags:Sequencer
 
 [VAR:Topic]
 [OBJECT:Topic]

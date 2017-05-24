@@ -422,6 +422,11 @@ bool FOutputDeviceConsoleWindows::IsAttached()
 	return false;
 }
 
+bool FOutputDeviceConsoleWindows::CanBeUsedOnAnyThread() const 
+{
+	return true;
+}
+
 bool FFeedbackContextWindows::YesNof(const FText& Question)
 {
 	if ((GIsClient || GIsEditor) && ((GIsSilent != true) && (FApp::IsUnattended() != true)))

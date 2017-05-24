@@ -30,6 +30,10 @@ The tools in **Paint** mode enable you to modify the appearance of your Landscap
 
 For more information about Landscape Materials, see [Landscape Materials](Engine/Landscape\Materials).
 
+[REGION:tip]
+Landscape Paint Mode also works in the VR Editor. For the controls for using Landscape in VR, see the [](Engine/Editor/VR/Controls).
+[/REGION]
+
 
 ## Painting Tools
 

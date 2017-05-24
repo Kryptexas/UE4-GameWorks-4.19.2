@@ -234,7 +234,6 @@ void FStaticMeshInstanceBuffer::AllocateData(FStaticMeshInstanceData& Other)
 bool FInstancedStaticMeshVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
 	return (Material->IsUsedWithInstancedStaticMeshes() || Material->IsSpecialEngineMaterial()) 
-			&& Platform != SP_OPENGL_ES2_WEBGL // ES2 HTML5 does not support hardware instancing at all
 			&& FLocalVertexFactory::ShouldCache(Platform, Material, ShaderType);
 }
 
@@ -721,9 +720,9 @@ bool FInstancedStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int
 	return false;
 }
 
-void FInstancedStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
+void FInstancedStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FVector2D& OutDistanceMinMax, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, float& SelfShadowBias, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
 {
-	FStaticMeshSceneProxy::GetDistancefieldAtlasData(LocalVolumeBounds, OutBlockMin, OutBlockSize, bOutBuiltAsIfTwoSided, bMeshWasPlane, ObjectLocalToWorldTransforms);
+	FStaticMeshSceneProxy::GetDistancefieldAtlasData(LocalVolumeBounds, OutDistanceMinMax, OutBlockMin, OutBlockSize, bOutBuiltAsIfTwoSided, bMeshWasPlane, SelfShadowBias, ObjectLocalToWorldTransforms);
 
 	ObjectLocalToWorldTransforms.Reset();
 
@@ -773,35 +772,6 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 
 	PhysicsSerializer = ObjectInitializer.CreateDefaultSubobject<UPhysicsSerializer>(this, TEXT("PhysicsSerializer"));
 	bDisallowMeshPaintPerInstance = true;
-}
-
-
-int32 GetNumShapes(UBodySetup* BodySetup)
-{
-	int32 NumShapes = 1;
-	if (BodySetup)
-	{
-		NumShapes = FMath::Max(BodySetup->AggGeom.GetElementCount(), NumShapes);	//if there's no simple shapes we still have a trimesh so 1 is the min
-	}
-
-	return NumShapes;
-}
-
-int32 GetAggregateIndex(int32 BodyIndex, int32 NumShapes)
-{
-	const int32 BodiesPerBucket = AggregateMaxSize / NumShapes;
-	return BodyIndex / BodiesPerBucket;
-}
-
-int32 GetNumAggregates(int32 NumBodies, int32 NumShapes)
-{
-	if(NumShapes > AggregateMaxSize)
-	{
-		UE_LOG(LogPhysics, Warning, TEXT("Bodies inside foliage can only support up to 128 shapes (per body)"));
-	}
-	
-	const int32 BodiesPerBucket = AggregateMaxSize / NumShapes;
-	return FMath::DivideAndRoundUp<int32>(NumBodies, BodiesPerBucket);
 }
 
 
@@ -989,10 +959,8 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 
 #if WITH_PHYSX
 	// Create physics body instance.
-	// Aggregates aren't used for static objects
-	auto* Aggregate = (Mobility == EComponentMobility::Movable) ? Aggregates[GetAggregateIndex(InstanceIdx, GetNumShapes(BodySetup))] : nullptr;
 	InstanceBodyInstance->bAutoWeld = false;	//We don't support this for instanced meshes.
-	InstanceBodyInstance->InitBody(BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
+	InstanceBodyInstance->InitBody(BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), nullptr);
 #endif //WITH_PHYSX
 }
 
@@ -1015,8 +983,6 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 		TArray<FTransform> Transforms;
 	    Transforms.Reserve(NumBodies);
-		const int32 NumShapes = GetNumShapes(BodySetup);
-    
 	    for (int32 i = 0; i < NumBodies; ++i)
 	    {
 			const FTransform InstanceTM = FTransform(PerInstanceSMData[i].Transform) * ComponentToWorld;
@@ -1039,7 +1005,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 				if (Mobility == EComponentMobility::Movable)
 				{
-					Instance->InitBody(BodySetup, InstanceTM, this, PhysScene, Aggregates[GetAggregateIndex(i, NumShapes)] );
+					Instance->InitBody(BodySetup, InstanceTM, this, PhysScene, nullptr );
 				}
 				else
 				{
@@ -1056,7 +1022,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			}
 	    }
 
-		if (InstanceBodiesSanitized.Num() > 0 && Mobility == EComponentMobility::Static)
+		if (InstanceBodiesSanitized.Num() > 0 && Mobility != EComponentMobility::Movable)
 		{
 			TArray<UBodySetup*> BodySetups;
 			TArray<UPhysicalMaterial*> PhysicalMaterials;
@@ -1109,27 +1075,6 @@ void UInstancedStaticMeshComponent::OnCreatePhysicsState()
 		return;
 	}
 
-#if WITH_PHYSX
-	check(Aggregates.Num() == 0);
-
-	const int32 NumBodies = PerInstanceSMData.Num();
-	const int32 NumShapes = GetNumShapes(GetBodySetup());
-	// Aggregates aren't used for static objects
-	const int32 NumAggregates = (Mobility == EComponentMobility::Movable) ? GetNumAggregates(NumBodies, NumShapes) : 0;
-
-	// Get the scene type from the main BodyInstance
-	const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
-
-	for (int32 i = 0; i < NumAggregates; i++)
-	{
-		auto* Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, false);
-		Aggregates.Add(Aggregate);
-		PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
-		SCOPED_SCENE_WRITE_LOCK(PScene);
-		PScene->addAggregate(*Aggregate);
-	}
-#endif
-
 	// Create all the bodies.
 	CreateAllInstanceBodies();
 
@@ -1160,23 +1105,6 @@ void UInstancedStaticMeshComponent::OnDestroyPhysicsState()
 
 	// Release all physics representations
 	ClearAllInstanceBodies();
-
-#if WITH_PHYSX
-
-	if(PSceneIndex != INDEX_NONE)
-	{
-		PxScene* PScene = GetPhysXSceneFromIndex(PSceneIndex);
-		SCOPED_SCENE_WRITE_LOCK(PScene);
-
-		// releasing Aggregates, they shouldn't contain any Bodies now, because they are released above
-		for (auto* Aggregate : Aggregates)
-		{
-			Aggregate->release();
-		}
-	}
-	
-	Aggregates.Empty();
-#endif //WITH_PHYSX
 }
 
 bool UInstancedStaticMeshComponent::CanEditSimulatePhysics()
@@ -1264,7 +1192,9 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "LargeStaticLightingWarning", "The total lightmap size for this InstancedStaticMeshComponent is large, consider reducing the component's lightmap resolution or number of mesh instances in this component")));
 		}
 
-		if (!StaticMesh_CanLODsShareStaticLighting(GetStaticMesh()))
+		// TODO: Support separate static lighting in LODs for instanced meshes.
+
+		if (!GetStaticMesh()->CanLODsShareStaticLighting())
 		{
 			//TODO: Detect if the UVs for all sub-LODs overlap the base LOD UVs and omit this warning if they do.
 			FMessageLog("LightingResults").Message(EMessageSeverity::Warning)
@@ -1272,8 +1202,7 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "UniqueStaticLightingForLODWarning", "Instanced meshes don't yet support unique static lighting for each LOD. Lighting on LOD 1+ may be incorrect unless lightmap UVs are the same for all LODs.")));
 		}
 
-		// TODO: We currently only support one LOD of static lighting in instanced meshes
-		// Need to create per-LOD instance data to fix that
+		// Force sharing LOD 0 lightmaps for now.
 		int32 NumLODs = 1;
 
 		CachedMappings.Reset(PerInstanceSMData.Num() * NumLODs);
@@ -1555,6 +1484,8 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 		return false;
 	}
 
+	Modify();
+
 	// Request navigation update
 	PartialNavigationUpdate(InstanceIndex);
 
@@ -1773,29 +1704,6 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 
 	if (bPhysicsStateCreated)
 	{
-		// Add another aggregate if needed
-		// Aggregates aren't used for static objects
-		if (Mobility == EComponentMobility::Movable)
-		{
-			const int32 NumShapes = GetNumShapes(GetBodySetup());
-			const int32 AggregateIndex = GetAggregateIndex(InInstanceIndex, NumShapes);
-			if (AggregateIndex >= Aggregates.Num())
-			{
-				// Get the scene type from the main BodyInstance
-				FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
-				check(PhysScene);
-
-				const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
-
-				auto* Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, false);
-				const int32 AddedIndex = Aggregates.Add(Aggregate);
-				check(AddedIndex == AggregateIndex);
-				PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
-				SCOPED_SCENE_WRITE_LOCK(PScene);
-				PScene->addAggregate(*Aggregate);
-			}
-		}
-
 		if (InInstanceTransform.GetScale3D().IsNearlyZero())
 		{
 			InstanceBodies.Insert(nullptr, InInstanceIndex);
@@ -1900,10 +1808,6 @@ void UInstancedStaticMeshComponent::GetResourceSizeEx(FResourceSizeEx& Cumulativ
 
 #if WITH_EDITOR
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(SelectedInstances.GetAllocatedSize());
-#endif
-
-#if WITH_PHYSX
-	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(Aggregates.GetAllocatedSize());
 #endif
 }
 
@@ -2047,6 +1951,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 			{
 				FVector4& InstancingViewZCompare(SampleIndex ? InstancingViewZCompareOne : InstancingViewZCompareZero);
+				float Fac = View.GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * LODScale;
 
 				float FinalCull = MAX_flt;
 				if (MinSize > 0.0)
@@ -2057,6 +1962,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 				{
 					FinalCull = FMath::Min(FinalCull, InstancingUserData->EndCullDistance * MaxDrawDistanceScale);
 				}
+				FinalCull *= MaxDrawDistanceScale;
 
 				InstancingViewZCompare.Z = FinalCull;
 				if (BatchElement.InstancedLODIndex < InstancingUserData->MeshRenderData->LODResources.Num() - 1)

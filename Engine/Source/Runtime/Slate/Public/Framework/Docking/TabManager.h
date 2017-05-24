@@ -578,6 +578,16 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 			return MakeShareable( new FSplitter() );
 		}
 
+		static void RegisterDefaultTabWindowSize(const FTabId& TabName, const FVector2D DefaultSize)
+		{
+			DefaultTabWindowSizeMap.Add(TabName, DefaultSize);
+		}
+
+		static void UnregisterDefaultTabWindowSize(const FTabId& TabName)
+		{
+			DefaultTabWindowSizeMap.Remove(TabName);
+		}
+
 		void SetOnPersistLayout( const FOnPersistLayout& InHandler );
 
 		/** Close all live areas and wipe all the persisted areas. */
@@ -651,6 +661,14 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		 */
 		virtual TSharedRef<SDockTab> InvokeTab( const FTabId& TabId );
 
+		/**
+		 * Finds the first instance of an existing tab with the given tab id.
+		 *
+		 * @param TabId The tab identifier.
+		 * @return The existing tab instance if found, otherwise null.
+		 */
+		TSharedPtr<SDockTab> FindExistingLiveTab(const FTabId& TabId) const;
+
 		virtual ~FTabManager()
 		{
 		}
@@ -711,9 +729,6 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		void MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedPtr<FTabSpawnerEntry> &SpawnerNode );
 
 		TSharedRef<SDockTab> InvokeTab_Internal( const FTabId& TabId );
-
-		/** Finds the first instance of an existing tab with the given tab id. */
-		TSharedPtr<SDockTab> FindExistingLiveTab(const FTabId& TabId) const;
 
 		/** Finds the last major or nomad tab in a particular window. */
 		TSharedPtr<SDockTab> FindLastTabInWindow(TSharedPtr<SWindow> Window) const;
@@ -806,6 +821,12 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		/** The fallback size for a window */
 		const static FVector2D FallbackWindowSize;
+
+		/** Default tab window sizes for newly-created tabs */
+		static TMap<FTabId, FVector2D> DefaultTabWindowSizeMap;
+
+		/** Returns the default window size for the TabId, or the fallback window size if it wasn't registered */
+		static FVector2D GetDefaultTabWindowSize(const FTabId& TabId);
 
 		/**
 		 * Defensive: True when we are saving the visual state.
@@ -912,6 +933,10 @@ public:
 
 	void SetProxyTabManager(TSharedPtr<FProxyTabmanager> InProxyTabManager);
 
+	DECLARE_DELEGATE(FOnOverrideDockableAreaRestore);
+	/** Used to override dockable area restoration behavior */
+	FOnOverrideDockableAreaRestore OnOverrideDockableAreaRestore_Handler;
+
 protected:
 	virtual void OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegroundTab, const TSharedPtr<SDockTab>& BackgroundedTab ) override;
 	virtual void OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab, const TSharedPtr<SWindow>& NewOwnerWindow ) override;
@@ -1005,6 +1030,7 @@ private:
 
 //#HACK VREDITOR - Had to introduce the proxy tab manager to steal asset tabs.
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FIsTabSupportedEvent, FTabId /* TabId */, bool& /* bOutIsSupported */ );
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnTabEvent, TSharedPtr<SDockTab>);
 
 
@@ -1021,8 +1047,12 @@ public:
 
 	virtual void OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab) override;
 	virtual void DrawAttention(const TSharedRef<SDockTab>& TabToHighlight) override;
+	
+	bool IsTabSupported( const FTabId TabId ) const;
+	void SetParentWindow(TSharedRef<SWindow> InParentWindow);
 
 public:
+	FIsTabSupportedEvent OnIsTabSupported;
 	FOnTabEvent OnTabOpened;
 	FOnTabEvent OnAttentionDrawnToTab;
 

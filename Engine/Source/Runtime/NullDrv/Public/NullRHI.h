@@ -213,7 +213,7 @@ public:
 		return new FRHIShaderResourceView(); 
 	}
 
-	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override
+	virtual void RHIClearTinyUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override
 	{
 
 	}
@@ -779,15 +779,6 @@ public:
 	virtual void RHIEndDrawIndexedPrimitiveUP() final override
 	{
 	}
-	virtual void RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect) final override
-	{
-	}
-	virtual void RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect) final override
-	{
-	}
-	virtual void RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect) final override
-	{
-	}
 	virtual void RHIBlockUntilGPUIdle() final override
 	{
 	}
@@ -837,7 +828,7 @@ public:
 	{ 
 		return this; 
 	}
-	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override
+	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer(int32 Index, int32 Num) final override
 	{ 
 		return nullptr; 
 	}

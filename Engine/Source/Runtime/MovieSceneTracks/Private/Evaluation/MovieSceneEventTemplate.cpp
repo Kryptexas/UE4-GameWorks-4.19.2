@@ -12,10 +12,9 @@
 
 DECLARE_CYCLE_STAT(TEXT("Event Track Token Execute"), MovieSceneEval_EventTrack_TokenExecute, STATGROUP_MovieSceneEval);
 
-
-struct FEventData
+struct FMovieSceneEventData
 {
-	FEventData(const FEventPayload& InPayload, float InGlobalPosition) : Payload(InPayload), GlobalPosition(InGlobalPosition) {}
+	FMovieSceneEventData(const FEventPayload& InPayload, float InGlobalPosition) : Payload(InPayload), GlobalPosition(InGlobalPosition) {}
 
 	FEventPayload Payload;
 	float GlobalPosition;
@@ -25,7 +24,7 @@ struct FEventData
 struct FEventTrackExecutionToken
 	: IMovieSceneExecutionToken
 {
-	FEventTrackExecutionToken(TArray<FEventData> InEvents) : Events(MoveTemp(InEvents)) {}
+	FEventTrackExecutionToken(TArray<FMovieSceneEventData> InEvents, const TArray<FMovieSceneObjectBindingID>& InEventReceivers) : Events(MoveTemp(InEvents)), EventReceivers(InEventReceivers) {}
 
 	/** Execute this token, operating on all objects referenced by 'Operand' */
 	virtual void Execute(const FMovieSceneContext& Context, const FMovieSceneEvaluationOperand& Operand, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) override
@@ -34,14 +33,42 @@ struct FEventTrackExecutionToken
 		
 		TArray<float> PerformanceCaptureEventPositions;
 
-		for (UObject* EventContextObject : Player.GetEventContexts())
+		// Resolve event contexts to trigger the event on
+		TArray<UObject*> EventContexts;
+
+		// If we have specified event receivers, use those
+		if (EventReceivers.Num())
+		{
+			EventContexts.Reserve(EventReceivers.Num());
+			for (FMovieSceneObjectBindingID ID : EventReceivers)
+			{
+				// Ensure that this ID is resolvable from the root, based on the current local sequence ID
+				ID = ID.ResolveLocalToRoot(Operand.SequenceID, Player.GetEvaluationTemplate().GetHierarchy());
+
+				// Lookup the object(s) specified by ID in the player
+				for (TWeakObjectPtr<> WeakEventContext : Player.FindBoundObjects(ID.GetGuid(), ID.GetSequenceID()))
+				{
+					if (UObject* EventContext = WeakEventContext.Get())
+					{
+						EventContexts.Add(EventContext);
+					}
+				}
+			}
+		}
+		else
+		{
+			// If we haven't specified event receivers, use the default set defined on the player
+			EventContexts = Player.GetEventContexts();
+		}
+
+		for (UObject* EventContextObject : EventContexts)
 		{
 			if (!EventContextObject)
 			{
 				continue;
 			}
 
-			for (FEventData& Event : Events)
+			for (FMovieSceneEventData& Event : Events)
 			{
 #if !UE_BUILD_SHIPPING
 				if (Event.Payload.EventName == NAME_PerformanceCapture)
@@ -71,7 +98,7 @@ struct FEventTrackExecutionToken
 #endif	// UE_BUILD_SHIPPING
 	}
 
-	void TriggerEvent(FEventData& Event, UObject& EventContextObject, IMovieScenePlayer& Player)
+	void TriggerEvent(FMovieSceneEventData& Event, UObject& EventContextObject, IMovieScenePlayer& Player)
 	{
 		UFunction* EventFunction = EventContextObject.FindFunction(Event.Payload.EventName);
 
@@ -128,11 +155,13 @@ struct FEventTrackExecutionToken
 		}
 	}
 
-	TArray<FEventData> Events;
+	TArray<FMovieSceneEventData> Events;
+	TArray<FMovieSceneObjectBindingID, TInlineAllocator<2>> EventReceivers;
 };
 
 FMovieSceneEventSectionTemplate::FMovieSceneEventSectionTemplate(const UMovieSceneEventSection& Section, const UMovieSceneEventTrack& Track)
 	: EventData(Section.GetEventData())
+	, EventReceivers(Track.EventReceivers)
 	, bFireEventsWhenForwards(Track.bFireEventsWhenForwards)
 	, bFireEventsWhenBackwards(Track.bFireEventsWhenBackwards)
 {
@@ -156,7 +185,7 @@ void FMovieSceneEventSectionTemplate::EvaluateSwept(const FMovieSceneEvaluationO
 		return;
 	}
 
-	TArray<FEventData> Events;
+	TArray<FMovieSceneEventData> Events;
 
 	TRange<float> SweptRange = Context.GetRange();
 
@@ -177,7 +206,7 @@ void FMovieSceneEventSectionTemplate::EvaluateSwept(const FMovieSceneEvaluationO
 			float Time = KeyTimes[KeyIndex];
 			if (SweptRange.Contains(Time))
 			{
-				Events.Add(FEventData(KeyValues[KeyIndex], Position));
+				Events.Add(FMovieSceneEventData(KeyValues[KeyIndex], Position));
 			}
 		}
 	}
@@ -187,13 +216,13 @@ void FMovieSceneEventSectionTemplate::EvaluateSwept(const FMovieSceneEvaluationO
 		float Time = KeyTimes[KeyIndex];
 		if (SweptRange.Contains(Time))
 		{
-			Events.Add(FEventData(KeyValues[KeyIndex], Position));
+			Events.Add(FMovieSceneEventData(KeyValues[KeyIndex], Position));
 		}
 	}
 
 
 	if (Events.Num())
 	{
-		ExecutionTokens.Add(FEventTrackExecutionToken(MoveTemp(Events)));
+		ExecutionTokens.Add(FEventTrackExecutionToken(MoveTemp(Events), EventReceivers));
 	}
 }

@@ -23,10 +23,12 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 
 #ifndef PXPVDSDK_PXPVDOBJECTMODELINTERNALTYPES_H
 #define PXPVDSDK_PXPVDOBJECTMODELINTERNALTYPES_H
+
+#include "foundation/PxMemory.h"
 #include "PxPvdObjectModelBaseTypes.h"
 #include "PsArray.h"
 #include "PxPvdFoundation.h"
@@ -109,7 +111,7 @@ static inline char* copyStr(const char* str)
 	str = nonNull(str);
 	uint32_t len = static_cast<uint32_t>(strlen(str));
 	char* newData = reinterpret_cast<char*>(PX_ALLOC(len + 1, "string"));
-	memcpy(newData, str, len);
+	PxMemCopy(newData, str, len);
 	newData[len] = 0;
 	return newData;
 }

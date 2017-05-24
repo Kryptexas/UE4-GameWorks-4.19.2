@@ -31,7 +31,10 @@ void FOvrSessionShared::Destroy()
 	{
 		UE_LOG(LogHMD, Log, TEXT("Destroying ovr session"));
 		FSuspendRenderingThread SuspendRenderingThread(false);
-		check(LockCnt.GetValue() == 0);
+		if (LockCnt.GetValue() != 0)
+		{
+			UE_LOG(LogHMD, Warning, TEXT("OVR:  Lock count is not 0!  Check for multiple sessions having been started."));
+		}
 
 		DelegatesLock.Lock();
 		DestoryDelegate.Broadcast(Session);

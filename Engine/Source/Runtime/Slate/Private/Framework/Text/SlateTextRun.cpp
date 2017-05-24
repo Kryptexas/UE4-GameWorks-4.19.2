@@ -7,6 +7,7 @@
 #include "Framework/Text/DefaultLayoutBlock.h"
 #include "Framework/Text/ShapedTextCache.h"
 #include "Framework/Text/RunUtils.h"
+#include "ShapedTextFwd.h"
 
 TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
 {
@@ -31,13 +32,13 @@ void FSlateTextRun::SetTextRange( const FTextRange& Value )
 int16 FSlateTextRun::GetBaseLine( float Scale ) const 
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->GetBaseline( Style.Font, Scale ) - FMath::Min(0.0f, Style.ShadowOffset.Y * Scale);
+	return FontMeasure->GetBaseline( Style.Font, Scale ) - (FMath::Min(0.0f, Style.ShadowOffset.Y) + Style.Font.OutlineSettings.OutlineSize * Scale);
 }
 
 int16 FSlateTextRun::GetMaxHeight( float Scale ) const 
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->GetMaxCharacterHeight( Style.Font, Scale ) + FMath::Abs(Style.ShadowOffset.Y * Scale);
+	return FontMeasure->GetMaxCharacterHeight( Style.Font, Scale ) + (FMath::Abs(Style.ShadowOffset.Y) + Style.Font.OutlineSettings.OutlineSize * Scale);
 }
 
 FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale, const FRunTextContext& TextContext ) const 
@@ -45,14 +46,13 @@ FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale,
 	const FVector2D ShadowOffsetToApply((EndIndex == Range.EndIndex) ? FMath::Abs(Style.ShadowOffset.X * Scale) : 0.0f, FMath::Abs(Style.ShadowOffset.Y * Scale));
 
 	// Offset the measured shaped text by the outline since the outline was not factored into the size of the text
-	const float OutlineSize = Style.Font.OutlineSettings.OutlineSize * Scale;
-
 	// Need to add the outline offsetting to the beginning and the end because it surrounds both sides.
-	const FVector2D OutlineSizeToApply(EndIndex == Range.EndIndex ? OutlineSize : BeginIndex == Range.BeginIndex ? OutlineSize : 0, OutlineSize);
+	const float ScaledOutlineSize = Style.Font.OutlineSettings.OutlineSize * Scale;
+	const FVector2D OutlineSizeToApply((BeginIndex == Range.BeginIndex ? ScaledOutlineSize : 0) + (EndIndex == Range.EndIndex ? ScaledOutlineSize : 0), ScaledOutlineSize);
 
-	if ( EndIndex - BeginIndex == 0 )
+	if (EndIndex - BeginIndex == 0)
 	{
-		return FVector2D( ShadowOffsetToApply.X * Scale, GetMaxHeight( Scale ) );
+		return FVector2D(0, GetMaxHeight(Scale)) + ShadowOffsetToApply + OutlineSizeToApply;
 	}
 
 	// Use the full text range (rather than the run range) so that text that spans runs will still be shaped correctly
@@ -79,7 +79,7 @@ TSharedRef< ILayoutBlock > FSlateTextRun::CreateBlock( int32 BeginIndex, int32 E
 int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
 {
 	const FSlateRect ClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
-	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	const bool ShouldDropShadow = Style.ShadowColorAndOpacity.A > 0.f && Style.ShadowOffset.SizeSquared() > 0.f;
 	const FVector2D BlockLocationOffset = Block->GetLocationOffset();
@@ -137,7 +137,8 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 			ShadowShapedText,
 			ClippingRect,
 			DrawEffects,
-			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity
+			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity,
+			InWidgetStyle.GetColorAndOpacityTint() * Style.Font.OutlineSettings.OutlineColor
 			);
 	}
 
@@ -149,7 +150,8 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 		ShapedText,
 		ClippingRect,
 		DrawEffects,
-		InWidgetStyle.GetColorAndOpacityTint() * Style.ColorAndOpacity.GetColor(InWidgetStyle)
+		InWidgetStyle.GetColorAndOpacityTint() * Style.ColorAndOpacity.GetColor(InWidgetStyle),
+		InWidgetStyle.GetColorAndOpacityTint() * Style.Font.OutlineSettings.OutlineColor
 		);
 
 	return LayerId;

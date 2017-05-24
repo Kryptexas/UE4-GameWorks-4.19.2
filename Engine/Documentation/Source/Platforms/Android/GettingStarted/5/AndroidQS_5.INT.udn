@@ -18,8 +18,7 @@ In the following section we will take a look at how you can package your finishe
 
 ## Steps
 
-
-%Globals:OSSelect%
+%Globals:osselect_linux%
 
 [OBJECT:ToggleButtonContent]
 	[PARAMLITERAL:category]
@@ -50,7 +49,19 @@ In the following section we will take a look at how you can package your finishe
 	[/PARAM]
 [/OBJECT]
 
-
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#LinuxSetup]
+	[/PARAM]
+[/OBJECT]
 
 <!--
 [EXCERPT:WindowsSetup]
@@ -141,6 +152,12 @@ We are currently packaging in **Development** because we are testing this game, 
 	![](Game_On_Phone.png)(w:320)
 
 [/EXCERPT:MacOSSetup]
+
+[EXCERPT:LinuxSetup]
+We're currently in the process of writing this documentation. Please refer to our [New and Updated Resources](https://docs.unrealengine.com/latest/INT/Updates/index.html) page to see 
+which documentation is being published at this time.
+<!--[INCLUDE:Platforms/Linux/IntermediateLinuxDeveloper/AndroidOnLinux/5#AndroidLinux_5]-->
+[/EXCERPT:LinuxSetup]
 -->
 
 ## End Result

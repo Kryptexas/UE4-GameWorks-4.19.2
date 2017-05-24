@@ -93,7 +93,7 @@ private:
 };
 
 template<>
-struct TStructOpsTypeTraits<FKey> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FKey> : public TStructOpsTypeTraitsBase2<FKey>
 {
 	enum
 	{

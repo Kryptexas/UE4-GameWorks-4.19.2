@@ -4,60 +4,65 @@
 #include "Misc/AssertionMacros.h"
 #include "Misc/DateTime.h"
 #include "Internationalization/Text.h"
+#include "Internationalization/TextChronoFormatter.h"
+#include "Internationalization/TextTransformer.h"
 #include "Internationalization/Internationalization.h"
 
 #if !UE_ENABLE_ICU
 #include "Text.h"
 #include "TextData.h"
 
-bool FText::IsWhitespace( const TCHAR Char )
+FString FTextChronoFormatter::AsDate( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulture& TargetCulture )
+{
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	return DateTime.ToString(TEXT("%Y.%m.%d"));
+}
+
+FString FTextChronoFormatter::AsTime( const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulture& TargetCulture )
+{
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	return DateTime.ToString(TEXT("%H.%M.%S"));
+}
+
+FString FTextChronoFormatter::AsDateTime( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulture& TargetCulture )
+{
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	return DateTime.ToString(TEXT("%Y.%m.%d-%H.%M.%S"));
+}
+
+FString FTextTransformer::ToLower(const FString& InStr)
+{
+	return InStr.ToLower();
+}
+
+FString FTextTransformer::ToUpper(const FString& InStr)
+{
+	return InStr.ToUpper();
+}
+
+bool FText::IsWhitespace(const TCHAR Char)
 {
 	return FChar::IsWhitespace(Char);
 }
 
-FText FText::AsDate( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulturePtr& TargetCulture )
-{
-	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	return FText::FromString( DateTime.ToString( TEXT("%Y.%m.%d") ) );
-}
-
-FText FText::AsTime( const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture )
-{
-	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	return FText::FromString( DateTime.ToString( TEXT("%H.%M.%S") ) );
-}
-
-FText FText::AsTimespan( const FTimespan& Timespan, const FCulturePtr& TargetCulture)
-{
-	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	FDateTime DateTime(Timespan.GetTicks());
-	return FText::FromString( DateTime.ToString( TEXT("%H.%M.%S") ) );
-}
-
-FText FText::AsDateTime( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture )
-{
-	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	return FText::FromString(DateTime.ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
-}
-
 int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	return FCString::Strcmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() );
+	return ToString().Compare(Other.ToString(), ESearchCase::CaseSensitive);
 }
 
 int32 FText::CompareToCaseIgnored( const FText& Other ) const
 {
-	return FCString::Stricmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() );
+	return ToString().Compare(Other.ToString(), ESearchCase::IgnoreCase);
 }
 
 bool FText::EqualTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	return FCString::Strcmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() ) == 0;
+	return ToString().Equals(Other.ToString(), ESearchCase::CaseSensitive);
 }
 
 bool FText::EqualToCaseIgnored( const FText& Other ) const
 {
-	return CompareToCaseIgnored( Other ) == 0;
+	return ToString().Equals(Other.ToString(), ESearchCase::IgnoreCase);
 }
 
 FText::FSortPredicate::FSortPredicate(const ETextComparisonLevel::Type ComparisonLevel)

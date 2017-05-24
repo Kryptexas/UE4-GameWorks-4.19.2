@@ -7,11 +7,28 @@
 #include "SoundEffectSubmix.h"
 #include "SoundSubmix.generated.h"
 
+class UEdGraph;
 class USoundEffectSubmixPreset;
+class USoundSubmix;
+
+
+// Class used to send audio to submixes from USoundBase
+USTRUCT(BlueprintType)
+struct ENGINE_API FSoundSubmixSendInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	// The amount of audio to send
+	UPROPERTY(EditAnywhere, Category = SubmixSend)
+	float SendLevel;
+	
+	// The submix to send the audio to
+	UPROPERTY(EditAnywhere, Category = SubmixSend)
+	USoundSubmix* SoundSubmix;
+};
 
 
 #if WITH_EDITOR
-class USoundSubmix;
 
 /** Interface for sound submix graph interaction with the AudioEditor module. */
 class ISoundSubmixAudioEditor
@@ -44,22 +61,13 @@ class ENGINE_API USoundSubmix : public UObject
 	UPROPERTY(EditAnywhere, Category = SoundSubmix)
 	TArray<USoundEffectSubmixPreset*> SubmixEffectChain;
 
-	// The output wet level to use for the output of this submix in parent submixes
-	UPROPERTY(EditAnywhere, Category = SoundSubmix)
-	float OutputWetLevel;
-
 protected:
 
 	//~ Begin UObject Interface.
-	virtual void Serialize(FArchive& Ar) override;
 	virtual FString GetDesc() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
 
-#if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
 	//~ End UObject Interface.
 
 public:

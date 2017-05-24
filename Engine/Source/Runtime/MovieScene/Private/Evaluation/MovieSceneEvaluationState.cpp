@@ -4,6 +4,7 @@
 #include "MovieSceneSequence.h"
 #include "MovieScene.h"
 #include "IMovieScenePlayer.h"
+#include "MovieSceneBindingOverridesInterface.h"
 
 DECLARE_CYCLE_STAT(TEXT("Find Bound Objects"), MovieSceneEval_FindBoundObjects, STATGROUP_MovieSceneEval);
 
@@ -134,8 +135,8 @@ void FMovieSceneObjectCache::SetSequence(UMovieSceneSequence& InSequence, FMovie
 
 void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlayer& Player)
 {
-	FBoundObjects& Bindings = BoundObjects.FindOrAdd(InGuid);
-	Bindings.Objects.Reset();
+	FBoundObjects* Bindings = &BoundObjects.FindOrAdd(InGuid);
+	Bindings->Objects.Reset();
 
 	if (auto* Children = ChildBindings.Find(InGuid))
 	{
@@ -167,7 +168,11 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 		{
 			ChildBindings.FindOrAdd(Possessable->GetParent()).AddUnique(InGuid);
 
-			for (TWeakObjectPtr<> Parent : FindBoundObjects(Possessable->GetParent(), Player))
+			TArrayView<TWeakObjectPtr<>> ParentBoundObjects = FindBoundObjects(Possessable->GetParent(), Player);
+
+			// Refresh bindings in case of map changes
+			Bindings = BoundObjects.Find(InGuid);
+			for (TWeakObjectPtr<> Parent : ParentBoundObjects)
 			{
 				if (bUseParentsAsContext)
 				{
@@ -182,7 +187,7 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 				Player.ResolveBoundObjects(InGuid, SequenceID, *Sequence, ResolutionContext, FoundObjects);
 				for (UObject* Object : FoundObjects)
 				{
-					Bindings.Objects.Add(Object);
+					Bindings->Objects.Add(Object);
 				}
 			}
 		}
@@ -192,23 +197,42 @@ void FMovieSceneObjectCache::UpdateBindings(const FGuid& InGuid, IMovieScenePlay
 			Player.ResolveBoundObjects(InGuid, SequenceID, *Sequence, ResolutionContext, FoundObjects);
 			for (UObject* Object : FoundObjects)
 			{
-				Bindings.Objects.Add(Object);
+				Bindings->Objects.Add(Object);
 			}
 		}
 	}
 	else
 	{
 		// Probably a spawnable then (or an phantom)
-		UObject* SpawnedObject = Player.GetSpawnRegister().FindSpawnedObject(InGuid, SequenceID);
-		if (SpawnedObject)
+		bool bUseDefault = true;
+
+		// Allow external overrides for spawnables
+		const IMovieSceneBindingOverridesInterface* Overrides = Player.GetBindingOverrides();
+		if (Overrides)
 		{
-			Bindings.Objects.Add(SpawnedObject);
+			TArray<UObject*, TInlineAllocator<1>> FoundObjects;
+			bUseDefault = Overrides->LocateBoundObjects(InGuid, SequenceID, FoundObjects);
+			for (UObject* Object : FoundObjects)
+			{
+				Bindings->Objects.Add(Object);
+			}
+		}
+
+		// If we have no overrides, or they want to allow the default spawnable, do that now
+		if (bUseDefault)
+		{
+			UObject* SpawnedObject = Player.GetSpawnRegister().FindSpawnedObject(InGuid, SequenceID);
+			if (SpawnedObject)
+			{
+				Bindings->Objects.Add(SpawnedObject);
+			}
 		}
 	}
 
-	if (Bindings.Objects.Num())
+	if (Bindings->Objects.Num())
 	{
-		Bindings.bUpToDate = true;
+		Bindings->bUpToDate = true;
+		Player.NotifyBindingUpdate(InGuid, SequenceID, Bindings->Objects);
 	}
 }
 

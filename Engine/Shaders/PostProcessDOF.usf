@@ -244,6 +244,11 @@ void MainRecombinePS(
 //	LayerMerger = lerp(LayerMerger, SceneColorAndDepth.rgb, Layer2Mask * (1 - PerPixelNearMask));
 	LayerMerger = lerp(LayerMerger, SceneColorAndDepth.rgb, Layer2Mask);
 
+	float3 FrontLayer = (UnfocusedSceneColor * Div0Bias + DOFAccumLayer3.rgb) / (DOFAccumLayer3.a + Div0Bias);
+
+	// Layer 3: on top of that blend the front half res layer	
+	LayerMerger = lerp(LayerMerger, FrontLayer, saturate(Layer3Mask * 5));
+
 #if SEPARATE_TRANSLUCENCY
 	{
 		//@todo - use UpsampleSeparateTranslucency
@@ -253,11 +258,6 @@ void MainRecombinePS(
 		LayerMerger.rgb = LayerMerger.rgb * SeparateTranslucency.a + SeparateTranslucency.rgb;
 	}
 #endif
-
-	float3 FrontLayer = (UnfocusedSceneColor * Div0Bias + DOFAccumLayer3.rgb) / (DOFAccumLayer3.a + Div0Bias);
-
-	// Layer 3: on top of that blend the front half res layer	
-	LayerMerger = lerp(LayerMerger, FrontLayer, saturate(Layer3Mask * 5));
 
 	OutColor.rgb = LayerMerger;
 	OutColor.a = 0;

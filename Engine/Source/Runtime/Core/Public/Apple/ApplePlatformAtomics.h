@@ -13,6 +13,8 @@
 #include "IOS/IOSSystemIncludes.h"
 #endif
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
 /**
  * Apple implementation of the Atomics OS functions
  **/
@@ -140,6 +142,8 @@ struct CORE_API FApplePlatformAtomics : public FGenericPlatformAtomics
 		return RetVal;
 	}
 };
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 typedef FApplePlatformAtomics FPlatformAtomics;
 

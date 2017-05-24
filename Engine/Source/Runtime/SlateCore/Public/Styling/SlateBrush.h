@@ -183,7 +183,7 @@ public:
 	/**
 	 * Gets the UObject that represents the brush resource, if any.
 	 *
-	 * Ensure that we only access the TextureObject as a UTexture2D.
+	 * The object may be a UMaterialInterface or a UTexture.
 	 *
 	 * @return The resource object, or nullptr if it is not set.
 	 */

@@ -5,7 +5,7 @@ using System.IO;
 
 public class GpgCppSDK : ModuleRules
 {
-	public GpgCppSDK(TargetInfo Target)
+	public GpgCppSDK(ReadOnlyTargetRules Target) : base(Target)
 	{
 		Type = ModuleType.External;
 

@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title: VR Profiling Tools
 Crumbs:%ROOT%, Platforms
 Description:Internal and external tools you can use for profiling your Unreal Engine VR project
@@ -19,17 +19,6 @@ For GPU profiling, there are more options.  First of all, and most specifically,
 **Ctrl + Shift + Comma** in editor builds running with `-game` emulation.  
 
 Additionally, you could go further drilling into more systemic problems using both GPUView and Nsight. 
-
-## RenderDoc
-
-RenderDoc is an external tool you can also use for profiling Unreal Engine projects. 
-To use it with UE4:
-
-1. Download the latest [RenderDoc](https://renderdoc.org/builds).
-1. In RenderDoc, configure it to launch your game (e.g. UE4Editor.exe, with appropriate command line arguments).
-1. Run `ToggleDrawEvents` from the command line of your app to get human readable events.
-1. Press F12 to capture a frame.
-
 
 ## Oculus PerfHud
 
@@ -52,3 +41,23 @@ where N is:
 |	3	| Shows render timing info for application |
 |	4	| Shows render timing info for OVR compositor |
 |	5	| Shows SDK & HMD version Info |
+
+## SteamVR Frame Timing Tool
+
+The SteamVR Frame Timing will allow you see how your VR project is performing in both the UE4 Editor or in a packaged build. This tool will help verify the actual CPU and GPU timings, excluding any throttling done by the application. There's a great overview of how to open the tool as well as what all of the values relate to on the 
+[Valve Developer Community]( https://developer.valvesoftware.com/wiki/SteamVR/Frame_Timing) page. Please note that there is nothing inside of UE4 that needs to be done in order for the SteamVR Frame Timing tools to work. All of the tool functionality and use is done from the SteamVR Application.
+
+[region:note]
+Please note that there is nothing inside of UE4 that needs to be done in order for the SteamVR Frame Timing tools to work. 
+[/region]
+
+
+## RenderDoc
+
+RenderDoc is an external tool you can also use for profiling Unreal Engine projects. 
+To use it with UE4:
+
+1. Download the latest [RenderDoc](https://renderdoc.org/builds).
+1. In RenderDoc, configure it to launch your game (e.g. UE4Editor.exe, with appropriate command line arguments).
+1. Run `ToggleDrawEvents` from the command line of your app to get human readable events.
+1. Press F12 to capture a frame.

@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class ScriptEditorPlugin : ModuleRules
 	{
-		public ScriptEditorPlugin(TargetInfo Target)
+		public ScriptEditorPlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {					

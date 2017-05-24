@@ -164,6 +164,14 @@ static TAutoConsoleVariable<int32> CVarParallelInitViews(
 	ECVF_RenderThreadSafe
 	);
 
+float GLightMaxDrawDistanceScale = 1.0f;
+static FAutoConsoleVariableRef CVarLightMaxDrawDistanceScale(
+	TEXT("r.LightMaxDrawDistanceScale"),
+	GLightMaxDrawDistanceScale,
+	TEXT("Scale applied to the MaxDrawDistance of lights.  Useful for fading out local lights more aggressively on some platforms."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+);
+
 /*------------------------------------------------------------------------------
 	Visibility determination.
 ------------------------------------------------------------------------------*/
@@ -1357,7 +1365,7 @@ struct FMarkRelevantStaticMeshesForViewData
 	float InvLODScale;
 	float MinScreenRadiusForCSMDepthSquared;
 	float MinScreenRadiusForDepthPrepassSquared;
-	bool bForceEarlyZPass;
+	bool bFullEarlyZPass;
 
 	FMarkRelevantStaticMeshesForViewData(FViewInfo& View)
 	{
@@ -1368,14 +1376,14 @@ struct FMarkRelevantStaticMeshesForViewData
 		// outside of the loop to be more efficient
 		ForcedLODLevel = (View.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
 
-		LODScale = CVarStaticMeshLODDistanceScale.GetValueOnRenderThread();
+		LODScale = CVarStaticMeshLODDistanceScale.GetValueOnRenderThread() * View.LODDistanceFactor;
 		InvLODScale = 1.0f / LODScale;
 
 		MinScreenRadiusForCSMDepthSquared = GMinScreenRadiusForCSMDepth * GMinScreenRadiusForCSMDepth;
 		MinScreenRadiusForDepthPrepassSquared = GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass;
 
-		extern TAutoConsoleVariable<int32> CVarEarlyZPass;
-		bForceEarlyZPass = CVarEarlyZPass.GetValueOnRenderThread() == 2;
+		extern bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel);
+		bFullEarlyZPass = ShouldForceFullDepthPass(View.GetFeatureLevel());
 	}
 };
 
@@ -1420,6 +1428,7 @@ struct FRelevancePacket
 	FRelevancePrimSet<FPrimitiveSceneInfo*> LazyUpdatePrimitives;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> DirtyPrecomputedLightingBufferPrimitives;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> VisibleEditorPrimitives;
+	FRelevancePrimSet<FPrimitiveSceneProxy*> VolumetricPrimSet;
 	uint16 CombinedShadingModelMask;
 	bool bUsesGlobalDistanceField;
 	bool bUsesLightingChannels;
@@ -1537,6 +1546,11 @@ struct FRelevancePacket
 				}
 			}
 
+			if (ViewRelevance.bHasVolumeMaterialDomain)
+			{
+				VolumetricPrimSet.AddPrim(PrimitiveSceneInfo->Proxy);
+			}
+
 			CombinedShadingModelMask |= ViewRelevance.ShadingModelMaskRelevance;
 			bUsesGlobalDistanceField |= ViewRelevance.bUsesGlobalDistanceField;
 			bUsesLightingChannels |= ViewRelevance.bUsesLightingChannels;
@@ -1624,7 +1638,7 @@ struct FRelevancePacket
 			float DistanceSquared = (Bounds.Origin - ViewData.ViewOrigin).SizeSquared();
 			const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * ViewData.InvLODScale);
 			const bool bDrawShadowDepth = FMath::Square(Bounds.SphereRadius) > ViewData.MinScreenRadiusForCSMDepthSquared * LODFactorDistanceSquared;
-			const bool bDrawDepthOnly = ViewData.bForceEarlyZPass || FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared;
+			const bool bDrawDepthOnly = ViewData.bFullEarlyZPass || FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared;
 
 			const int32 NumStaticMeshes = PrimitiveSceneInfo->StaticMeshes.Num();
 			for(int32 MeshIndex = 0;MeshIndex < NumStaticMeshes;MeshIndex++)
@@ -1745,6 +1759,7 @@ struct FRelevancePacket
 		MeshDecalPrimSet.AppendTo(WriteView.MeshDecalPrimSet.Prims);
 		CustomDepthSet.AppendTo(WriteView.CustomDepthSet);
 		DirtyPrecomputedLightingBufferPrimitives.AppendTo(WriteView.DirtyPrecomputedLightingBufferPrimitives);
+		VolumetricPrimSet.AppendTo(WriteView.VolumetricPrimSet);
 		for (int32 Index = 0; Index < LazyUpdatePrimitives.NumPrims; Index++)
 		{
 			LazyUpdatePrimitives.Prims[Index]->ConditionalLazyUpdateForRendering(RHICmdList);
@@ -2696,7 +2711,7 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 					{
 						FSphere Bounds = Proxy->GetBoundingSphere();
 						float DistanceSquared = (Bounds.Center - View.ViewMatrices.GetViewOrigin()).SizeSquared();
-						float MaxDistSquared = Proxy->GetMaxDrawDistance() * Proxy->GetMaxDrawDistance();
+						float MaxDistSquared = Proxy->GetMaxDrawDistance() * Proxy->GetMaxDrawDistance() * GLightMaxDrawDistanceScale * GLightMaxDrawDistanceScale;
 						const bool bDrawLight = (FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared < 1.0f)
 													&& (MaxDistSquared == 0 || DistanceSquared < MaxDistSquared);
 							
@@ -2902,6 +2917,8 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		}
 	}
 
+	SetupVolumetricFog();
+
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_OnStartFrame);
 		OnStartFrame(RHICmdList);
@@ -3023,6 +3040,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 
 		HLODState.PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
 		HLODState.PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+		HLODState.HiddenChildPrimitiveMap.Init(false, View.PrimitiveVisibilityMap.Num());
 		FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
 		TArray<FPrimitiveViewRelevance, SceneRenderingAllocator>& RelevanceMap = View.PrimitiveViewRelevanceMap;
 
@@ -3175,6 +3193,7 @@ void FLODSceneTree::ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSc
 
 			HLODState.PrimitiveFadingLODMap[ChildIndex] = bIsFading;
 			HLODState.PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
+			HLODState.HiddenChildPrimitiveMap[ChildIndex] = false;
 			VisibilityFlags[ChildIndex] = true;
 
 			// Fading only occurs at the adjacent hierarchy level, below should be hidden
@@ -3200,6 +3219,7 @@ void FLODSceneTree::HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& 
 		for (const auto& Child : Node.ChildrenSceneInfos)
 		{
 			const int32 ChildIndex = Child->GetIndex();
+			HLODState.HiddenChildPrimitiveMap[ChildIndex] = true;
 			VisibilityFlags[ChildIndex] = false;
 
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))

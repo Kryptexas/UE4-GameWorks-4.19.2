@@ -39,6 +39,12 @@
 #ifndef SPEEX_RESAMPLER_H
 #define SPEEX_RESAMPLER_H
 
+#ifdef ANDROID
+#ifndef OUTSIDE_SPEEX
+#define OUTSIDE_SPEEX
+#endif
+#endif
+
 #ifdef OUTSIDE_SPEEX
 
 /********* WARNING: MENTAL SANITY ENDS HERE *************/

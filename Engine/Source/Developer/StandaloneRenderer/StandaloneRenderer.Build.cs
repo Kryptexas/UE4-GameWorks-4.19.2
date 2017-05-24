@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class StandaloneRenderer : ModuleRules
 {
-	public StandaloneRenderer(TargetInfo Target)
+	public StandaloneRenderer(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Developer/StandaloneRenderer/Private");
 

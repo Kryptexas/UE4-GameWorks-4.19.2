@@ -7,6 +7,7 @@ parent:Engine/Rendering/Materials
 order:6
 topic-image:Engine/Rendering/Materials/InstanceTopic.png
 type:overview
+tags:Materials
 
 
 ![](MICEditor.png)

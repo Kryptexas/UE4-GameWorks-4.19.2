@@ -147,6 +147,9 @@ public class BuildCommonTools : BuildCommand
 
 			Agenda.DotNetProjects.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Source/Programs/PS4/PS4DevKitUtil/PS4DevKitUtil.csproj"));
 			ExtraBuildProducts.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/PS4/PS4DevKitUtil.exe"));
+
+			Agenda.DotNetProjects.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Source/Programs/PS4/PS4SymbolTools/PS4SymbolTool.csproj"));
+			ExtraBuildProducts.Add(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/PS4/PS4SymbolTool.exe"));
 		}
 		
 		// Xbox One binaries
@@ -187,7 +190,7 @@ public class ZipProjectUp : BuildCommand
         Filter.Include("/Source/...");
         Filter.Include("*.uproject");
 
-        ZipFiles(InstallDirectory, ProjectDirectory, Filter);
+        ZipFiles(new FileReference(InstallDirectory), new DirectoryReference(ProjectDirectory), Filter);
 
 		Log("Completed zipping project up");
     }

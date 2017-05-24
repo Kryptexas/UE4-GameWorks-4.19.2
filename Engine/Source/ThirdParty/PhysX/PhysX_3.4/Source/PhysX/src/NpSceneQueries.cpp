@@ -23,7 +23,7 @@
 // components in life support devices or systems without express written approval of
 // NVIDIA Corporation.
 //
-// Copyright (c) 2008-2016 NVIDIA Corporation. All rights reserved.
+// Copyright (c) 2008-2017 NVIDIA Corporation. All rights reserved.
 // Copyright (c) 2004-2008 AGEIA Technologies, Inc. All rights reserved.
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
@@ -610,7 +610,7 @@ struct CapturePvdOnReturn : public PxHitCallback<HitType>
 	~CapturePvdOnReturn()
 	{
 		const physx::Vd::ScbScenePvdClient& pvdClient = mSQ->getScene().getScenePvdClient();
-		if(!(pvdClient.isConnected() && (pvdClient.getScenePvdFlags() & PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES)))
+		if(!(pvdClient.checkPvdDebugFlag() && (pvdClient.getScenePvdFlagsFast() & PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES)))
 			return;
 
 		physx::Vd::PvdSceneQueryCollector& collector = mBFD ? mSQ->getBatchedSqCollector() : mSQ->getSingleSqCollector();
@@ -819,18 +819,8 @@ bool NpSceneQueries::multiQuery(
 	}
 }
 
+//explicit template instantiation
+template bool NpSceneQueries::multiQuery<PxRaycastHit>(const MultiQueryInput&, PxHitCallback<PxRaycastHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const; 
+template bool NpSceneQueries::multiQuery<PxOverlapHit>(const MultiQueryInput&, PxHitCallback<PxOverlapHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const;
+template bool NpSceneQueries::multiQuery<PxSweepHit>(const MultiQueryInput&, PxHitCallback<PxSweepHit>&, PxHitFlags, const PxQueryCache*, const PxQueryFilterData&, PxQueryFilterCallback*, BatchQueryFilterData*) const;
 
-// explicit instantiations for multiQuery to fix link errors on android
-#if !PX_WINDOWS_FAMILY
-#define TMQ(hittype) \
-	template bool NpSceneQueries::multiQuery<hittype>( \
-		const MultiQueryInput& input, PxHitCallback<hittype>& hits, PxHitFlags hitFlags, \
-		const PxQueryCache* cache, const PxQueryFilterData& filterData, PxQueryFilterCallback* filterCall, \
-		BatchQueryFilterData* bfd) const;
-
-TMQ(PxRaycastHit)
-TMQ(PxOverlapHit)
-TMQ(PxSweepHit)
-
-#undef TMQ
-#endif

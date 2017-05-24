@@ -109,6 +109,11 @@ public:
 			GotoStatement.Type = KCST_GotoReturn;
 		}
 	}
+
+	virtual bool RequiresRegisterNetsBeforeScheduling() const override
+	{
+		return true;
+	}
 };
 
 UK2Node_FunctionResult::UK2Node_FunctionResult(const FObjectInitializer& ObjectInitializer)

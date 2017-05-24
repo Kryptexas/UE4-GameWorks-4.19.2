@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3178044
+﻿INTSourceChangelist:3224908
 title:계층형 레벨 오브 디테일
 description:언리얼 엔진 4 의 계층형 레벨 오브 디테일 시스템 첫 페이지입니다.
 crumbs:
@@ -21,7 +21,7 @@ social-image:HLOD_social.png
 
 ## 안내서
 
-[DIR(output:"topic" type:"sequential landing" parent:"Engine/HLOD")]
+[DIR(output:"topic" type:"how-to" parent:"Engine/HLOD")]
 
 ## 참고서
 

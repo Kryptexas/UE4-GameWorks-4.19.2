@@ -32,7 +32,7 @@ public:
 		{
 			delete Pin;
 		}
-		PinsToDelete.Empty();
+		PinsToDelete.Reset();
 	}
 
 	virtual bool IsTickable() const override
@@ -450,7 +450,7 @@ void UEdGraphPin::AssignByRefPassThroughConnection(UEdGraphPin* InTargetPin)
 const class UEdGraphSchema* UEdGraphPin::GetSchema() const
 {
 #if WITH_EDITOR
-	auto OwnerNode = GetOwningNode();
+	UEdGraphNode* OwnerNode = GetOwningNode();
 	return OwnerNode ? OwnerNode->GetSchema() : NULL;
 #else
 	return NULL;
@@ -477,7 +477,7 @@ FString UEdGraphPin::GetDefaultAsString() const
 FText UEdGraphPin::GetDisplayName() const
 {
 	FText DisplayName = FText::GetEmpty();
-	auto Schema = GetSchema();
+	const UEdGraphSchema* Schema = GetSchema();
 	if (Schema)
 	{
 		DisplayName = Schema->GetPinDisplayName(this);
@@ -845,10 +845,10 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 			bParseSuccess = (Buffer != nullptr);
 			if (bParseSuccess)
 			{
-				int32 EnumIdx = PinDirectionEnum->GetIndexByName(FName(*DirectionString));
+				int32 EnumIdx = PinDirectionEnum->GetIndexByNameString(DirectionString);
 				if (EnumIdx != INDEX_NONE)
 				{
-					Direction = (EEdGraphPinDirection)EnumIdx;
+					Direction = (EEdGraphPinDirection)PinDirectionEnum->GetValueByIndex(EnumIdx);
 				}
 				else
 				{
@@ -900,6 +900,14 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 			if (bParseSuccess)
 			{
 				DefaultObject = FindObject<UObject>(nullptr, *DefaultObjectString);
+
+#if WITH_EDITORONLY_DATA
+				// Fixup redirectors
+				while (Cast<UObjectRedirector>(DefaultObject) != nullptr)
+				{
+					DefaultObject = Cast<UObjectRedirector>(DefaultObject)->DestinationObject;
+				}
+#endif
 			}
 		}
 		else if (PropertyToken == PinHelpers::DefaultTextValueName)
@@ -1063,7 +1071,7 @@ UEdGraphPin::UEdGraphPin(UEdGraphNode* InOwningNode, const FGuid& PinIdGuid)
 {
 	PinHelpers::NumPinsInMemory++;
 #ifdef TRACK_PINS
-	PinAllocationTracking.Add(TPairInitializer<UEdGraphPin*, FString>(this, InOwningNode ? InOwningNode->GetName() : FString(TEXT("UNOWNED"))));
+	PinAllocationTracking.Emplace(this, InOwningNode ? InOwningNode->GetName() : FString(TEXT("UNOWNED")));
 #endif //TRACK_PINS
 }
 
@@ -1080,7 +1088,7 @@ void UEdGraphPin::ResolveAllPinReferences()
 {
 	for (auto& Entry : PinHelpers::UnresolvedPins)
 	{
-		FPinResolveId Key = Entry.Key;
+		const FPinResolveId& Key = Entry.Key;
 		UEdGraphNode* Node = Key.OwningNode.Get();
 		if (!Node)
 		{
@@ -1094,7 +1102,7 @@ void UEdGraphPin::ResolveAllPinReferences()
 			ResolveReferencesToPin(*TargetPin);
 		}
 	}
-	PinHelpers::UnresolvedPins.Empty();
+	PinHelpers::UnresolvedPins.Reset();
 }
 
 void UEdGraphPin::InitFromDeprecatedPin(class UEdGraphPin_Deprecated* DeprecatedPin)

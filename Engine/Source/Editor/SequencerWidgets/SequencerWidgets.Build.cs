@@ -4,7 +4,7 @@ using UnrealBuildTool;
 
 public class SequencerWidgets : ModuleRules
 {
-	public SequencerWidgets(TargetInfo Target)
+	public SequencerWidgets(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateIncludePaths.Add("Editor/SequencerWidgets/Private");
 

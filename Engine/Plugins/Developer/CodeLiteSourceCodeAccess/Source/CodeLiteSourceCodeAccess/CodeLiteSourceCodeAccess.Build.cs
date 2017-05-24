@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class CodeLiteSourceCodeAccess : ModuleRules
 	{
-		public CodeLiteSourceCodeAccess(TargetInfo Target)
+		public CodeLiteSourceCodeAccess(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[]

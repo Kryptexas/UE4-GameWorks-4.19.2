@@ -4,7 +4,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class SlateRemote : ModuleRules
 	{
-		public SlateRemote(TargetInfo Target)
+		public SlateRemote(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {

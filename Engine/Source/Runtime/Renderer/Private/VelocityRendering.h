@@ -44,7 +44,7 @@ public:
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
 		DRAWING_POLICY_MATCH_END
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* SceneView, const FVelocityDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FDrawingPolicyRenderState& DrawRenderState, const FSceneView* SceneView, const FVelocityDrawingPolicy::ContextDataType PolicyContext) const;
 
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 

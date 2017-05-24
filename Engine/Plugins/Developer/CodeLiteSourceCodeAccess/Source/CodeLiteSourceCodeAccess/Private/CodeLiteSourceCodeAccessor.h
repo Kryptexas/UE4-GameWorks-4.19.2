@@ -90,7 +90,7 @@ private:
 	FString GetSolutionPath() const;
 
 	// TODO Well, change that as soon as possible.
-#ifdef PLATFORM_LINUX
+#if PLATFORM_LINUX
 	pid_t FindProcess(const char* name);
 #endif
 

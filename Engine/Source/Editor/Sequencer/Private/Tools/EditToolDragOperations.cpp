@@ -5,6 +5,7 @@
 #include "MovieSceneTrack.h"
 #include "Sequencer.h"
 #include "SequencerSettings.h"
+#include "SequencerCommonHelpers.h"
 #include "VirtualTrackArea.h"
 
 struct FDefaultKeySnappingCandidates : ISequencerSnapCandidate
@@ -39,14 +40,14 @@ struct FDefaultSectionSnappingCandidates : ISequencerSnapCandidate
 	TSet<UMovieSceneSection*> SectionsToIgnore;
 };
 
-TOptional<FSequencerSnapField::FSnapResult> SnapToInterval(const TArray<float>& InTimes, float Threshold, const USequencerSettings& Settings)
+TOptional<FSequencerSnapField::FSnapResult> SnapToInterval(const TArray<float>& InTimes, float Threshold, FSequencer* Sequencer)
 {
 	TOptional<FSequencerSnapField::FSnapResult> Result;
 
 	float SnapAmount = 0.f;
 	for (float Time : InTimes)
 	{
-		float IntervalSnap = Settings.SnapTimeToInterval(Time);
+		float IntervalSnap = SequencerHelpers::SnapTimeToInterval(Time, Sequencer->GetFixedFrameInterval());
 		float ThisSnapAmount = IntervalSnap - Time;
 		if (FMath::Abs(ThisSnapAmount) <= Threshold)
 		{
@@ -225,12 +226,12 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapSectionTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(SectionTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
+			SnappedTime = SnapToInterval(SectionTimes, Sequencer.GetFixedFrameInterval()/2.f, &Sequencer);
 		}
 
 		if (SnappedTime.IsSet())
 		{
-			// Add the snapped amopunt onto the delta
+			// Add the snapped amount onto the delta
 			DeltaTime += SnappedTime->Snapped - SnappedTime->Original;
 		}
 	}
@@ -416,12 +417,12 @@ void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapSectionTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(SectionTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
+			SnappedTime = SnapToInterval(SectionTimes, Sequencer.GetFixedFrameInterval()/2.f, &Sequencer);
 		}
 
 		if (SnappedTime.IsSet())
 		{
-			// Add the snapped amopunt onto the delta
+			// Add the snapped amount onto the delta
 			VirtualMousePos.X += SnappedTime->Snapped - SnappedTime->Original;
 		}
 	}
@@ -689,7 +690,7 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 
 		if (!SnappedTime.IsSet() && Settings->GetSnapKeyTimesToInterval())
 		{
-			SnappedTime = SnapToInterval(KeyTimes, Settings->GetTimeSnapInterval()/2.f, *Settings);
+			SnappedTime = SnapToInterval(KeyTimes, Sequencer.GetFixedFrameInterval()/2.f, &Sequencer);
 		}
 
 		if (SnappedTime.IsSet())

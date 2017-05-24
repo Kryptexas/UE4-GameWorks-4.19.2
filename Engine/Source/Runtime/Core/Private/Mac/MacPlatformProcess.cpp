@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "MacPlatformProcess.h"
+#include "ApplePlatformRunnableThread.h"
 #include "Misc/App.h"
 #include "Misc/Paths.h"
 #include "MacApplication.h"

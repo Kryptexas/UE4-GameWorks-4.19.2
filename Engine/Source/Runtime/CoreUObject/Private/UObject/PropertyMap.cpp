@@ -763,7 +763,7 @@ void UMapProperty::InstanceSubobjects(void* Data, void const* DefaultData, UObje
 			if (MapHelper.IsValidIndex(Index))
 			{
 				uint8* PairPtr        = MapHelper.GetPairPtr(Index);
-				uint8* DefaultPairPtr = DefaultMapHelper.FindMapPairPtrWithKey(PairPtr, Index);
+				uint8* DefaultPairPtr = DefaultMapHelper.FindMapPairPtrWithKey(PairPtr, FMath::Min(DefaultMapHelper.GetMaxIndex() - 1, Index));
 
 				if (bInstancedKey)
 				{
@@ -948,7 +948,7 @@ bool UMapProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 						{
 							if(!bKeyAlreadyPresent)
 							{
-								MapHelper.RemoveAt(NextPairIndex);
+								MapHelper.EmptyValues();
 							}
 							
 							bConversionSucceeded = false;

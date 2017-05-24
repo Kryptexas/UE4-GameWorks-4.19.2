@@ -2,11 +2,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Web;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.CrashReporter.CrashReportWebSite.Properties;
+using Tools.CrashReporter.CrashReportWebSite.ViewModels;
 
 namespace Tools.CrashReporter.CrashReportWebSite.DataModels
 {
@@ -98,13 +102,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         /// <summary>
         /// Prepares Bugg for JIRA
         /// </summary>
-        /// <param name="crashesForBugg"></param>
-        public void PrepareBuggForJira(List<Crash> crashesForBugg)
+        /// <param name="CrashesForBugg"></param>
+        public void PrepareBuggForJira(List<CrashDataModel> CrashesForBugg)
         {
             var jiraConnection = JiraConnection.Get();
 
             this.AffectedVersions = new SortedSet<string>();
-            this.AffectedMajorVersions = new SortedSet<string>(); // 4.4, 4.5 and so
+            this.AffectedMajorVersions = new SortedSet<string>(); // 4.4, 4.5 and so on
             this.BranchesFoundIn = new SortedSet<string>();
             this.AffectedPlatforms = new SortedSet<string>();
             var hashSetDescriptions = new HashSet<string>();
@@ -112,39 +116,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             var machineIds = new HashSet<string>();
             var firstClAffected = int.MaxValue;
 
-            foreach (var crash in crashesForBugg)
+            foreach (var crashDataModel in CrashesForBugg)
             {
                 // Only add machine if the number has 32 characters
-                if (crash.ComputerName != null && crash.ComputerName.Length == 32)
+                if (crashDataModel.ComputerName != null && crashDataModel.ComputerName.Length == 32)
                 {
-                    machineIds.Add(crash.ComputerName);
-                    if (crash.Description.Length > 4)
+                    machineIds.Add(crashDataModel.ComputerName);
+                    if (crashDataModel.Description.Length > 4)
                     {
-                        hashSetDescriptions.Add(crash.Description);
+                        hashSetDescriptions.Add(crashDataModel.Description);
                     }
                 }
 
-                if (!string.IsNullOrEmpty(crash.BuildVersion))
+                if (!string.IsNullOrEmpty(crashDataModel.BuildVersion))
                 {
-                    this.AffectedVersions.Add(crash.BuildVersion);
+                    this.AffectedVersions.Add(crashDataModel.BuildVersion);
                 }
                 // Depot || Stream
-                if (!string.IsNullOrEmpty(crash.Branch))
+                if (!string.IsNullOrEmpty(crashDataModel.Branch))
                 {
-                    this.BranchesFoundIn.Add(crash.Branch);
+                    this.BranchesFoundIn.Add(crashDataModel.Branch);
                 }
 
-                var crashBuiltFromCl = 0;
-                int.TryParse(crash.ChangeListVersion, out crashBuiltFromCl);
-                if (crashBuiltFromCl > 0)
+                var CrashBuiltFromCl = 0;
+                int.TryParse(crashDataModel.ChangelistVersion, out CrashBuiltFromCl);
+                if (CrashBuiltFromCl > 0)
                 {
-                    firstClAffected = Math.Min(firstClAffected, crashBuiltFromCl);
+                    firstClAffected = Math.Min(firstClAffected, CrashBuiltFromCl);
                 }
 
-                if (!string.IsNullOrEmpty(crash.PlatformName))
+                if (!string.IsNullOrEmpty(crashDataModel.PlatformName))
                 {
                     // Platform = "Platform [Desc]";
-                    var platSubs = crash.PlatformName.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                    var platSubs = crashDataModel.PlatformName.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
                     if (platSubs.Length >= 1)
                     {
                         this.AffectedPlatforms.Add(platSubs[0]);
@@ -152,7 +156,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
                 }
             }
 
-            // CopyToJira 
+            //ToJiraDescriptons
             foreach (var line in hashSetDescriptions)
             {
                 var listItem = "- " + HttpUtility.HtmlEncode(line);
@@ -176,20 +180,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             }
 
             var bv = this.BuildVersion;
-            this.NumberOfUniqueMachines = machineIds.Distinct().Count();// # Affected Users
-            var latestClAffected = crashesForBugg.				// CL of the latest build
-                Where(crash => crash.BuildVersion == bv).
-                Max(crash => crash.ChangeListVersion);
+            var latestClAffected = CrashesForBugg.				// CL of the latest build
+                Where(Crash => Crash.BuildVersion == bv).
+                Max(Crash => Crash.ChangelistVersion);
 
             var ILatestCLAffected = -1;
             int.TryParse(latestClAffected, out ILatestCLAffected);
             this.LatestCLAffected = ILatestCLAffected;			// Latest CL Affected
 
-            var latestOsAffected = crashesForBugg.OrderByDescending(crash => crash.TimeOfCrash).First().PlatformName;
+            var latestOsAffected = CrashesForBugg.OrderByDescending(Crash => Crash.TimeOfCrash).First().PlatformName;
             this.LatestOSAffected = latestOsAffected;			// Latest Environment Affected
 
             // ToJiraSummary
-            var functionCalls = new CallStackContainer(crashesForBugg.First()).GetFunctionCallsForJira();
+            var functionCalls = new CallStackContainer(CrashesForBugg.First().CrashType, CrashesForBugg.First().RawCallStack, CrashesForBugg.First().PlatformName).GetFunctionCallsForJira();
             if (functionCalls.Count > 0)
             {
                 this.ToJiraSummary = functionCalls[0];
@@ -255,7 +258,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
         }
 
         /// <summary>
-        /// 
+        /// Create a new Jira for this bug
         /// </summary>
         public void CopyToJira()
         {
@@ -274,7 +277,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
                     issueFields = CreateOrionIssue(jc);
                     break;
                 default:
-                    issueFields = CreateGeneralIssue(jc);
+                    issueFields = CreateProjectIssue(jc, this.JiraProject);
                     break;
             }
 
@@ -302,7 +305,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             fields.Add("summary", "[CrashReport] " + ToJiraSummary);						// Call Stack, Line 1
             fields.Add("description", string.Join("\r\n", ToJiraDescriptions));			    // Description
             fields.Add("issuetype", new Dictionary<string, object> { { "id", "1" } });	    // Bug
-            fields.Add("labels", new string[] { "crash", "liveissue" });					// <label>crash, live issue</label>
+            fields.Add("labels", new string[] { "Crash", "liveissue" });					// <label>Crash, live issue</label>
             fields.Add("customfield_11500", ToJiraFirstCLAffected);						    // Changelist # / Found Changelist
             fields.Add("environment", LatestOSAffected);		    						// Platform
 
@@ -321,9 +324,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             
             // Callstack customfield_11807
             string JiraCallstack = "{noformat}" + string.Join("\r\n", ToJiraFunctionCalls) + "{noformat}";
-            fields.Add("customfield_11807", JiraCallstack);								// Callstack
+            fields.Add("customfield_11807", JiraCallstack);								    // Callstack
 
-            string BuggLink = "http://crashreporter/Buggs/Show/" + Id;
+            string BuggLink = "http://Crashreporter/Buggs/Show/" + Id;
             fields.Add("customfield_11205", BuggLink);
             return fields;
         }
@@ -341,18 +344,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             fields.Add("description", string.Join("\r\n", ToJiraDescriptions)); // Description
             fields.Add("project", new Dictionary<string, object> { { "id", 10600 } });
             fields.Add("issuetype", new Dictionary<string, object> { { "id", "1" } }); // Bug
+
             //branch found in - required = false
             fields.Add("customfield_11201", ToBranchName.ToList());
 
-            //found CL = required = false
-            //fields.Add("customfield_11500", th );
-
             //Platforms - required = false
             fields.Add("customfield_11203", new List<object>() { new Dictionary<string, object>() { { "self", Settings.Default.JiraDeploymentAddress + "/customFieldOption/11425" }, { "value", "PC" } } });
-
-            //repro rate required = false
-            //fields.Add("customfield_11900", this.Buggs_Crashes.Count);
-
+            
             // Callstack customfield_11807
             string JiraCallstack = "{noformat}" + string.Join("\r\n", ToJiraFunctionCalls) + "{noformat}";
             fields.Add("customfield_11807", JiraCallstack);         // Callstack
@@ -360,18 +358,108 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             return fields;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="jc"></param>
+        /// <returns></returns>
         public Dictionary<string, object> CreateOrionIssue(JiraConnection jc)
         {
             var fields = new Dictionary<string, object>();
 
             fields.Add("summary", "[CrashReport] " + ToJiraSummary); // Call Stack, Line 1
             fields.Add("description", string.Join("\r\n", ToJiraDescriptions)); // Description
-            fields.Add("project", new Dictionary<string, object> { { "id", 10700 } });
+            fields.Add("project", new Dictionary<string, object> { { "id", 10700 } }); 
             fields.Add("issuetype", new Dictionary<string, object> { { "id", "1" } }); // Bug
             fields.Add("components", new object[]{new Dictionary<string, object>{{"id", "14604"}}});
 
             return fields;
-        } 
+        }
+
+        /// <summary>
+        /// Create an issue description from a project ID
+        /// </summary>
+        /// <param name="jc"></param>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
+        public Dictionary<string, object> CreateProjectIssue(JiraConnection jc, string projectId)
+        {
+            var response = jc.JiraRequest("/issue/createmeta?projectKeys="+ projectId +"&expand=projects.issuetypes.fields",
+                JiraConnection.JiraMethod.GET, null, HttpStatusCode.OK);
+
+            var issueFields = new Dictionary<string, object>();
+            issueFields.Add("summary", "[CrashReport] " + ToJiraSummary); // Call Stack, Line 1
+            issueFields.Add("description", string.Join("\r\n", ToJiraDescriptions)); // Description
+
+            using (var responseReader = new StreamReader(response.GetResponseStream()))
+            {
+                var responseText = responseReader.ReadToEnd();
+
+                JObject jsonObject = JObject.Parse(responseText);
+
+                bool fields = jsonObject["projects"][0]["issuetypes"].Any();
+
+                issueFields.Add("project", new Dictionary<string, object> { { "id", jsonObject["projects"][0]["id"].ToObject<int>() } });
+
+                if (!fields) 
+                    return issueFields;
+
+                foreach (
+                    JToken issuetype in
+                        jsonObject["projects"][0]["issuetypes"])//.[0]["fields"])
+                {
+                    //Only fill required fields
+                    if (issuetype["subtask"].ToObject<bool>() == true)
+                        continue;
+
+                    JToken field = issuetype["fields"];
+
+                    if (field["required"].ToObject<bool>() == true)
+                    {
+                        //don't fill fields with a default value
+                        if (field["hasDefaultValue"].ToObject<bool>() == true)
+                            continue;
+
+                        JToken outValue;
+
+                        //if (field.Value["schema"]["type"].ToObject<string>() == "array")
+                        //{
+                        //    if (field.Value["allowedValues"] != null)
+                        //    {
+                        //        //don't add the same key twice
+                        //        if (issueFields.ContainsKey(field.Key))
+                        //            continue;
+
+                        //        issueFields.Add(field.Key, new object[]
+                        //        {
+                        //            new Dictionary<string, object>
+                        //            {
+                        //                {"id", field.Value["allowedValues"][0]["id"].ToObject<string>()}
+                        //            }
+                        //        });
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    if (obj.TryGetValue("allowedValues", out outValue))
+                        //    {
+                        //        //don't add the same key twice
+                        //        if (issueFields.ContainsKey(field.Key))
+                        //            continue;
+
+                        //        issueFields.Add(field.Key,
+                        //            new Dictionary<string, object>
+                        //            {
+                        //                {"id", field.Value["allowedValues"][0]["id"].ToObject<int>()}
+                        //            });
+                        //    }
+                        //}
+                    }
+                }
+            }
+
+            return issueFields;
+        }
 
         /// <summary> Returns concatenated string of fields from the specified JIRA list. </summary>
         public string GetFieldsFrom(List<object> jiraList, string fieldName)
@@ -405,27 +493,27 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
             Tooltip += "Summary: " + ToJiraSummary + NL;
             Tooltip += "Description: " + NL + string.Join(NL, ToJiraDescriptions) + NL;
             Tooltip += "Issuetype: " + "1 (bug)" + NL;
-            Tooltip += "Labels: " + "crash" + NL;
+            Tooltip += "Labels: " + "Crash" + NL;
             Tooltip += "Changelist # / Found Changelist: " + ToJiraFirstCLAffected + NL;
             Tooltip += "LatestOSAffected: " + LatestOSAffected + NL;
 
             // "name"
-            string JiraVersions = GetFieldsFrom(ToJiraVersions, "name");
+            var JiraVersions = GetFieldsFrom(ToJiraVersions, "name");
             Tooltip += "JiraVersions: " + JiraVersions + NL;
 
             // "value"
-            string JiraBranches = "";
+            var jiraBranches = "";
             foreach (var Branch in ToJiraBranches)
             {
-                JiraBranches += Branch + ", ";
+                jiraBranches += Branch + ", ";
             }
-            Tooltip += "JiraBranches: " + JiraBranches + NL;
+            Tooltip += "JiraBranches: " + jiraBranches + NL;
 
             // "value"
-            string JiraPlatforms = GetFieldsFrom(ToJiraPlatforms, "value");
+            var JiraPlatforms = GetFieldsFrom(ToJiraPlatforms, "value");
             Tooltip += "JiraPlatforms: " + JiraPlatforms + NL;
 
-            string JiraCallstack = "Callstack:" + NL + string.Join(NL, ToJiraFunctionCalls) + NL;
+            var JiraCallstack = "Callstack:" + NL + string.Join(NL, ToJiraFunctionCalls) + NL;
             Tooltip += JiraCallstack;
 
             return Tooltip;

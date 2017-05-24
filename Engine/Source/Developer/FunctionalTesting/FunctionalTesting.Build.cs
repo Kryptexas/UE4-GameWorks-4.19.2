@@ -4,13 +4,14 @@ using UnrealBuildTool;
 
 public class FunctionalTesting : ModuleRules
 {
-	public FunctionalTesting(TargetInfo Target)
+	public FunctionalTesting(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
 				"Engine",
+                "ShaderCore",
 				"Slate",
                 "MessageLog",
                 "AIModule",

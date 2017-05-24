@@ -59,6 +59,9 @@
 #include "PersonaCommonCommands.h"
 #include "AnimGraphCommands.h"
 
+#include "AnimGraphNode_AimOffsetLookAt.h"
+#include "AnimGraphNode_RotationOffsetBlendSpace.h"
+
 #define LOCTEXT_NAMESPACE "AnimationBlueprintEditor"
 
 const FName AnimationBlueprintEditorAppName(TEXT("AnimationBlueprintEditorApp"));
@@ -291,6 +294,8 @@ void FAnimationBlueprintEditor::ExtendToolbar()
 		FToolBarExtensionDelegate::CreateLambda([this](FToolBarBuilder& ParentToolbarBuilder)
 	{
 		FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+		PersonaModule.AddCommonToolbarExtensions(ParentToolbarBuilder, PersonaToolkit.ToSharedRef());
+
 		TSharedRef<class IAssetFamily> AssetFamily = PersonaModule.CreatePersonaAssetFamily(GetBlueprintObj());
 		AddToolbarWidget(PersonaModule.CreateAssetFamilyShortcutWidget(SharedThis(this), AssetFamily));
 	}
@@ -315,7 +320,10 @@ void FAnimationBlueprintEditor::SetDetailObjects(const TArray<UObject*>& InObjec
 void FAnimationBlueprintEditor::SetDetailObject(UObject* Obj)
 {
 	TArray<UObject*> Objects;
-	Objects.Add(Obj);
+	if (Obj)
+	{
+		Objects.Add(Obj);
+	}
 	SetDetailObjects(Objects);
 }
 
@@ -852,6 +860,131 @@ void FAnimationBlueprintEditor::OnConvertToPoseByName()
 	}
 }
 
+void FAnimationBlueprintEditor::OnConvertToAimOffsetLookAt()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_RotationOffsetBlendSpace* OldNode = Cast<UAnimGraphNode_RotationOffsetBlendSpace>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.BlendSpace)
+			{
+				//const FScopedTransaction Transaction( LOCTEXT("ConvertToSequenceEvaluator", "Convert to Single Frame Animation") );
+
+				// convert to sequence evaluator
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new evaluator
+				FGraphNodeCreator<UAnimGraphNode_AimOffsetLookAt> NodeCreator(*TargetGraph);
+				UAnimGraphNode_AimOffsetLookAt* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.BlendSpace = OldNode->Node.BlendSpace;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				OldPosePin = OldNode->FindPin(TEXT("BasePose"));
+				NewPosePin = NewNode->FindPin(TEXT("BasePose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
+void FAnimationBlueprintEditor::OnConvertToAimOffsetSimple()
+{
+	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if (SelectedNodes.Num() > 0)
+	{
+		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
+		{
+			UAnimGraphNode_AimOffsetLookAt* OldNode = Cast<UAnimGraphNode_AimOffsetLookAt>(*NodeIter);
+
+			// see if sequence player
+			if (OldNode && OldNode->Node.BlendSpace)
+			{
+				//const FScopedTransaction Transaction( LOCTEXT("ConvertToSequenceEvaluator", "Convert to Single Frame Animation") );
+				// convert to sequence player
+				UEdGraph* TargetGraph = OldNode->GetGraph();
+				// create new player
+				FGraphNodeCreator<UAnimGraphNode_RotationOffsetBlendSpace> NodeCreator(*TargetGraph);
+				UAnimGraphNode_RotationOffsetBlendSpace* NewNode = NodeCreator.CreateNode();
+				NewNode->Node.BlendSpace = OldNode->Node.BlendSpace;
+				NodeCreator.Finalize();
+
+				// get default data from old node to new node
+				FEdGraphUtilities::CopyCommonState(OldNode, NewNode);
+
+				UEdGraphPin* OldPosePin = OldNode->FindPin(TEXT("Pose"));
+				UEdGraphPin* NewPosePin = NewNode->FindPin(TEXT("Pose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				OldPosePin = OldNode->FindPin(TEXT("BasePose"));
+				NewPosePin = NewNode->FindPin(TEXT("BasePose"));
+
+				if (ensure(OldPosePin && NewPosePin))
+				{
+					NewPosePin->CopyPersistentDataFromOldPin(*OldPosePin);
+				}
+
+				// remove from selection and from graph
+				NodeIter.RemoveCurrent();
+				TargetGraph->RemoveNode(OldNode);
+
+				NewNode->Modify();
+			}
+		}
+
+		// @todo fixme: below code doesn't work
+		// because of SetAndCenterObject kicks in after new node is added
+		// will need to disable that first
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
+	}
+}
+
 void FAnimationBlueprintEditor::OnOpenRelatedAsset()
 {
 	FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
@@ -1095,6 +1228,22 @@ void FAnimationBlueprintEditor::RedoAction()
 	GEditor->RedoTransaction();
 }
 
+void FAnimationBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
+{
+	FBlueprintEditor::NotifyPostChange(PropertyChangedEvent, PropertyThatChanged);
+
+	// When you change properties on a node, call CopyNodeDataToPreviewNode to allow pushing those to preview instance, for live editing
+	UAnimGraphNode_Base* SelectedNode = SelectedAnimGraphNode.Get();
+	if (SelectedNode)
+	{
+		FAnimNode_Base* PreviewNode = FindAnimNode(SelectedNode);
+		if (PreviewNode)
+		{
+			SelectedNode->CopyNodeDataToPreviewNode(PreviewNode);
+		}
+	}
+}
+
 void FAnimationBlueprintEditor::Tick(float DeltaTime)
 {
 	FBlueprintEditor::Tick(DeltaTime);
@@ -1126,22 +1275,25 @@ TStatId FAnimationBlueprintEditor::GetStatId() const
 
 void FAnimationBlueprintEditor::OnBlueprintPreCompile(UBlueprint* BlueprintToCompile)
 {
-	UDebugSkelMeshComponent* PreviewMeshComponent = PersonaToolkit->GetPreviewMeshComponent();
-	if(PreviewMeshComponent && PreviewMeshComponent->PreviewInstance)
+	if (PersonaToolkit.IsValid())
 	{
-		// If we are compiling an anim notify state the class will soon be sanitized and 
-		// if an anim instance is running a state when that happens it will likely
-		// crash, so we end any states that are about to compile.
-		UAnimPreviewInstance* Instance = PreviewMeshComponent->PreviewInstance;
-		USkeletalMeshComponent* SkelMeshComp = Instance->GetSkelMeshComponent();
-
-		for(int32 Idx = Instance->ActiveAnimNotifyState.Num() - 1 ; Idx >= 0 ; --Idx)
+		UDebugSkelMeshComponent* PreviewMeshComponent = PersonaToolkit->GetPreviewMeshComponent();
+		if(PreviewMeshComponent && PreviewMeshComponent->PreviewInstance)
 		{
-			FAnimNotifyEvent& Event = Instance->ActiveAnimNotifyState[Idx];
-			if(Event.NotifyStateClass->GetClass() == BlueprintToCompile->GeneratedClass)
+			// If we are compiling an anim notify state the class will soon be sanitized and 
+			// if an anim instance is running a state when that happens it will likely
+			// crash, so we end any states that are about to compile.
+			UAnimPreviewInstance* Instance = PreviewMeshComponent->PreviewInstance;
+			USkeletalMeshComponent* SkelMeshComp = Instance->GetSkelMeshComponent();
+
+			for(int32 Idx = Instance->ActiveAnimNotifyState.Num() - 1 ; Idx >= 0 ; --Idx)
 			{
-				Event.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(Event.NotifyStateClass->GetOuter()));
-				Instance->ActiveAnimNotifyState.RemoveAt(Idx);
+				FAnimNotifyEvent& Event = Instance->ActiveAnimNotifyState[Idx];
+				if(Event.NotifyStateClass->GetClass() == BlueprintToCompile->GeneratedClass)
+				{
+					Event.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(Event.NotifyStateClass->GetOuter()));
+					Instance->ActiveAnimNotifyState.RemoveAt(Idx);
+				}
 			}
 		}
 	}
