@@ -1311,7 +1311,7 @@ namespace UnrealBuildTool
 		[ObsoleteOverride("ShouldUseSharedBuildEnvironment() is deprecated in the 4.16 release. Set the BuildEnvironment field from the TargetRules constructor instead.")]
 		public virtual bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
 		{
-			return UnrealBuildTool.IsEngineInstalled() || (Target.Type != global::UnrealBuildTool.TargetType.Program && !Target.IsMonolithic);
+			return Target.Type != global::UnrealBuildTool.TargetType.Program && (UnrealBuildTool.IsEngineInstalled() || !Target.IsMonolithic);
 		}
 
 		/// <summary>
