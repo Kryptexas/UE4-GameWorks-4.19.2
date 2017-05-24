@@ -79,9 +79,10 @@ public:
 
 	int32 ClothingSimDataIndexWhenPainting;
 	TArray<uint32> ClothingSimIndices;
-	int32 ClothingVisiblePropertyIndex;
 
 	TArray<float> ClothingVisiblePropertyValues;
+	float PropertyViewMin;
+	float PropertyViewMax;
 
 	TArray<FVector> SkinnedPositions;
 	TArray<FVector> SkinnedNormals;
@@ -200,7 +201,10 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	uint32 bShowClothData : 1;
 
 	UPROPERTY(transient)
-	int32 VisibleClothProperty;
+	float MinClothPropertyView;
+
+	UPROPERTY(transient)
+	float MaxClothPropertyView;
 
 	/** Non Compressed SpaceBases for when bDisplayRawAnimation == true **/
 	TArray<FTransform> UncompressedSpaceBases;
@@ -229,7 +233,7 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	TArray<class UMaterialInterface*> SkelMaterials;
 	
-	UPROPERTY(transient)
+	UPROPERTY(transient, NonTransactional)
 	class UAnimPreviewInstance* PreviewInstance;
 
 	UPROPERTY(transient)
@@ -322,10 +326,6 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	/** Sets the flag used to determine whether or not the current active cloth sim mesh should be rendered */
 	UNREALED_API void SetShowClothProperty(bool bState);
 
-	/** Sets the cloth propert which should be visualized on the rendered sim mesh */
-	UNREALED_API void SetVisibleClothProperty(int32 ClothProperty);
-
-
 #if WITH_EDITOR
 	//TODO - This is a really poor way to post errors to the user. Work out a better way.
 	struct FAnimNotifyErrors
@@ -377,6 +377,9 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 
 	/** The currently selected LOD for painting */
 	int32 SelectedClothingLodForPainting;
+
+	/** The currently selected mask inside the above LOD to be painted */
+	int32 SelectedClothingLodMaskForPainting;
 
 	UNREALED_API void ToggleMeshSectionForCloth(FGuid InClothGuid);
 

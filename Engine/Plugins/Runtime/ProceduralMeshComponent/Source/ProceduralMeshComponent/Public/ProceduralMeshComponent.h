@@ -229,6 +229,12 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Procedural Mesh")
 	bool bUseComplexAsSimpleCollision;
 
+	/**
+	*	Controls whether the physics cooking should be done off the game thread. This should be used when collision geometry doesn't have to be immediately up to date (For example streaming in far away objects)
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Procedural Mesh")
+	bool bUseAsyncCooking;
+
 	/** Collision data */
 	UPROPERTY(Instanced)
 	class UBodySetup* ProcMeshBodySetup;
@@ -269,6 +275,11 @@ private:
 	void CreateProcMeshBodySetup();
 	/** Mark collision data as dirty, and re-create on instance if necessary */
 	void UpdateCollision();
+	/** Once async physics cook is done, create needed state */
+	void FinishPhysicsAsyncCook(UBodySetup* FinishedBodySetup);
+
+	/** Helper to create new body setup objects */
+	UBodySetup* CreateBodySetupHelper();
 
 	/** Array of sections of mesh */
 	UPROPERTY()
@@ -281,7 +292,10 @@ private:
 	/** Local space bounds of mesh */
 	UPROPERTY()
 	FBoxSphereBounds LocalBounds;
-
+	
+	/** Queue for async body setups that are being cooked */
+	UPROPERTY(transient)
+	TArray<UBodySetup*> AsyncBodySetupQueue;
 
 	friend class FProceduralMeshSceneProxy;
 };

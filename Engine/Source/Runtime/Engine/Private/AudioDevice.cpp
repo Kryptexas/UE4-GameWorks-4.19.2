@@ -105,11 +105,7 @@ void FDynamicParameter::Update(float DeltaTime)
 -----------------------------------------------------------------------------*/
 
 FAudioDevice::FAudioDevice()
-	: MaxChannels(0)
-	, NumSourceWorkers(0)
-	, SampleRate(AUDIO_SAMPLE_RATE)
-	, DeviceOutputBufferLength(0)
-	, CommonAudioPool(nullptr)
+	: CommonAudioPool(nullptr)
 	, CommonAudioPoolFreeBytes(0)
 	, DeviceHandle(INDEX_NONE)
 	, AudioPlugin(nullptr)
@@ -174,31 +170,17 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 
 	bool bDeferStartupPrecache = false;
 
-	// initialize config variables
-	MaxChannels = InMaxChannels;
+	// initialize max channels taking into account platform configurations
+	// Get a copy of the platform-specific settings (overriden by platforms)
+	PlatformSettings = GetPlatformSettings();
 
-	// Setup the desired sample rate and buffer length
-	DeviceOutputBufferLength = 1024;
+	// MaxChannels is the min of the platform-specific value and the max value in the quality settings (InMaxChannels)
+	MaxChannels = PlatformSettings.MaxChannels > 0 ? FMath::Min(PlatformSettings.MaxChannels, InMaxChannels) : InMaxChannels;
 
-	int32 ConfigBufferLength = 0;
-	if (GConfig->GetInt(TEXT("Audio"), TEXT("AudioMixerBufferLength"), ConfigBufferLength, GEngineIni))
-	{
-		// only allow power of 2 buffer size
-		ConfigBufferLength = FMath::RoundUpToPowerOfTwo(ConfigBufferLength);
+	// Mixed sample rate is set by the platform
+	SampleRate = PlatformSettings.SampleRate;
 
-		// use a min buffer length of 128
-		DeviceOutputBufferLength = FMath::Max(128, ConfigBufferLength);
-	}
-
-	// Setup the number of desired source workers
-	NumSourceWorkers = 4;
-
-	int32 ConfigSourceWorkers = 0;
-	if (GConfig->GetInt(TEXT("Audio"), TEXT("AudioMixerSourceWorkers"), ConfigSourceWorkers, GEngineIni))
-	{
-		// Only allow workers in the range of our channels...
-		NumSourceWorkers = FMath::Clamp(ConfigSourceWorkers, 0, MaxChannels);
-	}
+	check(MaxChannels != 0);
 
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
 
@@ -229,7 +211,7 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	InitSoundClasses();
 	InitSoundEffectPresets();
 
-// 	// Audio mixer needs to create effects manager before initing the plugins
+	// Audio mixer needs to create effects manager before initializing the plugins.
 	if (IsAudioMixerEnabled())
 	{
 		// create a platform specific effects manager
@@ -254,7 +236,6 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 
 		// Initialize the plugin
 		Plugin->Initialize();
-
 
 		// Create feature override interfaces. Note these can be null if the audio plugin is not creating an override for the feature.
 		SpatializationPluginInterface = Plugin->CreateSpatializationInterface(this);

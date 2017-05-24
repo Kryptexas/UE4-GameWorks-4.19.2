@@ -353,12 +353,7 @@ namespace UnrealBuildTool
 		/// Whether to include NvCloth.
 		/// </summary>
 		public bool bCompileNvCloth = false;
-
-		/// <summary>
-		/// Whether to allow runtime cooking of physics.
-		/// </summary>
-		public bool bRuntimePhysicsCooking = true;
-
+        
 		/// <summary>
 		/// Whether to include Box2D support.
 		/// </summary>
@@ -1492,11 +1487,6 @@ namespace UnrealBuildTool
 		public bool bCompileNvCloth
 		{
 			get { return Inner.bCompileNvCloth; }
-		}
-
-		public bool bRuntimePhysicsCooking
-		{
-			get { return Inner.bRuntimePhysicsCooking; }
 		}
 
 		public bool bCompileBox2D

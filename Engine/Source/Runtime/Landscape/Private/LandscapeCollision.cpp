@@ -43,7 +43,7 @@
 #include "Engine/Engine.h"
 #include "Materials/MaterialInstanceConstant.h"
 #if WITH_EDITOR
-	#include "IPhysXFormat.h"
+	#include "IPhysXCooking.h"
 #endif
 
 #if ENABLE_COOK_STATS
@@ -659,7 +659,7 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 	TArray<uint8> OutData;
 
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	const IPhysXFormat* Cooker = TPM->FindPhysXFormat(Format);
+	const IPhysXCooking* Cooker = TPM->FindPhysXCooking(Format);
 	bool Result = Cooker->CookHeightField(Format, HFSize, Samples.GetData(), Samples.GetTypeSize(), OutData);
 
 	if (Result && bGenerateSimpleCollision)
@@ -866,7 +866,7 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 	bool bFlipNormals = true;
 	TArray<uint8> OutData;
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	const IPhysXFormat* Cooker = TPM->FindPhysXFormat(Format);
+	const IPhysXCooking* Cooker = TPM->FindPhysXCooking(Format);
 	bool Result = Cooker->CookTriMesh(Format, EPhysXMeshCookFlags::Default, Vertices, Indices, MaterialIndices, bFlipNormals, OutData);
 
 	if (Result)

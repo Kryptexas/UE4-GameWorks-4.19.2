@@ -104,6 +104,9 @@ void FCoreAudioSoundSource::FreeResources( void )
 			check( CoreAudioBuffer->ResourceID == 0 );
 			delete CoreAudioBuffer;
 			CoreAudioBuffer = nullptr;
+
+			// Null out the base-class ptr
+			Buffer = nullptr;
 		}
 		
 		bStreamedSound = false;
@@ -241,7 +244,8 @@ bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 	{
 		// Find matching buffer.
 		CoreAudioBuffer = FCoreAudioSoundBuffer::Init( AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f );
-	
+		Buffer = nullptr;
+
 		if( CoreAudioBuffer && CoreAudioBuffer->NumChannels > 0 )
 		{
 			SCOPE_CYCLE_COUNTER( STAT_AudioSourceInitTime );

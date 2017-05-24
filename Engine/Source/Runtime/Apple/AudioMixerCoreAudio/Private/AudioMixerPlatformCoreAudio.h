@@ -21,36 +21,27 @@ namespace Audio
 		~FMixerPlatformCoreAudio();
 
 		//~ Begin IAudioMixerPlatformInterface
-		EAudioMixerPlatformApi::Type GetPlatformApi() const override { return EAudioMixerPlatformApi::CoreAudio; }
-		bool InitializeHardware() override;
-		bool CheckAudioDeviceChange() override;
-		bool TeardownHardware() override;
-		bool IsInitialized() const override;
-		bool GetNumOutputDevices(uint32& OutNumOutputDevices) override;
-		bool GetOutputDeviceInfo(const uint32 InDeviceIndex, FAudioPlatformDeviceInfo& OutInfo) override;
-		bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const override;
-		bool OpenAudioStream(const FAudioMixerOpenStreamParams& Params) override;
-		bool CloseAudioStream() override;
-		bool StartAudioStream() override;
-		bool StopAudioStream() override;
-		bool MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId) override;
-		FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const override;
-		void SubmitBuffer(const TArray<float>& Buffer) override;
-		FName GetRuntimeFormat(USoundWave* InSoundWave) override;
-		bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) override;
-		ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
-		FString GetDefaultDeviceName() override;
+		virtual EAudioMixerPlatformApi::Type GetPlatformApi() const override { return EAudioMixerPlatformApi::CoreAudio; }
+		virtual bool InitializeHardware() override;
+		virtual bool CheckAudioDeviceChange() override;
+		virtual bool TeardownHardware() override;
+		virtual bool IsInitialized() const override;
+		virtual bool GetNumOutputDevices(uint32& OutNumOutputDevices) override;
+		virtual bool GetOutputDeviceInfo(const uint32 InDeviceIndex, FAudioPlatformDeviceInfo& OutInfo) override;
+		virtual bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const override;
+		virtual bool OpenAudioStream(const FAudioMixerOpenStreamParams& Params) override;
+		virtual bool CloseAudioStream() override;
+		virtual bool StartAudioStream() override;
+		virtual bool StopAudioStream() override;
+		virtual bool MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId) override;
+		virtual FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const override;
+		virtual void SubmitBuffer(const uint8* Buffer) override;
+		virtual FName GetRuntimeFormat(USoundWave* InSoundWave) override;
+		virtual bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) override;
+		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
+		virtual FString GetDefaultDeviceName() override;
+		virtual FAudioPlatformSettings GetPlatformSettings() const override;
 		//~ End IAudioMixerPlatformInterface
-
-		//~ Begin IAudioMixerDeviceChangedLister
-		void RegisterDeviceChangedListener() override;
-		void UnRegisterDeviceChangedListener() override;
-		void OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) override;
-		void OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) override;
-		void OnDeviceAdded(const FString& DeviceId) override;
-		void OnDeviceRemoved(const FString& DeviceId) override;
-		void OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState) override;
-		//~ End IAudioMixerDeviceChangedLister
 
 	private:
 		

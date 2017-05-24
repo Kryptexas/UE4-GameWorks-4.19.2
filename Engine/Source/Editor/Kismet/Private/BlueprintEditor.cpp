@@ -586,7 +586,8 @@ bool FBlueprintEditor::OnRequestClose()
 
 bool FBlueprintEditor::InEditingMode() const
 {
-	return !InDebuggingMode();
+	UBlueprint* Blueprint = GetBlueprintObj();
+	return !FSlateApplication::Get().InKismetDebuggingMode() && (!InDebuggingMode() || (Blueprint && Blueprint->CanRecompileWhilePlayingInEditor()));
 }
 
 bool FBlueprintEditor::IsCompilingEnabled() const
@@ -1617,6 +1618,7 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 		// When the blueprint that we are observing changes, it will notify this wrapper widget.
 		InitBlueprint->OnChanged().AddSP(this, &FBlueprintEditor::OnBlueprintChanged);
 		InitBlueprint->OnCompiled().AddSP(this, &FBlueprintEditor::OnBlueprintCompiled);
+		InitBlueprint->OnSetObjectBeingDebugged().AddSP(this, &FBlueprintEditor::HandleSetObjectBeingDebugged);
 	}
 
 	CreateDefaultCommands();
@@ -2185,6 +2187,8 @@ FBlueprintEditor::~FBlueprintEditor()
 	if (GetBlueprintObj())
 	{
 		GetBlueprintObj()->OnChanged().RemoveAll( this );
+		GetBlueprintObj()->OnCompiled().RemoveAll( this );
+		GetBlueprintObj()->OnSetObjectBeingDebugged().RemoveAll( this );
 	}
 
 	FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe( OnActiveTabChangedDelegateHandle );

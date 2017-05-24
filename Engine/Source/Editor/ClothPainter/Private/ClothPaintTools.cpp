@@ -8,6 +8,11 @@
 #include "ScopedTransaction.h"
 #include "SceneManagement.h"
 #include "Package.h"
+#include "Queue.h"
+#include "InputChord.h"
+#include "ClothPaintToolCommands.h"
+#include "UICommandInfo.h"
+#include "UICommandList.h"
 
 #define LOCTEXT_NAMESPACE "ClothTools"
 
@@ -19,14 +24,14 @@ FClothPaintTool_Brush::~FClothPaintTool_Brush()
 	}
 }
 
-FText FClothPaintTool_Brush::GetDisplayName()
+FText FClothPaintTool_Brush::GetDisplayName() const
 {
 	return LOCTEXT("ToolName_Brush", "Brush");
 }
 
 FPerVertexPaintAction FClothPaintTool_Brush::GetPaintAction(const FMeshPaintParameters& InPaintParams, UClothPainterSettings* InPainterSettings)
 {
-	return FPerVertexPaintAction::CreateRaw(this, &FClothPaintTool_Brush::PaintAction, InPaintParams.InverseBrushToWorldMatrix, InPainterSettings->PaintingProperty);
+	return FPerVertexPaintAction::CreateRaw(this, &FClothPaintTool_Brush::PaintAction, InPaintParams.InverseBrushToWorldMatrix);
 }
 
 UObject* FClothPaintTool_Brush::GetSettingsObject()
@@ -40,7 +45,7 @@ UObject* FClothPaintTool_Brush::GetSettingsObject()
 	return Settings;
 }
 
-void FClothPaintTool_Brush::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix, EPaintableClothProperty Property)
+void FClothPaintTool_Brush::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
 {
 	FClothMeshPaintAdapter* ClothAdapter = (FClothMeshPaintAdapter*)InArgs.Adapter;
 	if(ClothAdapter)
@@ -55,10 +60,10 @@ void FClothPaintTool_Brush::PaintAction(FPerVertexPaintActionArgs& InArgs, int32
 			ClothAdapter->GetVertexPosition(VertexIndex, Position);
 			Position = ClothAdapter->GetComponentToWorldMatrix().TransformPosition(Position);
 
-			float Value = SharedPainter->GetPropertyValue(VertexIndex, Property);
+			float Value = SharedPainter->GetPropertyValue(VertexIndex);
 			const float BrushRadius = BrushSettings->GetBrushRadius();
 			MeshPaintHelpers::ApplyBrushToVertex(Position, InverseBrushMatrix, BrushRadius * BrushRadius, BrushSettings->BrushFalloffAmount, Settings->PaintValue, Value);
-			SharedPainter->SetPropertyValue(VertexIndex, Value, Property);
+			SharedPainter->SetPropertyValue(VertexIndex, Value);
 		}
 	}
 }
@@ -71,7 +76,7 @@ FClothPaintTool_Gradient::~FClothPaintTool_Gradient()
 	}
 }
 
-FText FClothPaintTool_Gradient::GetDisplayName()
+FText FClothPaintTool_Gradient::GetDisplayName() const
 {
 	return LOCTEXT("ToolName_Gradient", "Gradient");
 }
@@ -80,17 +85,16 @@ bool FClothPaintTool_Gradient::InputKey(IMeshPaintGeometryAdapter* Adapter, FEdi
 {
 	bool bHandled = false;
 
-	if (InKey == EKeys::Enter)
+	if(InKey == EKeys::LeftControl || InKey == EKeys::RightControl)
 	{
-		if (bSelectingBeginPoints && GradientStartPoints.Num() > 0)
+		if(InEvent == IE_Pressed)
 		{
 			bSelectingBeginPoints = false;
 			bHandled = true;
 		}
-		else if (GradientEndPoints.Num() > 0)
+		else if(InEvent == IE_Released)
 		{
-			// Apply gradient?
-			ApplyGradient(Adapter);
+			bSelectingBeginPoints = true;
 			bHandled = true;
 		}
 	}
@@ -100,10 +104,10 @@ bool FClothPaintTool_Gradient::InputKey(IMeshPaintGeometryAdapter* Adapter, FEdi
 
 FPerVertexPaintAction FClothPaintTool_Gradient::GetPaintAction(const FMeshPaintParameters& InPaintParams, UClothPainterSettings* InPainterSettings)
 {
-	return FPerVertexPaintAction::CreateRaw(this, &FClothPaintTool_Gradient::PaintAction, InPaintParams.InverseBrushToWorldMatrix, InPainterSettings->PaintingProperty);
+	return FPerVertexPaintAction::CreateRaw(this, &FClothPaintTool_Gradient::PaintAction, InPaintParams.InverseBrushToWorldMatrix);
 }
 
-bool FClothPaintTool_Gradient::IsPerVertex()
+bool FClothPaintTool_Gradient::IsPerVertex() const
 {
 	return false;
 }
@@ -128,14 +132,20 @@ void FClothPaintTool_Gradient::Render(USkeletalMeshComponent* InComponent, IMesh
 	
 	for (const MeshPaintHelpers::FPaintRay& PaintRay : PaintRays)
 	{
-		for (const FVector& Vertex : GradientStartPoints)
+		for (const int32& Index : GradientStartIndices)
 		{
+			FVector Vertex;
+			InAdapter->GetVertexPosition(Index, Vertex);
+
 			const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
 			PDI->DrawPoint(WorldPositionVertex, FLinearColor::Green, VertexPointSize * 2.0f, SDPG_World);
 		}
 	
-		for (const FVector& Vertex : GradientEndPoints)
+		for (const int32& Index : GradientEndIndices)
 		{
+			FVector Vertex;
+			InAdapter->GetVertexPosition(Index, Vertex);
+
 			const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
 			PDI->DrawPoint(WorldPositionVertex, FLinearColor::Red, VertexPointSize * 2.0f, SDPG_World);
 		}
@@ -174,7 +184,7 @@ void FClothPaintTool_Gradient::Render(USkeletalMeshComponent* InComponent, IMesh
 	}
 }
 
-bool FClothPaintTool_Gradient::ShouldRenderInteractors()
+bool FClothPaintTool_Gradient::ShouldRenderInteractors() const
 {
 	return Settings->bUseRegularBrush;
 }
@@ -190,7 +200,32 @@ UObject* FClothPaintTool_Gradient::GetSettingsObject()
 	return Settings;
 }
 
-void FClothPaintTool_Gradient::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix, EPaintableClothProperty Property)
+void FClothPaintTool_Gradient::Activate(TWeakPtr<FUICommandList> InCommands)
+{
+	TSharedPtr<FUICommandList> SharedCommands = InCommands.Pin();
+	if(SharedCommands.IsValid())
+	{
+		const FClothPaintToolCommands_Gradient& Commands = FClothPaintToolCommands_Gradient::Get();
+
+		SharedCommands->MapAction(Commands.ApplyGradient, 
+			FExecuteAction::CreateRaw(this, &FClothPaintTool_Gradient::ApplyGradient),
+			FCanExecuteAction::CreateRaw(this, &FClothPaintTool_Gradient::CanApplyGradient)
+		);
+	}
+}
+
+void FClothPaintTool_Gradient::Deactivate(TWeakPtr<FUICommandList> InCommands)
+{
+	TSharedPtr<FUICommandList> SharedCommands = InCommands.Pin();
+	if(SharedCommands.IsValid())
+	{
+		const FClothPaintToolCommands_Gradient& Commands = FClothPaintToolCommands_Gradient::Get();
+
+		SharedCommands->UnmapAction(Commands.ApplyGradient);
+	}
+}
+
+void FClothPaintTool_Gradient::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
 {
 	TSharedPtr<FClothPainter> SharedPainter = Painter.Pin();
 	if(!SharedPainter.IsValid())
@@ -213,38 +248,53 @@ void FClothPaintTool_Gradient::PaintAction(FPerVertexPaintActionArgs& InArgs, in
 	SharedPainter->SetIsPainting(true);
 	
 	TArray<FVector> InRangeVertices = Adapter->SphereIntersectVertices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, BrushSettings->bOnlyFrontFacingTriangles);
-	if (InRangeVertices.Num())
+
+	TSet<int32> InRangeIndicesSet;
+	Adapter->GetInfluencedVertexIndices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, BrushSettings->bOnlyFrontFacingTriangles, InRangeIndicesSet);
+	
+	// Must have an array for sorting/counting
+	TArray<int32> InRangeIndices = InRangeIndicesSet.Array();
+
+	if (InRangeIndices.Num())
 	{
 		// Sort based on distance from brush centre
-		InRangeVertices.Sort([=](const FVector& PointOne, const FVector& PointTwo)
+		InRangeIndices.Sort([=](const int32& Idx0, const int32& Idx1)
 		{
+			FVector PointOne;
+			FVector PointTwo;
+
+			Adapter->GetVertexPosition(Idx0, PointOne);
+			Adapter->GetVertexPosition(Idx1, PointTwo);
+
 			return (PointOne - ComponentSpaceBrushPosition).SizeSquared() < (PointTwo - ComponentSpaceBrushPosition).SizeSquared();
 		});
 	
 		// Selection mode
 		if (!Settings->bUseRegularBrush)
 		{
-			InRangeVertices.SetNum(1);
+			InRangeIndices.SetNum(1);
 		}
 	
-		TArray<FVector>& GradientPoints = bSelectingBeginPoints ? GradientStartPoints : GradientEndPoints;
-	
+		TArray<int32>& CurrentList = bSelectingBeginPoints ? GradientStartIndices : GradientEndIndices;
+		TArray<int32>& OtherList = bSelectingBeginPoints ? GradientEndIndices : GradientStartIndices;
+
 		// Add selected verts to current list
-		for (const FVector& Vertex : InRangeVertices)
+		for (const int32& Index : InRangeIndices)
 		{
-			if (InArgs.Action == EMeshPaintAction::Erase && GradientPoints.Contains(Vertex))
+			if (InArgs.Action == EMeshPaintAction::Erase && CurrentList.Contains(Index))
 			{
-				GradientPoints.Remove(Vertex);
+				CurrentList.Remove(Index);
 			}
 			else if (InArgs.Action == EMeshPaintAction::Paint)
 			{
-				GradientPoints.AddUnique(Vertex);
+				CurrentList.AddUnique(Index);
+				OtherList.Remove(Index);
 			}
 		}
 	}
 }
 
-void FClothPaintTool_Gradient::ApplyGradient(IMeshPaintGeometryAdapter* InAdapter)
+void FClothPaintTool_Gradient::ApplyGradient()
 {
 	TSharedPtr<FClothPainter> SharedPainter = Painter.Pin();
 	if(!SharedPainter.IsValid())
@@ -252,12 +302,14 @@ void FClothPaintTool_Gradient::ApplyGradient(IMeshPaintGeometryAdapter* InAdapte
 		return;
 	}
 
-	if(!InAdapter)
+	TSharedPtr<IMeshPaintGeometryAdapter> SharedAdapter = SharedPainter->GetAdapter();
+
+	if(!SharedAdapter.IsValid())
 	{
 		return;
 	}
 
-	FClothMeshPaintAdapter* Adapter = (FClothMeshPaintAdapter*)InAdapter;
+	FClothMeshPaintAdapter* Adapter = (FClothMeshPaintAdapter*)SharedAdapter.Get();
 
 	{
 		FScopedTransaction Transaction(LOCTEXT("ApplyGradientTransaction", "Apply gradient"));
@@ -274,8 +326,10 @@ void FClothPaintTool_Gradient::ApplyGradient(IMeshPaintGeometryAdapter* InAdapte
 			// Get distances
 			// TODO: Look into surface distance instead of 3D distance? May be necessary for some complex shapes
 			float DistanceToStartSq = MAX_flt;
-			for(FVector& StartPoint : GradientStartPoints)
+			for(const int32& StartIndex : GradientStartIndices)
 			{
+				FVector StartPoint;
+				Adapter->GetVertexPosition(StartIndex, StartPoint);
 				const float DistanceSq = (StartPoint - Vert).SizeSquared();
 				if(DistanceSq < DistanceToStartSq)
 				{
@@ -284,8 +338,10 @@ void FClothPaintTool_Gradient::ApplyGradient(IMeshPaintGeometryAdapter* InAdapte
 			}
 
 			float DistanceToEndSq = MAX_flt;
-			for(FVector& EndPoint : GradientEndPoints)
+			for(const int32& EndIndex : GradientEndIndices)
 			{
+				FVector EndPoint;
+				Adapter->GetVertexPosition(EndIndex, EndPoint);
 				const float DistanceSq = (EndPoint - Vert).SizeSquared();
 				if(DistanceSq < DistanceToEndSq)
 				{
@@ -296,7 +352,7 @@ void FClothPaintTool_Gradient::ApplyGradient(IMeshPaintGeometryAdapter* InAdapte
 			// Apply to the mesh
 			UClothPainterSettings* PaintSettings = CastChecked<UClothPainterSettings>(SharedPainter->GetPainterSettings());
 			const float Value = FMath::LerpStable(Settings->GradientStartValue, Settings->GradientEndValue, DistanceToStartSq / (DistanceToStartSq + DistanceToEndSq));
-			SharedPainter->SetPropertyValue(VertIndex, Value, PaintSettings->PaintingProperty);
+			SharedPainter->SetPropertyValue(VertIndex, Value);
 		}
 		
 		// Finished edit
@@ -304,31 +360,279 @@ void FClothPaintTool_Gradient::ApplyGradient(IMeshPaintGeometryAdapter* InAdapte
 	}
 
 	// Empty the point lists as the operation is complete
-	GradientStartPoints.Reset();
-	GradientEndPoints.Reset();
+	GradientStartIndices.Reset();
+	GradientEndIndices.Reset();
 
 	// Move back to selecting begin points
 	bSelectingBeginPoints = true;
 }
 
-FPerVertexPaintAction FClothPaintTool_Smooth::GetPaintAction(const FMeshPaintParameters& InPaintParams, UClothPainterSettings* InPainterSettings)
+bool FClothPaintTool_Gradient::CanApplyGradient()
 {
-	return FPerVertexPaintAction::CreateRaw(this, &FClothPaintTool_Smooth::PaintAction, InPaintParams.InverseBrushToWorldMatrix, InPainterSettings->PaintingProperty);
+	return GradientEndIndices.Num() > 0 && GradientStartIndices.Num() > 0;
 }
 
-FText FClothPaintTool_Smooth::GetDisplayName()
+FClothPaintTool_Smooth::~FClothPaintTool_Smooth()
+{
+	if(Settings)
+	{
+		Settings->RemoveFromRoot();
+	}
+}
+
+FPerVertexPaintAction FClothPaintTool_Smooth::GetPaintAction(const FMeshPaintParameters& InPaintParams, UClothPainterSettings* InPainterSettings)
+{
+	return FPerVertexPaintAction::CreateRaw(this, &FClothPaintTool_Smooth::PaintAction, InPaintParams.InverseBrushToWorldMatrix);
+}
+
+FText FClothPaintTool_Smooth::GetDisplayName() const
 {
 	return LOCTEXT("ToolName_Smooth", "Smooth");
 }
 
 UObject* FClothPaintTool_Smooth::GetSettingsObject()
 {
-	return nullptr;
+	if(!Settings)
+	{
+		Settings = DuplicateObject<UClothPaintTool_SmoothSettings>(GetMutableDefault<UClothPaintTool_SmoothSettings>(), GetTransientPackage());
+		Settings->AddToRoot();
+	}
+
+	return Settings;
 }
 
-void FClothPaintTool_Smooth::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix, EPaintableClothProperty Property)
+bool FClothPaintTool_Smooth::IsPerVertex() const
 {
+	return false;
+}
 
+void FClothPaintTool_Smooth::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
+{
+	TSharedPtr<FClothPainter> SharedPainter = Painter.Pin();
+	if(!SharedPainter.IsValid())
+	{
+		return;
+	}
+
+	const FHitResult HitResult = InArgs.HitResult;
+	UClothPainterSettings* PaintSettings = CastChecked<UClothPainterSettings>(SharedPainter->GetPainterSettings());
+	const UPaintBrushSettings* BrushSettings = InArgs.BrushSettings;
+	FClothMeshPaintAdapter* Adapter = (FClothMeshPaintAdapter*)InArgs.Adapter;
+
+	const FMatrix ComponentToWorldMatrix = HitResult.Component->ComponentToWorld.ToMatrixWithScale();
+	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.CameraPosition));
+	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitResult.Location));
+	const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(BrushSettings->GetBrushRadius(), 0.0f, 0.0f)).Size();
+	const float ComponentSpaceSquaredBrushRadius = ComponentSpaceBrushRadius * ComponentSpaceBrushRadius;
+
+	// Override these flags becuase we're not actually "painting" so the state would be incorrect
+	SharedPainter->SetIsPainting(true);
+
+	TSet<int32> InfluencedVertices;
+	Adapter->GetInfluencedVertexIndices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, BrushSettings->bOnlyFrontFacingTriangles, InfluencedVertices);
+	const int32 NumVerts = InfluencedVertices.Num();
+	if(NumVerts > 0)
+	{
+		TArray<float> NewValues;
+		NewValues.AddZeroed(NumVerts);
+
+		int32 InfluencedIndex = 0;
+		for(int32 Index : InfluencedVertices)
+		{
+			const TArray<int32>* Neighbors = Adapter->GetVertexNeighbors(Index);
+			if(Neighbors && Neighbors->Num() > 0)
+			{
+				float Accumulator = 0.0f;
+
+				for(int32 NeighborIndex : (*Neighbors))
+				{
+					Accumulator += SharedPainter->GetPropertyValue(NeighborIndex);
+				}
+
+				NewValues[InfluencedIndex] = Accumulator / Neighbors->Num();
+			}
+			else
+			{
+				NewValues[InfluencedIndex] = SharedPainter->GetPropertyValue(Index);
+			}
+
+			++InfluencedIndex;
+		}
+
+		int32 ValueIndex = 0;
+		for(int32 Index : InfluencedVertices)
+		{
+			float Current = SharedPainter->GetPropertyValue(Index);
+			float Difference = NewValues[ValueIndex] - Current;
+
+			SharedPainter->SetPropertyValue(Index, Current + Difference * Settings->Strength);
+			++ValueIndex;
+		}
+	}
+}
+
+FClothPaintTool_Fill::~FClothPaintTool_Fill()
+{
+	if(Settings)
+	{
+		Settings->RemoveFromRoot();
+	}
+}
+
+FPerVertexPaintAction FClothPaintTool_Fill::GetPaintAction(const FMeshPaintParameters& InPaintParams, UClothPainterSettings* InPainterSettings)
+{
+	return FPerVertexPaintAction::CreateRaw(this, &FClothPaintTool_Fill::PaintAction, InPaintParams.InverseBrushToWorldMatrix);
+}
+
+FText FClothPaintTool_Fill::GetDisplayName() const
+{
+	return LOCTEXT("ToolName_Fill", "Fill");
+}
+
+UObject* FClothPaintTool_Fill::GetSettingsObject()
+{
+	if(!Settings)
+	{
+		Settings = DuplicateObject<UClothPaintTool_FillSettings>(GetMutableDefault<UClothPaintTool_FillSettings>(), GetTransientPackage());
+		Settings->AddToRoot();
+	}
+
+	return Settings;
+}
+
+bool FClothPaintTool_Fill::IsPerVertex() const
+{
+	return false;
+}
+
+bool FClothPaintTool_Fill::ShouldRenderInteractors() const
+{
+	return false;
+}
+
+void FClothPaintTool_Fill::Render(USkeletalMeshComponent* InComponent, IMeshPaintGeometryAdapter* InAdapter, const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
+{
+	TSharedPtr<FClothPainter> SharedPainter = Painter.Pin();
+
+	if(!SharedPainter.IsValid())
+	{
+		return;
+	}
+
+	const float VertexPointSize = 3.0f;
+	const UClothPainterSettings* PaintSettings = CastChecked<UClothPainterSettings>(SharedPainter->GetPainterSettings());
+	const UPaintBrushSettings* BrushSettings = SharedPainter->GetBrushSettings();
+
+	TArray<MeshPaintHelpers::FPaintRay> PaintRays;
+	MeshPaintHelpers::RetrieveViewportPaintRays(View, Viewport, PDI, PaintRays);
+
+	const FMatrix ComponentToWorldMatrix = InComponent->ComponentToWorld.ToMatrixWithScale();
+
+	for(const MeshPaintHelpers::FPaintRay& PaintRay : PaintRays)
+	{
+		const FHitResult& HitResult = SharedPainter->GetHitResult(PaintRay.RayStart, PaintRay.RayDirection);
+		if(HitResult.Component == InComponent)
+		{
+			const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(PaintRay.CameraLocation));
+			const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitResult.Location));
+			const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(QueryRadius, 0.0f, 0.0f)).Size();
+			const float ComponentSpaceSquaredBrushRadius = ComponentSpaceBrushRadius * ComponentSpaceBrushRadius;
+
+			// Draw hovered vertex
+			TArray<FVector> InRangeVertices = InAdapter->SphereIntersectVertices(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, BrushSettings->bOnlyFrontFacingTriangles);
+			InRangeVertices.Sort([=](const FVector& PointOne, const FVector& PointTwo)
+			{
+				return (PointOne - ComponentSpaceBrushPosition).SizeSquared() < (PointTwo - ComponentSpaceBrushPosition).SizeSquared();
+			});
+
+
+			if(InRangeVertices.Num())
+			{
+				InRangeVertices.SetNum(1);
+				// reduce this
+				for(const FVector& Vertex : InRangeVertices)
+				{
+					const FVector WorldPositionVertex = ComponentToWorldMatrix.TransformPosition(Vertex);
+					PDI->DrawPoint(WorldPositionVertex, FLinearColor::Green, VertexPointSize * 2.0f, SDPG_Foreground);
+				}
+			}
+		}
+	}
+}
+
+void FClothPaintTool_Fill::PaintAction(FPerVertexPaintActionArgs& InArgs, int32 VertexIndex, FMatrix InverseBrushMatrix)
+{
+	TSharedPtr<FClothPainter> SharedPainter = Painter.Pin();
+	if(!SharedPainter.IsValid())
+	{
+		return;
+	}
+
+	const FHitResult HitResult = InArgs.HitResult;
+	UClothPainterSettings* PaintSettings = CastChecked<UClothPainterSettings>(SharedPainter->GetPainterSettings());
+	const UPaintBrushSettings* BrushSettings = InArgs.BrushSettings;
+	FClothMeshPaintAdapter* Adapter = (FClothMeshPaintAdapter*)InArgs.Adapter;
+
+	const FMatrix ComponentToWorldMatrix = HitResult.Component->ComponentToWorld.ToMatrixWithScale();
+	const FVector ComponentSpaceCameraPosition(ComponentToWorldMatrix.InverseTransformPosition(InArgs.CameraPosition));
+	const FVector ComponentSpaceBrushPosition(ComponentToWorldMatrix.InverseTransformPosition(HitResult.Location));
+	const float ComponentSpaceBrushRadius = ComponentToWorldMatrix.InverseTransformVector(FVector(QueryRadius, 0.0f, 0.0f)).Size();
+	const float ComponentSpaceSquaredBrushRadius = ComponentSpaceBrushRadius * ComponentSpaceBrushRadius;
+
+	// Override these flags becuase we're not actually "painting" so the state would be incorrect
+	SharedPainter->SetIsPainting(true);
+
+	TArray<TPair<int32, FVector>> Verts;
+	Adapter->GetInfluencedVertexData(ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, ComponentSpaceCameraPosition, BrushSettings->bOnlyFrontFacingTriangles, Verts);
+
+	if(Verts.Num() > 0)
+	{
+		// Sort based on distance from brush centre
+		Verts.Sort([=](const TPair<int32, FVector>& Vert0, const TPair<int32, FVector>& Vert1)
+		{
+			return (Vert0.Value - ComponentSpaceBrushPosition).SizeSquared() < (Vert1.Value - ComponentSpaceBrushPosition).SizeSquared();
+		});
+
+		// Fill operates on one vertex only, the closest
+		int32 ChosenIndex = Verts[0].Key;
+
+		// An expansion queue to handle the fill operation
+		TQueue<int32> VertQueue;
+
+		// Query values to account for the threshold around the selected value
+		const float QueryValue = SharedPainter->GetPropertyValue(ChosenIndex);
+		const float MinQueryValue = QueryValue - Settings->Threshold;
+		const float MaxQueryValue = QueryValue + Settings->Threshold;
+
+		// Set the selected vert to the new vaue and add it to the expansion queue
+		SharedPainter->SetPropertyValue(ChosenIndex, Settings->FillValue);
+		VertQueue.Enqueue(ChosenIndex);
+
+		int32 CurrIndex = 0;
+		while(!VertQueue.IsEmpty())
+		{
+			// Remove the current vert from the queue
+			VertQueue.Dequeue(CurrIndex);
+
+			// Grab the neighbors of the current vertex
+			const TArray<int32>* Neighbors = Adapter->GetVertexNeighbors(CurrIndex);
+
+			if(Neighbors && Neighbors->Num() > 0)
+			{
+				for(int32 NeighborIndex : (*Neighbors))
+				{
+					// For each neighbor, get its current value and if it's not the correct final
+					// value, set it and then add to the queue for expansion on the next loop
+					const float NeighborValue = SharedPainter->GetPropertyValue(NeighborIndex);
+					if(NeighborValue != Settings->FillValue && NeighborValue >= MinQueryValue && NeighborValue <= MaxQueryValue)
+					{
+						SharedPainter->SetPropertyValue(NeighborIndex, Settings->FillValue);
+						VertQueue.Enqueue(NeighborIndex);
+					}
+				}
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

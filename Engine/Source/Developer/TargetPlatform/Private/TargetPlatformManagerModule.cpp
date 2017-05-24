@@ -21,8 +21,8 @@
 #include "Interfaces/ITextureFormatModule.h"
 #include "PlatformInfo.h"
 #include "DesktopPlatformModule.h"
-#include "IPhysXFormat.h"
-#include "IPhysXFormatModule.h"
+#include "IPhysXCooking.h"
+#include "IPhysXCookingModule.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogTargetPlatformManager, Log, All);
@@ -499,10 +499,10 @@ public:
 		return *Result;
 	}
 
-	virtual const TArray<const IPhysXFormat*>& GetPhysXFormats() override
+	virtual const TArray<const IPhysXCooking*>& GetPhysXCooking() override
 	{
 		static bool bInitialized = false;
-		static TArray<const IPhysXFormat*> Results;
+		static TArray<const IPhysXCooking*> Results;
 
 		if (!bInitialized || bForceCacheUpdate)
 		{
@@ -510,7 +510,7 @@ public:
 			Results.Empty(Results.Num());
 			
 			TArray<FName> Modules;
-			FModuleManager::Get().FindModules(TEXT("PhysXFormat*"), Modules);
+			FModuleManager::Get().FindModules(TEXT("PhysXCooking*"), Modules);
 			
 			if (!Modules.Num())
 			{
@@ -519,10 +519,10 @@ public:
 
 			for (int32 Index = 0; Index < Modules.Num(); Index++)
 			{
-				IPhysXFormatModule* Module = FModuleManager::LoadModulePtr<IPhysXFormatModule>(Modules[Index]);
+				IPhysXCookingModule* Module = FModuleManager::LoadModulePtr<IPhysXCookingModule>(Modules[Index]);
 				if (Module)
 				{
-					IPhysXFormat* Format = Module->GetPhysXFormat();
+					IPhysXCooking* Format = Module->GetPhysXCooking();
 					if (Format != nullptr)
 					{
 						Results.Add(Format);
@@ -534,21 +534,21 @@ public:
 		return Results;
 	}
 
-	virtual const IPhysXFormat* FindPhysXFormat(FName Name) override
+	virtual const IPhysXCooking* FindPhysXCooking(FName Name) override
 	{
-		const TArray<const IPhysXFormat*>& PhysXFormats = GetPhysXFormats();
+		const TArray<const IPhysXCooking*>& PhysXCooking = GetPhysXCooking();
 
-		for (int32 Index = 0; Index < PhysXFormats.Num(); Index++)
+		for (int32 Index = 0; Index < PhysXCooking.Num(); Index++)
 		{
 			TArray<FName> Formats;
 
-			PhysXFormats[Index]->GetSupportedFormats(Formats);
+			PhysXCooking[Index]->GetSupportedFormats(Formats);
 		
 			for (int32 FormatIndex = 0; FormatIndex < Formats.Num(); FormatIndex++)
 			{
 				if (Formats[FormatIndex] == Name)
 				{
-					return PhysXFormats[Index];
+					return PhysXCooking[Index];
 				}
 			}
 		}

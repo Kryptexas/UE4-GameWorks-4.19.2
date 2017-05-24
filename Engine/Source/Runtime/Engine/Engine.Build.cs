@@ -324,10 +324,9 @@ public class Engine : ModuleRules
         }
 
 		SetupModulePhysXAPEXSupport(Target);
-        if(UEBuildConfiguration.bCompilePhysX && (UEBuildConfiguration.bBuildEditor || UEBuildConfiguration.bRuntimePhysicsCooking))
+        if(UEBuildConfiguration.bCompilePhysX && (UEBuildConfiguration.bBuildEditor || UEBuildConfiguration.bCompileAPEX))
         {
-            DynamicallyLoadedModuleNames.Add("PhysXFormats");
-            PrivateIncludePathModuleNames.Add("PhysXFormats");
+            DynamicallyLoadedModuleNames.Add("PhysXCooking");
         }
             
         if(UEBuildConfiguration.bCompilePhysX)

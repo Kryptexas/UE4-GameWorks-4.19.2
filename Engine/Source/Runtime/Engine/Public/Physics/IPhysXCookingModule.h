@@ -1,7 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	IPhysXFormatModule.h: Declares the IPhysXFormatModule interface.
+	IPhysXCookingModule.h: Declares the IPhysXCookingModule interface.
 =============================================================================*/
 
 #pragma once
@@ -9,12 +9,12 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
 
-class IPhysXFormat;
+class IPhysXCooking;
 
 /**
  * Interface for PhysX format modules.
  */
-class IPhysXFormatModule
+class IPhysXCookingModule
 	: public IModuleInterface
 {
 public:
@@ -22,12 +22,15 @@ public:
 	/**
 	 * Gets the PhysX format.
 	 */
-	virtual IPhysXFormat* GetPhysXFormat( ) = 0;
+	virtual IPhysXCooking* GetPhysXCooking( ) = 0;
+
+	/** Terminates any physx state related to cooking */
+	virtual void Terminate() = 0;
 
 public:
 
 	/**
 	 * Virtual destructor.
 	 */
-	~IPhysXFormatModule( ) { }
+	~IPhysXCookingModule( ) { }
 };

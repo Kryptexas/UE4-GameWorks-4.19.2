@@ -823,7 +823,6 @@ public:
 
 	/** Returns the baked sync group index from the compile step */
 	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;
-protected:
 
 	/** Gets the index of the state machine matching MachineName */
 	int32 GetStateMachineIndex(FName MachineName);

@@ -856,7 +856,7 @@ public:
 /**
  *	Load the required modules for PhysX
  */
-ENGINE_API void LoadPhysXModules();
+ENGINE_API void LoadPhysXModules(bool bLoadCooking);
 /** 
  *	Unload the required modules for PhysX
  */
@@ -892,3 +892,5 @@ public:
 	static FOnPhysSceneTerm OnPhysSceneTerm;
 
 };
+
+extern ENGINE_API class IPhysXCookingModule* GetPhysXCookingModule();

@@ -217,6 +217,8 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 
 	ClothingSimulation = nullptr;
 	ClothingSimulationContext = nullptr;
+
+	bPostEvaluatingAnimation = false;
 }
 
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
@@ -437,16 +439,12 @@ void USkeletalMeshComponent::OnRegister()
 
 	Super::OnRegister();
 
-	bool bForceReInit = false;
-#if WITH_EDITOR
-	// In editor worlds we force a full re-init. This is to ensure that construction script-modified
-	// variables propogate to the anim instance.
-	// This is done only in this case to limit the surface area of when we force a re-init 
-	// (which is an expensive operation).
-	const UWorld* OwnWorld = GetWorld();
-	bForceReInit = GIsEditor &&  OwnWorld && !OwnWorld->IsGameWorld();
-#endif
-	InitAnim(bForceReInit);
+	// We force an initialization here because we're in one of two cases.
+	// 1) First register, no spawned instance, need to initialize
+	// 2) We're being re-registered, in which case we've went through
+	// OnUnregister and unconditionally uninitialized our anim instances
+	// so we need to force initialize them before we begin to tick.
+	InitAnim(true);
 
 	if (MeshComponentUpdateFlag == EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered && !FApp::CanEverRender())
 	{
@@ -1885,6 +1883,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
 {
+#if DO_CHECK
+	checkf(!bPostEvaluatingAnimation, TEXT("PostAnimEvaluation already in progress, recursion detected for SkeletalMeshComponent [%s], AnimInstance [%s]"), *GetNameSafe(this), *GetNameSafe(EvaluationContext.AnimInstance));
+	TGuardValue<bool> CircularGuard(bPostEvaluatingAnimation, true);
+#endif
+
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
 
 	if (EvaluationContext.AnimInstance && EvaluationContext.AnimInstance->NeedsUpdate())

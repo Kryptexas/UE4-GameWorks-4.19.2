@@ -425,6 +425,23 @@ enum class EPostCopyOperation : uint8
 	LogicalNegateBool,
 };
 
+UENUM()
+enum class ECopyType : uint8
+{
+	// Just copy the memory
+	MemCopy,
+
+	// Read and write properties using bool property helpers, as source/dest could be bitfirld or boolean
+	BoolProperty,
+	
+	// Use struct copy operation, as this needs to correctly handle CPP struct ops
+	StructProperty,
+
+	// Read and write properties using object property helpers, as source/dest could be regular/weak/lazy etc.
+	ObjectProperty,
+};
+
+
 USTRUCT()
 struct FExposedValueCopyRecord
 {
@@ -440,9 +457,8 @@ struct FExposedValueCopyRecord
 		, Size(0)
 		, bInstanceIsTarget(false)
 		, PostCopyOperation(EPostCopyOperation::None)
-		, CachedBoolSourceProperty(nullptr)
-		, CachedBoolDestProperty(nullptr)
-		, CachedStructDestProperty(nullptr)
+		, CopyType(ECopyType::MemCopy)
+		, CachedSourceProperty(nullptr)
 		, CachedSourceContainer(nullptr)
 		, CachedDestContainer(nullptr)
 		, Source(nullptr)
@@ -479,17 +495,12 @@ struct FExposedValueCopyRecord
 	UPROPERTY()
 	EPostCopyOperation PostCopyOperation;
 
-	// cached source property for performing boolean operations
 	UPROPERTY(Transient)
-	UBoolProperty* CachedBoolSourceProperty;
+	ECopyType CopyType;
 
-	// cached dest property for performing boolean operations
+	// cached source property
 	UPROPERTY(Transient)
-	UBoolProperty* CachedBoolDestProperty;
-
-	// Cached dest property for copying structs
-	UPROPERTY(Transient)
-	UStructProperty* CachedStructDestProperty;
+	UProperty* CachedSourceProperty;
 
 	// cached source container for use with boolean operations
 	void* CachedSourceContainer;

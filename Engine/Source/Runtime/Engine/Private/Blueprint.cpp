@@ -759,6 +759,7 @@ void UBlueprint::DebuggingWorldRegistrationHelper(UObject* ObjectProvidingWorld,
 		if (ObjWorld != NULL)
 		{
 			ObjWorld->NotifyOfBlueprintDebuggingAssociation(this, ValueToRegister);
+			OnSetObjectBeingDebuggedDelegate.Broadcast(ValueToRegister);
 		}
 	}
 }

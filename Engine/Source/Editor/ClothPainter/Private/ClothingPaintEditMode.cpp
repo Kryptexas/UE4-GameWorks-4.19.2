@@ -12,6 +12,7 @@
 #include "ClothingAssetInterface.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "IPersonaToolkit.h"
+#include "ClothingAsset.h"
 
 FClothingPaintEditMode::FClothingPaintEditMode()
 {
@@ -59,6 +60,7 @@ void FClothingPaintEditMode::Enter()
 		ClothPainter->SetSkeletalMeshComponent(Scene->GetPreviewMeshComponent());
 	}
 	
+	ClothPainter->Reset();
 }
 
 void FClothingPaintEditMode::Exit()
@@ -76,13 +78,16 @@ void FClothingPaintEditMode::Exit()
 			{
 				for(UClothingAssetBase* AssetBase : SkelMesh->MeshClothingAssets)
 				{
-					AssetBase->InvalidateCachedData();
+					UClothingAsset* ConcreteAsset = CastChecked<UClothingAsset>(AssetBase);
+					ConcreteAsset->ApplyParameterMasks();
 				}
 			}
 
 			MeshComponent->RebuildClothingSectionsFixedVerts();
 			MeshComponent->ResetMeshSectionVisibility();
 			MeshComponent->SelectedClothingGuidForPainting = FGuid();
+			MeshComponent->SelectedClothingLodForPainting = INDEX_NONE;
+			MeshComponent->SelectedClothingLodMaskForPainting = INDEX_NONE;
 		}
 	}
 

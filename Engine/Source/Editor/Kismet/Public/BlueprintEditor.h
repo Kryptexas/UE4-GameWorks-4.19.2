@@ -573,6 +573,9 @@ public:
 	/* Selects an item in "My Blueprint" by name. */
 	void SelectGraphActionItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo = ESelectInfo::Direct, int32 SectionId = INDEX_NONE, bool bIsCategory = false);
 
+	/** Handle when the debug object is changed in the UI */
+	virtual void HandleSetObjectBeingDebugged(UObject* InObject) {}
+
 protected:
 	virtual void AppendExtraCompilerResults(TSharedPtr<class IMessageLogListing> ResultsListing);
 

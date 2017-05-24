@@ -24,17 +24,17 @@ TSharedPtr<SWidget> ULiveLinkMessageBusSourceFactory::CreateSourceCreationPanel(
 	return ActiveSourceEditor;
 }
 
-ILiveLinkSource* ULiveLinkMessageBusSourceFactory::OnSourceCreationPanelClosed(bool bMakeSource)
+TSharedPtr<ILiveLinkSource> ULiveLinkMessageBusSourceFactory::OnSourceCreationPanelClosed(bool bMakeSource)
 {
 	//Clean up
-	FLiveLinkMessageBusSource* NewSource = nullptr;
+	TSharedPtr<FLiveLinkMessageBusSource> NewSource = nullptr;
 
 	if (bMakeSource && ActiveSourceEditor.IsValid())
 	{
 		FProviderPollResultPtr Result = ActiveSourceEditor->GetSelectedSource();
 		if(Result.IsValid())
 		{
-			NewSource = new FLiveLinkMessageBusSource(FText::FromString(Result->Name), FText::FromString(Result->MachineName), Result->Address);
+			NewSource = MakeShareable( new FLiveLinkMessageBusSource(FText::FromString(Result->Name), FText::FromString(Result->MachineName), Result->Address));
 		}
 	}
 	ActiveSourceEditor = nullptr;

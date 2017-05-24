@@ -225,7 +225,6 @@ FLiveLinkClient::~FLiveLinkClient()
 
 		for (int32 Idx = ToRemove.Num() - 1; Idx >= 0; --Idx)
 		{
-			delete Sources[Idx];
 			Sources.RemoveAtSwap(ToRemove[Idx],1,false);
 		}
 	}
@@ -248,13 +247,20 @@ void FLiveLinkClient::ValidateSources()
 	{
 		if (!Sources[SourceIdx]->IsSourceStillValid())
 		{
-			Sources.RemoveAtSwap(SourceIdx, 1, false);
-			SourceGuids.RemoveAtSwap(SourceIdx, 1, false);
-			ConnectionSettings.RemoveAtSwap(SourceIdx, 1, false);
+			RemoveSourceInternal(SourceIdx);
 
 			bSourcesChanged = true;
 		}
 	}
+
+	for (int32 SourceIdx = SourcesToRemove.Num()-1; SourceIdx >= 0; --SourceIdx)
+	{
+		if (SourcesToRemove[SourceIdx]->RequestSourceShutdown())
+		{
+			SourcesToRemove.RemoveAtSwap(SourceIdx, 1, false);
+		}
+	}
+
 	LastValidationCheck = FPlatformTime::Seconds();
 
 	if (bSourcesChanged)
@@ -302,13 +308,42 @@ void FLiveLinkClient::BuildThisTicksSubjectSnapshot()
 	}
 }
 
-void FLiveLinkClient::AddSource(ILiveLinkSource* InSource)
+void FLiveLinkClient::AddSource(TSharedPtr<ILiveLinkSource> InSource)
 {
 	Sources.Add(InSource);
 	SourceGuids.Add(FGuid::NewGuid());
 	ConnectionSettings.AddDefaulted();
 
 	InSource->ReceiveClient(this, SourceGuids.Last());
+}
+
+void FLiveLinkClient::RemoveSourceInternal(int32 SourceIdx)
+{
+	Sources.RemoveAtSwap(SourceIdx, 1, false);
+	SourceGuids.RemoveAtSwap(SourceIdx, 1, false);
+	ConnectionSettings.RemoveAtSwap(SourceIdx, 1, false);
+}
+
+void FLiveLinkClient::RemoveSource(FGuid InEntryGuid)
+{
+	LastValidationCheck = 0.0; //Force validation check next frame
+	int32 SourceIdx = GetSourceIndexForGUID(InEntryGuid);
+	if (SourceIdx != INDEX_NONE)
+	{
+		SourcesToRemove.Add(Sources[SourceIdx]);
+		RemoveSourceInternal(SourceIdx);
+		OnLiveLinkSourcesChanged.Broadcast();
+	}
+}
+
+void FLiveLinkClient::RemoveAllSources()
+{
+	LastValidationCheck = 0.0; //Force validation check next frame
+	SourcesToRemove = Sources;
+	Sources.Reset();
+	SourceGuids.Reset();
+	ConnectionSettings.Reset();
+	OnLiveLinkSourcesChanged.Broadcast();
 }
 
 FLiveLinkTimeCode FLiveLinkClient::MakeTimeCode(double InTime, int32 InFrameNum) const
@@ -373,7 +408,7 @@ int32 FLiveLinkClient::GetSourceIndexForGUID(FGuid InEntryGuid) const
 	return SourceGuids.IndexOfByKey(InEntryGuid);
 }
 
-ILiveLinkSource* FLiveLinkClient::GetSourceForGUID(FGuid InEntryGuid) const
+TSharedPtr<ILiveLinkSource> FLiveLinkClient::GetSourceForGUID(FGuid InEntryGuid) const
 {
 	int32 Idx = GetSourceIndexForGUID(InEntryGuid);
 	return Idx != INDEX_NONE ? Sources[Idx] : nullptr;
@@ -381,7 +416,8 @@ ILiveLinkSource* FLiveLinkClient::GetSourceForGUID(FGuid InEntryGuid) const
 
 FText FLiveLinkClient::GetSourceTypeForEntry(FGuid InEntryGuid) const
 {
-	if (ILiveLinkSource* Source = GetSourceForGUID(InEntryGuid))
+	TSharedPtr<ILiveLinkSource> Source = GetSourceForGUID(InEntryGuid);
+	if (Source.IsValid())
 	{
 		return Source->GetSourceType();
 	}
@@ -390,7 +426,8 @@ FText FLiveLinkClient::GetSourceTypeForEntry(FGuid InEntryGuid) const
 
 FText FLiveLinkClient::GetMachineNameForEntry(FGuid InEntryGuid) const
 {
-	if (ILiveLinkSource* Source = GetSourceForGUID(InEntryGuid))
+	TSharedPtr<ILiveLinkSource> Source = GetSourceForGUID(InEntryGuid);
+	if (Source.IsValid())
 	{
 		return Source->GetSourceMachineName();
 	}
@@ -399,7 +436,8 @@ FText FLiveLinkClient::GetMachineNameForEntry(FGuid InEntryGuid) const
 
 FText FLiveLinkClient::GetEntryStatusForEntry(FGuid InEntryGuid) const
 {
-	if (ILiveLinkSource* Source = GetSourceForGUID(InEntryGuid))
+	TSharedPtr<ILiveLinkSource> Source = GetSourceForGUID(InEntryGuid);
+	if (Source.IsValid())
 	{
 		return Source->GetSourceStatus();
 	}

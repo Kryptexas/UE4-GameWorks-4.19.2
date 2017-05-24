@@ -103,7 +103,6 @@ static bool ModelToHullsWorker(FKAggregateGeom* outGeom,
 	return true;
 }
 
-#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 void UBodySetup::CreateFromModel(UModel* InModel, bool bRemoveExisting)
 {
 	if ( bRemoveExisting )
@@ -127,7 +126,6 @@ void UBodySetup::CreateFromModel(UModel* InModel, bool bRemoveExisting)
 	// Create new GUID
 	InvalidatePhysicsData();
 }
-#endif // WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 //////////////////////////////////////////////////////////////////////////
 // FRigidBodyCollisionInfo
@@ -592,11 +590,15 @@ bool ExecPhysCommands(const TCHAR* Cmd, FOutputDevice* Ar, UWorld* InWorld)
 #else
 		Ar->Logf(TEXT("  Configuration: PROFILE"));
 #endif
-#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-		Ar->Logf(TEXT("  Cooking Module: TRUE"));
-#else
-		Ar->Logf(TEXT("  Cooking Module: FALSE"));
-#endif
+		if(GetPhysXCookingModule())
+		{
+			Ar->Logf(TEXT("  Cooking Module: TRUE"));
+		}
+		else
+		{
+			Ar->Logf(TEXT("  Cooking Module: FALSE"));
+		}
+
 		return 1;
 	}
 

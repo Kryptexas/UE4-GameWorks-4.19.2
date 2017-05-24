@@ -16,6 +16,8 @@
 #include "ComponentReregisterContext.h"
 #include "Package.h"
 #include "ClothPaintTools.h"
+#include "UICommandList.h"
+#include "SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "ClothPainter"
 
@@ -52,10 +54,15 @@ void FClothPainter::Init()
 
 	PaintSettings->OnAssetSelectionChanged.AddRaw(this, &FClothPainter::OnAssetSelectionChanged);
 
+	CommandList = MakeShareable(new FUICommandList);
+
 	Tools.Add(MakeShared<FClothPaintTool_Brush>(AsShared()));
 	Tools.Add(MakeShared<FClothPaintTool_Gradient>(AsShared()));
+	Tools.Add(MakeShared<FClothPaintTool_Smooth>(AsShared()));
+	Tools.Add(MakeShared<FClothPaintTool_Fill>(AsShared()));
 
 	SelectedTool = Tools[0];
+	SelectedTool->Activate(CommandList);
 
 	Widget = SNew(SClothPaintWidget, this);
 }
@@ -116,10 +123,16 @@ FPerVertexPaintAction FClothPainter::GetPaintAction(const FMeshPaintParameters& 
 
 void FClothPainter::SetTool(TSharedPtr<FClothPaintToolBase> InTool)
 {
-	if(Tools.Contains(InTool))
-			{
+	if(InTool.IsValid() && Tools.Contains(InTool))
+	{
+		if(SelectedTool.IsValid())
+		{
+			SelectedTool->Deactivate(CommandList);
+		}
+
 		SelectedTool = InTool;
-			}
+		SelectedTool->Activate(CommandList);
+	}
 }
 
 void FClothPainter::SetSkeletalMeshComponent(UDebugSkelMeshComponent* InSkeletalMeshComponent)
@@ -162,10 +175,26 @@ void FClothPainter::RefreshClothingAssets()
 void FClothPainter::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 {
 	IMeshPainter::Tick(ViewportClient, DeltaTime);
-	SkeletalMeshComponent->SetVisibleClothProperty((int32)PaintSettings->PaintingProperty);
+
+	SkeletalMeshComponent->MinClothPropertyView = PaintSettings->GetViewMin();
+	SkeletalMeshComponent->MaxClothPropertyView = PaintSettings->GetViewMax();
 
 	if ((bShouldSimulate && SkeletalMeshComponent->bDisableClothSimulation) || (!bShouldSimulate && !SkeletalMeshComponent->bDisableClothSimulation))
 	{
+		if(bShouldSimulate)
+		{
+			// Need to re-apply our masks here, as they have likely been edited
+			for(UClothingAsset* Asset : PaintSettings->ClothingAssets)
+			{
+				if(Asset)
+				{
+					Asset->ApplyParameterMasks();
+				}
+			}
+
+			SkeletalMeshComponent->RebuildClothingSectionsFixedVerts();
+		}
+
 		FComponentReregisterContext ReregisterContext(SkeletalMeshComponent);
 		SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
 		SkeletalMeshComponent->bDisableClothSimulation = !bShouldSimulate;		
@@ -207,6 +236,11 @@ void FClothPainter::FinishPainting()
 
 void FClothPainter::Reset()
 {	
+	if(Widget.IsValid())
+	{
+		Widget->Reset();
+	}
+
 	bArePainting = false;
 	SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
 	SkeletalMeshComponent->SelectedClothingGuidForPainting = FGuid();
@@ -261,7 +295,6 @@ const FHitResult FClothPainter::GetHitResult(const FVector& Origin, const FVecto
 void FClothPainter::Refresh()
 {
 	RefreshClothingAssets();
-
 	if(Widget.IsValid())
 	{
 		Widget->OnRefresh();
@@ -305,8 +338,16 @@ bool FClothPainter::InputKey(FEditorViewportClient* InViewportClient, FViewport*
 	bool bHandled = IMeshPainter::InputKey(InViewportClient, InViewport, InKey, InEvent);
 
 	if(SelectedTool.IsValid())
+	{
+		if(CommandList->ProcessCommandBindings(InKey, FSlateApplication::Get().GetModifierKeys(), InEvent == IE_Repeat))
 		{
-		bHandled |= SelectedTool->InputKey(Adapter.Get(), InViewportClient, InViewport, InKey, InEvent);
+			bHandled = true;
+		}
+		else
+		{
+			// Handle non-action based key actions (holds etc.)
+			bHandled |= SelectedTool->InputKey(Adapter.Get(), InViewportClient, InViewport, InKey, InEvent);
+		}
 	}
 
 	return bHandled;
@@ -344,69 +385,49 @@ FMeshPaintParameters FClothPainter::CreatePaintParameters(const FHitResult& HitR
 	return Params;
 }
 
-float FClothPainter::GetPropertyValue(int32 VertexIndex, EPaintableClothProperty Property)
+float FClothPainter::GetPropertyValue(int32 VertexIndex)
 {
 	FClothMeshPaintAdapter* ClothAdapter = (FClothMeshPaintAdapter*)Adapter.Get();
-	switch (Property)
+
+	if(FClothParameterMask_PhysMesh* Mask = ClothAdapter->GetCurrentMask())
 	{
-		case EPaintableClothProperty::MaxDistances:
-		{
-			return ClothAdapter->GetMaxDistanceValue(VertexIndex);
-		}
-
-		case EPaintableClothProperty::BackstopDistances:
-		{
-			return ClothAdapter->GetBackstopDistanceValue(VertexIndex);
-		}
-
-		case EPaintableClothProperty::BackstopRadius:
-		{
-			return ClothAdapter->GetBackstopRadiusValue(VertexIndex);
-		}
+		return Mask->GetValue(VertexIndex);
 	}
 
 	return 0.0f;
 }
 
-void FClothPainter::SetPropertyValue(int32 VertexIndex, const float Value, EPaintableClothProperty Property)
+void FClothPainter::SetPropertyValue(int32 VertexIndex, const float Value)
 {
-	FClothMeshPaintAdapter* ClothAdapter = (FClothMeshPaintAdapter*)Adapter.Get();	
-	switch (Property)
+	FClothMeshPaintAdapter* ClothAdapter = (FClothMeshPaintAdapter*)Adapter.Get();
+
+	if(FClothParameterMask_PhysMesh* Mask = ClothAdapter->GetCurrentMask())
 	{
-		case EPaintableClothProperty::MaxDistances:
-		{
-			ClothAdapter->SetMaxDistanceValue(VertexIndex, Value);
-			break;
-		}
-
-		case EPaintableClothProperty::BackstopDistances:
-		{
-			ClothAdapter->SetBackstopDistanceValue(VertexIndex, Value);
-			break;
-		}
-
-		case EPaintableClothProperty::BackstopRadius:
-		{
-			ClothAdapter->SetBackstopRadiusValue(VertexIndex, Value);
-			break;
-		}		
+		Mask->SetValue(VertexIndex, Value);
 	}
 }
 
-void FClothPainter::OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, int32 InAssetLod)
+void FClothPainter::OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, int32 InAssetLod, int32 InMaskIndex)
 {
 	TSharedPtr<FClothMeshPaintAdapter> ClothAdapter = StaticCastSharedPtr<FClothMeshPaintAdapter>(Adapter);
 	if(ClothAdapter.IsValid() && InNewSelectedAsset && InNewSelectedAsset->IsValidLod(InAssetLod))
 	{
-		const FGuid NewGuid = InNewSelectedAsset->GetAssetGuid();
-		SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
-		SkeletalMeshComponent->ToggleMeshSectionForCloth(NewGuid);
+		// Validate the incoming parameters, to make sure we only set a selection if we're going
+		// to get a valid paintable surface
+		if(InNewSelectedAsset->LodData.IsValidIndex(InAssetLod) &&
+			 InNewSelectedAsset->LodData[InAssetLod].ParameterMasks.IsValidIndex(InMaskIndex))
+		{
+			const FGuid NewGuid = InNewSelectedAsset->GetAssetGuid();
+			SkeletalMeshComponent->ToggleMeshSectionForCloth(SkeletalMeshComponent->SelectedClothingGuidForPainting);
+			SkeletalMeshComponent->ToggleMeshSectionForCloth(NewGuid);
 
-		SkeletalMeshComponent->SelectedClothingGuidForPainting = NewGuid;
-		SkeletalMeshComponent->SelectedClothingLodForPainting = InAssetLod;
-		SkeletalMeshComponent->RefreshSelectedClothingSkinnedPositions();
+			SkeletalMeshComponent->SelectedClothingGuidForPainting = NewGuid;
+			SkeletalMeshComponent->SelectedClothingLodForPainting = InAssetLod;
+			SkeletalMeshComponent->SelectedClothingLodMaskForPainting = InMaskIndex;
+			SkeletalMeshComponent->RefreshSelectedClothingSkinnedPositions();
 
-		ClothAdapter->SetSelectedClothingAsset(NewGuid, InAssetLod);
+			ClothAdapter->SetSelectedClothingAsset(NewGuid, InAssetLod, InMaskIndex);
+		}
 	}
 }
 

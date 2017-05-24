@@ -844,17 +844,24 @@ bool UProceduralMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) 
 	return false;
 }
 
+UBodySetup* UProceduralMeshComponent::CreateBodySetupHelper()
+{
+	// The body setup in a template needs to be public since the property is Tnstanced and thus is the archetype of the instance meaning there is a direct reference
+	UBodySetup* NewBodySetup = NewObject<UBodySetup>(this, NAME_None, (IsTemplate() ? RF_Public : RF_NoFlags));
+	NewBodySetup->BodySetupGuid = FGuid::NewGuid();
+
+	NewBodySetup->bGenerateMirroredCollision = false;
+	NewBodySetup->bDoubleSidedGeometry = true;
+	NewBodySetup->CollisionTraceFlag = bUseComplexAsSimpleCollision ? CTF_UseComplexAsSimple : CTF_UseDefault;
+
+	return NewBodySetup;
+}
+
 void UProceduralMeshComponent::CreateProcMeshBodySetup()
 {
-	if (ProcMeshBodySetup == NULL)
+	if (ProcMeshBodySetup == nullptr)
 	{
-		// The body setup in a template needs to be public since the property is Tnstanced and thus is the archetype of the instance meaning there is a direct reference
-		ProcMeshBodySetup = NewObject<UBodySetup>(this, NAME_None, (IsTemplate() ? RF_Public : RF_NoFlags));
-		ProcMeshBodySetup->BodySetupGuid = FGuid::NewGuid();
-
-		ProcMeshBodySetup->bGenerateMirroredCollision = false;
-		ProcMeshBodySetup->bDoubleSidedGeometry = true;
-		ProcMeshBodySetup->CollisionTraceFlag = bUseComplexAsSimpleCollision ? CTF_UseComplexAsSimple : CTF_UseDefault;
+		ProcMeshBodySetup = CreateBodySetupHelper();
 	}
 }
 
@@ -862,40 +869,62 @@ void UProceduralMeshComponent::UpdateCollision()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProcMesh_UpdateCollision);
 
-	bool bCreatePhysState = false; // Should we create physics state at the end of this function?
+	UWorld* World = GetWorld();
+	const bool bUseAsyncCook = World && World->IsGameWorld() && bUseAsyncCooking;
 
-	// If its created, shut it down now
-	if (bPhysicsStateCreated)
+	if(bUseAsyncCook)
 	{
-		DestroyPhysicsState();
-		bCreatePhysState = true;
+		AsyncBodySetupQueue.Add(CreateBodySetupHelper());
 	}
-
-	// Ensure we have a BodySetup
-	CreateProcMeshBodySetup();
+	else
+	{
+		AsyncBodySetupQueue.Empty();	//If for some reason we modified the async at runtime, just clear any pending async body setups
+		CreateProcMeshBodySetup();
+	}
+	
+	UBodySetup* UseBodySetup = bUseAsyncCook ? AsyncBodySetupQueue.Last() : ProcMeshBodySetup;
 
 	// Fill in simple collision convex elements
-	ProcMeshBodySetup->AggGeom.ConvexElems = CollisionConvexElems;
+	UseBodySetup->AggGeom.ConvexElems = CollisionConvexElems;
 
 	// Set trace flag
-	ProcMeshBodySetup->CollisionTraceFlag = bUseComplexAsSimpleCollision ? CTF_UseComplexAsSimple : CTF_UseDefault;
+	UseBodySetup->CollisionTraceFlag = bUseComplexAsSimpleCollision ? CTF_UseComplexAsSimple : CTF_UseDefault;
 
-	// New GUID as collision has changed
-	ProcMeshBodySetup->BodySetupGuid = FGuid::NewGuid();
-	// Also we want cooked data for this
-	ProcMeshBodySetup->bHasCookedCollisionData = true;
-
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
-	// Clear current mesh data
-	ProcMeshBodySetup->InvalidatePhysicsData();
-	// Create new mesh data
-	ProcMeshBodySetup->CreatePhysicsMeshes();
-#endif // WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
-
-	// Create new instance state if desired
-	if (bCreatePhysState)
+	if(bUseAsyncCook)
 	{
-		CreatePhysicsState();
+		UseBodySetup->CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished::CreateUObject(this, &UProceduralMeshComponent::FinishPhysicsAsyncCook, UseBodySetup));
+	}
+	else
+	{
+		// New GUID as collision has changed
+		UseBodySetup->BodySetupGuid = FGuid::NewGuid();
+		// Also we want cooked data for this
+		UseBodySetup->bHasCookedCollisionData = true;
+		UseBodySetup->InvalidatePhysicsData();
+		UseBodySetup->CreatePhysicsMeshes();
+		RecreatePhysicsState();
+	}
+}
+
+void UProceduralMeshComponent::FinishPhysicsAsyncCook(UBodySetup* FinishedBodySetup)
+{
+	TArray<UBodySetup*> NewQueue;
+	NewQueue.Reserve(AsyncBodySetupQueue.Num());
+
+	int32 FoundIdx;
+	if(AsyncBodySetupQueue.Find(FinishedBodySetup, FoundIdx))
+	{
+		//The new body was found in the array meaning it's newer so use it
+		ProcMeshBodySetup = FinishedBodySetup;
+		RecreatePhysicsState();
+
+		//remove any async body setups that were requested before this one
+		for(int32 AsyncIdx = FoundIdx+1; AsyncIdx < AsyncBodySetupQueue.Num(); ++AsyncIdx)
+		{
+			NewQueue.Add(AsyncBodySetupQueue[AsyncIdx]);
+		}
+
+		AsyncBodySetupQueue = NewQueue;
 	}
 }
 

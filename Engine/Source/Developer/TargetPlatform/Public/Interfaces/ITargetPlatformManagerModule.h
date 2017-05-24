@@ -30,7 +30,7 @@ public:
 	 * @param Name Name of the format to find.
 	 * @return The PhysX format, or nullptr if not found.
 	 */
-	virtual const class IPhysXFormat* FindPhysXFormat( FName Name ) = 0;
+	virtual const class IPhysXCooking* FindPhysXCooking( FName Name ) = 0;
 
 	/**
 	 * Finds a shader format with the specified name.
@@ -86,11 +86,11 @@ public:
 	virtual const TArray<const class IAudioFormat*>& GetAudioFormats() = 0;
 
 	/**
-	 * Returns the list of all IPhysXFormats that were located in DLLs.
+	 * Returns the list of all IPhysXCooking that were located in DLLs.
 	 *
 	 * @return Collection of PhysX formats.
 	 */
-	virtual const TArray<const class IPhysXFormat*>& GetPhysXFormats() = 0;
+	virtual const TArray<const class IPhysXCooking*>& GetPhysXCooking() = 0;
 
 	/**
 	 * Returns the target platform that is currently running.

@@ -103,17 +103,23 @@ namespace Audio
 	bool FMixerDevice::InitializeHardware()
 	{
 		AUDIO_MIXER_CHECK_GAME_THREAD(this);
+	
+		// Log that we're inside the audio mixer
+		UE_LOG(LogAudioMixer, Display, TEXT("Initializing audio mixer."));
 
 		if (AudioMixerPlatform && AudioMixerPlatform->InitializeHardware())
 		{
+			// Set whether we're the main audio mixer
+			bIsMainAudioMixer = IsMainAudioDevice();
+
 			AUDIO_MIXER_CHECK(SampleRate != 0.0f);
-			AUDIO_MIXER_CHECK(DeviceOutputBufferLength != 0);
 
 			AudioMixerPlatform->RegisterDeviceChangedListener();
 
-			OpenStreamParams.NumFrames = DeviceOutputBufferLength;
+			OpenStreamParams.NumBuffers = PlatformSettings.NumBuffers;
+			OpenStreamParams.NumFrames = PlatformSettings.CallbackBufferFrameSize;
 			OpenStreamParams.OutputDeviceIndex = 0; // Default device
-			OpenStreamParams.SampleRate = AUDIO_SAMPLE_RATE;
+			OpenStreamParams.SampleRate = SampleRate;
 			OpenStreamParams.AudioMixer = this;
 
 			FString DefaultDeviceName = AudioMixerPlatform->GetDefaultDeviceName();
@@ -167,17 +173,17 @@ namespace Audio
 				// Initialize any plugins if they exist
 				if (SpatializationPluginInterface.IsValid())
 				{
-					SpatializationPluginInterface->Initialize(AUDIO_SAMPLE_RATE, MaxChannels, OpenStreamParams.NumFrames);
+					SpatializationPluginInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
 				}
 
 				if (OcclusionInterface.IsValid())
 				{
-					OcclusionInterface->Initialize(AUDIO_SAMPLE_RATE, MaxChannels);
+					OcclusionInterface->Initialize(SampleRate, MaxChannels);
 				}
 
 				if (ReverbPluginInterface.IsValid())
 				{
-					ReverbPluginInterface->Initialize(AUDIO_SAMPLE_RATE, MaxChannels, OpenStreamParams.NumFrames);
+					ReverbPluginInterface->Initialize(SampleRate, MaxChannels, OpenStreamParams.NumFrames);
 				}
 
 				// Need to set these up before we start the audio stream.
@@ -217,12 +223,13 @@ namespace Audio
 			// Get the platform device info we're using
 			PlatformInfo = AudioMixerPlatform->GetPlatformDeviceInfo();
 
-			SampleRate = AUDIO_SAMPLE_RATE;
-
 			// Initialize some data that depends on speaker configuration, etc.
 			InitializeChannelAzimuthMap(PlatformInfo.NumChannels);
 
 			SourceManager.UpdateDeviceChannelCount(PlatformInfo.NumChannels);
+
+			// Audio rendering was suspended in CheckAudioDeviceChange if it changed.
+			AudioMixerPlatform->ResumePlaybackOnNewDevice();
 		}
 	}
 
@@ -487,8 +494,21 @@ namespace Audio
 			// Perform any other initialization on the submix instance
 			SubmixInstance->Init(SoundSubmix);
 		}
-
 	}
+
+ 	FAudioPlatformSettings FMixerDevice::GetPlatformSettings() const
+ 	{
+		FAudioPlatformSettings Settings = AudioMixerPlatform->GetPlatformSettings();
+
+		UE_LOG(LogAudioMixer, Display, TEXT("Audio Mixer Platform Settings:"));
+		UE_LOG(LogAudioMixer, Display, TEXT("	Sample Rate:					%d"), Settings.SampleRate);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Callback Buffer Frame Size:		%d"), Settings.CallbackBufferFrameSize);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Number of buffers to queue:		%d"), Settings.NumBuffers);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Max Channels (voices):			%d"), Settings.MaxChannels);
+		UE_LOG(LogAudioMixer, Display, TEXT("	Number of Async Source Workers: %d"), Settings.NumSourceWorkers);
+
+ 		return Settings;
+ 	}
 
 	FMixerSubmixPtr FMixerDevice::GetMasterSubmix()
 	{
@@ -886,8 +906,8 @@ namespace Audio
 
 	void FMixerDevice::WhiteNoiseTest(TArray<float>& Output)
 	{
-		int32 NumFrames = PlatformInfo.NumFrames;
-		int32 NumChannels = PlatformInfo.NumChannels;
+		const int32 NumFrames = OpenStreamParams.NumFrames;
+		const int32 NumChannels = PlatformInfo.NumChannels;
 
 		static FWhiteNoise WhiteNoise(0.2f);
 
@@ -903,8 +923,8 @@ namespace Audio
 
 	void FMixerDevice::SineOscTest(TArray<float>& Output)
 	{
-		int32 NumFrames = PlatformInfo.NumFrames;
-		int32 NumChannels = PlatformInfo.NumChannels;
+		const int32 NumFrames = OpenStreamParams.NumFrames;
+		const int32 NumChannels = PlatformInfo.NumChannels;
 
 		check(NumChannels > 0);
 

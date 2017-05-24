@@ -92,19 +92,17 @@ namespace Audio
 	TArray<FMixerPlatformCoreAudio::FDevice>	FMixerPlatformCoreAudio::DeviceArray;
 	
 	FMixerPlatformCoreAudio::FMixerPlatformCoreAudio()
-	:
-	OutputDeviceId(INDEX_NONE),
-	OutputDeviceIndex(INDEX_NONE),
-	DefaultDeviceId(INDEX_NONE),
-	DefaultDeviceIndex(INDEX_NONE),
-	DeviceIOProcId(nullptr),
-	NumDeviceStreams(0),
-	bInitialized(false),
-	bInCallback(false),
-	coreAudioBuffer(NULL),
-	coreAudioBufferByteSize(0)
+		: OutputDeviceId(INDEX_NONE)
+		, OutputDeviceIndex(INDEX_NONE)
+		, DefaultDeviceId(INDEX_NONE)
+		, DefaultDeviceIndex(INDEX_NONE)
+		, DeviceIOProcId(nullptr)
+		, NumDeviceStreams(0)
+		, bInitialized(false)
+		, bInCallback(false)
+		, coreAudioBuffer(nullptr)
+		, coreAudioBufferByteSize(0)
 	{
-
 	}
 
 	FMixerPlatformCoreAudio::~FMixerPlatformCoreAudio()
@@ -115,7 +113,6 @@ namespace Audio
 		}
 	}
 
-	//~ Begin IAudioMixerPlatformInterface
 	bool FMixerPlatformCoreAudio::InitializeHardware()
 	{
 		if (bInitialized)
@@ -205,8 +202,6 @@ namespace Audio
 		{
 			AudioStreamInfo.StreamState = EAudioOutputStreamState::Open;
 
-			AudioStreamInfo.DeviceInfo.NumFrames = AudioStreamInfo.NumOutputFrames;
-			AudioStreamInfo.DeviceInfo.NumSamples = AudioStreamInfo.NumOutputFrames * AudioStreamInfo.DeviceInfo.NumChannels;
 			AudioStreamInfo.OutputDeviceIndex = Params.OutputDeviceIndex;
 			AudioStreamInfo.AudioMixer = Params.AudioMixer;
 		}
@@ -285,12 +280,12 @@ namespace Audio
 		return AudioStreamInfo.DeviceInfo;
 	}
 
-	void FMixerPlatformCoreAudio::SubmitBuffer(const TArray<float>& Buffer)
+	void FMixerPlatformCoreAudio::SubmitBuffer(const uint8* Buffer)
 	{
+		// TODO: this shouldn't have to be a copy... could probably just point coreAudioBuffer to Buffer since Buffer is guaranteed to be valid for lifetime of the render!
 		if(coreAudioBuffer != NULL && coreAudioBufferByteSize > 0)
 		{
-			check(Buffer.Num() * sizeof(float) == coreAudioBufferByteSize);
-			memcpy(coreAudioBuffer, Buffer.GetData(), Buffer.Num() * sizeof(float));
+			memcpy(coreAudioBuffer, Buffer, coreAudioBufferByteSize);
 		}
 	}
 
@@ -302,65 +297,31 @@ namespace Audio
 
 	bool FMixerPlatformCoreAudio::HasCompressedAudioInfoClass(USoundWave* InSoundWave)
 	{
-		#if WITH_OGGVORBIS
-			return true;
-		#else
-			return false;
-		#endif
+#if WITH_OGGVORBIS
+		return true;
+#else
+		return false;
+#endif
 	}
 
 	ICompressedAudioInfo* FMixerPlatformCoreAudio::CreateCompressedAudioInfo(USoundWave* InSoundWave)
 	{
-		#if WITH_OGGVORBIS
-			return new FVorbisAudioInfo();
-		#else
-			return NULL;
-		#endif
+#if WITH_OGGVORBIS
+		return new FVorbisAudioInfo();
+#else
+		return NULL;
+#endif
 	}
 
 	FString FMixerPlatformCoreAudio::GetDefaultDeviceName()
 	{
 		return FString();
 	}
-	//~ End IAudioMixerPlatformInterface
 
-	//~ Begin IAudioMixerDeviceChangedLister
-	void FMixerPlatformCoreAudio::RegisterDeviceChangedListener()
+	FAudioPlatformSettings FMixerPlatformCoreAudio::GetPlatformSettings() const
 	{
-
+		return FAudioPlatformSettings();
 	}
-
-	void FMixerPlatformCoreAudio::UnRegisterDeviceChangedListener()
-	{
-
-	}
-
-	void FMixerPlatformCoreAudio::OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformCoreAudio::OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformCoreAudio::OnDeviceAdded(const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformCoreAudio::OnDeviceRemoved(const FString& DeviceId)
-	{
-
-	}
-
-	void FMixerPlatformCoreAudio::OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState)
-	{
-		
-	}
-	//~ End IAudioMixerDeviceChangedLister
-
 
 	bool FMixerPlatformCoreAudio::InitRunLoop()
 	{
@@ -444,7 +405,6 @@ namespace Audio
 		DeviceInfo.DeviceId = FString::Printf(TEXT("%x"), DeviceID);
 
 		bool bSuccess = GetDeviceName(DeviceID, DeviceInfo.Name);
-		bSuccess &= GetDeviceLatency(DeviceID, DeviceInfo.Latency);
 		bSuccess &= GetDeviceSampleRate(DeviceID, DeviceInfo.SampleRate);
 		bSuccess &=	GetDeviceChannels(DeviceID, DeviceInfo.OutputChannelArray);
 		
@@ -455,10 +415,7 @@ namespace Audio
 		AudioObjectPropertyAddress Property = NEW_OUTPUT_PROPERTY(kAudioDevicePropertyBufferFrameSizeRange);
 		OSStatus Status = AudioObjectGetPropertyData(DeviceID, &Property, 0, nullptr, &DataSize, &BufferSizeRange);
 		CORE_AUDIO_ERR(Status, "Failed to get callback buffer size range");
-
-		DeviceInfo.NumFrames = (uint32)BufferSizeRange.mMaximum;
-		DeviceInfo.NumSamples = DeviceInfo.NumFrames * DeviceInfo.NumChannels;
-		
+	
 		return bSuccess;
 	}
 

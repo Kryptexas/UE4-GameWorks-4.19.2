@@ -3665,7 +3665,7 @@ void GetAdditionalCurrentIniVersionStrings( const ITargetPlatform* TargetPlatfor
 
 
 	// TODO: Add support for physx version tracking, currently this happens so infrequently that invalidating a cook based on it is not essentual
-	//GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("PhysXFormat"), TPM->GetPhysXFormats());
+	//GetVersionFormatNumbersForIniVersionStrings(IniVersionMap, TEXT("PhysXCooking"), TPM->GetPhysXCooking());
 
 
 	if ( FParse::Param( FCommandLine::Get(), TEXT("fastcook") ) )

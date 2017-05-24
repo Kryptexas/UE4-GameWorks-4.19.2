@@ -24,6 +24,8 @@
 #include "DynamicMeshBuilder.h"
 #endif
 
+#include "PhysicsEngine/PhysicsAsset.h"
+
 DECLARE_CYCLE_STAT(TEXT("Compute Clothing Normals"), STAT_NvClothComputeNormals, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Internal Solve"), STAT_NvClothInternalSolve, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Update Collisions"), STAT_NvClothUpdateCollisions, STATGROUP_Physics);
@@ -195,6 +197,9 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 
 	ApplyClothConfig(Asset->ClothConfig, NewActor, InOwnerComponent);
 
+	// Pull collisions from the specified physics asset inside the clothing asset
+	ExtractActorCollisions(InOwnerComponent, Asset, NewActor);
+
 	// Always start at zero, we'll pick up the right one before we simulate on the first tick
 	CurrentMeshLodIndex = 0;
 	NewActor.CurrentLodIndex = 0;
@@ -213,6 +218,68 @@ void FClothingSimulationNv::CreateActor(USkeletalMeshComponent* InOwnerComponent
 		{
 			ComputePhysicalMeshNormals(Actor);
 		}
+	}
+}
+
+void FClothingSimulationNv::ExtractActorCollisions(USkeletalMeshComponent* InOwnerComponent, UClothingAsset* Asset, FClothingActorNv &InActor)
+{
+	// Build collision data for this Actor
+	USkeletalMesh* TargetMesh = InOwnerComponent->SkeletalMesh;
+	if(UPhysicsAsset* PhysAsset = Asset->PhysicsAsset)
+	{
+		bool bAddedBodies = false;
+		for(const USkeletalBodySetup* BodySetup : PhysAsset->SkeletalBodySetups)
+		{
+			int32 MeshBoneIndex = TargetMesh->RefSkeleton.FindBoneIndex(BodySetup->BoneName);
+			int32 MappedBoneIndex = INDEX_NONE;
+
+			if(MeshBoneIndex != INDEX_NONE)
+			{
+				MappedBoneIndex = Asset->UsedBoneNames.AddUnique(BodySetup->BoneName);
+			}
+
+			for(const FKSphereElem& Sphere : BodySetup->AggGeom.SphereElems)
+			{
+				FClothCollisionPrim_Sphere NewSphere;
+				NewSphere.LocalPosition = Sphere.Center;
+				NewSphere.Radius = Sphere.Radius;
+				NewSphere.BoneIndex = MappedBoneIndex;
+
+				InActor.ExtractedCollisions.Spheres.Add(NewSphere);
+				bAddedBodies = true;
+			}
+
+			for(const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
+			{
+				FClothCollisionPrim_Sphere Sphere0;
+				FClothCollisionPrim_Sphere Sphere1;
+				FVector OrientedDirection = Sphyl.Rotation.RotateVector(FVector(0.0f, 0.0f, 1.0f));
+				FVector HalfDim = OrientedDirection * (Sphyl.Length / 2.0f);
+				Sphere0.LocalPosition = Sphyl.Center - HalfDim;
+				Sphere1.LocalPosition = Sphyl.Center + HalfDim;
+				Sphere0.Radius = Sphyl.Radius;
+				Sphere1.Radius = Sphyl.Radius;
+				Sphere0.BoneIndex = MappedBoneIndex;
+				Sphere1.BoneIndex = MappedBoneIndex;
+
+				InActor.ExtractedCollisions.Spheres.Add(Sphere0);
+				InActor.ExtractedCollisions.Spheres.Add(Sphere1);
+
+				FClothCollisionPrim_SphereConnection Connection;
+				Connection.SphereIndices[0] = InActor.ExtractedCollisions.Spheres.Num() - 2;
+				Connection.SphereIndices[1] = InActor.ExtractedCollisions.Spheres.Num() - 1;
+
+				InActor.ExtractedCollisions.SphereConnections.Add(Connection);
+				bAddedBodies = true;
+			}
+		}
+
+		// Dirty the actor collisions if we've changed the bodies
+		InActor.bCollisionsDirty |= bAddedBodies;
+
+		// If we've used a bone that isn't in our skinned set we will have added entries
+		// to UsedBoneNames, so rebuild the bone mapping so our collisions work at runtime
+		Asset->RefreshBoneMapping(TargetMesh);
 	}
 }
 
@@ -1014,7 +1081,12 @@ void FClothingSimulationNv::DebugDraw_Collision(USkeletalMeshComponent* OwnerCom
 {
 	for(const FClothingActorNv& Actor : Actors)
 	{
-		const FClothCollisionData& CollisionData = Actor.AssetCreatedFrom->LodData[Actor.CurrentLodIndex].CollisionData;
+		if(Actor.CurrentLodIndex == INDEX_NONE)
+		{
+			continue;
+		}
+
+		const FClothCollisionData& CollisionData = Actor.AggregatedCollisions;
 
 		for(const FClothCollisionPrim_SphereConnection& Connection : CollisionData.SphereConnections)
 		{
@@ -1326,7 +1398,12 @@ void FClothingActorNv::ConditionalRebuildCollisions()
 	}
 
 	AggregatedCollisions.Reset();
+
+	// Asset-embedded collisions (created during import)
 	AggregatedCollisions.Append(AssetCreatedFrom->LodData[CurrentLodIndex].CollisionData);
+	// Extracted collisions from the physics asset selected by the user
+	AggregatedCollisions.Append(ExtractedCollisions);
+	// External collisions added from the world
 	AggregatedCollisions.Append(ExternalCollisions);
 
 	bCollisionsDirty = false;

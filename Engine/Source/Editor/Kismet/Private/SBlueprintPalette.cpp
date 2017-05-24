@@ -1004,8 +1004,22 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	ActionPtr = InCreateData->Action;
 	BlueprintEditorPtr = InBlueprintEditor;
 
-	const bool bIsFullyReadOnly = !InBlueprintEditor.IsValid();
+	const bool bIsFullyReadOnly = !InBlueprintEditor.IsValid() || InCreateData->bIsReadOnly;
 	
+	TWeakPtr<FEdGraphSchemaAction> WeakGraphAction = GraphAction;
+	auto IsReadOnlyLambda = [WeakGraphAction, InBlueprintEditor, bIsFullyReadOnly]()
+	{ 
+		if(WeakGraphAction.IsValid() && InBlueprintEditor.IsValid())
+		{
+			return bIsFullyReadOnly || FBlueprintEditorUtils::IsPaletteActionReadOnly(WeakGraphAction.Pin(), InBlueprintEditor.Pin());
+		}
+
+		return true;
+	};
+
+	TAttribute<bool> bIsReadOnly = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda(IsReadOnlyLambda));
+	TAttribute<bool> bIsEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda([IsReadOnlyLambda]() { return !IsReadOnlyLambda(); }));
+
 	// construct the icon widget
 	FSlateBrush const* IconBrush   = FEditorStyle::GetBrush(TEXT("NoBrush"));
 	FSlateBrush const* SecondaryBrush = FEditorStyle::GetBrush(TEXT("NoBrush"));
@@ -1015,7 +1029,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	FString			   IconDocLink, IconDocExcerpt;
 	GetPaletteItemIcon(GraphAction, Blueprint, IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt, SecondaryBrush, SecondaryIconColor);
 	TSharedRef<SWidget> IconWidget = CreateIconWidget(IconToolTip, IconBrush, IconColor, IconDocLink, IconDocExcerpt, SecondaryBrush, SecondaryIconColor);
-	IconWidget->SetEnabled(!bIsFullyReadOnly);
+	IconWidget->SetEnabled(bIsEnabled);
 
 	// Setup a meta tag for this node
 	FTutorialMetaData TagMeta("PaletteItem"); 
@@ -1026,7 +1040,6 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	}
 	// construct the text widget
 	FSlateFontInfo NameFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
-	const bool bIsReadOnly = bIsFullyReadOnly || FBlueprintEditorUtils::IsPaletteActionReadOnly(GraphAction, InBlueprintEditor.Pin());
 	TSharedRef<SWidget> NameSlotWidget = CreateTextSlotWidget( NameFont, InCreateData, bIsReadOnly );
 	
 	// For Variables and Local Variables, we will convert the icon widget into a pin type selector.
@@ -1050,7 +1063,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			{
 				const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 				IconWidget = SNew(SPinTypeSelectorHelper, VariableProp, Blueprint, BlueprintEditorPtr)
-					.IsEnabled(!bIsFullyReadOnly);
+					.IsEnabled(bIsEnabled);
 			}
 		}
 	}
@@ -1081,7 +1094,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			.VAlign(VAlign_Center)
 		[
 			SNew(SPaletteItemVisibilityToggle, ActionPtr, InBlueprintEditor, InBlueprint)
-			.IsEnabled(!bIsFullyReadOnly)
+			.IsEnabled(bIsEnabled)
 		]
 	];
 }
@@ -1101,7 +1114,7 @@ void SBlueprintPaletteItem::OnDragEnter(const FGeometry& MyGeometry, const FDrag
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, bool const bIsReadOnlyIn)
+TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, TAttribute<bool> bIsReadOnlyIn)
 {
 	FName const ActionTypeId = InCreateData->Action->GetTypeId();
 
@@ -1143,8 +1156,6 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 	}
 
 	TSharedPtr<SToolTip> ToolTipWidget = ConstructToolTipWidget();
-	// If the creation data says read only, then it must be read only
-	bool bIsReadOnly = (bIsReadOnlyIn || InCreateData->bIsReadOnly);
 
 	TSharedPtr<SOverlay> DisplayWidget;
 	TSharedPtr<SInlineEditableTextBlock> EditableTextElement;
@@ -1159,14 +1170,11 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 				.OnVerifyTextChanged(OnVerifyTextChanged)
 				.OnTextCommitted(OnTextCommitted)
 				.IsSelected(InCreateData->IsRowSelectedDelegate)
-				.IsReadOnly(bIsReadOnly)
+				.IsReadOnly(bIsReadOnlyIn)
 		];
 	InlineRenameWidget = EditableTextElement.ToSharedRef();
 
-	if(!bIsReadOnly)
-	{
-		InCreateData->OnRenameRequest->BindSP(InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
-	}
+	InCreateData->OnRenameRequest->BindSP(InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode);
 
 	if (GetDefault<UBlueprintEditorSettings>()->bShowActionMenuItemSignatures && ActionPtr.IsValid())
 	{

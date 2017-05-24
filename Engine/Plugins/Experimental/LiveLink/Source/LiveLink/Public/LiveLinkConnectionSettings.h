@@ -17,7 +17,7 @@ struct FLiveLinkConnectionSettings
 	UPROPERTY(EditAnywhere, Category = Settings)
 	bool bUseInterpolation;
 	
-	// When interpolationg how far back from current time should we read the buffer (in seconds)
+	// When interpolating: how far back from current time should we read the buffer (in seconds)
 	UPROPERTY(EditAnywhere, Category = Settings)
 	float InterpolationOffset;
 };

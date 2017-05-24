@@ -29,16 +29,22 @@ public:
 	virtual bool InputKey(IMeshPaintGeometryAdapter* Adapter, FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) { return false; }
 
 	/** Whether or not the brush interactor should be drawn */
-	virtual bool ShouldRenderInteractors() { return true; }
+	virtual bool ShouldRenderInteractors() const { return true; }
 
 	/** Display name for UI purposes */
-	virtual FText GetDisplayName() = 0;
+	virtual FText GetDisplayName() const = 0;
 
 	/** Whether this action should be executed once for each vertex in the brush or just once per operation */
-	virtual bool IsPerVertex() { return true; }
+	virtual bool IsPerVertex() const { return true; }
 
 	/** Optionally render extra data to the viewport */
 	virtual void Render(USkeletalMeshComponent* InComponent, IMeshPaintGeometryAdapter* InAdapter, const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) {}
+
+	/** Called as tool is selected, can be used to initialize and bind actions */
+	virtual void Activate(TWeakPtr<FUICommandList> InCommands) {};
+
+	/** Called as tool is deselected, can be used to shutdown and unbind actions */
+	virtual void Deactivate(TWeakPtr<FUICommandList> InCommands) {};
 
 	/** 
 	 * Optionally return a UObject that will be displayed in the details panel when the tool is selected.

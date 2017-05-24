@@ -5,6 +5,7 @@
 #include "DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 #include "SListView.h"
+#include "SComboBox.h"
 
 class IDetailsView;
 class FClothPainter;
@@ -49,6 +50,14 @@ public:
 	// Refresh the widget such as when entering the paint mode
 	void OnRefresh();
 
+	// Resets the selections and puts the widget back to starting state
+	void Reset();
+
+	// Currently selected clothing asset, Lod Index and Mask index
+	TWeakObjectPtr<UClothingAsset> SelectedAsset;
+	int32 SelectedLod;
+	int32 SelectedMask;
+
 protected:
 
 	// Details view placed below asset selection
@@ -63,8 +72,17 @@ protected:
 	// Settings for the painter instance
 	UClothPainterSettings* ClothPainterSettings;
 
-	// Asset List handling
+	// Setters for the list selections so we can handle list selections changing properly
+	void SetSelectedAsset(TWeakObjectPtr<UClothingAsset> InSelectedAsset);
+	void SetSelectedLod(int32 InLodIndex, bool bRefreshMasks = true);
+	void SetSelectedMask(int32 InMaskIndex);
+
+	// List types for this panel
 	typedef SListView<TSharedPtr<FClothingAssetListItem>> SAssetList;
+	typedef SListView<TSharedPtr<FClothingMaskListItem>> SMaskList;
+	typedef SComboBox<TSharedPtr<FClothingAssetLodItem>> SLodList;
+
+	// Asset List handling
 	void RefreshClothingAssetListItems();
 	TSharedRef<ITableRow> OnGenerateWidgetForClothingAssetItem(TSharedPtr<FClothingAssetListItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnAssetListSelectionChanged(TSharedPtr<FClothingAssetListItem> InSelectedItem, ESelectInfo::Type InSelectInfo);
@@ -78,7 +96,6 @@ protected:
 	void OnClothingLodChanged(TSharedPtr<FClothingAssetLodItem> InSelectedItem, ESelectInfo::Type InSelectInfo);
 
 	// Mask list handling
-	typedef SListView<TSharedPtr<FClothingMaskListItem>> SMaskList;
 	void RefreshMaskListItems();
 	TSharedRef<ITableRow> OnGenerateWidgetForMaskItem(TSharedPtr<FClothingMaskListItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnMaskSelectionChanged(TSharedPtr<FClothingMaskListItem> InSelectedItem, ESelectInfo::Type InSelectInfo);
@@ -88,9 +105,8 @@ protected:
 	FReply AddNewMask();
 	bool CanAddNewMask() const;
 
-	TWeakObjectPtr<UClothingAsset> SelectedAsset;
-	int32 SelectedLod;
-
+	// List widgets for asset, lod and mask tracked for refreshing
 	TSharedPtr<SAssetList> AssetList;
 	TSharedPtr<SMaskList> MaskList;
+	TSharedPtr<SLodList> LodList;
 };

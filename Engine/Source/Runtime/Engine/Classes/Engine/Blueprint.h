@@ -571,12 +571,19 @@ public:
 	virtual bool IsValidForBytecodeOnlyRecompile() const { return true; }
 
 #if WITH_EDITORONLY_DATA
+	/** Delegate called when the debug object is set */
+	DECLARE_EVENT_OneParam(UBlueprint, FOnSetObjectBeingDebugged, UObject* /*InDebugObj*/);
+	FOnSetObjectBeingDebugged& OnSetObjectBeingDebugged() { return OnSetObjectBeingDebuggedDelegate; }
+
 protected:
 	/** Current object being debugged for this blueprint */
 	TWeakObjectPtr< class UObject > CurrentObjectBeingDebugged;
 
 	/** Current world being debugged for this blueprint */
 	TWeakObjectPtr< class UWorld > CurrentWorldBeingDebugged;
+
+	/** Delegate called when the debug object is set */
+	FOnSetObjectBeingDebugged OnSetObjectBeingDebuggedDelegate;
 
 public:
 
@@ -689,6 +696,9 @@ public:
 	* Allows derived blueprints to require compilation on load, otherwise they may get treated as data only and not compiled on load.
 	*/
 	virtual bool AlwaysCompileOnLoad() const { return false; }
+
+	/** Some Blueprints (and classes) can recompile while we are debugging a live session. This function controls whether this can occur. */
+	virtual bool CanRecompileWhilePlayingInEditor() const { return false; }
 
 private:
 

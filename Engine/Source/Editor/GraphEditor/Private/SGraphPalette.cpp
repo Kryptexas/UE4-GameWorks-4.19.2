@@ -115,7 +115,7 @@ TSharedRef<SWidget> SGraphPaletteItem::CreateIconWidget(const FText& IconToolTip
 		IDocumentation::Get()->CreateToolTip(IconToolTip, NULL, DocLink, DocExcerpt));
 }
 
-TSharedRef<SWidget> SGraphPaletteItem::CreateTextSlotWidget( const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, bool bIsReadOnly )
+TSharedRef<SWidget> SGraphPaletteItem::CreateTextSlotWidget( const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, TAttribute<bool> bIsReadOnly )
 {
 	TSharedPtr< SWidget > DisplayWidget;
 
@@ -142,10 +142,7 @@ TSharedRef<SWidget> SGraphPaletteItem::CreateTextSlotWidget( const FSlateFontInf
 		.IsSelected( InCreateData->IsRowSelectedDelegate )
 		.IsReadOnly( bIsReadOnly );
 
-	if(!bIsReadOnly)
-	{
-		InCreateData->OnRenameRequest->BindSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
-	}
+	InCreateData->OnRenameRequest->BindSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
 
 	return DisplayWidget.ToSharedRef();
 }

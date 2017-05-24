@@ -47,3 +47,14 @@ public:
 	virtual bool IsObjectVisible(const UObject* InRootObject) const override { return true; }
 	virtual bool ShouldDisplayHeader(const UObject* InRootObject) const override { return false; }
 };
+
+
+class FClothPaintBrushSettingsCustomization : public IDetailCustomization
+{
+public:
+
+	static TSharedRef<IDetailCustomization> MakeInstance();
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
+};

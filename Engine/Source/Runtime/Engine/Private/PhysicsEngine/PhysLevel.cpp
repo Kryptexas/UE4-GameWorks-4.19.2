@@ -11,6 +11,10 @@
 #include "Engine/World.h"
 #include "PhysicsPublic.h"
 
+#include "IPhysXCookingModule.h"
+#include "IPhysXCooking.h"
+#include "Modules/ModuleManager.h"
+
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
 #endif
@@ -35,13 +39,13 @@ FPhysicsDelegates::FOnPhysSceneInit FPhysicsDelegates::OnPhysSceneInit;
 FPhysicsDelegates::FOnPhysSceneTerm FPhysicsDelegates::OnPhysSceneTerm;
 
 // CVars
-static TAutoConsoleVariable<float> CVarToleranceScaleLength(
+TAutoConsoleVariable<float> CVarToleranceScaleLength(
 	TEXT("p.ToleranceScale_Length"),
 	100.f,
 	TEXT("The approximate size of objects in the simulation. Default: 100"),
 	ECVF_ReadOnly);
 
-static TAutoConsoleVariable<float> CVarToleranceScaleSpeed(
+TAutoConsoleVariable<float> CVarToleranceScaleSpeed(
 	TEXT("p.ToleranceScale_Speed"),
 	1000.f,
 	TEXT("The typical magnitude of velocities of objects in simulation. Default: 1000"),
@@ -271,7 +275,7 @@ void InitGamePhys()
 	}
 
 	// Make sure 
-	LoadPhysXModules();
+	LoadPhysXModules(/*bLoadCookingModule=*/ false);
 
 	// Create Foundation
 	GPhysXAllocator = new FPhysXAllocator();
@@ -324,28 +328,21 @@ void InitGamePhys()
 		PvdConnect(TEXT("localhost"), true);
 	}
 
-
-#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
 	// Create Cooking
-	PxCookingParams PCookingParams(PScale);
-	PCookingParams.meshWeldTolerance = 0.1f; // Weld to 1mm precision
-	PCookingParams.meshPreprocessParams = PxMeshPreprocessingFlags(PxMeshPreprocessingFlag::eWELD_VERTICES);
-	// Force any cooking in PhysX or APEX to use older incremental hull method
-	// This is because the new 'quick hull' method can generate degenerate geometry in some cases (very thin meshes etc.)
-	//PCookingParams.convexMeshCookingType = PxConvexMeshCookingType::eINFLATION_INCREMENTAL_HULL;
-	PCookingParams.targetPlatform = PxPlatform::ePC;
-	//PCookingParams.meshCookingHint = PxMeshCookingHint::eCOOKING_PERFORMANCE;
-	//PCookingParams.meshSizePerformanceTradeOff = 0.0f;
-	GPhysXCooking = PxCreateCooking(PX_PHYSICS_VERSION, *GPhysXFoundation, PCookingParams);
-	check(GPhysXCooking);
-#endif
+	PxCooking* PhysXCooking = nullptr;
+	if (IPhysXCookingModule* Module = GetPhysXCookingModule())
+	{
+		PhysXCooking = Module->GetPhysXCooking()->GetCooking();
+	}
 
 #if WITH_APEX
+	check(PhysXCooking);	//APEX requires cooking
+
 	// Build the descriptor for the APEX SDK
 	apex::ApexSDKDesc ApexDesc;
 	ApexDesc.foundation				= GPhysXFoundation;	// Pointer to the PxFoundation
 	ApexDesc.physXSDK				= GPhysXSDK;	// Pointer to the PhysXSDK
-	ApexDesc.cooking				= GPhysXCooking;	// Pointer to the cooking library
+	ApexDesc.cooking				= PhysXCooking;	// Pointer to the cooking library
 	ApexDesc.renderResourceManager	= &GApexNullRenderResourceManager;	// We will not be using the APEX rendering API, so just use a dummy render resource manager
 	ApexDesc.resourceCallback		= &GApexResourceCallback;	// The resource callback is how APEX asks the application to find assets when it needs them
 
@@ -502,15 +499,10 @@ void TermGamePhys()
 		}
 	}
 
-
-
-#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-	if(GPhysXCooking != NULL)
+	if(IPhysXCookingModule* PhysXCookingModule = GetPhysXCookingModule())
 	{
-		GPhysXCooking->release(); 
-		GPhysXCooking = NULL;
+		PhysXCookingModule->Terminate();
 	}
-#endif
 
 	if (GPhysXSDK != NULL)
 	{

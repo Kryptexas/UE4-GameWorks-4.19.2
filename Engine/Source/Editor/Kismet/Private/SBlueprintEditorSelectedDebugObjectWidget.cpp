@@ -596,13 +596,16 @@ void SBlueprintEditorSelectedDebugObjectWidget::DebugWorldSelectionChanged(TShar
 
 void SBlueprintEditorSelectedDebugObjectWidget::DebugObjectSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
-	check(DebugObjects.Num() == DebugObjectNames.Num());
-	for (int32 ObjectIndex = 0; ObjectIndex < DebugObjectNames.Num(); ++ObjectIndex)
+	if (SelectInfo != ESelectInfo::Direct)
 	{
-		if (*DebugObjectNames[ObjectIndex] == *NewSelection)
+		check(DebugObjects.Num() == DebugObjectNames.Num());
+		for (int32 ObjectIndex = 0; ObjectIndex < DebugObjectNames.Num(); ++ObjectIndex)
 		{
-			UObject* DebugObj = DebugObjects[ObjectIndex].IsValid() ? DebugObjects[ObjectIndex].Get() : nullptr;
-			GetBlueprintObj()->SetObjectBeingDebugged(DebugObj);
+			if (*DebugObjectNames[ObjectIndex] == *NewSelection)
+			{
+				UObject* DebugObj = DebugObjects[ObjectIndex].IsValid() ? DebugObjects[ObjectIndex].Get() : nullptr;
+				GetBlueprintObj()->SetObjectBeingDebugged(DebugObj);
+			}
 		}
 	}
 }

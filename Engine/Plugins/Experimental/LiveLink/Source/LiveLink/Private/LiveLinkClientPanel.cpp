@@ -39,6 +39,7 @@ public:
 	FText GetMachineName() { return Client->GetMachineNameForEntry(EntryGuid); }
 	FText GetEntryStatus() { return Client->GetEntryStatusForEntry(EntryGuid); }
 	FLiveLinkConnectionSettings* GetConnectionSettings() { return Client->GetConnectionSettingsForEntry(EntryGuid); }
+	void RemoveFromClient() { Client->RemoveSource(EntryGuid); }
 
 private:
 	FGuid EntryGuid;
@@ -357,18 +358,18 @@ void SLiveLinkClientPanel::RetrieveFactorySourcePanel(FMenuBuilder& MenuBuilder,
 
 FReply SLiveLinkClientPanel::OnCloseSourceSelectionPanel(ULiveLinkSourceFactory* FactoryCDO, bool bMakeSource)
 {
-	ILiveLinkSource* Source = FactoryCDO->OnSourceCreationPanelClosed(bMakeSource);
+	TSharedPtr<ILiveLinkSource> Source = FactoryCDO->OnSourceCreationPanelClosed(bMakeSource);
 	// If we want a source we should get one ... if we dont we shouldn't. Make sure source factory does the right thing in both cases
 	if (bMakeSource)
 	{
-		check(Source);
+		check(Source.IsValid());
 		Client->AddSource(Source);
 
 		RefreshSourceData(true);
 	}
 	else
 	{
-		check(!Source);
+		check(!Source.IsValid());
 	}
 	FSlateApplication::Get().DismissAllMenus();
 	return FReply::Handled();
@@ -376,7 +377,12 @@ FReply SLiveLinkClientPanel::OnCloseSourceSelectionPanel(ULiveLinkSourceFactory*
 
 void SLiveLinkClientPanel::HandleRemoveSource()
 {
-
+	TArray<FLiveLinkSourceUIEntryPtr> Selected;
+	ListView->GetSelectedItems(Selected);
+	if (Selected.Num() > 0)
+	{
+		Selected[0]->RemoveFromClient();
+	}
 }
 
 bool SLiveLinkClientPanel::CanRemoveSource()
@@ -386,7 +392,7 @@ bool SLiveLinkClientPanel::CanRemoveSource()
 
 void SLiveLinkClientPanel::HandleRemoveAllSources()
 {
-
+	Client->RemoveAllSources();
 }
 
 void SLiveLinkClientPanel::OnSourcesChangedHandler()

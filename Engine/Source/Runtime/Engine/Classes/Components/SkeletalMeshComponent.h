@@ -284,7 +284,7 @@ public:
 	class TSubclassOf<UAnimInstance> AnimClass;
 
 	/** The active animation graph program instance. */
-	UPROPERTY(transient)
+	UPROPERTY(transient, NonTransactional)
 	UAnimInstance* AnimScriptInstance;
 
 	/** Any running sub anim instances that need to be updates on the game thread */
@@ -1731,7 +1731,12 @@ private:
 public:
 	void ConditionallyDispatchQueuedAnimEvents();
 
+	// Are we currently within PostAnimEvaluation
+	bool IsPostEvaluatingAnimation() const { return bPostEvaluatingAnimation; }
+
 private: 
 	UPROPERTY(Transient)
 	bool bNeedsQueuedAnimEventsDispatched;
+
+	bool bPostEvaluatingAnimation;
 };

@@ -112,10 +112,14 @@ inline bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody)
 /////// GLOBAL POINTERS
 
 /** Pointer to PhysX Foundation singleton */
-extern PxFoundation*			GPhysXFoundation;
+extern ENGINE_API PxFoundation*			GPhysXFoundation;
 /** Pointer to PhysX debugger */
 extern PxPvd*					GPhysXVisualDebugger;
 
+extern ENGINE_API TAutoConsoleVariable<float> CVarToleranceScaleLength;
+
+extern ENGINE_API TAutoConsoleVariable<float> CVarToleranceScaleSpeed;
+	
 #if WITH_APEX
 /** 
  *	Map from SceneIndex to actual ApexScene. This indirection allows us to set it to null when we kill the scene, 
@@ -229,14 +233,14 @@ public:
 };
 
 /** Utility class for reading cooked physics data. */
-class FPhysXFormatDataReader
+class FPhysXCookingDataReader
 {
 public:
 	TArray<PxConvexMesh*> ConvexMeshes;
 	TArray<PxConvexMesh*> ConvexMeshesNegX;
 	TArray<PxTriangleMesh*> TriMeshes;
 
-	FPhysXFormatDataReader( FByteBulkData& InBulkData, struct FBodySetupUVInfo* UVInfo );
+	FPhysXCookingDataReader( FByteBulkData& InBulkData, struct FBodySetupUVInfo* UVInfo );
 
 private:
 

@@ -82,7 +82,14 @@ public:
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(LiveLinkClient, STATGROUP_Tickables); }
 	// End FTickableObjectBase
 
-	void AddSource(ILiveLinkSource* InSource);
+	// Add a new live link source to the client
+	void AddSource(TSharedPtr<ILiveLinkSource> InSource);
+
+	// Remove the specified source from the live link client
+	void RemoveSource(FGuid InEntryGuid);
+
+	// Remover all sources from the live link client
+	void RemoveAllSources();
 
 	// ILiveLinkClient Interface
 	virtual FLiveLinkTimeCode MakeTimeCode(double InTime, int32 InFrameNum) const;
@@ -95,7 +102,6 @@ public:
 
 	virtual const FLiveLinkSubjectFrame* GetSubjectData(FName SubjectName) override;
 
-	const TArray<ILiveLinkSource*>& GetSources() const { return Sources; }
 	const TArray<FGuid>& GetSourceEntries() const { return SourceGuids; }
 
 	FText GetSourceTypeForEntry(FGuid InEntryGuid) const;
@@ -110,11 +116,14 @@ public:
 
 private:
 
+	// Remove the specified source (must be a valid index, function does no checking)
+	void RemoveSourceInternal(int32 SourceIdx);
+
 	// Get index of specified source
 	int32 GetSourceIndexForGUID(FGuid InEntryGuid) const;
 
 	// Get specified live link source
-	ILiveLinkSource* GetSourceForGUID(FGuid InEntryGuid) const;
+	TSharedPtr<ILiveLinkSource> GetSourceForGUID(FGuid InEntryGuid) const;
 
 	// Test currently added sources to make sure they are still valid
 	void ValidateSources();
@@ -130,9 +139,12 @@ private:
 	TMap<FName, FLiveLinkSubjectFrame> ActiveSubjectSnapshots;
 
 	// Current Sources
-	TArray<ILiveLinkSource*> Sources;
+	TArray<TSharedPtr<ILiveLinkSource>> Sources;
 	TArray<FGuid>			 SourceGuids;
 	TArray<FLiveLinkConnectionSettings> ConnectionSettings;
+
+	// Sources that we are currently trying to remove
+	TArray<TSharedPtr<ILiveLinkSource>>			 SourcesToRemove;
 
 	// Cache last time we checked the validity of our sources 
 	double LastValidationCheck;

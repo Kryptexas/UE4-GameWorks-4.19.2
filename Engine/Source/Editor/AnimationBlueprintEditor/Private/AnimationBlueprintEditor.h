@@ -86,6 +86,7 @@ public:
 	/** FBlueprintEdi1tor interface */
 	virtual void OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated) override;
 	virtual void OnSelectedNodesChangedImpl(const TSet<class UObject*>& NewSelection) override;
+	virtual void HandleSetObjectBeingDebugged(UObject* InObject) override;
 
 	// Gets the Anim Blueprint being edited/viewed by this Persona instance
 	UAnimBlueprint* GetAnimBlueprint() const;

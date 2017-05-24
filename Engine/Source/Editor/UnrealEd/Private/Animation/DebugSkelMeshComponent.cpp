@@ -158,11 +158,6 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 	}
 }
 
-void UDebugSkelMeshComponent::SetVisibleClothProperty(int32 ClothProperty)
-{
-	VisibleClothProperty = ClothProperty;
-}
-
 FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
 {
 	FDebugSkelMeshSceneProxy* Result = NULL;
@@ -204,7 +199,12 @@ FString UDebugSkelMeshComponent::GetPreviewText() const
 	if (IsPreviewOn())
 	{
 		UAnimationAsset* CurrentAsset = PreviewInstance->GetCurrentAsset();
-		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset))
+		if (USkeletalMeshComponent* SkeletalMeshComponent = PreviewInstance->GetDebugSkeletalMeshComponent())
+		{
+			FText Label = SkeletalMeshComponent->GetOwner() ? FText::FromString(SkeletalMeshComponent->GetOwner()->GetActorLabel()) : LOCTEXT("NoActor", "None");
+			return FText::Format(LOCTEXT("ExternalComponent", "External Instance on {0}"), Label).ToString();
+		}
+		else if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset))
 		{
 			return FText::Format( LOCTEXT("BlendSpace", "Blend Space {0}"), FText::FromString(BlendSpace->GetName()) ).ToString();
 		}
@@ -908,8 +908,7 @@ void UDebugSkelMeshComponent::RefreshSelectedClothingSkinnedPositions()
 
 				FClothLODData& LodData = ConcreteAsset->LodData[SelectedClothingLodForPainting];
 
-				FTransform RootBoneTransform = GetBoneTransform(ConcreteAsset->ReferenceBoneIndex);
-				FClothingSimulationBase::SkinPhysicsMesh(ConcreteAsset, LodData.PhysicalMeshData, RootBoneTransform, RefToLocals.GetData(), RefToLocals.Num(), SkinnedSelectedClothingPositions, SkinnedSelectedClothingNormals);
+				FClothingSimulationBase::SkinPhysicsMesh(ConcreteAsset, LodData.PhysicalMeshData, FTransform::Identity, RefToLocals.GetData(), RefToLocals.Num(), SkinnedSelectedClothingPositions, SkinnedSelectedClothingNormals);
 			}
 		}
 	}
@@ -968,7 +967,7 @@ void FDebugSkelMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 
 	if(DynamicData && DynamicData->ClothingSimDataIndexWhenPainting != INDEX_NONE && DynamicData->bDrawClothPaintPreview)
 	{
-		if(DynamicData->SkinnedPositions.Num() > 0)
+		if(DynamicData->SkinnedPositions.Num() > 0 && DynamicData->ClothingVisiblePropertyValues.Num() > 0)
 		{
 			FDynamicMeshBuilder MeshBuilder;
 
@@ -976,29 +975,9 @@ void FDebugSkelMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 			const TArray<FVector>& Vertices = DynamicData->SkinnedPositions;
 			const TArray<FVector>& Normals = DynamicData->SkinnedNormals;
 
-			float MaxValue = MIN_flt;
-			float MinValue = MAX_flt;
 			float* ValueArray = DynamicData->ClothingVisiblePropertyValues.GetData();
+
 			const int32 NumVerts = Vertices.Num();
-			for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
-			{
-				const float& Value = ValueArray[VertIndex];
-				MaxValue = FMath::Max(MaxValue, Value);
-				
-				if(Value > 0.0f)
-				{
-					MinValue = FMath::Min(MinValue, ValueArray[VertIndex]);
-				}
-			}
-
-			float Range = MaxValue - MinValue;
-
-			// If we've only got really close values.
-			if(Range < 0.1f)
-			{
-				Range = MaxValue;
-				MinValue = 0;
-			}
 
 			const FLinearColor Magenta = FLinearColor(1.0f, 0.0f, 1.0f);
 			for(int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
@@ -1009,7 +988,10 @@ void FDebugSkelMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneV
 				Vert.TextureCoordinate = {1.0f, 1.0f};
 				Vert.TangentZ = Normals[VertIndex];
 
-				const FLinearColor Color = FMath::IsNearlyZero(ValueArray[VertIndex]) ? Magenta : (FLinearColor::White * ((ValueArray[VertIndex] - MinValue) / Range));
+				float CurrValue = ValueArray[VertIndex];
+				float Range = DynamicData->PropertyViewMax - DynamicData->PropertyViewMin;
+				float ClampedViewValue = FMath::Clamp(CurrValue, DynamicData->PropertyViewMin, DynamicData->PropertyViewMax);
+				const FLinearColor Color = CurrValue == 0.0f ? Magenta : (FLinearColor::White * ((ClampedViewValue - DynamicData->PropertyViewMin) / Range));
 				Vert.Color = Color.ToFColor(true);
 
 				MeshBuilder.AddVertex(Vert);
@@ -1043,7 +1025,8 @@ FDebugSkelMeshDynamicData::FDebugSkelMeshDynamicData(UDebugSkelMeshComponent* In
 	, bDrawBinormals(InComponent->bDrawBinormals)
 	, bDrawClothPaintPreview(InComponent->bShowClothData)
 	, ClothingSimDataIndexWhenPainting(INDEX_NONE)
-	, ClothingVisiblePropertyIndex(InComponent->VisibleClothProperty)
+	, PropertyViewMin(InComponent->MinClothPropertyView)
+	, PropertyViewMax(InComponent->MaxClothPropertyView)
 {
 	if(InComponent->SelectedClothingGuidForPainting.IsValid())
 	{
@@ -1068,19 +1051,11 @@ FDebugSkelMeshDynamicData::FDebugSkelMeshDynamicData(UDebugSkelMeshComponent* In
 
 							ClothingSimIndices = LodData.PhysicalMeshData.Indices;
 
-							switch(ClothingVisiblePropertyIndex)
+							if(LodData.ParameterMasks.IsValidIndex(InComponent->SelectedClothingLodMaskForPainting))
 							{
-								case 0:
-									ClothingVisiblePropertyValues = LodData.PhysicalMeshData.MaxDistances;
-									break;
-								case 1:
-									ClothingVisiblePropertyValues = LodData.PhysicalMeshData.BackstopDistances;
-									break;
-								case 2:
-									ClothingVisiblePropertyValues = LodData.PhysicalMeshData.BackstopRadiuses;
-									break;
-								default:
-									break;
+								FClothParameterMask_PhysMesh& Mask = LodData.ParameterMasks[InComponent->SelectedClothingLodMaskForPainting];
+
+								ClothingVisiblePropertyValues = Mask.GetValueArray();
 							}
 						}
 					}

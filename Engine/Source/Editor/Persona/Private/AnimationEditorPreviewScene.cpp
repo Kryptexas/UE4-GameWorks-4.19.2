@@ -139,6 +139,21 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 {
 	USkeletalMesh* OldPreviewMesh = SkeletalMeshComponent->SkeletalMesh;
 
+	// Store off the old skel mesh we are debugging
+	USkeletalMeshComponent* DebuggedSkeletalMeshComponent = nullptr;
+	if(SkeletalMeshComponent->GetAnimInstance())
+	{
+		UAnimBlueprint* SourceBlueprint = Cast<UAnimBlueprint>(SkeletalMeshComponent->GetAnimInstance()->GetClass()->ClassGeneratedBy);
+		if(SourceBlueprint)
+		{
+			UAnimInstance* DebuggedAnimInstance = Cast<UAnimInstance>(SourceBlueprint->GetObjectBeingDebugged());
+			if(DebuggedAnimInstance)
+			{
+				DebuggedSkeletalMeshComponent = DebuggedAnimInstance->GetSkelMeshComponent();
+			}
+		}
+	}
+
 	// Make sure the desc is up to date as this may have not come from a call to set the value in the desc
 	PreviewSceneDescription->PreviewMesh = NewPreviewMesh;
 
@@ -201,10 +216,10 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 
 	// Setting the skeletal mesh to in the PreviewScene can change AnimScriptInstance so we must re register it
 	// with the AnimBlueprint
-	if (SkeletalMeshComponent->IsAnimBlueprintInstanced())
+	if (DebuggedSkeletalMeshComponent)
 	{
 		UAnimBlueprint* SourceBlueprint = CastChecked<UAnimBlueprint>(SkeletalMeshComponent->GetAnimInstance()->GetClass()->ClassGeneratedBy);
-		SourceBlueprint->SetObjectBeingDebugged(SkeletalMeshComponent->GetAnimInstance());
+		SourceBlueprint->SetObjectBeingDebugged(DebuggedSkeletalMeshComponent->GetAnimInstance());
 	}
 
 	OnPreviewMeshChanged.Broadcast(OldPreviewMesh, NewPreviewMesh);

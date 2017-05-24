@@ -450,14 +450,14 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 				UProperty* SourceStructSubProperty = SourceStructProperty->Struct->FindPropertyByName(CopyRecord.SourceSubPropertyName);
 				CopyRecord.Source = SourceStructSubProperty->ContainerPtrToValuePtr<uint8>(Source, CopyRecord.SourceArrayIndex);
 				CopyRecord.Size = SourceStructSubProperty->GetSize();
-				CopyRecord.CachedBoolSourceProperty = Cast<UBoolProperty>(SourceStructSubProperty);
+				CopyRecord.CachedSourceProperty = SourceStructSubProperty;
 				CopyRecord.CachedSourceContainer = Source;
 			}
 			else
 			{
 				CopyRecord.Source = SourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject, CopyRecord.SourceArrayIndex);
 				CopyRecord.Size = SourceProperty->GetSize();
-				CopyRecord.CachedBoolSourceProperty = Cast<UBoolProperty>(SourceProperty);
+				CopyRecord.CachedSourceProperty = SourceProperty;
 				CopyRecord.CachedSourceContainer = AnimInstanceObject;
 			}
 		}
@@ -467,7 +467,6 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			FScriptArrayHelper ArrayHelper(DestArrayProperty, CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode));
 			check(ArrayHelper.IsValidIndex(CopyRecord.DestArrayIndex));
 			CopyRecord.Dest = ArrayHelper.GetRawPtr(CopyRecord.DestArrayIndex);
-			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
 
 			if(CopyRecord.bInstanceIsTarget)
 			{
@@ -491,9 +490,23 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			{
 				CopyRecord.CachedDestContainer = AnimNode;
 			}
+		}
 
-			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
-			CopyRecord.CachedStructDestProperty = Cast<UStructProperty>(CopyRecord.DestProperty);
+		if(UBoolProperty* BoolProperty = Cast<UBoolProperty>(CopyRecord.DestProperty))
+		{
+			CopyRecord.CopyType = ECopyType::BoolProperty;
+		}
+		else if(UStructProperty* StructProperty = Cast<UStructProperty>(CopyRecord.DestProperty))
+		{
+			CopyRecord.CopyType = ECopyType::StructProperty;
+		}
+		else if(UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(CopyRecord.DestProperty))
+		{
+			CopyRecord.CopyType = ECopyType::ObjectProperty;
+		}
+		else
+		{
+			CopyRecord.CopyType = ECopyType::MemCopy;
 		}
 	}
 
@@ -519,27 +532,36 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 		{
 		case EPostCopyOperation::None:
 			{
-				if (CopyRecord.CachedBoolSourceProperty != nullptr && CopyRecord.CachedBoolDestProperty != nullptr)
+				switch(CopyRecord.CopyType)
 				{
-					bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
-					CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, bValue, CopyRecord.DestArrayIndex);
-				}
-				else if(CopyRecord.CachedStructDestProperty != nullptr)
-				{
-					CopyRecord.CachedStructDestProperty->Struct->CopyScriptStruct(CopyRecord.Dest, CopyRecord.Source);
-				}
-				else
-				{
+				default:
+				case ECopyType::MemCopy:
 					FMemory::Memcpy(CopyRecord.Dest, CopyRecord.Source, CopyRecord.Size);
+					break;
+				case ECopyType::BoolProperty:
+					{
+						bool bValue = static_cast<UBoolProperty*>(CopyRecord.CachedSourceProperty)->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
+						static_cast<UBoolProperty*>(CopyRecord.DestProperty)->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, bValue, CopyRecord.DestArrayIndex);
+					}
+					break;
+				case ECopyType::StructProperty:
+					static_cast<UStructProperty*>(CopyRecord.DestProperty)->Struct->CopyScriptStruct(CopyRecord.Dest, CopyRecord.Source);
+					break;
+				case ECopyType::ObjectProperty:
+					{
+						UObject* Value = static_cast<UObjectPropertyBase*>(CopyRecord.CachedSourceProperty)->GetObjectPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
+						static_cast<UObjectPropertyBase*>(CopyRecord.DestProperty)->SetObjectPropertyValue_InContainer(CopyRecord.CachedDestContainer, Value, CopyRecord.DestArrayIndex);
+					}
+					break;
 				}
 			}
 			break;
 		case EPostCopyOperation::LogicalNegateBool:
 			{
-				check(CopyRecord.CachedBoolSourceProperty != nullptr && CopyRecord.CachedBoolDestProperty != nullptr);
+				check(CopyRecord.CachedSourceProperty != nullptr && CopyRecord.DestProperty != nullptr);
 
-				bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
-				CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, !bValue, CopyRecord.DestArrayIndex);
+				bool bValue = static_cast<UBoolProperty*>(CopyRecord.CachedSourceProperty)->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
+				static_cast<UBoolProperty*>(CopyRecord.DestProperty)->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, !bValue, CopyRecord.DestArrayIndex);
 			}
 			break;
 		}

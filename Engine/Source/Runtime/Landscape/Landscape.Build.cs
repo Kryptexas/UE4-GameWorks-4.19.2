@@ -36,10 +36,9 @@ public class Landscape : ModuleRules
 		);
 
 		SetupModulePhysXAPEXSupport(Target);
-		if (UEBuildConfiguration.bCompilePhysX && (UEBuildConfiguration.bBuildEditor || UEBuildConfiguration.bRuntimePhysicsCooking))
+		if (UEBuildConfiguration.bCompilePhysX && UEBuildConfiguration.bBuildEditor)
 		{
-			DynamicallyLoadedModuleNames.Add("PhysXFormats");
-			PrivateIncludePathModuleNames.Add("PhysXFormats");
+			DynamicallyLoadedModuleNames.Add("PhysXCooking");
 		}
 
 		if (UEBuildConfiguration.bBuildDeveloperTools && Target.Type != TargetType.Server)

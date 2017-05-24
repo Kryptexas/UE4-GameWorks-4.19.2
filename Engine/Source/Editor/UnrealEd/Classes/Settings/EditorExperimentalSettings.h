@@ -122,6 +122,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (ConfigRestartRequired = true))
 	bool bClothingTools;
 
+	/** Allow animation blueprints to be recompiled while a PIE session is running */
+	UPROPERTY(EditAnywhere, config, Category = Tools)
+	bool bEnableLiveRecompilationOfAnimationBlueprints;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

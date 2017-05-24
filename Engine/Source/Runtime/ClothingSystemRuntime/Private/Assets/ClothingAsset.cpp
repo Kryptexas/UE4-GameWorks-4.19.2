@@ -16,6 +16,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "ComponentReregisterContext.h"
+#include "AnimPhysObjectVersion.h"
 
 DEFINE_LOG_CATEGORY(LogClothingAsset)
 
@@ -27,6 +28,27 @@ UClothingAsset::UClothingAsset(const FObjectInitializer& ObjectInitializer)
 	, CustomData(nullptr)
 {
 
+}
+
+void UClothingAsset::RefreshBoneMapping(USkeletalMesh* InSkelMesh)
+{
+	// No mesh, can't remap
+	if(!InSkelMesh)
+	{
+		return;
+	}
+
+	if(UsedBoneNames.Num() != UsedBoneIndices.Num())
+	{
+		UsedBoneIndices.Reset();
+		UsedBoneIndices.AddDefaulted(UsedBoneNames.Num());
+	}
+
+	// Repopulate the used indices.
+	for(int32 BoneNameIndex = 0; BoneNameIndex < UsedBoneNames.Num(); ++BoneNameIndex)
+	{
+		UsedBoneIndices[BoneNameIndex] = InSkelMesh->RefSkeleton.FindBoneIndex(UsedBoneNames[BoneNameIndex]);
+	}
 }
 
 #if WITH_EDITOR
@@ -475,27 +497,6 @@ void UClothingAsset::UnbindFromSkeletalMesh(USkeletalMesh* InSkelMesh, int32 InM
 	}
 }
 
-void UClothingAsset::RefreshBoneMapping(USkeletalMesh* InSkelMesh)
-{
-	// No mesh, can't remap
-	if(!InSkelMesh)
-	{
-		return;
-	}
-
-	if(UsedBoneNames.Num() != UsedBoneIndices.Num())
-	{
-		UsedBoneIndices.Reset();
-		UsedBoneIndices.AddDefaulted(UsedBoneNames.Num());
-	}
-
-	// Repopulate the used indices.
-	for(int32 BoneNameIndex = 0; BoneNameIndex < UsedBoneNames.Num(); ++BoneNameIndex)
-	{
-		UsedBoneIndices[BoneNameIndex] = InSkelMesh->RefSkeleton.FindBoneIndex(UsedBoneNames[BoneNameIndex]);
-	}
-}
-
 void UClothingAsset::InvalidateCachedData()
 {
 	for(FClothLODData& CurrentLodData : LodData)
@@ -596,6 +597,48 @@ void UClothingAsset::BuildLodTransitionData()
 	}
 }
 
+void UClothingAsset::ApplyParameterMasks()
+{
+	for(FClothLODData& Lod : LodData)
+	{
+		// First zero out the parameters, otherwise disabled masks might hang around
+		Lod.PhysicalMeshData.ClearParticleParameters();
+
+		for(FClothParameterMask_PhysMesh& Mask : Lod.ParameterMasks)
+		{
+			// Only apply enabled masks
+			if(!Mask.bEnabled)
+			{
+				continue;
+			}
+
+			TArray<float>* TargetArray = nullptr;
+
+			switch(Mask.CurrentTarget)
+			{
+				case MaskTarget_PhysMesh::BackstopDistance:
+					TargetArray = &Lod.PhysicalMeshData.BackstopDistances;
+					break;
+				case MaskTarget_PhysMesh::BackstopRadius:
+					TargetArray = &Lod.PhysicalMeshData.BackstopRadiuses;
+					break;
+				case MaskTarget_PhysMesh::MaxDistance:
+					TargetArray = &Lod.PhysicalMeshData.MaxDistances;
+					break;
+				default:
+					break;
+			}
+
+			if(TargetArray)
+			{
+				*TargetArray = Mask.GetValueArray();
+			}
+		}
+	}
+
+	InvalidateCachedData();
+}
+
 bool UClothingAsset::IsValidLod(int32 InLodIndex)
 {
 	return LodData.IsValidIndex(InLodIndex);
@@ -692,6 +735,50 @@ void UClothingAsset::PostLoad()
 #if WITH_EDITORONLY_DATA
 	CalculateReferenceBoneIndex();
 #endif
+
+	int32 CustomVersion = GetLinkerCustomVersion(FAnimPhysObjectVersion::GUID);
+
+	if(CustomVersion < FAnimPhysObjectVersion::AddedClothingMaskWorkflow)
+	{
+#if WITH_EDITORONLY_DATA
+		// Convert current parameters to masks
+		for(FClothLODData& Lod : LodData)
+		{
+			FClothPhysicalMeshData& PhysMesh = Lod.PhysicalMeshData;
+
+			// Didn't do anything previously - clear out incase there's something in there
+			// so we can use it correctly now.
+			Lod.ParameterMasks.Reset(3);
+
+			// Max distances (Always present)
+			Lod.ParameterMasks.AddDefaulted();
+			FClothParameterMask_PhysMesh& MaxDistanceMask = Lod.ParameterMasks.Last();
+			MaxDistanceMask.CopyFromPhysMesh(PhysMesh, MaskTarget_PhysMesh::MaxDistance);
+			MaxDistanceMask.bEnabled = true;
+
+			// Following params are only added if necessary, if we don't have any backstop
+			// radii then there's no backstops.
+			if(PhysMesh.BackstopRadiuses.FindByPredicate([](const float& A) {return A != 0.0f; }))
+			{
+				// Backstop radii
+				Lod.ParameterMasks.AddDefaulted();
+				FClothParameterMask_PhysMesh& BackstopRadiusMask = Lod.ParameterMasks.Last();
+				BackstopRadiusMask.CopyFromPhysMesh(PhysMesh, MaskTarget_PhysMesh::BackstopRadius);
+				BackstopRadiusMask.bEnabled = true;
+
+				// Backstop distances
+				Lod.ParameterMasks.AddDefaulted();
+				FClothParameterMask_PhysMesh& BackstopDistanceMask = Lod.ParameterMasks.Last();
+				BackstopDistanceMask.CopyFromPhysMesh(PhysMesh, MaskTarget_PhysMesh::BackstopDistance);
+				BackstopDistanceMask.bEnabled = true;
+			}
+			
+		}
+#endif
+
+		// Make sure we're transactional
+		SetFlags(RF_Transactional);
+	}
 }
 
 void UClothingAsset::CalculateReferenceBoneIndex()
@@ -802,6 +889,12 @@ void UClothingAsset::CalculateReferenceBoneIndex()
 	}
 }
 
+
+void UClothingAsset::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	Ar.UsingCustomVersion(FAnimPhysObjectVersion::GUID);
+}
 
 void ClothingAssetUtils::GetMeshClothingAssetBindings(USkeletalMesh* InSkelMesh, TArray<FClothingAssetMeshBinding>& OutBindings)
 {
@@ -1043,6 +1136,14 @@ void FClothPhysicalMeshData::Reset(const int32 InNumVerts)
 	NumFixedVerts = 0;
 }
 
+void FClothPhysicalMeshData::ClearParticleParameters()
+{
+	// All float parameter arrays can just be memzeroed
+	FMemory::Memzero(MaxDistances.GetData(), MaxDistances.GetAllocatedSize());
+	FMemory::Memzero(BackstopDistances.GetData(), BackstopDistances.GetAllocatedSize());
+	FMemory::Memzero(BackstopRadiuses.GetData(), BackstopRadiuses.GetAllocatedSize());
+}
+
 void FClothParameterMask_PhysMesh::Initialize(const FClothPhysicalMeshData& InMeshData)
 {
 	const int32 NumVerts = InMeshData.Vertices.Num();
@@ -1050,6 +1151,35 @@ void FClothParameterMask_PhysMesh::Initialize(const FClothPhysicalMeshData& InMe
 	// Set up value array
 	Values.Reset(NumVerts);
 	Values.AddZeroed(NumVerts);
+
+	bEnabled = false;
+}
+
+void FClothParameterMask_PhysMesh::CopyFromPhysMesh(const FClothPhysicalMeshData& InMeshData, MaskTarget_PhysMesh InTarget)
+{
+	// Presize value arrays
+	Initialize(InMeshData);
+
+	// Set our target
+	CurrentTarget = InTarget;
+
+	// Copy the actual parameter data
+	switch(InTarget)
+	{
+		case MaskTarget_PhysMesh::BackstopDistance:
+			Values = InMeshData.BackstopDistances;
+			break;
+		case MaskTarget_PhysMesh::BackstopRadius:
+			Values = InMeshData.BackstopRadiuses;
+			break;
+		case MaskTarget_PhysMesh::MaxDistance:
+			Values = InMeshData.MaxDistances;
+			break;
+		default:
+			break;
+	}
+
+	CalcRanges();
 }
 
 void FClothParameterMask_PhysMesh::SetValue(int32 InVertexIndex, float InValue)
@@ -1058,13 +1188,7 @@ void FClothParameterMask_PhysMesh::SetValue(int32 InVertexIndex, float InValue)
 	{
 		Values[InVertexIndex] = InValue;
 
-		float TempMax = 0.0f;
-		for(const float& Value : Values)
-		{
-			TempMax = FMath::Max(TempMax, Value);
-		}
-
-		MaxValue = TempMax;
+		CalcRanges();
 	}
 }
 
@@ -1073,7 +1197,10 @@ float FClothParameterMask_PhysMesh::GetValue(int32 InVertexIndex) const
 	return InVertexIndex < Values.Num() ? Values[InVertexIndex] : 0.0f;
 }
 
-#if WITH_EDITOR
+const TArray<float>& FClothParameterMask_PhysMesh::GetValueArray() const
+{
+	return Values;
+}
 
 void FClothParameterMask_PhysMesh::CalcRanges()
 {
@@ -1083,13 +1210,11 @@ void FClothParameterMask_PhysMesh::CalcRanges()
 	for(const float& Value : Values)
 	{
 		MaxValue = FMath::Max(Value, MaxValue);
-
-		if(Value > 0.0f)
-		{
-			MinValue = FMath::Min(Value, MinValue);
-		}
+		MinValue = FMath::Min(Value, MinValue);
 	}
 }
+
+#if WITH_EDITOR
 
 FColor FClothParameterMask_PhysMesh::GetValueAsColor(int32 InVertexIndex) const
 {
@@ -1156,5 +1281,20 @@ void FClothParameterMask_PhysMesh::Apply(FClothPhysicalMeshData& InTargetMesh)
 		UE_LOG(LogClothingAsset, Warning, TEXT("Aborted applying mask to physical mesh at %p, value mismatch (NumValues: %d, NumVerts: %d)."), &InTargetMesh, NumValues, NumTargetMeshVerts);
 	}
 }
+
+#if WITH_EDITORONLY_DATA
+
+void FClothLODData::GetParameterMasksForTarget(const MaskTarget_PhysMesh& InTarget, TArray<FClothParameterMask_PhysMesh*>& OutMasks)
+{
+	for(FClothParameterMask_PhysMesh& Mask : ParameterMasks)
+	{
+		if(Mask.CurrentTarget == InTarget)
+		{
+			OutMasks.Add(&Mask);
+		}
+	}
+}
+
+#endif
 
 #undef LOCTEXT_NAMESPACE

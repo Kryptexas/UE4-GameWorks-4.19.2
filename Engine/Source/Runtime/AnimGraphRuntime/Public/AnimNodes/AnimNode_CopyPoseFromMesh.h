@@ -21,7 +21,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_CopyPoseFromMesh : public FAnimNode_Base
 
 	/*  This is used by default if it's valid */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Copy, meta=(PinShownByDefault))
-	USkeletalMeshComponent* SourceMeshComponent;
+	TWeakObjectPtr<USkeletalMeshComponent> SourceMeshComponent;
 
 	/* If SourceMeshComponent is not valid, and if this is true, it will look for attahced parent as a source */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Copy, meta = (NeverAsPin))

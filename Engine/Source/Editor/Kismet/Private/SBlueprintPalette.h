@@ -48,7 +48,7 @@ private:
 	// End of SWidget Interface
 
 	// SGraphPaletteItem Interface
-	virtual TSharedRef<SWidget> CreateTextSlotWidget( const FSlateFontInfo& NameFont,  FCreateWidgetForActionData* const InCreateData, bool bIsReadOnly ) override;
+	virtual TSharedRef<SWidget> CreateTextSlotWidget( const FSlateFontInfo& NameFont,  FCreateWidgetForActionData* const InCreateData, TAttribute<bool> bIsReadOnly ) override;
 	virtual FText GetDisplayText() const override;
 	virtual bool OnNameTextVerifyChanged(const FText& InNewText, FText& OutErrorMessage) override;
 	virtual void OnNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit) override;

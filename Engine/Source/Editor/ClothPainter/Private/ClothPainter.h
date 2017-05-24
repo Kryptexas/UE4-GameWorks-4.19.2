@@ -54,9 +54,9 @@ public:
 	FMeshPaintParameters CreatePaintParameters(const struct FHitResult& HitResult, const FVector& InCameraOrigin, const FVector& InRayOrigin, const FVector& InRayDirection, float PaintStrength);
 
 	/** Retrieves the property value from the Cloth asset for the given EPaintableClothProperty */
-	float GetPropertyValue(int32 VertexIndex, EPaintableClothProperty Property);
+	float GetPropertyValue(int32 VertexIndex);
 	/** Sets the EPaintableClothProperty property within the Clothing asset to Value */
-	void SetPropertyValue(int32 VertexIndex, const float Value, EPaintableClothProperty Property);
+	void SetPropertyValue(int32 VertexIndex, const float Value);
 
 	/** Some complex clothing tools (gradients) require the ability to override these flags in different ways */
 	void SetIsPainting(bool bInPainting) { bArePainting = bInPainting; }
@@ -64,15 +64,13 @@ public:
 	/** Get the selected paint tool */
 	const TSharedPtr<FClothPaintToolBase> GetSelectedTool() const { return SelectedTool; }
 
+	/** Gets the current geometry adapter */
+	TSharedPtr<IMeshPaintGeometryAdapter> GetAdapter() const { return Adapter; }
+
 protected:
 
-	/** Apply per vertex painting of the given Clothing Property */
-	void PaintAction_Brush(IMeshPaintGeometryAdapter* InAdapter, int32 Vertexindex, FMatrix InverseBrushMatrix, EPaintableClothProperty Property);
-
-	void PaintAction_Smooth(IMeshPaintGeometryAdapter* InAdapter, int32 Vertexindex);
-
 	/** When a different clothing asset is selected in the UI the painter should refresh the adapter */
-	void OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, int32 InAssetLod);
+	void OnAssetSelectionChanged(UClothingAsset* InNewSelectedAsset, int32 InAssetLod, int32 MaskIndex);
 	void OnAssetMaskSelectionChanged()
 	{};
 
@@ -110,6 +108,9 @@ protected:
 
 	/** List of currently registered paint tools */
 	TArray<TSharedPtr<FClothPaintToolBase>> Tools;
+
+	/** List of commands for the painter, tools can bind to this in activate */
+	TSharedPtr<FUICommandList> CommandList;
 
 	/** Our customization class can access private painter state */
 	friend class FClothPaintSettingsCustomization;

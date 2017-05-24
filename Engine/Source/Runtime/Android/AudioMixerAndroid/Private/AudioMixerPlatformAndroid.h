@@ -19,62 +19,44 @@ namespace Audio
 		~FMixerPlatformAndroid();
 
 		//~ Begin IAudioMixerPlatformInterface
-		EAudioMixerPlatformApi::Type GetPlatformApi() const override { return EAudioMixerPlatformApi::OpenSLES; }
-		bool InitializeHardware() override;
-		bool CheckAudioDeviceChange() override;
-		bool TeardownHardware() override;
-		bool IsInitialized() const override;
-		bool GetNumOutputDevices(uint32& OutNumOutputDevices) override;
-		bool GetOutputDeviceInfo(const uint32 InDeviceIndex, FAudioPlatformDeviceInfo& OutInfo) override;
-		bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const override;
-		bool OpenAudioStream(const FAudioMixerOpenStreamParams& Params) override;
-		bool CloseAudioStream() override;
-		bool StartAudioStream() override;
-		bool StopAudioStream() override;
-		bool MoveAudioStreamToNewAudioDevice(const FString& InNewDeviceId) override;
-		FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const override;
-		void SubmitBuffer(const TArray<float>& Buffer) override;
-		FName GetRuntimeFormat(USoundWave* InSoundWave) override;
-		bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) override;
-		ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
-		FString GetDefaultDeviceName() override;
+		virtual EAudioMixerPlatformApi::Type GetPlatformApi() const override { return EAudioMixerPlatformApi::OpenSLES; }
+		virtual bool InitializeHardware() override;
+		virtual bool TeardownHardware() override;
+		virtual bool IsInitialized() const override;
+		virtual bool GetNumOutputDevices(uint32& OutNumOutputDevices) override;
+		virtual bool GetOutputDeviceInfo(const uint32 InDeviceIndex, FAudioPlatformDeviceInfo& OutInfo) override;
+		virtual bool GetDefaultOutputDeviceIndex(uint32& OutDefaultDeviceIndex) const override;
+		virtual bool OpenAudioStream(const FAudioMixerOpenStreamParams& Params) override;
+		virtual bool CloseAudioStream() override;
+		virtual bool StartAudioStream() override;
+		virtual bool StopAudioStream() override;
+		virtual FAudioPlatformDeviceInfo GetPlatformDeviceInfo() const override;
+		virtual void SubmitBuffer(const uint8* Buffer) override;
+		virtual FName GetRuntimeFormat(USoundWave* InSoundWave) override;
+		virtual bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) override;
+		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
+		virtual FString GetDefaultDeviceName() override;
+		virtual FAudioPlatformSettings GetPlatformSettings() const override;
 		//~ End IAudioMixerPlatformInterface
 
-		//~ Begin IAudioMixerDeviceChangedLister
-		void RegisterDeviceChangedListener() override;
-		void UnRegisterDeviceChangedListener() override;
-		void OnDefaultCaptureDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) override;
-		void OnDefaultRenderDeviceChanged(const EAudioDeviceRole InAudioDeviceRole, const FString& DeviceId) override;
-		void OnDeviceAdded(const FString& DeviceId) override;
-		void OnDeviceRemoved(const FString& DeviceId) override;
-		void OnDeviceStateChanged(const FString& DeviceId, const EAudioDeviceState InState) override;
-		//~ End IAudioMixerDeviceChangedLister
-		
 		// These are not being used yet but they should be in the near future
 		void ResumeContext();
 		void SuspendContext();
 		
 	private:
-		FAudioPlatformDeviceInfo	DeviceInfo;
+		const TCHAR* GetErrorString(SLresult Result);
 
 		SLObjectItf	SL_EngineObject;
 		SLEngineItf	SL_EngineEngine;
 		SLObjectItf	SL_OutputMixObject;
 		SLObjectItf	SL_PlayerObject;
-		SLPlayItf	SL_PlayerPlayInterface;
-		SLAndroidSimpleBufferQueueItf	SL_PlayerBufferQueue;
+		SLPlayItf SL_PlayerPlayInterface;
+		SLAndroidSimpleBufferQueueItf SL_PlayerBufferQueue;
 
-		int16*	tempBuffer;
-
-		bool	bSuspended;
-
-		/** True if the connection to the device has been initialized */
-		bool	bInitialized;
+		bool bSuspended;
+		bool bInitialized;
+		bool bInCallback;
 		
-		/** True if execution is in the callback */
-		bool	bInCallback;
-		
-		void HandleCallback(void);
 		static void OpenSLBufferQueueCallback( SLAndroidSimpleBufferQueueItf InQueueInterface, void* pContext );		
 	};
 

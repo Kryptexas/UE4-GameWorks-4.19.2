@@ -10,7 +10,7 @@ public class TargetPlatform : ModuleRules
 		PrivateDependencyModuleNames.Add("Core");		
         PublicDependencyModuleNames.Add("DesktopPlatform");
 
-        PrivateIncludePathModuleNames.Add("PhysXFormats");
+        PrivateIncludePathModuleNames.Add("Engine");
 
 		// no need for all these modules if the program doesn't want developer tools at all (like UnrealFileServer)
 		if (!UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bBuildDeveloperTools)
@@ -136,9 +136,9 @@ public class TargetPlatform : ModuleRules
             }
 		}
         
-        if (UEBuildConfiguration.bBuildDeveloperTools == true && (UEBuildConfiguration.bBuildRequiresCookedData || UEBuildConfiguration.bRuntimePhysicsCooking) && UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
+        if (UEBuildConfiguration.bBuildDeveloperTools == true && UEBuildConfiguration.bBuildRequiresCookedData && UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
         {
-            DynamicallyLoadedModuleNames.Add("PhysXFormats");
+            DynamicallyLoadedModuleNames.Add("PhysXCooking");
         }
 	}
 }

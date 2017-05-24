@@ -33,6 +33,7 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/BlendSpaceBase.h"
 #include "TabSpawners.h"
+#include "SInlineEditableTextBlock.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;
@@ -942,6 +943,10 @@ private:
 
 	/** Pointer to notify panel for drawing*/
 	TWeakPtr<SAnimNotifyPanel>			AnimPanelPtr;
+
+	/** Pointer to the track name UI */
+	TSharedPtr<SInlineEditableTextBlock> TrackText;
+
 public:
 	SLATE_BEGIN_ARGS( SNotifyEdTrack )
 		: _TrackIndex(INDEX_NONE)
@@ -990,6 +995,24 @@ public:
 
 	/** Pointer to actual anim notify track */
 	TSharedPtr<class SAnimNotifyTrack>	NotifyTrack;
+
+	/** Return the tracks name as an FText */
+	FText GetTrackName() const
+	{
+		if(Sequence->AnimNotifyTracks.IsValidIndex(TrackIndex))
+		{
+			return FText::FromName(Sequence->AnimNotifyTracks[TrackIndex].TrackName);
+		}
+
+		/** Should never be possible but better than crashing the editor */
+		return LOCTEXT("TrackName_Invalid", "Invalid Track");
+	}
+
+	/** Activate the editable text box for the track name */
+	void TriggerRename()
+	{
+		TrackText->EnterEditingMode();
+	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3920,9 +3943,10 @@ void SNotifyEdTrack::Construct(const FArguments& InArgs)
 					.FillWidth(1)
 					[
 						// Name of track
-						SNew(STextBlock)
-						.Text( FText::FromName( Track.TrackName ) )
+						SAssignNew(TrackText, SInlineEditableTextBlock)
+						.Text(this, &SNotifyEdTrack::GetTrackName)
 						.ColorAndOpacity(Track.TrackColor)
+						.OnTextCommitted(PanelRef, &SAnimNotifyPanel::OnCommitTrackName, TrackIndex)
 					]
 
 					+SHorizontalBox::Slot()
@@ -4065,6 +4089,27 @@ SAnimNotifyPanel::~SAnimNotifyPanel()
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
 }
 
+FName SAnimNotifyPanel::GetNewTrackName() const
+{
+	TArray<FName> TrackNames;
+	TrackNames.Reserve(50);
+
+	for (const FAnimNotifyTrack& Track : Sequence->AnimNotifyTracks)
+	{
+		TrackNames.Add(Track.TrackName);
+	}
+
+	FName NameToTest;
+	int32 TrackIndex = 1;
+	
+	do 
+	{
+		NameToTest = *FString::FromInt(TrackIndex++);
+	} while (TrackNames.Contains(NameToTest));
+
+	return NameToTest;
+}
+
 FReply SAnimNotifyPanel::InsertTrack(int32 TrackIndexToInsert)
 {
 	// before insert, make sure everything behind is fixed
@@ -4085,20 +4130,27 @@ FReply SAnimNotifyPanel::InsertTrack(int32 TrackIndexToInsert)
 			// fix notifies indices
 			SyncMarker->TrackIndex = NewTrackIndex;
 		}
-
-		// fix track names, for now it's only index
-		Track.TrackName = *FString::FromInt(I+2);
 	}
 
 	FAnimNotifyTrack NewItem;
-	NewItem.TrackName = *FString::FromInt(TrackIndexToInsert+1);
+	NewItem.TrackName = GetNewTrackName();
 	NewItem.TrackColor = FLinearColor::White;
 
 	Sequence->AnimNotifyTracks.Insert(NewItem, TrackIndexToInsert);
 	Sequence->MarkPackageDirty();
 
 	Update();
+
+	//Now we have updated we can request rename on the track UI
+	int32 UITrackIndex = NotifyEditorTracks.Num() - 1 - TrackIndexToInsert;
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SAnimNotifyPanel::TriggerRename, UITrackIndex));
 	return FReply::Handled();
+}
+
+EActiveTimerReturnType SAnimNotifyPanel::TriggerRename(double InCurrentTime, float InDeltaTime, int32 TrackIndex)
+{
+	NotifyEditorTracks[TrackIndex]->TriggerRename();
+	return EActiveTimerReturnType::Stop;
 }
 
 FReply SAnimNotifyPanel::DeleteTrack(int32 TrackIndexToDelete)
@@ -4124,9 +4176,6 @@ FReply SAnimNotifyPanel::DeleteTrack(int32 TrackIndexToDelete)
 					// fix notifies indices
 					SyncMarker->TrackIndex = NewTrackIndex;
 				}
-
-				// fix track names, for now it's only index
-				Track.TrackName = *FString::FromInt(I);
 			}
 
 			Sequence->AnimNotifyTracks.RemoveAt(TrackIndexToDelete);
@@ -4145,6 +4194,18 @@ bool SAnimNotifyPanel::CanDeleteTrack(int32 TrackIndexToDelete)
 	}
 
 	return false;
+}
+
+void SAnimNotifyPanel::OnCommitTrackName(const FText& InText, ETextCommit::Type CommitInfo, int32 TrackIndexToName)
+{
+	if (Sequence->AnimNotifyTracks.IsValidIndex(TrackIndexToName))
+	{
+		FScopedTransaction Transaction(FText::Format(LOCTEXT("RenameNotifyTrack", "Rename Notify Track to '{0}'"), InText));
+		Sequence->Modify();
+
+		FText TrimText = FText::TrimPrecedingAndTrailing(InText);
+		Sequence->AnimNotifyTracks[TrackIndexToName].TrackName = FName(*TrimText.ToString());
+	}
 }
 
 void SAnimNotifyPanel::Update()
@@ -4167,6 +4228,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 		);
 
 	NotifyAnimTracks.Empty();
+	NotifyEditorTracks.Empty();
 
 	for(int32 I=Sequence->AnimNotifyTracks.Num()-1; I>=0; --I)
 	{
@@ -4205,6 +4267,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 		];
 
 		NotifyAnimTracks.Add(EdTrack->NotifyTrack);
+		NotifyEditorTracks.Add(EdTrack);
 	}
 }
 

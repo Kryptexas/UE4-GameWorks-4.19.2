@@ -91,7 +91,7 @@ void FClothPaintSettingsCustomization::OnHandleToolSelection(TSharedPtr<FClothPa
 	if(InItem.IsValid() && Painter && Painter->SelectedTool != InItem)
 	{
 		// Update selection
-		Painter->SelectedTool = InItem;
+		Painter->SetTool(InItem);
 		Painter->Refresh();
 	}
 }
@@ -107,3 +107,15 @@ FText FClothPaintSettingsCustomization::GetToolComboText() const
 }
 
 #undef LOCTEXT_NAMESPACE
+
+TSharedRef<IDetailCustomization> FClothPaintBrushSettingsCustomization::MakeInstance()
+{
+	return MakeShareable(new FClothPaintBrushSettingsCustomization());
+}
+
+void FClothPaintBrushSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
+{
+	TSharedRef<IPropertyHandle> ColorViewProp = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPaintBrushSettings, ColorViewMode));
+
+	ColorViewProp->MarkHiddenByCustomization();
+}

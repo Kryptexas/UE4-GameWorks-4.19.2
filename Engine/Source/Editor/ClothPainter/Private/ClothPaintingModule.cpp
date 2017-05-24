@@ -15,6 +15,7 @@
 #include "PropertyEditorModule.h"
 #include "ClothPaintSettingsCustomization.h"
 #include "Settings/EditorExperimentalSettings.h"
+#include "ClothPaintToolCommands.h"
 
 #define LOCTEXT_NAMESPACE "ClothPaintingModule"
 
@@ -59,6 +60,9 @@ void FClothPaintingModule::StartupModule()
 	{
 		SetupMode();
 	}
+
+	// Register any commands for the cloth painter
+	ClothPaintToolCommands::RegisterClothPaintToolCommands();
 }
 
 void FClothPaintingModule::SetupMode()

@@ -201,6 +201,8 @@ void FAnimationBlueprintEditor::InitAnimationBlueprintEditor(const EToolkitMode:
 	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
 	PersonaToolkit = PersonaModule.CreatePersonaToolkit(InAnimBlueprint);
 
+	PersonaToolkit->GetPreviewScene()->SetDefaultAnimationMode(EPreviewSceneDefaultAnimationMode::AnimationBlueprint);
+
 	TSharedRef<IAssetFamily> AssetFamily = PersonaModule.CreatePersonaAssetFamily(InAnimBlueprint);
 	AssetFamily->RecordAssetOpened(FAssetData(InAnimBlueprint));
 
@@ -1034,32 +1036,31 @@ void FAnimationBlueprintEditor::RecompileAnimBlueprintIfDirty()
 
 void FAnimationBlueprintEditor::Compile()
 {
-	// Note if we were debugging the preview
-	UObject* CurrentDebugObject = GetBlueprintObj()->GetObjectBeingDebugged();
-	UDebugSkelMeshComponent* PreviewMeshComponent = PersonaToolkit->GetPreviewMeshComponent();
-	const bool bIsDebuggingPreview = (PreviewMeshComponent != NULL) && PreviewMeshComponent->IsAnimBlueprintInstanced() && (PreviewMeshComponent->GetAnimInstance() == CurrentDebugObject);
-
-	if (PreviewMeshComponent != NULL)
+	// Grab the currently debugged object, so we can re-set it below
+	USkeletalMeshComponent* DebuggedMeshComponent = nullptr;
+	if (UBlueprint* Blueprint = GetBlueprintObj())
 	{
-		// Force close any asset editors that are using the AnimScriptInstance (such as the Property Matrix), the class will be garbage collected
-		FAssetEditorManager::Get().CloseOtherEditors(PreviewMeshComponent->GetAnimInstance(), nullptr);
+		UAnimInstance* CurrentDebugObject = Cast<UAnimInstance>(Blueprint->GetObjectBeingDebugged());
+		if(CurrentDebugObject)
+		{
+			// Force close any asset editors that are using the AnimScriptInstance (such as the Property Matrix), the class will be garbage collected
+			FAssetEditorManager::Get().CloseOtherEditors(CurrentDebugObject, nullptr);
+			DebuggedMeshComponent = CurrentDebugObject->GetSkelMeshComponent();
+		}
 	}
 
 	// Compile the blueprint
 	FBlueprintEditor::Compile();
 
-	if (PreviewMeshComponent != NULL)
+	if (DebuggedMeshComponent != nullptr)
 	{
-		if (PreviewMeshComponent->GetAnimInstance() == NULL)
+		if (DebuggedMeshComponent->GetAnimInstance() == nullptr)
 		{
 			// try reinitialize animation if it doesn't exist
-			PreviewMeshComponent->InitAnim(true);
+			DebuggedMeshComponent->InitAnim(true);
 		}
 
-		if (bIsDebuggingPreview)
-		{
-			GetBlueprintObj()->SetObjectBeingDebugged(PreviewMeshComponent->GetAnimInstance());
-		}
+		GetBlueprintObj()->SetObjectBeingDebugged(DebuggedMeshComponent->GetAnimInstance());
 	}
 
 	// reset the selected skeletal control node
@@ -1313,22 +1314,6 @@ void FAnimationBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, 
 {
 	FBlueprintEditor::OnBlueprintChangedImpl(InBlueprint, bIsJustBeingCompiled);
 
-	UObject* CurrentDebugObject = GetBlueprintObj()->GetObjectBeingDebugged();
-	UDebugSkelMeshComponent* PreviewMeshComponent = PersonaToolkit->GetPreviewMeshComponent();
-	
-	if(PreviewMeshComponent != NULL)
-	{
-		// Reinitialize the animation, anything we reference could have changed triggering
-		// the blueprint change
-		PreviewMeshComponent->InitAnim(true);
-
-		const bool bIsDebuggingPreview = (PreviewMeshComponent != NULL) && PreviewMeshComponent->IsAnimBlueprintInstanced() && (PreviewMeshComponent->GetAnimInstance() == CurrentDebugObject);
-		if(bIsDebuggingPreview)
-		{
-			GetBlueprintObj()->SetObjectBeingDebugged(PreviewMeshComponent->GetAnimInstance());
-		}
-	}
-
 	// calls PostCompile to copy proper values between anim nodes
 	OnPostCompile();
 }
@@ -1448,6 +1433,37 @@ void FAnimationBlueprintEditor::HandlePinDefaultValueChanged(UEdGraphPin* InPinT
 		{
 			AnimGraphNode->CopyNodeDataToPreviewNode(AnimNode);
 		}
+	}
+}
+
+void FAnimationBlueprintEditor::HandleSetObjectBeingDebugged(UObject* InObject)
+{
+	FBlueprintEditor::HandleSetObjectBeingDebugged(InObject);
+	
+	if (UAnimInstance* AnimInstance = Cast<UAnimInstance>(InObject))
+	{
+		USkeletalMeshComponent* SkeletalMeshComponent = AnimInstance->GetSkelMeshComponent();
+		if (SkeletalMeshComponent)
+		{
+			// If we are selecting the preview instance, reset us back to 'normal'
+			if (InObject->GetWorld()->IsPreviewWorld())
+			{
+				GetPreviewScene()->ShowDefaultMode();
+				GetPreviewScene()->GetPreviewMeshComponent()->PreviewInstance->SetDebugSkeletalMeshComponent(nullptr);
+			}
+			else
+			{
+				// Otherwise eet us to display the debugged instance via copy-pose
+				GetPreviewScene()->GetPreviewMeshComponent()->EnablePreview(true, nullptr);
+				GetPreviewScene()->GetPreviewMeshComponent()->PreviewInstance->SetDebugSkeletalMeshComponent(SkeletalMeshComponent);
+			}
+		}
+	}
+	else
+	{
+		// Clear the copy-pose component and set us back to 'normal'
+		GetPreviewScene()->ShowDefaultMode();
+		GetPreviewScene()->GetPreviewMeshComponent()->PreviewInstance->SetDebugSkeletalMeshComponent(nullptr);
 	}
 }
 

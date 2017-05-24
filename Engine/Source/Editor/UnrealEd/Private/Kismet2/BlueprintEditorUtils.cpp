@@ -7983,95 +7983,100 @@ bool FBlueprintEditorUtils::CheckIfSelectionIsCycling(const TSet<UEdGraphNode*>&
 bool FBlueprintEditorUtils::IsPaletteActionReadOnly(TSharedPtr<FEdGraphSchemaAction> ActionIn, TSharedPtr<FBlueprintEditor> const BlueprintEditorIn)
 {
 	check(BlueprintEditorIn.IsValid());
-	UBlueprint const* const BlueprintObj = BlueprintEditorIn->GetBlueprintObj();
-
 	bool bIsReadOnly = false;
-	if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
+	if(!BlueprintEditorIn->InEditingMode())
 	{
-		FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)ActionIn.Get();
-		// No graph is evidence of an overridable function, don't let the user modify it
-		if(GraphAction->EdGraph == nullptr)
+		bIsReadOnly = true;
+	}
+	else
+	{
+		UBlueprint const* const BlueprintObj = BlueprintEditorIn->GetBlueprintObj();	
+		if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 		{
-			bIsReadOnly = true;
-		}
-		else
-		{
-			// Graphs that cannot be deleted or re-named are read-only
-			if ( !(GraphAction->EdGraph->bAllowDeletion || GraphAction->EdGraph->bAllowRenaming) )
+			FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)ActionIn.Get();
+			// No graph is evidence of an overridable function, don't let the user modify it
+			if(GraphAction->EdGraph == nullptr)
 			{
 				bIsReadOnly = true;
 			}
 			else
 			{
-				if(GraphAction->GraphType == EEdGraphSchemaAction_K2Graph::Function)
+				// Graphs that cannot be deleted or re-named are read-only
+				if ( !(GraphAction->EdGraph->bAllowDeletion || GraphAction->EdGraph->bAllowRenaming) )
 				{
-					// Check if the function is an override
-					UFunction* OverrideFunc = FindField<UFunction>(BlueprintObj->ParentClass, GraphAction->FuncName);
-					if ( OverrideFunc != nullptr )
+					bIsReadOnly = true;
+				}
+				else
+				{
+					if(GraphAction->GraphType == EEdGraphSchemaAction_K2Graph::Function)
 					{
+						// Check if the function is an override
+						UFunction* OverrideFunc = FindField<UFunction>(BlueprintObj->ParentClass, GraphAction->FuncName);
+						if ( OverrideFunc != nullptr )
+						{
+							bIsReadOnly = true;
+						}
+					}
+					else if(GraphAction->GraphType == EEdGraphSchemaAction_K2Graph::Interface)
+					{
+						// Interfaces cannot be renamed
 						bIsReadOnly = true;
 					}
 				}
-				else if(GraphAction->GraphType == EEdGraphSchemaAction_K2Graph::Interface)
-				{
-					// Interfaces cannot be renamed
-					bIsReadOnly = true;
-				}
 			}
 		}
-	}
-	else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
-	{
-		FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)ActionIn.Get();
+		else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)ActionIn.Get();
 
-		bIsReadOnly = true;
+			bIsReadOnly = true;
 
-		if( FBlueprintEditorUtils::FindNewVariableIndex(BlueprintObj, VarAction->GetVariableName()) != INDEX_NONE)
-		{
-			bIsReadOnly = false;
-		}
-		else if(BlueprintObj->FindTimelineTemplateByVariableName(VarAction->GetVariableName()))
-		{
-			bIsReadOnly = false;
-		}
-		else if(BlueprintEditorIn->CanAccessComponentsMode())
-		{
-			// Wasn't in the introduced variable list; try to find the associated SCS node
-			//@TODO: The SCS-generated variables should be in the variable list and have a link back;
-			// As it stands, you cannot do any metadata operations on a SCS variable, and you have to do icky code like the following
-			TArray<USCS_Node*> Nodes = BlueprintObj->SimpleConstructionScript->GetAllNodes();
-			for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
+			if( FBlueprintEditorUtils::FindNewVariableIndex(BlueprintObj, VarAction->GetVariableName()) != INDEX_NONE)
 			{
-				USCS_Node* CurrentNode = *NodeIt;
-				if (CurrentNode->GetVariableName() == VarAction->GetVariableName())
+				bIsReadOnly = false;
+			}
+			else if(BlueprintObj->FindTimelineTemplateByVariableName(VarAction->GetVariableName()))
+			{
+				bIsReadOnly = false;
+			}
+			else if(BlueprintEditorIn->CanAccessComponentsMode())
+			{
+				// Wasn't in the introduced variable list; try to find the associated SCS node
+				//@TODO: The SCS-generated variables should be in the variable list and have a link back;
+				// As it stands, you cannot do any metadata operations on a SCS variable, and you have to do icky code like the following
+				TArray<USCS_Node*> Nodes = BlueprintObj->SimpleConstructionScript->GetAllNodes();
+				for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
 				{
-					bIsReadOnly = false;
-					break;
+					USCS_Node* CurrentNode = *NodeIt;
+					if (CurrentNode->GetVariableName() == VarAction->GetVariableName())
+					{
+						bIsReadOnly = false;
+						break;
+					}
 				}
 			}
 		}
-	}
-	else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
-	{
-		FEdGraphSchemaAction_K2Delegate* DelegateAction = (FEdGraphSchemaAction_K2Delegate*)ActionIn.Get();
+		else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2Delegate* DelegateAction = (FEdGraphSchemaAction_K2Delegate*)ActionIn.Get();
 
-		if( FBlueprintEditorUtils::FindNewVariableIndex(BlueprintObj, DelegateAction->GetDelegateName()) == INDEX_NONE)
+			if( FBlueprintEditorUtils::FindNewVariableIndex(BlueprintObj, DelegateAction->GetDelegateName()) == INDEX_NONE)
+			{
+				bIsReadOnly = true;
+			}
+		}
+		else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Event::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2Event* EventAction = (FEdGraphSchemaAction_K2Event*)ActionIn.Get();
+			UK2Node* AssociatedNode = EventAction->NodeTemplate;
+
+			bIsReadOnly = (AssociatedNode == nullptr) || (!AssociatedNode->bCanRenameNode);	
+		}
+		else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2InputAction::StaticGetTypeId())
 		{
 			bIsReadOnly = true;
 		}
 	}
-	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Event::StaticGetTypeId())
-	{
-		FEdGraphSchemaAction_K2Event* EventAction = (FEdGraphSchemaAction_K2Event*)ActionIn.Get();
-		UK2Node* AssociatedNode = EventAction->NodeTemplate;
-
-		bIsReadOnly = (AssociatedNode == nullptr) || (!AssociatedNode->bCanRenameNode);	
-	}
-	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2InputAction::StaticGetTypeId())
-	{
-		bIsReadOnly = true;
-	}
-
 
 	return bIsReadOnly;
 }

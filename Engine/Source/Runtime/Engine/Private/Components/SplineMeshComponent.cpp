@@ -595,10 +595,8 @@ void USplineMeshComponent::UpdateRenderStateAndCollision_Internal(bool bConcurre
 		}
 	}
 
-#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	CachedMeshBodySetupGuid.Invalidate();
 	RecreatePhysicsState();
-#endif // WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 
 	bMeshDirty = false;
 }
@@ -998,20 +996,12 @@ void USplineMeshComponent::GetMeshId(FString& OutMeshId)
 
 void USplineMeshComponent::OnCreatePhysicsState()
 {
-#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	// With editor code we can recreate the collision if the mesh changes
 	const FGuid MeshBodySetupGuid = (GetStaticMesh() != nullptr ? GetStaticMesh()->BodySetup->BodySetupGuid : FGuid());
 	if (CachedMeshBodySetupGuid != MeshBodySetupGuid)
 	{
 		RecreateCollision();
 	}
-#else
-	// Without editor code we can only destroy the collision if the mesh is missing
-	if (GetStaticMesh() == NULL && BodySetup != NULL)
-	{
-		DestroyBodySetup();
-	}
-#endif
 
 	return Super::OnCreatePhysicsState();
 }
@@ -1087,8 +1077,6 @@ void USplineMeshComponent::DestroyBodySetup()
 	}
 }
 
-
-#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 void USplineMeshComponent::RecreateCollision()
 {
 	if (GetStaticMesh() && IsCollisionEnabled())
@@ -1189,7 +1177,6 @@ void USplineMeshComponent::RecreateCollision()
 		DestroyBodySetup();
 	}
 }
-#endif
 
 /** Used to store spline mesh data during RerunConstructionScripts */
 class FSplineMeshInstanceData : public FSceneComponentInstanceData

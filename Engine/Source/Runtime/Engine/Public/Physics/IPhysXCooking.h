@@ -33,10 +33,18 @@ enum class EPhysXMeshCookFlags : uint8
 };
 ENUM_CLASS_FLAGS(EPhysXMeshCookFlags);
 
+namespace physx
+{
+	class PxCooking;
+	class PxConvexMesh;
+	class PxTriangleMesh;
+	class PxHeightField;
+}
+
 /**
- * IPhysXFormat, PhysX cooking and serialization abstraction
+ * IPhysXCooking, PhysX cooking and serialization abstraction
 **/
-class IPhysXFormat
+class IPhysXCooking
 {
 public:
 
@@ -64,6 +72,17 @@ public:
 	virtual EPhysXCookingResult CookConvex( FName Format, EPhysXMeshCookFlags CookFlags, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer ) const = 0;
 
 	/**
+	* Cooks the source convex data for the platform and returns the PhysX geometry directly (meant for runtime when you just need the geometry directly without serializing out)
+	*
+	* @param Format The desired format
+	* @param CookFlags Flags used to provide options for this cook
+	* @param SrcBuffer The source buffer
+	* @param OutBuffer The resulting cooked data
+	* @return The cooked convex mesh geometry
+	*/
+	virtual EPhysXCookingResult CreateConvex(FName Format, EPhysXMeshCookFlags CookFlags, const TArray<FVector>& SrcBuffer, physx::PxConvexMesh*& OutBuffer) const = 0;
+
+	/**
 	 * Cooks the source Tri-Mesh data for the platform and stores the cooked data internally.
 	 *
 	 * @param Format The desired format.
@@ -73,7 +92,17 @@ public:
 	 * @return true on success, false otherwise.
 	 */
 	virtual bool CookTriMesh( FName Format, EPhysXMeshCookFlags CookFlags, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer) const = 0;
-		
+	
+	/**
+	* Cooks the source Tri-Mesh data for the platform and returns the PhysX geometry directly (meant for runtime when you just need the geometry directly without serializing out)
+	*
+	* @param Format The desired format.
+	* @param CookFlags Flags used to provide options for this cook
+	* @param SrcBuffer The source buffer.
+	* @param OutBuffer The resulting cooked data.
+	* @return true on success, false otherwise.
+	*/
+	virtual bool CreateTriMesh(FName Format, EPhysXMeshCookFlags CookFlags, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, physx::PxTriangleMesh*& OutTriangleMesh) const = 0;
 	/**
 	 * Cooks the source height field data for the platform and stores the cooked data internally.
 	 *
@@ -84,6 +113,17 @@ public:
 	 * @return true on success, false otherwise.
 	 */
 	virtual bool CookHeightField( FName Format, FIntPoint HFSize, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer ) const = 0;
+
+	/**
+	* Cooks the source height field data for the platform and returns the PhysX geometry directly (meant for runtime when you just need the geometry directly without serializing out)
+	*
+	* @param Format The desired format
+	* @param HFSize Size of height field [NumColumns, NumRows]
+	* @param SrcBuffer The source buffer
+	* @param OutBuffer The resulting cooked data
+	* @return true on success, false otherwise.
+	*/
+	virtual bool CreateHeightField(FName Format, FIntPoint HFSize, const void* Samples, uint32 SamplesStride, physx::PxHeightField*& OutHeightField) const = 0;
 
 	/**
 	 * Serializes the BodyInstance
@@ -112,11 +152,14 @@ public:
 	 */
 	virtual uint16 GetVersion( FName Format ) const = 0;
 
+	/** Get the actual physx cooker object */
+	virtual physx::PxCooking* GetCooking() const = 0;
+
 
 public:
 
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~IPhysXFormat( ) { }
+	virtual ~IPhysXCooking( ) { }
 };

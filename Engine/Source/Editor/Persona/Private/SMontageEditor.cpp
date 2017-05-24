@@ -427,6 +427,21 @@ void SMontageEditor::OnEditSectionTimeFinish( int32 SectionIndex )
 	OnSectionsChanged.ExecuteIfBound();
 }
 
+void SMontageEditor::SetSectionTime(int32 SectionIndex, float NewTime)
+{
+	if(MontageObj && MontageObj->CompositeSections.IsValidIndex(SectionIndex))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("EditSection", "Edit Section Start Time"));
+		MontageObj->Modify();
+	
+		FCompositeSection& Section = MontageObj->CompositeSections[SectionIndex];
+		Section.SetTime(NewTime);
+		Section.LinkMontage(MontageObj, NewTime);
+
+		OnEditSectionTimeFinish(SectionIndex);
+	}
+}
+
 void SMontageEditor::PreAnimUpdate()
 {
 	MontageObj->Modify();

@@ -36,9 +36,9 @@ void FAnimNode_CopyPoseFromMesh::RefreshMeshComponent(FAnimInstanceProxy* AnimIn
 		}
 	};
 
-	if (SourceMeshComponent != nullptr)
+	if (SourceMeshComponent.IsValid())
 	{
-		ResetMeshComponent(SourceMeshComponent, AnimInstanceProxy);
+		ResetMeshComponent(SourceMeshComponent.Get(), AnimInstanceProxy);
 	}
 	else if (bUseAttachedParent)
 	{
