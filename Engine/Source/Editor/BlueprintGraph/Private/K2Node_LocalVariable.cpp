@@ -111,6 +111,7 @@ void UDEPRECATED_K2Node_LocalVariable::ReconstructNode()
 		NewVar.VarName = *GetNodeTitle(ENodeTitleType::EditableTitle).ToString();
 		NewVar.VarGuid = FGuid::NewGuid();
 		NewVar.VarType = GetVariablePin()->PinType;
+		NewVar.PropertyFlags |= CPF_BlueprintVisible;
 		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
 		NewVar.Category = K2Schema->VR_DefaultCategory;
 

@@ -1574,10 +1574,16 @@ void USceneComponent::SetupAttachment(class USceneComponent* InParent, FName InS
 {
 	if (ensureMsgf(!bRegistered, TEXT("SetupAttachment should only be used to initialize AttachParent and AttachSocketName for a future AttachTo. Once a component is registered you must use AttachTo.")))
 	{
-		if (ensureMsgf(AttachParent == nullptr || !AttachParent->AttachChildren.Contains(this), TEXT("SetupAttachment cannot be used once a component has already had AttachTo used to connect it to a parent.")))
+		if (ensureMsgf(InParent != this, TEXT("Cannot attach a component to itself.")))
 		{
-			AttachParent = InParent;
-			AttachSocketName = InSocketName;
+			if (ensureMsgf(InParent == nullptr || !InParent->IsAttachedTo(this), TEXT("Setting up attachment would create a cycle.")))
+			{
+				if (ensureMsgf(AttachParent == nullptr || !AttachParent->AttachChildren.Contains(this), TEXT("SetupAttachment cannot be used once a component has already had AttachTo used to connect it to a parent.")))
+				{
+					AttachParent = InParent;
+					AttachSocketName = InSocketName;
+				}
+			}
 		}
 	}
 }

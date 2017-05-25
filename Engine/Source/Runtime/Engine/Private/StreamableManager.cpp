@@ -422,13 +422,13 @@ void FStreamableHandle::UpdateCombinedHandle()
 	}
 
 	// Check all our children, complete if done
-	bool bAllInactive = true;
+	bool bAllCompleted = true;
 	bool bAllCanceled = true;
 	for (TSharedPtr<FStreamableHandle> ChildHandle : ChildHandles)
 	{
-		if (ChildHandle->IsActive())
+		if (ChildHandle->IsLoadingInProgress())
 		{
-			bAllInactive = false;
+			bAllCompleted = false;
 		}
 		if (!ChildHandle->WasCanceled())
 		{
@@ -436,12 +436,12 @@ void FStreamableHandle::UpdateCombinedHandle()
 		}
 	}
 
-	// If all our sub handles were canceled, cancel us. Otherwise complete us if at least one was completed and there are no active
+	// If all our sub handles were canceled, cancel us. Otherwise complete us if at least one was completed and there are none in progress
 	if (bAllCanceled)
 	{
 		CancelHandle();
 	}
-	else if (bAllInactive)
+	else if (bAllCompleted)
 	{
 		CompleteLoad();
 
@@ -569,13 +569,13 @@ struct FStreamable
 
 FStreamableManager::FStreamableManager()
 {
-	FCoreUObjectDelegates::PostGarbageCollect.AddRaw(this, &FStreamableManager::OnPostGarbageCollect);
+	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FStreamableManager::OnPreGarbageCollect);
 	bForceSynchronousLoads = false;
 }
 
 FStreamableManager::~FStreamableManager()
 {
-	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
+	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
 
 	for (TStreamableMap::TIterator It(StreamableItems); It; ++It)
 	{
@@ -584,7 +584,7 @@ FStreamableManager::~FStreamableManager()
 	}
 }
 
-void FStreamableManager::OnPostGarbageCollect()
+void FStreamableManager::OnPreGarbageCollect()
 {
 	TSet<FStringAssetReference> RedirectsToRemove;
 

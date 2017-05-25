@@ -433,6 +433,7 @@ bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn
 					continue;
 				}
 
+				// This is sloppy, we should be comparing to defaults mutch later in the compile process:
 				if (ClassToSpawn->ClassDefaultObject != nullptr)
 				{
 					// We don't want to generate an assignment node unless the default value 
@@ -496,9 +497,20 @@ bool UK2Node_LatentGameplayTaskCall::ConnectSpawnProperties(UClass* ClassToSpawn
 				}
 				else
 				{
-					// Move connection from the variable pin on the spawn node to the 'value' pin
-					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
-					SetVarNode->PinConnectionListChanged(ValuePin);
+					// For non-array struct pins that are not linked, transfer the pin type so that the node will expand an auto-ref that will assign the value by-ref.
+					if (SpawnVarPin->PinType.IsArray() == false && SpawnVarPin->PinType.PinCategory == Schema->PC_Struct && SpawnVarPin->LinkedTo.Num() == 0)
+					{
+						ValuePin->PinType.PinCategory = SpawnVarPin->PinType.PinCategory;
+						ValuePin->PinType.PinSubCategory = SpawnVarPin->PinType.PinSubCategory;
+						ValuePin->PinType.PinSubCategoryObject = SpawnVarPin->PinType.PinSubCategoryObject;
+						CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
+					}
+					else
+					{
+						// Move connection from the variable pin on the spawn node to the 'value' pin
+						CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
+						SetVarNode->PinConnectionListChanged(ValuePin);
+					}
 				}
 			}
 		}
@@ -699,7 +711,7 @@ void UK2Node_LatentGameplayTaskCall::ExpandNode(class FKismetCompilerContext& Co
 	// Branch based on return value of Prespawn
 	// -------------------------------------------
 		
-	UK2Node_IfThenElse* BranchNode = SourceGraph->CreateBlankNode<UK2Node_IfThenElse>();
+	UK2Node_IfThenElse* BranchNode = SourceGraph->CreateIntermediateNode<UK2Node_IfThenElse>();
 	BranchNode->AllocateDefaultPins();
 	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(BranchNode, this);
 

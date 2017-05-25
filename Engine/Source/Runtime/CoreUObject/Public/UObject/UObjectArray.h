@@ -184,18 +184,6 @@ struct FUObjectItem
 		return !!(Flags & int32(EInternalObjectFlags::RootSet));
 	}
 
-	FORCEINLINE void SetNoStrongReference()
-	{
-		Flags |= int32(EInternalObjectFlags::NoStrongReference);
-	}
-	FORCEINLINE void ClearNoStrongReference()
-	{
-		Flags &= ~int32(EInternalObjectFlags::NoStrongReference);
-	}
-	FORCEINLINE bool IsNoStrongReference() const
-	{
-		return !!(Flags & int32(EInternalObjectFlags::NoStrongReference));
-	}
 	FORCEINLINE void ResetSerialNumberAndFlags()
 	{
 		Flags = 0;

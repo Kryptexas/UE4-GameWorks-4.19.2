@@ -1235,12 +1235,28 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageNameO
 		};
 
 #if WITH_EDITORONLY_DATA
-		if (!(LoadFlags & (LOAD_IsVerifying|LOAD_EditorOnly)) &&
-			(!ImportLinker || !ImportLinker->GetSerializedProperty() || !ImportLinker->GetSerializedProperty()->IsEditorOnlyProperty()))
+		if (!(LoadFlags & (LOAD_IsVerifying|LOAD_EditorOnly)))
 		{
-			// If this package hasn't been loaded as part of import verification and there's no import linker or the
-			// currently serialized property is not editor-only mark this package as runtime.
-			Result->SetLoadedByEditorPropertiesOnly(false);
+			bool bIsEditorOnly = false;
+			UProperty* SerializingProperty = ImportLinker ? ImportLinker->GetSerializedProperty() : nullptr;
+			
+			// Check property parent chain
+			while (SerializingProperty)
+			{
+				if (SerializingProperty->IsEditorOnlyProperty())
+				{
+					bIsEditorOnly = true;
+					break;
+				}
+				SerializingProperty = Cast<UProperty>(SerializingProperty->GetOuter());
+			}
+
+			if (!bIsEditorOnly)
+			{
+				// If this package hasn't been loaded as part of import verification and there's no import linker or the
+				// currently serialized property is not editor-only mark this package as runtime.
+				Result->SetLoadedByEditorPropertiesOnly(false);
+			}
 		}
 #endif
 

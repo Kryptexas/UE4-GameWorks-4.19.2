@@ -201,8 +201,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 				}
 				if (bDoSubset)
 				{
-					const FString& SubPackageName = FPackageName::PackageFromPath(*Filename);
-					if (FCrc::StrCrc_DEPRECATED(*SubPackageName.ToUpper()) % SubsetMod != SubsetTarget)
+					if (FCrc::StrCrc_DEPRECATED(*PackageName.ToUpper()) % SubsetMod != SubsetTarget)
 					{
 						continue;
 					}

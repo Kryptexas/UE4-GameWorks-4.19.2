@@ -286,6 +286,16 @@ FString FPackageName::InternalFilenameToLongPackageName(const FString& InFilenam
 	if (!bIsValidLongPackageName)
 	{
 		Filename = IFileManager::Get().ConvertToRelativePath(*Filename);
+		if (InFilename.Len() > 0 && InFilename[InFilename.Len() - 1] == '/')
+		{
+			// If InFilename ends in / but converted doesn't, add the / back
+			bool bEndsInSlash = Filename.Len() > 0 && Filename[Filename.Len() - 1] == '/';
+
+			if (!bEndsInSlash)
+			{
+				Filename += TEXT("/");
+			}
+		}
 	}
 
 	FString PackageName         = FPaths::GetBaseFilename(Filename);
@@ -310,9 +320,10 @@ bool FPackageName::TryConvertFilenameToLongPackageName(const FString& InFilename
 	FString LongPackageName = InternalFilenameToLongPackageName(InFilename);
 
 	// we don't support loading packages from outside of well defined places
-	const bool bContainsDot = LongPackageName.Contains(TEXT("."), ESearchCase::CaseSensitive);
-	const bool bContainsBackslash = LongPackageName.Contains(TEXT("\\"), ESearchCase::CaseSensitive);
-	const bool bContainsColon = LongPackageName.Contains(TEXT(":"), ESearchCase::CaseSensitive);
+	int32 CharacterIndex;
+	const bool bContainsDot = LongPackageName.FindChar(TEXT('.'), CharacterIndex);
+	const bool bContainsBackslash = LongPackageName.FindChar(TEXT('\\'), CharacterIndex);
+	const bool bContainsColon = LongPackageName.FindChar(TEXT(':'), CharacterIndex);
 	const bool bResult = !(bContainsDot || bContainsBackslash || bContainsColon);
 
 	if (bResult)
@@ -447,16 +458,7 @@ bool FPackageName::SplitLongPackageName(const FString& InLongPackageName, FStrin
 
 FString FPackageName::GetLongPackageAssetName(const FString& InLongPackageName)
 {
-	int32 IndexOfLastSlash = INDEX_NONE;
-	if (InLongPackageName.FindLastChar('/', IndexOfLastSlash))
-	{
-		return InLongPackageName.Mid(IndexOfLastSlash + 1);
-	}
-	else
-	{
-		return InLongPackageName;
-	}
-
+	return GetShortName(InLongPackageName);
 }
 
 bool FPackageName::DoesPackageNameContainInvalidCharacters(const FString& InLongPackageName, FText* OutReason /*= NULL*/)

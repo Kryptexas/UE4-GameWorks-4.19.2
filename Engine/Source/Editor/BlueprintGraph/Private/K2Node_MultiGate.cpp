@@ -641,7 +641,7 @@ void UK2Node_MultiGate::ExpandNode(class FKismetCompilerContext& CompilerContext
 		/////////////////////////////
 
 		// Create the node
-		UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
+		UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateIntermediateNode<UK2Node_TemporaryVariable>();
 		TempVarNode->VariableType.PinCategory = Schema->PC_Int;
 		TempVarNode->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
@@ -653,7 +653,7 @@ void UK2Node_MultiGate::ExpandNode(class FKismetCompilerContext& CompilerContext
 		/////////////////////////////
 
 		// Create the node
-		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
+		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateIntermediateNode<UK2Node_AssignmentStatement>();
 		AssignmentNode->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
 

@@ -31,6 +31,7 @@
 #include "Net/OnlineEngineInterface.h"
 #include "UserActivityTracking.h"
 #include "KismetTraceUtils.h"
+#include "Engine/AssetManager.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -829,14 +830,54 @@ void UKismetSystemLibrary::SetAssetClassPropertyByName(UObject* Object, FName Pr
 	}
 }
 
-UObject* UKismetSystemLibrary::Conv_AssetToObject(const TAssetPtr<UObject>& Asset)
+bool UKismetSystemLibrary::IsValidSoftObjectReference(const TAssetPtr<UObject>& SoftObjectReference)
+{
+	return !SoftObjectReference.IsNull();
+}
+
+bool UKismetSystemLibrary::EqualEqual_SoftObjectReference(const TAssetPtr<UObject>& A, const TAssetPtr<UObject>& B)
+{
+	return A == B;
+}
+
+bool UKismetSystemLibrary::NotEqual_SoftObjectReference(const TAssetPtr<UObject>& A, const TAssetPtr<UObject>& B)
+{
+	return A != B;
+}
+
+bool UKismetSystemLibrary::IsValidSoftClassReference(const TAssetSubclassOf<UObject>& SoftClassReference)
+{
+	return !SoftClassReference.IsNull();
+}
+
+bool UKismetSystemLibrary::EqualEqual_SoftClassReference(const TAssetSubclassOf<UObject>& A, const TAssetSubclassOf<UObject>& B)
+{
+	return A == B;
+}
+
+bool UKismetSystemLibrary::NotEqual_SoftClassReference(const TAssetSubclassOf<UObject>& A, const TAssetSubclassOf<UObject>& B)
+{
+	return A != B;
+}
+
+UObject* UKismetSystemLibrary::Conv_SoftObjectReferenceToObject(const TAssetPtr<UObject>& Asset)
 {
 	return ((const FAssetPtr*)&Asset)->Get();
 }
 
-TSubclassOf<UObject> UKismetSystemLibrary::Conv_AssetClassToClass(const TAssetSubclassOf<UObject>& AssetClass)
+TSubclassOf<UObject> UKismetSystemLibrary::Conv_SoftClassReferenceToClass(const TAssetSubclassOf<UObject>& AssetClass)
 {
 	return Cast<UClass>(((const FAssetPtr*)&AssetClass)->Get());
+}
+
+TAssetPtr<UObject> UKismetSystemLibrary::Conv_ObjectToSoftObjectReference(UObject *Object)
+{
+	return TAssetPtr<UObject>(Object);
+}
+
+TAssetSubclassOf<UObject> UKismetSystemLibrary::Conv_ClassToSoftClassReference(const TSubclassOf<UObject>& Class)
+{
+	return TAssetSubclassOf<UObject>(*Class);
 }
 
 void UKismetSystemLibrary::SetTextPropertyByName(UObject* Object, FName PropertyName, const FText& Value)
@@ -2401,4 +2442,172 @@ void UKismetSystemLibrary::SetUserActivity(const FUserActivity& UserActivity)
 FString UKismetSystemLibrary::GetCommandLine()
 {
 	return FString(FCommandLine::Get());
+}
+
+UObject* UKismetSystemLibrary::GetObjectFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		FPrimaryAssetTypeInfo Info;
+		if (Manager->GetPrimaryAssetTypeInfo(PrimaryAssetId.PrimaryAssetType, Info) && !Info.bHasBlueprintClasses)
+		{
+			return Manager->GetPrimaryAssetObject(PrimaryAssetId);
+		}
+	}
+	return nullptr;
+}
+
+TSubclassOf<UObject> UKismetSystemLibrary::GetClassFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		FPrimaryAssetTypeInfo Info;
+		if (Manager->GetPrimaryAssetTypeInfo(PrimaryAssetId.PrimaryAssetType, Info) && Info.bHasBlueprintClasses)
+		{
+			return Manager->GetPrimaryAssetObjectClass<UObject>(PrimaryAssetId);
+		}
+	}
+	return nullptr;
+}
+
+TAssetPtr<UObject> UKismetSystemLibrary::GetSoftObjectReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		FPrimaryAssetTypeInfo Info;
+		if (Manager->GetPrimaryAssetTypeInfo(PrimaryAssetId.PrimaryAssetType, Info) && !Info.bHasBlueprintClasses)
+		{
+			return TAssetPtr<UObject>(Manager->GetPrimaryAssetPath(PrimaryAssetId));
+		}
+	}
+	return nullptr;
+}
+
+TAssetSubclassOf<UObject> UKismetSystemLibrary::GetSoftClassReferenceFromPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		FPrimaryAssetTypeInfo Info;
+		if (Manager->GetPrimaryAssetTypeInfo(PrimaryAssetId.PrimaryAssetType, Info) && Info.bHasBlueprintClasses)
+		{
+			return TAssetSubclassOf<UObject>(Manager->GetPrimaryAssetPath(PrimaryAssetId));
+		}
+	}
+	return nullptr;
+}
+
+FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromObject(UObject* Object)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		if (Object)
+		{
+			return Manager->GetPrimaryAssetIdForObject(Object);
+		}
+	}
+	return FPrimaryAssetId();
+}
+
+FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromClass(TSubclassOf<UObject> Class)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		if (Class)
+		{
+			return Manager->GetPrimaryAssetIdForObject(*Class);
+		}
+	}
+	return FPrimaryAssetId();
+}
+
+FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromSoftObjectReference(TAssetPtr<UObject> SoftObjectReference)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		return Manager->GetPrimaryAssetIdForPath(SoftObjectReference.ToStringReference());
+	}
+	return FPrimaryAssetId();
+}
+
+FPrimaryAssetId UKismetSystemLibrary::GetPrimaryAssetIdFromSoftClassReference(TAssetSubclassOf<UObject> SoftClassReference)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		return Manager->GetPrimaryAssetIdForPath(SoftClassReference.ToStringReference());
+	}
+	return FPrimaryAssetId();
+}
+
+void UKismetSystemLibrary::GetPrimaryAssetIdList(FPrimaryAssetType PrimaryAssetType, TArray<FPrimaryAssetId>& OutPrimaryAssetIdList)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		Manager->GetPrimaryAssetIdList(PrimaryAssetType, OutPrimaryAssetIdList);
+	}
+}
+
+bool UKismetSystemLibrary::IsValidPrimaryAssetId(FPrimaryAssetId PrimaryAssetId)
+{
+	return PrimaryAssetId.IsValid();
+}
+
+bool UKismetSystemLibrary::EqualEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAssetId B)
+{
+	return A == B;
+}
+
+bool UKismetSystemLibrary::NotEqual_PrimaryAssetId(FPrimaryAssetId A, FPrimaryAssetId B)
+{
+	return A != B;
+}
+
+bool UKismetSystemLibrary::IsValidPrimaryAssetType(FPrimaryAssetType PrimaryAssetType)
+{
+	return PrimaryAssetType.IsValid();
+}
+
+bool UKismetSystemLibrary::EqualEqual_PrimaryAssetType(FPrimaryAssetType A, FPrimaryAssetType B)
+{
+	return A == B;
+}
+
+bool UKismetSystemLibrary::NotEqual_PrimaryAssetType(FPrimaryAssetType A, FPrimaryAssetType B)
+{
+	return A != B;
+}
+
+void UKismetSystemLibrary::UnloadPrimaryAsset(FPrimaryAssetId PrimaryAssetId)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		Manager->UnloadPrimaryAsset(PrimaryAssetId);
+	}
+}
+
+void UKismetSystemLibrary::UnloadPrimaryAssetList(const TArray<FPrimaryAssetId>& PrimaryAssetIdList)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		Manager->UnloadPrimaryAssets(PrimaryAssetIdList);
+	}
+}
+
+bool UKismetSystemLibrary::GetCurrentBundleState(FPrimaryAssetId PrimaryAssetId, bool bForceCurrentState, TArray<FName>& OutBundles)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		if (Manager->GetPrimaryAssetHandle(PrimaryAssetId, bForceCurrentState, &OutBundles).IsValid())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void UKismetSystemLibrary::GetPrimaryAssetsWithBundleState(const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles, const TArray<FPrimaryAssetType>& ValidTypes, bool bForceCurrentState, TArray<FPrimaryAssetId>& OutPrimaryAssetIdList)
+{
+	if (UAssetManager* Manager = UAssetManager::GetIfValid())
+	{
+		Manager->GetPrimaryAssetsWithBundleState(OutPrimaryAssetIdList, ValidTypes, RequiredBundles, ExcludedBundles, bForceCurrentState);
+	}
 }

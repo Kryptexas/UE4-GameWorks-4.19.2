@@ -11,7 +11,11 @@
 USTRUCT()
 struct ASSETREGISTRY_API FAssetBundleEntry
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
+
+	/** Declare constructors inline so this can be a header only class */
+	FORCEINLINE FAssetBundleEntry() {}
+	FORCEINLINE ~FAssetBundleEntry() {}
 
 	/** Asset this bundle is saved within. This is empty for global bundles, or in the saved bundle info */
 	UPROPERTY()
@@ -24,9 +28,6 @@ struct ASSETREGISTRY_API FAssetBundleEntry
 	/** List of string assets contained in this bundle */
 	UPROPERTY()
 	TArray<FStringAssetReference> BundleAssets;
-
-	FAssetBundleEntry()	
-	{}
 
 	FAssetBundleEntry(const FAssetBundleEntry& OldEntry)
 		: BundleScope(OldEntry.BundleScope), BundleName(OldEntry.BundleName), BundleAssets(OldEntry.BundleAssets)
@@ -51,7 +52,11 @@ struct ASSETREGISTRY_API FAssetBundleEntry
 USTRUCT()
 struct ASSETREGISTRY_API FAssetBundleData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
+
+	/** Declare constructors inline so this can be a header only class */
+	FORCEINLINE FAssetBundleData() {}
+	FORCEINLINE ~FAssetBundleData() {}
 
 	/** List of bundles defined */
 	UPROPERTY()

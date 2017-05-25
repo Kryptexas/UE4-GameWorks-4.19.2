@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/SWidget.h"
 #include "Editor/PropertyEditor/Public/IPropertyTypeCustomization.h"
+#include "SGraphPin.h"
 
 class IPropertyHandle;
 
@@ -33,3 +34,23 @@ private:
 	TArray<FPrimaryAssetType> AllowedTypes;
 };
 
+/** Graph pin version of UI */
+class SPrimaryAssetIdGraphPin : public SGraphPin
+{
+public:
+	SLATE_BEGIN_ARGS(SPrimaryAssetIdGraphPin) {}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj);
+
+	//~ Begin SGraphPin Interface
+	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
+	//~ End SGraphPin Interface
+
+private:
+
+	void OnIdSelected(FPrimaryAssetId AssetId);
+	FText GetDisplayText() const;
+
+	FPrimaryAssetId CurrentId;
+};

@@ -1450,10 +1450,34 @@ protected:
 			Object = nullptr;
 		}
 #endif
+		if (Object)
+		{
+			bool bWeakRef = false;
 
-		const bool bWeakRef = Object ? !Object->HasAnyFlags(RF_StrongRefOnFrame) : false;
-		Collector.SetShouldHandleAsWeakRef(bWeakRef); 
-		return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+			// If the property that serialized us is not an object property we are in some native serializer, we have to treat these as strong
+			if (!Object->HasAnyFlags(RF_StrongRefOnFrame))
+			{
+				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(GetSerializedProperty());
+
+				if (ObjectProperty)
+				{
+					bWeakRef = true;
+				}
+			}
+
+			if (bWeakRef)
+			{
+				// This was a raw UObject * serialized by UObjectProperty, so just save the address
+				Collector.MarkWeakObjectReferenceForClearing(&Object);				
+			}
+			else
+			{
+				// This is a hard reference or we don't know what's serializing it, so serialize it normally
+				return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+			}
+		}
+
+		return *this;
 	}
 };
 
@@ -1473,9 +1497,6 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 					checkSlow(BPGC->UberGraphFunction);
 					FPersistentFrameCollectorArchive ObjectReferenceCollector(InThis, Collector);
 					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer);
-
-					// Reset the ShouldHandleAsWeakRef state, before the collector is used by a different archive.
-					Collector.SetShouldHandleAsWeakRef(false);
 				}
 			}
 		}

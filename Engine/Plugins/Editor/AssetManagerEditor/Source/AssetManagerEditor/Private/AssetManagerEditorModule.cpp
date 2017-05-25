@@ -42,12 +42,33 @@
 #include "IPlatformFileSandboxWrapper.h"
 #include "HAL/PlatformFilemanager.h"
 #include "Serialization/ArrayReader.h"
+#include "EdGraphUtilities.h"
+#include "EdGraphSchema_K2.h"
+#include "SGraphPin.h"
 
 #define LOCTEXT_NAMESPACE "AssetManagerEditor"
 
 DEFINE_LOG_CATEGORY(LogAssetManagerEditor);
 
 // Static functions/variables defeined in the interface
+
+class FAssetManagerGraphPanelPinFactory : public FGraphPanelPinFactory
+{
+	virtual TSharedPtr<class SGraphPin> CreatePin(class UEdGraphPin* InPin) const override
+	{
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		if (InPin->PinType.PinCategory == K2Schema->PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetId>::Get())
+		{
+			return SNew(SPrimaryAssetIdGraphPin, InPin);
+		}
+		if (InPin->PinType.PinCategory == K2Schema->PC_Struct && InPin->PinType.PinSubCategoryObject == TBaseStructure<FPrimaryAssetType>::Get())
+		{
+			return SNew(SPrimaryAssetTypeGraphPin, InPin);
+		}
+
+		return nullptr;
+	}
+};
 
 const FName IAssetManagerEditorModule::ResourceSizeName = FName("ResourceSize");
 const FName IAssetManagerEditorModule::DiskSizeName = FName("DiskSize");
@@ -74,37 +95,41 @@ TSharedRef<SWidget> IAssetManagerEditorModule::MakePrimaryAssetTypeSelector(FOnG
 
 TSharedRef<SWidget> IAssetManagerEditorModule::MakePrimaryAssetIdSelector(FOnGetPrimaryAssetDisplayText OnGetDisplayText, FOnSetPrimaryAssetId OnSetId, bool bAllowClear, TArray<FPrimaryAssetType> AllowedTypes)
 {
-	FOnShouldFilterAsset AssetFilter = FOnShouldFilterAsset::CreateStatic(&IAssetManagerEditorModule::OnShouldFilterPrimaryAsset, AllowedTypes);
-	TAttribute<FText> OnGetObjectText = TAttribute<FText>::Create(OnGetDisplayText);
-	FOnSetObject OnSetObject = FOnSetObject::CreateLambda([OnSetId](const FAssetData& AssetData)
+	FOnGetContent OnCreateMenuContent = FOnGetContent::CreateLambda([OnGetDisplayText, OnSetId, bAllowClear, AllowedTypes]()
 	{
-		UAssetManager& Manager = UAssetManager::Get();
-
-		FPrimaryAssetId AssetId;
-		if (AssetData.IsValid())
+		FOnShouldFilterAsset AssetFilter = FOnShouldFilterAsset::CreateStatic(&IAssetManagerEditorModule::OnShouldFilterPrimaryAsset, AllowedTypes);
+		FOnSetObject OnSetObject = FOnSetObject::CreateLambda([OnSetId](const FAssetData& AssetData)
 		{
-			AssetId = Manager.GetPrimaryAssetIdFromData(AssetData);
-			ensure(AssetId.IsValid());
-		}
+			FSlateApplication::Get().DismissAllMenus();
+			UAssetManager& Manager = UAssetManager::Get();
 
-		OnSetId.Execute(AssetId);
-	});
+			FPrimaryAssetId AssetId;
+			if (AssetData.IsValid())
+			{
+				AssetId = Manager.GetPrimaryAssetIdForData(AssetData);
+				ensure(AssetId.IsValid());
+			}
 
-	TArray<const UClass*> AllowedClasses;
-	TArray<UFactory*> NewAssetFactories;
+			OnSetId.Execute(AssetId);
+		});
 
-	return SNew(SComboButton)
-	.MenuContent()
-	[
-		PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
+		TArray<const UClass*> AllowedClasses;
+		TArray<UFactory*> NewAssetFactories;
+
+		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
 			FAssetData(),
 			bAllowClear,
 			AllowedClasses,
 			NewAssetFactories,
 			AssetFilter,
 			OnSetObject,
-			FSimpleDelegate())
-	]
+			FSimpleDelegate());
+	});
+
+	TAttribute<FText> OnGetObjectText = TAttribute<FText>::Create(OnGetDisplayText);
+
+	return SNew(SComboButton)
+	.OnGetMenuContent(OnCreateMenuContent)
 	.ButtonContent()
 		[
 			SNew(STextBlock)
@@ -151,7 +176,7 @@ bool IAssetManagerEditorModule::OnShouldFilterPrimaryAsset(const FAssetData& InA
 
 	if (InAssetData.IsValid())
 	{
-		FPrimaryAssetId AssetId = Manager.GetPrimaryAssetIdFromData(InAssetData);
+		FPrimaryAssetId AssetId = Manager.GetPrimaryAssetIdForData(InAssetData);
 		if (AssetId.IsValid())
 		{
 			if (AllowedTypes.Num() > 0)
@@ -286,6 +311,10 @@ void FAssetManagerEditorModule::StartupModule()
 		PropertyModule.RegisterCustomPropertyTypeLayout("PrimaryAssetType", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FPrimaryAssetTypeCustomization::MakeInstance));
 		PropertyModule.RegisterCustomPropertyTypeLayout("PrimaryAssetId", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FPrimaryAssetIdCustomization::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();
+
+		// Register Pins
+		TSharedPtr<FAssetManagerGraphPanelPinFactory> AssetManagerGraphPanelPinFactory = MakeShareable(new FAssetManagerGraphPanelPinFactory());
+		FEdGraphUtilities::RegisterVisualPinFactory(AssetManagerGraphPanelPinFactory);
 
 		// Register content browser hook
 		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
@@ -471,7 +500,7 @@ FString FAssetManagerEditorModule::GetValueForCustomColumn(FAssetData& AssetData
 	{
 		FName SizeTag = (ColumnName == ManagedResourceSizeName) ? ResourceSizeName : DiskSizeName;
 
-		FPrimaryAssetId PrimaryAssetId = AssetManager.GetPrimaryAssetIdFromData(AssetData);
+		FPrimaryAssetId PrimaryAssetId = AssetManager.GetPrimaryAssetIdForData(AssetData);
 
 		if (!PrimaryAssetId.IsValid())
 		{

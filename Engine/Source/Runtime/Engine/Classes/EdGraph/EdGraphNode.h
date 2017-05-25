@@ -213,8 +213,14 @@ public:
 	/** If true, this node can be resized and should be drawn with a resize handle */
 	UPROPERTY()
 	uint8 bCanResizeNode:1;
+
 #endif // WITH_EDITORONLY_DATA
 
+private:
+	/** Whether the node was created as part of an expansion step */
+	uint8 bIsIntermediateNode : 1;
+
+public:
 	/** Flag to check for compile error/warning */
 	UPROPERTY()
 	uint8 bHasCompilerMessage:1;
@@ -354,6 +360,9 @@ public:
 
 	/** Find a pin on this node with the supplied name and remove it, returns TRUE if successful */
 	bool RemovePin(UEdGraphPin* Pin);
+
+	/** Returns whether the node was created by UEdGraph::CreateIntermediateNode. */
+	bool IsIntermediateNode() const { return bIsIntermediateNode; }
 
 	/** Whether or not this node should be given the chance to override pin names.  If this returns true, then GetPinNameOverride() will be called for each pin, each frame */
 	virtual bool ShouldOverridePinNames() const { return false; }
@@ -674,7 +683,19 @@ protected:
 	virtual FString GetPropertyNameAndValueForDiff(const UProperty* Prop, const uint8* PropertyAddr) const;
 
 #endif // WITH_EDITOR
+
+	friend struct FSetAsIntermediateNode;
 };
 
+struct FSetAsIntermediateNode
+{
+	friend UEdGraph;
+
+private:
+	FSetAsIntermediateNode(UEdGraphNode* GraphNode)
+	{
+		GraphNode->bIsIntermediateNode = true;
+	}
+};
 
 

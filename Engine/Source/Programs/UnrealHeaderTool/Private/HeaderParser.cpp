@@ -256,9 +256,10 @@ namespace
 	 * @param FuncInfo   - The FFuncInfo object to populate.
 	 * @param Specifiers - The specifiers to process.
 	 */
-	void ProcessFunctionSpecifiers(FFuncInfo& FuncInfo, const TArray<FPropertySpecifier>& Specifiers)
+	void ProcessFunctionSpecifiers(FFuncInfo& FuncInfo, const TArray<FPropertySpecifier>& Specifiers, TMap<FName, FString>& MetaData)
 	{
 		bool bSpecifiedUnreliable = false;
+		bool bSawPropertyAccessor = false;
 
 		for (const FPropertySpecifier& Specifier : Specifiers)
 		{
@@ -274,12 +275,16 @@ namespace
 				{
 					if (FuncInfo.FunctionFlags & FUNC_Net)
 					{
-						FError::Throwf(TEXT("BlueprintNativeEvent functions cannot be replicated!") );
+						UE_LOG_ERROR_UHT(TEXT("BlueprintNativeEvent functions cannot be replicated!") );
 					}
 					else if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && !(FuncInfo.FunctionFlags & FUNC_Native) )
 					{
 						// already a BlueprintImplementableEvent
-						FError::Throwf(TEXT("A function cannot be both BlueprintNativeEvent and BlueprintImplementableEvent!") );
+						UE_LOG_ERROR_UHT(TEXT("A function cannot be both BlueprintNativeEvent and BlueprintImplementableEvent!") );
+					}
+					else if (bSawPropertyAccessor)
+					{
+						UE_LOG_ERROR_UHT(TEXT("A function cannot be both BlueprintNativeEvent and a Blueprint Property accessor!"));
 					}
 					else if ( (FuncInfo.FunctionFlags & FUNC_Private) )
 					{
@@ -295,12 +300,16 @@ namespace
 				{
 					if (FuncInfo.FunctionFlags & FUNC_Net)
 					{
-						FError::Throwf(TEXT("BlueprintImplementableEvent functions cannot be replicated!") );
+						UE_LOG_ERROR_UHT(TEXT("BlueprintImplementableEvent functions cannot be replicated!") );
 					}
 					else if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && (FuncInfo.FunctionFlags & FUNC_Native) )
 					{
 						// already a BlueprintNativeEvent
-						FError::Throwf(TEXT("A function cannot be both BlueprintNativeEvent and BlueprintImplementableEvent!") );
+						UE_LOG_ERROR_UHT(TEXT("A function cannot be both BlueprintNativeEvent and BlueprintImplementableEvent!") );
+					}
+					else if (bSawPropertyAccessor)
+					{
+						UE_LOG_ERROR_UHT(TEXT("A function cannot be both BlueprintImplementableEvent and a Blueprint Property accessor!"));
 					}
 					else if ( (FuncInfo.FunctionFlags & FUNC_Private) )
 					{
@@ -442,6 +451,33 @@ namespace
 				case EFunctionSpecifier::BlueprintCallable:
 				{
 					FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
+				}
+				break;
+
+				case EFunctionSpecifier::BlueprintGetter:
+				{
+					if (FuncInfo.FunctionFlags & FUNC_Event)
+					{
+						UE_LOG_ERROR_UHT(TEXT("Function cannot be a blueprint event and a blueprint getter."));
+					}
+
+					bSawPropertyAccessor = true;
+					FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
+					FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
+					MetaData.Add(TEXT("BlueprintGetter"));
+				}
+				break;
+
+				case EFunctionSpecifier::BlueprintSetter:
+				{
+					if (FuncInfo.FunctionFlags & FUNC_Event)
+					{
+						UE_LOG_ERROR_UHT(TEXT("Function cannot be a blueprint event and a blueprint setter."));
+					}
+
+					bSawPropertyAccessor = true;
+					FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
+					MetaData.Add(TEXT("BlueprintSetter"));
 				}
 				break;
 
@@ -2710,92 +2746,189 @@ void FHeaderParser::FixupDelegateProperties( FClasses& AllClasses, UStruct* Stru
 	}
 }
 
-/**
- * Verifies that all specified class's UProperties with CFG_RepNotify have valid callback targets with no parameters nor return values
- *
- * @param	TargetClass			class to verify rep notify properties for
- */
-void FHeaderParser::VerifyRepNotifyCallbacks( UClass* TargetClass )
+void FHeaderParser::VerifyBlueprintPropertyGetter(UProperty* Prop, UFunction* TargetFunc)
+{
+	check(TargetFunc);
+
+	UProperty* ReturnProp = TargetFunc->GetReturnProperty();
+	if (TargetFunc->NumParms > 1 || (TargetFunc->NumParms == 1 && ReturnProp == nullptr))
+	{
+		UE_LOG_ERROR_UHT(TEXT("Blueprint Property getter function %s must not have parameters."), *TargetFunc->GetName());
+	}
+
+	if (ReturnProp == nullptr || !Prop->SameType(ReturnProp))
+	{
+		FString ExtendedCPPType;
+		FString CPPType = Prop->GetCPPType(&ExtendedCPPType);
+		UE_LOG_ERROR_UHT(TEXT("Blueprint Property getter function %s must have return value of type %s%s."), *TargetFunc->GetName(), *CPPType, *ExtendedCPPType);
+	}
+
+	if (TargetFunc->HasAnyFunctionFlags(FUNC_Event))
+	{
+		UE_LOG_ERROR_UHT(TEXT("Blueprint Property setter function cannot be a blueprint event."));
+	}
+	else if (!TargetFunc->HasAnyFunctionFlags(FUNC_BlueprintPure))
+	{
+		UE_LOG_ERROR_UHT(TEXT("Blueprint Property getter function must be pure."));
+	}
+}
+
+void FHeaderParser::VerifyBlueprintPropertySetter(UProperty* Prop, UFunction* TargetFunc)
+{
+	check(TargetFunc);
+	UProperty* ReturnProp = TargetFunc->GetReturnProperty();
+
+	if (ReturnProp)
+	{
+		UE_LOG_ERROR_UHT(TEXT("Blueprint Property setter function %s must not have a return value."), *TargetFunc->GetName());
+	}
+	else
+	{
+		TFieldIterator<UProperty> Parm(TargetFunc);
+		if (TargetFunc->NumParms != 1 || !Prop->SameType(*Parm))
+		{
+			FString ExtendedCPPType;
+			FString CPPType = Prop->GetCPPType(&ExtendedCPPType);
+			UE_LOG_ERROR_UHT(TEXT("Blueprint Property setter function %s must have exactly one parameter of type %s%s."), *TargetFunc->GetName(), *CPPType, *ExtendedCPPType);
+		}
+	}
+
+	if (TargetFunc->HasAnyFunctionFlags(FUNC_Event))
+	{
+		UE_LOG_ERROR_UHT(TEXT("Blueprint Property setter function cannot be a blueprint event."));
+	}
+	else if (!TargetFunc->HasAnyFunctionFlags(FUNC_BlueprintCallable))
+	{
+		UE_LOG_ERROR_UHT(TEXT("Blueprint Property setter function must be blueprint callable."));
+	}
+	else if (TargetFunc->HasAnyFunctionFlags(FUNC_BlueprintPure))
+	{
+		UE_LOG_ERROR_UHT(TEXT("Blueprint Property setter function must not be pure."));
+	}
+}
+
+void FHeaderParser::VerifyRepNotifyCallback(UProperty* Prop, UFunction* TargetFunc)
+{
+	if( TargetFunc )
+	{
+		if (TargetFunc->GetReturnProperty())
+		{
+			UE_LOG_ERROR_UHT(TEXT("Replication notification function %s must not have return value."), *TargetFunc->GetName());
+		}
+
+		const bool bIsArrayProperty = ( Prop->ArrayDim > 1 || Cast<UArrayProperty>(Prop) );
+		const int32 MaxParms = bIsArrayProperty ? 2 : 1;
+
+		if ( TargetFunc->NumParms > MaxParms)
+		{
+			UE_LOG_ERROR_UHT(TEXT("Replication notification function %s has too many parameters."), *TargetFunc->GetName());
+		}
+
+		TFieldIterator<UProperty> Parm(TargetFunc);
+		if ( TargetFunc->NumParms >= 1 && Parm)
+		{
+			// First parameter is always the old value:
+			if ( !Prop->SameType(*Parm) )
+			{
+				FString ExtendedCPPType;
+				FString CPPType = Prop->GetCPPType(&ExtendedCPPType);
+				UE_LOG_ERROR_UHT(TEXT("Replication notification function %s has invalid parameter for property %s. First (optional) parameter must be of type %s%s."), *TargetFunc->GetName(), *Prop->GetName(), *CPPType, *ExtendedCPPType);
+			}
+
+			++Parm;
+		}
+
+		if ( TargetFunc->NumParms >= 2 && Parm)
+		{
+			// A 2nd parameter for arrays can be specified as a const TArray<uint8>&. This is a list of element indices that have changed
+			UArrayProperty *ArrayProp = Cast<UArrayProperty>(*Parm);
+			if (!(ArrayProp && Cast<UByteProperty>(ArrayProp->Inner)) || !(Parm->GetPropertyFlags() & CPF_ConstParm) || !(Parm->GetPropertyFlags() & CPF_ReferenceParm))
+			{
+				UE_LOG_ERROR_UHT(TEXT("Replication notification function %s (optional) second parameter must be of type 'const TArray<uint8>&'"), *TargetFunc->GetName());
+			}
+		}
+	}
+	else
+	{
+		// Couldn't find a valid function...
+		UE_LOG_ERROR_UHT(TEXT("Replication notification function %s not found"), *Prop->RepNotifyFunc.ToString() );
+	}
+}
+void FHeaderParser::VerifyPropertyMarkups( UClass* TargetClass )
 {
 	// Iterate over all properties, looking for those flagged as CPF_RepNotify
 	for ( UField* Field = TargetClass->Children; Field; Field = Field->Next )
 	{
-		UProperty* Prop = Cast<UProperty>(Field);
-		if( Prop && (Prop->GetPropertyFlags() & CPF_RepNotify) )
+		if (UProperty* Prop = Cast<UProperty>(Field))
 		{
+			auto FindTargetFunction = [&](const FName FuncName)
+			{
+				// Search through this class and its superclasses looking for the specified callback
+				UFunction* TargetFunc = nullptr;
+				UClass* SearchClass = TargetClass;
+				while( SearchClass && !TargetFunc )
+				{
+					// Since the function map is not valid yet, we have to iterate over the fields to look for the function
+					for( UField* TestField = SearchClass->Children; TestField; TestField = TestField->Next )
+					{
+						UFunction* TestFunc = Cast<UFunction>(TestField);
+						if (TestFunc && FNativeClassHeaderGenerator::GetOverriddenFName(TestFunc) == FuncName)
+						{
+							TargetFunc = TestFunc;
+							break;
+						}
+					}
+					SearchClass = SearchClass->GetSuperClass();
+				}
+
+				return TargetFunc;
+			};
+
 			FClassMetaData* TargetClassData = GScriptHelper.FindClassData(TargetClass);
 			check(TargetClassData);
 			FTokenData* PropertyToken = TargetClassData->FindTokenData(Prop);
 			check(PropertyToken);
 
-			// Search through this class and its superclasses looking for the specified callback
-			UFunction* TargetFunc = NULL;
-			UClass* SearchClass = TargetClass;
-			while( SearchClass && !TargetFunc )
+			TGuardValue<int32> GuardedInputPos(InputPos, PropertyToken->Token.StartPos);
+			TGuardValue<int32> GuardedInputLine(InputLine, PropertyToken->Token.StartLine);
+
+			if (Prop->HasAnyPropertyFlags(CPF_RepNotify))
 			{
-				// Since the function map is not valid yet, we have to iterate over the fields to look for the function
-				for( UField* TestField = SearchClass->Children; TestField; TestField = TestField->Next )
-				{
-					UFunction* TestFunc = Cast<UFunction>(TestField);
-					if (TestFunc && FNativeClassHeaderGenerator::GetOverriddenFName(TestFunc) == Prop->RepNotifyFunc)
-					{
-						TargetFunc = TestFunc;
-						break;
-					}
-				}
-				SearchClass = SearchClass->GetSuperClass();
+				VerifyRepNotifyCallback(Prop, FindTargetFunction(Prop->RepNotifyFunc));
 			}
 
-			if( TargetFunc )
+			if (Prop->HasAnyPropertyFlags(CPF_BlueprintVisible))
 			{
-				if (TargetFunc->GetReturnProperty())
+				const FString GetterFuncName = Prop->GetMetaData(TEXT("BlueprintGetter"));
+				if (!GetterFuncName.IsEmpty())
 				{
-					UngetToken(PropertyToken->Token);
-					FError::Throwf(TEXT("Replication notification function %s must not have return values"), *Prop->RepNotifyFunc.ToString());
-					break; //-V779
-				}
-				
-				bool IsArrayProperty = ( Prop->ArrayDim > 1 || Cast<UArrayProperty>(Prop) );
-				int32 MaxParms = IsArrayProperty ? 2 : 1;
-
-				if ( TargetFunc->NumParms > MaxParms)
-				{
-					UngetToken(PropertyToken->Token);
-					FError::Throwf(TEXT("Replication notification function %s has too many parameters"), *Prop->RepNotifyFunc.ToString());
-					break;
-				}
-				
-				TFieldIterator<UProperty> Parm(TargetFunc);
-				if ( TargetFunc->NumParms >= 1 && Parm)
-				{
-					// First parameter is always the old value:
-					if ( Parm->GetClass() != Prop->GetClass() )
+					if (UFunction* TargetFunc = FindTargetFunction(*GetterFuncName))
 					{
-						UngetToken(PropertyToken->Token);
-						FError::Throwf(TEXT("Replication notification function %s has invalid parameter for property $%s. First (optional) parameter must be a const reference of the same property type."), *Prop->RepNotifyFunc.ToString(), *Prop->GetName());
-						break;
+						VerifyBlueprintPropertyGetter(Prop, TargetFunc);
 					}
-
-					++Parm;
-				}
-
-				if ( TargetFunc->NumParms >= 2 && Parm)
-				{
-					// A 2nd parameter for arrays can be specified as a const TArray<uint8>&. This is a list of element indices that have changed
-					UArrayProperty *ArrayProp = Cast<UArrayProperty>(*Parm);
-					if (!(ArrayProp && Cast<UByteProperty>(ArrayProp->Inner)) || !(Parm->GetPropertyFlags() & CPF_ConstParm) || !(Parm->GetPropertyFlags() & CPF_ReferenceParm))
+					else
 					{
-						UngetToken(PropertyToken->Token);
-						FError::Throwf(TEXT("Replication notification function %s (optional) parameter must be of type 'const TArray<uint8>&'"), *Prop->RepNotifyFunc.ToString());
-						break;
+						// Couldn't find a valid function...
+						UE_LOG_ERROR_UHT(TEXT("Blueprint Property getter function %s not found"), *GetterFuncName);
 					}
 				}
-			}
-			else
-			{
-				// Couldn't find a valid function...
-				UngetToken(PropertyToken->Token);
-				FError::Throwf(TEXT("Replication notification function %s not found"), *Prop->RepNotifyFunc.ToString() );
+
+				if (!Prop->HasAnyPropertyFlags(CPF_BlueprintReadOnly))
+				{
+					const FString SetterFuncName = Prop->GetMetaData(TEXT("BlueprintSetter"));
+					if (!SetterFuncName.IsEmpty())
+					{
+						if (UFunction* TargetFunc = FindTargetFunction(*SetterFuncName))
+						{
+							VerifyBlueprintPropertySetter(Prop, TargetFunc);
+						}
+						else
+						{
+							// Couldn't find a valid function...
+							UE_LOG_ERROR_UHT(TEXT("Blueprint Property setter function %s not found"), *SetterFuncName);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -3023,7 +3156,9 @@ void FHeaderParser::GetVarType(
 
 	// Process the list of specifiers
 	bool bSeenEditSpecifier = false;
-	bool bSeenBlueprintEditSpecifier = false;
+	bool bSeenBlueprintWriteSpecifier = false;
+	bool bSeenBlueprintReadOnlySpecifier = false;
+	bool bSeenBlueprintGetterSpecifier = false;
 	for (const FPropertySpecifier& Specifier : SpecifiersFound)
 	{
 		EVariableSpecifier SpecID = (EVariableSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GVariableSpecifierStrings);
@@ -3099,9 +3234,9 @@ void FHeaderParser::GetVarType(
 
 				case EVariableSpecifier::BlueprintReadWrite:
 				{
-					if (bSeenBlueprintEditSpecifier)
+					if (bSeenBlueprintReadOnlySpecifier)
 					{
-						UE_LOG_ERROR_UHT(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Cannot specify a property as being both BlueprintReadOnly and BlueprintReadWrite."));
 					}
 
 					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
@@ -3117,15 +3252,34 @@ void FHeaderParser::GetVarType(
 					}
 
 					Flags |= CPF_BlueprintVisible;
-					bSeenBlueprintEditSpecifier = true;
+					bSeenBlueprintWriteSpecifier = true;				}
+				break;
+
+				case EVariableSpecifier::BlueprintSetter:
+				{
+					if (bSeenBlueprintReadOnlySpecifier)
+					{
+						UE_LOG_ERROR_UHT(TEXT("Cannot specify a property as being both BlueprintReadOnly and having a BlueprintSetter."));
+					}
+
+					if (OwnerStruct->IsA<UScriptStruct>())
+					{
+						UE_LOG_ERROR_UHT(TEXT("Cannot specify BlueprintSetter for a struct member."))
+					}
+
+					const FString BlueprintSetterFunction = RequireExactlyOneSpecifierValue(Specifier);
+					MetaDataFromNewStyle.Add(TEXT("BlueprintSetter"), BlueprintSetterFunction);
+
+					Flags |= CPF_BlueprintVisible;
+					bSeenBlueprintWriteSpecifier = true;
 				}
 				break;
 
 				case EVariableSpecifier::BlueprintReadOnly:
 				{
-					if (bSeenBlueprintEditSpecifier)
+					if (bSeenBlueprintWriteSpecifier)
 					{
-						UE_LOG_ERROR_UHT(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+						UE_LOG_ERROR_UHT(TEXT("Cannot specify both BlueprintReadOnly and BlueprintReadWrite or BlueprintSetter."), *Specifier.Key);
 					}
 
 					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
@@ -3142,7 +3296,22 @@ void FHeaderParser::GetVarType(
 
 					Flags        |= CPF_BlueprintVisible | CPF_BlueprintReadOnly;
 					ImpliedFlags &= ~CPF_BlueprintReadOnly;
-					bSeenBlueprintEditSpecifier = true;
+					bSeenBlueprintReadOnlySpecifier = true;
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintGetter:
+				{
+					if (OwnerStruct->IsA<UScriptStruct>())
+					{
+						UE_LOG_ERROR_UHT(TEXT("Cannot specify BlueprintGetter for a struct member."))
+					}
+
+					const FString BlueprintGetterFunction = RequireExactlyOneSpecifierValue(Specifier);
+					MetaDataFromNewStyle.Add(TEXT("BlueprintGetter"), BlueprintGetterFunction);
+
+					Flags        |= CPF_BlueprintVisible;
+					bSeenBlueprintGetterSpecifier = true;
 				}
 				break;
 
@@ -3368,6 +3537,14 @@ void FHeaderParser::GetVarType(
 				break;
 			}
 		}
+	}
+
+	// If we saw a BlueprintGetter but did not see BlueprintSetter or 
+	// or BlueprintReadWrite then treat as BlueprintReadOnly
+	if (bSeenBlueprintGetterSpecifier && !bSeenBlueprintWriteSpecifier)
+	{
+		Flags |= CPF_BlueprintReadOnly;
+		ImpliedFlags &= ~CPF_BlueprintReadOnly;
 	}
 
 	{
@@ -4665,6 +4842,8 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	}
 
 	VarProperty.TokenProperty = NewProperty;
+	VarProperty.StartLine = InputLine;
+	VarProperty.StartPos = InputPos;
 	FClassMetaData* ScopeData = GScriptHelper.FindClassData(Scope);
 	check(ScopeData);
 	ScopeData->AddProperty(VarProperty, UHTMakefile, CurrentSrcFile);
@@ -5760,13 +5939,15 @@ UDelegateFunction* FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasse
 		TArray<FPropertySpecifier> SpecifiersFound;
 		ReadSpecifierSetInsideMacro(SpecifiersFound, TEXT("Delegate"), MetaData);
 
-		ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound);
+		ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound, MetaData);
 
 		// Get the next token and ensure it looks like a delegate
 		FToken Token;
 		GetToken(Token);
 		if (!IsValidDelegateDeclaration(Token))
+		{
 			FError::Throwf(TEXT("Unexpected token following UDELEGATE(): %s"), Token.Identifier);
+		}
 
 		DelegateMacro = Token.Identifier;
 
@@ -6094,7 +6275,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		FuncInfo.FunctionFlags |= FUNC_EditorOnly;
 	}
 
-	ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound);
+	ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound, MetaData);
 
 	const bool bClassGeneratedFromBP = FClass::IsDynamic(GetCurrentClass());
 	if ((FuncInfo.FunctionFlags & FUNC_NetServer) && !(FuncInfo.FunctionFlags & FUNC_NetValidate) && !bClassGeneratedFromBP)
@@ -6134,14 +6315,16 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	}
 
 	FString*   InternalPtr = MetaData.Find("BlueprintInternalUseOnly"); // FBlueprintMetadata::MD_BlueprintInternalUseOnly
-	const bool bDeprecated = MetaData.Contains("DeprecatedFunction");       // FBlueprintMetadata::MD_DeprecatedFunction
-	const bool bHasMenuCategory = MetaData.Contains("Category");                 // FBlueprintMetadata::MD_FunctionCategory
 	const bool bInternalOnly = InternalPtr && *InternalPtr == TEXT("true");
 
 	// If this function is blueprint callable or blueprint pure, require a category 
 	if ((FuncInfo.FunctionFlags & (FUNC_BlueprintCallable | FUNC_BlueprintPure)) != 0) 
 	{ 
-		if (!bHasMenuCategory && !bInternalOnly && !bDeprecated) 
+		const bool bDeprecated = MetaData.Contains("DeprecatedFunction");       // FBlueprintMetadata::MD_DeprecatedFunction
+		const bool bBlueprintAccessor = MetaData.Contains("BlueprintSetter") || MetaData.Contains("BlueprintGetter"); // FBlueprintMetadata::MD_BlueprintSetter, // FBlueprintMetadata::MD_BlueprintGetter
+		const bool bHasMenuCategory = MetaData.Contains("Category");                 // FBlueprintMetadata::MD_FunctionCategory
+
+		if (!bHasMenuCategory && !bInternalOnly && !bDeprecated && !bBlueprintAccessor) 
 		{ 
 			const bool bModuleIsGame = CurrentlyParsedModule && (
 				CurrentlyParsedModule->ModuleType == EBuildModuleType::GameDeveloper ||
@@ -8799,7 +8982,7 @@ void FHeaderParser::ResetClassData()
 		CurrentClass->ClassFlags |= (SuperClass->ClassFlags) & CLASS_ScriptInherit;
 		CurrentClass->ClassConfigName = SuperClass->ClassConfigName;
 		check(SuperClass->ClassWithin);
-		if (CurrentClass->ClassWithin == NULL)
+		if (CurrentClass->ClassWithin == nullptr)
 		{
 			CurrentClass->ClassWithin = SuperClass->ClassWithin;
 		}
@@ -8833,7 +9016,7 @@ void FHeaderParser::ResetClassData()
 void FHeaderParser::PostPopNestClass(UClass* CurrentClass)
 {
 	// Validate all the rep notify events here, to make sure they're implemented
-	VerifyRepNotifyCallbacks(CurrentClass);
+	VerifyPropertyMarkups(CurrentClass);
 
 	// Iterate over all the interfaces we claim to implement
 	for (FImplementedInterface& Impl : CurrentClass->Interfaces)

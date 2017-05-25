@@ -12,6 +12,7 @@ const FName UPrimaryAssetLabel::DirectoryBundle = FName("Directory");
 UPrimaryAssetLabel::UPrimaryAssetLabel()
 {
 	bLabelAssetsInMyDirectory = false;
+	bIsRuntimeLabel = false;
 
 	// By default have low priority and don't recurse
 	Rules.bApplyRecursively = false;

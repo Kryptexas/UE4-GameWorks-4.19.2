@@ -94,8 +94,11 @@ struct CORE_API FFrameworkObjectVersion
 		// Represent a pins container type as an enum not 3 independent booleans
 		EdGraphPinContainerType,
 
-		// Switch asset pins to store as string instead of hard object referece
+		// Switch asset pins to store as string instead of hard object reference
 		ChangeAssetPinsToString,
+
+		// Fix Local Variables so that the properties are correctly flagged as blueprint visible
+		LocalVariablesBlueprintVisible,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

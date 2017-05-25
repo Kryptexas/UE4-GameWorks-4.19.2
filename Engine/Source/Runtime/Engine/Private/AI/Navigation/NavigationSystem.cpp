@@ -720,17 +720,23 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 		}
 	}
 
-	if (Mode == FNavigationSystemRunMode::EditorMode && bGenerateNavigationOnlyAroundNavigationInvokers)
+	if (Mode == FNavigationSystemRunMode::EditorMode)
 	{
-		UWorld* MyWorld = GetWorld();
-		// gather enforcers manually to be able to see the results in editor as well
-		for (TObjectIterator<UNavigationInvokerComponent> It; It; ++It)
+		// update navigation invokers
+		if (bGenerateNavigationOnlyAroundNavigationInvokers)
 		{
-			if (MyWorld == It->GetWorld())
+			for (TObjectIterator<UNavigationInvokerComponent> It; It; ++It)
 			{
-				It->RegisterWithNavigationSystem(*this);
+				if (World == It->GetWorld())
+				{
+					It->RegisterWithNavigationSystem(*this);
+				}
 			}
 		}
+
+		// update navdata after loading world
+		const bool bIsLoadTime = true;
+		RebuildAll(bIsLoadTime);
 	}
 
 	bWorldInitDone = true;
@@ -3369,7 +3375,7 @@ void UNavigationSystem::RemoveNavigationBuildLock(uint8 Flags, bool bSkipRebuild
 	}
 }
 
-void UNavigationSystem::RebuildAll()
+void UNavigationSystem::RebuildAll(bool bIsLoadTime)
 {
 	const bool bIsInGame = GetWorld()->IsGameWorld();
 	
@@ -3391,7 +3397,7 @@ void UNavigationSystem::RebuildAll()
 	{
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
 				
-		if (NavData && (!bIsInGame || NavData->SupportsRuntimeGeneration()))
+		if (NavData && (!bIsLoadTime || NavData->NeedsRebuildOnLoad()) && (!bIsInGame || NavData->SupportsRuntimeGeneration()))
 		{
 			NavData->RebuildAll();
 		}

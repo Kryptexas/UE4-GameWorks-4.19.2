@@ -65,75 +65,45 @@ void UAssetObjectProperty::ExportTextItem( FString& ValueStr, const void* Proper
 {
 	FAssetPtr& AssetPtr = *(FAssetPtr*)PropertyValue;
 
-	FStringAssetReference ID;
+	FStringAssetReference AssetReference;
 	UObject *Object = AssetPtr.Get();
 
 	if (Object)
 	{
 		// Use object in case name has changed.
-		ID = FStringAssetReference(Object);
+		AssetReference = FStringAssetReference(Object);
 	}
 	else
 	{
-		ID = AssetPtr.GetUniqueID();
+		AssetReference = AssetPtr.GetUniqueID();
 	}
 
 	if (0 != (PortFlags & PPF_ExportCpp))
 	{
-		ValueStr += FString::Printf(TEXT("FStringAssetReference(TEXT(\"%s\"))"), *ID.ToString().ReplaceCharWithEscapedChar());
+		ValueStr += FString::Printf(TEXT("FStringAssetReference(TEXT(\"%s\"))"), *AssetReference.ToString().ReplaceCharWithEscapedChar());
 		return;
 	}
 
-	if (!ID.ToString().IsEmpty())
-	{
-		ValueStr += ID.ToString();
-	}
-	else
-	{
-		ValueStr += TEXT("None");
-	}
+	AssetReference.ExportTextItem(ValueStr, AssetReference, Parent, PortFlags, ExportRootScope);
 }
 
 const TCHAR* UAssetObjectProperty::ImportText_Internal( const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
 	FAssetPtr& AssetPtr = *(FAssetPtr*)Data;
 
-	FString NewPath;
-	const TCHAR* Buffer = InBuffer;
-	const TCHAR* NewBuffer = UPropertyHelpers::ReadToken( Buffer, NewPath, 1 );
-	if( !NewBuffer )
+	FStringAssetReference AssetReference;
+
+	if (AssetReference.ImportTextItem(InBuffer, PortFlags, Parent, ErrorText))
 	{
-		return NULL;
-	}
-	Buffer = NewBuffer;
-	if( NewPath==TEXT("None") )
-	{
-		AssetPtr = NULL;
-	}
-	else
-	{
-		if( *Buffer == TCHAR('\'') )
-		{
-			// A ' token likely means we're looking at an asset string in the form "Texture2d'/Game/UI/HUD/Actions/Barrel'" and we need to read and append the path part
-			// We have to skip over the first ' as UPropertyHelpers::ReadToken doesn't read single-quoted strings correctly, but does read a path correctly
-			NewPath += *Buffer++; // Append the leading '
-			NewBuffer = UPropertyHelpers::ReadToken( Buffer, NewPath, 1 );
-			if( !NewBuffer )
-			{
-				return NULL;
-			}
-			Buffer = NewBuffer;
-			if( *Buffer != TCHAR('\'') )
-			{
-				return NULL;
-			}
-			NewPath += *Buffer++; // Append the trailing '
-		}
-		FStringAssetReference ID(NewPath);
-		AssetPtr = ID;
+		AssetPtr = AssetReference;
+		return InBuffer;
 	}
 
-	return Buffer;
+	else
+	{
+		AssetPtr = nullptr;
+		return nullptr;
+	}
 }
 
 bool UAssetObjectProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)

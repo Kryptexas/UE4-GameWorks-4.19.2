@@ -10,6 +10,7 @@
 #include "K2Node_AssignmentStatement.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_TemporaryVariable.h"
+#include "K2Node_ExecutionSequence.h"
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
@@ -18,19 +19,41 @@
 
 void UK2Node_LoadAsset::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
 
-	if (K2Schema)
+	// The immediate continue pin
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
+
+	// The delayed completed pin, this used to be called Then
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Completed);
+
+	CreatePin(EGPD_Input, GetInputCategory(), FString(), UObject::StaticClass(), GetInputPinName());
+	CreatePin(EGPD_Output, GetOutputCategory(), FString(), UObject::StaticClass(), GetOutputPinName());
+}
+
+void UK2Node_LoadAsset::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
+{
+	Super::ReallocatePinsDuringReconstruction(OldPins);
+
+	UEdGraphPin* OldThenPin = nullptr;
+	UEdGraphPin* OldCompletedPin = nullptr;
+
+	for (UEdGraphPin* CurrentPin : OldPins)
 	{
-		CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
-		UEdGraphPin* OutputExecPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
-		if (OutputExecPin)
+		if (CurrentPin->PinName == UEdGraphSchema_K2::PN_Then)
 		{
-			OutputExecPin->PinFriendlyName = FText::FromString(K2Schema->PN_Completed);
+			OldThenPin = CurrentPin;
 		}
+		else if (CurrentPin->PinName == UEdGraphSchema_K2::PN_Completed)
+		{
+			OldCompletedPin = CurrentPin;
+		}
+	}
 
-		CreatePin(EGPD_Input, GetInputCategory(), FString(), UObject::StaticClass(), GetInputPinName());
-		CreatePin(EGPD_Output, GetOutputCategory(), FString(), UObject::StaticClass(), GetOutputPinName());
+	if (OldThenPin && !OldCompletedPin)
+	{
+		// This is an old node from when Completed was called then, rename the node to Completed and allow normal rewire to take place
+		OldThenPin->PinName = UEdGraphSchema_K2::PN_Completed;
 	}
 }
 
@@ -41,64 +64,82 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 	check(Schema);
 	bool bIsErrorFree = true;
 
-	// Create LoadAsset function call
-	auto CallLoadAssetNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-	CallLoadAssetNode->FunctionReference.SetExternalMember(NativeFunctionName(), UKismetSystemLibrary::StaticClass());
-	CallLoadAssetNode->AllocateDefaultPins(); 
+	// Sequence node, defaults to two output pins
+	UK2Node_ExecutionSequence* SequenceNode = CompilerContext.SpawnIntermediateNode<UK2Node_ExecutionSequence>(this, SourceGraph);
+	SequenceNode->AllocateDefaultPins();
 
 	// connect to input exe
 	{
-		auto InputExePin = GetExecPin();
-		auto CallFunctionInputExePin = CallLoadAssetNode->GetExecPin();
-		bIsErrorFree &= InputExePin && CallFunctionInputExePin && CompilerContext.MovePinLinksToIntermediate(*InputExePin, *CallFunctionInputExePin).CanSafeConnect();
+		UEdGraphPin* InputExePin = GetExecPin();
+		UEdGraphPin* SequenceInputExePin = SequenceNode->GetExecPin();
+		bIsErrorFree &= InputExePin && SequenceInputExePin && CompilerContext.MovePinLinksToIntermediate(*InputExePin, *SequenceInputExePin).CanSafeConnect();
+	}
+
+	// Create LoadAsset function call
+	UK2Node_CallFunction* CallLoadAssetNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+	CallLoadAssetNode->FunctionReference.SetExternalMember(NativeFunctionName(), UKismetSystemLibrary::StaticClass());
+	CallLoadAssetNode->AllocateDefaultPins(); 
+
+	// connect load to first sequence pin
+	{
+		UEdGraphPin* CallFunctionInputExePin = CallLoadAssetNode->GetExecPin();
+		UEdGraphPin* SequenceFirstExePin = SequenceNode->GetThenPinGivenIndex(0);
+		bIsErrorFree &= SequenceFirstExePin && CallFunctionInputExePin && Schema->TryCreateConnection(CallFunctionInputExePin, SequenceFirstExePin);
+	}
+
+	// connect then to second sequence pin
+	{
+		UEdGraphPin* OutputThenPin = FindPin(Schema->PN_Then);
+		UEdGraphPin* SequenceSecondExePin = SequenceNode->GetThenPinGivenIndex(1);
+		bIsErrorFree &= OutputThenPin && SequenceSecondExePin && CompilerContext.MovePinLinksToIntermediate(*OutputThenPin, *SequenceSecondExePin).CanSafeConnect();
 	}
 
 	// Create Local Variable
 	UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(this, GetOutputCategory(), FString(), UObject::StaticClass());
 
 	// Create assign node
-	auto AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);
+	UK2Node_AssignmentStatement* AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);
 	AssignNode->AllocateDefaultPins();
 
-	auto LoadedObjectVariablePin = TempVarOutput->GetVariablePin();
+	UEdGraphPin* LoadedObjectVariablePin = TempVarOutput->GetVariablePin();
 
 	// connect local variable to assign node
 	{
-		auto AssignLHSPPin = AssignNode->GetVariablePin();
+		UEdGraphPin* AssignLHSPPin = AssignNode->GetVariablePin();
 		bIsErrorFree &= AssignLHSPPin && LoadedObjectVariablePin && Schema->TryCreateConnection(AssignLHSPPin, LoadedObjectVariablePin);
 	}
 
 	// connect local variable to output
 	{
-		auto OutputObjectPinPin = FindPin(GetOutputPinName());
+		UEdGraphPin* OutputObjectPinPin = FindPin(GetOutputPinName());
 		bIsErrorFree &= LoadedObjectVariablePin && OutputObjectPinPin && CompilerContext.MovePinLinksToIntermediate(*OutputObjectPinPin, *LoadedObjectVariablePin).CanSafeConnect();
 	}
 
 	// connect assign exec input to function output
 	{
-		auto CallFunctionOutputExePin = CallLoadAssetNode->FindPin(Schema->PN_Then);
-		auto AssignInputExePin = AssignNode->GetExecPin();
+		UEdGraphPin* CallFunctionOutputExePin = CallLoadAssetNode->FindPin(Schema->PN_Then);
+		UEdGraphPin* AssignInputExePin = AssignNode->GetExecPin();
 		bIsErrorFree &= AssignInputExePin && CallFunctionOutputExePin && Schema->TryCreateConnection(AssignInputExePin, CallFunctionOutputExePin);
 	}
 
 	// connect assign exec output to output
 	{
-		auto OutputExePin = FindPin(Schema->PN_Then);
-		auto AssignOutputExePin = AssignNode->GetThenPin();
-		bIsErrorFree &= OutputExePin && AssignOutputExePin && CompilerContext.MovePinLinksToIntermediate(*OutputExePin, *AssignOutputExePin).CanSafeConnect();
+		UEdGraphPin* OutputCompletedPin = FindPin(Schema->PN_Completed);
+		UEdGraphPin* AssignOutputExePin = AssignNode->GetThenPin();
+		bIsErrorFree &= OutputCompletedPin && AssignOutputExePin && CompilerContext.MovePinLinksToIntermediate(*OutputCompletedPin, *AssignOutputExePin).CanSafeConnect();
 	}
 
 	// connect to asset
-	auto CallFunctionAssetPin = CallLoadAssetNode->FindPin(GetInputPinName());
+	UEdGraphPin* CallFunctionAssetPin = CallLoadAssetNode->FindPin(GetInputPinName());
 	{
-		auto AssetPin = FindPin(GetInputPinName());
+		UEdGraphPin* AssetPin = FindPin(GetInputPinName());
 		ensure(CallFunctionAssetPin);
 		bIsErrorFree &= AssetPin && CallFunctionAssetPin && CompilerContext.MovePinLinksToIntermediate(*AssetPin, *CallFunctionAssetPin).CanSafeConnect();
 	}
 
 	// Create OnLoadEvent
 	const FString DelegateOnLoadedParamName(TEXT("OnLoaded"));
-	auto OnLoadEventNode = CompilerContext.SpawnIntermediateEventNode<UK2Node_CustomEvent>(this, CallFunctionAssetPin, SourceGraph);
+	UK2Node_CustomEvent* OnLoadEventNode = CompilerContext.SpawnIntermediateEventNode<UK2Node_CustomEvent>(this, CallFunctionAssetPin, SourceGraph);
 	OnLoadEventNode->CustomFunctionName = *FString::Printf(TEXT("OnLoaded_%s"), *CompilerContext.GetGuid(this));
 	OnLoadEventNode->AllocateDefaultPins();
 	{
@@ -120,17 +161,17 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 
 	// connect delegate
 	{
-		auto CallFunctionDelegatePin = CallLoadAssetNode->FindPin(DelegateOnLoadedParamName);
+		UEdGraphPin* CallFunctionDelegatePin = CallLoadAssetNode->FindPin(DelegateOnLoadedParamName);
 		ensure(CallFunctionDelegatePin);
-		auto EventDelegatePin = OnLoadEventNode->FindPin(UK2Node_CustomEvent::DelegateOutputName);
+		UEdGraphPin* EventDelegatePin = OnLoadEventNode->FindPin(UK2Node_CustomEvent::DelegateOutputName);
 		bIsErrorFree &= CallFunctionDelegatePin && EventDelegatePin && Schema->TryCreateConnection(CallFunctionDelegatePin, EventDelegatePin);
 	}
 
 	// connect loaded object from event to assign
 	{
-		auto LoadedAssetEventPin = OnLoadEventNode->FindPin(TEXT("Loaded"));
+		UEdGraphPin* LoadedAssetEventPin = OnLoadEventNode->FindPin(TEXT("Loaded"));
 		ensure(LoadedAssetEventPin);
-		auto AssignRHSPPin = AssignNode->GetValuePin();
+		UEdGraphPin* AssignRHSPPin = AssignNode->GetValuePin();
 		bIsErrorFree &= AssignRHSPPin && LoadedAssetEventPin && Schema->TryCreateConnection(LoadedAssetEventPin, AssignRHSPPin);
 	}
 
@@ -149,7 +190,7 @@ FText UK2Node_LoadAsset::GetTooltipText() const
 
 FText UK2Node_LoadAsset::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText(LOCTEXT("UK2Node_LoadAssetGetNodeTitle", "Load Asset"));
+	return FText(LOCTEXT("UK2Node_LoadAssetGetNodeTitle", "Async Load Asset"));
 }
 
 bool UK2Node_LoadAsset::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
@@ -196,14 +237,12 @@ FText UK2Node_LoadAsset::GetMenuCategory() const
 
 const FString& UK2Node_LoadAsset::GetInputCategory() const
 {
-	const UEdGraphSchema_K2* K2Schema = CastChecked<const UEdGraphSchema_K2>(GetSchema());
-	return K2Schema->PC_Asset;
+	return UEdGraphSchema_K2::PC_Asset;
 }
 
 const FString& UK2Node_LoadAsset::GetOutputCategory() const
 {
-	const UEdGraphSchema_K2* K2Schema = CastChecked<const UEdGraphSchema_K2>(GetSchema());
-	return K2Schema->PC_Object;
+	return UEdGraphSchema_K2::PC_Object;
 }
 
 const FString& UK2Node_LoadAsset::GetInputPinName() const
@@ -238,19 +277,17 @@ FText UK2Node_LoadAssetClass::GetTooltipText() const
 
 FText UK2Node_LoadAssetClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText(LOCTEXT("UK2Node_LoadAssetClassGetNodeTitle", "Load Class Asset"));
+	return FText(LOCTEXT("UK2Node_LoadAssetClassGetNodeTitle", "Async Load Class Asset"));
 }
 
 const FString& UK2Node_LoadAssetClass::GetInputCategory() const
 {
-	const UEdGraphSchema_K2* K2Schema = CastChecked<const UEdGraphSchema_K2>(GetSchema());
-	return K2Schema->PC_AssetClass;
+	return UEdGraphSchema_K2::PC_AssetClass;
 }
 
 const FString& UK2Node_LoadAssetClass::GetOutputCategory() const
 {
-	const UEdGraphSchema_K2* K2Schema = CastChecked<const UEdGraphSchema_K2>(GetSchema());
-	return K2Schema->PC_Class;
+	return UEdGraphSchema_K2::PC_Class;
 }
 
 const FString& UK2Node_LoadAssetClass::GetInputPinName() const

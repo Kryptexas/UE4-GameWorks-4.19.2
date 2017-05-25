@@ -101,14 +101,7 @@ static FString GetVarType(UStruct* VarScope, FName VarName, bool bUseObjToolTip,
 				FEdGraphPinType PinType;
 				if (K2Schema->ConvertPropertyToPinType(Property, PinType)) // use schema to get the color
 				{
-					if (bDetailed && PinType.PinSubCategoryObject.IsValid())
-					{
-						VarDesc = FString::Printf(TEXT("%s '%s'"), *PinType.PinCategory, *PinType.PinSubCategoryObject->GetName());
-					}
-					else
-					{
-						VarDesc = UEdGraphSchema_K2::TypeToText(PinType).ToString();
-					}
+					VarDesc = UEdGraphSchema_K2::TypeToText(PinType).ToString();
 				}
 			}
 		}

@@ -119,6 +119,12 @@ public:
 	/** UPROPERTY will be exposed on "Spawn Blueprint" nodes as an input  */
 	static const FName MD_ExposeOnSpawn;
 
+	/** UPROPERTY uses the specified function as a getter rather than reading from the property directly */
+	static const FName MD_PropertyGetFunction;
+
+	/** UPROPERTY uses the specified function as a setter rather than writing to the property directly */
+	static const FName MD_PropertySetFunction;
+
 	/** UPROPERTY cannot be modified by other blueprints */
 	static const FName MD_Private;
 
@@ -554,7 +560,7 @@ public:
 	 * @param	TestEdGraph		Graph to test
 	 * @return	true if this is a construction script
 	 */
-	bool IsConstructionScript(const UEdGraph* TestEdGraph) const;
+	static bool IsConstructionScript(const UEdGraph* TestEdGraph);
 
 	/**
 	 * Checks to see if the specified graph is a composite graph

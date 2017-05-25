@@ -3918,7 +3918,7 @@ float FSlateApplication::GetCursorRadius() const
 	return CursorRadius;
 }
 
-FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation ) const
+FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const FVector2D& InProposedPlacement, const EOrientation Orientation) const
 {
 	FVector2D CalculatedPopUpWindowPosition( 0, 0 );
 
@@ -3935,7 +3935,7 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 		PopUpOrientation =  EPopUpOrientation::Vertical;
 	}
 
-	if ( PlatformApplication->TryCalculatePopupWindowPosition( AnchorRect, InSize, PopUpOrientation, /*OUT*/&CalculatedPopUpWindowPosition ) )
+	if ( PlatformApplication->TryCalculatePopupWindowPosition( AnchorRect, InSize, InProposedPlacement, PopUpOrientation, /*OUT*/&CalculatedPopUpWindowPosition ) )
 	{
 		return CalculatedPopUpWindowPosition;
 	}
@@ -3955,10 +3955,15 @@ FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InA
 			PlatformWorkArea.Left+(PlatformWorkArea.Right - PlatformWorkArea.Left), 
 			PlatformWorkArea.Top+(PlatformWorkArea.Bottom - PlatformWorkArea.Top) );
 
-		// Assume natural left-to-right, top-to-bottom flow; position popup below and to the right.
-		const FVector2D ProposedPlacement(
-			Orientation == Orient_Horizontal ? AnchorRect.Right : AnchorRect.Left,
-			Orientation == Orient_Horizontal ? AnchorRect.Top : AnchorRect.Bottom);
+		FVector2D ProposedPlacement = InProposedPlacement;
+
+		if (ProposedPlacement.IsZero())
+		{
+			// Assume natural left-to-right, top-to-bottom flow; position popup below and to the right.
+			ProposedPlacement = FVector2D(
+				Orientation == Orient_Horizontal ? AnchorRect.Right : AnchorRect.Left,
+				Orientation == Orient_Horizontal ? AnchorRect.Top : AnchorRect.Bottom);
+		}
 
 		return ComputePopupFitInRect(InAnchor, FSlateRect(ProposedPlacement, ProposedPlacement+InSize), Orientation, WorkAreaRect);
 	}

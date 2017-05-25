@@ -126,15 +126,16 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		if(CanVariableBeDropped(VariableProperty, *PinUnderCursor->GetOwningNode()->GetGraph()))
 		{
 			const UEdGraphSchema_K2* Schema = CastChecked<const UEdGraphSchema_K2>(PinUnderCursor->GetSchema());
+			const bool bIsExecPin = Schema->IsExecPin(*PinUnderCursor);
 
-			const bool bIsRead = PinUnderCursor->Direction == EGPD_Input;
+			const bool bIsRead = (PinUnderCursor->Direction == EGPD_Input) && !bIsExecPin;
 			const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(PinUnderCursor->GetOwningNode());
 			const bool bReadOnlyProperty = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, VariableProperty);
 			const bool bCanWriteIfNeeded = bIsRead || !bReadOnlyProperty;
 
 			FEdGraphPinType VariablePinType;
 			Schema->ConvertPropertyToPinType(VariableProperty, VariablePinType);
-			const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, PinUnderCursor->PinType);
+			const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, PinUnderCursor->PinType) || bIsExecPin;
 
 			Args.Add(TEXT("PinUnderCursor"), FText::FromString(PinUnderCursor->PinName));
 
@@ -329,18 +330,20 @@ FReply FKismetVariableDragDropAction::DroppedOnPin(FVector2D ScreenPosition, FVe
 	{
 		if (const UEdGraphSchema_K2* Schema = CastChecked<const UEdGraphSchema_K2>(TargetPin->GetSchema()))
 		{
+			const bool bIsExecPin = Schema->IsExecPin(*TargetPin);
+
 			UProperty* VariableProperty = GetVariableProperty();
 
 			if(CanVariableBeDropped(VariableProperty, *TargetPin->GetOwningNode()->GetGraph()))
 			{
-				const bool bIsRead = TargetPin->Direction == EGPD_Input;
+				const bool bIsRead = (TargetPin->Direction == EGPD_Input) && !bIsExecPin;
 				const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(TargetPin->GetOwningNode());
 				const bool bReadOnlyProperty = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, VariableProperty);
 				const bool bCanWriteIfNeeded = bIsRead || !bReadOnlyProperty;
 
 				FEdGraphPinType VariablePinType;
 				Schema->ConvertPropertyToPinType(VariableProperty, VariablePinType);
-				const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, TargetPin->PinType);
+				const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, TargetPin->PinType) || bIsExecPin;
 
 				if (bTypeMatch && bCanWriteIfNeeded)
 				{

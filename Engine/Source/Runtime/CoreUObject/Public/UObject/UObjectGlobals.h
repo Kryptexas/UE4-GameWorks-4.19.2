@@ -1689,15 +1689,17 @@ public:
 	 */
 	virtual void AllowEliminatingReferences(bool bAllow) {}
 	/**
-	* Sets the property that is currently being serialized
-	*/
+	 * Sets the property that is currently being serialized
+	 */
 	virtual void SetSerializedProperty(class UProperty* Inproperty) {}
 	/**
-	* Gets the property that is currently being serialized
-	*/
+	 * Gets the property that is currently being serialized
+	 */
 	virtual class UProperty* GetSerializedProperty() const { return nullptr; }
-
-	virtual void SetShouldHandleAsWeakRef(bool bWeakRef) {}
+	/** 
+	 * Marks a specific object reference as a weak reference. This does not affect GC but will be freed at a later point 
+	 */
+	virtual void MarkWeakObjectReferenceForClearing(UObject** WeakReference) {}
 protected:
 	/**
 	 * Handle object reference. Called by AddReferencedObject.

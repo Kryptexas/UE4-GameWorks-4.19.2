@@ -360,8 +360,11 @@ void FKismet2CompilerModule::RefreshVariables(UBlueprint* Blueprint)
 				K2Schema,
 				MessageLog);
 
-			NewProperty->PropertyLinkNext = Blueprint->GeneratedClass->PropertyLink;
-			Blueprint->GeneratedClass->PropertyLink = NewProperty;
+			if(NewProperty)
+			{
+				NewProperty->PropertyLinkNext = Blueprint->GeneratedClass->PropertyLink;
+				Blueprint->GeneratedClass->PropertyLink = NewProperty;
+			}
 		}
 		
 		Blueprint->GeneratedClass->Bind();

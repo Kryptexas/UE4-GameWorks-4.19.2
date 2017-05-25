@@ -211,10 +211,10 @@ bool NormalizePackageNames( TArray<FString> PackageNames, TArray<FString>& Packa
 	if ( (PackageFilter&NORMALIZE_ResetExistingLoaders) != 0 )
 	{
 		// reset the loaders for the packages we want to load so that we don't find the wrong version of the file
-		for ( int32 PackageIndex = 0; PackageIndex < PackageNames.Num(); PackageIndex++ )
+		for ( int32 PackageIndex = 0; PackageIndex < PackagePathNames.Num(); PackageIndex++ )
 		{
 			// (otherwise, attempting to run a commandlet on e.g. Engine.xxx will always return results for Engine.u instead)
-			const FString& PackageName = FPackageName::PackageFromPath(*PackageNames[PackageIndex]);
+			const FString& PackageName = PackagePathNames[PackageIndex];
 			UPackage* ExistingPackage = FindObject<UPackage>(NULL, *PackageName, true);
 			if ( ExistingPackage != NULL )
 			{
@@ -723,24 +723,27 @@ int32 ULoadPackageCommandlet::Main( const FString& Params )
 
 		UE_LOG(LogPackageUtilities, Warning, TEXT("Loading %s"), *Filename );
 
-		const FString& PackageName = FPackageName::PackageFromPath(*Filename);
-		UPackage* Package = FindObject<UPackage>(NULL, *PackageName, true);
-		if ( Package != NULL && !bLoadAllPackages )
+		FString PackageName;
+		if (FPackageName::TryConvertFilenameToLongPackageName(Filename, PackageName))
 		{
-			ResetLoaders(Package);
+			UPackage* Package = FindObject<UPackage>(nullptr, *PackageName, true);
+			if (Package != NULL && !bLoadAllPackages)
+			{
+				ResetLoaders(Package);
+			}
 		}
 
 		if (bCheckForLegacyPackages)
 		{
 			BeginLoad();
-			auto Linker = GetPackageLinker(NULL,*Filename,LOAD_NoVerify,NULL,NULL);
+			auto Linker = GetPackageLinker(nullptr, *Filename,LOAD_NoVerify,NULL,NULL);
 			EndLoad();
 			MinVersion = FMath::Min<int32>(MinVersion, Linker->Summary.GetFileVersionUE4());
 		}
 		else
 		{
-			Package = LoadPackage( NULL, *Filename, LOAD_None );
-			if( Package == NULL )
+			UPackage* Package = LoadPackage(nullptr, *Filename, LOAD_None );
+			if(Package == nullptr)
 			{
 				UE_LOG(LogPackageUtilities, Error, TEXT("Error loading %s!"), *Filename );
 			}
@@ -1496,11 +1499,14 @@ int32 UPkgInfoCommandlet::Main( const FString& Params )
 		{
 			// reset the loaders for the packages we want to load so that we don't find the wrong version of the file
 			// (otherwise, attempting to run pkginfo on e.g. Engine.xxx will always return results for Engine.u instead)
-			const FString& PackageName = FPackageName::PackageFromPath(*Filename);
-			UPackage* ExistingPackage = FindObject<UPackage>(NULL, *PackageName, true);
-			if ( ExistingPackage != NULL )
+			FString PackageName;
+			if (FPackageName::TryConvertFilenameToLongPackageName(Filename, PackageName))
 			{
-				ResetLoaders(ExistingPackage);
+				UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageName, true);
+				if (ExistingPackage != nullptr)
+				{
+					ResetLoaders(ExistingPackage);
+				}
 			}
 		}
 

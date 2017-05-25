@@ -852,6 +852,9 @@ public:
 	void OnDeleteNodes();
 	bool CanDeleteNodes() const;
 
+	/** Callbacks to find references of the selected component */
+	void OnFindReferences();
+
 	/** Removes an existing component node from the tree */
 	void RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr);
 

@@ -30,6 +30,8 @@ enum class EInternalCompilerFlags
 	None = 0x0,
 
 	PostponeLocalsGenerationUntilPhaseTwo = 0x1,
+	PostponeDefaultObjectAssignmentUntilReinstancing = 0x2,
+	SkipRefreshExternalBlueprintDependencyNodes = 0x4,
 };
 ENUM_CLASS_FLAGS(EInternalCompilerFlags)
 
@@ -151,7 +153,7 @@ public:
 			ParentGraph = SourceNode->GetGraph();
 		}
 
-		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
+		NodeType* Result = ParentGraph->CreateIntermediateNode<NodeType>();
 		//check (Cast<UK2Node_Event>(Result) == nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
@@ -170,7 +172,7 @@ public:
 			ParentGraph = SourceNode->GetGraph();
 		}
 
-		NodeType* Result = ParentGraph->CreateBlankNode<NodeType>();
+		NodeType* Result = ParentGraph->CreateIntermediateNode<NodeType>();
 		//check (Cast<UK2Node_Event>(Result) != nullptr); -- Removed to avoid any fallout, will replace with care later
 		MessageLog.NotifyIntermediateObjectCreation(Result, SourceNode); // this might be useful to track back function entry nodes to events.
 		Result->CreateNewGuid();
@@ -225,7 +227,7 @@ public:
 
 	FString GetGuid(const UEdGraphNode* Node) const;
 
-	static TUniquePtr<FKismetCompilerContext> GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
+	static TSharedPtr<FKismetCompilerContext> GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
 	
 	/** Ensures that all variables have valid names for compilation/replication */
 	void ValidateVariableNames();
@@ -343,6 +345,9 @@ protected:
 
 	/** Copies default values cached for the terms in the DefaultPropertyValueMap to the final CDO */
 	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject);
+
+	/** Non virtual wrapper to encapsulate functions that occur when the CDO is ready for values: */
+	void PropagateValuesToCDO(UObject* NewCDO, UObject* OldCDO);
 
 	/** 
 	 * Function works only if subclass of AActor or UActorComponent.

@@ -66,13 +66,20 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
 
 	bool bExposeProxy = false;
-	for (const UStruct* TestStruct = ProxyClass; TestStruct && !bExposeProxy; TestStruct = TestStruct->GetSuperStruct())
+	bool bHideThen = false;
+	for (const UStruct* TestStruct = ProxyClass; TestStruct; TestStruct = TestStruct->GetSuperStruct())
 	{
-		bExposeProxy = TestStruct->HasMetaData(TEXT("ExposedAsyncProxy"));
+		bExposeProxy |= TestStruct->HasMetaData(TEXT("ExposedAsyncProxy"));
+		bHideThen |= TestStruct->HasMetaData(TEXT("HideThen"));
 	}
+
+	if (!bHideThen)
+	{
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
+	}
+
 	if (bExposeProxy)
 	{
 		CreatePin(EGPD_Output, K2Schema->PC_Object, FString(), ProxyClass, FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
@@ -382,7 +389,13 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 	}
 
 	// Move the connections from the original node then pin to the last internal then pin
-	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(Schema->PN_Then), *LastThenPin).CanSafeConnect();
+
+	UEdGraphPin* OriginalThenPin = FindPin(Schema->PN_Then);
+
+	if (OriginalThenPin)
+	{
+		bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*OriginalThenPin, *LastThenPin).CanSafeConnect();
+	}
 	bIsErrorFree &= CompilerContext.CopyPinLinksToIntermediate(*LastThenPin, *ValidateProxyNode->GetElsePin()).CanSafeConnect();
 
 	if (!bIsErrorFree)
@@ -454,7 +467,13 @@ UFunction* UK2Node_BaseAsyncTask::GetFactoryFunction() const
 	}
 	
 	UFunction* FactoryFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
-	check(FactoryFunction);
+	
+	if (FactoryFunction == nullptr)
+	{
+		UE_LOG(LogBlueprint, Error, TEXT("FactoryFunction %s null in %s. Was a class deleted or saved on a non promoted build?"), *ProxyFactoryFunctionName.ToString(), *GetFullName());
+		return nullptr;
+	}
+
 	return FactoryFunction;
 }
 

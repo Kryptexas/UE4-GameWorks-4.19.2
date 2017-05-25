@@ -957,9 +957,8 @@ struct FStringClassReference : public FStringAssetReference
 USTRUCT(noexport, BlueprintType)
 struct FPrimaryAssetType
 {
-private:
 	/** The Type of this object, by default it's base class's name */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PrimaryAssetType)
 	FName Name;
 };
 

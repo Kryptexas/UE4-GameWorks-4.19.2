@@ -276,7 +276,7 @@ void UK2Node_CommutativeAssociativeBinaryOperator::ExpandNode(FKismetCompilerCon
 				continue;
 			}
 
-			UK2Node_CommutativeAssociativeBinaryOperator* NewOperator = SourceGraph->CreateBlankNode<UK2Node_CommutativeAssociativeBinaryOperator>();
+			UK2Node_CommutativeAssociativeBinaryOperator* NewOperator = SourceGraph->CreateIntermediateNode<UK2Node_CommutativeAssociativeBinaryOperator>();
 			NewOperator->SetFromFunction(Function);
 			NewOperator->AllocateDefaultPins();
 			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(NewOperator, this);

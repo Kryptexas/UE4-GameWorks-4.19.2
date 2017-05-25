@@ -158,6 +158,10 @@ bool FStringAssetReference::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags
 	{
 		if (*Buffer == TCHAR('\''))
 		{
+			// A ' token likely means we're looking at an asset string in the form "Texture2d'/Game/UI/HUD/Actions/Barrel'" and we need to read and append the path part
+			// We have to skip over the first ' as UPropertyHelpers::ReadToken doesn't read single-quoted strings correctly, but does read a path correctly
+			Buffer++; // Skip the leading '
+			ImportedPath.Reset();
 			NewBuffer = UPropertyHelpers::ReadToken(Buffer, ImportedPath, 1);
 			if (!NewBuffer)
 			{

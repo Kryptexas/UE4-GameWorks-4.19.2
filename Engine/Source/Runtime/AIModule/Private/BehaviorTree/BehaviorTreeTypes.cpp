@@ -277,6 +277,15 @@ void FBehaviorTreeSearchData::AssignSearchId()
 	NextSearchId++;
 }
 
+void FBehaviorTreeSearchData::Reset()
+{
+	PendingUpdates.Reset();
+	SearchStart = FBTNodeIndex();
+	SearchEnd = FBTNodeIndex();
+	bSearchInProgress = false;
+	bPostponeSearch = false;
+}
+
 //----------------------------------------------------------------------//
 // FBlackboardKeySelector
 //----------------------------------------------------------------------//

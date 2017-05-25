@@ -50,37 +50,46 @@ bool UObjectProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uin
 
 void UObjectProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
-	UObject* ObjectValue = GetObjectPropertyValue(Value);
-	Ar << ObjectValue;
-
-	UObject* CurrentValue = GetObjectPropertyValue(Value);
-	if (ObjectValue != CurrentValue)
+	if (Ar.IsObjectReferenceCollector())
 	{
-		SetObjectPropertyValue(Value, ObjectValue);
+		// Serialize in place
+		UObject** ObjectPtr = GetPropertyValuePtr(Value);
+		Ar << (*ObjectPtr);
+	}
+	else
+	{
+		UObject* ObjectValue = GetObjectPropertyValue(Value);
+		Ar << ObjectValue;
 
-#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-		if (ULinkerPlaceholderExportObject* PlaceholderVal = Cast<ULinkerPlaceholderExportObject>(ObjectValue))
+		UObject* CurrentValue = GetObjectPropertyValue(Value);
+		if (ObjectValue != CurrentValue)
 		{
-			PlaceholderVal->AddReferencingPropertyValue(this, Value);
-		}
-		else if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(ObjectValue))
-		{
-			PlaceholderClass->AddReferencingPropertyValue(this, Value);
-		}
-		// NOTE: we don't remove this from CurrentValue if it is a 
-		//       ULinkerPlaceholderExportObject; this is because this property 
-		//       could be an array inner, and another member of that array (also 
-		//       referenced through this property)... if this becomes a problem,
-		//       then we could inc/decrement a ref count per referencing property 
-		//
-		// @TODO: if this becomes problematic (because ObjectValue doesn't match 
-		//        this property's PropertyClass), then we could spawn another
-		//        placeholder object (of PropertyClass's type), or use null; but
-		//        we'd have to modify ULinkerPlaceholderExportObject::ReplaceReferencingObjectValues()
-		//        to accommodate this (as it depends on finding itself as the set value)
-#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			SetObjectPropertyValue(Value, ObjectValue);
 
-		CheckValidObject(Value);
+	#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			if (ULinkerPlaceholderExportObject* PlaceholderVal = Cast<ULinkerPlaceholderExportObject>(ObjectValue))
+			{
+				PlaceholderVal->AddReferencingPropertyValue(this, Value);
+			}
+			else if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(ObjectValue))
+			{
+				PlaceholderClass->AddReferencingPropertyValue(this, Value);
+			}
+			// NOTE: we don't remove this from CurrentValue if it is a 
+			//       ULinkerPlaceholderExportObject; this is because this property 
+			//       could be an array inner, and another member of that array (also 
+			//       referenced through this property)... if this becomes a problem,
+			//       then we could inc/decrement a ref count per referencing property 
+			//
+			// @TODO: if this becomes problematic (because ObjectValue doesn't match 
+			//        this property's PropertyClass), then we could spawn another
+			//        placeholder object (of PropertyClass's type), or use null; but
+			//        we'd have to modify ULinkerPlaceholderExportObject::ReplaceReferencingObjectValues()
+			//        to accommodate this (as it depends on finding itself as the set value)
+	#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+			CheckValidObject(Value);
+		}
 	}
 }
 

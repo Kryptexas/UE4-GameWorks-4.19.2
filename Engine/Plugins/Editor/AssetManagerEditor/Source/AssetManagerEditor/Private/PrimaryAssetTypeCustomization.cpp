@@ -47,5 +47,37 @@ void FPrimaryAssetTypeCustomization::CustomizeHeader(TSharedRef<class IPropertyH
 	];
 }
 
+void SPrimaryAssetTypeGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj)
+{
+	SGraphPin::Construct(SGraphPin::FArguments(), InGraphPinObj);
+}
+
+TSharedRef<SWidget>	SPrimaryAssetTypeGraphPin::GetDefaultValueWidget()
+{
+	FString DefaultString = GraphPinObj->GetDefaultAsString();
+	CurrentType = FPrimaryAssetType(*DefaultString);
+
+	return SNew(SVerticalBox)
+		.Visibility(this, &SGraphPin::GetDefaultValueVisibility)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			IAssetManagerEditorModule::MakePrimaryAssetTypeSelector(
+				FOnGetPrimaryAssetDisplayText::CreateSP(this, &SPrimaryAssetTypeGraphPin::GetDisplayText),
+				FOnSetPrimaryAssetType::CreateSP(this, &SPrimaryAssetTypeGraphPin::OnTypeSelected),
+				true)
+		];
+}
+
+void SPrimaryAssetTypeGraphPin::OnTypeSelected(FPrimaryAssetType AssetType)
+{
+	CurrentType = AssetType;
+	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, CurrentType.ToString());
+}
+
+FText SPrimaryAssetTypeGraphPin::GetDisplayText() const
+{
+	return FText::AsCultureInvariant(CurrentType.ToString());
+}
 
 #undef LOCTEXT_NAMESPACE

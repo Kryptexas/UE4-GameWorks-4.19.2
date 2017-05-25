@@ -122,14 +122,6 @@ protected:
 
 	bool DeterminePackageDependencies( FPackageDependencyTrackingInfo* PkgInfo, TSet<FPackageDependencyTrackingInfo*>& AllTouchedPackages );
 
-
-	/**
-	 * Determine newest script source file in the path given (engine, game, uplugin)
-	 *
-	 * @param Path		root path of the plugin / engine
-	 */
-	void DetermineScriptSourceTimeStamp(FString Path);
-
 	/** Prep the content package list - ie gather the list of all content files and their actual timestamps */
 	void PrepContentPackageTimeStamps();
 

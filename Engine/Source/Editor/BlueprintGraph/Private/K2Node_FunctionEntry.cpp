@@ -201,6 +201,14 @@ void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
 
 	if (Ar.IsLoading())
 	{
+		if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::LocalVariablesBlueprintVisible)
+		{
+			for (FBPVariableDescription& LocalVariable : LocalVariables)
+			{
+				LocalVariable.PropertyFlags |= CPF_BlueprintVisible;
+			}
+		}
+
 		if (Ar.UE4Ver() < VER_UE4_BLUEPRINT_ENFORCE_CONST_IN_FUNCTION_OVERRIDES
 			|| ((Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::EnforceConstInAnimBlueprintFunctionGraphs) && GetBlueprint()->IsA<UAnimBlueprint>()))
 		{
@@ -455,7 +463,7 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 				//UDS requires default data even when the LocalVariable value is empty
 				const bool bUDSProperty = PotentialUDSProperty && Cast<const UUserDefinedStruct>(PotentialUDSProperty->Struct);
 
-				for (auto& LocalVar : LocalVariables)
+				for (const FBPVariableDescription& LocalVar : LocalVariables)
 				{
 					if (LocalVar.VarName == Property->GetFName() && (bUDSProperty || !LocalVar.DefaultValue.IsEmpty()))
 					{
@@ -542,7 +550,8 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 static void RefreshUDSValuesStoredAsString(const FEdGraphPinType& VarType, FString& Value)
 {
-	if (!Value.IsEmpty() && VarType.PinCategory == UEdGraphSchema_K2::PC_Struct)
+	// For container structs just keep the value from before, container structs do not delta serialize
+	if (!Value.IsEmpty() && VarType.PinCategory == UEdGraphSchema_K2::PC_Struct && !VarType.IsContainer())
 	{
 		UUserDefinedStruct* UDS = Cast<UUserDefinedStruct>(VarType.PinSubCategoryObject.Get());
 		if (UDS)

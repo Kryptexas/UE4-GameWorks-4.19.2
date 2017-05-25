@@ -322,7 +322,7 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 	/////////////////////////////
 
 	// Create the node
-	UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
+	UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateIntermediateNode<UK2Node_TemporaryVariable>();
 	TempVarNode->VariableType.PinCategory = Schema->PC_Boolean;
 	TempVarNode->AllocateDefaultPins();
 	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
@@ -340,7 +340,7 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 		check(ThenPin);
 
 		// AssignmentNode
-		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
+		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateIntermediateNode<UK2Node_AssignmentStatement>();
 		AssignmentNode->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
 		AssignmentNode->GetVariablePin()->PinType = TempVarNode->GetVariablePin()->PinType;
@@ -350,7 +350,7 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 		if (!ExecPin->PinName.Contains(TEXT("Reset"))) // Fixme this wont work for localization
 		{
 			// BranchNode
-			UK2Node_IfThenElse* BranchNode = SourceGraph->CreateBlankNode<UK2Node_IfThenElse>();
+			UK2Node_IfThenElse* BranchNode = SourceGraph->CreateIntermediateNode<UK2Node_IfThenElse>();
 			BranchNode->AllocateDefaultPins();
 			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(BranchNode, this);
 

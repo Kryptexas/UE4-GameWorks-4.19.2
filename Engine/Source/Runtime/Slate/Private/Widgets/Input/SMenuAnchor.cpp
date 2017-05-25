@@ -85,6 +85,7 @@ FGeometry ComputeMenuPlacement(const FGeometry& AllottedGeometry, const FVector2
 	const FVector2D NewPositionDesktopSpace = FSlateApplication::Get().CalculatePopupWindowPosition(
 		TransformRect(AllottedGeometry.GetAccumulatedLayoutTransform(), Placement.AnchorLocalSpace),
 		TransformVector(AllottedGeometry.GetAccumulatedLayoutTransform(), Placement.LocalPopupSize),
+		TransformPoint(AllottedGeometry.GetAccumulatedLayoutTransform(), Placement.LocalPopupOffset),
 		Placement.Orientation);
 
 	// transform the desktop offset into local space and use that as the layout transform for the child content.
@@ -430,7 +431,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 							MenuContentRef->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
 							// @todo slate: Doesn't take into account potential window border size
 							FVector2D ExpectedSize = MenuContentRef->GetDesiredSize();
-							const FVector2D ScreenPosition = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, ExpectedSize, Orientation);
+							const FVector2D ScreenPosition = FSlateApplication::Get().CalculatePopupWindowPosition(Anchor, ExpectedSize, FVector2D::ZeroVector, Orientation);
 
 							// Release the mouse so that context can be properly restored upon closing menus.  See CL 1411833 before changing this.
 							if (bFocusMenu)

@@ -301,7 +301,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 
 	// Create a "Make Array" node to compile the list of arguments into an array for the Format function being called
-	UK2Node_MakeArray* MakeArrayNode = CompilerContext.SpawnIntermediateNode<UK2Node_MakeArray>(this, SourceGraph); //SourceGraph->CreateBlankNode<UK2Node_MakeArray>();
+	UK2Node_MakeArray* MakeArrayNode = CompilerContext.SpawnIntermediateNode<UK2Node_MakeArray>(this, SourceGraph);
 	MakeArrayNode->AllocateDefaultPins();
 	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(MakeArrayNode, this);
 

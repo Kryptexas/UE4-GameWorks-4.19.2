@@ -184,6 +184,15 @@ protected:
 	/** if set, NotifyNodeDeactivation will be called */
 	uint8 bUseNodeDeactivationNotify : 1;
 
+	/** if set, CanNotifyDecoratorsOnActivation will be called */
+	uint8 bUseDecoratorsActivationCheck : 1;
+
+	/** if set, CanNotifyDecoratorsOnDeactivation will be called */
+	uint8 bUseDecoratorsDeactivationCheck : 1;
+
+	/** if set, CanNotifyDecoratorsOnFailedActivation will be called */
+	uint8 bUseDecoratorsFailedActivationCheck : 1;
+
 	/** called just after child execution, allows to modify result */
 	virtual void NotifyChildExecution(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const;
 
@@ -192,6 +201,15 @@ protected:
 
 	/** called when start leaves this node */
 	virtual void NotifyNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const;
+
+	/** check if NotifyDecoratorsOnActivation is allowed, requires bUseDecoratorsActivationCheck flag  */
+	virtual bool CanNotifyDecoratorsOnActivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx) const;
+
+	/** check if NotifyDecoratorsOnDeactivation is allowed, requires bUseDecoratorsDeactivationCheck flag  */
+	virtual bool CanNotifyDecoratorsOnDeactivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const;
+
+	/** check if NotifyDecoratorsOnFailedActivation is allowed, requires bUseDecoratorsActivationCheck flag  */
+	virtual bool CanNotifyDecoratorsOnFailedActivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const;
 
 	/** runs through decorators on given child node and notify them about activation */
 	void NotifyDecoratorsOnActivation(FBehaviorTreeSearchData& SearchData, int32 ChildIdx) const;

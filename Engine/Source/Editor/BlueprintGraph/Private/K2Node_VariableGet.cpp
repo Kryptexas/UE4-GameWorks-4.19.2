@@ -411,19 +411,22 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
+	UProperty* VariableProperty = GetPropertyForVariable();
+
+	UK2Node_VariableGet* VariableGetNode = this;
+
 	// Do not attempt to expand the node when not a pure get nor when there is no property. Normal compilation error detection will detect the missing property.
-	if (!bIsPureGet && GetPropertyForVariable() != nullptr)
+	if (!bIsPureGet && VariableProperty)
 	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 		UEdGraphPin* ValuePin = GetValuePin();
 
 		// Impure Get nodes convert into three nodes:
 		// 1. A pure Get node
 		// 2. An IsValid node
-		// 3. A Branch node (only impure part
+		// 3. A Branch node (only impure part)
 		
-		// Create the impure Get node
-		UK2Node_VariableGet* VariableGetNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(this, SourceGraph);
+		// Create the pure Get node
+		VariableGetNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(this, SourceGraph);
 		VariableGetNode->VariableReference = VariableReference;
 		VariableGetNode->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(VariableGetNode, this);
@@ -432,7 +435,7 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 		CompilerContext.MovePinLinksToIntermediate(*ValuePin, *VariableGetNode->GetValuePin());
 		if (!VariableReference.IsLocalScope())
 		{
-			CompilerContext.MovePinLinksToIntermediate(*FindPin(Schema->PN_Self), *VariableGetNode->FindPin(Schema->PN_Self));
+			CompilerContext.MovePinLinksToIntermediate(*FindPin(UEdGraphSchema_K2::PN_Self), *VariableGetNode->FindPin(UEdGraphSchema_K2::PN_Self));
 		}
 
 		// Create the IsValid node
@@ -469,10 +472,34 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 		CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *BranchNode->GetExecPin());
 
 		// Move the two Branch pins to the Branch node
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(Schema->PN_Then), *BranchNode->FindPin(Schema->PN_Then));
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(Schema->PN_Else), *BranchNode->FindPin(Schema->PN_Else));
+		CompilerContext.MovePinLinksToIntermediate(*FindPin(UEdGraphSchema_K2::PN_Then), *BranchNode->FindPin(UEdGraphSchema_K2::PN_Then));
+		CompilerContext.MovePinLinksToIntermediate(*FindPin(UEdGraphSchema_K2::PN_Else), *BranchNode->FindPin(UEdGraphSchema_K2::PN_Else));
 
 		BreakAllNodeLinks();
+	}
+
+	// If property has a BlueprintGetter accessor, then replace the variable get node with a call function
+	if (VariableProperty)
+	{
+		const FString& GetFunctionName = VariableProperty->GetMetaData(FBlueprintMetadata::MD_PropertyGetFunction);
+		if (!GetFunctionName.IsEmpty())
+		{
+			UClass* OwnerClass = VariableProperty->GetOwnerClass();
+			UFunction* GetFunction = OwnerClass->FindFunctionByName(*GetFunctionName);
+			check(GetFunction);
+
+			UK2Node_CallFunction* CallFuncNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+			CallFuncNode->SetFromFunction(GetFunction);
+			CallFuncNode->AllocateDefaultPins();
+
+			const UEdGraphSchema_K2* K2Schema = CompilerContext.GetSchema();
+
+			// Move Self pin connections
+			CompilerContext.MovePinLinksToIntermediate(*K2Schema->FindSelfPin(*this, EGPD_Input), *K2Schema->FindSelfPin(*CallFuncNode, EGPD_Input));
+
+			// Move Value pin connections
+			CompilerContext.MovePinLinksToIntermediate(*GetValuePin(), *CallFuncNode->GetReturnValuePin());
+		}
 	}
 }
 

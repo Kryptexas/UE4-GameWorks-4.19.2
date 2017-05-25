@@ -955,7 +955,7 @@ private:
 	void AddNavigationBoundsUpdateRequest(const FNavigationBoundsUpdateRequest& UpdateRequest);
 
 	/** Triggers navigation building on all eligible navigation data. */
-	void RebuildAll();
+	void RebuildAll(bool bIsLoadTime = false);
 		 
 	/** Handler for FWorldDelegates::LevelAddedToWorld event */
 	 void OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);

@@ -26,6 +26,8 @@
 #include "UnrealEdGlobals.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "EdGraphSchema_K2.h"
+#include "GraphEditorActions.h"
+#include "ToolkitManager.h"
 #include "K2Node_Variable.h"
 #include "K2Node_ComponentBoundEvent.h"
 #include "K2Node_VariableGet.h"
@@ -3446,6 +3448,10 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 			FCanExecuteAction::CreateSP( this, &SSCSEditor::CanRenameComponent ) ) 
 		);
 
+	CommandList->MapAction( FGraphEditorCommands::Get().FindReferences,
+		FUIAction( FExecuteAction::CreateSP( this, &SSCSEditor::OnFindReferences ) )
+	);
+
 	FSlateBrush const* MobilityHeaderBrush = FEditorStyle::GetBrush(TEXT("ClassIcon.ComponentMobilityHeaderIcon"));
 	
 	TSharedPtr<SHeaderRow> HeaderRow = SNew(SHeaderRow)
@@ -3526,6 +3532,12 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		FUIAction(FExecuteAction::CreateSP(this, &SSCSEditor::PromoteToBlueprint))
 	);
 
+	TSharedPtr<SHorizontalBox> ButtonBox;
+	TSharedPtr<SVerticalBox>   HeaderBox;
+	TSharedPtr<SWidget> SearchBar = SAssignNew(FilterBox, SSearchBox)
+		.OnTextChanged(this, &SSCSEditor::OnFilterTextChanged);
+	const bool  bInlineSearchBarWithButtons = (EditorMode == EComponentEditorMode::BlueprintSCS);
+
 	bool bHideComponentClassCombo = InArgs._HideComponentClassCombo.Get();
 
 	Contents = SNew(SVerticalBox)
@@ -3544,112 +3556,115 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ComponentsPanel")))
 			.BorderBackgroundColor( FLinearColor( .6,.6,.6, 1.0f ) )
 			[
-				SNew(SHorizontalBox)
+				SAssignNew(HeaderBox, SVerticalBox)
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.VAlign(VAlign_Top)
+					[
+						SAssignNew(ButtonBox, SHorizontalBox)
 				
-				+ SHorizontalBox::Slot()
-				.Padding( 3.0f, 3.0f )
-				.AutoWidth()
-				.HAlign(HAlign_Left)
-				[
-					SNew(SComponentClassCombo)
-					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.AddComponent")))
-					.Visibility(bHideComponentClassCombo ? EVisibility::Hidden : EVisibility::Visible)
-					.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
-					.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Adds a new component to this actor"))
-					.IsEnabled(AllowEditing)
-				]
+						+ SHorizontalBox::Slot()
+						.Padding( 3.0f, 3.0f )
+						.AutoWidth()
+						.HAlign(HAlign_Left)
+						[
+							SNew(SComponentClassCombo)
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.AddComponent")))
+							.Visibility(bHideComponentClassCombo ? EVisibility::Hidden : EVisibility::Visible)
+							.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
+							.ToolTipText(LOCTEXT("AddComponent_Tooltip", "Adds a new component to this actor"))
+							.IsEnabled(AllowEditing)
+						]
 
-				+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.VAlign(VAlign_Center)
-					.Padding(3.0f, 3.0f)
-				[
-					SAssignNew(FilterBox, SSearchBox)
-						.OnTextChanged(this, &SSCSEditor::OnFilterTextChanged)
-				]
+						//
+						// horizontal slot (index) #1 => reserved for BP-editor search bar (see 'ButtonBox' usage below)
 
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.HAlign(HAlign_Right)
-				.Padding( 3.0f, 3.0f )
-				[
-					SNew( SButton )
-					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.ConvertToBlueprint")))
-					.Visibility( this, &SSCSEditor::GetPromoteToBlueprintButtonVisibility )
-					.OnClicked( this, &SSCSEditor::OnPromoteToBlueprintClicked )
-					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Primary")
-					.ContentPadding(FMargin(10,0))
-					.ToolTip(IDocumentation::Get()->CreateToolTip(
-						LOCTEXT("PromoteToBluerprintTooltip","Converts this actor into a reusable Blueprint Class that can have script behavior" ),
-						NULL,
-						TEXT("Shared/LevelEditor"),
-						TEXT("ConvertToBlueprint")))
-					[
-						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						.HAlign(HAlign_Right)
+						.Padding( 3.0f, 3.0f )
+						[
+							SNew( SButton )
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.ConvertToBlueprint")))
+							.Visibility( this, &SSCSEditor::GetPromoteToBlueprintButtonVisibility )
+							.OnClicked( this, &SSCSEditor::OnPromoteToBlueprintClicked )
+							.ButtonStyle(FEditorStyle::Get(), "FlatButton.Primary")
+							.ContentPadding(FMargin(10,0))
+							.ToolTip(IDocumentation::Get()->CreateToolTip(
+								LOCTEXT("PromoteToBluerprintTooltip","Converts this actor into a reusable Blueprint Class that can have script behavior" ),
+								NULL,
+								TEXT("Shared/LevelEditor"),
+								TEXT("ConvertToBlueprint")))
+							[
+								SNew(SHorizontalBox)
 						
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.Padding(3.f)
-						.AutoWidth()
-						[
-							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
-							.Font( FEditorStyle::Get().GetFontStyle( "FontAwesome.10" ) )
-							.Text(FText::FromString(FString(TEXT("\xf085"))) /*fa-cogs*/)
-						]
+								+ SHorizontalBox::Slot()
+								.VAlign(VAlign_Center)
+								.Padding(3.f)
+								.AutoWidth()
+								[
+									SNew(STextBlock)
+									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+									.Font( FEditorStyle::Get().GetFontStyle( "FontAwesome.10" ) )
+									.Text(FText::FromString(FString(TEXT("\xf085"))) /*fa-cogs*/)
+								]
 
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.Padding(3.f)
-						.AutoWidth()
-						[
-							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
-							//.Text( LOCTEXT("PromoteToBlueprint", "Add Script") )
-							.Text(LOCTEXT("PromoteToBlueprint", "Blueprint/Add Script"))
+								+ SHorizontalBox::Slot()
+								.VAlign(VAlign_Center)
+								.Padding(3.f)
+								.AutoWidth()
+								[
+									SNew(STextBlock)
+									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+									//.Text( LOCTEXT("PromoteToBlueprint", "Add Script") )
+									.Text(LOCTEXT("PromoteToBlueprint", "Blueprint/Add Script"))
+								]
+							]
 						]
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.Padding( 3.0f, 3.0f )
-				.HAlign(HAlign_Right)
-				.Padding(3.0f, 3.0f)
-				[
-					SNew(SComboButton)
-					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.EditBlueprint")))
-					.Visibility(this, &SSCSEditor::GetEditBlueprintButtonVisibility)
-					.ContentPadding(FMargin(10, 0))
-					.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
-					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Primary")
-					.ForegroundColor(FLinearColor::White)
-					.ButtonContent()
-					[
-						SNew( SHorizontalBox )
+						+ SHorizontalBox::Slot()
+						.FillWidth(1.0f)
+						.Padding( 3.0f, 3.0f )
+						.HAlign(HAlign_Right)
+						.Padding(3.0f, 3.0f)
+						[
+							SNew(SComboButton)
+							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Actor.EditBlueprint")))
+							.Visibility(this, &SSCSEditor::GetEditBlueprintButtonVisibility)
+							.ContentPadding(FMargin(10, 0))
+							.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+							.ButtonStyle(FEditorStyle::Get(), "FlatButton.Primary")
+							.ForegroundColor(FLinearColor::White)
+							.ButtonContent()
+							[
+								SNew( SHorizontalBox )
 
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						.Padding(3.f)
-						[
-							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
-							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-							.Text(FText::FromString(FString(TEXT("\xf085"))) /*fa-cogs*/)
-						]
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(VAlign_Center)
+								.Padding(3.f)
+								[
+									SNew(STextBlock)
+									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+									.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+									.Text(FText::FromString(FString(TEXT("\xf085"))) /*fa-cogs*/)
+								]
 						
-						+ SHorizontalBox::Slot()
-						[
-							SNew(STextBlock)
-							.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
-							.Text(LOCTEXT("EditBlueprint", "Edit Blueprint"))
+								+ SHorizontalBox::Slot()
+								[
+									SNew(STextBlock)
+									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+									.Text(LOCTEXT("EditBlueprint", "Edit Blueprint"))
+								]
+							]
+							.MenuContent()
+							[
+								EditBlueprintMenuBuilder.MakeWidget()
+							]
 						]
 					]
-					.MenuContent()
-					[
-						EditBlueprintMenuBuilder.MakeWidget()
-					]
-				]
+
+				//
+				// vertical slot (index) #1 => reserved for instance-editor search bar (see 'HeaderBox' usage below)
 			]
 		]
 
@@ -3665,6 +3680,32 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 			]
 		]
 	];
+
+	// insert the search bar, depending on which editor this widget is in (depending on convert/edit button visibility)
+	if (bInlineSearchBarWithButtons)
+	{
+		const int32 SearchBarHorizontalSlotIndex = 1;
+
+		ButtonBox->InsertSlot(SearchBarHorizontalSlotIndex)
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Center)
+			.Padding(3.0f, 3.0f)
+		[
+			SearchBar.ToSharedRef()
+		];
+	}
+	else
+	{
+		const int32 SearchBarVerticalSlotIndex = 1;
+
+		HeaderBox->InsertSlot(SearchBarVerticalSlotIndex)
+			.VAlign(VAlign_Center)
+			.Padding(3.0f, 1.0f)
+		[
+			SearchBar.ToSharedRef()
+		];
+	}
+
 
 	this->ChildSlot
 	[
@@ -3830,6 +3871,11 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 
 					if (EditorMode == EComponentEditorMode::BlueprintSCS)
 					{
+						if (SelectedItems.Num() == 1)
+						{
+							MenuBuilder.AddMenuEntry(FGraphEditorCommands::Get().FindReferences);
+						}
+
 						// Collect the classes of all selected objects
 						TArray<UClass*> SelectionClasses;
 						for( auto NodeIter = SelectedNodes.CreateConstIterator(); NodeIter; ++NodeIter )
@@ -3988,6 +4034,23 @@ void SSCSEditor::ViewEvent(UBlueprint* Blueprint, const FName EventName, const F
 		if (ExistingNode)
 		{
 			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ExistingNode);
+		}
+	}
+}
+
+void SSCSEditor::OnFindReferences()
+{
+	TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
+	if (SelectedNodes.Num() == 1)
+	{
+		TSharedPtr<IToolkit> FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(GetBlueprint());
+		if (FoundAssetEditor.IsValid())
+		{
+			const FString VariableName = SelectedNodes[0]->GetVariableName().ToString();
+			const FString SearchTerm = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+\"%s\"))"), *VariableName);
+
+			TSharedRef<IBlueprintEditor> BlueprintEditor = StaticCastSharedRef<IBlueprintEditor>(FoundAssetEditor.ToSharedRef());
+			BlueprintEditor->SummonSearchUI(true, SearchTerm);
 		}
 	}
 }

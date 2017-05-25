@@ -116,6 +116,9 @@ const FName FBlueprintMetadata::MD_CompactNodeTitle(TEXT("CompactNodeTitle"));
 const FName FBlueprintMetadata::MD_DisplayName(TEXT("DisplayName"));
 const FName FBlueprintMetadata::MD_InternalUseParam(TEXT("InternalUseParam"));
 
+const FName FBlueprintMetadata::MD_PropertyGetFunction(TEXT("BlueprintGetter"));
+const FName FBlueprintMetadata::MD_PropertySetFunction(TEXT("BlueprintSetter"));
+
 const FName FBlueprintMetadata::MD_ExposeOnSpawn(TEXT("ExposeOnSpawn"));
 const FName FBlueprintMetadata::MD_HideSelfPin(TEXT("HideSelfPin"));
 const FName FBlueprintMetadata::MD_DefaultToSelf(TEXT("DefaultToSelf"));
@@ -2690,7 +2693,10 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 			{
 				const bool bConvertAsset = (OutputType.PinCategory == PC_Asset) && (InputType.PinCategory == PC_Object);
 				const bool bConvertAssetClass = (OutputType.PinCategory == PC_AssetClass) && (InputType.PinCategory == PC_Class);
-				if (bConvertAsset || bConvertAssetClass)
+				const bool bConvertToAsset = (OutputType.PinCategory == PC_Object) && (InputType.PinCategory == PC_Asset);
+				const bool bConvertToAssetClass = (OutputType.PinCategory == PC_Class) && (InputType.PinCategory == PC_AssetClass);
+
+				if (bConvertAsset || bConvertAssetClass || bConvertToAsset || bConvertToAssetClass)
 				{
 					bCanConvert = true;
 					if (bCreateNode)
@@ -3594,30 +3600,22 @@ FText UEdGraphSchema_K2::GetCategoryText(const FString& Category, const bool bFo
 		CategoryDescriptions.Add(PC_Exec, LOCTEXT("Exec", "Exec"));
 		CategoryDescriptions.Add(PC_Boolean, LOCTEXT("BoolCategory","Boolean"));
 		CategoryDescriptions.Add(PC_Byte, LOCTEXT("ByteCategory","Byte"));
-		CategoryDescriptions.Add(PC_Class, LOCTEXT("ClassCategory","Class"));
+		CategoryDescriptions.Add(PC_Class, LOCTEXT("ClassCategory","Class Reference"));
 		CategoryDescriptions.Add(PC_Int, LOCTEXT("IntCategory","Integer"));
 		CategoryDescriptions.Add(PC_Float, LOCTEXT("FloatCategory","Float"));
 		CategoryDescriptions.Add(PC_Name, LOCTEXT("NameCategory","Name"));
 		CategoryDescriptions.Add(PC_Delegate, LOCTEXT("DelegateCategory","Delegate"));
 		CategoryDescriptions.Add(PC_MCDelegate, LOCTEXT("MulticastDelegateCategory","Multicast Delegate"));
-		CategoryDescriptions.Add(PC_Object, LOCTEXT("ObjectCategory","Reference"));
+		CategoryDescriptions.Add(PC_Object, LOCTEXT("ObjectCategory","Object Reference"));
 		CategoryDescriptions.Add(PC_Interface, LOCTEXT("InterfaceCategory","Interface"));
 		CategoryDescriptions.Add(PC_String, LOCTEXT("StringCategory","String"));
 		CategoryDescriptions.Add(PC_Text, LOCTEXT("TextCategory","Text"));
 		CategoryDescriptions.Add(PC_Struct, LOCTEXT("StructCategory","Structure"));
 		CategoryDescriptions.Add(PC_Wildcard, LOCTEXT("WildcardCategory","Wildcard"));
 		CategoryDescriptions.Add(PC_Enum, LOCTEXT("EnumCategory","Enum"));
-		CategoryDescriptions.Add(PC_Asset, LOCTEXT("AssetCategory", "Asset ID"));
-		CategoryDescriptions.Add(PC_AssetClass, LOCTEXT("AssetClassCategory", "Class Asset ID"));
+		CategoryDescriptions.Add(PC_Asset, LOCTEXT("SoftObjectReferenceCategory", "Soft Object Reference"));
+		CategoryDescriptions.Add(PC_AssetClass, LOCTEXT("SoftClassReferenceCategory", "Soft Class Reference"));
 		CategoryDescriptions.Add(AllObjectTypes, LOCTEXT("AllObjectTypes", "Object Types"));
-	}
-
-	if (bForMenu)
-	{
-		if (Category == PC_Object)
-		{
-			return LOCTEXT("ObjectCategoryForMenu", "Object Reference");
-		}
 	}
 
 	if (FText const* TypeDesc = CategoryDescriptions.Find(Category))
@@ -3794,25 +3792,25 @@ void UEdGraphSchema_K2::GetVariableTypeTree(TArray< TSharedPtr<FPinTypeTreeInfo>
 	// Add wildcard type
 	if (bAllowWildCard)
 	{
-		TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Wildcard, true), PC_Wildcard, this, LOCTEXT("WildcardType", "Wildcard type (unspecified).")) ) );
+		TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Wildcard, true), PC_Wildcard, this, LOCTEXT("WildcardType", "Wildcard type (unspecified)")) ) );
 	}
 
 	// Add the types that have subtrees
 	if (!bIndexTypesOnly)
 	{
-		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Struct, true), PC_Struct, this, LOCTEXT("StructType", "Struct (value) types."), true, TypesDatabasePtr)));
-		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Interface, true), PC_Interface, this, LOCTEXT("InterfaceType", "Interface pointer."), true, TypesDatabasePtr)));
+		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Struct, true), PC_Struct, this, LOCTEXT("StructType", "Struct (value) types"), true, TypesDatabasePtr)));
+		TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Interface, true), PC_Interface, this, LOCTEXT("InterfaceType", "Interface types"), true, TypesDatabasePtr)));
 
 		if (!bRootTypesOnly)
 		{
-			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(AllObjectTypes, true), AllObjectTypes, this, LOCTEXT("ObjectType", "Object pointer."), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(AllObjectTypes, true), AllObjectTypes, this, LOCTEXT("ObjectType", "Object types"), true, TypesDatabasePtr)));
 		}
 		else
 		{
-			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Object, true), PC_Object, this, LOCTEXT("ObjectType", "Object pointer."), true, TypesDatabasePtr)));
-			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Class, true), PC_Class, this, LOCTEXT("ClassType", "Class pointer."), true, TypesDatabasePtr)));
-			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_AssetClass, true), PC_AssetClass, this, LOCTEXT("AssetClassType", "Class ID."), true, TypesDatabasePtr)));
-			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Asset, true), PC_Asset, this, LOCTEXT("AssetType", "Asset ID."), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Object, true), PC_Object, this, LOCTEXT("ObjectType", "Hard reference to an Object"), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Class, true), PC_Class, this, LOCTEXT("ClassType", "Hard reference to a Class"), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_Asset, true), PC_Asset, this, LOCTEXT("AssetType", "Soft reference to an Object"), true, TypesDatabasePtr)));
+			TypeTree.Add(MakeShareable(new FPinTypeTreeInfo(GetCategoryText(PC_AssetClass, true), PC_AssetClass, this, LOCTEXT("AssetClassType", "Soft reference to a Class"), true, TypesDatabasePtr)));
 		}
 	}
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Enum, true), PC_Enum, this, LOCTEXT("EnumType", "Enumeration types."), true, TypesDatabasePtr) ) );
@@ -4112,10 +4110,10 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 
 			if (!FPackageName::IsValidObjectPath(NewDefaultValue, &PathReason))
 			{
-				DVSV_RETURN_MSG(FString::Printf(TEXT("Asset ID '%s' is invalid format for object pin '%s':"), *NewDefaultValue, *(PinName), *PathReason.ToString()));
+				DVSV_RETURN_MSG(FString::Printf(TEXT("Soft Reference '%s' is invalid format for object pin '%s':"), *NewDefaultValue, *(PinName), *PathReason.ToString()));
 			}
 
-			// Class and IsAsset validation is not foolproof for asset ids, skip
+			// Class and IsAsset validation is not foolproof for soft references, skip
 		}
 	}
 	else if (PinCategory == PC_String)
@@ -5160,7 +5158,7 @@ FVector2D UEdGraphSchema_K2::CalculateAveragePositionBetweenNodes(UEdGraphPin* I
 	return (InputCorner + OutputCorner) * 0.5f;
 }
 
-bool UEdGraphSchema_K2::IsConstructionScript(const UEdGraph* TestEdGraph) const
+bool UEdGraphSchema_K2::IsConstructionScript(const UEdGraph* TestEdGraph)
 {
 	TArray<class UK2Node_FunctionEntry*> EntryNodes;
 	TestEdGraph->GetNodesOfClass<UK2Node_FunctionEntry>(EntryNodes);

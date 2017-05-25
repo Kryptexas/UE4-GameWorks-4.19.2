@@ -11,8 +11,8 @@ public class AssetManagerEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
-                "TargetPlatform"
-            }
+				"TargetPlatform"
+			}
 		);
 		
 		PrivateDependencyModuleNames.AddRange(
@@ -29,9 +29,11 @@ public class AssetManagerEditor : ModuleRules
 				"EditorStyle",
 				"AssetTools",
 				"PropertyEditor",
-                "GraphEditor",
-                "ReferenceViewer",
-                "SandboxFile"
+				"GraphEditor",
+				"BlueprintGraph",
+				"KismetCompiler",
+				"ReferenceViewer",
+				"SandboxFile"
 			}
 		);
 	}

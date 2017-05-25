@@ -104,6 +104,7 @@ UAssetManager::UAssetManager()
 	bIsBulkScanning = false;
 	bIsManagementDatabaseCurrent = false;
 	bUpdateManagementDatabaseAfterScan = false;
+	NumberOfSpawnedNotifications = 0;
 }
 
 void UAssetManager::PostInitProperties()
@@ -165,6 +166,16 @@ UAssetManager& UAssetManager::Get()
 		UE_LOG(LogAssetManager, Fatal, TEXT("Cannot use AssetManager if no AssetManagerClassName is defined!"));
 		return *NewObject<UAssetManager>(); // never calls this
 	}
+}
+
+UAssetManager* UAssetManager::GetIfValid()
+{
+	if (GEngine && GEngine->AssetManager)
+	{
+		return GEngine->AssetManager;
+	}
+
+	return nullptr;
 }
 
 IAssetRegistry& UAssetManager::GetAssetRegistry() const
@@ -375,7 +386,7 @@ int32 UAssetManager::ScanPathsForPrimaryAssets(FPrimaryAssetType PrimaryAssetTyp
 			}
 		}
 
-		FPrimaryAssetId PrimaryAssetId = GetPrimaryAssetIdFromData(Data, PrimaryAssetType);
+		FPrimaryAssetId PrimaryAssetId = ExtractPrimaryAssetIdFromData(Data, PrimaryAssetType);
 
 		// Remove invalid or wrong type assets
 		if (!PrimaryAssetId.IsValid() || PrimaryAssetId.PrimaryAssetType != PrimaryAssetType)
@@ -401,6 +412,7 @@ void UAssetManager::StartBulkScanning()
 	if (ensure(!bIsBulkScanning))
 	{
 		bIsBulkScanning = true;
+		NumberOfSpawnedNotifications = 0;
 	}
 }
 
@@ -436,14 +448,18 @@ void UAssetManager::UpdateCachedAssetData(const FPrimaryAssetId& PrimaryAssetId,
 #if WITH_EDITOR
 			if (GIsEditor)
 			{
-				FNotificationInfo Info(FText::Format(LOCTEXT("DuplicateAssetId", "Duplicate Asset ID {0} used by {1} and {2}, you must delete or rename one!"), 
-					FText::FromString(PrimaryAssetId.ToString()), FText::FromString(OldData->AssetPtr.ToStringReference().GetLongPackageName()), FText::FromString(NewStringReference.GetLongPackageName())));
-				Info.ExpireDuration = 30.0f;
-				
-				TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
-				if (Notification.IsValid())
+				const int MaxNotificationsPerFrame = 5;
+				if (NumberOfSpawnedNotifications++ < MaxNotificationsPerFrame)
 				{
-					Notification->SetCompletionState(SNotificationItem::CS_Fail);
+					FNotificationInfo Info(FText::Format(LOCTEXT("DuplicateAssetId", "Duplicate Asset ID {0} used by {1} and {2}, you must delete or rename one!"),
+						FText::FromString(PrimaryAssetId.ToString()), FText::FromString(OldData->AssetPtr.ToStringReference().GetLongPackageName()), FText::FromString(NewStringReference.GetLongPackageName())));
+					Info.ExpireDuration = 30.0f;
+
+					TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+					if (Notification.IsValid())
+					{
+						Notification->SetCompletionState(SNotificationItem::CS_Fail);
+					}
 				}
 			}
 #endif
@@ -769,6 +785,17 @@ bool UAssetManager::GetPrimaryAssetPathList(FPrimaryAssetType PrimaryAssetType, 
 	return AssetPathList.Num() > 0;
 }
 
+FPrimaryAssetId UAssetManager::GetPrimaryAssetIdForObject(UObject* Object) const
+{
+	// Use path instead of calling on Object, we only want it if it's registered
+	return GetPrimaryAssetIdForPath(FName(*Object->GetPathName()));
+}
+
+FPrimaryAssetId UAssetManager::GetPrimaryAssetIdForData(const FAssetData& AssetData) const
+{
+	return GetPrimaryAssetIdForPath(GetAssetPathForData(AssetData));
+}
+
 FPrimaryAssetId UAssetManager::GetPrimaryAssetIdForPath(const FStringAssetReference& ObjectPath) const
 {
 	FName PossibleAssetPath = FName(*ObjectPath.ToString(), FNAME_Find);
@@ -835,7 +862,7 @@ FPrimaryAssetId UAssetManager::GetPrimaryAssetIdForPackage(FName PackagePath) co
 	return FoundId;
 }
 
-FPrimaryAssetId UAssetManager::GetPrimaryAssetIdFromData(const FAssetData& AssetData, FPrimaryAssetType SuggestedType) const
+FPrimaryAssetId UAssetManager::ExtractPrimaryAssetIdFromData(const FAssetData& AssetData, FPrimaryAssetType SuggestedType) const
 {
 	FPrimaryAssetId FoundId = AssetData.GetPrimaryAssetId();
 
@@ -1074,6 +1101,20 @@ TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForPrimaryAssets(c
 	return ReturnHandle;
 }
 
+TSharedPtr<FStreamableHandle> UAssetManager::ChangeBundleStateForMatchingPrimaryAssets(const TArray<FName>& NewBundles, const TArray<FName>& OldBundles, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
+{
+	TArray<FPrimaryAssetId> AssetsToChange;
+
+	if (GetPrimaryAssetsWithBundleState(AssetsToChange, TArray<FPrimaryAssetType>(), OldBundles))
+	{
+		// This will call delegate when done
+		return ChangeBundleStateForPrimaryAssets(AssetsToChange, NewBundles, OldBundles, false, DelegateToCall, Priority);
+	}
+
+	// Nothing to transition, call delegate now
+	DelegateToCall.ExecuteIfBound();
+	return nullptr;
+}
 
 TSharedPtr<FStreamableHandle> UAssetManager::PreloadPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToLoad, const TArray<FName>& LoadBundles, bool bLoadRecursive, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)
 {
@@ -1210,13 +1251,13 @@ TSharedPtr<FStreamableHandle> UAssetManager::GetPrimaryAssetHandle(const FPrimar
 	return LoadState.Handle;
 }
 
-bool UAssetManager::GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& PrimaryAssetList, const TArray<FName>& ValidTypes, const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles, bool bForceCurrent) const
+bool UAssetManager::GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& PrimaryAssetList, const TArray<FPrimaryAssetType>& ValidTypes, const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles, bool bForceCurrent) const
 {
 	bool bFoundAny = false;
 
 	for (const TPair<FName, TSharedRef<FPrimaryAssetTypeData>>& TypePair : AssetTypeMap)
 	{
-		if (ValidTypes.Num() > 0 && !ValidTypes.Contains(TypePair.Key))
+		if (ValidTypes.Num() > 0 && !ValidTypes.Contains(FPrimaryAssetType(TypePair.Key)))
 		{
 			// Skip this type
 			continue;
@@ -2545,6 +2586,19 @@ void UAssetManager::RefreshPrimaryAssetDirectory()
 	StopBulkScanning();
 
 	PostInitialAssetScan();
+}
+
+void UAssetManager::ReinitializeFromConfig()
+{
+	AssetPathMap.Reset();
+	AssetRuleOverrides.Reset();
+	ManagementParentMap.Reset();
+	CachedAssetBundles.Reset();
+	AlreadyScannedDirectories.Reset();
+	AssetTypeMap.Reset();
+
+	LoadRedirectorMaps();
+	ScanPrimaryAssetTypesFromConfig();
 }
 
 void UAssetManager::OnInMemoryAssetCreated(UObject *Object)

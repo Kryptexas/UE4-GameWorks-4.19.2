@@ -194,7 +194,7 @@ void UK2Node_EnumEquality::ExpandNode(class FKismetCompilerContext& CompilerCont
 	GetConditionalFunction(ConditionalFunctionName, &ConditionalFunctionClass);
 
 	// Create the conditional node we're replacing the enum node for
-	UK2Node_CallFunction* ConditionalNode = SourceGraph->CreateBlankNode<UK2Node_CallFunction>();
+	UK2Node_CallFunction* ConditionalNode = SourceGraph->CreateIntermediateNode<UK2Node_CallFunction>();
 	ConditionalNode->FunctionReference.SetExternalMember(ConditionalFunctionName, ConditionalFunctionClass);
 	ConditionalNode->AllocateDefaultPins();
 	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(ConditionalNode, this);

@@ -33,6 +33,9 @@ public:
 	/** Returns the current AssetManager object */
 	static UAssetManager& Get();
 
+	/** Returns the current AssetManager object if it exists, null otherwise */
+	static UAssetManager* GetIfValid();
+
 	/** Accesses the StreamableManager used by this Asset Manager. Static for easy access */
 	static FStreamableManager& GetStreamableManager() { return Get().StreamableManager; }
 
@@ -114,6 +117,9 @@ public:
 	/** Gets the list of all FStringAssetReferences for a given type, returns true if any found */
 	virtual bool GetPrimaryAssetPathList(FPrimaryAssetType PrimaryAssetType, TArray<FStringAssetReference>& AssetPathList) const;
 
+	/** Sees if the passed in object is a registered primary asset, if so return it. Returns invalid Identifier if not found */
+	virtual FPrimaryAssetId GetPrimaryAssetIdForObject(UObject* Object) const;
+
 	/** Sees if the passed in object path is a registered primary asset, if so return it. Returns invalid Identifier if not found */
 	virtual FPrimaryAssetId GetPrimaryAssetIdForPath(const FStringAssetReference& ObjectPath) const;
 	virtual FPrimaryAssetId GetPrimaryAssetIdForPath(FName ObjectPath) const;
@@ -121,8 +127,8 @@ public:
 	/** Sees if the package has a primary asset, useful if only the package name is available */
 	virtual FPrimaryAssetId GetPrimaryAssetIdForPackage(FName PackagePath) const;
 
-	/** Parses AssetData to extract the primary type/name from it. This works even if it isn't in the directory yet */
-	virtual FPrimaryAssetId GetPrimaryAssetIdFromData(const FAssetData& AssetData, FPrimaryAssetType SuggestedType = NAME_None) const;
+	/** Returns the primary asset Id for the given FAssetData, only works if in directory */
+	virtual FPrimaryAssetId GetPrimaryAssetIdForData(const FAssetData& AssetData) const;
 
 	/** Gets list of all FPrimaryAssetId for a primary asset type, returns true if any were found */
 	virtual bool GetPrimaryAssetIdList(FPrimaryAssetType PrimaryAssetType, TArray<FPrimaryAssetId>& PrimaryAssetIdList) const;
@@ -186,6 +192,19 @@ public:
 	virtual TSharedPtr<FStreamableHandle> ChangeBundleStateForPrimaryAssets(const TArray<FPrimaryAssetId>& AssetsToChange, const TArray<FName>& AddBundles, const TArray<FName>& RemoveBundles, bool bRemoveAllBundles = false, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
 
 	/** 
+	 * Changes the bundle state of all loaded primary assets. Only assets matching OldBundles will be modified
+	 * You can wait on the returned streamable request or poll as needed.
+	 * If there is no work to do, returned handle will be null and delegate will get called before function returns.
+	 *
+	 * @param NewBundles		New bundle state for the assets that are changed
+	 * @param OldBundles		Old bundle state, it will remove these bundles and replace with NewBundles
+	 * @param DelegateToCall	Delegate that will be called on completion, may be called before function returns if assets are already loaded
+	 * @param Priority			Async loading priority for this request
+	 * @return					Streamable Handle that can be used to poll or wait. You do not need to keep this handle to stop the assets from being unloaded
+	 */
+	virtual TSharedPtr<FStreamableHandle> ChangeBundleStateForMatchingPrimaryAssets(const TArray<FName>& NewBundles, const TArray<FName>& OldBundles, FStreamableDelegate DelegateToCall = FStreamableDelegate(), TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
+
+	/** 
 	 * Returns the loading handle associated with the primary asset, it can then be checked for progress or waited on
 	 *
 	 * @param PrimaryAssetId	Asset to get handle for
@@ -205,7 +224,7 @@ public:
 	 * @param bForceCurrent		If true, only use the current state. If false, use the current or pending
 	 * @return					True if any found
 	 */
-	bool GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& PrimaryAssetList, const TArray<FName>& ValidTypes, const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles = TArray<FName>(), bool bForceCurrent = false) const;
+	bool GetPrimaryAssetsWithBundleState(TArray<FPrimaryAssetId>& PrimaryAssetList, const TArray<FPrimaryAssetType>& ValidTypes, const TArray<FName>& RequiredBundles, const TArray<FName>& ExcludedBundles = TArray<FName>(), bool bForceCurrent = false) const;
 
 	/** Fills in a TMap with the pending/active loading state of every asset */
 	void GetPrimaryAssetBundleStateMap(TMap<FPrimaryAssetId, TArray<FName>>& BundleStateMap, bool bForceCurrent = false) const;
@@ -252,6 +271,9 @@ public:
 
 
 	// GENERAL ASSET UTILITY FUNCTIONS
+
+	/** Parses AssetData to extract the primary type/name from it. This works even if it isn't in the directory */
+	virtual FPrimaryAssetId ExtractPrimaryAssetIdFromData(const FAssetData& AssetData, FPrimaryAssetType SuggestedType = NAME_None) const;
 
 	/** Gets the FAssetData at a specific path, handles redirectors and blueprint classes correctly. Returns true if it found a valid data */
 	virtual bool GetAssetDataForPath(const FStringAssetReference& ObjectPath, FAssetData& AssetData) const;
@@ -319,6 +341,9 @@ public:
 
 	/** Refresh the entire set of asset data, can call from editor when things have changed dramatically */
 	virtual void RefreshPrimaryAssetDirectory();
+
+	/** Resets all asset manager data, called in the editor to reinitialize the config */
+	virtual void ReinitializeFromConfig();
 
 	/** Updates the asset management database if needed */
 	virtual void UpdateManagementDatabase(bool bForceRefresh = false);
@@ -462,6 +487,10 @@ protected:
 	/** True if the asset management database should be updated after scan completes */
 	UPROPERTY()
 	bool bUpdateManagementDatabaseAfterScan;
+
+	/** Number of notifications seen in this update */
+	UPROPERTY()
+	int32 NumberOfSpawnedNotifications;
 
 	/** Redirector maps loaded out of AssetMigrations.ini */
 	TMap<FName, FName> PrimaryAssetTypeRedirects;

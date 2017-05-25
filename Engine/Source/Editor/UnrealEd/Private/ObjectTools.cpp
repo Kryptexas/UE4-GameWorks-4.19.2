@@ -4120,10 +4120,13 @@ namespace ThumbnailTools
 	{
 		FObjectThumbnail* FoundThumbnail = NULL;
 
+		FString PackageName = InPackageFileName;
+		FPackageName::TryConvertFilenameToLongPackageName(PackageName, PackageName);
+
 		// First check to see if the package is already in memory.  If it is, some or all of the thumbnails
 		// may already be loaded and ready.
 		UObject* PackageOuter = NULL;
-		UPackage* Package = FindPackage( PackageOuter, *FPackageName::PackageFromPath( *InPackageFileName ) );
+		UPackage* Package = FindPackage( PackageOuter, *PackageName);
 		if( Package != NULL )
 		{
 			FoundThumbnail = FindCachedThumbnailInPackage( Package, InObjectFullName );

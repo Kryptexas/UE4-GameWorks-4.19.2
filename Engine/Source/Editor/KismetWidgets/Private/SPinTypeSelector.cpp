@@ -293,6 +293,7 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 		TSharedPtr<SWidget> ContainerControl = SNew(SComboButton)
 		.ButtonStyle(FCoreStyle::Get(), "NoBorder")
 		.HasDownArrow(false)
+		.MenuPlacement(EMenuPlacement::MenuPlacement_ComboBoxRight)
 		.OnGetMenuContent(
 			FOnGetContent::CreateLambda(
 				[this]()
@@ -364,6 +365,7 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 			.WidthOverride(100.f)
 			[
 					SAssignNew( TypeComboButton, SComboButton )
+					.MenuPlacement(EMenuPlacement::MenuPlacement_ComboBoxRight)
 					.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent, false)
 					.ContentPadding(0)
 					.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxType)

@@ -156,7 +156,7 @@ void FKCHandler_VariableSet::Transform(FKismetFunctionContext& Context, UEdGraph
 		if (SetNotify->ShouldFlushDormancyOnSet())
 		{
 			// Create CallFuncNode
-			UK2Node_CallFunction* CallFuncNode = Node->GetGraph()->CreateBlankNode<UK2Node_CallFunction>();
+			UK2Node_CallFunction* CallFuncNode = Node->GetGraph()->CreateIntermediateNode<UK2Node_CallFunction>();
 			CallFuncNode->FunctionReference.SetExternalMember(NAME_FlushNetDormancy, AActor::StaticClass() );
 			CallFuncNode->AllocateDefaultPins();
 
@@ -180,7 +180,7 @@ void FKCHandler_VariableSet::Transform(FKismetFunctionContext& Context, UEdGraph
 
 		if (SetNotify->HasLocalRepNotify())
 		{
-			UK2Node_CallFunction* CallFuncNode = Node->GetGraph()->CreateBlankNode<UK2Node_CallFunction>();
+			UK2Node_CallFunction* CallFuncNode = Node->GetGraph()->CreateIntermediateNode<UK2Node_CallFunction>();
 			CallFuncNode->FunctionReference.SetExternalMember(SetNotify->GetRepNotifyName(), SetNotify->GetVariableSourceClass() );
 			CallFuncNode->AllocateDefaultPins();
 

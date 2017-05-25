@@ -53,7 +53,7 @@ public:
 	TArray<FPrimaryAssetTypeInfo> PrimaryAssetTypesToScan;
 
 	/** List of directories to exclude from scanning for Primary Assets, useful to exclude test assets */
-	UPROPERTY(config, EditAnywhere, Category = "Asset Manager", meta = (RelativeToGameContentDir))
+	UPROPERTY(config, EditAnywhere, Category = "Asset Manager", meta = (RelativeToGameContentDir, LongPackageName))
 	TArray<FDirectoryPath> DirectoriesToExclude;
 
 	/** List of specific asset rule overrides */
@@ -79,4 +79,8 @@ public:
 	/** Redirect from /game/assetpath to /game/assetpathnew */
 	UPROPERTY(config, EditAnywhere, Category = "Redirects")
 	TArray<FAssetManagerRedirect> AssetPathRedirects;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };

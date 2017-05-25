@@ -743,7 +743,8 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 
 	// If the prefixed path matches the world package name or the name of a streaming level,
 	// return the prefixed name.
-	const FString PackageNameOnly = FPackageName::PackageFromPath(*Str);
+	FString PackageNameOnly = Str;
+	FPackageName::TryConvertFilenameToLongPackageName(PackageNameOnly, PackageNameOnly);
 
 	const FString PrefixedFullName = UWorld::ConvertToPIEPackageName(Str, Context.PIEInstance);
 	const FString PrefixedPackageName = UWorld::ConvertToPIEPackageName(PackageNameOnly, Context.PIEInstance);

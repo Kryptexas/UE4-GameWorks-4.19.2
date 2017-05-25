@@ -6,6 +6,7 @@
 #include "Engine/BlueprintGeneratedClass.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node_VariableGet.h"
+#include "K2Node_CallFunction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "KismetCompiler.h"
 #include "VariableSetHandler.h"
@@ -80,10 +81,8 @@ UK2Node_VariableSet::UK2Node_VariableSet(const FObjectInitializer& ObjectInitial
 
 void UK2Node_VariableSet::AllocateDefaultPins()
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
 
 	if (GetVarName() != NAME_None)
 	{
@@ -103,10 +102,8 @@ void UK2Node_VariableSet::AllocateDefaultPins()
 
 void UK2Node_VariableSet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Execute);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, FString(), nullptr, K2Schema->PN_Then);
+	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Execute);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, FString(), nullptr, UEdGraphSchema_K2::PN_Then);
 
 	if (GetVarName() != NAME_None)
 	{
@@ -342,8 +339,7 @@ void UK2Node_VariableSet::CreateOutputPinTooltip()
 FText UK2Node_VariableSet::GetPinNameOverride(const UEdGraphPin& Pin) const
 {
 	// Stop the output pin for the variable, effectively the "get" pin, from displaying a name.
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	if(Pin.ParentPin == nullptr && (Pin.Direction == EGPD_Output || Pin.PinType.PinCategory == K2Schema->PC_Exec))
+	if(Pin.ParentPin == nullptr && (Pin.Direction == EGPD_Output || Pin.PinType.PinCategory == UEdGraphSchema_K2::PC_Exec))
 	{
 		return FText::GetEmpty();
 	}
@@ -357,37 +353,75 @@ void UK2Node_VariableSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 
 	if (CompilerContext.bIsFullCompile)
 	{
+		UProperty* VariableProperty = GetPropertyForVariable();
+
 		const UEdGraphSchema_K2* K2Schema = CompilerContext.GetSchema();
 
-		UEdGraphPin* Pin = FindPin(GetVariableOutputPinName());
-		if(Pin)
+		if (UEdGraphPin* VariableGetPin = FindPin(GetVariableOutputPinName()))
 		{
 			// If the output pin is linked, we need to spawn a separate "Get" node and hook it up.
-			if(Pin->LinkedTo.Num())
+			if (VariableGetPin->LinkedTo.Num())
 			{
-				UProperty* VariableProperty = GetPropertyForVariable();
-
-				if(VariableProperty)
+				if (VariableProperty)
 				{
 					UK2Node_VariableGet* VariableGetNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(this, SourceGraph);
 					VariableGetNode->VariableReference = VariableReference;
 					VariableGetNode->AllocateDefaultPins();
 					CompilerContext.MessageLog.NotifyIntermediateObjectCreation(VariableGetNode, this);
-					CompilerContext.MovePinLinksToIntermediate(*Pin, *VariableGetNode->FindPin(GetVarNameString()));
+					CompilerContext.MovePinLinksToIntermediate(*VariableGetPin, *VariableGetNode->FindPin(GetVarNameString()));
 
 					// Duplicate the connection to the self pin.
 					UEdGraphPin* SetSelfPin = K2Schema->FindSelfPin(*this, EGPD_Input);
 					UEdGraphPin* GetSelfPin = K2Schema->FindSelfPin(*VariableGetNode, EGPD_Input);
-					if(SetSelfPin && GetSelfPin)
+					if (SetSelfPin && GetSelfPin)
 					{
 						CompilerContext.CopyPinLinksToIntermediate(*SetSelfPin, *GetSelfPin);
 					}
 				}
 			}
-			Pins.Remove(Pin);
-			Pin->MarkPendingKill();
+			Pins.Remove(VariableGetPin);
+			VariableGetPin->MarkPendingKill();
 		}
-		
+
+		// If property has a BlueprintSetter accessor, then replace the variable get node with a call function
+		if (VariableProperty)
+		{
+			const FString& SetFunctionName = VariableProperty->GetMetaData(FBlueprintMetadata::MD_PropertySetFunction);
+			if (!SetFunctionName.IsEmpty())
+			{
+				UClass* OwnerClass = VariableProperty->GetOwnerClass();
+				UFunction* SetFunction = OwnerClass->FindFunctionByName(*SetFunctionName);
+				check(SetFunction);
+
+				UK2Node_CallFunction* CallFuncNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+				CallFuncNode->SetFromFunction(SetFunction);
+				CallFuncNode->AllocateDefaultPins();
+
+				// Move Exec pin connections
+				CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *CallFuncNode->GetExecPin());
+
+				// Move Then pin connections
+				CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(UEdGraphSchema_K2::PN_Then, EGPD_Output), *CallFuncNode->GetThenPin());
+				
+				// Move Self pin connections
+				CompilerContext.MovePinLinksToIntermediate(*K2Schema->FindSelfPin(*this, EGPD_Input), *K2Schema->FindSelfPin(*CallFuncNode, EGPD_Input));
+
+				// Move Value pin connections
+				UEdGraphPin* SetFunctionValuePin = nullptr;
+				for (UEdGraphPin* CallFuncPin : CallFuncNode->Pins)
+				{
+					if (!K2Schema->IsMetaPin(*CallFuncPin))
+					{
+						check(CallFuncPin->Direction == EGPD_Input);
+						SetFunctionValuePin = CallFuncPin;
+						break;
+					}
+				}
+				check(SetFunctionValuePin);
+
+				CompilerContext.MovePinLinksToIntermediate(*FindPin(GetVarNameString(), EGPD_Input), *SetFunctionValuePin);
+			}
+		}
 	}
 
 }

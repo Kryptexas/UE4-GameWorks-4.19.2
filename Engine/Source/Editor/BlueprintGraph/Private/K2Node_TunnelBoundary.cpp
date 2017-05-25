@@ -139,7 +139,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 	TArray<UEdGraphPin*> VisitedPins;
 	for (UEdGraphPin* EntryPin : TunnelEntryPins)
 	{
-		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateIntermediateNode<UK2Node_TunnelBoundary>();
 		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
 		TunnelBoundaryNode->CreateNewGuid();
 		MessageLog.RegisterIntermediateTunnelNode(TunnelBoundaryNode, RegistrantTunnelInstance);
@@ -152,7 +152,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 	if (ExecutionEndpointPins.Num())
 	{
 		// Create boundary node.
-		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateIntermediateNode<UK2Node_TunnelBoundary>();
 		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
 		TunnelBoundaryNode->CreateNewGuid();
 		TunnelBoundaryNode->TunnelBoundaryType = TBT_EndOfThread;
@@ -167,7 +167,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 	}
 	for (UEdGraphPin* ExitPin : TunnelExitPins)
 	{
-		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateIntermediateNode<UK2Node_TunnelBoundary>();
 		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
 		TunnelBoundaryNode->CreateNewGuid();
 		MessageLog.RegisterIntermediateTunnelNode(TunnelBoundaryNode, RegistrantTunnelInstance);
@@ -223,7 +223,7 @@ void UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(UEdGraphNode* Sou
 			for (const auto& PinEntry : EntryPins)
 			{
 				// Create entry node and pins
-				UK2Node_TunnelBoundary* EntryBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+				UK2Node_TunnelBoundary* EntryBoundaryNode = TargetGraph->CreateIntermediateNode<UK2Node_TunnelBoundary>();
 				MessageLog.NotifyIntermediateObjectCreation(EntryBoundaryNode, SourceNode);
 				EntryBoundaryNode->CreateNewGuid();
 				EntryBoundaryNode->WireUpEntry(SourceNode, PinEntry.Key, PinEntry.Value, MessageLog);
@@ -234,7 +234,7 @@ void UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(UEdGraphNode* Sou
 			for (const auto& PinExit : ExitPins)
 			{
 				// Create exit node and pins
-				UK2Node_TunnelBoundary* ExitBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+				UK2Node_TunnelBoundary* ExitBoundaryNode = TargetGraph->CreateIntermediateNode<UK2Node_TunnelBoundary>();
 				MessageLog.NotifyIntermediateObjectCreation(ExitBoundaryNode, SourceNode);
 				ExitBoundaryNode->CreateNewGuid();
 				ExitBoundaryNode->WireUpExit(SourceNode, PinExit.Key, PinExit.Value, MessageLog);

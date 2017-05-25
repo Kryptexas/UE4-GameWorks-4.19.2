@@ -27,6 +27,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel)
 	uint32 bLabelAssetsInMyDirectory : 1;
 
+	/** Set to true if the label asset itself should be cooked and available at runtime. This does not affect the assets that are labeled, they are set with cook rule */
+	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel)
+	uint32 bIsRuntimeLabel : 1;
+
 	/** List of manually specified assets to label */
 	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel, meta = (AssetBundles = "Explicit"))
 	TArray<TAssetPtr<UObject>> ExplicitAssets;
@@ -34,6 +38,12 @@ public:
 	/** List of manually specified blueprint assets to label */
 	UPROPERTY(EditAnywhere, Category = PrimaryAssetLabel, meta = (AssetBundles = "Explicit", BlueprintBaseOnly))
 	TArray<TAssetSubclassOf<UObject>> ExplicitBlueprints;
+
+	/** Set to editor only if this is not available in a cooked build */
+	virtual bool IsEditorOnly() const
+	{
+		return !bIsRuntimeLabel;
+	}
 
 	// TODO add collections
 

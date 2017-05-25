@@ -172,6 +172,16 @@ namespace BlueprintActionFilterImpl
 	static bool IsDeprecated(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 	
 	/**
+	* Rejection test that checks to see if the supplied node-spawner would 
+	* produce a node (or comes from an associated class) that is deprecated.
+	* 
+	* @param  Filter			Filter context (unused) for this test.
+	* @param  BlueprintAction	The action you wish to query.
+	* @return True if the action would spawn a node that is deprecated.
+	*/
+	static bool IsPropertyAccessorNode(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
 	 * Rejection test that checks to see if the supplied node-spawner would 
 	 * produce an impure node, incompatible with the specified graphs.
 	 * 
@@ -944,6 +954,19 @@ static bool BlueprintActionFilterImpl::IsActionHiddenByConfig(FBlueprintActionFi
 	}
 
 	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsPropertyAccessorNode(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsAccessor = false;
+
+	if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
+	{
+		bIsAccessor = (Function->HasMetaData(FBlueprintMetadata::MD_PropertySetFunction) || Function->HasMetaData(FBlueprintMetadata::MD_PropertyGetFunction));
+	}
+
+	return bIsAccessor;
 }
 
 //------------------------------------------------------------------------------
@@ -1892,6 +1915,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFunctionMissingPinParam));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleLatentNode));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleImpureNode));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsPropertyAccessorNode));
 	
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsActionHiddenByConfig));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFieldCategoryHidden));

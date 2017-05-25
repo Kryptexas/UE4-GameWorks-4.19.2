@@ -1057,9 +1057,6 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 {
 	const EObjectFlags ObjectFlags = RF_Public;
 
-	UProperty* NewProperty = NULL;
-	UObject* PropertyScope = NULL;
-
 	FName ValidatedPropertyName = PropertyName;
 
 	// Check to see if there's already a object on this scope with the same name, and throw an internal compiler error if so
@@ -1079,11 +1076,14 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				FString TestNameString = PropertyName.ToString() + FString::Printf(TEXT("_ERROR_DUPLICATE_%d"), Counter++);
 				TestName = FName(*TestNameString);
 
-			} while (CheckPropertyNameOnScope(Scope, TestName) != NULL);
+			} while (CheckPropertyNameOnScope(Scope, TestName) != nullptr);
 
 			ValidatedPropertyName = TestName;
 		}
 	}
+
+	UProperty* NewProperty = nullptr;
+	UObject* PropertyScope = nullptr;
 
 	// Handle creating a container property, if necessary
 	const bool bIsMapProperty = Type.IsMap();
@@ -1148,7 +1148,6 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 		{
 			if (!NewProperty->HasAnyPropertyFlags(CPF_HasGetValueTypeHash))
 			{
-
 				MessageLog.Error(
 					*FString::Printf(
 						*LOCTEXT("MapKeyTypeUnhashable_Error", "Map Property @@ has key type of %s which cannot be hashed and is therefore invalid").ToString(),
@@ -1157,7 +1156,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				);
 			}
 			// make the value property:
-			// not feelign good about myself..
+			// not feeling good about myself..
 			// Fix up the array property to have the new type-specific property as its inner, and return the new UArrayProperty
 			NewMapProperty->KeyProp = NewProperty;
 			// make sure the value property does not collide with the key property:
@@ -1219,6 +1218,11 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 		{
 			NewArrayProperty->MarkPendingKill();
 		}
+	}
+
+	if (NewProperty)
+	{
+		NewProperty->SetPropertyFlags(PropertyFlags);
 	}
 
 	return NewProperty;

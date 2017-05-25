@@ -662,7 +662,7 @@ void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubI
 		FString PrefixedName = SubInstance->GetPinTargetVariableName(Pin);
 
 		// Create a property on the new class to hold the pin data
-		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(NewAnimBlueprintClass, FName(*PrefixedName), Pin->PinType, NewAnimBlueprintClass, 0, GetSchema(), MessageLog);
+		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(NewAnimBlueprintClass, FName(*PrefixedName), Pin->PinType, NewAnimBlueprintClass, CPF_BlueprintVisible, GetSchema(), MessageLog);
 		if(NewProperty)
 		{
 			NewProperty->SetMetaData(TEXT("Category"), TEXT("SubInstance"));

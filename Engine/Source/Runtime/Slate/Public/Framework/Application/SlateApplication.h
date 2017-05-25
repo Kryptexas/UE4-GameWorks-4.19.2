@@ -755,14 +755,15 @@ public:
 	 * Calculates the popup window position from the passed in window position and size. 
 	 * Adjusts position for popup windows which are outside of the work area of the monitor where they reside
 	 *
-	 * @param InAnchor	The current(suggseted) window position and size of an area which may not be covered by the popup.
-	 * @param InSize		The size of the window
-	 * @param Orientation	The direction of the popup.
-	 *						If vertical it will attempt to open below the anchor but will open above if there is no room.
-	 *						If horizontal it will attempt to open below the anchor but will open above if there is no room.
+	 * @param InAnchor				The current(suggseted) window position and size of an area which may not be covered by the popup.
+	 * @param InSize				The size of the window
+	 * @param InProposedPlacement	The location on screen where the popup should go if allowed. If zero this will be determined from Orientation and Anchor
+	 * @param Orientation			The direction of the popup.
+	 *								If vertical it will attempt to open below the anchor but will open above if there is no room.
+	 *								If horizontal it will attempt to open below the anchor but will open above if there is no room.
 	 * @return The adjusted position
 	 */
-	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation = Orient_Vertical ) const;
+	virtual FVector2D CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const FVector2D& InProposedPlacement = FVector2D::ZeroVector, const EOrientation Orientation = Orient_Vertical) const;
 
 	/**
 	 * Is the window in the app's destroy queue? If so it will be destroyed next tick.

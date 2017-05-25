@@ -288,6 +288,13 @@ void UBehaviorTreeComponent::StopTree(EBTStopMode::Type StopMode)
 		UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("StopTree was forced while waiting for tasks to finish aborting!"));
 	}
 
+	// make sure that all nodes are getting deactivation notifies
+	if (InstanceStack.Num())
+	{
+		EBTNodeResult::Type AbortedResult = EBTNodeResult::Aborted;
+		DeactivateUpTo(InstanceStack[0].RootNode, 0, AbortedResult);
+	}
+
 	// clear current state, don't touch debugger data
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
 	{
@@ -297,6 +304,7 @@ void UBehaviorTreeComponent::StopTree(EBTStopMode::Type StopMode)
 
 	InstanceStack.Reset();
 	TaskMessageObservers.Reset();
+	SearchData.Reset();
 	ExecutionRequest = FBTNodeExecutionInfo();
 	PendingExecution = FBTPendingExecutionInfo();
 	ActiveInstanceIdx = 0;

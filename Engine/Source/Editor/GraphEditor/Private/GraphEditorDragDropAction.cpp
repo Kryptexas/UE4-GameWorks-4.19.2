@@ -22,7 +22,7 @@ UEdGraphPin* FGraphEditorDragDropAction::GetHoveredPin() const
 
 UEdGraphNode* FGraphEditorDragDropAction::GetHoveredNode() const
 {
-	return HoveredNode.IsValid() ? HoveredNode->GetNodeObj() : NULL;
+	return HoveredNode.Get();
 }
 
 UEdGraph* FGraphEditorDragDropAction::GetHoveredGraph() const
@@ -55,6 +55,11 @@ void FGraphEditorDragDropAction::SetHoveredPin(UEdGraphPin* InPin)
 }
 
 void FGraphEditorDragDropAction::SetHoveredNode(const TSharedPtr<SGraphNode>& InNode)
+{
+	SetHoveredNode(InNode.IsValid() ? InNode->GetNodeObj() : nullptr);
+}
+
+void FGraphEditorDragDropAction::SetHoveredNode(UEdGraphNode* InNode)
 {
 	if (HoveredNode != InNode)
 	{
@@ -207,6 +212,26 @@ FReply FGraphSchemaActionDragDropAction::DroppedOnPanel( const TSharedRef< SWidg
 		ActionNode->PerformAction(&Graph, DummyPins, GraphPosition);
 
 		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
+
+FReply FGraphSchemaActionDragDropAction::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition)
+{
+	if (UEdGraph* Graph = GetHoveredGraph())
+	{
+		if (ActionNode.IsValid())
+		{
+			TArray<UEdGraphPin*> DummyPins;
+			if (UEdGraphPin* Pin = GetHoveredPin())
+			{
+				DummyPins.Add(Pin);
+			}
+
+			ActionNode->PerformAction(Graph, DummyPins, GraphPosition);
+
+			return FReply::Handled();
+		}
 	}
 	return FReply::Unhandled();
 }

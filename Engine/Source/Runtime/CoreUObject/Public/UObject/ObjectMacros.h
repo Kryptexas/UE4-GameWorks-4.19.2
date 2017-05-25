@@ -535,11 +535,10 @@ enum class EInternalObjectFlags : int32
 	Unreachable = 1 << 28, ///< Object is not reachable on the object graph.
 	PendingKill = 1 << 29, ///< Objects that are pending destruction (invalid for gameplay but valid objects)
 	RootSet = 1 << 30, ///< Object will not be garbage collected, even if unreferenced.
-	NoStrongReference = 1 << 31, ///< The object is not referenced by any strong reference. The flag is used by GC.
 
 	GarbageCollectionKeepFlags = Native | Async | AsyncLoading,
 	// Make sure this is up to date!
-	AllFlags = ReachableInCluster | ClusterRoot | Native | Async | AsyncLoading | Unreachable | PendingKill | RootSet | NoStrongReference
+	AllFlags = ReachableInCluster | ClusterRoot | Native | Async | AsyncLoading | Unreachable | PendingKill | RootSet
 };
 ENUM_CLASS_FLAGS(EInternalObjectFlags);
 
@@ -807,6 +806,12 @@ namespace UF
 		/// This function can be called from blueprint code and should be exposed to the user of blueprint editing tools.
 		BlueprintCallable,
 
+		/// This function is used as the get accessor for a blueprint exposed property. Implies BlueprintPure and BlueprintCallable.
+		BlueprintGetter,
+
+		/// This function is used as the set accessor for a blueprint exposed property. Implies BlueprintCallable.
+		BlueprintSetter,
+
 		/// This function will not execute from blueprint code if running on something without network authority
 		BlueprintAuthorityOnly,
 
@@ -929,8 +934,14 @@ namespace UP
 		/// This property can be read by blueprints, but not modified.
 		BlueprintReadOnly,
 
+		/// This property has an accessor to return the value. Implies BlueprintReadOnly if BlueprintSetter or BlueprintReadWrite is not specified. (usage: BlueprintGetter=FunctionName).
+		BlueprintGetter,
+
 		/// This property can be read or written from a blueprint.
 		BlueprintReadWrite,
+
+		/// This property has an accessor to set the value. Implies BlueprintReadWrite. (usage: BlueprintSetter=FunctionName).
+		BlueprintSetter,
 
 		/// The AssetRegistrySearchable keyword indicates that this property and it's value will be automatically added
 		/// to the asset registry for any asset class instances containing this as a member variable.  It is not legal

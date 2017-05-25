@@ -691,21 +691,21 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 		CreateVariable(Timeline->GetDirectionPropertyName(), DirectionPinType);
 
 		FEdGraphPinType FloatPinType(Schema->PC_Float, FString(), nullptr, EPinContainerType::None, false, FEdGraphTerminalType());
-		for(int32 i=0; i<Timeline->FloatTracks.Num(); i++)
+		for (const FTTFloatTrack& FloatTrack : Timeline->FloatTracks)
 		{
-			CreateVariable(Timeline->GetTrackPropertyName(Timeline->FloatTracks[i].TrackName), FloatPinType);
+			CreateVariable(Timeline->GetTrackPropertyName(FloatTrack.TrackName), FloatPinType);
 		}
 
 		FEdGraphPinType VectorPinType(Schema->PC_Struct, FString(), VectorStruct, EPinContainerType::None, false, FEdGraphTerminalType());
-		for(int32 i=0; i<Timeline->VectorTracks.Num(); i++)
+		for (const FTTVectorTrack& VectorTrack : Timeline->VectorTracks)
 		{
-			CreateVariable(Timeline->GetTrackPropertyName(Timeline->VectorTracks[i].TrackName), VectorPinType);
+			CreateVariable(Timeline->GetTrackPropertyName(VectorTrack.TrackName), VectorPinType);
 		}
 
 		FEdGraphPinType LinearColorPinType(Schema->PC_Struct, FString(), LinearColorStruct, EPinContainerType::None, false, FEdGraphTerminalType());
-		for(int32 i=0; i<Timeline->LinearColorTracks.Num(); i++)
+		for (const FTTLinearColorTrack& LinearColorTrack : Timeline->LinearColorTracks)
 		{
-			CreateVariable(Timeline->GetTrackPropertyName(Timeline->LinearColorTracks[i].TrackName), LinearColorPinType);
+			CreateVariable(Timeline->GetTrackPropertyName(LinearColorTrack.TrackName), LinearColorPinType);
 		}
 	}
 
@@ -741,11 +741,9 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 
 void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& PropertyStorageLocation, TIndirectArray<FBPTerminal>& Terms, uint64 PropertyFlags, bool bPropertiesAreLocal, bool bPropertiesAreParameters)
 {
-	for (int32 i = 0; i < Terms.Num(); ++i)
+	for (FBPTerminal& Term : Terms)
 	{
-		FBPTerminal& Term = Terms[i];
-
-		if(NULL != Term.AssociatedVarProperty)
+		if (Term.AssociatedVarProperty)
 		{
 			if(Term.Context && !Term.Context->IsObjectContextType())
 			{
@@ -759,11 +757,8 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			MessageLog.Error(*FString::Printf(*LOCTEXT("PropertyForLiteral_Error", "Cannot create property for a literal: %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()), Term.Source);
 		}
 
-		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog);
-		if (NewProperty != NULL)
+		if (UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog))
 		{
-			NewProperty->PropertyFlags |= PropertyFlags;
-
 			if (bPropertiesAreParameters && Term.Type.bIsConst)
 			{
 				NewProperty->SetPropertyFlags(CPF_ConstParm);
@@ -1093,6 +1088,13 @@ void FKismetCompilerContext::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 			}
 		}			
 	}
+}
+
+void FKismetCompilerContext::PropagateValuesToCDO(UObject* InNewCDO, UObject* InOldCDO)
+{
+	ensure(InNewCDO);
+	CopyTermDefaultsToDefaultObject(InNewCDO);
+	SetCanEverTick();
 }
 
 void FKismetCompilerContext::PrintVerboseInfoStruct(UStruct* Struct) const
@@ -3834,7 +3836,12 @@ void FKismetCompilerContext::CompileClassLayout(EInternalCompilerFlags InternalF
 
 void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFlags)
 {
+	// This is phase two, so we want to generated locals if PostponeLocalsGenerationUntilPhaseTwo is set:
 	const bool bGenerateLocals = !!(InternalFlags & EInternalCompilerFlags::PostponeLocalsGenerationUntilPhaseTwo);
+	// Don't propagate values to CDO if we're going to do that in reinstancing:
+	const bool bPropagateValuesToCDO = !(InternalFlags & EInternalCompilerFlags::PostponeDefaultObjectAssignmentUntilReinstancing);
+	// Don't RefreshExternalBlueprintDependencyNodes if the calling code has done so already:
+	const bool bSkipRefreshExternalBlueprintDependencyNodes = !!(InternalFlags & EInternalCompilerFlags::SkipRefreshExternalBlueprintDependencyNodes);
 	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
 
 	if( bGenerateLocals )
@@ -3969,9 +3976,10 @@ void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFla
 				Blueprint->PRIVATE_InnermostPreviousCDO = OldCDO;
 			}
 		}
-		else
+
+		if(bPropagateValuesToCDO)
 		{
-			if( NewCDO )
+			if( !Blueprint->HasAnyFlags(RF_BeingRegenerated) )
 			{
 				// Propagate the old CDO's properties to the new
 				if( OldCDO )
@@ -4006,10 +4014,9 @@ void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFla
 				}
 				// <<< End Backwards Compatibility
 			}
-		}
 
-		CopyTermDefaultsToDefaultObject(NewCDO);
-		SetCanEverTick();
+			PropagateValuesToCDO(NewCDO, OldCDO);
+		}
 
 		// Note: The old->new CDO copy is deferred when regenerating, so we skip this step in that case.
 		if (!Blueprint->HasAnyFlags(RF_BeingRegenerated))
@@ -4148,7 +4155,7 @@ void FKismetCompilerContext::CompileFunctions(EInternalCompilerFlags InternalFla
 	}
 
 	// For full compiles, find other blueprints that may need refreshing, and mark them dirty, in case they try to run
-	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
+	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad && !bSkipRefreshExternalBlueprintDependencyNodes )
 	{
 		TArray<UBlueprint*> DependentBlueprints;
 		FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, DependentBlueprints);
@@ -4468,15 +4475,15 @@ FString FKismetCompilerContext::GetGuid(const UEdGraphNode* Node) const
 	return Ret.ToString();
 }
 
-TUniquePtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
+TSharedPtr<FKismetCompilerContext> FKismetCompilerContext::GetCompilerForBP(UBlueprint* BP, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
 {
 	if(UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(BP))
 	{
-		return TUniquePtr<FKismetCompilerContext>(new FAnimBlueprintCompiler(AnimBP, InMessageLog, InCompileOptions, nullptr));
+		return TSharedPtr<FKismetCompilerContext>(new FAnimBlueprintCompiler(AnimBP, InMessageLog, InCompileOptions, nullptr));
 	}
 	else
 	{
-		return TUniquePtr<FKismetCompilerContext>(new FKismetCompilerContext(BP, InMessageLog, InCompileOptions, nullptr));
+		return TSharedPtr<FKismetCompilerContext>(new FKismetCompilerContext(BP, InMessageLog, InCompileOptions, nullptr));
 	}
 }
 
