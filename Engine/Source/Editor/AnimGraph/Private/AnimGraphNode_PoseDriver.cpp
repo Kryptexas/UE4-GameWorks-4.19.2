@@ -64,7 +64,7 @@ void UAnimGraphNode_PoseDriver::ValidateAnimNodeDuringCompilation(USkeleton* For
 {
 	if (Node.SourceBones.Num() == 0)
 	{
-		MessageLog.Warning(*LOCTEXT("NoSourceBone", "You must specify at least one Source Bone").ToString(), this);
+		MessageLog.Warning(*LOCTEXT("PoseDriver_NoSourceBone", "You must specify at least one Source Bone").ToString(), this);
 	}
 
 	FName MissingBoneName = NAME_None;

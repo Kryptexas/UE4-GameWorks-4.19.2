@@ -331,10 +331,7 @@ int32 FCompilerResultsLog::CalculateStableIdentifierForLatentActionManager( cons
 	else
 	{
 		Warning(
-			*LOCTEXT(
-				"UUIDDeterministicCookWarn", 
-				"Failed to produce a deterministic UUID for a node's latent action: @@"
-			).ToString(),
+			*LOCTEXT("UUIDDeterministicCookWarn", "Failed to produce a deterministic UUID for a node's latent action: @@").ToString(),
 			OriginalNode
 		);
 
