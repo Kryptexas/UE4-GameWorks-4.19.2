@@ -156,7 +156,7 @@ uint32 FMeshMaterialShaderMap::BeginCompile(
 	const FMaterialShaderMapId& InShaderMapId, 
 	const FMaterial* Material,
 	FShaderCompilerEnvironment* MaterialEnvironment,
-	EShaderPlatform Platform,
+	EShaderPlatform InPlatform,
 	TArray<FShaderCommonCompileJob*>& NewJobs
 	)
 {
@@ -173,7 +173,7 @@ uint32 FMeshMaterialShaderMap::BeginCompile(
 	for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
 	{
 		FMeshMaterialShaderType* ShaderType = ShaderTypeIt->GetMeshMaterialShaderType();
-		if (ShaderType && ShouldCacheMeshShader(ShaderType, Platform, Material, VertexFactoryType))
+		if (ShaderType && ShouldCacheMeshShader(ShaderType, InPlatform, Material, VertexFactoryType))
 		{
 			// Verify that the shader map Id contains inputs for any shaders that will be put into this shader map
 			check(InShaderMapId.ContainsVertexFactoryType(VertexFactoryType));
@@ -186,7 +186,7 @@ uint32 FMeshMaterialShaderMap::BeginCompile(
 				// Compile this mesh material shader for this material and vertex factory type.
 				auto* Job = ShaderType->BeginCompileShader(
 					ShaderMapId,
-					Platform,
+					InPlatform,
 					Material,
 					MaterialEnvironment,
 					VertexFactoryType,
@@ -211,7 +211,7 @@ uint32 FMeshMaterialShaderMap::BeginCompile(
 			for (auto* Shader : StageTypes)
 			{
 				const FMeshMaterialShaderType* ShaderType = Shader->GetMeshMaterialShaderType();
-				if (ShouldCacheMeshShader(ShaderType, Platform, Material, VertexFactoryType))
+				if (ShouldCacheMeshShader(ShaderType, InPlatform, Material, VertexFactoryType))
 				{
 					++NumShaderStagesToCompile;
 				}
@@ -241,7 +241,7 @@ uint32 FMeshMaterialShaderMap::BeginCompile(
 					}
 
 					// Make a pipeline job with all the stages
-					FMeshMaterialShaderType::BeginCompileShaderPipeline(ShaderMapId, Platform, Material, MaterialEnvironment, VertexFactoryType, Pipeline, ShaderStagesToCompile, NewJobs);
+					FMeshMaterialShaderType::BeginCompileShaderPipeline(ShaderMapId, InPlatform, Material, MaterialEnvironment, VertexFactoryType, Pipeline, ShaderStagesToCompile, NewJobs);
 				}
 				else
 				{
@@ -358,14 +358,14 @@ bool FMeshMaterialShaderMap::IsComplete(
 void FMeshMaterialShaderMap::LoadMissingShadersFromMemory(
 	const FSHAHash& MaterialShaderMapHash, 
 	const FMaterial* Material, 
-	EShaderPlatform Platform)
+	EShaderPlatform InPlatform)
 {
 	for (TLinkedList<FShaderType*>::TIterator ShaderTypeIt(FShaderType::GetTypeList());ShaderTypeIt;ShaderTypeIt.Next())
 	{
 		FMeshMaterialShaderType* ShaderType = ShaderTypeIt->GetMeshMaterialShaderType();
-		if (ShaderType && ShouldCacheMeshShader(ShaderType, Platform, Material, VertexFactoryType) && !HasShader((FShaderType*)ShaderType))
+		if (ShaderType && ShouldCacheMeshShader(ShaderType, InPlatform, Material, VertexFactoryType) && !HasShader((FShaderType*)ShaderType))
 		{
-			const FShaderId ShaderId(MaterialShaderMapHash, nullptr, VertexFactoryType, (FShaderType*)ShaderType, FShaderTarget(ShaderType->GetFrequency(), Platform));
+			const FShaderId ShaderId(MaterialShaderMapHash, nullptr, VertexFactoryType, (FShaderType*)ShaderType, FShaderTarget(ShaderType->GetFrequency(), InPlatform));
 			FShader* FoundShader = ((FShaderType*)ShaderType)->FindShaderById(ShaderId);
 
 			if (FoundShader)
@@ -387,7 +387,7 @@ void FMeshMaterialShaderMap::LoadMissingShadersFromMemory(
 			for (const FShaderType* Shader : Stages)
 			{
 				FMeshMaterialShaderType* ShaderType = (FMeshMaterialShaderType*)Shader->GetMeshMaterialShaderType();
-				if (ShaderType && ShouldCacheMeshShader(ShaderType, Platform, Material, VertexFactoryType))
+				if (ShaderType && ShouldCacheMeshShader(ShaderType, InPlatform, Material, VertexFactoryType))
 				{
 					++NumShaders;
 				}
@@ -405,7 +405,7 @@ void FMeshMaterialShaderMap::LoadMissingShadersFromMemory(
 					FMeshMaterialShaderType* ShaderType = (FMeshMaterialShaderType*)Shader->GetMeshMaterialShaderType();
 					if (!HasShader(ShaderType))
 					{
-						const FShaderId ShaderId(MaterialShaderMapHash, PipelineType->ShouldOptimizeUnusedOutputs() ? PipelineType : nullptr, VertexFactoryType, ShaderType, FShaderTarget(ShaderType->GetFrequency(), Platform));
+						const FShaderId ShaderId(MaterialShaderMapHash, PipelineType->ShouldOptimizeUnusedOutputs() ? PipelineType : nullptr, VertexFactoryType, ShaderType, FShaderTarget(ShaderType->GetFrequency(), InPlatform));
 						FShader* FoundShader = ShaderType->FindShaderById(ShaderId);
 						if (FoundShader)
 						{

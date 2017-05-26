@@ -15,6 +15,7 @@
 #include "Shader.h"
 #include "Misc/EngineVersion.h"
 #include "PipelineStateCache.h"
+#include "ScopeRWLock.h"
 
 DECLARE_STATS_GROUP(TEXT("Shader Cache"),STATGROUP_ShaderCache, STATCAT_Advanced);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Shaders Cached"),STATGROUP_NumShadersCached,STATGROUP_ShaderCache);
@@ -944,10 +945,6 @@ FShaderCache::FShaderCache(uint32 InOptions)
 , OverridePrecompileTime(0)
 , OverridePredrawBatchTime(0)
 , bBatchingPaused(false)
-, ShaderCacheGlobalStateMutex(0)
-, PipelineStateMutex(1)
-, DrawLogMutex(2)
-, ContextCacheStatesMutex(3)
 , DefaultCacheState(nullptr)
 {
 	MaxTextureSamplers = FMath::Min<uint32>(GetMaxTextureSamplers(), FShaderDrawKey::MaxNumSamplers);

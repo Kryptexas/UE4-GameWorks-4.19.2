@@ -62,14 +62,14 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 			RHICmdList.CopyToResolveTarget(GreenDummy->GetRenderTargetItem().TargetableTexture, GreenDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
-		// Create a MidGrayDummy texture
+		// Create a DefaultNormal8Bit texture
 		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::MidGray, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, FClearValueBinding::DefaultNormal8Bit, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable | TexCreate_NoFastClear, false));
 			Desc.AutoWritable = false;
-			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, MidGrayDummy, TEXT("MidGrayDummy"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DefaultNormal8Bit, TEXT("DefaultNormal8Bit"));
 
-			SetRenderTarget(RHICmdList, MidGrayDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
-			RHICmdList.CopyToResolveTarget(MidGrayDummy->GetRenderTargetItem().TargetableTexture, MidGrayDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			SetRenderTarget(RHICmdList, DefaultNormal8Bit->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
+			RHICmdList.CopyToResolveTarget(DefaultNormal8Bit->GetRenderTargetItem().TargetableTexture, DefaultNormal8Bit->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
 		// Create the PerlinNoiseGradient texture
@@ -102,6 +102,63 @@ void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICm
 				}
 			}
 			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture, 0, false);
+		}
+
+		// Create the SobolSampling texture
+		{
+			const size_t SobolBits = 8;
+			static const uint16 SobolXCell[SobolBits][4] = {
+				{ 0x5880, 0x7780, 0x9400, 0xc400 },
+				{ 0x5400, 0xa400, 0x4a00, 0xc200 },
+				{ 0x3a80, 0x2980, 0xfb00, 0x5700 },
+				{ 0xe800, 0x8800, 0x0400, 0x5400 },
+				{ 0xea00, 0x3600, 0xa200, 0x8a00 },
+				{ 0x4c00, 0x1c00, 0x2600, 0x5e00 },
+				{ 0xa480, 0x9b80, 0xe600, 0x9e00 },
+				{ 0x6880, 0x0780, 0xae00, 0x7600 }
+			};
+			static const uint16 SobolYCell[SobolBits][4] = {
+				{ 0x8e80, 0xed80, 0xf600, 0x8e00 },
+				{ 0x6e00, 0x8200, 0x8e00, 0x5600 },
+				{ 0xf600, 0xba00, 0x1100, 0x3500 },
+				{ 0x6a80, 0xb980, 0x2200, 0x0a00 },
+				{ 0x2600, 0xaa00, 0x4400, 0x1400 },
+				{ 0xe880, 0x8780, 0x8800, 0x2800 },
+				{ 0xa480, 0x9b80, 0xe600, 0x9e00 },
+				{ 0x6880, 0x0780, 0xae00, 0x7600 }
+			};
+
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1 << SobolBits, 1 << SobolBits), PF_R16G16B16A16_UINT, FClearValueBinding::None, TexCreate_HideInVisualizeTexture, TexCreate_NoFastClear, false));
+			Desc.AutoWritable = false;
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SobolSampling, TEXT("SobolSampling"));
+			// Write the contents of the texture.
+			uint32 DestStride;
+			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SobolSampling->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+
+			for (int y = 0; y < Desc.Extent.Y; ++y)
+			{
+				for (int x = 0; x < Desc.Extent.X; ++x)
+				{
+					uint16 *Dest = (uint16*)(DestBuffer + x * 4 * sizeof(uint16) + y * DestStride);
+					Dest[0] = Dest[1] = Dest[2] = Dest[3] = 0;
+
+					for (int bit = 0; bit < SobolBits; ++bit)
+					{
+						Dest[0] ^= (x & (1 << bit)) ? SobolXCell[bit][0] : 0;
+						Dest[0] ^= (y & (1 << bit)) ? SobolYCell[bit][0] : 0;
+
+						Dest[1] ^= (x & (1 << bit)) ? SobolXCell[bit][1] : 0;
+						Dest[1] ^= (y & (1 << bit)) ? SobolYCell[bit][1] : 0;
+
+						Dest[2] ^= (x & (1 << bit)) ? SobolXCell[bit][2] : 0;
+						Dest[2] ^= (y & (1 << bit)) ? SobolYCell[bit][2] : 0;
+
+						Dest[3] ^= (x & (1 << bit)) ? SobolXCell[bit][3] : 0;
+						Dest[3] ^= (y & (1 << bit)) ? SobolYCell[bit][3] : 0;
+					}
+				}
+			}
+			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)SobolSampling->GetRenderTargetItem().ShaderResourceTexture, 0, false);
 		}
 
 		if (!GSupportsShaderFramebufferFetch && GPixelFormats[PF_FloatRGBA].Supported)
@@ -432,12 +489,13 @@ void FSystemTextures::ReleaseDynamicRHI()
 	BlackAlphaOneDummy.SafeRelease();
 	PerlinNoiseGradient.SafeRelease();
 	PerlinNoise3D.SafeRelease();
+	SobolSampling.SafeRelease();
 	SSAORandomization.SafeRelease();
 	PreintegratedGF.SafeRelease();
 	MaxFP16Depth.SafeRelease();
 	DepthDummy.SafeRelease();
 	GreenDummy.SafeRelease();
-	MidGrayDummy.SafeRelease();
+	DefaultNormal8Bit.SafeRelease();
 
 	GRenderTargetPool.FreeUnusedResources();
 

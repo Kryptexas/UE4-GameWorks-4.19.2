@@ -897,7 +897,7 @@ public:
 	enum
 	{
 		CPPSize = sizeof(TCppType),
-		CPPAlignment = ALIGNOF(TCppType)
+		CPPAlignment = alignof(TCppType)
 	};
 
 	static FORCEINLINE TCHAR const* GetTypeName()

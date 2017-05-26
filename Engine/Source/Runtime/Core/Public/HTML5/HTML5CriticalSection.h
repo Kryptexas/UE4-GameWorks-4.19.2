@@ -44,3 +44,4 @@ private:
 
 typedef FHTML5CriticalSection FCriticalSection;
 typedef FSystemWideCriticalSectionNotImplemented FSystemWideCriticalSection;
+typedef TGenericPlatformRWLock<FHTML5CriticalSection> FRWLock;

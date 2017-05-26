@@ -5,6 +5,7 @@
  */
 
 #include "Random.usf"
+#include "MonteCarlo.usf"
 #include "UniformBuffers/Material.usf"
 
 // for MaterialExpressionDepthOfFieldFunction
@@ -1743,8 +1744,15 @@ void GetMaterialCoverageAndClipping(FMaterialPixelParameters Parameters, FPixelM
 		//float Dither5 = ( ( (uint)Parameters.SvPosition.x + (uint)Parameters.SvPosition.y * 2 + (uint)View.TemporalAAParams.x ) % 5 ) / 5.0;
 		float Dither5 = frac( ( Parameters.SvPosition.x + Parameters.SvPosition.y * 2 - 1.5 + View.TemporalAAParams.x ) / 5 );
 		float Noise = frac( dot( float2( 171.0, 231.0 ) / 71, Parameters.SvPosition.xy ) );
-		float Dither = ( Dither5 * 5 + Noise ) * (1.0 / 6.0) - 0.5;
-		clip( GetMaterialMask(PixelMaterialInputs) + Dither );
+		float Dither = ( Dither5 * 5 + Noise ) * (1.0 / 6.0);
+
+		float2 DepthGrad = {
+			ddx( Parameters.SvPosition.z ),
+			ddy( Parameters.SvPosition.z )
+		};
+		Dither = frac( Dither + dot( DepthGrad, float2( 4093, 3571 ) ) );
+
+		clip( GetMaterialMask(PixelMaterialInputs) + Dither - 0.5 );
 	#else
 		clip(GetMaterialMask(PixelMaterialInputs));
 	#endif

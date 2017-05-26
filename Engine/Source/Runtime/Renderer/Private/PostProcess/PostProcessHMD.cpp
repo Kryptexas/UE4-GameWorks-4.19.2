@@ -181,7 +181,7 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 		Context.SetViewportAndCallRHI(DestRect);
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 
 	FGraphicsPipelineStateInitializer GraphicsPSOInit;

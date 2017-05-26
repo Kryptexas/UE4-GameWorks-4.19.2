@@ -1129,7 +1129,7 @@ void FRCPassPostProcessWeightedSampleSum::DrawClear(FRHICommandListImmediate& RH
 		AdjustRectsForFastBlur(SrcRect, DestRect);
 	}
 
-	DrawClearQuad(RHICmdList, FeatureLevel, true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);	
+	DrawClearQuad(RHICmdList, true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);	
 }
 
 void FRCPassPostProcessWeightedSampleSum::DrawQuad(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const

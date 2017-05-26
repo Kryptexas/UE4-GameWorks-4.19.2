@@ -14,6 +14,9 @@
 #include "SceneRendering.h"
 #include "VolumeRendering.h"
 
+
+bool UseNearestDepthNeighborUpsampleForSeparateTranslucency(const FSceneRenderTargets& SceneContext);
+
 /**
 * Translucent draw policy factory.
 * Creates the policies needed for rendering a mesh based on its material
@@ -25,18 +28,19 @@ public:
 	struct ContextType 
 	{
 		const FProjectedShadowInfo* TranslucentSelfShadow;
-		ETranslucencyPass::Type TranslucenyPassType;
+		ETranslucencyPass::Type TranslucencyPass;
 		ESceneRenderTargetsMode::Type TextureMode;
-		bool bSceneColorCopyIsUpToDate;
 		bool bPostAA;
 
-		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPass::Type InTranslucenyPassType = ETranslucencyPass::TPT_StandardTranslucency, bool bPostAAIn = false, ESceneRenderTargetsMode::Type InTextureMode = ESceneRenderTargetsMode::SetTextures)
+		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow, ETranslucencyPass::Type InTranslucencyPass, bool bPostAAIn = false, ESceneRenderTargetsMode::Type InTextureMode = ESceneRenderTargetsMode::SetTextures)
 			: TranslucentSelfShadow(InTranslucentSelfShadow)
-			, TranslucenyPassType(InTranslucenyPassType)
+			, TranslucencyPass(InTranslucencyPass)
 			, TextureMode(InTextureMode)
-			, bSceneColorCopyIsUpToDate(false)
 			, bPostAA(bPostAAIn)			
 		{}
+
+		/** Whether this material should be processed now */
+		bool ShouldDraw(const FViewInfo& View, const FMaterial* Material, bool bIsSeparateTranslucency) const;
 	};
 
 	/**
@@ -73,7 +77,8 @@ public:
 	/**
 	* Resolves the scene color target and copies it for use as a source texture.
 	*/
-	static void CopySceneColor(FRHICommandList& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
+	static void CopySceneColor(FRHICommandList& RHICmdList, const FViewInfo& View);
+	static void UpsampleTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bOverwrite);
 
 private:
 	/**

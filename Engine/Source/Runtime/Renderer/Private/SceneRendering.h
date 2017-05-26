@@ -152,7 +152,7 @@ namespace ETranslucencyPass
 	enum Type
 	{
 		TPT_StandardTranslucency,
-		TPT_SeparateTranslucency,
+		TPT_TranslucencyAfterDOF,
 
 		/** Drawing all translucency, regardless of separate or standard.  Used when drawing translucency outside of the main renderer, eg FRendererModule::DrawTile. */
 		TPT_AllTranslucency,
@@ -165,6 +165,8 @@ struct FTranslucenyPrimCount
 {
 private:
 	uint32 Count[ETranslucencyPass::TPT_MAX];
+	bool UseSceneColorCopyPerPass[ETranslucencyPass::TPT_MAX];
+	bool DisableOffscreenRenderingPerPass[ETranslucencyPass::TPT_MAX];
 
 public:
 	// constructor
@@ -173,6 +175,8 @@ public:
 		for(uint32 i = 0; i < ETranslucencyPass::TPT_MAX; ++i)
 		{
 			Count[i] = 0;
+			UseSceneColorCopyPerPass[i] = false;
+			DisableOffscreenRenderingPerPass[i] = false;
 		}
 	}
 
@@ -182,13 +186,17 @@ public:
 		for(uint32 i = 0; i < ETranslucencyPass::TPT_MAX; ++i)
 		{
 			Count[i] += InSrc.Count[i];
+			UseSceneColorCopyPerPass[i] |= InSrc.UseSceneColorCopyPerPass[i];
+			DisableOffscreenRenderingPerPass[i] |= InSrc.DisableOffscreenRenderingPerPass[i];
 		}
 	}
 
 	// interface similar to TArray but here we only store the count of Prims per pass
-	void Add(ETranslucencyPass::Type InPass)
+	void Add(ETranslucencyPass::Type InPass, bool bUseSceneColorCopy, bool bDisableOffscreenRendering)
 	{
 		++Count[InPass];
+		UseSceneColorCopyPerPass[InPass] |= bUseSceneColorCopy;
+		DisableOffscreenRenderingPerPass[InPass] |= bDisableOffscreenRendering;
 	}
 
 	// @return range in SortedPrims[] after sorting
@@ -217,6 +225,16 @@ public:
 	int32 Num(ETranslucencyPass::Type InPass) const
 	{
 		return Count[InPass];
+	}
+
+	bool UseSceneColorCopy(ETranslucencyPass::Type InPass) const
+	{
+		return UseSceneColorCopyPerPass[InPass];
+	}
+
+	bool DisableOffscreenRendering(ETranslucencyPass::Type InPass) const
+	{
+		return DisableOffscreenRenderingPerPass[InPass];
 	}
 };
 
@@ -278,9 +296,9 @@ class FMeshDecalPrimSet : public FSortedPrimSet<uint32>
 public:
 	typedef FSortedPrimSet<uint32>::FSortedPrim KeyType;
 
-	static KeyType GenerateKey(FPrimitiveSceneInfo* PrimitiveSceneInfo)
+	static KeyType GenerateKey(FPrimitiveSceneInfo* PrimitiveSceneInfo, int16 InSortPriority)
 	{
-		return KeyType(PrimitiveSceneInfo, 0);
+		return KeyType(PrimitiveSceneInfo, (uint32)(InSortPriority - SHRT_MIN));
 	}
 };
 
@@ -365,7 +383,7 @@ public:
 	* Insert a primitive to the translucency rendering list[s]
 	*/
 	
-	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency,
+	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, const FPrimitiveViewRelevance& ViewRelevance,
 		FTranslucentSortedPrim* InArrayStart, int32& InOutArrayNum, FTranslucenyPrimCount& OutCount);
 
 	/**
@@ -1389,27 +1407,11 @@ protected:
 	*/
 	bool CheckForProjectedShadows(const FLightSceneInfo* LightSceneInfo) const;
 
-	/** Returns whether a per object shadow should be created due to the light being a stationary light. */
-	bool ShouldCreateObjectShadowForStationaryLight(const FLightSceneInfo* LightSceneInfo, const FPrimitiveSceneProxy* PrimitiveSceneProxy, bool bInteractionShadowMapped) const;
-
 	/** Gathers the list of primitives used to draw various shadow types */
 	void GatherShadowPrimitives(
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows,
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 		bool bReflectionCaptureScene);
-
-	/**
-	* Checks to see if this primitive is affected by various shadow types
-	*
-	* @param PrimitiveSceneInfoCompact The primitive to check for shadow interaction
-	* @param PreShadows The list of pre-shadows to check against
-	*/
-	void GatherShadowsForPrimitiveInner(const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact,
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows,
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		bool bReflectionCaptureScene);
-
-	void BeginRenderRayTracedDistanceFieldProjections(FRHICommandListImmediate& RHICmdList);
 
 	void RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList);
 	void RenderShadowDepthMapAtlases(FRHICommandListImmediate& RHICmdList);
@@ -1456,7 +1458,7 @@ protected:
 	void InitFogConstants();
 
 	/** Returns whether there are translucent primitives to be rendered. */
-	bool ShouldRenderTranslucency() const;
+	bool ShouldRenderTranslucency(ETranslucencyPass::Type TranslucencyPass) const;
 
 	/** TODO: REMOVE if no longer needed: Copies scene color to the viewport's render target after applying gamma correction. */
 	void GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdList, const FViewInfo* View, float OverrideGamma);

@@ -91,6 +91,14 @@ FAutoConsoleVariableRef CVarAOOverwriteSceneColor(
 	ECVF_RenderThreadSafe
 	);
 
+int32 GAOJitterConeDirections = 0;
+FAutoConsoleVariableRef CVarAOJitterConeDirections(
+	TEXT("r.AOJitterConeDirections"),
+	GAOJitterConeDirections,
+	TEXT(""),
+	ECVF_RenderThreadSafe
+	);
+
 int32 GMaxDistanceFieldObjectsPerCullTile = 512;
 FAutoConsoleVariableRef CVarMaxDistanceFieldObjectsPerCullTile(
 	TEXT("r.AOMaxObjectsPerCullTile"),
@@ -160,7 +168,21 @@ const FVector RelaxedSpacedVectors9[] =
 	FVector(0.032967, -0.435625, 0.899524)
 };
 
-void GetSpacedVectors(TArray<FVector, TInlineAllocator<9> >& OutVectors)
+float TemporalHalton2( int32 Index, int32 Base )
+{
+	float Result = 0.0f;
+	float InvBase = 1.0f / Base;
+	float Fraction = InvBase;
+	while( Index > 0 )
+	{
+		Result += ( Index % Base ) * Fraction;
+		Index /= Base;
+		Fraction *= InvBase;
+	}
+	return Result;
+}
+
+void GetSpacedVectors(uint32 FrameNumber, TArray<FVector, TInlineAllocator<9> >& OutVectors)
 {
 	OutVectors.Empty(ARRAY_COUNT(SpacedVectors9));
 
@@ -176,6 +198,22 @@ void GetSpacedVectors(TArray<FVector, TInlineAllocator<9> >& OutVectors)
 		for (int32 i = 0; i < ARRAY_COUNT(RelaxedSpacedVectors9); i++)
 		{
 			OutVectors.Add(RelaxedSpacedVectors9[i]);
+		}
+	}
+
+	if (GAOJitterConeDirections)
+	{
+		float RandomAngle = TemporalHalton2(FrameNumber & 1023, 2) * 2 * PI;
+		float CosRandomAngle = FMath::Cos(RandomAngle);
+		float SinRandomAngle = FMath::Sin(RandomAngle);
+
+		for (int32 i = 0; i < OutVectors.Num(); i++)
+		{
+			FVector ConeDirection = OutVectors[i];
+			FVector2D ConeDirectionXY(ConeDirection.X, ConeDirection.Y);
+			ConeDirectionXY = FVector2D(FVector2D::DotProduct(ConeDirectionXY, FVector2D(CosRandomAngle, -SinRandomAngle)), FVector2D::DotProduct(ConeDirectionXY, FVector2D(SinRandomAngle, CosRandomAngle)));
+			OutVectors[i].X = ConeDirectionXY.X;
+			OutVectors[i].Y = ConeDirectionXY.Y;
 		}
 	}
 }

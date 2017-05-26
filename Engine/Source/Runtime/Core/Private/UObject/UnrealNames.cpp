@@ -6,7 +6,6 @@
 #include "Math/NumericLimits.h"
 #include "Math/UnrealMathUtility.h"
 #include "HAL/UnrealMemory.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "Misc/CString.h"
 #include "Misc/Crc.h"
@@ -1277,7 +1276,7 @@ public:
 		check(ThreadGuard.Increment() == 1);
 		// Some platforms need all of the name entries to be aligned to 4 bytes, so by
 		// aligning the size here the next allocation will be aligned to 4
-		Size = Align( Size, ALIGNOF(FNameEntry) );
+		Size = Align( Size, alignof(FNameEntry) );
 
 		// Allocate a new pool if current one is exhausted. We don't worry about a little bit
 		// of waste at the end given the relative size of pool to average and max allocation.

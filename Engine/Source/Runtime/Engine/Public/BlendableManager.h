@@ -45,7 +45,7 @@ public:
 		FName BlendableType = T::GetFName();
 
 		// at least 4 byte alignment
-		uint32 Alignment = FMath::Max((uint32)4, (uint32)ALIGNOF(T));
+		uint32 Alignment = FMath::Max((uint32)4, (uint32)alignof(T));
 
 		FBlendableEntry* Entry = PushBlendableDataPtr(InWeight, BlendableType, (const uint8*)&InData, sizeof(T), Alignment);
 

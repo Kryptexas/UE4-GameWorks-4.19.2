@@ -754,6 +754,11 @@ inline bool IsConsolePlatform(const EShaderPlatform Platform)
 	return Platform == SP_PS4 || Platform == SP_XBOXONE_D3D12 || Platform == SP_XBOXONE_D3D11;
 }
 
+inline bool IsSwitchPlatform(const EShaderPlatform Platform)
+{
+	return Platform == SP_SWITCH || Platform == SP_SWITCH_FORWARD;
+}
+
 inline bool IsVulkanPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_VULKAN_SM5 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID;
@@ -788,6 +793,11 @@ inline bool IsD3DPlatform(const EShaderPlatform Platform, bool bIncludeXboxOne)
 	return false;
 }
 
+inline bool IsHlslccShaderPlatform(const EShaderPlatform Platform)
+{
+	return IsMetalPlatform(Platform) || IsVulkanPlatform(Platform) || IsSwitchPlatform(Platform) || IsOpenGLPlatform(Platform);
+}
+
 inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShaderPlatform)
 {
 	switch (InShaderPlatform)
@@ -807,7 +817,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_SM4:
 	case SP_OPENGL_SM4_MAC:
 	case SP_METAL_MRT:
-    case SP_METAL_MRT_MAC:
+	case SP_METAL_MRT_MAC:
 	case SP_METAL_SM4:
 		return ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
@@ -850,7 +860,7 @@ inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 
 	// ES2 & ES3.1 need to flip when rendering to an RT that will be post processed
 	return IsOpenGLPlatform(Platform) && IsMobilePlatform(Platform) && !IsPCPlatform(Platform) && Platform != SP_METAL && !IsVulkanPlatform(Platform)
-	       && Platform != SP_SWITCH && Platform != SP_SWITCH_FORWARD;
+		   && Platform != SP_SWITCH && Platform != SP_SWITCH_FORWARD;
 }
 
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)

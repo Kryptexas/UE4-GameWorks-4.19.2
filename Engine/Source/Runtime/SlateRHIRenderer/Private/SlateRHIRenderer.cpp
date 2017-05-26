@@ -576,6 +576,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
+	FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
+
 	// Optional off-screen UI composition during HDR rendering
 	static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
 	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
@@ -691,7 +693,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		}
 
 #if DEBUG_OVERDRAW
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+		DrawClearQuad(RHICmdList, FLinearColor::Black);
 #endif
 		if( BatchData.GetRenderBatches().Num() > 0 )
 		{

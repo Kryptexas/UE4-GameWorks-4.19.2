@@ -84,7 +84,7 @@ private:
 };
 
 
-#define THRESH_UVS_ARE_SAME (1.0f / 1024.0f)
+#define THRESH_UVS_ARE_SAME THRESH_POINTS_ARE_SAME
 
 inline bool FLayoutUV::PositionsMatch( uint32 a, uint32 b ) const
 {

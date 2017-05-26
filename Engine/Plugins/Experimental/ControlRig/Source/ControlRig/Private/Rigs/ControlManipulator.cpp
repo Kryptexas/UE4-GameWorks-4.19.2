@@ -549,7 +549,7 @@ void USphereManipulator::Draw(const FTransform& InTransform, const FSceneView* V
 	if(ColorMaterial.IsValid())
 	{ 
 		ColorMaterial->SetVectorParameterValue("Color", FVector(bIsSelected ? SelectedColor : Color));
-		DrawSphere(PDI, InTransform.GetLocation(), FVector(Radius) * CurrentProximity, 64, 64, ColorMaterial->GetRenderProxy(false), SDPG_World);
+		DrawSphere(PDI, InTransform.GetLocation(), FRotator::ZeroRotator, FVector(Radius) * CurrentProximity, 64, 64, ColorMaterial->GetRenderProxy(false), SDPG_World);
 	}
 }
 

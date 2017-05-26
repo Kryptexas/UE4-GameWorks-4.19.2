@@ -1136,6 +1136,17 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			TickWorldTravel(Context, DeltaSeconds);
 		}
 
+		if (!bIdleMode)
+		{
+			SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - WorldTick"));
+
+			// Tick the world.
+			GameCycles=0;
+			CLOCK_CYCLES(GameCycles);
+			Context.World()->Tick( LEVELTICK_All, DeltaSeconds );
+			UNCLOCK_CYCLES(GameCycles);
+		}
+
 		if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_CheckCaptures);
@@ -1149,16 +1160,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			}
 		}
 
-		if (!bIdleMode)
-		{
-			SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick - WorldTick"));
-
-			// Tick the world.
-			GameCycles=0;
-			CLOCK_CYCLES(GameCycles);
-			Context.World()->Tick( LEVELTICK_All, DeltaSeconds );
-			UNCLOCK_CYCLES(GameCycles);
-		}
+		
 
 		// Issue cause event after first tick to provide a chance for the game to spawn the player and such.
 		if( Context.World()->bWorldWasLoadedThisTick )

@@ -293,7 +293,7 @@ public:
 
 	bool ShouldOperateOnLevel(ULevel* InLevel) const
 	{
-		return !InLevel->bIsLightingScenario || InLevel == LightingScenario;
+		return InLevel && (!InLevel->bIsLightingScenario || InLevel == LightingScenario) && InLevel->bIsVisible;
 	}
 
 private:

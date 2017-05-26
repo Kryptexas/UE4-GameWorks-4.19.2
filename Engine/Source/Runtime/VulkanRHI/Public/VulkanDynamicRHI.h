@@ -252,7 +252,7 @@ protected:
 			return false;
 		}
 
-		if (RHICmdList->Bypass() || !GRHIThread)
+		if (RHICmdList->Bypass() || !IsRunningRHIInSeparateThread())
 		{
 			return false;
 		}

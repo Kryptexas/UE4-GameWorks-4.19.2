@@ -149,6 +149,7 @@
 #include "Materials/MaterialExpressionSceneTexture.h"
 #include "Materials/MaterialExpressionScreenPosition.h"
 #include "Materials/MaterialExpressionSine.h"
+#include "Materials/MaterialExpressionSobol.h"
 #include "Materials/MaterialExpressionSpeedTree.h"
 #include "Materials/MaterialExpressionSphereMask.h"
 #include "Materials/MaterialExpressionSphericalParticleOpacity.h"
@@ -158,6 +159,7 @@
 #include "Materials/MaterialExpressionSubtract.h"
 #include "Materials/MaterialExpressionTangent.h"
 #include "Materials/MaterialExpressionTangentOutput.h"
+#include "Materials/MaterialExpressionTemporalSobol.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureObject.h"
 #include "Materials/MaterialExpressionTextureProperty.h"
@@ -6916,6 +6918,11 @@ void UMaterialExpressionPower::GetCaption(TArray<FString>& OutCaptions) const
 
 	OutCaptions.Add(ret);
 }
+
+void UMaterialExpressionPower::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns the Base value raised to the power of Exponent. Base value must be positive, values less than 0 will be clamped."), 40, OutToolTip);
+}
 #endif // WITH_EDITOR
 
 UMaterialExpressionLogarithm2::UMaterialExpressionLogarithm2(const FObjectInitializer& ObjectInitializer)
@@ -10586,6 +10593,91 @@ void UMaterialExpressionSphereMask::GetCaption(TArray<FString>& OutCaptions) con
 #endif // WITH_EDITOR
 
 ///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionSobol
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionSobol::UMaterialExpressionSobol(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	ConstIndex = 0;
+	ConstSeed = FVector2D(0.f, 0.f);
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionSobol::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	int32 CellInput = Cell.GetTracedInput().Expression ? Cell.Compile(Compiler) : Compiler->Constant2(0.f, 0.f);
+	int32 IndexInput = Index.GetTracedInput().Expression ? Index.Compile(Compiler) : Compiler->Constant(ConstIndex);
+	int32 SeedInput = Seed.GetTracedInput().Expression ? Seed.Compile(Compiler) : Compiler->Constant2(ConstSeed.X, ConstSeed.Y);
+	return Compiler->Sobol(CellInput, IndexInput, SeedInput);
+}
+
+void UMaterialExpressionSobol::GetCaption(TArray<FString>& OutCaptions) const
+{
+	FString Caption = TEXT("Sobol");
+
+	if (!Index.GetTracedInput().Expression)
+	{
+		Caption += FString::Printf(TEXT(" (%d)"), ConstIndex);;
+	}
+
+	OutCaptions.Add(Caption);
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionTemporalSobol
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionTemporalSobol::UMaterialExpressionTemporalSobol(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	ConstIndex = 0;
+	ConstSeed = FVector2D(0.f, 0.f);
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionTemporalSobol::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	int32 IndexInput = Index.GetTracedInput().Expression ? Index.Compile(Compiler) : Compiler->Constant(ConstIndex);
+	int32 SeedInput = Seed.GetTracedInput().Expression ? Seed.Compile(Compiler) : Compiler->Constant2(ConstSeed.X, ConstSeed.Y);
+	return Compiler->TemporalSobol(IndexInput, SeedInput);
+}
+
+void UMaterialExpressionTemporalSobol::GetCaption(TArray<FString>& OutCaptions) const
+{
+	FString Caption = TEXT("Temporal Sobol");
+
+	if (!Index.GetTracedInput().Expression)
+	{
+		Caption += FString::Printf(TEXT(" (%d)"), ConstIndex);;
+	}
+
+	OutCaptions.Add(Caption);
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionNoise
 ///////////////////////////////////////////////////////////////////////////////
 UMaterialExpressionNoise::UMaterialExpressionNoise(const FObjectInitializer& ObjectInitializer)
@@ -10679,6 +10771,9 @@ int32 UMaterialExpressionNoise::Compile(class FMaterialCompiler* Compiler, int32
 
 void UMaterialExpressionNoise::GetCaption(TArray<FString>& OutCaptions) const
 {
+	const UEnum* NFEnum = FindObject<UEnum>(nullptr, TEXT("Engine.ENoiseFunction"));
+	check(NFEnum);
+	OutCaptions.Add(NFEnum->GetDisplayNameTextByValue(NoiseFunction).ToString());
 	OutCaptions.Add(TEXT("Noise"));
 }
 #endif // WITH_EDITOR
@@ -10752,6 +10847,9 @@ int32 UMaterialExpressionVectorNoise::Compile(class FMaterialCompiler* Compiler,
 
 void UMaterialExpressionVectorNoise::GetCaption(TArray<FString>& OutCaptions) const
 {
+	const UEnum* VNFEnum = FindObject<UEnum>(nullptr, TEXT("Engine.EVectorNoiseFunction"));
+	check(VNFEnum);
+	OutCaptions.Add(VNFEnum->GetDisplayNameTextByValue(NoiseFunction).ToString());
 	OutCaptions.Add(TEXT("Vector Noise"));
 }
 #endif // WITH_EDITOR

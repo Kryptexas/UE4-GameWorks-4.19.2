@@ -63,7 +63,7 @@ template struct TDrawEvent<FRHIAsyncComputeCommandList>;
 
 void FDrawEventRHIExecute::Start(IRHIComputeContext& InRHICommandContext, FColor Color, const TCHAR* Fmt, ...)
 {
-	check(IsInParallelRenderingThread() || IsInRHIThread() || (!GRHIThread && IsInRenderingThread()));
+	check(IsInParallelRenderingThread() || IsInRHIThread() || (!IsRunningRHIInSeparateThread() && IsInRenderingThread()));
 	{
 		va_list ptr;
 		va_start(ptr, Fmt);

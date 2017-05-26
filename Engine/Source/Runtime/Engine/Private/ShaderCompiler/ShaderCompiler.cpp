@@ -109,8 +109,9 @@ static int32 GDumpShaderDebugInfo = 0;
 static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 	TEXT("r.DumpShaderDebugInfo"),
 	GDumpShaderDebugInfo,
-	TEXT("When set to 1, will cause any shaders that are then compiled to dump debug info to GameName/Saved/ShaderDebugInfo\n")
+	TEXT("When set to 1, will cause any material shaders that are then compiled to dump debug info to GameName/Saved/ShaderDebugInfo\n")
 	TEXT("The debug info is platform dependent, but usually includes a preprocessed version of the shader source.\n")
+	TEXT("Global shaders automatically dump debug info if r.ShaderDevelopmentMode is enabled, this cvar is not necessary.\n")
 	TEXT("On iOS, if the PowerVR graphics SDK is installed to the default path, the PowerVR shader compiler will be called and errors will be reported during the cook.")
 	);
 
@@ -2523,7 +2524,7 @@ void GlobalBeginCompileShader(
 	FShaderCompilerInput& Input = NewJob->Input;
 	Input.Target = Target;
 	Input.ShaderFormat = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));
-	Input.SourceFilename = SourceFilename;
+	Input.SourceFilename = *FindShaderRelativePath(SourceFilename);
 	Input.EntryPointName = FunctionName;
 	Input.bCompilingForShaderPipeline = false;
 	Input.bIncludeUsedOutputs = false;
@@ -2612,7 +2613,10 @@ void GlobalBeginCompileShader(
 		}
 	}
 	
-	if (GDumpShaderDebugInfo != 0)
+	static const auto CVarShaderDevelopmentMode = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShaderDevelopmentMode"));
+
+	// Setup the debug info path if requested, or if this is a global shader and shader development mode is enabled
+	if (GDumpShaderDebugInfo != 0 || (ShaderType->GetGlobalShaderType() != NULL && CVarShaderDevelopmentMode->GetInt() != 0))
 	{
 		Input.DumpDebugInfoPath = Input.DumpDebugInfoRootPath / Input.DebugGroupName;
 		
@@ -3847,7 +3851,7 @@ void VerifyGlobalShaders(EShaderPlatform Platform, bool bLoadedFromCacheFile)
 	check(!FPlatformProperties::IsServerOnly());
 	check(GGlobalShaderMap[Platform]);
 
-	UE_LOG(LogShaders, Log, TEXT("Verifying Global Shaders for %s"), *LegacyShaderPlatformToShaderFormat(Platform).ToString());
+	UE_LOG(LogMaterial, Log, TEXT("Verifying Global Shaders for %s"), *LegacyShaderPlatformToShaderFormat(Platform).ToString());
 
 	// Ensure that the global shader map contains all global shader types.
 	TShaderMap<FGlobalShaderType>* GlobalShaderMap = GetGlobalShaderMap(Platform);
@@ -4135,7 +4139,7 @@ void CompileGlobalShaderMap(EShaderPlatform Platform, bool bRefreshShaderMap)
 	{
 		if (!GGlobalShaderMap[Platform])
 		{
-			GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>();
+			GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>(Platform);
 		}
 		return;
 	}
@@ -4163,7 +4167,7 @@ void CompileGlobalShaderMap(EShaderPlatform Platform, bool bRefreshShaderMap)
 		SlowTask.EnterProgressFrame(20);
 		VerifyShaderSourceFiles();
 
-		GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>();
+		GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>(Platform);
 
 		bool bLoadedFromCacheFile = false;
 

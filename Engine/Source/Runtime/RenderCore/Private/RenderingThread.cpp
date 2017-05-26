@@ -20,6 +20,7 @@
 #include "Stats/StatsData.h"
 #include "HAL/ThreadHeartBeat.h"
 #include "RenderResource.h"
+#include "ScopeLock.h"
 
 //
 // Globals
@@ -29,7 +30,6 @@
 
 RENDERCORE_API bool GIsThreadedRendering = false;
 RENDERCORE_API bool GUseThreadedRendering = false;
-RENDERCORE_API bool GUseRHIThread = false;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	RENDERCORE_API bool GMainThreadBlockedOnRenderThread = false;
@@ -413,7 +413,7 @@ public:
 		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
 
 		// Acquire rendering context ownership on the current thread, unless using an RHI thread, which will be the real owner
-		if (!GUseRHIThread)
+		if (!IsRunningRHIInSeparateThread())
 		{
 			bAcquiredThreadOwnership = true;
 			RHIAcquireThreadOwnership();
@@ -632,7 +632,7 @@ public:
 	**/
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		// note that this task is the first task run on the thread, before GRHIThread is assigned, so we can't check IsInRHIThread()
+		// note that this task is the first task run on the thread, before GRHIThread_InternalUseOnly is assigned, so we can't check IsInRHIThread()
 
 		if (bAcquireOwnership)
 		{
@@ -655,8 +655,9 @@ void StartRenderingThread()
 	static uint32 ThreadCount = 0;
 	check(!GIsThreadedRendering && GUseThreadedRendering);
 
-	check(!GRHIThread)
-	if (GUseRHIThread)
+	check(!GRHIThread_InternalUseOnly && !GIsRunningRHIInSeparateThread_InternalUseOnly && !GIsRunningRHIInDedicatedThread_InternalUseOnly && !GIsRunningRHIInTaskThread_InternalUseOnly);
+
+	if (GUseRHIThread_InternalUseOnly)
 	{
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);		
 		if (!FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RHIThread))
@@ -668,9 +669,17 @@ void StartRenderingThread()
 		FGraphEventRef CompletionEvent = TGraphTask<FOwnershipOfRHIThreadTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(true, GET_STATID(STAT_WaitForRHIThread));
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_StartRenderingThread);
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompletionEvent, ENamedThreads::GameThread_Local);
-		GRHIThread = FRHIThread::Get().Thread;
-		check(GRHIThread);
+		GRHIThread_InternalUseOnly = FRHIThread::Get().Thread;
+		check(GRHIThread_InternalUseOnly);
 		GRHICommandList.LatchBypass();
+		GIsRunningRHIInDedicatedThread_InternalUseOnly = true;
+		GIsRunningRHIInSeparateThread_InternalUseOnly = true;
+		GRHIThreadId = GRHIThread_InternalUseOnly->GetThreadID();
+	}
+	else if (GUseRHITaskThreads_InternalUseOnly)
+	{
+		GIsRunningRHIInSeparateThread_InternalUseOnly = true;
+		GIsRunningRHIInTaskThread_InternalUseOnly = true;
 	}
 
 	// Turn on the threaded rendering flag.
@@ -736,14 +745,20 @@ void StopRenderingThread()
 		// The rendering thread may have already been stopped during the call to GFlushStreamingFunc or FlushRenderingCommands.
 		if ( GIsThreadedRendering )
 		{
-			if (GRHIThread)
+			if (GRHIThread_InternalUseOnly)
 			{
 				DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread Finish"), STAT_WaitForRHIThreadFinish, STATGROUP_TaskGraphTasks);
 				FGraphEventRef ReleaseTask = TGraphTask<FOwnershipOfRHIThreadTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(false, GET_STATID(STAT_WaitForRHIThreadFinish));
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_StopRenderingThread_RHIThread);
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(ReleaseTask, ENamedThreads::GameThread_Local);
-				GRHIThread = nullptr;
+				GRHIThread_InternalUseOnly = nullptr;
+				GRHIThreadId = 0;
 			}
+
+			GIsRunningRHIInSeparateThread_InternalUseOnly = false;
+			GIsRunningRHIInDedicatedThread_InternalUseOnly = false;
+			GIsRunningRHIInTaskThread_InternalUseOnly = false;
+
 
 			check( GRenderingThread );
 			check(!GIsRenderingThreadSuspended);
@@ -787,7 +802,7 @@ void StopRenderingThread()
 		delete PendingCleanupObjects;
 	}
 
-	check(!GRHIThread);
+	check(!GRHIThread_InternalUseOnly);
 }
 
 void CheckRenderingThreadHealth()
@@ -1077,7 +1092,7 @@ void FlushRenderingCommands()
 
 void FlushPendingDeleteRHIResources_GameThread()
 {
-	if (!GRHIThread)
+	if (!IsRunningRHIInSeparateThread())
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 			FlushPendingDeleteRHIResources,
@@ -1089,7 +1104,7 @@ void FlushPendingDeleteRHIResources_GameThread()
 }
 void FlushPendingDeleteRHIResources_RenderThread()
 {
-	if (!GRHIThread)
+	if (!IsRunningRHIInSeparateThread())
 	{
 		FRHIResource::FlushPendingDeletes();
 	}
@@ -1169,47 +1184,73 @@ FPendingCleanupObjects* GetPendingCleanupObjects()
 	return new FPendingCleanupObjects;
 }
 
-void SetRHIThreadEnabled(bool bEnable)
+void SetRHIThreadEnabled(bool bEnableDedicatedThread, bool bEnableRHIOnTaskThreads)
 {
-	if (bEnable != GUseRHIThread)
+	if (bEnableDedicatedThread != GUseRHIThread_InternalUseOnly || bEnableRHIOnTaskThreads != GUseRHITaskThreads_InternalUseOnly)
 	{
-		if (GRHISupportsRHIThread)
+		if ((bEnableRHIOnTaskThreads || bEnableDedicatedThread) && !GIsThreadedRendering)
 		{
-			if (!GIsThreadedRendering)
-			{
-				check(!GRHIThread);
-				UE_LOG(LogRendererCore, Display, TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
-			}
-			else
-			{
-				StopRenderingThread();
-				GUseRHIThread = bEnable;
-				StartRenderingThread();
-			}
-			UE_LOG(LogRendererCore, Display, TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
+			check(!IsRunningRHIInSeparateThread());
+			UE_LOG(LogConsoleResponse, Display, TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
 		}
 		else
 		{
-			UE_LOG(LogRendererCore, Display, TEXT("This RHI does not support the RHI thread."));
+			StopRenderingThread();
+			if (bEnableRHIOnTaskThreads)
+			{
+				GUseRHIThread_InternalUseOnly = false;
+				GUseRHITaskThreads_InternalUseOnly = true;
+			}
+			else if (bEnableDedicatedThread)
+			{
+				GUseRHIThread_InternalUseOnly = true;
+				GUseRHITaskThreads_InternalUseOnly = false;
+			}
+			else
+			{
+				GUseRHIThread_InternalUseOnly = false;
+				GUseRHITaskThreads_InternalUseOnly = false;
+			}
+			StartRenderingThread();
 		}
 	}
+	if (IsRunningRHIInSeparateThread())
+	{
+		if (IsRunningRHIInDedicatedThread())
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("RHIThread is now running on a dedicated thread."));
+		}
+		else
+		{
+			check(IsRunningRHIInTaskThread());
+			UE_LOG(LogConsoleResponse, Display, TEXT("RHIThread is now running on task threads."));
+		}
+	}
+	else
+	{
+		check(!IsRunningRHIInTaskThread() && !IsRunningRHIInDedicatedThread());
+		UE_LOG(LogConsoleResponse, Display, TEXT("RHIThread is disabled."));
+	}
+
 }
 
 static void HandleRHIThreadEnableChanged(const TArray<FString>& Args)
 {
 	if (Args.Num() > 0)
 	{
-		const bool bUseRHIThread = Args[0].ToBool();
-		SetRHIThreadEnabled(bUseRHIThread);
+		const int32 UseRHIThread = FCString::Atoi(*Args[0]);
+		SetRHIThreadEnabled(UseRHIThread == 1, UseRHIThread == 2);
 	}
 	else
 	{
-		UE_LOG(LogRendererCore, Display, TEXT("Usage: r.RHIThread.Enable 0/1; Currently %d"), (int32)GUseRHIThread);
+		UE_LOG(LogConsoleResponse, Display, TEXT("Usage: r.RHIThread.Enable 0=off,  1=dedicated thread,  2=task threads; Currently %d"), IsRunningRHIInSeparateThread() ? (IsRunningRHIInDedicatedThread() ? 1 : 2) : 0);
 	}
 }
 
 static FAutoConsoleCommand CVarRHIThreadEnable(
 	TEXT("r.RHIThread.Enable"),
-	TEXT("Enables/disabled the RHI Thread\n"),	
+	TEXT("Enables/disabled the RHI Thread and determine if the RHI work runs on a dedicated thread or not.\n"),	
 	FConsoleCommandWithArgsDelegate::CreateStatic(&HandleRHIThreadEnableChanged)
 	);
+
+

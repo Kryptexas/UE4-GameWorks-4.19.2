@@ -1660,6 +1660,11 @@ void UEngine::InitializeObjectReferences()
 		DefaultBokehTexture = LoadObject<UTexture2D>(NULL, *DefaultBokehTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
+	if (DefaultBloomKernelTexture == NULL)
+	{
+		DefaultBloomKernelTexture = LoadObject<UTexture2D>(NULL, *DefaultBloomKernelTextureName.ToString(), NULL, LOAD_None, NULL);
+	}
+
 	if( PreIntegratedSkinBRDFTexture == NULL )
 	{
 		PreIntegratedSkinBRDFTexture = LoadObject<UTexture2D>(NULL, *PreIntegratedSkinBRDFTextureName.ToString(), NULL, LOAD_None, NULL);
@@ -3802,6 +3807,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	const bool bShouldOnlyListNonStreaming = FParse::Command(&Cmd, TEXT("NONSTREAMING")) && !bShouldOnlyListStreaming;
 	const bool bShouldOnlyListForced = FParse::Command(&Cmd, TEXT("FORCED")) && !bShouldOnlyListStreaming && !bShouldOnlyListNonStreaming;
 	const bool bAlphaSort = FParse::Param( Cmd, TEXT("ALPHASORT") );
+	const bool bCSV = FParse::Param( Cmd, TEXT("CSV") );
 
 	Ar.Logf( TEXT("Listing %s textures."), bShouldOnlyListForced ? TEXT("forced") : bShouldOnlyListNonStreaming ? TEXT("non streaming") : bShouldOnlyListStreaming ? TEXT("streaming") : TEXT("all")  );
 
@@ -3895,13 +3901,17 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	int32 TotalMaxAllowedSize = 0;
 	int32 TotalCurrentSize	= 0;
 
-	if (!FPlatformProperties::RequiresCookedData())
+	if (bCSV)
 	{
-		Ar.Logf(TEXT("MaxAllowedSize: Width x Height (Size in KB, Bias from Authored), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
+		Ar.Logf(TEXT(",Max Width,Max Height,Max Size (KB),Bias Authored,Current Width,Current Height,Current Size (KB),Format,LODGroup,Name,Streaming,Usage Count"));
+	}
+	else if (!FPlatformProperties::RequiresCookedData())
+	{
+		Ar.Logf(TEXT("MaxAllowedSize: Width x Height (Size in KB, Authored Bias), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
 	}
 	else
 	{
-		Ar.Logf(TEXT("Cooked/OnDisk: Width x Height (Size in KB), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
+		Ar.Logf(TEXT("Cooked/OnDisk: Width x Height (Size in KB, Authored Bias), Current/InMem: Width x Height (Size in KB), Format, LODGroup, Name, Streaming, Usage Count"));
 	}
 
 	for( int32 TextureIndex=0; TextureIndex<SortedTextures.Num(); TextureIndex++ )
@@ -3909,28 +3919,22 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		const FSortedTexture& SortedTexture = SortedTextures[TextureIndex];
 		const bool bValidTextureGroup = TextureGroupNames.IsValidIndex(SortedTexture.LODGroup);
 
+		FString AuthoredBiasString(TEXT("?"));
 		if (!FPlatformProperties::RequiresCookedData())
 		{
-			Ar.Logf(TEXT("%ix%i (%i KB, %i), %ix%i (%i KB), %s, %s, %s, %s, %i"),
-				SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024, SortedTexture.LODBias,
-				SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
-				GetPixelFormatString(SortedTexture.Format),
-				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
-				*SortedTexture.Name,
-				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
-				SortedTexture.UsageCount);
+			AuthoredBiasString.Empty();
+			AuthoredBiasString.AppendInt(SortedTexture.LODBias);
 		}
-		else
-		{
-			Ar.Logf(TEXT("%ix%i (%i KB), %ix%i (%i KB), %s, %s, %s, %s, %i"),
-				SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024,
-				SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
-				GetPixelFormatString(SortedTexture.Format),
-				bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
-				*SortedTexture.Name,
-				SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
-				SortedTexture.UsageCount);
-		}
+
+		Ar.Logf(bCSV ? TEXT(",%i, %i, %i, %s, %i, %i, %i, %s, %s, %s, %s, %i") : TEXT("%ix%i (%i KB, %s), %ix%i (%i KB), %s, %s, %s, %s, %i"),
+			SortedTexture.MaxAllowedSizeX, SortedTexture.MaxAllowedSizeY, SortedTexture.MaxAllowedSize / 1024, 
+			*AuthoredBiasString,
+			SortedTexture.CurSizeX, SortedTexture.CurSizeY, SortedTexture.CurrentSize / 1024,
+			GetPixelFormatString(SortedTexture.Format),
+			bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
+			*SortedTexture.Name,
+			SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
+			SortedTexture.UsageCount);
 
 		if (bValidTextureGroup)
 		{
@@ -12631,7 +12635,7 @@ static void SetupThreadAffinity(const TArray<FString>& Args)
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
 		TStatId(), NULL, ENamedThreads::RenderThread);
-	if (GRHIThread)
+	if (GRHIThread_InternalUseOnly)
 	{
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 			FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),

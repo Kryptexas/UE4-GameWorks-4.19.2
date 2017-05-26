@@ -549,7 +549,7 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 			);
 
 		FLinearColor ClearColors[2] = {FLinearColor(0,0,0,0), FLinearColor(0,0,0,0)};
-		DrawClearQuadMRT(RHICmdList, SceneRenderer->FeatureLevel, true, ARRAY_COUNT(ClearColors), ClearColors, false, 1.0f, false, 0);
+		DrawClearQuadMRT(RHICmdList, true, ARRAY_COUNT(ClearColors), ClearColors, false, 1.0f, false, 0);
 
 		// Set the viewport for the shadow.
 		RHICmdList.SetViewport(
@@ -903,7 +903,7 @@ void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Fea
 	if (false)
 #endif
 	{
-		DrawClearQuadMRT(RHICmdList, GMaxRHIFeatureLevel, true, NumRenderTargets, ClearColors, false, 0, false, 0);
+		DrawClearQuadMRT(RHICmdList, true, NumRenderTargets, ClearColors, false, 0, false, 0);
 	}
 	else
 	{

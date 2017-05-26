@@ -4,6 +4,11 @@
 	ShadowFilteringCommon.usf: Contains functions to filter a shadowmap, shared between forward/deferred shading.
 =========================================================================*/
 
+#pragma once
+
+#include "PixelQuadMessagePassing.usf"
+
+
 struct FPCFSamplerSettings
 {
 	Texture2D		ShadowDepthTexture;
@@ -20,6 +25,9 @@ struct FPCFSamplerSettings
 
 	// set by the caller, constant for the code so only one code branch should be compiled
 	bool			bSubsurface;
+
+	// Whether to treat shadow depths near 1 as unshadowed.  This is useful when the shadowmap does not contain all the points being shadowed.
+	bool			bTreatMaxDepthUnshadowed;
 
 	// only used if bSubsurface is true
 	float			DensityMulConstant;
@@ -167,7 +175,15 @@ float4 CalculateOcclusion(float4 ShadowmapDepth, FPCFSamplerSettings Settings)
 		// Using a soft transition based on depth difference
 		// Offsets shadows a bit but reduces self shadowing artifacts considerably
 		float TransitionScale = Settings.TransitionScale; //SoftTransitionScale.z;
-		return saturate((ShadowmapDepth - Settings.SceneDepth) * TransitionScale + 1);
+		float4 ShadowFactor = saturate((ShadowmapDepth - Settings.SceneDepth) * TransitionScale + 1);
+
+		FLATTEN
+		if (Settings.bTreatMaxDepthUnshadowed)
+		{
+			ShadowFactor = saturate(ShadowFactor + (ShadowmapDepth > .99f));
+		}
+
+		return ShadowFactor;
 	}
 }
 
@@ -189,7 +205,15 @@ float3 CalculateOcclusion(float3 ShadowmapDepth, FPCFSamplerSettings Settings)
 		// Using a soft transition based on depth difference
 		// Offsets shadows a bit but reduces self shadowing artifacts considerably
 		float TransitionScale = Settings.TransitionScale; //SoftTransitionScale.z;
-		return saturate((ShadowmapDepth - Settings.SceneDepth) * TransitionScale + 1);
+		float3 ShadowFactor = saturate((ShadowmapDepth - Settings.SceneDepth) * TransitionScale + 1);
+
+		FLATTEN
+		if (Settings.bTreatMaxDepthUnshadowed)
+		{
+			ShadowFactor = saturate(ShadowFactor + (ShadowmapDepth > .99f));
+		}
+
+		return ShadowFactor;
 	}
 }
 
@@ -261,6 +285,7 @@ float Manual1x1PCF(float2 ShadowPosition, FPCFSamplerSettings Settings)
 	float4 Values00 = CalculateOcclusion(Samples, Settings);
 	return PCF1x1(Fraction, Values00);
 }
+
 
 float ManualPCF(float2 ShadowPosition, FPCFSamplerSettings Settings)
 {

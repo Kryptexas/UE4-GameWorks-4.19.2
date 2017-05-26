@@ -188,11 +188,19 @@ Buffer<uint> CulledObjectGrid;
 Texture3D<float> ParentGlobalDistanceFieldTexture;
 RWTexture3D<float> RWGlobalDistanceFieldTexture;
 
-#ifndef COMPOSITE_THREADGROUP_SIZE
-#define COMPOSITE_THREADGROUP_SIZE 1
+#ifndef COMPOSITE_THREADGROUP_SIZEX
+#define COMPOSITE_THREADGROUP_SIZEX 1
 #endif
 
-#define COMPOSITE_THREADGORUP_TOTALSIZE (COMPOSITE_THREADGROUP_SIZE * COMPOSITE_THREADGROUP_SIZE * COMPOSITE_THREADGROUP_SIZE)
+#ifndef COMPOSITE_THREADGROUP_SIZEY
+#define COMPOSITE_THREADGROUP_SIZEY 1
+#endif
+
+#ifndef COMPOSITE_THREADGROUP_SIZEZ
+#define COMPOSITE_THREADGROUP_SIZEZ 1
+#endif
+
+#define COMPOSITE_THREADGORUP_TOTALSIZE (COMPOSITE_THREADGROUP_SIZEX * COMPOSITE_THREADGROUP_SIZEY * COMPOSITE_THREADGROUP_SIZEZ)
 
 #define MAX_CULLED_DF_OBJECTS 512
 groupshared uint SharedCulledObjectList[MAX_CULLED_DF_OBJECTS];
@@ -200,7 +208,7 @@ groupshared uint NumTileCulledObjects;
 
 #define USE_CULL_GRID 1
 
-[numthreads(COMPOSITE_THREADGROUP_SIZE, COMPOSITE_THREADGROUP_SIZE, COMPOSITE_THREADGROUP_SIZE)]
+[numthreads(COMPOSITE_THREADGROUP_SIZEX, COMPOSITE_THREADGROUP_SIZEY, COMPOSITE_THREADGROUP_SIZEZ)]
 void CompositeObjectDistanceFieldsCS(
 	uint3 GroupId : SV_GroupID,
 	uint3 DispatchThreadId : SV_DispatchThreadID,
@@ -218,10 +226,11 @@ void CompositeObjectDistanceFieldsCS(
 
 	GroupMemoryBarrierWithGroupSync();
 
-	uint ThreadIndex = (GroupThreadId.z * COMPOSITE_THREADGROUP_SIZE + GroupThreadId.y) * COMPOSITE_THREADGROUP_SIZE + GroupThreadId.x;
+	uint ThreadIndex = (GroupThreadId.z * COMPOSITE_THREADGROUP_SIZEY + GroupThreadId.y) * COMPOSITE_THREADGROUP_SIZEX + GroupThreadId.x;
 
-	float3 TileBoxExtent = .5f * COMPOSITE_THREADGROUP_SIZE * VolumeTexelSize * GlobalVolumeExtent * 2;
-	float3 TileBoxCenter = UpdateRegionVolumeMin + ((GroupId.xyz + .5f) * COMPOSITE_THREADGROUP_SIZE + .5f) * VolumeTexelSize * GlobalVolumeExtent * 2;
+	float3 GroupSize = float3(COMPOSITE_THREADGROUP_SIZEX, COMPOSITE_THREADGROUP_SIZEY, COMPOSITE_THREADGROUP_SIZEZ);
+	float3 TileBoxExtent = .5f * GroupSize * VolumeTexelSize * GlobalVolumeExtent * 2;
+	float3 TileBoxCenter = UpdateRegionVolumeMin + ((GroupId.xyz + .5f) * GroupSize + .5f) * VolumeTexelSize * GlobalVolumeExtent * 2;
 
 #if USE_CULL_GRID
 	uint GridBaseIndex = ComputeGridBaseIndex(DispatchThreadId / CULL_GRID_TILE_SIZE);

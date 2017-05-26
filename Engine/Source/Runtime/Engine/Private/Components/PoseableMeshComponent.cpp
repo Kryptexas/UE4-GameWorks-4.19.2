@@ -66,6 +66,8 @@ void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	FinalizeBoneTransform();
 
 	UpdateChildTransforms();
+	UpdateBounds();
+	MarkRenderTransformDirty();
 	MarkRenderDynamicDataDirty();
 }
 

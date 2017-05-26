@@ -197,16 +197,19 @@ public:
 
 	virtual class TConsoleVariableData<int32>* AsVariableInt()
 	{
+		ensureMsgf(false, TEXT("Attempted to access variable data of a console variable type that doesn't support it.  For example FindTConsoleVariableData* on a FAutoConsoleVariableRef."));
 		return 0; 
 	}
 
 	virtual class TConsoleVariableData<float>* AsVariableFloat()
 	{
+		ensureMsgf(false, TEXT("Attempted to access variable data of a console variable type that doesn't support it.  For example FindTConsoleVariableData* on a FAutoConsoleVariableRef."));
 		return 0; 
 	}
 
 	virtual class TConsoleVariableData<FString>* AsVariableString()
 	{
+		ensureMsgf(false, TEXT("Attempted to access variable data of a console variable type that doesn't support it.  For example FindTConsoleVariableData* on a FAutoConsoleVariableRef."));
 		return 0;
 	}
 

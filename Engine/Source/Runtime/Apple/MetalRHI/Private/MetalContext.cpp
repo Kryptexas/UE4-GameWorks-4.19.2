@@ -862,7 +862,7 @@ FMetalRHICommandContext* FMetalDeviceContext::AcquireContext(int32 NewIndex, int
 	
 	if (NewIndex == 0)
 	{
-		if (FRHICommandListExecutor::GetImmediateCommandList().Bypass() || !GRHIThread)
+		if (FRHICommandListExecutor::GetImmediateCommandList().Bypass() || !IsRunningRHIInSeparateThread())
 		{
 			FMetalRHICommandUpdateFence UpdateCommand(this, StartFence, FMetalRHICommandUpdateFence::End);
 			UpdateCommand.Execute(FRHICommandListExecutor::GetImmediateCommandList());
@@ -873,7 +873,7 @@ FMetalRHICommandContext* FMetalDeviceContext::AcquireContext(int32 NewIndex, int
 		}
 	}
 	
-	if (FRHICommandListExecutor::GetImmediateCommandList().Bypass() || !GRHIThread)
+	if (FRHICommandListExecutor::GetImmediateCommandList().Bypass() || !IsRunningRHIInSeparateThread())
 	{
 		FMetalRHICommandUpdateFence UpdateCommand(this, EndFence, FMetalRHICommandUpdateFence::Start);
 		UpdateCommand.Execute(FRHICommandListExecutor::GetImmediateCommandList());

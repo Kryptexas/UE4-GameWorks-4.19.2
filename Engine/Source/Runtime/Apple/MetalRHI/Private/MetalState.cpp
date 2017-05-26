@@ -306,7 +306,7 @@ FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 			(BlendState.writeMask << 22);
 		
 		
-		if(GUseRHIThread)
+		if(IsRunningRHIInSeparateThread())
 		{
 			Mutex.Lock();
 		}
@@ -320,7 +320,7 @@ FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 		}
 		// set the key
 		RenderTargetStates[RenderTargetIndex].BlendStateKey = *Key;
-		if(GUseRHIThread)
+		if(IsRunningRHIInSeparateThread())
 		{
 			Mutex.Unlock();
 		}

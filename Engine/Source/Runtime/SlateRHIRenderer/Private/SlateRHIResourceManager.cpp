@@ -267,7 +267,7 @@ bool FSlateRHIResourceManager::IsAtlasPageResourceAlphaOnly() const
 void FSlateRHIResourceManager::Tick(float DeltaSeconds)
 {
 	// Don't need to do this if there's no RHI thread.
-	if ( GRHIThread )
+	if (IsRunningRHIInSeparateThread())
 	{
 		struct FDeleteCachedRenderDataContext
 		{
@@ -1058,17 +1058,17 @@ void FSlateRHIResourceManager::ReleaseCachedBuffer(FRHICommandListImmediate& RHI
 {
 	check(IsInRenderingThread());
 
-	if ( GRHIThread )
+	if (IsRunningRHIInSeparateThread())
 	{
 		PooledBuffersPendingRelease.Add(PooledBuffer);
 		PooledBuffer->ReleaseResourcesFence = RHICmdList.RHIThreadFence();
 	}
 	else
 	{
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-			delete PooledBuffer;
-		}
+		PooledBuffer->VertexBuffer.Destroy();
+		PooledBuffer->IndexBuffer.Destroy();
+		delete PooledBuffer;
+	}
 }
 
 void FSlateRHIResourceManager::ReleaseResources()

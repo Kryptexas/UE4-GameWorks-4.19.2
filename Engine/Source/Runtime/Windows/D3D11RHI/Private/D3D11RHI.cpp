@@ -132,7 +132,7 @@ void GetMipAndSliceInfoFromSRV(ID3D11ShaderResourceView* SRV, int32& MipLevel, i
 void FD3D11DynamicRHI::CheckIfSRVIsResolved(ID3D11ShaderResourceView* SRV)
 {
 #if CHECK_SRV_TRANSITIONS
-	if (GRHIThread || !SRV)
+	if (IsRunningRHIInSeparateThread() || !SRV)
 	{
 		return;
 	}

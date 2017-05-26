@@ -424,7 +424,7 @@ public:
 	FScalarMaterialInput PixelDepthOffset;
 
 	/** Indicates that the material should be rendered in the SeparateTranslucency Pass (not affected by DOF, requires bAllowSeparateTranslucency to be set in .ini). */
-	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Separate Translucency"), AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Render After DOF"), AdvancedDisplay)
 	uint32 bEnableSeparateTranslucency:1;
 
 	/** Indicates that the translucent material should not be affected by bloom or DOF. (Note: Depth testing is not available) */

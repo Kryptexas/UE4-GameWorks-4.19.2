@@ -30,6 +30,26 @@ static FAutoConsoleVariableRef CVarDX11NVAfterMathBufferSize(
 extern bool D3D11RHI_ShouldCreateWithD3DDebug();
 extern bool D3D11RHI_ShouldAllowAsyncResourceCreation();
 
+int D3D11RHI_PreferAdaperVendor()
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("preferAMD")))
+	{
+		return 0x1002;
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("preferIntel")))
+	{
+		return 0x8086;
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("preferNvidia")))
+	{
+		return 0x10DE;
+	}
+
+	return -1;
+}
+
 // Filled in during InitD3DDevice if IsRHIDeviceAMD
 struct AmdAgsInfo
 {
@@ -644,6 +664,7 @@ void FD3D11DynamicRHIModule::FindAdapter()
 
 	UE_LOG(LogD3D11RHI, Log, TEXT("D3D11 adapters:"));
 
+	int PreferredVendor = D3D11RHI_PreferAdaperVendor();
 	// Enumerate the DXGIFactory's adapters.
 	for(uint32 AdapterIndex = 0; DXGIFactory1->EnumAdapters(AdapterIndex,TempAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND; ++AdapterIndex)
 	{
@@ -711,8 +732,16 @@ void FD3D11DynamicRHIModule::FindAdapter()
 					{
 						FirstWithoutIntegratedAdapter = CurrentAdapter;
 					}
+					else if (PreferredVendor == AdapterDesc.VendorId && FirstWithoutIntegratedAdapter.IsValid())
+					{
+						FirstWithoutIntegratedAdapter = CurrentAdapter;
+					}
 
 					if (!FirstAdapter.IsValid())
+					{
+						FirstAdapter = CurrentAdapter;
+					}
+					else if (PreferredVendor == AdapterDesc.VendorId && FirstAdapter.IsValid())
 					{
 						FirstAdapter = CurrentAdapter;
 					}
@@ -1097,7 +1126,11 @@ void FD3D11DynamicRHI::InitD3DDevice()
 				}
 				else
 				{
-					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled but failed to initialize"));
+					unsigned Index = (unsigned)Result & (~((unsigned)GFSDK_Aftermath_Result_Fail));
+					const TCHAR* Reason[13] = { TEXT("Fail"), TEXT("VersionMismatch"), TEXT("NotInitialized"), TEXT("InvalidAdapter"), TEXT("InvalidParameter"), TEXT("Unknown"), TEXT("ApiError"), TEXT("NvApiIncompatible"), TEXT("GettingContextDataWithNewCommandList"), TEXT("AlreadyInitialized"), TEXT("D3DDebugLayerNotCompatible"),TEXT("NotEnabledInDriver"), TEXT("DriverVersionNotSupported") };
+					Index = Index > 12 ? 0 : Index;
+
+					UE_LOG(LogD3D11RHI, Log, TEXT("[Aftermath] Aftermath enabled but failed to initialize due to reason: %s"), Reason[Index]);
 					GDX11NVAfterMathEnabled = 0;
 				}
 			}

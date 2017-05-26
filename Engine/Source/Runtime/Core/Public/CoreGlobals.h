@@ -430,7 +430,10 @@ extern CORE_API int32 GIsRenderingThreadSuspended;
 extern CORE_API bool IsInRHIThread();
 
 /** Thread used for RHI */
-extern CORE_API FRunnableThread* GRHIThread;
+extern CORE_API FRunnableThread* GRHIThread_InternalUseOnly;
+
+/** Thread ID of the the thread we are executing RHI commands on. This could either be a constant dedicated thread or changing every task if we run the rhi thread on tasks. */
+extern CORE_API uint32 GRHIThreadId;
 
 /** Array to help visualize weak pointers in the debugger */
 class FFixedUObjectArray;

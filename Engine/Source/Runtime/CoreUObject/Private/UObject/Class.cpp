@@ -672,32 +672,32 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 		FName ToTest = GetFName();
 		if ( ToTest == NAME_Matrix )
 		{
-			check(MinAlignment == ALIGNOF(FMatrix));
+			check(MinAlignment == alignof(FMatrix));
 			check(PropertiesSize == sizeof(FMatrix));
 		}
 		else if ( ToTest == NAME_Plane )
 		{
-			check(MinAlignment == ALIGNOF(FPlane));
+			check(MinAlignment == alignof(FPlane));
 			check(PropertiesSize == sizeof(FPlane));
 		}
 		else if ( ToTest == NAME_Vector4 )
 		{
-			check(MinAlignment == ALIGNOF(FVector4));
+			check(MinAlignment == alignof(FVector4));
 			check(PropertiesSize == sizeof(FVector4));
 		}
 		else if ( ToTest == NAME_Quat )
 		{
-			check(MinAlignment == ALIGNOF(FQuat));
+			check(MinAlignment == alignof(FQuat));
 			check(PropertiesSize == sizeof(FQuat));
 		}
 		else if ( ToTest == NAME_Double )
 		{
-			check(MinAlignment == ALIGNOF(double));
+			check(MinAlignment == alignof(double));
 			check(PropertiesSize == sizeof(double));
 		}
 		else if ( ToTest == NAME_Color )
 		{
-			check(MinAlignment == ALIGNOF(FColor));
+			check(MinAlignment == alignof(FColor));
 			check(PropertiesSize == sizeof(FColor));
 #if !PLATFORM_LITTLE_ENDIAN
 			// Object.h declares FColor as BGRA which doesn't match up with what we'd like to use on
@@ -4342,7 +4342,7 @@ void GetPrivateStaticClassBody(
 
 	if (!bIsDynamic)
 	{
-		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UClass), ALIGNOF(UClass), true);
+		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UClass), alignof(UClass), true);
 		ReturnClass = ::new (ReturnClass)
 			UClass
 			(
@@ -4361,7 +4361,7 @@ void GetPrivateStaticClassBody(
 	}
 	else
 	{
-		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UDynamicClass), ALIGNOF(UDynamicClass), GIsInitialLoad);
+		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UDynamicClass), alignof(UDynamicClass), GIsInitialLoad);
 		ReturnClass = ::new (ReturnClass)
 			UDynamicClass
 			(

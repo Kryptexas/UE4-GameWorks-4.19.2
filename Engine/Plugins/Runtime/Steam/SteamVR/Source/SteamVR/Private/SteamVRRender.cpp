@@ -34,7 +34,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 	if (bSplashIsShown)
 	{
 		SetRenderTarget(RHICmdList, SrcTexture, FTextureRHIRef());
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0, 0, 0, 0));
+		DrawClearQuad(RHICmdList, FLinearColor(0, 0, 0, 0));
 	}
 
 	static const auto CVarMirrorMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MirrorMode"));
@@ -51,7 +51,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 		if (WindowMirrorMode == 1)
 		{
 			// need to clear when rendering only one eye since the borders won't be touched by the DrawRect below
-			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+			DrawClearQuad(RHICmdList, FLinearColor::Black);
 		}
 
 		FGraphicsPipelineStateInitializer GraphicsPSOInit;

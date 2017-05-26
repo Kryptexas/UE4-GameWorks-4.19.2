@@ -1450,7 +1450,7 @@ namespace VulkanRHI
 				VKSWITCH(Sampler);
 				VKSWITCH(Semaphore);
 				VKSWITCH(ShaderModule);
-#undef VKSWTICH
+#undef VKSWITCH
 				default:
 					check(0);
 					break;

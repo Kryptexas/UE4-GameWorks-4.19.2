@@ -5,7 +5,6 @@
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
 #include "Templates/UnrealTypeTraits.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "Containers/ContainerAllocationPolicies.h"
 #include "Templates/Sorting.h"
@@ -1305,8 +1304,8 @@ public:
 		// TSetElement<TPair<Key, Value>>
 		FStructBuilder SetElementStruct;
 		Result.ElementOffset     = SetElementStruct.AddMember(ElementSize,           ElementAlignment);
-		Result.HashNextIdOffset  = SetElementStruct.AddMember(sizeof(FSetElementId), ALIGNOF(FSetElementId));
-		Result.HashIndexOffset   = SetElementStruct.AddMember(sizeof(int32),         ALIGNOF(int32));
+		Result.HashNextIdOffset  = SetElementStruct.AddMember(sizeof(FSetElementId), alignof(FSetElementId));
+		Result.HashIndexOffset   = SetElementStruct.AddMember(sizeof(int32),         alignof(int32));
 		Result.Size              = SetElementStruct.GetSize();
 		Result.SparseArrayLayout = FScriptSparseArray::GetScriptLayout(SetElementStruct.GetSize(), SetElementStruct.GetAlignment());
 
@@ -1530,7 +1529,7 @@ private:
 
 		// Check that the class footprint is the same
 		static_assert(sizeof (ScriptType) == sizeof (RealType), "FScriptSet's size doesn't match TSet");
-		static_assert(ALIGNOF(ScriptType) == ALIGNOF(RealType), "FScriptSet's alignment doesn't match TSet");
+		static_assert(alignof(ScriptType) == alignof(RealType), "FScriptSet's alignment doesn't match TSet");
 
 		// Check member sizes
 		static_assert(sizeof(DeclVal<ScriptType>().Elements) == sizeof(DeclVal<RealType>().Elements), "FScriptSet's Elements member size does not match TSet's");

@@ -35,6 +35,14 @@
 
 DEFINE_LOG_CATEGORY(LogMaterial);
 
+int32 GDeferUniformExpressionCaching = 1;
+FAutoConsoleVariableRef CVarDeferUniformExpressionCaching(
+	TEXT("r.DeferUniformExpressionCaching"),
+	GDeferUniformExpressionCaching,
+	TEXT("Whether to defer caching of uniform expressions until a rendering command needs them up to date.  Deferring updates is more efficient because multiple SetVectorParameterValue calls in a frame will only result in one update."),
+	ECVF_RenderThreadSafe
+	);
+
 FName MaterialQualityLevelNames[] = 
 {
 	FName(TEXT("Low")),
@@ -501,12 +509,7 @@ const TArray<TRefCountPtr<FMaterialUniformExpression> >& FMaterial::GetUniformSc
 
 bool FMaterial::RequiresSceneColorCopy_GameThread() const
 {
-	check(IsInGameThread());
-	if (GameThreadShaderMap)
-	{
-		return GameThreadShaderMap->RequiresSceneColorCopy();
-	}
-	return false;
+	return GameThreadShaderMap.GetReference() ? GameThreadShaderMap->RequiresSceneColorCopy() : false; 
 }
 
 bool FMaterial::RequiresSceneColorCopy_RenderThread() const
@@ -899,7 +902,7 @@ bool FMaterialResource::IsCrackFreeDisplacementEnabled() const
 	return Material->bEnableCrackFreeDisplacement;
 }
 
-bool FMaterialResource::IsSeparateTranslucencyEnabled() const 
+bool FMaterialResource::IsTranslucencyAfterDOFEnabled() const 
 { 
 	return Material->bEnableSeparateTranslucency && !IsUIMaterial() && !IsDeferredDecal();
 }
@@ -1976,36 +1979,17 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 	check((bUsingNewLoader && GIsInitialLoad) || // The EDL at boot time maybe not load the default materials first; we need to intialize materials before the default materials are done
 		UMaterial::GetDefaultMaterial(MD_Surface));
 
+	DeferredUniformExpressionCacheRequests.Add(this);
+
 	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
 	{
-		const FMaterial* MaterialNoFallback = GetMaterialNoFallback(InFeatureLevel);
-
-		if (MaterialNoFallback && MaterialNoFallback->GetRenderingThreadShaderMap())
-		{
-			const FMaterial* Material = bUsingNewLoader ? MaterialNoFallback : GetMaterial(InFeatureLevel);
-
-			// Do not cache uniform expressions for fallback materials. This step could
-			// be skipped where we don't allow for asynchronous shader compiling.
-			bool bIsFallbackMaterial = bUsingNewLoader ? false : (Material != MaterialNoFallback);
-
-			if (!bIsFallbackMaterial)
-			{
-				FMaterialRenderContext MaterialRenderContext(this , *Material, nullptr);
-				MaterialRenderContext.bShowSelection = GIsEditor;
-				EvaluateUniformExpressions(UniformExpressionCache[(int32)InFeatureLevel], MaterialRenderContext);
-			}
-			else
-			{
-				InvalidateUniformExpressionCache();
-				return;
-			}
-		}
-		else
-		{
-			InvalidateUniformExpressionCache();
-			return;
-		}
+		InvalidateUniformExpressionCache();
 	});
+
+	if (!GDeferUniformExpressionCaching)
+	{
+		FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
+	}
 }
 
 void FMaterialRenderProxy::CacheUniformExpressions_GameThread()
@@ -2072,16 +2056,60 @@ FMaterialRenderProxy::~FMaterialRenderProxy()
 
 void FMaterialRenderProxy::InitDynamicRHI()
 {
-	FMaterialRenderProxy::MaterialRenderProxyMap.Add(this);
+	// MaterialRenderProxyMap is only used by shader compiling
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		FMaterialRenderProxy::MaterialRenderProxyMap.Add(this);
+	}
 }
 
 void FMaterialRenderProxy::ReleaseDynamicRHI()
 {
-	FMaterialRenderProxy::MaterialRenderProxyMap.Remove(this);
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		FMaterialRenderProxy::MaterialRenderProxyMap.Remove(this);
+	}
+
+	DeferredUniformExpressionCacheRequests.Remove(this);
+
 	InvalidateUniformExpressionCache();
 }
 
+void FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions()
+{
+	check(IsInRenderingThread());
+
+	for (TSet<FMaterialRenderProxy*>::TConstIterator It(DeferredUniformExpressionCacheRequests); It; ++It)
+	{
+		FMaterialRenderProxy* MaterialProxy = *It;
+
+		UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
+		{
+			const FMaterial* MaterialNoFallback = MaterialProxy->GetMaterialNoFallback(InFeatureLevel);
+
+			if (MaterialNoFallback && MaterialNoFallback->GetRenderingThreadShaderMap())
+			{
+				const FMaterial* Material = MaterialProxy->GetMaterial(InFeatureLevel);
+
+				// Do not cache uniform expressions for fallback materials. This step could
+				// be skipped where we don't allow for asynchronous shader compiling.
+				bool bIsFallbackMaterial = (Material != MaterialNoFallback);
+
+				if (!bIsFallbackMaterial)
+				{
+					FMaterialRenderContext MaterialRenderContext(MaterialProxy, *Material, nullptr);
+					MaterialRenderContext.bShowSelection = GIsEditor;
+					MaterialProxy->EvaluateUniformExpressions(MaterialProxy->UniformExpressionCache[(int32)InFeatureLevel], MaterialRenderContext);
+				}
+			}
+		});
+	}
+
+	DeferredUniformExpressionCacheRequests.Reset();
+}
+
 TSet<FMaterialRenderProxy*> FMaterialRenderProxy::MaterialRenderProxyMap;
+TSet<FMaterialRenderProxy*> FMaterialRenderProxy::DeferredUniformExpressionCacheRequests;
 
 /*-----------------------------------------------------------------------------
 	FColoredMaterialRenderProxy

@@ -940,7 +940,7 @@ public:
 	{
 		typedef TStructOpsTypeTraits<CPPSTRUCT> TTraits;
 		TCppStructOps()
-			: ICppStructOps(sizeof(CPPSTRUCT), ALIGNOF(CPPSTRUCT))
+			: ICppStructOps(sizeof(CPPSTRUCT), alignof(CPPSTRUCT))
 		{
 		}
 		virtual bool HasNoopConstructor() override

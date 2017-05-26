@@ -2114,6 +2114,17 @@ void UMaterialInstance::BeginDestroy()
 {
 	Super::BeginDestroy();
 
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		BeginReleaseResource(Resources[0]);
+
+		if(GIsEditor)
+		{
+			BeginReleaseResource(Resources[1]);
+			BeginReleaseResource(Resources[2]);
+		}
+	}
+
 	ReleaseFence.BeginFence();
 }
 

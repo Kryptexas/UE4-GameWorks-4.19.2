@@ -1310,7 +1310,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 			}
 			RHICmdList.SetViewport(FullViewRect.Min.X, FullViewRect.Min.Y, 0, FullViewRect.Max.X, FullViewRect.Max.Y, 1);
 		}
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, false, FLinearColor::Transparent, false, 0, true, 0);
+		DrawClearQuad(RHICmdList, false, FLinearColor::Transparent, false, 0, true, 0);
 	}
 
 	SceneContext.FinishRenderingPrePass(RHICmdList);

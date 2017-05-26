@@ -329,7 +329,7 @@ static void RHIExitAndStopRHIThread()
 	RHIExit();
 
 	// Stop the RHI Thread
-	if (GUseRHIThread)
+	if (GRHIThread_InternalUseOnly)
 	{
 		DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread Finish"), STAT_WaitForRHIThreadFinish, STATGROUP_TaskGraphTasks);
 		FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(ENamedThreads::RHIThread);
@@ -1029,6 +1029,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FCString::Strcpy( CommandLineCopy, CommandLineSize, CmdLine );
 	const TCHAR* ParsedCmdLine	= CommandLineCopy;
 
+	// Add the default engine shader dir
+	FGenericPlatformProcess::AddShaderDir(FGenericPlatformProcess::ShaderDir());
+
 	FString Token				= FParse::Token( ParsedCmdLine, 0);
 
 #if WITH_ENGINE
@@ -1718,14 +1721,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			if(GRHISupportsRHIThread)
 			{
 				const bool DefaultUseRHIThread = true;
-				GUseRHIThread = DefaultUseRHIThread;
+				GUseRHIThread_InternalUseOnly = DefaultUseRHIThread;
 				if(FParse::Param(FCommandLine::Get(), TEXT("rhithread")))
 				{
-					GUseRHIThread = true;
+					GUseRHIThread_InternalUseOnly = true;
 				}
 				else if(FParse::Param(FCommandLine::Get(), TEXT("norhithread")))
 				{
-					GUseRHIThread = false;
+					GUseRHIThread_InternalUseOnly = false;
 				}
 			}
 
@@ -1852,14 +1855,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		if (GRHISupportsRHIThread)
 		{
 			const bool DefaultUseRHIThread = true;
-			GUseRHIThread = DefaultUseRHIThread;
+			GUseRHIThread_InternalUseOnly = DefaultUseRHIThread;
 			if (FParse::Param(FCommandLine::Get(),TEXT("rhithread")))
 			{
-				GUseRHIThread = true;
+				GUseRHIThread_InternalUseOnly = true;
 			}
 			else if (FParse::Param(FCommandLine::Get(),TEXT("norhithread")))
 			{
-				GUseRHIThread = false;
+				GUseRHIThread_InternalUseOnly = false;
 			}
 		}
 		StartRenderingThread();

@@ -8,7 +8,6 @@
 
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
-#include "Templates/AlignOf.h"
 #include "Containers/ContainerAllocationPolicies.h"
 #include "Containers/Array.h"
 #include "Containers/UnrealString.h"
@@ -913,7 +912,7 @@ private:
 	}
 
 	/** An aligned bit of storage to hold the embedded task **/
-	TAlignedBytes<sizeof(TTask),ALIGNOF(TTask)> TaskStorage;
+	TAlignedBytes<sizeof(TTask),alignof(TTask)> TaskStorage;
 	/** Used to sanity check the state of the object **/
 	bool						TaskConstructed;
 	/** A reference counted pointer to the completion event which lists the tasks that have me as a prerequisite. **/

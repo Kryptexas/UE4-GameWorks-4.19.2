@@ -239,11 +239,11 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
 	{
 		// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), FLinearColor::Black);
+		DrawClearQuad(Context.RHICmdList, FLinearColor::Black);
 	}
 	else if (ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture)
 	{
-		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
+		DrawClearQuad(Context.RHICmdList, true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 	}
 
 	Context.SetViewportAndCallRHI(View.ViewRect);

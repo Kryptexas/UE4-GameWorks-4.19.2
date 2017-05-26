@@ -138,6 +138,19 @@ public:
 	}
 };
 
+/** Flags needed for shadow culling.  These are pulled out of the FPrimitiveSceneProxy so we can do rough culling before dereferencing the proxy. */
+struct FPrimitiveFlagsCompact
+{
+	/** True if the primitive casts dynamic shadows. */
+	uint32 bCastDynamicShadow : 1;
+	/** True if the primitive will cache static lighting. */
+	uint32 bStaticLighting : 1;
+	/** True if the primitive casts static shadows. */
+	uint32 bCastStaticShadow : 1;
+
+	FPrimitiveFlagsCompact(const FPrimitiveSceneProxy* Proxy);
+};
+
 /** The information needed to determine whether a primitive is visible. */
 class FPrimitiveSceneInfoCompact
 {
@@ -147,28 +160,12 @@ public:
 	FBoxSphereBounds Bounds;
 	float MinDrawDistance;
 	float MaxDrawDistance;
-	float LpvBiasMultiplier;
 	/** Used for precomputed visibility */
 	int32 VisibilityId;
-	uint32 bHasViewDependentDPG : 1;
-	uint32 bCastDynamicShadow : 1;
-	uint32 bAffectDynamicIndirectLighting : 1;
-	uint32 StaticDepthPriorityGroup : SDPG_NumBits;
-
-	/** Initializes the compact scene info from the primitive's full scene info. */
-	void Init(FPrimitiveSceneInfo* InPrimitiveSceneInfo);
-
-	/** Default constructor. */
-	FPrimitiveSceneInfoCompact():
-		PrimitiveSceneInfo(NULL),
-		Proxy(NULL)
-	{}
+	FPrimitiveFlagsCompact PrimitiveFlagsCompact;
 
 	/** Initialization constructor. */
-	FPrimitiveSceneInfoCompact(FPrimitiveSceneInfo* InPrimitiveSceneInfo)
-	{
-		Init(InPrimitiveSceneInfo);
-	}
+	FPrimitiveSceneInfoCompact(FPrimitiveSceneInfo* InPrimitiveSceneInfo);
 };
 
 /** The type of the octree used by FScene to find primitives. */
@@ -447,7 +444,8 @@ private:
 /** Defines how the primitive is stored in the scene's primitive octree. */
 struct FPrimitiveOctreeSemantics
 {
-	enum { MaxElementsPerLeaf = 16 };
+	/** Note: this is coupled to shadow gather task granularity, see r.ParallelGatherShadowPrimitives. */
+	enum { MaxElementsPerLeaf = 256 };
 	enum { MinInclusiveElementsPerNode = 7 };
 	enum { MaxNodeDepth = 12 };
 

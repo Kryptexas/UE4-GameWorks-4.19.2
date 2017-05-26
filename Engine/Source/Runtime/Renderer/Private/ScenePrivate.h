@@ -1585,7 +1585,7 @@ private:
 	/** Internal helper to determine if indirect lighting is enabled at all */
 	bool IndirectLightingAllowed(FScene* Scene, FSceneRenderer& Renderer) const;
 
-	void ProcessPrimitiveUpdate(FScene* Scene, FViewInfo& View, int32 PrimitiveIndex, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate);
+	void ProcessPrimitiveUpdate(FScene* Scene, FViewInfo& View, int32 PrimitiveIndex, bool bAllowUnbuiltPreview, bool bAllowVolumeSample, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate);
 
 	/** Internal helper to perform the work of updating the cache primitives.  Can be done on any thread as a task */
 	void UpdateCachePrimitivesInternal(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate);
@@ -1611,7 +1611,7 @@ private:
 		const TMap<FPrimitiveComponentId, FAttachmentGroupSceneInfo>& AttachmentGroups,
 		FPrimitiveSceneInfo* PrimitiveSceneInfo,
 		bool bAllowUnbuiltPreview, 
-		bool bOpaqueRelevance, 
+		bool bAllowVolumeSample, 
 		TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate, 
 		TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);	
 
@@ -1703,12 +1703,7 @@ private:
  */
 struct FPrimitiveBounds
 {
-	/** Origin of the primitive. */
-	FVector Origin;
-	/** Radius of the bounding sphere. */
-	float SphereRadius;
-	/** Extents of the axis-aligned bounding box. */
-	FVector BoxExtent;
+	FBoxSphereBounds BoxSphereBounds;
 	/** Square of the minimum draw distance for the primitive. */
 	float MinDrawDistanceSq;
 	/** Maximum draw distance for the primitive. */
@@ -1926,8 +1921,12 @@ public:
 
 	/** Packed array of primitives in the scene. */
 	TArray<FPrimitiveSceneInfo*> Primitives;
+	/** Packed array of primitive scene proxies in the scene. */
+	TArray<FPrimitiveSceneProxy*> PrimitiveSceneProxies;
 	/** Packed array of primitive bounds. */
 	TArray<FPrimitiveBounds> PrimitiveBounds;
+	/** Packed array of primitive flags. */
+	TArray<FPrimitiveFlagsCompact> PrimitiveFlagsCompact;
 	/** Packed array of precomputed primitive visibility IDs. */
 	TArray<FPrimitiveVisibilityId> PrimitiveVisibilityIds;
 	/** Packed array of primitive occlusion flags. See EOcclusionFlags. */
@@ -2014,6 +2013,9 @@ public:
 
 	/** The static meshes in the scene. */
 	TSparseArray<FStaticMesh*> StaticMeshes;
+
+	/** This sparse array is used just to track free indices for FStaticMesh::BatchVisibilityId. */
+	TSparseArray<bool> StaticMeshBatchVisibility;
 
 	/** The exponential fog components in the scene. */
 	TArray<FExponentialHeightFogSceneInfo> ExponentialFogs;
@@ -2168,7 +2170,7 @@ public:
 	/** Finds the closest reflection capture to a point in space. */
 	const FReflectionCaptureProxy* FindClosestReflectionCapture(FVector Position) const;
 
-	const class FPlanarReflectionSceneProxy* FindClosestPlanarReflection(const FPrimitiveBounds& Bounds) const;
+	const class FPlanarReflectionSceneProxy* FindClosestPlanarReflection(const FBoxSphereBounds& Bounds) const;
 
 	void FindClosestReflectionCaptures(FVector Position, const FReflectionCaptureProxy* (&SortedByDistanceOUT)[FPrimitiveSceneInfo::MaxCachedReflectionCaptureProxies]) const;
 	

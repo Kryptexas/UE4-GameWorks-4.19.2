@@ -106,7 +106,7 @@ private:
 		if (!Pages[BlockIndex])
 		{
 			T* NewBlock = (T*)LockFreeAllocLinks(ItemsPerPage * sizeof(T));
-			checkLockFreePointerList(IsAligned(NewBlock, ALIGNOF(T)));
+			checkLockFreePointerList(IsAligned(NewBlock, alignof(T)));
 			if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Pages[BlockIndex], NewBlock, nullptr) != nullptr)
 			{
 				// we lost discard block

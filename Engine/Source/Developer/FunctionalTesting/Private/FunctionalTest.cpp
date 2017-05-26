@@ -660,7 +660,7 @@ bool AFunctionalTest::AssertEqual_Name(const FName Actual, const FName Expected,
 }
 
 
-bool AFunctionalTest::AssertEqual_Transform(const FTransform Actual, const FTransform Expected, const FString& What, const UObject* ContextObject)
+bool AFunctionalTest::AssertEqual_Transform(const FTransform& Actual, const FTransform& Expected, const FString& What, const UObject* ContextObject)
 {
 	if ( !Expected.Equals(Actual) )
 	{
@@ -674,7 +674,7 @@ bool AFunctionalTest::AssertEqual_Transform(const FTransform Actual, const FTran
 	}
 }
 
-bool AFunctionalTest::AssertNotEqual_Transform(const FTransform Actual, const FTransform NotExpected, const FString& What, const UObject* ContextObject)
+bool AFunctionalTest::AssertNotEqual_Transform(const FTransform& Actual, const FTransform& NotExpected, const FString& What, const UObject* ContextObject)
 {
 	if ( NotExpected.Equals(Actual) )
 	{

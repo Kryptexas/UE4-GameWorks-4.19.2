@@ -754,27 +754,22 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 
 	/** Build the texture. This function is safe to call from any thread. */
 	void BuildTexture()
-	{
+		{
 		ensure(Compressor);
 		if (Compressor && SourceMips.Num())
-		{
-			// Adding some extra logs to track crash UE-42168
-			FTextureMemoryStats Stats;
-			RHIGetTextureMemoryStats(Stats);
-
+			{
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("TextureName"), FText::FromString( Texture.GetName() ) );
 			Args.Add( TEXT("TextureFormatName"), FText::FromString( BuildSettings.TextureFormatName.GetPlainNameString() ) );
 			Args.Add( TEXT("TextureResolutionX"), FText::FromString( FString::FromInt(SourceMips[0].SizeX) ) );
 			Args.Add( TEXT("TextureResolutionY"), FText::FromString( FString::FromInt(SourceMips[0].SizeY) ) );
-			Args.Add( TEXT("UsedVRAM"), FText::FromString( FString::FromInt(Stats.AllocatedMemorySize / 1024 / 1024 ) ) );
-			FTextureStatusMessageContext StatusMessage( FText::Format( NSLOCTEXT("Engine", "BuildTextureStatus", "Building textures: {TextureName} ({TextureFormatName}, {TextureResolutionX}X{TextureResolutionY}) - {UsedVRAM} MB total VRAM"), Args ) );
+			FTextureStatusMessageContext StatusMessage( FText::Format( NSLOCTEXT("Engine", "BuildTextureStatus", "Building textures: {TextureName} ({TextureFormatName}, {TextureResolutionX}X{TextureResolutionY})"), Args ) );
 
 			check(DerivedData->Mips.Num() == 0);
 			DerivedData->SizeX = 0;
 			DerivedData->SizeY = 0;
 			DerivedData->PixelFormat = PF_Unknown;
-	
+
 			// Compress the texture.
 			TArray<FCompressedImage2D> CompressedMips;
 			if (Compressor->BuildTexture(SourceMips, CompositeSourceMips, BuildSettings, CompressedMips))
@@ -981,7 +976,8 @@ struct FTextureAsyncCacheDerivedDataTask : public FAsyncTask<FTextureCacheDerive
 void FTexturePlatformData::Cache(
 	UTexture& InTexture,
 	const FTextureBuildSettings& InSettings,
-	uint32 InFlags
+	uint32 InFlags,
+	ITextureCompressorModule* Compressor
 	)
 {
 	// Flush any existing async task and ignore results.
@@ -999,7 +995,10 @@ void FTexturePlatformData::Cache(
 	bool bAsync = !bForDDC && (Flags & ETextureCacheFlags::Async) != 0;
 	GetTextureDerivedDataKey(InTexture, InSettings, DerivedDataKey);
 
-	ITextureCompressorModule* Compressor = &FModuleManager::LoadModuleChecked<ITextureCompressorModule>(TEXTURE_COMPRESSOR_MODULENAME);
+	if (!Compressor)
+	{
+		Compressor = &FModuleManager::LoadModuleChecked<ITextureCompressorModule>(TEXTURE_COMPRESSOR_MODULENAME);
+	}
 
 	if (bAsync && !bForceRebuild)
 	{
@@ -1491,7 +1490,7 @@ void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
 }
 
 #if WITH_EDITOR
-void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild)
+void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild, ITextureCompressorModule* Compressor)
 {
 	FTexturePlatformData** PlatformDataLinkPtr = GetRunningPlatformData();
 	if (PlatformDataLinkPtr)
@@ -1519,7 +1518,7 @@ void UTexture::CachePlatformData(bool bAsyncCache, bool bAllowAsyncBuild)
 					(bAsyncCache ? ETextureCacheFlags::Async : ETextureCacheFlags::None) |
 					(bAllowAsyncBuild? ETextureCacheFlags::AllowAsyncBuild : ETextureCacheFlags::None);
 
-				PlatformDataLink->Cache(*this, BuildSettings, CacheFlags);
+				PlatformDataLink->Cache(*this, BuildSettings, CacheFlags, Compressor);
 			}
 		}
 		else if (PlatformDataLink == NULL)
@@ -1618,7 +1617,8 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 				PlatformDataToCache->Cache(
 					*this,
 					BuildSettingsToCache[SettingsIndex],
-					CurrentCacheFlags
+					CurrentCacheFlags,
+					nullptr
 					);
 				CookedPlatformData.Add( DerivedDataKey, PlatformDataToCache );
 			}
@@ -1836,7 +1836,8 @@ void UTexture::ForceRebuildPlatformData()
 		PlatformDataLink->Cache(
 			*this,
 			BuildSettings,
-			ETextureCacheFlags::ForceRebuild
+			ETextureCacheFlags::ForceRebuild,
+			nullptr
 			);
 	}
 }
@@ -1959,7 +1960,7 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 				if (PlatformDataPtr == NULL)
 				{
 					PlatformDataPtr = new FTexturePlatformData();
-					PlatformDataPtr->Cache(*this, BuildSettings, ETextureCacheFlags::InlineMips | ETextureCacheFlags::Async);
+					PlatformDataPtr->Cache(*this, BuildSettings, ETextureCacheFlags::InlineMips | ETextureCacheFlags::Async, nullptr);
 					
 						CookedPlatformDataPtr->Add(DerivedDataKey, PlatformDataPtr);
 					

@@ -1481,7 +1481,7 @@ void FMetalSurface::AsyncUnlock(class FRHICommandListImmediate& RHICmdList, uint
 	bool bDoDirectUnlock = Params.bDirectLock;
 	const bool bUnlockForCreate = Params.bCreateLock;
 			
-	if (RHICmdList.Bypass() || !GRHIThread || bDoDirectUnlock)
+	if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread() || bDoDirectUnlock)
 	{
 		if (bDoDirectUnlock)
 			{
@@ -1810,7 +1810,7 @@ FTexture2DRHIRef FMetalDynamicRHI::AsyncReallocateTexture2D_RenderThread(class F
 	@autoreleasepool {
 	FTexture2DRHIRef Result;
 	
-	if (RHICmdList.Bypass() || !GRHIThread)
+	if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())
 	{
 		Result = GDynamicRHI->RHIAsyncReallocateTexture2D(Texture2D, NewMipCount, NewSizeX, NewSizeY, RequestStatus);
 	}
@@ -1978,7 +1978,7 @@ struct FMetalRHICommandUpdateTexture2D : public FRHICommand<FMetalRHICommandUpda
 void FMetalDynamicRHI::UpdateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
 {
 	@autoreleasepool {
-	if (RHICmdList.Bypass() || !GRHIThread)
+	if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())
 	{
 	this->RHIUpdateTexture2D(Texture, MipIndex, UpdateRegion, SourcePitch, SourceData);
 }
@@ -2363,7 +2363,7 @@ void FMetalDynamicRHI::RHISetResourceAliasability_RenderThread(class FRHICommand
 			}
 			case EResourceAliasability::EUnaliasable:
 			{
-				if (RHICmdList.Bypass() || !GRHIThread)
+				if (RHICmdList.Bypass() || !IsRunningRHIInSeparateThread())
 				{
 					for (int32 i = 0; i < NumTextures; ++i)
 					{

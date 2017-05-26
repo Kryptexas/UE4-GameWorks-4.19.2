@@ -1156,7 +1156,7 @@ static FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMes
 		}
 	}
 
-	KeySuffix.AppendChar(Mesh->bRequiresAreaWeightedSampling ? TEXT('1') : TEXT('0'));
+	KeySuffix.AppendChar(Mesh->bSupportUniformlyDistributedSampling ? TEXT('1') : TEXT('0'));
 
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("STATICMESH"),
@@ -1282,7 +1282,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
 			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->LightmapUVVersion, Owner->ImportVersion);
 			ComputeUVDensities();
-			if(Owner->bRequiresAreaWeightedSampling)
+			if(Owner->bSupportUniformlyDistributedSampling)
 			{
 				BuildAreaWeighedSamplingData();
 			}
@@ -1393,7 +1393,7 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	LpvBiasMultiplier = 1.0f;
 	MinLOD = 0;
 
-	bRequiresAreaWeightedSampling = false;
+	bSupportUniformlyDistributedSampling = false;
 }
 
 void UStaticMesh::PostInitProperties()
@@ -1802,6 +1802,8 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		SetLightingGuid();
 	}
 	
+	UpdateUVChannelData(true);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -2648,6 +2650,13 @@ void UStaticMesh::PostLoad()
 		}
 	}
 #endif // #if WITH_EDITOR
+
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerCustomVersion(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::FixedMeshUVDensity)
+	{
+		UpdateUVChannelData(true);
+	}
+#endif
 
 	EnforceLightmapRestrictions();
 

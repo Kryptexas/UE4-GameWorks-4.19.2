@@ -11,7 +11,8 @@ D3D12CommandContext.cpp: RHI  Command Context implementation.
 // @TODO: Fix and re-enable
 int32 GCommandListBatchingMode = CLB_NormalBatching;
 #else
-int32 GCommandListBatchingMode = CLB_AggressiveBatching;
+// @todo: CLB_AggressiveBatching disabled as it caused flickering in lighting on PC
+int32 GCommandListBatchingMode = CLB_NormalBatching;
 #endif 
 
 static FAutoConsoleVariableRef CVarCommandListBatchingMode(

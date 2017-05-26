@@ -144,7 +144,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		}
 	}
 
-	if (GRHIThread)
+	if (IsRunningRHIInSeparateThread())
 	{
 		// we will probably stall on occlusion queries, so might as well have the RHI thread and GPU work while we wait.
 		// Also when doing RHI thread this is the only spot that will process pending deletes
@@ -208,7 +208,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (GIsEditor && !View.bIsSceneCapture)
 	{
-		DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, Views[0].BackgroundColor);
+		DrawClearQuad(RHICmdList, Views[0].BackgroundColor);
 	}
 
 	RenderMobileBasePass(RHICmdList, ViewList);

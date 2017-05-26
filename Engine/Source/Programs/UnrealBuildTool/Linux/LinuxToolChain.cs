@@ -354,8 +354,8 @@ namespace UnrealBuildTool
 				// GCC only option
 				Result += " -fno-strict-aliasing";
 				Result += " -Wno-sign-compare"; // needed to suppress: comparison between signed and unsigned integer expressions
-				Result += " -Wno-enum-compare"; // Stats2.h triggers this (ALIGNOF(int64) <= DATA_ALIGN)
-				Result += " -Wno-return-type"; // Variant.h triggers this
+				Result += " -Wno-enum-compare"; // Stats2.h triggers this (alignof(int64) <= DATA_ALIGN)
+                Result += " -Wno-return-type"; // Variant.h triggers this
 				Result += " -Wno-unused-local-typedefs";
 				Result += " -Wno-multichar";
 				Result += " -Wno-unused-but-set-variable";

@@ -214,64 +214,6 @@ public: // From FTickableObjectRenderThread
 };
 
 
-/** for motion blur skinning */
-class FBoneDataVertexBuffer : public FRenderResource
-{
-public:
-	/** constructor */
-	FBoneDataVertexBuffer();
-
-	/** 
-	* call UnlockData() after this one
-	* @return never 0
-	*/
-	float* LockData();
-	/**
-	* Needs to be called after LockData()
-	*/
-	void UnlockData(uint32 SizeInBytes);
-
-	/** Returns the size of the buffer in pixels. */
-	uint32 GetSizeX() const;
-
-	bool IsValid() const
-	{
-		return IsValidRef(BoneBuffer);
-	}
-
-	// interface FRenderResource ------------------------------------------
-
-	virtual void ReleaseRHI() override
-	{
-		DEC_DWORD_STAT_BY( STAT_SkeletalMeshMotionBlurSkinningMemory, ComputeMemorySize());
-		BoneBuffer.SafeRelease();
-		FRenderResource::ReleaseRHI();
-	}
-
-	virtual void InitDynamicRHI() override
-	{
-		if(SizeX)
-		{
-			INC_DWORD_STAT_BY( STAT_SkeletalMeshMotionBlurSkinningMemory, ComputeMemorySize());
-			const int32 TileBufferSize = ComputeMemorySize();
-			FRHIResourceCreateInfo CreateInfo;
-			// BUF_Dynamic as it can be too large (e.g. 100 characters each 100 bones with 48 bytes per bone is about 1/2 MB) to do it as BUF_Volatile
-			BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, BUF_Dynamic | BUF_ShaderResource, CreateInfo );
-			BoneBuffer.VertexBufferSRV = RHICreateShaderResourceView( BoneBuffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
-		}
-	}
-	
-	/** Bone buffer reference. */
-	FVertexBufferAndSRV BoneBuffer;
-	
-private: // -------------------------------------------------------
-	/** Buffer size in texels */
-	uint32 SizeX;
-
-	/** @return in bytes */
-	uint32 ComputeMemorySize();
-};
-
 /** Vertex factory with vertex stream components for GPU skinned vertices */
 class FGPUBaseSkinVertexFactory : public FVertexFactory
 {

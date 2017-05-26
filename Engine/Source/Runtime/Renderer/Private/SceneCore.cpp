@@ -381,7 +381,7 @@ void FStaticMesh::RemoveFromDrawLists()
 	// Remove the mesh from all draw lists.
 	while(DrawListLinks.Num())
 	{
-		FStaticMesh::FDrawListElementLink* Link = DrawListLinks[0];
+		TRefCountPtr<FStaticMesh::FDrawListElementLink> Link = DrawListLinks[0];
 		const int32 OriginalNumLinks = DrawListLinks.Num();
 		// This will call UnlinkDrawList.
 		Link->Remove(true);

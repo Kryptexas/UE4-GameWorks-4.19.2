@@ -8,7 +8,6 @@
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
 #include "HAL/UnrealMemory.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "Math/Color.h"
 #include "Math/IntPoint.h"
@@ -57,6 +56,7 @@ class FGraphicsPipelineState;
 
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 
+
 // set this one to get a stat for each RHI command 
 #define RHI_STATS 0
 
@@ -66,7 +66,40 @@ DECLARE_STATS_GROUP(TEXT("RHICommands"),STATGROUP_RHI_COMMANDS, STATCAT_Advanced
 #else
 #define RHISTAT(Method)
 #endif
-/** Thread used for RHI */
+
+extern RHI_API bool GUseRHIThread_InternalUseOnly;
+extern RHI_API bool GUseRHITaskThreads_InternalUseOnly;
+extern RHI_API bool GIsRunningRHIInSeparateThread_InternalUseOnly;
+extern RHI_API bool GIsRunningRHIInDedicatedThread_InternalUseOnly;
+extern RHI_API bool GIsRunningRHIInTaskThread_InternalUseOnly;
+
+/**
+* Whether the RHI commands are being run in a thread other than the render thread
+*/
+bool FORCEINLINE IsRunningRHIInSeparateThread()
+{
+	return GIsRunningRHIInSeparateThread_InternalUseOnly;
+}
+
+/**
+* Whether the RHI commands are being run on a dedicated thread other than the render thread
+*/
+bool FORCEINLINE IsRunningRHIInDedicatedThread()
+{
+	return GIsRunningRHIInDedicatedThread_InternalUseOnly;
+}
+
+/**
+* Whether the RHI commands are being run on a dedicated thread other than the render thread
+*/
+bool FORCEINLINE IsRunningRHIInTaskThread()
+{
+	return GIsRunningRHIInTaskThread_InternalUseOnly;
+}
+
+
+
+
 extern RHI_API bool GEnableAsyncCompute;
 extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdWidth;
 extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasks;
@@ -187,7 +220,7 @@ public:
 	template <typename T>
 	FORCEINLINE_DEBUGGABLE void* Alloc()
 	{
-		return Alloc(sizeof(T), ALIGNOF(T));
+		return Alloc(sizeof(T), alignof(T));
 	}
 
 	template <typename TCmd>

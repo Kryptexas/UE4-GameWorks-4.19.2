@@ -14,6 +14,7 @@
 #include "MetalCommandBuffer.h"
 #include "Serialization/MemoryReader.h"
 #include "Misc/FileHelper.h"
+#include "ScopeRWLock.h"
 
 #define SHADERCOMPILERCOMMON_API
 #	include "Developer/ShaderCompilerCommon/Public/ShaderCompilerCommon.h"
@@ -56,14 +57,10 @@ struct FMetalCompiledShaderCache
 public:
 	FMetalCompiledShaderCache()
 	{
-		int Err = pthread_rwlock_init(&Lock, nullptr);
-		checkf(Err == 0, TEXT("pthread_rwlock_init failed with error: %d"), Err);
 	}
 	
 	~FMetalCompiledShaderCache()
 	{
-		int Err = pthread_rwlock_destroy(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with error: %d"), Err);
 		for (TPair<FMetalCompiledShaderKey, id<MTLFunction>> Pair : Cache)
 		{
 			[Pair.Value release];
@@ -72,25 +69,19 @@ public:
 	
 	id<MTLFunction> FindRef(FMetalCompiledShaderKey Key)
 	{
-		int Err = pthread_rwlock_rdlock(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), Err);
+		FRWScopeLock(Lock, SLT_ReadOnly);
 		id<MTLFunction> Func = Cache.FindRef(Key);
-		Err = pthread_rwlock_unlock(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), Err);
 		return Func;
 	}
 	
 	void Add(FMetalCompiledShaderKey Key, id<MTLFunction> Function)
 	{
-		int Err = pthread_rwlock_wrlock(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with error: %d"), Err);
+		FRWScopeLock(Lock, SLT_Write);
 		Cache.Add(Key, Function);
-		Err = pthread_rwlock_unlock(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), Err);
 	}
 	
 private:
-	pthread_rwlock_t Lock;
+	FRWLock Lock;
 	TMap<FMetalCompiledShaderKey, id<MTLFunction>> Cache;
 };
 
@@ -1053,7 +1044,7 @@ FMetalShaderPipeline* FMetalBoundShaderState::PrepareToDraw(FMetalHashedVertexDe
 	// generate a key for the current statez
 	FMetalRenderPipelineHash PipelineHash = RenderPipelineDesc.GetHash();
 	
-	if(GUseRHIThread)
+	if(IsRunningRHIInSeparateThread())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 		int Err = pthread_rwlock_rdlock(&PipelineMutex);
@@ -1068,7 +1059,7 @@ FMetalShaderPipeline* FMetalBoundShaderState::PrepareToDraw(FMetalHashedVertexDe
 		PipelineStatePack = Dict->FindRef(VertexDesc);
 	}
 	
-	if(GUseRHIThread)
+	if(IsRunningRHIInSeparateThread())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 		int Err = pthread_rwlock_unlock(&PipelineMutex);
@@ -1081,7 +1072,7 @@ FMetalShaderPipeline* FMetalBoundShaderState::PrepareToDraw(FMetalHashedVertexDe
 		PipelineStatePack = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this, VertexDesc);
 		check(PipelineStatePack);
 		
-		if(GUseRHIThread)
+		if(IsRunningRHIInSeparateThread())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 			int Err = pthread_rwlock_wrlock(&PipelineMutex);
@@ -1107,7 +1098,7 @@ FMetalShaderPipeline* FMetalBoundShaderState::PrepareToDraw(FMetalHashedVertexDe
 			PipelineStatePack = ExistingPipeline;
 		}
 		
-		if(GUseRHIThread)
+		if(IsRunningRHIInSeparateThread())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 			int Err = pthread_rwlock_unlock(&PipelineMutex);

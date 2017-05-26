@@ -608,7 +608,6 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 		&& View.FinalPostProcessSettings.MotionBlurMax > 0.001f
 		&& View.Family->bRealtimeUpdate
 		&& MotionBlurQuality > 0
-		&& !View.bIsSceneCapture
 		&& (CVarAllowMotionBlurInVR->GetInt() != 0 || !(View.Family->Views.Num() > 1));
 }
 

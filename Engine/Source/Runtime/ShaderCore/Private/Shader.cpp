@@ -1864,8 +1864,8 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
-		if (CVar && CVar->GetValueOnAnyThread() > 0)
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
+		if (CVar && CVar->GetInt() > 0)
 		{
 			KeyString += TEXT("_FS");
 		}

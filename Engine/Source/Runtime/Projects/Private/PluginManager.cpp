@@ -425,6 +425,17 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			const FPlugin& Plugin = *PluginPair.Value;
 			if (Plugin.bEnabled)
 			{
+				// Plugins can have their own shaders
+				// Add potential plugin shader directory only if the plugin is loaded in PostConfigInit. Not supported otherwise
+				for (const FModuleDescriptor& Module : Plugin.GetDescriptor().Modules)
+				{
+					if (Module.LoadingPhase == ELoadingPhase::PostConfigInit)
+					{
+						FGenericPlatformProcess::AddShaderDir(FPaths::Combine(*Plugin.GetBaseDir(), TEXT("Shaders")));
+						break;
+					}
+				}
+
 				// Build the list of content folders
 				if (Plugin.Descriptor.bCanContainContent)
 				{

@@ -8,6 +8,7 @@
 #include "Interfaces/IPluginManager.h"
 #include "ProjectDescriptor.h"
 #include "Modules/ModuleManager.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogProjectManager, Log, All );
 
@@ -30,6 +31,10 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 	TSharedPtr<FProjectDescriptor> Descriptor = MakeShareable(new FProjectDescriptor());
 	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
+		// Projects can have their own shaders
+		// Add potential project shader directory
+		FGenericPlatformProcess::AddShaderDir(FPaths::Combine(FPaths::GetPath(InProjectFile), TEXT("Shaders")));
+
 		// Create the project
 		CurrentProject = Descriptor;
 		return true;

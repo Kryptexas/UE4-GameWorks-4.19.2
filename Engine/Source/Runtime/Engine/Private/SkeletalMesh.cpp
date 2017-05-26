@@ -1198,34 +1198,35 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 
 void FMorphTargetVertexInfoBuffers::InitRHI()
 {
-	if (PerVertexInfoList.Num() > 0)
+	check(NumTotalWorkItems > 0);
+
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		void* PerVertexInfoListVBData = nullptr;
-		PerVertexInfoVB = RHICreateAndLockVertexBuffer(PerVertexInfoList.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, PerVertexInfoListVBData);
-		FMemory::Memcpy(PerVertexInfoListVBData, PerVertexInfoList.GetData(), PerVertexInfoList.GetAllocatedSize());
-		RHIUnlockVertexBuffer(PerVertexInfoVB);
-		PerVertexInfoSRV = RHICreateShaderResourceView(PerVertexInfoVB, sizeof(uint32), PF_R32_UINT);
-
-		void* FlattenedDeltasVBData = nullptr;
-		FlattenedDeltasVB = RHICreateAndLockVertexBuffer(FlattenedDeltaList.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, FlattenedDeltasVBData);
-		FMemory::Memcpy(FlattenedDeltasVBData, FlattenedDeltaList.GetData(), FlattenedDeltaList.GetAllocatedSize());
-		RHIUnlockVertexBuffer(FlattenedDeltasVB);
-		FlattenedDeltasSRV = RHICreateShaderResourceView(FlattenedDeltasVB, sizeof(uint32), PF_R32_UINT);
-
-		NumInfluencedVerticesByMorphs = (uint32)PerVertexInfoList.Num();
-
-		PerVertexInfoList.Empty();
-		FlattenedDeltaList.Empty();
+		void* VertexIndicesVBData = nullptr;
+		VertexIndicesVB = RHICreateAndLockVertexBuffer(VertexIndices.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, VertexIndicesVBData);
+		FMemory::Memcpy(VertexIndicesVBData, VertexIndices.GetData(), VertexIndices.GetAllocatedSize());
+		RHIUnlockVertexBuffer(VertexIndicesVB);
+		VertexIndicesSRV = RHICreateShaderResourceView(VertexIndicesVB, 4, PF_R32_UINT);
 	}
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		void* MorphDeltasVBData = nullptr;
+		MorphDeltasVB = RHICreateAndLockVertexBuffer(MorphDeltas.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, MorphDeltasVBData);
+		FMemory::Memcpy(MorphDeltasVBData, MorphDeltas.GetData(), MorphDeltas.GetAllocatedSize());
+		RHIUnlockVertexBuffer(MorphDeltasVB);
+		MorphDeltasSRV = RHICreateShaderResourceView(MorphDeltasVB, 2, PF_R16F);
+	}
+
+	VertexIndices.Empty();
+	MorphDeltas.Empty();
 }
 
 void FMorphTargetVertexInfoBuffers::ReleaseRHI()
 {
-	PerVertexInfoVB.SafeRelease();
-	PerVertexInfoSRV.SafeRelease();
-	FlattenedDeltasVB.SafeRelease();
-	FlattenedDeltasSRV.SafeRelease();
+	VertexIndicesVB.SafeRelease();
+	VertexIndicesSRV.SafeRelease();
+	MorphDeltasVB.SafeRelease();
+	MorphDeltasSRV.SafeRelease();
 }
 
 /*-----------------------------------------------------------------------------
@@ -1543,44 +1544,65 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors, int32 LODIndex, TAr
 
 	if (RHISupportsComputeShaders(GMaxRHIShaderPlatform) && InMorphTargets.Num() > 0)
 	{
+		MorphTargetVertexInfoBuffers.VertexIndices.Empty();
+		MorphTargetVertexInfoBuffers.MorphDeltas.Empty();
+		MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Empty();
+		MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Empty();
+		MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Empty();
+		MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Empty();
+		MorphTargetVertexInfoBuffers.NumTotalWorkItems = 0;
+
 		// Populate the arrays to be filled in later in the render thread
-
-		// Auxiliary mapping for affected vertex indices by morph to its weights
-		TMap<uint32, TArray<FMorphTargetVertexInfoBuffers::FFlattenedDelta>> AuxDeltaList;
-
-		int32 TotalNumDeltas = 0;
 		for (int32 AnimIdx = 0; AnimIdx < InMorphTargets.Num(); ++AnimIdx)
 		{
+			uint32 StartOffset = MorphTargetVertexInfoBuffers.NumTotalWorkItems;
+			MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Add(StartOffset);
+
+			float MaximumValues[4] = { -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX };
+			float MinimumValues[4] = { +FLT_MAX, +FLT_MAX, +FLT_MAX, +FLT_MAX };
 			UMorphTarget* MorphTarget = InMorphTargets[AnimIdx];
-
 			int32 NumSrcDeltas = 0;
-			FMorphTargetDelta* SrcDelta = MorphTarget->GetMorphTargetDelta(LODIndex, NumSrcDeltas);
-			for (int32 SrcDeltaIndex = 0; SrcDeltaIndex < NumSrcDeltas; ++SrcDeltaIndex, ++SrcDelta)
+			FMorphTargetDelta* MorphDeltas = MorphTarget->GetMorphTargetDelta(LODIndex, NumSrcDeltas);
+			for (int32 DeltaIndex = 0; DeltaIndex < NumSrcDeltas; DeltaIndex++)
 			{
-				TArray<FMorphTargetVertexInfoBuffers::FFlattenedDelta>& FlattenedDeltas = AuxDeltaList.FindOrAdd(SrcDelta->SourceIdx);
-				FMorphTargetVertexInfoBuffers::FFlattenedDelta* NewDelta = new(FlattenedDeltas) FMorphTargetVertexInfoBuffers::FFlattenedDelta;
-				NewDelta->PosDelta = SrcDelta->PositionDelta;
-				NewDelta->TangentDelta = SrcDelta->TangentZDelta;
-				NewDelta->WeightIndex = AnimIdx;
-				++TotalNumDeltas;
+				const auto& MorphDelta = MorphDeltas[DeltaIndex];
+				if (!(MorphDelta.PositionDelta.IsNearlyZero(0.0000001f) && MorphDelta.TangentZDelta.IsNearlyZero(0.0000001f)))
+				{				
+					MaximumValues[0] = FMath::Max(MaximumValues[0], MorphDelta.PositionDelta.X);
+					MaximumValues[1] = FMath::Max(MaximumValues[1], MorphDelta.PositionDelta.Y);
+					MaximumValues[2] = FMath::Max(MaximumValues[2], MorphDelta.PositionDelta.Z);
+					MaximumValues[3] = FMath::Max(MaximumValues[3], FMath::Max(MorphDelta.TangentZDelta.X, FMath::Max(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
+
+					MinimumValues[0] = FMath::Min(MinimumValues[0], MorphDelta.PositionDelta.X);
+					MinimumValues[1] = FMath::Min(MinimumValues[1], MorphDelta.PositionDelta.Y);
+					MinimumValues[2] = FMath::Min(MinimumValues[2], MorphDelta.PositionDelta.Z);
+					MinimumValues[3] = FMath::Min(MinimumValues[3], FMath::Min(MorphDelta.TangentZDelta.X, FMath::Min(MorphDelta.TangentZDelta.Y, MorphDelta.TangentZDelta.Z)));
+
+					MorphTargetVertexInfoBuffers.VertexIndices.Add(MorphDelta.SourceIdx);
+					MorphTargetVertexInfoBuffers.MorphDeltas.Emplace(MorphDelta.PositionDelta, MorphDelta.TangentZDelta);
+					MorphTargetVertexInfoBuffers.NumTotalWorkItems++;
+				}
 			}
+
+			uint32 MorphTargetSize =  MorphTargetVertexInfoBuffers.NumTotalWorkItems - StartOffset;
+			if (MorphTargetSize > 0)
+			{
+				ensureMsgf(MaximumValues[0] < +32752.0f && MaximumValues[1] < +32752.0f && MaximumValues[2] < +32752.0f && MaximumValues[3] < +32752.0f, TEXT("Huge MorphTarget Delta found in %s at index %i, might break down because we use half float storage"), *MorphTarget->GetName(), AnimIdx);
+				ensureMsgf(MinimumValues[0] > -32752.0f && MinimumValues[1] > -32752.0f && MinimumValues[2] > -32752.0f && MaximumValues[3] > -32752.0f, TEXT("Huge MorphTarget Delta found in %s at index %i, might break down because we use half float storage"), *MorphTarget->GetName(), AnimIdx);
+			}
+			else
+			{
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("Empty MorphTarget Animation found in %s at index %i"), *MorphTarget->GetName(), AnimIdx);
+			}
+			MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Add(MorphTargetSize);
+			MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Add(FVector4(MaximumValues[0], MaximumValues[1], MaximumValues[2], MaximumValues[3]));
+			MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Add(FVector4(MinimumValues[0], MinimumValues[1], MinimumValues[2], MinimumValues[3]));
 		}
 
-		MorphTargetVertexInfoBuffers.FlattenedDeltaList.Empty(TotalNumDeltas);
-		MorphTargetVertexInfoBuffers.PerVertexInfoList.AddUninitialized(AuxDeltaList.Num());
-		int32 StartDelta = 0;
-		FMorphTargetVertexInfoBuffers::FPerVertexInfo* NewPerVertexInfo = MorphTargetVertexInfoBuffers.PerVertexInfoList.GetData();
-		for (auto& Pair : AuxDeltaList)
-		{
-			NewPerVertexInfo->DestVertexIndex = Pair.Key;
-			NewPerVertexInfo->StartDelta = StartDelta;
-			NewPerVertexInfo->NumDeltas = Pair.Value.Num();
-			MorphTargetVertexInfoBuffers.FlattenedDeltaList.Append(Pair.Value);
-			StartDelta += Pair.Value.Num();
-			++NewPerVertexInfo;
-		}
-
-		if (AuxDeltaList.Num() > 0)
+		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.StartOffsetPerMorph.Num());
+		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.MaximumValuePerMorph.Num());
+		check(MorphTargetVertexInfoBuffers.WorkItemsPerMorph.Num() == MorphTargetVertexInfoBuffers.MinimumValuePerMorph.Num());
+		if (MorphTargetVertexInfoBuffers.NumTotalWorkItems > 0)
 		{
 			BeginInitResource(&MorphTargetVertexInfoBuffers);
 		}
@@ -2846,6 +2868,8 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		FMultiComponentReregisterContext ReregisterContext(ComponentsToReregister);
 	}
 
+	UpdateUVChannelData(true);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -3304,6 +3328,11 @@ void USkeletalMesh::PostLoad()
 				Resource->LODModels[LODIndex].BuildVertexBuffers(VertexFlags);
 			}
 		}
+	}
+
+	if (GetLinkerCustomVersion(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::FixedMeshUVDensity)
+	{
+		UpdateUVChannelData(true);
 	}
 #endif // WITH_EDITOR
 

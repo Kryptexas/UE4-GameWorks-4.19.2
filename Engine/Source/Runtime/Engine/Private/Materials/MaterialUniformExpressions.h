@@ -139,7 +139,7 @@ public:
 	{
 		OutValue.R = OutValue.G = OutValue.B = OutValue.A = 0;
 
-		if(!Context.MaterialRenderProxy->GetVectorValue(ParameterName, &OutValue, Context))
+		if(!Context.MaterialRenderProxy || !Context.MaterialRenderProxy->GetVectorValue(ParameterName, &OutValue, Context))
 		{
 			GetDefaultValue(OutValue);
 		}
@@ -212,7 +212,7 @@ public:
 	// inefficient compared to GetGameThreadNumberValue(), for editor purpose
 	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
 	{
-		if(Context.MaterialRenderProxy->GetScalarValue(ParameterName, &OutValue.R, Context))
+		if(Context.MaterialRenderProxy && Context.MaterialRenderProxy->GetScalarValue(ParameterName, &OutValue.R, Context))
 		{
 			OutValue.G = OutValue.B = OutValue.A = OutValue.R;
 		}
@@ -319,7 +319,7 @@ public:
 		else
 		{
 			OutValue = NULL;
-			if(!Context.MaterialRenderProxy->GetTextureValue(ParameterName,&OutValue,Context))
+			if(!Context.MaterialRenderProxy || !Context.MaterialRenderProxy->GetTextureValue(ParameterName,&OutValue,Context))
 			{
 				OutValue = GetIndexedTexture(Material, TextureIndex);
 			}

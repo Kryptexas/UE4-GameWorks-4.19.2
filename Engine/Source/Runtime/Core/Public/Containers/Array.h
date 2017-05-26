@@ -12,6 +12,7 @@
 #include "Serialization/Archive.h"
 
 #include "Templates/Less.h"
+#include "Templates/ChooseClass.h"
 #include "Templates/Sorting.h"
 
 #define DEBUG_HEAP 0

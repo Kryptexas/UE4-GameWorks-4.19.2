@@ -9,6 +9,7 @@
 #include "UnrealString.h"
 #include "IConsoleManager.h"
 #include "Color.h"
+#include "ScopeRWLock.h"
 #include <sys/kdebug_signpost.h>
 #include <sys/syscall.h>
 
@@ -170,23 +171,6 @@ TArray<FApplePlatformDebugEvents::FEvent>* FApplePlatformDebugEvents::GetEventSt
 	return Current;
 }
 
-struct FAppleRWMutex
-{
-	FAppleRWMutex()
-	{
-		int Err = pthread_rwlock_init(&Mutex, nullptr);
-		checkf(Err == 0, TEXT("pthread_rwlock_init failed with error: %d"), errno);
-	}
-	
-	~FAppleRWMutex()
-	{
-		int Err = pthread_rwlock_destroy(&Mutex);
-		checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with error: %d"), errno);
-	}
-	
-	pthread_rwlock_t Mutex;
-};
-
 uint16 FApplePlatformDebugEvents::GetEventCode(FString String)
 {
 	// Never emit 0 as we use that for the frame marker...
@@ -207,20 +191,19 @@ uint16 FApplePlatformDebugEvents::GetEventCode(FString String)
 	
 	uint32 Hash = GetTypeHash(String);
 	
-	static FAppleRWMutex RWMutex;
+	static FRWLock RWMutex;
 	static TMap<uint32, uint16> Names;
 	{
-		pthread_rwlock_rdlock(&RWMutex.Mutex);
+		FRWScopeLock Lock(RWMutex, SLT_ReadOnly);
 		uint16* CodePtr = Names.Find(Hash);
 		if(CodePtr)
 		{
 			Code = *CodePtr;
 		}
-		pthread_rwlock_unlock(&RWMutex.Mutex);
 		
 		if(!CodePtr)
 		{
-			pthread_rwlock_wrlock(&RWMutex.Mutex);
+			Lock.RaiseLockToWrite();
 			CodePtr = Names.Find(Hash);
 			if(CodePtr)
 			{
@@ -233,7 +216,6 @@ uint16 FApplePlatformDebugEvents::GetEventCode(FString String)
 				Names.Add(Hash, Code);
 				UE_LOG(LogInstruments, Display, TEXT("New Event Code: %u : %s"), (uint32)Code, *String);
 			}
-			pthread_rwlock_unlock(&RWMutex.Mutex);
 		}
 	}
 	

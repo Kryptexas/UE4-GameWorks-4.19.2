@@ -12,6 +12,22 @@
 
 extern FVector VolumetricFogTemporalRandom(uint32 FrameNumber);
 
+struct FVolumetricFogIntegrationParameterData
+{
+	FVolumetricFogIntegrationParameterData() :
+		bTemporalHistoryIsValid(false),
+		VBufferARenderTarget(NULL),
+		VBufferBRenderTarget(NULL),
+		LightScatteringRenderTarget(NULL)
+	{}
+
+	bool bTemporalHistoryIsValid;
+	TArray<FVector4, TInlineAllocator<16>> FrameJitterOffsetValues;
+	IPooledRenderTarget* VBufferARenderTarget;
+	IPooledRenderTarget* VBufferBRenderTarget;
+	IPooledRenderTarget* LightScatteringRenderTarget;
+};
+
 /**  */
 class FVolumetricFogIntegrationParameters
 {
@@ -19,7 +35,6 @@ public:
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		
 	}
 
 	void Bind(const FShaderParameterMap& ParameterMap)
@@ -32,7 +47,9 @@ public:
 		VolumetricFogData.Bind(ParameterMap, TEXT("VolumetricFog"));
 		UnjitteredClipToTranslatedWorld.Bind(ParameterMap, TEXT("UnjitteredClipToTranslatedWorld")); 
 		UnjitteredPrevWorldToClip.Bind(ParameterMap, TEXT("UnjitteredPrevWorldToClip")); 
-		FrameJitterOffset.Bind(ParameterMap, TEXT("FrameJitterOffset")); 
+		FrameJitterOffsets.Bind(ParameterMap, TEXT("FrameJitterOffsets")); 
+		HistoryWeight.Bind(ParameterMap, TEXT("HistoryWeight")); 
+		HistoryMissSuperSampleCount.Bind(ParameterMap, TEXT("HistoryMissSuperSampleCount")); 
 	}
 
 	template<typename ShaderRHIParamRef>
@@ -40,25 +57,23 @@ public:
 		FRHICommandList& RHICmdList, 
 		const ShaderRHIParamRef& ShaderRHI, 
 		const FViewInfo& View, 
-		IPooledRenderTarget* VBufferARenderTarget, 
-		IPooledRenderTarget* VBufferBRenderTarget, 
-		IPooledRenderTarget* LightScatteringRenderTarget) const
+		const FVolumetricFogIntegrationParameterData& IntegrationData) const
 	{
 		if (VBufferA.IsBound())
 		{
-			const FSceneRenderTargetItem& VBufferAItem = VBufferARenderTarget->GetRenderTargetItem();
+			const FSceneRenderTargetItem& VBufferAItem = IntegrationData.VBufferARenderTarget->GetRenderTargetItem();
 			VBufferA.SetTexture(RHICmdList, ShaderRHI, VBufferAItem.ShaderResourceTexture, VBufferAItem.UAV);
 		}
 
 		if (VBufferB.IsBound())
 		{
-			const FSceneRenderTargetItem& VBufferBItem = VBufferBRenderTarget->GetRenderTargetItem();
+			const FSceneRenderTargetItem& VBufferBItem = IntegrationData.VBufferBRenderTarget->GetRenderTargetItem();
 			VBufferB.SetTexture(RHICmdList, ShaderRHI, VBufferBItem.ShaderResourceTexture, VBufferBItem.UAV);
 		}
 
 		if (LightScattering.IsBound())
 		{
-			const FSceneRenderTargetItem& LightScatteringItem = LightScatteringRenderTarget->GetRenderTargetItem();
+			const FSceneRenderTargetItem& LightScatteringItem = IntegrationData.LightScatteringRenderTarget->GetRenderTargetItem();
 			LightScattering.SetTexture(RHICmdList, ShaderRHI, LightScatteringItem.ShaderResourceTexture, LightScatteringItem.UAV);
 		}
 
@@ -88,11 +103,16 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, UnjitteredPrevWorldToClip, UnjitteredViewProjectionMatrix);
 		}
 
-		if (FrameJitterOffset.IsBound())
+		if (FrameJitterOffsets.IsBound())
 		{
-			const FVector FrameJitterOffsetValue = VolumetricFogTemporalRandom(View.Family->FrameNumber);
-			SetShaderValue(RHICmdList, ShaderRHI, FrameJitterOffset, FrameJitterOffsetValue);
+			SetShaderValueArray(RHICmdList, ShaderRHI, FrameJitterOffsets, IntegrationData.FrameJitterOffsetValues.GetData(), IntegrationData.FrameJitterOffsetValues.Num());
 		}
+
+		extern float GVolumetricFogHistoryWeight;
+		SetShaderValue(RHICmdList, ShaderRHI, HistoryWeight, IntegrationData.bTemporalHistoryIsValid ? GVolumetricFogHistoryWeight : 0.0f);
+
+		extern int32 GVolumetricFogHistoryMissSupersampleCount;
+		SetShaderValue(RHICmdList, ShaderRHI, HistoryMissSuperSampleCount, FMath::Clamp(GVolumetricFogHistoryMissSupersampleCount, 1, 16));
 	}
 
 	template<typename ShaderRHIParamRef>
@@ -151,7 +171,9 @@ public:
 		Ar << P.VolumetricFogData;
 		Ar << P.UnjitteredClipToTranslatedWorld;
 		Ar << P.UnjitteredPrevWorldToClip;
-		Ar << P.FrameJitterOffset;
+		Ar << P.FrameJitterOffsets;
+		Ar << P.HistoryWeight;
+		Ar << P.HistoryMissSuperSampleCount;
 		return Ar;
 	}
 
@@ -165,7 +187,9 @@ private:
 	FShaderUniformBufferParameter VolumetricFogData;
 	FShaderParameter UnjitteredClipToTranslatedWorld;
 	FShaderParameter UnjitteredPrevWorldToClip;
-	FShaderParameter FrameJitterOffset;
+	FShaderParameter FrameJitterOffsets;
+	FShaderParameter HistoryWeight;
+	FShaderParameter HistoryMissSuperSampleCount;
 };
 
 inline int32 ComputeZSliceFromDepth(float SceneDepth, FVector GridZParams)

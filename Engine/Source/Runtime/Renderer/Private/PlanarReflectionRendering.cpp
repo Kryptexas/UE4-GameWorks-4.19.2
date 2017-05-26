@@ -272,7 +272,7 @@ static void UpdatePlanarReflectionContents_RenderThread(
 				else
 				{
 					SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
-					DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor::Black);
+					DrawClearQuad(RHICmdList, FLinearColor::Black);
 				}
 
 				// Reflection view late update
@@ -601,7 +601,7 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 
 		if (!bSSRAsInput)
 		{
-			DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, FLinearColor(0, 0, 0, 0));
+			DrawClearQuad(RHICmdList, FLinearColor(0, 0, 0, 0));
 		}
 
 		{

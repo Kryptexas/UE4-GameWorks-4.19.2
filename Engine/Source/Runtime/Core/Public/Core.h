@@ -75,7 +75,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "Templates/ChooseClass.h"
 #include "Templates/IntegralConstant.h"
 #include "Templates/IsClass.h"
-#include "Templates/AlignOf.h"
 #include "Templates/TypeCompatibleBytes.h"
 #include "Traits/IsContiguousContainer.h"
 #include "Templates/IsTriviallyDestructible.h"

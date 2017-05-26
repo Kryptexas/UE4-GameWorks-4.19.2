@@ -101,6 +101,8 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, FDrawin
 			GMinimalDummyForwardLightingResources = new TGlobalResource<FMinimalDummyForwardLightingResources>();
 		}
 
+		FMaterialRenderProxy::UpdateDeferredCachedUniformExpressions();
+
 		//Apply the minimal forward lighting resources
 		View.ForwardLightingResources = &GMinimalDummyForwardLightingResources->ForwardLightingResources;
 		

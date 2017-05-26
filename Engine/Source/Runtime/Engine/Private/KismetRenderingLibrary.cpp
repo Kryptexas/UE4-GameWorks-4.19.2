@@ -44,7 +44,7 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 			[RenderTargetResource, ClearColor](FRHICommandList& RHICmdList)
 			{
 				SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
-				DrawClearQuad(RHICmdList, GMaxRHIFeatureLevel, ClearColor);
+				DrawClearQuad(RHICmdList, ClearColor);
 			});
 	}
 }

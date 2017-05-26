@@ -380,7 +380,7 @@ struct FLightMapPendingTexture : public FTextureLayout
 	ULightMapTexture2D*				SkyOcclusionTexture;
 	ULightMapTexture2D*				AOMaterialMaskTexture;
 
-	TArray<FLightMapAllocation*>	Allocations;
+	TArray<TUniquePtr<FLightMapAllocation>> Allocations;
 	UObject*						Outer;
 	TWeakObjectPtr<UWorld>			OwningWorld;
 	/** Bounding volume for all mappings within this texture.							*/
@@ -427,7 +427,7 @@ struct FLightMapPendingTexture : public FTextureLayout
 	/**
 	 * Processes the textures and starts asynchronous compression tasks for all mip-levels.
 	 */
-	void StartEncoding(ULevel* Unused);
+	void StartEncoding(ULevel* Unused, ITextureCompressorModule* UnusedCompressor);
 
 	/**
 	 * Call this function after the IsFinishedEncoding function returns true
@@ -568,7 +568,7 @@ void FLightMapPendingTexture::PostEncode()
 
 	for (int32 AllocationIndex = 0; AllocationIndex < Allocations.Num(); AllocationIndex++)
 	{
-		FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+		auto& Allocation = Allocations[AllocationIndex];
 
 		int32 PaddedSizeX = Allocation->TotalSizeX;
 		int32 PaddedSizeY = Allocation->TotalSizeY;
@@ -1142,7 +1142,7 @@ bool FLightMapPendingTexture::NeedsSkyOcclusionTexture() const
 
 	for (int32 AllocationIndex = 0; AllocationIndex < Allocations.Num(); AllocationIndex++)
 	{
-		FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+		auto& Allocation = Allocations[AllocationIndex];
 
 		if (Allocation->bHasSkyShadowing)
 		{
@@ -1169,7 +1169,7 @@ bool FLightMapPendingTexture::NeedsAOMaterialMaskTexture() const
 	return false;
 }
 
-void FLightMapPendingTexture::StartEncoding(ULevel* Unused)
+void FLightMapPendingTexture::StartEncoding(ULevel* Unused, ITextureCompressorModule* UnusedCompressor)
 {
 	if (!bUObjectsCreated)
 	{
@@ -1222,7 +1222,7 @@ void FLightMapPendingTexture::StartEncoding(ULevel* Unused)
 		FIntRect TextureRect( MAX_int32, MAX_int32, MIN_int32, MIN_int32 );
 		for(int32 AllocationIndex = 0;AllocationIndex < Allocations.Num();AllocationIndex++)
 		{
-			FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+			auto& Allocation = Allocations[AllocationIndex];
 			// Link the light-map to the texture.
 			Allocation->LightMap->SkyOcclusionTexture = Texture;
 			
@@ -1310,7 +1310,7 @@ void FLightMapPendingTexture::StartEncoding(ULevel* Unused)
 		FIntRect TextureRect( MAX_int32, MAX_int32, MIN_int32, MIN_int32 );
 		for(int32 AllocationIndex = 0;AllocationIndex < Allocations.Num();AllocationIndex++)
 		{
-			FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+			auto& Allocation = Allocations[AllocationIndex];
 			// Link the light-map to the texture.
 			Allocation->LightMap->AOMaterialMaskTexture = Texture;
 			
@@ -1400,7 +1400,7 @@ void FLightMapPendingTexture::StartEncoding(ULevel* Unused)
 		
 		for(int32 AllocationIndex = 0;AllocationIndex < Allocations.Num();AllocationIndex++)
 		{
-			FLightMapAllocation* Allocation = Allocations[AllocationIndex];
+			auto& Allocation = Allocations[AllocationIndex];
 			// Link the light-map to the texture.
 			Allocation->LightMap->Textures[ CoefficientIndex / 2 ] = Texture;
 			for( int k = 0; k < 2; k++ )
@@ -1970,7 +1970,7 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 			// Give the texture ownership of the allocations
 			for (auto& Allocation : PendingGroup.Allocations)
 			{
-				Texture->Allocations.Add(Allocation.Release());
+				Texture->Allocations.Add(MoveTemp(Allocation));
 			}
 		}
 		PendingLightMaps.Empty();
@@ -1985,7 +1985,7 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 				// precreate the UObjects then give them to some threads to process
 				// need to precreate Uobjects 
 				Texture->CreateUObjects();
-				auto AsyncEncodeTask = new (AsyncEncodeTasks)FAsyncEncode<FLightMapPendingTexture>(Texture,NULL,Counter);
+				auto AsyncEncodeTask = new (AsyncEncodeTasks)FAsyncEncode<FLightMapPendingTexture>(Texture,nullptr,Counter,nullptr);
 				GLargeThreadPool->AddQueuedWork(AsyncEncodeTask);
 			}
 
@@ -2005,7 +2005,7 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 					GWarn->UpdateProgress(TextureIndex, PendingTextures.Num());
 				}
 				FLightMapPendingTexture* PendingTexture = PendingTextures[TextureIndex];
-				PendingTexture->StartEncoding(NULL);
+				PendingTexture->StartEncoding(nullptr,nullptr);
 			}
 		}
 

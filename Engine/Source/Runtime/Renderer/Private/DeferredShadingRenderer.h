@@ -112,7 +112,7 @@ public:
 	/** Finishes the view family rendering. */
 	void RenderFinish(FRHICommandListImmediate& RHICmdList);
 
-	void RenderOcclusion(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB);
+	void RenderOcclusion(FRHICommandListImmediate& RHICmdList, bool bRenderQueries);
 
 	/** Renders the view family. */
 	virtual void Render(FRHICommandListImmediate& RHICmdList) override;
@@ -251,15 +251,15 @@ private:
 	/** Issues a timestamp query for the end of the separate translucency pass. */
 	void EndTimingSeparateTranslucencyPass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
-	/** 
-	 * Renders the scene's translucency, parallel version
-	 */
-	void RenderTranslucencyParallel(FRHICommandListImmediate& RHICmdList);
 
-	/**
-	* Renders the scene's translucency.
-	*/
-	void RenderTranslucency(FRHICommandListImmediate& RHICmdList);
+	/** Setup the downsampled view uniform buffer if it was not already built */
+	void SetupDownsampledTranslucencyViewUniformBuffer(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+
+	/** Resolve the scene color if any translucent material needs it. */
+	void ConditionalResolveSceneColorForTranslucentMaterials(FRHICommandListImmediate& RHICmdList);
+
+	/** Renders the scene's translucency. */
+	void RenderTranslucency(FRHICommandListImmediate& RHICmdList, ETranslucencyPass::Type TranslucencyPass);
 
 	/** Renders the scene's light shafts */
 	void RenderLightShaftOcclusion(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput& Output);
@@ -304,7 +304,7 @@ private:
 		bool bProjectingForForwardShading) const;
 
 	/** Sets up ViewState buffers for rendering capsule shadows. */
-	void SetupIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bPrepareLightData, int32& NumCapsuleShapes, int32& NumMeshDistanceFieldCasters) const;
+	void SetupIndirectCapsuleShadows(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bPrepareLightData, int32& NumCapsuleShapes, int32& NumMeshesWithCapsules, int32& NumMeshDistanceFieldCasters) const;
 
 	/** Renders indirect shadows from capsules modulated onto scene color. */
 	void RenderIndirectCapsuleShadows(
@@ -385,8 +385,9 @@ private:
 	void RenderLocalLightsForVolumetricFog(
 		FRHICommandListImmediate& RHICmdList,
 		FViewInfo& View,
+		bool bUseTemporalReprojection,
+		const struct FVolumetricFogIntegrationParameterData& IntegrationData,
 		const FExponentialHeightFogSceneInfo& FogInfo,
-		IPooledRenderTarget* VBufferA,
 		FIntVector VolumetricFogGridSize,
 		FVector GridZParams,
 		const FPooledRenderTargetDesc& VolumeDesc,
@@ -404,11 +405,10 @@ private:
 	void VoxelizeFogVolumePrimitives(
 		FRHICommandListImmediate& RHICmdList,
 		const FViewInfo& View,
+		const FVolumetricFogIntegrationParameterData& IntegrationData,
 		FIntVector VolumetricFogGridSize,
 		FVector GridZParams,
-		float VolumetricFogDistance,
-		IPooledRenderTarget* VBufferA,
-		IPooledRenderTarget* VBufferB);
+		float VolumetricFogDistance);
 
 	void ComputeVolumetricFog(FRHICommandListImmediate& RHICmdList);
 
@@ -437,7 +437,8 @@ private:
 
 	void UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList);
 
-	void DrawAllTranslucencyPasses(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, ETranslucencyPass::Type TranslucenyPassType);
+	void RenderViewTranslucency(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, ETranslucencyPass::Type TranslucenyPass);
+	void RenderViewTranslucencyParallel(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, ETranslucencyPass::Type TranslucencyPass);
 
 	void CopySceneCaptureComponentToTarget(FRHICommandListImmediate& RHICmdList);
 

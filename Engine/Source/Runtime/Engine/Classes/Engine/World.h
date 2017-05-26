@@ -2192,7 +2192,7 @@ public:
 	ULevel* GetActiveLightingScenario() const;
 
 	/** Propagates a change to the active lighting scenario. */
-	void PropagateLightingScenarioChange();
+	void PropagateLightingScenarioChange(bool bLevelWasMadeVisible);
 
 	/**
 	 * Associates the passed in level with the world. The work to make the level visible is spread across several frames and this

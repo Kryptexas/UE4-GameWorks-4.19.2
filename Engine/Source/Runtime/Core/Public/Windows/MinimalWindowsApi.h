@@ -72,6 +72,13 @@ namespace Windows
 	typedef _OVERLAPPED* LPOVERLAPPED;
 	typedef _LARGE_INTEGER* LPLARGE_INTEGER;
 
+	typedef struct _RTL_SRWLOCK
+	{
+		void* Ptr;
+	} RTL_SRWLOCK, *PRTL_SRWLOCK;
+
+	typedef RTL_SRWLOCK SRWLOCK, *PSRWLOCK;
+
 	// Modules
 	extern "C" __declspec(dllimport) HMODULE WINAPI LoadLibraryW(LPCTSTR lpFileName);
 	extern "C" __declspec(dllimport) BOOL WINAPI FreeLibrary(HMODULE hModule);
@@ -84,6 +91,12 @@ namespace Windows
 	extern "C" __declspec(dllimport) void WINAPI EnterCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
 	extern "C" __declspec(dllimport) void WINAPI LeaveCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
 	extern "C" __declspec(dllimport) void WINAPI DeleteCriticalSection(LPCRITICAL_SECTION lpCriticalSection);
+
+	extern "C" __declspec(dllimport) void WINAPI InitializeSRWLock(PSRWLOCK SRWLock);
+	extern "C" __declspec(dllimport) void WINAPI AcquireSRWLockShared(PSRWLOCK SRWLock);
+	extern "C" __declspec(dllimport) void WINAPI ReleaseSRWLockShared(PSRWLOCK SRWLock);
+	extern "C" __declspec(dllimport) void WINAPI AcquireSRWLockExclusive(PSRWLOCK SRWLock);
+	extern "C" __declspec(dllimport) void WINAPI ReleaseSRWLockExclusive(PSRWLOCK SRWLock);
 
 	// I/O
 	extern "C" __declspec(dllimport) BOOL WINAPI ConnectNamedPipe(HANDLE hNamedPipe, LPOVERLAPPED lpOverlapped);

@@ -72,6 +72,8 @@ float ComputeVolumeShadowing(float3 WorldPositionForLighting, bool bPointLight, 
 				Settings.SceneDepth = HomogeneousShadowPosition.z;
 				Settings.TransitionScale = 40;
 				Settings.bSubsurface = false;
+				// We can sample outside of the static shadowmap, which is centered around the scene.  These 'infinite' depth values should not cause occlusion.
+				Settings.bTreatMaxDepthUnshadowed = true;
 				Settings.DensityMulConstant = 0;
 				Settings.ProjectionDepthBiasParameters = float2(0, 0);
 

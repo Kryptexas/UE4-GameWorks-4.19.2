@@ -296,6 +296,8 @@ Requirements for RHI thread
 * BeginDrawingViewport, and 5 or so other frame advance methods are queued with an RHIThread. Without an RHIThread, these just flush internally.
 ***/
 extern RHI_API bool GRHISupportsRHIThread;
+/* as above, but we run the commands on arbitrary task threads */
+extern RHI_API bool GRHISupportsRHIOnTaskThread;
 
 /** Whether or not the RHI supports parallel RHIThread executes / translates
 Requirements:
@@ -935,7 +937,7 @@ struct FClearValueBinding
 	static RHI_API const FClearValueBinding DepthNear;
 	static RHI_API const FClearValueBinding DepthFar;	
 	static RHI_API const FClearValueBinding Green;
-	static RHI_API const FClearValueBinding MidGray;
+	static RHI_API const FClearValueBinding DefaultNormal8Bit;
 };
 
 struct FRHIResourceCreateInfo

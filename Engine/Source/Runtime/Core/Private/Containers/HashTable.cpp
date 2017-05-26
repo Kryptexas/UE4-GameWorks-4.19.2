@@ -2,9 +2,9 @@
 
 #include "HashTable.h"
 
-uint32 FHashTable::EmptyHash[1] = { ~0u };
+CORE_API uint32 FHashTable::EmptyHash[1] = { ~0u };
 
-void FHashTable::Resize( uint32 NewIndexSize )
+CORE_API void FHashTable::Resize( uint32 NewIndexSize )
 {
 	if( NewIndexSize == IndexSize )
 	{

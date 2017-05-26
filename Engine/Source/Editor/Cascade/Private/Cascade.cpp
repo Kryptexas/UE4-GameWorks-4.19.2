@@ -3445,6 +3445,9 @@ void FCascade::AddLOD(bool bBeforeCurrent)
 			}
 		}
 
+		//This should probably have fixed size and behave like LODDistances but for now just avoid the crash.
+		ParticleSystem->LODSettings.SetNumZeroed(FMath::Max(CurrentLODIndex, ParticleSystem->LODSettings.Num()));
+
 		ParticleSystem->LODDistances.InsertZeroed(CurrentLODIndex, 1);
 		if (CurrentLODIndex == 0)
 		{

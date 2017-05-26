@@ -11,6 +11,7 @@
 #include "UnrealEngine.h"
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
+#include "RenderingObjectVersion.h"
 
 int32 GTextureRenderTarget2DMaxSizeX = 999999999;
 int32 GTextureRenderTarget2DMaxSizeY = 999999999;
@@ -22,7 +23,8 @@ int32 GTextureRenderTarget2DMaxSizeY = 999999999;
 UTextureRenderTarget2D::UTextureRenderTarget2D(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bHDR = true;
+	bHDR_DEPRECATED = true;
+	RenderTargetFormat = RTF_RGBA16f;
 	bAutoGenerateMips = false;
 	NumMips = 0;
 	ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -157,6 +159,18 @@ void UTextureRenderTarget2D::PostEditChangeProperty(FPropertyChangedEvent& Prope
 }
 #endif // WITH_EDITOR
 
+void UTextureRenderTarget2D::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
+	if (Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::AddedTextureRenderTargetFormats)
+	{
+		RenderTargetFormat = bHDR_DEPRECATED ? RTF_RGBA16f : RTF_RGBA8;
+	}
+}
+
 void UTextureRenderTarget2D::PostLoad()
 {
 	float OriginalSizeX = SizeX;
@@ -172,7 +186,7 @@ void UTextureRenderTarget2D::PostLoad()
 
 	SizeX = FMath::Min<int32>(SizeX, GTextureRenderTarget2DMaxSizeX);
 	SizeY = FMath::Min<int32>(SizeY, GTextureRenderTarget2DMaxSizeY);
-	
+
 	// Maintain aspect ratio if clamped
 	if( SizeX != OriginalSizeX || SizeY != OriginalSizeY )
 	{

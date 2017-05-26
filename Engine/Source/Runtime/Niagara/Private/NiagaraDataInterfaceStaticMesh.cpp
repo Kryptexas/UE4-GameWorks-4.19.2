@@ -760,7 +760,7 @@ bool UNiagaraDataInterfaceStaticMesh::ResetRequired()
 	bool bReset = false;
 	if (Mesh)
 	{
-		bIsAreaWeightedSampling = Mesh->bRequiresAreaWeightedSampling;
+		bIsAreaWeightedSampling = Mesh->bSupportUniformlyDistributedSampling;
 		bSupportingVertexColorSampling = bEnableVertexColorRangeSorting && MeshHasColors();
 		bReset = !Mesh->bAllowCPUAccess || bIsAreaWeightedSampling != bPrevAreaWeighted || bSupportingVertexColorSampling != bPrevVCSampling;
 	}

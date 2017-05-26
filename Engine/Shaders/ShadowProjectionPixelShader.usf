@@ -8,8 +8,6 @@
 #define FORCE_FLOATS (COMPILER_METAL)
 #endif
 
-#include "Common.usf"
-
 #ifndef USE_FADE_PLANE
 	#define USE_FADE_PLANE 0
 #endif
@@ -17,6 +15,17 @@
 #ifndef SHADOW_QUALITY
 	#define SHADOW_QUALITY 6
 #endif
+
+#ifndef APPLY_TRANSLUCENCY_SHADOWS
+	#define APPLY_TRANSLUCENCY_SHADOWS 0
+#endif
+
+#ifndef USE_PCSS
+	#define USE_PCSS 0
+#endif
+
+
+#include "Common.usf"
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	// Gather() is supported
@@ -28,6 +37,9 @@
 
 #include "ShadowProjectionCommon.usf"
 #include "ShadowFilteringCommon.usf"
+#if USE_PCSS
+#include "ShadowPercentageCloserFiltering.usf"
+#endif
 #include "DeferredShadingCommon.usf"
 #include "DynamicLightingCommon.usf"
 
@@ -40,6 +52,13 @@ float2 ProjectionDepthBiasParameters;
 #if USE_FADE_PLANE
 	float FadePlaneOffset;
 	float InvFadePlaneLength;
+#endif
+
+#if USE_PCSS
+	// PCSS specific parameters.
+	//	- x: tan(0.5 * Directional Light Angle) in shadow projection space;
+	//  - y: Max filter size in shadow tile UV space.
+	float4 PCSSParameters;
 #endif
 
 float4 ModulatedShadowColor;
@@ -65,11 +84,21 @@ void Main(
 	out float4 OutColor : SV_Target0
 	)
 {
+	const FPQMPContext PQMPContext = PQMPInit(SVPos.xy);
+
 	float2 ScreenUV = float2( SVPos.xy * View.BufferSizeAndInvSize.zw );
 	float SceneW = CalcSceneDepth( ScreenUV );
-	float2 ScreenPosition = ( ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
-	float4 ShadowPosition = mul(float4(ScreenPosition.xy * SceneW,SceneW,1), ScreenToShadowMatrix);
+	float4 ScreenPosition = float4(((ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy) * SceneW, SceneW, 1);
+	float4 ShadowPosition = mul(ScreenPosition, ScreenToShadowMatrix);
+	
+	#if USE_PCSS
+		float3 ScreenPositionDDX = ddx_fine(ScreenPosition.xyz);
+		float3 ScreenPositionDDY = ddy_fine(ScreenPosition.xyz);
+		float4 ShadowPositionDDX = mul(float4(ScreenPositionDDX, 0), ScreenToShadowMatrix);
+		float4 ShadowPositionDDY = mul(float4(ScreenPositionDDY, 0), ScreenToShadowMatrix);
+	#endif
 
+	// TODO: Take care of ShadowPositionDDX/Y for non directional shadows.
 	ShadowPosition.xy /= ShadowPosition.w;
 
 #if MODULATED_SHADOWS
@@ -89,42 +118,60 @@ void Main(
 	float SSSTransmission = 1;
 	
 	float BlendFactor = 1;
-
-#if APPLY_TRANSLUCENCY_SHADOWS
 	
-	Shadow = CalculateTranslucencyShadowing(ShadowPosition.xy, ShadowPosition.z);
-
-#else
-
 	// For debugging
 	#define UNFILTERED_SHADOW_PROJECTION 0
+
 	#if UNFILTERED_SHADOW_PROJECTION
-
+	{
 		Shadow = LightSpacePixelDepthForOpaque < Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowPosition.xy, 0).r;
-
-	#else
-
+	}
+	#elif APPLY_TRANSLUCENCY_SHADOWS
+	{
+		Shadow = CalculateTranslucencyShadowing(ShadowPosition.xy, ShadowPosition.z);
+	}
+	#elif USE_PCSS
+	{
+		FPCSSSamplerSettings Settings;
+		
+		Settings.ShadowDepthTexture = ShadowDepthTexture;
+		Settings.ShadowDepthTextureSampler = ShadowDepthTextureSampler;
+		Settings.ShadowBufferSize = ShadowBufferSize;
+		Settings.ShadowTileOffsetAndSize = ShadowTileOffsetAndSize;
+		Settings.SceneDepth = LightSpacePixelDepthForOpaque;
+		Settings.TransitionScale = SoftTransitionScale.z;
+		Settings.TanLightSourceAngle = PCSSParameters.x;
+		Settings.MaxKernelSize = PCSSParameters.y;
+		Settings.SvPosition = SVPos;
+		Settings.PQMPContext = PQMPContext;
+		Settings.DebugViewportUV = ScreenUV;
+		
+		Shadow = DirectionalPCSS(Settings, ShadowPosition.xy, ShadowPositionDDX.xyz, ShadowPositionDDY.xyz);
+	}
+	#else // !USE_PCSS
+	{
 		FPCFSamplerSettings Settings;
-
+		
 		Settings.ShadowDepthTexture = ShadowDepthTexture;
 		Settings.ShadowDepthTextureSampler = ShadowDepthTextureSampler;
 		Settings.ShadowBufferSize = ShadowBufferSize;
 		Settings.TransitionScale = SoftTransitionScale.z;
 		Settings.SceneDepth = LightSpacePixelDepthForOpaque;
 		Settings.bSubsurface = false;
+		Settings.bTreatMaxDepthUnshadowed = false;
 		Settings.DensityMulConstant = 0;
 		Settings.ProjectionDepthBiasParameters = 0;
 
 		Shadow = ManualPCF(ShadowPosition.xy, Settings);
-
-	#endif
+	}
+	#endif // !USE_PCSS
 		
 	#if USE_FADE_PLANE
 		// Create a blend factor which is one before and at the fade plane, and lerps to zero at the far plane.
 		BlendFactor = 1.0f - saturate((SceneW - FadePlaneOffset) * InvFadePlaneLength);
 	#endif
 
-	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && !FORWARD_SHADING
+	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && !FORWARD_SHADING && !APPLY_TRANSLUCENCY_SHADOWS
 
 		FGBufferData GBufferData = GetGBufferData(ScreenUV);
 
@@ -160,6 +207,7 @@ void Main(
 				Settings.TransitionScale = SoftTransitionScale.z;
 				Settings.SceneDepth = LightSpacePixelDepthForSSS + ProjectionDepthBiasParameters.x;
 				Settings.bSubsurface = true;
+				Settings.bTreatMaxDepthUnshadowed = false;
 				Settings.DensityMulConstant = Density * ProjectionDepthBiasParameters.y;
 				Settings.ProjectionDepthBiasParameters = ProjectionDepthBiasParameters;
 				
@@ -170,9 +218,11 @@ void Main(
 
 	#endif
 	
-#endif
-		
-	Shadow = saturate( (Shadow - 0.5) * ShadowSharpen + 0.5 );
+	#if !USE_PCSS
+		// There is no point changing the shadow sharpen on PCSS, can directly reduce the light
+		// source angle that would actually make the algorithm to run faster.
+		Shadow = saturate( (Shadow - 0.5) * ShadowSharpen + 0.5 );
+	#endif
 
 	// 0 is shadowed, 1 is unshadowed
 	// RETURN_COLOR not needed unless writing to SceneColor;

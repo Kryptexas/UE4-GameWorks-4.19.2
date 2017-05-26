@@ -631,6 +631,10 @@ void FLevelEditorActionCallbacks::Build_Execute()
 	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildAll );
 }
 
+bool FLevelEditorActionCallbacks::Build_CanExecute()
+{
+	return !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
+}
 
 void FLevelEditorActionCallbacks::BuildAndSubmitToSourceControl_Execute()
 {
@@ -653,7 +657,7 @@ bool FLevelEditorActionCallbacks::BuildLighting_CanExecute()
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-	return bAllowStaticLighting;
+	return bAllowStaticLighting && !(GEditor->PlayWorld || GUnrealEd->bIsSimulatingInEditor);
 }
 
 void FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_Execute()

@@ -160,7 +160,7 @@ void FDynamicTextureInstanceManager::Remove(const UPrimitiveComponent* Component
 	check(!Component || Component->IsValidLowLevelFast());
 	if (Component && Component->bAttachedToStreamingManagerAsDynamic)
 	{
-		PendingComponents.Remove(Component);
+		PendingComponents.RemoveSwap(Component);
 
 		// If the component is used, stop any task possibly indirecting it, and clear references.
 		if (StateSync.GetState()->HasComponentReferences(Component))

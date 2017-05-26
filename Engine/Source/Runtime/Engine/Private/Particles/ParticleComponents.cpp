@@ -1977,8 +1977,8 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	EditorLODSetting = 0;
 #endif // WITH_EDITORONLY_DATA
 	FixedRelativeBoundingBox.Min = FVector(-1.0f, -1.0f, -1.0f);
-
 	FixedRelativeBoundingBox.Max = FVector(1.0f, 1.0f, 1.0f);
+	FixedRelativeBoundingBox.IsValid = true;
 
 	LODMethod = PARTICLESYSTEMLODMETHOD_Automatic;
 	LODDistanceCheckTime = 0.25f;
@@ -4050,6 +4050,24 @@ void UParticleSystemComponent::SetMaterial(int32 ElementIndex, UMaterialInterfac
 		}
 		EmitterMaterials[ElementIndex] = Material;
 		bIsViewRelevanceDirty = true;
+
+		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+		{
+			if (FParticleEmitterInstance* Inst = EmitterInstances[EmitterIndex])
+			{
+				if (!Inst->Tick_MaterialOverrides())
+				{
+					if (EmitterMaterials.IsValidIndex(EmitterIndex))
+					{
+						if (EmitterMaterials[EmitterIndex])
+						{
+							Inst->CurrentMaterial = EmitterMaterials[EmitterIndex];
+						}
+					}
+				}
+			}
+		}
+		MarkRenderDynamicDataDirty();
 	}
 }
 

@@ -14,6 +14,9 @@
 #include "GameFramework/WorldSettings.h"
 
 #if WITH_EDITOR
+
+	#include "TextureCompressorModule.h"
+
 	// NOTE: We're only counting the top-level mip-map for the following variables.
 	/** Total number of texels allocated for all shadowmap textures. */
 	ENGINE_API uint64 GNumShadowmapTotalTexels = 0;
@@ -178,7 +181,7 @@ extern bool GGroupComponentLightmaps;
 
 struct FShadowMapPendingTexture : FTextureLayout
 {
-	TArray<FShadowMapAllocation*> Allocations;
+	TArray<TUniquePtr<FShadowMapAllocation>> Allocations;
 
 	UObject* Outer;
 
@@ -218,7 +221,7 @@ struct FShadowMapPendingTexture : FTextureLayout
 	 *
 	 * @param	InWorld	World in which the textures exist
 	 */
-	void StartEncoding(ULevel* LightingScenario);
+	void StartEncoding(ULevel* LightingScenario, ITextureCompressorModule* Compressor);
 
 	/**
 	 * Create UObjects required in the encoding step, this is so we can multithread teh encode step
@@ -330,7 +333,7 @@ void FShadowMapPendingTexture::CreateUObjects()
 	bCreatedUObjects = true;
 }
 
-void FShadowMapPendingTexture::StartEncoding(ULevel* LightingScenario)
+void FShadowMapPendingTexture::StartEncoding(ULevel* LightingScenario, ITextureCompressorModule* Compressor)
 {
 	// Create the shadow-map texture.
 	CreateUObjects();
@@ -381,7 +384,7 @@ void FShadowMapPendingTexture::StartEncoding(ULevel* LightingScenario)
 	}
 
 	// Update the texture resource.
-	Texture->CachePlatformData(true, true);
+	Texture->CachePlatformData(true, true, Compressor);
 
 	bFinishedEncoding = true;
 }
@@ -754,6 +757,8 @@ void FShadowMap2D::EncodeTextures(UWorld* InWorld, ULevel* LightingScenario, boo
 		GWarn->BeginSlowTask( NSLOCTEXT("ShadowMap2D", "BeginEncodingShadowMapsTask", "Encoding shadow-maps"), false );
 		const int32 PackedLightAndShadowMapTextureSize = InWorld->GetWorldSettings()->PackedLightAndShadowMapTextureSize;
 
+		ITextureCompressorModule* TextureCompressorModule = &FModuleManager::LoadModuleChecked<ITextureCompressorModule>(TEXTURE_COMPRESSOR_MODULENAME);
+
 		// Reset the pending shadow-map size.
 		PendingShadowMapSize = 0;
 
@@ -819,7 +824,7 @@ void FShadowMap2D::EncodeTextures(UWorld* InWorld, ULevel* LightingScenario, boo
 			// Give the texture ownership of the allocations
 			for (auto& Allocation : PendingGroup.Allocations)
 			{
-				Texture->Allocations.Add(Allocation.Release());
+				Texture->Allocations.Add(MoveTemp(Allocation));
 			}
 		}
 		PendingShadowMaps.Empty();
@@ -833,7 +838,7 @@ void FShadowMap2D::EncodeTextures(UWorld* InWorld, ULevel* LightingScenario, boo
 			for (auto& PendingTexture : PendingTextures)
 			{
 				PendingTexture.CreateUObjects();
-				auto AsyncEncodeTask = new (AsyncEncodeTasks)FAsyncEncode<FShadowMapPendingTexture>(&PendingTexture, LightingScenario, Counter);
+				auto AsyncEncodeTask = new (AsyncEncodeTasks)FAsyncEncode<FShadowMapPendingTexture>(&PendingTexture, LightingScenario, Counter, TextureCompressorModule);
 				GThreadPool->AddQueuedWork(AsyncEncodeTask);
 			}
 
@@ -849,7 +854,7 @@ void FShadowMap2D::EncodeTextures(UWorld* InWorld, ULevel* LightingScenario, boo
 			for (int32 TextureIndex = 0; TextureIndex < PendingTextures.Num(); TextureIndex++)
 			{
 				FShadowMapPendingTexture& PendingTexture = PendingTextures[TextureIndex];
-				PendingTexture.StartEncoding(LightingScenario);
+				PendingTexture.StartEncoding(LightingScenario, TextureCompressorModule);
 			}
 		}
 
@@ -1174,7 +1179,7 @@ int32 FShadowMap2D::EncodeSingleTexture(ULevel* LightingScenario, FShadowMapPend
 		}
 	}
 
-	for (FShadowMapAllocation* Allocation : PendingTexture.Allocations)
+	for (auto& Allocation : PendingTexture.Allocations)
 	{
 		Allocation->PostEncode();
 	}

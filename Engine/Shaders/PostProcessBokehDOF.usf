@@ -450,7 +450,7 @@ float4 DOFRecombineCommon(float2 UV, float4 SvPosition)
 #endif
 
 #if RECOMBINE_METHOD == 2 || RECOMBINE_METHOD == 3
-	float4 SeparateTranslucency = UpsampleSeparateTranslucency(SvPosition.xy, FullResUV);
+	float4 SeparateTranslucency = UpsampleSeparateTranslucency(SvPosition.xy, FullResUV, PostprocessInput2, PostprocessInput2Size.zw);
 
 	// add RGB, darken by A (this allows to represent translucent and additive blending)
 	OutColor.rgb = OutColor.rgb * SeparateTranslucency.a + SeparateTranslucency.rgb;

@@ -10,6 +10,9 @@ PixelShaderOutputCommon.usf: To allow PS input/output passed int functions throu
 #ifndef PIXELSHADEROUTPUT_BASEPASS
 	#define PIXELSHADEROUTPUT_BASEPASS 0
 #endif
+#ifndef PIXELSHADEROUTPUT_MESHDECALPASS
+	#define PIXELSHADEROUTPUT_MESHDECALPASS 0
+#endif
 #ifndef PIXELSHADEROUTPUT_MRT0
 	#define PIXELSHADEROUTPUT_MRT0 0
 #endif
@@ -51,6 +54,8 @@ void MainPS
 #endif
 #if PIXELSHADEROUTPUT_BASEPASS
 		FBasePassInterpolantsVSToPS BasePassInterpolants,
+#elif PIXELSHADEROUTPUT_MESHDECALPASS
+		FMeshDecalInterpolants MeshDecalInterpolants,
 #endif
 
 		in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position		// after all interpolators
@@ -119,6 +124,8 @@ void MainPS
 
 #if PIXELSHADEROUTPUT_BASEPASS
 	FPixelShaderInOut_MainPS(Interpolants, BasePassInterpolants, PixelShaderIn, PixelShaderOut);
+#elif PIXELSHADEROUTPUT_MESHDECALPASS
+	FPixelShaderInOut_MainPS(Interpolants, MeshDecalInterpolants, PixelShaderIn, PixelShaderOut);
 #elif PIXELSHADEROUTPUT_INTERPOLANTS
 	FPixelShaderInOut_MainPS(Interpolants, PixelShaderIn, PixelShaderOut);
 #else

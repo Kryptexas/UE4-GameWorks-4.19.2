@@ -164,7 +164,7 @@ static TAutoConsoleVariable<int32> CVarRHICmdDeferSkeletalLockAndFillToRHIThread
 
 static bool DeferSkeletalLockAndFillToRHIThread()
 {
-	return GRHIThread && CVarRHICmdDeferSkeletalLockAndFillToRHIThread.GetValueOnRenderThread() > 0;
+	return IsRunningRHIInSeparateThread() && CVarRHICmdDeferSkeletalLockAndFillToRHIThread.GetValueOnRenderThread() > 0;
 }
 
 struct FRHICommandUpdateBoneBuffer : public FRHICommand<FRHICommandUpdateBoneBuffer>
@@ -301,44 +301,6 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 int32 FGPUBaseSkinVertexFactory::GetMaxGPUSkinBones()
 {
 	return GCVarMaxGPUSkinBones;
-}
-
-/*-----------------------------------------------------------------------------
-	FBoneDataTexture
-	SizeX(32 * 1024) - Good size for UE3
------------------------------------------------------------------------------*/
-
-FBoneDataVertexBuffer::FBoneDataVertexBuffer()
-	: SizeX(80 * 1024)		// todo: we will replace this fixed size using FGlobalDynamicVertexBuffer
-{
-}
-
-float* FBoneDataVertexBuffer::LockData()
-{
-	checkSlow(IsInRenderingThread());
-	checkSlow(GetSizeX());
-	checkSlow(IsValidRef(BoneBuffer));
-
-	float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, ComputeMemorySize(), RLM_WriteOnly);
-	checkSlow(Data);
-
-	return Data;
-}
-
-void FBoneDataVertexBuffer::UnlockData(uint32 SizeInBytes)
-{
-	checkSlow(IsValidRef(BoneBuffer));
-	RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
-}
-
-uint32 FBoneDataVertexBuffer::GetSizeX() const
-{
-	return SizeX;
-}
-
-uint32 FBoneDataVertexBuffer::ComputeMemorySize()
-{
-	return SizeX * sizeof(FVector4);
 }
 
 /*-----------------------------------------------------------------------------

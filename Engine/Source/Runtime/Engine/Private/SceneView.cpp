@@ -311,6 +311,16 @@ static TAutoConsoleVariable<float> CVarRoughnessMax(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarAllowTranslucencyAfterDOF(
+	TEXT("r.SeparateTranslucency"),
+	1,
+	TEXT("Allows to disable the separate translucency feature (all translucency is rendered in separate RT and composited\n")
+	TEXT("after DOF, if not specified otherwise in the material).\n")
+	TEXT(" 0: off (translucency is affected by depth of field)\n")
+	TEXT(" 1: on costs GPU performance and memory but keeps translucency unaffected by Depth of Field. (default)"),
+	ECVF_RenderThreadSafe);
+
+
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
 
@@ -2459,6 +2469,17 @@ const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye
 		return *Views[1];
 	}
 }
+
+bool FSceneViewFamily::AllowTranslucencyAfterDOF() const
+{
+	return CVarAllowTranslucencyAfterDOF.GetValueOnRenderThread() != 0
+		&& GetFeatureLevel() >= ERHIFeatureLevel::SM4
+		// && EngineShowFlags.PostProcessing
+		&& !UseDebugViewPS()
+		&& EngineShowFlags.SeparateTranslucency;
+		// If not, translucency after DOF will be rendered in standard translucency.
+}
+
 
 FSceneViewFamilyContext::~FSceneViewFamilyContext()
 {

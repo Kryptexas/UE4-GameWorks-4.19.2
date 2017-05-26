@@ -34,7 +34,6 @@
 #include "Templates/EnableIf.h"
 #include "Templates/RemoveReference.h"
 #include "Templates/TypeCompatibleBytes.h"
-#include "Templates/AlignOf.h"
 #include "Templates/ChooseClass.h"
 #include "Templates/IntegralConstant.h"
 #include "Templates/IsClass.h"

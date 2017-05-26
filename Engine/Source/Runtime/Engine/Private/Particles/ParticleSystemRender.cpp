@@ -1102,7 +1102,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 									FParticleOrder* ParticleOrder = NULL;
 									if (bSort)
 									{
-										ParticleOrder = (FParticleOrder*)FMemStack::Get().Alloc(sizeof(FParticleOrder)* ParticleCount, ALIGNOF(FParticleOrder));
+										ParticleOrder = (FParticleOrder*)FMemStack::Get().Alloc(sizeof(FParticleOrder)* ParticleCount, alignof(FParticleOrder));
 										SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
 											SourceData->DataContainer.ParticleData, SourceData->ParticleStride, SourceData->DataContainer.ParticleIndices,
 											View, Proxy->GetLocalToWorld(), ParticleOrder);
@@ -1739,10 +1739,14 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 			{
 				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 				{
-					FMaterialRenderProxy* MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+					FMaterialRenderProxy* MaterialProxy = nullptr;
+					if (SectionIndex < MeshMaterials.Num() && MeshMaterials[SectionIndex])
+					{
+						MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+					}
 					const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 
-					if ((Section.NumTriangles == 0) || (MaterialProxy == NULL))
+					if ((Section.NumTriangles == 0) || (MaterialProxy == nullptr))
 					{
 						//@todo. This should never occur, but it does occasionally.
 						continue;

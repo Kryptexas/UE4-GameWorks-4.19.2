@@ -675,6 +675,13 @@ void UCableComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	UpdateComponentToWorld();
 };
 
+void UCableComponent::CreateRenderState_Concurrent()
+{
+	Super::CreateRenderState_Concurrent();
+
+	SendRenderDynamicData_Concurrent();
+}
+
 void UCableComponent::SendRenderDynamicData_Concurrent()
 {
 	if(SceneProxy)

@@ -110,9 +110,10 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera, float Exclud
 
 	// Calculate the line integral of the ray from the camera to the receiver position through the fog density function
 	// The exponential fog density function is d = GlobalDensity * exp(-HeightFalloff * z)
-	float EffectiveZ = (abs(RayDirectionZ) > FLT_EPSILON2) ? RayDirectionZ : FLT_EPSILON2;
-	float Falloff = max(-127.0f, ExponentialFogParameters.y * EffectiveZ);	// if it's lower than -127.0, then exp2() goes crazy in OpenGL's GLSL.
-	float ExponentialHeightLineIntegralShared = RayOriginTerms * (1.0f - exp2(-Falloff) ) / Falloff;
+	float Falloff = max(-127.0f, ExponentialFogParameters.y * RayDirectionZ);    // if it's lower than -127.0, then exp2() goes crazy in OpenGL's GLSL.
+	float LineIntegral = ( 1.0f - exp2(-Falloff) ) / Falloff;
+	float LineIntegralTaylor = log(2.0) - ( 0.5 * Pow2( log(2.0) ) ) * Falloff;		// Taylor expansion around 0
+	float ExponentialHeightLineIntegralShared = RayOriginTerms * ( abs(Falloff) > FLT_EPSILON2 ? LineIntegral : LineIntegralTaylor );
 	float ExponentialHeightLineIntegral = ExponentialHeightLineIntegralShared * RayLength;
 
 	half3 InscatteringColor = ComputeInscatteringColor(CameraToReceiver, CameraToReceiverLength);

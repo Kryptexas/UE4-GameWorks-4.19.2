@@ -5,7 +5,7 @@ PipelineStateCache.cpp: Pipeline state cache implementation.
 =============================================================================*/
 
 #include "PipelineStateCache.h"
-#include "Misc/ScopeLock.h"
+#include "Misc/ScopeRWLock.h"
 
 extern RHI_API FRHIComputePipelineState* ExecuteSetComputePipelineState(FComputePipelineState* ComputePipelineState);
 extern RHI_API FRHIGraphicsPipelineState* ExecuteSetGraphicsPipelineState(FGraphicsPipelineState* GraphicsPipelineState);
@@ -47,9 +47,9 @@ static inline uint32 GetTypeHash(const FGraphicsPipelineStateInitializer& Initia
 }
 
 
-static FCriticalSection GComputeLock;
+static FRWLock GComputeLock;
 static TMap<FRHIComputeShader*, FComputePipelineState*> GComputePipelines;
-static FCriticalSection GGraphicsLock;
+static FRWLock GGraphicsLock;
 static TMap <FGraphicsPipelineStateInitializer, FGraphicsPipelineState*> GGraphicsPipelines;
 
 class FPipelineState
@@ -136,7 +136,7 @@ public:
 
 static bool IsAsyncCompilationAllowed(FRHICommandList& RHICmdList)
 {
-	return GCVarAsyncPipelineCompile.GetValueOnAnyThread() && !RHICmdList.Bypass() && GRHIThread;
+	return GCVarAsyncPipelineCompile.GetValueOnAnyThread() && !RHICmdList.Bypass() && IsRunningRHIInSeparateThread();
 }
 
 FComputePipelineState* GetAndOrCreateComputePipelineState(FRHICommandList& RHICmdList, FRHIComputeShader* ComputeShader)
@@ -145,7 +145,7 @@ FComputePipelineState* GetAndOrCreateComputePipelineState(FRHICommandList& RHICm
 
 	{
 		// Should be hitting this case more often once the cache is hot
-		FScopeLock ScopeLock(&GComputeLock);
+		FRWScopeLock ScopeLock(GComputeLock, SLT_ReadOnly);
 
 		FComputePipelineState** Found = GComputePipelines.Find(ComputeShader);
 		if (Found)
@@ -157,22 +157,36 @@ FComputePipelineState* GetAndOrCreateComputePipelineState(FRHICommandList& RHICm
 			}
 			return *Found;
 		}
-
-		FComputePipelineState* PipelineState = new FComputePipelineState(ComputeShader);
-
-		if (IsAsyncCompilationAllowed(RHICmdList))
+		
+		ScopeLock.RaiseLockToWrite();
+		Found = GComputePipelines.Find(ComputeShader);
+		if (Found)
 		{
-			PipelineState->CompletionEvent = TGraphTask<FCompilePipelineStateTask>::CreateTask().ConstructAndDispatchWhenReady(PipelineState);
-			RHICmdList.QueueAsyncPipelineStateCompile(PipelineState->CompletionEvent);
+			if (IsAsyncCompilationAllowed(RHICmdList))
+			{
+				FGraphEventRef& CompletionEvent = (*Found)->CompletionEvent;
+				RHICmdList.QueueAsyncPipelineStateCompile(CompletionEvent);
+			}
+			return *Found;
 		}
 		else
 		{
-			PipelineState->RHIPipeline = RHICreateComputePipelineState(PipelineState->ComputeShader);
+			FComputePipelineState* PipelineState = new FComputePipelineState(ComputeShader);
+
+			if (IsAsyncCompilationAllowed(RHICmdList))
+			{
+				PipelineState->CompletionEvent = TGraphTask<FCompilePipelineStateTask>::CreateTask().ConstructAndDispatchWhenReady(PipelineState);
+				RHICmdList.QueueAsyncPipelineStateCompile(PipelineState->CompletionEvent);
+			}
+			else
+			{
+				PipelineState->RHIPipeline = RHICreateComputePipelineState(PipelineState->ComputeShader);
+			}
+
+			GComputePipelines.Add(ComputeShader, PipelineState);
+			
+			return PipelineState;
 		}
-
-		GComputePipelines.Add(ComputeShader, PipelineState);
-
-		return PipelineState;
 	}
 
 	return nullptr;
@@ -240,7 +254,7 @@ FGraphicsPipelineState* GetAndOrCreateGraphicsPipelineState(FRHICommandList& RHI
 
 	{
 		// Should be hitting this case more often once the cache is hot
-		FScopeLock ScopeLock(&GGraphicsLock);
+		FRWScopeLock ScopeLock(GGraphicsLock, SLT_ReadOnly);
 
 		FGraphicsPipelineState** Found = GGraphicsPipelines.Find(*Initializer);
 		if (Found)
@@ -253,21 +267,34 @@ FGraphicsPipelineState* GetAndOrCreateGraphicsPipelineState(FRHICommandList& RHI
 			return *Found;
 		}
 
-		FGraphicsPipelineState* PipelineState = new FGraphicsPipelineState(*Initializer);
-
-		if (IsAsyncCompilationAllowed(RHICmdList))
+		ScopeLock.RaiseLockToWrite();
+		Found = GGraphicsPipelines.Find(*Initializer);
+		if (Found)
 		{
-			PipelineState->CompletionEvent = TGraphTask<FCompilePipelineStateTask>::CreateTask().ConstructAndDispatchWhenReady(PipelineState);
-			RHICmdList.QueueAsyncPipelineStateCompile(PipelineState->CompletionEvent);
+			if (IsAsyncCompilationAllowed(RHICmdList))
+			{
+				FGraphEventRef& CompletionEvent = (*Found)->CompletionEvent;
+				RHICmdList.QueueAsyncPipelineStateCompile(CompletionEvent);
+			}
+			return *Found;
 		}
 		else
 		{
-			PipelineState->RHIPipeline = RHICreateGraphicsPipelineState(*Initializer);
+			FGraphicsPipelineState* PipelineState = new FGraphicsPipelineState(*Initializer);
+
+			if (IsAsyncCompilationAllowed(RHICmdList))
+			{
+				PipelineState->CompletionEvent = TGraphTask<FCompilePipelineStateTask>::CreateTask().ConstructAndDispatchWhenReady(PipelineState);
+				RHICmdList.QueueAsyncPipelineStateCompile(PipelineState->CompletionEvent);
+			}
+			else
+			{
+				PipelineState->RHIPipeline = RHICreateGraphicsPipelineState(*Initializer);
+			}
+
+			GGraphicsPipelines.Add(*Initializer, PipelineState);
+			return PipelineState;
 		}
-
-		GGraphicsPipelines.Add(*Initializer, PipelineState);
-
-		return PipelineState;
 	}
 
 	return nullptr;

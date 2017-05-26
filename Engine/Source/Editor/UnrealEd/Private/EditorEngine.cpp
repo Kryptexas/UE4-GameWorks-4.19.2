@@ -1588,14 +1588,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			{
 				// Decide whether to drop high detail because of frame rate
 				GameViewport->SetDropDetail(DeltaSeconds);
-			}
-
-			if (!bFirstTick)
-			{
-				// Update sky light first because sky diffuse will be visible in reflection capture indirect specular
-				USkyLightComponent::UpdateSkyCaptureContents(PlayWorld);
-				UReflectionCaptureComponent::UpdateReflectionCaptureContents(PlayWorld);
-			}
+			}			
 
 			// Update the level.
 			GameCycles=0;
@@ -1637,6 +1630,13 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				PieContext.World()->Tick( LEVELTICK_All, DeltaSeconds );
 				bAWorldTicked = true;
 				TickType = LEVELTICK_All;
+
+				if (!bFirstTick)
+				{
+					// Update sky light first because sky diffuse will be visible in reflection capture indirect specular
+					USkyLightComponent::UpdateSkyCaptureContents(PlayWorld);
+					UReflectionCaptureComponent::UpdateReflectionCaptureContents(PlayWorld);
+				}
 
 				if( bIsRecordingActive )
 				{

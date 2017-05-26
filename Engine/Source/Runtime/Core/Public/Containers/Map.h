@@ -5,7 +5,6 @@
 #include "CoreTypes.h"
 #include "Misc/AssertionMacros.h"
 #include "Templates/UnrealTypeTraits.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "Templates/Sorting.h"
 #include "Misc/StructBuilder.h"
@@ -1395,7 +1394,7 @@ private:
 
 		// Check that the class footprint is the same
 		static_assert(sizeof (ScriptType) == sizeof (RealType), "FScriptMap's size doesn't match TMap");
-		static_assert(ALIGNOF(ScriptType) == ALIGNOF(RealType), "FScriptMap's alignment doesn't match TMap");
+		static_assert(alignof(ScriptType) == alignof(RealType), "FScriptMap's alignment doesn't match TMap");
 
 		// Check member sizes
 		static_assert(sizeof(DeclVal<ScriptType>().Pairs) == sizeof(DeclVal<RealType>().Pairs), "FScriptMap's Pairs member size does not match TMap's");

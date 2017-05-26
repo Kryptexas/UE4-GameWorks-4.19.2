@@ -34,11 +34,19 @@ class FSlateFileDialogVisitor : public IPlatformFile::FDirectoryVisitor
 {
 public:
 	FSlateFileDialogVisitor(TArray<TSharedPtr<FFileEntry>> &InFileList,
-						TArray<TSharedPtr<FFileEntry>> &InFolderList, TSharedPtr<FString> InFilterList)
+						TArray<TSharedPtr<FFileEntry>> &InFolderList, const FString& InFilterList)
 		: FileList(InFileList),
-		FolderList(InFolderList),
-		FilterList(InFilterList)
-	{}
+		FolderList(InFolderList)
+	{
+		// Process the filters once rather than once for each file encountered
+		InFilterList.ParseIntoArray(FilterList, TEXT(";"), true);
+		// Remove cruft from the extension list
+		for (int32 Index = 0; Index < FilterList.Num(); Index++)
+		{
+			FilterList[Index].ReplaceInline(TEXT(")"), TEXT(""));
+			FilterList[Index] = FilterList[Index].TrimQuotes().TrimTrailing().Trim();
+		}
+	}
 	
 
 	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
@@ -49,7 +57,9 @@ public:
 		for (i = FCString::Strlen(FilenameOrDirectory) - 1; i >= 0; i--)
 		{
 			if (FilenameOrDirectory[i] == TCHAR('/'))
+			{
 				break;
+			}
 		}
 
 #if HIDE_HIDDEN_FILES
@@ -119,77 +129,29 @@ public:
 		return true;
 	}
 
-	bool PassesFilterTest(const TCHAR *Filename)
+	bool PassesFilterTest(const TCHAR* Filename)
 	{		
-		if (!FilterList.IsValid())
+		if (FilterList.Num() == 0)
 		{
 			return true; // no filters. everything passes.
 		}
 
-		int32 i;
-		const TCHAR *Extension = NULL;
-
-		// get extension
-		for (i = FCString::Strlen(Filename) - 1; i >= 0; i--)
+		FString Extension = FPaths::GetExtension(FString(Filename), true);
+		// See if it matches any of the extensions
+		for (const FString& FilterExt : FilterList)
 		{
-			if (Filename[i] == TCHAR('.'))
+			if (FilterExt == TEXT("*") || FilterExt == TEXT(".*") || FilterExt == TEXT("*.*") || FilterExt.EndsWith(Extension))
 			{
-				Extension = &Filename[i];
-				break;
+				return true;
 			}
 		}
-
-		if (Extension == NULL)
-		{
-			return false; // file has no extension. it fails filter test.
-		}
-
-		TCHAR Temp[MAX_FILTER_LENGTH];
-		FCString::Strcpy(Temp, FilterList->Len(), *(*FilterList.Get()));
-
-		// break path into tokens
-		TCHAR *ContextStr = nullptr;
-
-		TCHAR *FilterExt = FCString::Strtok(Temp, TEXT(";"), &ContextStr);
-		bool RC = false;
-
-		while (FilterExt)
-		{
-			// strip leading spaces and '*' from beginning.
-			FilterExt = FCString::Strchr(FilterExt, '.');
-
-			// strip any trailing spaces
-			for (i = FCString::Strlen(FilterExt) - 1; i >= 0 && FilterExt[i] == TCHAR(' '); i--)
-			{
-				FilterExt[i] = 0;
-			}
-
-			if (FCString::Strcmp(FilterExt, TEXT(".*")) == 0)
-			{
-				// *.* matches all
-				RC = true;
-				break;
-			}
-
-			if (FCString::Stricmp(FilterExt, Extension) == 0)
-			{
-				// positive hit.
-				RC = true;
-				break;
-			}
-
-			// next filter entry
-			FilterExt = FCString::Strtok(nullptr, TEXT(";"), &ContextStr);
-		}
-
-		// cleanup and return failed.
-		return RC;
+		return false;
 	}
 
 private:
 	TArray<TSharedPtr<FFileEntry>>& FileList;
 	TArray<TSharedPtr<FFileEntry>>& FolderList;
-	TSharedPtr<FString> FilterList;
+	TArray<FString> FilterList;
 };
 
 
@@ -1250,7 +1212,7 @@ void SSlateFileOpenDlg::ReadDir(bool bIsRefresh)
 
 	FilesArray.Empty();
 	FoldersArray.Empty();
-	TSharedPtr<FString> FilterList = nullptr;
+	FString FilterList;
 
 	if (FilterListArray.Num() > 0 && FilterIndex >= 0)
 	{
@@ -1454,7 +1416,8 @@ void SSlateFileOpenDlg::OnFileNameCommitted(const FText& InText, ETextCommit::Ty
 		if (!bDirectoriesOnly && GetFilterExtension(Extension))
 		{
 			// append extension to filename if user left it off
-			if (!SaveFilename.EndsWith(Extension, ESearchCase::CaseSensitive) && Extension.Compare(".*") != 0)
+			if (!SaveFilename.EndsWith(Extension, ESearchCase::CaseSensitive) &&
+				!IsWildcardExtension(Extension))
 			{
 				SaveFilename = SaveFilename + Extension;
 			}
@@ -1525,7 +1488,7 @@ void SSlateFileOpenDlg::ParseFilters()
 					FilterList = FCString::Strtok(nullptr, TEXT("|"), &ContextStr);
 
 					FilterNameArray.Add(MakeShareable(new FString(FilterDescription)));
-					FilterListArray.Add(MakeShareable(new FString(FilterList)));
+					FilterListArray.Add(FString(FilterList));
 
 					// next filter entry
 					FilterDescription = FCString::Strtok(nullptr, TEXT("|"), &ContextStr);
@@ -1545,10 +1508,11 @@ void SSlateFileOpenDlg::ParseFilters()
 
 bool SSlateFileOpenDlg::GetFilterExtension(FString &OutString)
 {
+	OutString.Empty();
+
 	// check to see if filters were given
 	if (Filters.Len() == 0)
 	{
-		OutString = "";
 		return false;
 	}
 
@@ -1558,24 +1522,34 @@ bool SSlateFileOpenDlg::GetFilterExtension(FString &OutString)
 
 	// find start of extension
 	TCHAR *FilterExt = FCString::Strchr(Temp, '.');
-
-	// strip any trailing junk
-	int32 i;
-	for (i = 0; i < FCString::Strlen(FilterExt); i++)
+	if (FilterExt != nullptr)
 	{
-		if (FilterExt[i] == ' ' || FilterExt[i] == ')' || FilterExt[i] == ';')
+		// strip any trailing junk
+		int32 i;
+		for (i = 0; i < FCString::Strlen(FilterExt); i++)
 		{
-			FilterExt[i] = 0;
-			break;
+			if (FilterExt[i] == ' ' || FilterExt[i] == ')' || FilterExt[i] == ';')
+			{
+				FilterExt[i] = 0;
+				break;
+			}
 		}
+
+		// store result and clean up
+		OutString = FilterExt;
 	}
-
-	// store result and clean up
-	OutString = FString(FilterExt);
-
-	return (i > 0);
+	else if (Temp[0] == TEXT('*'))
+	{
+		OutString = Temp;
+	}
+	return !OutString.IsEmpty();
 }
 
+bool SSlateFileOpenDlg::IsWildcardExtension(const FString& Extension)
+{
+	return (Extension.Find(TEXT(".*")) >= 0) ||
+			(Extension.Find(TEXT("*")) >= 0);
+}
 
 void SSlateFileOpenDlg::OnNewDirectoryCommitted(const FText & InText, ETextCommit::Type InCommitType)
 {

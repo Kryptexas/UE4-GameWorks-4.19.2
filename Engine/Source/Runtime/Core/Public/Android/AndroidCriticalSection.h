@@ -4,6 +4,8 @@
 
 #include "PThreadCriticalSection.h"
 #include "GenericPlatform/GenericPlatformCriticalSection.h"
+#include "PThreadRWLock.h"
 
 typedef FPThreadsCriticalSection FCriticalSection;
 typedef FSystemWideCriticalSectionNotImplemented FSystemWideCriticalSection;
+typedef FPThreadsRWLock FRWLock;

@@ -33,6 +33,26 @@ static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("  1: Adpater #1, ..."),
 	ECVF_RenderThreadSafe);
 
+int D3D12RHI_PreferAdaperVendor()
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("preferAMD")))
+	{
+		return 0x1002;
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("preferIntel")))
+	{
+		return 0x8086;
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("preferNvidia")))
+	{
+		return 0x10DE;
+	}
+
+	return -1;
+}
+
 namespace D3D12RHI
 {
 
@@ -260,6 +280,7 @@ void FD3D12DynamicRHIModule::FindAdapter()
 	bool bIsAnyNVIDIA = false;
 	bool bRequestedWARP = D3D12RHI_ShouldCreateWithWarp();
 
+	int PreferredVendor = D3D12RHI_PreferAdaperVendor();
 	// Enumerate the DXGIFactory's adapters.
 	for (uint32 AdapterIndex = 0; DXGIFactory->EnumAdapters(AdapterIndex, TempAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND; ++AdapterIndex)
 	{
@@ -309,18 +330,13 @@ void FD3D12DynamicRHIModule::FindAdapter()
 				// Requested WARP, reject all other adapters.
 				const bool bSkipRequestedWARP = bRequestedWARP && !bIsWARP;
 
-				// Add special check to support WARP and HMDs, which do not have associated outputs.
-				// This device has no outputs. Reject it, 
-				// http://msdn.microsoft.com/en-us/library/windows/desktop/bb205075%28v=vs.85%29.aspx#WARP_new_for_Win8
-				const bool bSkipHmdGraphicsAdapter = !OutputCount && !bIsWARP && !bUseHmdGraphicsAdapter;
-
 				// we don't allow the PerfHUD adapter
 				const bool bSkipPerfHUDAdapter = bIsPerfHUD && !bAllowPerfHUD;
 
 				// the user wants a specific adapter, not this one
 				const bool bSkipExplicitAdapter = CVarExplicitAdapterValue >= 0 && AdapterIndex != CVarExplicitAdapterValue;
 
-				const bool bSkipAdapter = bSkipRequestedWARP || bSkipHmdGraphicsAdapter || bSkipPerfHUDAdapter || bSkipExplicitAdapter;
+				const bool bSkipAdapter = bSkipRequestedWARP || bSkipPerfHUDAdapter || bSkipExplicitAdapter;
 
 				if (!bSkipAdapter)
 				{
@@ -328,8 +344,16 @@ void FD3D12DynamicRHIModule::FindAdapter()
 					{
 						FirstWithoutIntegratedAdapter = CurrentAdapter;
 					}
+					else if (PreferredVendor == AdapterDesc.VendorId && FirstWithoutIntegratedAdapter.IsValid())
+					{
+						FirstWithoutIntegratedAdapter = CurrentAdapter;
+					}
 
 					if (!FirstAdapter.IsValid())
+					{
+						FirstAdapter = CurrentAdapter;
+					}
+					else if (PreferredVendor == AdapterDesc.VendorId && FirstAdapter.IsValid())
 					{
 						FirstAdapter = CurrentAdapter;
 					}

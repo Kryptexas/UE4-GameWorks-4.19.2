@@ -474,7 +474,9 @@ SIZE_T FScene::GetSizeBytes() const
 
 void FScene::CheckPrimitiveArrays()
 {
+	check(Primitives.Num() == PrimitiveSceneProxies.Num());
 	check(Primitives.Num() == PrimitiveBounds.Num());
+	check(Primitives.Num() == PrimitiveFlagsCompact.Num());
 	check(Primitives.Num() == PrimitiveVisibilityIds.Num());
 	check(Primitives.Num() == PrimitiveOcclusionFlags.Num());
 	check(Primitives.Num() == PrimitiveComponentIds.Num());
@@ -490,7 +492,9 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmd
 	int32 PrimitiveIndex = Primitives.Add(PrimitiveSceneInfo);
 	PrimitiveSceneInfo->PackedIndex = PrimitiveIndex;
 
+	PrimitiveSceneProxies.AddUninitialized();
 	PrimitiveBounds.AddUninitialized();
+	PrimitiveFlagsCompact.AddUninitialized();
 	PrimitiveVisibilityIds.AddUninitialized();
 	PrimitiveOcclusionFlags.AddUninitialized();
 	PrimitiveComponentIds.AddUninitialized();
@@ -546,7 +550,7 @@ FReadOnlyCVARCache::FReadOnlyCVARCache()
 	static const auto CVarSupportPointLightWholeSceneShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportPointLightWholeSceneShadows"));
 	static const auto CVarSupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));	
 	static const auto CVarVertexFoggingForOpaque = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VertexFoggingForOpaque"));	
-	static const auto CVarForwardShading = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
+	static const auto CVarForwardShading = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
 	static const auto CVarAllowStaticLighting = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 
 	static const auto CVarMobileAllowMovableDirectionalLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowMovableDirectionalLights"));
@@ -571,7 +575,7 @@ FReadOnlyCVARCache::FReadOnlyCVARCache()
 	NumMobileMovablePointLights = CVarMobileNumDynamicPointLights->GetValueOnAnyThread();
 
 	// Only enable VertexFoggingForOpaque if ForwardShading is enabled 
-	const bool bForwardShading = CVarForwardShading && CVarForwardShading->GetValueOnAnyThread() != 0;
+	const bool bForwardShading = CVarForwardShading && CVarForwardShading->GetInt() != 0;
 	bEnableVertexFoggingForOpaque = bForwardShading && ( !CVarVertexFoggingForOpaque || CVarVertexFoggingForOpaque->GetValueOnAnyThread() != 0 );
 
 	const bool bShowMissmatchedLowQualityLightmapsWarning = (!bEnableLowQualityLightmaps) && (GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED);
@@ -956,7 +960,9 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 
 	int32 PrimitiveIndex = PrimitiveSceneInfo->PackedIndex;
 	Primitives.RemoveAtSwap(PrimitiveIndex);
+	PrimitiveSceneProxies.RemoveAtSwap(PrimitiveIndex);
 	PrimitiveBounds.RemoveAtSwap(PrimitiveIndex);
+	PrimitiveFlagsCompact.RemoveAtSwap(PrimitiveIndex);
 	PrimitiveVisibilityIds.RemoveAtSwap(PrimitiveIndex);
 	PrimitiveOcclusionFlags.RemoveAtSwap(PrimitiveIndex);
 	PrimitiveComponentIds.RemoveAtSwap(PrimitiveIndex);
@@ -1503,7 +1509,7 @@ const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Posi
 	return ClosestCaptureIndex != INDEX_NONE ? ReflectionSceneData.RegisteredReflectionCaptures[ClosestCaptureIndex] : NULL;
 }
 
-const FPlanarReflectionSceneProxy* FScene::FindClosestPlanarReflection(const FPrimitiveBounds& Bounds) const
+const FPlanarReflectionSceneProxy* FScene::FindClosestPlanarReflection(const FBoxSphereBounds& Bounds) const
 {
 	checkSlow(IsInParallelRenderingThread());
 	const FPlanarReflectionSceneProxy* ClosestPlanarReflection = NULL;
@@ -2711,7 +2717,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	// Primitive bounds
 	for (auto It = PrimitiveBounds.CreateIterator(); It; ++It)
 	{
-		(*It).Origin+= InOffset;
+		(*It).BoxSphereBounds.Origin+= InOffset;
 	}
 
 	// Primitive occlusion bounds
@@ -2785,7 +2791,7 @@ void FScene::OnLevelAddedToWorld(FName LevelAddedName, UWorld* InWorld, bool bIs
 {
 	if (bIsLightingScenario)
 	{
-		InWorld->PropagateLightingScenarioChange();
+		InWorld->PropagateLightingScenarioChange(true);
 	}
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
@@ -2818,7 +2824,7 @@ void FScene::OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario)
 {
 	if (bIsLightingScenario)
 	{
-		InWorld->PropagateLightingScenarioChange();
+		InWorld->PropagateLightingScenarioChange(false);
 	}
 }
 
@@ -3236,7 +3242,7 @@ bool FLatentGPUTimer::Tick(FRHICommandListImmediate& RHICmdList)
 
 	if (StartQueries[QueryIndex] && EndQueries[QueryIndex])
 	{
-		if (GRHIThread)
+		if (IsRunningRHIInSeparateThread())
 		{
 			// Block until the RHI thread has processed the previous query commands, if necessary
 			// Stat disabled since we buffer 2 frames minimum, it won't actually block
@@ -3308,7 +3314,7 @@ void FLatentGPUTimer::End(FRHICommandListImmediate& RHICmdList)
 	// for these query results on some platforms.
 	RHICmdList.SubmitCommandsHint();
 
-	if (GRHIThread)
+	if (IsRunningRHIInSeparateThread())
 	{
 		int32 NumFrames = NumBufferedFrames;
 		for (int32 Dest = 1; Dest < NumFrames; Dest++)

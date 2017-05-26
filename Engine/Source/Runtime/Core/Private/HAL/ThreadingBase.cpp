@@ -32,7 +32,7 @@ CORE_API FRunnableThread* GAudioThread = nullptr;
 CORE_API bool IsInAudioThread()
 {
 	// True if this is the audio thread or if there is no audio thread, then if it is the game thread
-	return (GAudioThreadId != 0 && FPlatformTLS::GetCurrentThreadId() == GAudioThreadId) || (GAudioThreadId == 0 && FPlatformTLS::GetCurrentThreadId() == GGameThreadId);
+	return FPlatformTLS::GetCurrentThreadId() == (GAudioThreadId ? GAudioThreadId : GGameThreadId);
 }
 
 CORE_API int32 GIsRenderingThreadSuspended = 0;
@@ -54,11 +54,14 @@ CORE_API bool IsInParallelRenderingThread()
 	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() != GGameThreadId);
 }
 
+CORE_API uint32 GRHIThreadId = 0;
+CORE_API FRunnableThread* GRHIThread_InternalUseOnly = nullptr;
+
 CORE_API bool IsInRHIThread()
 {
-	return GRHIThread && FPlatformTLS::GetCurrentThreadId() == GRHIThread->GetThreadID();
+	return GRHIThreadId && FPlatformTLS::GetCurrentThreadId() == GRHIThreadId;
 }
-CORE_API FRunnableThread* GRHIThread = nullptr;
+
 // Fake threads
 
 // Core version of IsInAsyncLoadingThread

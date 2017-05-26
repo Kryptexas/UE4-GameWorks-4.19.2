@@ -251,7 +251,7 @@ void FDynamicRHI::EnableIdealGPUCaptureOptions(bool bEnabled)
 
 	const bool bDrawEvents = GEmitDrawEvents != 0;
 	const bool bMaterialDrawEvents = ShowMaterialDrawEventVar ? ShowMaterialDrawEventVar->GetInt() != 0 : false;
-	const bool bRHIThread = GRHIThread != nullptr;	
+	const bool bRHIThread = IsRunningRHIInSeparateThread();
 	const bool bRHIBypass = RHICmdBypassVar ? RHICmdBypassVar->GetInt() != 0 : false;
 
 	UE_LOG(LogRHI, Display, TEXT("Setting GPU Capture Options: %i"), bEnabled ? 1 : 0);

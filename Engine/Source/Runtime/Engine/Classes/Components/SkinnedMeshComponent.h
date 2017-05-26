@@ -771,6 +771,8 @@ public:
 	DEPRECATED(4.13, "SetSpaceBaseDoubleBuffering is now renamed SetComponentSpaceTransformsDoubleBuffering")
 	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces) { SetComponentSpaceTransformsDoubleBuffering(bInDoubleBufferedBlendSpaces);  }
 
+	const FBoxSphereBounds& GetCachedLocalBounds() { return CachedLocalBounds; } 
+
 protected:
 
 	/** Flip the editable space base buffer */

@@ -609,18 +609,19 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 
 					if (bLightIsInWorld && ShouldOperateOnLevel(Light->GetOwner()->GetLevel()))
 					{
-						if (Light->bAffectsWorld
-						&& (Light->HasStaticShadowing() || Light->HasStaticLighting()))
-					{
-						// Make sure the light GUIDs are up-to-date.
-						Light->ValidateLightGUIDs();
+						if (Light->bAffectsWorld 
+							&& Light->IsRegistered()
+							&& (Light->HasStaticShadowing() || Light->HasStaticLighting()))
+						{
+							// Make sure the light GUIDs are up-to-date.
+							Light->ValidateLightGUIDs();
 
-						// Add the light to the system's list of lights in the world.
-						Lights.Add(Light);
+							// Add the light to the system's list of lights in the world.
+							Lights.Add(Light);
+						}
 					}
 				}
 			}
-		}
 		}
 
 		{

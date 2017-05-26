@@ -343,17 +343,21 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			GatherSimpleLights(ViewFamily, Views, SimpleLights);
 		}
 
+		TArray<FForwardGlobalLightData, TInlineAllocator<2>> GlobalLightDataForAllViews;
+		GlobalLightDataForAllViews.Empty(Views.Num());
+		GlobalLightDataForAllViews.AddDefaulted(Views.Num());
+
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			FViewInfo& View = Views[ViewIndex];
+			FForwardGlobalLightData& GlobalLightData = GlobalLightDataForAllViews[ViewIndex];
 
-			FForwardGlobalLightData GlobalLightData;
 			TArray<FForwardLocalLightData, SceneRenderingAllocator> ForwardLocalLightData;
 			float FurthestLight = 1000;
 
 			if (bCullLightsToGrid)
 			{
-				ForwardLocalLightData.Empty(Scene->Lights.Num());
+				ForwardLocalLightData.Empty(Scene->Lights.Num() + SimpleLights.InstanceData.Num());
 
 				for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
 				{
@@ -509,6 +513,10 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 				// Pack both values into a single float to keep float4 alignment
 				const FFloat16 SimpleLightSourceLength16f = FFloat16(0);
+				FLightingChannels SimpleLightLightingChannels;
+				// Put simple lights in all lighting channels
+				SimpleLightLightingChannels.bChannel0 = SimpleLightLightingChannels.bChannel1 = SimpleLightLightingChannels.bChannel2 = true;
+				const uint32 SimpleLightLightingChannelMask = GetLightingChannelMaskForStruct(SimpleLightLightingChannels);
 
 				for (int32 SimpleLightIndex = 0; SimpleLightIndex < SimpleLights.InstanceData.Num(); SimpleLightIndex++)
 				{	
@@ -520,7 +528,10 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 					LightData.LightPositionAndInvRadius = FVector4(SimpleLightPerViewData.Position, 1.0f / FMath::Max(SimpleLight.Radius, KINDA_SMALL_NUMBER));
 					LightData.LightColorAndFalloffExponent = FVector4(SimpleLight.Color, SimpleLight.Exponent);
 
+					// No shadowmap channels for simple lights
 					uint32 ShadowMapChannelMask = 0;
+					ShadowMapChannelMask |= SimpleLightLightingChannelMask << 8;
+
 					LightData.LightDirectionAndShadowMapChannelMask = FVector4(FVector(1, 0, 0), *((float*)&ShadowMapChannelMask));
 
 					// Pack both values into a single float to keep float4 alignment
@@ -592,6 +603,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			FViewInfo& View = Views[ViewIndex];
+			const FForwardGlobalLightData& GlobalLightData = GlobalLightDataForAllViews[ViewIndex];
 
 			const FIntPoint LightGridSizeXY = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), GLightGridPixelSize);
 			const int32 NumCells = LightGridSizeXY.X * LightGridSizeXY.Y * GLightGridSizeZ * NumCulledGridPrimitiveTypes;
@@ -613,7 +625,12 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			const FIntVector NumGroups = FIntVector::DivideAndRoundUp(FIntVector(LightGridSizeXY.X, LightGridSizeXY.Y, GLightGridSizeZ), LightGridInjectionGroupSize);
 
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, CullLights);
+				SCOPED_DRAW_EVENTF(RHICmdList, CullLights, TEXT("CullLights %ux%ux%u NumLights %u NumCaptures %u"), 
+					GlobalLightData.CulledGridSize.X, 
+					GlobalLightData.CulledGridSize.Y,
+					GlobalLightData.CulledGridSize.Z,
+					GlobalLightData.NumLocalLights,
+					GlobalLightData.NumReflectionCaptures);
 
 				TArray<FUnorderedAccessViewRHIParamRef, TInlineAllocator<6>> OutUAVs;
 				OutUAVs.Add(View.ForwardLightingResources->NumCulledLightsGrid.UAV);
@@ -626,9 +643,9 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 
 				if (GLightLinkedListCulling)
 				{
-					ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ForwardLightingResources->StartOffsetGrid, 0xFFFFFFFF);
-					ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ForwardLightingResources->NextCulledLightLink, 0);
-					ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ForwardLightingResources->NextCulledLightData, 0);
+					ClearUAV(RHICmdList, View.ForwardLightingResources->StartOffsetGrid, 0xFFFFFFFF);
+					ClearUAV(RHICmdList, View.ForwardLightingResources->NextCulledLightLink, 0);
+					ClearUAV(RHICmdList, View.ForwardLightingResources->NextCulledLightData, 0);
 
 					TShaderMapRef<TLightGridInjectionCS<true> > ComputeShader(View.ShaderMap);
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -638,7 +655,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 				}
 				else
 				{
-					ClearUAV(RHICmdList, GMaxRHIFeatureLevel, View.ForwardLightingResources->NumCulledLightsGrid, 0);
+					ClearUAV(RHICmdList, View.ForwardLightingResources->NumCulledLightsGrid, 0);
 
 					TShaderMapRef<TLightGridInjectionCS<false> > ComputeShader(View.ShaderMap);
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());

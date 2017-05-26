@@ -576,7 +576,7 @@ static void RenderPrimitive(FRenderingCompositePassContext& Context, FDecalDrawi
 						View,
 						DrawContext,
 						StaticMesh,
-						StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
+						StaticMesh.bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[StaticMesh.BatchVisibilityId] : ((1ull << StaticMesh.Elements.Num()) - 1),
 						false,
 						DrawRenderStateLocal,
 						PrimitiveSceneInfo->Proxy,

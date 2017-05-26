@@ -897,6 +897,11 @@ extern SHADERCORE_API const class FSHAHash& GetShaderFileHash(const TCHAR* Filen
  */
 extern SHADERCORE_API const class FSHAHash& GetShaderFilesHash(const TArray<FString>& Filenames);
 
+/**
+* Find the shader in the potential shader directories (engine, project, plugins) relative to the engine shader folder
+*/
+extern SHADERCORE_API FString FindShaderRelativePath(const FString Filename);
+
 extern void BuildShaderFileToUniformBufferMap(TMap<FString, TArray<const TCHAR*> >& ShaderFileToUniformBufferVariables);
 
 /**

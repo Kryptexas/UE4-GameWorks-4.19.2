@@ -182,6 +182,8 @@ private:
 
 	bool GetFilterExtension(FString &OutString);
 	void ParseFilters();
+	/** @return true if the extension filter contains a wildcard or not */
+	bool IsWildcardExtension(const FString& Extension);
 
 	TArray< FDirNode > DirectoryNodesArray;
 	TArray<TSharedPtr<FFileEntry>> FoldersArray;
@@ -202,7 +204,7 @@ private:
 	TSharedPtr<STextBlock> DirErrorMsg;
 
 	TArray<TSharedPtr<FString>> FilterNameArray;
-	TArray<TSharedPtr<FString>> FilterListArray;
+	TArray<FString> FilterListArray;
 
 	int32 FilterIndex;
 

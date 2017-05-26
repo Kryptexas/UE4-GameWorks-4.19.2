@@ -738,14 +738,17 @@ void FWindowsPlatformProcess::CleanFileCache()
 	if (bShouldCleanShaderWorkingDirectory && !FParse::Param( FCommandLine::Get(), TEXT("Multiprocess")))
 	{
 		// get shader path, and convert it to the userdirectory
-		FString ShaderDir = FString(FPlatformProcess::BaseDir()) / FPlatformProcess::ShaderDir();
-		FString UserShaderDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ShaderDir);
-		FPaths::CollapseRelativeDirectories(ShaderDir);
-
-		// make sure we don't delete from the source directory
-		if (ShaderDir != UserShaderDir)
+		for (FString Dir : FPlatformProcess::AllShaderDirs())
 		{
-			IFileManager::Get().DeleteDirectory(*UserShaderDir, false, true);
+			FString ShaderDir = FString(FPlatformProcess::BaseDir()) / Dir;
+			FString UserShaderDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ShaderDir);
+			FPaths::CollapseRelativeDirectories(ShaderDir);
+
+			// make sure we don't delete from the source directory
+			if (ShaderDir != UserShaderDir)
+			{
+				IFileManager::Get().DeleteDirectory(*UserShaderDir, false, true);
+			}
 		}
 
 		FPlatformProcess::CleanShaderWorkingDir();

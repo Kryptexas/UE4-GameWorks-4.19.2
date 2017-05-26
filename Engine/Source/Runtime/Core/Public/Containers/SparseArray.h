@@ -7,7 +7,6 @@
 #include "HAL/UnrealMemory.h"
 #include "Templates/IsTriviallyCopyConstructible.h"
 #include "Templates/UnrealTypeTraits.h"
-#include "Templates/AlignOf.h"
 #include "Templates/UnrealTemplate.h"
 #include "Templates/IsTriviallyDestructible.h"
 #include "Containers/ContainerAllocationPolicies.h"
@@ -831,7 +830,7 @@ private:
 	 * compatible types.
 	 */
 	typedef TSparseArrayElementOrFreeListLink<
-		TAlignedBytes<sizeof(ElementType),ALIGNOF(ElementType)>
+		TAlignedBytes<sizeof(ElementType), alignof(ElementType)>
 		> FElementOrFreeListLink;
 
 	/** Extracts the element value from the array's element structure and passes it to the user provided comparison class. */
@@ -900,7 +899,7 @@ public:
 	{
 		FScriptSparseArrayLayout Result;
 		Result.ElementOffset = 0;
-		Result.Alignment     = FMath::Max(ElementAlignment, (int32)ALIGNOF(FFreeListLink));
+		Result.Alignment     = FMath::Max(ElementAlignment, (int32)alignof(FFreeListLink));
 		Result.Size          = FMath::Max(ElementSize,      (int32)sizeof (FFreeListLink));
 
 		return Result;
@@ -1015,7 +1014,7 @@ private:
 
 		// Check that the class footprint is the same
 		static_assert(sizeof (ScriptType) == sizeof (RealType), "FScriptSparseArray's size doesn't match TSparseArray");
-		static_assert(ALIGNOF(ScriptType) == ALIGNOF(RealType), "FScriptSparseArray's alignment doesn't match TSparseArray");
+		static_assert(alignof(ScriptType) == alignof(RealType), "FScriptSparseArray's alignment doesn't match TSparseArray");
 
 		// Check member sizes
 		static_assert(sizeof(DeclVal<ScriptType>().Data)            == sizeof(DeclVal<RealType>().Data),            "FScriptSparseArray's Data member size does not match TSparseArray's");

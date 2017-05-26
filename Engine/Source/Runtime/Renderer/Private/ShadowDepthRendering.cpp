@@ -1319,7 +1319,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, class FSceneR
 			ViewportMaxZ
 			);
 		
-		DrawClearQuadMRT(RHICmdList, SceneRenderer->FeatureLevel, bClearColor, NumClearColors, Colors, true, 1.0f, false, 0);
+		DrawClearQuadMRT(RHICmdList, bClearColor, NumClearColors, Colors, true, 1.0f, false, 0);
 	}
 	else
 	{
@@ -1360,7 +1360,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 	SharedDrawingPolicy.ApplyDitheredLODTransitionState(DrawRenderStateLocal, View, *Mesh, false);
 
 	// Render only those batch elements that match the current LOD
-	uint64 BatchElementMask = Mesh->bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[Mesh->Id] : ((1ull << Mesh->Elements.Num()) - 1);
+	uint64 BatchElementMask = Mesh->bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[Mesh->BatchVisibilityId] : ((1ull << Mesh->Elements.Num()) - 1);
 	int32 BatchElementIndex = 0;
 	do
 	{
@@ -1580,7 +1580,7 @@ void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList, EShadow
 
 static TAutoConsoleVariable<int32> CVarParallelShadows(
 	TEXT("r.ParallelShadows"),
-	0,
+	1,
 	TEXT("Toggles parallel shadow rendering. Parallel rendering must be enabled for this to have an effect."),
 	ECVF_RenderThreadSafe
 	);
@@ -2173,6 +2173,11 @@ void FSceneRenderer::RenderShadowDepthMapAtlases(FRHICommandListImmediate& RHICm
 			}
 			InRHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, Info.DepthStencilRenderTarget.Texture);
 			InRHICmdList.SetRenderTargetsAndClear(Info);
+
+			if (!bPerformClear)
+			{
+				InRHICmdList.BindClearMRTValues(false, true, false);
+			}
 		};
 
 		{
@@ -2221,39 +2226,12 @@ void FSceneRenderer::RenderShadowDepthMapAtlases(FRHICommandListImmediate& RHICm
 	}
 }
 
-void FSceneRenderer::BeginRenderRayTracedDistanceFieldProjections(FRHICommandListImmediate& RHICmdList)
-{
-	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
-	{
-		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
-		const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
-		FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
-
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-		{
-			const FViewInfo& View = Views[ViewIndex];
-
-			for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.ShadowsToProject.Num(); ShadowIndex++)
-			{
-				FProjectedShadowInfo* ProjectedShadowInfo = VisibleLightInfo.ShadowsToProject[ShadowIndex];
-
-				if (ProjectedShadowInfo->bRayTracedDistanceField)
-				{
-					ProjectedShadowInfo->BeginRenderRayTracedDistanceFieldProjection(RHICmdList, View);
-				}
-			}
-		}
-	}
-}
-
 void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	SCOPED_DRAW_EVENT(RHICmdList, ShadowDepths);
 	SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ShadowDepths);
-
-	BeginRenderRayTracedDistanceFieldProjections(RHICmdList);
 
 	FSceneRenderer::RenderShadowDepthMapAtlases(RHICmdList);
 

@@ -823,9 +823,6 @@ void FPackageDependencyInfo::DetermineShaderSourceTimeStamp()
 {
 	ShaderSourceTimeStamp = FDateTime::MinValue();
 
-	// Get all the shader source files
-	FString ShaderSourceDirectory = FPlatformProcess::ShaderDir();
-
 	// use the timestamp grabbing visitor (include directories)
 	TArray<FString> DirectoriesWildcards;
 	TArray<FString> DirectoriesToIgnore;
@@ -834,7 +831,10 @@ void FPackageDependencyInfo::DetermineShaderSourceTimeStamp()
 	FileWildcards.Add(TEXT(".usf"));
 
 	FPackageDependencyTimestampVisitor TimeStampVisitor(FPlatformFileManager::Get().GetPlatformFile(), DirectoriesWildcards, DirectoriesToIgnore, DirectoriesToNotRecurse, FileWildcards, false, true);
-	TimeStampVisitor.Visit(*ShaderSourceDirectory, true);
+	for (FString ShaderDir : FPlatformProcess::AllShaderDirs())
+	{
+		TimeStampVisitor.Visit(*ShaderDir, true);
+	}
 
 	FMD5 AllShaderHash;
 	TimeStampVisitor.FileTimes.KeySort(TLess<FString>());
