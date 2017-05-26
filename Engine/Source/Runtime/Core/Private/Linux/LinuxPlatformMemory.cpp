@@ -24,6 +24,7 @@
 #include <sys/mman.h>
 
 #include "OSAllocationPool.h"
+#include "ScopeLock.h"
 
 // do not do a root privilege check on non-x86-64 platforms (assume an embedded device)
 #if defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
@@ -304,11 +305,20 @@ namespace LinuxMemoryPool
 		return PoolArray;
 	}
 }
+
+FCriticalSection* GetGlobalLinuxMemPoolLock()
+{
+	static FCriticalSection MemPoolLock;
+	return &MemPoolLock;
+};
+
 #endif // UE4_POOL_BAFO_ALLOCATIONS
 
 void* FLinuxPlatformMemory::BinnedAllocFromOS(SIZE_T Size)
 {
 #if UE4_POOL_BAFO_ALLOCATIONS
+	FScopeLock Lock(GetGlobalLinuxMemPoolLock());
+
 	LinuxMemoryPool::TLinuxMemoryPoolArray& PoolArray = LinuxMemoryPool::GetPoolArray();
 	void* RetVal = PoolArray.Allocate(Size);
 	if (LIKELY(RetVal))
@@ -346,6 +356,8 @@ void* FLinuxPlatformMemory::BinnedAllocFromOS(SIZE_T Size)
 void FLinuxPlatformMemory::BinnedFreeToOS(void* Ptr, SIZE_T Size)
 {
 #if UE4_POOL_BAFO_ALLOCATIONS
+	FScopeLock Lock(GetGlobalLinuxMemPoolLock());
+
 	LinuxMemoryPool::TLinuxMemoryPoolArray& PoolArray = LinuxMemoryPool::GetPoolArray();
 	if (LIKELY(PoolArray.Free(Ptr, Size)))
 	{
